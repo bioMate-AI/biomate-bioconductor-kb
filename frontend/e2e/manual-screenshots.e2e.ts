@@ -14,17 +14,25 @@ import { test, expect } from "@playwright/test";
 import * as path from "path";
 import { loginAsFixture, BASE_URL } from "./_fixture-login";
 
+// HIGH-DPI: the old pass captured at deviceScaleFactor=1 → blurry manual figures
+// (see docs/20260922_USER_MANUAL_SCREENSHOT_AUDIT.md). deviceScaleFactor must be
+// set at CONTEXT creation (setViewportSize can't change it), so it lives here.
+// 2× renders the default chrome at effectively 2880px wide → crisp at print size.
+test.use({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+
 // Playwright runs from the frontend/ dir; assets live at ../docs/user-manual/assets.
 const ASSETS = path.resolve(process.cwd(), "..", "docs/user-manual/assets");
 
 // Data-independent surfaces (no completed run / profiled dataset required).
 const SHOTS: Array<{ name: string; route: string; note: string }> = [
   // Cold start + composer share one surface (composer is at the foot of `/`).
-  { name: "i01-1-cold-start.png",   route: "/",             note: "cold start (new-chat empty state): intent bar + module cards + composer" },
-  { name: "i05-0-data-hub.png",     route: "/files",        note: "data hub — project picker (data is project-scoped)" },
-  { name: "i10-1-models.png",       route: "/models",       note: "models surface" },
-  { name: "i11-1-design.png",       route: "/design",       note: "design & generate surface" },
-  { name: "capabilities.png",       route: "/capabilities", note: "capabilities surface" },
+  { name: "i01-1-cold-start.png",   route: "/",                  note: "cold start (new-chat empty state): intent bar + module cards + composer" },
+  { name: "i05-0-data-hub.png",     route: "/files",             note: "data hub — project picker (data is project-scoped)" },
+  { name: "i10-1-models.png",       route: "/models",            note: "models surface" },
+  { name: "i11-1-design.png",       route: "/design",            note: "design & generate surface" },
+  { name: "capabilities.png",       route: "/capabilities",      note: "capabilities surface" },
+  { name: "i00-1-runs-dashboard.png", route: "/dashboard",       note: "runs dashboard (run history)" },
+  { name: "i13-1-cro-library.png",  route: "/drug-discovery-cro", note: "CRO library / drug-discovery campaigns" },
 ];
 
 test("capture data-independent manual surfaces", async ({ page }) => {
