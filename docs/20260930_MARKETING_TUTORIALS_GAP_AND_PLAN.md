@@ -119,7 +119,18 @@ E2. Update the coverage ledger + screenshot audit as items close.
 - Verified by headless render (hero + loop section screenshots): renders cleanly; the existing hero-photo chips ("Targets ranked — IL-23A #1 of 7", "PK simulated") happen to fit the new framing.
 - **Left intentionally broad:** the JSON-LD `featureList`/`knowsAbout` breadth arrays, blog deep-dives, `compare.html`. **Not yet done:** deploy to dev via `scripts/deploy_marketing.sh`; a native-CN pass (site is EN today — CN version is a separate item).
 
-**Next:** Track D (screenshot + chat-cleanup harness) → Track B (drug-dev manual) per §5.
+**Track A — DEPLOYED to production biomate.ai (2026-09-30).** `scripts/deploy_marketing.sh` succeeded (nginx reloaded); verified live: title, hero, discovery-loop section, and global tagline all serving on https://biomate.ai/.
+
+**Track D — screenshot harness + fixture cleanup: IN PROGRESS.**
+- **Which UI to shoot — DECIDED: the default chrome.** `use-ui-flavor.ts` defaults to v1; v2 features (cold-start dashboard, findings card, auto-loop, step-detail, after-run) are being *incrementally merged into the default chrome* (`20260527_V2_INCREMENTAL_MERGE_PLAN.md`), so the UI users actually see already IS the new UI. The full `?ui=v2` ResearchApp is still flag-gated → NOT the tutorial target.
+- **High-DPI fixed.** `frontend/e2e/manual-screenshots.e2e.ts` now sets `deviceScaleFactor:2` (was 1 → the blurry-figures root cause). Captures now 2880×1800. Added runs-dashboard + CRO-library surfaces. Login via `frontend/e2e/_fixture-login.ts` (`loginAsFixture`), `BIOMATE_URL=https://dev-public.biomate.ai`.
+- **Fixture cleanup done (reversible).** The shared fixture (`lifeifei163361@163.com`) had **134 projects, ~130 test debris**. Archived 129 (soft, reversible) keeping the 4 "IL-17A Cyclic Peptide Pilot". Full snapshot + archived-id manifest saved in the session scratchpad (`fixture_projects_snapshot.json`, `archived_projects_manifest.json`) → un-archive = PATCH `status:'active'`.
+- **Sidebar root-cause bug FOUND + FIXED.** Archiving alone didn't clean the sidebar: `/api/projects` (unfiltered) returns *all* statuses incl. archived (`getUserProjects` builds no WHERE clause when `status` is undefined), and `app-sidebar.tsx` showed the first 12 regardless. Fixed the sidebar to drop `status==='archived'` (keeps active+completed). tsc clean; 1623/1624 vitest pass (the 1 failure = unrelated workflow-catalog count drift). **Syncing to dev** via `sync_to_dev.sh` so the clean sidebar is live for capture.
+- **Note — shared-fixture concurrency:** live e2e suites burst-create projects on this account during capture (observed ~12 created+torn-down mid-run). Best to capture in a quiet window; the sidebar fix + archived-status filter makes stray *active* debris the only remaining risk.
+
+**Still to do in Track D:** after the sync lands, re-capture the clean set; replace the after-run report figures (i08-1/i09-1/i09-2) — currently sourced from `/debug/viewer` (debug-banner leak) — with a real completed run opened through the normal chrome (needs a clean completed run on the fixture); then the ~29 missing figures per the screenshot audit.
+
+**Next:** finish Track D capture → Track B (drug-dev manual) per §5.
 
 ## Change log
 - 2026-09-30 — created from a 3-agent inventory sweep (website/positioning, manuals+tutorials, new-UI gap) + the settled deck brief, committee review, and IO landscape docs.
