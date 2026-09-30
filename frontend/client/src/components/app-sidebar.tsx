@@ -129,7 +129,13 @@ export function AppSidebar({
   const refreshProjects = () => {
     fetch("/api/projects", { credentials: "include" })
       .then((r) => r.ok ? r.json() : { projects: [] })
-      .then((d) => setApiProjects((d.projects ?? []).slice(0, 12)))
+      // Archived projects are soft-deleted — never show them in the sidebar.
+      // (The API returns all statuses when unfiltered; keep active/completed only.)
+      .then((d) => setApiProjects(
+        (d.projects ?? [])
+          .filter((p: { status?: string }) => p.status !== "archived")
+          .slice(0, 12)
+      ))
       .catch(() => {});
   };
   useEffect(() => {
