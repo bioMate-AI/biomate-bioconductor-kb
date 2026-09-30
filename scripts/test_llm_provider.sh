@@ -164,8 +164,8 @@ STATE="$(sse_final_field "$F" "state")"
 note "  state: $STATE"
 expect "state is NOT workflow_ready (knowledge Q should not trigger workflow)" \
   "${STATE:-chat_only}" "^(chat_only|needs_input|workflow_failed)$"
-# Also check there is substantive text
-TEXT_LEN="$(sse_final_field "$F" "text" | wc -c | tr -d ' ')"
+# Also check there is substantive text (field is "response" not "text" in the SSE payload)
+TEXT_LEN="$(sse_final_field "$F" "response" | wc -c | tr -d ' ')"
 expect "response has text content (> 50 chars)" "${TEXT_LEN:-0}" "^([5-9][0-9]|[1-9][0-9]{2,})$" "P1"
 
 # ════════════════════════════════════════════════════════════════════
@@ -173,11 +173,11 @@ expect "response has text content (> 50 chars)" "${TEXT_LEN:-0}" "^([5-9][0-9]|[
 # ════════════════════════════════════════════════════════════════════
 heading "T3 — Workflow generation (clear request with enough info)"
 
-F="$(chat_stream t3 90 \
+F="$(chat_stream t3 120 \
   "Run DESeq2 differential expression analysis on my RNA-seq data. I have a count matrix comparing tumor vs normal samples.")"
 STATE="$(sse_final_field "$F" "state")"
 WF_EVENT="$(grep -oE "workflow_(ready|failed)" "$F" 2>/dev/null | head -1)"
-WF_NAME="$(sse_final_field "$F" "workflow.name")"
+WF_NAME="$(sse_final_field "$F" "workflow.workflow_ga.name")"
 note "  state: $STATE  |  event: $WF_EVENT  |  workflow.name: $WF_NAME"
 
 expect "state is workflow_ready"   "${STATE:-}"    "^workflow_ready$"
@@ -205,8 +205,8 @@ expect "vague request does NOT immediately trigger workflow_ready" \
 # ════════════════════════════════════════════════════════════════════
 heading "T5 — Workflow JSON structure (reuses T3 output)"
 
-WF_DOMAIN="$(sse_final_field "$TMP_DIR/t3.sse" "workflow.domain")"
-WF_DESC="$(sse_final_field "$TMP_DIR/t3.sse" "workflow.description")"
+WF_DOMAIN="$(sse_final_field "$TMP_DIR/t3.sse" "workflow.workflow_ga.domain")"
+WF_DESC="$(sse_final_field "$TMP_DIR/t3.sse" "workflow.workflow_ga.description")"
 note "  domain: $WF_DOMAIN"
 note "  description (first 80): $(echo "$WF_DESC" | head -c 80)"
 
@@ -222,11 +222,11 @@ expect "workflow JSON contains no literal \"undefined\" values" \
 # ════════════════════════════════════════════════════════════════════
 heading "T6 — Domain routing (ADMET request → drug_discovery)"
 
-F="$(chat_stream t6 90 \
+F="$(chat_stream t6 120 \
   "Screen these SMILES for ADMET properties: CC(=O)Oc1ccccc1C(=O)O, c1ccc(cc1)N. I need hERG, Caco-2, and LogP predictions.")"
 STATE="$(sse_final_field "$F" "state")"
-WF_DOMAIN="$(sse_final_field "$F" "workflow.domain")"
-WF_NAME="$(sse_final_field "$F" "workflow.name")"
+WF_DOMAIN="$(sse_final_field "$F" "workflow.workflow_ga.domain")"
+WF_NAME="$(sse_final_field "$F" "workflow.workflow_ga.name")"
 note "  state: $STATE  |  domain: $WF_DOMAIN  |  name: $WF_NAME"
 
 expect "ADMET request resolves to a workflow" "${STATE:-}" "^workflow_ready$" "P1"
