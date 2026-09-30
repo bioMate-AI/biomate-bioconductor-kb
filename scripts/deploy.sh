@@ -270,6 +270,27 @@ else
 fi
 echo ""
 
+# Step 2.5: Apply on-prem env overlay (optional — only for environments that need
+# local overrides not stored in Secrets Manager, e.g. TEST simulating on-prem with
+# a different LLM provider or MinIO instead of AWS S3).
+# Convention: if /opt/biomate/.env.onprem exists on the host, each KEY=VALUE line
+# in it overrides the corresponding key written by Step 2.  The file is created
+# manually on the host and is never committed to the repo.
+ssm_run "if [ -f /opt/biomate/.env.onprem ]; then
+  echo 'Applying on-prem env overlay from /opt/biomate/.env.onprem...'
+  while IFS= read -r line || [ -n \"\$line\" ]; do
+    [[ \"\$line\" =~ ^#.*\$ || -z \"\$line\" ]] && continue
+    key=\$(echo \"\$line\" | cut -d= -f1)
+    sed -i \"/^\${key}=/d\" /opt/biomate/.env
+    echo \"\$line\" >> /opt/biomate/.env
+  done < /opt/biomate/.env.onprem
+  echo \"overlay applied: \$(wc -l < /opt/biomate/.env.onprem) var(s)\"
+else
+  echo 'No /opt/biomate/.env.onprem found — using Secrets Manager config as-is'
+fi" \
+  "Applying on-prem env overlay (if present)"
+echo ""
+
 # Step 3: Ship docker-compose.deploy.yml to the host (from THIS checkout, via SSM)
 echo "=== Step 3: Ship docker-compose.deploy.yml ==="
 #
@@ -300,6 +321,17 @@ echo ""
 echo "=== Step 5: Pull Docker images ==="
 ssm_run "docker pull $BACKEND_IMAGE" "Pulling backend image"
 ssm_run "docker pull $FRONTEND_IMAGE" "Pulling frontend image"
+echo ""
+
+# Step 5.5: Ensure data dir files are writable by the galaxy container user (UID 1000).
+# The bind-mounted galaxy_ai_tools.db is owned by root on a fresh test host.
+# The container runs as galaxy:1000 and needs write access for schema migrations
+# (ALTER TABLE ADD COLUMN on startup). Without this, get_workflow_search() raises
+# sqlite3.OperationalError → _workflow_search=None → every /api/workflows/search
+# returns 503 and the smoke test rolls back the deploy. Fix: chown the data dir
+# to UID 1000 before containers start so the first-run migration can complete.
+ssm_run "chown -R 1000:1000 /opt/biomate/data 2>/dev/null; ls -la /opt/biomate/data/ | head -5" \
+  "Ensuring /opt/biomate/data is writable by galaxy:1000"
 echo ""
 
 # Step 6: Deploy + health check + auto-rollback (single host-side script)
@@ -447,11 +479,12 @@ export BACKEND_IMAGE="\$NEW_BACKEND"
 export FRONTEND_IMAGE="\$NEW_FRONTEND"
 docker compose -f docker-compose.deploy.yml down --timeout 30 || true
 
-# New image gets up to 180s to go healthy (Galaxy cold start is ~60-90s).
+# New image gets up to 360s to go healthy (Galaxy cold start with 4 workers
+# and preload can take 3-5 min; 180s was too tight on cold instances).
 # Health gate = boot (docker healthchecks) + endpoints (version/health HTTP) +
 # functional smoke (a workflow can be routed/generated). Any gating failure
 # falls through to the rollback below.
-if bring_up "\$NEW_BACKEND" "\$NEW_FRONTEND" 180 && endpoints_ok && workflow_smoke; then
+if bring_up "\$NEW_BACKEND" "\$NEW_FRONTEND" 360 && endpoints_ok && workflow_smoke; then
   finish healthy 0
 fi
 
