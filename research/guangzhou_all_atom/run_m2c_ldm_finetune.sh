@@ -152,6 +152,15 @@ aws s3 cp "$D2_S3/bound_cyclic_manifest.jsonl" "$ROOT/data/bound_cyclic_v1/bound
 
 cd "$ROOT/code"
 
+# ---- AE_MODE=epoch221 : matched-latent DIAGNOSTIC. The v1 AE (M1 mid-train) shifted the latent away from
+# what the epoch-221 diffusion knows -> warm-start mismatch. Swap in epoch-221's OWN .autoencoder so the
+# frozen AE latent matches the warm-started diffusion (self-consistent). Default AE_MODE=v1 keeps the v1 AE.
+if [ "${AE_MODE:-v1}" = "epoch221" ]; then
+  python -c "import sys; sys.path.insert(0,'runtime/PepGLAD'); import torch, models; \
+    ldm=torch.load('$ROOT/data/epoch221.ckpt', map_location='cpu', weights_only=False); \
+    torch.save(ldm.autoencoder, '$ROOT/data/v1_ae.ckpt'); print('[AE_MODE=epoch221] frozen AE = epoch-221 .autoencoder (matched latent)')"
+fi
+
 # ---- resume-aware complex-mmap build: reuse THIS run's S3 dataset if a spot interruption restarted us ----
 stage building_dataset
 if aws s3 ls "$OUT_S3/dataset/processed/index.txt" >/dev/null 2>&1; then
@@ -183,6 +192,12 @@ python m2c_train_ldm.py --gpus 0 --config m2c_ldm_finetune.yaml \
 sync_all
 
 stage evaluating
+# FIX (eval-path bug): m2c_eval runs the stock scripts with cwd=runtime/PepGLAD, but the guidance+test
+# configs use relative './data/bound_cyclic_pepglad' paths -> they resolved to runtime/PepGLAD/data/... and
+# FileNotFound'd (training worked only because it got ABSOLUTE mmap_dir via overwrite args). Make the config
+# paths absolute so they resolve from any cwd.
+sed -i "s|\./data/bound_cyclic_pepglad|$ROOT/data/bound_cyclic_pepglad|g" \
+  m2c_setup_latent_guidance.yaml m2c_test_codesign.yaml m2c_ldm_finetune.yaml
 # best (lowest val-loss) checkpoint = first line of topk_map.txt (format "<score>: <path>", best-first).
 BEST_CKPT=$(head -1 "$ROOT/ckpts/m2c_ldm_finetune"/version_*/checkpoint/topk_map.txt 2>/dev/null | sed 's/^[^:]*: //' || true)
 if [ -z "$BEST_CKPT" ] || [ ! -f "$BEST_CKPT" ]; then
