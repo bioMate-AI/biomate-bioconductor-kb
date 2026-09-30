@@ -107,5 +107,20 @@ E2. Update the coverage ledger + screenshot audit as items close.
 
 ---
 
+## 7 · Execution status
+
+**Track A — Website scope tuning: DONE (pending dev sync + native-CN review).** Shipped on `reference/claude_design/webpage_design_v2/` (the canonical deployed site per `scripts/deploy_marketing.sh`):
+- `index.html` — new hero (headline "AI drug discovery for immune-mediated disorders", pill, benefits reframed to target ID · peptide/macrocycle design · closed-loop · evidence/audit), new **discovery-loop signature section** (Identify the target → Design the peptide → Close the loop, with "wet-lab validation underway in pilot"), applications lead reconciling focus + breadth, and title/meta/OG/Twitter/JSON-LD (WebSite·SoftwareApplication·Organization)/FAQ #1 + platform-diagram caption.
+- `shell.js` — global CTA-bar + footer tagline (affects all 73 pages).
+- `about.html` — title/meta/OG/Twitter/Org-JSON-LD/FAQ, hero lead, story paragraph, key-facts "Platform type" row.
+- `services.html`, `features.html` — titles/meta reframed; services hero lead now "immune-target hypothesis → validated peptide lead → IND".
+- `llms.txt`, `llms-full.txt` — site-index positioning lines.
+- `terms.html` — opener clause.
+- Verified by headless render (hero + loop section screenshots): renders cleanly; the existing hero-photo chips ("Targets ranked — IL-23A #1 of 7", "PK simulated") happen to fit the new framing.
+- **Left intentionally broad:** the JSON-LD `featureList`/`knowsAbout` breadth arrays, blog deep-dives, `compare.html`. **Not yet done:** deploy to dev via `scripts/deploy_marketing.sh`; a native-CN pass (site is EN today — CN version is a separate item).
+
+**Next:** Track D (screenshot + chat-cleanup harness) → Track B (drug-dev manual) per §5.
+
 ## Change log
 - 2026-09-30 — created from a 3-agent inventory sweep (website/positioning, manuals+tutorials, new-UI gap) + the settled deck brief, committee review, and IO landscape docs.
+- 2026-09-30 — Track A (website scope tuning) implemented across index/shell/about/services/features/llms/terms; render-verified; committed (not yet deployed).
