@@ -117,11 +117,18 @@ for a in 1 2 3 4 5 6; do apt-get -o DPkg::Lock::Timeout=300 update -qq && break;
 apt-get -o DPkg::Lock::Timeout=300 install -y -qq python3-venv git
 python3 -m venv "$ROOT/venv"; source "$ROOT/venv/bin/activate"
 pip install --disable-pip-version-check 'pip==25.0.1'
-# Boltz: MIT, pip-installable, auto-downloads its own OPEN weights on first predict (the key spot-friendly property).
-# boltz[cuda] pulls a CUDA torch; rdkit gives d2_augment_prep exact macrocycle detection; gemmi/biopython for converters.
-pip install 'boltz[cuda]' 'rdkit==2024.9.6' 'gemmi==0.6.7' 'biopython==1.80' 'boto3>=1.36,<2' 'numpy==1.26.4'
+# Boltz: MIT, pip-installable, auto-downloads its own OPEN weights on first predict. INSTALL ORDER MATTERS:
+# the '[cuda]' extra does NOT exist, and pinning numpy/biopython conflicts with boltz's own pins
+# (boltz needs biopython==1.84, numpy==1.26.3) -> ResolutionImpossible. So: install boltz FIRST (it sets its
+# deps + torch), then reinstall the SAME torch version from the CUDA index (PyPI torch is CPU-only), then add
+# rdkit/gemmi (flexible on numpy patch) for prep+integrate. No conflicting pins.
+pip install 'boltz'
+TVER=$(python -c "import torch; print(torch.__version__.split('+')[0])")
+pip install "torch==$TVER" --index-url https://download.pytorch.org/whl/cu121 || \
+  pip install "torch==$TVER" --index-url https://download.pytorch.org/whl/cu124 || true
+pip install 'rdkit==2024.9.6' 'gemmi==0.6.7' 'boto3>=1.36,<2'
 pip freeze > "$ROOT/status/environment.txt"
-python -c "import torch, boltz; print('boltz import ok; cuda', torch.cuda.is_available())"
+python -c "import torch, boltz, rdkit, gemmi; print('boltz+rdkit import ok; torch', torch.__version__, 'cuda', torch.cuda.is_available())"
 
 stage fetching_code
 aws s3 cp "$OUT_S3/code/code.tar.gz" "$ROOT/code.tar.gz" --only-show-errors
