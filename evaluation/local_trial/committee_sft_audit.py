@@ -73,7 +73,7 @@ def call(provider, model, prompt, mx=8000):
             if provider == "openai":
                 url = "https://api.openai.com/v1/chat/completions"
                 h = {"Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}", "Content-Type": "application/json"}
-                b = {"model": model, "messages": [{"role": "user", "content": prompt}], "max_completion_tokens": mx, "reasoning_effort": "high"}
+                b = {"model": model, "messages": [{"role": "user", "content": prompt}], "max_completion_tokens": mx, "reasoning_effort": os.environ.get("COMMITTEE_EFFORT","high")}
                 d = json.load(urllib.request.urlopen(urllib.request.Request(url, json.dumps(b).encode(), h), timeout=300))
                 return d["choices"][0]["message"]["content"]
             if provider == "google":
