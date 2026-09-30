@@ -8,7 +8,11 @@
 // (SMPDB pathway-associated sets by default) and scores enrichment (hypergeometric for
 // ORA, globaltest for QEA). Falls back to a built-in HMDB-mappable compound-list fixture
 // (ORA) when no input is supplied.
-// Input: compound_list.txt (ORA) OR concentration_table.csv + class_labels.csv (QEA).
+// Input: compound_list.txt
+// Input-note: ORA mode = a list of compound names (compound_list.txt). QEA mode = supply
+//   concentration_table.csv + class_labels.csv instead. The `// Input:` line above must stay
+//   a bare comma-separated filename list — the executor parses it as the declared-input
+//   contract; prose there is mis-tokenised into bogus required params (fixed 2026-09-30).
 // Container: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps
 // R packages: MetaboAnalystR (GitHub xia-lab/MetaboAnalystR)
 // Bioconductor: 3.20 | R: 4.4

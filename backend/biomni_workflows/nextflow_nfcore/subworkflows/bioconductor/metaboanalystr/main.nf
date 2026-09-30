@@ -149,13 +149,22 @@ process BIOC_METABOANALYSTR_STATISTICAL_METABOLOMICS_ANALYSIS {
         mSet <- InitDataObjects("conc", "stat", FALSE)
         mSet <- Read.TextData(mSet, ma_csv, "colu", "disc")
         mSet <- SanityCheckData(mSet)
-        # ReplaceMin() is no longer EXPORTED by MetaboAnalystR 4.x ("could not find
-        # function ReplaceMin") — SanityCheckData already replaces missing with half the
-        # minimal positive value by default, and the exported modern equivalent for the
-        # min-imputation step is ImputeMissingVar(method="min"). (Verified against the
-        # MetaboAnalystR master source: ReplaceMin has only a leftover roxygen doc, not an
-        # export; ImputeMissingVar is @export'd.)
-        mSet <- ImputeMissingVar(mSet, method = "min")
+        # Missing-value handling for the CONC stat pipeline.
+        # ReplaceMin() is no longer EXPORTED by MetaboAnalystR 4.x; the exported modern
+        # min-imputation is ImputeMissingVar(method="min"). BUT ImputeMissingVar is part of
+        # the raw/spectra preprocessing path: it rewrites data_proc.qs and re-derives the
+        # class-label vector via .get.latest.proc.matrix. On a clean CONC table with NO
+        # missing values that rewrite desynchronises proc.cls from the preproc.qs matrix, so
+        # the subsequent FilterVariable -> .get.latest.proc.matrix step fails with
+        # "Unable to resolve class labels for matrix source" (root-caused 2026-09-30 on a
+        # real Batch run; SanityCheckData already logs "No missing values were detected").
+        # SanityCheckData itself replaces any residual missing with half the minimal positive
+        # value, so imputation is a NO-OP on clean data — only invoke it when missing values
+        # actually remain, keeping proc.cls intact for the common (complete) case.
+        .n_missing <- tryCatch(as.integer(mSet\$dataSet\$missingCount), error = function(e) 0L)
+        if (!is.na(.n_missing) && .n_missing > 0L) {
+          mSet <- ImputeMissingVar(mSet, method = "min")
+        }
         mSet <- FilterVariable(mSet, "F", 25, "none", -1, "mean", 0)
         mSet <- PreparePrenormData(mSet)
         # LogNorm (base-10 log) + AutoNorm (auto/unit-variance scaling) -- the canonical stat prep

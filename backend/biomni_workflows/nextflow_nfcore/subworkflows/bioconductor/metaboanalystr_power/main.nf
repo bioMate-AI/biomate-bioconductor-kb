@@ -6,8 +6,11 @@
 // statistical power as a function of per-group sample size, so a study can be powered
 // before it is run. Produces a power-vs-sample-size profile, an effect-size plot and a
 // predicted-power table.
-// Input: concentration_table.csv (samples in cols, row1 = Label 2-group) + optional class sheet.
-//        Falls back to a self-contained synthetic 2-group pilot fixture.
+// Input: concentration_table.csv
+// Input-note: samples in cols, row1 = Label 2-group; optional class_labels.csv. Falls back to a
+//   self-contained synthetic 2-group pilot fixture with no input. The `// Input:` line must stay
+//   a bare comma-separated filename list (executor parses it as the declared-input contract;
+//   prose there mis-tokenises into bogus required params — fixed 2026-09-30).
 // Container: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps
 // R packages: MetaboAnalystR (GitHub xia-lab/MetaboAnalystR)
 // Bioconductor: 3.20 | R: 4.4

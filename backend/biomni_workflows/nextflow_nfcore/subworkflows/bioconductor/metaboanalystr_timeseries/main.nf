@@ -6,8 +6,11 @@
 // attributable to each experimental factor (time and phenotype) and their interaction,
 // then flags well-modelled / outlying metabolites per factor (leverage + SPE cutoffs) with
 // a permutation test for model significance.
-// Input: data.csv (samples x metabolites) + metadata.csv (Sample, Time, Phenotype, Subject).
-//        Falls back to a self-contained synthetic 3-subject x 2-phenotype x 4-timepoint fixture.
+// Input: data.csv, metadata.csv
+// Input-note: data.csv = samples x metabolites; metadata.csv = Sample, Time, Phenotype, Subject.
+//   Falls back to a self-contained synthetic 3-subject x 2-phenotype x 4-timepoint fixture with no
+//   input. The `// Input:` line must stay a bare comma-separated filename list (executor parses it
+//   as the declared-input contract; prose there mis-tokenises into bogus params — fixed 2026-09-30).
 // Container: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps
 // R packages: MetaboAnalystR (GitHub xia-lab/MetaboAnalystR)
 // Bioconductor: 3.20 | R: 4.4

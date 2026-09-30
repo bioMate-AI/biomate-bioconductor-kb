@@ -7,8 +7,11 @@
 // (PSEA) against a KEGG/BioCyc metabolic model, yielding a ranked pathway table
 // (Fisher/EASE p, hits) + an enrichment scatter plot — no prior compound identification
 // required.
-// Input: peaklist.txt (tab/CSV; columns m.z, p.value, t.score) + instrument ppm + ms mode.
-//        Falls back to a self-contained synthetic peak-list fixture (positive mode, 5 ppm).
+// Input: peaklist.txt
+// Input-note: tab/CSV with columns m.z, p.value, t.score; instrument ppm + ms mode via params.
+//   Falls back to a self-contained synthetic peak-list fixture (positive mode, 5 ppm) with no
+//   input. The `// Input:` line must stay a bare comma-separated filename list (executor parses
+//   it as the declared-input contract; prose mis-tokenises into bogus params — fixed 2026-09-30).
 // Container: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps
 // R packages: MetaboAnalystR (GitHub xia-lab/MetaboAnalystR)
 // Bioconductor: 3.20 | R: 4.4

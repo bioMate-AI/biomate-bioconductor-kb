@@ -5,8 +5,11 @@
 // pathways for a chosen organism and scores pathway over-representation (Fisher exact)
 // combined with topology impact (relative-betweenness-centrality node importance),
 // yielding a ranked pathway table (p, FDR, Impact) + a pathway-summary scatter plot.
-// Input: compound_list.txt (one compound name per line) + optional organism KEGG code.
-//        Falls back to a built-in HMDB-mappable compound-list fixture (human, hsa).
+// Input: compound_list.txt
+// Input-note: one compound name per line; organism KEGG code via params.kegg_org (default hsa).
+//   Falls back to a built-in HMDB-mappable compound-list fixture (human, hsa) with no input.
+//   The `// Input:` line must stay a bare comma-separated filename list (executor parses it as
+//   the declared-input contract; prose there mis-tokenises into bogus params — fixed 2026-09-30).
 // Container: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps
 // R packages: MetaboAnalystR (GitHub xia-lab/MetaboAnalystR)
 // Bioconductor: 3.20 | R: 4.4

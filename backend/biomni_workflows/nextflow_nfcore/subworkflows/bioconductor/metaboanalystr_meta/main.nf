@@ -7,8 +7,11 @@
 // evidence is combined across studies (Stouffer p-value combination by default) into a
 // single ranked meta-signature (combined t-stat + combined p-value) — more robust than
 // any single study.
-// Input: >=2 dataset CSVs (samples in cols, row1 = 2-group Label, same level names across
-//        studies, >=25% shared feature names). Falls back to a self-contained 2-study fixture.
+// Input: study1.csv, study2.csv
+// Input-note: >=2 dataset CSVs named study*/dataset* (samples in cols, row1 = 2-group Label, same
+//   level names across studies, >=25% shared feature names). Falls back to a self-contained 2-study
+//   fixture with no input. The `// Input:` line must stay a bare comma-separated filename list
+//   (executor parses it as the declared-input contract; prose mis-tokenises into bogus params).
 // Container: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps
 // R packages: MetaboAnalystR (GitHub xia-lab/MetaboAnalystR)
 // Bioconductor: 3.20 | R: 4.4

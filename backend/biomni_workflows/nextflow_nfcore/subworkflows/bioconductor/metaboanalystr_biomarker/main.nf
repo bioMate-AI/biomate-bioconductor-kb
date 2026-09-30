@@ -6,9 +6,12 @@
 // biomarker modelling (Monte-Carlo cross-validated feature-subset models) producing
 // ROC curves, predictive-accuracy plots, an importance-feature plot and a ranked
 // feature (AUC / p-value / log2FC) table.
-// Input: concentration table CSV (samples in rows, 2nd column = 2-group Label; or a
-//        features x samples matrix + a class sheet). Falls back to a self-contained
-//        synthetic 2-group fixture when no input is supplied (runs out-of-the-box).
+// Input: concentration_table.csv
+// Input-note: MetaboAnalyst "rowu" table — samples in rows, col 2 = 2-group Label; OR a
+//   features x samples matrix + class_labels.csv. Falls back to a self-contained synthetic
+//   2-group fixture with no input. The `// Input:` line must stay a bare comma-separated
+//   filename list (executor parses it as the declared-input contract; prose there mis-tokenises
+//   into bogus required params — fixed 2026-09-30).
 // Container: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps
 // R packages: MetaboAnalystR (GitHub xia-lab/MetaboAnalystR)
 // Bioconductor: 3.20 | R: 4.4
