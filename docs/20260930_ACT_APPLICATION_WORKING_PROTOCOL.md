@@ -354,9 +354,35 @@ Direction 3's lead instantiation.
 Cut CD47 · demote PD-L1 to an internal loop-proof (or replace it with a
 nominator-picked druggable target) · **run the pair-nominator now** · lead with a
 nominated **tumor-conditional macrocyclic (TAA or PD-L1)×CD3 T-cell engager** ·
-stay **IO-only** · monetize the nominator via option-pilots. **One founder
-decision:** therapeutics-first vs platform-BD-first. Credibility floor (all
-three): close the dry→wet loop **once** before pitching.
+stay **IO-only**. Credibility floor (all three): close the dry→wet loop **once**
+before pitching.
+
+### 6.5 Founder decision — RESOLVED 2026-09-30: THERAPEUTICS-FIRST
+The identity fork (§6.3) is **decided: a therapeutics company powered by the
+platform** — Gemini's "don't straddle," not the platform/BD-product-first path.
+Implications that now govern the plan:
+- **The nominator's job is to generate INTERNAL assets**, and it is validated by
+  producing our own lead program (eat-our-own-dogfood), **not** sold as the
+  product. It is the engine, the pipeline is the value.
+- **Optional pair-nomination pilots** (§6.1.5) are demoted to *non-dilutive
+  cash + external validation only* — capped, tied to option-to-license, never
+  the business. Do not let pilots become a services trap.
+- **Pitch framing:** "a computational-immunology company that delivers its
+  insights as proprietary therapeutics" — lead asset = the AI-nominated
+  tumor-conditional macrocyclic (TAA or PD-L1)×CD3 engager.
+- **The gating dependency is now explicit** (see §6.6): therapeutics-first means
+  the lead asset rests on the nominator being real — so finishing the nominator's
+  technical validation is the critical path, not optional.
+
+### 6.6 Critical through-line (business ↔ technical)
+All three models say the moat is the **pair-nominator** — but the nominator IS the
+immune-LLM's target-pair head, which our technical committee finds **not yet
+validated**: target-ID fails the degree-null on all 3 axes, batch-leakage ~28×,
+and the responder-stratification confound test shows the negative **persists**
+(study-leaky-z *content*, not a crude-eval artifact). **#1 priority for the
+therapeutics-first plan: make the nominator real (fix batch-leakage → beat nulls)
+before it can be the thing we pitch.** This is the same "validate the black box /
+close the loop once before pitching" credibility floor the committee named.
 
 Raw model outputs: `scratchpad/committee_{GPT,Gemini}.md` + Claude review in the
 task transcript.
