@@ -9,3 +9,4 @@ tests/__pycache__/
 # Rebuild locally with build_physchem_calibration.py; never commit the derived CSVs.
 data/processed/
 data/bound_cyclic/
+research/guangzhou_all_atom/highfold_d2_augment/data/
