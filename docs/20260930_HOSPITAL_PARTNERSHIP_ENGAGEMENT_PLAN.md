@@ -29,7 +29,7 @@ Scored 1–5 on the four things we need from a partner plus engagement friction.
 | **Clinical / translational path** | 5 — NMPA anti-tumor New-Drug trial center + GCP Phase-I unit (~50% drug-to-approval) | 3 — national drug-trial base; strong for autoimmune cell-therapy, peptide path less proven |
 | **Strategic fit to our thesis** | 4 — oncology peptide is credible but a crowded modality space; NPC niche is differentiated | 5 — immune-mediated disorders is our stated core; complementary modality to their CAR-Vδ1T |
 | **Engagement friction** | 3 — elite, in-demand institution; world-class internal bioinformatics (must position purely on modality) | 4 — provincial leader, likely more accessible; already partners externally (PersonGen), open to modality collaborators |
-| **Cross-border data/IP risk (HGRAC)** | 3 — large patient-cohort data is HGRAC-sensitive; work on target biology not raw genetic export | 3 — same constraint; PBMC/sample-based assays stay in-country, lower friction than data export |
+| **Cross-border data/IP risk (HGRAC)** | 4 — mitigated: our Chinese entity holds the collaboration domestically; cohort data stays in-country | 4 — mitigated same way; PBMC/sample assays already run in-country |
 
 **Read:** SYSUCC scores highest on raw target/validation/clinical assets; **Soochow scores highest on strategic fit and accessibility**. Neither dominates — the recommendation is a **staged two-track engagement**, leading with the one that best matches our near-term de-risking need.
 
@@ -88,9 +88,10 @@ Merged from both surveys' open items, plus the cross-border constraints that app
 - [ ] Composition-of-matter IP on generated peptides — our design; confirm no partner claim on molecules we generate.
 - [ ] Peptide CRO agreements (synthesis) kept separate and IP-clean.
 
-**Cross-border (China HGRAC — critical, applies to both)**
-- [ ] China's **Human Genetic Resources Administration** rules restrict export of Chinese patient genetic data/samples and require approval for foreign-party collaborations using them. Structure the collaboration so **target biology and assay results** (not raw human genetic resources) cross the border, and/or run compute in-country. Get this scoped with counsel *before* any cohort data is shared — it is the single biggest structural risk.
-- [ ] Prefer **in-country wet-lab validation** (keeps samples domestic) — favors both partners since the assays run in their labs anyway.
+**Cross-border (China HGRAC — mitigated by our Chinese agency/entity)**
+- [ ] China's **Human Genetic Resources Administration** rules restrict export of Chinese patient genetic data/samples. **We have a Chinese agency/entity** — so the collaboration can be structured **domestically**: the Chinese entity holds the collaboration, samples/data stay in-country, and validation runs in the partner's labs. This substantially de-risks HGRAC vs a pure foreign-party structure. *(Caveat: HGRAC can still trigger review where foreign parties or foreign-controlled entities are involved — confirm the exact structure with counsel, but this is now a manageable compliance step, not the top structural blocker.)*
+- [ ] Prefer **in-country wet-lab validation** (keeps samples domestic) — favors both partners since the assays run in their labs anyway; the Chinese entity is the contracting party.
+- [ ] Only **target biology + de-identified assay results** need cross the border to feed our generator — the moat data, not raw human genetic resources.
 
 ---
 
