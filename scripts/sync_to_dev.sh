@@ -593,6 +593,14 @@ deploy_backend_python() {
     docker exec "$GC" /usr/local/bin/python3.9 -c "import boto3, redis, psycopg2" 2>/dev/null \
       || docker exec "$GC" /usr/local/bin/pip install -q boto3 redis psycopg2-binary 2>&1 | tail -3
 
+    # RDKit — required in-process by the Design & generate module (BRICS generator,
+    # backend/lib/galaxy/ai/drug_discovery/generators.py). gunicorn runs system
+    # python3.9 (see note above), so it must be installed there or /design returns
+    # "rdkit_unavailable" and generates 0 candidates. Pin rdkit>=2024.3 to avoid a
+    # numpy-2 segfault in rdkit.ML.InfoTheory (see backend/Dockerfile:134-137).
+    docker exec "$GC" /usr/local/bin/python3.9 -c "import rdkit" 2>/dev/null \
+      || docker exec "$GC" /usr/local/bin/pip install -q "rdkit==2024.3.5" 2>&1 | tail -3
+
     # Nextflow binary — required by /api/cryosparc/execute path. Image lacks it.
     # Nextflow VERSION PIN (2026-05-21): 25.10.5 is the latest pre-26 LTS.
     # Nextflow 26.04+ became stricter about DSL2 (e.g. rejects top-level
