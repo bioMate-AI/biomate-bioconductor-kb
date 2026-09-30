@@ -2783,6 +2783,7 @@ def get_ai_assistant(trans) -> Optional[AIAssistant]:
                 or _os_ai.environ.get('GALAXY_AI_API_KEY')
                 or _os_ai.environ.get('GOOGLE_API_KEY')
                 or _os_ai.environ.get('GEMINI_API_KEY')
+                or _os_ai.environ.get('LLM_API_KEY')  # openai_compatible providers (Qwen, DeepSeek, etc.)
             )
             ai_enabled = config_enabled or env_enabled or key_enabled
             log.info(f"[DEBUG] enable_ai_assistant: config={config_enabled} env={env_enabled} key={key_enabled} → {ai_enabled}")
