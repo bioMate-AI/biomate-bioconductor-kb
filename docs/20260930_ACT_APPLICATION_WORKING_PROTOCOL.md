@@ -305,6 +305,64 @@ validation quota + clinical-collaborator map = **parallel session**.
 
 ---
 
+## 6 · Business committee review (GPT-5 + Gemini-2.5-pro + Claude, 2026-09-30)
+
+Three advanced LLMs, independent, identical adversarial brief (VC/BD/commercial
+lens), reviewing the §2 directions + the all-oncology scope question. **The panel
+reordered the §2 ranking** — recorded honestly here; §2 is the original draft, §6
+is the committee's correction.
+
+### 6.1 UNANIMOUS (all three — treat as decided)
+1. **CUT CD47 (Direction 2)** — not a stretch, gone. Magrolimab $4.9B/mortality
+   signal = "commercially toxic/radioactive"; µM affinity burns CRO budget pre-PK.
+2. **PD-L1 (Direction 1) is NOT a lead asset** — commodity (~40 binders,
+   biosimilar-dominated); a win proves the *loop*, not the *company*.
+3. **Direction 3 → the headline, Day-1 not round-2. Run the nominator FIRST,
+   before pitching.** The draft staging (PD-L1 de-risk → then Direction 3) is a
+   **trap** (PD-L1 traction doesn't transfer; "round-2" never gets resourced).
+4. **IO-only is correct — do NOT broaden to all-oncology** (the explicit scope
+   question, answered unanimously No). Broadening dissolves the immune moat →
+   generic AI-drug-discovery → due-diligence death spiral. Footnote the expansion
+   path only.
+5. **Monetize the nominator as a product** — paid pair-nomination pilots /
+   "Target Intelligence" — for non-dilutive cash + external black-box validation
+   before drugging a pair.
+
+### 6.2 STRONG CONVERGENCE — the pivot (all three surface it)
+**The real white-space = a tumor-conditional cyclic-peptide CD3 T-cell engager,
+not a dual-checkpoint macrocycle.** TCEs are the validated/hottest IO mechanism
+(tarlatamab full approval 2025); the *peptide* TCE is empty; a macrocycle's short
+half-life + tumor-conditional gating answers the CRS/off-tumor-tox/PK that limit
+antibody TCEs. Instantiation: an **AI-nominated TAA×CD3 (or PD-L1×CD3) macrocyclic
+engager.** → This should likely *replace* "dual-checkpoint macrocycle" as
+Direction 3's lead instantiation.
+
+### 6.3 DIVERGENCE (founder decisions — the panel split)
+- **How far to demote PD-L1:** GPT+Claude = keep as a *time-boxed, internal-only*
+  loop-proof w/ kill criteria (KD<10nM, >30–100× tumor-conditional activation),
+  never pitched as an asset; Gemini = cut entirely (even doing it signals no
+  confidence). Reconciler: let the nominator pick the round-1 loop-proof target →
+  loop-proof + differentiation from one run.
+- **Identity fork:** therapeutics-co-powered-by-platform (Gemini: don't straddle)
+  vs platform/BD-product-first, assets-as-validation (Claude: may be *more*
+  fundable) vs hybrid w/ capped option-pilots (GPT). Maps onto our own fundability
+  thesis (Immunai-style recurring deals + asset-side economics).
+- **Sharpest framing (Gemini):** "Resistance & Synergy Engine — we sell solutions
+  to clinical failure, not targets."
+
+### 6.4 Consensus plan
+Cut CD47 · demote PD-L1 to an internal loop-proof (or replace it with a
+nominator-picked druggable target) · **run the pair-nominator now** · lead with a
+nominated **tumor-conditional macrocyclic (TAA or PD-L1)×CD3 T-cell engager** ·
+stay **IO-only** · monetize the nominator via option-pilots. **One founder
+decision:** therapeutics-first vs platform-BD-first. Credibility floor (all
+three): close the dry→wet loop **once** before pitching.
+
+Raw model outputs: `scratchpad/committee_{GPT,Gemini}.md` + Claude review in the
+task transcript.
+
+---
+
 ## 5 · Caveats
 - Accelerator deadlines/terms (§1) are web-verified + dated; treat any unverified
   item as flagged, not fact.
