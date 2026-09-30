@@ -389,6 +389,48 @@ task transcript.
 
 ---
 
+## 7 · CD3-TCE direction de-risking (Track B, verified 2026-09-30)
+
+The committee's Direction-3 pivot (§6.2) was stress-tested against IP + peptide
+chemistry. It **survives IP but is corrected on chemistry.**
+
+**① FTO — CAUTION, not blocked.** No cyclic-peptide CD3 TCE exists (Bicycle +
+PeptiDream both have ZERO CD3 programs → white-space real). Concrete blockers:
+**CytomX protease-substrate composition-of-matter patents** (payload-agnostic →
+reusing their substrates infringes regardless of format) + **Janux
+conditional-cyclic-mask architecture**. Design-arounds: novel/proprietary protease
+substrate (FAP/legumain) or **pH-gating**; non-Bicycle/non-RaPID cyclization.
+Formal paid FTO opinion required before program lock. (All clearances analytical,
+not legal opinions.)
+
+**② Make-or-break — a MACROCYCLIC CD3 arm is unprecedented.** No macrocycle has
+bound CD3ε + driven agonism; Bicycle's own platform has no CD3 bicyclic (negative
+evidence). Favorable: linear N-terminal epitope (PDB 8F0L/1XIW), low affinity bar
+(~10nM–1µM desirable for CRS control — within peptide reach), a linear-peptide CD3
+TCE PoC exists (antiCD3-G7-RGD). Against: epitope geometry + agonism-needs-
+clustering. → **HYBRID recommended:** peptide/mini-protein TAA arm + **de-novo
+mini-protein CD3 arm** (Baker-lab RFdiffusion — makes immune engagers, only CD3
+publicly unattempted) or a low-affinity scFv. NOT an all-macrocycle engager.
+
+**③ TAA shortlist (peptide-druggability × tumor-restriction):** **αvβ6 >
+Nectin-4 > CLDN18.2 > FOLR1.** αvβ6 = best fit (near-absent on normal epithelium;
+high in IO-cold PDAC/HNSCC/NSCLC; validated peptide A20FMDV2 ~3nM; clean co-crystal
+PDB 4UM9; **no αvβ6 TCE exists**). Nectin-4 = strongest precedent but Bicycle-IP +
+skin-tox gated. Avoid for a peptide TCE: DLL3 (no ECD structure/peptide), B7-H4
+(no pocket), CEACAM5/EpCAM/HER2/EGFR (tox ceiling + crowded IP).
+
+**Corrected lead asset:** a **tumor-conditional bispecific TCE — αvβ6
+(peptide/mini-protein) × CD3 (de-novo mini-protein) + proprietary-substrate or
+pH-gated mask.** IP-clean, chemistry-feasible, genuine white-space.
+
+**Capability implication:** the CD3 mini-protein arm needs de-novo **mini-protein
+design** (RFdiffusion/ProteinMPNN) — §3 flags this as reference-only/needs-install
++ **Rosetta-weights commercial-license caution**. This is a build item for the
+corrected lead, distinct from the BoltzGen/PepGLAD macrocycle stack (which fits the
+TAA arm).
+
+---
+
 ## 5 · Caveats
 - Accelerator deadlines/terms (§1) are web-verified + dated; treat any unverified
   item as flagged, not fact.
