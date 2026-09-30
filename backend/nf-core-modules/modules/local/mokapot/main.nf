@@ -26,9 +26,13 @@ process MOKAPOT {
     label 'process_medium'
 
     conda "${moduleDir}/environment.yml"
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    // Combined image (OpenMS+Sage+Mokapot) when set — required so the multi-engine
+    // proteomics_dda_search runs as ONE forced container under BioMate's executor.
+    // Falls back to the per-tool Mokapot biocontainer for standalone Nextflow runs.
+    container "${ params.container ?:
+        ( workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/mokapot:0.10.0--pyhdfd78af_0' :
-        'quay.io/biocontainers/mokapot:0.10.0--pyhdfd78af_0' }"
+        'quay.io/biocontainers/mokapot:0.10.0--pyhdfd78af_0' ) }"
 
     input:
     tuple val(meta), path(pin)

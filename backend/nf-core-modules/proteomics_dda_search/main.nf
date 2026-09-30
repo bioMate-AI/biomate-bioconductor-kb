@@ -22,8 +22,14 @@
 //   (NO MSFragger — academic license only; Sage is the license-clean fast engine.)
 //
 // Toggles:
-//   --engine     comet | sage           (default: comet — the deployed baseline)
-//   --rescoring  none  | mokapot        (default: none; mokapot applies to sage's pin)
+//   --engine     comet | sage           (default: SAGE — see below)
+//   --rescoring  none  | mokapot        (default: MOKAPOT — applies to sage's pin)
+//
+// DEFAULT = sage + mokapot (made the live default 2026-09-30). Benchmarked on the
+// staged validation data (docs/20260929_PROTEOMICS_SEARCH_SPEED_RECALL.md):
+//   * Sage is ~5.3x FASTER than the Comet baseline (fragment-ion indexing).
+//   * Sage + Mokapot yields +222% PSMs @1% FDR vs the Comet default (recall lever).
+// To reproduce the old baseline exactly: `--engine comet --rescoring none`.
 //
 // DAG:
 //   build target+decoy DB ONCE
@@ -49,8 +55,12 @@ include { MOKAPOT                       } from '../modules/local/mokapot/main'
 params.input     = null          // samplesheet.csv with columns: sample,mzml
 params.fasta     = null          // target protein FASTA (e.g. human SwissProt + cRAP)
 params.add_decoys = true         // append reversed decoys via OpenMS DecoyDatabase
-params.engine    = 'comet'       // comet | sage
-params.rescoring = 'none'        // none | mokapot  (mokapot rescoring runs on sage's pin)
+params.engine    = 'sage'        // comet | sage      (default: sage — 5.3x faster)
+params.rescoring = 'mokapot'     // none | mokapot    (default: mokapot — +222% PSMs)
+params.container = null          // combined OpenMS+Sage+Mokapot image; when null, each
+                                 // module falls back to its per-tool biocontainer. Under
+                                 // BioMate's executor this is set to the combined image so
+                                 // the single forced process.container has all 3 tools.
 params.outdir    = './results'
 
 workflow {
