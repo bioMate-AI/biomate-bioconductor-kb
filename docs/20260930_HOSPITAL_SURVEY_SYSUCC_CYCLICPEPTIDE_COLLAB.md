@@ -1,7 +1,7 @@
 # Research & BD Brief: Sun Yat-sen University Cancer Center (SYSUCC / 中山大学肿瘤防治中心)
 
 **Date:** 2026-09-30
-**Purpose:** Survey the "Guangdong Zhongshan hospital tumor department" (→ SYSUCC) for a **cyclic-peptide drug-development research collaboration** — target nomination, wet-lab validation, and a clinical path for our macrocycle design engine. Companion to the Soochow rheumatology/immunology survey; feeds the ACT-accelerator direction work (item 3–5 of `reference/0930_todo.md`).
+**Purpose:** Survey the "Guangdong Zhongshan hospital tumor department" (→ SYSUCC) for a **cyclic-peptide drug-development research collaboration** — target nomination, wet-lab validation, and a clinical path for our macrocycle design engine. Companion to the Soochow rheumatology/immunology survey (items 4–5 of `reference/0930_todo.md`). *Note: this is an independent research-collaboration survey and is unrelated to the ACT accelerator application (item 3).*
 **Method:** Adversarial cited web deep-research (EN + ZH, ~31 tool calls). Every factual claim cites a real URL; unverified author orderings/DOIs are flagged, not fabricated.
 
 **Institution profiled:** Sun Yat-sen University Cancer Center — 中山大学肿瘤防治中心 (also 中山大学附属肿瘤医院), Guangzhou, Guangdong, China.
@@ -116,7 +116,7 @@ SYSUCC was founded **March 1964**, one of the four earliest dedicated tumor hosp
 - **Multi-objective in-silico verification** (affinity, membrane permeability, synthetic accessibility, developability, safety);
 - A **closed loop**: generate → verify → order/synthesize (external peptide CRO) → wet-lab assay → ingest results → **DPO-retrain the generator**. The accumulating proprietary wet-lab data is the moat.
 
-We seek a cancer-center partner supplying four things we cannot generate ourselves (framed like an ACT-style accelerator application):
+We seek a cancer-center partner supplying four things we cannot generate ourselves:
 
 **(1) Target nomination — druggable oncology / tumor-immune targets from SYSUCC's expertise + cohorts.** Cyclic peptides are the right modality for PPIs and flat/undruggable surfaces. SYSUCC's world-leading NPC program surfaces concrete peptide-credible candidates:
 - **EBV LMP1 signaling hub (top NPC candidate).** LMP1 drives NPC via **PPIs with TRAF1/2/3/5, TRADD, RIP**, constitutively activating NF-κB (~90% of NPC). Classic flat PPI interfaces — the modality gap stapled/cyclic peptides are built for; small molecules struggle, antibodies can't reach the intracellular/membrane-proximal complex. ([EBV oncoprotein review](https://link.springer.com/article/10.1007/s12032-025-02610-x); [NF-κB WGS](https://www.nature.com/articles/s41467-021-24348-6))

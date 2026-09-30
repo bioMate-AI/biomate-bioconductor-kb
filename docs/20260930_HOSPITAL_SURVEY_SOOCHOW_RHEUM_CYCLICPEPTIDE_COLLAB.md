@@ -1,7 +1,7 @@
 # Research & BD Brief: Department of Rheumatology & Immunology, The First Affiliated Hospital of Soochow University (苏州大学附属第一医院 风湿免疫科)
 
 **Date:** 2026-09-30
-**Purpose:** Survey the Soochow First Affiliated Hospital rheumatology/immunology department for a **cyclic-peptide drug-development research collaboration** — autoimmune target nomination, wet-lab validation, and a translational path for our macrocycle design engine. Companion to the SYSUCC oncology survey; feeds the ACT-accelerator direction work (item 4 of `reference/0930_todo.md`).
+**Purpose:** Survey the Soochow First Affiliated Hospital rheumatology/immunology department for a **cyclic-peptide drug-development research collaboration** — autoimmune target nomination, wet-lab validation, and a translational path for our macrocycle design engine. Companion to the SYSUCC oncology survey (items 4–5 of `reference/0930_todo.md`). *Note: this is an independent research-collaboration survey and is unrelated to the ACT accelerator application (item 3).*
 **Method:** Adversarial cited web deep-research (EN + ZH, ~37 tool calls). Every factual claim cites a real URL; unverified claims (name collisions, cohort scope, a CAR-T case series) are flagged explicitly, not fabricated.
 
 ---
@@ -103,7 +103,7 @@ Nationally elite: **A++ overall** in the Fudan China Hospital Rankings; **Hemato
 
 ---
 
-## 7. Alignment — a cyclic-peptide drug-development collaboration (accelerator-style thesis)
+## 7. Alignment — a cyclic-peptide drug-development collaboration
 
 **What we bring.** A therapeutics company building a **cyclic-peptide (macrocycle) drug-design engine for immune-mediated disorders**: (a) computational **target identification** for autoimmune targets; (b) a **generative peptide designer** (PepGLAD-class) + **proprietary non-canonical chemistry** (N-methylation, D-amino acids, stapled macrocycles) aimed at **hard-to-drug PPIs and intracellular immune signaling nodes** small molecules and antibodies miss; (c) **multi-objective in-silico verification** (affinity, permeability, synthetic accessibility, developability, safety); (d) a **closed-loop design→make→test→learn cycle** — wet-lab assay results ingested to **DPO-retrain the generator**; the accumulating proprietary assay data is the moat.
 
@@ -121,7 +121,7 @@ Nationally elite: **A++ overall** in the Fudan China Hospital Rankings; **Hemato
 2. **Intracellular lupus-nephritis nodes — TWEAK–HOIP–HuR axis + lactate→Tfh circuit.** Their own *Nat Commun/PNAS/Mediators Inflamm* discoveries involve **intracellular PPI/RNA-binding interactions (HOIP LUBAC, HuR)** antibodies can't reach — a natural fit for **cell-penetrant macrocycles**. Validate in their **LN mesangial-cell + murine LN models**. ([PMID 41381571](https://pubmed.ncbi.nlm.nih.gov/41381571/); [PMID 41778053](https://pubmed.ncbi.nlm.nih.gov/41778053/))
 3. **RA innate-immune / alarmin nodes — cGAS-STING, S100A8/MRP.** Intracellular innate signaling + alarmin PPIs, peptide-addressable, validatable in their RA models and synovial samples. ([PMID 41389663](https://pubmed.ncbi.nlm.nih.gov/41389663/); [PMID 41539002](https://pubmed.ncbi.nlm.nih.gov/41539002/))
 
-**Joint-project shape (accelerator-style).** Phase 0 — they nominate 1–2 validated targets + a cohort stratification question; we run target-confidence + generate a first macrocycle library in silico. Phase 1 — we deliver verified candidates; **CRO synthesis** (third party); their lab runs binding + functional PBMC/mesangial assays. Phase 2 — assay data returns to DPO-retrain our generator; leads advance to their **murine model**; translation leverages their **national drug-trial base**.
+**Joint-project shape.** Phase 0 — they nominate 1–2 validated targets + a cohort stratification question; we run target-confidence + generate a first macrocycle library in silico. Phase 1 — we deliver verified candidates; **CRO synthesis** (third party); their lab runs binding + functional PBMC/mesangial assays. Phase 2 — assay data returns to DPO-retrain our generator; leads advance to their **murine model**; translation leverages their **national drug-trial base**.
 
 **Honest gaps / division of labor.**
 - **We do design + compute; they do biology + clinic.** We don't run wet-lab assays or hold patient samples — the collaboration supplies those.
