@@ -36,14 +36,76 @@ the differentiated asset is staged on that proof.
 
 ---
 
-## 1 · Accelerator landscape (Task 1) — *being filled by parallel research*
+## 1 · Accelerator landscape (Task 1)
 
-> Research agent running (web-verified: focus, stage, cohort size, terms,
-> location, next 2026 deadline, fit). Anchor = TMCi ACT; "similar" = comparable
-> early-stage cancer/therapeutics accelerators this startup could apply to.
-> Table + ranked shortlist + "must-have application elements" land here.
+Web-verified Sept 2026; every material fact carries a source URL in the agent
+transcript. Deadlines/terms flagged ⚠️ are aggregator-sourced — **confirm before
+relying**. **ACT confirmed** as an excellent, on-thesis fit.
 
-_(placeholder — do not cite until filled)_
+### 1.1 Best-fit programs (the stack to pursue — all keep us in Houston)
+
+| Program | Fit | Stage | Size / terms | Location | Next 2026 deadline |
+|---|---|---|---|---|---|
+| **TMCi ACT (Accelerator for Cancer Therapeutics)** ★ANCHOR | Cancer-only; explicit immunotherapy + precision drug discovery + **free computational-chemistry (virtual screening, lead-opt, MD)** — maps onto our dry+wet loop | Pre-seed / earliest | **No equity, no fee**; 9-mo; mentors, EIR, grant-writing, CRO + compute access; **TX-based required** | Houston, TMC | **~Oct 30, 2026** (Feb–Sep 2027 cohort) ⚠️confirm yr → act@tmc.edu |
+| **CPRIT Seed / Product-Dev (non-dilutive)** | TX cancer co.; AI/IO welcomed; ACT coaches this | Company-formation | **Up to $3.0M / 3yr, no equity**; **50% first-yr match**; TX-domiciled | Texas | Prelim ⚠️~Apr 16 / Full ⚠️Jul 9 (or Jun 10) 2026 |
+| **NIH/NCI SBIR (R43/R44)** | Oncology drug dev; peptide+CRO+AI ideal; **no match, no equity** | Feasibility→dev | Ph I ⚠️$314K–$700K; Ph II ⚠️~$2–2.5M+ | US (Houston fine) | **Sept 5, 2026**, then Jan 5 / Apr 5, 2027 |
+| **NIH/NCI STTR (R41/R42)** | Same, **requires academic partner** (unlocks TMC tie) | Same | Same; no match | US + non-profit RI | Same NIH cycles |
+| **Portal Innovations (TMC Helix Park)** | Only platform with **Houston wet-lab (30k sqft) + seed capital + IO-heavy residents** — operationalizes the loop w/o relocating | Pre-seed→Series A | **$500K–$3M equity** + lab/equipment; terms ⚠️undisclosed | Houston + 3 | **Rolling** |
+| **Y Combinator (bio)** | Largest annual biotech funder; AI-native therapeutics OK; no lab; relocate | Pre-seed/seed | **$500K** ($125K/7% + $375K MFN SAFE) | SF (relocate ~3mo) | **Nov 2, 2026, 8pm PT** (verified, W27) |
+| **Nucleate Activator (TX chapter)** | Equity-free, Houston-local; **only program w/ cyclic-peptide alumnus** (Unnatural Products); academic-eligibility gated | Academic spinout | **Free, no equity/cash/lab** (mentorship) | TX incl. Houston | ⚠️~late-Oct 2026 (confirm) |
+
+**Off-thesis / disqualifying (do not spend time):** Activate/Cyclotron Road
+(**explicitly excludes FDA-path therapeutics** — despite a Houston site);
+Techstars (no TX, no therapeutics, no wet-lab); MedTech/BioTools Innovator
+(devices/tools only — a drug asset is off-scope); Newlab, Bayer G4A (wrong
+profile). **JLABS @ TMC Houston CLOSED Jan 2026** (replaced by TMC's own
+Innovation Labs @ TMC — no J&J pipeline). **IndieBio → SOSV NY/SF** (Mar 2026;
+strong IO thesis but relocation + no published deadline). MassChallenge 2027
+Biotech & Therapeutics (Dallas node, Eli Lilly partner) = clean non-dilutive
+add-on when it reopens.
+
+### 1.2 Ranked shortlist (what to apply to)
+1. **TMCi ACT — PRIMARY, apply now.** Only accelerator built for early-stage
+   cancer therapeutics; free comp-chem resources map onto our loop; no
+   equity/fee; Houston (we're already here). Alumni: March Biosciences (CAR-T),
+   CrossBridge Bio (ADC). ~50 innovators / ~23 teams per cohort, 77 co. since
+   2021 raising >$202M. **Expects:** incorporate during the program + commit to
+   an SBIR/STTR or CPRIT submission by program end.
+2. **CPRIT Seed — best non-dilutive $.** Up to $3.0M/3yr, zero equity; gate =
+   50% first-year match. Pairs with ACT.
+3. **NIH/NCI SBIR — largest no-equity capital.** No cost-share; NCI oncology
+   ceilings. STTR variant if we want a TMC academic co-PI.
+4. **Portal Innovations (Houston) — equity + wet-lab.** Rolling; the physical
+   home for the wet side of the loop.
+5. **YC W27 (Nov 2, 2026)** — money + brand + AI-native signal; relocation cost.
+6. **Nucleate (TX)** — free local parallel shot **if** an academically-affiliated
+   founder + university-IP link exists.
+
+### 1.3 Must-have application elements (ACT / IO accelerator)
+1. **Traction = real dry+wet loop evidence** — a computationally designed
+   cyclic-peptide binder with *experimental* confirmation (affinity + cell-based
+   IO activity + early permeability/ADMET). Reviewers discount "AI platform"
+   claims without wet-lab proof → **this is exactly what Round-1 generation +
+   validation (§2–§3) produces.**
+2. **Defensible IP + Texas nexus** — provisional on composition and/or design
+   method; FTO awareness; incorporate in TX (ACT requires it; CPRIT requires TX
+   domicile).
+3. **Team across the dry+wet seam** — design (ML/comp-chem) + validate
+   (assay/CRO, translational oncology); a named academic co-PI also unlocks STTR.
+4. **Concrete milestones + a specific non-dilutive ask** — IND-directed roadmap
+   with go/no-go gates, naming the grant + cycle ("NCI SBIR Ph I, Sept 2026" /
+   "CPRIT Seed 2026"). ACT expects a grant submission by program end — enter
+   with it drafted.
+
+**Bottom-line stack:** **ACT (anchor, ~Oct 30 2026 — confirm)** + **CPRIT Seed**
++ **NCI SBIR** for capital + **Portal (Houston)** for wet-lab, all Houston-local;
+**YC W27** + **Nucleate** as high-upside parallel shots.
+
+**⚠️ Confirm before relying:** ACT "Oct 30" *year* (source omits it; older
+article said Oct 13 → email act@tmc.edu); ACT dedicated bench space (compute +
+CRO access confirmed, per-team bench not); CPRIT full-app date (Jul 9 vs Jun 10)
++ current ceiling/match; NCI 2026–27 budget ceilings (post-reauthorization, in
+flux); Portal/SOSV equity % + deadlines; Nucleate deadline.
 
 ---
 
