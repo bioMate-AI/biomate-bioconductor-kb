@@ -66,13 +66,24 @@ def main():
         print("no OPENAI_API_KEY — abort"); return 1
     wf, tool = load_catalog(a.dbcat); catalog = wf | tool
     print(f"catalog grounding set: {len(catalog):,} names", flush=True)
+    # DOMAIN FILTER: only computational-biology papers — random PMC (clinical/humanities) yields noise
+    # ("iodine", "national portrait gallery") not bioinformatics tools. Require >=2 signal terms OR a catalog tool.
+    BIOINFO = re.compile(r"\b(bioinformatic|sequenc|RNA-?seq|scRNA|single-cell|genome|transcriptom|proteom|"
+                         r"variant call|alignment|read(s)?\b|FASTQ|BAM|VCF|differential expression|"
+                         r"assembl|annotation|pipeline|workflow|CHIP-?seq|ATAC|metagenom|phylogen|"
+                         r"gene expression|reference genome|nextflow|galaxy|bioconductor)\b", re.I)
+    catl = [n for n in catalog if len(n) > 4]
     texts = []
     for l in open(a.lit):
         try: t = json.loads(l).get("text", "")
         except Exception: continue
-        if 800 < len(t) < 14000: texts.append(t)
+        if len(t) <= 800:            # keep long full-text (was wrongly excluded at 14000); call truncates to 10k
+            continue
+        head = t[:6000]
+        if len(BIOINFO.findall(head)) >= 2 or any(c in head.lower() for c in catl[:2000]):
+            texts.append(t)
         if len(texts) >= a.n: break
-    print(f"papers to process: {len(texts):,}", flush=True)
+    print(f"papers to process (bioinformatics-scoped): {len(texts):,}", flush=True)
 
     def S(x):  # coerce any LLM field (str | list | None) to a clean string
         if isinstance(x, list): return " ; ".join(str(i) for i in x).strip()
