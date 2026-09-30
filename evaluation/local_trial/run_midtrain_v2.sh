@@ -8,7 +8,7 @@ export MIX_LITERATURE=1 FETCH_REPLAY=1 REPLAY_FRAC=0.25   # MIX_LITERATURE -> pu
 export SFT_DATA=multitask_sft_v5.jsonl
 export MID_OVERRIDE=800 SFT_OVERRIDE=1000 SEQ_OVERRIDE=2048 BS_OVERRIDE=2 GA_OVERRIDE=16 FORCE_NGPU=1
 SUBS=(subnet-09e4dce46682a6c60 subnet-03b277a7a08d388c1 subnet-0b35a6e2c1cf02dc2 subnet-0254e4c3634b41bfc)
-TYPES=(g6e.xlarge g6e.2xlarge g6.2xlarge g5.2xlarge)   # L40S first (fast) — the failed run used slow L4
+TYPES=(g5.2xlarge g6e.xlarge g6e.2xlarge g5.4xlarge)   # L40S first (fast) — the failed run used slow L4
 BASE_MARK="$S3/models_20260919/small/base_domain_v2mid/config.json"
 FINAL_MARK="$S3/models_20260919/small/full_v2mid_adapter/"
 launch(){ for T in "${TYPES[@]}"; do for S in "${SUBS[@]}"; do
