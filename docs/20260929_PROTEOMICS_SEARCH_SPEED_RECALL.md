@@ -257,3 +257,127 @@ across SUBMITTED/PENDING/RUNNABLE/STARTING/RUNNING after the run went terminal).
 **Status:** production path, DAG default, combined-image reachability, container-forcing, and the
 awsbatch libz fix are all **PROVEN**. The Sage+Mokapot *scientific* default (real PSM/peptide counts
 on the production path) is **BLOCKED** on the one-line image fix above (add `procps`).
+
+---
+
+## procps fix + re-validation (2026-09-30, follow-up pass)
+
+**The procps blocker above is FIXED and re-validated on the production path. DECOYDATABASE + SAGE now
+run to exit 0 on the combined image and emit real Sage PSMs. A distinct DOWNSTREAM blocker
+(mokapot 0.10.0 vs pandas 3.0) was then exposed — see below.**
+
+### 1. Image rebuilt with `procps-ng` (combined `proteomics-search:v1`, same tag overwritten)
+
+Recovered the ORIGINAL build recipe from
+`s3://biomate-nextflow-work/domain_image_builds/proteomics_search_20260930/build.log`. It is a
+5-step micromamba Dockerfile:
+```
+FROM mambaorg/micromamba:1.5.8
+USER root
+RUN micromamba install -y -n base -c bioconda -c conda-forge \
+        openms-thirdparty=3.4.1 sage-proteomics=0.14.7 mokapot=0.10.0 \
+    && micromamba clean -a -y
+ENV PATH=/opt/conda/bin:$PATH
+ENV MAMBA_ROOT_PREFIX=/opt/conda
+```
+Reproduced it **verbatim + added `procps-ng`** to the install list (micromamba base → `procps-ng`
+from conda-forge provides `ps`; the Debian-based `mambaorg` image has no reliable `apt` in the build
+step, so the conda route is the clean one).
+
+- **Build box:** spot `c5.4xlarge`, us-west-2a, AL2023, IAM `ec2-ecr-builder-profile`,
+  SG `sg-0a70bb26e47332c55`, `DOCKER_BUILDKIT=0`, dead-man `shutdown -h +120` armed FIRST +
+  `instance-initiated-shutdown-behavior=terminate`; self-contained cloud-init build→sanity→push→shutdown.
+  Artifacts → `s3://biomate-nextflow-work/domain_image_builds/proteomics_search_v1b_20260930/`.
+- **Instance-id:** `i-0099f278d3fe64fc8` → **terminated** (User initiated / dead-man). **Zero orphans.**
+- **SANITY-GATE (pushed only on ALL_OK):**
+  `docker run --rm <img> sh -c "command -v ps && CometAdapter --help … && sage --help … && (mokapot --help … || python -c 'import mokapot') && echo ALL_OK"`
+  → printed:
+  ```
+  /opt/conda/bin/ps
+  ALL_OK
+  ```
+  **`ps` is on PATH** (`/opt/conda/bin/ps`) and all three tools respond. Only then pushed.
+- **New image:** tag `v1` overwritten (no DB/sync change needed). New digest
+  `sha256:44e6cdfb35ef44afb4130981266cfab072e32bf2eaad407eb873ce3c4204abfa` (was `6a2d3755…`),
+  pushed 2026-09-30 14:42 CDT, ~2.17 GB.
+- **Spend:** spot c5.4xlarge ~$0.30/hr × ~12 min build ≈ **<$0.10** compute.
+
+### 2. Re-validation run on the production path (NEW default, engine/rescoring NOT overridden)
+
+Dispatched the identical `proteomics_dda_search` run via `POST /api/nextflow/execute` on dev Galaxy
+(SSH-over-SSM to `i-06696b0d91f4346e0`), same inputs, container forced to the rebuilt v1 image.
+
+| Field | Value |
+|---|---|
+| BioMate run id | `5e9c41f6-ec27-40fd-9093-d304fc55b42e` |
+| Invocation id | `ffa0670d-0516-4087-b2be-61afffbf09c8` |
+| Inputs | `s3://biomate-nextflow-work/proteomics_dda_validation_20260928/` (BSA1_F1.mzML + target.fasta + samplesheet.csv) |
+| Container (forced) | `399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/proteomics-search:v1` (rebuilt) |
+| Workdir | `s3://biomate-nextflow-work/nextflow/work/proteomics-validation-agent-v1b/5e9c41f6-…` |
+
+**Batch chain (all on the rebuilt `proteomics-search:v1`):**
+
+| Batch job | Step | Status | Exit | Container image |
+|---|---|---|---|---|
+| `975ead68-e87d-4a05-b3fb-a6ac6edc36e9` | OPENMS_DECOYDATABASE (searchdb) | **SUCCEEDED** | 0 | `…/biomate/proteomics-search:v1` |
+| (SAGE task, workdir `8e/37b0cf…`) | SAGE | **SUCCEEDED** | 0 | `…/biomate/proteomics-search:v1` |
+| `525cb6bd-8f45-482b-8f3a-d079f00bdd63` | MOKAPOT (BSA1_F1) | **FAILED** | 1 | `…/biomate/proteomics-search:v1` |
+
+**PROCPS FIX PROVEN:** DECOYDATABASE previously died exit 1 at the `ps` guard *before running*
+(job `3e7be7d1…`). On the rebuilt image it clears the guard and **runs to exit 0**, and SAGE runs to
+exit 0 after it — the `ps`/procps class is closed on the production path.
+
+**Real Sage PSMs (`BSA1_F1.sage.tsv`, non-empty — the requested proof):** 2 PSMs, both real BSA
+peptides mapped to `sp|P02769|ALBU_BOVIN`:
+- `DLGEEHFK` (hyperscore 31.88, charge 3)
+- `SHC[+57.0215]IAEVEK` (Carbamidomethyl-C, hyperscore 25.91, charge 3)
+
+(2 PSMs is expected for this single-protein BSA smoke input — this certifies the *pipeline path*
+end-to-end DECOYDATABASE→SAGE on the combined image, not recall depth; recall depth is the separate
+large-DB benchmark in the table above. `BSA1_F1.sage.pin` was also produced and fed to MOKAPOT.)
+
+### 3. DISTINCT downstream blocker exposed (NOT procps): mokapot 0.10.0 × pandas 3.0
+
+MOKAPOT (`525cb6bd…`) exited 1 while **parsing the SAGE pin** — verbatim CloudWatch tail:
+```
+[INFO] Reading BSA1_F1.sage.pin...
+Traceback (most recent call last):
+  File "/opt/conda/lib/python3.14/site-packages/mokapot/parsers/pin.py", line 238, in _parse_in_chunks
+    yield psms.apply(pd.to_numeric, errors="ignore")
+  File "/opt/conda/lib/python3.14/site-packages/pandas/core/tools/numeric.py", line 183, in to_numeric
+    raise ValueError("invalid error value specified")
+ValueError: invalid error value specified
+```
+
+**Root cause:** the ORIGINAL build recipe pins only `mokapot=0.10.0` (a bioconda `noarch` pure-Python
+package) and leaves python/pandas UNPINNED, so micromamba resolved **python 3.14.0 + pandas 3.0.6**
+(confirmed in the v1 `build.log` Install list). mokapot 0.10.0's `pin.py` calls
+`pd.to_numeric(..., errors="ignore")`, and **pandas ≥2.2 deprecated / pandas 3.0 REMOVED the
+`errors="ignore"` value** → `ValueError: invalid error value specified`. This is a build-recipe
+version-skew defect that predates the procps fix — it was simply masked because the old run never got
+past step 1. It is NOT caused by adding procps (procps-ng has no python/pandas deps).
+
+**Fix (next image rebuild — a build-recipe pin, out of scope for this procps-only pass):** pin a
+pandas that mokapot 0.10.0 supports, e.g. add `"pandas<2.2"` (and/or `python<3.13`) to the micromamba
+install list, OR bump mokapot to a version whose `pin.py` no longer uses `errors="ignore"`. The
+sanity-gate should also exercise a real pin parse (`mokapot <tiny.pin>`), not just `--help`, so this
+class is caught at build time. NOTE: the §"speed-recall" large-DB benchmark table above used the
+per-tool quay `mokapot:0.10.0--pyhdfd78af_0` biocontainer (which bundled a compatible pandas), which
+is why Mokapot succeeded there but fails in the combined image — the skew is specific to the combined
+image's unpinned resolve.
+
+### Status after this pass
+
+- **procps / `ps` guard:** ✅ **FIXED + PROVEN** on the production path (DECOYDATABASE + SAGE exit 0
+  on the combined image; real Sage PSMs emitted).
+- **Production path / DAG default / container-forcing / awsbatch libz:** ✅ still PROVEN, now through
+  the SAGE step.
+- **Sage+Mokapot full-default end-to-end:** ⚠️ **BLOCKED on a NEW, distinct issue** — mokapot 0.10.0
+  is incompatible with the pandas 3.0 the combined image resolved. One more build-recipe pin closes it.
+
+### Cost / hygiene (this pass)
+
+- Build box `i-0099f278d3fe64fc8` **terminated**; no other builder instances. Batch spend ≈ **<$0.10**
+  (DECOYDATABASE + SAGE + a failed MOKAPOT, all short). Total this pass **well under the caps**.
+- **Zero orphan compute confirmed:** SUBMITTED/PENDING/RUNNABLE/STARTING/RUNNING all 0 for
+  SAGE/MOKAPOT/OPENMS/DECOY/proteomics on `biomate-nextflow-queue` after the run went terminal.
