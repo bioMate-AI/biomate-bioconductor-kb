@@ -323,6 +323,17 @@ ssm_run "docker pull $BACKEND_IMAGE" "Pulling backend image"
 ssm_run "docker pull $FRONTEND_IMAGE" "Pulling frontend image"
 echo ""
 
+# Step 5.5: Ensure data dir files are writable by the galaxy container user (UID 1000).
+# The bind-mounted galaxy_ai_tools.db is owned by root on a fresh test host.
+# The container runs as galaxy:1000 and needs write access for schema migrations
+# (ALTER TABLE ADD COLUMN on startup). Without this, get_workflow_search() raises
+# sqlite3.OperationalError → _workflow_search=None → every /api/workflows/search
+# returns 503 and the smoke test rolls back the deploy. Fix: chown the data dir
+# to UID 1000 before containers start so the first-run migration can complete.
+ssm_run "chown -R 1000:1000 /opt/biomate/data 2>/dev/null; ls -la /opt/biomate/data/ | head -5" \
+  "Ensuring /opt/biomate/data is writable by galaxy:1000"
+echo ""
+
 # Step 6: Deploy + health check + auto-rollback (single host-side script)
 echo "=== Step 6: Deploy + health check + auto-rollback ==="
 #
