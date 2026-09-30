@@ -27,6 +27,7 @@ TARGETS=(
   "1kat W X 19"   # cytokine/growth-factor-like receptor chain
   "1kc4 A B 19"   # toxin-scaffold receptor
   "1u8p B C 7"    # antibody Fab (paratope target)
+  "5o45 A B 14"   # PD-L1 IgV + macrocyclic peptide-71 (IO target, ACT Round-1; 0.99A; chain B is non-canonical)
 )
 # v3 oversampling: TARGET_ONLY=<pdbid> restricts to one target (scoped POC); NUM_DESIGNS bumps the pool.
 if [ -n "${TARGET_ONLY:-}" ]; then
@@ -75,7 +76,10 @@ if rc is None or pc is None:
     polys=sorted(model, key=lambda c: sum(is_aa(r) for r in c), reverse=True)
     rc = rc or polys[0]; pc = pc or (polys[1] if len(polys)>1 else polys[0])
 rres=[r for r in rc if is_aa(r)]
-pres=[r for r in pc if is_aa(r)]
+# PEPTIDE pocket-definer: use ALL non-water residues of the ligand chain (canonical AND non-canonical),
+# so a macrocycle with ncAAs (e.g. 5o45 peptide-71: MEA/SAR/9KK/CCS) defines the FULL pocket. For the
+# 6 canonical proven targets this is identical to is_aa() (polymer chains carry no waters) — safe no-op.
+pres=[r for r in pc if r.name not in ('HOH','WAT','H2O','DOD')]
 def hcoords(res):
     return np.array([[a.pos.x,a.pos.y,a.pos.z] for a in res if a.element.name!='H'], dtype=float)
 P=np.vstack([hcoords(r) for r in pres]) if pres else np.zeros((0,3))
