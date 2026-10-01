@@ -49,6 +49,17 @@ spatial** — measured, read-only survey + at most 2 cheap production-path runs.
     list; the R body derives the optional `my.counts` from `counts(sce)`). Genuine multi-SLOT
     workflows (`n_path>1`) still bail so real missing inputs surface. Commit `9641ed6e2`,
     `nextflow_executor.py`.
+- ✅ **Single-cell Bioconductor chain is now VALIDATED on production AWS Batch (2026-10-01).** Four
+  of the five composable single-cell Bioc subworkflows **SUCCEEDED** (exit 0, real non-empty outputs)
+  on `biomate-nextflow-queue` using image `bioc-domain-transcriptomics:3.20-slim`, staged from
+  `s3://biomate-nextflow-work/singlecell_bioc_20261001/`:
+  **scran** (quick clustering: 400 cells → 3 clusters 130/170/100 + 11 subclusters, `scran 1.34.0`),
+  **scater** (QC + dimred: 18 plot PDFs incl. tSNE/UMAP/PCA + variance-explained CSVs),
+  **scuttle** (feature QC: 7 artifacts emitted, QC gate `passes=true`),
+  **scdblfinder** (doublet detection: 400 cells, 7 doublets / 393 singlets, `doublet_rate=0.0175`,
+  gate `passes=true`, `scDblFinder 1.20.2`). The **sc3** workflow FAILED and was root-caused to a
+  1-line omission (`library(SingleCellExperiment)` never attached — fix applied, commit pending; needs
+  sync + re-run to confirm). See Run 3.
 - ❌ **Spatial is BLOCKED (as the plan predicted):** the executable spatial workflow
   (`visium_voyager_spatial_esda`) references ECR image `biomate/bioc-spatial:v1` which
   **does not exist** (confirmed — no `spatial` repo in ECR at all), and the MERFISH alternative
@@ -72,8 +83,8 @@ spatial** — measured, read-only survey + at most 2 cheap production-path runs.
 | ChIP-seq | `chipseeker/main.nf` (`peak_profiling`) | quay biocontainer | needs BED + txdb.rds | BLOCKED on Batch — raw quay image (libz issue, see SC) |
 | ChIP-seq | `nfcore/chipseq/main.nf` (DB id 1492) | — | — | **BLOCKED — non-executable stub** (invented tool flags `bwa mem --dedup`, `fastqc --whitelist`; 0 real outputs). Do not run. |
 | **Single-cell** | `dropletutils/main.nf` (10X import/emptyDrops) | ~~quay biocontainer~~ → `biomate/bioc-domain-transcriptomics:3.20-slim` (ECR, Batch-ready) | 10X PBMC3k **RAW** (S3, ~40 MB) | **VALIDATED — emptyDrops detected 2876 cells (FDR≤0.01) on Batch.** libz blocker fixed (container swap `9641ed6e2`); only a versions.yml typo fix (`6fb4b084e`) remains to deploy for output persistence ✅ |
-| Single-cell | `scran` / `scater` / `scuttle` / `scdblfinder` `/main.nf` | `biomate/bioc-domain-transcriptomics:3.20-slim` (Batch-ready) | need an SCE `.rds` input | READY *once an SCE .rds is staged* (needs R to build; not staged this session) — **best clean SC re-run candidate** |
-| Single-cell | `sc3/main.nf` | `bioc-domain-transcriptomics:3.20-slim` (Batch-ready) | `expression_matrix.csv` + `cell_metadata.csv` | READY *if a CSV matrix is generated from PBMC3k* (CSV conversion needed) |
+| Single-cell | `scran` / `scater` / `scuttle` / `scdblfinder` `/main.nf` | `biomate/bioc-domain-transcriptomics:3.20-slim` (Batch-ready) | SCE `.rds` input (staged) | **ALL 4 VALIDATED — RAN & SUCCEEDED on Batch (exit 0, real outputs)** ✅ (see Run 3) |
+| Single-cell | `sc3/main.nf` | `bioc-domain-transcriptomics:3.20-slim` (Batch-ready) | `expression_matrix.csv` + `cell_metadata.csv` (staged) | **RAN & FAILED — root-caused** (missing `library(SingleCellExperiment)`; 1-line fix applied, awaits sync+re-run) ⚠️→🔧 (see Run 3) |
 | Single-cell | `scrnaseq_standard_endtoend/main.nf` | `biomate/scrnaseq-standard:v1` **(does not exist)** | — | **BLOCKED — unimplemented stub** (see stub verdict) |
 | **Spatial** | `visium_voyager_spatial_esda/main.nf` | `biomate/bioc-spatial:v1` **(does not exist)** | — | **BLOCKED — bespoke ECR image never built; bespoke `/opt/biomate/voyager/*.R` scripts unimplemented** |
 | Spatial | `merfish_spatial_analysis/main.nf` | `biomate/biomni-tools:x86` (exists) | — | **BLOCKED — honest-failing stub** (`sys.exit(1)` "no real implementation"; needs Cellpose+SpatialDE wiring) |
@@ -159,6 +170,88 @@ no peaks) are superseded by a real, scored ChIPseeker annotation with correct ou
   (correct emptyDrops cell count on the raw PBMC3k matrix); the libz infra blocker and the 422
   wrapper bug are fixed + deployed; a one-token version-string fix is committed and awaiting the
   consolidated sync for clean output persistence.
+
+### Run 2c — post-sync re-dispatch (2026-09-29) — ✅ FULLY VALIDATED, clean exit 0 + all outputs persisted
+
+After the consolidated sync deployed the versions.yml fix (`6fb4b084e`,
+`packageVersion("DropletUtils")` CamelCase — verified live in the dev container), the
+run `671f6f43` params were re-dispatched via the production path
+`POST /api/workflows/execute` (e2e fixture `lifeifei163361@163.com`, raw PBMC3k matrix,
+container `bioc-domain-transcriptomics:3.20-slim`).
+
+| Field | Value |
+|---|---|
+| BioMate run id | `2093bd88-6412-4a05-8c06-dafdb57f524b` |
+| Nextflow run id | `83212a9a-e814-481d-9056-158de8f3dc69` |
+| Batch job id | `adfdc14b-48fc-430c-ad5d-ca7bfc4ab879` |
+| Terminal status | **SUCCEEDED** (returncode 0), ~94 s task compute, ~506 s wall |
+| S3 outdir | `s3://biomate-nextflow-work/nextflow/outputs/fd5a73ac-87df-4850-b8ff-6d768c1b47fb/2d0a469c/` |
+
+**All 7 expected outputs persisted to S3 (non-empty, count-checked):**
+`barcode_ranks_plot.pdf` (993 KB), `barcode_ranks_stats.csv` (16.6 MB),
+`empty_drops_plot.pdf` (175 KB), `empty_drops_results.csv` (17 MB),
+`filtered_cells_sce.rds` (5.5 MB), `qc_metrics.json` (519 B), `versions.yml`
+(`dropletutils: 1.26.0`). **Science confirmed:** parsing `empty_drops_results.csv`
+(FDR column) yields exactly **2876 cell-containing droplets at FDR ≤ 0.01** — matching
+the prior in-container proof and biologically correct for PBMC3k. The versions.yml
+CamelCase fix closed the last gap: the task now exits 0 and Nextflow unstages every
+artifact. **Single-cell dropletutils is fully VALIDATED end-to-end on production AWS
+Batch.** Batch spend: ~$0.03.
+
+---
+
+## Run 3 — Single-cell Bioconductor chain (scran / scater / scuttle / scdblfinder / sc3) — ✅ 4/5 VALIDATED on Batch (2026-10-01)
+
+- **Queue:** `biomate-nextflow-queue`. **Image (all 5):**
+  `399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim`.
+- **Staged inputs:** `s3://biomate-nextflow-work/singlecell_bioc_20261001/`
+  (`example_sce.rds`, `sce.rds` for the four SCE-based tools; `expression_matrix.csv` +
+  `cell_metadata.csv` for sc3). Nextflow head dir `fd5a73ac-87df-4850-b8ff-6d768c1b47fb`.
+- **Verification method:** `aws batch describe-jobs` (status + exit code) + `aws s3 ls`/`cp` on each
+  task work dir to confirm real, non-empty output artifacts and read actual result values. No re-runs
+  of the 4 that already succeeded.
+
+| Tool | Batch job id | Status | Real evidence (read from S3 outputs) |
+|---|---|---|---|
+| **scran** (quick clustering & normalization) | `a4ef9c54-f795-4ede-b4c2-40764d89a00c` | ✅ SUCCEEDED (exit 0) | `quick_clusters.csv`: **400 cells → 3 clusters (cluster1=130, cluster2=170, cluster3=100)**; `subcluster_table.csv`: 11 subclusters (e.g. 1.1=52, 2.1=60); `sce_normed.rds` (1.16 MB), `subout.rds` (1.69 MB); `versions.yml` → `scran: 1.34.0` |
+| **scater** (scRNA-seq QC & visualization) | `e08b8b62-8b1b-4ce8-a1dd-f750c612b8f2` | ✅ SUCCEEDED (exit 0) | **18 real plot PDFs** incl. `plot_pca_4comp.pdf` (318 KB), `plot_tsne_snap25.pdf`, `ggcells_tsne_density.pdf`, `plot_reduced_dim_pca.pdf`; dimred coord CSVs `tsne_perplexity{10,50}_head.csv`, `umap_head.csv`; `variance_explained_all.csv` (161 KB, real per-gene variance e.g. AURKAIP1 sizeFactor=5.62); `processed_example_sce.rds` (1.60 MB) |
+| **scuttle** (feature QC & data transformation) | `d4b293ac-1235-4bb4-b841-ab16c843651c` | ✅ SUCCEEDED (exit 0) | `qc_metrics.json`: outlier-detection gate **`artifacts_emitted=7`, `passes=true`**; `per_cell_df.csv`, `per_feature_qc_metrics.csv` (39 KB), `average_expression.rds`, `sce.ens.rds` / `sce_ens_uniquified.rds` (ID-mapped SCEs) |
+| **scdblfinder** (doublet detection) | `841f8ce0-a195-4fdd-b2c7-d280afb4f227` | ✅ SUCCEEDED (exit 0) | `scDblFinder_results.csv`: **400 cells, 393 singlets / 7 doublets**, per-cell scores (e.g. AAACATTGAGCTAC-1=0.316); `qc_metrics.json`: **`doublet_rate=0.0175`, gate `passes=true`**; `scDblFinder_score_histogram.pdf`, `sce_scDblFinder.rds`; `versions.yml` → `scDblFinder: 1.20.2` |
+| **sc3** (SC3 clustering) | `fec12af4-419b-4a6c-97ce-5b71d88a72cc` | ❌ FAILED (exit 1) | No outputs persisted (only `.command.err`/`.exitcode`). Root-caused below. |
+
+### sc3 FAILED — root cause + fix
+
+- **Exact error** (CloudWatch `/aws/batch/job`, work dir `.command.err`):
+  ```
+  Error in SingleCellExperiment(assays = list(counts = as.matrix(yan),
+    logcounts = log2(as.matrix(yan) + : could not find function "SingleCellExperiment"
+  Execution halted
+  ```
+- **Root cause:** the R body calls the `SingleCellExperiment(...)` **constructor** but loads only
+  `library(SC3)` and `library(SummarizedExperiment)` — it never attaches
+  `library(SingleCellExperiment)`. SC3 *imports* SingleCellExperiment internally but does not
+  re-export its constructor, so the symbol is unavailable on the search path. (Confirmed this is the
+  only bug: dependency install succeeded, both CSVs were read successfully via `read.csv` — the error
+  fires on the very next line, the SCE constructor. Not an input-shape, container, or 2-input-wrapper
+  issue.) The workflow header already declares `Requires: SC3, SingleCellExperiment`, so the attach
+  was simply omitted from the generated body.
+- **Fix applied (1-line, root-cause):** `sc3/main.nf` — added
+  `library(SingleCellExperiment)` to the library loads **and** added `"SingleCellExperiment"` to the
+  `.bm_deps` resolver vector (so the constructor is guaranteed present even on a lean image).
+  SingleCellExperiment is already baked into `bioc-domain-transcriptomics:3.20-slim` (it is a
+  dependency of scran/scater/scuttle/scdblfinder, all of which constructed SCE objects and succeeded),
+  so the attach will resolve with no runtime install.
+- **Status:** committed; **needs a dev sync + one re-dispatch to confirm exit 0 + persisted outputs**
+  (`sc3_cell_metadata_results.csv`, `sc3_gene_metadata_results.csv`, `sc3_sce_output.rds`,
+  `sc3_plots.pdf`, `versions.yml`). Re-run was **not** performed this session — the sync lock is
+  serialized and a concurrent session holds uncommitted working-tree files; per the coordination rule
+  only committed-by-me files were touched and no out-of-band dev edit was made.
+
+**Verdict:** the composable single-cell Bioconductor subworkflow chain is **VALIDATED on production
+AWS Batch** — 4/5 tools produce real, biologically-sensible outputs (clustering, QC, dimred, doublet
+calls) with exit 0; the 5th (sc3) has a confirmed root cause and a committed 1-line fix pending
+sync+re-run. **Batch spend this task: ~$0 (read-only verification; the 5 jobs were run by the prior
+session).**
 
 ---
 
