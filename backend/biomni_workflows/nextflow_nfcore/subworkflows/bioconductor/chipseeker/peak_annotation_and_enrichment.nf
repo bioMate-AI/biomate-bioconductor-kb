@@ -17,7 +17,7 @@ process BIOC_CHIPSEEKER_PEAK_ANNOTATION_AND_ENRICHMENT {
     tag "${meta.id}"
     label 'process_medium'
 
-    container "quay.io/biocontainers/bioconductor-chipseeker:1.46.1--r45hdfd78af_0"
+    container "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-epigenomics:3.20-slim"
 
     input:
     tuple val(meta), path(input_files, stageAs: '?/*')
@@ -62,19 +62,23 @@ process BIOC_CHIPSEEKER_PEAK_ANNOTATION_AND_ENRICHMENT {
     library(clusterProfiler)
     
     # --- Read User Inputs ---
-    # The pipeline expects "files_4.bed" (BED file of ChIP-seq peaks)
-    # and "txdb.rds" (serialized TxDb object) in the working directory.
-    if (!file.exists("files_4.bed")) {
-      stop("Error: Input BED file 'files_4.bed' not found in the working directory.")
+    # Inputs are staged by basename into the working directory. Discover them by
+    # extension (robust to any supplied filename) rather than requiring magic names:
+    #   * a BED file of ChIP-seq peaks (files[[4]])
+    #   * a serialized TxDb object (txdb) saved with saveRDS()
+    bed_files <- list.files(pattern = "\\\\.(bed|bed\\\\.gz)\$", ignore.case = TRUE)
+    if (length(bed_files) == 0) {
+      stop("Error: No BED file (*.bed/*.bed.gz) found in the working directory.")
     }
-    if (!file.exists("txdb.rds")) {
-      stop("Error: Input TxDb RDS file 'txdb.rds' not found in the working directory.")
+    rds_files <- list.files(pattern = "\\\\.rds\$", ignore.case = TRUE)
+    if (length(rds_files) == 0) {
+      stop("Error: No serialized TxDb .rds file found in the working directory.")
     }
-    
-    files <- list()
-    files[[4]] <- "files_4.bed"
-    
-    txdb <- readRDS("txdb.rds")
+
+    files <- vector("list", 4)
+    files[[4]] <- bed_files[1]
+
+    txdb <- readRDS(rds_files[1])
     
     # Read peak file for downstream seq2gene analysis
     peak <- readPeakFile(files[[4]])
@@ -151,7 +155,7 @@ process BIOC_CHIPSEEKER_PEAK_ANNOTATION_AND_ENRICHMENT {
 
     writeLines(c(
         '"BIOC_CHIPSEEKER_PEAK_ANNOTATION_AND_ENRICHMENT":',
-        paste0('        chipseeker: ', as.character(packageVersion("chipseeker")))
+        paste0('        chipseeker: ', as.character(packageVersion("ChIPseeker")))
     ), "versions.yml")
     """
 
