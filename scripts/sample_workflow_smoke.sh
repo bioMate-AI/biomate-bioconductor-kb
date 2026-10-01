@@ -59,9 +59,13 @@ curl_json() { # method path datafile-or-empty
   local jwt_args=()
   [ -n "$JWT" ] && jwt_args=(-H "Authorization: Bearer $JWT")
   if [ -n "$data" ]; then
-    curl -sS -m 160 "$CT" "$CTV" "$XF" "$XFV" "${auth_args[@]}" "${jwt_args[@]}" -X "$method" "$BASE_URL$path" --data "@$data" 2>/dev/null
+    curl -sS -m 160 "$CT" "$CTV" "$XF" "$XFV" \
+      "${auth_args[@]+"${auth_args[@]}"}" "${jwt_args[@]+"${jwt_args[@]}"}" \
+      -X "$method" "$BASE_URL$path" --data "@$data" 2>/dev/null
   else
-    curl -sS -m 30 "$CT" "$CTV" "$XF" "$XFV" "${auth_args[@]}" "${jwt_args[@]}" -X "$method" "$BASE_URL$path" 2>/dev/null
+    curl -sS -m 30 "$CT" "$CTV" "$XF" "$XFV" \
+      "${auth_args[@]+"${auth_args[@]}"}" "${jwt_args[@]+"${jwt_args[@]}"}" \
+      -X "$method" "$BASE_URL$path" 2>/dev/null
   fi
 }
 
