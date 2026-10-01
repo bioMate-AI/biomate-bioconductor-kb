@@ -5,6 +5,9 @@
 **Design:** `docs/20260907_PROTEOMICS_DB_SEARCH_OPTIMIZATION_SURVEY.md` §11/§14
 **Harness:** `evaluation/datasets/proteomics_search_benchmark/` + `scripts/score_proteomics_search_benchmark.py`
 **Implementation commits:** `a552474d0` (Sage + Mokapot modules) + `447981d85` (Sage/Mokapot normalizers + calibrated-q scoring)
+**Clean publication-grade restatement:** `docs/20261001_PROTEOMICS_SEARCH_BENCHMARK_REPORT.md`
+(objective / methods / 3-arm table / reproducibility / caveats / provenance map). This doc is the
+detailed running session log that report derives from — both are kept.
 
 ---
 

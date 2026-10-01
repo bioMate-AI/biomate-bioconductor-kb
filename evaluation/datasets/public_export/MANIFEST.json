@@ -60,6 +60,13 @@
         "ligand_rank_order"
       ],
       "task": "Given a protein structure (PDB) and ligands with experimental Kd, reproduce the affinity rank order."
+    },
+    {
+      "name": "proteomics_search",
+      "kind": "real_execution_capability",
+      "items": 1,
+      "gt": "entrapment_database",
+      "task": "RUN (not predict) a shotgun-proteomics MS/MS search against a human proteome + entrapment DB and report speed (wall-clock, spectra/s) AND recall (#PSMs/#peptides/#proteins at 1% FDR) on the same runs, with the 1% FDR validated by entrapment false-match-rate. Scored by running the committed Nextflow harness, not by a predictions.jsonl. Targets: >=5x faster end-to-end than the brute-force (Comet) baseline; no peptide-recall regression; entrapment FMR <=1.3% at claimed 1% FDR. See proteomics_search/metadata.json + README.md."
     }
   ],
   "license": "CC-BY-4.0",

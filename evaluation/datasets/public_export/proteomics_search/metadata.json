@@ -1,0 +1,77 @@
+{
+  "name": "proteomics_search",
+  "kind": "real_execution_capability",
+  "note": "Unlike the prediction-item tasks, this is scored by RUNNING the search pipeline on real data and measuring two axes on the same runs. No predictions.jsonl / no LLM judge.",
+  "inputs": {
+    "spectra_accession": "PXD010595",
+    "spectra_scans": 65521,
+    "target_proteins": 20431,
+    "entrapment_sequences": 20431,
+    "decoy_sequences": 40862,
+    "total_searched_sequences": 81724,
+    "entrapment_source": "shuffled_target",
+    "entrapment_ratio": 1.0,
+    "search_settings": {
+      "enzyme": "trypsin",
+      "missed_cleavages": 2,
+      "precursor_tolerance_ppm": 10,
+      "fragment_tolerance_da": 0.02,
+      "fixed_mods": ["Carbamidomethyl (C)"],
+      "variable_mods": ["Oxidation (M)"]
+    }
+  },
+  "ground_truth": "entrapment_database",
+  "metric": {
+    "speed": ["wall_clock_s", "spectra_per_s"],
+    "recall": ["psms_at_1pct_fdr", "peptides_at_1pct_fdr", "proteins_at_1pct_fdr"],
+    "calibration": "entrapment_fmr_at_1pct"
+  },
+  "targets": {
+    "speed": ">= 5x faster end-to-end than the brute-force (Comet) baseline",
+    "recall": ">= baseline #peptides@1%FDR (no regression); report the gain",
+    "calibration": "measured entrapment FMR <= 1.3% at claimed 1% FDR"
+  },
+  "baseline": {
+    "arm": "Comet (brute-force XCorr)",
+    "wall_clock_s": 153.1,
+    "spectra_per_s": 428,
+    "psms_at_1pct_fdr": 260,
+    "peptides_at_1pct_fdr": 73,
+    "proteins_at_1pct_fdr": 71,
+    "entrapment_fmr_at_1pct": 0.0
+  },
+  "measured": {
+    "sage": {
+      "wall_clock_s_end_to_end": 29,
+      "spectra_per_s": 4955,
+      "psms_at_1pct_fdr": 552,
+      "peptides_at_1pct_fdr": 137,
+      "proteins_at_1pct_fdr": 130,
+      "entrapment_fmr_at_1pct": 0.54,
+      "speedup_vs_baseline_end_to_end": 5.3
+    },
+    "sage_mokapot": {
+      "wall_clock_s_end_to_end": 42,
+      "psms_at_1pct_fdr": 836,
+      "peptides_at_1pct_fdr": 191,
+      "proteins_at_1pct_fdr": 174,
+      "entrapment_fmr_at_1pct": 0.24,
+      "psms_gain_vs_baseline_pct": 222,
+      "peptides_gain_vs_baseline_pct": 162,
+      "proteins_gain_vs_baseline_pct": 145
+    }
+  },
+  "harness": "evaluation/datasets/proteomics_search_benchmark/ (cases.yaml, main.nf, prepare_search_db.py, normalize_psms.py, normalize_idxml.py)",
+  "scorer": "scripts/score_proteomics_search_benchmark.py",
+  "report": "docs/20261001_PROTEOMICS_SEARCH_BENCHMARK_REPORT.md",
+  "session_log": "docs/20260929_PROTEOMICS_SEARCH_SPEED_RECALL.md",
+  "live_production_run": "fb3440ec-6ef0-43f4-be39-5e249e7bc1b6",
+  "tools_attribution": "Sage (Lazear, JPR 2023, MIT); Mokapot (Fondrie & Noble, Apache-2.0); OpenMS/Comet (Apache/BSD). BioMate composes/runs/benchmarks; it did not author these tools.",
+  "caveats": [
+    "Single dataset so far; relative gains strong, absolute counts modest (ProteomeTools synthetic + strict 1:1 entrapment).",
+    "RAM measured the docker wrapper, not the tool.",
+    "Phase-1 breadth (HeLa gradient, HLA immunopeptidome, species mixture) would strengthen generalization."
+  ],
+  "license": "CC-BY-4.0"
+}
+</content>

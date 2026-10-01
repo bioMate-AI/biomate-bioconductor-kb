@@ -43,6 +43,15 @@ compare directly.
 | `boin_benchmark` | 20 | correct BOIN dose-escalation decision | `reference` | accuracy |
 | `pbpk_benchmark` | 15 | predict PK from SMILES + dose + route | `reference` | within-2-fold |
 | `drug_discovery_e2e` | 15 | reproduce ligand affinity rank order | `ligand_rank_order` | Spearman ρ |
+| `proteomics_search` † | 1 | **run** an MS/MS search + measure speed & #IDs@1%FDR@entrapment | `entrapment_database` | wall-clock + #peptides@1%FDR + entrapment FMR |
+
+† **`proteomics_search` is a real-execution capability benchmark**, not a prediction item-set: it is
+scored by *running* the committed Nextflow search harness on real data (not by a `predictions.jsonl` +
+LLM). Targets: ≥5× faster end-to-end than the brute-force (Comet) baseline; no peptide-recall
+regression; entrapment FMR ≤1.3% at claimed 1% FDR. Harness:
+`evaluation/datasets/proteomics_search_benchmark/`; scorer:
+`scripts/score_proteomics_search_benchmark.py`; report:
+`docs/20261001_PROTEOMICS_SEARCH_BENCHMARK_REPORT.md`. See `proteomics_search/README.md`.
 
 ## How to run
 1. For a benchmark, produce `predictions.jsonl` — one line per item: `{"id": "...", "prediction": <answer>}`
