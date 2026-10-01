@@ -784,7 +784,8 @@ def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
                          external, deleted, purged, active, disk_usage)
                     VALUES
                         (:create_time, :update_time, :email, :username, :password,
-                         0, 0, 0, 1, 0)
+                         :external, :deleted, :purged, :active, :disk_usage)
+                    RETURNING id
                     """
                 ),
                 {
@@ -793,10 +794,16 @@ def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
                     "email": galaxy_email,
                     "username": galaxy_username,
                     "password": galaxy_password_hash,
+                    "external": False,
+                    "deleted": False,
+                    "purged": False,
+                    "active": True,
+                    "disk_usage": 0,
                 },
             )
             conn.commit()
-            galaxy_user_id = result.lastrowid
+            row = result.fetchone()
+            galaxy_user_id = row[0] if row else None
             log.info(
                 "provision_galaxy_user: created user id=%s username=%s email=%s",
                 galaxy_user_id, galaxy_username, galaxy_email,
@@ -806,9 +813,9 @@ def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
         # First check if an active key already exists
         existing_key = conn.execute(
             _sa.text(
-                'SELECT "key" FROM api_keys WHERE user_id = :uid AND deleted = 0 LIMIT 1'
+                'SELECT "key" FROM api_keys WHERE user_id = :uid AND deleted = :deleted LIMIT 1'
             ),
-            {"uid": galaxy_user_id},
+            {"uid": galaxy_user_id, "deleted": False},
         ).fetchone()
 
         if existing_key:
@@ -820,13 +827,14 @@ def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
                 _sa.text(
                     """
                     INSERT INTO api_keys (create_time, user_id, "key", deleted)
-                    VALUES (:create_time, :user_id, :key, 0)
+                    VALUES (:create_time, :user_id, :key, :deleted)
                     """
                 ),
                 {
                     "create_time": now.isoformat(),
                     "user_id": galaxy_user_id,
                     "key": galaxy_api_key,
+                    "deleted": False,
                 },
             )
             conn.commit()
