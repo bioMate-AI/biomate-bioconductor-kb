@@ -95,6 +95,81 @@ Ranked by where the gap is (low score = high opportunity):
    retrieval-grounded tasks (confirms the KEY RULE). CPT is reserved for the quantitative-prediction
    "clock analog" (ADMET/PBPK/BOIN), not for routing/QA.
 
+## What the harness CAN complement vs CANNOT (the decisive cut)
+
+A weak LLM is rescued by the harness **iff the task reduces to one of three shapes** the harness
+can supply deterministically:
+- **(S) selection from a retrieved set** — retrieval puts the answer in the prompt; the LLM picks.
+- **(R) a deterministic rule** — no LLM needed at all.
+- **(V) a cheap programmatic verifier** — sample k, keep the first that passes (`verified_sample`).
+
+If none of those apply — **open-ended generation, no retrieval answer, no cheap verifier** — the
+harness can only *reject* a bad output, never *produce* a good one, so **output quality = LLM
+quality** and a 4B is genuinely, un-rescuably worse than frontier.
+
+### Harness CAN carry (LLM choice ≈ irrelevant → use the cheapest on-prem model)
+| Task | Mechanism | Why it works |
+|------|-----------|--------------|
+| workflow_routing | S + grounded_pick | base already 0.94; retrieval+pick do it |
+| parameter_extraction (conversions/flags/aliases) | R + schema validation | exact, zero-LLM |
+| dataset_prerequisite_check | S (DB `input_types`) | it's a stored fact |
+| tool_recommendation | S + grounded_pick | pick from retrieved real tools |
+| knowledge_recall / scientific_qa | S (RAG) + cite-or-abstain | ground recall, block fabrication |
+| autofix_repair | V (rerun the step) | pipeline IS the verifier; pass@k |
+| (param/output) validation | R (allowed_values) | guardrail, deterministic |
+
+→ On these, a strong harness delivers frontier-quality **system** output on a cheap backend.
+This is the "harness does well no matter the LLM" zone — and it is the *majority* of calls.
+
+### Harness CANNOT substitute (LLM judgment is the ceiling → frontier >> small, no rescue)
+| Task | Why the three shapes fail |
+|------|---------------------------|
+| out_of_catalog_composition (0.099) | by definition retrieval returns nothing adequate (no S); verifier only exists after an expensive run; must *create* a plan or abstain |
+| findings_interpretation / conclusion (0.286) | numbers are in-context but the *meaning* is novel — no retrieval answer, no verifier; majority-vote can't fix a <50% model |
+| clarification_request (0.360, stuck) | calibration judgment (when ambiguous enough to ask) — no gold to verify, no retrieval answer |
+| decomposition/chaining *planning core* (0.29) | step→workflow mapping is S-able, but the plan shape is LLM judgment; verifier only by running |
+| workflow_generation (0.280) | partially V (does it run?) via pass@k, but the floor is LLM-bound |
+
+→ Here the harness is a guardrail (rejects bad), not a generator. A 4B loses to frontier and
+**stays** lost. majority_vote/self-consistency only help when the model is already right >50% of
+the time — these are all well below that.
+
+## So what IS the point of training the small LLM (honest)
+It is **not** to beat frontier on the CANNOT list — it can't, and the harness won't save it there.
+The defensible points, in priority:
+1. **On-prem / compliance** — regulated pharma/CRO data can't leave the VPC. An on-prem model is a
+   *requirement* for that segment, independent of any benchmark. Frontier-via-API is simply off the
+   table for them, so the comparison isn't "small vs frontier" — it's "small vs nothing".
+2. **Cost/latency on the CAN-carry majority** — most calls are S/R/V-shaped; a cheap on-prem model
+   handles them at ~100× lower cost with the harness guaranteeing quality. Frontier spend is
+   reserved (hybrid difficulty-router) for the CANNOT list only — where compliance permits.
+3. **Where training has marginal value** — concentrate it on the **CANNOT list**, because that's
+   simultaneously (a) the only place the LLM is the ceiling and (b) the only lever for on-prem
+   customers who have *no* frontier fallback. Training the CAN-carry tasks is near-wasted (0.94
+   routing can't improve; the harness already wins).
+
+This reframes the program: **the small model is a cost+compliance play wrapped around a strong
+harness, not a capability play.** Its training budget belongs on the hard judgment tasks, and its
+success metric is end-to-end BioMate task success — not pure-LLM F1.
+
+## The decisive experiment (end-to-end, backend-swapped)
+BioMate's backend LLM is an OpenAI-compatible client (`galaxy-assistant.ts` → OpenRouter baseURL),
+and an end-to-end RealBio runner + `models.yaml` already exist. So:
+
+Run the **same RealBio task set end-to-end through the full harness**, swapping only the backend:
+`{frontier (Opus/GPT-6), our sft_v8 (vLLM), open base Qwen3-4B (vLLM)}`, measuring **task success
+(workflow runs + output passes the programmatic check), cost, latency** — broken out by the CAN vs
+CANNOT task classes above.
+
+Predictions to falsify:
+- **CAN-carry tasks:** backend barely moves end-to-end success → cheapest wins (validates thesis).
+- **CANNOT tasks:** frontier >> small end-to-end → the gap = the real price of on-prem, and the
+  training target.
+If instead the harness flattens *even the CANNOT tasks*, then training is pointless and the answer
+is "cheapest model + harness, escalate nothing." If frontier dominates *even the CAN tasks*, the
+harness is weaker than claimed and needs work before any model choice matters. Either way the
+experiment, not intuition, decides — and it is the metric that actually reflects the product.
+
 ## Next (v9, redirected)
 - Build **open-book hard-task CoT** for out_of_catalog_composition, findings_interpretation,
   task_decomposition, lane_arbitration, clarification_request — gold constructed to be checkable
