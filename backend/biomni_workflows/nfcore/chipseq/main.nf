@@ -1,3 +1,22 @@
+// ⚠️ NON-EXECUTABLE PARAMETER-SURFACE STUB — DO NOT RUN. (flagged 2026-10-01)
+// This file documents the nf-core/chipseq *parameter surface* only. It is NOT a
+// runnable Nextflow pipeline:
+//   * processes have no `input:` blocks and there is no `workflow {}` wiring /
+//     channels, so nothing actually executes;
+//   * it uses invented tool flags that do not exist (`bwa mem --dedup`,
+//     `bwa mem --fragment-size`, `trim_galore/macs2/multiqc --outdir`,
+//     a non-existent `chipseeker_annotate.R`);
+//   * it produces 0 real outputs.
+// DB id 1492 is marked non-executable (executable=0, real_exec_status=exec_error,
+// workflow_correctness_verdict=major_issues) so routing deprioritizes it.
+// For a REAL ChIP-seq run, use the validated Bioconductor ChIPseeker subworkflows
+// (nextflow_nfcore/subworkflows/bioconductor/chipseeker/
+//  peak_annotation_and_feature_distribution.nf — validated; and
+//  peak_annotation_and_enrichment.nf — validated), both on the Batch-ready
+// biomate/bioc-domain-epigenomics:3.20-slim image. To run the upstream
+// FASTQ→peaks nf-core/chipseq, pull the real pipeline from nf-core (nextflow run
+// nf-core/chipseq) rather than this stub.
+//
 // nf-core/chipseq — user-facing parameter stub
 // ChIP-seq: FASTQ → alignment → peak calling → annotation → QC
 //
