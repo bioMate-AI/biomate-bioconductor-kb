@@ -29,3 +29,19 @@ Not yet wired into hot paths (no deploy risk this session).
 4. `consensus` → refactor `build_cot_distill.py` to call `vl.consensus(..., fuzzy_threshold=0.4)` (dedupe the
    ad-hoc consensus logic there).
 Each wiring touches backend Python → run the pre-sync checklist (tsc/vitest + `import galaxy.ai.<mod>`), then sync.
+
+## Finding (2026-10-01): routing is ALREADY grounded — grounded_pick wiring targets revised
+Traced the routing hot path before editing (review-before-deploy):
+- `unified_workflow_search._browse_catalog_with_llm` returns workflow **IDs used only for rank-boosting**; the
+  final output is always real `workflows` SQL rows — the LLM cannot inject a nonexistent workflow.
+- The chain path already validates the LLM's chain name ("unknown name -> top candidate", line ~2456).
+=> Routing output is grounded-by-construction already (this is why serving-time routing = 0.94; hallucination
+   was a TRAINING-DATA issue, fixed via open-book/contrastive, not a serving issue). Wiring grounded_pick there
+   is REDUNDANT; not doing a redundant, churn-risky, deploy-requiring edit.
+
+REAL grounded_pick targets (deliberate, pre-sync-gated follow-ups — not done blind this session):
+1. Serving the open-book routing SFT model (if deployed) — its raw string output needs grounding to candidates.
+2. tool_recommendation / agentic free-text tool picks (model names a tool in prose → map to catalog or reject).
+3. Consolidate the ad-hoc chain-name fallback (line ~2456) to call vl.grounded_pick (dedupe/formalize).
+Each touches a churned core file + needs the pre-sync checklist (tsc/vitest + `import galaxy.ai.<mod>` on a
+working-scipy env) + sync — so gated, not forced mid-session.
