@@ -661,10 +661,13 @@ class UnifiedWorkflowSearch:
         """Create FTS index for workflows."""
         cursor = conn.cursor()
 
-        # Create FTS table if not exists
+        # Create FTS table if not exists.
+        # annotation_v2 is the enriched annotation column (~1300 chars avg vs
+        # ~180 for annotation): key_parameters, alternatives, when_to_use, keywords.
+        # Indexing it makes well-annotated workflows findable by parameter/intent terms.
         cursor.execute("""
             CREATE VIRTUAL TABLE IF NOT EXISTS workflows_fts USING fts5(
-                name, description, annotation, tags, domain, tools_used,
+                name, description, annotation, annotation_v2, tags, domain, tools_used,
                 content='workflows',
                 content_rowid='id'
             )
@@ -672,8 +675,8 @@ class UnifiedWorkflowSearch:
 
         # Populate FTS index
         cursor.execute("""
-            INSERT INTO workflows_fts(rowid, name, description, annotation, tags, domain, tools_used)
-            SELECT id, name, description, annotation, tags, domain, tools_used FROM workflows
+            INSERT INTO workflows_fts(rowid, name, description, annotation, annotation_v2, tags, domain, tools_used)
+            SELECT id, name, description, annotation, annotation_v2, tags, domain, tools_used FROM workflows
         """)
 
         conn.commit()
@@ -1396,16 +1399,19 @@ class UnifiedWorkflowSearch:
     def _compute_workflow_db_signature(self) -> tuple:
         """Compute (row_count, sha256_hex) over the DB's workflow rows.
 
-        Hashes the same (id, name, description, annotation) tuples
-        _build_workflow_embeddings reads, so any change that would
-        affect the encoded text shows up as a different signature.
+        Hashes the same (id, name, description, domain, tags, annotation,
+        annotation_v2) tuples _build_workflow_embeddings reads, so any change
+        that would affect the encoded text shows up as a different signature.
+        Including annotation_v2 ensures the dense .npz regenerates on the deploy
+        that first indexes the enriched annotation column.
         """
         import hashlib as _hashlib
         conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute(
             "SELECT id, COALESCE(name,''), COALESCE(description,''), "
-            "COALESCE(domain,''), COALESCE(tags,''), COALESCE(annotation,'') "
+            "COALESCE(domain,''), COALESCE(tags,''), COALESCE(annotation,''), "
+            "COALESCE(annotation_v2,'') "
             "FROM workflows ORDER BY id"
         )
         rows = cursor.fetchall()
@@ -1482,7 +1488,7 @@ class UnifiedWorkflowSearch:
         cursor = conn.cursor()
         cursor.execute(
             "SELECT id, name, COALESCE(description,''), COALESCE(domain,''), "
-            "COALESCE(tags,''), COALESCE(annotation,'') FROM workflows"
+            "COALESCE(tags,''), COALESCE(annotation,''), COALESCE(annotation_v2,'') FROM workflows"
         )
         rows = cursor.fetchall()
         conn.close()
@@ -1492,7 +1498,7 @@ class UnifiedWorkflowSearch:
             return
 
         ids, texts = [], []
-        for wf_id, name, desc, domain, tags, annotation in rows:
+        for wf_id, name, desc, domain, tags, annotation, annotation_v2 in rows:
             ids.append(int(wf_id))
             # Build rich text: combine all textual fields (same strategy as VectorToolSearch)
             parts = []
@@ -1506,6 +1512,12 @@ class UnifiedWorkflowSearch:
                 parts.append(f"Tags: {tags}")
             if annotation and annotation != desc:
                 parts.append(annotation[:300])
+            # Enriched annotation (key_parameters / alternatives / when_to_use /
+            # keywords). Averages ~1300 chars, so truncate to 500 — enough to carry
+            # the distinctive intent/parameter vocabulary without swamping the
+            # name/description signal that drives exact-match ranking.
+            if annotation_v2 and annotation_v2 != annotation:
+                parts.append(annotation_v2[:500])
             texts.append(". ".join(parts))
 
         log.info("[WorkflowEmbed] Encoding %d workflows with %s …", len(texts), _WORKFLOW_EMBED_MODEL_NAME)
