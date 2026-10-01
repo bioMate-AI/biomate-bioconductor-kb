@@ -13,8 +13,8 @@
 ## 1. What BioMate is (in one honest paragraph)
 
 BioMate is a cloud workbench for drug discovery and biology. Instead of installing software and connecting
-tools together yourself, you describe what you want in plain language, and BioMate either **answers from the
-scientific literature and databases** or **runs a tested analysis on cloud computers** and hands back the
+tools together yourself, you describe what you want in plain language. BioMate then either **answers from the
+scientific literature and databases** or **runs a tested analysis on cloud computers**, and hands back the
 results with a record of how they were produced. It covers a few distinct kinds of work — finding
 evidence, analysing your own data, designing new molecules, and learning from lab measurements — and this
 tutorial shows you the single doorway they all share.
@@ -29,7 +29,7 @@ tutorial shows you the single doorway they all share.
 **The cold start — the doorway.** Every new conversation opens on the **cold start**: a screen with a
 single **intent bar** (a box where you type your goal) and four **module cards**. It is the first thing
 you see in an empty chat, and you can always get back to it by starting a new chat (sidebar → **New
-chat**). Think of it as the front desk: you say what you need, and it points you the right way.
+chat**). Think of it as a reception desk: you say what you need, and it points you in the right direction.
 
 **The four modules — the kinds of work BioMate does.** The four cards name the four kinds of work, so you
 can recognise which one your goal belongs to:
@@ -54,7 +54,7 @@ of two **lanes**, and it tells you which one *before* you send:
 
 Why you care: the lane tells you the **time and cost** consequence of your request up front. And BioMate
 **will always confirm with you before it runs anything in the Cloud lane** — a Cloud request never starts
-spending compute until you confirm.
+paid computation until you confirm.
 
 **Nothing runs until you review and send.** This is the safety rule that applies throughout the product.
 The module cards and the intent bar only **seed** (pre-fill) your message box — they never send on their
@@ -86,12 +86,12 @@ analysis · Design & generate · Models), and the message box (the composer) at 
    return to it later).
 2. **Type your goal in the intent bar**, in plain language. For example:
    *"What is the evidence linking JAK1 to rheumatoid arthritis, and how strong is it?"*
-   As you type, BioMate reads your goal and shows a short **restatement** — the lane it heard (here
-   **Instant**) and a subject area. It does not show a menu of tool names; it just tells you what kind of
-   work it understood.
+   As you type, BioMate reads your goal and is designed to show a short **restatement** — the lane it heard
+   (here **Instant**) and a subject area. It does not show a menu of tool names; it just tells you what kind
+   of work it understood.
 3. **Check the lane.** For a "what is known" question you should see an **Instant** read ("a cited answer
-   in seconds"). If you ever see the wrong lane, you can override it in the message box before sending —
-   but for this question, Instant is correct.
+   in seconds"). If you ever see the wrong lane, you can adjust your wording (or pick the lane in the
+   message box) before sending — but for this question, Instant is correct.
 4. **Review the seeded message and send.** Your goal is placed in the **composer** (the message box at the
    foot of the chat). This is your chance to edit it. When it says what you mean, press **Send** (or the
    Enter key; Shift+Enter makes a new line). *Only now does anything happen.*
@@ -110,15 +110,15 @@ analysis · Design & generate · Models), and the message box (the composer) at 
 
 ## 5. How to read your first answer
 
-An evidence answer is a small, sourced dossier — not just a paragraph. Here is what you'll see and how to
+An evidence answer is a small, sourced report — not just a paragraph. Here is what you'll see and how to
 read it:
 
 - **The answer text**, with numbered markers like `[1]`, `[2]` that tie each claim to a source. BioMate
-  keeps only the sources the answer actually used, so every item in the list is a source the text leaned
-  on.
-- **Citations you can open.** Each source shows its title, journal, and year, with an **open** button that
-  slides out a reader pane so you can step through the sources one by one. (The reader links out to the
-  publisher's page for the full text, rather than pretending to show the article body.)
+  lists only the sources the answer actually used, so the list reflects what the text drew on rather than a
+  padded bibliography.
+- **Citations you can open.** Each source shows its title, journal, and year, with an **open** action to
+  step through the sources one by one. (It links out to the publisher's page for the full text, rather than
+  pretending to show the article body.)
 - **"Sources disagree" (when it happens).** If two sources genuinely conflict on the same point, BioMate
   shows both side by side with their sources, instead of quietly picking one. If there's no real
   disagreement, this section simply doesn't appear — it is never invented to look thorough.
@@ -128,7 +128,7 @@ read it:
 
 > **What to do with the answer.** An evidence answer is a starting point. If you have a project open, you
 > can **save it to the project** (it's kept with the project's notes, with its sources). And if you want to
-> go further, **"Check against our data"** turns the same question into a real analysis on your own data
+> go further, a **check-against-your-own-data** follow-up turns the same question into a real analysis on your data
 > (that one is a Cloud run — BioMate will confirm first).
 
 ---
@@ -137,15 +137,15 @@ read it:
 
 - **An evidence answer is literature, not a verdict on your data.** It reflects what's published, with its
   sources attached; it has not been run against your files. The always-present boundary block says so.
-- **The "Patents" option is a doorway, not a patent search.** A patent-worded question still returns a
-  literature-grounded answer today — BioMate does not search a patent database. Confirm freedom-to-operate
-  with counsel.
+- **If you ask a patent / freedom-to-operate question, the "Patents" framing is a doorway, not a patent
+  search.** A patent-worded question still returns a literature-grounded answer today — BioMate does not
+  search a patent database. Confirm freedom-to-operate with counsel.
 - **Citation export is partial for literature.** You can copy a source's details and use its DOI/PubMed ID
   in your reference manager; fully formatted BibTeX is populated for workflow-tool citations, not yet for
   every literature source.
-- **BioMate never fabricates to fill a section.** The search-transparency bars, the conflicts row, and
-  formatted citations each appear **only** when real data backs them — otherwise they stay hidden. An
-  empty section means "nothing to show honestly," not a bug.
+- **BioMate is built not to pad a section with invented content.** The search-transparency bars, the
+  conflicts row, and formatted citations each appear **only** when real data backs them — otherwise they
+  stay hidden. An empty section means "nothing to show honestly," not a bug.
 
 ---
 

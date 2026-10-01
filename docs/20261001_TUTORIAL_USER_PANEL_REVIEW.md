@@ -87,6 +87,14 @@ Fixes applied + committed:
   `编排区 / Composer` (named UI surface); `三个分节标签` → `三个板块标签`; `一种模式` → `一种治疗方式`.
 - Residual-term scan clean (辩护/脱靶/审计留痕/输入框 all gone). **CN T3 ship-ready.**
 
+## T0 (Getting started — your first question) — panel round
+5-persona multi-LLM panel. Scores: BD 4 · biologist 4.5 · accuracy 4 · clinician 4.5 · student 3.5 (avg ≈4.1) → **light revision**, applied:
+- **P1 overclaim (accuracy):** "BioMate never fabricates to fill a section" → "is built not to pad a section with invented content" (the anti-confab guard is a protection, not an absolute guarantee — see [[project_research_confabulation]]); "keeps only the sources…every item is a source the text leaned on" → "lists only the sources…rather than a padded bibliography".
+- **P2 hedge unverified UI (honest CAPTURE posture):** lane-restatement "shows" → "is designed to show" (it's CAPTURE-pending); softened the "open → reader pane" and "Check against our data" button claims to action-level wording until verified on the live `/` route.
+- **P3 dangling refs:** reframed the cold "Patents option" as "if you ask a patent/FTO question, the 'Patents' framing is a doorway…"; lane-override now says "adjust your wording (or pick the lane in the message box)".
+- **P4 de-idiom (translation-ready):** dossier→report; front desk/"points you the right way"→reception desk/"points you in the right direction"; "spending compute"→"paid computation"; split the long §1 either/or sentence.
+- Confirmed by panel: nothing claimed to auto-run; Instant/Cloud accurate; no invented module; the one real screenshot (i01-1-cold-start.png) referenced correctly; 2 CAPTURE placeholders are the known acceptable gap. **EN T0 ship-ready after these edits; CN T0 to follow.**
+
 ## Change log
 - 2026-10-01 — 5-persona multi-LLM panel run on T1; T1 revised to v2 against all consensus + accuracy findings; reusable checklist extracted for the remaining tutorials (Models/closed-loop, workflow-run, etc., EN then CN).
 - 2026-10-01 — T3 EN 5-persona panel + revision; CN T3 written and native-CN-reviewed (fidelity 5/5); one correctness term fix (脱靶→在靶脱瘤) + de-calque/terminology polish applied. **T1/T2/T3 now complete and validated in EN + CN.**
