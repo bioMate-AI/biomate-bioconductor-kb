@@ -49,5 +49,15 @@ Background-first structure; "shortlist not a blank page" one-liner; visible safe
 - [ ] **Glossary adds usage value** (when you'd care / what number is concerning), not circular definitions.
 - [ ] **Real, high-DPI, readable screenshots** (DSF3 + zoom + focused captures) showing a *populated* result.
 
+## T2 (Models & the closed loop) — panel round
+Scores: BD 3/5 · biologist 3/5 · ML-accuracy 4.5/5 · clinician 4/5 · student 3/5. Consensus fixes applied to T2 v2:
+- **Accuracy (ML):** fixed the §6 "genuinely better on a fair test" overclaim (active-learning: held-out set goes stale) → "re-checked on untrained data; keeping up, not a score to climb"; decoupled "passed floor" from "trustworthy for *your* molecule" (tie to applicability); added the term **applicability domain** + a concrete example (kinase model vs peptide); softened "nothing deleted" → "every version kept, not overwritten"; stub = "not a real *prediction*"; Boltz-2 noted to do complexes, not only structure.
+- **Clarity (all):** defined inference / held-out / applicability / retraining in-line on first use; added an exam analogy for the held-out gate.
+- **De-duplication (BD, clinician):** the stub caveat appeared ~5× → consolidated to one line.
+- **Value anchor (BD moat + clinician endpoint):** added a measured "why this matters" — workspace-private learning (moat) + patient/translation — with the honest note that the loop uses **bench/assay** data today (clinical data entering = forward direction).
+- **Participation (biologist):** clarified §6 step 3 — what retraining is, who triggers it, that results feed back via a **campaign** (not a /models button), and the minimum measurements needed — without fabricating an exact upload form.
+- **Clinical (clinician):** added an *illustrative* RA/JAK1 vignette ending at a cardiac-safety (hERG/QT) endpoint, clearly labelled illustrative.
+- **Translation (student):** removed idioms ("compounding", "take it on faith", "windows onto"→"monitoring views", "one-shot", "ground truth"); shortened long sentences.
+
 ## Change log
 - 2026-10-01 — 5-persona multi-LLM panel run on T1; T1 revised to v2 against all consensus + accuracy findings; reusable checklist extracted for the remaining tutorials (Models/closed-loop, workflow-run, etc., EN then CN).

@@ -2,7 +2,7 @@
 
 > **Who this is for:** anyone — no coding or machine-learning background needed. By the end you'll
 > understand what a "model" is here, the four things you can do with one, and — most importantly — the
-> **closed loop**: how real lab results teach BioMate to design better molecules each round.
+> **closed loop**: how real laboratory results teach BioMate to design better molecules each round.
 > **Time:** ~10 minutes to read.
 > **Before this:** Tutorial 1 (Design & Generate) shows where the candidate molecules come from. This
 > tutorial shows how BioMate *learns* from what happens to them next.
@@ -11,132 +11,153 @@
 
 ## 1. The problem this solves (why models matter)
 
-In Tutorial 1, BioMate proposed and ranked candidate molecules. But to rank them well, it needs to
-*predict* things about each one — for example, "how strongly will this bind our target?", "is this likely
-to be toxic?", "how soluble is it?". A **model** is the piece that makes those predictions. Think of it as
-reusable, learned expertise: once a model has learned a pattern from data, any project can ask it for a
-prediction instead of running a slow, expensive lab experiment every time.
+In Tutorial 1, BioMate proposed and ranked candidate molecules. To rank them well, it has to *predict*
+things about each one — for example, "how strongly will this bind our target?", "is this likely to be
+toxic to the heart or liver?", "how soluble is it?". A **model** is the part that makes those predictions.
+Think of it as reusable, learned expertise: once a model has learned a pattern from data, any project can
+ask it for a prediction instead of running a slow, expensive laboratory experiment every time.
 
-Two problems follow from that:
+Two problems follow from relying on predictions:
 
 1. **Trust.** A prediction is only useful if you know *how good* the model is and *where* it can be
-   trusted. A model that's never been checked, or is asked about molecules unlike anything it learned
-   from, can be confidently wrong.
-2. **Staleness.** The real world (your lab results) is the ground truth. A model that never updates with
-   your new measurements slowly drifts away from reality.
+   trusted. A model that has never been tested may give wrong answers with high apparent confidence. The
+   risk is even greater if you ask it about molecules very different from those it learned from.
+2. **Staying current.** Your real laboratory results are the truth. A model that never updates with your
+   new measurements slowly drifts away from reality.
 
-The **Models** area solves both. It treats every model as an inspectable **object** (you can see who made
-it, what evidence backs it, and what it's been used for), and it is where the **closed loop** lives — the
-cycle that feeds your real lab results back in so the next round of designs is better. Continuing the
-rheumatoid-arthritis example from Tutorial 1: if you test a batch of JAK1 candidates at the bench, those
-measurements can teach the model, so its *next* set of proposals is sharper.
+The **Models** area addresses both. It treats every model as an inspectable **object** (you can see who
+made it, how good it is, and what it has been used for), and it is the home of the **closed loop** — the
+cycle that feeds your real laboratory results back in so the next round of designs is better. Continuing
+the rheumatoid-arthritis example from Tutorial 1: if you test a batch of JAK1 candidates at the bench,
+those measurements can teach the model, so its *next* set of proposals is more accurate.
 
 > **In one sentence:** Models is where BioMate keeps its reusable predictors and learns from your real
-> lab results — so the platform gets more accurate every round instead of staying frozen.
+> laboratory results — so the platform gets more accurate every round instead of staying frozen.
+
+> **Why this matters (two ways).**
+> - **For a drug program / commercially:** the model learns from *your* measurements, which stay private
+>   to your workspace and are never used to train shared models. Each round compounds your team's
+>   knowledge — a competitor using the same software starts from zero on your problem.
+> - **For patients / translation:** better, safer candidate molecules are the starting point for better
+>   medicines. Today the loop learns from **laboratory (bench) measurements**; using patient-derived or
+>   clinical readouts to guide it is a direction BioMate is building toward, not a current feature.
 
 ---
 
 ## 2. The ideas you need first (plain-language background)
 
-**A model = reusable learned expertise.** It takes an input (a molecule, a protein sequence) and returns
-a prediction (a score, a 3-D structure). Some models are **pre-trained** — built by the community on huge
-public datasets (for example, AlphaFold2 and Boltz-2 predict a protein's 3-D shape). Others are **custom**
-— trained on *your* data to score *your* kind of molecule.
+**A model = reusable learned expertise.** It takes an input (a molecule, a protein sequence) and returns a
+prediction (a score, a 3-D structure). Some models are **pre-trained** — built by the research community on
+large public datasets. Others are **custom** — trained on *your* data to score *your* kind of molecule.
 
-**A model is an object, not a leaderboard.** This is BioMate's guiding idea and it matters for trust.
-Instead of ranking models on a scoreboard (which invites gaming), BioMate shows each model like a
-documented object with:
-- **Evidence** — how well it did on a fair, held-out test, versus a required quality **floor**;
+Four pre-trained models you'll see by name (all open, community-built; BioMate hosts them so you can use
+them directly):
+- **AlphaFold2** and **OpenFold2** — predict a protein's 3-D shape from its sequence.
+- **Boltz-2** — predicts protein 3-D shapes *and* how a protein and a small molecule fit together.
+- **Evo2** — a model of DNA/genome sequences.
+
+**A model is an object, not a scoreboard.** This is BioMate's guiding idea, and it matters for trust.
+Instead of ranking models on a scoreboard (which tempts people to manipulate it), BioMate shows each model
+like a documented object with:
+- **Evidence** — how well it did on a fair test, versus a required quality **floor** (see below);
 - **Lineage** — what data and which run produced it;
-- **Used by** — which analyses rely on it (so you can see the impact of changing it);
-- **Versions** — every version, nothing deleted.
+- **Used by** — which analyses rely on it (so you can see the effect of changing it);
+- **Versions** — every version is kept, not overwritten.
 
-**A "floor", not a ranking.** A model must clear a minimum quality bar to be trusted — but clearing it by
-more doesn't earn it a higher rank, and there's no leaderboard to climb. If a model hasn't been measured
-yet, BioMate says **"not evaluated"** rather than showing a made-up score. ("Not evaluated" is the truth
-about what we know, not a hidden number.)
+**A quality "floor", tested fairly.** A model must clear a minimum quality bar before it is trusted. That
+bar is measured on a **held-out test** — data the model was *not* trained on, so the score cannot be
+inflated by the model simply memorising its training examples. (It is like grading an exam with questions
+the student has not seen before, rather than letting them recite the textbook.) Clearing the bar by more
+does not earn a higher rank — there is no scoreboard to climb. And if a model has not been measured yet,
+BioMate says **"not evaluated"** rather than showing a made-up score.
 
-**The four things you do with models.** On the Models screen these are four "tracks":
-- **Run a pre-trained model** — use an existing public model to make a prediction now (e.g., predict a
-  protein's structure from its sequence). Nothing of yours is trained; this is just inference.
-- **Train** — build a new custom model from your data (e.g., a scorer for your target).
-- **Adapt ("House style")** — gently tune BioMate's outputs to match how *your* team works, by learning
-  from the corrections you make. Nothing is changed silently — each learned rule is shown and can be
-  switched off.
-- **Optimise ("Rounds")** — the **closed loop**, shown as rounds (see §3).
+**Passing the floor is not the whole story.** A good floor score means the model is accurate on test data
+*similar to what it learned from*. Whether it can be trusted for *your specific* molecule also depends on
+the **applicability domain** — the kind of inputs the model learned from. Ask a model about something far
+outside that, and it should lower its confidence instead of pretending to know. (For example: a model
+trained on small-molecule kinase inhibitors would report low confidence if asked to score a peptide,
+because peptides look nothing like what it learned from.)
 
-**The closed loop (the heart of this tutorial).** Drug discovery is not one-shot. The reliable way to
-improve is to cycle: **design → make → test → learn → design again.** BioMate proposes molecules (design),
-you make and test the best ones at the bench (make + test), the measurements are fed back to update the
-model (learn), and the improved model proposes a better next round. Each turn of this cycle is a
-**round**. This is what "closed loop" means, and it's why BioMate improves with use instead of staying
-fixed.
+**The four things you do with models** (the four "tracks" on the Models screen):
+- **Run a pre-trained model** — use an existing public model to make a prediction now. This is called
+  **inference** (making a prediction with an already-trained model, without changing it). Nothing of yours
+  is trained.
+- **Train** — build a new custom model from your data (for example, a scorer for your target).
+- **Adapt ("House style")** — gently tune BioMate's written outputs to match how *your* team works, by
+  learning from the corrections you make. Nothing changes silently — each learned rule is shown and can be
+  switched off. *(This is about the style of BioMate's reports, not the science of a molecule.)*
+- **Optimise ("Rounds")** — the **closed loop**, shown as rounds (see §3 and §6).
 
-> **An honest note on what runs today.** Two tracks do live work: **Run a model** (inference) and the
-> **Registry** (browse and reuse models). **Train** and **Rounds** are *windows* onto work that runs in a
-> larger cloud campaign — they show you what's happening but do not have a "start training" or "launch the
-> loop" button on this screen, and they show a clear empty state until a job or loop is running. Also, on
-> the development site, predicting a protein structure may return a clearly-labelled **placeholder**
-> (marked `stub`) when the heavy structure-prediction service isn't connected — always check that label
-> before trusting a predicted structure.
+**The closed loop (the heart of this tutorial).** Drug discovery cannot be done in a single attempt. The
+reliable way to improve is to repeat a cycle: **design → make → test → learn → design again.** BioMate
+proposes molecules (design), you make and test the best ones at the bench (make and test), the
+measurements are fed back to update the model (learn), and the improved model proposes a better next round.
+Each turn of this cycle is a **round**.
+
+> **An honest note on what is live today.** Two tracks do live work: **Run a model** (inference) and the
+> **Registry** (browse and reuse models). **Train** and **Rounds** are *monitoring views* — they show you
+> training jobs and the running loop, which are launched through a larger drug-discovery campaign, and they
+> have no "start" button on this screen. On the development site, predicting a protein structure may return
+> a clearly-labelled **placeholder** (marked `stub`) when the heavy structure-prediction service is not
+> connected — so always check for that label before trusting a predicted structure.
 
 ---
 
 ## 3. When you'd use this
 
-- You want to **reuse a model** another project (or the community) already built — e.g., predict a
-  protein's 3-D structure before designing against it.
-- You have **lab results** and want them to improve the next round of designs (the closed loop).
-- You want to **check how trustworthy** a prediction is before you rely on it (open the model object and
-  read its evidence).
-- You want BioMate's reports and suggestions to follow **your team's conventions** (Adapt / House style).
+- **Reuse a model** the community (or another project) already built — e.g., predict a protein's 3-D shape
+  before designing against it.
+- **Feed lab results back** so the next round of designs is better (the closed loop).
+- **Check how far to trust a prediction** before relying on it (open the model object and read its
+  evidence and applicability domain).
 
 ---
 
 ## 4. Step by step — browsing and reusing a model
 
-The most useful first thing to do is inspect a model, so you understand what you're trusting.
+The most useful first thing to do is inspect a model, so you understand what you are trusting.
 
 ![The Models screen](../assets/i10-1-models.png)
 *The Models screen, with its tracks across the top and the model families it covers.*
 
 1. **Open Models** (from the home screen, or the `/models` page).
-2. **Go to the Registry tab.** This lists every model available to your account — community models like
-   Boltz-2, AlphaFold2, OpenFold2 (protein structure) and Evo2 (genomics), plus any custom models your
-   team has registered.
+2. **Go to the Registry tab** — the list of every model available to your account (the community models
+   named in §2, plus any custom models your team has registered).
 
 ![A model shown as an object](../assets/i10-3-model-object.png)
 *Opening a model (here Boltz-2) shows it as an object: Evidence, Lineage, Used by, Interface, Versions.*
 
-3. **Open a model** to see its object view. The **Evidence** tab shows the held-out quality gate — the
-   measured score, the required floor, and the verdict. (Here it reads "not evaluated", which honestly
-   means this thin layer hasn't measured it — not that a number is hidden.) The note on screen says it
-   plainly: *a floor, not a ranking.*
+3. **Open a model** to see its object view. The **Evidence** tab shows the quality floor — the measured
+   score, the required floor, and the verdict. (Here it reads "not evaluated", which honestly means this
+   layer has not measured it — not that a number is hidden.) The on-screen note says it plainly: *a floor,
+   not a ranking.*
 4. **Read the other tabs** — **Lineage** (what produced it), **Used by** (what depends on it), and
-   **Versions** (its full history). This is how you decide whether to trust a model before using it.
+   **Versions** (its full history). This is how you decide whether to trust a model before you use it.
 5. **Reuse it** with **"Use in a run"**, which brings the model into an analysis.
 
-**To make a prediction now (inference):** use the **Run a model** track — pick a domain (Structure,
-Genomic, or Chemical), paste an input (for Structure, a protein's one-letter sequence), and run it.
-Remember the honesty note: on the development site a structure result may come back as a labelled
-placeholder until the heavy prediction service is connected.
+To make a prediction now, use **Run a model**: pick a domain (Structure, Genomic, or Chemical), paste an
+input (for Structure, a protein's one-letter sequence), and run it.
 
 ---
 
 ## 5. How to read the results
 
-- **The evidence gate** (on the model object): a model that *passes* has cleared the quality floor on a
-  fair, held-out test. A model marked **"not evaluated"** simply hasn't been measured here — treat its
-  predictions with appropriate caution. A high "pass" is not a bragging number; it just means "trustworthy
-  enough to use."
-- **"Outside its applicability region"** means you asked the model about something unlike what it learned
-  from — BioMate lowers its confidence rather than pretending to know. Respect that signal.
-- **A placeholder (`stub`) result** is a demonstration of the *shape* of an answer, not a real
-  measurement. Check for the label before reading any predicted number.
-- **In the closed-loop (Rounds) view**, two honesty rules are built in: a proposal that the safety gate
-  rejected **stays visible with its reason** (you can always see what the loop wanted to do and why it was
-  stopped), and a censored lab value — e.g., "activity greater than 30" — is kept as "greater than 30",
-  never silently turned into the number 30.
+- **The quality floor** (on the model object): a model that *passes* is accurate enough on test data
+  similar to what it learned from. A model marked **"not evaluated"** has not been measured here — treat
+  its predictions with extra caution.
+- **Trust for *your* molecule** depends on the applicability domain, not just the floor. If a prediction
+  is reported with low confidence, it usually means your input is unlike the model's training data — treat
+  that prediction as unproven, much like using a drug off-label.
+- **A limit value stays a limit.** If an assay can only report "activity greater than 30 µM" (because the
+  compound was too insoluble to measure higher), BioMate keeps it as "greater than 30", and never silently
+  replaces it with the number 30. Preserving these honest limits keeps the model from learning a false
+  exact value.
+- **Rejected proposals stay visible.** In the closed-loop view, a candidate the safety check rejected is
+  still shown, with its reason — so you can always see what the loop wanted to do and why it was stopped.
+
+> **Reminder:** a `stub`/placeholder result is a demonstration of the *shape* of an answer, not a real
+> prediction. Check for the label before reading any number. (This appears only on environments where the
+> heavy model service is not connected.)
 
 ---
 
@@ -145,20 +166,31 @@ placeholder until the heavy prediction service is connected.
 Here is the whole cycle, connecting Tutorial 1 and this one:
 
 1. **Design** — Design & Generate (Tutorial 1) proposes and ranks candidate molecules.
-2. **Make + test** — you export the shortlist as an order sheet; chemists make the top molecules and the
-   lab measures them.
-3. **Learn** — the real measurements are fed back. A model is updated (retrained) using them. In BioMate
-   this update is itself a tracked job, with the same evidence gate — so you can see that the *new* model
-   is genuinely better on a fair test, not just better on the data it just learned from.
+2. **Make and test** — you export the shortlist as an order sheet; chemists make the top molecules and the
+   laboratory measures them.
+3. **Learn** — the real measurements are fed back and the model is **retrained**: it keeps what it already
+   knew and adds the new results, then BioMate re-checks it on data it was *not* trained on. Because each
+   round deliberately explores new chemistry, this check shows the model is *keeping up* with the new data
+   — it is not a single score to climb. *(In practice, feeding results back and retraining happen through a
+   drug-discovery campaign, not a button on the Models screen; the measurements needed are, at minimum, a
+   compound identifier and its assay value with units, with limit values kept as "greater/less than".)*
 4. **Design again** — the improved model scores the next round of candidates more accurately.
 
-Each loop is a **round**, and the Rounds view is your window onto it. The pay-off is compounding: a team
-that runs three or four honest rounds ends up with far better candidates than one that designs only once —
-and, crucially, BioMate can *show* the improvement, measurement by measurement, instead of asking you to
-take it on faith.
+Each loop is a **round**, and the Rounds view is your monitoring window onto it. The benefit grows with
+each round: a team that runs three or four rounds ends up with much better candidates than a team that
+designs only once — and BioMate records each measurement, so you can see the real improvement rather than
+trusting the system without proof.
 
-> **Who does what:** BioMate proposes and scores; your **lab** makes and measures; a **scientist** decides
-> what to make and reads the evidence. BioMate's job in the loop is to learn honestly and show its work.
+**An illustrative clinical example (rheumatoid arthritis).** Suppose you want a JAK1 inhibitor that avoids
+the heart-rhythm risk (QT prolongation, linked to the hERG channel) and the class-wide infection risks
+seen with existing JAK drugs. Round 1 proposes candidates, but the safety check flags two for predicted
+hERG liability; the bench confirms it, and those results teach the model. By a later round, the top
+candidate clears the cardiac-safety check while keeping its JAK1 selectivity. *(This is an illustrative
+example of how the loop is meant to work, not a reported BioMate result.)*
+
+> **Who does what:** a **scientist** decides the shortlist and reads the evidence; the **laboratory** makes
+> and measures the molecules; a clinician or biologist often contributes the validated target and the
+> real-world safety problems to avoid. BioMate's job is to propose, learn, and show its work.
 
 ---
 
@@ -167,24 +199,17 @@ take it on faith.
 | Term | What it means — and why you care |
 |---|---|
 | **Model** | Reusable learned expertise that predicts something (a score, a structure) instead of running a lab experiment each time. |
-| **Pre-trained model** | A model built by the community on public data (e.g., AlphaFold2, Boltz-2) that you can use right away. |
+| **Pre-trained model** | A model built by the community on public data (AlphaFold2, Boltz-2, Evo2) that you can use right away. |
 | **Custom model** | A model trained on *your* data to score *your* kind of molecule. |
-| **Inference** | Using a model to make a prediction (as opposed to training one). "Run a model" does inference. |
+| **Inference** | Using a model to make a prediction, without changing the model. ("Run a model" does inference.) |
+| **Retraining** | Updating an existing model with new results — it keeps what it knew and adds the new data. |
 | **Model object** | A model shown as inspectable facts — evidence, lineage, what uses it, versions — instead of a scoreboard entry. |
-| **Held-out gate / floor** | A minimum quality bar, measured on a fair test the model didn't learn from. A pass means "trustworthy enough", not a rank. |
-| **"Not evaluated"** | Honest label meaning the quality hasn't been measured here — not a hidden number. |
-| **Applicability region** | The kind of inputs a model learned from; outside it, predictions are reported with low confidence. |
+| **Held-out test / floor** | A quality bar measured on data the model was *not* trained on, so the score can't be inflated. A pass means "accurate enough on similar data", not a rank. |
+| **"Not evaluated"** | Honest label meaning the quality has not been measured here — not a hidden number. |
+| **Applicability domain** | The kind of inputs a model learned from; outside it, predictions come with low confidence (treat as unproven). |
 | **Closed loop / round** | The design → make → test → learn → design cycle; each turn is a round, and the model improves each time. |
-| **Stub / placeholder** | A clearly-labelled demonstration result returned when a heavy model service isn't connected — not a real measurement. |
+| **Stub / placeholder** | A clearly-labelled demonstration result returned when a heavy model service is not connected — not a real prediction. |
 
 ---
-
-> **Honest summary of what runs today.** *Live:* browsing/reusing models (Registry), inference (Run a
-> model — structure/genomic results may be labelled placeholders on dev without the heavy service
-> connected; registered chemical scorers return real scores), and learning from your edits (Adapt /
-> House style). *Windows onto cloud work (no start button on this screen):* Train and Rounds — they
-> display training jobs and the running loop, which are launched through a drug-discovery campaign.
-> BioMate never fabricates an evaluation score or a prediction it can't stand behind — it says "not
-> evaluated" or labels a placeholder instead.
 
 _Companion technical reference (for power users / developers): `docs/user-manual/modules/I10-models.md`._
