@@ -98,7 +98,8 @@ Each turn of this cycle is a **round**.
 > **An honest note on what is live today.** Two tracks do live work: **Run a model** (inference) and the
 > **Registry** (browse and reuse models). **Train** and **Rounds** are *monitoring views* — they show you
 > training jobs and the running loop, which are launched through a larger drug-discovery campaign, and they
-> have no "start" button on this screen. On the development site, predicting a protein structure may return
+> have no "start" button on this screen, and show a clear empty state until a job or loop is running. On the
+> development site, predicting a protein structure may return
 > a clearly-labelled **placeholder** (marked `stub`) when the heavy structure-prediction service is not
 > connected — so always check for that label before trusting a predicted structure.
 
