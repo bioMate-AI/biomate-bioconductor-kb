@@ -74,5 +74,19 @@ Grounded in a REAL completed run (in_vivo_cart_codesign, 4 phases, 11 outputs) c
 - **Clarity/translation (student):** de-idiomed ("stitching tools together", "wired together", "fix-and-retry loop", "defensible rather than just done", "six months later", "end to end", "nothing is hidden/discarded"); defined "audit trail"/"manifest"/checksum inline; glossed RNA-seq/variant-calling/file-types; added action guidance to steps 2/4/5.
 - Note: couldn't show a *populated* Summary (dev output-access issue withholds findings) — handled honestly rather than faking one; this is itself a real product gap to fix (findings path can't read run outputs on dev).
 
+## T3 Chinese (zh/T3) — native-Chinese review round
+Native-CN translator+reviewer read EN source + CN side by side. Scores: idiomatic naturalness 4/5 · **fidelity 5/5**
+(all six honesty caveats verified intact: validated≠clinically-proven, findings *withheld* not fabricated, in-silico
+aid≠patient-data, in-vivo-vs-ex-vivo, checksums compute-on-demand, CN-UI-screenshot note correctly added) · terminology 4/5.
+Fixes applied + committed:
+- **P1 correctness:** `脱靶于肿瘤之外…` inverted the meaning (脱靶 = *off-target* in CN) → rewrote to the proper
+  "在靶、脱瘤" (on-target, off-tumour) with a plain gloss. This was the one must-fix-before-ship item.
+- **De-calque:** `为…结果辩护` ("justify", 3×, carries a legal/defensive tone) → 解释清楚/有理有据/给出解释和依据;
+  `都不是一步` → `都不是一步就能完成的`; `最清晰视角` → `最直观的界面`.
+- **Terminology:** standardized audit-trail to `审计记录` throughout (was mixed 审计记录/审计留痕); `输入框` →
+  `编排区 / Composer` (named UI surface); `三个分节标签` → `三个板块标签`; `一种模式` → `一种治疗方式`.
+- Residual-term scan clean (辩护/脱靶/审计留痕/输入框 all gone). **CN T3 ship-ready.**
+
 ## Change log
 - 2026-10-01 — 5-persona multi-LLM panel run on T1; T1 revised to v2 against all consensus + accuracy findings; reusable checklist extracted for the remaining tutorials (Models/closed-loop, workflow-run, etc., EN then CN).
+- 2026-10-01 — T3 EN 5-persona panel + revision; CN T3 written and native-CN-reviewed (fidelity 5/5); one correctness term fix (脱靶→在靶脱瘤) + de-calque/terminology polish applied. **T1/T2/T3 now complete and validated in EN + CN.**

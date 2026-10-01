@@ -141,7 +141,7 @@ E2. Update the coverage ledger + screenshot audit as items close.
   `docs/user-manual/modules/` companion set referenced from each.
   - **T1 — Design & Generate** (`T1-design-and-generate.md` / `zh/…`) — EN+CN, ship-ready.
   - **T2 — Models & the closed loop** (`T2-models-and-the-closed-loop.md` / `zh/…`) — EN+CN, ship-ready.
-  - **T3 — Running a workflow & reading the report** (`T3-…md` / `zh/…`) — EN ship-ready; CN under native-CN review.
+  - **T3 — Running a workflow & reading the report** (`T3-…md` / `zh/…`) — EN+CN ship-ready (CN native-reviewed, fidelity 5/5).
 - **Validation:** each tutorial reviewed by a **5-persona multi-LLM user panel** (non-scientist/BD, wet-lab
   biologist, domain-accuracy expert, clinician, student/non-native) + an acceptance re-round; CN versions get a
   native-Chinese fidelity+idiom review. Findings + the reusable 10-point tutorial checklist live in
@@ -155,8 +155,8 @@ E2. Update the coverage ledger + screenshot audit as items close.
   self-check + `GET /api/generate/health`. **Known open gap:** on dev the Summary findings are *withheld*
   (outputs not readable — output-access/S3) — documented honestly in T3 rather than faked; still to fix.
 
-**Next:** finish CN-T3 review → Track C (hospital-instrument + other-module tutorials, EN+CN) and the remaining
-Track D domain/data figures.
+**Next:** Track C (hospital-instrument + other-module tutorials, EN+CN) and the remaining Track D domain/data figures.
+(T1/T2/T3 batch complete — EN+CN, all panel- and native-CN-validated.)
 
 ## Change log
 - 2026-09-30 — created from a 3-agent inventory sweep (website/positioning, manuals+tutorials, new-UI gap) + the settled deck brief, committee review, and IO landscape docs.
