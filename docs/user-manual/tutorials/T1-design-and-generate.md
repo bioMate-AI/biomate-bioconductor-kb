@@ -67,8 +67,8 @@ absorbed into the body tend to fall within certain ranges of three measurable pr
 
 Why you care, in practical terms: these three together predict whether a molecule can be an **oral pill**
 (versus needing an injection), how easily it **crosses cell membranes**, and whether it can reach targets
-**inside the cell** or in the brain. As a rule of thumb, smaller, less-polar molecules cross membranes more
-easily — so if your target is *inside* the cell, you may want to nudge the window lower. BioMate lets you set
+**inside the cell** or in the brain. In general, smaller and less-polar molecules cross membranes more
+easily — so if your target is inside the cell, you may want to set the window to lower values. BioMate lets you set
 a target window for these properties. This window is a soft preference used for ranking — **not** a strict
 cut-off. A promising molecule just outside the window is not removed; it simply scores slightly lower.
 
@@ -82,8 +82,9 @@ how to weigh them. This is deliberate: a single blended score could let an unsaf
 average.
 
 **The safety gate.** Some chemical sub-structures are known to be risky — reactive groups, or fragments linked
-to toxicity in the past. These are called **structural alerts**. Any candidate containing one is **flagged and
-set aside — but still shown to you, with the reason**. Think of an alert as a *caution flag*, not a proven
+to toxicity in the past. These are called **structural alerts** — the kind of red flag that can later turn into
+a real clinical problem such as a heart-rhythm risk (the hERG/QT effect) or liver injury. Any candidate
+containing one is **flagged and set aside — but still shown to you, with the reason**. Think of an alert as a *caution flag*, not a proven
 toxicity measurement (some flagged groups are fine in the right context). The point is that BioMate never
 hides a result: safety is a visible gate, not a secret filter.
 
@@ -117,7 +118,8 @@ hides a result: safety is a visible gate, not a secret filter.
    You'll see the form above — a set of constraints, not a chat box.
 2. **Choose the modality** — *Small molecule*, *Peptide*, or *Protein / biologic*. Start with Small molecule
    (see the note in §3 about peptides).
-3. **Give a seed** in the "Target / seed" box. Enter a molecule as a SMILES string. If you don't have one, look
+3. **Give a seed** in the "Target / seed" box. Enter a molecule as a SMILES string. *(Despite the label, this
+   box takes a molecule code — not your protein target's name; see §2 for where to get one.)* If you don't have one, look
    it up on PubChem or ChEMBL as described in §2. For this walk-through we use aspirin
    (`CC(=O)Oc1ccccc1C(=O)O`) — chosen only because it's familiar; you'd normally use a molecule relevant to your
    target.
@@ -125,7 +127,7 @@ hides a result: safety is a visible gate, not a secret filter.
 5. **Set the property window** — MW, logP, TPSA. The defaults are sensible drug-like values; leave them unless
    you have a reason (for example, lowering them if your target is inside the cell).
 6. **(Optional) Exclusions and seed series.** *Exclusions* = chemical groups to ban, entered as SMILES/SMARTS
-   patterns, one per line. *Seed series* = a few extra known molecules (as SMILES, one per line) for the tool to
+   patterns, one per line (SMARTS is the same kind of text code, with wildcards). *Seed series* = a few extra known molecules (as SMILES, one per line) for the tool to
    learn from. Both are optional — you can skip them on a first run.
 7. **Set how many candidates to keep** and click **Generate & rank.** It finishes in under a minute, and the
    results appear in the same panel.
@@ -140,9 +142,9 @@ is blended into a single number. (A separate trade-off chart and a rejection sum
 results page.)*
 
 - **Each row is one proposed molecule** (BM-0001, BM-0002, …).
-- **Each goal has its own column** — here `drug_like` (a 0–1 estimate of how "drug-like" the molecule is;
-  higher is better) and `property_envelope` (how well it fits the window you set). You see the trade-off
-  directly, side by side.
+- **Each goal has its own column** — here `drug_like` (a 0–1 *heuristic* estimate of how drug-like the
+  molecule is; higher is better) and `property_envelope` (the column name for the property window you set in
+  step 5 — the same thing). You see the trade-off directly, side by side.
 - **"score\*" is only a ranking key**, not a quality verdict — it just orders the list. The on-screen footnote
   says so, on purpose.
 - **Verdict** — *Accepted* passed the checks; *Rejected* tripped the safety gate. **Rejected molecules stay
@@ -150,10 +152,10 @@ results page.)*
 - **"why?"** on each row explains how that molecule was scored, including the nearest real, known molecule it
   resembles — so a result is never unexplained.
 - The results page also shows a **trade-off chart** (a "Pareto" view). Read it like this: each dot is a
-  candidate; the dots along the leading edge are the best available compromises — to make one of them better on
-  one goal, you'd have to accept it being worse on another. You pick from that edge based on what matters most
-  to you (e.g., favour safety over size).
-- A **rejection summary** tells you *why* candidates were dropped. A high rejection rate is the fastest signal
+  candidate; the dots along the front boundary of the cluster are the best available compromises — to make one
+  of them better on one goal, you'd have to accept it being worse on another. You pick from that boundary based
+  on what matters most to you (e.g., favour safety over size).
+- A **rejection summary** tells you *why* candidates were dropped. A high rejection rate is the clearest indicator
   that your seed or your constraints need adjusting — it's a useful diagnostic, not a failure.
 
 > **If you get no results:** BioMate tells you *which kind* of empty it is. "All candidates were set aside"
@@ -169,7 +171,9 @@ the value is *starting smart*. From the results you can **export an order sheet*
 candidate with a lab ID, so chemists (in-house or at a contract lab) can actually make and test the top
 molecules. When the lab results come back, they feed into BioMate's **Models** module (Tutorial 2), which
 *learns* from the real measurements and proposes a better next round. That cycle — **design → make → test →
-learn → design again** — is the "closed loop", and it's how BioMate gets sharper with every round.
+learn → design again** — is the "closed loop", and it's how BioMate gets more accurate with every round.
+Tutorial 2 covers this loop in detail, including a worked rheumatoid-arthritis example of how it can steer
+designs away from a real safety risk.
 
 Typical hand-offs: a **clinician or biologist** contributes the validated target and the real-world safety
 problems to avoid; **BioMate** produces and ranks candidates; a **medicinal chemist** reviews the shortlist and

@@ -36,8 +36,8 @@ those measurements can teach the model, so its *next* set of proposals is more a
 
 > **Why this matters (two ways).**
 > - **For a drug program / commercially:** the model learns from *your* measurements, which stay private
->   to your workspace and are never used to train shared models. Each round compounds your team's
->   knowledge — a competitor using the same software starts from zero on your problem.
+>   to your workspace and are never used to train shared models. Each round adds to your team's own
+>   knowledge base, which stays with you.
 > - **For patients / translation:** better, safer candidate molecules are the starting point for better
 >   medicines. Today the loop learns from **laboratory (bench) measurements**; using patient-derived or
 >   clinical readouts to guide it is a direction BioMate is building toward, not a current feature.
@@ -76,7 +76,8 @@ BioMate says **"not evaluated"** rather than showing a made-up score.
 the **applicability domain** — the kind of inputs the model learned from. Ask a model about something far
 outside that, and it should lower its confidence instead of pretending to know. (For example: a model
 trained on small-molecule kinase inhibitors would report low confidence if asked to score a peptide,
-because peptides look nothing like what it learned from.)
+because peptides look nothing like what it learned from.) Treating an out-of-domain prediction as reliable is
+a common cause of wet-lab experiments that were never going to work.
 
 **The four things you do with models** (the four "tracks" on the Models screen):
 - **Run a pre-trained model** — use an existing public model to make a prediction now. This is called
@@ -147,7 +148,7 @@ input (for Structure, a protein's one-letter sequence), and run it.
   its predictions with extra caution.
 - **Trust for *your* molecule** depends on the applicability domain, not just the floor. If a prediction
   is reported with low confidence, it usually means your input is unlike the model's training data — treat
-  that prediction as unproven, much like using a drug off-label.
+  that prediction as unproven (similar to using a drug off-label: outside what it was tested for).
 - **A limit value stays a limit.** If an assay can only report "activity greater than 30 µM" (because the
   compound was too insoluble to measure higher), BioMate keeps it as "greater than 30", and never silently
   replaces it with the number 30. Preserving these honest limits keeps the model from learning a false
@@ -168,15 +169,22 @@ Here is the whole cycle, connecting Tutorial 1 and this one:
 1. **Design** — Design & Generate (Tutorial 1) proposes and ranks candidate molecules.
 2. **Make and test** — you export the shortlist as an order sheet; chemists make the top molecules and the
    laboratory measures them.
-3. **Learn** — the real measurements are fed back and the model is **retrained**: it keeps what it already
-   knew and adds the new results, then BioMate re-checks it on data it was *not* trained on. Because each
-   round deliberately explores new chemistry, this check shows the model is *keeping up* with the new data
-   — it is not a single score to climb. *(In practice, feeding results back and retraining happen through a
-   drug-discovery campaign, not a button on the Models screen; the measurements needed are, at minimum, a
-   compound identifier and its assay value with units, with limit values kept as "greater/less than".)*
+3. **Learn** — the real measurements are fed back and the model is **retrained** on the combined data (what
+   it already knew plus the new results). BioMate then re-checks it on data it was *not* trained on. Because
+   each round deliberately explores new chemistry, this check shows the model is *keeping up* with the new
+   data — it is not a single score to climb.
+
+   *How the hand-back works, in practice:* for each molecule, the lab records its identifier and its measured
+   **assay value** with units. (An assay is simply a lab test of activity — for example an IC50, a binding
+   strength, or a percent inhibition.) If the test could only report a limit — say "greater than 30 µM"
+   because the compound was too insoluble to measure higher — that limit is kept as-is, never replaced by the
+   number 30. These results are returned through a **drug-discovery campaign** (the larger cloud workflow),
+   not through a button on the Models screen — so in a real project a campaign manager or a cheminformatics
+   colleague usually performs this step.
 4. **Design again** — the improved model scores the next round of candidates more accurately.
 
-Each loop is a **round**, and the Rounds view is your monitoring window onto it. The benefit grows with
+Each loop is a **round**, and the Rounds view is where you monitor it — it shows the rounds so far and each
+round's proposed candidates with their verdicts. The benefit grows with
 each round: a team that runs three or four rounds ends up with much better candidates than a team that
 designs only once — and BioMate records each measurement, so you can see the real improvement rather than
 trusting the system without proof.
