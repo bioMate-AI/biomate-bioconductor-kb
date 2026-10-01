@@ -125,6 +125,10 @@ The most useful first thing to do is inspect a model, so you understand what you
 2. **Go to the Registry tab** — the list of every model available to your account (the community models
    named in §2, plus any custom models your team has registered).
 
+![The model Registry](../assets/i10-2-registry.png)
+*The Registry: each row is a model (name, family, origin, how many analyses use it). A model trained in one
+project can be used from any other. Clicking a row opens its object view, below.*
+
 ![A model shown as an object](../assets/i10-3-model-object.png)
 *Opening a model (here Boltz-2) shows it as an object: Evidence, Lineage, Used by, Interface, Versions.*
 
@@ -163,6 +167,12 @@ input (for Structure, a protein's one-letter sequence), and run it.
 ---
 
 ## 6. The closed loop in practice (tying it together)
+
+![The Rounds (closed-loop) view](../assets/i10-4-rounds.png)
+*The Rounds view is the home of the closed loop (design · make · test · analyse). This is how it looks before
+any loop has run: it explains what will appear and states the loop's honesty rules — every proposal is
+accounted for, limit values stay as limits, and rejected candidates stay visible with their reason. Once a
+design–make–test loop is running in a campaign, the rounds and their proposals fill in here.*
 
 Here is the whole cycle, connecting Tutorial 1 and this one:
 
