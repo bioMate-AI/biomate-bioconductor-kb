@@ -108,7 +108,7 @@ def _term(attr, op, val, service="text"):
             "parameters": {"attribute": attr, "operator": op, "value": val}}
 
 
-def _candidate_query(max_pep_len: int, return_type: str, rows: int = 0, count_only: bool = False):
+def _candidate_query(max_pep_len: int, return_type: str, rows: int = 0, start: int = 0, count_only: bool = False):
     """Short protein peptide entity bound to a receptor (>=2 protein entities in the assembly)."""
     nodes = [
         _term("entity_poly.rcsb_entity_polymer_type", "exact_match", "Protein"),
@@ -120,7 +120,7 @@ def _candidate_query(max_pep_len: int, return_type: str, rows: int = 0, count_on
     if count_only:
         q["request_options"] = {"return_counts": True}
     else:
-        q["request_options"] = {"paginate": {"start": 0, "rows": rows}}
+        q["request_options"] = {"paginate": {"start": start, "rows": rows}}
     return q
 
 
@@ -141,9 +141,22 @@ def estimate_counts():
 
 
 def list_candidates(max_pep_len: int, rows: int):
-    q = _candidate_query(max_pep_len, "polymer_entity", rows=rows)
-    res = _rcsb_query(q)
-    ids = [hit["identifier"] for hit in res.get("result_set", [])]  # e.g. "1ABC_1"
+    # RCSB caps paginate.rows at 10000 per request -> PAGINATE across pages (root-cause fix; a single
+    # rows=16000 request returns HTTP 400). Fetch min(rows, total_count) across 10000-row pages.
+    PAGE = 10000
+    total = _rcsb_query(_candidate_query(max_pep_len, "polymer_entity", count_only=True)).get("total_count", 0)
+    want = total if rows <= 0 else min(rows, total)
+    ids, start = [], 0
+    while start < want:
+        page = min(PAGE, want - start)
+        res = _rcsb_query(_candidate_query(max_pep_len, "polymer_entity", rows=page, start=start))
+        hits = res.get("result_set", [])
+        if not hits:
+            break
+        ids += [hit["identifier"] for hit in hits]  # e.g. "1ABC_1"
+        start += len(hits)
+        if len(hits) < page:
+            break
     # collapse polymer_entity ids -> unique entry ids
     entries = sorted({eid.split("_")[0] for eid in ids})
     return entries, ids
