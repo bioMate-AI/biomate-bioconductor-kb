@@ -69,14 +69,32 @@ FDR scorer, every arm entrapment-validated):
 | Sage (fragment index) | ~29 s (**5.3×**) | 137 | 0.54% |
 | Sage + Mokapot (index + rescoring) | ~42 s | **191 (+162% vs baseline)** | 0.24% |
 
+**Phase-1 breadth (same 3-arm head-to-head, four real datasets, all entrapment-validated at 1% FDR):**
+
+| Dataset | Comet pep | Sage pep | Sage+Mokapot pep | Speed (Sage vs Comet) |
+|---|---|---|---|---|
+| ProteomeTools (PXD010595, synthetic tryptic) | 73 | 137 | 191 (+162%) | 5.3× faster |
+| HeLa (PXD014415, deep tryptic DDA) | 16,276 | 25,412 | 25,508 (+57%) | 3.3× faster |
+| Species-mix (PXD028735, E. coli vs human+E.coli, tryptic) | 4,889 | 7,724 | 7,890 (+61%) | 2.7× faster |
+| HLA (PXD004894, no-enzyme immunopeptidome) | 948 | 3,855 | 4,352 (+359%) | 0.3× (slower — large no-enzyme index) |
+
+Generalized: Sage is **2.7–5.3× faster on tryptic** searches; Sage+Mokapot finds **+57% to +359% more
+peptides** at entrapment-clean 1% FDR, with the biggest recall gain (and biggest rescoring lever) on the
+no-enzyme HLA search — where it trades the speed edge for recall. The species-mix set is a specificity
+control: at 1% FDR **97.3% of accepted peptides map to E. coli** (the organism in the sample), only 2.67%
+to human. Every figure traces to a real scored run at
+`s3://biomate-nextflow-work/proteomics_breadth_20261001/<dataset>/results/scored/metrics.json`.
+
 Full benchmark report (objective / methods / full table / caveats / provenance):
-**`docs/20261001_PROTEOMICS_SEARCH_BENCHMARK_REPORT.md`**; detailed session log:
+**`docs/20261001_PROTEOMICS_SEARCH_BENCHMARK_REPORT.md`** (§3.2 Phase-1 breadth); detailed session log:
 `docs/20260929_PROTEOMICS_SEARCH_SPEED_RECALL.md`. Live production-path proof (per-tool containers on
 AWS Batch, run `fb3440ec…`): same session log §"PER-TOOL-CONTAINER default".
 
-**Caveats (honest).** Single dataset so far (relative gains strong, absolute counts modest because
-ProteomeTools is synthetic + strict 1:1 entrapment); RAM was measured on the docker wrapper not the
-tool; broader PXD sets (Phase 1) would strengthen generalization. See the report §7.
+**Caveats (honest).** Gains are strong but vary by regime: speed holds on tryptic searches and inverts on
+the no-enzyme immunopeptidome; the rescoring lever is small on a clean deep run (HeLa +0.4%) and large on
+hard spaces (HLA +12.9%). Absolute counts track data scale (deep HeLa ~25k peptides vs synthetic
+ProteomeTools hundreds); the relative gains between arms are the load-bearing result. RAM was measured on
+the docker wrapper not the tool. See the report §3.2 / §7.
 
 **Attribution.** Sage: Lazear, *J. Proteome Res.* 2023 (MIT). Mokapot: Fondrie & Noble (Percolator
 family; Apache-2.0). OpenMS/Comet: Eng et al.; OpenMS (Apache/BSD). Data: ProteomeTools (PXD010595).

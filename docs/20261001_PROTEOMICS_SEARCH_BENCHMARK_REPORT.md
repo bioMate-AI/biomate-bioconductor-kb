@@ -120,6 +120,82 @@ levers (§2 fragment indexing, §4 semi-supervised rescoring) are real and stack
 
 ---
 
+## 3.2 Phase-1 breadth — the same 3-arm head-to-head on three additional real datasets (measured)
+
+The single-dataset caveat (old §7.1) is now addressed. The **identical** harness, FASTA-build
+(`--entrapment-source shuffled_target --entrapment-ratio 1.0 --seed 42`), 1% FDR scorer, and per-tool
+quay containers were re-run on three further real PXD datasets, each chosen for a different stress
+regime (survey §8/§9/§14.1). Every number below is from a real scored run on its own spot box
+(prefix `s3://biomate-nextflow-work/proteomics_breadth_20261001/`); none is projected.
+
+**Datasets (smallest representative run per regime):**
+
+| Dataset | Accession · file | Regime | DB (target → searched) | Enzyme |
+|---|---|---|---|---|
+| **ProteomeTools** (baseline, §3) | PXD010595 · BA1_DDA_1h | synthetic pool, tryptic | 20,431 → 81,724 | Trypsin, 2 MC |
+| **HeLa** | PXD014415 · a11864_human_90min_hrMS2 | standard deep-proteome DDA, tryptic | 20,431 → 81,724 | Trypsin, 2 MC |
+| **HLA immunopeptidome** | PXD004894 · 20140304_EXQ6_MiBa_MM3-HLAp-1 | **non-tryptic / no-enzyme**, large space (46,535 MS scans) | 20,431 → 81,724 | **unspecific**, len 8–15 |
+| **Species mixture** | PXD028735 · LFQ_Orbitrap_DDA_Ecoli_01 | 2-species specificity (E. coli sample vs human+E. coli DB) | 24,962 → 99,848 | Trypsin, 2 MC |
+
+### Per-dataset 3-arm results (all @ entrapment-validated 1% FDR)
+
+| Dataset | Arm | Wall-clock | #PSMs | #peptides | #proteins | Entrapment FMR |
+|---|---|---|---|---|---|---|
+| **ProteomeTools** | Comet | 153.1 s | 260 | 73 | 71 | 0.00% |
+| (tryptic) | Sage | ~29 s | 552 | 137 | 130 | 0.54% |
+| | Sage+Mokapot | ~42 s | 836 | 191 | 174 | 0.24% |
+| **HeLa** | Comet | 167.7 s | 16,340 | 16,276 | 3,070 | 0.56% |
+| (tryptic) | Sage | 50.2 s | 27,217 | 25,412 | 4,111 | 0.60% |
+| | Sage+Mokapot | ~65.8 s | 27,348 | 25,508 | 4,127 | 0.60% |
+| **HLA** | Comet | 217.4 s | 1,030 | 948 | 669 | 0.29% |
+| (no-enzyme) | Sage | 844.5 s (incl. 376M-frag index) | 4,701 | 3,855 | 2,443 | 0.49% |
+| | Sage+Mokapot | ~855 s | 5,343 | **4,352** | 2,679 | 0.41% |
+| **Species mix** | Comet | 142.5 s | 8,626 | 4,889 | 1,106 | 0.53% |
+| (tryptic; E. coli | Sage | 53.4 s | 15,101 | 7,724 | 1,419 | 0.44% |
+| sample vs human+E.coli DB) | Sage+Mokapot | ~67.7 s | 15,764 | 7,890 | 1,443 | 0.43% |
+
+### Per-dataset ratios (the generalization claim)
+
+| Dataset | Speed: Sage vs Comet (end-to-end) | Recall: Sage+Mokapot vs Comet | Mokapot lever (Sage→+Mokapot, peptides) |
+|---|---|---|---|
+| ProteomeTools | **5.3× faster** | PSM +222% · **pep +162%** · prot +145% | +39.4% |
+| HeLa | **3.3× faster** | PSM +67% · **pep +57%** · prot +34% | +0.4% |
+| HLA (no-enzyme) | **0.3× (slower — see note)** | PSM +419% · **pep +359%** · prot +300% | **+12.9%** |
+| Species mix (tryptic) | **2.7× faster** | PSM +83% · **pep +61%** · prot +30% | +2.1% |
+
+**Generalized ranges (across ProteomeTools + HeLa + HLA + species-mix — four real datasets):**
+- **Speed (tryptic):** Sage is **2.7–5.3× faster** end-to-end on the three tryptic datasets
+  (species-mix 2.7×, HeLa 3.3×, ProteomeTools 5.3×).
+- **Recall:** Sage+Mokapot finds **+57% to +359% more peptides** at 1% FDR than the Comet baseline
+  (lowest on a clean deep tryptic HeLa run, species-mix +61%, highest on the no-enzyme HLA search).
+- Every arm on every dataset stayed **entrapment-clean** (measured FMR ≤ nominal at the 1% operating
+  point: species-mix Comet 0.53% / Sage 0.44% / Sage+Mokapot 0.43%).
+- **Species-mix specificity (2-species control):** the sample is pure E. coli searched against a
+  human+E.coli DB; at 1% FDR Sage+Mokapot attributed **97.3% of accepted peptides to E. coli** (7,679 of
+  7,890) and only 2.67% (211) to human — the search correctly localizes IDs to the organism actually
+  present, with no human-protein inflation (`speciesmix/results/foreign_id.txt`).
+
+### Honest per-dataset variation (this is the point of the breadth run)
+
+1. **The HLA no-enzyme result is where rescoring shines — and where Sage's *speed* edge disappears.**
+   Sage's recall advantage is largest here (+359% peptides vs Comet) and Mokapot adds the most on top
+   (+12.9% peptides, vs only +0.4% on clean tryptic HeLa) — exactly the survey §8 prediction that
+   discrimination-rescoring gains are biggest in the enormous unconstrained search space. But the
+   *speed* story inverts: building the fragment index over the no-enzyme candidate space (376M
+   fragments) makes Sage end-to-end **slower** than Comet on this run (844 s vs 217 s). So the honest
+   statement is **"Sage is faster on tryptic searches; on no-enzyme immunopeptidomics it trades speed
+   for a large recall gain."** Not a uniform "N× faster everywhere."
+2. **The Mokapot lever is dataset-dependent.** On the clean tryptic runs Sage alone already captures
+   most identifiable peptides, so rescoring adds little (HeLa +0.4%, species-mix +2.1%). On the
+   large/ambiguous spaces (ProteomeTools synthetic pool +39%, HLA no-enzyme +13%) it adds much more. The
+   rescoring lever is real but its size scales with how hard the discrimination problem is.
+3. **Absolute depth tracks data quality/scale**, as expected: HeLa (a real deep single-shot) yields
+   ~25 k peptides; the ProteomeTools synthetic pool against the full human DB yields hundreds (most
+   proteins genuinely absent). The **relative** gains between arms are the load-bearing, generalizable
+   result — not the absolute counts.
+
+---
+
 ## 4. FDR calibration (the honesty axis)
 
 Measured entrapment false-match-rate vs claimed FDR (ratio 1.0, combined estimator):
@@ -219,11 +295,16 @@ self-benchmarks the survey (§9 gap) flags.
 
 ## 7. Honest caveats
 
-1. **Single dataset.** Results are from **one** ProteomeTools DDA run against **one** human proteome.
-   The relative gains are strong and internally consistent, but breadth across additional PXD sets
-   (a HeLa gradient, an HLA immunopeptidome set, a species mixture — survey §14.1) would strengthen
-   generalization claims. A multi-dataset re-benchmark is required before claiming the ratios hold
-   universally.
+1. **Breadth — now addressed (§3.2), four real datasets.** The headline 3-arm table (§3) is still one
+   ProteomeTools run, but the **Phase-1 breadth run (§3.2)** re-ran the identical harness on a HeLa
+   deep-proteome DDA (PXD014415), an HLA no-enzyme immunopeptidome (PXD004894), and a 2-species
+   specificity set (PXD028735, E. coli sample vs human+E.coli DB). The generalized finding: Sage is
+   **2.7–5.3× faster on tryptic** searches, Sage+Mokapot finds **+57% to +359% more peptides** at
+   entrapment-clean 1% FDR, and the gains vary honestly by regime (biggest recall + biggest Mokapot lever
+   on the no-enzyme HLA search; on that search Sage trades its speed edge for the large recall gain — see
+   §3.2's variation notes). The species-mix set additionally confirms **species specificity** (97.3% of
+   accepted peptides correctly attributed to the organism present). The ratios are **not** uniform across
+   datasets and the report says so.
 2. **ProteomeTools is synthetic + strict 1:1 entrapment → modest absolute counts.** A defined
    synthetic pool searched against the full human DB has most proteins genuinely absent, and a
    conservative 1:1 entrapment tightens the operating point. This is why absolute ID counts are small
@@ -252,6 +333,11 @@ self-benchmarks the survey (§9 gap) flags.
 | +222% / +162% / +145% recall | session log §"Headline gains"; arithmetic from the table |
 | calibration curve (0.1–5% FDR) | session log §"FDR calibration" table |
 | live run `fb3440ec…`, 3 containers, 35,821 PSMs, 1,145 / 136 @1%FDR | session log §"PER-TOOL-CONTAINER default" |
+| Phase-1 breadth (HeLa / HLA / species-mix) per-dataset 3-arm tables + ratios (§3.2) | `s3://biomate-nextflow-work/proteomics_breadth_20261001/<dsid>/results/scored/metrics.json` (per-dataset scored run) |
+| HeLa 167.7 s / 16,340·16,276·3,070 → 50.2 s Sage / +57% pep S+M | `…/hela/results/{comet,sage,mokapot}.time.txt` + `scored/metrics.json` |
+| HLA 948 → 3,855 (Sage) → 4,352 (S+M) pep, no-enzyme | `…/hla/results/scored/metrics.json`; Sage log `search 281 spectra/s, 376M frags` |
+| Species-mix 142.5 s Comet / 53.4 s Sage; 4,889·7,724·7,890 pep; FMR 0.53/0.44/0.43% | `…/speciesmix/results/{comet,sage,mokapot}.time.txt` + `scored/metrics.json` (retry box `i-0778444945e110045`, us-west-2a) |
+| Species-mix specificity 97.3% E. coli / 2.67% human peptides @1% | `…/speciesmix/results/foreign_id.txt` |
 
 **Numbers that could NOT be independently sourced here:** none — every figure in this report is
 present in `docs/20260929_PROTEOMICS_SEARCH_SPEED_RECALL.md` or is simple arithmetic on figures that
