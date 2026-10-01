@@ -41,11 +41,12 @@ stage(){ printf '{"stage":"%s","time":"%s"}\n' "\$1" "\$(date -u +%FT%TZ)" > "\$
 sync_all(){ aws s3 sync "\$ROOT/status" "$S3RUN/status/" --only-show-errors || true; [ -d "\$ROOT/out" ] && aws s3 sync "\$ROOT/out" "$S3RUN/bound_cyclic_v2/" --only-show-errors || true; }
 trap 'rc=\$?; [ \$rc -ne 0 ] && stage failed; sync_all; shutdown -h now; exit \$rc' EXIT
 for i in 1 2 3 4 5; do apt-get -o DPkg::Lock::Timeout=300 update -qq && break; sleep 10; done
-apt-get -o DPkg::Lock::Timeout=300 install -y -qq unzip curl python3-venv python3-pip
+apt-get -o DPkg::Lock::Timeout=300 install -y -qq unzip curl python3-venv python3-pip python3-dev build-essential
 command -v aws >/dev/null 2>&1 || { curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/a.zip && (cd /tmp && unzip -q -o a.zip && ./aws/install); }
 python3 -m venv "\$ROOT/venv"; source "\$ROOT/venv/bin/activate"
 pip install -q --disable-pip-version-check 'pip==25.0.1'
-pip install -q 'gemmi==0.6.6' 'biopython==1.80' 'requests>=2.31' 'boto3>=1.36,<2'
+# biopython>=1.83 has cp312 wheels (1.80 compiles from source on Ubuntu 24.04/py3.12 -> needs the build deps above)
+pip install -q 'gemmi>=0.6.6' 'biopython>=1.83' 'requests>=2.31' 'boto3>=1.36,<2'
 aws s3 cp "$S3RUN/code/mine_bound_cyclic_complexes.py" "\$ROOT/code/mine.py" --only-show-errors
 (while sleep 60; do sync_all; done) &
 stage mining
