@@ -381,3 +381,95 @@ image's unpinned resolve.
   (DECOYDATABASE + SAGE + a failed MOKAPOT, all short). Total this pass **well under the caps**.
 - **Zero orphan compute confirmed:** SUBMITTED/PENDING/RUNNABLE/STARTING/RUNNING all 0 for
   SAGE/MOKAPOT/OPENMS/DECOY/proteomics on `biomate-nextflow-queue` after the run went terminal.
+
+---
+
+## PER-TOOL-CONTAINER default — live end-to-end verification (2026-10-01) ✅ PROVEN
+
+**This supersedes the combined-image approach above.** The two combined-image blockers (missing
+`procps`, then mokapot 0.10.0 × pandas 3.0) were the symptom of one root cause: a *monolithic* image
+that has to satisfy three tools' transitive deps at once (dep-skew whack-a-mole). The fix that lands
+is **per-tool containers** — each process declares its own benchmark-validated quay biocontainer, and
+BioMate's executor is taught to *not* force one global `process.container` for this workflow so each
+process's own directive wins. The quay biocontainers already bundle `procps` **and** a
+mokapot-compatible pandas (that is why the §"speed-recall" benchmark ran clean on them), so both
+combined-image blockers are structurally gone.
+
+### Code (committed `885640e04`, deployed to dev `result=healthy` 2026-09-30, verified live in `biomate-galaxy-dev`)
+
+1. **Executor allow-list** (`nextflow_executor.py:2832-2845`): `_PER_PROCESS_CONTAINER_WORKFLOWS =
+   ("proteomics_dda_search","proteomics_db_search")` → `_skip_global_container=True` → the
+   `container = '…'` line is **not** emitted, so each process's own `container` directive wins.
+   (Confirmed in the running container via SSM read-only.)
+2. **5 modules declare per-tool quay biocontainers directly** (no `params.container`): local/sage
+   (`sage-proteomics:0.14.7--h031d066_0`), local/mokapot (`mokapot:0.10.0--pyhdfd78af_0`),
+   nf-core/openms/decoydatabase + peptideindexer (`openms:3.4.1--h81ffffe_1`),
+   nf-core/openmsthirdparty/cometadapter (`openms-thirdparty:3.4.1--h9ee0642_1`). `docker.enabled=true`
+   in the generated config → the module ternary picks the quay (docker) image, not singularity.
+   (All 5 confirmed in the running container via SSM.)
+3. **Default = sage + mokapot** (`main.nf:58-59`) — confirmed live.
+
+### Run dispatched — NEW default, engine/rescoring NOT overridden, NO `compute_config.container`
+
+Reused the benchmark's real staged data (NOT the tiny BSA — BSA gives 0 decoys so Mokapot cannot
+train): human UniProt SwissProt FASTA (reviewed, organism 9606; OPENMS_DECOYDATABASE generates the
+decoys) + the ProteomeTools `BA1_DDA_1h.mzML` (624 MB, PXD010595). Staged to
+`s3://biomate-nextflow-work/proteomics_pertool_live_20260930/`. Dispatched via
+`POST /api/nextflow/execute` on dev Galaxy (SSH-over-SSM, `i-06696b0d91f4346e0`).
+
+| Field | Value |
+|---|---|
+| BioMate run id | `fb3440ec-6ef0-43f4-be39-5e249e7bc1b6` |
+| Invocation id | `fb04aaa9-8d85-4107-961c-c8f697e0ee38` |
+| nextflow_path | `nf-core-modules/proteomics_dda_search/main.nf` |
+| parameters | `input=…/samplesheet.csv`, `fasta=…/human.fasta` (engine/rescoring = defaults sage+mokapot) |
+| compute_config | `{executor:awsbatch, aws_region:us-west-2}` — **no `container`** (per-process now wins) |
+| workdir | `s3://biomate-nextflow-work/nextflow/work/proteomics-pertool-live-agent/fb3440ec-…` |
+
+### THE PROOF — three DIFFERENT per-tool containers in ONE run, all SUCCEEDED
+
+| Batch job | Step | Status | Exit | `container.image` (distinct per-tool) | Duration |
+|---|---|---|---|---|---|
+| `2000b97f-b42b-4ec4-a127-a0bdd5bdf716` | OPENMS_DECOYDATABASE | **SUCCEEDED** | 0 | `quay.io/biocontainers/openms:3.4.1--h81ffffe_1` | 21 s |
+| `3a69734f-7fee-4e45-a456-384589ec7332` | SAGE (BA1_DDA_1h) | **SUCCEEDED** | 0 | `quay.io/biocontainers/sage-proteomics:0.14.7--h031d066_0` | 46 s (12 vCPU) |
+| `a88ec105-f4b1-4bce-8417-5974ed9bde62` | MOKAPOT (BA1_DDA_1h) | **SUCCEEDED** | 0 | `quay.io/biocontainers/mokapot:0.10.0--pyhdfd78af_0` | 29 s (6 vCPU) |
+
+Each task's `.command.run` carries only its own `### container: '…'` line — **no forced global
+container** — confirming the allow-list `_skip_global_container` path is active end-to-end.
+
+### Real science (the requested ID counts, from the Batch outputs on S3)
+
+- **OPENMS_DECOYDATABASE:** `human_decoy.fasta` = **27.37 MB** (= target 13.67 MB + reversed decoys) —
+  decoys present, so Mokapot can actually train (the BSA runs could not).
+- **SAGE** (`BA1_DDA_1h.sage.tsv`): **35,821 real PSMs** = 18,925 targets + 16,896 decoys.
+- **MOKAPOT** (semi-supervised rescoring on the Sage pin): **PSMs @1% FDR = 1,145**;
+  **peptides @1% FDR = 136** (`BA1_DDA_1h.mokapot.peptides.txt`, non-empty — the requested proof).
+  q-values are calibrated/monotonic (min peptide q = 0.0074; cumulative 136/295/376 @ 1/5/10% FDR).
+  (The peptide count is stringent because the sample is a defined ProteomeTools synthetic pool searched
+  against the full 20 k-protein human DB — most proteins are genuinely absent, so target/decoy
+  competition is tight at the peptide level. The point of this run is the *pipeline* proof, not recall
+  depth; recall depth is the large-DB benchmark table at the top of this doc.)
+
+### Why this is the right fix (vs. the combined image)
+
+The per-tool quay biocontainers are the **same images the §"speed-recall" benchmark used** — already
+proven correct (they bundle `procps` + a mokapot-compatible pandas). The combined image had to be
+rebuilt twice and still hit the pandas-3.0 skew; the per-tool approach sidesteps the whole dep-skew
+class and scales to adding more tools without a monolithic rebuild. **Both combined-image blockers are
+now moot on the live default path.**
+
+### Cost / hygiene (this pass)
+
+- **Batch compute:** DECOYDATABASE 21 s (1 vCPU) + SAGE 46 s (12 vCPU) + MOKAPOT 29 s (6 vCPU) ≈ **750
+  vCPU-seconds (~0.21 vCPU-hr)** of task runtime on the warm/already-scaled Batch CEs → well under $1,
+  far under the $5 cap. No new EC2 launched by this agent.
+- **Zero orphans confirmed:** SUBMITTED/PENDING/RUNNABLE/STARTING/RUNNING all 0 for this run (and for
+  SAGE/MOKAPOT/OPENMS/DECOY broadly) on both `biomate-nextflow-queue` and `biomate-hpc-queue` after
+  terminal.
+
+### Status after this pass
+
+- **Per-tool-container Sage+Mokapot live default:** ✅ **PROVEN end-to-end on real data** — three
+  distinct per-tool containers in one production-path run, all SUCCEEDED, real Sage PSMs (35,821) +
+  non-empty Mokapot peptides@1%FDR (136) / PSMs@1%FDR (1,145). The combined-image procps/pandas
+  blockers are structurally retired.
