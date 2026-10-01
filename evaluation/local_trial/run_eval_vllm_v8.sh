@@ -6,7 +6,7 @@ SIZE=${SIZE:-small}
 export MODEL_SIZE=$SIZE STAGE=evalv8 TAG=_evalv8 ENTRY=build_eval_vllm_v8.sh BOOTSTRAP=gpu_bootstrap.sh SIZE
 SUBS=(subnet-09e4dce46682a6c60 subnet-03b277a7a08d388c1 subnet-0b35a6e2c1cf02dc2 subnet-0254e4c3634b41bfc)
 TYPES=(g6.2xlarge g5.2xlarge g6e.xlarge g5.4xlarge)
-RESULT="$S3/eval/eval_v8_routing_$SIZE.json"; aws s3 rm "$RESULT" --quiet 2>/dev/null
+RESULT="$S3/eval/eval_v8_alltasks_$SIZE.json"; aws s3 rm "$RESULT" --quiet 2>/dev/null
 launch(){ for T in "${TYPES[@]}"; do for S in "${SUBS[@]}"; do
   O=$(ONDEMAND=$1 INSTANCE_TYPE=$T SUBNET=$S bash spot_launch.sh 2>&1); IID=$(echo "$O"|grep -oE "i-[0-9a-f]{8,}"|head -1)
   [ -n "$IID" ] && { lbl=spot; [ "$1" = 1 ] && lbl=od; echo "LAUNCHED $lbl-$T @ $S -> $IID">&2; echo "$IID"; return 0; }
