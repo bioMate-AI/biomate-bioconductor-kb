@@ -76,3 +76,9 @@ Per the "don't drop a technique on a botched run" correction, both got proper te
 - Policy: SPOT-ONLY enforced (no on-demand fallback) across all launchers.
 FINAL: SFT alone wins. Routing=base+retrieval. mid-train + DPO NOT shipped (fairly tested, negative).
 Recipe (strict filter) salvaged -> v6 enrichment eval pending.
+
+## FINAL (2026-10-01): SFT v5 ships; everything on top is neutral-negative
+F1 macro: base 0.27 | sft_v5 0.43 (WINNER) | sft_v6(+recipe) 0.42 | full_v2mid(+midtrain) 0.397 | dpo_v5 0.43.
+- Recipe enrichment (2403 clean rows, 3%): net −0.009; tiny gains on findings/tool_rec, routing −0.06. Not shipped.
+- SHIP: sft_v5 for 16 tasks + base+retrieval for routing. mid-train/DPO/recipe-enrichment all fairly tested, none add.
+- Salvaged value: recipe pipeline (strict filter, 81% clean) + coverage-gap = catalog-expansion list (NOT SFT data).
