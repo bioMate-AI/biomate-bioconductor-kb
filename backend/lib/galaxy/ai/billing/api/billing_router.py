@@ -732,28 +732,30 @@ def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
         or os.environ.get("GALAXY_CONFIG_DATABASE_CONNECTION")
         or os.environ.get("GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION")
     )
-    if _db_url:
-        # Strip sqlite:/// or sqlite://// prefix if present to get bare path
-        _db_path = _db_url.replace("sqlite:////", "/").replace("sqlite:///", "")
-        if not _db_path.startswith("/"):
-            # Relative path — resolve from backend root
-            _this_dir = os.path.dirname(os.path.abspath(__file__))
-            _galaxy_root = os.path.normpath(os.path.join(_this_dir, "..", "..", "..", "..", ".."))
-            _db_path = os.path.join(_galaxy_root, _db_path)
-    else:
-        _this_dir = os.path.dirname(os.path.abspath(__file__))
-        # billing/api/ → billing/ → ai/ → galaxy/ → lib/ → backend/
-        _galaxy_root = os.path.normpath(os.path.join(_this_dir, "..", "..", "..", "..", ".."))
-        _db_path = os.path.join(_galaxy_root, "database", "universe.sqlite")
-
     try:
         import sqlalchemy as _sa
-        engine = _sa.create_engine(
-            f"sqlite:///{_db_path}",
-            connect_args={"check_same_thread": False, "timeout": 10},
-        )
+        if _db_url and (_db_url.startswith("postgresql://") or _db_url.startswith("postgres://")):
+            # PostgreSQL URL — pass directly to SQLAlchemy (no sqlite wrapper)
+            engine = _sa.create_engine(_db_url, connect_args={"connect_timeout": 10})
+        else:
+            # SQLite path: strip sqlite:/// prefix if present, then resolve to absolute
+            if _db_url:
+                _db_path = _db_url.replace("sqlite:////", "/").replace("sqlite:///", "")
+                if not _db_path.startswith("/"):
+                    _this_dir = os.path.dirname(os.path.abspath(__file__))
+                    _galaxy_root = os.path.normpath(os.path.join(_this_dir, "..", "..", "..", "..", ".."))
+                    _db_path = os.path.join(_galaxy_root, _db_path)
+            else:
+                _this_dir = os.path.dirname(os.path.abspath(__file__))
+                # billing/api/ → billing/ → ai/ → galaxy/ → lib/ → backend/
+                _galaxy_root = os.path.normpath(os.path.join(_this_dir, "..", "..", "..", "..", ".."))
+                _db_path = os.path.join(_galaxy_root, "database", "universe.sqlite")
+            engine = _sa.create_engine(
+                f"sqlite:///{_db_path}",
+                connect_args={"check_same_thread": False, "timeout": 10},
+            )
     except Exception as exc:
-        log.error("provision_galaxy_user: cannot connect to Galaxy DB at %s: %s", _db_path, exc)
+        log.error("provision_galaxy_user: cannot connect to Galaxy DB: %s", exc)
         raise HTTPException(status_code=500, detail=f"Galaxy DB unavailable: {exc}")
 
     now = datetime.now(timezone.utc)
