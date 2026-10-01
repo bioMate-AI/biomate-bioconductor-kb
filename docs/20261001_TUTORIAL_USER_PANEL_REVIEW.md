@@ -59,5 +59,12 @@ Scores: BD 3/5 · biologist 3/5 · ML-accuracy 4.5/5 · clinician 4/5 · student
 - **Clinical (clinician):** added an *illustrative* RA/JAK1 vignette ending at a cardiac-safety (hERG/QT) endpoint, clearly labelled illustrative.
 - **Translation (student):** removed idioms ("compounding", "take it on faith", "windows onto"→"monitoring views", "one-shot", "ground truth"); shortened long sentences.
 
+## Acceptance re-review (2nd panel round, on revised T1 v2 + T2 v2)
+Each persona re-read both revised tutorials, verified prior fixes landed, re-scored.
+- **T1:** BD 4.5 · biologist 4 · accuracy **5** · clinician 4 · student 4 → **ship-ready** (prior issues confirmed fixed; minor polish applied).
+- **T2:** BD 4.5 · biologist 3.5 · accuracy **5** · clinician 4.5 · student 4 → **ship-ready** after polish (biologist's "how does bench data get back" addressed with an honest, concrete-as-verifiable hand-back paragraph — campaign-mediated, assay defined, no fabricated upload UI).
+- Final polish applied (committed): clinical-toxicity anchor on T1 safety gate; "Target/seed box takes a molecule" inline note; de-idiom sweep (removed surviving "window onto"/"compounds"); softened the moat line to a factual privacy statement; applicability-domain consequence; `drug_like` flagged heuristic; retraining → "combined data". Idiom scan clean on both.
+- **Process lesson:** the first revision of T2 did a partial-only search/replace (two flagged idioms survived) — always re-scan for every flagged term after revising, which is what the acceptance round caught.
+
 ## Change log
 - 2026-10-01 — 5-persona multi-LLM panel run on T1; T1 revised to v2 against all consensus + accuracy findings; reusable checklist extracted for the remaining tutorials (Models/closed-loop, workflow-run, etc., EN then CN).
