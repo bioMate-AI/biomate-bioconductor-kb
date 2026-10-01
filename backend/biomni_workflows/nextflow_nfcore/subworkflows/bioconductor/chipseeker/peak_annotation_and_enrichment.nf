@@ -65,20 +65,29 @@ process BIOC_CHIPSEEKER_PEAK_ANNOTATION_AND_ENRICHMENT {
     # Inputs are staged by basename into the working directory. Discover them by
     # extension (robust to any supplied filename) rather than requiring magic names:
     #   * a BED file of ChIP-seq peaks (files[[4]])
-    #   * a serialized TxDb object (txdb) saved with saveRDS()
+    #   * a serialized TxDb object (txdb): a .sqlite from AnnotationDbi::saveDb()
+    #     (loaded with loadDb) or a plain .rds (loaded with readRDS). TxDb objects
+    #     hold out-of-memory SQLite data and CANNOT be saved with saveRDS, so the
+    #     .sqlite/loadDb path is the portable form; .rds is accepted for any
+    #     non-TxDb serialized annotation object a user supplies.
     bed_files <- list.files(pattern = "\\\\.(bed|bed\\\\.gz)\$", ignore.case = TRUE)
     if (length(bed_files) == 0) {
       stop("Error: No BED file (*.bed/*.bed.gz) found in the working directory.")
     }
-    rds_files <- list.files(pattern = "\\\\.rds\$", ignore.case = TRUE)
-    if (length(rds_files) == 0) {
-      stop("Error: No serialized TxDb .rds file found in the working directory.")
+    txdb_files <- list.files(pattern = "\\\\.(sqlite|rds)\$", ignore.case = TRUE)
+    if (length(txdb_files) == 0) {
+      stop("Error: No TxDb file (*.sqlite from saveDb, or *.rds) found in the working directory.")
     }
 
     files <- vector("list", 4)
     files[[4]] <- bed_files[1]
 
-    txdb <- readRDS(rds_files[1])
+    txdb_path <- txdb_files[1]
+    if (grepl("\\\\.sqlite\$", txdb_path, ignore.case = TRUE)) {
+      txdb <- AnnotationDbi::loadDb(txdb_path)
+    } else {
+      txdb <- readRDS(txdb_path)
+    }
     
     # Read peak file for downstream seq2gene analysis
     peak <- readPeakFile(files[[4]])
