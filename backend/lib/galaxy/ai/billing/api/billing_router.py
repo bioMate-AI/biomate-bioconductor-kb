@@ -721,14 +721,16 @@ def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
     encoded_password = b64encode(hashed_bytes).decode("utf-8")
     galaxy_password_hash = f"PBKDF2${HASH_FUNCTION}${COST_FACTOR}${salt.decode('utf-8')}${encoded_password}"
 
-    # Locate Galaxy's SQLite database.
+    # Locate Galaxy's database.
     # Priority:
     #   1. GALAXY_DB_PATH env var (explicit override)
     #   2. GALAXY_CONFIG_DATABASE_CONNECTION env var (set by start_backend.sh)
-    #   3. Relative to this file: backend/database/universe.sqlite
+    #   3. GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION (set by docker-compose; may be PostgreSQL)
+    #   4. Relative to this file: backend/database/universe.sqlite
     _db_url = (
         os.environ.get("GALAXY_DB_PATH")
         or os.environ.get("GALAXY_CONFIG_DATABASE_CONNECTION")
+        or os.environ.get("GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION")
     )
     if _db_url:
         # Strip sqlite:/// or sqlite://// prefix if present to get bare path
