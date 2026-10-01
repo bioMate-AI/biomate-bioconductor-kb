@@ -1,13 +1,16 @@
 """A1 — CoT-distillation data builder. DUAL strong-reasoner teachers (Claude Opus 5.5 + GPT-6 Solar).
-FREE-FORM prompt + 'FINAL_ANSWER:' delimiter (Opus returns EMPTY for strict-JSON asks — it extended-thinks
-and leaves no text; free-form works). Primary keep = CONSENSUS: both teachers independently reach the same
-answer (salient-F1 >= thr) -> distill their consensus answer + reasoning, BYPASSING our weak generative-task
-gold (the cause of the old 6.6% keep). Secondary keep = a single teacher reaching OUR gold. Emits Qwen3
-thinking `<think>{trace}</think>\n{answer}`. Usage:
+FREE-FORM prompt + 'FINAL_ANSWER:' delimiter (Opus returns EMPTY for strict-JSON asks). Primary keep =
+CONSENSUS (both teachers agree) via the shared VerificationLayer (dogfooded); secondary = a single teacher
+reaching OUR gold. Emits Qwen3 `<think>{trace}</think>\n{answer}`. INCREMENTAL write (kill-survivable). Usage:
   python build_cot_distill.py --in multitask_sft_v5_norm.jsonl --out cot_distill.jsonl --max-per-task 250
 """
-import argparse, json, os, re, time, urllib.request, collections
+import argparse, json, os, re, time, urllib.request, collections, importlib.util
 from concurrent.futures import ThreadPoolExecutor
+
+# dogfood the harness VerificationLayer (consensus + salient-F1); direct-load to bypass galaxy.ai.__init__
+_VL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "backend", "lib", "galaxy", "ai", "verification_layer.py")
+_spec = importlib.util.spec_from_file_location("verification_layer", _VL)
+vl = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(vl)
 
 HARD = {"findings_interpretation", "conclusion_drawing", "task_decomposition", "out_of_catalog_composition",
         "parameter_extraction", "tool_recommendation", "workflow_generation"}
@@ -21,22 +24,6 @@ CONTRACT = {
  "workflow_generation": "Reason the composition of a workflow from existing steps, with correct input/output wiring. Ground ONLY in the given input.",
 }
 DEFAULT_CONTRACT = "Reason step by step to the correct answer, grounded ONLY in the given input."
-_WS = re.compile(r"\s+"); _STOP = set("the a an of to and or for with is are was on in at by from this that these those into as be it its".split())
-
-
-def salient(s):
-    bt = re.findall(r"`([^`]+)`", s or ""); nums = re.findall(r"\d+\.?\d*", s or "")
-    w = [x for x in _WS.sub(" ", re.sub(r"[^a-z0-9 ]", " ", (s or "").lower())).split() if len(x) > 3 and x not in _STOP]
-    return {t for t in (set(x.lower() for x in bt) | set(nums) | set(w[:40])) if t}
-
-
-def f1(a, b):
-    A, B = salient(a), salient(b)
-    if not A or not B:
-        return 0.0
-    inter = len(A & B)
-    p, r = inter / len(B), inter / len(A)
-    return 0.0 if p + r == 0 else 2 * p * r / (p + r)
 
 
 def anthropic_key():
@@ -71,7 +58,6 @@ def call_teacher(provider, model, prompt, n=1600):
 
 
 def parse(txt):
-    """free-form -> (reasoning_trace, final_answer); None if no/short answer."""
     if "FINAL_ANSWER:" not in (txt or ""):
         return None, None
     i = txt.rfind("FINAL_ANSWER:")
@@ -109,41 +95,40 @@ def main():
         return parse(call_teacher(prov_model[0], prov_model[1], prompt))
 
     def grounded(ans, user):
-        return len(salient(ans) & salient(user)) >= 1
+        return len(vl.salient_set(ans) & vl.salient_set(user)) >= 1
 
     def one(seed):
         idx, task, user, gold = seed
         (ta, aa) = ask(OPUS, task, user)
         (tb, ab) = ask(SOLAR, task, user)
-        # PRIMARY: consensus — both teachers independently agree (bypasses weak gold)
-        if aa and ab and f1(aa, ab) >= a.consensus_f1 and grounded(aa, user):
-            return {"messages": [{"role": "user", "content": user},
-                                 {"role": "assistant", "content": f"<think>{ta}</think>\n{aa}"}],
-                    "task": task, "source": "cot_consensus"}
-        # SECONDARY: a single strong teacher that reaches OUR gold (validated)
-        if aa and f1(aa, gold) >= a.gold_f1:
+        # PRIMARY: dual-teacher CONSENSUS via VerificationLayer (fuzzy salient-F1) — bypasses weak gold
+        if aa and ab:
+            _rep, n = vl.consensus([aa, ab], min_agree=2, fuzzy_threshold=a.consensus_f1)
+            if n >= 2 and grounded(aa, user):
+                return {"messages": [{"role": "user", "content": user},
+                                     {"role": "assistant", "content": f"<think>{ta}</think>\n{aa}"}],
+                        "task": task, "source": "cot_consensus"}
+        # SECONDARY: a single strong teacher reaching OUR gold (validated)
+        if aa and vl.salient_f1(aa, gold) >= a.gold_f1:
             return {"messages": [{"role": "user", "content": user},
                                  {"role": "assistant", "content": f"<think>{ta}</think>\n{gold}"}],
                     "task": task, "source": "cot_opus_gold"}
-        if ab and f1(ab, gold) >= a.gold_f1:
+        if ab and vl.salient_f1(ab, gold) >= a.gold_f1:
             return {"messages": [{"role": "user", "content": user},
                                  {"role": "assistant", "content": f"<think>{tb}</think>\n{gold}"}],
                     "task": task, "source": "cot_solar_gold"}
         return None
 
-    out = []; kept = 0
-    with ThreadPoolExecutor(max_workers=a.workers) as ex:
+    kept = 0; by_src = collections.Counter(); by_task = collections.Counter()
+    with open(a.out, "w") as f, ThreadPoolExecutor(max_workers=a.workers) as ex:   # INCREMENTAL write (kill-survivable)
         for i, r in enumerate(ex.map(one, seeds)):
             if r:
-                out.append(r); kept += 1
+                f.write(json.dumps(r) + "\n"); f.flush(); kept += 1
+                by_src[r["source"]] += 1; by_task[r["task"]] += 1
             if i % 100 == 0:
-                print(f"  {i}/{len(seeds)} -> kept {kept}", flush=True)
-    with open(a.out, "w") as f:
-        for r in out:
-            f.write(json.dumps(r) + "\n")
+                print(f"  {i}/{len(seeds)} -> kept {kept} {dict(by_src)}", flush=True)
     print(f"COT DISTILL: {len(seeds)} seeds -> {kept} traces ({kept/max(1,len(seeds))*100:.1f}% keep) -> {a.out}\n"
-          f"  by-task={dict(collections.Counter(r['task'] for r in out))}\n"
-          f"  by-source={dict(collections.Counter(r['source'] for r in out))}", flush=True)
+          f"  by-task={dict(by_task)}  by-source={dict(by_src)}", flush=True)
 
 
 if __name__ == "__main__":
