@@ -155,3 +155,51 @@ Scope **Phase-0 to one CRO round per program** so a no-go is cheap; the anchor p
 ---
 
 *Companion docs: `20260930_HOSPITAL_SURVEY_SYSUCC_*`, `20260930_HOSPITAL_SURVEY_SOOCHOW_*`, `20260930_HOSPITAL_PARTNERSHIP_ENGAGEMENT_PLAN.md`, `20260817_TARGET_IDENTIFICATION_SURVEY.md`, `20260925_PEPTIDE_EXECUTION_PLAN.md`. Comprehensive faculty + publication rosters for each partner are being compiled separately and will attach to the survey briefs.*
+
+---
+
+## Appendix A — Stage-5 CRO Sub-Protocol + Pre-Registered Success Criteria (PD-L1 anchor round)
+
+**Context.** This is the detailed transaction layer for **Stage 5 (binding validation)** on the **PD-L1
+anchor / loop-proof track** — the fastest dry→wet readout (Stage 4 is skippable: PD-L1 is a validated,
+structurally-characterized target). For the first-in-class *lead*, Stage 5 is run by the **hospital partner**
+with the richer structure+function validation (co-crystal, organoid/PBMC, in-vivo); here a **CRO stands in**
+to prove the loop quickly and cheaply. Transaction companions: `20261001_GENSCRIPT_RFQ_PDL1_ROUND1.md`
+(orderable RFQ with verified GenScript deliverables) + `20261001_CRO_DBTL_LOOP_DATA_SPEC.md` (data-return
+format) + `20260930_PDL1_DEVELOPABILITY_ENGINEERABILITY.md` (the dry screens, calibrated on cyclosporine).
+
+### A.1 CRO deliverables (order + what comes back)
+- **Build (synthesis):** head-to-tail cyclic, ≥95% RP-HPLC, 5 mg, **acetate** (TFA→acetate exchange). Standard
+  return: COA + HPLC chromatogram + MS spectrum. Add-ons to request: **net peptide content (AAA/nitrogen)**,
+  counter-ion quantification, **solubility test**, moisture.
+- **Test (binding):** SPR/BLI (Biacore 8K+) vs recombinant human PD-L1 — **affinity ranking → kinetics**;
+  return ka, kd, **KD**, Rmax, Chi², **raw sensorgrams** for **ALL peptides incl. non-binders**.
+- **Return format:** one structured table + raw traces, **every peptide, every step, failures + non-binders
+  included, no pre-filter** (negatives + KD gradient are the training signal).
+
+### A.2 Pre-registered success criteria — define "validated" BEFORE the data
+*(Pre-registration is the point: "validated" is not argued post-hoc. These are the round-1 anchor bars;
+tighten per program. Honest framing: PD-L1 is a hard flat interface, so a µM first-round binder is a real
+"it binds" proof — the native macrocyclic peptide-71 at ~7 nM is the aspiration, not the round-1 bar.)*
+
+| Gate | Metric | **Round-1 success (anchor/loop-proof)** | Stretch |
+|---|---|---|---|
+| **Build** (synthesis) | purity, mass, ring closure | **≥70%** of ordered peptides delivered ≥95% purity, MS within ±1 Da, cyclization confirmed | ≥90% |
+| **Test — binding** (Stage 5) | SPR KD, specific + dose-dependent (1:1 fit, acceptable Chi²) | **≥1 peptide with specific KD ≤ 10 µM** | ≥1 at **KD ≤ 1 µM**; multiple binders |
+| **Test — function** (Stage 6, optional) | PD-1/PD-L1 blockade | ≥50% blockade at ≤10 µM for ≥1 binder | IC50 ≤ 1 µM |
+| **Learn** (Stage 9) | data completeness → retrain | **100% of peptide outcomes (incl. failures/non-binders) ingested + generator retrained + predicted-vs-measured calibration computed** | measurable ranking/DockQ lift in round-2 design |
+
+### A.3 Decision rules per gate (what each outcome triggers)
+- **Build fails (most don't synthesize/cyclize):** do **not** just re-order — the per-peptide **failure modes**
+  feed the cyclization-feasibility + synthesizability models; re-design with a turn-inducer prior, then re-order.
+- **Binding: ≥1 binder** → advance it to the function assay; use as a **positive** in the DPO retrain.
+- **Binding: 0 binders** → still a **successful loop** at the Learn gate: ingest the measured **negatives**,
+  diagnose the **predicted-vs-measured gap** (was iptm/ΔG mis-calibrated?), retrain, re-design round-2.
+- **Always → Learn gate:** ingest everything. The **binding gate is drug-progress; the Learn gate is
+  platform-progress.** Round 1 is declared a success on the **Learn gate** (data→retrain) even with zero
+  binders — the proprietary assay data is the moat regardless of this round's hit rate.
+
+### A.4 Honest note on this appendix vs the body
+Stages 1–4 and 6–8 of the body protocol (hospital partner: target causality, structure, function, in-vivo,
+clinic) are **not replaced** by this CRO sub-protocol — the CRO only covers Build + a binding readout for the
+**anchor** loop-proof. The FIC lead still runs the full partner protocol.
