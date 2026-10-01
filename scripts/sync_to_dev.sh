@@ -627,6 +627,23 @@ deploy_workflows() {
   log "[workflows] Syncing .nf files..."
   local tar_file="/tmp/biomate_workflows.tar.gz"
   cd "$REPO_ROOT"
+  # GUARD: never ship git conflict markers to dev. deploy_workflows tars the WORKING TREE
+  # (unlike deploy_backend_python, which uses `git show HEAD:`), so a concurrent session's
+  # unresolved `git stash apply` can leave `<<<<<<<` / `>>>>>>>` in a .nf and this would
+  # hot-ship a broken file that dies at parse time (SyntaxError) on every Batch run —
+  # observed 2026-10-01 on merfish_spatial_analysis/main.nf (3 marker blocks reached dev).
+  # Same class as CLAUDE.md's merge-conflict-marker trap. Abort before tarring if any
+  # workflow source file carries an unambiguous conflict marker.
+  local _cm_hits
+  _cm_hits=$(grep -rlE '^(<<<<<<< |>>>>>>> )' \
+      backend/biomni_workflows backend/nf-core-workflows/modules/biomate-ai-tools backend/nf-core-modules \
+      --include='*.nf' --include='*.py' --include='*.R' --include='*.config' 2>/dev/null || true)
+  if [[ -n "$_cm_hits" ]]; then
+    log "[workflows] FATAL: git conflict markers in workflow source — refusing to deploy corrupted files:"
+    echo "$_cm_hits" | sed 's/^/      /' >&2
+    log "[workflows] Resolve them (likely a stray 'git stash apply') then re-run. ABORTING sync."
+    return 1
+  fi
   tar -czf "$tar_file" \
     --exclude='*/.nextflow' \
     --exclude='*/.nextflow.log*' \
