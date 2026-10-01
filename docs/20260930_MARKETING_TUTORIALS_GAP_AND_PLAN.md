@@ -155,10 +155,31 @@ E2. Update the coverage ledger + screenshot audit as items close.
   self-check + `GET /api/generate/health`. **Known open gap:** on dev the Summary findings are *withheld*
   (outputs not readable — output-access/S3) — documented honestly in T3 rather than faked; still to fix.
 
-**Next:** Track C (hospital-instrument + other-module tutorials, EN+CN) and the remaining Track D domain/data figures.
+**Track C — hospital-instrument tutorials: SCOPED + first honest doc shipped; LAYMAN VERSION BLOCKED ON A UI GAP.**
+A code audit (verified, file:line) found the instrument-connector *code* is real and substantial (OpenTrons REST,
+MinKNOW, Illumina BaseSpace, LC-MS/qPCR/flow/plate/cryo-EM parsers, Benchling) — **but it is almost entirely
+unsurfaced in the product UI.** The in-app Connectors dialog holds databases + AI/platforms only, **zero
+instruments**; the instrument API (`routes.ts:16028-16364`) has **no front-end consumer**
+(`grep instrument frontend/client/src` → 0 hits). A layman "open Connectors → add your sequencer" walkthrough
+would therefore be dishonest — that screen does not exist.
+- **Written (honest, developer/admin-facing):** `docs/user-manual/modules/I14-instruments-and-lab-connectivity.md`
+  — scoped to the three genuinely-real capabilities: (1) **OpenTrons via MCP** (the only user-facing instrument
+  path; needs a robot on the LAN), (2) **Benchling LIMS → compound ranking** (the one closed wet-lab loop;
+  API/MCP-triggered, UI shows only a static label), (3) **self-hosted connectors + `instrument_watcher.py`**
+  (an admin deployment on the lab server; partly from the separate `biomate-connectors-v2` repo). Every claim
+  code-verified; no screenshots because there is no instrument UI to capture.
+- **Product gap flagged (user-only decision):** a true layman hospital-instrument tutorial needs the existing
+  instrument API **surfaced in the UI** (registry + event feed + "launch from event") and a UI trigger for the
+  LIMS poll. The back end is there; the front door is missing. Options: (A) ship I14 as the honest
+  advanced/ops answer and move on; (B) build the instrument UI first, then write the layman tutorial (larger
+  product work); (C) defer instruments, continue other-module layman tutorials. **I14 covers (A) now.**
+
+**Next:** surface the instrument-UI decision to the user (A/B/C above); meanwhile continue other-module layman
+tutorials and the remaining Track D domain/data figures.
 (T1/T2/T3 batch complete — EN+CN, all panel- and native-CN-validated.)
 
 ## Change log
 - 2026-09-30 — created from a 3-agent inventory sweep (website/positioning, manuals+tutorials, new-UI gap) + the settled deck brief, committee review, and IO landscape docs.
 - 2026-09-30 — Track A (website scope tuning) implemented across index/shell/about/services/features/llms/terms; render-verified; committed (not yet deployed).
 - 2026-10-01 — Track B: first three layman tutorials (T1/T2/T3) written + 5-persona-panel validated; EN complete, CN complete for T1/T2 and in native-CN review for T3. Real CAR-T run captured for T3 (also closes Track D real-after-run item). Multiple real product bugs fixed while authoring (sidebar/billing/RDKit/empty-state/health endpoint).
+- 2026-10-01 — Track C scoped via code audit: instrument connectors are real back-end but **unsurfaced in UI** (no instrument screen; API has no front-end consumer). Wrote honest `modules/I14-instruments-and-lab-connectivity.md` (OpenTrons-MCP / Benchling-LIMS / self-hosted watcher). Layman instrument tutorial blocked on a missing-UI product gap — flagged for user decision (A ship I14 / B build UI / C defer).
