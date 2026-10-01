@@ -63,3 +63,16 @@ isn't penalized). The literature-recipe + PMC-bulk work continues to enrich SFT 
   (limma/WGCNA/blastp/STRING = catalog-expansion candidates).
 - Batch-reviewer bug fixed: failed LLM calls were silently counted as reject (false 2.4%); now retried +
   excluded from denominator. Lesson: verify the measurement before trusting it (twice: F1 grader, this reviewer).
+
+## FAIR re-tests of mid-train + DPO (2026-10-01) — both honest negatives
+Per the "don't drop a technique on a botched run" correction, both got proper tests:
+- **DPO fair-test**: eval-matched prompt template + 3 epochs + 0.93 pref-accuracy on pairs -> routing 0.842
+  (vs sft_v5 0.86, base 0.94), full macro 0.430 (flat). FAIR NEGATIVE — base near-ceiling on routing; SFT
+  already learned candidate-selection; DPO on below-base sft_v5 can't exceed base.
+- **mid-train v2 fair-test**: task-aware corpus (KG-reasoning+tool-QA+db), SPOT GPU, proper F1 eval ->
+  full_v2mid macro 0.397 vs sft_v5 0.431 (−3.4). model_selection 0.46->0.21. FAIR NEGATIVE — continued-
+  pretraining shifts the base distribution; SFT can't recover. Caveat: low-coverage fast check (~6%), but a
+  small dose already HURTS + mechanism + cost -> stop.
+- Policy: SPOT-ONLY enforced (no on-demand fallback) across all launchers.
+FINAL: SFT alone wins. Routing=base+retrieval. mid-train + DPO NOT shipped (fairly tested, negative).
+Recipe (strict filter) salvaged -> v6 enrichment eval pending.
