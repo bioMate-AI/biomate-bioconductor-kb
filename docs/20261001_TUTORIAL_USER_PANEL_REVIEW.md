@@ -95,6 +95,16 @@ Fixes applied + committed:
 - **P4 de-idiom (translation-ready):** dossier→report; front desk/"points you the right way"→reception desk/"points you in the right direction"; "spending compute"→"paid computation"; split the long §1 either/or sentence.
 - Confirmed by panel: nothing claimed to auto-run; Instant/Cloud accurate; no invented module; the one real screenshot (i01-1-cold-start.png) referenced correctly; 2 CAPTURE placeholders are the known acceptable gap. **EN T0 ship-ready after these edits; CN T0 to follow.**
 
+## T4 (Bringing your own data) — panel round
+5-persona multi-LLM panel, verified against the code-truth `modules/I05-files-and-dataset-object.md`. Scores: BD 4 · biologist 4 · accuracy 4 · clinician 4 · student 4 (avg 4.0) → **light revision**, applied:
+- **P1 accuracy (caption↔image mismatch — the gate):** the i05-3 screenshot is a **FASTQ flagged Watch** (reads / read length / mean Phred / "below 20 — consider trimming"), but the caption described table-only fields → rewrote caption to match the real image; added a "for sequencing reads it shows reads, read length, average base quality (Phred) instead of rows/columns" clause to the §5 Quality bullet.
+- **P2 accuracy (lineage):** "each result's Lineage pointing at the **input**" overstated it — per I05 the Lineage tab shows the producing **run/workflow/step** → reworded to "points back to the run that produced it (and that run records the input)".
+- **P3 (biologist):** flagged that a **FASTA stays grey** (profiler doesn't read it, not a problem) at the quality-dot step; added a paired-end FASTQ (R1/R2 — bring both) note to the file-types list.
+- **P4 de-idiom (translation-ready):** "the thing everything orbits"→"the centre everything connects to"; "bookkeeping…where mistakes hide"→"manual tracking…where mistakes creep in"; "judge it at a glance"→"see its status at once"; "go ahead"→"you can proceed".
+- **Disease-anchor decision:** panel recommended keeping the **generic** CSV/FASTQ example (format-agnostic mechanic is clearer generic) + ONE RA/JAK1 continuity sentence for series thread → added "e.g. a CSV of JAK1-inhibitor assay readings from Tutorial 1, or RNA-seq reads from a rheumatoid-arthritis cohort" in §4.
+- Panel confirmed: grey="not profiled, never bad", profiled types, versions-log-not-undo, project-scoping, lineage-not-clickable, honest-empty consumers all faithful to I05; 4 screenshots real + correctly referenced. **EN T4 ship-ready after these edits; CN T4 to follow.**
+- **Follow-up logged:** the I05 module doc's own i05-3 caption has the same FASTQ/Watch-vs-table defect — fix alongside.
+
 ## Change log
 - 2026-10-01 — 5-persona multi-LLM panel run on T1; T1 revised to v2 against all consensus + accuracy findings; reusable checklist extracted for the remaining tutorials (Models/closed-loop, workflow-run, etc., EN then CN).
 - 2026-10-01 — T3 EN 5-persona panel + revision; CN T3 written and native-CN-reviewed (fidelity 5/5); one correctness term fix (脱靶→在靶脱瘤) + de-calque/terminology polish applied. **T1/T2/T3 now complete and validated in EN + CN.**

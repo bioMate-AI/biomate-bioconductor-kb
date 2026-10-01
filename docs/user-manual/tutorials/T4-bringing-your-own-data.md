@@ -14,10 +14,10 @@
 
 An analysis is only as good as the data going into it, and most real problems start the same way: *"I have
 these files — now what?"* Done by hand, getting data ready means tracking which file is which, checking it's
-readable and not obviously broken, and remembering later where a result came from. That bookkeeping is where
-mistakes hide.
+readable and not obviously broken, and remembering later where a result came from. That manual tracking is
+where mistakes creep in.
 
-BioMate treats **your data as the thing everything orbits**. When you bring a file in, BioMate doesn't just
+BioMate treats **your data as the centre everything connects to**. When you bring a file in, BioMate doesn't just
 store a copy — it opens the file as a **dataset object**: a single, named thing that carries its *type*, a
 *quality* check, and its *lineage* (the record of where it came from and what has used it). Every later step
 — an analysis, a result, a report — points back to that same object, so you can always answer "what exactly
@@ -56,7 +56,8 @@ you so a result is defensible in a paper or a review.)*
 **File types you'll meet.** Different work uses different file formats. You don't convert them — you bring the
 file BioMate expects and it recognises the type:
 - **CSV / TSV** — a table of measurements (rows and columns), e.g. assay readings or gene counts.
-- **FASTQ** — raw sequencing reads (the output of a sequencer), used for RNA-seq and genome work.
+- **FASTQ** — raw sequencing reads (the output of a sequencer), used for RNA-seq and genome work. Paired-end
+  runs come as two files (R1 and R2); bring both.
 - **FASTA** — biological sequences (a protein or a stretch of DNA) in plain text.
 - **VCF** — a list of genetic variants (differences found in a genome).
 - **Images** — e.g. microscopy pictures or plots.
@@ -74,8 +75,9 @@ file BioMate expects and it recognises the type:
 
 ## 4. Step by step — getting your data in
 
-We'll use a simple example: a **CSV of measurements** (a table) you want to analyse. The steps are the same
-for a FASTQ, a FASTA, or a VCF.
+We'll use a simple example: a **CSV of measurements** (a table) you want to analyse — for instance a CSV of
+JAK1-inhibitor assay readings from Tutorial 1, or RNA-seq reads from a rheumatoid-arthritis cohort. The steps
+are the same for a FASTQ, a FASTA, or a VCF.
 
 1. **Pick (or open) a project.** Go to **Data** in the sidebar. Choose the project the data belongs to — the
    hub shows that project's files. *(If you don't have a project yet, create one first; data is always kept
@@ -85,7 +87,8 @@ for a FASTQ, a FASTA, or a VCF.
    workflow and date, so you can tell different runs apart.
 3. **Watch the quality dot.** Each file row shows a small **quality dot** — green (Good), amber (Watch), red
    (Blocked), or grey (not profiled). It appears once BioMate has read the file. For a CSV it will usually turn
-   green or amber within a moment.
+   green or amber within a moment. A FASTA shows a **grey** dot — a type the profiler doesn't read, which is
+   not a problem (see §5).
 
 ![The file tree — uploaded inputs and per-run output folders, each row with a quality dot](../assets/i05-1-file-tree.png)
 *The file tree: your uploads under `inputs/`, run outputs in their own folders, each row carrying a quality dot.*
@@ -104,7 +107,7 @@ your workspace. Both end up as the same kind of dataset object.)*
 ## 5. How to read a dataset object
 
 Click a file name and it opens in the right pane. The **header** shows the name, the content type, the size,
-and — once the profiler finishes — a **quality pill** and a **version count**, so you can judge it at a glance.
+and — once the profiler finishes — a **quality pill** and a **version count**, so you can see its status at once.
 
 ![A dataset object header — name, type, size, quality pill, version count](../assets/i05-2-dataset-header.png)
 *The dataset header: identity (name, type, size) plus the Good/Watch/Blocked quality pill and version count.*
@@ -114,9 +117,10 @@ Below the header are tabs. The ones you'll use most:
 - **Preview** — the first rows of the real data as a table, without downloading it. *The fastest way to catch
   a wrong file, a wrong column separator, or a header row that isn't actually a header — read this before you
   run.*
-- **Quality** — the detail behind the pill: how many rows and columns, the **effective N** (the usable sample
-  size, which can be smaller than the row count when the data is correlated or imbalanced), class balance, and
-  any notes. *The verdict comes from BioMate reading your data, not from a guess.*
+- **Quality** — the detail behind the pill: for a table, how many rows and columns, the **effective N** (the
+  usable sample size, which can be smaller than the row count when the data is correlated or imbalanced), class
+  balance, and any notes; for sequencing reads it shows reads, read length, and average base quality (Phred)
+  instead of rows and columns. *The verdict comes from BioMate reading your data, not from a guess.*
 - **Lineage** — for a result file, the run, workflow, and step that produced it. An uploaded file honestly
   says "no upstream workflow produced this" (you made it, not a run).
 - **Consumers** — the analyses that have read this dataset. If none have yet, it says so plainly rather than
@@ -127,10 +131,11 @@ Below the header are tabs. The ones you'll use most:
   it was added.
 
 ![The Quality tab — shape, effective N, class balance, and notes with a verdict](../assets/i05-3-quality-tab.png)
-*The Quality tab: what the profiler saw in your data (rows, columns, effective N, balance, notes) and the verdict.*
+*The Quality tab: here a FASTQ the profiler flagged **Watch** — reads, read length, and mean base quality
+(Phred), with a note like "below 20 — consider trimming" and a plain line on how it shaped the suggested plan.*
 
 **How to read the quality verdict:**
-- **Good (green)** — readable and nothing obviously wrong; go ahead.
+- **Good (green)** — readable and nothing obviously wrong; you can proceed.
 - **Watch (amber)** — usable, but something is worth a look (e.g. for FASTQ, the average read quality is
   low). Read the notes before you rely on it.
 - **Blocked (red)** — BioMate could not read the file properly. Fix the file before you route it to an
@@ -150,8 +155,9 @@ Once a dataset is in and its quality looks right, you use it the same way as eve
 chat, describe the analysis you want and reference the dataset (attach it, or point at it with the Database
 icon). BioMate matches the right workflow, shows you the settings with your file filled in, and runs it only
 after you confirm — exactly the flow in **Tutorial 3 (Running a workflow and reading the report)**. The result
-files come back as **new dataset objects**, each with its own Lineage pointing at the input you started from —
-so the whole chain, from your upload to the final result, is traceable.
+files come back as **new dataset objects**, each with its own Lineage pointing back to the run that produced
+it (and that run records the input you started from) — so the whole chain, from your upload to the final
+result, is traceable.
 
 > **Who does what.** You bring the file in and check its quality; BioMate profiles it, runs the analysis you
 > confirm, and records the provenance. You stay in control of what runs; BioMate keeps the record.

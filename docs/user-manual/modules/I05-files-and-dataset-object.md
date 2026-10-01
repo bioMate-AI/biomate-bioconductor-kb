@@ -101,8 +101,8 @@ The verdict comes from the backend profiler, not the UI — a FASTQ with mean Ph
 **Watch**, an unreadable file becomes **Blocked** (`data_perception.py:288-293`, `:160-190`). The panel
 never fabricates a field it was not handed (`data-perception.tsx:14-21`).
 
-![The Quality tab: the perception panel showing shape, class balance and notes with a Good verdict](../assets/i05-3-quality-tab.png)
-<!-- CAPTURE route=/files?file=<example-csv-id> ; state=a profiled CSV with a label column so class-balance renders ; focus=[data-testid="data-perception"] ; note=show the quality badge, the Rows/Columns/Effective-N stat strip, and the class-balance bars -->
+![The Quality tab: the perception panel for a FASTQ flagged Watch — reads, read length, mean base quality (Phred), and a trimming note](../assets/i05-3-quality-tab.png)
+<!-- CAPTURE route=/files?file=<example-id> ; state=a profiled dataset's perception panel ; focus=[data-testid="data-perception"] ; note=current asset shows a FASTQ Watch (reads / read length / mean Phred / "below 20 — consider trimming"); a table example instead shows Rows/Columns/Effective-N + class-balance bars -->
 
 > **QC gate — the quality pill is an ingest gate, not a workflow QC gate.** Good/Watch/Blocked
 > describes what the profiler saw *at ingest* (readability, balance, obvious leakage). It is separate
