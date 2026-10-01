@@ -24,6 +24,9 @@ sig installing_base
 apt-get -o DPkg::Lock::Timeout=300 update -qq || true
 command -v aws >/dev/null 2>&1 || { apt-get install -y -qq unzip curl && curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/a.zip && (cd /tmp && unzip -q -o a.zip && ./aws/install --update); }
 command -v git >/dev/null 2>&1 || apt-get -o DPkg::Lock::Timeout=300 install -y -qq git || true
+# python3-venv IS required (pepglad venv: `python3 -m venv` fails without it -> rc_1). The DL AMI's base
+# python3 is 3.10; this pulls python3.10-venv. Unlike build-essential it does NOT conflict with CUDA holds.
+apt-get -o DPkg::Lock::Timeout=300 install -y -qq python3-venv
 
 # ---- miniconda (shared) ----
 sig miniconda
