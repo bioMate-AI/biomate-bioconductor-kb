@@ -96,8 +96,11 @@ def main():
 
     def ask(prov_model, task, user):
         contract = CONTRACT.get(task, DEFAULT_CONTRACT)
-        prompt = (f"You are an expert bioinformatician. {contract}\n\nTASK INPUT:\n{user}\n\n"
-                  f"Reason step by step (numbered), then on a FINAL new line write exactly:\nFINAL_ANSWER: <the answer>")
+        # strip any embedded "reply only..." terseness constraint — we WANT the reasoning trace here
+        u = re.sub(r"(?im)^\s*reply only[^\n]*\n?", "", user).strip()
+        prompt = (f"You are an expert bioinformatician. {contract}\n\nTASK INPUT:\n{u}\n\n"
+                  f"You MUST first show numbered reasoning (at least 3 steps explaining your choice), THEN on a "
+                  f"final new line write exactly:\nFINAL_ANSWER: <the answer>\nDo not output the answer alone.")
         return parse(call_teacher(prov_model[0], prov_model[1], prompt))
 
     def grounded(ans, user):
