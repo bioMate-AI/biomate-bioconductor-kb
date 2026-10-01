@@ -28,7 +28,8 @@ TARGETS=(
   "1kc4 A B 19"   # toxin-scaffold receptor
   "1u8p B C 7"    # antibody Fab (paratope target)
   "5o45 A B 14"   # PD-L1 IgV + macrocyclic peptide-71 (IO target, ACT Round-1; 0.99A; chain B is non-canonical)
-  "4um9 A,B E 13" # alphaV/beta6 integrin RGD site + LAP peptide (ACT next target; TWO-subunit pocket: Arg->aV chain A, Asp->b6 MIDAS chain B)
+  "9xmm A,B E 9"  # alphaV/beta6 + 9-mer CYCLIC RGD peptide (ACT next target; clean template: cryoEM 2.88A, MIDAS Ca/Mn, ~0 gaps; TWO-subunit pocket Arg->aV A, Asp->b6 MIDAS B). Replaces gapped 4um9 (22 unresolved res broke design).
+  # "4um9 A,B E 13" # (retired: alphaVbeta6 + LAP peptide, 2.5A X-ray but 22 unresolved residues/166 atoms broke the design step; kept for reference)
 )
 # v3 oversampling: TARGET_ONLY=<pdbid> restricts to one target (scoped POC); NUM_DESIGNS bumps the pool.
 if [ -n "${TARGET_ONLY:-}" ]; then
