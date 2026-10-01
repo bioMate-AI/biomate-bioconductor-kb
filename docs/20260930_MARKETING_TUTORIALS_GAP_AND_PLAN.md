@@ -136,8 +136,29 @@ E2. Update the coverage ledger + screenshot audit as items close.
 3. **The ~29 missing figures** per `docs/20260922_USER_MANUAL_SCREENSHOT_AUDIT.md` (domain/data chapters).
 4. Capture in **quiet windows** — concurrent e2e suites still burst-create *active* projects mid-run.
 
-**Next:** finish Track D capture → Track B (drug-dev manual) per §5.
+**Track B — drug-dev layman tutorials: FIRST THREE SHIPPED (EN + CN, panel-validated).**
+- `docs/user-manual/tutorials/` (laymen) + `.../zh/` (idiomatic Chinese), with a developer-facing
+  `docs/user-manual/modules/` companion set referenced from each.
+  - **T1 — Design & Generate** (`T1-design-and-generate.md` / `zh/…`) — EN+CN, ship-ready.
+  - **T2 — Models & the closed loop** (`T2-models-and-the-closed-loop.md` / `zh/…`) — EN+CN, ship-ready.
+  - **T3 — Running a workflow & reading the report** (`T3-…md` / `zh/…`) — EN ship-ready; CN under native-CN review.
+- **Validation:** each tutorial reviewed by a **5-persona multi-LLM user panel** (non-scientist/BD, wet-lab
+  biologist, domain-accuracy expert, clinician, student/non-native) + an acceptance re-round; CN versions get a
+  native-Chinese fidelity+idiom review. Findings + the reusable 10-point tutorial checklist live in
+  `docs/20261001_TUTORIAL_USER_PANEL_REVIEW.md`.
+- **Grounded in real runs, not mockups:** T3 uses a REAL completed `in_vivo_cart_codesign` run (4 phases, 11
+  outputs) captured at high-DPI → this also satisfies **Track D item #2 (real after-run report)**: the after-run
+  Summary/Outputs/Reproducibility-record tabs (`t3-1..t3-4`) replace the old `/debug/viewer` leak figures.
+- **Real product bugs found & fixed while authoring** (tutorials-as-QA): archived-projects sidebar clutter;
+  billing null-crash; `/design` RDKit-missing on dev (image-level dep never reached the `:rollback` container →
+  bootstrapped in `sync_to_dev.sh`); over-exposed empty-state reason; added a boot-time generator health
+  self-check + `GET /api/generate/health`. **Known open gap:** on dev the Summary findings are *withheld*
+  (outputs not readable — output-access/S3) — documented honestly in T3 rather than faked; still to fix.
+
+**Next:** finish CN-T3 review → Track C (hospital-instrument + other-module tutorials, EN+CN) and the remaining
+Track D domain/data figures.
 
 ## Change log
 - 2026-09-30 — created from a 3-agent inventory sweep (website/positioning, manuals+tutorials, new-UI gap) + the settled deck brief, committee review, and IO landscape docs.
 - 2026-09-30 — Track A (website scope tuning) implemented across index/shell/about/services/features/llms/terms; render-verified; committed (not yet deployed).
+- 2026-10-01 — Track B: first three layman tutorials (T1/T2/T3) written + 5-persona-panel validated; EN complete, CN complete for T1/T2 and in native-CN review for T3. Real CAR-T run captured for T3 (also closes Track D real-after-run item). Multiple real product bugs fixed while authoring (sidebar/billing/RDKit/empty-state/health endpoint).
