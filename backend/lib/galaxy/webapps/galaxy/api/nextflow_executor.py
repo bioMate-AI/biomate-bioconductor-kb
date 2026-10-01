@@ -5520,8 +5520,13 @@ def _execute_nextflow_impl(
     is_s3 = str(effective_outdir).startswith("s3://")
 
     if is_s3 and not _onprem_local:
-        # Validate the bucket is reachable before launching anything.
-        _validate_s3_url(effective_outdir)
+        # In AWS Batch mode, skip the pre-flight HeadBucket check.
+        # Batch job containers use their own IAM job role for S3 access —
+        # the Galaxy backend role (BioMateEc2DeployRole) may lack HeadBucket
+        # permission even though Batch containers can write to the bucket.
+        # Validating with the wrong credential chain gives false 403s.
+        if not _use_aws_env:
+            _validate_s3_url(effective_outdir)
 
         # Auto-upgrade to AWS Batch unless an explicit executor was already given.
         if not compute.get("executor"):
