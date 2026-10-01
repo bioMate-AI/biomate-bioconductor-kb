@@ -124,7 +124,14 @@ process BIOC_METABOANALYSTR_TIMESERIES_TWO_FACTOR_ASCA {
         mSet <- ReadMetaData(mSet, meta_file)
         mSet <- SanityCheckMeta(mSet, 1)
         mSet <- SanityCheckData(mSet)
-        mSet <- ImputeMissingVar(mSet, method = "min")
+        # ImputeMissingVar on a clean matrix rewrites data_proc.qs + re-derives proc.cls,
+        # desyncing class labels (root-caused on the stat/power modules, 2026-09-30/10-01).
+        # SanityCheckData already half-min-replaces residual missing, so it is a no-op on clean
+        # data — only call it when missing values actually remain.
+        .n_missing <- tryCatch(as.integer(mSet\$dataSet\$missingCount), error = function(e) 0L)
+        if (!is.na(.n_missing) && .n_missing > 0L) {
+          mSet <- ImputeMissingVar(mSet, method = "min")
+        }
         mSet <- Normalization(mSet, "NULL", "LogNorm", "AutoNorm", ref = NULL, ratio = FALSE, ratioNum = 20)
 
         # ------------------------------------------------------------------

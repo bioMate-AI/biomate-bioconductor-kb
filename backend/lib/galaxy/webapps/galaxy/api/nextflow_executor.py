@@ -1873,7 +1873,13 @@ def _build_bioc_entry_wrapper(nf_path: Path, params: dict, run_dir: Path,
                 # workflow (n_path>1) still bails so its real missing input surfaces.
                 if n_path <= 1 and staged:
                     continue
-                if n_path <= 1 and len(names) == 1:
+                if n_path <= 1:
+                    # Single collect-all `path(input_files, stageAs:'?/*')` slot: declared
+                    # names are logical (all funnel into ONE list), so even a multi-name
+                    # header (`// Input: data.csv, metadata.csv`) with NOTHING supplied just
+                    # needs one non-null placeholder — the workflow's own self-contained
+                    # fixture then runs. (Was gated on len(names)==1, which 422'd the
+                    # multi-name self-generating modules, e.g. metaboanalystr timeseries/meta.)
                     _ph = run_dir / "bioc_no_input_placeholder.dat"
                     _ph.write_text("")
                     staged.append(_ph.resolve())

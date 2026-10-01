@@ -128,7 +128,15 @@ process BIOC_METABOANALYSTR_POWER_SAMPLE_SIZE_ANALYSIS {
         mSet <- InitDataObjects("conc", "power", FALSE)
         mSet <- Read.TextData(mSet, ma_csv, "colu", "disc")
         mSet <- SanityCheckData(mSet)
-        mSet <- ImputeMissingVar(mSet, method = "min")
+        # ImputeMissingVar is a raw/spectra-path fn: on a CLEAN conc table it rewrites
+        # data_proc.qs + re-derives proc.cls, desyncing class labels so PreparePrenormData
+        # fails ("Unable to resolve class labels for normalization"). SanityCheckData already
+        # half-min-replaces residual missing, so it is a no-op on clean data — only call it when
+        # missing values remain (same root-cause/fix as the stat module, 2026-09-30).
+        .n_missing <- tryCatch(as.integer(mSet\$dataSet\$missingCount), error = function(e) 0L)
+        if (!is.na(.n_missing) && .n_missing > 0L) {
+          mSet <- ImputeMissingVar(mSet, method = "min")
+        }
         mSet <- PreparePrenormData(mSet)
         mSet <- Normalization(mSet, "NULL", "LogNorm", "AutoNorm", ref = NULL, ratio = FALSE, ratioNum = 20)
 

@@ -122,6 +122,10 @@ process BIOC_METABOANALYSTR_MUMMICHOG_MS_PEAKS_TO_PATHWAYS {
         mSet <- SetPeakFormat(mSet, "mpt")   # m.z + p.value + t.score
         mSet <- UpdateInstrumentParameters(mSet, ppm, ms_mode, "yes", 0.02, NA)
         mSet <- Read.PeakListData(mSet, peak_file)
+        # SetPeakEnrichMethod initializes paramSet version (+ anal.type); without it PerformPSEA's
+        # guard (if !mumRT and version equals v2) sees version=NULL -> "missing value where
+        # TRUE/FALSE needed" inside .setup.psea.library (root-caused 2026-10-01 on a real Batch run).
+        mSet <- SetPeakEnrichMethod(mSet, "mum", "v2")
         mSet <- SanityCheckMummichogData(mSet)
         mSet <- SetMummichogPval(mSet, 0.05)
         # PerformPSEA(lib, libVersion, minLib=3, permNum=100). Downloads <lib>.qs from metaboanalyst.ca.
