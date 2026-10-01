@@ -502,7 +502,8 @@ def main():
     ap.add_argument("--rows", type=int, default=10000,
                     help="How many candidate polymer entities to pull from RCSB before de-dup.")
     ap.add_argument("--out-dir", default="data/bound_cyclic/v1")
-    ap.add_argument("--sleep", type=float, default=0.15, help="Delay between coord downloads (s).")
+    ap.add_argument("--sleep", type=float, default=0.15, help="(unused in parallel mode) legacy per-download delay.")
+    ap.add_argument("--workers", type=int, default=16, help="Parallel coord-download workers.")
     args = ap.parse_args()
 
     if args.estimate:
@@ -527,17 +528,27 @@ def main():
         return
 
     todo = entries[: args.limit]
-    print(f"[mine] downloading coords + detecting cyclization for {len(todo)} entries...",
-          file=sys.stderr)
+    print(f"[mine] downloading coords + detecting cyclization for {len(todo)} entries "
+          f"({args.workers} parallel workers)...", file=sys.stderr)
     rows = []
-    for i, pdb in enumerate(todo, 1):
-        row = mine_entry(pdb, args.max_pep_len)
-        if row is not None:
-            rows.append(row)
-        if i % 25 == 0:
-            n_ok = sum(1 for r in rows if r.get("status") == "ok")
-            print(f"[mine] {i}/{len(todo)} examined, {n_ok} cyclic-bound kept", file=sys.stderr)
-        time.sleep(args.sleep)
+    # coord download is network-I/O bound -> parallelize (RCSB files endpoint tolerates concurrency).
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    def _one(pdb):
+        try:
+            return mine_entry(pdb, args.max_pep_len)
+        except Exception:
+            return None
+    done = 0
+    with ThreadPoolExecutor(max_workers=args.workers) as ex:
+        futs = [ex.submit(_one, pdb) for pdb in todo]
+        for fut in as_completed(futs):
+            done += 1
+            row = fut.result()
+            if row is not None:
+                rows.append(row)
+            if done % 200 == 0:
+                n_ok = sum(1 for r in rows if r.get("status") == "ok")
+                print(f"[mine] {done}/{len(todo)} examined, {n_ok} cyclic-bound kept", file=sys.stderr)
 
     summary = write_manifest(rows, args.out_dir, n_examined=len(todo))
     print(json.dumps(summary, indent=2))
