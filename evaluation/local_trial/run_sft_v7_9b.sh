@@ -9,11 +9,20 @@ TYPES=(g5.2xlarge g6e.xlarge g6.2xlarge g5.4xlarge)
 RESULT="$S3/models_20260919/med/sft_v7_adapter/adapter_config.json"; aws s3 rm "${RESULT%/*}/" --recursive --quiet 2>/dev/null
 launch(){ for T in "${TYPES[@]}"; do for S in "${SUBS[@]}"; do
   O=$(ONDEMAND=$1 INSTANCE_TYPE=$T SUBNET=$S bash spot_launch.sh 2>&1); IID=$(echo "$O"|grep -oE "i-[0-9a-f]{8,}"|head -1)
-  [ -n "$IID" ] && { echo "LAUNCHED ${1:+od-}$T -> $IID">&2; echo "$IID"; return 0; }
+  [ -n "$IID" ] && { lbl=spot; [ "$1" = 1 ] && lbl=od; echo "LAUNCHED $lbl-$T -> $IID">&2; echo "$IID"; return 0; }
 done; done; return 1; }
-IID=""; for c in $(seq 1 10); do IID=$(launch 0) && break; sleep 120; done; [ -z "$IID" ] && { echo "SPOT UNAVAILABLE (no on-demand, policy)"; exit 3; }
-echo "SFT_V7_9B instance=$IID"
-for i in $(seq 1 160); do aws s3 ls "$RESULT" >/dev/null 2>&1 && { echo "=== sft_v7_adapter READY ==="; exit 0; }
-  ST=$(aws ec2 describe-instances --region us-west-2 --instance-ids "$IID" --query "Reservations[0].Instances[0].State.Name" --output text 2>/dev/null)
-  [ "$ST" != running ] && [ "$ST" != pending ] && { echo "died $ST"; exit 4; }; sleep 45; done
-echo TIMEOUT; exit 4
+# spot-reclaim is NOT fatal: spot_train.sh mirrors ckpts to S3 and is resume-aware, so relaunch and let it resume.
+DEADLINE=$(( $(date +%s) + 3*3600 ))   # overall 3h budget across relaunches
+for attempt in $(seq 1 12); do
+  IID=""; for c in $(seq 1 8); do IID=$(launch 0) && break; sleep 90; done
+  [ -z "$IID" ] && { echo "SPOT UNAVAILABLE (no on-demand, policy)"; [ $(date +%s) -ge $DEADLINE ] && exit 3; sleep 120; continue; }
+  echo "SFT_V7_9B attempt=$attempt instance=$IID"
+  while :; do
+    aws s3 ls "$RESULT" >/dev/null 2>&1 && { echo "=== sft_v7_adapter READY ==="; exit 0; }
+    [ $(date +%s) -ge $DEADLINE ] && { echo "DEADLINE"; exit 4; }
+    ST=$(aws ec2 describe-instances --region us-west-2 --instance-ids "$IID" --query "Reservations[0].Instances[0].State.Name" --output text 2>/dev/null)
+    [ "$ST" != running ] && [ "$ST" != pending ] && { echo "attempt=$attempt reclaimed ($ST) — relaunching to resume from S3 ckpt">&2; break; }
+    sleep 45
+  done
+done
+echo "EXHAUSTED relaunches"; exit 4

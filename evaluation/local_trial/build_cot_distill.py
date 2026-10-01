@@ -22,6 +22,7 @@ CONTRACT = {
  "parameter_extraction": "Reason to ONLY the context-dependent parameter values the input implies; justify each from the request/data; leave the rest to defaults. Ground ONLY in the given input.",
  "tool_recommendation": "Reason to the best-fitting tool(s) for the task, justified from the given descriptions. Ground ONLY in the given input.",
  "workflow_generation": "Reason the composition of a workflow from existing steps, with correct input/output wiring. Ground ONLY in the given input.",
+ "workflow_routing": "Reason about which CANDIDATE best matches the request (compare the contenders, rule out near-misses). Your FINAL_ANSWER MUST be one candidate's exact name, verbatim. Ground ONLY in the given candidates.",
 }
 DEFAULT_CONTRACT = "Reason step by step to the correct answer, grounded ONLY in the given input."
 
@@ -74,12 +75,17 @@ def main():
     ap.add_argument("--in", dest="inp", required=True); ap.add_argument("--out", required=True)
     ap.add_argument("--max-per-task", type=int, default=250); ap.add_argument("--workers", type=int, default=10)
     ap.add_argument("--consensus-f1", type=float, default=0.4); ap.add_argument("--gold-f1", type=float, default=0.5)
+    ap.add_argument("--solo", action="store_true",
+                    help="DB-grounded (deterministic gold): one teacher (Solar) reaching gold — no dual consensus")
+    ap.add_argument("--tasks", default="",
+                    help="comma list to override the HARD filter (e.g. grounded reasoning tasks)")
     a = ap.parse_args()
+    hard = set(x.strip() for x in a.tasks.split(",") if x.strip()) or HARD
     rows = [json.loads(l) for l in open(a.inp) if l.strip()]
     per = collections.Counter(); seeds = []
     for r in rows:
         t = r.get("task")
-        if t not in HARD or per[t] >= a.max_per_task:
+        if t not in hard or per[t] >= a.max_per_task:
             continue
         m = {x["role"]: x["content"] for x in r["messages"]}
         if not (m.get("user") and m.get("assistant")):
@@ -99,6 +105,13 @@ def main():
 
     def one(seed):
         idx, task, user, gold = seed
+        if a.solo:   # strong deterministic DB gold: single teacher reaching gold (no consensus needed)
+            (tb, ab) = ask(SOLAR, task, user)
+            if ab and vl.salient_f1(ab, gold) >= a.gold_f1:
+                return {"messages": [{"role": "user", "content": user},
+                                     {"role": "assistant", "content": f"<think>{tb}</think>\n{gold}"}],
+                        "task": task, "source": "cot_solo_gold"}
+            return None
         (ta, aa) = ask(OPUS, task, user)
         (tb, ab) = ask(SOLAR, task, user)
         # PRIMARY: dual-teacher CONSENSUS via VerificationLayer (fuzzy salient-F1) — bypasses weak gold
