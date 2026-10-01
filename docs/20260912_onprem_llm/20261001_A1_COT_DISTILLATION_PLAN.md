@@ -67,5 +67,13 @@ VERIFIABLE final answer in a fixed format. The teacher gets {task-instruction + 
 Dual-teacher CoT over ~15–20k seeds (batched) ≈ a few hours + modest $ (Opus 5.5/GPT-6 Solar pricier than
 gemini — justified for a one-time distillation pass); SFT on spot ≈ 2–4h; eval ≈ 20 min. Clean v5-vs-v7 in ~1 day.
 
-## Prereq
-Provision `ANTHROPIC_API_KEY` (missing locally) so Opus 5.5 can serve as teacher; confirm GPT-6 Solar model id.
+## Prereq — RESOLVED (found via self-discovery 2026-10-01)
+- **GPT-6 Solar model id = `gpt-6.1-sol`** (also `gpt-6-sol`) — confirmed via OpenAI `/v1/models`; OPENAI_API_KEY in env.
+- **Claude Opus 5.5 = `claude-opus-5-5`** — Anthropic key is **committed in the repo** (`SETUP_CHECKLIST.md`,
+  real 108-char `sk-ant-api03-…`); scripts already source keys from such files. `build_cot_distill.py` will read
+  it in-script (never print it).
+- **Both teachers verified live + expose step-by-step reasoning** (Opus: "## Step-by-step reasoning…"; Solar:
+  "### Interpretation summary 1. …"). Gemini-3.8-flash = cheap verifier only.
+- ⚠️ **SECURITY**: a live Anthropic key is committed to git (`SETUP_CHECKLIST.md`, `MISSING_FILES_AND_SETUP.md`).
+  It should be **rotated and removed from git history** (separate fix). Using it for the distillation pass is fine
+  short-term, but flag for remediation.
