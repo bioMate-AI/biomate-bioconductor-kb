@@ -11,9 +11,11 @@ CKPT_S3="$S3/spot_ckpt/$SIZE/$STAGE$TAG"; LOG_S3="$S3/spot_logs/$SIZE/$STAGE$TAG
 OUT="$SCRATCH/out/$SIZE/$STAGE"; mkdir -p "$OUT" "$SCRATCH/data" "$SCRATCH/models"
 case "$SIZE" in
   small) HF=Qwen/Qwen3-4B    ; SFT=500; MID=400; SEQ=2048; R=16 ;;
+  med)   HF=Qwen/Qwen3.5-9B  ; SFT=500; MID=400; SEQ=2048; R=16 ;;   # 9B (Insilico's L-Qwen winner base)
   large) HF=Qwen/Qwen3.8-27B ; SFT=700; MID=800; SEQ=2048; R=32 ;;
-  *) echo "MODEL_SIZE must be small|large"; exit 1 ;;
+  *) echo "MODEL_SIZE must be small|med|large"; exit 1 ;;
 esac
+HF=${HF_OVERRIDE:-$HF}   # allow pinning an exact base (e.g. a specific 9B revision)
 SEQ=${SEQ_OVERRIDE:-$SEQ}; R=${R_OVERRIDE:-$R}; MID=${MID_OVERRIDE:-$MID}; SFT=${SFT_OVERRIDE:-$SFT}   # overrides to fit GPU / set corpus coverage
 BS=${BS_OVERRIDE:-1}; GA=${GA_OVERRIDE:-16}   # per-device batch + grad-accum (raise BS to fill a big GPU)
 # reduce CUDA fragmentation (the packed-logits allocation OOM'd a 24GB L4 with 12GB reserved-but-free)
