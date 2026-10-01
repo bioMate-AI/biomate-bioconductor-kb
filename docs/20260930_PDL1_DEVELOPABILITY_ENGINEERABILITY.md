@@ -61,3 +61,16 @@ Conformer-ensemble min-3D-PSA (RDKit ETKDG macrocycle confs + rdFreeSASA polar-a
 ## Update — MM-GBSA ΔG launched (2026-09-30)
 On-demand GPU (user directive) `i-0820e0ef576141ab5`, run `mmgbsa-pool-5o45-…213239Z` — self-contained
 OpenMM GBn2 single-trajectory MM-GBSA over the 199-pool final_ranked CIFs; streams per-design ΔG to S3.
+
+## Update — calibration on an approved oral macrocycle (2026-10-01)
+Anchored the developability screen on **cyclosporine** (real ORAL systemic macrocycle, PubChem live):
+- **MW 1202.6 · TPSA 278.8 Å² · HBD 5 · HBA 12 · cLogP 3.3**
+- TPSA 278.8 ≫ the naive 180 "oral window" → a correct oral drug **FAILS the 2D-TPSA gate**.
+- HBD 5 ≤ 6 → it **PASSES the HBD gate** — because 7 backbone N-methylations remove the donors.
+
+**Conclusion (validates the methodology):** 2D-TPSA≤180 is the WRONG gate (it rejects a marketed oral drug);
+the **HBD-floor criterion (≤6) is the RIGHT gate** — exactly the discriminator the engineerability screen
+switched to. Our panel's plan (N-methylate to reach HBD≤6) is **cyclosporine's own recipe** (its 7 N-Me).
+The oral bar should be stated as *HBD-after-N-methylation ≤ ~6 + chameleonic 3D-PSA*, never 2D-TPSA.
+(Voclosporin is cyclosporine's analog with the same profile; its PubChem CID lookup returned a wrong
+molecule so its numbers are not cited here — cyclosporine is the anchor.)
