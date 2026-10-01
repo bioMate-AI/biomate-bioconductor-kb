@@ -31,6 +31,8 @@ BASE_URL="${BASE_URL:-http://localhost:3000}"
 TOKEN="${SMOKE_E2E_TOKEN:-}"
 POLL_TIMEOUT="${POLL_TIMEOUT:-900}"
 REQUIRE_OUTPUTS="${REQUIRE_OUTPUTS:-1}"
+FIXTURE_EMAIL="${FIXTURE_EMAIL:-lifeifei163361@163.com}"
+FIXTURE_PASSWORD="${FIXTURE_PASSWORD:-WpmFixture!2026}"
 
 # Default sample set — SELF-CONTAINED workflows (no input-data staging needed),
 # each verified to run green end-to-end on test (Batch, real outputs). Spans
@@ -50,13 +52,16 @@ CT='-H'; CTV='Content-Type: application/json'
 XF='-H'; XFV='X-Forwarded-Proto: https'
 auth_args=()
 [ -n "$TOKEN" ] && auth_args=(-H "x-e2e-test-token: $TOKEN")
+JWT=""   # populated after login below
 
 curl_json() { # method path datafile-or-empty
   local method="$1" path="$2" data="${3:-}"
+  local jwt_args=()
+  [ -n "$JWT" ] && jwt_args=(-H "Authorization: Bearer $JWT")
   if [ -n "$data" ]; then
-    curl -sS -m 160 "$CT" "$CTV" "$XF" "$XFV" "${auth_args[@]}" -X "$method" "$BASE_URL$path" --data "@$data" 2>/dev/null
+    curl -sS -m 160 "$CT" "$CTV" "$XF" "$XFV" "${auth_args[@]}" "${jwt_args[@]}" -X "$method" "$BASE_URL$path" --data "@$data" 2>/dev/null
   else
-    curl -sS -m 30 "$CT" "$CTV" "$XF" "$XFV" "${auth_args[@]}" -X "$method" "$BASE_URL$path" 2>/dev/null
+    curl -sS -m 30 "$CT" "$CTV" "$XF" "$XFV" "${auth_args[@]}" "${jwt_args[@]}" -X "$method" "$BASE_URL$path" 2>/dev/null
   fi
 }
 
@@ -76,7 +81,10 @@ try: d=json.load(open('/tmp/wf_gen.json'))
 except Exception: print(''); sys.exit()
 wf=d.get('workflow_ga') or {}
 if wf.get('name') and wf.get('nextflow_path'):
-    json.dump({'workflowDefinition':wf}, open('/tmp/wf_exec_req.json','w')); print(wf.get('name'))
+    # allowLowConfidence bypasses the required-params gate — smoke tests execution,
+    # not param validation; self-contained workflows should run without user input.
+    req={'workflowDefinition':wf,'executionConfig':{'allowLowConfidence':True}}
+    json.dump(req, open('/tmp/wf_exec_req.json','w')); print(wf.get('name'))
 else:
     print('')
 " 2>/dev/null)
@@ -87,17 +95,21 @@ else:
   echo "  routed -> $wf_name"
 
   # 2) execute -> runId
-  local run_id
-  run_id=$(curl_json POST /api/workflows/execute /tmp/wf_exec_req.json | python3 -c "
+  local run_id _exec_tmp
+  _exec_tmp=$(mktemp)
+  curl_json POST /api/workflows/execute /tmp/wf_exec_req.json > "$_exec_tmp" 2>/dev/null || true
+  run_id=$(python3 -c "
 import json,sys
-try: d=json.load(sys.stdin)
+try: d=json.load(open('$_exec_tmp'))
 except Exception: print(''); sys.exit()
 print(d.get('runId') or '')
-" 2>/dev/null)
+" 2>/dev/null || true)
   if [ -z "$run_id" ]; then
-    echo "  FAIL execute — no runId"
+    echo "  FAIL execute — no runId. response: $(head -c 300 "$_exec_tmp")"
+    rm -f "$_exec_tmp"
     RESULTS="$RESULTS\n  FAIL  $label (execute)"; FAIL=$((FAIL+1)); return
   fi
+  rm -f "$_exec_tmp"
   echo "  launched run: $run_id"
 
   # 3) poll to terminal
@@ -146,6 +158,27 @@ print(len(fs))
 
 echo "=== sample-workflow execution smoke @ $BASE_URL (per-wf timeout ${POLL_TIMEOUT}s) ==="
 [ -z "$TOKEN" ] && echo "::warning:: SMOKE_E2E_TOKEN unset — generate may hit the 5/hour guest rate limit"
+
+# Login with the fixture user to get a JWT for /api/workflows/execute (authenticateToken).
+# generate_workflow uses optionalAuth so no JWT is needed there, but execute requires real auth.
+echo "── login: $FIXTURE_EMAIL ──"
+_LOGIN_TMP=$(mktemp)
+curl -sS -m 30 "$CT" "$CTV" "$XF" "$XFV" "${auth_args[@]}" \
+  -X POST "$BASE_URL/api/auth/login" \
+  --data "{\"email\":\"$FIXTURE_EMAIL\",\"password\":\"$FIXTURE_PASSWORD\"}" \
+  > "$_LOGIN_TMP" 2>/dev/null || true
+JWT=$(python3 -c "
+import json,sys
+try: d=json.load(open('$_LOGIN_TMP'))
+except Exception: print(''); sys.exit()
+print(d.get('token',''))
+" 2>/dev/null || true)
+rm -f "$_LOGIN_TMP"
+if [ -z "$JWT" ] || [ "${#JWT}" -lt 20 ]; then
+  echo "  WARNING: fixture login failed — execute calls will return 401"
+else
+  echo "  logged in (JWT ${#JWT} chars)"
+fi
 
 while IFS= read -r line; do
   [ -z "$line" ] && continue
