@@ -164,5 +164,56 @@ already on S3:
 Plus the druggability channel bolted onto target-ID (§3). This turns the "7/8 flagged" picture into
 "8/8 trainable on collected data," which is the honest state.
 
+---
+
+## 5 · Progress 2026-10-02 (implemented + verified this session)
+
+Repo: `biomate-audit-fix`, branch `audit-fix-immune-llm`. Each item committed.
+
+**(a) Druggability channel — DONE + verified on real OT data.** `p1e_druggable_target_id.py` now
+fetches Open Targets `tractability` (SM/AB/PR buckets) and emits a per-gene `(tier, score, modalities)`
+annotation PAIRED with — not fused into — the confidence score (tractability ≈ clinical-precedence gold ⇒
+fusing would be circular). Verified live: 3,975-gene immune universe → tiers {clinical 810, chem 1019,
+bio 915, dark 1231}; TNF/IL6R/TYK2/JAK1/2/ITGA4/TLR7 = `clinical` (approved drugs), CARD14 (assoc 0.836) =
+`dark`/undruggable — the exact "real-but-not-actionable" case the channel is for. Also hardened the OT
+fetch (retry + guard `disease=None`). Output: `druggable_shortlist` = top nominations with
+`confidence_pctl` + `tractability_tier`.
+
+**(b) Durability / Cox survival head — DONE + verified on real TIGER data (dormant→live).** The whole
+chain (adapter→appender→Cox head) already existed; the ONLY broken link was the acquirer dropping the
+survival columns. `acquire_icb_cohorts_tiger_direct.py::detect_survival()` now matches TIGER's real column
+names (`overall survival (days)` + `vital status`), harmonizes event codes, validates the duration column,
+prefers OS>PFS, and fails-safe to None (no fabrication) when empty. Emits `os_time`/`os_event`/`surv_type`;
+`adapt_bulk_icb_cohorts` + `append_bulk_icb_struct` already carry them to `h_survival`/`cox_ph_loss`.
+Verified live on TIGER: GSE78220 27pt/12ev · GSE91061 (Riaz) 101/63 · Braun RCC 311/231 · Gide
+(PRJEB23709) 91/36 · GSE135222 columns empty → correctly skipped. ≈530 patients / ≈340 events now flow
+real OS labels to the Cox head.
+
+**(c) Recognition — adapter DONE + verified; model encoder is the specified next step.**
+`modality_adapters.adapt_tcr_recognition()` parses the collected VDJdb (`vdjdb.slim.txt`, 197,730 rows →
+100k MHC-I/TRB positive (CDR3,epitope) pairs + 100k mismatched-pairing decoys over 1,630 epitopes; CDR3 and
+epitope both encoded via the shared `_peptide_features` AA-comp vector). Verified on real data (features
+finite, shapes [200000, 61]).
+*Remaining (NOT shipped — needs the training env to validate):* add `s.tcr_enc` + widen `h_recognition` to
+read `[tcr_emb ‖ epitope_emb]`, thread a dedicated `tcr_feat` + `rec_pep` pair (independent of the
+presentation `pep` tensor — they carry different labels on different rows), gate the wire behind a
+`TCR_RECOGNITION` env default-OFF, and run a Spark forward smoke-test before enabling in the full run. Not
+done locally because there is no torch here to forward-test a multi-call-site change (shipping it blind
+into the GPU run is the forbidden speculative-deploy pattern).
+
+**(d) Inflammation — architectural, specified.** `h_inflam` today is a GENE-vector head
+("presented-under-inflammation / off-tumour"), NOT disease-activity. Wiring the collected
+`autoimmune_sc_corpus/labels/activity_v2` needs a NEW sample-level ordinal/regression activity head (don't
+overload the existing gene head). Label is collected; the head is new code.
+
+**(e) Biomarker — re-anchor, specified.** Swap the circular self-supervised gene-set target for an
+outcome-anchored label (ICB response/survival, already collected). Head exists; the target definition
+changes.
+
+**Net:** 2 heads/channels went live on real collected data (druggability, durability) + 1 validated data
+adapter (recognition); 3 remaining items are genuinely new/changed heads, each with its label already
+collected and its design specified above. To reach the scaled run, the updated `biomate-audit-fix` code
+must be included in the next S3 run-bundle upload (not triggered here — the GPU run awaits the user).
+
 Related: [[feedback_verify_data_existence]] · [[project_immune_system_of_record]] ·
 [[project_immune_fm_scope_vs_collected]] · 20261001_IMMUNE_LLM_ADVANTAGE_AND_BENCHMARK_PLAN.md.
