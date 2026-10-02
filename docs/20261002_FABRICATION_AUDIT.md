@@ -2,8 +2,11 @@
 
 **Date:** 2026-10-02
 **Author:** Yaoyun Zhang
-**Trigger:** The MERFISH validation found an RNG-fabrication stub (fake Moran's I via `random.*`).
-This audit checked whether that was isolated. **It was not.**
+**Trigger:** The MERFISH validation found a *deceptive* RNG-fabrication stub (fake Moran's I via
+`random.*`, unlabeled, fake `versions.yml`). This audit checked whether that was isolated.
+**Outcome (after correction): largely yes** — only **2** genuine issues remain beyond the
+already-rewired MERFISH; a first crude pass over-flagged 9 honest labeled-demo workflows (see the
+MAJOR CORRECTION below).
 
 ## Method (static, free — no Batch)
 
@@ -12,43 +15,44 @@ fabrication** = (RNG call `np.random.*` / `random.*` / `runif`/`rnorm`) **AND** 
 (`to_csv`/`savefig`/`json.dump`/`saveRDS`/…) **AND** does **not** read any input — computed on
 **code lines only** (comments stripped, so anti-fabrication guard comments don't false-positive).
 
-## CORRECTION (2026-10-02): metal_meta_analysis was a FALSE POSITIVE — re-enabled
+## MAJOR CORRECTION (2026-10-02): my first pass OVER-DISABLED — 9 of 11 were FALSE POSITIVES
 
-My first pass flagged **11** and disabled all. A follow-up code read (audit-gate) found
-**`metal_meta_analysis` (14446) is NOT fabrication** — it runs the **real `metal` binary** on real
-cohort sumstats (`shutil.copy` of the staged files → METAL script → `metal` → parse
-`METAANALYSIS1.TBL`); the RNG is an **opt-in `--use_baked_toy` smoke fixture** only. The miss was a
-**false negative in the guard's READS regex** (it didn't recognize `shutil.copy`/`subprocess` as
-"does real work"). **Fix:** the guard now treats `shutil.copy`/`SeqIO`/`imread` as input reads and
-any real external-tool call (`subprocess`/`metal`/`bwa`/…) as genuine work, so metal-class
-workflows aren't flagged. **metal_meta_analysis re-enabled (`executable=1`).**
+My first crude regex pass flagged **11** and disabled all. A rigorous **audit-gate re-read of each
+workflow's actual control flow** (not regex) found that **9 of the 11 were false positives** — they
+do **real analysis on real input** and only synthesize when input is absent, writing an **explicit
+"DEMO MODE / synthetic / provide X for actual analysis" notice**. That is an *honest labeled demo
+fallback*, categorically different from deceptive fabrication.
 
-Also reclassified **`Analyze Comparative Genomics And Haplotypes` (10657)** as a **HYBRID**: it runs
-real `bwa` alignment **but** writes fabricated haplotype numbers (`random.randint` divergence
-times) + placeholder "this would contain…" text. **Kept `executable=0`** (its output is partly
-fake); rewire = strip the fabricated lines, add real variant/haplotype calling.
+The crux distinction this audit now draws:
+- **Deceptive fabrication** (the real target): RNG → output, **no real path even with input**,
+  **no disclosure**, often a `versions.yml` claiming tools it never ran. → MERFISH's OLD stub. Fix =
+  rewire (done: real squidpy).
+- **Honest demo fallback** (NOT a violation): real analysis on real input; synthetic only when input
+  is None; clearly labeled synthetic in the output. → the biomni "Analyze/Quantify" workflows.
 
-## Result — 10 confirmed fabricating/ hybrid workflows → `executable=0` (metal excluded)
+The false negatives in my first regex: it only inspected the demo branch and missed the real path
+(`flowio`/`io.imread`/`shutil.copy`/`subprocess` readers), and ignored the "DEMO MODE" labels.
 
-Each invents its results with RNG (9 purely; 10657 partially), under an "Analyze/Quantify/Decode"
-name that implies real data analysis. Users running these would get **plausible-looking fake
-science.**
+### Re-enabled (9 false positives — real analysis + labeled demo fallback)
+`metal_meta_analysis` (14446, runs real `metal`), `Analyze Flow Cytometry Immunophenotyping` (10612,
+real `flowio` gating), `Analyze Cfse Cell Proliferation` (10691), `Analyze Cell Migration Metrics`
+(10569, real `io.imread` tracking), `Analyze Myofiber Morphology` (10571), `Analyze Cell Senescence
+And Apoptosis` (10605), `Analyze Mitochondrial Morphology` (10613), `Quantify And Cluster Cell
+Motility` (10615), `Quantify Cell Cycle Phases` (10616).
 
-| id | workflow | domain | what it fabricates |
+### Kept disabled (2 — genuine issues)
+| id | workflow | why still disabled | fix |
 |---|---|---|---|
-| 10691 | Analyze Cfse Cell Proliferation | immunology | proliferation generations (`np.random.normal`) |
-| 10612 | Analyze Flow Cytometry Immunophenotyping | cell_biology | immunophenotype populations |
-| 10616 | Quantify Cell Cycle Phases From Microscopy | cell_biology | cell counts + G1/S/G2 percentages |
-| 10615 | Quantify And Cluster Cell Motility | cell_biology | motility tracks |
-| 10613 | Analyze Mitochondrial Morphology And Potential | cell_biology | morphology/potential metrics |
-| 10569 | Analyze Cell Migration Metrics | bioengineering | cell trajectories (`np.random.randn` walk) |
-| 10571 | Analyze Myofiber Morphology | bioengineering | myofiber measurements |
-| 10572 | Decode Behavior From Neural Trajectories | bioengineering | neural-decode accuracy |
-| 10605 | Analyze Cell Senescence And Apoptosis | cancer_biology | senescence/apoptosis fractions |
-| 10657 | Analyze Comparative Genomics And Haplotypes | genomics | divergence times / variant counts |
+| 10657 | Analyze Comparative Genomics And Haplotypes | HYBRID — runs real `bwa` **but** writes **unconditional** fabricated divergence times (`random.randint`, NOT demo-gated) + "this would contain…" placeholder | strip the fake lines; add real variant/haplotype calling |
+| 10572 | Decode Behavior From Neural Trajectories | no real file ingestion (inline-JSON only); synthetic disclosed **only in comments**, not in output | add real neural-data file read + a non-comment DEMO label |
 
-(DB change — gitignored `galaxy_ai_tools.db`, rides the sync. 10 disabled; metal re-enabled →
-`executable=1` = **4144**.)
+(DB — gitignored `galaxy_ai_tools.db`, rides the sync. Net: 2 disabled, 9 re-enabled;
+`executable=1` = **4152**.)
+
+**Lesson (the honest one):** my platform-wide "fabrication is rampant (11 stubs)" claim was wrong —
+it was **2**, plus the already-rewired MERFISH. A crude RNG+write−read regex conflated honest
+labeled-demo fallbacks with deceptive fabrication. The audit-gate (re-reading each one, prompted by
+"really?") caught the over-disable. Verify control flow, not regex, before disabling a workflow.
 
 ## Deliberately NOT flagged (verified legitimate)
 
@@ -64,18 +68,22 @@ science.**
   document a **prior** fabrication that was **already fixed**; the code reads real matrices and
   computes peak-to-gene links. Non-fabricating.
 
-## This is the immediate (integrity) fix — not the full fix
+## Remaining work (only 2 workflows)
 
-Marking `executable=0` **stops users from running fabrication**, which is the correct immediate
-action (per the repo's no-fabrication rule: do nothing rather than ship fake output). The **full
-fix is to rewire each to a real pipeline** (as done for MERFISH: real squidpy; for sc3: real SC3),
-which is a per-workflow effort (real tool + input handling + container + Batch validation).
+The 9 re-enabled workflows need **no rewire** — they already do real analysis on real input (their
+quality gap is that the DEFAULT, no-input run produces a *labeled* synthetic demo; a UX improvement
+would be to require real input or surface the "DEMO" label prominently, but that is not fabrication).
 
-### Suggested rewire priority (follow-up campaign)
-1. `metal_meta_analysis` — real METAL/METASOFT on staged GWAS summary stats (highest harm as-is).
-2. The immunology/cell-biology flow/CFSE/cell-cycle set — real `flowCore`/`CATALYST`/`scanpy` on
-   staged FCS / image / count inputs.
-3. The bioengineering imaging set — real tracking (TrackMate/`trackpy`) + morphology on staged images.
+The two genuinely-disabled workflows to fix:
+1. **`10657` Analyze Comparative Genomics And Haplotypes** — strip the unconditional
+   `random.randint` divergence/variant lines + the "this would contain…" placeholder; keep the real
+   `bwa` alignment and add real variant/haplotype calling (`bcftools`/`samtools`), then re-enable.
+2. **`10572` Decode Behavior From Neural Trajectories** — add a real neural-data file read
+   (`np.load`/`pd.read_csv`) so it ingests recordings, and move the synthetic notice from a comment
+   into the emitted output; then re-enable.
+
+(For reference, the prior MERFISH + sc3 rewires are the template: real tool + input handling +
+container + Batch validation — see `docs/20261001_MERFISH_SPATIAL.md`.)
 
 ## Class guard (shipped) — `scripts/audit_fabrication.py`
 
@@ -84,11 +92,13 @@ The scan is now a reusable **hard gate**: `scripts/audit_fabrication.py` enforce
 only, with a reviewed `ALLOWLIST` for legitimate RNG — array/IO packages, simulations, honestly-
 labeled demos). Exit 0 = clean, exit 1 = an executable fabricator exists. Wired into
 `docs/PRE_SYNC_CHECKLIST.md` (step 4b): run it whenever a workflow `.nf` or an `executable` flag
-changes, and never sync a DB that trips it. Current state: **PASS** (10 fabricators/hybrid disabled,
-metal re-enabled as genuine, 11 legitimate-RNG entries allowlisted). This closes the fabrication
-*class*, not just the instances — a new fabricating stub entering as executable now fails the gate
-and forces triage. (Limitation: a HYBRID that runs a real tool AND fabricates part of its output —
-like 10657 — is NOT caught by the pure-fabrication gate; those need human review.)
+changes, and never sync a DB that trips it. The guard now exempts real reads (`flowio`/`io.imread`/
+`shutil.copy`/…), real external tools, and honestly-LABELED synthetic/demo fallbacks — so it targets
+only *deceptive* fabrication (RNG→output, no real path, no disclosure). Current state: **PASS**
+(2 disabled: 10572, 10657; 9 re-enabled; 11 legitimate-RNG entries allowlisted). This closes the
+deceptive-fabrication *class* — a new unlabeled fabricating stub with no real path fails the gate.
+(Limitations, need human review: a HYBRID that runs a real tool AND fabricates part of its output
+like 10657; and a workflow that merely *claims* a demo label while never doing real work.)
 
 See also `docs/20261001_SPATIAL_OMICS_VALIDATION_PLAN.md` (execution-validation thesis) and
 `docs/20261001_MERFISH_SPATIAL.md` (the first instance + its real rewire).
