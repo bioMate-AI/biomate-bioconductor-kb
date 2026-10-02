@@ -1,11 +1,11 @@
 Peptide_ID,Sequence,Length,Cyclization,Purity,Amount_mg,Counterion,QC,MM_GBSA_dG,iptm,RUSH
-BMPDL1-R1-01,GAYTSKSTGVTF,12,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-50.69,0.536,RUSH
-BMPDL1-R1-02,SSPFPVFKEFSP,12,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-42.81,0.606,RUSH
-BMPDL1-R1-04,GGYTSSATGVTF,12,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-32.81,0.549,RUSH
-BMPDL1-R1-05,ARTPEDLEEAVRTGKP,16,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-31.78,0.546,RUSH
-BMPDL1-R1-06,LGVETSNPAIAELAKM,16,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-30.15,0.509,RUSH
-BMPDL1-R1-10,GGSGEGKKLAEELGLK,16,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,pending,0.626,RUSH
-BMPDL1-R1-11,SAPEVLRPYSSNPK,14,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,pending,0.604,
-BMPDL1-R1-12,AAPEVLRKYTSLP,13,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,pending,0.594,
-BMPDL1-R1-13,SNGPAELEEAVGVKI,15,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,pending,0.592,
-BMPDL1-R1-14,SSNPAAKHIDPM,12,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,pending,0.586,
+BMPDL1-R1-01,GAYTSKSTGVTF,12,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-53.47,0.536,RUSH
+BMPDL1-R1-02,SSPFPVFKEFSP,12,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-42.87,0.606,RUSH
+BMPDL1-R1-04,GGYTSSATGVTF,12,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-31.91,0.549,RUSH
+BMPDL1-R1-05,ARTPEDLEEAVRTGKP,16,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-31.98,0.546,RUSH
+BMPDL1-R1-06,LGVETSNPAIAELAKM,16,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-30.2,0.509,RUSH
+BMPDL1-R1-10,GGSGEGKKLAEELGLK,16,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-28.93,0.626,RUSH
+BMPDL1-R1-11,SAPEVLRPYSSNPK,14,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-37.89,0.604,
+BMPDL1-R1-12,AAPEVLRKYTSLP,13,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-37.05,0.594,
+BMPDL1-R1-13,SNGPAELEEAVGVKI,15,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-39.85,0.592,
+BMPDL1-R1-14,SSNPAAKHIDPM,12,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,-35.93,0.586,
