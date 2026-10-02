@@ -41,8 +41,12 @@ request ─▶ harness router (task-split)
 - **Background CPT targets the DOMAIN-PRO** (not "the one LLM"). The corpus work (DB enrichment +
   PMC volume + GTN) feeds it. Base stays general (maybe light tool-use/orchestration SFT).
 - **Size comparison = the domain-pro**: 9B (Insilico winner) vs 27B (ceiling). Base can be smaller/faster.
-- **Eval both modes:** the domain-pro must be evaluated **open-book (with retrieval)** — the real
-  operating mode — as well as closed-book, to separate "reasons well over evidence" from "recalls."
-  The valid metric stays execution grading for runnable tasks + knowledge MCQA for background.
+- **Eval in the REAL mode only — open-book with retrieval.** The model always runs with both the
+  background prior AND retrieval, so that is the mode to measure. Closed-book tests a mode it never
+  runs in (the same error as the closed-book mid500 F1 that misled us). The decisive comparison is
+  **base vs domain-pro, BOTH open-book**, on the 🔴 tasks: if domain-pro ≈ base open-book, CPT added
+  nothing (retrieval carried it) and isn't worth it; if domain-pro > base open-book, the background
+  earned its place. Metric = execution grading (runnable tasks) + knowledge MCQA (background), always
+  with retrieval in context.
 - **Why this is coherent with everything prior:** facts → retrieval (unchanged); background → weights
   for reasoning (the new layer); retrieval verifies the reasoning (the safeguard). No contradiction.
