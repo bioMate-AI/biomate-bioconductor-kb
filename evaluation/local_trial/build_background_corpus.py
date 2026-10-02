@@ -239,10 +239,87 @@ def wikibooks(books):
     return docs
 
 
+import html, glob, bz2
+TAG_RE = re.compile(r"<[^>]+>", re.S)
+META_RE = re.compile(r"<metadata.*?</metadata>", re.S | re.I)
+
+
+def openstax(root):
+    """OpenStax CC-BY textbooks: parse module CNXML -> concept text (strip XML tags/metadata)."""
+    docs = []
+    for cnxml in glob.glob(os.path.join(root, "*", "modules", "*", "index.cnxml")):
+        book = cnxml.split("/osbooks-")[1].split("/")[0] if "/osbooks-" in cnxml else "openstax"
+        try:
+            raw = open(cnxml, encoding="utf-8", errors="replace").read()
+        except Exception:
+            continue
+        t = META_RE.sub(" ", raw)
+        t = re.sub(r"<(code|preformat)[^>]*>.*?</\1>", " ", t, flags=re.S)
+        t = TAG_RE.sub(" ", t)
+        t = html.unescape(re.sub(r"\s+", " ", t)).strip()
+        if len(t) >= 500 and t.count(" ") >= 70:
+            docs.append({"text": t[:10000], "source": "openstax", "topic": book,
+                         "title": "", "license": "CC-BY-4.0", "chars": min(len(t), 10000)})
+    return docs
+
+
+WB_BOOKS = ("Pharmacology", "Cell Biology", "Biochemistry", "Genetics", "Structural Biochemistry",
+            "Molecular Biology", "Proteomics", "Bioinformatics", "Human Physiology", "Microbiology",
+            "Immunology", "Next Generation Sequencing", "Anatomy", "General Biology", "Genes, Technology",
+            "Medical Physiology", "Nutrition", "Neuroscience", "Cell biology")
+WB_TMPL = re.compile(r"\{\{[^{}]*\}\}")
+WB_FILE = re.compile(r"\[\[(?:File|Image|Category):[^\]]*\]\]", re.I)
+WB_REF = re.compile(r"<ref[^>]*>.*?</ref>|<ref[^>]*/>", re.S | re.I)
+WB_LINK = re.compile(r"\[\[([^\]|]*\|)?([^\]]+)\]\]")
+
+
+def _wikitext(t):
+    for _ in range(3):
+        t = WB_TMPL.sub("", t)          # nested templates: a few passes
+    t = WB_FILE.sub("", t); t = WB_REF.sub("", t)
+    t = re.sub(r"<!--.*?-->", "", t, flags=re.S)
+    t = WB_LINK.sub(lambda m: m.group(2), t)
+    t = re.sub(r"'''?|={2,}|</?[a-z][^>]*>", " ", t)   # bold/italic/headers/html
+    t = re.sub(r"^\s*[\*\#:;].*$", "", t, flags=re.M)   # list/indent lines (often nav)
+    return html.unescape(re.sub(r"\s+", " ", t)).strip()
+
+
+def wikibooks_dump(path):
+    """Parse the Wikimedia enwikibooks dump (bz2 XML); keep bio/pharma book pages; clean wikitext."""
+    docs = []
+    buf = []; intext = False; title = ""; ns = None; text = ""
+    tre = re.compile(r"<title>(.*?)</title>"); nre = re.compile(r"<ns>(\d+)</ns>")
+    with bz2.open(path, "rt", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            if "<title>" in line:
+                m = tre.search(line); title = html.unescape(m.group(1)) if m else ""
+            elif "<ns>" in line:
+                m = nre.search(line); ns = m.group(1) if m else None
+            elif "<text" in line:
+                intext = True; buf = [line.split(">", 1)[1] if ">" in line else ""]
+                if "</text>" in line:
+                    intext = False
+            elif intext:
+                if "</text>" in line:
+                    buf.append(line.split("</text>")[0]); intext = False; text = "".join(buf)
+                    if ns == "0" and any(title == b or title.startswith(b + "/") for b in WB_BOOKS):
+                        body = _wikitext(text)
+                        if len(body) >= 500 and body.count(" ") >= 70:
+                            book = title.split("/")[0]
+                            docs.append({"text": book + ": " + body[:9000], "source": "wikibook",
+                                         "topic": book.lower(), "title": title, "license": "CC-BY-SA-3.0",
+                                         "chars": min(len(body), 9000)})
+                    buf = []
+                else:
+                    buf.append(line)
+    return docs
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--gtn", default=""); ap.add_argument("--db", default=""); ap.add_argument("--out", required=True)
     ap.add_argument("--wikibooks", action="store_true")
+    ap.add_argument("--openstax", default=""); ap.add_argument("--wikibooks-dump", dest="wbdump", default="")
     a = ap.parse_args()
     docs = []
     if a.db:
@@ -251,6 +328,10 @@ def main():
         docs += gtn(a.gtn)
     if a.wikibooks:
         docs += wikibooks(WIKIBOOKS)
+    if a.openstax:
+        docs += openstax(a.openstax)
+    if a.wbdump:
+        docs += wikibooks_dump(a.wbdump)
     import collections
     by_src = collections.Counter(d["source"] for d in docs)
     tok_by_src = collections.Counter()
