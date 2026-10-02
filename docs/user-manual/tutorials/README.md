@@ -97,8 +97,25 @@ Honest-limits section rather than claimed as features:
   (W1–W3), and 10 instrument tutorials translated (idiomatic, native-polished, honesty sections
   preserved, figure markers intact).
 
+## Screenshots
+
+Real dev screenshots are captured and wired into EN + zh for the data-independent surfaces
+(sidebar, cold-start modules, connectors, instruments, project/roles) **and** the dynamic
+workflow states, via one real ADMET run on the fixture (runId `c40459b2`, succeeded): pre-run
+param strip, running + QC gates, completed, outputs, reproducibility record. Capture harnesses:
+`frontend/e2e/tutorial-capture-20261002.e2e.ts`, `real-run-capture.e2e.ts`, `real-run-complete.e2e.ts`,
+`session-capture.e2e.ts`.
+
+**Honestly still placeholders** (need state the fixture can't produce truthfully):
+- **Dataset lineage / versions / consumers** — needs a dataset produced *into a project* (the ADMET
+  run was a fresh chat; its outputs aren't project datasets). "Save to Project" on the Outputs tab
+  could register one — a follow-up capture.
+- **Failed / QC-blocked run states** — the ADMET run succeeded; capturing these honestly needs a run
+  that actually fails or trips a gate.
+- **Populated Findings Summary** — this run's findings were withheld (outputs unreadable — a real
+  product inconsistency: Outputs tab serves the files, findings generation couldn't read them).
+
 ## Still pending
 
-- **Screenshot capture pass** against live dev for every `<!-- CAPTURE -->` marker (EN + zh share figures)
 - **Native-Chinese spot review** of the newly translated set (optional QC pass)
 - **Tutorial videos** (EN + CN) for the new surfaces, per the earlier marketing ask

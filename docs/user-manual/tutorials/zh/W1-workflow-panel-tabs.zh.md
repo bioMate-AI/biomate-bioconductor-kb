@@ -77,7 +77,7 @@
    *运行中*、再到*已完成*（§6）。如果某个质量闸门触发了，会弹出一张卡片请你决定（§7）。
 
 <!-- CAPTURE route=/ ; state=workflow panel idle (pre-run), Workflow settings tab active, Parameters strip expanded showing Required parameters with one empty required field flagged, Confirm-and-run button disabled ; focus=workflow-artifact-panel ; note=展示三个标签页（Workflow settings · Phases · After run）、带红色"Required"标记的 Parameters 条，以及灰掉的运行按钮及其"还差 N 个必填参数"提示 -->
-![工作流面板总览 —— 顶部的三个标签页（Workflow settings · Phases · After run）](../../assets/w1-0-panel-overview.png)
+![运行前的工作流面板（"Predict ADMET Properties (AI)"）—— 左侧是聊天给出的结构化摘要，右侧是三个标签页（Workflow settings · Phases · After run），参数条已填好（Smiles List、模型类型等），Confirm & Run（确认并运行）按钮就绪。](../../assets/r1-prerun-param-strip.png)
 
 ![一次已完成的工作流运行面板](../../assets/t3-1-workflow-panel.png)
 *作为参照，这是同一个面板在一次已结束运行上的样子（取自教程三）：顶栏标明了工作流及其 4 个阶段，三个标签页
@@ -177,7 +177,7 @@ BioMate 托管，保留 90 天）*、*My project folder（我的项目文件夹�
 关键的如实之处（和教程三一样）：BioMate 会把没通过的检查**展示**给你、让你来决定 —— 它绝不会悄悄放它过去。
 
 <!-- CAPTURE route=/ ; state=Phases tab with the QC gate inline card visible — "QC Gate — <step> — Review Required", a failing metric row with measured (red) vs threshold (green), a suggested param change, the countdown line, and the Apply suggestions / Keep current / Cancel run buttons ; focus=qc-gate-inline ; note=真实的质量闸门（例如比对率或 hERG 阈值），不是假造的 -->
-*（待补图：运行途中的质量闸门卡片 —— 红／绿的实测值对阈值、一个建议改动、倒计时，以及三个决策按钮。）*
+![一次运行中的 ADMET 工作流 —— "Admet Infer Shard" 阶段卡片显示 RUNNING（运行中），其下方列出了这次运行的 QC Gates（质量闸门），即将被检查的 CiPA / hERG 阈值。这张截图展示的是一次真实运行上配置好的闸门，而不是某个暂停等你决定的闸门卡片。](../../assets/r2-running.png)
 
 ---
 

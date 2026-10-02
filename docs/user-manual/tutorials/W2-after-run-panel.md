@@ -92,8 +92,7 @@ read, so the Summary says so rather than fabricating a result. The "RUN ORIGINAL
 record. On a normal run this tab shows the populated Findings Summary described above.*
 
 <!-- CAPTURE route=/ ; state=After run → Summary tab on a run with findings present — Findings Summary card showing a summary paragraph with a clickable number, headline metric chips, Key Results expanded, and the Download report button ; focus=findings-card ; note=show a populated findings card (not the withheld state), with at least one finding number rendered as a link -->
-*(Figure to add: a populated Findings Summary — a summary paragraph with a clickable number, metric chips, the
-Key Results table expanded, and the Download report button.)*
+![A completed ADMET run — the chat confirms completion and points you to the Findings panel, and the panel header carries the correct workflow title with a green "Completed" badge. On this run the output files could not be read, so the Summary honestly withholds the findings rather than fabricating them; on a run whose outputs are readable, this is where the populated Findings Summary appears.](../assets/r8-completed-chat-and-panel.png)
 
 ---
 
@@ -121,7 +120,7 @@ grouped by the step that produced them, so you can trace any result to its stage
 **If there are no files:** the tab says *"No output files registered yet"* — or, on a failed run, *"No outputs —
 run did not complete successfully."*
 
-![The Outputs tab — every file by step](../assets/t3-3-after-run-outputs.png)
+![The Outputs tab of a completed ADMET run — the six real output files (pk_summary.json, predict_admet_properties_results.json, qc_metrics.json, toxicity_report.json, versions.yml…) each with view/download, plus Download-all-as-ZIP, Reproducibility bundle, Save to Project, and Explore in Jupyter.](../assets/r5-outputs.png)
 *A real run's outputs (the in-vivo CAR-T co-design from Tutorial 3), grouped by step. Each row carries the step
 that made it, the file type, and a **view** / **dl** action. Clicking **view** opens the file inline (Tutorial
 5).*
@@ -155,7 +154,7 @@ but only carry content when the run actually recorded that data — e.g. input b
 inputs recorded (run predates input-binding capture, or has none)."* An empty section is information, not a
 bug.
 
-![The Reproducibility record](../assets/t3-4-after-run-reproducibility.png)
+![The Reproducibility record of a completed ADMET run — record v1.0 with the workflow name, run id, timestamps, the six outputs with sizes and on-demand checksums, and collapsible Methods / Software / Citations / QC report / Trajectory sections.](../assets/r6-reproducibility.png)
 *The Reproducibility record from Tutorial 3: the run's identity, recorded parameters, and every output with
 type, size, and a SHA-256 shown as "—" until you click **Compute checksums**. The former peer tabs (methods,
 software, citations, QC report, trajectory) are folded here as expandable sections — nothing is discarded.*

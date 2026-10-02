@@ -88,8 +88,7 @@ Summary 是落地标签页。顶部坐着一个 **Run original（原始记录）
 分析结果摘要。*
 
 <!-- CAPTURE route=/ ; state=After run → Summary tab on a run with findings present — Findings Summary card showing a summary paragraph with a clickable number, headline metric chips, Key Results expanded, and the Download report button ; focus=findings-card ; note=展示一张已填充的分析结果卡片（而不是暂不给出的状态），其中至少有一个发现数字渲染成链接 -->
-*（待补图：一张已填充的分析结果摘要 —— 一段带可点击数字的摘要、指标标记、展开的 Key Results 表，以及
-Download report 按钮。）*
+![一次已完成的 ADMET 运行 —— 聊天里确认运行完成并提示你打开 Findings（分析结果）面板，面板顶栏带着正确的工作流标题和一个绿色的 "Completed"（已完成）徽标。这次运行的输出文件读不到，于是 Summary 据实把发现按下不表、而不是编造；在一次输出可读的运行上，这里正是那张已填充的分析结果摘要出现的地方。](../../assets/r8-completed-chat-and-panel.png)
 
 ---
 
@@ -114,7 +113,7 @@ Download report 按钮。）*
 **如果没有文件：** 标签页会显示 *"No output files registered yet（暂未登记任何输出文件）"* —— 或者，在一次
 失败的运行上，*"No outputs — run did not complete successfully.（没有输出 —— 运行未成功完成。）"*
 
-![Outputs 标签页 —— 每个文件按步骤归类](../../assets/t3-3-after-run-outputs.png)
+![一次已完成 ADMET 运行的 Outputs（输出）标签页 —— 六个真实输出文件（pk_summary.json、predict_admet_properties_results.json、qc_metrics.json、toxicity_report.json、versions.yml 等），每个都可查看/下载，另有打包下载 ZIP、可复现打包、保存到项目、以及在 Jupyter 中探索。](../../assets/r5-outputs.png)
 *一次真实运行的输出（来自教程三的那次体内 CAR-T 共同设计），按步骤分组。每一行都带着产生它的步骤、文件类型，
 以及一个 **view** / **dl** 操作。点 **view** 就内嵌打开文件（教程五）。*
 
@@ -147,7 +146,7 @@ discarded.）"* —— 然后是一组**可展开的分节**。第一个默认�
 那份数据时才带内容 —— 例如输入绑定可能显示为 *"No bound inputs recorded (run predates input-binding capture,
 or has none).（未记录绑定输入（该运行早于输入绑定采集，或本就没有）。）"*。一个空着的分节是信息，不是 bug。
 
-![可复现记录](../../assets/t3-4-after-run-reproducibility.png)
+![一次已完成 ADMET 运行的可复现记录 —— 记录 v1.0，含工作流名称、运行 ID、时间戳、六个输出及其大小与按需计算的校验和，以及可展开的 Methods / Software / Citations / QC report / Trajectory 等部分。](../../assets/r6-reproducibility.png)
 *取自教程三的可复现记录：这次运行的身份信息、记录在案的参数，以及每一个输出及其类型、大小，和一个在你点击
 **Compute checksums** 之前显示为"—"的 SHA-256。从前那几个并列的标签页（方法、软件、引文、QC 报告、轨迹）在
 这里被折进可展开的分节 —— 没有任何东西被丢弃。*

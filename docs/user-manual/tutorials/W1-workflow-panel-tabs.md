@@ -86,7 +86,7 @@ mechanism; just that what you see is current, not a stale snapshot.)*
    appears asking you to decide (§7).
 
 <!-- CAPTURE route=/ ; state=workflow panel idle (pre-run), Workflow settings tab active, Parameters strip expanded showing Required parameters with one empty required field flagged, Confirm-and-run button disabled ; focus=workflow-artifact-panel ; note=show the three tabs (Workflow settings · Phases · After run), the Parameters strip with a red "Required" chip, and the greyed-out run button with its "fill in N required parameters" tooltip -->
-![The workflow panel showing its three tabs — Workflow settings, Phases, and After run — with the run status badge in the header.](../assets/w1-0-panel-overview.png)
+![The pre-run workflow panel for "Predict ADMET Properties (AI)": the chat's structured summary on the left, and on the right the three tabs (Workflow settings · Phases · After run) with the Parameters strip filled in (Smiles List, model type) and the Confirm & Run button ready.](../assets/r1-prerun-param-strip.png)
 
 ![A completed workflow run panel](../assets/t3-1-workflow-panel.png)
 *For orientation, here is the same panel on a finished run (from Tutorial 3): the header names the workflow
@@ -190,8 +190,7 @@ The key honesty point (same as Tutorial 3): BioMate **shows** you the failed che
 never silently passes it.
 
 <!-- CAPTURE route=/ ; state=Phases tab with the QC gate inline card visible — "QC Gate — <step> — Review Required", a failing metric row with measured (red) vs threshold (green), a suggested param change, the countdown line, and the Apply suggestions / Keep current / Cancel run buttons ; focus=qc-gate-inline ; note=real QC gate (e.g. an alignment-rate or hERG threshold), not mocked -->
-*(Figure to add: the mid-run QC gate card — measured-vs-threshold in red/green, a suggested change, the
-countdown, and the three decision buttons.)*
+![A running ADMET workflow — the "Admet Infer Shard" phase card shows RUNNING, and below it the panel lists the run's QC Gates (the CiPA / hERG thresholds that will be checked). This capture shows the configured gates on a live run rather than a gate paused mid-decision.](../assets/r2-running.png)
 
 ---
 
