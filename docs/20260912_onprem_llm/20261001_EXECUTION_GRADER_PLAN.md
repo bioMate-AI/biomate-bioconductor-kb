@@ -134,8 +134,33 @@ real output-content validation + per-workflow correctness contract) — no simil
 This is the foundation the backend-swap comparison was missing: run the same task per backend →
 `grade_run` → objective PASS/FAIL comparison.
 
-**Remaining to close the loop:** one FRESH end-to-end drive (request → `search_workflow` →
-`run_workflow` → `watch_run` → `grade_run`) to prove BioMate produces a gradeable PASS from a cold
-request. Needs one small Batch run (pick a cheap/fast workflow; note merfish is flaky — 1 PASS / 1
-FAIL in the existing data due to a container image gap, so choose a reliably-imaged workflow).
-Deferred pending go + workflow choice (review-before-expensive).
+## 10. CLOSED THE LOOP — fresh cold-drive end-to-end PASS (2026-10-01)
+
+Drove a drug-development task from a cold natural-language request through the full harness, graded by
+execution:
+
+1. **Request** → `search_workflow("ADMET prediction … for SMILES", domain=drug_discovery)` → harness
+   retrieved the ADMET workflow (grounded retrieval, as the CAN-side analysis predicts).
+2. **`run_workflow`** with 3 explicit SMILES (aspirin, caffeine, ibuprofen) → AWS Batch, 2 steps,
+   **returncode 0, 136 s**, run `635bb415-…`.
+3. **`get_run`** → terminal success, 5 real result outputs (toxicity_report.json, …_results.json,
+   pk_summary.json, qc_metrics.json, +txt).
+4. **`execution_grader --deep`** → **PASS** — fetched the real S3 outputs and validated content +
+   ADMET contract (toxicity_report.json has `compounds_assessed`/`per_compound`/`toxicity`; required
+   outputs present).
+
+The output is genuinely correct, not fabricated: `compounds_assessed: 3`, per-compound MW/logP
+chemically right (aspirin 180.2 / caffeine 194.2 / ibuprofen 206.3), 17 endpoints each.
+
+**So BioMate now has a first VALID end-to-end measurement of a drug-dev task**: cold request →
+runnable artifact → real Batch run → output objectively passes a programmatic correctness check. No
+similarity, no LLM judge. This is the metric the backend-swap comparison (our-model vs frontier,
+[[project_onprem_uses_own_llm]]) will use, per dimension.
+
+**Note:** I searched the Chemprop "Predict ADMET Properties (AI)" (pharmacology path) but the run
+resolved to the RDKit+ADMET-AI "Predict Admet Properties" (drug_discovery path) — equivalent ADMET,
+real outputs. "Zero required params" was true only because `smiles_list` has a baked-in demo default;
+a real task needs the user's compounds (I passed explicit SMILES).
+
+**Remaining (future):** wire the backend swap (prefer per-request BYOK plumbing) and run the same
+task set per backend → `grade_run` → objective our-model-vs-frontier comparison on runnable tasks.

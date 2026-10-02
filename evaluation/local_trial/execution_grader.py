@@ -21,6 +21,10 @@ CONTRACTS = {
         "required_outputs": ["spatial_domains.csv", "spatial_qc.json", "spatially_variable_genes.csv"],
         "json_keys": {"spatial_qc.json": []},  # keys required inside the JSON (empty = just valid JSON)
     },
+    "Predict Admet Properties": {
+        "required_outputs": ["toxicity_report.json", "predict_admet_properties_results.json", "qc_metrics.json"],
+        "json_keys": {"toxicity_report.json": ["compounds_assessed", "per_compound", "toxicity"]},
+    },
 }
 
 
