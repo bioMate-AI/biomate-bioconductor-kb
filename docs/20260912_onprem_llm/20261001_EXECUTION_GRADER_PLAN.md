@@ -164,3 +164,34 @@ a real task needs the user's compounds (I passed explicit SMILES).
 
 **Remaining (future):** wire the backend swap (prefer per-request BYOK plumbing) and run the same
 task set per backend → `grade_run` → objective our-model-vs-frontier comparison on runnable tasks.
+
+## 11. Backend bake-off — FLAWED design, corrected (2026-10-01)
+
+Built `backend_bakeoff.py` (decision-proxy: shared harness retrieval, each backend decides
+{workflow, params}, run + `grade_run`). Frontier (Opus 5.5) arm: **2/2 PASS**, verified to molecular
+identity — it recalled correct SMILES for aspirin/caffeine/ibuprofen and **imatinib** (MW 493.6 ✓).
+
+**But the design was wrong, and the user caught it:** the discriminating step I chose — "recall the
+SMILES for a named drug" — is a **FACT lookup, not an LLM capability.** BioMate already has a PubChem
+resolver (`federated_query._fetch_pubchem`, PUG-REST name→SMILES; `data_sources` pubchem handler). So
+name→SMILES is a **harness retrieval job**; testing the LLM on it is the same anti-pattern as the
+closed-book DB-column SFT (§5). "Frontier wins SMILES recall" is a meaningless win — the harness
+supplies the SMILES to either backend.
+
+**Done correctly** (harness resolves name→SMILES, then the backend decides), ADMET has **no
+LLM-bound step left**: routing is retrieval-grounded, inputs are resolver-supplied, execution is
+deterministic. So it is **model-invariant end-to-end** — our on-prem model ties frontier, on-prem
+loses nothing. The bake-off, corrected, *confirms* the thesis rather than measuring a gap.
+
+**The forcing conclusion:** every our-model-vs-frontier "gap" on a BioMate task is one of two kinds —
+(a) a fact/retrieval gap → it's the harness's job (resolver/retrieval), not a real gap; or (b) a
+judgment gap (compose / interpret / clarify) → real, but with **no cheap execution grader** (§4). So
+there is no cheap, execution-gradeable BioMate task on which the LLM backend is the differentiator.
+Net: a small on-prem model loses ~nothing on the gradeable, harness-carried majority; its only
+residual risk is on judgment tasks, which are both hard to measure and where cloud mode would use
+frontier anyway. **This is the answer to "what's the point of the small LLM": it is viable precisely
+because the harness carries the gradeable work model-invariantly.**
+
+Artifacts kept for reuse (`backend_bakeoff.py`, grader MW check) but the SMILES-recall task is retired
+as a category error. A correct future bake-off must (i) let the harness resolve all facts/inputs first,
+(ii) vary only the backend's judgment, (iii) accept that the judgment tasks lack a cheap grader.
