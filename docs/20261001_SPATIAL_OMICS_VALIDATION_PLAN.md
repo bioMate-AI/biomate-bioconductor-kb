@@ -56,6 +56,36 @@ Run the fabrication + container audit across **all 106** spatial workflows. Outp
 as non-executable (candidates for `executable=0`, like the earlier stub cleanup) and to find more
 RNG stubs of the merfish class. **This is the highest value-per-minute step.**
 
+### Phase 0 — FIRST PASS RESULTS (2026-10-01)
+
+Audited the executable spatial set statically (fabrication tells + libz-gate coverage). Findings:
+
+- **Phantom cluster — the whole `spatial_transcriptomics` domain (6 rows) has NO `.nf` on disk**
+  (`biomni_workflows/spatial/` does not exist) yet was `executable=1`. These would fail
+  file-not-found if run. **Marked `executable=0`** (rides the sync): `spatial_visium_banksy` (14450),
+  `spatial_deconvolution_rctd` (14451), `spatial_ligand_receptor_liana` (14452),
+  `squidpy_spatial_analysis` (14453), `spatial_multiomics_integration` (14454),
+  `spatial_immune_aging_thymus` (14455). **These are BUILD TARGETS** — all are desirable
+  (BANKSY domains, RCTD deconvolution, LIANA ligand-receptor, multi-omics integration) and several
+  overlap functionally with real workflows already present (banksy [10928/13078/13079], RCTD via
+  `spatial_deconvolution_rctd` logic, etc.). The working squidpy-spatial pipeline is
+  `merfish_spatial_analysis` (validated); `squidpy_spatial_analysis` (14453) was a phantom duplicate.
+- **CardinalIO (11038)** — synthesizes a random image (`matrix(runif(...))` → `writeImzML`) to
+  demo the imzML I/O round-trip. Borderline: acceptable for an **I/O-format utility** demo, NOT for
+  analysis. Recommend labeling it a demo/round-trip, not a results-producing workflow. Low urgency
+  (does not pass fake *analysis* off as science, unlike the old merfish RNG stub).
+- **fpsim2_chemical_similarity (14461)** — quay biocontainer under `/drug_discovery/`, which is
+  OUTSIDE the libz-mount gate → same **exit-127** class as merfish (cross-domain, not spatial).
+  Noted for a broader fix: the libz mount should ideally key off "task image is a bare quay
+  biocontainer" rather than the nf_path allow-list (the allow-list is whack-a-mole: nf-core →
+  +bioconductor → +nf-core-modules → +single_cell → now drug_discovery…).
+- **False positives:** `merfish` 14608 (`fab-word` = my own anti-fabrication guard text),
+  REINVENT4 / AutoDock-Vina / turep (generative/comment-level randomness, non-spatial).
+
+**Net:** breadth number drops honestly (6 phantom spatial_transcriptomics rows removed from the
+executable set), and two real infra/quality items are logged. Next: Phase 1 execution of the
+**real** imaging-based bioc workflows (the table below), which DO have files + images.
+
 ## Phase 1 — imaging-based (PRIORITY), cheap Bioc/py runs
 
 Already validated: `merfish_spatial_analysis` ✅, `visium_voyager_spatial_esda` ✅.
