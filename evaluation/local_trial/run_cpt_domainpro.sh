@@ -14,7 +14,9 @@ export BS_OVERRIDE=${BS_OVERRIDE:-1} GA_OVERRIDE=${GA_OVERRIDE:-32} FORCE_NGPU=$
 export SFT_DATA=${SFT_DATA:-multitask_sft_enriched.jsonl}
 SUBS=(subnet-09e4dce46682a6c60 subnet-03b277a7a08d388c1 subnet-0b35a6e2c1cf02dc2 subnet-0254e4c3634b41bfc)
 # 9B fits 24GB (QLoRA); 27B needs 48GB (g6e/L40S). Prefer less-contended types first.
-if [ "$SIZE" = large ]; then TYPES=(g6e.xlarge g5.12xlarge g5.4xlarge g6e.2xlarge); else TYPES=(g5.2xlarge g6e.xlarge g6.xlarge g5.xlarge g5.4xlarge g6.2xlarge g5.8xlarge); fi  # 24GB+ only (9B QLoRA; g4dn 16GB too small)
+if [ "$SIZE" = large ]; then TYPES=(g6e.xlarge g5.12xlarge g5.4xlarge g6e.2xlarge)
+elif [ "$SIZE" = small ]; then TYPES=(g4dn.xlarge g5.xlarge g4dn.2xlarge g6.xlarge g5.2xlarge g6e.xlarge g5.4xlarge g6.2xlarge)  # 4B fits 16GB -> max spot options
+else TYPES=(g5.2xlarge g6e.xlarge g6.xlarge g5.xlarge g5.4xlarge g6.2xlarge g5.8xlarge); fi  # 9B: 24GB+ only (g4dn 16GB too small)
 RESULT="$S3/models_20260919/$SIZE/base_domain${TAG}/config.json"   # CPT-merged model = the key artifact
 FINAL="$S3/models_20260919/$SIZE/full${TAG}_adapter/adapter_config.json"
 launch(){ for T in "${TYPES[@]}"; do for S in "${SUBS[@]}"; do
