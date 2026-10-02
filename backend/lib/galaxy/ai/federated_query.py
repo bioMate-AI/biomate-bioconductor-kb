@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import urllib.error
 import urllib.parse
@@ -30,6 +31,33 @@ from typing import Any, Dict, List, Optional, Tuple
 log = logging.getLogger(__name__)
 
 _TIMEOUT = 10  # seconds per external call
+
+# ── Air-gap / offline mode ──────────────────────────────────────────────────────
+# In a no-egress (air-gapped) on-prem deployment, every external resolver call would
+# hang for _TIMEOUT before failing. BIOMATE_OFFLINE_MODE short-circuits them: a registered
+# local mirror (e.g. a ChEMBL SQLite for name→SMILES) answers if present, else we fast-fail
+# to None so the harness degrades gracefully instead of stalling. A local-mirror module
+# wires itself in via set_local_resolver(). Default (unset) = unchanged cloud behavior.
+_OFFLINE = os.environ.get("BIOMATE_OFFLINE_MODE", "").lower() in ("1", "true", "yes")
+_LOCAL_RESOLVER = None  # Optional[Callable[[str, Optional[Dict]], Optional[Any]]]
+
+
+def set_local_resolver(fn) -> None:
+    """Register a local-mirror resolver for air-gap: fn(url, payload=None) -> dict|None."""
+    global _LOCAL_RESOLVER
+    _LOCAL_RESOLVER = fn
+
+
+def _offline_lookup(url: str, payload: Optional[Dict] = None) -> Optional[Any]:
+    if _LOCAL_RESOLVER is not None:
+        try:
+            r = _LOCAL_RESOLVER(url, payload)
+            if r is not None:
+                return r
+        except Exception as e:
+            log.debug("[federated_query] local resolver failed for %s → %s", url, e)
+    log.debug("[federated_query] OFFLINE_MODE — skipping external call %s", url)
+    return None
 _POOL_SIZE = 12
 _CACHE_TTL_STABLE = 86400   # 24h — UniProt, PDB, AlphaFold, etc.
 _CACHE_TTL_LITERATURE = 3600  # 1h — PubMed, EuropePMC, Semantic Scholar
@@ -92,6 +120,8 @@ def _cache_set(key: str, value: Dict, ttl: int) -> None:
 # ── HTTP helper ────────────────────────────────────────────────────────────────
 
 def _get(url: str, headers: Optional[Dict] = None) -> Optional[Any]:
+    if _OFFLINE:
+        return _offline_lookup(url)
     h = {"User-Agent": "BioMate/1.0 (biomate.ai; federated-query)"}
     if headers:
         h.update(headers)
@@ -104,6 +134,8 @@ def _get(url: str, headers: Optional[Dict] = None) -> Optional[Any]:
         return None
 
 def _post_json(url: str, payload: Dict) -> Optional[Any]:
+    if _OFFLINE:
+        return _offline_lookup(url, payload)
     body = json.dumps(payload).encode()
     req = urllib.request.Request(
         url, data=body,
