@@ -30,9 +30,14 @@ SG=${SG:-sg-011121fdf81073ec8}         # security group (region-specific) => OVE
 KEY=${KEY:-biomate-trial-resume-20260912}  # optional SSH key; set KEY="" to omit
 
 # --- inputs (env-overridable) ------------------------------------------------------------------------
-# (a) diffusion warm-start = current generator ckpt (epoch-221 prior, or the latest m2c fine-tune so DPO
-#     closes back on top of the newest generator). Its .autoencoder is dropped in warm_start_diffusion.
-WARM_LDM_S3=${WARM_LDM_S3:-s3://$BUCKET/cyclic_peptide/RELEASED/pepglad_ldm_epoch221/epoch221_step77700.ckpt}
+# (a) diffusion warm-start = THE BEST in-house generator, so the DPO close-back lands on the best model.
+#     Default = cyclic-FT 0.506 (PepBDB-cyclic DockQ), same PepGLAD arch -> drops in directly as the
+#     diffusion warm-start (its .autoencoder is dropped in warm_start_diffusion; the FROZEN AE is V1_AE_S3).
+#     Ranked above epoch-221 base (0.291) and the target-conditioned M2c (0.326); see
+#     docs/20261002_BEST_PEPTIDE_LLM_PROGRAM.md + project_cyclic_peptide_sota_reality memory.
+#     UniMoMo (0.759, different arch) is the ultimate base -> needs the DPO-trainer PORT (scoped separately).
+#     Override WARM_LDM_S3 to warm-start from any other ckpt (e.g. epoch-221 base for an ablation).
+WARM_LDM_S3=${WARM_LDM_S3:-s3://$BUCKET/cyclic_peptide/runs/pepglad-cyclicft-20260914T204012Z/training/cyclic_ldm/version_0/checkpoint/epoch59_step1920.ckpt}
 # (b) M1 v1 AE (production AE) -> becomes the FROZEN autoencoder of the policy + reference.
 V1_AE_S3=${V1_AE_S3:-s3://$BUCKET/cyclic_peptide/runs/m1-ae-midtrain-20260928T225554Z/ckpts/m1_ae_midtrain/version_0/checkpoint/epoch39_step3520.ckpt}
 # (c) the dpo_pairs PairSet jsonl (full-provenance lines; chosen_id/rejected_id index into the mmap below).
