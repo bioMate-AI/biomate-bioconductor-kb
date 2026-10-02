@@ -1,7 +1,12 @@
 # GenScript RFQ — Round-1 Cyclic Peptides (PD-L1 + αvβ6): Synthesis → QC → Binding
 
-**Date:** 2026-10-02 · **Status:** finalized, ready to send. Two target panels, one batch order.
-**Attachments (order spec of record):** `research/guangzhou_all_atom/results/pdl1_round1_CRO_order_SCREENED.csv` and `results/avb6_round1_CRO_order.csv`.
+> **INTERNAL REFERENCE ONLY — do NOT send this document to the CRO.** It is our checklist of what to
+> ask for. The outward artifact is the short business email in `20261002_GENSCRIPT_OUTREACH_EMAIL.md`,
+> with the **clean, score-free** attachments `results/CRO_SEND_pdl1_panelA.csv` + `CRO_SEND_avb6_panelB.csv`.
+> The `*_CRO_order*.csv` files referenced below carry our internal design scores (ΔG/iPTM/etc.) and are
+> **internal only** — never attach them. Send sequences only after confidentiality (NDA) is in place.
+
+**Date:** 2026-10-02 · **Status:** internal spec; the send-ready email is the separate outreach doc.
 
 **Contacts:** synthesis → peptide@genscript.com · binding/SPR → protein@genscript.com. Please quote both parts bundled, and the two panels together for a batch/library discount.
 
