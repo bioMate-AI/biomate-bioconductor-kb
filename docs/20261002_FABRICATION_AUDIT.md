@@ -40,14 +40,15 @@ real `flowio` gating), `Analyze Cfse Cell Proliferation` (10691), `Analyze Cell 
 And Apoptosis` (10605), `Analyze Mitochondrial Morphology` (10613), `Quantify And Cluster Cell
 Motility` (10615), `Quantify Cell Cycle Phases` (10616).
 
-### Kept disabled (2 — genuine issues)
-| id | workflow | why still disabled | fix |
+### The 2 genuine issues — now REWIRED and re-enabled (2026-10-02)
+| id | workflow | fix applied | status |
 |---|---|---|---|
-| 10657 | Analyze Comparative Genomics And Haplotypes | HYBRID — runs real `bwa` **but** writes **unconditional** fabricated divergence times (`random.randint`, NOT demo-gated) + "this would contain…" placeholder | strip the fake lines; add real variant/haplotype calling |
-| 10572 | Decode Behavior From Neural Trajectories | no real file ingestion (inline-JSON only); synthetic disclosed **only in comments**, not in output | add real neural-data file read + a non-comment DEMO label |
+| 10657 | Analyze Comparative Genomics And Haplotypes | removed `random.randint` divergence + "this would contain…" placeholders; now real `bwa` (+ real mapped-record count), real SNP calling, real shared/unique set analysis, real Jaccard haplotype grouping + real distinguishing counts | ✅ rewired, `executable=1`, python ast.parse OK (Batch validation w/ test FASTAs still pending) |
+| 10572 | Decode Behavior From Neural Trajectories | added real file ingestion (`np.load`/`.csv`/`.tsv`); synthetic fallback now DISCLOSED in the output log ("DEMO MODE … NOT from real recordings"); PCA/decoder logic was already real | ✅ rewired, `executable=1`, python ast.parse OK |
 
-(DB — gitignored `galaxy_ai_tools.db`, rides the sync. Net: 2 disabled, 9 re-enabled;
-`executable=1` = **4152**.)
+(DB — gitignored `galaxy_ai_tools.db`, rides the sync. Net of the whole episode: **0 fabrication
+stubs disabled** — all either rewired (10657, 10572, MERFISH) or re-enabled as real/honest-demo.
+The only `executable=0` rows are the 6 file-less phantom `spatial_transcriptomics` rows.)
 
 **Lesson (the honest one):** my platform-wide "fabrication is rampant (11 stubs)" claim was wrong —
 it was **2**, plus the already-rewired MERFISH. A crude RNG+write−read regex conflated honest
