@@ -84,8 +84,7 @@ BioMate 用一个统一的地方解决这件事 —— **连接器（Connectors�
 ### 4a. 浏览公共数据库（只读 —— 没有什么要开启）
 
 <!-- CAPTURE route=/ ; state=Connectors dialog open on the "Public Databases" tab, residency legend visible, several database rows with cloud badges and the Scope column ; focus=databases-tab ; note=展示顶部四个标签页、数据驻留图例、几行来源（UniProt / ClinVar / ChEMBL）及其 cloud 徽标，还有"Scope (preview)"列 -->
-*（待补图：Public Databases（公共数据库）标签页 —— 数据驻留图例、像 UniProt / ClinVar / ChEMBL 这样每行都带
-一枚 cloud 徽标的来源，以及 Scope 预览列。）*
+![连接器对话框的 Public Databases（公共数据库）标签页 —— 数据驻留图例与带 cloud 徽标的来源列表](../../assets/t9-1-connectors-dialog.png)
 
 1. **打开 连接器 → Public Databases。** 侧边栏 → **连接器（Connectors）**；对话框就在这个标签页上打开。
 2. **读这份目录。** 你会看到几十个来源，按子标签页分组（蛋白质与结构、基因组与变异、组学档案库、化学与药物、

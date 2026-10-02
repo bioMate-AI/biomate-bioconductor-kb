@@ -70,7 +70,7 @@ hand-off made visible — you see the data arrive and decide what to do.)*
 ## 4. Step by step — registering an instrument
 
 <!-- CAPTURE route=/ ; state=Connectors dialog open on the Instruments tab, "My instruments" + "New data events" sections visible ; focus=instruments-section ; note=show the Instruments tab, an instrument row with a status + residency badge, and the Add-instrument button -->
-*(Figure to add: the Instruments tab inside Connectors — the instruments list with status and residency badges, and the "Add instrument" button.)*
+![The Instruments tab inside the Connectors dialog — the "My instruments" list with status and residency badges, the "New data events" section, and the "Add instrument" button.](../assets/t6-1-instruments-tab.png)
 
 1. **Open Connectors → Instruments.** Sidebar → **Connectors** → the **Instruments** tab.
 2. **Click "Add instrument"** and fill in the form:
@@ -88,7 +88,7 @@ hand-off made visible — you see the data arrive and decide what to do.)*
    **Online** (reachable) or **Offline / Error** (not reachable — the row shows the reason).
 
 <!-- CAPTURE route=/ ; state=Add-instrument form open with a type selected (e.g. opentrons) showing host/port + residency line ; focus=add-instrument-form ; note=show the type dropdown, the host/port fields, and the "Residency: on-prem" line -->
-*(Figure to add: the Add-instrument form — type dropdown, the fields that appear for that type, and the residency line.)*
+![The Add-instrument form — the type dropdown, the host/port fields that appear for the selected type, and the residency line.](../assets/t6-2-add-instrument-form.png)
 
 > **The one-time setup (admin step).** Registering the instrument tells BioMate it *exists*. For most types,
 > data only starts flowing once a BioMate **connector/watcher** is running on your lab network, pointed at the
@@ -133,7 +133,7 @@ source instrument, the experiment type, and the workflow it maps to. For each ev
 - **Dismiss** — clear the event if you don't want to act on it.
 
 <!-- CAPTURE route=/ ; state=New data events list showing one event with Launch + Dismiss buttons ; focus=instrument-event ; note=show an event card: description, source/experiment/workflow badges, Launch + Dismiss -->
-*(Figure to add: a New-data event — its description, the source/experiment/workflow tags, and the Launch and Dismiss buttons.)*
+![The Instruments tab, where New data events appear with their description, source/experiment/workflow tags, and Launch and Dismiss buttons.](../assets/t6-1-instruments-tab.png)
 
 > **Who does what.** You register the instrument and act on events; an admin wires up the on-network connector
 > once; BioMate watches for new data, surfaces it, and runs only what you confirm.

@@ -77,7 +77,7 @@
    *运行中*、再到*已完成*（§6）。如果某个质量闸门触发了，会弹出一张卡片请你决定（§7）。
 
 <!-- CAPTURE route=/ ; state=workflow panel idle (pre-run), Workflow settings tab active, Parameters strip expanded showing Required parameters with one empty required field flagged, Confirm-and-run button disabled ; focus=workflow-artifact-panel ; note=展示三个标签页（Workflow settings · Phases · After run）、带红色"Required"标记的 Parameters 条，以及灰掉的运行按钮及其"还差 N 个必填参数"提示 -->
-*（待补图：面板的开跑前状态 —— Workflow settings 标签页打开着，一个必填参数仍空着，启动按钮处于禁用状态。）*
+![工作流面板总览 —— 顶部的三个标签页（Workflow settings · Phases · After run）](../../assets/w1-0-panel-overview.png)
 
 ![一次已完成的工作流运行面板](../../assets/t3-1-workflow-panel.png)
 *作为参照，这是同一个面板在一次已结束运行上的样子（取自教程三）：顶栏标明了工作流及其 4 个阶段，三个标签页
@@ -152,8 +152,7 @@ BioMate 托管，保留 90 天）*、*My project folder（我的项目文件夹�
 暂停了，它就变成 **Resume（继续）** 和 **Stop**。
 
 <!-- CAPTURE route=/ ; state=Phases tab during a live run — one phase card expanded with status RUNNING (spinner) and at least one step row showing DONE and one showing RUNNING; the dark Pause/Stop action bar visible at the bottom ; focus=panel-phases ; note=抓一次真实的空闲→运行中→终态转变：至少一张阶段卡片 data-status="running" 且上面已有一个步骤完成 -->
-*（待补图：运行途中的 Phases 标签页 —— 一张处于 RUNNING 状态的阶段卡片，一个已完成的步骤在一个运行中的步骤
-上方，底部是 Pause / Stop 条。）*
+![Phases（阶段）标签页 —— 各阶段卡片与输出结果](../../assets/w1-1-phases.png)
 
 ---
 

@@ -57,7 +57,7 @@ you, at a glance, how that chat's analysis is doing — **blue = running, red = 
 grey = nothing has run yet.** More on this in §4.
 
 <!-- CAPTURE route=/ ; state=sidebar fully expanded on a fresh login with at least one project and a few chats in history ; focus=app-sidebar (full column) ; note=show the three bands top-to-bottom — Workspace nav, Projects, Chat history + footer; one chat row should show a coloured status dot -->
-*(Figure to add: the whole sidebar, showing the three bands — Workspace, Projects, and Chat history with the account footer.)*
+![The BioMate sidebar fully expanded, showing the three bands top to bottom — Workspace navigation, Projects, and Chat history with the account footer.](../assets/s1-1-sidebar.png)
 
 ---
 

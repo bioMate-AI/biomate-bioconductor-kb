@@ -81,7 +81,7 @@
 之间的关联。JAK1 是一个真实、研究充分的药物靶点，所以它很适合用来检验一个*扎实*答案长什么样。
 
 <!-- CAPTURE route=/ ; state=cold start, Search & evidence card expanded showing the four track tabs (Literature · Databases · Patents · Internal) and a few example-intent rows in quotes ; focus=cold-start Search & evidence module card ; note=展示轨道栏 + .exrow 示例意图；尚未发送任何内容 -->
-*（待补图：冷启动状态下打开的检索与证据卡片 —— 四条轨道，以及那些会预填进编排区的、加了引号的示例问题。）*
+![冷启动时展开的检索与证据卡片 —— 四条轨道与加了引号的示例问题](../../assets/m1-1-search-module.png)
 
 1. **打开检索与证据卡片（可选）。** 在冷启动状态下（一个全新的空对话里），点开**检索与证据（Search &
    evidence）**卡片，就能看到它的四条轨道和示例问题。点任意一个示例，会把它**预填**进消息框 —— 也就是

@@ -86,8 +86,7 @@ mechanism; just that what you see is current, not a stale snapshot.)*
    appears asking you to decide (§7).
 
 <!-- CAPTURE route=/ ; state=workflow panel idle (pre-run), Workflow settings tab active, Parameters strip expanded showing Required parameters with one empty required field flagged, Confirm-and-run button disabled ; focus=workflow-artifact-panel ; note=show the three tabs (Workflow settings · Phases · After run), the Parameters strip with a red "Required" chip, and the greyed-out run button with its "fill in N required parameters" tooltip -->
-*(Figure to add: the panel in its pre-run state — the Workflow settings tab open, a required parameter still
-empty, and the start button disabled.)*
+![The workflow panel showing its three tabs — Workflow settings, Phases, and After run — with the run status badge in the header.](../assets/w1-0-panel-overview.png)
 
 ![A completed workflow run panel](../assets/t3-1-workflow-panel.png)
 *For orientation, here is the same panel on a finished run (from Tutorial 3): the header names the workflow
@@ -130,8 +129,7 @@ human approval, license gate). These are informational — nothing to fill in.
 **If a workflow has no settings,** this tab simply says so and points you to the start button.
 
 <!-- CAPTURE route=/ ; state=Workflow settings tab, Parameters strip open with a mix of control types visible — a toggle, a dropdown, a number box, and a file field with a Browse button; an AI-filled value showing its badge/Override ; focus=button-toggle-workflow-settings ; note=show the Required vs Optional grouping and at least one of each control type, plus an AI-filled badge -->
-*(Figure to add: the Parameters strip open — a toggle, a dropdown, a number box, and a file field, with an
-AI-filled value badged and overridable.)*
+![The Workflow settings tab, showing the Inputs-mapped panel and the per-role "Your permissions here" card.](../assets/w1-2-workflow-settings.png)
 
 ---
 
@@ -166,8 +164,7 @@ refresh anything.
 **Stop**; if you pause, it becomes **Resume** and **Stop**.
 
 <!-- CAPTURE route=/ ; state=Phases tab during a live run — one phase card expanded with status RUNNING (spinner) and at least one step row showing DONE and one showing RUNNING; the dark Pause/Stop action bar visible at the bottom ; focus=panel-phases ; note=capture a real idle→running→terminal transition: at least one phase card data-status="running" with a step already completed -->
-*(Figure to add: the Phases tab mid-run — a phase card in the RUNNING state with a completed step above a
-running step, and the Pause / Stop bar at the bottom.)*
+![The Phases tab on a finished run, showing the output results — Interactive Analysis tools, Data Tables, and Other Files.](../assets/w1-1-phases.png)
 
 ---
 

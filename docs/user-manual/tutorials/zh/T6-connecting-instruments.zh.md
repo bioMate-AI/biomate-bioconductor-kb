@@ -66,8 +66,7 @@ BioMate 让你**把一台仪器登记一次**，之后每当它产出新数据�
 ## 4. 一步步来 —— 登记一台仪器
 
 <!-- CAPTURE route=/ ; state=Connectors dialog open on the Instruments tab, "My instruments" + "New data events" sections visible ; focus=instruments-section ; note=展示 Instruments（仪器）标签页、一行带状态与数据存放地徽标的仪器，以及"添加仪器"按钮 -->
-*（待补图：连接器里的 Instruments（仪器）标签页 —— 带状态与数据存放地徽标的仪器列表，以及"Add instrument
-（添加仪器）"按钮。）*
+![连接器里的 Instruments（仪器）标签页 —— 仪器列表与"Add instrument（添加仪器）"按钮](../../assets/t6-1-instruments-tab.png)
 
 1. **打开 Connectors（连接器）→ Instruments（仪器）。** 侧边栏 → **连接器** → **Instruments** 标签页。
 2. **点击 "Add instrument（添加仪器）"** 并填写表单：
@@ -84,7 +83,7 @@ BioMate 让你**把一台仪器登记一次**，之后每当它产出新数据�
    **Offline / Error（离线 / 出错，访问不到 —— 该行会显示原因）**。
 
 <!-- CAPTURE route=/ ; state=Add-instrument form open with a type selected (e.g. opentrons) showing host/port + residency line ; focus=add-instrument-form ; note=展示类型下拉框、host/port（主机 / 端口）字段，以及"Residency: on-prem（数据存放地：本地）"那一行 -->
-*（待补图：Add instrument（添加仪器）表单 —— 类型下拉框、该类型对应出现的字段，以及数据存放地那一行。）*
+![Add instrument（添加仪器）表单 —— 类型下拉框、对应字段与数据存放地那一行](../../assets/t6-2-add-instrument-form.png)
 
 > **一次性配置（管理员步骤）。** 登记仪器只是告诉 BioMate 它*存在*。对大多数类型而言，只有当一个 BioMate
 > **connector/watcher（连接器 / 监听器）** 运行在你的实验室网络上、对准了那台仪器（或它的输出文件夹）时，数据
@@ -127,8 +126,7 @@ BioMate 让你**把一台仪器登记一次**，之后每当它产出新数据�
 - **Dismiss（忽略）** —— 如果你不想处理这条事件，就把它清掉。
 
 <!-- CAPTURE route=/ ; state=New data events list showing one event with Launch + Dismiss buttons ; focus=instrument-event ; note=展示一张事件卡片：描述、来源 / 实验 / 工作流徽标、Launch（启动）+ Dismiss（忽略）按钮 -->
-*（待补图：一条 New data（新数据）事件 —— 它的描述、来源 / 实验 / 工作流标签，以及 Launch（启动）和
-Dismiss（忽略）按钮。）*
+![Instruments（仪器）标签页上的 New data（新数据）事件 —— 描述、来源/实验/工作流标签，以及 Launch 与 Dismiss 按钮](../../assets/t6-1-instruments-tab.png)
 
 > **谁做什么。** 你登记仪器、处理事件；管理员一次性接好内网连接器；BioMate 监听新数据、把它呈现出来，并且只运行
 > 你确认过的部分。

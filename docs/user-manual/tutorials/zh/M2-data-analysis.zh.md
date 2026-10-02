@@ -104,8 +104,7 @@
    细节跟着它走。
 
 <!-- CAPTURE route=/ ; state=cold start with the Data analysis card expanded on the "Validated workflows" track, domain chips visible and one domain selected showing its workflow shapes (title · what it needs · time), a couple with a "sample" badge ; focus=cold-start Data analysis card, Validated workflows track ; note=展示领域标签 + 形态行 + 示例数据集徽标；尚未发送 -->
-*（待补图：数据分析卡片在"验证过的工作流"轨道上 —— 领域标签和形态行，其中自带可运行示例的那些带一个
-"sample（示例）"徽标。）*
+![数据分析卡片的"验证过的工作流"轨道 —— 领域标签与形态行，自带示例的带"sample"徽标](../../assets/m2-1-data-analysis-module.png)
 
 ---
 

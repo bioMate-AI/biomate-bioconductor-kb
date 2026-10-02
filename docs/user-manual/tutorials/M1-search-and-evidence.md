@@ -93,8 +93,7 @@ We'll use a recognisable example that threads through the other tutorials: the l
 target, so it is a good test of a *strong* answer.
 
 <!-- CAPTURE route=/ ; state=cold start, Search & evidence card expanded showing the four track tabs (Literature · Databases · Patents · Internal) and a few example-intent rows in quotes ; focus=cold-start Search & evidence module card ; note=show the trackbar + .exrow example intents; nothing sent yet -->
-*(Figure to add: the Search & evidence card open on the cold start — the four tracks and the quoted example
-intents that seed the composer.)*
+![The Search & evidence module expanded on the cold start, showing the four track tabs — Literature, Databases, Patents, Internal — and the quoted example intents that seed the composer.](../assets/m1-1-search-module.png)
 
 1. **Open the Search & evidence card (optional).** On the cold start (a new, empty chat), click the
    **Search & evidence** card to see its four tracks and example questions. Clicking any example **seeds**

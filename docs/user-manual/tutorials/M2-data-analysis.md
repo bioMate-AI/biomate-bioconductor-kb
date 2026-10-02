@@ -117,8 +117,7 @@ badge, and the "Redo as a validated run" action.)*
    **That is Tutorial 3** — follow it for the details.
 
 <!-- CAPTURE route=/ ; state=cold start with the Data analysis card expanded on the "Validated workflows" track, domain chips visible and one domain selected showing its workflow shapes (title · what it needs · time), a couple with a "sample" badge ; focus=cold-start Data analysis card, Validated workflows track ; note=show domain chips + shape rows + sample-dataset badge; nothing sent -->
-*(Figure to add: the Data analysis card on the Validated workflows track — the domain chips and the shape
-rows, with a "sample" badge on the ones that ship a runnable example.)*
+![The Data analysis module expanded on the Validated workflows track, showing the domain chips and the workflow shape rows, with a "sample" badge on the ones that ship a runnable example.](../assets/m2-1-data-analysis-module.png)
 
 ---
 

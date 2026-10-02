@@ -97,7 +97,7 @@ analysis · Design & generate · Models), and the message box (the composer) at 
    Enter key; Shift+Enter makes a new line). *Only now does anything happen.*
 
 <!-- CAPTURE route=/ ; state=intent bar filled with a knowledge question, lane preview showing "Instant · cited answer" ; focus=composer + lane-preview strip ; note=shows the Instant verdict + "BioMate will confirm before running anything cloud" line before send -->
-*(Figure to add: the message box showing the "Instant · cited answer" lane verdict before you send.)*
+![The intent bar filled with a knowledge question, the lane preview strip showing the "Instant · cited answer" verdict before you send.](../assets/m0-1-intent-bar.png)
 
 > **The message box can do more (for later).** Besides typing, the composer lets you **attach your own
 > files** (the paperclip, for files on your computer) and **point at data BioMate already holds** (the

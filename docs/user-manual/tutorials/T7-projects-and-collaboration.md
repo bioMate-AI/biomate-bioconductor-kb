@@ -118,8 +118,7 @@ collaborator just needs to view the results.
    every chat in this project."*
 
 <!-- CAPTURE route=/projects?project=<id>&tab=files ; state=project page with Standing instructions card filled (mouse-liver/paired-end/GRCm39) and the Notes card below it empty ; focus=Standing instructions card + its "Read by the assistant on every chat in this project" subtitle, and the Notes card's "Private to you — not read by the assistant" subtitle ; note=show the two cards stacked so the trust boundary (AI-read vs human-only) is visible in one shot -->
-*(Figure to add: the project page showing the Standing instructions card, filled, directly above the
-human-only Notes card — the two kinds of written context side by side.)*
+![The project page with the Standing instructions card at the top of the right rail, above the Members & roles section.](../assets/t7-1-standing-instructions.png)
 
 4. **Make it the active project** (opening the project does this for you). From now on, every new chat
    you start inside this project inherits those instructions — you won't retype "mouse liver,
@@ -160,8 +159,7 @@ so you always know what you can do here. There are two ways to add people (both 
    it to kill it.
 
 <!-- CAPTURE route=/projects?project=<id>&tab=files ; state=Members & roles panel open as Owner — invite-by-email input, share-link generate/copy/revoke controls, and a member list with a postdoc (Editor) + collaborator (Viewer) each with a role dropdown ; focus=the "You: owner" badge, the role dropdowns, and the "Make owner" transfer control on a member row ; note=capture as the OWNER so the full set of owner-only controls is visible and enabled -->
-*(Figure to add: the Members & roles panel as the Owner — invite box, share-link controls, and the
-member list with per-member role dropdowns and the "Make owner" transfer action.)*
+![The Members & roles panel as the Owner — the invite-by-email box with a role selector, the share-link control, the member list, and the "Your permissions here" card.](../assets/t7-2-members-roles.png)
 
 9. **Change or remove people later.** As Owner, each member row has a **role dropdown** (switch someone
    Viewer↔Editor) and a remove action. Any non-owner member can **leave** a project themselves. To hand

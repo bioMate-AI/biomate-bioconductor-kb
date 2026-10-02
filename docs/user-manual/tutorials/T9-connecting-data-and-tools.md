@@ -98,7 +98,7 @@ explaining later isn't a connection — it's a mess with a receipt.)*
 ### 4a. Browsing the public databases (read-only — nothing to switch on)
 
 <!-- CAPTURE route=/ ; state=Connectors dialog open on the "Public Databases" tab, residency legend visible, several database rows with cloud badges and the Scope column ; focus=databases-tab ; note=show the four top tabs, the residency legend, a few rows (UniProt / ClinVar / ChEMBL) with their cloud badge, and the "Scope (preview)" column -->
-*(Figure to add: the Public Databases tab — the residency legend, rows like UniProt / ClinVar / ChEMBL each with a cloud badge, and the Scope-preview column.)*
+![The Connectors dialog on the Public Databases tab — the four top tabs, the residency legend, database rows with cloud badges, and the Scope-preview column.](../assets/t9-1-connectors-dialog.png)
 
 1. **Open Connectors → Public Databases.** Sidebar → **Connectors**; the dialog opens on this tab.
 2. **Read the catalogue.** You'll see dozens of sources grouped by sub-tab (Protein & Structure,

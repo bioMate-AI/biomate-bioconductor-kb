@@ -46,7 +46,7 @@
 怎么样 —— **蓝 = 运行中，红 = 失败，绿 = 已完成，灰 = 还什么都没跑。** 第 4 节还有更多。
 
 <!-- CAPTURE route=/ ; state=sidebar fully expanded on a fresh login with at least one project and a few chats in history ; focus=app-sidebar (full column) ; note=从上到下展示三个区段 —— 工作区导航、项目、对话历史 + 页脚；其中一行对话应显示一个彩色状态圆点 -->
-*（待补图：整个侧边栏，展示三个区段 —— 工作区、项目，以及带账户页脚的对话历史。）*
+![整个侧边栏 —— 工作区、项目，以及带账户页脚的对话历史](../../assets/s1-1-sidebar.png)
 
 ---
 

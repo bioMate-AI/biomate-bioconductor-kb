@@ -103,8 +103,7 @@ PI 希望一位博士后在里面运行分析，而一位临床合作者只需�
    卡片会提醒你，这些是*"由助手在本项目的每一次对话中读取"*的。
 
 <!-- CAPTURE route=/projects?project=<id>&tab=files ; state=project page with Standing instructions card filled (mouse-liver/paired-end/GRCm39) and the Notes card below it empty ; focus=Standing instructions card + its "Read by the assistant on every chat in this project" subtitle, and the Notes card's "Private to you — not read by the assistant" subtitle ; note=把两张卡片上下叠在一起展示，让"AI 会读 vs 仅人类可见"这条信任边界在一张图里看清 -->
-*（待补图：项目页面展示已填好的 Standing instructions（常驻指令）卡片，正位于仅人类可见的 Notes（笔记）卡片
-上方 —— 两类书面背景并排呈现。）*
+![项目页面的 Standing instructions（常驻指令）卡片，位于仅人类可见的 Notes（笔记）之上](../../assets/t7-1-standing-instructions.png)
 
 4. **把它设为活动项目**（打开项目就会替你做这件事）。从此以后，你在这个项目里新开的每一次对话都会继承那些
    指令 —— 你不用再重打"小鼠肝脏、双端"了。
@@ -141,8 +140,7 @@ PI 希望一位博士后在里面运行分析，而一位临床合作者只需�
    并接受，就以那个角色被加进来。你可以**复制**它、更改它的角色，或**撤销（revoke）**它来让它失效。
 
 <!-- CAPTURE route=/projects?project=<id>&tab=files ; state=Members & roles panel open as Owner — invite-by-email input, share-link generate/copy/revoke controls, and a member list with a postdoc (Editor) + collaborator (Viewer) each with a role dropdown ; focus=the "You: owner" badge, the role dropdowns, and the "Make owner" transfer control on a member row ; note=以 OWNER 身份截图，这样所有仅限 Owner 的控件才会完整可见且可用 -->
-*（待补图：以 Owner 身份看到的 Members & roles（成员与角色）面板 —— 邀请框、分享链接控件，以及带有每位成员
-角色下拉框和 "Make owner（移交所有权）" 操作的成员列表。）*
+![以 Owner 身份看到的 Members & roles（成员与角色）面板 —— 邀请框、分享链接控件与成员列表](../../assets/t7-2-members-roles.png)
 
 9. **日后更改或移除成员。** 作为 Owner，每一行成员都有一个**角色下拉框**（把某人在 Viewer↔Editor 之间切换）和
    一个移除操作。任何非 Owner 的成员都可以自己**退出（leave）**一个项目。要把项目整个交出去，就对某位成员用
