@@ -9,13 +9,14 @@ BUCKET=knowledge-datasets-1759951976
 AMI=${AMI:-ami-04f7da1c787a89267}      # DL Base OSS Nvidia GPU AMI (Ubuntu 22.04) us-west-2 (CUDA drivers)
 SG=${SG:-sg-011121fdf81073ec8}; KEY=${KEY:-biomate-trial-resume-20260912}
 TARGET=${TARGET:-5o45}
+RUNNER=${RUNNER:-peptide_mmgbsa_run.sh}   # override: peptide_mmgbsa_pocket_run.sh for large/multi-chain receptors
 DESIGNS_S3=${DESIGNS_S3:-s3://$BUCKET/cyclic_peptide/runs/boltzgen-oversample-5o45-20260930T172457Z/boltzgen_targets}
 NS=${NS:-0.5}
 RUNID=mmgbsa-pool-${TARGET}-$(date -u +%Y%m%dT%H%M%SZ)
 S3RUN=s3://$BUCKET/cyclic_peptide/runs/$RUNID
 HERE=$(cd "$(dirname "$0")" && pwd)
 
-aws s3 cp "$HERE/peptide_mmgbsa_run.sh" "$S3RUN/code/peptide_mmgbsa_run.sh" --only-show-errors
+aws s3 cp "$HERE/$RUNNER" "$S3RUN/code/peptide_mmgbsa_run.sh" --only-show-errors
 echo "uploaded runner -> $S3RUN/code/  (TARGET=$TARGET DESIGNS_S3=$DESIGNS_S3 NS=$NS)"
 
 UD=$(cat <<EOF | base64
