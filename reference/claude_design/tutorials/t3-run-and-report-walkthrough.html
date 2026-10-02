@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · T3 — Running a workflow and reading the report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+/* ---- top rail ---- */
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+
+/* ---- stage ---- */
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 64px 48px; opacity:0; transform:translateY(14px);
+  transition:opacity .6s ease, transform .6s ease; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:22ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+
+/* verdict badges */
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+.tag{display:inline-block; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:3px; background:var(--panel2); color:var(--mut)}
+.tag.new{background:var(--blue-bg); color:var(--blue)}
+.tag.ship{background:var(--green-bg); color:var(--green)}
+.tag.open{background:var(--amber-bg); color:var(--amber)}
+.tag.gap{background:var(--red-bg); color:var(--red)}
+
+/* screenshot + teaching split */
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+
+/* concept cards */
+.concept{flex:1; display:flex; flex-direction:column; gap:16px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:1; display:flex; flex-direction:column; justify-content:center}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.row5{display:grid; grid-template-columns:repeat(5,1fr); gap:14px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:15px 17px}
+.tile .n{font-family:var(--ff-mono); font-size:11px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:16px; margin:6px 0 6px; color:var(--ink); font-weight:600}
+.tile p{font-size:13px; line-height:1.48; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+
+/* teaching bullet list */
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Tutorial 3 · Running a workflow &amp; reading the report</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">8</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="30.4">
+    <div class="kicker">The everyday middle — run it, then read it</div>
+    <h2>Run a tested pipeline, and read a report you can defend.</h2>
+    <p class="caption">A <b>workflow</b> is a whole multi-step analysis, already tested and connected for you. You describe your goal in plain English, attach your data, and BioMate runs the pipeline on cloud computers and hands back one report — the results, every output file, and a complete record of how they were produced.</p>
+    <p class="caption sub">Running example: <b>Predict ADMET Properties (AI)</b> on three molecules — aspirin, caffeine, ibuprofen — a real, completed run. We'll watch it go from set-up, to live progress, to a three-tab report: Summary, Outputs, and the Reproducibility record.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>Confirm &amp; run</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Watch live phases</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Summary</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Outputs</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Reproducibility record</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — CONCEPTS -->
+  <section class="scene" data-seconds="35.9">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Five words that make the whole report readable.</h2>
+    <p class="caption">You don't assemble the tools — you run a ready-made pipeline and read what comes back. These five ideas are all you need.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row5">
+            <div class="tile"><div class="n">1 · WORKFLOW</div><h4>The pipeline</h4><p>A ready-made, tested multi-step analysis. You run it; you don't build it.</p></div>
+            <div class="tile"><div class="n">2 · PHASES / STEPS</div><h4>The stages</h4><p>Big phases, each made of individual tool steps. Each takes an input, makes an output.</p></div>
+            <div class="tile"><div class="n">3 · PARAMETERS</div><h4>The settings</h4><p>What the run uses — shown with sensible defaults <b>before</b> anything runs.</p></div>
+            <div class="tile"><div class="n">4 · QC GATE</div><h4>The guardrail</h4><p>An automatic mid-run check. It never silently passes a failed result.</p></div>
+            <div class="tile"><div class="n">5 · AFTER-RUN REPORT</div><h4>The result</h4><p>Three tabs: Summary, Outputs, and the Reproducibility record.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">"Tested / validated" means each step uses a published, established method — not that the result is clinically proven. A workflow is in-silico triage, not a finished answer.</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>Background — the vocabulary every run shares</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — PRE-RUN (r1) -->
+  <section class="scene" data-seconds="35.1">
+    <div class="kicker"><span class="st">Step 1</span> · Set up &amp; Confirm &amp; Run</div>
+    <h2>See exactly what will happen — before any compute is spent.</h2>
+    <p class="caption">You asked for ADMET in plain English; BioMate picked the validated workflow and opened its panel. Now review the set-up on the right, then press <b>Confirm &amp; Run</b>.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Pre-run · Workflow settings</span>
+        <div class="frame"><img src="assets/r1-prerun-param-strip.png" alt="ADMET pre-run parameter panel with Confirm and Run"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Inputs mapped.</b> This run takes parameters only — no data files to bind. Other workflows attach your FASTQ, CSV, FASTA, or SMILES file here.</span></li>
+          <li><span class="b"></span><span><b>Required parameters, filled in.</b> Your SMILES list (aspirin, caffeine, ibuprofen) and the ADMET model (MPNN) are shown and editable.</span></li>
+          <li><span class="b"></span><span><b>Output &amp; permissions.</b> Where results are kept (BioMate-managed, 90 days) and that you're the Owner who can run it.</span></li>
+          <li><span class="b"></span><span>This is your chance to <b>check or change</b> everything first. Then <b>Confirm &amp; Run</b>.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>Nothing runs until you confirm</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — RUNNING (r2) -->
+  <section class="scene" data-seconds="36.2">
+    <div class="kicker"><span class="st">Step 2</span> · Watch it run — phases &amp; QC gates</div>
+    <h2>Live progress, and the quality gates in plain view.</h2>
+    <p class="caption">In the <b>Phases</b> tab each step moves <code>pending → running → completed</code> in real time. The ADMET run shows its two steps and the QC gates it will enforce.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Running · Phases tab</span>
+        <div class="frame"><img src="assets/r2-running.png" alt="ADMET running with step progress and QC gates"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Steps in real time.</b> <code>Admet Infer Shard</code> is running (0 / 2); <code>Predict Admet Properties</code> is still pending.</span></li>
+          <li><span class="b am"></span><span><b>QC gates are cardiac-safety thresholds</b> — CiPA hERG safety margin, qNet risk, APD90 prolongation, EAD probability. These are the limits the run checks against.</span></li>
+          <li><span class="b"></span><span><b>It never silently passes a failed check.</b> If a result crosses a threshold the run flags it with the measured value versus the limit.</span></li>
+          <li><span class="b"></span><span>You can <b>Pause</b> or <b>Stop</b> at any time, and keep chatting while it runs in the background.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>Honest QC — gate values shown, not hidden</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — COMPLETED + HONEST WITHHOLDING (r8) -->
+  <section class="scene" data-seconds="38.4">
+    <div class="kicker"><span class="st">Step 3</span> · Completed — and the honesty feature</div>
+    <h2>If the findings can't be trusted, BioMate says so.</h2>
+    <p class="caption">The run completes: a green <b>Completed</b> badge, and the three-tab <b>After run</b> report opens on <b>Summary</b>. Normally Summary turns the outputs into a short, readable account with numbers pulled straight from the files.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Completed · Summary tab</span>
+        <div class="frame"><img src="assets/r8-completed-chat-and-panel.png" alt="ADMET completed, findings honestly withheld"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b gr"></span><span><b>Correct title, correct state.</b> "Predict ADMET Properties (AI)" · Completed — the chat and the panel agree.</span></li>
+          <li><span class="b rd"></span><span><b>Findings withheld — on purpose.</b> This run's output files <i>could not be read</i>, so the Summary withholds the findings rather than inventing a number.</span></li>
+          <li><span class="b"></span><span><b>"RUN ORIGINAL"</b> marks the unedited record. Any report you edit is saved alongside it; the original is never overwritten.</span></li>
+          <li><span class="b"></span><span>Findings are generated <b>directly from the real outputs</b> — so "can't read them" means "can't claim them". That honesty is the feature, not a bug.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>Withheld, never fabricated</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — OUTPUTS (r5) -->
+  <section class="scene" data-seconds="35.3">
+    <div class="kicker"><span class="st">Step 4</span> · Outputs — every file, by step</div>
+    <h2>The files are always served — even when findings are withheld.</h2>
+    <p class="caption">The <b>Outputs</b> tab lists every file the run produced, grouped by the step that made it. The findings above were withheld, but the six real files are right here, ready to download and read yourself.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">After run · Outputs tab</span>
+        <div class="frame"><img src="assets/r5-outputs.png" alt="ADMET outputs — six files grouped by step"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Six files, each with its type.</b> <code>predict_admet_properties_results.json</code>, <code>toxicity_report.json</code>, <code>qc_metrics.json</code>, <code>pk_summary.json</code>, a TXT table, and <code>versions.yml</code> (the software record).</span></li>
+          <li><span class="b"></span><span><b>Filed under the step</b> that produced it — so you can trace the pipeline from start to finish.</span></li>
+          <li><span class="b"></span><span><b>View or download</b> any single file, grab <b>all six as a ZIP</b>, open them in <b>Jupyter</b>, or save them to a project.</span></li>
+          <li><span class="b"></span><span>This is the clearest view of <b>each step's input and output</b> — the raw truth behind any summary.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>Outputs serve independently of findings</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — REPRODUCIBILITY (r6) -->
+  <section class="scene" data-seconds="41.3">
+    <div class="kicker"><span class="st">Step 5</span> · The Reproducibility record — your audit trail</div>
+    <h2>What makes the result defensible, in one download.</h2>
+    <p class="caption">The <b>Reproducibility record</b> is the complete audit trail — <i>"kept together; nothing is hidden or discarded."</i> This is what you attach to a manuscript, a patent, or an IND submission.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">After run · Reproducibility record</span>
+        <div class="frame"><img src="assets/r6-reproducibility.png" alt="Reproducibility record — run id, parameters, outputs, checksums"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Identity &amp; timing.</b> Run id <code>c40459b2…</code>, status, created / completed timestamps — the exact run, pinned down.</span></li>
+          <li><span class="b"></span><span><b>Parameters &amp; outputs</b> with type and size, plus expandable Methods, Software versions, Citations, QC report, and the full decision Trajectory.</span></li>
+          <li><span class="b am"></span><span><b>Checksums on demand.</b> SHA-256 shows <code>–</code> until you click <b>Compute checksums</b> — a fingerprint so anyone can verify the exact same file.</span></li>
+          <li><span class="b"></span><span><b>One click: Download record (JSON)</b> — the whole audit trail in a single file.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>Record &amp; outputs — VALIDATED on a real run</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — CLOSING -->
+  <section class="scene title" data-seconds="36.3">
+    <div class="kicker">The habit at a glance</div>
+    <h2 style="font-size:40px">Confirm &amp; run → watch live → read the three tabs.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">Every run follows the same shape. Set it up and confirm; watch the phases and QC gates in real time; then read Summary, Outputs, and the Reproducibility record. The record is what turns "the run finished" into a result you can explain and justify.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Ask in plain English; check the settings; Confirm &amp; Run</li>
+            <li><span class="k">2</span>Watch phases go pending → running → completed; mind the QC gates</li>
+            <li><span class="k">3</span>Read Summary — trust it, or trust that it's withheld</li>
+            <li><span class="k">4–5</span>Read Outputs file-by-file; download the Reproducibility record</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Run set-up &amp; confirm</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Validated</span></td></tr>
+            <tr><td>Live phases &amp; QC gates</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Validated</span></td></tr>
+            <tr><td>Outputs (6 files, by step)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Validated</span></td></tr>
+            <tr><td>Reproducibility record</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Validated</span></td></tr>
+            <tr><td>Summary findings</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Withheld here — outputs unreadable</span></td></tr>
+          </table>
+          <p class="footnote">A real completed run (c40459b2). Findings withheld honestly — the files and the record are shown in full. A workflow is in-silico triage, not a clinical result.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>
