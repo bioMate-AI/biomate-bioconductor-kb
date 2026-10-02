@@ -159,15 +159,61 @@ def db(path):
     return docs
 
 
+import urllib.request, urllib.parse, time
+WIKIBOOKS = ["Pharmacology", "Cell_Biology", "Biochemistry", "Genetics", "Structural_Biochemistry",
+             "Molecular_Biology", "Proteomics", "Next_Generation_Sequencing_(NGS)", "Bioinformatics",
+             "Human_Physiology", "Microbiology", "Immunology"]
+
+
+def _api(params):
+    url = "https://en.wikibooks.org/w/api.php?" + urllib.parse.urlencode({**params, "format": "json"})
+    req = urllib.request.Request(url, headers={"User-Agent": "BioMate-corpus/1.0 (research)"})
+    return json.load(urllib.request.urlopen(req, timeout=40))
+
+
+def wikibooks(books):
+    docs = []
+    for book in books:
+        try:
+            pages, cont = [], None
+            for _ in range(6):   # paginate allpages under the book prefix
+                p = {"action": "query", "list": "allpages", "apprefix": book + "/", "apnamespace": "0", "aplimit": "500"}
+                if cont:
+                    p["apcontinue"] = cont
+                d = _api(p); pages += [x["title"] for x in d.get("query", {}).get("allpages", [])]
+                cont = d.get("continue", {}).get("apcontinue")
+                if not cont:
+                    break
+            pages = [book] + pages
+            for title in pages[:120]:
+                try:
+                    d = _api({"action": "query", "prop": "extracts", "explaintext": "1", "titles": title})
+                    for pg in d.get("query", {}).get("pages", {}).values():
+                        txt = (pg.get("extract") or "").strip()
+                        txt = re.sub(r"\n{3,}", "\n\n", txt)
+                        if len(txt) >= 400 and txt.count(" ") >= 60:
+                            docs.append({"text": txt[:8000], "source": "wikibook", "topic": book.lower(),
+                                         "title": title, "license": "CC-BY-SA-3.0", "chars": min(len(txt), 8000)})
+                    time.sleep(0.15)
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"  wikibook {book} failed: {e}")
+    return docs
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--gtn", default=""); ap.add_argument("--db", default=""); ap.add_argument("--out", required=True)
+    ap.add_argument("--wikibooks", action="store_true")
     a = ap.parse_args()
     docs = []
     if a.db:
         docs += db(a.db)
     if a.gtn:
         docs += gtn(a.gtn)
+    if a.wikibooks:
+        docs += wikibooks(WIKIBOOKS)
     import collections
     by_src = collections.Counter(d["source"] for d in docs)
     tok_by_src = collections.Counter()

@@ -76,9 +76,21 @@ retrieved context · 🔴 irreducible LLM judgment (no DB answer).
 - **Flow:** failure → **[DB: error patterns]** → [LLM: propose fix] → **[harness VERIFIER: rerun the step → pass? (pass@k)]** → fixed or escalate.
 - **DB/verifier supports:** the pipeline *is* the verifier (cheap pass@k). **Can't:** nothing material — a wrong fix is caught by rerun.
 
-### 🟢 12. task_decomposition (for a known workflow)
-- **Flow:** workflow → **[DB: `step_metadata` ordered steps]** → plan.
-- **DB supports:** steps are stored. **Can't:** only when the request has *no* matching workflow → becomes 🔴 (see 16).
+### 🔴 12. task_decomposition  (CORRECTED — intent interpretation, not step lookup)
+- **Def (correct):** the user writes a **long free-text message containing several distinct tasks** →
+  **segment it into discrete, individually-executable tasks** (then each is routed/executed normally).
+- **Flow:** long user text → [**LLM: parse intent, find task boundaries, split into N asks (judgment)**]
+  → per-task **[harness: route → execute]** → ordered task list.
+- **DB supports:** the capability catalog helps *map* each segment to a known task type; but the core —
+  segmenting the user's prose into intents — has **no DB answer** (the DB can't tell you how a user's
+  sentence splits). It is upstream **intent interpretation**, sibling to clarification_request.
+- **Prior error:** I had defined this as "enumerate workflow steps" with gold = `step_metadata`. That is
+  a DIFFERENT (DB-supported) capability — *workflow_step_enumeration* (🟢 below) — NOT task_decomposition.
+  The db_grounded decomposition seeds (gold=`step_metadata`) are therefore mislabeled.
+
+### 🟢 12b. workflow_step_enumeration (the thing I mislabeled as decomposition)
+- **Def:** given a *chosen workflow*, list its ordered steps. **Flow:** workflow → **[DB: `step_metadata`]** → steps.
+- **DB supports:** stored field (pure lookup). This is real and DB-supported — just not "task_decomposition".
 
 ### 🟡 13. multi_workflow_chaining
 - **Def:** chain workflows so outputs feed inputs.
@@ -116,9 +128,18 @@ retrieved context · 🔴 irreducible LLM judgment (no DB answer).
 
 | Verdict | Count | Tasks |
 |---------|------:|-------|
-| 🟢 DB/knowledge-supported (residual none/thin) | **~11** | routing, tool_rec, dataset_prereq, parameter_extraction, knowledge_recall, scientific_qa, model_selection, design_constraint, log_diagnosis, autofix_repair, task_decomposition(known-wf) |
+| 🟢 DB/knowledge-supported (residual none/thin) | **~11** | routing, tool_rec, dataset_prereq, parameter_extraction, knowledge_recall, scientific_qa, model_selection, design_constraint, log_diagnosis, autofix_repair, **workflow_step_enumeration** |
 | 🟡 thin judgment over retrieved context | **~2** | multi_workflow_chaining, lane_arbitration |
-| 🔴 irreducible LLM judgment (no DB answer, no cheap grader) | **~4** | workflow_generation, out_of_catalog_composition, findings_interpretation, clarification_request |
+| 🔴 irreducible LLM judgment (no DB answer, no cheap grader) | **~5** | **task_decomposition (intent-split)**, workflow_generation, out_of_catalog_composition, findings_interpretation, clarification_request |
+
+**The 🔴 set clusters into two jobs, both genuinely the LLM's:**
+- **Intent interpretation (upstream):** `task_decomposition` (split long user prose → discrete tasks),
+  `clarification_request` (is it too ambiguous to proceed?), and the ambiguous slice of
+  `lane_arbitration`. No DB answer — the model reads the *user*, not the catalog.
+- **Generation/judgment (mid/down-stream):** `workflow_generation`, `out_of_catalog_composition`,
+  `findings_interpretation`. The harness supplies building blocks/results; the LLM composes/interprets.
+This two-cluster view is the real scope of the LLM: **read the user's intent, and reason/compose where
+the catalog has no answer.** Everything else is harness-carried.
 
 **So the user's thesis holds:** ~13 of 17 tasks are supported by existing knowledge/DB/resolvers +
 rules + verifiers — the LLM's job there is phrasing or thin tie-breaking, model-invariant (cheapest/
