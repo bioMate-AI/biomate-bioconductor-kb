@@ -71,11 +71,16 @@ process MERFISH_SPATIAL_ANALYSIS {
     export PARAM_NPERMS='${params.n_perms}'
     export PARAM_NTOPSVG='${params.n_top_svg}'
 
-    # biomni-tools:x86 installs squidpy/scanpy/anndata into the 'biotools' conda env.
-    # Nextflow/Batch runs .command.sh via /bin/bash WITHOUT the image entrypoint that
-    # activates that env, so resolve the env python explicitly (fall back to python3).
-    BT_PY=/opt/conda/envs/biotools/bin/python
-    if [ ! -x "\$BT_PY" ]; then BT_PY=\$(command -v python3 || command -v python); fi
+    # This workflow runs in quay.io/biocontainers/squidpy (squidpy + scanpy + anndata
+    # in the image's default python3 — verified: anndata 0.10.x, scanpy 1.10.x,
+    # squidpy 1.5.x; squidpy.datasets.merfish() downloads the Moffitt-2018 atlas over
+    # the Batch network). The DB docker_image for this workflow is set accordingly.
+    # (Legacy biomni-tools:x86 did NOT ship squidpy — see docs/20261001_MERFISH_SPATIAL.md.)
+    # Resolve a squidpy-capable interpreter robustly across images:
+    BT_PY=\$(command -v python3 || command -v python)
+    for _cand in /opt/conda/envs/biotools/bin/python /opt/conda/bin/python; do
+      if [ -x "\$_cand" ] && "\$_cand" -c 'import squidpy' >/dev/null 2>&1; then BT_PY="\$_cand"; break; fi
+    done
     echo "Using python: \$BT_PY"
 
     "\$BT_PY" << 'PYEOF'
@@ -92,8 +97,8 @@ try:
     import squidpy as sq
 except Exception as e:
     fail("squidpy/scanpy/anndata not importable in this image (%r). "
-         "merfish_spatial_analysis requires the biomni-tools:x86 image where these are "
-         "installed in the 'biotools' conda env. Refusing to emit fabricated results." % e)
+         "merfish_spatial_analysis requires an image with squidpy+scanpy+anndata "
+         "(DB docker_image = quay.io/biocontainers/squidpy). Refusing to emit fabricated results." % e)
 
 import matplotlib
 matplotlib.use("Agg")
