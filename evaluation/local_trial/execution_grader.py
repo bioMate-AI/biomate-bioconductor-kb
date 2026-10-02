@@ -94,6 +94,22 @@ def grade_run(run, deep=False):
             cok, cwhy = content_ok(o)
             if not cok:
                 return "FAIL", f"content check failed on {o.get('name')}: {cwhy}"
+        # molecular-identity check: the reported per-compound MWs must match the intended molecules
+        # (within tol). This makes a backend's SMILES-knowledge error EXECUTION-visible: a wrong SMILES
+        # runs fine but yields the wrong MW -> FAIL.
+        exp_mw = run.get("expect_mw")
+        if exp_mw:
+            rep = next((o for o in res if o.get("name") == "toxicity_report.json"), None)
+            if not rep:
+                return "FAIL", "expect_mw set but no toxicity_report.json"
+            try:
+                j = json.loads(s3_text(rep["s3_uri"], 20000))
+                got = [c.get("mw") for c in j.get("per_compound", []) if c.get("mw") is not None]
+            except Exception:
+                return "FAIL", "toxicity_report.json unreadable for MW check"
+            for want in exp_mw:
+                if not any(abs(float(g) - float(want)) <= 1.5 for g in got):
+                    return "FAIL", f"wrong molecule: expected MW {want} not in reported {got} (bad SMILES)"
         if con:
             for fn, keys in con.get("json_keys", {}).items():
                 o = next((x for x in res if x.get("name") == fn), None)
