@@ -15,11 +15,11 @@ Hello GenScript team,
 
 We're an early-stage drug-discovery company running cyclic-peptide binder programs, and we'd like to place a first round of **synthesis + affinity measurement** — the first of what we expect to be a **continuous, recurring collaboration**.
 
-**What we need is one integrated service, per peptide: synthesize it, then measure its binding — a single "make-and-measure" deliverable for each of the 22 peptides.** Please quote it as one end-to-end workflow per peptide, not as separate synthesis and assay orders.
+**We're asking for one continuous process carried out on each peptide individually: GenScript synthesizes the peptide, then measures its binding — the full synthesize → QC → KD pipeline run per peptide, all 22 handled this way.** We specifically do **not** want it run as two batched phases (synthesize all 22, then assay all 22). Ideally each peptide's result is delivered **as it completes** (rolling), so early finishers aren't held up by the slowest synthesis. We provide only the sequences — GenScript performs synthesis, sources the proteins, and runs the binding.
 
-- **Peptides:** 22 **head-to-tail backbone-amide cyclics** in two target panels (10 + 12), 8–16 residues, all natural L-amino acids (no non-natural residues this round). Per peptide: **≥95% purity, 5 mg, acetate (TFA-free) salt**, QC (RP-HPLC, ESI-MS, net peptide content, CoA). Sequences attached (two lists).
-- **Binding for every peptide:** **SPR/BLI KD** on Biacore 8K+, full kinetics + sensorgrams returned for **all** peptides including non-binders, using your **own catalog proteins** — **PD-L1, His, Human (Z03425)** for Panel A and **Integrin αVβ6 His & Avi heterodimer, Human (Z05532)** for Panel B (the Avi tag is ideal for site-specific SPR capture). αvβ6 runs in a **Mn²⁺/Ca²⁺ buffer** (integrin requirement). We supply peptides only.
-- **Per-peptide deliverable:** that peptide's QC package + measured **KD** (ka/kd) + sensorgram — so each of the 22 comes back as a complete make-and-measure result.
+- **Synthesis (each peptide):** 22 **head-to-tail backbone-amide cyclics** in two target panels (10 + 12), 8–16 residues, all natural L-amino acids (no non-natural residues this round). Per peptide: **≥95% purity, 5 mg, acetate (TFA-free) salt**, QC (RP-HPLC, ESI-MS, net peptide content, CoA).
+- **Binding (each peptide, immediately after its synthesis):** **SPR/BLI KD** on Biacore 8K+, full kinetics + sensorgrams for **all** peptides including non-binders, using your **own catalog proteins** — **PD-L1, His, Human (Z03425)** for Panel A and **Integrin αVβ6 His & Avi heterodimer, Human (Z05532)** for Panel B (the Avi tag is ideal for site-specific SPR capture). αvβ6 runs in a **Mn²⁺/Ca²⁺ buffer** (integrin requirement).
+- **Per-peptide deliverable:** that peptide's QC package + measured **KD** (ka/kd) + sensorgram — each of the 22 returned as a complete synthesize-and-bind result, as it finishes.
 
 **Three specific asks:**
 1. **Startup discount** — we're an early-stage company; please apply any startup / first-order / new-account discount available on both synthesis and the binding work.
