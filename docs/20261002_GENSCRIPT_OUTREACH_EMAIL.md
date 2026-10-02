@@ -15,9 +15,11 @@ Hello GenScript team,
 
 We're an early-stage drug-discovery company running cyclic-peptide binder programs, and we'd like to place a first round of **synthesis + affinity measurement** — the first of what we expect to be a **continuous, recurring collaboration**.
 
-**Scope:** 22 **head-to-tail backbone-amide cyclic** peptides in two target panels (10 + 12), 8–16 residues, all natural L-amino acids (no non-natural residues this round). Per peptide: **≥95% purity, 5 mg, acetate (TFA-free) salt**, standard QC (RP-HPLC, ESI-MS, net peptide content, CoA). Sequences attached (two lists).
+**What we need is one integrated service, per peptide: synthesize it, then measure its binding — a single "make-and-measure" deliverable for each of the 22 peptides.** Please quote it as one end-to-end workflow per peptide, not as separate synthesis and assay orders.
 
-**Binding:** for each peptide, **SPR/BLI KD** against the panel's target (Biacore 8K+ preferred), with full kinetics and sensorgrams returned for **all** peptides, including non-binders. One panel targets an **integrin (αvβ6)** and needs a **Mn²⁺/Ca²⁺ running buffer**. We can supply the target proteins, or please quote supplying research-grade protein.
+- **Peptides:** 22 **head-to-tail backbone-amide cyclics** in two target panels (10 + 12), 8–16 residues, all natural L-amino acids (no non-natural residues this round). Per peptide: **≥95% purity, 5 mg, acetate (TFA-free) salt**, QC (RP-HPLC, ESI-MS, net peptide content, CoA). Sequences attached (two lists).
+- **Binding for every peptide:** **SPR/BLI KD** on Biacore 8K+, full kinetics + sensorgrams returned for **all** peptides including non-binders, using your **own catalog proteins** — **PD-L1, His, Human (Z03425)** for Panel A and **Integrin αVβ6 His & Avi heterodimer, Human (Z05532)** for Panel B (the Avi tag is ideal for site-specific SPR capture). αvβ6 runs in a **Mn²⁺/Ca²⁺ buffer** (integrin requirement). We supply peptides only.
+- **Per-peptide deliverable:** that peptide's QC package + measured **KD** (ka/kd) + sensorgram — so each of the 22 comes back as a complete make-and-measure result.
 
 **Three specific asks:**
 1. **Startup discount** — we're an early-stage company; please apply any startup / first-order / new-account discount available on both synthesis and the binding work.
@@ -26,7 +28,7 @@ We're an early-stage drug-discovery company running cyclic-peptide binder progra
 
 **Confidentiality / IP:** we understand your **Standard Service Agreement** assigns IP — including sequence data — to the client and keeps our data confidential, which works for us to **proceed directly**. If you'd also like to put your standard **NDA** in place, send the template and we'll sign in parallel — it needn't hold up the quote.
 
-Could you send a quote + timeline (and let us know the fastest way to lock the 7-day slot)? Happy to jump on a short call. Thank you,
+Could you send an **all-in per-peptide quote (synthesis + binding together)** plus timeline, and the fastest way to lock the expedited slot? Happy to jump on a short call. Thank you,
 
 [Name / title / company / phone]
 
