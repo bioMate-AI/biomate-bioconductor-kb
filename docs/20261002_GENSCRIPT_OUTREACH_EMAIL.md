@@ -20,6 +20,7 @@ We're an early-stage drug-discovery company running cyclic-peptide binder progra
 - **Synthesis (each peptide):** 22 **head-to-tail backbone-amide cyclics** in two target panels (10 + 12), 8–16 residues, all natural L-amino acids (no non-natural residues this round). Per peptide: **≥95% purity, 5 mg, acetate (TFA-free) salt**, QC (RP-HPLC, ESI-MS, net peptide content, CoA).
 - **Binding (each peptide, immediately after its synthesis):** **SPR/BLI KD** on Biacore 8K+, full kinetics + sensorgrams for **all** peptides including non-binders, using your **own catalog proteins** — **PD-L1, His, Human (Z03425)** for Panel A and **Integrin αVβ6 His & Avi heterodimer, Human (Z05532)** for Panel B (the Avi tag is ideal for site-specific SPR capture). αvβ6 runs in a **Mn²⁺/Ca²⁺ buffer** (integrin requirement).
 - **Per-peptide deliverable:** that peptide's QC package + measured **KD** (ka/kd) + sensorgram — each of the 22 returned as a complete synthesize-and-bind result, as it finishes.
+- **Synthesis gates binding:** if a peptide can't be synthesized to spec, it does **not** proceed to binding and we should **not be billed for that peptide's binding**. Please just report which sequence(s) failed and why — a hard-to-make sequence is useful data for us. (Please also flag at quote time any sequences you expect to be difficult to synthesize.)
 
 **Three specific asks:**
 1. **Startup discount** — we're an early-stage company; please apply any startup / first-order / new-account discount available on both synthesis and the binding work.
