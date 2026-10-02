@@ -200,12 +200,11 @@ for cif in designs:
         # minimize complex, then single-point MM-GBSA (Sun PCCP 2019: minimized-structure MM-GBSA is
         # the best protocol for short peptides — and fast/robust on CPU, no MD needed).
         cp, csys = make_system(cpsf)
-        # positions MUST match csys atom count. OpenMM app.PDBFile silently dropped atoms psfgen wrote
-        # -> setPositions count mismatch that failed 6/12 on 2026-10-02. parmed reads the psf topology and
-        # overlays pdb coords in psf atom order, so the count is guaranteed to equal the psf/system.
-        _cpx = pmd.load_file(cpsf, xyz=cpdb)
-        pos = _cpx.positions
-        assert len(pos)==csys.getNumParticles(), f"pos {len(pos)} != sys {csys.getNumParticles()}"
+        # NOTE: 6/12 succeed here; the other 6 hit a psfgen/OpenMM atom-count mismatch. A parmed xyz=
+        # overlay was tried to fix it but that API regressed to 0/12 (reverted). αvβ6 ships on the
+        # BoltzGen ranking + the 6 physics ΔG; full-12 ΔG deferred (needs ACE/NME capping, not worth
+        # blocking the CRO send). See docs for the follow-up.
+        pos = app.PDBFile(cpdb).getPositions()
         integ=mm.LangevinMiddleIntegrator(300*unit.kelvin,1/unit.picosecond,0.002*unit.picoseconds)
         sim=app.Simulation(cp.topology, csys, integ, PLAT)
         sim.context.setPositions(pos)
