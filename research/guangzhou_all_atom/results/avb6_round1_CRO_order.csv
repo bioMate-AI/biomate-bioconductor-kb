@@ -1,0 +1,13 @@
+Peptide_ID,Sequence,Length,Cyclization,Purity,Amount_mg,Counterion,QC,iptm,iface_PAE,iface_Hbonds,dSASA_A2,bind_q,RUSH,Source_design
+BMAVB6-R1-01,GRGRNKYYP,9,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,0.952,1.71,7,598,1.599,RUSH,9xmm_36
+BMAVB6-R1-02,NKYRSRRGK,9,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,0.947,1.63,6,541,1.333,RUSH,9xmm_13
+BMAVB6-R1-03,GSLASLGIGRR,11,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,0.934,1.89,6,543,1.29,RUSH,9xmm_24
+BMAVB6-R1-04,ARRGNLAPLG,10,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,0.926,1.98,7,509,1.289,RUSH,9xmm_64
+BMAVB6-R1-05,KGLRGRSG,8,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,0.929,1.98,6,483,1.123,RUSH,9xmm_59
+BMAVB6-R1-06,GLFGGRGRR,9,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,0.938,1.89,4,543,1.078,RUSH,9xmm_32
+BMAVB6-R1-07,RGKLMPGRG,9,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,0.949,1.63,3,560,1.052,,9xmm_39
+BMAVB6-R1-08,GTGTGSLGRLR,11,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,0.883,2.75,7,449,0.987,,9xmm_96
+BMAVB6-R1-09,SSRSSLGHLLG,11,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,0.966,1.07,3,483,0.931,,9xmm_23
+BMAVB6-R1-10,SRKGIVKGP,9,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,0.899,2.91,4,538,0.913,,9xmm_31
+BMAVB6-R1-11,GTGIGSLGKLL,11,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,0.947,1.54,3,468,0.82,,9xmm_91
+BMAVB6-R1-12,APRGALASLG,10,"Head-to-tail backbone (C->N), no free termini",>=95%,5,Acetate,RP-HPLC+ESI-MS+COA,0.94,1.8,4,427,0.799,,9xmm_80
