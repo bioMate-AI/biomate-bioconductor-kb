@@ -158,11 +158,12 @@ def analyze_comparative_genomics_and_haplotypes(sample_fasta_files, reference_ge
         sample_name = os.path.basename(sample_path).split(".")[0]
         log.append(f"Processing sample: {sample_name}")
 
-        # Simplified alignment and variant calling approach
+        # Real variant detection. Align with BWA when available (keep the SAM as a real
+        # artifact and report the real mapped-record count), then call SNPs by direct
+        # position-wise comparison to the reference via Biopython. No fabrication.
         variants = []
 
         try:
-            # Attempt alignment with BWA if available
             sam_output = os.path.join(output_dir, f"{sample_name}.sam")
             subprocess.run(
                 ["bwa", "mem", reference_genome_path, sample_path],
@@ -170,37 +171,30 @@ def analyze_comparative_genomics_and_haplotypes(sample_fasta_files, reference_ge
                 stderr=subprocess.PIPE,
                 check=True,
             )
-            log.append(f"  - Alignment completed and saved to {sam_output}")
-
-            # Here we would normally parse the SAM file to identify variants
-            # For simplicity, we'll just note that variants would be identified here
-            variants = ["Simulated variant detection from SAM file"]
-            log.append("  - Variant calling would be performed on the SAM file")
-
+            mapped_records = 0
+            with open(sam_output) as _sh:
+                for _ln in _sh:
+                    if _ln.startswith("@"):
+                        continue
+                    _c = _ln.split("\\t")
+                    if len(_c) > 2 and _c[2] != "*":
+                        mapped_records += 1
+            log.append(f"  - BWA alignment: {mapped_records} mapped record(s) -> {sam_output}")
         except (subprocess.CalledProcessError, FileNotFoundError):
-            # Simplified comparison if BWA is not available
-            log.append("  - Using simplified sequence comparison")
+            log.append("  - BWA not available; SNPs called by direct sequence comparison")
 
-            # Load reference and sample sequences
-            reference_seqs = {record.id: str(record.seq) for record in SeqIO.parse(reference_genome_path, "fasta")}
-            sample_seqs = {record.id: str(record.seq) for record in SeqIO.parse(sample_path, "fasta")}
+        # SNP calling by direct reference comparison (always computed, real)
+        reference_seqs = {record.id: str(record.seq) for record in SeqIO.parse(reference_genome_path, "fasta")}
+        sample_seqs = {record.id: str(record.seq) for record in SeqIO.parse(sample_path, "fasta")}
+        for seq_id in set(reference_seqs.keys()) & set(sample_seqs.keys()):
+            ref_seq = reference_seqs[seq_id]
+            sample_seq = sample_seqs[seq_id]
+            min_len = min(len(ref_seq), len(sample_seq))
+            for i in range(min_len):
+                if ref_seq[i] != sample_seq[i]:
+                    variants.append(f"{seq_id}:{i + 1}:{ref_seq[i]}>{sample_seq[i]}")
 
-            # Simple variant detection by direct comparison
-            for seq_id in set(reference_seqs.keys()) & set(sample_seqs.keys()):
-                ref_seq = reference_seqs[seq_id]
-                sample_seq = sample_seqs[seq_id]
-
-                # Compare sequences (simplified approach)
-                min_len = min(len(ref_seq), len(sample_seq))
-                for i in range(min_len):
-                    if ref_seq[i] != sample_seq[i]:
-                        variants.append(f"SNP at position {i + 1}: {ref_seq[i]} -> {sample_seq[i]}")
-                        # Limit to first 10 variants for demonstration
-                        if len(variants) >= 10:
-                            variants.append("... (more variants exist)")
-                            break
-
-            log.append(f"  - Identified {len(variants)} potential variants")
+        log.append(f"  - Identified {len(variants)} SNP(s) vs reference")
 
         # Store variants for this sample
         variants_by_sample[sample_name] = variants
@@ -233,14 +227,17 @@ def analyze_comparative_genomics_and_haplotypes(sample_fasta_files, reference_ge
                 f.write(f"  - {v}\\n")
             f.write("\\n")
 
-        # In a real implementation, we would identify truly shared and unique regions
-        f.write("Shared Genomic Regions Analysis:\\n")
-        f.write("  This would contain detailed information about genomic regions\\n")
-        f.write("  that are conserved across samples.\\n\\n")
-
-        f.write("Unique Genomic Regions Analysis:\\n")
-        f.write("  This would contain detailed information about genomic regions\\n")
-        f.write("  that are unique to specific samples.\\n")
+        # Real shared vs unique variant analysis (set operations over the called SNPs)
+        _vsets = {s: set(v) for s, v in variants_by_sample.items()}
+        if _vsets:
+            _shared = set.intersection(*_vsets.values()) if len(_vsets) > 1 else set(next(iter(_vsets.values())))
+            f.write(f"Shared variants (present in all {len(_vsets)} sample(s)): {len(_shared)}\\n")
+            for v in sorted(_shared)[:20]:
+                f.write(f"  - {v}\\n")
+            f.write("\\nSample-unique variants:\\n")
+            for s, vs in _vsets.items():
+                _others = set.union(*[o for k, o in _vsets.items() if k != s]) if len(_vsets) > 1 else set()
+                f.write(f"  {s}: {len(vs - _others)} unique\\n")
 
     log.append(f"Comparative analysis results saved to {comparison_results}")
 
@@ -256,25 +253,36 @@ def analyze_comparative_genomics_and_haplotypes(sample_fasta_files, reference_ge
         # Group samples by simulated haplotype patterns
         f.write("Haplotype Grouping:\\n")
 
-        # Create some simulated haplotype groups
-        import random
-
-        haplotype_groups = {}
-        for i, sample in enumerate(sample_names):
-            group = f"Haplotype-{chr(65 + i % 3)}"  # A, B, or C
-            if group not in haplotype_groups:
-                haplotype_groups[group] = []
-            haplotype_groups[group].append(sample)
+        # Real haplotype grouping: cluster samples by shared-variant (Jaccard) similarity.
+        # Samples whose SNP sets overlap at Jaccard >= 0.5 join the same haplotype group.
+        _vsets = {s: set(v) for s, v in variants_by_sample.items()}
+        _groups = []
+        for s in sample_names:
+            _placed = False
+            for g in _groups:
+                _a, _b = _vsets.get(s, set()), _vsets.get(g[0], set())
+                _jac = (len(_a & _b) / len(_a | _b)) if (_a | _b) else 1.0
+                if _jac >= 0.5:
+                    g.append(s)
+                    _placed = True
+                    break
+            if not _placed:
+                _groups.append([s])
+        haplotype_groups = {f"Haplotype-{chr(65 + i)}": g for i, g in enumerate(_groups)}
 
         # Write haplotype groups
         for group, samples in haplotype_groups.items():
             f.write(f"  {group}: {', '.join(samples)}\\n")
 
-        f.write("\\nHaplotype Characteristics:\\n")
-        for group in haplotype_groups:
-            f.write(f"  {group}:\\n")
-            f.write(f"    - Distinguishing variants: {random.randint(5, 30)}\\n")
-            f.write(f"    - Estimated divergence time: {random.randint(1000, 10000)} years\\n")
+        f.write("\\nHaplotype Characteristics (computed from called variant sets):\\n")
+        for group, samples in haplotype_groups.items():
+            _union = set.union(*[_vsets.get(s, set()) for s in samples]) if samples else set()
+            _others = set()
+            for g2, ss in haplotype_groups.items():
+                if g2 != group:
+                    for s2 in ss:
+                        _others |= _vsets.get(s2, set())
+            f.write(f"  {group}: {len(_union - _others)} distinguishing variant(s)\\n")
 
     log.append(f"Haplotype analysis results saved to {haplotype_file}")
 
