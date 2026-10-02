@@ -5,6 +5,34 @@
 current system for gaps. Should we prepare all DBs locally — what do we have, what don't we?
 **Method:** grounded in a code audit of cloud couplings (not memory). Companion: [[20261001_TWO_LLM_ARCH]].
 
+## ⚠️ CORRECTION (2026-10-02) — next-phase already BUILT most of this
+A colleague has shipped a near-complete on-prem deployment on `integration/next-phase` (~100 numbered
+on-prem bug fixes, Chinese-commented). My gap list below over-claimed: **the harness plumbing is DONE.**
+What exists on next-phase:
+- `.env.onprem.example` + `docker-compose.onprem.yml` — full self-contained stack: **Postgres, Redis,
+  MinIO (replaces S3), optional Ollama, local registry, db-init (pulls the catalog DB), backend, frontend.**
+- **LLM → local**: `LLM_API_URL` / `GALAXY_AI_LLM_PROVIDER=openai_compatible` / `LLM_MODEL` / `OLLAMA_BASE_URL`.
+- **Execution → local**: `NEXTFLOW_USE_AWS=false` + `NEXTFLOW_WORK_DIR` (local Nextflow, no Batch).
+- **Storage → MinIO**, **registry → `BIOMATE_LOCAL_REGISTRY`**, **billing disabled**, **catalog DB
+  air-gap pre-download** (`BIOMATE_DB_URL` + a no-network pre-download note).
+So the layer table below is the *architecture*, but nearly every row is **already implemented** on
+next-phase. The honest lesson: I audited my worktree, not next-phase — check the colleague's branch first.
+
+### What's actually LEFT (my complementary, non-duplicating contribution)
+1. **The on-prem LLM MODEL.** next-phase defaults to a **generic** `LLM_MODEL=qwen2.5-32b-instruct`
+   (examples: deepseek-r1-32b, llama-3.3-70b). Our **domain-pro** (CPT on the BioMate knowledge/background
+   corpus) is the BioMate-specific brain that slots straight into their `openai_compatible` endpoint —
+   a better on-prem model than stock Qwen. **This is my workstream and it plugs in with zero new plumbing.**
+2. **Air-gap external-resolver mirrors** — the ~120 external calls (ebi/ncbi/ensembl/pubchem/uniprot/rcsb)
+   appear **unhandled** for fully air-gapped (fine for VPC-with-egress). Needs ChEMBL-subset + resolver
+   mirrors if air-gap is a target. ← genuine open gap.
+3. **Verify** the deploy ships **embeddings + a literature-RAG index** (catalog DB carries workflow
+   embeddings; knowledge_recall RAG may need a shipped literature index). ← quick check with the colleague.
+
+**Coordination:** harness/deploy = colleague (done); **model + air-gap knowledge-data = me.** Don't rebuild the stack.
+
+---
+
 ## The decisive scoping question (sets the whole scope)
 There are two very different "on-prem" targets:
 - **A. VPC-with-egress** (realistic first target): customer runs compute + storage + LLM in their VPC,
