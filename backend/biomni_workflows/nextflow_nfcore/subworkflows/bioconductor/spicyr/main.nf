@@ -75,15 +75,9 @@ process BIOC_SPICYR_PAIRWISE_LOCALIZATION_MODELING {
         return(readRDS(filename))
       } else if (file.exists(paste0(filename, ".rds"))) {
         return(readRDS(paste0(filename, ".rds")))
+      } else {
+        stop(paste("Required input file not found:", filename))
       }
-      # One-click demo fallback: no file staged -> load the built-in Bioconductor
-      # dataset of this name (spicyR's example data ship in 'spatialdatasets':
-      # kerenSPE, diabetesData). Keeps the workflow runnable with zero input while
-      # still preferring a user-supplied file when present. No fabrication.
-      ok <- tryCatch({ utils::data(list = filename, package = "spatialdatasets"); TRUE },
-                     error = function(e) FALSE)
-      if (ok && exists(filename)) return(get(filename))
-      stop(paste("Required input file not found and no built-in dataset:", filename))
     }
     
     # Read user inputs
