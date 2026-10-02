@@ -4,7 +4,7 @@ set -uo pipefail; cd "$(dirname "$0")"
 S3=s3://biomate-models-399683337364/biomate-core-local-trial/20260912
 export MODEL_SIZE=small STAGE=bakeoff TAG=_bakeoff ENTRY=build_bakeoff_ourmodel.sh BOOTSTRAP=gpu_bootstrap.sh
 SUBS=(subnet-09e4dce46682a6c60 subnet-03b277a7a08d388c1 subnet-0b35a6e2c1cf02dc2 subnet-0254e4c3634b41bfc)
-TYPES=(g6.2xlarge g5.2xlarge g6e.xlarge g5.4xlarge)
+TYPES=(g5.2xlarge g5.4xlarge g6e.xlarge g4dn.2xlarge g6.2xlarge)
 RESULT="$S3/eval/decisions_ourmodel.jsonl"; aws s3 rm "$RESULT" --quiet 2>/dev/null
 launch(){ for T in "${TYPES[@]}"; do for S in "${SUBS[@]}"; do
   O=$(ONDEMAND=$1 INSTANCE_TYPE=$T SUBNET=$S bash spot_launch.sh 2>&1); IID=$(echo "$O"|grep -oE "i-[0-9a-f]{8,}"|head -1)
