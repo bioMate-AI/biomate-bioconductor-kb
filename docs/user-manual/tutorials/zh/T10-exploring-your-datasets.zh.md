@@ -119,8 +119,7 @@ BioMate 的回答方式，是把每一个文件都作为一个**数据集对象*
 
 <!-- CAPTURE route=/files ; state=dataset object open on a CSV, Preview tab active ; focus=the Preview-tab sample table (column headers + first rows) and the "First N rows of M" note ; note=用一张真实的结果 CSV，让各列有意义（例如 gene_id、log2FoldChange、padj） -->
 
-*（待补图：Preview（预览）标签页，把一张结果 CSV 显示为一张"列加若干行"的样本表，下面带着那句"M 行中的前 N 行"
-的提示。）*
+![数据集对象的 Preview（预览）标签页 —— 一个由运行产生的 ADMET 结果文件的身份信息行（名称、大小、类型，以及 Reference 路径 `nextflow/outputs/…/run/…`）。对于表格类文件，这个标签页会改为显示"列加若干行"的样本表。](../../assets/t10-1-dataset-preview.png)
 
 **把这里预览的范围说清楚**，因为很容易期待它给出比实际更多的东西：
 
@@ -153,8 +152,7 @@ BioMate 的回答方式，是把每一个文件都作为一个**数据集对象*
 
 <!-- CAPTURE route=/files ; state=dataset object open on a run-output file, Lineage tab active ; focus=the Lineage tab showing "Produced by run" as an underlined clickable link, plus Workflow / Status / Step rows ; note=捕捉一个结果文件，让血统有内容可显示（而非一个上传的输入） -->
 
-*（待补图：一个结果文件的 Lineage（血统）标签页 —— "Produced by run"显示为一个可点击的链接，下面是 Workflow、
-Status 和 Step 几行。）*
+![一个结果文件的 Lineage（血统）标签页 —— "Produced by run c40459b2…"是一个可点击的链接，下面是 Workflow（Predict ADMET Properties (AI)）和 Step 几行。](../../assets/t10-2-dataset-lineage.png)
 
 **Consumers（使用方）标签页 —— 什么读取过这个文件。** 这里列出每一个被记录为把这个数据集作为输入读取过的运行。
 每一行同样可点击，点开那个使用它的运行。当还没有东西读过它时，这个标签页会说*"还没有运行被记录为读取过这个数据集"*
@@ -163,8 +161,7 @@ Status 和 Step 几行。）*
 
 <!-- CAPTURE route=/files ; state=dataset object open on a file that has been used as an input, Consumers tab active ; focus=the Consumers tab listing one or more "reads" rows (each a clickable run) ; note=如果所捕捉的文件没有使用方，就改为展示那句如实的空状态，并在图注里说明 -->
 
-*（待补图：Consumers（使用方）标签页，列出读取过这个数据集的那些运行，每一行都可点击去打开那次运行 —— 或者那句
-如实的"还没有运行被记录为读取过这个数据集"空状态。）*
+![Consumers（使用方）标签页 —— 一个刚产生的结果文件上那句如实的"还没有运行被记录为读取过这个数据集"空状态（一旦有运行把它作为输入读取，这里就会变成一个可点击的列表）。](../../assets/t10-3-dataset-consumers.png)
 
 **导出 RO-Crate。** 头部还有一个**Export RO-Crate（导出 RO-Crate）**按钮。RO-Crate 是一种标准的、可携带的溯源
 清单（一个 JSON 文件），它把数据集连同它的血统、它的使用方、记录在产生它那次运行上的工作流参数，以及任何版本笔记
@@ -185,8 +182,7 @@ Status 和 Step 几行。）*
 
 <!-- CAPTURE route=/files ; state=dataset object open, Versions tab active, with at least one added note so v1 + v2 both show ; focus=the version list (v1 · current / earlier entries with note, author, timestamp) and the "Add a version note" input with its Add version button ; note=展示输入框下方那段只追加的说明文字 -->
 
-*（待补图：Versions（版本）标签页，显示 v1 加上一条被添加的笔记条目，以及"Add a version note（添加一条版本笔记）"
-输入框和它的 Add version 按钮。）*
+![Versions（版本）标签页 —— "v1 · current（当前）"加上只追加的"Add a version note（添加一条版本笔记）"输入框及其 Add version 按钮（版本条目只追加；版本对比/回滚尚未构建）。](../../assets/t10-4-dataset-versions.png)
 
 **如实说清它是什么、不是什么**（这是最容易被误读的部分）：
 

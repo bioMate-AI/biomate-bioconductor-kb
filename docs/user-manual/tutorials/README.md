@@ -106,14 +106,18 @@ param strip, running + QC gates, completed, outputs, reproducibility record. Cap
 `frontend/e2e/tutorial-capture-20261002.e2e.ts`, `real-run-capture.e2e.ts`, `real-run-complete.e2e.ts`,
 `session-capture.e2e.ts`.
 
+**Dataset lineage / versions captured** (T10): the ADMET run's outputs were saved into a project
+(save-to-project), then the dataset object was captured — `t10-2` shows real navigable lineage
+("Produced by run c40459b2 → Predict ADMET Properties (AI) → run"), `t10-4` the append-only Versions
+tab, plus preview/consumers/origin. Closes the data-centric flagship story.
+
 **Honestly still placeholders** (need state the fixture can't produce truthfully):
-- **Dataset lineage / versions / consumers** — needs a dataset produced *into a project* (the ADMET
-  run was a fresh chat; its outputs aren't project datasets). "Save to Project" on the Outputs tab
-  could register one — a follow-up capture.
 - **Failed / QC-blocked run states** — the ADMET run succeeded; capturing these honestly needs a run
   that actually fails or trips a gate.
 - **Populated Findings Summary** — this run's findings were withheld (outputs unreadable — a real
-  product inconsistency: Outputs tab serves the files, findings generation couldn't read them).
+  product inconsistency: the Outputs tab serves the files, but findings generation couldn't read them).
+- **Consumers (populated)** — `t10-3` shows the honest empty state; a populated list needs a second run
+  that reads this dataset as input.
 
 ## Still pending
 

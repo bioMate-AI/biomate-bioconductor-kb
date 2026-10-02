@@ -130,8 +130,7 @@ as data — before you rely on the result.
 
 <!-- CAPTURE route=/files ; state=dataset object open on a CSV, Preview tab active ; focus=the Preview-tab sample table (column headers + first rows) and the "First N rows of M" note ; note=use a real results CSV so the columns are meaningful (e.g. gene_id, log2FoldChange, padj) -->
 
-*(Figure to add: the Preview tab showing a results CSV as a column-and-rows sample table, with the "first N
-rows of M" note underneath.)*
+![The dataset object's Preview tab — the identity rows (Name, Size, Type, and the Reference path `nextflow/outputs/…/run/…`) for a run-produced ADMET result file. For a tabular file this tab instead shows a column-and-rows sample.](../assets/t10-1-dataset-preview.png)
 
 **Be clear about the scope of the preview here**, because it is easy to expect more than this tab gives:
 
@@ -168,8 +167,7 @@ retained for this run"* rather than hiding the gap.
 
 <!-- CAPTURE route=/files ; state=dataset object open on a run-output file, Lineage tab active ; focus=the Lineage tab showing "Produced by run" as an underlined clickable link, plus Workflow / Status / Step rows ; note=capture a result file so lineage is populated (not an uploaded input) -->
 
-*(Figure to add: the Lineage tab of a result file — "Produced by run" shown as a clickable link, with the
-Workflow, Status, and Step rows beneath it.)*
+![The Lineage tab of a result file — "Produced by run c40459b2…" shown as a clickable link, with the Workflow (Predict ADMET Properties (AI)) and Step rows beneath it.](../assets/t10-2-dataset-lineage.png)
 
 **Consumers tab — what has read this file.** This lists every run recorded as reading the dataset as an input.
 Each row is clickable too, opening that consuming run. When nothing has read it yet, the tab says *"No runs are
@@ -179,8 +177,7 @@ on it) rather than a silent change under a running analysis.
 
 <!-- CAPTURE route=/files ; state=dataset object open on a file that has been used as an input, Consumers tab active ; focus=the Consumers tab listing one or more "reads" rows (each a clickable run) ; note=if no consumers exist on the captured file, show the honest empty state instead and note it in the caption -->
 
-*(Figure to add: the Consumers tab listing the runs that read this dataset, each row clickable to open that
-run — or the honest "no runs are recorded as reading this dataset yet" empty state.)*
+![The Consumers tab — the honest "no runs are recorded as reading this dataset yet" empty state for a freshly produced result (it becomes a clickable list once a run reads this dataset as input).](../assets/t10-3-dataset-consumers.png)
 
 **Export RO-Crate.** The header also has an **Export RO-Crate** button. RO-Crate is a standard, portable
 provenance manifest (a JSON file) that packages the dataset together with its lineage, its consumers, the
@@ -204,8 +201,7 @@ permanent record of *that* a dataset changed and why.
 
 <!-- CAPTURE route=/files ; state=dataset object open, Versions tab active, with at least one added note so v1 + v2 both show ; focus=the version list (v1 · current / earlier entries with note, author, timestamp) and the "Add a version note" input with its Add version button ; note=show the append-only helper text under the input -->
 
-*(Figure to add: the Versions tab showing v1 plus an added note entry, and the "Add a version note" input with
-its Add version button.)*
+![The Versions tab — "v1 · current" plus the append-only "Add a version note" input and its Add-version button (version entries are append-only; compare/restore is not built yet).](../assets/t10-4-dataset-versions.png)
 
 **Be honest about what this is and is not** (this is the part most likely to be misread):
 
