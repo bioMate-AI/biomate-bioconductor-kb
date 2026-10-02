@@ -2,7 +2,7 @@
 
 > **Who this is for:** anyone in a lab or hospital who wants data from their instruments — a sequencer, a
 > plate reader, a liquid-handling robot — to flow into BioMate without manual uploads. No coding needed to
-> *use* the registry; wiring an instrument up usually needs one-time help from an admin (explained below).
+> *use* the registry; connecting an instrument usually needs one-time help from an admin (explained below).
 > **Time:** ~8 minutes to read.
 > **Where it fits:** Tutorial 4 showed how to bring a file in by hand. This tutorial is the step up: letting
 > an instrument deliver its data to BioMate for you, and turning that into an analysis.
@@ -17,7 +17,9 @@ is which, and uploads them. That hand-off is slow and easy to get wrong.
 
 BioMate lets you **register an instrument once** so that when it produces new data, BioMate is told about it
 and offers to run the matching analysis — you just review and confirm. The instrument becomes a connected
-**data source** (see Tutorial 4 for the dataset idea), not a pile of files you shuttle around by hand.
+**data source** (see Tutorial 4 for the dataset idea), not a pile of files you copy and upload by hand. It
+saves the manual copy-and-upload after every run and keeps a clean record of which instrument produced which
+data — useful for audits.
 
 > **In one sentence:** register your instrument once; when it makes new data, BioMate shows it to you as a
 > ready-to-run suggestion — nothing runs until you confirm.
@@ -43,7 +45,7 @@ workspace attached to, and is it working?)*
 **Residency — does my data leave the building?** Every instrument row shows a **residency** badge, with no
 exceptions:
 - **on-prem** — the instrument and its data stay inside your network (all the local and file-watcher types).
-- **cloud** — the service lives in the cloud and data leaves your estate (Illumina BaseSpace, Benchling).
+- **cloud** — the service lives in the cloud and data leaves your organisation's own systems (Illumina BaseSpace, Benchling).
 *(Why it matters: for patient or otherwise restricted data, residency is the thing you're accountable for —
 it's shown on every row so you can check before connecting.)*
 
@@ -75,7 +77,8 @@ hand-off made visible — you see the data arrive and decide what to do.)*
    - **Name** — a label you'll recognise, e.g. *"Lab OT-2 (Bench 3)"*.
    - **Type** — pick from the ten supported types (see §5). The form then asks only for what that type needs.
    - **For a local instrument** (robot, sequencer, cryo-EM): its **host / IP** and **port** on your lab
-     network (the form pre-fills the usual port for that type).
+     network (the form shows the usual port for that type as a hint — e.g. 31950 for Opentrons — which you
+     type in or change).
    - **For a cloud service** (BaseSpace, Benchling): an **API key / token**.
    - **For a file-watcher type** (LC-MS, qPCR, flow cytometer, plate reader): the **watched output directory**
      the instrument writes to.
@@ -87,12 +90,14 @@ hand-off made visible — you see the data arrive and decide what to do.)*
 <!-- CAPTURE route=/ ; state=Add-instrument form open with a type selected (e.g. opentrons) showing host/port + residency line ; focus=add-instrument-form ; note=show the type dropdown, the host/port fields, and the "Residency: on-prem" line -->
 *(Figure to add: the Add-instrument form — type dropdown, the fields that appear for that type, and the residency line.)*
 
-> **The one-time wiring (admin step).** Registering the instrument tells BioMate it *exists*. For most types,
+> **The one-time setup (admin step).** Registering the instrument tells BioMate it *exists*. For most types,
 > data only starts flowing once a BioMate **connector/watcher** is running on your lab network, pointed at the
 > instrument (or its output folder). That's an IT/ops setup, done once per instrument — ask whoever administers
-> your lab's BioMate deployment. Two types need no local watcher: **Illumina BaseSpace** and **Benchling** are
-> cloud services, so a valid API key is enough; and **Opentrons** robots can also be driven directly from a
-> connected assistant on the same network.
+> your lab's BioMate deployment. **Illumina BaseSpace** and **Benchling** need no *on-network file-watcher*
+> because they're cloud services reached with an API key — but even then, something on BioMate's side still has
+> to poll the cloud service with your key before events appear; the key you enter here lets BioMate **check and
+> store** the connection, not pull data by itself (ask your admin whether that poll is running). Separately,
+> **Opentrons** robots can be driven directly from a connected assistant (via MCP) on the same network.
 
 ---
 
@@ -102,14 +107,14 @@ hand-off made visible — you see the data arrive and decide what to do.)*
 |---|---|---|
 | **Opentrons OT-2 / Flex** | Liquid-handling robot | Local (host + port); also drivable directly on the LAN |
 | **Nanopore MinKNOW** | Nanopore sequencer | Local (host + port) |
-| **Thermo EPU / cryo-EM** | Cryo-EM acquisition | Local (host + port) or a watched folder |
-| **Illumina BaseSpace** | Cloud sequencing platform | Cloud (API key) — **data leaves your estate** |
+| **Thermo EPU / cryo-EM** | Cryo-EM acquisition | Local (host + port) |
+| **Illumina BaseSpace** | Cloud sequencing platform | Cloud (API key) — **data leaves your organisation's systems** |
 | **LC-MS** | Mass spectrometry | File-watcher (watched output directory) |
 | **qPCR** | Quantitative PCR | File-watcher (watched output directory) |
 | **Flow cytometer** | Flow cytometry (FCS files) | File-watcher (watched output directory) |
 | **Plate reader** | Plate-based assays | File-watcher (watched output directory) |
 | **SiLA2 device** | Any SiLA2-standard lab device | Local (host + port, gRPC) |
-| **Benchling ELN / LIMS** | Electronic lab notebook / sample tracking | Cloud (API key) — pulls assay results |
+| **Benchling ELN / LIMS** | Electronic lab notebook / sample tracking | Cloud (API key); automatic assay-result pulling for drug-discovery campaigns is set up separately (the CRO flow), not from this registry |
 
 All the local and file-watcher types are **on-prem** (data stays inside your network). Only BaseSpace and
 Benchling are **cloud**.
@@ -139,7 +144,8 @@ source instrument, the experiment type, and the workflow it maps to. For each ev
 
 - **Registering ≠ data flowing.** The in-app registry is new. Adding an instrument records it and lets you
   **Check** connectivity, but for most types the data pipeline only runs once a connector/watcher is deployed
-  on your lab network (an admin step). BaseSpace and Benchling (cloud) are the exceptions.
+  on your lab network (an admin step). BaseSpace and Benchling are cloud services, so they need no on-network
+  file-watcher — but a cloud connector/poll still has to run with your key before events appear.
 - **Local instruments must be reachable.** A **Check** can only succeed if BioMate can reach the instrument's
   host/port, or the connector runs where it can. A cloud-only deployment cannot see a bench instrument on your
   LAN.

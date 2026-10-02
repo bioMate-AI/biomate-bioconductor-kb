@@ -112,6 +112,18 @@ Fixes applied + committed:
 - **P4 de-idiom:** "over-expect"→"expect too much"; "come in"→"fit"; "what you see is what you'd get"→"the real result, not a stale copy".
 - Assets verified real + correctly pathed (i08-1-outputs-tab, t3-3); the §5 inline-table/3-D figure remains an honest CAPTURE placeholder. **EN T5 ship-ready; CN T5 pending.**
 
+## T6 (Connecting lab & hospital instruments) — panel round
+5-persona panel vs I14 + the live `instruments-section.tsx`. Scores: BD 4 · biologist 4 · accuracy 3.5 · clinician 4 · student 4 (avg ≈3.9) → fixed the **3 P1 correctness overclaims before ship**:
+- **BaseSpace/Benchling "key is enough"** implied in-app auto-flow → clarified a cloud **poll/connector still must run** with your key (the key only lets BioMate check+store the connection).
+- **Benchling "pulls assay results"** → that's the **drug-discovery campaign API** (`/api/.../lims/poll`), NOT this registry; dropped the claim.
+- **EPU "or a watched folder"** → the in-app form only takes host/port (watched-folder is backend-only); removed.
+- P2: port is a **hint placeholder**, not pre-filled ("shows … as a hint — e.g. 31950 — which you type in"). P3 de-idiom: "shuttle around"→"copy and upload", "estate"→"your organisation's own systems", "wiring up"→"connecting/setup". P4: added an ROI/provenance anchor in §1.
+- Preserved (panel-confirmed faithful): admin/connector-on-LAN step front-and-centre, residency per row, Launch=reviewed draft (nothing auto-runs), the 10 types × connect-method mapping. **EN T6 ship-ready; CN T6 next** (needs real instrument screenshots once captured).
+
+## CN reviews (T5, T6)
+- **CN T5** native review: **fidelity 5/5** (all 7 honesty caveats intact — real-file previews, truncation-on-purpose, pLDDT-predicted-only, BAM download-only, interactive-tools-not-provisioned-on-dev/open-empty, single-cell-sidecar, honest "no data"). Applied P2/P3: `参考、变异`→`参考碱基、替代碱基` (allele collision), PDF subject fix, `运行自己的代码`, de-calque the single-cell fallback line, `一轮轮迭代`, `发现链接到它的输出`. **CN T5 ship-ready.**
+- CN T6 pending (after T6 EN ships + instrument screenshots captured).
+
 ## Change log
 - 2026-10-01 — 5-persona multi-LLM panel run on T1; T1 revised to v2 against all consensus + accuracy findings; reusable checklist extracted for the remaining tutorials (Models/closed-loop, workflow-run, etc., EN then CN).
 - 2026-10-01 — T3 EN 5-persona panel + revision; CN T3 written and native-CN-reviewed (fidelity 5/5); one correctness term fix (脱靶→在靶脱瘤) + de-calque/terminology polish applied. **T1/T2/T3 now complete and validated in EN + CN.**
