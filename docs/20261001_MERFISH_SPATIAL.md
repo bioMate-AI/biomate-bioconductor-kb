@@ -110,6 +110,37 @@ pattern and isolates the change.
 **Lesson (saved):** "confirmed in the Dockerfile" ≠ confirmed in the deployed image. Verify
 tooling with a runtime probe of the actual ECR tag before claiming an image provides it.
 
+### FULL root-cause chain + final VALIDATION (2026-10-01)
+
+The real squidpy pipeline needed **five** distinct fixes before it executed end-to-end — each
+found by reading actual runtime evidence, never guessing:
+
+1. **Conflict-marker corruption** in the deployed `.nf` (concurrent-session stash) → re-synced clean.
+2. **Post-sync stale-execution race** — the first dispatch after a workflow-layer sync resolved an
+   OLD `.nf` body (run-1 ran the pre-rewrite RNG-fabrication stub). Clean re-dispatch after settle.
+3. **`biomni-tools:x86` has no squidpy** (runtime-proven) → re-pointed the DB `docker_image`.
+4. **The `.nf` process `container` directive overrides the DB `docker_image`** for single_cell
+   workflows — so the DB change alone did nothing; run-3 still used biomni-tools:x86. Fixed the
+   directive to `quay.io/biocontainers/squidpy:1.5.0` (commit bd148e502).
+5. **libz mount gated out `/single_cell/`** — minimal quay biocontainers keep libz in
+   `/usr/local/lib`, so the host-mounted `aws` CLI (`aws.batch.cliPath`) can't resolve `libz.so.1`
+   during Nextflow S3 staging → **exit 127** before the task runs. Extended the executor's libz
+   `volumes` gate to include `/single_cell/` (nextflow_executor.py; same failure class as dropletutils).
+
+**run-5 (Galaxy run_id `f70a8a89-ffb1-4f94-9c7a-ab5bec4d50b7`) — exit 0, REAL output:**
+- Source `squidpy.datasets.merfish` (Moffitt 2018), Bregma −14, **6,605 cells × 161 genes**.
+- `squidpy.gr.spatial_neighbors` (generic, Delaunay, mean 5.99 neighbors) + `spatial_autocorr`
+  (Moran's I, 100 perms). Top SVGs biologically sensible: **Mbp I=0.54** (myelin, anatomically
+  restricted), Oxt/Gnrh1 (nucleus-restricted neuropeptides), Esr1, Nnat.
+- `versions.yml`: squidpy 1.5.0 / scanpy 1.10.2 / anndata 0.10.8 (real tools — contrast the
+  fabrication stub's fake "Cellpose/spatialDE/Giotto/RCTD").
+- Outputs: spatial_qc.json, spatial_domains.csv, spatially_variable_genes.csv, spatial_report.txt,
+  morans_I_ranking.png, top_svg_spatial.png, versions.yml.
+
+**Known minor bug (NOT fixed — flagged for the spatial-validation follow-up):** `fdr_bh` column is
+`nan` → `n_significant_fdr05 = 0`, even though raw Moran's I + permutation p-values are correct and
+correctly ranked. The BH-FDR step needs fixing; it does not affect the SVG ranking.
+
 ## Commit
 
 - **`586e89f05`** — `feat(spatial): real squidpy MERFISH pipeline (was honest-failing stub)`
