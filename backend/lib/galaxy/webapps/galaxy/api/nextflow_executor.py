@@ -3056,18 +3056,17 @@ def _generate_executor_config(
             # so extending the gate here is the real fix. Observed failure: dropletutils.)
             # Broadening to ALL paths is also safe (single-file, proven no-regression) —
             # kept surgical to leave BioMate's own full-image workflows untouched.
-            *(
-                ["        volumes = ['/usr/lib64/libz.so.1:/usr/lib64/libz.so.1:ro']"]
-                # /single_cell/ added 2026-10-01: merfish_spatial_analysis runs in the
-                # quay.io/biocontainers/squidpy task image (set via its process container
-                # directive), whose own libz lives in /usr/local/lib — same failure mode as
-                # dropletutils (host-mounted aws exits 127 'libz.so.1: cannot open shared
-                # object file' during S3 staging). The mount is a single read-only file and
-                # is harmless for the full-image single_cell workflows (proven no-regression).
-                if (is_nfcore or "/bioconductor/" in nf_path or "/nf-core-modules/" in nf_path
-                    or "/single_cell/" in nf_path)
-                else []
-            ),
+            # 2026-10-02: ALWAYS mount host libz (class fix). The gate was a path allow-list
+            # (nf-core → +bioconductor → +nf-core-modules → +single_cell …) that kept breaking
+            # for each new domain whose workflow runs a bare quay.io/biocontainers task image
+            # (libz in /usr/local/lib, not on the host-mounted aws binary's search path → aws
+            # exits 127 during S3 staging). The container is chosen by the .nf process directive,
+            # which this config block can't see, so NO nf_path list can be complete. The mount is
+            # a SINGLE read-only file and is a no-op for BioMate full images that already have it
+            # (proven no-regression on the full-image workflows), so mount it unconditionally and
+            # close the whole exit-127 class. (Observed instances: dropletutils, merfish/squidpy,
+            # fpsim2, flow-cytometry — all different nf_path prefixes, same root cause.)
+            "        volumes = ['/usr/lib64/libz.so.1:/usr/lib64/libz.so.1:ro']",
             "    }",
             "}",
             "docker.enabled = true",
