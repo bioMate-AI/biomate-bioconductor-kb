@@ -139,6 +139,27 @@ Statically audited all 12 imaging bioc workflows:
 
 Either way this is a deliberate campaign, not a quick batch — size it explicitly before running.
 
+### Phase 1 — spicyR one-click attempt FAILED (negative result, 2026-10-02)
+
+Tried Option B on spicyR as a proof-of-pattern: `load_input` → `utils::data(list=name,
+package="spatialdatasets")` when no file staged. **Run failed (exit 1)** at `load_input("kerenSPE")`
+→ my `stop()` fired: `data()` did **not** load `kerenSPE`. Root cause: **`spatialdatasets` is an
+ExperimentHub package** — its datasets (`kerenSPE`, `diabetesData`) are fetched via **accessor
+functions / ExperimentHub queries, not `utils::data()`**. **Reverted** the non-working fallback
+(commit e476359ce) — shipping a "one-click demo" that still fails is worse than none.
+
+**Resized Phase-1 conclusion:** there is **no single data-access template** for the imaging bioc
+set. Three distinct patterns exist and each needs per-workflow handling:
+1. **`data()` lazy-data** (true for some bioc pkgs) — `data()` fallback works.
+2. **ExperimentHub accessors** (spatialdatasets: `kerenSPE()`-style; needs network + an EH cache
+   configured on the Batch task) — `data()` does NOT work.
+3. **No built-in** — must stage a real dataset to S3.
+
+So a proper Phase-1 campaign must, per workflow: (a) identify the dataset-access pattern, (b) for EH
+packages, verify the accessor + that ExperimentHub works on Batch (network + `AnnotationHub`/`EH`
+cache dir), or stage a `.rds` instead. Budget accordingly; do NOT assume a uniform `data()` fix.
+merfish worked precisely because squidpy ships a *simple pooch* download, not ExperimentHub.
+
 ## Phase 2 — sequencing-based spatial (Visium / GeoMx), same method
 
 SpatialExperiment, SpatialFeatureExperiment, nnSVG, BayesSpace, Banksy (+joint/Harmony variants),
