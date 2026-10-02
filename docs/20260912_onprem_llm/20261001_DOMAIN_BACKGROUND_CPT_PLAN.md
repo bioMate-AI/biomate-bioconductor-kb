@@ -59,6 +59,29 @@ and never builds the reasoning scaffold. This is the gap.
    the **null**: does background CPT beat the fact-heavy mid500 (0.26) and lift knowledge MCQA above
    the current SFT (0.66/0.48)? Leakage-split the eval from the corpus by source/family.
 
+## Recipe precedent — what established life-science LLMs train on (verified 2026-10-01)
+- **MEDITRON** (Llama-2): CPT on **GAP-Replay 48.1B tok** = clinical guidelines (46K) + 16.1M PubMed/PMC
+  abstracts + full-text (5M papers) + general replay. (Our spot_train.sh already mimics "Meditron-style".)
+- **PMC-LLaMA:** MedC-K = 4.8M papers + **30K TEXTBOOKS** (knowledge injection) → instruction tune.
+  **Textbooks are core to the recipe — our missing layer.**
+- **TxGemma / Tx-LLM** (drug): fine-tuned on **TDC** (66 therapeutic tasks, 7M examples) — this is drug
+  *task/benchmark* data (maps to our ADMET/PBPK/BOIN benchmarks), NOT background.
+- Pattern: **CPT on papers + guidelines + textbooks + replay → SFT.** We have papers
+  (`pmc_fulltext_bulk`) + DB-concepts; add **textbooks + guidelines**.
+- Sources: MEDITRON arXiv 2311.16079; PMC-LLaMA (PMC11639126); TxGemma (goo.gle/TxGemma).
+
+## Textbook + drug-knowledge layer (license-clean for commercial use)
+PMC-LLaMA's 30K textbooks were library-sourced (licence murky). Use CC-licensed only:
+| Source | Licence | Drug depth? |
+|--------|---------|-------------|
+| OpenStax (Biology 2e, Microbiology, **Chemistry 2e**) | CC-BY | chem foundation |
+| LibreTexts (Biology, Biochemistry, **Pharmacology**, **Medicinal Chemistry**, Organic) | CC (filter NC) | **yes — primary drug background** |
+| Wikibooks (Pharmacology, Cell Biology, Biochemistry) | CC-BY-SA | yes |
+| StatPearls (NCBI Bookshelf) | CC-BY | clinical pharmacology |
+| PMC OA **review** subset (ADMET / PK-PD / drug-discovery reviews) | CC-BY/OA | yes |
+| DB drug_discovery (61 wf) + pharmacology tool `scientific_context` | internal | BioMate-specific (already in corpus) |
+Facts (DrugBank/ChEMBL rows, SMILES) stay in retrieval.
+
 ## Build order (cheapest, highest-leverage first; no GPU until corpus is reviewed)
 1. GTN (CC-BY) — clone, extract tutorial concept markdown → `background_corpus.jsonl` [START HERE]
 2. Bioconductor + nf-core conceptual docs
