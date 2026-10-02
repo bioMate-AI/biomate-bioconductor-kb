@@ -25,6 +25,7 @@ Full coverage map (design spec 00–14 → tutorial → built/backlog): `docs/20
 | T8 | [Reports — edit & export](T8-reports-edit-and-export.md) | Editing a report, saving versions, exporting |
 | T9 | [Connecting data & tools](T9-connecting-data-and-tools.md) | Databases, MCP servers (the Connectors dialog) |
 | T10 | [Exploring your datasets](T10-exploring-your-datasets.md) | A dataset's metadata, preview, lineage, versioning, scope |
+| T11 | [Drug development, end to end](T11-drug-development-end-to-end.md) | The full pipeline: generate → predict (ADMET/physchem/QSAR) → dock/RBFE → optimize & rank → closed loop → PK/PBPK → report |
 
 ## The cold-start function modules
 
