@@ -241,17 +241,29 @@ Batch.** Batch spend: ~$0.03.
   SingleCellExperiment is already baked into `bioc-domain-transcriptomics:3.20-slim` (it is a
   dependency of scran/scater/scuttle/scdblfinder, all of which constructed SCE objects and succeeded),
   so the attach will resolve with no runtime install.
-- **Status:** committed; **needs a dev sync + one re-dispatch to confirm exit 0 + persisted outputs**
-  (`sc3_cell_metadata_results.csv`, `sc3_gene_metadata_results.csv`, `sc3_sce_output.rds`,
-  `sc3_plots.pdf`, `versions.yml`). Re-run was **not** performed this session — the sync lock is
-  serialized and a concurrent session holds uncommitted working-tree files; per the coordination rule
-  only committed-by-me files were touched and no out-of-band dev edit was made.
+- **Status:** ✅ **FIX VALIDATED on production AWS Batch (2026-10-01).** After the fix synced to dev,
+  a clean re-dispatch via the public `/api/workflows/execute` path (fixture auth) executed the
+  corrected body (verified by reading the generated `.command.sh`: `library(SingleCellExperiment)=1`,
+  `.bm_deps` includes `"SingleCellExperiment"`). **Batch exit code 0**, no errors (only ggplot
+  aesthetic warnings). All 5 outputs persisted to S3: `sc3_cell_metadata_results.csv` (21 KB — 400
+  cells with real k=2/3/4 consensus clusters: k2=249/151, k3=249/148/3, k4=118/33/143/106, plus
+  per-k log2 outlier scores), `sc3_gene_metadata_results.csv` (278 KB), `sc3_sce_output.rds` (1.7 MB),
+  `sc3_plots.pdf` (2.7 MB — 7 SC3 plots), `versions.yml` (SC3 1.34.0). Galaxy run_id
+  `740ee77d-3196-46dc-8c6c-280abef5a63c`; Batch task finished in ~4 min.
+  - **Caveat observed:** the first re-dispatch immediately after the workflow-layer sync hit a
+    transient **stale-execution race** (ran the pre-fix body — missing the library attach — because
+    the first dispatch resolved an old `.nf` before the deploy settled). A clean re-dispatch after
+    settle executed the fixed body. See the MERFISH note (same race affected it) and
+    `docs/20261001_MERFISH_SPATIAL.md`.
+  - **Also observed (separate issue):** the API run status stayed `running` for ~30 min after the
+    Batch task had already finished (exit 0 at 19:12) — a completion-tracking propagation lag, not a
+    compute failure. Worth a follow-up in the run-state/CompletionPoller path.
 
-**Verdict:** the composable single-cell Bioconductor subworkflow chain is **VALIDATED on production
-AWS Batch** — 4/5 tools produce real, biologically-sensible outputs (clustering, QC, dimred, doublet
-calls) with exit 0; the 5th (sc3) has a confirmed root cause and a committed 1-line fix pending
-sync+re-run. **Batch spend this task: ~$0 (read-only verification; the 5 jobs were run by the prior
-session).**
+**Verdict:** the composable single-cell Bioconductor subworkflow chain is **FULLY VALIDATED on
+production AWS Batch — 5/5 tools** produce real, biologically-sensible outputs (clustering, QC,
+dimred, doublet calls, SC3 consensus clustering) with exit 0. sc3's missing-`library()` root cause is
+fixed and re-run-confirmed (2026-10-01). **Batch spend: ~$0 for the first 4 (read-only verification of
+prior-session jobs) + one short sc3 re-run (~4 min CPU).**
 
 ---
 
