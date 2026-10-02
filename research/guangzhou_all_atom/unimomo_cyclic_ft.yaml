@@ -1,0 +1,85 @@
+# UniMoMo cyclic-specialization FINE-TUNE config.
+# Warm-starts the diffusion (LDM) from the reproduced base model.ckpt (0.7754 DockQ) and fine-tunes
+# ONLY on cyclic-peptide complexes (d2-mine, PepBDB-cyclic test held out). The IterVAE autoencoder is
+# loaded from ae.ckpt (extracted from the base model.ckpt) and FROZEN by LDMMolDesign (requires_grad=False).
+# Model block is COPIED VERBATIM from configs/LDM/train.yaml so load_ckpt's state_dict fits exactly.
+# Paths are relative to the UniMoMo repo root; the launcher stages them.
+
+dataset:
+  train:
+    - class: DynamicBatchWrapper
+      dataset:
+        class: PeptideDataset
+        mmap_dir: ./datasets/peptide/cyclic/processed
+        specify_index: ./datasets/peptide/cyclic/processed/train_index.txt
+        length_type: block
+      complexity: n*n
+      ubound_per_batch: 1800000
+      n_use_max_in_batch: true
+  valid:
+    - class: DynamicBatchWrapper
+      dataset:
+        class: PeptideDataset
+        mmap_dir: ./datasets/peptide/cyclic/processed
+        specify_index: ./datasets/peptide/cyclic/processed/valid_index.txt
+        length_type: block
+      complexity: n*n
+      ubound_per_batch: 1800000
+      n_use_max_in_batch: true
+
+dataloader:
+  train:
+    shuffle: true
+    num_workers: 8
+  valid:
+    num_workers: 4
+
+trainer:
+  class: LDMTrainer
+  criterion: loss
+  config:
+    max_epoch: 30          # specialization, not from-scratch (base was 500)
+    save_topk: 5
+    val_freq: 1
+    save_dir: ./ckpts/cyclic_ft
+    patience: 6
+    metric_min_better: true
+    proj_name: UniMoMo_cyclic_ft
+    logger: tensorboard
+
+    optimizer:
+      class: AdamW
+      lr: 1.0e-5           # low LR for fine-tune (base used 1e-4)
+
+    scheduler:
+      class: ReduceLROnPlateau
+      factor: 0.8
+      patience: 3
+      mode: min
+      frequency: val_epoch
+      min_lr: 1.0e-6
+
+model:
+  class: LDMMolDesign
+  autoencoder_ckpt: ./checkpoints/ae.ckpt   # extracted from base model.ckpt (.autoencoder), frozen
+  latent_deterministic: true
+  hidden_size: 512
+  num_steps: 100
+  h_loss_weight: 1.0
+  std: 10.0
+  diffusion_opt:
+    trans_seq_type: Diffusion
+    trans_pos_type: Diffusion
+    encoder_type: EPT
+    encoder_opt:
+      n_layers: 6
+      n_rbf: 64
+      cutoff: 3.0
+      n_head: 8
+      use_edge_feat: true
+      pre_norm: true
+      efficient: false
+      vector_act: layernorm
+  is_aa_corrupt_ratio: 0.1
+
+load_ckpt: ./checkpoints/model.ckpt          # warm-start the full model from the reproduced base
