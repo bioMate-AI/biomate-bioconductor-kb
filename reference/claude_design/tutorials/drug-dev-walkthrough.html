@@ -127,7 +127,7 @@ svg{display:block}
 <div class="stage" id="stage">
 
   <!-- 0 — TITLE -->
-  <section class="scene title" data-seconds="13">
+  <section class="scene title" data-seconds="25.2">
     <div class="kicker">The whole journey — not one prediction</div>
     <h2>Drug development is a pipeline of eight stages, mapped to real BioMate workflows.</h2>
     <p class="caption">From naming a goal, to designing molecules, predicting properties, testing them against the target's structure, ranking the survivors, closing the loop, projecting the dose, and keeping a defensible record.</p>
@@ -147,7 +147,7 @@ svg{display:block}
   </section>
 
   <!-- 1 — FRAMING -->
-  <section class="scene" data-seconds="15">
+  <section class="scene" data-seconds="26.9">
     <div class="kicker"><span class="st">Stage 1</span> · Framing the goal</div>
     <h2>Write down the target, the objectives, and the constraints — before any molecule exists.</h2>
     <p class="caption">Every later stage inherits these choices, so a vague goal produces a vague shortlist. You capture it simply by describing it in plain English to BioMate.</p>
@@ -167,7 +167,7 @@ svg{display:block}
   </section>
 
   <!-- 2 — DESIGN / GENERATE -->
-  <section class="scene" data-seconds="19">
+  <section class="scene" data-seconds="31.1">
     <div class="kicker"><span class="st">Stage 2</span> · Generating / designing candidates</div>
     <h2>Which molecules should I even consider?</h2>
     <p class="caption">Rather than draw molecules by hand out of ~10⁶⁰ possibilities, BioMate proposes candidates around a seed and returns a ranked, safety-filtered shortlist. The real workflow is <b>REINVENT4 Generative Lead Design</b>, with four design modes.</p>
@@ -191,7 +191,7 @@ svg{display:block}
   </section>
 
   <!-- 3 — PROPERTY PREDICTION (screenshots) -->
-  <section class="scene" data-seconds="21">
+  <section class="scene" data-seconds="40.2">
     <div class="kicker"><span class="st">Stage 3</span> · Property prediction — ADMET, physicochemical, QSAR</div>
     <h2>Of the molecules I now have, which are absorbed, safe, and worth the bother?</h2>
     <p class="caption">BioMate's flagship <b>Predict ADMET Properties (AI)</b> — ADMET-AI graph neural nets on 2M+ measurements — predicts 15 endpoints from a SMILES list, including <b>hERG</b>, the risk our JAK1 example cares about most. It runs on AWS Batch.</p>
@@ -215,7 +215,7 @@ svg{display:block}
   </section>
 
   <!-- 4 — STRUCTURE-BASED -->
-  <section class="scene" data-seconds="19">
+  <section class="scene" data-seconds="37.3">
     <div class="kicker"><span class="st">Stage 4</span> · Structure-based evaluation</div>
     <h2>Does it actually fit the target's 3-D pocket — and how tightly?</h2>
     <p class="caption">This is where you move from "drug-like" to "actually binds JAK1". Three methods, used in increasing order of cost and accuracy — dock many, RBFE a few, MD the final handful.</p>
@@ -235,7 +235,7 @@ svg{display:block}
   </section>
 
   <!-- 5 — MULTI-OBJECTIVE RANK -->
-  <section class="scene" data-seconds="20">
+  <section class="scene" data-seconds="35.4">
     <div class="kicker"><span class="st">Stage 5</span> · Multi-objective optimization &amp; developability ranking</div>
     <h2>Which handful is the best all-round compromise?</h2>
     <p class="caption">Each candidate now has several numbers that disagree — potent but insoluble, safe but hard to make. BioMate keeps every goal in its own column and units, never blended, and shows the <b>Pareto front</b>: the trade-off boundary where you can't improve one goal without sacrificing another.</p>
@@ -277,7 +277,7 @@ svg{display:block}
   </section>
 
   <!-- 6 — CLOSED LOOP + QC GATE -->
-  <section class="scene" data-seconds="20">
+  <section class="scene" data-seconds="38.4">
     <div class="kicker"><span class="st">Stage 6</span> · The closed loop (DBTL) &amp; the QC gate</div>
     <h2>How do I turn one round of designs into a steadily improving program?</h2>
     <p class="caption">No single pass gives a finished drug. The reliable method is a cycle — and the benefit compounds every round. Inside a run, an automatic QC gate <b>never silently passes a failed check</b>: it shows the measured value vs. the threshold and, for some workflows, fixes a parameter and re-runs.</p>
@@ -317,7 +317,7 @@ svg{display:block}
   </section>
 
   <!-- 7 — PK / PBPK -->
-  <section class="scene" data-seconds="19">
+  <section class="scene" data-seconds="32.4">
     <div class="kicker"><span class="st">Stage 7</span> · PK / PBPK modeling</div>
     <h2>What dose would a human need?</h2>
     <p class="caption">A molecule that binds well and looks safe still has to reach the right concentration at a sensible dose. BioMate's <b>PBPK Allometric Scaling</b> chain projects human exposure — often from animal data — and a first-in-human dose brief in regulatory (FDA/EMA) format.</p>
@@ -352,7 +352,7 @@ svg{display:block}
   </section>
 
   <!-- 8 — RESULTS & REPRODUCIBILITY (screenshots) -->
-  <section class="scene" data-seconds="21">
+  <section class="scene" data-seconds="32.4">
     <div class="kicker"><span class="st">Stage 8</span> · Reading the results &amp; the reproducibility record</div>
     <h2>What did I find — and can I prove how I got it?</h2>
     <p class="caption">Every stage produces the same three-tab report: Summary, Outputs, and a downloadable Reproducibility record. This is what makes the whole journey defensible for a manuscript, a patent, or an IND submission.</p>
@@ -378,7 +378,7 @@ svg{display:block}
   </section>
 
   <!-- 9 — CLOSING -->
-  <section class="scene title" data-seconds="18">
+  <section class="scene title" data-seconds="34.8">
     <div class="kicker">The pipeline at a glance</div>
     <h2 style="font-size:40px">Frame → design → predict → test → rank → loop → dose → record.</h2>
     <div class="scene-body">
