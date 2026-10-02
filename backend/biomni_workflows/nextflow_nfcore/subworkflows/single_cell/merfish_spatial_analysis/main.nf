@@ -47,9 +47,11 @@ process MERFISH_SPATIAL_ANALYSIS {
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
-        : 'biomate/biomni-tools:latest'
+    // squidpy biocontainer (squidpy+scanpy+anndata in the base python3) — probe-verified.
+    // NOTE: this process-level directive is what actually runs on AWS Batch (it overrides
+    // the DB docker_image for this single_cell workflow), so the container MUST be set here.
+    // Legacy biomni-tools:x86 did NOT ship squidpy — see docs/20261001_MERFISH_SPATIAL.md.
+    container 'quay.io/biocontainers/squidpy:1.5.0'
 
     input:
     val(meta)
