@@ -33,6 +33,14 @@ L = -log σ( -β [ (L_π(x_w) - L_ref(x_w)) - (L_π(x_l) - L_ref(x_l)) ] )
 
 ## Part 2 — Porting the close-back to UniMoMo (the actual best base)
 
+> **STATUS 2026-10-02 — BUILT (CPU self-test green).** `research/guangzhou_all_atom/dpo_unimomo_adapter.py`
+> (imports the shared core from `dpo_peptide_trainer.py`; `denoise_loss_unimomo` + `build_unimomo_policy` +
+> `UniMoMoPairRecordLoader`) + `launch_dpo_peptide_trainer_unimomo.sh`. Self-test ALL_CHECKS_PASS (init
+> loss=log2, loss 0.684→0.622, reward_margin 0.018→0.166, reference frozen, RNG-synced identical). Still
+> GATED on real preference pairs + a UniMoMo dataset of the featurized designs before a GPU run (launcher
+> preflight enforces both). The real FullDPM path runs on the AMI; the local self-test stubs only the
+> IterVAE encode (local scipy is broken), exercising the identical DPO mechanics.
+
 **Why port.** The best *in-house* base is cyclic-FT 0.506; the best base *overall* is **UniMoMo (~0.759 DockQ, oracle best-of-N on LNR-93 @ 100/target)** — public weights, a genuinely SOTA generator and target-conditioned co-design. For the close-back to improve the *best* model (user directive), it must ultimately fine-tune UniMoMo, not just the PepGLAD-family in-house checkpoints.
 
 **The port is architecturally cheap — UniMoMo is the same model family.** Verified from the pulled repo:
