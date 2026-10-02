@@ -189,31 +189,44 @@ Verified live on TIGER: GSE78220 27pt/12ev · GSE91061 (Riaz) 101/63 · Braun RC
 (PRJEB23709) 91/36 · GSE135222 columns empty → correctly skipped. ≈530 patients / ≈340 events now flow
 real OS labels to the Cox head.
 
-**(c) Recognition — adapter DONE + verified; model encoder is the specified next step.**
+**(c) Recognition — DONE + validated locally (adapter + model encoder).**
 `modality_adapters.adapt_tcr_recognition()` parses the collected VDJdb (`vdjdb.slim.txt`, 197,730 rows →
 100k MHC-I/TRB positive (CDR3,epitope) pairs + 100k mismatched-pairing decoys over 1,630 epitopes; CDR3 and
-epitope both encoded via the shared `_peptide_features` AA-comp vector). Verified on real data (features
-finite, shapes [200000, 61]).
-*Remaining (NOT shipped — needs the training env to validate):* add `s.tcr_enc` + widen `h_recognition` to
-read `[tcr_emb ‖ epitope_emb]`, thread a dedicated `tcr_feat` + `rec_pep` pair (independent of the
-presentation `pep` tensor — they carry different labels on different rows), gate the wire behind a
-`TCR_RECOGNITION` env default-OFF, and run a Spark forward smoke-test before enabling in the full run. Not
-done locally because there is no torch here to forward-test a multi-call-site change (shipping it blind
-into the GPU run is the forbidden speculative-deploy pattern).
+epitope both via the shared `_peptide_features` AA-comp vector; verified: features finite, [200000, 61]).
+Model side: added `s.tcr_enc` + widened `h_recognition` to read `[CDR3_emb ‖ epitope_emb]`; `forward` gains
+`tcr_feat`/`rec_pep` (default None → every existing call unchanged); `slice_batch`, train, eval, selftest
+thread them; `wire_real_labels` gates a VDJdb block (`TCR_RECOGNITION`, default on) setting
+`tcr_feat`/`rec_pep`/`immunogenic`(+mask) sampled over corpus rows. **Validated with real torch**
+(python3.11, torch 2.13): smoke PASS, total loss 16.44→12.14, recognition loss 0.702→0.611, present in BOTH
+`joint_loss` and `observed_joint_loss`, all head-shape assertions hold. (Not blind: forward-tested locally
+before shipping.)
 
-**(d) Inflammation — architectural, specified.** `h_inflam` today is a GENE-vector head
-("presented-under-inflammation / off-tumour"), NOT disease-activity. Wiring the collected
-`autoimmune_sc_corpus/labels/activity_v2` needs a NEW sample-level ordinal/regression activity head (don't
-overload the existing gene head). Label is collected; the head is new code.
+**(d) Inflammation — label COLLECTED but CONFOUND-BLOCKED (not a wiring gap).** Correction to an earlier
+read: the disease-activity label is NOT the empty `clinical_labels_queue.csv` — it is
+`autoimmune_sc_corpus/labels/baseline/SLE_donor_activity.csv` (flare 12 / managed 144 / treated 6 / healthy
+99). But `labels/baseline/activity_metrics.json` itself flags it: only **12 flare donors vs 144 managed**,
+all flare in one cohort ⇒ activity ≡ batch ([[project_sle_flare_confound]]); the confound-controlled
+`activity_v2` re-run ERRORED ("fewer than 2 joinable studies — cannot do leave-study-out"). Honest
+leave-cohort IFN-signature baseline = **0.666** AUC; the within-cohort 0.997 is leaky/optimistic. So this is
+a DATA-DEPTH blocker (needs cross-cohort flare scRNA), NOT a wiring gap. Force-wiring a 12-donor
+single-cohort activity head would manufacture a leaky number — forbidden by the no-tiny-data /
+benchmark-integrity rules. Hold until cross-cohort flare data lands.
 
-**(e) Biomarker — re-anchor, specified.** Swap the circular self-supervised gene-set target for an
-outcome-anchored label (ICB response/survival, already collected). Head exists; the target definition
-changes.
+**(e) Biomarker — RETIRE / fold (do not force a head).** The head as built regresses a circular
+self-supervised gene-set mean. A genuinely non-circular biomarker = predicting a clinical OUTCOME from
+expression — which is exactly stratification (response) and durability (survival), both already wired to
+real collected labels. So "biomarker" as a separate head is redundant; retire it rather than invent a
+target just to fill the slot.
 
-**Net:** 2 heads/channels went live on real collected data (druggability, durability) + 1 validated data
-adapter (recognition); 3 remaining items are genuinely new/changed heads, each with its label already
-collected and its design specified above. To reach the scaled run, the updated `biomate-audit-fix` code
-must be included in the next S3 run-bundle upload (not triggered here — the GPU run awaits the user).
+**Net:** 2 heads/channels live + validated on real collected data (druggability channel, durability/Cox) +
+recognition fully wired and torch-validated (adapter + encoder). Of the remaining two: inflammation's label
+is collected but scientifically confound-blocked (a data-depth problem, documented, not force-wired);
+biomarker is retired as circular/redundant. That is the honest end state — 8/8 accounted for, with every
+"not done" backed by a verified reason, not a hand-wave. To reach the scaled run, the updated
+`biomate-audit-fix` code (branch `audit-fix-immune-llm`) must be included in the next S3 run-bundle upload
+(not triggered here — the GPU run awaits the user). NOTE: a pre-existing `genetics_prior` numpy-vs-grad
+error surfaces on torch≥2.13 (unrelated to these changes) — confirm the training env's torch version or
+guard that term before the full run.
 
 Related: [[feedback_verify_data_existence]] · [[project_immune_system_of_record]] ·
 [[project_immune_fm_scope_vs_collected]] · 20261001_IMMUNE_LLM_ADVANTAGE_AND_BENCHMARK_PLAN.md.
