@@ -83,6 +83,19 @@ If your change touches a documented surface, run its integration test:
 | New backend FastAPI route | `curl -sf http://localhost:8081/<your-route>` (after starting local Galaxy backend) |
 | Workflow execution flow | Existing Playwright e2e in `frontend/e2e/` |
 
+### 4b. Workflow integrity guard — fabrication class gate (HARD)
+Run whenever you add/modify a workflow `.nf`, or change any `executable` flag, or sync the DB:
+```bash
+python3 scripts/audit_fabrication.py   # exit 0 = clean; exit 1 = an executable workflow fabricates
+```
+Enforces the invariant **no `executable=1` workflow fabricates its outputs** (RNG → written output,
+no input read — code lines only). This is the class guard for the MERFISH / "Analyze-Quantify"
+fabrication stubs (`docs/20261002_FABRICATION_AUDIT.md`). A FAIL is a triage gate, not auto-block:
+rewire the workflow to a real tool, OR set `executable=0`, OR — if the RNG is legitimately the
+workflow's purpose (array/IO package, simulation, honestly-labeled synthetic demo) — add its id to
+`ALLOWLIST` in the script **with a reason**. Needs the full enriched `galaxy_ai_tools.db` (not the
+local stub), so run it in CI or after an S3 DB pull. Do NOT sync a DB that trips this gate.
+
 ### 5. Sync to dev — only after 1–4 pass
 ```bash
 git add <files> && git commit -m "<message>" && git push origin <branch>

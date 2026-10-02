@@ -60,8 +60,16 @@ which is a per-workflow effort (real tool + input handling + container + Batch v
    staged FCS / image / count inputs.
 3. The bioengineering imaging set — real tracking (TrackMate/`trackpy`) + morphology on staged images.
 
-## Note: the audit is reusable
+## Class guard (shipped) — `scripts/audit_fabrication.py`
 
-The same static scan should run in CI / pre-index so new fabrication stubs can't enter the catalog.
+The scan is now a reusable **hard gate**: `scripts/audit_fabrication.py` enforces the invariant
+*no `executable=1` workflow fabricates its outputs* (RNG → written output, no input read; code lines
+only, with a reviewed `ALLOWLIST` for legitimate RNG — array/IO packages, simulations, honestly-
+labeled demos). Exit 0 = clean, exit 1 = an executable fabricator exists. Wired into
+`docs/PRE_SYNC_CHECKLIST.md` (step 4b): run it whenever a workflow `.nf` or an `executable` flag
+changes, and never sync a DB that trips it. Current state: **PASS** (11 fabricators disabled, 11
+legitimate-RNG entries allowlisted). This closes the fabrication *class*, not just the instances —
+a new fabricating stub entering as executable now fails the gate and forces triage.
+
 See also `docs/20261001_SPATIAL_OMICS_VALIDATION_PLAN.md` (execution-validation thesis) and
 `docs/20261001_MERFISH_SPATIAL.md` (the first instance + its real rewire).
