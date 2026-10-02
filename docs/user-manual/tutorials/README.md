@@ -90,7 +90,15 @@ Honest-limits section rather than claimed as features:
 - `docs/user-manual/modules/I09` — agrees ask-to-edit not built (OK) but verify format list
 - `docs/user-manual/modules/I12` — says Connectors dialog has 2 tabs; shipped code has 4
 
+## Status
+
+- **English:** complete — every surface above.
+- **Chinese (`zh/`):** complete — all core (T0–T10), module (M1–M2), sidebar (S1), workflow-panel
+  (W1–W3), and 10 instrument tutorials translated (idiomatic, native-polished, honesty sections
+  preserved, figure markers intact).
+
 ## Still pending
 
-- **Screenshot capture pass** against live dev for every `<!-- CAPTURE -->` marker
-- **Chinese (zh/)** translations for T6–T10, M1–M2, S1, W1–W3, and the 10 instrument tutorials (EN ships first, per the review cadence)
+- **Screenshot capture pass** against live dev for every `<!-- CAPTURE -->` marker (EN + zh share figures)
+- **Native-Chinese spot review** of the newly translated set (optional QC pass)
+- **Tutorial videos** (EN + CN) for the new surfaces, per the earlier marketing ask
