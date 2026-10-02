@@ -117,6 +117,28 @@ their own quay biocontainers (already libz-covered via `/bioconductor/`). Valida
 the highest infra risk (biocontainer completeness); the `bioc-domain-*` ones carry the highest
 fabrication / R-library-attach risk.
 
+### Phase 1 — static audit result (2026-10-01) — GOOD news + a wrinkle
+
+Statically audited all 12 imaging bioc workflows:
+- **None fabricate.** Every one reads real input and calls the real package (the RNG-no-input tell
+  fired on none). This set is *not* the merfish-RNG-stub class — a genuinely good result.
+- **Wrinkle: they are NOT one-click demo-runnable.** Each declares its package dataset by name
+  (`// Input: kerenSPE, diabetesData`, `spe.rds`, etc.) and the body **`stop()`s if the file isn't
+  staged** — there is **no `data(<name>)` fallback** to the built-in Bioconductor dataset. So unlike
+  merfish (`squidpy.datasets.merfish()` built in), a param-less dispatch fails
+  ("Required input file not found"). Executing them requires **staging each dataset as `.rds` to S3**
+  first (export via R in `bioc-domain-imaging`, then dispatch with the S3 params).
+
+**Decision this creates (data-prep campaign vs. a code improvement):**
+- **Option A — stage data per workflow** (pure validation): export each named package dataset to S3,
+  dispatch, audit. Correct but per-workflow manual prep; one-off.
+- **Option B — add a `data(<name>)` fallback** to each body (the higher-leverage product fix): makes
+  every one **one-click demo-runnable** (like merfish) AND self-validating, and turns them into real
+  "try the platform" entry points. Edits ~12 `.nf`; the template is: in `load_input`, when the file
+  is absent, `requireNamespace(pkg); data(<name>); return(get(<name>))`. **Recommended.**
+
+Either way this is a deliberate campaign, not a quick batch — size it explicitly before running.
+
 ## Phase 2 — sequencing-based spatial (Visium / GeoMx), same method
 
 SpatialExperiment, SpatialFeatureExperiment, nnSVG, BayesSpace, Banksy (+joint/Harmony variants),
