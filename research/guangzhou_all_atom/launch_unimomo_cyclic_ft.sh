@@ -83,6 +83,53 @@ stage cloning_unimomo
 cd "$ROOT"; git clone "$UNIMOMO_REPO" UniMoMo; cd "$ROOT/UniMoMo"; git checkout "$UNIMOMO_COMMIT"
 git rev-parse HEAD > "$ROOT/status/unimomo_commit.txt"
 
+# make pepbench SKIP-AND-CONTINUE on per-structure parse failures (biotite CCD NoneType crash on an
+# unknown residue killed the whole batch 2026-10-02; pipeline already tolerates RCSB-fetch failures).
+stage patching_pepbench
+python - <<'PBPATCH'
+import re, py_compile, sys
+p='scripts/data_process/peptide/pepbench.py'
+src=open(p).read()
+NEW='''def process_iterator(items, pocket_th, remove_het=False):
+
+    for cnt, pdb_id in enumerate(items):
+        try:
+            summary = items[pdb_id]
+            rec_chain, lig_chain = summary['rec_chain'], summary['pep_chain']
+            cplx = pdb_to_complex(summary['pdb_path'], selected_chains=[rec_chain, lig_chain], remove_het=remove_het)
+            target_blocks = cplx[rec_chain].blocks
+            lig_blocks = cplx[lig_chain].blocks
+            target_seq = ''.join([VOCAB.abrv_to_symbol(block.name) for block in target_blocks])
+            lig_seq = ''.join([VOCAB.abrv_to_symbol(block.name) for block in lig_blocks])
+            pocket_block_id, _ = compute_pocket(cplx, [rec_chain], [lig_chain], dist_th=pocket_th)
+            pocket_blocks = [recur_index(cplx, _id) for _id in pocket_block_id]
+            data = cplx.to_tuple()
+            properties = {
+                'pocket_num_blocks': len(pocket_block_id),
+                'ligand_num_blocks': len(lig_blocks),
+                'pocket_num_atoms': sum([len(block) for block in pocket_blocks]),
+                'ligand_num_atoms': sum([len(block) for block in lig_blocks]),
+                'target_chain_ids': [rec_chain],
+                'ligand_chain_ids': [lig_chain],
+                'target_sequences': [target_seq],
+                'ligand_sequences': [lig_seq],
+                'pocket_block_id': pocket_block_id,
+            }
+        except Exception as e:
+            print_log(f'WARN pepbench skip {pdb_id}: {type(e).__name__}: {e}')
+            continue
+        yield pdb_id, data, properties, cnt
+'''
+if 'WARN pepbench skip' in src:
+    print('pepbench already patched'); sys.exit(0)
+pat=re.compile(r'def process_iterator\(.*?(?=\ndef main\()', re.S)
+n=len(pat.findall(src))
+assert n==1, f'FATAL pepbench anchor count={n} (expected 1) -- UniMoMo changed; aborting patch'
+open(p,'w').write(pat.sub(NEW+'\n', src, count=1))
+py_compile.compile(p, doraise=True)
+print('pepbench patched: skip-and-continue on per-structure failure')
+PBPATCH
+
 stage building_env
 conda env create -f "$ENV_YAML"
 set +u; conda activate UniMoMo; set -u   # MKL_INTERFACE_LAYER unbound under set -u (repro fix)
