@@ -86,7 +86,7 @@ git rev-parse HEAD > "$ROOT/status/unimomo_commit.txt"
 # make pepbench SKIP-AND-CONTINUE on per-structure parse failures (biotite CCD NoneType crash on an
 # unknown residue killed the whole batch 2026-10-02; pipeline already tolerates RCSB-fetch failures).
 stage patching_pepbench
-python - <<'PBPATCH'
+/opt/miniforge/bin/python - <<'PBPATCH'
 import re, py_compile, sys
 p='scripts/data_process/peptide/pepbench.py'
 src=open(p).read()
