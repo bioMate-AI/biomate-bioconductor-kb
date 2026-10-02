@@ -82,12 +82,32 @@ PMC-LLaMA's 30K textbooks were library-sourced (licence murky). Use CC-licensed 
 | DB drug_discovery (61 wf) + pharmacology tool `scientific_context` | internal | BioMate-specific (already in corpus) |
 Facts (DrugBank/ChEMBL rows, SMILES) stay in retrieval.
 
-## Build order (cheapest, highest-leverage first; no GPU until corpus is reviewed)
-1. GTN (CC-BY) — clone, extract tutorial concept markdown → `background_corpus.jsonl` [START HERE]
-2. Bioconductor + nf-core conceptual docs
-3. PMC OA review subset (query for review-type OA)
-4. OpenStax + Wikipedia core concepts + open stats text
-5. Rebalance mix + CPT run (spot GPU) + eval
+## Concrete mix recipe (concept-dominant, facts out) — via build_midtrain_mix.py
+- `--struct background_corpus.jsonl --struct-repeat 3` → up-weight our clean DB+GTN concept seed (2.5M tok)
+- `--lit <pmc_fulltext_FILTERED>.jsonl --lit-keep-every K --dedup --min-chars 400` → concept VOLUME
+- **omit `--kg`**, pass **no** db_catalog/ontology/structured-fact extras → facts stay in retrieval
+- replay (FineWeb-Edu 25/75) stays at train time (anti-forgetting)
+
+## Model-size comparison: 9B + 27B (user, 2026-10-01)
+Background grasp scales with capacity (unlike harness-carried tasks, which are size-invariant — routing
+0.94 even on 4B). So compare **med=Qwen3.5-9B** (Insilico's winner, beat Gemini-3.1-Pro) vs
+**large=Qwen3.8-27B** (capacity ceiling) — both configured in spot_train.sh.
+- **Sequence 9B first** (tractable, cheaper; proves background-CPT beats the fact-heavy mid500), then 27B.
+- Infra: 27B needs 48GB GPUs (g6e L40S / A100) + QLoRA + gradient-checkpointing; spot (g6.2xlarge was
+  heavily reclaimed 2026-10-01 — prefer g5/g6e, relaunch-on-reclaim wrappers).
+
+## Volume reality
+Our concept corpus (~2.5M tok, DB-primary) is a **quality seed, not CPT volume**. CPT needs hundreds of
+M–B tokens (Meditron 48B, PMC-LLaMA 4.8M papers). Volume must come from **`pmc_fulltext_bulk` (8.8GB)**,
+but it contains digitized junk (e.g. 1867 editorials) → needs a **modern-biomedical filter** (year ≥ ~2000,
+biomedical MeSH/journal, prefer review/full-text) before use. That filter is the critical remaining data step.
+
+## Build order (cheapest, highest-leverage first; no GPU until corpus + volume are ready)
+1. ✅ GTN concepts + ✅ **DB enrichment (primary)** → `background_corpus.jsonl` (2.5M tok)
+2. **PMC filter**: modern-biomedical filter over `pmc_fulltext_bulk` → concept VOLUME [critical next]
+3. Optional textbooks: OpenStax (CC-BY) + LibreTexts pharmacology (licence-gated) for drug depth
+4. Rebalance mix (recipe above) + review composition
+5. CPT **9B** (spot) → SFT → eval (knowledge MCQA + judgment vs mid500); then CPT **27B**
 
 ## Guardrails (lessons from this session)
 - Do NOT put facts in the corpus (the closed-book-SFT / SMILES-recall mistake, twice). Concepts only.
