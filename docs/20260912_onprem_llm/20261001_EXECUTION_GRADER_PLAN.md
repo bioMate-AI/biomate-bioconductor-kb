@@ -117,3 +117,25 @@ no dev-config change).
    BioMate end-to-end task — and the foundation to later vary the backend.
 
 **Explicitly NOT doing now:** backend-swap plumbing, more SFT/CoT, any large Batch sweep.
+
+## 9. RESULT — grader built + validated on REAL dev runs (2026-10-01)
+
+`evaluation/local_trial/execution_grader.py`. Validated against three real dev runs (no new Batch
+spend), via the BioMate `list_runs` API:
+
+| Run | Workflow | Grader L1 | Grader L2 (--deep, fetches S3) |
+|-----|----------|-----------|-------------------------------|
+| e99019da (completed, rc0, 5 outputs) | merfish_spatial_analysis | **PASS** (4 result outputs) | **PASS** (CSVs parse w/ rows, JSON valid, required outputs present) |
+| 006838b7 (failed: `No module named 'anndata'`) | merfish_spatial_analysis | **FAIL** (not terminal success) | FAIL |
+| b8234598 (failed: `SingleCellExperiment not found`) | sc3_standard_sc3_clustering | **FAIL** (not terminal success) | FAIL |
+
+So a **valid, objective** measurement of a BioMate end-to-end task now exists (terminal success +
+real output-content validation + per-workflow correctness contract) — no similarity, no LLM judge.
+This is the foundation the backend-swap comparison was missing: run the same task per backend →
+`grade_run` → objective PASS/FAIL comparison.
+
+**Remaining to close the loop:** one FRESH end-to-end drive (request → `search_workflow` →
+`run_workflow` → `watch_run` → `grade_run`) to prove BioMate produces a gradeable PASS from a cold
+request. Needs one small Batch run (pick a cheap/fast workflow; note merfish is flaky — 1 PASS / 1
+FAIL in the existing data due to a container image gap, so choose a reliably-imaged workflow).
+Deferred pending go + workflow choice (review-before-expensive).
