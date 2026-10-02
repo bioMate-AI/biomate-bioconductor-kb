@@ -22,6 +22,59 @@ RATE = {"en": "180", "zh": "210"}
 
 # Beats per tutorial per language: (screenshot filename, narration text)
 BEATS = {
+  "T0": {
+    "en": [
+      ("i01-1-cold-start.png",
+       "This is the cold start — BioMate's doorway. A box to type your goal, and four module cards for the "
+       "kinds of work it does: search and evidence, data analysis, design and generate, and models."),
+      ("i01-1-cold-start.png",
+       "You don't pick a tool. You describe your goal in plain English, and BioMate tells you what kind of "
+       "work it heard, before anything runs."),
+      ("i01-1-cold-start.png",
+       "It sorts every request into two lanes: Instant, a cited answer in seconds; or Cloud, a full workflow "
+       "on paid compute that it always confirms with you first."),
+      ("i01-1-cold-start.png",
+       "Nothing runs until you review and send. Type a goal, check the lane, send — that one habit is the "
+       "whole product."),
+    ],
+    "zh": [
+      ("i01-1-cold-start.png",
+       "这是冷启动 —— BioMate 的入口。一个输入目标的框，和四张模块卡片，对应它能做的几类工作：检索与证据、数据分析、"
+       "设计与生成、模型。"),
+      ("i01-1-cold-start.png",
+       "你不用去选工具。你用大白话描述目标，BioMate 会在任何东西运行之前，先告诉你它听到的是哪类工作。"),
+      ("i01-1-cold-start.png",
+       "它把每个请求分到两条通道：即时 —— 几秒内给出带引用的答案；或云端 —— 一条消耗付费算力的完整工作流，而它总会"
+       "先向你确认。"),
+      ("i01-1-cold-start.png",
+       "在你审阅并发送之前，什么都不会运行。输入目标、核对通道、发送 —— 这一个习惯就是整个产品。"),
+    ],
+  },
+  "T1": {
+    "en": [
+      ("i11-1-design.png",
+       "Design and Generate proposes new candidate molecules against the properties you care about — it "
+       "gives you a shortlist, not a blank page."),
+      ("i11-1-design.png",
+       "You give it a starting molecule and your objectives; BioMate generates candidates and scores each "
+       "against those property goals."),
+      ("i11-3-multi-objective.png",
+       "Because a real drug must balance several properties at once, it shows the trade-offs — so you can "
+       "pick candidates that satisfy your constraints, not just one number."),
+      ("i11-3-multi-objective.png",
+       "Every candidate carries why it was chosen, and the tool never invents a score it cannot compute."),
+    ],
+    "zh": [
+      ("i11-1-design.png",
+       "设计与生成会针对你在意的性质，提出新的候选分子 —— 它给你的是一份候选名单，而不是一张白纸。"),
+      ("i11-1-design.png",
+       "你给它一个起始分子和你的目标；BioMate 生成候选，并就这些性质目标为每一个打分。"),
+      ("i11-3-multi-objective.png",
+       "因为一款真正的药物必须同时兼顾多个性质，它会展示其中的权衡 —— 让你挑出满足约束的候选，而不只是某一个数字。"),
+      ("i11-3-multi-objective.png",
+       "每个候选都带着它被选中的理由，而且这个工具绝不会编造一个它算不出来的分数。"),
+    ],
+  },
   "T3": {
     "en": [
       ("t3-1-workflow-panel.png",
