@@ -135,11 +135,48 @@ def db(path):
         if len(text) >= 220:
             docs.append({"text": text[:6000], "source": "db_tool", "topic": (r["category"] or "tool"),
                          "title": r["name"], "chars": min(len(text), 6000)})
-    # workflows — description (concept of what the pipeline does)
-    for r in c.execute("select name,domain,description from workflows where description is not null and length(description)>120"):
-        text = f"# {r['name']} ({r['domain']})\n{r['description'].strip()}"
-        docs.append({"text": text[:4000], "source": "db_workflow", "topic": r["domain"] or "workflow",
-                     "title": r["name"], "chars": min(len(text), 4000)})
+    # workflows — rich CONCEPT doc: description + input/output TYPES (generalizable) + biological
+    # PHASES & the steps in each phase (methodology structure). Specific param names/values are NOT
+    # included (those are retrieval facts).
+    def _types(raw):
+        try:
+            v = json.loads(raw)
+            return ", ".join(str(x) for x in v) if isinstance(v, list) else str(v)
+        except Exception:
+            return (raw or "").strip()
+
+    def _phases(raw):
+        try:
+            sm = json.loads(raw or "[]")
+        except Exception:
+            return ""
+        from collections import OrderedDict
+        ph = OrderedDict()
+        for s in sm if isinstance(sm, list) else []:
+            if not isinstance(s, dict):
+                continue
+            lab = s.get("phase") or s.get("phase_label") or "Steps"
+            step = s.get("step") or s.get("name") or s.get("tool")
+            if step:
+                ph.setdefault(lab, []).append(str(step))
+        return "\n".join(f"- {lab}: " + "; ".join(steps) for lab, steps in ph.items())
+
+    for r in c.execute("select name,domain,description,input_types,output_types,step_metadata from workflows"):
+        parts = [f"# {r['name']} ({r['domain']})"]
+        if r["description"] and len(r["description"].strip()) > 40:
+            parts.append(r["description"].strip())
+        it = _types(r["input_types"]); ot = _types(r["output_types"])
+        if it:
+            parts.append(f"Required input data types: {it}")
+        if ot:
+            parts.append(f"Produces output data types: {ot}")
+        ph = _phases(r["step_metadata"])
+        if ph:
+            parts.append("Biological analysis phases and the steps in each phase:\n" + ph)
+        text = "\n".join(parts)
+        if len(text) >= 160:   # must carry real methodology content
+            docs.append({"text": text[:5000], "source": "db_workflow", "topic": r["domain"] or "workflow",
+                         "title": r["name"], "chars": min(len(text), 5000)})
     # cryo-EM protocol knowledge (key_principles/use_cases/limitations/strategies) — rich concepts
     try:
         for r in c.execute("select display_name,use_cases,limitations,key_principles,picking_strategy,"
