@@ -3,7 +3,7 @@
 > **Who this is for:** anyone who has run an analysis and wants to actually *look* at what it produced —
 > figures, tables, sequences, structures — without downloading anything or installing software. No coding
 > needed. By the end you'll know how BioMate shows each kind of output right in the page, how to tell a good
-> result from a wrong one quickly, and when the optional interactive tools come in.
+> result from a wrong one quickly, and where the optional interactive tools fit.
 > **Time:** ~8 minutes to read.
 > **Where it fits:** Tutorial 3 taught you to *run* a workflow and read its report. This tutorial goes one
 > level deeper into the report's **Outputs** — how to open and read each individual result file. Tutorial 4
@@ -20,7 +20,8 @@ as data) often looks fine in a file name — you only catch it when you actually
 
 BioMate renders almost every result **in the page**: you click a file and it opens as a picture, a sortable
 table, a readable sequence, or a rotatable 3-D structure, right where you're reading. Downloading is the
-exception, not the workflow — and because each preview reads the **real file**, what you see is what you'd get.
+exception, not the workflow — and because each preview reads the **real file**, what you see is the real
+result, not a stale copy.
 
 > **In one sentence:** BioMate shows each result file inline — as the figure, table, sequence, or structure it
 > actually is — so you can read and sanity-check a result without downloading it or leaving the page.
@@ -43,7 +44,7 @@ would give you — there is no separate "preview" version that could be out of d
 that showed something different from the real file would be worse than useless; BioMate avoids that by reading
 the actual bytes.)*
 
-**Findings link to their output.** A number in the plain-language **Summary** (e.g. "log2 fold-change = 2.4")
+**Findings link to their output.** A number in the plain-language **Summary** (e.g. a result value like "log2 fold-change = 2.4", a measure of how much a gene changed)
 is a **live link** back to the exact output file it came from — click it and BioMate opens that file. *(Why it
 matters: every headline number is evidence you can open and check, not a number disconnected from its source.)*
 
@@ -72,7 +73,7 @@ matters: every headline number is evidence you can open and check, not a number 
 action. Clicking **view** opens the file inline.*
 
 ![Outputs grouped by step, from a real completed run](../assets/t3-3-after-run-outputs.png)
-*A real run's outputs, grouped by step — here 11 files across four phases. This is the clearest view of
+*A real run's outputs (the in-vivo CAR-T co-design from Tutorial 3), grouped by step — here 11 files across four phases. This is the clearest view of
 "what each step produced," and the starting point for opening any one of them.*
 
 ---
@@ -92,13 +93,16 @@ shows up the right way:
 - **3-D structures** (PDB, mmCIF) — a **rotatable 3-D model** you can spin and style. For a *predicted*
   structure (e.g. from AlphaFold/ESMFold), it also shows a **pLDDT confidence chart** beside the model — a
   per-residue measure of how sure the prediction is (see the tip below). Clicking a residue in the chart
-  highlights it in the 3-D view.
+  highlights it in the 3-D view. (For an experimental crystal structure, no such chart is drawn — BioMate
+  won't present its temperature factors as if they were a confidence score.)
 - **Cryo-EM density maps** (MRC/MAP) — a slice viewer through the three axes.
 - **Reports** (HTML, e.g. MultiQC) — rendered as a safe, read-only page.
 - **Logs / text** — readable text with a "show the last lines" toggle.
 
 Anything BioMate can't render in a browser (certain large binaries) offers **download only** — an honest
-fallback rather than a broken preview.
+fallback rather than a broken preview. **Alignment files (BAM) are one such case:** there's no inline
+genome-browser track yet, so a BAM is offered as a download (or, where provisioned, an interactive tool)
+rather than previewed in the page.
 
 <!-- CAPTURE route=/ (completed run → Outputs → click "view" on a table and on a PDB structure) ; state=an inline table viewer open, and separately an inline 3-D structure with its pLDDT chart ; focus=step-output-preview overlay ; note=show (a) a sortable table preview with the "showing N of M rows" note, and (b) a 3-D structure with the pLDDT confidence chart beside it -->
 *(Figures to add: a table opened inline as a sortable grid; and a predicted structure shown in 3-D with its
@@ -147,7 +151,7 @@ Beyond viewing one file at a time, the Outputs tab lets you:
 
 Beyond reading a result, BioMate can offer **interactive environments** — a full RStudio session, a Jupyter
 notebook, or a CellxGene browser — for open-ended, write-your-own-code exploration *after* you've read the
-result. Here is the honest scope, because it is easy to over-expect:
+result. Here is the honest scope, because it is easy to expect too much:
 
 - **They are not the main path.** The inline viewers above cover reading and checking a result. The interactive
   tools are only for when you want to run your own code against the outputs.

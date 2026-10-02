@@ -105,6 +105,13 @@ Fixes applied + committed:
 - Panel confirmed: grey="not profiled, never bad", profiled types, versions-log-not-undo, project-scoping, lineage-not-clickable, honest-empty consumers all faithful to I05; 4 screenshots real + correctly referenced. **EN T4 ship-ready after these edits; CN T4 to follow.**
 - **Follow-up logged:** the I05 module doc's own i05-3 caption has the same FASTQ/Watch-vs-table defect — fix alongside.
 
+## T5 (Viewing your results) — panel round
+5-persona panel vs code-truth I08. Scores: BD 4 · biologist 4 · accuracy **5** · clinician 4 · student 4 (avg ≈4.2) → **ship-ready after light polish** (no P1). Accuracy persona: zero slips, interactive-viewer honesty "exemplary" (correctly states RStudio/Jupyter/CellxGene are NOT provisioned on dev / buttons hidden / no auto-load; pLDDT scoped to predicted structures; truncation numbers exact vs I08). Applied:
+- **P2 (biologist honest-limit gap):** added a **BAM/alignment** note — no inline genome-browser track yet; BAM is download/interactive, not previewed.
+- **P3:** pLDDT **crystal-structure guard** (no confidence chart for experimental structures — won't fake confidence from temperature factors); named the §4 screenshot as **T3's in-vivo CAR-T run** (series continuity); glossed `log2 fold-change`.
+- **P4 de-idiom:** "over-expect"→"expect too much"; "come in"→"fit"; "what you see is what you'd get"→"the real result, not a stale copy".
+- Assets verified real + correctly pathed (i08-1-outputs-tab, t3-3); the §5 inline-table/3-D figure remains an honest CAPTURE placeholder. **EN T5 ship-ready; CN T5 pending.**
+
 ## Change log
 - 2026-10-01 — 5-persona multi-LLM panel run on T1; T1 revised to v2 against all consensus + accuracy findings; reusable checklist extracted for the remaining tutorials (Models/closed-loop, workflow-run, etc., EN then CN).
 - 2026-10-01 — T3 EN 5-persona panel + revision; CN T3 written and native-CN-reviewed (fidelity 5/5); one correctness term fix (脱靶→在靶脱瘤) + de-calque/terminology polish applied. **T1/T2/T3 now complete and validated in EN + CN.**
