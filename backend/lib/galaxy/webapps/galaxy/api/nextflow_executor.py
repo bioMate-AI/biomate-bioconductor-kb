@@ -3058,7 +3058,14 @@ def _generate_executor_config(
             # kept surgical to leave BioMate's own full-image workflows untouched.
             *(
                 ["        volumes = ['/usr/lib64/libz.so.1:/usr/lib64/libz.so.1:ro']"]
-                if (is_nfcore or "/bioconductor/" in nf_path or "/nf-core-modules/" in nf_path)
+                # /single_cell/ added 2026-10-01: merfish_spatial_analysis runs in the
+                # quay.io/biocontainers/squidpy task image (set via its process container
+                # directive), whose own libz lives in /usr/local/lib — same failure mode as
+                # dropletutils (host-mounted aws exits 127 'libz.so.1: cannot open shared
+                # object file' during S3 staging). The mount is a single read-only file and
+                # is harmless for the full-image single_cell workflows (proven no-regression).
+                if (is_nfcore or "/bioconductor/" in nf_path or "/nf-core-modules/" in nf_path
+                    or "/single_cell/" in nf_path)
                 else []
             ),
             "    }",
