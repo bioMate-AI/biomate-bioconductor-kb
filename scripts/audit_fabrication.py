@@ -50,7 +50,15 @@ RNG = re.compile(r'(np\.random\.(randn|randint|uniform|normal|rand|choice|poisso
 WRITES = re.compile(r'to_csv\(|savefig\(|json\.dump|write\.csv\(|saveRDS\(|writeLines\(|\.write\(|write_csv\(')
 READS = re.compile(r'read\.csv|readRDS|read_csv|read\.table|readImzML|stageAs|Read10X|read10x|'
                    r'pd\.read|np\.load|sc\.read|ad\.read|h5read|readLines|params\.input|input_file|'
-                   r'argv|args\[|read\.delim|readr::|loadRData|fromJSON|load\(')
+                   r'argv|args\[|read\.delim|readr::|loadRData|fromJSON|load\(|'
+                   # staging a real input file counts as reading input (metal copies cohort sumstats)
+                   r'shutil\.copy|shutil\.move|SeqIO\.(parse|read)|pysam\.|cv2\.imread|imread\(|tifffile')
+# A real external tool invocation means the workflow does genuine work (not pure fabrication),
+# even if it also has an opt-in toy/demo RNG path (e.g. metal_meta_analysis runs the real `metal`
+# binary; comparative-genomics runs real `bwa`). Presence of this downgrades an RNG hit.
+REALTOOL = re.compile(r'subprocess\.(run|call|check_call|check_output|Popen)|os\.system\(|'
+                      r'system2?\(|check_call|check_output|\bRscript\b|\bmetal\b|\bbwa\b|\bsamtools\b|'
+                      r'\bbcftools\b|\bplink\b|\bgatk\b')
 
 def strip_comments(text: str) -> str:
     out = []
@@ -94,7 +102,10 @@ def main() -> int:
             continue
         scanned += 1
         code = strip_comments(open(p, errors="replace").read())
-        if RNG.search(code) and WRITES.search(code) and not READS.search(code):
+        # Pure fabrication = RNG produces output, with NO real input read and NO real tool run.
+        # Reading input (incl. staging a file) or invoking a real external tool means the workflow
+        # does genuine work (its RNG may be an opt-in toy/demo path), so it is not pure fabrication.
+        if RNG.search(code) and WRITES.search(code) and not READS.search(code) and not REALTOOL.search(code):
             (allowed_hit if wid in ALLOWLIST else offenders).append((wid, name, domain))
 
     print(f"[audit_fabrication] scanned {scanned} executable workflows with a .nf on disk")

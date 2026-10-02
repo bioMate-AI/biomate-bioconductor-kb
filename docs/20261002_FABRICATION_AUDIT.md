@@ -12,14 +12,30 @@ fabrication** = (RNG call `np.random.*` / `random.*` / `runif`/`rnorm`) **AND** 
 (`to_csv`/`savefig`/`json.dump`/`saveRDS`/…) **AND** does **not** read any input — computed on
 **code lines only** (comments stripped, so anti-fabrication guard comments don't false-positive).
 
-## Result — 11 confirmed fabricating ANALYSIS workflows → marked `executable=0`
+## CORRECTION (2026-10-02): metal_meta_analysis was a FALSE POSITIVE — re-enabled
 
-Each invents its results with RNG and consumes no input, under an "Analyze/Quantify/Decode" name
-that implies real data analysis. Users running these would get **plausible-looking fake science.**
+My first pass flagged **11** and disabled all. A follow-up code read (audit-gate) found
+**`metal_meta_analysis` (14446) is NOT fabrication** — it runs the **real `metal` binary** on real
+cohort sumstats (`shutil.copy` of the staged files → METAL script → `metal` → parse
+`METAANALYSIS1.TBL`); the RNG is an **opt-in `--use_baked_toy` smoke fixture** only. The miss was a
+**false negative in the guard's READS regex** (it didn't recognize `shutil.copy`/`subprocess` as
+"does real work"). **Fix:** the guard now treats `shutil.copy`/`SeqIO`/`imread` as input reads and
+any real external-tool call (`subprocess`/`metal`/`bwa`/…) as genuine work, so metal-class
+workflows aren't flagged. **metal_meta_analysis re-enabled (`executable=1`).**
+
+Also reclassified **`Analyze Comparative Genomics And Haplotypes` (10657)** as a **HYBRID**: it runs
+real `bwa` alignment **but** writes fabricated haplotype numbers (`random.randint` divergence
+times) + placeholder "this would contain…" text. **Kept `executable=0`** (its output is partly
+fake); rewire = strip the fabricated lines, add real variant/haplotype calling.
+
+## Result — 10 confirmed fabricating/ hybrid workflows → `executable=0` (metal excluded)
+
+Each invents its results with RNG (9 purely; 10657 partially), under an "Analyze/Quantify/Decode"
+name that implies real data analysis. Users running these would get **plausible-looking fake
+science.**
 
 | id | workflow | domain | what it fabricates |
 |---|---|---|---|
-| 14446 | metal_meta_analysis | population_genetics | **GWAS summary stats** (random betas/SEs/freqs) — worst |
 | 10691 | Analyze Cfse Cell Proliferation | immunology | proliferation generations (`np.random.normal`) |
 | 10612 | Analyze Flow Cytometry Immunophenotyping | cell_biology | immunophenotype populations |
 | 10616 | Quantify Cell Cycle Phases From Microscopy | cell_biology | cell counts + G1/S/G2 percentages |
@@ -31,7 +47,8 @@ that implies real data analysis. Users running these would get **plausible-looki
 | 10605 | Analyze Cell Senescence And Apoptosis | cancer_biology | senescence/apoptosis fractions |
 | 10657 | Analyze Comparative Genomics And Haplotypes | genomics | divergence times / variant counts |
 
-(DB change — gitignored `galaxy_ai_tools.db`, rides the sync. `executable=1` → **4143**.)
+(DB change — gitignored `galaxy_ai_tools.db`, rides the sync. 10 disabled; metal re-enabled →
+`executable=1` = **4144**.)
 
 ## Deliberately NOT flagged (verified legitimate)
 
@@ -67,9 +84,11 @@ The scan is now a reusable **hard gate**: `scripts/audit_fabrication.py` enforce
 only, with a reviewed `ALLOWLIST` for legitimate RNG — array/IO packages, simulations, honestly-
 labeled demos). Exit 0 = clean, exit 1 = an executable fabricator exists. Wired into
 `docs/PRE_SYNC_CHECKLIST.md` (step 4b): run it whenever a workflow `.nf` or an `executable` flag
-changes, and never sync a DB that trips it. Current state: **PASS** (11 fabricators disabled, 11
-legitimate-RNG entries allowlisted). This closes the fabrication *class*, not just the instances —
-a new fabricating stub entering as executable now fails the gate and forces triage.
+changes, and never sync a DB that trips it. Current state: **PASS** (10 fabricators/hybrid disabled,
+metal re-enabled as genuine, 11 legitimate-RNG entries allowlisted). This closes the fabrication
+*class*, not just the instances — a new fabricating stub entering as executable now fails the gate
+and forces triage. (Limitation: a HYBRID that runs a real tool AND fabricates part of its output —
+like 10657 — is NOT caught by the pure-fabrication gate; those need human review.)
 
 See also `docs/20261001_SPATIAL_OMICS_VALIDATION_PLAN.md` (execution-validation thesis) and
 `docs/20261001_MERFISH_SPATIAL.md` (the first instance + its real rewire).
