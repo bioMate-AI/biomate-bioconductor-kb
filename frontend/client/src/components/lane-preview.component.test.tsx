@@ -70,7 +70,7 @@ describe("LanePreview — useServerLane arbiter", () => {
     // The server verdict upgrades the strip to Cloud (state already flushed by
     // advanceTimersByTimeAsync — no waitFor, which would stall under fake timers).
     expect(screen.getByTestId("lane-preview").getAttribute("data-lane")).toBe("cloud");
-    expect(screen.getByTestId("lane-preview-chip").textContent).toContain("Cloud");
+    expect(screen.getByTestId("lane-preview-chip").textContent).toContain("Prepare an analysis");
     // And the classify endpoint was actually hit.
     expect(global.fetch).toHaveBeenCalled();
   });
@@ -90,7 +90,7 @@ describe("LanePreview — useServerLane arbiter", () => {
     // Stays on the local Instant heuristic — the component did not throw or blank.
     expect(screen.getByTestId("lane-preview")).toBeTruthy();
     expect(screen.getByTestId("lane-preview").getAttribute("data-lane")).toBe("instant");
-    expect(screen.getByTestId("lane-preview-chip").textContent).toContain("Instant");
+    expect(screen.getByTestId("lane-preview-chip").textContent).toContain("Answer here");
   });
 
   it("(c) a { success: false } response is ignored — strip stays local", async () => {

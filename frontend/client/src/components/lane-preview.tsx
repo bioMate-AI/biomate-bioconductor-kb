@@ -5,12 +5,12 @@
  * dot ABOVE the composer input, so the consequence of sending is visible
  * before the send:
  *
- *   ● Instant · a cited answer in seconds
- *   ● Cloud · a validated workflow (~minutes)
+ *   ● Answer here · with sources
+ *   ● Prepare an analysis · review before starting
  *
  * It is ADVISORY and HONEST — it never blocks send, and it always says that
- * "BioMate will confirm before running anything cloud." The user can override
- * ("answer it instantly instead" / "run a validated pipeline instead").
+ * "BioMate will ask before starting any compute." The user can override
+ * ("answer here instead" / "prepare an analysis instead").
  *
  * The heuristic is a lightweight client-side mirror of the reference router in
  * reference/claude_design/data_centroid_design/dataui/data-part3.js
@@ -35,7 +35,7 @@ export type LaneKind = "instant" | "cloud";
 
 export interface LaneVerdict {
   lane: LaneKind;
-  /** Short chip label, e.g. "Instant · cited answer". */
+  /** Short, user-facing consequence label. */
   label: string;
   /** The one consequence sentence shown to the user. */
   sentence: string;
@@ -65,10 +65,12 @@ const CLOUD_RULES: Array<{ m: RegExp; read: string }> = [
   { m: /\b(\d+\s*(samples?|reads?|compounds?|molecul|candidates?|sequences?|structures?|cells?|plates?)|these (samples?|files?|compounds?|reads?|fastqs?|vcfs?|smiles)|this (library|cohort|dataset|batch|assay batch|counts matrix)|fastq|\.vcf|\.bam|whole.?genome|wgs|wes|rna-?seq|single-?cell|cryo-?em|admet|herg)\b/i, read: "a task over a set of inputs" },
 ];
 
-const INSTANT_LABEL = "Instant · cited answer";
-const CLOUD_LABEL = "Cloud · validated workflow";
-const INSTANT_SENTENCE = "a cited answer in seconds";
-const CLOUD_SENTENCE = "a validated workflow (~minutes)";
+// Labels describe the consequence, not internal router terminology.  Keep the
+// `instant`/`cloud` enum private to the implementation and API contract.
+const INSTANT_LABEL = "Answer here · with sources";
+const CLOUD_LABEL = "Prepare an analysis · review before starting";
+const INSTANT_SENTENCE = "a sourced answer, usually in seconds";
+const CLOUD_SENTENCE = "an analysis plan; nothing runs until you confirm";
 
 // Plain-language "why this?" reason per lane (spec 06 §6.2). Intentionally free
 // of any mechanism, regex, keyword list or confidence percentage — it names the
@@ -77,7 +79,7 @@ const WHY_COPY: Record<LaneKind, string> = {
   instant:
     "This reads like a question I can answer directly — from literature, curated databases, or a quick look at data you already have — so I answer it here, with sources, rather than running a pipeline.",
   cloud:
-    "This reads like standardised analysis that produces a result you'd want to trust and cite — so it runs as a validated workflow with quality gates and an audit-ready report, rather than an off-the-cuff answer.",
+    "This reads like an analysis that should be set up carefully. I will show you the proposed steps and inputs before any compute starts.",
 };
 
 /**
@@ -158,7 +160,7 @@ function useServerLane(text: string | undefined | null): LaneVerdict | null {
           lane: isCloud ? "cloud" : "instant",
           label: isCloud ? CLOUD_LABEL : INSTANT_LABEL,
           sentence: isCloud ? CLOUD_SENTENCE : INSTANT_SENTENCE,
-          read: typeof data.why === "string" && data.why ? data.why : (isCloud ? "a validated workflow request" : "a question I can answer directly"),
+          read: typeof data.why === "string" && data.why ? data.why : (isCloud ? "an analysis request" : "a question I can answer directly"),
         });
       } catch {
         // network error / abort / timeout -> stay on the local heuristic
@@ -245,7 +247,7 @@ export function LanePreview({ text, onOverride }: LanePreviewProps) {
               textUnderlineOffset: 2,
             }}
           >
-            {isCloud ? "answer it instantly instead" : "run a validated pipeline instead"}
+            {isCloud ? "answer here instead" : "prepare an analysis instead"}
           </button>
         )}
         {/* "why this?" — a plain-language reason toggle (spec 06 §6.2). No
@@ -284,7 +286,7 @@ export function LanePreview({ text, onOverride }: LanePreviewProps) {
         </p>
       )}
       <span style={{ color: "var(--bm-text-dim, oklch(0.62 0.010 260))", fontSize: 11 }}>
-        Advisory -- BioMate will confirm before running anything cloud.
+        BioMate will ask before starting any compute.
       </span>
     </div>
   );

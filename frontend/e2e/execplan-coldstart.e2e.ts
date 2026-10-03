@@ -100,7 +100,7 @@ test.describe("Cold-start / composer / chat — live dev exec plan", () => {
     await expect(route).toBeVisible();
     await expect(route).toHaveAttribute("data-lane", "instant");
     await expect(page.getByTestId("cold-intent-route-lane")).toHaveText(
-      "Instant · cited answer"
+      "Answer here · with sources"
     );
     await expect(page.getByTestId("cold-intent-route-domain")).toHaveText(
       "Literature"
@@ -469,7 +469,7 @@ test.describe("Cold-start / composer / chat — live dev exec plan", () => {
     );
     expect(lane).toBe("instant");
     await expect(page.getByTestId("lane-preview-chip")).toContainText(
-      "Instant · cited answer"
+      "Answer here · with sources"
     );
     await expect(
       page.locator('text=Advisory').first()
@@ -483,7 +483,7 @@ test.describe("Cold-start / composer / chat — live dev exec plan", () => {
     const { lane } = await typeAndReadLane(page, "Run DESeq2 on these counts.");
     expect(lane).toBe("cloud");
     await expect(page.getByTestId("lane-preview-chip")).toContainText(
-      "Cloud · validated workflow"
+      "Prepare an analysis · review before starting"
     );
     await shot(page, "LP-02-cloud-method");
   });
@@ -526,7 +526,7 @@ test.describe("Cold-start / composer / chat — live dev exec plan", () => {
     await page.getByTestId("lane-preview-override").click();
     const forced = page.getByTestId("lane-preview");
     await expect(forced).toHaveAttribute("data-lane", "cloud");
-    await expect(forced).toContainText("Cloud · validated workflow");
+    await expect(forced).toContainText("Prepare an analysis · review before starting");
     await expect(page.getByTestId("lane-preview-clear-override")).toBeVisible();
     await shot(page, "LP-07-override");
     // clear → back to advisory verdict

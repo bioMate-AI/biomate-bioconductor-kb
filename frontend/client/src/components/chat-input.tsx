@@ -709,9 +709,9 @@ export function ChatInput({
           >
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 600, color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
               <span aria-hidden style={{ width: 7, height: 7, borderRadius: 999, flexShrink: 0, background: laneOverride === "cloud" ? "var(--bm-primary, oklch(0.55 0.20 265))" : "var(--bm-ok, oklch(0.62 0.14 155))" }} />
-              {laneOverride === "cloud" ? "Cloud · validated workflow" : "Instant · cited answer"}
+              {laneOverride === "cloud" ? "Prepare an analysis · review before starting" : "Answer here · with sources"}
             </span>
-            <span style={{ color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>· forced for this message</span>
+            <span style={{ color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>· selected for this message</span>
             <button
               type="button"
               data-testid="lane-preview-clear-override"

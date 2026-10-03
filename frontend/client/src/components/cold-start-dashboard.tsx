@@ -481,7 +481,7 @@ const DOMAIN_RULES: Array<{ m: RegExp; dom: string; lane: LaneKind }> = [
 
 export interface IntentRead {
   lane: LaneKind;
-  /** Short lane label from lane-preview (e.g. "Instant · cited answer"). */
+  /** Short user-facing consequence label from lane-preview. */
   laneLabel: string;
   /** The coarse domain the intent reads as, or null if none matched. */
   domain: string | null;
@@ -507,8 +507,8 @@ export function readIntent(text: string | undefined | null): IntentRead | null {
     coarse.lane === lane
       ? coarse.label
       : lane === "cloud"
-        ? "Cloud · validated workflow"
-        : "Instant · cited answer";
+        ? "Prepare an analysis · review before starting"
+        : "Answer here · with sources";
   return { lane, laneLabel, domain: dom ? dom.dom : null };
 }
 
