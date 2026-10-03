@@ -2561,6 +2561,14 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
         except ClientError as exc:
             code = exc.response.get("Error", {}).get("Code", "")
             if code in ("404", "NoSuchKey"):
+                # Key may be a directory prefix without a trailing slash.
+                # Try listing objects under key+'/' before failing.
+                try:
+                    resp = s3.list_objects_v2(Bucket=bucket, Prefix=key + "/", MaxKeys=1)
+                    if resp.get("KeyCount", 0) > 0:
+                        return  # valid directory prefix — treat as found
+                except ClientError:
+                    pass
                 raise HTTPException(
                     status_code=422,
                     detail={
