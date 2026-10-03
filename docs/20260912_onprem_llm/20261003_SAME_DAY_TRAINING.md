@@ -117,3 +117,21 @@ These tests validate the grader, not the candidate model. Actual model decisions
 execution remain pending. Replacement startup passed dependency installation, downloaded the pinned 9B model, and selected
 `midtrain/checkpoint-100` for resume. Dataset preprocessing and actual resumed optimizer progress
 still need verification; selecting a checkpoint alone does not prove a successful restore.
+
+## 19:14 UTC supervision and workflow evaluation preparation
+
+Replacement remains running. Tokenization completed; label preparation is near completion.
+Actual post-restore optimizer progress is still unverified. SSM lists no managed connection for
+this worker; no command was injected and the running code archive remains unchanged.
+
+`evaluation/local_trial/eval_grounded_workflows.py` now supports direct Transformers inference
+using the same strict text-weight loader as training. Run once with original `--base`, and once
+with CPT `--base` plus SFT `--adapter`, both using
+`--facts evaluation/local_trial/today_resolved_compounds.json` and separate `--out` JSONL files.
+It preserves raw model decisions, timing, exact prompt/evidence hashes, expected molecular weights
+and source evidence. Checks enforce the selected workflow, allowed parameters, requested model,
+and exact compound multiset; three regression tests pass. Every result records
+`execution_status=NOT_RUN` until separate BioMate execution and output grading are performed.
+This runner is prepared locally but **not injected into the current training worker**. It covers
+only two ADMET decisions and cannot establish all-task client readiness. Next evaluation worker
+or an accessible post-training process must run it against the delivered weights.
