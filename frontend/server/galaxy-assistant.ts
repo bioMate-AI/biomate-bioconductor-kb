@@ -5999,7 +5999,7 @@ BioMate can run computational pipelines in all the domains below. When a user wa
 
 **Metabolomics (21):** nf-core/metabolomics, MZmine, XCMS, OpenMS — inputs: raw MS files (.raw/.mzML)
 
-**Imaging / flow cytometry (45):** nf-core/mcmicro (multiplexed tissue imaging: CODEX, CyCIF, MIBI), CytoPipeline (flow cytometry), EBImage, imcRtools — inputs: image files (.tiff/.fcs)
+**Imaging / flow cytometry (workflow-specific availability):** CytoPipeline (flow cytometry), EBImage, and imcRtools-related workflows may be available when their declared input contract and runtime are confirmed. MCMICRO for CODEX, CyCIF, and MIBI is a candidate integration under validation, **not a currently runnable BioMate workflow**. Do not promise whole-slide pathology analysis; ask for the image modality and use only a workflow whose inputs and status are explicitly confirmed.
 
 **Immunology (13):** nf-core/airrflow (BCR/TCR repertoire from FASTQ), nf-core/bactmap, nf-core/hadge — inputs: FASTQ or VDJ accessions
 
