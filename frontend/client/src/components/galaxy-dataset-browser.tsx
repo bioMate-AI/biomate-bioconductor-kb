@@ -480,10 +480,11 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
             </code>
           </div>
           <div>
-            <p className="font-medium text-foreground/80 mb-0.5">FTP with credentials:</p>
+            <p className="font-medium text-foreground/80 mb-0.5">Public FTP:</p>
             <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
-              ftp://username:password@ftp.example.com/path/to/file.fastq.gz
+              ftp://ftp.ncbi.nlm.nih.gov/path/to/file.fastq.gz
             </code>
+            <p className="mt-1">Do not place credentials in a URL. Authenticated storage requires a managed connection.</p>
           </div>
           <div>
             <p className="font-medium text-foreground/80 mb-0.5">AWS S3 single file (uses your Account Settings credentials):</p>
@@ -494,11 +495,9 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
           <div>
             <p className="font-medium text-foreground/80 mb-0.5 flex items-center gap-1">
               <FolderArchive className="h-3 w-3 text-amber-500" />
-              S3 folder — one reference covers all files under the prefix:
+              S3 folder:
             </p>
-            <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
-              s3://my-bucket/project/samples/
-            </code>
+            <p>Browse a configured S3 workspace folder and select individual files. This importer accepts one object URI, not a folder prefix.</p>
           </div>
         </div>
       </div>

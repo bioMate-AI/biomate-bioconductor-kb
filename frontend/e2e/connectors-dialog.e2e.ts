@@ -74,7 +74,7 @@ test.describe("connectors-dialog", () => {
     // These endpoints are the real management surfaces behind the forms. A UI
     // empty state must not hide a missing/failed backend route.
     const [dbList, mcpList] = await Promise.all([
-      page.request.get(`${BASE_URL}/api/db-connections`),
+      page.request.get(`${BASE_URL}/api/databases/connections`),
       page.request.get(`${BASE_URL}/api/mcp/servers`),
     ]);
     expect(dbList.status()).toBe(200);

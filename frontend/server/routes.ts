@@ -19,6 +19,7 @@ import { db, pool } from "./db";
 import { selectChatHistoryUnderBudget } from "./chat-history-selector";
 import { capDatasetReferences, MAX_DATASET_REFS } from "./dataset-cap";
 import { selectReferencedDatasets, type DatasetReference } from "./dataset-reference-selection";
+import { validateRemoteFileUrl } from "./remote-source-validation";
 import { resolveProjectFileReferences } from "./project-file-references";
 import { _isOwnerOrMember } from "./project-routes";
 import { appendComposerInstructions } from "./chat-context";
@@ -3613,24 +3614,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/datasets/import-url", authenticateToken, checkBillingQuota('URL import'), async (req, res) => {
     try {
       const { url, filename } = req.body;
+      const validated = validateRemoteFileUrl(url);
+      if (!validated.ok) return res.status(400).json({ error: validated.error });
+      const remoteUrl = validated.url.toString();
+      const remoteFilename = filename || validated.filename;
 
-      if (!url) {
-        return res.status(400).json({ error: "URL is required" });
-      }
-
-      // Validate URL format
-      try {
-        const parsedUrl = new URL(url);
-        if (!['http:', 'https:', 'ftp:', 's3:'].includes(parsedUrl.protocol)) {
-          return res.status(400).json({
-            error: "Unsupported protocol. Use HTTP, HTTPS, FTP, or S3 URLs."
-          });
-        }
-      } catch {
-        return res.status(400).json({ error: "Invalid URL format" });
-      }
-
-      console.log(`[URLImport] Importing from URL: ${url}`);
+      console.log(`[URLImport] Importing remote file ${validated.url.origin}${validated.url.pathname}`);
 
       // Get or create Galaxy history
       let historyId = req.session?.galaxyHistoryId as string | undefined;
@@ -3655,9 +3644,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const datasetId = uuidv4();
         const galaxyDatasetId = await userProxy(req).uploadFromUrl(
-          url,
+          remoteUrl,
           historyId,
-          filename || url.split('/').pop() || 'imported-file'
+          remoteFilename,
         );
 
         console.log(`[URLImport] Galaxy dataset created: ${galaxyDatasetId}`);
@@ -3670,11 +3659,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           req.session.uploadedDatasets.push({
             dataset_id: datasetId,
             galaxy_dataset_id: galaxyDatasetId,
-            name: filename || url.split('/').pop() || 'imported-file',
-            description: `Imported from URL: ${url}`,
+            name: remoteFilename,
+            description: `Imported from URL: ${remoteUrl}`,
             file_type: 'auto',
             file_size: 0, // Size unknown until Galaxy fetches it
-            source_url: url,  // Nextflow can fetch HTTP/S3 URLs directly
+            source_url: remoteUrl,  // Nextflow can fetch HTTP/S3 URLs directly
           });
           req.session.uploadedDatasets = capDatasetReferences(req.session.uploadedDatasets);
         }
@@ -3683,9 +3672,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           dataset_id: datasetId,
           galaxy_dataset_id: galaxyDatasetId,
           galaxy_history_id: historyId,
-          name: filename || url.split('/').pop(),
+          name: remoteFilename,
           source: 'url',
-          source_url: url,
+          source_url: remoteUrl,
           uploaded_at: new Date().toISOString(),
         });
       } catch (error: any) {
@@ -15097,25 +15086,14 @@ Respond ONLY with valid JSON (no markdown wrapper):
   // --- Deferred Datasets (Lazy URL Fetching) ---
 
   // Create deferred dataset from URL (no immediate download)
-  app.post("/api/datasets/deferred", async (req, res) => {
+  app.post("/api/datasets/deferred", authenticateToken, checkBillingQuota('Deferred URL import'), async (req, res) => {
     try {
       const { url, name, file_type } = req.body;
 
-      if (!url) {
-        return res.status(400).json({ error: "URL is required" });
-      }
-
-      // Validate URL format
-      try {
-        const parsedUrl = new URL(url);
-        if (!['http:', 'https:', 'ftp:', 's3:'].includes(parsedUrl.protocol)) {
-          return res.status(400).json({
-            error: "Unsupported protocol. Use HTTP, HTTPS, FTP, or S3 URLs."
-          });
-        }
-      } catch {
-        return res.status(400).json({ error: "Invalid URL format" });
-      }
+      const validated = validateRemoteFileUrl(url);
+      if (!validated.ok) return res.status(400).json({ error: validated.error });
+      const remoteUrl = validated.url.toString();
+      const remoteName = name || validated.filename;
 
       // Get or create Galaxy history
       let historyId = req.session?.galaxyHistoryId as string | undefined;
@@ -15129,15 +15107,15 @@ Respond ONLY with valid JSON (no markdown wrapper):
 
       const dataset = await userProxy(req).createDeferredDataset(
         historyId,
-        url,
-        name,
+        remoteUrl,
+        remoteName,
         file_type
       );
 
       res.json({
         ...dataset,
         galaxy_history_id: historyId,
-        source_url: url,
+        source_url: remoteUrl,
         message: `Deferred dataset created. Data will be fetched when workflow executes.`
       });
     } catch (error: any) {

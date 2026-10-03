@@ -21,8 +21,7 @@ Record shape (stored, encrypted):
       "transport": "sse" | "http",   # remote only; stdio is DEFERRED
       "url": "https://…",
       "headers": {"Authorization": "Bearer …"},   # secret; never listed
-      "scope": "account" | "project" | "request",
-      "project_id": "<optional>",
+      "scope": "account",
       "created_at": "<iso8601>"
     }
 """
@@ -57,7 +56,10 @@ PREFS_KEY = "biomate_mcp_servers"  # fallback when vault not configured
 
 # Remote transports only. stdio is deliberately absent (RCE surface, deferred).
 ALLOWED_TRANSPORTS = ("sse", "http")
-ALLOWED_SCOPES = ("account", "project", "request")
+# The registry is resolved only from ``trans.user`` today. Do not accept
+# project/request scope until the chat path supplies authoritative scope context
+# and applies it to every list and call.
+ALLOWED_SCOPES = ("account",)
 
 # Keys that must NEVER be returned to the client in a list/get view.
 _SECRET_KEYS = ("headers", "auth", "token")
@@ -82,11 +84,17 @@ class ExternalMCPRegistry:
 
         return UserVaultWrapper(self.trans.app.vault, self.user)
 
-    def _write_secret(self, path: str, value: str) -> None:
+    def _write_secret(self, path: str, value: str, *, require_vault: bool = False) -> None:
         try:
             self._vault().write_secret(path, value)
             return
         except Exception as e:  # vault unconfigured → preferences fallback
+            if require_vault:
+                # User-supplied MCP auth is a credential. Do not silently put it
+                # in the ordinary preferences store when encrypted Vault storage
+                # is unavailable; that would contradict the connector's security
+                # contract and make a deployment configuration issue a secret leak.
+                raise ValueError("encrypted credential storage is unavailable; configure Vault before saving an MCP auth header") from e
             log.warning("[ExternalMCP] Vault unavailable (%s), using preferences fallback", e)
         raw = self.user.preferences.get(PREFS_KEY, "{}")
         try:
@@ -151,7 +159,7 @@ class ExternalMCPRegistry:
                 "stdio is deferred"
             )
         if scope not in ALLOWED_SCOPES:
-            raise ValueError(f"scope {scope!r} not allowed ({ALLOWED_SCOPES})")
+            raise ValueError("only account-scoped MCP servers are supported; project/request scope is not implemented")
 
         ok, reason = is_safe_url(url)
         if not ok:
@@ -170,7 +178,12 @@ class ExternalMCPRegistry:
             "owner_user_id": getattr(self.user, "id", None),
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
-        self._write_secret(self._record_path(server_id), json.dumps(record))
+        # A record with headers contains credentials. It may only be persisted to
+        # the user Vault; the legacy preferences fallback is allowed for an
+        # unauthenticated public endpoint because it contains no secret material.
+        self._write_secret(
+            self._record_path(server_id), json.dumps(record), require_vault=bool(record["headers"])
+        )
         index = self._load_index()
         index.append(server_id)
         self._save_index(index)
@@ -191,7 +204,7 @@ class ExternalMCPRegistry:
             return None
         # Defense in depth: verify owner even if the index says so.
         owner = record.get("owner_user_id")
-        if owner is not None and getattr(self.user, "id", None) not in (owner, None):
+        if owner is not None and getattr(self.user, "id", None) != owner:
             return None
         return record
 

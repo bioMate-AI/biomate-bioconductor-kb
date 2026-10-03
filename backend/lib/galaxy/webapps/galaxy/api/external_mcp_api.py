@@ -63,8 +63,8 @@ class RegisterMCPServerRequest(BaseModel):
         alias="authHeader",
         description="Optional auth header, e.g. 'Authorization: Bearer <token>' (stored encrypted)",
     )
-    scope: str = Field(default="account", description="account | project | request")
-    project_id: Optional[str] = Field(default=None, description="Optional project scope")
+    scope: str = Field(default="account", description="account only; project/request scope is not implemented")
+    project_id: Optional[str] = Field(default=None, description="Reserved for future project-scoped registrations")
 
 
 class CallMCPToolRequest(BaseModel):
@@ -118,7 +118,10 @@ def _discover_tool_names(reg, server_id: str, user_id: Any) -> List[str]:
         tools = reg.list_tools(server_id, user_id=user_id)
         return [t.get("name") for t in tools if isinstance(t, dict) and t.get("name")]
     except Exception as e:  # transport/protocol/SSRF error — surface as empty, log
-        log.info("[ExternalMCP] tool discovery failed for %s: %s", server_id, e)
+        # Upstream-controlled HTTP/JSON-RPC error text can contain arbitrary
+        # content. Do not place it in logs or a user response, where a broken
+        # provider could echo an authorization value or misleading instructions.
+        log.info("[ExternalMCP] tool discovery failed for %s (%s)", server_id, type(e).__name__)
         return []
 
 
@@ -206,8 +209,11 @@ def list_mcp_server_tools(
     except PermissionError:
         raise HTTPException(status_code=404, detail="MCP server not found")
     except Exception as e:
-        # transport / protocol / SSRF — 502 (upstream server problem), no secrets.
-        raise HTTPException(status_code=502, detail=f"MCP server unreachable: {e}")
+        # Never return arbitrary upstream response text; it may contain a secret
+        # reflected by the remote server. The server id identifies the connection
+        # the user should check without exposing transport internals.
+        log.info("[ExternalMCP] tool listing failed for %s (%s)", server_id, type(e).__name__)
+        raise HTTPException(status_code=502, detail="MCP server is unreachable or returned an invalid response")
     return {"server_id": server_id, "tools": tools}
 
 
@@ -233,7 +239,7 @@ def list_all_mcp_tools(
         try:
             tools = reg.list_tools(sid, user_id=getattr(trans.user, "id", None))
         except Exception as e:
-            log.info("[ExternalMCP] skipping server %s in aggregate (unreachable): %s", sid, e)
+            log.info("[ExternalMCP] skipping server %s in aggregate (%s)", sid, type(e).__name__)
             continue
         for t in tools:
             if not isinstance(t, dict) or not t.get("name"):
@@ -272,5 +278,6 @@ def call_mcp_tool(
     try:
         result = client.call_tool(request.tool, request.arguments or {})
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"MCP tool call failed: {e}")
+        log.info("[ExternalMCP] tool call failed for %s (%s)", server_id, type(e).__name__)
+        raise HTTPException(status_code=502, detail="MCP tool call failed; check the server endpoint and authorization")
     return {"server_id": server_id, "tool": request.tool, "result": result}

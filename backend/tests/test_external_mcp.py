@@ -24,6 +24,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import threading
+from email.message import Message
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
@@ -139,6 +140,39 @@ def test_client_constructor_rejects_ssrf_url():
         ExternalMCPClient("https://169.254.169.254/mcp")
     with pytest.raises(SSRFBlockedError):
         ExternalMCPClient("http://10.0.0.1/mcp")
+
+
+def test_redirect_target_resolution_preserves_ssrf_guard_and_origin_boundary():
+    # A relative Location must resolve against the current public endpoint, not
+    # be rejected as a malformed standalone URL. An absolute internal target is
+    # still rejected by the same SSRF guard used for ordinary registrations.
+    assert client.urljoin("https://mcp.example.org/v1", "/rpc") == "https://mcp.example.org/rpc"
+    ok, _ = is_safe_url(client.urljoin("https://mcp.example.org/v1", "https://127.0.0.1/admin"))
+    assert ok is False
+    assert client._same_origin("https://mcp.example.org/v1", "https://mcp.example.org:443/rpc")
+    assert not client._same_origin("https://mcp.example.org/v1", "https://other.example.org/rpc")
+
+
+def test_credentialed_client_does_not_follow_cross_origin_redirect(monkeypatch):
+    """A 302 must not cause the configured bearer header to leave its origin."""
+    calls = []
+
+    class RedirectingOpener:
+        def open(self, request, timeout):
+            calls.append(request)
+            headers = Message()
+            headers["Location"] = "https://93.184.216.35/other-mcp"
+            raise client.urllib.error.HTTPError(request.full_url, 302, "Found", headers, None)
+
+    monkeypatch.setattr(client.urllib.request, "build_opener", lambda *_: RedirectingOpener())
+    mcp = ExternalMCPClient(
+        "https://93.184.216.34/mcp",
+        headers={"Authorization": "Bearer SHOULD_NOT_LEAVE_THE_ORIGIN"},
+    )
+    with pytest.raises(client.ExternalMCPError, match="cross-origin redirect"):
+        mcp._post({"jsonrpc": "2.0", "id": 1, "method": "initialize"})
+    # The second origin was never contacted, so the credential could not be sent.
+    assert len(calls) == 1
 
 
 # ===========================================================================
@@ -263,11 +297,39 @@ def test_registration_roundtrip(registry_module):
     assert raw["headers"]["Authorization"] == "Bearer SECRET"
 
 
+def test_registration_with_auth_fails_closed_without_vault(registry_module, monkeypatch):
+    reg_mod, _shared = registry_module
+    registry = reg_mod.ExternalMCPRegistry(_make_trans(42))
+
+    def vault_unavailable():
+        raise RuntimeError("Vault is not configured")
+
+    monkeypatch.setattr(registry, "_vault", vault_unavailable)
+    with pytest.raises(ValueError, match="encrypted credential storage"):
+        registry.register(
+            name="credentialed",
+            transport="http",
+            url="https://93.184.216.34/rpc",
+            headers={"Authorization": "Bearer SHOULD_NOT_BE_STORED_IN_PREFERENCES"},
+        )
+    assert registry.user.preferences == {}
+
+
 def test_registration_rejects_stdio_transport(registry_module):
     reg_mod, _ = registry_module
     registry = reg_mod.ExternalMCPRegistry(_make_trans(1))
     with pytest.raises(ValueError):
         registry.register(name="x", transport="stdio", url="https://mcp.example.com/")
+
+
+def test_registration_rejects_unenforced_project_or_request_scope(registry_module):
+    reg_mod, _ = registry_module
+    registry = reg_mod.ExternalMCPRegistry(_make_trans(1))
+    for scope in ("project", "request"):
+        with pytest.raises(ValueError, match="not implemented"):
+            registry.register(
+                name="x", transport="http", url="https://93.184.216.34/", scope=scope
+            )
 
 
 def test_registration_rejects_ssrf_url(registry_module):

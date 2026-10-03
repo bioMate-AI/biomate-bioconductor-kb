@@ -167,11 +167,17 @@ export function FileUpload({
     if (!urlInput.trim()) return
 
     const url = urlInput.trim()
-    // Validate URL format
+    // This mirrors the server-side guard. The server remains authoritative.
     try {
       const parsedUrl = new URL(url)
       if (!['http:', 'https:', 'ftp:', 's3:'].includes(parsedUrl.protocol)) {
         throw new Error('Unsupported protocol')
+      }
+      if (parsedUrl.username || parsedUrl.password) {
+        throw new Error('Credential-bearing URLs are not supported')
+      }
+      if (parsedUrl.protocol === 's3:' && (!parsedUrl.pathname || parsedUrl.pathname.endsWith('/'))) {
+        throw new Error('An S3 folder must be browsed; import a single S3 object instead')
       }
     } catch {
       setFiles(prev => [...prev, {
@@ -182,7 +188,7 @@ export function FileUpload({
         status: 'error',
         progress: 0,
         source: 'url',
-        error: 'Invalid URL format. Supported: HTTP, HTTPS, FTP, S3 URLs.'
+        error: 'Import one public HTTP, HTTPS, FTP, or S3 object. Browse S3 folders separately; URLs with credentials are not accepted.'
       }])
       return
     }
@@ -573,7 +579,7 @@ export function FileUpload({
               <div className="flex gap-1.5 items-start">
                 <FolderArchive className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
                 <div>
-                  <span className="font-medium text-foreground">S3 folder:</span> paste a bucket prefix (<code className="font-mono bg-background/60 px-1 rounded">s3://bucket/samples/</code>) to reference all files under it at once.
+                  <span className="font-medium text-foreground">S3 folder:</span> browse it from the workspace/data browser, then select the files to attach. URL import accepts one S3 object at a time.
                 </div>
               </div>
               <div className="flex gap-1.5 items-start">

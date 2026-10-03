@@ -39,7 +39,7 @@ import socket
 import urllib.error
 import urllib.request
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 # ---------------------------------------------------------------------------
 # Tunables (all overridable via env, but safe defaults)
@@ -210,6 +210,19 @@ def _assert_safe(url: str, allow_localhost_http: Optional[bool] = None) -> None:
         raise SSRFBlockedError(reason)
 
 
+def _same_origin(left: str, right: str) -> bool:
+    """Return whether two absolute HTTP(S) URLs have the same origin."""
+    a, b = urlparse(left), urlparse(right)
+    # ``hostname`` is normalized by urlparse; include the effective default port
+    # so https://example.org and https://example.org:443 compare as equivalent.
+    def origin(parsed):
+        scheme = (parsed.scheme or "").lower()
+        port = parsed.port or (443 if scheme == "https" else 80 if scheme == "http" else None)
+        return scheme, (parsed.hostname or "").lower(), port
+
+    return origin(a) == origin(b)
+
+
 # ---------------------------------------------------------------------------
 # Tool-name namespacing
 # ---------------------------------------------------------------------------
@@ -303,9 +316,18 @@ class ExternalMCPClient:
                     location = e.headers.get("Location")
                     if not location:
                         raise ExternalMCPError(f"redirect {e.code} with no Location header")
-                    # Re-validate the redirect target — refuse redirect-to-internal.
-                    _assert_safe(location, allow_localhost_http=self.allow_localhost_http)
-                    current_url = location
+                    # Resolve relative Location headers against the current endpoint
+                    # before checking them. Checking the raw header would reject every
+                    # legitimate relative redirect, while following it blindly would
+                    # reintroduce an SSRF bypass.
+                    redirect_url = urljoin(current_url, location)
+                    _assert_safe(redirect_url, allow_localhost_http=self.allow_localhost_http)
+                    # Never forward a user-supplied credential to another origin. A
+                    # compromised/misconfigured MCP endpoint must not be able to turn
+                    # a valid request into a bearer-token exfiltration redirect.
+                    if self._headers and not _same_origin(current_url, redirect_url):
+                        raise ExternalMCPError("cross-origin redirect rejected for credentialed MCP server")
+                    current_url = redirect_url
                     continue
                 detail = _read_capped(e)
                 raise ExternalMCPError(f"HTTP {e.code} from MCP server: {detail[:500]}")
