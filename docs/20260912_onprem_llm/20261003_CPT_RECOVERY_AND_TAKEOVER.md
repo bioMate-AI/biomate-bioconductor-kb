@@ -82,6 +82,29 @@ article identity, source URI, content digest and source family through filtering
 two filter regression tests pass. Token estimates now count emitted, truncated text. The existing
 corpus has not been rewritten, and paper IDs must be recovered upstream before citation-bearing RAG.
 
+### Literature recovery implementation (subsequent work)
+
+The preserved raw PMC header does contain explicitly labeled PMCID/PMID fields. The filter now
+recovers those fields before stripping the header; three provenance tests cover this behavior.
+A streaming SQLite FTS5/BM25 index builder rejects anonymous documents, keeps article identities,
+deduplicates by PMCID, and stores overlapping evidence excerpts. This is a lexical retrieval baseline,
+not the proposed embedding index. Three index/seam tests cover citations, duplicate articles,
+anonymous inputs, read-only queries, and operation with network calls forbidden.
+
+CPU build worker: `i-0c39359695d5c6804`, c6i.large Spot, $0.15/hour ceiling, 3,600-second timeout.
+Input: existing `midtrain_corpus/pmc_fulltext_bulk.jsonl`, streamed through the provenance-preserving
+filter. Output target: `airgap/literature_identified_20261003/` beneath the S3 root above.
+Logs: `spot_logs/small/litindex_identified_20261003/boot.log`.
+The worker uploads the index, manifest and SHA256SUMS only after build/integrity checks succeed.
+Its output is not yet a validated release artifact.
+
+Restore the completed artifact, verify SHA256SUMS, then configure `BIOMATE_LITERATURE_SQLITE` with
+the absolute index path together with `BIOMATE_OFFLINE_MODE=1`. The existing EuropePMC branch of
+federated literature queries will then use local evidence. Returned records mark
+`evidence_kind=local_fulltext_excerpt` to distinguish these snippets from original abstracts.
+This does not by itself wire every domain-pro prompt to mandatory retrieval; that remains a
+harness integration and evaluation gate.
+
 ## Revised SFT data audit
 
 The exact current S3 concept-SFT file contains 72,397 structurally valid records across 17 tasks.

@@ -3,6 +3,7 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
+from pmc_filter import article_provenance
 
 
 class PMCProvenanceTests(unittest.TestCase):
@@ -26,3 +27,11 @@ class PMCProvenanceTests(unittest.TestCase):
         result = self.filter({})
         self.assertEqual(result["provenance_status"], "missing_upstream_identifier")
         self.assertNotIn("pmcid", result)
+
+    def test_recovers_labeled_ids_from_legacy_bulk_header(self):
+        result = article_provenance({"text": "JOURNAL INFORMATION === ARTICLE INFORMATION === "
+                                  "PMCID: PMC123456 PMID: 987654 Article version: 1 Abstract Body"})
+        self.assertEqual(result["pmcid"], "PMC123456")
+        self.assertEqual(result["pmid"], "987654")
+        self.assertEqual(result["source_family"], "PMC123456")
+        self.assertEqual(article_provenance({"text": "Abstract References PMCID: PMC111"}), {})

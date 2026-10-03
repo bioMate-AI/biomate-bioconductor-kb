@@ -28,6 +28,25 @@ def body_of(t):
     return t[m[-1].end():] if m else t
 
 
+def article_provenance(record):
+    """Recover explicitly labeled article IDs before legacy bulk headers are stripped."""
+    result = {k: record[k] for k in ("pmcid", "pmid", "doi", "title", "url", "source_uri",
+                                    "source_family", "source_sha256") if record.get(k)}
+    text = record.get("text", "")
+    start = text.find("ARTICLE INFORMATION")
+    if start >= 0:
+        header = text[start:start + 2500].split("Abstract", 1)[0]
+        for key, pattern in (("pmcid", r"\bPMCID:\s*(PMC\d+)\b"),
+                             ("pmid", r"\bPMID:\s*(\d+)\b")):
+            match = re.search(pattern, header)
+            if key not in result and match:
+                result[key] = match.group(1)
+    if result.get("pmcid"):
+        result.setdefault("source_family", result["pmcid"])
+        result.setdefault("url", f"https://pmc.ncbi.nlm.nih.gov/articles/{result['pmcid']}/")
+    return result
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--min-year", type=int, default=2000)
@@ -63,11 +82,10 @@ def main():
         source = "pmc_review" if is_rev else "pmc_fulltext"
         src[source] += 1; kept += 1; toks += len(body[:12000]) // 4
         if not a.sample:
-            provenance = {k: r[k] for k in ("pmcid", "pmid", "doi", "title", "url", "source_uri",
-                                           "source_family", "source_sha256") if r.get(k)}
+            provenance = article_provenance(r)
             sys.stdout.write(json.dumps({"text": body[:12000], "source": source, "year": year,
                                          "licence": lic, **provenance,
-                                         "provenance_status": "identified" if r.get("pmcid") or r.get("source_uri")
+                                         "provenance_status": "identified" if provenance.get("pmcid") or provenance.get("source_uri")
                                          else "missing_upstream_identifier"}) + "\n")
     sys.stderr.write(f"PMC FILTER: in={n} kept={kept} ~tokens={toks:,} by_source={dict(src)}\n"
                      f"  dropped={dict(drop.most_common(10))}\n")

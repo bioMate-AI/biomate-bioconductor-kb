@@ -65,6 +65,15 @@ def _offline_lookup(url: str, payload: Optional[Dict] = None) -> Optional[Any]:
                 return result
         except Exception as e:
             log.warning("[federated_query] local ChEMBL mirror unavailable: %s", e)
+    literature_path = os.environ.get("BIOMATE_LITERATURE_SQLITE")
+    if literature_path:
+        try:
+            from .local_literature import resolve
+            result = resolve(literature_path, url, payload)
+            if result is not None:
+                return result
+        except Exception as e:
+            log.warning("[federated_query] local literature mirror unavailable: %s", e)
     log.debug("[federated_query] OFFLINE_MODE — skipping external call %s", url)
     return None
 _POOL_SIZE = 12
@@ -439,6 +448,9 @@ def _fetch_europepmc(query: str) -> Dict:
             "is_open_access": p.get("isOpenAccess") == "Y",
             "full_text_url": p.get("fullTextUrlList", {}).get("fullTextUrl", [{}])[0].get("url"),
             "abstract": (p.get("abstractText") or "")[:500],
+            "evidence_kind": p.get("evidence_kind", "abstract"),
+            "pmcid": p.get("pmcid"),
+            "licence": p.get("licence"),
         })
     return {"source": "europepmc", "results": results}
 
