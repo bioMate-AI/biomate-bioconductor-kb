@@ -35,8 +35,10 @@ MANIFEST_S3=${MANIFEST_S3:-s3://$BUCKET/cyclic_peptide/runs/d2-mine-local-202610
 TEST_INDEX_S3=${TEST_INDEX_S3:-s3://$BUCKET/cyclic_peptide/runs/pepglad-cyclicprep-20260914T194504Z/pepbdb_cyclic_processed/test_index.txt}
 N_SAMPLES=${N_SAMPLES:-100}            # eval candidates/target (matched to the repro budget)
 MANIFEST_FILTER=${MANIFEST_FILTER:-}   # e.g. head_to_tail to restrict cyclization type; empty=all 616
+RUN_MODE=${RUN_MODE:-full} # smoke: one epoch, preserve warm instance until deadline
 MAX_RUNTIME=${MAX_RUNTIME:-20h}
 DISK_GB=${DISK_GB:-250}
+[[ "$RUN_MODE" = full || "$RUN_MODE" = smoke ]] || { echo "FATAL: RUN_MODE must be full or smoke"; exit 1; }
 
 RUNID=unimomo-cyclic-ft-$(date -u +%Y%m%dT%H%M%SZ)
 S3RUN=s3://$BUCKET/cyclic_peptide/runs/$RUNID
@@ -66,14 +68,15 @@ ROOT=/opt/unimomo-run
 OUT_S3=${OUT_S3:?}; UNIMOMO_REPO=${UNIMOMO_REPO:?}; UNIMOMO_COMMIT=${UNIMOMO_COMMIT:?}
 CKPT_URL=${CKPT_URL:?}; CKPT_SIZE=${CKPT_SIZE:?}; ENV_YAML=${ENV_YAML:?}
 MANIFEST_S3=${MANIFEST_S3:?}; TEST_INDEX_S3=${TEST_INDEX_S3:?}
+RUN_MODE=${RUN_MODE:-full}
 N_SAMPLES=${N_SAMPLES:-100}; MANIFEST_FILTER=${MANIFEST_FILTER:-}; MAX_RUNTIME=${MAX_RUNTIME:-20h}
 
 mkdir -p "$ROOT/status"; exec > >(tee -a "$ROOT/status/bootstrap.log") 2>&1
 stage(){ printf '{"stage":"%s","time":"%s","runid":"%s"}\n' "$1" "$(date -u +%FT%TZ)" "$(basename "$OUT_S3")" > "$ROOT/status/status.json"; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; }
 sync_results(){ aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; [ -d "$ROOT/UniMoMo/ckpts" ] && aws s3 sync "$ROOT/UniMoMo/ckpts" "$OUT_S3/ckpts/" --only-show-errors || true; }
-finish(){ rc=$?; trap - EXIT; [ "$rc" -ne 0 ] && stage failed; sync_results; shutdown -h now; exit "$rc"; }
+finish(){ rc=$?; trap - EXIT; [ "$rc" -ne 0 ] && stage failed; sync_results; if [ "$RUN_MODE" = full ] || ! systemctl is-active --quiet unimomo-deadline.timer; then shutdown -h now; fi; exit "$rc"; }
 trap finish EXIT
-systemctl is-active --quiet unimomo-deadline.timer || systemd-run --unit=unimomo-deadline --on-active="$MAX_RUNTIME" /sbin/shutdown -h now || true
+systemctl is-active --quiet unimomo-deadline.timer || systemd-run --unit=unimomo-deadline --on-active="$MAX_RUNTIME" /sbin/shutdown -h now
 (while sleep 120; do sync_results; done) &
 
 stage installing_conda
@@ -135,7 +138,7 @@ PBPATCH
 stage building_env
 conda env create -f "$ENV_YAML"
 set +u; conda activate UniMoMo; set -u   # MKL_INTERFACE_LAYER unbound under set -u (repro fix)
-python -c 'import torch; print("cuda", torch.cuda.is_available())' | tee "$ROOT/status/torch_check.txt"
+python -c 'import torch; assert torch.cuda.is_available(), "CUDA required"; print("cuda", torch.cuda.is_available())' | tee "$ROOT/status/torch_check.txt"
 
 stage downloading_base_ckpt
 mkdir -p checkpoints
@@ -180,11 +183,37 @@ stage patching_training_integrity
 aws s3 cp "$OUT_S3/code/patch_unimomo_training.py" ./patch_unimomo_training.py --only-show-errors
 python patch_unimomo_training.py --root .
 stage training
-python train.py --config ./configs/unimomo_cyclic_ft.yaml --gpus 0 2>&1 | tee "$ROOT/status/train.log"
+TRAIN_ARGS=()
+if [ "$RUN_MODE" = smoke ]; then TRAIN_ARGS+=(--trainer.config.max_epoch=1); fi
+python train.py --config ./configs/unimomo_cyclic_ft.yaml --gpus 0 "${TRAIN_ARGS[@]}" 2>&1 | tee "$ROOT/status/train.log"
 sync_results
 FT_CKPT=$(head -1 ckpts/cyclic_ft/version_*/checkpoint/topk_map.txt | sed 's/^[^:]*: //')
 echo "best FT ckpt: $FT_CKPT" | tee "$ROOT/status/ft_ckpt.txt"
 [ -f "$FT_CKPT" ] || { echo "FATAL: no FT ckpt"; exit 1; }
+
+if [ "$RUN_MODE" = smoke ]; then
+  python - "$FT_CKPT" <<'SMOKE_PY'
+import json, re, sys, torch
+base = torch.load('checkpoints/model.ckpt', map_location='cpu')
+ft = torch.load(sys.argv[1], map_location='cpu')
+updates = re.findall(r'UPDATE_EVIDENCE step=(\d+)', open('/opt/unimomo-run/status/train.log').read())
+expected = sum(bool(line.strip()) for line in open('datasets/peptide/cyclic/processed/train_index.txt'))
+assert [int(x) for x in updates] == list(range(expected)), (len(updates), expected)
+base_state, ft_state = base.state_dict(), ft.state_dict()
+ae_names = [n for n in base_state if n.startswith('autoencoder.')]
+assert ae_names and all(torch.equal(base_state[n], ft_state[n]) for n in ae_names), 'AE state changed'
+assert not any(p.requires_grad for p in ft.autoencoder.parameters()), 'AE not frozen'
+changed = [n for n, p in ft.named_parameters() if p.requires_grad and not torch.equal(base_state[n], p.detach())]
+assert changed, 'No trainable parameter changed'
+assert all(torch.isfinite(p).all() for p in ft.parameters()), 'Nonfinite weights'
+report = dict(mode='real_cuda_one_epoch_smoke', successful_updates=len(updates), expected_updates=expected,
+              frozen_ae_unchanged=True, changed_trainable_parameters=len(changed), checkpoint=sys.argv[1], passed=True)
+open('/opt/unimomo-run/status/smoke_report.json', 'w').write(json.dumps(report, indent=2))
+print(json.dumps(report, indent=2))
+SMOKE_PY
+  stage smoke_complete
+  exit 0
+fi
 
 # ---- EVAL data: PepBDB-cyclic test -> dataprep(test) -> pepbench --remove_het ----
 stage eval_dataprep
@@ -238,7 +267,7 @@ for i in 1 2 3 4 5; do aws s3 cp $S3RUN/code/run_cyclic_ft.sh /opt/unimomo-run/r
 chmod +x /opt/unimomo-run/run.sh
 OUT_S3=$S3RUN UNIMOMO_REPO=$UNIMOMO_REPO UNIMOMO_COMMIT=$UNIMOMO_COMMIT CKPT_URL=$CKPT_URL CKPT_SIZE=$CKPT_SIZE \\
 ENV_YAML=$ENV_YAML MANIFEST_S3=$MANIFEST_S3 TEST_INDEX_S3=$TEST_INDEX_S3 N_SAMPLES=$N_SAMPLES \\
-MANIFEST_FILTER="$MANIFEST_FILTER" MAX_RUNTIME=$MAX_RUNTIME bash /opt/unimomo-run/run.sh
+MANIFEST_FILTER="$MANIFEST_FILTER" RUN_MODE=$RUN_MODE MAX_RUNTIME=$MAX_RUNTIME bash /opt/unimomo-run/run.sh
 EOF
 )
 
