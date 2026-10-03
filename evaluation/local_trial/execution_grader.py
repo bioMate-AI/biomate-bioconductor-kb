@@ -42,6 +42,8 @@ def terminal_ok(run):
         return False, f"returncode={rc}"
     if nf.get("status") not in ("succeeded", None):
         return False, f"nextflow={nf.get('status')}"
+    if rc is None and nf.get("status") != "succeeded":
+        return False, "missing execution success evidence"
     return True, "terminal ok"
 
 
@@ -51,8 +53,9 @@ def result_outputs(run):
     return [o for o in outs if o.get("name") != "versions.yml"]
 
 
-def s3_text(uri, n=4096):
-    return subprocess.check_output(["aws", "s3", "cp", uri, "-"], stderr=subprocess.DEVNULL)[:n].decode("utf-8", "replace")
+def s3_text(uri):
+    # Parse the complete artifact. Truncation can reject valid JSON or hide malformed tails.
+    return subprocess.check_output(["aws", "s3", "cp", uri, "-"], stderr=subprocess.DEVNULL).decode("utf-8", "strict")
 
 
 def content_ok(o):
@@ -103,7 +106,7 @@ def grade_run(run, deep=False):
             if not rep:
                 return "FAIL", "expect_mw set but no toxicity_report.json"
             try:
-                j = json.loads(s3_text(rep["s3_uri"], 20000))
+                j = json.loads(s3_text(rep["s3_uri"]))
                 got = [c.get("mw") for c in j.get("per_compound", []) if c.get("mw") is not None]
             except Exception:
                 return "FAIL", "toxicity_report.json unreadable for MW check"

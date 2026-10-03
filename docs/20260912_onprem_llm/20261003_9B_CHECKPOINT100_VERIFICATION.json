@@ -1,0 +1,69 @@
+{
+  "source": "s3://biomate-models-399683337364/biomate-core-local-trial/20260912/spot_ckpt/med/full_today_20261003/midtrain/checkpoint-100/",
+  "global_step": 100,
+  "max_steps": 300,
+  "validation": [
+    "trainer state",
+    "LoRA rank 16",
+    "safetensors header bounds",
+    "optimizer/scheduler/RNG ZIP CRCs"
+  ],
+  "restore_status": "not yet loaded by replacement trainer",
+  "files": [
+    {
+      "name": "README.md",
+      "bytes": 5228,
+      "sha256": "42cb934aa3c6bf604c00939a738a24b2c08f9eca4f3ffe6f8517e563bbe7713a"
+    },
+    {
+      "name": "adapter_config.json",
+      "bytes": 1187,
+      "sha256": "12e0f59b04eb0f3555c326f29ea2a84c876e29d4e5c1694e19546643988be34f"
+    },
+    {
+      "name": "adapter_model.safetensors",
+      "bytes": 58230048,
+      "sha256": "4a69eefd21e76465bb95e89b3edaf9d6eff7f47a23e6e12121d234d8f9314fcf"
+    },
+    {
+      "name": "chat_template.jinja",
+      "bytes": 7756,
+      "sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715"
+    },
+    {
+      "name": "optimizer.pt",
+      "bytes": 59412133,
+      "sha256": "58b2f39e16f5a9777497fc0bfdfb9513e541d0767c2299c6236ad81b14fbdfd4"
+    },
+    {
+      "name": "rng_state.pth",
+      "bytes": 14709,
+      "sha256": "b6b23491b2253372ee0d2775e69916e15beeeadd9d5589d491affeb1d305d763"
+    },
+    {
+      "name": "scheduler.pt",
+      "bytes": 1465,
+      "sha256": "ec4aeeca40e48feb90051ad3e194b82f4b7d675da50604ac027381ec417f1340"
+    },
+    {
+      "name": "tokenizer.json",
+      "bytes": 19989339,
+      "sha256": "a5cd9732badce41de57e6efce8302930ded1c1188c5f81feb2bd6c24c4a1941f"
+    },
+    {
+      "name": "tokenizer_config.json",
+      "bytes": 1465,
+      "sha256": "004893c9690cd050e617619eef34e6a13fe58ac4a3f4174f38eed5e408a89636"
+    },
+    {
+      "name": "trainer_state.json",
+      "bytes": 6626,
+      "sha256": "a392099a8111a90a42fb986cc5a2683123772a5a1083ee1bda345f1e6319481e"
+    },
+    {
+      "name": "training_args.bin",
+      "bytes": 5777,
+      "sha256": "9881fdd05a72d7a0201b9275529b8eaf67338bff2654a6a0976a9094d36b3c30"
+    }
+  ]
+}

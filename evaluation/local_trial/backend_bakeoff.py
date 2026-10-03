@@ -7,8 +7,8 @@ Varies: which backend produces the decision (frontier via Anthropic API; our mod
 compatible vLLM endpoint serving base+sft_v5).
 
 Modes:
-  --backend frontier               # calls Anthropic (ANTHROPIC_API_KEY / SETUP_CHECKLIST.md)
-  --backend ourmodel --endpoint http://localhost:8000/v1 --model sft_v5   # vLLM on the GPU box
+  --backend frontier --facts today_resolved_compounds.json  # calls Anthropic (ANTHROPIC_API_KEY / SETUP_CHECKLIST.md)
+  --backend ourmodel --endpoint http://localhost:8000/v1 --model sft_v5 --facts today_resolved_compounds.json  # vLLM on the GPU box
 Writes decisions_<backend>.jsonl: one {task_id, nextflow_path, params, raw} per task. run_workflow +
 grade happen OUTSIDE this script (MCP + execution_grader), so the same decision file drives both.
 """

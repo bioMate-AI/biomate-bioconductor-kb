@@ -6,7 +6,7 @@ No IND or peptide-model work. Preserve other sessions' changes in this shared ch
 
 ## Running jobs
 
-- **9B candidate:** `i-08db6633722c9d20c`, g6.4xlarge (24GB GPU), us-west-2b.
+- **9B candidate replacement:** `i-0e80fb51b235fff89`, g6.2xlarge (24GB GPU, 32GB host RAM), us-west-2b.
   Tag `_today_20261003`, MODEL_SIZE=med, STAGE=full, ENTRY=today_entry.sh,
   BOOTSTRAP=today_bootstrap.sh. 48GB g6e Spot capacity failed across all four configured AZs.
   Price ceiling $1/hour; maximum bootstrap/train/eval time 28,800 seconds, then termination.
@@ -88,3 +88,31 @@ rejecting that evaluation. It now requires `--facts resolved_compounds.json`, va
 compound evidence before any model calls, and feeds identical frozen SMILES/source URLs to both
 arms. Two regression tests pass. Actual resolver evidence, candidate inference and execution remain
 to be performed; this correction alone is not an execution-evaluation result.
+
+## 18:53 UTC Spot recovery
+
+AWS interrupted worker `i-08db6633722c9d20c` after CPT step 113. It is terminated.
+Checkpoint 100 was downloaded and structurally verified: trainer step100/max300, adapter tensor
+offsets, ZIP CRCs for optimizer/scheduler/RNG/training arguments, and SHA256 for every file.
+See `20261003_9B_CHECKPOINT100_VERIFICATION.json`. This is not yet a successful trainer restore.
+The prior attempt log is retained at `spot_logs/med/full_today_20261003/attempt_i-08db6633722c9d20c_train.log`.
+
+After five capacity failures, replacement `i-0e80fb51b235fff89` was allocated as g6.2xlarge
+in us-west-2b. Same code snapshot, pinned model, run tag, checkpoint prefix, hyperparameters and
+cost/time limits. Startup is installing dependencies; actual resume remains to be verified.
+The replacement has 32GB host RAM: watch preprocessing and CPU merge memory. No duplicate worker
+is running. The ten-minute supervisor now tracks this replacement.
+
+## 19:03 UTC evaluation preparation
+
+Frozen live PubChem resolver output for aspirin, caffeine, ibuprofen and imatinib in
+`evaluation/local_trial/today_resolved_compounds.json`, including CID, source URLs and retrieval
+time. This public online preparation is not a demonstrated offline ChEMBL deployment. Both
+bake-off arms must consume this same file; no model is asked to recall chemical identities.
+
+Corrected execution grading to parse full JSON artifacts instead of silently truncating at
+4KB/20KB. A completed run with neither a successful process status nor exit code now fails
+for missing execution evidence. Two regression tests pass, as do the two grounded-prompt tests.
+These tests validate the grader, not the candidate model. Actual model decisions and workflow
+execution remain pending. Replacement startup passed dependency installation and is downloading
+the pinned 9B model; no actual resumed optimizer step is claimed yet.

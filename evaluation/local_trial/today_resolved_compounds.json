@@ -1,0 +1,38 @@
+{
+  "aspirin": {
+    "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
+    "source_url": "https://pubchem.ncbi.nlm.nih.gov/compound/2244",
+    "cid": 2244,
+    "molecular_formula": "C9H8O4",
+    "molecular_weight": "180.16",
+    "retrieved_at": "2026-10-03T18:58:50.456556+00:00",
+    "resolver_url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/aspirin/property/CanonicalSMILES,MolecularFormula,MolecularWeight/JSON"
+  },
+  "caffeine": {
+    "smiles": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
+    "source_url": "https://pubchem.ncbi.nlm.nih.gov/compound/2519",
+    "cid": 2519,
+    "molecular_formula": "C8H10N4O2",
+    "molecular_weight": "194.19",
+    "retrieved_at": "2026-10-03T18:58:50.715662+00:00",
+    "resolver_url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/caffeine/property/CanonicalSMILES,MolecularFormula,MolecularWeight/JSON"
+  },
+  "ibuprofen": {
+    "smiles": "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
+    "source_url": "https://pubchem.ncbi.nlm.nih.gov/compound/3672",
+    "cid": 3672,
+    "molecular_formula": "C13H18O2",
+    "molecular_weight": "206.28",
+    "retrieved_at": "2026-10-03T18:58:50.995703+00:00",
+    "resolver_url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/ibuprofen/property/CanonicalSMILES,MolecularFormula,MolecularWeight/JSON"
+  },
+  "imatinib": {
+    "smiles": "CC1=C(C=C(C=C1)NC(=O)C2=CC=C(C=C2)CN3CCN(CC3)C)NC4=NC=CC(=N4)C5=CN=CC=C5",
+    "source_url": "https://pubchem.ncbi.nlm.nih.gov/compound/5291",
+    "cid": 5291,
+    "molecular_formula": "C29H31N7O",
+    "molecular_weight": "493.6",
+    "retrieved_at": "2026-10-03T18:58:51.300973+00:00",
+    "resolver_url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/imatinib/property/CanonicalSMILES,MolecularFormula,MolecularWeight/JSON"
+  }
+}
