@@ -103,7 +103,7 @@ cost/time limits. Startup is installing dependencies; actual resume remains to b
 The replacement has 32GB host RAM: watch preprocessing and CPU merge memory. No duplicate worker
 is running. The ten-minute supervisor now tracks this replacement.
 
-## 19:03 UTC evaluation preparation
+## 19:01 UTC evaluation preparation
 
 Frozen live PubChem resolver output for aspirin, caffeine, ibuprofen and imatinib in
 `evaluation/local_trial/today_resolved_compounds.json`, including CID, source URLs and retrieval
@@ -114,5 +114,6 @@ Corrected execution grading to parse full JSON artifacts instead of silently tru
 4KB/20KB. A completed run with neither a successful process status nor exit code now fails
 for missing execution evidence. Two regression tests pass, as do the two grounded-prompt tests.
 These tests validate the grader, not the candidate model. Actual model decisions and workflow
-execution remain pending. Replacement startup passed dependency installation and is downloading
-the pinned 9B model; no actual resumed optimizer step is claimed yet.
+execution remain pending. Replacement startup passed dependency installation, downloaded the pinned 9B model, and selected
+`midtrain/checkpoint-100` for resume. Dataset preprocessing and actual resumed optimizer progress
+still need verification; selecting a checkpoint alone does not prove a successful restore.
