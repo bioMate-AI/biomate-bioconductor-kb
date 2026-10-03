@@ -149,3 +149,15 @@ S3 currently contains checkpoints25/50/75/100. Checkpoint125 has not yet been re
 its backup in the next check. No paired model predictions exist yet. Training, merge, SFT and
 paired MCQA remain automatically chained; no stage was skipped. Resume verification is now
 passed, while successful final artifact delivery and execution evaluation remain pending.
+
+## 19:37 UTC halfway CPT milestone
+
+9B CPT reached **150/300**, latest loss1.882 and grad_norm0.2207, about20.9seconds/step.
+Approximately52minutes of CPT remain at this rate, excluding merge, SFT and evaluation.
+Replacement is running with no new error or interruption observed in the checked log.
+
+The first post-recovery backup, checkpoint125, is present in S3 with adapter weights, optimizer,
+scheduler, RNG, tokenizer, training arguments and trainer state. Downloaded trainer_state.json
+confirms global_step125/max_steps300, with finite loss and gradients. This verifies new backup
+production and state contents; checkpoint125 has not itself undergone a restore test or full
+file checksum/CRC audit. Checkpoint150 had just been reached and was not yet listed at inspection.
