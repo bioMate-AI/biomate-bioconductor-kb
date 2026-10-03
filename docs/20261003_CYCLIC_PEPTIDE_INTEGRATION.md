@@ -131,3 +131,32 @@ workflow the default rather than relying on an operator remembering an override.
 The interrupted instance is terminated; image registration correctly waits for
 the recovery snapshot to reach `completed`. No replacement was launched against
 an incomplete snapshot.
+
+## On-demand replacement and durable queue
+
+Because snapshot creation remained pending, validation restarted from the known
+base image on **on-demand** `g5.4xlarge` instance `i-01e417dd7270cd7cc`:
+`unimomo-cyclic-ft-20261003T170124Z`. It has the same four-hour deadline and the
+reviewed one-epoch guard. Its S3 prefix is
+`s3://knowledge-datasets-1759951976/cyclic_peptide/runs/unimomo-cyclic-ft-20261003T170124Z/`.
+
+SSM command `205d4a34-7fcb-44aa-9368-48235de37aad` queues the real-model DPO
+integration behind a successful training smoke. It then runs the exact split
+sequence audit. The committed `run_unimomo_integration_after_smoke.sh` provides
+this durable sequence; the staged copy has ROOT/OUT_S3 resolved for this run.
+The wrapper uploads its exit status, integration report, assay/pair fixtures,
+and split audit, while excluding simulation checkpoint and SQLite binaries.
+
+Expected artifacts:
+- `status/smoke_report.json`: one complete real CUDA epoch, valid update count,
+  changed trainable weights, unchanged frozen autoencoder.
+- `SIMULATED_dpo_integration/integration_report.json`: real UniMoMo DPO mechanics
+  on synthetic KD preferences, plus checkpoint and frozen-state checks.
+- `SIMULATED_dpo_integration/split_audit.json`: exact sequence overlap findings.
+- `SIMULATED_dpo_integration/exit_status.json`: downstream process exit code.
+
+Latest complete local verification: **40 tests passed from the PR checkout**.
+Real CUDA results remain pending while the replacement builds its environment.
+The original snapshot remains a recovery/cache artifact; no usable recovery AMI
+has yet been registered. Full training/benchmark promotion remains gated on the
+real smoke and dataset audit, and simulated KD never constitutes efficacy data.
