@@ -50,6 +50,8 @@ done
 [ -f "$HERE/unimomo_cyclic_ft.yaml" ] || { echo "FATAL: unimomo_cyclic_ft.yaml missing"; exit 1; }
 
 # upload code the driver pulls
+[ -f "$HERE/patch_unimomo_training.py" ] || { echo "FATAL: training guard missing"; exit 1; }
+aws s3 cp "$HERE/patch_unimomo_training.py" "$S3RUN/code/patch_unimomo_training.py" --only-show-errors
 aws s3 cp "$HERE/unimomo_cyclic_dataprep.py" "$S3RUN/code/unimomo_cyclic_dataprep.py" --only-show-errors
 aws s3 cp "$HERE/unimomo_cyclic_ft.yaml"     "$S3RUN/code/unimomo_cyclic_ft.yaml"     --only-show-errors
 
@@ -162,15 +164,21 @@ python -m scripts.data_process.peptide.pepbench --index ./cyc_train/index.txt --
 python - <<'PY'
 import random
 lines=[l for l in open('./datasets/peptide/cyclic/processed/index.txt').read().splitlines() if l.strip()]
+if len(lines) < 2: raise RuntimeError('Need at least two processed complexes for train/valid split')
 random.seed(0); random.shuffle(lines); k=max(1,len(lines)//10)
 open('./datasets/peptide/cyclic/processed/valid_index.txt','w').write('\n'.join(lines[:k])+'\n')
 open('./datasets/peptide/cyclic/processed/train_index.txt','w').write('\n'.join(lines[k:])+'\n')
 print(f'train={len(lines)-k} valid={k}')
 PY
+# Retain data for a warm development restart and independent split audits.
+aws s3 sync ./datasets/peptide/cyclic/processed "$OUT_S3/datasets/cyclic/processed/" --only-show-errors
 echo "train/valid split done" | tee -a "$ROOT/status/pepbench_train.log"
 sync_results
 
 # ---- fine-tune ----
+stage patching_training_integrity
+aws s3 cp "$OUT_S3/code/patch_unimomo_training.py" ./patch_unimomo_training.py --only-show-errors
+python patch_unimomo_training.py --root .
 stage training
 python train.py --config ./configs/unimomo_cyclic_ft.yaml --gpus 0 2>&1 | tee "$ROOT/status/train.log"
 sync_results
@@ -192,6 +200,7 @@ eval_ckpt(){  # $1=label $2=ckpt
   python generate.py --config configs/test/test_cyclic.yaml --ckpt "$ck" --gpu 0 --save_dir ./results/$label --n_samples=$N_SAMPLES 2>&1 | tee "$ROOT/status/generate_$label.log"
   stage "evaluating_$label"
   python -m scripts.metrics.peptide --results ./results/$label/results.jsonl --num_workers "$NCPU" 2>&1 | tee "$ROOT/status/eval_$label.log"
+  aws s3 sync ./results/$label "$OUT_S3/results/$label/" --only-show-errors
   cp -f ./results/$label/eval_final_.log "$ROOT/status/eval_final_$label.log" 2>/dev/null || true
 }
 eval_ckpt base ./checkpoints/model.ckpt
@@ -206,6 +215,7 @@ def dockq(label):
     if not os.path.exists(p): return None
     m=re.search(r"DockQ \(mean\):\s*([0-9.]+)", open(p).read()); return float(m.group(1)) if m else None
 b,f=dockq('base'),dockq('ft')
+if b is None or f is None: raise RuntimeError('Missing DockQ metric; evaluation incomplete')
 out={'benchmark':'UniMoMo-format PepBDB-cyclic test (reprocessed via pepbench), co-design DockQ',
  'aggregation':'mean over targets of max DockQ over candidates [oracle best-of-N]',
  'candidates_per_target':ns,'base_cyclic_DockQ':b,'ft_cyclic_DockQ':f,

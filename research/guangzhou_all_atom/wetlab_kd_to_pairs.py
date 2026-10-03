@@ -10,11 +10,12 @@ provenance-tagged PairSet that the trainer consumes.
 Pairing policy (within each target/prompt):
   * measured binder (lower KD) >- measured weaker binder, when they differ by >= MARGIN_STRONG (log10);
     pairs with a smaller gap are emitted but marked weak=True (drop with --drop_weak).
-  * any measured binder >- non-binder (no measurable KD) — always a confident pair.
+  * explicit non-binder labels give weak qualitative pairs; missing values give no pairs.
+  * assay-ceiling bounds give pairs only when the minimum KD gap supports the direction.
   * never pair two peptides within noise of each other (gap < MARGIN_MIN) — dropped as uninformative.
 
 Input CSV columns (case-insensitive; extras ignored):
-  id (or item/peptide_id) , seq (or sequence) , target , kd_nM   (blank / "no binding" / "nb" = non-binder)
+  id (or item/peptide_id) , seq (or sequence) , target , kd_nM   (blank/NA = missing; "no binding"/"nb" = explicit non-binder)
 
 Usage:
   python wetlab_kd_to_pairs.py --kd round1_kd.csv --out pairs.jsonl --trl_out pairs_trl.jsonl [--drop_weak]
@@ -25,21 +26,20 @@ from dpo_pairs import ExemplarPair, emit_pairs
 
 MARGIN_MIN = 0.3      # log10(KD ratio) below this = within noise -> no pair (≈ <2x)
 MARGIN_STRONG = 0.7   # >= this (≈ >5x) = confident; between MIN and STRONG = weak=True
-NONBINDER_TOKENS = {"", "nb", "no binding", "none", "n/a", "na", "nonbinder", "non-binder", ">100000"}
+NONBINDER_TOKENS = {"nb", "no binding", "nonbinder", "non-binder"}
+MISSING_TOKENS = {"", "none", "n/a", "na"}
 
 def _parse_kd(v):
-    """nM float, or None for a non-binder. Accepts '1200', '1.2uM'(->1200), '>50000'(->nonbinder)."""
-    if v is None: return None
-    s = str(v).strip().lower()
-    if s in NONBINDER_TOKENS: return None
-    if s.startswith(">"):      # above the assay ceiling = treat as non-binder for pairing
-        return None
+    """Parse an exact positive finite KD in nM. Invalid values fail closed."""
+    s = str(v).strip().lower().replace("μ", "µ")
     mult = 1.0
     if s.endswith("um") or s.endswith("µm"): mult, s = 1000.0, s[:-2].strip()
-    elif s.endswith("nm"): mult, s = 1.0, s[:-2].strip()
+    elif s.endswith("nm"): s = s[:-2].strip()
     elif s.endswith("mm"): mult, s = 1_000_000.0, s[:-2].strip()
-    try: return float(s) * mult
-    except ValueError: return None
+    value = float(s) * mult
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError(f"KD must be positive and finite: {v!r}")
+    return value
 
 def _col(row, *names):
     low = {k.lower(): k for k in row}
@@ -49,15 +49,27 @@ def _col(row, *names):
 
 def load_rows(path):
     out = []
-    for r in csv.DictReader(open(path)):
-        seq = _col(r, "seq", "sequence")
-        if not seq: continue
-        out.append(dict(
-            id=_col(r, "id", "item", "peptide_id") or seq,
-            seq=seq.strip().upper(),
-            target=(_col(r, "target") or "target").strip(),
-            kd=_parse_kd(_col(r, "kd_nm", "kd", "kd_nm_", "kd(nm)")),
-        ))
+    with open(path, newline="") as handle:
+        for line, r in enumerate(csv.DictReader(handle), 2):
+            seq = _col(r, "seq", "sequence")
+            target = (_col(r, "target") or "").strip()
+            if not seq or not seq.strip() or not target:
+                raise ValueError(f"Row {line}: sequence and target are required")
+            raw = (_col(r, "kd_nm", "kd", "kd_nm_", "kd(nm)") or "").strip()
+            if raw.lower() in MISSING_TOKENS:
+                continue
+            kd, lower = None, None
+            try:
+                if raw.startswith(">"):
+                    lower = _parse_kd(raw[1:].lstrip("="))
+                elif raw.lower() not in NONBINDER_TOKENS:
+                    kd = _parse_kd(raw)
+            except ValueError as exc:
+                raise ValueError(f"Row {line}: invalid KD {raw!r}") from exc
+            out.append(dict(
+                id=_col(r, "id", "item", "peptide_id") or seq,
+                seq=seq.strip(), target=target, kd=kd, kd_lower=lower,
+            ))
     return out
 
 def exemplars_from_kd(rows):
@@ -68,14 +80,20 @@ def exemplars_from_kd(rows):
     for target, items in by_t.items():
         binders    = [x for x in items if x["kd"] is not None]
         nonbinders = [x for x in items if x["kd"] is None]
-        # binder >- non-binder (always confident)
+        # Censored results preserve their lower bound; qualitative labels stay weak.
         for b in binders:
             for nb in nonbinders:
+                lower = nb.get("kd_lower")
+                margin = math.log10(lower / b["kd"]) if lower is not None else None
+                if margin is not None and margin < MARGIN_MIN:
+                    continue
                 exemplars.append(ExemplarPair(
                     chosen=b["seq"], rejected=nb["seq"], prompt=target,
-                    chosen_id=b["id"], rejected_id=nb["id"], source="GenScript_SPR",
-                    chosen_provenance="measured_KD", rejected_provenance="measured_nonbinder",
-                    reason=f"KD={b['kd']:.1f}nM binder >- non-binder"))
+                    chosen_id=b["id"], rejected_id=nb["id"], source="wetlab_KD",
+                    chosen_provenance="measured_KD",
+                    rejected_provenance="measured_KD_lower_bound" if lower is not None else "reported_nonbinder",
+                    margin=margin, weak=(margin is None or margin < MARGIN_STRONG),
+                    reason=f"KD={b['kd']:.1f}nM vs " + (f"KD>{lower}nM" if lower is not None else "reported non-binder" )))
         # binder >- weaker binder (by KD gap)
         for a, b in itertools.combinations(binders, 2):
             strong, weak = (a, b) if a["kd"] <= b["kd"] else (b, a)
@@ -84,7 +102,7 @@ def exemplars_from_kd(rows):
                 continue
             exemplars.append(ExemplarPair(
                 chosen=strong["seq"], rejected=weak["seq"], prompt=target,
-                chosen_id=strong["id"], rejected_id=weak["id"], source="GenScript_SPR",
+                chosen_id=strong["id"], rejected_id=weak["id"], source="wetlab_KD",
                 chosen_provenance="measured_KD", rejected_provenance="measured_KD",
                 margin=round(margin, 3), weak=(margin < MARGIN_STRONG),
                 reason=f"KD {strong['kd']:.1f} << {weak['kd']:.1f} nM (Δlog10={margin:.2f})"))
