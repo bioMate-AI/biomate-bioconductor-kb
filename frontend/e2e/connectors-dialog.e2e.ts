@@ -5,7 +5,8 @@
  *  - Sidebar "Connectors" button is visible and opens ConnectorsDialog
  *  - Scientific Databases tab shows entries (static list)
  *  - AI & Platforms tab shows entries (static list)
- *  - Skills tab loads from GET /api/ai_assistant/skills/available (live)
+ *  - Your connections exposes the private-DB and remote-MCP forms and their
+ *    authenticated list routes (live, read-only)
  *  - Dialog closes with the X button
  *
  * Uses the canonical fixture account (CLAUDE.md §"E2E test user").
@@ -56,28 +57,38 @@ test.describe("connectors-dialog", () => {
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
     // Click AI & Platforms tab
-    await dialog.locator("text=AI & Platforms").click();
+    // The explanatory copy also contains this phrase. Target the tab button,
+    // otherwise Playwright can click the inert paragraph text and leave the
+    // Public Databases tab active — a false negative against the connector UI.
+    await dialog.getByRole("button", { name: /^AI & Platforms/ }).click();
     // At least one AI entry should be visible
     await expect(
       dialog.locator("text=OpenAI").or(dialog.locator("text=Claude")).first()
     ).toBeVisible({ timeout: 3000 });
   });
 
-  test("Skills tab renders (live from API)", async ({ page }) => {
+  test("Your connections exposes private DB and remote MCP management", async ({ page }) => {
     await loginAsFixture(page);
     await page.goto(`${BASE_URL}/`);
+
+    // These endpoints are the real management surfaces behind the forms. A UI
+    // empty state must not hide a missing/failed backend route.
+    const [dbList, mcpList] = await Promise.all([
+      page.request.get(`${BASE_URL}/api/db-connections`),
+      page.request.get(`${BASE_URL}/api/mcp/servers`),
+    ]);
+    expect(dbList.status()).toBe(200);
+    expect(mcpList.status()).toBe(200);
 
     await page.getByTestId("button-connectors-nav").click();
     const dialog = page.locator('[role="dialog"]:has-text("Connectors")');
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
-    // Click Skills tab
-    await dialog.locator("text=Skills").click();
+    await dialog.getByRole("button", { name: "Your connections" }).click();
+    await expect(dialog.getByTestId("private-db-connection-form")).toBeVisible({ timeout: 5000 });
 
-    // The tab content should load (either skills table or empty state — never stuck on "Loading…")
-    await expect(
-      dialog.locator("text=No skills available.").or(dialog.locator("table"))
-    ).toBeVisible({ timeout: 8000 });
+    await dialog.getByTestId("your-connections-sub-mcp").click();
+    await expect(dialog.getByTestId("mcp-server-form")).toBeVisible({ timeout: 5000 });
   });
 
   test("ConnectorsDialog closes with X button", async ({ page }) => {

@@ -117,7 +117,7 @@ TOOL_SCHEMAS: List[ToolSchema] = [
         description=(
             "Search the BioMate workflow catalog (2,455 indexed workflows across 34 domains) "
             "by natural language. Returns ranked workflow cards with id, name, domain, "
-            "one-line description, and estimated AWS Batch cost. Use this when the user "
+            "and a one-line description. Use this when the user "
             "wants to pick a workflow explicitly; otherwise prefer biomate_session."
         ),
         input_schema={
@@ -140,7 +140,7 @@ TOOL_SCHEMAS: List[ToolSchema] = [
         description=(
             "Return the full specification for a workflow: required + optional parameters "
             "(with types and allowed values), default QC profile and thresholds, expected "
-            "input files, estimated cost and runtime, and any license requirements. "
+            "input files, and any license requirements. "
             "Call this before run_workflow when the user wants explicit parameter control."
         ),
         input_schema={

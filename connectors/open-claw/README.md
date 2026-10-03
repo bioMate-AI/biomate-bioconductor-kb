@@ -52,7 +52,7 @@ Open Claw responds with a markdown summary and a deep link to the live run on bi
 
 ## Tools
 
-Same 14-tool BioMate surface. Markdown summaries and deep links only — Open Claw drops thumbnails (WeChat image renders are inconsistent across clients).
+Same 19-tool BioMate surface. Markdown summaries and deep links only — Open Claw drops thumbnails (WeChat image renders are inconsistent across clients).
 
 ## Disconnect
 

@@ -32,12 +32,12 @@ That's it. The CLI opens your browser, runs OAuth 2.1 + PKCE against `https://bi
 
 ## What you get
 
-After connecting, your AI assistant has access to BioMate's 14-tool MCP surface:
+After connecting, your AI assistant has access to BioMate's 19-tool MCP surface:
 
 - **`biomate_session`** — natural-language goal → streaming workflow run with phase/step/QC/findings events
 - **`search_workflow`** + **`get_workflow_spec`** — discover from 2,455 indexed workflows
-- **`run_workflow`** + **`get_run`** + **`cancel_run`** — fine control
-- **`preview_file`**, **`export_report`**, **`recall_memory`**, **`upload_file`**, **`analyze_results`**, **`explain_error`**, **`query_database`**
+- **`run_workflow`** + **`get_run`** + **`watch_run`** + **`cancel_run`** — fine control and progress retrieval
+- **`preview_file`**, **`export_report`**, **`analyze_results`**, **`explain_error`**, **`query_database`**, **`resolve_accession`**, **`browse_data`**, **`fetch_public_data`**, **`search_literature`**, **`recall_memory`**, **`upload_file`**
 
 ## Try it
 

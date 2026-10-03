@@ -11,21 +11,26 @@ The executor (SQLAlchemy) is NOT exercised here — it needs a live Postgres; th
 is the integration test in the plan (§2.3). These unit tests cover the security
 core that must hold with zero infra.
 """
+import importlib.util
 import json
 import sys
 from pathlib import Path
 
 import pytest
 
-# Make galaxy.ai.private_db importable without standing up Galaxy. private_db
-# imports galaxy/sqlalchemy lazily (inside functions), so the module imports even
-# when those are absent — this keeps the validator tests infra-free.
-_LIB = Path(__file__).parents[1] / "lib"
-if str(_LIB) not in sys.path:
-    sys.path.insert(0, str(_LIB))
+# Load the target by file path. Importing ``galaxy.ai`` executes its package
+# initializer, which eagerly imports the complete AI/model stack; that defeats
+# this suite's stated zero-infrastructure security purpose. ``private_db``
+# itself imports Galaxy and SQLAlchemy lazily inside the paths that need them.
+_PRIVATE_DB_PATH = Path(__file__).parents[1] / "lib" / "galaxy" / "ai" / "private_db.py"
+_spec = importlib.util.spec_from_file_location("private_db_under_test", _PRIVATE_DB_PATH)
+assert _spec and _spec.loader
+private_db = importlib.util.module_from_spec(_spec)
+sys.modules["private_db_under_test"] = private_db
+_spec.loader.exec_module(private_db)
 
-from galaxy.ai import private_db  # noqa: E402
-from galaxy.ai.private_db import validate_readonly_sql, SqlValidationError  # noqa: E402
+validate_readonly_sql = private_db.validate_readonly_sql
+SqlValidationError = private_db.SqlValidationError
 
 
 # =============================================================================

@@ -94,7 +94,7 @@ Generate an IND §2.6.1 narrative from the latest ADMET + PBPK runs in my accoun
 
 ## Tools available
 
-Same 14-tool surface as Claude Code — see [`../claude-code/README.md`](../claude-code/README.md). ChatGPT renders markdown summaries inline; on GPT-4o vision, thumbnails of QC and finding cards render as well.
+Same 19-tool surface as Claude Code — see [`../claude-code/README.md`](../claude-code/README.md). ChatGPT renders markdown summaries inline; on GPT-4o vision, thumbnails of QC and finding cards render as well.
 
 ## License
 

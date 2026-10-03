@@ -40,7 +40,7 @@ Refresh token: https://biomate.ai/account/connectors/codex.
 
 ## Tools available
 
-Same 14-tool surface as the Claude Code integration. See [`../claude-code/README.md`](../claude-code/README.md).
+Same 19-tool surface as the Claude Code integration. See [`../claude-code/README.md`](../claude-code/README.md).
 
 ## Streaming on a non-streaming surface
 
