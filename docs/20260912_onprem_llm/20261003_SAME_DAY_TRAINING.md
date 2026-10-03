@@ -15,8 +15,10 @@ No IND or peptide-model work. Preserve other sessions' changes in this shared ch
   This is a bounded candidate run, **not a complete pass through the 593M-token corpus or 72K SFT rows**.
   Do not claim an effective customer replacement merely because it finishes.
 - **4B recovery:** `i-0565e90849ec84609`; 50 CPT steps completed, average loss
-  2.081644, about 409K tokens. Checkpoint-50 is present in S3. Merge completed far enough to start
-  SFT data preparation; ten SFT steps are requested. These remain pipeline-validation weights.
+  2.081644, about 409K tokens. Checkpoint-50 is present in S3. **Merge and ten SFT steps also
+  completed**, SFT mean loss 2.201492, runtime 29.28 seconds. The final 66,127,776-byte adapter,
+  tokenizer and pilot_result.json are in S3. These remain pipeline-validation weights, not a
+  demonstrated customer-quality model.
 - **Literature:** `i-0c39359695d5c6804`; index build finished and uploaded:
   287,121 unique articles, 1,995,344 passages, 6,473,867,264-byte SQLite file, manifest and SHA256SUMS.
   This is a lexical retrieval baseline requiring relevance checks, not an embedding index.
