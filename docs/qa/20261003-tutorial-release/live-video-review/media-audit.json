@@ -1,0 +1,44 @@
+[
+  {
+    "motionCheck": {
+      "significantSceneChanges": 17,
+      "distinctChangedFrames": 17,
+      "recordedEvents": 17
+    },
+    "file": "recording/output/series-live-v2/result-downloads-en-LIVE-REVIEW.mp4",
+    "seconds": 95.517,
+    "integratedLUFS": -15.82,
+    "truePeakDBTP": -4.5,
+    "sceneCharactersPerSecond": [
+      16.3,
+      16.2,
+      15.1,
+      16.8,
+      17.1
+    ],
+    "technicalChecksPassed": true,
+    "failures": [],
+    "releaseStatus": "HOLD: pronunciation, caption alignment, editorial and final visual review required"
+  },
+  {
+    "motionCheck": {
+      "significantSceneChanges": 17,
+      "distinctChangedFrames": 17,
+      "recordedEvents": 17
+    },
+    "file": "recording/output/series-live-v2/result-downloads-zh-LIVE-REVIEW.mp4",
+    "seconds": 98.037,
+    "integratedLUFS": -16.59,
+    "truePeakDBTP": -4.47,
+    "sceneCharactersPerSecond": [
+      4.9,
+      5.3,
+      4.7,
+      4.9,
+      4.7
+    ],
+    "technicalChecksPassed": true,
+    "failures": [],
+    "releaseStatus": "HOLD: pronunciation, caption alignment, editorial and final visual review required"
+  }
+]

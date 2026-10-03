@@ -5,7 +5,7 @@ and the page's __timeline (scene start seconds, relative to scene 0)."""
 import json, time, pathlib
 from playwright.sync_api import sync_playwright
 
-URL = 'http://localhost:7779/tutorials/drug-dev-walkthrough.html'
+URL = 'http://localhost:7786/tutorials/drug-dev-walkthrough.html'
 OUT = pathlib.Path('/Users/kky/biomate-review/recording/video')
 OUT.mkdir(parents=True, exist_ok=True)
 META = pathlib.Path('/Users/kky/biomate-review/recording/audio/drug-dev-shared')

@@ -1,0 +1,133 @@
+{
+  "id": "reproducibility-record",
+  "status": "INTERNAL_REVIEW_NOT_RELEASED",
+  "runId": "c40459b2-4dd0-407e-bbbd-e985df4ce0fc",
+  "checkedAt": "2026-10-03",
+  "scenes": [
+    {
+      "id": 1,
+      "kind": "concept",
+      "image": null,
+      "en": {
+        "title": "Trace a result back to its run",
+        "subtitle": "Learn what the reproducibility record captures—and inspect what is missing.",
+        "items": [
+          "Identify the run",
+          "Inspect recorded fields",
+          "Record the gaps"
+        ],
+        "narration": "A scientific result is easier to review when you can trace where it came from. BioMate provides a reproducibility record for a run. This lesson shows how to inspect that record, using our completed ADMET example, without assuming that every field is populated."
+      },
+      "zh": {
+        "title": "把结果追溯到具体运行",
+        "subtitle": "学习查看可复现性记录，并识别其中的信息缺口。",
+        "items": [
+          "确认运行身份",
+          "查看已记录字段",
+          "记录信息缺口"
+        ],
+        "narration": "科学结果如果能够追溯来源，就更容易核查。BioMate 为运行提供可复现性记录。这一节继续使用已完成的 ADMET 示例，学习怎样查看记录，同时避免把界面中存在某个字段，误认为该字段一定有完整内容。"
+      }
+    },
+    {
+      "id": 2,
+      "kind": "product",
+      "image": "panel-record.png",
+      "en": {
+        "title": "Open the Reproducibility record",
+        "subtitle": "From the completed run, select the record tab next to Outputs.",
+        "items": [
+          "Workflow identity",
+          "Parameters",
+          "Output references"
+        ],
+        "narration": "Open the Reproducibility record tab for the same completed run. Review the workflow identity, the parameters and the output references that are present. Keep the run identity connected to your downloaded files, especially when several runs produce similarly named outputs."
+      },
+      "zh": {
+        "title": "打开 Reproducibility record",
+        "subtitle": "在同一次已完成的运行中，切换到可复现性记录标签。",
+        "items": [
+          "工作流身份",
+          "参数",
+          "输出引用"
+        ],
+        "narration": "在同一次已完成的运行中，打开 Reproducibility record，也就是可复现性记录标签。查看其中实际提供的工作流身份、参数和输出引用。特别是多次运行生成同名文件时，要保留文件与运行身份之间的对应关系。"
+      }
+    },
+    {
+      "id": 3,
+      "kind": "concept",
+      "image": null,
+      "en": {
+        "title": "A field can exist without a value",
+        "subtitle": "The inspected default record has empty input bindings and no output checksums.",
+        "items": [
+          "Inspect actual values",
+          "Note missing inputs",
+          "Note absent checksums"
+        ],
+        "narration": "In the default record inspected for this example, input bindings are empty and output checksums are not populated. These are gaps to document, not details to fill in from memory. Do not describe this record as complete proof that anyone can reproduce the result."
+      },
+      "zh": {
+        "title": "有字段，不代表有完整信息",
+        "subtitle": "本例检查到的默认记录中，输入绑定为空，输出校验和未填充。",
+        "items": [
+          "核对实际值",
+          "标记缺失输入",
+          "标记缺失校验和"
+        ],
+        "narration": "在本例检查到的默认记录中，输入绑定为空，输出文件的校验和也没有填充。这些都是需要明确记录的信息缺口，不能凭记忆补全，更不能据此声称任何人都能完整复现这次结果。"
+      }
+    },
+    {
+      "id": 4,
+      "kind": "concept",
+      "image": null,
+      "en": {
+        "title": "A checksum checks bytes",
+        "subtitle": "Matching hashes support file integrity; they do not validate scientific conclusions.",
+        "items": [
+          "Same bytes?",
+          "Same method?",
+          "Same interpretation?"
+        ],
+        "narration": "A checksum is a fingerprint of file contents. Matching checksums can help establish that two copies contain the same bytes. That is different from checking whether the model, inputs or interpretation are appropriate. This lesson does not claim that checksum computation has been demonstrated for the example."
+      },
+      "zh": {
+        "title": "校验和核对的是文件内容",
+        "subtitle": "校验和一致有助于确认文件完整性，并不能验证科学结论。",
+        "items": [
+          "文件内容一致吗？",
+          "方法合适吗？",
+          "解读合理吗？"
+        ],
+        "narration": "校验和可以理解为文件内容的指纹。两个文件的校验和一致，有助于确认它们的字节内容相同。但这与模型是否合适、输入是否正确、解读是否合理，是不同的问题。这一节并不声称已经演示完成了本例的校验和计算。"
+      }
+    },
+    {
+      "id": 5,
+      "kind": "concept",
+      "image": null,
+      "en": {
+        "title": "Hand over evidence with its limits",
+        "subtitle": "A useful review package includes what you know and what remains unverified.",
+        "items": [
+          "Run record",
+          "Original outputs",
+          "Missing-information notes"
+        ],
+        "narration": "For a colleague or client, keep the run record with the original outputs and a short note describing missing information. Verify input identity, software versions and relevant parameters before making a reproducibility claim. The record helps organize that review; it does not replace it."
+      },
+      "zh": {
+        "title": "交付证据，也说明限制",
+        "subtitle": "一份有用的审核资料，应同时说明已知信息和待核查事项。",
+        "items": [
+          "运行记录",
+          "原始输出",
+          "信息缺口说明"
+        ],
+        "narration": "向同事或客户交付资料时，请将运行记录、原始输出和简短的信息缺口说明放在一起。在声称结果可复现之前，还需要核对输入身份、软件版本和相关参数。运行记录有助于组织这项审核，但不能代替审核本身。"
+      }
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "scope": "Presentation fidelity for this preserved example, not predictive validation",
+  "checks": [
+    {
+      "claim": "Three compound inputs in preserved order",
+      "passed": true,
+      "evidence": "toxicity_report.json:per_compound_admet_ai[*].smiles"
+    },
+    {
+      "claim": "en: all three displayed hERG scores",
+      "passed": true,
+      "evidence": "toxicity_report.json:per_compound_admet_ai[*].hERG_prob"
+    },
+    {
+      "claim": "en: DILI display matches QC and rounded maximum",
+      "passed": true,
+      "evidence": "qc_metrics.json:dili_probability; toxicity_report.json:per_compound_admet_ai[*].DILI_prob"
+    },
+    {
+      "claim": "en: failed DILI check and configured threshold",
+      "passed": true,
+      "evidence": "qc_metrics.json:dili_probability_threshold/admet_dili_probability_passes"
+    },
+    {
+      "claim": "zh: all three displayed hERG scores",
+      "passed": true,
+      "evidence": "toxicity_report.json:per_compound_admet_ai[*].hERG_prob"
+    },
+    {
+      "claim": "zh: DILI display matches QC and rounded maximum",
+      "passed": true,
+      "evidence": "qc_metrics.json:dili_probability; toxicity_report.json:per_compound_admet_ai[*].DILI_prob"
+    },
+    {
+      "claim": "zh: failed DILI check and configured threshold",
+      "passed": true,
+      "evidence": "qc_metrics.json:dili_probability_threshold/admet_dili_probability_passes"
+    },
+    {
+      "claim": "DILI maximum belongs to second compound",
+      "passed": true,
+      "evidence": "toxicity_report.json:per_compound_admet_ai"
+    },
+    {
+      "claim": "Six output records",
+      "passed": true,
+      "evidence": "reproducibility-record.json:outputs"
+    },
+    {
+      "claim": "Default input and tool bindings are empty",
+      "passed": true,
+      "evidence": "reproducibility-record.json:inputBindings/parameters.toolParameters"
+    },
+    {
+      "claim": "Default output checksums absent",
+      "passed": true,
+      "evidence": "reproducibility-record.json:outputs[*].sha256"
+    }
+  ],
+  "allPassed": true,
+  "artifactsSha256": {
+    "toxicity_report.json": "f8cd1e1bf5ef9f202f30df55eb4effdfa0aa274e1f39b1ff491489e7ffcfdbdc",
+    "qc_metrics.json": "61860002d10eca771ceb75e1f2eee90ff25165036bbcbfad42d2645ce9f5bfec",
+    "reproducibility-record.json": "8db90d38ef9c823729cdbbbd0c31012f54d6ef341138c3631d7f5bd764a61d3a"
+  },
+  "releaseApproved": false
+}

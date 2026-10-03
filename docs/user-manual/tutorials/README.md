@@ -1,5 +1,7 @@
 # BioMate User Tutorials — index
 
+> **Release review — 2026-10-03: HOLD.** These are authoring drafts, not approved client or marketing deliverables. The current inventory contains 92 unfinished figure placeholders. The ADMET example’s initial S3 download failure was repaired on development on 2026-10-03; the subsequent audit retrieved all six output files and captured the populated Summary. Scientific and audiovisual review remain pending. See [the takeover and release review](../../20261003_TUTORIAL_VIDEO_TAKEOVER.md). Earlier “complete” or “validated” notes below describe prior authoring status, not current end-to-end release approval.
+
 Layman-friendly, task-first tutorials for BioMate. Every tutorial is **grounded in the shipped
 code** (not the design prototype) and is **honest about what is not yet built** — each has an
 "Honest limits" section. Figures are marked with `<!-- CAPTURE ... -->` comments + *(Figure to add)*
@@ -115,12 +117,11 @@ tab, plus preview/consumers/origin. Closes the data-centric flagship story.
 **Honestly still placeholders** (need state the fixture can't produce truthfully):
 - **Failed / QC-blocked run states** — the ADMET run succeeded; capturing these honestly needs a run
   that actually fails or trips a gate.
-- **Populated Findings Summary** — this run's findings were withheld (outputs unreadable — a real
-  product inconsistency: the Outputs tab serves the files, but findings generation couldn't read them).
+- **Populated Findings Summary** — the original capture had withheld findings. The development credential repair on 2026-10-03 resolved output access; updated Summary evidence is in `docs/qa/20261003-tutorial-release/`. Older screenshots still require replacement.
 - **Consumers (populated)** — `t10-3` shows the honest empty state; a populated list needs a second run
   that reads this dataset as input.
 
 ## Still pending
 
 - **Native-Chinese spot review** of the newly translated set (optional QC pass)
-- **Tutorial videos** (EN + CN) for the new surfaces, per the earlier marketing ask
+- **Tutorial video series** (EN + CN): see the [production catalog](../../../reference/claude_design/tutorials/series/README.md). Every chapter and focused function needs its own verified, reviewed deliverable.

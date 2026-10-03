@@ -572,6 +572,14 @@ def record_tutorial(key, cfg, no_audio=False):
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
+    # The current bilingual educational decks use explicit scene manifests.
+    # Keep the older interactive-tour entry point intact.
+    if "--catalog" in sys.argv:
+        from series_video import main as series_main
+        return series_main()
+    if "--storyboard" in sys.argv:
+        from storyboard_video import main as storyboard_main
+        return storyboard_main()
     only = None
     no_audio = "--no-audio" in sys.argv
     if "--only" in sys.argv:

@@ -1,0 +1,10 @@
+{
+  "checkedAt": "2026-10-03T17:43:58.358Z",
+  "baseUrl": "https://dev-public.biomate.ai",
+  "scope": "Module navigation only; no scientific execution or result validation",
+  "checks": [],
+  "technicalChecksPassed": false,
+  "error": "After New Chat: expected cold-start-dashboard was absent; actual page showed the seeded welcome assistant message.",
+  "diagnosis": "createNewSession inserts message id welcome; chat-interface only mounts ColdStartDashboard when displayMessages.length === 0.",
+  "evidence": "/private/tmp/biomate-series-navigation/tutorial-series-navigation-57bdd-each-real-cold-start-module-chromium/error-context.md"
+}

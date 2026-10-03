@@ -1,0 +1,133 @@
+{
+  "id": "result-downloads",
+  "status": "INTERNAL_REVIEW_NOT_RELEASED",
+  "runId": "c40459b2-4dd0-407e-bbbd-e985df4ce0fc",
+  "checkedAt": "2026-10-03",
+  "scenes": [
+    {
+      "id": 1,
+      "kind": "concept",
+      "image": null,
+      "en": {
+        "title": "Keep the evidence behind a result",
+        "subtitle": "Learn to find and check the files from a completed BioMate run.",
+        "items": [
+          "Locate the run",
+          "Inspect the file list",
+          "Check the downloaded content"
+        ],
+        "narration": "This lesson focuses on the files behind a BioMate result. We will use an existing completed ADMET run. You will learn where its outputs appear, how to distinguish the files, and what to check after downloading them."
+      },
+      "zh": {
+        "title": "保存结果背后的证据",
+        "subtitle": "学习如何查找并核对一次 BioMate 运行产生的文件。",
+        "items": [
+          "定位运行",
+          "查看文件清单",
+          "核对下载内容"
+        ],
+        "narration": "这一节专门讲解运行结果的文件管理。我们以一次已完成的 ADMET 运行作为示例，学习在哪里找到输出、如何区分不同文件，以及下载后应该核对哪些内容。"
+      }
+    },
+    {
+      "id": 2,
+      "kind": "product",
+      "image": "panel-outputs.png",
+      "en": {
+        "title": "Open Outputs for the correct run",
+        "subtitle": "In the example conversation, open After run → Outputs.",
+        "items": [
+          "Check the workflow name",
+          "Confirm the run is complete",
+          "Open Outputs"
+        ],
+        "narration": "First open the conversation containing your run. Check the workflow name and completion state, then select Outputs in the after-run panel. The screenshot shows the actual development interface for our example. Output files belong to a particular run, so do not identify a result by filename alone."
+      },
+      "zh": {
+        "title": "先确认运行，再打开输出",
+        "subtitle": "在示例对话中，打开运行完成后的 Outputs 标签。",
+        "items": [
+          "核对工作流名称",
+          "确认运行已完成",
+          "打开 Outputs"
+        ],
+        "narration": "首先打开包含这次运行的对话，核对工作流名称和完成状态，再进入 Outputs，也就是输出标签。这里展示的是示例运行的真实开发环境界面。输出文件属于具体的一次运行，因此不能只凭文件名判断它的来源。"
+      }
+    },
+    {
+      "id": 3,
+      "kind": "concept",
+      "image": null,
+      "en": {
+        "title": "Different files answer different questions",
+        "subtitle": "This example has six outputs; other workflows may produce different files.",
+        "items": [
+          "Prediction results",
+          "Quality checks",
+          "Software versions"
+        ],
+        "narration": "Our example returns six files. The prediction results and toxicity report contain scientific values. The QC metrics describe checks, and the versions file records software information. Inspect the contents before assigning a meaning to a filename. A file called a report is not automatically an approved scientific conclusion."
+      },
+      "zh": {
+        "title": "不同文件，回答不同问题",
+        "subtitle": "本例有六个输出文件；其他工作流的输出会有所不同。",
+        "items": [
+          "预测结果",
+          "质量检查",
+          "软件版本"
+        ],
+        "narration": "这个示例返回六个文件。预测结果和毒性报告包含科学计算的数值，质量指标记录检查结果，版本文件提供软件信息。请先查看内容，再判断文件用途。一个文件被命名为报告，并不代表其中的结论已经通过科学审核。"
+      }
+    },
+    {
+      "id": 4,
+      "kind": "concept",
+      "image": null,
+      "en": {
+        "title": "Check the file after downloading",
+        "subtitle": "For this example, all six small output files were retrieved successfully.",
+        "items": [
+          "Nonempty content",
+          "Expected format",
+          "Expected compounds"
+        ],
+        "narration": "Use the download control for the file you need. In our technical check, all six example files downloaded successfully and contained data. Check that your file opens in the expected format and corresponds to the compounds or samples you submitted. A successful download verifies access to the file; it does not validate the scientific model."
+      },
+      "zh": {
+        "title": "下载成功后，还要核对内容",
+        "subtitle": "本例的六个小型输出文件均已通过实际下载检查。",
+        "items": [
+          "内容非空",
+          "格式正确",
+          "分子或样本对应"
+        ],
+        "narration": "通过文件的下载控件保存所需输出。在我们的技术检查中，本例六个文件均成功下载，且包含数据。请继续核对文件格式是否正确，以及其中的分子或样本是否与输入对应。下载成功说明文件可以访问，并不等于科学模型已经得到验证。"
+      }
+    },
+    {
+      "id": 5,
+      "kind": "concept",
+      "image": null,
+      "en": {
+        "title": "Keep a result package you can revisit",
+        "subtitle": "Save the outputs together with the corresponding run record.",
+        "items": [
+          "Outputs",
+          "Run identity",
+          "Interpretation notes"
+        ],
+        "narration": "Keep the downloaded outputs together with the identity and record of the run that produced them. Add notes about the question you asked and the limits of the interpretation. In the next lesson, we will inspect the reproducibility record and distinguish recorded information from information that is still missing."
+      },
+      "zh": {
+        "title": "把结果整理成可追溯的资料包",
+        "subtitle": "将输出文件与对应的运行记录保存在一起。",
+        "items": [
+          "输出文件",
+          "运行标识",
+          "解读说明"
+        ],
+        "narration": "请将下载的输出文件与产生它们的运行标识和记录保存在一起，同时写明当时的问题，以及解读结果时需要注意的限制。下一节，我们会进一步查看可复现性记录，区分已经记录的信息和仍然缺失的信息。"
+      }
+    }
+  ]
+}

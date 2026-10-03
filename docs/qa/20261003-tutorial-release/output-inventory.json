@@ -1,0 +1,110 @@
+[
+  {
+    "name": "pk_summary.json",
+    "size": 1656,
+    "fields": [
+      "id",
+      "name",
+      "extension",
+      "size",
+      "fileType",
+      "downloadUrl",
+      "s3Uri",
+      "s3Bucket",
+      "s3Key",
+      "step",
+      "previewable",
+      "metadata"
+    ]
+  },
+  {
+    "name": "predict_admet_properties_output.txt",
+    "size": 1524,
+    "fields": [
+      "id",
+      "name",
+      "extension",
+      "size",
+      "fileType",
+      "downloadUrl",
+      "s3Uri",
+      "s3Bucket",
+      "s3Key",
+      "step",
+      "previewable",
+      "metadata"
+    ]
+  },
+  {
+    "name": "predict_admet_properties_results.json",
+    "size": 1574,
+    "fields": [
+      "id",
+      "name",
+      "extension",
+      "size",
+      "fileType",
+      "downloadUrl",
+      "s3Uri",
+      "s3Bucket",
+      "s3Key",
+      "step",
+      "previewable",
+      "metadata"
+    ]
+  },
+  {
+    "name": "qc_metrics.json",
+    "size": 563,
+    "fields": [
+      "id",
+      "name",
+      "extension",
+      "size",
+      "fileType",
+      "downloadUrl",
+      "s3Uri",
+      "s3Bucket",
+      "s3Key",
+      "step",
+      "previewable",
+      "metadata"
+    ]
+  },
+  {
+    "name": "toxicity_report.json",
+    "size": 3252,
+    "fields": [
+      "id",
+      "name",
+      "extension",
+      "size",
+      "fileType",
+      "downloadUrl",
+      "s3Uri",
+      "s3Bucket",
+      "s3Key",
+      "step",
+      "previewable",
+      "metadata"
+    ]
+  },
+  {
+    "name": "versions.yml",
+    "size": 159,
+    "fields": [
+      "id",
+      "name",
+      "extension",
+      "size",
+      "fileType",
+      "downloadUrl",
+      "s3Uri",
+      "s3Bucket",
+      "s3Key",
+      "step",
+      "previewable",
+      "metadata"
+    ]
+  }
+]

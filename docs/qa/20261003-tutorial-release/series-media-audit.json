@@ -1,0 +1,108 @@
+[
+  {
+    "file": "recording/output/series-review/admet-evidence/admet-evidence-pilot-en-NARRATED-REVIEW.mp4",
+    "seconds": 245.171,
+    "integratedLUFS": -16.2,
+    "truePeakDBTP": -4.45,
+    "sceneCharactersPerSecond": [
+      16.6,
+      14.7,
+      15.1,
+      15.5,
+      15.8,
+      17.2,
+      16.4,
+      17.1,
+      16.0,
+      16.1
+    ],
+    "technicalChecksPassed": true,
+    "failures": [],
+    "releaseStatus": "HOLD: pronunciation, caption alignment, editorial and final visual review required"
+  },
+  {
+    "file": "recording/output/series-review/admet-evidence/admet-evidence-pilot-zh-NARRATED-REVIEW.mp4",
+    "seconds": 263.651,
+    "integratedLUFS": -16.05,
+    "truePeakDBTP": -4.5,
+    "sceneCharactersPerSecond": [
+      5.1,
+      5.4,
+      5.0,
+      5.0,
+      5.8,
+      5.1,
+      4.9,
+      4.9,
+      5.4,
+      4.5
+    ],
+    "technicalChecksPassed": true,
+    "failures": [],
+    "releaseStatus": "HOLD: pronunciation, caption alignment, editorial and final visual review required"
+  },
+  {
+    "file": "recording/output/series-review/reproducibility-record/reproducibility-record-en-NARRATED-REVIEW.mp4",
+    "seconds": 90.077,
+    "integratedLUFS": -16.88,
+    "truePeakDBTP": -4.5,
+    "sceneCharactersPerSecond": [
+      16.1,
+      17.3,
+      16.4,
+      16.2,
+      15.0
+    ],
+    "technicalChecksPassed": true,
+    "failures": [],
+    "releaseStatus": "HOLD: pronunciation, caption alignment, editorial and final visual review required"
+  },
+  {
+    "file": "recording/output/series-review/reproducibility-record/reproducibility-record-zh-NARRATED-REVIEW.mp4",
+    "seconds": 101.237,
+    "integratedLUFS": -16.09,
+    "truePeakDBTP": -4.47,
+    "sceneCharactersPerSecond": [
+      4.7,
+      5.5,
+      4.9,
+      4.7,
+      4.6
+    ],
+    "technicalChecksPassed": true,
+    "failures": [],
+    "releaseStatus": "HOLD: pronunciation, caption alignment, editorial and final visual review required"
+  },
+  {
+    "file": "recording/output/series-review/result-downloads/result-downloads-en-NARRATED-REVIEW.mp4",
+    "seconds": 95.52,
+    "integratedLUFS": -15.82,
+    "truePeakDBTP": -4.5,
+    "sceneCharactersPerSecond": [
+      16.3,
+      16.2,
+      15.1,
+      16.8,
+      17.1
+    ],
+    "technicalChecksPassed": true,
+    "failures": [],
+    "releaseStatus": "HOLD: pronunciation, caption alignment, editorial and final visual review required"
+  },
+  {
+    "file": "recording/output/series-review/result-downloads/result-downloads-zh-NARRATED-REVIEW.mp4",
+    "seconds": 98.04,
+    "integratedLUFS": -16.59,
+    "truePeakDBTP": -4.47,
+    "sceneCharactersPerSecond": [
+      4.9,
+      5.3,
+      4.7,
+      4.9,
+      4.7
+    ],
+    "technicalChecksPassed": true,
+    "failures": [],
+    "releaseStatus": "HOLD: pronunciation, caption alignment, editorial and final visual review required"
+  }
+]

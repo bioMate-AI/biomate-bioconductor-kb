@@ -1,0 +1,42 @@
+{
+  "action": "render",
+  "silentPreview": true,
+  "status": "IN_PRODUCTION_NOT_RELEASED",
+  "summary": {
+    "RENDERED_INTERNAL_REVIEW": 4
+  },
+  "editions": [
+    {
+      "episode": "result-downloads",
+      "language": "en",
+      "status": "RENDERED_INTERNAL_REVIEW",
+      "reason": "Release review still required",
+      "productVerification": "PARTIAL",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "result-downloads",
+      "language": "zh",
+      "status": "RENDERED_INTERNAL_REVIEW",
+      "reason": "Release review still required",
+      "productVerification": "PARTIAL",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "reproducibility-record",
+      "language": "en",
+      "status": "RENDERED_INTERNAL_REVIEW",
+      "reason": "Release review still required",
+      "productVerification": "PARTIAL",
+      "release": "NOT_RELEASED"
+    },
+    {
+      "episode": "reproducibility-record",
+      "language": "zh",
+      "status": "RENDERED_INTERNAL_REVIEW",
+      "reason": "Release review still required",
+      "productVerification": "PARTIAL",
+      "release": "NOT_RELEASED"
+    }
+  ]
+}

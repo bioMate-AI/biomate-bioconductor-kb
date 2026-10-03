@@ -184,7 +184,7 @@ It finishes in under a minute. (Full details: Tutorial 1 §4–5.)
 
 ---
 
-### Stage 3 — Property prediction (is it drug-like and safe?)
+### Stage 3 — Property prediction: identifying developability questions
 
 **What it answers:** *Of the molecules I now have, which are likely absorbed, safe, and worth the bother?*
 This is the stage you may already know — but it has three distinct parts.
@@ -217,18 +217,11 @@ any compute is spent — your chance to check everything first.*
 
 ![The ADMET workflow running, with phase cards and QC gates visible.](../assets/r2-running.png)
 *Running: the panel shows live progress and the QC gates that will be checked (e.g. hERG). If a gate fails,
-the run surfaces the measured value against the threshold rather than continuing silently (see stage 6).*
+inspect the reported value and threshold. A failed recorded check does not establish that execution halted or reran (see stage 6).*
 
-**How to read the result.** Each molecule gets a row, each endpoint its own column, with the risky ones
-flagged. For our example you'd scan the **hERG** column first and set aside any candidate above your safety
-limit. ADMET was benchmarked at ~**89%** on a multi-property ADMET benchmark (hERG, DILI, AMES, CYP, Lipinski
-rule-of-five), with named QC profiles.
+**How to read the result.** Check each endpoint's definition, unit, comparison direction and source before ranking compounds. An hERG blocker-class score is unitless; an IC50 is a concentration. They are not interchangeable, and neither alone establishes clinical safety. This example contains both raw model scores and heuristic IC50 estimates; interpret them separately.
 
-> **Verdict — ADMET: VALIDATED.** This is the most proven stage in the drug-discovery pipeline. It runs on
-> real cloud compute, is benchmarked, and is the canonical worked example — a real completed run exists on the
-> development site (runId `c40459b2`, referenced in BioMate's own drug-dev records). Predictions are estimates
-> that still need experimental confirmation, and may generalise poorly to very unusual chemotypes — the
-> workflow says so itself.
+> **Evidence — execution and file access checked; predictive validity not established by this example.** The completed development run `c40459b2` and all six downloads were checked on 2026-10-03. Its inputs were aspirin, caffeine and ibuprofen, not a JAK1 activity experiment. No blanket accuracy percentage is asserted: a performance claim needs a named dataset, endpoint, metric, split and retrievable evaluation. Predictions require appropriate experimental follow-up.
 
 #### 3b. Physicochemical / drug-likeness
 
@@ -269,43 +262,17 @@ from.
 
 ---
 
-### Stage 4 — Structure-based evaluation (does it actually fit the target?)
+### Stage 4 — Structure-based evaluation: testing binding hypotheses
 
-**What it answers:** property prediction (stage 3) treats a molecule mostly on its own; this stage brings in
-the **target's 3-D structure** and asks whether the molecule physically fits into the binding pocket, and how
-tightly. This is where you move from "drug-like" to "actually binds JAK1". Three methods, in increasing cost
-and accuracy:
+**What it answers:** a prepared target structure lets you evaluate possible binding poses and compare hypotheses about affinity. These calculations do not demonstrate that a compound binds JAK1 experimentally. Docking, free-energy calculations and molecular dynamics answer different questions; they are not an automatic ladder of increasing accuracy.
 
-**(a) Molecular docking — pose + score.** **Docking AutoDock Vina**
-(`nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.nf`) places each candidate into the
-target's binding pocket, tries many orientations ("poses"), and reports the best **binding affinity**
-(kcal/mol — more negative is tighter) and the pose geometry. You give it the receptor structure (a PDB file
-of JAK1) and your SMILES list. It is fast enough to rank hundreds of candidates. BioMate also ships a
-**P0 Docking Validation** workflow that re-docks a known drug into its crystal structure and checks the pose
-is within 2 Å of the real one — a self-test that the docking is working.
+**Molecular docking — pose and score.** AutoDock Vina searches candidate poses and assigns a scoring-function estimate, commonly reported in kcal/mol. A more favorable score within a consistent setup is a prioritization signal, not measured affinity. Check receptor preparation, protonation, binding-site definition and pose plausibility. Re-docking can test pose recovery for a particular reference structure; success on one complex does not validate performance across new compounds. See the [AutoDock Vina documentation](https://autodock-vina.readthedocs.io/en/latest/faq.html).
 
-**(b) Relative binding free energy (RBFE / FEP) — the precise comparison.** **OpenFE Relative Binding Free
-Energy** (`nextflow_nfcore/subworkflows/drug_discovery/openfe_rbfe/main.nf`) is the gold-standard physics
-method for comparing *two similar molecules*: it computes **ΔΔG** (the difference in binding strength, in
-kcal/mol, with an error bar) using alchemical free-energy perturbation on GPU molecular dynamics. You use it
-late, on a small set of close analogues, when you need to know reliably which of two very similar candidates
-binds better. On a reference set BioMate's RBFE lands around **~1.73 kcal/mol** accuracy — competitive with
-published tools.
+**Relative binding free energy — comparing transformations.** RBFE estimates a difference in binding free energy between ligands under a defined protocol. Interpret the sign convention, ligand mapping, force field, sampling, convergence and uncertainty. Agreement with experiment must be demonstrated on relevant data. This tutorial does not assert an unspecified benchmark accuracy or guarantee the ordering of a new series. See [Best Practices for Alchemical Free Energy Calculations](https://arxiv.org/abs/2008.03067).
 
-**(c) Molecular dynamics (MD) — is the binding stable?** **AMBER pmemd GPU Molecular Dynamics**
-(`nextflow_nfcore/subworkflows/drug_discovery/amber_pmemd_md/main.nf`) and **GROMACS Protein-Ligand MD +
-MM-GBSA** simulate the molecule wiggling in the pocket over time, to check the predicted pose is *stable* (not
-an artefact that falls apart) and to rescore binding with MM-GBSA. This is the most expensive step; you reserve
-it for a few top candidates.
+**Molecular dynamics — sampling behavior over time.** MD samples motion under a chosen model and initial conditions. A pose remaining in a pocket during a finite simulation does not establish experimental binding or affinity. MM-GBSA estimates have additional assumptions and should not be presented as measured free energies. Select simulation length, replicas and analyses according to the scientific question.
 
-<!-- CAPTURE route=/ ; state=docking workflow after-run showing a best pose and binding-affinity score ; focus=docking-outputs ; note=show a docking result: a 3-D pose view and the binding affinity in kcal/mol for a top candidate -->
-*(Figure to add: a docking result — the best pose in the JAK1 pocket and its binding affinity in kcal/mol.)*
-
-> **Verdict — structure-based evaluation: VALIDATED (tiered by cost).** Docking, RBFE/FEP, and MD are all
-> real, tested workflows that run on BioMate's cloud/GPU workers; GROMACS MD and the OpenFE RBFE have been
-> confirmed end-to-end on AWS Batch. Use them in order of cost: dock many, RBFE a few, MD the final handful.
-> All three require the target's 3-D structure — if you don't have one, predict it first with Boltz-2 /
-> AlphaFold2 (see Tutorial 2, "Run a model").
+**BioMate demonstration status.** Repository workflows include Vina docking, OpenFE RBFE and AMBER/GROMACS simulations. Their current end-to-end user journeys must be checked separately before filming. A predicted protein structure also needs suitability checks for the intended binding-site calculation; producing a structure is not itself validation of that site.
 
 ---
 
@@ -376,70 +343,31 @@ across ADMET, CYP-DDI, docking, and PK tracks.
 
 ---
 
-### Stage 7 — PK / PBPK modeling (what dose would a human need?)
+### Stage 7 — PK / PBPK modeling: exploring exposure
 
-**What it answers:** a molecule that binds well and looks safe still has to reach the right concentration in
-the body at a sensible dose. **PK** (pharmacokinetics) is what the body does to the drug over time;
-**PBPK** (physiologically-based PK) is a mechanistic, organ-by-organ model that predicts human exposure —
-often from animal data — so you can project a **first-in-human dose**.
+**What it answers:** PK describes drug concentrations over time. PBPK uses physiological compartments and compound-specific parameters to simulate exposure under stated assumptions. A simulation can inform research questions about dose and exposure; it cannot by itself establish a safe first-in-human dose.
 
-**The real workflow (a chain).** BioMate's **PBPK Simulation — Allometric Scaling & Special Populations**
-chain (`pbpk_renal_impairment_chain`) runs three connected steps:
-1. **Allometric scaling** — estimate human PK parameters from preclinical animal data (rat/mouse/dog),
-2. **PBPK simulation** — a compartmental model with organ-specific clearance (with an optional renal/hepatic
-   impairment sub-model for special-population dosing),
-3. **Virtual patient cohort** — Monte-Carlo sampling over a simulated population to capture variability.
+**The workflow to verify.** The repository describes a PBPK chain combining allometric scaling, compartmental simulation and a virtual cohort. Its current user-facing execution and outputs still need a dedicated demonstration before this stage can be filmed as working.
 
-It takes your preclinical PK data and physicochemical properties as CSVs and outputs human PK predictions, a
-virtual-population distribution, and a dose-recommendation brief — the format expected for regulatory PBPK
-packages (FDA/EMA).
+**How to read a demonstrated result.** Inspect the dosing route and schedule, concentration and time units, input parameter sources, population assumptions and uncertainty. Cmax is peak concentration; AUC is concentration integrated over a specified time interval. Compare predictions with relevant observed data. Do not label a single unspecified percentage as overall predictive accuracy.
 
-**How to read it.** The key readouts are **Cmax** (peak concentration), **AUC** (total exposure), and
-**half-life** per compartment, plus the projected human dose. BioMate's PBPK was benchmarked at **~98.5%** on
-a clinical PK dataset and validated against a 108-drug reference set, after a formal audit fixed two serious
-ODE bugs (a lung-blood mass-balance error and a variance bug in allometric scaling) — a good example of the
-"fix the root cause, then re-benchmark" discipline.
+**Evidence boundary.** Neither a report template nor a completed computation establishes regulatory acceptance. FDA considers PBPK results according to their intended use and the quality, relevance and reliability of the analysis. See [FDA PBPK format and content guidance](https://www.fda.gov/regulatory-information/search-fda-guidance-documents/physiologically-based-pharmacokinetic-analyses-format-and-content-guidance-industry). Population PK fitting and non-compartmental analysis require suitable observed concentration–time data; the platform does not create clinical observations.
 
-<!-- CAPTURE route=/ ; state=PBPK after-run showing a concentration-time curve (Cmax/AUC) and projected human dose ; focus=pbpk-outputs ; note=show a PBPK plasma concentration-time curve with Cmax/AUC labelled and the first-in-human dose projection -->
-*(Figure to add: a PBPK plasma concentration–time curve with Cmax/AUC marked and the projected first-in-human dose.)*
-
-> **Verdict — PK/PBPK: VALIDATED (with a data boundary).** The PBPK chain is real, benchmarked, and
-> regulatory-formatted. Note the honest boundary: the *fully computational* projection (allometric scaling,
-> PBPK, virtual cohort) is BioMate's to run, but **population PK model-fitting (nlmixr2) and non-compartmental
-> analysis require real in-vivo or clinical PK data** that you upload — BioMate runs the model, it cannot
-> generate the trial data.
+*Demonstration pending: a verified run with traceable inputs, units, concentration–time curves and a documented comparison with observations. Do not substitute a generated curve or a projected dosing instruction.*
 
 ---
 
-### Stage 8 — Reading the results & the reproducibility record
+### Stage 8 — Reading results and checking provenance
 
-**What it answers:** *What did I find across all these stages, and can I prove how I got it?* Every stage above
-produces a run with the same three-tab **after-run report** — this is the subject of **Tutorial 3** and
-**Tutorial W2 (the after-run panel)**; read those for the full detail. In the end-to-end pipeline it's the
-thing that makes the whole journey **defensible**: for a manuscript, a patent, or an IND submission, you can
-show exactly which workflow, parameters, software versions, and inputs produced every number.
+Open the completed run and inspect **Summary**, **Outputs**, and **Reproducibility record**. The first explains the result; the second gives access to its files; the third records available run metadata. Verify that every file and numerical claim belongs to the intended run.
 
-The three tabs:
-- **Summary** — plain-language findings, with the key numbers taken directly from the output files (and each
-  number linking back to the file it came from). Crucially, if BioMate cannot read the outputs, it
-  **withholds the findings and says so** rather than inventing a summary — the honesty is the feature.
-- **Outputs** — every file the run produced, filed under the step that made it (the `admet`, `qc`, and
-  `toxicity` files for an ADMET run; poses and scores for docking; curves for PBPK). You can view, download,
-  or save each.
-- **Reproducibility record** — the full audit trail: run id, timestamps, parameters, every output with type,
-  size, and an on-demand **SHA-256 checksum**, plus expandable Methods, Software versions, Citations, and QC
-  report. One click downloads the whole record as JSON.
+![The verified ADMET output list.](../../qa/20261003-tutorial-release/panel-outputs.png)
+*This example has six downloadable files. All six were retrieved through BioMate during review.*
 
-![The ADMET run outputs — every file grouped by the step that produced it.](../assets/r5-outputs.png)
-*Outputs: each file filed under the step that made it — the clearest view of what every stage produced.*
+![The inspected ADMET reproducibility panel.](../../qa/20261003-tutorial-release/panel-record.png)
+*Check actual field values. The default record inspected here has empty input bindings and tool parameters, and no populated output checksums.*
 
-![The ADMET run reproducibility record — the full, downloadable audit trail.](../assets/r6-reproducibility.png)
-*Reproducibility record: parameters, software versions, outputs, checksums (computed on demand), and citations
-— the complete, downloadable account that makes the result defensible.*
-
-> **Verdict — report & reproducibility: VALIDATED.** The three-tab report and the downloadable reproducibility
-> record are real and shown above on a genuine ADMET run. The honest findings behaviour (withhold rather than
-> fabricate when outputs can't be read) is intended, trust-building behaviour, not a bug.
+**Evidence boundary.** The three tabs and six file downloads were checked for this run. The presence of the record does not establish complete reproducibility. Preserve the submitted inputs separately, verify software and parameter information, and document missing metadata. Record export and on-demand checksum computation require their own checks before being demonstrated as working.
 
 ---
 
@@ -449,14 +377,14 @@ The three tabs:
 |---|---|---|---|---|
 | 1 | **Framing** | What am I optimising for? | (planning step + the chat / Design form) | Always available |
 | 2 | **Design / generate** | Which molecules to consider? | REINVENT4 Generative Lead Design; Scaffold Hopping | Runs end-to-end; **trained de-novo generator = gap** |
-| 3a | **ADMET** | Safe & absorbed? | Predict ADMET Properties (AI) | **Validated** (run `c40459b2`) |
+| 3a | **ADMET** | Which ADMET questions need follow-up? | Predict ADMET Properties (AI) | Execution/downloads checked; predictions require validation |
 | 3b | **Physicochemical** | Drug-like (Lipinski/logP)? | Calculate Physicochemical Properties | Available |
 | 3c | **QSAR** | Active vs. my target? | QSAR RF Model | Available (needs your labelled data) |
-| 4 | **Structure-based** | Does it fit the target? | Docking AutoDock Vina; OpenFE RBFE; AMBER/GROMACS MD | **Validated** (tiered by cost) |
+| 4 | **Structure-based** | Does it fit the target? | Docking AutoDock Vina; OpenFE RBFE; AMBER/GROMACS MD | Dedicated demonstration pending |
 | 5 | **Multi-objective rank** | Best all-round compromise? | Design & Generate Pareto view; Antibody Developability | **Partial** (optimizer not wired) |
 | 6 | **Closed loop + QC gate** | Improve and try again? | DBTL campaign; ADMET auto-loop | In code; **live hERG gate unproven on dev** |
-| 7 | **PK / PBPK** | What human dose? | PBPK Allometric Scaling chain | **Validated** (needs uploaded in-vivo data for PopPK) |
-| 8 | **Report & record** | What did I find; can I prove it? | After-run report + reproducibility record | **Validated** |
+| 7 | **PK / PBPK** | How might exposure change? | PBPK Allometric Scaling chain | Dedicated demonstration pending |
+| 8 | **Report & record** | What did I find; can I prove it? | After-run report + reproducibility record | Tabs/downloads checked; metadata incomplete |
 
 ---
 
