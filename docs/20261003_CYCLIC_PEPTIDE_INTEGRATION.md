@@ -90,3 +90,8 @@ match audit still cannot establish homology or pretraining independence.
 The 32 integration tests also passed from the exact PR checkout. Live installer
 inspection confirmed active biotite compilation (not a stalled GPU job) and a
 shutdown deadline at 2026-10-03 20:35:02 UTC.
+
+CSV boundary follow-up: required KD/sequence/target headers are now validated,
+so a misspelled KD header cannot silently yield an empty successful export.
+Log-KD gaps use a difference of logarithms to avoid ratio overflow. The focused
+converter/integration suite passes 18 tests after this change.

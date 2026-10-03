@@ -37,3 +37,9 @@ def test_units_and_noise(tmp_path):
     assert _parse_kd('1.2μM') == 1200
     assert not pairs(tmp_path, '15')
     assert pairs(tmp_path, '1.2uM')[0].chosen_id == 'A'
+
+
+def test_missing_kd_column_is_not_empty_success(tmp_path):
+    path = tmp_path / 'bad.csv'
+    path.write_text('id,seq,target\nA,ACDE,T\n')
+    with pytest.raises(ValueError, match='Missing required KD'): build(path)

@@ -42,7 +42,7 @@ def _parse_kd(v):
     return value
 
 def _col(row, *names):
-    low = {k.lower(): k for k in row}
+    low = {k.strip().lower(): k for k in row if k is not None}
     for n in names:
         if n in low: return row[low[n]]
     return None
@@ -50,7 +50,13 @@ def _col(row, *names):
 def load_rows(path):
     out = []
     with open(path, newline="") as handle:
-        for line, r in enumerate(csv.DictReader(handle), 2):
+        reader = csv.DictReader(handle)
+        headers = {h.strip().lower() for h in (reader.fieldnames or [])}
+        for label, aliases in (("sequence", {"seq", "sequence"}), ("target", {"target"}),
+                               ("KD", {"kd_nm", "kd", "kd_nm_", "kd(nm)"})):
+            if not headers & aliases:
+                raise ValueError(f"Missing required {label} column")
+        for line, r in enumerate(reader, 2):
             seq = _col(r, "seq", "sequence")
             target = (_col(r, "target") or "").strip()
             if not seq or not seq.strip() or not target:
@@ -84,7 +90,7 @@ def exemplars_from_kd(rows):
         for b in binders:
             for nb in nonbinders:
                 lower = nb.get("kd_lower")
-                margin = math.log10(lower / b["kd"]) if lower is not None else None
+                margin = math.log10(lower) - math.log10(b["kd"]) if lower is not None else None
                 if margin is not None and margin < MARGIN_MIN:
                     continue
                 exemplars.append(ExemplarPair(
@@ -97,7 +103,7 @@ def exemplars_from_kd(rows):
         # binder >- weaker binder (by KD gap)
         for a, b in itertools.combinations(binders, 2):
             strong, weak = (a, b) if a["kd"] <= b["kd"] else (b, a)
-            margin = math.log10(weak["kd"] / strong["kd"]) if strong["kd"] > 0 else 0.0
+            margin = math.log10(weak["kd"]) - math.log10(strong["kd"])
             if margin < MARGIN_MIN:  # within noise -> uninformative
                 continue
             exemplars.append(ExemplarPair(
