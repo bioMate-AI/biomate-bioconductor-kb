@@ -44,14 +44,14 @@
         "narration": "Open the Reproducibility record tab for the same completed run. Review the workflow identity, the parameters and the output references that are present. Keep the run identity connected to your downloaded files, especially when several runs produce similarly named outputs."
       },
       "zh": {
-        "title": "打开 Reproducibility record",
+        "title": "打开“可复现性记录”",
         "subtitle": "在同一次已完成的运行中，切换到可复现性记录标签。",
         "items": [
           "工作流身份",
           "参数",
           "输出引用"
         ],
-        "narration": "在同一次已完成的运行中，打开 Reproducibility record，也就是可复现性记录标签。查看其中实际提供的工作流身份、参数和输出引用。特别是多次运行生成同名文件时，要保留文件与运行身份之间的对应关系。"
+        "narration": "在同一次已完成的运行中，打开“可复现性记录”标签。查看其中实际提供的工作流身份、参数和输出引用。特别是多次运行生成同名文件时，要保留文件与运行身份之间的对应关系。"
       }
     },
     {

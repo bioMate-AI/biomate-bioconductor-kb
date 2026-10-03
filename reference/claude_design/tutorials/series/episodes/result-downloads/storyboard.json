@@ -41,17 +41,17 @@
           "Confirm the run is complete",
           "Open Outputs"
         ],
-        "narration": "First open the conversation containing your run. Check the workflow name and completion state, then select Outputs in the after-run panel. The screenshot shows the actual development interface for our example. Output files belong to a particular run, so do not identify a result by filename alone."
+        "narration": "First open the conversation containing your run. Check the workflow name and completion state, then select Outputs in the after-run panel. This is the actual development interface for our example run. Output files belong to a particular run, so do not identify a result by filename alone."
       },
       "zh": {
         "title": "先确认运行，再打开输出",
-        "subtitle": "在示例对话中，打开运行完成后的 Outputs 标签。",
+        "subtitle": "在示例对话中，打开“运行结果”下的“输出文件”标签。",
         "items": [
           "核对工作流名称",
           "确认运行已完成",
-          "打开 Outputs"
+          "打开“输出文件”"
         ],
-        "narration": "首先打开包含这次运行的对话，核对工作流名称和完成状态，再进入 Outputs，也就是输出标签。这里展示的是示例运行的真实开发环境界面。输出文件属于具体的一次运行，因此不能只凭文件名判断它的来源。"
+        "narration": "首先打开包含这次运行的对话，核对工作流名称和完成状态，再打开“输出文件”标签。这里展示的是示例运行的真实开发环境界面。输出文件属于具体的一次运行，因此不能只凭文件名判断它的来源。"
       }
     },
     {
