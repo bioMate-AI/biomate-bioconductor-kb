@@ -35,6 +35,11 @@
 # Set STRIPE_SECRET_KEY to enable subscription gating.
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Fix the compose project name so the Docker network is always
+# "biomate-onprem_biomate-network" regardless of the working directory.
+# Galaxy's Nextflow executor uses this name to attach task containers.
+name: biomate-onprem
+
 services:
 
   # ── PostgreSQL (用户/认证数据库) ────────────────────────────────────────────
@@ -224,7 +229,9 @@ services:
       NEXTFLOW_WORK_DIR: ${NEXTFLOW_WORK_DIR:-/app/nf-work}
       # Docker network for local Nextflow task containers: must match the compose
       # network so task containers can resolve "minio" hostname for S3 staging.
-      BIOMATE_DOCKER_NETWORK: ${BIOMATE_DOCKER_NETWORK:-biomate-network}
+      # Since the compose project name is fixed to "biomate-onprem" (name: above),
+      # the network is always "biomate-onprem_biomate-network".
+      BIOMATE_DOCKER_NETWORK: ${BIOMATE_DOCKER_NETWORK:-biomate-onprem_biomate-network}
 
       # ── 存储 (MinIO 替代 S3) ─────────────────────────────────────────────
       S3_ENDPOINT_URL:      http://minio:9000

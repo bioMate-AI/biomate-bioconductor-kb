@@ -2626,6 +2626,8 @@ process {{
   }}
 }}
 """
+        import multiprocessing as _mp
+        host_cpus = _mp.cpu_count()
         minio_config = f"""
 aws {{
   client {{
@@ -2640,7 +2642,22 @@ aws {{
 
 docker {{
   enabled = true
-  runOptions = '--network {docker_network}'
+  // --entrypoint "": override image ENTRYPOINT so Nextflow's /bin/bash invocation is used directly.
+  // --user root: task containers need write access to the nf-work bind-mount.
+  runOptions = '--entrypoint "" --user root --network {docker_network}'
+}}
+
+// On-prem local executor: cap process resource requirements so tasks
+// are never rejected due to host CPU/memory constraints.
+executor {{
+  name   = 'local'
+  cpus   = {max(host_cpus, 4)}
+  memory = '16 GB'
+}}
+
+process {{
+  cpus   = 1
+  memory = '4 GB'
 }}
 {container_override}"""
         config_path = config_dir / "biomate_executor_override.config"
