@@ -3,7 +3,9 @@
 # resumes from S3 checkpoints, mirrors checkpoints to S3, handles the spot interruption notice.
 # SFT-first path (mid-train optional): STAGE=sft trains the SFT adapter directly on the base.
 #   MODEL_SIZE=small STAGE=sft bash spot_train.sh
-set -uo pipefail
+set -euo pipefail
+TRAIN_LOG=${TRAIN_LOG:-/var/log/spot_train.log}
+exec > >(tee -a "$TRAIN_LOG") 2>&1
 SIZE=${MODEL_SIZE:-small}; STAGE=${STAGE:-sft}; TAG=${TAG:-}   # TAG namespaces outputs for A/B variants (e.g. _mix)
 SCRATCH=${SCRATCH:-/opt/dlami/nvme}; HERE=$(cd "$(dirname "$0")" && pwd)
 S3=s3://biomate-models-399683337364/biomate-core-local-trial/20260912
@@ -20,7 +22,7 @@ SEQ=${SEQ_OVERRIDE:-$SEQ}; R=${R_OVERRIDE:-$R}; MID=${MID_OVERRIDE:-$MID}; SFT=$
 BS=${BS_OVERRIDE:-1}; GA=${GA_OVERRIDE:-16}   # per-device batch + grad-accum (raise BS to fill a big GPU)
 # reduce CUDA fragmentation (the packed-logits allocation OOM'd a 24GB L4 with 12GB reserved-but-free)
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-NGPU=$(nvidia-smi -L 2>/dev/null | wc -l); [ "${NGPU:-0}" -ge 1 ] || NGPU=1
+NGPU=$(nvidia-smi -L 2>/dev/null | wc -l) || NGPU=0; [ "${NGPU:-0}" -ge 1 ] || NGPU=1
 # multi-GPU -> torchrun data-parallel (each rank = full model on its own GPU); single GPU -> plain python
 # FORCE_NGPU pins the launcher (e.g. =1 to use the proven single-process path even on a multi-GPU box).
 [ -n "${FORCE_NGPU:-}" ] && NGPU=$FORCE_NGPU
@@ -30,7 +32,7 @@ echo "[spot] GPUs=$NGPU launcher='$LAUNCH' per-device-batch=$BS grad-accum=$GA (
 BASE="$SCRATCH/models/base_$SIZE"
 
 # stream this log to S3 every 30s so progress/errors are observable without SSH
-( while true; do aws s3 cp /var/log/spot_train.log "$LOG_S3/train.log" --quiet 2>/dev/null; sleep 30; done ) &
+( while true; do aws s3 cp "$TRAIN_LOG" "$LOG_S3/train.log" --quiet 2>/dev/null; sleep 30; done ) &
 LOGPID=$!
 
 echo "[spot] $(date) size=$SIZE stage=$STAGE — pull data + base"
@@ -42,8 +44,8 @@ aws s3 cp "$S3/sft/${SFT_DATA:-multitask_sft_enriched.jsonl}" "$SCRATCH/data/sft
 DATA_MID="$SCRATCH/data/midtrain_all.jsonl"
 if [ "${MIX_LITERATURE:-0}" = 1 ] && [ "$STAGE" != sft ]; then
   DATA_MID="$SCRATCH/data/midtrain_domain$TAG.jsonl"      # TAG-namespaced so mixes don't collide across runs
-  if aws s3 ls "$S3/midtrain_corpus/midtrain_domain$TAG.jsonl" >/dev/null 2>&1; then
-    echo "[spot] pulling prebuilt domain mix"; aws s3 cp "$S3/midtrain_corpus/midtrain_domain$TAG.jsonl" "$DATA_MID" --quiet
+  if aws s3 ls "$S3/midtrain_corpus/${MID_DATA:-midtrain_domain$TAG.jsonl}" >/dev/null 2>&1; then
+    echo "[spot] pulling prebuilt domain mix"; aws s3 cp "$S3/midtrain_corpus/${MID_DATA:-midtrain_domain$TAG.jsonl}" "$DATA_MID" --quiet
   else
     echo "[spot] building domain mix = literature + full-text + tool-docs + DB + structured + KG (dedup=${MIX_DEDUP:-1}, keep-every=${LIT_KEEP_EVERY:-5}, struct-repeat=${STRUCT_REPEAT:-8}, kg-repeat=${KG_REPEAT:-1})"
     aws s3 cp "$S3/midtrain_corpus/literature_corpus.jsonl" "$SCRATCH/data/lit.jsonl" --quiet
@@ -105,13 +107,14 @@ PYEOF
 fi
 
 echo "[spot] resume check"; aws s3 sync "$CKPT_S3/" "$OUT/" --quiet || true
-RESUME=""; LAST=$(ls -d "$OUT"/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1)
+RESUME=""; LAST=$(ls -d "$OUT"/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1) || LAST=""
 [ -n "$LAST" ] && RESUME="--resume $LAST" && echo "[spot] resuming from $LAST"
 
 ( while true; do aws s3 sync "$OUT/" "$CKPT_S3/" --exclude "*" --include "*checkpoint-*" --quiet; sleep 120; done ) & SYNCPID=$!
 ( while true; do curl -s -m 2 http://169.254.169.254/latest/meta-data/spot/instance-action | grep -q action \
     && { echo "[spot] interruption notice — final sync"; aws s3 sync "$OUT/" "$CKPT_S3/" --quiet; break; }; sleep 5; done ) & WATCHPID=$!
-trap 'kill $SYNCPID $WATCHPID $LOGPID 2>/dev/null; aws s3 sync "$OUT/" "$CKPT_S3/" --quiet; aws s3 cp /var/log/spot_train.log "$LOG_S3/train.log" --quiet' EXIT
+CHECKPOINT_ROOT="$OUT"
+trap 'rc=$?; trap - EXIT; kill $SYNCPID $WATCHPID $LOGPID 2>/dev/null || true; aws s3 sync "$CHECKPOINT_ROOT/" "$CKPT_S3/" --quiet || true; aws s3 cp "$TRAIN_LOG" "$LOG_S3/train.log" --quiet || true; exit "$rc"' EXIT
 
 echo "[spot] START training stage=$STAGE (MID=$MID SFT=$SFT SEQ=$SEQ R=$R)"
 if [ "$STAGE" = midtrain ]; then
@@ -126,7 +129,7 @@ elif [ "$STAGE" = full ]; then
     echo "[spot] base_domain$TAG already built -> restore + skip to SFT"
     mkdir -p "$OUT/base_domain"; aws s3 cp "$S3/models_20260919/$SIZE/base_domain$TAG/" "$OUT/base_domain/" --recursive --quiet
   else
-    MLAST=$(ls -d "$OUT"/midtrain/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1); MR=""
+    MLAST=$(ls -d "$OUT"/midtrain/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1) || MLAST=""; MR=""
     [ -n "$MLAST" ] && MR="--resume $MLAST" && echo "[spot] resume midtrain from $MLAST"
     $LAUNCH "$HERE/midtrain_run.py" --base "$BASE" --data "$DATA_MID" \
        --out "$OUT/midtrain" --max-steps $MID --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $MR ${REPLAY:+--replay "$REPLAY" --replay-frac ${REPLAY_FRAC:-0.5}}
@@ -135,14 +138,14 @@ elif [ "$STAGE" = full ]; then
     aws s3 cp "$OUT/midtrain/" "$S3/models_20260919/$SIZE/midtrain_adapter$TAG/" --recursive --exclude "checkpoint-*/*" --quiet
     aws s3 cp "$OUT/base_domain/" "$S3/models_20260919/$SIZE/base_domain$TAG/" --recursive --quiet
   fi
-  SLAST=$(ls -d "$OUT"/sft/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1); SR=""
+  SLAST=$(ls -d "$OUT"/sft/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1) || SLAST=""; SR=""
   [ -n "$SLAST" ] && SR="--resume $SLAST" && echo "[spot] resume sft from $SLAST"
   $LAUNCH "$HERE/train_qlora_pilot.py" --base "$OUT/base_domain" --data "$SCRATCH/data/sft_enriched.jsonl" \
      --out "$OUT/sft" --max-steps $SFT --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $SR
   OUT="$OUT/sft"   # so the upload below grabs the SFT adapter
 elif [ "$STAGE" = sftdpo ]; then
   # SFT on v5 (clean+openbook+contrastive+paraphrase) -> merge -> DPO on hard-negative pairs.
-  SLAST=$(ls -d "$OUT"/sft/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1); SR=""
+  SLAST=$(ls -d "$OUT"/sft/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1) || SLAST=""; SR=""
   [ -n "$SLAST" ] && SR="--resume $SLAST" && echo "[spot] resume sft from $SLAST"
   if aws s3 ls "$S3/models_20260919/$SIZE/sft${TAG}_merged/config.json" >/dev/null 2>&1; then
     echo "[spot] sft${TAG}_merged already built -> restore + skip to DPO"

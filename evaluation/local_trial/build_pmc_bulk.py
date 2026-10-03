@@ -1,7 +1,7 @@
 """PMC full-text from AWS Open Data (s3://pmc-oa-opendata) via boto3 UNSIGNED — in-process, parallel,
 error-tolerant (no per-file CLI spawn / xargs / tar). Lists N per-article prefixes, downloads each
 PMC*.txt, emits jsonl. Usage: python build_pmc_bulk.py --out pmc_fulltext_bulk.jsonl --n 8000"""
-import argparse, json, re, boto3
+import argparse, hashlib, json, re, boto3
 from botocore import UNSIGNED
 from botocore.config import Config
 from concurrent.futures import ThreadPoolExecutor
@@ -27,14 +27,21 @@ def main():
         try:
             o = s3.get_object(Bucket=BUCKET, Key=f"{pfx}{base}.txt")
             t = re.sub(r"\s+", " ", o["Body"].read().decode("utf-8", "ignore")).strip()
-            return t if len(t) > 500 else None
+            if len(t) <= 500:
+                return None
+            pmcid = re.match(r"PMC\d+", base)
+            return {"text": t[:20000], "source": "pmc_fulltext_bulk",
+                    "pmcid": pmcid.group() if pmcid else None,
+                    "source_family": pmcid.group() if pmcid else f"s3://{BUCKET}/{pfx}{base}.txt",
+                    "source_uri": f"s3://{BUCKET}/{pfx}{base}.txt",
+                    "source_sha256": hashlib.sha256(t.encode()).hexdigest()}
         except Exception:
             return None
     n = toks = 0
     with ThreadPoolExecutor(max_workers=a.workers) as ex, open(a.out, "w") as fo:
-        for i, t in enumerate(ex.map(get, prefixes)):
-            if t:
-                fo.write(json.dumps({"text": t[:20000], "source": "pmc_fulltext_bulk"}) + "\n"); n += 1; toks += len(t) // 4
+        for i, row in enumerate(ex.map(get, prefixes)):
+            if row:
+                fo.write(json.dumps(row) + "\n"); n += 1; toks += len(row["text"]) // 4
             if i % 1000 == 0:
                 print(f"  {i}/{len(prefixes)} -> {n} articles ~{toks:,} tok", flush=True)
             if toks >= a.max_tokens: break

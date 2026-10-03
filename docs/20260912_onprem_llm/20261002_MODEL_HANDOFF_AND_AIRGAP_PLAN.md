@@ -1,6 +1,16 @@
 # Domain-Pro Model Hand-off (→ next-phase serve) + Air-Gap Knowledge-Data Plan
 
 **Date:** 2026-10-02
+**Correction verified 2026-10-03:** The single-base adapter handoff proposed below is not valid
+for the current training pipeline. `spot_train.sh` merges CPT into `base_domain`, then trains
+the SFT adapter on **that modified checkpoint**. Even matching the original model ID and
+dimensions is insufficient: the SFT adapter requires the exact CPT-merged weights. Deliver
+`base_domain` plus its SFT adapter, or merge both stages into a standalone domain-pro model.
+Keep the general model as a separate model/endpoint. Do not retrain on 8B just to match an old
+serve default. Also, the inspected `origin/integration/next-phase` launcher discovers only
+`regulatory_llm_*`, not arbitrary BioMate adapters; the auto-discovery claim below is superseded.
+See `20261003_CPT_RECOVERY_AND_TAKEOVER.md` for current evidence and recovery work.
+
 **Context:** next-phase has a complete on-prem harness ([[20261002_ONPREM_READINESS_AUDIT]]). My two
 remaining pieces: (a) hand the domain-pro MODEL into the colleague's vLLM serve; (b) air-gap knowledge data.
 

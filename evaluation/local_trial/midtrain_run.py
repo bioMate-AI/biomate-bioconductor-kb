@@ -2,6 +2,22 @@
 continued pretraining, not instruction SFT). Optionally mixes a general-replay file at --replay-frac
 to bridge distributions (anti-forgetting). Run on a GPU box."""
 import argparse
+import json
+
+
+def text_rows(path):
+    """Project heterogeneous source metadata away without modifying the corpus."""
+    with open(path, encoding="utf-8") as stream:
+        for line_number, line in enumerate(stream, 1):
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            text = row.get("text")
+            if not isinstance(text, str) or not text.strip():
+                raise ValueError(f"{path}:{line_number}: expected nonempty text")
+            yield {"text": text}
+
+
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--base",required=True); ap.add_argument("--data",required=True)  # midtrain_all.jsonl
@@ -13,7 +29,7 @@ def main():
     ap.add_argument("--resume",default=None,help="checkpoint dir to resume from (spot-interruption safe)")
     a=ap.parse_args()
     import os, torch
-    from datasets import load_dataset, concatenate_datasets
+    from datasets import Dataset, Features, Value, concatenate_datasets
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
     from peft import LoraConfig, prepare_model_for_kbit_training
     from trl import SFTTrainer, SFTConfig
@@ -22,9 +38,12 @@ def main():
     _lr=os.environ.get("LOCAL_RANK"); DEVMAP={"":int(_lr)} if _lr is not None else "auto"
     tok=AutoTokenizer.from_pretrained(a.base, trust_remote_code=True)
     if tok.pad_token is None: tok.pad_token=tok.eos_token
-    dom=load_dataset("json", data_files=a.data, split="train")
+    features = Features({"text": Value("string")})
+    dom=Dataset.from_generator(text_rows, gen_kwargs={"path": a.data}, features=features)
     if a.replay:  # distributional bridge: mix general replay at replay-frac
-        rep=load_dataset("json", data_files=a.replay, split="train")
+        if not 0 <= a.replay_frac < 1:
+            raise ValueError("replay-frac must be in [0, 1)")
+        rep=Dataset.from_generator(text_rows, gen_kwargs={"path": a.replay}, features=features)
         k=int(len(dom)*a.replay_frac/(1-a.replay_frac))
         rep=rep.select(range(min(k,len(rep)))); ds=concatenate_datasets([dom,rep]).shuffle(seed=13)
     else: ds=dom

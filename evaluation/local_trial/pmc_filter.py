@@ -61,10 +61,14 @@ def main():
             drop["short"] += 1; continue
         is_rev = "review" in subj or "systematic" in subj
         source = "pmc_review" if is_rev else "pmc_fulltext"
-        src[source] += 1; kept += 1; toks += len(body) // 4
+        src[source] += 1; kept += 1; toks += len(body[:12000]) // 4
         if not a.sample:
+            provenance = {k: r[k] for k in ("pmcid", "pmid", "doi", "title", "url", "source_uri",
+                                           "source_family", "source_sha256") if r.get(k)}
             sys.stdout.write(json.dumps({"text": body[:12000], "source": source, "year": year,
-                                         "licence": lic}) + "\n")
+                                         "licence": lic, **provenance,
+                                         "provenance_status": "identified" if r.get("pmcid") or r.get("source_uri")
+                                         else "missing_upstream_identifier"}) + "\n")
     sys.stderr.write(f"PMC FILTER: in={n} kept={kept} ~tokens={toks:,} by_source={dict(src)}\n"
                      f"  dropped={dict(drop.most_common(10))}\n")
 

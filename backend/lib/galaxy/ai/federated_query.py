@@ -56,6 +56,15 @@ def _offline_lookup(url: str, payload: Optional[Dict] = None) -> Optional[Any]:
                 return r
         except Exception as e:
             log.debug("[federated_query] local resolver failed for %s → %s", url, e)
+    chembl_path = os.environ.get("BIOMATE_CHEMBL_SQLITE")
+    if chembl_path:
+        try:
+            from .local_compound_resolver import resolve
+            result = resolve(chembl_path, url, payload)
+            if result is not None:
+                return result
+        except Exception as e:
+            log.warning("[federated_query] local ChEMBL mirror unavailable: %s", e)
     log.debug("[federated_query] OFFLINE_MODE — skipping external call %s", url)
     return None
 _POOL_SIZE = 12
@@ -353,7 +362,8 @@ def _fetch_chembl(query: str) -> Dict:
         results.append({"chembl_id": m.get("molecule_chembl_id"),
                         "name": m.get("pref_name"),
                         "formula": props.get("full_molformula"),
-                        "mw": props.get("full_mwt")})
+                        "mw": props.get("full_mwt"),
+                        "smiles": (m.get("molecule_structures") or {}).get("canonical_smiles")})
     return {"source": "chembl", "results": results}
 
 def _fetch_pubchem(query: str) -> Dict:

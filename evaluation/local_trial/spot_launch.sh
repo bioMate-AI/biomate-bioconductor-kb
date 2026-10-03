@@ -19,22 +19,23 @@ LOG_S3="s3://biomate-models-399683337364/biomate-core-local-trial/20260912/spot_
 USERDATA=$(cat <<EOF | base64
 #!/bin/bash
 exec > /var/log/ud.log 2>&1
-set -x
+set +x  # User data carries credentials; never trace exports into the S3 boot log.
 export SCRATCH=/opt/dlami/nvme MODEL_SIZE=$MODEL_SIZE STAGE=$STAGE TAG=$TAG ENTRY=${ENTRY:-spot_train.sh} BOOTSTRAP=${BOOTSTRAP:-gpu_bootstrap.sh} SEQ_OVERRIDE=${SEQ_OVERRIDE:-} R_OVERRIDE=${R_OVERRIDE:-} MID_OVERRIDE=${MID_OVERRIDE:-} SFT_OVERRIDE=${SFT_OVERRIDE:-} BS_OVERRIDE=${BS_OVERRIDE:-} GA_OVERRIDE=${GA_OVERRIDE:-} FORCE_NGPU=${FORCE_NGPU:-} CKPTS=${CKPTS:-} FETCH_REPLAY=${FETCH_REPLAY:-0} REPLAY_FRAC=${REPLAY_FRAC:-} REPLAY_DOCS=${REPLAY_DOCS:-} MIX_LITERATURE=${MIX_LITERATURE:-0} LIT_KEEP_EVERY=${LIT_KEEP_EVERY:-} STRUCT_REPEAT=${STRUCT_REPEAT:-} MIX_KG=${MIX_KG:-0} KG_REPEAT=${KG_REPEAT:-} MIX_DEDUP=${MIX_DEDUP:-} SFT_DATA=${SFT_DATA:-} DPO_PAIRS=${DPO_PAIRS:-} PMC_FILE=${PMC_FILE:-} PMC_REPEAT=${PMC_REPEAT:-} PMC_ARTICLES=${PMC_ARTICLES:-} RECIPE_N=${RECIPE_N:-} TOOLDOC_REPEAT=${TOOLDOC_REPEAT:-} DBCAT_REPEAT=${DBCAT_REPEAT:-} FORUM_REPEAT=${FORUM_REPEAT:-} PMC_MAXTOK=${PMC_MAXTOK:-} LIT_START=${LIT_START:-} LIT_FILES=${LIT_FILES:-} LIT_WORKERS=${LIT_WORKERS:-} KGSFT_TARGET=${KGSFT_TARGET:-} SFTN=${SFTN:-} CKMODE=${CKMODE:-} CKPT_STAGE=${CKPT_STAGE:-} OPENAI_API_KEY=$OPENAI_API_KEY GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
 # stream the boot log to S3 from the START so bootstrap failures are visible (EBS is gone on terminate)
 ( while true; do aws s3 cp /var/log/ud.log $LOG_S3/boot.log --quiet 2>/dev/null; sleep 20; done ) &
 mkdir -p \$SCRATCH/code && cd \$SCRATCH/code
 for i in 1 2 3; do aws s3 cp $REPO_TARBALL_S3 code.tgz && break || sleep 10; done
 tar xzf code.tgz
-bash ${BOOTSTRAP:-gpu_bootstrap.sh}
-bash ${ENTRY:-spot_train.sh}
+timeout --signal=TERM --kill-after=180 ${WORKER_MAX_SECONDS:-18000} bash -c 'bash "\$1" && bash "\$2"' worker ${BOOTSTRAP:-gpu_bootstrap.sh} ${ENTRY:-spot_train.sh}
+TRAIN_RC=\$?
+echo "Worker exit: \$TRAIN_RC"
 aws s3 cp /var/log/ud.log $LOG_S3/boot.log --quiet
 sleep 30
 shutdown -h now
 EOF
 )
 
-MARKET="--instance-market-options MarketType=spot,SpotOptions={SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}"
+MARKET="--instance-market-options MarketType=spot,SpotOptions={SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate${SPOT_MAX_PRICE:+,MaxPrice=$SPOT_MAX_PRICE}}"
 [ "${ONDEMAND:-0}" = "1" ] && MARKET="" && echo "(on-demand mode)"
 echo "Launching $INSTANCE_TYPE ${ONDEMAND:+on-demand}${ONDEMAND:-spot} for $MODEL_SIZE/$STAGE in $REGION"
 IID=$(aws ec2 run-instances --region "$REGION" \
@@ -48,6 +49,6 @@ IID=$(aws ec2 run-instances --region "$REGION" \
   --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=biomate-onprem-$MODEL_SIZE-$STAGE$TAG}]" \
   --query 'Instances[0].InstanceId' --output text)
 echo "INSTANCE=$IID  ($MODEL_SIZE/$STAGE)"
-echo "logs:  s3://biomate-models-399683337364/biomate-core-local-trial/20260912/spot_logs/$MODEL_SIZE/$STAGE/train.log"
-echo "ckpts: s3://biomate-models-399683337364/biomate-core-local-trial/20260912/spot_ckpt/$MODEL_SIZE/$STAGE/"
+echo "logs:  $LOG_S3/train.log"
+echo "ckpts: s3://biomate-models-399683337364/biomate-core-local-trial/20260912/spot_ckpt/$MODEL_SIZE/$STAGE$TAG/"
 echo "final: s3://biomate-models-399683337364/biomate-core-local-trial/20260912/models_20260919/$MODEL_SIZE/"

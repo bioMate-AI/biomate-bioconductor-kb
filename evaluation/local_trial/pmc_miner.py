@@ -73,13 +73,16 @@ def main():
             slotcnt[s] += 1
         # (a) structured concept doc — the problem->method->finding reasoning pattern
         parts = [f"{k.capitalize()}: {secs[k]}" for k in ("problem", "method", "findings", "conclusion") if k in secs]
-        rec = {"source": "pmc_structured", "sections": list(secs.keys()), "text": "\n\n".join(parts)}
+        provenance = {k: r[k] for k in ("pmcid", "pmid", "doi", "source_uri", "source_family",
+                                       "source_sha256", "licence", "provenance_status") if r.get(k)}
+        rec = {"source": "pmc_structured", "sections": list(secs.keys()), "text": "\n\n".join(parts),
+               **provenance}
         struct += 1
         if fs:
             fs.write(json.dumps(rec) + "\n")
         # (b) findings_interpretation pair: results -> conclusion (real interpretation gold)
         if "findings" in secs and "conclusion" in secs and len(secs["conclusion"]) >= 200 and len(secs["findings"]) >= 200:
-            pair = {"task": "findings_interpretation", "source": "pmc_mined",
+            pair = {"task": "findings_interpretation", "source": "pmc_mined", **provenance,
                     "messages": [{"role": "user", "content": "Interpret these results into the key findings and "
                                   "conclusion (what they MEAN).\n\nResults:\n" + secs["findings"]},
                                  {"role": "assistant", "content": secs["conclusion"]}]}
