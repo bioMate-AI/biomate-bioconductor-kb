@@ -144,5 +144,15 @@
       }
     },
     "passed": true
+  },
+  "initial_gpu_attempt": {
+    "scope": "S3 restore and synthetic-prompt numerical validation; not scientific quality evaluation",
+    "checks": {
+      "cuda_available": true
+    },
+    "started": 1791057326.866201,
+    "complete": false,
+    "error": "AttributeError(\"module 'hashlib' has no attribute 'file_digest'\")",
+    "finished": 1791057327.3049624
   }
 }

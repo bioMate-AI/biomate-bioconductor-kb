@@ -1,4 +1,4 @@
-import hashlib, json, os, time
+import hashlib, json, os, time, sys
 from pathlib import Path
 import torch
 from safetensors.torch import load_file
@@ -6,7 +6,13 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 root=Path(os.environ['SCRATCH'])/'restore'
 out=root/'restore_report.json'
-report={'scope':'S3 restore and synthetic-prompt numerical validation; not scientific quality evaluation','checks':{},'started':time.time()}
+report={'scope':'S3 restore and synthetic-prompt numerical validation; not scientific quality evaluation','checks':{},'started':time.time(),'python':sys.version}
+def sha256_file(path):
+    digest=hashlib.sha256()
+    with path.open('rb') as stream:
+        for chunk in iter(lambda: stream.read(8*1024*1024),b''):
+            digest.update(chunk)
+    return digest.hexdigest()
 def check(name,value):
     report['checks'][name]=bool(value)
     if not value: raise RuntimeError(name)
@@ -14,7 +20,7 @@ try:
     check('cuda_available',torch.cuda.is_available())
     torch.manual_seed(0)
     base=root/'base_domain'; adapter=root/'sft'
-    report['sha256']={str(p.relative_to(root)):hashlib.file_digest(p.open('rb'),'sha256').hexdigest() for p in [base/'model.safetensors',adapter/'adapter_model.safetensors']}
+    report['sha256']={str(p.relative_to(root)):sha256_file(p) for p in [base/'model.safetensors',adapter/'adapter_model.safetensors']}
     tok=AutoTokenizer.from_pretrained(base,local_files_only=True)
     messages=[{'role':'user','content':'Return only the word VERIFIED.'}]
     prompt=tok.apply_chat_template(messages,tokenize=False,add_generation_prompt=True,enable_thinking=False)

@@ -32,7 +32,9 @@ The reproduction runner is in [evaluation/local_trial/checkpoint_verification](.
 
 The isolated on-demand `g6.2xlarge` worker is `i-08a854d4bd82c7aa7`, launched with a 2,400-second bootstrap/test timeout and termination on shutdown. It does not share the active medium-model training GPU.
 
-On a CUDA host with AWS access, set `SCRATCH` to a writable directory, run `restore_bootstrap.sh`, then `restore_entry.sh`. The runner writes `$SCRATCH/restore/restore_report.json` and attempts to upload it to `s3://biomate-models-399683337364/biomate-core-local-trial/20260912/spot_logs/small/restore_concept_recovery2_20261003/restore_report.json`.
+The first GPU attempt failed before model loading: Python 3.10 does not provide `hashlib.file_digest`. The verifier now uses chunked SHA-256 hashing, tested against a known vector, and records the Python version. The original failure report is retained in the evidence JSON. This was a verifier failure, not evidence of checkpoint corruption.
+
+On a CUDA host with AWS access, set `STAGE=restore`, a unique `TAG`, and `SCRATCH` to a writable directory, run `restore_bootstrap.sh`, then `restore_entry.sh`. The runner writes `$SCRATCH/restore/restore_report.json` and attempts to upload it to the matching `spot_logs/small/${STAGE}${TAG}/restore_report.json` S3 key.
 
 Success requires the actual report to declare `complete: true` and all checks to pass. A submitted job, uploaded checkpoint, or successful shell invocation alone does not establish restore success. The GPU runner verifies inference restoration; it does not resume optimizer updates.
 
