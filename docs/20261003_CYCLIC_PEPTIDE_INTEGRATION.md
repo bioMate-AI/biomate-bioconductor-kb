@@ -156,7 +156,39 @@ Expected artifacts:
 - `SIMULATED_dpo_integration/exit_status.json`: downstream process exit code.
 
 Latest complete local verification: **40 tests passed from the PR checkout**.
-Real CUDA results remain pending while the replacement builds its environment.
+The replacement completed the real CUDA checks; see the verified results below.
 The original snapshot remains a recovery/cache artifact; no usable recovery AMI
 has yet been registered. Full training/benchmark promotion remains gated on the
 real smoke and dataset audit, and simulated KD never constitutes efficacy data.
+
+
+## Verified CUDA results (2026-10-03 17:23 UTC)
+
+Run `unimomo-cyclic-ft-20261003T170124Z` reached `smoke_complete` at
+17:22:39 UTC. Its one-epoch report passed: **502/502 successful updates**, 199
+changed trainable parameter tensors, and unchanged frozen autoencoder weights.
+
+The queued production assay-service → pairs → real UniMoMo CUDA DPO integration
+exited 0. All seven checks passed: three pairs loaded, three optimizer updates,
+unchanged reference state, unchanged frozen autoencoder, changed trainable weights
+(199 tensors), exact checkpoint reload, and finite weights. Assay values were
+explicitly synthetic; this validates integration mechanics only. It does not
+establish biological efficacy, held-out improvement, or live HTTP/UI integration.
+
+The exact-sequence audit covers 502 train, 55 validation, and 88 test complexes.
+There are no shared PDB IDs. Train/validation share six unique receptor sequences,
+17 unique peptide sequences (matching 25 validation complexes), and two complete
+receptor/peptide sequence pairs. Train/test share three unique receptor sequences
+(matching five test complexes), with no known exact peptide or complete-pair
+overlap. Unknown residues exclude some test sequences from matching (six receptor,
+eight peptide, nine complete-pair records). Homology, pocket similarity, temporal
+separation, and base-model pretraining overlap remain unverified.
+
+Before a generalization claim or full benchmark promotion, define and enforce
+sequence-disjoint evaluation splits and audit the remaining leakage limits.
+The guarded one-epoch checkpoint qualifies as a training-integrity smoke, not a
+validated production model. No full 30-epoch replacement or new benchmark has run.
+
+Downloaded machine-readable evidence and synthetic fixtures are committed under
+`research/guangzhou_all_atom/results/unimomo-cyclic-ft-20261003T170124Z/`.
+The on-demand instance retains its original four-hour shutdown deadline.
