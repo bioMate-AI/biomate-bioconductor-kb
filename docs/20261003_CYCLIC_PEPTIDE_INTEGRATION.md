@@ -105,3 +105,22 @@ rejects nonfinite raw/normalized values and nonpositive KD before persistence.
 Five integration cases cover NaN, infinity, zero, negative KD, and unit-conversion
 overflow; all return errors and persist zero rows. The nine-test closed-loop
 integration suite passes. The preceding exact-PR full suite passed 35 tests.
+
+## Spot interruption and recovery
+
+EC2 terminated `i-0e66b63836f7e637b` for lost Spot capacity at
+2026-10-03 16:50:23 UTC (`Server.SpotInstanceTermination`, request
+`sir-cezznwjh`). Featurization was incomplete, so neither CUDA epoch validation
+nor the queued real-model DPO test ran. Stale S3 logs were diagnosed via live
+SSM/EC2 status rather than treated as completed work.
+
+The still-attached root disk was captured as snapshot
+`snap-0ed9ab890bd440ba6` to preserve the installed environment, base checkpoint,
+and downloaded structures. A replacement uses on-demand capacity. The launcher
+now accepts `MARKET=ondemand`, an AMI override, and `WARM_START=1`. Warm restore
+checks the exact source revision, base checkpoint size, autoencoder presence,
+reviewed parser patch, and CUDA availability. It reprocesses the interrupted mmap
+from scratch using the cached PDBs; partial mmap output is never accepted.
+Both launcher and extracted warm driver pass shell syntax checks. This recovery
+change is based on the observed interruption and filesystem contents from the
+last successful setup stages, not an attempt to fix an unknown training failure.

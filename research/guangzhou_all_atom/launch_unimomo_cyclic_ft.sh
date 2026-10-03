@@ -20,7 +20,7 @@ set -Eeuo pipefail
 export AWS_DEFAULT_REGION=us-west-2
 
 BUCKET=knowledge-datasets-1759951976
-AMI=ami-04f7da1c787a89267
+AMI=${AMI:-ami-04f7da1c787a89267}
 SG=sg-011121fdf81073ec8
 KEY=biomate-trial-resume-20260912
 PROFILE=AutoimmuneCorpusProfile
@@ -35,9 +35,12 @@ MANIFEST_S3=${MANIFEST_S3:-s3://$BUCKET/cyclic_peptide/runs/d2-mine-local-202610
 TEST_INDEX_S3=${TEST_INDEX_S3:-s3://$BUCKET/cyclic_peptide/runs/pepglad-cyclicprep-20260914T194504Z/pepbdb_cyclic_processed/test_index.txt}
 N_SAMPLES=${N_SAMPLES:-100}            # eval candidates/target (matched to the repro budget)
 MANIFEST_FILTER=${MANIFEST_FILTER:-}   # e.g. head_to_tail to restrict cyclization type; empty=all 616
+MARKET=${MARKET:-spot}
+WARM_START=${WARM_START:-0}
 RUN_MODE=${RUN_MODE:-full} # smoke: one epoch, preserve warm instance until deadline
 MAX_RUNTIME=${MAX_RUNTIME:-20h}
 DISK_GB=${DISK_GB:-250}
+[[ "$MARKET" = spot || "$MARKET" = ondemand ]] || { echo "FATAL: MARKET must be spot or ondemand"; exit 1; }
 [[ "$RUN_MODE" = full || "$RUN_MODE" = smoke ]] || { echo "FATAL: RUN_MODE must be full or smoke"; exit 1; }
 
 RUNID=unimomo-cyclic-ft-$(date -u +%Y%m%dT%H%M%SZ)
@@ -69,6 +72,7 @@ OUT_S3=${OUT_S3:?}; UNIMOMO_REPO=${UNIMOMO_REPO:?}; UNIMOMO_COMMIT=${UNIMOMO_COM
 CKPT_URL=${CKPT_URL:?}; CKPT_SIZE=${CKPT_SIZE:?}; ENV_YAML=${ENV_YAML:?}
 MANIFEST_S3=${MANIFEST_S3:?}; TEST_INDEX_S3=${TEST_INDEX_S3:?}
 RUN_MODE=${RUN_MODE:-full}
+WARM_START=${WARM_START:-0}
 N_SAMPLES=${N_SAMPLES:-100}; MANIFEST_FILTER=${MANIFEST_FILTER:-}; MAX_RUNTIME=${MAX_RUNTIME:-20h}
 
 mkdir -p "$ROOT/status"; exec > >(tee -a "$ROOT/status/bootstrap.log") 2>&1
@@ -79,6 +83,7 @@ trap finish EXIT
 systemctl is-active --quiet unimomo-deadline.timer || systemd-run --unit=unimomo-deadline --on-active="$MAX_RUNTIME" /sbin/shutdown -h now
 (while sleep 120; do sync_results; done) &
 
+if [ "$WARM_START" != 1 ]; then
 stage installing_conda
 for i in 1 2 3 4 5; do curl -fsSL -o /tmp/miniforge.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh && break; sleep 10; done
 bash /tmp/miniforge.sh -b -p /opt/miniforge
@@ -151,6 +156,18 @@ m = torch.load('checkpoints/model.ckpt', map_location='cpu')
 torch.save(m.autoencoder, 'checkpoints/ae.ckpt')
 print('extracted ae.ckpt from base model.ckpt (.autoencoder)')
 PY
+
+else
+  stage restoring_warm_environment
+  source /opt/miniforge/etc/profile.d/conda.sh
+  set +u; conda activate UniMoMo; set -u
+  cd "$ROOT/UniMoMo"
+  [ "$(git rev-parse HEAD)" = "$UNIMOMO_COMMIT" ] || { echo "FATAL: warm source revision mismatch"; exit 1; }
+  [ "$(stat -c%s checkpoints/model.ckpt)" = "$CKPT_SIZE" ] || { echo "FATAL: warm base checkpoint size mismatch"; exit 1; }
+  [ -s checkpoints/ae.ckpt ] || { echo "FATAL: missing warm autoencoder"; exit 1; }
+  grep -q 'WARN pepbench skip' scripts/data_process/peptide/pepbench.py || { echo "FATAL: missing reviewed pepbench patch"; exit 1; }
+  python -c 'import torch; assert torch.cuda.is_available(), "CUDA required"; print("warm CUDA verified")'
+fi
 
 # ---- pull our code + inputs ----
 aws s3 cp "$OUT_S3/code/unimomo_cyclic_dataprep.py" ./unimomo_cyclic_dataprep.py --only-show-errors
@@ -267,7 +284,7 @@ for i in 1 2 3 4 5; do aws s3 cp $S3RUN/code/run_cyclic_ft.sh /opt/unimomo-run/r
 chmod +x /opt/unimomo-run/run.sh
 OUT_S3=$S3RUN UNIMOMO_REPO=$UNIMOMO_REPO UNIMOMO_COMMIT=$UNIMOMO_COMMIT CKPT_URL=$CKPT_URL CKPT_SIZE=$CKPT_SIZE \\
 ENV_YAML=$ENV_YAML MANIFEST_S3=$MANIFEST_S3 TEST_INDEX_S3=$TEST_INDEX_S3 N_SAMPLES=$N_SAMPLES \\
-MANIFEST_FILTER="$MANIFEST_FILTER" RUN_MODE=$RUN_MODE MAX_RUNTIME=$MAX_RUNTIME bash /opt/unimomo-run/run.sh
+MANIFEST_FILTER="$MANIFEST_FILTER" RUN_MODE=$RUN_MODE WARM_START=$WARM_START MAX_RUNTIME=$MAX_RUNTIME bash /opt/unimomo-run/run.sh
 EOF
 )
 
@@ -295,7 +312,12 @@ launch_one(){
   done
   return 1
 }
-IID=""; launch_one spot || launch_one ondemand || true
+IID=""
+if [ "$MARKET" = ondemand ]; then
+  launch_one ondemand || true
+else
+  launch_one spot || launch_one ondemand || true
+fi
 { [ -z "${IID:-}" ] || [ "$IID" = "None" ]; } && { echo "FATAL: no GPU capacity"; rm -f "$DRIVER"; exit 1; }
 rm -f "$DRIVER"
 echo "=============================================================="
