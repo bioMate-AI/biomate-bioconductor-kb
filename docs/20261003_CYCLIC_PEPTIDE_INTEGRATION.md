@@ -95,3 +95,13 @@ CSV boundary follow-up: required KD/sequence/target headers are now validated,
 so a misspelled KD header cannot silently yield an empty successful export.
 Log-KD gaps use a difference of logarithms to avoid ratio overflow. The focused
 converter/integration suite passes 18 tests after this change.
+
+## Platform malformed-data boundary
+
+The production assay validator previously accepted `NaN`/infinity and nonpositive
+KD values. NaN could become NULL at SQLite insertion and violate its NOT NULL
+constraint, while other invalid values could contaminate ranking. Validation now
+rejects nonfinite raw/normalized values and nonpositive KD before persistence.
+Five integration cases cover NaN, infinity, zero, negative KD, and unit-conversion
+overflow; all return errors and persist zero rows. The nine-test closed-loop
+integration suite passes. The preceding exact-PR full suite passed 35 tests.

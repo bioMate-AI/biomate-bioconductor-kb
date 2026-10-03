@@ -2,6 +2,7 @@
 CSV schema definition and validator for BioMate assay data ingestion.
 """
 import csv
+import math
 from datetime import datetime
 from typing import Optional
 
@@ -80,7 +81,13 @@ class AssayCSVValidator:
 
         raw_value = row.get("value", "")
         try:
-            float(raw_value)
+            value = float(raw_value)
+            if not math.isfinite(value):
+                errs.append(f"Row {row_num}: value must be finite.")
+            elif assay_type == "Kd" and value <= 0:
+                errs.append(f"Row {row_num}: Kd must be positive.")
+            elif not math.isfinite(value * UNIT_NORMALIZATION.get(row.get("unit", ""), 1.0)):
+                errs.append(f"Row {row_num}: normalised value must be finite.")
         except (ValueError, TypeError):
             errs.append(f"Row {row_num}: value '{raw_value}' is not a valid number.")
 

@@ -64,3 +64,14 @@ def test_nonfinite_dpo_does_not_write_checkpoint(tmp_path):
                   beta=1., lr=.001, steps=1, forward_fn=invalid_forward, out_ckpt=str(checkpoint))
     assert not checkpoint.exists()
     assert all(torch.equal(v, original[k]) for k, v in model.state_dict().items())
+
+
+@pytest.mark.parametrize('value,unit', [('NaN', 'nM'), ('inf', 'nM'), ('0', 'nM'), ('-5', 'nM'), ('1e308', 'mM')])
+def test_platform_rejects_invalid_kd_before_sqlite(tmp_path, value, unit):
+    path = tmp_path / 'invalid.csv'
+    path.write_text(f'compound_id,assay_type,value,unit,assay_date\nA,Kd,{value},{unit},2026-10-03\n')
+    service = AssayIngestionService(str(tmp_path / 'assays.sqlite'))
+    result = service.ingest('SIMULATED-invalid', str(path))
+    assert result['ingested'] == 0
+    assert result['errors']
+    assert service.get_campaign_results('SIMULATED-invalid') == []
