@@ -35,9 +35,12 @@ MANIFEST_S3=${MANIFEST_S3:-s3://$BUCKET/cyclic_peptide/runs/d2-mine-local-202610
 TEST_INDEX_S3=${TEST_INDEX_S3:-s3://$BUCKET/cyclic_peptide/runs/pepglad-cyclicprep-20260914T194504Z/pepbdb_cyclic_processed/test_index.txt}
 N_SAMPLES=${N_SAMPLES:-100}            # eval candidates/target (matched to the repro budget)
 MANIFEST_FILTER=${MANIFEST_FILTER:-}   # e.g. head_to_tail to restrict cyclization type; empty=all 616
-MARKET=${MARKET:-spot}
 WARM_START=${WARM_START:-0}
 RUN_MODE=${RUN_MODE:-full} # smoke: one epoch, preserve warm instance until deadline
+MARKET=${MARKET:-}
+if [ -z "$MARKET" ]; then
+  if [ "$RUN_MODE" = smoke ]; then MARKET=ondemand; else MARKET=spot; fi
+fi
 MAX_RUNTIME=${MAX_RUNTIME:-20h}
 DISK_GB=${DISK_GB:-250}
 [[ "$MARKET" = spot || "$MARKET" = ondemand ]] || { echo "FATAL: MARKET must be spot or ondemand"; exit 1; }

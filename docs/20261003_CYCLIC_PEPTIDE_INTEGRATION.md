@@ -124,3 +124,10 @@ from scratch using the cached PDBs; partial mmap output is never accepted.
 Both launcher and extracted warm driver pass shell syntax checks. This recovery
 change is based on the observed interruption and filesystem contents from the
 last successful setup stages, not an attempt to fix an unknown training failure.
+
+Smoke runs now default to on-demand capacity even when MARKET is omitted; full
+batch runs retain the existing Spot-first default. This makes the durable warm
+workflow the default rather than relying on an operator remembering an override.
+The interrupted instance is terminated; image registration correctly waits for
+the recovery snapshot to reach `completed`. No replacement was launched against
+an incomplete snapshot.
