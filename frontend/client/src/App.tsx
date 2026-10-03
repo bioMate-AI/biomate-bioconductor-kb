@@ -45,7 +45,6 @@ import AboutPage from "@/pages/about";
 import TutorialsPage from "@/pages/tutorials";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
-import DashboardPage from "@/pages/dashboard";
 import BillingPage from "@/pages/billing";
 import AdminFeedbackDashboardPage from "@/pages/admin/feedback-dashboard";
 import PilotExitSurveyPage from "@/pages/pilot-exit-survey";
@@ -605,12 +604,6 @@ function Router({
 {/* NextflowDemoPage removed */}
 
       {/* Authenticated pages */}
-      {/* <Route path="/dashboard">
-        <AuthenticatedPageLayout>
-          <DashboardPage />
-        </AuthenticatedPageLayout>
-      </Route> */}
-
       {/* Billing stays HIDDEN — deliberate owner decision; do NOT re-enable without
           the owner's explicit OK. (The crash was separately hardened 2026-09-30 —
           compute.total_hours / storage.size_gb are now null-safe — so it is ready to

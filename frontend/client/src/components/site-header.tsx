@@ -49,7 +49,6 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
       { name: "Blog", href: "/blog" },
     ],
     authenticated: [
-      // { name: "Dashboard", href: "/dashboard" }, // not ready
       { name: "Platform", href: "/" }
     ]
   }
@@ -118,9 +117,6 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
                     {user?.name || 'My Account'}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {/* <DropdownMenuItem onClick={() => handleNavigation('/dashboard')}>
-                    Dashboard
-                  </DropdownMenuItem> */}
                   <DropdownMenuItem onClick={() => handleNavigation('/')}>
                     Platform
                   </DropdownMenuItem>

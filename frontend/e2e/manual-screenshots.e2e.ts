@@ -31,7 +31,6 @@ const SHOTS: Array<{ name: string; route: string; note: string }> = [
   { name: "i10-1-models.png",       route: "/models",            note: "models surface" },
   { name: "i11-1-design.png",       route: "/design",            note: "design & generate surface" },
   { name: "capabilities.png",       route: "/capabilities",      note: "capabilities surface" },
-  { name: "i00-1-runs-dashboard.png", route: "/dashboard",       note: "runs dashboard (run history)" },
   { name: "i13-1-cro-library.png",  route: "/drug-discovery-cro", note: "CRO library / drug-discovery campaigns" },
 ];
 

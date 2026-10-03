@@ -2718,8 +2718,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
-        // Redirect to dashboard with token
-        res.redirect(`/dashboard?oauth_success=true`);
+        // Land in the real chat workspace after OAuth. The old dashboard was
+        // a retired mock-data page, not a valid post-login destination.
+        res.redirect(`/?oauth_success=true`);
       } catch (error: any) {
         console.error('[OAuth] Google callback error:', error);
         res.redirect('/login?error=oauth_error');
@@ -2754,8 +2755,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
-        // Redirect to dashboard with token
-        res.redirect(`/dashboard?oauth_success=true`);
+        // Land in the real chat workspace after OAuth. The old dashboard was
+        // a retired mock-data page, not a valid post-login destination.
+        res.redirect(`/?oauth_success=true`);
       } catch (error: any) {
         console.error('[OAuth] GitHub callback error:', error);
         res.redirect('/login?error=oauth_error');
