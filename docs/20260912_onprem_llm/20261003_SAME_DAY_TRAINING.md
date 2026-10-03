@@ -135,3 +135,17 @@ and exact compound multiset; three regression tests pass. Every result records
 This runner is prepared locally but **not injected into the current training worker**. It covers
 only two ADMET decisions and cannot establish all-task client readiness. Next evaluation worker
 or an accessible post-training process must run it against the delivered weights.
+
+## 19:25 UTC successful checkpoint restoration
+
+Replacement `i-0e80fb51b235fff89` has completed optimizer step **116/300** after selecting
+checkpoint100. This exceeds the interrupted attempt's final step113 and confirms actual
+post-restore training, not merely checkpoint discovery. Latest logged step115 loss1.844,
+grad_norm0.2322 and learning_rate7.468e-05; recent wall-clock steps are about21seconds.
+The fresh-run progress bar's smoothed ETA initially understates step time because restored
+steps count toward its progress; use observed per-step time for estimates.
+
+S3 currently contains checkpoints25/50/75/100. Checkpoint125 has not yet been reached; verify
+its backup in the next check. No paired model predictions exist yet. Training, merge, SFT and
+paired MCQA remain automatically chained; no stage was skipped. Resume verification is now
+passed, while successful final artifact delivery and execution evaluation remain pending.
