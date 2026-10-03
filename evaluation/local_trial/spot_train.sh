@@ -76,7 +76,7 @@ if [ "${MIX_LITERATURE:-0}" = 1 ] && [ "$STAGE" != sft ]; then
 fi
 if [ ! -d "$BASE" ]; then
   echo "[spot] downloading base $HF"
-  python3 -c "from huggingface_hub import snapshot_download; snapshot_download('$HF', local_dir='$BASE')"
+  python3 -c "import os; from huggingface_hub import snapshot_download; snapshot_download('$HF', revision=os.environ.get('HF_REVISION') or None, local_dir='$BASE')"
 fi
 
 # FETCH_REPLAY=1 → build/reuse the general-replay corpus (FineWeb-Edu, ODC-BY) for the 25/75

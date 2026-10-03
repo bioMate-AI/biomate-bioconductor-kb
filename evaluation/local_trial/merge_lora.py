@@ -15,7 +15,8 @@ def main():
     ap.add_argument("--out",required=True)
     a=ap.parse_args()
     tok=AutoTokenizer.from_pretrained(a.base, trust_remote_code=True)
-    model=AutoModelForCausalLM.from_pretrained(a.base, torch_dtype=torch.bfloat16,
+    from model_loading import load_text_model
+    model=load_text_model(a.base, torch_dtype=torch.bfloat16,
         device_map="cpu", trust_remote_code=True, low_cpu_mem_usage=True)
     model=PeftModel.from_pretrained(model, a.adapter)
     model=model.merge_and_unload()          # fold LoRA deltas into base weights

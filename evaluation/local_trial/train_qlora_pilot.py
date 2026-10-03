@@ -44,7 +44,8 @@ def main() -> int:
     bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
                              bnb_4bit_use_double_quant=True,
                              bnb_4bit_compute_dtype=torch.bfloat16)
-    model = AutoModelForCausalLM.from_pretrained(
+    from model_loading import load_text_model
+    model = load_text_model(
         args.base, quantization_config=bnb, device_map=devmap,
         torch_dtype=torch.bfloat16, trust_remote_code=True,
         low_cpu_mem_usage=True, attn_implementation="sdpa")
@@ -67,7 +68,7 @@ def main() -> int:
         lr_scheduler_type="cosine",
         warmup_steps=3,
         logging_steps=1,
-        save_steps=min(max(args.max_steps // 4, 10), 200),  # spot-friendly: checkpoint <=every 200 steps
+        save_steps=int(os.environ.get("SAVE_STEPS", "25")),
         save_total_limit=10,
         bf16=True,
         gradient_checkpointing=True,
@@ -76,6 +77,7 @@ def main() -> int:
         max_length=args.seq_len,
         ddp_find_unused_parameters=False,
         packing=False,
+        dataset_num_proc=int(os.environ.get("DATASET_NUM_PROC", "4")),
         assistant_only_loss=True,          # supervise assistant tokens only
         report_to=[],
         seed=13,
