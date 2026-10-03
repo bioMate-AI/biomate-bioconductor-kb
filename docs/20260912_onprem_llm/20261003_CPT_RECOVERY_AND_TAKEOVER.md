@@ -91,6 +91,12 @@ of source-family independence from this export alone. Upstream split manifests m
 Evidence may be embedded in prompts, so absent evidence metadata is not evidence-free training.
 Counts and the file SHA-256 are in `20261003_CONCEPT_SFT_STRUCTURAL_AUDIT.json`.
 
+Exact-message/user-prompt checks found no matches against three conversation-format local evaluation
+files (8,111, 6,019 and 1,645 records; these sets may overlap each other). Two older files use another
+schema and were explicitly skipped, not counted as clean. Results and input hashes are recorded in
+`20261003_CONCEPT_SFT_EVAL_OVERLAP.json`. This is not a paraphrase/source-family leakage audit or
+confirmation that these files are the designated release holdout.
+
 The upstream Qwen3-4B tokenizer template lacks generation markers. Current
 [TRL documents automatic Qwen3 template patching for assistant-only loss](https://huggingface.co/docs/trl/en/sft_trainer).
 The installed trainer's actual nonzero assistant masks still need verification; documentation alone
