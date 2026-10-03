@@ -111,12 +111,25 @@ function lookup(bundle: Record<string, unknown>, key: string): string | undefine
   return typeof node === 'string' ? node : undefined;
 }
 
+type Vars = Record<string, string | number>;
+
+function interpolate(text: string, vars?: Vars): string {
+  if (!vars) return text;
+  return text.replace(/\{\{\s*(\w+)\s*\}\}/g, (m, name: string) => (name in vars ? String(vars[name]) : m));
+}
+
 /**
  * Translate a dot-path key (e.g. "nav.dashboard", "workflow.status.running").
- * Falls back to the English value, then to the key itself.
+ * Falls back to the English value, then to the key itself. `{{name}}`
+ * placeholders are filled from `vars`.
  */
-export function t(key: string): string {
-  return lookup(activeBundle, key) ?? lookup(enBundle, key) ?? key;
+export function t(key: string, vars?: Vars): string {
+  return interpolate(lookup(activeBundle, key) ?? lookup(enBundle, key) ?? key, vars);
+}
+
+/** Like `t`, but for data-driven keys (e.g. a workflow domain) that may have no bundle entry. */
+export function tOr(key: string, fallback: string, vars?: Vars): string {
+  return interpolate(lookup(activeBundle, key) ?? lookup(enBundle, key) ?? fallback, vars);
 }
 
 /**

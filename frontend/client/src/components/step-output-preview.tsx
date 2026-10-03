@@ -16,6 +16,7 @@
  *   download → download link for unknown binary formats
  */
 
+import { t } from "@/lib/i18n";
 import { useState, useEffect, useRef } from "react";
 import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp, Laptop, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -116,13 +117,13 @@ function pickInteractiveTool(ext: string): {
 } {
   const e = ext.toLowerCase().replace(/^\./, '');
   if (SINGLECELL_EXTS.has(e))
-    return { tool: 'cellxgene', label: 'Explore in CellxGene' };
+    return { tool: 'cellxgene', label: t('preview.explore_cellxgene') };
   if (R_EXTS.has(e) || e === 'rda')
-    return { tool: 'rstudio', label: 'Open in RStudio' };
+    return { tool: 'rstudio', label: t('preview.open_rstudio') };
   if (TABLE_EXTS.has(e))
-    return { tool: 'rstudio', label: 'Analyze in RStudio' };
+    return { tool: 'rstudio', label: t('preview.analyze_rstudio') };
   // sequences, annotations, VCF, text — Jupyter is the universal fallback
-  return { tool: 'jupyter', label: 'Open in Jupyter' };
+  return { tool: 'jupyter', label: t('preview.open_jupyter') };
 }
 
 /** Download URL for a step output — the honest fallback when the matching
@@ -145,7 +146,7 @@ function InteractiveUnavailableNote({
       <a href={stepFileDownloadUrl(runId, file)} download={file.name}>
         <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs">
           <Download className="h-3.5 w-3.5" />
-          Download {file.name}
+          {t('preview.download_file', { name: file.name })}
         </Button>
       </a>
     </div>
@@ -209,7 +210,7 @@ function parseStar(text: string): { headers: string[]; rows: string[][] } | null
 
 function InlineTableViewer({ text, ext }: { text: string; ext: string }) {
   const lines = text.trim().split('\n').filter(Boolean);
-  if (lines.length === 0) return <p className="text-xs text-muted-foreground">Empty file</p>;
+  if (lines.length === 0) return <p className="text-xs text-muted-foreground">{t('preview.empty_file')}</p>;
 
   // STAR / RELION format (used by CryoSPARC and RELION for particle tables)
   if (ext === 'star' || (text.includes('loop_') && text.includes('_rln'))) {
@@ -296,7 +297,7 @@ function TableGrid({ headers, rows, totalRows }: { headers: string[]; rows: stri
       </table>
       {totalRows > 200 && (
         <p className="text-[10px] text-muted-foreground px-2 py-1">
-          Showing first 200 of {totalRows} rows
+          {t('preview.rows_shown', { total: totalRows })}
         </p>
       )}
     </div>
@@ -423,12 +424,12 @@ function InlineTextViewer({ text }: { text: string }) {
     <div>
       {lines.length > 50 && (
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] text-muted-foreground">{lines.length} lines total</span>
+          <span className="text-[10px] text-muted-foreground">{t('preview.lines_total', { n: lines.length })}</span>
           <button
             onClick={() => setShowTail(t => !t)}
             className="text-[10px] text-primary flex items-center gap-0.5 hover:underline"
           >
-            {showTail ? <><ChevronDown className="h-3 w-3" />Show from start</> : <><ChevronUp className="h-3 w-3" />Show tail (last 80 lines)</>}
+            {showTail ? <><ChevronDown className="h-3 w-3" />{t('preview.show_from_start')}</> : <><ChevronUp className="h-3 w-3" />{t('preview.show_tail')}</>}
           </button>
         </div>
       )}
@@ -456,7 +457,7 @@ function DensityPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label={t('preview.close')}>
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -523,7 +524,7 @@ function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label={t('preview.close')}>
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -603,7 +604,7 @@ function SingleCellPreview({ runId, file, onClose }: StepOutputPreviewProps) {
           <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label={t('preview.close')}>
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -622,13 +623,13 @@ function SingleCellPreview({ runId, file, onClose }: StepOutputPreviewProps) {
             {cellxgeneAvailable && (
               <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs" onClick={() => openWith('cellxgene')}>
                 <Laptop className="h-3.5 w-3.5" />
-                Explore in CellxGene
+                {t('preview.explore_cellxgene')}
               </Button>
             )}
             {jupyterAvailable && (
               <Button size="sm" variant="ghost" className="gap-1.5 h-7 text-xs" onClick={() => openWith('jupyter')}>
                 <Laptop className="h-3.5 w-3.5" />
-                Open in Jupyter
+                {t('preview.open_jupyter')}
               </Button>
             )}
           </div>
@@ -772,12 +773,12 @@ function DlJsonPreview({ runId, file, onClose, viewerKind }: StepOutputPreviewPr
       <div className="flex items-center justify-between mb-2 gap-2 px-1">
         <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label={t('preview.close')}>
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
-      {error && <p className="text-xs text-destructive">Failed to load file: {error}</p>}
+      {error && <p className="text-xs text-destructive">{t('preview.failed', { error })}</p>}
       {data && viewerKind === 'seq-tracks' && (
         <SeqTracks
           locus={typeof data.locus === 'string' ? data.locus : 'user-supplied'}
@@ -907,13 +908,13 @@ function FetchingPreview({
               className="h-6 gap-1 px-1.5 shrink-0 text-[11px]"
               onClick={onOpenFullStepView}
               data-testid="open-full-step-view"
-              title="Open full step view — provenance, resolved parameters, rendered ⇄ raw"
+              title={t('preview.full_step_view_tip')}
             >
               <Maximize2 className="h-3 w-3" />
-              Full step view
+              {t('preview.full_step_view')}
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label={t('preview.close')}>
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -922,12 +923,12 @@ function FetchingPreview({
       {loading && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground py-4 justify-center">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Loading preview…
+          {t('preview.loading')}
         </div>
       )}
       {error && (
         <div className="text-xs text-destructive bg-destructive/10 rounded p-2">
-          Failed to load file: {error}
+          {t('preview.failed', { error })}
         </div>
       )}
       {!loading && !error && content && (
@@ -961,10 +962,10 @@ function FetchingPreview({
                   data-tool="jupyter"
                 >
                   <Laptop className="h-3.5 w-3.5" />
-                  Open in Jupyter
+                  {t('preview.open_jupyter')}
                 </Button>
               )}
-              <span className="text-[10px] text-muted-foreground">Opens with this file pre-loaded</span>
+              <span className="text-[10px] text-muted-foreground">{t('preview.opens_preloaded')}</span>
             </div>
           );
         })()
@@ -1047,7 +1048,7 @@ function ViewerContent({
       return (
         <a href={content.url} download={file.name} className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
           <Download className="h-3.5 w-3.5" />
-          Download {file.name}
+          {t('preview.download_file', { name: file.name })}
         </a>
       );
   }

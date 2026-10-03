@@ -205,5 +205,70 @@
     "zh": "中文 (简体)",
     "ja": "日本語",
     "es": "Español"
+  },
+  "panel": {
+    "tabs": {
+      "settings": "工作流设置",
+      "phases": "阶段",
+      "after_run": "运行结果"
+    },
+    "tab_tips": {
+      "settings": "适用于所有阶段的数据集和全局配置。运行前必须填写必填项。",
+      "phases": "工作流的阶段和步骤：运行时显示实时进度，可设置仅影响单个步骤的参数、带自动纠正开关的质控阈值，并查看每个步骤生成的输出文件。",
+      "after_run": "运行完成后可查看：输出文件、分析发现、质控报告、方法说明和参考文献。"
+    },
+    "run_kind": {
+      "workflow": "工作流",
+      "design": "设计运行",
+      "sandbox": "临时计算 · 沙盒",
+      "training": "训练运行"
+    },
+    "phase_count_one": "{{n}} 个阶段",
+    "phase_count_other": "{{n}} 个阶段",
+    "untitled": "未命名",
+    "project": "项目",
+    "go_to_project": "前往项目",
+    "footer": {
+      "run_again": "再次运行",
+      "restart": "重新运行",
+      "fix_and_resume": "修复并继续",
+      "resume_from_last": "从上一步继续",
+      "start_over": "从头开始",
+      "start_over_tip": "丢弃缓存结果，从头重新运行整个流程",
+      "reset_defaults": "恢复默认参数",
+      "reset_defaults_tip": "当前显示的是上次运行的参数。点击可恢复工作流默认值。"
+    }
+  },
+  "preview": {
+    "loading": "正在加载预览…",
+    "failed": "文件加载失败：{{error}}",
+    "close": "关闭预览",
+    "full_step_view": "完整步骤视图",
+    "full_step_view_tip": "打开完整步骤视图：来源、解析后的参数、渲染视图与原始内容",
+    "empty_file": "空文件",
+    "rows_shown": "显示前 200 行，共 {{total}} 行",
+    "lines_total": "共 {{n}} 行",
+    "show_from_start": "从开头显示",
+    "show_tail": "显示末尾（最后 80 行）",
+    "open_jupyter": "在 Jupyter 中打开",
+    "open_rstudio": "在 RStudio 中打开",
+    "analyze_rstudio": "在 RStudio 中分析",
+    "explore_cellxgene": "在 CellxGene 中探索",
+    "opens_preloaded": "打开时会预先载入此文件",
+    "download_file": "下载 {{name}}"
+  },
+  "domains": {
+    "drug_discovery": "药物发现",
+    "pharmacology": "药理学",
+    "transcriptomics": "转录组学",
+    "genomics": "基因组学",
+    "epigenomics": "表观基因组学",
+    "proteomics": "蛋白质组学",
+    "metabolomics": "代谢组学",
+    "cryo_em": "冷冻电镜",
+    "single_cell": "单细胞",
+    "structural_biology": "结构生物学",
+    "immunology": "免疫学",
+    "clinical": "临床"
   }
 }

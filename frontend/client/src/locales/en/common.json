@@ -205,5 +205,70 @@
     "zh": "中文 (简体)",
     "ja": "日本語",
     "es": "Español"
+  },
+  "panel": {
+    "tabs": {
+      "settings": "Workflow settings",
+      "phases": "Phases",
+      "after_run": "After run"
+    },
+    "tab_tips": {
+      "settings": "Workflow-wide datasets and configuration that apply to every phase. Required ones must be set before you run.",
+      "phases": "Phases and steps of the workflow — live progress while running, per-step parameters that only affect a single step, QC thresholds with self-correct toggle, and the output files each step produces.",
+      "after_run": "Available after the run completes — outputs, findings, QC report, methods write-up, and citations."
+    },
+    "run_kind": {
+      "workflow": "Workflow",
+      "design": "Design run",
+      "sandbox": "Ad-hoc · sandbox",
+      "training": "Training run"
+    },
+    "phase_count_one": "{{n}} phase",
+    "phase_count_other": "{{n}} phases",
+    "untitled": "Untitled",
+    "project": "Project",
+    "go_to_project": "Go to project",
+    "footer": {
+      "run_again": "Run again",
+      "restart": "Restart",
+      "fix_and_resume": "Fix & resume",
+      "resume_from_last": "Resume from last step",
+      "start_over": "Start over",
+      "start_over_tip": "Discards cached work and re-runs the whole pipeline from the beginning",
+      "reset_defaults": "Reset to defaults",
+      "reset_defaults_tip": "Showing params from your last run. Click to reset to workflow defaults."
+    }
+  },
+  "preview": {
+    "loading": "Loading preview…",
+    "failed": "Failed to load file: {{error}}",
+    "close": "Close preview",
+    "full_step_view": "Full step view",
+    "full_step_view_tip": "Open full step view — provenance, resolved parameters, rendered ⇄ raw",
+    "empty_file": "Empty file",
+    "rows_shown": "Showing first 200 of {{total}} rows",
+    "lines_total": "{{n}} lines total",
+    "show_from_start": "Show from start",
+    "show_tail": "Show tail (last 80 lines)",
+    "open_jupyter": "Open in Jupyter",
+    "open_rstudio": "Open in RStudio",
+    "analyze_rstudio": "Analyze in RStudio",
+    "explore_cellxgene": "Explore in CellxGene",
+    "opens_preloaded": "Opens with this file pre-loaded",
+    "download_file": "Download {{name}}"
+  },
+  "domains": {
+    "drug_discovery": "Drug discovery",
+    "pharmacology": "Pharmacology",
+    "transcriptomics": "Transcriptomics",
+    "genomics": "Genomics",
+    "epigenomics": "Epigenomics",
+    "proteomics": "Proteomics",
+    "metabolomics": "Metabolomics",
+    "cryo_em": "Cryo-EM",
+    "single_cell": "Single cell",
+    "structural_biology": "Structural biology",
+    "immunology": "Immunology",
+    "clinical": "Clinical"
   }
 }

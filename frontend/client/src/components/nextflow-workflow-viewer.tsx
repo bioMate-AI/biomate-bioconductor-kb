@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import '@/styles/workflow-panel.css';
 import { useRunAgainParamCarryover } from '@/hooks/useRunAgainParamCarryover';
 import { analytics } from '@/lib/analytics';
-import { t, tStatus } from '@/lib/i18n';
+import { t, tOr, tStatus } from '@/lib/i18n';
 import { emitUxEvent } from "@/lib/ux-telemetry";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
@@ -259,6 +259,8 @@ export function buildStepDetailStep(step: any): StepDetailStep {
  * honest default is "Workflow": a routed pipeline is a workflow unless the
  * definition tells us otherwise.
  */
+const RUN_KIND_KEY = { 'Design run': 'design', 'Ad-hoc · sandbox': 'sandbox', 'Training run': 'training', Workflow: 'workflow' } as const;
+
 export function deriveRunKind(workflowDefinition: any): 'Design run' | 'Ad-hoc · sandbox' | 'Training run' | 'Workflow' {
   const explicit = String(
     workflowDefinition?.run_kind ?? workflowDefinition?.kind ?? workflowDefinition?.mode ?? workflowDefinition?.lane ?? ''
@@ -2514,14 +2516,15 @@ export function NextflowWorkflowViewer({
         const meaningfulDomain = wfDomain && wfDomain !== 'general' ? wfDomain : '';
         // Run KIND overrides "Workflow" for design / sandbox / training runs (Spec 13 §13.4).
         const runKind = deriveRunKind(workflowDefinition);
+        const runKindLabel = t(`panel.run_kind.${RUN_KIND_KEY[runKind]}`).toUpperCase();
         const kickerLabel = meaningfulDomain
-          ? `${meaningfulDomain.replace(/_/g, ' ').toUpperCase()} · ${runKind.toUpperCase()}`
-          : runKind.toUpperCase();
+          ? `${tOr(`domains.${meaningfulDomain.toLowerCase()}`, meaningfulDomain.replace(/_/g, ' ')).toUpperCase()} · ${runKindLabel}`
+          : runKindLabel;
         const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
         const phaseCount = hasRealPhases ? groupedPhases.length : groupedPhases.length > 0 ? 1 : 0;
         const stepCount = updatedPhases.length;
         const subtitleParts: string[] = [];
-        if (phaseCount > 0) subtitleParts.push(`${phaseCount} ${phaseCount === 1 ? 'phase' : 'phases'}`);
+        if (phaseCount > 0) subtitleParts.push(t(phaseCount === 1 ? 'panel.phase_count_one' : 'panel.phase_count_other', { n: phaseCount }));
         const panelSub = subtitleParts.length > 0
           ? subtitleParts.join(' · ')
           : ((workflowDefinition?.description || '') as string).split(/[.—]/)[0].trim().slice(0, 60);
@@ -2530,7 +2533,7 @@ export function NextflowWorkflowViewer({
             <div className="top-row">
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="kicker" data-testid="panel-kicker" data-run-kind={runKind}>{kickerLabel}</div>
-                <div className="panel-name">{workflowDefinition?.name || 'Untitled'}</div>
+                <div className="panel-name">{workflowDefinition?.name || t('panel.untitled')}</div>
                 {panelSub && <div className="panel-sub">{panelSub}</div>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
@@ -2538,14 +2541,14 @@ export function NextflowWorkflowViewer({
                   <button
                     onClick={() => navigate(`/projects?project=${projectId}`)}
                     data-testid="viewer-goto-project"
-                    title="Go to project"
+                    title={t('panel.go_to_project')}
                     style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
                              padding: '2px 8px', borderRadius: 4, border: '1px solid var(--bm-border, hsl(var(--border)))',
                              background: 'transparent', cursor: 'pointer', color: 'var(--bm-text-muted)',
                              flexShrink: 0 }}
                   >
                     <FolderOpen style={{ width: 12, height: 12 }} />
-                    Project
+                    {t('panel.project')}
                   </button>
                 )}
                 {workflowDefinition?.qc_profile && (
@@ -2608,12 +2611,9 @@ export function NextflowWorkflowViewer({
         // Per-tab hover tips so the user can see what each tab contains
         // without clicking. Native `title` keeps this dependency-free.
         const tabTips: Record<'settings' | 'phases' | 'after-run', string> = {
-          settings:
-            'Workflow-wide datasets and configuration that apply to every phase. Required ones must be set before you run.',
-          phases:
-            'Phases and steps of the workflow — live progress while running, per-step parameters that only affect a single step, QC thresholds with self-correct toggle, and the output files each step produces.',
-          'after-run':
-            'Available after the run completes — outputs, findings, QC report, methods write-up, and citations.',
+          settings: t('panel.tab_tips.settings'),
+          phases: t('panel.tab_tips.phases'),
+          'after-run': t('panel.tab_tips.after_run'),
         };
         const tabBtn = (key: 'settings' | 'phases' | 'after-run', label: string, badge?: React.ReactNode): React.ReactElement => (
           <button
@@ -2674,9 +2674,9 @@ export function NextflowWorkflowViewer({
             {/* Settings tab: the existing Workflow-settings collapsible strip
                 that today lives at the TOP of panel-body. Same content; just
                 moved into its own tab via CSS-hide (no JSX restructure). */}
-            {tabBtn('settings', 'Workflow settings', settingsParamCount > 0 ? countBadge(settingsParamCount) : undefined)}
-            {tabBtn('phases', 'Phases', countBadge(phaseCount))}
-            {tabBtn('after-run', 'After run', showAfterRunDot ? dotBadge : null)}
+            {tabBtn('settings', t('panel.tabs.settings'), settingsParamCount > 0 ? countBadge(settingsParamCount) : undefined)}
+            {tabBtn('phases', t('panel.tabs.phases'), countBadge(phaseCount))}
+            {tabBtn('after-run', t('panel.tabs.after_run'), showAfterRunDot ? dotBadge : null)}
           </div>
         );
       })()}
@@ -3812,10 +3812,10 @@ export function NextflowWorkflowViewer({
             >
               {status === 'failed' ? (
                 canResumeFailed
-                  ? (_failure?.suggested_action === 'fix_and_resume' ? 'Fix & resume' : 'Resume from last step')
-                  : 'Restart'
+                  ? (_failure?.suggested_action === 'fix_and_resume' ? t('panel.footer.fix_and_resume') : t('panel.footer.resume_from_last'))
+                  : t('panel.footer.restart')
               ) : status === 'completed' ? (
-                'Run again'
+                t('panel.footer.run_again')
               ) : (
                 t('workflow.actions.confirm_and_run')
               )}
@@ -3826,14 +3826,14 @@ export function NextflowWorkflowViewer({
               type="button"
               data-testid="button-start-over-failed"
               onClick={() => { analytics.track('run_again_clicked', { source: 'panel' }); handleExecute(); }}
-              title="Discards cached work and re-runs the whole pipeline from the beginning"
+              title={t('panel.footer.start_over_tip')}
               style={{ marginLeft: 8, fontSize: 11, color: 'var(--bm-text-dim, oklch(0.55 0.01 260))', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
             >
-              Start over
+              {t('panel.footer.start_over')}
             </button>
           )}
           {showingSubmittedParams && (status === 'completed' || status === 'failed') && (
-            <button type="button" data-testid="button-reset-params-to-defaults" onClick={() => { analytics.track('reset_to_defaults_clicked'); resetToDefaults(); }} title="Showing params from your last run. Click to reset to workflow defaults." style={{ marginLeft: 8, fontSize: 11, color: 'var(--bm-text-dim, oklch(0.55 0.01 260))', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Reset to defaults</button>
+            <button type="button" data-testid="button-reset-params-to-defaults" onClick={() => { analytics.track('reset_to_defaults_clicked'); resetToDefaults(); }} title={t('panel.footer.reset_defaults_tip')} style={{ marginLeft: 8, fontSize: 11, color: 'var(--bm-text-dim, oklch(0.55 0.01 260))', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>{t('panel.footer.reset_defaults')}</button>
           )}
         </div>
         <div className="run-foot-meta">
