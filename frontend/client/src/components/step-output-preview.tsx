@@ -224,19 +224,24 @@ function InlineTableViewer({ text, ext }: { text: string; ext: string }) {
     }
   }
 
-  // JSON array
   const trimmed = text.trim();
-  if (trimmed.startsWith('[')) {
-    try {
-      const parsed = JSON.parse(trimmed) as Record<string, unknown>[];
-      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
-        const headers = Object.keys(parsed[0]);
-        const rows = parsed.slice(0, 200).map(item =>
-          headers.map(h => item[h] != null ? String(item[h]) : '')
+  if (ext === 'json' || trimmed.startsWith('[') || trimmed.startsWith('{')) {
+    let parsed: unknown;
+    try { parsed = JSON.parse(trimmed); } catch { parsed = undefined; }
+    if (parsed !== undefined) {
+      // Only an array of records is tabular; objects and scalars keep their
+      // structure — the CSV path below would split them on commas.
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed.every(r => r && typeof r === 'object' && !Array.isArray(r))) {
+        const records = parsed as Record<string, unknown>[];
+        const headers = Object.keys(records[0]);
+        const rows = records.slice(0, 200).map(item =>
+          headers.map(h => item[h] != null ? (typeof item[h] === 'object' ? JSON.stringify(item[h]) : String(item[h])) : '')
         );
-        return <TableGrid headers={headers} rows={rows} totalRows={parsed.length} />;
+        return <TableGrid headers={headers} rows={rows} totalRows={records.length} />;
       }
-    } catch { /* fall through */ }
+      return <InlineJsonViewer value={parsed} />;
+    }
+    if (ext === 'json') return <InlineTextViewer text={text} />;
   }
 
   // Delimiter detection (CSV / TSV)
@@ -248,6 +253,24 @@ function InlineTableViewer({ text, ext }: { text: string; ext: string }) {
   const rows = lines.slice(1, 201).map(l => l.split(delimiter).map(c => c.trim().replace(/^"|"$/g, '')));
 
   return <TableGrid headers={headers} rows={rows} totalRows={lines.length - 1} />;
+}
+
+/** Pretty-printed JSON; top-level multi-line strings (e.g. a tool's text report) are also shown with their line breaks. */
+function InlineJsonViewer({ value }: { value: unknown }) {
+  const multiline = value && typeof value === 'object' && !Array.isArray(value)
+    ? Object.entries(value as Record<string, unknown>).filter((e): e is [string, string] => typeof e[1] === 'string' && e[1].includes('\n'))
+    : [];
+  return (
+    <div data-testid="json-preview">
+      <InlineTextViewer text={JSON.stringify(value, null, 2)} />
+      {multiline.map(([key, str]) => (
+        <div key={key} className="mt-2" data-testid="json-preview-text-field">
+          <p className="text-[10px] text-muted-foreground mb-1 font-mono">{key}</p>
+          <InlineTextViewer text={str} />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function TableGrid({ headers, rows, totalRows }: { headers: string[]; rows: string[][]; totalRows: number }) {
