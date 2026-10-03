@@ -14,6 +14,14 @@ vi.mock('./galaxy-dataset-browser', () => ({
   ),
 }));
 
+// This suite verifies the composer-to-request reference contract.  The live
+// skills catalogue fetch is unrelated and its asynchronous state update makes
+// a synchronous composer assertion emit React act() warnings, obscuring real
+// test failures.  Keep it inert here; SkillsSelector has its own coverage.
+vi.mock('./skills-selector', () => ({
+  SkillsSelector: () => null,
+}));
+
 describe('ChatInput — request-scoped dataset references', () => {
   it('carries the exact selected project-file IDs with a multi-file comparison request', () => {
     const onSend = vi.fn();

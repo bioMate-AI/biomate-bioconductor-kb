@@ -367,7 +367,14 @@ export interface ChatContext {
   /** Current conversation turn number */
   turnIndex?: number;
   /** User's actual session-uploaded datasets, forwarded to generateWorkflow() */
-  sessionDatasets?: Array<{ id: string; name: string; type: string }>;
+  sessionDatasets?: Array<{
+    id: string; name: string; type: string;
+    /** Present only for a project_files row resolved server-side. */
+    projectFileId?: string;
+    /** Server-derived key; never accepted from model tool arguments. */
+    s3_key?: string;
+    s3_uri?: string | null;
+  }>;
   /** Exact dataset objects attached for this operation from the composer. */
   datasetReferences?: Array<{ id: string; name?: string }>;
   /** Explicit references absent from the session cache; never substitute another file. */
@@ -8122,7 +8129,8 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     const sessionDatasetsBlock = (() => {
       const sd = (context as any)?.sessionDatasets as Array<{
         id?: string; name?: string; type?: string; file_path?: string | null;
-        s3_uri?: string | null; recovered?: boolean; sourceSessionId?: string;
+        s3_uri?: string | null; s3_key?: string; projectFileId?: string;
+        recovered?: boolean; sourceSessionId?: string;
       }> | undefined;
       const unresolved = Array.isArray((context as any)?.datasetReferenceUnresolvedIds)
         ? (context as any).datasetReferenceUnresolvedIds.filter((id: unknown) => typeof id === 'string')
@@ -8158,15 +8166,17 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       // (from a sister session in the same project — cold-refresh).
       // See docs/20260612_DATASET_STORAGE_AND_SESSION_BOUNDARIES.md.
       const valid = availableDatasets.filter(d => d && d.id);
-      const direct = valid.filter(d => !d.recovered).slice(0, 32);
+      const projectFiles = valid.filter(d => !!d.projectFileId && d.type === 'project file').slice(0, 32);
+      const direct = valid.filter(d => !d.recovered && !d.projectFileId).slice(0, 32);
       const recovered = valid.filter(d => d.recovered).slice(0, 20);
 
       const fmt = (d: any) =>
         `  - ${d.name || '(unnamed)'} | id=${d.id} | type=${d.type || 'unknown'}${d.s3_uri ? ` | s3_uri=${d.s3_uri}` : ''}`;
       const directRows = direct.map(fmt).join('\n');
+      const projectFileRows = projectFiles.map(fmt).join('\n');
       const recoveredRows = recovered.map(fmt).join('\n');
 
-      if (!directRows && !recoveredRows) return '';
+      if (!directRows && !projectFileRows && !recoveredRows) return '';
 
       let body = '\n<session_datasets>\n';
       if (explicitSelection) {
@@ -8178,10 +8188,13 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       if (directRows) {
         body += `Datasets attached to this conversation (Galaxy history is the source of truth — these IDs are stable across turns and runs):\n${directRows}\n\n`;
       }
+      if (projectFileRows) {
+        body += `Project files selected for this operation (authorized exact objects, not Galaxy history):\n${projectFileRows}\n\n`;
+      }
       if (recoveredRows) {
         body += `Datasets from earlier sessions in this project (recovered after refresh — the user did NOT attach them this turn; ask once if you're unsure which they meant):\n${recoveredRows}\n\n`;
       }
-      body += `When the user refers to "the dataset", "the file I uploaded", "the counts matrix", etc. — these are the candidates. Use the id for read_file (preview) and run_code's input_datasets (analysis). For Nextflow workflow parameters (input, matrix, reads, samplesheet, etc.): use s3_uri when present (AWS Batch workers read directly from S3); if s3_uri is absent, use the dataset id — BioMate will stage the local file to S3 at execute time. NEVER omit a file param just because s3_uri is absent. Do NOT ask the user to re-upload datasets that already appear here. For *recovered* datasets in particular, you may confirm intent ("I see ${recovered[0]?.name ?? 'X'} from your earlier session — should I use that?") but never claim the user attached them this turn.\n</session_datasets>\n`;
+      body += `When the user refers to "the dataset", "the file I uploaded", "the counts matrix", etc. — these are the candidates. For a selected project file, use its id only with read_file to preview it and use its s3_uri for Nextflow workflow parameters; do NOT pass a project-file id to run_code. If a selected project file has no s3_uri, its Batch staging failed: it may be previewed, but do NOT launch a workflow with it; report the staging failure plainly. For conversation datasets, use the id for read_file and run_code's input_datasets. For Nextflow workflow parameters from conversation datasets: use s3_uri when present; if absent, use the dataset id — BioMate will stage the local file to S3 at execute time. NEVER omit a file param just because s3_uri is absent. Do NOT ask the user to re-upload datasets that already appear here. For *recovered* datasets in particular, you may confirm intent ("I see ${recovered[0]?.name ?? 'X'} from your earlier session — should I use that?") but never claim the user attached them this turn.\n</session_datasets>\n`;
       return body;
     })();
 
@@ -9171,6 +9184,34 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     const { galaxy_dataset_id, dataset_id, n_lines = 20 } = input;
     const fileId = galaxy_dataset_id || dataset_id;
     if (!fileId) return { error: 'galaxy_dataset_id or dataset_id is required' };
+
+    // Project-file ids are not Galaxy ids. Preview only the exact
+    // server-authorized key that routes.ts placed in this turn's context;
+    // never accept a bucket/key/URI from a tool argument.
+    const projectFile = _context.sessionDatasets?.find((dataset) =>
+      dataset.id === fileId && dataset.projectFileId === fileId && !!dataset.s3_key,
+    );
+    if (projectFile?.s3_key) {
+      try {
+        const { s3Service } = await import('./s3-client');
+        const text = await s3Service.readTextPrefix(projectFile.s3_key);
+        const allLines = text.split(/\r?\n/);
+        const lines = allLines.slice(0, Math.max(1, Math.min(Number(n_lines) || 20, 500)));
+        const firstLine = lines[0] ?? '';
+        const isTabular = firstLine.includes('\t') || firstLine.includes(',');
+        return {
+          lines,
+          total_lines_preview: lines.length,
+          has_more: text.length >= 256 * 1024,
+          format_hint: isTabular ? (firstLine.includes('\t') ? 'TSV' : 'CSV') : 'text',
+          source: 'project_file',
+        };
+      } catch (err: any) {
+        // Do not fall through to Galaxy: it would falsely call an authorized
+        // project file "missing" and conceal the actual storage failure.
+        return { error: `Project file preview is unavailable: ${err?.message || 'storage read failed'}` };
+      }
+    }
 
     // Check local upload registry first (works when Galaxy is unavailable)
     try {

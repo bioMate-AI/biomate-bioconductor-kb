@@ -6045,7 +6045,20 @@ ${paramLines || '(none recorded)'}`;
           const { memoryService } = await import('./memory-repository');
           const _u = req.user as any;
           await memoryService.ensureLtmUser(String(_u.id), _u.email, _u.fullName ?? _u.name);
-          _resolvedProjectId = (await memoryService.resolveProjectForChat(context?.projectId)) ?? undefined;
+          // A project id is client supplied, so it is only a *candidate*.
+          // Resolve it through the legacy policy helper, then enforce the
+          // same owner/member boundary as project files/runs before using it
+          // for project context, LTM association, or persistence.  Without
+          // this gate an authenticated caller could attach a guessed project
+          // UUID and receive its research goal/instructions in the prompt.
+          const requestedProjectId = await memoryService.resolveProjectForChat(context?.projectId);
+          if (requestedProjectId && await _isOwnerOrMember(requestedProjectId, String(_u.id))) {
+            _resolvedProjectId = requestedProjectId;
+          } else if (requestedProjectId) {
+            // Do not reveal whether the project exists; treat it exactly like
+            // an absent project and keep the chat project-less.
+            console.warn('[chat-stream] ignoring unauthorized project context');
+          }
           if (_resolvedSessionId) {
             _ltmSessionUuid = await memoryService.ensureChatLtmSession(
               String(_u.id),

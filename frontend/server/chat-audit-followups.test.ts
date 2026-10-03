@@ -107,8 +107,9 @@ describe("Q4: project framework — wired, policy 'chats can be project-less'", 
     expect(/memoryService\.ensureLtmUser\(\s*String\(_u\.id\)\s*,\s*_u\.email\s*,\s*_u\.fullName\s*\?\?\s*_u\.name\s*\)/.test(ROUTES)).toBe(true);
   });
 
-  it("chat-stream resolves projectId only from client context (does NOT auto-create)", () => {
+  it("chat-stream treats client projectId as a candidate, then authorizes it (does NOT auto-create)", () => {
     expect(/memoryService\.resolveProjectForChat\(\s*context\?\.projectId\s*\)/.test(ROUTES)).toBe(true);
+    expect(/_isOwnerOrMember\(requestedProjectId,\s*String\(_u\.id\)\)/.test(ROUTES)).toBe(true);
     // Smoking-gun negative: no call to the deprecated auto-create helper.
     expect(/memoryService\.ensureDefaultProject\(/.test(ROUTES)).toBe(false);
   });

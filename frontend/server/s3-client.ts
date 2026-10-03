@@ -320,6 +320,23 @@ export class S3Service {
     return response.ContentLength || 0;
   }
 
+  /** Read a bounded UTF-8 prefix for an already-authorized object. */
+  async readTextPrefix(key: string, maxBytes: number = 256 * 1024): Promise<string> {
+    if (!key) throw new Error('S3 object key is required');
+    const end = Math.max(0, Math.min(Math.floor(maxBytes), 1024 * 1024) - 1);
+    const response = await this.s3Client.send(new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Range: `bytes=0-${end}`,
+    }));
+    const body: any = response.Body;
+    if (!body) return '';
+    if (typeof body.transformToString === 'function') return body.transformToString('utf-8');
+    const chunks: Buffer[] = [];
+    for await (const chunk of body) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    return Buffer.concat(chunks).toString('utf8');
+  }
+
   /**
    * Delete a file from S3
    */

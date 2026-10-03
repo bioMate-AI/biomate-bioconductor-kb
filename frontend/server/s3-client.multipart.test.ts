@@ -208,3 +208,28 @@ describe('S3Service.abortMultipartUpload', () => {
     expect(cmd.input.UploadId).toBe('S3UPID-4');
   });
 });
+
+describe('S3Service.readTextPrefix', () => {
+  it('reads only a bounded object range and decodes the returned stream', async () => {
+    sendMock.mockResolvedValueOnce({
+      Body: (async function* () {
+        yield Buffer.from('gene,count\nTP53,12\n');
+      })(),
+    });
+    const s3 = new S3Service();
+    await expect(s3.readTextPrefix('projects/p/inputs/counts.csv', 64)).resolves.toBe('gene,count\nTP53,12\n');
+
+    const cmd = sendMock.mock.calls[0][0] as any;
+    expect(cmd.constructor.cmdName).toBe('GetObject');
+    expect(cmd.input.Bucket).toBe('test-bucket');
+    expect(cmd.input.Key).toBe('projects/p/inputs/counts.csv');
+    expect(cmd.input.Range).toBe('bytes=0-63');
+  });
+
+  it('caps a caller-supplied range at one MiB', async () => {
+    sendMock.mockResolvedValueOnce({ Body: { transformToString: async () => 'ok' } });
+    const s3 = new S3Service();
+    await expect(s3.readTextPrefix('projects/p/inputs/a.csv', 99 * 1024 * 1024)).resolves.toBe('ok');
+    expect((sendMock.mock.calls[0][0] as any).input.Range).toBe(`bytes=0-${1024 * 1024 - 1}`);
+  });
+});
