@@ -69,3 +69,24 @@ The separate `run_unimomo_dpo_smoke.py` is prepared for the warm GPU: it uses re
 UniMoMo weights, three real featurized complexes, the same platform service, and
 explicitly synthetic KD values to verify optimizer/checkpoint/frozen-state
 invariants. It makes no binding or model-quality claim.
+
+## Real-model integration queued and split audit prepared
+
+SSM command `7920ee73-f7a3-42d1-aa27-ce7ad3ec27b9` successfully started
+`biomate-simulated-dpo-integration.service` on the warm GPU. It waits for the
+one-epoch smoke report, then runs the real model/real mmap test and uploads its
+report under `SIMULATED_dpo_integration/` in the same S3 run prefix. Source hashes
+for the staged Python files are recorded in `integration_code/source_sha256.json`.
+The production assay modules are copied byte-for-byte into an isolated package;
+no assay service calls are mocked. Selection requires distinct peptide sequences.
+
+`audit_unimomo_splits.py` now compares the four-column UniMoMo train/validation
+indexes with the thirteen-column original PepGLAD test index. It reports shared
+PDB IDs, peptide sequences, receptor sequences, and receptor-peptide sequence
+pairs, with unknown-sequence counts. Two additional tests verify sequence leakage
+across different PDB IDs and rejection of empty/duplicate indexes. A clean exact
+match audit still cannot establish homology or pretraining independence.
+
+The 32 integration tests also passed from the exact PR checkout. Live installer
+inspection confirmed active biotite compilation (not a stalled GPU job) and a
+shutdown deadline at 2026-10-03 20:35:02 UTC.

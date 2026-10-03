@@ -23,8 +23,15 @@ def run(args):
     if (out / 'SIMULATED_assays.sqlite').exists(): raise ValueError('Use a new smoke output directory')
     dataset = PeptideDataset(str(args.dataset), specify_index=str(args.dataset / 'train_index.txt'))
     # Three smallest real complexes bound memory while exercising real mmap/featurization.
-    indices = sorted(range(len(dataset)), key=dataset.get_len)[:3]
-    if len(indices) != 3: raise ValueError('Need three processed structures')
+    indices, sequences = [], set()
+    for i in sorted(range(len(dataset)), key=dataset.get_len):
+        sequence = dataset.get_summary(i).ref_seq
+        if sequence in sequences:
+            continue
+        indices.append(i)
+        sequences.add(sequence)
+        if len(indices) == 3: break
+    if len(indices) != 3: raise ValueError('Need three distinct processed peptide sequences')
     candidates = [{'id': dataset.get_id(i), 'sequence': dataset.get_summary(i).ref_seq,
                    'target': 'SIMULATED-integration-target'} for i in indices]
     manifest = {'campaign_id': 'SIMULATED-UNIMOMO-DPO', 'data_origin': 'simulated', 'candidates': candidates}
