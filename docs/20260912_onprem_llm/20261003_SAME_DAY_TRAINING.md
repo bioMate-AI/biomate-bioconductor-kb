@@ -76,3 +76,15 @@ or evaluation. Notify only on meaningful changes. Pause it when delivery is comp
 23:59 America/Chicago today; report any unfinished work then. Do not launch duplicate workers or
 switch to on-demand. Retain the hourly/time bounds and avoid replacements that run beyond today.
 Both a complete model artifact and measured evaluation results are required before claiming success.
+
+## 18:35 UTC supervision
+
+The 9B run reached CPT step 75/300, approximately 21.2 seconds per step, with finite logged gradients.
+S3 contains checkpoint-25, -50 and -75. Checkpoint-25 trainer state was separately inspected and
+confirmed global_step=25 and max_steps=300; file presence is not a tested restore.
+
+The old `backend_bakeoff.py` still asked the model to recall SMILES, despite the October design
+rejecting that evaluation. It now requires `--facts resolved_compounds.json`, validates all requested
+compound evidence before any model calls, and feeds identical frozen SMILES/source URLs to both
+arms. Two regression tests pass. Actual resolver evidence, candidate inference and execution remain
+to be performed; this correction alone is not an execution-evaluation result.

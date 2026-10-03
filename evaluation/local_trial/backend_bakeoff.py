@@ -15,8 +15,8 @@ grade happen OUTSIDE this script (MCP + execution_grader), so the same decision 
 import argparse, json, os, re, urllib.request
 
 # Tasks: each gives a natural request + the harness-retrieved candidates (name + nextflow_path + the
-# param schema). The backend must (a) pick the right workflow, (b) fill params — crucially the SMILES,
-# which is parametric chemical knowledge where frontier >> a small model. All map to the cheap, known-
+# param schema). The backend must (a) pick the right workflow, (b) fill params using the supplied
+# resolver evidence. Compound identity is a harness lookup, never a model-memory test. All map to the cheap, known-
 # good ADMET image so Batch stays cheap and the image won't flake.
 ADMET_PATH = "nextflow_nfcore/subworkflows/drug_discovery/predict_admet_properties/main.nf"
 CANDIDATES = [
@@ -29,23 +29,37 @@ CANDIDATES = [
 ]
 TASKS = [
     {"id": "admet_named3",
+     "compound_names": ["aspirin", "caffeine", "ibuprofen"],
      "request": "Predict ADMET / toxicity properties for three marketed drugs: aspirin, caffeine, and ibuprofen.",
      "expect_compounds": 3},
     {"id": "admet_imatinib_mpnn",
+     "compound_names": ["imatinib"],
      "request": "Run ADMET toxicity prediction for the kinase inhibitor imatinib using the MPNN model.",
      "expect_compounds": 1},
 ]
 SYS = ("You are BioMate's workflow planner. Given a user request and candidate workflows (with param "
        "schemas), choose ONE workflow and fill its params so it will RUN and produce a correct result. "
-       "For ADMET you MUST provide smiles_list as a JSON-array STRING of the correct SMILES for the named "
-       "compounds (your chemical knowledge). Output ONLY a JSON object: "
+       "For ADMET provide smiles_list as a JSON-array STRING using ONLY the supplied resolved-compound "
+       "SMILES verbatim. Compound identity comes from retrieval, not memory. Output ONLY a JSON object: "
        '{"nextflow_path": "...", "params": {...}}. No prose.')
 
 
-def prompt_for(task):
+def resolved_for(task, facts):
+    rows = []
+    for name in task["compound_names"]:
+        row = facts.get(name)
+        if not isinstance(row, dict) or not all(isinstance(row.get(k), str) and row[k].strip()
+                                              for k in ("smiles", "source_url")):
+            raise ValueError(f"Missing resolved compound evidence for {name}")
+        rows.append({"name": name, "smiles": row["smiles"], "source_url": row["source_url"]})
+    return rows
+
+
+def prompt_for(task, facts):
     cands = "\n".join(f"- {c['name']} (nextflow_path={c['nextflow_path']}) params={json.dumps(c['params_schema'])}"
                       for c in CANDIDATES)
-    return f"{SYS}\n\nRequest: {task['request']}\n\nCandidate workflows:\n{cands}\n\nJSON decision:"
+    evidence = json.dumps(resolved_for(task, facts), sort_keys=True)
+    return f"{SYS}\n\nRequest: {task['request']}\n\nCandidate workflows:\n{cands}\n\nResolved compounds (harness evidence):\n{evidence}\n\nJSON decision:"
 
 
 def anthropic_key():
@@ -99,14 +113,21 @@ def main():
     ap.add_argument("--model", default="sft_v5")
     ap.add_argument("--frontier-model", default="claude-opus-4-8")
     ap.add_argument("--out", default="")
+    ap.add_argument("--facts", required=True, help="Frozen resolver JSON: compound name -> {smiles, source_url}; identical for both backends")
     a = ap.parse_args()
+    with open(a.facts) as stream:
+        facts = json.load(stream)
+    # Validate all evidence before making any billable model calls.
+    for task in TASKS:
+        resolved_for(task, facts)
     out = a.out or f"decisions_{a.backend}.jsonl"
     with open(out, "w") as f:
         for t in TASKS:
-            p = prompt_for(t)
+            p = prompt_for(t, facts)
             raw = call_frontier(p, a.frontier_model) if a.backend == "frontier" else call_openai_compat(p, a.endpoint, a.model)
             dec = parse_decision(raw) or {}
             rec = {"task_id": t["id"], "expect_compounds": t.get("expect_compounds"),
+                   "resolved_compounds": resolved_for(t, facts),
                    "nextflow_path": dec.get("nextflow_path"), "params": dec.get("params"), "raw": raw[:800]}
             f.write(json.dumps(rec) + "\n")
             print(f"[{a.backend}] {t['id']}: path={rec['nextflow_path']} params={json.dumps(rec['params'])[:200]}", flush=True)
