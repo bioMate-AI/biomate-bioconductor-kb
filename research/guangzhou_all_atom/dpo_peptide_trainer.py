@@ -292,6 +292,8 @@ def train_dpo(
 ) -> TrainResult:
     """Run Diffusion-DPO for ``steps`` optimizer steps over the preference pairs (cycled if fewer than steps).
     Only policy params with requires_grad=True are optimized (for LDMPepDesign that is the diffusion only)."""
+    if steps <= 0 or beta <= 0 or lr <= 0:
+        raise ValueError("steps, beta, and lr must be positive")
     assert_reference_frozen(ref)
     policy.train()
     ref.eval()
@@ -316,7 +318,12 @@ def train_dpo(
         chosen, rejected = pair_batches[step % len(pair_batches)]
         opt.zero_grad(set_to_none=True)
         loss, m = diffusion_dpo_loss(policy, ref, chosen, rejected, beta=beta, forward_fn=forward_fn, hw=hw)
+        if not torch.isfinite(loss):
+            raise RuntimeError(f"Nonfinite DPO loss at step {step}")
         loss.backward()
+        grads = [p.grad for p in trainable if p.grad is not None]
+        if not grads or any(not torch.isfinite(g).all() for g in grads):
+            raise RuntimeError(f"Missing or nonfinite DPO gradients at step {step}")
         if grad_clip:
             torch.nn.utils.clip_grad_norm_(trainable, grad_clip)
         opt.step()

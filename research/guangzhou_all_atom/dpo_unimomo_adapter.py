@@ -44,6 +44,12 @@ from dpo_peptide_trainer import (  # noqa: E402
 )
 
 
+# The shared PepGLAD core adjusts sys.path for its own CLI. Restore the selected
+# UniMoMo root before importing its identically named `models` and `data` packages.
+if UNIMOMO_ROOT in sys.path:
+    sys.path.remove(UNIMOMO_ROOT)
+sys.path.insert(0, UNIMOMO_ROOT)
+
 # =============================================================================================
 # 1. forward-fn adapter — UniMoMo LDMMolDesign.forward -> per-design denoising-NLL proxy.
 # =============================================================================================
@@ -143,16 +149,23 @@ class UniMoMoPairRecordLoader:
         id_fn = id_fn or _default_id_fn
         self.id2idx: Dict[str, int] = {}
         for idx in range(len(dataset)):
-            self.id2idx.setdefault(id_fn(dataset, idx), idx)
-        self.pairs = [p for p in pairs
-                      if p.get("chosen_id") in self.id2idx and p.get("rejected_id") in self.id2idx]
-        n_drop = len(pairs) - len(self.pairs)
-        if n_drop:
-            print(f"[dpo-unimomo] dropped {n_drop}/{len(pairs)} pairs whose ids are not in the dataset")
-        if not self.pairs:
-            raise RuntimeError(
-                "no usable pairs: none of the PairSet chosen_id/rejected_id match ids in the UniMoMo "
-                "dataset. Featurize the referenced designs into the dataset first (see create_dataset).")
+            key = id_fn(dataset, idx)
+            if key in self.id2idx:
+                raise ValueError(f"Duplicate dataset candidate ID: {key}")
+            self.id2idx[key] = idx
+        if not pairs:
+            raise ValueError("No preference pairs supplied")
+        missing = sorted({str(p.get(side)) for p in pairs for side in ("chosen_id", "rejected_id")
+                          if p.get(side) not in self.id2idx})
+        if missing:
+            raise ValueError(f"Unmatched candidate IDs in preference pairs: {missing}")
+        if any(p["chosen_id"] == p["rejected_id"] for p in pairs):
+            raise ValueError("Preference pair compares a candidate with itself")
+        self.pairs = list(pairs)
+
+    def __getitem__(self, index):
+        pair = self.pairs[index]
+        return self._batch_for(pair["chosen_id"]), self._batch_for(pair["rejected_id"])
 
     def _batch_for(self, _id: str) -> Dict:
         item = self.dataset[self.id2idx[_id]]
@@ -217,9 +230,8 @@ def selftest(beta: float = 1.0, lr: float = 2e-3, steps: int = 60, n_pairs: int 
     confirm: loss finite; RNG-synced passes bit-identical; init loss == log(2) (policy==ref); loss
     decreases; preference margin moves the right way; reference stays frozen.
 
-    Tries the REAL UniMoMo FullDPM-backed path first; falls back to the shaped stub if the UniMoMo stack
-    is not importable (e.g. no torch_scatter / broken scipy on the dev box). The DPO mechanics tested are
-    identical either way — only the featurization/encode differs, which is stubbed here by construction."""
+    Uses the explicitly simulated shaped model. This does not exercise real UniMoMo
+    featurization or FullDPM; those require the separate CUDA integration run."""
     torch.manual_seed(seed)
     LAT = 8
     model = _UniMoMoShapedStub(latent_size=LAT)
@@ -276,6 +288,7 @@ def selftest(beta: float = 1.0, lr: float = 2e-3, steps: int = 60, n_pairs: int 
 # =============================================================================================
 def main():
     ap = argparse.ArgumentParser(description="Diffusion-DPO fine-tune (close-back) of the UniMoMo latent-diffusion generator.")
+    ap.add_argument("--allow_simulated", action="store_true", help="explicitly permit simulated preference data for integration tests")
     ap.add_argument("--selftest", action="store_true", help="CPU verification (UniMoMo-shaped forward); no ckpt/env/GPU")
     ap.add_argument("--pairs", type=str, help="dpo_pairs PairSet jsonl")
     ap.add_argument("--warm_start_ckpt", type=str, help="verified UniMoMo ckpt (pickled LDMMolDesign) to warm-start from")
@@ -297,8 +310,14 @@ def main():
 
     if not (args.pairs and args.warm_start_ckpt and args.dataset_config):
         ap.error("real run needs --pairs, --warm_start_ckpt, --dataset_config (or use --selftest)")
-    device = f"cuda:{args.gpu}" if args.gpu >= 0 and torch.cuda.is_available() else "cpu"
+    if args.gpu >= 0 and not torch.cuda.is_available():
+        raise RuntimeError("CUDA was requested but is unavailable")
+    device = f"cuda:{args.gpu}" if args.gpu >= 0 else "cpu"
 
+    pairs = load_pairset_jsonl(args.pairs)
+    simulated = any(p.get("provenance", {}).get("data_origin") == "simulated" for p in pairs)
+    if simulated and not args.allow_simulated:
+        raise ValueError("Simulated preferences require --allow_simulated; not production evidence")
     policy = build_unimomo_policy(args.warm_start_ckpt, device=device)
     ref = make_reference(policy).to(device)
 
@@ -309,14 +328,13 @@ def main():
     if isinstance(dataset, (tuple, list)):
         dataset = dataset[0]  # create_dataset may return (train,valid,test)
 
-    pairs = load_pairset_jsonl(args.pairs)
     loader = UniMoMoPairRecordLoader(pairs, dataset, device=device)
-    pair_batches = list(loader)
+    pair_batches = loader  # load only the current pair onto GPU
 
     res = train_dpo(policy, ref, pair_batches, beta=args.beta, lr=args.lr, steps=args.steps,
                     forward_fn=denoise_loss_unimomo, grad_clip=args.grad_clip, out_ckpt=args.out)
     report = {
-        "mode": "real-unimomo", "n_pairs": len(pair_batches),
+        "mode": "real-unimomo", "data_origin": "simulated" if simulated else "unspecified_or_measured", "n_pairs": len(pair_batches),
         "beta": args.beta, "lr": args.lr, "steps": args.steps,
         "loss_first": res.loss_trajectory[0] if res.loss_trajectory else None,
         "loss_last": res.loss_trajectory[-1] if res.loss_trajectory else None,

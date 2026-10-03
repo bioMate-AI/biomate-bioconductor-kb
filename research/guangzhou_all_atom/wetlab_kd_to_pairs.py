@@ -108,10 +108,16 @@ def exemplars_from_kd(rows):
                 reason=f"KD {strong['kd']:.1f} << {weak['kd']:.1f} nM (Δlog10={margin:.2f})"))
     return exemplars
 
-def build(path, drop_weak=False):
+def build(path, drop_weak=False, *, simulated=False):
     rows = load_rows(path)
     ex = exemplars_from_kd(rows)
-    return emit_pairs(expert_exemplars=ex, drop_weak=drop_weak), rows
+    ps = emit_pairs(expert_exemplars=ex, drop_weak=drop_weak)
+    if simulated:
+        for pair in ps.pairs:
+            pair.provenance = {key: ("simulated_" + value) for key, value in pair.provenance.items()}
+            pair.provenance["data_origin"] = "simulated"
+        ps.notes.append("SIMULATED assay values: integration verification only")
+    return ps, rows
 
 def _selftest():
     rows = [
@@ -145,12 +151,13 @@ def _selftest():
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--kd"); ap.add_argument("--out"); ap.add_argument("--trl_out")
+    ap.add_argument("--simulated", action="store_true", help="label generated assay values as simulated")
     ap.add_argument("--drop_weak", action="store_true"); ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest: sys.exit(_selftest())
     if not (a.kd and a.out): ap.error("need --kd and --out (or --selftest)")
     from pathlib import Path
-    ps, rows = build(a.kd, drop_weak=a.drop_weak)
+    ps, rows = build(a.kd, drop_weak=a.drop_weak, simulated=a.simulated)
     ps.write_jsonl(Path(a.out))
     if a.trl_out: ps.write_jsonl(Path(a.trl_out), trl_only=True)
     print(f"{len(rows)} KD rows -> {len(ps.pairs)} EXPERT pairs ({sum(1 for p in ps.pairs if p.weak)} weak) -> {a.out}"

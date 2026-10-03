@@ -39,7 +39,10 @@ WARM_CKPT_SIZE=${WARM_CKPT_SIZE:-420891881}
 
 # inputs (REQUIRED for a real run)
 PAIRS_S3=${PAIRS_S3:-s3://$BUCKET/cyclic_peptide/dpo/pairsets/latest.jsonl}
+DATASET_S3=${DATASET_S3:-}                     # S3 prefix holding the mmap bundle
 DATASET_CFG_S3=${DATASET_CFG_S3:-}             # UniMoMo dataset yaml for the featurized designs
+
+ALLOW_SIMULATED=${ALLOW_SIMULATED:-0}       # explicit test-only runs
 
 # training knobs (Diffusion-DPO: large beta, low lr; see design note Part 2)
 BETA=${BETA:-2000.0}
@@ -64,7 +67,11 @@ if [ -z "$DATASET_CFG_S3" ]; then
 fi
 aws s3 ls "$DATASET_CFG_S3" >/dev/null 2>&1 || { echo "FATAL: DATASET_CFG_S3 not found: $DATASET_CFG_S3"; exit 1; }
 echo "  ok $DATASET_CFG_S3"
-for f in dpo_unimomo_adapter.py dpo_peptide_trainer.py; do
+[ -n "$DATASET_S3" ] || { echo "FATAL: DATASET_S3 is required (mmap bundle prefix)"; exit 1; }
+for file in data.bin index.txt; do
+  aws s3 ls "${DATASET_S3%/}/$file" >/dev/null || { echo "FATAL: missing dataset $file"; exit 1; }
+done
+for f in dpo_unimomo_adapter.py dpo_peptide_trainer.py prepare_unimomo_dataset.py; do
   [ -f "$HERE/$f" ] || { echo "FATAL: missing code file $HERE/$f"; exit 1; }
 done
 
@@ -72,6 +79,8 @@ done
 aws s3 cp "$HERE/dpo_unimomo_adapter.py" "$S3RUN/code/dpo_unimomo_adapter.py" --only-show-errors
 aws s3 cp "$HERE/dpo_peptide_trainer.py" "$S3RUN/code/dpo_peptide_trainer.py" --only-show-errors
 aws s3 cp "$HERE/launch_dpo_peptide_trainer_unimomo.sh" "$S3RUN/code/launch_dpo_peptide_trainer_unimomo.sh" --only-show-errors
+
+aws s3 cp "$HERE/prepare_unimomo_dataset.py" "$S3RUN/code/prepare_unimomo_dataset.py" --only-show-errors
 
 # =============================================================================
 # On-instance driver (QUOTED heredoc; reads env exported by UserData).
@@ -92,6 +101,8 @@ WARM_CKPT_URL=${WARM_CKPT_URL:?}
 WARM_CKPT_SIZE=${WARM_CKPT_SIZE:?}
 PAIRS_S3=${PAIRS_S3:?}
 DATASET_CFG_S3=${DATASET_CFG_S3:?}
+DATASET_S3=${DATASET_S3:?}
+ALLOW_SIMULATED=${ALLOW_SIMULATED:-0}
 BETA=${BETA:-2000.0}; LR=${LR:-1.0e-6}; STEPS=${STEPS:-400}; GRAD_CLIP=${GRAD_CLIP:-1.0}
 MAX_RUNTIME=${MAX_RUNTIME:-6h}
 
@@ -141,6 +152,9 @@ aws s3 cp "$OUT_S3/code/dpo_unimomo_adapter.py" "$ROOT/code/dpo_unimomo_adapter.
 aws s3 cp "$OUT_S3/code/dpo_peptide_trainer.py" "$ROOT/code/dpo_peptide_trainer.py" --only-show-errors
 aws s3 cp "$PAIRS_S3" "$ROOT/data/pairs.jsonl" --only-show-errors
 aws s3 cp "$DATASET_CFG_S3" "$ROOT/data/dataset.yaml" --only-show-errors
+aws s3 sync "$DATASET_S3" "$ROOT/data/mmap/" --only-show-errors
+aws s3 cp "$OUT_S3/code/prepare_unimomo_dataset.py" "$ROOT/code/prepare_unimomo_dataset.py" --only-show-errors
+python "$ROOT/code/prepare_unimomo_dataset.py" --config "$ROOT/data/dataset.yaml" --data-dir "$ROOT/data/mmap"
 mkdir -p checkpoints
 for i in 1 2 3 4 5; do wget -q -O checkpoints/warm.ckpt "$WARM_CKPT_URL" && break; echo "warm ckpt attempt $i failed"; sleep 15; done
 GOT=$(stat -c%s checkpoints/warm.ckpt); echo "warm ckpt bytes: got=$GOT expected=$WARM_CKPT_SIZE" | tee "$ROOT/status/warm_ckpt_size.txt"
@@ -154,7 +168,9 @@ stage training_dpo
 export UNIMOMO_ROOT="$ROOT/UniMoMo"
 export PYTHONPATH="$ROOT/code:$ROOT/UniMoMo:${PYTHONPATH:-}"
 cd "$ROOT/UniMoMo"
-python "$ROOT/code/dpo_unimomo_adapter.py" \
+SIM_ARGS=()
+if [ "$ALLOW_SIMULATED" = 1 ]; then SIM_ARGS+=(--allow_simulated); fi
+python "$ROOT/code/dpo_unimomo_adapter.py" "${SIM_ARGS[@]}" \
   --pairs "$ROOT/data/pairs.jsonl" \
   --warm_start_ckpt "$ROOT/UniMoMo/checkpoints/warm.ckpt" \
   --dataset_config "$ROOT/data/dataset.yaml" \
@@ -181,7 +197,7 @@ ENV_YAML=$ENV_YAML \\
 WARM_CKPT_URL=$WARM_CKPT_URL \\
 WARM_CKPT_SIZE=$WARM_CKPT_SIZE \\
 PAIRS_S3=$PAIRS_S3 \\
-DATASET_CFG_S3=$DATASET_CFG_S3 \\
+DATASET_CFG_S3=$DATASET_CFG_S3 DATASET_S3=$DATASET_S3 ALLOW_SIMULATED=$ALLOW_SIMULATED \\
 BETA=$BETA LR=$LR STEPS=$STEPS GRAD_CLIP=$GRAD_CLIP MAX_RUNTIME=$MAX_RUNTIME \\
 bash /opt/dpo-unimomo-run/run.sh
 EOF

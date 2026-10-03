@@ -37,3 +37,35 @@ simulated denoiser, save/reload its checkpoint, and evaluate matched-noise
 preferences. This verifies integration mechanics; it is not a wet-lab result or a
 full UniMoMo structure-generation benchmark. Simulation artifacts must remain
 explicitly labeled and separate from measured campaigns.
+
+## CPU integration completed
+
+Executed `simulate_closed_loop.py` with the production assay service against a
+fresh SQLite database. Six explicitly simulated KD rows persisted; six same-target
+EXPERT pairs exported with campaign, assay IDs, and simulated provenance. The real
+DPO loader resolved every ID, the shared optimizer completed 120 updates on the
+simulated latent denoiser, and the saved checkpoint reloaded exactly.
+
+All ten assertions passed. On 48 matched-noise evaluations of the training pairs,
+mean DPO loss changed 0.693147 -> 0.659211 and mean reward margin 0 -> 0.072133.
+All reference state remained unchanged. These numbers validate wiring, not
+biological accuracy or held-out generalization. Evidence is in
+`research/guangzhou_all_atom/results/SIMULATED_closed_loop_20261003/`.
+
+Integration fixes: missing/duplicate candidate IDs now fail rather than silently
+shrinking the dataset; batches load on demand rather than retaining the whole
+pair set on GPU; the adapter restores the UniMoMo import root after loading the
+shared PepGLAD core; nonfinite DPO loss/gradients stop training. Simulated pairs
+require an explicit CLI flag. The launcher now stages the actual mmap bundle and
+rewrites the config to its local paths; resampling wrappers are rejected.
+
+The campaign bridge rejects cross-campaign manifests, unresolved replicates,
+unknown candidates, unsupported qualifiers, and invalid numeric values. It is a
+callable integration module, not yet connected to a live HTTP route or UI action.
+
+32 focused tests pass (including the simulated platform-to-checkpoint roundtrip,
+campaign isolation, malformed ID cases, nonfinite training, and dataset staging).
+The separate `run_unimomo_dpo_smoke.py` is prepared for the warm GPU: it uses real
+UniMoMo weights, three real featurized complexes, the same platform service, and
+explicitly synthetic KD values to verify optimizer/checkpoint/frozen-state
+invariants. It makes no binding or model-quality claim.
