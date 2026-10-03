@@ -4896,7 +4896,15 @@ def _resolve_accession_file(
             [accession], work_base, run_id, nf_bin, profile, env, executor_config_path
         )
     elif handler == "structure":
-        return _download_pdb_structure(accession, dl_dir)
+        # Skip local download — Nextflow containers running on Batch cannot access
+        # EC2 local paths.  Workflow scripts that accept PDB IDs (e.g. alphafold_db_search)
+        # already fetch from RCSB inside the container when given a 4-char ID.
+        # Return None so the caller passes the raw accession string through.
+        log.info(
+            f"[accession] {accession}: PDB/EMDB structure ID — passing raw accession to workflow "
+            f"(workflow container will fetch from RCSB)"
+        )
+        return None
     elif handler == "protein_seq":
         return _download_uniprot_fasta(accession, dl_dir)
     elif handler == "genomic_ref":
