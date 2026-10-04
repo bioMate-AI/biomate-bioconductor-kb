@@ -450,9 +450,16 @@ def predict_admet_properties(smiles_list, ADMET_model_type="MPNN", precomputed_a
             # 5.2 µM per-compound). The per_compound sync below writes the same
             # estimator into each compound so the numbers agree.
             def _herg_ic50_from_prob(p):
-                p = float(p or 0)
-                if p <= 0.01:
+                # Compute for EVERY compound with a probability — a very low hERG
+                # probability must still yield an IC50 (a high, capped value = clearly
+                # non-cardiotoxic), not None. Returning None for low p left "safe"
+                # compounds on the RDKit heuristic, reintroducing the mixed-estimator
+                # inconsistency. Only a truly absent probability returns None.
+                if p is None:
                     return None
+                p = float(p)
+                if p <= 0.0:
+                    return 10000.0  # no hERG signal → clearly safe (capped max)
                 _ratio = (1.0 - p) / max(p, 1e-6)
                 return max(0.0001, min(round(10.0 * (_ratio ** 1.845), 4), 10000.0))
             _herg_ic50s = [
