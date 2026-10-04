@@ -118,3 +118,25 @@ semantic, not lexical echo.** Verdict: the description-fix is a real, generaliza
 NOT benchmark overfitting. Residual caveat: absolute magnitude measured on one catalog + one query
 distribution; a brand-new catalog/user distribution could differ, but the two mechanisms that would make it
 fake (phrasing echo, hand-tuned-workflow concentration) are empirically ruled out.
+
+## WIDENED-WINDOW RESULT + THE ONE LLM-BOUND TASK (2026-10-04, base 9B, no-think)
+Served base Qwen3.5-9B; measured routing described at W=200 (facts that were past char 120 now surface),
+plus the two previously-unmeasured tasks (intent, task_decomposition), vs frontier gpt-4.1.
+
+| base 9B (catalog / LLM+harness) | score | frontier | verdict |
+|---|---:|---:|---|
+| routing described, W=120 | 0.885 | 0.96 | (prior) |
+| routing described, W=200 (orig) | **0.915** | 0.96 | widening surfaces truncated facts; +3pp, near frontier |
+| routing described, W=200 (paraphrased) | **0.920** | — | paraphrase-robust → NOT overfit |
+| intent_interpretation | 0.885 | 0.906 | base ≈ frontier → harness-carried, not LLM-bound |
+| task_decomposition (structure acc) | **0.40** | **0.60** | base ≪ frontier (−20pp); coverage=1.0 |
+
+**Conclusion.** Widening the description window (shipped to production, UnifiedWorkflowSearch 120→240) closes
+routing to ~0.92 model-invariantly and paraphrase-robustly. intent is harness-carried (base≈frontier). The
+ONE genuinely LLM-bound capability found across the whole RealBio suite is **multi-task decomposition /
+orchestration**: the model must reason about sub-task DEPENDENCIES (parallel vs sequential vs mixed), and a
+small model gets structure right only 40% vs frontier 60% (coverage is 1.0 — it finds the subtasks but
+mis-wires the dependency graph). It is already a trained task (train_task_decomposition = 9,717 instances)
+and the harness has an agentic orchestrator (frontend/server/orchestrator.ts), but dependency-reasoning is
+the real bottleneck. This is the capability where on-prem model training (vs harness engineering) earns its
+place — and even frontier is only 0.60, so it is an open, non-trivial research target for the flagship paper.
