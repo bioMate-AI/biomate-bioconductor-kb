@@ -37,6 +37,18 @@ class Pipeline:
         self.by_id = {s["id"]: s for s in self.stages}
         self.wiring_gaps = self.doc.get("wiring_gaps", [])
 
+    @staticmethod
+    def _is_open(gap) -> bool:
+        return gap.get("status", "open") != "closed"
+
+    @property
+    def open_gaps(self):
+        return [g for g in self.wiring_gaps if self._is_open(g)]
+
+    @property
+    def closed_gaps(self):
+        return [g for g in self.wiring_gaps if not self._is_open(g)]
+
     # ---- validation -----------------------------------------------------------------------
     def validate(self, registry=None) -> List[str]:
         """Return a list of error strings; empty = valid."""
@@ -146,10 +158,14 @@ class Pipeline:
                   "  " + "  ".join(f"{k}={v}" for k, v in sorted(roll.items())),
                   "", "TOPOLOGICAL ORDER (ignoring learn->generate close-back)", "-" * 92,
                   "  " + " -> ".join(self.topo_order()),
-                  "", f"WIRING GAPS ({len(self.wiring_gaps)})", "-" * 92]
+                  "", f"WIRING GAPS ({len(self.open_gaps)} open / {len(self.closed_gaps)} closed)",
+                  "-" * 92]
         for g in self.wiring_gaps:
             btw = " -> ".join(g.get("between", []))
-            lines.append(f"  [{g.get('id')}][{g.get('severity','?'):<6}] {btw}")
+            tag = "CLOSED" if not self._is_open(g) else "OPEN  "
+            lines.append(f"  [{g.get('id')}][{tag}][{g.get('severity','?'):<6}] {btw}")
+            if not self._is_open(g) and g.get("closed_by"):
+                lines.append(f"      closed_by: {g['closed_by']}")
             lines.append(f"      {' '.join(g.get('description','').split())}")
         return "\n".join(lines)
 
@@ -180,8 +196,8 @@ def _main(argv=None):
             for e in errs:
                 print(f"  - {e}")
             return 1
-        print(f"VALIDATION OK: {len(pipe.stages)} stages, {len(pipe.wiring_gaps)} wiring gaps, "
-              f"all scripts present, all datasets resolve, DAG acyclic.")
+        print(f"VALIDATION OK: {len(pipe.stages)} stages, {len(pipe.open_gaps)} OPEN wiring gaps "
+              f"({len(pipe.closed_gaps)} closed), all scripts present, all datasets resolve, DAG acyclic.")
 
     if args.report:
         print(pipe.report())

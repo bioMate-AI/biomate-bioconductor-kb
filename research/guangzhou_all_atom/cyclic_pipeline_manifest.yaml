@@ -21,13 +21,13 @@ stages:
       Fetch a receptor, extract the binding pocket from the native ligand, truncate to a
       pocket complex ready for generation + MM-GBSA.
     runs_on: local
-    scripts: [avb6_pocket_truncate.py, pdl1_m2c_stage_target.py, boltzgen_ourtarget.sh]
+    scripts: [pocket_extract.py, avb6_pocket_truncate.py, pdl1_m2c_stage_target.py, boltzgen_ourtarget.sh]
     datasets: [rcsb_cyclic_index, pepbdb, bound_cyclic_agg]
     inputs: [receptor PDB id / structure, native-ligand chain]
     outputs: [pocket complex PDB/CIF, pocket residue index]
     downstream: [generate, score_binding]
     maturity: partial
-    maturity_note: scripts run + produced avb6/pdl1 pockets; no unit test; pocket extraction duplicated (gap G9)
+    maturity_note: scripts run + produced avb6/pdl1 pockets; all-atom pocket core now unified in pocket_extract.py (gap G9 CLOSED); CB-CB M2c path intentionally separate
 
   - id: generate
     name: Binder generation
@@ -41,7 +41,7 @@ stages:
     outputs: [generated poses + sequences/SMILES]
     downstream: [fold_selfconsistency]
     maturity: untested_local
-    maturity_note: GPU/EC2-only launchers; heterogeneous output formats across generators (gap G1)
+    maturity_note: GPU/EC2-only launchers; heterogeneous output formats now normalised by generator_normalizer.py (gap G1 CLOSED)
 
   - id: fold_selfconsistency
     name: Cyclic folding / self-consistency re-rank
@@ -49,13 +49,13 @@ stages:
       Re-fold each candidate (Boltz cyclic prediction), compute scRMSD vs the designed pose,
       and re-rank by self-consistency instead of generator likelihood.
     runs_on: gpu
-    scripts: [refold_rerank_driver.sh, launch_refold_rerank.sh, build_candidates.py, selfconsistency_rerank.py, scrmsd.py, cyclize_and_rescore.py]
+    scripts: [generator_normalizer.py, refold_rerank_driver.sh, launch_refold_rerank.sh, build_candidates.py, selfconsistency_rerank.py, scrmsd.py, cyclize_and_rescore.py, fold_to_pool.py]
     datasets: [cremp_partial, macroconf]
-    inputs: [generated poses + sequences]
-    outputs: ["per-target candidates.jsonl (id, dockq, likelihood, scrmsd, confidence)"]
+    inputs: [generated poses + sequences (via generator_normalizer canonical candidates)]
+    outputs: ["per-target candidates.jsonl (id, dockq, likelihood, scrmsd, confidence); peptide_loop pool (fold_to_pool)"]
     downstream: [score_binding, score_permeability, score_developability]
     maturity: partial
-    maturity_note: scrmsd.py + selfconsistency_rerank.py have --selftest (run locally); the refold itself is GPU
+    maturity_note: scrmsd.py + selfconsistency_rerank.py + generator_normalizer.py + fold_to_pool.py have --selftest (run locally); the refold itself is GPU. gap G1 (normaliser) + gap G2 (candidates->pool) CLOSED
 
   - id: score_binding
     name: Binding affinity scoring
@@ -63,13 +63,13 @@ stages:
       Score binding two ways — a learned SMILES->pAffinity model trained on measured data, and
       physics MM-GBSA ΔG on the pocket complex.
     runs_on: ec2_batch
-    scripts: [train_binding_model.py, binding_features.py, launch_mmgbsa_pool.sh, peptide_mmgbsa_pocket_run.sh, avb6_pocket_truncate.py]
+    scripts: [train_binding_model.py, binding_features.py, binding_ml.py, launch_mmgbsa_pool.sh, peptide_mmgbsa_pocket_run.sh, avb6_pocket_truncate.py]
     datasets: [binding_affinity_v1]
     inputs: [candidate SMILES/sequence, pocket complex]
-    outputs: [binding_model_prod.pkl + pAffinity predictions, MM-GBSA physics_json (ΔG per candidate)]
+    outputs: [binding_model_prod.pkl + pAffinity predictions (binding_ml, advisory + AD-gated), MM-GBSA physics_json (ΔG per candidate)]
     downstream: [gate_and_verify]
     maturity: tested_local
-    maturity_note: train_binding_model.py ran -> binding_model_prod.pkl + metrics JSON; MM-GBSA is EC2/GPU
+    maturity_note: train_binding_model.py ran -> binding_model_prod.pkl + metrics JSON; binding_ml.py wires it into verify as an AD-gated ADVISORY affinity_ml channel (gap G3 CLOSED); MM-GBSA remains the gating binding oracle (EC2/GPU)
 
   - id: score_permeability
     name: Permeability scoring
@@ -111,7 +111,7 @@ stages:
     outputs: [verified PeptideProperties pool, gate cost-saving log]
     downstream: [multi_objective_select]
     maturity: tested_local
-    maturity_note: test_peptide_verify.py + test_peptide_loop.py pass; verify affinity reads physics_json only (gap G3)
+    maturity_note: test_peptide_verify.py + test_peptide_loop.py + test_binding_ml.py pass; affinity_dG still gates from physics_json (MM-GBSA); affinity_ml added as an AD-gated advisory channel (gap G3 CLOSED)
 
   - id: multi_objective_select
     name: Multi-objective selection
@@ -172,24 +172,37 @@ wiring_gaps:
   - id: G1
     between: [generate, fold_selfconsistency]
     severity: high
+    status: closed
+    closed_by: generator_normalizer.py
     description: >-
       No adapter normalises the heterogeneous generator outputs (RFpeptides / UniMoMo / BoltzGen /
       PepGLAD-M2c each emit different pose+sequence layouts) into the single candidates layout
       build_candidates.py expects. Each generator is wired by hand today.
+      CLOSED: generator_normalizer.py maps all four generators' real output schemas into one
+      canonical candidate record {design_id,target,source,sequence,smiles,pose_path,metrics,...}.
   - id: G2
     between: [fold_selfconsistency, gate_and_verify]
     severity: high
+    status: closed
+    closed_by: fold_to_pool.py
     description: >-
       selfconsistency_rerank.py emits per-target candidates.jsonl (dockq/likelihood/scrmsd/confidence),
       but nothing converts those ranked candidates into peptide_loop's pool ({identifier,seq,smiles})
       or into peptide_verify input. The fold output and the scoring loop are not joined.
+      CLOSED: fold_to_pool.py converts both the grouped candidates.jsonl (joined to sequences via the
+      G1 normalised candidates) and the flat canonical candidates into verify-safe pool rows.
   - id: G3
     between: [score_binding, gate_and_verify]
     severity: high
+    status: closed
+    closed_by: binding_ml.py + peptide_verify.affinity_ml
     description: >-
       train_binding_model.py produces binding_model_prod.pkl, but peptide_verify._score_affinity
       ingests ΔG ONLY from physics_json (MM-GBSA). The learned binding model is not an affinity
       source in verify — the integration map's "wire as the binding scorer" is unmet.
+      CLOSED (honestly): added as peptide_verify.affinity_ml — an ADVISORY, applicability-domain-gated
+      channel. It is NOT in scored_fields()/OBJECTIVE_DIRECTIONS, so it never gates or re-ranks; it
+      does NOT replace MM-GBSA; novel-target / chemically-novel candidates are flagged low_confidence.
   - id: G4
     between: [score_permeability, gate_and_verify]
     severity: medium
@@ -225,6 +238,12 @@ wiring_gaps:
   - id: G9
     between: [target_prep, target_prep]
     severity: low
+    status: closed
+    closed_by: pocket_extract.py
     description: >-
       Pocket extraction is duplicated across avb6_pocket_truncate.py, pdl1_m2c_stage_target.py and
       boltzgen_ourtarget.sh; it should be one shared target-prep module.
+      CLOSED: the all-atom heavy-atom pocket core is unified in pocket_extract.py (used by
+      avb6_pocket_truncate.py and the boltzgen_ourtarget.sh heredoc, which keeps a vendored fallback
+      for a bare EC2 box). pdl1_m2c_stage_target.py is left on PepGLAD's CB-CB rule by design
+      (different geometry — not claimed identical).
