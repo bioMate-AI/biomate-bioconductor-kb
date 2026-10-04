@@ -132,13 +132,13 @@ stages:
     description: >-
       Turn the selected batch into a CRO synthesis order / GenScript RFQ.
     runs_on: external_cro
-    scripts: []
+    scripts: [select_to_rfq.py]
     datasets: [helm_monomers]
     inputs: [selected batch JSON]
-    outputs: [CRO order CSV/XLSX (results/*_CRO_order.csv)]
+    outputs: [CRO order CSV (CRO_SEND schema, score-free) via select_to_rfq.py]
     downstream: [assay_ingest]
-    maturity: untested_local
-    maturity_note: NO script — results/*_CRO_order.csv were assembled by hand (gap G5)
+    maturity: tested_local
+    maturity_note: select_to_rfq.py converts a selection JSON (peptide_select / mo_select_qnehvi / id list) into the score-free GenScript CRO_SEND CSV (gap G5 CLOSED); test_select_to_rfq.py passes
 
   - id: assay_ingest
     name: Assay ingestion (SPR KD)
@@ -213,9 +213,16 @@ wiring_gaps:
   - id: G5
     between: [multi_objective_select, synth_rfq]
     severity: medium
+    status: closed
+    closed_by: select_to_rfq.py
     description: >-
       No script converts a selection JSON (mo_select_qnehvi / peptide_select output) into a GenScript
       RFQ / CRO order CSV. results/*_CRO_order.csv were produced by hand.
+      CLOSED: select_to_rfq.py accepts all three selection shapes (SelectionResult.to_dict,
+      mo_select_qnehvi pool JSON, plain id/dict list), resolves id->sequence from the candidate pool,
+      and emits the exact GenScript CRO_SEND CSV schema. SCORE-FREE BY CONSTRUCTION — the output
+      columns are fixed and a defensive guard (_assert_score_free) fails loud if any internal score
+      (ΔG/iPTM/pAff/HVI/RUSH) would reach a CRO row. test_select_to_rfq.py (7 tests) passes.
   - id: G6
     between: [assay_ingest, dpo_learn]
     severity: high
