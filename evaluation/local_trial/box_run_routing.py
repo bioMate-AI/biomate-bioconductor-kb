@@ -2,9 +2,12 @@
 """Box-side: run precomputed routing prompts (names + described) against a local vLLM endpoint.
 Parses prediction with the same longest-label-substring rule as run_baseline.parse_cls.
 Writes predictions.jsonl: {id, names_prediction, described_prediction}."""
-import json, sys, time, urllib.request
+import json, os, sys, time, urllib.request
 PROMPTS=sys.argv[1]; OUT=sys.argv[2]; ENDPOINT=sys.argv[3] if len(sys.argv)>3 else "http://localhost:8000/v1"
 MODEL=sys.argv[4] if len(sys.argv)>4 else "base"
+THINK=os.environ.get("THINK","0")=="1"            # enable Qwen3 reasoning
+ONLY=os.environ.get("ONLY","both")                # names | described | both
+MAXTOK=int(os.environ.get("MAXTOK","200"))
 d=json.load(open(PROMPTS)); labs=d["labels"]; items=d["items"]
 labset={l.lower():l for l in labs}
 import re
@@ -21,8 +24,8 @@ def call(prompt):
     # needed to read a described menu, and thinking blew up latency to ~35s/call). chat_template_kwargs is
     # the clean switch; cap tokens as a safety bound. parse_cls still strips any leaked <think> block.
     body=json.dumps({"model":MODEL,"messages":[{"role":"user","content":prompt}],
-                     "max_tokens":200,"temperature":0,
-                     "chat_template_kwargs":{"enable_thinking":False}}).encode()
+                     "max_tokens":MAXTOK,"temperature":0,
+                     "chat_template_kwargs":{"enable_thinking":THINK}}).encode()
     for attempt in range(3):
         try:
             r=urllib.request.urlopen(urllib.request.Request(ENDPOINT.rstrip("/")+"/chat/completions",body,
@@ -33,8 +36,9 @@ def call(prompt):
             time.sleep(3)
 with open(OUT,"w") as f:
     for i,it in enumerate(items):
-        npred=parse_cls(call(it["names_prompt"]))
-        dpred=parse_cls(call(it["described_prompt"]))
-        f.write(json.dumps({"id":it["id"],"names_prediction":npred,"described_prediction":dpred})+"\n"); f.flush()
-        if i%25==0: print(f"{i}/{len(items)} done",flush=True)
+        rec={"id":it["id"]}
+        if ONLY in ("names","both"): rec["names_prediction"]=parse_cls(call(it["names_prompt"]))
+        if ONLY in ("described","both"): rec["described_prediction"]=parse_cls(call(it["described_prompt"]))
+        f.write(json.dumps(rec)+"\n"); f.flush()
+        if i%25==0: print(f"{i}/{len(items)} done (think={THINK} only={ONLY})",flush=True)
 print("DONE",flush=True)

@@ -29,11 +29,15 @@ SERVE=$!
 echo "[eval] waiting for vLLM health"
 ok=0; for i in $(seq 1 90); do curl -sf localhost:8000/v1/models >/dev/null 2>&1 && { ok=1; break; }; sleep 10; done
 [ "$ok" = 1 ] || { echo "[eval] vLLM never came up — tail:"; tail -40 "$SCRATCH/vllm.log"; aws s3 cp "$SCRATCH/vllm.log" "$OUT_S3/vllm.log" --quiet; exit 12; }
-echo "[eval] running routing prompts"
-python3 box_run_routing.py ./routing_prompts.json ./routing_preds.jsonl http://localhost:8000/v1 base 2>&1 | tee "$SCRATCH/eval.log"
-echo "[eval] uploading"
+echo "[eval] PASS 1: no-think (names+described), refreshed DB"
+ONLY=both THINK=0 MAXTOK=200 python3 box_run_routing.py ./routing_prompts.json ./routing_preds.jsonl http://localhost:8000/v1 base 2>&1 | tee "$SCRATCH/eval.log"
 aws s3 cp ./routing_preds.jsonl "$OUT_S3/routing_preds_base.jsonl" --quiet
+echo "[eval] PASS 2: described + THINKING (nail the ceiling)"
+ONLY=described THINK=1 MAXTOK=1024 python3 box_run_routing.py ./routing_prompts.json ./routing_preds_think.jsonl http://localhost:8000/v1 base 2>&1 | tee "$SCRATCH/eval_think.log"
+aws s3 cp ./routing_preds_think.jsonl "$OUT_S3/routing_preds_base_think.jsonl" --quiet
+echo "[eval] uploading logs"
 aws s3 cp "$SCRATCH/eval.log" "$OUT_S3/eval.log" --quiet
+aws s3 cp "$SCRATCH/eval_think.log" "$OUT_S3/eval_think.log" --quiet
 aws s3 cp "$SCRATCH/vllm.log" "$OUT_S3/vllm.log" --quiet
 kill $SERVE 2>/dev/null || true
 echo "ROUTING_EVAL_DONE"
