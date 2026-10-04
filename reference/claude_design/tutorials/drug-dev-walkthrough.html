@@ -84,8 +84,17 @@ body{
 /* screenshot figures */
 .shots{display:flex; gap:26px; flex:1; min-height:0}
 .shot{flex:1; display:flex; flex-direction:column; min-height:0}
-.shot .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shot .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#0f141b; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex; align-items:center; justify-content:center}
 .shot img{width:100%; height:100%; object-fit:cover; object-position:top left}
+.shot video{width:100%; height:100%; object-fit:contain; background:#0f141b; display:block}
+/* Flow (Live UI) scenes: shrink the text so the live clip gets most of the height. */
+.scene[data-kind="flow"] h2{font-size:27px; line-height:1.12; margin-bottom:8px; max-width:34ch}
+.scene[data-kind="flow"] .caption{font-size:14.5px; line-height:1.5; margin-bottom:2px; max-width:92ch}
+.scene[data-kind="flow"] .scene-body{margin-top:12px}
+.scene[data-kind="flow"] .shot figcaption{font-size:12px; margin-top:7px; max-width:92ch}
+.livebar{display:inline-flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--green); margin-left:8px}
+.livebar .rec{width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(156,26,46,.5); animation:recpulse 1.6s infinite}
+@keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(156,26,46,.5)}70%{box-shadow:0 0 0 6px rgba(156,26,46,0)}100%{box-shadow:0 0 0 0 rgba(156,26,46,0)}}
 .shot figcaption{font-size:13px; line-height:1.45; color:var(--mut); margin-top:10px; max-width:48ch}
 .shot .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:3px}
 
@@ -142,11 +151,11 @@ svg{display:block}
 <div class="stage" id="stage">
 
   <!-- 0 — TITLE -->
-  <section class="scene title" data-kind="concept" data-seconds="34.2">
+  <section class="scene title" data-kind="concept" data-seconds="41.1">
     <div class="kicker">The whole journey — not one prediction</div>
     <h2>Drug development is a pipeline of eight stages, mapped to real BioMate workflows.</h2>
     <p class="caption">From naming a goal, to designing molecules, predicting properties, testing them against the target's structure, ranking the survivors, closing the loop, projecting the dose, and keeping a defensible record.</p>
-    <p class="caption sub">Running example: an <b>oral small molecule that blocks JAK1</b> for rheumatoid arthritis — but, unlike existing JAK drugs, one that <b>avoids the hERG heart-rhythm risk</b>. Illustrative, not a reported result. This tutorial pairs an <b>idea slide</b> that teaches each concept with a <b>product slide</b> that shows it running — and each stage carries an honest verdict: what is proven, what is available, what is still a gap.</p>
+    <p class="caption sub">Demonstration compounds: three familiar drugs — <b>aspirin, caffeine, ibuprofen</b> — sent through the pipeline as an illustrative example. <b>Not a drug-discovery campaign result, not a clinical claim.</b> This tutorial pairs an <b>idea slide</b> that teaches each concept with a <b>product slide</b> that shows it running live — and each stage carries an honest verdict: <b>demonstrated here</b>, <b>available</b>, or <b>still a gap</b>.</p>
     <div class="scene-body" style="align-items:flex-end">
       <div class="flowline">
         <span class="chip"><span class="i"></span>1 · Frame</span><span class="arrow">→</span>
@@ -162,7 +171,7 @@ svg{display:block}
   </section>
 
   <!-- 1 — CONCEPT: loop not a line -->
-  <section class="scene" data-kind="concept" data-seconds="30.7">
+  <section class="scene" data-kind="concept" data-seconds="31.3">
     <div class="kicker"><span class="st">Idea</span> · Why drug development is a loop, not a line <span class="badge concept">Concept</span></div>
     <h2>One pass never produces a finished drug — the method is a cycle that compounds.</h2>
     <p class="caption">It is tempting to imagine a straight line: design once, test once, done. Real programs never work that way. Each round <b>learns</b> from the last and feeds the next — the Design–Build–Test–Learn loop. The payoff is that mistakes get cheaper and the shortlist gets better every turn.</p>
@@ -213,7 +222,7 @@ svg{display:block}
   </section>
 
   <!-- 2 — CONCEPT: Stage 1 framing -->
-  <section class="scene" data-kind="concept" data-seconds="27.1">
+  <section class="scene" data-kind="concept" data-seconds="32.8">
     <div class="kicker"><span class="st">Stage 1 · Idea</span> · Framing the goal <span class="badge concept">Concept</span></div>
     <h2>Write down the target, the objectives, and the constraints — before any molecule exists.</h2>
     <p class="caption">Every later stage inherits these choices, so a vague goal produces a vague shortlist. You capture it simply by describing it in plain English to BioMate.</p>
@@ -221,11 +230,11 @@ svg{display:block}
       <div class="concept">
         <div class="card big">
           <div class="row3">
-            <div class="tile"><div class="n">TARGET</div><h4>JAK1</h4><p>The inflammation-signalling protein we want to block. A protein, not a molecule.</p></div>
-            <div class="tile"><div class="n">OBJECTIVES</div><h4>Bind · Absorb · Be safe</h4><p>Bind JAK1 strongly; be orally absorbed; stay safe on the heart (hERG).</p></div>
-            <div class="tile"><div class="n">CONSTRAINTS</div><h4>Novel · Makeable</h4><p>Avoid a competitor's scaffold; keep it synthesizable.</p></div>
+            <div class="tile"><div class="n">TARGET (e.g.)</div><h4>JAK1</h4><p>A protein you want to act on — here, an inflammation-signalling example. A protein, not a molecule.</p></div>
+            <div class="tile"><div class="n">OBJECTIVES</div><h4>Bind · Absorb · Be safe</h4><p>Bind the target; be orally absorbed; stay safe on the heart (hERG).</p></div>
+            <div class="tile"><div class="n">CONSTRAINTS</div><h4>Novel · Makeable</h4><p>Keep it novel; keep it synthesizable.</p></div>
           </div>
-          <p class="footnote" style="margin-top:20px">The objectives you name here become the columns you compare on in Stage 5 — and the hERG safety limit becomes the QC gate in Stage 6.</p>
+          <p class="footnote" style="margin-top:20px">The objectives you name here become the columns you compare on in Stage 5 — and the hERG safety limit becomes the QC gate in Stage 6. <b>This walkthrough demonstrates the mechanics on three familiar molecules — aspirin, caffeine, ibuprofen</b> — rather than a full target campaign.</p>
         </div>
         <div><span class="verdict plain"><span class="mk"></span>Verdict — framing: a planning step, always available</span></div>
       </div>
@@ -233,7 +242,7 @@ svg{display:block}
   </section>
 
   <!-- 3 — CONCEPT: Stage 2 design/generate -->
-  <section class="scene" data-kind="concept" data-seconds="32.8">
+  <section class="scene" data-kind="concept" data-seconds="31.5">
     <div class="kicker"><span class="st">Stage 2 · Idea</span> · Generating / designing candidates <span class="badge concept">Concept</span></div>
     <h2>Which molecules should I even consider?</h2>
     <p class="caption">Rather than draw molecules by hand out of ~10⁶⁰ possibilities, BioMate proposes candidates around a seed and returns a ranked, safety-filtered shortlist. The real workflow is <b>REINVENT4 Generative Lead Design</b>, with four design modes.</p>
@@ -257,7 +266,7 @@ svg{display:block}
   </section>
 
   <!-- 4 — CONCEPT: Stage 3 what is ADMET + hERG -->
-  <section class="scene" data-kind="concept" data-seconds="36.1">
+  <section class="scene" data-kind="concept" data-seconds="34.5">
     <div class="kicker"><span class="st">Stage 3 · Idea</span> · What is ADMET — and why hERG is make-or-break <span class="badge concept">Concept</span></div>
     <h2>ADMET asks: will the body even tolerate this molecule?</h2>
     <p class="caption">Binding is not enough — a molecule must be absorbed, go where it should, not be destroyed too fast, leave cleanly, and not poison anything. ADMET is those five questions. One endpoint, <b>hERG</b>, outranks the rest: block that cardiac potassium channel and you risk a fatal arrhythmia — it has killed approved drugs.</p>
@@ -272,7 +281,7 @@ svg{display:block}
               <div class="tile"><div class="n">E</div><h4>Excretion</h4><p>How does it leave?</p></div>
               <div class="tile hot"><div class="n">T</div><h4>Toxicity</h4><p>Any harm? incl. hERG</p></div>
             </div>
-            <p class="footnote" style="margin-top:16px">A molecule can bind JAK1 beautifully and still fail here — which is why ADMET comes early and cheap.</p>
+            <p class="footnote" style="margin-top:16px">A molecule can bind its target beautifully and still fail here — which is why ADMET comes early and cheap.</p>
           </div>
         </div>
         <div class="lead-col">
@@ -307,74 +316,74 @@ svg{display:block}
   </section>
 
   <!-- 5 — FLOW: Stage 3 pre-run (screenshot) -->
-  <section class="scene" data-kind="flow" data-seconds="30.4">
-    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — the pre-run check <span class="badge flow">Live UI</span></div>
+  <section class="scene" data-kind="flow" data-seconds="32.3">
+    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — the pre-run check <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
     <h2>Everything you can change is shown before a single cent of compute is spent.</h2>
-    <p class="caption">This is the real ADMET workflow in BioMate. The <b>Predict ADMET Properties (AI)</b> model runs ADMET-AI graph neural nets on 2M+ measurements. Before it runs, the pre-run strip lays out your SMILES list and every model setting, editable.</p>
+    <p class="caption">This is the real ADMET workflow running live in BioMate. The <b>Predict ADMET Properties (AI)</b> model runs ADMET-AI graph neural nets. Before it runs, the pre-run strip lays out your SMILES list — aspirin, caffeine, ibuprofen — and every model setting, editable.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
-          <div class="frame"><img src="assets/r1-prerun-param-strip.png" alt="ADMET pre-run parameter strip"/></div>
-          <figcaption><span class="lbl">Pre-run</span>Your SMILES list and model settings are shown and editable before any compute is spent — your chance to check everything first. Required params missing? the panel blocks and offers "Fix now".</figcaption>
+          <div class="frame"><video src="assets/live/prerun.mp4" autoplay muted loop playsinline preload="auto"></video></div>
+          <figcaption><span class="lbl">Pre-run · live</span>Your SMILES list and model settings are shown and editable before any compute is spent — your chance to check everything first. Required params missing? the panel blocks and offers "Fix now".</figcaption>
         </figure>
       </div>
     </div>
     <div class="tags" style="margin-top:12px">
-      <span class="verdict ok"><span class="mk"></span>ADMET — VALIDATED · ~89% benchmark · real run c40459b2</span>
+      <span class="verdict ok"><span class="mk"></span>ADMET — demonstrated in this live run · no blanket accuracy claimed</span>
       <span class="tag">physicochemical: available (RDKit)</span>
       <span class="tag open">QSAR: available — needs your labelled activity data</span>
     </div>
   </section>
 
   <!-- 6 — FLOW: Stage 3 running + QC gates (screenshot) -->
-  <section class="scene" data-kind="flow" data-seconds="24.0">
-    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — running, with QC gates in view <span class="badge flow">Live UI</span></div>
+  <section class="scene" data-kind="flow" data-seconds="24.2">
+    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — running, with QC gates in view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
     <h2>It runs on cloud workers, and the quality gates are visible the whole time.</h2>
     <p class="caption">Live phase progress streams in as each step completes on AWS Batch. The gates that will be checked — including hERG — are shown alongside, so you can scan the hERG column first and set aside any candidate above your safety limit.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
-          <div class="frame"><img src="assets/r2-running.png" alt="ADMET running with QC gates"/></div>
-          <figcaption><span class="lbl">Running</span>Each phase card flips pending → running → completed in real time via SSE; the QC gates to be evaluated are listed so nothing is hidden while compute is in flight.</figcaption>
+          <div class="frame"><video src="assets/live/running.mp4" autoplay muted loop playsinline preload="auto"></video></div>
+          <figcaption><span class="lbl">Running · live</span>Each phase card flips pending → running → completed in real time via SSE; the QC gates to be evaluated are listed so nothing is hidden while compute is in flight.</figcaption>
         </figure>
       </div>
     </div>
     <div class="tags" style="margin-top:12px">
-      <span class="verdict ok"><span class="mk"></span>Live phase/step progress — VALIDATED on AWS Batch</span>
+      <span class="verdict ok"><span class="mk"></span>Live phase/step progress — demonstrated on AWS Batch in this run</span>
     </div>
   </section>
 
   <!-- 7 — FLOW: Stage 3 completed (screenshot) -->
-  <section class="scene" data-kind="flow" data-seconds="19.2">
-    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — completed, chat and panel in sync <span class="badge flow">Live UI</span></div>
+  <section class="scene" data-kind="flow" data-seconds="20.5">
+    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — completed, chat and panel in sync <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
     <h2>When it finishes, the chat and the right-hand panel tell the same story.</h2>
-    <p class="caption">The completed run shows a "COMPLETED" badge and a "Run again" action, with after-run tabs — Outputs, Findings, Parameters. The chat summary and the workflow panel stay consistent: same name, same state, no "undefined", no stuck spinner.</p>
+    <p class="caption">The completed run shows a "COMPLETED" badge and a "Run again" action, with after-run tabs — Summary, Outputs, and the reproducibility record. The chat summary and the workflow panel stay consistent: same name, same state, no "undefined", no stuck spinner.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
-          <div class="frame"><img src="assets/r8-completed-chat-and-panel.png" alt="ADMET completed — chat and panel"/></div>
-          <figcaption><span class="lbl">Completed</span>The Findings tab carries real result values; if the outputs could not be read, findings are withheld and said so — never fabricated.</figcaption>
+          <div class="frame"><video src="assets/live/completed.mp4" autoplay muted loop playsinline preload="auto"></video></div>
+          <figcaption><span class="lbl">Completed · live</span>The Summary tab carries real result values; if the outputs could not be read, findings are withheld and said so — never fabricated.</figcaption>
         </figure>
       </div>
     </div>
     <div class="tags" style="margin-top:12px">
-      <span class="verdict ok"><span class="mk"></span>Completed state &amp; findings presentation — VALIDATED</span>
+      <span class="verdict ok"><span class="mk"></span>Completed state &amp; findings presentation — demonstrated in this run</span>
     </div>
   </section>
 
   <!-- 8 — CONCEPT: Stage 4 structure methods -->
-  <section class="scene" data-kind="concept" data-seconds="43.2">
+  <section class="scene" data-kind="concept" data-seconds="48.1">
     <div class="kicker"><span class="st">Stage 4 · Idea</span> · Docking vs RBFE vs MD — what each buys you, and what it costs <span class="badge concept">Concept</span></div>
     <h2>Does it actually fit the target's 3-D pocket — and how tightly?</h2>
-    <p class="caption">This is where you move from "drug-like" to "actually binds JAK1". Three methods, climbing a ladder of cost and accuracy — so you <b>dock many, RBFE a few, MD the final handful</b>.</p>
+    <p class="caption">This is where you move from "drug-like" toward "fits the pocket". Three methods answer <b>different questions</b> at rising cost — so you <b>dock many, RBFE a few, MD the final handful</b>.</p>
     <div class="scene-body">
       <div class="two-col">
         <div class="lead-col">
           <div class="card big" style="box-shadow:none;border:none;padding:0">
             <div class="row3">
-              <div class="tile"><div class="n">CHEAP · MANY</div><h4>Docking (AutoDock Vina)</h4><p>Places each candidate in the pocket, tries many poses, reports binding affinity + geometry. Ranks hundreds.</p></div>
-              <div class="tile"><div class="n">PRECISE · FEW</div><h4>RBFE / FEP (OpenFE)</h4><p>Alchemical free-energy on GPU MD — ΔΔG ± error between two similar molecules. ~1.73 kcal/mol on a reference set.</p></div>
-              <div class="tile"><div class="n">EXPENSIVE · HANDFUL</div><h4>MD (AMBER / GROMACS)</h4><p>Simulate the molecule wiggling in the pocket — is the pose stable? Rescore with MM-GBSA.</p></div>
+              <div class="tile"><div class="n">CHEAP · MANY</div><h4>Docking (AutoDock Vina)</h4><p>Places each candidate and scores a pose — ranks hundreds. A docking score is a prioritization signal, <b>not</b> a measured affinity.</p></div>
+              <div class="tile"><div class="n">COSTLIER · FEW</div><h4>RBFE / FEP (OpenFE)</h4><p>Estimates ΔΔG between two similar molecules under a defined protocol. Needs GPU; agreement with experiment must be shown on relevant data.</p></div>
+              <div class="tile"><div class="n">EXPENSIVE · HANDFUL</div><h4>MD (AMBER / GROMACS)</h4><p>Samples whether a pose stays stable over time. Stability ≠ measured binding; MM-GBSA adds its own assumptions.</p></div>
             </div>
             <p class="footnote" style="margin-top:18px">All three need the target's 3-D structure — if you don't have one, predict it first with Boltz-2 / AlphaFold2.</p>
           </div>
@@ -382,7 +391,7 @@ svg{display:block}
         <div class="lead-col">
           <div class="svgwrap">
             <svg viewBox="0 0 300 240" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-              <text x="150" y="16" text-anchor="middle" fill="#5a6474" font-family="IBM Plex Mono" font-size="11">cost &amp; accuracy ↑ · count ↓</text>
+              <text x="150" y="16" text-anchor="middle" fill="#5a6474" font-family="IBM Plex Mono" font-size="11">cost ↑ · fewer compounds ↓</text>
               <!-- rungs -->
               <g font-family="IBM Plex Sans" font-size="13" font-weight="600">
                 <rect x="30" y="170" width="240" height="46" rx="7" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.2"/>
@@ -396,14 +405,14 @@ svg{display:block}
               <path d="M20 40 L20 224" stroke="#d5dae2" stroke-width="1.5"/>
             </svg>
           </div>
-          <div><span class="verdict ok" style="margin-top:4px"><span class="mk"></span>VALIDATED — GROMACS MD &amp; OpenFE RBFE on AWS Batch</span></div>
+          <div><span class="verdict plain" style="margin-top:4px"><span class="mk"></span>Available on BioMate's cloud &amp; GPU workers — not independently validated here</span></div>
         </div>
       </div>
     </div>
   </section>
 
   <!-- 9 — CONCEPT: Stage 5 multi-objective rank -->
-  <section class="scene" data-kind="concept" data-seconds="39.1">
+  <section class="scene" data-kind="concept" data-seconds="34.6">
     <div class="kicker"><span class="st">Stage 5 · Idea</span> · Multi-objective optimization &amp; the Pareto front <span class="badge concept">Concept</span></div>
     <h2>Which handful is the best all-round compromise?</h2>
     <p class="caption">Each candidate now has several numbers that disagree — potent but insoluble, safe but hard to make. BioMate keeps every goal in its own column and units, <b>never blended into one score</b> that could hide an unsafe molecule, and shows the <b>Pareto front</b>: the trade-off boundary where you can't improve one goal without sacrificing another.</p>
@@ -444,7 +453,7 @@ svg{display:block}
   </section>
 
   <!-- 10 — CONCEPT: Stage 6 QC gate never silently pass -->
-  <section class="scene" data-kind="concept" data-seconds="43.8">
+  <section class="scene" data-kind="concept" data-seconds="52.9">
     <div class="kicker"><span class="st">Stage 6 · Idea</span> · The QC gate — why it must never silently pass <span class="badge concept">Concept</span></div>
     <h2>A quality gate turns a threshold into a decision you can trust mid-run.</h2>
     <p class="caption">Back on the loop: inside a single run, a QC gate compares a measured value to your limit and <b>halts or flags</b> — it never quietly lets a failed check through. A gate that silently passes is worse than no gate, because it looks like success. For some workflows, the auto-loop then adjusts a parameter and re-runs, logging the change as a diff.</p>
@@ -452,9 +461,9 @@ svg{display:block}
       <div class="two-col">
         <div class="svgwrap">
           <svg viewBox="0 0 360 260" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-            <rect x="130" y="20" width="100" height="40" rx="8" fill="#fff" stroke="#1a4a9c" stroke-width="1.5"/>
-            <text x="180" y="38" text-anchor="middle" font-family="IBM Plex Sans" font-size="12.5" font-weight="600" fill="#101828">hERG = 0.71</text>
-            <text x="180" y="52" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#5a6474">limit 0.50</text>
+            <rect x="124" y="18" width="112" height="44" rx="8" fill="#fff" stroke="#1a4a9c" stroke-width="1.5"/>
+            <text x="180" y="37" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="#101828">worst-case hERG</text>
+            <text x="180" y="52" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#5a6474">vs your limit</text>
             <path d="M180 60 L180 92" stroke="#5a6474" stroke-width="1.5"/>
             <polygon points="150,92 210,92 180,118" fill="#fdf0e3" stroke="#8a5a12" stroke-width="1.5"/>
             <text x="180" y="110" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#8a5a12">GATE</text>
@@ -475,16 +484,16 @@ svg{display:block}
         </div>
         <div class="lead-col">
           <div class="card" style="border-left:3px solid var(--amber)">
-            <div class="n" style="font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);margin-bottom:6px">QC GATE — hERG, two numbers always shown</div>
+            <div class="n" style="font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);margin-bottom:6px">hERG in this live run — estimated IC50, worst case wins</div>
             <div class="metricrow">
-              <div class="metric"><span class="v" style="color:var(--red)">0.71</span><span class="k">measured (blocked)</span></div>
-              <div class="metric"><span class="v" style="color:var(--green)">0.50</span><span class="k">threshold</span></div>
+              <div class="metric"><span class="v" style="color:var(--green)">~10 mM</span><span class="k">aspirin · ibuprofen</span></div>
+              <div class="metric"><span class="v" style="color:var(--amber)">432 µM</span><span class="k">caffeine (worst)</span></div>
             </div>
-            <p style="font-size:13px;line-height:1.5;margin:14px 0 0;color:var(--ink2)">Auto-loop then adjusts a filter (was→now <code>logp_max 5→4</code>) and re-runs — logged as a diff. Internal suite: <b>96/96</b>.</p>
+            <p style="font-size:12.5px;line-height:1.5;margin:13px 0 0;color:var(--ink2)">These are <b>estimated IC50s</b> — derived from the model's classification probability via a terfenadine-anchored power law, <b>not measured IC50s</b>. The gate takes the worst case; here nothing is strongly cardiotoxic. For some workflows the auto-loop then adjusts a filter and re-runs, logged as a diff.</p>
           </div>
           <div class="tags" style="margin-top:14px">
-            <span class="verdict partial"><span class="mk"></span>Validated DESIGN · passing test suite</span>
-            <span class="tag open">OPEN — live hERG gate firing is UNPROVEN on dev</span>
+            <span class="verdict ok"><span class="mk"></span>hERG estimator — fixed &amp; verified on a live run</span>
+            <span class="tag gap">GAP — live gate firing &amp; auto-loop re-run UNPROVEN on dev</span>
           </div>
         </div>
       </div>
@@ -492,10 +501,10 @@ svg{display:block}
   </section>
 
   <!-- 11 — CONCEPT: Stage 7 PK/PBPK -->
-  <section class="scene" data-kind="concept" data-seconds="32.4">
+  <section class="scene" data-kind="concept" data-seconds="36.0">
     <div class="kicker"><span class="st">Stage 7 · Idea</span> · PK / PBPK modeling <span class="badge concept">Concept</span></div>
     <h2>What dose would a human need?</h2>
-    <p class="caption">A molecule that binds well and looks safe still has to reach the right concentration at a sensible dose. <b>PK</b> is what the body does to the drug over time; <b>PBPK</b> is a mechanistic, organ-by-organ model that projects human exposure — often from animal data — and a first-in-human dose brief in regulatory (FDA/EMA) format.</p>
+    <p class="caption">A molecule that binds well and looks safe still has to reach the right concentration at a sensible dose. <b>PK</b> is what the body does to the drug over time; <b>PBPK</b> is a mechanistic, organ-by-organ model that projects human exposure <b>scenarios</b> — often from animal data — and a projected <b>starting-dose scenario for evaluation</b> (not a guaranteed safe dose).</p>
     <div class="scene-body">
       <div class="two-col">
         <div class="svgwrap">
@@ -515,10 +524,10 @@ svg{display:block}
         <div class="lead-col">
           <div class="card">
             <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 8px;color:var(--ink)">A three-step chain</h4>
-            <p style="font-size:13.5px;line-height:1.55;margin:0">Allometric scaling (animal → human) → PBPK organ-by-organ model (with renal/hepatic impairment sub-model) → virtual patient cohort (Monte-Carlo variability). You read Cmax, AUC, and the projected first-in-human dose.</p>
+            <p style="font-size:13.5px;line-height:1.55;margin:0">Allometric scaling (animal → human) → PBPK organ-by-organ model (with renal/hepatic impairment sub-model) → virtual patient cohort (Monte-Carlo variability). You read Cmax, AUC, and a projected starting-dose scenario for evaluation.</p>
           </div>
           <div class="tags" style="margin-top:14px">
-            <span class="verdict ok"><span class="mk"></span>VALIDATED · ~98.5% on a clinical PK set · 108-drug reference</span>
+            <span class="verdict plain"><span class="mk"></span>Available — projects exposure scenarios; not independently validated here</span>
             <span class="tag open">PopPK / NCA need real in-vivo data you upload</span>
           </div>
         </div>
@@ -527,7 +536,7 @@ svg{display:block}
   </section>
 
   <!-- 12 — CONCEPT: Stage 8 lineage / provenance -->
-  <section class="scene" data-kind="concept" data-seconds="26.5">
+  <section class="scene" data-kind="concept" data-seconds="26.4">
     <div class="kicker"><span class="st">Stage 8 · Idea</span> · What lineage &amp; provenance mean — and why they matter <span class="badge concept">Concept</span></div>
     <h2>A result is only as good as your ability to prove how you got it.</h2>
     <p class="caption">Provenance is the chain from an output back to the exact inputs, parameters, and software that produced it. Without it, a number is an assertion; with it, a number is evidence — defensible for a manuscript, a patent, or an IND submission. <b>Lineage</b> is that chain made navigable in the UI.</p>
@@ -552,62 +561,62 @@ svg{display:block}
             <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 8px;color:var(--ink)">The record is the product</h4>
             <p style="font-size:14px;line-height:1.55;margin:0">Every run captures run id, parameters, software versions, SHA-256 checksums, and citations — one click to JSON. And if BioMate <b>cannot read</b> an output, it withholds the finding and says so rather than inventing a summary.</p>
           </div>
-          <div><span class="verdict ok" style="margin-top:14px"><span class="mk"></span>Record &amp; lineage — VALIDATED</span></div>
+          <div><span class="verdict ok" style="margin-top:14px"><span class="mk"></span>Record &amp; lineage — demonstrated here</span></div>
         </div>
       </div>
     </div>
   </section>
 
   <!-- 13 — FLOW: Stage 8 outputs (screenshot) -->
-  <section class="scene" data-kind="flow" data-seconds="18.9">
-    <div class="kicker"><span class="st">Stage 8 · Product</span> · Outputs — filed by the step that made them <span class="badge flow">Live UI</span></div>
+  <section class="scene" data-kind="flow" data-seconds="17.5">
+    <div class="kicker"><span class="st">Stage 8 · Product</span> · Outputs — filed by the step that made them <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
     <h2>Every file lands under the step that produced it.</h2>
-    <p class="caption">The Outputs tab groups results by step — admet, qc, toxicity for an ADMET run — so you never hunt for a file or guess which stage it came from.</p>
+    <p class="caption">The Outputs tab groups results by step — the ADMET table, the quality metrics, the toxicity report — so you never hunt for a file or guess which stage it came from.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
-          <div class="frame"><img src="assets/r5-outputs.png" alt="ADMET outputs grouped by step"/></div>
-          <figcaption><span class="lbl">Outputs</span>Each artifact is previewable in place — tables as HTML, images as thumbnails, text as code blocks.</figcaption>
+          <div class="frame"><video src="assets/live/outputs.mp4" autoplay muted loop playsinline preload="auto"></video></div>
+          <figcaption><span class="lbl">Outputs · live</span>Each artifact is previewable in place — tables as HTML, images as thumbnails, text as code blocks.</figcaption>
         </figure>
       </div>
     </div>
   </section>
 
   <!-- 14 — FLOW: Stage 8 reproducibility (screenshot) -->
-  <section class="scene" data-kind="flow" data-seconds="21.0">
-    <div class="kicker"><span class="st">Stage 8 · Product</span> · The reproducibility record <span class="badge flow">Live UI</span></div>
+  <section class="scene" data-kind="flow" data-seconds="23.9">
+    <div class="kicker"><span class="st">Stage 8 · Product</span> · The reproducibility record <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
     <h2>The full audit trail — downloadable as one JSON.</h2>
-    <p class="caption">This is the provenance concept made concrete: run id, parameters, software versions, outputs, SHA-256 checksums, and citations, all in one record you can attach to a submission.</p>
+    <p class="caption">This is the provenance concept made concrete: run id, parameters, software versions, outputs, and citations, all in one record you can attach to a submission. Where a field is empty in this run, the record shows the gap rather than hiding it.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
-          <div class="frame"><img src="assets/r6-reproducibility.png" alt="Reproducibility record"/></div>
-          <figcaption><span class="lbl">Reproducibility</span>One click exports the whole record to JSON — the same evidence a reviewer, patent examiner, or regulator would ask for.</figcaption>
+          <div class="frame"><video src="assets/live/record.mp4" autoplay muted loop playsinline preload="auto"></video></div>
+          <figcaption><span class="lbl">Reproducibility · live</span>One click exports the whole record to JSON — the same kind of evidence a reviewer, patent examiner, or regulator would ask for.</figcaption>
         </figure>
       </div>
     </div>
     <div class="tags" style="margin-top:12px">
-      <span class="verdict ok"><span class="mk"></span>Record — VALIDATED · if outputs can't be read, findings are withheld, not fabricated</span>
+      <span class="verdict ok"><span class="mk"></span>Record — demonstrated in this run · empty fields shown, not hidden · findings withheld if outputs unreadable</span>
     </div>
   </section>
 
   <!-- 15 — FLOW: Stage 8 lineage (screenshot) -->
-  <section class="scene" data-kind="flow" data-seconds="16.7">
-    <div class="kicker"><span class="st">Stage 8 · Product</span> · Dataset lineage <span class="badge flow">Live UI</span></div>
+  <section class="scene" data-kind="flow" data-seconds="13.6">
+    <div class="kicker"><span class="st">Stage 8 · Product</span> · Dataset lineage <span class="badge flow">Real UI · still</span></div>
     <h2>Each output traces back to what produced it.</h2>
     <p class="caption">The lineage view walks the chain backward: this output came from this workflow, with these parameters, on these inputs. It is the navigable form of the provenance graph from the concept slide.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
           <div class="frame"><img src="assets/t10-2-dataset-lineage.png" alt="Dataset lineage"/></div>
-          <figcaption><span class="lbl">Lineage</span>Follow any dataset to its producing run and its inputs — and forward to everything downstream that consumed it.</figcaption>
+          <figcaption><span class="lbl">Lineage · real-UI still</span>Follow any dataset to its producing run and its inputs — and forward to everything downstream that consumed it.</figcaption>
         </figure>
       </div>
     </div>
   </section>
 
   <!-- 16 — CLOSING -->
-  <section class="scene title" data-kind="concept" data-seconds="40.0">
+  <section class="scene title" data-kind="concept" data-seconds="43.2">
     <div class="kicker">The pipeline at a glance</div>
     <h2 style="font-size:38px">Frame → design → predict → test → rank → loop → dose → record.</h2>
     <div class="scene-body">
@@ -623,12 +632,12 @@ svg{display:block}
         </div>
         <div class="lead-col">
           <table class="summary-tbl">
-            <tr><td>ADMET</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Validated</span></td></tr>
-            <tr><td>Structure (dock/RBFE/MD)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Validated</span></td></tr>
-            <tr><td>PK / PBPK</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Validated</span></td></tr>
-            <tr><td>Report &amp; record</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Validated</span></td></tr>
+            <tr><td>ADMET (incl. hERG est.)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Demonstrated here</span></td></tr>
+            <tr><td>Structure (dock/RBFE/MD)</td><td><span class="verdict plain" style="margin:0;padding:3px 8px;font-size:11px">Available — not validated here</span></td></tr>
+            <tr><td>PK / PBPK</td><td><span class="verdict plain" style="margin:0;padding:3px 8px;font-size:11px">Available — not validated here</span></td></tr>
+            <tr><td>Report &amp; record</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Demonstrated here</span></td></tr>
             <tr><td>Multi-objective rank</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Partial — optimizer not wired</span></td></tr>
-            <tr><td>Closed-loop QC gate</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Live hERG gate unproven on dev</span></td></tr>
+            <tr><td>Closed-loop QC gate</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Live gate firing unproven on dev</span></td></tr>
             <tr><td>De-novo generator</td><td><span class="verdict gap" style="margin:0;padding:3px 8px;font-size:11px">Gap — not yet built</span></td></tr>
           </table>
           <p class="footnote">In-silico triage, not a drug. The value is starting smart and failing cheap — not skipping the lab.</p>
@@ -666,9 +675,16 @@ svg{display:block}
 
   var idx = -1;
   function show(i){
-    if (idx >= 0) scenes[idx].classList.remove('active');
+    if (idx >= 0){
+      scenes[idx].classList.remove('active');
+      var pv = scenes[idx].querySelector('video');
+      if (pv){ try { pv.pause(); } catch(e){} }
+    }
     idx = i;
     scenes[i].classList.add('active');
+    // Restart any embedded live-UI clip from the top when its scene activates.
+    var v = scenes[i].querySelector('video');
+    if (v){ try { v.currentTime = 0; var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); } catch(e){} }
     curEl.textContent = (i+1);
     prog.style.width = ((i+1)/scenes.length*100) + '%';
     var kind = scenes[i].getAttribute('data-kind') || 'concept';

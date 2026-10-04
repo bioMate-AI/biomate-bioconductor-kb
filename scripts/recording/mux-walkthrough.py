@@ -3,11 +3,14 @@
 Each scene i's narration clip (step-(i+1).wav) is placed at timeline[i] seconds
 (relative to scene-0-active), silence-padded. Video is trimmed to start at
 scene-0-active so audio and visuals share t=0. Encodes with libopenh264 + AAC."""
-import json, sys, pathlib, subprocess, tempfile, wave, struct
+import json, sys, os, pathlib, subprocess, tempfile, wave, struct
 
 SR = 24000
 ROOT = pathlib.Path('/Users/kky/biomate-review')
-META = json.loads((ROOT/'recording/audio/drug-dev-shared/record_meta.json').read_text())
+# Per-language recordings use their own meta (RECORD_META env). Falls back to the
+# legacy shared meta for the single-recording pipeline.
+_meta_path = os.environ.get('RECORD_META', str(ROOT/'recording/audio/drug-dev-shared/record_meta.json'))
+META = json.loads(pathlib.Path(_meta_path).read_text())
 
 def read_pcm(p):
     with wave.open(str(p),'rb') as w:
@@ -53,8 +56,11 @@ def mux(lang, out):
         with wave.open(str(awav),'wb') as w:
             w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR); w.writeframes(pcm)
         out.parent.mkdir(parents=True, exist_ok=True)
+        # The system-Chrome screencast renders content at 1920x992 and the
+        # recorder pads the bottom 88px gray; crop to the content and re-pad with
+        # the page background so the master stays a clean 1920x1080 (no gray band).
         cmd = ['ffmpeg','-y','-i',webm,'-i',str(awav),
-               '-filter_complex',f'[0:v]trim=start={t0:.3f},setpts=PTS-STARTPTS[v]',
+               '-filter_complex',f'[0:v]trim=start={t0:.3f},setpts=PTS-STARTPTS,crop=1920:992:0:0,pad=1920:1080:0:0:color=0xFBFCFD[v]',
                '-map','[v]','-map','1:a:0',
                '-c:v','libopenh264','-b:v','6000k','-pix_fmt','yuv420p',
                '-c:a','aac','-b:a','192k','-ar','48000','-ac','2',
