@@ -74,7 +74,10 @@ def ece(y, p, n_bins=10):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--csv", type=Path, default=ROOT / "data/processed/pepmsnd_stability_folds.csv")
+    import dataset_path  # G8: resolve via cyclic_data_registry (committed fallback)
+    ap.add_argument("--csv", type=Path,
+                    default=dataset_path.resolve("pepmsnd_stability_folds",
+                                                 "data/processed/pepmsnd_stability_folds.csv"))
     ap.add_argument("--out", type=Path, default=ROOT / "results/stability_predictor_metrics.json")
     args = ap.parse_args()
 

@@ -128,12 +128,9 @@ def main(argv=None) -> int:
 
     train_csv = args.train_csv
     if train_csv is None:
-        # resolve through the registry like peptide_verify does (cache-first, committed fallback)
-        try:
-            reg = _load_module("cyclic_data_registry").registry()
-            train_csv = reg.resolve_path("cycpeptmpdb", allow_download=False)
-        except Exception:  # noqa: BLE001
-            train_csv = ROOT / "data/raw/CycPeptMPDB_Peptide_All.csv"
+        # G8: resolve through the shared registry resolver (cache-first, committed fallback)
+        train_csv = _load_module("dataset_path").resolve(
+            "cycpeptmpdb", "data/raw/CycPeptMPDB_Peptide_All.csv")
     train_csv = Path(train_csv)
     if not train_csv.exists():
         print(f"[error] training CSV not found: {train_csv}", file=sys.stderr)

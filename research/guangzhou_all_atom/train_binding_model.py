@@ -137,7 +137,10 @@ def predict(model_tuple, X):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--csv", required=True)
+    import dataset_path  # G8: default the training CSV to the registry's binding_affinity_v1
+    ap.add_argument("--csv", default=str(dataset_path.resolve(
+        "binding_affinity_v1", "data/raw/binding_affinity/binding_affinity_v1.csv")),
+        help="measured-affinity training CSV (default: cyclic_data_registry binding_affinity_v1)")
     ap.add_argument("--cyclic-only", action="store_true",
                     help="train/eval on cyclic rows only (matches the peptide pools regime)")
     ap.add_argument("--tag", default="")

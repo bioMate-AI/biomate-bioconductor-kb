@@ -79,7 +79,9 @@ def scaffold_folds(scaf, n_folds=5, seed=0):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--csv", type=Path, default=ROOT / "data/raw/CycPeptMPDB_Peptide_All.csv")
+    import dataset_path  # G8: resolve the training CSV through cyclic_data_registry (committed fallback)
+    ap.add_argument("--csv", type=Path,
+                    default=dataset_path.resolve("cycpeptmpdb", "data/raw/CycPeptMPDB_Peptide_All.csv"))
     ap.add_argument("--out", type=Path, default=ROOT / "results/permeability_predictor_metrics.json")
     args = ap.parse_args()
 

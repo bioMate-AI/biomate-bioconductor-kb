@@ -135,20 +135,12 @@ def _load_module(filename: str):
     return mod
 
 
-_REGISTRY = None  # memoised cyclic_data_registry instance (None => not yet loaded / unavailable)
-
-
 def _default_dataset_path(registry_name: str, fallback_rel: str) -> Path:
     """G8: resolve a training CSV through cyclic_data_registry (cache-first, no surprise download),
     falling back to the committed relative path if the registry is unavailable. Behaviour-preserving
-    — the registry's local_path for these datasets is exactly the committed path."""
-    global _REGISTRY
-    try:
-        if _REGISTRY is None:
-            _REGISTRY = _load_module("cyclic_data_registry.py").registry()
-        return _REGISTRY.resolve_path(registry_name, allow_download=False)
-    except Exception:  # noqa: BLE001 — registry missing / not cached -> use the committed path
-        return ROOT / fallback_rel
+    — the registry's local_path for these datasets is exactly the committed path. Delegates to the
+    shared dataset_path.resolve so every stage script routes dataset paths through one place."""
+    return _load_module("dataset_path.py").resolve(registry_name, fallback_rel)
 
 
 # --------------------------------------------------------------------------------------------

@@ -247,13 +247,19 @@ wiring_gaps:
   - id: G8
     between: [target_prep, dpo_learn]
     severity: medium
-    status: open
+    status: closed
+    closed_by: dataset_path.py (shared resolver) adopted by the stage scripts
     description: >-
       Stage scripts hard-code dataset paths; none import cyclic_data_registry yet. This PR ships the
       registry; migrating the scripts to resolve datasets through it is the adoption follow-up.
-      PARTIAL: peptide_verify.py is the first adopter — its default permeability/stability training
-      CSVs now resolve through cyclic_data_registry (cache-first, committed path as fallback). The
-      remaining stage scripts still hard-code paths, so this stays OPEN.
+      CLOSED: dataset_path.py is a single shared resolver (cache-first via cyclic_data_registry,
+      committed relative path as fallback). The dataset-consuming STAGE scripts now route through it:
+      peptide_verify.py, predict_permeability_pool.py, permeability_predictor.py, stability_predictor.py,
+      train_binding_model.py (binding_affinity_v1 default), mo_select_qnehvi.py (perm CSV). Behaviour-
+      preserving — the registry local_path for these datasets equals the committed path.
+      Documented exceptions (intentionally NOT migrated): rebuild_stability_folds.py points at a file
+      NESTED inside the peptideclm2_pepmsnd tree (the registry resolves the tree root, not that CSV);
+      collect_*/cycpeptmpdb_to_pepglad.py PRODUCE datasets rather than consume registry paths. test_dataset_path.py passes; full suite 128 passed.
   - id: G9
     between: [target_prep, target_prep]
     severity: low

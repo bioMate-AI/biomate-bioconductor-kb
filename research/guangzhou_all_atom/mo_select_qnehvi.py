@@ -343,7 +343,9 @@ def run_qnehvi_phase(report_path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--k", type=int, default=10)
-    ap.add_argument("--perm-csv", default=os.path.join(HERE, "data/raw/CycPeptMPDB_Peptide_All.csv"))
+    import dataset_path  # G8: resolve the perm training CSV via cyclic_data_registry (committed fallback)
+    ap.add_argument("--perm-csv", default=str(dataset_path.resolve(
+        "cycpeptmpdb", "data/raw/CycPeptMPDB_Peptide_All.csv")))
     ap.add_argument("--phase", choices=["objectives", "qnehvi"], default="objectives",
                     help="objectives: compute objectives + composite/greedy-HV (no torch). "
                          "qnehvi: load saved objectives + run BoTorch qNEHVI (torch).")
