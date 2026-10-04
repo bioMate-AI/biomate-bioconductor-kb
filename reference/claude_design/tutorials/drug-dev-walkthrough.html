@@ -45,10 +45,12 @@ body{
 .stage{position:fixed; inset:65px 0 0 0; z-index:10}
 .scene{
   position:absolute; inset:0; display:flex; flex-direction:column;
-  padding:42px 70px 48px; opacity:0; transform:translateY(14px);
-  transition:opacity .6s ease, transform .6s ease; pointer-events:none;
+  padding:42px 70px 48px; opacity:0; transform:translateY(8px);
+  /* Deactivate instantly (no lingering fade-out) so two scenes' text never
+     overlap mid-dissolve; the incoming scene does a quick <0.3s fade-in. */
+  transition:none; pointer-events:none;
 }
-.scene.active{opacity:1; transform:none; pointer-events:auto}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
 .kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px; display:flex; align-items:center; gap:10px}
 .kicker .st{color:var(--mut)}
 .kicker .badge{font-size:9.5px; letter-spacing:.1em; padding:2px 7px; border-radius:3px}
@@ -87,11 +89,32 @@ body{
 .shot .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#0f141b; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex; align-items:center; justify-content:center}
 .shot img{width:100%; height:100%; object-fit:cover; object-position:top left}
 .shot video{width:100%; height:100%; object-fit:contain; background:#0f141b; display:block}
-/* Flow (Live UI) scenes: shrink the text so the live clip gets most of the height. */
-.scene[data-kind="flow"] h2{font-size:27px; line-height:1.12; margin-bottom:8px; max-width:34ch}
-.scene[data-kind="flow"] .caption{font-size:14.5px; line-height:1.5; margin-bottom:2px; max-width:92ch}
-.scene[data-kind="flow"] .scene-body{margin-top:12px}
-.scene[data-kind="flow"] .shot figcaption{font-size:12px; margin-top:7px; max-width:92ch}
+/* Flow still-image scene (dataset lineage) keeps a landscape frame; just shrink text. */
+.scene[data-kind="flow"]:has(img) h2{font-size:27px; line-height:1.12; margin-bottom:8px; max-width:34ch}
+.scene[data-kind="flow"]:has(img) .caption{font-size:14.5px; line-height:1.5; margin-bottom:2px; max-width:92ch}
+.scene[data-kind="flow"]:has(img) .scene-body{margin-top:12px}
+.scene[data-kind="flow"]:has(img) .shot figcaption{font-size:12px; margin-top:7px; max-width:92ch}
+
+/* Live-UI clip scenes: the workflow-panel clip (portrait, 832x1032) sits in a
+   left column that fills the stage height; the text sits beside it. Every live
+   clip uses the identical frame aspect, so all five are uniform and each fills
+   its frame exactly — no black pillarbox, no small/large mismatch. */
+.scene[data-kind="flow"]:has(video){
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  grid-template-rows:auto auto 1fr auto;
+  column-gap:54px;
+}
+.scene[data-kind="flow"]:has(video) .kicker{grid-column:2; grid-row:1}
+.scene[data-kind="flow"]:has(video) h2{grid-column:2; grid-row:2; font-size:30px; line-height:1.14; margin-bottom:12px; max-width:22ch}
+.scene[data-kind="flow"]:has(video) .caption{grid-column:2; grid-row:3; align-self:start; font-size:16px; line-height:1.55; margin:0 0 6px; max-width:48ch}
+.scene[data-kind="flow"]:has(video) .tags{grid-column:2; grid-row:4; align-self:end; margin-top:0}
+.scene[data-kind="flow"]:has(video) .scene-body{grid-column:1; grid-row:1 / 5; margin-top:0; display:flex; min-height:0}
+.scene[data-kind="flow"]:has(video) .shots{flex:1; min-height:0; display:flex; justify-content:center}
+.scene[data-kind="flow"]:has(video) .shot{flex:0 1 auto; display:flex; flex-direction:column; min-height:0; align-items:center}
+.scene[data-kind="flow"]:has(video) .shot .frame{flex:1 1 auto; min-height:0; width:auto; aspect-ratio:832 / 1032; margin:0 auto}
+.scene[data-kind="flow"]:has(video) .shot video{width:100%; height:100%; object-fit:contain}
+.scene[data-kind="flow"]:has(video) .shot figcaption{font-size:12.5px; margin-top:9px; max-width:56ch; text-align:center}
 .livebar{display:inline-flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--green); margin-left:8px}
 .livebar .rec{width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(156,26,46,.5); animation:recpulse 1.6s infinite}
 @keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(156,26,46,.5)}70%{box-shadow:0 0 0 6px rgba(156,26,46,0)}100%{box-shadow:0 0 0 0 rgba(156,26,46,0)}}
