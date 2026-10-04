@@ -5,8 +5,18 @@
 ## Core insight: don't break the *structure* wall — change the data type
 You cannot affordably get 10,000 cyclic co-crystals; the structure wall is effectively unbreakable by acquisition. **But structure is the wrong data for the problem.** Reframe the model from **structure→DockQ** (data-starved, plateaued) to **sequence→property** (binding, permeability, selectivity), where data *can* be abundant — from display selection and existing databases. This also reframes the paper away from DockQ toward the real challenges (multi-objective, generalizability, knowledge, efficiency) and feeds the Pareto-DPO method (`docs/20261002_BEST_PEPTIDE_LLM_PROGRAM.md`).
 
-## Step 1 — MINE PUBLIC DATA FIRST (free; do before paying for anything)
-Substantial public cyclic-peptide data already exists. Exhaust it before commissioning any campaign.
+## Step 0 — WE ALREADY COLLECTED MOST OF THIS (verified 2026-10-04 — do not re-collect)
+Before any "mine public data" step: we already have it on S3. Verified inventory:
+- **CycPeptMPDB — HAVE IT:** `cyclic_peptide/raw/CycPeptMPDB_Peptide_All.csv` (19 MB, **7,334** cyclic peptides + experimental permeability); CycPeptMP model/benchmark in `code_refs/cycpeptmp.tgz` (991 MB). **Permeability objective data is in hand.**
+- **Conformers:** `cremp_partial/`, `macroconf/` (computational cyclic conformers).
+- **Structures:** `pepbdb/`, `pepbench/`, `bound_cyclic_v1/` + the 662-mine. (The scarce slice — the structure wall.)
+- **Also:** `approved_cyclic_peptide_drugs/`, `peptideclm2_pepmsnd/` (4 MB), `nme_v1/` (N-methylation, 3 MB), `helm_monomers/`, non-canonical vocab.
+- **⚠ Binding data is the REAL thin axis:** `datasets/_collect_status/bindingdb_peptide.json` is **65 bytes** — a stub. The BindingDB peptide collection effectively **failed/under-collected.** So the *binding/affinity* objective — the one that matters most — is the gap, and it's a **free re-collection**, not a paid campaign.
+
+**Conclusion:** we are NOT data-collection-blocked and do NOT need to pay for a first result. The multi-objective model can train TODAY on permeability (CycPeptMPDB 7,334) + developability + conformers we already hold. The one free fix is re-collecting peptide **binding** data (BindingDB + ChEMBL peptide subset) that we botched. Paid display campaigns are only for later, proprietary, per-target binding at display scale — and only if the free binding re-collection proves insufficient.
+
+## Step 1 — (superseded by Step 0) what public binding data to re-collect
+The permeability/structure/conformer data is already held (Step 0). The free task is the BINDING axis we under-collected.
 
 | Source | What it gives | Size | Use | Status |
 |---|---|---|---|---|
