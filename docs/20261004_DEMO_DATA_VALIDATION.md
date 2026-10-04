@@ -40,10 +40,23 @@ All three fall back to a **real, clearly-labeled** dataset (`[demo]` / `[DEMO DA
      recommendation) when model building fails — robust for real SE data, not a demo-only hack.
      Commit `53749d9ac`.
 
-## Known related follow-up (NOT fixed here)
-`immunology/analyze_atac_seq_differential_accessibility` also pins `biomni-tools:x86` and calls macs2 →
-same missing-tool failure latent there. Same fix applies (MACS3 biocontainer). Deferred — out of this
-task's scope; logged for a future pass.
+## Related follow-up — DONE (`immunology/analyze_atac_seq_differential_accessibility`)
+
+Had the same latent macs2-missing bug plus three more. All fixed (commit `b9d2a0ff0`) and validated
+on Batch (param-less run, SUCCEEDED exit 0):
+```
+[demo] nf-core test-datasets human BAM pair (test=treatment, test2=control)
+macs3 callpeak (treatment) -> 2 peaks ; macs3 callpeak (control) -> 2 peaks
+macs3 bdgdiff -> 1 region up in treatment, 1 up in control ; all steps completed
+```
+Four stacked bugs fixed: (1) macs2 missing/broken → **MACS3** biocontainer + `macs3` binary for
+`callpeak`×2 and `bdgdiff`; (2) `callpeak` lacked **`-B`**, so `bdgdiff` had no pileup/lambda bedGraph
+inputs → added `-B`; (3) **double-`output_dir`** path bug (`-n` carried the dir *and* `--outdir` was
+set, and Step 3 re-joined `output_dir`) → `-n` is now a bare name + `--outdir`, and bdgdiff outputs are
+globbed by macs3's `_cond{1,2}.bed` naming; (4) param-less run **honest-failed on `SIMULATE`** → now
+auto-downloads the real labeled nf-core demo BAM pair (honest-fail only if the download fails).
+(Peak counts are small because the demo BAMs are ~179 KB subsets — real macs3 on real data, pipeline
+proven end-to-end including the differential step.)
 
 ## Commits
 `8b62f332f` (metabo demo) → `c0051e686` (metabo rowu fix) → `3719a6807` (chip macs2 pin, superseded) →
