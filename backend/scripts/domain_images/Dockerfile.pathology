@@ -59,11 +59,12 @@ RUN micromamba install -y -n base -c conda-forge \
     && micromamba clean -a -y
 
 # Cellpose (pulls torch). CPU-only torch wheel to keep the image small; this workflow segments a
-# small slide on CPU. Pin cellpose to the version the workflow was written against.
-RUN /opt/conda/bin/pip install --no-cache-dir \
-      "cellpose==3.1.0" \
-      torch --index-url https://download.pytorch.org/whl/cpu \
-    && rm -rf /root/.cache/pip
+# small slide on CPU. Install torch from the PyTorch CPU index FIRST (its own --index-url), THEN
+# cellpose from PyPI (torch already satisfied) — do NOT put both under --index-url, that index has
+# no cellpose (real build 2026-10-04: "No matching distribution found for cellpose").
+RUN /opt/conda/bin/pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
+ && /opt/conda/bin/pip install --no-cache-dir "cellpose==3.1.0" \
+ && rm -rf /root/.cache/pip
 
 # Build-time sanity gate: the image MUST be able to import everything the workflow needs, or the
 # build fails here instead of at run time on Batch. One-liner (portable: no Dockerfile heredoc).
