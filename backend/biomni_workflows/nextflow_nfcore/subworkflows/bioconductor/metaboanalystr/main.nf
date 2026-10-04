@@ -5,6 +5,7 @@
 // sheet: normalization (log + auto-scale), univariate (fold-change + t-test), and multivariate
 // (PLS-DA with VIP) analysis, with optional pathway/enrichment when a compound list is present.
 // Input: peak_intensity_table.csv, class_labels.csv, compound_list.txt
+//        (if none supplied -> auto-downloads the MetaboAnalyst human_cachexia demo for a quick run)
 // Container: 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-metabolomics:3.20-deps
 // R packages: MetaboAnalystR (GitHub xia-lab/MetaboAnalystR), OptiLCMS (raw spectra dep)
 // Bioconductor: 3.20 | R: 4.4
@@ -107,23 +108,54 @@ process BIOC_METABOANALYSTR_STATISTICAL_METABOLOMICS_ANALYSIS {
         }
         peak_file  <- find_input(c("peak_intensity_table.csv", "peak_table.csv", "dataMatrix.csv", "data.csv"))
         class_file <- find_input(c("class_labels.csv", "sampleMetadata.csv", "metadata.csv", "labels.csv"))
-        if (is.null(peak_file)) stop("Required input peak-intensity table (peak_intensity_table.csv) not found.")
 
         # MetaboAnalyst consumes a single CSV with samples in columns and a 'Label' row, OR a
         # features x samples matrix + a separate class sheet. We normalize to the standard
         # MetaboAnalyst "colu" (columns = samples) CSV with the class as the second row.
-        mat <- read.csv(peak_file, header = TRUE, row.names = 1, check.names = FALSE, stringsAsFactors = FALSE)
+        demo_mode <- FALSE
+        if (is.null(peak_file)) {
+          # No user input -> fall back to the canonical MetaboAnalyst example dataset so a
+          # param-less "quick run" works (mirrors the merfish/voyager built-in-demo pattern:
+          # a REAL, clearly-labeled public dataset, NOT fabricated values). human_cachexia =
+          # 77 human urine samples x 63 metabolites, 2 groups (cachexic vs control) -- the
+          # official MetaboAnalyst statistical-analysis tutorial dataset (Eisner et al. 2011).
+          demo_urls <- c(
+            "https://www.metaboanalyst.ca/MetaboAnalyst/resources/data/human_cachexia.csv",
+            "https://rest.xialab.ca/api/download/metaboanalyst/human_cachexia.csv"
+          )
+          demo_csv <- "human_cachexia.csv"
+          ok <- FALSE
+          for (u in demo_urls) {
+            ok <- tryCatch({
+              download.file(u, demo_csv, quiet = TRUE, mode = "wb")
+              file.exists(demo_csv) && file.size(demo_csv) > 1000
+            }, error = function(e) FALSE)
+            if (isTRUE(ok)) break
+          }
+          if (!isTRUE(ok)) stop("No input peak-intensity table supplied and the MetaboAnalyst human_cachexia demo dataset could not be downloaded. Provide peak_intensity_table.csv (+ optional class_labels.csv) or ensure network egress for the demo dataset.")
+          demo_mode <- TRUE
+          # cachexia ships as samples (rows) x [class, metabolites...]: row.names = sample IDs,
+          # first column = group label. Transpose to the features x samples 'mat' used below.
+          df <- read.csv(demo_csv, header = TRUE, row.names = 1, check.names = FALSE, stringsAsFactors = FALSE)
+          labels <- as.character(df[[1]])
+          mat <- as.data.frame(t(as.matrix(df[, -1, drop = FALSE])), check.names = FALSE)
+          cat(sprintf("[demo] No input supplied -> MetaboAnalyst human_cachexia demo (%d samples x %d metabolites, groups: %s).\n",
+                      ncol(mat), nrow(mat), paste(unique(labels), collapse = "/")))
+        }
 
-        # Build / attach the class labels
-        if (!is.null(class_file)) {
-          lab_df <- read.csv(class_file, header = TRUE, row.names = 1, check.names = FALSE, stringsAsFactors = FALSE)
-          # first column of the label sheet holds the group; align to the sample (column) order of mat
-          grp_col <- lab_df[[1]]
-          names(grp_col) <- rownames(lab_df)
-          labels <- as.character(grp_col[colnames(mat)])
-        } else {
-          # Fallback: split samples into two balanced groups so the pipeline still demonstrates value
-          labels <- rep(c("GroupA", "GroupB"), length.out = ncol(mat))
+        if (!demo_mode) {
+          mat <- read.csv(peak_file, header = TRUE, row.names = 1, check.names = FALSE, stringsAsFactors = FALSE)
+          # Build / attach the class labels
+          if (!is.null(class_file)) {
+            lab_df <- read.csv(class_file, header = TRUE, row.names = 1, check.names = FALSE, stringsAsFactors = FALSE)
+            # first column of the label sheet holds the group; align to the sample (column) order of mat
+            grp_col <- lab_df[[1]]
+            names(grp_col) <- rownames(lab_df)
+            labels <- as.character(grp_col[colnames(mat)])
+          } else {
+            # Fallback: split samples into two balanced groups so the pipeline still demonstrates value
+            labels <- rep(c("GroupA", "GroupB"), length.out = ncol(mat))
+          }
         }
         if (any(is.na(labels))) stop("Class labels could not be matched to every sample column of the peak table.")
 
