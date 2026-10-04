@@ -31,14 +31,21 @@ test("real ADMET run — capture dynamic panel states", async ({ page }) => {
 
   try {
     await page.goto(BASE_URL + "/", { waitUntil: "domcontentloaded", timeout: 45_000 });
-    await page.waitForTimeout(5000);
 
-    // 1. Submit an explicit ADMET request via the composer (the intent bar only
-    //    SEEDS the composer; the real submit is chat-send-button).
+    // 1. Submit an explicit ADMET request via the composer. Gate every step on
+    //    READINESS, not fixed timeouts — the production build on dev defers JS, so
+    //    interacting before hydration (or while a prior stream is active) races:
+    //    chat-send-button only renders when NOT streaming (else it's the stop button)
+    //    and is disabled until message.trim() registers in React state.
     const input = page.getByTestId("chat-input");
-    await input.waitFor({ timeout: 20_000 });
+    await input.waitFor({ state: "visible", timeout: 30_000 });
+    await page.waitForTimeout(3000); // hydration settle for the deferred bundle
+    await input.click();
     await input.fill(ADMET_PROMPT);
-    await page.getByTestId("chat-send-button").click({ timeout: 10_000 });
+    // Wait for the send button to be present AND enabled before clicking.
+    const sendReady = page.locator('[data-testid="chat-send-button"]:not([disabled])');
+    await sendReady.waitFor({ state: "visible", timeout: 30_000 });
+    await sendReady.click({ timeout: 15_000 });
     log.push("submitted ADMET request");
 
     // 2. Wait for the workflow card / pre-run panel (Confirm & run). LLM gen up to 180s.
@@ -55,7 +62,10 @@ test("real ADMET run — capture dynamic panel states", async ({ page }) => {
     if (!/admet/.test(panelText)) {
       log.push("ABORT run — generated workflow is NOT ADMET (routing); kept r1 only, no Batch spend. panel='" + panelText.slice(0, 160).replace(/\n/g, " ") + "'");
     } else {
-      await confirm.first().click({ timeout: 10_000 });
+      const confirmBtn = page.getByRole("button", { name: /confirm.*run/i }).first();
+      await confirmBtn.waitFor({ state: "visible", timeout: 30_000 });
+      await confirmBtn.scrollIntoViewIfNeeded().catch(() => {});
+      await confirmBtn.click({ timeout: 30_000 }).catch(async () => { await confirmBtn.click({ timeout: 15_000, force: true }); });
       log.push("clicked Confirm & run (ADMET confirmed)");
 
       // 4. RUNNING state — poll for any phase card data-status=running.
