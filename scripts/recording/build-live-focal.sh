@@ -45,6 +45,14 @@ if [ -f "$R8" ]; then
   ffmpeg -y -loglevel error -i "$R8" -filter_complex "crop=1680:690:1200:190" "$DST/t3-completed-withheld.png"
 fi
 
+# T0 getting-started focal stills come from the live cold-start capture
+# (capture-live-t0-focal.cjs → recording/video/live-t0-focal/*.png). They are
+# already element-clipped at 3x, so just copy them into place.
+T0SRC="$ROOT/recording/video/live-t0-focal"
+for f in t0-composer t0-lane; do
+  [ -f "$T0SRC/$f.png" ] && cp "$T0SRC/$f.png" "$DST/$f.png"
+done
+
 echo "built focal stills:"
 for f in prerun running completed outputs record t3-completed-withheld; do
   [ -f "$DST/$f.png" ] || continue

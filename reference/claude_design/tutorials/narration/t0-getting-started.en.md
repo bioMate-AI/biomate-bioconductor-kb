@@ -38,7 +38,7 @@ Here is the safety rule that applies everywhere in the product: nothing runs unt
 
 ## Step 7 — Step by step · asking your first question
 
-Let's ask a real one. We'll use an evidence question, because it returns in seconds: what is the evidence linking the protein JAK1 to rheumatoid arthritis, and how strong is it? Type that into the intent bar. As you type, BioMate shows a short restatement — the lane it heard, here Instant, and a subject area. It doesn't list tool names. Your goal lands in the composer; that's your chance to edit it. When it says what you mean, press Send.
+Let's ask a real one. We'll use an evidence question, because it returns in seconds: what is the evidence linking the protein JAK1 to rheumatoid arthritis, and how strong is it? Type that into the intent bar. As you type, BioMate shows a short restatement — the lane it heard, here the Instant lane, shown as "Answer here, with sources", and a plain reading of the subject. It doesn't list tool names. Your goal lands in the composer; that's your chance to edit it. When it says what you mean, press Send.
 
 ---
 
