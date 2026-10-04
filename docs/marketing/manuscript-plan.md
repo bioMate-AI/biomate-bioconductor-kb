@@ -190,11 +190,13 @@ real-execution evidence). The prior 2,455/4,017/4,200 figures were a stale count
 must cite 4,209 (breadth) and 1,092 (validated) separately. CLAUDE.md is corrected; the on-prem drafts
 (4,017/4,200) and the MCP live-count string still need updating to match.
 
-**Prove a QC auto-loop gate fired and remediated live.** No committed screenshot/log artifact in
-`docs/` demonstrates the ADMET hERG (or any) QC gate firing and auto-remediating on a live run, even
-though CLAUDE.md treats it as a required standard (`internal_evidence_and_manuscripts.md` §A1/§Gaps).
-This artifact is load-bearing for Paper A's Tier-3 case study and for the §3 marketing differentiator;
-it must be captured and committed.
+**Prove a QC auto-loop gate fired live — DONE 2026-10-04.** Live AWS Batch run `d0ff684b` tripped the
+ADMET **GOLD hERG gate at `herg_ic50=0.012 µM`** (+ DILI high); the safe-compound control run `46953d98`
+had empty gates, proving the gate discriminates. Captured in `docs/20261004_AUTOLOOP_LIVE_PROOF.md` with
+the run-record `qc_gates`, raw S3 metrics, and the deterministic remediation diff (`logp_max 5.0→≤4.0,
+mw 500→400`). Caveat for Paper A: the remediation is **reactive/advisory** (suggestion + SSE param diff),
+not an autonomous closed-loop re-run — present it as a governed gate + recommended remediation. The live
+SSE param-diff capture (vs the code-deterministic reconstruction) is the one remaining nicety.
 
 **Independent (non-self) grading.** The flagship and RealBio depend on BioMate grading itself. A
 non-self grading track — human-verified held-out grading or a third-party scorer on the execution-
