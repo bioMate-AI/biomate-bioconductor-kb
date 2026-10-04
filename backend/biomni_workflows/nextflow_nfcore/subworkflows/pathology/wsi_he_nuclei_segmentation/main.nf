@@ -78,14 +78,12 @@ process WSI_HE_NUCLEI_SEGMENTATION {
     label 'process_high'
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
-    // Pinned, registry-verified, license-clean (BSD-3-Clause) cellpose biocontainer.
-    // This directive OVERRIDES the DB docker_image on AWS Batch, so it MUST be set here.
-    // Verified live on quay.io (tag 3.1.0 active; manifest sha256:0467d790...). Do NOT pull/run.
-    // KNOWN GAP (see header CONTAINER note, verified 2026-10-04): this image lacks
-    // openslide-python + libopenslide AND scikit-image, and no mulled biocontainer
-    // bundles them with cellpose — so the workflow honest-fails at import here. A
-    // custom image is the remaining owner step; the DB row stays executable=0.
-    container 'quay.io/biocontainers/cellpose:3.1.0'
+    // Purpose-built image bundling OpenSlide (C lib + python binding) + cellpose + scikit-image —
+    // the combination NO registry/mulled biocontainer provides. Built + pushed 2026-10-04 from
+    // backend/scripts/domain_images/Dockerfile.pathology; its build-time sanity gate verified all
+    // four imports + the OpenSlide C loader (OpenSlide C lib 4.0.1). This directive OVERRIDES the DB
+    // docker_image on AWS Batch, so it MUST be set here (literal, merfish/voyager pattern).
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-pathology:1.0'
 
     input:
     val(meta)
