@@ -63,3 +63,37 @@ pattern), after confirming it checkpoints so a reclaim is harmless.
 1. Run **Option A now** (safe, reversible, kills the always-on r5 cost).
 2. Run **Option B** when you can watch a test job land on spot (cheap, reversible, fallback-protected).
 3. Hand **Option C** to the session that launched the g5.
+
+---
+
+## EXECUTION OUTCOME (2026-10-04, owner said "go")
+
+Executed + tested, then **partially reverted on new evidence**:
+
+- **Option A — DONE, kept.** `biomate-nextflow-ce-v2 minvCpus 4→0`. Verified the always-on r5 scaled
+  down (both CEs reached 0 instances). The standing baseline cost (~$12/day) is eliminated, reliably
+  and reversibly. **This is the main cost win and it stands.**
+- **Option B — built, tested, REVERTED.** Created `biomate-nextflow-ce-spot` (SPOT,
+  SPOT_CAPACITY_OPTIMIZED, VALID/healthy) and re-pointed both queues spot-preferred + on-demand
+  fallback. **Spot placement works** — a cold job launched a real spot instance (`i-05a7088a92bc9f974`
+  on `ce-spot`). **But that first spot job FAILED**: the spot instance was terminated mid-run and the
+  Batch job (`f3d0ea9b`) exited FAILED with **`retryStrategy: null`** — the executor submits jobs with
+  **no retry**, so a spot reclaim kills the job outright (no auto-retry to on-demand). Reliability/UX
+  is the #1 priority, so I **reverted both queues to on-demand only** (VALID). The spot CE is kept
+  **ENABLED but dormant** (no queue routes to it; min=0 → no cost) so it's ready to re-enable.
+- **Option C — not done** (concurrent session's g5 training; not mine to kill).
+
+### To make spot production-safe (required before re-enabling Option B)
+Add a **Batch retry strategy** to the executor's job submission
+(`backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py`, where it registers/submits the job
+definition): `retryStrategy` with `attempts: 2–3` + `evaluateOnExit` rules that **RETRY on host
+termination / spot reclaim** (e.g. `onStatusReason: "Host EC2*"` → RETRY) and exit otherwise. With
+that, a reclaimed task re-runs (on a fresh spot or the on-demand fallback) instead of failing the
+user's job. Then re-point the queues spot-preferred and re-run the merfish/voyager validations to
+confirm reclaim-resilience before trusting long pipelines. (Also consider Nextflow `errorStrategy
+'retry'` at the process level as defense-in-depth.)
+
+### Net state now
+- Cost: always-on baseline removed (min=0). ✅
+- Reliability: production on on-demand (unchanged from before). ✅
+- Spot: CE exists + proven to place jobs; **gated on a retry strategy** before production use.
