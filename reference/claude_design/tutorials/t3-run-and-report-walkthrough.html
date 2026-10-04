@@ -77,18 +77,18 @@ body{
 .teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
 
 /* concept cards */
-.concept{flex:1; display:flex; flex-direction:column; gap:16px; min-height:0}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:center; gap:18px; min-height:0}
 .card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
-.card.big{flex:1; display:flex; flex-direction:column; justify-content:center}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
 .card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
 .card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
 .row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
 .row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
 .row5{display:grid; grid-template-columns:repeat(5,1fr); gap:14px}
-.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:15px 17px}
-.tile .n{font-family:var(--ff-mono); font-size:11px; color:var(--mut); letter-spacing:.05em}
-.tile h4{font-family:var(--ff-ui); font-size:16px; margin:6px 0 6px; color:var(--ink); font-weight:600}
-.tile p{font-size:13px; line-height:1.48; color:var(--ink2); margin:0}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
 .flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
 .chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
 .chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}

@@ -78,14 +78,14 @@ body{
 .shot .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:3px}
 
 /* concept cards */
-.concept{flex:1; display:flex; flex-direction:column; gap:16px; min-height:0}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:center; gap:18px; min-height:0}
 .card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:22px 26px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
-.card.big{flex:1; display:flex; flex-direction:column; justify-content:center}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
 .row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
 .row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
 .row2{display:grid; grid-template-columns:repeat(2,1fr); gap:20px}
 .tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:16px 18px}
-.tile .n{font-family:var(--ff-mono); font-size:11px; color:var(--mut); letter-spacing:.05em}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
 .tile h4{font-family:var(--ff-ui); font-size:17px; margin:6px 0 6px; color:var(--ink); font-weight:600}
 .tile p{font-size:13.5px; line-height:1.5; color:var(--ink2); margin:0}
 .tile.lane-i{border-left:3px solid var(--green)}
