@@ -61,6 +61,7 @@ done
 [ -f "$HERE/patch_unimomo_training.py" ] || { echo "FATAL: training guard missing"; exit 1; }
 aws s3 cp "$HERE/patch_unimomo_training.py" "$S3RUN/code/patch_unimomo_training.py" --only-show-errors
 aws s3 cp "$HERE/unimomo_cyclic_dataprep.py" "$S3RUN/code/unimomo_cyclic_dataprep.py" --only-show-errors
+aws s3 cp "$HERE/cyclic_eval_summary.py" "$S3RUN/code/cyclic_eval_summary.py" --only-show-errors
 aws s3 cp "$HERE/unimomo_cyclic_ft.yaml"     "$S3RUN/code/unimomo_cyclic_ft.yaml"     --only-show-errors
 
 DRIVER=$(mktemp)
@@ -174,6 +175,7 @@ fi
 
 # ---- pull our code + inputs ----
 aws s3 cp "$OUT_S3/code/unimomo_cyclic_dataprep.py" ./unimomo_cyclic_dataprep.py --only-show-errors
+aws s3 cp "$OUT_S3/code/cyclic_eval_summary.py" ./cyclic_eval_summary.py --only-show-errors
 aws s3 cp "$OUT_S3/code/unimomo_cyclic_ft.yaml" ./configs/unimomo_cyclic_ft.yaml --only-show-errors
 aws s3 cp "$MANIFEST_S3" ./manifest.jsonl --only-show-errors
 aws s3 cp "$TEST_INDEX_S3" ./pepbdb_test_index.txt --only-show-errors
@@ -272,6 +274,7 @@ out={'benchmark':'UniMoMo-format PepBDB-cyclic test (reprocessed via pepbench), 
  'note':'base = reproduced UniMoMo 0.7754-on-LINEAR; here both scored on the CYCLIC test set, same harness. NOT comparable to PepGLAD 0.403/0.506 (different format/harness).'}
 open('/opt/unimomo-run/status/ft_summary.json','w').write(json.dumps(out,indent=2)); print(json.dumps(out,indent=2))
 PY
+python cyclic_eval_summary.py --base "$ROOT/status/eval_base.log" --ft "$ROOT/status/eval_ft.log" --out "$ROOT/status/ft_eval_summary_extended.json" 2>&1 | tail -30 || echo 'WARN extended summary failed'
 sync_results
 stage complete
 DRIVER_EOF
