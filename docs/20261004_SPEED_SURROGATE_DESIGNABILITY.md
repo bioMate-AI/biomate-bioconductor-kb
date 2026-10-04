@@ -67,6 +67,10 @@ Per-target (combined):
   (5o45/PD-L1 0.676) — and saves **~24–34 % of co-fold compute** at 80 % recall of true designables
   (5o45: 34 %). Strongest single signal is the generator's own `min_design_to_target_pae` /
   `design_to_target_iptm` (5o45 raw-feature AUC 0.78 / 0.77).
+- **Realistic seed-and-triage simulation** (the actual DBTL use: co-fold a random 30 % seed, train on
+  it, triage the remainder; 20 random draws) — on **5o45/PD-L1 (n=695): skip ~43 % ± 9 of the
+  remaining co-folds while still recovering 80 % of its designables**; on 1u8p ~21 % ± 4. This is the
+  headline operational benefit, measured prospectively rather than by CV.
 - **Sequence-only is genuinely chance** (AUC ≈ 0.54). A naive sequence→designability surrogate does
   not work; the signal is the generator's self-confidence, not composition.
 - **Cold-start is target-dependent and NOT dependable.** It is strong on the hardest/largest target

@@ -282,6 +282,44 @@ def within_target_eval(rows: List[dict], min_rows=40, k=5, seed=0, mode="seq") -
     }
 
 
+def seed_triage_sim(rows: List[dict], target: str, seed_frac=0.3, mode="combined",
+                    recall=0.8, repeats=20) -> dict:
+    """Realistic DBTL operational test for ONE target: co-fold a random SEED batch, train on it,
+    then triage the REMAINING designs (co-fold only the top fraction the surrogate flags). Reports
+    the fraction of the remainder you must co-fold to still recover `recall` of its true designables,
+    i.e. the actual compute saving in use. Averaged over `repeats` random seed draws."""
+    import numpy as np
+    rs = [r for r in rows if r["target"] == target]
+    y_all = np.array([r["designable"] for r in rs])
+    if len(rs) < 40 or min(y_all.sum(), (len(y_all) - y_all.sum())) < 8:
+        return {"target": target, "note": "too small / too degenerate for a seed-triage sim"}
+    X = np.array([row_features(r, mode) for r in rs])
+    y = y_all
+    rng = np.random.default_rng(0)
+    saved, recalls = [], []
+    n_seed = max(10, int(seed_frac * len(rs)))
+    for _ in range(repeats):
+        idx = rng.permutation(len(rs))
+        seed, pool = idx[:n_seed], idx[n_seed:]
+        if len(set(y[seed].tolist())) < 2 or y[pool].sum() == 0:
+            continue
+        proba = fit_predict(X[seed], y[seed], X[pool], classifier=True)
+        se = screening_efficiency(y[pool], proba, recall)
+        if "cofold_work_saved_pct" in se:
+            saved.append(se["cofold_work_saved_pct"])
+            recalls.append(recall)
+    if not saved:
+        return {"target": target, "note": "no valid seed draws"}
+    return {"target": target, "seed_frac": seed_frac, "n": len(rs),
+            "designable_rate": round(float(y.mean()), 3),
+            "recall_target": recall,
+            "mean_cofold_work_saved_pct_on_remainder": round(float(np.mean(saved)), 1),
+            "std": round(float(np.std(saved)), 1), "repeats": len(saved),
+            "interpretation": (f"after co-folding a {int(seed_frac*100)}% seed, triaging the rest "
+                               f"recovers {int(recall*100)}% of its designables while skipping "
+                               f"~{round(float(np.mean(saved)),0):.0f}% of the remaining co-folds")}
+
+
 def timing_demo(rows: List[dict], n=200) -> dict:
     import numpy as np
     seqs = [r["sequence"] for r in rows[:n]] or ["ACDEFGHIK"]
@@ -355,6 +393,11 @@ def main(argv=None) -> int:
     modes = ["seq", "design", "combined"] if has_design_feats(rows) else ["seq"]
     report["loto"] = {m: loto_eval(rows, min_rows=args.min_rows, mode=m) for m in modes}
     report["within_target"] = {m: within_target_eval(rows, mode=m) for m in modes}
+    # Realistic operational validation on the triage-relevant targets (seed -> triage remainder).
+    if has_design_feats(rows):
+        tr_targets = [t for t, v in report["within_target"]["combined"]["per_target"].items()
+                      if TRIAGE_RATE_LO <= v.get("designable_rate", 0) <= TRIAGE_RATE_HI]
+        report["seed_triage_sim"] = {t: seed_triage_sim(rows, t) for t in tr_targets}
     report["timing"] = timing_demo(rows)
     print(json.dumps(report, indent=2))
     if args.out:

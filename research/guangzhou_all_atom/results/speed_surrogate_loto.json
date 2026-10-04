@@ -434,10 +434,34 @@
       "mean_cofold_work_saved_pct@0.8recall": 24.3
     }
   },
+  "seed_triage_sim": {
+    "1u8p": {
+      "target": "1u8p",
+      "seed_frac": 0.3,
+      "n": 56,
+      "designable_rate": 0.643,
+      "recall_target": 0.8,
+      "mean_cofold_work_saved_pct_on_remainder": 20.6,
+      "std": 4.2,
+      "repeats": 20,
+      "interpretation": "after co-folding a 30% seed, triaging the rest recovers 80% of its designables while skipping ~21% of the remaining co-folds"
+    },
+    "5o45": {
+      "target": "5o45",
+      "seed_frac": 0.3,
+      "n": 695,
+      "designable_rate": 0.078,
+      "recall_target": 0.8,
+      "mean_cofold_work_saved_pct_on_remainder": 42.7,
+      "std": 9.3,
+      "repeats": 20,
+      "interpretation": "after co-folding a 30% seed, triaging the rest recovers 80% of its designables while skipping ~43% of the remaining co-folds"
+    }
+  },
   "timing": {
-    "surrogate_featurize_s_per_seq": 5.16e-06,
+    "surrogate_featurize_s_per_seq": 1.193e-05,
     "cofold_s_per_seq_typical": 90.0,
-    "speedup_x": 17441860,
+    "speedup_x": 7543083,
     "note": "surrogate inference is sequence-only featurize + one GBM forward; co-fold is a Boltz prediction"
   }
 }
