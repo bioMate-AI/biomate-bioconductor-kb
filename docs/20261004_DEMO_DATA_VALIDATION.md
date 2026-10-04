@@ -11,7 +11,7 @@ marked pass on an exit code alone; real outputs inspected).
 |---|---|---|---|
 | **metaboanalystr** (`bioconductor/metaboanalystr`) | MetaboAnalyst **human_cachexia** (77 samples × 63 metabolites, cachexic vs control; the official tutorial dataset, auto-downloaded) | ✅ **PASS** exit 0 | Real stat pipeline: *"A total of 55 significant features were found"* (fold-change + t-test), `mSet.rds` + significant-feature CSVs written. PLS-DA + volcano skipped **non-fatally** (MetaboAnalystR packaging quirks: `util_volcano.Rc` missing; PLS ncomp=62 on 77 samples — affect user data too, not demo-specific). |
 | **chipseq** (`genomics/perform_chipseq_peak_calling_with_macs2`) | Canonical MACS **CTCF_SE** ChIP + control (chr22, ~50k reads each; macs3-project/MACS repo, auto-downloaded) | ✅ **PASS** exit 0 | macs3 3.0.5, auto `--nomodel` fallback fired, **802 peaks** called. Outputs: `*_peaks.narrowPeak` (63 KB), `*_peaks.xls` (69 KB), `*_summits.bed` (43 KB), `results.json`. "Peak calling completed successfully." |
-| **pathology WSI** (`pathology/wsi_he_nuclei_segmentation`) | OpenSlide **CMU-1-Small-Region.svs** (auto-downloaded) | ⬜ **demo added; blocked on image** | `executable=0`. No registry image bundles OpenSlide + cellpose + scikit-image (mulled-hash probes all 401). Needs a custom image build (owner/infra). Demo slide makes that smoke test trivial once the image exists. A **draft** (unbuilt) `backend/scripts/domain_images/Dockerfile.pathology` is provided as a starting point — Python/micromamba base with OpenSlide + cellpose + scikit-image, a build-time import sanity gate, and build/push + post-build wiring steps in its header. Must be built on x86 + validated by a real run before `executable=1`. See `docs/20261004_PATHOLOGY_WSI_CONTAINER_FINDINGS.md`. |
+| **pathology WSI** (`pathology/wsi_he_nuclei_segmentation`) | OpenSlide **CMU-1-Small-Region.svs** (auto-downloaded) | ✅ **PASS** exit 0 (custom image built) | Real end-to-end run: OpenSlide read the Aperio SVS (2220×2967, 0.499 µm/px) → 30 tiles, 17 tissue → cellpose segmented nuclei → outputs `cell_table.csv` (35 KB, real per-nucleus centroids + µm² areas), `qc_overlay.png` (3.1 MB), per-tile masks, `qc_summary.json` (`status: completed`), report, manifest. Runs on the purpose-built `biomate/bioc-domain-pathology:1.0` (built on AWS from `Dockerfile.pathology`). **Note:** the workflow's DB row is not in the local `workflows` table, so `executable=1` must be set via the canonical dev DB update path (not a local edit) — the *workflow + image* are validated; only the DB discoverability flag remains. |
 
 All three fall back to a **real, clearly-labeled** dataset (`[demo]` / `[DEMO DATA]` in logs/output) and
 **honest-fail** if the download is unavailable — no fabricated data, per the no-fabrication rule.
@@ -39,6 +39,25 @@ All three fall back to a **real, clearly-labeled** dataset (`[demo]` / `[DEMO DA
      peaks … found 0`). Added an **auto-fallback** to `--nomodel --extsize 200` (macs3's own
      recommendation) when model building fails — robust for real SE data, not a demo-only hack.
      Commit `53749d9ac`.
+
+## WSI image — built on AWS (`biomate/bioc-domain-pathology:1.0`)
+
+No registry image bundles OpenSlide + cellpose + scikit-image, so the image was built from
+`backend/scripts/domain_images/Dockerfile.pathology` (Python/micromamba base) on a **self-terminating
+x86 spot instance** (user-data: install docker → pull Dockerfile from S3 → build → ECR push → upload
+log to S3 → `shutdown -h` with `instance-initiated-shutdown-behavior=terminate` + a +45 min dead-man's
+switch). Four build/run iterations, each root-caused from a real failure (the iterative loop working):
+1. `pip ... cellpose torch --index-url <pytorch>` → cellpose unfindable (single `--index-url` hides
+   PyPI). **Fix:** install torch (CPU index) and cellpose (PyPI) as separate steps.
+2. WSI run exit 1: `Command 'ps' required by nextflow … cannot be found`. **Fix:** add `procps-ng`.
+3. WSI run exit 1: `skimage.draw.rectangle_perimeter … requires "matplotlib >=3.3"`. **Fix:** add
+   `matplotlib-base` (and to the build-time sanity gate).
+4. ✅ WSI run exit 0 — real nuclei segmentation (see the table row above).
+
+The Dockerfile has a build-time import sanity gate (`import openslide, cellpose, skimage, numpy,
+scipy, matplotlib; rectangle_perimeter; openslide.__library_version__`) so a broken combo fails the
+build, not a Batch run. (A pip `| tee` in the build user-data initially masked exit codes → fixed with
+`set -o pipefail`.)
 
 ## Related follow-up — DONE (`immunology/analyze_atac_seq_differential_accessibility`)
 
