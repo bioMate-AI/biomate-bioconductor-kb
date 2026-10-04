@@ -92,3 +92,49 @@ satisfied for every existing educational-format tutorial video.
   static server on 7782 rooted at `reference/claude_design`).
 - Mux: `mux-walkthrough.py` (flagship, per-lang `RECORD_META`) /
   `mux-walkthrough-t{0,3}.py`. libopenh264 + AAC; MP4s are gitignored.
+
+---
+
+## Session 2 (2026-10-04, continued) — T1/T2/T4 produced + polish audit
+
+### New educational videos (EN + ZH), flagship format + live focal capture
+- **T1 Design & Generate** — `capture-live-t1-focal.cjs` runs one small-molecule
+  generate on `/design` (aspirin seed) → form, multi-objective ranked table,
+  Pareto, rejection profile. Honesty added beyond source: generator is
+  **deterministic BRICS enumeration, not a trained model** (live `dg-status`
+  discloses it). Render scripts port 7783.
+- **T2 Models & the closed loop** — `capture-live-t2-focal.cjs` navigates
+  `/models` → Registry (5 BioNeMo models), model object (Boltz-2 Evidence =
+  **not_evaluated**, "a floor not a ranking"), Run-a-model form, Rounds empty
+  state (closed-loop honesty rules). Port 7784.
+- **T4 Bringing your own data** — `capture-live-t4-focal.cjs` uploads a demo
+  `jak1_assay_demo.csv` (so the dataset object shows a real **Preview table** +
+  **Good** quality) → data hub, dataset object, quality tab. Authored; NOT yet
+  rendered/uploaded (pending). Port would be 7785.
+
+### Polish audit + fix (per user request: polish / professional / clarity)
+- Audited title/concept/live/closing frames of all shipped videos. Strengths:
+  all live focal scenes, closing verdict tables, honesty badges. 
+- **Systemic issue found + fixed:** concept-tile scenes (T0/T1/T2/T3) had a large
+  dead band — the `.card.big` stretched full-height but held few tiles. Fix in
+  each file's CSS: `.card.big{flex:initial; padding:30px 32px}`, `.concept{...
+  justify-content:center}`, tiles enlarged (h4 16→18, p 13→14.5, padding 15→20).
+  Re-recorded + re-muxed all four (narration unchanged → no re-TTS) and re-uploaded.
+- Minor/low-pri: title slides have empty lower halves (fine for intros); T3
+  reproducibility scene uses a full-panel shot (legible, not focal).
+
+### Interactive Tools (RStudio / Jupyter / CellxGene) — current honest status
+- `/api/interactive/available` on dev returns `{available:true, tools:{jupyter,
+  rstudio,cellxgene:true}}` — buttons appear. But a live launch
+  (`/api/interactive/launch`) **issues a session URL that 503s for ~60s and never
+  serves** on dev → a *running* notebook is NOT demonstrable there yet.
+- T5 doc (`T5-viewing-your-results.md` §8) is now **stale** on one line ("not
+  provisioned on dev"); update it.
+- Data flow (`interactive-launcher.tsx`): auto-selects tool by dataset format,
+  mounts selected outputs at `/data/`, preloads packages (R: DESeq2/edgeR/
+  tidyverse/Bioconductor; Py: pandas/scanpy/…), shows quick-start code — but does
+  **not auto-load** data into the live workspace (you run one snippet). A small,
+  high-value product change: auto-run the quick-start snippet / pre-seed a cell.
+- Next: produce **T5** foregrounding (a) the inline viewers across data types
+  (table/image/PDB-3D+pLDDT/VCF/MRC/HTML/logs) and (b) the launcher dialog —
+  honestly, not pretending the workspace is pre-loaded.
