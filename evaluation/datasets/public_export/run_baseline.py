@@ -107,6 +107,12 @@ def main():
     ap.add_argument("--mode", choices=["bare", "catalog"], default="catalog",
                     help="routing only: 'bare' = from the model's own knowledge (no candidate list); "
                          "'catalog' = give the candidate workflows in-context (RAG-fair). Other tasks always use their label set.")
+    ap.add_argument("--catalog-style", choices=["names", "described"], default="names",
+                    help="routing catalog only: 'names' = bare workflow names (legacy); 'described' = each "
+                         "candidate annotated with its one-line description[:120] from the workflows DB, "
+                         "faithful to what the production harness (UnifiedWorkflowSearch) actually shows the LLM.")
+    ap.add_argument("--wf-db", default=os.path.join(HERE, "..", "..", "..", "backend", "database", "galaxy_ai_tools.db"),
+                    help="SQLite DB with the `workflows` table (for --catalog-style described).")
     ap.add_argument("--price-in", type=float, default=None,
                     help="USD per 1M input tokens (optional; enables per-run $ cost logging).")
     ap.add_argument("--price-out", type=float, default=None,
@@ -127,7 +133,30 @@ def main():
         labset = {l.lower(): l for l in labs}
         give_list = not (task == "cross_domain_routing" and args.mode == "bare")
 
+    # Faithful catalog: annotate each candidate name with its production routing description (desc[:120]),
+    # exactly as UnifiedWorkflowSearch._browse_catalog_with_llm feeds the LLM. Grounded in the workflows
+    # table (real metadata), NOT per-item rules, so it generalizes. Falls back to bare name if no DB row.
+    described = (task == "cross_domain_routing" and args.mode == "catalog" and args.catalog_style == "described")
+    wf_desc = {}
+    if described:
+        import sqlite3
+        con = sqlite3.connect(args.wf_db)
+        # desc, falling back to the grounded `annotation` blob when description is empty — 16 custom
+        # BioMate workflows have no description but a rich annotation (the production fix is to backfill
+        # description from annotation; this measures that fixed system). annotation is already FTS-indexed.
+        for nm, ds in con.execute("SELECT name, COALESCE(NULLIF(TRIM(description),''), annotation, '') FROM workflows "
+                                  "WHERE source IN ('nfcore','nfcore_subwf','nextflow','biomni_nextflow','bioconductor',"
+                                  "'custom','custom_composer','biomate-ai-tools')"):
+            if nm not in wf_desc or (ds and not wf_desc[nm]):
+                wf_desc[nm] = ds
+        con.close()
+        def menu_line(lab):
+            d = (wf_desc.get(lab) or "")[:120].replace("\n", " ").strip()
+            return f"{lab} — {d}" if d else lab
+        menu = "\n".join(menu_line(l) for l in labs)
+
     suffix = f"_{args.mode}" if task == "cross_domain_routing" else ""
+    if described: suffix += "_described"
     outdir = os.path.join(HERE, "results", args.model.replace("/", "_"))
     os.makedirs(outdir, exist_ok=True)
     outpath = os.path.join(outdir, f"{task}{suffix}.jsonl")
@@ -147,6 +176,10 @@ def main():
         for r in rows:
             if is_gen:
                 prompt = f"{spec['instr']}\n\nINPUT:\n{spec['inp'](r)}"
+            elif described:
+                prompt = (f"{spec['instr']}\nEach candidate is 'name — description'. Choose the single best match "
+                          f"and respond with EXACTLY its name and nothing else:\n"
+                          f"{menu}\n\nINPUT:\n{spec['inp'](r)}")
             elif give_list:
                 prompt = (f"{spec['instr']}\nRespond with EXACTLY ONE option from this list and nothing else:\n"
                           f"{', '.join(labs)}\n\nINPUT:\n{spec['inp'](r)}")
