@@ -18,7 +18,10 @@ echo "[eval] serving vLLM"
 # --enforce-eager: skip CUDA-graph capture (OOM'd on 24GB A10G). The base resolves to a multimodal
 # Qwen3_5ForConditionalGeneration (heavier than text-only 9B), so it's run on a 48GB L40S (g6e) where
 # weights + KV for the ~2.2k-token described prompt fit comfortably. Params env-tunable.
-MML=${MAX_MODEL_LEN:-4096}; GMU=${GPU_MEM_UTIL:-0.90}; MNS=${MAX_NUM_SEQS:-16}
+# Defaults tuned for a 24GB A10G serving the heavy multimodal base: longest described prompt ~2230 tok,
+# so max_model_len 3072 (headroom); util 0.95 frees ~10x more KV than 0.90 (which only reached ~1056 tok);
+# low concurrency keeps KV small. (48GB L40S would tolerate larger, but g6e is capacity-constrained now.)
+MML=${MAX_MODEL_LEN:-3072}; GMU=${GPU_MEM_UTIL:-0.95}; MNS=${MAX_NUM_SEQS:-2}
 nohup python3 -m vllm.entrypoints.openai.api_server --model "$SCRATCH/base" --served-model-name base \
   --port 8000 --max-model-len "$MML" --gpu-memory-utilization "$GMU" --enforce-eager --max-num-seqs "$MNS" \
   > "$SCRATCH/vllm.log" 2>&1 &
