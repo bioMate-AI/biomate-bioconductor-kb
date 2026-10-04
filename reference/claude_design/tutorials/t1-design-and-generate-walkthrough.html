@@ -130,7 +130,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 <div class="stage" id="stage">
 
   <!-- 1 — TITLE -->
-  <section class="scene title" data-seconds="30.0">
+  <section class="scene title" data-seconds="34.0">
     <div class="kicker">The first step of drug discovery — before you make anything</div>
     <h2>Start a drug program from a filtered shortlist, not a blank page.</h2>
     <p class="caption">A new medicine usually begins as a single <b>molecule</b> that sticks to a disease-related <b>target</b> and changes what it does. <b>Design &amp; Generate</b> is the BioMate tool that proposes brand-new candidate molecules, scores them, sets aside the clearly unsafe ones, and returns a short, ranked list — in minutes, not months.</p>
@@ -168,7 +168,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 3 — GENERATE VS SCREEN + SEED -->
-  <section class="scene" data-seconds="40.0">
+  <section class="scene" data-seconds="48.0">
     <div class="kicker"><span class="st">The ideas you need first</span> · generate, seed, SMILES <span class="badge concept">Concept</span></div>
     <h2>You don't invent molecules — you give one seed, and BioMate varies it.</h2>
     <p class="caption">"Screening" tests molecules you <b>already have</b>; "generating" (this tool) creates <b>new</b> ones. The generator doesn't start from nothing — you give it a <b>seed</b>: one known molecule to build variations around, like handing a composer a melody.</p>
@@ -250,7 +250,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 7 — LIVE: THE FORM -->
-  <section class="scene live" data-kind="flow" data-seconds="22.0">
+  <section class="scene live" data-kind="flow" data-seconds="29.0">
     <div class="kicker"><span class="st">Step by step</span> · the Design &amp; Generate form <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
     <h2>You fill in a few constraints — before anything is generated.</h2>
     <p class="caption">This is the real form on dev: pick the <b>modality</b> (start with Small molecule), give a <b>seed</b> SMILES, choose the <b>scaffold policy</b> (Stay / Hop / Grow), and set the <b>MW / logP / TPSA</b> window. Exclusions and a seed series are optional. Then press <b>Generate &amp; rank</b> — it finishes in under a minute.</p>
@@ -266,7 +266,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 8 — LIVE: RANKED RESULTS -->
-  <section class="scene live" data-kind="flow" data-seconds="24.0">
+  <section class="scene live" data-kind="flow" data-seconds="32.0">
     <div class="kicker"><span class="st">Reading the results</span> · the multi-objective view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
     <h2>Every candidate is one row; every goal keeps its own column.</h2>
     <p class="caption">Each row is a proposed molecule (BM-0001, BM-0002, …). Each goal has its own column — nothing is blended into one number. <b>"score*" is only a ranking key</b>, not a quality verdict. <b>Verdict</b> shows Accepted or Rejected, and <b>rejected molecules stay visible with their reason</b>. <b>"why?"</b> on each row explains the score, including the nearest known molecule it resembles.</p>
@@ -282,7 +282,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 9 — LIVE: PARETO + REJECTIONS -->
-  <section class="scene live" data-kind="flow" data-seconds="22.0">
+  <section class="scene live" data-kind="flow" data-seconds="36.0">
     <div class="kicker"><span class="st">The trade-off chart</span> · Pareto front &amp; rejection summary <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
     <h2>The best available compromises — and why some were set aside.</h2>
     <p class="caption">Each dot is a candidate; the dots along the front boundary are the <b>best available compromises</b> — to make one better on one goal, you'd accept it being worse on another. You pick from that boundary based on what matters most. The <b>rejection summary</b> tells you <i>why</i> candidates were dropped: a high rejection rate is the clearest signal that your seed or constraints need adjusting — a useful diagnostic, not a failure.</p>
@@ -302,7 +302,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 10 — CLOSED LOOP -->
-  <section class="scene" data-seconds="40.0">
+  <section class="scene" data-seconds="42.0">
     <div class="kicker"><span class="st">What happens next</span> · the closed loop <span class="badge concept">Concept</span></div>
     <h2>A shortlist is a start — real lab results make the next round better.</h2>
     <p class="caption">These candidates are still a long way from the clinic; the value is <b>starting smart</b>. From the results you can <b>export an order sheet</b> — a file pairing each candidate with a lab ID so chemists can actually make and test the top molecules.</p>
@@ -328,7 +328,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 11 — CLOSING -->
-  <section class="scene title" data-seconds="30.0">
+  <section class="scene title" data-seconds="35.0">
     <div class="kicker">The habit at a glance</div>
     <h2 style="font-size:40px">Seed → generate → read each goal → pick from the front.</h2>
     <div class="scene-body">
