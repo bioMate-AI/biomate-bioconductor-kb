@@ -27,13 +27,15 @@ process PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2 {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    // macs2 is NOT installed in biomni-tools:x86 — verified on a real Batch probe (2026-10-04):
-    // the task exited 1 with empty logs and `which macs2` returned nothing. Pin the
-    // registry-verified macs2 biocontainer so peak calling actually runs. Literal directive
-    // (not a ${params.container} indirection) so the executor resolves it correctly; the
-    // always-on host-libz + /opt/aws-cli mounts make quay biocontainers work on Batch, exactly
-    // as merfish (squidpy) and voyager (bioc-domain-spatial) already do.
-    container 'quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_5'
+    // Peak-calling engine = MACS3 (the maintained, CLI-compatible successor to MACS2).
+    // Why not macs2: biomni-tools:x86 ships no macs2 (real Batch probe: `which macs2` empty),
+    // AND every available bioconda macs2 biocontainer (2.2.9.1 py39/py310 _5) fails at runtime
+    // with `undefined symbol: __log_finite` — their compiled .so links a glibc math alias that
+    // modern glibc dropped (verified broken on 2 builds in isolation, 2026-10-04). MACS3 is built
+    // against modern glibc; `macs3 callpeak` takes the same -t/-c/-n/-g/-q args and emits the
+    // same *_peaks.narrowPeak / *_peaks.xls / *_summits.bed. Literal directive (merfish/voyager
+    // pattern); always-on host-libz + /opt/aws-cli mounts make quay biocontainers work on Batch.
+    container 'quay.io/biocontainers/macs3:3.0.5--py312h9639c01_0'
 
     input:
     // ChIP (treatment) + input/control alignments are STAGED path inputs so Nextflow
@@ -175,28 +177,28 @@ def perform_chipseq_peak_calling_with_macs2(
     log += f"- Genome size: {genome_size}\\n"
     log += f"- q-value cutoff: {q_value}\\n\\n"
 
-    # Check if MACS2 is installed
+    # Check the peak caller is installed. Engine = MACS3 (maintained macs2 successor; see the
+    # container directive note for why the macs2 biocontainers are unusable).
     try:
         check_process = subprocess.run(
-            ["macs2", "--version"],
+            ["macs3", "--version"],
             check=False,
             capture_output=True,
             timeout=5,
         )
-        log += f"MACS2 is available: {check_process.stdout.decode().strip() if check_process.stdout else check_process.stderr.decode().strip()}\\n\\n"
+        log += f"MACS3 (MACS2 successor) is available: {check_process.stdout.decode().strip() if check_process.stdout else check_process.stderr.decode().strip()}\\n\\n"
     except (subprocess.SubprocessError, FileNotFoundError):
-        # Honest-fail: the container must provide macs2. Do not return a "success"
+        # Honest-fail: the container must provide the peak caller. Do not return a "success"
         # log that silently skipped peak calling.
         raise RuntimeError(
-            "MACS2 is not installed or not on PATH in this container "
-            "(expected in biomate/biomni-tools). Peak calling cannot run."
+            "MACS3 is not installed or not on PATH in this container. Peak calling cannot run."
         )
     except Exception as e:
-        log += f"Error checking for MACS2: {str(e)}\\n"
+        log += f"Error checking for MACS3: {str(e)}\\n"
 
     # Construct MACS2 command
     macs2_cmd = [
-        "macs2",
+        "macs3",
         "callpeak",
         "-t",
         chip_seq_file,
