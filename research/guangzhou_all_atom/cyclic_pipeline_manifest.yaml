@@ -232,9 +232,13 @@ wiring_gaps:
   - id: G8
     between: [target_prep, dpo_learn]
     severity: medium
+    status: open
     description: >-
       Stage scripts hard-code dataset paths; none import cyclic_data_registry yet. This PR ships the
       registry; migrating the scripts to resolve datasets through it is the adoption follow-up.
+      PARTIAL: peptide_verify.py is the first adopter — its default permeability/stability training
+      CSVs now resolve through cyclic_data_registry (cache-first, committed path as fallback). The
+      remaining stage scripts still hard-code paths, so this stays OPEN.
   - id: G9
     between: [target_prep, target_prep]
     severity: low

@@ -135,6 +135,22 @@ def _load_module(filename: str):
     return mod
 
 
+_REGISTRY = None  # memoised cyclic_data_registry instance (None => not yet loaded / unavailable)
+
+
+def _default_dataset_path(registry_name: str, fallback_rel: str) -> Path:
+    """G8: resolve a training CSV through cyclic_data_registry (cache-first, no surprise download),
+    falling back to the committed relative path if the registry is unavailable. Behaviour-preserving
+    — the registry's local_path for these datasets is exactly the committed path."""
+    global _REGISTRY
+    try:
+        if _REGISTRY is None:
+            _REGISTRY = _load_module("cyclic_data_registry.py").registry()
+        return _REGISTRY.resolve_path(registry_name, allow_download=False)
+    except Exception:  # noqa: BLE001 — registry missing / not cached -> use the committed path
+        return ROOT / fallback_rel
+
+
 # --------------------------------------------------------------------------------------------
 # individual field scorers — each returns a PropertyValue and NEVER raises past its own body
 # (the aggregator also guards, but keeping each self-contained makes them independently usable)
@@ -148,7 +164,7 @@ def _score_permeability(seq: Optional[str], smiles: Optional[str],
     predicted (ranking-grade, scaffold-R2 ~0.23 per the module's own reported metric)."""
     pv = PropertyValue(scorer="permeability_predictor.py",
                        detail="log Papp; ECFP4 + bootstrap-bagged HistGBM (mean, epistemic std)")
-    csv_path = perm_csv or (ROOT / "data/raw/CycPeptMPDB_Peptide_All.csv")
+    csv_path = perm_csv or _default_dataset_path("cycpeptmpdb", "data/raw/CycPeptMPDB_Peptide_All.csv")
     if not Path(csv_path).exists():
         pv.detail += f" | training CSV missing: {csv_path}"
         return pv  # provenance stays UNAVAILABLE
@@ -225,7 +241,7 @@ def _score_safety(seq: Optional[str], smiles: Optional[str],
     pv = PropertyValue(scorer="stability_predictor.py / score_generation.py ensemble",
                        detail="PROXY: P(stable) developability endpoint (AUROC~0.84 leak-free); "
                               "NOT a tox/immunogenicity oracle")
-    csv_path = stab_csv or (ROOT / "data/processed/pepmsnd_stability_folds.csv")
+    csv_path = stab_csv or _default_dataset_path("pepmsnd_stability_folds", "data/processed/pepmsnd_stability_folds.csv")
     if not Path(csv_path).exists():
         pv.detail += f" | training CSV missing: {csv_path}"
         return pv
