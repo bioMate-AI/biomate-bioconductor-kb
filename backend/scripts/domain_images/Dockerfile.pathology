@@ -53,6 +53,7 @@ RUN micromamba install -y -n base -c conda-forge \
       openslide \
       openslide-python \
       scikit-image \
+      matplotlib-base \
       numpy \
       scipy \
       pillow \
@@ -71,4 +72,4 @@ RUN /opt/conda/bin/pip install --no-cache-dir torch --index-url https://download
 # build fails here instead of at run time on Batch. One-liner (portable: no Dockerfile heredoc).
 # `__library_version__` exercises the OpenSlide C-library loader (import alone can succeed with the
 # C lib missing on some builds).
-RUN python3 -c "import openslide, cellpose, skimage, numpy, scipy; print('OK imports'); print('OpenSlide C lib', openslide.__library_version__); print('SANITY_OK')"
+RUN python3 -c "import openslide, cellpose, skimage, numpy, scipy, matplotlib; from skimage.draw import rectangle_perimeter; print('OK imports'); print('OpenSlide C lib', openslide.__library_version__); print('SANITY_OK')"
