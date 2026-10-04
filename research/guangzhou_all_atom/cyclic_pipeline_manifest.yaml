@@ -1,0 +1,230 @@
+# Cyclic-Peptide Pipeline — Declarative Stage Manifest (orchestration layer)
+# ---------------------------------------------------------------------------
+# Maps the DBTL pipeline stages onto the EXISTING scattered stage scripts, with the
+# per-stage input/output contract, the datasets each stage consumes (by registry name),
+# the runtime it needs, a maturity flag, and the concrete wiring gaps where stages do
+# not yet connect. Parsed/validated by cyclic_pipeline.py (--validate / --report).
+#
+# runs_on  : local | gpu | ec2_batch | external_cro
+# maturity : tested_local  (runs + has a unit test or produced a results artifact locally)
+#            partial       (core runs locally but the full stage needs GPU/EC2, or only synthetic-verified)
+#            untested_local(GPU/EC2/CRO-only; cannot be exercised on a laptop)
+# datasets : names in cyclic_data_registry.yaml
+
+pipeline: cyclic_peptide_dbtl
+orchestrator: peptide_loop.py   # in-memory chain for gate_and_verify -> select -> dpo_learn(emit)
+
+stages:
+  - id: target_prep
+    name: Target / pocket preparation
+    description: >-
+      Fetch a receptor, extract the binding pocket from the native ligand, truncate to a
+      pocket complex ready for generation + MM-GBSA.
+    runs_on: local
+    scripts: [avb6_pocket_truncate.py, pdl1_m2c_stage_target.py, boltzgen_ourtarget.sh]
+    datasets: [rcsb_cyclic_index, pepbdb, bound_cyclic_agg]
+    inputs: [receptor PDB id / structure, native-ligand chain]
+    outputs: [pocket complex PDB/CIF, pocket residue index]
+    downstream: [generate, score_binding]
+    maturity: partial
+    maturity_note: scripts run + produced avb6/pdl1 pockets; no unit test; pocket extraction duplicated (gap G9)
+
+  - id: generate
+    name: Binder generation
+    description: >-
+      De-novo cyclic-peptide generation on the prepared target with the available generators
+      (RFpeptides, UniMoMo+cyclic-FT, BoltzGen, PepGLAD/M2c), optionally developability-guided.
+    runs_on: gpu
+    scripts: [launch_rfpeptides.sh, launch_unimomo_cyclic_ft.sh, launch_boltzgen_oversample.sh, pdl1_m2c_generate.py, pdl1_m2c_run.sh, developability_guidance.py]
+    datasets: [pepbench, bound_cyclic_agg, nme_v1, helm_monomers]
+    inputs: [pocket complex, generation config, N samples]
+    outputs: [generated poses + sequences/SMILES]
+    downstream: [fold_selfconsistency]
+    maturity: untested_local
+    maturity_note: GPU/EC2-only launchers; heterogeneous output formats across generators (gap G1)
+
+  - id: fold_selfconsistency
+    name: Cyclic folding / self-consistency re-rank
+    description: >-
+      Re-fold each candidate (Boltz cyclic prediction), compute scRMSD vs the designed pose,
+      and re-rank by self-consistency instead of generator likelihood.
+    runs_on: gpu
+    scripts: [refold_rerank_driver.sh, launch_refold_rerank.sh, build_candidates.py, selfconsistency_rerank.py, scrmsd.py, cyclize_and_rescore.py]
+    datasets: [cremp_partial, macroconf]
+    inputs: [generated poses + sequences]
+    outputs: ["per-target candidates.jsonl (id, dockq, likelihood, scrmsd, confidence)"]
+    downstream: [score_binding, score_permeability, score_developability]
+    maturity: partial
+    maturity_note: scrmsd.py + selfconsistency_rerank.py have --selftest (run locally); the refold itself is GPU
+
+  - id: score_binding
+    name: Binding affinity scoring
+    description: >-
+      Score binding two ways — a learned SMILES->pAffinity model trained on measured data, and
+      physics MM-GBSA ΔG on the pocket complex.
+    runs_on: ec2_batch
+    scripts: [train_binding_model.py, binding_features.py, launch_mmgbsa_pool.sh, peptide_mmgbsa_pocket_run.sh, avb6_pocket_truncate.py]
+    datasets: [binding_affinity_v1]
+    inputs: [candidate SMILES/sequence, pocket complex]
+    outputs: [binding_model_prod.pkl + pAffinity predictions, MM-GBSA physics_json (ΔG per candidate)]
+    downstream: [gate_and_verify]
+    maturity: tested_local
+    maturity_note: train_binding_model.py ran -> binding_model_prod.pkl + metrics JSON; MM-GBSA is EC2/GPU
+
+  - id: score_permeability
+    name: Permeability scoring
+    description: >-
+      Predict log Papp with the leak-free CycPeptMPDB ensemble (+ uncertainty, size correction,
+      physchem calibration).
+    runs_on: local
+    scripts: [permeability_predictor.py, build_physchem_calibration.py, perm_uncertainty.py, perm_size_correction.py, conformer_permeability.sh]
+    datasets: [cycpeptmpdb]
+    inputs: [candidate SMILES]
+    outputs: [permeability CSV (log Papp mean + std per candidate)]
+    downstream: [gate_and_verify]
+    maturity: tested_local
+    maturity_note: permeability_predictor.py runs locally on CycPeptMPDB and produced results
+
+  - id: score_developability
+    name: Developability / stability scoring
+    description: >-
+      Stability classifier + developability axes (SA, non-canonical validity) for the composite
+      developability vector.
+    runs_on: local
+    scripts: [developability_guidance.py, stability_predictor.py, rebuild_stability_folds.py, noncanonical_vocab.py]
+    datasets: [pepmsnd_stability_folds, peptideclm2_pepmsnd, nme_v1]
+    inputs: [candidate sequence/SMILES]
+    outputs: [stability prob + developability flags per candidate]
+    downstream: [gate_and_verify]
+    maturity: partial
+    maturity_note: rebuild_stability_folds.py tested (test_rebuild_stability_folds.py); developability_guidance.py no local run
+
+  - id: gate_and_verify
+    name: Cheap gate + property-vector verify
+    description: >-
+      A3 cheap hard-threshold gate BEFORE the expensive verify, then A1 verify assembles the full
+      property vector (affinity ΔG ingested from physics_json, permeability, stability, SA, safety).
+    runs_on: local
+    scripts: [peptide_gate.py, peptide_verify.py, peptide_loop.py]
+    datasets: [cycpeptmpdb, pepmsnd_stability_folds]
+    inputs: [candidate pool, physics_json (ΔG), permeability CSV, stability CSV]
+    outputs: [verified PeptideProperties pool, gate cost-saving log]
+    downstream: [multi_objective_select]
+    maturity: tested_local
+    maturity_note: test_peptide_verify.py + test_peptide_loop.py pass; verify affinity reads physics_json only (gap G3)
+
+  - id: multi_objective_select
+    name: Multi-objective selection
+    description: >-
+      Principled multi-objective pick (qNEHVI hypervolume) over affinity x permeability x SA x
+      safety, vs the hand-tuned composite; diversity-aware batch.
+    runs_on: local
+    scripts: [mo_select_qnehvi.py, peptide_select.py, multi_property_selection.py, property_guided_selection.py]
+    datasets: [cycpeptmpdb]
+    inputs: [verified property pool]
+    outputs: [selected batch JSON (Pareto front + chosen candidates)]
+    downstream: [synth_rfq, dpo_learn]
+    maturity: tested_local
+    maturity_note: test_peptide_select.py passes; mo_select_qnehvi.py produced result panels
+
+  - id: synth_rfq
+    name: Synthesis RFQ (CRO)
+    description: >-
+      Turn the selected batch into a CRO synthesis order / GenScript RFQ.
+    runs_on: external_cro
+    scripts: []
+    datasets: [helm_monomers]
+    inputs: [selected batch JSON]
+    outputs: [CRO order CSV/XLSX (results/*_CRO_order.csv)]
+    downstream: [assay_ingest]
+    maturity: untested_local
+    maturity_note: NO script — results/*_CRO_order.csv were assembled by hand (gap G5)
+
+  - id: assay_ingest
+    name: Assay ingestion (SPR KD)
+    description: >-
+      Ingest measured KD from the CRO SPR round and convert to candidate-ID-linked preference pairs.
+    runs_on: external_cro
+    scripts: [campaign_assay_to_pairs.py, wetlab_kd_to_pairs.py]
+    datasets: []
+    inputs: [CRO KD results, candidate manifest]
+    outputs: [EXPERT-stream preference pairs (dpo_pairs schema)]
+    downstream: [dpo_learn]
+    maturity: partial
+    maturity_note: test_wetlab_kd_to_pairs.py passes but synthetic only; no real CRO round-1 KD yet (gap G6)
+
+  - id: dpo_learn
+    name: DPO close-back (Learn)
+    description: >-
+      Emit preference pairs from verify+select verdicts and assay KD, then DPO-fine-tune the
+      generator prior; the new checkpoint becomes the next round's generator.
+    runs_on: gpu
+    scripts: [dpo_pairs.py, dpo_peptide_trainer.py, dpo_unimomo_adapter.py, launch_dpo_peptide_trainer.sh, simulate_closed_loop.py]
+    datasets: []
+    inputs: [verified pool, selection result, assay preference pairs]
+    outputs: [DPO pair store (TRL-ready), fine-tuned generator checkpoint]
+    downstream: [generate]
+    maturity: partial
+    maturity_note: dpo_pairs emit + simulate_closed_loop tested (test_closed_loop_integration.py); trainer is GPU; checkpoint not auto-promoted to generate (gap G7)
+
+# Concrete wiring gaps — where stages do not yet connect for a mature, hands-off pipeline.
+wiring_gaps:
+  - id: G1
+    between: [generate, fold_selfconsistency]
+    severity: high
+    description: >-
+      No adapter normalises the heterogeneous generator outputs (RFpeptides / UniMoMo / BoltzGen /
+      PepGLAD-M2c each emit different pose+sequence layouts) into the single candidates layout
+      build_candidates.py expects. Each generator is wired by hand today.
+  - id: G2
+    between: [fold_selfconsistency, gate_and_verify]
+    severity: high
+    description: >-
+      selfconsistency_rerank.py emits per-target candidates.jsonl (dockq/likelihood/scrmsd/confidence),
+      but nothing converts those ranked candidates into peptide_loop's pool ({identifier,seq,smiles})
+      or into peptide_verify input. The fold output and the scoring loop are not joined.
+  - id: G3
+    between: [score_binding, gate_and_verify]
+    severity: high
+    description: >-
+      train_binding_model.py produces binding_model_prod.pkl, but peptide_verify._score_affinity
+      ingests ΔG ONLY from physics_json (MM-GBSA). The learned binding model is not an affinity
+      source in verify — the integration map's "wire as the binding scorer" is unmet.
+  - id: G4
+    between: [score_permeability, gate_and_verify]
+    severity: medium
+    description: >-
+      permeability_predictor.py emits a log-Papp CSV, but peptide_loop/peptide_verify default to a
+      raw CycPeptMPDB lookup rather than the trained predictor's output; there is no step that
+      produces the predictor CSV and points the loop's perm_csv at it.
+  - id: G5
+    between: [multi_objective_select, synth_rfq]
+    severity: medium
+    description: >-
+      No script converts a selection JSON (mo_select_qnehvi / peptide_select output) into a GenScript
+      RFQ / CRO order CSV. results/*_CRO_order.csv were produced by hand.
+  - id: G6
+    between: [assay_ingest, dpo_learn]
+    severity: high
+    description: >-
+      wetlab_kd_to_pairs.py / campaign_assay_to_pairs.py are synthetic-verified only; no real CRO
+      round-1 KD has been ingested, so the closed loop has never turned on real experimental signal.
+  - id: G7
+    between: [dpo_learn, generate]
+    severity: high
+    description: >-
+      peptide_loop's LearnHook is a stub (RecordPairsLearnHook records pairs, does not train).
+      dpo_peptide_trainer.py produces a checkpoint, but nothing auto-promotes it to the next round's
+      Generator — the generate<->learn seam is open, so the loop does not actually compound.
+  - id: G8
+    between: [target_prep, dpo_learn]
+    severity: medium
+    description: >-
+      Stage scripts hard-code dataset paths; none import cyclic_data_registry yet. This PR ships the
+      registry; migrating the scripts to resolve datasets through it is the adoption follow-up.
+  - id: G9
+    between: [target_prep, target_prep]
+    severity: low
+    description: >-
+      Pocket extraction is duplicated across avb6_pocket_truncate.py, pdl1_m2c_stage_target.py and
+      boltzgen_ourtarget.sh; it should be one shared target-prep module.
