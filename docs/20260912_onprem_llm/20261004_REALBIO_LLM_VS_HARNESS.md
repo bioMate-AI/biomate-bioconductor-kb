@@ -2,6 +2,10 @@
 
 **Date:** 2026-10-04
 **Ask:** LLM score and LLM+harness score on RealBio — the bar for LLM optimization.
+**Primary metric (what we optimize for):** **LLM + harness (catalog / full-product mode)** — the number
+the shipped system actually produces. The **bare** (LLM-alone) column is a *diagnostic* only: it shows how
+much the harness contributes, but it is never the product's operating mode, so it does not gate decisions.
+Every model is judged on its catalog/LLM+harness score.
 **Source:** scored `results/<model>/<task>.jsonl` via the shared `score.py` (evaluation/datasets/public_export).
 Routing has a `_bare` (LLM from own knowledge) vs `_catalog` (LLM given the retrieved candidate list =
 the harness's retrieval layer) split — the cleanest LLM-vs-LLM+harness contrast. Other tasks are run
@@ -48,8 +52,19 @@ On RealBio, **LLM+harness ≫ LLM-alone** (the harness carries it), and **our tu
 stock base end-to-end** — the bounded domain-adaptation adds nothing measurable to BioMate's score. This
 is the definitive on-RealBio confirmation of the task-split thesis.
 
-**Still pending:** the **full-corpus** domain-pro (CPT 3000+1000 steps, training now, TAG `_full_20261004`)
-— the test of whether *much more* domain CPT (vs the bounded sft) can close the ~15pp capacity gap to
-frontier+catalog. If it too lands ≈ base, the conclusion is firm: on-prem = cost/compliance play, use the
-best base the hardware allows + the harness; don't expect domain-adaptation of a small model to move the
-system bar.
+**Still pending — the decision row (LLM+harness only):** the **full-corpus** domain-pro (CPT 3000+1000
+steps, TAG `_full_20261004`, on-demand box `i-042991001f74464a1`, training as of 2026-10-04 05:23 UTC on the
+validated normalized concept mix). The row we add is its **catalog / LLM+harness** RealBio score across
+routing + all tasks — NOT its bare score. The question it answers, in the metric that matters: *does much
+more domain CPT lift the LLM+harness number above base's 0.815 (routing) and close the ~15pp gap to
+frontier+catalog (0.96)?*
+- If full-corpus catalog ≈ base catalog (≈0.81, like the bounded sft did): conclusion is firm — on-prem =
+  cost/compliance play; use the best base the hardware allows + the harness; small-model domain-adaptation
+  does not move the system bar.
+- If full-corpus catalog materially exceeds base catalog: domain CPT *does* pay off end-to-end, and the
+  recipe (full-corpus CPT, not bounded SFT) is the lever worth scaling.
+
+**Eval procedure for the pending row (so it is apples-to-apples on LLM+harness):** when CPT+SFT finish,
+serve `base_domain_full_20261004` (the CPT-merged base) + the `full_full_20261004` SFT adapter at an
+OpenAI-compatible endpoint, point the RealBio **catalog** runner at it (same retrieval layer as base/sft),
+score with `score.py`, add the catalog column. The bare column is optional diagnostic, run only if cheap.
