@@ -15,11 +15,12 @@ aws s3 cp "$OUT_S3/routing_prompts.json" ./routing_prompts.json --quiet
 echo "[eval] downloading base $HF"
 python3 -c "from huggingface_hub import snapshot_download; snapshot_download('$HF', local_dir='$SCRATCH/base')" || { echo "[eval] base dl failed"; exit 11; }
 echo "[eval] serving vLLM"
-# --enforce-eager: skip CUDA-graph capture, which OOM'd the 24GB A10G (weights ~18GB + graph capture
-# > 24GB). Eager is plenty fast for a few hundred short classification calls. --max-num-seqs modest to
-# keep KV small.
+# --enforce-eager: skip CUDA-graph capture (OOM'd on 24GB A10G). The base resolves to a multimodal
+# Qwen3_5ForConditionalGeneration (heavier than text-only 9B), so it's run on a 48GB L40S (g6e) where
+# weights + KV for the ~2.2k-token described prompt fit comfortably. Params env-tunable.
+MML=${MAX_MODEL_LEN:-4096}; GMU=${GPU_MEM_UTIL:-0.90}; MNS=${MAX_NUM_SEQS:-16}
 nohup python3 -m vllm.entrypoints.openai.api_server --model "$SCRATCH/base" --served-model-name base \
-  --port 8000 --max-model-len 4096 --gpu-memory-utilization 0.90 --enforce-eager --max-num-seqs 16 \
+  --port 8000 --max-model-len "$MML" --gpu-memory-utilization "$GMU" --enforce-eager --max-num-seqs "$MNS" \
   > "$SCRATCH/vllm.log" 2>&1 &
 SERVE=$!
 echo "[eval] waiting for vLLM health"
