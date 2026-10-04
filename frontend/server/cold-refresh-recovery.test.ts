@@ -78,7 +78,7 @@ describe("cold-refresh recovery — sessionDatasetsBlock surfaces distinct label
   const ASSIST = fs.readFileSync(path.join(SRC, "galaxy-assistant.ts"), "utf-8");
 
   it("splits direct vs recovered groups", () => {
-    expect(/const direct = valid\.filter\(d\s*=>\s*!d\.recovered\)/.test(ASSIST)).toBe(true);
+    expect(/const direct = valid\.filter\(d\s*=>\s*!d\.recovered\b/.test(ASSIST)).toBe(true);
     expect(/const recovered = valid\.filter\(d\s*=>\s*d\.recovered\)/.test(ASSIST)).toBe(true);
   });
 

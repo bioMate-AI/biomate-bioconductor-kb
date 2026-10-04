@@ -1843,7 +1843,11 @@ export function DesignGenerate({
         const infraNote = (run.notes || []).find((n) =>
           /unavailable|not available|no generator|generator .*(fail|error)|nim|endpoint|not installed/i.test(n)
         );
-        const infraFailure = !!infraNote || run.n_generated === 0;
+        // Only a genuine infrastructure note means "on our side". A run that
+        // simply produced nothing (e.g. no seed SMILES, or every candidate was
+        // gated out) is NOT an infra failure — surfacing "temporarily unavailable"
+        // there is misleading. n_generated === 0 alone must not flip this.
+        const infraFailure = !!infraNote;
         // Log the internal reason for operators/devs, but don't surface it to the
         // user — an infra failure is not something they can act on.
         if (infraFailure && infraNote) console.warn("[design] generator failure:", infraNote);

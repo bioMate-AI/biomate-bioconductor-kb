@@ -205,8 +205,11 @@ describe("<ColdStartDashboard>", () => {
     expect(route).toBeInTheDocument();
     expect(route).toHaveAttribute("data-lane", "cloud");
     expect(screen.getByTestId("cold-intent-route-domain")).toHaveTextContent("Drug discovery");
-    // Lane label must match the lane (not merely be non-empty — a tautology).
-    expect(screen.getByTestId("cold-intent-route-lane")).toHaveTextContent(/cloud/i);
+    // Lane label must reflect the Cloud lane (not merely be non-empty, and not the
+    // Instant label). When the coarse read disagrees with the resolved lane the
+    // component shows the plain Cloud label "Prepare an analysis · review before
+    // starting" (see laneLabel in cold-start-dashboard.tsx) rather than the raw word.
+    expect(screen.getByTestId("cold-intent-route-lane")).toHaveTextContent(/cloud|prepare an analysis|review before/i);
   });
 
   it("routes an evidence question to the Instant lane", async () => {
