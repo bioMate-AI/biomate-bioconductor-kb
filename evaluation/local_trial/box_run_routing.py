@@ -13,8 +13,10 @@ def parse_cls(text):
         if l in t: return labset[l]
     return t.split()[0] if t else ""
 def call(prompt):
+    # routing answer is a short workflow name; cap tokens hard (the raw base rambles to the cap otherwise
+    # -> ~35s/call eager on A10G) and stop at newline. parse_cls extracts the label from the short output.
     body=json.dumps({"model":MODEL,"messages":[{"role":"user","content":prompt}],
-                     "max_tokens":2000,"temperature":0}).encode()
+                     "max_tokens":48,"temperature":0,"stop":["\n"]}).encode()
     for attempt in range(3):
         try:
             r=urllib.request.urlopen(urllib.request.Request(ENDPOINT.rstrip("/")+"/chat/completions",body,
