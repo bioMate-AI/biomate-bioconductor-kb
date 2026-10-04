@@ -30,10 +30,13 @@ if [ "$DRY_RUN" = 1 ]; then LABELS=$(echo "$LABELS" | awk '{print $1}'); fi
 
 stage(){ printf '{"stage":"%s","time":"%s"}\n' "$1" "$(date -u +%FT%TZ)" > "$ROOT/status/sc_status.json"; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; }
 
-# --- install Boltz (cyclic-capable predictor) into an isolated venv ---
+# --- install Boltz (cyclic-capable predictor) into a conda env with PREBUILT scipy/numpy ---
+# (miniforge base is py3.13 -> `pip install boltz` rebuilds scipy from source -> OpenBLAS-not-found
+#  FATAL. py3.11 + conda-forge scipy/numpy ship prebuilt wheels/libs, so pip never compiles scipy.)
 stage installing_boltz
-python3 -m venv "$ROOT/boltz-venv"
-set +u; source "$ROOT/boltz-venv/bin/activate"; set -u
+source /opt/miniforge/etc/profile.d/conda.sh
+conda create -y -n boltz -c conda-forge python=3.11 numpy scipy >/dev/null 2>&1 || { echo "FATAL: conda create (boltz) failed"; exit 1; }
+set +u; conda activate boltz; set -u
 pip install -q --upgrade pip
 pip install -q boltz || { echo "FATAL: boltz install failed"; exit 1; }
 python -c "import boltz; print('boltz', getattr(boltz,'__version__','?'))"
