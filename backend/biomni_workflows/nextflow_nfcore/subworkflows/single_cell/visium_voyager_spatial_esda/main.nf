@@ -62,9 +62,12 @@ process VISIUM_VOYAGER_SPATIAL_ESDA {
     // LITERAL container directive (not "${params.container}"): for /single_cell/ the executor's
     // global container-force resolves a bare params.container indirection to the base image
     // (no R → 'Rscript: No such file or directory', exit 127, validated 2026-10-04). A literal
-    // directive reliably wins (same pattern as merfish). Full :3.20 image (NOT -slim) = the
-    // image the working sibling bioconductor/voyager (id 12618) uses, which carries R + Voyager.
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20'
+    // directive reliably wins (merfish pattern).
+    // Image = :3.20-SLIM (not full :3.20): the full image failed to start on Batch with
+    // "no space left on device" pulling reactome.db (~multi-GB; the known DISK blocker, run2
+    // 549f4286 2026-10-04). The slim variant is the smaller Batch-ready image; if it lacks the
+    // Voyager stack (sf/spdep/SpatialFeatureExperiment) the workflow honest-fails at library().
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim'
 
     output:
     path "sfe_esda.rds",          emit: sfe
