@@ -54,6 +54,9 @@ git clone https://github.com/HannesStark/boltzgen "$ROOT/boltzgen" || true
 export HF_HOME="$ROOT/hf_cache"
 python -c "import boltzgen, torch, gemmi; print('boltzgen import ok; cuda', torch.cuda.is_available())"
 cd "$ROOT/boltzgen"
+# G9: pull the shared pocket-extraction helper (uploaded by the launcher). || true: if absent, the
+# spec-builder heredoc falls back to its vendored copy, so the run never breaks on a bare box.
+aws s3 cp "$OUT_S3/code/pocket_extract.py" "$ROOT/boltzgen/pocket_extract.py" --only-show-errors || true
 
 # --- spec builder: RCSB structure -> pocket (receptor residues within 5A of native peptide) -> yaml ---
 build_spec(){
@@ -61,19 +64,28 @@ build_spec(){
   local cif="$ROOT/cifs/${pdb}.cif" spec="$ROOT/specs/${pdb}.yaml"
   curl -fsSL "https://files.rcsb.org/download/${pdb^^}.cif" -o "$cif" || { echo "download failed $pdb"; return 1; }
   PDB="$pdb" CIF="$cif" RECEP="$recep" PEP="$pep" NLEN="$L" SPEC="$spec" python - <<'PY'
-import os, gemmi, numpy as np
+import os, sys, gemmi, numpy as np
 cif=os.environ['CIF']; recep=os.environ['RECEP']; pep=os.environ['PEP']; L=int(os.environ['NLEN']); spec=os.environ['SPEC']
 # use the ORIGINAL RCSB cif (it carries _entity_poly_seq, which BoltzGen's mmcif parser requires)
 st=gemmi.read_structure(cif); st.setup_entities(); st.assign_label_seq_id(); model=st[0]
-def is_aa(res):
-    info=gemmi.find_tabulated_residue(res.name)
-    return bool(info) and info.is_amino_acid()
-def get_chain(name):
-    for ch in model:
-        if ch.name==name: return ch
-    return None
-def hcoords(res):
-    return np.array([[a.pos.x,a.pos.y,a.pos.z] for a in res if a.element.name!='H'], dtype=float)
+# G9: prefer the shared pocket-extraction helper (pocket_extract.py, pulled next to run.sh); the
+# bare EC2 box may lack it, so a VENDORED fallback with IDENTICAL semantics keeps the run robust.
+sys.path.insert(0, os.environ.get('ROOT','/opt/boltzgen-run'))
+sys.path.insert(0, os.path.join(os.environ.get('ROOT','/opt/boltzgen-run'),'boltzgen'))
+try:
+    import pocket_extract as pe
+    is_aa=pe.is_amino_acid; hcoords=pe.heavy_coords
+    def get_chain(name): return pe.get_chain(model, name)
+except Exception:
+    def is_aa(res):
+        info=gemmi.find_tabulated_residue(res.name)
+        return bool(info) and info.is_amino_acid()
+    def get_chain(name):
+        for ch in model:
+            if ch.name==name: return ch
+        return None
+    def hcoords(res):
+        return np.array([[a.pos.x,a.pos.y,a.pos.z] for a in res if a.element.name!='H'], dtype=float)
 # RECEP may be a COMMA-SEPARATED chain list (e.g. "A,B") for a multi-subunit pocket such as the
 # alpha-v/beta-6 integrin RGD site, where the ligand contacts BOTH subunits (Arg->alphaV, Asp->beta6
 # MIDAS). A single receptor chain would condition the binder on half the interface. Backward-compatible:

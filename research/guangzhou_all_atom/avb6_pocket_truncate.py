@@ -15,19 +15,17 @@ import sys, os, glob, json
 import numpy as np
 import gemmi
 
+# G9: shared all-atom pocket-extraction core (is_aa / heavy / chain split / pocket selection).
+import pocket_extract as pe
+is_aa = pe.is_amino_acid      # back-compat aliases (used by the RGD-contact evidence block below)
+heavy = pe.heavy_atoms
+
 IN = sys.argv[1] if len(sys.argv) > 1 else '/private/tmp/claude-501/-Users-kky-biomate-review/9bfe5056-ee28-4095-8e35-5af49e87e358/scratchpad/avb6_refold'
 OUT = sys.argv[2] if len(sys.argv) > 2 else '/private/tmp/claude-501/-Users-kky-biomate-review/9bfe5056-ee28-4095-8e35-5af49e87e358/scratchpad/avb6_pocket'
 CUT = float(sys.argv[3]) if len(sys.argv) > 3 else 10.0
 CONTACT = 4.5
 PANEL = '/Users/kky/biomate-review/research/guangzhou_all_atom/results/avb6_round1_panel.json'
 os.makedirs(OUT, exist_ok=True)
-
-def is_aa(r):
-    i = gemmi.find_tabulated_residue(r.name)
-    return bool(i) and i.is_amino_acid()
-
-def heavy(res):
-    return [a for a in res if a.element.name != 'H']
 
 ids = [x['id'] for x in json.load(open(PANEL))['panel']]
 report = []
@@ -37,14 +35,12 @@ for did in ids:
     if not os.path.exists(cif):
         print(f'{did}: MISSING {cif}'); ok_all = False; continue
     st = gemmi.read_structure(cif); st.setup_entities(); m = st[0]
-    # peptide = fewest-aa chain; receptor = the rest
-    aa_chains = [(c.name, sum(is_aa(r) for r in c)) for c in m]
-    aa_chains = [c for c in aa_chains if c[1] > 0]
-    aa_chains.sort(key=lambda x: x[1])
+    # peptide = fewest-aa chain; receptor = the rest  (G9 shared helper)
+    aa_chains = pe.amino_acid_chains(m)            # [(name, n_aa)] ascending by count
     pep_name = aa_chains[0][0]
     rec_names = [c for c, _ in aa_chains[1:]]
     pep_chain = next(c for c in m if c.name == pep_name)
-    pep_atoms = np.array([[a.pos.x, a.pos.y, a.pos.z] for r in pep_chain if is_aa(r) for a in heavy(r)])
+    pep_atoms = pe.peptide_heavy_coords(pep_chain, mode="aa_only")
 
     # build truncated structure: peptide (all) + receptor residues within CUT
     out = gemmi.Structure(); out.name = f'{did}_pocket'
@@ -58,15 +54,8 @@ for did in ids:
     for cn in rec_names:
         c = next(ch for ch in m if ch.name == cn)
         newc = gemmi.Chain(cn)
-        for r in c:
-            if not is_aa(r):
-                continue
-            rc = np.array([[a.pos.x, a.pos.y, a.pos.z] for a in heavy(r)])
-            if rc.size == 0:
-                continue
-            d = np.sqrt(((rc[:, None, :] - pep_atoms[None, :, :]) ** 2).sum(-1)).min()
-            if d < CUT:
-                newc.add_residue(r)
+        for r in pe.select_pocket_residues(c, pep_atoms, CUT):   # heavy-atom within CUT of peptide
+            newc.add_residue(r)
         pocket_counts[cn] = sum(1 for _ in newc)
         md.add_chain(newc)
     out.add_model(md); out.setup_entities()

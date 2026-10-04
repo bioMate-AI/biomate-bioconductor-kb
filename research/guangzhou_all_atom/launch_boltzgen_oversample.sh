@@ -14,6 +14,8 @@ S3RUN=s3://$BUCKET/cyclic_peptide/runs/$RUNID
 HERE=$(cd "$(dirname "$0")" && pwd)
 
 aws s3 cp "$HERE/boltzgen_ourtarget.sh" "$S3RUN/code/boltzgen_ourtarget.sh" --only-show-errors
+# G9: ship the shared pocket-extraction helper alongside the run script (on-box run.sh pulls it).
+aws s3 cp "$HERE/pocket_extract.py" "$S3RUN/code/pocket_extract.py" --only-show-errors
 echo "uploaded code -> $S3RUN/code/ (TARGET_ONLY=$TARGET_ONLY NUM_DESIGNS=$NUM_DESIGNS)"
 
 UD=$(cat <<EOF | base64
