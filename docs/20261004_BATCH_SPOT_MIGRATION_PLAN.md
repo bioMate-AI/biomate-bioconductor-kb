@@ -167,3 +167,38 @@ be deregistered.
 - Spot: CE healthy + launch-template-fixed + **isolated-validated** (CLI present, exit 0); retry
   strategy deployed + verified. **Ready for the supervised production flip** — no code or infra work
   left, just the eyes-on enable + one confirmation run.
+
+---
+
+## STATUS 2026-10-04: DEFERRED — resume here
+
+**The production flip is NOT done, by choice. It is optional and can be picked up any time.** The
+cost win (min=0) is already captured and production is safe on on-demand; the spot flip is *extra*
+savings with a small reclaim tradeoff. Everything technical is staged — only the production-queue flip
+remains, and that is a human-run step.
+
+**Why the agent can't do the flip:** Claude Code's auto-mode classifier hard-blocks any
+`aws batch update-job-queue` on the production queues, labeling it a **"Production Deploy"**. Chat
+authorization does not override this guardrail. So the flip must be run by the owner via the `!`
+prefix (runs in-session, outside the agent's tool), or after adding a Bash permission rule for
+`aws batch update-job-queue`.
+
+**To resume (one command, eyes-on):** paste this in the Claude Code prompt, including the leading `!`:
+```
+! for q in biomate-nextflow-queue galaxy-cloud-queue; do aws batch update-job-queue --region us-west-2 --job-queue "$q" --compute-environment-order order=0,computeEnvironment=biomate-nextflow-ce-spot order=1,computeEnvironment=biomate-nextflow-ce-v2 --query jobQueueName --output text; done
+```
+Then the agent dispatches a cold merfish via `/api/workflows/execute` (not blocked), watches the Batch
+job's `exitCode`, and confirms exit 0 on a spot instance. Expected: lands on spot, exits 0; a mid-run
+reclaim retries via `maxSpotAttempts=3` instead of failing.
+
+**Revert (if validation fails or anything looks off):**
+```
+! for q in biomate-nextflow-queue galaxy-cloud-queue; do aws batch update-job-queue --region us-west-2 --job-queue "$q" --compute-environment-order order=0,computeEnvironment=biomate-nextflow-ce-v2 --query jobQueueName --output text; done
+```
+
+**Verified live state at defer time** (both read-only, re-checkable):
+- Production queues: order 0 = `biomate-nextflow-ce-v2` (on-demand) ONLY — no spot routing.
+- Spot CE `biomate-nextflow-ce-spot`: VALID / ENABLED / minvCpus=0 / launch template
+  `lt-099eb24c4fe1b477e` attached. Dormant, no cost, ready.
+- Minor cleanup still open: Batch job def `spot-lt-probe:1` left registered (harmless, no cost) — can
+  be deregistered with `aws batch deregister-job-definition --region us-west-2 --job-definition spot-lt-probe:1`.
