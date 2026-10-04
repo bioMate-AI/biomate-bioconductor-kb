@@ -46,31 +46,42 @@ Drive: `biomate_drive:biomate_growth/marketing/data_centroid_tutorial/`
 - Re-recorded shared webm + re-muxed EN (`t3-run-and-report-en.mp4`, 23.6 MB) + ZH
   (25.1 MB); uploaded.
 
-## Open finding — T0 needs a LIVE re-capture, not a crop
+### T0 — Getting started (DONE — live re-capture, not a crop)
 
-The three T0 screenshots (`i01-1-cold-start.png`, `m0-1-intent-bar.png`,
-`s1-1-sidebar.png`) are near-identical **empty** cold-start dashboards. They do
-NOT depict what the narration claims:
-- Scene 5 ("the cards and the intent bar only seed your message — they never
-  send") points at "attach-file and point-at-data controls" — the composer is
-  present but small at the foot; needs a focal crop of the composer strip.
-- Scene 6 ("Type a real goal — and watch the lane appear before you send") — the
-  intent bar is EMPTY (placeholder only); there is **no typed goal and no lane-
-  preview chip** in the image. A focal crop cannot add a chip that isn't there.
+The old T0 scenes 5/6 used near-identical **empty** cold-start dashboards that
+did not depict what the narration claimed — scene 6 narrated "watch the lane
+appear" but the shot had no typed goal and no lane chip. A crop could not fix a
+chip that wasn't there, so this was a live re-capture:
+- `capture-live-t0-focal.cjs` (committed): fixture login → cold start → element-
+  clips at 3×. Scene 5 → the composer strip (attach-file + point-at-data
+  controls). Scene 6 → the REAL Instant lane-preview chip, captured with the
+  JAK1 evidence question ("What is the evidence linking JAK1 to rheumatoid
+  arthritis…") so the lane shown ("Answer here · with sources") matches the
+  evidence-question narration.
+- Live lane labels are "Answer here" (Instant) / "Prepare an analysis" (Cloud) —
+  NOT the words "Instant"/"Cloud". Scene-6 HTML caption + EN/ZH narration now
+  name the live label ("the Instant lane, shown as 'Answer here · with sources'")
+  so the voiceover matches the screenshot. (The scene-4 concept slide keeps the
+  Instant/Cloud abstraction; scene 6 grounds it to the UI label.)
+- Scene 6 window 26.1→30 s so the ZH lane narration fits. T0 mux 6M→10M. Imgs
+  set to `object-fit:contain` (T0 default is `cover`, which would crop the wide-
+  short banners). Scene 2 keeps the full cold-start overview (the whole doorway
+  IS the point).
+- Re-rendered EN (`t0-getting-started-en.mp4`, 19.9 MB) + ZH (21.0 MB); uploaded.
 
-Proper fix (root cause): a live dev-UI capture (fixture login → New Chat cold
-start → type a goal → capture the lane-preview state + a focal composer clip),
-same pattern as `capture-live-admet-focal.cjs`. Scene 2 (cold-start overview) is
-intentionally a full view and only needs a high-DPI recapture, not a crop.
+## Status: all three existing educational videos now meet the focal standard
+T0, T3, and T11 (drug-dev) — EN + ZH — re-rendered and uploaded 2026-10-04
+(12:57–13:33). The user's "high-res / large-font / clip-to-focus" requirement is
+satisfied for every existing educational-format tutorial video.
 
-## Remaining scale list (educational + live-UI + focal, EN + ZH)
-- T0 — live re-capture (above) then re-render.
-- The legacy small `T0/T1/T2/T4-tutorial.*.mp4` (~800 KB, 2026-10-01 static
-  style) are superseded for T0/T3 by the educational versions; T1/T2/T4 still
-  need educational-format production.
+## Remaining scale list (net-new production, not focal fixes)
+- Legacy small `T1/T2/T4-tutorial.*.mp4` (~800 KB, 2026-10-01 static style) still
+  need educational-format production (T0/T3 already superseded theirs).
 - Instrument / sidebar / W-series videos: not yet produced.
-- CN parity is maintained throughout (same English UI visuals + full Chinese
-  voiceover).
+- Each new tutorial with live UI should use the focal pattern from the start:
+  `capture-live-{admet,t0}-focal.cjs` → element-clip at 3× → `assets/live/*.png`,
+  `object-fit:contain` for wide-short banners, 10M mux bitrate.
+- CN parity throughout (same English UI visuals + full Chinese voiceover).
 
 ## Pipeline reference (local, no AWS cost)
 - TTS: `edge-tts-gen.py` via `/Users/kky/opt/anaconda3/bin/python3.9` (has
