@@ -15,8 +15,21 @@ Before any "mine public data" step: we already have it on S3. Verified inventory
 
 **Conclusion:** we are NOT data-collection-blocked and do NOT need to pay for a first result. The multi-objective model can train TODAY on permeability (CycPeptMPDB 7,334) + developability + conformers we already hold. The one free fix is re-collecting peptide **binding** data (BindingDB + ChEMBL peptide subset) that we botched. Paid display campaigns are only for later, proprietary, per-target binding at display scale — and only if the free binding re-collection proves insufficient.
 
+### Authoritative held-data inventory (verified 2026-10-04)
+| Objective | Dataset | Size / count | Status |
+|---|---|---|---|
+| Permeability | CycPeptMPDB (`raw/CycPeptMPDB_Peptide_All.csv`) | 8,466 rows; Permeability all, PAMPA 7,298, Caco2/MDCK/RRCK; SMILES+HELM+Sequence | ✅ have |
+| Conformers/geometry | CREMP (`cremp_partial/`) + MacroConf | ~43 GB (pickle 29 GB + sdf/json 14 GB + summary.csv) | ✅ have |
+| Structures (co-design) | PepBDB, PepBench, bound_cyclic_v1 (662-mine) | ~hundreds | ✅ have (scarce slice) |
+| Developability calibration | approved_cyclic_peptide_drugs | CSV + notes | ✅ have |
+| Chemical-LM pretrain | PeptideCLM / PepMSND | large (hashed dirs) | ✅ have |
+| N-methylation | nme_v1 (`nme_dataset.jsonl/`) | 3 MB | ✅ have |
+| **Binding affinity** | BindingDB | **65-byte stub (collector failed on URL scrape)** | ❌ re-collecting (ChEMBL + BindingDB) |
+
+**Net:** data-RICH on permeability + conformers + structures + developability; the only gap is binding affinity, now being re-collected free. The Pareto-DPO multi-objective model can train on held data today for every axis except binding.
+
 ## Step 1 — (superseded by Step 0) what public binding data to re-collect
-The permeability/structure/conformer data is already held (Step 0). The free task is the BINDING axis we under-collected.
+The permeability/structure/conformer data is already held (Step 0). The free task is the BINDING axis we under-collected (collect_bindingdb.sh failed: BindingDB Download.jsp scrape → url_unresolved → 65-byte stub). Re-collect via ChEMBL (stable API) + fixed BindingDB.
 
 | Source | What it gives | Size | Use | Status |
 |---|---|---|---|---|
