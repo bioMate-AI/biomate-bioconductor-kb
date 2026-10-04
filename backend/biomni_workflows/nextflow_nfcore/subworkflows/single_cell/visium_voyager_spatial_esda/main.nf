@@ -63,11 +63,13 @@ process VISIUM_VOYAGER_SPATIAL_ESDA {
     // global container-force resolves a bare params.container indirection to the base image
     // (no R → 'Rscript: No such file or directory', exit 127, validated 2026-10-04). A literal
     // directive reliably wins (merfish pattern).
-    // Image = :3.20-SLIM (not full :3.20): the full image failed to start on Batch with
-    // "no space left on device" pulling reactome.db (~multi-GB; the known DISK blocker, run2
-    // 549f4286 2026-10-04). The slim variant is the smaller Batch-ready image; if it lacks the
-    // Voyager stack (sf/spdep/SpatialFeatureExperiment) the workflow honest-fails at library().
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim'
+    // Image = the PURPOSE-BUILT spatial image bioc-domain-spatial:3.20-deps (VERIFIED to exist in
+    // ECR, pushed 2026-09-29, ~2.1GB — an earlier claim that it "does not exist" was wrong and led
+    // to transcriptomics images that lack GDAL). The transcriptomics variants failed: full :3.20
+    // disk-fulled (reactome.db), :3.20-slim loaded but sf.so could not load (missing GDAL/GEOS/PROJ
+    // system libs). The spatial image is built precisely to carry GDAL + the sf/spdep/
+    // SpatialFeatureExperiment/Voyager stack. This also matches the DB docker_image on id 14438.
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-spatial:3.20-deps'
 
     output:
     path "sfe_esda.rds",          emit: sfe
