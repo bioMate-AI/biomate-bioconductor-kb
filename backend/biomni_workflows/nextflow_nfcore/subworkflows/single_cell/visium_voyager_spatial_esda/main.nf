@@ -52,14 +52,19 @@ params.max_spots         = '2000'   // subsample cap to bound runtime/cost
 params.sample_id         = 'sample'
 // EXISTING Batch-ready image carrying the Voyager stack (same as sibling
 // bioconductor/voyager). Overridable by the executor via params.container.
-params.container         = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim'
+params.container         = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20'
 
 process VISIUM_VOYAGER_SPATIAL_ESDA {
     tag "${params.sample_id}"
     label 'process_medium'
     publishDir "${params.outdir}", mode: 'copy'
 
-    container "${params.container}"
+    // LITERAL container directive (not "${params.container}"): for /single_cell/ the executor's
+    // global container-force resolves a bare params.container indirection to the base image
+    // (no R → 'Rscript: No such file or directory', exit 127, validated 2026-10-04). A literal
+    // directive reliably wins (same pattern as merfish). Full :3.20 image (NOT -slim) = the
+    // image the working sibling bioconductor/voyager (id 12618) uses, which carries R + Voyager.
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20'
 
     output:
     path "sfe_esda.rds",          emit: sfe
