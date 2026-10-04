@@ -67,6 +67,13 @@ for f in t2-registry t2-model-object t2-run t2-rounds; do
   [ -f "$T2SRC/$f.png" ] && cp "$T2SRC/$f.png" "$DST/$f.png"
 done
 
+# T4 Bringing-your-own-data focal stills from capture-live-t4-focal.cjs (uploads a
+# demo CSV; element-clipped at 3x).
+T4SRC="$ROOT/recording/video/live-t4-focal"
+for f in t4-data-hub t4-dataset-object t4-quality; do
+  [ -f "$T4SRC/$f.png" ] && cp "$T4SRC/$f.png" "$DST/$f.png"
+done
+
 echo "built focal stills:"
 for f in prerun running completed outputs record t3-completed-withheld; do
   [ -f "$DST/$f.png" ] || continue
