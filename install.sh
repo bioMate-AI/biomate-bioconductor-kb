@@ -302,6 +302,32 @@ for _img in "$GALAXY_IMAGE" "$FRONTEND_IMAGE"; do
   fi
 done
 
+# ── 拉取并标记 biomni-tools 镜像（Nextflow 工作流任务容器） ──────────────────
+# BioMate 工作流（drug_discovery, clinical_trials 等）的 .nf 文件引用本地镜像名
+# "biomate/biomni-tools:latest"。install.sh 负责从 GHCR 拉取公共版本并重新标记。
+# 如果已通过离线包 docker load，则跳过拉取步骤直接标记。
+_BIOMNI_REMOTE="${BIOMATE_BIOMNI_TOOLS_IMAGE:-ghcr.io/biomate-ai/biomni-tools:latest}"
+_BIOMNI_LOCAL="biomate/biomni-tools:latest"
+
+# Check if local tag already correct
+if docker image inspect "$_BIOMNI_LOCAL" &>/dev/null; then
+  ok "biomni-tools 镜像已就绪: $_BIOMNI_LOCAL"
+else
+  if docker image inspect "$_BIOMNI_REMOTE" &>/dev/null; then
+    info "重新标记 biomni-tools 镜像..."
+  else
+    info "拉取 biomni-tools 镜像: $_BIOMNI_REMOTE ..."
+    if ! docker pull "$_BIOMNI_REMOTE" 2>&1; then
+      warn "biomni-tools 拉取失败。工作流（ADMET、BOIN、药物发现等）将无法运行。"
+      warn "离线部署：docker load -i biomni-tools.tar，然后重新运行 install.sh"
+    fi
+  fi
+  if docker image inspect "$_BIOMNI_REMOTE" &>/dev/null; then
+    docker tag "$_BIOMNI_REMOTE" "$_BIOMNI_LOCAL"
+    ok "biomni-tools 已标记为: $_BIOMNI_LOCAL"
+  fi
+fi
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. 创建 Nextflow 工作目录
 # ─────────────────────────────────────────────────────────────────────────────
