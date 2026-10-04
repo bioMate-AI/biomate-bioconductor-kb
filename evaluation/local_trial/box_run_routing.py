@@ -7,16 +7,22 @@ PROMPTS=sys.argv[1]; OUT=sys.argv[2]; ENDPOINT=sys.argv[3] if len(sys.argv)>3 el
 MODEL=sys.argv[4] if len(sys.argv)>4 else "base"
 d=json.load(open(PROMPTS)); labs=d["labels"]; items=d["items"]
 labset={l.lower():l for l in labs}
+import re
 def parse_cls(text):
-    t=(text or "").strip().lower()
+    t=(text or "")
+    t=re.sub(r"<think>.*?</think>","",t,flags=re.S)   # strip reasoning block if any leaked
+    t=re.sub(r"^.*</think>","",t,flags=re.S)           # or an unclosed-then-closed think
+    t=t.strip().lower()
     for l in sorted(labset,key=len,reverse=True):
         if l in t: return labset[l]
     return t.split()[0] if t else ""
 def call(prompt):
-    # routing answer is a short workflow name; cap tokens hard (the raw base rambles to the cap otherwise
-    # -> ~35s/call eager on A10G) and stop at newline. parse_cls extracts the label from the short output.
+    # Base is a Qwen3 reasoning model — DISABLE thinking for this pick-from-menu classification (CoT isn't
+    # needed to read a described menu, and thinking blew up latency to ~35s/call). chat_template_kwargs is
+    # the clean switch; cap tokens as a safety bound. parse_cls still strips any leaked <think> block.
     body=json.dumps({"model":MODEL,"messages":[{"role":"user","content":prompt}],
-                     "max_tokens":48,"temperature":0,"stop":["\n"]}).encode()
+                     "max_tokens":200,"temperature":0,
+                     "chat_template_kwargs":{"enable_thinking":False}}).encode()
     for attempt in range(3):
         try:
             r=urllib.request.urlopen(urllib.request.Request(ENDPOINT.rstrip("/")+"/chat/completions",body,
