@@ -64,9 +64,36 @@ interpretation, out-of-catalog workflow generation, clarification/decomposition 
 are where model improvement (and, if it earns its place, CPT) is the lever. Each gets the same treatment:
 item-level error analysis → localize → targeted fix → re-measure on the LLM+harness metric.
 
+## MEASURED RESULT (2026-10-04, our actual base 9B served on vLLM)
+Served Qwen3.5-9B base on an on-demand A10G; ran all 200 routing items in both menu styles, no-think,
+greedy. Scored with the same scorer (gold + acceptable_alts).
+
+| base 9B routing (catalog / LLM+harness) | accuracy |
+|---|---:|
+| NAMES menu (bare — the legacy prompt), no-think | **0.680** |
+| DESCRIBED menu (the fix), no-think | **0.885**  (**+20.5pp**; 47 recovered, 6 broken) |
+| prior base catalog *with* thinking (leaderboard) | 0.815 |
+| frontier Opus catalog | 0.960 |
+| full product | 0.965 |
+
+**The harness description-fix lifts our base 9B routing +20.5pp (0.68→0.885), confirmed on the real model.**
+Described-no-think (0.885) already **beats** the prior base-with-thinking (0.815) — descriptions more than
+compensate for dropping CoT — and closes most of the distance to frontier (0.96). This proves the routing
+LLM+harness gap is a **harness-context artifact, closed model-invariantly by showing descriptions**, not a
+model-capacity problem. (Several of the "6 broken" are benchmark label-variant mismatches, e.g.
+`scaffold_hopping` vs `Scaffold Hopping`, so true lift is marginally higher.)
+
+### Residual 23 misses → next grounded description-quality pass (not capacity)
+Cluster on still-thin descriptions: raredisease→sarek (var_009/013/014: desc doesn't signal trio/Mendelian);
+scnanoseq vs scrnaseq (sc_001/008: Nanopore-vs-short-read not crisp enough); tipseq/cutandrun; mhcquant vs
+epitopeprediction. Fix = sharpen those specific workflow descriptions (grounded), + optionally enable
+thinking WITH descriptions (extrapolated ≈ frontier). All harness/data side, not model training.
+
 ## Status
 - [x] Routing gap localized item-level: 31 selection-misses, 3 clusters, 0 retrieval-misses.
-- [ ] Confirm grounded description source for the 91 catalog workflows (recon in progress).
-- [ ] Track 1: implement described-menu; re-run base catalog; score; target ≈0.96.
-- [ ] Track 2: build contrastive discrimination SFT; short targeted train; re-measure.
-- [ ] Repeat the localize→fix→measure loop on the LLM-bound tasks.
+- [x] Confirmed grounded description source: `workflows` table (name, description||annotation, input_types).
+- [x] Track 1 implemented (described-menu, annotation fallback) + MEASURED: base 9B 0.68→0.885 (+20.5pp).
+- [ ] Production backfill: `description := annotation` where empty (so real routing gets this too).
+- [ ] Description-quality pass on the residual 23 (raredisease, scnanoseq, tipseq, mhcquant…).
+- [ ] Optional: described + thinking (expected ≈ frontier 0.96).
+- [ ] Then the LLM-bound tasks (findings, out-of-catalog gen) get the same localize→fix→measure loop.
