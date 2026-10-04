@@ -49,6 +49,7 @@ ENV PATH=/opt/conda/bin:$PATH
 # equivalent is conda's default; clean in the same layer.
 RUN micromamba install -y -n base -c conda-forge \
       python=3.10 \
+      procps-ng \
       openslide \
       openslide-python \
       scikit-image \
