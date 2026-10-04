@@ -4,6 +4,11 @@
  * Perform ChIP-seq peak calling using MACS2 to identify genomic regions with significant binding.
  *
  * nf-core style module generated from tested Galaxy wrapper
+ *
+ * Quick-run demo default: with no --chip_seq_file/--control_file, falls back to the canonical
+ * MACS CTCF ChIP-seq test pair (chr22, ~50k-read single-end ChIP + matched input control, from
+ * macs3-project/MACS) and runs the SAME macs2 callpeak path on that REAL public data. Honest-fail
+ * only if the demo download fails (never fabricated peaks).
  */
 
 nextflow.enable.dsl = 2
@@ -48,8 +53,16 @@ process PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2 {
     # Export parameters as environment variables. The ChIP + control files are the
     # STAGED input basenames (localised by Nextflow), NOT raw params — so they exist
     # on disk inside the task and peak calling is reachable.
-    export PARAM_CHIP_SEQ_FILE="${chip_seq_file}"
-    export PARAM_CONTROL_FILE="${control_file}"
+    #
+    # The built-in demo pair (and many public ChIP/control tracks) arrive gzipped (.bed.gz).
+    # Decompress any gzipped staged input in-place with the real `gzip` tool so macs2 (-f AUTO)
+    # can read plain BED/BAM. User-supplied plain BAM/BED are left untouched (the test is false).
+    CHIP_IN="${chip_seq_file}"
+    CTRL_IN="${control_file}"
+    if [ "\${CHIP_IN##*.}" = "gz" ]; then gzip -dc "\$CHIP_IN" > "\${CHIP_IN%.gz}" && CHIP_IN="\${CHIP_IN%.gz}"; fi
+    if [ "\${CTRL_IN##*.}" = "gz" ]; then gzip -dc "\$CTRL_IN" > "\${CTRL_IN%.gz}" && CTRL_IN="\${CTRL_IN%.gz}"; fi
+    export PARAM_CHIP_SEQ_FILE="\$CHIP_IN"
+    export PARAM_CONTROL_FILE="\$CTRL_IN"
     export PARAM_OUTPUT_NAME="${params.output_name?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_GENOME_SIZE="${params.genome_size?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_Q_VALUE="${params.q_value?.toString()?.replace('"', '\\"') ?: 'null'}"
@@ -350,20 +363,33 @@ workflow PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2_WORKFLOW {
 }
 
 // Entry workflow for standalone execution.
-// Builds the staged [meta, chip, control] channel from the required file params so
-// the task localises both alignments and REACHES macs2 callpeak. Refuses to launch
-// with missing inputs (no silent "demo mode").
+// Builds the staged [meta, chip, control] channel and REACHES macs2 callpeak.
+//
+// Built-in demo default (mirrors merfish/metaboanalystr): when no ChIP/control pair is supplied,
+// fall back to the canonical MACS CTCF ChIP-seq test pair — a single-end CTCF ChIP track plus its
+// matched input control, chr22 subset (~50k reads each) from the macs3-project/MACS repository —
+// so a param-less "quick run" works end-to-end on REAL, clearly-labeled public data. The demo
+// files are staged, decompressed in the process, and run through the SAME macs2 callpeak path.
+// Honest-fail only if the demo download itself fails (never fabricated/synthetic peaks).
 workflow {
-    if( !params.chip_seq_file || !params.control_file ) {
-        error("perform_chipseq_peak_calling_with_macs2 requires --chip_seq_file and --control_file " +
-              "(ChIP treatment + input/control BAM or BED). Refusing to run without real inputs.")
+    def demo        = ( !params.chip_seq_file || !params.control_file )
+    // Canonical MACS test pair — real public CTCF ChIP-seq (NA12878), chr22, ~50k single-end reads.
+    def demo_chip   = 'https://raw.githubusercontent.com/macs3-project/MACS/master/test/CTCF_SE_ChIP_chr22_50k.bed.gz'
+    def demo_ctrl   = 'https://raw.githubusercontent.com/macs3-project/MACS/master/test/CTCF_SE_CTRL_chr22_50k.bed.gz'
+    def chip_src    = demo ? demo_chip : params.chip_seq_file
+    def control_src = demo ? demo_ctrl : params.control_file
+
+    if( demo ) {
+        log.warn "[demo] no --chip_seq_file/--control_file supplied -> using canonical MACS CTCF " +
+                 "ChIP-seq demo pair (CTCF_SE_ChIP_chr22_50k + CTCF_SE_CTRL_chr22_50k, chr22 ~50k " +
+                 "reads each, macs3-project/MACS test data)"
     }
 
     ch_input = Channel.of(
         tuple(
-            [ id: (params.output_name ?: 'run') ],
-            file(params.chip_seq_file,  checkIfExists: true),
-            file(params.control_file,   checkIfExists: true)
+            [ id: (params.output_name ?: (demo ? 'ctcf_demo' : 'run')) ],
+            file(chip_src,    checkIfExists: true),
+            file(control_src, checkIfExists: true)
         )
     )
 
