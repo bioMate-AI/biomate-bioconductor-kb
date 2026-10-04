@@ -27,7 +27,13 @@ process PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2 {
     publishDir { "${params.outdir}/${meta.id}" }, mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    // macs2 is NOT installed in biomni-tools:x86 — verified on a real Batch probe (2026-10-04):
+    // the task exited 1 with empty logs and `which macs2` returned nothing. Pin the
+    // registry-verified macs2 biocontainer so peak calling actually runs. Literal directive
+    // (not a ${params.container} indirection) so the executor resolves it correctly; the
+    // always-on host-libz + /opt/aws-cli mounts make quay biocontainers work on Batch, exactly
+    // as merfish (squidpy) and voyager (bioc-domain-spatial) already do.
+    container 'quay.io/biocontainers/macs2:2.2.9.1--py39hbcbf7aa_5'
 
     input:
     // ChIP (treatment) + input/control alignments are STAGED path inputs so Nextflow
