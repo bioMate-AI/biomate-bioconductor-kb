@@ -40,7 +40,7 @@ def mux(lang, out):
         cmd = ['ffmpeg','-y','-i',webm,'-i',str(awav),
                '-filter_complex',f'[0:v]trim=start={t0:.3f},setpts=PTS-STARTPTS[v]',
                '-map','[v]','-map','1:a:0',
-               '-c:v','libopenh264','-b:v','6000k','-pix_fmt','yuv420p',
+               '-c:v','libopenh264','-b:v','10000k','-pix_fmt','yuv420p',
                '-c:a','aac','-b:a','192k','-ar','48000','-ac','2',
                '-movflags','+faststart','-shortest',str(out)]
         print('ffmpeg:',' '.join(cmd))

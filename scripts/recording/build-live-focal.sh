@@ -35,7 +35,18 @@ ffmpeg -y -loglevel error -i "$SRC/outputs-table.png" -filter_complex "crop=1170
 ffmpeg -y -loglevel error -i "$SRC/record-full.png" \
   -filter_complex "[0:v]crop=2379:500:0:0,pad=2379:530:0:0:white[t];[0:v]crop=2379:708:0:930[f];[t][f]vstack=inputs=2" "$DST/record.png"
 
+# t3-completed-withheld: T3's own run (c40459b2) has findings WITHHELD (outputs
+# unreadable) — the honesty teaching point — so it cannot reuse the flagship's
+# populated-findings completed.png. Crop T3's tracked full-panel r8 to the right
+# After-run panel: Completed badge + tabs + RUN ORIGINAL + the amber withheld
+# message + the manifest-provenance line (drops the chat column and empty space).
+R8="$ROOT/reference/claude_design/tutorials/assets/r8-completed-chat-and-panel.png"
+if [ -f "$R8" ]; then
+  ffmpeg -y -loglevel error -i "$R8" -filter_complex "crop=1680:690:1200:190" "$DST/t3-completed-withheld.png"
+fi
+
 echo "built focal stills:"
-for f in prerun running completed outputs record; do
-  printf '  %-12s ' "$f.png"; ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$DST/$f.png"
+for f in prerun running completed outputs record t3-completed-withheld; do
+  [ -f "$DST/$f.png" ] || continue
+  printf '  %-22s ' "$f.png"; ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$DST/$f.png"
 done
