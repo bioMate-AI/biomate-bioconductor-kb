@@ -25,19 +25,31 @@ process PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2 {
     container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
-    val(meta)  // Meta information for this run
+    // ChIP (treatment) + input/control alignments are STAGED path inputs so Nextflow
+    // localises them into the task work dir — this is what makes `os.path.exists()`
+    // true inside the container and lets the pipeline actually REACH `macs2 callpeak`.
+    // Previously the process took only `val(meta)` with no staged files, so the Python
+    // body always saw chip_seq_file=None and returned early in fake "demo mode" before
+    // peak calling (root cause of "ChIP-seq did not reach peak calling").
+    tuple val(meta), path(chip_seq_file), path(control_file)
 
     output:
     tuple val(meta), path("perform_chipseq_peak_calling_with_macs2_results.json"), emit: results
     tuple val(meta), path("perform_chipseq_peak_calling_with_macs2_output.txt"), emit: output
+    // Real MACS2 peak-calling artefacts (published when callpeak succeeds).
+    tuple val(meta), path("*_peaks.narrowPeak"), emit: narrowpeak, optional: true
+    tuple val(meta), path("*_peaks.xls"),        emit: peaks_xls, optional: true
+    tuple val(meta), path("*_summits.bed"),      emit: summits,   optional: true
     path "versions.yml", emit: versions
 
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # Export parameters as environment variables
-    export PARAM_CHIP_SEQ_FILE="${params.chip_seq_file?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_CONTROL_FILE="${params.control_file?.toString()?.replace('"', '\\"') ?: 'null'}"
+    # Export parameters as environment variables. The ChIP + control files are the
+    # STAGED input basenames (localised by Nextflow), NOT raw params — so they exist
+    # on disk inside the task and peak calling is reachable.
+    export PARAM_CHIP_SEQ_FILE="${chip_seq_file}"
+    export PARAM_CONTROL_FILE="${control_file}"
     export PARAM_OUTPUT_NAME="${params.output_name?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_GENOME_SIZE="${params.genome_size?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_Q_VALUE="${params.q_value?.toString()?.replace('"', '\\"') ?: 'null'}"
@@ -112,19 +124,20 @@ def perform_chipseq_peak_calling_with_macs2(
     log = f"ChIP-seq Peak Calling with MACS2 - {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\\n"
     log += "=" * 80 + "\\n\\n"
 
-    # Validate input files
+    # Validate input files. These MUST exist (they are staged Nextflow path inputs).
+    # Honest-fail if absent — never fabricate "demo"/"simulated" peaks (CLAUDE.md:
+    # no fabrication; a fake success log masks a real missing-input failure).
     if chip_seq_file is None or not os.path.exists(str(chip_seq_file)):
-        log += f"Note: ChIP-seq file not provided or does not exist: {chip_seq_file}\\n"
-        log += "Running in demo mode with simulated results.\\n\\n"
-        log += "## Demo Results\\n"
-        log += "In production, provide valid BAM/BED files for actual peak calling.\\n"
-        log += "MACS2 would identify genomic regions with significant protein-DNA binding.\\n"
-        return log
+        raise FileNotFoundError(
+            f"ChIP-seq (treatment) file not found: {chip_seq_file}. "
+            "A real BAM/BED must be staged; refusing to emit fabricated demo peaks."
+        )
 
     if control_file is None or not os.path.exists(str(control_file)):
-        log += f"Note: Control file not provided or does not exist: {control_file}\\n"
-        log += "Running in demo mode with simulated results.\\n"
-        return log
+        raise FileNotFoundError(
+            f"Control/input file not found: {control_file}. "
+            "A real BAM/BED must be staged; refusing to emit fabricated demo peaks."
+        )
 
     # Create output directory if needed
     output_dir = os.path.dirname(output_name)
@@ -153,9 +166,12 @@ def perform_chipseq_peak_calling_with_macs2(
         )
         log += f"MACS2 is available: {check_process.stdout.decode().strip() if check_process.stdout else check_process.stderr.decode().strip()}\\n\\n"
     except (subprocess.SubprocessError, FileNotFoundError):
-        log += "Error: MACS2 is not installed or not available in the system PATH.\\n"
-        log += "Please install MACS2 using: pip install macs2\\n"
-        return log
+        # Honest-fail: the container must provide macs2. Do not return a "success"
+        # log that silently skipped peak calling.
+        raise RuntimeError(
+            "MACS2 is not installed or not on PATH in this container "
+            "(expected in biomate/biomni-tools). Peak calling cannot run."
+        )
     except Exception as e:
         log += f"Error checking for MACS2: {str(e)}\\n"
 
@@ -333,10 +349,23 @@ workflow PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2_WORKFLOW {
     versions = PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2.out.versions
 }
 
-// Entry workflow for standalone execution
+// Entry workflow for standalone execution.
+// Builds the staged [meta, chip, control] channel from the required file params so
+// the task localises both alignments and REACHES macs2 callpeak. Refuses to launch
+// with missing inputs (no silent "demo mode").
 workflow {
-    // Create channel with meta map
-    ch_input = Channel.of([id: 'run'])
+    if( !params.chip_seq_file || !params.control_file ) {
+        error("perform_chipseq_peak_calling_with_macs2 requires --chip_seq_file and --control_file " +
+              "(ChIP treatment + input/control BAM or BED). Refusing to run without real inputs.")
+    }
+
+    ch_input = Channel.of(
+        tuple(
+            [ id: (params.output_name ?: 'run') ],
+            file(params.chip_seq_file,  checkIfExists: true),
+            file(params.control_file,   checkIfExists: true)
+        )
+    )
 
     PERFORM_CHIPSEQ_PEAK_CALLING_WITH_MACS2_WORKFLOW(ch_input)
 
