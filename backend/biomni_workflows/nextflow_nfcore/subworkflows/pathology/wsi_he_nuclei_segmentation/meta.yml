@@ -1,0 +1,101 @@
+name: "wsi_he_nuclei_segmentation"
+description: >
+  RESEARCH-USE-ONLY whole-slide-image (WSI) H&E preprocessing and nuclei
+  segmentation. Ingests ONE WSI via OpenSlide (one OpenSlide format, e.g.
+  Aperio .svs, plus pyramidal OME-TIFF), performs deterministic tissue tiling
+  with coordinates + background/blur QC flags, and runs ONE pinned,
+  license-clean nuclei model (Cellpose, BSD-3-Clause) on the hematoxylin
+  channel. NOT a diagnostic device; pathologist review required.
+keywords:
+  - pathology
+  - histopathology
+  - whole_slide_image
+  - WSI
+  - H&E
+  - openslide
+  - cellpose
+  - nuclei_segmentation
+  - tiling
+  - research_use_only
+tools:
+  - openslide:
+      description: "Vendor-neutral WSI reader (SVS, pyramidal OME-TIFF, etc.)"
+      homepage: "https://openslide.org/"
+      documentation: "https://openslide.org/api/python/"
+      licence: ["LGPL-2.1"]
+  - cellpose:
+      description: "Generalist deep-learning cell/nuclei segmentation model"
+      homepage: "https://www.cellpose.org/"
+      documentation: "https://cellpose.readthedocs.io/"
+      licence: ["BSD-3-Clause"]
+  - scikit-image:
+      description: "Image processing (H&E color deconvolution, QC, overlay)"
+      homepage: "https://scikit-image.org/"
+      documentation: "https://scikit-image.org/docs/stable/"
+      licence: ["BSD-3-Clause"]
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing run information, e.g. [ id:'slide01' ]
+params:
+  - input_wsi:
+      type: string
+      description: >
+        REQUIRED. Path to one WSI file (OpenSlide format, e.g. Aperio .svs, or
+        pyramidal OME-TIFF). There is NO demo/fallback slide; the process
+        honest-fails (non-zero) if this is missing.
+  - tile_size:
+      type: integer
+      description: Level-0 tile edge in pixels (default 512)
+  - tile_overlap:
+      type: integer
+      description: Tile overlap in pixels, 0 <= overlap < tile_size (default 0)
+  - max_tiles:
+      type: integer
+      description: Bound on processed tissue tiles for a preview run; <=0 means all (default 200)
+  - tissue_threshold:
+      type: number
+      description: Minimum tissue fraction for a tile to count as tissue (default 0.10)
+  - blur_threshold:
+      type: number
+      description: Variance-of-Laplacian (x1e4) below which a tile is flagged blurry (default 100.0)
+  - model_type:
+      type: string
+      description: Cellpose model (nuclei|cyto|cyto2|cyto3; default nuclei)
+
+output:
+  - masks:
+      type: tuple
+      description: Per-tile labelled nuclei masks (uint16 PNG)
+      pattern: "tiles/*_mask.png"
+  - overlay:
+      type: tuple
+      description: Stitched tissue/blur/background QC overlay
+      pattern: "qc_overlay.png"
+  - cells:
+      type: tuple
+      description: Per-nucleus cell table (centroids + area)
+      pattern: "cell_table.csv"
+  - qc:
+      type: tuple
+      description: QC + tiling + segmentation summary
+      pattern: "qc_summary.json"
+  - manifest:
+      type: tuple
+      description: Model + container + version provenance manifest
+      pattern: "model_manifest.json"
+  - report:
+      type: tuple
+      description: Research-use-only report (pathologist review required)
+      pattern: "RESEARCH_USE_ONLY_report.txt"
+  - versions:
+      type: file
+      description: Software versions
+      pattern: "versions.yml"
+
+authors:
+  - "@biomate"
+maintainers:
+  - "@biomate"
