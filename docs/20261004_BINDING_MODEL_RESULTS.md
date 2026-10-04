@@ -64,13 +64,31 @@
 
 ## A2 — Principled multi-objective selection (qNEHVI) vs the hand-tuned composite
 
-<!-- A2_RESULTS -->
+Objective space (all maximized): **binding = A1 real-data pAff** (replaces the MM-GBSA/iPTM proxy), **permeability = CycPeptMPDB logPapp** regressor (trained on 8,466 rows), **synthesizability = −SA_score**. Selectivity **omitted** — not derivable from single-target pool data. Three selectors compared by dominated hypervolume (objectives min-max normalized to [0,1]³, reference = origin):
+- **composite** — the existing hand-tuned ordering that selected each panel;
+- **greedy-HV** — exact greedy hypervolume-contribution selection (the *principled optimum* when objectives are computed deterministically, which is our case);
+- **qNEHVI** — a genuine BoTorch `qLogNoisyExpectedHypervolumeImprovement` loop (GP surrogate on physchem descriptors) — the variant for the generative/BO setting where binding is predicted with uncertainty.
+
+| Pool | k | Composite HV | qNEHVI HV | greedy-HV | full-pool HV | qNEHVI gain | greedy gain |
+|---|---|---|---|---|---|---|---|
+| **PD-L1** (176) | 10 | 0.2092 | 0.2877 | **0.4501** | 0.4555 | **+37.6%** | **+115.2%** |
+| αvβ6 (12) | 6 | 0.4743 | 0.4723 | 0.4810 | 0.4810 | −0.4% | +1.4% |
+
+**Reading it:** on PD-L1 the hand-tuned composite captures only **46%** of the hypervolume the pool can achieve (0.209 / 0.456), while greedy-HV reaches **98.8%** (0.450 / 0.456) — i.e. the composite is substantially HV-suboptimal in the real-objective space, and principled MO more than **doubles** the dominated hypervolume. qNEHVI improves on the composite (+37.6%) but trails greedy because its GP infers the objectives from only 5 physchem descriptors and cannot fully reconstruct the binding axis — expected and honest: qNEHVI's niche is *expensive/unknown* objectives inside a generative loop, not a fully-known finite pool, where greedy-HV is exact. For αvβ6 all three are within ~1% of each other and of the full-pool HV: the 12-member panel is already near-Pareto-optimal, so there is nothing to re-rank (and no larger αvβ6 pool exists).
+
+*Engineering note:* qNEHVI (torch/BoTorch) and the A1 binding model (XGBoost) cannot run in one process on macOS — their two libomp copies collide (`OMP Error #179`). Fixed by a **two-phase split**: `--phase objectives` (sklearn/XGBoost, no torch) dumps `pool_obj_*.npz`; `--phase qnehvi` (torch only, single-thread BLAS) consumes them. One OpenMP runtime per process.
 
 ---
 
 ## A3 — Re-score the existing pools
 
-<!-- A3_RESULTS -->
+**PD-L1 (176-member pool, top-10):** both greedy-HV and qNEHVI overlap the composite panel on only **2 of 10** picks — real-data MO **substantially changes the selection**. The greedy picks trade a little of the composite's binding-proxy preference for markedly better **synthesizability** (SA score down to 4.0–5.1 vs the composite top's 6.7–7.7) and spread across the permeability axis.
+
+> **Trust caveat (decisive):** the binding objective for PD-L1 is **unreliable** (novel-target Spearman 0.18, predictions regressed to ~6–7 pAff). The hypervolume gain is real *in the computed objective space*, but the binding axis driving part of the re-ranking is noise for PD-L1. The **robust** part of the gain is the synthesizability + permeability improvement. **Do not adopt the re-ranked PD-L1 panel over the existing one on the strength of the binding model alone** — the correct use is to prefer, among candidates the existing pipeline already likes, those that also score well on the reliable (perm/SA) axes.
+
+**αvβ6 (12-member panel, top-6):** 5 of 6 picks overlap the composite and HV barely moves (greedy +1.4%, qNEHVI −0.4%) → real-data MO **does not meaningfully change** the αvβ6 panel. Scope is limited: only the 12-member panel exists, no larger αvβ6 pool.
+
+Artifacts: `results/mo_qnehvi_rescore.json` (full HV table, top-k lists, overlaps, objective ranges), `results/pool_obj_{PD-L1,avb6}.npz` (objective arrays for phase 2).
 
 ---
 
