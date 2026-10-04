@@ -437,16 +437,32 @@ def predict_admet_properties(smiles_list, ADMET_model_type="MPNN", precomputed_a
             tox_report["toxicity"]["hERG_probability"]   = round(herg_p, 3)
             tox_report["toxicity"]["clintox_probability"] = round(clintox_p, 3)
 
-            # hERG: TDC defines positive as IC50 < 10 µM
-            # Power-law logit calibrated to terfenadine benchmark:
-            #   IC50 = 10 * ((1-p)/p)^1.845
-            # Derivation: terfenadine p=0.977, IC50=10nM → exponent=1.845
-            # Decision boundary p=0.5 → IC50=10 µM (TDC positive threshold)
-            if herg_p > 0.01:
-                import math as _math
-                _ratio = (1.0 - herg_p) / max(herg_p, 1e-6)
-                ic50_est = round(10.0 * (_ratio ** 1.845), 4)
-                tox_report["toxicity"]["herg_ic50_uM"] = max(0.0001, min(ic50_est, 10000.0))
+            # hERG IC50 estimate from the ADMET-AI classification probability.
+            # Power-law calibrated to terfenadine: IC50 = 10 * ((1-p)/p)^1.845
+            #   (terfenadine p=0.977, IC50=10nM → exponent 1.845; p=0.5 → 10µM, the
+            #    TDC positive threshold). This is an ESTIMATE from a probability, not
+            #    a measured IC50.
+            # CONSISTENCY FIX: apply the SAME estimator to EVERY compound and
+            # aggregate as the worst case (lowest IC50). Previously the aggregate
+            # used this power-law on the worst-by-probability compound while
+            # per_compound kept the RDKit quadratic-logP heuristic — two different,
+            # non-comparable estimators in one report (e.g. 432 µM aggregate vs
+            # 5.2 µM per-compound). The per_compound sync below writes the same
+            # estimator into each compound so the numbers agree.
+            def _herg_ic50_from_prob(p):
+                p = float(p or 0)
+                if p <= 0.01:
+                    return None
+                _ratio = (1.0 - p) / max(p, 1e-6)
+                return max(0.0001, min(round(10.0 * (_ratio ** 1.845), 4), 10000.0))
+            _herg_ic50s = [
+                v for v in (_herg_ic50_from_prob(c.get("hERG_prob")) for c in per_compound_admet)
+                if v is not None
+            ]
+            if _herg_ic50s:
+                tox_report["toxicity"]["herg_ic50_uM"]    = min(_herg_ic50s)  # worst case = lowest IC50
+                tox_report["toxicity"]["herg_aggregation"] = "worst_compound_in_panel (min IC50)"
+                tox_report["toxicity"]["herg_ic50_method"] = "admet_ai_prob_powerlaw_terfenadine_anchor"
 
             # DILI: override heuristic when ADMET-AI gives clearer signal
             if dili_p >= 0.65:
@@ -491,6 +507,15 @@ def predict_admet_properties(smiles_list, ADMET_model_type="MPNN", precomputed_a
                 pc["dili_risk"] = dr
                 pc["dili_probability"] = dpr
                 pc["dili_source"] = "admet_ai"
+                # hERG IC50: overwrite the RDKit quadratic-logP heuristic with the
+                # SAME AI prob power-law estimator used for the aggregate, so the
+                # per_compound value and toxicity.herg_ic50_uM are the same estimator
+                # (aggregate == min of these per-compound IC50s).
+                _hp = match.get("hERG_prob")
+                _hic = _herg_ic50_from_prob(_hp) if _hp is not None else None
+                if _hic is not None:
+                    pc["herg_ic50_uM"] = _hic
+                    pc["herg_source"] = "admet_ai"
 
             tox_report["toxicity"]["dili_aggregation"] = "worst_compound_in_panel"
 
