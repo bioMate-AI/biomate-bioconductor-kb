@@ -39,7 +39,11 @@ conda create -y -n boltz -c conda-forge python=3.11 numpy scipy >/dev/null 2>&1 
 set +u; conda activate boltz; set -u
 pip install -q --upgrade pip
 pip install -q boltz || { echo "FATAL: boltz install failed"; exit 1; }
-python -c "import boltz; print('boltz', getattr(boltz,'__version__','?'))"
+# Boltz-2's triangle-attention kernel imports cuequivariance_torch (not a hard dep of `boltz`);
+# without it, `boltz predict` crashes mid-fold with ModuleNotFoundError. Install it explicitly.
+pip install -q cuequivariance-torch || { echo "FATAL: cuequivariance-torch install failed"; exit 1; }
+python -c "import boltz, cuequivariance_torch; print('boltz', getattr(boltz,'__version__','?'), 'cueq OK')"
+# NOTE: Boltz requires an MSA; folds use --use_msa_server (confirmed: single-seq w/o MSA errors out).
 
 # --- preflight A1/A2: confirm the layout on ONE target before spending folds ---
 stage preflight_layout
