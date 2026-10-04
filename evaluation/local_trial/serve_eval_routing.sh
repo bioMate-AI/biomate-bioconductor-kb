@@ -15,8 +15,12 @@ aws s3 cp "$OUT_S3/routing_prompts.json" ./routing_prompts.json --quiet
 echo "[eval] downloading base $HF"
 python3 -c "from huggingface_hub import snapshot_download; snapshot_download('$HF', local_dir='$SCRATCH/base')" || { echo "[eval] base dl failed"; exit 11; }
 echo "[eval] serving vLLM"
+# --enforce-eager: skip CUDA-graph capture, which OOM'd the 24GB A10G (weights ~18GB + graph capture
+# > 24GB). Eager is plenty fast for a few hundred short classification calls. --max-num-seqs modest to
+# keep KV small.
 nohup python3 -m vllm.entrypoints.openai.api_server --model "$SCRATCH/base" --served-model-name base \
-  --port 8000 --max-model-len 4096 --gpu-memory-utilization 0.92 > "$SCRATCH/vllm.log" 2>&1 &
+  --port 8000 --max-model-len 4096 --gpu-memory-utilization 0.90 --enforce-eager --max-num-seqs 16 \
+  > "$SCRATCH/vllm.log" 2>&1 &
 SERVE=$!
 echo "[eval] waiting for vLLM health"
 ok=0; for i in $(seq 1 90); do curl -sf localhost:8000/v1/models >/dev/null 2>&1 && { ok=1; break; }; sleep 10; done
