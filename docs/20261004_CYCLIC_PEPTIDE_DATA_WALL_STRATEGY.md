@@ -24,9 +24,9 @@ Before any "mine public data" step: we already have it on S3. Verified inventory
 | Developability calibration | approved_cyclic_peptide_drugs | CSV + notes | ✅ have |
 | Chemical-LM pretrain | PeptideCLM / PepMSND | large (hashed dirs) | ✅ have |
 | N-methylation | nme_v1 (`nme_dataset.jsonl/`) | 3 MB | ✅ have |
-| **Binding affinity** | BindingDB | **65-byte stub (collector failed on URL scrape)** | ❌ re-collecting (ChEMBL + BindingDB) |
+| **Binding affinity** | **binding_affinity_v1** (ChEMBL+BindingDB, RDKit peptide-gated) | **136,730 rows; 36,102 cyclic; 2,702 targets; PD-L1 434; αvβ6 227 (169 cyclic)** — `datasets/binding_affinity_v1/` | ✅ **have** (collected 2026-10-04, `f75982a23`) |
 
-**Net:** data-RICH on permeability + conformers + structures + developability; the only gap is binding affinity, now being re-collected free. The Pareto-DPO multi-objective model can train on held data today for every axis except binding.
+**CORRECTION (2026-10-04):** the earlier "65-byte stub → binding never collected" was WRONG — that 65 bytes was the *status JSON*; the BindingDB peptide subset (171k rows) had actually landed. A robust collector (`collect_binding_affinity.py`, ChEMBL structural peptide gate + verified BindingDB) now assembles the unified `binding_affinity_v1` above. **Net: ALL four Pareto objective axes now have real data** (permeability, conformers, binding incl. our targets, structures). The multi-objective model can train today on real data for every axis — no campaign needed for a first result.
 
 ## Step 1 — (superseded by Step 0) what public binding data to re-collect
 The permeability/structure/conformer data is already held (Step 0). The free task is the BINDING axis we under-collected (collect_bindingdb.sh failed: BindingDB Download.jsp scrape → url_unresolved → 65-byte stub). Re-collect via ChEMBL (stable API) + fixed BindingDB.
