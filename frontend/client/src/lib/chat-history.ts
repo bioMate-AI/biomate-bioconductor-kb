@@ -170,18 +170,13 @@ class ChatHistoryService {
       title: "New Chat",
       timestamp: new Date(),
       lastActivity: new Date(),
-      messages: [{
-        id: "welcome",
-        content: "Hello! I'm BioMate — your AI assistant for biomedical research. Upload a paper, describe your analysis, or ask a question to get started.",
-        role: "assistant",
-        timestamp: new Date(),
-        suggestions: [
-          "Analyze RNA-seq data",
-          "Find variant calling tools",
-          "Build a custom workflow",
-          "Explore genomics tools"
-        ]
-      }],
+      // Empty on creation so the cold-start module dashboard renders — it gates on
+      // `displayMessages.length === 0` in chat-interface.tsx. The old seeded
+      // "welcome" assistant message is intentionally removed: the cold-start
+      // dashboard replaces it, and a lone welcome message suppressed the dashboard
+      // on New Chat (the T0/M1/M2 cold-start regression). projects.ts overrides
+      // `messages` with its own project-welcome, so that flow is unaffected.
+      messages: [],
       workflows: [],
       datasets: [],
       status: "active"
