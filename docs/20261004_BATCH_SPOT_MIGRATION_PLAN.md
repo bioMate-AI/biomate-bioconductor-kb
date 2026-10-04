@@ -97,3 +97,73 @@ confirm reclaim-resilience before trusting long pipelines. (Also consider Nextfl
 - Cost: always-on baseline removed (min=0). ✅
 - Reliability: production on on-demand (unchanged from before). ✅
 - Spot: CE exists + proven to place jobs; **gated on a retry strategy** before production use.
+
+---
+
+## UPDATE 2 (2026-10-04, owner said "go" again) — retry deployed + exit-127 root cause fixed + isolated validation
+
+Two blockers from UPDATE 1 are now **resolved**; one supervised step remains.
+
+### 1. Retry strategy — DONE and deployed (commit `e66dfe4b1`)
+Added `maxSpotAttempts = 3` to the executor's `aws { batch { } }` config block
+(`nextflow_executor.py`). Synced to dev (result=healthy). **Verified live**: a spot Batch job now
+carries `retryStrategy: {"attempts":3,"evaluateOnExit":[{"onStatusReason":"Host EC2*","action":"retry"},
+{"onReason":"*","action":"exit"}]}` — i.e. it retries ONLY on spot-reclaim / host termination and
+exits on real task failures. Exactly the reclaim-resilience required. (Confirmed it behaved correctly:
+a genuine task failure did NOT retry — `n_attempts=1`.)
+
+### 2. Exit-127 root cause — FOUND and FIXED
+Re-pointing the queues spot-preferred and dispatching a cold merfish surfaced a **new, deeper bug**:
+the spot job FAILED with **exitCode 127** (`statusReason: "Essential container in task exited"`, NOT a
+reclaim — so the retry correctly did not fire). Root cause (verified, not guessed):
+
+- The on-demand CE `biomate-nextflow-ce-v2` carries **launch template `lt-099eb24c4fe1b477e` (v16)**;
+  the spot CE `biomate-nextflow-ce-spot` had **none** (`launchTemplate: null`).
+- That launch template's user-data (v14) installs the real **AWS CLI at `/opt/aws-cli/bin/aws`** (as a
+  relative symlink so it survives Docker bind-mounts) and pre-pulls the ECS agent. The executor's
+  Nextflow config hard-codes `cliPath = '/opt/aws-cli/bin/aws'` for S3 file staging. Without the
+  template, spot instances boot bare AL2023 → no `aws` at that path → S3 staging → **exit 127**.
+
+**Fix:** attached the identical launch template to the spot CE (mirrors on-demand exactly), zero
+disruption (spot CE was idle, min=0):
+```bash
+aws batch update-compute-environment --region us-west-2 \
+  --compute-environment biomate-nextflow-ce-spot \
+  --compute-resources '{"launchTemplate":{"launchTemplateId":"lt-099eb24c4fe1b477e","version":"16"}}'
+# → status VALID, state ENABLED, launchTemplate now set. Confirmed.
+```
+
+### 3. Isolated validation — PASSED (no production traffic routed to spot)
+Rather than leave production queues pointed at spot unattended (the plan says this flip is supervised,
+and the auto-mode guardrail correctly refuses unattended production-queue mutation), the fix was
+validated **in isolation**: a temporary queue → spot CE only, with a probe job that boots a real spot
+instance and checks the CLI. Result: **SUCCEEDED, exit 0** —
+`/opt/aws-cli/bin/aws -> /opt/aws-cli/v2/current/bin/aws`, `aws-cli/2.37.9`, `PROBE_OK`. The temp queue
++ job def were torn down. Production queues confirmed **on-demand-only** throughout.
+
+### REMAINING — one supervised step for the owner (eyes-on, ~10 min)
+Everything is staged; the only thing left is the production flip + a live end-to-end run, which should
+be done awake per this plan. Two commands to enable, one cold run to confirm, revert command ready:
+```bash
+# enable spot-preferred + on-demand fallback on both prod queues
+for q in biomate-nextflow-queue galaxy-cloud-queue; do
+  aws batch update-job-queue --region us-west-2 --job-queue "$q" \
+    --compute-environment-order order=0,computeEnvironment=biomate-nextflow-ce-spot \
+                               order=1,computeEnvironment=biomate-nextflow-ce-v2; done
+# then dispatch a cold merfish via /api/workflows/execute and confirm exitCode 0 on a spot instance.
+# revert if anything looks off:
+for q in biomate-nextflow-queue galaxy-cloud-queue; do
+  aws batch update-job-queue --region us-west-2 --job-queue "$q" \
+    --compute-environment-order order=0,computeEnvironment=biomate-nextflow-ce-v2; done
+```
+Expected now: the merfish job lands on spot and exits 0 (CLI present via the template); if a spot node
+is reclaimed mid-run, `maxSpotAttempts=3` retries it (fresh spot or on-demand fallback) instead of
+failing. Minor cleanup: Batch job def `spot-lt-probe:1` is still registered (harmless, no cost) — can
+be deregistered.
+
+### Net state after UPDATE 2
+- Cost: always-on baseline removed (min=0). ✅
+- Reliability: production on on-demand ONLY (unattended-safe). ✅
+- Spot: CE healthy + launch-template-fixed + **isolated-validated** (CLI present, exit 0); retry
+  strategy deployed + verified. **Ready for the supervised production flip** — no code or infra work
+  left, just the eyes-on enable + one confirmation run.
