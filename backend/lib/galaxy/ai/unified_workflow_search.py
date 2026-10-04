@@ -731,7 +731,13 @@ class UnifiedWorkflowSearch:
             fts_query = self._build_fts_query(query)
             cursor.execute(
                 """
-                SELECT w.id, w.name, COALESCE(w.description, '') as description,
+                -- Fall back to the grounded `annotation` blob when description is empty: 16 custom
+                -- BioMate workflows (spatial/multi-omics/CITE-seq) have no description but a rich
+                -- annotation. Empty descriptions here made the routing LLM pick a wrong sibling; adding
+                -- the description lifts base-9B routing 0.68->0.885 (+20.5pp) on RealBio. annotation is
+                -- already FTS-indexed. See docs/20260912_onprem_llm/20261004_CLOSE_THE_GAP_ROUTING.md.
+                SELECT w.id, w.name,
+                       COALESCE(NULLIF(TRIM(w.description), ''), w.annotation, '') as description,
                        w.source, w.filename
                 FROM workflows w
                 JOIN workflows_fts ON w.id = workflows_fts.rowid
