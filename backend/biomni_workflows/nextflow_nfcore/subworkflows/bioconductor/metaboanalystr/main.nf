@@ -134,13 +134,15 @@ process BIOC_METABOANALYSTR_STATISTICAL_METABOLOMICS_ANALYSIS {
           }
           if (!isTRUE(ok)) stop("No input peak-intensity table supplied and the MetaboAnalyst human_cachexia demo dataset could not be downloaded. Provide peak_intensity_table.csv (+ optional class_labels.csv) or ensure network egress for the demo dataset.")
           demo_mode <- TRUE
-          # cachexia ships as samples (rows) x [class, metabolites...]: row.names = sample IDs,
-          # first column = group label. Transpose to the features x samples 'mat' used below.
-          df <- read.csv(demo_csv, header = TRUE, row.names = 1, check.names = FALSE, stringsAsFactors = FALSE)
-          labels <- as.character(df[[1]])
-          mat <- as.data.frame(t(as.matrix(df[, -1, drop = FALSE])), check.names = FALSE)
-          cat(sprintf("[demo] No input supplied -> MetaboAnalyst human_cachexia demo (%d samples x %d metabolites, groups: %s).\n",
-                      ncol(mat), nrow(mat), paste(unique(labels), collapse = "/")))
+          # cachexia IS already a valid MetaboAnalyst "rowu" (rows = samples) concentration
+          # upload: col 1 = sample id, col 2 = class label, cols 3+ = metabolites. Feed it to
+          # Read.TextData natively as "rowu" below -- do NOT transpose + rebuild a "colu" CSV:
+          # cachexia metabolite names contain commas, and a quote=FALSE colu rewrite corrupts
+          # them -> "Duplicate feature names are not allowed!" in Read.TextData (root-caused on
+          # a real Batch run 2026-10-04).
+          .demo_hdr <- tryCatch(read.csv(demo_csv, header = TRUE, check.names = FALSE, stringsAsFactors = FALSE, nrows = 400), error = function(e) NULL)
+          .demo_grps <- tryCatch(paste(unique(.demo_hdr[[2]]), collapse = "/"), error = function(e) "cachexic/control")
+          cat(sprintf("[demo] No input supplied -> MetaboAnalyst human_cachexia demo (rows=samples, groups: %s), read natively as rowu.\n", .demo_grps))
         }
 
         if (!demo_mode) {
@@ -157,29 +159,36 @@ process BIOC_METABOANALYSTR_STATISTICAL_METABOLOMICS_ANALYSIS {
             labels <- rep(c("GroupA", "GroupB"), length.out = ncol(mat))
           }
         }
-        if (any(is.na(labels))) stop("Class labels could not be matched to every sample column of the peak table.")
+        # Demo path feeds the native cachexia file directly (rowu); user path builds a colu CSV.
+        if (demo_mode) {
+          ma_csv <- demo_csv
+          ma_fmt <- "rowu"
+        } else {
+          if (any(is.na(labels))) stop("Class labels could not be matched to every sample column of the peak table.")
 
-        # Write the canonical MetaboAnalyst upload CSV: header = sample names, row 1 = 'Label'.
-        # Build as a single character matrix — NOT rbind() of two data.frames: the label
-        # frame's auto-generated column names (t(data.frame(Label=labels)) -> "1","2",...)
-        # differ from mat's real sample names, so rbind() throws
-        # "names do not match previous names". A matrix rbind is name-agnostic and coerces
-        # cleanly (the Label row is text, the feature rows are numbers-as-text — exactly the
-        # MetaboAnalyst 'conc' upload format).
-        ma_csv <- "metaboanalyst_input.csv"
-        sample_names <- colnames(mat)
-        out <- rbind(
-          c("Label", as.character(labels)),
-          cbind(rownames(mat), matrix(as.character(as.matrix(mat)), nrow = nrow(mat)))
-        )
-        colnames(out) <- c("Sample", sample_names)
-        write.csv(out, ma_csv, row.names = FALSE, quote = FALSE)
+          # Write the canonical MetaboAnalyst upload CSV: header = sample names, row 1 = 'Label'.
+          # Build as a single character matrix — NOT rbind() of two data.frames: the label
+          # frame's auto-generated column names (t(data.frame(Label=labels)) -> "1","2",...)
+          # differ from mat's real sample names, so rbind() throws
+          # "names do not match previous names". A matrix rbind is name-agnostic and coerces
+          # cleanly (the Label row is text, the feature rows are numbers-as-text — exactly the
+          # MetaboAnalyst 'conc' upload format).
+          ma_csv <- "metaboanalyst_input.csv"
+          sample_names <- colnames(mat)
+          out <- rbind(
+            c("Label", as.character(labels)),
+            cbind(rownames(mat), matrix(as.character(as.matrix(mat)), nrow = nrow(mat)))
+          )
+          colnames(out) <- c("Sample", sample_names)
+          write.csv(out, ma_csv, row.names = FALSE, quote = FALSE)
+          ma_fmt <- "colu"
+        }
 
         # ------------------------------------------------------------------
         # 2. Initialise mSet + data processing / normalization (log + auto-scale)
         # ------------------------------------------------------------------
         mSet <- InitDataObjects("conc", "stat", FALSE)
-        mSet <- Read.TextData(mSet, ma_csv, "colu", "disc")
+        mSet <- Read.TextData(mSet, ma_csv, ma_fmt, "disc")
         mSet <- SanityCheckData(mSet)
         # Missing-value handling for the CONC stat pipeline.
         # ReplaceMin() is no longer EXPORTED by MetaboAnalystR 4.x; the exported modern
