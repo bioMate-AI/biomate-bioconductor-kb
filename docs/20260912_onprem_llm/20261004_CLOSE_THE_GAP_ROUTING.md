@@ -97,3 +97,24 @@ thinking WITH descriptions (extrapolated ≈ frontier). All harness/data side, n
 - [ ] Description-quality pass on the residual 23 (raredisease, scnanoseq, tipseq, mhcquant…).
 - [ ] Optional: described + thinking (expected ≈ frontier 0.96).
 - [ ] Then the LLM-bound tasks (findings, out-of-catalog gen) get the same localize→fix→measure loop.
+
+## OVERFITTING CONTROL (2026-10-04) — paraphrase robustness
+Concern: descriptions were sharpened by prior scripts (differentiate_ambiguous_workflows.py) on the same
+axes this benchmark tests (catalog/benchmark co-evolution), so the +20.5pp might be benchmark-specific.
+
+Controls run:
+1. **Recovery breadth** — the 47 described-recovered items spread across **26 distinct workflows**; only
+   **2/47** land on the specifically-engineered disambiguation targets. → not narrow teaching-to-the-test.
+2. **Paraphrase robustness** — rewrote all 200 queries with gpt-4.1 (same intent/specifics, different
+   surface form, no workflow names) and re-ran:
+
+| queries | NAMES | DESCRIBED | lift |
+|---|---:|---:|---:|
+| original | 0.680 | 0.885 | +20.5pp |
+| paraphrased | 0.675 | 0.900 | +22.5pp |
+
+described 0.885→0.900 (flat/better), names 0.680→0.675 (flat). **The lift survives paraphrasing → it is
+semantic, not lexical echo.** Verdict: the description-fix is a real, generalizable, model-invariant gain,
+NOT benchmark overfitting. Residual caveat: absolute magnitude measured on one catalog + one query
+distribution; a brand-new catalog/user distribution could differ, but the two mechanisms that would make it
+fake (phrasing echo, hand-tuned-workflow concentration) are empirically ruled out.
