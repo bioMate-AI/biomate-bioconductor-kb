@@ -68,6 +68,10 @@ class PropertyValue:
     uncertainty: Optional[float] = None
     scorer: str = ""            # which component produced it
     detail: str = ""            # units / model description / caveat
+    # G3: applicability-domain metadata for learned models (e.g. affinity_ml). None for scorers
+    # that have no AD concept (physics, RDKit). "in_domain" | "out_of_domain" | "unknown".
+    applicability: Optional[str] = None
+    low_confidence: bool = False  # True => advisory only; must NOT drive gating/selection
 
     def ok(self) -> bool:
         return self.value is not None
@@ -86,15 +90,27 @@ class PeptideProperties:
     synthetic_accessibility: PropertyValue = field(default_factory=PropertyValue)  # SA score 1..10
     safety: PropertyValue = field(default_factory=PropertyValue)               # dev/stability proxy
 
+    # G3: ADDITIONAL, advisory learned-binding channel (train_binding_model.py). Deliberately NOT
+    # part of scored_fields() => excluded from is_complete() AND never a selection objective
+    # (peptide_select reads scored_fields/OBJECTIVE_DIRECTIONS, which do not include it). It cannot
+    # replace affinity_dG (MM-GBSA) nor silently re-rank a novel-target pool. See _score_ml_affinity.
+    affinity_ml: PropertyValue = field(default_factory=PropertyValue)          # learned pAffinity
+
     errors: Dict[str, str] = field(default_factory=dict)   # field -> error string (fail-safe log)
 
     def scored_fields(self) -> Dict[str, PropertyValue]:
+        """The GATED developability vector (drives is_complete + selection). affinity_ml is NOT
+        here on purpose — it is an advisory channel, see extra_fields()."""
         return {
             "affinity_dG": self.affinity_dG,
             "permeability": self.permeability,
             "synthetic_accessibility": self.synthetic_accessibility,
             "safety": self.safety,
         }
+
+    def extra_fields(self) -> Dict[str, PropertyValue]:
+        """Advisory, non-gating channels (reported for audit, never used for gating/selection)."""
+        return {"affinity_ml": self.affinity_ml}
 
     def is_complete(self) -> bool:
         """True only if every property has a value (no degraded fields)."""
@@ -292,6 +308,46 @@ def _score_affinity(identifier: str, seq: Optional[str],
     return pv
 
 
+def _score_ml_affinity(seq: Optional[str], smiles: Optional[str], *,
+                       model_path, cache_path, target_in_distribution: bool,
+                       ad_threshold: float, assay_type: str) -> PropertyValue:
+    """G3 — ADDITIONAL learned binding channel (binding_ml.py / binding_model_prod.pkl).
+
+    HONESTY CONTRACT (the reason this is a separate field, not affinity_dG):
+      * The learned model is ligand-only; its NOVEL-TARGET Spearman is weak (~0.38, regresses to
+        mean). It is an advisory chemotype prior, NOT a binding oracle.
+      * It does NOT replace MM-GBSA (affinity_dG) and is NOT a selection objective.
+      * For out-of-domain candidates (novel target by default, or chemically novel ligand) the
+        value is STILL reported for audit but flagged low_confidence=True + applicability tag, so
+        a downstream reader can never mistake it for an in-domain prediction.
+
+    Degrades to UNAVAILABLE (never raises) if xgboost/the model/RDKit are missing."""
+    pv = PropertyValue(scorer="binding_ml.py (XGB on binding_affinity_v1) + applicability domain",
+                       detail="learned pAffinity=9-log10(Kd nM), higher=stronger; ADVISORY channel")
+    try:
+        bml = _load_module("binding_ml.py")
+    except Exception as e:  # noqa: BLE001
+        pv.detail += f" | binding_ml unavailable: {type(e).__name__}: {e}"
+        return pv
+    res = bml.score(seq, smiles, target_in_distribution=target_in_distribution,
+                    model_path=model_path or bml.DEFAULT_MODEL,
+                    cache_path=cache_path or bml.DEFAULT_CACHE,
+                    ad_threshold=ad_threshold, assay_type=assay_type)
+    ad = res["applicability"]
+    pv.applicability = ad["status"]
+    pv.low_confidence = bool(ad["low_confidence"])
+    if res["paffinity"] is None:
+        pv.detail += f" | prediction unavailable: {res['info'].get('error', 'unknown')}"
+        return pv  # stays UNAVAILABLE (no number to report)
+    pv.value = float(res["paffinity"])
+    pv.provenance = PREDICTED
+    pv.detail = (f"{bml.NOVEL_TARGET_NOTE} | AD={ad['status']}"
+                 f" (max_tanimoto={ad.get('max_tanimoto')}, {ad.get('reason')})")
+    if pv.low_confidence:
+        pv.detail += " | LOW-CONFIDENCE: advisory only, does not gate/select or overrule MM-GBSA"
+    return pv
+
+
 # map field name -> (callable(**ctx) -> PropertyValue). The aggregator wraps each in try/except.
 _SCORERS: Dict[str, Callable[..., PropertyValue]] = {
     "affinity_dG": lambda ctx: _score_affinity(ctx["identifier"], ctx["seq"], ctx["physics_json"]),
@@ -313,6 +369,13 @@ def verify_peptide(
     perm_csv: Optional[os.PathLike | str] = None,
     stab_csv: Optional[os.PathLike | str] = None,
     only: Optional[list[str]] = None,
+    # G3: opt-in advisory learned-binding channel (default OFF => behaviour unchanged for callers).
+    score_ml_affinity: bool = False,
+    binding_model_path: Optional[os.PathLike | str] = None,
+    binding_cache_path: Optional[os.PathLike | str] = None,
+    target_in_distribution: bool = False,
+    ad_threshold: float = 0.35,
+    assay_type: str = "Kd",
     _scorers: Optional[Dict[str, Callable[..., PropertyValue]]] = None,
 ) -> PeptideProperties:
     """Score one peptide on the full developability vector.
@@ -367,6 +430,21 @@ def verify_peptide(
                                      detail=f"scorer raised: {type(e).__name__}: {e}")
             setattr(props, name, degraded)
             props.errors[name] = f"{type(e).__name__}: {e}"
+
+    # G3: advisory learned-binding channel — opt-in, separate from the gated vector. Fail-safe:
+    # a broken model never crashes verify and never touches affinity_dG or the other fields.
+    if score_ml_affinity and not _scorers:
+        try:
+            props.affinity_ml = _score_ml_affinity(
+                seq, smiles, model_path=binding_model_path, cache_path=binding_cache_path,
+                target_in_distribution=target_in_distribution, ad_threshold=ad_threshold,
+                assay_type=assay_type)
+            if not props.affinity_ml.ok() and props.affinity_ml.detail:
+                props.errors.setdefault("affinity_ml", props.affinity_ml.detail)
+        except Exception as e:  # noqa: BLE001
+            props.affinity_ml = PropertyValue(provenance=UNAVAILABLE,
+                                              detail=f"affinity_ml raised: {type(e).__name__}: {e}")
+            props.errors["affinity_ml"] = f"{type(e).__name__}: {e}"
 
     return props
 
