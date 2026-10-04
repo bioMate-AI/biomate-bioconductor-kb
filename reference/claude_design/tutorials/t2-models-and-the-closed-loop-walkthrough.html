@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · T2 — Models and the closed loop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px)}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t2{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 70px 48px; opacity:0; transform:translateY(8px); transition:none; pointer-events:none}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.kicker .st{color:var(--mut)}
+.kicker .badge{font-size:9.5px; letter-spacing:.1em; padding:2px 7px; border-radius:3px}
+.kicker .badge.concept{background:var(--blue-bg); color:var(--blue)}
+.kicker .badge.flow{background:var(--panel2); color:var(--mut); border:1px solid var(--line2)}
+.scene h2{font-family:var(--ff-ui); font-size:36px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 13px; max-width:20ch}
+.scene.title h2{font-size:50px; max-width:20ch; margin-bottom:18px}
+.caption{font-size:18px; line-height:1.55; color:var(--ink2); max-width:66ch; margin:0 0 6px}
+.caption.sub{font-size:15.5px; color:var(--mut); max-width:70ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+.concept{flex:1; display:flex; flex-direction:column; gap:16px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:1; display:flex; flex-direction:column; justify-content:center}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.row2{display:grid; grid-template-columns:repeat(2,1fr); gap:20px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:15px 17px}
+.tile .n{font-family:var(--ff-mono); font-size:11px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:16px; margin:6px 0 6px; color:var(--ink); font-weight:600}
+.tile p{font-size:13px; line-height:1.48; color:var(--ink2); margin:0}
+.tile.hot{border-color:var(--red); background:var(--red-bg)}
+.tile.hot .n{color:var(--red)}
+.tile.safe{border-color:var(--green); background:var(--green-bg)}
+.tile.safe .n{color:var(--green)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink)}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+.shots{display:flex; gap:26px; flex:1; min-height:0}
+.shot{flex:1; display:flex; flex-direction:column; min-height:0}
+.shot .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex; align-items:center; justify-content:center}
+.shot img{width:100%; height:100%; object-fit:cover; object-position:top left}
+.shot figcaption{font-size:13px; line-height:1.45; color:var(--mut); margin-top:10px; max-width:48ch}
+.shot .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:3px}
+.scene.live{padding:34px 70px 0}
+.scene.live h2{font-size:30px; line-height:1.14; margin:2px 0 8px; max-width:44ch}
+.scene.live .caption{font-size:15px; line-height:1.5; margin:0 0 12px; max-width:98ch}
+.scene.live .scene-body{flex:0 0 auto; min-height:0; margin-top:0; display:flex}
+.scene.live .shots{flex:0 1 auto; min-height:0; display:flex; justify-content:center; align-items:flex-start; gap:0}
+.scene.live .shot{flex:0 1 auto; display:flex; flex-direction:column; align-items:center; min-height:0; max-width:100%}
+.scene.live .shot .frame{flex:0 1 auto; width:auto; height:auto; max-width:100%; background:#fff; border:1px solid var(--line2); border-radius:12px; box-shadow:0 10px 34px rgba(16,24,40,.12)}
+.scene.live .shot img{display:block; width:auto; height:auto; max-width:min(92vw,1680px); max-height:52vh; object-fit:contain; border-radius:12px}
+.scene.live .shot figcaption{font-size:12.5px; line-height:1.45; margin-top:10px; max-width:90ch; text-align:center}
+.scene.live .tags{margin-top:12px; justify-content:center}
+.livebar{display:inline-flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--green); margin-left:8px}
+.livebar .rec{width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(156,26,46,.5); animation:recpulse 1.6s infinite}
+@keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(156,26,46,.5)}70%{box-shadow:0 0 0 6px rgba(156,26,46,0)}100%{box-shadow:0 0 0 0 rgba(156,26,46,0)}}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t2">Tutorial 2 · Models and the closed loop</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">11</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 1 — TITLE -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="kicker">How BioMate gets smarter — the cycle behind every round</div>
+    <h2>Real lab results teach BioMate to design better molecules each round.</h2>
+    <p class="caption">A <b>model</b> is the part that makes predictions — "how strongly will this bind?", "is this likely to be toxic?" — instead of running a slow lab experiment every time. The <b>Models</b> area keeps these reusable predictors and is the home of the <b>closed loop</b>: the cycle that feeds your real laboratory results back in, so the next round of designs is better.</p>
+    <p class="caption sub">Tutorial 1 showed where candidate molecules come from. This one shows how BioMate <i>learns</i> from what happens to them next.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>Design</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Make</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Test</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Learn</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Design again</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — WHY MODELS MATTER -->
+  <section class="scene" data-seconds="40.0">
+    <div class="kicker"><span class="st">Why models matter</span> · trust, and staying current <span class="badge concept">Concept</span></div>
+    <h2>A prediction is only useful if you know how far to trust it.</h2>
+    <p class="caption">Relying on predictions instead of experiments raises two problems. BioMate's Models area is built to address both — by treating every model as an inspectable object, and by feeding your real results back in.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row2">
+            <div class="tile"><div class="n">1 · TRUST</div><h4>How good, and where?</h4><p>A model never tested may give wrong answers with high apparent confidence — the risk is worse the further your molecule is from what it learned from.</p></div>
+            <div class="tile"><div class="n">2 · STAYING CURRENT</div><h4>Your results are the truth</h4><p>A model that never updates with your new measurements slowly drifts away from reality. The loop keeps it current.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">Your measurements stay private to your workspace and are never used to train shared models. Today the loop learns from <b>laboratory (bench) measurements</b>; using patient-derived or clinical readouts to guide it is a direction BioMate is building toward, not a current feature.</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>Background — predictions replace experiments only when you can trust them</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — MODEL = REUSABLE EXPERTISE -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">The idea</span> · a model is reusable learned expertise <span class="badge concept">Concept</span></div>
+    <h2>Learned once, reused everywhere — a prediction instead of an experiment.</h2>
+    <p class="caption">A model takes an input (a molecule, a protein sequence) and returns a prediction (a score, a 3-D structure). Some are <b>pre-trained</b> by the research community on large public datasets; others are <b>custom</b>, trained on <i>your</i> data to score <i>your</i> kind of molecule.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">ALPHAFOLD2 / OPENFOLD2</div><h4>Protein 3-D shape</h4><p>Predict a protein's structure from its sequence.</p></div>
+            <div class="tile"><div class="n">BOLTZ-2</div><h4>Shapes + fit</h4><p>Protein structures, and how a protein and a small molecule fit together.</p></div>
+            <div class="tile"><div class="n">EVO2</div><h4>Genome sequences</h4><p>A model of DNA / genome sequences.</p></div>
+            <div class="tile"><div class="n">INFERENCE</div><h4>Use, don't change</h4><p>Making a prediction with an already-trained model, without training anything of yours.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">All four pre-trained models are open and community-built; BioMate hosts them so you can use them directly. A <b>custom</b> model is one you train on your own data.</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>Background — pre-trained for reuse, custom for your own molecules</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — MODEL AS OBJECT, NOT SCOREBOARD -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">BioMate's guiding idea</span> · a model is an object, not a scoreboard <span class="badge concept">Concept</span></div>
+    <h2>Shown as documented facts — and judged against a floor, not a rank.</h2>
+    <p class="caption">Instead of ranking models on a scoreboard (which tempts people to game it), BioMate shows each model like a documented object you can inspect before you trust it.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">EVIDENCE</div><h4>How it did — vs a floor</h4><p>A measured score against a required quality <b>floor</b>, on a <b>held-out test</b> — data it was not trained on, so the score can't be inflated by memorising.</p></div>
+            <div class="tile"><div class="n">LINEAGE</div><h4>What produced it</h4><p>The data and the run that built this model.</p></div>
+            <div class="tile"><div class="n">USED BY</div><h4>What depends on it</h4><p>Which analyses rely on it — so you can see the effect of changing it.</p></div>
+            <div class="tile"><div class="n">VERSIONS</div><h4>Nothing overwritten</h4><p>Every version is kept, not replaced.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">Clearing the bar by more earns no higher rank — there is no scoreboard to climb. And a model not yet measured reads <b>"not evaluated"</b>, never a made-up score.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>A floor, not a ranking — "not evaluated" is honest, never a hidden number</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — APPLICABILITY DOMAIN -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">Passing the floor isn't the whole story</span> · the applicability domain <span class="badge concept">Concept</span></div>
+    <h2>Trust for <i>your</i> molecule depends on what the model has seen.</h2>
+    <p class="caption">A good floor score means the model is accurate on test data <b>similar to what it learned from</b>. Whether you can trust it for <i>your specific</i> molecule also depends on the <b>applicability domain</b> — the kind of inputs it learned from.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row2">
+            <div class="tile safe"><div class="n">IN DOMAIN</div><h4>Close to training data</h4><p>Ask about the kind of molecule the model learned from, and its prediction is on firm ground.</p></div>
+            <div class="tile hot"><div class="n">OUT OF DOMAIN</div><h4>Low confidence — treat as unproven</h4><p>Ask a kinase-inhibitor model about a peptide and it should <b>lower its confidence</b>, not pretend to know. Treating an out-of-domain prediction as reliable is a common cause of wet-lab experiments that were never going to work.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">Like using a drug off-label: a low-confidence prediction means your input is unlike the model's training data — outside what it was tested for.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Out-of-domain → low confidence, not false certainty</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE FOUR TRACKS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">The Models screen</span> · four things you do with a model <span class="badge concept">Concept</span></div>
+    <h2>Run, train, adapt, and optimise — and what's live today.</h2>
+    <p class="caption">The Models screen has four tracks. Two do live work now; two are honest <b>monitoring views</b> for jobs launched through a larger drug-discovery campaign.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile safe"><div class="n">RUN A MODEL</div><h4>Inference, now</h4><p>Use an existing public model to make a prediction. Live today. Nothing of yours is trained.</p></div>
+            <div class="tile"><div class="n">TRAIN</div><h4>Build a custom model</h4><p>From your data — a scorer for your target. A <b>monitoring view</b> here: no start button; launched via a campaign.</p></div>
+            <div class="tile"><div class="n">ADAPT · HOUSE STYLE</div><h4>Tune the writing</h4><p>Gently match how your team writes reports; each learned rule is shown and can be switched off. (Style, not science.)</p></div>
+            <div class="tile"><div class="n">OPTIMISE · ROUNDS</div><h4>The closed loop</h4><p>The design→make→test→learn cycle, shown as rounds. A <b>monitoring view</b>: empty until a loop runs.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px"><b>Honest scope:</b> Run and the Registry do live work. Train and Rounds are monitoring views — no "start" button on this screen, with a clear empty state until a campaign launches the job or loop.</p>
+        </div>
+        <div class="tags">
+          <span class="verdict ok"><span class="mk"></span>Run + Registry — live</span>
+          <span class="verdict partial"><span class="mk"></span>Train + Rounds — monitoring views only</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — LIVE: REGISTRY -->
+  <section class="scene live" data-kind="flow" data-seconds="30.0">
+    <div class="kicker"><span class="st">Step by step</span> · the model Registry <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <h2>Every model available to your account, in one list.</h2>
+    <p class="caption">The <b>Registry</b> is the real list on dev: each row is a model — its name, family, origin, and how many analyses use it. The community models (AlphaFold2, Boltz-2, Evo2) sit alongside any custom models your team registered. A model trained in one project can be used from any other; clicking a row opens its object view.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t2-registry.png" alt="The model Registry — each row a model with name, family, origin, and how many analyses use it"/></div>
+          <figcaption><span class="lbl">Registry · live</span>One place to find and reuse a model — community-built or your own.</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>Registry — live; browse and reuse any model</span></div>
+  </section>
+
+  <!-- 8 — LIVE: MODEL OBJECT -->
+  <section class="scene live" data-kind="flow" data-seconds="30.0">
+    <div class="kicker"><span class="st">Reading a model</span> · the object view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <h2>Open a model and read what you'd be trusting.</h2>
+    <p class="caption">Opening a model shows it as an <b>object</b>: <b>Evidence</b> (the quality floor — measured score, required floor, verdict), <b>Lineage</b>, <b>Used by</b>, and <b>Versions</b>. Here Evidence reads <b>"not evaluated"</b> — which honestly means this layer has not measured it, not that a number is hidden. The on-screen note says it plainly: <i>a floor, not a ranking</i>.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t2-model-object.png" alt="A model shown as an object — Evidence, Lineage, Used by, Versions — with Evidence reading not evaluated"/></div>
+          <figcaption><span class="lbl">Model object · live</span>Inspect evidence, lineage, and what depends on it before you decide to trust a model.</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>"Not evaluated" shown honestly — never a made-up score</span></div>
+  </section>
+
+  <!-- 9 — LIVE: RUN A MODEL -->
+  <section class="scene live" data-kind="flow" data-seconds="30.0">
+    <div class="kicker"><span class="st">Make a prediction now</span> · Run a model (inference) <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <h2>Pick a domain, paste an input, and run it — no training.</h2>
+    <p class="caption">To make a prediction now, use <b>Run a model</b>: pick a domain (Structure, Genomic, or Chemical), paste an input — for Structure, a protein's one-letter sequence — and run. This is inference: the model isn't changed.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t2-run.png" alt="The Run a model inference form — choose a domain and paste an input"/></div>
+          <figcaption><span class="lbl">Run a model · live</span>On dev, a structure prediction may return a clearly-labelled <code>stub</code> placeholder when the heavy service isn't connected — check the label before trusting any number.</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>Inference — live</span><span class="verdict gap"><span class="mk"></span><code>stub</code> placeholder possible — check the label, never trust it as a real result</span></div>
+  </section>
+
+  <!-- 10 — LIVE: ROUNDS + CLOSED LOOP IN PRACTICE -->
+  <section class="scene live" data-kind="flow" data-seconds="42.0">
+    <div class="kicker"><span class="st">The closed loop</span> · the Rounds view, and how it works <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <h2>Design → make → test → learn — monitored as rounds.</h2>
+    <p class="caption">The <b>Rounds</b> view is the home of the closed loop. Here it is <b>before any loop has run</b>: it explains what will appear and states the loop's honesty rules — every proposal is accounted for, limit values stay as limits (">30 µM" is never silently replaced by 30), and rejected candidates stay visible with their reason. Once a design–make–test loop runs in a campaign, the rounds fill in here. Each turn is a <b>round</b>, and the model is retrained on the combined data, then re-checked on data it was not trained on — so you see it <i>keeping up</i>, not a single score to climb.</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/t2-rounds.png" alt="The Rounds closed-loop view empty state, stating the loop's honesty rules"/></div>
+          <figcaption><span class="lbl">Rounds · live (empty state)</span>Illustrative RA example: round 1 proposes JAK1 candidates, the safety check flags two for hERG liability, the bench confirms it and teaches the model, and a later round clears the cardiac check while keeping selectivity — an illustration of how the loop is meant to work, not a reported BioMate result.</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="tags"><span class="verdict partial"><span class="mk"></span>Rounds — monitoring view (fills once a campaign loop runs)</span><span class="verdict ok"><span class="mk"></span>Limits kept as limits · rejected candidates stay visible</span></div>
+  </section>
+
+  <!-- 11 — CLOSING -->
+  <section class="scene title" data-seconds="34.0">
+    <div class="kicker">The habit at a glance</div>
+    <h2 style="font-size:40px">Inspect the model → trust within its domain → close the loop.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">Models is where BioMate keeps its reusable predictors and learns from your real results. Open a model as an object and read its evidence before trusting it; respect the applicability domain; run a pre-trained model for a quick prediction; and let the closed loop turn each round of real lab data into a better next round. The benefit compounds — three or four rounds beat designing once.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Open the model object — read Evidence, Lineage, Used by, Versions</li>
+            <li><span class="k">2</span>Check the applicability domain before trusting a prediction</li>
+            <li><span class="k">3</span>Run a pre-trained model for an immediate prediction (watch for <code>stub</code>)</li>
+            <li><span class="k">4</span>Feed lab results back through a campaign — each round gets better</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Run a model (inference)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Live</span></td></tr>
+            <tr><td>Registry (browse &amp; reuse)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Live</span></td></tr>
+            <tr><td>Model-as-object · "not evaluated"</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Honest, not a scoreboard</span></td></tr>
+            <tr><td>Train &amp; Rounds</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Monitoring views — via a campaign</span></td></tr>
+            <tr><td>Structure prediction on dev</td><td><span class="verdict gap" style="margin:0;padding:3px 8px;font-size:11px">May be a <code>stub</code> — check the label</span></td></tr>
+            <tr><td>Clinical readouts guiding the loop</td><td><span class="verdict gap" style="margin:0;padding:3px 8px;font-size:11px">A direction, not a feature yet</span></td></tr>
+          </table>
+          <p class="footnote">Today the loop learns from bench measurements; your data stays private to your workspace. The RA/JAK1 example is illustrative, not a reported result.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

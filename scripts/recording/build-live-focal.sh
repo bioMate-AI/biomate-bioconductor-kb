@@ -60,6 +60,13 @@ for f in t1-form t1-results t1-pareto t1-rejection; do
   [ -f "$T1SRC/$f.png" ] && cp "$T1SRC/$f.png" "$DST/$f.png"
 done
 
+# T2 Models & closed-loop focal stills from capture-live-t2-focal.cjs (read-only
+# navigation of /models tabs; already element-clipped at 3x).
+T2SRC="$ROOT/recording/video/live-t2-focal"
+for f in t2-registry t2-model-object t2-run t2-rounds; do
+  [ -f "$T2SRC/$f.png" ] && cp "$T2SRC/$f.png" "$DST/$f.png"
+done
+
 echo "built focal stills:"
 for f in prerun running completed outputs record t3-completed-withheld; do
   [ -f "$DST/$f.png" ] || continue
