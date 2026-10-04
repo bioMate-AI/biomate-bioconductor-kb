@@ -77,13 +77,13 @@ stages:
       Predict log Papp with the leak-free CycPeptMPDB ensemble (+ uncertainty, size correction,
       physchem calibration).
     runs_on: local
-    scripts: [permeability_predictor.py, build_physchem_calibration.py, perm_uncertainty.py, perm_size_correction.py, conformer_permeability.sh]
+    scripts: [permeability_predictor.py, predict_permeability_pool.py, build_physchem_calibration.py, perm_uncertainty.py, perm_size_correction.py, conformer_permeability.sh]
     datasets: [cycpeptmpdb]
     inputs: [candidate SMILES]
-    outputs: [permeability CSV (log Papp mean + std per candidate)]
+    outputs: [permeability CSV (log Papp mean + std per candidate) via predict_permeability_pool.py]
     downstream: [gate_and_verify]
     maturity: tested_local
-    maturity_note: permeability_predictor.py runs locally on CycPeptMPDB and produced results
+    maturity_note: permeability_predictor.py runs on CycPeptMPDB; predict_permeability_pool.py trains the ensemble ONCE and emits a per-candidate CSV the verify loop looks up (gap G4 CLOSED); test_perm_pool_g4.py passes
 
   - id: score_developability
     name: Developability / stability scoring
@@ -206,10 +206,18 @@ wiring_gaps:
   - id: G4
     between: [score_permeability, gate_and_verify]
     severity: medium
+    status: closed
+    closed_by: predict_permeability_pool.py + peptide_verify.perm_pred_csv
     description: >-
       permeability_predictor.py emits a log-Papp CSV, but peptide_loop/peptide_verify default to a
       raw CycPeptMPDB lookup rather than the trained predictor's output; there is no step that
       produces the predictor CSV and points the loop's perm_csv at it.
+      CLOSED: predict_permeability_pool.py trains the bootstrap-bagged ensemble ONCE and predicts a
+      whole candidate pool in a single batched call -> per-candidate CSV (id,seq,smiles,mean,std).
+      peptide_verify._score_permeability + verify_peptide/verify_batch + peptide_loop now accept
+      perm_pred_csv and LOOK UP the value (id->smiles->seq) instead of re-training the ensemble per
+      candidate (the old path was O(N) full retrains). Falls back to live training when a row is
+      missing, so numbers are identical. test_perm_pool_g4.py passes; full suite 124 passed.
   - id: G5
     between: [multi_objective_select, synth_rfq]
     severity: medium

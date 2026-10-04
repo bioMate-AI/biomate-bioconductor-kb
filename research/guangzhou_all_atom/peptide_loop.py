@@ -162,6 +162,7 @@ class LoopConfig:
     # A1 verify extras (physics_json for ΔG ingest, training CSV overrides)
     physics_json: Optional[str] = None
     perm_csv: Optional[str] = None
+    perm_pred_csv: Optional[str] = None   # G4: precomputed per-candidate permeability CSV (lookup)
     stab_csv: Optional[str] = None
     # A2 select knobs
     diversity_weight: float = 0.25
@@ -270,6 +271,8 @@ def run_loop(config: LoopConfig) -> LoopResult:
             verify_kwargs["physics_json"] = config.physics_json
         if config.perm_csv:
             verify_kwargs["perm_csv"] = config.perm_csv
+        if config.perm_pred_csv:
+            verify_kwargs["perm_pred_csv"] = config.perm_pred_csv
         if config.stab_csv:
             verify_kwargs["stab_csv"] = config.stab_csv
         verified = verify_fn(survivor_pool, **verify_kwargs) if survivor_pool else []

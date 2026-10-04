@@ -155,15 +155,62 @@ def _default_dataset_path(registry_name: str, fallback_rel: str) -> Path:
 # individual field scorers — each returns a PropertyValue and NEVER raises past its own body
 # (the aggregator also guards, but keeping each self-contained makes them independently usable)
 # --------------------------------------------------------------------------------------------
+_PERM_PRED_CACHE: Dict[str, Dict[str, tuple]] = {}  # csv path -> {key -> (mean, std)}
+
+
+def _load_perm_predictions(csv_path: Path) -> Dict[str, tuple]:
+    """G4: load a per-candidate permeability predictions CSV (predict_permeability_pool.py output)
+    into an identifier/smiles/sequence -> (mean, std) lookup. Memoised per file so a batch reads
+    it once. Keys are prefixed so an id never collides with a smiles/seq."""
+    key = str(csv_path)
+    if key in _PERM_PRED_CACHE:
+        return _PERM_PRED_CACHE[key]
+    import csv as _csv
+    table: Dict[str, tuple] = {}
+    try:
+        for r in _csv.DictReader(open(csv_path)):
+            try:
+                val = (float(r["logPapp_mean"]), float(r.get("logPapp_std") or "nan"))
+            except (KeyError, TypeError, ValueError):
+                continue
+            for pfx, col in (("id:", "identifier"), ("smi:", "smiles"), ("seq:", "sequence")):
+                v = (r.get(col) or "").strip()
+                if v:
+                    table[pfx + v] = val
+    except Exception:  # noqa: BLE001 — a missing/garbled predictions CSV just disables the lookup
+        table = {}
+    _PERM_PRED_CACHE[key] = table
+    return table
+
+
 def _score_permeability(seq: Optional[str], smiles: Optional[str],
-                        perm_csv: Optional[Path]) -> PropertyValue:
+                        perm_csv: Optional[Path],
+                        identifier: str = "", perm_pred_csv: Optional[Path] = None) -> PropertyValue:
     """Permeability = log Papp, from permeability_predictor.py's bootstrap-bagged ensemble
-    (mean + epistemic std). Imports the real module; builds a Morgan FP for the candidate the
-    same way the module's own load() does, trains on CycPeptMPDB, predicts mean+std.
+    (mean + epistemic std).
+
+    G4: if ``perm_pred_csv`` is supplied (predict_permeability_pool.py output), the candidate's
+    value is LOOKED UP (keyed identifier -> smiles -> sequence) instead of re-training the ensemble
+    per candidate. Falls back to the live train-on-the-fly path when no precomputed row matches, so
+    the numbers are identical either way — the CSV path just avoids N full retrains in a loop.
 
     predicted (ranking-grade, scaffold-R2 ~0.23 per the module's own reported metric)."""
     pv = PropertyValue(scorer="permeability_predictor.py",
                        detail="log Papp; ECFP4 + bootstrap-bagged HistGBM (mean, epistemic std)")
+    # G4 fast path: precomputed per-candidate prediction lookup
+    if perm_pred_csv is not None:
+        table = _load_perm_predictions(Path(perm_pred_csv))
+        for k in (f"id:{identifier}" if identifier else None,
+                  f"smi:{smiles}" if smiles else None,
+                  f"seq:{seq}" if seq else None):
+            if k and k in table:
+                mean, std = table[k]
+                pv.value = mean
+                pv.uncertainty = None if std != std else std  # NaN std -> None
+                pv.provenance = PREDICTED
+                pv.detail += " | precomputed pool CSV (predict_permeability_pool.py)"
+                return pv
+        # no match -> fall through to live training (do not fail; the CSV may be partial)
     csv_path = perm_csv or _default_dataset_path("cycpeptmpdb", "data/raw/CycPeptMPDB_Peptide_All.csv")
     if not Path(csv_path).exists():
         pv.detail += f" | training CSV missing: {csv_path}"
@@ -367,7 +414,8 @@ def _score_ml_affinity(seq: Optional[str], smiles: Optional[str], *,
 # map field name -> (callable(**ctx) -> PropertyValue). The aggregator wraps each in try/except.
 _SCORERS: Dict[str, Callable[..., PropertyValue]] = {
     "affinity_dG": lambda ctx: _score_affinity(ctx["identifier"], ctx["seq"], ctx["physics_json"]),
-    "permeability": lambda ctx: _score_permeability(ctx["seq"], ctx["smiles"], ctx["perm_csv"]),
+    "permeability": lambda ctx: _score_permeability(ctx["seq"], ctx["smiles"], ctx["perm_csv"],
+                                                     ctx["identifier"], ctx["perm_pred_csv"]),
     "synthetic_accessibility": lambda ctx: _score_synthetic_accessibility(ctx["seq"], ctx["smiles"]),
     "safety": lambda ctx: _score_safety(ctx["seq"], ctx["smiles"], ctx["stab_csv"]),
 }
@@ -383,6 +431,7 @@ def verify_peptide(
     *,
     physics_json: Optional[os.PathLike | str] = None,
     perm_csv: Optional[os.PathLike | str] = None,
+    perm_pred_csv: Optional[os.PathLike | str] = None,
     stab_csv: Optional[os.PathLike | str] = None,
     only: Optional[list[str]] = None,
     # G3: opt-in advisory learned-binding channel (default OFF => behaviour unchanged for callers).
@@ -403,6 +452,9 @@ def verify_peptide(
     identifier : design id used to look ΔG up in ``physics_json`` (e.g. "1yf4_10").
     physics_json : path to an MM-GBSA/FEP result JSON (AWS job output) for the affinity field.
     perm_csv / stab_csv : override the training CSVs (default: the committed data/ files).
+    perm_pred_csv : G4 — precomputed per-candidate permeability predictions (predict_permeability_pool.py
+           output). When set, permeability is looked up (id->smiles->seq) instead of retraining the
+           ensemble per candidate; falls back to live training when a candidate has no precomputed row.
     only : if given, only score these fields (rest left UNAVAILABLE). Useful for A3's cheap
            pre-filter (e.g. only permeability + SA before expensive physics).
     _scorers : test hook — inject mocked scorers.
@@ -423,6 +475,7 @@ def verify_peptide(
         "smiles": smiles,
         "physics_json": Path(physics_json) if physics_json else None,
         "perm_csv": Path(perm_csv) if perm_csv else None,
+        "perm_pred_csv": Path(perm_pred_csv) if perm_pred_csv else None,
         "stab_csv": Path(stab_csv) if stab_csv else None,
     }
     scorers = _scorers or _SCORERS
