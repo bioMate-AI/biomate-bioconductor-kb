@@ -1,0 +1,437 @@
+{
+  "dataset": "/Users/kky/biomate-review/research/guangzhou_all_atom/data/processed/designability_v1.csv",
+  "n": 949,
+  "n_targets": 7,
+  "designable_rate": 0.258,
+  "by_target": {
+    "1u8p": 56,
+    "1yf4": 48,
+    "5o45": 695,
+    "9xmm": 100,
+    "qualify": 10,
+    "1kc4": 24,
+    "1csb": 16
+  },
+  "has_design_features": true,
+  "loto": {
+    "seq": {
+      "protocol": "leave-one-target-out (train on all other targets, predict held-out target)",
+      "label": "designable = filter_rmsd < 2.0 A (refold self-consistency)",
+      "features": "seq",
+      "targets_evaluated": [
+        "1u8p",
+        "1yf4",
+        "5o45",
+        "9xmm",
+        "1kc4"
+      ],
+      "per_target": {
+        "1u8p": {
+          "n_held": 56,
+          "designable_rate": 0.643,
+          "auc_designable": 0.482,
+          "spearman_scrmsd": -0.235,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 48,
+            "total": 56,
+            "frac_cofolded": 0.857,
+            "cofold_work_saved_pct": 14.3,
+            "precision_at_k": 0.604
+          }
+        },
+        "1yf4": {
+          "n_held": 48,
+          "designable_rate": 0.979,
+          "auc_designable": 0.638,
+          "spearman_scrmsd": 0.238,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 39,
+            "total": 48,
+            "frac_cofolded": 0.812,
+            "cofold_work_saved_pct": 18.8,
+            "precision_at_k": 0.974
+          }
+        },
+        "5o45": {
+          "n_held": 695,
+          "designable_rate": 0.078,
+          "auc_designable": 0.455,
+          "spearman_scrmsd": -0.063,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 589,
+            "total": 695,
+            "frac_cofolded": 0.847,
+            "cofold_work_saved_pct": 15.3,
+            "precision_at_k": 0.075
+          }
+        },
+        "9xmm": {
+          "n_held": 100,
+          "designable_rate": 0.94,
+          "auc_designable": 0.644,
+          "spearman_scrmsd": 0.288,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 80,
+            "total": 100,
+            "frac_cofolded": 0.8,
+            "cofold_work_saved_pct": 20.0,
+            "precision_at_k": 0.95
+          }
+        },
+        "1kc4": {
+          "n_held": 24,
+          "designable_rate": 0.0,
+          "auc_designable": NaN,
+          "spearman_scrmsd": 0.03,
+          "screening@0.8recall": {
+            "note": "no positives in held-out set"
+          }
+        }
+      },
+      "macro_auc_designable": 0.555,
+      "mean_cofold_work_saved_pct@0.8recall": 17.1,
+      "baseline_auc": 0.5
+    },
+    "design": {
+      "protocol": "leave-one-target-out (train on all other targets, predict held-out target)",
+      "label": "designable = filter_rmsd < 2.0 A (refold self-consistency)",
+      "features": "design",
+      "targets_evaluated": [
+        "1u8p",
+        "1yf4",
+        "5o45",
+        "9xmm",
+        "1kc4"
+      ],
+      "per_target": {
+        "1u8p": {
+          "n_held": 56,
+          "designable_rate": 0.643,
+          "auc_designable": 0.546,
+          "spearman_scrmsd": 0.365,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 39,
+            "total": 56,
+            "frac_cofolded": 0.696,
+            "cofold_work_saved_pct": 30.4,
+            "precision_at_k": 0.744
+          }
+        },
+        "1yf4": {
+          "n_held": 48,
+          "designable_rate": 0.979,
+          "auc_designable": 0.17,
+          "spearman_scrmsd": 0.02,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 39,
+            "total": 48,
+            "frac_cofolded": 0.812,
+            "cofold_work_saved_pct": 18.8,
+            "precision_at_k": 0.974
+          }
+        },
+        "5o45": {
+          "n_held": 695,
+          "designable_rate": 0.078,
+          "auc_designable": 0.704,
+          "spearman_scrmsd": 0.211,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 443,
+            "total": 695,
+            "frac_cofolded": 0.637,
+            "cofold_work_saved_pct": 36.3,
+            "precision_at_k": 0.099
+          }
+        },
+        "9xmm": {
+          "n_held": 100,
+          "designable_rate": 0.94,
+          "auc_designable": 0.873,
+          "spearman_scrmsd": 0.34,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 78,
+            "total": 100,
+            "frac_cofolded": 0.78,
+            "cofold_work_saved_pct": 22.0,
+            "precision_at_k": 0.974
+          }
+        },
+        "1kc4": {
+          "n_held": 24,
+          "designable_rate": 0.0,
+          "auc_designable": NaN,
+          "spearman_scrmsd": 0.248,
+          "screening@0.8recall": {
+            "note": "no positives in held-out set"
+          }
+        }
+      },
+      "macro_auc_designable": 0.573,
+      "mean_cofold_work_saved_pct@0.8recall": 26.9,
+      "baseline_auc": 0.5
+    },
+    "combined": {
+      "protocol": "leave-one-target-out (train on all other targets, predict held-out target)",
+      "label": "designable = filter_rmsd < 2.0 A (refold self-consistency)",
+      "features": "combined",
+      "targets_evaluated": [
+        "1u8p",
+        "1yf4",
+        "5o45",
+        "9xmm",
+        "1kc4"
+      ],
+      "per_target": {
+        "1u8p": {
+          "n_held": 56,
+          "designable_rate": 0.643,
+          "auc_designable": 0.439,
+          "spearman_scrmsd": 0.022,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 44,
+            "total": 56,
+            "frac_cofolded": 0.786,
+            "cofold_work_saved_pct": 21.4,
+            "precision_at_k": 0.659
+          }
+        },
+        "1yf4": {
+          "n_held": 48,
+          "designable_rate": 0.979,
+          "auc_designable": 0.021,
+          "spearman_scrmsd": -0.11,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 39,
+            "total": 48,
+            "frac_cofolded": 0.812,
+            "cofold_work_saved_pct": 18.8,
+            "precision_at_k": 0.974
+          }
+        },
+        "5o45": {
+          "n_held": 695,
+          "designable_rate": 0.078,
+          "auc_designable": 0.731,
+          "spearman_scrmsd": 0.125,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 435,
+            "total": 695,
+            "frac_cofolded": 0.626,
+            "cofold_work_saved_pct": 37.4,
+            "precision_at_k": 0.101
+          }
+        },
+        "9xmm": {
+          "n_held": 100,
+          "designable_rate": 0.94,
+          "auc_designable": 0.846,
+          "spearman_scrmsd": 0.347,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 78,
+            "total": 100,
+            "frac_cofolded": 0.78,
+            "cofold_work_saved_pct": 22.0,
+            "precision_at_k": 0.974
+          }
+        },
+        "1kc4": {
+          "n_held": 24,
+          "designable_rate": 0.0,
+          "auc_designable": NaN,
+          "spearman_scrmsd": 0.149,
+          "screening@0.8recall": {
+            "note": "no positives in held-out set"
+          }
+        }
+      },
+      "macro_auc_designable": 0.509,
+      "mean_cofold_work_saved_pct@0.8recall": 24.9,
+      "baseline_auc": 0.5
+    }
+  },
+  "within_target": {
+    "seq": {
+      "protocol": "within-target stratified 5-fold CV (triage designs for a target with seed folds)",
+      "features": "seq",
+      "targets_evaluated": [
+        "1u8p",
+        "5o45",
+        "9xmm"
+      ],
+      "per_target": {
+        "1u8p": {
+          "n": 56,
+          "designable_rate": 0.643,
+          "auc_designable": 0.565,
+          "spearman_scrmsd": -0.134,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 47,
+            "total": 56,
+            "frac_cofolded": 0.839,
+            "cofold_work_saved_pct": 16.1,
+            "precision_at_k": 0.617
+          }
+        },
+        "5o45": {
+          "n": 695,
+          "designable_rate": 0.078,
+          "auc_designable": 0.521,
+          "spearman_scrmsd": 0.096,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 468,
+            "total": 695,
+            "frac_cofolded": 0.673,
+            "cofold_work_saved_pct": 32.7,
+            "precision_at_k": 0.094
+          }
+        },
+        "9xmm": {
+          "n": 100,
+          "designable_rate": 0.94,
+          "auc_designable": 0.546,
+          "spearman_scrmsd": 0.303,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 80,
+            "total": 100,
+            "frac_cofolded": 0.8,
+            "cofold_work_saved_pct": 20.0,
+            "precision_at_k": 0.95
+          }
+        }
+      },
+      "macro_auc_designable": 0.544,
+      "mean_cofold_work_saved_pct@0.8recall": 22.9
+    },
+    "design": {
+      "protocol": "within-target stratified 5-fold CV (triage designs for a target with seed folds)",
+      "features": "design",
+      "targets_evaluated": [
+        "1u8p",
+        "5o45",
+        "9xmm"
+      ],
+      "per_target": {
+        "1u8p": {
+          "n": 56,
+          "designable_rate": 0.643,
+          "auc_designable": 0.442,
+          "spearman_scrmsd": 0.005,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 46,
+            "total": 56,
+            "frac_cofolded": 0.821,
+            "cofold_work_saved_pct": 17.9,
+            "precision_at_k": 0.63
+          }
+        },
+        "5o45": {
+          "n": 695,
+          "designable_rate": 0.078,
+          "auc_designable": 0.643,
+          "spearman_scrmsd": 0.136,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 452,
+            "total": 695,
+            "frac_cofolded": 0.65,
+            "cofold_work_saved_pct": 35.0,
+            "precision_at_k": 0.097
+          }
+        },
+        "9xmm": {
+          "n": 100,
+          "designable_rate": 0.94,
+          "auc_designable": 0.852,
+          "spearman_scrmsd": 0.389,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 78,
+            "total": 100,
+            "frac_cofolded": 0.78,
+            "cofold_work_saved_pct": 22.0,
+            "precision_at_k": 0.974
+          }
+        }
+      },
+      "macro_auc_designable": 0.646,
+      "mean_cofold_work_saved_pct@0.8recall": 25.0
+    },
+    "combined": {
+      "protocol": "within-target stratified 5-fold CV (triage designs for a target with seed folds)",
+      "features": "combined",
+      "targets_evaluated": [
+        "1u8p",
+        "5o45",
+        "9xmm"
+      ],
+      "per_target": {
+        "1u8p": {
+          "n": 56,
+          "designable_rate": 0.643,
+          "auc_designable": 0.572,
+          "spearman_scrmsd": -0.083,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 46,
+            "total": 56,
+            "frac_cofolded": 0.821,
+            "cofold_work_saved_pct": 17.9,
+            "precision_at_k": 0.63
+          }
+        },
+        "5o45": {
+          "n": 695,
+          "designable_rate": 0.078,
+          "auc_designable": 0.676,
+          "spearman_scrmsd": 0.144,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 458,
+            "total": 695,
+            "frac_cofolded": 0.659,
+            "cofold_work_saved_pct": 34.1,
+            "precision_at_k": 0.096
+          }
+        },
+        "9xmm": {
+          "n": 100,
+          "designable_rate": 0.94,
+          "auc_designable": 0.759,
+          "spearman_scrmsd": 0.285,
+          "screening@0.8recall": {
+            "recall_target": 0.8,
+            "candidates_cofolded": 79,
+            "total": 100,
+            "frac_cofolded": 0.79,
+            "cofold_work_saved_pct": 21.0,
+            "precision_at_k": 0.962
+          }
+        }
+      },
+      "macro_auc_designable": 0.669,
+      "mean_cofold_work_saved_pct@0.8recall": 24.3
+    }
+  },
+  "timing": {
+    "surrogate_featurize_s_per_seq": 6.39e-06,
+    "cofold_s_per_seq_typical": 90.0,
+    "speedup_x": 14075784,
+    "note": "surrogate inference is sequence-only featurize + one GBM forward; co-fold is a Boltz prediction"
+  }
+}
