@@ -227,10 +227,24 @@ def perform_chipseq_peak_calling_with_macs2(
         f"{output_dir_prefix}{output_name}_summits.bed",
     ]
 
+    def _run_macs(cmd):
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+
     try:
-        # Run MACS2
-        log += "Running MACS2 peak calling...\\n"
-        process = subprocess.run(macs2_cmd, capture_output=True, text=True, check=True, timeout=300)
+        # Run MACS3. Model building needs >=100 paired peaks to estimate a fragment size;
+        # single-end / sparse ChIP (including the built-in demo) can't build it. macs3 itself
+        # recommends --nomodel --extsize, so auto-fall back to that when model building fails —
+        # sparse/SE data then still produces peaks instead of hard-failing (robust for real
+        # single-end data, not a demo-only hack).
+        log += "Running MACS3 peak calling...\\n"
+        process = _run_macs(macs2_cmd)
+        if process.returncode != 0 and ("build the model" in (process.stderr or "") or "--nomodel" in (process.stderr or "")):
+            log += "Model-building could not estimate a fragment size (sparse/single-end input); retrying with --nomodel --extsize 200.\\n"
+            macs2_cmd_nomodel = macs2_cmd + ["--nomodel", "--extsize", "200"]
+            log += " ".join(macs2_cmd_nomodel) + "\\n"
+            process = _run_macs(macs2_cmd_nomodel)
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, macs2_cmd, output=process.stdout, stderr=process.stderr)
 
         # Log stdout and stderr (truncate if too long)
         stdout_text = process.stdout
