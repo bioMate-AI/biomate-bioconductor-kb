@@ -133,10 +133,28 @@ plus the two previously-unmeasured tasks (intent, task_decomposition), vs fronti
 
 **Conclusion.** Widening the description window (shipped to production, UnifiedWorkflowSearch 120→240) closes
 routing to ~0.92 model-invariantly and paraphrase-robustly. intent is harness-carried (base≈frontier). The
-ONE genuinely LLM-bound capability found across the whole RealBio suite is **multi-task decomposition /
-orchestration**: the model must reason about sub-task DEPENDENCIES (parallel vs sequential vs mixed), and a
-small model gets structure right only 40% vs frontier 60% (coverage is 1.0 — it finds the subtasks but
-mis-wires the dependency graph). It is already a trained task (train_task_decomposition = 9,717 instances)
-and the harness has an agentic orchestrator (frontend/server/orchestrator.ts), but dependency-reasoning is
-the real bottleneck. This is the capability where on-prem model training (vs harness engineering) earns its
-place — and even frontier is only 0.60, so it is an open, non-trivial research target for the flagship paper.
+remaining candidate for a genuinely LLM-bound capability is **multi-task decomposition / orchestration** —
+but see the metric caveat below before treating the number as firm.
+
+### CORRECTION (2026-10-04): the task_decomposition 0.40/0.60 is largely a METRIC ARTIFACT
+`score_task_decomposition` bins a plan into a coarse 4-class label (`_structure_of`: parallel/sequential/
+mixed/empty from depends_on counts) and checks equality to gold.structure, on 30 in-house items. Diagnosing
+frontier's 12 "misses": the model decomposes at FINER granularity than gold (n_pred 10–15 vs n_gold 2–4),
+so a "parallel" item (3 independent tasks) correctly gains internal sequential sub-steps → the whole-graph
+classifier calls it "mixed" → scored wrong though the plan is reasonable/better. Misclassifications are
+almost all parallel→mixed (5), sequential→mixed (3), mixed→sequential (3) = granularity + a single coarse
+label + NO subtask alignment, not reasoning failures. So **0.60 understates real quality**; the base(0.40)
+vs frontier(0.60) gap is suggestive the small model is worse but is NOT a trustworthy LLM-bound proof on
+this metric. **Do not cite 0.40/0.60 as a capability result.**
+
+### Next: a proper, DB-grounded decomposition track (replaces the 4-class metric)
+Public precedent: TaskBench (NeurIPS 2024, node-F1/edge-F1 over a tool graph + "back-instruct" generation),
+PlanBench, GAIA, AgentBench, HuggingGPT lineage (verify exact metrics before citing). Build:
+1. Distill decomposition data from a strong LLM, but VERIFY with the workflow DB: each subtask must resolve
+   to a real catalog workflow; each dependency edge B→A is true iff B's input_type ∈ A's output_types
+   (type-compatibility DAG from `workflows.input_types/output_types`). DB = the ground-truth + quality gate.
+2. Augment the CoT with workflow `scientific_context`/`when_to_use`/`data_requirements` (why each subtask +
+   why each dependency).
+3. Score with node-F1 + edge-F1 against the DB-verified DAG, not the 4-class bin. Same artifact feeds both
+   training (teacher-distilled, DB-verified labels) and the new benchmark. Only then re-measure base vs
+   frontier to test whether decomposition is truly LLM-bound.
