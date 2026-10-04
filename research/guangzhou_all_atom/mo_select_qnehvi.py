@@ -268,17 +268,18 @@ def process_pool(name, seqs, composite_order, perm_pred, bind_pred, k, args):
     Xdesc = np.vstack(desc).astype(np.float64)
     Xdesc = np.nan_to_num(Xdesc, nan=0.0, posinf=0.0, neginf=0.0)
 
-    comp_topk = composite_order[:k]
+    comp_topk = list(composite_order[:k])
     greedy_topk = greedy_hv_select(Ynorm, k, ref)
-    try:
-        qnehvi_topk = qnehvi_select(Xdesc, Ynorm, k, ref)
-    except Exception as e:
-        print(f"  [qNEHVI fallback->greedy for {name}: {e}]")
-        qnehvi_topk = greedy_topk
+
+    # persist objective arrays so the qNEHVI (torch) phase runs in a SEPARATE process
+    # (torch's libomp + XGBoost's libomp cannot coexist in one process on macOS -> OMP Error #179)
+    np.savez_compressed(os.path.join(RESULTS, f"pool_obj_{name}.npz"),
+                        Ynorm=Ynorm, Xdesc=Xdesc, Yraw=Yraw,
+                        comp_topk=np.array(comp_topk), greedy_topk=np.array(greedy_topk),
+                        seqs=np.array(seqs, dtype=object), modes=np.array(modes, dtype=object), k=k)
 
     hv_comp = hv(Ynorm[comp_topk], ref)
     hv_greedy = hv(Ynorm[greedy_topk], ref)
-    hv_qnehvi = hv(Ynorm[qnehvi_topk], ref)
     hv_full = hv(Ynorm, ref)
 
     def summ(idxs):
@@ -286,21 +287,20 @@ def process_pool(name, seqs, composite_order, perm_pred, bind_pred, k, args):
                  "logPapp": round(float(Yraw[i, 1]), 3), "SA": round(float(-Yraw[i, 2]), 2),
                  "mode": modes[i]} for r, i in enumerate(idxs)]
 
-    overlap_q = len(set(comp_topk) & set(qnehvi_topk))
     overlap_g = len(set(comp_topk) & set(greedy_topk))
 
     return {
         "pool_size": len(seqs), "k": k, "n_valid_binding": int(valid.sum()),
         "cyclization_modes": {m: int(modes.count(m)) for m in set(modes)},
         "hypervolume": {"composite_topk": round(hv_comp, 5),
-                        "qnehvi_topk": round(hv_qnehvi, 5),
+                        "qnehvi_topk": None,
                         "greedy_hv_topk": round(hv_greedy, 5),
                         "full_pool": round(hv_full, 5),
-                        "qnehvi_gain_vs_composite_pct": round(100 * (hv_qnehvi - hv_comp) / max(hv_comp, 1e-9), 1),
+                        "qnehvi_gain_vs_composite_pct": None,
                         "greedy_gain_vs_composite_pct": round(100 * (hv_greedy - hv_comp) / max(hv_comp, 1e-9), 1)},
-        "topk_overlap_with_composite": {"qnehvi": overlap_q, "greedy_hv": overlap_g, "of_k": k},
+        "topk_overlap_with_composite": {"qnehvi": None, "greedy_hv": overlap_g, "of_k": k},
         "composite_topk": summ(comp_topk),
-        "qnehvi_topk": summ(qnehvi_topk),
+        "qnehvi_topk": None,
         "greedy_hv_topk": summ(greedy_topk),
         "objective_ranges": {"pAff": [round(float(Yraw[:,0].min()),2), round(float(Yraw[:,0].max()),2)],
                              "logPapp": [round(float(Yraw[:,1].min()),2), round(float(Yraw[:,1].max()),2)],
@@ -308,11 +308,51 @@ def process_pool(name, seqs, composite_order, perm_pred, bind_pred, k, args):
     }
 
 
+def run_qnehvi_phase(report_path):
+    """Phase 2 (torch only): load each pool_obj_*.npz, run BoTorch qNEHVI, patch the report."""
+    report = json.load(open(report_path))
+    for name, pool in report["pools"].items():
+        npz = os.path.join(RESULTS, f"pool_obj_{name}.npz")
+        if not os.path.exists(npz):
+            print(f"  [no npz for {name}; skip]"); continue
+        z = np.load(npz, allow_pickle=True)
+        Ynorm = z["Ynorm"]; Xdesc = z["Xdesc"]; Yraw = z["Yraw"]
+        seqs = list(z["seqs"]); modes = list(z["modes"]); k = int(z["k"])
+        comp_topk = list(int(i) for i in z["comp_topk"])
+        ref = np.zeros(Ynorm.shape[1])
+        print(f"== qNEHVI for {name} (n={len(seqs)}, k={k}) ==", flush=True)
+        try:
+            qnehvi_topk = qnehvi_select(Xdesc, Ynorm, k, ref)
+        except Exception as e:
+            print(f"  [qNEHVI failed for {name}: {e}]"); continue
+        hv_q = hv(Ynorm[qnehvi_topk], ref)
+        hv_comp = pool["hypervolume"]["composite_topk"]
+        pool["hypervolume"]["qnehvi_topk"] = round(hv_q, 5)
+        pool["hypervolume"]["qnehvi_gain_vs_composite_pct"] = round(100 * (hv_q - hv_comp) / max(hv_comp, 1e-9), 1)
+        pool["topk_overlap_with_composite"]["qnehvi"] = len(set(comp_topk) & set(qnehvi_topk))
+        pool["qnehvi_topk"] = [{"rank": r + 1, "seq": seqs[i], "pAff": round(float(Yraw[i, 0]), 3),
+                               "logPapp": round(float(Yraw[i, 1]), 3), "SA": round(float(-Yraw[i, 2]), 2),
+                               "mode": modes[i]} for r, i in enumerate(qnehvi_topk)]
+        h = pool["hypervolume"]
+        print(f"  HV composite={h['composite_topk']} qNEHVI={h['qnehvi_topk']} greedy={h['greedy_hv_topk']} "
+              f"(qNEHVI {h['qnehvi_gain_vs_composite_pct']:+}%)", flush=True)
+    json.dump(report, open(report_path, "w"), indent=2)
+    print(f"patched {report_path}", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--k", type=int, default=10)
     ap.add_argument("--perm-csv", default=os.path.join(HERE, "data/raw/CycPeptMPDB_Peptide_All.csv"))
+    ap.add_argument("--phase", choices=["objectives", "qnehvi"], default="objectives",
+                    help="objectives: compute objectives + composite/greedy-HV (no torch). "
+                         "qnehvi: load saved objectives + run BoTorch qNEHVI (torch).")
     args = ap.parse_args()
+
+    out = os.path.join(RESULTS, "mo_qnehvi_rescore.json")
+    if args.phase == "qnehvi":
+        run_qnehvi_phase(out)
+        return
 
     print("training permeability model (CycPeptMPDB)...", flush=True)
     perm_pred, n_perm = train_perm(args.perm_csv)
@@ -334,8 +374,8 @@ def main():
     print("\n== PD-L1 pool (176) ==", flush=True)
     report["pools"]["PD-L1"] = process_pool("PD-L1", pdl1_seqs, comp_order, perm_pred, bind_pred, args.k, args)
     h = report["pools"]["PD-L1"]["hypervolume"]
-    print(f"  HV composite={h['composite_topk']} qNEHVI={h['qnehvi_topk']} greedy={h['greedy_hv_topk']} "
-          f"(qNEHVI {h['qnehvi_gain_vs_composite_pct']:+}% , greedy {h['greedy_gain_vs_composite_pct']:+}%)", flush=True)
+    print(f"  HV composite={h['composite_topk']} greedy={h['greedy_hv_topk']} "
+          f"(greedy {h['greedy_gain_vs_composite_pct']:+}%); qNEHVI pending phase 2", flush=True)
 
     # avb6 panel (12) — composite order = existing 'rank'
     avb6 = json.load(open(os.path.join(RESULTS, "avb6_round1_panel.json")))["panel"]
@@ -348,8 +388,8 @@ def main():
                                            perm_pred, bind_pred, k_avb6, args)
     report["pools"]["avb6"]["note"] = "only the 12-member panel exists (no larger avb6 pool); reranking scope limited"
     h = report["pools"]["avb6"]["hypervolume"]
-    print(f"  HV composite={h['composite_topk']} qNEHVI={h['qnehvi_topk']} greedy={h['greedy_hv_topk']} "
-          f"(qNEHVI {h['qnehvi_gain_vs_composite_pct']:+}% , greedy {h['greedy_gain_vs_composite_pct']:+}%)", flush=True)
+    print(f"  HV composite={h['composite_topk']} greedy={h['greedy_hv_topk']} "
+          f"(greedy {h['greedy_gain_vs_composite_pct']:+}%); qNEHVI pending phase 2", flush=True)
 
     out = os.path.join(RESULTS, "mo_qnehvi_rescore.json")
     json.dump(report, open(out, "w"), indent=2)
