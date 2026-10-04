@@ -181,6 +181,73 @@ async function ensureProjectPlansTable(): Promise<void> {
 }
 ensureProjectPlansTable().catch(e => console.error("[project_plans] table init failed:", e?.message ?? e));
 
+// Team workspace Phase 1: immutable project activity ledger
+// (docs/20261003_TEAM_WORKSPACE_IMPLEMENTATION_PLAN.md §Phase 1). Append-only
+// provenance of who changed what in a shared project. Lazy migration mirrors
+// the project_members/project_files/project_plans pattern; the canonical schema
+// is migrations/0022_project_activity.sql.
+async function ensureProjectActivityTable(): Promise<void> {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS project_activity (
+      id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      project_id     UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      actor_user_id  TEXT REFERENCES users(id) ON DELETE SET NULL,
+      event_type     TEXT NOT NULL,
+      payload        JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS project_activity_project_created_idx ON project_activity (project_id, created_at DESC)`
+  );
+  await pool.query(`CREATE INDEX IF NOT EXISTS project_activity_project_idx ON project_activity (project_id)`);
+}
+ensureProjectActivityTable().catch(e => console.error("[project_activity] table init failed:", e?.message ?? e));
+
+// Closed, server-side set of activity event types. Clients NEVER submit
+// event_type or payload — both are rendered server-side from known entities.
+export type ProjectActivityEvent =
+  | "member_added"
+  | "member_removed"
+  | "role_changed"
+  | "ownership_transferred"
+  | "file_added"
+  | "file_removed"
+  | "plan_created";
+
+/**
+ * Append one immutable activity row. Call ONLY after the primary mutation has
+ * succeeded (plan §3: "Route handlers … call it only after their primary
+ * transaction succeeds").
+ *
+ * Best-effort by design: a ledger write failure is logged but never thrown, so
+ * it can never convert a successful membership/file/plan mutation into an
+ * unknown state (plan §3 "A failed activity insert must not silently convert a
+ * successful … mutation into an unknown state"). Phase 1 accepts at-most-once
+ * ledger semantics after commit; an outbox/transactional upgrade is a
+ * documented follow-up.
+ *
+ * payload must contain only allowlisted, server-rendered references (target
+ * user id, role, file id, plan id) — never raw file content, secrets, signed
+ * URLs, prompt text, or model/worker logs.
+ */
+export async function recordProjectActivity(
+  projectId: string,
+  actorUserId: string | null,
+  eventType: ProjectActivityEvent,
+  payload: Record<string, unknown> = {},
+): Promise<void> {
+  try {
+    await pool.query(
+      `INSERT INTO project_activity (project_id, actor_user_id, event_type, payload)
+       VALUES ($1, $2, $3, $4::jsonb)`,
+      [projectId, actorUserId || null, eventType, JSON.stringify(payload ?? {})],
+    );
+  } catch (e: any) {
+    console.error(`[project_activity] record failed (${eventType} on ${projectId}):`, e?.message ?? e);
+  }
+}
+
 export function registerProjectRoutes(app: Express): void {
   // ─── GET /api/projects ────────────────────────────────────────────────
   // List the authenticated user's projects. Optional ?status=active|archived|completed.
@@ -567,6 +634,11 @@ export function registerProjectRoutes(app: Express): void {
            RETURNING id, name, s3_key, size, content_type, source, run_id, created_at`,
           [id, uid, originalName, key, req.file.size, req.file.mimetype || "application/octet-stream"]
         );
+        await recordProjectActivity(id, uid, "file_added", {
+          fileId: ins.rows[0].id,
+          name: originalName,
+          source: "upload",
+        });
         res.status(201).json({ file: ins.rows[0] });
       } catch (e: any) {
         if (req.file?.path) fs.unlink(req.file.path, () => {});
@@ -595,6 +667,7 @@ export function registerProjectRoutes(app: Express): void {
       if (!fileRow.rows.length) return res.status(404).json({ error: "File not found" });
       await s3Service.deleteFile(fileRow.rows[0].s3_key);
       await pool.query(`DELETE FROM project_files WHERE id = $1`, [fileId]);
+      await recordProjectActivity(id, uid, "file_removed", { fileId });
       res.json({ ok: true });
     } catch (e: any) {
       console.error("[project_files] delete failed:", e?.message ?? e);
@@ -681,6 +754,7 @@ export function registerProjectRoutes(app: Express): void {
          ON CONFLICT (project_id, user_id) DO UPDATE SET role = EXCLUDED.role`,
         [id, inviteeId, role, uid]
       );
+      await recordProjectActivity(id, uid, "member_added", { targetUserId: inviteeId, role });
       res.status(201).json({ member: { user_id: inviteeId, ...invitee.rows[0], role } });
     } catch (e: any) {
       console.error("[project_members] invite failed:", e?.message ?? e);
@@ -703,6 +777,7 @@ export function registerProjectRoutes(app: Express): void {
         [id, uid]
       );
       if ((del.rowCount ?? 0) === 0) return res.status(404).json({ error: "Not a member of this project" });
+      await recordProjectActivity(id, uid, "member_removed", { targetUserId: uid, self: true });
       res.json({ ok: true });
     } catch (e: any) {
       console.error("[project_members] leave failed:", e?.message ?? e);
@@ -727,6 +802,7 @@ export function registerProjectRoutes(app: Express): void {
         [role, id, memberId]
       );
       if ((upd.rowCount ?? 0) === 0) return res.status(404).json({ error: "Member not found" });
+      await recordProjectActivity(id, uid, "role_changed", { targetUserId: memberId, role });
       res.json({ ok: true, role });
     } catch (e: any) {
       console.error("[project_members] role change failed:", e?.message ?? e);
@@ -748,6 +824,7 @@ export function registerProjectRoutes(app: Express): void {
         [id, memberId]
       );
       if ((del.rowCount ?? 0) === 0) return res.status(404).json({ error: "Member not found" });
+      await recordProjectActivity(id, uid, "member_removed", { targetUserId: memberId });
       res.json({ ok: true });
     } catch (e: any) {
       console.error("[project_members] remove failed:", e?.message ?? e);
@@ -783,6 +860,8 @@ export function registerProjectRoutes(app: Express): void {
          ON CONFLICT (project_id, user_id) DO UPDATE SET role = 'editor'`,
         [id, uid, newOwnerId]
       );
+      // Attributed to the outgoing owner (the only actor authorized to transfer).
+      await recordProjectActivity(id, uid, "ownership_transferred", { newOwnerId, previousOwnerId: uid });
       res.json({ ok: true, newOwnerId });
     } catch (e: any) {
       console.error("[project_members] ownership transfer failed:", e?.message ?? e);
@@ -882,6 +961,7 @@ export function registerProjectRoutes(app: Express): void {
          VALUES ($1,$2,$3,$4::jsonb,$5::jsonb,$6) RETURNING id, project_id, goal, hypothesis, referenced_dataset_ids, referenced_evidence_ids, created_at`,
         [id, goal, hypothesis, JSON.stringify(dsIds), JSON.stringify(evIds), uid || null]
       );
+      await recordProjectActivity(id, uid || null, "plan_created", { planId: r.rows[0].id });
       res.status(201).json({ plan: r.rows[0] });
     } catch (e: any) {
       console.error("[project_plans] create failed:", e?.message ?? e);
@@ -925,6 +1005,43 @@ export function registerProjectRoutes(app: Express): void {
     } catch (e: any) {
       console.error("[project_plans] get failed:", e?.message ?? e);
       res.status(500).json({ error: "Failed to fetch plan" });
+    }
+  });
+
+  // ─── GET /api/projects/:id/activity ────────────────────────────────────────────
+  // Immutable project activity ledger (Team workspace Phase 1). Owner-or-member
+  // readable, newest-first, paginated (limit ≤ 100, offset). A non-member gets
+  // the same 404 no-disclosure response used for every other project resource —
+  // outsiders cannot enumerate the feed. Rows are append-only and server-rendered;
+  // the handler never accepts a client-supplied event or summary.
+  app.get("/api/projects/:id/activity", authenticateToken, async (req: Request, res: Response) => {
+    const uid = userId(req);
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+    const id = req.params.id;
+    let limit = parseInt(String(req.query.limit ?? "50"), 10);
+    if (!Number.isFinite(limit) || limit < 1) limit = 50;
+    if (limit > 100) limit = 100;
+    let offset = parseInt(String(req.query.offset ?? "0"), 10);
+    if (!Number.isFinite(offset) || offset < 0) offset = 0;
+    try {
+      if (!(await _isOwnerOrMember(id, uid))) return res.status(404).json({ error: "Project not found" });
+      // Over-fetch one row to report whether another page exists, without a COUNT.
+      const r = await pool.query(
+        `SELECT a.id, a.project_id, a.actor_user_id, a.event_type, a.payload, a.created_at,
+                u.email AS actor_email, u.full_name AS "actorName"
+         FROM project_activity a
+         LEFT JOIN users u ON u.id = a.actor_user_id
+         WHERE a.project_id = $1
+         ORDER BY a.created_at DESC, a.id DESC
+         LIMIT $2 OFFSET $3`,
+        [id, limit + 1, offset]
+      );
+      const hasMore = r.rows.length > limit;
+      const activity = hasMore ? r.rows.slice(0, limit) : r.rows;
+      res.json({ activity, limit, offset, hasMore });
+    } catch (e: any) {
+      console.error("[project_activity] list failed:", e?.message ?? e);
+      res.status(500).json({ error: "Failed to list activity" });
     }
   });
 
