@@ -7,11 +7,14 @@
  * docs/20261003_PATHOLOGY_WSI_CAPABILITY_AUDIT.md ("Recommended first
  * deliverable") — NOT a diagnostic device and NOT a WSI-platform claim.
  *
- * Pipeline (all steps run on REAL data; no fabrication, no RNG, no demo slide):
+ * Pipeline (all steps run on REAL data; no fabrication, no RNG):
  *   1. Ingest ONE WSI via OpenSlide — one OpenSlide format (e.g. Aperio .svs)
- *      plus pyramidal OME-TIFF. A real --input_wsi is MANDATORY; there is NO
- *      built-in/fallback slide (fabricated inputs are forbidden), so the
- *      process exits non-zero with a clear message when it is missing.
+ *      plus pyramidal OME-TIFF. A real --input_wsi is used when supplied; when
+ *      it is omitted the workflow runs a param-less "quick run" on a REAL,
+ *      clearly-labelled public demo slide (the canonical OpenSlide test image
+ *      CMU-1-Small-Region.svs, Aperio SVS, ~1.8 MB), downloaded at runtime and
+ *      fed to the SAME real OpenSlide path. Nothing is synthesized; if the demo
+ *      download fails the process honest-fails (non-zero) rather than fabricate.
  *   2. Deterministic tissue tiling: a fixed raster grid at level 0 with tile
  *      coordinates, Otsu-on-saturation tissue detection (background flag) and
  *      variance-of-Laplacian focus QC (blur flag). Fully deterministic.
@@ -27,15 +30,25 @@
  * model weights, or the input slide are unavailable, the process exits
  * non-zero with an actionable message. It never emits fabricated results.
  *
- * CONTAINER: the process-level `container` directive below is what actually
- * runs on AWS Batch (it OVERRIDES the DB docker_image). It is pinned to the
- * real, registry-verified cellpose biocontainer. NOTE (owner validation): the
- * single-tool cellpose biocontainer may not ship the OpenSlide C library +
- * openslide-python; if OpenSlide is absent the workflow honest-fails at import
- * time. The validated deployment image must bundle OpenSlide + cellpose. This
- * is exactly why the DB row ships executable=0 until an owner validation run
- * on a licensed annotated slide confirms it end-to-end. See
- * docs/20261003_PATHOLOGY_WSI_WORKFLOW.md.
+ * CONTAINER (the remaining blocker — investigated 2026-10-04): the process-level
+ * `container` directive below is what actually runs on AWS Batch (it OVERRIDES
+ * the DB docker_image). The pinned cellpose biocontainer is the only
+ * registry-verified cellpose image, but it does NOT ship everything this
+ * workflow needs. Verified on quay.io/biocontainers: NO single "mulled" image
+ * bundling cellpose + openslide-python exists
+ *   (mulled-v2-a7990a2cb1ea07c47b04b50f48074ba563f7782a -> absent/404),
+ * nor cellpose + openslide-python + scikit-image
+ *   (mulled-v2-ff7268b4c5599c60b9f8ca05df5278f0b0267ceb -> absent/404).
+ * cellpose 3.1.0's own deps (PyPI) are numpy/scipy/torch/opencv/numba/tifffile
+ * etc. — they include NEITHER openslide-python NOR scikit-image. So this image
+ * is missing BOTH the OpenSlide reader (python binding + libopenslide C lib)
+ * AND scikit-image, and the workflow honest-fails at `import openslide` here.
+ * The remaining owner/infra step is to BUILD a custom image bundling
+ * libopenslide + openslide-python + scikit-image + cellpose (no clean
+ * off-the-shelf image exists). The DB row therefore stays executable=0 until
+ * that image is built and an owner validation run on a real slide confirms it
+ * end-to-end. Findings: docs/20261004_PATHOLOGY_WSI_CONTAINER_FINDINGS.md;
+ * workflow note: docs/20261003_PATHOLOGY_WSI_WORKFLOW.md.
  *
  * References:
  *   - Stringer et al. 2021 Nature Methods (Cellpose)
@@ -68,6 +81,10 @@ process WSI_HE_NUCLEI_SEGMENTATION {
     // Pinned, registry-verified, license-clean (BSD-3-Clause) cellpose biocontainer.
     // This directive OVERRIDES the DB docker_image on AWS Batch, so it MUST be set here.
     // Verified live on quay.io (tag 3.1.0 active; manifest sha256:0467d790...). Do NOT pull/run.
+    // KNOWN GAP (see header CONTAINER note, verified 2026-10-04): this image lacks
+    // openslide-python + libopenslide AND scikit-image, and no mulled biocontainer
+    // bundles them with cellpose — so the workflow honest-fails at import here. A
+    // custom image is the remaining owner step; the DB row stays executable=0.
     container 'quay.io/biocontainers/cellpose:3.1.0'
 
     input:
@@ -190,13 +207,38 @@ if model_type not in ("nuclei", "cyto", "cyto2", "cyto3"):
     fail("model_type %r not supported; use one of nuclei|cyto|cyto2|cyto3" % model_type)
 
 # ---------------------------------------------------------------- inputs
-# No fabricated fallback: a real --input_wsi is mandatory.
-if input_wsi in (None, "", "null"):
-    fail("no --input_wsi supplied. This workflow has NO demo/fallback slide by "
-         "design (fabricated inputs are forbidden). Provide a real WSI file "
-         "(e.g. Aperio .svs or pyramidal OME-TIFF .ome.tif) via --input_wsi.")
-if not os.path.exists(input_wsi):
+# Input contract: use the user's --input_wsi when supplied. When it is omitted,
+# run a param-less "quick run" on a REAL, clearly-labelled public demo slide:
+# the canonical OpenSlide test image CMU-1-Small-Region.svs (Aperio SVS, ~1.8 MB,
+# OpenSlide public test data). It is a genuine H&E slide read through the SAME
+# real OpenSlide + Cellpose path below — nothing is synthesized. If the demo
+# download fails we honest-fail (non-zero); a fabricated slide is NEVER used.
+input_is_demo = False
+slide_source  = "user_supplied"
+if input_wsi not in (None, "", "null") and not os.path.exists(input_wsi):
     fail("input WSI path does not exist on the worker: %s" % input_wsi)
+if input_wsi in (None, "", "null"):
+    import urllib.request
+    demo_url  = ("https://openslide.cs.cmu.edu/download/openslide-testdata/"
+                 "Aperio/CMU-1-Small-Region.svs")
+    demo_path = os.path.join(os.getcwd(), "CMU-1-Small-Region.svs")
+    print("No --input_wsi supplied; falling back to the public OpenSlide demo "
+          "slide CMU-1-Small-Region.svs [DEMO DATA].")
+    print("  Demo source: %s" % demo_url)
+    try:
+        urllib.request.urlretrieve(demo_url, demo_path)
+    except Exception as e:
+        fail("no --input_wsi supplied and the public demo slide download FAILED "
+             "(%r) from %s. Provide --input_wsi, or ensure the worker has network "
+             "egress for the demo slide. No fabricated slide is ever used." % (e, demo_url))
+    dl_bytes = os.path.getsize(demo_path) if os.path.exists(demo_path) else 0
+    if dl_bytes < 100000:
+        fail("demo slide download produced an unexpectedly small/empty file at %s "
+             "(%d bytes); refusing to proceed on a corrupt download." % (demo_path, dl_bytes))
+    input_wsi     = demo_path
+    input_is_demo = True
+    slide_source  = "DEMO: CMU-1-Small-Region.svs (OpenSlide public test data, Aperio SVS)"
+    print("Demo slide ready [DEMO DATA]: %s (%d bytes)" % (demo_path, dl_bytes))
 
 try:
     slide = openslide.OpenSlide(input_wsi)
@@ -427,6 +469,8 @@ qc = {
     "research_use_only": True,
     "input": {
         "path": os.path.basename(input_wsi),
+        "is_demo": input_is_demo,
+        "source": slide_source,
         "vendor": vendor,
         "level0_width_px": int(W),
         "level0_height_px": int(H),
@@ -509,7 +553,12 @@ L.append("=" * 72)
 L.append("  WSI H&E NUCLEI SEGMENTATION - RESEARCH USE ONLY")
 L.append("  *** NOT FOR DIAGNOSTIC USE - PATHOLOGIST REVIEW REQUIRED ***")
 L.append("=" * 72)
-L.append("  Slide:            %s" % os.path.basename(input_wsi))
+L.append("  Slide:            %s%s" % (os.path.basename(input_wsi),
+         "   [DEMO DATA]" if input_is_demo else ""))
+if input_is_demo:
+    L.append("  NOTE:             no --input_wsi supplied; ran the param-less quick")
+    L.append("                    run on the public OpenSlide demo slide")
+    L.append("                    CMU-1-Small-Region.svs (DEMO DATA, not a user/clinical slide).")
 L.append("  Scanner vendor:   %s" % vendor)
 L.append("  Dimensions (L0):  %d x %d px  (%d pyramid levels)" % (W, H, n_levels))
 if mpp_x and mpp_y:
