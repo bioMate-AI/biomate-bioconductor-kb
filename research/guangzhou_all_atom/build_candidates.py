@@ -49,8 +49,17 @@ def per_candidate_llh(rec, n):
         m = rec.get(k) if isinstance(rec.get(k), dict) else None
         if m and isinstance(m.get("individual"), list) and len(m["individual"]) == n:
             return m["individual"]
-    # Fallback: candidate order == likelihood rank (best first). Flag once.
-    sys.stderr.write(f"WARN(A2b): no per-candidate likelihood for {rec.get('id')}; assuming index order = likelihood rank\n")
+    # A2b RESOLVED (verified on unimomo-cyclic-ft-20261004T042753Z): UniMoMo's eval_report stores the
+    # per-candidate generator score as `individual_pmet` inside each metric dict (identical across all
+    # metrics; the `max*`/`min*` fields are the pmet-selected picks). Confirmed argmax(pmet) candidate's
+    # DockQ == DockQ["max*"], i.e. HIGHER pmet = the generator's own pick-1 — exactly the semantics
+    # selfconsistency_rerank expects for `likelihood` (higher = more likely). Use it as the likelihood.
+    for mk in ("DockQ", "AAR", "C_RMSD(CA)", "L_RMSD(CA)"):
+        m = rec.get(mk)
+        if isinstance(m, dict) and isinstance(m.get("individual_pmet"), list) and len(m["individual_pmet"]) == n:
+            return m["individual_pmet"]
+    # Last-resort fallback: candidate order == likelihood rank (best first). Flag once.
+    sys.stderr.write(f"WARN(A2b): no per-candidate likelihood/pmet for {rec.get('id')}; assuming index order = likelihood rank\n")
     return list(range(n, 0, -1))   # higher = earlier index = more likely
 
 def find_pose(target, k):

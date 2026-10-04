@@ -22,7 +22,11 @@ RES=${RES:?dir holding <label>/ generation outputs (results/base, results/ft) wi
 OUT_S3=${OUT_S3:?}
 TOPK=${TOPK:-25}             # re-fold the top-K by likelihood per target (bounds cost: K x 88 x 2 folds)
 DRY_RUN=${DRY_RUN:-0}        # 1 = one target per label, to confirm A1/A2 cheaply before the full run
+LABELS=${LABELS:-"base ft"}  # which generation labels to refold/rerank
 HERE=${HERE:-$ROOT/code}
+# DRY = cheapest possible A1/A2 confirmation: one target (build_candidates.py truncates to recs[:1])
+# AND one label (first of LABELS). The base-vs-ft rerank is then skipped (needs both labels).
+if [ "$DRY_RUN" = 1 ]; then LABELS=$(echo "$LABELS" | awk '{print $1}'); fi
 
 stage(){ printf '{"stage":"%s","time":"%s"}\n' "$1" "$(date -u +%FT%TZ)" > "$ROOT/status/sc_status.json"; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; }
 
@@ -36,7 +40,7 @@ python -c "import boltz; print('boltz', getattr(boltz,'__version__','?'))"
 
 # --- preflight A1/A2: confirm the layout on ONE target before spending folds ---
 stage preflight_layout
-for label in base ft; do
+for label in $LABELS; do
   d="$RES/$label"
   [ -d "$d" ] || { echo "FATAL(A?): missing $d — run a generation that saved candidates first"; exit 1; }
   rep="$d/eval_report_.jsonl"; [ -f "$rep" ] || rep="$d/results.jsonl"
@@ -44,7 +48,7 @@ for label in base ft; do
   CAND_GLOB=${CAND_GLOB:-$d/candidates}
   [ -d "$CAND_GLOB" ] || { echo "FATAL(A1): no candidate-pose dir under $d (expected candidates/); confirm UniMoMo save layout + set CAND_GLOB"; exit 1; }
 done
-echo "preflight OK: results + candidate dirs present for base and ft"
+echo "preflight OK: results + candidate dirs present for labels: $LABELS"
 
 # --- per-label: build candidates.jsonl (top-K refolded) ---
 build_label(){ # $1=label
@@ -55,14 +59,23 @@ build_label(){ # $1=label
   python "$HERE/build_candidates.py" > "$ROOT/status/candidates_$label.jsonl" 2> "$ROOT/status/refold_$label.log"
   aws s3 cp "$ROOT/status/candidates_$label.jsonl" "$OUT_S3/status/candidates_$label.jsonl" --only-show-errors
 }
-build_label base
-build_label ft
+for label in $LABELS; do build_label "$label"; done
 
-# --- re-rank + designability summary ---
-stage summarizing
-python "$HERE/selfconsistency_rerank.py" \
-  --base "$ROOT/status/candidates_base.jsonl" --ft "$ROOT/status/candidates_ft.jsonl" \
-  --out "$ROOT/status/selfconsistency_summary.json"
-aws s3 cp "$ROOT/status/selfconsistency_summary.json" "$OUT_S3/status/selfconsistency_summary.json" --only-show-errors
-stage selfconsistency_complete
-echo "DONE -> $OUT_S3/status/selfconsistency_summary.json"
+# --- re-rank + designability summary (needs BOTH base and ft candidate files) ---
+if [ -f "$ROOT/status/candidates_base.jsonl" ] && [ -f "$ROOT/status/candidates_ft.jsonl" ]; then
+  stage summarizing
+  python "$HERE/selfconsistency_rerank.py" \
+    --base "$ROOT/status/candidates_base.jsonl" --ft "$ROOT/status/candidates_ft.jsonl" \
+    --out "$ROOT/status/selfconsistency_summary.json"
+  aws s3 cp "$ROOT/status/selfconsistency_summary.json" "$OUT_S3/status/selfconsistency_summary.json" --only-show-errors
+  stage selfconsistency_complete
+  echo "DONE -> $OUT_S3/status/selfconsistency_summary.json"
+else
+  # DRY / single-label: A1/A2 confirmed via candidate extraction; base-vs-ft rerank intentionally skipped.
+  echo "DRY/single-label ($LABELS): candidate extraction validated; base-vs-ft rerank skipped (needs both)."
+  for label in $LABELS; do
+    echo "---- candidates_$label.jsonl (first record) ----"; head -1 "$ROOT/status/candidates_$label.jsonl" || true
+  done
+  stage dry_candidates_complete
+  echo "DRY DONE -> $OUT_S3/status/candidates_<label>.jsonl (+ refold_<label>.log)"
+fi
