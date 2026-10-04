@@ -771,7 +771,12 @@ class UnifiedWorkflowSearch:
         }
         catalog_lines = []
         for wf_id, name, desc, source, filename in rows:
-            short_desc = (desc or "")[:120].replace("\n", " ")
+            # Show more of the description: the distinguishing fact (platform/tool/modality — e.g. "Oxford
+            # Nanopore" for scnanoseq, "MetaPhlAn/Kraken2" for taxprofiler, "Affymetrix .CEL" for
+            # differentialabundance) frequently lives past char 120 in the real description/annotation, so a
+            # 120-char window hid it and the LLM picked a sibling. Widening surfaces facts that already exist
+            # (no benchmark-derived editing). See docs/20260912_onprem_llm/20261004_CLOSE_THE_GAP_ROUTING.md.
+            short_desc = (desc or "")[:240].replace("\n", " ")
             base_label = SOURCE_LABELS.get(source or "", "pipeline")
             # Only GENUINE components are labelled as such to the LLM (nf-core
             # subworkflows + bioconductor subtree). BioMate's complete domain
