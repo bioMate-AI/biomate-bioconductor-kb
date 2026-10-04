@@ -93,6 +93,7 @@
         }
       },
       "macro_auc_designable": 0.555,
+      "macro_auc_triage_relevant": 0.469,
       "mean_cofold_work_saved_pct@0.8recall": 17.1,
       "baseline_auc": 0.5
     },
@@ -175,6 +176,7 @@
         }
       },
       "macro_auc_designable": 0.573,
+      "macro_auc_triage_relevant": 0.625,
       "mean_cofold_work_saved_pct@0.8recall": 26.9,
       "baseline_auc": 0.5
     },
@@ -257,6 +259,7 @@
         }
       },
       "macro_auc_designable": 0.509,
+      "macro_auc_triage_relevant": 0.585,
       "mean_cofold_work_saved_pct@0.8recall": 24.9,
       "baseline_auc": 0.5
     }
@@ -315,6 +318,7 @@
         }
       },
       "macro_auc_designable": 0.544,
+      "macro_auc_triage_relevant": 0.543,
       "mean_cofold_work_saved_pct@0.8recall": 22.9
     },
     "design": {
@@ -370,6 +374,7 @@
         }
       },
       "macro_auc_designable": 0.646,
+      "macro_auc_triage_relevant": 0.542,
       "mean_cofold_work_saved_pct@0.8recall": 25.0
     },
     "combined": {
@@ -425,13 +430,14 @@
         }
       },
       "macro_auc_designable": 0.669,
+      "macro_auc_triage_relevant": 0.624,
       "mean_cofold_work_saved_pct@0.8recall": 24.3
     }
   },
   "timing": {
-    "surrogate_featurize_s_per_seq": 6.39e-06,
+    "surrogate_featurize_s_per_seq": 5.16e-06,
     "cofold_s_per_seq_typical": 90.0,
-    "speedup_x": 14075784,
+    "speedup_x": 17441860,
     "note": "surrogate inference is sequence-only featurize + one GBM forward; co-fold is a Boltz prediction"
   }
 }

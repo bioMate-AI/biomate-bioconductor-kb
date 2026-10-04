@@ -179,6 +179,21 @@ def fit_predict(Xtr, ytr, Xte, *, classifier=True, seed=0):
     return m.predict(Xte)
 
 
+# A target is "triage-relevant" only if there is actually a screening decision to make: a
+# non-degenerate designable rate (enough positives AND negatives). On a target where ~everything is
+# designable (rate>0.7) or ~nothing is (rate<0.05), AUC is unstable/meaningless and triage is moot —
+# averaging those in hides whether the surrogate works where it matters.
+TRIAGE_RATE_LO, TRIAGE_RATE_HI = 0.05, 0.70
+
+
+def _triage_macro_auc(per_target: dict):
+    import numpy as np
+    xs = [v["auc_designable"] for v in per_target.values()
+          if v["auc_designable"] == v["auc_designable"]
+          and TRIAGE_RATE_LO <= v.get("designable_rate", 0) <= TRIAGE_RATE_HI]
+    return round(float(np.mean(xs)), 3) if xs else None
+
+
 def loto_eval(rows: List[dict], min_rows=20, mode="seq") -> dict:
     import numpy as np
     by_t = defaultdict(list)
@@ -214,6 +229,7 @@ def loto_eval(rows: List[dict], min_rows=20, mode="seq") -> dict:
         "targets_evaluated": targets,
         "per_target": per_target,
         "macro_auc_designable": round(float(np.mean(aucs)), 3) if aucs else None,
+        "macro_auc_triage_relevant": _triage_macro_auc(per_target),
         "mean_cofold_work_saved_pct@0.8recall": round(float(np.mean(saved)), 1) if saved else None,
         "baseline_auc": 0.5,
     }
@@ -261,6 +277,7 @@ def within_target_eval(rows: List[dict], min_rows=40, k=5, seed=0, mode="seq") -
         "targets_evaluated": list(per_target.keys()),
         "per_target": per_target,
         "macro_auc_designable": round(float(np.mean(aucs)), 3) if aucs else None,
+        "macro_auc_triage_relevant": _triage_macro_auc(per_target),
         "mean_cofold_work_saved_pct@0.8recall": round(float(np.mean(saved)), 1) if saved else None,
     }
 

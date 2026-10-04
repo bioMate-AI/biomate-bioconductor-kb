@@ -44,23 +44,40 @@ circular — they come from the co-fold we are trying to skip).
 
 ## Results (honest, including what fails)
 
-| Feature set (pre-fold only) | Within-target triage macro-AUC | Cold-start (LOTO) macro-AUC |
+Reporting two macro-AUCs per protocol: **all targets**, and **triage-relevant** (only targets with a
+non-degenerate designable rate 5–70 %, i.e. where there is an actual screening decision to make — on a
+target where ~everything or ~nothing is designable, AUC is unstable and triage is moot).
+
+| Feature set (pre-fold only) | Within-target (all / triage-relevant) | Cold-start LOTO (all / triage-relevant) |
 |---|---|---|
-| sequence-only | 0.544 (chance) | 0.555 (chance) |
-| generation-time confidence | 0.646 | 0.573 |
-| **combined** | **0.669** | 0.509 (chance) |
+| sequence-only | 0.544 / 0.543 (chance) | 0.555 / 0.469 (chance) |
+| generation-time confidence | 0.646 / 0.542 | 0.573 / 0.625 |
+| **combined** | **0.669 / 0.624** | 0.509 / 0.585 |
 
-Within-target per-target (combined): 5o45/PD-L1 AUC 0.676 (n=695), 9xmm/αvβ6 0.759 (n=100),
-1u8p 0.572 (n=56).
+Per-target (combined):
 
-- **Within-target triage works** — saves **~24–34 % of co-fold compute** at 80 % recall of true
-  designables (5o45: 34 %). Strongest single signal is the generator's own `min_design_to_target_pae`
-  / `design_to_target_iptm` (5o45 raw-feature AUC 0.78 / 0.77).
+| target | designable rate | n | within-target AUC | cold-start (LOTO) AUC |
+|---|---|---|---|---|
+| 5o45 (PD-L1) | 0.08 | 695 | 0.676 | **0.731** |
+| 1u8p | 0.64 | 56 | 0.572 | 0.439 (below chance) |
+| 9xmm (αvβ6) | 0.94 | 100 | 0.759 | 0.846 |
+| 1yf4 | 0.98 | 48 | — | 0.021 (degenerate: 1 negative) |
+
+- **Within-target triage works** on the targets that need it — combined triage-relevant AUC **0.624**
+  (5o45/PD-L1 0.676) — and saves **~24–34 % of co-fold compute** at 80 % recall of true designables
+  (5o45: 34 %). Strongest single signal is the generator's own `min_design_to_target_pae` /
+  `design_to_target_iptm` (5o45 raw-feature AUC 0.78 / 0.77).
 - **Sequence-only is genuinely chance** (AUC ≈ 0.54). A naive sequence→designability surrogate does
-  not work on this corpus; the signal is the generator's self-confidence, not composition.
-- **Cold-start a brand-new target (LOTO) does not work** (AUC ≈ 0.51–0.57). Designable rate is
-  target-dependent and does not transfer; the surrogate triages *within* a target that has a seed
-  batch folded, it cannot predict a target with zero prior folds. Stated as a limitation, not hidden.
+  not work; the signal is the generator's self-confidence, not composition.
+- **Cold-start is target-dependent and NOT dependable.** It is strong on the hardest/largest target
+  (5o45/PD-L1 LOTO AUC 0.73 — a real cross-target transfer, the realistic triage regime) but *below
+  chance* on 1u8p (0.44). So cold-starting an arbitrary brand-new target is not a solved capability;
+  it works on some targets and fails on others. (The earlier flat "cold-start = chance" was itself
+  imprecise — it averaged in near-degenerate easy targets; the honest statement is "unreliable,
+  works on hard targets like 5o45, fails on 1u8p".)
+- A richer 127-feature pre-fold set (all `design_*` + composition + liability columns) was tested and
+  did **not** beat the lean 8-feature set on macro-AUC (within 0.665 vs 0.669), so the committed
+  surrogate stays lean (8 features) — more features here is added leakage surface for no gain.
 - **Timing:** featurize + GBM forward ≈ 5 µs/seq vs ~90 s/co-fold.
 
 ## Honest contribution & limits
@@ -70,9 +87,12 @@ Within-target per-target (combined): 5o45/PD-L1 AUC 0.676 (n=695), 9xmm/αvβ6 0
 - Caveat on marginal novelty: BoltzGen already ranks partly on these confidence metrics, so the
   surrogate's value is specifically *triaging before the independent refold*, not out-ranking the
   generator. Report it that way.
-- Open improvement (still no new wet-lab needed): add **structural** features from the designed
-  backbone `.cif` poses on S3 (geometry / inverse-folding score) to push cold-start above chance —
-  the next honest step for cross-target generalization.
+- Open improvement (still no new wet-lab needed): more *scalar* pre-fold features did **not** help
+  (tested 127 vs 8, no macro gain), so the remaining lever for dependable cold-start is **structural**
+  features from the designed backbone `.cif` poses on S3 (geometry / inverse-folding score) — the
+  honest next step. Note the designed poses are only saved for the ranked subset per run (~10/run),
+  so this needs either harvesting more poses or recomputing them, which is the one place a (cheap, no
+  wet-lab) compute step is actually required.
 
 ## Reproduce
 ```
