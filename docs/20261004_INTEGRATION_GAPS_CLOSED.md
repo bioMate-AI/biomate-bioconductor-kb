@@ -57,7 +57,38 @@ path). Adopted by the dataset-consuming **stage** scripts: `peptide_verify.py`,
 |---|---|
 | **G6** — ingest real CRO round-1 KD | Needs the GenScript SPR KD to exist. The order email is send-ready; **sending it is the user's move.** `wetlab_kd_to_pairs.py` is synthetic-verified and waiting. |
 | **G7** — auto-promote the DPO checkpoint to the next-round generator | Needs a GPU DPO training run, which needs G6's real pairs to be worth running. |
-| **Speed surrogate** (fast self-consistency / scRMSD predictor — the "faster" novelty) | **Data-gated.** Training needs a corpus of (sequence → true scRMSD / `filter_rmsd`) pairs. Locally we have **2 designs** (`results/boltzgen_cyclic_designs_metrics.csv`) — the right columns (`filter_rmsd`, `designed_sequence`, features) but n=2. A real surrogate needs a GPU generation+fold corpus. Building it on n=2 would violate the no-tiny-dataset rule, so it is deferred, not faked. |
+| **Speed surrogate** (fast self-consistency / scRMSD predictor — the "faster" novelty) | ~~Data-gated, only 2 designs locally.~~ **CORRECTED — see below. It was NOT gated; built it.** |
+
+### CORRECTION (same day) — the speed surrogate was NOT data-gated. I under-counted our own data.
+
+I wrote above that the speed surrogate needed a new GPU fold corpus because we had "2 designs
+locally." That was wrong, and the user correctly challenged it ("there are so many public data why
+you insist on waiting for the two targets and 22 peptides?"). The designability label (`filter_rmsd`,
+refold self-consistency RMSD) is **target-agnostic** — it does not depend on our CRO targets at all —
+and we already had **949 labelled designs across 7 targets** from prior BoltzGen oversample/benchmark
+runs on S3 (`s3://knowledge-datasets-1759951976/cyclic_peptide/runs/.../all_designs_metrics.csv`).
+The 2-row local file was one tiny sample. This is the same under-counting-our-assets error flagged
+before.
+
+**I built the surrogate on that real data** (commit `bc5b79a24`; `speed_surrogate.py`,
+`data/processed/designability_v1.csv`, `results/speed_surrogate_loto.json`). Honest results:
+
+| Feature set (pre-fold only) | Within-target triage AUC | Cold-start (LOTO) AUC |
+|---|---|---|
+| sequence-only | 0.544 (chance) | 0.555 (chance) |
+| generation-time confidence | 0.646 | 0.573 |
+| **combined** | **0.669** (5o45/PD-L1 0.676, 9xmm/αvβ6 0.759) | 0.509 (chance) |
+
+- **Within-target triage works** and saves **~24–34 % of co-fold compute** at 80 % recall of true
+  designables (5o45: 34 %). The signal comes from the generator's **own** design-time iPTM/PAE
+  (produced before the independent refold), not from sequence — sequence-only is chance.
+- **Cold-starting a brand-new target (LOTO) does not work** (AUC ≈ chance) — an honest limitation:
+  the surrogate triages designs for a target once a seed batch is folded; it cannot predict a target
+  with zero prior folds.
+
+What genuinely remains gated on the real CRO round is only the **binding closed-loop validation**
+(does a DPO round on real KD improve the next realized panel) — that is prospective and cannot come
+from public data. The speed/designability work never was.
 
 ## Honest bottom line
 The integration platform is now **mature for everything that can be exercised on a laptop**: 7/9
