@@ -1,4 +1,8 @@
 #!/bin/bash
+# DEPRECATED (2026-10-04): the JSP-scrape URL resolution here is brittle and produced a
+# stub status marker. Use `collect_binding_affinity.py` instead -- it fetches BindingDB
+# via the stable dated-zip URL (or the verified S3 copy), adds the ChEMBL peptide pull,
+# applies RDKit structural peptide/cyclic classification, and merges into one labeled table.
 # Focused BindingDB peptide-subset collector (the one dataset that failed URL resolution
 # in the first collect_cyclic_datasets.sh run). Self-contained: installs AWS CLI v2 + deps,
 # resolves the current All-TSV, extracts a heuristic peptidic subset, uploads verified.
