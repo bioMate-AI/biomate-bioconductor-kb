@@ -29,6 +29,7 @@ import { RolesCard, VerifyPattern, type RolesData, type VerifyKind } from "./rol
 import { SkipDependency, type PhaseSkipInfo } from "./skip-dependency";
 import { stripAnsi } from "@/lib/utils";
 import { AfterRunReport } from "@/v2/AfterRunReport";
+import { useRealtimeRunStatus } from "./useRealtimeRunStatus";
 
 interface NextflowWorkflowViewerProps {
   workflowId?: string;
@@ -407,6 +408,18 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Human-friendly elapsed duration, e.g. "47s", "3m 12s", "1h 04m 09s". */
+function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) ms = 0;
+  const total = Math.floor(ms / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+  if (m > 0) return `${m}m ${String(s).padStart(2, '0')}s`;
+  return `${s}s`;
 }
 
 function DownloadCommandsPanel({ runId }: { runId: string }) {
@@ -1200,6 +1213,32 @@ export function NextflowWorkflowViewer({
   } | null>(null);
   const [errorExplaining, setErrorExplaining] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
+
+  // ── Live run-progress (Gap 3/4) ──────────────────────────────────────────
+  // While a run is active, poll the aggregate AI status endpoint (issues +
+  // autofix state) and surface overall progress / current step / elapsed time /
+  // a collapsible logs+autofix section at the top of the Phases tab.
+  const runActive = status === 'running' || status === 'paused';
+  const realtimeStatus = useRealtimeRunStatus(invocationId, runActive);
+  const [progressDetailsOpen, setProgressDetailsOpen] = useState(false);
+  // Elapsed-time clock — ticks every 1s while active; frozen otherwise.
+  const runStartRef = useRef<number | null>(null);
+  const [nowTick, setNowTick] = useState<number>(() => Date.now());
+  useEffect(() => {
+    if (!runActive) {
+      runStartRef.current = null;
+      return;
+    }
+    if (runStartRef.current == null) {
+      const nfStart = typeof nextflowStatus?.started_at === 'number'
+        ? nextflowStatus.started_at * 1000
+        : null;
+      runStartRef.current = nfStart ?? Date.now();
+    }
+    setNowTick(Date.now());
+    const id = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [runActive, nextflowStatus?.started_at]);
 
 
   const [stepExecutionById, setStepExecutionById] = useState<Record<string, StepExecutionState>>({});
@@ -3199,6 +3238,134 @@ export function NextflowWorkflowViewer({
               return (
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-dim)', padding: '10px 18px 4px', textTransform: 'uppercase' }}>
                   {label}
+                </div>
+              );
+            })()}
+
+            {/* ── Live run progress (Gap 3/4) — overall %, current step, elapsed,
+                   collapsible recent logs + AI autofix state. Active runs only;
+                   polling stops on terminal status (runActive flips false). ── */}
+            {runActive && groupedPhases.length > 0 && (() => {
+              const totalSteps = updatedPhases.length;
+              const completedSteps = updatedPhases.filter((p: any) => p.status === 'completed').length;
+              const runningStep = updatedPhases.find((p: any) => p.status === 'running');
+              const pct = totalSteps > 0
+                ? Math.round((completedSteps / totalSteps) * 100)
+                : (Number.isFinite(effectiveProgress) ? Math.max(0, Math.min(100, effectiveProgress)) : 0);
+              const elapsedMs = runStartRef.current != null ? nowTick - runStartRef.current : 0;
+              const af = realtimeStatus?.autofix ?? null;
+              const issues = realtimeStatus?.issues ?? [];
+              const fixesApplied = af?.fixes_applied ?? 0;
+              const afBusy = !!af && (af.active || fixesApplied > 0);
+              const restartInv = realtimeStatus?.restart_info?.new_invocation_id;
+              // Prefer backend-tailed logs when present; else the SSE log_tail we already hold.
+              const recentLogs = (realtimeStatus?.recent_logs && realtimeStatus.recent_logs.length > 0)
+                ? realtimeStatus.recent_logs
+                : logs;
+              const currentLabel = runningStep?.name
+                || (status === 'paused' ? tOr('workflow.status.paused', 'Paused') : t('workflow.status.running'));
+              const sevColor = (sev?: string) =>
+                sev === 'high' || sev === 'critical' ? 'var(--err)'
+                : sev === 'low' ? 'var(--text-muted)'
+                : 'var(--warn)';
+              return (
+                <div
+                  className="live-progress"
+                  data-testid="live-run-progress"
+                  data-status={status}
+                  data-progress-pct={pct}
+                >
+                  <div className="run-bar" style={{ marginTop: 0 }}>
+                    <Activity
+                      style={{ width: 13, height: 13, color: 'var(--run)', flexShrink: 0,
+                               animation: status === 'running' ? 'spin 1.4s linear infinite' : 'none' }}
+                    />
+                    <div className="progress" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+                      <div className="fill" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="pct" data-testid="live-progress-pct">{pct}%</span>
+                    {totalSteps > 0 && (
+                      <span className="meta" data-testid="live-progress-steps">{completedSteps}/{totalSteps}</span>
+                    )}
+                  </div>
+                  <div className="live-progress-meta">
+                    <span className="current" data-testid="live-progress-current" title={currentLabel}>
+                      {currentLabel}
+                    </span>
+                    <span className="elapsed" data-testid="live-progress-elapsed">
+                      <Clock style={{ width: 11, height: 11, verticalAlign: '-1px', marginRight: 3 }} />
+                      {formatDuration(elapsedMs)}
+                    </span>
+                  </div>
+                  {(afBusy || issues.length > 0 || restartInv) && (
+                    <div className="live-progress-badges">
+                      {afBusy && (
+                        <span className="chip warn" data-testid="live-progress-autofix-chip" style={{ fontSize: 10 }}>
+                          <ShieldCheck style={{ width: 11, height: 11, verticalAlign: '-1px', marginRight: 3 }} />
+                          {fixesApplied > 0
+                            ? t('panel.live.autofix_applied', { n: fixesApplied })
+                            : t('panel.live.autofix_active')}
+                        </span>
+                      )}
+                      {issues.length > 0 && (
+                        <span className="chip" data-testid="live-progress-issues-chip"
+                              style={{ fontSize: 10, background: 'var(--warn-soft)', color: 'var(--warn)' }}>
+                          <AlertTriangle style={{ width: 11, height: 11, verticalAlign: '-1px', marginRight: 3 }} />
+                          {t('panel.live.issues_detected', { n: issues.length })}
+                        </span>
+                      )}
+                      {restartInv && (
+                        <span className="chip" data-testid="live-progress-restart-chip"
+                              style={{ fontSize: 10, background: 'var(--run-soft)', color: 'var(--run)' }}>
+                          <RotateCcw style={{ width: 11, height: 11, verticalAlign: '-1px', marginRight: 3 }} />
+                          {t('panel.live.restarted')}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="live-progress-toggle"
+                    data-testid="live-progress-details-toggle"
+                    aria-expanded={progressDetailsOpen}
+                    onClick={() => setProgressDetailsOpen(o => !o)}
+                  >
+                    <ChevronRight
+                      style={{ width: 12, height: 12, transition: 'transform 0.15s',
+                               transform: progressDetailsOpen ? 'rotate(90deg)' : 'none' }}
+                    />
+                    {progressDetailsOpen ? t('panel.live.hide_details') : t('panel.live.show_details')}
+                  </button>
+                  {progressDetailsOpen && (
+                    <div className="live-progress-details" data-testid="live-progress-details">
+                      {/* AI-detected issues + autofix detail (from /realtime/status) */}
+                      {issues.length > 0 && (
+                        <div className="live-progress-issues">
+                          {issues.map((iss, i) => (
+                            <div key={i} className="live-progress-issue">
+                              <span className="sev" style={{ color: sevColor(iss.severity) }}>
+                                {(iss.severity || 'info').toUpperCase()}
+                              </span>
+                              <span className="msg">
+                                {iss.message || iss.type || t('panel.live.issue_fallback')}
+                                {iss.auto_fixable && (
+                                  <span className="autofixable"> · {t('panel.live.auto_fixable')}</span>
+                                )}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* Recent log lines */}
+                      {recentLogs.length > 0 ? (
+                        <pre className="live-progress-log" data-testid="live-progress-log">
+                          {recentLogs.slice(-40).join('\n')}
+                        </pre>
+                      ) : (
+                        <div className="live-progress-log-empty">{t('panel.live.no_logs_yet')}</div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })()}

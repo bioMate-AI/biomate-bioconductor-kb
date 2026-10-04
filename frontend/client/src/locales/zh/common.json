@@ -47,6 +47,7 @@
       "queued": "排队中",
       "cancelled": "已取消",
       "pending": "待处理",
+      "paused": "已暂停",
       "unknown": "未知"
     },
     "labels": {
@@ -228,6 +229,17 @@
     "untitled": "未命名",
     "project": "项目",
     "go_to_project": "前往项目",
+    "live": {
+      "show_details": "查看日志与 AI 状态",
+      "hide_details": "收起日志与 AI 状态",
+      "autofix_active": "AI 正在自动修复…",
+      "autofix_applied": "已应用 {{n}} 项 AI 修复",
+      "issues_detected": "检测到 {{n}} 个问题",
+      "restarted": "已重启",
+      "issue_fallback": "检测到问题",
+      "auto_fixable": "可自动修复",
+      "no_logs_yet": "暂无日志。"
+    },
     "footer": {
       "run_again": "再次运行",
       "restart": "重新运行",

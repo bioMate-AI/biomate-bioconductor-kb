@@ -47,6 +47,7 @@
       "queued": "Queued",
       "cancelled": "Cancelled",
       "pending": "Pending",
+      "paused": "Paused",
       "unknown": "Unknown"
     },
     "labels": {
@@ -228,6 +229,17 @@
     "untitled": "Untitled",
     "project": "Project",
     "go_to_project": "Go to project",
+    "live": {
+      "show_details": "Show logs & AI status",
+      "hide_details": "Hide logs & AI status",
+      "autofix_active": "AI autofix working…",
+      "autofix_applied": "{{n}} AI fix applied",
+      "issues_detected": "{{n}} issue detected",
+      "restarted": "Restarted",
+      "issue_fallback": "Issue detected",
+      "auto_fixable": "auto-fixable",
+      "no_logs_yet": "No log lines yet."
+    },
     "footer": {
       "run_again": "Run again",
       "restart": "Restart",
