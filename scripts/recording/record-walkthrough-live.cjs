@@ -116,11 +116,28 @@ async function recordLang(browser, lang) {
   console.log(`[${lang}] video -> ${dst}`);
 }
 
+// System Chrome (`channel:"chrome"`) can fail its CDP handshake on macOS when the
+// user already has Chrome running. Prefer the bundled "Chrome for Testing" binary
+// if present; fall back to the channel. Override with PLAYWRIGHT_EXECUTABLE/_CHANNEL.
+function resolveLaunch() {
+  if (process.env.PLAYWRIGHT_EXECUTABLE) return { executablePath: process.env.PLAYWRIGHT_EXECUTABLE };
+  if (process.env.PLAYWRIGHT_CHANNEL) return { channel: process.env.PLAYWRIGHT_CHANNEL };
+  try {
+    const cache = path.join(require("os").homedir(), "Library/Caches/ms-playwright");
+    for (const d of fs.readdirSync(cache).filter((x) => x.startsWith("chromium-")).sort().reverse()) {
+      const exe = path.join(cache, d, "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing");
+      if (fs.existsSync(exe)) return { executablePath: exe };
+    }
+  } catch {}
+  return { channel: process.platform === "darwin" ? "chrome" : undefined };
+}
+
 (async () => {
   const srv = await startServer();
   const browser = await chromium.launch({
     headless: true,
-    channel: process.env.PLAYWRIGHT_CHANNEL || (process.platform === "darwin" ? "chrome" : undefined),
+    ...resolveLaunch(),
+    timeout: 60000,
     args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage",
       "--autoplay-policy=no-user-gesture-required"],
   });

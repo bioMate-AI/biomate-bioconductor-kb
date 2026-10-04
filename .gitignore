@@ -191,3 +191,7 @@ backend/biomni_workflows/**/results/
 
 # on-prem LLM corpus data artifacts — staged in S3, not git
 docs/20260912_onprem_llm/midtrain_corpus/*.jsonl
+
+# Live-UI focal stills for the drug-dev flagship video (regenerable:
+# capture-live-admet-focal.cjs -> build-live-focal.sh); do not commit the binaries.
+reference/claude_design/tutorials/assets/live/*.png

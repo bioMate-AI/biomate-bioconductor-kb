@@ -90,34 +90,29 @@ body{
 .shot img{width:100%; height:100%; object-fit:cover; object-position:top left}
 .shot video{width:100%; height:100%; object-fit:contain; background:#0f141b; display:block}
 /* Flow still-image scene (dataset lineage) keeps a landscape frame; just shrink text. */
-.scene[data-kind="flow"]:has(img) h2{font-size:27px; line-height:1.12; margin-bottom:8px; max-width:34ch}
-.scene[data-kind="flow"]:has(img) .caption{font-size:14.5px; line-height:1.5; margin-bottom:2px; max-width:92ch}
-.scene[data-kind="flow"]:has(img) .scene-body{margin-top:12px}
-.scene[data-kind="flow"]:has(img) .shot figcaption{font-size:12px; margin-top:7px; max-width:92ch}
+.scene[data-kind="flow"]:has(img):not(.live) h2{font-size:27px; line-height:1.12; margin-bottom:8px; max-width:34ch}
+.scene[data-kind="flow"]:has(img):not(.live) .caption{font-size:14.5px; line-height:1.5; margin-bottom:2px; max-width:92ch}
+.scene[data-kind="flow"]:has(img):not(.live) .scene-body{margin-top:12px}
+.scene[data-kind="flow"]:has(img):not(.live) .shot figcaption{font-size:12px; margin-top:7px; max-width:92ch}
 
-/* Live-UI clip scenes: the workflow-panel clip (portrait, 832x1032) sits in a
-   left column that fills the stage height; the text sits beside it. Every live
-   clip uses the identical frame aspect, so all five are uniform and each fills
-   its frame exactly — no black pillarbox, no small/large mismatch. */
-.scene[data-kind="flow"]:has(video){
-  display:grid;
-  grid-template-columns:auto minmax(0,1fr);
-  grid-template-rows:auto auto 1fr auto;
-  column-gap:54px;
-  /* The recorder keeps only the top 992px of the 1080 frame, so flow content
-     (clip figcaption + verdict tags) must stay above that fold. */
-  padding-bottom:104px;
-}
-.scene[data-kind="flow"]:has(video) .kicker{grid-column:2; grid-row:1}
-.scene[data-kind="flow"]:has(video) h2{grid-column:2; grid-row:2; font-size:30px; line-height:1.14; margin-bottom:12px; max-width:22ch}
-.scene[data-kind="flow"]:has(video) .caption{grid-column:2; grid-row:3; align-self:start; font-size:16px; line-height:1.55; margin:0 0 6px; max-width:48ch}
-.scene[data-kind="flow"]:has(video) .tags{grid-column:2; grid-row:4; align-self:end; margin-top:0}
-.scene[data-kind="flow"]:has(video) .scene-body{grid-column:1; grid-row:1 / 5; margin-top:0; display:flex; min-height:0}
-.scene[data-kind="flow"]:has(video) .shots{flex:1; min-height:0; display:flex; justify-content:center}
-.scene[data-kind="flow"]:has(video) .shot{flex:0 1 auto; display:flex; flex-direction:column; min-height:0; align-items:center}
-.scene[data-kind="flow"]:has(video) .shot .frame{flex:1 1 auto; min-height:0; width:auto; aspect-ratio:832 / 1032; margin:0 auto}
-.scene[data-kind="flow"]:has(video) .shot video{width:100%; height:100%; object-fit:contain}
-.scene[data-kind="flow"]:has(video) .shot figcaption{font-size:12.5px; margin-top:9px; max-width:56ch; text-align:center}
+/* Live-UI FOCAL scenes: each embeds a HIGH-DPI crop (captured on dev at
+   deviceScaleFactor=3) ZOOMED to the single element that makes the scene's point —
+   the pre-run param strip + Confirm & Run, the running QC-gate list, the Completed
+   findings, the outputs list, the reproducibility record. Cropping to the focal
+   element (instead of the whole panel) + rendering at 3x makes the product UI text
+   large and sharp in the slide, not small and lost. Layout is a vertical stack so
+   the crop gets (nearly) the full stage width; media max-height is capped so the
+   whole scene stays above the recorder's 992px capture fold. */
+.scene.live{padding:34px 70px 0}
+.scene.live h2{font-size:30px; line-height:1.14; margin:2px 0 8px; max-width:42ch}
+.scene.live .caption{font-size:15px; line-height:1.5; margin:0 0 12px; max-width:96ch}
+.scene.live .scene-body{flex:0 0 auto; min-height:0; margin-top:0; display:flex}
+.scene.live .shots{flex:0 1 auto; min-height:0; display:flex; justify-content:center; align-items:flex-start; gap:0}
+.scene.live .shot{flex:0 1 auto; display:flex; flex-direction:column; align-items:center; min-height:0; max-width:100%}
+.scene.live .shot .frame{flex:0 1 auto; width:auto; height:auto; max-width:100%; background:#fff; border:1px solid var(--line2); border-radius:12px; box-shadow:0 10px 34px rgba(16,24,40,.12)}
+.scene.live .shot img{display:block; width:auto; height:auto; max-width:min(92vw,1680px); max-height:51vh; object-fit:contain; border-radius:12px}
+.scene.live .shot figcaption{font-size:12.5px; line-height:1.45; margin-top:10px; max-width:90ch; text-align:center}
+.scene.live .tags{margin-top:12px}
 .livebar{display:inline-flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--green); margin-left:8px}
 .livebar .rec{width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(156,26,46,.5); animation:recpulse 1.6s infinite}
 @keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(156,26,46,.5)}70%{box-shadow:0 0 0 6px rgba(156,26,46,0)}100%{box-shadow:0 0 0 0 rgba(156,26,46,0)}}
@@ -342,14 +337,14 @@ svg{display:block}
   </section>
 
   <!-- 5 — FLOW: Stage 3 pre-run (screenshot) -->
-  <section class="scene" data-kind="flow" data-seconds="32.3">
+  <section class="scene live" data-kind="flow" data-seconds="32.3">
     <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — the pre-run check <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
     <h2>Everything you can change is shown before a single cent of compute is spent.</h2>
     <p class="caption">This is the real ADMET workflow running live in BioMate. The <b>Predict ADMET Properties (AI)</b> model runs ADMET-AI graph neural nets. Before it runs, the pre-run strip lays out your SMILES list — aspirin, caffeine, ibuprofen — and every model setting, editable.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
-          <div class="frame"><video src="assets/live/prerun.mp4" autoplay muted loop playsinline preload="auto"></video></div>
+          <div class="frame"><img src="assets/live/prerun.png" alt="Pre-run: editable Smiles List and Admet Model Type parameters above the Confirm & Run button"/></div>
           <figcaption><span class="lbl">Pre-run · live</span>Your SMILES list and model settings are shown and editable before any compute is spent — your chance to check everything first. Required params missing? the panel blocks and offers "Fix now".</figcaption>
         </figure>
       </div>
@@ -362,14 +357,14 @@ svg{display:block}
   </section>
 
   <!-- 6 — FLOW: Stage 3 running + QC gates (screenshot) -->
-  <section class="scene" data-kind="flow" data-seconds="24.2">
+  <section class="scene live" data-kind="flow" data-seconds="24.2">
     <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — running, with QC gates in view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
     <h2>It runs on cloud workers, and the quality gates are visible the whole time.</h2>
     <p class="caption">Live phase progress streams in as each step completes on AWS Batch. The gates that will be checked — including hERG — are shown alongside, so you can scan the hERG column first and set aside any candidate above your safety limit.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
-          <div class="frame"><video src="assets/live/running.mp4" autoplay muted loop playsinline preload="auto"></video></div>
+          <div class="frame"><img src="assets/live/running.png" alt="Running: the RUNNING phase card and the QC Gates list (CiPA / hERG thresholds)"/></div>
           <figcaption><span class="lbl">Running · live</span>Each phase card flips pending → running → completed in real time via SSE; the QC gates to be evaluated are listed so nothing is hidden while compute is in flight.</figcaption>
         </figure>
       </div>
@@ -380,14 +375,14 @@ svg{display:block}
   </section>
 
   <!-- 7 — FLOW: Stage 3 completed (screenshot) -->
-  <section class="scene" data-kind="flow" data-seconds="20.5">
+  <section class="scene live" data-kind="flow" data-seconds="20.5">
     <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — completed, chat and panel in sync <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
     <h2>When it finishes, the chat and the right-hand panel tell the same story.</h2>
     <p class="caption">The completed run shows a "COMPLETED" badge and a "Run again" action, with after-run tabs — Summary, Outputs, and the reproducibility record. The chat summary and the workflow panel stay consistent: same name, same state, no "undefined", no stuck spinner.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
-          <div class="frame"><video src="assets/live/completed.mp4" autoplay muted loop playsinline preload="auto"></video></div>
+          <div class="frame"><img src="assets/live/completed.png" alt="Completed: the green Completed badge and the Findings Summary with hERG, DILI and oral-bioavailability values"/></div>
           <figcaption><span class="lbl">Completed · live</span>The Summary tab carries real result values; if the outputs could not be read, findings are withheld and said so — never fabricated.</figcaption>
         </figure>
       </div>
@@ -594,14 +589,14 @@ svg{display:block}
   </section>
 
   <!-- 13 — FLOW: Stage 8 outputs (screenshot) -->
-  <section class="scene" data-kind="flow" data-seconds="17.5">
+  <section class="scene live" data-kind="flow" data-seconds="17.5">
     <div class="kicker"><span class="st">Stage 8 · Product</span> · Outputs — filed by the step that made them <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
     <h2>Every file lands under the step that produced it.</h2>
     <p class="caption">The Outputs tab groups results by step — the ADMET table, the quality metrics, the toxicity report — so you never hunt for a file or guess which stage it came from.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
-          <div class="frame"><video src="assets/live/outputs.mp4" autoplay muted loop playsinline preload="auto"></video></div>
+          <div class="frame"><img src="assets/live/outputs.png" alt="Outputs: the six output files filed under the step that produced them"/></div>
           <figcaption><span class="lbl">Outputs · live</span>Each artifact is previewable in place — tables as HTML, images as thumbnails, text as code blocks.</figcaption>
         </figure>
       </div>
@@ -609,14 +604,14 @@ svg{display:block}
   </section>
 
   <!-- 14 — FLOW: Stage 8 reproducibility (screenshot) -->
-  <section class="scene" data-kind="flow" data-seconds="23.9">
+  <section class="scene live" data-kind="flow" data-seconds="23.9">
     <div class="kicker"><span class="st">Stage 8 · Product</span> · The reproducibility record <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
     <h2>The full audit trail — downloadable as one JSON.</h2>
     <p class="caption">This is the provenance concept made concrete: run id, parameters, software versions, outputs, and citations, all in one record you can attach to a submission. Where a field is empty in this run, the record shows the gap rather than hiding it.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
-          <div class="frame"><video src="assets/live/record.mp4" autoplay muted loop playsinline preload="auto"></video></div>
+          <div class="frame"><img src="assets/live/record.png" alt="Reproducibility record: workflow name, run id, timestamps and the outputs table with SHA-256 checksums"/></div>
           <figcaption><span class="lbl">Reproducibility · live</span>One click exports the whole record to JSON — the same kind of evidence a reviewer, patent examiner, or regulator would ask for.</figcaption>
         </figure>
       </div>
