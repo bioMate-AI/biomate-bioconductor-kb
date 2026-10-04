@@ -3029,6 +3029,14 @@ def _generate_executor_config(
             # volumes needed — adding volumes=['/opt/aws-cli'] would duplicate the mount
             # and cause "containerPath values aren't unique across mountPoints" on AWS Batch.
             "        cliPath = '/opt/aws-cli/bin/aws'",
+            # Spot-reclaim resilience: retry a task up to 3x ONLY when its Batch instance is
+            # reclaimed (spot interruption / host termination) — NOT on real task failures, so it
+            # never masks a genuine bug. Default in NF 25.x is 0 (no retry), which made a reclaim
+            # fail the whole job (validated 2026-10-04: a cold spot merfish job died on reclaim with
+            # retryStrategy=null). With this, a reclaimed task re-runs on a fresh node (spot, or the
+            # on-demand fallback CE), making a spot-preferred queue production-safe. Required before
+            # re-enabling the spot CE on the queues — see docs/20261004_BATCH_SPOT_MIGRATION_PLAN.md.
+            "        maxSpotAttempts = 3",
             # For nf-core: their task containers are minimal biocontainers
             # (perl, gtf2bed, etc.) lacking libz/libcrypto/libssl. The Batch
             # AMI's /opt/aws-cli/bin/aws is dynamically linked against
