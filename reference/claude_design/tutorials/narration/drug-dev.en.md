@@ -44,7 +44,7 @@ You confirm, and it runs on cloud workers. Each phase card flips from pending to
 
 ## Step 8 — Stage 3 product · completed
 
-When it finishes, the chat and the right-hand panel tell the same story — same workflow name, same completed state, no undefined text, no stuck spinner. The after-run tabs give you Summary, Outputs, and the reproducibility record. And the honesty rule holds even here: if the outputs could not be read, the findings are withheld and said so, never fabricated.
+When it finishes, the workflow panel tells the whole story — a Completed badge, a Run-again action, and the after-run tabs: Summary, Outputs, and the reproducibility record. The chat summary stays in sync with it: same workflow name, same completed state, no undefined text, no stuck spinner. And the honesty rule holds even here: if the outputs could not be read, the findings are withheld and said so, never fabricated.
 
 ---
 
