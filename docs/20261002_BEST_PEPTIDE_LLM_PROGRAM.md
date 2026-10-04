@@ -58,3 +58,29 @@ The slowness has been **launch → cold-install → spot-hunt → terminate, per
 - No phantom cross-benchmark claims (the 0.592 lesson). Every number on the same benchmark, matched n, vs the
   named SOTA. The real bar is **wet-lab hit-rate** (RFpeptides), DockQ is a dev-check.
 - "Best" is measured against existing works on this framework, not asserted.
+
+---
+
+## Results & status — 2026-10-03 (living; update each step)
+
+### Model
+| Milestone | Result | Notes |
+|---|---|---|
+| UniMoMo reproduce (LINEAR, LNR-93) | **DockQ 0.7754** vs published 0.759 (+0.016) | matched split/budget/oracle best-of-N; verifies the base + inherits its multimodal transfer-pretrain |
+| UniMoMo base on CYCLIC test | DockQ **0.4029** | linear-trained base drops on cyclic (expected) |
+| **Cyclic-specialization fine-tune (full 30 epochs)** | DockQ **0.4126 (+0.0097)** | run `unimomo-cyclic-ft-20261002T204906Z`; frozen IterVAE, warm-start from reproduced base, 616 cyclic complexes; same UniMoMo harness, oracle best-of-N, 100/target |
+
+**Leakage audit (run 170124Z `split_audit.json`, 502 train / 55 val / 88 test):** test is **peptide-disjoint (0 shared peptide seqs), complex-disjoint (0 shared complex seqs), PDB-disjoint (0 shared IDs)** — the primary criterion for a *peptide co-design* benchmark is clean. Residual: **5/88 test complexes share a receptor sequence** with train (`4kel_B,5iop_E,5t1m_E,5t90_F,5th2_E`) — novel peptide on a seen pocket; a sensitivity caveat, not peptide leakage. Train/val share 17 peptide seqs (internal val only, not the reported test). **Before any generalization headline:** report the peptide-disjoint number (have it) + a receptor-disjoint sensitivity subset (exclude the 5); homology/pocket-similarity/pretraining-overlap remain unquantified.
+
+### Closed loop (DBTL) — VERIFIED end-to-end (mechanics), not yet efficacy
+Generator (UniMoMo-cyclic) → CRO synth+SPR → **KD → EXPERT pairs** (`wetlab_kd_to_pairs.py`, self-tested) → **DPO close-back** (`dpo_peptide_trainer.py` + `dpo_unimomo_adapter.py`) → retrain. Verified (codex, 2026-10-03): real UniMoMo CUDA DPO on the production assay service with **explicitly synthetic KD** — 7/7 checks (pairs loaded, optimizer updates, reference unchanged, frozen AE unchanged, 199 trainable tensors changed, exact checkpoint reload, finite weights); one-epoch training smoke 502/502 updates. CPU loop: DPO loss 0.693→0.659, reward margin 0→0.072. **All synthetic — validates wiring, not biology.** Gated on real wet-lab KD (CRO round being sent) for efficacy.
+
+### Remaining experiments for the paper (priority order)
+1. **Best-of-N + self-consistency ranker** (plan §3) — cheapest SOTA lever; still unrun. Generate N, re-fold, rank by scRMSD/ipTM; measure realistic-pick-1 + best-of-N DockQ lift on the cyclic test.
+2. **Receptor-disjoint sensitivity** — recompute base-vs-FT excluding the 5 receptor-overlap complexes (needs per-target DockQ; re-run eval if not saved).
+3. **Prospective wet-lab round** — CRO KD (round 1 sent) → feed the verified close-back → round-2 improvement = the closed-loop headline figure.
+4. **Designability + binding-energy** metrics alongside DockQ; head-to-head vs PepGLAD-cyclic (0.506, *different harness* — needs one-harness comparison before any claim).
+
+### Change log
+- 2026-10-02: reproduce 0.775; cyclic-FT pipeline built; DPO close-back + UniMoMo port; KD→pairs link.
+- 2026-10-03 (codex): closed-loop verified end-to-end on real model (synthetic KD); leakage audit; hardening (40 tests); full 30-epoch cyclic-FT completed (0.403→0.413).
