@@ -554,9 +554,9 @@ kill -HUP $(pgrep -f "gunicorn.*8081" | head -1)
 ## Workflow Database
 
 - Location: `backend/database/galaxy_ai_tools.db`
-- 2,455 workflows across 34 biological domains
-- Key domains: transcriptomics (865), genomics (369), epigenomics (133), proteomics (113), drug_discovery (61), cryo_em (10+)
-- `general` (464) = Bioconductor R utility packages — correct classification, not a data quality issue
+- **4,209 workflows** across 42 domain tags (~36 curated), indexed over 12,312 tools (ground truth 2026-10-04; the old "2,455/34" is stale, "4,017"/"4,200" were snapshots). **Validated subset = 1,092 workflows** with clean real-execution evidence (`real_exec_status IN ('ok','ok_warnings')`) — cite this separately, never conflate with the catalog count. See `docs/20261004_CATALOG_COUNT_RECONCILIATION.md`.
+- Key domains: transcriptomics (1,695), genomics (756), epigenomics (265), drug_discovery (200), proteomics (186), variant_calling (181), single_cell (100), cryo_em (19)
+- `general` (153) = Bioconductor R utility packages — correct classification, not a data quality issue
 - The `workflow_ga` object returned by `/api/ai_assistant/generate_workflow` includes: `name`, `domain`, `description`, `required_params`, `optional_params`, `steps`, `nextflow_path`
 - Steps are lazily fetched from `/api/nextflow/steps?nextflow_path=…` when `workflow_ga.steps = {}`
 - nf-core subworkflow files resolve via `nf-core-modules/subworkflows/nf-core/<name>/main.nf`

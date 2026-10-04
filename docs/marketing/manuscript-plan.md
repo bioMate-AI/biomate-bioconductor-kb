@@ -183,12 +183,12 @@ M-series claim as a validated BioMate result.
 
 ## 4. Cross-cutting gaps to close before any submission or external use
 
-**Reconcile the catalog size.** The workflow count appears as **2,455 / 34 domains** (`CLAUDE.md`),
-**4,017 / 36 domains** (live MCP instructions; `docs/20260918_ONPREM_DOMAIN_LLM_MANUSCRIPT.md`), and
-**4,200 / 36 domains / 12,312 tools** (`docs/20260912_onprem_llm/MANUSCRIPT.md`) (`internal_evidence_and_manuscripts.md`
-§A2). One canonical number — plus a separately stated *validated* subset — must be agreed before any
-paper, deck, or app listing cites a count. This is the single most pervasive consistency risk across
-the manuscript set.
+**Catalog size — RECONCILED 2026-10-04.** Ground truth from the catalog DB: **4,209 workflows across ~36
+curated domains (42 raw tags) / 12,312 tools**, with a **validated subset of 1,092 workflows** (clean
+real-execution evidence). The prior 2,455/4,017/4,200 figures were a stale count plus two snapshots; see
+[`../20261004_CATALOG_COUNT_RECONCILIATION.md`](../20261004_CATALOG_COUNT_RECONCILIATION.md). Every paper
+must cite 4,209 (breadth) and 1,092 (validated) separately. CLAUDE.md is corrected; the on-prem drafts
+(4,017/4,200) and the MCP live-count string still need updating to match.
 
 **Prove a QC auto-loop gate fired and remediated live.** No committed screenshot/log artifact in
 `docs/` demonstrates the ADMET hERG (or any) QC gate firing and auto-remediating on a live run, even

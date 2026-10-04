@@ -275,13 +275,14 @@ product will underdeliver on the queries it invites.
 
 ## 6. Risks & honesty guardrails
 
-**Catalog size is inconsistent and must be reconciled before any external use.** The headline count
-appears as **2,455 workflows / 34 domains** (`CLAUDE.md`), **4,017 workflows / 36 domains** (live MCP
-server instructions and `docs/20260918_ONPREM_DOMAIN_LLM_MANUSCRIPT.md` §1), and **4,200 workflows /
-36 domains / 12,312 tools** (`docs/20260912_onprem_llm/MANUSCRIPT.md` §3) ([internal_evidence_and_manuscripts.md §A2](../../internal/marketing-research/internal_evidence_and_manuscripts.md)).
-No external asset — deck, site, paper, app listing — may cite a workflow count until one canonical
-number is agreed, and the *validated* (real-E2E) subset is far smaller than any catalog count and
-must be stated separately.
+**Catalog size — RECONCILED 2026-10-04 (was inconsistent).** The prior figures (2,455/34 in `CLAUDE.md`,
+4,017/36 in MCP + `docs/20260918_ONPREM_DOMAIN_LLM_MANUSCRIPT.md`, 4,200/36 in `docs/20260912_onprem_llm/MANUSCRIPT.md`)
+are a stale number plus two snapshots of a growing catalog. Ground truth from the catalog DB:
+**4,209 workflows across ~36 curated domains (42 raw tags), indexed over 12,312 tools; validated subset =
+1,092 workflows** with clean real-execution evidence. See [`docs/20261004_CATALOG_COUNT_RECONCILIATION.md`](../20261004_CATALOG_COUNT_RECONCILIATION.md).
+**External rule:** cite "~4,200 workflows across ~36 domains" for breadth and "1,092 validated via real
+end-to-end runs" for capability — **never conflate the two**. CLAUDE.md has been corrected; the MCP live
+count string and the on-prem manuscripts still need to adopt 4,209/1,092.
 
 **Do not over-claim compliance.** DNAnexus (21 CFR §11, GxP, FedRAMP, HIPAA), Latch (SOC 2 Type II,
 21 CFR Part 11, immutable audit logs), and Terra/Lifebit (FedRAMP Moderate, federated TRE) lead on
