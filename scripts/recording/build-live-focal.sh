@@ -53,6 +53,13 @@ for f in t0-composer t0-lane; do
   [ -f "$T0SRC/$f.png" ] && cp "$T0SRC/$f.png" "$DST/$f.png"
 done
 
+# T1 Design & Generate focal stills from capture-live-t1-focal.cjs (one small-
+# molecule generate on an aspirin seed; already element-clipped at 3x).
+T1SRC="$ROOT/recording/video/live-t1-focal"
+for f in t1-form t1-results t1-pareto t1-rejection; do
+  [ -f "$T1SRC/$f.png" ] && cp "$T1SRC/$f.png" "$DST/$f.png"
+done
+
 echo "built focal stills:"
 for f in prerun running completed outputs record t3-completed-withheld; do
   [ -f "$DST/$f.png" ] || continue
