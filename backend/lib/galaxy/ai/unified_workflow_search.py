@@ -559,7 +559,17 @@ class UnifiedWorkflowSearch:
 
     def _get_connection(self) -> sqlite3.Connection:
         """Get database connection."""
-        return sqlite3.connect(str(self.db_path))
+        conn = sqlite3.connect(str(self.db_path))
+        try:
+            # Read-perf pragmas for the ~300MB read-heavy workflow DB (per-connection, no file
+            # change): a bigger page cache + memory-mapped I/O speed up cold reads and concurrent
+            # readers; sorts/temp tables in RAM. Best-effort — never fail a search over a pragma.
+            conn.execute("PRAGMA cache_size=-65536")    # ~64 MB page cache
+            conn.execute("PRAGMA mmap_size=268435456")  # 256 MB memory-map
+            conn.execute("PRAGMA temp_store=MEMORY")
+        except Exception:
+            pass
+        return conn
 
     def _ensure_workflows_table(self):
         """Create the workflows table if it doesn't exist (prevents crash on fresh/empty DB)."""
