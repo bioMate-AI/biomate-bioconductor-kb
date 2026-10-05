@@ -347,3 +347,34 @@ infrastructure."*
 `docs/20261004_HERO_CASE_STUDY_DEMO_SPEC.md` — (A) "BioMate caught a cardiotoxic candidate and auto-
 remediated the screen" (buildable now; live-gate seed exists); (B) "reproduce a published finding from the
 accession in one chat" (flagship Tier-3 case study).
+
+## 9. Validated highlights — claim matrix (what we MAY / MAY NOT claim)
+Consolidated 2026-10-04. Only CLAIMABLE items go in external assets; CANNOT-CLAIM items are unproven vs
+competitors and must not be used without a head-to-head.
+
+### CLAIMABLE (evidenced + defensible)
+| Highlight | Status | Evidence |
+|---|---|---|
+| **HERO — on-prem parity at ~$0 and 10–40× faster, and *safer*** | Evidenced + unique framing | 9B+KB ≈ frontier (bioc 0.95 vs 0.975–1.0; routing 0.92 vs 0.96); 0.5–3.6 s vs 9–49 s/task; $0 vs up to $0.028/task; invalid-regime 0.125→0. `docs/20261004_KB_DIVIDEND_UNIFIED.md`, `…EFFICIENCY_AND_COST…` §F/§G |
+| **End-to-end trust = input-QC + output-QC** (no competitor pairs both) | Evidenced; output-QC live-proven; input-QC live endpoint on dev | output: live hERG gate run `d0ff684b` (`…AUTOLOOP_LIVE_PROOF.md`); input: `POST /api/perception/profile` deployed on dev (leakage / class-balance / good-watch-blocked) |
+| **Unique auto-QC-loop remediation** over executed pipelines | Category-unique | competitor sweep found no equivalent (`internal/marketing-research/competitors_*.md`) |
+| **Context-based workflow selection, and it's *safe*** | Measured | data-type → correct method; invalid-regime→0 (`…BIOC_SELECTION_MATRIX_RESULTS.md`) |
+| **Domain contributions:** Bioconductor-KB (15,641 validated steps, hallucination 71→88%), RealBio (open anti-self-grading benchmark), task-split/KB-dividend finding | Evidenced / contribution | `docs/papers/bioconductor_kb_paper/*`, `docs/20260817_REALBIO…`, Paper B |
+| Modest **external** benchmark leads | Evidenced (small) | BixBench 92.0 vs Biomni 88.7; BiomniEval1 71.1 vs 66.9 — cite WITH margins; RealBio 0.965 carries self-grading disclosure |
+
+### CANNOT CLAIM (unproven vs competitors — do NOT use without a head-to-head)
+| Tempting claim | Why not | Honest alternative |
+|---|---|---|
+| "Runs the longest workflows" | table stakes for DNAnexus/Terra/Seqera; spot makes very-long harder | "resilient long runs (spot-reclaim resume, orphan completion)" |
+| "Largest tool set" | Galaxy ToolShed larger; unverified | "one of the broadest *validated, executable* catalogs — 4,209 wf, 1,092 real-E2E-validated" |
+| "Best visualizations / data outputs" | no comparison run | *list* outputs (reports, volcano/heatmap/UMAP, VCF, h5ad, cryo maps) without "better" |
+| "Best on all benchmarks" | RealBio is self-graded; external leads are modest | lead with external leads + the open benchmark contribution |
+
+### Open-LLM comparison status
+Compared this session: DeepSeek-V4-pro, Qwen3.8-max, GLM-5.2, Kimi-K3 + Opus-5/GPT-5.6/Gemini-3.1-pro
+(bioc matrix + cost/latency). On-prem base = Qwen3.5-9B. **Refresh vs newest open models periodically** — the
+KB-dividend thesis holds regardless, but baseline numbers drift as open models improve.
+
+### To convert partial → proven (what to build)
+Hero demo (QC-caught cardiotox / accession reproduction, `…HERO_CASE_STUDY_DEMO_SPEC.md`); a data-perception
+leakage-catch demo + confirm chat auto-wiring; verify the retrieval-recall fix on dev; invoice-grade spot A/B.
