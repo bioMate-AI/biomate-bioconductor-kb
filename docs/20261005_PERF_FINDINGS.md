@@ -100,15 +100,15 @@ Raw deployed FTS query with `NULL AS workflow_json` returns correct results for 
 (0.2–1.2 ms), no SQL error. Dev Galaxy logs: **no new tracebacks/errors** since deploy. Result-identical
 by construction (the blob was discarded to None on that path anyway). Kept.
 
-### ❌ Batch warm pool (minvCpus=4) — VALIDATED AS INEFFECTIVE, REVERTED
-The warm node that `minvCpus=4` keeps is an **m5.xlarge (4 vCPU / 16 GB)**, but a typical nextflow job
-(merfish, `process_medium`) requests **6 vCPU / 36 GB** — it does NOT fit the warm node, so Batch
-provisions a bigger instance anyway (observed: the test job sat RUNNABLE ~2 min while a new node spun
-up; the warm node sat idle). So min=4 would waste ~$5/day without speeding typical jobs. **Reverted to
-minvCpus=0.** Warm-start is memory-bound here (jobs need ~36 GB), so a *useful* warm node would be an
-r5.2xlarge-class (8 vCPU / 64 GB), ~$12/day, and Batch's vCPU-only `minvCpus` doesn't cleanly guarantee
-that RAM — making warm-pool an awkward, costly lever, not the clean win it looked like. Left OFF;
-offered to the owner as a deliberate cost decision if interactive latency matters more than ~$12/day.
+### ⚠️→✅ Batch warm pool — min=4 was INEFFECTIVE (reverted), then RE-ENABLED correctly-sized (FINAL: ON)
+First attempt: `minvCpus=4` keeps an **m5.xlarge (4 vCPU / 16 GB)**, but a typical nextflow job
+(merfish, `process_medium`) requests **6 vCPU / 36 GB** — it does NOT fit, so Batch provisions a bigger
+instance anyway (observed: the test job sat RUNNABLE ~2 min while a new node spun up; the warm node sat
+idle). So min=4 wasted ~$5/day without speeding typical jobs → **reverted to minvCpus=0**.
+**FINAL STATE (owner chose speed — "keep it warm"):** the CE was **re-enabled correctly sized** — `ce-v2`
+restricted to the **r5 family** (memory-dense, fits 12–36 GB jobs) + **minvCpus=8** → one **r5.2xlarge
+(8 vCPU / 64 GB)** warm (~$12/day). See the QUANTIFIED section below for the measured result; this is the
+authoritative final config. (So: min=4 OFF, r5+min=8 ON.)
 
 ### Net
 - **Kept (free, validated):** DB indexes + search deferral/PRAGMAs — correctness confirmed, no new
@@ -138,6 +138,16 @@ wins; the large latency win is the (now correctly-sized) warm pool for workflow 
 benefits (~2–4 min saved); back-to-back jobs already reuse the node. The ~83 s floor (scheduler +
 first image pull on a fresh node) is further reducible by **image pre-caching** (bake common images
 into the AMI) — not done yet.
+
+**Measurement provenance (for the numbers above):** the **83 s** warm-start is a measured
+`createdAt→startedAt` on warm node `i-0c6ee79a53e628490` (r5.2xlarge), merfish `process_medium` test
+dispatch 2026-10-05; the min=4 *failure* (RUNNABLE ~2 min, idle 4 vCPU node) was observed on job
+`5140b036` (6 vCPU/36 GB → didn't fit). The **~200–320 s cold** and **~2–4 min EC2-boot** figures are
+estimates (ranges), not a single clean cold-vs-warm A/B (min is now 8, so the cold baseline can't be
+re-measured without reverting). The **165 ms** name-resolve figure is a cold-cache multi-column
+`name/description/tags LIKE` scan; the index win on the single-column `lower(name)=?` path is sub-ms on
+warm cache (0.4→~0 ms) and larger only on cold cache / under concurrency — the headline index value is
+SCAN→SEARCH (EXPLAIN-confirmed), not a large absolute latency drop.
 
 **Why min=4 failed earlier:** it kept a 4 vCPU/16 GB node; process_medium needs 6 vCPU/36 GB → didn't
 fit → jobs cold-started anyway. Fixed by switching the CE to the r5 family (so minvCpus reliably keeps

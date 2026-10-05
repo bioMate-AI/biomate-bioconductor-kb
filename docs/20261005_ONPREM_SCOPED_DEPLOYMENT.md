@@ -8,10 +8,13 @@ BioMate limited to a *required scope* of domains, tasks, and instruments (not th
 ## Short answer
 - **On-prem deployment INFRASTRUCTURE — ✅ READY on next-phase.** You can stand up a self-contained
   on-prem BioMate quickly today.
-- **SCOPING the deployment to selected domains/tasks/instruments — ❌ NOT built yet.** The on-prem stack
-  currently ships the **full catalog**. There is **no mechanism** to declare "include only these
-  domains/workflows/instruments," to generate a subset build, or to **enforce the scope at launch**.
-  This is explicitly called out as an **open design question** in the readiness audit, not implemented.
+- **SCOPING the deployment to selected domains/tasks/instruments — ⚠️ PARTIALLY built.** A manifest
+  generator exists (`evaluation/local_trial/export_deployment_manifest.py`: `--domains`/`--workflows` →
+  workflow set + tool allow-list + container mirror-list — see the corrected section below). What's still
+  missing is the rest of the one-command build: emitting a **filtered catalog DB** + `.nf`/image bundle,
+  an instrument manifest, and crucially **launch-time enforcement** (nothing yet refuses an out-of-scope
+  workflow). So the stack still effectively ships/serves the full catalog until that enforcement + packaging
+  is added.
 
 ## What IS ready (don't rebuild — next-phase)
 A full self-contained stack and the cloud→local abstractions:
@@ -27,22 +30,33 @@ A full self-contained stack and the cloud→local abstractions:
 
 So: **standing up an on-prem instance = fast.** It just currently contains *everything*.
 
-## What is MISSING for *scoped* deployments (the actual gap)
-The readiness audit names these directly (recommended, not built):
-- *"Enforce at launch: refuse workflows/tools not in the deployment manifest (clear error, not a hang)."*
-- *"ship all 2,600 workflows+containers, or a curated per-deployment subset (manifest) with add-on packs?"*
+## What EXISTS (partial) and what is MISSING — corrected 2026-10-05
 
-Concretely, none of the following exist:
-1. **A deployment manifest** — a declarative spec of the included **domains / workflows / tasks / tools /
-   instruments** for a given customer.
-2. **A catalog-subsetting build step** — a tool that produces a **scoped `galaxy_ai_tools.db`** (filtered
-   rows + their embeddings + FTS) plus the matching **`.nf` file set** and the **container images** needed
-   — so the package only carries what's in scope.
-3. **Launch-time scope enforcement** — the router/executor would surface only in-scope workflows, and a
-   **direct execute of an out-of-scope `.nf` would be refused** (today direct path can run any `.nf` on disk).
-4. **Instrument/connector selection per deployment** — choose which of the instrument connectors are wired
-   (today: `BIOMATE_ENABLE_IT` gates Interactive Tools, and `local_only` tools are surface-gated, but there's
-   no per-deployment instrument manifest).
+**CORRECTION (committee audit):** a partial manifest/subsetter DOES already exist — I missed it in the
+first pass. `evaluation/local_trial/export_deployment_manifest.py` (committed 2026-09-19, `fa54934b8`):
+given `--domains` or `--workflows`, it computes the exact workflow set + the **tool ALLOW-LIST** (to
+enforce at run time) + the **container MIRROR-LIST** (to seed a private registry), explicitly to "avoid
+shipping all 2,600 workflows / all biocontainers." So the *scope-declaration + allow-list/mirror-list
+generation* half is built.
+
+The readiness audit still names the enforcement gap directly:
+- *"Enforce at launch: refuse workflows/tools not in the deployment manifest (clear error, not a hang)."*
+
+What **exists (partial):**
+- ✅ **Scope declaration + manifest generation** — `export_deployment_manifest.py` (`--domains`/`--workflows`
+  → workflow set + tool allow-list + container mirror-list).
+
+What is **still missing** (the genuine remaining gaps):
+1. **Scoped `galaxy_ai_tools.db` emission** — the manifest lists the in-scope workflows/tools but does not
+   yet emit a *filtered* catalog DB (filtered rows + their embeddings/`.npz` + FTS) for the package.
+2. **`.nf`-set packaging + image-URI resolution** — the manifest emits tool NAMES; resolving them to
+   `.nf` files + concrete container image URIs (quay/biocontainers or the `.nf` `container` directive)
+   to actually bundle is a documented follow-up (the script itself flags this).
+3. **Launch-time scope enforcement** — the generated allow-list is NOT enforced at dispatch: the
+   router/executor should surface only in-scope workflows and **refuse a direct execute of an
+   out-of-scope `.nf`** (today the direct path can run any `.nf` on disk). This is the core gap.
+4. **Instrument/connector selection per deployment** — `BIOMATE_ENABLE_IT` gates Interactive Tools and
+   `local_only` tools are surface-gated, but there is no per-deployment instrument manifest.
 5. **Add-on packs** — ship a base scope and add domains later.
 
 ## Building blocks that already exist (so the gap is small to close)
