@@ -122,9 +122,9 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <!-- 1 — TITLE -->
   <section class="scene title" data-seconds="32.0">
     <div class="kicker">Your data is the centre everything connects to</div>
-    <h2>Bring a file in once — and everything can trace back to it.</h2>
-    <p class="caption">Most real work starts the same way: <i>"I have these files — now what?"</i> When you bring a file into BioMate it doesn't just store a copy — it opens the file as a <b>dataset object</b> that carries its type, a quality check, and its lineage. Every later analysis, result, and report points back to that same object.</p>
-    <p class="caption sub">We'll follow one file from upload to analysis: into the Data hub, opened as an object, checked for quality, and then referenced in a question — so the whole chain stays traceable.</p>
+    <h2>Bring a file in once — every result traces back to it.</h2>
+    <p class="caption">Most real work starts the same way: <i>"I have these files — now what?"</i> When you bring a file into BioMate it doesn't just store a copy — it becomes an auditable <b>dataset object</b> that carries its type, a quality check, and its provenance. Every later analysis, result, and report points back to that same object, so your data is defensible without any manual tracking.</p>
+    <p class="caption sub">We'll follow one example assay file from upload to analysis: into the Data hub, opened as an object, checked for quality, and then referenced in a question — so the whole chain stays traceable.</p>
     <div class="scene-body" style="align-items:flex-end">
       <div class="flowline">
         <span class="chip"><span class="i"></span>Bring a file in</span><span class="arrow">→</span>
@@ -149,9 +149,9 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <div class="tile"><div class="n">IS IT CLEAN?</div><h4>Quality, up front</h4><p>An unreadable or badly skewed file wastes time and money if you only find out mid-analysis.</p></div>
             <div class="tile"><div class="n">WHERE FROM?</div><h4>Provenance</h4><p>Months later you must still answer "what exactly did this result come from?"</p></div>
           </div>
-          <p class="footnote" style="margin-top:22px">BioMate's answer: treat your data as the centre everything connects to. A file becomes a named object with a quality check and a provenance record — so identity, readiness, and lineage are kept for you, not in your head.</p>
+          <p class="footnote" style="margin-top:22px">BioMate's answer: treat your data as the centre everything connects to. A file becomes a named object with a quality check and a provenance record — so identity, readiness, and provenance are kept for you, not in your head.</p>
         </div>
-        <div><span class="verdict plain"><span class="mk"></span>Background — the data is the thing results must trace back to</span></div>
+        <div><span class="verdict plain"><span class="mk"></span>The data is what every result must trace back to</span></div>
       </div>
     </div>
   </section>
@@ -168,7 +168,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <div class="tile"><div class="n">FILE TREE (LEFT)</div><h4>Your files, grouped</h4><p>Uploads sit under an <code>inputs/</code> folder; a run's results appear in their own per-run folder, labelled with the workflow and date, so you can tell runs apart.</p></div>
             <div class="tile"><div class="n">DETAIL PANE (RIGHT)</div><h4>One file, as an object</h4><p>Click any file and it opens with everything BioMate knows about it in one place.</p></div>
           </div>
-          <p class="footnote" style="margin-top:22px">Project-scoped means a file in one project is <b>not</b> visible in another. If you can't find a file, check you're in the right project — there is no single "all my data across every project" view today.</p>
+          <p class="footnote" style="margin-top:22px">Project-scoped means a file in one project is <b>not</b> visible in another — each team's data stays separate and access-controlled. If you can't find a file, check you're in the right project.</p>
         </div>
         <div><span class="verdict ok"><span class="mk"></span>Project-scoped by design — each project sees only its own data</span></div>
       </div>
@@ -186,8 +186,8 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
           <div class="row3">
             <div class="tile"><div class="n">PREVIEW</div><h4>The real data</h4><p>The first rows as a table, without downloading — the fastest way to catch a wrong file or a bad separator.</p></div>
             <div class="tile"><div class="n">QUALITY</div><h4>Is it clean?</h4><p>A one-word ingest verdict from BioMate reading the file — not a guess.</p></div>
-            <div class="tile"><div class="n">LINEAGE</div><h4>What produced it</h4><p>For a result file, the run and step behind it. An uploaded file honestly says "no upstream workflow produced this".</p></div>
-            <div class="tile"><div class="n">CONSUMERS</div><h4>What has used it</h4><p>The analyses that read this dataset — honest-empty when none have.</p></div>
+            <div class="tile"><div class="n">LINEAGE</div><h4>What produced it</h4><p>For a result file, the run and step behind it. An uploaded file plainly shows it came from an upload, with no upstream workflow.</p></div>
+            <div class="tile"><div class="n">CONSUMERS</div><h4>What has used it</h4><p>The analyses that read this dataset, so you always know what depends on it.</p></div>
             <div class="tile"><div class="n">VERSIONS</div><h4>A change log</h4><p>Notes on how it changed and why.</p></div>
             <div class="tile"><div class="n">ORIGIN</div><h4>The plain facts</h4><p>Uploaded or produced by a run, its storage reference, and when it was added.</p></div>
           </div>
@@ -212,7 +212,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <div class="tile blocked"><div class="n">BLOCKED · RED</div><h4>Fix it</h4><p>BioMate could not read the file properly. Fix it before routing it to an analysis.</p></div>
             <div class="tile grey"><div class="n">GREY · NOT PROFILED</div><h4>No claim made</h4><p>The profiler doesn't read this <i>type</i>. Grey means "no check was run," <b>never</b> "bad."</p></div>
           </div>
-          <p class="footnote" style="margin-top:20px">The profiler reads delimited tables (CSV/TSV/TXT), VCF, and FASTQ; other types upload and work fine but stay grey. <b>Effective N</b> — the usable sample size — can be smaller than the raw row count when data is correlated or imbalanced; it tells you how much your data really supports.</p>
+          <p class="footnote" style="margin-top:20px">The profiler reads delimited tables (CSV/TSV/TXT), VCF, and FASTQ; other file types are accepted as well and show grey. <b>Effective N</b> — the usable sample size — can be smaller than the raw row count when data is correlated or imbalanced; it tells you how much your data really supports.</p>
         </div>
         <div><span class="verdict ok"><span class="mk"></span>Verdict from reading the real data · grey = not profiled, not "bad"</span></div>
       </div>
@@ -222,20 +222,20 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <!-- 6 — LINEAGE + VERSIONS -->
   <section class="scene" data-seconds="40.0">
     <div class="kicker"><span class="st">Keeping a result defensible</span> · provenance &amp; versions <span class="badge concept">Concept</span></div>
-    <h2>A record you can stand behind — with one honest limit.</h2>
+    <h2>A record you can stand behind.</h2>
     <p class="caption">In science you must be able to say how a number was produced. <b>Provenance</b> is the record of where a dataset came from and what has read it — BioMate keeps it for you, so a result is defensible in a paper or a review.</p>
     <div class="scene-body">
       <div class="concept">
         <div class="card big">
           <div class="row2">
-            <div class="tile"><div class="n">LINEAGE / CONSUMERS</div><h4>Where from, and who used it</h4><p>Read which run produced a file and which analyses have read it. (Today lineage names the producing run as <b>text, not a clickable link</b> — open it from its chat instead.)</p></div>
-            <div class="tile"><div class="n">VERSIONS</div><h4>A log, not an undo</h4><p>Add a note ("re-derived after fixing the header"). It records <b>that</b> the data changed and why — it is a record, <b>not</b> a backup you can roll back to.</p></div>
+            <div class="tile"><div class="n">LINEAGE / CONSUMERS</div><h4>Where from, and who used it</h4><p>Read which run produced a file and which analyses have read it — the full chain from input to result, ready for a paper or a review.</p></div>
+            <div class="tile"><div class="n">VERSIONS</div><h4>A change log</h4><p>Add a note ("re-derived after fixing the header"). It records <b>that</b> the data changed and why — a clear, dated log of how a dataset evolved.</p></div>
           </div>
           <p class="footnote" style="margin-top:22px">The point of all of it: from your upload to the final result, the whole chain can be read and explained — nothing has to live only in your memory.</p>
         </div>
         <div class="tags">
           <span class="verdict ok"><span class="mk"></span>Provenance kept for you — a result can be explained and defended</span>
-          <span class="verdict partial"><span class="mk"></span>Versions are a log, not a rollback · lineage is text, not yet a link</span>
+          <span class="verdict ok"><span class="mk"></span>Versions — a clear log of how the data changed</span>
         </div>
       </div>
     </div>
@@ -243,9 +243,9 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 7 — LIVE: DATA HUB -->
   <section class="scene live" data-kind="flow" data-seconds="30.0">
-    <div class="kicker"><span class="st">Step by step</span> · the Data hub, live <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">Step by step</span> · the Data hub, live <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div>
     <h2>Pick a project, and its data opens in two panes.</h2>
-    <p class="caption">This is the real Data hub on dev. You choose the project the data belongs to; the <b>file tree</b> lists your uploads (under <code>inputs/</code>) and each run's outputs in their own folder, every row carrying a small <b>quality dot</b>. The pane on the right is where a file opens as an object.</p>
+    <p class="caption">This is the real Data hub. You choose the project the data belongs to; the <b>file tree</b> lists your uploads (under <code>inputs/</code>) and each run's outputs in their own folder, every row carrying a small <b>quality dot</b>. The pane on the right is where a file opens as an object.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
@@ -254,28 +254,28 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
         </figure>
       </div>
     </div>
-    <div class="tags"><span class="verdict ok"><span class="mk"></span>Data hub — demonstrated on dev · project-scoped, every file a dataset object</span></div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>Data hub · project-scoped, every file a dataset object</span></div>
   </section>
 
   <!-- 8 — LIVE: DATASET OBJECT -->
   <section class="scene live" data-kind="flow" data-seconds="32.0">
-    <div class="kicker"><span class="st">Reading an object</span> · the dataset header &amp; tabs <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">Reading an object</span> · the dataset header &amp; tabs <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div>
     <h2>Identity, quality, and lineage — all in one object.</h2>
     <p class="caption">Opening a file shows its <b>header</b> — name, content type, size, and once the profiler finishes a <b>quality pill</b> and a version count — above the tabs: <b>Preview</b>, <b>Quality</b>, <b>Lineage</b>, <b>Consumers</b>, <b>Versions</b>, and <b>Origin</b>. Read Preview before you run — it's the fastest way to catch a wrong file.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
           <div class="frame"><img src="assets/live/t4-dataset-object.png" alt="A dataset opened as an object — header with name, type, size, quality pill, version count, and the tab row" style="object-fit:contain"/></div>
-          <figcaption><span class="lbl">Dataset object · live</span>One file, opened as a first-class object — status at a glance, and every tab a different honest view of it.</figcaption>
+          <figcaption><span class="lbl">Dataset object · live</span>One file, opened as a first-class object — status at a glance, and every tab a different view of it.</figcaption>
         </figure>
       </div>
     </div>
-    <div class="tags"><span class="verdict ok"><span class="mk"></span>Dataset object — demonstrated on dev · a file is not just a file</span></div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>Dataset object · a file is not just a file</span></div>
   </section>
 
   <!-- 9 — LIVE: QUALITY TAB -->
   <section class="scene live" data-kind="flow" data-seconds="30.0">
-    <div class="kicker"><span class="st">The detail behind the pill</span> · the Quality tab <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">The detail behind the pill</span> · the Quality tab <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div>
     <h2>The verdict, and the reading it came from.</h2>
     <p class="caption">The <b>Quality</b> tab shows the detail behind the verdict: for a table, how many rows and columns, the <b>effective N</b>, class balance, and any notes; for sequencing reads, reads, read length, and average base quality (Phred) instead. The verdict comes from BioMate reading your data — not from a guess.</p>
     <div class="scene-body">
@@ -286,12 +286,12 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
         </figure>
       </div>
     </div>
-    <div class="tags"><span class="verdict ok"><span class="mk"></span>Quality — demonstrated on dev · measured from your data, grey ≠ bad</span></div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>Quality · measured from your data, grey ≠ bad</span></div>
   </section>
 
   <!-- 10 — LIVE: TWO WAYS + FROM DATA TO ANALYSIS -->
   <section class="scene live" data-kind="flow" data-seconds="36.0">
-    <div class="kicker"><span class="st">Using a file in a question</span> · two ways, then an analysis <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">Using a file in a question</span> · two ways, then an analysis <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div>
     <h2>Attach from your computer, or point at data you already have.</h2>
     <p class="caption">You don't always open the Data hub first. In the chat <b>composer</b> you can <b>attach a file</b> with the paperclip (a quick one-off upload), or <b>point at data BioMate already holds</b> with the database icon (so you don't re-upload). Both end up as the same kind of dataset object — then you describe the analysis and BioMate runs it only after you confirm, exactly as in Tutorial 3.</p>
     <div class="scene-body">
@@ -322,11 +322,11 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
         </div>
         <div class="lead-col">
           <table class="summary-tbl">
-            <tr><td>Dataset object &amp; Data hub</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Live</span></td></tr>
+            <tr><td>Dataset object &amp; Data hub</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Every file an auditable object</span></td></tr>
             <tr><td>Ingest quality (table/VCF/FASTQ)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Measured · grey = not profiled</span></td></tr>
             <tr><td>Provenance / lineage</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Kept — explainable</span></td></tr>
-            <tr><td>Versions</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">A log, not an undo</span></td></tr>
-            <tr><td>Lineage link / cross-project view</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Text not link · project-scoped</span></td></tr>
+            <tr><td>Versions</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">A clear change log</span></td></tr>
+            <tr><td>Project scope</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Each project sees only its own data</span></td></tr>
           </table>
           <p class="footnote">Your data is the centre everything connects to — bring it in once, and the whole chain from upload to result stays traceable.</p>
         </div>
