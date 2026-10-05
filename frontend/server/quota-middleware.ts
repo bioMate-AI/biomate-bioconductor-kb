@@ -22,6 +22,24 @@ function isE2EBypass(req: Request): boolean {
   return req.headers['x-e2e-test-token'] === _E2E_TOKEN;
 }
 
+/**
+ * Billing quota is a SaaS (our own AWS platform) concept. On-premise deployments run the
+ * customer's own compute/infra and do NOT meter per-user quota, so the check must be skippable.
+ *
+ * Configurable:
+ *   - Explicit: BIOMATE_QUOTA_ENFORCEMENT = "on" | "off" (also true/false/1/0) wins.
+ *   - Default (inferred from deployment): enforce ONLY on the AWS SaaS platform —
+ *       on-prem is detected by a MinIO endpoint (S3_ENDPOINT_URL set) OR not running on AWS
+ *       Batch (NEXTFLOW_USE_AWS !== "true"); in those cases quota is NOT enforced.
+ */
+export function quotaEnforcementEnabled(): boolean {
+  const explicit = (process.env.BIOMATE_QUOTA_ENFORCEMENT || '').toLowerCase();
+  if (['on', 'true', '1', 'yes'].includes(explicit)) return true;
+  if (['off', 'false', '0', 'no'].includes(explicit)) return false;
+  const onPrem = !!process.env.S3_ENDPOINT_URL || process.env.NEXTFLOW_USE_AWS !== 'true';
+  return !onPrem; // enforce only on AWS SaaS when not explicitly configured
+}
+
 // Tight IP-based fallback for callers without a billing account
 const unauthLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
@@ -49,6 +67,12 @@ const unauthLimiter = rateLimit({
  */
 export function checkBillingQuota(resourceName: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
+    // Deployment toggle: skip entirely on-premise / when quota enforcement is disabled, and for
+    // E2E-bypass requests. On-prem runs the customer's own compute — no SaaS quota metering.
+    if (!quotaEnforcementEnabled() || isE2EBypass(req)) {
+      return next();
+    }
+
     const user = (req as any).user;
 
     if (!user) {
