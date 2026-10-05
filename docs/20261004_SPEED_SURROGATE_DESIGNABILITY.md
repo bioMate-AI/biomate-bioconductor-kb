@@ -91,12 +91,26 @@ Per-target (combined):
 - Caveat on marginal novelty: BoltzGen already ranks partly on these confidence metrics, so the
   surrogate's value is specifically *triaging before the independent refold*, not out-ranking the
   generator. Report it that way.
-- Open improvement (still no new wet-lab needed): more *scalar* pre-fold features did **not** help
-  (tested 127 vs 8, no macro gain), so the remaining lever for dependable cold-start is **structural**
-  features from the designed backbone `.cif` poses on S3 (geometry / inverse-folding score) — the
-  honest next step. Note the designed poses are only saved for the ranked subset per run (~10/run),
-  so this needs either harvesting more poses or recomputing them, which is the one place a (cheap, no
-  wet-lab) compute step is actually required.
+## Structural-feature attempt for cold-start — tested, NEGATIVE (honest)
+
+The remaining lever for dependable cold-start was structural features of the **designed backbone**.
+The full designed poses are available (`intermediate_designs/<target>_<NNN>.cif` for every candidate,
+not just the ranked subset — ~200/run), matched to labels by design id. A dependency-free CA-trace
+featurizer (`pose_features.py`: radius of gyration, contact order, long-range contact density,
+compactness, end-to-end, bond stats) was built and validated on the 5o45/PD-L1 run (199 poses):
+
+- **CA-geometry features do NOT predict designability.** Within-run 5-fold AUC **0.470** (below
+  chance); every single feature's correlation to scRMSD ≈ 0.00–0.07.
+
+Interpretation: whether a design **refolds** is governed by sequence–structure *compatibility*
+(inverse-folding fit), not gross CA geometry — and the generator's own `design_iptm`/`design_*_pae`
+is already a learned structure-aware score that captures this (hence it works, AUC 0.73 on 5o45,
+while hand geometry does not). A genuinely better structural feature would need a real
+inverse-folding model (e.g. a ProteinMPNN score), i.e. a heavy model re-deriving what `design_iptm`
+already encodes — not worth it. **Conclusion: cold-start is not cracked by structural features;
+within-target triage (the ~43 % PD-L1 co-fold saving) is the real, bounded deliverable.**
+`pose_features.py` is kept (tested) as reusable infrastructure for any future structure-model work.
+A richer *scalar* pre-fold set (127 vs 8 features) also gave no macro gain, so the surrogate stays lean.
 
 ## Reproduce
 ```
