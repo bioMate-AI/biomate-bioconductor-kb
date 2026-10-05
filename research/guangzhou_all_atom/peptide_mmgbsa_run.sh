@@ -220,6 +220,6 @@ summary={'target':TARGET,'n_designs':len(results),'n_ok':len(ok),
                 'not absolute affinity; entropy omitted; confirm finalists with FEP. Trust only ring=true rows.',
          'all':results}
 json.dump(summary, open('/opt/mmg/status/mmgbsa_results.json','w'), indent=2)
-print(json.dumps(summary['ranking_by_dG'], indent=2))
+print(json.dumps(summary['within_target_ranking'], indent=2))
 PY
 stage mmgbsa_complete
