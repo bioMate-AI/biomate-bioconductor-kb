@@ -69,3 +69,59 @@ All synced to dev (`sync_to_dev.sh`, result=healthy); validations above are agai
 ## Pre-existing dev issues observed (NOT from this work, not fixed here)
 - AWS SES email send errors (`@aws-sdk/client-ses`) and transient `[auth] Galaxy provisioning FAILED …
   fetch failed` — pre-existing dev-network/SES flakiness, unrelated to these changes.
+
+---
+
+## Committee audit → fixes (2026-10-05, second pass)
+
+A multi-reviewer critical audit of the above work (PR #270) found real defects in the first-pass
+idempotency+quota implementation. All were fixed; the fixes are committed, regression-tested, deployed,
+and validated live. New commits: `008c724f9` (quota+dedupe), `8247bd57e` (index migration),
+`d6359d1ce` (doc corrections) — cherry-picked onto PR #270 as `8dede0919` / `935744ac1` / `563b7c15a`.
+
+### Findings fixed
+1. **CRITICAL — quota fail-OPEN.** The first-pass `quotaEnforcementEnabled()` *inferred* on-prem (→ billing
+   OFF) from infra vars (`NEXTFLOW_USE_AWS !== 'true'`, `S3_ENDPOINT_URL`). On AWS, a loosely-spelled or
+   stray infra var (e.g. `NEXTFLOW_USE_AWS=1`, an S3 VPC/PrivateLink endpoint) would **silently disable
+   paid-job billing**. Rewritten **fail-safe**: enforce by default; disable *only* via explicit
+   `BIOMATE_QUOTA_ENFORCEMENT=off|false|0|no` or `BIOMATE_DEPLOYMENT=onprem`. No infra-var inference.
+   New `frontend/server/quota-middleware.test.ts` (6/6) locks it in, incl. a regression case proving
+   infra vars no longer disable quota.
+2. **HIGH — dedupe ignored `request.inputs`.** Batch-of-same-pipeline-different-samples was wrongly
+   deduped into one run. Dedupe now **skips any input-bearing request** (`_hasInputs`), scopes strictly
+   to `req.user.id` (no anonymous cross-tenant match), uses canonical in-flight states, and reuses one
+   hoisted `recentRuns` query (removed a redundant second fetch).
+3. **HIGH — E2E bypass had no env guard.** `isE2EBypass` now returns false when `NODE_ENV==='production'`,
+   mirroring the already-deployed `auth-middleware.ts:117` convention.
+4. **HIGH — perf indexes were live-DB-only.** `idx_wf_name_lower` + `idx_wf_domain_exec` now
+   `CREATE INDEX IF NOT EXISTS` in `_migrate_schema` (`unified_workflow_search.py:652`), so they survive
+   a fresh provision / DB rebuild.
+5. **Over-claims corrected (docs).** (a) On-prem scoping — a *partial* manifest/subsetter already exists
+   (`export_deployment_manifest.py`); doc now credits it and narrows the gap. (b) Dedupe reframed as
+   honest best-effort (not a hard mutex; TOCTOU window acknowledged). (c) Perf doc warm-pool
+   self-contradiction reconciled (FINAL: r5 family + min=8 ON) with measurement provenance.
+
+### Regression (pre-sync)
+- `cd frontend && npx tsc --noEmit -p .` → clean.
+- `cd frontend && npx vitest run` → **1639 passed / 17 skipped**; 1 unrelated flaky UI `waitFor`
+  (`parameter-dialog.test.tsx`) that **passes 4/4 in isolation** — not from these server-side changes.
+- `quota-middleware.test.ts` → 6/6. `py_compile unified_workflow_search.py` → OK.
+
+### Live validation on dev (post-sync, result=healthy)
+- **Dev gating state (verified via SSM):** `NODE_ENV=production`, `NEXTFLOW_USE_AWS=true`, no
+  `BIOMATE_QUOTA_ENFORCEMENT`/`BIOMATE_DEPLOYMENT` ⇒ `quotaEnforcementEnabled()=true`. So quota enforces
+  under both the old (inference) and new (fail-safe) logic ⇒ the quota fix is **behavior-neutral on dev**;
+  the only real dev delta is the *narrower/safer* dedupe.
+- **Backend deploy landed** (verified running container file, not just sync exit): `unified_workflow_search.py:652`
+  present in `biomate-galaxy-dev`. Canonical DB `/app/database/galaxy_ai_tools.db` (324 MB, 4,210 wf);
+  **both indexes present**; `EXPLAIN QUERY PLAN … lower(name)=?` → `SEARCH … USING INDEX idx_wf_name_lower`.
+- **Frontend quota path:** fixture login OK; `GET /api/billing/quota` → `over_quota:false` (within limit)
+  ⇒ execute allowed. Unauth `POST /api/workflows/execute` → 400 at the handler (middleware chain passed,
+  no job launched). Sync smoke: workflow-gen PASS, db-search routing OK, connector contract 0 failed.
+- **Not run (by design):** no fresh paid AWS Batch execute to re-test the dedupe narrowing — it only
+  *restricts* an already-live-validated dedupe path and is unit-covered; a paid job to confirm a safer
+  restriction is the kind of speculative expensive test the CLAUDE.md discipline forbids.
+
+### Status
+PR #270 updated (`417de04c1..563b7c15a`) + committee-audit summary comment posted. All committee findings
+resolved; no open defects from this workstream.
