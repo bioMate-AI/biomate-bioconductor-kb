@@ -105,6 +105,19 @@ decomposition as an open problem and the right place for on-prem model training 
 - Differentiation vs Biomni (*Science* 2025): Biomni executes ad-hoc sandbox code and is Q&A-heavy; our
   evaluation is production execution + knowledge-grounded selection over a curated catalog.
 
+## 8. Efficiency & cost (the on-prem payoff)
+The capability result (9B+KB ≈ frontier) is only decisive if it is also cheaper, and it is: BioMate's own
+LLM cost is **$0.003–0.015/task** (Sonnet) to **$0.0001–0.0005/task** (Flash) at real token counts, and a
+local on-prem model (qwen3:32b, **8.2 tok/s**) has **$0 marginal API cost** — so matching frontier capability
+via the knowledge layer removes the per-token frontier-API bill entirely, the core on-prem economic argument
+(`docs/20260427_PUBLISHED_BENCHMARK_COST_SURVEY.md:77-83`). On the compute side, measured system speed-ups
+include a **3.4× CryoEM GPU-bound parallel speedup (92→27 min) at 1.7× lower effective GPU cost**
+(`docs/20260428…`), **findings caching 10 s→236 ms** (`docs/20260604…`), and **~55 GB / 50–75% container
+cleanup** (`docs/20260429…`, `docs/20260122…`). Projected (designed-for, modeled from AWS list pricing — NOT
+empirical): ~60–70% spot-vs-on-demand GPU savings, 20–50× ADMET array throughput, 3–5× tiered-model latency.
+Full measured-vs-projected table + honesty flags: `docs/20261004_EFFICIENCY_AND_COST_FOR_MANUSCRIPTS.md`.
+**Honesty:** no invoice-grade cost A/B exists; cost figures are modeled, stated as such.
+
 ## Artifacts
 `evaluation/datasets/bioc_method_selection/` (data+runners+scorer), `docs/20261004_CLOSE_THE_GAP_ROUTING.md`,
 `docs/20261004_BIOC_SELECTION_MATRIX_RESULTS.md`, `docs/20261004_KB_DIVIDEND_UNIFIED.md`,
