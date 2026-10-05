@@ -927,6 +927,13 @@ class UnifiedWorkflowSearch:
             sql += " ORDER BY fts_score LIMIT ?"
             params.append(max(limit * 10, 50))  # Get many more for re-ranking (min 50)
 
+            # Perf: the candidate fetch only needs workflow_json when the caller asked for it
+            # (include_workflow_json). On the hot search path (default False) it is discarded to
+            # None in _create_match (see ~line 1701), so skip reading the ~6.5KB blob per candidate
+            # — up to max(limit*10,50) rows. Equivalent result, less I/O + no wasted string alloc.
+            if not include_workflow_json:
+                sql = sql.replace("w.workflow_json,", "NULL AS workflow_json,", 1)
+
             cursor.execute(sql, params)
             rows = cursor.fetchall()
 
