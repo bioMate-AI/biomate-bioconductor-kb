@@ -26,10 +26,13 @@ trap finish EXIT
 (while sleep 60; do aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; done) &
 
 stage installing
-source /opt/miniconda/etc/profile.d/conda.sh 2>/dev/null || { curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/mc.sh && bash /tmp/mc.sh -b -p /opt/miniconda && source /opt/miniconda/etc/profile.d/conda.sh; }
-conda create -y -n cllm python=3.11 >/dev/null 2>&1; conda activate cllm
-pip install -q torch numpy pandas scikit-learn rdkit 2>&1 | tail -2
-python -c "import torch,rdkit,sklearn,pandas;print('env ok cuda',torch.cuda.is_available(),torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu')"
+# Use miniconda's base python/pip by DIRECT PATH — no `conda create`/`conda activate` (those fail under
+# set -u and on the newer-miniconda TOS prompt, which killed the first run right after install).
+[ -x /opt/miniconda/bin/python ] || { curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/mc.sh && bash /tmp/mc.sh -b -p /opt/miniconda; }
+PY=/opt/miniconda/bin/python; PIP=/opt/miniconda/bin/pip
+$PIP install -q --upgrade pip >/dev/null 2>&1 || true
+$PIP install -q torch numpy pandas scikit-learn rdkit 2>&1 | tail -3
+$PY -c "import torch,rdkit,sklearn,pandas;print('env ok cuda',torch.cuda.is_available(),torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu')"
 
 stage fetching_data
 aws s3 cp "s3://BUCKETPH/cyclic_peptide/raw/CycPeptMPDB_Peptide_All.csv" "$ROOT/dl/cyc.csv" --only-show-errors
@@ -43,15 +46,15 @@ else
 fi
 
 stage build_data
-python "$ROOT/train_cyclic_llm.py" build-data --cyc "$CYC" --bind "$BIND" --out "$ROOT/data.jsonl" 2>&1 | tee "$ROOT/status/build.log"
+$PY "$ROOT/train_cyclic_llm.py" build-data --cyc "$CYC" --bind "$BIND" --out "$ROOT/data.jsonl" 2>&1 | tee "$ROOT/status/build.log"
 aws s3 cp "$ROOT/status/build.log" "$OUT_S3/status/build.log" --only-show-errors || true
 
 stage training
-python "$ROOT/train_cyclic_llm.py" train --data "$ROOT/data.jsonl" --out-ckpt "$ROOT/cyclic_llm.pt" --max-steps "$STEPS" 2>&1 | tee "$ROOT/status/train.log"
+$PY "$ROOT/train_cyclic_llm.py" train --data "$ROOT/data.jsonl" --out-ckpt "$ROOT/cyclic_llm.pt" --max-steps "$STEPS" 2>&1 | tee "$ROOT/status/train.log"
 aws s3 cp "$ROOT/status/train.log" "$OUT_S3/status/train.log" --only-show-errors || true
 
 stage evaluating
-python "$ROOT/train_cyclic_llm.py" eval --ckpt "$ROOT/cyclic_llm.pt" --data "$ROOT/data.jsonl" --n-sample "$NS" --out "$ROOT/status/eval.json" 2>&1 | tee "$ROOT/status/eval.log"
+$PY "$ROOT/train_cyclic_llm.py" eval --ckpt "$ROOT/cyclic_llm.pt" --data "$ROOT/data.jsonl" --n-sample "$NS" --out "$ROOT/status/eval.json" 2>&1 | tee "$ROOT/status/eval.log"
 aws s3 cp "$ROOT/status/eval.json" "$OUT_S3/status/eval.json" --only-show-errors || true
 aws s3 cp "$ROOT/status/eval.log" "$OUT_S3/status/eval.log" --only-show-errors || true
 
