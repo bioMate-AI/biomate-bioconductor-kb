@@ -1032,7 +1032,15 @@ def _classify_failure(
         return verdict("infra_transient",
                        "A temporary infrastructure interruption stopped the run. "
                        "It can resume from the last completed step.", True, "resume")
-    if any(k in low for k in ("worker recycle", "log-stream", "orphan")) or rc == -1:
+    # Genuine orphan / restart evidence ONLY. Do NOT treat a bare rc == -1 as a
+    # restart: rc == -1 is a generic sentinel (set by _fail_run on ANY launch
+    # exception, by _stream_logs' default, and by orphan_finalizer when disk is
+    # ambiguous), so blanket-labeling it "backend restart" masks real launch
+    # failures (e.g. a 422 "input path not found") as a transient resume. Let a
+    # bare rc == -1 fall through to the real log-pattern classifiers below; only
+    # claim a restart when the log actually shows orphan/log-stream/worker-recycle
+    # evidence. (Root-cause of the 2026-10-05 mis-diagnosis.)
+    if any(k in low for k in ("worker recycle", "log-stream", "orphan")):
         return verdict("infra_transient",
                        "The run was interrupted by a backend restart. "
                        "It can resume from where it left off.", True, "resume")
@@ -1075,10 +1083,13 @@ def _classify_failure(
                        False, "fix_and_resume")
     # ── input data (deterministic: check the input) ──
     if any(k in low for k in ("not a valid", "malformed", "empty file", "no such file",
-                              "cannot read", "invalid format")):
+                              "cannot read", "invalid format",
+                              "input path(s) not found", "input path not found",
+                              "path does not exist", "input path")):
         return verdict("input_data",
-                       "An input file looks malformed or unreadable. "
-                       "Check the input, then resume.", False, "check_input")
+                       "An input could not be found or looks malformed. Check that "
+                       "every input path exists (use a full s3:// URI, not a bare key), "
+                       "then resume.", False, "check_input")
     # ── generic tool/process failure ──
     if any(k in low for k in ("process failed", "processfailedexception", "exit status",
                               "command error", "pipeline failed", "workflow execution failed")):
@@ -2387,6 +2398,31 @@ def _validate_input_paths(params: dict) -> None:
 
     Raises HTTPException(422) on any violation.
     """
+    # Normalize bare S3 upload keys to full s3:// URIs so they validate + stage
+    # like any other S3 input. MCP upload_file / the signed-url flow return a BARE
+    # key (e.g. "users/<uid>/uploads/x.csv"); without this it is treated as a local
+    # path and fails 422 "path does not exist" — the 2026-10-05 root cause that was
+    # masked by the rc==-1 "backend restart" mislabel. Mirrors
+    # perception._resolve_input_ref's bare-key handling (plus the "users/" prefix
+    # the live upload keys actually use). Mutates params in place so the same dict
+    # used for staging/launch downstream carries the resolved URI.
+    _upload_bucket = (os.environ.get("AWS_S3_NEXTFLOW_BUCKET")
+                      or os.environ.get("AWS_S3_UPLOAD_BUCKET")
+                      or "biomate-nextflow-work")
+    _UPLOAD_KEY_PREFIXES = ("users/", "projects/", "nextflow/", "uploads/", "inputs/", "outputs/")
+    for _k in list(params.keys()):
+        _v = params.get(_k)
+        if _k == "outdir" or not isinstance(_v, str) or not _v:
+            continue
+        if _v.startswith(("s3://", "http://", "https://", "/")):
+            continue
+        if _is_public_accession(str(_v)):
+            continue
+        _vs = _v.lstrip("/")
+        if _vs.startswith(_UPLOAD_KEY_PREFIXES) and not Path(_v).exists():
+            params[_k] = f"s3://{_upload_bucket}/{_vs}"
+            log.info("[input] normalized bare upload key for --%s -> %s", _k, params[_k])
+
     missing: list[str] = []
     total_bytes = 0
     large_items: list[str] = []

@@ -196,6 +196,18 @@ class CompletionPoller:
         pid = self._store.get_pid(run_id)
         pid_gone = pid is not None and not _pid_exists(int(pid))
 
+        # Staging-phase orphan (local runs only): a run whose launching worker died
+        # DURING staging never recorded a PID — set_pid happens only after the
+        # Nextflow head launches. pid_gone then stays False forever, and the Batch
+        # branch below never fires for a local run (no batch ids), so the run leaks
+        # as configuring/running indefinitely. If no PID was ever recorded, it is
+        # not a Batch run, and it is older than the grace window, finalize it as an
+        # orphan instead of leaking. (2026-10-05 committee review: completion_poller
+        # had no finalization path for is_batch=false staging deaths.)
+        if (pid is None and not bool(record.get("is_batch"))
+                and age is not None and age >= self._batch_check_age):
+            pid_gone = True
+
         batch_status: Optional[str] = None
         if not pid_gone:
             # The local Nextflow driver is still alive (or its PID was never
