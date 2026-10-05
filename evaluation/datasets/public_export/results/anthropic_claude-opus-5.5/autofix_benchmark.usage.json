@@ -1,0 +1,16 @@
+{
+  "task": "autofix_benchmark",
+  "mode": null,
+  "model": "anthropic/claude-opus-5.5",
+  "n": 100,
+  "n_with_usage": 99,
+  "input_tokens_total": 33648,
+  "output_tokens_total": 3582,
+  "input_tokens_mean": 339.8787878787879,
+  "output_tokens_mean": 36.18181818181818,
+  "latency_ms_p50": 2210,
+  "latency_ms_p95": 5373,
+  "latency_ms_mean": 2854.4,
+  "n_with_latency": 100,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}

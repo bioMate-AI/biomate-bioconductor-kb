@@ -1,0 +1,16 @@
+{
+  "task": "protocol_thresholds",
+  "mode": null,
+  "model": "google/gemini-3.8-flash",
+  "n": 100,
+  "n_with_usage": 100,
+  "input_tokens_total": 11616,
+  "output_tokens_total": 47399,
+  "input_tokens_mean": 116.16,
+  "output_tokens_mean": 473.99,
+  "latency_ms_p50": 4901,
+  "latency_ms_p95": 13712,
+  "latency_ms_mean": 5955.69,
+  "n_with_latency": 100,
+  "usd_note": "pass --price-in/--price-out to log $ cost"
+}
