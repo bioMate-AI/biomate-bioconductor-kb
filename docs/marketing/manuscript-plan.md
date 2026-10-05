@@ -65,6 +65,7 @@ nf-core pipelines on AWS Batch (live run `fb3440ec-…`, `docs/20260822_FLAGSHIP
 LLM and a generic coding agent, mirroring Biomni's persuasive +402% / +43% framing.
 
 ### 2.2 Paper B — harness-vs-LLM / task-split paper
+**Draft:** `docs/20261004_PAPER_B_HARNESS_VS_LLM_DRAFT.md` (2026-10-04) — abstract, task-split framework, KB-dividend unified figure, bioc 4-arm, decomposition open-problem.
 
 **Target venue:** a benchmarking/ML-for-science venue (NeurIPS D&B or a bioinformatics methods
 journal), positioned as the analysis companion to RealBio.
