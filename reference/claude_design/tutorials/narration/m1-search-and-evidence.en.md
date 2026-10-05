@@ -20,7 +20,7 @@ BioMate turns that into a single step. You type your question the way you'd ask 
 
 ## Step 4 — What a good answer looks like
 
-The answer that comes back is not a chatbot paragraph — it's a small sourced report with a fixed shape. The claims come first, and each factual sentence carries a little numbered marker that ties it to a source below; a sentence with no marker is context, written to read that way, never a cited fact in disguise. Beneath the claims is the source list — one row per source, with authors, year, and venue, and, importantly, the exact locus it was relied on for: the specific figure, table, or claim the sentence actually leaned on, not a bare link. Each row opens the source at the publisher, and you can copy its details — a DOI or a PubMed ID — straight into your reference manager. And where two sources genuinely conflict on a point, BioMate shows both positions side by side with their sources, rather than quietly averaging them into one confident sentence.
+The answer that comes back is not a chatbot paragraph — it's a small sourced report with a fixed shape. The claims come first, and each factual sentence carries a little numbered marker that ties it to a source below; a sentence with no marker is context, written to read that way, never a cited fact in disguise. Beneath the claims is the source list — one row per source, each showing the paper's title, its PubMed ID, and a link that opens it at the publisher for the full text. And the panel shows how the answer was searched: the databases it drew on — Europe PMC, OpenAlex, PubMed — with how many results each returned and how many were kept, so the retrieval behind the answer is visible, not hidden.
 
 ---
 
@@ -32,7 +32,7 @@ It helps to know where this sits. Every BioMate request falls into one of two la
 
 ## Step 6 — Live · a real cited answer
 
-Here is that answer in the chat — the JAK1 and rheumatoid arthritis question, returned in seconds. Because JAK1 is a well-studied target, the synthesis is well-supported, and that strength shows in the sources behind it. Each numbered marker in the claims lines up with a row in the source list below — authors, year, venue, and what the source was cited for. You can step through those sources one by one and open any of them out to the publisher's page for the full text, so you're checking the answer, not just trusting it. And underneath sits the boundary note, stating plainly what the answer is — and is not — evidence for.
+Here is that answer in the chat — the JAK1 and rheumatoid arthritis question, returned in seconds. Because JAK1 is a well-studied target, the synthesis is well-supported, and that strength shows in the sources behind it. Open the Citations panel and each numbered marker in the claims lines up with a real paper below — its title, its PubMed ID, and a link to open it — next to a short account of how it was searched. You can step through those sources and open any of them to the publisher's page for the full text, so you're checking the answer, not just trusting it. And underneath sits the boundary note, stating plainly what the answer is — and is not — evidence for.
 
 ---
 
