@@ -62,9 +62,79 @@ stage "running_${MODE}"
 CFG="$ROOT/boltzgen/src/boltzgen/resources/config/train/boltzgen_small.yaml"
 SHIPPED_TARGETS=$(dirname "$(find "$ROOT/dl/shipped" -maxdepth 4 -name manifest.json 2>/dev/null | head -1)")
 echo "SHIPPED_TARGETS=$SHIPPED_TARGETS  CFG=$CFG"
+MOLS="$ROOT/dl/mols"
 if [ "$MODE" = "introspect" ]; then
   python "$ROOT/code/boltzgen_introspect.py" "${SHIPPED_TARGETS:-$ROOT/dl/shipped}" "$CFG" 2>&1 | tee "$ROOT/status/introspect.txt"
   aws s3 cp "$ROOT/status/introspect.txt" "$OUT_S3/status/introspect.txt" --only-show-errors || true
+
+elif [ "$MODE" = "smoke" ]; then
+  cd "$ROOT/dl"
+  stage smoke_fetch
+  # small structure-trained ckpt (fine-tune init) + boltz2 fold ckpt (val validator dependency)
+  huggingface-cli download boltzgen/boltzgen-1 boltzgen1_structuretrained_small.ckpt --local-dir . 2>&1 | tail -2 || true
+  SMALL_CKPT=$(find "$ROOT/dl" -name boltzgen1_structuretrained_small.ckpt | head -1)
+  # our cyclic manifest + a ~20-complex subset of CIFs (fetch from RCSB)
+  aws s3 cp "s3://$BUCKET/cyclic_peptide/datasets/bound_cyclic_v1/bound_cyclic_manifest.jsonl" "$ROOT/dl/bound_cyclic_manifest.jsonl" --only-show-errors || \
+    aws s3 cp "s3://$BUCKET/cyclic_peptide/datasets/bound_cyclic_agg/bound_cyclic_manifest.jsonl" "$ROOT/dl/bound_cyclic_manifest.jsonl" --only-show-errors || true
+  head -20 "$ROOT/dl/bound_cyclic_manifest.jsonl" > "$ROOT/dl/subset.jsonl"
+  mkdir -p "$ROOT/dl/cifs"
+  python - "$ROOT/dl/subset.jsonl" "$ROOT/dl/cifs" <<'PY'
+import json, sys, urllib.request
+rows=[json.loads(l) for l in open(sys.argv[1]) if l.strip()]
+for r in rows:
+    pid=(r.get("pdb_id") or r.get("id") or "").lower()
+    if not pid: continue
+    out=f"{sys.argv[2]}/{pid}.cif"
+    try:
+        urllib.request.urlretrieve(f"https://files.rcsb.org/download/{pid}.cif", out)
+        print("fetched", pid, flush=True)
+    except Exception as e:
+        print("cif FAIL", pid, e, flush=True)
+PY
+  stage smoke_batch
+  TARGETS_DIR="$ROOT/training_data/targets"
+  python "$ROOT/code/boltzgen_cyclic_convert.py" --batch "$ROOT/dl/subset.jsonl" \
+     --cif-dir "$ROOT/dl/cifs" --moldir "$MOLS" --out "$TARGETS_DIR" --limit 20 2>&1 | tee "$ROOT/status/batch.log"
+  aws s3 cp "$ROOT/status/batch.log" "$OUT_S3/status/batch.log" --only-show-errors || true
+  mkdir -p "$TARGETS_DIR/msa"
+  # a 2-id val split (so val set isn't empty) from the converted records
+  ls "$TARGETS_DIR/records" | sed 's/.json$//' | head -2 > "$ROOT/training_data/val_split.txt"
+  stage smoke_config
+  SMOKE_CFG="$ROOT/smoke.yaml"
+  python - "$CFG" "$SMOKE_CFG" "$TARGETS_DIR" "$MOLS" "$ROOT/training_data/val_split.txt" <<'PY'
+import yaml, sys
+cfg_p, out_p, targets, mols, split = sys.argv[1:6]
+cfg=yaml.safe_load(open(cfg_p))
+d=cfg.get("data",{})
+d["datasets"]=[d["datasets"][0]]
+ds=d["datasets"][0]
+ds["target_dir"]=targets; ds["msa_dir"]=targets+"/msa"; ds["filters"]=[]; ds["split"]=split
+d["moldir"]=mols; d["max_tokens"]=128; d["max_atoms"]=512; d["max_seqs"]=1
+d["single_sequence_prop_training"]=1.0; d["num_workers"]=0; d["batch_size"]=1; d["samples_per_epoch"]=20
+def rec(o):
+    if isinstance(o,dict):
+        for k in list(o):
+            if k=="activation_checkpointing": o[k]=True
+            if k=="checkpoint_diffusion_conditioning": o[k]=True
+            rec(o[k])
+    elif isinstance(o,list):
+        for v in o: rec(v)
+rec(cfg)
+tr=cfg.setdefault("trainer",{})
+tr["devices"]=[0]; tr["max_steps"]=10; tr["num_sanity_val_steps"]=0
+tr["limit_val_batches"]=1; tr["val_check_interval"]=10
+yaml.safe_dump(cfg, open(out_p,"w"))
+print("wrote smoke config", out_p)
+PY
+  aws s3 cp "$SMOKE_CFG" "$OUT_S3/status/smoke.yaml" --only-show-errors || true
+  stage smoke_train
+  cd "$ROOT/boltzgen"
+  python src/boltzgen/resources/main.py "$SMOKE_CFG" name=cyclic_smoke \
+     ${SMALL_CKPT:+pretrained=$SMALL_CKPT} 2>&1 | tee "$ROOT/status/smoke_train.log" || echo "SMOKE_TRAIN_RC=$?"
+  aws s3 cp "$ROOT/status/smoke_train.log" "$OUT_S3/status/smoke_train.log" --only-show-errors || true
+  # verdict
+  if grep -qiE "loss" "$ROOT/status/smoke_train.log" && ! grep -qiE "Traceback|Error:|RuntimeError|AssertionError" "$ROOT/status/smoke_train.log"; then
+    echo "SMOKE_PASS"; else echo "SMOKE_FAIL (see smoke_train.log)"; fi
 fi
 stage complete
 echo "=== $MODE DONE -> $OUT_S3/status/ ==="

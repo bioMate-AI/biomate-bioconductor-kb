@@ -162,19 +162,97 @@ def validate(cif: str, moldir: str, out_dir: Path, seq_len: int, cyclization: st
     return 0 if ok else 1
 
 
+def _build_record(RecordCls, Info, st, rec_id: str):
+    """Build a BoltzGen training Record from our encoded Structure, using the VERIFIED construction
+    (introspected run bgen-ft-introspect-20261005T113709Z):
+      Record(id, structure=StructureInfo, chains=[ChainInfo...], interfaces=[InterfaceInfo], templates=None)
+    single-sequence (no MSA) -> msa_id=-1; each record its own cluster -> cluster_id=rec_id."""
+    StructureInfo, ChainInfo, InterfaceInfo = Info
+    chains = st.chains
+    chain_infos = []
+    for i in range(len(chains)):
+        chain_infos.append(ChainInfo(
+            chain_id=i, chain_name=_dec(chains[F_CHAIN_NAME][i]),
+            mol_type=int(chains["mol_type"][i]), cluster_id=rec_id, msa_id=-1,
+            num_residues=int(chains[F_CHAIN_RESNUM][i]), valid=True,
+            entity_id=int(chains["entity_id"][i]) if "entity_id" in chains.dtype.names else None))
+    interfaces = []
+    try:
+        for row in st.interfaces:
+            interfaces.append(InterfaceInfo(chain_1=int(row["chain_1"]), chain_2=int(row["chain_2"]), valid=True))
+    except Exception:  # noqa: BLE001 — interfaces optional for the smoke
+        interfaces = []
+    sinfo = StructureInfo(resolution=2.0, method="X-RAY DIFFRACTION", deposited="2020-01-01",
+                          released="2020-01-01", revised="2020-01-01", num_chains=len(chains),
+                          num_interfaces=len(interfaces), pH=7.0, temperature=298.0)
+    return RecordCls(id=rec_id, structure=sinfo, chains=chain_infos, interfaces=interfaces, templates=None)
+
+
+def batch(manifest_jsonl: str, cif_dir: str, moldir: str, out_dir: Path, limit: Optional[int] = None) -> int:
+    """Convert cyclic co-complexes -> BoltzGen targets/{manifest.json, records/*.json, structures/*.npz}.
+    manifest_jsonl rows: pdb_id, pep_chain, peptide_seq, seq_len, cyclization_type. CIFs are read from
+    cif_dir/<pdb_id>.cif (fetch beforehand). Returns 0 if >=1 record converted."""
+    D = importlib.import_module("boltzgen.data.data")
+    Structure, Record, Manifest = D.Structure, D.Record, D.Manifest
+    Info = (D.StructureInfo, D.ChainInfo, D.InterfaceInfo)
+    out_dir = Path(out_dir)
+    (out_dir / "records").mkdir(parents=True, exist_ok=True)
+    (out_dir / "structures").mkdir(parents=True, exist_ok=True)
+    rows = [json.loads(l) for l in Path(manifest_jsonl).read_text().splitlines() if l.strip()]
+    if limit:
+        rows = rows[:limit]
+    records, ok, fail = [], 0, []
+    for r in rows:
+        pid = (r.get("pdb_id") or r.get("id") or "").lower()
+        seq_len = int(r.get("seq_len") or len(r.get("peptide_seq", "")))
+        cyc = (r.get("cyclization_type") or r.get("cyclization") or "").lower().replace("_", "-")
+        cif = Path(cif_dir) / f"{pid}.cif"
+        try:
+            if not cif.exists():
+                raise FileNotFoundError(cif)
+            st = parse_structure(str(cif), moldir)
+            pep = peptide_chain_index(st, seq_len)
+            if pep is None:
+                raise RuntimeError("no peptide chain matched")
+            if cyc in ("head-to-tail",):
+                set_headtail_cyclic(st, pep, seq_len)
+            rec_id = pid
+            st.dump(out_dir / "structures" / f"{rec_id}.npz")
+            rec = _build_record(Record, Info, st, rec_id)
+            rec.dump(out_dir / "records" / f"{rec_id}.json")
+            records.append(rec)
+            ok += 1
+            print(f"OK {rec_id} cyc={cyc} seq_len={seq_len} pep_idx={pep}", flush=True)
+        except Exception as e:  # noqa: BLE001 — one bad complex never sinks the batch
+            fail.append((pid, f"{type(e).__name__}: {e}"))
+            print(f"FAIL {pid}: {type(e).__name__}: {e}", flush=True)
+    Manifest(records=records).dump(out_dir / "manifest.json")
+    print(f"\nBATCH DONE: {ok} ok, {len(fail)} failed -> {out_dir}/manifest.json", flush=True)
+    for pid, err in fail[:20]:
+        print(f"  failed {pid}: {err}", flush=True)
+    return 0 if ok else 1
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="BoltzGen cyclic co-complex -> training npz converter.")
     ap.add_argument("--validate", metavar="CIF")
+    ap.add_argument("--batch", metavar="MANIFEST_JSONL", help="convert all rows -> targets/ training set")
+    ap.add_argument("--cif-dir", help="dir of <pdb_id>.cif for --batch")
     ap.add_argument("--moldir", help="CCD mols dir (mols.zip from hf datasets/boltzgen/inference-data)")
     ap.add_argument("--seq-len", type=int, help="peptide length (identifies the peptide chain)")
     ap.add_argument("--cyclization", default="head-to-tail")
+    ap.add_argument("--limit", type=int, help="--batch: only the first N rows")
     ap.add_argument("--out", type=Path, default=Path("./bgen_out"))
     args = ap.parse_args(argv)
     if args.validate:
         if not (args.moldir and args.seq_len):
             ap.error("--validate requires --moldir and --seq-len")
         return validate(args.validate, args.moldir, args.out, args.seq_len, args.cyclization)
-    ap.error("use --validate <cif> --moldir <dir> --seq-len N")
+    if args.batch:
+        if not (args.moldir and args.cif_dir):
+            ap.error("--batch requires --moldir and --cif-dir")
+        return batch(args.batch, args.cif_dir, args.moldir, args.out, args.limit)
+    ap.error("use --validate <cif> --moldir <dir> --seq-len N  |  --batch <manifest.jsonl> --cif-dir <dir> --moldir <dir>")
 
 
 if __name__ == "__main__":
