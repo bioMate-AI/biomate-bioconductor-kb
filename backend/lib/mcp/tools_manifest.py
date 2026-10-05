@@ -115,7 +115,7 @@ TOOL_SCHEMAS: List[ToolSchema] = [
         name="search_workflow",
         tier="workflow",
         description=(
-            "Search the BioMate workflow catalog (2,455 indexed workflows across 34 domains) "
+            "Search the BioMate workflow catalog (4,200+ indexed workflows across 36 domains) "
             "by natural language. Returns ranked workflow cards with id, name, domain, "
             "and a one-line description. Use this when the user "
             "wants to pick a workflow explicitly; otherwise prefer biomate_session."
@@ -633,7 +633,7 @@ def to_openapi() -> Dict[str, Any]:
             "title": "BioMate Connector API",
             "description": (
                 "Run bioinformatics, drug-discovery, and clinical workflows on BioMate's "
-                "AWS Batch infrastructure. Search 2,455 indexed workflows, execute on real "
+                "AWS Batch infrastructure. Search 4,200+ indexed workflows, execute on real "
                 "compute, stream live progress, and retrieve structured findings + reports. "
                 "Schema is generated from backend/lib/mcp/tools_manifest.py."
             ),

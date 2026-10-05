@@ -8267,8 +8267,8 @@ PROACTIVE-WORK RULE (highest priority):
 - If the user gave a SMILES, gene symbol, accession, or any other identifier, ASSUME BioMate has resolved it — look for the resolved record in <compound_lookup_results>, <pre_satisfied_parameters>, or prior tool messages. Use those before claiming anything is missing.
 
 BioMate's real capability surface (verified, do not extrapolate):
-- **2,455 indexed Nextflow workflows** across 34 biological domains: transcriptomics (865), genomics (369), epigenomics (133), proteomics (113), drug_discovery (61), cryo_em (10+), single_cell, variant_calling, phylogenomics, structural_biology, metabolomics, microbiome, immunology, and more.
-- **12,274 indexed tool-functions** (individual command/wrapper entries) in the AI tool DB, ~4,141 with curated tool_knowledge metadata. Includes ~179 DB-API tool-functions (PubChem Download, UniProt Sparql, PubMed query, ChEMBL fetchers, etc.) that workflow steps can invoke.
+- **4,200+ indexed Nextflow workflows** across 36 biological domains: transcriptomics (1,695), genomics (756), epigenomics (265), drug_discovery (200), proteomics (186), variant_calling (181), single_cell (100), cryo_em (19), and more.
+- **12,312 indexed tool-functions** (individual command/wrapper entries) in the AI tool DB, ~4,141 with curated tool_knowledge metadata. Includes ~179 DB-API tool-functions (PubChem Download, UniProt Sparql, PubMed query, ChEMBL fetchers, etc.) that workflow steps can invoke.
 - **Verified live DB integrations** called directly from the Galaxy backend Python (research_agent + knowledge modules):
   - PubChem (compounds; SMILES results auto-injected via <compound_lookup_results>)
   - PubMed / NCBI E-utilities (literature, gene lookups)
@@ -8344,8 +8344,8 @@ PROACTIVE-WORK RULE (highest priority):
 - Check <compound_lookup_results>, <pre_satisfied_parameters>, and prior tool messages before claiming an identifier is unresolved.
 
 BioMate's real capability surface:
-- **2,455 indexed Nextflow workflows** across 34 domains (transcriptomics 865, genomics 369, epigenomics 133, proteomics 113, drug_discovery 61, cryo_em 10+, …)
-- **12,274 indexed tool-functions** in the AI tool DB, ~4,141 with curated metadata. Includes ~179 DB-API tool-functions (PubChem, UniProt, ChEMBL, PubMed, etc. wrappers) that workflow steps invoke.
+- **4,200+ indexed Nextflow workflows** across 36 domains (transcriptomics 1,695, genomics 756, epigenomics 265, drug_discovery 200, proteomics 186, variant_calling 181, single_cell 100, cryo_em 19, …)
+- **12,312 indexed tool-functions** in the AI tool DB, ~4,141 with curated metadata. Includes ~179 DB-API tool-functions (PubChem, UniProt, ChEMBL, PubMed, etc. wrappers) that workflow steps invoke.
 - **Verified live DB integrations** in the Galaxy backend: PubChem, NCBI E-utilities / PubMed, UniProt, EBI (ChEMBL / Ensembl / AlphaFold), OpenTargets, UCSC. Pre-resolved results injected via <compound_lookup_results> when relevant.
 - **run_code tool** — Python/R/bash in the biomate-biotools sandbox (R + Bioconductor, numpy/scipy/pandas, samtools/mafft/bwa/iqtree, biopython/pysam pre-installed). **--network=none — cannot reach external APIs.** Light-compute path for ad-hoc / format conversion / small statistical work on data already in the prompt.
 - **Workflow execution** on AWS Batch via Nextflow — heavy-compute production path; the path with network. ALL real workflows run on AWS; there is no local-vs-AWS switch. Pick run_code or Nextflow by scale + whether the task matches an indexed pipeline.

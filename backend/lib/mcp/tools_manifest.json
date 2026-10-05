@@ -34,7 +34,7 @@
     },
     {
       "name": "search_workflow",
-      "description": "Search the BioMate workflow catalog (2,455 indexed workflows across 34 domains) by natural language. Returns ranked workflow cards with id, name, domain, and a one-line description. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
+      "description": "Search the BioMate workflow catalog (4,200+ indexed workflows across 36 domains) by natural language. Returns ranked workflow cards with id, name, domain, and a one-line description. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -522,7 +522,7 @@
     },
     {
       "name": "search_workflow",
-      "description": "Search the BioMate workflow catalog (2,455 indexed workflows across 34 domains) by natural language. Returns ranked workflow cards with id, name, domain, and a one-line description. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
+      "description": "Search the BioMate workflow catalog (4,200+ indexed workflows across 36 domains) by natural language. Returns ranked workflow cards with id, name, domain, and a one-line description. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -1015,7 +1015,7 @@
       "type": "function",
       "function": {
         "name": "search_workflow",
-        "description": "Search the BioMate workflow catalog (2,455 indexed workflows across 34 domains) by natural language. Returns ranked workflow cards with id, name, domain, and a one-line description. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
+        "description": "Search the BioMate workflow catalog (4,200+ indexed workflows across 36 domains) by natural language. Returns ranked workflow cards with id, name, domain, and a one-line description. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
         "parameters": {
           "type": "object",
           "properties": {
