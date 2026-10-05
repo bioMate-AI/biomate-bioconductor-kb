@@ -7,32 +7,23 @@ Registers the pathology/wsi_he_nuclei_segmentation workflow in the workflows DB
 router can't surface it). Adds the row with executable=1 and rebuilds FTS.
 Idempotent (skips if already present). Follows register_missing_biomate_workflows.py.
 
-⚠️ CLOBBER WARNING — READ BEFORE RUNNING ⚠️
-The canonical workflows DB (~328 MB) lives on dev + S3 and carries the
-`workflow_embeddings` used for vector search. A fresh local checkout's
-backend/database/galaxy_ai_tools.db is a STUB with `workflow_embeddings` = 0 rows.
-`scripts/sync_to_dev.sh` REPLACES dev's DB with the local one when their MD5s
-differ (it keeps a .bak). So:
+DB NOTES (verified 2026-10-04):
+`scripts/sync_to_dev.sh` REPLACES dev's galaxy_ai_tools.db with the local one when
+their MD5s differ (dev auto-backs-up to a .bak first, and refuses files <10 MB).
+A normal local checkout's backend/database/galaxy_ai_tools.db is byte-IDENTICAL to
+the canonical dev DB (same md5; ~322 MB; 4,209 workflow rows). Workflow search is
+FTS-based: `workflow_embeddings` is 0 in BOTH local and dev (it is not the vector
+store), so it is safe to add a row + rebuild FTS and sync — that only adds the WSI
+row. The real danger is syncing a PARTIAL/degenerate DB over the full one, so the
+guard below refuses a DB with far fewer than ~4,209 workflow rows.
 
-  DO NOT run this against the local stub and then sync — that uploads a
-  zero-embedding DB and clobbers dev's vector search for ALL workflows.
-
-Safe procedure (preserves every other row's embedding; registration does NOT
-touch embeddings — those are enriched separately on dev):
-  1. Fetch the ENRICHED dev DB to local, replacing the stub:
-       # the sync stages it at s3://biomate-nextflow-outputs/tmp/db-sync/ during a deploy;
-       # or copy from the dev container /opt/biomate/galaxy_db/galaxy_ai_tools.db
-       aws s3 cp s3://.../galaxy_ai_tools.db backend/database/galaxy_ai_tools.db
-     Confirm it is enriched, NOT a stub:
-       python3 -c "import sqlite3;print(sqlite3.connect('backend/database/galaxy_ai_tools.db').execute('SELECT COUNT(*) FROM workflow_embeddings').fetchone())"
-     (must be > 0 — abort if it is 0.)
-  2. python3 scripts/register_wsi_pathology.py   # adds the WSI row + FTS
-  3. scripts/sync_to_dev.sh                       # uploads enriched+WSI DB (no clobber)
-  4. (optional) run the workflow-embedding indexer on dev so WSI is vector-searchable;
-     until then FTS/keyword routing still finds it.
-
-This script HARD-REFUSES to run against a stub (workflow_embeddings == 0) unless
---allow-stub is passed, specifically to prevent the clobber above.
+Procedure:
+  1. Ensure backend/database/galaxy_ai_tools.db is the full DB (md5 == dev's; the
+     sync pre-flight logs the dev md5). It normally already is.
+  2. python3 scripts/register_wsi_pathology.py      # adds the WSI row + rebuilds FTS
+  3. scripts/sync_to_dev.sh                          # uploads the DB (+WSI row) to dev
+  4. (optional) run the workflow-embedding/index step on dev if/when vector search
+     for workflows is enabled; FTS/keyword routing finds WSI meanwhile.
 
 Usage:
     python3 scripts/register_wsi_pathology.py [--db <path>] [--allow-stub]
@@ -104,18 +95,22 @@ def register(db_path: Path, allow_stub: bool) -> None:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
 
-    # Clobber guard: refuse to touch a stub (0 embeddings) unless explicitly allowed,
-    # because editing it + syncing would wipe dev's vector search.
+    # Clobber guard: refuse to touch an obviously-degenerate DB (far fewer workflow rows
+    # than the canonical ~4,209), because editing it + syncing would overwrite dev's full
+    # DB with a partial one. NOTE (verified 2026-10-04): the canonical dev DB and a normal
+    # local checkout are byte-identical (same md5) and BOTH have workflow_embeddings=0 —
+    # workflow search is FTS-based, not that table — so row count, not embeddings, is the
+    # real stub signal.
     try:
-        n_emb = conn.execute("SELECT COUNT(*) FROM workflow_embeddings").fetchone()[0]
+        n_wf = conn.execute("SELECT COUNT(*) FROM workflows").fetchone()[0]
     except sqlite3.Error:
-        n_emb = None
-    if n_emb == 0 and not allow_stub:
+        n_wf = 0
+    if n_wf < 4000 and not allow_stub:
         conn.close()
         raise SystemExit(
-            f"REFUSING: {db_path} has workflow_embeddings=0 (a STUB). Registering here and "
-            "syncing would clobber dev's vector search. Fetch the enriched dev DB first "
-            "(see this script's header), or pass --allow-stub if you really mean it."
+            f"REFUSING: {db_path} has only {n_wf} workflow rows (expected ~4,209). This looks "
+            "like a partial/stub DB; registering here and syncing would overwrite dev's full DB. "
+            "Point --db at the full DB, or pass --allow-stub if you really mean it."
         )
 
     nf_path = REPO_ROOT / "biomni_workflows" / ENTRY["filename"]
