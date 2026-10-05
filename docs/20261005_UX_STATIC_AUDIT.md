@@ -55,3 +55,10 @@ checklist items are **intentionally absent** and must NOT be restored:
   env: fix the Playwright browser (`npx playwright install chromium`), then the existing dev-targeting
   harness (`researcher-journey`, `sidebar-all-buttons`, `panel-and-chat-stream`,
   `demo-09/10-reference-workflow-panel`) captures the states; compare against `localhost:7779`.
+
+## One-command live-audit harness (run in a browser env)
+`scripts/run_ux_audit.sh [structural|reference|all]` wraps the whole live audit: installs the Playwright chromium, starts the reference server on :7779, sets the dev env, runs the journey + reference-comparison specs (screenshots on), and prints the report path. Run it where loopback works and a browser can launch (not the sandbox):
+```
+E2E_FIXTURE_PASSWORD='<fixture pw>' bash scripts/run_ux_audit.sh all
+cd frontend && npm run e2e:report   # view screenshots; compare dev vs http://localhost:7779
+```
