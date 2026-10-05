@@ -10191,7 +10191,7 @@ ${paramLines || '(none recorded)'}`;
   // ============================================================================
 
   // Create a new execution run (unified sandbox/production)
-  app.post("/api/workflows/execute", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/execute", optionalAuth, checkBillingQuota('Workflow execution'), async (req, res) => {
     let executionRun: any = null;
     let galaxyHistoryId: string | null = null;
     let galaxyWorkflowId: string | null = null;
