@@ -110,12 +110,11 @@ body{
 /* concept cards */
 .concept{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0}
 .card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
-.card.big{flex:1; display:flex; flex-direction:column; justify-content:center; gap:18px}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:flex-start; gap:18px}
 .row5{display:grid; grid-template-columns:repeat(5,1fr); gap:12px}
 .row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
 .row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
-.card.big .row2, .card.big .row3, .card.big .row4, .card.big .row5{flex:1 1 auto; grid-template-rows:minmax(0,1fr)}
-.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:15px 17px; display:flex; flex-direction:column; justify-content:center}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:15px 17px}
 .tile .n{font-family:var(--ff-mono); font-size:11px; color:var(--mut); letter-spacing:.05em}
 .tile h4{font-family:var(--ff-ui); font-size:16px; margin:6px 0 6px; color:var(--ink); font-weight:600}
 .tile p{font-size:13px; line-height:1.48; color:var(--ink2); margin:0}
