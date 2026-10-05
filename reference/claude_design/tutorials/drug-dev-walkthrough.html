@@ -95,7 +95,7 @@ body{
 .scene[data-kind="flow"]:has(img):not(.live) .scene-body{margin-top:12px}
 .scene[data-kind="flow"]:has(img):not(.live) .shot figcaption{font-size:12px; margin-top:7px; max-width:92ch}
 
-/* Live-UI FOCAL scenes: each embeds a HIGH-DPI crop (captured on dev at
+/* Live-UI FOCAL scenes: each embeds a HIGH-DPI crop (captured at
    deviceScaleFactor=3) ZOOMED to the single element that makes the scene's point —
    the pre-run param strip + Confirm & Run, the running QC-gate list, the Completed
    findings, the outputs list, the reproducibility record. Cropping to the focal
@@ -173,10 +173,10 @@ svg{display:block}
 
   <!-- 0 — TITLE -->
   <section class="scene title" data-kind="concept" data-seconds="41.1">
-    <div class="kicker">The whole journey — not one prediction</div>
-    <h2>Drug development is a pipeline of eight stages, mapped to real BioMate workflows.</h2>
-    <p class="caption">From naming a goal, to designing molecules, predicting properties, testing them against the target's structure, ranking the survivors, closing the loop, projecting the dose, and keeping a defensible record.</p>
-    <p class="caption sub">Demonstration compounds: three familiar drugs — <b>aspirin, caffeine, ibuprofen</b> — sent through the pipeline as an illustrative example. <b>Not a drug-discovery campaign result, not a clinical claim.</b> This tutorial pairs an <b>idea slide</b> that teaches each concept with a <b>product slide</b> that shows it running live — and each stage carries an honest verdict: <b>demonstrated here</b>, <b>available</b>, or <b>still a gap</b>.</p>
+    <div class="kicker">From a target idea to a defensible candidate record</div>
+    <h2>Start a program from a filtered, ranked shortlist — then triage, loop, and keep a defensible record.</h2>
+    <p class="caption">Eight connected stages, each a hosted workflow you run without standing up or licensing in-house software: name a goal, design candidate molecules, predict their properties, test them against the target's structure, rank the survivors, close the design–test loop, project human exposure, and keep an audit-grade record — one pipeline, one provenance trail.</p>
+    <p class="caption sub">Demonstration compounds: three familiar drugs — <b>aspirin, caffeine, ibuprofen</b> — sent through the pipeline as an illustrative example. <b>Not a drug-discovery campaign result, not a clinical claim.</b> Each stage pairs an <b>idea slide</b> that teaches the concept with a <b>product slide</b> that shows it running — and carries an honest verdict: <b>demonstrated here</b>, <b>available</b>, or <b>still a gap</b>. The scoping is deliberate: for a buyer, a claim that is provable is the asset.</p>
     <div class="scene-body" style="align-items:flex-end">
       <div class="flowline">
         <span class="chip"><span class="i"></span>1 · Frame</span><span class="arrow">→</span>
@@ -266,21 +266,21 @@ svg{display:block}
   <section class="scene" data-kind="concept" data-seconds="31.5">
     <div class="kicker"><span class="st">Stage 2 · Idea</span> · Generating / designing candidates <span class="badge concept">Concept</span></div>
     <h2>Which molecules should I even consider?</h2>
-    <p class="caption">Rather than draw molecules by hand out of ~10⁶⁰ possibilities, BioMate proposes candidates around a seed and returns a ranked, safety-filtered shortlist. The real workflow is <b>REINVENT4 Generative Lead Design</b>, with four design modes.</p>
+    <p class="caption">Rather than draw molecules by hand out of ~10⁶⁰ possibilities, BioMate proposes candidates by <b>systematically enumerating chemically sensible variations around a seed you supply</b>, then filters and ranks them into a shortlist. A learned, generative de-novo model is on the roadmap — <b>not what runs today</b>.</p>
     <div class="scene-body">
       <div class="concept">
         <div class="card big">
           <div class="row4">
-            <div class="tile"><div class="n">MODE</div><h4>De novo</h4><p>Build new molecules from scratch.</p></div>
-            <div class="tile"><div class="n">MODE</div><h4>Scaffold decoration</h4><p>Keep a core, vary the decorations.</p></div>
-            <div class="tile"><div class="n">MODE</div><h4>Linker design</h4><p>Join two fragments.</p></div>
-            <div class="tile"><div class="n">MODE</div><h4>Scaffold hopping</h4><p>Move to a different core — escape a patent or a toxic core.</p></div>
+            <div class="tile"><div class="n">SEED → VARIANTS</div><h4>Enumerate around a seed</h4><p>Systematically generate chemically sensible variations of a known starting molecule.</p></div>
+            <div class="tile"><div class="n">FILTER</div><h4>Screen liabilities</h4><p>Drop known problem substructures and candidates outside your property window.</p></div>
+            <div class="tile"><div class="n">RANK</div><h4>Ranked shortlist</h4><p>Return a ranked list — each with a why-this-one note and its nearest known molecule.</p></div>
+            <div class="tile ghost"><div class="n">ROADMAP</div><h4>Learned de-novo model</h4><p>A trained, target-conditioned generator — built, but not yet run end to end.</p></div>
           </div>
           <p class="footnote" style="margin-top:20px">Runs end-to-end today for small molecules — but treat the output as <b>ideas to filter and improve downstream</b>, not finished, target-optimised designs.</p>
         </div>
         <div class="tags">
-          <span class="verdict ok"><span class="mk"></span>Workflow runs end-to-end</span>
-          <span class="verdict gap"><span class="mk"></span>GAP — trained target-conditioned de-novo generator is NOT yet built</span>
+          <span class="verdict ok"><span class="mk"></span>Shortlist workflow runs end-to-end</span>
+          <span class="verdict gap"><span class="mk"></span>GAP — a learned, generative de-novo model is on the roadmap, not what runs today</span>
         </div>
       </div>
     </div>
@@ -332,15 +332,15 @@ svg{display:block}
       </div>
     </div>
     <div class="tags" style="margin-top:12px">
-      <span class="verdict ok"><span class="mk"></span>Concept grounds the flagship <b>Predict ADMET Properties (AI)</b> — 15 endpoints incl. hERG</span>
+      <span class="verdict ok"><span class="mk"></span>Concept grounds BioMate's <b>ADMET prediction</b> — 15 endpoints incl. hERG</span>
     </div>
   </section>
 
   <!-- 5 — FLOW: Stage 3 pre-run (screenshot) -->
   <section class="scene live" data-kind="flow" data-seconds="32.3">
-    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — the pre-run check <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — the pre-run check <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
     <h2>Everything you can change is shown before a single cent of compute is spent.</h2>
-    <p class="caption">This is the real ADMET workflow running live in BioMate. The <b>Predict ADMET Properties (AI)</b> model runs ADMET-AI graph neural nets. Before it runs, the pre-run strip lays out your SMILES list — aspirin, caffeine, ibuprofen — and every model setting, editable.</p>
+    <p class="caption">This is BioMate's ADMET prediction running live — a model trained on more than two million experimental measurements. Before it runs, the pre-run strip lays out your SMILES list — aspirin, caffeine, ibuprofen — and every model setting, editable.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
@@ -351,34 +351,34 @@ svg{display:block}
     </div>
     <div class="tags" style="margin-top:12px">
       <span class="verdict ok"><span class="mk"></span>ADMET — demonstrated in this live run · no blanket accuracy claimed</span>
-      <span class="tag">physicochemical: available (RDKit)</span>
+      <span class="tag">physicochemical: available</span>
       <span class="tag open">QSAR: available — needs your labelled activity data</span>
     </div>
   </section>
 
   <!-- 6 — FLOW: Stage 3 running + QC gates (screenshot) -->
   <section class="scene live" data-kind="flow" data-seconds="24.2">
-    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — running, with QC gates in view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — running, with QC gates in view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
     <h2>It runs on cloud workers, and the quality gates are visible the whole time.</h2>
-    <p class="caption">Live phase progress streams in as each step completes on AWS Batch. The gates that will be checked — including hERG — are shown alongside, so you can scan the hERG column first and set aside any candidate above your safety limit.</p>
+    <p class="caption">Live phase progress streams in as each step completes on hosted cloud compute. The gates that will be checked — including hERG — are shown alongside, so you can scan the hERG column first and set aside any candidate above your safety limit.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
           <div class="frame"><img src="assets/live/running.png" alt="Running: the RUNNING phase card and the QC Gates list (CiPA / hERG thresholds)"/></div>
-          <figcaption><span class="lbl">Running · live</span>Each phase card flips pending → running → completed in real time via SSE; the QC gates to be evaluated are listed so nothing is hidden while compute is in flight.</figcaption>
+          <figcaption><span class="lbl">Running · live</span>Each phase card flips pending → running → completed in real time; the QC gates to be evaluated are listed so nothing is hidden while compute is in flight.</figcaption>
         </figure>
       </div>
     </div>
     <div class="tags" style="margin-top:12px">
-      <span class="verdict ok"><span class="mk"></span>Live phase/step progress — demonstrated on AWS Batch in this run</span>
+      <span class="verdict ok"><span class="mk"></span>Live phase/step progress — demonstrated on hosted cloud compute in this run</span>
     </div>
   </section>
 
   <!-- 7 — FLOW: Stage 3 completed (screenshot) -->
   <section class="scene live" data-kind="flow" data-seconds="20.5">
-    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — completed state in the panel <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">Stage 3 · Product</span> · ADMET — completed state in the panel <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
     <h2>When it finishes, the workflow panel tells the whole story.</h2>
-    <p class="caption">The completed run shows a "COMPLETED" badge and a "Run again" action, with after-run tabs — Summary, Outputs, and the reproducibility record. The chat summary stays in sync: same name, same state, no "undefined", no stuck spinner.</p>
+    <p class="caption">The completed run shows a "COMPLETED" badge and a "Run again" action, with after-run tabs — Summary, Outputs, and the reproducibility record. The chat summary stays in sync with the panel: the same workflow name and the same state, with nothing stale or half-rendered.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
@@ -402,11 +402,11 @@ svg{display:block}
         <div class="lead-col">
           <div class="card big" style="box-shadow:none;border:none;padding:0">
             <div class="row3">
-              <div class="tile"><div class="n">CHEAP · MANY</div><h4>Docking (AutoDock Vina)</h4><p>Places each candidate and scores a pose — ranks hundreds. A docking score is a prioritization signal, <b>not</b> a measured affinity.</p></div>
-              <div class="tile"><div class="n">COSTLIER · FEW</div><h4>RBFE / FEP (OpenFE)</h4><p>Estimates ΔΔG between two similar molecules under a defined protocol. Needs GPU; agreement with experiment must be shown on relevant data.</p></div>
-              <div class="tile"><div class="n">EXPENSIVE · HANDFUL</div><h4>MD (AMBER / GROMACS)</h4><p>Samples whether a pose stays stable over time. Stability ≠ measured binding; MM-GBSA adds its own assumptions.</p></div>
+              <div class="tile"><div class="n">CHEAP · MANY</div><h4>Docking</h4><p>Places each candidate and scores a pose — ranks hundreds. A docking score is a prioritization signal, <b>not</b> a measured affinity.</p></div>
+              <div class="tile"><div class="n">COSTLIER · FEW</div><h4>RBFE / FEP</h4><p>Estimates ΔΔG between two similar molecules under a defined protocol. Needs GPU; agreement with experiment must be shown on relevant data.</p></div>
+              <div class="tile"><div class="n">EXPENSIVE · HANDFUL</div><h4>Molecular dynamics</h4><p>Samples whether a pose stays stable over time. Stability ≠ measured binding; MM-GBSA adds its own assumptions.</p></div>
             </div>
-            <p class="footnote" style="margin-top:18px">All three need the target's 3-D structure — if you don't have one, predict it first with Boltz-2 / AlphaFold2.</p>
+            <p class="footnote" style="margin-top:18px">All three need the target's 3-D structure — if you don't have one, predict it first with a structure-prediction model.</p>
           </div>
         </div>
         <div class="lead-col">
@@ -426,7 +426,7 @@ svg{display:block}
               <path d="M20 40 L20 224" stroke="#d5dae2" stroke-width="1.5"/>
             </svg>
           </div>
-          <div><span class="verdict plain" style="margin-top:4px"><span class="mk"></span>Available on BioMate's cloud &amp; GPU workers — not independently validated here</span></div>
+          <div><span class="verdict plain" style="margin-top:4px"><span class="mk"></span>Available in BioMate — end-to-end run not yet demonstrated here</span></div>
         </div>
       </div>
     </div>
@@ -477,7 +477,7 @@ svg{display:block}
   <section class="scene" data-kind="concept" data-seconds="52.9">
     <div class="kicker"><span class="st">Stage 6 · Idea</span> · The QC gate — why it must never silently pass <span class="badge concept">Concept</span></div>
     <h2>A quality gate turns a threshold into a decision you can trust mid-run.</h2>
-    <p class="caption">Back on the loop: inside a single run, a QC gate compares a measured value to your limit and <b>halts or flags</b> — it never quietly lets a failed check through. A gate that silently passes is worse than no gate, because it looks like success. For some workflows, the auto-loop then adjusts a parameter and re-runs, logging the change as a diff.</p>
+    <p class="caption">Back on the loop: inside a single run, a QC gate compares a measured value to your limit and <b>halts or flags</b> — it never quietly lets a failed check through. A gate that silently passes is worse than no gate, because it looks like success. When a gate fails, the system can <b>suggest</b> a parameter change to try next — logged as a diff, as an advisory suggestion rather than an autonomous re-run.</p>
     <div class="scene-body">
       <div class="two-col">
         <div class="svgwrap">
@@ -499,22 +499,22 @@ svg{display:block}
             <path d="M180 118 L280 170" stroke="#9c1a2e" stroke-width="2"/>
             <rect x="224" y="170" width="112" height="56" rx="8" fill="#fdeaec" stroke="#9c1a2e" stroke-width="1.4"/>
             <text x="280" y="190" text-anchor="middle" font-family="IBM Plex Sans" font-size="12.5" font-weight="600" fill="#9c1a2e">HALT · flag</text>
-            <text x="280" y="208" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#9c1a2e">then auto-fix &amp;</text>
-            <text x="280" y="219" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#9c1a2e">re-run (logged)</text>
+            <text x="280" y="208" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#9c1a2e">then suggest a</text>
+            <text x="280" y="219" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#9c1a2e">fix (advisory)</text>
           </svg>
         </div>
         <div class="lead-col">
           <div class="card" style="border-left:3px solid var(--amber)">
-            <div class="n" style="font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);margin-bottom:6px">hERG in this live run — estimated IC50, worst case wins</div>
+            <div class="n" style="font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);margin-bottom:6px">In this run — model estimates, read with the gate</div>
             <div class="metricrow">
-              <div class="metric"><span class="v" style="color:var(--green)">~10 mM</span><span class="k">aspirin · ibuprofen</span></div>
-              <div class="metric"><span class="v" style="color:var(--amber)">432 µM</span><span class="k">caffeine (worst)</span></div>
+              <div class="metric"><span class="v" style="color:var(--green)">Low</span><span class="k">hERG blocker-risk · estimate, not a measured IC50</span></div>
+              <div class="metric"><span class="v" style="color:var(--red)">High</span><span class="k">DILI · 0.875 (&gt; 0.5 limit) — gate flags it</span></div>
             </div>
-            <p style="font-size:12.5px;line-height:1.5;margin:13px 0 0;color:var(--ink2)">These are <b>estimated IC50s</b> — derived from the model's classification probability via a terfenadine-anchored power law, <b>not measured IC50s</b>. The gate takes the worst case; here nothing is strongly cardiotoxic. For some workflows the auto-loop then adjusts a filter and re-runs, logged as a diff.</p>
+            <p style="font-size:12.5px;line-height:1.5;margin:13px 0 0;color:var(--ink2)">The native output is a <b>blocker-risk score</b>, an estimate — not a measured IC50. Any IC50 the model prints for a low-risk compound sits at the estimator's <b>ceiling</b> (about 10 mM) — a model output, not evidence of safety. In the same run the liver-injury (DILI) endpoint came back <b>high</b>, above the limit, so the safety gate flags it for follow-up. Read the gate — don't trust a single number.</p>
           </div>
           <div class="tags" style="margin-top:14px">
-            <span class="verdict ok"><span class="mk"></span>hERG estimator — fixed &amp; verified on a live run</span>
-            <span class="tag gap">GAP — live gate firing &amp; auto-loop re-run UNPROVEN on dev</span>
+            <span class="verdict ok"><span class="mk"></span>QC gate firing — demonstrated live (a safety gate fired at its high-risk threshold with a cited rationale)</span>
+            <span class="tag open">Remediation is an advisory suggestion, not an autonomous re-run</span>
           </div>
         </div>
       </div>
@@ -548,7 +548,7 @@ svg{display:block}
             <p style="font-size:13.5px;line-height:1.55;margin:0">Allometric scaling (animal → human) → PBPK organ-by-organ model (with renal/hepatic impairment sub-model) → virtual patient cohort (Monte-Carlo variability). You read Cmax, AUC, and a projected starting-dose scenario for evaluation.</p>
           </div>
           <div class="tags" style="margin-top:14px">
-            <span class="verdict plain"><span class="mk"></span>Available — projects exposure scenarios; not independently validated here</span>
+            <span class="verdict plain"><span class="mk"></span>Available — end-to-end run not yet demonstrated here</span>
             <span class="tag open">PopPK / NCA need real in-vivo data you upload</span>
           </div>
         </div>
@@ -568,7 +568,7 @@ svg{display:block}
             <g font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="#101828">
               <rect x="18" y="40" width="96" height="40" rx="7" fill="#f7f8fa" stroke="#d5dae2"/><text x="66" y="58" text-anchor="middle">input</text><text x="66" y="72" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5a6474">SMILES.csv</text>
               <rect x="18" y="130" width="96" height="40" rx="7" fill="#f7f8fa" stroke="#d5dae2"/><text x="66" y="148" text-anchor="middle">params</text><text x="66" y="162" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5a6474">model, limits</text>
-              <rect x="172" y="85" width="96" height="40" rx="7" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.3"/><text x="220" y="103" text-anchor="middle">workflow</text><text x="220" y="117" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1a4a9c">ADMET-AI</text>
+              <rect x="172" y="85" width="96" height="40" rx="7" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.3"/><text x="220" y="103" text-anchor="middle">workflow</text><text x="220" y="117" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1a4a9c">ADMET</text>
               <rect x="326" y="85" width="96" height="40" rx="7" fill="#eaf6ee" stroke="#1c6b3a" stroke-width="1.3"/><text x="374" y="103" text-anchor="middle">output</text><text x="374" y="117" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1c6b3a">admet.csv</text>
             </g>
             <g stroke="#5a6474" stroke-width="1.5" fill="none"><path d="M114 60 L172 98"/><path d="M114 150 L172 112"/><path d="M268 105 L326 105"/></g>
@@ -590,7 +590,7 @@ svg{display:block}
 
   <!-- 13 — FLOW: Stage 8 outputs (screenshot) -->
   <section class="scene live" data-kind="flow" data-seconds="17.5">
-    <div class="kicker"><span class="st">Stage 8 · Product</span> · Outputs — filed by the step that made them <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">Stage 8 · Product</span> · Outputs — filed by the step that made them <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
     <h2>Every file lands under the step that produced it.</h2>
     <p class="caption">The Outputs tab groups results by step — the ADMET table, the quality metrics, the toxicity report — so you never hunt for a file or guess which stage it came from.</p>
     <div class="scene-body">
@@ -605,7 +605,7 @@ svg{display:block}
 
   <!-- 14 — FLOW: Stage 8 reproducibility (screenshot) -->
   <section class="scene live" data-kind="flow" data-seconds="23.9">
-    <div class="kicker"><span class="st">Stage 8 · Product</span> · The reproducibility record <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">Stage 8 · Product</span> · The reproducibility record <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
     <h2>The full audit trail — downloadable as one JSON.</h2>
     <p class="caption">This is the provenance concept made concrete: run id, parameters, software versions, outputs, and citations, all in one record you can attach to a submission. Where a field is empty in this run, the record shows the gap rather than hiding it.</p>
     <div class="scene-body">
@@ -643,7 +643,7 @@ svg{display:block}
     <div class="scene-body">
       <div class="two-col">
         <div class="lead-col">
-          <p class="caption" style="font-size:16px">Not every project needs all eight stages — but when one does, this is how they connect: each idea slide taught the concept, each product slide showed it running, and every stage was labelled honestly by how far it can be trusted today.</p>
+          <p class="caption" style="font-size:16px">Not every project needs all eight stages — but when one does, this is how they connect: each idea slide taught the concept, each product slide showed it running, and every stage was labelled honestly by how far it can be trusted today. The defensible advantage is not any one model — it is <b>the closed loop plus an audit-grade provenance record</b>, with every claim scoped to what is provable.</p>
           <ol class="habit">
             <li><span class="k">1</span>Frame the goal — target, objectives, constraints</li>
             <li><span class="k">2–4</span>Design, predict properties, test against the structure</li>
@@ -654,12 +654,12 @@ svg{display:block}
         <div class="lead-col">
           <table class="summary-tbl">
             <tr><td>ADMET (incl. hERG est.)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Demonstrated here</span></td></tr>
-            <tr><td>Structure (dock/RBFE/MD)</td><td><span class="verdict plain" style="margin:0;padding:3px 8px;font-size:11px">Available — not validated here</span></td></tr>
-            <tr><td>PK / PBPK</td><td><span class="verdict plain" style="margin:0;padding:3px 8px;font-size:11px">Available — not validated here</span></td></tr>
+            <tr><td>Structure (dock/RBFE/MD)</td><td><span class="verdict plain" style="margin:0;padding:3px 8px;font-size:11px">Available — not yet demonstrated</span></td></tr>
+            <tr><td>PK / PBPK</td><td><span class="verdict plain" style="margin:0;padding:3px 8px;font-size:11px">Available — not yet demonstrated</span></td></tr>
             <tr><td>Report &amp; record</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Demonstrated here</span></td></tr>
             <tr><td>Multi-objective rank</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Partial — optimizer not wired</span></td></tr>
-            <tr><td>Closed-loop QC gate</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Live gate firing unproven on dev</span></td></tr>
-            <tr><td>De-novo generator</td><td><span class="verdict gap" style="margin:0;padding:3px 8px;font-size:11px">Gap — not yet built</span></td></tr>
+            <tr><td>Closed-loop QC gate</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Gate firing demonstrated; remediation advisory</span></td></tr>
+            <tr><td>De-novo generator</td><td><span class="verdict gap" style="margin:0;padding:3px 8px;font-size:11px">Gap — learned model on roadmap</span></td></tr>
           </table>
           <p class="footnote">In-silico triage, not a drug. The value is starting smart and failing cheap — not skipping the lab.</p>
         </div>
