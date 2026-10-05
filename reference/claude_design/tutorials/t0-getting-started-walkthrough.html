@@ -131,7 +131,7 @@ svg{display:block}
     <div class="scene-body" style="align-items:flex-end">
       <div class="flowline">
         <span class="chip"><span class="i"></span>Type a goal</span><span class="arrow">→</span>
-        <span class="chip"><span class="i"></span>Check the lane</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>See how it's handled</span><span class="arrow">→</span>
         <span class="chip"><span class="i"></span>Review</span><span class="arrow">→</span>
         <span class="chip"><span class="i"></span>Send</span><span class="arrow">→</span>
         <span class="chip"><span class="i"></span>Read the result</span>
@@ -194,21 +194,21 @@ svg{display:block}
     </div>
   </section>
 
-  <!-- 4 — INSTANT VS CLOUD -->
+  <!-- 4 — TWO KINDS OF REQUEST -->
   <section class="scene" data-seconds="29.9">
-    <div class="kicker"><span class="st">The two lanes</span> · Instant vs Cloud</div>
+    <div class="kicker"><span class="st">Two kinds of request</span> · a sourced answer or a full analysis</div>
     <h2>Time and cost are shown before you send.</h2>
-    <p class="caption">BioMate sorts every request into one of two lanes and tells you which one up front, so you know the <b>time and cost</b> before you commit.</p>
+    <p class="caption">BioMate handles every request in one of two ways and tells you which up front, so you know the <b>time and cost</b> before you commit.</p>
     <div class="scene-body">
       <div class="concept">
         <div class="card big">
           <div class="row2">
-            <div class="tile lane-i"><div class="n">LANE · INSTANT</div><h4>A cited answer in seconds</h4><p>Reads the literature and databases and replies in the chat. No large computation is involved. "What is known about X" is Instant.</p></div>
-            <div class="tile lane-c"><div class="n">LANE · CLOUD</div><h4>A validated workflow</h4><p>Runs in the cloud over minutes to hours and uses paid compute. Running an analysis on your own data is Cloud.</p></div>
+            <div class="tile lane-i"><div class="n">A SOURCED ANSWER</div><h4>A cited answer in seconds</h4><p>Reads the literature and databases and replies in the chat. No large computation is involved. "What is known about X" is answered here.</p></div>
+            <div class="tile lane-c"><div class="n">A FULL ANALYSIS RUN</div><h4>A validated workflow</h4><p>Runs in the cloud over minutes to hours and uses paid compute. Running an analysis on your own data takes this path.</p></div>
           </div>
-          <p class="footnote" style="margin-top:22px">A Cloud request never starts paid computation until you confirm.</p>
+          <p class="footnote" style="margin-top:22px">A run in the cloud never starts paid computation until you confirm.</p>
         </div>
-        <div><span class="verdict ok"><span class="mk"></span>Lane preview and explicit Cloud confirmation — the cost of a request is never a surprise</span></div>
+        <div><span class="verdict ok"><span class="mk"></span>A preview up front, and explicit confirmation before any cloud run — the cost of a request is never a surprise</span></div>
       </div>
     </div>
   </section>
@@ -231,13 +231,13 @@ svg{display:block}
   <!-- 6 — ASKING YOUR FIRST QUESTION (screenshot) -->
   <section class="scene" data-seconds="30.0">
     <div class="kicker"><span class="st">Step by step</span> · asking your first question</div>
-    <h2>Type a real goal and see the lane before you send.</h2>
-    <p class="caption">We'll ask an evidence question, because it returns in seconds: <i>"What is the evidence linking JAK1 to rheumatoid arthritis, and how strong is it?"</i> As you type, BioMate shows a short restatement — the lane it recognised (here the <b>Instant</b> lane, shown as "Answer here · with sources") and a plain reading of the subject ("a question about what is known").</p>
+    <h2>Type a real goal and see how it's handled before you send.</h2>
+    <p class="caption">We'll ask an evidence question, because it returns in seconds: <i>"What is the evidence linking JAK1 to rheumatoid arthritis, and how strong is it?"</i> As you type, BioMate shows a short restatement — how it will handle your request (shown as "Answer here · with sources") and a plain reading of the subject ("a question about what is known").</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
-          <div class="frame"><img src="assets/live/t0-lane.png" alt="The composer with a knowledge question and the Instant lane preview" style="object-fit:contain;object-position:center"/></div>
-          <figcaption><span class="lbl">Type → check lane → review → send</span>Your goal lands in the composer, where you can edit it. When it says what you mean, press Send (Shift+Enter for a new line).</figcaption>
+          <div class="frame"><img src="assets/live/t0-lane.png" alt="The composer with a knowledge question and the request preview" style="object-fit:contain;object-position:center"/></div>
+          <figcaption><span class="lbl">Type → see how it's handled → review → send</span>Your goal lands in the composer, where you can edit it. When it says what you mean, press Send (Shift+Enter for a new line).</figcaption>
         </figure>
       </div>
     </div>
@@ -259,7 +259,7 @@ svg{display:block}
         <div class="lead-col">
           <div class="card" style="border-left:3px solid var(--amber)">
             <div class="n" style="font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);margin-bottom:6px">WHAT THE ANSWER IS</div>
-            <p style="font-size:13.5px;line-height:1.55;margin:0;color:var(--ink2)">An evidence answer summarises the published literature; it is <b>not</b> a verdict on your own data. For your own data, the Cloud lane runs a validated analysis and returns results with a record of how they were produced.</p>
+            <p style="font-size:13.5px;line-height:1.55;margin:0;color:var(--ink2)">An evidence answer summarises the published literature; it is <b>not</b> a verdict on your own data. For your own data, a validated analysis runs in the cloud and returns results with a record of how they were produced.</p>
           </div>
           <div class="tags" style="margin-top:16px">
             <span class="verdict ok"><span class="mk"></span>Every claim linked to a source</span>
@@ -272,24 +272,24 @@ svg{display:block}
   <!-- 8 — CLOSING -->
   <section class="scene title" data-seconds="25.4">
     <div class="kicker">The loop at a glance</div>
-    <h2 style="font-size:44px">Type a goal → check the lane → review → send → read the result.</h2>
+    <h2 style="font-size:44px">Type a goal → see how it's handled → review → send → read the result.</h2>
     <div class="scene-body">
       <div class="two-col">
         <div class="lead-col">
           <p class="caption" style="font-size:17px">That is the whole doorway. Everything else in BioMate is a richer version of this one loop, with its sources or its reproducibility record attached.</p>
           <ol class="habit">
             <li><span class="k">1</span>Type a goal in plain words</li>
-            <li><span class="k">2</span>Check the lane — Instant or Cloud</li>
+            <li><span class="k">2</span>See how it's handled — a sourced answer or a full analysis</li>
             <li><span class="k">3–4</span>Review the seeded message, then send it yourself</li>
             <li><span class="k">5</span>Read the result — sources, or a record</li>
           </ol>
         </div>
         <div class="lead-col">
           <table class="summary-tbl">
-            <tr><td>Ask what's known</td><td>Search &amp; evidence · <span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Instant · this tutorial</span></td></tr>
+            <tr><td>Ask what's known</td><td>Search &amp; evidence · <span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Answered here · this tutorial</span></td></tr>
             <tr><td>Design molecules</td><td>Design &amp; generate · <span class="tag" style="font-size:10.5px">Tutorial 1</span></td></tr>
             <tr><td>Learn from lab results</td><td>Models · <span class="tag" style="font-size:10.5px">Tutorial 2</span></td></tr>
-            <tr><td>Run a full analysis</td><td>Data analysis · <span class="verdict plain" style="margin:0;padding:3px 8px;font-size:11px">Cloud · Tutorial 3</span></td></tr>
+            <tr><td>Run a full analysis</td><td>Data analysis · <span class="verdict plain" style="margin:0;padding:3px 8px;font-size:11px">In the cloud · Tutorial 3</span></td></tr>
           </table>
           <p class="footnote">BioMate shows you what it is about to do before anything runs.</p>
         </div>

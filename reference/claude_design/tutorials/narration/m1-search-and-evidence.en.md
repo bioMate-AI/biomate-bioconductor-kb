@@ -14,7 +14,7 @@ Answering "what is known" by hand is slow, and the result is hard to trust. You 
 
 ## Step 3 — How it works
 
-BioMate turns that into a single step. You type your question the way you'd ask a colleague — "what is the evidence linking JAK1 to rheumatoid arthritis, and how strong is it?" — and BioMate reads your goal and answers in the Instant lane: a cited answer in seconds, with no pipeline to run and no compute to spend. To build it, BioMate draws on the published evidence across three kinds of source. The literature — peer-reviewed papers and preprints, from sources such as PubMed, synthesised with the disagreement left intact. The curated databases — target, structure, pathway, assay and trial records, from sources such as Open Targets. And the patent filings, read alongside the science so the answer reflects the full published picture. You don't choose where to look; you ask plainly, and the answer tells you what it drew on.
+BioMate turns that into a single step. You type your question the way you'd ask a colleague — "what is the evidence linking JAK1 to rheumatoid arthritis, and how strong is it?" — and BioMate reads your goal and answers it directly in the chat: a cited answer in seconds, with no pipeline to run and no compute to spend. To build it, BioMate draws on the published evidence across three kinds of source. The literature — peer-reviewed papers and preprints, from sources such as PubMed, synthesised with the disagreement left intact. The curated databases — target, structure, pathway, assay and trial records, from sources such as Open Targets. And the patent filings, read alongside the science so the answer reflects the full published picture. You don't choose where to look; you ask plainly, and the answer tells you what it drew on.
 
 ---
 
@@ -24,9 +24,9 @@ The answer that comes back is not a chatbot paragraph — it's a small sourced r
 
 ---
 
-## Step 5 — Two lanes, one doorway
+## Step 5 — One message box, two kinds of request
 
-It helps to know where this sits. Every BioMate request falls into one of two lanes, and you ask both the same way, from the same message box. Search and evidence is always the Instant lane: a cited answer over published evidence, returned in seconds, reading nothing of yours and starting no computation — the lane you use to settle a question before you commit time or money. The other lane is Cloud: running a full analysis workflow on your own files, on cloud computers, with one report back — that's the next module. You never have to pick the lane yourself; BioMate reads which one your question needs and tells you, and it always confirms before it starts a Cloud run.
+It helps to know where this sits. Every BioMate request is handled in one of two ways, and you ask for both the same way, from the same message box. Search and evidence always comes back as a sourced answer in the chat, returned in seconds, reading nothing of yours and starting no computation — what you use to settle a question before you commit time or money. The other kind runs a full analysis workflow on your own files, on cloud computers, with one report back — that's the next module. You never have to choose between them yourself; BioMate reads which one your question needs and tells you up front — shown as "Answer here, with sources" — and it always confirms before it starts a run in the cloud.
 
 ---
 

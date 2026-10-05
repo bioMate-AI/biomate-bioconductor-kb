@@ -2,7 +2,7 @@
 
 ## Step 1 — Title · one doorway, one loop
 
-You do not need to install software or write code to use BioMate. Describe your goal in plain English, and BioMate routes it to the right kind of work. Everything starts from one doorway and follows one simple loop: type a goal, see which lane it lands in, review what gets filled in, send it yourself, and read the result. Nothing runs until you confirm.
+You do not need to install software or write code to use BioMate. Describe your goal in plain English, and BioMate routes it to the right kind of work. Everything starts from one doorway and follows one simple loop: type a goal, see how it will be handled, review what gets filled in, send it yourself, and read the result. Nothing runs until you confirm.
 
 ---
 
@@ -24,9 +24,9 @@ The four cards name the four kinds of work BioMate does, so you can recognise wh
 
 ---
 
-## Step 5 — The two lanes · Instant vs Cloud
+## Step 5 — Two kinds of request · a sourced answer or a full analysis
 
-BioMate sorts every request into one of two lanes, and it tells you which one before you send. Instant gives a cited answer in seconds — it reads the literature and replies in the chat, with no large computation involved. Cloud is a validated workflow that runs in the cloud over minutes to hours, and it uses paid compute. The lane shows you the time and cost of your request up front — and a Cloud request never starts until you confirm.
+BioMate handles every request in one of two ways, and it tells you which before you send. One is a sourced answer in seconds — it reads the literature and replies in the chat, with no large computation involved. The other is a validated workflow that runs in the cloud over minutes to hours, and uses paid compute. Either way, it shows you the time and cost of your request up front — and a run in the cloud never starts until you confirm.
 
 ---
 
@@ -38,18 +38,18 @@ Here is a rule that applies throughout the product: nothing runs until you revie
 
 ## Step 7 — Step by step · asking your first question
 
-Let's ask a real one. We'll use an evidence question, because it returns in seconds: what is the evidence linking the protein JAK1 to rheumatoid arthritis, and how strong is it? Type that into the intent bar. As you type, BioMate shows a short restatement — the lane it recognised, here the Instant lane, shown as "Answer here, with sources", and a plain reading of the subject. Your goal lands in the composer, where you can edit it. When it says what you mean, press Send.
+Let's ask a real one. We'll use an evidence question, because it returns in seconds: what is the evidence linking the protein JAK1 to rheumatoid arthritis, and how strong is it? Type that into the intent bar. As you type, BioMate shows a short restatement — how it will handle your request, shown as "Answer here, with sources", and a plain reading of the subject. Your goal lands in the composer, where you can edit it. When it says what you mean, press Send.
 
 ---
 
 ## Step 8 — Reading it · the answer
 
-An evidence answer is a concise, sourced report. The text carries numbered markers that tie each claim to a source, the citations open to the publisher, and a boundary block states what the answer is not evidence for. It summarises the published literature; it is not a verdict on your own data. For your own data, the Cloud lane runs a validated analysis and returns the results with a record of how they were produced.
+An evidence answer is a concise, sourced report. The text carries numbered markers that tie each claim to a source, the citations open to the publisher, and a boundary block states what the answer is not evidence for. It summarises the published literature; it is not a verdict on your own data. For your own data, a validated analysis runs in the cloud and returns the results with a record of how they were produced.
 
 ---
 
 ## Step 9 — Closing · the one loop
 
-So the habit is always the same: type a goal, check the lane, review, send, and read the result with its sources or its record. That is the whole doorway. From here, Tutorial 1 designs molecules, Tutorial 2 learns from lab results, and Tutorial 3 runs a full analysis workflow — each one is this same loop, with more at stake. BioMate shows you what it is about to do before anything runs.
+So the habit is always the same: type a goal, see how it will be handled, review, send, and read the result with its sources or its record. That is the whole doorway. From here, Tutorial 1 designs molecules, Tutorial 2 learns from lab results, and Tutorial 3 runs a full analysis workflow — each one is this same loop, with more at stake. BioMate shows you what it is about to do before anything runs.
 
 ---
