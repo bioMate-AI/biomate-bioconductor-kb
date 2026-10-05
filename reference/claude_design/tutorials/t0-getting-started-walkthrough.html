@@ -43,9 +43,9 @@ body{
 .scene{
   position:absolute; inset:0; display:flex; flex-direction:column;
   padding:46px 70px 54px; opacity:0; transform:translateY(14px);
-  transition:opacity .6s ease, transform .6s ease; pointer-events:none;
+  transition:none; pointer-events:none;
 }
-.scene.active{opacity:1; transform:none; pointer-events:auto}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
 .kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
 .kicker .st{color:var(--mut)}
 .scene h2{font-family:var(--ff-ui); font-size:38px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 14px; max-width:18ch}
