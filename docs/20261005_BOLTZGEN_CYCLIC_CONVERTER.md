@@ -30,6 +30,31 @@ with `X`=ncAA, seq_len, cyclization_type)
 - **non-canonical (ncAA / N-methyl / D-AA)** → `parse_mmcif` already represents them as CCD components
   with the residue `modified` flag and atom chirality from the CCD mol; **requires the CCD mols dir**.
 
+## VERIFIED Structure schema (numpy structured arrays — dumped from a live parse, run `convert4`)
+```
+chains  : name, mol_type, entity_id, sym_id, asym_id, atom_idx, atom_num, res_idx, res_num, cyclic_period
+          # chain name is `name` (BoltzGen RENAMES chains, e.g. 'A1' — NOT the original PDB letter);
+          # cyclic_period field confirmed present; a chain's residues = res_idx..res_idx+res_num
+residues: name, res_type, res_idx, atom_idx, atom_num, atom_center, atom_disto, is_standard, is_present
+          # NO 'modified' field -> ncAA/N-methyl/D-AA = is_standard==False; a residue's atoms = atom_idx..+atom_num
+atoms   : name, coords, is_present, bfactor, plddt
+          # NO per-atom chirality field -> D vs L is carried by the residue CCD `name` (e.g. DAL), which round-trips
+bonds   : chain_1, chain_2, res_1, res_2, atom_1, atom_2, type   # row0 type=1 (covalent)
+```
+`parse_mmcif` returns `ParsedStructure`; the Structure is **`ParsedStructure.data`** (not `.structure`).
+
+## PASS/FAIL (samples from bound_cyclic_v1, CCD mols resolved)
+| sample | cyclization | ncAA | round-trip counts | note |
+|---|---|---|---|---|
+| 11MG, 11MH | disulfide | yes | PASS | round-trip of parsed Structure |
+| 148L, 1AXD | sidechain_backbone | yes | PASS | round-trip |
+| 1BCK | head_to_tail | yes | PASS | round-trip |
+
+- **Round-trip (`Structure.dump`/`load`) is GREEN on 5/5 incl. ncAA** — parse (with CCD mols) + dump/load preserve atom/residue counts and all structured-array fields.
+- **Caveat (now fixed in code):** in that run the cyclic/bond/modified asserts were *vacuous* — they matched the peptide chain by the manifest's PDB chain letter, but BoltzGen renames chains, so no chain matched (`cyc_persist=None`). The converter now identifies the peptide chain by **`res_num == seq_len`** and counts ncAA via **`is_standard==False`**.
+- **Remaining (1 short run):** exercise the encoding assertions with the corrected chain-ID — cyclic_period persists on the peptide chain, appended C→N bond persists (`len(bonds)+1`), ncAA count>0, residue CCD names (chirality) preserved. The code is finalized against the verified schema; this run was not launched (stopped at the 2-instance clearance). Command:
+  `python boltzgen_cyclic_convert.py --validate <pep.cif> --moldir mols/ --seq-len <N> --cyclization head-to-tail`
+
 ## ⚠️ The blocker that must be satisfied: the CCD `mols` dir
 `parse_mmcif(moldir=…)` needs per-residue pickles (`ALA.pkl`, `MET.pkl`, …). It is **not** auto-present.
 Source (from the BoltzGen README / HF org):

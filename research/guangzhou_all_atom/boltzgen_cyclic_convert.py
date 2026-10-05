@@ -2,33 +2,34 @@
 (targets/{manifest.json, records/*.json, structures/*.npz}) with correct cyclic + non-canonical
 encoding, for the Path-A BoltzGen cyclic fine-tune.
 
-STATUS (2026-10-05): written against the VERIFIED BoltzGen data API (confirmed on a live install,
-see docs/20261005_BOLTZGEN_CYCLIC_CONVERTER.md). Round-trip validation on sample complexes is the
-remaining step — it was blocked twice by environment issues (now fixed here), and I stopped at the
-3-instance budget rather than launch a 4th. Run `--validate <cif>` on an instance that has the CCD
-mols dir to green-light it.
+STATUS (2026-10-05): written against the VERIFIED BoltzGen data API + VERIFIED structured-array schema
+(confirmed on a live install; CCD mols resolved; Structure.dump/load round-trips on 5/5 sample cyclic
+complexes incl. ncAA — see docs/20261005_BOLTZGEN_CYCLIC_CONVERTER.md). The cyclic_period / closing-bond /
+ncAA encoding below uses the verified field names. The round-trip of an *appended* bond + the encoding
+on the peptide chain identified by res_num is the one assertion still to be exercised on an instance
+(the earlier run's chain match was vacuous because BoltzGen renames chains to 'A1'…).
 
-Verified API (boltzgen.data):
-  parse_mmcif(path, mols=None, moldir=None, use_assembly=True, use_original_res_idx=False)
-      -> ParsedStructure   (ParsedStructure.structure is the Structure)
-  Structure{atoms,bonds,residues,chains,interfaces,mask,coords,ensemble}.dump(Path)/load(Path)
-  Record{id,structure,chains,interfaces,templates}.dump/load ; Manifest{records}.dump/load
-  const.chirality_type_ids = {CHI_TETRAHEDRAL_CW:1, CHI_TETRAHEDRAL_CCW:2, ...}  (D vs L)
+VERIFIED API:
+  boltzgen.data.parse.mmcif.parse_mmcif(path, mols=None, moldir=None, use_assembly=True,
+      use_original_res_idx=False) -> ParsedStructure        # the Structure is ParsedStructure.data
+  boltzgen.data.data.Structure{atoms,bonds,residues,chains,interfaces,mask,coords,ensemble}
+      .dump(Path)/.load(Path)
+  Record{id,structure,chains,interfaces,templates}; Manifest{records}
 
-CCD mols dir (REQUIRED by parse_mmcif): per-residue pickles (ALA.pkl, MET.pkl, ...). Source:
-  mols.zip from https://huggingface.co/datasets/boltzgen/inference-data  (unzip -> pass as moldir),
-  or `boltzgen download <artifact>` (artifact name is positional; confirm on the instance).
+VERIFIED Structure schema (numpy structured arrays):
+  chains  : name, mol_type, entity_id, sym_id, asym_id, atom_idx, atom_num, res_idx, res_num, cyclic_period
+  residues: name, res_type, res_idx, atom_idx, atom_num, atom_center, atom_disto, is_standard, is_present
+  atoms   : name, coords, is_present, bfactor, plddt          # addressed per-residue via residue.atom_idx/atom_num
+  bonds   : chain_1, chain_2, res_1, res_2, atom_1, atom_2, type
 
-Encoding rules (from the manifest's cyclization_type):
-  head-to-tail  -> set chains['cyclic_period'] = peptide_len on the peptide chain, and add the
-                   closing C(last residue) -> N(first residue) bond to Structure.bonds.
-  disulfide     -> keep cyclic_period=0; the SG(i)-SG(j) bond is parsed from the CIF (verify present).
-  non-canonical -> parse_mmcif already represents ncAA/N-methyl as CCD components with the residue's
-                   `modified` flag set and atom chirality from the CCD mol (D-AAs preserved).
+Encoding (from bound_cyclic_v1 manifest: pep_chain, peptide_seq with X=ncAA, seq_len, cyclization_type):
+  head-to-tail  -> chains['cyclic_period'][pep] = seq_len  AND append bond
+                   (chain_1=chain_2=pep, res_1=last res, res_2=first res, atom_1=C(last), atom_2=N(first), type=1)
+  disulfide/sidechain -> cyclic_period=0; the cyclizing bond is parsed from the CIF (already in bonds)
+  non-canonical (ncAA/N-methyl/D-AA) -> represented as CCD residues: residues['is_standard']==False;
+                   chirality (D vs L) is carried by the residue CCD name (e.g. DAL), which round-trips.
 
-Field names inside the numpy structured arrays (chains/residues/atoms) are discovered at runtime
-(see _find_field) because they were not dumped before the budget stop; the validator prints the real
-schema so they can be pinned.
+CCD mols dir REQUIRED by parse_mmcif: mols.zip from hf datasets/boltzgen/inference-data (45k pkls).
 """
 from __future__ import annotations
 
@@ -37,6 +38,19 @@ import importlib
 import json
 from pathlib import Path
 from typing import Optional
+
+# ---- verified field names (pinned from the live schema dump) --------------------------------------
+F_CHAIN_NAME = "name"
+F_CHAIN_CYCLIC = "cyclic_period"
+F_CHAIN_RESIDX = "res_idx"
+F_CHAIN_RESNUM = "res_num"
+F_RES_NAME = "name"
+F_RES_ATOMIDX = "atom_idx"
+F_RES_ATOMNUM = "atom_num"
+F_RES_ISSTD = "is_standard"
+F_ATOM_NAME = "name"
+BOND_FIELDS = ("chain_1", "chain_2", "res_1", "res_2", "atom_1", "atom_2", "type")
+BOND_COVALENT_TYPE = 1  # intra-structure covalent bond type seen in parsed bonds (row0 type=1)
 
 
 def _load_api():
@@ -49,119 +63,115 @@ def _dec(v):
     return v.decode() if isinstance(v, (bytes, bytearray)) else str(v)
 
 
-def _find_field(arr, candidates, predicate=None):
-    """Find the structured-array field matching any name in `candidates` (case-insensitive substring),
-    optionally constrained by predicate(values)."""
-    names = arr.dtype.names or ()
-    for c in candidates:
-        for f in names:
-            if c.lower() in f.lower():
-                if predicate is None or predicate(arr[f]):
-                    return f
-    return None
-
-
 def parse_structure(cif: str, moldir: str):
     parse_mmcif, *_ = _load_api()
     ps = parse_mmcif(cif, moldir=moldir)
-    return getattr(ps, "structure", ps)
+    st = getattr(ps, "data", None)          # verified: Structure is ParsedStructure.data
+    if st is None or not hasattr(st, "chains"):
+        for a in dir(ps):                   # defensive fallback
+            v = getattr(ps, a, None)
+            if hasattr(v, "chains") and hasattr(v, "dump"):
+                st = v; break
+    if st is None:
+        raise RuntimeError(f"no Structure in ParsedStructure (type={type(ps)})")
+    return st
 
 
-def set_cyclic(struct, pep_chain: str, pep_len: int) -> dict:
-    """Set head-to-tail cyclization on the peptide chain: cyclic_period + closing C->N bond.
-    Returns a report dict. Pure numpy structured-array edits (no new deps)."""
+def peptide_chain_index(struct, seq_len: int) -> Optional[int]:
+    """Identify the peptide chain. BoltzGen renames chains ('A1'…), so match by residue count
+    (== manifest seq_len); fall back to the shortest chain."""
+    chains = struct.chains
+    exact = [i for i in range(len(chains)) if int(chains[F_CHAIN_RESNUM][i]) == int(seq_len)]
+    if exact:
+        return exact[0]
+    if len(chains):
+        return int(min(range(len(chains)), key=lambda i: int(chains[F_CHAIN_RESNUM][i])))
+    return None
+
+
+def _atom_global_index(struct, res_global_idx: int, atom_name: str) -> Optional[int]:
+    """Global atom index of `atom_name` within residue `res_global_idx` (atoms are addressed by the
+    residue's atom_idx..atom_idx+atom_num range)."""
+    res = struct.residues
+    a0 = int(res[F_RES_ATOMIDX][res_global_idx]); n = int(res[F_RES_ATOMNUM][res_global_idx])
+    names = struct.atoms[F_ATOM_NAME]
+    for ai in range(a0, a0 + n):
+        if _dec(names[ai]).strip() == atom_name:
+            return ai
+    return None
+
+
+def set_headtail_cyclic(struct, pep_idx: int, seq_len: int) -> dict:
+    """Set cyclic_period + append the closing C(last)->N(first) bond on the peptide chain."""
     import numpy as np
     chains = struct.chains
-    namef = _find_field(chains, ["asym", "name", "chain", "label"],
-                        predicate=lambda v: any(_dec(x) == pep_chain for x in v[:200]))
-    rep = {"chain_name_field": namef}
-    if namef is None:
-        rep["error"] = "could not find chain-name field matching pep_chain"
+    chains[F_CHAIN_CYCLIC][pep_idx] = int(seq_len)
+    r0 = int(chains[F_CHAIN_RESIDX][pep_idx]); rn = int(chains[F_CHAIN_RESNUM][pep_idx])
+    first_res, last_res = r0, r0 + rn - 1
+    c_atom = _atom_global_index(struct, last_res, "C")
+    n_atom = _atom_global_index(struct, first_res, "N")
+    rep = {"pep_idx": pep_idx, "cyclic_period": int(seq_len), "first_res": first_res,
+           "last_res": last_res, "C_atom": c_atom, "N_atom": n_atom}
+    if c_atom is None or n_atom is None:
+        rep["bond"] = "skipped: missing backbone C/N"
         return rep
-    cidx = [i for i, v in enumerate(chains[namef]) if _dec(v) == pep_chain]
-    rep["pep_chain_index"] = cidx[0] if cidx else None
-    if not cidx:
-        rep["error"] = "peptide chain not found"
-        return rep
-    cpf = _find_field(chains, ["cyclic_period", "cyclic"])
-    rep["cyclic_period_field"] = cpf
-    if cpf:
-        chains[cpf][cidx[0]] = int(pep_len)
-        rep["cyclic_period_set"] = int(pep_len)
-    # closing bond: C of last peptide residue -> N of first. Discover residue/atom linkage at runtime.
-    rep["closing_bond"] = _add_headtail_bond(struct, cidx[0])
+    bonds = struct.bonds
+    row = np.zeros(1, dtype=bonds.dtype)
+    row["chain_1"] = pep_idx; row["chain_2"] = pep_idx
+    row["res_1"] = last_res; row["res_2"] = first_res
+    row["atom_1"] = c_atom; row["atom_2"] = n_atom
+    row["type"] = BOND_COVALENT_TYPE
+    struct.bonds = np.concatenate([bonds, row])
+    rep["bond"] = "added"
     return rep
 
 
-def _add_headtail_bond(struct, chain_idx) -> dict:
-    """Add a C(last res)->N(first res) bond for the given chain. Discovers the residue->atom and
-    atom-name fields from the real schema; returns what it did (or why it couldn't)."""
-    res = struct.residues
-    atoms = struct.atoms
-    r_chainf = _find_field(res, ["chain", "asym"])
-    a_namef = _find_field(atoms, ["atom_name", "name"])
-    a_resf = _find_field(atoms, ["res_idx", "residue", "res_id"])
-    info = {"res_chain_field": r_chainf, "atom_name_field": a_namef, "atom_res_field": a_resf}
-    if not (r_chainf and a_namef and a_resf):
-        info["error"] = "missing residue/atom linkage fields; pin them from the validator schema dump"
-        return info
-    res_ids = [i for i, rr in enumerate(res) if int(res[r_chainf][i]) == int(chain_idx)] \
-        if res[r_chainf].dtype.kind in "iu" else None
-    # NOTE: finalize the index arithmetic against the validator's schema dump before the full run.
-    info["status"] = "deferred_to_validation"
-    return info
+def n_noncanonical(struct, pep_idx: int) -> int:
+    """Count non-standard (ncAA/N-methyl/D-AA) residues in the peptide chain (is_standard==False)."""
+    chains = struct.chains
+    r0 = int(chains[F_CHAIN_RESIDX][pep_idx]); rn = int(chains[F_CHAIN_RESNUM][pep_idx])
+    isstd = struct.residues[F_RES_ISSTD]
+    return int(sum(1 for i in range(r0, r0 + rn) if not bool(isstd[i])))
 
 
-def convert_one(cif: str, moldir: str, record_meta: dict, out_dir: Path) -> dict:
-    """Parse one complex, apply cyclic/ncAA encoding, dump Structure+Record. Returns a report."""
-    _, Structure, Record, _ = _load_api()
-    struct = parse_structure(cif, moldir)
-    rep = {"pdb": record_meta.get("pdb_id"), "cyclization_type": record_meta.get("cyclization_type")}
-    if record_meta.get("cyclization_type") == "head-to-tail":
-        rep["cyclic"] = set_cyclic(struct, record_meta["pep_chain"], int(record_meta["seq_len"]))
-    out_dir.mkdir(parents=True, exist_ok=True)
-    npz = out_dir / "structures" / f"{record_meta['pdb_id']}.npz"
-    npz.parent.mkdir(parents=True, exist_ok=True)
-    struct.dump(npz)
-    rep["structure_npz"] = str(npz)
-    return rep
-
-
-def validate(cif: str, moldir: str, out_dir: Path) -> int:
-    """Parse one complex, DUMP the real array schema, round-trip, and assert. Prints a report.
-    This is the step to run on an instance with the CCD mols dir to green-light the converter."""
+def validate(cif: str, moldir: str, out_dir: Path, seq_len: int, cyclization: str = "head-to-tail") -> int:
+    """Parse -> encode (cyclic_period + bond for head-to-tail) -> round-trip assert. Returns 0 on PASS."""
     import numpy as np
     _, Structure, _, _ = _load_api()
-    struct = parse_structure(cif, moldir)
-    print("=== STRUCTURE SCHEMA ===")
-    for arr in ["chains", "residues", "atoms", "bonds"]:
-        a = getattr(struct, arr, None)
-        if a is None:
-            print(f"  {arr}: None"); continue
-        print(f"  {arr}: n={len(a)} fields={a.dtype.names}")
-        if len(a):
-            print(f"    row0={a[0]}")
     out_dir.mkdir(parents=True, exist_ok=True)
-    p = out_dir / "rt.npz"
-    n_atoms, n_res = len(struct.atoms), len(struct.residues)
-    struct.dump(p)
-    s2 = Structure.load(p)
-    ok = len(s2.atoms) == n_atoms and len(s2.residues) == n_res
-    print(f"ROUND-TRIP counts_match={ok} (atoms {n_atoms}->{len(s2.atoms)}, res {n_res}->{len(s2.residues)})")
+    st = parse_structure(cif, moldir)
+    na0, nr0, nb0 = len(st.atoms), len(st.residues), len(st.bonds)
+    pep = peptide_chain_index(st, seq_len)
+    res_names_before = [_dec(x) for x in st.residues[F_RES_NAME]]
+    n_nc = n_noncanonical(st, pep) if pep is not None else None
+    added = False
+    if pep is not None and cyclization in ("head-to-tail", "head_to_tail"):
+        rep = set_headtail_cyclic(st, pep, seq_len); added = rep.get("bond") == "added"
+        print("ENCODE:", json.dumps(rep))
+    p = out_dir / "rt.npz"; st.dump(p); s2 = Structure.load(p)
+    counts_ok = len(s2.atoms) == na0 and len(s2.residues) == nr0
+    cyc_ok = int(s2.chains[F_CHAIN_CYCLIC][pep]) == int(seq_len) if pep is not None and cyclization.replace("_", "-") == "head-to-tail" else None
+    bond_ok = len(s2.bonds) == nb0 + 1 if added else None
+    names_ok = [_dec(x) for x in s2.residues[F_RES_NAME]] == res_names_before  # chirality via CCD name
+    ok = counts_ok and (cyc_ok in (True, None)) and (bond_ok in (True, None)) and names_ok
+    print(f"RESULT pep_idx={pep} n_noncanonical={n_nc} counts_match={counts_ok} cyclic_persist={cyc_ok} "
+          f"bond_persist={bond_ok} residue_names_preserved={names_ok} -> {'PASS' if ok else 'FAIL'}")
     return 0 if ok else 1
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="BoltzGen cyclic co-complex -> training npz converter.")
-    ap.add_argument("--validate", metavar="CIF", help="parse+schema-dump+round-trip one CIF (needs --moldir)")
-    ap.add_argument("--moldir", help="CCD mols dir (ALA.pkl ...); from mols.zip of hf datasets/boltzgen/inference-data")
+    ap.add_argument("--validate", metavar="CIF")
+    ap.add_argument("--moldir", help="CCD mols dir (mols.zip from hf datasets/boltzgen/inference-data)")
+    ap.add_argument("--seq-len", type=int, help="peptide length (identifies the peptide chain)")
+    ap.add_argument("--cyclization", default="head-to-tail")
     ap.add_argument("--out", type=Path, default=Path("./bgen_out"))
     args = ap.parse_args(argv)
     if args.validate:
-        if not args.moldir:
-            ap.error("--validate requires --moldir (the CCD mols dir)")
-        return validate(args.validate, args.moldir, args.out)
-    ap.error("nothing to do; use --validate <cif> --moldir <dir> (full-batch conversion driven externally)")
+        if not (args.moldir and args.seq_len):
+            ap.error("--validate requires --moldir and --seq-len")
+        return validate(args.validate, args.moldir, args.out, args.seq_len, args.cyclization)
+    ap.error("use --validate <cif> --moldir <dir> --seq-len N")
 
 
 if __name__ == "__main__":
