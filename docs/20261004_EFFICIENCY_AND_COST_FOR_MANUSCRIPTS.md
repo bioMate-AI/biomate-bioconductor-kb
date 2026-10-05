@@ -74,3 +74,16 @@ the live model list (n/a). Latencies include provider/network and vary with reas
 **NOTE on method:** this replaces the need for a new cost-collection run — RealBio already captured per-model
 token+latency usage; applying real prices is sufficient. (A redundant fresh OpenRouter cost run was started
 then abandoned in favor of this existing data.)
+
+## G. ACTUAL-CHARGED $/task validation (invoice-grade, bioc method-selection, n=40)
+The abandoned OpenRouter cost run DID complete 3 models first, capturing OpenRouter's *actual charged* cost
+(inline `usage.cost`, not tokens×list) on the bioc method-selection task — the one invoice-grade slice:
+| model | actual-charged $/task | in/out tok |
+|---|---:|---|
+| anthropic/claude-opus-5 | **$0.00160** | 135 / 37 |
+| openai/gpt-5.6 | **$0.00031** | 78 / 15 |
+| google/gemini-3.1-pro-preview | **$0.00263** | 77 / 206 |
+| on-prem base 9B | **$0** (local, no API) | — |
+These are the same order as the tokens×list-price estimates in §F (differences are task length — selection is
+lighter than pbpk), **validating that the list-price method in §F is accurate.** So the efficiency numbers can
+be presented as sound, with §G as the invoice-grade anchor for the LLM-cost axis.
