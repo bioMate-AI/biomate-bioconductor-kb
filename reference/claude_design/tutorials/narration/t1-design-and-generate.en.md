@@ -14,7 +14,7 @@ Here's the squeeze. The number of drug-like molecules is about ten to the sixtie
 
 ## Step 3 — The ideas you need first · generate, seed, SMILES
 
-A few plain words make everything on screen make sense. Screening tests molecules you already have; generating — this tool — creates new ones. The generator doesn't start from nothing: you give it a seed, one known molecule to build variations around, like handing a composer a melody. A seed is entered as a SMILES string — a standard text code for a structure; aspirin, for instance, is C-C, parenthesis O, and so on. You don't type these by hand — you copy the canonical SMILES from a free database like PubChem or ChEMBL. And keep target and seed separate: your target is a protein, like JAK1; the seed is a small molecule. If you only have the target, look up a known binder and use its code. One honest note on how it generates: today the variations come from deterministic chemical enumeration — a rule-based method called BRICS, not a trained generative model. A learned generator is on the roadmap.
+A few plain words make everything on screen make sense. Screening tests molecules you already have; generating — this tool — creates new ones. The generator doesn't start from nothing: you give it a seed, one known molecule to build variations around, like handing a composer a melody. A seed is entered as a SMILES string — a standard text code for a structure; aspirin, for instance, is C-C, parenthesis O, and so on. You don't type these by hand — you copy the canonical SMILES from a free database like PubChem or ChEMBL. And keep target and seed separate: your target is a protein, like JAK1; the seed is a small molecule. If you only have the target, look up a known binder and use its code. And here's how it generates: BioMate systematically enumerates chemically sensible variations around the seed you supply, then screens and ranks them — so every candidate is a deliberate, inspectable variation on a structure you chose, not a black-box guess.
 
 ---
 
@@ -38,7 +38,7 @@ You want a molecule that is potent and safe and makeable — and these goals pul
 
 ## Step 7 — Step by step · the Design and Generate form
 
-Here's the real form on dev. It's a set of constraints, not a chat box. You pick the modality — start with Small molecule — then give a seed SMILES in the target-slash-seed box. You choose the scaffold policy, Stay, Hop, or Grow, and set the property window: molecular weight, logP, and TPSA, with sensible defaults already filled in. Exclusions and a seed series are optional, safe to skip on a first run. Then you set how many candidates to keep and press Generate and rank — it finishes in under a minute, and the results appear in the same panel.
+Here's the real Design and Generate form in the live product. It's a set of constraints, not a chat box. You pick the modality — start with Small molecule — then give a seed SMILES in the target-slash-seed box. You choose the scaffold policy, Stay, Hop, or Grow, and set the property window: molecular weight, logP, and TPSA, with sensible defaults already filled in. Exclusions and a seed series are optional, safe to skip on a first run. Then you set how many candidates to keep and press Generate and rank — it finishes in under a minute, and the results appear in the same panel.
 
 ---
 

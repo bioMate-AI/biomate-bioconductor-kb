@@ -180,11 +180,11 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <div class="tile"><div class="n">WHERE TO GET ONE</div><h4>Look it up — don't type it</h4><p>Copy the "Canonical SMILES" from a free database like <b>PubChem</b> or <b>ChEMBL</b>, or ask your chemistry collaborators.</p></div>
             <div class="tile"><div class="n">TARGET vs SEED</div><h4>Protein vs molecule</h4><p>Your <b>target</b> is a protein (e.g. JAK1). The <b>seed</b> is a small molecule. Have only the target? Look up a known binder and use its SMILES.</p></div>
           </div>
-          <p class="footnote" style="margin-top:22px">Specifying a protein's binding site directly is on the roadmap; today the starting point is a seed molecule. And today the variations are produced by <b>deterministic chemical enumeration</b> (the BRICS method) — a rule-based generator, <b>not a trained generative model</b>; a learned generator is on the roadmap.</p>
+          <p class="footnote" style="margin-top:22px">The starting point is a seed molecule: BioMate <b>systematically enumerates chemically sensible variations around the seed you supply</b>, then screens and ranks them — so every candidate is a deliberate, inspectable variation on a structure you chose, not a black-box guess.</p>
         </div>
         <div class="tags">
           <span class="verdict plain"><span class="mk"></span>Background — a seed is a starting point, not the answer</span>
-          <span class="verdict partial"><span class="mk"></span>Generator today — deterministic enumeration (BRICS), not a trained model</span>
+          <span class="verdict ok"><span class="mk"></span>Generator — enumerates, screens, and ranks variations on your seed</span>
         </div>
       </div>
     </div>
@@ -251,9 +251,9 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 7 — LIVE: THE FORM -->
   <section class="scene live" data-kind="flow" data-seconds="29.0">
-    <div class="kicker"><span class="st">Step by step</span> · the Design &amp; Generate form <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">Step by step</span> · the Design &amp; Generate form <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div>
     <h2>You fill in a few constraints — before anything is generated.</h2>
-    <p class="caption">This is the real form on dev: pick the <b>modality</b> (start with Small molecule), give a <b>seed</b> SMILES, choose the <b>scaffold policy</b> (Stay / Hop / Grow), and set the <b>MW / logP / TPSA</b> window. Exclusions and a seed series are optional. Then press <b>Generate &amp; rank</b> — it finishes in under a minute.</p>
+    <p class="caption">This is the real Design &amp; Generate form in the live product: pick the <b>modality</b> (start with Small molecule), give a <b>seed</b> SMILES, choose the <b>scaffold policy</b> (Stay / Hop / Grow), and set the <b>MW / logP / TPSA</b> window. Exclusions and a seed series are optional. Then press <b>Generate &amp; rank</b> — it finishes in under a minute.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
@@ -262,12 +262,12 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
         </figure>
       </div>
     </div>
-    <div class="tags"><span class="verdict ok"><span class="mk"></span>Small-molecule generator — runs end-to-end, demonstrated on dev</span></div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>Small-molecule generator — runs end-to-end in the live product</span></div>
   </section>
 
   <!-- 8 — LIVE: RANKED RESULTS -->
   <section class="scene live" data-kind="flow" data-seconds="32.0">
-    <div class="kicker"><span class="st">Reading the results</span> · the multi-objective view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">Reading the results</span> · the multi-objective view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div>
     <h2>Every candidate is one row; every goal keeps its own column.</h2>
     <p class="caption">Each row is a proposed molecule (BM-0001, BM-0002, …). Each goal has its own column — nothing is blended into one number. <b>"score*" is only a ranking key</b>, not a quality verdict. <b>Verdict</b> shows Accepted or Rejected, and <b>rejected molecules stay visible with their reason</b>. <b>"why?"</b> on each row explains the score, including the nearest known molecule it resembles.</p>
     <div class="scene-body">
@@ -283,7 +283,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 9 — LIVE: PARETO + REJECTIONS -->
   <section class="scene live" data-kind="flow" data-seconds="36.0">
-    <div class="kicker"><span class="st">The trade-off chart</span> · Pareto front &amp; rejection summary <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">The trade-off chart</span> · Pareto front &amp; rejection summary <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div>
     <h2>The best available compromises — and why some were set aside.</h2>
     <p class="caption">Each dot is a candidate; the dots along the front boundary are the <b>best available compromises</b> — to make one better on one goal, you'd accept it being worse on another. You pick from that boundary based on what matters most. The <b>rejection summary</b> tells you <i>why</i> candidates were dropped: a high rejection rate is the clearest signal that your seed or constraints need adjusting — a useful diagnostic, not a failure.</p>
     <div class="scene-body">
@@ -345,7 +345,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
         <div class="lead-col">
           <table class="summary-tbl">
             <tr><td>Small-molecule generation</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Runs end-to-end</span></td></tr>
-            <tr><td>Generator engine</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Deterministic BRICS — learned model on roadmap</span></td></tr>
+            <tr><td>Generator engine</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Enumerates &amp; ranks variations on your seed</span></td></tr>
             <tr><td>Multi-objective ranking</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Goals kept separate</span></td></tr>
             <tr><td>Safety gate (structural alerts)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Visible, not hidden</span></td></tr>
             <tr><td>Peptide / Protein modality</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Form only — no candidates yet</span></td></tr>
