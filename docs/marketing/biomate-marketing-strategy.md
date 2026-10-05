@@ -374,6 +374,12 @@ competitors and must not be used without a head-to-head.
 Compared this session: DeepSeek-V4-pro, Qwen3.8-max, GLM-5.2, Kimi-K3 + Opus-5/GPT-5.6/Gemini-3.1-pro
 (bioc matrix + cost/latency). On-prem base = Qwen3.5-9B. **Refresh vs newest open models periodically** — the
 KB-dividend thesis holds regardless, but baseline numbers drift as open models improve.
+**2026-10-05 refresh (newest open-weight: DeepSeek-V4.1-flash, GLM-5.3, Qwen3.8-2.4T-A95B, Kimi-K3; n=40,
+`docs/20261004_BIOC_SELECTION_MATRIX_RESULTS.md`):** the newest open models do not change the "9B+KB ≈
+frontier" story — with the KB all four reach 0.975–1.000 top-1 (matching the 0.975–1.0 frontier band and the
+9B+KB 0.95), every KB dividend stays positive and scales inversely with bare strength (+2.5pp to +17.5pp), and
+invalid-regime failure remains 0 across the board. (`inclusionai/ling-3.1-flash`, the single newest release,
+was dropped: its free SKU is rate-limited/429 and not scorable.)
 
 ### To convert partial → proven (what to build)
 Hero demo (QC-caught cardiotox / accession reproduction, `…HERO_CASE_STUDY_DEMO_SPEC.md`); a data-perception

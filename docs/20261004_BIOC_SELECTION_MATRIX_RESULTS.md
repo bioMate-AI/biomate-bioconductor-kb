@@ -146,3 +146,43 @@ that also legitimately signal nf-core/proteomicslfq, already credited as accept_
 deploy from a non-main worktree). Follow-up fixes ranked: #2 de-bias the Pass-0 prompt for method queries;
 #3 per-entry reclassification of the bioc subtree (durable root fix); #4 rebuild embeddings + gated dense
 rescue.
+
+## 2026-10-05 open-LLM refresh — newest open-weight models (bare vs +KB, n=40)
+Refreshed the open-LLM arm against the newest open-weight releases on OpenRouter (GET /api/v1/models,
+picked by `created` date, one per distinct family, none already scored above). Same harness
+(`run_bioc_matrix.py` bare + KB arms, `score.py`). Picks and why:
+- `deepseek/deepseek-v4.1-flash` (2026-09-10) — newest DeepSeek open release (CED-arch sparse MoE); distinct
+  from `deepseek-v4-pro` already scored.
+- `z-ai/glm-5.3` (2026-08-18) — newest clean open-weight GLM flagship (the 2026-09-23 `-prime`/`-flashx` SKUs
+  are inference-accelerated servings of the same weights).
+- `qwen/qwen3.8-2.4t-a95b` (2026-08-12) — "the open-weight variant of Qwen3.8 Max" (95B active / 2.4T MoE),
+  the top open Qwen tier.
+- `moonshotai/kimi-k3` (2026-07-16) — open-weight 2.8T multimodal reasoning flagship.
+
+| model | bare top1 | +KB top1 | KB dividend | invalid-regime bare→kb | hallu bare→kb |
+|---|---:|---:|---:|---:|---:|
+| deepseek/deepseek-v4.1-flash | 0.800 | 0.975 | +17.5pp | 0 → 0 | 0.200 → 0.025 |
+| z-ai/glm-5.3 | 0.900 | 1.000 | +10.0pp | 0 → 0 | 0.075 → 0 |
+| qwen/qwen3.8-2.4t-a95b | 0.925 | 1.000 | +7.5pp | 0 → 0 | 0.075 → 0 |
+| moonshotai/kimi-k3 | 0.975 | 1.000 | +2.5pp | 0 → 0 | 0 → 0 |
+
+**Failed / excluded:** `inclusionai/ling-3.1-flash` (2026-10-02, newest overall) is a price-$0 free SKU and
+returned HTTP 429 (rate-limited) on the first task through the runner's 3 internal retries — not scorable, so
+it was dropped and the next newest usable *paid* open-weight from a new family (`moonshotai/kimi-k3`) was
+substituted. `qwen3.8-max-prime` excluded (Qwen-Max is proprietary, not open-weight).
+
+**Caveat (honest, methodology).** The `deepseek-v4.1-flash` bare hallucination (0.200) is mostly 8 empty
+responses: that reasoning-"flash" model exhausts the fixed `max_tokens=600` budget on thinking tokens and
+returns no parseable pick. The KB arm (richer prompt) left only 1 empty. The budget was NOT changed (prior
+frontier/9B runs used the same 600), so these are reported as the no-answer failures they are; a larger token
+budget would likely raise the flash bare scores.
+
+**Headline (honest).** The newest open-weight models do **not** change the "9B+KB ≈ frontier" story — they
+confirm it. With the KB, all four land at 0.975–1.000 top-1, matching the frontier band (0.975–1.0) and the
+on-prem 9B+KB (0.95); every KB dividend is positive and still scales inversely with bare strength (weakest
+bare = DeepSeek-flash 0.80 → +17.5pp; strongest bare = Kimi-K3 0.975 → +2.5pp). invalid-regime failure stays
+0 across all models/arms (consistent with every prior batch: no model makes a wrong-regime pick). KB also
+removes hallucination (DeepSeek 0.20→0.025, GLM/Qwen 0.075→0). **Run cost:** $0.41365 total (OpenRouter
+account `total_usage` delta across all 320 scored calls; the aborted free-tier `ling` attempt was 429s ≈ $0).
+
+Raw predictions: `results/{deepseek_deepseek-v4.1-flash,z-ai_glm-5.3,qwen_qwen3.8-2.4t-a95b,moonshotai_kimi-k3}_{bare,kb}.jsonl`.
