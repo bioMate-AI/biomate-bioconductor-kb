@@ -1814,8 +1814,14 @@ class UnifiedWorkflowSearch:
         if is_subworkflow and "bam_stringtie_merge" not in name.lower():
             if source in ("nfcore", "nfcore_subwf"):
                 score -= 12.0  # nf-core internal components are never standalone pipelines
-            else:
-                score -= 8.0   # bioconductor/biomni subworkflows are executable but partial
+            elif self._detect_pipeline_intent(query):
+                score -= 8.0   # bioconductor/biomni methods: penalize ONLY when the user wants a
+                               # raw-data PIPELINE. For method-level queries (gene list / count matrix /
+                               # ranked statistic / processed object) the specific executable method IS the
+                               # right answer — burying it under the flat -8 demoted the entire bioconductor
+                               # catalog below generic pipelines (retrieval@1 0.375, recall@8 0.825 on
+                               # bioc_method_selection). Extends PR #188's domain-catalog exemption to the
+                               # bioconductor subtree. See docs/20261004_BIOC_SELECTION_MATRIX_RESULTS.md.
 
         # 5c. Pipeline intent boost: when user signals raw data to process,
         # boost full pipelines and penalise package-level Bioconductor tools further.

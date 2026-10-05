@@ -122,3 +122,27 @@ gold so the discrimination signal is not diluted. Reporting both:
 product's rank-1 is a *scientifically-valid* method ~62.5% of the time; the gap to recall@8 (0.825) is the
 remaining ranking headroom. In-context arms unchanged (9B +KB 0.95, frontier ~1.0). accept_retrieval sets
 are auditable per-item in `data.jsonl` + `build_dataset.py` (ACCEPT_RETRIEVAL).
+
+## Retrieval-recall root cause + fix (2026-10-04)
+**Root cause (diagnosed, file:line):** a flat **−8.0 penalty on every Bioconductor subworkflow**
+(`unified_workflow_search.py:1814-1818` via `_is_component_subworkflow:175`) that generic pipelines escape
+— PR #188 exempted the domain catalog but intentionally left the bioconductor subtree penalized; the
+deferred per-entry pass never ran, and this benchmark is 100% bioconductor, so it was maximally exposed.
+Amplified by the Pass-0 LLM prompt ("never rank a subworkflow above a pipeline"). Net swing vs a generic
+rival ≈ −20 pts, dwarfing the ≤+0.5 dense bonus. (Embeddings absent locally + dense rescue hard-disabled is
+a secondary gap — irrelevant until the penalty is gated.)
+
+**Fix shipped (code):** gate the −8 bioc/biomni penalty on `_detect_pipeline_intent(query)` — penalize a
+bioconductor METHOD only when the user actually wants a raw-data PIPELINE; for method-level queries (gene
+list / count matrix / ranked statistic / processed object) the specific executable method is the right
+answer. Keeps the −12 nf-core-internal penalty. Mirrors PR #188's exemption, extended to the bioc subtree.
+
+**Predicted effect (verified offline before deploy, per review-before-expensive-run):** of the 40 queries,
+**37 now ESCAPE the penalty**; only 3 still trip it (pr_04, h_msnb_1, h_msnb_2 — proteomics DDA/mzML queries
+that also legitimately signal nf-core/proteomicslfq, already credited as accept_retrieval). Expect recall@8
+→ ~0.95+ and retrieval@1 up sharply.
+
+**Verification pending:** needs dev deploy (sync) + re-run the 40 queries — HELD for explicit go (shared-dev
+deploy from a non-main worktree). Follow-up fixes ranked: #2 de-bias the Pass-0 prompt for method queries;
+#3 per-entry reclassification of the bioc subtree (durable root fix); #4 rebuild embeddings + gated dense
+rescue.
