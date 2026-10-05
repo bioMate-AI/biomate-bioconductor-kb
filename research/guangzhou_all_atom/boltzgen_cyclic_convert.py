@@ -121,7 +121,10 @@ def set_headtail_cyclic(struct, pep_idx: int, seq_len: int) -> dict:
     row["res_1"] = last_res; row["res_2"] = first_res
     row["atom_1"] = c_atom; row["atom_2"] = n_atom
     row["type"] = BOND_COVALENT_TYPE
-    struct.bonds = np.concatenate([bonds, row])
+    # Structure is a FROZEN dataclass -> reassigning .bonds raises FrozenInstanceError. Use
+    # object.__setattr__ (the chains['cyclic_period'][pep]=seq_len edit above is an in-place array
+    # mutation, which a frozen dataclass allows; appending a bond needs a new array).
+    object.__setattr__(struct, "bonds", np.concatenate([bonds, row]))
     rep["bond"] = "added"
     return rep
 

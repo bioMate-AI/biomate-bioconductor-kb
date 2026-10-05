@@ -43,17 +43,28 @@ bonds   : chain_1, chain_2, res_1, res_2, atom_1, atom_2, type   # row0 type=1 (
 ```
 `parse_mmcif` returns `ParsedStructure`; the Structure is **`ParsedStructure.data`** (not `.structure`).
 
-## PASS/FAIL (samples from bound_cyclic_v1, CCD mols resolved)
-| sample | cyclization | ncAA | round-trip counts | note |
-|---|---|---|---|---|
-| 11MG, 11MH | disulfide | yes | PASS | round-trip of parsed Structure |
-| 148L, 1AXD | sidechain_backbone | yes | PASS | round-trip |
-| 1BCK | head_to_tail | yes | PASS | round-trip |
+## PASS/FAIL — NON-VACUOUS encoding asserts (samples from bound_cyclic_v1, CCD mols resolved)
+| sample | cyclization | ncAA | pep chain (res_num) | ncAA count (is_standard=F) | counts | names (chirality) | cyclic_period | C→N bond | status |
+|---|---|---|---|---|---|---|---|---|---|
+| 11MG | disulfide | yes | **found** (idx 3) | 4 | ✓ | ✓ | n/a | n/a | **PASS** |
+| 1BY5 | sidechain_backbone | yes | **found** (idx 9) | 3 | ✓ | ✓ | n/a | n/a | **PASS** |
+| 1BCK | head_to_tail | yes | **found** (idx 1) | 8 | — | — | — | — | blocked → **fixed** |
+| 3AV9 | head_to_tail | no | **found** (idx 16) | 0 | — | — | — | — | blocked → **fixed** |
 
-- **Round-trip (`Structure.dump`/`load`) is GREEN on 5/5 incl. ncAA** — parse (with CCD mols) + dump/load preserve atom/residue counts and all structured-array fields.
-- **Caveat (now fixed in code):** in that run the cyclic/bond/modified asserts were *vacuous* — they matched the peptide chain by the manifest's PDB chain letter, but BoltzGen renames chains, so no chain matched (`cyc_persist=None`). The converter now identifies the peptide chain by **`res_num == seq_len`** and counts ncAA via **`is_standard==False`**.
-- **Remaining (1 short run):** exercise the encoding assertions with the corrected chain-ID — cyclic_period persists on the peptide chain, appended C→N bond persists (`len(bonds)+1`), ncAA count>0, residue CCD names (chirality) preserved. The code is finalized against the verified schema; this run was not launched (stopped at the 2-instance clearance). Command:
-  `python boltzgen_cyclic_convert.py --validate <pep.cif> --moldir mols/ --seq-len <N> --cyclization head-to-tail`
+**Confirmed working (non-vacuously):**
+- **Peptide-chain identification by `res_num == seq_len`** — all 4 matched the correct short chain (not None). The earlier vacuous-PASS (PDB-letter match) is resolved.
+- **ncAA detection via `is_standard==False`** — nnc = 8 / 0 / 4 / 3, matching the manifest `X` content.
+- **Round-trip counts + residue-CCD-name (chirality) preservation** — PASS on the disulfide + sidechain samples.
+- **cyclic_period in-place set** — works (no error; it's an in-place array edit on the frozen dataclass).
+
+**One bug found + fixed:** head-to-tail failed on `FrozenInstanceError: cannot assign to field 'bonds'`
+— `Structure` is a **frozen dataclass**, so appending the closing C→N bond via `struct.bonds = …` is
+rejected. Fixed with `object.__setattr__(struct, "bonds", …)`. (The in-place `cyclic_period` edit is fine.)
+
+**Remaining: one short confirming run** of the head-to-tail path with the frozen-dataclass fix
+(cyclic_period persists, appended C→N bond persists = `len(bonds)+1`), then this table is fully green.
+The non-head-to-tail path is already green non-vacuously. Command:
+`python boltzgen_cyclic_convert.py --validate <pep.cif> --moldir mols/ --seq-len <N> --cyclization head-to-tail`
 
 ## ⚠️ The blocker that must be satisfied: the CCD `mols` dir
 `parse_mmcif(moldir=…)` needs per-residue pickles (`ALA.pkl`, `MET.pkl`, …). It is **not** auto-present.
