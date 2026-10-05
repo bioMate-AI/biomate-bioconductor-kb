@@ -87,3 +87,22 @@ Temporary Batch job definitions registered for the isolation probes (`chip-macs2
 `macs2probe-py39-same`, `macs2probe-py310-alt`, `macs3probe`, `macs3probe-b`, `spot-lt-probe`) are
 harmless (no cost) but can be deregistered: `aws batch deregister-job-definition --region us-west-2
 --job-definition <name>:1`.
+
+## 2026-10-05 addition — proteomics (5th workflow)
+
+`proteomics/chemoproteomics_pulldown` — built-in real demo + validated end-to-end on Batch (exit 0).
+- **Demo:** real public MaxQuant `proteinGroups.txt` (LFQ-Analyst example, Monash; ~1.9 MB, 1459
+  protein groups), downloaded in-task (merfish pattern), `[demo]`-labeled, honest-fails if offline.
+- **Batch run** (job `849c1fa5`, SUCCEEDED exit 0): real output — `enrichment_ratios.tsv` (42,970 B,
+  per-protein intensities/ratios), `pulldown_summary.json` (`success:true, demo:true, n_proteins:1393,
+  n_enriched_2x:527, median_enrichment_ratio:1.0`), report, versions.yml.
+- **Two latent bugs fixed** (either blocked any run): `versions.yml` was a declared output never
+  written → added a writer; null string-params interpolated to the literal `"null"` (truthy) → added
+  `_norm()`.
+- **Honest QC note:** median enrichment 1.0× is below the gate (≥3×), so the QC gate correctly reports
+  non-specific — this is the correct scientific readout, not a bug: the public demo is a generic
+  3-condition LFQ dataset, not a true specific pulldown-vs-input pair. The workflow still succeeds and
+  emits real MS quantification. Commit `483ec67bf`, synced (`result=healthy`).
+- **Deferred (honest):** `proteomics/phospho_localization` NOT modified — LuciPHOr2 needs ≥50
+  phospho-PSMs (`MIN_NUM_PSMS_MODEL=50`), which a tiny public demo won't yield; a credible demo needs a
+  sized real phospho-enriched mzML + matched FASTA. Not shipped half-working or faked.
