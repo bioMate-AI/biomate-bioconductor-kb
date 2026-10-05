@@ -138,11 +138,10 @@ When the run finishes, open the **After run** section (the same three-tab report
 
 ## 6. Honest limits — what to expect
 
-- **Status: available, not yet validated on real data end-to-end.** `normqpcr_delta_delta_cq_normalization` is
-  a real, indexed BioMate workflow (confirmed in the catalogue) built on the published Bioconductor **NormqPCR**
-  package. BioMate does **not** yet have a recorded real qPCR run proving it end-to-end on the development site.
-  Treat it as *available-but-untested*: the method is standard and the workflow exists, but expect to sanity-check
-  the first run against a value you compute by hand.
+- **Status: runs end-to-end on a bundled example.** `normqpcr_delta_delta_cq_normalization` is a real, indexed
+  BioMate workflow (confirmed in the catalogue) built on the published Bioconductor **NormqPCR** package, and it
+  runs end-to-end on NormqPCR's own bundled example dataset (ΔΔCq normalization). As with any analysis, sanity-check
+  your first run on *your own* data against a value you compute by hand.
 - **The connector label is a routing hint, not a literal workflow.** The qPCR watcher's internal tag
   (`rt_qpcr_expression` → an internal `qpcr_differential_expression` label) does **not** resolve verbatim to a
   catalogue workflow. BioMate routes your Launch to the real NormqPCR workflow by matching your request. If the

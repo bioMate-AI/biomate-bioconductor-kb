@@ -44,9 +44,11 @@ You searched peptides against a protein database. Which pipeline depends on your
   protein database to search against), and `labeling_reagent` (`none` for label-free, or a TMT/iTRAQ option).
   A license-clean variant (`proteomics_dda_search`) also exists.
 - **DIA** (Data-**Independent** Acquisition / SWATH) — the instrument fragments everything in wide windows.
-  → **`nf-core/dia_proteomics_analysis`** (DIA-NN): builds a spectral library from your FASTA, then quantifies
-  peptides and proteins. Inputs: your DIA `.raw`/`.mzML`/`.d`, a `fasta` database, optional `lib` (spectral
-  library), `qvalue` (FDR, default 0.01). `nf-core/diaproteomics` (OpenSWATH/PyProphet) is an alternative.
+  → **`nf-core/diaproteomics`** (OpenSWATH / PyProphet): the recommended, **license-clean** DIA pipeline — it
+  builds or uses a spectral library, then quantifies peptides and proteins. Inputs: your DIA `.raw`/`.mzML`/`.d`,
+  a `fasta` database, optional `lib` (spectral library), `qvalue` (FDR, default 0.01). *(A DIA-NN-based variant
+  (`nf-core/dia_proteomics_analysis`) also exists, but DIA-NN is not license-clean for commercial use — prefer
+  the OpenSWATH pipeline above.)*
 
 *Why the mode matters:* feeding DIA data to a DDA pipeline (or vice-versa) gives wrong or empty results — the
 two acquisition styles produce fundamentally different spectra. Know which mode your method used.
