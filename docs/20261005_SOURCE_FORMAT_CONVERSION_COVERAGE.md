@@ -9,9 +9,24 @@
 | Source format | In repo | Converter today | Status |
 |---|---:|---|---|
 | **Galaxy** (`.ga` / tool XML) | 5,417 | `improved_galaxy_to_nextflow`, `unified_galaxy_nextflow_converter`, `enhanced_process_converter` (576 composer refs) | ✅ covered (Galaxy→NF ~96–99% within catalog) |
-| **Python** | — | biomni NF generation (109 refs) | ✅ covered |
-| **R / Bioconductor** | — | 1,818 bioc NF workflows (`process BIOC_<pkg>`) | ✅ covered |
-| **CLI / bash** | — | 36 / 21 refs; dependency converter (conda/singularity) | ✅ covered |
+| **Python** | — | 1 process wrapping a `python3` heredoc, from Galaxy XML | ✅ **tool-wrap only** / ❌ script-decompose |
+| **R / Bioconductor** | — | 1,818 bioc workflows wrap a package call (`process BIOC_<pkg>`) | ✅ **package-wrap only** / ❌ script-decompose |
+| **CLI / bash** | — | 36 / 21 refs; dependency converter (conda/singularity) | ✅ tool-wrap |
+
+> **Important correction on Python/R (2026-10-05):** the earlier "✅ covered" overstated it. What exists is
+> **tool/package wrapping** — one tool → one NF process, templated, generated largely *from Galaxy XML /
+> Bioconductor metadata* (`generate_biomni_nextflow.py` parses Galaxy XML and emits a single-process
+> heredoc; generated NFs have 1 process block). There is **no** arbitrary-script→NF converter (no Python/R
+> AST decomposer). So:
+> - single tool/package → one process = **done**;
+> - ad-hoc one-off analysis → runs in the **`run_code` sandbox** (correctly NOT converted);
+> - **arbitrary multi-step Python/R analysis → a decomposed multi-process NF pipeline = the GAP** (the
+>   valuable one). Deciding process boundaries / file checkpoints / parallelism is the **same LLM-bound
+>   DAG-resolution core** as Snakemake conversion, and is literally the decomposition task the task-split
+>   flags as model-bound (0.40 vs 0.60).
+> - **Triage first (Python/R only):** unlike Snakemake/WDL/CWL (already pipelines), a Python/R script needs
+>   a *should-this-be-a-pipeline?* decision — convert only when reusable / multi-sample / needs scale-out;
+>   else keep it in `run_code`. That triage is itself a skill.
 | **Jupyter notebooks** (`.ipynb`) | 25 | ⚠️ trace only (1–2 refs) | **GAP (high)** — notebooks hold most ad-hoc analysis |
 | **Snakemake** (`.smk`/Snakefile) | 0 | ❌ none | **GAP (high)** — dominant academic language |
 | **WDL** (`.wdl`) | 0 | ❌ none | **GAP (high)** — GATK/Terra/Cromwell |
