@@ -115,7 +115,7 @@ include a **3.4× CryoEM GPU-bound parallel speedup (92→27 min) at 1.7× lower
 (`docs/20260428…`), **findings caching 10 s→236 ms** (`docs/20260604…`), and **~55 GB / 50–75% container
 cleanup** (`docs/20260429…`, `docs/20260122…`). Projected (designed-for, modeled from AWS list pricing — NOT
 empirical): ~60–70% spot-vs-on-demand GPU savings, 20–50× ADMET array throughput, 3–5× tiered-model latency.
-Full measured-vs-projected table + honesty flags: `docs/20261004_EFFICIENCY_AND_COST_FOR_MANUSCRIPTS.md`.
+**Measured cost+time (RealBio usage × real prices, no new collection):** the on-prem 9B runs each task in 0.5–3.6 s at $0 marginal API, vs frontier ~9–49 s and up to ~$0.028/task on reasoning-heavy tasks — ~10–40× faster and ~$0 vs cents per task (docs/20261004_EFFICIENCY_AND_COST_FOR_MANUSCRIPTS.md §F). Full measured-vs-projected table + honesty flags: `docs/20261004_EFFICIENCY_AND_COST_FOR_MANUSCRIPTS.md`.
 **Honesty:** no invoice-grade cost A/B exists; cost figures are modeled, stated as such.
 
 ## Artifacts

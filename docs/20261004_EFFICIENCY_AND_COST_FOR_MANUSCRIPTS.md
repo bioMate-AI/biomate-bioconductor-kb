@@ -46,3 +46,31 @@ N×-cheaper" figure is modeled from list pricing, so none may be stated as an em
 - No invoice-grade before→after cost comparison exists; all spot/$/run/%-saved numbers are modeled. State as "modeled from AWS list pricing."
 - `dataScope` sampling and lazy step-fetch are shipped but have **no quantified speed/cost gain** — don't assign one.
 - The CryoEM 1-GPU baseline (P49) was "aborted, baseline only" — the 3.4× is parallel-vs-sequential on the same dataset; state that framing.
+
+## F. EMPIRICAL cost + time per task — from RealBio's collected usage × real prices (NO new collection)
+Built from the 53 committed `results/*/*.usage.json` files (measured token counts + latency p50/p95) ×
+current OpenRouter model prices. This is the measured cost+TIME difference the modeled rows in §C approximated.
+Tasks where all models overlap: boin / pbpk / drug_discovery_e2e (frontier) + routing/param/etc. (local).
+
+| model | time/task (range) | $/task (range) | basis |
+|---|---|---|---|
+| **on-prem base 9B** | **0.5–3.6 s** (routing 1.3s, pbpk 0.7s, boin 0.8s) | **$0 API** (local; amortized ≈ g5 spot $0.50/h ÷ throughput) | measured latency; local = no API bill |
+| anthropic/claude-opus-5 | 2.4–11.4 s | $0.003–0.016 | tokens×real price |
+| google/gemini-3.1-pro | 3.4–16.3 s | $0.004–0.023 | " |
+| deepseek/deepseek-v4-pro | 7.8–36.2 s | $0.0002–0.0007 | " |
+| moonshotai/kimi-k3 | 2.7–42.6 s | $0.003–0.028 | " |
+| z-ai/glm-5.2 | 2.8–20.8 s | $0.0014–0.014 | " |
+| openai/gpt-5.6-luna | 2.2–17.4 s | $0.0001–0.0019 | " |
+
+**Headline (empirical):** the on-prem 9B runs each task in **0.5–3.6 s at $0 marginal API**, vs frontier at
+**~9–49 s and up to ~$0.028/task** on reasoning-heavy tasks (pbpk/boin) — i.e. **~10–40× faster and ~$0 vs
+cents per task**, because frontier reasoning models spend large output/reasoning-token budgets (pbpk: 9–49s,
+up to ~2,000 output tokens). At 10k tasks/day that is roughly $0–$few vs **$70–$280/day** in frontier API.
+**Caveats:** $/task = measured tokens × *current list* price (invoice-adjacent, not a billed statement);
+local models' output tokens were not captured (irrelevant — $0 API); gpt-5.6 and qwen3.8-max had no price in
+the live model list (n/a). Latencies include provider/network and vary with reasoning length. Source: the
+`.usage.json` files; prices OpenRouter /models (fetched 2026-10-04).
+
+**NOTE on method:** this replaces the need for a new cost-collection run — RealBio already captured per-model
+token+latency usage; applying real prices is sufficient. (A redundant fresh OpenRouter cost run was started
+then abandoned in favor of this existing data.)
