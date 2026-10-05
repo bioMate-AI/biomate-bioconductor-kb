@@ -207,3 +207,18 @@ benchmark claim will raise.
 **Consolidate the three on-prem drafts** into one manuscript with reconciled numbers, honest
 family-holdout retriever results, and the completed full-corpus CPT decision row, before that arc is
 submitted anywhere.
+
+---
+
+## 5. Paper F (NEW, SEPARATE) — heterogeneous-source → Nextflow conversion & execution-graded benchmark
+
+**Plan:** `docs/20261005_PAPER_F_CODE_CONVERSION_PLAN.md`. **Status:** forward-looking (benchmark built +
+grader validated; converters + local-9B eval + SFT pending). **Core claim:** one capability — *implicit-DAG
+recovery* — turns Snakemake/WDL/CWL/Galaxy/notebooks/Python-R scripts into reproducible, QC-gated Nextflow
+pipelines via a stub-run verify-fix loop, measured by an **execution** grader (parse→stub-run→run), not
+similarity. **Venue:** Bioinformatics / GigaScience or a benchmark track; decide after the local-9B result.
+
+**RULE (per user, 2026-10-05):** the WDL/CWL/notebook/script-conversion & implicit-DAG-recovery work and its
+benchmark (`evaluation/datasets/nextflow_coding/`) are **Paper F ONLY** — do **not** fold them into A–E
+(RealBio, Bioc-KB ×2, Paper B, Paper D, Paper E). Note: Paper B/D's "task/request decomposition"
+(orchestration planning over existing workflows) is a *distinct* topic and stays in those papers.
