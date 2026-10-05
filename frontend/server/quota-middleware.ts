@@ -18,26 +18,34 @@ const GALAXY_URL = process.env.GALAXY_URL ?? 'http://localhost:8081';
 // E2E_TEST_TOKEN env var is set (dev-only by convention).
 const _E2E_TOKEN = process.env.E2E_TEST_TOKEN;
 function isE2EBypass(req: Request): boolean {
+  // NEVER bypass in production, even if the token env is present (mirrors auth-middleware.ts).
+  // A leaked/copied E2E_TEST_TOKEN must not become a billing/auth bypass on the paying platform.
+  if (process.env.NODE_ENV === 'production') return false;
   if (!_E2E_TOKEN) return false;
   return req.headers['x-e2e-test-token'] === _E2E_TOKEN;
 }
 
 /**
- * Billing quota is a SaaS (our own AWS platform) concept. On-premise deployments run the
- * customer's own compute/infra and do NOT meter per-user quota, so the check must be skippable.
+ * Billing quota is a SaaS (our own AWS platform) concept. On-premise deployments run the customer's
+ * own compute/infra and do NOT meter per-user quota, so enforcement must be skippable.
  *
- * Configurable:
- *   - Explicit: BIOMATE_QUOTA_ENFORCEMENT = "on" | "off" (also true/false/1/0) wins.
- *   - Default (inferred from deployment): enforce ONLY on the AWS SaaS platform —
- *       on-prem is detected by a MinIO endpoint (S3_ENDPOINT_URL set) OR not running on AWS
- *       Batch (NEXTFLOW_USE_AWS !== "true"); in those cases quota is NOT enforced.
+ * FAIL-SAFE by design: quota is ENFORCED by default and can only be disabled by an EXPLICIT opt-out.
+ * We deliberately do NOT infer "don't bill" from infra vars (NEXTFLOW_USE_AWS / S3_ENDPOINT_URL): a
+ * stray or loosely-spelled infra var (e.g. NEXTFLOW_USE_AWS=1, or an S3 VPC/FIPS/PrivateLink endpoint)
+ * must never silently turn billing OFF on the paying platform.
+ *
+ * To disable on-premise, set ONE of (checked case-insensitively):
+ *   - BIOMATE_QUOTA_ENFORCEMENT = off | false | 0 | no   (dedicated quota toggle)
+ *   - BIOMATE_DEPLOYMENT        = onprem | on-prem | on_prem | onpremise | on-premise
+ * BIOMATE_QUOTA_ENFORCEMENT = on | true | 1 | yes forces enforcement.
  */
 export function quotaEnforcementEnabled(): boolean {
-  const explicit = (process.env.BIOMATE_QUOTA_ENFORCEMENT || '').toLowerCase();
-  if (['on', 'true', '1', 'yes'].includes(explicit)) return true;
+  const explicit = (process.env.BIOMATE_QUOTA_ENFORCEMENT || '').trim().toLowerCase();
   if (['off', 'false', '0', 'no'].includes(explicit)) return false;
-  const onPrem = !!process.env.S3_ENDPOINT_URL || process.env.NEXTFLOW_USE_AWS !== 'true';
-  return !onPrem; // enforce only on AWS SaaS when not explicitly configured
+  if (['on', 'true', '1', 'yes'].includes(explicit)) return true;
+  const dep = (process.env.BIOMATE_DEPLOYMENT || '').trim().toLowerCase();
+  if (['onprem', 'on-prem', 'on_prem', 'onpremise', 'on-premise'].includes(dep)) return false;
+  return true; // DEFAULT: enforce (fail-safe)
 }
 
 // Tight IP-based fallback for callers without a billing account
