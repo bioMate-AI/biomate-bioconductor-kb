@@ -82,3 +82,27 @@ Caveats: @1 is strict (a generic-GSEA top pick is arguably acceptable for a GSEA
 fairer retrieval metric); some golds have reasonable acceptable-alts not yet encoded.
 
 Raw: `results/full-harness_retrieval.jsonl`.
+
+## COMPOSITE arm — retrieve → KB-grounded selection (validates the product fix), n=40
+Runs the real product path: live retrieval (top-8) THEN a KB-grounded selection step over the retrieved
+candidates (gpt-4.1 selector), instead of taking retrieval's rank-1.
+
+| metric | value |
+|---|---:|
+| retrieval@1 (rank-1 alone) | ~0.38–0.53 (non-deterministic LLM retrieval) |
+| recall@8 (gold in retrieved top-8) | 0.825 |
+| **composite@1 (retrieve → KB-select)** | **0.800** |
+| conditional-select (pick gold \| gold retrieved) | **0.97** |
+
+**Conclusion — the fix is quantified.** Adding a KB-grounded selection step over the retrieved top-k roughly
+DOUBLES end-to-end top-1 (≈0.38–0.53 → 0.80). When the gold method is retrieved, the selector picks it 97%
+of the time (composite ≈ recall@8 × conditional-select = 0.825 × 0.97 ≈ 0.80). So **selection is essentially
+solved; the remaining ceiling is retrieval RECALL (0.825), not the LLM.** Product action: route retrieved
+top-k (with descriptions) through the selection step rather than surfacing retrieval rank-1; the next lever
+to raise the ceiling is retrieval recall (better embeddings / candidate coverage), not a better selector.
+
+### Four-arm summary (bioc method selection, n=40)
+- bare (names, fixed siblings): 9B 0.80, frontier ~1.0
+- +KB (described, fixed siblings): 9B 0.95 (+15pp), invalid-regime 0.125→0
+- full-harness retrieval@1 (live, full catalog): ~0.38–0.53 (ranking-limited); recall@8 0.825
+- composite (retrieve→KB-select): 0.80, conditional-select 0.97 → the right product design
