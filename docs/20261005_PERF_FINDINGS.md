@@ -78,3 +78,41 @@ is a cold start on the first job after idle. Levers, by impact:
 
 None of these are implemented yet — they're consequential (canonical DB / shared Batch CE / hot search
 path), so flagging for a go-ahead before changing anything.
+
+---
+
+## VALIDATION (2026-10-05, deployed to dev + verified)
+
+Validated each change on dev for correctness, no-new-errors, and actual benefit (the user asked —
+rightly). Result: **2 of 3 kept, 1 reverted as ineffective.**
+
+### ✅ DB indexes — VALIDATED, KEPT
+Deployed to dev (DB synced, dev auto-backed-up). Verified on dev: `idx_wf_name_lower` +
+`idx_wf_domain_exec` present, `integrity_check=ok`, 4210 rows, WSI row intact, and
+`EXPLAIN QUERY PLAN` for `lower(name)=?` now shows **`SEARCH … USING INDEX idx_wf_name_lower`**
+(was a full SCAN). Additive, result-identical, free. Kept.
+
+### ✅ Search (workflow_json deferral + read PRAGMAs) — VALIDATED, KEPT
+Exercised the **deployed** `UnifiedWorkflowSearch` in-container: `search("rnaseq differential
+expression")` → top result **nf-core/rnaseq** (correct ranking), `workflow_json=None` on the hot path
+(deferral works), and the `include_workflow_json=True` path **still returns the blob** (not broken).
+Raw deployed FTS query with `NULL AS workflow_json` returns correct results for rnaseq/admet/nuclei
+(0.2–1.2 ms), no SQL error. Dev Galaxy logs: **no new tracebacks/errors** since deploy. Result-identical
+by construction (the blob was discarded to None on that path anyway). Kept.
+
+### ❌ Batch warm pool (minvCpus=4) — VALIDATED AS INEFFECTIVE, REVERTED
+The warm node that `minvCpus=4` keeps is an **m5.xlarge (4 vCPU / 16 GB)**, but a typical nextflow job
+(merfish, `process_medium`) requests **6 vCPU / 36 GB** — it does NOT fit the warm node, so Batch
+provisions a bigger instance anyway (observed: the test job sat RUNNABLE ~2 min while a new node spun
+up; the warm node sat idle). So min=4 would waste ~$5/day without speeding typical jobs. **Reverted to
+minvCpus=0.** Warm-start is memory-bound here (jobs need ~36 GB), so a *useful* warm node would be an
+r5.2xlarge-class (8 vCPU / 64 GB), ~$12/day, and Batch's vCPU-only `minvCpus` doesn't cleanly guarantee
+that RAM — making warm-pool an awkward, costly lever, not the clean win it looked like. Left OFF;
+offered to the owner as a deliberate cost decision if interactive latency matters more than ~$12/day.
+
+### Net
+- **Kept (free, validated):** DB indexes + search deferral/PRAGMAs — correctness confirmed, no new
+  errors, faster lookups/less I/O.
+- **Reverted:** the warm pool (ineffective at min=4; the clean fix is costly + awkward).
+- **Workflow cold-start** remains the real latency, but the better lever is image pre-caching
+  (shrink STARTING→RUNNING pull time) rather than a memory-mismatched warm pool. Not pursued yet.
