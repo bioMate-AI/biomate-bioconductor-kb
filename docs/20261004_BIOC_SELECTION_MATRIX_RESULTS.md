@@ -34,3 +34,25 @@ match it." Optionally harden the benchmark with more obscure/confusable method t
 even strong models (current set is near-ceiling for frontier).
 
 Raw predictions: `evaluation/datasets/bioc_method_selection/results/*.jsonl`.
+
+## HARDENED 40-item matrix — incl. base-9B arm (the real test)
+Added 16 obscure same-package variant triples (edgeR/DESeq2/fgsea/GSEA-ontology/MSnbase/scran) and the
+base Qwen3.5-9B arm (served on vLLM, bare vs +KB).
+
+| model | bare top1 | +KB top1 | KB dividend | invalid-regime bare→kb |
+|---|---:|---:|---:|---:|
+| openai/gpt-5.6 | 1.000 | 1.000 | 0 | 0 → 0 |
+| anthropic/claude-opus-5 | 1.000 | 0.975 | −2.5pp | 0 → 0 |
+| google/gemini-3.1-pro-preview | 0.975 | 1.000 | +2.5pp | 0 → 0 |
+| deepseek/deepseek-v4-pro | 0.825 | 0.923 | +9.8pp | 0 → 0 |
+| **base Qwen3.5-9B (on-prem)** | **0.800** | **0.950** | **+15.0pp** | **0.125 → 0** |
+
+**Headline (honest):** the KB dividend scales inversely with model strength. Frontier models already know
+these Bioconductor methods (≈0 dividend, near-ceiling even on obscure variant triples); the weaker open
+model gains +9.8pp; the **small on-prem 9B gains +15pp (0.80→0.95), landing next to frontier (0.975–1.0).**
+Critically, the 9B made **invalid-regime method choices on 12.5% of items without the KB** (e.g. ORA on
+ranked data) and the KB drove that to **0** — so the KB is both an accuracy and a *correctness/safety* lever
+for a small model. This is the Bioconductor-method-granularity analog of the routing result (9B 0.68→0.885
+with descriptions) and the direct evidence that "the KB, not the model, lets a small on-prem system pick the
+right Bioconductor method from scientific context." Frontier is near-ceiling, so to discriminate strong
+models further the set would need even more obscure methods; the on-prem claim is already clean.
