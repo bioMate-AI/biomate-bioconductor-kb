@@ -150,30 +150,18 @@ describe("doc<->code drift: catalog counts (live DB is the truth)", () => {
     { label: "galaxy-assistant.ts (agent system prompt)", file: GALAXY_ASSISTANT },
   ];
 
-  // NOTE (2026-09-20): these three files CURRENTLY still contain the stale
-  // "2,455 / 34 domains" strings (tracked as II.1 mismatch -> Appendix E in
-  // coverage-ledger.md). We therefore assert on the DELTA, not absence:
-  //   - the moment someone fixes ONE of them to the live number, this test
-  //     tells us (so the ledger can flip that row green), and
-  //   - if a NEW stale count (e.g. a hypothetical "5,000") is introduced it is
-  //     still caught by the DB cross-check test below.
-  // We keep an explicit inventory so the count is itself a tripwire.
-  it("inventories every agent-facing file that still quotes a stale catalog size", () => {
+  // UPDATE (2026-10-05): all three agent-facing files were corrected from the
+  // stale "2,455 / 34 domains" to the live "4,200+ / 36" after the search/DB
+  // index refresh (live total 4,210 workflows). The inventory must now be EMPTY.
+  // If this set GROWS, a new stale count was (re)introduced -> fix the file, do
+  // not relax this expectation.
+  it("no agent-facing file still quotes a stale catalog size", () => {
     const offenders = AGENT_FACING.filter(({ file }) => {
       const txt = read(file);
       return STALE_CATALOG_COUNTS.some((s) => txt.includes(s));
     }).map((o) => o.label);
 
-    // Ground truth on 2026-09-20: all three still carry the stale "2,455".
-    // If this set SHRINKS, someone corrected a file -> update this expectation
-    // (and flip the ledger row). If it GROWS, a new drift was introduced.
-    expect(offenders.sort()).toEqual(
-      [
-        "MCP tools_manifest.py (agent tool descriptions)",
-        "galaxy-assistant.ts (agent system prompt)",
-        "orchestrator.ts (agent orchestrator prompts)",
-      ].sort(),
-    );
+    expect(offenders.sort()).toEqual([]);
   });
 
   it.skipIf(db === null)(
@@ -202,16 +190,19 @@ describe("doc<->code drift: catalog counts (live DB is the truth)", () => {
     },
   );
 
-  it("CLAUDE.md still records the historical 2,455/34 figure (documented stale, tracked in ledger)", () => {
-    // CLAUDE.md line ~557 is the canonical source of the "2,455 / 34" figure.
-    // It is developer-facing project memory, not a user/agent surface, so it is
-    // allowed to carry the historical number -- but we ASSERT its presence so
-    // that if it is ever updated to the live count, this test flags that the
-    // repo-wide correction has begun (and the ledger row can move green).
+  it("CLAUDE.md carries the live catalog count, not the stale 2,455/34 figure", () => {
+    // CLAUDE.md line ~557 is the canonical source of the catalog figure. The
+    // repo-wide correction completed 2026-10-05: it now records the live
+    // 4,210 / 42-domain count. Assert the stale figure is gone AND a live
+    // ~4,2xx count is present, so a regression to a hard-coded stale number fails.
     const txt = read(CLAUDE_MD);
     expect(
       txt.includes("2,455 workflows across 34 biological domains"),
-      "CLAUDE.md no longer carries the stale 2,455/34 line -- update the ledger II.1 row and the agent-facing strings to the live 4,200/42/70",
+      "CLAUDE.md regressed to the stale 2,455/34 catalog line",
+    ).toBe(false);
+    expect(
+      /4,2\d\d workflows/.test(txt),
+      "CLAUDE.md should record the live ~4,2xx workflow count",
     ).toBe(true);
   });
 });
