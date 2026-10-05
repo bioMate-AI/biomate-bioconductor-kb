@@ -152,7 +152,7 @@ PY
   aws s3 cp "$SMOKE_CFG" "$OUT_S3/status/smoke.yaml" --only-show-errors || true
   stage smoke_train
   cd "$ROOT/boltzgen"
-  python src/boltzgen/resources/main.py "$SMOKE_CFG" name=cyclic_smoke \
+  WANDB_MODE=disabled WANDB_SILENT=true python src/boltzgen/resources/main.py "$SMOKE_CFG" name=cyclic_smoke \
      ${SMALL_CKPT:+pretrained=$SMALL_CKPT} 2>&1 | tee "$ROOT/status/smoke_train.log" || echo "SMOKE_TRAIN_RC=$?"
   aws s3 cp "$ROOT/status/smoke_train.log" "$OUT_S3/status/smoke_train.log" --only-show-errors || true
   # verdict
