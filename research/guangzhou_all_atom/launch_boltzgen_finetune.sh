@@ -30,6 +30,16 @@ stage(){ printf '{"stage":"%s","time":"%s"}\n' "$1" "$(date -u +%FT%TZ)" > "$ROO
 finish(){ rc=$?; trap - EXIT; [ "$rc" -ne 0 ] && stage failed || stage done_rc0; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; sleep 4; shutdown -h now; exit "$rc"; }
 trap finish EXIT
 (while sleep 60; do aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; done) &
+BUCKET=$(echo "$OUT_S3" | cut -d/ -f3)   # derive from OUT_S3 (not passed via UD)
+# huggingface_hub 2.x drops `huggingface-cli` -> use the python API (called after conda activate)
+hfget(){ python - "$1" "$2" "${3:-dataset}" <<'PY'
+import sys, shutil
+from huggingface_hub import hf_hub_download
+repo, fn, rt = sys.argv[1], sys.argv[2], sys.argv[3]
+p = hf_hub_download(repo, fn, repo_type=rt)
+shutil.copy(p, fn); print("hfget ok", fn)
+PY
+}
 
 stage installing
 for a in 1 2 3 4 5; do aws s3 cp "$OUT_S3/code/boltzgen_introspect.py" "$ROOT/code/" --only-show-errors && aws s3 cp "$OUT_S3/code/boltzgen_cyclic_convert.py" "$ROOT/code/" --only-show-errors && break; sleep 8; done
@@ -46,16 +56,16 @@ conda activate bg; set -u
 git clone --depth 1 https://github.com/HannesStark/boltzgen "$ROOT/boltzgen" 2>&1 | tail -3
 cd "$ROOT/boltzgen"
 pip install -q -e ".[dev]" 2>&1 | tail -8 || { echo "FATAL: boltzgen install failed"; exit 1; }
-pip install -q "huggingface_hub[cli]" pyyaml 2>&1 | tail -2
+pip install -q huggingface_hub pyyaml 2>&1 | tail -2
 python -c "import boltzgen, torch; print('boltzgen ok; cuda', torch.cuda.is_available())"
 
 stage fetching_data
 mkdir -p "$ROOT/dl"; cd "$ROOT/dl"
 # CCD mols (required by parse_mmcif)
-huggingface-cli download boltzgen/inference-data mols.zip --repo-type dataset --local-dir . 2>&1 | tail -2 || true
+hfget boltzgen/inference-data mols.zip dataset 2>&1 | tail -2 || true
 [ -f mols.zip ] && { mkdir -p mols && unzip -q -o mols.zip -d mols && echo "mols: $(ls mols | wc -l) files"; } || echo "WARN: mols.zip not fetched"
 # shipped training targets (to introspect Record/Manifest construction) + fold ckpt + small ckpt
-huggingface-cli download boltzgen/boltzgen1_train targets.zip --repo-type dataset --local-dir . 2>&1 | tail -2 || true
+hfget boltzgen/boltzgen1_train targets.zip dataset 2>&1 | tail -2 || true
 [ -f targets.zip ] && { mkdir -p shipped && unzip -q -o targets.zip -d shipped && echo "shipped targets: $(find shipped -maxdepth 3 -name manifest.json | head -1)"; } || echo "WARN: targets.zip not fetched"
 
 stage "running_${MODE}"
@@ -71,7 +81,7 @@ elif [ "$MODE" = "smoke" ]; then
   cd "$ROOT/dl"
   stage smoke_fetch
   # small structure-trained ckpt (fine-tune init) + boltz2 fold ckpt (val validator dependency)
-  huggingface-cli download boltzgen/boltzgen-1 boltzgen1_structuretrained_small.ckpt --local-dir . 2>&1 | tail -2 || true
+  hfget boltzgen/boltzgen-1 boltzgen1_structuretrained_small.ckpt model 2>&1 | tail -2 || true
   SMALL_CKPT=$(find "$ROOT/dl" -name boltzgen1_structuretrained_small.ckpt | head -1)
   # our cyclic manifest + a ~20-complex subset of CIFs (fetch from RCSB)
   aws s3 cp "s3://$BUCKET/cyclic_peptide/datasets/bound_cyclic_v1/bound_cyclic_manifest.jsonl" "$ROOT/dl/bound_cyclic_manifest.jsonl" --only-show-errors || \
