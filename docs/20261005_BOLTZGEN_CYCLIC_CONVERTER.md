@@ -102,3 +102,30 @@ On an instance (or box) with BoltzGen installed:
 ## Files
 - `research/guangzhou_all_atom/boltzgen_cyclic_convert.py` — converter (verified API; validation pending).
 - Cloud runs: `s3://knowledge-datasets-1759951976/cyclic_peptide/runs/boltzgen-convert*` (logs + api_introspect.txt).
+
+---
+
+## Fine-tune smoke status (2026-10-05, run bgen-ft-smoke-20261005T170731Z) — NOT green yet; 2 blockers pinned
+
+Pipeline now runs end-to-end through: boltzgen install + **CUDA True**, `mols.zip` (45,227 CCD), small
+ckpt `boltzgen1_structuretrained_small.ckpt`, batch-convert (**4/20 ok → manifest written**), and reaches
+BoltzGen model instantiation. `launch_boltzgen_finetune.sh` + `boltzgen_cyclic_convert.py --batch`.
+
+**Working/staged:** env+CUDA, mols dir, small ckpt, converter `--validate` (green 4/4), batch produces a
+valid `targets/manifest.json` for the complexes that parse (the 4 disulfide: 11mg/11mh/1bom/1bon).
+
+**Blocker 1 — converter `--batch`: "RuntimeError: no subchain C" on 16/20.** Only disulfide complexes
+converted; most failed. The `--validate` path identifies the peptide chain by `res_num` and works; the
+`--batch` path still trips parse_mmcif on a chain-id/assembly mismatch ("no subchain <letter>"). **Fix:**
+in the batch path, stop relying on the original `pep_chain` letter (BoltzGen renames/assembly-expands
+chains) — identify the peptide chain by `res_num==seq_len` as `--validate` does, and handle parse_mmcif
+assembly chains.
+
+**Blocker 2 — training: `ValueError: Invalid moldir … training_data/mols` at
+`model.refolding_validator.analyze_task.data`.** The refolding validator is INSTANTIATED at model-build
+time regardless of trainer val settings (so `val_check_interval`/`limit_val_batches=0` don't prevent it).
+**Fix:** set the refolding_validator's `moldir` to the real mols dir in the smoke config, OR null
+`model.refolding_validator` for the smoke.
+
+**Next step = those 2 fixes, then one smoke run** (no new model/converter risk — both are config/plumbing).
+Instance self-terminated; no cyclic GPU instances running.
