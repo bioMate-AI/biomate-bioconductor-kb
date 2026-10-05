@@ -88,6 +88,16 @@ Each needs HTML + EN+CN narration, same contract. Ground model context with exte
 3. Author + render the remaining D3/D4/S1/S4/B1.
 4. Capture Hero A live panel → EN+CN.
 
+## Resolution (2026-10-05)
+Peer session `biomate-review-14` confirmed it is the active video/tutorial session working **in this
+worktree** under direct user direction (concept-card alignment fix; internal lane-name scrub on m1/t0
+EN+ZH; m1/t0 re-renders; flagship/t3/t4 re-rendered + uploaded to Drive; background job generating real
+m2 (DESeq2/GSE52778) + qpcr (ΔΔCq) assets). So the video workstream is **NOT** moved to the
+`cursor/tutorial-series-on-dev-lineage-4ea7` lineage — it stays owned by session 14 here. This session
+(LLM + marketing + papers) does not touch video artifacts or `scripts/recording/`. Transfer closed.
+
 ## Change log
 - 2026-10-05 — created to transfer the tutorial/video workstream off the LLM/marketing session.
   Inventory only; no video content changed.
+- 2026-10-05 — resolution recorded: session 14 owns video in-worktree (no lineage move). Peers 49
+  (immune-FM) and 76 (backend workflows) declined; the handoff is closed.
