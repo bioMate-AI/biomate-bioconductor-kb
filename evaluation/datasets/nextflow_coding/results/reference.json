@@ -1,0 +1,251 @@
+{
+  "aggregate": {
+    "benchmark": "nextflow_coding",
+    "n_tasks": 12,
+    "tierA_pass_rate": 1.0,
+    "tierB_pass_rate": 1.0,
+    "tierC_pass_rate": 1.0,
+    "tierC_eligible": 12,
+    "mean_score": 1.0,
+    "by_kind": {
+      "convert": 1.0,
+      "fix": 1.0,
+      "write": 1.0
+    }
+  },
+  "results": [
+    {
+      "id": "convert_bash_greeting",
+      "kind": "convert",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "greeting.txt",
+          "contains": [
+            "Hello, BioMate!"
+          ],
+          "found": "work/ed/c9046d9a87c0b6b0c4ce804e274402/greeting.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_bash_wordcount",
+      "kind": "convert",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "wordcount.txt",
+          "contains": [
+            "4"
+          ],
+          "found": "work/a9/aa06fc1617ceacb6671566b14fbd44/wordcount.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_python_sort",
+      "kind": "convert",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "sorted.txt",
+          "contains": [
+            "apple",
+            "banana",
+            "cherry"
+          ],
+          "found": "work/65/37ccc06f681e956513f9c2c32bb7aa/sorted.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_snakemake_chain",
+      "kind": "convert",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "upper.txt",
+          "contains": [
+            "HELLO"
+          ],
+          "found": "work/4a/9c36c157ff4d7c3009170816067420/upper.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "fix_dsl1_dsl2_mix",
+      "kind": "fix",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "g.txt",
+          "contains": [
+            "ready"
+          ],
+          "found": "work/1b/0a57d86a201bc0cdbee4c18727e671/g.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "fix_missing_output_emit",
+      "kind": "fix",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "upper.txt",
+          "contains": [
+            "HELLO"
+          ],
+          "found": "work/ee/719342fcd4c5fd13648dd1c26ef4b6/upper.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "fix_channel_cardinality",
+      "kind": "fix",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "pair.txt",
+          "contains": [
+            "left right"
+          ],
+          "found": "work/4f/6468ad5e56cb270bf5aebc290a7dce/pair.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "fix_bad_process_invocation",
+      "kind": "fix",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "hi.txt",
+          "contains": [
+            "hi there"
+          ],
+          "found": "work/be/1bb96170587329336add1bfa738a1a/hi.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "write_status_pipeline",
+      "kind": "write",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "status.txt",
+          "contains": [
+            "pipeline-ok"
+          ],
+          "found": "work/33/cee5685d7c8241bd3feaf976c91845/status.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "write_two_step_count",
+      "kind": "write",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "count.txt",
+          "contains": [
+            "5"
+          ],
+          "found": "work/00/2f9892e4e9ca47c3baea8f441bcf26/count.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "write_fanout_collect",
+      "kind": "write",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "all.txt",
+          "contains": [
+            "tag:a",
+            "tag:b",
+            "tag:c"
+          ],
+          "found": "work/5e/97bf7b31692c3954e22cb3bd68cc79/all.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "write_param_default",
+      "kind": "write",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "outputs": [
+        {
+          "glob": "msg.txt",
+          "contains": [
+            "hi, world"
+          ],
+          "found": "work/4d/9dabd7ae2de0df43a80a8bdcdd7eaa/msg.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    }
+  ],
+  "note": "grader sanity-check: all 12 gold reference/*.nf must score 1.0 (A/B/C). Regression fixture."
+}
