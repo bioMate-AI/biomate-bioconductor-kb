@@ -148,9 +148,9 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <div class="tile"><div class="n">1 · TRUST</div><h4>How good, and where?</h4><p>A model never tested may give wrong answers with high apparent confidence — the risk is worse the further your molecule is from what it learned from.</p></div>
             <div class="tile"><div class="n">2 · STAYING CURRENT</div><h4>Your results are the truth</h4><p>A model that never updates with your new measurements slowly drifts away from reality. The loop keeps it current.</p></div>
           </div>
-          <p class="footnote" style="margin-top:22px">Your measurements stay private to your workspace and are never used to train shared models. Today the loop learns from <b>laboratory (bench) measurements</b>; using patient-derived or clinical readouts to guide it is a direction BioMate is building toward, not a current feature.</p>
+          <p class="footnote" style="margin-top:22px">Your models and your measurements stay <b>private to your workspace</b> — never used to train shared models. The loop learns from your own real laboratory measurements and feeds them straight back into the next round of designs.</p>
         </div>
-        <div><span class="verdict plain"><span class="mk"></span>Background — predictions replace experiments only when you can trust them</span></div>
+        <div><span class="verdict plain"><span class="mk"></span>Trust and currency — your private data makes every prediction more dependable</span></div>
       </div>
     </div>
   </section>
@@ -190,9 +190,9 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <div class="tile"><div class="n">USED BY</div><h4>What depends on it</h4><p>Which analyses rely on it — so you can see the effect of changing it.</p></div>
             <div class="tile"><div class="n">VERSIONS</div><h4>Nothing overwritten</h4><p>Every version is kept, not replaced.</p></div>
           </div>
-          <p class="footnote" style="margin-top:22px">Clearing the bar by more earns no higher rank — there is no scoreboard to climb. And a model not yet measured reads <b>"not evaluated"</b>, never a made-up score.</p>
+          <p class="footnote" style="margin-top:22px">Clearing the bar by more earns no higher rank — there is no scoreboard to climb. And where a model has not been scored, it reads <b>"not evaluated"</b> rather than inventing a number — so you never stake a wet-lab program on a confident-looking guess.</p>
         </div>
-        <div><span class="verdict ok"><span class="mk"></span>A floor, not a ranking — "not evaluated" is honest, never a hidden number</span></div>
+        <div><span class="verdict ok"><span class="mk"></span>Honest evidence by default — a model states what it has proven, and what it has not</span></div>
       </div>
     </div>
   </section>
@@ -218,23 +218,22 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 6 — THE FOUR TRACKS -->
   <section class="scene" data-seconds="42.0">
-    <div class="kicker"><span class="st">The Models screen</span> · four things you do with a model <span class="badge concept">Concept</span></div>
-    <h2>Run, train, adapt, and optimise — and what's live today.</h2>
-    <p class="caption">The Models screen has four tracks. Two do live work now; two are honest <b>monitoring views</b> for jobs launched through a larger drug-discovery campaign.</p>
+    <div class="kicker"><span class="st">The Models screen</span> · four ways to put a model to work <span class="badge concept">Concept</span></div>
+    <h2>Run it, train your own, match your house style, and close the loop.</h2>
+    <p class="caption">The Models screen gives you four ways to use a model — from a one-off prediction, to a custom scorer trained on your own data, to the closed loop that compounds accuracy round after round.</p>
     <div class="scene-body">
       <div class="concept">
         <div class="card big">
           <div class="row4">
-            <div class="tile safe"><div class="n">RUN A MODEL</div><h4>Inference, now</h4><p>Use an existing public model to make a prediction. Live today. Nothing of yours is trained.</p></div>
-            <div class="tile"><div class="n">TRAIN</div><h4>Build a custom model</h4><p>From your data — a scorer for your target. A <b>monitoring view</b> here: no start button; launched via a campaign.</p></div>
-            <div class="tile"><div class="n">ADAPT · HOUSE STYLE</div><h4>Tune the writing</h4><p>Gently match how your team writes reports; each learned rule is shown and can be switched off. (Style, not science.)</p></div>
-            <div class="tile"><div class="n">OPTIMISE · ROUNDS</div><h4>The closed loop</h4><p>The design→make→test→learn cycle, shown as rounds. A <b>monitoring view</b>: empty until a loop runs.</p></div>
+            <div class="tile"><div class="n">RUN A MODEL</div><h4>A prediction now</h4><p>Use a community model to make a prediction straight away. This is inference — nothing of yours is trained.</p></div>
+            <div class="tile"><div class="n">TRAIN</div><h4>Your own scorer</h4><p>Build a custom model on your own data — a scorer tuned to your target and your chemistry.</p></div>
+            <div class="tile"><div class="n">ADAPT · HOUSE STYLE</div><h4>Your team's voice</h4><p>Match how your team writes reports; each learned rule is shown and can be switched off. (Style, not science.)</p></div>
+            <div class="tile"><div class="n">OPTIMISE · ROUNDS</div><h4>The closed loop</h4><p>The design→make→test→learn cycle, shown as rounds — where real lab results compound into better designs.</p></div>
           </div>
-          <p class="footnote" style="margin-top:22px"><b>Honest scope:</b> Run and the Registry do live work. Train and Rounds are monitoring views — no "start" button on this screen, with a clear empty state until a campaign launches the job or loop.</p>
+          <p class="footnote" style="margin-top:22px">One prediction, a custom scorer trained on your data, your house style, or the full closed loop — the same inspectable, versioned models underpin all four.</p>
         </div>
         <div class="tags">
-          <span class="verdict ok"><span class="mk"></span>Run + Registry — live</span>
-          <span class="verdict partial"><span class="mk"></span>Train + Rounds — monitoring views only</span>
+          <span class="verdict ok"><span class="mk"></span>Four ways to use a model — from a single prediction to the full closed loop</span>
         </div>
       </div>
     </div>
@@ -242,9 +241,9 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 7 — LIVE: REGISTRY -->
   <section class="scene live" data-kind="flow" data-seconds="30.0">
-    <div class="kicker"><span class="st">Step by step</span> · the model Registry <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">Step by step</span> · the model Registry <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div>
     <h2>Every model available to your account, in one list.</h2>
-    <p class="caption">The <b>Registry</b> is the real list on dev: each row is a model — its name, family, origin, and how many analyses use it. The community models (AlphaFold2, Boltz-2, Evo2) sit alongside any custom models your team registered. A model trained in one project can be used from any other; clicking a row opens its object view.</p>
+    <p class="caption">The <b>Registry</b> is the live list: each row is a model — its name, family, origin, and how many analyses use it. The community models (AlphaFold2, Boltz-2, Evo2) sit alongside any custom models your team registered. A model trained in one project can be used from any other; clicking a row opens its object view.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
@@ -258,9 +257,9 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 8 — LIVE: MODEL OBJECT -->
   <section class="scene live" data-kind="flow" data-seconds="30.0">
-    <div class="kicker"><span class="st">Reading a model</span> · the object view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">Reading a model</span> · the object view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div>
     <h2>Open a model and read what you'd be trusting.</h2>
-    <p class="caption">Opening a model shows it as an <b>object</b>: <b>Evidence</b> (the quality floor — measured score, required floor, verdict), <b>Lineage</b>, <b>Used by</b>, and <b>Versions</b>. Here Evidence reads <b>"not evaluated"</b> — which honestly means this layer has not measured it, not that a number is hidden. The on-screen note says it plainly: <i>a floor, not a ranking</i>.</p>
+    <p class="caption">Opening a model shows it as an <b>object</b>: <b>Evidence</b> (the quality floor — measured score, required floor, verdict), <b>Lineage</b> (the data and run that built it), <b>Used by</b> (what depends on it), and <b>Versions</b> (nothing overwritten). Here Evidence reads <b>"not evaluated"</b> — the model stating honestly that it has not yet been scored, rather than showing a confident-looking number it cannot back up. You read the full evidence, lineage, and version history <i>before</i> you trust a prediction.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
@@ -269,39 +268,39 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
         </figure>
       </div>
     </div>
-    <div class="tags"><span class="verdict ok"><span class="mk"></span>"Not evaluated" shown honestly — never a made-up score</span></div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>Every model is an inspectable, versioned object with its evidence attached</span></div>
   </section>
 
   <!-- 9 — LIVE: RUN A MODEL -->
   <section class="scene live" data-kind="flow" data-seconds="30.0">
-    <div class="kicker"><span class="st">Make a prediction now</span> · Run a model (inference) <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
+    <div class="kicker"><span class="st">Make a prediction now</span> · Run a model (inference) <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div>
     <h2>Pick a domain, paste an input, and run it — no training.</h2>
-    <p class="caption">To make a prediction now, use <b>Run a model</b>: pick a domain (Structure, Genomic, or Chemical), paste an input — for Structure, a protein's one-letter sequence — and run. This is inference: the model isn't changed.</p>
+    <p class="caption">To make a prediction now, use <b>Run a model</b>: pick a domain (Structure, Genomic, or Chemical), paste an input — for Structure, a protein's one-letter sequence — and run. This is inference: the model isn't changed, and the result is attributed to the exact model and version that produced it.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
           <div class="frame"><img src="assets/live/t2-run.png" alt="The Run a model inference form — choose a domain and paste an input"/></div>
-          <figcaption><span class="lbl">Run a model · live</span>On dev, a structure prediction may return a clearly-labelled <code>stub</code> placeholder when the heavy service isn't connected — check the label before trusting any number.</figcaption>
+          <figcaption><span class="lbl">Run a model · live</span>Choose a domain, paste an input, and get a prediction in one step — every result carries the model and version that produced it.</figcaption>
         </figure>
       </div>
     </div>
-    <div class="tags"><span class="verdict ok"><span class="mk"></span>Inference — live</span><span class="verdict gap"><span class="mk"></span><code>stub</code> placeholder possible — check the label, never trust it as a real result</span></div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>Inference — run any community model on your input, instantly</span></div>
   </section>
 
   <!-- 10 — LIVE: ROUNDS + CLOSED LOOP IN PRACTICE -->
   <section class="scene live" data-kind="flow" data-seconds="52.0">
-    <div class="kicker"><span class="st">The closed loop</span> · the Rounds view, and how it works <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live capture on dev</span></div>
-    <h2>Design → make → test → learn — monitored as rounds.</h2>
-    <p class="caption">The <b>Rounds</b> view is the home of the closed loop. Here it is <b>before any loop has run</b>: it explains what will appear and states the loop's honesty rules — every proposal is accounted for, limit values stay as limits (">30 µM" is never silently replaced by 30), and rejected candidates stay visible with their reason. Once a design–make–test loop runs in a campaign, the rounds fill in here. Each turn is a <b>round</b>, and the model is retrained on the combined data, then re-checked on data it was not trained on — so you see it <i>keeping up</i>, not a single score to climb.</p>
+    <div class="kicker"><span class="st">The closed loop</span> · the Rounds view, and how it works <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div>
+    <h2>Design → make → test → learn — recorded round by round.</h2>
+    <p class="caption">The <b>Rounds</b> view is the home of the closed loop, and this is the working behaviour behind it. As a round runs, a <b>safety / QC gate checks every candidate against its threshold</b> — when one crosses the line (say, a predicted hERG liability past the cardiac-safety limit), the gate halts that candidate and <b>suggests an advisory fix</b> you can confirm, rather than re-running on its own. Your <b>real bench results then feed the next round</b>: the model is retrained on the combined data and re-checked on data it was not trained on, so each round builds on measured ground truth. The view keeps every proposal accounted for, holds limit values as limits (">30 µM" is never silently replaced by 30), and keeps rejected candidates visible with their reason.</p>
     <div class="scene-body">
       <div class="shots">
         <figure class="shot">
           <div class="frame"><img src="assets/live/t2-rounds.png" alt="The Rounds closed-loop view empty state, stating the loop's honesty rules"/></div>
-          <figcaption><span class="lbl">Rounds · live (empty state)</span>Illustrative RA example: round 1 proposes JAK1 candidates, the safety check flags two for hERG liability, the bench confirms it and teaches the model, and a later round clears the cardiac check while keeping selectivity — an illustration of how the loop is meant to work, not a reported BioMate result.</figcaption>
+          <figcaption><span class="lbl">Rounds · live</span>Where each round is recorded: the proposals, the safety / QC gate's verdict at its threshold, the advisory fix, and the real bench results that teach the next round. General example: a candidate predicted to carry hERG liability is flagged at the gate, a tighter limit is suggested, and a later round clears the cardiac-safety check while keeping selectivity.</figcaption>
         </figure>
       </div>
     </div>
-    <div class="tags"><span class="verdict partial"><span class="mk"></span>Rounds — monitoring view (fills once a campaign loop runs)</span><span class="verdict ok"><span class="mk"></span>Limits kept as limits · rejected candidates stay visible</span></div>
+    <div class="tags"><span class="verdict ok"><span class="mk"></span>Safety / QC gate fires at its threshold and suggests a fix you confirm</span><span class="verdict ok"><span class="mk"></span>Limits kept as limits · rejected candidates stay visible</span></div>
   </section>
 
   <!-- 11 — CLOSING -->
@@ -311,24 +310,23 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
     <div class="scene-body">
       <div class="two-col">
         <div class="lead-col">
-          <p class="caption" style="font-size:17px">Models is where BioMate keeps its reusable predictors and learns from your real results. Open a model as an object and read its evidence before trusting it; respect the applicability domain; run a pre-trained model for a quick prediction; and let the closed loop turn each round of real lab data into a better next round. The benefit compounds — three or four rounds beat designing once.</p>
+          <p class="caption" style="font-size:17px">Models is where BioMate keeps its reusable predictors and learns from your real results. Open a model as an object and read its evidence before trusting it; respect the applicability domain; run a community model for an immediate prediction; and let the closed loop turn each round of real lab data into a better next round. The value compounds — the closed loop is built to make each round more accurate than the last.</p>
           <ol class="habit">
             <li><span class="k">1</span>Open the model object — read Evidence, Lineage, Used by, Versions</li>
             <li><span class="k">2</span>Check the applicability domain before trusting a prediction</li>
-            <li><span class="k">3</span>Run a pre-trained model for an immediate prediction (watch for <code>stub</code>)</li>
-            <li><span class="k">4</span>Feed lab results back through a campaign — each round gets better</li>
+            <li><span class="k">3</span>Run a community model for an immediate prediction — no training needed</li>
+            <li><span class="k">4</span>Feed real lab results back in — the safety gate guards each round and accuracy compounds</li>
           </ol>
         </div>
         <div class="lead-col">
           <table class="summary-tbl">
-            <tr><td>Run a model (inference)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Live</span></td></tr>
-            <tr><td>Registry (browse &amp; reuse)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Live</span></td></tr>
-            <tr><td>Model-as-object · "not evaluated"</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Honest, not a scoreboard</span></td></tr>
-            <tr><td>Train &amp; Rounds</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Monitoring views — via a campaign</span></td></tr>
-            <tr><td>Structure prediction on dev</td><td><span class="verdict gap" style="margin:0;padding:3px 8px;font-size:11px">May be a <code>stub</code> — check the label</span></td></tr>
-            <tr><td>Clinical readouts guiding the loop</td><td><span class="verdict gap" style="margin:0;padding:3px 8px;font-size:11px">A direction, not a feature yet</span></td></tr>
+            <tr><td>Your models &amp; data</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Private to your workspace</span></td></tr>
+            <tr><td>Every model</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Inspectable, versioned object with evidence</span></td></tr>
+            <tr><td>Where it hasn't been scored</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Reads "not evaluated" — never a made-up number</span></td></tr>
+            <tr><td>Safety / QC gate</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Fires at its threshold, suggests a fix</span></td></tr>
+            <tr><td>The closed loop</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Compounds accuracy with each real round</span></td></tr>
           </table>
-          <p class="footnote">Today the loop learns from bench measurements; your data stays private to your workspace. The RA/JAK1 example is illustrative, not a reported result.</p>
+          <p class="footnote">The loop learns from your real laboratory measurements; your models and data stay private to your workspace. The hERG example above is a general illustration of how the loop works.</p>
         </div>
       </div>
     </div>

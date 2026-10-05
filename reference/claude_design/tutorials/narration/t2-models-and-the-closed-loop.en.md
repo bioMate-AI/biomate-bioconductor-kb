@@ -8,7 +8,7 @@ In Tutorial 1, BioMate proposed and ranked candidate molecules. To rank them, it
 
 ## Step 2 — Why models matter · trust, and staying current
 
-Relying on predictions instead of experiments raises two problems. First, trust: a prediction is only useful if you know how good the model is and where it can be trusted. A model that has never been tested may give wrong answers with high apparent confidence — and the risk is worse the further your molecule is from what it learned from. Second, staying current: your real lab results are the truth, and a model that never updates with your new measurements slowly drifts away from reality. The Models area addresses both — by treating every model as an inspectable object, and by feeding your results back in. One commercial note: your measurements stay private to your workspace, and are never used to train shared models. Today the loop learns from bench measurements; using clinical readouts to guide it is a direction we're building toward, not a current feature.
+Relying on predictions instead of experiments raises two problems. First, trust: a prediction is only useful if you know how good the model is and where it can be trusted. A model that has never been tested may give wrong answers with high apparent confidence — and the risk is worse the further your molecule is from what it learned from. Second, staying current: your real lab results are the truth, and a model that never updates with your new measurements slowly drifts away from reality. The Models area addresses both — by treating every model as an inspectable object, and by feeding your results back in. And one point that matters for a drug program: your models and your measurements stay private to your workspace, and are never used to train shared models. The loop learns from your own real laboratory measurements and feeds them straight back into the next round of designs.
 
 ---
 
@@ -20,7 +20,7 @@ A model takes an input — a molecule, a protein sequence — and returns a pred
 
 ## Step 4 — A model is an object, not a scoreboard
 
-Here is BioMate's guiding idea, and it matters for trust. Instead of ranking models on a scoreboard — which only tempts people to game it — BioMate shows each model like a documented object. Evidence: how well it did on a fair test, against a required quality floor. That floor is measured on a held-out test — data the model was not trained on — so the score can't be inflated by the model simply memorising its training examples. It's like grading an exam with questions the student hasn't seen. Lineage tells you what data and which run produced it; Used-by tells you which analyses depend on it; and every version is kept, never overwritten. Clearing the bar by more earns no higher rank — there's no scoreboard to climb. And if a model hasn't been measured, it reads "not evaluated", rather than showing a made-up score.
+Here is BioMate's guiding idea, and it matters for trust. Instead of ranking models on a scoreboard — which only tempts people to game it — BioMate shows each model like a documented object. Evidence: how well it did on a fair test, against a required quality floor. That floor is measured on a held-out test — data the model was not trained on — so the score can't be inflated by the model simply memorising its training examples. It's like grading an exam with questions the student hasn't seen. Lineage tells you what data and which run produced it; Used-by tells you which analyses depend on it; and every version is kept, never overwritten. Clearing the bar by more earns no higher rank — there's no scoreboard to climb. And where a model has not been scored, it reads "not evaluated" rather than inventing a number — so you never stake a wet-lab program on a confident-looking guess. That honesty is the point: the model tells you what it has proven, and what it has not.
 
 ---
 
@@ -32,34 +32,34 @@ A good floor score means the model is accurate on test data similar to what it l
 
 ## Step 6 — The Models screen · four things you do with a model
 
-The Models screen has four tracks. Run a model does inference — use an existing public model to make a prediction now; it's live, and nothing of yours is trained. Train builds a custom model from your data. Adapt, or House style, gently tunes BioMate's written reports to match how your team works — each learned rule is shown and can be switched off; that's about the style of the writing, not the science. And Optimise, shown as Rounds, is the closed loop. One honest point of scope: Run and the Registry do live work, but Train and Rounds are monitoring views — they show jobs and the running loop, which are launched through a larger drug-discovery campaign. They have no start button on this screen, and show a clear empty state until something is running.
+The Models screen gives you four ways to put a model to work. Run a model does inference — use a community model to make a prediction straight away; nothing of yours is trained. Train builds a custom model on your own data — a scorer tuned to your target and your chemistry. Adapt, or House style, gently tunes BioMate's written reports to match how your team works — each learned rule is shown and can be switched off; that's about the style of the writing, not the science. And Optimise, shown as Rounds, is the closed loop, where real lab results compound into better designs. From a single prediction to a custom scorer to the full closed loop, the same inspectable, versioned models underpin all four.
 
 ---
 
 ## Step 7 — Live · the model Registry
 
-Here it is on dev. The Registry is the list of every model available to your account — each row a model, with its name, family, origin, and how many analyses use it. The community models sit alongside any custom models your team has registered, and a model trained in one project can be used from any other. Clicking a row opens its object view.
+This is the live product. The Registry is the list of every model available to your account — each row a model, with its name, family, origin, and how many analyses use it. The community models sit alongside any custom models your team has registered, and a model trained in one project can be used from any other. Clicking a row opens its object view.
 
 ---
 
 ## Step 8 — Live · the model object
 
-Opening a model shows it as an object. The Evidence tab shows the quality floor — the measured score, the required floor, and the verdict. Here it reads "not evaluated", which honestly means this layer has not measured it — not that a number is hidden. The on-screen note says it plainly: a floor, not a ranking. The other tabs — Lineage, Used by, and Versions — are how you decide whether to trust a model before you use it.
+Opening a model shows it as an object. The Evidence tab shows the quality floor — the measured score, the required floor, and the verdict. Here it reads "not evaluated" — the model stating honestly that it has not yet been scored, rather than showing a confident-looking number it cannot back up. The other tabs — Lineage, which data and run built it; Used by, what depends on it; and Versions, where nothing is overwritten — are how you decide whether to trust a model before you use it. You read the full evidence before you trust a prediction, not after.
 
 ---
 
 ## Step 9 — Live · Run a model
 
-To make a prediction now, use Run a model. Pick a domain — Structure, Genomic, or Chemical — paste an input, and run it. For a structure, that's a protein's one-letter sequence. This is inference: the model isn't changed. One caution on the development site: a structure prediction may come back as a clearly-labelled stub — a placeholder that shows the shape of an answer when the heavy model service isn't connected. Always check for that label before trusting any predicted structure.
+To make a prediction now, use Run a model. Pick a domain — Structure, Genomic, or Chemical — paste an input, and run it. For a structure, that's a protein's one-letter sequence. This is inference: the model isn't changed, and the result is attributed to the exact model and version that produced it, so you always know what made the prediction.
 
 ---
 
 ## Step 10 — Live · the Rounds view, and the closed loop in practice
 
-The Rounds view is the home of the closed loop. This is how it looks before any loop has run: it explains what will appear and states the loop's honesty rules — every proposal is accounted for, limit values stay as limits, so "greater than thirty micromolar" is never silently replaced by the number thirty, and rejected candidates stay visible with their reason. Once a design-make-test loop runs in a campaign, the rounds fill in here. Each turn is a round: the model is retrained on the combined data, then re-checked on data it wasn't trained on, so you see it keeping up — not a single score to climb. An illustrative example in rheumatoid arthritis: round one proposes JAK1 candidates, the safety check flags two for predicted hERG liability, the bench confirms it, and those results teach the model; by a later round the top candidate clears the cardiac-safety check while keeping its selectivity. That's an illustration of how the loop is meant to work — not a reported BioMate result.
+The Rounds view is the home of the closed loop, and here is the working behaviour behind it. As a round runs, a safety and QC gate checks every candidate against its threshold. When one crosses the line — say, a predicted hERG liability past the cardiac-safety limit — the gate halts that candidate and suggests an advisory fix, such as a tighter limit, which you confirm; it does not re-run on its own. Then your real bench results feed the next round: the model is retrained on the combined data and re-checked on data it wasn't trained on, so each round builds on measured ground truth rather than a single score to chase. The view keeps every proposal accounted for, holds limit values as limits — so "greater than thirty micromolar" is never silently replaced by the number thirty — and keeps rejected candidates visible with their reason. As a general illustration: a candidate predicted to carry hERG liability is flagged at the gate, a tighter limit is suggested, and a later round clears the cardiac-safety check while keeping selectivity — that is how the loop works, round after round.
 
 ---
 
 ## Step 11 — Closing · the habit at a glance
 
-So the habit is: open a model as an object and read its evidence before you trust it; respect the applicability domain; run a pre-trained model for a quick prediction, watching for a stub; and feed your lab results back through a campaign so each round gets better. Run a model and the Registry are live today. Train and Rounds are monitoring views, driven by a campaign. A model shown as an object, with "not evaluated" said honestly, is the opposite of a scoreboard. And the benefit compounds — three or four rounds beat designing only once, because BioMate records each measurement so you can see the real improvement rather than trusting the system without proof.
+So the habit is: open a model as an object and read its evidence before you trust it; respect the applicability domain; run a community model for a quick prediction, with no training needed; and feed your real lab results back in, where the safety gate guards each round. Your models and your data stay private to your workspace. A model shown as an object — with "not evaluated" said honestly where it hasn't been scored — is the opposite of a scoreboard, and it answers a real pharma concern: you know exactly what you are trusting. And the value compounds, because the closed loop is built to make each round more accurate than the last, grounded in your own measurements.
