@@ -125,9 +125,16 @@ satisfied for every existing educational-format tutorial video.
 
 ### Interactive Tools (RStudio / Jupyter / CellxGene) — current honest status
 - `/api/interactive/available` on dev returns `{available:true, tools:{jupyter,
-  rstudio,cellxgene:true}}` — buttons appear. But a live launch
-  (`/api/interactive/launch`) **issues a session URL that 503s for ~60s and never
-  serves** on dev → a *running* notebook is NOT demonstrable there yet.
+  rstudio,cellxgene:true}}` — buttons appear.
+- **CORRECTION (verified 2026-10-05 from code + git):** launch is NOT broken.
+  The earlier "503 for ~60s / never serves" note was the pre-fix behavior. Commit
+  `96e03b5da`/`775fc9a8e` `fix(dev-it): launch token poll 12s->30s` addressed it —
+  heavy viewers (RStudio/CellxGene) register their entry point slower than Jupyter
+  (~2s); 12s was too short and returned a null URL. `/api/interactive/launch`
+  (`routes.ts:15153`) now polls up to **30s** for `entry_point_url` and returns it;
+  an **E2E serve test** guards it, and #162 landed "RStudio + CellxGene working".
+  A running viewer IS demonstrable (allow for the warmup poll). Do not cite the
+  old 503 claim.
 - T5 doc (`T5-viewing-your-results.md` §8) is now **stale** on one line ("not
   provisioned on dev"); update it.
 - Data flow (`interactive-launcher.tsx`): auto-selects tool by dataset format,
