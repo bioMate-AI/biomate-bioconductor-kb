@@ -13,9 +13,14 @@
 
 models:
   # ---- frontier (proprietary) ----
+  # latest flagships verified against OpenRouter live /models on 2026-10-05 (probe: 1-token completion OK, key has credit)
+  - {name: claude-opus-5.5,  model: anthropic/claude-opus-5.5,    base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: verified}   # latest Claude (2026-09-22)
+  - {name: gpt-6.1-sol-pro,  model: openai/gpt-6.1-sol-pro,       base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: verified}   # latest GPT (2026-09-29)
+  - {name: gemini-3.8-flash, model: google/gemini-3.8-flash,      base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: verified}   # latest Gemini RELEASE (flash tier); latest Gemini PRO is still 3.1-pro-preview (Feb 2026)
+  # prior-generation frontier (kept for the historical leaderboard)
   - {name: gpt-5.6,        model: gpt-5.6,                      base_url: null,                            key_env: OPENAI_API_KEY,     status: verified}
-  - {name: claude-opus-5,  model: anthropic/claude-opus-5,      base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: UNVERIFIED_SLUG}
-  - {name: gemini-3.2-pro, model: google/gemini-3.2-pro,        base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: UNVERIFIED_SLUG}
+  - {name: claude-opus-5,  model: anthropic/claude-opus-5,      base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: verified}
+  - {name: gemini-3.1-pro-preview, model: google/gemini-3.1-pro-preview, base_url: https://openrouter.ai/api/v1, key_env: OPENROUTER_API_KEY, status: verified}
 
   # ---- open source / open weight (latest, 2026) ----
   - {name: kimi-k3,        model: moonshotai/kimi-k3,           base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: UNVERIFIED_SLUG}
