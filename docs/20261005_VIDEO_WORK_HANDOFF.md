@@ -101,3 +101,9 @@ m2 (DESeq2/GSE52778) + qpcr (ΔΔCq) assets). So the video workstream is **NOT**
   Inventory only; no video content changed.
 - 2026-10-05 — resolution recorded: session 14 owns video in-worktree (no lineage move). Peers 49
   (immune-FM) and 76 (backend workflows) declined; the handoff is closed.
+- 2026-10-05 (session 14) — **M2 (RNA-seq DE) and qPCR ΔΔCq rendered EN+ZH and uploaded.** Real
+  BioMate Batch-run outputs (DESeq2 on airway/GSE52778; NormqPCR ΔΔCq) wired into the walkthrough
+  HTML and rendered via the edge-tts → record → mux pipeline; 4 mp4s on
+  `biomate_drive:…/marketing/data_centroid_tutorial/videos/`. Details + root-cause of the prior
+  asset-blocking saga: `docs/20261005_REALBIO_CAPABILITY_DEMO_SERIES.md`. Remaining render backlog:
+  D1/D2/S2 (authored, not yet rendered) + D3/D4/S1/S4/B1 (not authored).
