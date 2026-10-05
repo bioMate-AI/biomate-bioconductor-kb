@@ -182,6 +182,35 @@ PY
   aws s3 cp "$SMOKE_CFG" "$OUT_S3/status/smoke.yaml" --only-show-errors || true
   stage smoke_train
   cd "$ROOT/boltzgen"
+  # ROBUSTNESS PATCH: the training __getitem__ (data.py) intermittently raises IndexError in
+  # selector.select on a malformed converted complex (crashed the full run at epoch 27). Wrap
+  # __getitem__ to skip a bad sample (resample) instead of killing a multi-hour run. Idempotent.
+  python - <<'PATCH'
+import re
+p="src/boltzgen/task/train/data.py"
+s=open(p).read()
+if "_getitem_robust_patch" not in s:
+    m=re.search(r'\n(    )def __getitem__\(self, ([^)]*)\):', s)
+    if m:
+        ind=m.group(1); args=m.group(2)
+        s=s[:m.start()]+f"\n{ind}def _getitem_orig(self, {args}):"+s[m.end():]
+        w=(f"\n{ind}def __getitem__(self, idx):  # _getitem_robust_patch\n"
+           f"{ind}    import random\n"
+           f"{ind}    n=len(self); last=None\n"
+           f"{ind}    for k in range(8):\n"
+           f"{ind}        j=idx if k==0 else random.randrange(n)\n"
+           f"{ind}        try: return self._getitem_orig(j)\n"
+           f"{ind}        except Exception as e: last=e; continue\n"
+           f"{ind}    raise last\n")
+        i=s.index(f"{ind}def _getitem_orig(self,")
+        s=s[:i]+w+"\n"+s[i:]
+        open(p,"w").write(s)
+        print("patched __getitem__ (robust sample-skip)")
+    else:
+        print("WARN: __getitem__ not found")
+else:
+    print("already patched")
+PATCH
   WANDB_MODE=disabled WANDB_SILENT=true python src/boltzgen/resources/main.py "$SMOKE_CFG" name=cyclic_smoke \
      ${SMALL_CKPT:+pretrained=$SMALL_CKPT} 2>&1 | tee "$ROOT/status/smoke_train.log" || echo "SMOKE_TRAIN_RC=$?"
   aws s3 cp "$ROOT/status/smoke_train.log" "$OUT_S3/status/smoke_train.log" --only-show-errors || true
