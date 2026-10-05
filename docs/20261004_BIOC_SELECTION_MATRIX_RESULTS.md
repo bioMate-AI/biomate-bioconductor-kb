@@ -56,3 +56,29 @@ for a small model. This is the Bioconductor-method-granularity analog of the rou
 with descriptions) and the direct evidence that "the KB, not the model, lets a small on-prem system pick the
 right Bioconductor method from scientific context." Frontier is near-ceiling, so to discriminate strong
 models further the set would need even more obscure methods; the on-prem claim is already clean.
+
+## FULL-HARNESS arm — live BioMate retrieval (dev /api/workflows/search), n=40
+Unlike the bare/+KB arms (model picks from the FIXED sibling menu), this runs each query through the real
+product retrieval over the full 4,209-workflow catalog (Pass-0 LLM catalog browse).
+
+- **recall@8 (gold method in top-8 candidates): 0.825** (33/40)
+- **retrieval@1 (product's single top pick == gold): 0.375** (15/40)
+
+**Interpretation (honest + actionable).** The product **surfaces the right method 82.5% of the time but
+ranks it #1 only 37.5%** — 20 of 25 @1-misses have the gold in the top-8 ("inK"). The rank-1 is frequently a
+*generic/adjacent* workflow (generic "Gene Set Enrichment Analysis" instead of the specific clusterprofiler/
+reactomepa/dose GSEA variant; nf-core/differentialabundance instead of bare deseq2/edger). So the live
+product's weakness is **retrieval RANKING**, not candidate coverage — distinct from the SELECTION weakness
+the in-context arm measured.
+
+**The three arms compose into the product recommendation:**
+1. retrieval recall is strong (0.825@8) → the right method is almost always surfaced;
+2. in-context KB selection is strong (9B 0.95 given the siblings) → the model picks well when shown grounded
+   descriptions;
+3. but retrieval rank-1 is weak (0.375) → **the product should run the KB-grounded SELECTION step over the
+   retrieved top-k (with descriptions) rather than taking retrieval's rank-1.** That is exactly the
+   described-menu/widened-window mechanism already shipped for routing — apply it to method selection.
+Caveats: @1 is strict (a generic-GSEA top pick is arguably acceptable for a GSEA query — recall@8 is the
+fairer retrieval metric); some golds have reasonable acceptable-alts not yet encoded.
+
+Raw: `results/full-harness_retrieval.jsonl`.
