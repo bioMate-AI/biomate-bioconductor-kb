@@ -9,8 +9,18 @@ import time
 
 
 def answer(text):
+    # Extract the chosen option letter. Must handle BOTH a bare letter ("D") and a
+    # letter-with-option-text answer ("D) Thyroid agenesis.") — an SFT model commonly
+    # emits the latter. The old re.fullmatch scored every "D) ..." as invalid, which
+    # made a correct domain model look like ~0.01 accuracy (256/261 invalid). We first
+    # accept an exact single letter, then a LEADING option letter followed by a
+    # delimiter ")" "." ":" ","; a bare letter followed only by whitespace+prose
+    # (e.g. "A patient presents...") is NOT treated as an answer (returns None).
     text = text.rsplit("</think>", 1)[-1].strip()
-    match = re.fullmatch(r"(?:Answer\s*:\s*)?\(?([A-E])\)?[.)]?", text, re.I)
+    match = re.fullmatch(r"(?:answer\s*[:\-]?\s*)?[\(\[]?([A-E])[\)\].:]?", text, re.I)
+    if match:
+        return match.group(1).upper()
+    match = re.match(r"(?:answer\s*[:\-]?\s*)?[\(\[]?([A-E])[\)\].:,]", text, re.I)
     return match.group(1).upper() if match else None
 
 
