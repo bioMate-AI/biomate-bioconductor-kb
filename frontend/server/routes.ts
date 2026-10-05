@@ -10199,6 +10199,13 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // Recent runs — fetched ONCE and shared by the implicit-retry guard (below) and the
+      // idempotency dedupe (further below), to avoid a duplicate query on the hot execute path.
+      const recentRuns: any[] =
+        (!retryOfRunId && !retryOfInvocationId && (req.user?.id || request.projectId))
+          ? await storage.getExecutionRuns(req.user?.id, request.projectId, undefined, 30)
+          : [];
+
       // Stage-C fallback guard:
       // If caller did not provide explicit retry metadata, infer likely duplicate-manual-retry
       // from a recent failed run for the same workflow identity that still has active AutoFix.
@@ -10206,12 +10213,6 @@ ${paramLines || '(none recorded)'}`;
         const incomingWorkflowFingerprint = buildWorkflowFingerprint(request.workflowDefinition);
         const incomingWorkflowName = normalizeWorkflowName(
           request.workflowDefinition?.name || request.workflowDefinition?.annotation
-        );
-        const recentRuns = await storage.getExecutionRuns(
-          req.user?.id,
-          request.projectId,
-          undefined,
-          30
         );
         const now = Date.now();
         const implicitRetrySource = recentRuns.find((run) => {
@@ -10256,25 +10257,29 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
-      // Idempotency guard (prevents duplicate PAID Batch launches):
-      // a rapid duplicate submission — double-click, client retry, network hiccup — must not
-      // launch a SECOND identical compute job. If an identical workflow (same content
-      // fingerprint, same user/project) is already IN FLIGHT within a short window, return that
-      // existing run instead of dispatching again. Only in-flight states dedupe — a user may
-      // legitimately re-run a COMPLETED or FAILED workflow (and explicit retries are handled above).
-      if (!retryOfRunId && !retryOfInvocationId && (req.user?.id || request.projectId)) {
+      // Idempotency guard — best-effort protection against a rapid DUPLICATE paid Batch launch
+      // (double-click / client retry / network hiccup). If an identical workflow is already IN
+      // FLIGHT for THIS user within a short window, return that run instead of dispatching again.
+      // Constraints (from the security + correctness review):
+      //   - Requires an AUTHENTICATED user (req.user.id) — NEVER dedupe on projectId alone, which
+      //     could return another tenant's run to an unauthenticated caller.
+      //   - Only when the request carries NO `inputs` (HDA dataset selections): the fingerprint is
+      //     computed from workflowDefinition only and does NOT include inputs, so deduping an
+      //     input-bearing request could wrongly merge the same pipeline run on DIFFERENT samples.
+      //     Param-only / demo dispatches (the common double-click case) are fully fingerprinted.
+      //   - Only IN-FLIGHT states (a user may legitimately re-run completed/failed; explicit
+      //     retries are handled above).
+      // NOTE: best-effort, not a hard mutex — there is a small check→create window, so two truly
+      // simultaneous requests can still both launch; this reliably catches resubmits arriving after
+      // the first run is registered. A hard guarantee would need an atomic reservation.
+      const _hasInputs = Array.isArray(request.inputs) && request.inputs.length > 0;
+      if (!retryOfRunId && !retryOfInvocationId && req.user?.id && !_hasInputs) {
         const incomingFp = buildWorkflowFingerprint(request.workflowDefinition);
         if (incomingFp) {
-          const IN_FLIGHT = new Set(["configuring", "pending", "submitted", "queued", "running"]);
-          const DEDUP_WINDOW_MS = 2 * 60 * 1000; // 120s — catches double-submits, not intentional re-runs
+          const IN_FLIGHT = new Set(["configuring", "queued", "running", "paused"]);
+          const DEDUP_WINDOW_MS = 2 * 60 * 1000; // 120s
           const nowMs = Date.now();
-          const recentForDedup = await storage.getExecutionRuns(
-            req.user?.id,
-            request.projectId,
-            undefined,
-            20
-          );
-          const inFlightDup = recentForDedup.find((run) => {
+          const inFlightDup = recentRuns.find((run) => {
             const status = String(run.execution?.status || (run as any).status || "");
             if (!IN_FLIGHT.has(status)) return false;
             const startedMs = new Date(run.createdAt || run.updatedAt || nowMs).getTime();
