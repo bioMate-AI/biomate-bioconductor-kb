@@ -84,8 +84,10 @@ if [ "$MODE" = "introspect" ]; then
   python "$ROOT/code/boltzgen_introspect.py" "${SHIPPED_TARGETS:-$ROOT/dl/shipped}" "$CFG" 2>&1 | tee "$ROOT/status/introspect.txt"
   aws s3 cp "$ROOT/status/introspect.txt" "$OUT_S3/status/introspect.txt" --only-show-errors || true
 
-elif [ "$MODE" = "smoke" ]; then
+elif [ "$MODE" = "smoke" ] || [ "$MODE" = "full" ]; then
   cd "$ROOT/dl"
+  # MODE params: smoke = tiny/fast sanity; full = whole cyclic corpus + a real fine-tune + ckpt upload.
+  if [ "$MODE" = "full" ]; then SUBSET_N=${SUBSET_N:-100000}; MAX_STEPS=${MAX_STEPS:-3000}; VAL_FRAC=${VAL_FRAC:-0.12}; else SUBSET_N=20; MAX_STEPS=10; VAL_FRAC=0; fi
   stage smoke_fetch
   # small structure-trained ckpt (fine-tune init) + boltz2 fold ckpt (val validator dependency)
   hfget boltzgen/boltzgen-1 boltzgen1_structuretrained_small.ckpt model 2>&1 | tail -2 || true
@@ -93,7 +95,8 @@ elif [ "$MODE" = "smoke" ]; then
   # our cyclic manifest + a ~20-complex subset of CIFs (fetch from RCSB)
   aws s3 cp "s3://$BUCKET/cyclic_peptide/datasets/bound_cyclic_v1/bound_cyclic_manifest.jsonl" "$ROOT/dl/bound_cyclic_manifest.jsonl" --only-show-errors || \
     aws s3 cp "s3://$BUCKET/cyclic_peptide/datasets/bound_cyclic_agg/bound_cyclic_manifest.jsonl" "$ROOT/dl/bound_cyclic_manifest.jsonl" --only-show-errors || true
-  head -20 "$ROOT/dl/bound_cyclic_manifest.jsonl" > "$ROOT/dl/subset.jsonl"
+  head -"$SUBSET_N" "$ROOT/dl/bound_cyclic_manifest.jsonl" > "$ROOT/dl/subset.jsonl"
+  echo "subset: $(wc -l < "$ROOT/dl/subset.jsonl") complexes (MODE=$MODE SUBSET_N=$SUBSET_N)"
   mkdir -p "$ROOT/dl/cifs"
   python - "$ROOT/dl/subset.jsonl" "$ROOT/dl/cifs" <<'PY'
 import json, sys, urllib.request
@@ -111,23 +114,38 @@ PY
   stage smoke_batch
   TARGETS_DIR="$ROOT/training_data/targets"
   python "$ROOT/code/boltzgen_cyclic_convert.py" --batch "$ROOT/dl/subset.jsonl" \
-     --cif-dir "$ROOT/dl/cifs" --moldir "$MOLS" --out "$TARGETS_DIR" --limit 20 2>&1 | tee "$ROOT/status/batch.log"
+     --cif-dir "$ROOT/dl/cifs" --moldir "$MOLS" --out "$TARGETS_DIR" --limit "$SUBSET_N" 2>&1 | tee "$ROOT/status/batch.log"
   aws s3 cp "$ROOT/status/batch.log" "$OUT_S3/status/batch.log" --only-show-errors || true
   mkdir -p "$TARGETS_DIR/msa"
-  # a 2-id val split (so val set isn't empty) from the converted records
-  ls "$TARGETS_DIR/records" | sed 's/.json$//' | head -2 > "$ROOT/training_data/val_split.txt"
+  # val/held-out split from the converted records. smoke: 2 ids. full: hold out VAL_FRAC of TARGETS as
+  # the leave-one-target-out eval set (recorded to S3 so Phase-2 generation evaluates exactly these).
+  ls "$TARGETS_DIR/records" | sed 's/.json$//' > "$ROOT/training_data/all_ids.txt"
+  python - "$ROOT/training_data/all_ids.txt" "$ROOT/training_data/val_split.txt" "$VAL_FRAC" <<'PY'
+import sys, random
+ids=[l.strip() for l in open(sys.argv[1]) if l.strip()]
+frac=float(sys.argv[3])
+random.Random(0).shuffle(ids)
+n=max(2, int(len(ids)*frac)) if frac>0 else 2
+open(sys.argv[2],"w").write("\n".join(ids[:n])+"\n")
+print(f"held-out eval ids: {n} of {len(ids)}")
+PY
+  aws s3 cp "$ROOT/training_data/val_split.txt" "$OUT_S3/status/val_split.txt" --only-show-errors || true
   stage smoke_config
   SMOKE_CFG="$ROOT/smoke.yaml"
-  python - "$CFG" "$SMOKE_CFG" "$TARGETS_DIR" "$MOLS" "$ROOT/training_data/val_split.txt" <<'PY'
-import yaml, sys
-cfg_p, out_p, targets, mols, split = sys.argv[1:6]
+  python - "$CFG" "$SMOKE_CFG" "$TARGETS_DIR" "$MOLS" "$ROOT/training_data/val_split.txt" "$MAX_STEPS" <<'PY'
+import yaml, sys, os
+cfg_p, out_p, targets, mols, split, max_steps = sys.argv[1:7]
+max_steps=int(max_steps)
 cfg=yaml.safe_load(open(cfg_p))
+recs=[f[:-5] for f in os.listdir(targets+"/records") if f.endswith(".json")]
+val=set(l.strip() for l in open(split) if l.strip()) & set(recs)
+n_train=max(1, len(recs)-len(val))
 d=cfg.get("data",{})
 d["datasets"]=[d["datasets"][0]]
 ds=d["datasets"][0]
 ds["target_dir"]=targets; ds["msa_dir"]=targets+"/msa"; ds["filters"]=[]; ds["split"]=split
 d["moldir"]=mols; d["max_tokens"]=128; d["max_atoms"]=512; d["max_seqs"]=1
-d["single_sequence_prop_training"]=1.0; d["num_workers"]=0; d["batch_size"]=1; d["samples_per_epoch"]=20
+d["single_sequence_prop_training"]=1.0; d["num_workers"]=0; d["batch_size"]=1; d["samples_per_epoch"]=n_train
 def rec(o):
     if isinstance(o,dict):
         for k in list(o):
@@ -144,10 +162,22 @@ rec(cfg)
 m=cfg.get("model")
 if isinstance(m,dict) and "refolding_validator" in m: m["refolding_validator"]=None
 tr=cfg.setdefault("trainer",{})
-tr["devices"]=[0]; tr["max_steps"]=10; tr["num_sanity_val_steps"]=0
-tr["limit_val_batches"]=0; tr["val_check_interval"]=100  # no val in a 10-step smoke -> no folding ckpt needed
+tr["devices"]=[0]; tr["max_steps"]=max_steps; tr["num_sanity_val_steps"]=0
+tr["limit_val_batches"]=0; tr["val_check_interval"]=max(50, max_steps)  # validator nulled -> no val/lddt
+# Fix checkpoint saving: the shipped ModelCheckpoint monitors val/lddt (never logged here) so nothing
+# saves. Force save_last + save_every_n_train_steps + drop the monitor, so the fine-tuned ckpt is produced.
+def fix_ckpt(o):
+    if isinstance(o,dict):
+        if "ModelCheckpoint" in str(o.get("_target_","")) or ("monitor" in o and "dirpath" in o) or o.get("monitor")=="val/lddt":
+            o["save_last"]=True; o["monitor"]=None; o["save_top_k"]=1
+            o["every_n_train_steps"]=max(100, max_steps//3); o.pop("save_every_n_train_steps",None)
+        for v in o.values(): fix_ckpt(v)
+    elif isinstance(o,list):
+        for v in o: fix_ckpt(v)
+fix_ckpt(cfg)
+print(f"full-run config: max_steps={max_steps} n_train={n_train} val_heldout={len(val)}")
 yaml.safe_dump(cfg, open(out_p,"w"))
-print("wrote smoke config", out_p)
+print("wrote config", out_p)
 PY
   aws s3 cp "$SMOKE_CFG" "$OUT_S3/status/smoke.yaml" --only-show-errors || true
   stage smoke_train
@@ -158,6 +188,18 @@ PY
   # verdict
   if grep -qiE "loss" "$ROOT/status/smoke_train.log" && ! grep -qiE "Traceback|Error:|RuntimeError|AssertionError" "$ROOT/status/smoke_train.log"; then
     echo "SMOKE_PASS"; else echo "SMOKE_FAIL (see smoke_train.log)"; fi
+  # FULL: upload the fine-tuned checkpoint + the held-out split + the config, so Phase-2 LOTO eval can
+  # generate base-vs-finetuned on the held-out targets. (smoke produces no durable ckpt by design.)
+  if [ "$MODE" = "full" ]; then
+    stage uploading_ckpt
+    CK=$(find "$ROOT" -name "*.ckpt" -newer "$ROOT/smoke.yaml" 2>/dev/null | xargs -r ls -S 2>/dev/null | head -1)
+    [ -z "$CK" ] && CK=$(find "$ROOT" -path "*checkpoint*" -name "*.ckpt" 2>/dev/null | xargs -r ls -S 2>/dev/null | head -1)
+    if [ -n "$CK" ]; then
+      aws s3 cp "$CK" "$OUT_S3/ckpt/finetuned.ckpt" --only-show-errors && echo "UPLOADED FT CKPT -> $OUT_S3/ckpt/finetuned.ckpt ($(du -h "$CK"|cut -f1))"
+    else echo "WARN: no fine-tuned ckpt found to upload"; fi
+    aws s3 cp "$ROOT/training_data/val_split.txt" "$OUT_S3/ckpt/heldout_eval_ids.txt" --only-show-errors || true
+    aws s3 cp "$SMOKE_CFG" "$OUT_S3/ckpt/train_config.yaml" --only-show-errors || true
+  fi
 fi
 stage complete
 echo "=== $MODE DONE -> $OUT_S3/status/ ==="
