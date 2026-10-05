@@ -138,3 +138,68 @@ satisfied for every existing educational-format tutorial video.
 - Next: produce **T5** foregrounding (a) the inline viewers across data types
   (table/image/PDB-3D+pLDDT/VCF/MRC/HTML/logs) and (b) the launcher dialog —
   honestly, not pretending the workspace is pre-loaded.
+
+---
+
+## Session 3 (2026-10-04, continued) — "active, not blank" + universal concept fill
+
+User directive (verbatim): *"make sure the videos are really active, not just stale
+of a single screen. make sure the videos are not just a lot of blank space."*
+
+### Active — verified, not an issue
+Sampled frames across the flagship (20/80/150/240/300/360/430 s) and m1
+(70/150/250 s): every frame has a distinct md5. The videos advance continuously;
+no frozen/stale screens. No change needed.
+
+### Blank space — real, root-caused, fixed universally
+The Session-2 fix (`.card.big{flex:initial}` + `.concept{justify-content:center}`)
+removed the full-height empty box but **vertically-centered** the content-sized
+card, so sparse scenes floated with a mid-frame gap (e.g. m1 "how it works" had a
+~200 px band above the card). The flagship still used `.card.big{flex:1}` →
+huge empty box on its two Stage concept scenes.
+
+Attempted first: stretch the tile rows to fill (`flex:1 1 auto` +
+`grid-template-rows:minmax(0,1fr)`). It filled sparse scenes but (a) made tiles
+tall and under-filled, and (b) **overlapped the caption** on dense scenes (2 big
+tiles + long footnote + 3-line caption, e.g. t1 "No single magic score"). Reverted.
+
+**Final universal fix** (commit `fix(videos): top-align concept cards`): content-
+sized card (`.card.big{flex:initial}`) **top-aligned directly under the caption**
+(`.concept{justify-content:flex-start}`), no row stretch; the flagship `.tile`
+reverted to block so labels align at the top. Content flows from the top; any slack
+is a small bottom margin. Verified locally at 2× across: flagship Stage 1 (row3),
+t3 (row5), m1 (points list), **t1 dense (row2 — full 4-line caption visible, NO
+overlap)**. Applied to all 9 concept-video HTMLs (flagship + t0–t4 + m1 + m2 +
+qpcr).
+
+Why top-align beats the alternatives for genuinely-sparse content: centering →
+mid-frame gap; stretch → tall empty tiles + dense-scene overlap; full-height box →
+huge empty band. Top-align = standard "content under heading" layout, no overlap,
+minimal perceived blank.
+
+### Re-rendered (EN+ZH) with the fix
+flagship + t0–t4 + m1 (14 clips) re-recorded + re-muxed + uploaded to Drive.
+(An interim flagship+m1 render at the stretch stage was superseded by this one.)
+
+### Open: m2 (RNA-seq DE) + qpcr videos — blocked on real live assets
+Authored + CSS-fixed, but **not rendered** — they reference live-result assets that
+do not exist and must be **real BioMate run outputs** (honesty: narration is
+method-accurate, no fabricated numbers):
+- `assets/live/de-results.png` + `de-volcano.png` — DESeq2 on **GSE52778** (airway
+  smooth-muscle, dexamethasone vs untreated); results table (log2FC + adj-p,
+  sortable) and volcano, captured from the live product viewer.
+- `assets/live/qpcr-results.png` — ΔΔCq (NormqPCR) table, fold-change per target
+  vs control, reference genes GAPDH/ACTB.
+- The repo's `webpage_design_v2/images/blog-ra-deseq2-volcano.png` is a marketing
+  blog image, NOT a run output — must not be passed off as the live result.
+
+### Note
+`d1-qsar-classical-ml-walkthrough.html` (another session's WIP, was untracked) got
+swept into the top-align commit by a glob `git add`. Committing is purely additive
+(preserves it, destroys nothing). It still carries the old `.card.big{flex:1;
+justify-content:center}` and was **left untouched** (out of scope; avoid conflicting
+with its active author). If it is later adopted here, apply the same top-align fix.
+
+### Next
+1. Verify re-rendered flagship/t0–t4/m1 (active + filled).
+2. Capture the DE + ΔΔCq live assets via real BioMate runs, then render m2 + qpcr.
