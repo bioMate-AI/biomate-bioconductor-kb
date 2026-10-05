@@ -33,11 +33,20 @@ trap finish EXIT
 
 stage installing
 for a in 1 2 3 4 5; do aws s3 cp "$OUT_S3/code/boltzgen_introspect.py" "$ROOT/code/" --only-show-errors && aws s3 cp "$OUT_S3/code/boltzgen_cyclic_convert.py" "$ROOT/code/" --only-show-errors && break; sleep 8; done
-# conda base python has pip; install boltzgen from source (editable) + hf hub
+# The DL-AMI has NO `python` on PATH non-interactively -> install miniconda + a py3.12 env (the proven
+# pattern from boltzgen_ourtarget.sh). Then editable-install boltzgen (training code + [dev] extras).
+apt-get -o DPkg::Lock::Timeout=300 install -y -qq git curl unzip 2>&1 | tail -1 || true
+curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/mc.sh
+bash /tmp/mc.sh -b -p /opt/miniconda
+set +u; source /opt/miniconda/etc/profile.d/conda.sh
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main || true
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r || true
+conda create -y -n bg -c conda-forge python=3.12
+conda activate bg; set -u
 git clone --depth 1 https://github.com/HannesStark/boltzgen "$ROOT/boltzgen" 2>&1 | tail -3
 cd "$ROOT/boltzgen"
-python -m pip install -q -e ".[dev]" 2>&1 | tail -8 || { echo "FATAL: boltzgen install failed"; exit 1; }
-python -m pip install -q "huggingface_hub[cli]" pyyaml 2>&1 | tail -2
+pip install -q -e ".[dev]" 2>&1 | tail -8 || { echo "FATAL: boltzgen install failed"; exit 1; }
+pip install -q "huggingface_hub[cli]" pyyaml 2>&1 | tail -2
 python -c "import boltzgen, torch; print('boltzgen ok; cuda', torch.cuda.is_available())"
 
 stage fetching_data
