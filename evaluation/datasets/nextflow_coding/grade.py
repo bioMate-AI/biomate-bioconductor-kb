@@ -55,6 +55,24 @@ def _run_nf(nf_text, extra_args):
         return 124, run_dir, f"TIMEOUT after {PER_CALL_TIMEOUT}s\n{e}"
 
 
+def _count_processes(run_dir):
+    """Count DISTINCT process names that actually executed, from the stub-run trace file.
+    This is an execution signal (the DAG really ran), not a regex over the .nf source —
+    a monolithic one-process pipeline reports 1 here no matter how its script is written.
+    Fan-out tags like 'TAG (2)' collapse to their process name 'TAG'."""
+    tf = Path(run_dir) / "trace.txt"
+    if not tf.exists():
+        return 0
+    names = set()
+    for i, line in enumerate(tf.read_text().splitlines()):
+        if i == 0:  # header row: task_id<TAB>hash<TAB>native_id<TAB>name<TAB>...
+            continue
+        cols = line.split("\t")
+        if len(cols) >= 4 and cols[3].strip():
+            names.add(cols[3].split(" (")[0].strip())
+    return len(names)
+
+
 def _check_outputs(run_dir, outputs):
     """Scan the run dir recursively (covers work/<hash>/ and any publishDir) for each
     expected output: a file matching `glob` whose text contains ALL `contains` substrings.
@@ -87,9 +105,11 @@ def grade_one(nf_text, task):
     """Execute the three tiers for one generated .nf against one task record."""
     contract = task.get("expected_contract", {})
     runnable = bool(contract.get("runnable", False))
+    min_proc = contract.get("min_processes")  # decompose/notebook: >=N distinct processes
     res = {"id": task["id"], "kind": task.get("kind"),
            "tierA_pass": False, "tierB_pass": None, "tierC_pass": None,
-           "runnable": runnable, "logs": {}, "outputs": None}
+           "runnable": runnable, "min_processes": min_proc, "n_processes": None,
+           "logs": {}, "outputs": None}
 
     if not nf_text or not nf_text.strip():
         res["logs"]["error"] = "empty generation"
@@ -102,14 +122,21 @@ def grade_one(nf_text, task):
     res["logs"]["A"] = logA[-800:]
     shutil.rmtree(dirA, ignore_errors=True)
 
-    # Tier B: stub-run (gated on A)
+    # Tier B: stub-run (gated on A). -with-trace lets us count processes that really ran.
     if res["tierA_pass"]:
-        codeB, dirB, logB = _run_nf(nf_text, ["-stub-run"])
-        res["tierB_pass"] = (codeB == 0)
+        codeB, dirB, logB = _run_nf(nf_text, ["-stub-run", "-with-trace", "trace.txt"])
+        stub_ok = (codeB == 0)
+        res["n_processes"] = _count_processes(dirB)
+        if min_proc is not None:
+            # a monolithic conversion stub-runs fine but has too few processes -> Tier B fails
+            res["tierB_pass"] = stub_ok and res["n_processes"] >= min_proc
+        else:
+            res["tierB_pass"] = stub_ok
         res["logs"]["B"] = logB[-800:]
         shutil.rmtree(dirB, ignore_errors=True)
     else:
         res["tierB_pass"] = False
+        res["n_processes"] = 0
 
     # Tier C: real run + output contract (gated on B, only if runnable)
     if runnable:

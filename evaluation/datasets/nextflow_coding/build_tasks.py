@@ -331,6 +331,320 @@ TASKS.append({
     },
 })
 
+# ============================================================================
+# EXTENSION (2026-10-05): cross-language conversion + decomposition.
+# New kinds: convert_from_wdl, convert_from_cwl, convert_from_notebook,
+# decompose_script_to_pipeline. All still SMALL + tool-free (coreutils only),
+# so every tier runs with no bioinformatics binaries.
+#
+# NEW contract field `min_processes`: the grader runs `-stub-run -with-trace`
+# and counts DISTINCT process names that actually executed. A monolithic
+# one-process "conversion" stub-runs fine but has too few processes, so it
+# FAILS Tier B and scores lower. This is an execution signal (the DAG ran),
+# not a regex over the .nf text.
+# ============================================================================
+DECOMP_NOTE = ("DECOMPOSE the logic into SEPARATE processes connected by channels — do NOT collapse "
+               "everything into a single process. Each distinct step becomes its own process, and "
+               "intermediate results must flow process->channel->process. " + DSL2_NOTE)
+
+# ---- convert_from_wdl (x2) -------------------------------------------------
+TASKS.append({
+    "id": "convert_from_wdl_linear",
+    "kind": "convert_from_wdl",
+    "source_lang": "wdl",
+    "source": (
+        "version 1.0\n\n"
+        "workflow greet_flow {\n"
+        "  call make_name\n"
+        "  call say_hello { input: name_file = make_name.name_out }\n"
+        "  output { File greeting = say_hello.hello_out }\n"
+        "}\n\n"
+        "task make_name {\n"
+        "  command <<<\n"
+        '    echo "World" > name.txt\n'
+        "  >>>\n"
+        '  output { File name_out = "name.txt" }\n'
+        "}\n\n"
+        "task say_hello {\n"
+        "  input { File name_file }\n"
+        "  command <<<\n"
+        "    sed 's/.*/Hello, &!/' ~{name_file} > hello.txt\n"
+        "  >>>\n"
+        '  output { File hello_out = "hello.txt" }\n'
+        "}\n"
+    ),
+    "prompt": (
+        "Convert this WDL workflow (two tasks wired output->input) into an equivalent Nextflow DSL2 "
+        "pipeline with TWO chained processes: MAKE_NAME writes `World` to name.txt; SAY_HELLO takes that "
+        "file as a `path` input and wraps its contents with `sed 's/.*/Hello, &!/'` into hello.txt. "
+        "Wire MAKE_NAME's output channel into SAY_HELLO so the final hello.txt contains "
+        "`Hello, World!`.\n\n" + DECOMP_NOTE
+    ),
+    "expected_contract": {
+        "tierB_stub": True, "runnable": True, "min_processes": 2,
+        "outputs": [{"glob": "hello.txt", "contains": ["Hello, World!"]}],
+    },
+})
+
+TASKS.append({
+    "id": "convert_from_wdl_scatter",
+    "kind": "convert_from_wdl",
+    "source_lang": "wdl",
+    "source": (
+        "version 1.0\n\n"
+        "workflow tag_flow {\n"
+        '  Array[String] items = ["a", "b", "c"]\n'
+        "  scatter (x in items) {\n"
+        "    call tag_item { input: item = x }\n"
+        "  }\n"
+        "  call gather { input: parts = tag_item.tagged }\n"
+        "  output { File all = gather.combined }\n"
+        "}\n\n"
+        "task tag_item {\n"
+        "  input { String item }\n"
+        "  command <<<\n"
+        '    echo "item:~{item}" > ~{item}.txt\n'
+        "  >>>\n"
+        '  output { File tagged = "~{item}.txt" }\n'
+        "}\n\n"
+        "task gather {\n"
+        "  input { Array[File] parts }\n"
+        "  command <<<\n"
+        '    cat ~{sep=" " parts} > all.txt\n'
+        "  >>>\n"
+        '  output { File combined = "all.txt" }\n'
+        "}\n"
+    ),
+    "prompt": (
+        "Convert this WDL workflow into Nextflow DSL2. The WDL SCATTERS `tag_item` over the three items "
+        "`a`, `b`, `c`, then GATHERS the results. Reproduce the scatter with a channel fan-out: process "
+        "TAG_ITEM runs once per item (driven by `Channel.of('a','b','c')`) writing `item:<x>` into a file, "
+        "then process GATHER `.collect()`s all of TAG_ITEM's output files and `cat`s them into all.txt. "
+        "The final all.txt must contain `item:a`, `item:b`, and `item:c`.\n\n" + DECOMP_NOTE
+    ),
+    "expected_contract": {
+        "tierB_stub": True, "runnable": True, "min_processes": 2,
+        "outputs": [{"glob": "all.txt", "contains": ["item:a", "item:b", "item:c"]}],
+    },
+})
+
+# ---- convert_from_cwl (x2) -------------------------------------------------
+TASKS.append({
+    "id": "convert_from_cwl_tool",
+    "kind": "convert_from_cwl",
+    "source_lang": "cwl",
+    "source": (
+        "cwlVersion: v1.2\n"
+        "class: CommandLineTool\n"
+        "baseCommand: [echo]\n"
+        "inputs:\n"
+        "  message:\n"
+        "    type: string\n"
+        "    inputBinding:\n"
+        "      position: 1\n"
+        "stdout: out.txt\n"
+        "outputs:\n"
+        "  result:\n"
+        "    type: stdout\n"
+    ),
+    "prompt": (
+        "Convert this CWL CommandLineTool into a Nextflow DSL2 pipeline with a single process that takes "
+        "a `message` as a `val` input and writes it to `out.txt` (the CWL stdout). The entry workflow runs "
+        "it on the message `cwl-ok`, so out.txt contains `cwl-ok`.\n\n" + DSL2_NOTE
+    ),
+    "expected_contract": {
+        "tierB_stub": True, "runnable": True,
+        "outputs": [{"glob": "out.txt", "contains": ["cwl-ok"]}],
+    },
+})
+
+TASKS.append({
+    "id": "convert_from_cwl_workflow",
+    "kind": "convert_from_cwl",
+    "source_lang": "cwl",
+    "source": (
+        "cwlVersion: v1.2\n"
+        "class: Workflow\n"
+        "inputs: []\n"
+        "outputs:\n"
+        "  final:\n"
+        "    type: File\n"
+        "    outputSource: upper/uppered\n"
+        "steps:\n"
+        "  seed:\n"
+        "    run:\n"
+        "      class: CommandLineTool\n"
+        '      baseCommand: [sh, -c, "echo hello > seed.txt"]\n'
+        "      inputs: []\n"
+        "      outputs:\n"
+        "        seeded:\n"
+        "          type: File\n"
+        "          outputBinding: { glob: seed.txt }\n"
+        "    in: []\n"
+        "    out: [seeded]\n"
+        "  upper:\n"
+        "    run:\n"
+        "      class: CommandLineTool\n"
+        "      baseCommand: [sh, -c, \"tr 'a-z' 'A-Z' < seed.txt > upper.txt\"]\n"
+        "      inputs:\n"
+        "        infile: File\n"
+        "      outputs:\n"
+        "        uppered:\n"
+        "          type: File\n"
+        "          outputBinding: { glob: upper.txt }\n"
+        "    in: { infile: seed/seeded }\n"
+        "    out: [uppered]\n"
+    ),
+    "prompt": (
+        "Convert this 2-step CWL Workflow (step `seed` -> step `upper`, wired `seed/seeded` into "
+        "`upper.infile`) into Nextflow DSL2 with TWO chained processes: SEED writes `hello` into seed.txt; "
+        "UPPER takes that file as a `path` input, upper-cases it with `tr 'a-z' 'A-Z'`, and writes "
+        "upper.txt. Wire the step output channel into the next step so upper.txt contains `HELLO`.\n\n"
+        + DECOMP_NOTE
+    ),
+    "expected_contract": {
+        "tierB_stub": True, "runnable": True, "min_processes": 2,
+        "outputs": [{"glob": "upper.txt", "contains": ["HELLO"]}],
+    },
+})
+
+# ---- convert_from_notebook (x2) --------------------------------------------
+def _ipynb(cells):
+    """Build a minimal nbformat-4 notebook JSON string from a list of code-cell sources."""
+    nb = {"cells": [{"cell_type": "code", "execution_count": None, "metadata": {},
+                     "outputs": [], "source": src} for src in cells],
+          "metadata": {"kernelspec": {"name": "python3", "display_name": "Python 3"},
+                       "language_info": {"name": "python"}},
+          "nbformat": 4, "nbformat_minor": 5}
+    return json.dumps(nb, indent=1)
+
+TASKS.append({
+    "id": "convert_from_notebook_linear",
+    "kind": "convert_from_notebook",
+    "source_lang": "jupyter",
+    "source": _ipynb([
+        "# cell 1: load / create the input\n"
+        "with open('words.txt', 'w') as f:\n"
+        "    f.write('alpha\\nbeta\\ngamma\\n')",
+        "# cell 2: transform (upper-case each word)\n"
+        "data = [w.upper() for w in open('words.txt').read().split()]",
+        "# cell 3: write the result\n"
+        "with open('out.txt', 'w') as f:\n"
+        "    f.write('\\n'.join(data) + '\\n')",
+    ]),
+    "prompt": (
+        "This Jupyter notebook has three cells: load words into words.txt, upper-case them, write out.txt. "
+        "Convert it into a Nextflow DSL2 pipeline, but DECOMPOSE it into at least TWO processes (do not "
+        "cram all cells into one): e.g. LOAD writes `alpha`,`beta`,`gamma` (one per line) into words.txt, "
+        "and TRANSFORM takes words.txt as a `path` input and upper-cases it with `tr 'a-z' 'A-Z'` into "
+        "out.txt. The intermediate words.txt must flow between processes. Final out.txt must contain "
+        "`ALPHA`, `BETA`, `GAMMA`.\n\n" + DECOMP_NOTE
+    ),
+    "expected_contract": {
+        "tierB_stub": True, "runnable": True, "min_processes": 2,
+        "outputs": [{"glob": "out.txt", "contains": ["ALPHA", "BETA", "GAMMA"]}],
+    },
+})
+
+TASKS.append({
+    "id": "convert_from_notebook_map",
+    "kind": "convert_from_notebook",
+    "source_lang": "jupyter",
+    "source": _ipynb([
+        "# cell 1: load the list of items\n"
+        "items = ['x', 'y', 'z']",
+        "# cell 2: per-item transform (independent, could run in parallel)\n"
+        "tagged = {i: 'row:' + i for i in items}",
+        "# cell 3: aggregate\n"
+        "with open('summary.txt', 'w') as f:\n"
+        "    for i in items:\n"
+        "        f.write(tagged[i] + '\\n')",
+    ]),
+    "prompt": (
+        "This notebook loads a list of items, builds a per-item result, then aggregates them. Convert it "
+        "into a DECOMPOSED Nextflow DSL2 pipeline that MAPS over the items in parallel then aggregates: "
+        "process MAP_ITEM runs once per item (driven by `Channel.of('x','y','z')`) writing `row:<item>` "
+        "into a file, and process AGGREGATE `.collect()`s all of them and `cat`s into summary.txt. "
+        "summary.txt must contain `row:x`, `row:y`, `row:z`.\n\n" + DECOMP_NOTE
+    ),
+    "expected_contract": {
+        "tierB_stub": True, "runnable": True, "min_processes": 2,
+        "outputs": [{"glob": "summary.txt", "contains": ["row:x", "row:y", "row:z"]}],
+    },
+})
+
+# ---- decompose_script_to_pipeline (x2) — the HARD, LLM-bound ones ----------
+TASKS.append({
+    "id": "decompose_python_pipeline",
+    "kind": "decompose_script_to_pipeline",
+    "source_lang": "python",
+    "source": (
+        "#!/usr/bin/env python3\n"
+        "# The DAG is IMPLICIT in the in-memory dataflow below:\n"
+        "#   step 1 produces ids  ->  step 2 works per-id (independent)  ->  step 3 aggregates.\n\n"
+        "# step 1: produce the list of sample ids\n"
+        'samples = ["s1", "s2", "s3"]\n'
+        'with open("samples.txt", "w") as fh:\n'
+        '    fh.write("\\n".join(samples) + "\\n")\n\n'
+        "# step 2: per-sample computation (independent across samples)\n"
+        "for s in samples:\n"
+        '    with open(s + ".res", "w") as fh:\n'
+        '        fh.write(s + "=ok\\n")\n\n'
+        "# step 3: aggregate every per-sample result into one report\n"
+        'with open("report.txt", "w") as fh:\n'
+        "    for s in samples:\n"
+        '        fh.write(open(s + ".res").read())\n'
+    ),
+    "prompt": (
+        "The data-dependency graph in this Python script is IMPLICIT in its in-memory loops. Make it "
+        "EXPLICIT as a Nextflow DSL2 pipeline of at least THREE processes wired by channels:\n"
+        "  1. a process that emits the sample ids (`s1`,`s2`,`s3`) — e.g. write samples.txt then "
+        "`splitText()` it into a channel of ids;\n"
+        "  2. a process that runs ONCE PER SAMPLE in parallel (driven by that channel), writing "
+        "`<id>=ok` into a per-sample file;\n"
+        "  3. a process that `.collect()`s ALL per-sample files and concatenates them into report.txt.\n"
+        "Do NOT put everything in one process. The final report.txt must contain `s1=ok`, `s2=ok`, "
+        "`s3=ok`.\n\n" + DECOMP_NOTE
+    ),
+    "expected_contract": {
+        "tierB_stub": True, "runnable": True, "min_processes": 3,
+        "outputs": [{"glob": "report.txt", "contains": ["s1=ok", "s2=ok", "s3=ok"]}],
+    },
+})
+
+TASKS.append({
+    "id": "decompose_r_pipeline",
+    "kind": "decompose_script_to_pipeline",
+    "source_lang": "r",
+    "source": (
+        "# The DAG is IMPLICIT in the in-memory dataflow below:\n"
+        "#   step 1 writes ids -> step 2 transforms per-id (map) -> step 3 combines.\n\n"
+        "# step 1\n"
+        'samples <- c("a", "b", "c")\n'
+        'writeLines(samples, "ids.txt")\n\n'
+        "# step 2 (per-sample, independent)\n"
+        "for (s in samples) {\n"
+        '  writeLines(paste0(s, ":done"), paste0(s, ".out"))\n'
+        "}\n\n"
+        "# step 3 (combine)\n"
+        'lines <- unlist(lapply(samples, function(s) readLines(paste0(s, ".out"))))\n'
+        'writeLines(lines, "combined.txt")\n'
+    ),
+    "prompt": (
+        "The data-dependency graph in this R script is IMPLICIT in its in-memory loop/lapply. Make it "
+        "EXPLICIT as a Nextflow DSL2 pipeline of at least THREE processes wired by channels: (1) a process "
+        "that emits the ids `a`,`b`,`c` (e.g. write ids.txt then `splitText()` into a channel); (2) a "
+        "process that runs ONCE PER ID in parallel, writing `<id>:done` into a per-id file; (3) a process "
+        "that `.collect()`s ALL per-id files and concatenates them into combined.txt. Use ONLY coreutils "
+        "in the script blocks (no R needed). Do NOT put everything in one process. combined.txt must "
+        "contain `a:done`, `b:done`, `c:done`.\n\n" + DECOMP_NOTE
+    ),
+    "expected_contract": {
+        "tierB_stub": True, "runnable": True, "min_processes": 3,
+        "outputs": [{"glob": "combined.txt", "contains": ["a:done", "b:done", "c:done"]}],
+    },
+})
+
 # ----------------------------------------------------------------------------
 def main():
     out = os.path.join(HERE, "tasks.jsonl")

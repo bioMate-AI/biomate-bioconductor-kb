@@ -1,14 +1,18 @@
 {
   "aggregate": {
     "benchmark": "nextflow_coding",
-    "n_tasks": 12,
+    "n_tasks": 20,
     "tierA_pass_rate": 1.0,
     "tierB_pass_rate": 1.0,
     "tierC_pass_rate": 1.0,
-    "tierC_eligible": 12,
+    "tierC_eligible": 20,
     "mean_score": 1.0,
     "by_kind": {
       "convert": 1.0,
+      "convert_from_cwl": 1.0,
+      "convert_from_notebook": 1.0,
+      "convert_from_wdl": 1.0,
+      "decompose_script_to_pipeline": 1.0,
       "fix": 1.0,
       "write": 1.0
     }
@@ -21,13 +25,15 @@
       "tierB_pass": true,
       "tierC_pass": true,
       "runnable": true,
+      "min_processes": null,
+      "n_processes": 1,
       "outputs": [
         {
           "glob": "greeting.txt",
           "contains": [
             "Hello, BioMate!"
           ],
-          "found": "work/ed/c9046d9a87c0b6b0c4ce804e274402/greeting.txt",
+          "found": "work/56/6e99c8ec4caa1e1d1a30443d502a00/greeting.txt",
           "pass": true
         }
       ],
@@ -40,13 +46,15 @@
       "tierB_pass": true,
       "tierC_pass": true,
       "runnable": true,
+      "min_processes": null,
+      "n_processes": 1,
       "outputs": [
         {
           "glob": "wordcount.txt",
           "contains": [
             "4"
           ],
-          "found": "work/a9/aa06fc1617ceacb6671566b14fbd44/wordcount.txt",
+          "found": "work/5d/e8f114b11b6d888184c7e7937dfb8b/wordcount.txt",
           "pass": true
         }
       ],
@@ -59,6 +67,8 @@
       "tierB_pass": true,
       "tierC_pass": true,
       "runnable": true,
+      "min_processes": null,
+      "n_processes": 1,
       "outputs": [
         {
           "glob": "sorted.txt",
@@ -67,7 +77,7 @@
             "banana",
             "cherry"
           ],
-          "found": "work/65/37ccc06f681e956513f9c2c32bb7aa/sorted.txt",
+          "found": "work/b6/d9c686728d537d965a324646f42e5c/sorted.txt",
           "pass": true
         }
       ],
@@ -80,13 +90,15 @@
       "tierB_pass": true,
       "tierC_pass": true,
       "runnable": true,
+      "min_processes": null,
+      "n_processes": 2,
       "outputs": [
         {
           "glob": "upper.txt",
           "contains": [
             "HELLO"
           ],
-          "found": "work/4a/9c36c157ff4d7c3009170816067420/upper.txt",
+          "found": "work/fd/6b8f2acc8bd3a3b2c53fda78694975/upper.txt",
           "pass": true
         }
       ],
@@ -99,13 +111,15 @@
       "tierB_pass": true,
       "tierC_pass": true,
       "runnable": true,
+      "min_processes": null,
+      "n_processes": 1,
       "outputs": [
         {
           "glob": "g.txt",
           "contains": [
             "ready"
           ],
-          "found": "work/1b/0a57d86a201bc0cdbee4c18727e671/g.txt",
+          "found": "work/8c/ce93362ce56105d5f8aae5e1e952d2/g.txt",
           "pass": true
         }
       ],
@@ -118,13 +132,15 @@
       "tierB_pass": true,
       "tierC_pass": true,
       "runnable": true,
+      "min_processes": null,
+      "n_processes": 2,
       "outputs": [
         {
           "glob": "upper.txt",
           "contains": [
             "HELLO"
           ],
-          "found": "work/ee/719342fcd4c5fd13648dd1c26ef4b6/upper.txt",
+          "found": "work/61/77b3b3043f6ddab42e92bb004eb15b/upper.txt",
           "pass": true
         }
       ],
@@ -137,13 +153,15 @@
       "tierB_pass": true,
       "tierC_pass": true,
       "runnable": true,
+      "min_processes": null,
+      "n_processes": 1,
       "outputs": [
         {
           "glob": "pair.txt",
           "contains": [
             "left right"
           ],
-          "found": "work/4f/6468ad5e56cb270bf5aebc290a7dce/pair.txt",
+          "found": "work/57/21984db3c2db0195ba16d8b08e8b87/pair.txt",
           "pass": true
         }
       ],
@@ -156,13 +174,15 @@
       "tierB_pass": true,
       "tierC_pass": true,
       "runnable": true,
+      "min_processes": null,
+      "n_processes": 1,
       "outputs": [
         {
           "glob": "hi.txt",
           "contains": [
             "hi there"
           ],
-          "found": "work/be/1bb96170587329336add1bfa738a1a/hi.txt",
+          "found": "work/10/783a70cdb3d25169121b6ad1a84dc5/hi.txt",
           "pass": true
         }
       ],
@@ -175,13 +195,15 @@
       "tierB_pass": true,
       "tierC_pass": true,
       "runnable": true,
+      "min_processes": null,
+      "n_processes": 1,
       "outputs": [
         {
           "glob": "status.txt",
           "contains": [
             "pipeline-ok"
           ],
-          "found": "work/33/cee5685d7c8241bd3feaf976c91845/status.txt",
+          "found": "work/06/89ef8515bd98b6d7a4538b010ff6bf/status.txt",
           "pass": true
         }
       ],
@@ -194,13 +216,15 @@
       "tierB_pass": true,
       "tierC_pass": true,
       "runnable": true,
+      "min_processes": null,
+      "n_processes": 2,
       "outputs": [
         {
           "glob": "count.txt",
           "contains": [
             "5"
           ],
-          "found": "work/00/2f9892e4e9ca47c3baea8f441bcf26/count.txt",
+          "found": "work/10/7b68831a1f72ec838e02254ac4f9b1/count.txt",
           "pass": true
         }
       ],
@@ -213,6 +237,8 @@
       "tierB_pass": true,
       "tierC_pass": true,
       "runnable": true,
+      "min_processes": null,
+      "n_processes": 2,
       "outputs": [
         {
           "glob": "all.txt",
@@ -221,7 +247,7 @@
             "tag:b",
             "tag:c"
           ],
-          "found": "work/5e/97bf7b31692c3954e22cb3bd68cc79/all.txt",
+          "found": "work/b9/3c3cf99d0c20171a31b445555928c5/all.txt",
           "pass": true
         }
       ],
@@ -234,18 +260,197 @@
       "tierB_pass": true,
       "tierC_pass": true,
       "runnable": true,
+      "min_processes": null,
+      "n_processes": 1,
       "outputs": [
         {
           "glob": "msg.txt",
           "contains": [
             "hi, world"
           ],
-          "found": "work/4d/9dabd7ae2de0df43a80a8bdcdd7eaa/msg.txt",
+          "found": "work/65/ad68f16a7dca592020c6335bd4dad5/msg.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_from_wdl_linear",
+      "kind": "convert_from_wdl",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "min_processes": 2,
+      "n_processes": 2,
+      "outputs": [
+        {
+          "glob": "hello.txt",
+          "contains": [
+            "Hello, World!"
+          ],
+          "found": "work/f5/07d9345417f113abf82ae437b0df95/hello.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_from_wdl_scatter",
+      "kind": "convert_from_wdl",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "min_processes": 2,
+      "n_processes": 2,
+      "outputs": [
+        {
+          "glob": "all.txt",
+          "contains": [
+            "item:a",
+            "item:b",
+            "item:c"
+          ],
+          "found": "work/f5/e9c426a1034a612e50a1abb484abc9/all.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_from_cwl_tool",
+      "kind": "convert_from_cwl",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "min_processes": null,
+      "n_processes": 1,
+      "outputs": [
+        {
+          "glob": "out.txt",
+          "contains": [
+            "cwl-ok"
+          ],
+          "found": "work/aa/370bc024fa24f2b1ff8c6609d03b4e/out.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_from_cwl_workflow",
+      "kind": "convert_from_cwl",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "min_processes": 2,
+      "n_processes": 2,
+      "outputs": [
+        {
+          "glob": "upper.txt",
+          "contains": [
+            "HELLO"
+          ],
+          "found": "work/61/ea24208c9f840aebb9f2f4cf3d590b/upper.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_from_notebook_linear",
+      "kind": "convert_from_notebook",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "min_processes": 2,
+      "n_processes": 2,
+      "outputs": [
+        {
+          "glob": "out.txt",
+          "contains": [
+            "ALPHA",
+            "BETA",
+            "GAMMA"
+          ],
+          "found": "work/3d/7027e359bcaf00d3aac1fcbac84808/out.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "convert_from_notebook_map",
+      "kind": "convert_from_notebook",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "min_processes": 2,
+      "n_processes": 2,
+      "outputs": [
+        {
+          "glob": "summary.txt",
+          "contains": [
+            "row:x",
+            "row:y",
+            "row:z"
+          ],
+          "found": "work/f3/1e764fe20d2d23cb7093ffea89cf2d/summary.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "decompose_python_pipeline",
+      "kind": "decompose_script_to_pipeline",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "min_processes": 3,
+      "n_processes": 3,
+      "outputs": [
+        {
+          "glob": "report.txt",
+          "contains": [
+            "s1=ok",
+            "s2=ok",
+            "s3=ok"
+          ],
+          "found": "work/56/53055f1e87cec980f877c838efdb6a/report.txt",
+          "pass": true
+        }
+      ],
+      "score": 1.0
+    },
+    {
+      "id": "decompose_r_pipeline",
+      "kind": "decompose_script_to_pipeline",
+      "tierA_pass": true,
+      "tierB_pass": true,
+      "tierC_pass": true,
+      "runnable": true,
+      "min_processes": 3,
+      "n_processes": 3,
+      "outputs": [
+        {
+          "glob": "combined.txt",
+          "contains": [
+            "a:done",
+            "b:done",
+            "c:done"
+          ],
+          "found": "work/a7/715a28633410bc86fdc9b45e526b98/combined.txt",
           "pass": true
         }
       ],
       "score": 1.0
     }
-  ],
-  "note": "grader sanity-check: all 12 gold reference/*.nf must score 1.0 (A/B/C). Regression fixture."
+  ]
 }
