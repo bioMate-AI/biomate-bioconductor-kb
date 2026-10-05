@@ -10256,6 +10256,52 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // Idempotency guard (prevents duplicate PAID Batch launches):
+      // a rapid duplicate submission — double-click, client retry, network hiccup — must not
+      // launch a SECOND identical compute job. If an identical workflow (same content
+      // fingerprint, same user/project) is already IN FLIGHT within a short window, return that
+      // existing run instead of dispatching again. Only in-flight states dedupe — a user may
+      // legitimately re-run a COMPLETED or FAILED workflow (and explicit retries are handled above).
+      if (!retryOfRunId && !retryOfInvocationId && (req.user?.id || request.projectId)) {
+        const incomingFp = buildWorkflowFingerprint(request.workflowDefinition);
+        if (incomingFp) {
+          const IN_FLIGHT = new Set(["configuring", "pending", "submitted", "queued", "running"]);
+          const DEDUP_WINDOW_MS = 2 * 60 * 1000; // 120s — catches double-submits, not intentional re-runs
+          const nowMs = Date.now();
+          const recentForDedup = await storage.getExecutionRuns(
+            req.user?.id,
+            request.projectId,
+            undefined,
+            20
+          );
+          const inFlightDup = recentForDedup.find((run) => {
+            const status = String(run.execution?.status || (run as any).status || "");
+            if (!IN_FLIGHT.has(status)) return false;
+            const startedMs = new Date(run.createdAt || run.updatedAt || nowMs).getTime();
+            if (nowMs - startedMs > DEDUP_WINDOW_MS) return false;
+            const runFp = buildWorkflowFingerprint(run.workflowDefinition);
+            return !!runFp && runFp === incomingFp;
+          });
+          if (inFlightDup) {
+            const dupEx: any = inFlightDup.execution || {};
+            console.log(
+              `[execute] idempotent dedupe → identical workflow already in flight (run ${inFlightDup.id}); returning it instead of launching a duplicate Batch job`
+            );
+            return res.status(200).json({
+              runId: inFlightDup.id,
+              galaxyInvocationId: dupEx.galaxyInvocationId,
+              galaxyHistoryId: dupEx.galaxyHistoryId,
+              executionEngine: dupEx.executionEngine,
+              nextflowRunId: dupEx.nextflowRunId,
+              status: dupEx.status || "running",
+              deduplicated: true,
+              message: `An identical workflow is already running (run_id: ${dupEx.nextflowRunId || inFlightDup.id}); returned the existing run instead of launching a duplicate.`,
+              outputs: dupEx.outputs,
+            });
+          }
+        }
+      }
+
       // Check if workflow has input steps that require data
       const steps = request.workflowDefinition.steps || {};
       const inputSteps = Object.values(steps).filter((step: any) =>
