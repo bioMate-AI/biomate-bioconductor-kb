@@ -177,7 +177,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 4 — MODEL AS OBJECT, NOT SCOREBOARD -->
-  <section class="scene" data-seconds="44.0">
+  <section class="scene" data-seconds="54.0">
     <div class="kicker"><span class="st">BioMate's guiding idea</span> · a model is an object, not a scoreboard <span class="badge concept">Concept</span></div>
     <h2>Shown as documented facts — and judged against a floor, not a rank.</h2>
     <p class="caption">Instead of ranking models on a scoreboard (which tempts people to game it), BioMate shows each model like a documented object you can inspect before you trust it.</p>
@@ -256,7 +256,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 8 — LIVE: MODEL OBJECT -->
-  <section class="scene live" data-kind="flow" data-seconds="30.0">
+  <section class="scene live" data-kind="flow" data-seconds="32.0">
     <div class="kicker"><span class="st">Reading a model</span> · the object view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div>
     <h2>Open a model and read what you'd be trusting.</h2>
     <p class="caption">Opening a model shows it as an <b>object</b>: <b>Evidence</b> (the quality floor — measured score, required floor, verdict), <b>Lineage</b> (the data and run that built it), <b>Used by</b> (what depends on it), and <b>Versions</b> (nothing overwritten). Here Evidence reads <b>"not evaluated"</b> — the model stating honestly that it has not yet been scored, rather than showing a confident-looking number it cannot back up. You read the full evidence, lineage, and version history <i>before</i> you trust a prediction.</p>
@@ -288,7 +288,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 10 — LIVE: ROUNDS + CLOSED LOOP IN PRACTICE -->
-  <section class="scene live" data-kind="flow" data-seconds="52.0">
+  <section class="scene live" data-kind="flow" data-seconds="57.0">
     <div class="kicker"><span class="st">The closed loop</span> · the Rounds view, and how it works <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product</span></div>
     <h2>Design → make → test → learn — recorded round by round.</h2>
     <p class="caption">The <b>Rounds</b> view is the home of the closed loop, and this is the working behaviour behind it. As a round runs, a <b>safety / QC gate checks every candidate against its threshold</b> — when one crosses the line (say, a predicted hERG liability past the cardiac-safety limit), the gate halts that candidate and <b>suggests an advisory fix</b> you can confirm, rather than re-running on its own. Your <b>real bench results then feed the next round</b>: the model is retrained on the combined data and re-checked on data it was not trained on, so each round builds on measured ground truth. The view keeps every proposal accounted for, holds limit values as limits (">30 µM" is never silently replaced by 30), and keeps rejected candidates visible with their reason.</p>
