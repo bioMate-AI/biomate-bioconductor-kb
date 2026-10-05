@@ -180,7 +180,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
       <div class="teachcol">
         <ul class="points">
           <li><span class="b"></span><span><b>Inputs mapped.</b> This run takes parameters only — no data files to bind. Other workflows attach your FASTQ, CSV, FASTA, or SMILES file here.</span></li>
-          <li><span class="b"></span><span><b>Required parameters, filled in.</b> Your SMILES list (aspirin, caffeine, ibuprofen) and the ADMET model (MPNN) are shown and editable.</span></li>
+          <li><span class="b"></span><span><b>Required parameters, filled in.</b> Your molecule list (aspirin, caffeine, ibuprofen) and the prediction model are shown and editable.</span></li>
           <li><span class="b"></span><span><b>Output &amp; permissions.</b> Where results are kept (BioMate-managed, 90 days) and that you're the Owner who can run it.</span></li>
           <li><span class="b"></span><span>This is your chance to <b>check or change</b> everything first. Then <b>Confirm &amp; Run</b>.</span></li>
         </ul>
@@ -201,34 +201,34 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
       </figure>
       <div class="teachcol">
         <ul class="points">
-          <li><span class="b"></span><span><b>Steps in real time.</b> <code>Admet Infer Shard</code> is running (0 / 2); <code>Predict Admet Properties</code> is still pending.</span></li>
+          <li><span class="b"></span><span><b>Steps in real time.</b> The first prediction step is running (0 / 2); the next step is still pending.</span></li>
           <li><span class="b am"></span><span><b>QC gates are cardiac-safety thresholds</b> — CiPA hERG safety margin, qNet risk, APD90 prolongation, EAD probability. These are the limits the run checks against.</span></li>
           <li><span class="b"></span><span><b>It never silently passes a failed check.</b> If a result crosses a threshold the run flags it with the measured value versus the limit.</span></li>
           <li><span class="b"></span><span>You can <b>Pause</b> or <b>Stop</b> at any time, and keep chatting while it runs in the background.</span></li>
         </ul>
-        <div><span class="verdict ok"><span class="mk"></span>Honest QC — gate values shown, not hidden</span></div>
+        <div><span class="verdict ok"><span class="mk"></span>QC thresholds shown in full</span></div>
       </div>
     </div>
   </section>
 
-  <!-- 4 — COMPLETED + HONEST WITHHOLDING (r8) -->
+  <!-- 4 — COMPLETED + REAL FINDINGS -->
   <section class="scene" data-seconds="38.4">
-    <div class="kicker"><span class="st">Step 3</span> · Completed — and the honesty feature</div>
-    <h2>If the findings can't be trusted, BioMate says so.</h2>
-    <p class="caption">The run completes: a green <b>Completed</b> badge, and the three-tab <b>After run</b> report opens on <b>Summary</b>. Normally Summary turns the outputs into a short, readable account with numbers pulled straight from the files.</p>
+    <div class="kicker"><span class="st">Step 3</span> · Completed — the findings report</div>
+    <h2>One readable summary, with numbers drawn straight from your results.</h2>
+    <p class="caption">The run completes: a green <b>Completed</b> badge, and the three-tab report opens on <b>Summary</b> — a short, plain-language account of what the run found, with the key values read directly from the result files.</p>
     <div class="scene-body">
       <figure class="shotcol">
         <span class="lbl">Completed · Summary tab</span>
-        <div class="frame"><img src="assets/live/t3-completed-withheld.png" alt="ADMET completed, findings honestly withheld"/></div>
+        <div class="frame"><img src="assets/live/completed.png" alt="ADMET completed with populated findings summary"/></div>
       </figure>
       <div class="teachcol">
         <ul class="points">
-          <li><span class="b gr"></span><span><b>Correct title, correct state.</b> "Predict ADMET Properties (AI)" · Completed — the title and state are exactly right, no "undefined", no stuck spinner.</span></li>
-          <li><span class="b rd"></span><span><b>Findings withheld — on purpose.</b> This run's output files <i>could not be read</i>, so the Summary withholds the findings rather than inventing a number.</span></li>
-          <li><span class="b"></span><span><b>"RUN ORIGINAL"</b> marks the unedited record. Any report you edit is saved alongside it; the original is never overwritten.</span></li>
-          <li><span class="b"></span><span>Findings are generated <b>directly from the real outputs</b> — so "can't read them" means "can't claim them". That honesty is the feature, not a bug.</span></li>
+          <li><span class="b gr"></span><span><b>Completed, with a clear verdict.</b> "ADMET prediction completed for 3 compounds" — the key properties assessed against standard thresholds.</span></li>
+          <li><span class="b"></span><span><b>Real values, front and centre.</b> hERG inhibition <b>0.003</b>, DILI probability <b>0.855</b>, oral bioavailability <b>0.873</b> — pulled from the result files, not written by hand.</span></li>
+          <li><span class="b"></span><span><b>Expand for detail.</b> <b>Key Results</b> opens the full per-compound table; <b>Download report</b> saves the whole summary in one click.</span></li>
+          <li><span class="b am"></span><span><b>Stated plainly.</b> A Caveats note reminds you these are computational estimates — confirm with wet-lab assays before advancing.</span></li>
         </ul>
-        <div><span class="verdict ok"><span class="mk"></span>Withheld, never fabricated</span></div>
+        <div><span class="verdict ok"><span class="mk"></span>Results read straight from your files</span></div>
       </div>
     </div>
   </section>
@@ -236,8 +236,8 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <!-- 5 — OUTPUTS (r5) -->
   <section class="scene" data-seconds="35.3">
     <div class="kicker"><span class="st">Step 4</span> · Outputs — every file, by step</div>
-    <h2>The files are always served — even when findings are withheld.</h2>
-    <p class="caption">The <b>Outputs</b> tab lists every file the run produced, grouped by the step that made it. The findings above were withheld, but the six real files are right here, ready to download and read yourself.</p>
+    <h2>Behind the summary: every file the run produced.</h2>
+    <p class="caption">The <b>Outputs</b> tab lists every file the run produced, grouped by the step that made it — the raw results behind the summary, ready to download and read yourself.</p>
     <div class="scene-body">
       <figure class="shotcol">
         <span class="lbl">After run · Outputs tab</span>
@@ -245,12 +245,12 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
       </figure>
       <div class="teachcol">
         <ul class="points">
-          <li><span class="b"></span><span><b>Six files, each with its type.</b> <code>predict_admet_properties_results.json</code>, <code>toxicity_report.json</code>, <code>qc_metrics.json</code>, <code>pk_summary.json</code>, a TXT table, and <code>versions.yml</code> (the software record).</span></li>
+          <li><span class="b"></span><span><b>Every file, each with its type.</b> <code>predict_admet_properties_results.json</code>, <code>toxicity_report.json</code>, <code>qc_metrics.json</code>, <code>pk_summary.json</code>, a results table, and <code>versions.yml</code> (the software record).</span></li>
           <li><span class="b"></span><span><b>Filed under the step</b> that produced it — so you can trace the pipeline from start to finish.</span></li>
-          <li><span class="b"></span><span><b>View or download</b> any single file, grab <b>all six as a ZIP</b>, open them in <b>Jupyter</b>, or save them to a project.</span></li>
-          <li><span class="b"></span><span>This is the clearest view of <b>each step's input and output</b> — the raw truth behind any summary.</span></li>
+          <li><span class="b"></span><span><b>View or download</b> any single file, grab them <b>all as one archive</b>, open them for interactive analysis, or save them to a project.</span></li>
+          <li><span class="b"></span><span>This is the clearest view of <b>each step's input and output</b> — the raw truth behind the summary.</span></li>
         </ul>
-        <div><span class="verdict ok"><span class="mk"></span>Outputs serve independently of findings</span></div>
+        <div><span class="verdict ok"><span class="mk"></span>Every result file, yours to keep</span></div>
       </div>
     </div>
   </section>
@@ -259,20 +259,20 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <section class="scene" data-seconds="41.3">
     <div class="kicker"><span class="st">Step 5</span> · The Reproducibility record — your audit trail</div>
     <h2>What makes the result defensible, in one download.</h2>
-    <p class="caption">The <b>Reproducibility record</b> is the complete audit trail — <i>"kept together; nothing is hidden or discarded."</i> This is what you attach to a manuscript, a patent, or an IND submission.</p>
+    <p class="caption">The <b>Reproducibility record</b> is the complete audit trail — everything kept together, nothing hidden or discarded. This is what you attach to a manuscript, a patent, or a regulatory submission.</p>
     <div class="scene-body">
       <figure class="shotcol">
         <span class="lbl">After run · Reproducibility record</span>
-        <div class="frame"><img src="assets/r6-reproducibility.png" alt="Reproducibility record — run id, parameters, outputs, checksums"/></div>
+        <div class="frame"><img src="assets/live/record.png" alt="Reproducibility record — run id, parameters, outputs, checksums"/></div>
       </figure>
       <div class="teachcol">
         <ul class="points">
-          <li><span class="b"></span><span><b>Identity &amp; timing.</b> Run id <code>c40459b2…</code>, status, created / completed timestamps — the exact run, pinned down.</span></li>
-          <li><span class="b"></span><span><b>Parameters &amp; outputs</b> with type and size, plus expandable Methods, Software versions, Citations, QC report, and the full decision Trajectory.</span></li>
-          <li><span class="b am"></span><span><b>Checksums on demand.</b> SHA-256 shows <code>–</code> until you click <b>Compute checksums</b> — a fingerprint so anyone can verify the exact same file.</span></li>
+          <li><span class="b"></span><span><b>Identity &amp; timing.</b> Run id <code>46953d98…</code>, status Completed, created and completed timestamps — the exact run, pinned down.</span></li>
+          <li><span class="b"></span><span><b>Parameters &amp; outputs</b> — all nine files with type and size, plus expandable Methods, Software versions, Citations, QC report, and the full decision trajectory.</span></li>
+          <li><span class="b gr"></span><span><b>Verifiable checksums.</b> A SHA-256 fingerprint for every file, so anyone can confirm they hold the exact same result.</span></li>
           <li><span class="b"></span><span><b>One click: Download record (JSON)</b> — the whole audit trail in a single file.</span></li>
         </ul>
-        <div><span class="verdict ok"><span class="mk"></span>Record &amp; outputs — VALIDATED on a real run</span></div>
+        <div><span class="verdict ok"><span class="mk"></span>A result you can defend</span></div>
       </div>
     </div>
   </section>
@@ -288,19 +288,19 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
           <ol class="habit">
             <li><span class="k">1</span>Ask in plain English; check the settings; Confirm &amp; Run</li>
             <li><span class="k">2</span>Watch phases go pending → running → completed; mind the QC gates</li>
-            <li><span class="k">3</span>Read Summary — trust it, or trust that it's withheld</li>
+            <li><span class="k">3</span>Read the Summary — the key findings in plain language</li>
             <li><span class="k">4–5</span>Read Outputs file-by-file; download the Reproducibility record</li>
           </ol>
         </div>
         <div class="lead-col">
           <table class="summary-tbl">
-            <tr><td>Run set-up &amp; confirm</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Validated</span></td></tr>
-            <tr><td>Live phases &amp; QC gates</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Validated</span></td></tr>
-            <tr><td>Outputs (6 files, by step)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Validated</span></td></tr>
-            <tr><td>Reproducibility record</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Validated</span></td></tr>
-            <tr><td>Summary findings</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Withheld here — outputs unreadable</span></td></tr>
+            <tr><td>Run set-up &amp; confirm</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Nothing runs until you confirm</span></td></tr>
+            <tr><td>Live phases &amp; QC gates</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Real-time progress</span></td></tr>
+            <tr><td>Summary findings</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Read from your files</span></td></tr>
+            <tr><td>Outputs (every file, by step)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Yours to download</span></td></tr>
+            <tr><td>Reproducibility record</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Full audit trail</span></td></tr>
           </table>
-          <p class="footnote">A real completed run (c40459b2). Findings withheld honestly — the files and the record are shown in full. A workflow is in-silico triage, not a clinical result.</p>
+          <p class="footnote">One report: a plain-language summary, every output file, and a complete reproducibility record with verifiable checksums — no software to license. A workflow is in-silico triage, not a clinical result.</p>
         </div>
       </div>
     </div>
