@@ -157,14 +157,23 @@ def ring_closed(lp):
     return bool(any({b.atom1.idx,b.atom2.idx}=={ni,ci} for b in lp.bonds)) if (ni is not None and ci is not None) else False
 
 subprocess.run(['aws','s3','sync',f'{DES}/{TARGET}/',f'./{TARGET}/','--only-show-errors','--exclude','*','--include','*.cif'],check=True)
-allc=[c for c in glob.glob(f'{TARGET}/**/*.cif',recursive=True) if 'before_refolding' not in c and 'final_ranked' in c]
-if not allc: allc=[c for c in glob.glob(f'{TARGET}/**/*.cif',recursive=True) if 'before_refolding' not in c]
+# FULL_POOL=1 (default now): score every generated design (intermediate_designs + ranked), deduped by
+# design index, so within-target MM-GBSA covers the whole pool and its full iptm range (not just the
+# top-ranked subset). Set FULL_POOL=0 to restrict to final_ranked only (old behaviour).
+if os.environ.get('FULL_POOL','1') == '0':
+    allc=[c for c in glob.glob(f'{TARGET}/**/*.cif',recursive=True) if 'before_refolding' not in c and 'final_ranked' in c]
+    if not allc: allc=[c for c in glob.glob(f'{TARGET}/**/*.cif',recursive=True) if 'before_refolding' not in c]
+else:
+    allc=[c for c in glob.glob(f'{TARGET}/**/*.cif',recursive=True) if 'before_refolding' not in c]
 seen=set(); designs=[]
-for c in sorted(allc):
+for c in sorted(allc):   # 'final_ranked_designs' sorts before 'intermediate_designs' -> prefer ranked CIF per index
     d=os.path.basename(c).replace('.cif','').split('_')[-1]   # design index (rankNN_1yf4_<D>.cif)
     if d in seen: continue
     seen.add(d); designs.append(c)
-print(f"{TARGET}: scoring {len(designs)} designs (within-target MM-GBSA ranking)")
+# shard the deduped design list across parallel instances (default SHARD=0/NSHARD=1 => all, unchanged)
+SH=int(os.environ.get('SHARD','0')); NSH=int(os.environ.get('NSHARD','1'))
+designs=designs[SH::NSH]
+print(f"{TARGET}: scoring {len(designs)} designs (shard {SH}/{NSH}, FULL_POOL={os.environ.get('FULL_POOL','1')})")
 results=[]
 for cif in designs:
     did=os.path.basename(cif).replace('.cif','')

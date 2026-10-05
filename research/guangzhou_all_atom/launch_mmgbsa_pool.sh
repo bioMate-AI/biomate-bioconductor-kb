@@ -12,7 +12,8 @@ TARGET=${TARGET:-5o45}
 RUNNER=${RUNNER:-peptide_mmgbsa_run.sh}   # override: peptide_mmgbsa_pocket_run.sh for large/multi-chain receptors
 DESIGNS_S3=${DESIGNS_S3:-s3://$BUCKET/cyclic_peptide/runs/boltzgen-oversample-5o45-20260930T172457Z/boltzgen_targets}
 NS=${NS:-0.5}
-RUNID=mmgbsa-pool-${TARGET}-$(date -u +%Y%m%dT%H%M%SZ)
+SHARD=${SHARD:-0}; NSHARD=${NSHARD:-1}; FULL_POOL=${FULL_POOL:-1}
+RUNID=mmgbsa-pool-${TARGET}-s${SHARD}of${NSHARD}-$(date -u +%Y%m%dT%H%M%SZ)
 S3RUN=s3://$BUCKET/cyclic_peptide/runs/$RUNID
 HERE=$(cd "$(dirname "$0")" && pwd)
 
@@ -26,7 +27,7 @@ export AWS_DEFAULT_REGION=us-west-2
 mkdir -p /opt/mmg
 for i in 1 2 3 4 5; do aws s3 cp $S3RUN/code/peptide_mmgbsa_run.sh /opt/mmg/run.sh --region us-west-2 && break; sleep 10; done
 chmod +x /opt/mmg/run.sh
-OUT_S3=$S3RUN DESIGNS_S3=$DESIGNS_S3 TARGET=$TARGET NS=$NS bash /opt/mmg/run.sh
+OUT_S3=$S3RUN DESIGNS_S3=$DESIGNS_S3 TARGET=$TARGET NS=$NS SHARD=$SHARD NSHARD=$NSHARD FULL_POOL=$FULL_POOL bash /opt/mmg/run.sh
 EOF
 )
 
