@@ -65,8 +65,15 @@ mkdir -p "$ROOT/dl"; cd "$ROOT/dl"
 hfget boltzgen/inference-data mols.zip dataset 2>&1 | tail -2 || true
 [ -f mols.zip ] && { mkdir -p mols && unzip -q -o mols.zip -d mols && echo "mols: $(ls mols | wc -l) files"; } || echo "WARN: mols.zip not fetched"
 # shipped training targets (to introspect Record/Manifest construction) + fold ckpt + small ckpt
-hfget boltzgen/boltzgen1_train targets.zip dataset 2>&1 | tail -2 || true
-[ -f targets.zip ] && { mkdir -p shipped && unzip -q -o targets.zip -d shipped && echo "shipped targets: $(find shipped -maxdepth 3 -name manifest.json | head -1)"; } || echo "WARN: targets.zip not fetched"
+# targets.zip = the large BASE BoltzGen training set; only introspect needs a real example to pin the
+# Record/Manifest format. The smoke trains on OUR converted data ($TARGETS_DIR), so skip the multi-GB
+# download for smoke (it was stalling fetching_data).
+if [ "$MODE" = "introspect" ]; then
+  hfget boltzgen/boltzgen1_train targets.zip dataset 2>&1 | tail -2 || true
+  [ -f targets.zip ] && { mkdir -p shipped && unzip -q -o targets.zip -d shipped && echo "shipped targets: $(find shipped -maxdepth 3 -name manifest.json | head -1)"; } || echo "WARN: targets.zip not fetched"
+else
+  echo "smoke mode: skipping base targets.zip (trains on our converted data)"
+fi
 
 stage "running_${MODE}"
 CFG="$ROOT/boltzgen/src/boltzgen/resources/config/train/boltzgen_small.yaml"
@@ -132,7 +139,7 @@ def rec(o):
 rec(cfg)
 tr=cfg.setdefault("trainer",{})
 tr["devices"]=[0]; tr["max_steps"]=10; tr["num_sanity_val_steps"]=0
-tr["limit_val_batches"]=1; tr["val_check_interval"]=10
+tr["limit_val_batches"]=0; tr["val_check_interval"]=100  # no val in a 10-step smoke -> no folding ckpt needed
 yaml.safe_dump(cfg, open(out_p,"w"))
 print("wrote smoke config", out_p)
 PY
