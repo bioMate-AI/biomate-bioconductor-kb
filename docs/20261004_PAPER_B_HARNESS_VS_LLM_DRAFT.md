@@ -53,7 +53,10 @@ rules — is the lever. We test it on selection tasks (§3–5) and identify the
   Gemini-3.1-pro, DeepSeek-V4-pro via OpenRouter.
 - **Conditions:** *bare* (model's own knowledge), *+KB* (candidates annotated with grounded descriptions +
   input types from the BioMate knowledge base), *full-harness* (live product retrieval over the 4,209-wf
-  catalog), *composite* (retrieve → KB-grounded selection).
+  catalog), *composite* (retrieve → KB-grounded selection). The retrieval corpus is the **4,209-workflow
+  catalog** (ground truth 2026-10-04, `docs/20261004_CATALOG_COUNT_RECONCILIATION.md`), indexed over 12,312
+  tools across ~36 domains; of these, **1,092 carry clean real-execution evidence** — we cite catalog breadth
+  and the validated subset separately and never conflate them.
 - **Scoring:** single shared open scorers; top-1 accuracy, invalid-regime failure rate, retrieval@1/recall@8.
 
 ## 3. Workflow routing (RealBio cross_domain_routing, n=200)
@@ -80,11 +83,28 @@ The **KB dividend scales inversely with model strength** (DeepSeek +9.8pp betwee
 The composite result decomposes the product: **selection is solved (0.97 given retrieval); the ceiling is
 retrieval recall (0.825)**, so the lever to raise it is embeddings/coverage, not the model.
 
+**Replication on the newest open-weight models (2026-10-05 refresh, n=40).** To confirm the pattern is not an
+artifact of the specific models first tested, we re-ran the bare-vs-+KB arms on the four newest open-weight
+releases on OpenRouter (deepseek-v4.1-flash, glm-5.3, qwen3.8-2.4t-a95b, kimi-k3; same `run_bioc_matrix.py`
+harness and `score.py`). All four land at **0.975–1.000 top-1 with the KB** — in the frontier band and above
+the on-prem 9B+KB (0.95); every KB dividend is positive and still **scales inversely with bare strength**
+(weakest bare deepseek-v4.1-flash 0.80 → **+17.5pp**; glm-5.3 0.90 → +10.0pp; qwen3.8-2.4t 0.925 → +7.5pp;
+strongest bare kimi-k3 0.975 → +2.5pp). **Invalid-regime failure stays 0 across all models and both arms**
+(no model made a wrong-regime pick), and the KB also suppresses hallucination (deepseek 0.20→0.025, glm/qwen
+0.075→0). Total refresh cost $0.41 (OpenRouter `total_usage` delta over 320 scored calls). *Caveat:* the
+deepseek-v4.1-flash bare score (0.80) is depressed by 8 empty responses where the reasoning model exhausted
+the fixed 600-token budget on thinking tokens (1 empty in the richer KB arm); the budget was held constant
+across all runs and these are reported as the no-answer failures they are (`docs/20261004_BIOC_SELECTION_MATRIX_RESULTS.md`,
+"2026-10-05 open-LLM refresh").
+
 ## 5. Unified result (the figure)
 Plot KB dividend (pp) vs model strength for both tasks (`docs/20261004_KB_DIVIDEND_UNIFIED.md`): both series
 rise monotonically as the model weakens. **A small on-prem model + the knowledge layer matches frontier**, and
 the knowledge layer eliminates scientifically-invalid choices. This is the paper's central claim and the
-justification for an on-prem (cost/compliance) deployment.
+justification for an on-prem (cost/compliance) deployment. The 2026-10-05 refresh (§4) confirms the pattern
+holds against the *current* open-weight frontier: four of the newest open models all reach 0.975–1.000 with
+the KB with positive, inversely-scaling dividends, so "9B+KB ≈ frontier" is a statement about today's models,
+not a transient gap that the next model release closes.
 
 ## 6. The LLM-bound residual: multi-task decomposition (open problem, NOT claimed)
 Decomposing a multi-task request into a dependency-ordered sub-task plan (parallel/sequential/mixed) is the
@@ -95,6 +115,25 @@ a DB-verified dependency DAG (TaskBench-style), where each sub-task resolves to 
 each edge is validated by input/output-type + EDAM-operation compatibility from the knowledge base. We frame
 decomposition as an open problem and the right place for on-prem model training — pending that metric.
 
+### 6.1 What on-prem training does buy: a small, real domain-knowledge lift
+The task-split predicts that training a small model is near-wasted on the harness-carried (S/R/V) tasks but
+has marginal value where the model is the ceiling — chiefly domain *knowledge recall*. A bounded
+concept-oriented continued-pretraining (concept-CPT) run bears this out. On a held-out open-book MCQA probe
+(n=261: 112 knowledge_recall + 149 scientific_qa), a Qwen3.5-9B given a bounded **300-step CPT + 500-step SFT**
+pass over a 593M-token concept mix improves **knowledge_recall +4.4pp (0.679→0.723)** and **overall +1.9pp
+(0.636→0.655) with no regression** on scientific_qa (0.604→0.604) and zero invalid answers in either arm
+(`docs/20260912_onprem_llm/20261005_9B_CONCEPT_CPT_EVAL_CORRECTED.md`). This is consistent with, not
+contradicted by, the earlier finding that a bounded *SFT* adds nothing end-to-end on the harness-carried
+RealBio tasks (routing/param/autofix; `docs/20260912_onprem_llm/20261004_REALBIO_LLM_VS_HARNESS.md`): the two
+measure different capabilities — selection the harness already carries vs. domain knowledge the weights hold.
+**Honesty caveats (carried verbatim from the source):** (i) this is a *bounded, non-converged* run — 300 CPT
+steps is a partial pass of the 593M mix, so +4.4pp is a lower bound on a full pass, not a final capability
+number; (ii) the probe is open-book MCQA only, not execution-task success or client acceptance; (iii) the
+leakage filter is exact-stem only (not semantic/source-family); (iv) n=261, no CIs. An earlier recorded eval
+reporting a catastrophic −0.66 was a *grader bug* — a `re.fullmatch` extractor rejected well-formed
+option-text answers (`"D) Thyroid agenesis."`); the fix is a pure extraction-correctness change (base score
+unchanged at 0.636, proving no false positives) and is shipped. We report the corrected numbers only.
+
 ## 7. Discussion / limitations
 - Frontier is near-ceiling on method selection → that task discriminates *weak* models; the on-prem claim is
   clean, but a "hard-for-frontier" variant needs more obscure methods.
@@ -102,6 +141,11 @@ decomposition as an open problem and the right place for on-prem model training 
   harness supplies grounded context," labelled as such.
 - n (40 method, 200 routing) and CIs reported; RealBio self-grading caveat on product rows; some golds need
   acceptable-alt encoding to firm up retrieval@1.
+- **Distribution shift:** the absolute dividend magnitudes are measured on one catalog and two query
+  distributions (RealBio routing + the Bioconductor method set); the two mechanisms that would make the lift
+  spurious — lexical/phrasing echo and concentration on hand-tuned disambiguation targets — are empirically
+  ruled out (paraphrase-robust, 26-workflow recovery breadth; §3), but a brand-new catalog or user
+  distribution could shift the numbers. The *direction* (inverse scaling with model strength) is what we claim.
 - Differentiation vs Biomni (*Science* 2025): Biomni executes ad-hoc sandbox code and is Q&A-heavy; our
   evaluation is production execution + knowledge-grounded selection over a curated catalog.
 
@@ -119,6 +163,26 @@ empirical): ~60–70% spot-vs-on-demand GPU savings, 20–50× ADMET array throu
 **Honesty:** no invoice-grade cost A/B exists; cost figures are modeled, stated as such.
 
 ## Artifacts
-`evaluation/datasets/bioc_method_selection/` (data+runners+scorer), `docs/20261004_CLOSE_THE_GAP_ROUTING.md`,
+`evaluation/datasets/bioc_method_selection/` (data+runners+scorer),
+`docs/20260912_onprem_llm/20261004_CLOSE_THE_GAP_ROUTING.md`,
 `docs/20261004_BIOC_SELECTION_MATRIX_RESULTS.md`, `docs/20261004_KB_DIVIDEND_UNIFIED.md`,
-`docs/20261004_REALBIO_LLM_VS_HARNESS.md`. All predictions committed.
+`docs/20260912_onprem_llm/20261004_REALBIO_LLM_VS_HARNESS.md`,
+`docs/20260912_onprem_llm/20261005_9B_CONCEPT_CPT_EVAL_CORRECTED.md`,
+`docs/20261004_CATALOG_COUNT_RECONCILIATION.md`. All predictions committed.
+
+## Data & Code Availability
+All quantitative claims are reproducible from committed artifacts:
+- **Benchmark + scorer:** `evaluation/datasets/bioc_method_selection/` — `data.jsonl` (40 items),
+  `build_dataset.py`, `run_bioc_matrix.py` (bare/+KB arms), `run_bioc_composite.py` (retrieve→select),
+  `score.py` (top-1, invalid-regime, hallucination).
+- **Predictions:** `evaluation/datasets/bioc_method_selection/results/*.jsonl` — every per-model, per-arm
+  prediction set (frontier, open-weight refresh, base-9B, full-harness retrieval, composite).
+- **Routing evidence:** RealBio `cross_domain_routing` (n=200) scored `results/<model>/<task>.jsonl` via the
+  shared `score.py` (`evaluation/datasets/public_export`).
+- **Served checkpoint + on-prem eval:** base Qwen3.5-9B served on vLLM (routing/method arms); the bounded
+  concept-CPT checkpoint + corrected MCQA eval (`evaluation/local_trial/eval_today.py`) with committed
+  prediction strings per `docs/20260912_onprem_llm/20261005_9B_CONCEPT_CPT_EVAL_CORRECTED.md`.
+- **License:** CC-BY-4.0. **DOI / public repository:** [DOI/REPO TBD].
+
+Every reported number was re-computed from committed predictions by the shared open scorer; none is asserted
+from memory (honesty contract, above).
