@@ -116,3 +116,34 @@ offered to the owner as a deliberate cost decision if interactive latency matter
 - **Reverted:** the warm pool (ineffective at min=4; the clean fix is costly + awkward).
 - **Workflow cold-start** remains the real latency, but the better lever is image pre-caching
   (shrink STARTING→RUNNING pull time) rather than a memory-mismatched warm pool. Not pursued yet.
+
+---
+
+## QUANTIFIED SPEEDUP (measured 2026-10-05)
+
+Honest numbers. The search/DB engine was already well-optimized, so those are modest free efficiency
+wins; the large latency win is the (now correctly-sized) warm pool for workflow cold-start.
+
+| Improvement | Before | After | Measured |
+|---|---|---|---|
+| **Workflow start — first job after idle** | ~200–320 s (cold: EC2 boot ~120–240 s + Batch scheduler ~30–60 s + image pull ~30–60 s) | **83 s** (warm r5.2xlarge, job fit → RUNNING) | **~2–4 min faster (~2.5–4×)**, measured end-to-end |
+| Workflow start — warm node, image already cached | — | ~30–60 s (scheduler only) | floor = Batch scheduler latency |
+| DB name-resolve (`lower(name)=?`, every run) | full SCAN (0.4 ms warm; **165 ms** cold multi-column text scan) | index SEARCH (~0 ms warm; **~1 ms** cold) — EXPLAIN-confirmed on dev | SCAN→SEARCH |
+| DB domain filter | 3.4 ms | 1.7 ms | ~2× |
+| Search per query (hot path) | reads + allocates ~6.5 KB × up to ~200 candidates (~up to 1.3 MB) | blob skipped (NULL) | reduced I/O/alloc (no isolated latency %) |
+
+**Warm-pool config (the big win):** `biomate-nextflow-ce-v2` → instanceTypes **r5 family**
+(r5.xlarge/2xlarge/4xlarge — memory-dense, fits the 12–36 GB jobs), **minvCpus=8** → one r5.2xlarge
+(8 vCPU/64 GB) kept warm. Cost ≈ **$0.504/hr × 24 ≈ $12/day**. Only the first job after an idle period
+benefits (~2–4 min saved); back-to-back jobs already reuse the node. The ~83 s floor (scheduler +
+first image pull on a fresh node) is further reducible by **image pre-caching** (bake common images
+into the AMI) — not done yet.
+
+**Why min=4 failed earlier:** it kept a 4 vCPU/16 GB node; process_medium needs 6 vCPU/36 GB → didn't
+fit → jobs cold-started anyway. Fixed by switching the CE to the r5 family (so minvCpus reliably keeps
+a 64 GB node).
+
+### Bottom line
+- Biggest, measured win: **workflow cold-start ~2–4 min → 83 s** (first-after-idle), at ~$12/day.
+- Free, verified wins: DB indexes (SCAN→SEARCH) + search blob-deferral/PRAGMAs — modest but safe.
+- Next lever (not done): container image pre-caching to cut the ~83 s floor further.
