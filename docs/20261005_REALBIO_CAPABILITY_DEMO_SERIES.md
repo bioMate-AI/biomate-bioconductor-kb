@@ -39,5 +39,16 @@ Narration EN (Aria) + ZH (Xiaoxiao) +40%; record → mux → rclone to the marke
 ## Open decision (flagged to user)
 Tasks 7/8/9 (autofix, workflow_gen, dd) have **no committed BioMate score**. Options: (a) run the benchmark cell to get a real number (some infra-blocked — dd needs a Vina/DiffDock ranking run; autofix/workflow_gen need a BioMate run), (b) ship them as capability demos with no head-to-head number, or (c) defer. Not fabricating a number for them.
 
+## m2 / qPCR live-asset status (2026-10-05) — staged, blocked on dev infra
+Both the m2 (RNA-seq DE) and qPCR ΔΔCq assets are **fully staged and server-accepted**, blocked only by a dev backend **restart loop**.
+- **qPCR:** workflow_id **14339** (normqpcr_delta_delta_cq_normalization); Cq CSV in S3 (`users/fd5a73ac-…/12388981-…-cq_table.csv`); params `{input:<that>, qpcr_hkg:"GAPDH,ACTB", qpcr_control_label:"control"}`. Emits `ddCq_relative_expression.csv` (the fold-change table = qpcr-results) + a **bar** plot (not a volcano). 5 runs killed by infra restarts.
+- **DE:** workflow_id **1497** (nf-core/differentialabundance). Real published raw counts via **recount3 SRP033351 = GSE52778** (NOT a FASTQ reprocessing): matrix 63,856 genes × 8 airway samples (Untreated SRR1039508/512/516/520; Dex SRR1039509/513/517/521), sanity-checked (CRISPLD2 strong dex induction). matrix/samplesheet/contrasts all in S3; params `{input:<ss>, samplesheet:<ss>, matrix:<mtx>, contrasts:<ctr>, study_type:"rnaseq"}`. Emits DESeq2 table + volcano (de-results, de-volcano). 2 runs killed by infra restarts.
+- **To finish:** when dev is genuinely stable (a run survives >5 min), resubmit both (one `run_workflow` each) → get_run → download to `assets/live/_raw/`. Nothing to rebuild. Subagent `a54bfca796fee1071` holds the context (paused).
+
+## Filed gaps
+1. **Dev backend restart loop (2026-10-05):** Galaxy backend hosting the Nextflow head restarted ~every 3–5 min (observed 10:34/10:36/10:46/10:53/10:54/10:59 UTC); runs need 2–5 min so none survive. `/api/health` returns ok in the gaps between restarts (misleading). Not fixable from the MCP client / SSM read-only — needs whoever owns dev to stabilize it.
+2. **GEO Data Connector (wf 10672) can't handle RNA-seq GEO series:** GEOquery series matrix carries no expression table for RNA-seq; it needs to fall back to supplementary raw-count files or route RNA-seq accessions to a counts source (recount3). Confirmed on GSE52778.
+
 ## Change log
 - 2026-10-05 — series spec created; honesty ledger built from the RealBio leaderboard; routing pilot next.
+- 2026-10-05 — m2/qPCR assets staged (DE via recount3/GSE52778 real counts); blocked on dev restart loop; two gaps filed.
