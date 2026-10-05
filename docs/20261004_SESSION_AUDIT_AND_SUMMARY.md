@@ -97,13 +97,15 @@ the build user-data → `set -o pipefail`.)
 
 ## Open items / honest caveats (NOT done; deliberate)
 
-1. **WSI `executable=1`** — the WSI workflow has **no row in the canonical DB**, and the local
-   `galaxy_ai_tools.db` is an embeddings-**stub** (`workflow_embeddings = 0`). `sync_to_dev.sh`
-   *replaces* dev's DB on MD5 change, so registering against the stub + syncing would **clobber dev's
-   vector search for all 4,209 workflows**. A ready-to-run, idempotent `register_wsi_pathology.py`
-   exists with a hard clobber-guard that refuses the stub; the safe procedure (fetch enriched dev DB →
-   register → sync) is in its header. The **workflow + image are validated and run**; only the
-   router-discoverability flag remains. Left for a deliberate canonical-DB step.
+1. **WSI `executable=1` — DONE (2026-10-04).** Registered the WSI row (`register_wsi_pathology.py`,
+   idempotent, adds row + rebuilds FTS) and synced to dev; **verified on dev**: row id 14651,
+   domain=pathology, executable=1, docker_image=bioc-domain-pathology:1.0, in FTS, 4210 rows,
+   integrity ok (dev auto-backed-up the prior DB). Correction to an earlier assumption: the local
+   `galaxy_ai_tools.db` is **byte-identical to dev** (same md5, 4209 rows) and `workflow_embeddings`
+   is 0 in BOTH (workflow search is FTS-based, not that table) — so there was never a stub-vs-enriched
+   clobber risk; the script's guard was corrected to key on workflow row count (<4000 = refuse). The
+   enriched DB was fetched off dev via an admin presigned-PUT URL + `curl -T` on dev (SSM), since the
+   dev role can't PutObject to the staging bucket.
 2. **Spot production flip** — optional, supervised (see §A).
 3. **ATAC differential depth** — `bdgdiff --d1/--d2` are placeholder `1`s; fine for the demo (shows the
    pipeline end-to-end), but real quantitative differential should pass per-sample read depths. Noted
