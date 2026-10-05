@@ -70,6 +70,46 @@ ITEMS = [
  ("pr_04","I have label-free DDA mass spectra and want an end-to-end OpenMS label-free quantification pipeline from raw files.",
    PROT,"nf-core/proteomicslfq",["msstatstmt","msstatslip","MSstatsPTM"],"label-free DDA raw -> LFQ pipeline"),
 
+ # ══════════ HARD TIER: obscure same-package VARIANT triples (name alone is uninformative; must read context) ══════════
+ # edgeR sub-pipelines (single-factor exact vs multifactor GLM-LRT vs fold-change-threshold)
+ ("h_edger_1","RNA-seq, control vs treated only (one factor, two groups), raw counts; I want the classic pairwise exact-test differential expression.",
+   ["edger","edger_classic_pipeline","edger_glm_lrt_pipeline","edger_fold_change_threshold_testing"],"edger_classic_pipeline",[],"single-factor 2-group exact test"),
+ ("h_edger_2","Factorial RNA-seq design (genotype × treatment with an interaction term), raw counts; I need DE for the interaction using negative-binomial GLMs.",
+   ["edger","edger_classic_pipeline","edger_glm_lrt_pipeline","edger_fold_change_threshold_testing"],"edger_glm_lrt_pipeline",[],"multifactor GLM + LRT"),
+ ("h_edger_3","I want to call genes that exceed a specific log-fold-change threshold with a rigorous statistical test, not just FDR on zero-change.",
+   ["edger","edger_classic_pipeline","edger_glm_lrt_pipeline","edger_fold_change_threshold_testing"],"edger_fold_change_threshold_testing",[],"fold-change-threshold test (TREAT/glmTreat)"),
+ # DESeq2 sub-pipelines (Wald 2-group vs LRT time-series vs multi-factor covariate)
+ ("h_deseq_1","Simple two-condition comparison, raw count matrix, standard pairwise test.",
+   ["deseq2","deseq2_likelihood_ratio_test","deseq2_multi_factor_analysis"],"deseq2",[],"standard Wald 2-group"),
+ ("h_deseq_2","Time-course with four time points; I want genes that change significantly across ANY time point, not a single pairwise contrast.",
+   ["deseq2","deseq2_likelihood_ratio_test","deseq2_multi_factor_analysis"],"deseq2_likelihood_ratio_test",[],"LRT across multiple levels/time"),
+ ("h_deseq_3","Two conditions, but samples come from three sequencing batches; I want DE while controlling for the batch covariate.",
+   ["deseq2","deseq2_likelihood_ratio_test","deseq2_multi_factor_analysis"],"deseq2_multi_factor_analysis",[],"multi-factor batch covariate"),
+ # fgsea variants (preranked GSEA vs ORA vs coregulation-no-contrast)
+ ("h_fgsea_1","I have a ranked .rnk statistic vector and a GMT; run fast preranked enrichment.",
+   ["fgsea","fgsea_over_representation_analysis","fgsea_gene_set_coregulation_analysis"],"fgsea",["fgsea_over_representation_analysis"],"ranked preranked GSEA"),
+ ("h_fgsea_2","I have a foreground gene list, a background universe, and a GMT; run a hypergeometric over-representation test.",
+   ["fgsea","fgsea_over_representation_analysis","fgsea_gene_set_coregulation_analysis"],"fgsea_over_representation_analysis",["fgsea"],"hypergeometric ORA"),
+ ("h_fgsea_3","Single-cell expression matrix with no explicit contrast/condition; I want to find gene sets whose members are highly co-regulated.",
+   ["fgsea","fgsea_over_representation_analysis","fgsea_gene_set_coregulation_analysis"],"fgsea_gene_set_coregulation_analysis",[],"coregulation without a contrast"),
+ # GSEA by ontology (GO/KEGG vs Reactome vs Disease Ontology)
+ ("h_gsea_db_1","Ranked gene list; I specifically want Disease Ontology gene-set enrichment.",
+   ["clusterprofiler_gene_set_enrichment_analysis","reactomepa_reactome_gsea","dose_gene_set_enrichment_analysis"],"dose_gene_set_enrichment_analysis",[],"ranked + Disease Ontology"),
+ ("h_gsea_db_2","Ranked gene list; I want Reactome GSEA.",
+   ["clusterprofiler_gene_set_enrichment_analysis","reactomepa_reactome_gsea","dose_gene_set_enrichment_analysis"],"reactomepa_reactome_gsea",[],"ranked + Reactome"),
+ ("h_gsea_db_3","Ranked gene list; I want GO and KEGG GSEA.",
+   ["clusterprofiler_gene_set_enrichment_analysis","reactomepa_reactome_gsea","dose_gene_set_enrichment_analysis"],"clusterprofiler_gene_set_enrichment_analysis",[],"ranked + GO/KEGG"),
+ # MSnbase variants (import/quantify vs label-free LFQ vs targeted SRM/MRM)
+ ("h_msnb_1","DDA proteomics; I want label-free MS2 quantitation by spectral counting / spectral index.",
+   ["msnbase","msnbase_label_free_quantitation","msnbase_chromatographic_srm_import"],"msnbase_label_free_quantitation",[],"label-free spectral counting"),
+ ("h_msnb_2","Targeted SRM/MRM experiment with chromatographic .mzML; I want to import and extract the chromatographic traces.",
+   ["msnbase","msnbase_label_free_quantitation","msnbase_chromatographic_srm_import"],"msnbase_chromatographic_srm_import",[],"targeted SRM/MRM chromatographic"),
+ # scran variants (clustering/norm vs PC selection vs gene correlation)
+ ("h_scran_1","SingleCellExperiment with a PCA already computed; I want to choose the optimal number of principal components from the technical-variance estimates.",
+   ["scran","scran_automated_pc_selection","scran_gene_correlation_analysis"],"scran_automated_pc_selection",[],"PC-number selection"),
+ ("h_scran_2","SingleCellExperiment with highly variable genes; I want significant pairwise gene correlations while blocking on batch.",
+   ["scran","scran_automated_pc_selection","scran_gene_correlation_analysis"],"scran_gene_correlation_analysis",[],"HVG correlation blocking batch"),
+
  # ── Group 5: single-cell object-format (partial) ──
  ("sc_01","I have a SingleCellExperiment object (pre-processed) and want graph-based quick clustering to drive cluster-based normalization within Bioconductor.",
    SC_FMT,"scran",["nf-core/scdownstream","ucell_seurat_workflow"],"SingleCellExperiment object, Bioc step"),
