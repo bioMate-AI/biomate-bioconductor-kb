@@ -133,10 +133,16 @@ def rec(o):
         for k in list(o):
             if k=="activation_checkpointing": o[k]=True
             if k=="checkpoint_diffusion_conditioning": o[k]=True
+            if k=="moldir" and o[k]: o[k]=mols   # point every moldir (data + any validator) at the real CCD dir
             rec(o[k])
     elif isinstance(o,list):
         for v in o: rec(v)
 rec(cfg)
+# SMOKE: drop the refolding validator entirely. It is instantiated at model-build time (regardless of
+# val settings) and needs its own moldir + folding checkpoint; a 10-step/0-val smoke doesn't use it.
+# For the FULL run we restore it with moldir=<mols> + the boltz2 folding ckpt.
+m=cfg.get("model")
+if isinstance(m,dict) and "refolding_validator" in m: m["refolding_validator"]=None
 tr=cfg.setdefault("trainer",{})
 tr["devices"]=[0]; tr["max_steps"]=10; tr["num_sanity_val_steps"]=0
 tr["limit_val_batches"]=0; tr["val_check_interval"]=100  # no val in a 10-step smoke -> no folding ckpt needed

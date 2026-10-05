@@ -65,7 +65,11 @@ def _dec(v):
 
 def parse_structure(cif: str, moldir: str):
     parse_mmcif, *_ = _load_api()
-    ps = parse_mmcif(cif, moldir=moldir)
+    # use_assembly=False: parse the asymmetric unit directly. Raw RCSB mmCIFs carry biological-assembly
+    # metadata that references chains with no deposited subchain -> parse_mmcif raises "no subchain X"
+    # (observed on 16/20 batch complexes). The co-crystal peptide+receptor is in the asu, and we match
+    # the peptide chain by res_num==seq_len regardless, so skipping assembly expansion is safe + robust.
+    ps = parse_mmcif(cif, moldir=moldir, use_assembly=False)
     st = getattr(ps, "data", None)          # verified: Structure is ParsedStructure.data
     if st is None or not hasattr(st, "chains"):
         for a in dir(ps):                   # defensive fallback
