@@ -320,3 +320,30 @@ A vetted collection of **17 marketing skills** (8 Apache-2.0 official Anthropic 
 gap-fillers) has been assembled for campaign, positioning, competitive-brief, content, email, SEO,
 pricing, PR and launch work — see [`docs/marketing/skills/README.md`](./skills/README.md). That
 folder is reference material for execution and is not modified by this strategy document.
+
+## 8. Headline selling points (hero claims) & competitor contrast
+Competitors win on OUTCOME (FutureHouse: "found + retrieval-validated novel treatments") or SCALE (massive
+parallel multi-agent info analysis). BioMate should NOT contest those axes (we have not discovered a drug;
+we are not an agent-swarm). BioMate's defensible hero axis is **trustworthy execution**. Four headline
+selling points, each evidenced:
+1. **Executed, not suggested** — plain English → a *validated* workflow (4,209 catalog; 1,092 real-E2E) → run
+   on managed AWS Batch → auditable, reproducible result. (vs reason-only agents; vs ad-hoc sandbox code; vs
+   engineer-facing Nextflow authoring.) **Evidenced** (live run ids).
+2. **QC auto-loop that catches *scientifically-wrong* results** — live-proven GOLD hERG gate fire +
+   remediation on a real run (`docs/20261004_AUTOLOOP_LIVE_PROOF.md`); the KB drives a small model's
+   invalid-regime choices to 0. No competitor does chat-driven QC-gate remediation over executed pipelines.
+3. **The knowledge layer, not a frontier model, is the engine → on-prem, compliant, cheap, matches frontier**
+   — measured: 9B+KB ≈ frontier on routing (0.92 vs 0.96) and Bioc method selection (0.95 vs 0.975–1.0); KB
+   dividend scales inversely with model strength (`docs/20261004_KB_DIVIDEND_UNIFIED.md`). The enterprise/
+   data-residency (PIPL/HGR, GxP) selling point, backed by data — not a frontier-API wrapper.
+4. **Validated, hallucination-suppressed executable knowledge** — Bioconductor-KB: 15,641 structure-validated
+   steps, κ=0.96, citation accuracy 71→88%. Breadth *with* validation.
+
+**One-line positioning:** *"FutureHouse and co-scientist tell you what might be true; BioMate runs the
+validated analysis, catches what's wrong, and hands you a reproducible, auditable result — on your own
+infrastructure."*
+
+**Hero demo to build** (the keynote/paper asset, the honest analog of competitors' hero): see
+`docs/20261004_HERO_CASE_STUDY_DEMO_SPEC.md` — (A) "BioMate caught a cardiotoxic candidate and auto-
+remediated the screen" (buildable now; live-gate seed exists); (B) "reproduce a published finding from the
+accession in one chat" (flagship Tier-3 case study).

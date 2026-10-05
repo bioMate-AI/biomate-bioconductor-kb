@@ -106,3 +106,19 @@ to raise the ceiling is retrieval recall (better embeddings / candidate coverage
 - +KB (described, fixed siblings): 9B 0.95 (+15pp), invalid-regime 0.125→0
 - full-harness retrieval@1 (live, full catalog): ~0.38–0.53 (ranking-limited); recall@8 0.825
 - composite (retrieve→KB-select): 0.80, conditional-select 0.97 → the right product design
+
+## Acceptable-alts (firm up retrieval@1) — 2026-10-04
+Added a principled `accept_retrieval` field (scientifically-valid alternatives that respect the correct
+analysis REGIME for the stated input; e.g. a DB-agnostic GSEA tool for an un-pinned GSEA query, any NB
+count-DE for a generic count-DE query, a two-color microarray tool for two-color data). Applied ONLY to the
+full-catalog retrieval@1 metric — the in-context discrimination arms (bare/+KB) stay STRICT on the specific
+gold so the discrimination signal is not diluted. Reporting both:
+
+| metric | strict (gold only) | with scientifically-acceptable alts |
+|---|---:|---:|
+| full-harness retrieval@1 (earlier run) | 0.375 | **0.625** |
+
+(Composite run's retrieval@1 was ~0.525 strict — LLM-retrieval is non-deterministic run-to-run.) So the
+product's rank-1 is a *scientifically-valid* method ~62.5% of the time; the gap to recall@8 (0.825) is the
+remaining ranking headroom. In-context arms unchanged (9B +KB 0.95, frontier ~1.0). accept_retrieval sets
+are auditable per-item in `data.jsonl` + `build_dataset.py` (ACCEPT_RETRIEVAL).

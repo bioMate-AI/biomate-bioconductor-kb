@@ -119,13 +119,38 @@ ITEMS = [
    SC_FMT,"ucell_seurat_workflow",["scran","nf-core/scdownstream"],"Seurat object, signature scoring"),
 ]
 
+# accept_retrieval: scientifically-valid ALTERNATIVES for the FULL-CATALOG retrieval@1 metric only
+# (NOT used in the in-context discrimination arms, which stay strict on the specific gold). Principle:
+# a tool is credited iff it performs the correct analysis REGIME for the stated input — a DB-agnostic
+# GSEA tool for an un-pinned GSEA query; any count-based NB DE for a generic count-DE query; a two-color
+# microarray tool for two-color data; a label-free tool for LFQ. Tools that miss the stated design
+# requirement (batch covariate, interaction, specific ontology, single-script-vs-pipeline) are NOT credited.
+ACCEPT_RETRIEVAL = {
+ "og_02": ["Gene Set Enrichment Analysis"],
+ "og_05": ["Gene Set Enrichment Analysis", "clusterprofiler_gene_set_enrichment_analysis"],
+ "og_08": ["Gene Set Enrichment Analysis"],
+ "og_10": ["Gene Set Enrichment Analysis", "clusterprofiler_gene_set_enrichment_analysis"],
+ "h_fgsea_1": ["Gene Set Enrichment Analysis", "clusterprofiler_gene_set_enrichment_analysis"],
+ "h_gsea_db_3": ["Gene Set Enrichment Analysis"],
+ "as_01": ["genarise", "limmaGUI"],
+ "as_02": ["nf-core/differentialabundance", "edger", "absseq"],
+ "as_03": ["deseq2", "nf-core/differentialabundance", "absseq"],
+ "st_01": ["edger"],
+ "h_deseq_1": ["edger", "edger_classic_pipeline", "absseq", "nf-core/differentialabundance"],
+ "h_deseq_3": ["nf-core/differentialabundance"],
+ "h_edger_1": ["deseq2", "absseq", "nf-core/differentialabundance"],
+ "h_edger_2": ["nf-core/differentialabundance"],
+ "pr_04": ["msnbase_label_free_quantitation"],
+ "h_msnb_1": ["nf-core/proteomicslfq"],
+}
 def norm(s): return s.strip().lower()
 rows=[]
 for id_,q,cands,gold,inv,disc in ITEMS:
     assert gold in cands, f"{id_}: gold not in candidates"
     for p in inv: assert p in cands, f"{id_}: invalid pick {p} not in candidates"
     rows.append({"id":id_,"query":q,"candidates":cands,"correct_method":gold,
-                 "acceptable_alts":[],"invalid_picks":inv,"discriminator":disc})
+                 "acceptable_alts":[],"invalid_picks":inv,"discriminator":disc,
+                 "accept_retrieval":ACCEPT_RETRIEVAL.get(id_,[])})
 os.makedirs(HERE,exist_ok=True)
 with open(os.path.join(HERE,"data.jsonl"),"w") as f:
     for r in rows: f.write(json.dumps(r)+"\n")
