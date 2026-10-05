@@ -109,6 +109,37 @@ services:
     networks:
       - biomate-network
 
+  # ── Nextflow Workflow Files initializer ───────────────────────────────────
+  # Downloads the Nextflow .nf workflow scripts into a named volume on first
+  # boot.  These files are NOT baked into the backend image to keep its size
+  # reasonable.  On subsequent starts the .initialized marker is present and
+  # the container exits immediately.
+  # Set BIOMATE_NFCORE_URL to override the download source (useful for
+  # air-gapped deployments with a local HTTP server or file:// mount).
+  nfcore-init:
+    image: alpine:3
+    container_name: biomate-nfcore-init
+    volumes:
+      - biomate-nfcore-workflows:/nfcore
+    environment:
+      BIOMATE_NFCORE_URL: ${BIOMATE_NFCORE_URL:-https://biomate-onprem-assets.s3.us-west-2.amazonaws.com/onprem/nextflow_nfcore_subworkflows.tar.gz}
+    command: >
+      sh -c '
+        DEST=/nfcore;
+        MARKER="$$DEST/.initialized";
+        if [ -f "$$MARKER" ]; then
+          echo "[nfcore-init] Workflow files already present. Skipping.";
+          exit 0;
+        fi;
+        echo "[nfcore-init] Downloading Nextflow workflow files (~60 MB) from $$BIOMATE_NFCORE_URL ...";
+        wget -qO - "$$BIOMATE_NFCORE_URL" | tar -xz -C "$$DEST" || exit 1;
+        touch "$$MARKER";
+        echo "[nfcore-init] Done.";
+      '
+    restart: "no"
+    networks:
+      - biomate-network
+
   # ── MinIO (本地对象存储，替代 AWS S3) ────────────────────────────────────
   # 管理界面: http://<host>:9001  (MINIO_ROOT_USER / MINIO_ROOT_PASSWORD)
   minio:
@@ -229,9 +260,9 @@ services:
       NEXTFLOW_WORK_DIR: ${NEXTFLOW_WORK_DIR:-/app/nf-work}
       # Docker network for local Nextflow task containers: must match the compose
       # network so task containers can resolve "minio" hostname for S3 staging.
-      # Since the compose project name is fixed to "biomate-onprem" (name: above),
-      # the network is always "biomate-onprem_biomate-network".
-      BIOMATE_DOCKER_NETWORK: ${BIOMATE_DOCKER_NETWORK:-biomate-onprem_biomate-network}
+      # The network has an explicit "name: biomate-network" in the networks block
+      # below, so Docker does NOT prefix it with the project name.
+      BIOMATE_DOCKER_NETWORK: ${BIOMATE_DOCKER_NETWORK:-biomate-network}
 
       # ── 存储 (MinIO 替代 S3) ─────────────────────────────────────────────
       S3_ENDPOINT_URL:      http://minio:9000
@@ -312,6 +343,10 @@ services:
       # The installer pre-creates this: mkdir -p /app/nf-work && chmod 777 /app/nf-work
       - /app/nf-work:/app/nf-work
       - ./backend/config:/app/config
+      # Nextflow .nf workflow scripts — downloaded by nfcore-init on first boot.
+      # This overlays /app/biomni_workflows/nextflow_nfcore/ with the full workflow
+      # catalog (subworkflows/, workflows/, ml_training/, nextflow.config, lib/).
+      - biomate-nfcore-workflows:/app/biomni_workflows/nextflow_nfcore
       # Docker socket required for local Nextflow executor (NEXTFLOW_EXECUTOR=local).
       # Comment out if you use AWS Batch instead.
       - /var/run/docker.sock:/var/run/docker.sock
@@ -331,6 +366,8 @@ services:
       redis:
         condition: service_healthy
       db-init:
+        condition: service_completed_successfully
+      nfcore-init:
         condition: service_completed_successfully
       minio:
         condition: service_healthy
@@ -536,6 +573,7 @@ volumes:
   biomate-registry-data:
   biomate-backend-db:
   biomate-backend-logs:
+  biomate-nfcore-workflows:   # Nextflow .nf workflow scripts (downloaded by nfcore-init)
   # biomate-nf-work: replaced with host bind-mount /app/nf-work:/app/nf-work
   #   (named volumes create a path mismatch when Nextflow launches Docker task containers)
   # biomate-caddy-data:       # uncomment when using Caddy
