@@ -55,7 +55,7 @@ defensible, recurring-revenue moat** for hospitals/pharma.
 ### C. Pharma (MOAT; enterprise BD, long cycle, land-and-expand)
 - **Wedge:** **on-prem compliance + QC-governance + immune-stratification, open to the pharma's own data** (vs closed internal platforms); the trust/auditability story (the live ADMET QC-gate hero).
 - **Channels:** pharma open-innovation programs (JLABS/BIOME/A.Catalyst/Ignite/G4A… — see the pharma-opportunities survey), challenges, warm BD, conferences.
-- **Message:** "Trust the result — governed, auditable, stratified." **Economics:** deployment + **embedded recurring + asset/milestone** (Immunai-style). **Proof:** pilot → §2.6.1/IND deliverable or a stratification result.
+- **Message:** "Trust the result — governed, auditable, stratified." **Economics:** deployment + **embedded recurring + asset/milestone** (Immunai-style). **Proof (live today, but limited):** the live ADMET QC-gate fire-and-remediate demo + the anti-TNF responder-stratification result (AUROC 0.833) — presently the *only* pharma-facing proof that actually runs, and a thin one (two demos, not a track record). The **§2.6.1/IND deliverable is aspirational, NOT a proof point** — the IND/CRO UX is commented out in-product because it crashes (SEG §B.3; MEMORY `project_billing_hidden`); do not show it as a live capability until it ships.
 
 ### D. CROs & academic core facilities (PARTNER/channel + boutique customer; AMPLIFIES the on-prem moat)
 - **Fit (yes, for the right CROs):** boutique/specialized + small CROs and **academic core facilities**

@@ -80,9 +80,10 @@ lifts base 9B routing **0.68 → 0.885** (+20.5pp), to **0.915** at a widened de
 to **0.920** on paraphrased queries — model-invariant and semantic, not lexical
 (`docs/20260912_onprem_llm/20261004_CLOSE_THE_GAP_ROUTING.md`). The **open research hook** is
 multi-task **decomposition**: the model must reason about sub-task dependencies (parallel vs
-sequential vs mixed), and a small model gets the dependency structure right only **0.40 vs frontier
-0.60** even with coverage 1.0 — the one place where model training, not harness engineering, is the
-lever, and where even frontier is far from solved (same doc). This "benchmark as a *development
+sequential vs mixed) — the one place where model training, not harness engineering, is the
+lever, and where even frontier is far from solved (same doc). *(A preliminary small-vs-frontier
+signal exists but is a **coarse 4-class binning artifact** and is deliberately NOT cited as a result
+here; a proper node/edge-F1 dependency-graph metric is pending before any figure is published — see §3.2.)* This "benchmark as a *development
 target*, not a scoreboard" framing is exactly CLAUDE.md's benchmark-driven-development philosophy and
 has top-venue precedent in the LongevityBench *Cell* paper ([reference/20261004_REF_longevity_benchmark_and_model.md](../../reference/20261004_REF_longevity_benchmark_and_model.md)).
 
@@ -140,8 +141,10 @@ enrichment-plus-one-validated-hit closure.
 **Gaps.** (a) Results are measured on one catalog and one query distribution; absolute magnitudes may
 differ on a new catalog/user distribution (the two overfitting mechanisms — phrasing echo and
 hand-tuned-workflow concentration — are empirically ruled out, but distribution-shift is not). (b) The
-decomposition result (0.40 vs 0.60) needs a larger, held-out decomposition test set and an error
-taxonomy of dependency-graph mis-wirings. (c) Reproducibility: the served-model + scorer pipeline
+decomposition signal is a **coarse 4-class binning artifact** — the 0.40/0.60 figure must NOT be
+published as a capability result; it needs a proper **node/edge-F1 dependency-graph metric** on a
+larger, held-out decomposition test set plus an error taxonomy of dependency-graph mis-wirings
+before any number is cited. (c) Reproducibility: the served-model + scorer pipeline
 must be packaged for independent replay.
 **Next work.** Run the **full-corpus CPT decision row** (catalog / LLM+harness score) that is still
 pending (`docs/20260912_onprem_llm/20261004_REALBIO_LLM_VS_HARNESS.md` "Still pending"): if full-corpus

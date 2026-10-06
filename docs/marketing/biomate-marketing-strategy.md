@@ -28,10 +28,13 @@ and runs the right workflow for scientists.*
    combination is unmatched among surveyed products (Evidenced as a category gap; the live
    QC-gate-fires-and-remediates demonstration is Partial).
 2. **Orchestration/retrieval harness** that lifts routing far above direct-LLM baselines — routing
-   **0.965** vs frontier LLMs **0.345–0.615** at n=200 (Evidenced, with a self-grading caveat).
-3. **Breadth of structure-validated catalog** — a Bioconductor knowledge base of **15,641 executable
-   steps** from ~1,970 packages, NAMESPACE-validated ~96% (Evidenced; but the headline whole-catalog
-   count is inconsistent across docs — see §6).
+   **0.965** vs frontier LLMs **0.345–0.615** at n=200 (Evidenced on the RealBio `cross_domain_routing`
+   benchmark, objectively graded against gold workflows across models — not self-graded; the gain
+   reflects the BioMate harness + described catalog over bare-LLM baselines).
+3. **Breadth of structure-validated catalog** — a Bioconductor knowledge base indexing **15,641
+   structure-validated code *steps*** (NOT 15,641 workflows or capabilities) from ~1,970 packages,
+   NAMESPACE-validated ~96% (Evidenced; the whole-*catalog* workflow count is a separate, reconciled
+   number — 4,210 catalog / 1,092 validated — never conflate step-count with workflow/capability count; see §6).
 
 **Top three channels (full GTM in §5).** (a) Peer-reviewed publications and preprints anchored by
 the Bioconductor-KB and RealBio/flagship papers; (b) the nf-core and Galaxy open-source communities
@@ -356,7 +359,7 @@ competitors and must not be used without a head-to-head.
 | Highlight | Status | Evidence |
 |---|---|---|
 | **HERO — on-prem parity at ~$0 and 10–40× faster, and *safer*** | Evidenced + unique framing | 9B+KB ≈ frontier (bioc 0.95 vs 0.975–1.0; routing 0.92 vs 0.96); 0.5–3.6 s vs 9–49 s/task; $0 vs up to $0.028/task; invalid-regime 0.125→0. `docs/20261004_KB_DIVIDEND_UNIFIED.md`, `…EFFICIENCY_AND_COST…` §F/§G |
-| **End-to-end trust = input-QC + output-QC** (no competitor pairs both) | Evidenced; output-QC live-proven; input-QC live endpoint on dev | output: live hERG gate run `d0ff684b` (`…AUTOLOOP_LIVE_PROOF.md`); input: `POST /api/perception/profile` deployed on dev (leakage / class-balance / good-watch-blocked) |
+| **End-to-end trust = input-QC + output-QC** (no surveyed competitor pairs both) | Evidenced; output-QC live-proven; input-QC live endpoint on dev | output: live hERG gate run `d0ff684b` (`…AUTOLOOP_LIVE_PROOF.md`); input: `POST /api/perception/profile` deployed on dev (leakage / class-balance / good-watch-blocked) |
 | **Unique auto-QC-loop remediation** over executed pipelines | Category-unique | competitor sweep found no equivalent (`internal/marketing-research/competitors_*.md`) |
 | **Context-based workflow selection, and it's *safe*** | Measured | data-type → correct method; invalid-regime→0 (`…BIOC_SELECTION_MATRIX_RESULTS.md`) |
 | **Domain contributions:** Bioconductor-KB (15,641 validated steps, hallucination 71→88%), RealBio (open anti-self-grading benchmark), task-split/KB-dividend finding | Evidenced / contribution | `docs/papers/bioconductor_kb_paper/*`, `docs/20260817_REALBIO…`, Paper B |
