@@ -15,66 +15,66 @@
   --elevate-2: rgba(0,0,0, .08);
 
   /* Clean lab aesthetic with cool tones */
-  --background: 195 20% 97%;
+  --background: 206 56% 99%;
 
-  --foreground: 195 15% 15%;
+  --foreground: 217 13% 11%;
 
-  --border: 195 12% 85%;
+  --border: 206 13% 89%;
 
-  --card: 195 15% 96%;
+  --card: 206 37% 98%;
 
-  --card-foreground: 195 15% 18%;
+  --card-foreground: 217 13% 11%;
 
-  --card-border: 195 10% 88%;
+  --card-border: 206 10% 82%;
 
-  --sidebar: 195 18% 94%;
+  --sidebar: 206 37% 98%;
 
-  --sidebar-foreground: 195 15% 20%;
+  --sidebar-foreground: 217 13% 11%;
 
-  --sidebar-border: 195 10% 87%;
+  --sidebar-border: 206 13% 89%;
 
   /* Primary: Scientific Teal (DNA sequencing, lab equipment) */
-  --sidebar-primary: 180 65% 42%;
+  --sidebar-primary: 202 100% 37%;
 
-  --sidebar-primary-foreground: 180 20% 98%;
+  --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 195 15% 90%;
+  --sidebar-accent: 206 16% 93%;
 
-  --sidebar-accent-foreground: 195 15% 25%;
+  --sidebar-accent-foreground: 217 13% 11%;
 
-  --sidebar-ring: 180 65% 42%;
+  --sidebar-ring: 202 100% 37%;
 
-  --popover: 195 15% 94%;
+  --popover: 206 37% 98%;
 
-  --popover-foreground: 195 15% 20%;
+  --popover-foreground: 217 13% 11%;
 
-  --popover-border: 195 10% 88%;
+  --popover-border: 206 13% 89%;
 
   /* Primary: Scientific Teal */
-  --primary: 180 65% 42%;
+  --primary: 202 100% 37%;
 
-  --primary-foreground: 180 20% 98%;
+  --primary-foreground: 0 0% 100%;
 
   /* Secondary: Deep Purple (proteins, molecular biology) */
-  --secondary: 270 35% 85%;
+  --secondary: 206 21% 95%;
 
-  --secondary-foreground: 270 40% 25%;
+  --secondary-foreground: 217 13% 11%;
 
-  --muted: 195 12% 90%;
+  --muted: 206 21% 95%;
 
-  --muted-foreground: 195 10% 45%;
+  --muted-foreground: 217 6% 37%;
 
   /* Accent: Biology Green */
-  --accent: 150 35% 88%;
+  --accent: 202 100% 94%;
 
-  --accent-foreground: 150 40% 25%;
+  --accent-foreground: 207 100% 24%;
 
-  --destructive: 355 75% 50%;
+  --destructive: 0 60% 53%;
 
-  --destructive-foreground: 355 20% 96%;
+  --destructive-foreground: 0 0% 100%;
 
-  --input: 195 10% 88%;
-  --ring: 180 65% 42%;
+  --input: 206 13% 89%;
+  --ring: 202 100% 37%;
 
   /* Chart colors inspired by DNA bases (Adenine, Thymine, Guanine, Cytosine) */
   --chart-1: 180 65% 42%; /* Teal - Guanine */
@@ -84,11 +84,11 @@
   --chart-5: 200 70% 45%; /* Blue - RNA Uracil */
 
   /* Scientific accent colors */
-  --bio-teal: 180 65% 42%;
-  --bio-green: 150 55% 45%;
-  --bio-purple: 270 55% 50%;
-  --bio-orange: 30 75% 55%;
-  --bio-blue: 200 70% 45%;
+  --bio-teal: 202 100% 37%;
+  --bio-green: 136 41% 43%;
+  --bio-purple: 202 60% 50%;
+  --bio-orange: 38 69% 50%;
+  --bio-blue: 202 100% 37%;
 
   --font-sans: Inter, sans-serif;
   --font-serif: Georgia, serif;

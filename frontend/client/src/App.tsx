@@ -60,10 +60,8 @@ import { DesignGenerate } from "@/components/design-generate/DesignGenerate";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { TutorialTipOverlay } from "@/components/tutorial-tip-overlay";
-import { useUiFlavor } from "@/hooks/use-ui-flavor";
-// v2 surface — loaded behind ?ui=v2 / localStorage.biomate_ui flag.
-// ResearchApp has @ts-nocheck and a default export now; no @ts-expect-error needed.
-import ResearchApp from "@/v2/ResearchApp";
+// v2 design-token/layout CSS retained for AfterRunReport (active UI, ?afterrun=v2).
+// The old ?ui=v2 ResearchApp test surface was removed to avoid confusion.
 import "@/v2/tokens.css";
 import "@/v2/research-tokens.css";
 import "@/v2/layout.css";
@@ -123,7 +121,6 @@ function RootRoute({
   // useUiFlavor must be called every render — moving it after the early
   // return below caused "Rendered more hooks than during the previous render"
   // when isLoading flipped true→false.
-  const uiFlavor = useUiFlavor()
   const handledSessionParam = useRef(false)
 
   // Consume pending use-case query passed via ?q= from the marketing hero input.
@@ -189,17 +186,6 @@ function RootRoute({
     }
   }, [isLoading, isAuthenticated]) // eslint-disable-line react-hooks/exhaustive-deps
   if (isLoading || !isAuthenticated) return null
-
-  // v2 chrome — gated behind ?ui=v2 / localStorage.biomate_ui = 'v2'.
-  // The data-v2-ui attribute scopes the v2 design-token :root rules so
-  // they don't bleed into the v1 surface.
-  if (uiFlavor === 'v2') {
-    return (
-      <div data-v2-ui style={{ height: '100vh', overflow: 'auto' }}>
-        <ResearchApp />
-      </div>
-    )
-  }
 
   return (
     <PlatformLayout

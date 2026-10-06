@@ -666,7 +666,7 @@ function PhaseGroupSection({
             <div className="phase-params">
               <div className="phase-params-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 14px', borderBottom: '1px solid var(--border)' }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Parameters
+                  {tOr('panel.parameters', 'Parameters')}
                   <span style={{ fontWeight: 400, marginLeft: 4, color: 'var(--text-dim)' }}>
                     ({phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).length > 0
                       ? `${phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).length} required`
@@ -2885,7 +2885,7 @@ export function NextflowWorkflowViewer({
                       </button>
                     )}
                     <button className="btn ghost sm" data-testid="qc-gate-keep" onClick={handleProceedAnyway}>Keep current</button>
-                    <button className="btn ghost sm danger" data-testid="qc-gate-cancel-run" onClick={handleCancelWorkflow}>Cancel run</button>
+                    <button className="btn ghost sm danger" data-testid="qc-gate-cancel-run" onClick={handleCancelWorkflow}>{tOr('panel.cancel_run', 'Cancel run')}</button>
                   </div>
                 </div>
               </div>
@@ -2945,10 +2945,10 @@ export function NextflowWorkflowViewer({
               return (
                 <div data-testid="prerun-inputs-mapped" className="card2" style={{ marginBottom: 12, padding: '10px 12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
-                    <Database className="h-3.5 w-3.5" /> Inputs mapped
+                    <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_mapped', 'Inputs mapped')}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
-                    This workflow takes parameters only — no data inputs to bind.
+                    {tOr('panel.params_only_no_inputs', 'This workflow takes parameters only — no data inputs to bind.')}
                   </div>
                 </div>
               );
@@ -2965,7 +2965,7 @@ export function NextflowWorkflowViewer({
             return (
               <div data-testid="prerun-inputs-mapped" className="card2" style={{ marginBottom: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
-                  <Database className="h-3.5 w-3.5" /> Inputs mapped
+                  <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_mapped', 'Inputs mapped')}
                   <span className="hint" style={{ fontWeight: 400, fontSize: 11 }}>({rows.length} input{rows.length !== 1 ? 's' : ''})</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -2991,13 +2991,13 @@ export function NextflowWorkflowViewer({
                         </span>
                       )}
                       {r.status === 'unresolved' && (
-                        <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>required — not set</span>
+                        <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>{tOr('panel.required_not_set', 'required — not set')}</span>
                       )}
                       {r.status === 'needs-mapping' && (
                         <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>needs mapping</span>
                       )}
                       {r.status === 'optional-empty' && (
-                        <span className="chip" style={{ fontSize: 10, padding: '1px 5px' }}>optional — empty</span>
+                        <span className="chip" style={{ fontSize: 10, padding: '1px 5px' }}>{tOr('panel.optional_empty', 'optional — empty')}</span>
                       )}
                       {(r.status === 'unresolved' || r.status === 'needs-mapping') && (
                         <button
@@ -3049,8 +3049,8 @@ export function NextflowWorkflowViewer({
 
             if (globalParams.length === 0 && !mismatch) return (
               <div style={{ height: '100%', minHeight: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
-                <div style={{ marginBottom: 6 }}>This workflow has no configurable parameters.</div>
-                <div style={{ fontSize: 12, opacity: 0.75 }}>Click "Confirm and run workflow" below to start it.</div>
+                <div style={{ marginBottom: 6 }}>{tOr('panel.no_configurable_params', 'This workflow has no configurable parameters.')}</div>
+                <div style={{ fontSize: 12, opacity: 0.75 }}>{tOr('panel.confirm_to_start', 'Click "Confirm and run workflow" below to start it.')}</div>
               </div>
             );
             return (
@@ -3065,10 +3065,10 @@ export function NextflowWorkflowViewer({
                   <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
                   <span className="label">
                     <Settings2 className="h-3.5 w-3.5" />
-                    Parameters
+                    {tOr('panel.parameters', 'Parameters')}
                     <span className="hint">({globalParams.length} params)</span>
                     {requiredUnfilled.length > 0 && (
-                      <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>Required</span>
+                      <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>{tOr('panel.required', 'Required')}</span>
                     )}
                   </span>
                 </button>
@@ -3083,7 +3083,7 @@ export function NextflowWorkflowViewer({
                       {requiredParams.length > 0 && (
                         <ParameterGroup
                           id="params-required"
-                          title="Required parameters"
+                          title={tOr('panel.required_parameters', 'Required parameters')}
                           description={`${requiredUnfilled.length > 0 ? requiredUnfilled.length + ' still needed · ' : ''}${requiredParams.length} param${requiredParams.length !== 1 ? 's' : ''}`}
                           parameters={requiredParams}
                           onChange={handleParamChange}
@@ -3094,7 +3094,7 @@ export function NextflowWorkflowViewer({
                       {optionalParams.length > 0 && (
                         <ParameterGroup
                           id="params-optional"
-                          title="Optional parameters"
+                          title={tOr('panel.optional_parameters', 'Optional parameters')}
                           description={`${optionalParams.length} param${optionalParams.length !== 1 ? 's' : ''} — collapsed by default`}
                           parameters={optionalParams}
                           onChange={handleParamChange}
@@ -3131,7 +3131,7 @@ export function NextflowWorkflowViewer({
                       <div data-testid="output-location-section"
                            style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}>
-                          Output location
+                          {tOr('panel.output_location', 'Output location')}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
                           <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
@@ -3141,7 +3141,7 @@ export function NextflowWorkflowViewer({
                                    checked={outputLocationType === 'default'}
                                    onChange={() => setOutputLocationType('default')}
                                    data-testid="output-location-default" />
-                            <span>Default (BioMate-managed, kept 90 days)</span>
+                            <span>{tOr('panel.output_default', 'Default (BioMate-managed, kept 90 days)')}</span>
                           </label>
                           {projectId && (
                             <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
@@ -3162,7 +3162,7 @@ export function NextflowWorkflowViewer({
                                    onChange={() => setOutputLocationType('user_s3')}
                                    data-testid="output-location-user-s3" />
                             <span title="Advanced — your bucket must grant BioMate's service role write access.">
-                              My S3 bucket <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>(Advanced)</span>
+                              {tOr('panel.output_s3', 'My S3 bucket')} <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>({tOr('panel.advanced', 'Advanced')})</span>
                             </span>
                           </label>
                           {outputLocationType === 'user_s3' && (
@@ -3203,14 +3203,14 @@ export function NextflowWorkflowViewer({
           {(() => {
             const scope = projectId ? 'This project' : 'This run';
             const rolesData: RolesData = {
-              you: 'Owner',
+              you: tOr('panel.owner', 'Owner'),
               project: scope,
               caps: [
-                { capability: 'Run this workflow', needs: 'Owner', allowed: true },
-                { capability: 'Change parameters & QC thresholds', needs: 'Owner', allowed: true },
-                { capability: 'Cancel a running job', needs: 'Owner', allowed: true },
-                { capability: 'Register a model from this run', needs: 'Owner', allowed: true },
-                { capability: 'Invite a reviewer', needs: 'Owner', allowed: true },
+                { capability: tOr('panel.run_this_workflow', 'Run this workflow'), needs: tOr('panel.owner', 'Owner'), allowed: true },
+                { capability: tOr('panel.change_params_qc', 'Change parameters & QC thresholds'), needs: tOr('panel.owner', 'Owner'), allowed: true },
+                { capability: 'Cancel a running job', needs: tOr('panel.owner', 'Owner'), allowed: true },
+                { capability: 'Register a model from this run', needs: tOr('panel.owner', 'Owner'), allowed: true },
+                { capability: 'Invite a reviewer', needs: tOr('panel.owner', 'Owner'), allowed: true },
               ],
             };
             const verifyKinds: VerifyKind[] = [
@@ -3388,8 +3388,8 @@ export function NextflowWorkflowViewer({
             {/* ── Idle / no nextflow_path — personal workflow not yet run ─── */}
             {groupedPhases.length === 0 && !lazyStepsFetching && lazySteps === null && status === 'idle' && (
               <div style={{ height: '100%', minHeight: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
-                <div style={{ marginBottom: 6 }}>No phases defined yet.</div>
-                <div style={{ fontSize: 12, opacity: 0.75 }}>Execution phases will appear here once the workflow starts.</div>
+                <div style={{ marginBottom: 6 }}>{tOr('panel.no_phases', 'No phases defined yet.')}</div>
+                <div style={{ fontSize: 12, opacity: 0.75 }}>{tOr('panel.phases_appear', 'Execution phases will appear here once the workflow starts.')}</div>
               </div>
             )}
 
