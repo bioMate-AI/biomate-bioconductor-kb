@@ -24,12 +24,16 @@ cat > "/tmp/bgenft_driver.$$" <<'DRIVER'
 #!/bin/bash
 set -Eeuo pipefail
 export AWS_DEFAULT_REGION=us-west-2 DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1
-ROOT=/opt/bgenft; mkdir -p "$ROOT/status" "$ROOT/code"; cd "$ROOT"
+ROOT=/opt/bgenft; CKPT_DIR="$ROOT/ckpts"; mkdir -p "$ROOT/status" "$ROOT/code" "$CKPT_DIR"; cd "$ROOT"
 exec > >(tee -a "$ROOT/status/boot.log") 2>&1
 stage(){ printf '{"stage":"%s","time":"%s"}\n' "$1" "$(date -u +%FT%TZ)" > "$ROOT/status/status.json"; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; }
-finish(){ rc=$?; trap - EXIT; [ "$rc" -ne 0 ] && stage failed || stage done_rc0; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; sleep 4; shutdown -h now; exit "$rc"; }
+# Periodic + on-exit checkpoint upload so a spot-reclaim / crash NEVER loses a trained ckpt (the
+# 2026-10-05 full run reached epoch 179 then crashed on a bad-sample cluster with NOTHING on S3,
+# because only status/ was synced and the end-only upload never ran). Now ckpts stream to S3 live.
+sync_ckpts(){ aws s3 sync "$CKPT_DIR" "$OUT_S3/ckpt_live/" --only-show-errors || true; }
+finish(){ rc=$?; trap - EXIT; sync_ckpts; [ "$rc" -ne 0 ] && stage failed || stage done_rc0; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; sleep 4; shutdown -h now; exit "$rc"; }
 trap finish EXIT
-(while sleep 60; do aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; done) &
+(while sleep 60; do aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; sync_ckpts; done) &
 BUCKET=$(echo "$OUT_S3" | cut -d/ -f3)   # derive from OUT_S3 (not passed via UD)
 # huggingface_hub 2.x drops `huggingface-cli` -> use the python API (called after conda activate)
 hfget(){ python - "$1" "$2" "${3:-dataset}" <<'PY'
@@ -132,9 +136,10 @@ PY
   aws s3 cp "$ROOT/training_data/val_split.txt" "$OUT_S3/status/val_split.txt" --only-show-errors || true
   stage smoke_config
   SMOKE_CFG="$ROOT/smoke.yaml"
-  python - "$CFG" "$SMOKE_CFG" "$TARGETS_DIR" "$MOLS" "$ROOT/training_data/val_split.txt" "$MAX_STEPS" <<'PY'
+  python - "$CFG" "$SMOKE_CFG" "$TARGETS_DIR" "$MOLS" "$ROOT/training_data/val_split.txt" "$MAX_STEPS" "$CKPT_DIR" <<'PY'
 import yaml, sys, os
 cfg_p, out_p, targets, mols, split, max_steps = sys.argv[1:7]
+ckpt_dir = sys.argv[7] if len(sys.argv) > 7 else None
 max_steps=int(max_steps)
 cfg=yaml.safe_load(open(cfg_p))
 recs=[f[:-5] for f in os.listdir(targets+"/records") if f.endswith(".json")]
@@ -170,7 +175,10 @@ def fix_ckpt(o):
     if isinstance(o,dict):
         if "ModelCheckpoint" in str(o.get("_target_","")) or ("monitor" in o and "dirpath" in o) or o.get("monitor")=="val/lddt":
             o["save_last"]=True; o["monitor"]=None; o["save_top_k"]=1
-            o["every_n_train_steps"]=max(100, max_steps//3); o.pop("save_every_n_train_steps",None)
+            # FREQUENT + fixed (not max_steps//3, which left the first ckpt too late and the 2026-10-05
+            # crash with zero recoverable ckpts). Checkpoint to a known dir that the launcher streams to S3.
+            o["every_n_train_steps"]=min(300, max(50, max_steps//4)); o.pop("save_every_n_train_steps",None)
+            if ckpt_dir: o["dirpath"]=ckpt_dir
         for v in o.values(): fix_ckpt(v)
     elif isinstance(o,list):
         for v in o: fix_ckpt(v)
@@ -197,7 +205,7 @@ if "_getitem_robust_patch" not in s:
         w=(f"\n{ind}def __getitem__(self, idx):  # _getitem_robust_patch\n"
            f"{ind}    import random\n"
            f"{ind}    n=len(self); last=None\n"
-           f"{ind}    for k in range(8):\n"
+           f"{ind}    for k in range(64):  # was 8 — a bad-sample CLUSTER exhausted it and crashed the epoch-179 run\n"
            f"{ind}        j=idx if k==0 else random.randrange(n)\n"
            f"{ind}        try: return self._getitem_orig(j)\n"
            f"{ind}        except Exception as e: last=e; continue\n"
@@ -221,7 +229,9 @@ PATCH
   # generate base-vs-finetuned on the held-out targets. (smoke produces no durable ckpt by design.)
   if [ "$MODE" = "full" ]; then
     stage uploading_ckpt
-    CK=$(find "$ROOT" -name "*.ckpt" -newer "$ROOT/smoke.yaml" 2>/dev/null | xargs -r ls -S 2>/dev/null | head -1)
+    sync_ckpts   # final flush of the live ckpt dir
+    CK=$(find "$CKPT_DIR" -name "*.ckpt" 2>/dev/null | xargs -r ls -S 2>/dev/null | head -1)
+    [ -z "$CK" ] && CK=$(find "$ROOT" -name "*.ckpt" -newer "$ROOT/smoke.yaml" 2>/dev/null | xargs -r ls -S 2>/dev/null | head -1)
     [ -z "$CK" ] && CK=$(find "$ROOT" -path "*checkpoint*" -name "*.ckpt" 2>/dev/null | xargs -r ls -S 2>/dev/null | head -1)
     if [ -n "$CK" ]; then
       aws s3 cp "$CK" "$OUT_S3/ckpt/finetuned.ckpt" --only-show-errors && echo "UPLOADED FT CKPT -> $OUT_S3/ckpt/finetuned.ckpt ($(du -h "$CK"|cut -f1))"
