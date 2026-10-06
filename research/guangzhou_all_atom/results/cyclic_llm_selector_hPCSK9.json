@@ -1,0 +1,11 @@
+{
+  "target": "hPCSK9",
+  "n_test": 2827,
+  "test_binders": 152,
+  "base_binder_rate": 0.0538,
+  "selector_AUC_binder_vs_LLR": 0.3567,
+  "binder_lift_top5pct": 2.638,
+  "binder_lift_top10pct": 1.583,
+  "verdict": "no selector signal",
+  "note": "WITHIN-target, sequence-held-out. LLR = logP(seq|hi)-logP(seq|lo) under our v2-style display-conditioned LM used AS A SELECTOR. This is the axis SOTA defers (display-based binding), not cross-target."
+}

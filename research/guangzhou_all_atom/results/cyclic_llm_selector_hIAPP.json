@@ -1,0 +1,11 @@
+{
+  "target": "hIAPP",
+  "n_test": 4000,
+  "test_binders": 173,
+  "base_binder_rate": 0.0432,
+  "selector_AUC_binder_vs_LLR": 0.6887,
+  "binder_lift_top5pct": 7.052,
+  "binder_lift_top10pct": 3.988,
+  "verdict": "WIN: display-conditioned LM ranks held-out binders (AUC>0.6, lift>1.5)",
+  "note": "WITHIN-target, sequence-held-out. LLR = logP(seq|hi)-logP(seq|lo) under our v2-style display-conditioned LM used AS A SELECTOR. This is the axis SOTA defers (display-based binding), not cross-target."
+}
