@@ -5284,6 +5284,20 @@ def execute_nextflow(
     Returning the run_id up front and launching in the background removes that
     whole class of false-fail; status flows configuring → running → completed.
     """
+    # Deployment-scope gate (on-prem scoped installs): refuse out-of-scope
+    # workflows with a clear 409 BEFORE any dispatch/temp-file write. No-op on
+    # SaaS — fail-safe OFF unless BIOMATE_SCOPE_MANIFEST is set. Covers both the
+    # catalog path (nextflow_path) and raw uploads (file_content). See
+    # galaxy.ai.scope_guard / docs/20261005_ONPREM_SCOPE_LAYER_PLAN.md.
+    from galaxy.ai import scope_guard as _scope_guard
+    try:
+        _scope_guard.assert_in_scope_or_raise(
+            nextflow_path=request.nextflow_path,
+            file_content=request.file_content,
+        )
+    except _scope_guard.ScopeError as _se:
+        raise HTTPException(status_code=_se.status_code, detail=_se.payload)
+
     # If file_content is provided, write it to a temp path and override
     # nextflow_path so _resolve_nextflow_path() finds an actual file.
     if request.file_content:
