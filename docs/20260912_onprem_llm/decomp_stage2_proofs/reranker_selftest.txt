@@ -1,0 +1,16 @@
+catalog workflows: 4210  bench rows: 165  N-sample: 5
+candidate set per prompt: [all_chain(modal), all_parallel, oracle, over_decomp, all_chain]
+
+metric                        greedy(no-rerank)  verifier-rerank        Δ
+node_f1                                  1.0000           1.0000  +0.0000
+edge_f1                                  0.6000           0.7697  +0.1697
+structure_accuracy                       0.3333           0.7697  +0.4364
+wcc_count_match                          0.3333           0.7697  +0.4364
+parallel_width_match                     0.3333           0.7697  +0.4364
+
+per-class structure_accuracy:
+  parallel                 0.0000           1.0000  +1.0000
+  sequential               1.0000           0.7455  -0.2545
+  mixed                    0.0000           0.5636  +0.5636
+
+SELFTEST PASS (verifier re-rank lifts structure_accuracy by +0.436 with NO gold, NO training)

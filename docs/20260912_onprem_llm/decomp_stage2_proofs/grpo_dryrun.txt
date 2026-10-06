@@ -1,0 +1,11 @@
+[dry-run] GRPO prompts built: 4300 (from ../../docs/20260912_onprem_llm/data_pool_v2/decomp_depgraph.jsonl)
+[dry-run] catalog indexed:    4210 workflows (../../backend/database/galaxy_ai_tools.db)
+[dry-run] reward over a simulated rollout group (prompt 0, struct=mixed):
+            oracle        reward=+1.0000
+            all_chain     reward=+0.8950
+            all_parallel  reward=+0.5800
+            malformed     reward=-0.5000
+[dry-run] OK — oracle is the group-max; GRPO advantage would be positive for it.
+[dry-run] GRPOConfig that WOULD be used:
+           {"output_dir": "/tmp/grpo_out", "num_generations": 8, "beta": 0.04, "temperature": 0.9, "learning_rate": 1e-06, "max_steps": 400, "save_steps": 25, "per_device_train_batch_size": 2, "gradient_accumulation_steps": 8, "max_prompt_length": 1024, "max_completion_length": 640, "reward_weights": [0.3, 0.4, 0.3]}
+DRY_RUN_OK
