@@ -21,21 +21,21 @@ prospects, competitor marketing strategies. **Forward-looking** (a plan, not a r
 - **Three goals:** (1) **credibility** (preprints + open benchmarks); (2) **adoption funnel** (cloud PLG +
   open-core); (3) **moat build** (on-prem deploy+support + BD into hospitals-China / pharma / boutique-CRO).
 
-## Q4 2026 (Oct–Dec) — "Credibility live + funnel open + first BD motion"
+## Q4 2026 (Oct–Dec) — "Credibility live + funnel open + FIRST PILOT started"
 | Workstream | Actions | Gate/metric |
 |---|---|---|
 | **Science/credibility (lead move)** | Post the **preprint sprint** this month (RealBio, Bioc-KB×2, anti-TNF, Paper B ready; C1/D/E as finished); release benchmarks CC-BY; capture the **live ADMET QC-gate hero** | ≥4 preprints posted; benchmarks public; hero demo recorded |
 | **Product (the moat deliverable)** | Finish spark **CPT+SFT + domainpro eval** (constrained-decoding format guarantee); **productize on-prem deployment** (repeatable installer + support tooling); coding/conversion track (Snakemake converter + the exec-graded benchmark); add the **MGI/BGI connector** (China hospital gap) | domainpro eval number; deployment-installer MVP; MGI/BGI connector |
 | **GTM/funnel** | Launch **cloud free/Premium tier** (PLG) + the tutorial/video series; open-core **community edition + connector SDK** scoped | free-tier live; signups tracked; community repo scoped |
-| **BD** | **Houston/Texas first-10** outreach (warm first: Liu/BCM w/ drafted pilot; SBMI — Zhao/Zhi/Zheng; Mohan/UH; ImmunoGenesis; TMC Innovation Labs); enter **OpenADMET challenge (by 2026-11-03)**; apply **JLABS Shanghai + Lilly TuneLab + Merck MDSS** | first-10 contacted; OpenADMET entered; ≥2 pharma apps in |
+| **BD + first pilot (pulled into Q4)** | **Houston/Texas first-10** outreach (warm first); and **kick off the first on-prem/reference pilot THIS quarter** via the warmest tie — **Liu/BCM, whose pilot proposal is already drafted** (fast path; SBMI as the second). Enter **OpenADMET (by 2026-11-03)**; apply **JLABS Shanghai + Lilly TuneLab + Merck MDSS** | **≥1 pilot started in Q4**; first-10 contacted; OpenADMET entered; ≥2 pharma apps in |
 | **Corp/funding** | Counsel on **US+China-sub / SBIR tradeoff**; secure **cloud credits** (AWS Activate/MS Founders/Google/NVIDIA) via US co; **China local talent grants** (Suzhou BioBAY / Shanghai) via sub | counsel memo; ≥1 credit program; ≥1 China grant drafted |
 
-## Q1 2027 (Jan–Mar) — "First pilots + submissions + raise prep"
+## Q1 2027 (Jan–Mar) — "Pilot #1 readout + expand + submissions + raise prep"
 | Workstream | Actions | Gate/metric |
 |---|---|---|
 | Science | Preprints → **journal submissions** (NAR / Bioinformatics / Nature Methods per the manuscript plan) | ≥3 submitted |
 | Product | Harden deployment from pilot feedback; open-core **community edition + benchmark public release**; serve the on-prem LLM via vLLM | community edition shipped; on-prem serving demo |
-| BD / pilots | **First on-prem reference pilot** (a Houston site via the warm ties) + **begin a China hospital** pilot (via sub, data-residency); **first pharma pilot** via an accepted open-innovation program | ≥1 signed on-prem pilot; ≥1 pharma pilot started |
+| BD / pilots | **Pilot #1 readout** (the Q4 Houston pilot → first reference case study) + **expand**: a **second site + a China hospital** pilot (via sub, data-residency); **first pharma pilot** via an accepted open-innovation program | pilot #1 readout/case study; ≥1 additional pilot; ≥1 pharma pilot started |
 | Funding | **Seed/angel raise** prep + first conversations on the recurring-on-prem + immune-stratification thesis (reuse the business-plan ask); **China NSFC/local** grant submissions | raise deck + ≥3 investor convos; grants submitted |
 
 ## 3-year roadmap (Q4 2026 → 2029)
@@ -44,7 +44,7 @@ Business-plan milestones reconciled to absolute dates + the moat/funnel/open-cor
 
 | Year | Theme | Targets (revised, honest) | Funding |
 |---|---|---|---|
-| **Y1 — Q4'26–Q3'27** | Credibility + funnel + first reference pilots | Preprints posted→submitted; open-core launched; cloud PLG adoption (free→Premium/Team); **1–2 on-prem reference pilots** (Houston + China hospital); **1 pharma pilot**; structure set | Cloud credits + China grants → **seed (H1'27)** |
+| **Y1 — Q4'26–Q3'27** | Credibility + funnel + first reference pilots | Preprints posted→submitted; open-core launched; cloud PLG adoption (free→Premium/Team); **first on-prem pilot started Q4'26 (Houston/Liu)** → **2–3 reference pilots + a China hospital** by mid-Y1; **1 pharma pilot**; structure set | Cloud credits + China grants → **seed (H1'27)** |
 | **Y2 — Q4'27–Q3'28** | Scale on-prem + recurring revenue | Productized deployment → **5–10 on-prem accounts** (hospital/biotech/CRO) with **support contracts (recurring)**; pharma pilot → **embedded contract**; China market entry via sub; outcome-based pricing live; **SOC 2 (US)**; immune-stratification asset advancing | **Series A** on recurring + pharma-embedded traction |
 | **Y3 — Q4'28–2029** | Category leadership (execution + immune-stratification) | Multi-account recurring on-prem; **≥1 pharma partnership at scale** (embedded + asset/milestone); **immune-stratification asset milestone**; 21 CFR 11/GxP as enterprise demands; category-defining position | **Series B / strategic** |
 
