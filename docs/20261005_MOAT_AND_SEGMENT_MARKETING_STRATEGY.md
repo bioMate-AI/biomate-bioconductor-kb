@@ -81,3 +81,29 @@ Cloud sells **convenience** self-serve; hospitals buy **compliance + reproducibi
 - **Product priority:** the **on-prem LLM + a productized, repeatable deployment** (install, update, support tooling) is a top roadmap item — it *is* the moat's delivery. (Ties to the current on-prem LLM / spark work.)
 - **GTM priority:** cloud PLG for funnel + proof; concentrated BD on hospitals (China reference sites) + pharma open-innovation for the moat.
 - **Funding story:** recurring on-prem + support contracts + pharma-embedded asset economics (fundability thesis), de-risked by cloud adoption metrics.
+
+## 4. Open-core strategy (open the funnel, keep the moat)
+**Recommendation: open-CORE** — not fully-open, not fully-closed. This is the proven model of BioMate's own
+ecosystem (Nextflow/Seqera, nf-core, Bioconductor, Galaxy, Hugging Face; Red Hat/GitLab outside bio), and it
+*reinforces* the moat thesis rather than contradicting it: **open = the funnel/flywheel/credibility; closed =
+the on-prem product + data + support + BD moat.** In bioinformatics, open/auditable is table stakes for the
+researcher/academic (cloud-funnel) segment, and the open-source "scientists" (Biomni, Apache-2.0, 10k+ labs)
+are winning mindshare — a 100%-closed BioMate cedes that funnel.
+
+| OPEN (adoption / credibility / standards) | CLOSED / commercial (moat) |
+|---|---|
+| Benchmarks — RealBio, Nextflow-coding, bioc (**already CC-BY-4.0**; anti-self-grading credibility) | Trained **on-prem LLM** (months of CPT/SFT + data; keep the good weights) |
+| **Community edition** of the agent/execution framework (Seqera model) | **Fully-enriched validated catalog** + `scientific_context_v2` + real-exec/correctness verdicts (data asset — open format + subset only) |
+| **Instrument-connector SDK** + reference connectors (community grows coverage) | **On-prem deployment tooling + continuous support + compliance** (services moat) |
+| Catalog **schema** + curated workflow subset; **QC-loop spec** as a standard | Managed **cloud platform**; **immune-stratification IP** |
+
+**Why it also helps the enterprise sale:** hospitals/pharma prefer auditable, no-black-box components →
+open-core speeds security review and reduces lock-in fear vs a closed box.
+
+**Licensing discipline (the risk to manage):** permissive (Apache/MIT) for benchmarks/SDK/connectors where
+adoption > protection; **source-available / BSL or AGPL** for server/platform components if a cloud giant
+strip-mining it into a competing hosted service is a risk (the MongoDB/Elastic/HashiCorp lesson). Per-component
+decision. Only open what you will resource/maintain — an unmaintained repo erodes credibility.
+
+**Do NOT open:** the trained model weights (the good one), the fully-enriched catalog/data asset, the
+deployment+support tooling, the immune-stratification IP — those are the crown jewels of the moat.
