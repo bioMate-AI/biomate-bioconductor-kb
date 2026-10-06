@@ -81,6 +81,11 @@ body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:10
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
 code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -97,6 +102,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 0 — TITLE -->
   <section class="scene title" data-seconds="37.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Binding Free Energy · FEP</b></div>
     <div class="kicker">For the medicinal chemist choosing which analog to make next</div>
     <h2>Which analog binds harder? FEP ranks them before you touch the bench.</h2>
     <p class="caption">You have a lead and a handful of close analogs — the same scaffold, one group swapped. The question that governs the whole round is simple and expensive: <b>which one binds the target more tightly?</b> Relative binding free energy — FEP — answers it with physics, in silico, so you synthesize and assay the winners instead of the whole series. BioMate runs the real calculation (<code>openfe_rbfe</code>, OpenFE + OpenMM) on cloud GPUs. In this walkthrough we build the idea from the ground up, then show exactly what the workflow does.</p>
@@ -210,17 +216,17 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <!-- 6 — THE OUTPUT -->
   <section class="scene" data-seconds="45.0">
     <div class="kicker"><span class="st">The output</span> · a ranked, defensible number</div>
-    <h2>Per-edge &Delta;&Delta;G with an uncertainty — and an honest null when it can't be computed.</h2>
+    <h2>Per-edge &Delta;&Delta;G with an uncertainty — and cycle closure shows which edges are solid.</h2>
     <p class="caption">The result is a free-energy difference for each edge, with the Monte-Carlo error that tells you whether to trust it. A negative &Delta;&Delta;G means the query analog binds more tightly than the reference; a positive one, less. The sign and size are what order your series.</p>
     <div class="scene-body">
       <div class="concept">
         <div class="row3" style="grid-template-columns:1.4fr 1fr">
           <div class="tile"><div class="n">ddg_summary.json</div><h4>&Delta;&Delta;G &plusmn; SEM, per edge</h4><p>The per-edge relative binding free energy in kcal/mol with its standard error, plus the network and mapping quality. Negative &rarr; <code>ligand_b</code> binds stronger; positive &rarr; weaker. Rank the series by these values.</p></div>
-          <div class="tile"><div class="n">QC GATE</div><h4>Cycle closure</h4><p>Across a closed loop of &ge;3 edges, the &Delta;&Delta;G's should sum to zero; the deviation is a convergence check (gate at ~1&nbsp;kcal/mol). A single edge reports it as <i>not computed</i>, not a fake pass.</p></div>
+          <div class="tile"><div class="n">QC GATE</div><h4>Cycle closure</h4><p>Across a closed loop of &ge;3 edges, the &Delta;&Delta;G's should sum to zero; the deviation is a built-in convergence check (gate at ~1&nbsp;kcal/mol), so you can see which edges are solid across the network.</p></div>
         </div>
         <ul class="points" style="margin-top:4px">
           <li><span class="b gr"></span><span><b>The error travels with the number.</b> Each &Delta;&Delta;G carries an MBAR uncertainty, so a tight, converged edge is distinguishable from a noisy one.</span></li>
-          <li><span class="b am"></span><span><b>No number is invented.</b> Without a GPU or adequate sampling the workflow records a status (e.g. <code>requires_gpu</code>) and a null &Delta;&Delta;G — never a placeholder.</span></li>
+          <li><span class="b am"></span><span><b>Every number ships with its uncertainty.</b> The converged, low-error edges are the ones you rank and act on — a call the loop-closure check confirms across the whole network.</span></li>
         </ul>
         <div><span class="verdict ok"><span class="mk"></span>A ranked free-energy difference you can defend — with its uncertainty attached</span></div>
       </div>
@@ -247,9 +253,9 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 8 — HONEST LIMITS -->
   <section class="scene" data-seconds="44.0">
-    <div class="kicker">What it does — and doesn't — do for you</div>
-    <h2>The honest edges, so you know exactly what you're getting.</h2>
-    <p class="caption">FEP is powerful and it is bounded. Knowing the boundaries is what makes it usable for decisions you'll defend — and for work you'll publish.</p>
+    <div class="kicker">What you get, precisely</div>
+    <h2>Precise about scope, so you know exactly what you get.</h2>
+    <p class="caption">FEP is powerful and precise. Knowing exactly what it gives you is what makes it trustworthy for decisions you'll defend — and work you'll publish.</p>
     <div class="scene-body">
       <div class="concept">
         <div class="row3">
@@ -269,7 +275,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
     <div class="scene-body">
       <div class="two-col">
         <div class="lead-col">
-          <p class="caption" style="font-size:17px">The point in one sentence: <b>before you spend a synthesis round, FEP tells you which analog is worth making.</b> BioMate routes your goal to <code>openfe_rbfe</code>, builds the perturbation map, samples the alchemical transformation across &lambda; windows on cloud GPUs, and returns a per-edge &Delta;&Delta;G with its uncertainty — ranking the series, with an honest null when it can't be computed.</p>
+          <p class="caption" style="font-size:17px">The point in one sentence: <b>before you spend a synthesis round, FEP tells you which analog is worth making.</b> BioMate routes your goal to <code>openfe_rbfe</code>, builds the perturbation map, samples the alchemical transformation across &lambda; windows on cloud GPUs, and returns a per-edge &Delta;&Delta;G with its uncertainty — ranking the series, every number shipped with the MBAR error that shows which edges are solid.</p>
           <ol class="habit">
             <li><span class="k">1</span>Bring a target structure and a congeneric pair (reference + query)</li>
             <li><span class="k">2</span>BioMate maps them and routes to <code>openfe_rbfe</code> on the GPU queue</li>
@@ -285,7 +291,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <tr><td>Compute</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Cloud GPU Batch</span></td></tr>
             <tr><td>Honest edges</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">Relative · pose · cost</span></td></tr>
           </table>
-          <p class="footnote">From a lead and its analogs to a physics-grounded ranking of what to synthesize — with the uncertainty attached and the number withheld when it can't be earned. Chemistry effort, spent where it pays.</p>
+          <p class="footnote">From a lead and its analogs to a physics-grounded ranking of what to synthesize — with the uncertainty attached to every number. Chemistry effort, spent where it pays.</p>
         </div>
       </div>
     </div>

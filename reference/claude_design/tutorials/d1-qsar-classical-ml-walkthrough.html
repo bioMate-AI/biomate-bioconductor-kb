@@ -130,6 +130,11 @@ svg{display:block}
 .habit li:last-child{border-bottom:none}
 .habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:40px}
 code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -146,7 +151,8 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
 <div class="stage" id="stage">
 
   <!-- 0 — TITLE -->
-  <section class="scene title" data-kind="concept" data-seconds="34.0">
+  <section class="scene title" data-kind="concept" data-seconds="40.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>QSAR · Classical ML</b></div>
     <div class="kicker">QSAR — predicting activity and toxicity from molecular structure</div>
     <h2>Predict what a molecule will do — from its structure alone, before you ever make it.</h2>
     <p class="caption">QSAR — Quantitative Structure–Activity Relationship — turns a molecule's chemical structure into a predicted number: how strongly it hits a target, or how likely it is to be toxic. This episode teaches the <b>classical machine-learning</b> way to do that — a random forest on molecular fingerprints — and shows BioMate running it on two real, hosted workflows.</p>
@@ -163,7 +169,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 1 — THE TASK -->
-  <section class="scene" data-kind="concept" data-seconds="33.0">
+  <section class="scene" data-kind="concept" data-seconds="40.0">
     <div class="kicker"><span class="st">Idea</span> · The task — why QSAR exists <span class="badge concept">Concept</span></div>
     <h2>Similar molecules tend to behave similarly — so structure should predict activity.</h2>
     <p class="caption">That single assumption is the whole field. If two molecules look chemically alike, they usually bind alike and break down alike. QSAR makes it quantitative: learn, from molecules you have already measured, a function that maps <b>structure → a number</b> — a potency such as pIC50, or a toxicity such as hERG IC50 — then apply it to molecules you have only drawn.</p>
@@ -182,7 +188,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 2 — SOTA + WHY: turning a molecule into numbers -->
-  <section class="scene" data-kind="concept" data-seconds="37.0">
+  <section class="scene" data-kind="concept" data-seconds="48.0">
     <div class="kicker"><span class="st">Idea</span> · Turning a molecule into numbers — features &amp; the applicability domain <span class="badge concept">Concept</span></div>
     <h2>A model cannot read a molecule — so first you turn it into features.</h2>
     <p class="caption">A machine-learning model needs numbers, not a chemical drawing. Two families of features dominate: human-readable <b>descriptors</b> and substructure <b>fingerprints</b>. And whichever you pick, the model is only trustworthy inside its <b>applicability domain</b> — the region of chemistry its training set actually covered.</p>
@@ -201,7 +207,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 3 — CLASSICAL ML IN DEPTH 1: random forest -->
-  <section class="scene" data-kind="concept" data-seconds="38.0">
+  <section class="scene" data-kind="concept" data-seconds="45.0">
     <div class="kicker"><span class="st">Idea</span> · Classical ML in depth — the random forest <span class="badge concept">Concept</span></div>
     <h2>Many shallow decision trees, each a little different, averaged into one stable prediction.</h2>
     <p class="caption">A single decision tree splits the feature space with yes/no questions until it reaches a prediction — but one tree overfits. A <b>random forest</b> grows hundreds of them, each on a bootstrap resample of the compounds and a random subset of features, then averages their answers. The disagreement between trees cancels out; the signal survives.</p>
@@ -266,7 +272,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 4 — CLASSICAL ML IN DEPTH 2: train, validate, interpret -->
-  <section class="scene" data-kind="concept" data-seconds="40.0">
+  <section class="scene" data-kind="concept" data-seconds="50.0">
     <div class="kicker"><span class="st">Idea</span> · Train, validate, and read the model <span class="badge concept">Concept</span></div>
     <h2>A model you have not validated is just a hopeful opinion.</h2>
     <p class="caption">Training is easy; knowing whether to believe the result is the real work. The standard is <b>k-fold cross-validation</b>: split the compounds into k parts, train on k−1 and test on the held-out part, rotate, and average. The real <code>Qsar Rf Model</code> uses <b>5 folds</b> and reports <b>CV R²</b> and <b>CV RMSE</b> — how well predictions track reality on data the model never trained on.</p>
@@ -325,7 +331,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 5 — CONTRAST WITH DEEP LEARNING (point to D2) -->
-  <section class="scene" data-kind="concept" data-seconds="37.0">
+  <section class="scene" data-kind="concept" data-seconds="47.0">
     <div class="kicker"><span class="st">Idea</span> · Classical RF vs deep-learning ADMET — when each wins <span class="badge concept">Concept</span></div>
     <h2>A random forest is often the right answer — reach for a graph network only when data and need justify it.</h2>
     <p class="caption">Deep learning is not automatically better. On the small, tabular, fingerprint-shaped datasets most projects actually have, a random forest is faster, interpretable, reproducible, and frequently just as accurate. A graph neural network earns its cost when you have a lot of labels and want the model to <b>learn the representation itself</b>.</p>
@@ -356,31 +362,29 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 6 — HOW BIOMATE DOES IT 1: chat -> route -> run -->
-  <section class="scene" data-kind="concept" data-seconds="31.0">
+  <section class="scene" data-kind="concept" data-seconds="51.0">
     <div class="kicker"><span class="st">In BioMate</span> · Chat → route → run <span class="badge flow">Product</span></div>
     <h2>Describe the task in plain English; BioMate routes it to the right QSAR workflow and runs it hosted.</h2>
     <p class="caption">You do not install RDKit or scikit-learn. You describe the analysis, confirm the parameters shown, and it runs on hosted compute. Two real workflows cover the activity and the toxicity sides of QSAR.</p>
     <div class="scene-body">
-      <div class="concept">
-        <div class="card big">
-          <div class="flowline" style="margin-bottom:20px">
-            <span class="chip"><span class="i"></span>Plain-English request</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>Routed to a QSAR workflow</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>Review params &amp; Confirm</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>Runs on hosted compute</span>
-          </div>
-          <div class="row2">
-            <div class="tile good"><div class="n">ACTIVITY · Qsar Rf Model</div><h4>Random forest on fingerprints</h4><p>Input: a CSV with a <code>smiles</code> column and a target column (default <code>pIC50</code>). Params: 5 CV folds, 200 trees, Morgan r2 / 1024-bit, fixed seed. Needs ≥ 10 compounds.</p></div>
-            <div class="tile hot"><div class="n">TOXICITY · herg_cardiac_safety_qsar</div><h4>Descriptor QSAR for cardiac risk</h4><p>Input: a SMILES list, plus optional measured hERG IC50, dose (mg) and free fraction. A physicochemical model (Aronov 2005; Sanguinetti 2006) over MW / logP / pKa / cationic density.</p></div>
-          </div>
-          <p class="footnote" style="margin-top:18px">Both are classical QSAR: one learns a random forest from your measured activities; the other applies a published physicochemical model plus Nav1.5 structural alerts. No code, no software to license.</p>
-        </div>
+      <figure class="shotcol">
+        <span class="lbl">Live product · Qsar Rf Model in BioMate</span>
+        <div class="frame"><img src="assets/live/qsar-live-panel.png" alt="BioMate chat and workflow panel for the Qsar Rf Model — required parameters, input CSV, output location, and Confirm & Run"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Plain English in, workflow out.</b> You describe the analysis; BioMate routes it to <b>Qsar Rf Model</b> and shows the real parameter panel — no RDKit or scikit-learn to install.</span></li>
+          <li><span class="b gr"></span><span><b>ACTIVITY · Qsar Rf Model.</b> Random forest on fingerprints — a CSV with a <code>smiles</code> column + target (<code>pIC50</code>); 5 CV folds, 200 trees, Morgan r2 / 1024-bit.</span></li>
+          <li><span class="b"></span><span><b>TOXICITY · herg_cardiac_safety_qsar.</b> A published physicochemical model over MW / logP / pKa for cardiac risk.</span></li>
+          <li><span class="b"></span><span>Review the parameters shown, confirm, and it runs on hosted compute.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The real QSAR workflow, set up for you</span></div>
       </div>
     </div>
   </section>
 
   <!-- 7 — HOW BIOMATE DOES IT 2: interpret + QC gate -->
-  <section class="scene" data-kind="concept" data-seconds="32.0">
+  <section class="scene" data-kind="concept" data-seconds="50.0">
     <div class="kicker"><span class="st">In BioMate</span> · Interpret the output — and the quality gate <span class="badge flow">Product</span></div>
     <h2>Real numbers, read straight from the run — with a gate that never passes a weak model silently.</h2>
     <p class="caption">Each run writes structured outputs you read directly. For activity, the model's cross-validated quality is checked against a published threshold before you trust it; for toxicity, the output is a risk tier and a safety margin, deliberately not a single precise IC50.</p>
@@ -410,10 +414,10 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 8 — HONEST CAVEATS -->
-  <section class="scene" data-kind="concept" data-seconds="40.0">
-    <div class="kicker"><span class="st">Idea</span> · Honest caveats — what a QSAR cannot tell you <span class="badge concept">Concept</span></div>
-    <h2>A QSAR is only as good as its data, its features, and its honesty about its own limits.</h2>
-    <p class="caption">Classical QSAR is powerful because it is simple and testable — but simplicity has edges. These are the limits to keep in front of you every time you read a prediction.</p>
+  <section class="scene" data-kind="concept" data-seconds="55.0">
+    <div class="kicker"><span class="st">Idea</span> · Reading a QSAR with confidence · the applicability domain <span class="badge concept">Concept</span></div>
+    <h2>A QSAR is only as strong as its data and features — and reading it well means reading it inside its applicability domain.</h2>
+    <p class="caption">Classical QSAR is powerful because it is simple, interpretable, and testable. Reading it well comes down to one habit: always read each prediction inside its applicability domain.</p>
     <div class="scene-body">
       <div class="concept">
         <div class="card big">
@@ -431,13 +435,13 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 9 — CLOSING -->
-  <section class="scene title" data-kind="concept" data-seconds="30.0">
+  <section class="scene title" data-kind="concept" data-seconds="43.0">
     <div class="kicker">QSAR at a glance</div>
     <h2 style="font-size:38px">Structure → featurize → random forest → cross-validate → read with its caveat.</h2>
     <div class="scene-body">
       <div class="two-col">
         <div class="lead-col">
-          <p class="caption" style="font-size:16px">Classical machine learning turns a structure into a defensible prediction: a random forest on molecular fingerprints for activity, a physicochemical descriptor model for cardiac toxicity, both cross-validated and gated. It is the interpretable, data-efficient default — and it tells you honestly where it stops. When your data and your question outgrow it, <b>episode D2</b> takes the same task to a graph neural network.</p>
+          <p class="caption" style="font-size:16px">Classical machine learning turns a structure into a defensible prediction: a random forest on molecular fingerprints for activity, a physicochemical descriptor model for cardiac toxicity, both cross-validated and gated. It is the interpretable, data-efficient default. When your data and your question grow, <b>episode D2</b> takes the same task to a graph neural network.</p>
           <ol class="habit">
             <li><span class="k">1</span>Bring measured compounds — SMILES plus a target value</li>
             <li><span class="k">2</span>Featurize — descriptors or Morgan fingerprints</li>

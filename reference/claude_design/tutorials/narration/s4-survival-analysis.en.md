@@ -52,9 +52,9 @@ The output is only as good as your reading of it, and two numbers carry most of 
 
 ---
 
-## Step 9 — The honest edges
+## Step 9 — The checks that make a survival result defensible
 
-These methods are standard and trustworthy — within their assumptions. BioMate runs the diagnostics; interpreting them is yours. Four edges matter. First, the proportional-hazards assumption: Cox assumes a covariate's effect is constant over time, so the workflow runs the cox-dot-zph test and diagnostic plots — check them, because if the assumption fails, the hazard ratio is hard to interpret. Second, censoring must be fair: the results assume censoring is unrelated to prognosis, and if sicker patients systematically drop out, the estimates are biased, and no method repairs that. Third, Lasso selection is tentative — it's data-dependent, so a different sample can select different genes; treat the signature as a hypothesis to validate, not a verdict. And fourth, association is not causation: a hazard ratio describes association, adjusted only for the covariates you included, and unmeasured confounders remain. This is a specific, honest capability — standard methods with their assumptions on the table, not hidden.
+These methods are standard and trustworthy — within their assumptions. BioMate runs the diagnostics; interpreting them is yours. Four edges matter. First, the proportional-hazards assumption: Cox assumes a covariate's effect is constant over time, so the workflow runs the cox-dot-zph test and diagnostic plots — check them, because if the assumption fails, the hazard ratio is hard to interpret. Second, censoring must be fair: the results assume censoring is unrelated to prognosis, and if sicker patients systematically drop out, the estimates are biased, and no method repairs that. Third, Lasso selection is tentative — it's data-dependent, so a different sample can select different genes; treat the signature as a hypothesis to validate, not a verdict. And fourth, association is not causation: a hazard ratio describes association, adjusted only for the covariates you included, and unmeasured confounders remain. This is a specific, solid capability — standard methods with their assumptions on the table.
 
 ---
 

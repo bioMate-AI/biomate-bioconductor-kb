@@ -114,6 +114,11 @@ body{
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
 code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -130,6 +135,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 0 — TITLE -->
   <section class="scene title" data-seconds="32">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>qPCR &Delta;&Delta;Cq Analysis</b></div>
     <div class="kicker">qPCR — from raw cycle numbers to relative expression</div>
     <h2>Turn a Cq table into fold-change, with one request.</h2>
     <p class="caption">Your qPCR machine reports a <b>Cq</b> value for every well — the cycle number at which the signal crosses the threshold. BioMate takes that table and runs the standard <b>ΔΔCq</b> relative-quantification analysis: normalise to your reference genes, compare treated against control, and return the <b>fold-change for each target gene</b> — on cloud compute, with no code and no spreadsheet.</p>

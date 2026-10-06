@@ -105,6 +105,11 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 .livebar{display:inline-flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--green); margin-left:8px}
 .livebar .rec{width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(156,26,46,.5); animation:recpulse 1.6s infinite}
 @keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(156,26,46,.5)}70%{box-shadow:0 0 0 6px rgba(156,26,46,0)}100%{box-shadow:0 0 0 0 rgba(156,26,46,0)}}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -121,6 +126,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 1 — TITLE -->
   <section class="scene title" data-seconds="34.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Models &amp; the Closed Loop</b></div>
     <div class="kicker">How BioMate gets smarter — the cycle behind every round</div>
     <h2>Real lab results teach BioMate to design better molecules each round.</h2>
     <p class="caption">A <b>model</b> is the part that makes predictions — "how strongly will this bind?", "is this likely to be toxic?" — instead of running a slow lab experiment every time. The <b>Models</b> area keeps these reusable predictors and is the home of the <b>closed loop</b>: the cycle that feeds your real laboratory results back in, so the next round of designs is better.</p>

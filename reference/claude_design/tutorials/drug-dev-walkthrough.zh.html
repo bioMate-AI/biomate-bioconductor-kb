@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · T11 —— 新药研发全流程，从头到尾</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+/* ---- top rail ---- */
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t11{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.rail .kind{font-family:var(--ff-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:3px 9px; border-radius:3px}
+.rail .kind.concept{background:var(--blue-bg); color:var(--blue)}
+.rail .kind.flow{background:var(--panel2); color:var(--mut)}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+
+/* ---- stage ---- */
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 70px 48px; opacity:0; transform:translateY(8px);
+  /* Deactivate instantly (no lingering fade-out) so two scenes' text never
+     overlap mid-dissolve; the incoming scene does a quick <0.3s fade-in. */
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px; display:flex; align-items:center; gap:10px}
+.kicker .st{color:var(--mut)}
+.kicker .badge{font-size:9.5px; letter-spacing:.1em; padding:2px 7px; border-radius:3px}
+.kicker .badge.concept{background:var(--blue-bg); color:var(--blue)}
+.kicker .badge.flow{background:var(--panel2); color:var(--mut); border:1px solid var(--line2)}
+.scene h2{font-family:var(--ff-ui); font-size:36px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 13px; max-width:18ch}
+.scene.title h2{font-size:52px; max-width:20ch; margin-bottom:18px}
+.caption{font-size:18px; line-height:1.55; color:var(--ink2); max-width:64ch; margin:0 0 6px}
+.caption.sub{font-size:15.5px; color:var(--mut); max-width:68ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+
+/* edu framing strip: task -> hard -> classical -> BioMate -> read */
+.frame-strip{display:flex; gap:0; margin:4px 0 0; flex-wrap:wrap}
+.frame-strip .fs{display:flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.04em; color:var(--mut); padding:4px 0}
+.frame-strip .fs b{color:var(--blue); font-weight:500; text-transform:uppercase; letter-spacing:.08em}
+.frame-strip .sep{color:var(--line2); margin:0 12px}
+
+.tags{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0}
+.tag{display:inline-block; font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:3px; background:var(--panel2); color:var(--mut)}
+.tag.new{background:var(--blue-bg); color:var(--blue)}
+
+/* screenshot figures */
+.shots{display:flex; gap:26px; flex:1; min-height:0}
+.shot{flex:1; display:flex; flex-direction:column; min-height:0}
+.shot .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#0f141b; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex; align-items:center; justify-content:center}
+.shot img{width:100%; height:100%; object-fit:cover; object-position:top left}
+.shot video{width:100%; height:100%; object-fit:contain; background:#0f141b; display:block}
+/* Flow still-image scene (dataset lineage) keeps a landscape frame; just shrink text. */
+.scene[data-kind="flow"]:has(img):not(.live) h2{font-size:27px; line-height:1.12; margin-bottom:8px; max-width:34ch}
+.scene[data-kind="flow"]:has(img):not(.live) .caption{font-size:14.5px; line-height:1.5; margin-bottom:2px; max-width:92ch}
+.scene[data-kind="flow"]:has(img):not(.live) .scene-body{margin-top:12px}
+.scene[data-kind="flow"]:has(img):not(.live) .shot figcaption{font-size:12px; margin-top:7px; max-width:92ch}
+
+/* Live-UI FOCAL scenes: each embeds a HIGH-DPI crop ZOOMED to the single element
+   that makes the scene's point — the pre-run param strip + Confirm & Run, the
+   running QC-gate list, the Completed findings, the outputs list, the
+   reproducibility record. Cropping to the focal element (instead of the whole
+   panel) + rendering at 3x makes the product UI text large and sharp in the slide.
+   Layout is a vertical stack so the crop gets (nearly) the full stage width; media
+   max-height is capped so the whole scene stays above the recorder's 992px fold. */
+.scene.live{padding:34px 70px 0}
+.scene.live h2{font-size:30px; line-height:1.14; margin:2px 0 8px; max-width:42ch}
+.scene.live .caption{font-size:15px; line-height:1.5; margin:0 0 12px; max-width:96ch}
+.scene.live .scene-body{flex:0 0 auto; min-height:0; margin-top:0; display:flex}
+.scene.live .shots{flex:0 1 auto; min-height:0; display:flex; justify-content:center; align-items:flex-start; gap:0}
+.scene.live .shot{flex:0 1 auto; display:flex; flex-direction:column; align-items:center; min-height:0; max-width:100%}
+.scene.live .shot .frame{flex:0 1 auto; width:auto; height:auto; max-width:100%; background:#fff; border:1px solid var(--line2); border-radius:12px; box-shadow:0 10px 34px rgba(16,24,40,.12)}
+.scene.live .shot img{display:block; width:auto; height:auto; max-width:min(92vw,1680px); max-height:51vh; object-fit:contain; border-radius:12px}
+.scene.live .shot figcaption{font-size:12.5px; line-height:1.45; margin-top:10px; max-width:90ch; text-align:center}
+.scene.live .tags{margin-top:12px}
+.livebar{display:inline-flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--green); margin-left:8px}
+.livebar .rec{width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(156,26,46,.5); animation:recpulse 1.6s infinite}
+@keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(156,26,46,.5)}70%{box-shadow:0 0 0 6px rgba(156,26,46,0)}100%{box-shadow:0 0 0 0 rgba(156,26,46,0)}}
+.shot figcaption{font-size:13px; line-height:1.45; color:var(--mut); margin-top:10px; max-width:48ch}
+.shot .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:3px}
+
+/* concept cards */
+.concept{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:flex-start; gap:18px}
+.row5{display:grid; grid-template-columns:repeat(5,1fr); gap:12px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:15px 17px}
+.tile .n{font-family:var(--ff-mono); font-size:11px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:16px; margin:6px 0 6px; color:var(--ink); font-weight:600}
+.tile p{font-size:13px; line-height:1.48; color:var(--ink2); margin:0}
+.tile.hot{border-color:var(--red); background:var(--red-bg)}
+.tile.hot .n{color:var(--red)}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:8px 15px; font-size:14px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+
+svg{display:block}
+.svgwrap{flex:1; display:flex; align-items:center; justify-content:center; min-height:0}
+.metricrow{display:flex; gap:34px; margin-top:4px}
+.metric{display:flex; flex-direction:column}
+.metric .v{font-family:var(--ff-mono); font-size:26px; color:var(--ink); font-weight:600}
+.metric .k{font-size:12px; color:var(--mut); margin-top:2px}
+
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:12px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:44px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.deliver{list-style:none; padding:0; margin:0}
+.deliver li{display:flex; align-items:baseline; gap:11px; padding:10px 0; border-bottom:1px solid var(--line); font-size:14.5px; line-height:1.5; color:var(--ink2)}
+.deliver li:last-child{border-bottom:none}
+.deliver li .mk{flex:0 0 auto; width:7px; height:7px; border-radius:2px; background:var(--blue); transform:translateY(5px)}
+.deliver li b{color:var(--ink); font-weight:600}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t11">教程 11 · 新药研发全流程</span>
+  <span class="kind concept" id="kind">概念</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">16</span> 张</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-kind="concept" data-seconds="38.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>端到端药物发现</b></div>
+    <div class="kicker">从一个靶点设想，到一份经得起推敲的候选记录</div>
+    <h2>从一份经过筛选、排序的候选清单起步——再分流、循环，并留下一份经得起推敲的记录。</h2>
+    <p class="caption">一个个相互衔接的阶段，每个都是一条托管工作流，无需自建或采购内部软件就能运行：框定目标，设计候选分子，预测它们的属性，给幸存者排序，在安全闸门后面闭合"设计—测试"循环，推算人体暴露，并保留一份达到审计级别的记录——一条流水线，一条溯源链。</p>
+    <p class="caption sub">演示化合物：三种大家都熟悉的药——<b>阿司匹林、咖啡因、布洛芬</b>——送进流水线作为示例。<b>这是计算层面的早期筛选，不是某个新药研发项目的成果，也不是任何临床结论。</b>每个阶段都把一张讲清概念的<b>概念页</b>与一张展示它在真实输出上运行的<b>产品页</b>配成一对。这里展示的每一步都真实运行，每一条结论都从那份输出里读出——绝不编造。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>1 · 框定</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>2 · 设计</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>3 · 属性</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>4 · 排序</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>5 · 循环</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>6 · PK/PBPK</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>7 · 记录</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — CONCEPT: loop not a line -->
+  <section class="scene" data-kind="concept" data-seconds="31.3">
+    <div class="kicker"><span class="st">概念</span> · 为什么新药研发是一个循环，而不是一条直线 <span class="badge concept">概念</span></div>
+    <h2>一次走完永远产不出一款成品药——方法是一个会累积收益的循环。</h2>
+    <p class="caption">人们很容易把它想象成一条直线：设计一次、测试一次、就做完了。真正的项目从来不是这样。每一轮都从上一轮<b>学到</b>东西，再喂给下一轮——这就是"设计—构建—测试—学习"循环。回报在于：每转一圈，错误都变得更便宜，候选清单也变得更好。</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 440 300" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <!-- the LINE (crossed out) -->
+            <text x="20" y="40" fill="#9c1a2e" font-family="IBM Plex Mono" font-size="12" font-weight="500">误解——一条直线</text>
+            <g stroke="#aeb6c2" stroke-width="2" fill="#aeb6c2" font-family="IBM Plex Sans" font-size="11.5">
+              <rect x="20" y="52" width="66" height="26" rx="5" fill="#f1f3f7" stroke="#d5dae2"/><text x="53" y="69" text-anchor="middle" fill="#5a6474">设计</text>
+              <line x1="86" y1="65" x2="118" y2="65"/>
+              <rect x="118" y="52" width="60" height="26" rx="5" fill="#f1f3f7" stroke="#d5dae2"/><text x="148" y="69" text-anchor="middle" fill="#5a6474">测试</text>
+              <line x1="178" y1="65" x2="210" y2="65"/>
+              <rect x="210" y="52" width="66" height="26" rx="5" fill="#f1f3f7" stroke="#d5dae2"/><text x="243" y="69" text-anchor="middle" fill="#5a6474">一款药？</text>
+            </g>
+            <line x1="285" y1="48" x2="345" y2="82" stroke="#9c1a2e" stroke-width="2.5"/>
+            <line x1="345" y1="48" x2="285" y2="82" stroke="#9c1a2e" stroke-width="2.5"/>
+            <!-- the LOOP -->
+            <text x="20" y="128" fill="#1a4a9c" font-family="IBM Plex Mono" font-size="12" font-weight="500">方法——一个循环（DBTL）</text>
+            <g transform="translate(60,135)">
+              <circle cx="150" cy="120" r="100" fill="none" stroke="#d5dae2" stroke-width="1.5" stroke-dasharray="4 6"/>
+              <g font-family="IBM Plex Sans" font-size="14" font-weight="600" fill="#101828">
+                <g><circle cx="150" cy="28" r="28" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.5"/><text x="150" y="33" text-anchor="middle">设计</text></g>
+                <g><circle cx="250" cy="120" r="28" fill="#eaf6ee" stroke="#1c6b3a" stroke-width="1.5"/><text x="250" y="125" text-anchor="middle">构建</text></g>
+                <g><circle cx="150" cy="212" r="28" fill="#fdf0e3" stroke="#8a5a12" stroke-width="1.5"/><text x="150" y="217" text-anchor="middle">测试</text></g>
+                <g><circle cx="50" cy="120" r="28" fill="#f1f3f7" stroke="#5a6474" stroke-width="1.5"/><text x="50" y="125" text-anchor="middle">学习</text></g>
+              </g>
+              <g fill="#5a6474" font-size="19"><text x="214" y="62">↘</text><text x="214" y="192">↙</text><text x="72" y="192">↖</text><text x="72" y="62">↗</text></g>
+              <text x="150" y="116" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="#5a6474">每一圈<tspan x="150" dy="14">= 一轮</tspan></text>
+            </g>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="frame-strip">
+            <span class="fs"><b>任务</b>&nbsp;从一个设想走到一个候选药物</span><span class="sep">·</span>
+            <span class="fs"><b>难在哪</b>&nbsp;没有哪一次走完就能做对</span><span class="sep">·</span>
+            <span class="fs"><b>传统做法</b>&nbsp;每一轮手工循环要耗上数月</span><span class="sep">·</span>
+            <span class="fs"><b>BioMate</b>&nbsp;每个阶段都是可复用的工作流，可串联、可反复</span>
+          </div>
+          <div class="card" style="margin-top:14px">
+            <p style="font-size:14.5px; line-height:1.6; margin:0">请把这个循环记在心里，贯穿本教程的余下部分。接下来的几个阶段，其实就是<b>绕着它走一圈</b>——而真正让这个循环值得信赖的两项功能，是<b>质控闸门</b>（阶段五）和<b>可复现记录</b>（阶段七）。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — CONCEPT: Stage 1 framing -->
+  <section class="scene" data-kind="concept" data-seconds="32.8">
+    <div class="kicker"><span class="st">阶段一 · 概念</span> · 明确目标 <span class="badge concept">概念</span></div>
+    <h2>在任何分子出现之前，先写下靶点、目标和约束条件。</h2>
+    <p class="caption">后面每个阶段都会继承这些选择，所以目标含糊，产出的候选清单也含糊。你只需用大白话向 BioMate 描述出来，就把它记下了。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">靶点（例如）</div><h4>JAK1</h4><p>你想作用的那个蛋白——这里是一个炎症信号通路的例子。是一个蛋白，而不是一个分子。</p></div>
+            <div class="tile"><div class="n">目标</div><h4>结合 · 吸收 · 安全</h4><p>与靶点结合；能被口服吸收；对心脏安全（hERG）。</p></div>
+            <div class="tile"><div class="n">约束条件</div><h4>新颖 · 可合成</h4><p>保持新颖；保持可合成。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:20px">你在这里写下的目标，会变成阶段四里用来比较的那些列——而 hERG 安全上限，会变成阶段五里的质控闸门。<b>本讲用三种大家都熟悉的分子——阿司匹林、咖啡因、布洛芬——演示其中的机制</b>，而非一个完整的靶点攻关项目。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — CONCEPT: Stage 2 design/generate -->
+  <section class="scene" data-kind="concept" data-seconds="30.0">
+    <div class="kicker"><span class="st">阶段二 · 概念</span> · 设计候选分子 <span class="badge concept">概念</span></div>
+    <h2>到底应该考虑哪些分子？</h2>
+    <p class="caption">与其在约 10⁶⁰ 种可能里一个个手工画分子，BioMate 的做法是<b>围绕你给定的一个种子，系统地枚举化学上合理的各种变体</b>，再把已知隐患过滤掉，并把留下来的排序成一份候选清单。它今天就能端到端跑完，几分钟内返回一份排好序的起始集合。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">种子 → 变体</div><h4>围绕种子枚举</h4><p>系统地生成一个已知起始分子在化学上合理的各种变体。</p></div>
+            <div class="tile"><div class="n">过滤</div><h4>筛除隐患</h4><p>剔除已知的问题子结构，以及落在你属性窗口之外的候选。</p></div>
+            <div class="tile"><div class="n">排序</div><h4>排好序的候选清单</h4><p>返回一份排好序的清单——每个都附一句"为什么是它"的说明，以及离它最近的已知分子。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:20px">几分钟一份排好序的候选清单——把产出当作结构良好、<b>需在下游继续筛选和打磨的"点子"</b>，是循环的开端而非终点。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — CONCEPT: Stage 3 what is ADMET + hERG -->
+  <section class="scene" data-kind="concept" data-seconds="34.5">
+    <div class="kicker"><span class="st">阶段三 · 概念</span> · 什么是 ADMET——以及为什么 hERG 决定成败 <span class="badge concept">概念</span></div>
+    <h2>ADMET 问的是：身体究竟能不能耐受这个分子？</h2>
+    <p class="caption">光能结合还不够——一个分子必须被吸收、去到该去的地方、不被过快破坏、干净地排出，并且不毒害任何组织。ADMET 就是这五个问题。其中一个终点，<b>hERG</b>，凌驾于其余之上：堵住这个心脏钾离子通道，你就冒着致命心律失常的风险——它曾让已上市的药物被撤市。</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <div class="card">
+            <div class="row5">
+              <div class="tile"><div class="n">A</div><h4>吸收</h4><p>进得去吗？（口服摄取）</p></div>
+              <div class="tile"><div class="n">D</div><h4>分布</h4><p>去到哪里？</p></div>
+              <div class="tile"><div class="n">M</div><h4>代谢</h4><p>被分解得多快？</p></div>
+              <div class="tile"><div class="n">E</div><h4>排泄</h4><p>怎么离开？</p></div>
+              <div class="tile hot"><div class="n">T</div><h4>毒性</h4><p>有无危害？含 hERG</p></div>
+            </div>
+            <p class="footnote" style="margin-top:16px">一个分子可以完美地结合靶点，却仍在这里栽跟头——所以 ADMET 要尽早、趁便宜就做。</p>
+          </div>
+        </div>
+        <div class="lead-col">
+          <div class="svgwrap">
+            <svg viewBox="0 0 320 250" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+              <text x="160" y="18" text-anchor="middle" fill="#9c1a2e" font-family="IBM Plex Mono" font-size="12" font-weight="500">hERG —— 心脏 K⁺ 通道</text>
+              <!-- membrane -->
+              <rect x="20" y="70" width="280" height="22" fill="#eef1f6"/>
+              <rect x="20" y="158" width="280" height="22" fill="#eef1f6"/>
+              <text x="26" y="64" fill="#5a6474" font-family="IBM Plex Mono" font-size="10">细胞外</text>
+              <text x="26" y="200" fill="#5a6474" font-family="IBM Plex Mono" font-size="10">细胞内（心肌细胞）</text>
+              <!-- channel walls -->
+              <path d="M120 70 L112 158 M200 70 L208 158" stroke="#1a4a9c" stroke-width="10" fill="none" stroke-linecap="round"/>
+              <!-- K+ ions flowing (healthy) -->
+              <g fill="#1c6b3a" font-family="IBM Plex Mono" font-size="11" font-weight="600">
+                <text x="150" y="60" text-anchor="middle">K⁺</text>
+                <text x="168" y="48" text-anchor="middle">K⁺</text>
+              </g>
+              <line x1="160" y1="92" x2="160" y2="150" stroke="#1c6b3a" stroke-width="1.5" stroke-dasharray="3 4" opacity=".55"/>
+              <!-- the drug blocking -->
+              <circle cx="160" cy="120" r="20" fill="#fdeaec" stroke="#9c1a2e" stroke-width="2"/>
+              <text x="160" y="124" text-anchor="middle" fill="#9c1a2e" font-family="IBM Plex Sans" font-size="10.5" font-weight="600">药物</text>
+              <text x="160" y="232" text-anchor="middle" fill="#5a6474" font-family="IBM Plex Mono" font-size="10.5">堵住通道 → 心律失常风险</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — FLOW: Stage 3 pre-run (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="30.0">
+    <div class="kicker"><span class="st">阶段三 · 产品</span> · ADMET —— 运行前的检查 <span class="badge flow">实况界面</span><span class="livebar"><span class="rec"></span>实况产品捕获</span></div>
+    <h2>在花出一分钱算力之前，你能改动的一切都已摆出。</h2>
+    <p class="caption">这是 BioMate 的 ADMET 预测在真实运行——一个在大量实验测量数据上训练出来的模型。在它运行之前，运行前参数条铺开了你的 SMILES 列表——阿司匹林、咖啡因、布洛芬——以及每一项模型设置，均可编辑。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/prerun.png" alt="运行前：可编辑的 SMILES 列表和 ADMET 模型类型参数，位于确认并运行按钮上方"/></div>
+          <figcaption><span class="lbl">运行前 · 实况</span>你的 SMILES 列表和模型设置在花出任何算力之前都已摆出、可编辑——这是你先把一切检查一遍的机会。缺了必填参数？面板会拦下并提供"去修正"。不附任何笼统的准确率数字；你拿到的，是这次运行真实的输出。</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — FLOW: Stage 3 running + QC gates (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="24.2">
+    <div class="kicker"><span class="st">阶段三 · 产品</span> · ADMET —— 运行中，质控闸门尽在眼前 <span class="badge flow">实况界面</span><span class="livebar"><span class="rec"></span>实况产品捕获</span></div>
+    <h2>它在托管云端算力上运行，质控闸门全程可见。</h2>
+    <p class="caption">随着每一步在托管云端算力上完成，实时的阶段进度不断流入。将要检查的那些闸门——包括 hERG——就列在旁边，于是你可以先扫一眼 hERG 这一列，把任何超过你安全上限的候选先放到一边。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/running.png" alt="运行中：RUNNING 阶段卡片和 QC 闸门列表（CiPA / hERG 阈值）"/></div>
+          <figcaption><span class="lbl">运行中 · 实况</span>每张阶段卡片实时地从待运行翻到运行中再翻到已完成；将要评估的质控闸门全部列出，于是算力运转时没有任何东西被藏起来。</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — FLOW: Stage 3 completed (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="20.5">
+    <div class="kicker"><span class="st">阶段三 · 产品</span> · ADMET —— 面板中的已完成状态 <span class="badge flow">实况界面</span><span class="livebar"><span class="rec"></span>实况产品捕获</span></div>
+    <h2>一跑完，工作流面板就把整件事讲清楚。</h2>
+    <p class="caption">已完成的运行会显示一个"COMPLETED"徽标和一个"重新运行"操作，并带有运行后的几个标签页——摘要、输出，以及可复现记录。聊天区的摘要与面板保持一致：同样的工作流名称、同样的状态，没有任何陈旧或半渲染的内容。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/completed.png" alt="已完成：绿色的 Completed 徽标和带 hERG、DILI 及口服生物利用度数值的发现摘要"/></div>
+          <figcaption><span class="lbl">已完成 · 实况</span>摘要页承载着直接从这次运行输出里读出的真实结果数值；如果某个输出读不出来，该条结论会被保留而不显示并如实说明——绝不编造。</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — CONCEPT: Stage 4 multi-objective rank -->
+  <section class="scene" data-kind="concept" data-seconds="32.0">
+    <div class="kicker"><span class="st">阶段四 · 概念</span> · 多目标优化与帕累托前沿 <span class="badge concept">概念</span></div>
+    <h2>哪一小撮才是综合起来最好的折中？</h2>
+    <p class="caption">现在每个候选都带着好几个互相打架的数字——强效却难溶，安全却难合成。BioMate 把每个目标放在各自的列里、保留各自的单位，<b>绝不揉进一个单一分数</b>——那样可能把一个不安全的分子藏起来——并展示<b>帕累托前沿</b>：在这条权衡边界上，你想再改进一个目标，就必须牺牲另一个。</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 480 320" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <line x1="56" y1="20" x2="56" y2="280" stroke="#d5dae2" stroke-width="1.5"/>
+            <line x1="56" y1="280" x2="452" y2="280" stroke="#d5dae2" stroke-width="1.5"/>
+            <text x="18" y="150" fill="#5a6474" font-family="IBM Plex Mono" font-size="12" transform="rotate(-90 18 150)">心脏安全性 →</text>
+            <text x="200" y="308" fill="#5a6474" font-family="IBM Plex Mono" font-size="12">结合强度 →</text>
+            <g fill="#aeb6c2">
+              <circle cx="110" cy="230" r="6"/><circle cx="150" cy="250" r="6"/><circle cx="130" cy="195" r="6"/>
+              <circle cx="200" cy="235" r="6"/><circle cx="175" cy="205" r="6"/><circle cx="240" cy="215" r="6"/>
+              <circle cx="215" cy="180" r="6"/><circle cx="300" cy="225" r="6"/><circle cx="280" cy="195" r="6"/>
+            </g>
+            <g fill="#1a4a9c">
+              <circle cx="100" cy="150" r="8"/><circle cx="160" cy="118" r="8"/><circle cx="235" cy="96" r="8"/>
+              <circle cx="320" cy="82" r="8"/><circle cx="400" cy="70" r="8"/>
+            </g>
+            <path d="M100 150 Q180 110 235 96 T400 70" fill="none" stroke="#1a4a9c" stroke-width="2" stroke-dasharray="5 5" opacity=".65"/>
+            <text x="286" y="52" fill="#1a4a9c" font-family="IBM Plex Mono" font-size="12" font-weight="500">帕累托前沿——最佳折中</text>
+            <text x="150" y="268" fill="#aeb6c2" font-family="IBM Plex Mono" font-size="11">被支配——存在样样都更优者</text>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="card">
+            <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 8px;color:var(--ink)">排序是怎么工作的</h4>
+            <p style="font-size:14px;line-height:1.55;margin:0">在"设计与生成"里，一份不揉合、可自己判读的排序。被淘汰的分子依然可见，并附着它被淘汰的理由。由<b>你</b>来挑折中；产品绝不会悄悄把你的多个目标塌缩成一个数字。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CONCEPT: Stage 5 QC gate never silently pass -->
+  <section class="scene" data-kind="concept" data-seconds="50.0">
+    <div class="kicker"><span class="st">阶段五 · 概念</span> · 质控闸门——为什么它绝不能静默放行 <span class="badge concept">概念</span></div>
+    <h2>一道质控闸门，把一个阈值变成一个你在运行途中就能信赖的决定。</h2>
+    <p class="caption">回到那个循环上：在一次运行内部，质控闸门拿一个数值和你的上限比较，然后<b>拦下或标记</b>——它绝不悄悄让一个不合格的检查溜过去。一道静默放行的闸门比没有闸门更糟，因为它看起来像是成功。当一道闸门不过关时，系统会<b>建议</b>下一步可尝试的参数调整——记成一条清晰的改动前后对照，一个供你自行决定要不要采纳的咨询性建议，而非一次自动的重新运行。</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 360 260" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <rect x="124" y="18" width="112" height="44" rx="8" fill="#fff" stroke="#1a4a9c" stroke-width="1.5"/>
+            <text x="180" y="37" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="#101828">最差情形 hERG</text>
+            <text x="180" y="52" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#5a6474">对比你的上限</text>
+            <path d="M180 60 L180 92" stroke="#5a6474" stroke-width="1.5"/>
+            <polygon points="150,92 210,92 180,118" fill="#fdf0e3" stroke="#8a5a12" stroke-width="1.5"/>
+            <text x="180" y="110" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#8a5a12">闸门</text>
+            <!-- pass path (ghosted) -->
+            <path d="M180 118 L80 170" stroke="#d5dae2" stroke-width="1.5" stroke-dasharray="4 5"/>
+            <rect x="24" y="170" width="112" height="56" rx="8" fill="#f1f3f7" stroke="#d5dae2" stroke-width="1.2"/>
+            <text x="80" y="192" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="#aeb6c2">静默放行</text>
+            <text x="80" y="210" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#aeb6c2">严禁</text>
+            <line x1="46" y1="180" x2="114" y2="216" stroke="#9c1a2e" stroke-width="2"/>
+            <line x1="114" y1="180" x2="46" y2="216" stroke="#9c1a2e" stroke-width="2"/>
+            <!-- halt path -->
+            <path d="M180 118 L280 170" stroke="#9c1a2e" stroke-width="2"/>
+            <rect x="224" y="170" width="112" height="56" rx="8" fill="#fdeaec" stroke="#9c1a2e" stroke-width="1.4"/>
+            <text x="280" y="190" text-anchor="middle" font-family="IBM Plex Sans" font-size="12.5" font-weight="600" fill="#9c1a2e">拦截 · 标记</text>
+            <text x="280" y="208" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#9c1a2e">随后给出一个</text>
+            <text x="280" y="219" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#9c1a2e">修正（仅建议）</text>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="card" style="border-left:3px solid var(--amber)">
+            <div class="n" style="font-family:var(--ff-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--amber);margin-bottom:6px">本次运行中——模型估算值，要就着闸门来读</div>
+            <div class="metricrow">
+              <div class="metric"><span class="v" style="color:var(--green)">低</span><span class="k">hERG 阻断风险 · 估算值，非实测 IC50</span></div>
+              <div class="metric"><span class="v" style="color:var(--red)">高</span><span class="k">DILI · 超过 0.5 上限——闸门将其标记</span></div>
+            </div>
+            <p style="font-size:12.5px;line-height:1.5;margin:13px 0 0;color:var(--ink2)">原生输出是一个<b>阻断风险评分</b>，一个估算值——而非实测的 IC50。模型给一个低风险化合物打出的任何 IC50，都停在估算器的<b>天花板</b>上（约 10 mM）——是一个模型输出，而不是安全性的证据。同一次运行里，肝损伤（DILI）终点返回<b>高</b>，超过上限，于是安全闸门把它标出来提示跟进。要读闸门——别去相信某一个单独的数字。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 — CONCEPT: Stage 6 PK/PBPK -->
+  <section class="scene" data-kind="concept" data-seconds="34.0">
+    <div class="kicker"><span class="st">阶段六 · 概念</span> · PK / PBPK 建模 <span class="badge concept">概念</span></div>
+    <h2>人体会需要多大剂量？</h2>
+    <p class="caption">一个结合得好、看起来又安全的分子，仍必须在一个合理的剂量下达到正确的浓度。<b>PK</b> 讲的是身体随时间对药物做了什么；<b>PBPK</b> 则是一个按器官逐个建立的机制模型，用来推算人体暴露<b>情景</b>——常常从动物数据外推——并给出一个推算出来的、<b>供评估用的起始剂量情景</b>。请把这些绝对数值当作用来推敲的推算，而不是一个被保证安全的剂量。</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 480 300" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <line x1="56" y1="20" x2="56" y2="258" stroke="#d5dae2" stroke-width="1.5"/>
+            <line x1="56" y1="258" x2="452" y2="258" stroke="#d5dae2" stroke-width="1.5"/>
+            <text x="20" y="150" fill="#5a6474" font-family="IBM Plex Mono" font-size="12" transform="rotate(-90 20 150)">血浆浓度</text>
+            <text x="360" y="284" fill="#5a6474" font-family="IBM Plex Mono" font-size="12">时间（小时）→</text>
+            <path d="M56 258 C110 60 150 48 190 88 C250 150 340 230 452 248" fill="none" stroke="#1a4a9c" stroke-width="2.5"/>
+            <circle cx="168" cy="63" r="5" fill="#1a4a9c"/>
+            <line x1="168" y1="63" x2="168" y2="258" stroke="#1a4a9c" stroke-width="1" stroke-dasharray="3 4" opacity=".5"/>
+            <text x="178" y="58" fill="#1a4a9c" font-family="IBM Plex Mono" font-size="12" font-weight="500">Cmax</text>
+            <path d="M190 88 C250 150 340 230 452 248 L452 258 L190 258 Z" fill="#1a4a9c" opacity=".08"/>
+            <text x="300" y="190" fill="#5a6474" font-family="IBM Plex Mono" font-size="12">AUC（总暴露量）</text>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="card">
+            <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 8px;color:var(--ink)">一条三步链</h4>
+            <p style="font-size:13.5px;line-height:1.55;margin:0">异速放大（动物 → 人）→ PBPK 器官逐个模型（含肾/肝功能不全子模型）→ 虚拟患者队列（蒙特卡洛变异性）。你读到 Cmax、AUC，以及一个供评估用的推算起始剂量情景。</p>
+          </div>
+          <p class="footnote" style="margin-top:14px">供评估用的推算暴露——其绝对准确度未经独立验证。上传你自己的体内浓度数据，同一条链会直接对它进行拟合。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 — CONCEPT: Stage 7 lineage / provenance -->
+  <section class="scene" data-kind="concept" data-seconds="26.4">
+    <div class="kicker"><span class="st">阶段七 · 概念</span> · 血缘与溯源是什么——以及为什么重要 <span class="badge concept">概念</span></div>
+    <h2>一个结果有多好，取决于你能不能证明它是怎么来的。</h2>
+    <p class="caption">溯源，就是从一个输出回溯到产生它的那一组确切输入、参数和软件的链条。没有它，一个数字只是一句断言；有了它，一个数字才是证据——能经得起论文、专利或 IND 申报的推敲。<b>血缘</b>，就是把这条链条在界面里做成可点着走的样子。</p>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="svgwrap">
+          <svg viewBox="0 0 440 240" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <g font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="#101828">
+              <rect x="18" y="40" width="96" height="40" rx="7" fill="#f7f8fa" stroke="#d5dae2"/><text x="66" y="58" text-anchor="middle">输入</text><text x="66" y="72" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5a6474">SMILES.csv</text>
+              <rect x="18" y="130" width="96" height="40" rx="7" fill="#f7f8fa" stroke="#d5dae2"/><text x="66" y="148" text-anchor="middle">参数</text><text x="66" y="162" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5a6474">模型、上限</text>
+              <rect x="172" y="85" width="96" height="40" rx="7" fill="#e7f0ff" stroke="#1a4a9c" stroke-width="1.3"/><text x="220" y="103" text-anchor="middle">工作流</text><text x="220" y="117" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1a4a9c">ADMET</text>
+              <rect x="326" y="85" width="96" height="40" rx="7" fill="#eaf6ee" stroke="#1c6b3a" stroke-width="1.3"/><text x="374" y="103" text-anchor="middle">输出</text><text x="374" y="117" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#1c6b3a">admet.csv</text>
+            </g>
+            <g stroke="#5a6474" stroke-width="1.5" fill="none"><path d="M114 60 L172 98"/><path d="M114 150 L172 112"/><path d="M268 105 L326 105"/></g>
+            <g fill="#5a6474"><polygon points="170,98 160,94 162,104"/><polygon points="170,112 160,116 162,106"/><polygon points="324,105 314,101 314,109"/></g>
+            <text x="220" y="150" text-anchor="middle" fill="#5a6474" font-family="IBM Plex Mono" font-size="10">运行 ID · 版本 · SHA-256</text>
+            <text x="374" y="150" text-anchor="middle" fill="#1c6b3a" font-family="IBM Plex Mono" font-size="10">← 一键回溯</text>
+          </svg>
+        </div>
+        <div class="lead-col">
+          <div class="card">
+            <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 8px;color:var(--ink)">记录本身就是产品</h4>
+            <p style="font-size:14px;line-height:1.55;margin:0">每一次运行都会记下运行 ID、参数、软件版本、SHA-256 校验和与引用——一键导出 JSON。而如果 BioMate <b>读不出</b>某个输出，它会把该条结论保留而不显示并如实说明，绝不编造一段摘要。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 — FLOW: Stage 7 outputs (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="17.5">
+    <div class="kicker"><span class="st">阶段七 · 产品</span> · 输出 —— 按产生它的步骤归档 <span class="badge flow">实况界面</span><span class="livebar"><span class="rec"></span>实况产品捕获</span></div>
+    <h2>每个文件都归在产生它的那一步下面。</h2>
+    <p class="caption">"输出"标签页按步骤把结果分组——ADMET 结果表、质控指标、毒性报告——于是你永远不用翻找某个文件，也不用猜它是哪一步出来的。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/outputs.png" alt="输出：六个输出文件按产生它们的步骤归档"/></div>
+          <figcaption><span class="lbl">输出 · 实况</span>每个产物都能就地预览——表格显示成 HTML、图像显示成缩略图、文本显示成代码块。</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 — FLOW: Stage 7 reproducibility (screenshot) -->
+  <section class="scene live" data-kind="flow" data-seconds="23.9">
+    <div class="kicker"><span class="st">阶段七 · 产品</span> · 可复现记录 <span class="badge flow">实况界面</span><span class="livebar"><span class="rec"></span>实况产品捕获</span></div>
+    <h2>完整的审计轨迹——可作为一个 JSON 下载。</h2>
+    <p class="caption">这是溯源概念的落地：运行 ID、参数、软件版本、输出和引用，全都放在一份你可以附到递交材料里的记录中。本次运行里哪里是空的，记录会把它显示出来，而不是藏起来。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/live/record.png" alt="可复现记录：工作流名称、运行 ID、时间戳，以及带 SHA-256 校验和的输出表"/></div>
+          <figcaption><span class="lbl">可复现 · 实况</span>一键把整份记录导出为 JSON——正是审稿人、专利审查员或监管方会向你索要的那种证据。</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 — FLOW: Stage 7 lineage (screenshot) -->
+  <section class="scene" data-kind="flow" data-seconds="13.6">
+    <div class="kicker"><span class="st">阶段七 · 产品</span> · 数据集血缘 <span class="badge flow">真实界面 · 静帧</span></div>
+    <h2>每个输出都能回溯到产生它的东西。</h2>
+    <p class="caption">血缘视图沿着链条往回走：这个输出来自这个工作流，用的是这些参数、这些输入。它就是概念页里那张溯源图的、可点着走的形态。</p>
+    <div class="scene-body">
+      <div class="shots">
+        <figure class="shot">
+          <div class="frame"><img src="assets/t10-2-dataset-lineage.png" alt="数据集血缘"/></div>
+          <figcaption><span class="lbl">血缘 · 真实界面静帧</span>顺着任意数据集找到产生它的运行及其输入——再往前，连到下游所有用到它的东西。</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 — CLOSING -->
+  <section class="scene title" data-kind="concept" data-seconds="40.0">
+    <div class="kicker">一眼看懂整条流水线</div>
+    <h2 style="font-size:38px">框定 → 设计 → 预测 → 排序 → 循环 → 定剂量 → 记录。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:16px">一个完整的计算层面早期筛选循环：一个种子变成一份排好序、经过安全筛选的候选清单；一道安全闸门在一个真实隐患上触发并提出修正；每一个数字都能回溯到产生它的那一组确切输入和参数。每一张概念页讲清一个道理，每一张产品页都展示它在真实输出上运行。真正立得住的优势不是某一个模型——而是<b>这个闭环，加上一份达到审计级别的溯源记录</b>，跑在托管算力上、无需采购任何软件许可。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>框定目标——靶点、目标、约束条件</li>
+            <li><span class="k">2–3</span>设计候选分子，预测它们的属性</li>
+            <li><span class="k">4–5</span>给幸存者排序，在质控闸门后面闭合循环</li>
+            <li><span class="k">6–7</span>推算剂量，保留溯源记录</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <div class="card">
+            <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 10px;color:var(--ink)">这个循环交付什么</h4>
+            <ul class="deliver">
+              <li><span class="mk"></span><span>从单个种子得到一份<b>排好序、经过安全筛选的候选清单</b>——几分钟内。</span></li>
+              <li><span class="mk"></span><span>一道在真实隐患上触发并提出修正的<b>安全闸门</b>。</span></li>
+              <li><span class="mk"></span><span>一个用来推敲的<b>推算人体暴露情景</b>。</span></li>
+              <li><span class="mk"></span><span>每个数字背后一份<b>达到审计级别的记录</b>，一键导出 JSON。</span></li>
+            </ul>
+          </div>
+          <p class="footnote" style="margin-top:14px">这是计算层面的早期筛选，不是一款药。价值在于一开始就聪明地出发、并尽早廉价地失败——而不是跳过实验室。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  var kindEl = document.getElementById('kind');
+  totEl.textContent = scenes.length;
+
+  // Per-scene durations (seconds). A recorder may inject window.__sceneDurations
+  // (array, one per scene) to sync exactly to narration audio; otherwise use data-seconds.
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+
+  // Publish the timeline: start time (seconds) of each scene.
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+
+  var idx = -1;
+  function show(i){
+    if (idx >= 0){
+      scenes[idx].classList.remove('active');
+      var pv = scenes[idx].querySelector('video');
+      if (pv){ try { pv.pause(); } catch(e){} }
+    }
+    idx = i;
+    scenes[i].classList.add('active');
+    // Restart any embedded live-UI clip from the top when its scene activates.
+    var v = scenes[i].querySelector('video');
+    if (v){ try { v.currentTime = 0; var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); } catch(e){} }
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+    var kind = scenes[i].getAttribute('data-kind') || 'concept';
+    if (kindEl){
+      kindEl.textContent = (kind === 'flow') ? 'Live UI' : 'Concept';
+      kindEl.className = 'kind ' + kind;
+    }
+  }
+
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+
+  // Small delay so fonts/images settle before the first frame is captured.
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

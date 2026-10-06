@@ -114,6 +114,11 @@ body{
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
 code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -130,6 +135,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 0 — TITLE -->
   <section class="scene title" data-seconds="30.4">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Run &amp; Report</b></div>
     <div class="kicker">The everyday middle — run it, then read it</div>
     <h2>Run a tested pipeline, and read a report you can defend.</h2>
     <p class="caption">A <b>workflow</b> is a whole multi-step analysis, already tested and connected for you. You describe your goal in plain English, attach your data, and BioMate runs the pipeline on cloud computers and hands back one report — the results, every output file, and a complete record of how they were produced.</p>

@@ -81,6 +81,11 @@ body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:10
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
 code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -97,6 +102,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 0 — TITLE · THE TASK -->
   <section class="scene title" data-seconds="38.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>RealBio · Workflow Routing</b></div>
     <div class="kicker">Capability advantage · intent → correct workflow</div>
     <h2>A plain-English request has to find the one right pipeline out of thousands.</h2>
     <p class="caption">A scientist asks in their own words — "call somatic variants on these tumour-normal pairs," "quantify this bulk RNA-seq and run differential expression." The system has to map that intent to the single correct pipeline across many domains — genomics, transcriptomics, proteomics, cryo-EM, drug discovery. <b>Pick the wrong one and the whole run is wasted.</b> This is <b>cross-domain routing</b>, and it is where orchestration either earns its keep or fails quietly.</p>

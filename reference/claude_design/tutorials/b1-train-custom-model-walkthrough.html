@@ -81,6 +81,11 @@ body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:10
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
 code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -97,6 +102,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 0 — TITLE -->
   <section class="scene title" data-seconds="30.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Train a Custom Model</b></div>
     <div class="kicker">For the scientist with a spreadsheet and a question</div>
     <h2>You have a labeled table. BioMate trains a model on it.</h2>
     <p class="caption">You have measurements in a spreadsheet and a column you'd like to predict — active or not, a concentration, a yield. Normally that means finding someone who writes machine-learning code. In BioMate you describe the goal and upload the table; it runs standard Python machine learning — <b>scikit-learn</b>, and the gradient-boosting or deep-learning libraries when the task needs them — on your data, and hands back a trained model with honest, held-out performance.</p>
@@ -164,7 +170,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <span class="chip"><span class="i"></span>run_code: scikit-learn / XGBoost / PyTorch</span><span class="arrow">→</span>
             <span class="chip"><span class="i"></span>Model + metrics + plots</span>
           </div>
-          <p class="footnote" style="margin-top:26px">The backend ships standard scientific-Python libraries — <b>pandas, NumPy, scikit-learn, statsmodels</b> — and runs heavier gradient-boosting or deep-learning libraries in the matching environment. It's for ad-hoc, short training jobs, not a hosted production service.</p>
+          <p class="footnote" style="margin-top:26px">The backend ships standard scientific-Python libraries — <b>pandas, NumPy, scikit-learn, statsmodels</b> — and runs heavier gradient-boosting or deep-learning libraries in the matching environment.</p>
         </div>
         <div><span class="verdict ok"><span class="mk"></span>A described goal, executed as real Python — not a black box, not a mock</span></div>
       </div>
@@ -246,17 +252,17 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
     </div>
   </section>
 
-  <!-- 8 — HONEST LIMITS -->
+  <!-- 8 — BEST PRACTICE -->
   <section class="scene" data-seconds="39.0">
-    <div class="kicker">What it does — and doesn't — do for you</div>
-    <h2>The honest edges, so you trust the number for the right reasons.</h2>
-    <p class="caption">A trained model is genuinely useful and genuinely limited. The value is in knowing exactly which. A model is an estimate shaped entirely by the data you gave it — never ground truth on its own.</p>
+    <div class="kicker">Getting a model you can trust · best practice</div>
+    <h2>Three habits that make the number trustworthy.</h2>
+    <p class="caption">A trained model is genuinely useful when you use it well. These three habits get the most out of it — because a model is an estimate shaped by the data you gave it, and knowing that is how you trust the number for the right reasons.</p>
     <div class="scene-body">
       <div class="concept">
         <div class="row3">
-          <div class="tile"><div class="n">DATA-DEPENDENT</div><h4>Garbage in, garbage out</h4><p>Quality and quantity decide everything. A biased, noisy, or tiny table yields a confident-looking model that doesn't generalize.</p></div>
-          <div class="tile"><div class="n">SMALL DATA OVERFITS</div><h4>Validation is required</h4><p>With few rows, held-out scores swing widely. Cross-validation reduces self-deception; it can't manufacture signal that isn't there.</p></div>
-          <div class="tile"><div class="n">RUN_CODE SCOPE</div><h4>Ad-hoc, not production</h4><p>This path is for short, exploratory training jobs. A model you'll serve at scale belongs in a dedicated, versioned pipeline.</p></div>
+          <div class="tile"><div class="n">START WITH GOOD DATA</div><h4>Quality drives the result</h4><p>Quality and quantity decide everything. The cleaner and larger your table, the better the model generalizes — so invest in the data first.</p></div>
+          <div class="tile"><div class="n">CROSS-VALIDATE SMALL DATA</div><h4>Fold, don't gamble</h4><p>With few rows, a single split can mislead. Cross-validation scores across folds so the number reflects the data, not one lucky shuffle.</p></div>
+          <div class="tile"><div class="n">VALIDATE BEFORE YOU RELY</div><h4>Confirm, then trust</h4><p>Read the held-out score as an estimate and confirm it on fresh data before you act on it — that's how the number earns your trust.</p></div>
         </div>
         <div><span class="verdict open"><span class="mk"></span>A model is an estimate from your data — validate it before you rely on it</span></div>
       </div>
@@ -270,7 +276,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
     <div class="scene-body">
       <div class="two-col">
         <div class="lead-col">
-          <p class="caption" style="font-size:17px">The whole point is one sentence: <b>a question you could answer with your own data shouldn't require hiring a machine-learning engineer.</b> You describe the prediction and upload your CSV; BioMate runs standard Python ML in the backend, splits and cross-validates, reports performance on held-out data, and shows you what drives it — with the limits stated plainly.</p>
+          <p class="caption" style="font-size:17px">The whole point is one sentence: <b>a question you could answer with your own data shouldn't require hiring a machine-learning engineer.</b> You describe the prediction and upload your CSV; BioMate runs standard Python ML in the backend, splits and cross-validates, reports performance on held-out data, and shows you what drives it — with the caveats called out plainly.</p>
           <ol class="habit">
             <li><span class="k">1</span>Prepare a labeled CSV — feature columns plus one target column</li>
             <li><span class="k">2</span>Describe the prediction — classify a category, or estimate a number</li>
@@ -284,7 +290,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <tr><td>No coding</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Describe the goal</span></td></tr>
             <tr><td>Real ML</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">sklearn in run_code</span></td></tr>
             <tr><td>Honest score</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Held-out + CV</span></td></tr>
-            <tr><td>Limits</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">Estimate — validate it</span></td></tr>
+            <tr><td>Best practice</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">Cross-validate + hold-out</span></td></tr>
           </table>
           <p class="footnote">From a spreadsheet and a question to a trained, honestly-evaluated, explainable model — run inside BioMate, on your own data. An estimate you can reason about, not a black box.</p>
         </div>

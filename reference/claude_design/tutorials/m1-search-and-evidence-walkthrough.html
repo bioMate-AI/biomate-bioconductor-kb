@@ -114,6 +114,11 @@ body{
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
 code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -130,6 +135,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 0 — TITLE / VALUE -->
   <section class="scene title" data-seconds="35.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Search &amp; Evidence</b></div>
     <div class="kicker">Ask what is known — get a cited answer</div>
     <h2>A sourced answer you can trust and trace — in seconds.</h2>
     <p class="caption">Ask a plain-English evidence question and BioMate reads the literature, the databases, and the patent record for you, then hands back a short answer where <b>every claim carries the source it came from</b> — with numbered citations you can open and check.</p>
@@ -213,7 +219,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 4 — TWO KINDS OF REQUEST RECAP -->
-  <section class="scene" data-seconds="38.0">
+  <section class="scene" data-seconds="39.4">
     <div class="kicker">One message box · two kinds of request</div>
     <h2>A sourced answer, or a full analysis — from the same message box.</h2>
     <p class="caption">Every BioMate request is handled in one of two ways, and you ask for both the same way. Search &amp; evidence always comes back as a sourced answer in the chat; running an analysis on your own data runs a workflow in the cloud. BioMate reads which one you need and tells you before anything happens.</p>

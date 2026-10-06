@@ -81,6 +81,11 @@ body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:10
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
 code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -96,7 +101,8 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 <div class="stage" id="stage">
 
   <!-- 0 — TITLE -->
-  <section class="scene title" data-seconds="31.0">
+  <section class="scene title" data-seconds="34.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Generative Lead Design</b></div>
     <div class="kicker">For the medicinal chemist who wants new chemical matter</div>
     <h2>You don't have a molecule yet. BioMate designs candidates from scratch.</h2>
     <p class="caption">Screening picks winners from a library you already own. Generative design does the opposite: it <b>invents</b> new molecules aimed at a goal you state. BioMate runs <b>REINVENT4</b>, a reinforcement-learning generator from MolecularAI / AstraZeneca, to propose novel, drug-like candidates — then filters and ranks them. You describe the scaffold and what "good" means; BioMate produces structures you can take to synthesis.</p>
@@ -151,7 +157,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 3 — HOW BIOMATE RUNS IT -->
-  <section class="scene" data-seconds="41.0">
+  <section class="scene" data-seconds="49.0">
     <div class="kicker"><span class="st">In BioMate</span> · plain goal → workflow → cloud</div>
     <h2>Say the goal in plain English; BioMate routes it to the REINVENT4 workflow.</h2>
     <p class="caption">You don't configure a neural network. You state the intent — "design novel drug-like analogs of this scaffold" — and BioMate routes to the <b>REINVENT4 Generative Lead Design</b> workflow, fills in parameters, and runs it on cloud compute. It is a four-step pipeline, and every step is real system behaviour, not a demo.</p>
@@ -190,7 +196,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 5 — THE RL OPTIMIZATION LOOP -->
-  <section class="scene" data-seconds="42.0">
+  <section class="scene" data-seconds="43.0">
     <div class="kicker"><span class="st">The engine</span> · generate, score, improve</div>
     <h2>REINVENT4 runs a loop that steers generation toward the reward.</h2>
     <p class="caption">The generator is a trained autoregressive policy — it writes SMILES, it does not enumerate. Over many rounds it proposes a batch, scores each molecule, and updates so the next batch leans toward higher reward. BioMate exposes the real controls for that loop.</p>
@@ -222,8 +228,8 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 6 — THE OUTPUT -->
-  <section class="scene" data-seconds="40.0">
-    <div class="kicker"><span class="st">The result</span> · ranked candidates, filtered honestly</div>
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">The result</span> · ranked, filtered candidates</div>
     <h2>A ranked table of novel candidates — each with its scores, filtered for quality.</h2>
     <p class="caption">Before ranking, BioMate applies real medicinal-chemistry filters, so what you see is not raw model output but candidates that survived drug-likeness, interference, and novelty checks. The outputs are files you can open and hand off — no screenshot needed to describe them.</p>
     <div class="scene-body">
@@ -259,17 +265,17 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 8 — HONEST EDGES -->
   <section class="scene" data-seconds="46.0">
-    <div class="kicker">What it does — and doesn't — do for you</div>
-    <h2>The honest edges, so you know exactly what you're getting.</h2>
-    <p class="caption">The capability is real and specific. Knowing its limits is what makes it trustworthy for a program you'll defend.</p>
+    <div class="kicker">Precise about scope · what you get</div>
+    <h2>Precise about scope, so you know exactly what you're getting.</h2>
+    <p class="caption">The capability is real and specific. Knowing exactly what it does is what makes it trustworthy for a program you'll defend.</p>
     <div class="scene-body">
       <div class="concept">
         <div class="row3">
-          <div class="tile"><div class="n">REWARD-BOUND</div><h4>Only as good as the score</h4><p>RL optimizes the scoring function, not "being a drug". <code>qed_sa</code> is cheap descriptors; docking is an in-silico pose, not measured affinity. Garbage objective, garbage leads.</p></div>
-          <div class="tile"><div class="n">LEARNED vs BASELINE</div><h4>Two honest modes</h4><p>The default is the real trained REINVENT4 policy. A <code>brics</code> enumeration baseline is offered honestly as a non-RL comparator — and labeled as such, never dressed up as a training curve.</p></div>
-          <div class="tile"><div class="n">NO WET LAB</div><h4>Structures, not safety</h4><p>The workflow proposes and ranks structures. It does not synthesize, test toxicity, or confirm a synthetic route — those remain experimental work.</p></div>
+          <div class="tile"><div class="n">REWARD-BOUND</div><h4>Only as good as the score</h4><p>RL optimizes the scoring function you give it, not "being a drug". <code>qed_sa</code> is cheap descriptors; docking is an in-silico pose, not measured affinity. Choose a good objective — the ranking is only as good as it.</p></div>
+          <div class="tile"><div class="n">LEARNED vs BASELINE</div><h4>Two modes</h4><p>The default is the real trained REINVENT4 policy. A <code>brics</code> enumeration baseline is offered as a non-RL comparator — clearly labeled as such, never dressed up as a training curve.</p></div>
+          <div class="tile"><div class="n">DESIGN ENGINE</div><h4>Aimed at your target</h4><p>It proposes and ranks novel, synthesizable structures designed toward your target — so your chemists make the right molecules first.</p></div>
         </div>
-        <div><span class="verdict open"><span class="mk"></span>Specific and honest — a design engine, not an oracle</span></div>
+        <div><span class="verdict open"><span class="mk"></span>A design engine — novel, synthesizable structures aimed at your target</span></div>
       </div>
     </div>
   </section>
@@ -297,7 +303,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <tr><td>Output</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">CSV · SDF · report</span></td></tr>
             <tr><td>Status of results</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">Hypotheses — validate</span></td></tr>
           </table>
-          <p class="footnote">From an impossibly large chemical space to a ranked, novel, testable shortlist — designed toward your objective, honest about its limits. Generative design, used correctly.</p>
+          <p class="footnote">From an impossibly large chemical space to a ranked, novel, testable shortlist — designed toward your objective. Generative design, used correctly.</p>
         </div>
       </div>
     </div>

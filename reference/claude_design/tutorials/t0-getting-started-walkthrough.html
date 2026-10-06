@@ -109,6 +109,11 @@ svg{display:block}
 .summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -125,6 +130,7 @@ svg{display:block}
 
   <!-- 0 — TITLE -->
   <section class="scene title" data-seconds="20.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Getting Started</b></div>
     <div class="kicker">One doorway · one loop</div>
     <h2>Describe your goal in plain English. BioMate takes it from there.</h2>
     <p class="caption">No software to install and no code to write. Type a goal, see which kind of work it is, review the message, send it yourself, and read the result. Nothing runs until you confirm.</p>

@@ -81,6 +81,11 @@ body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:10
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
 code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -97,6 +102,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 0 — TITLE -->
   <section class="scene title" data-seconds="32.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Survival Analysis</b></div>
     <div class="kicker">For anyone asking "how long until the event — and what changes it"</div>
     <h2>Time-to-event data needs its own statistics. BioMate runs them.</h2>
     <p class="caption">"How long until relapse?" "Does this marker shorten survival?" These are time-to-event questions, and ordinary tests get them wrong because real follow-up is <b>incomplete</b> — patients are still alive at the last visit, or lost before the end. BioMate routes these questions to the proper methods — <b>Kaplan–Meier</b> curves and <b>Cox</b> regression — from a goal and a survival table, and runs them on cloud compute with a record you can defend.</p>
@@ -243,9 +249,9 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 8 — HONEST EDGES -->
   <section class="scene" data-seconds="53.0">
-    <div class="kicker">What it does — and doesn't — do for you</div>
-    <h2>The honest edges, so the result holds up to review.</h2>
-    <p class="caption">These methods are standard and trustworthy — within their assumptions. BioMate runs the diagnostics; interpreting them is yours. Knowing these limits is what makes the analysis defensible.</p>
+    <div class="kicker">Reading the result so it holds up to review</div>
+    <h2>The checks that make a survival result defensible.</h2>
+    <p class="caption">These methods are standard and trustworthy, and BioMate runs the diagnostics that keep them so. Reading those checks — and the assumptions behind them — is what makes a survival result hold up to review.</p>
     <div class="scene-body">
       <div class="concept">
         <div class="row4">

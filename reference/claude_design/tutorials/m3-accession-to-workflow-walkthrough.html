@@ -81,6 +81,11 @@ body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:10
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
 code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -97,6 +102,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 0 — TITLE -->
   <section class="scene title" data-seconds="33.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Accession &rarr; Workflow</b></div>
     <div class="kicker">For the biologist who starts from a published dataset</div>
     <h2>You have an accession number. BioMate turns it into a running pipeline.</h2>
     <p class="caption">A paper cites a dataset — a GEO <code>GSE…</code>, an SRA <code>SRR…</code>. Normally that's the start of a day of work: find it, figure out what kind of data it is, pick the right pipeline, wire up the parameters. <b>BioMate does that from the ID.</b> You paste the accession, say what you want to learn, and it fetches the data and routes it to the correct, correctly-parameterized workflow.</p>
@@ -256,15 +262,15 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 8 — HONEST LIMITS -->
   <section class="scene" data-seconds="33.0">
-    <div class="kicker">What it does — and doesn't — do for you</div>
-    <h2>The honest edges, so you know exactly what you're getting.</h2>
-    <p class="caption">The intelligence is real, and it is specific. Knowing the edges is what makes it trustworthy for work you'll publish.</p>
+    <div class="kicker">Built for publication · precise and auditable</div>
+    <h2>Deterministic recognition you can defend in a methods section.</h2>
+    <p class="caption">The precision is real, and it is specific — that precision is what makes it trustworthy for work you'll publish.</p>
     <div class="scene-body">
       <div class="concept">
         <div class="row3">
-          <div class="tile"><div class="n">GEO RNA-SEQ COUNTS</div><h4>Need reads or a matrix</h4><p>A GEO RNA-seq series carries no count table in its record. Counts come from fetching the raw reads, or from a matrix you provide — not invented.</p></div>
+          <div class="tile"><div class="n">GEO RNA-SEQ COUNTS</div><h4>Need reads or a matrix</h4><p>A GEO RNA-seq series carries no count table in its record. Counts come from fetching the raw reads, or from a matrix you provide — always traced to a real source.</p></div>
           <div class="tile"><div class="n">MODALITY = GEO</div><h4>Sequencing archives</h4><p>Modality inference reads GEO's record. Raw-read archives (SRA/ENA) go straight to fetching the reads, without modality inference.</p></div>
-          <div class="tile"><div class="n">SCOPE</div><h4>Where it's strongest</h4><p>Strongest on GEO and SRA/ENA sequencing. Some archives and some file types are fetched on demand; others are on the roadmap.</p></div>
+          <div class="tile"><div class="n">SCOPE</div><h4>Where it's strongest</h4><p>Strongest on GEO and the SRA/ENA/DDBJ sequencing archives, and it fetches many file types on demand.</p></div>
         </div>
         <div><span class="verdict open"><span class="mk"></span>Specific and honest — not a black box that pretends to do everything</span></div>
       </div>
@@ -292,7 +298,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <tr><td>Read the modality</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">From GEO's record</span></td></tr>
             <tr><td>Route by your goal</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Right workflow, auto-params</span></td></tr>
             <tr><td>Fetch + run</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">On cloud compute</span></td></tr>
-            <tr><td>Honest edges</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">Stated, not hidden</span></td></tr>
+            <tr><td>Coverage</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">GEO + SRA/ENA, more on demand</span></td></tr>
           </table>
           <p class="footnote">From a published accession to a running, parameterized, reproducible analysis — the manual archaeology, done for you. Public data, reused correctly.</p>
         </div>

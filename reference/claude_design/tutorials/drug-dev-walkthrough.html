@@ -144,6 +144,11 @@ svg{display:block}
 .deliver li:last-child{border-bottom:none}
 .deliver li .mk{flex:0 0 auto; width:7px; height:7px; border-radius:2px; background:var(--blue); transform:translateY(5px)}
 .deliver li b{color:var(--ink); font-weight:600}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -161,6 +166,7 @@ svg{display:block}
 
   <!-- 0 — TITLE -->
   <section class="scene title" data-kind="concept" data-seconds="38.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Drug Discovery, End to End</b></div>
     <div class="kicker">From a target idea to a defensible candidate record</div>
     <h2>Start a program from a filtered, ranked shortlist — then triage, loop, and keep a defensible record.</h2>
     <p class="caption">Connected stages, each a hosted workflow you run without standing up or licensing in-house software: name a goal, design candidate molecules, predict their properties, rank the survivors, close the design–test loop behind a safety gate, project human exposure, and keep an audit-grade record — one pipeline, one provenance trail.</p>

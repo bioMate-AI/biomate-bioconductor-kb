@@ -22,13 +22,13 @@ Here is the concept behind everything that follows. Binding the target is not en
 
 ## Step 3 — Idea · why it is hard
 
-Why is this hard enough to need deep learning? Three reasons. First, drug-like chemical space is estimated at around ten-to-the-sixtieth molecules — you can never enumerate it, so the model must interpolate from a tiny labeled fraction. Second, the labels are sparse and noisy: public measurements number only in the thousands to hundreds of thousands per endpoint, and the same compound can read differently across laboratories. Third, and hardest, a good model must generalize to chemotypes it has never seen — which is exactly where estimates are least reliable and where you most want them. And the cost is asymmetric: a missed hERG liability is not a rounding error. So the bar for "state of the art" is a data-driven model that reports calibrated, per-endpoint scores it can defend on held-out chemistry — and that is honest about the edge of its training distribution. No single accuracy number describes it, because performance differs by endpoint, dataset, and split.
+Why is this hard enough to need deep learning? Three reasons. First, drug-like chemical space is estimated at around ten-to-the-sixtieth molecules — you can never enumerate it, so the model must interpolate from a tiny labeled fraction. Second, the labels are sparse and noisy: public measurements number only in the thousands to hundreds of thousands per endpoint, and the same compound can read differently across laboratories. Third, and hardest, a good model must generalize to chemotypes it has never seen — which is exactly where estimates are least reliable and where you most want them. And the cost is asymmetric: a missed hERG liability is not a rounding error. So the bar for "state of the art" is a data-driven model that reports calibrated, per-endpoint scores it can defend on held-out chemistry, with its applicability domain made explicit. Performance is reported per endpoint, dataset, and split — not as one headline number.
 
 ---
 
 ## Step 4 — Idea · the classical baseline
 
-Before the deep model, the method it has to beat. Classical Q-S-A-R — quantitative structure–activity relationship — turns each molecule into a fixed vector of pre-defined numbers: logP, molecular weight, ring counts, fingerprint bits. Then it fits a shallow learner, typically a random forest, to map that vector to the endpoint. BioMate ships this too — it is episode D1, the Q-S-A-R random-forest model and the hERG cardiac-safety model. And it is a genuinely strong baseline: interpretable, because you can read which descriptor drove the call; fast to train; and data-efficient on a single endpoint. Its ceiling is the features themselves. They are fixed in advance, so any structural signal the descriptor set does not encode is invisible to the model, and extrapolation to genuinely new scaffolds is weak. This is the honest baseline, not a strawman.
+Before the deep model, the method it has to beat. Classical Q-S-A-R — quantitative structure–activity relationship — turns each molecule into a fixed vector of pre-defined numbers: logP, molecular weight, ring counts, fingerprint bits. Then it fits a shallow learner, typically a random forest, to map that vector to the endpoint. BioMate ships this too — it is episode D1, the Q-S-A-R random-forest model and the hERG cardiac-safety model. And it is a genuinely strong baseline: interpretable, because you can read which descriptor drove the call; fast to train; and data-efficient on a single endpoint. Its ceiling is the features themselves. They are fixed in advance, so any structural signal the descriptor set does not encode is invisible to the model, and extrapolation to genuinely new scaffolds is weak. This is a strong baseline the deep model has to beat, not a strawman.
 
 ---
 
@@ -70,7 +70,7 @@ This is the beat that matters. On a real run on AWS Batch, we screened two compo
 
 ## Step 11 — Product · completed
 
-When the run finishes, the panel reads the verdict straight from the result files: a green Completed badge, a Run-again action, and the after-run tabs — Summary, Outputs, and the reproducibility record. The Summary carries the key values, read directly from the outputs rather than written by hand, with a plain Caveats note reminding you these are computational estimates to confirm with wet-lab assays. And the honesty rule holds: if an output could not be read, that finding is withheld and said so, never fabricated.
+When the run finishes, the panel reads the verdict straight from the result files: a green Completed badge, a Run-again action, and the after-run tabs — Summary, Outputs, and the reproducibility record. The Summary carries the key values, read directly from the outputs rather than written by hand, with a plain Caveats note reminding you these are computational estimates to confirm with wet-lab assays. And every number is read straight from the result files: if an output could not be read, that finding is withheld and said so, never fabricated.
 
 ---
 
@@ -86,9 +86,9 @@ Next, the reproducibility record — and for a model prediction this matters dou
 
 ---
 
-## Step 14 — Idea · reading the outputs honestly
+## Step 14 — Idea · how to read these outputs
 
-Finally, how to hold these numbers honestly. The native hERG output is a blocker-risk probability; the I-C-fifty you see is an estimate derived from that probability — a power law anchored to terfenadine — not a measured value. A low-risk compound's I-C-fifty sits at the estimator's ceiling, which is a model output, not proof of safety. So read in this order. First, every value is an estimate, not an assay: advance nothing on it without wet-lab confirmation — hERG patch-clamp, hepatocyte and liver-enzyme panels, Ames testing. Second, know the edge: the network generalizes from ChEMBL and T-D-C chemistry, so the further a scaffold sits from that space, the less you should trust the estimate. Third, trust the gate: it compares a worst-case value to a cited threshold and either flags it or halts, and it never silently passes a failed check. The defensible output is not a single number — it is the per-compound table, the cited gate decision, and the reproducibility record that ties both back to the exact model and inputs.
+Finally, how to read these numbers well. The native hERG output is a blocker-risk probability; the I-C-fifty you see is an estimate derived from that probability — a power law anchored to terfenadine — not a measured value. A low-risk compound's I-C-fifty sits at the estimator's ceiling, which is a model output, not proof of safety. So read in this order. First, every value is an estimate, not an assay: advance nothing on it without wet-lab confirmation — hERG patch-clamp, hepatocyte and liver-enzyme panels, Ames testing. Second, know the edge: the network generalizes from ChEMBL and T-D-C chemistry, so the further a scaffold sits from that space, the less you should trust the estimate. Third, trust the gate: it compares a worst-case value to a cited threshold and either flags it or halts, and it never silently passes a failed check. The defensible output is not a single number — it is the per-compound table, the cited gate decision, and the reproducibility record that ties both back to the exact model and inputs.
 
 ---
 

@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 非房室药代动力学分析（NCA）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">S1 · 非房室 PK 分析——一条浓度-时间曲线变成站得住脚的暴露量数字</span>
+  <span class="spacer"></span>
+  <span class="counter">阶段 <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="35.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>非房室药代动力学</b></div>
+    <div class="kicker">献给每一位测量药物浓度随时间变化的人</div>
+    <h2>你有一条浓度-时间曲线。BioMate 把它变成你能捍卫的暴露量数字。</h2>
+    <p class="caption">你给一只动物或一位受试者用了药，并沿时间采了血——这是一张浓度对时间的表。真正要紧的问题很简单：<b>到底有多少药，又待了多久？</b>非房室分析直接从观测到的曲线上回答这两件事，不拟合任何模型，也不假设任何机制。BioMate 在云端算力上运行标准的 NCA 流水线——即 <b>PKNCA</b> R 包：你给它一份浓度-时间 CSV 和剂量，它就返回 AUC、Cmax、Tmax、半衰期、清除率和分布容积，外加一份你能递交给监管方的报告。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>一份浓度-时间 CSV</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Nca Pknca 工作流</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>校验曲线</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>计算暴露量参数</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>一份站得住脚的报告</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="33.0">
+    <div class="kicker">这个功能要解决的问题</div>
+    <h2>暴露量是 PK 的第一个问题——而它必须用标准的方式去计算。</h2>
+    <p class="caption">每一项 PK 研究开头问的都是同一件事：把身体见到了多少药、又停留了多久总结出来。回答它的那些数字——AUC、Cmax、半衰期、清除率——是标准的，但它们很容易在不知不觉中算错：梯形法则怎么选，末端斜率怎么拟合，尾部外推了多少。这些约定一旦弄错，暴露量的估计就会偏移，研究也就难以捍卫。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">有多少</div><h4>总暴露量</h4><p>浓度-时间曲线下的面积（AUC）——用一个数字刻画身体暴露于多少药物。</p></div>
+          <div class="tile"><div class="n">有多高</div><h4>峰值与时刻</h4><p>Cmax，即最高浓度；以及 Tmax，即它出现的时刻——都直接从观测点上读出。</p></div>
+          <div class="tile"><div class="n">有多久</div><h4>持续性</h4><p>末端半衰期——吸收完成后药物离开的快慢。它决定了给药间隔。</p></div>
+          <div class="tile"><div class="n">有多快</div><h4>清除率与容积</h4><p>CL/F 和 Vd/F——身体表观的清除速率与表观的分布空间，由剂量和 AUC 导出。</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>所需：标准的暴露量参数，按约定、可复现地算出</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker">开始前要懂的几个概念</div>
+    <h2>四个大白话概念，就是 NCA 的全部。</h2>
+    <p class="caption">你不需要房室模型，也不需要微分方程——只需要这四个，都从观测到的曲线上读出。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · 曲线</div><h4>浓度对时间</h4><p>原始测量：每个受试者在每个采样时刻的药物浓度。其余一切都从它派生而来。</p></div>
+            <div class="tile"><div class="n">2 · AUC</div><h4>曲线下面积</h4><p>总暴露量——浓度-时间曲线下的面积。<code>AUClast</code> 算到最后一个采样点，<code>AUCinf</code> 外推到无穷。</p></div>
+            <div class="tile"><div class="n">3 · 峰值</div><h4>Cmax &amp; Tmax</h4><p>观测到的最高浓度及其出现的时刻——用两个数字刻画吸收相。</p></div>
+            <div class="tile"><div class="n">4 · 尾部</div><h4>半衰期与清除率</h4><p>由末端斜率得出：药物清除的快慢，以及由此得到的清除率和容积。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">NCA 是<b>不依赖模型</b>的：它按既定约定去总结观测数据，而不拟合一个机制模型。这既是它的长处——也是它的边界，我们会在最后回到这一点。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——本讲后续会用到的词汇</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="36.0">
+    <div class="kicker"><span class="st">在 BioMate 中</span> · 目标 + 一份 CSV → 一次运行</div>
+    <h2>说出目标，附上一份浓度-时间 CSV；BioMate 就路由到 Nca Pknca。</h2>
+    <p class="caption">你用大白话说出目标——"对这张浓度-时间表做非房室 PK"——再附上 CSV。BioMate 把它路由到 <b>Nca Pknca</b> 工作流（PKNCA R 包），填好剂量和给药途径，再在云端算力上跑这条三步流水线。还有一份预置的示例数据可供试跑——一张位于 <code>test-data/pk_concentration_time.csv</code> 的浓度-时间表。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:center; gap:16px">
+            <span class="chip"><span class="i"></span>浓度-时间 CSV</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>校验曲线</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>PKNCA：计算参数</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>HTML 报告</span>
+          </div>
+          <p class="footnote" style="margin-top:26px">工作流 <b>Nca Pknca</b> · 领域 <code>drug_discovery</code> · 三步——<code>NCA_INPUT_VALIDATION</code> → <code>NCA_PKNCA_ANALYSIS</code> → <code>NCA_REPORT_HTML</code>。必需输入：<code>input_csv</code>。剂量、给药途径和单位标签都是参数，带有你可以覆盖的默认值。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>一次确认 → 标准的 NCA 流水线，跑在云端</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — THE INPUT -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">输入</span> · 那张浓度-时间表</div>
+    <h2>一张整洁的浓度-时间表，外加剂量和给药途径。</h2>
+    <p class="caption">NCA 需要把观测到的曲线整理成一个规定的形状。第一步在任何计算开跑之前先校验它——于是一张格式有误的表会快速失败并把问题暴露出来，而不是悄无声息地算出一个错误的答案。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">必需的列</div><h4>每一行带着什么</h4><p>每个采样点一行：<code>subject_id</code>、<code>time</code>、<code>conc</code>、<code>dose</code>、<code>route</code>。校验这一步确认这些列都在、数值也合乎情理。</p></div>
+          <div class="tile"><div class="n">剂量与给药途径</div><h4>研究设计</h4><p><code>dose</code>（默认 100）和 <code>route</code>——<code>oral</code> 或 <code>iv</code>。给药途径映射到 PKNCA 的血管外与血管内，它决定哪些参数才算有定义。</p></div>
+          <div class="tile"><div class="n">单位</div><h4>标注出来，而非靠猜</h4><p><code>time_unit</code>（默认 <code>h</code>）和 <code>conc_unit</code>（默认 <code>ng/mL</code>）标注坐标轴，以及报告中导出的 AUC、清除率和分布容积的单位。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">第 1 步 <code>NCA_INPUT_VALIDATION</code> 产出一份校验、归一化后的 CSV 和一份校验报告——负浓度被归零，负时间被拒绝。</p>
+        <div><span class="verdict ok"><span class="mk"></span>曲线在被分析之前先经过核对</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — WHAT NCA COMPUTES -->
+  <section class="scene" data-seconds="52.0">
+    <div class="kicker"><span class="st">计算</span> · PKNCA，按受试者逐一算</div>
+    <h2>标准的暴露量参数，按约定算出——逐个受试者。</h2>
+    <p class="caption">核心这一步在校验过的曲线上运行 R/PKNCA，用"上升段线性、下降段对数"的梯形法，为每一个受试者算出标准的 NCA 参数组。这些就是一份 PK 报告赖以成文的数字——全部由观测数据导出，没有任何一样是拟合到模型上的。</p>
+    <div class="scene-body">
+      <figure class="shotcol" style="flex:1.2">
+        <span class="lbl">第 2 步 · NCA_PKNCA_ANALYSIS → nca_results.csv（逐受试者）+ nca_summary.json</span>
+        <div class="frame" style="box-shadow:none; padding:26px; display:block; overflow:auto">
+          <table class="summary-tbl" style="font-size:14px">
+            <tr><td><code>AUClast</code></td><td>算到最后一个实测采样点为止的曲线下面积——你直接观测到的暴露量。</td></tr>
+            <tr><td><code>AUCinf</code></td><td>用末端斜率外推到无穷的 AUC——总暴露量。</td></tr>
+            <tr><td><code>Cmax</code></td><td>观测到的最高浓度——峰值。</td></tr>
+            <tr><td><code>Tmax</code></td><td>峰值出现的时刻——从采样点上读出。</td></tr>
+            <tr><td><code>t&frac12;</code></td><td>末端半衰期——持续性，由对数线性的尾部得来。</td></tr>
+            <tr><td><code>CL/F</code></td><td>表观清除率——身体清除药物的速率。</td></tr>
+            <tr><td><code>Vd/F</code></td><td>表观分布容积——药物铺展进去的空间。</td></tr>
+          </table>
+        </div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>逐受试者的结果</b>落进 <code>nca_results.csv</code>；群体统计量（均值、标准差、CV%）落进 <code>nca_summary.json</code>。</span></li>
+          <li><span class="b"></span><span><b>方法写明：</b>上升段线性、下降段对数的梯形法，并记录 PKNCA 版本以备溯源。</span></li>
+          <li><span class="b gr"></span><span><b>不依赖模型。</b>每一个参数都是对观测曲线的总结——没有任何一样拟合到房室模型上。</span></li>
+          <li><span class="b am"></span><span>对于血管外给药，CL/F 和 Vd/F 是<i>表观</i>值——绝对生物利用度需要一个 IV 参照。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>标准参数组，逐受试者并给出汇总</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — DOSE-RESPONSE CONTEXT -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker"><span class="st">置于语境中</span> · 从暴露到效应</div>
+    <h2>暴露量只是故事的一半——另一半是它产生了什么效应。</h2>
+    <p class="caption">NCA 告诉你有多少药存在。要把这个闭环合上，你会接着问：这份暴露量如何转化为效应。BioMate 恰好有配套的工作流来做这一步，于是 NCA 产出的暴露量数字可以去支撑一个站得住脚的剂量依据，而不是孤零零地搁着。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">剂量-反应</div><h4>效应对浓度</h4><p><b>Dose Response</b> 工作流对浓度-效应数据拟合一条四参数或五参数的对数-逻辑斯蒂曲线（<code>LL.4</code> / <code>LL.5</code>），估计 IC50 / EC50 以及 Hill 斜率。</p></div>
+          <div class="tile"><div class="n">暴露-反应</div><h4>AUC 对结局</h4><p><b>Exposure Response</b> 工作流拟合 sigmoid Emax / Hill 模型，把一个暴露量指标——比如 NCA 产出的那个 AUC——和一个实测的效应联系起来。</p></div>
+          <div class="tile"><div class="n">这条链</div><h4>暴露 → 效应 → 剂量</h4><p>观测曲线 → NCA 暴露量 → 暴露-反应 → 一个把暴露量放到效应所在之处的剂量。每一个环节都是一条真实的 BioMate 工作流。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">这些是你接下来路由过去的独立工作流——NCA 产出它们所消费的暴露量输入；它自己并不去建模那个效应。</p>
+        <div><span class="verdict ok"><span class="mk"></span>NCA 是剂量选择链的暴露锚点</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — READING THE PARAMETERS -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">解读</span> · 每个数字对给药意味着什么</div>
+    <h2>解读这些参数：每一个都回答一个给药问题。</h2>
+    <p class="caption">报告（<code>nca_report.html</code>）把这些参数连同一张对数线性的浓度-时间图、一张逐受试者的表，和一节写明的假设一起铺陈出来。下面说说怎么读那几个头条数字。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">AUC</div><h4>暴露量够不够？</h4><p>把 AUC 和目标比较。太低，药就暴露不足；太高，就有毒性风险。它还跨多个剂量水平检验剂量比例关系。</p></div>
+          <div class="tile"><div class="n">Cmax / Tmax</div><h4>多快、多高？</h4><p>一个尖锐的早期 Cmax 意味着快速吸收和一个陡峭的峰值——与峰值驱动的效应或毒性有关。一个靠后的 Tmax 则提示缓慢或缓释式的吸收。</p></div>
+          <div class="tile"><div class="n">t&frac12;</div><h4>多久给一次药？</h4><p>末端半衰期定下给药间隔，以及多久达到稳态。它的好坏取决于支撑斜率的末端采样。</p></div>
+          <div class="tile"><div class="n">CL/F · Vd/F</div><h4>为剂量定标</h4><p>清除率驱动达到某个目标暴露量所需的维持剂量；表观容积把剂量和它所产生的浓度联系起来。</p></div>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>参数直接读回到设定剂量的那些问题上</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST EDGES -->
+  <section class="scene" data-seconds="56.0">
+    <div class="kicker">NCA 的用武之地 · 让它站得住脚的约定</div>
+    <h2>NCA 的用武之地：按公认约定算出一份站得住脚的暴露量总结。</h2>
+    <p class="caption">NCA 之所以可信，恰恰因为它遵循明确的约定。这条流水线在每一次运行上都写明自己的假设、并跑质量闸门——当你需要预测超出已有数据的情形时，它会干净利落地承接给一个机制模型。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">依赖于采样</div><h4>采样计划就是上限</h4><p>Tmax 只能是一个被采过的时间点；半衰期需要 3 个以上末端点才能拟合斜率。稀疏或过短的采样会限制 NCA 能报告的内容——流水线会标出没有末端斜率的受试者。</p></div>
+          <div class="tile"><div class="n">外推</div><h4>一个被盯着的量</h4><p>AUCinf 依赖于外推尾部。一道 QC 闸门检查外推所占比例是否保持在 20% 以内（FDA BA/BE 约定）；一次很大的外推会让 AUCinf 变得不可靠。</p></div>
+          <div class="tile"><div class="n">NCA vs. PBPK</div><h4>先总结，再机制</h4><p>NCA 把你已有数据里的暴露量总结清楚；当你需要预测一个新剂量、一种药物相互作用或一个特殊人群时，<b>第 S2 讲的 PBPK 模型</b>——BioMate 同样会运行它——会把它向前推进。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">报告的假设一节写明：线性 PK、单剂量设计、充分的末端采样、末端对数线性。NCA 也不检测 flip-flop 动力学。没有任何结果数值是杜撰的——它们都来自你的曲线。</p>
+        <div><span class="verdict open"><span class="mk"></span>一个专注而严谨的工具——按公认约定算出的标准暴露量总结</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="42.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2 style="font-size:40px">输入一条浓度-时间曲线。输出站得住脚的暴露量数字。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">这整件事就一句话：<b>暴露量本该用标准的方式、从你观测到的数据里算出来，而且把约定和假设都写下来。</b>BioMate 把你的浓度-时间 CSV 路由到 Nca Pknca 流水线，校验曲线，用 PKNCA 算出 AUC、Cmax、Tmax、半衰期、清除率和分布容积，跑它的 QC 闸门，再渲染一份报告——在云端算力上，带着一份你能捍卫的记录。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>附上一份浓度-时间 CSV（<code>subject_id, time, conc, dose, route</code>）</li>
+            <li><span class="k">2</span>设定剂量、给药途径和单位标签——或直接取默认值</li>
+            <li><span class="k">3</span>确认路由好的 Nca Pknca 工作流，并在云端运行它</li>
+            <li><span class="k">4</span>得到逐受试者的参数、一份群体汇总，和一份 HTML 报告</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>输入</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">浓度-时间 CSV</span></td></tr>
+            <tr><td>方法</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">PKNCA · 梯形法</span></td></tr>
+            <tr><td>参数</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">AUC · Cmax · Tmax · t&frac12; · CL · Vd</span></td></tr>
+            <tr><td>质量闸门</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">外推 · 末端斜率</span></td></tr>
+            <tr><td>范围</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">不依赖模型——与 PBPK（S2）互为衔接</span></td></tr>
+          </table>
+          <p class="footnote">从一条观测到的浓度-时间曲线，到那些标准的暴露量参数，按约定、可复现地算出——不依赖模型、边界严谨，备好去充当剂量选择链的锚点。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

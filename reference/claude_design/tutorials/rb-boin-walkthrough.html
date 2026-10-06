@@ -81,6 +81,11 @@ body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:10
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
 code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -97,6 +102,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 0 — THE TASK (title) -->
   <section class="scene title" data-seconds="31.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>RealBio · BOIN Dose-Finding</b></div>
     <div class="kicker">The task · phase-I dose escalation</div>
     <h2>Which dose next — and which is the maximum tolerated dose?</h2>
     <p class="caption">In a phase-I trial, patients are dosed a few at a time, and each cohort's toxicities decide what happens next: escalate, hold, or step down — and, in the end, which dose is declared the <b>maximum tolerated dose</b>. This is not a judgement call. It is a pre-specified, sequential statistical decision rule, and getting it wrong has a direct cost in patient safety.</p>

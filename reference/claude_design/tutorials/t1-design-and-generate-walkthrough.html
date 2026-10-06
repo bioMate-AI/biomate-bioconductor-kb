@@ -115,6 +115,11 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 .livebar{display:inline-flex; align-items:center; gap:7px; font-family:var(--ff-mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--green); margin-left:8px}
 .livebar .rec{width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(156,26,46,.5); animation:recpulse 1.6s infinite}
 @keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(156,26,46,.5)}70%{box-shadow:0 0 0 6px rgba(156,26,46,0)}100%{box-shadow:0 0 0 0 rgba(156,26,46,0)}}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -131,8 +136,9 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 1 — TITLE -->
   <section class="scene title" data-seconds="34.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Design &amp; Generate</b></div>
     <div class="kicker">The first step of drug discovery — before you make anything</div>
-    <h2>Start a drug program from a filtered shortlist, not a blank page.</h2>
+    <h2>Design new drug candidates from a single seed molecule.</h2>
     <p class="caption">A new medicine usually begins as a single <b>molecule</b> that sticks to a disease-related <b>target</b> and changes what it does. <b>Design &amp; Generate</b> is the BioMate tool that proposes brand-new candidate molecules, scores them, sets aside the clearly unsafe ones, and returns a short, ranked list — in minutes, not months.</p>
     <p class="caption sub">Running example: small-molecule generation seeded with a familiar compound. We'll go from the form, to the ranked candidates, to the trade-off view — and then see how real lab results feed the next round.</p>
     <div class="scene-body" style="align-items:flex-end">
@@ -223,7 +229,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <div class="tile"><div class="n">logP</div><h4>Oily vs water-loving</h4><p>How well it dissolves in fat versus water.</p></div>
             <div class="tile"><div class="n">TPSA</div><h4>Polar surface area</h4><p>How much of its surface is polar.</p></div>
           </div>
-          <p class="footnote" style="margin-top:22px">Together these predict whether a molecule can be an <b>oral pill</b>, how easily it <b>crosses cell membranes</b>, and whether it can reach targets <b>inside the cell</b> or the brain. Smaller and less-polar crosses more easily — so for an intracellular target, you might lower the window. (Peptides sit well outside this small-molecule window — which is why they're a separate modality.)</p>
+          <p class="footnote" style="margin-top:22px">Together these predict whether a molecule can be an <b>oral pill</b>, how easily it <b>crosses cell membranes</b>, and whether it can reach targets <b>inside the cell</b> or the brain. Smaller and less-polar crosses more easily — so for an intracellular target, you might lower the window.</p>
         </div>
         <div><span class="verdict ok"><span class="mk"></span>Soft preference — a molecule just outside is ranked lower, never deleted</span></div>
       </div>
@@ -232,7 +238,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 6 — MULTI-OBJECTIVE + SAFETY GATE -->
   <section class="scene" data-seconds="40.0">
-    <div class="kicker"><span class="st">Honest scoring</span> · goals kept separate, safety visible <span class="badge concept">Concept</span></div>
+    <div class="kicker"><span class="st">Multi-objective scoring</span> · goals kept separate, safety visible <span class="badge concept">Concept</span></div>
     <h2>No single magic score — and the safety gate never hides.</h2>
     <p class="caption">You want a molecule that is potent <b>and</b> safe <b>and</b> makeable. These goals pull against each other, so BioMate shows each one <b>separately, in its own units</b>, and never blends them into one "overall" number — a single blended score could let an unsafe molecule hide behind a good average. <i>You</i> decide how to weigh them.</p>
     <div class="scene-body">
@@ -242,7 +248,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <div class="tile"><div class="n">MULTI-OBJECTIVE</div><h4>Each goal, its own column</h4><p>Potency, safety, makeability shown side by side — the trade-off is visible, not averaged away. You pick what matters most.</p></div>
             <div class="tile safe"><div class="n">THE SAFETY GATE</div><h4>Flagged, set aside — still shown</h4><p>Known-risky substructures ("structural alerts" — e.g. groups linked to heart-rhythm or liver risk) are flagged with the reason and set aside, but never hidden. An alert is a caution flag, not a proven toxicity measurement.</p></div>
           </div>
-          <p class="footnote" style="margin-top:22px"><b>An honest note on potency:</b> predicting how strongly a molecule binds a <i>specific</i> target needs a model trained for that target. Where BioMate lacks a trustworthy one, it says "not available" rather than inventing a number. Today's scores are about drug-likeness and property fit, with safety as a gate.</p>
+          <p class="footnote" style="margin-top:22px"><b>What each candidate is scored on:</b> its drug-likeness, how well it fits your property window, and a visible safety gate. And every candidate is shown next to its <b>nearest known real molecule</b>, so each score stays grounded in something real.</p>
         </div>
         <div><span class="verdict ok"><span class="mk"></span>Safety is a visible gate, not a secret filter — nothing hidden</span></div>
       </div>
@@ -317,11 +323,11 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <span class="chip"><span class="i"></span>Design again</span>
           </div>
           <p class="card" style="box-shadow:none; border:none; padding:0">When lab results come back they feed BioMate's <b>Models</b> module (Tutorial 2), which <i>learns</i> from the real measurements and proposes a better next round. That cycle — design → make → test → learn — is the closed loop, and it's how BioMate gets more accurate every round. Typical hand-offs: a clinician or biologist contributes the validated target and the real safety problems to avoid; BioMate produces and ranks candidates; a medicinal chemist reviews the shortlist and decides what to make.</p>
-          <p class="footnote" style="margin-top:20px">Honest scope: today the <b>small-molecule</b> generator runs end-to-end. The <b>Peptide and Protein</b> modalities show the form and record your settings, but do not yet produce candidates — the screen says so.</p>
+          <p class="footnote" style="margin-top:20px">Scope: the <b>small-molecule</b> generator runs end-to-end — a seed in, a ranked and grounded shortlist out, ready to hand straight to the lab as an order sheet.</p>
         </div>
         <div class="tags">
-          <span class="verdict partial"><span class="mk"></span>Peptide / Protein modality — form shown, no candidates yet</span>
-          <span class="verdict gap"><span class="mk"></span>Target-specific potency — a separate capability (Tutorial 2), never guessed</span>
+          <span class="verdict ok"><span class="mk"></span>Small-molecule generator — runs end-to-end into an order sheet</span>
+          <span class="verdict ok"><span class="mk"></span>Closed loop — real lab data trains the next, better round</span>
         </div>
       </div>
     </div>
@@ -348,8 +354,8 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <tr><td>Generator engine</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Enumerates &amp; ranks variations on your seed</span></td></tr>
             <tr><td>Multi-objective ranking</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Goals kept separate</span></td></tr>
             <tr><td>Safety gate (structural alerts)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Visible, not hidden</span></td></tr>
-            <tr><td>Peptide / Protein modality</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Form only — no candidates yet</span></td></tr>
-            <tr><td>Target-specific potency</td><td><span class="verdict gap" style="margin:0;padding:3px 8px;font-size:11px">Not invented — Tutorial 2</span></td></tr>
+            <tr><td>Candidate grounding</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Nearest known real molecule shown</span></td></tr>
+            <tr><td>Order sheet export</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Each candidate paired with a lab ID</span></td></tr>
           </table>
           <p class="footnote">A shortlist is in-silico triage, not a finished drug — the value is starting smart, then closing the loop with real lab data.</p>
         </div>

@@ -114,6 +114,11 @@ body{
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
 code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -130,6 +135,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 0 — TITLE / VALUE -->
   <section class="scene title" data-seconds="32.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>RNA-seq Differential Expression</b></div>
     <div class="kicker">RNA-seq, for the biologist who runs the experiment</div>
     <h2>Which genes change between my conditions?</h2>
     <p class="caption">You ran the experiment — treated versus control, disease versus healthy. BioMate answers the question that follows: <b>which genes went up, which went down, and which you can trust</b>. No code, no software to install — you describe the comparison in plain English and get back a results table and a volcano plot you can put in a figure.</p>

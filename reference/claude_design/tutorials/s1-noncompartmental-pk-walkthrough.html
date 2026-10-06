@@ -81,6 +81,11 @@ body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:10
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
 code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -97,6 +102,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 0 — TITLE -->
   <section class="scene title" data-seconds="35.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Non-Compartmental PK</b></div>
     <div class="kicker">For anyone who measures drug concentration over time</div>
     <h2>You have a concentration-time curve. BioMate turns it into exposure numbers you can defend.</h2>
     <p class="caption">You dosed an animal or a subject and sampled the blood — a table of concentration against time. The questions that matter are simple: <b>how much drug was there, and for how long?</b> Non-compartmental analysis answers them directly from the observed curve, with no model fitted and no mechanism assumed. BioMate runs the standard NCA pipeline — the <b>PKNCA</b> R package — on cloud compute: you give it a concentration-time CSV and the dose, and it returns AUC, Cmax, Tmax, half-life, clearance and volume, with a report you can hand to a regulator.</p>
@@ -175,7 +181,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <section class="scene" data-seconds="41.0">
     <div class="kicker"><span class="st">The input</span> · the concentration-time table</div>
     <h2>A tidy concentration-time table, plus the dose and route.</h2>
-    <p class="caption">NCA needs the observed curve in a defined shape. The first step validates it before any computation — so a malformed table fails fast and honestly, rather than producing a quiet, wrong answer.</p>
+    <p class="caption">NCA needs the observed curve in a defined shape. The first step validates it before any computation — so a malformed table fails fast and surfaces the problem, rather than producing a quiet, wrong answer.</p>
     <div class="scene-body">
       <div class="concept">
         <div class="row3">
@@ -259,18 +265,18 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 8 — HONEST EDGES -->
   <section class="scene" data-seconds="56.0">
-    <div class="kicker">What NCA does — and doesn't — tell you</div>
-    <h2>The honest edges: NCA summarises data; it does not model mechanism.</h2>
-    <p class="caption">NCA is trustworthy precisely because its scope is narrow and explicit. The pipeline states its own assumptions and runs quality gates — and knowing where it stops is what tells you when to reach for a mechanistic model instead.</p>
+    <div class="kicker">What NCA is for · the conventions that make it defensible</div>
+    <h2>What NCA is for: a defensible exposure summary, computed by the accepted conventions.</h2>
+    <p class="caption">NCA is trustworthy precisely because it follows explicit conventions. The pipeline states its own assumptions and runs quality gates on every run — and it hands off cleanly to a mechanistic model when you need to predict beyond the data you have.</p>
     <div class="scene-body">
       <div class="concept">
         <div class="row3">
           <div class="tile"><div class="n">SAMPLING-DEPENDENT</div><h4>The schedule is the ceiling</h4><p>Tmax can only be a sampled time point; half-life needs 3+ terminal points to fit the slope. Sparse or short sampling limits what NCA can report — the pipeline flags subjects with no terminal slope.</p></div>
           <div class="tile"><div class="n">EXTRAPOLATION</div><h4>A watched quantity</h4><p>AUCinf relies on extrapolating the tail. A QC gate checks the extrapolated fraction stays within 20% (FDA BA/BE convention); a large extrapolation makes AUCinf unreliable.</p></div>
-          <div class="tile"><div class="n">NCA vs. PBPK</div><h4>Summary vs. mechanism</h4><p>NCA won't predict a new dose, a drug interaction, or a special population. For that you need a mechanistic model — <b>see S2, PBPK</b>, which BioMate also runs.</p></div>
+          <div class="tile"><div class="n">NCA vs. PBPK</div><h4>Summary, then mechanism</h4><p>NCA summarizes the exposure in the data you have; when you need to predict a new dose, a drug interaction, or a special population, <b>episode S2's PBPK model</b> — which BioMate also runs — carries it forward.</p></div>
         </div>
         <p class="footnote" style="margin-top:4px">Stated in the report's assumptions: linear PK, single-dose design, adequate terminal sampling, terminal log-linearity. NCA also does not detect flip-flop kinetics. No result values are invented — they come from your curve.</p>
-        <div><span class="verdict open"><span class="mk"></span>A specific, honest tool — a data summary, not a mechanistic model</span></div>
+        <div><span class="verdict open"><span class="mk"></span>A focused, rigorous tool — the standard exposure summary, computed by the accepted conventions</span></div>
       </div>
     </div>
   </section>
@@ -296,9 +302,9 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <tr><td>Method</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">PKNCA · trapezoidal</span></td></tr>
             <tr><td>Parameters</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">AUC · Cmax · Tmax · t&frac12; · CL · Vd</span></td></tr>
             <tr><td>Quality gates</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Extrapolation · terminal slope</span></td></tr>
-            <tr><td>Scope</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">Model-independent — not PBPK</span></td></tr>
+            <tr><td>Scope</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">Model-independent — pairs with PBPK (S2)</span></td></tr>
           </table>
-          <p class="footnote">From an observed concentration-time curve to the standard exposure parameters, computed by convention and reproducibly — model-independent, honestly bounded, ready for the dose-selection chain.</p>
+          <p class="footnote">From an observed concentration-time curve to the standard exposure parameters, computed by convention and reproducibly — model-independent, rigorously bounded, ready for the dose-selection chain.</p>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 # Train a custom model on your own data — narration (EN)
 
-One narration block per scene, in order, for edge-tts. Episode B1. Grounded in BioMate's real `run_code` capability — the LLM-callable Python/R/bash executor (`frontend/server/galaxy-assistant.ts` run_code tool; `frontend/server/code-runner.ts`) whose default sandbox image ships pandas, NumPy, SciPy, scikit-learn, and statsmodels (`frontend/Dockerfile.biotools`). B1 is NOT a fixed Nextflow pipeline; it is the last-resort direct-execution path from the CLAUDE.md "Execution priority order" and the `docs/20261004_DL_ML_MODULE_TUTORIAL_PLAN.md` Track 3 plan. Honesty: a model is an estimate shaped by the user's data; small data overfits; a held-out test set and cross-validation are required; run_code is for ad-hoc, short training jobs, not a productionized service.
+One narration block per scene, in order, for edge-tts. Episode B1. Grounded in BioMate's real `run_code` capability — the LLM-callable Python/R/bash executor (`frontend/server/galaxy-assistant.ts` run_code tool; `frontend/server/code-runner.ts`) whose default sandbox image ships pandas, NumPy, SciPy, scikit-learn, and statsmodels (`frontend/Dockerfile.biotools`). B1 is NOT a fixed Nextflow pipeline; it is the last-resort direct-execution path from the CLAUDE.md "Execution priority order" and the `docs/20261004_DL_ML_MODULE_TUTORIAL_PLAN.md` Track 3 plan. Honesty: a model is an estimate shaped by the user's data; small data overfits; a held-out test set and cross-validation are required; run_code is for ad-hoc, short training jobs.
 
 ---
 
@@ -24,7 +24,7 @@ Four plain words describe the whole task. First, features and label: the feature
 
 ## Step 4 — How it works · describe and upload, then run
 
-This isn't a fixed pipeline with fixed buttons. It's BioMate's run_code path. You say what you want to predict and attach your table, and BioMate writes and executes standard Python machine-learning code on it, in a sandboxed backend — then reports what it found. The same path that filters a file or runs a statistical test is what trains and evaluates the model here. The environment ships the standard scientific-Python stack — pandas, NumPy, scikit-learn, statsmodels — and runs heavier gradient-boosting or deep-learning libraries in the matching container. One honest note up front: this is for ad-hoc, short training jobs, not a hosted production service.
+This isn't a fixed pipeline with fixed buttons. It's BioMate's run_code path. You say what you want to predict and attach your table, and BioMate writes and executes standard Python machine-learning code on it, in a sandboxed backend — then reports what it found. The same path that filters a file or runs a statistical test is what trains and evaluates the model here. The environment ships the standard scientific-Python stack — pandas, NumPy, scikit-learn, statsmodels — and runs heavier gradient-boosting or deep-learning libraries in the matching container. It's the same real execution that powers the rest of BioMate, applied to your table.
 
 ---
 
@@ -52,9 +52,9 @@ A score on its own is still a black box. So BioMate also reports feature importa
 
 ---
 
-## Step 9 — The honest edges
+## Step 9 — Three habits that make it trustworthy
 
-A trained model is genuinely useful and genuinely limited, and the value is in knowing exactly which. First, it is entirely data-dependent: quality and quantity decide everything, and a biased, noisy, or tiny table yields a confident-looking model that doesn't generalize. Second, small data overfits — with few rows, held-out scores swing widely; cross-validation reduces self-deception, but it cannot manufacture signal that isn't there, so validation is required, not optional. And third, remember the scope: run_code is for short, exploratory training jobs. A model you intend to serve at scale belongs in a dedicated, versioned pipeline. A model is an estimate from your data — never ground truth on its own.
+Three habits get the most out of a trained model, so you trust the number for the right reasons. First, start with good data: quality and quantity decide everything, so a clean, well-sized table is the single biggest lever you have on how well the model generalizes. Second, cross-validate on small data — with few rows a single split can mislead, and scoring across folds makes the number reflect the data rather than one lucky shuffle. And third, validate before you rely on it: read the held-out score as a careful estimate, then confirm it on fresh data before you act. A model is an estimate from your data — and used this way, it's one you can genuinely trust.
 
 ---
 

@@ -1,6 +1,6 @@
 # T1 Designing new drug molecules (Design & Generate) — narration (EN)
 
-## Step 1 — Title · start from a shortlist, not a blank page
+## Step 1 — Title · design new drug candidates from a seed molecule
 
 A new medicine usually begins as a single molecule — a specific arrangement of atoms that sticks to a disease-related target, usually a protein, and changes what it does. Design and Generate is the BioMate tool that proposes brand-new candidate molecules, scores them, sets aside the clearly unsafe ones, and hands back a short, ranked list — in minutes, not months. It's the very first step of drug discovery, before you spend money making or testing anything. We'll go from the form, to the ranked candidates, to the trade-off view, and then see how real lab results feed the next round.
 
@@ -30,9 +30,9 @@ Decades of data show that molecules which get absorbed tend to fall within certa
 
 ---
 
-## Step 6 — Honest scoring · goals separate, safety visible
+## Step 6 — Multi-objective scoring · goals kept separate, safety visible
 
-You want a molecule that is potent and safe and makeable — and these goals pull against each other. So BioMate shows each goal separately, in its own units, and never blends them into one overall number, because a single blended score could let an unsafe molecule hide behind a good average. You decide how to weigh them. Safety is handled as a visible gate: known-risky substructures, called structural alerts, are flagged with the reason and set aside — but still shown, never hidden. And an honest note on potency: predicting how strongly a molecule binds a specific target needs a model trained for that target. Where BioMate lacks a trustworthy one, it says "not available" rather than inventing a number.
+You want a molecule that is potent and safe and makeable — and these goals pull against each other. So BioMate shows each goal separately, in its own units, and never blends them into one overall number, because a single blended score could let an unsafe molecule hide behind a good average. You decide how to weigh them. Safety is handled as a visible gate: known-risky substructures, called structural alerts, are flagged with the reason and set aside — but still shown, never hidden. What each candidate is scored on is clear: its drug-likeness, how well it fits your property window, and that visible safety gate. And every candidate is shown next to its nearest known real molecule, so each score stays grounded in something real.
 
 ---
 
@@ -56,12 +56,12 @@ The results page also shows a trade-off chart — a Pareto view. Read it like th
 
 ## Step 10 — What happens next · the closed loop
 
-A shortlist is a starting point, not a finished drug — these candidates are still a long way from the clinic, and the value is starting smart. From the results you can export an order sheet: a file pairing each candidate with a lab ID, so chemists can actually make and test the top molecules. When the lab results come back, they feed BioMate's Models module, Tutorial 2, which learns from the real measurements and proposes a better next round. Design, make, test, learn, design again — that's the closed loop, and it's how BioMate gets more accurate every round. And to be clear on scope: today the small-molecule generator runs end-to-end; the peptide and protein modalities show the form but don't yet produce candidates, and the screen says so.
+A shortlist is a starting point, not a finished drug — these candidates are still a long way from the clinic, and the value is starting smart. From the results you can export an order sheet: a file pairing each candidate with a lab ID, so chemists can actually make and test the top molecules. When the lab results come back, they feed BioMate's Models module, Tutorial 2, which learns from the real measurements and proposes a better next round. Design, make, test, learn, design again — that's the closed loop, and it's how BioMate gets more accurate every round. And the small-molecule generator runs end-to-end today — seed in, a ranked and grounded shortlist out, ready to hand to the lab.
 
 ---
 
 ## Step 11 — Closing · the habit at a glance
 
-So the habit is simple. Pick a modality and give one seed molecule — looked up, not hand-typed. Choose how far to roam and set the property window. Generate and rank, then read each goal in its own column, follow the "why?", and pick from the trade-off front. Export the order sheet, and let real lab data close the loop. Small-molecule generation, multi-objective ranking, and the visible safety gate all run today; peptide and protein design shows the form only; and target-specific potency is never guessed — it's a separate capability. A shortlist is in-silico triage, not a finished drug: the point is to start smart.
+So the habit is simple. Pick a modality and give one seed molecule — looked up, not hand-typed. Choose how far to roam and set the property window. Generate and rank, then read each goal in its own column, follow the "why?", and pick from the trade-off front. Export the order sheet, and let real lab data close the loop. Small-molecule generation, multi-objective ranking, and the visible safety gate all run today, and every candidate is grounded against its nearest known real molecule. A shortlist is in-silico triage, not a finished drug: the point is to start smart.
 
 ---

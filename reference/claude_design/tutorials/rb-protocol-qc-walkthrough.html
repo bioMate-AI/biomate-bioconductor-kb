@@ -81,6 +81,11 @@ body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:10
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
 code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -97,6 +102,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 0 — TITLE · THE TASK -->
   <section class="scene title" data-seconds="34.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>RealBio · Protocol QC</b></div>
     <div class="kicker">RealBio capability · protocol QC</div>
     <h2>Does this run pass quality control? A score, not a guess.</h2>
     <p class="caption">Given an experimental protocol and its outputs, the task is a verdict: <b>PASS or FAIL</b> against the right quality gates — an ADMET <code>hERG</code> safety threshold, a sequencing coverage floor, a model's extrapolation limit. It is hard because a correct call needs the <i>domain threshold</i> and <i>judgment</i>, not fluent text. Ask a language model to eyeball it, and it guesses. BioMate checks it against a codified gate.</p>

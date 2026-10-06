@@ -149,6 +149,11 @@ svg{display:block}
 .deliver li .mk{flex:0 0 auto; width:7px; height:7px; border-radius:2px; background:var(--blue); transform:translateY(5px)}
 .deliver li b{color:var(--ink); font-weight:600}
 code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -165,7 +170,8 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
 <div class="stage" id="stage">
 
   <!-- 0 — TITLE -->
-  <section class="scene title" data-kind="concept" data-seconds="37.0">
+  <section class="scene title" data-kind="concept" data-seconds="46.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>ADMET · Deep Learning</b></div>
     <div class="kicker">Deep learning for molecular safety · from structure to a safety verdict</div>
     <h2>Predict a molecule's ADMET and toxicity from its structure alone — with a graph neural network.</h2>
     <p class="caption">Before a compound is ever made, you want to know: will the body tolerate it? ADMET deep learning answers that from the chemical structure. This episode builds the idea from the ground up — the task, why it is hard, the classical baseline, then the deep-learning model BioMate actually runs — and ends on a real run where the heart-safety gate catches a cardiotoxic candidate.</p>
@@ -177,13 +183,13 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
         <span class="chip"><span class="i"></span>Classical QSAR</span><span class="arrow">→</span>
         <span class="chip"><span class="i"></span>Graph neural net</span><span class="arrow">→</span>
         <span class="chip"><span class="i"></span>Run + QC gate</span><span class="arrow">→</span>
-        <span class="chip"><span class="i"></span>Read &amp; caveats</span>
+        <span class="chip"><span class="i"></span>Read the results</span>
       </div>
     </div>
   </section>
 
   <!-- 1 — IDEA: the task -->
-  <section class="scene" data-kind="concept" data-seconds="34.0">
+  <section class="scene" data-kind="concept" data-seconds="37.0">
     <div class="kicker"><span class="st">Idea · 1</span> · The task — what ADMET predicts, and why hERG leads <span class="badge concept">Concept</span></div>
     <h2>ADMET asks: will the body even tolerate this molecule?</h2>
     <p class="caption">Binding the target is not enough. A molecule must be absorbed, distributed where it should go, not destroyed too fast, cleared cleanly, and poison nothing. Those five questions are ADMET. One toxicity endpoint, <b>hERG</b>, outranks the rest: block that cardiac potassium channel and you risk a fatal arrhythmia — it has killed approved drugs.</p>
@@ -226,7 +232,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 2 — IDEA: SOTA + why hard -->
-  <section class="scene" data-kind="concept" data-seconds="34.0">
+  <section class="scene" data-kind="concept" data-seconds="49.0">
     <div class="kicker"><span class="st">Idea · 2</span> · Why it is hard — and what good looks like <span class="badge concept">Concept</span></div>
     <h2>The structure–property map is non-linear, the labels are sparse, and new scaffolds break shortcuts.</h2>
     <p class="caption">Drug-like chemical space is estimated at roughly 10⁶⁰ molecules; measured ADMET labels number in the thousands-to-hundreds-of-thousands per endpoint, and the assays carry their own noise. A good model is one that generalizes to <b>chemotypes it has never seen</b> — the hard part — not one that memorizes a training table.</p>
@@ -239,14 +245,14 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
             <div class="tile"><div class="n">THE HARD PART</div><h4>Chemotype generalization</h4><p>A novel scaffold far from training data is where estimates are least reliable — exactly where you most want them.</p></div>
             <div class="tile hot"><div class="n">ASYMMETRIC COST</div><h4>One miss can be fatal</h4><p>A missed hERG liability is not a rounding error; the method must flag, not silently pass.</p></div>
           </div>
-          <p class="footnote" style="margin-top:18px">"State of the art" here means a model that is <b>data-driven</b> and reports calibrated per-endpoint scores it can defend on held-out chemistry — and that is honest about the edge of its training distribution. No single accuracy number describes it, because performance differs by endpoint, dataset, and split.</p>
+          <p class="footnote" style="margin-top:18px">"State of the art" here means a model that is <b>data-driven</b> and reports calibrated per-endpoint scores it can defend on held-out chemistry, with its applicability domain made explicit. Performance is reported per endpoint, dataset, and split — not as one headline number.</p>
         </div>
       </div>
     </div>
   </section>
 
   <!-- 3 — IDEA: classical baseline QSAR -->
-  <section class="scene" data-kind="concept" data-seconds="33.0">
+  <section class="scene" data-kind="concept" data-seconds="44.0">
     <div class="kicker"><span class="st">Idea · 3</span> · The classical baseline — QSAR on molecular descriptors <span class="badge concept">Concept</span></div>
     <h2>First, the method it must beat: hand-engineered descriptors into a shallow model.</h2>
     <p class="caption">Classical <b>QSAR</b> (quantitative structure–activity relationship) turns each molecule into a fixed vector of pre-defined numbers — logP, molecular weight, ring counts, fingerprint bits — then fits a shallow learner such as a random forest to map that vector to the endpoint. BioMate ships this too (episode&nbsp;D1: <code>Qsar&nbsp;Rf&nbsp;Model</code>, <code>herg_cardiac_safety_qsar</code>). It is fast, cheap, and interpretable — and it is a real, strong baseline.</p>
@@ -273,14 +279,14 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
             <path d="M366 118 L366 150" stroke="#5a6474" stroke-width="1.4"/><polygon points="366,152 362,142 370,142" fill="#5a6474"/>
             <rect x="300" y="152" width="132" height="34" rx="7" fill="#eaf6ee" stroke="#1c6b3a" stroke-width="1.3"/>
             <text x="366" y="173" text-anchor="middle" font-family="IBM Plex Sans" font-size="12.5" font-weight="600" fill="#1c6b3a">endpoint estimate</text>
-            <text x="46" y="226" fill="#9c1a2e" font-family="IBM Plex Mono" font-size="10.5">limit: the chemistry the descriptors miss is invisible to the model</text>
+            <text x="46" y="226" fill="#9c1a2e" font-family="IBM Plex Mono" font-size="10.5">the deep model learns structural signals the descriptors do not encode</text>
           </svg>
         </div>
         <div class="lead-col">
           <div class="card">
             <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 8px;color:var(--ink)">Strengths — and the ceiling</h4>
             <p style="font-size:14px;line-height:1.55;margin:0 0 10px">Interpretable (you can read which descriptor drove the call), fast to train, and data-efficient on a single endpoint. But the features are <b>fixed in advance</b>: any structural signal the descriptor set does not encode is invisible, and extrapolation to genuinely new scaffolds is weak.</p>
-            <p style="font-size:13px;line-height:1.5;margin:0;color:var(--mut)">This is the honest baseline a deep model has to beat — not a strawman.</p>
+            <p style="font-size:13px;line-height:1.5;margin:0;color:var(--mut)">This is a strong baseline the deep model has to beat — not a strawman.</p>
           </div>
         </div>
       </div>
@@ -288,7 +294,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 4 — IDEA: deep learning graph NN -->
-  <section class="scene" data-kind="concept" data-seconds="38.0">
+  <section class="scene" data-kind="concept" data-seconds="58.0">
     <div class="kicker"><span class="st">Idea · 4</span> · The deep-learning model — a message-passing graph network <span class="badge concept">Concept</span></div>
     <h2>Let the molecule be a graph, and let the model learn its own features.</h2>
     <p class="caption">A molecule <i>is</i> a graph: atoms are nodes, bonds are edges. A <b>message-passing neural network</b> (Chemprop's directed MPNN) passes information along the bonds for several rounds, so each atom's representation absorbs its chemical neighbourhood — then pools to a whole-molecule vector and reads off every endpoint. Nothing is hand-engineered; the features are <b>learned from data</b>. This is what BioMate's <b>ADMET-AI</b> workflow runs.</p>
@@ -337,7 +343,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 5 — IDEA: classical vs deep -->
-  <section class="scene" data-kind="concept" data-seconds="30.0">
+  <section class="scene" data-kind="concept" data-seconds="33.0">
     <div class="kicker"><span class="st">Idea · 5</span> · Classical vs deep — when each wins <span class="badge concept">Concept</span></div>
     <h2>Not "deep is always better" — two tools with different trade-offs.</h2>
     <p class="caption">The graph network usually wins on accuracy across diverse chemistry and gives you many endpoints from one model; the descriptor+forest baseline wins on interpretability, speed, and tiny-data regimes. Both are <b>estimators of experimental values</b>, and both need wet-lab confirmation before any decision that matters.</p>
@@ -355,7 +361,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 6 — IDEA: how BioMate runs it -->
-  <section class="scene" data-kind="concept" data-seconds="28.0">
+  <section class="scene" data-kind="concept" data-seconds="29.0">
     <div class="kicker"><span class="st">Idea · 6</span> · How BioMate runs it — chat, route, managed compute <span class="badge concept">Concept</span></div>
     <h2>You describe the goal in plain English; BioMate picks the model and runs it on hosted compute.</h2>
     <p class="caption">There is no environment to set up and no model to license. You ask for ADMET screening; BioMate routes your request to the validated <b>Predict ADMET Properties (AI)</b> workflow, opens its panel for review, and — once you confirm — runs the graph network on managed cloud compute, streaming progress and a QC gate the whole time.</p>
@@ -373,7 +379,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 7 — PRODUCT: pre-run -->
-  <section class="scene live" data-kind="flow" data-seconds="26.0">
+  <section class="scene live" data-kind="flow" data-seconds="28.0">
     <div class="kicker"><span class="st">Product · 1</span> · The pre-run check <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
     <h2>Everything the model will use is shown — and editable — before a cent of compute is spent.</h2>
     <p class="caption">The pre-run strip lays out your <code>smiles_list</code>, the <code>ADMET_model_type</code> (MPNN), and the shard size, all editable. No blanket accuracy number is attached — a performance claim needs a named dataset, endpoint, metric and split — so what you get is the real output of this run.</p>
@@ -388,7 +394,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 8 — PRODUCT: running + gates -->
-  <section class="scene live" data-kind="flow" data-seconds="25.0">
+  <section class="scene live" data-kind="flow" data-seconds="24.0">
     <div class="kicker"><span class="st">Product · 2</span> · Running, with the hERG gate in view <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
     <h2>It runs on hosted cloud compute, and the safety gates are visible the whole time.</h2>
     <p class="caption">Each phase card flips <code>pending → running → completed</code> in real time as the graph network scores every compound. The quality gates to be enforced — hERG cardiac safety chief among them — are listed alongside, so nothing is hidden while compute is in flight.</p>
@@ -403,7 +409,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 9 — HERO DATA: the hERG QC gate FIRES -->
-  <section class="scene" data-kind="concept" data-seconds="46.0">
+  <section class="scene" data-kind="concept" data-seconds="67.0">
     <div class="kicker"><span class="st">Product · 3 · the hero beat</span> · The hERG QC gate HALTS a cardiotoxic candidate <span class="badge concept">Real run · d0ff684b</span></div>
     <h2>On a real run, the gate caught terfenadine at 0.012&nbsp;µM — and said why, with a citation.</h2>
     <p class="caption">A live AWS Batch run screened <b>aspirin + terfenadine</b> (terfenadine is a known hERG liability, withdrawn from market). The graph network scored both; the panel aggregation takes the worst compound; the <b>GOLD</b> hERG gate halted the screen. A naive pipeline would have shipped this silently.</p>
@@ -435,7 +441,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 10 — PRODUCT: completed -->
-  <section class="scene live" data-kind="flow" data-seconds="24.0">
+  <section class="scene live" data-kind="flow" data-seconds="28.0">
     <div class="kicker"><span class="st">Product · 4</span> · Completed — the findings summary <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
     <h2>When it finishes, the panel reads the verdict straight from the result files.</h2>
     <p class="caption">A green <b>Completed</b> badge, a "Run again" action, and after-run tabs — Summary, Outputs, and the reproducibility record. The Summary carries the key values read directly from the run's outputs, with a Caveats note: these are computational estimates, confirm with wet-lab assays.</p>
@@ -450,7 +456,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 11 — PRODUCT: outputs -->
-  <section class="scene live" data-kind="flow" data-seconds="22.0">
+  <section class="scene live" data-kind="flow" data-seconds="28.0">
     <div class="kicker"><span class="st">Product · 5</span> · Outputs — every file, by step <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
     <h2>Behind the summary: the raw files the model produced.</h2>
     <p class="caption">The Outputs tab groups results by the step that made them — <code>toxicity_report.json</code> (per-compound scores + worst-case aggregation), <code>qc_metrics.json</code> (the gate-ready fields), <code>pk_summary.json</code>, the results JSON, and <code>versions.yml</code>. Each previews in place and is yours to download.</p>
@@ -465,7 +471,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 12 — PRODUCT: reproducibility record -->
-  <section class="scene live" data-kind="flow" data-seconds="24.0">
+  <section class="scene live" data-kind="flow" data-seconds="29.0">
     <div class="kicker"><span class="st">Product · 6</span> · The reproducibility record <span class="badge flow">Live UI</span><span class="livebar"><span class="rec"></span>Live product capture</span></div>
     <h2>What makes a model estimate defensible — the full audit trail, one JSON.</h2>
     <p class="caption">Run id, parameters, the exact model and software versions, outputs with SHA-256 checksums, and citations — all in one downloadable record. For a model prediction this matters doubly: a reviewer can see precisely which model, on which inputs, produced the number.</p>
@@ -480,8 +486,8 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 13 — IDEA: read the outputs + caveats -->
-  <section class="scene" data-kind="concept" data-seconds="38.0">
-    <div class="kicker"><span class="st">Idea · 7</span> · Reading the outputs honestly <span class="badge concept">Concept</span></div>
+  <section class="scene" data-kind="concept" data-seconds="55.0">
+    <div class="kicker"><span class="st">Idea · 7</span> · How to read the ADMET results <span class="badge concept">Concept</span></div>
     <h2>Read the gate and the per-compound scores — not any single number in isolation.</h2>
     <p class="caption">The native hERG output is a <b>blocker-risk probability</b>; the IC50 you see is an <b>estimate derived from that probability</b> (a power law anchored to terfenadine), not a measured value. A low-risk compound's IC50 sits at the estimator's ceiling — a model output, not proof of safety. Here is how to hold these numbers.</p>
     <div class="scene-body">
@@ -499,7 +505,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
   </section>
 
   <!-- 14 — CLOSING -->
-  <section class="scene title" data-kind="concept" data-seconds="38.0">
+  <section class="scene title" data-kind="concept" data-seconds="54.0">
     <div class="kicker">ADMET deep learning at a glance</div>
     <h2 style="font-size:38px">Structure in → learned graph features → cited safety verdict out.</h2>
     <div class="scene-body">
@@ -510,7 +516,7 @@ code{font-family:var(--ff-mono); font-size:.9em; background:var(--panel2); paddi
             <li><span class="k">1</span>The task — ADMET/tox from structure; hERG leads</li>
             <li><span class="k">2–3</span>Why it's hard; the classical QSAR baseline</li>
             <li><span class="k">4–5</span>The graph network; when deep beats classical</li>
-            <li><span class="k">6–7</span>Run on managed compute; the gate halts; read it honestly</li>
+            <li><span class="k">6–7</span>Run on managed compute; the gate halts; read the gated result</li>
           </ol>
         </div>
         <div class="lead-col">

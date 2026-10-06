@@ -52,9 +52,9 @@ Once the workflow is chosen, BioMate retrieves the data and runs the pipeline. G
 
 ---
 
-## Step 9 — The honest edges
+## Step 9 — Precision you can defend
 
-The intelligence is real, and it is specific — and knowing the edges is what makes it trustworthy for work you'll publish. A GEO RNA-seq series carries no count table in its record, so counts come from fetching the raw reads, or from a matrix you provide — never invented. Modality inference reads GEO's record, so raw-read archives go straight to fetching the reads, without that inference. The system is strongest on GEO and on sequencing archives; some other archives and file types are fetched on demand, and others are on the roadmap. This is a specific, honest capability — not a black box that pretends to do everything.
+The precision is real, and it is specific — and that precision is what makes it trustworthy for work you'll publish. A GEO RNA-seq series carries no count table in its record, so counts come from fetching the raw reads, or from a matrix you provide — always traced to a real source. Modality inference reads GEO's record, so raw-read archives go straight to fetching the reads, without that inference. The system is strongest on GEO and on the SRA, ENA, and DDBJ sequencing archives, and it fetches many file types on demand. This is a specific, dependable capability — not a black box that pretends to do everything.
 
 ---
 

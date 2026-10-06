@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · 结合自由能 — 在合成之前为类似物排序</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">相对结合自由能（FEP）— 在合成之前按活性为同系类似物排序</span>
+  <span class="spacer"></span>
+  <span class="counter">第 <b id="cur">0</b> / <span id="tot">10</span> 幕</span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="37.0">
+    <div class="topic-eyebrow"><span class="series">BioMate 教程</span> <b>结合自由能 · FEP</b></div>
+    <div class="kicker">献给要决定下一个该做哪个类似物的药物化学家</div>
+    <h2>哪个类似物结合得更紧？FEP 在你上实验台之前就为它们排序。</h2>
+    <p class="caption">你有一个先导化合物和一小把相近的类似物——同一个骨架，换掉一个基团。决定整一轮工作的那个问题很简单，却代价高昂：<b>哪一个与靶点结合得更紧？</b>相对结合自由能——FEP——用物理在计算机里回答它，于是你只去合成并检测那几个赢家，而不必做完整个系列。BioMate 在云端 GPU 上运行这项真实的计算（<code>openfe_rbfe</code>，OpenFE + OpenMM）。这一讲里，我们把这套思路从头搭起，再展示这条工作流究竟做了什么。</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>一个先导 + 同系类似物</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>炼金术式 FEP</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>每条边的 &Delta;&Delta;G，&plusmn; 误差</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>按预测活性排序</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>合成那些赢家</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="39.0">
+    <div class="kicker">它解决的问题</div>
+    <h2>先导优化是一个排序问题——而 docking 打分排不出这么精细的先后。</h2>
+    <p class="caption">在一轮从苗头到先导的工作里，你有一个骨架和许多小变体。你没法把它们全做出来。你需要在合成之前就知道，哪一处替换增强活性、哪一处削弱活性——这个差异往往还不到 1 kcal/mol。恰恰是在这个区间，快速打分会力不从心。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">抉择</div><h4>下一个做哪个类似物？</h4><p>同一个核心，换掉一个 R 基团。纸面上有十来个候选；你只做得起其中几个。</p></div>
+          <div class="tile"><div class="n">DOCKING 的局限</div><h4>好闸门，差尺子</h4><p>Docking 打分能很好地把结合剂与非结合剂分开，但对相近类似物那种精细的、不足 1 kcal 的排序并不可靠。</p></div>
+          <div class="tile"><div class="n">成本</div><h4>合成才是瓶颈</h4><p>每个类似物都是数周的化学合成加一次检测。做错了的那些，白白烧掉这一轮的时间和预算。</p></div>
+          <div class="tile"><div class="n">需求</div><h4>一个以物理为根基的排序</h4><p>一个系于真实热力学的预测，准到足以在上实验台之前就把系列排好序。</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>需求：按结合强弱为同系类似物排序，准到足以决定去合成什么</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker">你需要先懂的几个概念</div>
+    <h2>四个概念，整套方法就顺理成章。</h2>
+    <p class="caption">你不需要懂统计力学——只要这四个概念，按顺序。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · &Delta;G</div><h4>结合自由能</h4><p>一个配体与靶点结合得有多有利。越负表示结合越紧。它正是那个能映射到活性的量。</p></div>
+            <div class="tile"><div class="n">2 · &Delta;&Delta;G</div><h4>两个类似物之间的相对值</h4><p>FEP 算的是两个相近配体 &Delta;G 的<i>差值</i>——而非任何一个绝对值。正是那个差值把它们排出先后。</p></div>
+            <div class="tile"><div class="n">3 · 炼金术式</div><h4>在计算机里把 A 形变成 B</h4><p>一条非物理的路径，通过一连串中间的 &lambda; 态把一个配体逐步变成另一个——这就是让 &Delta;&Delta;G 变得可计算的妙招。</p></div>
+            <div class="tile"><div class="n">4 · 热力学循环</div><h4>闭合回路</h4><p>让这个变换既在口袋内部、又在溶剂中自由地各跑一遍；这个循环把<i>结合</i>那一部分单独分离出来，并给出一个内部的一致性校验。</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">整套方法就是：在类似物之间建一张图，沿着 &lambda; 窗口在口袋里、也在水中把一个形变成另一个，再从差值里读出 <b>&Delta;&Delta;G</b>。</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>背景——本讲余下部分会用到的词汇</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="34.0">
+    <div class="kicker"><span class="st">在 BioMate 里</span> · 目标 → 工作流 → GPU</div>
+    <h2>说出目标；BioMate 路由到真实的 FEP 引擎，并在云端 GPU 上运行它。</h2>
+    <p class="caption">提出要按结合自由能为类似物排序，BioMate 就路由到 <code>openfe_rbfe</code>——基于 <b>OpenFE</b> 与 <b>OpenMM&nbsp;8</b> 的相对结合自由能，它是小分子炼金术式 FEP 开放、经同行评审的标准。生产级计算需要一块 GPU 和数小时采样，所以它跑在 BioMate 的 GPU Batch 队列上；你确认一次，这份工作就在云端运行。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:center; gap:16px">
+            <span class="chip"><span class="i"></span>"按结合强弱为这些类似物排序"</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>openfe_rbfe</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>OpenFE + OpenMM 8</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>GPU Batch 运行</span>
+          </div>
+          <p class="footnote" style="margin-top:26px">真实工作流：<b>OpenFE Relative Binding Free Energy (RBFE)</b>，领域 <code>drug_discovery</code> &middot; 引擎 OpenFE / OpenMM（MIT）。三个阶段：<code>PREP</code> &rarr; <code>RBFE_SETUP</code> &rarr; <code>OPENFE_ANALYSIS</code>，最后一个跑在 GPU 队列上。</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>路由到领域标准的开放 FEP 引擎——而非某种定制的近似</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — INPUTS YOU BRING -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">输入</span> · 你要带来什么</div>
+    <h2>三样输入：靶点、一个参照配体，以及你要测试的类似物。</h2>
+    <p class="caption">FEP 是比较性的，所以输入是同一结合位点里一对相关的配体。BioMate 会从它们自动建起把两者连起来的那张图——即微扰网络。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">受体</div><h4>靶点结构</h4><p>作为一个 PDB 文件的蛋白结构（<code>receptor</code>），结合位点由一个已结合的构象来界定。起始结构很要紧——FEP 假定它是对的。</p></div>
+          <div class="tile"><div class="n">配体 A &rarr; B</div><h4>同系配对</h4><p><code>ligand_a</code> 是你的参照（已知），<code>ligand_b</code> 是查询类似物——各为一份 SDF。它们必须是近亲：同一个骨架，一处局部改动。</p></div>
+          <div class="tile"><div class="n">网络</div><h4>替你建好</h4><p>LOMAP 找出两者之间的原子映射，并规划出一张最小生成的配体网络——也就是 FEP 实际会去计算的那些边。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">必需：<code>receptor</code>、<code>ligand_a</code>、<code>ligand_b</code>。整个系列被当作网络上一组两两配对的边来处理。</p>
+        <div><span class="verdict ok"><span class="mk"></span>一个靶点加一对相关配体进去——微扰图出来</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — THE FEP CALCULATION -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">计算</span> · 它究竟在模拟什么</div>
+    <h2>准备、映射，再沿着 &lambda; 窗口对变换采样。</h2>
+    <p class="caption">这三个阶段是真实而顺序相接的。准备与设置很快、跑在 CPU 上；采样本身才是产出那个数字的、受 GPU 约束的重活。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">1 · PREP</div><h4>干净的三维配体</h4><p>RDKit 把两个配体标准化并生成三维构象（ETKDG）。蛋白则在设置阶段由 OpenFE 自己的处理流程备好。</p></div>
+          <div class="tile"><div class="n">2 · RBFE_SETUP</div><h4>映射 + 协议</h4><p>LOMAP 原子映射与配体网络，随后是炼金术式协议及其任务图——只构建、尚未采样。这一阶段刻意不会有 &Delta;&Delta;G。</p></div>
+          <div class="tile"><div class="n">3 · OPENFE_ANALYSIS</div><h4>先采样，再估计</h4><p>OpenMM 在 GPU 上跨 &lambda; 窗口做分子动力学，然后 MBAR 从相互重叠的态里汇集出每条边的 <b>&Delta;&Delta;G &plusmn; SEM</b>。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">可调的默认值：温度 <code>298.15&nbsp;K</code>、平衡 <code>1&nbsp;ns</code>、每个 &lambda; 窗口生产模拟 <code>5&nbsp;ns</code>、<code>11</code> 个 &lambda; 窗口、<code>3</code> 次独立重复（用于 SEM）、LOMAP <code>max3d&nbsp;1.0&nbsp;&Aring;</code>。</p>
+        <div><span class="verdict ok"><span class="mk"></span>真实的 OpenMM 跨 &lambda; 窗口采样 → MBAR 估计——而非一个打分启发式</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker"><span class="st">输出</span> · 一个排好序、站得住脚的数字</div>
+    <h2>每条边的 &Delta;&Delta;G 带一个不确定度——循环闭合让你看清哪些边是扎实的。</h2>
+    <p class="caption">结果是每条边的一个自由能差值，并带着那个告诉你该不该信它的蒙特卡洛误差。负的 &Delta;&Delta;G 意味着查询类似物比参照结合得更紧；正的则更松。正负号与大小，就是给你的系列排序的依据。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3" style="grid-template-columns:1.4fr 1fr">
+          <div class="tile"><div class="n">ddg_summary.json</div><h4>每条边的 &Delta;&Delta;G &plusmn; SEM</h4><p>每条边以 kcal/mol 计的相对结合自由能及其标准误，外加网络和映射质量。负 &rarr; <code>ligand_b</code> 结合更强；正 &rarr; 更弱。按这些值给系列排序。</p></div>
+          <div class="tile"><div class="n">QC 门</div><h4>循环闭合</h4><p>绕着一个由 &ge;3 条边组成的闭环，这些 &Delta;&Delta;G 本应加和为零；偏离量就是一个内建的收敛性校验（闸门约在 1&nbsp;kcal/mol），让你在整张网络上看清哪些边是扎实的。</p></div>
+        </div>
+        <ul class="points" style="margin-top:4px">
+          <li><span class="b gr"></span><span><b>误差与数字同行。</b>每个 &Delta;&Delta;G 都带着一个 MBAR 不确定度，于是一条收敛良好的紧致边，与一条有噪声的边便能被区分开。</span></li>
+          <li><span class="b am"></span><span><b>每个数字都带着它的不确定度。</b>收敛良好、误差小的那些边，正是你用来排序和下手的——而循环闭合校验会在整张网络上替你确认这个判断。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>一个你拿得出手去捍卫的排好序的自由能差值——并附上它的不确定度</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — USING IT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker"><span class="st">用好这个结果</span> · 先决策，再在实验台上确认</div>
+    <h2>优先安排该合成的——并把这个数字当作一个待验证的预测。</h2>
+    <p class="caption">FEP 靠重塑合成队列赚回它的成本：去做它排为收益的那些类似物，把损失的往后放。它是一个预测，所以这个循环要在检测处闭合，而工作流内置了一种对照已知答案来核验方法的办法。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">优先排序</div><h4>重排队列</h4><p>去合成那些预测会增强亲和力的边；把预测会削弱的往后放。这一轮的化学投入，就花在物理学说它会有回报的地方。</p></div>
+          <div class="tile"><div class="n">验证</div><h4>用检测来确认</h4><p>你做出来的化合物的实测活性，才是基准真相。FEP 收窄清单；湿实验确认赢家。</p></div>
+          <div class="tile"><div class="n">校准</div><h4>对照已知来核验</h4><p>内置一个 <code>validate</code> 选项，把一条边与一个已发表的实验 &Delta;&Delta;G（OpenFE 基准配对，如 Tyk2 / CDK2）作比较，让你看到这套方法在你的设置上的准确度。</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">作为一个通用的预期，收敛良好的小分子 RBFE 大致落在实验值约 1 kcal/mol 之内——足以用来排序——但这取决于体系、构象、力场与收敛情况，所以它必须被核验，而不能被想当然地假定。</p>
+        <div><span class="verdict ok"><span class="mk"></span>一个更锐利的合成决策——在实验台上验证，而非盲目信任</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST LIMITS -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker">你确切得到什么</div>
+    <h2>把范围讲清楚，好让你确切知道自己得到了什么。</h2>
+    <p class="caption">FEP 既强大又精确。知道它确切能给你什么，正是它能用于你要去捍卫的决策、以及你要去发表的工作的原因。</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">相对，而非绝对</div><h4>类似物之间的差值</h4><p>RBFE 给的是同系配对之间的 &Delta;&Delta;G——它把一个系列对着一个参照来排序。它不是绝对亲和力，而且它需要配体彼此是近亲、带有良好的原子映射。</p></div>
+          <div class="tile"><div class="n">构象 &amp; 采样</div><h4>构象是废料，数字就是废料</h4><p>它假定一个正确的起始结构和结合构象，以及足以收敛的采样。错误的构象或采样不足，会给出一个信心满满却错误的 &Delta;&Delta;G；SEM 和循环闭合校验正是用来抓住它的。</p></div>
+          <div class="tile"><div class="n">成本 &amp; 算力</div><h4>每条边在 GPU 上数小时</h4><p>生产级 RBFE 耗算力：每条边一块 GPU 和数小时的 MD。准确度取决于力场与收敛——这是一项刻意为之、代价不菲的计算，而非一个快速过滤器。</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>具体而诚实——一个有明示假设的物理工具，而非一个黑箱</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="37.0">
+    <div class="kicker">一眼看懂它的价值</div>
+    <h2 style="font-size:40px">用物理为类似物排序。做出赢家。在实验台上确认。</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">要点就一句话：<b>在你花掉一整轮合成之前，FEP 告诉你哪个类似物值得去做。</b>BioMate 把你的目标路由到 <code>openfe_rbfe</code>，建好微扰图，在云端 GPU 上沿着 &lambda; 窗口对炼金术式变换采样，再交回每条边的 &Delta;&Delta;G 及其不确定度——给系列排好序，每个数字都带着那个让你看清哪些边扎实的 MBAR 误差。</p>
+          <ol class="habit">
+            <li><span class="k">1</span>带来一个靶点结构和一对同系物（参照 + 查询）</li>
+            <li><span class="k">2</span>BioMate 替它们映射，并路由到 GPU 队列上的 <code>openfe_rbfe</code></li>
+            <li><span class="k">3</span>它对变换采样，交回每条边的 &Delta;&Delta;G &plusmn; SEM</li>
+            <li><span class="k">4</span>照着排序优先安排合成；用检测验证赢家</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>它回答什么</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">哪个类似物结合更紧</span></td></tr>
+            <tr><td>引擎</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">OpenFE + OpenMM 8</span></td></tr>
+            <tr><td>输出</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">每条边的 &Delta;&Delta;G &plusmn; SEM</span></td></tr>
+            <tr><td>算力</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">云端 GPU Batch</span></td></tr>
+            <tr><td>诚实的边界</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">相对 · 构象 · 成本</span></td></tr>
+          </table>
+          <p class="footnote">从一个先导和它的类似物，到一个以物理为根基、关于该合成什么的排序——每个数字都带着它自己的不确定度。化学的力气，花在它有回报的地方。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

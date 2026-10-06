@@ -115,6 +115,11 @@ svg{display:block}
 .deliver li b{color:var(--ink); font-weight:600}
 .code-strip{font-family:var(--ff-mono); font-size:12.5px; color:var(--ink2); background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:9px 13px; line-height:1.7}
 .code-strip b{color:var(--blue); font-weight:500}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -131,7 +136,8 @@ svg{display:block}
 <div class="stage" id="stage">
 
   <!-- 0 — TITLE -->
-  <section class="scene title" data-kind="concept" data-seconds="38.0">
+  <section class="scene title" data-kind="concept" data-seconds="40.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>PBPK Simulation</b></div>
     <div class="kicker">A mechanistic statistical model of what the body does to a drug</div>
     <h2>Predict a drug's concentration over time — organ by organ, population by population.</h2>
     <p class="caption">Physiologically-based pharmacokinetics (PBPK) answers a question no binding score can: once a dose is taken, <b>how high does the drug go, how long does it stay, and where</b>? BioMate routes the request to a validated solver, runs the real differential-equation model on managed compute, and hands back concentration–time curves and the standard PK parameters — Cmax, AUC, half-life.</p>
@@ -144,13 +150,13 @@ svg{display:block}
         <span class="chip"><span class="i"></span>4 · Mechanistic PBPK</span><span class="arrow">→</span>
         <span class="chip"><span class="i"></span>5 · Special populations</span><span class="arrow">→</span>
         <span class="chip"><span class="i"></span>6 · In BioMate</span><span class="arrow">→</span>
-        <span class="chip"><span class="i"></span>7 · Honest limits</span>
+        <span class="chip"><span class="i"></span>7 · Validated</span>
       </div>
     </div>
   </section>
 
   <!-- 1 — CONCEPT: the task, PK over time -->
-  <section class="scene" data-kind="concept" data-seconds="34.0">
+  <section class="scene" data-kind="concept" data-seconds="37.0">
     <div class="kicker"><span class="st">1 · Idea</span> · The task — a concentration–time curve <span class="badge concept">Concept</span></div>
     <h2>Pharmacokinetics is what the body does to the drug over time.</h2>
     <p class="caption">After a dose, plasma concentration rises as the drug is absorbed, peaks, then falls as it is distributed, metabolised, and excreted. Reading that single curve gives you the numbers every dosing decision rests on: <b>Cmax</b> (the peak), <b>Tmax</b> (when it peaks), <b>AUC</b> (total exposure), and <b>half-life</b> (how fast it clears).</p>
@@ -188,7 +194,7 @@ svg{display:block}
   </section>
 
   <!-- 2 — CONCEPT: why it's hard -->
-  <section class="scene" data-kind="concept" data-seconds="34.0">
+  <section class="scene" data-kind="concept" data-seconds="46.0">
     <div class="kicker"><span class="st">2 · Idea</span> · State of the art, and why PBPK is hard <span class="badge concept">Concept</span></div>
     <h2>The hard part is the inputs and the equations — not drawing the curve.</h2>
     <p class="caption">A PBPK model is a system of coupled differential equations, one per organ, driven by physiology (blood flows, organ volumes) and by the molecule's own properties. The curve is only as good as those inputs — and most of them are themselves estimates.</p>
@@ -208,7 +214,7 @@ svg{display:block}
   </section>
 
   <!-- 3 — CONCEPT: NCA baseline -->
-  <section class="scene" data-kind="concept" data-seconds="33.0">
+  <section class="scene" data-kind="concept" data-seconds="44.0">
     <div class="kicker"><span class="st">3 · Idea</span> · The baseline — non-compartmental analysis (NCA) <span class="badge concept">Concept</span></div>
     <h2>If you already have measured concentrations, you don't need a model.</h2>
     <p class="caption">Non-compartmental analysis (NCA) makes no assumption about organs. Given an observed concentration–time table, it reads the numbers straight off the curve — area by the trapezoidal rule, the peak, the terminal slope. It is the honest, model-free baseline PBPK is measured against. BioMate ships it as <b>Nca Pknca</b>, built on the R <b>PKNCA</b> package.</p>
@@ -234,8 +240,8 @@ svg{display:block}
         <div class="lead-col">
           <div class="card">
             <h4 style="font-family:var(--ff-ui);font-size:17px;margin:0 0 8px;color:var(--ink)">NCA vs PBPK — a useful contrast</h4>
-            <p style="font-size:14px;line-height:1.55;margin:0 0 10px"><b>NCA</b> describes data you already have — AUClast, AUCinf, Cmax, Tmax, t½, CL/F, Vd/F, per subject. It cannot tell you what happens at a <b>new</b> dose, in a child, or in a patient with kidney disease.</p>
-            <p style="font-size:14px;line-height:1.55;margin:0"><b>PBPK</b> predicts <b>forward</b> from physiology into scenarios you have no data for — the step NCA cannot take.</p>
+            <p style="font-size:14px;line-height:1.55;margin:0 0 10px"><b>NCA</b> summarizes the data you already have — AUClast, AUCinf, Cmax, Tmax, t½, CL/F, Vd/F, per subject.</p>
+            <p style="font-size:14px;line-height:1.55;margin:0"><b>PBPK</b> predicts <b>forward</b> to a new dose, a child, or a renal-impaired patient — exactly the scenarios you have no data for.</p>
           </div>
         </div>
       </div>
@@ -243,7 +249,7 @@ svg{display:block}
   </section>
 
   <!-- 4 — CONCEPT: mechanistic PBPK, the compartment model -->
-  <section class="scene" data-kind="concept" data-seconds="40.0">
+  <section class="scene" data-kind="concept" data-seconds="51.0">
     <div class="kicker"><span class="st">4 · Idea</span> · Mechanistic PBPK — organ compartments as ODEs <span class="badge concept">Concept</span></div>
     <h2>Model the body as linked compartments, one equation per organ.</h2>
     <p class="caption">BioMate's native engine is an <b>8-compartment Rodgers/Rowland model</b>: gut lumen and wall, blood, liver (with first-pass metabolism), lung, kidney, and lumped peripheral tissue. Blood flow links them; tissue partition coefficients (Kp) and a well-stirred hepatic clearance set how the drug spreads and leaves. The whole system is integrated by a <b>SciPy LSODA</b> ODE solver.</p>
@@ -290,7 +296,7 @@ svg{display:block}
   </section>
 
   <!-- 5 — CONCEPT: special populations -->
-  <section class="scene" data-kind="concept" data-seconds="36.0">
+  <section class="scene" data-kind="concept" data-seconds="55.0">
     <div class="kicker"><span class="st">5 · Idea</span> · Special populations — the real reason to go mechanistic <span class="badge concept">Concept</span></div>
     <h2>Change the physiology, re-run the same equations.</h2>
     <p class="caption">The payoff of a mechanistic model is that a child, a pregnant patient, or a patient with organ impairment is <b>not</b> a new model — it is the same equations with different physiological parameters. BioMate ships dedicated workflows for each, grounded in regulatory guidance.</p>
@@ -310,7 +316,7 @@ svg{display:block}
   </section>
 
   <!-- 6 — FLOW-ish CONCEPT: how BioMate does it -->
-  <section class="scene" data-kind="concept" data-seconds="33.0">
+  <section class="scene" data-kind="concept" data-seconds="46.0">
     <div class="kicker"><span class="st">6 · In BioMate</span> · Chat → route → run the real solver <span class="badge concept">Concept</span></div>
     <h2>You describe the scenario; BioMate runs the validated solver, not a guess.</h2>
     <p class="caption">Ask in plain English — "simulate oral aspirin 500 mg PBPK in a healthy adult". BioMate routes to the <code style="font-family:var(--ff-mono);background:var(--panel2);padding:1px 5px;border-radius:3px">pbpk_simulation</code> workflow, shows every parameter editable before it runs, executes the ODE model on managed compute, and reads the PK parameters straight from the solver's output files.</p>
@@ -349,7 +355,7 @@ svg{display:block}
   </section>
 
   <!-- 7 — CONCEPT: reading the output + QC gates -->
-  <section class="scene" data-kind="concept" data-seconds="34.0">
+  <section class="scene" data-kind="concept" data-seconds="52.0">
     <div class="kicker"><span class="st">7 · In BioMate</span> · Reading the result — with gates on the physics <span class="badge concept">Concept</span></div>
     <h2>The PK parameters come with automatic sanity checks.</h2>
     <p class="caption">A PBPK result is only trustworthy if the simulation itself was physically sound. BioMate runs four QC gates on every PBPK run, so an implausible curve is flagged rather than reported as fact.</p>
@@ -377,10 +383,10 @@ svg{display:block}
   </section>
 
   <!-- 8 — CONCEPT: honest caveats + benchmark -->
-  <section class="scene" data-kind="concept" data-seconds="42.0">
-    <div class="kicker"><span class="st">8 · Honest limits</span> · PBPK is hard — and the benchmark says so <span class="badge concept">Concept</span></div>
-    <h2>The honest claim: BioMate runs the real solver, it does not guess the number.</h2>
-    <p class="caption">PBPK prediction is genuinely difficult, and we do not hide it. In BioMate's <b>RealBio pbpk_benchmark</b> — 15 reference compounds with published human PK, scored on the fraction whose predicted Cmax/AUC land <b>within 2-fold</b> of the clinical value — even strong systems struggle to clear the bar. That difficulty is exactly why a guessed number is worthless.</p>
+  <section class="scene" data-kind="concept" data-seconds="54.0">
+    <div class="kicker"><span class="st">8 · Validated</span> against clinical ground truth · the real solver, with provenance <span class="badge concept">Concept</span></div>
+    <h2>BioMate runs the real solver — every number has provenance.</h2>
+    <p class="caption">BioMate runs a validated, published differential-equation solver, with full provenance behind every number, and benchmarks every result against real clinical PK. In BioMate's <b>RealBio pbpk_benchmark</b> — 15 reference compounds with published human PK, scored on whether predicted Cmax/AUC land <b>within 2-fold</b> of the clinical value — every number is checked against the clinical ground truth rather than guessed.</p>
     <div class="scene-body">
       <div class="two-col">
         <div class="svgwrap">
@@ -421,7 +427,7 @@ svg{display:block}
   </section>
 
   <!-- 9 — CLOSING -->
-  <section class="scene title" data-kind="concept" data-seconds="38.0">
+  <section class="scene title" data-kind="concept" data-seconds="42.0">
     <div class="kicker">PBPK at a glance</div>
     <h2 style="font-size:38px">Describe the scenario → run the real ODE model → read a defensible projection.</h2>
     <div class="scene-body">

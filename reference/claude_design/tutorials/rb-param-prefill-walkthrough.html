@@ -81,6 +81,11 @@ body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:10
 .summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
 .summary-tbl tr:last-child td{border-bottom:none}
 code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
 </style>
 </head>
 <body>
@@ -97,6 +102,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 0 — THE TASK -->
   <section class="scene title" data-seconds="38.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>RealBio · Parameter Prefill</b></div>
     <div class="kicker">The task · param_prefill</div>
     <h2 style="font-size:44px">A sentence of science. Dozens of parameters — every one exactly right.</h2>
     <p class="caption">A scientist writes one request: <b>"RNA-seq differential expression, human GRCh38, dUTP strand-specific, treated vs control, FDR 0.05."</b> The job is to fill the workflow's parameters correctly — convert units, honor negations, set boolean flags, and normalize the aliases a schema actually accepts. This is exactly where a raw language model is least reliable: arithmetic unit conversions, deterministic boolean mapping, and schema-constrained enums.</p>
