@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Cross-domain routing — intent to the one correct workflow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Cross-domain routing — one request, the one correct pipeline</span>
+  <span class="spacer"></span>
+  <span class="counter">Scene <b id="cur">0</b> / <span id="tot">4</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE · THE TASK -->
+  <section class="scene title" data-seconds="28.0">
+    <div class="kicker">Capability advantage · intent → correct workflow</div>
+    <h2>A plain-English request has to find the one right pipeline out of thousands.</h2>
+    <p class="caption">A scientist asks in their own words — "call somatic variants on these tumour-normal pairs," "quantify this bulk RNA-seq and run differential expression." The system has to map that intent to the single correct pipeline across many domains — genomics, transcriptomics, proteomics, cryo-EM, drug discovery. <b>Pick the wrong one and the whole run is wasted.</b> This is <b>cross-domain routing</b>, and it is where orchestration either earns its keep or fails quietly.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>A request in plain English</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Thousands of candidate workflows</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Many domains</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Exactly one correct pipeline</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — BIOMATE DOING IT -->
+  <section class="scene" data-seconds="29.0">
+    <div class="kicker">BioMate doing it</div>
+    <h2>It matches intent against an indexed catalog by meaning, not keywords.</h2>
+    <p class="caption">BioMate does not guess a pipeline name from memory. It holds <b>4,210 indexed workflows across 42 domains</b> and scores your request against every one of them by dense-cosine resonance — comparing what you <i>mean</i> to what each workflow <i>does</i> — then returns the best-matching pipeline, with its domain and steps attached.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:center; gap:16px">
+            <span class="chip"><span class="i"></span>Your request</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Resonance over 4,210 workflows</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>Ranked candidates</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>The one correct pipeline</span>
+          </div>
+          <div class="row3" style="margin-top:28px">
+            <div class="tile"><div class="n">INDEXED CATALOG</div><h4>4,210 real workflows</h4><p>Curated and validated pipelines across 42 domains — each described by what it actually does.</p></div>
+            <div class="tile"><div class="n">RESONANCE</div><h4>Match by meaning</h4><p>Dense-cosine similarity ranks every candidate against the request — synonyms and paraphrase included, no brittle keyword list.</p></div>
+            <div class="tile"><div class="n">CROSS-DOMAIN</div><h4>All domains at once</h4><p>Genomics, transcriptomics, proteomics, cryo-EM, drug discovery — one selector spans them all.</p></div>
+          </div>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Retrieval over a real catalog — not a name recalled from training</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE RESULT · SCORE VS LLMs -->
+  <section class="scene" data-seconds="29.0">
+    <div class="kicker"><span class="st">The result</span> · score vs LLMs-direct</div>
+    <h2>On cross-domain routing, BioMate scores 0.965. A bare model averages 0.46.</h2>
+    <p class="caption">The metric is <b>intent → correct-workflow accuracy</b>: given a plain-English request, did the system select the right pipeline? Higher is better. BioMate's catalog-grounded routing clears it almost every time; asking a frontier LLM to name the pipeline directly does not.</p>
+    <div class="scene-body">
+      <figure class="shotcol" style="flex:1.35">
+        <span class="lbl">Benchmark · intent → correct-workflow accuracy (0–1, higher is better)</span>
+        <div class="frame" style="box-shadow:none; background:var(--panel)">
+          <div style="width:100%; height:100%; display:flex; flex-direction:column; padding:26px 30px 20px">
+            <!-- plot area -->
+            <div style="flex:1; display:flex; align-items:flex-end; gap:48px; padding:0 24px; border-left:1px solid var(--line2); border-bottom:2px solid var(--line2); position:relative; min-height:0">
+              <!-- gridline + axis labels -->
+              <div style="position:absolute; left:-30px; top:-2px; font-family:var(--ff-mono); font-size:11px; color:var(--mut)">1.0</div>
+              <div style="position:absolute; left:-30px; top:50%; transform:translateY(-50%); font-family:var(--ff-mono); font-size:11px; color:var(--mut)">0.5</div>
+              <div style="position:absolute; left:-30px; bottom:-8px; font-family:var(--ff-mono); font-size:11px; color:var(--mut)">0.0</div>
+              <div style="position:absolute; left:0; right:0; top:50%; border-top:1px dashed var(--line2)"></div>
+
+              <!-- BioMate bar: 0.965 -->
+              <div style="flex:1; max-width:140px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%">
+                <div style="font-family:var(--ff-mono); font-size:22px; font-weight:600; color:var(--green); margin-bottom:8px">0.965</div>
+                <div style="width:100%; height:96.5%; background:#1c6b3a; border-radius:6px 6px 0 0; box-shadow:0 4px 14px rgba(28,107,58,.28)"></div>
+              </div>
+
+              <!-- LLM best bar: 0.615 -->
+              <div style="flex:1; max-width:140px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%">
+                <div style="font-family:var(--ff-mono); font-size:20px; font-weight:600; color:var(--mut); margin-bottom:8px">0.615</div>
+                <div style="width:100%; height:61.5%; background:#9aa6b8; border-radius:6px 6px 0 0"></div>
+              </div>
+
+              <!-- LLM mean bar: 0.46 -->
+              <div style="flex:1; max-width:140px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%">
+                <div style="font-family:var(--ff-mono); font-size:20px; font-weight:600; color:var(--mut); margin-bottom:8px">0.46</div>
+                <div style="width:100%; height:46%; background:#c2cad6; border-radius:6px 6px 0 0"></div>
+              </div>
+            </div>
+            <!-- x labels -->
+            <div style="display:flex; gap:48px; padding:12px 24px 0">
+              <div style="flex:1; max-width:140px; text-align:center; font-size:13.5px; font-weight:600; color:var(--ink)">BioMate</div>
+              <div style="flex:1; max-width:140px; text-align:center; font-size:13px; color:var(--mut)">LLM-direct<br/>best</div>
+              <div style="flex:1; max-width:140px; text-align:center; font-size:13px; color:var(--mut)">LLM-direct<br/>mean</div>
+            </div>
+          </div>
+        </div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b gr"></span><span><b>BioMate 0.965.</b> 95% confidence interval <code>[0.930, 0.983]</code> — it picks the right pipeline almost every time.</span></li>
+          <li><span class="b"></span><span><b>LLM-direct, best model 0.615.</b> The strongest frontier model asked to name the pipeline directly.</span></li>
+          <li><span class="b"></span><span><b>LLM-direct, mean 0.46.</b> Across the model sweep — roughly a coin-flip on which pipeline to run.</span></li>
+          <li><span class="b am"></span><span>A wrong pick is a wasted run. The gap is the difference between a defensible result and an expensive mistake.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>+0.35 over the best bare model; roughly double the mean</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — TITLE · TAKEAWAY -->
+  <section class="scene title" data-seconds="27.0">
+    <div class="kicker">The takeaway</div>
+    <h2 style="font-size:44px">Routing is where orchestration beats a bare model.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:19px">Naming the one correct pipeline from a plain-English request is a <b>retrieval problem over a real catalog</b>, not a feat of recall. BioMate's indexed workflows and dense-cosine resonance are the moat: they turn "which pipeline?" from a coin-flip into a near-certainty — <b>0.965 versus 0.46</b> — and every routing answer is reproducible and effectively free to serve.</p>
+          <div style="margin-top:18px"><span class="verdict ok"><span class="mk"></span>The catalog + resonance is the moat</span></div>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Task</td><td>Cross-domain routing (intent → correct workflow)</td></tr>
+            <tr><td>Metric</td><td>Correct-workflow accuracy (0–1)</td></tr>
+            <tr><td>BioMate</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">0.965&nbsp;·&nbsp;[.930,.983]</span></td></tr>
+            <tr><td>LLM-direct</td><td><span class="verdict plain" style="margin:0;padding:3px 8px;font-size:11px">0.46 mean · 0.615 best</span></td></tr>
+            <tr><td>Why</td><td>4,210 indexed workflows + dense-cosine resonance</td></tr>
+          </table>
+          <p class="footnote">Catalog-grounded retrieval, not recall. One request → the one correct pipeline, reproducibly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>
