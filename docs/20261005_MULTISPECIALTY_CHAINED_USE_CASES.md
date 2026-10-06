@@ -67,3 +67,13 @@ Stretch (flag as partially-grounded): `multi_omics_mofa_chain` [transcriptomics 
 
 ## Change log
 - 2026-10-05 — created: capability framing (honest), 6 publication-anchored multi-specialty chained use cases, and the first end-to-end chain-engine validation run (DE→enrichment on airway/GSE52778).
+
+## Connection audit across ALL chains (static, 69 chains / 137 connections)
+Full report: `docs/20261005_CHAIN_CONNECTION_AUDIT.md`. Totals: **OK 23 · FALLBACK(brittle) 12 · BROKEN 56 · UNCERTAIN 46**; **33 of 69 chains have ≥1 broken connection**, 9 fully clean (entirely OK: alternative_polyadenylation_analysis, bioc_proteomics_de_v2, bioc_scrna_cluster_v2, cellcell_communication_with_viz, time_series_de_with_edge).
+
+**Two independent layers break the handoff (both must be fixed for end-to-end chaining):**
+1. **Runtime (enabling bug):** `_list_run_output_files` doesn't retrieve a Batch step's S3 outputs → empty file list → every connection fails regardless of name (my live finding; blocks ALL chains today).
+2. **Static (naming/contract):** even with outputs available, 56/137 `from_output` labels don't match the published filename. Three sub-classes: (a) **renameable** (~34 — upstream emits it, label just mismatches: e.g. `de_results`→`results`, `count_matrix`→`counts_matrix` typo, `de_table`→`results`); (b) **design gaps** (~15 — upstream wrapper emits no such artifact: scater QC persists no `.rds` SCE → scrna_pseudobulk/consensus can't hand off; variant_burden no `.gds`; recount3 no RSE; annotate step no `.h5ad`; predict_admet no filtered SDF); (c) **scalar PK/ADMET fields** (`herg_ic50_nM`, `bioavailability`, …) the file-resolver can't address — need the existing `context_params` mechanism, which those chains don't set.
+3. **Fallback mis-gating:** the `_EXT_TO_PARAM` heuristic runs ONLY for chains with NO connections (gated `elif idx>0`), so connection-based chains get no safety net when a name misses — it should also apply as a fallback.
+
+**Prioritized fix plan:** (F1) fix `_list_run_output_files` to list the S3 outdir — single enabling fix for all chaining; (F2) rename the ~34 mismatched connection labels in the chain templates/DB (low-risk data fix); (F3) enable the ext fallback for connection-based chains; (F4) per-workflow wrapper fixes for the ~15 design gaps (emit the missing artifact) + wire `context_params` for the scalar PK/ADMET chains. Re-validate each fixed chain end-to-end on Batch.
