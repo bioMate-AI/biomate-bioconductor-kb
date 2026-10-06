@@ -88,6 +88,10 @@ GEN = {
               "Respond with a JSON list of the ligand indices (1-based, matching the input order), "
               "e.g. [3, 2, 1]. JSON list only.",
         parse=lambda t: (lambda m: json.loads(m.group()) if m else [])(re.search(r"\[.*?\]", t or "", re.S))),
+    "findings_probe": dict(
+        inp=lambda r: f"Run context: {r.get('context')}. Output artifacts produced: {r.get('artifacts')}.",
+        instr="Given the outputs this BioMate run produced, state the key finding(s) concisely for the user.",
+        parse=lambda t: (t or "").strip()),
     "task_decomposition": dict(
         inp=lambda r: r["query"],
         instr=("Decompose this request into an ordered plan of sub-tasks. Reply ONLY a JSON list of "

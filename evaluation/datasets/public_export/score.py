@@ -231,8 +231,31 @@ def score_task_decomposition(gt, preds):
     return {"n": n, "structure_accuracy": round(struct_hit/max(n,1), 3), "ci95": wilson(struct_hit, n),
             "subtask_count_coverage": round(cov/max(n,1), 3)}
 
+def _rouge1_f1(pred, ref):
+    from collections import Counter
+    def toks(s): return re.findall(r"[a-z0-9]+", str(s).lower())
+    p, g = toks(pred), toks(ref)
+    if not p or not g: return 0.0
+    overlap = sum((Counter(p) & Counter(g)).values())
+    prec, rec = overlap / len(p), overlap / len(g)
+    return 2 * prec * rec / (prec + rec) if prec + rec else 0.0
+
+def score_findings_probe(gt, preds):
+    """INDICATIVE proxy (no LLM judge): ROUGE-1 F1 of the generated finding vs the held-out
+    reference narrative. F1 (not recall) so pure verbosity is penalized. Reference items are held
+    out from the SFT training rows."""
+    f1s = []
+    for i, r in gt.items():
+        if i not in preds: continue
+        p = preds[i]
+        text = p if isinstance(p, str) else (p.get("text", "") if isinstance(p, dict) else str(p))
+        f1s.append(_rouge1_f1(text, r.get("reference", "")))
+    return {"scored": len(f1s), "mean_rouge1_f1": round(sum(f1s) / len(f1s), 4) if f1s else None,
+            "note": "INDICATIVE proxy: ROUGE-1 F1 vs held-out reference finding; no LLM judge"}
+
 SCORERS = {
     "cross_domain_routing": score_routing, "protocol_thresholds": score_protocol,
+    "findings_probe": score_findings_probe,
     "boin_benchmark": score_boin, "workflow_generation": score_workflow_gen,
     "param_prefill": score_param_prefill, "pbpk_benchmark": score_pbpk,
     "drug_discovery_e2e": score_drug_disc, "autofix_benchmark": score_autofix,
