@@ -111,7 +111,7 @@ m2 (DESeq2/GSE52778) + qpcr (ΔΔCq) assets). So the video workstream is **NOT**
   translated (idiomatic, reviewed), per-scene slots fitted to the narration (the d1/d2/s2 narrations
   badly overran their authored `data-seconds` — `scripts/recording/fit-scene-slots.py` sizes each
   scene to max(EN,ZH)+pad before recording). Ports 7790/7791/7792.
-- 2026-10-05 (session 14) — **M3 (accession → dataset → workflow) authored + rendering.** NEW episode
+- 2026-10-05 (session 14) — **M3 (accession → dataset → workflow) rendered EN+ZH and uploaded.** NEW episode
   demonstrating BioMate's accession intelligence on real GEO/SRA IDs (resolve_accession ID→fetcher;
   context-aware routing of the same GEO ID → microarray-DE / DESeq2-chain / GSEA with auto-filled
   params). Grounded capability list + honest gaps: `docs/20261005_ACCESSION_TO_WORKFLOW_CAPABILITY.md`.

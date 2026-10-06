@@ -102,3 +102,5 @@ Assets: live `resolve_accession` + routing JSON (captured); a rendered "two-stag
 
 ## Change log
 - 2026-10-05 — created: grounded capability list + live GEO demo results + m3 tutorial spec. Corrects the earlier (wrong) "recount3 fallback" note in `docs/20261005_REALBIO_CAPABILITY_DEMO_SERIES.md` gap list.
+
+- 2026-10-05 — m3 tutorial RENDERED EN+ZH (321 s) from the live resolve/routing tables and uploaded to `biomate_drive:…/marketing/data_centroid_tutorial/videos/` (m3-accession-{en,zh}.mp4). Frame-audited: resolve + routing tables render correctly in-video.
