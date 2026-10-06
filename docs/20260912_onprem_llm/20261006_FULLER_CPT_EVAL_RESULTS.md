@@ -34,8 +34,18 @@ frozen 261-item openbook diagnostic (knowledge_recall n=112, scientific_qa n=149
   the unconstrained generation (it rescues the few the model would fumble + always emits a valid letter).
 - base here is 0.670 (constrained) vs 0.679 (earlier generation) — a method difference (argmax-letter vs
   free-gen), consistent; both arms use the same method so the deltas are fair.
-- **Leakage:** the eval set is the exact-stem-filtered frozen diagnostic; source-family holdout vs the SFT
-  set is still not certified (carry-over caveat).
+- **Leakage (now certified — QUALIFIED YES; see `20261006_EVAL_HOLDOUT_CERTIFICATION.md`):** the gain is
+  **not** a leakage artifact. Against real S3 data: 5/261 eval stems appear verbatim in the concept-SFT
+  (all MedMCQA/knowledge_recall) and 7/261 are genuine near-dup item-leaks (Jaccard ≥0.8); the prior
+  "exact-stem filter" was run against a *different* export and never touched `multitask_sft_concept.jsonl`.
+  **But** the +5.4pp knowledge_recall net gain (+6 items) sits on the CLEAN items: of the 7 leaked items
+  only 1 flipped base-wrong→domainpro-right; the <0.6-overlap clean bucket (88 items) carries +5 of the net
+  gain. Leakage-controlled re-scores: **drop the 8 high-overlap items → +3.8pp; drop everything ≥0.6 → +5.7pp.**
+  **For any external claim, report the dedup-controlled +3.8pp alongside the raw +5.4pp.** Still UNcertified:
+  the eval is NOT source-family-held-out from the SFT (MedMCQA/MedQA/SciQ/PubMedQA families are in BOTH, no
+  split manifest) — absolute scores are in-distribution; CPT corpora are clean by source but only ~11% were
+  exact-scanned and no embedding/paraphrase audit was run. Root-cause fixes (re-filter vs the SFT file itself;
+  add an item-id split manifest) are documented in the certification doc — do before any external release.
 - **Cost:** this spot box ≈ g6.2xlarge spot ~45 min (~$0.5); the earlier (deviating) on-demand cpt800 box
   was ~$1.3–1.8. Both self-terminated.
 
