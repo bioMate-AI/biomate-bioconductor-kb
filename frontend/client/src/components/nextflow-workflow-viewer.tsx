@@ -1596,7 +1596,7 @@ export function NextflowWorkflowViewer({
     if (!hasGroups) {
       const allParams = updatedPhases.flatMap((p: any) => Object.keys(p.parameters || {}));
       const uniqueParams = Array.from(new Set(allParams)) as string[];
-      return [{ key: 'all', label: 'Steps', steps: updatedPhases, phaseParams: uniqueParams }];
+      return [{ key: 'all', label: tOr('panel.phase.all_steps', 'Steps'), steps: updatedPhases, phaseParams: uniqueParams }];
     }
     const groupMap = new Map<string, { steps: any[]; label: string; phaseParams: string[] }>();
     for (const phase of updatedPhases) {

@@ -405,7 +405,8 @@
       "run": "运行",
       "run_all_tip": "运行{{phase}}的所有步骤",
       "run_disabled_tip": "请先启动工作流，以启用按阶段执行",
-      "steps_count": "{{n}} 步"
+      "steps_count": "{{n}} 步",
+      "all_steps": "全部步骤"
     },
     "phase_hint": "点击某个阶段即可展开其步骤和参数。工作流启动后，每个阶段都可单独运行。",
     "phases_label": "阶段 · {{n}}",
@@ -748,6 +749,11 @@
     "why_model": "模型",
     "why_nearest": "最接近的实测类似物：",
     "why_no_values": "无可用的分目标值",
-    "why_version": "版本"
+    "why_version": "版本",
+    "verdict_accepted": "通过",
+    "verdict_rejected": "驳回",
+    "verdict_flagged": "已标记",
+    "verdict_held": "已保留",
+    "score_footnote": "*score 是一个排序键（各分目标归一化得分的均值），并非流水线所优化的综合指标——上方各目标是被一同优化的。"
   }
 }

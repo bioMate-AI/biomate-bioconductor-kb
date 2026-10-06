@@ -458,7 +458,7 @@ function MultiObjectiveView({
                                     : "#f59e0b",
                           }}
                         >
-                          {c.verdict}
+                          {tOr("design.verdict_" + c.verdict, c.verdict)}
                         </span>
                       </td>
                       <td className="px-2 py-1">
@@ -482,9 +482,7 @@ function MultiObjectiveView({
           </table>
         </div>
         <p className="text-[10px] text-muted-foreground mt-1">
-          *score is a ranking key (mean of normalised per-objective scores), not a
-          composite the pipeline optimises — the objectives above are optimised
-          together.
+          {tOr("design.score_footnote", "*score is a ranking key (mean of normalised per-objective scores), not a composite the pipeline optimises — the objectives above are optimised together.")}
         </p>
       </CardContent>
     </Card>
