@@ -96,7 +96,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 <div class="stage" id="stage">
 
   <!-- 0 — TITLE · THE TASK -->
-  <section class="scene title" data-seconds="28.0">
+  <section class="scene title" data-seconds="38.0">
     <div class="kicker">Capability advantage · intent → correct workflow</div>
     <h2>A plain-English request has to find the one right pipeline out of thousands.</h2>
     <p class="caption">A scientist asks in their own words — "call somatic variants on these tumour-normal pairs," "quantify this bulk RNA-seq and run differential expression." The system has to map that intent to the single correct pipeline across many domains — genomics, transcriptomics, proteomics, cryo-EM, drug discovery. <b>Pick the wrong one and the whole run is wasted.</b> This is <b>cross-domain routing</b>, and it is where orchestration either earns its keep or fails quietly.</p>
@@ -111,7 +111,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 1 — BIOMATE DOING IT -->
-  <section class="scene" data-seconds="29.0">
+  <section class="scene" data-seconds="36.0">
     <div class="kicker">BioMate doing it</div>
     <h2>It matches intent against an indexed catalog by meaning, not keywords.</h2>
     <p class="caption">BioMate does not guess a pipeline name from memory. It holds <b>4,210 indexed workflows across 42 domains</b> and scores your request against every one of them by dense-cosine resonance — comparing what you <i>mean</i> to what each workflow <i>does</i> — then returns the best-matching pipeline, with its domain and steps attached.</p>
@@ -136,7 +136,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 2 — THE RESULT · SCORE VS LLMs -->
-  <section class="scene" data-seconds="29.0">
+  <section class="scene" data-seconds="42.0">
     <div class="kicker"><span class="st">The result</span> · score vs LLMs-direct</div>
     <h2>On cross-domain routing, BioMate scores 0.965. A bare model averages 0.46.</h2>
     <p class="caption">The metric is <b>intent → correct-workflow accuracy</b>: given a plain-English request, did the system select the right pipeline? Higher is better. BioMate's catalog-grounded routing clears it almost every time; asking a frontier LLM to name the pipeline directly does not.</p>
@@ -193,7 +193,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 3 — TITLE · TAKEAWAY -->
-  <section class="scene title" data-seconds="27.0">
+  <section class="scene title" data-seconds="26.0">
     <div class="kicker">The takeaway</div>
     <h2 style="font-size:44px">Routing is where orchestration beats a bare model.</h2>
     <div class="scene-body">

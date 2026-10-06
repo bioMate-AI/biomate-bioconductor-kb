@@ -96,7 +96,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 <div class="stage" id="stage">
 
   <!-- 0 — TITLE · THE TASK -->
-  <section class="scene title" data-seconds="28.0">
+  <section class="scene title" data-seconds="34.0">
     <div class="kicker">RealBio capability · protocol QC</div>
     <h2>Does this run pass quality control? A score, not a guess.</h2>
     <p class="caption">Given an experimental protocol and its outputs, the task is a verdict: <b>PASS or FAIL</b> against the right quality gates — an ADMET <code>hERG</code> safety threshold, a sequencing coverage floor, a model's extrapolation limit. It is hard because a correct call needs the <i>domain threshold</i> and <i>judgment</i>, not fluent text. Ask a language model to eyeball it, and it guesses. BioMate checks it against a codified gate.</p>
@@ -111,7 +111,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 1 — BIOMATE DOING IT · THE GATES -->
-  <section class="scene" data-seconds="31.0">
+  <section class="scene" data-seconds="41.0">
     <div class="kicker"><span class="st">BioMate doing it</span> · measured vs threshold</div>
     <h2>Each gate shows two numbers, then halts, advises, or passes.</h2>
     <p class="caption">BioMate evaluates every quality gate as a comparison: the <b>measured value</b> against the <b>codified threshold</b>. A breach that matters <b>halts</b> the run; a soft miss raises an <b>advisory</b>; a clean metric <b>passes</b>. The logic is the same each time — so the verdict is reproducible, not a matter of opinion.</p>
@@ -149,7 +149,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 2 — THE RESULT · SCORE VS LLMs -->
-  <section class="scene" data-seconds="31.0">
+  <section class="scene" data-seconds="32.0">
     <div class="kicker"><span class="st">The result</span> · PASS/FAIL accuracy vs LLMs</div>
     <h2>0.925 against a model's 0.33–0.63.</h2>
     <p class="caption">On the RealBio protocol-QC task, BioMate calls PASS or FAIL correctly <b>0.925</b> of the time. A language model answering the same questions directly lands between <b>0.33 and 0.63</b> — a coin-flip at worst, well short even at its best. Codified gates do not guess.</p>
@@ -190,7 +190,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 3 — TITLE · TAKEAWAY -->
-  <section class="scene title" data-seconds="27.0">
+  <section class="scene title" data-seconds="29.0">
     <div class="kicker">The takeaway</div>
     <h2>Codified, verifiable gates beat a model guessing PASS or FAIL.</h2>
     <div class="scene-body">
