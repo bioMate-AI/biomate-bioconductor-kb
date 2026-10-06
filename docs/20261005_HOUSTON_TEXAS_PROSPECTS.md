@@ -39,7 +39,12 @@ Three buyer motions, each with a different scarcity, gate, and first-touch — d
 
 These are the warmest Houston entry points and lead the quarter. All three originate in the founder's own background and are already documented in our files.
 
-### W1. Dr. Zhandong Liu — Baylor College of Medicine / Texas Children's  *(WARM — warmest single tie)*
+### W1. ~~Dr. Zhandong Liu — Baylor College of Medicine / Texas Children's~~ — REMOVED (founder decision, 2026-10-05)
+> **Not pursuing Liu/BCM.** The warmest tie **re-anchors to the SBMI group** (the founder's former department
+> — Zhongming Zhao, Degui Zhi, Jim Zheng) and **Chandra Mohan / U. Houston** (verified contact; his cohort
+> data is held-out-validation-only). **Every "via Liu / via W1 / Texas Children's-with-Liu / chain-id-1
+> rare-disease" dependency below is void.** The `BioMate_ZhandongLiu_Collaboration_Proposal.md` file is left
+> as a historical record, not an active prospect. (Original entry struck through:)
 - **Segment:** hospital / academic-core (neuro + computational genomics).
 - **Why they fit:** rare-neurological-disease multi-modal workup (WGS + RNA-seq + splicing). His full pipeline is **already wired into BioMate as chain id 1** (`rare_disease_multimodal_workup`: sarek → VEP → rnaseq → DROP/OUTRIDER/FRASER → case-report aggregation), matching his RareCollab paper verbatim (`docs/20260701_...md` §Faculty 3; MEMORY `user_uthealth_faculty_background`). A full pilot proposal is **already drafted** (`business/BioMate_ZhandongLiu_Collaboration_Proposal.md`).
 - **BioMate capability:** nf-core/sarek + nf-core/rnaseq + DROP on AWS Batch with clinical-grade QC gates (Evidenced infra; rare-disease E2E Partial).
@@ -67,7 +72,7 @@ The founder's former department. A joint 3-PI UTHealth collaboration is already 
 | 2 | **Houston Methodist Research Institute — Center for Bioinformatics & Computational Biology + Biostatistics & Bioinformatics (BBI) Core** ([houstonmethodist.org, accessed 2026-10-05](https://www.houstonmethodist.org/academic-institute/research/cores/bioinformatics-core/); 6670 Bertner Ave) | academic-core | Core serves many wet-lab PIs with no bioinformatician — the fan-out channel pattern; genomics/epigenomics/RNA focus maps to transcriptomics (1,695 wf) + epigenomics (265) | Identify contact (center/core director not individually confirmed here); propose a lunch-and-learn + a lighthouse pilot through the core | Cold | P2 |
 | 3 | **MD Anderson Cancer Center** — cell therapy / immuno-oncology / immunopeptidomics (founding ground of Mongoose & ImmunoGenesis, `docs/20260727_...md` §Tier-3) | academic-core | Antigen-resolution + immuno-oncology multi-omics is BioMate's positioning (immunopeptidome / TCR-BCR / HLA) | Approach bottom-up through a specific PI lab, not the institution; no direct line — treat as aspirational | **Cold / aspirational** (explicitly no Allison line, MEMORY) | P3 |
 | 4 | **UTHealth Houston (beyond SBMI)** — clinical-research arms | hospital | Research-arm entry (not clinical production — no CLIA/FHIR live, demand doc §A.3) | Leverage the SBMI warm group (W2) to fan into adjacent clinical-research labs | Warm-adjacent via W2 | P2 |
-| 5 | **Texas Children's Hospital** (with W1/Liu) | hospital | Pediatric rare-disease genomics — same chain-id-1 pipeline as Liu | Fold into the Liu pilot scope | Warm-adjacent via W1 | P2 |
+| 5 | ~~Texas Children's Hospital (with Liu)~~ — **deprioritized** (its only rationale was the now-removed Liu tie) | hospital | pediatric rare-disease genomics | Revisit only as a cold prospect if a Houston pediatric-genomics tie opens | Cold | P3 |
 | 6 | **Rice University — CS/Bioengineering; Prof. Todd Treangen** (microbial genomics / metagenomics / biothreat; [profiles.rice.edu, accessed 2026-10-05](https://profiles.rice.edu/faculty/todd-treangen)); Ken Kennedy Institute bioinformatics | academic-core | Metagenomics (Kraken2/MetaSPAdes) + genomics catalog; a reproducible-pipeline + teaching user; TMC-adjacent | Cold intro to Treangen lab; propose a metagenomics reproducibility pilot / student platform access | Cold | P2 |
 | 7 | **Memorial Hermann** (TMC clinical system) | hospital | Clinical-research arm; lowest research-compute fit of the TMC hospitals | Deprioritize until a reference site exists; monitor | Cold | P3 |
 
@@ -137,7 +142,7 @@ Carried forward verbatim from `docs/20260727_TEXAS_TIER1_BD_PROSPECTS.md` (conta
 
 | Rank | Prospect | Segment | Warm/Cold | Concrete first action |
 |---|---|---|---|---|
-| 1 | **Dr. Zhandong Liu (BCM / Texas Children's)** | hospital/academic-core | **Warm** | Send the already-drafted 60-min pilot proposal (`business/BioMate_ZhandongLiu_Collaboration_Proposal.md`); schedule the walk-through of one active analysis + confirm the customization list |
+| 1 | ~~Dr. Zhandong Liu~~ **REMOVED (2026-10-05)** → lead is now **#2 SBMI group (Zhongming Zhao)** + **#3 Mohan/UH**; re-anchor the first Q4 pilot on them | — | — | (removed; re-anchor below) |
 | 2 | **Dr. Zhongming Zhao (UTHealth SBMI)** | academic-core | **Warm (affiliation)** | 30-min call opening on the live scGWAS chain (Crohn's × Tregs); pitch the Autoimmune Virtual Cell co-paper |
 | 3 | **Chandra Mohan / HOC @ University of Houston** | academic-core/channel | **Warm-cool (verified contact)** | Email `cmohan@central.uh.edu`: propose wet+dry bundle + co-authored reproducibility manuscript (respect held-out-data rule) |
 | 4 | **TMC Innovation Factory / Innovation Labs @ TMC** | accelerator/channel | Cold (high leverage) | Contact the TMC Innovation partnerships team; request listing as a preferred bioinformatics/AI resource + schedule a resident office-hours / lunch-and-learn |
@@ -148,7 +153,7 @@ Carried forward verbatim from `docs/20260727_TEXAS_TIER1_BD_PROSPECTS.md` (conta
 | 9 | **UT Southwestern — Lyda Hill Dept. of Bioinformatics** | academic-core | Cold | Cold intro to the department (Chair Danuser's group); propose a reproducibility/methods collaboration + student platform access |
 | 10 | **Diakonos Oncology (Houston)** | biotech | Cold | Submit the partnership contact form (or route via Russo Partners PR) proposing prospective DOC1021 responder prediction |
 
-**Day-trip efficiency note (from `docs/20260727_...md`):** ranks 3, 5, 7, 10 are all Houston and convert far better in person — batch them into a single Houston day (HOC/UH + Mongoose + ImmunoGenesis + Diakonos), and anchor it around the W1/Liu BCM meeting.
+**Day-trip efficiency note (from `docs/20260727_...md`):** ranks 3, 5, 7, 10 are all Houston and convert far better in person — batch them into a single Houston day (HOC/UH + Mongoose + ImmunoGenesis + Diakonos), anchored around the SBMI (UTHealth) + Mohan/UH meetings.
 
 ---
 
