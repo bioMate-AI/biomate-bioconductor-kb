@@ -129,10 +129,41 @@ exposes exactly this surface: `NEXTFLOW_USE_AWS=false` (local Docker on the node
    from each workflow's own `.nf` directives, and there is **no BioMate knob** to cap/size jobs or request GPU
    on a local on-prem install. GPU routing is Batch-queue-only.
 
-**Verdict:** on-prem is a well-packaged **single-node local-Docker appliance** — convenient for "run on this
-box." It is **not** convenient (not built) for "use our N-node HPC/Slurm/K8s cluster" or for a central
-CPU/mem/GPU policy. Closing it is well-scoped: an env/compute_config-selectable executor (slurm/k8s) **plus**
-resource-tier injection for the non-Batch branches (today those tiers are Batch-only).
+**Verdict (THIS feature branch):** on-prem is a single-node local-Docker appliance; no cluster executor, no
+local resource tiering. **⚠️ But see the next section — this is ALREADY BUILT on `integration/next-phase`.**
+
+### ⚠️ CORRECTION 2026-10-05 — the compute layer is ALREADY BUILT on `integration/next-phase`
+The "not built" verdict above is true only for THIS feature branch (`cursor/tutorial-...`), which is behind
+next-phase on the executor code. Verified on `origin/integration/next-phase`
+(`backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py`): a colleague has implemented cluster execution
++ resource tiering. Lesson repeated: verify on the authoritative branch before claiming a capability absent.
+
+- **Env-selectable executor** (`:5440-5511`): `NEXTFLOW_EXECUTOR = local | slurm | k8s | awsbatch` (default
+  `local` on-prem; `NEXTFLOW_EXECUTOR=local` hard-overrides `NEXTFLOW_USE_AWS` + the frontend default + request
+  S3 outdirs; a per-job `compute_config.executor` still wins over the env var).
+- **Slurm** (`:3074`): `clusterOptions` from `SLURM_PARTITION`/`SLURM_QOS`/`SLURM_ACCOUNT` (or per-job keys);
+  **resource tiers injected** — `withLabel process_low {4c/12G} / process_medium {16c/72G} / process_high
+  {32c/200G}` — **plus GPU** (`process_gpu → --partition=gpu --gres=gpu:1`); auto outdir `SLURM_WORK_DIR`
+  (default `/scratch/biomate`).
+- **Kubernetes** (`:3096`): full `k8s{}` scope — `namespace` (`NXF_K8S_NAMESPACE`), `storageClaimName`
+  (`NXF_K8S_STORAGE_CLAIM`, a PVC), `storageMountPath`, `pullPolicy`, `serviceAccount`, the `nf-k8s` plugin;
+  resource tiers + GPU (`resourceLabels ['nvidia.com/gpu':'1']`); auto outdir.
+- **Config-gen gate** (`:2606`): `if executor not in ("awsbatch","slurm","k8s")` → the three cluster/cloud
+  executors all get a generated override; anything else falls back to plain local.
+
+So on next-phase, **pointing on-prem BioMate at an existing Slurm or Kubernetes cluster, with central
+CPU/mem/GPU sizing, is supported.** Residual gaps (small): PBS/SGE/LSF are still unsupported (Slurm+K8s cover
+most on-prem HPC/cloud-native), and `NEXTFLOW_EXECUTOR`/`SLURM_*`/`NXF_K8S_*` are **not yet documented in
+`.env.onprem.example`** — i.e. a docs/exposure gap, not a code gap. Fix: add these to the on-prem env template
+and `ONPREM_SETUP.md` so customers can actually find them.
+
+### Scope layer — NOT built anywhere (re-verified on next-phase)
+Checked `origin/integration/next-phase`: **no** `build_scoped_catalog`, **no** `deployment_scope.yml`, **no**
+domain-scoping env knob (`ENABLED_DOMAINS`/etc.), **no** launch-time enforcement, **no** per-deployment
+instrument manifest. The offline manifest generator `export_deployment_manifest.py` exists **only on this
+feature branch** (ABSENT on next-phase). The on-prem docs (`ONPREM_SETUP.md`, `ONPREM_IP_PROTECTION.md`) do
+not mention domain/task/instrument scoping. So scoped delivery remains the genuinely unbuilt capability — the
+recommendation block above still stands as the plan to build it.
 
 ### Q1 — Scoped delivery: re-confirmed state
 `export_deployment_manifest.py` (offline): `--domains`/`--workflows` → `tool_allowlist` + `container_mirror_resolved`
