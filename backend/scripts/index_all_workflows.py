@@ -485,7 +485,7 @@ CURATED_CHAINS = [
         ],
         "connections": [
             {"from_step": 1, "from_output": "counts_matrix", "to_step": 2, "to_input": "counts"},
-            {"from_step": 2, "from_output": "de_results",    "to_step": 3, "to_input": "gene_list"},
+            {"from_step": 2, "from_output": "results",       "to_step": 3, "to_input": "input"},
         ],
         "required_inputs": [
             {"name": "fastq_files",    "type": "fastq",    "description": "Raw RNA-seq reads"},

@@ -155,6 +155,12 @@ def _update_chain(state: Dict[str, Any]) -> None:
 # Output-as-input resolver
 # ---------------------------------------------------------------------------
 
+# Real data-output extensions (used by the F3 single-candidate handoff fallback;
+# excludes logs/plots/reports so a lone tabular/object result is picked unambiguously).
+_OUTPUT_DATA_EXTS = {"csv", "tsv", "txt", "json", "rds", "rdata", "h5", "h5ad",
+                     "vcf", "bed", "gtf", "gff", "bam", "fasta", "fa", "sdf", "smi",
+                     "mtx", "parquet", "xlsx"}
+
 # Extension → common parameter names for Nextflow workflows
 _EXT_TO_PARAM: Dict[str, List[str]] = {
     "fastq": ["reads", "input", "fastq", "fastq_input"],
@@ -180,6 +186,7 @@ def _list_run_output_files(run_id: str) -> List[Dict[str, Any]]:
         _runs,
         _runs_lock,
         get_nextflow_status,
+        _list_s3_output_files,
     )
 
     files: List[Dict[str, Any]] = []
@@ -194,14 +201,21 @@ def _list_run_output_files(run_id: str) -> List[Dict[str, Any]]:
     with _runs_lock:
         run_info = dict(_runs.get(run_id, {}))
     for f in run_info.get("s3_output_files") or []:
-        _add({**f, "filename": f.get("filename", "")})
+        _add({**f, "filename": f.get("filename") or f.get("name", "")})
 
     try:
         status = get_nextflow_status(run_id)
         for f in status.get("s3_output_files") or []:
-            _add({**f, "filename": f.get("filename", "")})
+            _add({**f, "filename": f.get("filename") or f.get("name", "")})
         outdir = status.get("outdir")
-        if outdir and Path(outdir).exists():
+        if outdir and str(outdir).startswith("s3://"):
+            # Batch runs publish to S3 — the local-path branch below never fires
+            # for an s3:// outdir, so list the prefix directly. Without this the
+            # chain handoff gets an empty file list and no connection can resolve
+            # (every chain stalls after step 1). See docs/20261005_MULTISPECIALTY_CHAINED_USE_CASES.md.
+            for f in _list_s3_output_files(str(outdir)):
+                _add({**f, "filename": f.get("name") or f.get("filename", "")})
+        elif outdir and Path(outdir).exists():
             for fpath in sorted(Path(outdir).rglob("*")):
                 if not fpath.is_file():
                     continue
@@ -248,10 +262,29 @@ def _apply_connection_handoffs(
         if not prev_run_id:
             warnings.append(f"Step {from_step + 1} missing run_id for {from_output}→{to_input}")
             continue
-        picked = pick_artifact_file(_list_run_output_files(prev_run_id), from_output)
+        files_prev = _list_run_output_files(prev_run_id)
+        picked = pick_artifact_file(files_prev, from_output)
         if not picked:
-            warnings.append(f"No artifact '{from_output}' found from step {from_step + 1}")
-            continue
+            # F3 safety net: the declared from_output label didn't match any published
+            # file (connection-based chains otherwise get NO fallback — the _EXT_TO_PARAM
+            # path is gated to connection-less chains). Retry matching on the downstream
+            # param name (often a better hint, e.g. "counts"/"matrix"), then on a single
+            # remaining data-file candidate, before giving up.
+            picked = pick_artifact_file(files_prev, to_input)
+            if not picked:
+                _data = [f for f in files_prev
+                         if (f.get("extension") or "").lower() in _OUTPUT_DATA_EXTS
+                         and not str(f.get("filename", "")).startswith(".")]
+                if len(_data) == 1:
+                    picked = _data[0]
+            if picked:
+                warnings.append(
+                    f"Artifact '{from_output}' not found by name; wired {to_input} via fallback "
+                    f"({picked.get('filename')})"
+                )
+            else:
+                warnings.append(f"No artifact '{from_output}' found from step {from_step + 1}")
+                continue
         value = artifact_value(picked)
         if value and to_input not in params:
             wired[to_input] = value
