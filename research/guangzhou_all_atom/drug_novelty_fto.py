@@ -61,6 +61,9 @@ ROOT = Path(__file__).resolve().parent
 
 # Default cutoffs — align with compound_novelty_scorer.
 DEFAULT_TANIMOTO_CUTOFF = 0.85   # structure: max_tanimoto >= cutoff => not novel
+                                 # (empirically ~p99 of the novel-peptide null; see
+                                 #  calibrate_peptide_cutoff.py — ~1.25% false-flag rate)
+NEAR_DUPLICATE_TANIMOTO = 0.95   # >= this => essentially the same compound (re-discovery)
 DEFAULT_SEQ_ID_CUTOFF = 0.80     # sequence: identity >= cutoff => occupied (peptides)
 MORGAN_RADIUS = 2
 MORGAN_NBITS = 2048
@@ -346,6 +349,7 @@ class NoveltyVerdict:
     nearest_known_id: Optional[str] = None
     nearest_known_smiles: Optional[str] = None
     nearest_known_tag: dict = field(default_factory=dict)
+    structure_tier: Optional[str] = None     # near_duplicate | close_analog | novel (calibrated)
     tanimoto_cutoff: float = DEFAULT_TANIMOTO_CUTOFF
     # sequence axis
     sequence_status: str = "not_run"
@@ -364,10 +368,18 @@ class NoveltyVerdict:
         ran = False
         if self.structure_status.startswith("ok") and self.max_tanimoto is not None:
             ran = True
+            # severity tier (calibrated): near_duplicate >= 0.95, close_analog >= cutoff, else novel
+            if self.max_tanimoto >= NEAR_DUPLICATE_TANIMOTO:
+                self.structure_tier = "near_duplicate"
+            elif self.max_tanimoto >= self.tanimoto_cutoff:
+                self.structure_tier = "close_analog"
+            else:
+                self.structure_tier = "novel"
             if self.max_tanimoto >= self.tanimoto_cutoff:
                 occ = True
-                reasons.append("structure: max_tanimoto %.3f >= %.2f (nearest known %s)"
-                               % (self.max_tanimoto, self.tanimoto_cutoff, self.nearest_known_id))
+                reasons.append("structure: max_tanimoto %.3f >= %.2f (%s; nearest known %s)"
+                               % (self.max_tanimoto, self.tanimoto_cutoff,
+                                  self.structure_tier, self.nearest_known_id))
         if self.sequence_status.startswith("ok") and self.max_seq_identity is not None:
             ran = True
             if self.max_seq_identity >= self.seq_id_cutoff:
