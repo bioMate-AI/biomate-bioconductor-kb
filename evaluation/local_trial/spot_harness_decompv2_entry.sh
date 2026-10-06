@@ -86,12 +86,17 @@ run_arm () {  # $1=label  $2...=shim args
   score_task "$label" findings_probe "findings_probe.jsonl"
   run_task  "$label" task_decomposition
   score_task "$label" task_decomposition "task_decomposition.jsonl"
-  # (2) honest decomposition metric on the held-out dependency-graph benchmark
+  # (2) honest decomposition metric on the held-out dependency-graph benchmark.
+  # For the SFT arm, ALSO run the no-train verifier re-ranker on REAL sampled candidates (N=5 @ T=0.8).
   echo "[entry] decomposition_v2 (honest node/edge-F1 + per-class) for $label"
+  local RERANK=""
+  [ "$label" = decompv2 ] && RERANK="--rerank-n 5 --rerank-temp 0.8 --db $DB \
+      --rerank-preds-out $SCRATCH/logs/decompv2_preds_${label}_rerank.jsonl \
+      --rerank-score-out $SCRATCH/logs/decompv2_score_${label}_rerank.json"
   PYTHONNOUSERSITE=1 $PY "$CODE/decompv2_runner.py" --bench "$BENCH" --scorer "$SCORER" \
       --model "$label" --base-url "$BASEURL" --key-env OPENAI_API_KEY \
       --preds-out "$SCRATCH/logs/decompv2_preds_${label}.jsonl" \
-      --score-out "$SCRATCH/logs/decompv2_score_${label}.json" 2>&1 | tee -a "$SCRATCH/logs/${label}_decompv2.log"
+      --score-out "$SCRATCH/logs/decompv2_score_${label}.json" $RERANK 2>&1 | tee -a "$SCRATCH/logs/${label}_decompv2.log"
   echo "[entry] ===== ARM $label : stopping shim ====="
   kill $SHIM_PID 2>/dev/null; sleep 8
   for i in 1 2 3 4 5 6; do curl -s "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 || break; sleep 5; done

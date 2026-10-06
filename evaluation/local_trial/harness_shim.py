@@ -41,7 +41,7 @@ def build(base, tokenizer_dir, merge_adapter, adapter):
     return tok, model
 
 
-def generate(messages, max_new):
+def generate(messages, max_new, temperature=0.0):
     try:
         prompt = TOK.apply_chat_template(messages, tokenize=False, add_generation_prompt=True,
                                          enable_thinking=False)
@@ -49,9 +49,16 @@ def generate(messages, max_new):
         prompt = TOK.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     enc = TOK(prompt, return_tensors="pt").to(MODEL.device)
     in_len = enc.input_ids.shape[1]
+    # temperature==0 -> greedy/deterministic (the apples-to-apples eval default, unchanged);
+    # temperature>0 -> sampling, needed so the verifier re-ranker gets DIVERSE candidates.
+    gen_kwargs = dict(max_new_tokens=min(int(max_new or MAXCAP), MAXCAP),
+                      pad_token_id=TOK.eos_token_id)
+    if (temperature or 0) > 0:
+        gen_kwargs.update(do_sample=True, temperature=float(temperature), top_p=0.95)
+    else:
+        gen_kwargs.update(do_sample=False)
     with torch.inference_mode():
-        out = MODEL.generate(**enc, max_new_tokens=min(int(max_new or MAXCAP), MAXCAP),
-                             do_sample=False, pad_token_id=TOK.eos_token_id)
+        out = MODEL.generate(**enc, **gen_kwargs)
     gen = out[0, in_len:]
     text = TOK.decode(gen, skip_special_tokens=True)
     if "</think>" in text:
@@ -90,7 +97,7 @@ def chat(req: ChatReq):
     msgs = [{"role": m.role, "content": (m.content if isinstance(m.content, str) else str(m.content))}
             for m in req.messages]
     max_new = req.max_completion_tokens or req.max_tokens or MAXCAP
-    text, in_tok, out_tok = generate(msgs, max_new)
+    text, in_tok, out_tok = generate(msgs, max_new, req.temperature or 0.0)
     return {
         "id": "chatcmpl-" + uuid.uuid4().hex[:12],
         "object": "chat.completion",
