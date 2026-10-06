@@ -167,19 +167,90 @@ def _assert_score_free(row: Dict[str, str]) -> None:
         raise AssertionError(f"non-CRO columns would ship to CRO: {sorted(extra)}")
 
 
+def make_fto_gate(library_csv: Optional[Path] = None, cutoff: float = 0.85,
+                  max_rows: Optional[int] = None, cyclic_default: bool = True,
+                  check_patents: bool = False):
+    """Build a novelty/FTO gate callable: (cid, seq, smiles, cyclic) -> verdict dict.
+
+    GENERAL (small molecule + peptide): delegates to drug_novelty_fto.score_candidate,
+    which runs structure (Morgan/Tanimoto vs a known-actives library), optional patent
+    (SureChEMBL/PubChem), and — for peptides — sequence-identity axes. Fail-OPEN: if
+    RDKit or the library is unavailable the gate returns verdict="unknown"/occupied=None
+    and never drops a candidate silently. The library is fingerprinted once (cached) on
+    first call. See docs for the peptide-Tanimoto-baseline caveat on the cutoff.
+    """
+    state: Dict[str, Any] = {"lib": None, "ready": None, "err": None, "nf": None}
+
+    def _ensure():
+        if state["ready"] is not None:
+            return state["ready"]
+        try:
+            import importlib
+            nf = importlib.import_module("drug_novelty_fto")
+            state["nf"] = nf
+            if library_csv and Path(library_csv).exists():
+                cache = ROOT / "data/_registry_cache/novelty_lib_binding_affinity_v1.pkl"
+                state["lib"] = nf.build_library(
+                    str(library_csv), smiles_col="smiles", id_col="id",
+                    tag_cols=["is_pdl1", "is_avb6", "target_name"],
+                    max_rows=max_rows, cache_path=str(cache))
+            state["ready"] = True
+        except Exception as e:  # noqa: BLE001 — fail-open
+            state["err"] = f"{type(e).__name__}: {e}"
+            state["ready"] = False
+        return state["ready"]
+
+    def gate(cid: str, seq: Optional[str], smiles: Optional[str],
+             cyclic: bool = cyclic_default) -> dict:
+        if not _ensure():
+            return {"candidate_id": cid, "occupied": None, "verdict": "unknown",
+                    "reasons": [f"gate_unavailable: {state['err']}"]}
+        nf = state["nf"]
+        v = nf.score_candidate(cid, smiles=smiles, seq=seq,
+                               modality="peptide" if seq and not smiles else "auto",
+                               cyclic=cyclic, library=state["lib"],
+                               tanimoto_cutoff=cutoff, check_patents=check_patents)
+        from dataclasses import asdict as _asdict
+        return _asdict(v)
+
+    return gate
+
+
 def build_rfq(selection: List[Dict[str, Any]], pool: Dict[str, Dict[str, Any]],
               prefix: str, *, quantity_mg: str = DEFAULTS["Quantity_mg"],
-              priority: str = DEFAULTS["Priority"]) -> Tuple[List[Dict[str, str]], List[str]]:
-    """Return (CRO rows, warnings). Rows carry ONLY CRO_COLUMNS (score-free by construction)."""
+              priority: str = DEFAULTS["Priority"],
+              fto_gate=None, fto_drop: bool = True,
+              fto_records: Optional[List[dict]] = None) -> Tuple[List[Dict[str, str]], List[str]]:
+    """Return (CRO rows, warnings). Rows carry ONLY CRO_COLUMNS (score-free by construction).
+
+    Novelty/FTO filtering (opt-in): if ``fto_gate`` is given, every resolved candidate is
+    scored for occupancy (known-active re-discovery / patent / sequence match) BEFORE it can
+    ship. ``fto_drop=True`` removes an occupied candidate (the default — validation+filtering);
+    ``fto_drop=False`` keeps it but warns (FLAG-only). Verdicts are appended to ``fto_records``
+    for the audit sidecar. Fail-OPEN: verdict ``occupied is None`` (gate couldn't run) never
+    drops a candidate.
+    """
     rows: List[Dict[str, str]] = []
     warnings: List[str] = []
-    for i, pick in enumerate(selection, 1):
+    i = 0
+    for pick in selection:
         cid = pick.get("id", "")
         src = {**pool.get(cid, {}), **{k: v for k, v in pick.items() if v}}  # pick overrides pool
         seq = src.get("seq")
         if not seq:
             warnings.append(f"DROP {cid}: no sequence in selection or pool")
             continue
+        if fto_gate is not None:
+            verdict = fto_gate(cid, seq, src.get("smiles"))
+            if fto_records is not None:
+                fto_records.append(verdict)
+            if verdict.get("occupied") is True:
+                why = "; ".join(verdict.get("reasons", [])) or verdict.get("verdict", "occupied")
+                if fto_drop:
+                    warnings.append(f"DROP {cid}: FTO/novelty occupied ({why})")
+                    continue
+                warnings.append(f"FLAG {cid}: FTO/novelty occupied ({why}) — kept (flag-only)")
+        i += 1
         cyc = src.get("cyclization") or DEFAULTS["Cyclization"]
         row = {
             "Item": f"{prefix}-{i:02d}",
@@ -235,11 +306,35 @@ def _selftest() -> int:
     rows3, warn3 = build_rfq(extract_selection(["ghost"], pool_target=None, rank="qnehvi"),
                              {}, "AVB6-B")
     assert rows3 == [] and len(warn3) == 1, (rows3, warn3)
+    # (d) FTO gate: occupied candidate is DROPPED (and items renumber contiguously)
+    def _stub_gate(cid, seq, smiles, cyclic=True):
+        occ = (seq == "GHIKL")   # pretend the first pick is a known active
+        return {"candidate_id": cid, "occupied": occ, "verdict": "known_active" if occ else "novel",
+                "reasons": ["structure: max_tanimoto 0.90 >= 0.85"] if occ else []}
+    recs: List[dict] = []
+    rows4, warn4 = build_rfq(extract_selection(sel, pool_target=None, rank="qnehvi"),
+                             load_pool(td / "pool.json"), "PDL1-A",
+                             fto_gate=_stub_gate, fto_records=recs)
+    assert [r["Sequence_N_to_C"] for r in rows4] == ["ACDEF"], rows4   # GHIKL dropped
+    assert rows4[0]["Item"] == "PDL1-A-01", rows4                      # contiguous renumber
+    assert len(recs) == 2 and any("DROP" in w and "FTO" in w for w in warn4), (recs, warn4)
+    # (e) FTO flag-only: occupied candidate is KEPT but warned
+    recs2: List[dict] = []
+    rows5, warn5 = build_rfq(extract_selection(sel, pool_target=None, rank="qnehvi"),
+                             load_pool(td / "pool.json"), "PDL1-A",
+                             fto_gate=_stub_gate, fto_drop=False, fto_records=recs2)
+    assert len(rows5) == 2 and any("FLAG" in w for w in warn5), (rows5, warn5)
+    # (f) FTO fail-open: occupied=None never drops
+    def _unavail_gate(cid, seq, smiles, cyclic=True):
+        return {"candidate_id": cid, "occupied": None, "verdict": "unknown", "reasons": ["gate_unavailable"]}
+    rows6, _ = build_rfq(extract_selection(sel, pool_target=None, rank="qnehvi"),
+                         load_pool(td / "pool.json"), "PDL1-A", fto_gate=_unavail_gate)
+    assert len(rows6) == 2, rows6
     # write round-trip
     write_csv(rows, td / "out.csv")
     back = list(csv.DictReader(open(td / "out.csv")))
     assert back[0]["Item"] == "PDL1-A-01" and "pAff" not in back[0]
-    print("select_to_rfq self-test: OK (3 shapes, score-free guard, csv round-trip)")
+    print("select_to_rfq self-test: OK (3 shapes, score-free guard, FTO drop/flag/fail-open, csv round-trip)")
     return 0
 
 
@@ -255,6 +350,21 @@ def main(argv=None) -> int:
     ap.add_argument("--quantity-mg", default=DEFAULTS["Quantity_mg"])
     ap.add_argument("--priority", default=DEFAULTS["Priority"])
     ap.add_argument("--out", type=Path, help="output CRO CSV (default: stdout)")
+    # Novelty / FTO gate (validation+filtering before the CRO order). General (small mol + peptide).
+    ap.add_argument("--fto-gate", action="store_true",
+                    help="screen each candidate for novelty/FTO occupancy before shipping")
+    ap.add_argument("--fto-library", type=Path,
+                    default=ROOT / "data/raw/binding_affinity/binding_affinity_v1.csv",
+                    help="known-actives CSV (SMILES) for the structure axis")
+    ap.add_argument("--fto-cutoff", type=float, default=0.85,
+                    help="Tanimoto cutoff; max_tanimoto >= cutoff => occupied (not novel)")
+    ap.add_argument("--fto-max-rows", type=int, default=None, help="cap library rows (speed)")
+    ap.add_argument("--fto-check-patents", action="store_true",
+                    help="also run coarse SureChEMBL/PubChem patent presence (network)")
+    ap.add_argument("--fto-flag-only", action="store_true",
+                    help="do NOT drop occupied candidates; keep + warn (flag-only)")
+    ap.add_argument("--fto-report", type=Path,
+                    help="write per-candidate FTO verdict JSON (default: <out>.fto.json)")
     args = ap.parse_args(argv)
 
     if args.selftest:
@@ -265,10 +375,34 @@ def main(argv=None) -> int:
     sel = json.loads(Path(args.selection).read_text())
     selection = extract_selection(sel, pool_target=args.pool_target, rank=args.rank)
     pool = load_pool(args.pool)
+
+    fto_gate = None
+    fto_records: List[dict] = []
+    if args.fto_gate:
+        fto_gate = make_fto_gate(library_csv=args.fto_library, cutoff=args.fto_cutoff,
+                                 max_rows=args.fto_max_rows, check_patents=args.fto_check_patents)
+
     rows, warnings = build_rfq(selection, pool, args.prefix,
-                               quantity_mg=args.quantity_mg, priority=args.priority)
+                               quantity_mg=args.quantity_mg, priority=args.priority,
+                               fto_gate=fto_gate, fto_drop=not args.fto_flag_only,
+                               fto_records=fto_records)
     for w in warnings:
         print(f"[warn] {w}", file=sys.stderr)
+
+    if args.fto_gate:
+        report_path = args.fto_report or (
+            Path(str(args.out) + ".fto.json") if args.out else ROOT / "results/select_to_rfq.fto.json")
+        occ = sum(1 for r in fto_records if r.get("occupied") is True)
+        unk = sum(1 for r in fto_records if r.get("occupied") is None)
+        report = {"summary": {"n_screened": len(fto_records), "occupied": occ,
+                              "unknown_fail_open": unk, "cutoff": args.fto_cutoff,
+                              "patents_checked": bool(args.fto_check_patents),
+                              "dropped": not args.fto_flag_only},
+                  "verdicts": fto_records}
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report, indent=2))
+        print(f"[fto] screened {len(fto_records)}, occupied {occ}, fail-open {unk} "
+              f"-> {report_path}", file=sys.stderr)
     if not rows:
         print("[error] no shippable rows (every pick lacked a sequence)", file=sys.stderr)
         return 2

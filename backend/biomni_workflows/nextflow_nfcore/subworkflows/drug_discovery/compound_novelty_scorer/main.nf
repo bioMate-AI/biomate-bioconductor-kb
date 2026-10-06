@@ -135,9 +135,14 @@ process NOVELTY_SCORE {
         patent = {"checked": True, "source": "surechembl_via_pubchem", "present": None, "n_patents": None}
         try:
             base = "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
-            cid_url = base + "/compound/smiles/" + urllib.parse.quote(q) + "/cids/JSON"
-            with urllib.request.urlopen(cid_url, timeout=30) as r:
+            # POST the SMILES in the body: macrocycle/peptide SMILES overflow a GET URL (400),
+            # so structure->CID resolution must go through POST.
+            body = urllib.parse.urlencode({"smiles": q}).encode()
+            cid_req = urllib.request.Request(base + "/compound/smiles/cids/JSON", data=body,
+                                             headers={"Content-Type": "application/x-www-form-urlencoded"})
+            with urllib.request.urlopen(cid_req, timeout=30) as r:
                 cids = (json.loads(r.read().decode()).get("IdentifierList", {}) or {}).get("CID", [])
+            cids = [c for c in cids if c]   # drop the 0 "no match" sentinel
             if cids:
                 cid = cids[0]
                 patent["pubchem_cid"] = cid
