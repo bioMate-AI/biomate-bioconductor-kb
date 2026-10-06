@@ -123,23 +123,46 @@ docker exec -it biomate-postgres psql -U biomate -d biomate -c \
 
 ## 4. 存储配置
 
-### 默认：本地磁盘
+### 对象存储：MinIO（默认，本机自带）
 
-工作流运行产生的文件默认存储在 Docker volume 中。数据在容器重启后保留。
+本地部署自带 **MinIO**（S3 兼容对象存储，`docker-compose.onprem.yml` 中的 `minio` 服务），用于存放
+**工作流的输入（上传的数据集）和输出**。后端通过 `S3_ENDPOINT_URL=http://minio:9000` 接入——所有 S3 调用
+被透明地路由到本机 MinIO，无需 AWS、不出网。
+
+- **上传的数据集** → MinIO bucket `biomate-data`
+- **工作流输出** → MinIO：`s3://biomate-data/nextflow/outputs/<user_id>/<run_id>/`
+  （项目运行为 `s3://biomate-data/projects/<project_id>/runs/<run_id>/output`）
+- **Nextflow 工作目录（中间文件）** → `NEXTFLOW_WORK_DIR`（默认 `/app/nf-work`，宿主机绑定挂载）
+- **持久化**：MinIO 数据保存在 `biomate-minio-data` Docker volume（宿主机磁盘），容器重启后保留
+
+管理界面：`http://<服务器IP>:9001`（用 `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` 登录）。
 
 ```bash
-# 查看存储占用
+# 查看卷/存储占用
 docker system df -v
 ```
 
-### 可选：AWS S3
+### 可配置项
 
-如果客户有 AWS 账号，可配置 S3 存储更大文件：
+| 变量 | 作用 | 默认 |
+|---|---|---|
+| `S3_ENDPOINT_URL` | 对象存储端点——指向自带 MinIO，或**客户自有的 S3 兼容存储 / NAS-S3 网关** | `http://minio:9000` |
+| `S3_BUCKET_NAME` | bucket 名称 | `biomate-data` |
+| `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` | 对象存储访问凭证（即 S3 access key / secret） | `biomate` /（必填） |
+| `NEXTFLOW_WORK_DIR` | Nextflow 工作目录（宿主机路径） | `/app/nf-work` |
+
+要把输入/输出改存到客户**已有的对象存储**，只需把 `S3_ENDPOINT_URL`、`S3_BUCKET_NAME` 和凭证指向该存储即可，
+无需改动代码。
+
+### 可选：真实 AWS S3
+
+如果客户有 AWS 账号且希望用真实 S3（而非本机 MinIO），**留空 `S3_ENDPOINT_URL`** 并填写 AWS 凭证：
 
 ```bash
+# S3_ENDPOINT_URL=            # 留空 → 使用真实 AWS S3（而非本机 MinIO）
 AWS_ACCESS_KEY_ID=AKIA...
 AWS_SECRET_ACCESS_KEY=...
-AWS_REGION=cn-northwest-1   # 国内用宁夏区域
+AWS_REGION=cn-northwest-1     # 国内用宁夏区域
 S3_BUCKET_NAME=biomate-data
 ```
 
