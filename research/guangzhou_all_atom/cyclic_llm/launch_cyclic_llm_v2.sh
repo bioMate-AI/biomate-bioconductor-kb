@@ -44,7 +44,11 @@ else
 fi
 
 stage build_data
-$PY "$ROOT/train.py" build-data --enr "$ENRF" --out "$ROOT/data.jsonl" 2>&1 | tee "$ROOT/status/build.log"
+BA=""
+[ -n "${HI_THRESH:-}" ] && BA="$BA --hi-thresh $HI_THRESH"
+[ -n "${LO_THRESH:-}" ] && BA="$BA --lo-thresh $LO_THRESH"
+[ -n "${OVERSAMPLE_HI:-}" ] && BA="$BA --oversample-hi $OVERSAMPLE_HI"
+$PY "$ROOT/train.py" build-data --enr "$ENRF" --out "$ROOT/data.jsonl" $BA 2>&1 | tee "$ROOT/status/build.log"
 aws s3 cp "$ROOT/status/build.log" "$OUT_S3/status/build.log" --only-show-errors || true
 
 stage training
@@ -71,7 +75,7 @@ export AWS_DEFAULT_REGION=us-west-2
 mkdir -p /opt/cllm2
 for i in 1 2 3 4 5; do aws s3 cp $S3RUN/code/driver.sh /opt/cllm2/driver.sh && break; sleep 10; done
 chmod +x /opt/cllm2/driver.sh
-OUT_S3=$S3RUN MODE=$MODE STEPS=${STEPS:-} bash /opt/cllm2/driver.sh
+OUT_S3=$S3RUN MODE=$MODE STEPS=${STEPS:-} HI_THRESH=${HI_THRESH:-} LO_THRESH=${LO_THRESH:-} OVERSAMPLE_HI=${OVERSAMPLE_HI:-} bash /opt/cllm2/driver.sh
 EOF
 )
 declare -a COMBO=(

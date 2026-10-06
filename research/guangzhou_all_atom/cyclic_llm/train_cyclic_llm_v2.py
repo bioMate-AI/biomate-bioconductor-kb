@@ -32,7 +32,11 @@ CORE_MOTIF = "YSMKEWKY"  # the validated enriched core
 def _bucket(v, q1, q2):
     return "lo" if v < q1 else ("hi" if v >= q2 else "mid")
 
-def build_dataset(enr_csv, out_jsonl):
+def build_dataset(enr_csv, out_jsonl, hi_thresh=None, lo_thresh=None, oversample_hi=1):
+    """Bucket by terminal-round enrichment. Default = quantile (q50/q90). With hi_thresh/lo_thresh,
+    use ABSOLUTE log2fc thresholds so the 'hi' bucket isolates the rare STRONG-binder tail (the full
+    distribution's q90 is ~0, so quantile buckets lump marginal survivors into 'hi' and dilute the
+    signal). oversample_hi duplicates hi examples to counter the heavy de-enriched majority."""
     import pandas as pd, numpy as np
     df = pd.read_csv(enr_csv)
     enr_col = "log2fc_R6_vs_R2" if "log2fc_R6_vs_R2" in df.columns else \
@@ -50,18 +54,27 @@ def build_dataset(enr_csv, out_jsonl):
             continue
         recs.append({"seq": seq, "enr": e, "maxc": int(r.get("max_count", 0) or 0)})
     enrs = np.array([r["enr"] for r in recs], float)
-    # buckets by terminal-enrichment quantiles (hi = enriched binders, lo = de-enriched)
-    q1, q2 = float(np.quantile(enrs, 0.50)), float(np.quantile(enrs, 0.90))
+    if hi_thresh is not None and lo_thresh is not None:
+        q1, q2 = float(lo_thresh), float(hi_thresh)  # absolute thresholds
+        mode = "threshold"
+    else:
+        q1, q2 = float(np.quantile(enrs, 0.50)), float(np.quantile(enrs, 0.90))
+        mode = "quantile"
     for r in recs:
         r["enr_b"] = _bucket(r["enr"], q1, q2)
+    out_recs = list(recs)
+    if oversample_hi > 1:
+        his = [r for r in recs if r["enr_b"] == "hi"]
+        out_recs = recs + his * (oversample_hi - 1)
     Path(out_jsonl).parent.mkdir(parents=True, exist_ok=True)
     with open(out_jsonl, "w") as f:
-        for r in recs:
+        for r in out_recs:
             f.write(json.dumps(r) + "\n")
-    meta = {"n": len(recs), "enr_q50": q1, "enr_q90": q2,
+    meta = {"n": len(out_recs), "n_unique": len(recs), "bucket_mode": mode, "lo_cut": q1, "hi_cut": q2,
             "n_hi": sum(r["enr_b"] == "hi" for r in recs),
             "n_mid": sum(r["enr_b"] == "mid" for r in recs),
             "n_lo": sum(r["enr_b"] == "lo" for r in recs),
+            "oversample_hi": oversample_hi,
             "top_binder_in_data": any(r["seq"] == TOP_BINDER for r in recs)}
     print("DATA", json.dumps(meta))
     return meta
@@ -224,6 +237,7 @@ def eval_model(args):
 def main():
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("build-data"); b.add_argument("--enr", required=True); b.add_argument("--out", default="v2data.jsonl")
+    b.add_argument("--hi-thresh", type=float); b.add_argument("--lo-thresh", type=float); b.add_argument("--oversample-hi", type=int, default=1)
     t = sub.add_parser("train"); t.add_argument("--data", required=True); t.add_argument("--out-ckpt", default="cyclic_llm_v2.pt")
     t.add_argument("--max-steps", type=int, default=3000); t.add_argument("--batch", type=int, default=128)
     t.add_argument("--block", type=int, default=32); t.add_argument("--d-model", type=int, default=256)
@@ -231,7 +245,7 @@ def main():
     e = sub.add_parser("eval"); e.add_argument("--ckpt", required=True); e.add_argument("--data", required=True)
     e.add_argument("--n-sample", type=int, default=400); e.add_argument("--temp", type=float, default=1.0); e.add_argument("--out", default="v2eval.json")
     a = ap.parse_args()
-    if a.cmd == "build-data": build_dataset(a.enr, a.out)
+    if a.cmd == "build-data": build_dataset(a.enr, a.out, a.hi_thresh, a.lo_thresh, a.oversample_hi)
     elif a.cmd == "train": train(a)
     elif a.cmd == "eval": eval_model(a)
 
