@@ -105,5 +105,14 @@ m2 (DESeq2/GSE52778) + qpcr (ΔΔCq) assets). So the video workstream is **NOT**
   BioMate Batch-run outputs (DESeq2 on airway/GSE52778; NormqPCR ΔΔCq) wired into the walkthrough
   HTML and rendered via the edge-tts → record → mux pipeline; 4 mp4s on
   `biomate_drive:…/marketing/data_centroid_tutorial/videos/`. Details + root-cause of the prior
-  asset-blocking saga: `docs/20261005_REALBIO_CAPABILITY_DEMO_SERIES.md`. Remaining render backlog:
-  D1/D2/S2 (authored, not yet rendered) + D3/D4/S1/S4/B1 (not authored).
+  asset-blocking saga: `docs/20261005_REALBIO_CAPABILITY_DEMO_SERIES.md`.
+- 2026-10-05 (session 14) — **D1 (QSAR classical-ML), D2 (ADMET deep-learning), S2 (PBPK) rendered
+  EN+ZH and uploaded** (6 mp4s on Drive). EN narration normalized to `## Step` format, ZH narration
+  translated (idiomatic, reviewed), per-scene slots fitted to the narration (the d1/d2/s2 narrations
+  badly overran their authored `data-seconds` — `scripts/recording/fit-scene-slots.py` sizes each
+  scene to max(EN,ZH)+pad before recording). Ports 7790/7791/7792.
+- 2026-10-05 (session 14) — **M3 (accession → dataset → workflow) authored + rendering.** NEW episode
+  demonstrating BioMate's accession intelligence on real GEO/SRA IDs (resolve_accession ID→fetcher;
+  context-aware routing of the same GEO ID → microarray-DE / DESeq2-chain / GSEA with auto-filled
+  params). Grounded capability list + honest gaps: `docs/20261005_ACCESSION_TO_WORKFLOW_CAPABILITY.md`.
+  Remaining render backlog: D3/D4/S1/S4/B1 (not authored).
