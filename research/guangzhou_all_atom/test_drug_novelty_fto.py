@@ -56,6 +56,21 @@ def test_fail_open_when_nothing_runs():
     print("ok: nothing-ran => occupied=None/unknown (fail-open)")
 
 
+def test_multi_reference_any_flags():
+    # ref A = the peptide itself (will flag); ref B = aspirin (won't). occupied if ANY flags.
+    smi, _ = nf.peptide_to_smiles("KGLRGRSG", cyclic=True)
+    selfp = nf._morgan(smi)
+    libA = nf.KnownActivesLibrary(fps=[selfp], ids=["self"], smiles=[smi], tags=[{}])
+    libB = nf.KnownActivesLibrary(fps=[nf._morgan("CC(=O)Oc1ccccc1C(=O)O")], ids=["aspirin"],
+                                  smiles=["CC(=O)Oc1ccccc1C(=O)O"], tags=[{}])
+    r = nf.score_candidate_multi("c", {"A": libA, "B": libB}, seq="KGLRGRSG")
+    assert r["occupied"] is True and r["flagged_by"] == ["A"], r
+    # neither flags => novel; no refs runnable => unknown/None
+    r2 = nf.score_candidate_multi("c", {"B": libB}, seq="GRGRNKYYP")
+    assert r2["occupied"] is False and r2["verdict"] == "novel", r2
+    print("ok: multi-reference occupied if ANY reference flags")
+
+
 if __name__ == "__main__":
     test_peptide_to_smiles_cyclic_mw()
     test_cyclic_vs_linear_differ()
@@ -63,4 +78,5 @@ if __name__ == "__main__":
     test_distinct_scaffold_is_novel()
     test_sequence_identity()
     test_fail_open_when_nothing_runs()
+    test_multi_reference_any_flags()
     print("\nALL PASS")

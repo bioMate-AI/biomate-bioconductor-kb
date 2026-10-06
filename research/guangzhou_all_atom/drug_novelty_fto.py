@@ -477,6 +477,44 @@ def score_candidate(candidate_id: str,
     return v.finalize()
 
 
+def score_candidate_multi(candidate_id: str,
+                          libraries: Dict[str, "KnownActivesLibrary"],
+                          smiles: Optional[str] = None, seq: Optional[str] = None,
+                          **kwargs) -> dict:
+    """Score one candidate against SEVERAL named known-actives references and combine.
+
+    Returns {"candidate_id", "occupied", "verdict", "per_reference": {name: verdict_dict},
+             "max_tanimoto", "flagged_by": [...]}. ``occupied`` is True if ANY reference flags
+     it (the conservative FTO policy — a hit in any known set is a hit); None only if NO
+     reference could run (fail-open). Lets the gate check e.g. ChEMBL/BindingDB (general) AND
+     CycPeptMPDB (cyclic-specific) together, since they catch different prior art.
+    """
+    per = {}
+    any_ran = False
+    occupied = False
+    best_t = None
+    flagged = []
+    for name, lib in libraries.items():
+        v = asdict(score_candidate(candidate_id, smiles=smiles, seq=seq, library=lib, **kwargs))
+        per[name] = v
+        if v["occupied"] is not None:
+            any_ran = True
+        if v["occupied"] is True:
+            occupied = True
+            flagged.append(name)
+        if v["max_tanimoto"] is not None:
+            best_t = v["max_tanimoto"] if best_t is None else max(best_t, v["max_tanimoto"])
+    return {
+        "candidate_id": candidate_id,
+        "occupied": (occupied if any_ran else None),
+        "verdict": ("novel" if (any_ran and not occupied) else
+                    ("unknown" if not any_ran else per[flagged[0]]["verdict"])),
+        "max_tanimoto": best_t,
+        "flagged_by": flagged,
+        "per_reference": per,
+    }
+
+
 # --------------------------------------------------------------------------------------------
 # CLI — score a CRO panel / a single candidate.
 # --------------------------------------------------------------------------------------------

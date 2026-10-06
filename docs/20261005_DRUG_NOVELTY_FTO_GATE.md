@@ -115,6 +115,30 @@ python3 drug_novelty_fto.py --panel results/CRO_SEND_avb6_panelB.csv --seq-col S
 python3 select_to_rfq.py --selection sel.json --prefix AVB6-B --fto-gate --out panelB.csv
 ```
 
+## Multi-reference screening (complementary known sets)
+
+`score_candidate_multi(libraries={name: lib})` screens a candidate against **several** known-actives
+references and flags it occupied if **any** reference does (conservative FTO policy). Two complementary
+references are now wired:
+
+| Reference | Size | Nature | Result on the 22 |
+|---|---|---|---|
+| ChEMBL/BindingDB (`binding_affinity_v1`) | 136,730 | general known actives | 20 novel, **2 close_analog** (RGD-type αvβ6 binders) |
+| **CycPeptMPDB** (`CycPeptMPDB_Peptide_All.csv`) | 8,466 | known **cyclic peptides** (ncAA/N-methyl macrocycles) | **22 novel** (max T 0.74) |
+
+They catch *different* prior art: the 2 ChEMBL close-analogs score only 0.59/0.62 vs CycPeptMPDB (their
+neighbours are linear RGD peptides, absent from the cyclic set); and the canonical head-to-tail designs
+are structurally distinct from CycPeptMPDB's ncAA-macrocycle space. Net occupancy across both references:
+**2/22** (the same two αvβ6 close-analogs). Artifact: `results/fto_novelty_22_cycpeptmpdb.json`.
+
+## Sequence axis — status
+
+Built + unit-tested, but **still lacks a clean 1-letter known/patent peptide corpus**: CycPeptMPDB
+sequences are ncAA monomer-lists (not 1-letter), and `approved_cyclic_peptide_drugs.csv` is
+metadata-only (no sequence/SMILES). So the sequence axis did not run on the 22. Activating it needs a
+1-letter peptide-sequence reference (patent sequence corpus, THPdb, or ChEMBL peptide sequences) — the
+real catch for sequence/Markush-style claims the structure axis misses.
+
 ## Next steps
 - Add a **patent/known peptide-sequence corpus** to activate the sequence axis (the real peptide-FTO
   signal); consider a peptide-tuned Tanimoto cutoff calibrated on the peptide-peptide baseline.
