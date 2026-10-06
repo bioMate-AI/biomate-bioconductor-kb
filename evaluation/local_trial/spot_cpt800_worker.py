@@ -91,11 +91,22 @@ def run_vllm(rows, base_dir, adapter_dir):
     return base_out, cpt_out, n_diff
 
 
-def run_transformers(rows, base_dir, adapter_dir):
+def run_transformers(rows, base_dir, adapter_dir, constrain=False):
     import torch
     from model_loading import load_text_model
     from peft import PeftModel
     prompts, tok = build_prompts(rows, base_dir)
+
+    # Constrained-decoding letter ids: restrict the FIRST generated token to the option letters.
+    # This GUARANTEES a valid answer for ANY model (base, CPT-only, or SFT) — the production-grade
+    # format guarantee (cf. vLLM guided_choice) — AND it is the correct logprob-over-letters MCQA
+    # instrument for a non-SFT/base model, which free-generation cannot score (it emits prose).
+    letters = ["A", "B", "C", "D", "E"]
+    lids = []
+    for L in letters:
+        ids = tok.encode(L, add_special_tokens=False)
+        lids.append(ids[0] if ids else tok.encode(" " + L, add_special_tokens=False)[0])
+    lids_t = torch.tensor(lids)
 
     def generate_all(model):
         model.eval()
@@ -103,11 +114,16 @@ def run_transformers(rows, base_dir, adapter_dir):
         for i, p in enumerate(prompts):
             enc = tok(p, return_tensors="pt").to(model.device)
             with torch.inference_mode():
-                o = model.generate(**enc, max_new_tokens=16, do_sample=False,
-                                   pad_token_id=tok.eos_token_id)
-            outs.append(tok.decode(o[0, enc.input_ids.shape[1]:], skip_special_tokens=True))
+                if constrain:
+                    logits = model(**enc).logits[0, -1]           # next-token logits
+                    pick = int(torch.argmax(logits[lids_t.to(logits.device)]))
+                    outs.append(letters[pick])                    # bare valid letter -> 0 invalid
+                else:
+                    o = model.generate(**enc, max_new_tokens=16, do_sample=False,
+                                       pad_token_id=tok.eos_token_id)
+                    outs.append(tok.decode(o[0, enc.input_ids.shape[1]:], skip_special_tokens=True))
             if (i + 1) % 50 == 0:
-                print(f"[tf] {i + 1}/{len(prompts)}", flush=True)
+                print(f"[tf{'-constrained' if constrain else ''}] {i + 1}/{len(prompts)}", flush=True)
         return outs
 
     # Base arm: original weights only.
@@ -133,6 +149,9 @@ def main():
     ap.add_argument("--adapter", required=True)
     ap.add_argument("--rows", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--constrain", action="store_true",
+                    help="restrict the answer to option letters (format guarantee + logprob-over-letters; "
+                         "the correct instrument for a non-SFT/CPT-only checkpoint). transformers engine only.")
     a = ap.parse_args()
     rows = [json.loads(l) for l in Path(a.rows).read_text().splitlines() if l.strip()]
     rows_sha = hashlib.sha256(Path(a.rows).read_bytes()).hexdigest()
@@ -141,7 +160,7 @@ def main():
         if a.engine == "vllm":
             base_out, cpt_out, n_diff = run_vllm(rows, a.base, a.adapter)
         else:
-            base_out, cpt_out, n_diff = run_transformers(rows, a.base, a.adapter)
+            base_out, cpt_out, n_diff = run_transformers(rows, a.base, a.adapter, constrain=a.constrain)
     except Exception as e:  # noqa
         import traceback
         traceback.print_exc()
