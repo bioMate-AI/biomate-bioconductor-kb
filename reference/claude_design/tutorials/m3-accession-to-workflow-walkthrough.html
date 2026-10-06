@@ -96,7 +96,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 <div class="stage" id="stage">
 
   <!-- 0 — TITLE -->
-  <section class="scene title" data-seconds="34.0">
+  <section class="scene title" data-seconds="33.0">
     <div class="kicker">For the biologist who starts from a published dataset</div>
     <h2>You have an accession number. BioMate turns it into a running pipeline.</h2>
     <p class="caption">A paper cites a dataset — a GEO <code>GSE…</code>, an SRA <code>SRR…</code>. Normally that's the start of a day of work: find it, figure out what kind of data it is, pick the right pipeline, wire up the parameters. <b>BioMate does that from the ID.</b> You paste the accession, say what you want to learn, and it fetches the data and routes it to the correct, correctly-parameterized workflow.</p>
@@ -112,7 +112,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 1 — THE PROBLEM -->
-  <section class="scene" data-seconds="34.0">
+  <section class="scene" data-seconds="33.0">
     <div class="kicker">The problem this solves</div>
     <h2>An accession is not a dataset — it's four manual steps before you can even start.</h2>
     <p class="caption">Reusing public data looks easy and rarely is. The same ID can be microarray, bulk RNA-seq, or single-cell — and each needs a different pipeline. Get the archive, the modality, the workflow, or the parameters wrong, and you've either wasted a run or quietly produced the wrong answer.</p>
@@ -130,7 +130,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 2 — THE IDEAS -->
-  <section class="scene" data-seconds="38.0">
+  <section class="scene" data-seconds="40.0">
     <div class="kicker">The ideas you need first</div>
     <h2>Four plain words describe the whole journey.</h2>
     <p class="caption">You don't need to know the download tools — just these four, and the rest follows.</p>
@@ -151,7 +151,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 3 — STAGE 1 CONCEPT -->
-  <section class="scene" data-seconds="33.0">
+  <section class="scene" data-seconds="27.0">
     <div class="kicker"><span class="st">Stage 1</span> · ID → fetch</div>
     <h2>Paste the ID; BioMate names the archive and picks the fetcher.</h2>
     <p class="caption">The first stage is fast and deterministic. BioMate reads the shape of the accession — a <code>GSE…</code> is GEO, an <code>SRR…</code> or <code>SRP…</code> is SRA — and hands back the matching fetch workflow with the ID already filled in, ready to run. No network guesswork, no wrong tool.</p>
@@ -194,7 +194,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 5 — STAGE 2 CONCEPT: READS THE STUDY -->
-  <section class="scene" data-seconds="36.0">
+  <section class="scene" data-seconds="30.0">
     <div class="kicker"><span class="st">Stage 2</span> · it reads the study</div>
     <h2>Before choosing an analysis, BioMate checks what the data actually is.</h2>
     <p class="caption">The ID doesn't say whether a GEO series is a microarray or RNA-seq — but the study's own record does. BioMate reads GEO's metadata directly and infers the <b>modality</b> from the authoritative series type and the design description, so the analysis fits the data rather than a guess.</p>
@@ -212,7 +212,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 6 — LIVE: ROUTING TABLE (HEADLINE) -->
-  <section class="scene" data-seconds="34.0">
+  <section class="scene" data-seconds="37.0">
     <div class="kicker"><span class="st">Stage 2, live</span> · same ID, your goal picks the pipeline</div>
     <h2>One GEO ID, three questions, three correct pipelines.</h2>
     <p class="caption">Here is the intelligence in one view. The same family of GEO data, three different stated goals — and BioMate routes each to the right workflow <i>and</i> fills in the modality parameters automatically.</p>
@@ -234,7 +234,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 7 — FETCH & RUN -->
-  <section class="scene" data-seconds="32.0">
+  <section class="scene" data-seconds="30.0">
     <div class="kicker"><span class="st">Step</span> · fetch, then run</div>
     <h2>From the chosen workflow, it fetches and runs — on cloud compute.</h2>
     <p class="caption">Once the workflow is chosen, BioMate retrieves the data and runs the pipeline for you. GEO series come through the connector; raw-read studies are fetched as FASTQ and flow into the sequencing pipeline. You confirm once; the work runs in the cloud while you carry on.</p>
@@ -255,7 +255,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 8 — HONEST LIMITS -->
-  <section class="scene" data-seconds="34.0">
+  <section class="scene" data-seconds="33.0">
     <div class="kicker">What it does — and doesn't — do for you</div>
     <h2>The honest edges, so you know exactly what you're getting.</h2>
     <p class="caption">The intelligence is real, and it is specific. Knowing the edges is what makes it trustworthy for work you'll publish.</p>
@@ -272,7 +272,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 9 — CLOSING -->
-  <section class="scene title" data-seconds="34.0">
+  <section class="scene title" data-seconds="30.0">
     <div class="kicker">The value at a glance</div>
     <h2 style="font-size:40px">Paste an ID. Say your goal. Get a correctly-routed run.</h2>
     <div class="scene-body">
