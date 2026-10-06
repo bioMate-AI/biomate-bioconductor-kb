@@ -227,7 +227,7 @@ test.describe("Cold-start / composer / chat — live dev exec plan", () => {
     const expected: Record<string, string[]> = {
       search: ["cold-track-literature", "cold-track-databases", "cold-track-patents", "cold-track-internal"],
       analysis: ["cold-track-ad-hoc-compute", "cold-track-validated-workflows"],
-      design: ["cold-track-generate", "cold-track-predict-activity", "cold-track-optimise-properties", "cold-track-rank-candidates"],
+      design: ["cold-track-generate", "cold-track-predict-filter", "cold-track-optimise-properties-one-pass", "cold-track-rank-candidates"],
       models: ["cold-track-train", "cold-track-adapt", "cold-track-optimise"],
     };
     const missing: string[] = [];
@@ -258,13 +258,15 @@ test.describe("Cold-start / composer / chat — live dev exec plan", () => {
       .locator(`[data-testid="cold-module-card"][data-module-id="design"]`)
       .getByTestId("cold-module-expand")
       .click();
+    // The design module shows per-modality examples (default modality = small
+    // molecule → exBy.sm[0]), not the base ex[0].
     const ex = page.locator('[data-testid="cold-example"]', {
-      hasText: "Generate candidates for this target with drug-like properties.",
+      hasText: "Generate 500 candidates for this target with drug-like properties.",
     });
     await ex.click();
     const val = await composer(page).inputValue();
     expect(val).toBe(
-      "Generate candidates for this target with drug-like properties."
+      "Generate 500 candidates for this target with drug-like properties."
     );
     expect(val).not.toContain("“"); // “
     expect(val).not.toContain("”"); // ”
@@ -281,9 +283,9 @@ test.describe("Cold-start / composer / chat — live dev exec plan", () => {
     // Ad-hoc compute active by default → NO domain chips
     await expect(page.getByTestId("cold-domain-dd")).toHaveCount(0);
 
-    // switch to validated workflows → 6 domain chips appear
+    // switch to validated workflows → 7 domain chips appear
     await page.getByTestId("cold-track-validated-workflows").click();
-    for (const d of ["dd", "txn", "gen", "str", "prot", "clin"]) {
+    for (const d of ["dd", "txn", "gen", "fgen", "str", "prot", "clin"]) {
       await expect(page.getByTestId(`cold-domain-${d}`)).toBeVisible();
     }
     await shot(page, "CS-13-domain-chips");
@@ -310,13 +312,14 @@ test.describe("Cold-start / composer / chat — live dev exec plan", () => {
       })
       .click();
     await expect(composer(page)).toHaveValue(
-      "Screen these SMILES for ADMET liabilities and rank them by developability."
+      "Screen these SMILES for ADMET liabilities and rank them by developability: " +
+        "CC(=O)Oc1ccccc1C(=O)O, CN1C=NC2=C1C(=O)N(C(=O)N2C)C, CC(C)Cc1ccc(C(C)C(=O)O)cc1"
     );
     await shot(page, "CS-15-shape-seed");
 
-    // CS-16 (content audit, subset): verify every domain shows exactly 3 shapes
+    // CS-16 (content audit): verify every domain shows exactly 3 shapes
     const perDomain: string[] = [];
-    for (const d of ["dd", "txn", "gen", "str", "prot", "clin"]) {
+    for (const d of ["dd", "txn", "gen", "fgen", "str", "prot", "clin"]) {
       // re-open fresh to reset local state each time
       await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
       await page.getByTestId("cold-start-dashboard").waitFor({ timeout: 30_000 });
@@ -392,7 +395,7 @@ test.describe("Cold-start / composer / chat — live dev exec plan", () => {
     await expect(sendBtn(page)).toBeDisabled();
     await expect(composer(page)).toHaveAttribute(
       "placeholder",
-      "What would you like to analyze?"
+      "Ask BioMate to run a workflow or analyze your data..."
     );
     // whitespace-only keeps disabled
     await composer(page).fill("   ");
@@ -471,9 +474,10 @@ test.describe("Cold-start / composer / chat — live dev exec plan", () => {
     await expect(page.getByTestId("lane-preview-chip")).toContainText(
       "Answer here · with sources"
     );
-    await expect(
-      page.locator('text=Advisory').first()
-    ).toBeVisible();
+    // The advisory, honest read-back ("reads as …") — non-blocking affordance.
+    // (There is no literal "Advisory" label in the UI; that lived only in code
+    // comments. The read-back + override link ARE the advisory surface.)
+    await expect(page.getByTestId("lane-preview-read")).toBeVisible();
     await expect(page.getByTestId("lane-preview-override")).toBeVisible();
     await shot(page, "LP-01-instant");
   });
