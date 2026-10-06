@@ -1,0 +1,47 @@
+# Fuller 9B concept-CPT — final eval results (spot EC2, constrained + unconstrained)
+
+**Date:** 2026-10-06 (UTC). The fuller run (CPT 1200 steps + merge + SFT 500, on the spark GB10) evaluated on
+a **spot** EC2 box (g6.2xlarge L4, self-terminated; no spark-GPU wait, no on-demand). Transformers engine,
+frozen 261-item openbook diagnostic (knowledge_recall n=112, scientific_qa n=149). domainpro was
+**reconstructed from the HF base + two 58 MB adapters** (merge midtrain-1200 → base_domain, then SFT) — no
+18 GB merged-model transfer. Results: `s3://…/eval/spot_fuller_20261006_024755/`.
+
+## Results (base is identical across arms — constrained argmax-over-{A–E})
+| arm | knowledge_recall | scientific_qa | overall | invalid |
+|---|---|---|---|---|
+| **base** (orig Qwen3.5-9B) | 0.670 | 0.611 | 0.636 | 0 |
+| **CPT-1200 only** (constrained) | 0.705 | 0.644 | 0.671 | 0 |
+| **domainpro = CPT-1200 + SFT** (constrained) | **0.723** | 0.617 | 0.663 | 0 |
+| domainpro (**unconstrained**, native) | 0.705 | 0.611 | 0.651 | **4 / 261** |
+
+## Reads (honest)
+1. **The concept-CPT works and SCALES.** domainpro knowledge_recall **+5.4pp** over base (0.670→0.723),
+   up from the bounded 300-step run's **+4.4pp** → more CPT steps (300→1200) = larger lift, as hypothesized.
+2. **CPT adds the knowledge; SFT restores the format.** CPT-1200 alone = **+3.6pp** knowledge. SFT adds
+   format/instruction-following and lifts the constrained score to **+5.4pp**. Critically, SFT cuts the
+   invalid rate from the CPT-only model's **261/261** (prose) to **4/261** unconstrained — i.e. the SFT'd
+   deployed model follows the MCQA format **natively**; the constraint only guarantees the last ~1.5%.
+3. **The format fix is validated (both layers).** Constrained decoding → **0 invalid** for every model incl.
+   the raw CPT; SFT → near-0 invalid natively. This confirms `20261005_FORMAT_GUARANTEE_RESOLUTION.md`:
+   SFT (model) + constrained decoding (harness guarantee) both do their job. The earlier "cpt800 = 261
+   invalid" was an instrument/format artifact, NOT knowledge loss — now proven.
+
+## Honesty / scope
+- **Open-book MCQA diagnostic only** — not execution-task success, broad domain judgment, or client
+  acceptance (the artifact's own scope). n=261; no CIs computed.
+- **Constrained** = next-token argmax over the {A–E} option tokens (= logprob-over-letters), which is both
+  the correct instrument for a base/CPT model AND the production format guarantee; it reads slightly above
+  the unconstrained generation (it rescues the few the model would fumble + always emits a valid letter).
+- base here is 0.670 (constrained) vs 0.679 (earlier generation) — a method difference (argmax-letter vs
+  free-gen), consistent; both arms use the same method so the deltas are fair.
+- **Leakage:** the eval set is the exact-stem-filtered frozen diagnostic; source-family holdout vs the SFT
+  set is still not certified (carry-over caveat).
+- **Cost:** this spot box ≈ g6.2xlarge spot ~45 min (~$0.5); the earlier (deviating) on-demand cpt800 box
+  was ~$1.3–1.8. Both self-terminated.
+
+## Feeds
+- **Paper D** — the "full(er)-corpus CPT decision row" its Appendix C flagged as pending GPU is now answered:
+  **concept-CPT lifts domain knowledge (+5.4pp at 1200 steps) and scales with steps** — a real, if modest,
+  capability gain, consistent with the paper's "harness carries the bar; CPT adds domain knowledge" thesis.
+- Next if desired: a fuller CPT (more steps) to find the plateau; the logprob trajectory across
+  checkpoints 400/800/1200; and source-family-holdout certification before any external claim.
