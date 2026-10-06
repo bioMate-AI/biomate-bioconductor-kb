@@ -794,28 +794,26 @@ function PhaseGroupSection({
                   )}
                 </div>
               ))}
-              {/* Self-correct toggle — commented out until QC loop is stable
-              <div className="qc-autoloop" style={autoloopLocked ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}>
+              {/* Self-correct toggle — WORKFLOW-CONDITIONED: shown only for autoloop-ready
+                  workflows (the few drug-dev profiles with a ready design→make→test loop,
+                  per the QC profile's `autoloop` flag). Hidden for the many gate-only
+                  workflows. Opt-in, default OFF. */}
+              {!autoloopLocked && (
+              <div className="qc-autoloop">
                 <span
                   className={`switch${autoloopEnabled ? ' on' : ''}`}
-                  onClick={autoloopLocked ? undefined : onToggleAutoloop}
+                  onClick={onToggleAutoloop}
                   role="switch"
                   aria-checked={autoloopEnabled}
-                  aria-disabled={autoloopLocked}
                   data-testid={`autoloop-toggle-${group.key}`}
-                  style={autoloopLocked ? { pointerEvents: 'none' } : undefined}
                 />
                 <span
-                  title={autoloopLocked
-                    ? "Auto-loop is currently disabled while end-to-end testing is in progress. It will be enabled once testing is complete."
-                    : "When ON: if a quality check fails, BioMate adjusts parameters and retries the phase automatically (up to 3 times). When OFF: a review card appears so you can approve or reject the suggested fix before continuing."
-                  }
+                  title={"When ON: if a quality check fails, BioMate adjusts parameters and retries the phase automatically (up to 3 times). When OFF: a review card appears so you can approve or reject the suggested fix before continuing."}
                 >
                   Self-correct on QC failure <span style={{fontFamily:'var(--font-mono)', color:'var(--text-dim)'}}>(max 3×)</span>
-                  {autoloopLocked && <span style={{marginLeft: 6, fontSize: '0.75em', color: 'var(--text-dim)', fontStyle: 'italic'}}>(coming soon)</span>}
                 </span>
               </div>
-              */}
+              )}
             </div>
           )}
 
@@ -1028,7 +1026,7 @@ export function NextflowWorkflowViewer({
   // projectId for "My project folder" — sourced from the active chat session's
   // project_id, or the explicit prop passed by the project detail Workflow Runs tab.
   const projectId = projectIdProp ?? (workflowDefinition as any)?.projectId ?? null;
-  const [availableQcProfiles, setAvailableQcProfiles] = useState<Array<{ id: string; description: string; domain_hint: string; overrides: Record<string, number> }>>([]);
+  const [availableQcProfiles, setAvailableQcProfiles] = useState<Array<{ id: string; description: string; domain_hint: string; overrides: Record<string, number>; autoloop?: boolean }>>([]);
   const [qcDefaults, setQcDefaults] = useState<Record<string, { bound: number; direction: string; rationale?: string }>>({});
   const [qcOverrides, setQcOverrides] = useState<Record<string, number>>({});
 
@@ -1946,6 +1944,15 @@ export function NextflowWorkflowViewer({
   useEffect(() => {
     if (!availableQcProfiles.length || !workflowDefinition) return;
     if (qcProfile) return; // user already selected one
+    // Prefer the backend-classified / user-requested profile the workflow already carries
+    // (workflowDefinition.qc_profile — e.g. the message's "admet_standard", set by
+    // ai_assistant._infer_qc_profile). Without this, the domain fallback below picked the
+    // FIRST drug_discovery profile (cipa_ind_submission) and silently ignored the request.
+    const explicitProfile = (workflowDefinition as any).qc_profile as string | undefined;
+    if (explicitProfile && availableQcProfiles.some(p => p.id === explicitProfile)) {
+      setQcProfile(explicitProfile);
+      return;
+    }
     const name = (workflowDefinition.name || workflowDefinition.workflow_name || '').toLowerCase();
     const domainMap: Record<string, string[]> = {
       cryo_em: ['cryo', 'cryosparc', 'spa', 'tomography', 'helical', 'subtomogram'],
@@ -2898,9 +2905,17 @@ export function NextflowWorkflowViewer({
                         : undefined
                     }
                     autoloopEnabled={autoloopMap[group.key] === true}
-                    autoloopLocked={true}
+                    autoloopLocked={activeQcProfile?.autoloop !== true}
                     onToggleAutoloop={() => {
-                      // Auto-loop is locked while testing is in progress — no-op
+                      // Workflow-conditioned: only autoloop-ready profiles (the few
+                      // drug-dev workflows with a ready design→make→test loop) expose
+                      // this. Opt-in, default OFF. No-op for non-autoloop workflows.
+                      if (activeQcProfile?.autoloop !== true) return;
+                      setAutoloopMap(prev => {
+                        const next = { ...prev, [group.key]: !prev[group.key] };
+                        autoloopMapRef.current = next;
+                        return next;
+                      });
                     }}
                     onDismissAutoloop={() =>
                       setAutoLoopPanel({ gateResults: null, remediations: [], regulatoryActions: [], complete: null })

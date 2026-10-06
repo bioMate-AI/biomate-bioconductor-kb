@@ -1043,7 +1043,23 @@ class NextflowQCGateHandler:
     def list_profiles(cls) -> list:
         """
         Return a list of all named profiles with their metadata for the API endpoint.
+
+        Each profile carries `autoloop`: whether it is AUTOLOOP-wired (a ready
+        design→make→test remediation loop) vs gate-only. Only a few drug-dev
+        profiles have a ready auto-loop; the frontend uses this to surface the
+        self-correct control ONLY for those workflows. Source of truth:
+        experiments.autoloop_bridge._DOMAIN_DEFAULT_PROFILE (the domains the
+        auto-loop actually handles); imported defensively with a hardcoded
+        fallback so the API never fails when experiments/ isn't importable.
         """
+        try:
+            from experiments.autoloop_bridge import _DOMAIN_DEFAULT_PROFILE as _DDP
+            _autoloop_profiles = set(_DDP.values())
+        except Exception:
+            _autoloop_profiles = {
+                "admet_standard", "docking_hit_finding", "cyp_ddi_standard",
+                "nca_standard", "pbpk_screening", "poppk_standard",
+            }
         return [
             {
                 "id": name,
@@ -1051,6 +1067,7 @@ class NextflowQCGateHandler:
                 "domain_hint": profile.get("domain_hint", "unknown"),
                 "overrides": profile.get("overrides", {}),
                 "references": profile.get("references", []),
+                "autoloop": name in _autoloop_profiles,
             }
             for name, profile in QC_NAMED_PROFILES.items()
         ]
