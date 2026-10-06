@@ -160,7 +160,7 @@ import statistics as st
 di=[c['d_iptm'] for c in comp.values() if c['d_iptm'] is not None]
 out={'n_targets_compared':len(comp),'mean_d_iptm':round(st.mean(di),3) if di else None,
      'per_target':summ,'head_to_head_ft_minus_base':comp,
-     'note':'d_iptm>0 => ft higher interface confidence on HELD-OUT targets (never seen in FT); d_filter_rmsd<0 => ft more designable. Expected per survey: modest/NULL (structure-prior plateaus on novel targets).'}
+     'note':'WIN TEST (not a null hunt): does cyclic fine-tuning beat BASE BoltzGen at CYCLIC design on HELD-OUT targets? d_iptm>0 AND d_filter_rmsd<0 => ft produces more designable, higher-confidence cyclic binders — a transferable chemistry-capability advantage (base is general/PDB-trained, weak on head-to-tail macrocycles). This is the win we expect to hold cross-target; target-specific BINDING transfer is a separate (field-wide-open) axis and is NOT what this measures.'}
 json.dump(out, open('/opt/boltzgen-run/status/loto_summary.json','w'), indent=2)
 print(json.dumps({k:out[k] for k in ('n_targets_compared','mean_d_iptm')}))
 PY
