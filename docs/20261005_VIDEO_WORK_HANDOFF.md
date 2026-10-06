@@ -116,3 +116,5 @@ m2 (DESeq2/GSE52778) + qpcr (ΔΔCq) assets). So the video workstream is **NOT**
   context-aware routing of the same GEO ID → microarray-DE / DESeq2-chain / GSEA with auto-filled
   params). Grounded capability list + honest gaps: `docs/20261005_ACCESSION_TO_WORKFLOW_CAPABILITY.md`.
   Remaining render backlog: D3/D4/S1/S4/B1 (not authored).
+
+- 2026-10-05 (session 14) — **D3/D4/S1/S4/B1 authored, rendered EN+ZH, and uploaded** (10 mp4s on Drive): D3 generative lead design (REINVENT4), D4 binding free energy (openfe_rbfe/FEP), S1 non-compartmental PK (Nca Pknca/PKNCA), S4 survival analysis (Kaplan–Meier + Cox + RLassoCox), B1 train a custom model (run_code). Authored by parallel subagents grounded in the real workflow .nf sources, concept-cards only (no fabricated screenshots/numbers), honest-edges scene each; frame-audited. **The DL/ML + statistical-model tutorial backlog is now cleared.** Full series on Drive: t0–t4, m1, m2, m3, qpcr, drug-dev, d1, d2, d3, d4, s1, s2, s4, b1.
