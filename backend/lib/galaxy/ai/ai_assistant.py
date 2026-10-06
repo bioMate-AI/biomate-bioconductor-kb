@@ -2227,6 +2227,15 @@ Respond with a single JSON object — no other text:
         'topology_file',              # optional — used for restart/continuation runs
         'checkpoint_file',            # optional — restart only
         'restraints_file',            # optional — position restraints
+        # Drug discovery / generative lead design (reinvent4_lead_design, scaffold_hopping)
+        # — null defaults that are CONDITIONALLY required only for non-default
+        # scoring functions. The .nf enforces them at runtime (error out iff
+        # scoring_function == 'docking_gnina'/'custom_toml' and the value is
+        # absent), so the common default scoring_function='qed_sa' generation
+        # path must NOT be gated on them.
+        'receptor',                   # optional — only required for scoring_function=docking_gnina
+        'docking_ref_ligand',         # optional — only used for docking box center (docking_gnina)
+        'custom_toml',                # optional — only required for scoring_function=custom_toml
         # Genomics
         'known_sites',                # optional — dbSNP for BQSR (hg38 auto-injected)
         'intervals',                  # optional — targeted sequencing intervals
