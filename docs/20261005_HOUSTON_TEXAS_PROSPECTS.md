@@ -41,9 +41,9 @@ These are the warmest Houston entry points and lead the quarter. All three origi
 
 ### W1. ~~Dr. Zhandong Liu — Baylor College of Medicine / Texas Children's~~ — REMOVED (founder decision, 2026-10-05)
 > **Not pursuing Liu/BCM.** The warmest tie **re-anchors to the SBMI group** (the founder's former department
-> — Zhongming Zhao, Degui Zhi, Jim Zheng) and **Chandra Mohan / U. Houston** (verified contact; his cohort
-> data is held-out-validation-only). **Every "via Liu / via W1 / Texas Children's-with-Liu / chain-id-1
-> rare-disease" dependency below is void.** The `BioMate_ZhandongLiu_Collaboration_Proposal.md` file is left
+> — Zhongming Zhao, Degui Zhi, Jim Zheng). **(Mohan/HOC@UH also REMOVED 2026-10-05 — not pursuing.)**
+> **Every "via Liu / via W1 / via Mohan / Texas Children's-with-Liu / chain-id-1 rare-disease" dependency
+> below is void.** The `BioMate_ZhandongLiu_Collaboration_Proposal.md` file is left
 > as a historical record, not an active prospect. (Original entry struck through:)
 - **Segment:** hospital / academic-core (neuro + computational genomics).
 - **Why they fit:** rare-neurological-disease multi-modal workup (WGS + RNA-seq + splicing). His full pipeline is **already wired into BioMate as chain id 1** (`rare_disease_multimodal_workup`: sarek → VEP → rnaseq → DROP/OUTRIDER/FRASER → case-report aggregation), matching his RareCollab paper verbatim (`docs/20260701_...md` §Faculty 3; MEMORY `user_uthealth_faculty_background`). A full pilot proposal is **already drafted** (`business/BioMate_ZhandongLiu_Collaboration_Proposal.md`).
@@ -123,7 +123,7 @@ Carried forward verbatim from `docs/20260727_TEXAS_TIER1_BD_PROSPECTS.md` (conta
 
 | # | Prospect | Segment | Why they fit (real capability) | Specific ask | Warm/Cold | Priority |
 |---|---|---|---|---|---|---|
-| 23 | **Houston Omics Collaborative (HOC) @ University of Houston** — Dir. **Chandra Mohan, MD PhD** (`cmohan@central.uh.edu` ✓, 713-743-3709; `docs/20260727_...md` §4) | academic-core / channel | UH omics service facility (targeted proteomics, autoantigen microarrays, genomics). Mohan = prominent lupus/autoimmunity biomarker KOL; maps onto BioMate's isotype/autoimmune-stratification thesis. Three plays: wet+dry bundle, KOL/validation co-author, channel to every lab HOC serves | Warm-ish intro (verified contact): propose (a) joint wet+dry offering, (b) co-authored reproducibility/autoimmune-stratification manuscript, (c) channel listing. **Caveat (MEMORY `project_mohan_data_validation_policy`):** his cohort data is HELD-OUT validation only — never training | Warm-cool (verified named contact; no active relationship) | P1 |
+| 23 | ~~Houston Omics Collaborative (HOC) @ UH — Chandra Mohan~~ — **REMOVED (founder decision, 2026-10-05): not pursuing Mohan/HOC** | — | — | — | — |
 | 24 | **Altogen Labs (Austin)** — preclinical CRO (PK/PD, xenografts, ELISA, stable lines, tox; `docs/20260727_...md` §8) | CRO | Wet+dry partnership: they run in-vivo/assays, BioMate adds the omics analysis + reporting layer; or their client base as a channel | Cold intro via altogenlabs.com; propose an execution-backbone / white-label analytics partnership (position as "augment throughput + reproducibility," not "replace") | Cold | P2 |
 | 25 | **Boutique / specialized Texas CROs + academic core facilities** (genomics / proteomics / single-cell cores at the institutions above) | CRO / academic-core (channel) | Per `docs/20261005_MOAT_AND_SEGMENT_MARKETING_STRATEGY.md` §2D: boutique CROs + internal academic cores lack bioinformatics teams, face margin pressure, need reproducible/auditable output → BioMate as their on-prem execution backbone (recurring + brings client volume) | Map and **identify contacts** at each core (BCM GARP/genomics, Houston Methodist BBI, UH HOC, UTSW, A&M); pitch execution-backbone partnership | Cold (channel-building) | P2 |
 
@@ -142,9 +142,9 @@ Carried forward verbatim from `docs/20260727_TEXAS_TIER1_BD_PROSPECTS.md` (conta
 
 | Rank | Prospect | Segment | Warm/Cold | Concrete first action |
 |---|---|---|---|---|
-| 1 | ~~Dr. Zhandong Liu~~ **REMOVED (2026-10-05)** → lead is now **#2 SBMI group (Zhongming Zhao)** + **#3 Mohan/UH**; re-anchor the first Q4 pilot on them | — | — | (removed; re-anchor below) |
+| 1 | ~~Dr. Zhandong Liu~~ & ~~Mohan/UH~~ **both REMOVED (2026-10-05)** → lead warm tie is now the **SBMI group** (Zhongming Zhao, Degui Zhi, Jim Zheng — founder's former dept); re-anchor the first Q4 pilot on SBMI | — | — | (removed) |
 | 2 | **Dr. Zhongming Zhao (UTHealth SBMI)** | academic-core | **Warm (affiliation)** | 30-min call opening on the live scGWAS chain (Crohn's × Tregs); pitch the Autoimmune Virtual Cell co-paper |
-| 3 | **Chandra Mohan / HOC @ University of Houston** | academic-core/channel | **Warm-cool (verified contact)** | Email `cmohan@central.uh.edu`: propose wet+dry bundle + co-authored reproducibility manuscript (respect held-out-data rule) |
+| 3 | ~~Chandra Mohan / HOC @ UH~~ — **REMOVED (founder decision, 2026-10-05)** | — | — | (removed) |
 | 4 | **TMC Innovation Factory / Innovation Labs @ TMC** | accelerator/channel | Cold (high leverage) | Contact the TMC Innovation partnerships team; request listing as a preferred bioinformatics/AI resource + schedule a resident office-hours / lunch-and-learn |
 | 5 | **Mongoose Bio (Houston)** | biotech (cloud) | Cold (verified entry) | Email `info@mongoosebio.com` proposing a target/epitope + TCR–HLA–peptide resolution pilot; request an in-person Houston meeting |
 | 6 | **Dr. Degui Zhi (UTHealth SBMI Chair)** | academic-core | **Warm (affiliation)** | After Zhao, email referencing that conversation; pitch TorchGWAS + Med-BERT target-prioritization layer |
@@ -153,7 +153,7 @@ Carried forward verbatim from `docs/20260727_TEXAS_TIER1_BD_PROSPECTS.md` (conta
 | 9 | **UT Southwestern — Lyda Hill Dept. of Bioinformatics** | academic-core | Cold | Cold intro to the department (Chair Danuser's group); propose a reproducibility/methods collaboration + student platform access |
 | 10 | **Diakonos Oncology (Houston)** | biotech | Cold | Submit the partnership contact form (or route via Russo Partners PR) proposing prospective DOC1021 responder prediction |
 
-**Day-trip efficiency note (from `docs/20260727_...md`):** ranks 3, 5, 7, 10 are all Houston and convert far better in person — batch them into a single Houston day (HOC/UH + Mongoose + ImmunoGenesis + Diakonos), anchored around the SBMI (UTHealth) + Mohan/UH meetings.
+**Day-trip efficiency note (from `docs/20260727_...md`):** ranks 3, 5, 7, 10 are all Houston and convert far better in person — batch them into a single Houston day (Mongoose + ImmunoGenesis + Diakonos), anchored around the SBMI (UTHealth) meeting.
 
 ---
 
@@ -164,5 +164,5 @@ Carried forward verbatim from `docs/20260727_TEXAS_TIER1_BD_PROSPECTS.md` (conta
 - **MD Anderson:** no direct line; explicitly cold/aspirational (MEMORY). Any MDACC path is bottom-up via a specific PI lab.
 - **TMC BioBridge China:** confirmed **absent** as of the cited release — do not pitch a China on-ramp through BioBridge.
 - **JLABS @ TMC:** the `20260727` doc's "JLABS @ TMC" addresses are being superseded — J&J JLABS vacates Jan 2026; the space becomes TMC-managed **Innovation Labs @ TMC** ([TMC/InnovationMap, accessed 2026-10-05](https://houston.innovationmap.com/innovation-labs-tmc-2673755580.html)). Tenant companies (Mongoose, ImmunoGenesis) remain Houston-based.
-- **Company contact emails** (Mongoose, ImmunoGenesis, HOC) are carried from `docs/20260727_...md` with its ✓/✓fmt provenance; re-verify format before a send. Diakonos / 7 Hills / ImmunoMet have **no verified personal address** — use the contact form or PR route; ImmunoMet status should be re-checked before outreach.
+- **Company contact emails** (Mongoose, ImmunoGenesis) are carried from `docs/20260727_...md` with its ✓/✓fmt provenance; re-verify format before a send. Diakonos / 7 Hills / ImmunoMet have **no verified personal address** — use the contact form or PR route; ImmunoMet status should be re-checked before outreach.
 - **BioMate capability depth caveats** (single-cell/spatial/proteomics E2E unproven; no SOC 2 / Part 11 / GxP; no MGI/BGI connector; IND/CRO UX offline) apply to every pitch above and must not be over-promised (`docs/20261005_SEGMENT_DEMAND_DIFFERENTIATION.md` §A.3/§B.3).
