@@ -13775,6 +13775,7 @@ Rules:
         system: ANALYSIS_SYSTEM_PROMPT,
         maxTokens: 4096,
         jsonMode: true,  // findings endpoint expects JSON output
+        task: 'findings',  // route to on-prem SFT-gold adapter when enabled (flag default OFF); backend falls back to the chain otherwise
       });
       const rawText = completion.text || '';
       // Strip markdown fences if present

@@ -27,6 +27,13 @@ export interface LlmGenerateOptions {
   temperature?: number;
   /** Hint to the provider to return JSON; honored by Gemini, ignored otherwise. */
   jsonMode?: boolean;
+  /**
+   * Optional per-task tag forwarded to the backend chokepoint. When the on-prem
+   * SFT-gold adapter is enabled (flag default OFF) and this task is allowlisted
+   * (findings / decomposition), the backend routes the call to the adapter and
+   * falls back to the cloud chain on any error. Omit it for normal routing.
+   */
+  task?: string;
 }
 
 export interface LlmGenerateResult {
@@ -80,6 +87,7 @@ export async function llmGenerate(
     max_tokens: opts.maxTokens ?? 4096,
     temperature: opts.temperature ?? 0.7,
     ...(opts.jsonMode ? { json_mode: true } : {}),
+    ...(opts.task ? { task: opts.task } : {}),
   };
   const url = `${backendUrl()}/internal/llm/generate`;
   const resp = await fetch(url, {

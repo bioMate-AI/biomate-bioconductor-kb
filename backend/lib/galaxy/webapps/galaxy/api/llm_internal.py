@@ -83,6 +83,11 @@ async def generate(request: Request) -> Dict[str, Any]:
             status_code=400, detail="`prompt` (non-empty string) is required"
         )
 
+    # Optional per-task tag. Used ONLY to decide whether the on-prem SFT-gold
+    # 9B adapter handles this call (findings / decomposition). Everything else
+    # — and any failure — goes through the canonical cloud chain below.
+    task: Optional[str] = body.get("task") if isinstance(body.get("task"), str) else None
+
     # Forward kwargs that LLMClient.generate accepts. Default max_tokens
     # is high enough to avoid truncation for the typical methods-report
     # / findings-analysis workloads (verified: ~3K tokens output for
@@ -96,6 +101,34 @@ async def generate(request: Request) -> Dict[str, Any]:
         kwargs["system"] = system
     if body.get("json_mode"):
         kwargs["json_mode"] = True
+
+    # On-prem SFT-gold routing (flag-gated, task-allowlisted, default OFF).
+    # Try the adapter FIRST only for allowlisted tasks; on any error fall
+    # through to the canonical chain so the request never fails for this reason.
+    try:
+        from galaxy.ai import sft_gold_inference
+        if sft_gold_inference.enabled_for(task):
+            try:
+                sft_text = await sft_gold_inference.agenerate(
+                    prompt,
+                    system=system,
+                    max_tokens=kwargs["max_tokens"],
+                    temperature=0.0,  # greedy for parity with the evaluated behavior
+                    json_mode=bool(body.get("json_mode")),
+                )
+                return {
+                    "text": sft_text,
+                    "model_used": "sft_gold",
+                    "fallback_depth": 0,
+                }
+            except Exception as exc:  # noqa: BLE001 — intentional clean fallback
+                log.warning(
+                    "[LLMInternal] sft_gold route failed for task=%s; falling back to chain: %s",
+                    task,
+                    exc,
+                )
+    except Exception:  # pragma: no cover — import guard; never block the chain
+        log.debug("[LLMInternal] sft_gold module unavailable; using chain", exc_info=True)
 
     client = _llm_client()
     try:
