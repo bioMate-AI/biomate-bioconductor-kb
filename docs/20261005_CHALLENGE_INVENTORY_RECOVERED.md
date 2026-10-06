@@ -28,7 +28,15 @@ closed-loop SYSTEM + proprietary data + prospective validation — NOT "we beat 
 | Selectivity | — | **Identified, not built** | omitted from MO (single-target data) |
 | Safety/tox | `stability_predictor.py` (proxy) | **Honest proxy only** | no real tox oracle |
 
-## Closed-loop expert-feedback — honest status (the critical caveat)
+## CORRECTION (2026-10-06): expert KNOWLEDGE *was* mined (don't say "no expert signal")
+Real mined expert signal exists and is IN BIOMATE: `backend/scripts/domain_knowledge/expert_knowledge_*.json`
+(6 domains, ~650 KB) — LLM-extracted from tool docs/literature/guidelines (`batch_llm_extract.py`,
+`extract_all_scientific_context.py`, `extract_biomni_tool_usage.py`; plan
+`backend/20260209_BIOMATE_EXPERT_KNOWLEDGE_LEVERAGE_PLAN.md`), human-reviewed (`review_*.md`), injected via
+`inject_expert_knowledge.py`. This is a one-way knowledge INJECTION into the assistant/tool-use — distinct
+from the expert PREFERENCE-pair FEEDBACK loop below. The two "expert signals" must not be conflated.
+
+## Closed-loop expert-feedback (PREFERENCE pairs → DPO) — honest status (the critical caveat)
 - **BUILT + SYNTHETIC-verified only** (wiring, not learning). "The close-back machine works; it is not
   yet fed real preference signal" — only VERIFY_SELECT pairs exist; ACTIVITY/EXPERT streams empty.
 - **A single wet-lab round cannot validate or train it** — DPO needs many pairs; one round = one DBTL
