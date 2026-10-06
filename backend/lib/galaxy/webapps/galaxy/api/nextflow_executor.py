@@ -6875,6 +6875,35 @@ def _get_nextflow_status_impl(
 ) -> Dict[str, Any]:
     """Internal status computation — may contain raw internals; NEVER returned to the
     browser directly. Public callers use get_nextflow_status (which sanitizes)."""
+    # Chain-aware status: a `chain_...` id is NOT a single Nextflow run — its record
+    # lives in the chain store (served by /api/workflows/chain/{id}). Previously this
+    # endpoint had no chain-awareness, so /api/nextflow/status/{chain_id} 404'd
+    # unconditionally (the frontend polls this path). Resolve chain ids here too.
+    if isinstance(run_id, str) and run_id.startswith("chain_"):
+        try:
+            from galaxy.webapps.galaxy.api import workflow_chain as _wfc
+            _cs = _wfc._get_chain(run_id)
+        except Exception:  # pragma: no cover - chain store optional
+            _cs = None
+        if _cs is not None:
+            _steps = _cs.get("steps") or []
+            _done = sum(1 for s in _steps if s.get("status") == "succeeded")
+            _total = len(_steps)
+            return {
+                "run_id": run_id,
+                "invocation_id": run_id,
+                "status": _cs.get("status") or "running",
+                "is_chain": True,
+                "chain_name": _cs.get("chain_name"),
+                "completedSteps": _done,
+                "totalSteps": _total,
+                "progressPercent": int(100 * _done / _total) if _total else 0,
+                "processes": [],
+                "steps": _steps,
+                "started_at": _cs.get("created_at"),
+                "completed_at": _cs.get("completed_at"),
+            }
+        # chain_ id not in the store → fall through to normal lookup/404.
     info = _run_lookup(run_id)
 
     if info is not None:
