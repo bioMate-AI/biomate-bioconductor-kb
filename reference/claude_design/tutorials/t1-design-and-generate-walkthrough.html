@@ -176,17 +176,17 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <!-- 3 — GENERATE VS SCREEN + SEED -->
   <section class="scene" data-seconds="52.0">
     <div class="kicker"><span class="st">The ideas you need first</span> · generate, seed, SMILES <span class="badge concept">Concept</span></div>
-    <h2>You don't invent molecules — you give one seed, and BioMate varies it.</h2>
-    <p class="caption">"Screening" tests molecules you <b>already have</b>; "generating" (this tool) creates <b>new</b> ones. The generator doesn't start from nothing — you give it a <b>seed</b>: one known molecule to build variations around, like handing a composer a melody.</p>
+    <h2>BioMate generates novel molecules — steer the search with an optional seed.</h2>
+    <p class="caption">"Screening" tests molecules you <b>already have</b>; "generating" (this tool) proposes <b>new</b> ones toward your objective. To steer it, give a <b>seed</b> — a known molecule it builds novel variations around — or leave it blank to generate from scratch.</p>
     <div class="scene-body">
       <div class="concept">
         <div class="card big">
           <div class="row3">
-            <div class="tile"><div class="n">SEED</div><h4>One known molecule</h4><p>Entered as a <b>SMILES</b> string — a standard text code for a structure. Aspirin is <code>CC(=O)Oc1ccccc1C(=O)O</code>.</p></div>
+            <div class="tile"><div class="n">SEED · OPTIONAL</div><h4>Steer with a known molecule</h4><p>Enter a <b>SMILES</b> string to anchor the search, or leave it blank to generate from scratch. Aspirin is <code>CC(=O)Oc1ccccc1C(=O)O</code> — an example of the format.</p></div>
             <div class="tile"><div class="n">WHERE TO GET ONE</div><h4>Look it up — don't type it</h4><p>Copy the "Canonical SMILES" from a free database like <b>PubChem</b> or <b>ChEMBL</b>, or ask your chemistry collaborators.</p></div>
             <div class="tile"><div class="n">TARGET vs SEED</div><h4>Protein vs molecule</h4><p>Your <b>target</b> is a protein (e.g. JAK1). The <b>seed</b> is a small molecule. Have only the target? Look up a known binder and use its SMILES.</p></div>
           </div>
-          <p class="footnote" style="margin-top:22px">The starting point is a seed molecule: BioMate <b>systematically enumerates chemically sensible variations around the seed you supply</b>, then screens and ranks them — so every candidate is a deliberate, inspectable variation on a structure you chose, not a black-box guess.</p>
+          <p class="footnote" style="margin-top:22px">BioMate proposes <b>novel, chemically sensible candidates</b> — steered by the seed you supply, when you give one — then screens and ranks them, so every candidate is deliberate and inspectable, not a black-box guess.</p>
         </div>
         <div class="tags">
           <span class="verdict plain"><span class="mk"></span>Background — a seed is a starting point, not the answer</span>

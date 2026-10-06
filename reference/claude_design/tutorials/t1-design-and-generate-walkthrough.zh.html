@@ -176,17 +176,17 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <!-- 3 — GENERATE VS SCREEN + SEED -->
   <section class="scene" data-seconds="52.0">
     <div class="kicker"><span class="st">先要懂的几个概念</span> · 生成、种子、SMILES <span class="badge concept">概念</span></div>
-    <h2>你不是去发明分子——你给一个种子，BioMate 在它周围做变体。</h2>
-    <p class="caption">"筛选"是测试你<b>已经有</b>的分子；"生成"（也就是这个工具）是创造出<b>全新</b>的分子。生成器并不凭空开始——你给它一个<b>种子</b>：一个已知的分子，让它围绕着做变体，就像给作曲家一段旋律。</p>
+    <h2>BioMate 生成全新的分子——用一个可选的种子来引导搜索。</h2>
+    <p class="caption">"筛选"是测试你<b>已经有</b>的分子；"生成"（也就是这个工具）是朝着你的目标提出<b>全新</b>的分子。你可以给它一个<b>种子</b>——一个已知分子，让它在其基础上生成新颖的变体来引导方向——也可以留空，让它从零开始生成。</p>
     <div class="scene-body">
       <div class="concept">
         <div class="card big">
           <div class="row3">
-            <div class="tile"><div class="n">种子</div><h4>一个已知的分子</h4><p>以 <b>SMILES</b> 字符串输入——一种描述结构的标准文本代码。阿司匹林是 <code>CC(=O)Oc1ccccc1C(=O)O</code>。</p></div>
+            <div class="tile"><div class="n">种子 · 可选</div><h4>用一个已知分子来引导</h4><p>以 <b>SMILES</b> 字符串输入，为搜索锚定方向，或者留空让它从零开始生成。阿司匹林 <code>CC(=O)Oc1ccccc1C(=O)O</code> 只是格式示例。</p></div>
             <div class="tile"><div class="n">从哪里获取</div><h4>去查，不要手打</h4><p>从 <b>PubChem</b> 或 <b>ChEMBL</b> 这类免费数据库复制"规范 SMILES（Canonical SMILES）",或向你的化学合作者索取。</p></div>
             <div class="tile"><div class="n">靶点 vs 种子</div><h4>蛋白质 vs 分子</h4><p>你的<b>靶点</b>是一种蛋白质（例如 JAK1）。<b>种子</b>是一个小分子。只有靶点？去查一个已知的结合物，用它的 SMILES。</p></div>
           </div>
-          <p class="footnote" style="margin-top:22px">起点是一个种子分子：BioMate 会<b>围绕你提供的种子，系统性地枚举出化学上合理的变体</b>，再对它们筛选、排序——所以每一个候选分子，都是对你所选结构的一次有意、可核查的改动，而不是黑箱里的凭空一猜。</p>
+          <p class="footnote" style="margin-top:22px">BioMate 会提出<b>新颖、化学上合理的候选分子</b>——由你给出的种子来引导（给了才用）——再对它们筛选、排序，所以每一个候选分子都是有意、可核查的设计，而不是黑箱里的凭空一猜。</p>
         </div>
         <div class="tags">
           <span class="verdict plain"><span class="mk"></span>背景——种子是起点，不是答案</span>

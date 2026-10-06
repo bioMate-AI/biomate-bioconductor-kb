@@ -1591,7 +1591,7 @@ export function DesignGenerate({
           <div className="space-y-3" data-testid="dg-constraints-small_molecule">
           <div className="space-y-1">
             <Label htmlFor="dg-seed" className="text-xs">
-              Target / seed (SMILES)
+              Seed molecule (SMILES) · optional
             </Label>
             <Input
               id="dg-seed"
@@ -1601,6 +1601,11 @@ export function DesignGenerate({
               placeholder="e.g. CC(=O)Oc1ccccc1C(=O)O"
               className="font-mono text-xs"
             />
+            <p className="text-[10px] text-muted-foreground">
+              Leave blank to generate from scratch, or paste a SMILES to steer the
+              search toward chemistry you trust. A target protein is set separately —
+              it is not entered here.
+            </p>
           </div>
 
           <div className="space-y-1">

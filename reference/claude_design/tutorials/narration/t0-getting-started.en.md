@@ -8,7 +8,7 @@ You do not need to install software or write code to use BioMate. Describe your 
 
 ## Step 2 — The idea · what BioMate is
 
-BioMate is a cloud workbench for drug discovery and biology. Instead of installing software and assembling tools yourself, you describe what you want in everyday language. BioMate then either answers from the scientific literature and databases, or runs a tested analysis in the cloud — and it hands back the results with a record of how they were produced. Crucially, it always shows you what it is about to do before anything runs or incurs cost.
+BioMate is a cloud workbench for drug discovery and biology. Instead of installing software and assembling tools yourself, you describe what you want in everyday language. BioMate then either answers from the scientific literature and databases, or runs a tested analysis in the cloud — and it hands back the results with a record of how they were produced. Crucially, it shows you how it will handle your request before you send, and it asks before starting any cloud compute.
 
 ---
 
@@ -26,7 +26,7 @@ The four cards name the four kinds of work BioMate does, so you can recognise wh
 
 ## Step 5 — Two kinds of request · a sourced answer or a full analysis
 
-BioMate handles every request in one of two ways, and it tells you which before you send. One is a sourced answer in seconds — it reads the literature and replies in the chat, with no large computation involved. The other is a validated workflow that runs in the cloud over minutes to hours, and uses paid compute. Either way, it shows you the time and cost of your request up front — and a run in the cloud never starts until you confirm.
+BioMate handles every request in one of two ways, and it shows you which before you send. One is a sourced answer — usually in seconds — reading the literature and replying in the chat, with no large computation. The other is a validated workflow that runs in the cloud on paid compute. Either way, BioMate asks before starting any cloud compute — a run never begins until you confirm.
 
 ---
 
