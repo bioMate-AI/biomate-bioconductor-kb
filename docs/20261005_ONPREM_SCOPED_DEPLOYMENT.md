@@ -83,9 +83,12 @@ the scope is "what's shipped," not enforced.
 ## Recommendation (to make scoped on-prem a first-class, quick capability)
 Build a thin **deployment-scope layer** (small — it reuses the catalog DB + the deployment-profile pattern):
 - a **manifest** (`deployment_scope.yml`: domains, workflow allow-list/deny, instruments, add-on packs);
-- a **`build_scoped_catalog.py`** that emits the subset DB + embeddings + `.nf` set + image pull-list;
+- a **`build_scope_manifest.py`** that emits `manifest.json` (allow-list) + the in-scope **image** mirror-list.
+  **Decision 2026-10-05: do NOT subset the DB** — it ships whole (~324 MB, tiny vs the GB-scale images, and
+  FTS/`.npz`-alignment surgery isn't worth it). The only thing trimmed is the container-image set.
 - **launch enforcement**: router shows only in-scope; executor refuses out-of-scope `.nf` with a clear error
-  (closes the audit's "refuse workflows/tools not in the manifest" item).
+  (closes the audit's "refuse workflows/tools not in the manifest" item). This is what makes scoping real,
+  since the full DB is still present. See `docs/20261005_ONPREM_SCOPE_LAYER_PLAN.md`.
 
 **Net:** on-prem *deployment* is ready and quick; on-prem *scoping* (choose domains/tasks/instruments) is a
 documented, recommended, **not-yet-built** capability — achievable manually today, and a small layer away
