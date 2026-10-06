@@ -387,6 +387,29 @@ test.describe("Cold-start / composer / chat — live dev exec plan", () => {
     await shot(page, "CS-20-aria");
   });
 
+  test("UC-CS-21 example-query strip: 4 labels render + a chip seeds the composer", async ({
+    page,
+  }) => {
+    await gotoColdStart(page);
+    // The secondary instruction surface below the composer (EXAMPLE_QUERIES).
+    await expect(page.getByText("Input your use case here")).toBeVisible();
+    for (const label of [
+      "MG patient stratification → ADMET",
+      "ADMET screen from SMILES",
+      "RNA-seq differential expression",
+      "Variant calling on WGS sample",
+    ]) {
+      await expect(page.getByRole("button", { name: label })).toBeVisible();
+    }
+    // Clicking a (file-free) chip seeds — not sends — the composer with its query.
+    await page.getByRole("button", { name: "ADMET screen from SMILES" }).click();
+    await expect(composer(page)).toHaveValue(
+      "Screen these compounds for hERG cardiotoxicity, CYP3A4 inhibition, and oral " +
+        "bioavailability: aspirin (CC(=O)Oc1ccccc1C(=O)O), ibuprofen (CC(C)Cc1ccc(cc1)C(C)C(=O)O)"
+    );
+    await shot(page, "CS-21-example-queries");
+  });
+
   // ─── §2 Composer (chat-input) ─────────────────────────────────────────────
 
   test("UC-CI-01/02 empty send disabled; typing enables", async ({ page }) => {
