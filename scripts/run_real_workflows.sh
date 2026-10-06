@@ -38,11 +38,15 @@ C_OK=$'\033[32m'; C_FAIL=$'\033[31m'; C_WARN=$'\033[33m'; C_DIM=$'\033[2m'; C_RS
 
 # domain -> e2e spec file (bash-3.2-safe: a case, not an assoc array)
 spec_for() {
+  # NOTE 2026-10-05: the original spec files were deleted in the "161 stale E2E
+  # files" cleanup (commit 1a12b4e8c), so this harness silently produced
+  # "No tests found" for every domain. Remapped to the real-execution suites
+  # that actually exist (verified present). See docs/20261005_REAL_RUN_HARNESS_FIX.md.
   case "$1" in
-    admet)  echo "e2e/drug-discovery-full-e2e.e2e.ts" ;;
-    rnaseq) echo "e2e/complete-workflow.e2e.ts" ;;
-    wgs)    echo "e2e/germline-complete-e2e.e2e.ts" ;;
-    cryoem) echo "e2e/cryoem-real-e2e.e2e.ts" ;;
+    admet)  echo "e2e/realrun-admet.e2e.ts" ;;             # real ADMET auto-loop run
+    rnaseq) echo "e2e/project-real-run-capstone.e2e.ts" ;; # GSE227835 → nf-core/differentialabundance (DESeq2)
+    wgs)    echo "e2e/wgs-capstone.e2e.ts" ;;              # real germline variant calling
+    cryoem) echo "e2e/cryoem-capstone.e2e.ts" ;;           # real cryo-EM (GPU, ~$1.50)
     *)      echo "" ;;
   esac
 }
