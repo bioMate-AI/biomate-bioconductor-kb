@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Binding free energy — ranking analogs before you synthesize</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Relative binding free energy (FEP) — rank congeneric analogs by potency before you synthesize</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="32.0">
+    <div class="kicker">For the medicinal chemist choosing which analog to make next</div>
+    <h2>Which analog binds harder? FEP ranks them before you touch the bench.</h2>
+    <p class="caption">You have a lead and a handful of close analogs — the same scaffold, one group swapped. The question that governs the whole round is simple and expensive: <b>which one binds the target more tightly?</b> Relative binding free energy — FEP — answers it with physics, in silico, so you synthesize and assay the winners instead of the whole series. BioMate runs the real calculation (<code>openfe_rbfe</code>, OpenFE + OpenMM) on cloud GPUs. In this walkthrough we build the idea from the ground up, then show exactly what the workflow does.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>A lead + congeneric analogs</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Alchemical FEP</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>&Delta;&Delta;G per edge, &plusmn; error</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Ranked by predicted potency</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Synthesize the winners</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="33.0">
+    <div class="kicker">The problem this solves</div>
+    <h2>Lead optimization is a ranking problem — and docking scores can't rank this finely.</h2>
+    <p class="caption">In a hit-to-lead round you have one scaffold and many small variations. You can't make them all. You need to know, before synthesis, which swap gains potency and which loses it — a difference often smaller than one kcal per mole. That is exactly the regime where fast scores fall short.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">THE CHOICE</div><h4>Which analog next?</h4><p>Same core, one R-group changed. A dozen candidates on paper; you can afford to make a few.</p></div>
+          <div class="tile"><div class="n">DOCKING'S LIMIT</div><h4>Good gate, poor ruler</h4><p>Docking scores separate binders from non-binders well, but are unreliable for the fine, sub-kcal ranking of close analogs.</p></div>
+          <div class="tile"><div class="n">THE COST</div><h4>Synthesis is the bottleneck</h4><p>Each analog is weeks of chemistry plus an assay. Making the wrong ones burns the round's time and budget.</p></div>
+          <div class="tile"><div class="n">THE NEED</div><h4>A physics-grounded rank</h4><p>A prediction tied to real thermodynamics, accurate enough to order the series before the bench.</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>The need: rank congeneric analogs by binding, accurately enough to decide what to synthesize</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="40.0">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four ideas, and the whole method follows.</h2>
+    <p class="caption">You don't need the statistical mechanics — just these four concepts, in order.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · &Delta;G</div><h4>Binding free energy</h4><p>How favorably a ligand binds the target. More negative means tighter binding. It's the quantity that maps to potency.</p></div>
+            <div class="tile"><div class="n">2 · &Delta;&Delta;G</div><h4>Relative, between two analogs</h4><p>FEP computes the <i>difference</i> in &Delta;G between two close ligands — not either absolute value. That difference is what ranks them.</p></div>
+            <div class="tile"><div class="n">3 · ALCHEMICAL</div><h4>Morph A into B in silico</h4><p>A non-physical path that gradually transforms one ligand into the other through intermediate &lambda; states — the trick that makes &Delta;&Delta;G computable.</p></div>
+            <div class="tile"><div class="n">4 · THERMO CYCLE</div><h4>Close the loop</h4><p>Run the transformation both in the pocket and free in solvent; the cycle isolates the <i>binding</i> part and gives an internal consistency check.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The whole method is: build a map between the analogs, morph one into the other along &lambda; windows in the pocket and in water, and read the <b>&Delta;&Delta;G</b> from the difference.</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>Background — the vocabulary the rest of the walkthrough uses</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="30.0">
+    <div class="kicker"><span class="st">In BioMate</span> · goal → workflow → GPU</div>
+    <h2>State the goal; BioMate routes to the real FEP engine and runs it on cloud GPUs.</h2>
+    <p class="caption">Ask to rank analogs by binding free energy, and BioMate routes to <code>openfe_rbfe</code> — relative binding free energy built on <b>OpenFE</b> and <b>OpenMM&nbsp;8</b>, the open, peer-reviewed standard for small-molecule alchemical FEP. The production calculation needs a GPU and hours of sampling, so it runs on BioMate's GPU Batch queue; you confirm once and the work runs in the cloud.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="justify-content:center; gap:16px">
+            <span class="chip"><span class="i"></span>"Rank these analogs by binding"</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>openfe_rbfe</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>OpenFE + OpenMM 8</span><span class="arrow">→</span>
+            <span class="chip"><span class="i"></span>GPU Batch run</span>
+          </div>
+          <p class="footnote" style="margin-top:26px">Real workflow: <b>OpenFE Relative Binding Free Energy (RBFE)</b>, domain <code>drug_discovery</code> &middot; engine OpenFE / OpenMM (MIT). Three stages: <code>PREP</code> &rarr; <code>RBFE_SETUP</code> &rarr; <code>OPENFE_ANALYSIS</code>, the last on the GPU queue.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Routed to the field-standard open FEP engine — not a bespoke approximation</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — INPUTS YOU BRING -->
+  <section class="scene" data-seconds="32.0">
+    <div class="kicker"><span class="st">Inputs</span> · what you bring</div>
+    <h2>Three inputs: the target, a reference ligand, and the analog you're testing.</h2>
+    <p class="caption">FEP is comparative, so the inputs are a pair of related ligands in the same binding site. From those, BioMate builds the map that links them — the perturbation network — automatically.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">RECEPTOR</div><h4>The target structure</h4><p>A protein structure as a PDB file (<code>receptor</code>) with the binding site defined by a bound pose. The starting structure matters — FEP assumes it's right.</p></div>
+          <div class="tile"><div class="n">LIGAND A &rarr; B</div><h4>The congeneric pair</h4><p><code>ligand_a</code> is your reference (known), <code>ligand_b</code> the query analog — each an SDF. They must be close relatives: same scaffold, a local change.</p></div>
+          <div class="tile"><div class="n">THE NETWORK</div><h4>Built for you</h4><p>LOMAP finds the atom-mapping between the two and plans a minimal-spanning ligand network — the edges FEP will actually compute.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Required: <code>receptor</code>, <code>ligand_a</code>, <code>ligand_b</code>. A series is handled as a set of pairwise edges across the network.</p>
+        <div><span class="verdict ok"><span class="mk"></span>A target plus a related pair in — the perturbation map out</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — THE FEP CALCULATION -->
+  <section class="scene" data-seconds="34.0">
+    <div class="kicker"><span class="st">The calculation</span> · what it actually simulates</div>
+    <h2>Prepare, map, then sample the transformation across &lambda; windows.</h2>
+    <p class="caption">The three stages are real and sequential. Preparation and setup are fast and run on CPU; the sampling itself is the heavy, GPU-bound step that produces the number.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">1 · PREP</div><h4>Clean, 3D ligands</h4><p>RDKit standardizes both ligands and generates 3D conformers (ETKDG). The protein is prepared inside OpenFE's handling during setup.</p></div>
+          <div class="tile"><div class="n">2 · RBFE_SETUP</div><h4>Map + protocol</h4><p>LOMAP atom-mapping and the ligand network, then the alchemical protocol and its task graph — built but not yet sampled. No &Delta;&Delta;G here, by design.</p></div>
+          <div class="tile"><div class="n">3 · OPENFE_ANALYSIS</div><h4>Sample, then estimate</h4><p>OpenMM molecular dynamics across the &lambda; windows on GPU, then MBAR gathers the per-edge <b>&Delta;&Delta;G &plusmn; SEM</b> from the overlapping states.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Defaults you can tune: temperature <code>298.15&nbsp;K</code>, equilibration <code>1&nbsp;ns</code>, production <code>5&nbsp;ns</code> per &lambda; window, <code>11</code> &lambda; windows, <code>3</code> independent repeats (for the SEM), LOMAP <code>max3d&nbsp;1.0&nbsp;&Aring;</code>.</p>
+        <div><span class="verdict ok"><span class="mk"></span>Real OpenMM sampling across &lambda; windows → MBAR estimate — not a scoring heuristic</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT -->
+  <section class="scene" data-seconds="32.0">
+    <div class="kicker"><span class="st">The output</span> · a ranked, defensible number</div>
+    <h2>Per-edge &Delta;&Delta;G with an uncertainty — and an honest null when it can't be computed.</h2>
+    <p class="caption">The result is a free-energy difference for each edge, with the Monte-Carlo error that tells you whether to trust it. A negative &Delta;&Delta;G means the query analog binds more tightly than the reference; a positive one, less. The sign and size are what order your series.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3" style="grid-template-columns:1.4fr 1fr">
+          <div class="tile"><div class="n">ddg_summary.json</div><h4>&Delta;&Delta;G &plusmn; SEM, per edge</h4><p>The per-edge relative binding free energy in kcal/mol with its standard error, plus the network and mapping quality. Negative &rarr; <code>ligand_b</code> binds stronger; positive &rarr; weaker. Rank the series by these values.</p></div>
+          <div class="tile"><div class="n">QC GATE</div><h4>Cycle closure</h4><p>Across a closed loop of &ge;3 edges, the &Delta;&Delta;G's should sum to zero; the deviation is a convergence check (gate at ~1&nbsp;kcal/mol). A single edge reports it as <i>not computed</i>, not a fake pass.</p></div>
+        </div>
+        <ul class="points" style="margin-top:4px">
+          <li><span class="b gr"></span><span><b>The error travels with the number.</b> Each &Delta;&Delta;G carries an MBAR uncertainty, so a tight, converged edge is distinguishable from a noisy one.</span></li>
+          <li><span class="b am"></span><span><b>No number is invented.</b> Without a GPU or adequate sampling the workflow records a status (e.g. <code>requires_gpu</code>) and a null &Delta;&Delta;G — never a placeholder.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>A ranked free-energy difference you can defend — with its uncertainty attached</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — USING IT -->
+  <section class="scene" data-seconds="31.0">
+    <div class="kicker"><span class="st">Using the result</span> · decide, then confirm at the bench</div>
+    <h2>Prioritize what to synthesize — and treat the number as a prediction to validate.</h2>
+    <p class="caption">FEP earns its cost by reshaping the synthesis queue: make the analogs it ranks as gains, deprioritize the losses. It is a prediction, so the loop closes at the assay, and the workflow carries a built-in way to check the method against known answers.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">PRIORITIZE</div><h4>Reorder the queue</h4><p>Synthesize the edges predicted to gain affinity; park the ones predicted to lose it. The round's chemistry effort goes where the physics says it will pay.</p></div>
+          <div class="tile"><div class="n">VALIDATE</div><h4>Confirm by assay</h4><p>The measured potency of the compounds you make is the ground truth. FEP narrows the list; the wet lab confirms the winners.</p></div>
+          <div class="tile"><div class="n">CALIBRATE</div><h4>Check against knowns</h4><p>A built-in <code>validate</code> option compares an edge to a published experimental &Delta;&Delta;G (OpenFE benchmark pairs, e.g. Tyk2 / CDK2) so you can see the method's accuracy on your setup.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">As a general expectation, well-converged small-molecule RBFE lands within roughly a kcal/mol of experiment — enough to rank — but that depends on the system, the pose, the force field, and convergence, and must be checked, not assumed.</p>
+        <div><span class="verdict ok"><span class="mk"></span>A sharper synthesis decision — validated at the bench, not trusted blind</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST LIMITS -->
+  <section class="scene" data-seconds="33.0">
+    <div class="kicker">What it does — and doesn't — do for you</div>
+    <h2>The honest edges, so you know exactly what you're getting.</h2>
+    <p class="caption">FEP is powerful and it is bounded. Knowing the boundaries is what makes it usable for decisions you'll defend — and for work you'll publish.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">RELATIVE, NOT ABSOLUTE</div><h4>Differences between analogs</h4><p>RBFE gives &Delta;&Delta;G between congeneric pairs — it ranks a series against a reference. It is not an absolute affinity, and it needs the ligands to be close relatives with a good atom-mapping.</p></div>
+          <div class="tile"><div class="n">POSE &amp; SAMPLING</div><h4>Garbage pose, garbage number</h4><p>It assumes a correct starting structure and binding pose, and enough sampling to converge. A wrong pose or under-sampling gives a confident but wrong &Delta;&Delta;G; the SEM and cycle-closure checks are there to catch it.</p></div>
+          <div class="tile"><div class="n">COST &amp; COMPUTE</div><h4>Hours on a GPU, per edge</h4><p>Production RBFE is compute-intensive: a GPU and hours of MD per edge. Accuracy depends on the force field and on convergence — this is a deliberate, expensive calculation, not a quick filter.</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>Specific and honest — a physics tool with stated assumptions, not a black box</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="30.0">
+    <div class="kicker">The value at a glance</div>
+    <h2 style="font-size:40px">Rank the analogs with physics. Make the winners. Confirm at the bench.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">The point in one sentence: <b>before you spend a synthesis round, FEP tells you which analog is worth making.</b> BioMate routes your goal to <code>openfe_rbfe</code>, builds the perturbation map, samples the alchemical transformation across &lambda; windows on cloud GPUs, and returns a per-edge &Delta;&Delta;G with its uncertainty — ranking the series, with an honest null when it can't be computed.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Bring a target structure and a congeneric pair (reference + query)</li>
+            <li><span class="k">2</span>BioMate maps them and routes to <code>openfe_rbfe</code> on the GPU queue</li>
+            <li><span class="k">3</span>It samples the transformation and returns &Delta;&Delta;G &plusmn; SEM per edge</li>
+            <li><span class="k">4</span>Prioritize synthesis by the ranking; validate the winners by assay</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>What it answers</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Which analog binds harder</span></td></tr>
+            <tr><td>Engine</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">OpenFE + OpenMM 8</span></td></tr>
+            <tr><td>Output</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">&Delta;&Delta;G &plusmn; SEM per edge</span></td></tr>
+            <tr><td>Compute</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Cloud GPU Batch</span></td></tr>
+            <tr><td>Honest edges</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">Relative · pose · cost</span></td></tr>
+          </table>
+          <p class="footnote">From a lead and its analogs to a physics-grounded ranking of what to synthesize — with the uncertainty attached and the number withheld when it can't be earned. Chemistry effort, spent where it pays.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>
