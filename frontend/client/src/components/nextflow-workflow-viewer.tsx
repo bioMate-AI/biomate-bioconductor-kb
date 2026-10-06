@@ -3066,7 +3066,7 @@ export function NextflowWorkflowViewer({
                   <span className="label">
                     <Settings2 className="h-3.5 w-3.5" />
                     {tOr('panel.parameters', 'Parameters')}
-                    <span className="hint">({globalParams.length} params)</span>
+                    <span className="hint">({globalParams.length} {tOr('panel.params', 'params')})</span>
                     {requiredUnfilled.length > 0 && (
                       <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>{tOr('panel.required', 'Required')}</span>
                     )}
@@ -3095,7 +3095,7 @@ export function NextflowWorkflowViewer({
                         <ParameterGroup
                           id="params-optional"
                           title={tOr('panel.optional_parameters', 'Optional parameters')}
-                          description={`${optionalParams.length} param${optionalParams.length !== 1 ? 's' : ''} — collapsed by default`}
+                          description={`${optionalParams.length} param${optionalParams.length !== 1 ? 's' : ''} — ${tOr('panel.collapsed_by_default', 'collapsed by default')}`}
                           parameters={optionalParams}
                           onChange={handleParamChange}
                           onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}

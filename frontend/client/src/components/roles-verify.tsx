@@ -15,6 +15,7 @@
  */
 
 import { cn } from "@/lib/utils"
+import { tOr } from "@/lib/i18n"
 
 // ---------------------------------------------------------------------------
 // RolesCard
@@ -52,7 +53,7 @@ export function RolesCard({ data, className }: RolesCardProps) {
       )}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-medium">Your permissions here</span>
+        <span className="text-sm font-medium">{tOr('panel.permissions_here','Your permissions here')}</span>
         <span
           data-testid="roles-you"
           className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
@@ -71,7 +72,7 @@ export function RolesCard({ data, className }: RolesCardProps) {
             className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 px-3 py-2 sm:grid-cols-[1.4fr_1fr_auto]"
           >
             <span className="text-xs">{c.capability}</span>
-            <span className="text-xs text-muted-foreground/80">needs {c.needs}</span>
+            <span className="text-xs text-muted-foreground/80">{tOr('panel.needs','needs')} {c.needs}</span>
             <span
               data-testid={`role-verdict-${c.capability}`}
               className={cn(
@@ -87,7 +88,7 @@ export function RolesCard({ data, className }: RolesCardProps) {
                   c.allowed ? "bg-emerald-500" : "bg-muted-foreground/50",
                 )}
               />
-              {c.allowed ? "you can" : "you cannot"}
+              {c.allowed ? tOr('panel.you_can','you can') : tOr('panel.you_cannot','you cannot')}
             </span>
           </div>
         ))}

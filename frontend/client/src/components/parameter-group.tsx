@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { tOr } from "@/lib/i18n";
 import { Info, ExternalLink, Pencil, Check, X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -109,7 +110,7 @@ function ParamOriginBadge({ param }: { param: Parameter }) {
               meta.className,
             )}
           >
-            {meta.label}
+            {origin === 'recommended' ? tOr('panel.recommended', meta.label) : meta.label}
           </span>
         </TooltipTrigger>
         <TooltipContent side="right" className="max-w-[220px] text-xs p-2">
@@ -245,7 +246,7 @@ function EditableParamRow({ param, onChange }: { param: Parameter; onChange?: (i
       title="Override AI-recommended value"
     >
       <Pencil className="h-2.5 w-2.5" />
-      Override
+      {tOr('panel.override','Override')}
     </button>
   );
 }
