@@ -91,7 +91,7 @@ def run_vllm(rows, base_dir, adapter_dir):
     return base_out, cpt_out, n_diff
 
 
-def run_transformers(rows, base_dir, adapter_dir, constrain=False):
+def run_transformers(rows, base_dir, adapter_dir, constrain=False, merge_adapter_dir=None):
     import torch
     from model_loading import load_text_model
     from peft import PeftModel
@@ -132,9 +132,13 @@ def run_transformers(rows, base_dir, adapter_dir, constrain=False):
     base_out = generate_all(base_model)
     del base_model
     torch.cuda.empty_cache()
-    # cpt800 arm: fresh base load + adapter (no cross-contamination).
+    # cpt arm: fresh base load; optionally MERGE a CPT adapter first to reconstruct base_domain
+    # (= base_med + midtrain-LoRA merged), then apply the main adapter on top. Lets a spot box eval the
+    # domainpro (base_domain + SFT) from the HF base + two 58MB adapters, with NO 18GB merged-model transfer.
     base2 = load_text_model(base_dir, torch_dtype=torch.bfloat16, device_map="auto",
                             attn_implementation="sdpa")
+    if merge_adapter_dir:
+        base2 = PeftModel.from_pretrained(base2, merge_adapter_dir).merge_and_unload()
     cpt_model = PeftModel.from_pretrained(base2, adapter_dir)
     cpt_out = generate_all(cpt_model)
     n_diff = sum(1 for a, b in zip(base_out, cpt_out) if a != b)
@@ -152,6 +156,9 @@ def main():
     ap.add_argument("--constrain", action="store_true",
                     help="restrict the answer to option letters (format guarantee + logprob-over-letters; "
                          "the correct instrument for a non-SFT/CPT-only checkpoint). transformers engine only.")
+    ap.add_argument("--merge-adapter", default=None,
+                    help="optional CPT adapter dir to merge into the base (reconstruct base_domain) before "
+                         "applying --adapter; lets a spot box eval domainpro from HF base + 2 small adapters")
     a = ap.parse_args()
     rows = [json.loads(l) for l in Path(a.rows).read_text().splitlines() if l.strip()]
     rows_sha = hashlib.sha256(Path(a.rows).read_bytes()).hexdigest()
@@ -160,7 +167,7 @@ def main():
         if a.engine == "vllm":
             base_out, cpt_out, n_diff = run_vllm(rows, a.base, a.adapter)
         else:
-            base_out, cpt_out, n_diff = run_transformers(rows, a.base, a.adapter, constrain=a.constrain)
+            base_out, cpt_out, n_diff = run_transformers(rows, a.base, a.adapter, constrain=a.constrain, merge_adapter_dir=a.merge_adapter)
     except Exception as e:  # noqa
         import traceback
         traceback.print_exc()
