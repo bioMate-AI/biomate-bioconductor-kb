@@ -66,22 +66,40 @@ Verified faculty for the TMC ACT application (CPRIT-funded; Oct 31 deadline). Ap
 - *Sequencing:* lock one MDA clinical anchor (Ferrarotto, or Sikora+Sastry as a package) → add a T-cell
   validator (Yee/Reuben) → name the wet-lab cores → ask ACT to broker intros.
 
-### A3. Texas academic / clinical-genomics centers (reproducibility + on-prem wedge)
-- **Baylor College of Medicine — Human Genome Sequencing Center (HGSC)**; Dir. **Richard Gibbs** (200+ staff;
-  DNAnexus power-user → compliance-aware buyer). *Cold; P2.*
-- **Houston Methodist Research Institute — Bioinformatics & Computational Biology + Biostatistics Core**
-  (serves many wet-lab PIs with no bioinformatician — fan-out channel). Also **Dr. Shu-Hsia Chen** (2025 ACT,
-  IO). *Identify core director; Cold; P2.*
-- **Rice University — Prof. Todd Treangen** (microbial genomics / metagenomics / biothreat); Ken Kennedy
-  Institute. *Cold; P2.*
-- **UT Southwestern (Dallas) — Lyda Hill Department of Bioinformatics**; Chair **Gaudenz Danuser** (17
-  faculty, 120 scientists); also the O'Donnell Brain Institute (neuro multi-omics); **Simmons Comprehensive
-  Cancer Center**. *Cold; P2.*
-- **UTMB Galveston** (clinical/translational + infectious disease; Galveston National Lab). *Identify contact; Cold; P3.*
-- **UT Health San Antonio / UTSA**; **UT Austin — Oden Institute** (+ Dell Medical); **Texas A&M** (biosciences /
-  AgriLife genomics). *Identify comp-bio/biosciences PI; Cold; P3.*
-- **Texas Biomedical Research Institute (San Antonio)** — 28 PIs, BSL-4, vaccine immunogenicity; immune
-  multi-omics + on-prem (biosecure) fit. *Cold; P3.*
+### A3. Texas academic / clinical-genomics centers & faculty (reproducibility + on-prem wedge)
+*Named contacts below are from `texas_targets.json` (now parsed/verified, 63 entries); re-confirm emails before outreach.*
+- **UT Southwestern (Dallas) — Lyda Hill Department of Bioinformatics** — Chair **Gaudenz Danuser**; faculty
+  **Yang Xie** (Dir. QBRC), **Lin Xu**, **Jeon Lee**, **Chao Xing**, **Xiaowei Zhan**. BioHPC; broad multi-omics.
+  Also the O'Donnell Brain Institute (neuro multi-omics). *Cold; P2.*
+- **Baylor College of Medicine — Human Genome Sequencing Center (HGSC)** — Dir. **Richard Gibbs**; **Fritz
+  Sedlazeck** (structural variants). 200+ staff; DNAnexus power-user → compliance-aware buyer. *Cold; P2.*
+- **MD Anderson — Bioinformatics & Computational Biology** — Prof. & Chair **Ken Chen** (cancer genomics). *Cold; P2.*
+- **Rice University** — **Todd Treangen** (metagenomics / biothreat); **Lydia Kavraki** & **Luay Nakhleh**
+  (AI2Health / computational biology); Ken Kennedy Institute. *Cold; P2.*
+- **UTHealth Houston — McWilliams School of Biomedical Informatics** (the founder's former school; see A1). *Warm-adjacent.*
+- **UT Dallas — Genome Center & Bioinformatics** — **Michael Qiwei Zhang** (epigenomics), Kelli Palmer, Li Zhang. *Cold; P3.*
+- **University of Houston — Computational Biology & Bioinformatics** — **Zhiqiang An** (antibody discovery / cancer genomics). *Cold; P2.*
+- **UTMB Galveston — Bioinformatics & Genomics Lab** — **Yuriy Fofanov**; infectious-disease genomics; Galveston National Lab. *Cold; P3.*
+- **UT Austin** — Center for Computational Biology (**Claus Wilke**, **Edward Marcotte**); **Dell Medical School**
+  (Dean **Claudia Lucchinetti**; precision medicine); Oden Institute (CSE-broad). *Cold; P3.*
+- **Texas A&M — Institute for Genome Sciences & Society (TIGSS)** (**Joshua Yuan**, synthetic biology); AgriLife
+  Genomics (TxGen core). *Cold; P3.*
+- **UNT Health Science Center (Fort Worth)** — **Bruce Budowle**, **Arthur Eisenberg** (forensic / molecular genetics). *Cold; P3.*
+- **UT Health San Antonio / UTSA**; **TTUHSC (Lubbock)**; **UTRGV (Edinburg)** — South/West Texas genomics. *Identify contact; Cold; P3.*
+- **Texas Biomedical Research Institute (San Antonio)** — Pres./CEO **Larry Schlesinger**, **Binhua Ling**; 28 PIs,
+  BSL-4, vaccine immunogenicity; immune multi-omics + on-prem (biosecure) fit. *Cold; P3.*
+- **Houston Methodist Research Institute — Bioinformatics & Biostatistics Core** (fan-out channel; serves PIs with
+  no bioinformatician). Also **Dr. Shu-Hsia Chen** (2025 ACT, IO). *Identify core director; Cold; P2.*
+
+### A3b. Texas hospital systems, cancer centers & clinical-genomics programs
+- **UT Southwestern — Simmons Comprehensive Cancer Center** — Dir. **Carlos Arteaga**. *Cold; P2.*
+- **Texas Children's Hospital — Jan & Dan Duncan Neurological Research Institute** — Dir. **Huda Zoghbi** (rare
+  neuro-disease genomics). *Cold; P2.*
+- **Children's Medical Center Dallas — Genomics & Rare Disease** — **Josh Bhatt**. *Cold; P3.*
+- **Texas Heart Institute — Cardiovascular Genomics** — Pres./CEO **Joseph Rogers**. *Cold; P3.*
+- **Baylor Scott & White Health — Genomics & Precision Medicine** (Dallas); **Memorial Hermann — Clinical
+  Genomics** (Houston); **Cook Children's — Genomics & Rare Disease** (Fort Worth). *Identify contact; Cold; P3.*
+- **MD Anderson — Proteomics & Metabolomics Core Facility** (see also A4 immunopeptidomics). *Cold; P2.*
 
 ### A4. Wet-lab cores — the in-vitro validation package (customers, cheap/fast)
 - **MD Anderson Proteomics Facility — immunopeptidomics / MHC-peptide mass spec** (confirm which predicted
@@ -118,10 +136,14 @@ Verified faculty for the TMC ACT application (CPRIT-funded; Oct 31 deadline). Ap
   at the A3 institutions) — lack bioinformatics teams, face margin pressure, need reproducible/auditable output
   → BioMate as their **on-prem execution backbone** (recurring + brings client volume). *Map & identify
   contacts; P2.*
-- **Texas operations of national diagnostic labs** (per `texas_targets.json`, to be re-verified from source):
-  Quest Diagnostics, Labcorp, Myriad Genetics, GeneDx, Sonic Healthcare USA, CHRISTUS Health, Baylor Scott &
-  White, Baylor Genetics, Children's Medical Center Dallas, Memorial Hermann, Texas Heart Institute, Cook
-  Children's — plus industry R&D (AstraZeneca BioHub @ TMC3; Thermo Fisher sequencing, Austin).
+- **Texas operations of national diagnostic labs** (from `texas_targets.json`, now parsed; re-confirm named
+  contacts/emails before outreach):
+  - **Sonic Healthcare USA** — Clinical Genomics & Pathology (Austin); CEO **Chris Stelzel**. *Priority A.*
+  - **Quest Diagnostics** — Advanced Diagnostics & Genomics (Dallas); VP Advanced Dx & Genomics; Medical Dir., Oncology Genomics.
+  - **Labcorp Diagnostics** — Genomics & Molecular Pathology (Houston); Regional Medical Director, Genomics.
+  - **Myriad Genetics** — Hereditary Cancer & PGx (CEO **Paul Diaz**); **GeneDx** — pediatric/rare-disease (CEO **Katherine Johansen Taber**).
+  - **CHRISTUS Health** — Laboratory & Genomics Services (Irving); Chief Laboratory Officer.
+  - Industry R&D in Texas: AstraZeneca BioHub @ TMC3 (Houston); Thermo Fisher sequencing (Austin).
 
 ### C2. National CROs & clinical-genomics labs (from `clinical_cro_targets.json`)
 Angle: BioMate's **reproducible QC governance + audit-trail** story (Part-11/ICH-E6-oriented). **Caveat:**
@@ -169,10 +191,16 @@ Aim for ≥1 signed Letter of Support before Oct 31 (a call + verbal intent is a
   Treangen; UT Austin Oden comp-bio PI; UTMB/UTSA/A&M core directors; Southwest Research Institute bioscience lead.
 - **SBMI trio** = affiliation-warm, outreach **not** confirmed initiated. Do not represent as active relationships.
 - **MD Anderson** = bottom-up via a specific PI lab only; institution-level is cold/aspirational.
-- **`texas_targets.json`** is a Feb-2026 long-list (146 entries); its per-contact↔institution mapping was **not
-  machine-verified** in this consolidation — read specific names/emails from the source file before use.
-- **"Beyond Texas" coverage is CRO/clinical-lab-heavy** (C2) and physician-light (B = Weiss/UNC). If broader
-  out-of-state physician/faculty coverage is wanted, that is a gap to fill next.
+- **`texas_targets.json`** (Feb-2026, 63 targets) has now been **parsed and its clinical/academic/lab entries
+  folded in** (A3/A3b/C1). The named contacts are as recorded in that file (titles are often role-placeholders,
+  e.g. "Chief Genomics Officer"); **emails must be re-confirmed before any send**. Its 7 `energy`-segment entries
+  (bioremediation/biofuels) were excluded as non-clinical.
+- **"Beyond Texas" coverage is CRO/clinical-lab-heavy** (C2 national CROs/labs) and **physician-light**
+  (B = Weiss/UNC only). Expanding out-of-state *physician/faculty* coverage requires fresh sourced web research;
+  it was **attempted but not completed this session (web-search budget exhausted)** and is deliberately left as a
+  TODO rather than populated with unsourced names. Candidate modalities to source next: national HPV16+ HNSCC
+  therapeutic-vaccine + checkpoint investigators (Johns Hopkins / Dana-Farber / MSKCC / UCSF / Moffitt / Mayo
+  tier) and cyclic-peptide / radioligand clinical leads — each to be added only with a citation.
 - **Company emails** (Mongoose, ImmunoGenesis) and CRO email drafts carry prior ✓/✓fmt provenance — re-verify
   format before sending; Diakonos/7 Hills/ImmunoMet have no verified personal address (use contact form/PR).
 - **BioMate capability caveats** (A2/C2 above) must not be over-promised.
