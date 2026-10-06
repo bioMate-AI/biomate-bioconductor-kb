@@ -257,16 +257,16 @@ svg{display:block}
   <section class="scene" data-kind="concept" data-seconds="30.0">
     <div class="kicker"><span class="st">阶段二 · 概念</span> · 设计候选分子 <span class="badge concept">概念</span></div>
     <h2>到底应该考虑哪些分子？</h2>
-    <p class="caption">与其在约 10⁶⁰ 种可能里一个个手工画分子，BioMate 的做法是<b>围绕你给定的一个种子，系统地枚举化学上合理的各种变体</b>，再把已知隐患过滤掉，并把留下来的排序成一份候选清单。它今天就能端到端跑完，几分钟内返回一份排好序的起始集合。</p>
+    <p class="caption">与其在约 10⁶⁰ 种可能里一个个手工画分子，BioMate 的做法是<b>朝着你的目标提出全新的候选分子</b>（可选地以你给定的种子来锚定方向），再把已知隐患过滤掉，并把留下来的排序成一份候选清单。它今天就能端到端跑完，几分钟内返回一份排好序的起始集合。</p>
     <div class="scene-body">
       <div class="concept">
         <div class="card big">
           <div class="row3">
-            <div class="tile"><div class="n">种子 → 变体</div><h4>围绕种子枚举</h4><p>系统地生成一个已知起始分子在化学上合理的各种变体。</p></div>
+            <div class="tile"><div class="n">生成</div><h4>提出全新的分子</h4><p>朝着你的目标生成化学上合理的候选分子——可选地以你提供的种子来锚定方向。</p></div>
             <div class="tile"><div class="n">过滤</div><h4>筛除隐患</h4><p>剔除已知的问题子结构，以及落在你属性窗口之外的候选。</p></div>
             <div class="tile"><div class="n">排序</div><h4>排好序的候选清单</h4><p>返回一份排好序的清单——每个都附一句"为什么是它"的说明，以及离它最近的已知分子。</p></div>
           </div>
-          <p class="footnote" style="margin-top:20px">几分钟一份排好序的候选清单——把产出当作结构良好、<b>需在下游继续筛选和打磨的"点子"</b>，是循环的开端而非终点。</p>
+          <p class="footnote" style="margin-top:20px">这是<b>设计</b>这一步——由 REINVENT4 提出候选分子。接下来的阶段——<b>ADMET、QSAR 和 docking</b>——对它们打分与过滤，而这些预测还能被折回到生成器的打分函数里，引导下一轮。设计 → 打分 → 循环：这份短名单是循环的开端，而不是终点。</p>
         </div>
       </div>
     </div>
