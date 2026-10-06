@@ -3482,12 +3482,17 @@ export function NextflowWorkflowViewer({
                 }, {});
               const skipPhases: PhaseSkipInfo[] = realGroups.map((g: any) => {
                 const real = byId[g.key];
-                if (real) return real;
-                return {
-                  id: g.key,
-                  skippable: false,
-                  why: tOr('panel.skip.why_not_declared', '{{phase}} — this workflow does not declare a skip parameter for this phase, so it always runs.', { phase: g.label || tOr('panel.skip.phase_named', 'Phase {{id}}', { id: g.key }) }),
-                };
+                const whyNotDeclared = tOr('panel.skip.why_not_declared', '{{phase}} — this workflow does not declare a skip parameter for this phase, so it always runs.', { phase: g.label || tOr('panel.skip.phase_named', 'Phase {{id}}', { id: g.key }) });
+                if (real) {
+                  // The backend sends `why` as free-form English prose. For the common
+                  // "not declared skippable" case it's a fixed template, so localize it
+                  // client-side; keep the backend's structured blocks/warn otherwise.
+                  if (!real.skippable && !(real.blocks && real.blocks.length)) {
+                    return { ...real, why: whyNotDeclared };
+                  }
+                  return real;
+                }
+                return { id: g.key, skippable: false, why: whyNotDeclared };
               });
               if (skipPhases.length === 0) return null;
               return (
