@@ -31,6 +31,16 @@ the (varying) target features to generalize to a new target. Even the **enrichme
 *for a target the model never saw binders for* (within-target, v2 showed enrichment conditioning does
 work, Δ+0.317 — the difference here is strictly the held-out target).
 
+## SOTA context (a NULL is only meaningful vs the baseline)
+Read this result **against SOTA**, not in isolation (full comparison:
+`docs/20261006_CROSS_TARGET_SOTA_COMPARISON.md`). Cross-target/novel-target is unsolved field-wide:
+BoltzGen's honest novel-target number is **~3.3% confirmed hit** (authors "do not make the zero-shot
+claim"), RFdiffusion ~7% **with human hotspots**, Boltz-2 **excludes peptides**, RFpeptides is
+**canonical-only**. Our own OOD evals land on the same frontier (binding predictor 0.74→**0.18** on a
+held-out target; cold-start LOTO **0.44–0.55** ≈ random). So v3.1's NULL is **consistent with the
+field** — it reproduces the surveyed "zero-shot is illusion" finding on our own leakage-controlled
+LOTO, not a unique defect. The BoltzGen cyclic-FT LOTO (in flight) is the one same-metric head-to-head.
+
 ## Interpretation (the honest, publishable finding)
 - **v3 (n=1):** NULL — explained away as a degenerate constant prefix.
 - **v3.1 (n=2, varying prefix):** **still NULL.** So cross-target transfer is **not** unlocked merely
