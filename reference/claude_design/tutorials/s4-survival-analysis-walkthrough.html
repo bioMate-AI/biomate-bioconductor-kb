@@ -112,7 +112,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 1 — THE PROBLEM -->
-  <section class="scene" data-seconds="33.0">
+  <section class="scene" data-seconds="42.0">
     <div class="kicker">The problem this solves</div>
     <h2>Censoring breaks ordinary statistics — and it's in almost every study.</h2>
     <p class="caption">In time-to-event data, you rarely see the event for everyone. A study ends; a patient moves away; some are simply still alive. Those observations are <b>censored</b> — you know they survived <i>at least</i> this long, but not their full time. Treat the data as if the numbers were complete, and you throw that information away or quietly bias the answer.</p>
@@ -129,7 +129,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 2 — THE IDEAS -->
-  <section class="scene" data-seconds="38.0">
+  <section class="scene" data-seconds="42.0">
     <div class="kicker">The ideas you need first</div>
     <h2>Four plain ideas carry the whole analysis.</h2>
     <p class="caption">You don't need the mathematics — just these four, and everything that follows reads clearly.</p>
@@ -150,7 +150,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 3 — HOW BIOMATE RUNS IT -->
-  <section class="scene" data-seconds="30.0">
+  <section class="scene" data-seconds="35.0">
     <div class="kicker"><span class="st">Stage 1</span> · goal → workflow</div>
     <h2>State the goal and hand over a survival table; BioMate picks the workflow.</h2>
     <p class="caption">You don't assemble an R environment. You describe the question and provide a table with time and event status, and BioMate routes to a real, indexed survival workflow — Kaplan–Meier estimation, or Cox regression — with the analysis wired to your columns and run on cloud compute.</p>
@@ -171,7 +171,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 4 — THE INPUT -->
-  <section class="scene" data-seconds="31.0">
+  <section class="scene" data-seconds="38.0">
     <div class="kicker"><span class="st">Stage 1, the input</span> · what a survival table needs</div>
     <h2>Three kinds of column: the time, the event, and what you compare by.</h2>
     <p class="caption">The input is an ordinary table — one row per subject. What makes it a survival table is a time column, an event-status column, and a grouping or covariate column. BioMate maps your headers to these roles and standardizes the status to the required <code>1</code>/<code>0</code> coding.</p>
@@ -189,7 +189,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 5 — KAPLAN–MEIER -->
-  <section class="scene" data-seconds="33.0">
+  <section class="scene" data-seconds="37.0">
     <div class="kicker"><span class="st">Stage 2</span> · Kaplan–Meier + log-rank</div>
     <h2>Describe survival, then test whether the groups really differ.</h2>
     <p class="caption">The Kaplan–Meier workflow estimates the survival curve for each group and reports the numbers behind it. It is a <b>descriptive</b> step: it shows the shape of survival over time and the median survival per group — it does not, on its own, prove a cause.</p>
@@ -207,7 +207,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 6 — COX & LASSO-COX -->
-  <section class="scene" data-seconds="35.0">
+  <section class="scene" data-seconds="44.0">
     <div class="kicker"><span class="st">Stage 3</span> · Cox regression &amp; Lasso-Cox</div>
     <h2>Quantify the effect — and, with many covariates, select which ones matter.</h2>
     <p class="caption">Kaplan–Meier compares groups; Cox regression puts a number on it. The Cox proportional-hazards model estimates a <b>hazard ratio</b> for each covariate while adjusting for the others. When covariates are many — a gene-expression signature with hundreds of features — a regularized Lasso-Cox selects a sparse, prognostic subset.</p>
@@ -225,7 +225,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 7 — READING IT -->
-  <section class="scene" data-seconds="33.0">
+  <section class="scene" data-seconds="41.0">
     <div class="kicker">Reading the result</div>
     <h2>What a hazard ratio says — and what "significant" does and doesn't mean.</h2>
     <p class="caption">The output is only as good as your reading of it. Two numbers carry most of the meaning: the hazard ratio and its confidence interval, together with the test's p-value.</p>
@@ -242,7 +242,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 8 — HONEST EDGES -->
-  <section class="scene" data-seconds="34.0">
+  <section class="scene" data-seconds="53.0">
     <div class="kicker">What it does — and doesn't — do for you</div>
     <h2>The honest edges, so the result holds up to review.</h2>
     <p class="caption">These methods are standard and trustworthy — within their assumptions. BioMate runs the diagnostics; interpreting them is yours. Knowing these limits is what makes the analysis defensible.</p>
@@ -260,7 +260,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 9 — CLOSING -->
-  <section class="scene title" data-seconds="30.0">
+  <section class="scene title" data-seconds="40.0">
     <div class="kicker">The value at a glance</div>
     <h2 style="font-size:40px">Hand over a survival table. Get curves, a test, and hazard ratios.</h2>
     <div class="scene-body">

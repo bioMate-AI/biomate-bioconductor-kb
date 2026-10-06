@@ -96,7 +96,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 <div class="stage" id="stage">
 
   <!-- 0 — TITLE -->
-  <section class="scene title" data-seconds="32.0">
+  <section class="scene title" data-seconds="31.0">
     <div class="kicker">For the medicinal chemist who wants new chemical matter</div>
     <h2>You don't have a molecule yet. BioMate designs candidates from scratch.</h2>
     <p class="caption">Screening picks winners from a library you already own. Generative design does the opposite: it <b>invents</b> new molecules aimed at a goal you state. BioMate runs <b>REINVENT4</b>, a reinforcement-learning generator from MolecularAI / AstraZeneca, to propose novel, drug-like candidates — then filters and ranks them. You describe the scaffold and what "good" means; BioMate produces structures you can take to synthesis.</p>
@@ -130,7 +130,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 2 — THE IDEAS -->
-  <section class="scene" data-seconds="40.0">
+  <section class="scene" data-seconds="39.0">
     <div class="kicker">The ideas you need first</div>
     <h2>Four plain words describe the whole method.</h2>
     <p class="caption">You don't need the neural-network internals — just these four, and the rest follows.</p>
@@ -151,7 +151,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 3 — HOW BIOMATE RUNS IT -->
-  <section class="scene" data-seconds="32.0">
+  <section class="scene" data-seconds="41.0">
     <div class="kicker"><span class="st">In BioMate</span> · plain goal → workflow → cloud</div>
     <h2>Say the goal in plain English; BioMate routes it to the REINVENT4 workflow.</h2>
     <p class="caption">You don't configure a neural network. You state the intent — "design novel drug-like analogs of this scaffold" — and BioMate routes to the <b>REINVENT4 Generative Lead Design</b> workflow, fills in parameters, and runs it on cloud compute. It is a four-step pipeline, and every step is real system behaviour, not a demo.</p>
@@ -172,7 +172,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 4 — THE SCORING FUNCTION -->
-  <section class="scene" data-seconds="34.0">
+  <section class="scene" data-seconds="41.0">
     <div class="kicker"><span class="st">The reward</span> · what you optimize toward</div>
     <h2>The scoring function is the objective — results are only as good as it is.</h2>
     <p class="caption">Reinforcement learning optimizes whatever you tell it to. The <code>scoring_function</code> parameter <i>is</i> that objective, and BioMate exposes three real choices. Pick the one that matches how confidently you can define "good" for your target.</p>
@@ -190,7 +190,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 5 — THE RL OPTIMIZATION LOOP -->
-  <section class="scene" data-seconds="34.0">
+  <section class="scene" data-seconds="42.0">
     <div class="kicker"><span class="st">The engine</span> · generate, score, improve</div>
     <h2>REINVENT4 runs a loop that steers generation toward the reward.</h2>
     <p class="caption">The generator is a trained autoregressive policy — it writes SMILES, it does not enumerate. Over many rounds it proposes a batch, scores each molecule, and updates so the next batch leans toward higher reward. BioMate exposes the real controls for that loop.</p>
@@ -222,7 +222,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 6 — THE OUTPUT -->
-  <section class="scene" data-seconds="34.0">
+  <section class="scene" data-seconds="40.0">
     <div class="kicker"><span class="st">The result</span> · ranked candidates, filtered honestly</div>
     <h2>A ranked table of novel candidates — each with its scores, filtered for quality.</h2>
     <p class="caption">Before ranking, BioMate applies real medicinal-chemistry filters, so what you see is not raw model output but candidates that survived drug-likeness, interference, and novelty checks. The outputs are files you can open and hand off — no screenshot needed to describe them.</p>
@@ -240,7 +240,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 7 — USING IT RESPONSIBLY -->
-  <section class="scene" data-seconds="33.0">
+  <section class="scene" data-seconds="45.0">
     <div class="kicker">Using it responsibly</div>
     <h2>These are hypotheses, not hits — the ranking is a starting point for the bench.</h2>
     <p class="caption">Every generated molecule is a computational <b>estimate</b>: a structure the model believes scores well under your objective. None of it is measured. The value is a prioritized, novel shortlist — a list of promising experiments, not a list of answers. The right next step is always the lab.</p>
@@ -258,7 +258,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 8 — HONEST EDGES -->
-  <section class="scene" data-seconds="33.0">
+  <section class="scene" data-seconds="46.0">
     <div class="kicker">What it does — and doesn't — do for you</div>
     <h2>The honest edges, so you know exactly what you're getting.</h2>
     <p class="caption">The capability is real and specific. Knowing its limits is what makes it trustworthy for a program you'll defend.</p>
@@ -275,7 +275,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 9 — CLOSING -->
-  <section class="scene title" data-seconds="31.0">
+  <section class="scene title" data-seconds="36.0">
     <div class="kicker">The value at a glance</div>
     <h2 style="font-size:40px">State the goal. Get novel candidates, designed and ranked.</h2>
     <div class="scene-body">

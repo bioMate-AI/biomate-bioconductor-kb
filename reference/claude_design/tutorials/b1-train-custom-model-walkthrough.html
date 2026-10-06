@@ -96,7 +96,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 <div class="stage" id="stage">
 
   <!-- 0 — TITLE -->
-  <section class="scene title" data-seconds="34.0">
+  <section class="scene title" data-seconds="30.0">
     <div class="kicker">For the scientist with a spreadsheet and a question</div>
     <h2>You have a labeled table. BioMate trains a model on it.</h2>
     <p class="caption">You have measurements in a spreadsheet and a column you'd like to predict — active or not, a concentration, a yield. Normally that means finding someone who writes machine-learning code. In BioMate you describe the goal and upload the table; it runs standard Python machine learning — <b>scikit-learn</b>, and the gradient-boosting or deep-learning libraries when the task needs them — on your data, and hands back a trained model with honest, held-out performance.</p>
@@ -112,7 +112,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 1 — THE PROBLEM -->
-  <section class="scene" data-seconds="33.0">
+  <section class="scene" data-seconds="35.0">
     <div class="kicker">The problem this solves</div>
     <h2>You have a CSV and a question — but no one to write the model.</h2>
     <p class="caption">"Can I predict this column from the others?" is one of the most common questions in a lab, and the hardest to act on without a dedicated analyst. The gap isn't the idea; it's the plumbing: load the table, split it correctly, pick a model, cross-validate, score it on data it never saw, and read out what mattered — all in code that's easy to get subtly wrong.</p>
@@ -130,7 +130,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 2 — THE IDEAS -->
-  <section class="scene" data-seconds="40.0">
+  <section class="scene" data-seconds="37.0">
     <div class="kicker">The ideas you need first</div>
     <h2>Four plain words describe the whole task.</h2>
     <p class="caption">You don't need to know the libraries — just these four, and everything else follows.</p>
@@ -151,7 +151,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 3 — HOW BIOMATE RUNS IT -->
-  <section class="scene" data-seconds="32.0">
+  <section class="scene" data-seconds="36.0">
     <div class="kicker"><span class="st">How it works</span> · describe + upload → run</div>
     <h2>You describe the prediction; BioMate runs the ML code for you.</h2>
     <p class="caption">This isn't a fixed pipeline with a fixed set of buttons. It's BioMate's <code>run_code</code> path: you say what you want to predict and attach your table, and BioMate writes and executes standard Python machine-learning code on it in a sandboxed backend — then reports what it found. The same path that filters a file or runs a statistical test here trains and evaluates a model.</p>
@@ -172,7 +172,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 4 — THE INPUT -->
-  <section class="scene" data-seconds="31.0">
+  <section class="scene" data-seconds="35.0">
     <div class="kicker"><span class="st">The input</span> · one labeled table</div>
     <h2>What you bring: a CSV with feature columns and one target column.</h2>
     <p class="caption">The only thing you have to prepare is a clean table. Every row is one sample; the feature columns hold the measurements; one column holds the value you want to predict. You say which column is the target and whether you want a category or a number — BioMate handles the rest.</p>
@@ -190,7 +190,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 5 — TRAINING -->
-  <section class="scene" data-seconds="33.0">
+  <section class="scene" data-seconds="36.0">
     <div class="kicker"><span class="st">Step</span> · split, cross-validate, fit</div>
     <h2>It splits the data, cross-validates, and fits the model.</h2>
     <p class="caption">With the table loaded, BioMate does the disciplined part automatically. It holds out a test set, trains on the rest, and uses cross-validation on the training data to gauge stability rather than trusting one lucky split. A standard model — a random forest or gradient-boosted trees for most tabular data, a small neural net where it fits — is fitted on the training portion only.</p>
@@ -208,7 +208,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 6 — EVALUATION -->
-  <section class="scene" data-seconds="33.0">
+  <section class="scene" data-seconds="38.0">
     <div class="kicker"><span class="st">Step</span> · scored on data it never saw</div>
     <h2>The numbers you get are measured on the held-out set.</h2>
     <p class="caption">This is the number that matters, and it's reported honestly — on the test rows the model never trained on, not on the data it memorized. For a category you get accuracy and AUC, with a confusion matrix; for a number you get RMSE, MAE, and R². A gap between training and held-out scores is shown, not hidden, because it's the clearest sign of overfitting.</p>
@@ -226,7 +226,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 7 — FEATURE IMPORTANCE -->
-  <section class="scene" data-seconds="31.0">
+  <section class="scene" data-seconds="30.0">
     <div class="kicker"><span class="st">Step</span> · what drives the prediction</div>
     <h2>It shows which features the model actually leans on.</h2>
     <p class="caption">A score alone is a black box. BioMate also reports feature importance — which measurements the model relied on most — so the result becomes something you can reason about scientifically. Often that's where the real insight is: the model confirming a known driver, or flagging one you hadn't weighted.</p>
@@ -247,7 +247,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 8 — HONEST LIMITS -->
-  <section class="scene" data-seconds="34.0">
+  <section class="scene" data-seconds="39.0">
     <div class="kicker">What it does — and doesn't — do for you</div>
     <h2>The honest edges, so you trust the number for the right reasons.</h2>
     <p class="caption">A trained model is genuinely useful and genuinely limited. The value is in knowing exactly which. A model is an estimate shaped entirely by the data you gave it — never ground truth on its own.</p>
@@ -264,7 +264,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 9 — CLOSING -->
-  <section class="scene title" data-seconds="31.0">
+  <section class="scene title" data-seconds="32.0">
     <div class="kicker">The value at a glance</div>
     <h2 style="font-size:40px">Bring a labeled table. Get an honestly-tested model.</h2>
     <div class="scene-body">

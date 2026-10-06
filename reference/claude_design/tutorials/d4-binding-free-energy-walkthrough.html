@@ -96,7 +96,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 <div class="stage" id="stage">
 
   <!-- 0 — TITLE -->
-  <section class="scene title" data-seconds="32.0">
+  <section class="scene title" data-seconds="37.0">
     <div class="kicker">For the medicinal chemist choosing which analog to make next</div>
     <h2>Which analog binds harder? FEP ranks them before you touch the bench.</h2>
     <p class="caption">You have a lead and a handful of close analogs — the same scaffold, one group swapped. The question that governs the whole round is simple and expensive: <b>which one binds the target more tightly?</b> Relative binding free energy — FEP — answers it with physics, in silico, so you synthesize and assay the winners instead of the whole series. BioMate runs the real calculation (<code>openfe_rbfe</code>, OpenFE + OpenMM) on cloud GPUs. In this walkthrough we build the idea from the ground up, then show exactly what the workflow does.</p>
@@ -112,7 +112,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 1 — THE PROBLEM -->
-  <section class="scene" data-seconds="33.0">
+  <section class="scene" data-seconds="39.0">
     <div class="kicker">The problem this solves</div>
     <h2>Lead optimization is a ranking problem — and docking scores can't rank this finely.</h2>
     <p class="caption">In a hit-to-lead round you have one scaffold and many small variations. You can't make them all. You need to know, before synthesis, which swap gains potency and which loses it — a difference often smaller than one kcal per mole. That is exactly the regime where fast scores fall short.</p>
@@ -130,7 +130,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 2 — THE IDEAS -->
-  <section class="scene" data-seconds="40.0">
+  <section class="scene" data-seconds="43.0">
     <div class="kicker">The ideas you need first</div>
     <h2>Four ideas, and the whole method follows.</h2>
     <p class="caption">You don't need the statistical mechanics — just these four concepts, in order.</p>
@@ -151,7 +151,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 3 — HOW BIOMATE RUNS IT -->
-  <section class="scene" data-seconds="30.0">
+  <section class="scene" data-seconds="34.0">
     <div class="kicker"><span class="st">In BioMate</span> · goal → workflow → GPU</div>
     <h2>State the goal; BioMate routes to the real FEP engine and runs it on cloud GPUs.</h2>
     <p class="caption">Ask to rank analogs by binding free energy, and BioMate routes to <code>openfe_rbfe</code> — relative binding free energy built on <b>OpenFE</b> and <b>OpenMM&nbsp;8</b>, the open, peer-reviewed standard for small-molecule alchemical FEP. The production calculation needs a GPU and hours of sampling, so it runs on BioMate's GPU Batch queue; you confirm once and the work runs in the cloud.</p>
@@ -172,7 +172,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 4 — INPUTS YOU BRING -->
-  <section class="scene" data-seconds="32.0">
+  <section class="scene" data-seconds="41.0">
     <div class="kicker"><span class="st">Inputs</span> · what you bring</div>
     <h2>Three inputs: the target, a reference ligand, and the analog you're testing.</h2>
     <p class="caption">FEP is comparative, so the inputs are a pair of related ligands in the same binding site. From those, BioMate builds the map that links them — the perturbation network — automatically.</p>
@@ -190,7 +190,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 5 — THE FEP CALCULATION -->
-  <section class="scene" data-seconds="34.0">
+  <section class="scene" data-seconds="42.0">
     <div class="kicker"><span class="st">The calculation</span> · what it actually simulates</div>
     <h2>Prepare, map, then sample the transformation across &lambda; windows.</h2>
     <p class="caption">The three stages are real and sequential. Preparation and setup are fast and run on CPU; the sampling itself is the heavy, GPU-bound step that produces the number.</p>
@@ -208,7 +208,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 6 — THE OUTPUT -->
-  <section class="scene" data-seconds="32.0">
+  <section class="scene" data-seconds="45.0">
     <div class="kicker"><span class="st">The output</span> · a ranked, defensible number</div>
     <h2>Per-edge &Delta;&Delta;G with an uncertainty — and an honest null when it can't be computed.</h2>
     <p class="caption">The result is a free-energy difference for each edge, with the Monte-Carlo error that tells you whether to trust it. A negative &Delta;&Delta;G means the query analog binds more tightly than the reference; a positive one, less. The sign and size are what order your series.</p>
@@ -228,7 +228,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 7 — USING IT -->
-  <section class="scene" data-seconds="31.0">
+  <section class="scene" data-seconds="45.0">
     <div class="kicker"><span class="st">Using the result</span> · decide, then confirm at the bench</div>
     <h2>Prioritize what to synthesize — and treat the number as a prediction to validate.</h2>
     <p class="caption">FEP earns its cost by reshaping the synthesis queue: make the analogs it ranks as gains, deprioritize the losses. It is a prediction, so the loop closes at the assay, and the workflow carries a built-in way to check the method against known answers.</p>
@@ -246,7 +246,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 8 — HONEST LIMITS -->
-  <section class="scene" data-seconds="33.0">
+  <section class="scene" data-seconds="44.0">
     <div class="kicker">What it does — and doesn't — do for you</div>
     <h2>The honest edges, so you know exactly what you're getting.</h2>
     <p class="caption">FEP is powerful and it is bounded. Knowing the boundaries is what makes it usable for decisions you'll defend — and for work you'll publish.</p>
@@ -263,7 +263,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 9 — CLOSING -->
-  <section class="scene title" data-seconds="30.0">
+  <section class="scene title" data-seconds="37.0">
     <div class="kicker">The value at a glance</div>
     <h2 style="font-size:40px">Rank the analogs with physics. Make the winners. Confirm at the bench.</h2>
     <div class="scene-body">

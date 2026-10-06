@@ -96,7 +96,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 <div class="stage" id="stage">
 
   <!-- 0 — TITLE -->
-  <section class="scene title" data-seconds="32.0">
+  <section class="scene title" data-seconds="35.0">
     <div class="kicker">For anyone who measures drug concentration over time</div>
     <h2>You have a concentration-time curve. BioMate turns it into exposure numbers you can defend.</h2>
     <p class="caption">You dosed an animal or a subject and sampled the blood — a table of concentration against time. The questions that matter are simple: <b>how much drug was there, and for how long?</b> Non-compartmental analysis answers them directly from the observed curve, with no model fitted and no mechanism assumed. BioMate runs the standard NCA pipeline — the <b>PKNCA</b> R package — on cloud compute: you give it a concentration-time CSV and the dose, and it returns AUC, Cmax, Tmax, half-life, clearance and volume, with a report you can hand to a regulator.</p>
@@ -112,7 +112,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 1 — THE PROBLEM -->
-  <section class="scene" data-seconds="32.0">
+  <section class="scene" data-seconds="33.0">
     <div class="kicker">The problem this solves</div>
     <h2>Exposure is the first question in PK — and it has to be computed the standard way.</h2>
     <p class="caption">Every PK study starts with the same ask: summarise how much drug the body saw and how long it hung around. The numbers that answer it — AUC, Cmax, half-life, clearance — are standard, but they are easy to get subtly wrong: the choice of trapezoidal rule, how the terminal slope is fit, how much of the tail is extrapolated. Get those conventions wrong and the exposure estimate drifts, and the study is hard to defend.</p>
@@ -130,7 +130,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 2 — THE IDEAS -->
-  <section class="scene" data-seconds="38.0">
+  <section class="scene" data-seconds="42.0">
     <div class="kicker">The ideas you need first</div>
     <h2>Four plain ideas are the whole of NCA.</h2>
     <p class="caption">You don't need a compartment model or a differential equation — just these four, read off the observed curve.</p>
@@ -151,7 +151,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 3 — HOW BIOMATE RUNS IT -->
-  <section class="scene" data-seconds="30.0">
+  <section class="scene" data-seconds="36.0">
     <div class="kicker"><span class="st">In BioMate</span> · goal + a CSV → a run</div>
     <h2>Say the goal, attach a concentration-time CSV; BioMate routes to Nca Pknca.</h2>
     <p class="caption">You state the goal in plain language — "run non-compartmental PK on this concentration-time table" — and attach the CSV. BioMate routes it to the <b>Nca Pknca</b> workflow (the PKNCA R package), fills in the dose and route, and runs the three-step pipeline on cloud compute. There is staged example data to try it against — a concentration-time table at <code>test-data/pk_concentration_time.csv</code>.</p>
@@ -172,7 +172,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 4 — THE INPUT -->
-  <section class="scene" data-seconds="31.0">
+  <section class="scene" data-seconds="41.0">
     <div class="kicker"><span class="st">The input</span> · the concentration-time table</div>
     <h2>A tidy concentration-time table, plus the dose and route.</h2>
     <p class="caption">NCA needs the observed curve in a defined shape. The first step validates it before any computation — so a malformed table fails fast and honestly, rather than producing a quiet, wrong answer.</p>
@@ -190,7 +190,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 5 — WHAT NCA COMPUTES -->
-  <section class="scene" data-seconds="34.0">
+  <section class="scene" data-seconds="52.0">
     <div class="kicker"><span class="st">The computation</span> · PKNCA, per subject</div>
     <h2>The standard exposure parameters, computed by convention — per subject.</h2>
     <p class="caption">The core step runs R/PKNCA over the validated curve and computes the standard NCA parameter set for each subject, using the linear-up / log-down trapezoidal method. These are the numbers a PK report is built from — all derived from the observed data, none fitted to a model.</p>
@@ -222,7 +222,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 6 — DOSE-RESPONSE CONTEXT -->
-  <section class="scene" data-seconds="32.0">
+  <section class="scene" data-seconds="44.0">
     <div class="kicker"><span class="st">In context</span> · from exposure to effect</div>
     <h2>Exposure is half the story — the other half is what it does.</h2>
     <p class="caption">NCA tells you how much drug was present. To close the loop you ask how that exposure translates into effect. BioMate has companion workflows for exactly that step, so the exposure numbers from NCA feed a defensible dose rationale rather than sitting alone.</p>
@@ -240,7 +240,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 7 — READING THE PARAMETERS -->
-  <section class="scene" data-seconds="33.0">
+  <section class="scene" data-seconds="42.0">
     <div class="kicker"><span class="st">Interpretation</span> · what each number means for dosing</div>
     <h2>Reading the parameters: each one answers a dosing question.</h2>
     <p class="caption">The report (<code>nca_report.html</code>) lays the parameters out with a log-linear concentration-time plot, a per-subject table, and a stated assumptions section. Here is how to read the headline numbers.</p>
@@ -258,7 +258,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 8 — HONEST EDGES -->
-  <section class="scene" data-seconds="33.0">
+  <section class="scene" data-seconds="56.0">
     <div class="kicker">What NCA does — and doesn't — tell you</div>
     <h2>The honest edges: NCA summarises data; it does not model mechanism.</h2>
     <p class="caption">NCA is trustworthy precisely because its scope is narrow and explicit. The pipeline states its own assumptions and runs quality gates — and knowing where it stops is what tells you when to reach for a mechanistic model instead.</p>
@@ -276,7 +276,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   </section>
 
   <!-- 9 — CLOSING -->
-  <section class="scene title" data-seconds="30.0">
+  <section class="scene title" data-seconds="42.0">
     <div class="kicker">The value at a glance</div>
     <h2 style="font-size:40px">A concentration-time curve in. Defensible exposure numbers out.</h2>
     <div class="scene-body">
