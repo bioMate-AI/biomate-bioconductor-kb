@@ -2111,6 +2111,15 @@ export function NextflowWorkflowViewer({
   useEffect(() => {
     if (!availableQcProfiles.length || !workflowDefinition) return;
     if (qcProfile) return; // user already selected one
+    // Prefer the backend-classified / user-requested profile the workflow already carries
+    // (workflowDefinition.qc_profile — e.g. the message's "admet_standard", set by
+    // ai_assistant._infer_qc_profile). Without this, the domain fallback below picked the
+    // FIRST drug_discovery profile (cipa_ind_submission) and silently ignored the request.
+    const explicitProfile = (workflowDefinition as any).qc_profile as string | undefined;
+    if (explicitProfile && availableQcProfiles.some(p => p.id === explicitProfile)) {
+      setQcProfile(explicitProfile);
+      return;
+    }
     const name = (workflowDefinition.name || workflowDefinition.workflow_name || '').toLowerCase();
     const domainMap: Record<string, string[]> = {
       cryo_em: ['cryo', 'cryosparc', 'spa', 'tomography', 'helical', 'subtomogram'],
