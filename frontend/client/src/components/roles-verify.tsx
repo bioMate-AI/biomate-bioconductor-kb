@@ -95,8 +95,7 @@ export function RolesCard({ data, className }: RolesCardProps) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        A control you may not use is shown disabled with the role it needs — never hidden. Hiding it
-        makes the product feel broken; naming the role makes it answerable.
+        {tOr('panel.roles.footer', 'A control you may not use is shown disabled with the role it needs — never hidden. Hiding it makes the product feel broken; naming the role makes it answerable.')}
       </p>
     </div>
   )
@@ -134,13 +133,12 @@ export function VerifyPattern({ kinds, onExplain, className }: VerifyPatternProp
       )}
     >
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium">One verification pattern</span>
+        <span className="text-sm font-medium">{tOr('panel.verify.title', 'One verification pattern')}</span>
         <span className="flex-1" />
-        <span className="text-xs text-muted-foreground/80">measured · threshold · verdict</span>
+        <span className="text-xs text-muted-foreground/80">{tOr('panel.verify.pattern', 'measured · threshold · verdict')}</span>
       </div>
       <p className="text-xs text-muted-foreground">
-        Every check in the product reads the same way, so a scientist learns it once. What differs is
-        who measures and what a failure stops.
+        {tOr('panel.verify.help', 'Every check in the product reads the same way, so a scientist learns it once. What differs is who measures and what a failure stops.')}
       </p>
 
       <div className="flex flex-col divide-y divide-border rounded-md border border-border">
@@ -151,7 +149,7 @@ export function VerifyPattern({ kinds, onExplain, className }: VerifyPatternProp
             className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 px-3 py-2 sm:grid-cols-[1.3fr_1.3fr_1.2fr_auto]"
           >
             <span className="text-xs font-semibold">{k.kind}</span>
-            <span className="text-xs text-muted-foreground/80">measured by {k.measuredBy}</span>
+            <span className="text-xs text-muted-foreground/80">{tOr('panel.verify.measured_by', 'measured by {{by}}', { by: k.measuredBy })}</span>
             <span className="text-xs text-muted-foreground">{k.stops}</span>
             <span className="inline-flex items-center rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
               {k.where}
@@ -167,7 +165,7 @@ export function VerifyPattern({ kinds, onExplain, className }: VerifyPatternProp
           onClick={onExplain}
           className="self-start text-xs text-primary hover:underline"
         >
-          why a human counts as a gate →
+          {tOr('panel.verify.explain', 'why a human counts as a gate →')}
         </button>
       )}
     </div>

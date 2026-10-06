@@ -243,7 +243,7 @@ function EditableParamRow({ param, onChange }: { param: Parameter; onChange?: (i
       data-testid={`param-override-btn-${param.id}`}
       onClick={() => setIsEditing(true)}
       className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground ml-1 align-middle"
-      title="Override AI-recommended value"
+      title={tOr('panel.override_tip', 'Override AI-recommended value')}
     >
       <Pencil className="h-2.5 w-2.5" />
       {tOr('panel.override','Override')}
@@ -291,7 +291,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
             <LabelWithKnowledge />
             <Select onValueChange={(val) => onChange && onChange(param.id, val)} value={param.value}>
               <SelectTrigger>
-                <SelectValue placeholder="Select an option" />
+                <SelectValue placeholder={tOr('panel.select_option', 'Select an option')} />
               </SelectTrigger>
               <SelectContent>
                 {param.options?.map((opt) => (
@@ -316,7 +316,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
                 value={param.value ?? ''}
                 rows={5}
                 onChange={(e) => onChange && onChange(param.id, e.target.value)}
-                placeholder="Paste inline content (CSV / SMILES / FASTA) or enter a file path…"
+                placeholder={tOr('panel.file_inline_placeholder', 'Paste inline content (CSV / SMILES / FASTA) or enter a file path…')}
                 className={`font-mono text-xs resize-y ${param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}`}
               />
             </div>
@@ -334,7 +334,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
                 type="text"
                 value={param.value || ''}
                 onChange={(e) => onChange && onChange(param.id, e.target.value)}
-                placeholder={isActualPath ? "Dataset path or ID" : ""}
+                placeholder={isActualPath ? tOr('panel.dataset_path_placeholder', 'Dataset path or ID') : ""}
                 className={param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}
               />
               {isActualPath && (

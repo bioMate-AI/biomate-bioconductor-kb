@@ -17,6 +17,7 @@
  * placeholders read as "this product is unfinished".
  */
 import React, { useEffect, useMemo, useState } from "react";
+import { tOr } from "@/lib/i18n";
 import { FindingsCard } from "@/components/findings-card";
 import { StepOutputPreview } from "@/components/step-output-preview";
 import { useInteractiveToolsAvailable } from "@/hooks/use-interactive-tools";
@@ -147,9 +148,9 @@ export function AfterRunReport({
   // report, Trajectory) is now a collapsible section inside the record tab —
   // still reachable, just re-nested (nothing is hidden or discarded).
   const visibleTabs: Array<[TabId, string]> = [
-    ["summary", "Summary"],
-    ["outputs", "Outputs"],
-    ["record", "Reproducibility record"],
+    ["summary", tOr('afterrun.tab.summary', "Summary")],
+    ["outputs", tOr('afterrun.tab.outputs', "Outputs")],
+    ["record", tOr('afterrun.tab.record', "Reproducibility record")],
   ];
 
   const handleDownload = () => {
@@ -175,7 +176,7 @@ export function AfterRunReport({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    setDownloadToast('Report downloaded — check your browser');
+    setDownloadToast(tOr('afterrun.report_downloaded', 'Report downloaded — check your browser'));
     setTimeout(() => setDownloadState('idle'), 2000);
     setTimeout(() => setDownloadToast(null), 4000);
   };
@@ -183,7 +184,7 @@ export function AfterRunReport({
   return (
     <div className="after-run-report" style={styles.root}>
       <div style={styles.head}>
-        <span style={styles.kicker}>After run</span>
+        <span style={styles.kicker}>{tOr('afterrun.kicker', 'After run')}</span>
         <span style={{ flex: 1 }} />
         {downloadToast && (
           <span style={styles.toast} role="status">{downloadToast}</span>
@@ -200,10 +201,10 @@ export function AfterRunReport({
             padding: 0,
             opacity: downloadState === 'idle' ? 1 : 0.6,
           }}
-          title="Download a comprehensive markdown report stitching every tab"
+          title={tOr('afterrun.download_report_title', 'Download a comprehensive markdown report stitching every tab')}
           data-testid="afterrun-download-report"
         >
-          ↓ {downloadState === 'preparing' ? 'Preparing…' : 'Download report'}
+          ↓ {downloadState === 'preparing' ? tOr('afterrun.preparing', 'Preparing…') : tOr('afterrun.download_report', 'Download report')}
         </button>
       </div>
 
@@ -247,11 +248,10 @@ export function AfterRunReport({
           <div data-testid="after-summary-tab">
             <div style={styles.runOriginalRow}>
               <span style={styles.runOriginalBadge} data-testid="after-run-original-badge">
-                Run original
+                {tOr('afterrun.run_original', 'Run original')}
               </span>
               <span style={styles.runOriginalHint}>
-                The unedited record of what this run produced. Reports you edit
-                are saved alongside it; this original is never overwritten.
+                {tOr('afterrun.run_original_hint', 'The unedited record of what this run produced. Reports you edit are saved alongside it; this original is never overwritten.')}
               </span>
             </div>
             <FindingsCard
@@ -278,8 +278,7 @@ export function AfterRunReport({
                 borderTop: "1px solid oklch(0.94 0.008 260)",
               }}
             >
-              Findings are generated directly from the run manifest. Numbers
-              and figures in this section come from the workflow outputs.
+              {tOr('afterrun.findings_manifest_note', 'Findings are generated directly from the run manifest. Numbers and figures in this section come from the workflow outputs.')}
             </div>
           </div>
         )}
@@ -382,7 +381,7 @@ function FailedRunSection({
     );
     // eslint-disable-next-line no-console
     console.info('[AfterRunReport] run-again-with-edits dispatched for run', runId);
-    setCtaToast('Re-running with your parameters — see the run panel.');
+    setCtaToast(tOr('afterrun.rerunning_toast', 'Re-running with your parameters — see the run panel.'));
     setTimeout(() => setCtaToast(null), 4000);
   };
 
@@ -399,7 +398,7 @@ function FailedRunSection({
             color: cancelled ? 'oklch(0.30 0.01 260)' : 'oklch(0.40 0.18 25)',
           }}
         >
-          {cancelled ? 'Run cancelled' : 'Run failed'}
+          {cancelled ? tOr('afterrun.run_cancelled', 'Run cancelled') : tOr('afterrun.run_failed', 'Run failed')}
         </span>
         <button
           type="button"
@@ -407,7 +406,7 @@ function FailedRunSection({
           style={styles.runAgainBtn}
           data-testid="afterrun-run-again-failed"
         >
-          ↻ Run again with edits
+          ↻ {tOr('afterrun.run_again_edits', 'Run again with edits')}
         </button>
       </div>
 
@@ -417,28 +416,28 @@ function FailedRunSection({
       {autofixTried && (
         <div style={styles.autofixBox} data-testid="afterrun-autofix-summary">
           <div style={styles.autofixHead}>
-            <span style={styles.autofixLabel}>Auto-fix</span>
+            <span style={styles.autofixLabel}>{tOr('afterrun.autofix', 'Auto-fix')}</span>
             <span style={{
               ...styles.autofixState,
               color: autofix?.state === 'failed' ? 'oklch(0.40 0.18 25)'
                    : autofix?.state === 'succeeded' ? 'oklch(0.35 0.13 145)'
                    : 'oklch(0.40 0.12 245)',
             }}>
-              {autofix?.state ?? 'unknown'}
+              {autofix?.state ?? tOr('afterrun.unknown', 'unknown')}
             </span>
             {(autofix?.totalAttempts ?? 0) > 0 && (
               <span style={styles.autofixAttempts}>
-                {autofix?.totalAttempts} attempt{(autofix?.totalAttempts ?? 0) === 1 ? '' : 's'}
+                {tOr('afterrun.attempts', '{{n}} attempt{{s}}', { n: autofix?.totalAttempts ?? 0, s: (autofix?.totalAttempts ?? 0) === 1 ? '' : 's' })}
               </span>
             )}
           </div>
           {autofixExhausted ? (
             <p style={styles.autofixMsg}>
-              BioMate auto-fix tried <strong>{autofix?.totalAttempts}</strong> remediation{(autofix?.totalAttempts ?? 0) === 1 ? '' : 's'} and could not recover the run. See the underlying error and log tail below for the final failure.
+              {tOr('afterrun.autofix_exhausted', 'BioMate auto-fix tried {{n}} remediation(s) and could not recover the run. See the underlying error and log tail below for the final failure.', { n: autofix?.totalAttempts ?? 0 })}
             </p>
           ) : autofix?.state === 'succeeded' ? (
             <p style={styles.autofixMsg}>
-              Auto-fix recovered the run after {autofix.totalAttempts ?? 0} attempt(s). This is unusual if you're seeing this section — the run should be marked completed.
+              {tOr('afterrun.autofix_succeeded', "Auto-fix recovered the run after {{n}} attempt(s). This is unusual if you're seeing this section — the run should be marked completed.", { n: autofix.totalAttempts ?? 0 })}
             </p>
           ) : autofix?.message ? (
             <p style={styles.autofixMsg}>{autofix.message}</p>
@@ -450,15 +449,15 @@ function FailedRunSection({
               style={styles.autofixToggle}
               data-testid="afterrun-autofix-toggle"
             >
-              {historyOpen ? '▾ Hide attempt history' : '▸ Show attempt history'}
+              {historyOpen ? tOr('afterrun.hide_history', '▾ Hide attempt history') : tOr('afterrun.show_history', '▸ Show attempt history')}
             </button>
           )}
           {historyOpen && (
             <div style={{ marginTop: 6 }}>
               {history === null ? (
-                <span style={styles.empty}>Loading attempts…</span>
+                <span style={styles.empty}>{tOr('afterrun.loading_attempts', 'Loading attempts…')}</span>
               ) : history.length === 0 ? (
-                <span style={styles.empty}>No detailed attempt history recorded.</span>
+                <span style={styles.empty}>{tOr('afterrun.no_history', 'No detailed attempt history recorded.')}</span>
               ) : (
                 <ol style={styles.autofixHistList}>
                   {history.map((h, i) => (
@@ -484,7 +483,7 @@ function FailedRunSection({
 
       {failedSteps && failedSteps.length > 0 && (
         <div style={styles.failedStepBox}>
-          <div style={styles.failedStepLabel}>Failed step(s)</div>
+          <div style={styles.failedStepLabel}>{tOr('afterrun.failed_steps', 'Failed step(s)')}</div>
           <ul style={styles.failedStepList}>
             {failedSteps.map((s, i) => (
               <li key={i} style={styles.failedStepItem}>{s}</li>
@@ -496,7 +495,7 @@ function FailedRunSection({
       {tail.length > 0 && (
         <div style={{ marginTop: 8 }}>
           <div style={styles.failedStepLabel}>
-            Log tail {totalLines > tail.length ? `(showing last ${tail.length} of ${totalLines})` : `(${tail.length} lines)`}
+            {tOr('afterrun.log_tail', 'Log tail')} {totalLines > tail.length ? tOr('afterrun.log_tail_showing', '(showing last {{n}} of {{total}})', { n: tail.length, total: totalLines }) : tOr('afterrun.log_tail_lines', '({{n}} lines)', { n: tail.length })}
           </div>
           <pre style={styles.logTailBlock}>{tail.join('\n')}</pre>
         </div>
@@ -837,7 +836,7 @@ function InteractiveToolsRow({ outputs }: { outputs: OutputFile[] }) {
       }}
     >
       <span style={{ fontSize: 11, color: 'oklch(0.48 0.012 260)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 4 }}>
-        Explore in
+        {tOr('afterrun.explore_in', 'Explore in')}
       </span>
       {availableTools.map(tool => {
         const { label } = toolMap.get(tool)!;
@@ -1033,8 +1032,8 @@ function OutputsTab({
       <div style={styles.tabContent}>
         <p style={styles.empty}>
           {executionStatus === 'failed'
-            ? 'No outputs — run did not complete successfully.'
-            : 'No output files registered yet.'}
+            ? tOr('afterrun.no_outputs_failed', 'No outputs — run did not complete successfully.')
+            : tOr('afterrun.no_outputs_yet', 'No output files registered yet.')}
         </p>
       </div>
     );
@@ -1076,7 +1075,7 @@ function OutputsTab({
           <JobButton
             kind="download_all_zip"
             payload={{ invocationId, runId }}
-            label={`↓ Download all (${totalCount}) as ZIP`}
+            label={tOr('afterrun.download_all_zip', '↓ Download all ({{n}}) as ZIP', { n: totalCount })}
             onReady={triggerDownload}
             className="afterrun-download-all-btn"
           />
@@ -1085,9 +1084,9 @@ function OutputsTab({
           href={reproUrl}
           download
           style={{ ...styles.bulkBtn, ...styles.bulkBtnSecondary }}
-          title="Configs, command scripts, logs, versions.yml — enough to re-run elsewhere"
+          title={tOr('afterrun.repro_bundle_title', 'Configs, command scripts, logs, versions.yml — enough to re-run elsewhere')}
         >
-          ↓ Reproducibility bundle
+          ↓ {tOr('afterrun.repro_bundle', 'Reproducibility bundle')}
         </a>
 
         {/* Save-to-Project affordance */}
@@ -1096,18 +1095,18 @@ function OutputsTab({
             href="/files"
             data-testid="afterrun-saved-open-datahub"
             style={{ ...styles.bulkBtn, background: 'oklch(0.93 0.07 145)', color: 'oklch(0.35 0.12 145)', border: '1px solid oklch(0.78 0.10 145)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-            title="Open in the data hub — the saved outputs are first-class dataset objects there (quality, lineage, versions)"
+            title={tOr('afterrun.saved_open_title', 'Open in the data hub — the saved outputs are first-class dataset objects there (quality, lineage, versions)')}
           >
-            ✓ Saved to {savedProjectName || "project"} — open in Files ↗
+            ✓ {tOr('afterrun.saved_open', 'Saved to {{name}} — open in Files ↗', { name: savedProjectName || tOr('afterrun.project_fallback', 'project') })}
           </a>
         ) : (
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <button
               onClick={() => setShowProjectPicker(v => !v)}
               style={{ ...styles.bulkBtn, ...styles.bulkBtnSecondary, cursor: 'pointer', border: '1px solid var(--border)' }}
-              title="Copy outputs to your project file browser"
+              title={tOr('afterrun.save_project_title', 'Copy outputs to your project file browser')}
             >
-              📁 Save to Project
+              📁 {tOr('afterrun.save_to_project', 'Save to Project')}
             </button>
             {showProjectPicker && (
               <div style={{
@@ -1117,10 +1116,10 @@ function OutputsTab({
                 minWidth: 240,
               }}>
                 <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--text)' }}>
-                  Save outputs to project
+                  {tOr('afterrun.save_outputs_to_project', 'Save outputs to project')}
                 </div>
                 {projects.length === 0 ? (
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Loading…</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>{tOr('afterrun.loading', 'Loading…')}</div>
                 ) : (
                   <select
                     value={selectedProjectId}
@@ -1136,17 +1135,17 @@ function OutputsTab({
                     disabled={!selectedProjectId || saveState === 'saving' || projects.length === 0}
                     style={{ flex: 1, fontSize: 12, padding: '4px 10px', borderRadius: 4, cursor: 'pointer', background: 'oklch(0.22 0.01 260)', color: '#fff', border: 'none', opacity: saveState === 'saving' ? 0.6 : 1 }}
                   >
-                    {saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Error — retry' : 'Save'}
+                    {saveState === 'saving' ? tOr('afterrun.saving', 'Saving…') : saveState === 'error' ? tOr('afterrun.error_retry', 'Error — retry') : tOr('afterrun.save', 'Save')}
                   </button>
                   <button
                     onClick={() => setShowProjectPicker(false)}
                     style={{ fontSize: 12, padding: '4px 10px', borderRadius: 4, cursor: 'pointer', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)' }}
                   >
-                    Cancel
+                    {tOr('afterrun.cancel', 'Cancel')}
                   </button>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-                  Files will appear in the project's Files tab.
+                  {tOr('afterrun.files_appear', "Files will appear in the project's Files tab.")}
                 </div>
               </div>
             )}
@@ -1161,9 +1160,9 @@ function OutputsTab({
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
           <thead>
             <tr style={{ background: 'oklch(0.96 0.004 260)', textAlign: 'left' }}>
-              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11 }}>Step</th>
-              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11 }}>File</th>
-              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11, width: 60 }}>Type</th>
+              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11 }}>{tOr('afterrun.col_step', 'Step')}</th>
+              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11 }}>{tOr('afterrun.col_file', 'File')}</th>
+              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11, width: 60 }}>{tOr('afterrun.col_type', 'Type')}</th>
               <th style={{ padding: '6px 8px', width: 90 }}></th>
             </tr>
           </thead>
@@ -1185,13 +1184,13 @@ function OutputsTab({
                       <button
                         onClick={() => setPreviewFile(f)}
                         style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11 }}
-                      >view</button>
+                      >{tOr('afterrun.view', 'view')}</button>
                     )}
                     <a
                       href={fileUrl(f, true)}
                       download
                       style={{ color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11, textDecoration: 'none' }}
-                    >dl</a>
+                    >{tOr('afterrun.dl', 'dl')}</a>
                   </span>
                 </td>
               </tr>
@@ -1225,7 +1224,7 @@ function OutputsTab({
               projectId={savedProjectId}
             />
             <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-              <a href={fileUrl(previewFile, true)} download style={{ fontSize: 12, color: 'var(--accent, oklch(0.55 0.18 260))' }}>↓ Download</a>
+              <a href={fileUrl(previewFile, true)} download style={{ fontSize: 12, color: 'var(--accent, oklch(0.55 0.18 260))' }}>↓ {tOr('afterrun.download', 'Download')}</a>
             </div>
           </div>
         </div>
@@ -1294,7 +1293,7 @@ export function MethodsTab({
   }, [runId]);
 
   if (!methods.hasRealContent) {
-    return <p style={styles.empty}>Methods report not available for this workflow.</p>;
+    return <p style={styles.empty}>{tOr('afterrun.methods_unavailable', 'Methods report not available for this workflow.')}</p>;
   }
 
   // Offline / no-run fallback: download the edit locally.
@@ -1342,7 +1341,7 @@ export function MethodsTab({
     <div data-testid="methods-tab">
       <div style={styles.methodsToolbar}>
         <span style={styles.methodsToolbarLabel}>
-          {editing ? "Editing methods report" : "Methods report"}
+          {editing ? tOr('afterrun.methods_editing', "Editing methods report") : tOr('afterrun.methods_report', "Methods report")}
         </span>
         <span style={{ flex: 1 }} />
         {savedToast && (
@@ -1357,9 +1356,9 @@ export function MethodsTab({
               onClick={handleSaveVersion}
               style={styles.methodsEditBtn}
               data-testid="methods-save-edited"
-              title="Save a new persisted version of the report (immutable run-original kept). Falls back to a local download offline."
+              title={tOr('afterrun.methods_save_version_title', 'Save a new persisted version of the report (immutable run-original kept). Falls back to a local download offline.')}
             >
-              ⤴ Save version
+              ⤴ {tOr('afterrun.methods_save_version', 'Save version')}
             </button>
             <button
               type="button"
@@ -1367,7 +1366,7 @@ export function MethodsTab({
               style={styles.methodsDoneBtn}
               data-testid="methods-done-editing"
             >
-              Done editing
+              {tOr('afterrun.methods_done', 'Done editing')}
             </button>
           </>
         ) : (
@@ -1376,22 +1375,22 @@ export function MethodsTab({
             onClick={() => setEditing(true)}
             style={styles.methodsEditBtn}
             data-testid="methods-edit-toggle"
-            title="Edit the methods report in place"
+            title={tOr('afterrun.methods_edit_title', 'Edit the methods report in place')}
           >
-            ✎ Edit
+            ✎ {tOr('afterrun.methods_edit', 'Edit')}
           </button>
         )}
       </div>
 
       {versions.length > 0 && (
         <div data-testid="report-versions" style={{ margin: "6px 0 10px", fontSize: 12 }}>
-          <div style={{ color: "var(--text-muted)", marginBottom: 4 }}>Report versions</div>
+          <div style={{ color: "var(--text-muted)", marginBottom: 4 }}>{tOr('afterrun.report_versions', 'Report versions')}</div>
           {versions.slice().sort((a, b) => a.version - b.version).map((v) => (
             <div key={v.version} data-testid={`report-version-${v.version}`} style={{ display: "flex", gap: 8, alignItems: "center", padding: "1px 0" }}>
               <span className="mono" style={{ fontWeight: 600 }}>v{v.version}</span>
               {v.immutable
-                ? <span style={{ fontSize: 10, padding: "0 5px", borderRadius: 4, background: "oklch(0.93 0.03 260)", color: "oklch(0.35 0.05 260)" }}>immutable run original</span>
-                : <span style={{ color: "var(--text-muted)" }}>{v.note || "edit"}</span>}
+                ? <span style={{ fontSize: 10, padding: "0 5px", borderRadius: 4, background: "oklch(0.93 0.03 260)", color: "oklch(0.35 0.05 260)" }}>{tOr('afterrun.immutable_original', 'immutable run original')}</span>
+                : <span style={{ color: "var(--text-muted)" }}>{v.note || tOr('afterrun.edit_note', 'edit')}</span>}
               {v.createdAt && <span style={{ color: "var(--text-muted)" }}>· {String(v.createdAt).slice(0, 10)}</span>}
             </div>
           ))}
@@ -1502,36 +1501,35 @@ function ReproducibilityRecordTab({
         style={{ fontSize: 11.5, color: "oklch(0.48 0.012 260)", fontStyle: "italic", display: "block", marginBottom: 10 }}
         data-testid="record-intro"
       >
-        The complete audit trail is kept together. Expand the part you need;
-        nothing is hidden or discarded.
+        {tOr('afterrun.record_intro', 'The complete audit trail is kept together. Expand the part you need; nothing is hidden or discarded.')}
       </span>
 
       {/* Identity + bound inputs/outputs — opened by default. */}
-      <ReproSection title="Reproducibility record" testId="record-section-record" defaultOpen>
+      <ReproSection title={tOr('afterrun.section.record', 'Reproducibility record')} testId="record-section-record" defaultOpen>
         <ReproducibilityTab runId={runId} />
       </ReproSection>
 
-      <ReproSection title="Resolved parameters" testId="record-section-params">
+      <ReproSection title={tOr('afterrun.section.resolved_params', 'Resolved parameters')} testId="record-section-params">
         <ParametersTab parameters={parameters} runId={runId} />
       </ReproSection>
 
-      <ReproSection title="Methods" testId="record-section-methods">
+      <ReproSection title={tOr('afterrun.section.methods', 'Methods')} testId="record-section-methods">
         <MethodsTab methods={methods} workflowName={workflowName} runId={runId} />
       </ReproSection>
 
-      <ReproSection title="Software" testId="record-section-software">
+      <ReproSection title={tOr('afterrun.section.software', 'Software')} testId="record-section-software">
         <SoftwareTab versions={software} />
       </ReproSection>
 
-      <ReproSection title="Citations" testId="record-section-citations">
+      <ReproSection title={tOr('afterrun.section.citations', 'Citations')} testId="record-section-citations">
         <CitationsTab citations={citations} />
       </ReproSection>
 
-      <ReproSection title="QC report" testId="record-section-qc">
+      <ReproSection title={tOr('afterrun.section.qc_report', 'QC report')} testId="record-section-qc">
         <QcAuditTab events={qcEvents} outputs={[]} />
       </ReproSection>
 
-      <ReproSection title="Trajectory" testId="record-section-trajectory">
+      <ReproSection title={tOr('afterrun.section.trajectory', 'Trajectory')} testId="record-section-trajectory">
         <div style={{ padding: "4px 2px" }}>
           <TrajectoryView rows={trajectoryRows} />
         </div>
@@ -1560,8 +1558,8 @@ function ReproducibilityTab({ runId }: { runId: string }) {
     return () => { cancelled = true; };
   }, [runId]);
 
-  if (err) return <div style={styles.tabContent} data-testid="repro-error">Reproducibility record unavailable for this run.</div>;
-  if (!rec) return <div style={styles.tabContent} data-testid="repro-loading">Loading reproducibility record…</div>;
+  if (err) return <div style={styles.tabContent} data-testid="repro-error">{tOr('afterrun.repro_error', 'Reproducibility record unavailable for this run.')}</div>;
+  if (!rec) return <div style={styles.tabContent} data-testid="repro-loading">{tOr('afterrun.repro_loading', 'Loading reproducibility record…')}</div>;
 
   const paramEntries = Object.entries(rec.parameters || {});
   const downloadJson = () => {
@@ -1593,39 +1591,39 @@ function ReproducibilityTab({ runId }: { runId: string }) {
   return (
     <div style={styles.tabContent} data-testid="repro-tab">
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <span style={{ fontSize: 11, opacity: 0.7 }}>Reproducibility record v{rec.recordVersion}</span>
+        <span style={{ fontSize: 11, opacity: 0.7 }}>{tOr('afterrun.repro_record_v', 'Reproducibility record v{{v}}', { v: rec.recordVersion })}</span>
         <span style={{ flex: 1 }} />
-        <button type="button" onClick={downloadJson} style={styles.runAgainBtn} data-testid="repro-download-json">↓ Download record (JSON)</button>
+        <button type="button" onClick={downloadJson} style={styles.runAgainBtn} data-testid="repro-download-json">↓ {tOr('afterrun.download_record_json', 'Download record (JSON)')}</button>
       </div>
 
       <table style={{ ...reproTable, marginBottom: 4 }}><tbody>
-        <tr><td style={reproKey}>Workflow</td><td>{rec.workflowName}</td></tr>
-        <tr><td style={reproKey}>Run id</td><td style={{ fontFamily: "monospace" }}>{rec.runId}</td></tr>
-        <tr><td style={reproKey}>Status</td><td>{rec.status}</td></tr>
-        <tr><td style={reproKey}>Created</td><td>{rec.createdAt || "—"}</td></tr>
-        <tr><td style={reproKey}>Completed</td><td>{rec.completedAt || "—"}</td></tr>
+        <tr><td style={reproKey}>{tOr('afterrun.field.workflow', 'Workflow')}</td><td>{rec.workflowName}</td></tr>
+        <tr><td style={reproKey}>{tOr('afterrun.field.run_id', 'Run id')}</td><td style={{ fontFamily: "monospace" }}>{rec.runId}</td></tr>
+        <tr><td style={reproKey}>{tOr('afterrun.field.status', 'Status')}</td><td>{rec.status}</td></tr>
+        <tr><td style={reproKey}>{tOr('afterrun.field.created', 'Created')}</td><td>{rec.createdAt || "—"}</td></tr>
+        <tr><td style={reproKey}>{tOr('afterrun.field.completed', 'Completed')}</td><td>{rec.completedAt || "—"}</td></tr>
       </tbody></table>
 
-      <div style={reproH}>Parameters ({paramEntries.length})</div>
+      <div style={reproH}>{tOr('afterrun.parameters_count', 'Parameters ({{n}})', { n: paramEntries.length })}</div>
       {paramEntries.length ? (
         <table style={reproTable}><tbody>
           {paramEntries.map(([k, v]) => (
             <tr key={k}><td style={reproKey}>{k}</td><td style={{ fontFamily: "monospace", wordBreak: "break-word" }}>{typeof v === "object" ? JSON.stringify(v) : String(v)}</td></tr>
           ))}
         </tbody></table>
-      ) : <div style={reproEmpty}>No parameters recorded.</div>}
+      ) : <div style={reproEmpty}>{tOr('afterrun.no_parameters', 'No parameters recorded.')}</div>}
 
-      <div style={reproH}>Input bindings ({rec.inputBindings?.length || 0})</div>
+      <div style={reproH}>{tOr('afterrun.input_bindings_count', 'Input bindings ({{n}})', { n: rec.inputBindings?.length || 0 })}</div>
       {rec.inputBindings?.length ? (
         <table style={reproTable}><tbody>
           {rec.inputBindings.map((b: any, i: number) => (
             <tr key={i}><td style={reproKey}>{b?.stepId ?? i}</td><td style={{ fontFamily: "monospace", wordBreak: "break-word" }}>{b?.name || b?.datasetId || JSON.stringify(b)}</td></tr>
           ))}
         </tbody></table>
-      ) : <div style={reproEmpty}>No bound inputs recorded (run predates input-binding capture, or has none).</div>}
+      ) : <div style={reproEmpty}>{tOr('afterrun.no_bound_inputs', 'No bound inputs recorded (run predates input-binding capture, or has none).')}</div>}
 
       <div style={{ ...reproH, display: "flex", alignItems: "center", gap: 10 }}>
-        <span>Outputs ({rec.outputCount})</span>
+        <span>{tOr('afterrun.outputs_count', 'Outputs ({{n}})', { n: rec.outputCount })}</span>
         {rec.outputs?.length ? (
           anyUnhashed ? (
             <button
@@ -1633,19 +1631,19 @@ function ReproducibilityTab({ runId }: { runId: string }) {
               onClick={computeChecksums}
               disabled={hashing}
               data-testid="repro-compute-checksums"
-              title="Compute SHA-256 for each output (bounded: ≤25 files, ≤25 MB each)"
+              title={tOr('afterrun.compute_checksums_title', 'Compute SHA-256 for each output (bounded: ≤25 files, ≤25 MB each)')}
               style={{ background: "none", border: "none", padding: 0, cursor: hashing ? "default" : "pointer", fontSize: 11, color: "var(--accent, oklch(0.55 0.18 260))" }}
             >
-              {hashing ? "Computing checksums…" : "↻ Compute checksums"}
+              {hashing ? tOr('afterrun.computing_checksums', "Computing checksums…") : tOr('afterrun.compute_checksums', "↻ Compute checksums")}
             </button>
           ) : (
-            <span style={{ fontSize: 11, color: "oklch(0.55 0.12 155)" }} data-testid="repro-checksums-done">SHA-256 computed ✓</span>
+            <span style={{ fontSize: 11, color: "oklch(0.55 0.12 155)" }} data-testid="repro-checksums-done">{tOr('afterrun.checksums_done', 'SHA-256 computed')} ✓</span>
           )
         ) : null}
       </div>
       {rec.outputs?.length ? (
         <table style={reproTable}>
-          <thead><tr><th style={reproTh}>Name</th><th style={reproTh}>Type</th><th style={reproTh}>Size</th><th style={reproTh}>SHA-256</th></tr></thead>
+          <thead><tr><th style={reproTh}>{tOr('afterrun.col_name', 'Name')}</th><th style={reproTh}>{tOr('afterrun.col_type', 'Type')}</th><th style={reproTh}>{tOr('afterrun.col_size', 'Size')}</th><th style={reproTh}>{tOr('afterrun.col_sha256', 'SHA-256')}</th></tr></thead>
           <tbody>
             {rec.outputs.map((o, i) => (
               <tr key={o.id || i}>
@@ -1657,7 +1655,7 @@ function ReproducibilityTab({ runId }: { runId: string }) {
             ))}
           </tbody>
         </table>
-      ) : <div style={reproEmpty}>No outputs resolved for this run.</div>}
+      ) : <div style={reproEmpty}>{tOr('afterrun.no_outputs_resolved', 'No outputs resolved for this run.')}</div>}
     </div>
   );
 }
@@ -1684,7 +1682,7 @@ function ParametersTab({
     );
     // eslint-disable-next-line no-console
     console.info('[AfterRunReport] run-again-with-edits dispatched (params tab) for run', runId);
-    setCtaToast('Re-running with your parameters — see the run panel.');
+    setCtaToast(tOr('afterrun.rerunning_toast', 'Re-running with your parameters — see the run panel.'));
     setTimeout(() => setCtaToast(null), 4000);
   };
 
@@ -1698,7 +1696,7 @@ function ParametersTab({
             style={styles.runAgainBtn}
             data-testid="afterrun-run-again-params"
           >
-            ↻ Run again with edits
+            ↻ {tOr('afterrun.run_again_edits', 'Run again with edits')}
           </button>
           {ctaToast && (
             <span role="status" style={styles.toast} data-testid="afterrun-cta-toast-params">{ctaToast}</span>
@@ -1706,7 +1704,7 @@ function ParametersTab({
         </div>
       )}
       {entries.length === 0 ? (
-        <p style={styles.empty}>No parameter values recorded.</p>
+        <p style={styles.empty}>{tOr('afterrun.no_param_values', 'No parameter values recorded.')}</p>
       ) : (
         <table style={styles.kvTable}>
           <tbody>
@@ -1771,9 +1769,9 @@ function isAutoCorrectedStatus(status?: string): boolean {
 }
 
 function deriveAction(e: QcEvent): string {
-  if (isPassedStatus(e.status)) return "continue";
-  if (isAutoCorrectedStatus(e.status)) return "auto-loop · re-run with adjusted parameters";
-  return e.message ?? "manual intervention required";
+  if (isPassedStatus(e.status)) return tOr('afterrun.action_continue', "continue");
+  if (isAutoCorrectedStatus(e.status)) return tOr('afterrun.action_autoloop', "auto-loop · re-run with adjusted parameters");
+  return e.message ?? tOr('afterrun.action_manual', "manual intervention required");
 }
 
 function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
@@ -1805,9 +1803,9 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
             <polyline points="22 4 12 14.01 9 11.01"/>
           </svg>
-          <div style={{ fontWeight: 600, fontSize: 15 }} data-testid="qc-all-passed">All quality gates passed</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }} data-testid="qc-all-passed">{tOr('afterrun.qc_all_passed', 'All quality gates passed')}</div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 320 }}>
-            No QC thresholds were exceeded during this run. All metrics are within acceptable ranges.
+            {tOr('afterrun.qc_all_passed_sub', 'No QC thresholds were exceeded during this run. All metrics are within acceptable ranges.')}
           </div>
         </div>
       </div>
@@ -1826,10 +1824,10 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
         }}
       >
         {[
-          { label: 'Gates evaluated', value: events.length, color: undefined, testid: 'qc-stat-evaluated' },
-          { label: 'Passed',           value: passed,        color: 'oklch(0.62 0.16 145)', testid: 'qc-stat-passed' },
-          { label: 'Auto-corrected',   value: autoCorrected, color: 'oklch(0.62 0.16 60)',  testid: 'qc-stat-autoloop' },
-          { label: 'Manual interventions', value: manualInterventions, color: undefined, testid: 'qc-stat-manual' },
+          { label: tOr('afterrun.qc_evaluated', 'Gates evaluated'), value: events.length, color: undefined, testid: 'qc-stat-evaluated' },
+          { label: tOr('afterrun.qc_passed', 'Passed'),           value: passed,        color: 'oklch(0.62 0.16 145)', testid: 'qc-stat-passed' },
+          { label: tOr('afterrun.qc_autocorrected', 'Auto-corrected'),   value: autoCorrected, color: 'oklch(0.62 0.16 60)',  testid: 'qc-stat-autoloop' },
+          { label: tOr('afterrun.qc_manual', 'Manual interventions'), value: manualInterventions, color: undefined, testid: 'qc-stat-manual' },
         ].map(s => (
           <div
             key={s.label}
@@ -1853,12 +1851,12 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
 
       {events.length === 0 ? (
         <div style={{ fontSize: 12, color: 'oklch(0.48 0.012 260)', fontStyle: 'italic', padding: '8px 0' }}>
-          No QC gates fired for this run.
+          {tOr('afterrun.qc_none_fired', 'No QC gates fired for this run.')}
         </div>
       ) : (
         <>
           <div style={{ fontSize: 11, color: 'oklch(0.48 0.012 260)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
-            Gate evaluation log
+            {tOr('afterrun.qc_log_title', 'Gate evaluation log')}
           </div>
           <table
             data-testid="qc-audit-log"
@@ -1871,12 +1869,12 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
           >
             <thead>
               <tr style={{ background: 'oklch(0.96 0.005 260)', textAlign: 'left' }}>
-                <th style={{ padding: '7px 8px' }}>Timestamp (UTC)</th>
-                <th style={{ padding: '7px 8px' }}>Gate</th>
-                <th style={{ padding: '7px 8px' }}>Threshold</th>
-                <th style={{ padding: '7px 8px' }}>Observed</th>
-                <th style={{ padding: '7px 8px' }}>Result</th>
-                <th style={{ padding: '7px 8px' }}>Action</th>
+                <th style={{ padding: '7px 8px' }}>{tOr('afterrun.qc_col_ts', 'Timestamp (UTC)')}</th>
+                <th style={{ padding: '7px 8px' }}>{tOr('afterrun.qc_col_gate', 'Gate')}</th>
+                <th style={{ padding: '7px 8px' }}>{tOr('afterrun.qc_col_threshold', 'Threshold')}</th>
+                <th style={{ padding: '7px 8px' }}>{tOr('afterrun.qc_col_observed', 'Observed')}</th>
+                <th style={{ padding: '7px 8px' }}>{tOr('afterrun.qc_col_result', 'Result')}</th>
+                <th style={{ padding: '7px 8px' }}>{tOr('afterrun.qc_col_action', 'Action')}</th>
               </tr>
             </thead>
             <tbody>
@@ -1896,7 +1894,7 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
                       }}
                       data-testid={`qc-row-${i}-result`}
                     >
-                      {pass ? '✓ PASS' : '↻ FAIL → loop'}
+                      {pass ? tOr('afterrun.qc_pass', '✓ PASS') : tOr('afterrun.qc_fail_loop', '↻ FAIL → loop')}
                     </td>
                     <td style={{ padding: '7px 8px', color: 'oklch(0.40 0.012 260)' }}>{deriveAction(e)}</td>
                   </tr>
@@ -1919,24 +1917,17 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
             }}
           >
             <div style={{ fontWeight: 600, color: 'oklch(0.22 0.012 260)', marginBottom: 4 }}>
-              Chain of custody
+              {tOr('afterrun.chain_of_custody', 'Chain of custody')}
             </div>
             <span data-testid="qc-custody-copy">
               {allHashed ? (
-                <>All {hashedCount} recorded output{hashedCount === 1 ? ' is' : 's are'} content-addressed
-                by SHA-256 checksum, so each corresponds to a tamper-evident manifest entry.
-                Parameter sets and gate decisions above are versioned alongside them.</>
+                tOr('afterrun.custody_all', 'All {{n}} recorded outputs are content-addressed by SHA-256 checksum, so each corresponds to a tamper-evident manifest entry. Parameter sets and gate decisions above are versioned alongside them.', { n: hashedCount })
               ) : anyHashed ? (
-                <>{hashedCount} of {totalOutputs} recorded outputs carry a SHA-256 checksum and are
-                content-addressed (tamper-evident); the remaining outputs are not yet hashed —
-                their checksums are computed on demand. Parameter sets and gate decisions above
-                are versioned with the run manifest.</>
+                tOr('afterrun.custody_some', '{{n}} of {{total}} recorded outputs carry a SHA-256 checksum and are content-addressed (tamper-evident); the remaining outputs are not yet hashed — their checksums are computed on demand. Parameter sets and gate decisions above are versioned with the run manifest.', { n: hashedCount, total: totalOutputs })
               ) : (
-                <>Parameter sets and gate decisions above are versioned with the run manifest.
-                Output checksums are computed on demand and are not yet hashed for this run, so
-                content-addressed / tamper-evident storage is not asserted here.</>
+                tOr('afterrun.custody_none', 'Parameter sets and gate decisions above are versioned with the run manifest. Output checksums are computed on demand and are not yet hashed for this run, so content-addressed / tamper-evident storage is not asserted here.')
               )}
-              {' '}No human override modified this run.
+              {' '}{tOr('afterrun.custody_no_override', 'No human override modified this run.')}
             </span>
           </div>
 
@@ -1953,12 +1944,12 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
                 lineHeight: 1.55,
               }}
             >
-              <div style={{ fontWeight: 600, marginBottom: 4 }}>Operator e-signature</div>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>{tOr('afterrun.e_signature', 'Operator e-signature')}</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'oklch(0.40 0.012 260)' }}>
                 <span>
-                  {eSignature.reviewer && <>Reviewed by {eSignature.reviewer}</>}
+                  {eSignature.reviewer && <>{tOr('afterrun.reviewed_by', 'Reviewed by')} {eSignature.reviewer}</>}
                   {eSignature.reviewedAt && <> · {eSignature.reviewedAt}</>}
-                  {eSignature.totpVerified && <> · TOTP verified</>}
+                  {eSignature.totpVerified && <> · {tOr('afterrun.totp_verified', 'TOTP verified')}</>}
                 </span>
                 {eSignature.sigShort && (
                   <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>
@@ -2062,9 +2053,9 @@ function FigQc({ fig }: { fig: Extract<FindingsFigure, { kind: "qc" }> }) {
             fontSize: 12, fontWeight: 600, color: "oklch(0.22 0.012 260)" }}>{pct}%</span>
         </div>
         <div style={{ fontSize: 11.5, color: "oklch(0.40 0.012 260)", lineHeight: 1.45 }}>
-          <div><b style={{ color: "oklch(0.22 0.012 260)" }}>{fig.kept.toLocaleString()}</b>{" "}{fig.unit ?? "retained"}</div>
+          <div><b style={{ color: "oklch(0.22 0.012 260)" }}>{fig.kept.toLocaleString()}</b>{" "}{fig.unit ?? tOr('afterrun.retained', 'retained')}</div>
           <div style={{ fontSize: 10.5, color: "oklch(0.48 0.012 260)" }}>
-            {(fig.total - fig.kept).toLocaleString()} dropped of {fig.total.toLocaleString()}
+            {tOr('afterrun.dropped_of', '{{dropped}} dropped of {{total}}', { dropped: (fig.total - fig.kept).toLocaleString(), total: fig.total.toLocaleString() })}
           </div>
         </div>
       </div>
@@ -2078,7 +2069,7 @@ function FindingsFiguresPanel({ figures }: { figures: FindingsFigure[] }) {
       paddingTop: 14, borderTop: "1px solid oklch(0.92 0.008 260)" }}>
       <div style={{ fontSize: 10, color: "oklch(0.48 0.012 260)", textTransform: "uppercase",
         letterSpacing: 0.5, marginBottom: 8 }}>
-        Headline figures
+        {tOr('afterrun.headline_figures', 'Headline figures')}
       </div>
       {figures.map((fig, i) => {
         let body: JSX.Element | null = null;
@@ -2092,7 +2083,7 @@ function FindingsFiguresPanel({ figures }: { figures: FindingsFigure[] }) {
             {fig.source_file && (
               <div style={{ fontSize: 10, fontFamily: "var(--font-mono)",
                 color: "oklch(0.55 0.012 260)", marginTop: -4, marginBottom: 6 }}>
-                from {fig.source_file}
+                {tOr('afterrun.from_source', 'from {{file}}', { file: fig.source_file })}
               </div>
             )}
           </div>
@@ -2106,11 +2097,11 @@ function FindingsFiguresPanel({ figures }: { figures: FindingsFigure[] }) {
 
 function SoftwareTab({ versions }: { versions: Record<string, string> }) {
   const entries = Object.entries(versions);
-  if (entries.length === 0) return <p style={styles.empty}>No software versions recorded.</p>;
+  if (entries.length === 0) return <p style={styles.empty}>{tOr('afterrun.no_software', 'No software versions recorded.')}</p>;
   return (
     <div style={styles.tabContent}>
       <p style={{ fontSize: 11, color: 'oklch(0.48 0.012 260)', marginBottom: 8 }}>
-        Sourced from <code>versions.yml</code> emitted by each pipeline step.
+        {tOr('afterrun.software_source_pre', 'Sourced from')} <code>versions.yml</code> {tOr('afterrun.software_source_post', 'emitted by each pipeline step.')}
       </p>
       <table style={styles.kvTable}>
         <tbody>
@@ -2127,7 +2118,7 @@ function SoftwareTab({ versions }: { versions: Record<string, string> }) {
 }
 
 function CitationsTab({ citations }: { citations: Citation[] }) {
-  if (citations.length === 0) return <p style={styles.empty}>No citations registered.</p>;
+  if (citations.length === 0) return <p style={styles.empty}>{tOr('afterrun.no_citations', 'No citations registered.')}</p>;
   return (
     <div style={styles.tabContent}>
       <ul style={styles.citationsList}>

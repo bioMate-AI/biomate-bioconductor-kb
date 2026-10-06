@@ -12,6 +12,7 @@
 
 import { AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { tOr } from "@/lib/i18n"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -83,7 +84,7 @@ export function VerdictChip({ verdict }: { verdict: Verdict }) {
       )}
     >
       <span className={cn("h-1.5 w-1.5 rounded-full", ok ? "bg-emerald-500" : "bg-amber-500")} />
-      {verdict}
+      {tOr('panel.verdict_' + verdict.replace(/\s+/g, '_'), verdict)}
     </span>
   )
 }

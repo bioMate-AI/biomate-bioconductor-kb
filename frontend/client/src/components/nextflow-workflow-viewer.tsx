@@ -633,13 +633,13 @@ function PhaseGroupSection({
         {phaseStatus === 'running' && (
           <span className="chip run">
             <Loader2 className="h-2.5 w-2.5 animate-spin" style={{display:'inline-block'}}/>
-            RUNNING
+            {tOr('panel.chip.running', 'RUNNING')}
           </span>
         )}
-        {phaseStatus === 'completed' && <span className="chip ok">DONE</span>}
-        {phaseStatus === 'failed'    && <span className="chip err">FAILED</span>}
+        {phaseStatus === 'completed' && <span className="chip ok">{tOr('panel.chip.done', 'DONE')}</span>}
+        {phaseStatus === 'failed'    && <span className="chip err">{tOr('panel.chip.failed', 'FAILED')}</span>}
         {phaseStatus === 'pending' && (
-          <span className="progress-chip">{steps.length} step{steps.length !== 1 ? 's' : ''}</span>
+          <span className="progress-chip">{tOr('panel.phase.steps_count', '{{n}} step{{s}}', { n: steps.length, s: steps.length !== 1 ? 's' : '' })}</span>
         )}
         {(phaseStatus === 'running' || phaseStatus === 'completed') && (
           <span className="progress-chip">{completedCount}/{steps.length}</span>
@@ -651,9 +651,9 @@ function PhaseGroupSection({
             disabled={!canRunPhase}
             onClick={(e) => { e.stopPropagation(); steps.forEach((s: any) => onRun(s)); }}
             data-testid={`button-run-phase-${group.key}`}
-            title={canRunPhase ? `Run all steps in ${phaseTitle}` : "Start the workflow first to enable phase-level execution"}
+            title={canRunPhase ? tOr('panel.phase.run_all_tip', 'Run all steps in {{phase}}', { phase: phaseTitle }) : tOr('panel.phase.run_disabled_tip', 'Start the workflow first to enable phase-level execution')}
           >
-            Run
+            {tOr('panel.phase.run', 'Run')}
           </button>
         )}
       </div>
@@ -669,8 +669,8 @@ function PhaseGroupSection({
                   {tOr('panel.parameters', 'Parameters')}
                   <span style={{ fontWeight: 400, marginLeft: 4, color: 'var(--text-dim)' }}>
                     ({phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).length > 0
-                      ? `${phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).length} required`
-                      : `${phaseRenderedParams.length} configured`})
+                      ? tOr('panel.params_required_count', '{{n}} required', { n: phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).length })
+                      : tOr('panel.params_configured_count', '{{n}} configured', { n: phaseRenderedParams.length })})
                   </span>
                 </span>
                 <button
@@ -679,7 +679,7 @@ function PhaseGroupSection({
                   onClick={() => setPhaseParamsOpen(o => !o)}
                   data-testid={`phase-params-toggle-${group.key}`}
                 >
-                  {phaseParamsOpen ? 'collapse' : 'edit'}
+                  {phaseParamsOpen ? tOr('panel.collapse', 'collapse') : tOr('panel.edit_action', 'edit')}
                 </button>
               </div>
               {/* Compact summary row when collapsed */}
@@ -687,7 +687,7 @@ function PhaseGroupSection({
                 <div style={{ padding: '4px 14px 6px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>
                   {phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).length > 0 ? (
                     <span style={{ color: 'var(--warn)' }}>
-                      {phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).map(p => p.label).join(', ')} — required
+                      {tOr('panel.required_suffix', '{{labels}} — required', { labels: phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).map(p => p.label).join(', ') })}
                     </span>
                   ) : (
                     phaseRenderedParams.slice(0, 4).map(p =>
@@ -729,7 +729,7 @@ function PhaseGroupSection({
                           type={p.type === 'number' ? 'number' : 'text'}
                           className="v"
                           value={String(p.value ?? p.defaultValue ?? '')}
-                          placeholder={p.required ? 'required' : ''}
+                          placeholder={p.required ? tOr('panel.required', 'required') : ''}
                           style={{ fontSize: 11, padding: '2px 6px', width: 140, background: 'var(--surface)',
                             border: `1px solid ${p.required && (!p.value || p.value === '') ? 'var(--warn)' : 'var(--border)'}`,
                             borderRadius: 3, color: 'var(--text)', fontFamily: p.type === 'file' ? 'var(--font-mono)' : undefined }}
@@ -778,31 +778,31 @@ function PhaseGroupSection({
                       </span>
                     );
                   })()}
-                  {isRunning && <span className="chip run" style={{marginLeft:'auto'}}><Loader2 className="h-2.5 w-2.5 animate-spin" style={{display:'inline-block'}}/>RUNNING</span>}
-                  {isDone    && <span className="chip ok"  style={{marginLeft:'auto'}}>DONE</span>}
-                  {isFailed  && <span className="chip err" style={{marginLeft:'auto'}}>FAILED</span>}
+                  {isRunning && <span className="chip run" style={{marginLeft:'auto'}}><Loader2 className="h-2.5 w-2.5 animate-spin" style={{display:'inline-block'}}/>{tOr('panel.chip.running', 'RUNNING')}</span>}
+                  {isDone    && <span className="chip ok"  style={{marginLeft:'auto'}}>{tOr('panel.chip.done', 'DONE')}</span>}
+                  {isFailed  && <span className="chip err" style={{marginLeft:'auto'}}>{tOr('panel.chip.failed', 'FAILED')}</span>}
                   <div className="actions">
                     {(isDone || isFailed) && (
                       <button
                         className="btn ghost sm"
                         onClick={(e) => { e.stopPropagation(); onOpenFullStepView(step); }}
                         data-testid={`button-full-step-view-${step.id}`}
-                        title="Open full step view — provenance, resolved parameters, rendered ⇄ raw outputs"
-                      >Details</button>
+                        title={tOr('panel.step.details_tip', 'Open full step view — provenance, resolved parameters, rendered ⇄ raw outputs')}
+                      >{tOr('panel.step.details', 'Details')}</button>
                     )}
                     {(isDone || isFailed) && (
                       <button
                         className="btn ghost sm"
                         onClick={(e) => { e.stopPropagation(); onRun(step); }}
                         data-testid={`button-run-step-${step.id}`}
-                      >Rerun</button>
+                      >{tOr('panel.step.rerun', 'Rerun')}</button>
                     )}
                     {!isRunning && !isDone && step.parameters && Object.keys(step.parameters).length > 0 && (
                       <button
                         className="btn ghost sm"
                         onClick={(e) => { e.stopPropagation(); onAdjustAndRerun(step); }}
                         data-testid={`button-adjust-step-${step.id}`}
-                      >Params</button>
+                      >{tOr('panel.step.params', 'Params')}</button>
                     )}
                     {/* Skip step — no backend API, UI-only; hidden until backend skip endpoint added
                     {!isRunning && !isDone && (
@@ -844,19 +844,19 @@ function PhaseGroupSection({
                           className="act"
                           onClick={() => onPreviewFile(f, step)}
                           data-testid={`phase-card-preview-btn-${f.name}`}
-                        >view</span>
+                        >{tOr('panel.file.view', 'view')}</span>
                         {activeRunId && (
                           <a
                             className="act"
                             href={`/api/workflows/runs/${encodeURIComponent(activeRunId)}/step-file?path=${encodeURIComponent(f.path)}&download=1`}
                             data-testid={`phase-card-download-btn-${f.name}`}
-                          >dl</a>
+                          >{tOr('panel.file.download_short', 'dl')}</a>
                         )}
                       </span>
                     ))}
                     {step.outputFiles.length > 4 && (
                       <span className="output-file">
-                        <span className="fn">+{step.outputFiles.length - 4} more</span>
+                        <span className="fn">{tOr('panel.file.more_count', '+{{n}} more', { n: step.outputFiles.length - 4 })}</span>
                       </span>
                     )}
                   </div>
@@ -869,14 +869,14 @@ function PhaseGroupSection({
           {qcThresholds.length > 0 && (
             <div className="qc-block">
               <div className="qc-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>QC Gates</span>
+                <span>{tOr('panel.qc_gates', 'QC Gates')}</span>
                 <button
                   className="linkish"
                   style={{ fontSize: 10 }}
                   onClick={() => setQcEditorOpen(o => !o)}
                   data-testid={`qc-edit-toggle-${group.key}`}
                 >
-                  {qcEditorOpen ? 'done' : 'edit'}
+                  {qcEditorOpen ? tOr('panel.done_action', 'done') : tOr('panel.edit_action', 'edit')}
                 </button>
               </div>
               {qcThresholds.map(t => (
@@ -905,7 +905,7 @@ function PhaseGroupSection({
                     <button
                       className="linkish"
                       style={{ fontSize: 10, color: 'var(--warn)' }}
-                      title="Reset to default"
+                      title={tOr('panel.reset_to_default', 'Reset to default')}
                       onClick={() => onQcChange(t.key, null)}
                     >×</button>
                   )}
@@ -959,7 +959,7 @@ function PhaseGroupSection({
                 data-testid={`button-stop-phase-${group.key}`}
                 onClick={onStopPhase}
               >
-                Stop phase
+                {tOr('panel.stop_phase', 'Stop phase')}
               </button>
             )}
             {/* Skip phase — no backend API, UI-only; hidden until backend skip endpoint added
@@ -2515,7 +2515,7 @@ export function NextflowWorkflowViewer({
       {onResize && (
         <div
           className="panel-resizer"
-          title="Drag to resize"
+          title={tOr('panel.drag_to_resize', 'Drag to resize')}
           onMouseDown={(e: React.MouseEvent) => {
             e.preventDefault();
             resizingRef.current = true;
@@ -2592,7 +2592,7 @@ export function NextflowWorkflowViewer({
                 )}
                 {workflowDefinition?.qc_profile && (
                   <span className="chip ok" style={{ fontSize: '10px' }}>
-                    QC: {(workflowDefinition.qc_profile as string).replace(/_/g, ' ')}
+                    {tOr('panel.qc_prefix', 'QC: ')}{(workflowDefinition.qc_profile as string).replace(/_/g, ' ')}
                   </span>
                 )}
                 {/* Only show chip for non-idle states */}
@@ -2787,21 +2787,21 @@ export function NextflowWorkflowViewer({
               wiring a first-class approval trigger is a documented follow-up. */}
           {status === 'pending_review' && (() => {
             const approvalData: ApprovalGateData = {
-              what: `Run "${workflowDefinition?.name || workflowDefinition?.workflowName || 'this workflow'}"`,
-              why: 'This run is paused for human review before it starts consuming compute.',
-              cost: 'Approving starts the workflow on the configured infrastructure.',
+              what: tOr('panel.approval.what', 'Run "{{name}}"', { name: workflowDefinition?.name || workflowDefinition?.workflowName || tOr('panel.approval.this_workflow', 'this workflow') }),
+              why: tOr('panel.approval.why', 'This run is paused for human review before it starts consuming compute.'),
+              cost: tOr('panel.approval.cost', 'Approving starts the workflow on the configured infrastructure.'),
               measured: [
                 {
-                  key: 'Review state',
-                  measured: 'awaiting approval',
-                  threshold: 'human sign-off required before run',
+                  key: tOr('panel.approval.review_state', 'Review state'),
+                  measured: tOr('panel.approval.awaiting', 'awaiting approval'),
+                  threshold: tOr('panel.approval.signoff_required', 'human sign-off required before run'),
                   verdict: 'needs approval',
                 },
               ],
               who: projectId
-                ? 'You can approve this — you own this run in the project.'
-                : 'You can approve this — this is your run.',
-              policy: 'Governed by the workflow approval policy.',
+                ? tOr('panel.approval.who_project', 'You can approve this — you own this run in the project.')
+                : tOr('panel.approval.who_run', 'You can approve this — this is your run.'),
+              policy: tOr('panel.approval.policy', 'Governed by the workflow approval policy.'),
             };
             return (
               <div style={{ margin: '0 18px 10px' }}>
@@ -2814,7 +2814,7 @@ export function NextflowWorkflowViewer({
                       onCancel?.();
                     } else {
                       onAdjustViaChat?.(
-                        `I'd like a reviewer to sign off on running "${workflowDefinition?.name || 'this workflow'}" before it starts.`,
+                        tOr('panel.approval.request_review_msg', 'I\'d like a reviewer to sign off on running "{{name}}" before it starts.', { name: workflowDefinition?.name || tOr('panel.approval.this_workflow', 'this workflow') }),
                       );
                     }
                   }}
@@ -2830,7 +2830,7 @@ export function NextflowWorkflowViewer({
               data-testid="workflow-step-controls-hint"
               style={{ fontSize: 11, color: 'var(--text-dim)', padding: '4px 18px 0', marginBottom: 2 }}
             >
-              Click a phase to expand its steps and parameters. Each phase can be run individually once the workflow starts.
+              {tOr('panel.phase_hint', 'Click a phase to expand its steps and parameters. Each phase can be run individually once the workflow starts.')}
             </div>
           )}
           {/* QC Gate Inline Review Panel — appears when backend fires a qc_gate_triggered SSE event */}
@@ -2840,9 +2840,9 @@ export function NextflowWorkflowViewer({
                 <AlertTriangle className="h-3.5 w-3.5" style={{ flexShrink: 0, marginTop: 1 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, marginBottom: 2 }}>
-                    QC Gate — {qcGateData.processName.includes(":")
+                    {tOr('panel.qc_gate_prefix', 'QC Gate — ')}{qcGateData.processName.includes(":")
                       ? qcGateData.processName.split(":").pop()?.replace(/_/g, " ")
-                      : qcGateData.processName.replace(/_/g, " ")} — Review Required
+                      : qcGateData.processName.replace(/_/g, " ")}{tOr('panel.qc_gate_review_suffix', ' — Review Required')}
                   </div>
                   {qcGateData.failures.length > 0 && (
                     <div style={{ marginTop: 4 }}>
@@ -2875,16 +2875,16 @@ export function NextflowWorkflowViewer({
                   )}
                   {qcGateSecondsLeft !== null && (
                     <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-dim)' }} data-testid="qc-gate-countdown">
-                      Pipeline continues in {Math.floor(qcGateSecondsLeft / 60)}:{String(qcGateSecondsLeft % 60).padStart(2, '0')} unless you act
+                      {tOr('panel.qc_gate_countdown', 'Pipeline continues in {{time}} unless you act', { time: `${Math.floor(qcGateSecondsLeft / 60)}:${String(qcGateSecondsLeft % 60).padStart(2, '0')}` })}
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
                     {qcGateData.suggestions.length > 0 && (
                       <button className="btn sm" data-testid="qc-gate-apply" onClick={() => { void handleRetryWithSuggestions(); }} disabled={isApplyingSuggestions}>
-                        {isApplyingSuggestions ? "Applying…" : "Apply suggestions"}
+                        {isApplyingSuggestions ? tOr('panel.qc_applying', 'Applying…') : tOr('panel.qc_apply_suggestions', 'Apply suggestions')}
                       </button>
                     )}
-                    <button className="btn ghost sm" data-testid="qc-gate-keep" onClick={handleProceedAnyway}>Keep current</button>
+                    <button className="btn ghost sm" data-testid="qc-gate-keep" onClick={handleProceedAnyway}>{tOr('panel.qc_keep_current', 'Keep current')}</button>
                     <button className="btn ghost sm danger" data-testid="qc-gate-cancel-run" onClick={handleCancelWorkflow}>{tOr('panel.cancel_run', 'Cancel run')}</button>
                   </div>
                 </div>
@@ -2896,7 +2896,7 @@ export function NextflowWorkflowViewer({
           {status === 'completed' && (
             <div className="alert ok" data-testid="workflow-completion-banner" style={{ marginBottom: 10 }}>
               <CheckCircle2 className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
-              <span>Workflow completed. View Results and Download All are available.</span>
+              <span>{tOr('panel.completed_banner', 'Workflow completed. View Results and Download All are available.')}</span>
             </div>
           )}
 
@@ -2912,7 +2912,7 @@ export function NextflowWorkflowViewer({
                 background: 'var(--bg-elev)',
               }}>
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text-dim)', marginBottom: 6, textTransform: 'uppercase' }}>
-                  QC Results
+                  {tOr('panel.qc_results', 'QC Results')}
                 </div>
                 {allMetrics.map((m: any, i: number) => (
                   <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, padding: '3px 0', borderBottom: i < allMetrics.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
@@ -2922,7 +2922,7 @@ export function NextflowWorkflowViewer({
                       {m.unit ? ` ${m.unit}` : ''}
                     </span>
                     <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>
-                      {m.pass ? '✓' : '✗'} thresh {m.threshold}
+                      {m.pass ? '✓' : '✗'} {tOr('panel.threshold_short', 'thresh')} {m.threshold}
                     </span>
                   </div>
                 ))}
@@ -2966,7 +2966,7 @@ export function NextflowWorkflowViewer({
               <div data-testid="prerun-inputs-mapped" className="card2" style={{ marginBottom: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
                   <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_mapped', 'Inputs mapped')}
-                  <span className="hint" style={{ fontWeight: 400, fontSize: 11 }}>({rows.length} input{rows.length !== 1 ? 's' : ''})</span>
+                  <span className="hint" style={{ fontWeight: 400, fontSize: 11 }}>({tOr('panel.inputs_count', '{{n}} input{{s}}', { n: rows.length, s: rows.length !== 1 ? 's' : '' })})</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {rows.map((r, i) => (
@@ -2975,26 +2975,26 @@ export function NextflowWorkflowViewer({
                       <span style={{ color: 'var(--text-dim)' }}>→</span>
                       <span style={{ minWidth: 0, flex: 1 }}>
                         {r.empty ? (
-                          <span style={{ color: 'var(--text-dim)' }}>not set</span>
+                          <span style={{ color: 'var(--text-dim)' }}>{tOr('panel.not_set', 'not set')}</span>
                         ) : (
                           <>
                             <span>{r.ds?.name || basename(r.val)}</span>
                             <span className="mono" style={{ display: 'block', fontSize: 10, color: 'var(--text-dim)', wordBreak: 'break-all' }}>
-                              {r.ds?.id ? `id ${r.ds.id}` : String(r.val)}
+                              {r.ds?.id ? tOr('panel.id_prefix', 'id {{id}}', { id: r.ds.id }) : String(r.val)}
                             </span>
                           </>
                         )}
                       </span>
                       {r.status === 'resolved' && (
-                        <span className="chip ok" style={{ fontSize: 10, padding: '1px 5px' }} title="Bound to this dataset. Schema/units compatibility is not automatically checked for this input type.">
-                          resolved · format not checked
+                        <span className="chip ok" style={{ fontSize: 10, padding: '1px 5px' }} title={tOr('panel.resolved_tip', 'Bound to this dataset. Schema/units compatibility is not automatically checked for this input type.')}>
+                          {tOr('panel.resolved_format_unchecked', 'resolved · format not checked')}
                         </span>
                       )}
                       {r.status === 'unresolved' && (
                         <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>{tOr('panel.required_not_set', 'required — not set')}</span>
                       )}
                       {r.status === 'needs-mapping' && (
-                        <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>needs mapping</span>
+                        <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>{tOr('panel.needs_mapping', 'needs mapping')}</span>
                       )}
                       {r.status === 'optional-empty' && (
                         <span className="chip" style={{ fontSize: 10, padding: '1px 5px' }}>{tOr('panel.optional_empty', 'optional — empty')}</span>
@@ -3006,7 +3006,7 @@ export function NextflowWorkflowViewer({
                           style={{ fontSize: 10, padding: '1px 6px' }}
                           onClick={() => setBrowsingForParam({ id: r.p.id, label: r.p.label || r.p.name || r.p.id })}
                         >
-                          Choose file
+                          {tOr('panel.choose_file', 'Choose file')}
                         </button>
                       )}
                       {r.mismatch && (
@@ -3017,8 +3017,8 @@ export function NextflowWorkflowViewer({
                 </div>
                 <div style={{ fontSize: 11, color: blocking.length > 0 ? 'var(--warn, #b45309)' : 'var(--text-dim)' }}>
                   {blocking.length > 0
-                    ? `Nothing will run until ${blocking.length} input${blocking.length !== 1 ? 's are' : ' is'} resolved — pick the file or fix the mapping above.`
-                    : 'These inputs will be used exactly as bound. Reopen a dataset from its chip to check its provenance.'}
+                    ? tOr('panel.inputs_blocking', 'Nothing will run until {{n}} input{{verb}} resolved — pick the file or fix the mapping above.', { n: blocking.length, verb: blocking.length !== 1 ? 's are' : ' is' })
+                    : tOr('panel.inputs_all_bound', 'These inputs will be used exactly as bound. Reopen a dataset from its chip to check its provenance.')}
                 </div>
               </div>
             );
@@ -3060,7 +3060,7 @@ export function NextflowWorkflowViewer({
                   data-testid="button-toggle-workflow-settings"
                   className={`strip${globalParamsOpen ? ' open' : ''}`}
                   onClick={() => setGlobalParamsOpen(p => !p)}
-                  title="Workflow settings — input paths, infrastructure, output parameters"
+                  title={tOr('panel.settings_strip_tip', 'Workflow settings — input paths, infrastructure, output parameters')}
                 >
                   <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
                   <span className="label">
@@ -3084,7 +3084,7 @@ export function NextflowWorkflowViewer({
                         <ParameterGroup
                           id="params-required"
                           title={tOr('panel.required_parameters', 'Required parameters')}
-                          description={`${requiredUnfilled.length > 0 ? requiredUnfilled.length + ' still needed · ' : ''}${requiredParams.length} param${requiredParams.length !== 1 ? 's' : ''}`}
+                          description={`${requiredUnfilled.length > 0 ? tOr('panel.still_needed', '{{n}} still needed · ', { n: requiredUnfilled.length }) : ''}${tOr('panel.param_count', '{{n}} param{{s}}', { n: requiredParams.length, s: requiredParams.length !== 1 ? 's' : '' })}`}
                           parameters={requiredParams}
                           onChange={handleParamChange}
                           onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
@@ -3095,7 +3095,7 @@ export function NextflowWorkflowViewer({
                         <ParameterGroup
                           id="params-optional"
                           title={tOr('panel.optional_parameters', 'Optional parameters')}
-                          description={`${optionalParams.length} param${optionalParams.length !== 1 ? 's' : ''} — ${tOr('panel.collapsed_by_default', 'collapsed by default')}`}
+                          description={`${tOr('panel.param_count', '{{n}} param{{s}}', { n: optionalParams.length, s: optionalParams.length !== 1 ? 's' : '' })} — ${tOr('panel.collapsed_by_default', 'collapsed by default')}`}
                           parameters={optionalParams}
                           onChange={handleParamChange}
                           onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
@@ -3105,8 +3105,8 @@ export function NextflowWorkflowViewer({
                       {requiredParams.length === 0 && optionalParams.length === 0 && (
                         <ParameterGroup
                           id="params-global"
-                          title="Workflow parameters"
-                          description={`${globalParams.length} param${globalParams.length !== 1 ? 's' : ''}`}
+                          title={tOr('panel.workflow_parameters', 'Workflow parameters')}
+                          description={tOr('panel.param_count', '{{n}} param{{s}}', { n: globalParams.length, s: globalParams.length !== 1 ? 's' : '' })}
                           parameters={globalParams}
                           onChange={handleParamChange}
                           onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
@@ -3151,7 +3151,7 @@ export function NextflowWorkflowViewer({
                                      checked={outputLocationType === 'project'}
                                      onChange={() => setOutputLocationType('project')}
                                      data-testid="output-location-project" />
-                              <span>My project folder</span>
+                              <span>{tOr('panel.output_project_folder', 'My project folder')}</span>
                             </label>
                           )}
                           <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
@@ -3161,7 +3161,7 @@ export function NextflowWorkflowViewer({
                                    checked={outputLocationType === 'user_s3'}
                                    onChange={() => setOutputLocationType('user_s3')}
                                    data-testid="output-location-user-s3" />
-                            <span title="Advanced — your bucket must grant BioMate's service role write access.">
+                            <span title={tOr('panel.output_s3_tip', "Advanced — your bucket must grant BioMate's service role write access.")}>
                               {tOr('panel.output_s3', 'My S3 bucket')} <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>({tOr('panel.advanced', 'Advanced')})</span>
                             </span>
                           </label>
@@ -3201,22 +3201,22 @@ export function NextflowWorkflowViewer({
               run / project); a richer multi-collaborator role feed is a
               documented follow-up when a project-roles endpoint surfaces here. */}
           {(() => {
-            const scope = projectId ? 'This project' : 'This run';
+            const scope = projectId ? tOr('panel.scope_project', 'This project') : tOr('panel.scope_run', 'This run');
             const rolesData: RolesData = {
               you: tOr('panel.owner', 'Owner'),
               project: scope,
               caps: [
                 { capability: tOr('panel.run_this_workflow', 'Run this workflow'), needs: tOr('panel.owner', 'Owner'), allowed: true },
                 { capability: tOr('panel.change_params_qc', 'Change parameters & QC thresholds'), needs: tOr('panel.owner', 'Owner'), allowed: true },
-                { capability: 'Cancel a running job', needs: tOr('panel.owner', 'Owner'), allowed: true },
-                { capability: 'Register a model from this run', needs: tOr('panel.owner', 'Owner'), allowed: true },
-                { capability: 'Invite a reviewer', needs: tOr('panel.owner', 'Owner'), allowed: true },
+                { capability: tOr('panel.cap_cancel_job', 'Cancel a running job'), needs: tOr('panel.owner', 'Owner'), allowed: true },
+                { capability: tOr('panel.cap_register_model', 'Register a model from this run'), needs: tOr('panel.owner', 'Owner'), allowed: true },
+                { capability: tOr('panel.cap_invite_reviewer', 'Invite a reviewer'), needs: tOr('panel.owner', 'Owner'), allowed: true },
               ],
             };
             const verifyKinds: VerifyKind[] = [
-              { kind: 'Workflow QC gate', measuredBy: 'a measurement on your data', stops: 'halts the run', where: 'Spec 07' },
-              { kind: 'Human approval', measuredBy: 'a person', stops: 'holds the run until sign-off', where: 'Spec 7.6' },
-              { kind: 'License gate', measuredBy: 'the workflow license terms', stops: 'blocks the run', where: 'Spec 07' },
+              { kind: tOr('panel.verify.qc_kind', 'Workflow QC gate'), measuredBy: tOr('panel.verify.qc_by', 'a measurement on your data'), stops: tOr('panel.verify.qc_stops', 'halts the run'), where: 'Spec 07' },
+              { kind: tOr('panel.verify.approval_kind', 'Human approval'), measuredBy: tOr('panel.verify.approval_by', 'a person'), stops: tOr('panel.verify.approval_stops', 'holds the run until sign-off'), where: 'Spec 7.6' },
+              { kind: tOr('panel.verify.license_kind', 'License gate'), measuredBy: tOr('panel.verify.license_by', 'the workflow license terms'), stops: tOr('panel.verify.license_stops', 'blocks the run'), where: 'Spec 07' },
             ];
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '10px 18px 4px' }}>
@@ -3233,8 +3233,8 @@ export function NextflowWorkflowViewer({
             {groupedPhases.length > 0 && (() => {
               const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
               const label = hasRealPhases
-                ? `PHASES · ${groupedPhases.length}`
-                : `STEPS · ${updatedPhases.length}`;
+                ? tOr('panel.phases_label', 'PHASES · {{n}}', { n: groupedPhases.length })
+                : tOr('panel.steps_label', 'STEPS · {{n}}', { n: updatedPhases.length });
               return (
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-dim)', padding: '10px 18px 4px', textTransform: 'uppercase' }}>
                   {label}
@@ -3344,7 +3344,7 @@ export function NextflowWorkflowViewer({
                           {issues.map((iss, i) => (
                             <div key={i} className="live-progress-issue">
                               <span className="sev" style={{ color: sevColor(iss.severity) }}>
-                                {(iss.severity || 'info').toUpperCase()}
+                                {(iss.severity || tOr('panel.live.severity_info', 'info')).toUpperCase()}
                               </span>
                               <span className="msg">
                                 {iss.message || iss.type || t('panel.live.issue_fallback')}
@@ -3374,15 +3374,15 @@ export function NextflowWorkflowViewer({
             {groupedPhases.length === 0 && lazyStepsFetching && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13 }}>
                 <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
-                Loading workflow steps…
+                {tOr('panel.loading_steps', 'Loading workflow steps…')}
               </div>
             )}
             {/* ── No steps found after fetch completed ─────────────────────── */}
             {groupedPhases.length === 0 && !lazyStepsFetching && lazySteps !== null && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
               <div style={{ height: '100%', minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}>
                 {status === 'failed'
-                  ? 'Run failed before any phases started. Check the error details above.'
-                  : 'Phases will appear here once the workflow starts.'}
+                  ? tOr('panel.run_failed_no_phases', 'Run failed before any phases started. Check the error details above.')
+                  : tOr('panel.phases_appear', 'Execution phases will appear here once the workflow starts.')}
               </div>
             )}
             {/* ── Idle / no nextflow_path — personal workflow not yet run ─── */}
@@ -3452,11 +3452,11 @@ export function NextflowWorkflowViewer({
                   className="suggest-step-row linkish"
                   data-testid="button-suggest-step"
                   onClick={() => {
-                    const lastStep = updatedPhases[updatedPhases.length - 1]?.name || "last step";
-                    onAdjustViaChat?.(`Add a step after "${lastStep}" that `);
+                    const lastStep = updatedPhases[updatedPhases.length - 1]?.name || tOr('panel.last_step', "last step");
+                    onAdjustViaChat?.(tOr('panel.add_step_msg', 'Add a step after "{{step}}" that ', { step: lastStep }));
                   }}
                 >
-                  + Suggest a new step via chat
+                  {tOr('panel.suggest_step', '+ Suggest a new step via chat')}
                 </button>
               </div>
             )}
@@ -3486,7 +3486,7 @@ export function NextflowWorkflowViewer({
                 return {
                   id: g.key,
                   skippable: false,
-                  why: `${g.label || `Phase ${g.key}`} — this workflow does not declare a skip parameter for this phase, so it always runs.`,
+                  why: tOr('panel.skip.why_not_declared', '{{phase}} — this workflow does not declare a skip parameter for this phase, so it always runs.', { phase: g.label || tOr('panel.skip.phase_named', 'Phase {{id}}', { id: g.key }) }),
                 };
               });
               if (skipPhases.length === 0) return null;
@@ -3512,13 +3512,13 @@ export function NextflowWorkflowViewer({
               {isAutofixActive && (
                 <div className="alert info" data-testid="autofix-active-banner" style={{ marginBottom: 8 }}>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ flexShrink: 0 }} />
-                  <span>Auto-fix in progress ({autofix?.state || "fixing"}) — manual retry disabled to prevent duplicate runs.</span>
+                  <span>{tOr('panel.autofix_in_progress', 'Auto-fix in progress ({{state}}) — manual retry disabled to prevent duplicate runs.', { state: autofix?.state || tOr('panel.autofix_fixing', 'fixing') })}</span>
                 </div>
               )}
               {/* Execution checklist — only shown when hard blockers exist (e.g. domain guard, license gate) */}
               {prereqChecklist && !prereqChecklist.canRun && prereqChecklist.items.some(i => i.status === 'missing' && i.id !== 'input_data' && i.id !== 'required_parameters') && (
                 <div className="alert err" data-testid="workflow-prereq-checklist" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6, marginBottom: 8 }}>
-                  <div style={{ fontWeight: 600 }}>Cannot run — missing prerequisites:</div>
+                  <div style={{ fontWeight: 600 }}>{tOr('panel.cannot_run_prereqs', 'Cannot run — missing prerequisites:')}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
                     {prereqChecklist.items.filter(i => i.status === 'missing' && i.id !== 'input_data' && i.id !== 'required_parameters').map((item) => (
                       <div key={item.id} data-testid={`workflow-prereq-item-${item.id}`} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -3531,7 +3531,7 @@ export function NextflowWorkflowViewer({
                             data-testid={`prereq-chat-link-${item.id}`}
                             onClick={() => onAdjustViaChat(item.chatPrompt!)}
                           >
-                            Continue in chat →
+                            {tOr('panel.continue_in_chat', 'Continue in chat →')}
                           </button>
                         )}
                       </div>
@@ -3548,7 +3548,7 @@ export function NextflowWorkflowViewer({
                     disabled={!invocationId}
                     data-testid="button-view-results-link"
                   >
-                    {showResults ? 'Hide results' : 'View results'}
+                    {showResults ? tOr('panel.hide_results', 'Hide results') : tOr('panel.view_results', 'View results')}
                   </button>
                   <span className="sep">·</span>
                   <button
@@ -3562,7 +3562,7 @@ export function NextflowWorkflowViewer({
                     disabled={!invocationId}
                     data-testid="button-download-all-workflow-panel"
                   >
-                    Download all
+                    {tOr('panel.download_all', 'Download all')}
                   </button>
                   <span className="sep">·</span>
                   <button
@@ -3573,7 +3573,7 @@ export function NextflowWorkflowViewer({
                     data-testid="button-analyze-results"
                   >
                     {analysisState === 'loading' && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
-                    {analysisState === 'loading' ? 'Analyzing…' : 'AI analysis'}
+                    {analysisState === 'loading' ? tOr('panel.analyzing', 'Analyzing…') : tOr('panel.ai_analysis', 'AI analysis')}
                   </button>
                   <span className="sep">·</span>
                   <button
@@ -3586,7 +3586,7 @@ export function NextflowWorkflowViewer({
                     data-testid="button-download-methods-report"
                     data-invocation-id={invocationId || ''}
                   >
-                    Report
+                    {tOr('panel.report', 'Report')}
                   </button>
                   {(availableQcProfiles.length > 0 || qcGateData !== null) && (
                     <>
@@ -3600,7 +3600,7 @@ export function NextflowWorkflowViewer({
                         }}
                         data-testid="button-download-qc-audit"
                       >
-                        QC audit log
+                        {tOr('panel.qc_audit_log', 'QC audit log')}
                       </button>
                     </>
                   )}
@@ -3612,7 +3612,7 @@ export function NextflowWorkflowViewer({
                 <div className="metrics-strip" data-testid="run-metrics-strip">
                   {nextflowStatus?.duration_s != null && (
                     <div className="cell" data-testid="run-metric-duration">
-                      <div className="lbl">Wall time</div>
+                      <div className="lbl">{tOr('panel.wall_time', 'Wall time')}</div>
                       <div className="val" data-testid="run-metric-duration-value">
                         {nextflowStatus.duration_s < 60
                           ? `${nextflowStatus.duration_s}s`
@@ -3622,13 +3622,13 @@ export function NextflowWorkflowViewer({
                   )}
                   {nextflowStatus?.started_at != null && (
                     <div className="cell" data-testid="run-metric-started-at">
-                      <div className="lbl">Started</div>
+                      <div className="lbl">{tOr('panel.started', 'Started')}</div>
                       <div className="val">{new Date(nextflowStatus.started_at * 1000).toLocaleTimeString()}</div>
                     </div>
                   )}
                   {nextflowStatus?.completed_at != null && (
                     <div className="cell" data-testid="run-metric-completed-at">
-                      <div className="lbl">Ended</div>
+                      <div className="lbl">{tOr('panel.ended', 'Ended')}</div>
                       <div className="val">{new Date(nextflowStatus.completed_at * 1000).toLocaleTimeString()}</div>
                     </div>
                   )}
@@ -3698,7 +3698,7 @@ export function NextflowWorkflowViewer({
                     data-testid="full-step-view-dialog"
                   >
                     <VisuallyHidden>
-                      <DialogTitle>Full step view: {fullViewStep.name}</DialogTitle>
+                      <DialogTitle>{tOr('panel.full_step_view_title', 'Full step view: {{name}}', { name: fullViewStep.name })}</DialogTitle>
                     </VisuallyHidden>
                     <StepDetail
                       runId={activeRunId}
@@ -3716,16 +3716,16 @@ export function NextflowWorkflowViewer({
             <div className="alert err" data-testid="execution-triage-panel" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8, margin: '8px 18px' }}>
               <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <XCircle className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
-                Workflow Failed
-                {errorExplaining && <span style={{ fontWeight: 400, fontSize: 11, opacity: 0.7 }}>Analyzing error…</span>}
+                {tOr('panel.workflow_failed', 'Workflow Failed')}
+                {errorExplaining && <span style={{ fontWeight: 400, fontSize: 11, opacity: 0.7 }}>{tOr('panel.analyzing_error', 'Analyzing error…')}</span>}
               </div>
               {errorExplanation ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
-                  <div><span style={{ fontWeight: 600 }}>What went wrong: </span>{sanitizeErrorText(errorExplanation.human_summary)}</div>
-                  <div><span style={{ fontWeight: 600 }}>Suggested fix: </span>{sanitizeErrorText(errorExplanation.suggested_fix)}</div>
+                  <div><span style={{ fontWeight: 600 }}>{tOr('panel.what_went_wrong', 'What went wrong: ')}</span>{sanitizeErrorText(errorExplanation.human_summary)}</div>
+                  <div><span style={{ fontWeight: 600 }}>{tOr('panel.suggested_fix', 'Suggested fix: ')}</span>{sanitizeErrorText(errorExplanation.suggested_fix)}</div>
                 </div>
               ) : errorExplaining ? (
-                <span>Analyzing error log…</span>
+                <span>{tOr('panel.analyzing_error_log', 'Analyzing error log…')}</span>
               ) : errorMessage ? (
                 <span>{sanitizeErrorText(errorMessage)}</span>
               ) : null}
@@ -3734,7 +3734,7 @@ export function NextflowWorkflowViewer({
 
           {(invocationId || runId) && showResults && (
             <div style={{ padding: '8px 0 0' }}>
-              <div style={{ padding: '0 18px 6px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-dim)' }}>Output Results</div>
+              <div style={{ padding: '0 18px 6px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-dim)' }}>{tOr('panel.output_results', 'Output Results')}</div>
               <ChatOutputAttachments
                 invocationId={invocationId || runId || ''}
                 sessionId={sessionId}
@@ -3757,20 +3757,20 @@ export function NextflowWorkflowViewer({
             <div className="findings-card" data-testid="ai-analysis-panel">
               <div className="f-h">
                 <Activity className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
-                AI Findings Analysis
+                {tOr('panel.ai_findings_analysis', 'AI Findings Analysis')}
                 {analysisState === 'done' && <span style={{ fontWeight: 400, marginLeft: 'auto', fontSize: 10 }}>claude-sonnet-4-6</span>}
               </div>
 
               {analysisState === 'loading' && (
                 <div className="f-body" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ flexShrink: 0 }} />
-                  Analyzing output files…
+                  {tOr('panel.analyzing_output_files', 'Analyzing output files…')}
                 </div>
               )}
 
               {analysisState === 'error' && (
                 <div className="alert err" style={{ margin: '8px 14px' }}>
-                  {analysisError || 'Analysis failed. Try again.'}
+                  {analysisError || tOr('panel.analysis_failed', 'Analysis failed. Try again.')}
                 </div>
               )}
 
@@ -3782,7 +3782,7 @@ export function NextflowWorkflowViewer({
 
                   {analysisResult.key_findings?.length > 0 && (
                     <div className="f-section">
-                      <div className="f-section-lbl">Key Findings</div>
+                      <div className="f-section-lbl">{tOr('panel.key_findings', 'Key Findings')}</div>
                       {analysisResult.key_findings.map((f: any, i: number) => (
                         <div key={i} className="f-row" style={{ flexDirection: 'column' }}>
                           <b>{f.finding}</b>
@@ -3794,14 +3794,14 @@ export function NextflowWorkflowViewer({
 
                   {analysisResult.quality_assessment && (
                     <div className="f-section">
-                      <div className="f-section-lbl">Quality Assessment</div>
+                      <div className="f-section-lbl">{tOr('panel.quality_assessment', 'Quality Assessment')}</div>
                       <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>{analysisResult.quality_assessment}</div>
                     </div>
                   )}
 
                   {analysisResult.next_steps?.length > 0 && (
                     <div className="f-section">
-                      <div className="f-section-lbl">Recommended Next Steps</div>
+                      <div className="f-section-lbl">{tOr('panel.recommended_next_steps', 'Recommended Next Steps')}</div>
                       {analysisResult.next_steps.map((step: string, i: number) => (
                         <div key={i} className="f-row">{i + 1}. {step}</div>
                       ))}
@@ -3810,7 +3810,7 @@ export function NextflowWorkflowViewer({
 
                   {analysisResult.citations?.length > 0 && (
                     <div className="f-section">
-                      <div className="f-section-lbl">Supporting References</div>
+                      <div className="f-section-lbl">{tOr('panel.supporting_references', 'Supporting References')}</div>
                       {analysisResult.citations.map((c: any, i: number) => (
                         <div key={i} className="f-row" style={{ flexDirection: 'column', gap: 1 }}>
                           <b>{c.tool_or_resource}</b>
@@ -3824,7 +3824,7 @@ export function NextflowWorkflowViewer({
                     <div className="f-section">
                       <div className="alert warn" style={{ margin: 0 }}>
                         <AlertTriangle className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
-                        <span><b>Limitations: </b>{analysisResult.limitations}</span>
+                        <span><b>{tOr('panel.limitations', 'Limitations: ')}</b>{analysisResult.limitations}</span>
                       </div>
                     </div>
                   )}
@@ -3882,16 +3882,16 @@ export function NextflowWorkflowViewer({
                   onClick={onPause}
                   disabled={!onPause}
                   style={btnBase}
-                  title="Pause execution"
-                ><span>⏸</span><span>Pause</span></button>
+                  title={tOr('panel.pause_execution', 'Pause execution')}
+                ><span>⏸</span><span>{tOr('panel.pause', 'Pause')}</span></button>
                 <button
                   type="button"
                   data-testid="panel-action-stop"
                   onClick={onCancel}
                   disabled={!onCancel}
                   style={btnBase}
-                  title="Stop execution"
-                ><span>⏹</span><span>Stop</span></button>
+                  title={tOr('panel.stop_execution', 'Stop execution')}
+                ><span>⏹</span><span>{tOr('panel.stop', 'Stop')}</span></button>
               </>
             )}
             {isPaused && (
@@ -3902,16 +3902,16 @@ export function NextflowWorkflowViewer({
                   onClick={onResume}
                   disabled={!onResume}
                   style={primary}
-                  title="Resume execution"
-                ><span>▶</span><span>Resume</span></button>
+                  title={tOr('panel.resume_execution', 'Resume execution')}
+                ><span>▶</span><span>{tOr('panel.resume', 'Resume')}</span></button>
                 <button
                   type="button"
                   data-testid="panel-action-stop"
                   onClick={onCancel}
                   disabled={!onCancel}
                   style={btnBase}
-                  title="Stop execution"
-                ><span>⏹</span><span>Stop</span></button>
+                  title={tOr('panel.stop_execution', 'Stop execution')}
+                ><span>⏹</span><span>{tOr('panel.stop', 'Stop')}</span></button>
               </>
             )}
           </div>
@@ -3924,10 +3924,10 @@ export function NextflowWorkflowViewer({
           <div className="alert err" style={{ margin: 0, marginBottom: 6 }}>
             <AlertTriangle className="h-3.5 w-3.5" style={{ flexShrink: 0, marginTop: 1 }} />
             <div className="body">
-              <strong>Execution blocked</strong> — {executionBlockedReason}
+              <strong>{tOr('panel.execution_blocked', 'Execution blocked')}</strong> — {executionBlockedReason}
               {lowConfSecondsLeft !== null && (
                 <div data-testid="low-confidence-countdown" style={{ marginTop: 4, fontSize: 11, color: 'var(--text-dim)' }}>
-                  Auto-confirming in {lowConfSecondsLeft}s unless you act.
+                  {tOr('panel.auto_confirming', 'Auto-confirming in {{n}}s unless you act.', { n: lowConfSecondsLeft })}
                 </div>
               )}
               <div className="act">
@@ -3939,7 +3939,7 @@ export function NextflowWorkflowViewer({
                     setGlobalParamsOpen(true);
                   }}
                 >
-                  Fix now
+                  {tOr('panel.fix_now', 'Fix now')}
                 </button>
                 <button
                   className="btn ghost sm"
@@ -3947,7 +3947,7 @@ export function NextflowWorkflowViewer({
                   disabled={status === 'running' || status === 'completed' || (isPrereqBlocked && !prereqChecklist?.overrideAllowed) || isAutofixActive || isLicenseBlocked}
                   onClick={() => fireLowConfidenceConfirm('user')}
                 >
-                  Confirm anyway
+                  {tOr('panel.confirm_anyway', 'Confirm anyway')}
                 </button>
               </div>
             </div>
@@ -3968,7 +3968,7 @@ export function NextflowWorkflowViewer({
               }
               title={
                 (status === 'idle' || status === 'pending_review') && globalRequiredUnfilledCount > 0
-                  ? `Fill in ${globalRequiredUnfilledCount} required parameter${globalRequiredUnfilledCount > 1 ? 's' : ''} above before running`
+                  ? tOr('panel.fill_required_tip', 'Fill in {{n}} required parameter{{s}} above before running', { n: globalRequiredUnfilledCount, s: globalRequiredUnfilledCount > 1 ? 's' : '' })
                   : undefined
               }
               data-required-unfilled={
@@ -4006,12 +4006,12 @@ export function NextflowWorkflowViewer({
         <div className="run-foot-meta">
           {status === 'paused' && onResume && (
             <button className="linkish" data-testid="button-resume-workflow-panel" onClick={onResume}>
-              Resume
+              {tOr('panel.resume', 'Resume')}
             </button>
           )}
           {usageMeter && usageMeter.used > 0 && (status === 'idle' || status === 'pending_review') && (
             <span data-testid="usage-meter" style={{ fontSize: 11 }}>
-              {usageMeter.used.toFixed(1)} / {usageMeter.limit} vCPU-hrs
+              {tOr('panel.vcpu_hrs', '{{used}} / {{limit}} vCPU-hrs', { used: usageMeter.used.toFixed(1), limit: usageMeter.limit })}
             </span>
           )}
         </div>
@@ -4049,7 +4049,7 @@ export function NextflowWorkflowViewer({
             } catch { /* keep original value on error */ }
           }
           handleParamChange(browsingForParam.id, resolved);
-          toast({ title: `"${name}" selected`, description: `Assigned to ${browsingForParam.label}.` });
+          toast({ title: tOr('panel.toast_selected', '"{{name}}" selected', { name }), description: tOr('panel.toast_assigned', 'Assigned to {{label}}.', { label: browsingForParam.label }) });
           setBrowsingForParam(null);
         }}
       />

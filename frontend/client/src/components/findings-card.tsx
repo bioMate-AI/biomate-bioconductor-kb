@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { ChevronDown, ChevronUp, Download, MessageSquare, BookOpen } from 'lucide-react'
+import { tOr } from '@/lib/i18n'
 
 interface Citation {
   pmid: string
@@ -173,7 +174,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
     return (
       <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
         <BookOpen className="h-3.5 w-3.5 animate-pulse" />
-        Analyzing outputs…
+        {tOr('panel.findings.analyzing', 'Analyzing outputs…')}
       </div>
     )
   }
@@ -184,14 +185,14 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
     if (runFailed) {
       return (
         <div className="text-sm text-muted-foreground mt-2">
-          Analysis not available — workflow did not complete successfully.
+          {tOr('panel.findings.not_available_failed', 'Analysis not available — workflow did not complete successfully.')}
         </div>
       )
     }
     return (
       <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
         <BookOpen className="h-3.5 w-3.5 animate-pulse" />
-        Analysis in progress…
+        {tOr('panel.findings.in_progress', 'Analysis in progress…')}
       </div>
     )
   }
@@ -199,7 +200,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
   if (data.status === 'unavailable') {
     return (
       <div data-testid="findings-unavailable" className="text-sm text-amber-800 dark:text-amber-300 mt-2">
-        {data.message || 'Findings are unavailable because workflow outputs could not be read. Repair output access and try again.'}
+        {data.message || tOr('panel.findings.unavailable_fallback', 'Findings are unavailable because workflow outputs could not be read. Repair output access and try again.')}
       </div>
     )
   }
@@ -216,7 +217,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
       <CardHeader className="pb-2 pt-3 px-3">
         <CardTitle className="text-sm flex items-center gap-2">
           <BookOpen className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
-          Findings Summary
+          {tOr('panel.findings.summary_title', 'Findings Summary')}
         </CardTitle>
       </CardHeader>
       <CardContent className="px-3 pb-3 space-y-3">
@@ -260,17 +261,17 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
               className="text-xs text-muted-foreground flex items-center gap-1 mb-1 hover:text-foreground transition-colors"
               onClick={() => setResultsExpanded(e => !e)}
             >
-              Key Results {resultsExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              {tOr('panel.findings.key_results', 'Key Results')} {resultsExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
             {resultsExpanded && (
               <div className="overflow-x-auto">
                 <table className="text-xs w-full border-collapse">
                   <thead>
                     <tr className="border-b border-border/60">
-                      <th className="text-left py-1 pr-3 font-medium">Metric</th>
-                      <th className="text-left py-1 pr-3 font-medium">Value</th>
-                      <th className="text-left py-1 pr-3 font-medium">Interpretation</th>
-                      <th className="text-left py-1 font-medium">Source</th>
+                      <th className="text-left py-1 pr-3 font-medium">{tOr('panel.findings.col_metric', 'Metric')}</th>
+                      <th className="text-left py-1 pr-3 font-medium">{tOr('panel.findings.col_value', 'Value')}</th>
+                      <th className="text-left py-1 pr-3 font-medium">{tOr('panel.findings.col_interpretation', 'Interpretation')}</th>
+                      <th className="text-left py-1 font-medium">{tOr('panel.findings.col_source', 'Source')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -299,7 +300,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
               className="text-xs text-muted-foreground flex items-center gap-1 mb-1 hover:text-foreground transition-colors"
               onClick={() => setCitationsExpanded(e => !e)}
             >
-              Supporting Literature ({cits.length})
+              {tOr('panel.findings.supporting_literature', 'Supporting Literature')} ({cits.length})
               {citationsExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
             {citationsExpanded && (
@@ -329,7 +330,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
 
         {cavs && cavs.length > 0 && (
           <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 rounded p-2 border border-amber-200/60 dark:border-amber-800/40">
-            <p className="font-medium mb-1">Caveats</p>
+            <p className="font-medium mb-1">{tOr('panel.findings.caveats', 'Caveats')}</p>
             <ul className="list-disc list-inside space-y-0.5">
               {cavs.map((c, i) => <li key={i}>{c}</li>)}
             </ul>
@@ -340,7 +341,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
           <Button variant="outline" size="sm" className="text-xs h-7" asChild>
             <a href={reportUrl} download>
               <Download className="h-3 w-3 mr-1" />
-              Download report
+              {tOr('panel.findings.download_report', 'Download report')}
             </a>
           </Button>
           {ns && ns.length > 0 && onContinueAnalysis && (
@@ -351,7 +352,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
               onClick={() => onContinueAnalysis(ns[0])}
             >
               <MessageSquare className="h-3 w-3 mr-1" />
-              Continue analysis
+              {tOr('panel.findings.continue_analysis', 'Continue analysis')}
             </Button>
           )}
         </div>

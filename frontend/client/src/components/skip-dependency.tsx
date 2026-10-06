@@ -16,6 +16,7 @@
 import { useState } from "react"
 import { AlertTriangle, Ban } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { tOr, locale } from "@/lib/i18n"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -74,10 +75,9 @@ export function SkipDependency({ phases, onToggle, className }: SkipDependencyPr
         className,
       )}
     >
-      <span className="text-sm font-medium">Skip phases</span>
+      <span className="text-sm font-medium">{tOr('panel.skip.title', 'Skip phases')}</span>
       <p className="text-xs text-muted-foreground">
-        Skip is a declared workflow capability, DAG-validated — not a universal toggle. A phase other
-        phases read directly cannot be skipped.
+        {tOr('panel.skip.help', 'Skip is a declared workflow capability, DAG-validated — not a universal toggle. A phase other phases read directly cannot be skipped.')}
       </p>
 
       <div className="flex flex-col gap-2">
@@ -115,14 +115,14 @@ export function SkipDependency({ phases, onToggle, className }: SkipDependencyPr
 
               <span className="flex flex-col gap-0.5 min-w-0">
                 <span className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium">Phase {p.id}</span>
+                  <span className="text-sm font-medium">{tOr('panel.skip.phase', 'Phase')} {p.id}</span>
                   {p.param && (
                     <span className="font-mono text-[11px] text-muted-foreground">{p.param}</span>
                   )}
                   {!p.skippable && (
                     <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                       <Ban className="h-2.5 w-2.5" aria-hidden />
-                      not declared skippable
+                      {tOr('panel.skip.not_declared', 'not declared skippable')}
                     </span>
                   )}
                 </span>
@@ -135,8 +135,10 @@ export function SkipDependency({ phases, onToggle, className }: SkipDependencyPr
                     className="mt-0.5 inline-flex items-center gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-600 dark:text-amber-400"
                   >
                     <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
-                    Can&apos;t skip — {p.blocks!.join(" and ")}{" "}
-                    {p.blocks!.length > 1 ? "depend" : "depends"} on it.
+                    {tOr('panel.skip.blocked', "Can't skip — {{list}} {{verb}} on it.", {
+                      list: p.blocks!.join(locale === 'zh' ? "、" : " and "),
+                      verb: p.blocks!.length > 1 ? "depend" : "depends",
+                    })}
                   </span>
                 )}
 
@@ -147,8 +149,10 @@ export function SkipDependency({ phases, onToggle, className }: SkipDependencyPr
                     className="mt-0.5 inline-flex items-center gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-600 dark:text-amber-400"
                   >
                     <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
-                    {p.warn.join(" and ")} {p.warn.length > 1 ? "have" : "has"} nothing to work on
-                    without it.
+                    {tOr('panel.skip.warn', "{{list}} {{verb}} nothing to work on without it.", {
+                      list: p.warn.join(locale === 'zh' ? "、" : " and "),
+                      verb: p.warn.length > 1 ? "have" : "has",
+                    })}
                   </span>
                 )}
               </span>

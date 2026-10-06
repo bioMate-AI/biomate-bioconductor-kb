@@ -32,6 +32,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react"
 import { useLocation } from "wouter"
+import { tOr } from "@/lib/i18n"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -333,37 +334,36 @@ function WhyRow({
       <td colSpan={colSpan} className="px-3 py-2">
         <div className="space-y-1 text-[11px]">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold">Model</span>
+            <span className="font-semibold">{tOr("design.why_model", "Model")}</span>
             <span className="font-mono">{provenance.model}</span>
             <span className="text-muted-foreground">·</span>
-            <span className="font-semibold">Version</span>
+            <span className="font-semibold">{tOr("design.why_version", "Version")}</span>
             <span className="font-mono" data-testid={`why-version-${candidate.id}`}>
               {provenance.version}
             </span>
             <span className="text-muted-foreground">·</span>
-            <span className="font-semibold">Confidence</span>
+            <span className="font-semibold">{tOr("design.why_confidence", "Confidence")}</span>
             <span className="font-mono capitalize" data-testid={`why-confidence-${candidate.id}`}>
               {candidate.confidence}
             </span>
           </div>
           <div>
-            <span className="font-semibold">What drove it: </span>
+            <span className="font-semibold">{tOr("design.why_drove", "What drove it: ")}</span>
             <span className="text-muted-foreground">
               {candidate.objectives.length > 0
                 ? candidate.objectives
                     .map((o) => `${o.name} ${o.value} ${o.unit}${o.target != null ? ` (${o.direction === "maximize" ? "≥" : "≤"} ${o.target})` : ""}`)
                     .join("; ")
-                : "no per-objective values available"}
+                : tOr("design.why_no_values", "no per-objective values available")}
             </span>
           </div>
           <div data-testid={`why-analogue-${candidate.id}`}>
-            <span className="font-semibold">Nearest measured analogue: </span>
+            <span className="font-semibold">{tOr("design.why_nearest", "Nearest measured analogue: ")}</span>
             <span className="text-muted-foreground italic">{provenance.nearestAnalogue}</span>
           </div>
           {candidate.verdict === "held" && (
             <div className="text-amber-600">
-              Held — outside the model&apos;s applicability region; ranked nowhere and offered no
-              confident number.
+              {tOr("design.why_held", "Held — outside the model's applicability region; ranked nowhere and offered no confident number.")}
             </div>
           )}
         </div>
@@ -395,11 +395,12 @@ function MultiObjectiveView({
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Target className="h-4 w-4" />
-          Multi-objective view
+          {tOr("design.mov_title", "Multi-objective view")}
         </CardTitle>
         <p className="text-[10px] text-muted-foreground">
-          Each objective keeps its own units and its own target — no single blended
-          number. The <span className="font-mono">score</span> column ranks only.
+          {tOr("design.mov_help_a", "Each objective keeps its own units and its own target — no single blended number. The")}{" "}
+          <span className="font-mono">score</span>{" "}
+          {tOr("design.mov_help_b", "column ranks only.")}
         </p>
       </CardHeader>
       <CardContent>
@@ -407,18 +408,18 @@ function MultiObjectiveView({
           <table className="min-w-full">
             <thead className="bg-muted">
               <tr>
-                <th className="px-2 py-1 text-left font-semibold">Candidate</th>
+                <th className="px-2 py-1 text-left font-semibold">{tOr("design.col_candidate", "Candidate")}</th>
                 {objectiveMeta.map((m) => (
                   <th key={m.name} className="px-2 py-1 text-left font-semibold whitespace-nowrap">
                     {m.name}
                     <span className="text-[10px] text-muted-foreground ml-1">/{m.unit}</span>
                   </th>
                 ))}
-                <th className="px-2 py-1 text-left font-semibold" title="Ranking key only">
-                  score*
+                <th className="px-2 py-1 text-left font-semibold" title={tOr("design.ranking_key_only", "Ranking key only")}>
+                  {tOr("design.score_star", "score*")}
                 </th>
-                <th className="px-2 py-1 text-left font-semibold">Verdict</th>
-                <th className="px-2 py-1 text-left font-semibold">why?</th>
+                <th className="px-2 py-1 text-left font-semibold">{tOr("design.col_verdict", "Verdict")}</th>
+                <th className="px-2 py-1 text-left font-semibold">{tOr("design.why", "why?")}</th>
               </tr>
             </thead>
             <tbody>
@@ -438,7 +439,7 @@ function MultiObjectiveView({
                           <ObjectiveCell key={n} o={o} />
                         ) : (
                           <td key={n} className="px-2 py-1 text-muted-foreground italic">
-                            n/a
+                            {tOr("design.na", "n/a")}
                           </td>
                         )
                       })}
@@ -469,7 +470,7 @@ function MultiObjectiveView({
                           onClick={() => setOpenWhy((s) => ({ ...s, [c.id]: !s[c.id] }))}
                         >
                           <Info className="h-3 w-3" />
-                          why?
+                          {tOr("design.why", "why?")}
                         </button>
                       </td>
                     </tr>
@@ -504,7 +505,7 @@ function RejectedSet({ rejected }: { rejected: RejectedCandidate[] }) {
           <CardHeader className="pb-2 cursor-pointer">
             <CardTitle className="text-sm flex items-center gap-2">
               <ShieldAlert className="h-4 w-4 text-red-500" />
-              Rejected by a gate
+              {tOr("design.rejected_title", "Rejected by a gate")}
               <Badge variant="outline" className="text-[10px]" style={{ color: "#ef4444" }}>
                 {rejected.length}
               </Badge>
@@ -513,8 +514,7 @@ function RejectedSet({ rejected }: { rejected: RejectedCandidate[] }) {
               />
             </CardTitle>
             <p className="text-[10px] text-muted-foreground">
-              Rejections stay visible with the gate that rejected them — safety is a
-              gate, never traded away. Collapsed but present.
+              {tOr("design.rejected_help", "Rejections stay visible with the gate that rejected them — safety is a gate, never traded away. Collapsed but present.")}
             </p>
           </CardHeader>
         </CollapsibleTrigger>
@@ -649,12 +649,12 @@ function CriteriaStrip({
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <SlidersHorizontal className="h-4 w-4" />
-          Criteria &amp; weights
+          {tOr("design.criteria_title", "Criteria & weights")}
         </CardTitle>
         <p className="text-[10px] text-muted-foreground">
-          Weights are the user&apos;s to set and are stated on every ranking. Changing a
-          target or weight re-ranks the candidates below <strong>without re-running</strong>
-          the predictions — no single blended number is optimised.
+          {tOr("design.criteria_help_a", "Weights are the user's to set and are stated on every ranking. Changing a target or weight re-ranks the candidates below")}{" "}
+          <strong>{tOr("design.criteria_help_b", "without re-running")}</strong>{" "}
+          {tOr("design.criteria_help_c", "the predictions — no single blended number is optimised.")}
         </p>
       </CardHeader>
       <CardContent className="space-y-2">
@@ -662,10 +662,10 @@ function CriteriaStrip({
           <table className="min-w-full">
             <thead className="bg-muted">
               <tr>
-                <th className="px-2 py-1 text-left font-semibold">Objective</th>
-                <th className="px-2 py-1 text-left font-semibold">Direction</th>
-                <th className="px-2 py-1 text-left font-semibold">Target</th>
-                <th className="px-2 py-1 text-left font-semibold">Weight</th>
+                <th className="px-2 py-1 text-left font-semibold">{tOr("design.col_objective", "Objective")}</th>
+                <th className="px-2 py-1 text-left font-semibold">{tOr("design.col_direction", "Direction")}</th>
+                <th className="px-2 py-1 text-left font-semibold">{tOr("design.col_target", "Target")}</th>
+                <th className="px-2 py-1 text-left font-semibold">{tOr("design.col_weight", "Weight")}</th>
               </tr>
             </thead>
             <tbody>
@@ -678,13 +678,13 @@ function CriteriaStrip({
                       <span className="text-[10px] text-muted-foreground ml-1">/{m.unit}</span>
                     </td>
                     <td className="px-2 py-1 text-[10px] text-muted-foreground">
-                      {m.direction === "maximize" ? "maximize ↑" : "minimize ↓"}
+                      {m.direction === "maximize" ? tOr("design.maximize", "maximize ↑") : tOr("design.minimize", "minimize ↓")}
                     </td>
                     <td className="px-2 py-1">
                       <Input
                         data-testid={`criteria-target-${m.name}`}
                         value={c.target == null ? "" : String(c.target)}
-                        placeholder="none"
+                        placeholder={tOr("design.placeholder_none", "none")}
                         onChange={(e) => {
                           const raw = e.target.value.trim()
                           const v = raw === "" ? null : parseFloat(raw)
@@ -714,7 +714,7 @@ function CriteriaStrip({
           </table>
         </div>
         <p className="text-[10px] text-muted-foreground" data-testid="criteria-stated">
-          Ranking criteria: {stated}
+          {tOr("design.ranking_criteria_prefix", "Ranking criteria: ")}{stated}
         </p>
       </CardContent>
     </Card>
@@ -750,14 +750,14 @@ function ParetoView({
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
             <GitCompare className="h-4 w-4" />
-            Trade-off (Pareto) view
+            {tOr("design.pareto_title", "Trade-off (Pareto) view")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground" data-testid="pareto-empty">
-            A trade-off needs two objectives. This run optimised{" "}
-            {objectiveMeta.length === 1 ? "one objective" : "no objectives"} — nothing to
-            trade off, so no front is drawn.
+            {tOr("design.pareto_need_two", "A trade-off needs two objectives. This run optimised {{n}} — nothing to trade off, so no front is drawn.", {
+              n: objectiveMeta.length === 1 ? tOr("design.pareto_one_obj", "one objective") : tOr("design.pareto_no_obj", "no objectives"),
+            })}
           </p>
         </CardContent>
       </Card>
@@ -783,12 +783,12 @@ function ParetoView({
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
             <GitCompare className="h-4 w-4" />
-            Trade-off (Pareto) view
+            {tOr("design.pareto_title", "Trade-off (Pareto) view")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground" data-testid="pareto-empty">
-            No candidate carries both selected objectives, so no trade-off can be plotted.
+            {tOr("design.pareto_no_both", "No candidate carries both selected objectives, so no trade-off can be plotted.")}
           </p>
         </CardContent>
       </Card>
@@ -842,19 +842,18 @@ function ParetoView({
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <GitCompare className="h-4 w-4" />
-          Trade-off (Pareto) view
+          {tOr("design.pareto_title", "Trade-off (Pareto) view")}
         </CardTitle>
         <p className="text-[10px] text-muted-foreground">
-          The trade-off is shown, not collapsed. Each dot is a candidate on two objectives;
-          highlighted dots are on the non-dominated (Pareto) front — no candidate beats them on
-          both. {paretoSet.size === 0 && "No front members were returned for this run."}
+          {tOr("design.pareto_help", "The trade-off is shown, not collapsed. Each dot is a candidate on two objectives; highlighted dots are on the non-dominated (Pareto) front — no candidate beats them on both.")}{" "}
+          {paretoSet.size === 0 && tOr("design.pareto_no_front", "No front members were returned for this run.")}
         </p>
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground">
-          <span>Y:</span>
+          <span>{tOr("design.axis_y", "Y:")}</span>
           <AxisSelect value={ym.name} onChange={setYName} testid="pareto-y-axis" />
-          <span className="ml-2">X:</span>
+          <span className="ml-2">{tOr("design.axis_x", "X:")}</span>
           <AxisSelect value={xm.name} onChange={setXName} testid="pareto-x-axis" />
         </div>
         <svg
@@ -862,7 +861,7 @@ function ParetoView({
           className="w-full"
           style={{ height: 220 }}
           role="img"
-          aria-label={`Trade-off of ${ym.name} against ${xm.name}`}
+          aria-label={tOr("design.pareto_aria", "Trade-off of {{y}} against {{x}}", { y: ym.name, x: xm.name })}
           data-testid="pareto-svg"
         >
           {/* axes */}
@@ -896,7 +895,7 @@ function ParetoView({
             >
               <title>
                 {p.id} — {xm.name} {p.x}, {ym.name} {p.y}
-                {p.onFront ? " (on front)" : ""}
+                {p.onFront ? tOr("design.on_front_suffix", " (on front)") : ""}
               </title>
             </circle>
           ))}
@@ -908,14 +907,16 @@ function ParetoView({
         </div>
         <div className="flex items-center gap-3 flex-wrap text-[10px] text-muted-foreground">
           <span className="inline-flex items-center gap-1">
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#6366f1" }} /> on front (
-            {pts.filter((p) => p.onFront).length})
+            <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#6366f1" }} />{" "}
+            {tOr("design.legend_on_front", "on front ({{n}})", { n: pts.filter((p) => p.onFront).length })}
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#22c55e" }} /> dominated
+            <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#22c55e" }} />{" "}
+            {tOr("design.legend_dominated", "dominated")}
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#ef4444" }} /> gate-rejected
+            <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#ef4444" }} />{" "}
+            {tOr("design.legend_gate_rejected", "gate-rejected")}
           </span>
         </div>
       </CardContent>
@@ -976,21 +977,23 @@ function RejectionProfile({
   const total = rejected.length
   const passedNote =
     nScored != null && nGenerated != null
-      ? `${nScored} scored of ${nGenerated} generated`
+      ? tOr("design.scored_of", "{{nScored}} scored of {{nGenerated}} generated", { nScored, nGenerated })
       : null
   return (
     <Card data-testid="rejection-profile">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <ShieldAlert className="h-4 w-4 text-red-500" />
-          Rejection profile
+          {tOr("design.rejprofile_title", "Rejection profile")}
           <Badge variant="outline" className="text-[10px]" style={{ color: "#ef4444" }}>
             {total}
           </Badge>
         </CardTitle>
         <p className="text-[10px] text-muted-foreground">
-          Rejections are counted <em>and characterised</em> by cause — the failure profile is the
-          diagnostic. {passedNote}
+          {tOr("design.rejprofile_help_a", "Rejections are counted")}{" "}
+          <em>{tOr("design.rejprofile_help_b", "and characterised")}</em>{" "}
+          {tOr("design.rejprofile_help_c", "by cause — the failure profile is the diagnostic.")}{" "}
+          {passedNote}
         </p>
       </CardHeader>
       <CardContent className="space-y-1">
@@ -1001,7 +1004,7 @@ function RejectionProfile({
             className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
           >
             <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: "#ef4444" }} />
-            <span className="font-semibold capitalize">{CAUSE_LABEL[cause]}</span>
+            <span className="font-semibold capitalize">{tOr("design.cause_" + cause, CAUSE_LABEL[cause])}</span>
             <Badge variant="outline" className="text-[10px] ml-auto" data-testid={`rejection-count-${cause}`}>
               {items.length}
             </Badge>
@@ -1093,8 +1096,9 @@ function OrderSheetButton({
   return (
     <div className="flex items-center justify-between gap-2 rounded border px-2 py-1.5" data-testid="order-sheet">
       <span className="text-[10px] text-muted-foreground">
-        Leave the platform as an <strong>order</strong> — candidate ids paired with the lab&apos;s
-        registry ids, per-objective values in their own units (§5.7).
+        {tOr("design.ordersheet_help_a", "Leave the platform as an")}{" "}
+        <strong>{tOr("design.ordersheet_help_b", "order")}</strong>{" "}
+        {tOr("design.ordersheet_help_c", "— candidate ids paired with the lab's registry ids, per-objective values in their own units (§5.7).")}
       </span>
       <Button
         type="button"
@@ -1106,7 +1110,7 @@ function OrderSheetButton({
         onClick={onExport}
       >
         <Download className="h-3 w-3" />
-        Export order sheet
+        {tOr("design.export_order", "Export order sheet")}
       </Button>
     </div>
   )
@@ -1160,8 +1164,8 @@ function EntryRoutes({
     {
       key: "dataset",
       testId: "design-entry-dataset",
-      label: "From a dataset",
-      hint: "An assay table starts a design run directly — the measured compounds become the starting series. Opens the dataset browser.",
+      label: tOr("design.route_dataset_label", "From a dataset"),
+      hint: tOr("design.route_dataset_hint", "An assay table starts a design run directly — the measured compounds become the starting series. Opens the dataset browser."),
       icon: <Boxes className="h-3 w-3" />,
       // Host override wins; otherwise navigate to the real DataHub surface.
       onClick: onStartFromDataset ?? (() => navigate(ENTRY_ROUTE_TARGETS.dataset)),
@@ -1169,23 +1173,23 @@ function EntryRoutes({
     {
       key: "model",
       testId: "design-entry-models",
-      label: "From Models",
-      hint: "A newly gated potency or safety model re-scores the current candidate set. Opens the model catalog.",
+      label: tOr("design.route_models_label", "From Models"),
+      hint: tOr("design.route_models_hint", "A newly gated potency or safety model re-scores the current candidate set. Opens the model catalog."),
       icon: <Target className="h-3 w-3" />,
       onClick: onStartFromModel ?? (() => navigate(ENTRY_ROUTE_TARGETS.model)),
     },
     {
       key: "search",
       testId: "design-entry-search",
-      label: "From Search",
-      hint: "A patent answer is promoted into an exclusion constraint on the next generation run. Opens the search / evidence surface.",
+      label: tOr("design.route_search_label", "From Search"),
+      hint: tOr("design.route_search_hint", "A patent answer is promoted into an exclusion constraint on the next generation run. Opens the search / evidence surface."),
       icon: <SearchIcon className="h-3 w-3" />,
       onClick: onPromoteFromSearch ?? (() => navigate(ENTRY_ROUTE_TARGETS.search)),
     },
   ]
   return (
     <div className="flex items-center gap-2 flex-wrap" data-testid="entry-routes">
-      <span className="text-[10px] text-muted-foreground">Start from…</span>
+      <span className="text-[10px] text-muted-foreground">{tOr("design.start_from", "Start from…")}</span>
       {routes.map((r) => (
         <Button
           key={r.key}
@@ -1260,7 +1264,7 @@ function PredictedVsMeasured({
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <FlaskConical className="h-4 w-4" />
-          Predicted vs measured
+          {tOr("design.pvm_title", "Predicted vs measured")}
           {hasMeasured && (
             <Badge
               variant="outline"
@@ -1268,33 +1272,30 @@ function PredictedVsMeasured({
               style={{ color: rows.some((r) => r.anyContradiction) ? "#ef4444" : "#22c55e" }}
               data-testid="pvm-contradiction-count"
             >
-              {rows.filter((r) => r.anyContradiction).length} flagged
+              {tOr("design.pvm_flagged", "{{n}} flagged", { n: rows.filter((r) => r.anyContradiction).length })}
             </Badge>
           )}
         </CardTitle>
         <p className="text-[10px] text-muted-foreground">
-          Measurements returned from the bench, shown against the predictions that preceded them —
-          the only honest measure of whether the design pipeline is working. A large divergence is
-          flagged; the surrogate is not trusted silently after a bad round (§5.7).
+          {tOr("design.pvm_help", "Measurements returned from the bench, shown against the predictions that preceded them — the only honest measure of whether the design pipeline is working. A large divergence is flagged; the surrogate is not trusted silently after a bad round (§5.7).")}
         </p>
       </CardHeader>
       <CardContent>
         {!hasMeasured || rows.length === 0 ? (
           <p className="text-xs text-muted-foreground" data-testid="pvm-empty">
-            No measured results yet. When the bench returns measurements for these candidates they
-            will appear here against their predictions — nothing is shown until real data comes back.
+            {tOr("design.pvm_empty", "No measured results yet. When the bench returns measurements for these candidates they will appear here against their predictions — nothing is shown until real data comes back.")}
           </p>
         ) : (
           <div className="overflow-auto rounded border text-xs">
             <table className="min-w-full">
               <thead className="bg-muted">
                 <tr>
-                  <th className="px-2 py-1 text-left font-semibold">Candidate</th>
+                  <th className="px-2 py-1 text-left font-semibold">{tOr("design.col_candidate", "Candidate")}</th>
                   {objectiveMeta.map((m) => (
                     <th key={m.name} className="px-2 py-1 text-left font-semibold whitespace-nowrap">
                       {m.name}
                       <span className="text-[10px] text-muted-foreground ml-1">/{m.unit}</span>
-                      <div className="text-[9px] font-normal text-muted-foreground">pred → meas</div>
+                      <div className="text-[9px] font-normal text-muted-foreground">{tOr("design.pvm_pred_meas", "pred → meas")}</div>
                     </th>
                   ))}
                 </tr>
@@ -1315,7 +1316,7 @@ function PredictedVsMeasured({
                         data-testid={`pvm-cell-${r.id}-${meta.name}`}
                         data-contradiction={contradiction ? "true" : "false"}
                       >
-                        <span className="text-muted-foreground">{pred ? pred.value : "n/a"}</span>
+                        <span className="text-muted-foreground">{pred ? pred.value : tOr("design.na", "n/a")}</span>
                         <span className="text-muted-foreground mx-1">→</span>
                         <span style={{ color: contradiction ? "#ef4444" : "#22c55e" }}>
                           {meas ? meas.value : "—"}
@@ -1325,7 +1326,7 @@ function PredictedVsMeasured({
                             className="text-[9px] text-red-500 ml-1"
                             data-testid={`pvm-flag-${r.id}-${meta.name}`}
                           >
-                            contradiction
+                            {tOr("design.pvm_contradiction", "contradiction")}
                           </span>
                         )}
                       </td>
@@ -1356,7 +1357,7 @@ function ModalityChips({
 }) {
   return (
     <div className="space-y-1" data-testid="dg-modality">
-      <Label className="text-xs">Modality</Label>
+      <Label className="text-xs">{tOr("design.modality_title", "Modality")}</Label>
       <div className="flex gap-1 flex-wrap">
         {MODALITIES.map((m) => {
           const meta = MODALITY_META[m]
@@ -1371,14 +1372,15 @@ function ModalityChips({
               data-selected={modality === m ? "true" : "false"}
               onClick={() => onChange(m)}
             >
-              {meta.label}
+              {tOr(`design.modality_${m}_label`, meta.label)}
             </Button>
           )
         })}
       </div>
       <p className="text-[10px] text-muted-foreground" data-testid="dg-modality-blurb">
-        {MODALITY_META[modality].blurb} What the generation should stay on:{" "}
-        <span className="font-medium">{MODALITY_META[modality].stayOn}</span>.
+        {tOr(`design.modality_${modality}_blurb`, MODALITY_META[modality].blurb)}{" "}
+        {tOr("design.stay_on_prefix", "What the generation should stay on:")}{" "}
+        <span className="font-medium">{tOr(`design.modality_${modality}_stayon`, MODALITY_META[modality].stayOn)}</span>.
       </p>
     </div>
   )
@@ -1576,10 +1578,9 @@ export function DesignGenerate({
       {/* ---- constraints composer (the interface, §5.2) ---- */}
       <Card data-testid="constraints-composer">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Design constraints</CardTitle>
+          <CardTitle className="text-sm">{tOr("design.constraints_title", "Design constraints")}</CardTitle>
           <p className="text-[10px] text-muted-foreground">
-            Generation is only useful when constrained — these resolve to run
-            parameters, shown before the run starts.
+            {tOr("design.constraints_help", "Generation is only useful when constrained — these resolve to run parameters, shown before the run starts.")}
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -1591,7 +1592,7 @@ export function DesignGenerate({
           <div className="space-y-3" data-testid="dg-constraints-small_molecule">
           <div className="space-y-1">
             <Label htmlFor="dg-seed" className="text-xs">
-              Seed molecule (SMILES) · optional
+              {tOr("design.seed_label", "Seed molecule (SMILES) · optional")}
             </Label>
             <Input
               id="dg-seed"
@@ -1602,14 +1603,12 @@ export function DesignGenerate({
               className="font-mono text-xs"
             />
             <p className="text-[10px] text-muted-foreground">
-              Leave blank to generate from scratch, or paste a SMILES to steer the
-              search toward chemistry you trust. A target protein is set separately —
-              it is not entered here.
+              {tOr("design.seed_help", "Leave blank to generate from scratch, or paste a SMILES to steer the search toward chemistry you trust. A target protein is set separately — it is not entered here.")}
             </p>
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">Scaffold policy</Label>
+            <Label className="text-xs">{tOr("design.scaffold_policy", "Scaffold policy")}</Label>
             <div className="flex gap-1" data-testid="dg-scaffold-policy">
               {SCAFFOLD_POLICIES.map((p) => (
                 <Button
@@ -1621,17 +1620,17 @@ export function DesignGenerate({
                   data-testid={`dg-policy-${p}`}
                   onClick={() => setScaffoldPolicy(p)}
                 >
-                  {p}
+                  {tOr("design.scaffold_" + p, p)}
                 </Button>
               ))}
             </div>
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">Property envelope (a window, not a cut-off)</Label>
+            <Label className="text-xs">{tOr("design.envelope", "Property envelope (a window, not a cut-off)")}</Label>
             <div className="grid grid-cols-3 gap-2" data-testid="dg-envelope">
               <div>
-                <span className="text-[10px] text-muted-foreground">MW ≤</span>
+                <span className="text-[10px] text-muted-foreground">{tOr("design.mw", "MW ≤")}</span>
                 <Input
                   data-testid="dg-mw"
                   value={mwMax}
@@ -1640,7 +1639,7 @@ export function DesignGenerate({
                 />
               </div>
               <div>
-                <span className="text-[10px] text-muted-foreground">logP ≤</span>
+                <span className="text-[10px] text-muted-foreground">{tOr("design.logp", "logP ≤")}</span>
                 <Input
                   data-testid="dg-logp"
                   value={logpMax}
@@ -1649,7 +1648,7 @@ export function DesignGenerate({
                 />
               </div>
               <div>
-                <span className="text-[10px] text-muted-foreground">TPSA ≤</span>
+                <span className="text-[10px] text-muted-foreground">{tOr("design.tpsa", "TPSA ≤")}</span>
                 <Input
                   data-testid="dg-tpsa"
                   value={tpsaMax}
@@ -1662,7 +1661,7 @@ export function DesignGenerate({
 
           <div className="space-y-1">
             <Label htmlFor="dg-exclusions" className="text-xs">
-              Exclusions (banned SMARTS moieties, one per line)
+              {tOr("design.exclusions", "Exclusions (banned SMARTS moieties, one per line)")}
             </Label>
             <Textarea
               id="dg-exclusions"
@@ -1676,14 +1675,14 @@ export function DesignGenerate({
 
           <div className="space-y-1">
             <Label htmlFor="dg-series" className="text-xs">
-              Seed series — measured compounds the surrogate learns from (optional)
+              {tOr("design.seed_series", "Seed series — measured compounds the surrogate learns from (optional)")}
             </Label>
             <Textarea
               id="dg-series"
               data-testid="dg-seed-series"
               value={seedSeriesText}
               onChange={(e) => setSeedSeriesText(e.target.value)}
-              placeholder="One SMILES per line"
+              placeholder={tOr("design.one_smiles_per_line", "One SMILES per line")}
               className="font-mono text-xs h-16"
             />
           </div>
@@ -1695,7 +1694,7 @@ export function DesignGenerate({
           <div className="space-y-3" data-testid="dg-constraints-peptide">
             <div className="space-y-1">
               <Label htmlFor="dg-sequence" className="text-xs">
-                Peptide sequence (one-letter, the motif to stay on)
+                {tOr("design.peptide_seq", "Peptide sequence (one-letter, the motif to stay on)")}
               </Label>
               <Input
                 id="dg-sequence"
@@ -1707,7 +1706,7 @@ export function DesignGenerate({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Cyclisation</Label>
+              <Label className="text-xs">{tOr("design.cyclisation", "Cyclisation")}</Label>
               <div className="flex gap-1 flex-wrap" data-testid="dg-cyclization">
                 {(["none", "head-to-tail", "disulfide", "staple"] as const).map((c) => (
                   <Button
@@ -1719,7 +1718,7 @@ export function DesignGenerate({
                     data-testid={`dg-cyclization-${c}`}
                     onClick={() => setCyclization(c)}
                   >
-                    {c}
+                    {tOr("design.cyc_" + c, c)}
                   </Button>
                 ))}
               </div>
@@ -1732,7 +1731,7 @@ export function DesignGenerate({
           <div className="space-y-3" data-testid="dg-constraints-protein">
             <div className="space-y-1">
               <Label htmlFor="dg-framework" className="text-xs">
-                Sequence / framework to stay on
+                {tOr("design.framework", "Sequence / framework to stay on")}
               </Label>
               <Textarea
                 id="dg-framework"
@@ -1754,17 +1753,15 @@ export function DesignGenerate({
               className="rounded border border-amber-500/40 bg-amber-500/5 px-2 py-1.5 text-[11px] text-muted-foreground"
               data-testid="dg-modality-unrunnable"
             >
-              <span className="font-semibold text-amber-600">Generator coming.</span>{" "}
-              {MODALITY_META[modality].label} constraints are captured and travel with the request,
-              but the {MODALITY_META[modality].label.toLowerCase()} generator is not wired yet — no
-              result is fabricated. Small-molecule design runs today.
+              <span className="font-semibold text-amber-600">{tOr("design.generator_coming", "Generator coming.")}</span>{" "}
+              {tOr("design.modality_unrunnable", "{{label}} constraints are captured and travel with the request, but the {{labelLower}} generator is not wired yet — no result is fabricated. Small-molecule design runs today.", { label: tOr(`design.modality_${modality}_label`, MODALITY_META[modality].label), labelLower: tOr(`design.modality_${modality}_label`, MODALITY_META[modality].label).toLowerCase() })}
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label htmlFor="dg-count" className="text-xs">
-                Count (candidates to keep)
+                {tOr("design.count", "Count (candidates to keep)")}
               </Label>
               <Input
                 id="dg-count"
@@ -1776,7 +1773,7 @@ export function DesignGenerate({
             </div>
             <div>
               <Label htmlFor="dg-ngen" className="text-xs">
-                Virtual library size
+                {tOr("design.vlib_size", "Virtual library size")}
               </Label>
               <Input
                 id="dg-ngen"
@@ -1802,7 +1799,7 @@ export function DesignGenerate({
               onClick={onRun}
             >
               <Play className="h-3 w-3" />
-              {running ? "Running…" : "Generate & rank"}
+              {running ? tOr("design.running", "Running…") : tOr("design.generate_rank", "Generate & rank")}
             </Button>
           </div>
         </CardContent>
@@ -1822,12 +1819,12 @@ export function DesignGenerate({
           </Badge>
           {run.generator && (
             <span>
-              generator: {run.generator}
-              {run.generator_is_learned === false && " (deterministic enumeration, not learned)"}
+              {tOr("design.gen_prefix", "generator: ")}{run.generator}
+              {run.generator_is_learned === false && " " + tOr("design.gen_det", "(deterministic enumeration, not learned)")}
             </span>
           )}
-          {run.n_generated != null && <span>generated: {run.n_generated}</span>}
-          {run.n_scored != null && <span>scored: {run.n_scored}</span>}
+          {run.n_generated != null && <span>{tOr("design.generated_prefix", "generated: ")}{run.n_generated}</span>}
+          {run.n_scored != null && <span>{tOr("design.scored_prefix", "scored: ")}{run.n_scored}</span>}
         </div>
       )}
 
@@ -1862,15 +1859,13 @@ export function DesignGenerate({
               <CardContent className="text-xs text-muted-foreground py-4">
                 {infraFailure ? (
                   <>
-                    The generator is temporarily unavailable, so no candidates could be
-                    produced. This is on our side — <strong>not</strong> a problem with your
-                    constraints or seed, and nothing for you to change. Please try again shortly.
+                    {tOr("design.empty_generator_down_a", "The generator is temporarily unavailable, so no candidates could be produced. This is on our side —")}{" "}
+                    <strong>{tOr("design.empty_generator_down_b", "not")}</strong>{" "}
+                    {tOr("design.empty_generator_down_c", "a problem with your constraints or seed, and nothing for you to change. Please try again shortly.")}
                   </>
                 ) : (
                   <>
-                    No candidates cleared the pipeline. The failure profile is above — the
-                    constraints or seed are the most likely cause. Nothing was fabricated to
-                    fill a shortlist.
+                    {tOr("design.empty_no_candidates", "No candidates cleared the pipeline. The failure profile is above — the constraints or seed are the most likely cause. Nothing was fabricated to fill a shortlist.")}
                   </>
                 )}
               </CardContent>
