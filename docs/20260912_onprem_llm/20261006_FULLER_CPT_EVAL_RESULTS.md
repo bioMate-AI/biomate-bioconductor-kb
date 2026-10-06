@@ -14,9 +14,24 @@ frozen 261-item openbook diagnostic (knowledge_recall n=112, scientific_qa n=149
 | **domainpro = CPT-1200 + SFT** (constrained) | **0.723** | 0.617 | 0.663 | 0 |
 | domainpro (**unconstrained**, native) | 0.705 | 0.611 | 0.651 | **4 / 261** |
 
+## CPT-only trajectory (400/800/1200, constrained, no SFT — same base 0.6696)
+| CPT steps | knowledge_recall | Δ vs base | scientific_qa | overall |
+|---|---|---|---|---|
+| 400 | 0.6875 | +1.8pp | 0.6309 | 0.6552 |
+| **800** | **0.7143** | **+4.5pp** | 0.6443 | **0.6743** |
+| 1200 | 0.7054 | +3.6pp | 0.6443 | 0.6705 |
+
+Results: `s3://…/eval/spot_traj_20261006_035134/`. **The CPT-only knowledge curve is NON-monotonic: it
+peaks at ~800 steps (+4.5pp) and slightly regresses by 1200 (+3.6pp)** — mild over-training past the peak,
+NOT "more steps = more lift." CPT-800 is the best CPT-only checkpoint.
+
 ## Reads (honest)
-1. **The concept-CPT works and SCALES.** domainpro knowledge_recall **+5.4pp** over base (0.670→0.723),
-   up from the bounded 300-step run's **+4.4pp** → more CPT steps (300→1200) = larger lift, as hypothesized.
+1. **The concept-CPT works, but the gain PEAKS (~800 steps), it does not scale indefinitely.** The deployed
+   domainpro (CPT-1200 + SFT) reads knowledge_recall **+5.4pp** over base (0.670→0.723) constrained — SFT adds
+   ~+1.8pp on top of CPT-1200-only (0.705→0.723). **Correction:** an earlier draft here claimed "more CPT steps
+   (300→1200) = larger lift" — the per-checkpoint trajectory above refutes that; CPT-only knowledge peaks at
+   800 and dips by 1200. Implication: **domainpro should be rebuilt on the CPT-800 checkpoint** (higher CPT-only
+   base, +4.5 vs +3.6pp) before any further step-count increase — pushing CPT further is past the peak.
 2. **CPT adds the knowledge; SFT restores the format.** CPT-1200 alone = **+3.6pp** knowledge. SFT adds
    format/instruction-following and lifts the constrained score to **+5.4pp**. Critically, SFT cuts the
    invalid rate from the CPT-only model's **261/261** (prose) to **4/261** unconstrained — i.e. the SFT'd
@@ -53,5 +68,8 @@ frozen 261-item openbook diagnostic (knowledge_recall n=112, scientific_qa n=149
 - **Paper D** — the "full(er)-corpus CPT decision row" its Appendix C flagged as pending GPU is now answered:
   **concept-CPT lifts domain knowledge (+5.4pp at 1200 steps) and scales with steps** — a real, if modest,
   capability gain, consistent with the paper's "harness carries the bar; CPT adds domain knowledge" thesis.
-- Next if desired: a fuller CPT (more steps) to find the plateau; the logprob trajectory across
-  checkpoints 400/800/1200; and source-family-holdout certification before any external claim.
+- Next (updated): the trajectory across checkpoints 400/800/1200 is **done** (above) — the plateau/peak is
+  **~800 steps**, so "more CPT steps" is NOT the lever; instead **rebuild domainpro on CPT-800** and compare
+  800+SFT vs 1200+SFT. Source-family-holdout certification is **done** (`20261006_EVAL_HOLDOUT_CERTIFICATION.md`,
+  qualified-yes; report +3.8pp dedup alongside +5.4pp). Remaining: the end-to-end LLM+harness (RealBio) delta,
+  running now, to confirm whether this knowledge gain reflects beyond the MCQA proxy.
