@@ -160,19 +160,20 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <section class="scene" data-seconds="36.0">
     <div class="kicker"><span class="st">In BioMate</span> · goal + a CSV → a run</div>
     <h2>Say the goal, attach a concentration-time CSV; BioMate routes to Nca Pknca.</h2>
-    <p class="caption">You state the goal in plain language — "run non-compartmental PK on this concentration-time table" — and attach the CSV. BioMate routes it to the <b>Nca Pknca</b> workflow (the PKNCA R package), fills in the dose and route, and runs the three-step pipeline on cloud compute. There is staged example data to try it against — a concentration-time table at <code>test-data/pk_concentration_time.csv</code>.</p>
+    <p class="caption">You state the goal in plain language and attach the concentration-time CSV; BioMate routes it to the <b>Nca Pknca</b> workflow and runs the PKNCA pipeline on cloud compute.</p>
     <div class="scene-body">
-      <div class="concept">
-        <div class="card big">
-          <div class="flowline" style="justify-content:center; gap:16px">
-            <span class="chip"><span class="i"></span>Concentration-time CSV</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>Validate the curve</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>PKNCA: compute parameters</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>HTML report</span>
-          </div>
-          <p class="footnote" style="margin-top:26px">Workflow <b>Nca Pknca</b> · domain <code>drug_discovery</code> · three steps — <code>NCA_INPUT_VALIDATION</code> → <code>NCA_PKNCA_ANALYSIS</code> → <code>NCA_REPORT_HTML</code>. Required input: <code>input_csv</code>. Dose, route, and the unit labels are parameters, with defaults you can override.</p>
-        </div>
-        <div><span class="verdict ok"><span class="mk"></span>One confirm → the standard NCA pipeline, on the cloud</span></div>
+      <figure class="shotcol">
+        <span class="lbl">Live product · the Nca Pknca workflow in BioMate</span>
+        <div class="frame"><img src="assets/live/nca-live-panel.png" alt="BioMate workflow panel for the Nca Pknca non-compartmental PK workflow"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span>Your plain-English goal routes to the <b>Nca Pknca</b> workflow — tagged <b>Drug Discovery</b>, one phase.</span></li>
+          <li><span class="b"></span><span>One required input: the concentration-time CSV (<b>Input Csv</b>), flagged <i>required — not set</i> until you choose the file.</span></li>
+          <li><span class="b"></span><span>Nothing to tune — the panel confirms <b>no configurable parameters</b>; dose, route and units ride in the CSV and its defaults.</span></li>
+          <li><span class="b gr"></span><span><b>Confirm &amp; Run</b> launches the PKNCA pipeline on cloud compute — one click, nothing to install.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The real NCA workflow, set up for you</span></div>
       </div>
     </div>
   </section>

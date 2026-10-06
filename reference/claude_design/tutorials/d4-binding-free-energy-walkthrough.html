@@ -160,19 +160,20 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <section class="scene" data-seconds="34.0">
     <div class="kicker"><span class="st">In BioMate</span> · goal → workflow → GPU</div>
     <h2>State the goal; BioMate routes to the real FEP engine and runs it on cloud GPUs.</h2>
-    <p class="caption">Ask to rank analogs by binding free energy, and BioMate routes to <code>openfe_rbfe</code> — relative binding free energy built on <b>OpenFE</b> and <b>OpenMM&nbsp;8</b>, the open, peer-reviewed standard for small-molecule alchemical FEP. The production calculation needs a GPU and hours of sampling, so it runs on BioMate's GPU Batch queue; you confirm once and the work runs in the cloud.</p>
+    <p class="caption">Ask in plain English to rank analogs by binding, and BioMate opens the real <b>OpenFE RBFE</b> workflow — inputs mapped, parameters ready, one click from the cloud GPU run.</p>
     <div class="scene-body">
-      <div class="concept">
-        <div class="card big">
-          <div class="flowline" style="justify-content:center; gap:16px">
-            <span class="chip"><span class="i"></span>"Rank these analogs by binding"</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>openfe_rbfe</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>OpenFE + OpenMM 8</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>GPU Batch run</span>
-          </div>
-          <p class="footnote" style="margin-top:26px">Real workflow: <b>OpenFE Relative Binding Free Energy (RBFE)</b>, domain <code>drug_discovery</code> &middot; engine OpenFE / OpenMM (MIT). Three stages: <code>PREP</code> &rarr; <code>RBFE_SETUP</code> &rarr; <code>OPENFE_ANALYSIS</code>, the last on the GPU queue.</p>
-        </div>
-        <div><span class="verdict ok"><span class="mk"></span>Routed to the field-standard open FEP engine — not a bespoke approximation</span></div>
+      <figure class="shotcol">
+        <span class="lbl">Live product · OpenFE Relative Binding Free Energy (RBFE) in BioMate</span>
+        <div class="frame"><img src="assets/live/fep-live-panel.png" alt="BioMate workflow panel for the binding free energy (FEP/RBFE) workflow"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Plain-English routing.</b> "Rank these analogs by binding" lands on the <b>OpenFE Relative Binding Free Energy (RBFE)</b> workflow — domain <code>drug_discovery</code>, one phase.</span></li>
+          <li><span class="b"></span><span><b>The inputs you bring.</b> Three required params: <code>Receptor</code> (the target) plus <code>Ligand&nbsp;A</code> and <code>Ligand&nbsp;B</code>, the congeneric pair — 9 optional params stay collapsed on their defaults.</span></li>
+          <li><span class="b"></span><span><b>GPU, handled for you.</b> The alchemical sampling runs on BioMate's cloud GPU Batch queue; output defaults to BioMate-managed storage, kept 90 days.</span></li>
+          <li><span class="b gr"></span><span><b>Confirm &amp; Run.</b> You're the Owner — a single click launches the real OpenFE / OpenMM calculation in the cloud.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The real FEP workflow, set up for you</span></div>
       </div>
     </div>
   </section>

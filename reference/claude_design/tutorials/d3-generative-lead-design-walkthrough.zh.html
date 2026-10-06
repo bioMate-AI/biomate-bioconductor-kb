@@ -162,17 +162,18 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
     <h2>用大白话说出目标；BioMate 把它路由到 REINVENT4 工作流。</h2>
     <p class="caption">你不用去配置一个神经网络。你陈述意图——"设计这个骨架的新颖、类药类似物"——BioMate 就路由到 <b>REINVENT4 Generative Lead Design</b> 工作流，填好参数，再在云端算力上运行它。这是一条四步流水线，而每一步都是系统真实的行为，而非演示。</p>
     <div class="scene-body">
-      <div class="concept">
-        <div class="card big">
-          <div class="flowline" style="justify-content:center; gap:14px">
-            <span class="chip"><span class="i"></span>1 · 校验输入</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>2 · 生成（REINVENT4）</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>3 · 过滤 + 排序</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>4 · 报告</span>
-          </div>
-          <p class="footnote" style="margin-top:24px">第 1 步用 RDKit 解析种子 SMILES，并记录它的 QED、SA 和 MW。第 2 步运行学习得到的 REINVENT4 生成器。第 3 步按类药性、PAINS 和新颖度过滤，再排序。第 4 步写出一张排好序的 CSV、一份含三维结构的 SDF、一张打分曲线图和一份 HTML 报告。模式：<code>de_novo</code>、<code>scaffold_decoration</code>、<code>linker_design</code>、<code>scaffold_hopping</code>。</p>
-        </div>
-        <div><span class="verdict ok"><span class="mk"></span>一个意图 → 一次路由好、参数化、四步的运行</span></div>
+      <figure class="shotcol">
+        <span class="lbl">实时产品 · BioMate 中的 REINVENT4 生成式先导设计</span>
+        <div class="frame"><img src="assets/live/generative-live-panel.png" alt="BioMate workflow panel for REINVENT4 Generative Lead Design — inputs, synthesizability seed, output location, Confirm & Run"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>大白话进，工作流出。</b>你只需描述设计目标，BioMate 就把它路由到 <b>REINVENT4 Generative Lead Design</b>，并展示真实的参数面板。</span></li>
+          <li><span class="b gr"></span><span><b>种子骨架已预填。</b>必填的 <b>Synthesizability</b> 参数里已填好一个种子 SMILES（<code>CC(=O)Oc1ccccc1C(=O)O</code>，阿司匹林）——可换成你自己的骨架。</span></li>
+          <li><span class="b gr"></span><span><b>五个阶段，已为你串好。</b>输入已映射、可选参数已折叠，整条运行按五个阶段铺好，无需手动配置。</span></li>
+          <li><span class="b am"></span><span><b>选好输出位置，一键启动。</b>结果存入 BioMate 托管存储（或你自己的 S3），点 <b>Confirm &amp; Run</b> 即在云端算力上运行。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>真实的生成式工作流，已为你配好</span></div>
       </div>
     </div>
   </section>

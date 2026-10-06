@@ -159,19 +159,20 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <section class="scene" data-seconds="35.0">
     <div class="kicker"><span class="st">阶段 1</span> · 目标 → 工作流</div>
     <h2>说出目标并递上一张生存表；BioMate 来挑工作流。</h2>
-    <p class="caption">你不用去搭一个 R 环境。你描述问题，并提供一张带有时间和事件状态的表，BioMate 就把它路由到一条真实的、已索引的生存分析工作流——Kaplan–Meier 估计，或 Cox 回归——把分析接线到你的那些列上，再在云端算力上跑起来。</p>
+    <p class="caption">你不用去搭一个 R 环境。你描述问题、递上一张生存表，BioMate 就把它路由到一条真实的、已索引的生存分析工作流，并在云端算力上跑起来。</p>
     <div class="scene-body">
-      <div class="concept">
-        <div class="card big">
-          <div class="flowline" style="justify-content:center; gap:16px">
-            <span class="chip"><span class="i"></span>"比较各臂之间的生存"</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>选定生存分析工作流</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>列映射到 time / status / group</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>在云端运行</span>
-          </div>
-          <p class="footnote" style="margin-top:26px">引擎运行 R 语言的 <b>survival</b> 包——<code>Surv()</code>、<code>survfit()</code>、<code>coxph()</code>——正是一个统计学家会顺手去拿的那些标准工具，打包成可复现的 Nextflow 工作流。试验<i>设计</i>的问题（样本量、把握度）则转而路由到 <code>survival_analysis_km</code> 临床试验工作流。</p>
-        </div>
-        <div><span class="verdict ok"><span class="mk"></span>目标 + 生存表 → 正确的生存分析工作流，跑在云端算力上</span></div>
+      <figure class="shotcol">
+        <span class="lbl">实时产品 · BioMate 中的生存分析工作流</span>
+        <div class="frame"><img src="assets/live/survival-live-panel.png" alt="BioMate 中 survival_analysis_km 工作流面板——药物发现工作流，4 个阶段，输入已映射，无可配置参数，确认并运行"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>大白话进去，工作流出来。</b>你说出目标，BioMate 就把它路由到真实的 <b>survival_analysis_km</b> 工作流——不用自己装 R 环境。</span></li>
+          <li><span class="b gr"></span><span><b>输入已替你映射好。</b>生存表——<code>time</code> 加事件 <code>status</code>（1/0）——已经接好线，面板显示"无需绑定数据输入"。</span></li>
+          <li><span class="b"></span><span><b>4 个阶段，都是标准方法。</b>Kaplan–Meier、log-rank、Cox 与 Lasso-Cox——就是 Phases 标签下列出的 <b>4 个阶段</b>。</span></li>
+          <li><span class="b"></span><span><b>没什么要配置的。</b>没有参数要调——点一下 <b>确认并运行</b>，就在云端算力上跑起来。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>真实的生存分析工作流，已替你设好</span></div>
       </div>
     </div>
   </section>

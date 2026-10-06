@@ -162,17 +162,18 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
     <h2>Say the goal in plain English; BioMate routes it to the REINVENT4 workflow.</h2>
     <p class="caption">You don't configure a neural network. You state the intent — "design novel drug-like analogs of this scaffold" — and BioMate routes to the <b>REINVENT4 Generative Lead Design</b> workflow, fills in parameters, and runs it on cloud compute. It is a four-step pipeline, and every step is real system behaviour, not a demo.</p>
     <div class="scene-body">
-      <div class="concept">
-        <div class="card big">
-          <div class="flowline" style="justify-content:center; gap:14px">
-            <span class="chip"><span class="i"></span>1 · Validate input</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>2 · Generate (REINVENT4)</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>3 · Filter + rank</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>4 · Report</span>
-          </div>
-          <p class="footnote" style="margin-top:24px">Step 1 parses the seed SMILES with RDKit and records its QED, SA and MW. Step 2 runs the learned REINVENT4 generator. Step 3 filters for drug-likeness, PAINS and novelty, then ranks. Step 4 writes a ranked CSV, an SDF of 3D structures, a score plot and an HTML report. Modes: <code>de_novo</code>, <code>scaffold_decoration</code>, <code>linker_design</code>, <code>scaffold_hopping</code>.</p>
-        </div>
-        <div><span class="verdict ok"><span class="mk"></span>One intent → a routed, parameterized, four-step run</span></div>
+      <figure class="shotcol">
+        <span class="lbl">Live product · REINVENT4 Generative Lead Design in BioMate</span>
+        <div class="frame"><img src="assets/live/generative-live-panel.png" alt="BioMate workflow panel for REINVENT4 Generative Lead Design — inputs, synthesizability seed, output location, Confirm & Run"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Plain English in, workflow out.</b> You describe the design goal; BioMate routes it to <b>REINVENT4 Generative Lead Design</b> and shows the real parameter panel.</span></li>
+          <li><span class="b gr"></span><span><b>Seed scaffold, pre-filled.</b> The required <b>Synthesizability</b> parameter already holds a seed SMILES (<code>CC(=O)Oc1ccccc1C(=O)O</code>, aspirin) — override it with your own scaffold.</span></li>
+          <li><span class="b gr"></span><span><b>Five phases, wired for you.</b> Inputs are mapped and optional params collapsed, so the run is laid out as five phases with nothing to configure by hand.</span></li>
+          <li><span class="b am"></span><span><b>Output location, then one click.</b> Results go to BioMate-managed storage (or your own S3); <b>Confirm &amp; Run</b> launches it on cloud compute.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The real generative workflow, set up for you</span></div>
       </div>
     </div>
   </section>

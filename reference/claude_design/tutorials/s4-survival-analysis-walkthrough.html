@@ -159,19 +159,20 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <section class="scene" data-seconds="35.0">
     <div class="kicker"><span class="st">Stage 1</span> · goal → workflow</div>
     <h2>State the goal and hand over a survival table; BioMate picks the workflow.</h2>
-    <p class="caption">You don't assemble an R environment. You describe the question and provide a table with time and event status, and BioMate routes to a real, indexed survival workflow — Kaplan–Meier estimation, or Cox regression — with the analysis wired to your columns and run on cloud compute.</p>
+    <p class="caption">You don't assemble an R environment. You describe the question and hand over a survival table; BioMate routes it to a real, indexed survival workflow and runs it on cloud compute.</p>
     <div class="scene-body">
-      <div class="concept">
-        <div class="card big">
-          <div class="flowline" style="justify-content:center; gap:16px">
-            <span class="chip"><span class="i"></span>"Compare survival between arms"</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>Survival workflow selected</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>Columns mapped to time / status / group</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>Runs in the cloud</span>
-          </div>
-          <p class="footnote" style="margin-top:26px">The engine runs the R <b>survival</b> package — <code>Surv()</code>, <code>survfit()</code>, <code>coxph()</code> — the same standard tools a statistician would reach for, packaged as reproducible Nextflow workflows. Trial-<i>design</i> questions (sample size, power) route instead to the <code>survival_analysis_km</code> clinical-trial workflow.</p>
-        </div>
-        <div><span class="verdict ok"><span class="mk"></span>Goal + survival table → the correct survival workflow, on cloud compute</span></div>
+      <figure class="shotcol">
+        <span class="lbl">Live product · the survival workflow in BioMate</span>
+        <div class="frame"><img src="assets/live/survival-live-panel.png" alt="BioMate workflow panel for survival_analysis_km — drug-discovery workflow, 4 phases, inputs mapped, no configurable parameters, Confirm & Run"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Plain English in, workflow out.</b> You describe the goal; BioMate routes it to the real <b>survival_analysis_km</b> workflow — no R environment to install.</span></li>
+          <li><span class="b gr"></span><span><b>Inputs mapped for you.</b> The survival table — <code>time</code> + event <code>status</code> (1/0) — is already wired; the panel reports "no data inputs to bind."</span></li>
+          <li><span class="b"></span><span><b>Four phases, the standard methods.</b> Kaplan–Meier, log-rank, Cox and Lasso-Cox — the <b>4 phases</b> listed under the Phases tab.</span></li>
+          <li><span class="b"></span><span><b>Nothing to configure.</b> No parameters to set — one <b>Confirm &amp; Run</b> launches it on cloud compute.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The real survival workflow, set up for you</span></div>
       </div>
     </div>
   </section>

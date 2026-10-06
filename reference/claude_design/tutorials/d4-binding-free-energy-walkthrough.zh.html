@@ -160,19 +160,20 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <section class="scene" data-seconds="34.0">
     <div class="kicker"><span class="st">在 BioMate 里</span> · 目标 → 工作流 → GPU</div>
     <h2>说出目标；BioMate 路由到真实的 FEP 引擎，并在云端 GPU 上运行它。</h2>
-    <p class="caption">提出要按结合自由能为类似物排序，BioMate 就路由到 <code>openfe_rbfe</code>——基于 <b>OpenFE</b> 与 <b>OpenMM&nbsp;8</b> 的相对结合自由能，它是小分子炼金术式 FEP 开放、经同行评审的标准。生产级计算需要一块 GPU 和数小时采样，所以它跑在 BioMate 的 GPU Batch 队列上；你确认一次，这份工作就在云端运行。</p>
+    <p class="caption">用大白话提出“按结合强弱为类似物排序”，BioMate 就直接打开真实的 <b>OpenFE RBFE</b> 工作流——输入已映射、参数已就绪，一键即可在云端 GPU 上开跑。</p>
     <div class="scene-body">
-      <div class="concept">
-        <div class="card big">
-          <div class="flowline" style="justify-content:center; gap:16px">
-            <span class="chip"><span class="i"></span>"按结合强弱为这些类似物排序"</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>openfe_rbfe</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>OpenFE + OpenMM 8</span><span class="arrow">→</span>
-            <span class="chip"><span class="i"></span>GPU Batch 运行</span>
-          </div>
-          <p class="footnote" style="margin-top:26px">真实工作流：<b>OpenFE Relative Binding Free Energy (RBFE)</b>，领域 <code>drug_discovery</code> &middot; 引擎 OpenFE / OpenMM（MIT）。三个阶段：<code>PREP</code> &rarr; <code>RBFE_SETUP</code> &rarr; <code>OPENFE_ANALYSIS</code>，最后一个跑在 GPU 队列上。</p>
-        </div>
-        <div><span class="verdict ok"><span class="mk"></span>路由到领域标准的开放 FEP 引擎——而非某种定制的近似</span></div>
+      <figure class="shotcol">
+        <span class="lbl">实时产品 · BioMate 中的 OpenFE Relative Binding Free Energy (RBFE)</span>
+        <div class="frame"><img src="assets/live/fep-live-panel.png" alt="BioMate 的结合自由能（FEP/RBFE）工作流面板"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>大白话即可路由。</b>“按结合强弱为这些类似物排序”就落到 <b>OpenFE Relative Binding Free Energy (RBFE)</b> 工作流——领域 <code>drug_discovery</code>，单一阶段。</span></li>
+          <li><span class="b"></span><span><b>你要带来的输入。</b>三个必填参数：<code>Receptor</code>（靶点）加上 <code>Ligand&nbsp;A</code> 与 <code>Ligand&nbsp;B</code> 这对同源类似物——另外 9 个可选参数按默认值收起。</span></li>
+          <li><span class="b"></span><span><b>GPU 已为你安排好。</b>炼金术式采样跑在 BioMate 的云端 GPU Batch 队列上；输出默认存入 BioMate 托管存储，保留 90 天。</span></li>
+          <li><span class="b gr"></span><span><b>Confirm &amp; Run。</b>你是 Owner——单击即可在云端启动真实的 OpenFE / OpenMM 计算。</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>真实的 FEP 工作流，已为你配置就绪</span></div>
       </div>
     </div>
   </section>
