@@ -817,7 +817,9 @@ function PhaseGroupSection({
             </div>
           )}
 
-          {/* AutoLoopPanel — commented out until QC loop is stable (see project_future_work_pivot.md)
+          {/* AutoLoopPanel — WORKFLOW-CONDITIONED: renders only when an autoloop-ready
+              workflow emits gate results (autoloopEnabled is opt-in + only true for
+              autoloop-ready profiles; gateResults arrive only from autoloop domains). */}
           {autoloopEnabled && autoLoopPanelState?.gateResults &&
             autoloopPhaseMatches(group.key, autoLoopPanelState.gateResults.phase) && (
             <div style={{padding:'8px 14px 0 40px'}}>
@@ -829,7 +831,6 @@ function PhaseGroupSection({
               />
             </div>
           )}
-          */}
 
           {/* Phase actions */}
           <div className="phase-actions">
