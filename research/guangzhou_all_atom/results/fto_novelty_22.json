@@ -1,0 +1,828 @@
+{
+  "summary": {
+    "n": 22,
+    "library_size": 136730,
+    "tanimoto_cutoff": 0.85,
+    "occupied": 2,
+    "novel": 20,
+    "unknown": 0,
+    "patents_checked": true,
+    "max_tanimoto_overall": 0.871
+  },
+  "verdicts": [
+    {
+      "candidate_id": "PDL1-A-01",
+      "modality": "peptide",
+      "smiles": "CC(C)[C@@H]1NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CO)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CO)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](C)NC(=O)CNC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H]([C@@H](C)O)NC1=O",
+      "seq": "GAYTSKSTGVTF",
+      "structure_status": "ok",
+      "max_tanimoto": 0.6667,
+      "nearest_known_id": "121184",
+      "nearest_known_smiles": "C[C@@H]1NC(=O)[C@H](CCCCN)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CO)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Heat shock protein HSP 90-beta",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.4078,
+        "same_target_nearest_id": "CHEMBL4740780",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-02",
+      "modality": "peptide",
+      "smiles": "CC(C)[C@@H]1NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CO)NC(=O)[C@H](CO)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CO)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CCCCN)NC(=O)[C@H](Cc2ccccc2)NC1=O",
+      "seq": "SSPFPVFKEFSP",
+      "structure_status": "ok",
+      "max_tanimoto": 0.7397,
+      "nearest_known_id": "CHEMBL373496",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CCCN)NC(=O)[C@H](C(C)C)NC(=O)[C@@H]2CCCN2C(=O)[C@@H](Cc2ccccc2)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCN)NC(=O)[C@H](C(C)C)NC(=O)[C@@H]2CCCN2C(=O)[C@@H](Cc2ccccc2)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Micrococcus luteus",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.6279,
+        "same_target_nearest_id": "CHEMBL4789566",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-03",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](CCCCN)NC(=O)[C@H](C(C)C)NC(=O)CNC(=O)[C@H](C(C)C)NC(=O)[C@H](C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)CNC(=O)[C@H](CC(N)=O)NC(=O)[C@H](CO)NC1=O",
+      "seq": "SNGPAELEEAVGVKI",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8144,
+      "nearest_known_id": "CHEMBL4759600",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](C)NC(=O)CNC(=O)CNC(=O)[C@@H](CCC(=O)O)NC(=O)[C@H](CC(N)=O)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H](CCC(N)=O)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCCN)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "True",
+        "is_avb6": "False",
+        "target_name": "Programmed cell death 1 ligand 1",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.8144,
+        "same_target_nearest_id": "CHEMBL4759600",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": null,
+        "n_patents": null,
+        "error": "HTTP Error 400: PUGREST.BadRequest"
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-04",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](C(C)C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C)NC(=O)[C@H](CO)NC(=O)[C@H](CCCCN)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CC(N)=O)NC(=O)[C@H](CO)NC(=O)[C@H](CO)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CCCNC(=N)N)NC1=O",
+      "seq": "SAPEVLRPYSSNPK",
+      "structure_status": "ok",
+      "max_tanimoto": 0.71,
+      "nearest_known_id": "CHEMBL576262",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CCCCN)NC(=O)[C@H](C(C)C)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CCC(N)=O)NC(=O)[C@H](CC(N)=O)NC(=O)[C@@H](Cc2ccccc2)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@@H]2CCCN2C(=O)[C@@H](Cc2ccccc2)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Micrococcus luteus",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.6765,
+        "same_target_nearest_id": "CHEMBL4782871",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-05",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](C(C)C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CCCNC(=N)N)NC1=O",
+      "seq": "AAPEVLRKYTSLP",
+      "structure_status": "ok",
+      "max_tanimoto": 0.7647,
+      "nearest_known_id": "CHEMBL1099231",
+      "nearest_known_smiles": "CC(C)[C@@H]1NC(=O)[C@H](C)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CO)NC(=O)[C@H](CC(=O)O)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H]([C@@H](C)O)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "P388",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.6863,
+        "same_target_nearest_id": "CHEMBL4782871",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-06",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](Cc2c[nH]cn2)NC(=O)[C@H](CCCCN)NC(=O)[C@H](C)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CC(N)=O)NC(=O)[C@H](CO)NC(=O)[C@H](CO)NC(=O)[C@H](CCSC)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CC(=O)O)NC1=O",
+      "seq": "SSNPAAKHIDPM",
+      "structure_status": "ok",
+      "max_tanimoto": 0.6226,
+      "nearest_known_id": "CHEMBL317712",
+      "nearest_known_smiles": "CC[C@H](C)[C@H]1NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@@H](C(C)C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CCCCN)NC(=O)[C@H]2CCCN2C(=O)[C@H](Cc2c[nH]cn2)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Rattus norvegicus",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.5664,
+        "same_target_nearest_id": "CHEMBL4759600",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-07",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@@H]2CCCN2C(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CCCCN)NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](C(C)C)NC(=O)[C@H](C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CCC(=O)O)NC1=O",
+      "seq": "ARTPEDLEEAVRTGKP",
+      "structure_status": "ok",
+      "max_tanimoto": 0.7849,
+      "nearest_known_id": "95974",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC(=O)CNC(=O)CNC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@@H]2CCCN2C1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Integrin alpha-V/beta-3",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.68,
+        "same_target_nearest_id": "CHEMBL4782871",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": null,
+        "n_patents": null,
+        "error": "HTTP Error 400: PUGREST.BadRequest"
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-08",
+      "modality": "peptide",
+      "smiles": "CC(C)[C@@H]1NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](C)NC(=O)[C@H](CO)NC(=O)[C@H](CO)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)CNC(=O)CNC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H]([C@@H](C)O)NC1=O",
+      "seq": "GGYTSSATGVTF",
+      "structure_status": "ok",
+      "max_tanimoto": 0.7647,
+      "nearest_known_id": "133823",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CO)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)CNC(=O)[C@H](C)NC(=O)[C@H](CO)NC(=O)[C@H](CO)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CO)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Hepatitis A virus cellular receptor 2",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.39,
+        "same_target_nearest_id": "CHEMBL4782871",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-09",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](CC(N)=O)NC(=O)[C@H](CO)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](C(C)C)NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCSC)NC(=O)[C@H](CCCCN)NC(=O)[C@H](C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](C)NC1=O",
+      "seq": "LGVETSNPAIAELAKM",
+      "structure_status": "ok",
+      "max_tanimoto": 0.7619,
+      "nearest_known_id": "CHEMBL4759600",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](C)NC(=O)CNC(=O)CNC(=O)[C@@H](CCC(=O)O)NC(=O)[C@H](CC(N)=O)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H](CCC(N)=O)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCCN)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "True",
+        "is_avb6": "False",
+        "target_name": "Programmed cell death 1 ligand 1",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.7619,
+        "same_target_nearest_id": "CHEMBL4759600",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": null,
+        "n_patents": null,
+        "error": "HTTP Error 503: PUGREST.ServerBusy"
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "PDL1-A-10",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CCCCN)NC(=O)CNC(=O)[C@H](CCC(=O)O)NC(=O)CNC(=O)[C@H](CO)NC(=O)CNC(=O)CNC(=O)[C@H](CCCCN)NC1=O",
+      "seq": "GGSGEGKKLAEELGLK",
+      "structure_status": "ok",
+      "max_tanimoto": 0.6477,
+      "nearest_known_id": "CHEMBL4759600",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](C)NC(=O)CNC(=O)CNC(=O)[C@@H](CCC(=O)O)NC(=O)[C@H](CC(N)=O)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H](CCC(N)=O)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCCN)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "True",
+        "is_avb6": "False",
+        "target_name": "Programmed cell death 1 ligand 1",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.6477,
+        "same_target_nearest_id": "CHEMBL4759600",
+        "same_target_subset": "is_pdl1=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": null,
+        "n_patents": null,
+        "error": "HTTP Error 400: PUGREST.BadRequest"
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "PD-L1"
+    },
+    {
+      "candidate_id": "AVB6-B-01",
+      "modality": "peptide",
+      "smiles": "N=C(N)NCCC[C@@H]1NC(=O)CNC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CC(N)=O)NC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC1=O",
+      "seq": "GRGRNKYYP",
+      "structure_status": "ok",
+      "max_tanimoto": 0.775,
+      "nearest_known_id": "100428",
+      "nearest_known_smiles": "N=C(N)NCCC[C@@H]1NC(=O)[C@@H]2CCCN2C(=O)[C@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)CNC(=O)[C@H](CC(N)=O)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](Cc2ccccc2)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Melanocortin receptor 4",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.7,
+        "same_target_nearest_id": "CHEMBL4540146",
+        "same_target_subset": "is_avb6=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-02",
+      "modality": "peptide",
+      "smiles": "N=C(N)NCCC[C@@H]1NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CO)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CC(N)=O)NC(=O)[C@H](CCCCN)NC(=O)CNC1=O",
+      "seq": "NKYRSRRGK",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8358,
+      "nearest_known_id": "CHEMBL505426",
+      "nearest_known_smiles": "N=C(N)NCCC[C@H]1NC(=O)CNC(=O)[C@@H](CC(=O)O)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@@H](CCCCN)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Integrin alpha-V/beta-3",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.7286,
+        "same_target_nearest_id": "CHEMBL2332367",
+        "same_target_subset": "is_avb6=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-03",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)[C@H](C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC1=O",
+      "seq": "GSLASLGIGRR",
+      "structure_status": "ok",
+      "max_tanimoto": 0.6706,
+      "nearest_known_id": "CHEMBL4520646",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H]2CCCN2C(=O)[C@H](CC(C)C)NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "True",
+        "target_name": "Integrin alpha-V/beta-6",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.6706,
+        "same_target_nearest_id": "CHEMBL4520646",
+        "same_target_subset": "is_avb6=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-04",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(N)=O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](C)NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C)NC1=O",
+      "seq": "ARRGNLAPLG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8684,
+      "nearest_known_id": "CHEMBL4452226",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H]2CCCN2C(=O)[C@H](C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](C)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "True",
+        "target_name": "Integrin alpha-V/beta-6",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.8684,
+        "same_target_nearest_id": "CHEMBL4452226",
+        "same_target_subset": "is_avb6=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": true,
+      "verdict": "known_active",
+      "reasons": [
+        "structure: max_tanimoto 0.868 >= 0.85 (nearest known CHEMBL4452226)"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-05",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)CNC(=O)[C@H](CCCCN)NC(=O)CNC(=O)[C@H](CO)NC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC1=O",
+      "seq": "KGLRGRSG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8103,
+      "nearest_known_id": "CHEMBL2304052",
+      "nearest_known_smiles": "C[C@@H]1NC(=O)CNC(=O)[C@H](CO)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@@H](CCCCN)NC(=O)CNC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Unchecked",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.6316,
+        "same_target_nearest_id": "CHEMBL4536436",
+        "same_target_subset": "is_avb6=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-06",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC(=O)CNC(=O)[C@H](Cc2ccccc2)NC1=O",
+      "seq": "GLFGGRGRR",
+      "structure_status": "ok",
+      "max_tanimoto": 0.871,
+      "nearest_known_id": "CHEMBL235999",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@@H](Cc2ccccc2)NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Integrin alpha-5/beta-1",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.7015,
+        "same_target_nearest_id": "CHEMBL2332367",
+        "same_target_subset": "is_avb6=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": true,
+      "verdict": "known_active",
+      "reasons": [
+        "structure: max_tanimoto 0.871 >= 0.85 (nearest known CHEMBL235999)"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-07",
+      "modality": "peptide",
+      "smiles": "CSCC[C@@H]1NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCCN)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC(=O)[C@@H]2CCCN2C1=O",
+      "seq": "RGKLMPGRG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.7125,
+      "nearest_known_id": "CHEMBL4546687",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)CNC(=O)[C@@H]2CCCN2C(=O)[C@H]2CCCN2C(=O)[C@H](CC(C)C)NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "True",
+        "target_name": "Integrin alpha-V/beta-6",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.7125,
+        "same_target_nearest_id": "CHEMBL4546687",
+        "same_target_subset": "is_avb6=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-08",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CO)NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC1=O",
+      "seq": "GTGTGSLGRLR",
+      "structure_status": "ok",
+      "max_tanimoto": 0.6585,
+      "nearest_known_id": "95126",
+      "nearest_known_smiles": "CC[C@@H]1NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CO)NC(=O)[C@H](C(C)C)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CS)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CO)NC(=O)[C@H](Cc2ccccc2)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CO)NC(=O)[C@H]([C@@H](C)CC)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Lethal factor",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.6364,
+        "same_target_nearest_id": "CHEMBL4536436",
+        "same_target_subset": "is_avb6=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-09",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(C)C)NC(=O)[C@H](Cc2c[nH]cn2)NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)[C@H](CO)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CO)NC(=O)[C@H](CO)NC(=O)CNC1=O",
+      "seq": "SSRSSLGHLLG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.6458,
+      "nearest_known_id": "134800",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2c[nH]cn2)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](Cc2c[nH]cn2)NC(=O)[C@H](Cc2c[nH]cn2)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)CSC[C@@H](C(=O)NCC(N)=O)NC(=O)CNC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Interleukin-17 receptor E",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.5647,
+        "same_target_nearest_id": "CHEMBL4536436",
+        "same_target_subset": "is_avb6=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": false,
+        "n_patents": 0,
+        "pubchem_cid": null
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-10",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)CNC(=O)[C@H](CCCCN)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CO)NC(=O)[C@@H]2CCCN2C(=O)CNC(=O)[C@H](CCCCN)NC(=O)[C@H](C(C)C)NC1=O",
+      "seq": "SRKGIVKGP",
+      "structure_status": "ok",
+      "max_tanimoto": 0.72,
+      "nearest_known_id": "CHEMBL2373983",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@@H](CCCNC(=N)N)NC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC(=O)[C@H](CCCCN)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@@H]([C@@H](C)O)NC(=O)CNC(=O)[C@@H](CCCNC(=N)N)NC(=O)[C@@H]2CCCN2C(=O)[C@@H](CCCNC(=N)N)NC(=O)[C@H]2CCCN2C(=O)CNC(=O)[C@@H](CO)NC(=O)[C@@H](N)CSSC[C@@H](C(=O)O)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@@H](CCCNC(=N)N)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Nucleic Acid",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.6146,
+        "same_target_nearest_id": "CHEMBL4520646",
+        "same_target_subset": "is_avb6=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": null,
+        "n_patents": null,
+        "error": "HTTP Error 503: PUGREST.ServerBusy"
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-11",
+      "modality": "peptide",
+      "smiles": "CC[C@H](C)[C@@H]1NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCCCN)NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)CNC1=O",
+      "seq": "GTGIGSLGKLL",
+      "structure_status": "ok",
+      "max_tanimoto": 0.7193,
+      "nearest_known_id": "CHEMBL3577234",
+      "nearest_known_smiles": "CC[C@H](C)[C@@H]1NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H]([C@@H](C)CC)NC(=O)[C@H](CO)NC(=O)CNC(=O)[C@H](CC(C)C)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "False",
+        "target_name": "Plasmodium falciparum",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.4468,
+        "same_target_nearest_id": "CHEMBL4520646",
+        "same_target_subset": "is_avb6=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": null,
+        "n_patents": null,
+        "error": "HTTP Error 503: PUGREST.ServerBusy"
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    },
+    {
+      "candidate_id": "AVB6-B-12",
+      "modality": "peptide",
+      "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](C)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@@H]2CCCN2C(=O)[C@H](C)NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)[C@H](C)NC1=O",
+      "seq": "APRGALASLG",
+      "structure_status": "ok",
+      "max_tanimoto": 0.8182,
+      "nearest_known_id": "CHEMBL4452226",
+      "nearest_known_smiles": "CC(C)C[C@@H]1NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H]2CCCN2C(=O)[C@H](C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](C)NC1=O",
+      "nearest_known_tag": {
+        "is_pdl1": "False",
+        "is_avb6": "True",
+        "target_name": "Integrin alpha-V/beta-6",
+        "cyclic_bool": "True",
+        "same_target_max_tanimoto": 0.8182,
+        "same_target_nearest_id": "CHEMBL4452226",
+        "same_target_subset": "is_avb6=True"
+      },
+      "tanimoto_cutoff": 0.85,
+      "sequence_status": "not_run",
+      "max_seq_identity": null,
+      "nearest_seq": null,
+      "seq_id_cutoff": 0.8,
+      "patent": {
+        "checked": true,
+        "source": "surechembl_via_pubchem",
+        "present": null,
+        "n_patents": null,
+        "error": "HTTP Error 503: PUGREST.ServerBusy"
+      },
+      "occupied": false,
+      "verdict": "novel",
+      "reasons": [
+        "no known-active / patent / sequence hit above cutoffs"
+      ],
+      "target": "avb6"
+    }
+  ]
+}
