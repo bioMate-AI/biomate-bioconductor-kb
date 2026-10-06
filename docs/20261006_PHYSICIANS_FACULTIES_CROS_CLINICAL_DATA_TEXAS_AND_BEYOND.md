@@ -24,6 +24,7 @@ Consolidates sources previously split across the Drive *accelerator* folder and 
   be read from the source file — its contact↔institution mapping was not machine-verified here**)
 - Repo · `docs/20261005_HOUSTON_TEXAS_PROSPECTS.md` (prioritized BD list, honesty-contracted)
 - Repo · `docs/20260727_TEXAS_TIER1_BD_PROSPECTS.md`, `docs/20260701_FACULTY_SURVEY_AND_COLLABORATION_STRATEGY.md`
+- Web · ClinicalTrials.gov registry API (HPV16 therapeutic-vaccine + checkpoint trials; accessed 2026-10-06) — §B
 
 ---
 
@@ -118,10 +119,34 @@ Verified faculty for the TMC ACT application (CPRIT-funded; Oct 31 deadline). Ap
 ---
 
 ## B. Physicians / faculty — BEYOND TEXAS
-- **Dr. Jared Weiss (UNC)** — VERSATILE-002 (PDS0101+pembro) investigator; national SAB voice on the exact
-  modality. (Texas nexus is already satisfied by being Houston-based, so an out-of-state SAB member is fine.)
-- *General:* national SAB credibility can be added without a Texas address; team members/advisors may be
-  anywhere. (The company's Texas/CPRIT nexus is via Houston.)
+*National SAB credibility can be added without a Texas address (the company's CPRIT nexus is via Houston).
+Entries below are sourced from ClinicalTrials.gov (registry data, accessed 2026-10-06); institution-level
+targets are cold/aspirational with the site PI to be identified (the registry did not name site PIs).*
+
+### B1. Named non-Texas investigators (exact modality — HPV + checkpoint)
+- **Dr. Jared Weiss (UNC Chapel Hill)** — VERSATILE-002 (PDS0101+pembrolizumab) investigator; national SAB
+  voice on the exact modality.
+- **Dr. Charalampos Floudas, MD (National Cancer Institute, Bethesda MD)** — PI, "Combination Immunotherapy in
+  Advanced HPV-Associated Malignancies" (NCT04287868, NCI). Named Overall Official; exact HPV+checkpoint space.
+- **Pr. Christophe Borg (CHU Besançon, France)** — PI, UCPVax HPV-telomerase vaccine + atezolizumab (VolATIL,
+  NCT03946358). *International* modality anchor.
+- *Industry study directors (not academic SAB, but modality-adjacent):* Kirk V. Shepard, MD (PDS Biotechnology);
+  Head of Clinical Development (Hookipa Biotech).
+
+### B2. Non-Texas institutions that ran the flagship modality (PDS0101+pembro, NCT06790966) — cold, identify site PI
+UNC Chapel Hill · Yale · Emory Winship · Mayo Clinic (Rochester / Florida / Arizona) · University of Michigan ·
+University of Maryland · Ohio State (James) · Fox Chase · Medical University of South Carolina · University of
+Virginia · Penn State Health · University of Kentucky / University of Louisville / Norton · Karmanos (Detroit) ·
+University of Kansas · University of Tennessee (Knoxville) · West Virginia University. *(Source: NCT06790966
+facility list; each site's PI must be identified before outreach — not asserted here.)*
+
+### B3. Other HPV-vaccine-trial institutions (named-PI TBD) — broader cold pool
+From related HPV16 vaccine ± checkpoint trials (NCT04180215 Hookipa; NCT04084951 / NCT04892043 / NCT05357898
+SQZ): MSKCC · Mount Sinai (Icahn) · NYU Langone / Grossman · Montefiore-Einstein · Massachusetts General ·
+Cedars-Sinai · USC Norris · UCLA · UC San Diego Moores · City of Hope · Sylvester (Miami) · University of
+Chicago · Washington University St. Louis · Vanderbilt · Cleveland Clinic · University of Colorado Anschutz ·
+Roswell Park · Rutgers · Masonic (U Minnesota) · OHSU / Providence (Portland). *(Institution-level only;
+identify the HPV-IO PI at each before outreach.)*
 
 ---
 
@@ -195,12 +220,11 @@ Aim for ≥1 signed Letter of Support before Oct 31 (a call + verbal intent is a
   folded in** (A3/A3b/C1). The named contacts are as recorded in that file (titles are often role-placeholders,
   e.g. "Chief Genomics Officer"); **emails must be re-confirmed before any send**. Its 7 `energy`-segment entries
   (bioremediation/biofuels) were excluded as non-clinical.
-- **"Beyond Texas" coverage is CRO/clinical-lab-heavy** (C2 national CROs/labs) and **physician-light**
-  (B = Weiss/UNC only). Expanding out-of-state *physician/faculty* coverage requires fresh sourced web research;
-  it was **attempted but not completed this session (web-search budget exhausted)** and is deliberately left as a
-  TODO rather than populated with unsourced names. Candidate modalities to source next: national HPV16+ HNSCC
-  therapeutic-vaccine + checkpoint investigators (Johns Hopkins / Dana-Farber / MSKCC / UCSF / Moffitt / Mayo
-  tier) and cyclic-peptide / radioligand clinical leads — each to be added only with a citation.
+- **"Beyond Texas" (§B) is now populated from ClinicalTrials.gov registry data** (WebSearch was unavailable —
+  budget exhausted — so the registry API was used instead; no unsourced names were added). Honest limits: only
+  **named** out-of-state PIs are Weiss (UNC), Floudas (NCI), and Borg (CHU Besançon, international); the rest are
+  **institution-level cold targets** (B2/B3) whose site PIs the registry did not name and must be identified
+  before outreach. Cyclic-peptide / αvβ6 / radioligand clinical leads were **not** sourced this pass (next TODO).
 - **Company emails** (Mongoose, ImmunoGenesis) and CRO email drafts carry prior ✓/✓fmt provenance — re-verify
   format before sending; Diakonos/7 Hills/ImmunoMet have no verified personal address (use contact form/PR).
 - **BioMate capability caveats** (A2/C2 above) must not be over-promised.
