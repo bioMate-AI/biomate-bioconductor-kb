@@ -26,6 +26,16 @@ The **Small Business Innovation and Economic Security Act of 2026** (S.3971, sig
 
 **Implication for this survey.** Part 5A (US federal grants) is scientifically a strong fit but is **blocked unless corporate counsel can cleanly firewall the US entity** (no China subsidiary/parent, ≥51% US-citizen/PR ownership, no key personnel with a *current* PRC institutional affiliation). This is a corporate-structure decision that must precede any US federal grant spend. It does **not** affect: China local grants, Wellcome Leap (apply via US entity), open-data consortia, compute credits, pharma open-innovation programs, or challenges. Those remain actionable now. (Source: grants research pass, 2026-10-05.)
 
+> **Structure confirmed (2026-10-05):** the intended structure is a **US company + a China subsidiary.**
+> NOT-OD-26-074's language explicitly names a "**subsidiary** located in the PRC" (not only a PRC
+> parent/owner), so this structure **does** trigger the "cannot make an award" bar for NIH/NSF/ARPA-H
+> SBIR/STTR, with no remediation. **This is a deliberate tradeoff, and likely the right one:** the China
+> sub is an *asset* for China local grants, China-market data-residency, and Shanghai pharma on-ramps
+> (JLABS Shanghai, Bayer Co.Lab), which plausibly outweigh US federal SBIR. The *only* way to also keep US
+> SBIR would be to structure the China entity so it is **not a subsidiary of the US applicant** (e.g., an
+> independent/sister company or a contractor relationship) — a corporate-counsel decision, to weigh only if
+> the NIAID/NIAMS autoimmune SBIR is judged strategically worth it. **Not legal advice — confirm with counsel.**
+
 ---
 
 ## 1 · Pharma open / external-innovation programs
