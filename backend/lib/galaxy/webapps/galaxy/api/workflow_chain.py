@@ -1035,6 +1035,32 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
         chain_run_id = request.chain_run_id or f"chain_{int(time.time())}_{os.urandom(3).hex()}"
         resolved_steps = _resolve_submit_steps(request.steps)
 
+        # Bind the chain's display name to what actually runs. A stale multi-phase
+        # chain_name (e.g. a curated "Bulk RNA-seq DE -> Pathway Enrichment"
+        # inherited from a prior turn's chain_hint) must not land on a single-step
+        # run — that is how an ADMET run came back labelled as RNA-seq. For a
+        # 1-step chain, name it after its one workflow; otherwise derive a name
+        # from the steps when none was given. See docs/20261006_CHAIN_* .
+        chain_name_final = request.chain_name
+        _step_names = [
+            (s.get("workflow_name") or s.get("nextflow_path") or "").strip()
+            for s in resolved_steps
+        ]
+        _step_names = [n for n in _step_names if n]
+        _req_name = (request.chain_name or "").strip()
+        if len(resolved_steps) == 1 and _step_names:
+            # A single-workflow chain can only legitimately be named after its one
+            # workflow. Drop any multi-phase/mismatched name trusted from the request.
+            if (not _req_name) or ("->" in _req_name) or ("→" in _req_name) or (_req_name != _step_names[0]):
+                if _req_name and _req_name != _step_names[0]:
+                    log.warning(
+                        "[chain] dropping stale chain_name %r on single-step run (binding to %r)",
+                        _req_name, _step_names[0],
+                    )
+                chain_name_final = _step_names[0]
+        elif not _req_name and _step_names:
+            chain_name_final = " -> ".join(_step_names)
+
         steps_state = [
             {
                 "index": i,
@@ -1054,7 +1080,7 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
 
         state: Dict[str, Any] = {
             "chain_run_id": chain_run_id,
-            "chain_name": request.chain_name,
+            "chain_name": chain_name_final,
             "chat_session_id": request.chat_session_id,
             "connections": request.connections or [],
             "end_at_step": int(end_at) if end_at is not None else None,
