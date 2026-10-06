@@ -78,7 +78,17 @@ for d in $DOMAINS; do
   # Best-effort run_id extraction from the test's own logging.
   rid="$(grep -hoiE "run[_ ]?id[\": =]+[0-9a-f-]{36}" "$log" | grep -oE "[0-9a-f-]{36}" | head -1)"
   [ -n "$rid" ] || rid="—"
-  if [ "$rc" -eq 0 ]; then res="PASS"; else res="FAIL(rc=$rc)"; FAILS=$((FAILS+1)); fi
+  # Playwright exits 0 for a SKIPPED/fixme test too — don't let that masquerade as a
+  # real green run. Detect "N skipped" with zero passed and report SKIP distinctly.
+  if [ "$rc" -eq 0 ]; then
+    if grep -qE '[0-9]+ skipped' "$log" && ! grep -qE '[0-9]+ passed' "$log"; then
+      res="SKIP(no run)"
+    else
+      res="PASS"
+    fi
+  else
+    res="FAIL(rc=$rc)"; FAILS=$((FAILS+1))
+  fi
   RESULTS="${RESULTS}${d}|${res}|${rid}"$'\n'
   printf "  → %s  run_id=%s\n\n" "$res" "$rid" | tee -a "$SUMMARY"
 done
@@ -86,7 +96,7 @@ done
 printf "\n${C_WARN}════ SUMMARY ════${C_RST}\n" | tee -a "$SUMMARY"
 printf "%s" "$RESULTS" | while IFS='|' read -r d res rid; do
   [ -n "$d" ] || continue
-  case "$res" in PASS) c=$C_OK;; *) c=$C_FAIL;; esac
+  case "$res" in PASS) c=$C_OK;; SKIP*) c=$C_WARN;; *) c=$C_FAIL;; esac
   printf "  ${c}%-8s %-12s${C_RST} run_id=%s\n" "$d" "$res" "$rid" | tee -a "$SUMMARY"
 done
 printf "\n%s\n" "$([ "$FAILS" -eq 0 ] && echo "${C_OK}ALL GREEN${C_RST}" || echo "${C_FAIL}${FAILS} domain(s) failed${C_RST}")" | tee -a "$SUMMARY"
