@@ -14414,12 +14414,23 @@ Respond ONLY with valid JSON (no markdown wrapper):
   "caveats": ["<caveat 1>"]
 }`;
 
-          const rawText = await callGeminiFlash({
-            messages: [{ role: 'user', content: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}` }],
-            system: SYSTEM,
-            maxTokens: 32768,
-            jsonMode: true,
-          });
+          let rawText = '';
+          try {
+            rawText = await callGeminiFlash({
+              messages: [{ role: 'user', content: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}` }],
+              system: SYSTEM,
+              maxTokens: 32768,
+              jsonMode: true,
+              // Bound the findings synthesis so a stalled LLM call can never leave the
+              // findings cache stuck on `_generating` ("Analysis in progress…") forever.
+              signal: AbortSignal.timeout(90_000),
+            });
+          } catch (geminiErr: any) {
+            // Gemini stalled / timed out / errored. Leave rawText empty so the JSON
+            // parse below fails and the existing Claude (Haiku) fallback fires — i.e.
+            // BioMate AUTO-RECOVERS by switching models instead of hanging forever.
+            console.warn('[Findings] Gemini findings call failed/timed out:', geminiErr?.message, '— falling back to Claude');
+          }
           console.log(
             `[Findings] gemini returned: length=${rawText.length} ` +
               `firstChar=${JSON.stringify(rawText.slice(0, 1))} ` +

@@ -37,6 +37,30 @@ interface CallGeminiFlashOpts {
  * Call Gemini 3 Flash with an Anthropic-style messages array.
  * Returns the response text.
  */
+// Hard safety-net timeout: the @google/generative-ai SDK does not honour the
+// opts.signal we accept, and a stalled provider call otherwise hangs forever
+// (observed: workflow findings stuck on "Analysis in progress…" indefinitely
+// when no deterministic preprocessor exists). Race every SDK call against both
+// the caller's signal (if any) and a hard cap so the call always settles.
+const GEMINI_HARD_TIMEOUT_MS = 180_000;
+function withGeminiTimeout<T>(p: Promise<T>, signal?: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`callGeminiFlash timed out after ${GEMINI_HARD_TIMEOUT_MS}ms`)),
+      GEMINI_HARD_TIMEOUT_MS,
+    );
+    const onAbort = () => { clearTimeout(timer); reject(new Error('callGeminiFlash aborted by caller signal')); };
+    if (signal) {
+      if (signal.aborted) { clearTimeout(timer); return reject(new Error('callGeminiFlash aborted by caller signal')); }
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+    p.then(
+      (v) => { clearTimeout(timer); if (signal) signal.removeEventListener('abort', onAbort); resolve(v); },
+      (e) => { clearTimeout(timer); if (signal) signal.removeEventListener('abort', onAbort); reject(e); },
+    );
+  });
+}
+
 export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string> {
   if (localOnly()) {
     if (!opts.messages.length) return '';
@@ -91,7 +115,7 @@ export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string
   };
 
   if (messages.length === 1) {
-    const result = await model.generateContent(messages[0].content);
+    const result = await withGeminiTimeout(model.generateContent(messages[0].content), opts.signal);
     reportTruncation(result.response);
     return result.response.text();
   }
@@ -111,7 +135,7 @@ export async function callGeminiFlash(opts: CallGeminiFlashOpts): Promise<string
   const history = mappedHistory.slice(firstUserIdx);
   const lastMessage = messages[messages.length - 1].content;
   const chat = model.startChat({ history });
-  const result = await chat.sendMessage(lastMessage);
+  const result = await withGeminiTimeout(chat.sendMessage(lastMessage), opts.signal);
   reportTruncation(result.response);
   return result.response.text();
 }
