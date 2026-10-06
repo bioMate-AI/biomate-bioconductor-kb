@@ -90,3 +90,53 @@ Build a thin **deployment-scope layer** (small — it reuses the catalog DB + th
 **Net:** on-prem *deployment* is ready and quick; on-prem *scoping* (choose domains/tasks/instruments) is a
 documented, recommended, **not-yet-built** capability — achievable manually today, and a small layer away
 from being a one-command build.
+
+---
+
+## VERIFIED 2026-10-05 (code-grounded, cross-branch) + COMPUTE-RESOURCE CONFIG
+
+Follow-up to answer two user questions precisely: (1) how convenient is *scoped* on-prem delivery, and
+(2) is there convenient configuration of **local/remote compute** on-prem. Verified against actual code on
+both `cursor/tutorial-live-recording-and-report-editing-4ea7` (this worktree) and `integration/next-phase`.
+
+### Branch location (correction to the first pass)
+The on-prem *stack* is on **`integration/next-phase`**, NOT this feature branch. Confirmed present on
+next-phase: `docker-compose.onprem.yml`, `.env.onprem.example`, `backend/docker/biomni-tools/Dockerfile.onprem`,
+`.github/workflows/build-biomni-tools-onprem-image.yml`, `docs/ONPREM_SETUP.md` (full bilingual setup guide:
+quick-start, LLM-provider config, admin panel, storage, DB updates, Ollama offline, HTTPS, backup/restore),
+`docs/ONPREM_IP_PROTECTION.md`, `docs/20260926_ONPREM_SIM_TEST_RESULTS.md`, and a single-node admin UI. So the
+on-prem footprint is **more complete than this doc's first pass implied** — a full-catalog on-prem appliance
+is genuinely deployable+documented today. (On *this* branch those files are absent; only `infra/local-trial/`
++ the `BIOMATE_LOCAL_ONLY` local-LLM hook exist here.)
+
+### Q2 — Compute-resource configuration on-prem: local-only appliance, no cluster/sizing knobs
+Executor selection (`backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py`): if `NEXTFLOW_USE_AWS=true`
+OR `executor=awsbatch` OR any S3 path → **AWS Batch**; else → **local subprocess**. `.env.onprem.example`
+exposes exactly this surface: `NEXTFLOW_USE_AWS=false` (local Docker on the node), `NEXTFLOW_WORK_DIR`
+(default `/app/nf-work`, host bind-mount), `BIOMATE_LOCAL_REGISTRY` (`localhost:5050`), `BIOMATE_NFCORE_URL`
+(air-gap workflow bundle), `BIOMATE_BIOC_CONTAINER` (point at local-registry images), Ollama/vLLM for the LLM.
+
+**Gaps (the real answer to "convenient local/remote compute config"):**
+1. **No remote-cluster option.** Only `awsbatch` and `local` get a generated executor config
+   (`_generate_executor_config` returns `None` for anything else → plain local). **Slurm is half-wired**:
+   there is a config-gen branch (`executor='slurm'` + `slurm_partition`/`slurm_qos` → `clusterOptions`) and
+   per-workflow `slurm` profiles ship in many `nextflow.config` files, but it is **not env-selectable, injects
+   no resource tiers, and is undocumented**. **PBS/SGE/LSF/Kubernetes/GCP/Azure: unsupported.** An on-prem
+   customer cannot conveniently point BioMate at an existing HPC/Slurm/K8s cluster.
+2. **No central compute sizing on local.** The per-job CPU/mem/GPU tiers (`resource_resolver.py` `RESOURCE_TIERS`:
+   process_single 1c/6G … process_high_memory 12c/200G; GPU via a GPU queue) are injected **only in the AWS
+   Batch branch** of `nextflow_executor.py`. For **local** (and slurm) they are NOT injected — job sizing comes
+   from each workflow's own `.nf` directives, and there is **no BioMate knob** to cap/size jobs or request GPU
+   on a local on-prem install. GPU routing is Batch-queue-only.
+
+**Verdict:** on-prem is a well-packaged **single-node local-Docker appliance** — convenient for "run on this
+box." It is **not** convenient (not built) for "use our N-node HPC/Slurm/K8s cluster" or for a central
+CPU/mem/GPU policy. Closing it is well-scoped: an env/compute_config-selectable executor (slurm/k8s) **plus**
+resource-tier injection for the non-Batch branches (today those tiers are Batch-only).
+
+### Q1 — Scoped delivery: re-confirmed state
+`export_deployment_manifest.py` (offline): `--domains`/`--workflows` → `tool_allowlist` + `container_mirror_resolved`
+(mostly empty — `container_info.image` is blank in the DB today) + `license_gated_tools` + workflow list. Verified
+there is **no** other subsetting tool, **no** consumer of the manifest, and **no** launch-time enforcement
+(the direct-execute path runs any `.nf` on disk). Still missing: scoped DB emission, `.nf`/image bundling,
+per-deployment instrument manifest, add-on packs — i.e. the recommendation block above stands unbuilt.
