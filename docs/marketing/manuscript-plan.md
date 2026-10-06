@@ -146,10 +146,19 @@ published as a capability result; it needs a proper **node/edge-F1 dependency-gr
 larger, held-out decomposition test set plus an error taxonomy of dependency-graph mis-wirings
 before any number is cited. (c) Reproducibility: the served-model + scorer pipeline
 must be packaged for independent replay.
-**Next work.** Run the **full-corpus CPT decision row** (catalog / LLM+harness score) that is still
-pending (`docs/20260912_onprem_llm/20261004_REALBIO_LLM_VS_HARNESS.md` "Still pending"): if full-corpus
-catalog ≈ base catalog, the cost/compliance conclusion is firm; if it materially exceeds base, domain
-CPT is a scaling lever. Build a **held-out decomposition benchmark** (beyond the 9,717 training
+**CPT decision row — ANSWERED (2026-10-06, `docs/20260912_onprem_llm/20261006_LLM_HARNESS_DOMAINPRO_EVAL.md`).**
+The concept-CPT+SFT "domainpro" was run base-vs-domainpro through the RealBio LLM+harness: knowledge lifts
+(**litqa2 +6.0pp, coverage +21pp**) but the harness-assisted tasks **regress** (**routing −16pp, McNemar
+p=7.7e-6; param_prefill −6pp F1**) — the SFT traded format/instruction discipline for knowledge (238 vs 9
+output tokens on routing). So domain CPT is **not a free end-to-end scaling lever**: it helps the
+knowledge-bound slice and hurts the LLM-selection/extraction heads, confirming the task-split thesis. Caveat:
+the described-menu routing is an *LLM-menu-pick* instrument; the production dense-cosine retriever (model-
+invariant) was not exercised and is likely unaffected. The paper reports this honestly (knowledge↑/harness↓
+tradeoff) rather than a clean "CPT wins." (The companion knowledge-MCQA proxy — `20261006_FULLER_CPT_EVAL_RESULTS.md`
+— shows +5.4pp raw / **+3.8pp dedup-controlled**, peaking at ~800 CPT steps; cite the dedup figure externally.)
+**Next work.** Isolate the production dense-retriever routing path (base vs domainpro downstream only,
+expected ≈0 Δ) to separate the retriever from the LLM-selection head; re-mix the SFT with terseness/format
+discipline and re-run the harness; rebuild domainpro on the CPT-800 peak. Build a **held-out decomposition benchmark** (beyond the 9,717 training
 instances in `train_task_decomposition`) with explicit parallel/sequential/mixed dependency labels,
 and report **structure accuracy with coverage held at 1.0** to isolate dependency reasoning. Publish
 the **described-menu prompt + scorer + served-base checkpoint** for replay.
