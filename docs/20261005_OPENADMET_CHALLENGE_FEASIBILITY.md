@@ -260,3 +260,21 @@ it in the time with what we have — so don't pretend otherwise, and don't spend
     `backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/qsar_rf_model/main.nf`;
     `backend/lib/galaxy/ai/compute/run_spec.py`; `docs/20261004_HERO_A_CASE_STUDY.md`;
     `docs/20261004_DL_ML_MODULE_TUTORIAL_PLAN.md`
+
+## Correction (2026-10-05, founder-flagged): BioMate's training capability is broader than stated above
+The claim that BioMate "ships none of these as capability" was **too strong**. The catalog has **68
+ML-training workflows**, including train-on-your-own-data paths: `Qsar Rf Model` + `herg_cardiac_safety_qsar`
+(trainable QSAR RF), `mlinterfaces_multi_classifier_evaluation` (multi-classifier/ensemble evaluation),
+`classifyr` + `classifyr_multi_view_integration` + `classifyr_parameter_tuning` +
+`classifyr_advanced_modelling_and_evaluation` (multi-view modeling + tuning), `bambu_custom_model_training_
+and_application` / `scclassify_train_custom_model` / `cellity_svm` (custom-model training), and **`run_code`**
+(arbitrary sklearn / XGBoost / PyTorch on user data).
+
+**Refined gap + unchanged verdict:** the limiter is NOT missing capability — it is (a) no *turnkey one-click*
+**multitask (joint 4-isoform) pIC50-regression stacked-ensemble + scaffold-CV + uncertainty** workflow (you'd
+assemble it from the pieces above + `run_code`), and (b) the stock `predict_admet_properties` is a frozen
+*classification* model (wrong endpoint for the Direct pIC50 track). So the real OpenADMET constraint is the
+**engineering time to assemble + tune** a top-tier ensemble within 4 weeks against the Q4 preprint sprint +
+first pilot — not a capability absence. **NO-GO stands** (time/opportunity-cost), with this corrected reason.
+The Q1 roadmap item is therefore **"productize a turnkey multitask/ensemble QSAR workflow from the existing
+pieces,"** not "build a capability we lack."
