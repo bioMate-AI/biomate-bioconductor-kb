@@ -168,6 +168,10 @@ m=cfg.get("model")
 if isinstance(m,dict) and "refolding_validator" in m: m["refolding_validator"]=None
 tr=cfg.setdefault("trainer",{})
 tr["devices"]=[0]; tr["max_steps"]=max_steps; tr["num_sanity_val_steps"]=0
+# EPOCH cap too: the bad-sample skip-resample stalls global_step (epoch 50/179 reached with
+# max_steps=3000), so step-based stopping AND step-based checkpointing never fire. Cap epochs and
+# checkpoint PER-EPOCH (epochs DO advance) so a durable ckpt is guaranteed regardless of global_step.
+tr["max_epochs"]=int(os.environ.get("MAX_EPOCHS","12"))
 tr["limit_val_batches"]=0; tr["val_check_interval"]=max(50, max_steps)  # validator nulled -> no val/lddt
 # Fix checkpoint saving: the shipped ModelCheckpoint monitors val/lddt (never logged here) so nothing
 # saves. Force save_last + save_every_n_train_steps + drop the monitor, so the fine-tuned ckpt is produced.
@@ -175,9 +179,11 @@ def fix_ckpt(o):
     if isinstance(o,dict):
         if "ModelCheckpoint" in str(o.get("_target_","")) or ("monitor" in o and "dirpath" in o) or o.get("monitor")=="val/lddt":
             o["save_last"]=True; o["monitor"]=None; o["save_top_k"]=1
-            # FREQUENT + fixed (not max_steps//3, which left the first ckpt too late and the 2026-10-05
-            # crash with zero recoverable ckpts). Checkpoint to a known dir that the launcher streams to S3.
-            o["every_n_train_steps"]=min(300, max(50, max_steps//4)); o.pop("save_every_n_train_steps",None)
+            # PER-EPOCH checkpointing: global_step is stalled by the skip-resample, so step-based
+            # ckpts never fire (the 2026-10-05 and first 2026-10-06 runs reached epoch 50-179 with
+            # ZERO ckpts). Epochs advance, so save every epoch + save_last; keep a step trigger too.
+            o["every_n_epochs"]=1; o["save_on_train_epoch_end"]=True
+            o["every_n_train_steps"]=min(200, max(50, max_steps//4)); o.pop("save_every_n_train_steps",None)
             if ckpt_dir: o["dirpath"]=ckpt_dir
         for v in o.values(): fix_ckpt(v)
     elif isinstance(o,list):
