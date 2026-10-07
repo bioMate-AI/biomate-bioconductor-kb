@@ -4384,71 +4384,16 @@ Rules:
       }
     }
 
-    // PBPK prereq gate: before workflow generation, verify SMILES + CLint + fu_plasma are present.
-    // This must run BEFORE _clarificationGate so it overrides the workflow generation path.
-    if (actions.needsWorkflowGeneration) {
-      // Skip generic PBPK gate for named-tool queries — they route directly to the named workflow.
-      const _isNamedPkToolQueryGate = /\b(pk.?sim|pksim|open systems pharmacology|osp suite|simcyp|nonmem|nmfe7|foce.?i|fcrn|fc.?rn|ich.?s7a|safety pharmacology|kaplan.meier|km curve|survival analysis|pediatric pbpk|paediatric pbpk|pediatric dose|nlmixr2|population pk|poppk)\b/i.test(message);
-      const _isPbpkIntent = !_isNamedPkToolQueryGate && (
-        /\b(pbpk|physiologically[- ]based|full[- ]?pk|human[- ]pk|predict.{0,20}pharmacokinetics?|organ[- ]level[- ]pk|mechanistic[- ]pk|pk[- ]simulation|pk[- ]profile|pharmacokinetic[- ]simulation|whole[- ]body[- ]pk|pk[- ]model|human[- ]pharmacokinetics?|predict[- ]human[- ]pk|pharmacokinetics?\s+of)\b/i.test(message)
-        || (/\bphysiol/i.test(message) && /\bpk\b/i.test(message))
-      );
-      if (_isPbpkIntent) {
-        // Check for SMILES: atom pattern like CC(, c1c, [nH], lowercase aromatic rings, etc.
-        // Uses two strategies: (1) broad atom token pattern, (2) SMILES-after-"for" token check
-        // Strategy 1: common SMILES fragments that don't require word-boundary (appear only in SMILES)
-        const _hasSmilesToken1 = /\b([A-Z][a-z]?\(|c1|CC\(|n1|N\(|O=|F[^a-z]|Cl[^a-z]|Br[^a-z])/.test(message)
-          || /\(=O\)/.test(message)   // carbonyl/ester/amide — unique to SMILES
-          || /\[n[Hh]\]/.test(message) // aromatic NH in SMILES
-          || /[a-z]{2,}\d/.test(message.replace(/\b[a-z]{4,}\b/g, '')); // ring-closure digits after lowercase
-        // Strategy 2: look for SMILES in the token AFTER "for [name] [SMILES]" (name + SMILES pattern)
-        const _smilesAfterFor = (message.match(/\bfor\s+\S+\s+(\S+)/) || message.match(/\bfor\s+(\S+)/) || [])[1] || '';
-        const _hasSmilesToken2 = /[a-z]\d|[A-Z]\d|\(=O\)|=O\)|\[n[H]\]|[cn][0-9]/.test(_smilesAfterFor);
-        // Strategy 3: any word-like token containing SMILES brackets or ring-closure digits
-        const _hasSmilesToken3 = /[A-Za-z0-9]\([A-Za-z=]/.test(message) && /[a-z]\d/.test(message);
-        const _hasSmilesInMessage = _hasSmilesToken1 || _hasSmilesToken2 || _hasSmilesToken3 || /\.sdf\b/i.test(message);
-        // Check for CLint: numeric value after CLint/intrinsic clearance keyword
-        const _hasClintInMessage = /\b(clint|cl_int|intrinsic.clearance)\s*[=:]\s*[\d\.]+/i.test(message)
-          || /\bclint\s+[\d\.]+/i.test(message)
-          || /\b[\d\.]+\s*ul\/min\/mg/i.test(message);
-        // Check for fu_plasma: numeric value after fu keyword
-        const _hasFuPlasmaInMessage = /\b(fu_plasma|fu.plasma|unbound.fraction|fu)\s*[=:]\s*[\d\.]+/i.test(message);
-
-        if (!_hasSmilesInMessage) {
-          log('PBPK prereq gate: SMILES missing — returning clarification');
-          actions.needsWorkflowGeneration = false;
-          const _pbpkSmilesQuestion = 'To run the PBPK simulation, I need your compound\'s **SMILES string** (molecular structure — e.g. `CC(=O)Oc1ccccc1C(=O)O` for aspirin). Please provide it so I can set up the 8-compartment model.';
-          return {
-            message: _pbpkSmilesQuestion,
-            intentType: intent.type,
-            intentConfidence: intent.confidence,
-            recommendedTools: recommendedTools.length > 0 ? recommendedTools : undefined,
-            recommendedDatasets: recommendedDatasets.length > 0 ? recommendedDatasets : undefined,
-            workflowSuggestion: { shouldGenerate: false, userIntent: message, confidence: 0, reasoning: 'PBPK prereq: SMILES missing' },
-            generatedWorkflow: null, researchResponse: undefined, benchmarkEvidence: undefined,
-            truncated: false, suggestions: [], sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false, knowledgeHighlightsUsed: false },
-          } as GalaxyAssistantResponse;
-        } else if (!_hasClintInMessage || !_hasFuPlasmaInMessage) {
-          const _missingPkParams = [
-            !_hasClintInMessage ? 'intrinsic clearance **CLint** (µL/min/mg)' : null,
-            !_hasFuPlasmaInMessage ? 'unbound plasma fraction **fu_plasma** (0–1)' : null,
-          ].filter(Boolean).join(' and ');
-          log(`PBPK prereq gate: PK params missing (${_missingPkParams}) — returning clarification`);
-          actions.needsWorkflowGeneration = false;
-          const _pbpkParamsQuestion = `To simulate full PBPK pharmacokinetics, I need the ${_missingPkParams} for your compound. What are these values?`;
-          return {
-            message: _pbpkParamsQuestion,
-            intentType: intent.type,
-            intentConfidence: intent.confidence,
-            recommendedTools: recommendedTools.length > 0 ? recommendedTools : undefined,
-            recommendedDatasets: recommendedDatasets.length > 0 ? recommendedDatasets : undefined,
-            workflowSuggestion: { shouldGenerate: false, userIntent: message, confidence: 0, reasoning: `PBPK prereq: ${_missingPkParams} missing` },
-            generatedWorkflow: null, researchResponse: undefined, benchmarkEvidence: undefined,
-            truncated: false, suggestions: [], sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false, knowledgeHighlightsUsed: false },
-          } as GalaxyAssistantResponse;
-        }
-      }
-    }
+    // PBPK: NO prereq gate. pbpk_simulation has a default for every param
+    // (SMILES=aspirin, CLint=45 µL/min/mg, fu_plasma=0.05, population=healthy_adult,
+    // dose=500 mg), so a bare "run a PBPK simulation" must one-click with defaults and
+    // let the user edit params in the panel — matching ADMET-from-SMILES and the
+    // data-first demo philosophy. The former gate here set needsWorkflowGeneration=false
+    // and returned a "please provide SMILES/CLint/fu_plasma" clarification whenever those
+    // were absent from the message, which contradicted the workflow's own defaults and
+    // produced chat_only (no card) for every plain PBPK request. User-supplied
+    // SMILES/CLint/fu_plasma are still extracted by normal param-prefill downstream, so
+    // removing the block loses nothing. See docs/20261006_BIOMATE_E2E_WORKFLOW_ISSUES.md §2.
 
     // BOIN prereq gate: if the message asks for a Phase I dose escalation trial but does NOT
     // provide dose levels, ask for them before generating the workflow.
