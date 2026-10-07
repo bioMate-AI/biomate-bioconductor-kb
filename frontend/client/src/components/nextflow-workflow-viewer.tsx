@@ -1812,8 +1812,7 @@ export function NextflowWorkflowViewer({
   // (e.g., star_index → STAR hints, salmon_index → Salmon hints).
   const renderedParameters = React.useMemo(() => {
     const base = buildViewerParameters(workflowDefinition, params);
-    if (Object.keys(toolHintMap).length === 0) return base;
-    return base.map((p: any) => {
+    const withHints = Object.keys(toolHintMap).length === 0 ? base : base.map((p: any) => {
       const pKey = (p.id || p.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       // Find any tool whose name is a substring of the param key
       const matchedTool = Object.keys(toolHintMap).find(toolKey => pKey.includes(toolKey));
@@ -1826,6 +1825,14 @@ export function NextflowWorkflowViewer({
         autoFilled: p.autoFilled === true,
       };
     });
+    // §7.4 param-origin: mark user-edited params so the "Edited" badge renders. The data
+    // comes from the existing userOverriddenParams ref (populated in handleParamChange on
+    // every edit). params changes on each edit → this memo recomputes and reads the ref
+    // fresh. Display-only + additive, so it cannot affect the edit/run flow. (Only
+    // `overridden`/Edited is wired; `inherited` stays unset until the backend flags
+    // project-sourced values — showing it now would be guessing.)
+    return withHints.map((p: any) =>
+      userOverriddenParams.current.has(p.id || p.name) ? { ...p, overridden: true } : p);
   }, [workflowDefinition, params, toolHintMap]);
 
   // Count params that belong to the Workflow Settings tab (not pinned to any phase).
