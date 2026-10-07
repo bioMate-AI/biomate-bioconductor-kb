@@ -60,6 +60,37 @@ Shared Drive **`biomateAI_grow`** (team drive `0AMMXec6zCdKbUk9PVA`) → `biomat
 5. Fix the recording resolution (§3); build the generation-first walkthrough HTML + EN/ZH narration on the real artifacts; render EN + ZH videos at high res.
 6. Upload to the shared drive (§5); provide direct links; document in `docs/`.
 
+## 8. Branding (added 2026-10-06, per user)
+
+Every slide/frame of every tutorial video (EN + ZH) must carry:
+- **Top-left:** the actual **BioMate logo image + the "BioMate" wordmark** together (not a
+  text-only "● BIOMATE" placeholder). Use the real logo asset, sized to sit cleanly in the slide
+  header. (The current deck header shows only a text mark — replace it.)
+- **Bottom-right:** a persistent call-to-action **"Free trial: www.biomate.ai"** (ZH: "免费试用：www.biomate.ai"),
+  small, unobtrusive, present on all frames.
+- Keep both overlays consistent across the whole series; they must not overlap slide content or the
+  page-number indicator.
+
+## 9. UI fidelity — the product UI currently lags the design (added 2026-10-06, BLOCKER for a polished render)
+
+Audit finding (2026-10-06): the videos faithfully show the **live dev product UI**, but that UI has
+**not** been brought up to `data_centroid_design_v2`. Verified by capturing live dev
+(`dev-public.biomate.ai`) and comparing to the design prototype. Concrete defects visible in the
+product (and therefore in the videos):
+- **Logo is broken** — the "BioMate" wordmark is overlapped by a stray "AI" + a busy DNA-leaf graphic
+  + BETA badge, all colliding in the top-left. The design has a clean "BioMate" wordmark.
+- **Double composer** — a top "Describe the goal" intent bar AND a bottom "Ask BioMate…" box on the
+  same screen; redundant/confusing. The design has one composer.
+- **Duplicate projects** — the sidebar lists the same project (e.g. "IL-17A Cyclic Peptide Pilot") 4×;
+  a real data/dedup bug.
+- **Cluttered sidebar** — a description line under every item; the design uses concise single-line entries.
+
+**Implication:** re-rendering now reproduces this unpolished UI. The correct order is: fix the product
+frontend to the design system → deploy to dev → re-capture screenshots → re-render with branding (§8).
+A side-by-side product-vs-design gap audit is in progress; its prioritized defect list is the input to
+the frontend fix. Screenshots under `reference/claude_design/tutorials_v2/assets/` are current-product
+captures and must be re-taken after the UI is aligned.
+
 ## 7. Key references
 
 - Execution evidence + reviewed payload: `docs/20261006_DRUG_GENERATION_EXECUTION_GATE.md`

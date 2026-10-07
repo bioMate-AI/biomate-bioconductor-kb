@@ -44,3 +44,31 @@ behind it · QC gates · Worked example · Outputs · Pitfalls · What's not cov
 ## Acceptance criteria
 All 40 chapters render; nav mirrors the Index; ledger-red items appear only under Roadmap; screenshots
 load; `npx tsc --noEmit` clean; no cost UI; every internal link resolves.
+
+---
+
+## Update 2026-10-06 (per user) — branding, bilingual, style fidelity, screenshot lag
+
+**Follow the design STYLE, not the mockup's function set.** `data_centroid_design_v2` defines the target
+*visual style/appearance/attractiveness* — it does NOT enumerate every product function (it shows only
+the major ones). Match its typography, color, spacing, iconography, radii/shadows and overall polish;
+keep every verified manual function even if the mockup doesn't depict it. Attractiveness is a first-class
+requirement. (See memory `feedback_design_mockup_is_style_ref`.)
+
+**Branding (new):**
+- Header carries the **real BioMate logo + "BioMate" wordmark** (clean — not the clipped/overlapping
+  "BioMate AI + DNA-leaf + BETA" currently rendered in the product; see the UI-fidelity note below).
+- A persistent **"Free trial: www.biomate.ai"** call-to-action (ZH: "免费试用：www.biomate.ai"),
+  unobtrusive, on every manual page (e.g. header or footer). This mirrors the video branding
+  requirement in `docs/20261006_REQUIREMENT_DRUGDEV_FULL_PROCESS_TUTORIAL.md` §8 — keep them consistent.
+
+**Bilingual (clarify):** render BOTH editions with a language switch —
+EN from `docs/user-manual/tutorials/*.md` and ZH from `docs/user-manual/tutorials/zh/*.zh.md`
+(e.g. the drug-dev chapter `T11-drug-development-end-to-end.zh.md`). Chinese must read idiomatically.
+
+**Screenshot lag (important):** the `docs/user-manual/assets/*.png` are captures of the CURRENT product
+UI, which lags the design system (clipped logo, double composer, duplicate project rows, verbose
+sidebar — see `docs/20261006_REQUIREMENT_DRUGDEV_FULL_PROCESS_TUTORIAL.md` §9 and the in-progress
+style-gap audit). Treat them as placeholders: they should be re-captured after the product UI's
+*appearance* is brought up to the design system. Do not present current screenshots as the polished
+reference UI.
