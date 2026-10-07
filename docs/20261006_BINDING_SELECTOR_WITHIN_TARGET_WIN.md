@@ -62,8 +62,12 @@ designability, not display-based binding).
   "did we use the longitudinal data" prompt.
 
 ## Next (robustness + composition)
-0. **Re-eval PADI4 selector against TRAJECTORY-CLEAN binders** (187 clean positives, exclude the 207
-   jackpots) — the immediate payoff: a less-noisy, more honest AUC + cleaner training labels.
+0. **DONE — PADI4 selector re-eval against TRAJECTORY-CLEAN binders:** AUC **0.963 → 0.987** (vs the
+   ~50%-jackpot-contaminated log2fc label; clean positives in the held-out test n=33, so noisier but
+   clearly higher), lift@5% 14.3×. The selector's apparent misses against the noisy label were largely
+   it correctly DOWN-RANKING jackpot artifacts — against the trajectory-verified real binders it is
+   sharper. The previously-unused longitudinal round trajectory both **denoised the label and validated
+   the selector**. (`results/cyclic_llm_selector_PADI4_clean.json`.)
 1. **Fix the confound**: length-normalized / EOS-excluded LLR (or per-residue mean log-prob); re-check
    hPCSK9 → aim for AUC>0.6 on 4/4.
 2. **Compose over base BoltzGen**: use the selector to re-rank base-BoltzGen-generated cyclic sequences

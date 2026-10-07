@@ -118,10 +118,24 @@ def run(args):
     def lift(frac):
         k = max(1, int(len(test) * frac)); idx = np.argsort(-llr)[:k]
         return round(float(y[idx].mean()) / base_rate, 3) if base_rate > 0 else None
+    # TRAJECTORY-DENOISED eval: if a clean/jackpot binder split is supplied, re-score AUC with ONLY
+    # trajectory-clean binders as positives, true non-binders as negatives, and jackpot "binders" DROPPED.
+    auc_clean = None; n_clean_pos = None
+    if args.clean_binders_json:
+        import json as _j
+        blob = _j.load(open(args.clean_binders_json))
+        clean = set(blob.get("clean_binder_seqs", [])); jack = set(blob.get("jackpot_binder_seqs", []))
+        keep = [i for i, r in enumerate(test) if (r["seq"] in clean) or (not r["is_binder"] and r["seq"] not in jack)]
+        if keep:
+            yc = np.array([1 if test[i]["seq"] in clean else 0 for i in keep])
+            if 0 < yc.sum() < len(yc):
+                auc_clean = round(float(roc_auc_score(yc, norm[keep])), 4); n_clean_pos = int(yc.sum())
     res = {"target": args.target, "n_test": len(test), "test_binders": int(y.sum()),
            "base_binder_rate": round(base_rate, 4),
            "selector_AUC_binder_vs_LLR": round(auc_norm, 4),      # operative = length-normalized
            "AUC_raw_residue_sum": round(auc_raw, 4),              # pre-fix, for comparison
+           "AUC_vs_trajectory_clean_binders": auc_clean,         # denoised positives (jackpots excluded)
+           "n_clean_positives": n_clean_pos,
            "binder_lift_top5pct": lift(0.05), "binder_lift_top10pct": lift(0.10),
            "verdict": ("WIN: display-conditioned LM ranks held-out binders (AUC>0.6, lift>1.5)"
                        if (auc > 0.6 and (lift(0.05) or 0) > 1.5) else
@@ -144,6 +158,7 @@ def main():
     ap.add_argument("--n-head", type=int, default=8); ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--oversample-hi", type=int, default=8); ap.add_argument("--out")
     ap.add_argument("--max-test", type=int, default=4000)
+    ap.add_argument("--clean-binders-json", help="trajectory_denoise.py output; re-score AUC vs clean binders")
     run(ap.parse_args())
 
 
