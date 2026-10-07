@@ -45,7 +45,25 @@ designability, not display-based binding).
   binders. That composition (base structure × our binding selector × closed loop) is the defensible
   product, and this is the first hard evidence the binding half works.
 
+## Update (2026-10-06, follow-ups — honest corrections)
+- **Length was NOT the confound.** Re-ran with a length-normalized / EOS-excluded per-residue LLR:
+  AUC ≈ unchanged on all targets (hPCSK9 0.344 vs raw 0.344; Abeta42 0.988; hIAPP 0.681). Peptides are
+  ~uniform length within a target, so normalization is a no-op. **hPCSK9 is a genuine target-specific
+  failure** (XL-RaPID photo-crosslink chemistry, 2-point input/output data) — not an artifact; do not
+  claim a length fix. Win stands at **3/4** (PADI4 ~0.97, Abeta42 0.99, hIAPP 0.68).
+- **Longitudinal round trajectory — the previously-unused signal (only PADI4/FIKK13 are multi-round;
+  hPCSK9/Abeta42/hIAPP are 2-point, so nothing to denoise there).** Reconstructing PADI4's R2→R6 per-
+  peptide count trajectory (`cyclic_llm/trajectory_denoise.py`, `results/trajectory_PADI4.json`):
+  **52.5% of the 394 terminal-log2fc "binders" are JACKPOT-like** (non-monotonic / not peaking in final
+  rounds — likely PCR/amplification artifacts), vs 47.5% clean monotonic binders. Clean vs jackpot
+  separate cleanly on monotonicity (**0.825 vs 0.531**) and slope (0.92 vs 0.59). **The binder label
+  we'd been training/evaluating on is ~half-contaminated** — and the longitudinal data we had collected
+  but collapsed to a 2-point log2fc fixes it. This is real denoising signal, directly from the user's
+  "did we use the longitudinal data" prompt.
+
 ## Next (robustness + composition)
+0. **Re-eval PADI4 selector against TRAJECTORY-CLEAN binders** (187 clean positives, exclude the 207
+   jackpots) — the immediate payoff: a less-noisy, more honest AUC + cleaner training labels.
 1. **Fix the confound**: length-normalized / EOS-excluded LLR (or per-residue mean log-prob); re-check
    hPCSK9 → aim for AUC>0.6 on 4/4.
 2. **Compose over base BoltzGen**: use the selector to re-rank base-BoltzGen-generated cyclic sequences

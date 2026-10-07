@@ -46,7 +46,8 @@ def _bucket(e):
 
 
 def seq_loglik(model, seq, enr_b, dev):
-    """sum log P(residues+EOS | <e_enr_b>, BOS, ...) under the LM."""
+    """Return (sum logP over RESIDUES only [no EOS], n_residues) given <e_enr_b>,BOS context.
+    Excluding EOS removes the length-via-EOS confound; the caller can sum or length-normalize."""
     import torch
     ids = [STOI[f"<e_{enr_b}>"], STOI[BOS]] + [STOI[c] for c in seq] + [STOI[EOS]]
     x = torch.tensor([ids], device=dev)
@@ -54,9 +55,9 @@ def seq_loglik(model, seq, enr_b, dev):
         logits = model(x[:, :-1])                       # predict ids[1:]
         logp = torch.log_softmax(logits[0], -1)
     tgt = x[0, 1:]
-    # sum log-prob from the first RESIDUE onward (skip BOS prediction) through EOS
-    tok_lp = logp[torch.arange(len(tgt)), tgt]
-    return float(tok_lp[1:].sum())                      # positions: residues + EOS
+    tok_lp = logp[torch.arange(len(tgt)), tgt]          # [BOS-pred, r1..rn, EOS]
+    res_lp = tok_lp[1:1 + len(seq)]                     # residues only (drop BOS-pred and EOS)
+    return float(res_lp.sum()), len(seq)
 
 
 def run(args):
@@ -102,18 +103,25 @@ def run(args):
         opt.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.step()
         if step % max(1, args.max_steps // 10) == 0:
             print(f"  step {step}/{args.max_steps} loss {loss.item():.3f} ({(time.time()-t0)/step:.3f}s/it)", flush=True)
-    # score held-out test by LLR(hi - lo)
+    # score held-out test by LLR(hi - lo): RAW (residue-sum, no EOS) + NORM (per-residue mean = length-free)
     model.eval()
-    llr = np.array([seq_loglik(model, r["seq"], "hi", dev) - seq_loglik(model, r["seq"], "lo", dev) for r in test])
+    raw = np.zeros(len(test)); norm = np.zeros(len(test))
+    for i, r in enumerate(test):
+        hs, n = seq_loglik(model, r["seq"], "hi", dev)
+        ls, _ = seq_loglik(model, r["seq"], "lo", dev)
+        raw[i] = hs - ls; norm[i] = (hs - ls) / max(1, n)
     y = np.array([1 if r["is_binder"] else 0 for r in test])
-    auc = float(roc_auc_score(y, llr))
     base_rate = float(y.mean())
+    auc_raw = float(roc_auc_score(y, raw)); auc_norm = float(roc_auc_score(y, norm))
+    # use the length-normalized score as the operative selector (removes the length/EOS confound)
+    llr = norm; auc = auc_norm
     def lift(frac):
         k = max(1, int(len(test) * frac)); idx = np.argsort(-llr)[:k]
         return round(float(y[idx].mean()) / base_rate, 3) if base_rate > 0 else None
     res = {"target": args.target, "n_test": len(test), "test_binders": int(y.sum()),
            "base_binder_rate": round(base_rate, 4),
-           "selector_AUC_binder_vs_LLR": round(auc, 4),
+           "selector_AUC_binder_vs_LLR": round(auc_norm, 4),      # operative = length-normalized
+           "AUC_raw_residue_sum": round(auc_raw, 4),              # pre-fix, for comparison
            "binder_lift_top5pct": lift(0.05), "binder_lift_top10pct": lift(0.10),
            "verdict": ("WIN: display-conditioned LM ranks held-out binders (AUC>0.6, lift>1.5)"
                        if (auc > 0.6 and (lift(0.05) or 0) > 1.5) else
