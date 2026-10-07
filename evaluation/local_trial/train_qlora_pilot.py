@@ -85,6 +85,23 @@ def main() -> int:
     trainer = SFTTrainer(model=model, args=cfg, train_dataset=ds,
                          peft_config=lora, processing_class=tok)
     result = trainer.train(resume_from_checkpoint=args.resume)
+
+    # GUARD (2026-10-07): refuse to save a DEGENERATE run. A near-zero train_loss or an
+    # impossibly-fast step rate means the supervised-token mask was essentially empty
+    # (e.g. assistant_only_loss found no assistant tokens under this base's chat template),
+    # so the adapter is untrained garbage. This happened on the sft_v3_real run
+    # (train_loss=0.0007, 2.15 steps/s at seq 2048) and a broken adapter was uploaded + an
+    # eval box spun up on it. Fail loudly BEFORE save so the entry-script `&&` chain aborts.
+    _tl = result.metrics.get("train_loss")
+    _rt = result.metrics.get("train_runtime") or 0.0
+    _sps = (args.max_steps / _rt) if _rt else 0.0
+    if _tl is not None and _tl < 0.05:
+        print(f"DEGENERATE_TRAIN train_loss={_tl} (<0.05) — empty loss mask? NOT saving.", flush=True)
+        return 7
+    if _sps > 1.5:
+        print(f"DEGENERATE_TRAIN steps_per_sec={_sps:.2f} implausibly fast for a 9B at seq>={args.seq_len} — NOT saving.", flush=True)
+        return 7
+
     trainer.save_model(args.out)          # adapter
     tok.save_pretrained(args.out)
     (Path(args.out) / "pilot_result.json").write_text(json.dumps({
