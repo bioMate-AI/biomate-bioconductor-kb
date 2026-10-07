@@ -183,6 +183,14 @@ IP.** It is small, owned, and uncopyable because it is wired to *your* models an
   Next: (a) vendor calls to confirm cloud-lab assay menu + FP tracer sourcing; (b) wire the
   orchestrator to the αvβ6/GRPR model's candidate output; (c) dry-run the loop end-to-end against
   cloud-lab stubs.
+- **2026-10-06 (same session)** — Scaffold built, verified, committed.
+  - Assay-math unit tests green (3/3): PAMPA Pe, FP one-site Kd (ligand-depletion), first-order
+    t½ each recover their known forward-simulated values (`pytest -q`).
+  - End-to-end loop dry-run runs (`examples/run_loop.py`): propose 60 → select 12 (UCB, per-target
+    cap) → order → deliver 11/12 → FP/PAMPA/stability → ranked hit table. Simulated results only.
+  - Committed: `sdl-macrocycle` repo `37f1502`; plan doc `c9d69db0b` in biomate-review.
+  - Standalone at `/Users/kky/sdl-macrocycle/` (own git repo) to keep the biomate tree clean;
+    can be linked into the macrocycle program repo later.
 
 ---
 
