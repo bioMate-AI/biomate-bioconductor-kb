@@ -4615,6 +4615,34 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
 # Public-database accession download handlers
 # ---------------------------------------------------------------------------
 
+def _s3_object_exists(s3_uri: str) -> Optional[bool]:
+    """
+    True/False if an s3:// object exists; None if we cannot tell (no boto3,
+    credentials/permission error). Callers treat None as "can't verify".
+    """
+    if not s3_uri.startswith("s3://"):
+        return None
+    try:
+        import boto3  # type: ignore
+        from botocore.exceptions import ClientError  # type: ignore
+    except Exception:
+        return None
+    try:
+        bucket, key = s3_uri[len("s3://"):].split("/", 1)
+    except ValueError:
+        return None
+    try:
+        boto3.client("s3").head_object(Bucket=bucket, Key=key)
+        return True
+    except ClientError as ce:
+        code = (ce.response or {}).get("Error", {}).get("Code", "")
+        if code in ("404", "NoSuchKey", "NotFound"):
+            return False
+        return None  # 403 / auth / region — can't definitively say missing
+    except Exception:
+        return None
+
+
 def _run_fetchngs_prefetch(
     accessions: list[str],
     work_base: Path,
@@ -4623,12 +4651,24 @@ def _run_fetchngs_prefetch(
     profile: str,
     env: dict,
     executor_config_path: Optional[Path],
+    s3_work_dir: str = "",
+    s3_outdir: str = "",
 ) -> Optional[str]:
     """
     Run nf-core/fetchngs synchronously to download sequencing data for *accessions*.
 
-    Returns the path to the generated samplesheet.csv, or None on failure.
-    The samplesheet can be passed as --input to the main workflow.
+    Returns the path to the generated samplesheet.csv (local path, or an s3://
+    URI when running on AWS Batch), or None on failure. The samplesheet is passed
+    as --input to the main workflow.
+
+    ROOT-CAUSE FIX (docs/20260730_WGS_CRYOEM_ROOTCAUSE_AND_FIXES.md): on the
+    awsbatch executor Nextflow REQUIRES an s3:// work directory — a local `-w`
+    path makes it exit rc=1 in ~6s ("an S3 bucket must be provided as working
+    directory") before anything downloads. This broke EVERY SRA-accession
+    workflow (WGS, RNA-seq-from-SRA, etc.). When the caller indicates Batch
+    (``s3_work_dir`` is an s3:// URI) we run fetchngs on Batch with an S3 work
+    dir + S3 outdir and return the S3 samplesheet URI, so the main Batch
+    workflow (which cannot read the head node's local disk) can consume it.
     """
     try:
         fetchngs_path = _resolve_nextflow_path("nfcore/fetchngs/main.nf")
@@ -4639,21 +4679,52 @@ def _run_fetchngs_prefetch(
     fetch_run_dir = work_base / f"{run_id}_fetchngs"
     fetch_run_dir.mkdir(parents=True, exist_ok=True)
 
-    # Write accession list file
+    # Write accession list file. The input CSV is read by the Nextflow head
+    # process (the orchestrator), not by a Batch task, so a local path is fine
+    # even on awsbatch — only the work dir + published outputs must live on S3.
     ids_file = fetch_run_dir / "ids.csv"
     ids_file.write_text("\n".join(accessions) + "\n")
 
-    fetch_outdir = fetch_run_dir / "output"
-    fetch_outdir.mkdir(exist_ok=True)
-    fetch_work = fetch_run_dir / "work"
-    fetch_work.mkdir(exist_ok=True)
+    on_batch = bool(s3_work_dir and s3_work_dir.startswith("s3://"))
+
+    # GUARD (per root-cause doc): a fetchngs pre-step must NEVER launch with the
+    # awsbatch executor and a non-s3:// work dir — that is the rc=1 trap. Fail
+    # fast with a clear message instead of a 6-second opaque Nextflow crash.
+    profile_is_aws = "aws" in (profile or "").lower()
+    if profile_is_aws and not on_batch:
+        log.error(
+            "[fetchngs run_id=%s] ABORT: awsbatch profile %r requires an s3:// work dir "
+            "but none was threaded in (s3_work_dir=%r). Refusing to launch — this is the "
+            "documented rc=1 trap (local -w under awsbatch). Caller must pass s3_work_dir.",
+            run_id, profile, s3_work_dir,
+        )
+        return None
+
+    if on_batch:
+        # Separate S3 prefixes from the main run's work/outputs so nothing collides.
+        fetch_work_arg = f"{s3_work_dir.rstrip('/')}_fetchngs"
+        if s3_outdir and s3_outdir.startswith("s3://"):
+            fetch_outdir_arg = f"{s3_outdir.rstrip('/')}/_fetchngs"
+        else:
+            fetch_outdir_arg = f"{fetch_work_arg.rstrip('/')}_out"
+        log.info(
+            "[fetchngs run_id=%s] awsbatch mode: work=%s outdir=%s",
+            run_id, fetch_work_arg, fetch_outdir_arg,
+        )
+    else:
+        fetch_outdir_local = fetch_run_dir / "output"
+        fetch_outdir_local.mkdir(exist_ok=True)
+        fetch_work_local = fetch_run_dir / "work"
+        fetch_work_local.mkdir(exist_ok=True)
+        fetch_work_arg = str(fetch_work_local)
+        fetch_outdir_arg = str(fetch_outdir_local)
 
     cmd = [
         nf_bin, "run", str(fetchngs_path),
         "-profile", profile,
-        "-w", str(fetch_work),
+        "-w", fetch_work_arg,
         "--input", str(ids_file),
-        "--outdir", str(fetch_outdir),
+        "--outdir", fetch_outdir_arg,
         "--nf_core_pipeline", "rnaseq",  # generates samplesheet compatible with nf-core pipelines
     ]
     if executor_config_path:
@@ -4679,17 +4750,43 @@ def _run_fetchngs_prefetch(
             log.error(f"[fetchngs run_id={run_id}] Failed (rc={proc.returncode}) — check {log_path}")
             return None
 
-        # nf-core/fetchngs writes samplesheet to outdir/samplesheet/samplesheet.csv
+        if on_batch:
+            # fetchngs published the samplesheet to S3; the local outdir is empty.
+            # Verify the expected S3 object before handing it to the main workflow
+            # (a wrong path would waste a 30-min Batch run on a confusing input error).
+            for cand in (
+                f"{fetch_outdir_arg.rstrip('/')}/samplesheet/samplesheet.csv",
+                f"{fetch_outdir_arg.rstrip('/')}/fastq/samplesheet.csv",
+                f"{fetch_outdir_arg.rstrip('/')}/samplesheet.csv",
+            ):
+                exists = _s3_object_exists(cand)
+                if exists is True:
+                    log.info(f"[fetchngs run_id={run_id}] S3 samplesheet verified: {cand}")
+                    return cand
+            # Could not positively verify. If we got a definitive "missing" on the
+            # primary path, bail; otherwise return the canonical path optimistically
+            # (boto3 absent or permission-masked) — the main workflow validates inputs.
+            primary = f"{fetch_outdir_arg.rstrip('/')}/samplesheet/samplesheet.csv"
+            if _s3_object_exists(primary) is False:
+                log.warning(f"[fetchngs run_id={run_id}] No S3 samplesheet at {fetch_outdir_arg}")
+                return None
+            log.warning(
+                f"[fetchngs run_id={run_id}] Could not verify S3 samplesheet (no boto3/perms); "
+                f"returning canonical path {primary}"
+            )
+            return primary
+
+        # Local (non-batch) mode: nf-core/fetchngs writes samplesheet under outdir/.
         for candidate in [
-            fetch_outdir / "samplesheet" / "samplesheet.csv",
-            fetch_outdir / "fastq" / "samplesheet.csv",
-            fetch_outdir / "samplesheet.csv",
+            Path(fetch_outdir_arg) / "samplesheet" / "samplesheet.csv",
+            Path(fetch_outdir_arg) / "fastq" / "samplesheet.csv",
+            Path(fetch_outdir_arg) / "samplesheet.csv",
         ]:
             if candidate.exists():
                 log.info(f"[fetchngs run_id={run_id}] Samplesheet ready: {candidate}")
                 return str(candidate)
 
-        log.warning(f"[fetchngs run_id={run_id}] No samplesheet found in {fetch_outdir}")
+        log.warning(f"[fetchngs run_id={run_id}] No samplesheet found in {fetch_outdir_arg}")
         return None
 
     except subprocess.TimeoutExpired:
@@ -4856,6 +4953,8 @@ def _resolve_accession_file(
     profile: str,
     env: dict,
     executor_config_path: Optional[Path],
+    s3_work_dir: str = "",
+    s3_outdir: str = "",
 ) -> Optional[str]:
     """
     Dispatch to the appropriate download handler for a single accession.
@@ -4867,7 +4966,8 @@ def _resolve_accession_file(
 
     if handler == "sequencing":
         return _run_fetchngs_prefetch(
-            [accession], work_base, run_id, nf_bin, profile, env, executor_config_path
+            [accession], work_base, run_id, nf_bin, profile, env, executor_config_path,
+            s3_work_dir=s3_work_dir, s3_outdir=s3_outdir,
         )
     elif handler == "structure":
         return _download_pdb_structure(accession, dl_dir)
@@ -4907,10 +5007,16 @@ def _accession_chain_thread(
     trace_path: Path,
     env: dict,
     executor_config_path: Optional[Path],
+    s3_work_dir: str = "",
+    s3_outdir: str = "",
 ) -> None:
     """
     Background thread: resolve all public-database accessions, substitute resolved
     file paths into the main Nextflow command, then launch and stream the main workflow.
+
+    ``s3_work_dir`` / ``s3_outdir`` are the main run's S3 locations (non-empty only
+    on the awsbatch executor); they are threaded into the fetchngs pre-step so the
+    SRA download runs on Batch with an S3 work dir — see _run_fetchngs_prefetch.
 
     Status transitions: fetching_accessions → running (or failed).
     """
@@ -4938,7 +5044,8 @@ def _accession_chain_thread(
         _set_status("fetching_accessions", accession_status="running fetchngs")
 
         samplesheet = _run_fetchngs_prefetch(
-            seq_accessions, work_base, run_id, nf_bin, profile, env, executor_config_path
+            seq_accessions, work_base, run_id, nf_bin, profile, env, executor_config_path,
+            s3_work_dir=s3_work_dir, s3_outdir=s3_outdir,
         )
         if samplesheet:
             # Map the first sequencing param → samplesheet; others get the same path
@@ -4954,7 +5061,8 @@ def _accession_chain_thread(
         if info["handler"] == "sequencing":
             continue  # already resolved above
         local_file = _resolve_accession_file(
-            info, work_base, run_id, nf_bin, profile, env, executor_config_path
+            info, work_base, run_id, nf_bin, profile, env, executor_config_path,
+            s3_work_dir=s3_work_dir, s3_outdir=s3_outdir,
         )
         if local_file:
             resolved[key] = local_file
@@ -6163,6 +6271,11 @@ def _execute_nextflow_impl(
                 "trace_path": trace_path,
                 "env": env,
                 "executor_config_path": executor_config_path,
+                # Thread the main run's S3 locations so the fetchngs pre-step runs
+                # on Batch with an S3 work dir (root-cause fix: a local -w under the
+                # awsbatch executor crashes rc=1). Empty on local/non-batch runs.
+                "s3_work_dir": _s3_work_dir if _is_batch else "",
+                "s3_outdir": str(outdir) if _is_batch and str(outdir).startswith("s3://") else "",
             },
             daemon=True,
             name=f"nf-acc-{run_id[:8]}",
