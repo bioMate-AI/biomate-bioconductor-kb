@@ -21,11 +21,15 @@ BOOT="$S3/spot_logs/med/sft${TAG}/boot.log"
 
 # Stage the v3 adapter (LoRA files only; the shim uses the BASE tokenizer). Prefer the final 550-step
 # adapter; fall back to the latest intermediate checkpoint if the final upload didn't land.
-echo "=== stage sftv3real adapter -> eval_staging/sft_sftv3real ==="
-SRC="$S3/models_20260919/med/sft_sftv3real_adapter"
+# ADAPTER_TAG selects which trained adapter to evaluate (default: the original sftv3real run).
+# For the 2026-10-07 CLEAN retrain pass ADAPTER_TAG=_v3clean. The box entry always reads the fixed
+# eval_staging/sft_sftv3real/ path, so only the STAGING SOURCE changes here — the box tarball is untouched.
+ADAPTER_TAG=${ADAPTER_TAG:-_sftv3real}
+echo "=== stage ${ADAPTER_TAG} adapter -> eval_staging/sft_sftv3real ==="
+SRC="$S3/models_20260919/med/sft${ADAPTER_TAG}_adapter"
 if ! aws s3 ls "$SRC/adapter_config.json" >/dev/null 2>&1; then
-  CK=$(aws s3 ls "$S3/spot_ckpt/med/sft_sftv3real/" | grep -oE "checkpoint-[0-9]+" | sort -t- -k2 -n | tail -1)
-  [ -n "$CK" ] && SRC="$S3/spot_ckpt/med/sft_sftv3real/$CK" && echo "  final adapter absent -> using $CK"
+  CK=$(aws s3 ls "$S3/spot_ckpt/med/sft${ADAPTER_TAG}/" | grep -oE "checkpoint-[0-9]+" | sort -t- -k2 -n | tail -1)
+  [ -n "$CK" ] && SRC="$S3/spot_ckpt/med/sft${ADAPTER_TAG}/$CK" && echo "  final adapter absent -> using $CK"
 fi
 echo "  SRC=$SRC"
 for f in adapter_config.json adapter_model.safetensors; do
