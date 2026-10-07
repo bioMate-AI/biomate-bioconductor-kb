@@ -52,48 +52,51 @@ def main():
     ap.add_argument("--db", default=None, help="galaxy_ai_tools.db for the structural verifier")
     ap.add_argument("--rerank-preds-out", default=None)
     ap.add_argument("--rerank-score-out", default=None)
+    ap.add_argument("--rerank-only", action="store_true",
+                    help="skip the greedy pass (greedy already run+uploaded); only sample+rerank+score")
     a = ap.parse_args()
 
     from openai import OpenAI
     client = OpenAI(base_url=a.base_url, api_key=os.environ.get(a.key_env, "local-shim"))
 
     rows = load(a.bench)
-    preds = []
-    t_all = time.time()
-    with open(a.preds_out, "w") as f:
-        for i, r in enumerate(rows):
-            prompt = f"{r['instr']}\n\nINPUT:\n{r['query']}"
-            plan = []
-            for attempt in range(3):
-                try:
-                    resp = client.chat.completions.create(
-                        model=a.model,
-                        messages=[{"role": "user", "content": prompt}],
-                        max_completion_tokens=a.max_tokens, temperature=0.0)
-                    plan = parse_plan(resp.choices[0].message.content)
-                    break
-                except Exception as e:
-                    if attempt == 2:
-                        sys.stderr.write(f"[{r['id']}] ERR {e}\n")
-                    else:
-                        time.sleep(2 * (attempt + 1))
-            rec = {"id": r["id"], "pred": plan}
-            preds.append(rec)
-            f.write(json.dumps(rec) + "\n")
-            if (i + 1) % 25 == 0:
-                sys.stderr.write(f"  {i+1}/{len(rows)}\n")
-    sys.stderr.write(f"wrote {len(preds)} preds -> {a.preds_out} ({int(time.time()-t_all)}s)\n")
-
     # score via the benchmark's own scorer (imported so we don't shell out)
     spec = importlib.util.spec_from_file_location("decompv2_score", a.scorer)
     sc = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(sc)
     gold_by_id = {r["id"]: r for r in rows}
-    pred_by_id = {r["id"]: r["pred"] for r in preds}
-    out = sc.score_batch(gold_by_id, pred_by_id)
-    with open(a.score_out, "w") as f:
-        json.dump(out, f, indent=2)
-    print("=== GREEDY ==="); print(json.dumps(out, indent=2))
+
+    if not a.rerank_only:
+        preds = []
+        t_all = time.time()
+        with open(a.preds_out, "w") as f:
+            for i, r in enumerate(rows):
+                prompt = f"{r['instr']}\n\nINPUT:\n{r['query']}"
+                plan = []
+                for attempt in range(3):
+                    try:
+                        resp = client.chat.completions.create(
+                            model=a.model,
+                            messages=[{"role": "user", "content": prompt}],
+                            max_completion_tokens=a.max_tokens, temperature=0.0)
+                        plan = parse_plan(resp.choices[0].message.content)
+                        break
+                    except Exception as e:
+                        if attempt == 2:
+                            sys.stderr.write(f"[{r['id']}] ERR {e}\n")
+                        else:
+                            time.sleep(2 * (attempt + 1))
+                rec = {"id": r["id"], "pred": plan}
+                preds.append(rec)
+                f.write(json.dumps(rec) + "\n")
+                if (i + 1) % 25 == 0:
+                    sys.stderr.write(f"  {i+1}/{len(rows)}\n")
+        sys.stderr.write(f"wrote {len(preds)} preds -> {a.preds_out} ({int(time.time()-t_all)}s)\n")
+        pred_by_id = {r["id"]: r["pred"] for r in preds}
+        out = sc.score_batch(gold_by_id, pred_by_id)
+        with open(a.score_out, "w") as f:
+            json.dump(out, f, indent=2)
+        print("=== GREEDY ==="); print(json.dumps(out, indent=2))
 
     # ---- verifier re-ranker on REAL sampled candidates from this same served policy ----
     if a.rerank_n and a.rerank_n > 0 and a.db:
