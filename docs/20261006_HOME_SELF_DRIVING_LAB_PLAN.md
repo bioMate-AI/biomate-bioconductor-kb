@@ -167,10 +167,46 @@ IP.** It is small, owned, and uncopyable because it is wired to *your* models an
   commission (vendor labeling). Without a tracer, binding stays SPR/BLI-only (cloud/core).
 - **Reader ↔ robot integration:** Opentrons natively integrates an absorbance reader; FP/fluor needs
   a multimode reader the Flex gripper (or a stacker) can feed. Confirm model compatibility before buy.
-- **Synthesis latency** is the hard floor on loop speed — mitigate by batching + a small on-hand
-  library, not by automating synthesis.
+- **Synthesis latency** is the hard floor on loop speed — mitigate by batching + pipelining +
+  multi-vendor, not by automating synthesis (see §5a for real vendor quote).
 - **Reagent residential-shipping** restrictions may force a registered entity / community-lab
   membership for part of the reagent list.
+
+### 5a. Real vendor quote (GenScript, 2026-10-06 call) + cadence decision
+
+Quoted turnaround:
+- **Cyclic peptide synthesis: ~2 weeks** (elevated by current demand volume). NORMAL — industry
+  standard for <30-mer at mg scale is 10–25 working days; cyclization adds steps/lowers yield.
+- **Linear peptide: 5–7 business days** (their express lane; skips cyclization + easier purification).
+- **Binding assay (outsourced): +1.5 weeks.** This is QUEUE, not work — SPR/BLI/FP assay time is
+  hours–1 day. The soft, avoidable number.
+
+Serial-through-GenScript cycle ≈ 2 wk (make) + 1.5 wk (test) ≈ **3.5 wk/cycle**, ~40% avoidable queue.
+
+**Decisions:**
+1. **Do NOT switch cyclic → linear to save time.** Linear is a DIFFERENT molecule — cyclization is
+   the source of the affinity/selectivity/protease-stability/permeability this program optimizes
+   ([[project_macrocycle_closedloop]], [[project_peptide_pk_learning_gap]]). Validating linear feeds
+   the model the wrong target and risks false-negative rejection of conformationally-constrained
+   binders. Only legitimate use of the linear express lane: a cheap CONTROL (quantify cyclization
+   benefit) or coarse motif pre-triage — treated as a weak, false-negative-prone filter, never as
+   the validation.
+2. **Insource binding (highest-leverage move).** Keep GenScript for synthesis; pull binding onto
+   own BLI/Octet or FP / cloud lab → ~1–2 days instead of 1.5 wk; removes a vendor from the
+   critical path. (This is what §3 TEST arm already targets; the quote is the hard evidence.)
+3. **Batch + pipeline + multi-vendor synthesis.** Order 48–96/batch (amortizes the 2-wk floor to
+   ~0 per molecule); pipeline so batch N+1 synthesizes while batch N is in binding; quote WuXi
+   TIDES / Bachem / JPT / Bio-Synthesis / CPC / GL Biochem in parallel + rush lanes to beat
+   demand-driven delays. Standing/rolling order so the loop never idles.
+4. **In-house synthesis reconsidered — not now.** Coupling is fast (CEM Liberty Blue ~4 min/residue,
+   incl. on-resin head-to-tail cyclization) but prep-HPLC purification + LC-MS QC + per-sequence
+   cyclization optimization are the slow, skilled, hard-to-automate steps. Only worth owning once
+   iteration count dominates AND a peptide chemist is on hand. Today: outsource make, insource test.
+5. **Display (mRNA/RaPID, phage) is a separate discovery track**, not a substitute for make+test of
+   specific designed molecules.
+
+Target cadence after decisions: ~**2-wk synthesis-bound floor**, effective throughput limited only
+by pipeline depth (designs in flight) — the regime the orchestrator was built for.
 
 ---
 
