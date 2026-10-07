@@ -1261,6 +1261,15 @@ trigger_pi_suite() {
     log "[pi-suite] skipped (BIOMATE_SKIP_PI_SUITE=1)"
     return 0
   fi
+  # Self-healing guard: the PI suite's test files (e2e/ind-report-production.e2e.ts,
+  # e2e/ind-design-audit.e2e.ts) were removed in the "161 stale E2E files" cleanup
+  # (1a12b4e8c), so dispatching the workflow produced a guaranteed-red run on every
+  # sync ("No tests found"). Skip the dispatch while the tests are absent; it
+  # auto-resumes once they're restored. See docs/20261005_CI_ACTIONS_FAILURES_TRIAGE.md.
+  if [[ ! -f "$REPO_ROOT/frontend/e2e/ind-report-production.e2e.ts" ]]; then
+    log "[pi-suite] skipped — e2e/ind-report-production.e2e.ts absent (removed in 1a12b4e8c); not dispatching a testless suite. Restore the PI tests to re-enable."
+    return 0
+  fi
   local ref repo
   ref="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo integration/next-phase)"
   repo="bioMate-AI/biomate"
