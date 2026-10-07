@@ -634,6 +634,16 @@ class UnifiedWorkflowSearch:
             )
         """)
 
+        # Perf indexes on the hot lookup paths (name resolve + domain filter). Idempotent, so they
+        # SELF-HEAL on any fresh provision / DB rebuild — the catalog DB is gitignored, so without
+        # this the "SCAN→SEARCH" win would silently regress to full table scans on a rebuild.
+        # (Added 2026-10-05 after a committee audit flagged the indexes existed only on the live DB.)
+        try:
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_wf_name_lower ON workflows(lower(name))")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_wf_domain_exec ON workflows(domain, executable)")
+        except sqlite3.Error as _idx_err:
+            log.warning("[WorkflowSearch] perf index creation skipped: %s", _idx_err)
+
         conn.commit()
         log.info("[WorkflowSearch] schema migration complete")
 
