@@ -1,0 +1,20 @@
+{
+  "representation": "HELM/monomer (ncAA-native)",
+  "monomer_vocab": 387,
+  "ncaa_monomers": 363,
+  "n_train": 7193,
+  "cond_hi": {
+    "validity": 1.0,
+    "novelty": 0.271,
+    "mean_ncAA_frac": 0.664,
+    "pred_permeability": -5.743
+  },
+  "cond_lo": {
+    "validity": 1.0,
+    "novelty": 0.301,
+    "mean_ncAA_frac": 0.63,
+    "pred_permeability": -6.142
+  },
+  "perm_conditioning_delta": 0.399,
+  "note": "Monomer-vocabulary LM over CycPeptMPDB \u2014 generates N-methyl/D-AA/ncAA macrocycles NATIVELY (mean_ncAA_frac shows it's not collapsing to canonical AAs). perm_conditioning_delta>0 => high-permeability conditioning yields more permeable (less-negative logPapp) designs. The representation upgrade v2's 20-AA char LM could not express."
+}

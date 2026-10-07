@@ -1,0 +1,44 @@
+{
+  "model": "unified_target_conditioned_selector",
+  "n_train": 569612,
+  "targets_trained": [
+    "PADI4",
+    "hPCSK9",
+    "FIKK13",
+    "Abeta42",
+    "hIAPP"
+  ],
+  "per_target": {
+    "PADI4": {
+      "n_test": 4000,
+      "binders": 394,
+      "AUC": 0.958,
+      "lift_top5pct": 9.29
+    },
+    "hPCSK9": {
+      "n_test": 2827,
+      "binders": 749,
+      "AUC": 0.815,
+      "lift_top5pct": 2.09
+    },
+    "FIKK13": {
+      "n_test": 2582,
+      "binders": 38,
+      "AUC": 0.843,
+      "lift_top5pct": 11.59
+    },
+    "Abeta42": {
+      "n_test": 4000,
+      "binders": 1103,
+      "AUC": 0.983,
+      "lift_top5pct": 3.45
+    },
+    "hIAPP": {
+      "n_test": 4000,
+      "binders": 828,
+      "AUC": 0.669,
+      "lift_top5pct": 4.73
+    }
+  },
+  "note": "ONE model, all targets (each target IN training; per-target held-out-SEQUENCE eval). Compare AUC to single-target selectors (PADI4 0.97/Abeta42 0.99/hIAPP 0.68/hPCSK9 0.34). Match/beat => one binding brain serves all targets (deployable system shape); NOT cross-target zero-shot (that is the v3.1 field-wide null)."
+}
