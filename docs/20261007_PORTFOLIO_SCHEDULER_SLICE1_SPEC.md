@@ -119,6 +119,49 @@ Please confirm.
 4. External characterization stays "roadmap, not shipped" until 2b is validated
    (per the no-overclaiming norm).
 
+## 5b. Slice 2 — managed run queue ✅ SHIPPED (`integration/next-phase`)
+
+**Tech-committee decision (unanimous, 2026-10-07)** — three reviewers (concurrency/systems,
+blast-radius, codebase-fit) all voted:
+- **(a) A1** — a *separate* portfolio-level run queue layered ABOVE the per-worker
+  `_nf_launch_semaphore`; leave `BIOMATE_NF_MAX_CONCURRENT` untouched. A2 (promoting the
+  semaphore into a cross-worker queue) was rejected: it rewrites a load-bearing OOM guard on
+  the hot path of *every* run and re-opens the cross-worker stuck-slot hazard the run-state
+  persistence project closed.
+- **(b) Redis**, as a `run_state_store`-style Protocol (InMemory + Redis + factory).
+
+**Mitigations all three flagged, now implemented:**
+1. Admission counts against a **global cross-worker in-flight counter** (Redis `SCARD`), so the
+   per-worker semaphore behaves as a true global cap when the single owner drains.
+2. Launch-path **503 ⇒ requeue** (bounded retries), never a run failure.
+3. **Fail-closed** without Redis (`get_portfolio_queue()` returns `None` → scheduler dormant).
+4. Spot-killed runs → requeue with bounded retries (only possible because the queue is in Redis).
+
+**Shipped commits:**
+- `01ff43ac1` — `portfolio_queue.py`: `PortfolioRunQueue` Protocol + `InMemoryPortfolioQueue` +
+  `RedisPortfolioQueue` + `get_portfolio_queue()` factory (fail-closed). 6/6 tests (both backends).
+- `3067ab18a` — dispatcher: owner-only drain in `PortfolioScheduler.tick()`; global +
+  per-portfolio cap admission via `try_dequeue(exclude=...)`; 503-backpressure requeue; no-op
+  unless a queue AND `launch_fn` are wired. 14/14 scheduler tests.
+
+**Remaining to activate slice 2** (deliberate, not done — same posture as slice 1's startup wiring):
+- Wire a real `launch_fn`: round-robin `POST /api/nextflow/execute` across the 4 workers,
+  mapping HTTP 503 → `"backpressure"`, terminal states → `mark_done` via the completion poller.
+- Add the enqueue hook: where a portfolio decides a campaign needs a Batch-backed run (extend
+  `_advance_portfolio`), `enqueue()` the run spec.
+- Set `PORTFOLIO_QUEUE_STORE=redis` (+ the existing `REDIS_URL`) and the enable flag.
+
+## 5c. Deferred follow-up slices (committee-recommended, kept SEPARATE)
+1. **Promote `_nf_launch_semaphore` to a Redis-counted global cap.** The per-worker semaphore's
+   documented OOM bound (comment `nextflow_executor.py:129-139`, "10 heads × 0.7 GB = 7 GB") is
+   *already false* under 4 workers (real ceiling 10–40 heads). This is the genuine root-cause fix
+   for the uncoordinated ceiling — but it belongs on its own focused, independently-testable slice
+   with fail-open to today's `BoundedSemaphore`, NOT bundled into a drug-discovery feature.
+2. **Converge the 3 semaphore-bypassing NF launches** onto the gated seam: fetchngs prefetch
+   (`nextflow_executor.py:4739`), accession-chain main (`:5109`), validate_profile (`:9887`).
+   Until then an accession-heavy portfolio can still bypass both the semaphore and the portfolio
+   queue — a real OOM gap to close.
+
 ## 6. Evidence index
 Recon 2026-10-07 (read-only). All file:line citations above verified against the tree
-at commit `e717e1a51`.
+at commit `e717e1a51`. Slice 2 design = tech-committee synthesis 2026-10-07.
