@@ -61,6 +61,16 @@ designability, not display-based binding).
   but collapsed to a 2-point log2fc fixes it. This is real denoising signal, directly from the user's
   "did we use the longitudinal data" prompt.
 
+## Update 2 — clean-label TRAINING does not help (honest null for that lever)
+A/B on PADI4, both evaluated against trajectory-clean binders: **log2fc-trained AUC_clean 0.987 vs
+traj-trained 0.977** (training "hi" = only the 187 clean binders, jackpots demoted). Training on the
+denoised labels is **slightly worse**, not better — the LM learns the enriched-like distribution fine
+from the fuller (noisy) log2fc buckets, and restricting to clean positives just removes training
+signal; the jackpots are not *harmful* in training (still enriched), only misleading as an **eval**
+label. **Conclusion: the longitudinal trajectory's value is label-quality understanding + eval
+denoising + knowing which binders are real for downstream use — NOT retraining the selector.**
+(`results/cyclic_llm_selector_PADI4_trajtrain.json`.)
+
 ## Next (robustness + composition)
 0. **DONE — PADI4 selector re-eval against TRAJECTORY-CLEAN binders:** AUC **0.963 → 0.987** (vs the
    ~50%-jackpot-contaminated log2fc label; clean positives in the held-out test n=33, so noisier but

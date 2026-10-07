@@ -75,7 +75,19 @@ def run(args):
         keep_nb = max(0, args.max_test - len(binders))
         test = binders + nonb[:keep_nb]
         random.Random(1).shuffle(test)
-    for r in train: r["enr_b"] = _bucket(r["enr"])
+    # TRAIN-label buckets. Default: by terminal log2fc. --traj-train: use the trajectory-clean split so
+    # the LM's "hi" = monotonic CLEAN binders, jackpots demoted to mid (learn the denoised signal, not
+    # the ~50%-contaminated log2fc label). Multi-round targets only (needs --clean-binders-json).
+    clean_set = jack_set = set()
+    if args.clean_binders_json:
+        import json as _j
+        _b = _j.load(open(args.clean_binders_json))
+        clean_set = set(_b.get("clean_binder_seqs", [])); jack_set = set(_b.get("jackpot_binder_seqs", []))
+    for r in train:
+        if args.traj_train and (clean_set or jack_set):
+            r["enr_b"] = "hi" if r["seq"] in clean_set else ("mid" if r["seq"] in jack_set else _bucket(r["enr"]))
+        else:
+            r["enr_b"] = _bucket(r["enr"])
     tr = [r for r in train if r["enr_b"] in ("hi", "lo", "mid")]
     his = [r for r in tr if r["enr_b"] == "hi"]
     tr_os = tr + his * (args.oversample_hi - 1)
@@ -159,6 +171,7 @@ def main():
     ap.add_argument("--oversample-hi", type=int, default=8); ap.add_argument("--out")
     ap.add_argument("--max-test", type=int, default=4000)
     ap.add_argument("--clean-binders-json", help="trajectory_denoise.py output; re-score AUC vs clean binders")
+    ap.add_argument("--traj-train", action="store_true", help="bucket TRAIN 'hi' by trajectory-clean binders (denoised labels)")
     run(ap.parse_args())
 
 
