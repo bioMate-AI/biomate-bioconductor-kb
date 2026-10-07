@@ -1,10 +1,10 @@
 # BioMate AI
 
-> AI drug-discovery platform for immune-mediated disorders — target identification, peptide and macrocycle design, and closed-loop optimisation with wet-lab feedback. Built on 4,000+ validated workflows across 36 biomedical domains, serving pharma, biotech, academic labs, and core facilities, with AI-guided QC and audit-ready results.
+> AI platform for biomedical research and drug discovery, with a focus on immune-mediated disorders. Built on 4,000+ validated workflows across 36 biomedical domains, serving pharma, biotech, academic labs, and core facilities, with AI-guided QC and audit-ready results. Drug-discovery capabilities span target identification, peptide and macrocycle design, ADMET, PBPK, docking, and IND/CRO support.
 
 ## Last updated: 2026-08-17
 
-BioMate AI is an AI drug-discovery platform for immune-mediated disorders — carrying a program from target identification through peptide and macrocycle design to closed-loop optimisation with wet-lab feedback — founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
+BioMate AI is an AI platform for biomedical research and drug discovery, with a focus on immune-mediated disorders — supporting target identification, peptide and macrocycle design, ADMET, PBPK, and closed-loop optimisation with wet-lab feedback — founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
 
 ## Key facts
 
