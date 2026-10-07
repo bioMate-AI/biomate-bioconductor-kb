@@ -832,6 +832,32 @@ class UnifiedWorkflowSearch:
             log.debug("[Pass-0] LLM catalog browse failed: %s", _exc)
             return []
 
+    def _apply_scope_filter(self, results):
+        """On-prem deployment-scope filter: drop out-of-scope workflows from results.
+
+        No-op on SaaS (enforcement OFF unless BIOMATE_SCOPE_MANIFEST is set).
+        Matches each WorkflowMatch by its .filename (nextflow_path) and .name.
+        See galaxy.ai.scope_guard / docs/20261005_ONPREM_SCOPE_LAYER_PLAN.md (slice 2).
+        """
+        try:
+            from galaxy.ai import scope_guard as _scope_guard
+            if not _scope_guard.enforcement_enabled():
+                return results
+            kept = [
+                m for m in results
+                if _scope_guard.is_workflow_in_scope(
+                    nextflow_path=getattr(m, "filename", "") or "",
+                    name=getattr(m, "name", "") or "",
+                )
+            ]
+            if len(kept) != len(results):
+                log.info("[scope_guard] search filtered %d → %d in-scope results",
+                         len(results), len(kept))
+            return kept
+        except Exception as _e:  # never break search on the guard
+            log.debug("[scope_guard] search filter skipped: %s", _e)
+            return results
+
     def search(self,
                query: str,
                domain: Optional[str] = None,
@@ -1073,7 +1099,7 @@ class UnifiedWorkflowSearch:
                 if filtered:
                     results = filtered
 
-            return results[:limit]
+            return self._apply_scope_filter(results)[:limit]
 
         except sqlite3.OperationalError as e:
             log.warning(f"FTS search failed: {e}, falling back to LIKE search")
@@ -1938,7 +1964,7 @@ class UnifiedWorkflowSearch:
                 results.append(match)
 
             results.sort(key=lambda x: x.score, reverse=True)
-            return results
+            return self._apply_scope_filter(results)
 
         finally:
             conn.close()
