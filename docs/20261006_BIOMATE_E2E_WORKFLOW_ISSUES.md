@@ -5,16 +5,31 @@ running → **after-run tabs**) for each drug-discovery use case on dev
 (https://dev-public.biomate.ai). Three real product issues block a populated
 after-run for several workflows. None is a tutorial problem.
 
-> **STATUS 2026-10-06 (update):**
+> **STATUS 2026-10-06 (verified on dev via chat-stream probe + mcp search_workflow):**
 > - **#1 FIXED + deployed** — findings synthesis is now bounded by a timeout
 >   with auto-recovery via model fallback (commit `9b0899bf5`).
-> - **#2 FIXED + committed** — root cause was NOT a missing DB index (the
->   workflow is indexed and executable); it was a wrong prompt rule. Fixed in
->   `a96deefda`.
-> - **#3 routing FIXED + committed** (`a96deefda`); the deeper panel file-picker
->   gap is reframed below as a general Style-A limitation and documented (not a
->   workaround-shipped change) because it is high-blast-radius and needs a real
->   AWS Batch run to validate.
+> - **#2 PBPK FIXED + deployed — now returns `workflow_ready` with the
+>   `pbpk_simulation` card (was `chat_only`).** Took THREE fixes, found by live
+>   probing (the first two prompt-only guesses did NOT work — logged here so the
+>   mis-diagnoses aren't repeated):
+>   1. `a96deefda` — removed the wrong prereq-check text from the pbpk routing rule
+>      (necessary but NOT sufficient).
+>   2. `9ae48159` — hoisted pbpk+survival rules into an always-on block (domain
+>      gating was dropping them; necessary but still NOT sufficient for pbpk).
+>   3. `ffb84d54` — **the actual root cause: a deterministic CODE gate**
+>      (`galaxy-assistant.ts`, the "PBPK prereq gate") set
+>      `needsWorkflowGeneration=false` and returned a "provide your SMILES" ask
+>      whenever SMILES/CLint/fu_plasma were absent, contradicting the workflow's
+>      defaults. Removed it → card generates one-click.
+>   4. `033d4fcaf` — polish: `auc_observed` default `null`→`'null'` so the UI stops
+>      flagging the optional AUC-gate param as required.
+> - **#3 SURVIVAL routing FIXED + deployed — no longer routes to the broken
+>   `survival_cox`; now `workflow_ready` with `survival_analysis_km` (runnable).**
+>   Commits `a96deefda` (rule split) + `9ae48159` (always-on). The LLM prefers the
+>   runnable trial-design `survival_analysis_km` over the input-bound `survival`;
+>   since `survival`'s panel still can't bind an uploaded CSV (the Style-A picker
+>   gap, §3c), routing to the runnable one is the better interim state. Forcing
+>   `survival` is deferred until §3c is fixed (high-blast-radius, Batch-validated).
 
 ## 1. Findings generation hangs on "Analyzing outputs…" (qsar, likely others) — FIXED
 - **Repro:** Run `Qsar Rf Model` with a valid `input_csv` (smiles + target). The
