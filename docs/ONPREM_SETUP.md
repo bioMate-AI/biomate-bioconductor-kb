@@ -12,12 +12,13 @@
 2. [LLM 提供商配置](#2-llm-提供商配置)
 3. [系统管理面板](#3-系统管理面板)
 4. [存储配置](#4-存储配置)
-5. [工作流数据库更新](#5-工作流数据库更新)
-6. [Ollama 离线模式](#6-ollama-离线模式)
-7. [反向代理（HTTPS）](#7-反向代理https)
-8. [备份与恢复](#8-备份与恢复)
-9. [日常维护命令](#9-日常维护命令)
-10. [故障排查](#10-故障排查)
+5. [计算资源配置](#5-计算资源配置)
+6. [工作流数据库更新](#6-工作流数据库更新)
+7. [Ollama 离线模式](#7-ollama-离线模式)
+8. [反向代理（HTTPS）](#8-反向代理https)
+9. [备份与恢复](#9-备份与恢复)
+10. [日常维护命令](#10-日常维护命令)
+11. [故障排查](#11-故障排查)
 
 ---
 
@@ -122,29 +123,93 @@ docker exec -it biomate-postgres psql -U biomate -d biomate -c \
 
 ## 4. 存储配置
 
-### 默认：本地磁盘
+### 对象存储：MinIO（默认，本机自带）
 
-工作流运行产生的文件默认存储在 Docker volume 中。数据在容器重启后保留。
+本地部署自带 **MinIO**（S3 兼容对象存储，`docker-compose.onprem.yml` 中的 `minio` 服务），用于存放
+**工作流的输入（上传的数据集）和输出**。后端通过 `S3_ENDPOINT_URL=http://minio:9000` 接入——所有 S3 调用
+被透明地路由到本机 MinIO，无需 AWS、不出网。
+
+- **上传的数据集** → MinIO bucket `biomate-data`
+- **工作流输出** → MinIO：`s3://biomate-data/nextflow/outputs/<user_id>/<run_id>/`
+  （项目运行为 `s3://biomate-data/projects/<project_id>/runs/<run_id>/output`）
+- **Nextflow 工作目录（中间文件）** → `NEXTFLOW_WORK_DIR`（默认 `/app/nf-work`，宿主机绑定挂载）
+- **持久化**：MinIO 数据保存在 `biomate-minio-data` Docker volume（宿主机磁盘），容器重启后保留
+
+管理界面：`http://<服务器IP>:9001`（用 `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` 登录）。
 
 ```bash
-# 查看存储占用
+# 查看卷/存储占用
 docker system df -v
 ```
 
-### 可选：AWS S3
+### 可配置项
 
-如果客户有 AWS 账号，可配置 S3 存储更大文件：
+| 变量 | 作用 | 默认 |
+|---|---|---|
+| `S3_ENDPOINT_URL` | 对象存储端点——指向自带 MinIO，或**客户自有的 S3 兼容存储 / NAS-S3 网关** | `http://minio:9000` |
+| `S3_BUCKET_NAME` | bucket 名称 | `biomate-data` |
+| `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` | 对象存储访问凭证（即 S3 access key / secret） | `biomate` /（必填） |
+| `NEXTFLOW_WORK_DIR` | Nextflow 工作目录（宿主机路径） | `/app/nf-work` |
+
+要把输入/输出改存到客户**已有的对象存储**，只需把 `S3_ENDPOINT_URL`、`S3_BUCKET_NAME` 和凭证指向该存储即可，
+无需改动代码。
+
+### 可选：真实 AWS S3
+
+如果客户有 AWS 账号且希望用真实 S3（而非本机 MinIO），**留空 `S3_ENDPOINT_URL`** 并填写 AWS 凭证：
 
 ```bash
+# S3_ENDPOINT_URL=            # 留空 → 使用真实 AWS S3（而非本机 MinIO）
 AWS_ACCESS_KEY_ID=AKIA...
 AWS_SECRET_ACCESS_KEY=...
-AWS_REGION=cn-northwest-1   # 国内用宁夏区域
+AWS_REGION=cn-northwest-1     # 国内用宁夏区域
 S3_BUCKET_NAME=biomate-data
 ```
 
 ---
 
-## 5. 工作流数据库更新
+## 5. 计算资源配置
+
+工作流在何处运行由 `.env` 的 `NEXTFLOW_EXECUTOR` 决定（默认 `local`）。单节点部署无需改动；
+如客户已有 HPC 或 Kubernetes 集群，可直接接入，并自动套用统一的 CPU/内存/GPU 资源档位。
+
+| 取值 | 说明 |
+|---|---|
+| `local`（默认） | 本机 Docker 单节点执行 |
+| `slurm` | 提交到已有 Slurm 集群 |
+| `k8s` | 提交到 Kubernetes 集群 |
+| `awsbatch` | AWS Batch（SaaS 用） |
+
+资源档位（三种执行器一致，自动注入）：`process_low` 4c/12G · `process_medium` 16c/72G ·
+`process_high` 32c/200G；`process_gpu` 申请 1 块 GPU。单个作业可用 `compute_config.executor` 覆盖默认值。
+
+### 接入 Slurm 集群
+
+```bash
+NEXTFLOW_EXECUTOR=slurm
+SLURM_PARTITION=compute          # 可选，默认 compute
+# SLURM_QOS=                     # 可选
+# SLURM_ACCOUNT=                 # 可选
+SLURM_WORK_DIR=/scratch/biomate  # 集群共享文件系统上的工作/输出目录
+```
+GPU 作业会提交到 `--partition=gpu --gres=gpu:1`。
+
+### 接入 Kubernetes 集群
+
+```bash
+NEXTFLOW_EXECUTOR=k8s
+NXF_K8S_NAMESPACE=biomate-jobs
+NXF_K8S_STORAGE_CLAIM=biomate-work-pvc   # 需预先创建的 PVC（建议 ReadWriteMany）
+NXF_K8S_STORAGE_MOUNT=/nf-work
+NXF_K8S_SERVICE_ACCOUNT=nextflow
+# NXF_K8S_GPU_RESOURCE=nvidia.com/gpu    # GPU 资源名，默认 nvidia.com/gpu
+```
+
+> 说明：当前支持 `local` / `slurm` / `k8s` / `awsbatch`；PBS/SGE/LSF 暂不支持。
+
+---
+
+## 6. 工作流数据库更新
 
 BioMate 的工作流目录存储在 `backend/database/galaxy_ai_tools.db`（279 MB SQLite 文件，2600+ 工作流）。
 
@@ -171,7 +236,7 @@ BioMate 团队会定期提供包含最新工作流库的更新包（`.tar.gz`）
 
 ---
 
-## 6. Ollama 离线模式
+## 7. Ollama 离线模式
 
 适用于：**完全内网、不允许任何外部 API 调用** 的场景。
 
@@ -206,7 +271,7 @@ GALAXY_AI_LLM_MODEL=qwen3:8b
 
 ---
 
-## 7. 反向代理（HTTPS）
+## 8. 反向代理（HTTPS）
 
 生产环境建议在 `biomate-frontend:5000` 前面加 Nginx 或 Caddy 做 SSL 终止。
 
@@ -249,7 +314,7 @@ ENABLE_HSTS=1
 
 ---
 
-## 8. 备份与恢复
+## 9. 备份与恢复
 
 ### 备份
 
@@ -286,7 +351,7 @@ docker start biomate-galaxy
 
 ---
 
-## 9. 日常维护命令
+## 10. 日常维护命令
 
 ```bash
 # 查看所有服务状态
@@ -314,7 +379,7 @@ docker compose -f docker-compose.onprem.yml down -v
 
 ---
 
-## 10. 故障排查
+## 11. 故障排查
 
 ### 服务启动慢（Galaxy 后端 120 秒才 healthy）
 
