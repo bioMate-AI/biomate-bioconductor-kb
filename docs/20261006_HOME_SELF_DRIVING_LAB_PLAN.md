@@ -191,6 +191,19 @@ IP.** It is small, owned, and uncopyable because it is wired to *your* models an
   - Committed: `sdl-macrocycle` repo `37f1502`; plan doc `c9d69db0b` in biomate-review.
   - Standalone at `/Users/kky/sdl-macrocycle/` (own git repo) to keep the biomate tree clean;
     can be linked into the macrocycle program repo later.
+- **2026-10-07** — Wired the loop input to the real ranker + fleshed out the ECL adapter
+  (`sdl-macrocycle` commit `f5d3dba`; tests 6/6 green).
+  - `sdl/ingest.py`: consumes `cyclic_llm_selector.py` output (length-normalized LLR) from
+    csv/jsonl (`sequence,target,llr_norm[,uncertainty]`); normalizes LLR → 0..1 `model_score`
+    **per target** so the UCB compares αvβ6 vs GRPR fairly before the per-target cap. It does NOT
+    import the research scorer — reads the file it writes (no coupling to research code).
+    `examples/run_loop.py --candidates <file>` exercises it.
+  - `cloud_lab.py`: injectable `CloudLabClient` seam (submit/status/results), poll loop with
+    timeout, and result mapping that runs our own assay math on raw traces (PAMPA OD / FP
+    titration / stability time-course) or passes through computed endpoints. The provider
+    experiment-primitive names carry CONFIRM markers for onboarding.
+  - Remaining code-side work: implement `CloudLabClient.{submit,status,results}` against the real
+    ECL/Strateos SDK (needs account creds) and `OpentronsFlexBackend.run` against the physical bench.
 
 ---
 
