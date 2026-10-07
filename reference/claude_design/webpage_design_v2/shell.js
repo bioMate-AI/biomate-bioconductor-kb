@@ -101,7 +101,7 @@
         <div class="bm-cta-bar-inner">
           <p class="bm-cta-bar-eyebrow">BioMate AI</p>
           <h2 class="bm-cta-bar-head">Try BioMate free.</h2>
-          <p class="bm-cta-bar-sub">AI drug discovery for immune-mediated disorders — target to validated peptide.</p>
+          <p class="bm-cta-bar-sub">One AI platform for biomedical research — with drug discovery focused on immune-mediated disorders.</p>
           <div class="bm-cta-bar-btns">
             <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-on-ink-primary bm-btn-lg">
               Start free <span class="bm-btn-arrow">&rarr;</span>
@@ -122,7 +122,7 @@
               <a href="index.html" class="bm-brand">
                 <img src="assets/logo.png?v=3" alt="BioMate AI" />
               </a>
-              <p>AI drug discovery for immune-mediated disorders.</p>
+              <p>The AI platform for biomedical research &amp; drug discovery.</p>
             </div>
             <div class="bm-footer-col">
               <h4>Platform</h4>

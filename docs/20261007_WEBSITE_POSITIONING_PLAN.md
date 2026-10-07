@@ -171,7 +171,25 @@ Each change is the same move: **platform is the subject; immune is the flagship 
 
 ## 9. Status / log
 
-- **2026-10-07** — Plan created. Homepage hero + sections + head meta rebalanced (worked example,
-  committed separately). Awaiting user input on §7 (esp. confidentiality of the immune program and
-  deployment path) before Phase 0 completion + Phase 1.
+- **2026-10-07** — Plan created. Homepage hero + sections + head meta rebalanced (worked example).
+- **2026-10-07 (user decisions):** (1) **CONFIDENTIALITY — HARD RULE** [[feedback_website_no_internal_work]]:
+  do NOT expose internal work. Immune-mediated drug discovery goes on the site as a **capability /
+  focus area customers can use**, NEVER as "our internal program in pilot." No specific targets,
+  ACT, SDL, collaborators, methods, or pilot results. (2) **Deployment path confirmed** —
+  `reference/claude_design/webpage_design_v2/` ships to the public site. (3) **Audience = ALL types**
+  (platform-first serving researchers + pharma/biotech + CRO/hospital).
+- **2026-10-07 — site scan:** NO hard secrets on the live site (no αvβ6/GRPR/4UM9/ACT/SNAT2/
+  collaborators/methods). Only risk was internal-program FRAMING → fixed.
+- **2026-10-07 — Phase 0 applied + verified:** index.html (hero/pill/benefits/loop/steps/applications/
+  figcaption/meta/schema), shell.js (CTA sub + footer tagline), about.html (meta/schema/body) all
+  genericized to **platform-first + immune-as-capability**; "(in pilot) / carrying a program /
+  wet-lab validation underway / flagship engine" removed; wet-lab reframed as what the CUSTOMER
+  does ("your wet-lab results"). Site-wide grep: 0 confidential tokens; remaining "flagship" hits
+  are public benchmarks only (Arc Challenge, RealBio).
+- **Remaining Phase 0 polish:** services.html / features.html meta still lead immune-first (capability
+  framing, not a confidentiality issue) — rebalance to platform-first; llms.txt / terms opener.
+- **Phase 1 (proposed, pending user):** highlight **drug-development platform RESOURCES we've built**
+  (ADMET/hERG, PBPK, docking/QSAR/RBFE, IND report, CRO compliance, QC auto-loop, novelty/FTO gate,
+  ~215 tested drug-dev workflows) as product capability — tunes drug-dev emphasis + credibility
+  WITHOUT exposing internal work. Needs user's list of truthful/approved claims.
 </content>
