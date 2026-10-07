@@ -181,48 +181,47 @@ export function AppSidebar({
           the top-right corner. */}
       <div
         style={{
-          position: 'relative',
-          display: 'block',
-          padding: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          padding: '10px 12px',
           margin: '-14px -10px 12px',
           borderBottom: '1px solid var(--bm-border, hsl(var(--border)))',
           background: 'var(--bm-bg-elev, white)',
-          width: 'auto',
         }}
       >
-        <img
-          src="/biomate-logo.png"
-          alt="BioMate"
-          style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'cover' }}
-        />
-        <span
-          title="Early-access beta — features may change"
-          style={{
-            position: 'absolute',
-            top: 6,
-            right: 30,
-            fontSize: 9.5,
-            fontWeight: 700,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            padding: '1px 5px',
-            borderRadius: 3,
-            background: 'oklch(0.78 0.15 65)',
-            color: '#fff',
-            lineHeight: 1.3,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-          }}
-        >
-          BETA
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+          <img
+            src="/biomate-logo.png"
+            alt="BioMate"
+            style={{ height: 26, width: 'auto', display: 'block', flexShrink: 0 }}
+          />
+          <span
+            title="Early-access beta — features may change"
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              padding: '1px 5px',
+              borderRadius: 3,
+              background: 'var(--bm-surface-2, oklch(0.965 0.003 260))',
+              color: 'var(--bm-text-dim)',
+              lineHeight: 1.3,
+              flexShrink: 0,
+            }}
+          >
+            BETA
+          </span>
+        </div>
         <button
           onClick={onToggleSidebar}
           data-testid="button-sidebar-toggle"
           style={{
-            position: 'absolute', top: 4, right: 4,
-            background: 'rgba(255,255,255,0.85)', border: 'none', padding: 4,
+            background: 'transparent', border: 'none', padding: 4,
             borderRadius: 4, cursor: 'pointer', color: 'var(--bm-text-dim)',
-            backdropFilter: 'blur(4px)',
+            flexShrink: 0,
           }}
           title="Collapse sidebar"
         >
@@ -237,7 +236,6 @@ export function AppSidebar({
           <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>{t('chat.new_chat')}</span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Start a fresh AI conversation</span>
           </span>
         </button>
         <button
@@ -252,7 +250,6 @@ export function AppSidebar({
               {t('nav.workflows')}
               {runningCount > 0 && (<span data-testid="workflows-running-badge" style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: 'oklch(0.92 0.04 230)', color: 'oklch(0.40 0.13 230)' }}>{runningCount}</span>)}
             </span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Run history, browse & import pipelines</span>
           </span>
         </button>
         <button
@@ -264,7 +261,6 @@ export function AppSidebar({
           <Cable className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>Connectors</span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Databases, LLMs & platform integrations</span>
           </span>
         </button>
         {/* IND Report hidden from sidebar for now (per request 2026-09-22). Route still exists. */}
@@ -272,35 +268,30 @@ export function AppSidebar({
           <FileText className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>IND Report</span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Generate regulatory submission documents</span>
           </span>
         </button> */}
         <button className="side-link" data-testid="button-data-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/files')}>
           <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>Data</span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Datasets, quality & lineage</span>
           </span>
         </button>
         <button className="side-link" data-testid="button-models-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/models')}>
           <Layers className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>Models</span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Train, adapt & run models · registry</span>
           </span>
         </button>
         <button className="side-link" data-testid="button-design-generate-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/design')}>
           <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>Design &amp; Generate</span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Generate candidates against property objectives</span>
           </span>
         </button>
         <button className="side-link" data-testid="button-recent-tools" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowRecentToolsDialog(true)}>
           <Wrench className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>Recent Tools</span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Tools you have used recently</span>
           </span>
         </button>
         {/* Billing hidden — /billing page crashes (BillingPage toFixed on undefined).
@@ -309,7 +300,6 @@ export function AppSidebar({
           <CreditCard className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>{t('nav.billing')}</span>
-            <span style={{ fontSize: 11, color: 'var(--bm-text-dim)', fontWeight: 400 }}>Usage & subscription</span>
           </span>
         </button> */}
       </div>
