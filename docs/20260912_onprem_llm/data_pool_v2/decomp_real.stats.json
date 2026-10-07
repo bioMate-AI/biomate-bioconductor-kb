@@ -1,0 +1,154 @@
+{
+  "counts": {
+    "total_real_rows": 287,
+    "nfcore_parsed": 45,
+    "workflow_chains_parsed": 62,
+    "gtn_parsed": 200,
+    "dropped_thin_query": {
+      "nfcore_subworkflow": 20
+    }
+  },
+  "all": {
+    "by_provenance": {
+      "nfcore_subworkflow": 25,
+      "workflow_chain": 62,
+      "gtn_tutorial": 200
+    },
+    "by_structure": {
+      "sequential": 270,
+      "mixed": 11,
+      "parallel": 6
+    },
+    "by_prov_struct": {
+      "nfcore_subworkflow|sequential": 21,
+      "nfcore_subworkflow|mixed": 2,
+      "nfcore_subworkflow|parallel": 2,
+      "workflow_chain|mixed": 9,
+      "workflow_chain|sequential": 49,
+      "workflow_chain|parallel": 4,
+      "gtn_tutorial|sequential": 200
+    }
+  },
+  "train": {
+    "by_provenance": {
+      "nfcore_subworkflow": 18,
+      "workflow_chain": 45,
+      "gtn_tutorial": 156
+    },
+    "by_structure": {
+      "sequential": 210,
+      "mixed": 6,
+      "parallel": 3
+    },
+    "by_prov_struct": {
+      "nfcore_subworkflow|sequential": 16,
+      "nfcore_subworkflow|mixed": 1,
+      "nfcore_subworkflow|parallel": 1,
+      "workflow_chain|mixed": 5,
+      "workflow_chain|sequential": 38,
+      "workflow_chain|parallel": 2,
+      "gtn_tutorial|sequential": 156
+    }
+  },
+  "val": {
+    "by_provenance": {
+      "nfcore_subworkflow": 7,
+      "workflow_chain": 17,
+      "gtn_tutorial": 44
+    },
+    "by_structure": {
+      "sequential": 60,
+      "mixed": 5,
+      "parallel": 3
+    },
+    "by_prov_struct": {
+      "nfcore_subworkflow|sequential": 5,
+      "nfcore_subworkflow|mixed": 1,
+      "nfcore_subworkflow|parallel": 1,
+      "workflow_chain|mixed": 4,
+      "workflow_chain|sequential": 11,
+      "workflow_chain|parallel": 2,
+      "gtn_tutorial|sequential": 44
+    }
+  },
+  "distribution_comparison": {
+    "real": {
+      "structure": {
+        "sequential": 270,
+        "mixed": 11,
+        "parallel": 6
+      },
+      "metrics": {
+        "n": {
+          "mean": 3.735,
+          "max": 14,
+          "min": 2
+        },
+        "depth": {
+          "mean": 3.582,
+          "max": 11,
+          "min": 1
+        },
+        "roots": {
+          "mean": 1.08,
+          "max": 4,
+          "min": 1
+        },
+        "max_fanin": {
+          "mean": 1.132,
+          "max": 10,
+          "min": 0
+        },
+        "max_fanout": {
+          "mean": 1.115,
+          "max": 9,
+          "min": 0
+        },
+        "edges": {
+          "mean": 2.857,
+          "max": 22,
+          "min": 0
+        }
+      }
+    },
+    "synthetic": {
+      "structure": {
+        "mixed": 1700,
+        "sequential": 900,
+        "parallel": 1700
+      },
+      "metrics": {
+        "n": {
+          "mean": 3.246,
+          "max": 4,
+          "min": 2
+        },
+        "depth": {
+          "mean": 1.755,
+          "max": 4,
+          "min": 1
+        },
+        "roots": {
+          "mean": 2.095,
+          "max": 4,
+          "min": 1
+        },
+        "max_fanin": {
+          "mean": 0.605,
+          "max": 1,
+          "min": 0
+        },
+        "max_fanout": {
+          "mean": 0.605,
+          "max": 1,
+          "min": 0
+        },
+        "edges": {
+          "mean": 1.15,
+          "max": 3,
+          "min": 0
+        }
+      }
+    }
+  }
+}
