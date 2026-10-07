@@ -2,8 +2,34 @@
 
 **Date:** 2026-10-07
 **Parent design:** `docs/20261005_AGENT_ORCHESTRATION_AND_PARALLELISM.md §5`
-**Status:** spec ready; **one architecture decision pending** (§4 below) before the driver is built.
+**Status:** ✅ **Slice 1 SHIPPED** on `integration/next-phase` (commit `5aad63b92`, 2026-10-07) —
+decision §4 approved as **Option B (Redis single-owner)**. Registry + driver + REST + 9 unit tests
+(all green). Scheduler is **inert until explicitly enabled** (see "Remaining to activate" below).
 **Target branch:** `integration/next-phase` (forward/roadmap tier, not a dev hotfix).
+
+### What shipped (commit `5aad63b92`)
+- `backend/lib/galaxy/ai/drug_discovery/portfolio.py` — additive registry (`portfolios` +
+  `portfolio_campaigns` tables beside the campaign registry); CRUD + membership + best-effort
+  per-campaign round status. No change to existing campaign behaviour.
+- `backend/lib/galaxy/ai/drug_discovery/portfolio_scheduler.py` — the concurrent driver:
+  Redis single-owner lease (SETNX+EX, mirrors `run_state_store.acquire_completion_lock`),
+  disabled by default (`BIOMATE_PORTFOLIO_SCHEDULER_ENABLED`), refuses to run without Redis,
+  fail-closed per-portfolio spend cap.
+- `api_router.py` — additive REST: `POST/GET /portfolios`, `GET /portfolios/{id}`,
+  `POST /portfolios/{id}/campaigns`, `DELETE /portfolios/{id}/campaigns/{cid}`.
+- `test_portfolio.py` — 9 hermetic unit tests, all green; `py_compile` clean (3.9-safe via
+  `from __future__ import annotations`).
+
+### Remaining to activate (deliberate, not yet done)
+1. **Startup wiring** — call `portfolio_scheduler.start_scheduler_if_enabled()` once per worker
+   at app boot, alongside where the other background threads (e.g. CompletionPoller) start. It
+   no-ops unless the env flag is set AND Redis is reachable, so wiring it is safe; left for a
+   deliberate placement in the boot path rather than an unattended guess.
+2. **Enable on an environment** — set `BIOMATE_PORTFOLIO_SCHEDULER_ENABLED=true` (needs
+   `RUN_STATE_STORE=redis` + `REDIS_URL`, already present on dev) once startup is wired.
+3. **Spend source** — implement `billing.core.realtime_cost_service.portfolio_spend_usd(...)`;
+   until then any portfolio with a `spend_cap_usd` is skipped (fail-closed by design).
+4. **Slice 2+** — the §5.2–5.4 items below (managed run queue, planner promotion, full rails).
 
 This converts the §5 "portfolio scheduler" proposal into a concrete build, grounded
 in the real building blocks (read-only recon, 2026-10-07). It deliberately splits the
