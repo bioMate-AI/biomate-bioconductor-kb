@@ -456,6 +456,7 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
         current["steps"][idx]["status"] = "running"
         current["steps"][idx]["started_at"] = datetime.now(timezone.utc).isoformat()
         current["status"] = "running"
+        current["last_heartbeat"] = datetime.now(timezone.utc).isoformat()  # chain-reconciler liveness
         _update_chain(current)
 
         nextflow_path = step.get("nextflow_path") or ""
@@ -662,6 +663,14 @@ def _poll_run_until_done(chain_run_id: str, step_idx: int, run_id: str, poll_int
 
         status = _normalize_run_status(status_payload.get("status", "running"))
 
+        # Heartbeat: refresh liveness each poll so the chain reconciler can tell a
+        # legitimately long-running phase (fresh heartbeat) from a dead owner after
+        # a worker recycle (stale heartbeat). Cheap relative to the 5s poll interval.
+        _hb = _get_chain(chain_run_id)
+        if _hb is not None and _hb.get("status") == "running":
+            _hb["last_heartbeat"] = datetime.now(timezone.utc).isoformat()
+            _update_chain(_hb)
+
         # Batch/driver mismatch: failed in memory but S3 outputs exist and pass QC heuristics.
         if status == "failed":
             s3_files = status_payload.get("s3_output_files") or []
@@ -700,6 +709,165 @@ def _poll_run_until_done(chain_run_id: str, step_idx: int, run_id: str, poll_int
         current["steps"][step_idx]["completed_at"] = datetime.now(timezone.utc).isoformat()
         _update_chain(current)
     log.warning("workflow_chain: run %s timed out after %.0fs", run_id, timeout)
+
+
+# ---------------------------------------------------------------------------
+# Chain reconciler — rehydrate chains orphaned by a worker recycle
+# ---------------------------------------------------------------------------
+# A chain runs in a per-worker daemon thread (_run_chain). If that worker is
+# recycled mid-phase the thread dies and the chain's on-disk state freezes at
+# status="running" forever — the CompletionPoller / orphan_finalizer only cover
+# single-run exec ids, never chains. This reconciler is the chain analogue: it
+# detects a running chain whose owner is dead (stale heartbeat + no live local
+# thread), claims it cross-worker via the run-store SETNX lock, and re-drives it,
+# REATTACHING to the current phase's already-launched run_id (never relaunching
+# it) before continuing to later phases. Cross-worker safety requires
+# RUN_STATE_STORE=redis (same requirement as the CompletionPoller); under the
+# InMemory store the lock is per-process.
+# See docs/20261006_CHAIN_NAME_LEAK_AND_HANG_ROOTCAUSE.md.
+
+_CHAIN_RECONCILE_STALE_S = float(os.environ.get("BIOMATE_CHAIN_RECONCILE_STALE_S", "150"))
+_CHAIN_RECONCILE_INTERVAL_S = float(os.environ.get("BIOMATE_CHAIN_RECONCILE_INTERVAL_S", "60"))
+
+
+def _chain_thread_name(chain_run_id: str) -> str:
+    return f"chain-{str(chain_run_id)[:12]}"
+
+
+def _chain_has_live_thread(chain_run_id: str) -> bool:
+    tname = _chain_thread_name(chain_run_id)
+    return any(t.name == tname and t.is_alive() for t in threading.enumerate())
+
+
+def _list_running_chain_ids() -> List[str]:
+    ids = set()
+    with _chains_lock:
+        for cid, st in _chains.items():
+            if (st or {}).get("status") == "running":
+                ids.add(cid)
+    try:
+        for p in _chains_dir().glob("*.json"):
+            try:
+                st = json.loads(p.read_text())
+            except Exception:
+                continue
+            if st.get("status") == "running":
+                ids.add(st.get("chain_run_id") or p.stem)
+    except Exception as exc:
+        log.debug("[chain-reconcile] dir scan failed: %s", exc)
+    return list(ids)
+
+
+def _parse_iso_ts(ts: Optional[str]) -> Optional[float]:
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(str(ts).replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return None
+
+
+def _rehydrate_chain(chain_run_id: str) -> None:
+    """Re-drive an orphaned running chain WITHOUT relaunching its current phase."""
+    state = _get_chain(chain_run_id)
+    if not state or state.get("status") != "running":
+        return
+    steps = state.get("steps") or []
+    idx = next((i for i, s in enumerate(steps) if s.get("status") == "running"), None)
+    if idx is None:
+        idx = next((i for i, s in enumerate(steps) if s.get("status") == "pending"), None)
+    if idx is None:
+        return
+    run_id = steps[idx].get("run_id")
+    log.warning(
+        "[chain-reconcile] rehydrating orphaned chain %s at step %d (run_id=%s)",
+        chain_run_id, idx, run_id,
+    )
+    if run_id and steps[idx].get("status") == "running":
+        # Reattach to the already-launched phase — poll it to terminal, never relaunch.
+        _poll_run_until_done(chain_run_id, idx, run_id)
+        cur = _get_chain(chain_run_id) or state
+        if cur["steps"][idx].get("status") != "succeeded":
+            cur["status"] = "failed"
+            _update_chain(cur)
+            return
+        _run_chain(chain_run_id, start_from_step=idx + 1)
+    else:
+        # Current phase never launched (no run_id) — drive from here.
+        _run_chain(chain_run_id, start_from_step=idx)
+
+
+def _reconcile_chains_once() -> None:
+    now = time.time()
+    for cid in _list_running_chain_ids():
+        try:
+            state = _get_chain(cid)
+            if not state or state.get("status") != "running":
+                continue
+            if _chain_has_live_thread(cid):
+                continue  # actively driven in this process
+            hb = _parse_iso_ts(state.get("last_heartbeat")) or _parse_iso_ts(state.get("created_at"))
+            if hb is not None and (now - hb) < _CHAIN_RECONCILE_STALE_S:
+                continue  # owner elsewhere is alive (fresh heartbeat)
+            try:
+                from galaxy.ai.runs.run_state_store import get_run_state_store
+                claimed = get_run_state_store().acquire_completion_lock(
+                    f"chainrehydrate:{cid}", ttl_s=300,
+                )
+            except Exception as exc:
+                log.debug("[chain-reconcile] lock unavailable for %s: %s", cid, exc)
+                continue  # fail safe: no lock → don't risk a double-drive
+            if not claimed:
+                continue
+            log.warning(
+                "[chain-reconcile] claiming orphaned chain %s (heartbeat stale %.0fs)",
+                cid, (now - hb) if hb else -1.0,
+            )
+            threading.Thread(
+                target=_rehydrate_chain, args=(cid,), daemon=True,
+                name=_chain_thread_name(cid),
+            ).start()
+        except Exception as exc:
+            log.debug("[chain-reconcile] sweep error for %s: %s", cid, exc)
+
+
+class _ChainReconciler(threading.Thread):
+    def __init__(self, interval_s: float):
+        super().__init__(daemon=True, name="chain-reconciler")
+        self._interval = interval_s
+        self._stop = threading.Event()
+
+    def run(self) -> None:
+        self._stop.wait(self._interval)  # grace period so new chains aren't misjudged
+        while not self._stop.is_set():
+            try:
+                _reconcile_chains_once()
+            except Exception as exc:
+                log.debug("[chain-reconcile] loop error: %s", exc)
+            self._stop.wait(self._interval)
+
+    def stop(self) -> None:
+        self._stop.set()
+
+
+_chain_reconciler: Optional["_ChainReconciler"] = None
+_chain_reconciler_lock = threading.Lock()
+
+
+def ensure_chain_reconciler_started() -> None:
+    """Start the per-worker chain reconciler once. Idempotent."""
+    global _chain_reconciler
+    if _chain_reconciler is not None:
+        return
+    with _chain_reconciler_lock:
+        if _chain_reconciler is not None:
+            return
+        _chain_reconciler = _ChainReconciler(_CHAIN_RECONCILE_INTERVAL_S)
+        _chain_reconciler.start()
+        log.info(
+            "[chain-reconcile] reconciler started (interval=%.0fs stale=%.0fs)",
+            _CHAIN_RECONCILE_INTERVAL_S, _CHAIN_RECONCILE_STALE_S,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -998,6 +1166,10 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
     """
     import math  # noqa: PLC0415
 
+    # Bring up the per-worker chain reconciler on first chain submit so a chain
+    # orphaned by a worker recycle gets re-driven instead of hanging forever.
+    ensure_chain_reconciler_started()
+
     if not request.steps:
         raise HTTPException(status_code=400, detail="steps array required")
 
@@ -1035,6 +1207,32 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
         chain_run_id = request.chain_run_id or f"chain_{int(time.time())}_{os.urandom(3).hex()}"
         resolved_steps = _resolve_submit_steps(request.steps)
 
+        # Bind the chain's display name to what actually runs. A stale multi-phase
+        # chain_name (e.g. a curated "Bulk RNA-seq DE -> Pathway Enrichment"
+        # inherited from a prior turn's chain_hint) must not land on a single-step
+        # run — that is how an ADMET run came back labelled as RNA-seq. For a
+        # 1-step chain, name it after its one workflow; otherwise derive a name
+        # from the steps when none was given. See docs/20261006_CHAIN_* .
+        chain_name_final = request.chain_name
+        _step_names = [
+            (s.get("workflow_name") or s.get("nextflow_path") or "").strip()
+            for s in resolved_steps
+        ]
+        _step_names = [n for n in _step_names if n]
+        _req_name = (request.chain_name or "").strip()
+        if len(resolved_steps) == 1 and _step_names:
+            # A single-workflow chain can only legitimately be named after its one
+            # workflow. Drop any multi-phase/mismatched name trusted from the request.
+            if (not _req_name) or ("->" in _req_name) or ("→" in _req_name) or (_req_name != _step_names[0]):
+                if _req_name and _req_name != _step_names[0]:
+                    log.warning(
+                        "[chain] dropping stale chain_name %r on single-step run (binding to %r)",
+                        _req_name, _step_names[0],
+                    )
+                chain_name_final = _step_names[0]
+        elif not _req_name and _step_names:
+            chain_name_final = " -> ".join(_step_names)
+
         steps_state = [
             {
                 "index": i,
@@ -1054,7 +1252,7 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
 
         state: Dict[str, Any] = {
             "chain_run_id": chain_run_id,
-            "chain_name": request.chain_name,
+            "chain_name": chain_name_final,
             "chat_session_id": request.chat_session_id,
             "connections": request.connections or [],
             "end_at_step": int(end_at) if end_at is not None else None,

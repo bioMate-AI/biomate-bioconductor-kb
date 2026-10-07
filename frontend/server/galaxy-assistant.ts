@@ -5266,6 +5266,26 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     // TIER 2: Curated chain lookup via chainHint.
     // If the intent classifier named a known chain, use its pre-defined steps.
     // ═══════════════════════════════════════════════════════════════════════
+    // Guard: honor a chain_hint only when the CURRENT message supports it. The
+    // intent classifier is fed the last ~3 turns with "no programmatic gate", so a
+    // single-analysis turn (e.g. ADMET) can inherit a prior turn's chain (e.g. an
+    // RNA-seq DE chain) and be mis-routed/mis-labelled
+    // (docs/20261006_CHAIN_NAME_LEAK_AND_HANG_ROOTCAUSE.md). Decomposition flags can
+    // be contaminated by that history, so we check the MESSAGE TEXT: does it
+    // reference a chain/pipeline, or any distinctive token of the hint slug?
+    if (decomposition.chainHint) {
+      const _msgLc = (message || '').toLowerCase();
+      const _hintTokens = String(decomposition.chainHint)
+        .toLowerCase().split(/[_\-\s]+/).filter((t) => t.length >= 4);
+      const _msgSupportsChain =
+        /\b(chain|pipeline|then|followed by|and then|multi-?step|end[- ]?to[- ]?end)\b/.test(_msgLc)
+        || _hintTokens.some((t) => _msgLc.includes(t));
+      if (!_msgSupportsChain) {
+        log(`Tier 2: dropping stale chain_hint "${decomposition.chainHint}" — current message has no chain/pipeline reference or hint-token overlap (likely inherited from prior-turn context)`);
+        decomposition.chainHint = null;
+      }
+    }
+
     if (decomposition.chainHint) {
       log(`Tier 2: Looking up curated chain "${decomposition.chainHint}"`);
       try {
