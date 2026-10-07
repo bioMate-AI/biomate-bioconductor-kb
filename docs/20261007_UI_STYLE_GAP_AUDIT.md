@@ -23,6 +23,43 @@ the sidebar.
 
 ---
 
+## ⚠️ CORRECTION (2026-10-07, state-accurate re-check — READ THIS FIRST)
+
+The four audits below judged from **static screenshots of specific states** (mostly pre-run/cold).
+A follow-up check — reading the component source **and** viewing the real **running** and **completed**
+panel captures (`assets/live/running-zh.png`, `outputs-zh.png`) — found that several "missing" items
+are **already built**. Do not rebuild them. Status by item:
+
+**DONE (fixed + deployed to dev):**
+- P0-1 Logo — contained, un-clipped, muted BETA (`app-sidebar.tsx`, commit on 2026-10-07).
+- P0-2 Serif panel title → Inter (`workflow-panel.css:145`).
+- P0-3 Sidebar density — single-line nav.
+- P1-1 Folder icons → monochrome gray.
+
+**ALREADY BUILT — audit over-flagged (verified in source + real running/completed captures):**
+- P1-5 **Progress bar** — EXISTS: `.run-bar`/`.fill`/`.pct`/`.meta` (`workflow-panel.css:152`),
+  renders during runs (`nextflow-workflow-viewer.tsx:2637,3285`) with bar + % + current step + elapsed.
+- P1-6 **Dense param strip** — the *collapsed* view is ALREADY the inline `label: value · …` format;
+  the audit saw the *expanded Edit* view and mistook it for the default.
+- P1-10 **Outputs** — a working table with per-file view/download **+** bulk ZIP + reproducible package
+  + save-to-project + "explore in Jupyter" (`v2/AfterRunReport.tsx`, with `StepOutputPreview`/`canPreview`).
+- P1-9 **Report download** — EXISTS (`findings-card.tsx:342`, `AfterRunReport.tsx` download-report).
+
+**NOT a style defect (state/behavior, not CSS):**
+- P1-8 **"Run again" washed-gray** — `.btn.primary` is solid near-black when ENABLED; the gray in the
+  completed capture is the **disabled** state. Question is whether a completed run should re-enable
+  Run-again (behavior), not a restyle.
+
+**OPTIONAL design-preference polish (NOT defects — good candidates for claude design):**
+- Outputs as a card grid w/ preview thumbnails (vs. the current working table).
+- Report as a styled card w/ v1 pill + Edit/Download/In-Files (vs. the current link).
+- Progress-bar color/prominence; status-pill legend; numbers-as-clickable-links.
+
+**Net:** the impactful appearance fixes (the P0 trio + serif) are DONE and live. No big panel refactor
+is warranted. The rows below remain for reference but must be read through this correction.
+
+---
+
 ## P0 — highest visual impact (do first)
 
 | # | Element | Current (product) | Target (design) | Fix / source |
