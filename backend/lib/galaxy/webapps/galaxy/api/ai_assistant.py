@@ -1591,6 +1591,15 @@ def _validate_extracted_params(
             ptype in ("integer", "int", "float", "number", "numeric")
             or name in min_map
             or name in max_map
+            # Defensive: coerce a value that is a clean number followed ONLY by
+            # trailing punctuation (e.g. "500000)" mis-extracted from prose) even
+            # when the schema mistypes the param as "string" — the .nf may still do
+            # `params.X as int` (observed on WGS max_spots, default 0 in the .nf but
+            # surfaced as type "string"). Safe: requires leading digits then only
+            # non-word, non-space chars, so it never matches SMILES ("CC(=O)"),
+            # gene names ("53BP1"), or unit-bearing values ("500mg").
+            or (isinstance(value, str)
+                and re.match(r'^\s*[-+]?\d+(?:\.\d+)?\s*[^\w\s]+\s*$', value) is not None)
         )
         if is_numeric_param:
             want_float = ptype in ("float", "number", "numeric")
