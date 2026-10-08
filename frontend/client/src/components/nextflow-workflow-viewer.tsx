@@ -2955,7 +2955,22 @@ export function NextflowWorkflowViewer({
           {/* safely resolved, so the user confirms the mapping — not a raw form.   */}
           {(() => {
             const fileParams = renderedParameters.filter(p => p.type === 'file');
-            if (fileParams.length === 0) {
+            // Style-A workflows declare their input via a `// Input:` code header,
+            // which surfaces as ordinary STRING params ("Input Csv", "Dataset Id",
+            // "S3 Uri", "File Name", …) rather than type:'file' — so the file-only
+            // logic below misses them and the panel wrongly says "no data inputs to
+            // bind". Detect them so the user knows the workflow DOES take data and
+            // how to supply it: attach via the composer (📎) — the uploaded file's
+            // s3 URI is wired into the param, which the executor reads. (We do NOT
+            // re-type them as 'file' — that would change the working bind path.)
+            const INPUT_LIKE_RE = /(^|[_\s])(input|csv|tsv|dataset|data.?id|s3.?uri|file.?name|samplesheet|matrix|contrasts|counts|clinical|expression)([_\s]|$)/i;
+            const styleAInputs = fileParams.length === 0
+              ? renderedParameters.filter((p: any) =>
+                  (p.type === 'string' || p.type === 'text' || p.type === undefined)
+                  && INPUT_LIKE_RE.test(`${p.name || ''} ${p.label || ''}`)
+                  && !/output|outdir|out_dir|publish/i.test(String(p.name || '')))
+              : [];
+            if (fileParams.length === 0 && styleAInputs.length === 0) {
               return (
                 <div data-testid="prerun-inputs-mapped" className="card2" style={{ marginBottom: 12, padding: '10px 12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
@@ -2963,6 +2978,32 @@ export function NextflowWorkflowViewer({
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
                     {tOr('panel.params_only_no_inputs', 'This workflow takes parameters only — no data inputs to bind.')}
+                  </div>
+                </div>
+              );
+            }
+            if (fileParams.length === 0 && styleAInputs.length > 0) {
+              return (
+                <div data-testid="prerun-inputs-mapped" className="card2" style={{ marginBottom: 12, padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
+                    <Database className="h-3.5 w-3.5" /> {tOr('panel.inputs_mapped', 'Inputs mapped')}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
+                    {tOr('panel.styleA_attach_hint', 'This workflow needs a data file. Attach it with the paperclip (📎) in the message box below — BioMate wires your uploaded file into the workflow automatically.')}
+                  </div>
+                  <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {styleAInputs.map((p: any, i: number) => {
+                      const bound = p.value != null && String(p.value).trim() !== '';
+                      return (
+                        <div key={p.id || p.name || i} data-testid="prerun-input-row" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 500 }}>{p.label || p.name}</span>
+                          <span style={{ color: 'var(--text-dim)' }}>→</span>
+                          <span style={{ color: bound ? 'var(--text)' : 'var(--text-dim)' }}>
+                            {bound ? String(p.value).split('/').pop() : tOr('panel.not_set', 'not set')}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
