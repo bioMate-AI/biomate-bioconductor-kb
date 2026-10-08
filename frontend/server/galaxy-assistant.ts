@@ -4639,6 +4639,29 @@ Rules:
       }
     }
 
+    // Step 6b-guard: deterministic survival remap.
+    // `survival_cox_proportional_hazards_regression` is a Bioconductor Cox workflow
+    // whose clinical-CSV input cannot currently be bound from the panel (the Style-A
+    // declared-input picker gap — the panel shows "no inputs to bind"), so a run lands
+    // with no data and fails. The LLM routing rule already prefers a runnable survival
+    // workflow, but reselection is non-deterministic and the broken one is the top
+    // cosine candidate, so it still wins intermittently. Until the input-binding picker
+    // ships, deterministically remap it to the runnable parametric survival_analysis_km
+    // so survival requests never dead-end. See docs/20261006_BIOMATE_E2E_WORKFLOW_ISSUES.md §3.
+    if (generatedWorkflow?.success &&
+        /survival_cox_proportional_hazards_regression/i.test(generatedWorkflow.workflow_name || '')) {
+      try {
+        const runnable = await this._lookupWorkflowByName('survival_analysis_km');
+        if (runnable?.success) {
+          log(`Step 6b-guard: remapping unbindable survival_cox -> survival_analysis_km`);
+          generatedWorkflow = { ...runnable, source: 'survival_guard' };
+          workflowGenerated = !!(generatedWorkflow.workflow_ga || generatedWorkflow.nextflow_path);
+        }
+      } catch (err: any) {
+        log(`Step 6b-guard: survival remap failed (${err.message}) — keeping original`);
+      }
+    }
+
     // Step 6c: Text-vs-card consistency guardrail
     // The LLM generates its text response AFTER the FTS search, so its text is the
     // more authoritative signal. If the text explicitly names an nf-core workflow that
