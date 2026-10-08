@@ -5483,6 +5483,36 @@ def execute_nextflow(
     }
 
 
+_NUM_TRAILING_JUNK_RE = re.compile(r'^\s*([-+]?\d+(?:\.\d+)?)\s*[^\w\s]+\s*$')
+
+
+def _sanitize_numeric_overrides(params: dict, run_id: str = "") -> None:
+    """Authoritative, schema-independent guard applied to the EXECUTABLE param
+    overrides just before they reach `nextflow run` / the --params-file.
+
+    An LLM-extracted value that is a clean number followed ONLY by trailing
+    punctuation (e.g. "500000)" copied from prose) would otherwise reach the
+    pipeline and crash Groovy `params.X as int` (observed 2026-10-07: WGS
+    max_spots="500000)" → NumberFormatException, run dead in ~6s). Earlier
+    guardrails validated the *extracted* params but not this executable copy
+    (two-copies divergence), and schema-typed coercion missed max_spots because
+    the schema mistyped it as "string". This is the single chokepoint for EVERY
+    run, independent of how the param was produced.
+
+    Mutates params in place. Safe: the regex requires leading digits then only
+    non-word, non-space trailing chars, so it never matches SMILES ("CC(=O)..."),
+    gene names ("53BP1"), unit values ("500mg"), accessions, or s3://paths. A
+    value that is already clean, or not number-like, is left untouched.
+    """
+    for _k, _v in list(params.items()):
+        if isinstance(_v, str):
+            _m = _NUM_TRAILING_JUNK_RE.match(_v)
+            if _m and _m.group(1) != _v:
+                log.info("[ParamSanitize run=%s] --%s %r -> %r (stripped trailing punctuation)",
+                         run_id, _k, _v, _m.group(1))
+                params[_k] = _m.group(1)
+
+
 def _execute_nextflow_impl(
     request: NextflowExecuteRequest,
     _run_id: Optional[str] = None,
@@ -5504,6 +5534,9 @@ def _execute_nextflow_impl(
 
     # Pre-flight: check if this pipeline can run on this host with these settings.
     params = dict(request.parameters or {})
+    # Authoritative sanitize of executable overrides before input validation /
+    # --params-file / `nextflow run` (fixes e.g. WGS max_spots="500000)").
+    _sanitize_numeric_overrides(params, run_id=_run_id or "")
     # `profile` and `executor` are Nextflow CLI / compute options — not pipeline params.
     # Passing them as --profile in the param loop breaks nf-core (duplicate -profile vs --profile).
     _param_profile = params.pop("profile", None)
