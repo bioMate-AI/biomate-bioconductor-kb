@@ -1280,6 +1280,54 @@ def _parse_nextflow_params_impl(nf_filename: str) -> Dict[str, Any]:
                 meta["maximum"] = ann_max
             parameter_metadata[name] = meta
 
+        # ── Style-A declared data inputs ────────────────────────────────────
+        # Bioconductor-style subworkflows declare their data file via a code
+        # header (`// Input: patient_clinical_data.csv`) rather than a config
+        # file-param, so the loop above produced NO file-type param and the
+        # panel showed "no data inputs to bind" even though the workflow needs
+        # a data file. Surface each declared token as an OPTIONAL file-type
+        # param so the viewer's existing file-picker logic (type == 'file')
+        # renders a picker. It is OPTIONAL (not required) so one-click/no-input
+        # demo workflows — which fall back to a placeholder in the executor —
+        # are NOT newly blocked. The param is named by the declared base token
+        # so the executor's Style-A staging (_build_bioc_entry_wrapper →
+        # params.get(name) / base-name fallback) binds the uploaded file.
+        # Dedup: skip a token already covered by a real config file-param
+        # (<base>, <base>_path, <base>_ref) so the panel shows no double rows.
+        _input_decl = re.search(r'(?m)^\s*//\s*Input:\s*(.+?)\s*$', content)
+        if _input_decl:
+            _decl_tokens = [
+                re.split(r'\s*\(', _t)[0].strip()
+                for _t in re.split(r'[,\s]+', _input_decl.group(1))
+                if _t.strip()
+            ]
+            for _tok in _decl_tokens:
+                # `input_files` is the vestigial stageAs:'?/*' slot, not a
+                # user-facing data file — never surface it as a picker.
+                if not _tok or _tok == "input_files":
+                    continue
+                # Base token: drop a trailing short extension (.csv/.rds/.txt…)
+                # so the name matches the executor's base-name resolution
+                # (`_no_ext`). Dotless tokens (e.g. `sce2`) are used verbatim.
+                _base = _tok
+                _mext = re.search(r'\.([A-Za-z0-9]{1,6})$', _tok)
+                if _mext:
+                    _base = _tok[: _mext.start()]
+                if not _base:
+                    continue
+                if any(_k in parameter_metadata
+                       for _k in (_base, _tok, _base + "_path", _base + "_ref")):
+                    continue
+                # Metadata-only (no entry in `parameters`): keeps a spurious
+                # None out of workflow_ga.parameters / CLI flags, while the
+                # generate path still lists it in optional_params.
+                parameter_metadata[_base] = {
+                    "type": "file",
+                    "label": _base.replace("_", " ").title(),
+                    "level": "optional",
+                    "data_input": True,
+                }
+
     except Exception as exc:
         log.warning(f"[NextflowParams] Failed to parse params from {nf_filename}: {exc}")
     return {"parameters": parameters, "parameter_metadata": parameter_metadata}
