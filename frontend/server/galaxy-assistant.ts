@@ -3794,7 +3794,8 @@ Rules:
     message: string,
     context: ChatContext = {},
     onResponseDelta?: (chunk: string) => void,
-    onToolEvent?: (event: AgentToolEvent) => void
+    onToolEvent?: (event: AgentToolEvent) => void,
+    onProgress?: (stage: string, detail?: string) => void
   ): Promise<GalaxyAssistantResponse> {
     // If the caller (chat-stream) supplied a per-user Galaxy proxy, scope it
     // to this turn via AsyncLocalStorage so every `this._api()` call in any
@@ -3822,9 +3823,9 @@ Rules:
     const runInner = () => {
       if (overrideProxy) {
         return _galaxyAPIRequestStorage.run(overrideProxy, () =>
-          this._processMessageInner(message, context, onResponseDelta, onToolEvent));
+          this._processMessageInner(message, context, onResponseDelta, onToolEvent, onProgress));
       }
-      return this._processMessageInner(message, context, onResponseDelta, onToolEvent);
+      return this._processMessageInner(message, context, onResponseDelta, onToolEvent, onProgress);
     };
 
     if (userAnthropicKey && !localOnly()) {
@@ -3838,7 +3839,8 @@ Rules:
     message: string,
     context: ChatContext = {},
     onResponseDelta?: (chunk: string) => void,
-    onToolEvent?: (event: AgentToolEvent) => void
+    onToolEvent?: (event: AgentToolEvent) => void,
+    onProgress?: (stage: string, detail?: string) => void
   ): Promise<GalaxyAssistantResponse> {
     const startTime = Date.now();
     const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] ${step}`);
@@ -3912,6 +3914,7 @@ Rules:
 
     // Step 1: Analyze user intent with NLU (supports all formats: single, multi, sequential)
     // The LLM recognizes bullet lists, numbered steps, prose pipelines, and all other formats.
+    onProgress?.('intent');
     log('Step 1: Analyzing intent');
     const decomposition = await this.analyzeIntent(message, context, sessionMemoryBlock);
     this._maybeCollapseNamedWorkflowCardRequest(decomposition, message);
@@ -4436,6 +4439,7 @@ Rules:
     const needsGeneration = actions.needsWorkflowGeneration || actions.needsWorkflowModification;
     if (needsGeneration) {
       try {
+        onProgress?.('search');
         log('Step 4: Generating workflow');
         // Preserve original message keywords alongside the LLM-distilled subQuery.
         // subQuery can lose domain tokens (e.g. "ADMET", SMILES) when project context
@@ -4477,6 +4481,7 @@ Rules:
            generatedWorkflow?.workflow_type === 'chain')
         );
         log('Step 4 complete - workflowGenerated: ' + workflowGenerated);
+        if (workflowGenerated) onProgress?.('matched', (generatedWorkflow as any)?.workflow_name);
 
         // Track 7A — Confidence-gated near-tie detection
         // If top-1 and top-2 candidate scores are within 0.15 (normalized), flag the runner-up
@@ -4582,6 +4587,7 @@ Rules:
     }
 
     // Step 6: Generate natural language response
+    onProgress?.('plan');
     log('Step 6: Generating response');
     const response = await this.generateResponse(
       message,

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { uploadFile as uploadFileShared } from "@/lib/upload"
+import { tOr } from "@/lib/i18n"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
 import { ChatMessage, type Message } from "./chat-message"
 import { groupProgressMessages, FoldedProgressGroup } from "./chat-progress-fold"
@@ -984,6 +985,26 @@ export function ChatInterface({
                 finalPayload = { ...payload, toolBlocks: Array.from(toolBlocksMap.values()) }
               } else {
                 finalPayload = payload
+              }
+            } else if (eventName === 'progress') {
+              // Routing-stage progress (intent → search → matched → plan) so the
+              // user sees responsive status during the ~30s LLM chain instead of a
+              // frozen spinner. Only before the text response starts streaming.
+              const stage = (payload as any).stage as string | undefined
+              const detail = (payload as any).detail as string | undefined
+              if (stage && !accumulatedText) {
+                const label =
+                  stage === 'intent' ? tOr('chat.progress.intent', 'Understanding your goal…') :
+                  stage === 'search' ? tOr('chat.progress.search', 'Searching 4,000+ workflows…') :
+                  stage === 'matched' ? tOr('chat.progress.matched', 'Matched a workflow') :
+                  stage === 'plan' ? tOr('chat.progress.plan', 'Preparing the plan…') :
+                  stage
+                const text = detail ? `${label} · ${detail}` : label
+                const curSess = chatHistoryService.getSession(sessionId)
+                const curMsg = curSess?.messages.find(m => m.id === placeholderId)
+                updateMessageInSession(sessionId, placeholderId, {
+                  metadata: { ...(curMsg?.metadata ?? {}), progressStatus: text }
+                })
               }
             } else if (eventName === 'workflow_ready') {
               setWorkflowGeneratingPhase('workflow')

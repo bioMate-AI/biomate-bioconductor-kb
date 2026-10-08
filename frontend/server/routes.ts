@@ -6320,13 +6320,15 @@ ${paramLines || '(none recorded)'}`;
             safeMessage,
             enrichedContext as unknown as MemoryEnhancedContext,
             (chunk) => safeSend("delta", { text: chunk }),
-            (event) => safeSend("tool_event", event)
+            (event) => safeSend("tool_event", event),
+            (stage, detail) => safeSend("progress", { stage, detail })
           )
         : await galaxyAssistant.processMessage(
             safeMessage,
             enrichedContext,
             (chunk) => safeSend("delta", { text: chunk }),
-            (event) => safeSend("tool_event", event)
+            (event) => safeSend("tool_event", event),
+            (stage, detail) => safeSend("progress", { stage, detail })
           );
 
       let prerequisitesValidation = null;
