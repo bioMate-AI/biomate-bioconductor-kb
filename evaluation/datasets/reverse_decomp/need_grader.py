@@ -9,12 +9,15 @@ A plan is graded on *did it meet the need*, crediting ANY valid realization:
 
   need_recall     = fraction of gold capability units satisfied by >=1 predicted node
   need_precision  = fraction of predicted nodes that map to some gold unit (penalizes junk)
-  need_f1         = harmonic mean
+  need_f1         = 0.65*need_recall + 0.35*need_precision  (recall-leaning blend, NOT a plain
+                    harmonic mean: gold is a minimal core, so recall is weighted up — see code)
   structure       = parallel/sequential/mixed/single shape match (reuse _structure_of)
   aggregation     = if the need implies a rank/select/compare/integrate step, did the plan
                     include one (keyword OR fan-in node with >=2 deps)?  else 1.0
 
-  reward = 0.55*need_f1 + 0.25*structure + 0.20*aggregation      (bounded [0,1])
+  reward = 0.55*need_f1 + need_recall*(0.25*structure + 0.20*aggregation)   (bounded [0,1];
+                    structure/aggregation credit is GATED by need_recall, so a wrong-tool plan
+                    with the right shape cannot score high)
 
 This is NOT exact tool-ID node-F1 — that metric floored decomposition_real at 0.016 because
 it punished valid alternatives. A node SATISFIES a unit when it names any accept-set member
