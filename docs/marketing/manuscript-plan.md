@@ -156,12 +156,34 @@ the described-menu routing is an *LLM-menu-pick* instrument; the production dens
 invariant) was not exercised and is likely unaffected. The paper reports this honestly (knowledge↑/harness↓
 tradeoff) rather than a clean "CPT wins." (The companion knowledge-MCQA proxy — `20261006_FULLER_CPT_EVAL_RESULTS.md`
 — shows +5.4pp raw / **+3.8pp dedup-controlled**, peaking at ~800 CPT steps; cite the dedup figure externally.)
-**Next work.** Isolate the production dense-retriever routing path (base vs domainpro downstream only,
-expected ≈0 Δ) to separate the retriever from the LLM-selection head; re-mix the SFT with terseness/format
-discipline and re-run the harness; rebuild domainpro on the CPT-800 peak. Build a **held-out decomposition benchmark** (beyond the 9,717 training
-instances in `train_task_decomposition`) with explicit parallel/sequential/mixed dependency labels,
-and report **structure accuracy with coverage held at 1.0** to isolate dependency reasoning. Publish
-the **described-menu prompt + scorer + served-base checkpoint** for replay.
+**DECOMPOSITION — attempted, honest negative result + task-design correction (2026-10-07/08,
+`docs/20260912_onprem_llm/20261006_DECOMPOSITION_ERROR_ANALYSIS.md`, `…20261007_SFT_V3_CLEAN_RETRAIN.md`,
+`project_sft_from_gold_result` memory).** Error analysis found the binding cause: 0/12,319 decomposition
+training rows carried ANY dependency structure. We synthesized parallel/mixed `depends_on` data + a
+node/edge-F1 benchmark; on the SYNTHETIC `decomposition_v2` the SFT lifted node-F1 0.31→0.76 / edge 0.43→0.84.
+**But it did NOT transfer:** on a REAL-topology held-out set (`decomposition_real`, nf-core/chain/GTN) node-F1
+floored at 0.087 and edge-F1 (0.029) fell *below* base; only the coarse struct-shape metric moved. The model
+learned our own generator's templates, not real decomposition — an in-distribution artifact. **Two design
+errors, now corrected:** (1) the synthetic generator's topology was backwards vs real pipelines (real ≈94%
+sequential, deep diamonds fan-in≤10; synthetic 40/40 parallel/mixed, zero diamonds); (2) **exact tool-ID
+matching is the wrong metric** — scientists express biomedical *needs*, not tools, and DESeq2/edgeR/limma are
+interchangeable realizations of "find DE genes," so the gold must be an **outcome + accept-set of valid
+tool-plans**, graded by need-satisfaction/execution, not tool-ID similarity. This is an honest, publishable
+finding: naive SFT-on-synthetic does NOT solve the LLM-bound decomposition task.
+**Next work (decomposition).** (a) **Reverse-DB, need-based benchmark** (in progress): reverse real catalog
+capabilities into natural *need* queries (never naming tools); gold = outcome + accept-set; train =
+reverse-generated, **test = REAL usage held out** (`workflow_chains`/SciMiner/GTN) so a gain means real
+generalization. (b) **RL-direct over more SFT** — ref. MedGemma (2–10% domain fraction preserves generic
+ability; `docs/20261008_GOOGLE_MEDLLM_RL_REFERENCE.md`) and Med-RLVR (RL-only matches SFT in-dist, +8 OOD):
+run our already-built GRPO + catalog-structural-verifier arm, KL-anchored, scored on the real test.
+(c) **Size ladder** on the deployable (≤27B) **Qwen3.5** dense family (0.8/2/4/9/27B, likely multimodal) to
+report capability lift AND generic-ability retention per size.
+**Next work (routing/other).** Isolate the production dense-retriever routing path (base vs domainpro
+downstream only, expected ≈0 Δ) to separate the retriever from the LLM-selection head; re-mix the SFT with
+terseness/format discipline and re-run the harness. Publish the described-menu prompt + scorer + served-base
+checkpoint for replay.
+**Status (RealBio eval, honest):** LLM+harness CPT row ✅; decomposition synthetic ✅ / real-transfer ✅
+(negative); scaling-curve ⧗ pending (deferred — prior run stalled); reverse-DB need-based benchmark ⧗ building.
 
 ### 3.3 Paper C (Bioconductor-KB)
 
