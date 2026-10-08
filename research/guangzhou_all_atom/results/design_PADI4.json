@@ -1,0 +1,214 @@
+{
+  "target": "PADI4",
+  "n_generated": 274,
+  "n_unique": 271,
+  "top_k": [
+    {
+      "design": [
+        "meA",
+        "Mono53",
+        "meL",
+        "Me_Phe(3-Cl)",
+        "L",
+        "meF",
+        "meI",
+        "Nle(OH)",
+        "Me_Phe(3-Cl)",
+        "meL",
+        "Bal(d3-Me)"
+      ],
+      "binding_LLR": 41.651,
+      "ncAA_frac": 0.909,
+      "len": 11
+    },
+    {
+      "design": [
+        "ac-",
+        "dP",
+        "Me_dL",
+        "T",
+        "Me_dL",
+        "Me_dL",
+        "dL",
+        "meA",
+        "dL",
+        "P"
+      ],
+      "binding_LLR": 34.824,
+      "ncAA_frac": 0.8,
+      "len": 10
+    },
+    {
+      "design": [
+        "ac-",
+        "P",
+        "Me_dL",
+        "T",
+        "meL",
+        "meL",
+        "Me_dL",
+        "Me_dA",
+        "dL",
+        "P"
+      ],
+      "binding_LLR": 33.839,
+      "ncAA_frac": 0.7,
+      "len": 10
+    },
+    {
+      "design": [
+        "ac-",
+        "P",
+        "T",
+        "Me_dL",
+        "meL",
+        "Me_dL",
+        "Me_dL",
+        "meA",
+        "L",
+        "dP"
+      ],
+      "binding_LLR": 31.933,
+      "ncAA_frac": 0.7,
+      "len": 10
+    },
+    {
+      "design": [
+        "ac-",
+        "dP",
+        "Me_dL",
+        "T",
+        "dL",
+        "Me_dL",
+        "L",
+        "meA",
+        "dL",
+        "P"
+      ],
+      "binding_LLR": 31.694,
+      "ncAA_frac": 0.7,
+      "len": 10
+    },
+    {
+      "design": [
+        "ac-",
+        "P",
+        "Me_dL",
+        "T",
+        "L",
+        "Me_dL",
+        "dL",
+        "dA",
+        "L",
+        "dP"
+      ],
+      "binding_LLR": 31.595,
+      "ncAA_frac": 0.6,
+      "len": 10
+    },
+    {
+      "design": [
+        "P",
+        "Pr_Gly",
+        "Bn_Gly",
+        "dL",
+        "P",
+        "meF",
+        "dL",
+        "meF",
+        "meV",
+        "dA",
+        "meL"
+      ],
+      "binding_LLR": 31.444,
+      "ncAA_frac": 0.818,
+      "len": 11
+    },
+    {
+      "design": [
+        "ac-",
+        "P",
+        "Me_dL",
+        "T",
+        "dL",
+        "dL",
+        "meL",
+        "meA",
+        "L",
+        "dP"
+      ],
+      "binding_LLR": 31.182,
+      "ncAA_frac": 0.7,
+      "len": 10
+    },
+    {
+      "design": [
+        "ac-",
+        "dP",
+        "meL",
+        "N",
+        "Me_dL",
+        "meL",
+        "Me_dL",
+        "Me_dA",
+        "L",
+        "dP"
+      ],
+      "binding_LLR": 30.578,
+      "ncAA_frac": 0.8,
+      "len": 10
+    },
+    {
+      "design": [
+        "ac-",
+        "dP",
+        "meL",
+        "T",
+        "L",
+        "meL",
+        "Me_dL",
+        "meA",
+        "L",
+        "dP"
+      ],
+      "binding_LLR": 30.517,
+      "ncAA_frac": 0.7,
+      "len": 10
+    },
+    {
+      "design": [
+        "ac-",
+        "P",
+        "meL",
+        "T",
+        "Me_dL",
+        "meL",
+        "L",
+        "Me_dA",
+        "dL",
+        "P"
+      ],
+      "binding_LLR": 30.44,
+      "ncAA_frac": 0.6,
+      "len": 10
+    },
+    {
+      "design": [
+        "ac-",
+        "dP",
+        "meL",
+        "T",
+        "meL",
+        "dL",
+        "Me_dL",
+        "meA",
+        "L",
+        "P"
+      ],
+      "binding_LLR": 30.322,
+      "ncAA_frac": 0.7,
+      "len": 10
+    }
+  ],
+  "note": "Generated ncAA-native cyclic candidates conditioned on (target, high-enrichment, high-permeability); ranked by the binding-selector LLR. One pipeline: target -> ranked macrocycle designs. IN-SILICO ranking (display-trained), not wet-lab affinity."
+}
