@@ -44,6 +44,21 @@ Three findings:
 AND stronger on weak/sparse targets via shared representation. (Still within-target per target — NOT
 cross-target zero-shot, which stays the v3.1 field-wide null.)
 
+## Synthesis — ONE model with both levers (unified_cyclic_llm v4)
+`cyclic_llm/unified_cyclic_llm.py`, `results/unified_cyclic_llm_v4_eval.json`. A single monomer-vocab LM
+(393 tokens, 363 ncAA), conditioned on {target-feature prefix, binding-enrichment bucket, permeability
+bucket} with null tokens per missing label, trained on the UNION (CycPeptMPDB ncAA+perm | display
+target+binding), balanced (CycPeptMPDB oversampled ~15× so the 569k canonical display pool doesn't drown
+the 36k ncAA set). 5.0M params, 1.15M balanced records, 4000 steps. From the SAME model:
+- **(A) ncAA-native + permeability control:** 68% ncAA monomers generated, permeability Δ **+0.47** (p_hi
+  −5.65 vs p_lo −6.12). [Balancing fix: unbalanced collapsed ncAA to 7%.]
+- **(B) multi-target binding selection:** PADI4 **0.942**, Abeta42 **0.982**, hPCSK9 **0.804** (rescued),
+  FIKK13 **0.835**, hIAPP **0.700** — essentially matches the separate unified selector, so adding the
+  ncAA/permeability capability did NOT degrade the binding brain.
+
+→ **One deployable model = ncAA-native generation + property control + multi-target binding selection.**
+The two levers compose without interference. This is the "best cyclic LLM" core, in a single artifact.
+
 ## Where this puts the program
 - **Best-LLM core:** ncAA-native generation (Lever 1) + a unified binding selector that matches/rescues
   across targets (Lever 2) — both the generation and the binding-brain now operate at the chemistry and
