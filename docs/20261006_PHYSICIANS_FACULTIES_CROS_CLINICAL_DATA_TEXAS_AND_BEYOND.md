@@ -52,12 +52,18 @@ Verified faculty for the TMC ACT application (CPRIT-funded; Oct 31 deadline). Ap
   *Role:* clinical co-PI / validator / SAB anchor. (⚠️ Do **not** build around Maura Gillison — deceased
   July 2026; Ferrarotto is the active successor-generation lead.)
 - **Dr. Andrew G. Sikora, MD PhD** — Professor & Director of Research, Head & Neck Surgery, MD Anderson
-  (also Baylor Otolaryngology). HPV E6/E7 **peptide vaccine + checkpoint**; ran a window-of-opportunity Ph2.
-  *Surgeon-scientist; strongest thematic anchor.*
+  (also Baylor Otolaryngology). HPV E6/E7 therapeutic vaccine + surgery; ran a window-of-opportunity trial.
+  *Surgeon-scientist; strongest thematic anchor.* Verified `[web 2026-10-08]`: **NCT02002182** (Window-of-
+  Opportunity neoadjuvant ADXS11-001 vaccination before resection of HPV+ oropharyngeal SCC; Study Chair).
 - **Dr. K. Jagannadha (Jagan) Sastry, PhD** — Professor, Immunology, MD Anderson; ~25 yrs HPV therapeutic
-  peptide-vaccine + checkpoint. *Immunology anchor; pair with a clinician.* Known Sikora pairing.
-- **Dr. Amir A. Jazaeri, MD** — GYN Oncology, MD Anderson; cervical-cancer immunotherapy (anchor for a
-  cervical pivot/fast-follow).
+  peptide-vaccine + checkpoint. *Immunology anchor; pair with a clinician.* Known Sikora pairing. Verified
+  `[web 2026-10-08]`, senior author: **PMID 30054333** (Cancer Research 2018, mucosal HPV E6/E7 peptide
+  vaccine + checkpoint → regression of HPV+ oral cancers) + **PMID 38400189** (Vaccines 2024, NK-subset
+  vaccine protection in HPV+ cancers). (Sikora not a co-author — pairing = both MDACC HPV-vaccine PIs.)
+- **Dr. Amir A. Jazaeri, MD** — GYN Oncology, MD Anderson; Director, Gynecologic Cancer Immunotherapy
+  Program; cervical-cancer immunotherapy (anchor for a cervical pivot/fast-follow). Verified `[web 2026-10-08]`,
+  senior author: **PMID 39798550** (Med 2025, CTLA-4/PD-1 blockade in cervical cancer, COMPASSION-16) +
+  **PMID 38878765** (Med 2024, KEYNOTE-A18 cervical IO).
 - **Dr. Cassian Yee** — MD Anderson; adoptive/antigen-specific T-cell therapy; **ACT alum** (easy warm intro).
   *Immunogenicity + tumor-killing validation.*
 - **Dr. Alexandre Reuben** — MD Anderson; TCR repertoire / neoantigen discovery; **ACT alum**. *Target-discovery

@@ -117,8 +117,13 @@ BioMate/ACT, (c) the honest benefit to them, and (d) the realistic first move.
   + Sastry; **ask ACT to broker** the intro. No warm line exists.
 
 ### Card 5 — Dr. Andrew G. Sikora, MD PhD · MD Anderson Head & Neck Surgery (also Baylor Oto) · **COLD**
-- **Hosts:** HPV E6/E7 **peptide vaccine + checkpoint** program; ran a window-of-opportunity Ph2.
-  Surgeon-scientist; the strongest thematic anchor (`20261006_...` §A2). Specific recent PMID: **verify**.
+- **Hosts:** HPV E6/E7 **therapeutic-vaccine + surgery** program; ran a window-of-opportunity trial.
+  Surgeon-scientist; the strongest thematic anchor (`20261006_...` §A2). Verified `[web, 2026-10-08]`:
+  investigator-sponsored **Window-of-Opportunity Trial of neoadjuvant ADXS11-001 vaccination prior to
+  robot-assisted resection of HPV-positive oropharyngeal SCC** — **NCT02002182**, A.G. Sikora listed as
+  Study Chair (sponsor-investigator; Advaxis collaboration). Confirms the window-of-opportunity HPV-vaccine
+  modality in the card. (No Sikora-first/senior HPV-vaccine *paper* reconfirmed in 2023–2026; recent pubs are
+  HNSCC-immunology co-authorships — cite the NCT, not a PMID.)
 - **Benefit to US:** the strongest **thematic clinical anchor** (peptide vaccine + checkpoint = our exact
   macrocycle-IO story); a surgeon-scientist validator who bridges design → window-of-opportunity trial.
 - **Benefit to THEM:** QC-governed reproducible analysis of window-trial biospecimens + immune-monitoring
@@ -129,7 +134,12 @@ BioMate/ACT, (c) the honest benefit to them, and (d) the realistic first move.
 
 ### Card 6 — Dr. K. Jagannadha (Jagan) Sastry, PhD · MD Anderson, Immunology · **COLD**
 - **Hosts:** ~25 years of HPV therapeutic **peptide-vaccine + checkpoint** immunology (`20261006_...` §A2).
-  Known Sikora pairing. Specific recent PMID: **verify**.
+  Verified `[web, 2026-10-08]`, senior/last author on both: the landmark modality paper **"Mucosal HPV
+  E6/E7 Peptide Vaccination in Combination with Immune Checkpoint Modulation Induces Regression of HPV(+)
+  Oral Cancers"** (Cancer Research 2018, **PMID 30054333**) — exactly the vaccine + checkpoint thesis — and
+  recent **"Immunity from NK Cell Subsets Is Important for Vaccine-Mediated Protection in HPV+ Cancers"**
+  (Vaccines 2024, **PMID 38400189**). (Sikora is not a co-author on these; "Sikora pairing" = both are HPV-
+  vaccine investigators at MDACC, not a verified joint publication.)
 - **Benefit to US:** the **immunology anchor** that complements a clinician — mechanistic depth on HPV
   peptide-vaccine immunogenicity; pairs cleanly with Sikora for a credible advisory dyad.
 - **Benefit to THEM:** antigen/epitope prioritization + immune-repertoire analysis `[P]`; reproducible
@@ -137,8 +147,13 @@ BioMate/ACT, (c) the honest benefit to them, and (d) the realistic first move.
 - **Mutual ask / first move:** approach as the Sikora + Sastry package; route via ACT.
 
 ### Card 7 — Dr. Amir A. Jazaeri, MD · MD Anderson, GYN Oncology · **COLD**
-- **Hosts:** cervical-cancer immunotherapy program (`20261006_...` §A2) — the anchor for a cervical HPV16
-  pivot / fast-follow. Specific recent PMID/NCT: **verify**.
+- **Hosts:** cervical-cancer immunotherapy program (`20261006_...` §A2) — Director, Gynecologic Cancer
+  Immunotherapy Program, MDACC — the anchor for a cervical HPV16 pivot / fast-follow. Verified
+  `[web, 2026-10-08]`, senior/last author: **"Integrating CTLA-4/PD-1 blockade into cervical cancer
+  management: Results of COMPASSION-16"** (Med 2025, **PMID 39798550**) and **"Immunotherapy in locally
+  advanced cervical cancer: Integrating KEYNOTE-A18 into management strategies"** (Med 2024, **PMID
+  38878765**) — checkpoint-IO in cervical cancer. (Cervical HPV16-vaccine landscape context, separate PI:
+  IMMUNOCERV = PDS0101 + chemoradiation, **NCT04580771**, A.H. Klopp PI — *not* Jazaeri.)
 - **Benefit to US:** a **cervical-cancer on-ramp** that extends the HPV16 thesis beyond HNSCC (fast-follow
   indication); a second IO clinical validator.
 - **Benefit to THEM:** responder stratification + reproducible multi-omics on cervical IO cohorts `[P]`;
@@ -528,9 +543,13 @@ co-developers, which is why they sit just outside the actionable top-5.
   Linghua Wang (METI, Nat Commun 2024; Allison Institute 2024), Decker (DOC1021 inventor; CNS 2024 data).
   From the repo (PMIDs API-confirmed per `20260930_ACT_...` §8): Leen (PMID 41482561). From the repo
   (faculty survey, verified 2026-06-17): Zhao, Zhi, Zheng.
+- **HPV16+/HNSCC flagship anchors — now web-verified `[2026-10-08]` (identifiers opened + confirmed):**
+  Sikora (NCT02002182, window-of-opportunity ADXS11-001 HPV+ oropharyngeal vaccine trial, Study Chair);
+  Sastry (PMID 30054333 Cancer Research 2018 + PMID 38400189 Vaccines 2024, senior author on both);
+  Jazaeri (PMID 39798550 Med 2025 + PMID 38878765 Med 2024, senior author). Ferrarotto + Piha-Paul were
+  already verified. All stay **cold**; no status upgraded.
 - **Could NOT verify an individual recent PMID this pass (marked "verify" on the card; the department/center
-  is cited):** Sikora, Sastry, Jazaeri (HPV16 anchors — program described in the map, individual PMID not
-  reconfirmed here); Sharma, Allison (cold/aspirational, SAB-only); Burks, Kenneth Hu, Matzuk, Weiyi Peng,
+  is cited):** Sharma, Allison (cold/aspirational, SAB-only); Burks, Kenneth Hu, Matzuk, Weiyi Peng,
   Udugamasooriya, Tsuchikama, Zhiqiang An, Shu-Hsia Chen; and **all of §5** (Danuser, Yang Xie, Lin Xu, Jeon
   Lee, Chao Xing, Xiaowei Zhan, Gibbs, Sedlazeck, Ken Chen, Treangen, Kavraki, Nakhleh, M.Q. Zhang, Palmer,
   Li Zhang, Fofanov, Marcotte, Wilke, Lucchinetti, Joshua Yuan, Budowle, Eisenberg, Schlesinger, Ling,
