@@ -74,33 +74,63 @@ Paperclip slots in at the bottom as a new **grounded substrate** that the existi
 synthesis layers consume. It is grounded-by-construction (an agent can only cite what it `grep`'d
 from a real file), which is the structural fix for the `research_query` PMID-confabulation failure.
 
-**Crucially, BioMate already owns every resource needed to run Paperclip's technique:**
-- **Corpus storage** → `biomate-data` S3.
-- **Grep/execution** → the `run_code` sandbox (`biomate-biotools:1`) — agents already execute over files.
-- **Map-reduce fan-out + aggregation** → the dormant orchestrator + `RunStateStore`/`CompletionPoller`
-  (the same substrate the Virtual-Biotech-style per-paper fan-out needs).
-- **Consumption** → `federated_query` can add a `paperclip` fetcher; `ResearchAgent`/PaperQA2 synthesize over its grounded extracts.
+### CORRECTION (firsthand read of repo + blog, 2026-10-08)
+Reading the actual repo/blog overturns the "self-hostable substrate" assumption:
+- **Paperclip is a HOSTED third-party service**, not a local corpus. The corpus (PostgreSQL per-block
+  JSONB + Elasticsearch BM25+dense, ~70M blocks from **~450K bioRxiv/medRxiv preprints** + some
+  PMC/FDA/trials; "8M" is aspirational across sources) lives **server-side at `paperclip.gxl.ai`**.
+- The "filesystem" is a **virtual abstraction** the client presents (paths like
+  `/papers/<id>/sections/Results.lines`); shell commands are **translated into remote corpus
+  queries** — it is NOT a FUSE mount or local files. `map_()` dispatches lightweight subagents
+  *server-side* across a result set.
+- The **Apache-2.0 repo is a CLIENT** — MCP endpoint (`paperclip.gxl.ai/mcp`), CLI (`paperclip`,
+  OAuth login), Python SDK (`gxl_paperclip.PaperclipClient`, API key `pk_...`). **No self-hosting
+  documented.** Per-task cost ≈ **$0.21–0.53**. Python 3.8+.
+- Benchmark (bioRxiv-Bench, 140 Qs) is **vs. a bioRxiv MCP connector and FutureHouse Edison** — i.e.
+  it's a better *retrieval service/interface*, measured against other services.
 
-So the integration is additive and clean (Paperclip is **Apache-2.0**): it becomes BioMate's
-offline, grounded, bulk-corpus retrieval substrate, hosted on resources BioMate already has, and
-consumed by the retrieval/synthesis layers that already exist.
+**Consequence:** you cannot "run Paperclip's technique on `biomate-data` S3 + the sandbox." Paperclip
+is consumable only **as an external hosted source**. BioMate's own S3 + `run_code` sandbox +
+orchestrator are what you'd need to **re-implement the technique on your own corpus** (a real build,
+inspired by the Apache-2.0 client — not an import). The §4 design below reflects this.
 
 ---
 
-## 4. Minimal integration sketch (to design against the repo next)
-1. **Host a corpus** in `biomate-data` S3 (start scoped: a domain slice, e.g. the targets/indications
-   BioMate campaigns touch — not all 8M on day one).
-2. **Run Paperclip's filesystem interface + grep-agents inside the `run_code` sandbox** (it already
-   executes containerized code over files).
-3. **Add a `paperclip` fetcher to `federated_query`** so the grounded-grep path joins the existing
-   fan-out, and let **PaperQA2/ResearchAgent synthesize over its extracts** (fixing confabulation).
-4. **Fan-out via the existing orchestrator + run-tracking** for map-reduce over the corpus.
-5. **Benchmark** Paperclip-grounded retrieval vs. today's `research_query`/FTS5 on BioMate's own
-   literature/novelty queries before making it a default.
+## 4. Corrected integration design — two distinct options
 
-**Open items to confirm against the repo/paper before building** (`github.com/GXL-ai/paperclip`,
-Science Methods/SI): how the corpus is indexed/refreshed, auth, cost/compute, and whether its
-filesystem layer is cleanly embeddable as a library vs. a service.
+### Option A — consume Paperclip as a hosted external source (fast, cheap, public data only)
+Paperclip is just a (very good) external biomedical-retrieval service, and **BioMate's
+`federated_query` is already built to fan out to external sources.** So:
+1. **Add a `paperclip` fetcher** to `federated_query` (literature entity type) and/or register its
+   MCP endpoint (`paperclip.gxl.ai/mcp`) as a BioMate connector; call via the `gxl_paperclip` SDK
+   with an API key held in BioMate secrets.
+2. Route **grounded bioRxiv/medRxiv retrieval, novelty checks, and multi-paper synthesis** through
+   it; let **PaperQA2/ResearchAgent synthesize over its grounded extracts**. Its novelty-check
+   result (80% vs 28% MCP) is directly useful to the **drug novelty/FTO gate**
+   (`[[project_drug_novelty_fto_gate]]`).
+3. **Benchmark** it against today's `research_query`/FTS5/federated paths on BioMate's own queries
+   before defaulting to it.
+- **Caveats (decisive):** it is an **external hosted dependency** (OAuth/API key, per-task $),
+  queries **leave BioMate's perimeter** → **gate OFF for private/regulated/on-prem data** (CRO/IND,
+  customer corpora); corpus is **preprint-heavy (~450K)**, not a general 8M-paper or private corpus;
+  availability/latency depend on gxl.ai.
+
+### Option B — re-implement the filesystem+map-reduce *technique* on BioMate's own corpus
+Justified only where Option A can't be used — **on-prem, private/customer data, regulated queries,
+or non-bioRxiv corpora** (incl. BioMate's fragmented 60+ sources, `[[project_data_source_fragmentation]]`).
+This is a genuine build *inspired by* Paperclip's open client, using resources BioMate already owns:
+- **Corpus** (scoped: the targets/indications/private docs we need) in `biomate-data` S3, parsed to
+  per-block records in Elasticsearch/Postgres (the Paperclip ingestion shape).
+- **Filesystem + grep-agents** inside the existing `run_code` sandbox (`biomate-biotools:1`).
+- **Map-reduce fan-out + aggregation** via the dormant orchestrator + `RunStateStore`/`CompletionPoller`.
+- **Synthesis** by the existing PaperQA2/ResearchAgent.
+This is the same substrate the Virtual-Biotech-style per-paper fan-out needs, so Option B and the
+§5.1 Pattern-Router work share infrastructure.
+
+### Recommendation
+**Start with Option A as a scoped PoC** (public bioRxiv/medRxiv novelty + synthesis via
+`federated_query`), measure vs. existing paths, and **gate it to non-private data**. Treat **Option B
+as the on-prem/private-data path** — a larger, separately-scoped build to decide later, not now.
 
 ## 5. Honest notes
 - This corrects the earlier "evaluate Paperclip vs our stack" framing: it's **integrate as a new
