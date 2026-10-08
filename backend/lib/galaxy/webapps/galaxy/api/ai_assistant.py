@@ -1491,10 +1491,29 @@ def _validate_extracted_params(
     """
     # Build lookup: param_name → allowed_values list from schema
     allowed_map: Dict[str, List[str]] = {}
+    # And numeric metadata: param_name → declared type / min / max. Used to
+    # coerce+bounds-check numeric params so a garbage value (e.g. an LLM that
+    # copied "500000)" out of a param description) can't reach Nextflow, where
+    # `params.x as int` would throw NumberFormatException and abort the run.
+    type_map: Dict[str, str] = {}
+    min_map: Dict[str, Any] = {}
+    max_map: Dict[str, Any] = {}
     for p in all_params:
+        name_p = p.get("name")
+        if not name_p:
+            continue
         av = p.get("allowed_values", [])
         if av:
-            allowed_map[p["name"]] = av
+            allowed_map[name_p] = av
+        if p.get("type") is not None:
+            type_map[name_p] = p["type"]
+        # Accept either schema spelling (minimum/maximum) or short form (min/max)
+        _lo = p.get("minimum", p.get("min"))
+        _hi = p.get("maximum", p.get("max"))
+        if _lo is not None:
+            min_map[name_p] = _lo
+        if _hi is not None:
+            max_map[name_p] = _hi
 
     # Always apply genome and strandedness canonical maps regardless of schema
     # (these are so common that hallucinations are very likely without them)
@@ -1556,6 +1575,67 @@ def _validate_extracted_params(
                     "[ParamGuardrail] %s=%r not in allowed values %s — dropping",
                     name, v_str, allowed,
                 )
+            continue
+
+        # Numeric params: coerce to a real number and bounds-check against the
+        # schema. LLMs routinely emit numbers as strings and occasionally with
+        # stray characters copied from the param description (the observed
+        # 2026-10-07 WGS-germline failure launched with --max_spots '500000)',
+        # which made the .nf's `params.max_spots as int` throw
+        # NumberFormatException and abort FASTERQ_DUMP before any task ran).
+        # Normalize the value, or drop it (→ workflow falls back to the schema
+        # default) when it cannot be parsed or is out of range. This closes the
+        # class for every numeric param (max_spots, scatter_count, ploidy, …).
+        ptype = str(type_map.get(name, "")).lower()
+        is_numeric_param = (
+            ptype in ("integer", "int", "float", "number", "numeric")
+            or name in min_map
+            or name in max_map
+        )
+        if is_numeric_param:
+            want_float = ptype in ("float", "number", "numeric")
+            coerced: Any = None
+            if isinstance(value, bool):
+                coerced = None  # bool is not a valid numeric value
+            elif isinstance(value, (int, float)):
+                coerced = value
+            else:
+                mnum = re.match(r"\s*[-+]?\d+(?:\.\d+)?", v_str)
+                if mnum:
+                    tok = mnum.group(0).strip()
+                    try:
+                        coerced = float(tok) if ("." in tok or want_float) else int(tok)
+                    except ValueError:
+                        coerced = None
+            if coerced is None:
+                log.warning(
+                    "[ParamGuardrail] %s=%r is not a valid %s — dropping",
+                    name, value, ptype or "number",
+                )
+                continue
+            # Integer-typed params must be whole numbers.
+            if ptype in ("integer", "int") and isinstance(coerced, float):
+                if coerced.is_integer():
+                    coerced = int(coerced)
+                else:
+                    log.warning(
+                        "[ParamGuardrail] %s=%r is not an integer — dropping", name, value,
+                    )
+                    continue
+            lo = min_map.get(name)
+            hi = max_map.get(name)
+            try:
+                if (lo is not None and coerced < lo) or (hi is not None and coerced > hi):
+                    log.warning(
+                        "[ParamGuardrail] %s=%r out of range [%s, %s] — dropping",
+                        name, coerced, lo, hi,
+                    )
+                    continue
+            except TypeError:
+                pass  # non-comparable bound metadata — skip the bounds check
+            if str(coerced) != v_str:
+                log.info("[ParamGuardrail] normalized %s %r → %r", name, value, coerced)
+            validated[name] = coerced
             continue
 
         # No schema constraint — keep as-is
