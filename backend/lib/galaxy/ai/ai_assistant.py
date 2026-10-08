@@ -2432,6 +2432,55 @@ Respond with a single JSON object — no other text:
                 required.append(entry)
             else:
                 optional.append(entry)
+
+        # ── Style-A declared data inputs ────────────────────────────────────
+        # Bioconductor-style subworkflows declare their data file via a code
+        # header (`// Input: patient_clinical_data.csv`) rather than a config
+        # file-param, so the loop above found NO file param and the workflow
+        # panel showed "no data inputs to bind" even though the workflow needs
+        # a data file. Surface each declared token as an OPTIONAL file-type
+        # param so the viewer's existing file-picker logic (type == 'file')
+        # renders a picker. OPTIONAL (not required) so one-click/no-input demo
+        # workflows — which fall back to a placeholder in the executor — are
+        # NOT newly blocked. Named by the declared base token so the executor's
+        # Style-A staging (nextflow_executor._build_bioc_entry_wrapper →
+        # params.get(name) / base-name fallback) binds the uploaded file.
+        # Dedup: skip a token already covered by a real config file-param
+        # (<base>, <base>_path, <base>_ref) so there are no double rows.
+        _input_decl = _re.search(r'(?m)^\s*//\s*Input:\s*(.+?)\s*$', text)
+        if _input_decl:
+            _decl_tokens = [
+                _re.split(r'\s*\(', _t)[0].strip()
+                for _t in _re.split(r'[,\s]+', _input_decl.group(1))
+                if _t.strip()
+            ]
+            for _tok in _decl_tokens:
+                # `input_files` is the vestigial stageAs:'?/*' slot, not a
+                # user-facing data file — never surface it as a picker.
+                if not _tok or _tok == "input_files":
+                    continue
+                # Base token: drop a trailing short extension (.csv/.rds/.txt…)
+                # to match the executor's base-name resolution. Dotless tokens
+                # (e.g. `sce2`) are used verbatim.
+                _base = _tok
+                _mext = _re.search(r'\.([A-Za-z0-9]{1,6})$', _tok)
+                if _mext:
+                    _base = _tok[: _mext.start()]
+                if not _base or any(
+                    _k in seen_names
+                    for _k in (_base, _tok, _base + "_path", _base + "_ref")
+                ):
+                    continue
+                seen_names.add(_base)
+                optional.append({
+                    "name": _base,
+                    "label": _base.replace("_", " ").title(),
+                    "description": "Data input file read by the workflow",
+                    "type": "file",
+                    "default": None,
+                    "data_input": True,
+                })
+
         return {"required": required, "optional": optional}
 
     def _schema_type_to_param_type(self, name: str, param_def: dict) -> str:
