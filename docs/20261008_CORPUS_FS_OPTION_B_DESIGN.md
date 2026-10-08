@@ -14,13 +14,22 @@ construction** — an agent can only cite text that physically exists in the sto
 kills the `research_query` PMID-confabulation failure (`[[project_research_confabulation]]`). All
 in-perimeter: no external service, usable on private/regulated/on-prem data.
 
-## 2. Build on REAL BioMate infra (verified — no new services)
-- **No Elasticsearch/PG-search in BioMate** (grep: only a test references ES). → **Do NOT introduce
-  ES.** Use what BioMate already runs:
-  - **SQLite FTS5** — `local_literature.py` already defines `documents(pmcid,pmid,title,year,
-    licence,url)` + FTS5 `chunks`. **Extend this**, don't invent a new store.
-  - **sentence-transformers vector** — `vector_search.py` (sqlite + numpy), for optional semantic
-    block ranking.
+## 2. Build on REAL BioMate infra — pluggable index (FTS5 default, ES optional)
+**ES question (resolved 2026-10-08):** ES gives native hybrid BM25+vector+RRF+aggregations (what
+Paperclip uses) and is the better backend *at scale / in cloud*. But Option B exists for
+**on-prem/private** — and ES-as-the-only-store forces **every on-prem customer to run and operate
+an ES cluster**, versus an embedded SQLite file that ships with the app. So the decision is
+**pluggable, not either/or**, mirroring BioMate's own `RunStateStore` (Protocol + InMemory + Redis
++ factory):
+- **`CorpusIndex` interface** with two backends, chosen by env (`CORPUS_INDEX_BACKEND`):
+  - **`fts5` (default)** — SQLite FTS5 + sentence-transformers vector, embedded, **zero-ops,
+    on-prem-safe**; fine to ~10⁵–10⁶ blocks. Extends `local_literature.py`'s existing
+    `documents` + FTS5 `chunks` schema (don't invent a new store) and reuses `vector_search.py`.
+  - **`es` (optional)** — Elasticsearch backend (hybrid BM25+dense+RRF) for **large-corpus/cloud**
+    deployments where scale justifies the ops. A drop-in behind the same interface — **not** a
+    rewrite, and never forced on an on-prem install.
+- BioMate currently runs **no ES** (grep: only a test references it), so `fts5` is the shipping
+  default; `es` is implemented only when a deployment's scale needs it.
 - **Execution** — the existing `run_code` sandbox (`biomate-biotools:1`, `POST /api/code/run`).
 - **Map-reduce fan-out + aggregation** — the dormant `agent_orchestrator.py` +
   `RunStateStore`/`CompletionPoller` (shared with the Pattern-Router work).
@@ -41,12 +50,14 @@ files. A block = paragraph/table/figure-caption with `(doc_id, section, kind, te
 line_end)`, so `grep` returns grounded ~200-token snippets with provenance, not whole papers.
 
 ## 4. Slices (incremental, disciplined — mirrors the portfolio-scheduler cadence)
-- **S1 (this build): the store + virtual-FS query primitives + ingest, with hermetic tests.**
-  A `corpus_fs` module: schema (documents + blocks FTS5), `ingest(jsonl)` (extends
-  `local_literature.build` to block granularity + section/line metadata), and grounded query
-  primitives `ls(doc)`, `cat(doc, path)`, `grep(pattern, path_glob)`, `find(...)` that translate
-  virtual paths → FTS5/SQL. Grounded-by-construction (returns only stored text). Pure stdlib +
-  sqlite, Python-3.9-safe, no network, inert/additive.
+- **S1 (this build): `CorpusIndex` interface + FTS5 backend + virtual-FS primitives + ingest, with
+  hermetic tests.** A `corpus_fs` module: a `CorpusIndex` Protocol (so `es` can drop in later),
+  an `Fts5CorpusIndex` backend with schema (documents + blocks FTS5), `ingest(jsonl)` (extends
+  `local_literature.build` to block granularity + section/line metadata), grounded query primitives
+  `ls(doc)`, `cat(doc, path)`, `grep(pattern, path_glob)`, `find(...)` that translate virtual paths
+  → FTS5/SQL, and a `get_corpus_index()` factory on `CORPUS_INDEX_BACKEND` (fts5 default).
+  Grounded-by-construction (returns only stored text). Pure stdlib + sqlite, Python-3.9-safe, no
+  network, inert/additive.
 - **S2: map-reduce fan-out + synthesis wiring.** A `corpus_map(question, doc_set)` that dispatches a
   per-doc sub-agent (grep its blocks) via the orchestrator/run-tracking, then reduces via PaperQA2.
   Add a `corpus_fs` fetcher to `federated_query` so grounded local retrieval joins the fan-out.
