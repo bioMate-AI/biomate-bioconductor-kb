@@ -126,6 +126,15 @@ def main():
     from openai import OpenAI
     client = OpenAI(base_url=args.base_url, api_key=os.environ[args.key_env])
 
+    # Optional, env-gated decoding controls (default OFF -> behavior unchanged for all existing runs).
+    # OR_REASONING_DISABLE=1 passes OpenRouter's {"reasoning":{"enabled":false}} so a *thinking* model
+    # answers directly — needed to evaluate reasoning-model families within a bounded token/$ budget and
+    # to avoid runaway-reasoning truncation. OR_MAX_TOKENS overrides the 2000 completion cap.
+    _extra_body = {}
+    if os.environ.get("OR_REASONING_DISABLE") == "1":
+        _extra_body["reasoning"] = {"enabled": False}
+    _max_tok = int(os.environ.get("OR_MAX_TOKENS", "2000"))
+
     task = args.task
     is_gen = task in GEN
     spec = GEN[task] if is_gen else TASKS[task]
@@ -161,6 +170,12 @@ def main():
 
     suffix = f"_{args.mode}" if task == "cross_domain_routing" else ""
     if described: suffix += "_described"
+    # param_prefill: 'catalog' (default, no suffix -> matches existing leaderboard files) gives the
+    # candidate param names (the harness's schema layer); 'bare' omits them (no suffix collision) to
+    # measure the harness dividend for parameter extraction. A bare LLM cannot know a workflow's exact
+    # param keys, so bare F1 is a floor by construction — reported as the dividend's lower anchor.
+    param_bare = (task == "param_prefill" and args.mode == "bare")
+    if param_bare: suffix = "_bare"
     outdir = os.path.join(HERE, "results", args.model.replace("/", "_"))
     os.makedirs(outdir, exist_ok=True)
     outpath = os.path.join(outdir, f"{task}{suffix}.jsonl")
@@ -178,7 +193,14 @@ def main():
     n_usage = 0  # items for which the provider returned a usage block
     with open(outpath, "w") as f:
         for r in rows:
-            if is_gen:
+            if param_bare:
+                # bare param extraction: request only, no candidate param names (no schema help)
+                prompt = ("Extract any analysis parameters explicitly specified in this request as a flat "
+                          "JSON object {name: value}. Use canonical/standard values (e.g. official "
+                          "reference-genome assembly identifiers, not organism common names). Include a "
+                          "parameter ONLY if its value is clearly stated. Respond with JSON only.\n\n"
+                          f"INPUT:\nRequest: {r['user_query']}")
+            elif is_gen:
                 prompt = f"{spec['instr']}\n\nINPUT:\n{spec['inp'](r)}"
             elif described:
                 prompt = (f"{spec['instr']}\nEach candidate is 'name — description'. Choose the single best match "
@@ -199,7 +221,8 @@ def main():
                     resp = client.chat.completions.create(
                         model=args.model,
                         messages=[{"role": "user", "content": prompt}],
-                        max_completion_tokens=2000)
+                        max_completion_tokens=_max_tok,
+                        extra_body=_extra_body)
                     dt_ms = int((time.time() - t0) * 1000)
                     txt = resp.choices[0].message.content
                     pred = spec["parse"](txt) if is_gen else parse_cls(txt)
