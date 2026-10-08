@@ -25,6 +25,10 @@ galaxy:
   tool_dependency_dir: database/dependencies
   check_migrate_tools: false
   tool_config_file: config/tool_conf.xml.sample,config/shed_tool_conf.xml
+  # BioMate uses Docker containers for all tool execution — disable Conda so
+  # Galaxy does not try to init/lock /app/database/dependencies/conda at startup.
+  conda_auto_init: false
+  conda_auto_install: false
 
   # Memory optimization - load tools on demand instead of preloading
   preload_tool_panel: false

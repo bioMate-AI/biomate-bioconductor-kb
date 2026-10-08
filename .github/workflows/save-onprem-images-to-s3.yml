@@ -1,0 +1,87 @@
+name: Save on-prem images to S3 (offline deployment)
+
+# Saves the backend and frontend images to S3 as gzip tarballs so
+# on-prem deployments without GHCR access can do: docker load < tarball.
+#
+# Output: s3://biomate-onprem-assets/onprem/biomate-images-<tag>.tar.gz
+#
+# Trigger manually via workflow_dispatch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ecr_tag:
+        description: 'ECR source tag to package'
+        required: true
+        default: 'integration-next-phase-latest'
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: 399683337364.dkr.ecr.us-west-2.amazonaws.com
+  ROLE_ARN: arn:aws:iam::399683337364:role/GitHubActionsECRPush
+  S3_BUCKET: biomate-onprem-assets
+  S3_PREFIX: onprem
+
+jobs:
+  save-to-s3:
+    name: ECR → S3 image tarball
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Pull backend from ECR
+        run: |
+          docker pull ${{ env.ECR_REGISTRY }}/biomate/dev-backend:${{ inputs.ecr_tag }}
+          docker tag ${{ env.ECR_REGISTRY }}/biomate/dev-backend:${{ inputs.ecr_tag }} \
+            ghcr.io/biomate-ai/biomate-backend:latest
+
+      - name: Pull frontend from ECR
+        run: |
+          docker pull ${{ env.ECR_REGISTRY }}/biomate/dev-frontend:${{ inputs.ecr_tag }}
+          docker tag ${{ env.ECR_REGISTRY }}/biomate/dev-frontend:${{ inputs.ecr_tag }} \
+            ghcr.io/biomate-ai/biomate-frontend:latest
+
+      - name: Save images to gzip tarball
+        run: |
+          docker save \
+            ghcr.io/biomate-ai/biomate-backend:latest \
+            ghcr.io/biomate-ai/biomate-frontend:latest \
+            | gzip > /tmp/biomate-images.tar.gz
+          ls -lh /tmp/biomate-images.tar.gz
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp /tmp/biomate-images.tar.gz \
+            s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images-${{ inputs.ecr_tag }}.tar.gz \
+            --region ${{ env.AWS_REGION }}
+          # Also overwrite the stable "latest" pointer
+          aws s3 cp /tmp/biomate-images.tar.gz \
+            s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images.tar.gz \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## On-prem images saved to S3" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Source ECR tag: \`${{ inputs.ecr_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- S3 versioned: \`s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images-${{ inputs.ecr_tag }}.tar.gz\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- S3 latest: \`s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images.tar.gz\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Load on target machine:" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`bash" >> "$GITHUB_STEP_SUMMARY"
+          echo "aws s3 cp s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images.tar.gz /tmp/biomate-images.tar.gz" >> "$GITHUB_STEP_SUMMARY"
+          echo "docker load < /tmp/biomate-images.tar.gz" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"

@@ -88,6 +88,7 @@ services:
   db-init:
     image: curlimages/curl:latest
     container_name: biomate-db-init
+    user: "root"
     volumes:
       - biomate-backend-db:/app/database
     environment:
@@ -143,7 +144,7 @@ services:
   # ── MinIO (本地对象存储，替代 AWS S3) ────────────────────────────────────
   # 管理界面: http://<host>:9001  (MINIO_ROOT_USER / MINIO_ROOT_PASSWORD)
   minio:
-    image: minio/minio:latest
+    image: ${BIOMATE_MINIO_IMAGE:-ghcr.io/biomate-ai/minio:latest}
     container_name: biomate-minio
     command: server /data --console-address ":9001"
     environment:
@@ -166,7 +167,7 @@ services:
 
   # ── MinIO 初始化 (创建默认 bucket，运行一次后自动退出) ────────────────────
   minio-init:
-    image: minio/mc:latest
+    image: ${BIOMATE_MINIO_MC_IMAGE:-ghcr.io/biomate-ai/minio-mc:latest}
     container_name: biomate-minio-init
     depends_on:
       minio:
@@ -354,7 +355,16 @@ services:
     # `sh -c`. A scalar string would be shell-split (e.g. `sh -c [ -f ... ]`)
     # which breaks the test expression with "[: missing ]".
     command:
-      - "[ -f /app/config/galaxy.yml ] || cp /app/config/galaxy.yml.template /app/config/galaxy.yml; exec gunicorn 'galaxy.webapps.galaxy.fast_factory:factory()' --pythonpath lib -k galaxy.webapps.galaxy.workers.Worker --bind 0.0.0.0:8080 --workers 2 --timeout 600 --preload --log-level info -c lib/galaxy/web_stack/gunicorn_config.py"
+      # The host bind-mount (./backend/config:/app/config) hides the Galaxy sample
+      # config files that the Dockerfile baked into the image.  Copy them back from
+      # lib/galaxy/config/sample/ if they are missing (idempotent — safe on restart).
+      - >-
+        [ -f /app/config/galaxy.yml ] || cp /app/config/galaxy.yml.template /app/config/galaxy.yml;
+        [ -f /app/config/tool_conf.xml.sample ] || cp /app/lib/galaxy/config/sample/tool_conf.xml.sample /app/config/;
+        [ -f /app/config/datatypes_conf.xml.sample ] || cp /app/lib/galaxy/config/sample/datatypes_conf.xml.sample /app/config/;
+        [ -f /app/config/tool_data_table_conf.xml.sample ] || cp /app/lib/galaxy/config/sample/tool_data_table_conf.xml.sample /app/config/;
+        [ -f /app/config/shed_tool_conf.xml ] || printf '<?xml version="1.0" encoding="utf-8"?>\n<toolbox tool_path="../shed_tools">\n</toolbox>\n' > /app/config/shed_tool_conf.xml;
+        exec gunicorn 'galaxy.webapps.galaxy.fast_factory:factory()' --pythonpath lib -k galaxy.webapps.galaxy.workers.Worker --bind 0.0.0.0:8080 --workers 2 --timeout 600 --preload --log-level info -c lib/galaxy/web_stack/gunicorn_config.py
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/version"]

@@ -270,12 +270,27 @@ if [[ -n "${GHCR_TOKEN:-}" ]]; then
     || warn "GHCR 登录失败，将尝试匿名拉取"
 fi
 
-info "拉取基础服务镜像（postgres, redis, minio, registry）..."
+info "拉取基础服务镜像（postgres, redis, minio, registry, curl）..."
 docker pull postgres:15 2>&1 | tail -1
 docker pull redis:7-alpine 2>&1 | tail -1
-docker pull minio/minio:latest 2>&1 | tail -1
-docker pull minio/mc:latest 2>&1 | tail -1
 docker pull registry:2 2>&1 | tail -1
+docker pull curlimages/curl:latest 2>&1 | tail -1
+# MinIO is mirrored to GHCR (quay.io/minio/* requires auth since 2024).
+# The compose file references these GHCR images via BIOMATE_MINIO_IMAGE /
+# BIOMATE_MINIO_MC_IMAGE env vars.  Retag to the legacy minio/* names so any
+# remaining inline docker pull references work without Docker Hub auth.
+MINIO_IMAGE="${BIOMATE_MINIO_IMAGE:-ghcr.io/biomate-ai/minio:latest}"
+MINIO_MC_IMAGE="${BIOMATE_MINIO_MC_IMAGE:-ghcr.io/biomate-ai/minio-mc:latest}"
+for _img in "$MINIO_IMAGE" "$MINIO_MC_IMAGE"; do
+  if docker image inspect "$_img" &>/dev/null; then
+    ok "MinIO 镜像已存在（离线包）: $_img"
+  else
+    info "拉取 MinIO 镜像: $_img ..."
+    docker pull "$_img" 2>&1 | tail -1 || { error "拉取失败: $_img"; die "请检查 GHCR Token 是否有 read:packages 权限"; }
+  fi
+done
+docker tag "$MINIO_IMAGE" minio/minio:latest 2>/dev/null || true
+docker tag "$MINIO_MC_IMAGE" minio/mc:latest 2>/dev/null || true
 ok "基础镜像就绪"
 
 # BioMate 镜像（如果是离线包，已经 docker load 好了）
@@ -366,6 +381,11 @@ if [[ ! -f "$_GALAXY_YML" ]]; then
 else
   ok "backend/config/galaxy.yml 已存在，跳过生成"
 fi
+# The galaxy user inside the container (UID 1000) must write to this directory
+# at startup (integrated_tool_panel.xml, etc.). The bind-mount makes the host
+# directory visible inside the container, so set world-writable permissions.
+chmod 777 "$SCRIPT_DIR/backend/config"
+ok "backend/config 权限已设置（galaxy 容器内用户可写）"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 4b. 检测 Docker socket GID（Nextflow 本地执行器必须）

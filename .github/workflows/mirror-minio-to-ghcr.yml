@@ -1,0 +1,67 @@
+name: Mirror MinIO to GHCR
+
+# Mirrors official MinIO (minio + mc) images to GHCR so on-prem customers can
+# pull them using only their GHCR_TOKEN — no Docker Hub or Quay.io login needed.
+#
+# MinIO moved their public images to quay.io/minio/ which requires auth in 2024.
+# This workflow pulls from quay.io (GHA runners have access) and re-pushes to:
+#   ghcr.io/biomate-ai/minio:latest
+#   ghcr.io/biomate-ai/minio-mc:latest
+#
+# Triggered: weekly (keeps image fresh) + manual dispatch.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 3 * * 1'   # Every Monday 03:00 UTC
+
+permissions:
+  packages: write
+  contents: read
+
+env:
+  MINIO_SRC: quay.io/minio/minio:latest
+  MC_SRC: quay.io/minio/mc:latest
+  MINIO_DST: ghcr.io/biomate-ai/minio:latest
+  MC_DST: ghcr.io/biomate-ai/minio-mc:latest
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Quay.io
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+        continue-on-error: true   # anonymous pull still works on GHA runners
+
+      - name: Pull, retag, push minio
+        run: |
+          docker pull --platform linux/amd64 "$MINIO_SRC"
+          docker tag "$MINIO_SRC" "$MINIO_DST"
+          docker push "$MINIO_DST"
+          echo "Pushed $MINIO_DST"
+
+      - name: Pull, retag, push mc
+        run: |
+          docker pull --platform linux/amd64 "$MC_SRC"
+          docker tag "$MC_SRC" "$MC_DST"
+          docker push "$MC_DST"
+          echo "Pushed $MC_DST"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## MinIO GHCR Mirror" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`$MINIO_DST\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`$MC_DST\`" >> "$GITHUB_STEP_SUMMARY"
