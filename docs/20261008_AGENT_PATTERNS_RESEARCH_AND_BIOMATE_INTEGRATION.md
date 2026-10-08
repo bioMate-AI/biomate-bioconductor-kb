@@ -9,8 +9,8 @@ orchestration, answering: *how do we make BioMate more flexible and smarter?*
 
 ## 0. Thesis (the one-paragraph answer)
 
-Parallel multi-agent search — the pattern behind the "virtual pharma" system (Robin) —
-is **one** agent pattern, not *the* pattern. The Nature Machine Intelligence result shows
+Massive hierarchical multi-agent fan-out — the pattern behind Stanford's "virtual pharma" system
+(**The Virtual Biotech**, ~37,000 agents) — is **one** agent pattern, not *the* pattern. The Nature Machine Intelligence result shows
 multi-agent collaboration only helps when a single strong model's **baseline on that task is
 below a capability-saturation threshold**; above it, extra agents add cost and *amplify*
 errors. Claude Code's dynamic-workflow guidance gives the complementary engineering view: a
@@ -28,58 +28,111 @@ run-state machinery that already exists.
 
 ---
 
-## 1. WORK 1 — "Virtual pharma": FutureHouse **Robin**
+## 0.1 CORRECTION (2026-10-08) — BioMate already has most of these primitives
 
-### 1.1 Identity (with an important caveat)
-- **Title:** *Robin: A multi-agent system for automating scientific discovery* (FutureHouse).
-- **Primary artifact:** arXiv **2505.13400** (19 May 2025) — https://arxiv.org/abs/2505.13400 .
-  Repo **https://github.com/Future-House/robin**, **Apache-2.0**.
-- **Venue caveat:** reported by secondary sources as later in *Nature* (2026); **not confirmed
-  as *Science***. The brief said "Science" — on current evidence no open-source virtual-pharma
-  system is in *Science*; the mechanism match (parallel multi-agent finding-detection +
-  open source) points unambiguously to Robin. **Flag for the user:** confirm whether a strict
-  *Science* paper is meant, else proceed with Robin.
-- **Underlying open substrate (the directly-reusable parts):** **PaperQA2** (*Language agents
-  achieve superhuman synthesis of scientific knowledge*, arXiv 2409.13740,
-  https://github.com/Future-House/paper-qa, Apache-2.0) and **Aviary** (arXiv 2412.21154,
-  Apache-2.0).
+An initial draft of this doc proposed *importing* PaperQA2 and *building* an
+ensemble-consensus/verify layer. **Both were wrong — BioMate already has them.** A direct
+capability audit (grep + module reads, file:line below) found:
+
+- **Grounded literature RAG is already in BioMate.** `/api/ai_assistant/paperqa_synthesize`
+  wraps PaperQA2 (`from paperqa import Docs, Settings`, `paper-qa>=5.0.0`) in
+  `backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py:6113-6203`; exposed as the
+  `synthesize_papers` tool (`frontend/server/orchestrator.ts:135,266`); plus a `ResearchAgent`
+  over PubMed/arXiv/Semantic Scholar (`backend/lib/galaxy/ai/agents/research_agent.py:1-20`), an
+  offline FTS5 literature index (`backend/lib/galaxy/ai/local_literature.py`), intent-routing to
+  the research path, and an e2e test (`frontend/e2e/research-paperqa-flows.e2e.ts`). **Nothing to
+  import.**
+- **Inference-time ensemble + verification is already in BioMate** as model-agnostic primitives:
+  `backend/lib/galaxy/ai/verification_layer.py` — `majority_vote`/`self_consistent` (sample K →
+  modal answer + confidence), `consensus` (N independent answers agree?), `verified_sample`
+  (pass@k oracle), `grounded_pick` (reject off-catalog). Its own docstring states BioMate's
+  thesis: *"The moat is the harness, not model size… grounded, executed, and VERIFIED. Our QC
+  auto-loop already is 'verifiable rewards'."* **This is the §5.2 'ensemble-consensus findings'
+  idea — already built; the work is WIRING it into the findings path, not building it.**
+- **De-novo generation exists** (`backend/lib/galaxy/ai/drug_discovery/generators.py`: BRICS +
+  BioNeMo) feeding the generate→predict→score→rank loop.
+
+**The corrected framing (this is the real answer to "make BioMate smarter"):** BioMate is *not*
+missing these capabilities. It has grounded RAG, consensus/verification primitives, de-novo
+generation, a dormant parallel-specialist orchestrator, and durable parallel run-tracking. What
+it lacks is the **adaptive SELECTION layer that chooses which primitive/pattern to use per
+scenario and wires them together** — exactly the capability-gated Pattern Router of §5.1. The
+tables/plan in §1.5 and §5.2 below are corrected inline, but treat §5.1 (selection) + §4.5
+(live multi-run UI) as the genuine gaps, and **everything else as wiring existing parts, not
+importing/building new ones.** Lesson recorded: audit BioMate's own capabilities before
+proposing any external import or new build.
+
+---
+
+## 1. WORK 1 — "Virtual pharma": Stanford **The Virtual Biotech** (~37,000 agents)
+
+### 1.1 Identity
+- **Title:** *The Virtual Biotech: A Multi-Agent AI Framework for Therapeutic Discovery and
+  Development.* Lead: **Harrison Zhang**; PI: **James Zou** (Stanford Biomedical Data Science /
+  SAIL / CZ Biohub; lab **GXL**, gxl.ai).
+- **Venue:** **Science, 17 Sep 2026.** DOI **10.1126/science.aeg6779**
+  (https://www.science.org/doi/10.1126/science.aeg6779, paywalled). Preprint: bioRxiv
+  https://biorxiv.org/content/10.64898/2026.02.23.707551v1 . Stanford Medicine press:
+  https://med.stanford.edu/news/all-news/2026/09/virtual-biotech-company.html .
+- **Open-source:** the supporting literature tool **Paperclip** is confirmed open
+  (**https://github.com/GXL-ai/paperclip**, **Apache-2.0**). The full 37k-agent orchestration
+  framework is *asserted* public in press materials but a canonical repo/license was **not
+  verified** — the Science Data/Code Availability statement (paywalled) is authoritative; **check
+  it before any build decision.**
+- **Do-not-confuse:** *PharmAgents* ("Building a Virtual Pharma with LLM Agents", arXiv
+  2503.22164) — a small handful of agents, NOT this paper.
+- The "~35,000" figure is **~37,000** (see §1.3).
 
 ### 1.2 What it does
-End-to-end semi-autonomous discovery (human runs only the wet-lab): disease → literature review
-→ ~10 mechanism hypotheses → LLM-judge tournament → top assay → ~30 candidate molecules →
-deep per-candidate literature review → tournament → human experiment → **autonomous data
-analysis** → consensus finding → refined hypotheses → repeat. Case study (dry AMD) surfaced
-**ripasudil** (a ROCK inhibitor) and an ABCA1 lipid-efflux mechanism from RNA-seq.
+Emulates a whole pharma company end-to-end from a natural-language query: target ID/validation →
+safety → drug-delivery/modality → clinical-trial review. **Results:** analyzed ~37–50k clinical
+trials in **~6 hours**; found that drugs targeting **"switch-like," cell-type-specific (bimodal)
+genes** are **~40% more likely to advance Phase 1→2, ~48% more likely to reach market, with ~32%
+fewer adverse events**; and — using **only pre-2025 data** — autonomously designed a **B7-H3
+(CD276) ADC for lung cancer** matching **ifinatamab deruxtecan** (FDA Breakthrough Therapy, Aug
+2025). That convergence is the headline external validation.
 
-### 1.3 Agent architecture — the "parallel" pattern, precisely
-Three agents orchestrated by a **scripted hierarchical workflow** (not free-form debate):
-- **Crow / Falcon** — concise / deep literature synthesis, built on **PaperQA2** (parallel
-  evidence gathering: search → per-chunk rerank+contextual-summary → citation-graph traversal).
-- **Finch** — data-analysis agent that **launches 10 independent analysis trajectories over the
-  same dataset, then a meta-analysis step reconciles them into one consensus finding.** This is
-  the literal "multiple agents searching data in parallel to detect findings."
-- **Aggregation = LLM-judge tournament** (pairwise/round-robin, up to ~300 comparisons), not a
-  single ranking pass. Models: o4-mini (synthesis), Claude 3.7 Sonnet (judge), swappable via
-  LiteLLM.
+### 1.3 Collaboration architecture AT SCALE (the crux — a *different* pattern from Robin)
+- **Hierarchical delegation, not a market or emergent society:** a virtual **CSO** agent → **4
+  research divisions** → **~11 "principal" agents** (stat-genetics, functional genomics, disease
+  biology, cheminformatics, clinical-data, …) with **100+ tools** + Open Targets /
+  ClinicalTrials.gov / ChEMBL → spawned **ephemeral worker agents**. **Independent reviewer/critic
+  agents gate each stage** before results propagate; agents **debate** to stress-test.
+- **Where "37,000" comes from:** **map-reduce fan-out of ephemeral workers**, ≈ one agent per
+  unit of a big corpus (e.g. **37,075 Phase II/III trial outcomes**, one agent each) → each emits
+  a compact result → reduced upward. It is **NOT** 37k persistent roles — it's horizontal data
+  parallelism. The persistent org is small (~11 principals + CSO + reviewers).
+- **Scale enabler = Paperclip (Apache-2.0):** exposes **8M+ biomedical papers as an AI-native
+  virtual filesystem** navigated with bash tools (`ls`/`grep`/`cat`/`find`) + parallel
+  sub-agents. Reported **1.6× more accurate, 2.4× faster, 3.6× cheaper than MCP-based retrieval**;
+  claimed >1 order-of-magnitude time/cost cut for the whole system.
+- **LLM/compute:** Claude (Anthropic) models, designed model-agnostic; 37k-trial sweep ~6 h.
+  **Exact models, token/$ cost, compute are NOT disclosed** publicly (in the paywalled Methods/SI).
 
-### 1.4 Reliability flag (must carry into any adoption)
-Finch reported a **7.5×** phagocytosis effect where human re-analysis of the same data gave
-**~1.75×**. Ensemble+consensus did **not** prevent a large over-report. Any BioMate adoption of
-the pattern needs a human/rule guardrail before a finding is surfaced as quantitative truth —
-directly relevant to CRO/IND (regulated) use.
+### 1.4 Evidence & honest limits
+Validation is **retrospective + external convergence**, not in-house wet-lab: B7-H3 is a single
+anecdote matching an independently-advanced drug (hindsight/selection-bias risk); the trial-success
+feature is a **correlational** data-mining result; cost/compute undisclosed. "37k agents" is
+**throughput/parallelism**, not 37k reasoning roles — the genuine novelty is the small org +
+reviewer gates + Paperclip + massive fan-out. Any adoption of agentic findings still needs a
+verify gate before quantitative claims (cf. the regulated CRO/IND path).
 
-### 1.5 BioMate gap analysis + integration path
-| Robin component | BioMate today | Integrate how | Fit / licensing |
+### 1.5 BioMate integration — assessed AGAINST what BioMate already has (§0.1 discipline)
+| Virtual-Biotech element | BioMate today | Integrate how | Honest fit |
 |---|---|---|---|
-| **PaperQA2 grounded literature RAG** | `search_literature` MCP + `research_query` — but `research_query` is known to **confabulate real-but-unrelated PMIDs** (`[[project_research_confabulation]]`). No citation-graph RAG. | **Import `paper-qa` as a library** (Apache-2.0, LiteLLM, self-hostable; do NOT use Robin's Crow/Falcon wrappers — those need the paid Edison service). | **Strongest clean win.** Fixes a real existing reliability gap. |
-| **Finch: N parallel trajectories → consensus finding** | BioMate executor is *stronger* for running pipelines (`run_code`, Nextflow DESeq2 on Batch, auto-loop QC) but auto-loop is **single-path remediation, not an ensemble**. | **Adapt the pattern** (reimplement N-trajectory + consensus over BioMate's own executor); Finch's code is Edison-gated → not importable. | Pattern, not code. Add the §1.4 guardrail. |
-| **Hypothesis generation + LLM-judge tournament** | Campaign module ranks **quantitatively** (Bayesian opt over measured props); **no free-text hypothesis-gen + tournament upstream**. | **Import Robin's `robin/` generation + `prompts.py` + tournament** (Apache-2.0; generation/ranking need no Edison — only `data_analysis()` does). | **Highest-value directly-importable code.** Bolts onto the existing BO/DBTL campaign. |
-| **Lab-in-the-loop orchestration** | Dry-lab engine; a separate SDL project exists (`[[project_self_driving_lab]]`). | Design inspiration only. | Architectural mismatch. |
+| **Paperclip (papers-as-filesystem + map-reduce extraction)** | BioMate **already has grounded literature**: PaperQA2 synthesis (`ai_assistant.py:6113-6203`), `ResearchAgent` (PubMed/arXiv/S2), offline FTS5 index (`local_literature.py`). The known weak path is `research_query` PMID confabulation (`[[project_research_confabulation]]`). | **EVALUATE, don't auto-import.** Benchmark Paperclip's filesystem+fan-out retrieval *against our existing PaperQA2/FTS5 stack* on our own queries. Adopt only if it measurably beats what we have (its MCP-vs-filesystem win suggests it *might* for large-corpus novelty checks). Apache-2.0 makes a PoC clean. | Candidate PoC — **not** a decided import. (Lesson from the PaperQA mistake: verify vs existing first.) |
+| **CSO→divisions→principals→ephemeral-workers hierarchy + reviewer gates** | BioMate has a **dormant** router→parallel-specialists→assembler orchestrator (`agent_orchestrator.py`) + consensus/verify primitives (`verification_layer.py`) + a QC auto-loop ("verifiable rewards"). | **WIRE/activate:** wake the dormant orchestrator and add **reviewer-agent gates** using the EXISTING `verification_layer` + QC-loop. The paper validates this exact shape at scale. | Mostly activating existing parts. |
+| **Map-reduce fan-out over large record sets (per-trial / per-paper / per-compound)** | BioMate's **durable cross-worker run-tracking** (`RunStateStore`/Redis + `CompletionPoller`) already coordinates many parallel units + aggregation. The portfolio scheduler (slice 1–2) is the campaign-level instance. | **WIRE:** express large sweeps as fan-out over the existing run-tracking substrate. | Reuses existing infra. |
+| **"Switch-like / bimodal target gene" success heuristic** | Campaign target-triage uses quantitative scoring; no such prior encoded. | **Adopt as a scientific PRIOR** in target triage; cite/benchmark against it. | Usable, cheap, high-value prior. |
+| **Full 37k-agent "virtual company" simulation** | — | **Inspiration only.** Keep BioMate's deterministic, auditable, reproducible execution; borrow coordination + the prior, not free-form self-organization at 37k scale. | Research demo, not a platform feature. |
 
-**Verdict:** import PaperQA2 + Robin's generation/tournament modules (both Apache-2.0, no paid
-dep); **adapt** the parallel-trajectory-consensus idea over our executor; the full "Robin
-wholesale" is blocked not by license but by its best agents calling the **closed, paid Edison**
-service.
+**Verdict:** The Virtual Biotech is the **validation at scale of the exact architecture BioMate
+already has dormant** (hierarchical router → parallel specialists → assembler, + reviewer gates +
+massive fan-out over run-tracking). So the headline paper argues for **activating and wiring what
+we own**, not importing a new engine. The one genuinely new external artifact worth a bounded PoC
+is **Paperclip** — and even that must be benchmarked against our existing PaperQA2/FTS5 stack
+before adoption. Keep deterministic execution as the moat; borrow the coordination pattern, the
+reviewer gate, and the bimodal-target prior.
 
 ---
 
@@ -228,23 +281,28 @@ domain (the NMI "baseline") plus task-shape heuristics (the Claude Code rule).
 | novel/ambiguous intent, cross-domain design, target triage, new-workflow synthesis | low | **revive the dormant parallel specialists** (router→pool→assembler) | NMI + co-scientist: multi-agent wins at low baseline |
 | per-sample / per-candidate analysis, portfolio of campaigns | n/a (independent items) | **parallel fan-out** (pipeline/parallel) | Claude Code: independent work parallelizes; = portfolio scheduler |
 | dependent pipeline (WGS→variant→annotate) | n/a | **pipeline** | ordered dependencies |
-| findings on a completed run (esp. CRO/IND) | n/a | **ensemble trajectories → consensus → adversarial verify** | Robin Finch pattern + §1.4 guardrail |
+| findings on a completed run (esp. CRO/IND) | n/a | **ensemble → consensus → reviewer/verify gate** (wire `verification_layer`) | Virtual-Biotech reviewer gates + §1.4 guardrail; primitives already exist |
 
 ### 5.2 Concrete, mostly-reuse build plan (priority order)
-1. **Pattern Router (new, small):** a runtime chooser in the assistant path that selects
-   single-vs-multi using benchmark baselines + task-shape rules, and **routes low-baseline
-   intents to the already-built orchestrator** (`agent_orchestrator.py`). This *activates dead
-   code* rather than writing a new engine — highest leverage, lowest new-code.
-2. **Import PaperQA2 (`paper-qa`)** to replace/augment `research_query` and kill the
-   PMID-confabulation gap. Library import, Apache-2.0.
-3. **Ensemble-consensus findings layer:** extend `OutputAnalyzer`/auto-loop to run N analysis
-   trajectories + a consensus meta-step + an adversarial-verify gate before a finding is shown
-   (carry the Finch 7.5×-vs-1.75× guardrail; required for regulated outputs).
-4. **LLM-judge tournament for hypothesis/target triage:** import Robin's `robin/` generation +
-   tournament (Apache-2.0) as an upstream stage feeding the existing BO/DBTL campaign.
-5. **Live multi-run dashboard:** UI glue over the existing `active` SET + `runs/overview` +
-   per-invocation SSE — a merged "all my runs" view (the one genuinely missing UI). Pairs with
-   the portfolio scheduler's parallel-campaign view.
+**All items below are WIRING existing BioMate parts into an adaptive selection layer — not
+importing or building new capabilities (see §0.1). The two genuine gaps are #1 and #5.**
+1. **[GENUINE GAP] Pattern Router (new, small):** a runtime chooser in the assistant path that
+   selects single-vs-multi using benchmark baselines + task-shape rules, and **routes
+   low-baseline intents to the already-built orchestrator** (`agent_orchestrator.py`). Activates
+   dead code; highest leverage, lowest new-code.
+2. ~~Import PaperQA2~~ — **WRONG / already integrated** (§0.1). No action beyond optionally
+   routing more queries through the existing PaperQA-grounded path.
+3. **[WIRE existing] Ensemble-consensus findings:** call the EXISTING `verification_layer.py`
+   primitives (`self_consistent`/`consensus`/`verified_sample`) from the findings/auto-loop path
+   + a verify gate before a finding is shown (carry the §1.4 7.5×-vs-1.75× guardrail). The code
+   exists; it just isn't wired into `output_analyzer.py` yet.
+4. **[VERIFY FIRST] Hypothesis/target triage ranking:** BioMate already has `generators.py`
+   (de-novo) + `bayesian_optimizer.py` (quantitative ranking) + an LLM-judge pattern elsewhere —
+   **audit whether a free-text hypothesis-tournament stage is truly absent before building one.**
+   Do not assert this is a gap without checking (the PaperQA mistake).
+5. **[GENUINE GAP] Live multi-run dashboard:** UI glue over the existing `active` SET +
+   `runs/overview` + per-invocation SSE — a merged "all my runs" view. Pairs with the portfolio
+   scheduler's parallel-campaign view.
 
 ### 5.3 Design guardrails (from the research)
 - **Default small.** Single model/rules unless the baseline gate says collaboration helps
@@ -258,17 +316,23 @@ domain (the NMI "baseline") plus task-shape heuristics (the Claude Code rule).
 ---
 
 ## 6. Caveats (honest)
-- **"Science" vs. reality:** the virtual-pharma system is Robin (arXiv/Nature), **not a *Science*
-  paper**; confirm with the user if a strict *Science* source was meant.
+- **Capability audit beats assumption:** the first draft wrongly proposed importing PaperQA2 and
+  building a consensus layer — both already exist in BioMate (§0.1). **Audit BioMate before
+  proposing any import/build.** This applies to the open §5.2 #4 claim too (verify before asserting).
+- **Virtual Biotech full text paywalled** (Science): exact models, token/$ cost, compute, and the
+  canonical open-source repo/license for the full framework are **not in open sources** — read the
+  Methods/SI + Data/Code Availability before any build decision. Numbers (37,075 trials, +40/48/32%,
+  B7-H3) are from the preprint/press — spot-check against the paper before external use.
+- **"37,000 agents" = parallel fan-out, not 37k roles** — don't over-read the headline.
 - **NMI full text paywalled:** the 5 architectures / 4 of 6 benchmarks / 3 model families are not
   in open sources — do not cite specific names as from that paper without the PDF.
-- **Robin numbers** (551 papers, 7.5×, ABCA1 p-value) are from the arXiv rendering/secondary
-  summaries — spot-check against the PDF before external use.
-- **Robin "wholesale" is not importable** — its best agents call the closed, paid Edison service;
-  only the open substrate (PaperQA2/Aviary) + generation/tournament modules are reusable.
+- **Paperclip = evaluate, not adopt:** benchmark it against BioMate's existing PaperQA2/FTS5 stack
+  before any integration.
 
 ## 7. Sources
-Robin arXiv 2505.13400 · github.com/Future-House/robin · PaperQA2 arXiv 2409.13740 ·
-github.com/Future-House/paper-qa · Aviary arXiv 2412.21154 · NMI DOI 10.1038/s42256-026-01268-y ·
-Google AI co-scientist deepmind.google/blog/co-scientist · Claude Code workflows
-code.claude.com/docs/en/workflows.md, sub-agents.md, agent-teams.md · BioMate file:line cites in §4.
+**The Virtual Biotech** — Science DOI 10.1126/science.aeg6779 · bioRxiv 2026.02.23.707551 ·
+med.stanford.edu/news/.../virtual-biotech-company.html · Paperclip github.com/GXL-ai/paperclip
+(Apache-2.0) · (do-not-confuse: PharmAgents arXiv 2503.22164) · **NMI** DOI
+10.1038/s42256-026-01268-y · Google AI co-scientist deepmind.google/blog/co-scientist · **Claude
+Code** code.claude.com/docs/en/workflows.md, sub-agents.md, agent-teams.md · BioMate capabilities
+file:line in §0.1 + §4. (Robin — arXiv 2505.13400 — surveyed but NOT the intended paper.)
