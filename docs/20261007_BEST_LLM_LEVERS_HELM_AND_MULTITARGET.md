@@ -59,6 +59,20 @@ the 36k ncAA set). 5.0M params, 1.15M balanced records, 4000 steps. From the SAM
 → **One deployable model = ncAA-native generation + property control + multi-target binding selection.**
 The two levers compose without interference. This is the "best cyclic LLM" core, in a single artifact.
 
+## Move 2 (widen the brain = more display targets) — data-availability check (honest)
+Checked for new target-selected display-NGS to add (NCBI BioProject API, 2026-10-08). Only 2 hits for
+mRNA/phage/yeast macrocyclic-peptide display selection: PRJNA1170358 (already harvested — Abeta42/hIAPP)
+and **PRJNA1262878**, which on inspection is **5 NAIVE yeast-display libraries keyed by disulfide
+topology** (CX9C/CX7C/CX6CX6C/CX3CX9C/CX9CX3C) — **no target selection / no enrichment / no binding
+labels**. Not usable for the binding brain (would add non-binders); NOT harvested. (It could weakly prior
+the GENERATOR's disulfide-cyclization topology distribution — a minor, separate use.)
+
+**Conclusion:** the readily-available *public, target-selected* display-NGS is essentially what we already
+have (5 targets / 4 BioProjects). Widening the brain needs either deeper literature+SRA curation (more
+search, when the web budget resets) OR — the moat path — **our own proprietary display campaigns against
+new targets** (exactly the "invert the data dependency" thesis). This is a data-acquisition gap, not a
+capability gap, and it is the honest next requirement.
+
 ## Where this puts the program
 - **Best-LLM core:** ncAA-native generation (Lever 1) + a unified binding selector that matches/rescues
   across targets (Lever 2) — both the generation and the binding-brain now operate at the chemistry and
