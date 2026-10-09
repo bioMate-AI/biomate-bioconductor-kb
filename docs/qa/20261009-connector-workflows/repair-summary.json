@@ -1,0 +1,21 @@
+{
+  "repairCommit": "95a5e2dd4",
+  "deployed": true,
+  "typecheck": "passed",
+  "unitTests": {
+    "passed": 1670,
+    "skipped": 7
+  },
+  "freshRunId": "80992e6c-d483-49ed-a730-b698d2d0f2e0",
+  "workflowJourneyPassed": true,
+  "remainingFailedChecks": [
+    {
+      "step": "published-package-vs-docs-tool-count",
+      "passed": false,
+      "expected": 19,
+      "actual": 22
+    }
+  ],
+  "push": "blocked: inherited GitHub workflow change requires workflow OAuth scope",
+  "recordingApproved": false
+}

@@ -1,0 +1,15 @@
+[
+  {
+    "url": "https://api.biomate.ai/connectors/chatgpt/openapi.json",
+    "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>"
+  },
+  {
+    "url": "https://app.biomate.ai",
+    "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>"
+  },
+  {
+    "url": "https://dev-public.biomate.ai/connectors/chatgpt/openapi.json",
+    "status": 200,
+    "toolOperations": 19
+  }
+]
