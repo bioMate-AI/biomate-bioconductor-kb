@@ -12176,11 +12176,15 @@ Rules:
         connections: req.body?.connections || [],
         start_from_step: req.body?.start_from_step ?? 0,
         end_at_step: req.body?.end_at_step ?? req.body?.endAtStep ?? undefined,
+        max_parallel: req.body?.max_parallel ?? 4,
+        coverage_axes: req.body?.coverage_axes,
         steps: rawSteps.map((s: any) => ({
           nextflow_path: s.nextflow_path || s.workflowPath || s.workflow_path || s.nextflowPath,
           workflow_name: s.workflow_name || s.name,
           role: s.role,
           step_key: s.step_key || s.stepKey,
+          depends_on: s.depends_on,
+          dimensions: s.dimensions,
           params: s.params || s.parameters || {},
         })),
       };

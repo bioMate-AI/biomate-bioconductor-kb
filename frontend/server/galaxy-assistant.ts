@@ -1,3 +1,4 @@
+import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
 import { localOnly, localOffline, localMessagesClient, localConfig } from './local-llm.js';
 import { localIntentPrompt } from './local-intent-prompt.js';
 import { localResponsePrompt } from './local-response-prompt.js';
@@ -5494,16 +5495,8 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     const benchmarkResult = subIntentResults.find(r => r.benchmarkEvidence);
     const workflowGenerated = !!workflowResult?.generatedWorkflow;
 
-    // Collect all ADDITIONAL runnable workflows (unique by nextflow_path or workflow_name)
-    const primaryWfPath = workflowResult?.generatedWorkflow?.nextflow_path;
-    const additionalWorkflows = subIntentResults
-      .filter(r => r !== workflowResult && isRunnableWf(r.generatedWorkflow))
-      .filter((r, i, arr) => {
-        // deduplicate by path
-        const p = r.generatedWorkflow?.nextflow_path;
-        return p !== primaryWfPath && arr.findIndex(x => x.generatedWorkflow?.nextflow_path === p) === i;
-      })
-      .map(r => r.generatedWorkflow);
+    // Preserve one result per requested intent, even when executable paths match.
+    const additionalWorkflows = additionalIntentWorkflows(subIntentResults, workflowResult, isRunnableWf);
 
     // Step 6: Generate synthesized response
     log('Multi-intent Step 6: Generating synthesized response');
@@ -5708,11 +5701,9 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
 
       // Workflow generation — intent flags already determined by analyzeIntent
       if (actions.needsWorkflowGeneration || actions.needsWorkflowModification) {
-        // When this sub-intent is part of a multi-intent query, use the original full message
-        // as the workflow intent so domain preference (e.g. drug/docking tokens) is preserved.
-        const effectiveIntent = (originalMessage && originalMessage !== intent.subQuery)
-          ? originalMessage
-          : intent.subQuery;
+        // Route this branch's scientific task. Catalog/domain context is supplied separately;
+        // reusing the full request here makes every branch select the same primary workflow.
+        const effectiveIntent = workflowIntent(intent.subQuery, originalMessage);
         const _subUploadedParams = extractUploadedFileParams(originalMessage || intent.subQuery);
         const _subMergedInline: Record<string, string> = {
           ...(intent.inlineParameters || {}),

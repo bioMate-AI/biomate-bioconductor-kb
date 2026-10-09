@@ -18,6 +18,7 @@ import os
 import sqlite3
 import re
 import threading
+import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -84,7 +85,7 @@ def resolve_context_params(
     return resolved
 
 from fastapi import HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, StrictInt
 
 from galaxy.webapps.galaxy.api import Router
 
@@ -125,9 +126,16 @@ def _load_chain(chain_run_id: str) -> Optional[Dict[str, Any]]:
 def _save_chain(state: Dict[str, Any]) -> None:
     p = _chain_path(state["chain_run_id"])
     try:
-        p.write_text(json.dumps(state, indent=2, default=str))
+        with tempfile.NamedTemporaryFile(mode="w", dir=p.parent, delete=False) as stream:
+            temporary = stream.name
+            stream.write(json.dumps(state, indent=2, default=str))
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, p)
     except Exception as exc:
         log.warning("workflow_chain: failed to persist %s: %s", p, exc)
+        if state.get("execution_mode") == "dag":
+            raise  # Never dispatch a DAG step without a durable submission intent.
 
 
 # ---------------------------------------------------------------------------
@@ -463,8 +471,10 @@ def _compute_chain_meta(
 
 
 def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
-    """Execute chain steps sequentially in a background thread."""
+    """Execute a legacy sequential chain or an explicit dependency plan."""
     state = _get_chain(chain_run_id)
+    if state and state.get("execution_mode") == "dag":
+        return _run_dag_chain(state)
     if state is None:
         log.error("workflow_chain: chain %s not found", chain_run_id)
         return
@@ -667,6 +677,42 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
     log.info("workflow_chain: chain %s completed successfully", chain_run_id)
 
 
+def _run_dag_chain(state: Dict[str, Any]) -> None:
+    from galaxy.chain.dag import bind_inputs, run_plan
+    from galaxy.chain.artifact_contracts import artifact_value
+    from galaxy.webapps.galaxy.api.nextflow_executor import (
+        NextflowExecuteRequest, execute_nextflow, get_nextflow_status,
+    )
+
+    def submit(step, params):
+        return execute_nextflow(NextflowExecuteRequest(
+            nextflow_path=step["nextflow_path"], parameters=params,
+        )).get("run_id")
+
+    def poll(run_id):
+        payload = get_nextflow_status(run_id)
+        status = _normalize_run_status(payload.get("status"))
+        if payload.get("returncode") not in (None, 0):
+            status = "failed"
+        files = _list_run_output_files(run_id) if status == "succeeded" else []
+        error = payload.get("error")
+        if status == "succeeded" and not files:
+            status, error = "failed", "Completed without published result artifacts"
+        return {"status": status, "error": error, "output_files": files}
+
+    def save(current):
+        _update_chain(current)
+        _write_pipeline_manifest(current)
+
+    try:
+        run_plan(state, submit, poll, save,
+                 lambda current, i: bind_inputs(current, i, _list_run_output_files,
+                                                 artifact_value, resolve_context_params))
+    except Exception as exc:
+        state.update(status="failed", error=str(exc))
+        _update_chain(state)
+
+
 def _normalize_run_status(raw_status: str) -> str:
     """Map Nextflow executor status strings to chain step terminal states."""
     s = (raw_status or "running").lower()
@@ -807,6 +853,8 @@ def _rehydrate_chain(chain_run_id: str) -> None:
     state = _get_chain(chain_run_id)
     if not state or state.get("status") != "running":
         return
+    if state.get("execution_mode") == "dag":
+        return _run_dag_chain(state)
     steps = state.get("steps") or []
     idx = next((i for i, s in enumerate(steps) if s.get("status") == "running"), None)
     if idx is None:
@@ -1030,6 +1078,9 @@ def _build_pipeline_manifest(state: Dict[str, Any]) -> Dict[str, Any]:
             "run_id": step.get("run_id"),
             "status": step.get("status"),
             "artifacts": step.get("artifacts") or {},
+            "depends_on": step.get("depends_on"),
+            "dimensions": step.get("dimensions") or {},
+            "output_files": step.get("output_files") or [],
         }
         if step.get("outdir"):
             entry["outdir"] = step.get("outdir")
@@ -1080,6 +1131,8 @@ def _resolve_submit_steps(steps: List["ChainStep"]) -> List[Dict[str, Any]]:
             "workflow_name": wn,
             "role": role,
             "step_key": data.get("step_key") or _slug_step_key(wn, role),
+            "depends_on": data.get("depends_on"),
+            "dimensions": data.get("dimensions") or {},
         })
     return resolved
 
@@ -1166,6 +1219,8 @@ def check_step_compatibility(
 # ---------------------------------------------------------------------------
 
 class ChainStep(BaseModel):
+    depends_on: Optional[List[StrictInt]] = None  # 1-based; [] explicitly declares a DAG root
+    dimensions: Optional[Dict[str, str]] = None  # e.g. inhibitor/target/tool coverage labels
     nextflow_path: Optional[str] = None  # Optional: may be unresolved for AI-generated pipelines
     workflow_name: Optional[str] = None
     role: Optional[str] = None
@@ -1174,6 +1229,8 @@ class ChainStep(BaseModel):
 
 
 class ChainSubmitRequest(BaseModel):
+    coverage_axes: Optional[Dict[str, List[str]]] = None
+    max_parallel: StrictInt = 4
     chain_run_id: Optional[str] = None
     chain_name: Optional[str] = None
     chat_session_id: Optional[str] = None
@@ -1192,7 +1249,7 @@ class ResolveOutputsRequest(BaseModel):
 # Routes
 # ---------------------------------------------------------------------------
 
-@router.post("/api/workflows/chain", summary="Submit a sequential Nextflow workflow chain")
+@router.post("/api/workflows/chain", summary="Submit a sequential chain or explicit workflow DAG")
 async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
     """
     Accept a list of Nextflow workflow steps and execute them sequentially.
@@ -1207,6 +1264,24 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
 
     if not request.steps:
         raise HTTPException(status_code=400, detail="steps array required")
+
+    is_dag = any(step.depends_on is not None for step in request.steps)
+    if is_dag:
+        from galaxy.chain.dag import validate_plan, validate_coverage
+        if request.start_from_step or request.end_at_step is not None:
+            raise HTTPException(status_code=400, detail="DAG plans do not support linear step ranges")
+        if request.chain_run_id and _get_chain(request.chain_run_id):
+            raise HTTPException(status_code=409, detail="Plan already exists; poll it rather than resubmitting")
+        try:
+            resolved_plan = _resolve_submit_steps(request.steps)
+            validate_plan(resolved_plan, request.connections or [], request.max_parallel)
+            validate_coverage(resolved_plan, request.coverage_axes)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+    elif request.chain_run_id:
+        prior = _get_chain(request.chain_run_id)
+        if prior and prior.get("execution_mode") == "dag":
+            raise HTTPException(status_code=409, detail="Cannot overwrite a DAG plan through the sequential API")
 
     start_from = max(0, int(request.start_from_step or 0))
     end_at = request.end_at_step
@@ -1272,7 +1347,9 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
                 "nextflow_path": step.get("nextflow_path"),
                 "workflow_name": step.get("workflow_name"),
                 "role": step.get("role"),
-                "step_key": step.get("step_key"),
+                "step_key": f"step_{i + 1}" if is_dag else step.get("step_key"),
+                "depends_on": step.get("depends_on"),
+                "dimensions": step.get("dimensions") or {},
                 "params": step.get("params") or {},
                 "status": "pending",
                 "run_id": None,
@@ -1286,6 +1363,9 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
         state: Dict[str, Any] = {
             "chain_run_id": chain_run_id,
             "chain_name": chain_name_final,
+            "execution_mode": "dag" if is_dag else "sequential",
+            "max_parallel": request.max_parallel,
+            "coverage_axes": request.coverage_axes,
             "chat_session_id": request.chat_session_id,
             "connections": request.connections or [],
             "end_at_step": int(end_at) if end_at is not None else None,
@@ -1372,6 +1452,7 @@ async def get_chain_outputs(chain_run_id: str) -> Dict[str, Any]:
         "status": state.get("status"),
         "steps": step_outputs,
         "output_files": all_files,
+        "report": state.get("report"),
         "count": len(all_files),
     }
 
