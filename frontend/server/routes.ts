@@ -1,3 +1,4 @@
+import { createConnectorRunTools } from "./connector-run-tools";
 import { localOnly, localMessagesClient } from './local-llm.js';
 import type { Express } from "express";
 import express from "express";
@@ -17189,7 +17190,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
 
         case "watch_run":
         case "get_run":
-          result = await selfGet(`/api/runs/${body.run_id}/meta`);
+          result = await createConnectorRunTools(selfBase, fwdHdr).getRun(String(body.run_id), body.include_findings !== false);
           break;
 
         case "cancel_run":
@@ -17212,7 +17213,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
           break;
 
         case "export_report":
-          result = await selfGet(`/api/workflows/runs/${body.run_id}/findings/report`);
+          result = await createConnectorRunTools(selfBase, fwdHdr).exportReport(String(body.run_id), body);
           break;
 
         case "analyze_results":
