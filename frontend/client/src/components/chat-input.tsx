@@ -229,7 +229,15 @@ export function ChatInput({
     if (onRegisterSetDraft) {
       onRegisterSetDraft((draft: string) => {
         setMessage(draft)
-        setTimeout(() => textareaRef.current?.focus(), 0)
+        setTimeout(() => {
+          const textarea = textareaRef.current
+          if (!textarea) return
+          textarea.style.height = 'auto'
+          textarea.style.height = `${Math.min(textarea.scrollHeight, 140)}px`
+          textarea.focus()
+          textarea.setSelectionRange(0, 0)
+          textarea.scrollTop = 0
+        }, 0)
       })
     }
   }, [onRegisterSetDraft])
