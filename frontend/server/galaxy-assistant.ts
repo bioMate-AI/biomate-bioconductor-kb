@@ -403,6 +403,8 @@ export interface ChatContext {
   galaxyAPIOverride?: any;
   /** Explicitly selected expert skill IDs (from SkillSelector UI). Auto-detected when absent. */
   activeSkillIds?: string[];
+  /** Composer name for explicit project/question selections, including none. */
+  skillPackIds?: string[];
   /**
    * Project context string built from the active project's name + researchGoal.
    * Injected into the system prompt as <project_context> so the LLM knows the
@@ -1333,16 +1335,19 @@ const GALAXY_URL = process.env.GALAXY_URL || 'http://localhost:8081';
 export async function buildSkillBlock(
   message: string,
   preferredDomains: string[],
-  context: { activeSkillIds?: string[] }
+  context: { activeSkillIds?: string[]; skillPackIds?: string[] }
 ): Promise<string> {
+  const selected = context.skillPackIds ?? context.activeSkillIds;
+  const explicit = Array.isArray(selected);
+  if (explicit && selected.length === 0) return "";
   try {
     let url: string;
     let body: object;
 
-    if (context.activeSkillIds && context.activeSkillIds.length > 0) {
+    if (explicit) {
       // Explicit skill selection
       url = `${GALAXY_URL}/api/skills/block`;
-      body = { skill_ids: context.activeSkillIds };
+      body = { skill_ids: selected };
     } else {
       // Auto-detect from message
       url = `${GALAXY_URL}/api/skills/detect`;
@@ -1359,7 +1364,7 @@ export async function buildSkillBlock(
     if (!res.ok) return '';
     const data = await res.json() as any;
 
-    if (context.activeSkillIds && context.activeSkillIds.length > 0) {
+    if (explicit) {
       return (data.block as string) || '';
     } else {
       // Build block from detected skills inline
@@ -3798,6 +3803,10 @@ Rules:
     onToolEvent?: (event: AgentToolEvent) => void,
     onProgress?: (stage: string, detail?: string) => void
   ): Promise<GalaxyAssistantResponse> {
+    if (Array.isArray(context.skillPackIds) || Array.isArray(context.activeSkillIds)) {
+      const selectedSkills = await buildSkillBlock(message, [], context);
+      if (selectedSkills) context = { ...context, projectContext: [context.projectContext, selectedSkills].filter(Boolean).join("\n\n") };
+    }
     // If the caller (chat-stream) supplied a per-user Galaxy proxy, scope it
     // to this turn via AsyncLocalStorage so every `this._api()` call in any
     // helper method picks it up. Skip the wrapper if no override is provided.
@@ -8400,7 +8409,7 @@ ${isDrugDevelopmentQuery ? `- For drug-development WORKFLOW GENERATION FAILURES 
 Workflow routing (use these specific workflows when the user's intent matches):
 ${buildWorkflowRoutingBlock(preferredDomains)}
 
-${cryoEmContextBlock ? `${cryoEmContextBlock}\n\n` : ''}${buildDomainSpecialistBlock(preferredDomains)}${buildDomainCatalogBlock(preferredDomains)}${await buildSkillBlock(message, preferredDomains, context)}${(generatedWorkflow as any)?._nearTieAlternative ? `\n[NEAR-TIE NOTE] The workflow search found "${(generatedWorkflow as any)._nearTieAlternative}" with a very similar match score. At the end of your response, add exactly one sentence: "If you were looking for ${(generatedWorkflow as any)._nearTieAlternative} instead, let me know and I'll switch." Do not ask this as a question — state it as a note.\n` : ''}Style guide:
+${cryoEmContextBlock ? `${cryoEmContextBlock}\n\n` : ''}${buildDomainSpecialistBlock(preferredDomains)}${buildDomainCatalogBlock(preferredDomains)}${context.skillPackIds !== undefined || context.activeSkillIds !== undefined ? "" : await buildSkillBlock(message, preferredDomains, context)}${(generatedWorkflow as any)?._nearTieAlternative ? `\n[NEAR-TIE NOTE] The workflow search found "${(generatedWorkflow as any)._nearTieAlternative}" with a very similar match score. At the end of your response, add exactly one sentence: "If you were looking for ${(generatedWorkflow as any)._nearTieAlternative} instead, let me know and I'll switch." Do not ask this as a question — state it as a note.\n` : ''}Style guide:
 - Be concise and practical
 - When mentioning tools, use the primary user-facing name (e.g. "CryoSPARC", "BWA-MEM2", "GATK") — never use internal pipeline paths or tool IDs
 - Explain workflow steps and expected outputs clearly

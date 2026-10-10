@@ -1,0 +1,6 @@
+{
+  "model": "3J7H.pdb",
+  "map": "https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-5995/map/emd_5995.map.gz",
+  "source": "EMPIAR-10028 beta galactosidase experimental reconstruction",
+  "note": "Download/stage map bytes for comparison; this JSON is not a map"
+}

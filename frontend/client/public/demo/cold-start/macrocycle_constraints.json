@@ -1,0 +1,8 @@
+{
+  "source": "BindingDB peptide subset from existing registry cache",
+  "target": "human mu opioid receptor OPRM1",
+  "candidate_count": 50,
+  "affinity_units": "nM",
+  "requirements": "Predict absent permeability/stability with uncertainty; do not fabricate measurements",
+  "selection": "RDKit-validated structures with at least one ring of 12 or more atoms"
+}

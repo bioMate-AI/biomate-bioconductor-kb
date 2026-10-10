@@ -41,6 +41,9 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  min-width: 0;
+  container-type: inline-size;
+  overflow-wrap: anywhere;
   overflow: hidden;
   font-family: var(--font-ui);
   color: var(--text);
@@ -328,7 +331,7 @@
 
 .wf-panel .step-head .actions {
   display: flex; gap: 2px;
-  opacity: 0; transition: opacity .15s;
+  opacity: 1; flex-shrink: 0;
 }
 .wf-panel .step:hover .step-head .actions { opacity: 1; }
 
@@ -841,3 +844,15 @@
   transition: background .15s, color .15s;
 }
 .tut-btn:hover { background: var(--tour-accent); color: #fff; }
+
+/* Respond to the resized panel, including when the desktop window stays wide. */
+@container (max-width: 480px) {
+  .wf-panel .top-row { flex-wrap: wrap; }
+  .wf-panel .top-row > :first-child { flex-basis: 100% !important; }
+  .wf-panel .param-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .wf-panel .param-row .k { grid-column: 1 / -1; }
+  .wf-panel .param-row .v { white-space: normal; overflow-wrap: anywhere; }
+  .wf-panel .step-head { flex-wrap: wrap; }
+  .wf-panel .step-head .name { white-space: normal; flex-basis: 60%; }
+  .wf-panel [data-testid="panel-tabs"] { overflow-x: auto; flex-shrink: 0; }
+}

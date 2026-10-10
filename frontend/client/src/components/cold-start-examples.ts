@@ -1,3 +1,4 @@
+import { coldDemoFor } from "./cold-start-demo-catalog";
 /** Prepared examples: datasets verified in docs/20261004_DEMO_DATA_VALIDATION.md. */
 export const PREPARED_EXAMPLES = [
   { label: 'Try sample data: myasthenia gravis differential expression', prompt: 'Run differential expression on the attached AChR+ myasthenia gravis PBMC demo data (GSE227835, 10 MG patients vs 10 healthy controls). Use the attached sample metadata and contrasts; identify key differentially expressed genes.', files: ['counts_matrix.csv', 'sample_metadata.csv', 'contrasts.csv'] },
@@ -10,16 +11,21 @@ export const PREPARED_EXAMPLES = [
 
 export async function prepareColdStartExample(text: string): Promise<{ prompt: string; files: File[] }> {
   const example = PREPARED_EXAMPLES.find(item => item.label === text);
-  if (!example) return { prompt: text, files: [] };
-  const names = 'files' in example ? example.files : [];
+  const demo = coldDemoFor(text);
+  if (!example && !demo) return { prompt: text, files: [] };
+  const names = example ? ('files' in example ? [...example.files] : []) : [...demo!.files, 'demo_notes.md'];
+  const root = example ? '/demo/mg_demo/' : '/demo/cold-start/';
   const files = await Promise.all(names.map(async name => {
-    const response = await fetch(`/demo/mg_demo/${name}`);
+    const response = await fetch(`${root}${name}`);
     if (!response.ok) throw new Error(`Could not load sample file ${name}`);
     const blob = await response.blob();
     if (!blob.size || blob.type.includes('text/html')) throw new Error(`Sample file ${name} is unavailable`);
-    return new File([blob], name, { type: 'text/csv' });
+    return new File([blob], name, { type: blob.type || 'application/octet-stream' });
   }));
-  return { prompt: example.prompt, files };
+  // Context specifies exact entities and contrasts; no unresolved “this target”.
+  // Incompatible generic hints (e.g. GRCh38) are replaced by the fixture's build.
+  const goal = demo ? text.replace(/ Human GRCh38\./g, '').replace(/this protein sequence and tell me where to trust it: .+$/, 'the attached lysozyme sequence and tell me where to trust it.') : text;
+  return { prompt: example ? example.prompt : `${goal}\n\nPrepared demo context:\n${demo!.context}`, files };
 }
 
 export const INTERNAL_EXAMPLES = [

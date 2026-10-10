@@ -1,0 +1,11 @@
+{
+  "pdb": "1LYZ",
+  "chain": "A",
+  "preserve_catalytic_residues": [
+    "E35",
+    "D52"
+  ],
+  "preserve_disulfide_cysteines": true,
+  "objective": "Propose/predict thermostability without claiming measured activity",
+  "candidate_status": "Unmeasured single-substitution design inputs"
+}

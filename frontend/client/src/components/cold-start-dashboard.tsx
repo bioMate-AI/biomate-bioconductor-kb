@@ -89,8 +89,8 @@ export const COLD_DOMAINS: ColdDomain[] = [
     name: "Drug discovery",
     shapes: [
       { t: "Screen a compound set for ADMET liabilities", needs: "sample provided — or your own SMILES/SDF", time: "~15 min", seed: "Screen these SMILES for ADMET liabilities and rank them by developability: CC(=O)Oc1ccccc1C(=O)O, CN1C=NC2=C1C(=O)N(C(=O)N2C)C, CC(C)Cc1ccc(C(C)C(=O)O)cc1", sampleDataset: { label: "example SMILES", ref: "inline" } },
-      { t: "Dock a series against a target and rank poses", needs: "needs ligands + target structure", time: "~1 h", seed: "Dock this series against my target and rank the poses." },
-      { t: "Explain why a hit series is failing on one property", needs: "needs nothing but the question", time: "seconds", seed: "Why might this hit series be failing on hERG? Cite the evidence." },
+      { t: "Dock a series against a target and rank poses", needs: "sample provided — ligands + target structure", time: "~1 h", seed: "Dock this series against my target and rank the poses." },
+      { t: "Explain why a hit series is failing on one property", needs: "sample provided — compounds and assay context", time: "seconds", seed: "Why might this hit series be failing on hERG? Cite the evidence." },
     ],
   },
   {
@@ -101,53 +101,53 @@ export const COLD_DOMAINS: ColdDomain[] = [
       // Himes et al. — a textbook DESeq2 dataset, not anyone's collaborator
       // data). Run directly, or edit the goal to use your own counts matrix.
       { t: "Differential expression between two conditions", needs: "sample provided — or your own counts matrix", time: "~40 min", seed: "Run DESeq2 differential expression on the airway dataset (treated vs control), then GO enrichment. Human GRCh38.", sampleDataset: { label: "airway (example)", ref: "GSE52778" } },
-      { t: "Subtype cells from single-cell RNA-seq", needs: "needs a single-cell matrix (10x / h5ad)", time: "~1.5 h", seed: "Cluster and annotate my single-cell RNA-seq and find the cell-type composition and markers." },
-      { t: "Integrate multi-omics across phenotypes", needs: "needs 2+ omics tables", time: "~2 h", seed: "Integrate my multi-omics layers across phenotypes and show the shared factors that survive." },
+      { t: "Subtype cells from single-cell RNA-seq", needs: "sample provided — a single-cell matrix (10x / h5ad)", time: "~1.5 h", seed: "Cluster and annotate my single-cell RNA-seq and find the cell-type composition and markers." },
+      { t: "Integrate multi-omics across phenotypes", needs: "sample provided — 2+ omics tables", time: "~2 h", seed: "Integrate my multi-omics layers across phenotypes and show the shared factors that survive." },
     ],
   },
   {
     id: "gen",
     name: "Genomics",
     shapes: [
-      { t: "Call variants and flag the clinically relevant ones", needs: "needs reads + reference build", time: "~2 h", seed: "Call variants on these samples and flag the clinically relevant ones. Human GRCh38." },
-      { t: "Compare variant burden between two cohorts", needs: "needs two variant sets", time: "~50 min", seed: "Compare variant burden between my responder and non-responder cohorts." },
-      { t: "Check contamination and relatedness before analysis", needs: "needs reads", time: "~25 min", seed: "Check these samples for contamination and relatedness before I analyse them." },
+      { t: "Call variants and flag the clinically relevant ones", needs: "sample provided — reads + reference build", time: "~2 h", seed: "Call variants on these samples and flag the clinically relevant ones. Human GRCh38." },
+      { t: "Compare variant burden between two cohorts", needs: "sample provided — two variant sets", time: "~50 min", seed: "Compare variant burden between my responder and non-responder cohorts." },
+      { t: "Check contamination and relatedness before analysis", needs: "sample provided — reads", time: "~25 min", seed: "Check these samples for contamination and relatedness before I analyse them." },
     ],
   },
   {
     id: "fgen",
     name: "Functional genomics",
     shapes: [
-      { t: "Call hits from a pooled CRISPR screen", needs: "needs screen read counts", time: "~40 min", seed: "Analyze my pooled CRISPR screen: call enriched/depleted hits at an FDR cutoff and rank the candidate dependency genes." },
-      { t: "Compare screen hits across two conditions", needs: "needs two screen count tables", time: "~35 min", seed: "Compare my CRISPR screen hits between the two conditions and flag condition-specific dependencies." },
-      { t: "QC a screen before hit-calling", needs: "needs screen read counts", time: "~15 min", seed: "QC my CRISPR screen — guide representation, replicate correlation, and control separation — before hit-calling." },
+      { t: "Call hits from a pooled CRISPR screen", needs: "sample provided — screen read counts", time: "~40 min", seed: "Analyze my pooled CRISPR screen: call enriched/depleted hits at an FDR cutoff and rank the candidate dependency genes." },
+      { t: "Compare screen hits across two conditions", needs: "sample provided — two screen count tables", time: "~35 min", seed: "Compare my CRISPR screen hits between the two conditions and flag condition-specific dependencies." },
+      { t: "QC a screen before hit-calling", needs: "sample provided — screen read counts", time: "~15 min", seed: "QC my CRISPR screen — guide representation, replicate correlation, and control separation — before hit-calling." },
     ],
   },
   {
     id: "str",
     name: "Structural biology",
     shapes: [
-      { t: "Process a cryo-EM set to a density map", needs: "needs micrographs", time: "~6 h", seed: "Process this cryo-EM dataset to a density map and report the resolution." },
+      { t: "Process a cryo-EM set to a density map", needs: "sample provided — micrographs", time: "~6 h", seed: "Process this cryo-EM dataset to a density map and report the resolution." },
       { t: "Predict and assess a structure for a sequence", needs: "sample provided — or your own sequence", time: "~30 min", seed: "Predict the structure for this protein sequence and tell me where to trust it: MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEK", sampleDataset: { label: "example sequence", ref: "inline" } },
-      { t: "Compare a model against an experimental map", needs: "needs a model + map", time: "~20 min", seed: "Compare this model against my experimental map and list the discrepancies." },
+      { t: "Compare a model against an experimental map", needs: "sample provided — a model + map", time: "~20 min", seed: "Compare this model against my experimental map and list the discrepancies." },
     ],
   },
   {
     id: "prot",
     name: "Proteomics",
     shapes: [
-      { t: "Quantify differential protein abundance between groups", needs: "needs search output + design", time: "~45 min", seed: "Quantify differential protein abundance between my two groups." },
-      { t: "Reconcile a proteomic signal with a transcriptomic one", needs: "needs two result tables", time: "~35 min", seed: "Reconcile my proteomic signal with the transcriptomic result." },
-      { t: "Assess run-to-run quality across a batch", needs: "needs raw or search output", time: "~20 min", seed: "Assess run-to-run quality across this proteomics batch." },
+      { t: "Quantify differential protein abundance between groups", needs: "sample provided — search output + design", time: "~45 min", seed: "Quantify differential protein abundance between my two groups." },
+      { t: "Reconcile a proteomic signal with a transcriptomic one", needs: "sample provided — two result tables", time: "~35 min", seed: "Reconcile my proteomic signal with the transcriptomic result." },
+      { t: "Assess run-to-run quality across a batch", needs: "sample provided — raw or search output", time: "~20 min", seed: "Assess run-to-run quality across this proteomics batch." },
     ],
   },
   {
     id: "clin",
     name: "Clinical",
     shapes: [
-      { t: "Stratify a cohort by response and test the endpoint", needs: "needs a cohort table", time: "~20 min", seed: "Stratify this cohort by response and test the primary endpoint." },
-      { t: "Discover a biomarker panel and build a risk model", needs: "needs a cohort table + labels", time: "~30 min", seed: "From this cohort, discover a biomarker panel and build a cross-validated, reproducible risk-prediction model with an honest performance estimate." },
-      { t: "Assemble the analysis section of a submission", needs: "needs completed runs", time: "~1 h", seed: "Assemble the analysis section of my submission from these runs." },
+      { t: "Stratify a cohort by response and test the endpoint", needs: "sample provided — a cohort table", time: "~20 min", seed: "Stratify this cohort by response and test the primary endpoint." },
+      { t: "Discover a biomarker panel and build a risk model", needs: "sample provided — a cohort table + labels", time: "~30 min", seed: "From this cohort, discover a biomarker panel and build a cross-validated, reproducible risk-prediction model with an honest performance estimate." },
+      { t: "Assemble the analysis section of a submission", needs: "sample provided — inputs for a first run", time: "~1 h", seed: "Assemble the analysis section of my submission from these runs." },
     ],
   },
 ];
@@ -867,13 +867,13 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
             })}
           </div>
 
-          {(m.id === "analysis" || track.k === "Internal") && (
+          {(
             <p className="text-xs text-muted-foreground">
               {track.k === "Internal"
                 ? "Prepares your MG PBMC demo project with three input files, then fills a draft for review."
                 : track.k === "Try sample data"
                   ? "Prepared public datasets. Click to fill a draft; review it before sending."
-                  : "These examples use your own inputs. For a demo with data provided, choose Try sample data."}
+                  : "Demo inputs are provided for every example. Click to prepare a draft and its data; review before sending."}
             </p>
           )}
 

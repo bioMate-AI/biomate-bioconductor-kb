@@ -1,0 +1,11 @@
+{
+  "source": "DeepChem BACE",
+  "training_split": "Train",
+  "evaluation_split": "Valid and Test only",
+  "method": "least-squares pIC50 = intercept + MW + AlogP; teaching baseline, not validated for discovery",
+  "coefficients": [
+    3.188307590472641,
+    0.00599604114871752,
+    0.18484239522050228
+  ]
+}

@@ -101,6 +101,8 @@ interface ChatInputProps {
   onRegisterSetDraft?: (setter: (draft: string) => void) => void
   /** Register an adder function that can programmatically attach File objects */
   onRegisterAddFiles?: (adder: (files: File[]) => void) => void
+  /** Replace previous example inputs while preserving user-picked files. */
+  onRegisterExampleFiles?: (setter: (files: File[]) => void) => void
   /**
    * Count of dataset references already attached to THIS chat session
    * (everything in chat_sessions.datasets, accumulated across all turns).
@@ -155,6 +157,7 @@ export function ChatInput({
   onStop,
   onRegisterSetDraft,
   onRegisterAddFiles,
+  onRegisterExampleFiles,
   sessionDatasetCount = 0,
   showLanePreview = true,
   projects = [],
@@ -182,14 +185,30 @@ export function ChatInput({
   // thread into the submit context as `skillPackIds` so a run records which
   // experts were applied — mirrors the dataset/instruction threading below.
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([])
+  const [projectOutputRequirements, setProjectOutputRequirements] = useState("")
+  const [projectSettingsLoading, setProjectSettingsLoading] = useState(false)
+  const [projectSettingsError, setProjectSettingsError] = useState("")
+  useEffect(() => {
+    let cancelled = false
+    setSelectedSkillIds([]); setProjectOutputRequirements(""); setProjectSettingsError("")
+    if (!activeProjectId) { setProjectSettingsLoading(false); return }
+    setProjectSettingsLoading(true)
+    fetch(`/api/projects/${activeProjectId}/instruction-settings`, { credentials: "include" })
+      .then(async r => { if (!r.ok) throw new Error("Could not load project instructions. Reload before sending."); return r.json() })
+      .then(data => { if (!cancelled) { setSelectedSkillIds(data.settings.skillPackIds); setProjectOutputRequirements(data.settings.outputRequirements) } })
+      .catch(e => { if (!cancelled) setProjectSettingsError(e.message) })
+      .finally(() => { if (!cancelled) setProjectSettingsLoading(false) })
+    return () => { cancelled = true }
+  }, [activeProjectId])
   // If the chat becomes filed into a project that carries standing
   // instructions and the user hasn't typed their own, adopt the project's.
   const seededProjectIdRef = useRef<string | null>(null)
   useEffect(() => {
     const seed = activeProject?.instructions ?? ""
+    if (!activeProject && seededProjectIdRef.current) { seededProjectIdRef.current = null; setInstructions("") }
     if (activeProject && seededProjectIdRef.current !== activeProject.id) {
       seededProjectIdRef.current = activeProject.id
-      setInstructions((prev) => (prev.trim() ? prev : seed))
+      setInstructions(seed)
     }
   }, [activeProject])
   // The chat has no home yet AND a real project matches the goal → propose it
@@ -242,6 +261,17 @@ export function ChatInput({
     }
   }, [onRegisterSetDraft])
 
+  const demoFileIds = useRef(new Set<string>())
+  useEffect(() => {
+    onRegisterExampleFiles?.((files: File[]) => {
+      const previousIds = demoFileIds.current
+      const prefix = `demo-${Date.now()}-`
+      const next = files.map((file, i) => ({ id: `${prefix}${i}`, name: file.name, size: file.size, file }))
+      demoFileIds.current = new Set(next.map(f => f.id))
+      setAttachedFiles(prev => [...prev.filter(f => !previousIds.has(f.id)), ...next])
+    })
+  }, [onRegisterExampleFiles])
+
   // Register a file adder so parent can programmatically inject files
   useEffect(() => {
     onRegisterAddFiles?.(addFiles)
@@ -257,7 +287,7 @@ export function ChatInput({
 
 
   const handleSend = () => {
-    if (disabled) return
+    if (disabled || projectSettingsLoading || projectSettingsError) return
     if (message.trim() || attachedFiles.length > 0 || selectedDatasets.length > 0) {
       const files = attachedFiles.map(f => f.file)
       // Append dataset references invisibly so the AI/backend can resolve them,
@@ -275,7 +305,7 @@ export function ChatInput({
       // context path as every other override. They ride as
       // `composerInstructions` so the backend can apply them as a reading
       // lens; empty instructions add nothing (honest-empty).
-      const trimmedInstructions = instructions.trim()
+      const trimmedInstructions = [instructions.trim(), projectOutputRequirements.trim() ? `Output requirements:\n${projectOutputRequirements.trim()}` : ""].filter(Boolean).join("\n\n")
       const datasetReferences: ComposerDatasetReference[] = selectedDatasets.map((dataset) => ({
         id: dataset.value,
         name: dataset.name,
@@ -285,7 +315,7 @@ export function ChatInput({
       // experts were applied; empty selection adds nothing (honest-empty).
       const skillPackIds = selectedSkillIds
       const contextOverride: Record<string, unknown> | undefined =
-        laneOverride || trimmedInstructions || datasetReferences.length > 0 || skillPackIds.length > 0
+        laneOverride || trimmedInstructions || datasetReferences.length > 0 || skillPackIds.length > 0 || activeProjectId
           ? {
               ...(laneOverride
                 ? { intentOverride: laneOverride === "cloud" ? "workflow_generation" : "research_question" }
@@ -295,7 +325,7 @@ export function ChatInput({
               // filters the broader session pool to this set and reports any
               // missing reference instead of silently choosing another file.
               ...(datasetReferences.length ? { datasetReferences } : {}),
-              ...(skillPackIds.length ? { skillPackIds } : {}),
+              ...((activeProjectId || skillPackIds.length) ? { skillPackIds } : {}),
             }
           : undefined
       onSend(fullMessage, files.length > 0 ? files : undefined, contextOverride)
@@ -463,6 +493,7 @@ export function ChatInput({
       />
 
       {/* Attached files + selected dataset chips */}
+      {projectSettingsError && <p role="alert" className="text-xs text-destructive">{projectSettingsError}</p>}
       {(attachedFiles.length > 0 || selectedDatasets.length > 0) && (
         <div className="flex flex-wrap gap-2 mb-3">
           {attachedFiles.map(file => (
@@ -877,7 +908,7 @@ export function ChatInput({
               data-testid="chat-send-button"
               onClick={handleSend}
               title={t('chat.send')}
-              disabled={disabled || (!message.trim() && attachedFiles.length === 0 && selectedDatasets.length === 0)}
+              disabled={disabled || projectSettingsLoading || !!projectSettingsError || (!message.trim() && attachedFiles.length === 0 && selectedDatasets.length === 0)}
               style={{
                 marginLeft: 'auto',
                 width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { useLocation } from "wouter"
+import { useActiveProjectSafe } from "@/contexts/active-project-context"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -64,9 +65,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { projectService } from "@/lib/projects"
+import { ProjectGuidanceCards, ProjectInheritanceCard } from "@/components/project-guidance-cards"
 import { ProjectFileTree } from "@/components/project-file-tree"
 import { NextflowWorkflowViewer } from "@/components/nextflow-workflow-viewer"
-import { RolesCard, type RolesData, type RoleCapability } from "@/components/roles-verify"
+import { type RoleCapability } from "@/components/roles-verify"
 import type { Project } from "@shared/schema"
 import { cn } from "@/lib/utils"
 
@@ -109,6 +111,8 @@ interface ProjectDetailPageProps {
 
 export default function ProjectDetailPage({ projectId, onBack, initialTab }: ProjectDetailPageProps) {
   const [, navigate] = useLocation()
+  const projectContext = useActiveProjectSafe()
+  useEffect(() => { projectContext?.setActiveProjectId(projectId) }, [projectId])
   const [project, setProject] = useState<Project | null>(null)
   const [loadingProject, setLoadingProject] = useState(true)
   const [isEditingInstructions, setIsEditingInstructions] = useState(false)
@@ -609,9 +613,9 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full min-h-0 min-w-0 flex flex-col overflow-hidden [overflow-wrap:anywhere]">
       {/* Header */}
-      <div className="border-b border-border px-6 py-4 shrink-0" style={activeTab === "instructions" ? { display: "none" } : undefined}>
+      <div className="border-b border-border px-6 py-4 shrink-0" style={activeTab === "instructions" || activeTab === "workflows" ? { display: "none" } : undefined}>
         <div className="flex items-center gap-3 mb-3">
           <Button variant="ghost" size="sm" onClick={onBack} data-testid="button-back-to-projects">
             <ArrowLeft className="w-4 h-4 mr-2" />All projects
@@ -708,7 +712,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={activeTab === "instructions" ? { display: "none" } : undefined}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-            <TabsList className="w-fit mx-4 mt-3 mb-0 shrink-0">
+            <TabsList className="w-fit mx-4 mt-3 mb-0 shrink-0" style={activeTab === "workflows" ? { display: "none" } : undefined}>
               <TabsTrigger value="chat" className="flex items-center gap-1.5" data-testid="tab-project-chat">
                 <MessageCircle className="w-3.5 h-3.5" />Chat
                 {sessions.length > 0 && (
@@ -786,7 +790,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             </TabsContent>
 
             {/* FILES TAB */}
-            <TabsContent value="files" className="flex-1 m-0 min-h-0" style={{ display: "flex", flexDirection: "column" }}>
+            <TabsContent value="files" className="flex-1 m-0 min-h-0" style={{ display: activeTab === "files" ? "flex" : "none", flexDirection: "column" }}>
               <div className="flex-1 p-4 min-h-0 flex flex-col">
                 <ProjectFileTree
                   projectId={projectId}
@@ -814,14 +818,13 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             <TabsContent value="workflows" className="flex-1 m-0 min-h-0 overflow-hidden" data-testid="tab-content-workflows">
               <div className="h-full flex min-h-0">
                 {/* Run list */}
-                <div className="w-72 border-r border-border flex flex-col shrink-0">
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30 shrink-0">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Runs</span>
-                    <button onClick={loadRuns} className="text-muted-foreground hover:text-foreground">
+                <div className={selectedRunId ? "hidden" : "flex-1 min-w-0 flex flex-col"}>
+                  <div className="px-4 sm:px-8 py-6 border-b border-border shrink-0"><p className="text-xs text-muted-foreground mb-2">{project.name} / Runs</p><div className="flex items-center justify-between"><h2 className="text-xl font-semibold">Runs <span className="text-sm font-normal text-muted-foreground">{runs.length}</span></h2>
+                    <button onClick={loadRuns} aria-label="Refresh runs" className="text-muted-foreground hover:text-foreground">
                       <RefreshCw className="w-3 h-3" />
                     </button>
-                  </div>
-                  <div className="flex-1 overflow-y-auto">
+                  </div><p className="text-sm text-muted-foreground mt-3">Workflow runs started in this project. Open a run to see its settings, progress and results.</p></div>
+                  <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-8">
                     {runsLoading ? (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground p-4 justify-center">
                         <Loader2 className="w-4 h-4 animate-spin" />Loading…
@@ -830,10 +833,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                       <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground px-4">
                         <FlaskConical className="w-8 h-8 mb-2 opacity-30" />
                         <p className="text-xs font-medium">No runs yet</p>
-                        <p className="text-xs mt-1">Start a chat and ask BioMate to run a workflow.</p>
+                        <p className="text-sm mt-1">Start from a chat or a project file. Its run record will appear here.</p><div className="flex flex-wrap justify-center gap-2 mt-4"><Button size="sm" onClick={() => openChatWithProject()}>New chat in this project</Button><Button size="sm" variant="outline" onClick={() => navigate("/files")}>Open project files</Button></div>
                       </div>
                     ) : (
-                      <div className="py-1">
+                      <div className="space-y-2">
                         {runs.map((run: any) => {
                           const id = run.id ?? run.runId
                           const status = run.execution?.status ?? run.status ?? "unknown"
@@ -844,7 +847,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                             <button
                               key={id}
                               className={cn(
-                                "w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-muted/40 transition-colors border-b border-border/50",
+                                "w-full flex items-center gap-3 px-4 py-4 text-left rounded-lg border border-border hover:bg-muted/40 transition-colors",
                                 isSel && "bg-muted"
                               )}
                               onClick={() => setSelectedRunId(isSel ? null : id)}
@@ -852,9 +855,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                             >
                               {statusIcon(status)}
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium truncate">{name}</p>
+                                <p className="text-sm font-medium truncate">{name}</p>
                                 <p className="text-xs text-muted-foreground">{relTime(ts)}</p>
                               </div>
+                              <span className="text-xs rounded-full border border-border px-2 py-1">{status.replace(/_/g, " ")}</span>
                             </button>
                           )
                         })}
@@ -864,7 +868,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 </div>
 
                 {/* Workflow viewer */}
-                <div className="flex-1 overflow-y-auto">
+                <div className={selectedRunId ? "flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden" : "hidden"}>
+                  {selectedRunId && <div className="px-4 sm:px-6 py-3 border-b border-border shrink-0"><Button variant="ghost" size="sm" onClick={() => setSelectedRunId(null)}><ArrowLeft className="w-3.5 h-3.5 mr-2" />Back to runs</Button></div>}
                   {selectedRunId ? (
                     (() => {
                       const run = runs.find((r: any) => (r.id ?? r.runId) === selectedRunId)
@@ -907,14 +912,14 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                               )}
                             </div>
                           )}
-                          <NextflowWorkflowViewer
+                          <div className="flex-1 min-h-0 min-w-0 overflow-hidden"><NextflowWorkflowViewer
                             runId={selectedRunId}
                             sessionId={run?.chatSessionId}
                             workflowId={run?.workflowName}
                             workflowDefinition={run?.workflowDefinition}
                             status={wfStatus}
                             errorMessage={run?.execution?.errorMessage}
-                          />
+                          /></div>
                         </>
                       )
                     })()
@@ -932,9 +937,9 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
         </div>
 
         {/* Right sidebar */}
-        <div data-testid="project-instructions-panel" className={activeTab === "instructions" ? "flex-1 min-w-0 flex flex-col overflow-y-auto bg-background" : "w-72 border-l border-border bg-muted/20 shrink-0 flex flex-col overflow-hidden"}>
-          {activeTab === "instructions" && <div className="w-full max-w-4xl mx-auto px-8 pt-8"><p className="text-xs text-muted-foreground mb-2">{project.name} / Instructions</p><h2 className="text-xl font-semibold">Instructions</h2><p className="text-sm text-muted-foreground mt-2">Standing instructions apply to every chat in this project. Notes record context for your team.</p></div>}
-          <div className={activeTab === "instructions" ? "p-8 w-full max-w-4xl mx-auto space-y-8" : "p-4 flex-1 overflow-y-auto space-y-6"}>
+        <div data-testid="project-instructions-panel" className={activeTab === "instructions" ? "flex-1 min-w-0 flex flex-col overflow-y-auto bg-background" : activeTab === "workflows" ? "hidden" : "w-72 border-l border-border bg-muted/20 shrink-0 flex flex-col overflow-hidden"}>
+          {activeTab === "instructions" && <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-6"><p className="text-xs text-muted-foreground mb-2">{project.name} / Instructions</p><h2 className="text-xl font-semibold">Instructions</h2><p className="text-sm text-muted-foreground mt-2">Standing instructions apply to every chat in this project. Notes record context for your team.</p></div>}
+          <div className={activeTab === "instructions" ? "p-4 sm:p-6 w-full max-w-4xl mx-auto space-y-4" : "p-4 flex-1 overflow-y-auto space-y-6"}>
             {/* Standing instructions — the agent-read directives (persist to researchGoal). */}
             <div data-testid="standing-instructions-card" className={activeTab === "instructions" ? "rounded-lg border border-border p-5" : undefined}>
               <div className="flex items-center justify-between mb-1">
@@ -984,6 +989,9 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               )}
             </div>
 
+            {activeTab === "instructions" && <ProjectGuidanceCards projectId={projectId} canEdit={canEdit} onOpenFiles={() => navigate("/files")} />}
+
+            <div className={activeTab === "instructions" ? "grid md:grid-cols-2 gap-4" : undefined}>
             {/* Notes — human-only free text, NOT read by the assistant. */}
             <div className={activeTab === "instructions" ? "rounded-lg border border-border p-5" : "border-t border-border pt-4"} data-testid="notes-card">
               <h3 className="font-medium text-sm">Notes</h3>
@@ -1053,8 +1061,11 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               )}
             </div>
 
+            {activeTab === "instructions" && <ProjectInheritanceCard onOpenFiles={() => navigate("/files")} />}
+            </div>
+
             {/* Plan / hypothesis — first-class objects a run can cite (project_plans). */}
-            <div className="border-t border-border pt-4" data-testid="plans-card">
+            {activeTab !== "instructions" && <div className="border-t border-border pt-4" data-testid="plans-card">
               <h3 className="font-medium text-sm mb-3">Plan / hypothesis</h3>
 
               {canEdit && (
@@ -1103,11 +1114,11 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                   ))}
                 </div>
               )}
-            </div>
+            </div>}
           </div>
 
           {/* Members & roles — owner-only invite UI + member list visible to all */}
-          <div className="border-t border-border p-4 shrink-0" data-testid="members-panel">
+          {activeTab !== "instructions" && <div className="border-t border-border p-4 shrink-0" data-testid="members-panel">
             <div className="flex items-center gap-1.5 mb-3">
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
               <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground flex-1">Members & roles</h4>
@@ -1277,20 +1288,10 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               </div>
             )}
 
-            {/* Your permissions here — RolesCard fed by the REAL role, so a
-                viewer/editor sees owner-only controls DISABLED with the role
-                each needs (disabled-not-hidden), never a fabricated grant. */}
-            <RolesCard
-              className="mt-4"
-              data={{
-                you: myRole.charAt(0).toUpperCase() + myRole.slice(1),
-                project: project.name,
-                caps: buildRoleCapabilities(myRole),
-              } satisfies RolesData}
-            />
-          </div>
+            {/* Permissions summary removed at user request; server role checks remain in force. */}
+          </div>}
 
-          <div className="border-t border-border p-4 shrink-0">
+          {activeTab !== "instructions" && <div className="border-t border-border p-4 shrink-0">
             <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-2">Details</h4>
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between">
@@ -1312,7 +1313,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 <span>{relTime((project as any).updatedAt ?? project.lastActivity)}</span>
               </div>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
 

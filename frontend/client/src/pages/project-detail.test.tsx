@@ -98,20 +98,13 @@ describe("ProjectDetailPage — Members & roles panel", () => {
     expect(screen.getByTestId("member-row-u-viewer")).toHaveTextContent("Vic Viewer")
   })
 
-  it("for a viewer, RolesCard shows owner-only controls disabled and names the role", async () => {
+  it("keeps viewer restrictions without displaying the removed permissions summary", async () => {
     installFetch({ role: "viewer", members: [OWNER_MEMBER, VIEWER_MEMBER] })
     render(<ProjectDetailPage projectId={PROJECT.id} onBack={() => {}} />)
-
     await waitFor(() => expect(screen.getByTestId("my-role-badge")).toHaveTextContent("You: viewer"))
-    // RolesCard is present and scoped to this project.
-    expect(screen.getByTestId("roles-card")).toBeInTheDocument()
-    expect(screen.getByTestId("roles-you")).toHaveTextContent("Viewer")
-    // Owner-only capability shown (not hidden), disabled, naming the required role.
-    const manage = screen.getByTestId("role-cap-Manage members & roles")
-    expect(manage).toHaveTextContent("needs Owner")
-    expect(screen.getByTestId("role-verdict-Manage members & roles")).toHaveTextContent("you cannot")
-    // The viewer's own read capability shows as granted.
-    expect(screen.getByTestId("role-verdict-Read & download files")).toHaveTextContent("you can")
+    expect(screen.queryByTestId("roles-card")).toBeNull()
+    expect(screen.queryByTestId("button-edit-instructions")).toBeNull()
+
   })
 })
 

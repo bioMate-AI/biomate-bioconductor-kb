@@ -78,14 +78,16 @@ describe("NextflowWorkflowViewer — per-step execution controls (current afford
   });
   afterEach(() => { vi.clearAllMocks(); });
 
-  it("shows NO per-step Rerun/full-view button while a step is pending", async () => {
+  it("shows step details while pending, without allowing a rerun", async () => {
     render(<NextflowWorkflowViewer {...(runningProps as any)} status="running" />);
     // Phases tab auto-selected for running; s2 starts genuinely pending.
     const card = await screen.findByTestId("phase-card-s2");
     expect(card).toHaveAttribute("data-status", "pending");
     // The terminal-only affordances must be absent on a pending step.
     expect(screen.queryByTestId("button-run-step-s2")).toBeNull();
-    expect(screen.queryByTestId("button-full-step-view-s2")).toBeNull();
+    expect(screen.getByTestId("button-full-step-view-s2")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("button-full-step-view-s2"));
+    expect(await screen.findByTestId("step-detail")).toBeInTheDocument();
   });
 
   it("reveals the Rerun + full-view affordance once a step reaches a terminal state", async () => {

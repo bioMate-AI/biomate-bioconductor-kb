@@ -5,7 +5,7 @@
  * browser-supplied composer value and the assistant prompt testable without
  * starting the full API (or calling an LLM).
  */
-export const MAX_COMPOSER_INSTRUCTIONS_LENGTH = 4_000;
+export const MAX_COMPOSER_INSTRUCTIONS_LENGTH = 24_000;
 
 export function normalizeComposerInstructions(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;

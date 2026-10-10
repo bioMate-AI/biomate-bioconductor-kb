@@ -487,6 +487,7 @@ export function ChatInterface({
   const [preparingExample, setPreparingExample] = useState(false)
   const preparingExampleRef = useRef(false)
   const localAddFilesRef = useRef<((files: File[]) => void) | null>(null)
+  const localExampleFilesRef = useRef<((files: File[]) => void) | null>(null)
   // Track whether we've pre-loaded the GSE227835 de_genes.txt for Turn 2
   const deGenesPreloadedRef = useRef(false)
   const [focusedAnchorMessageId, setFocusedAnchorMessageId] = useState<string | null>(null)
@@ -2146,10 +2147,10 @@ export function ChatInterface({
                     handleFileToProject(projectId);
                     example.prompt = `${text} Project ID: ${projectId}. Use the project files and attached tutorial inputs. Do not infer prior assay results or completed runs from these input files.`;
                   }
-                  if (!localSetDraftRef.current || (example.files.length && !localAddFilesRef.current)) {
+                  if (!localSetDraftRef.current || (example.files.length && !localExampleFilesRef.current)) {
                     throw new Error("The composer is still loading. Please try again.");
                   }
-                  if (example.files.length) localAddFilesRef.current!(example.files);
+                  localExampleFilesRef.current?.(example.files);
                   localSetDraftRef.current(example.prompt);
                 } catch (error) {
                   toast({ title: "Could not prepare example", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" });
@@ -2402,6 +2403,7 @@ export function ChatInterface({
             onRegisterSetDraft?.(setter)
           }}
           onRegisterAddFiles={(adder) => { localAddFilesRef.current = adder }}
+          onRegisterExampleFiles={(setter) => { localExampleFilesRef.current = setter }}
           /* Surface session-wide attached-dataset count so the
              X / MAX_DATASET_REFS indicator in the input strip reflects
              the server-side cap (frontend/server/dataset-cap.ts). */

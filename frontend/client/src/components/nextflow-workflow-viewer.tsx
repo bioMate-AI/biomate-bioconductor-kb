@@ -245,6 +245,7 @@ export function buildStepDetailStep(step: any): StepDetailStep {
     id: String(step?.id ?? step?.name ?? "step"),
     name: String(step?.name ?? step?.processName ?? "step"),
     processName: step?.processName ? String(step.processName) : undefined,
+    status: step?.status ? String(step.status) : undefined,
     // tool / toolVersion / duration / inputs are not reported per step by the
     // viewer's data model — intentionally omitted (honest empty state).
     parameters: parameters && Object.keys(parameters).length > 0 ? parameters : undefined,
@@ -787,14 +788,12 @@ function PhaseGroupSection({
                   {isDone    && <span className="chip ok"  style={{marginLeft:'auto'}}>{tOr('panel.chip.done', 'DONE')}</span>}
                   {isFailed  && <span className="chip err" style={{marginLeft:'auto'}}>{tOr('panel.chip.failed', 'FAILED')}</span>}
                   <div className="actions">
-                    {(isDone || isFailed) && (
-                      <button
+                    <button
                         className="btn ghost sm"
                         onClick={(e) => { e.stopPropagation(); onOpenFullStepView(step); }}
                         data-testid={`button-full-step-view-${step.id}`}
                         title={tOr('panel.step.details_tip', 'Open full step view — provenance, resolved parameters, rendered ⇄ raw outputs')}
                       >{tOr('panel.step.details', 'Details')}</button>
-                    )}
                     {(isDone || isFailed) && (
                       <button
                         className="btn ghost sm"
@@ -3759,20 +3758,20 @@ export function NextflowWorkflowViewer({
                   "Full step view" affordance. StepDetail receives ONLY the real
                   mapped step data (see buildStepDetailStep) plus the workflow
                   definition (for param defaults/origins) — nothing fabricated. */}
-              {fullViewStep && activeRunId && (
+              {fullViewStep && (
                 <Dialog
                   open={!!fullViewStep}
                   onOpenChange={(open) => { if (!open) setFullViewStep(null); }}
                 >
                   <DialogContent
-                    className="max-w-3xl p-0 gap-0 border-0 bg-transparent shadow-none [&>button]:hidden"
+                    className="w-[calc(100vw-2rem)] max-w-3xl min-w-0 p-0 gap-0 border-0 bg-transparent shadow-none [&>button]:hidden"
                     data-testid="full-step-view-dialog"
                   >
                     <VisuallyHidden>
                       <DialogTitle>{tOr('panel.full_step_view_title', 'Full step view: {{name}}', { name: fullViewStep.name })}</DialogTitle>
                     </VisuallyHidden>
                     <StepDetail
-                      runId={activeRunId}
+                      runId={activeRunId || ""}
                       step={fullViewStep}
                       workflowDefinition={workflowDefinition}
                       projectId={projectId}

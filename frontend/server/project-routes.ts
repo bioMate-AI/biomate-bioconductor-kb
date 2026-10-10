@@ -16,6 +16,7 @@
  */
 
 import type { Express, Request, Response } from "express";
+import { registerProjectInstructionSettings } from "./project-instruction-settings";
 import { authenticateToken } from "./auth-middleware";
 import { memoryService } from "./memory-repository";
 import { pool } from "./db";
@@ -249,6 +250,7 @@ export async function recordProjectActivity(
 }
 
 export function registerProjectRoutes(app: Express): void {
+  registerProjectInstructionSettings(app, _getUserRole);
   // ─── GET /api/projects ────────────────────────────────────────────────
   // List the authenticated user's projects. Optional ?status=active|archived|completed.
   app.get("/api/projects", authenticateToken, async (req: Request, res: Response) => {

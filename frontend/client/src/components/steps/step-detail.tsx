@@ -57,6 +57,7 @@ export interface StepDetailStep {
   id: string;
   name: string;
   processName?: string;
+  status?: string;
   /** Tool that ran this step (e.g. "STAR", "salmon"). Optional — honest if absent. */
   tool?: string;
   /** Tool version. Optional — honest if absent. */
@@ -286,18 +287,18 @@ export function StepDetail({
   return (
     <div
       data-testid="step-detail"
-      className="rounded-lg border bg-background text-sm flex flex-col max-h-[85vh]"
+      className="rounded-lg border bg-background text-sm flex flex-col min-w-0 max-h-[calc(100dvh-2rem)] overflow-hidden [overflow-wrap:anywhere]"
     >
       {/* Header + provenance row */}
-      <div className="border-b px-4 py-3 space-y-2">
+      <div className="border-b px-4 py-3 space-y-2 shrink-0">
         <div className="flex items-center gap-2">
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Full step view</p>
-            <p className="font-semibold truncate" title={step.processName || step.name}>
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Full step view{step.status ? ` · ${step.status}` : ""}</p>
+            <p className="font-semibold break-words" title={step.processName || step.name}>
               {step.processName || step.name}
             </p>
           </div>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-1 shrink-0">
             {onAdjustAndRerun && (
               <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" onClick={onAdjustAndRerun}>
                 <RotateCcw className="h-3.5 w-3.5" /> Re-run from here
@@ -314,7 +315,7 @@ export function StepDetail({
           data-testid="step-provenance"
           className="flex items-center gap-1.5 flex-wrap text-xs"
         >
-          <span className="text-muted-foreground">ran with</span>
+          <span className="text-muted-foreground">{step.status && !/completed|ok|failed|error/i.test(step.status) ? "inputs" : "ran with"}</span>
           {step.inputs && step.inputs.length > 0
             ? step.inputs.map((inp, i) => (
                 <span key={i} className="rounded border bg-muted/60 px-1.5 py-0.5 font-mono">{inp}</span>
@@ -338,12 +339,12 @@ export function StepDetail({
       </div>
 
       {/* Body */}
-      <div className="overflow-auto px-4 py-3 space-y-4">
+      <div className="min-h-0 overflow-auto px-4 py-3 space-y-4">
         {/* Outputs — tabs + rendered/raw switch */}
         <div>
           <div className="flex items-center gap-1.5 flex-wrap mb-2">
             {outputs.length === 0 && (
-              <p className="text-xs text-muted-foreground">This step produced no output files, or none were recorded.</p>
+              <p className="text-xs text-muted-foreground">{step.status && !/completed|ok|failed|error/i.test(step.status) ? "Outputs will appear here as the step runs." : "This step produced no output files, or none were recorded."}</p>
             )}
             {outputs.map(o => (
               <button
@@ -417,7 +418,7 @@ export function StepDetail({
         {/* Resolved parameters — origin badges + per-row revert */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <p className="text-xs font-semibold">Parameters this step actually ran with</p>
+            <p className="text-xs font-semibold">{step.status && !/completed|ok|failed|error/i.test(step.status) ? "Step parameters" : "Parameters this step actually ran with"}</p>
             <span
               data-testid="not-default-count"
               className="rounded border bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground"
@@ -436,14 +437,14 @@ export function StepDetail({
                   <div
                     key={p.name}
                     data-testid={`param-row-${p.name}`}
-                    className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 items-baseline border-b pb-1.5 last:border-0"
+                    className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-x-3 gap-y-0.5 items-baseline border-b pb-1.5 last:border-0"
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="font-mono text-xs truncate">{p.name}</span>
                       <OriginBadge origin={p.origin} />
                     </div>
-                    <div className="flex items-center gap-2 justify-self-end">
-                      <span className="font-mono text-xs">{fmtVal(live)}</span>
+                    <div className="flex items-center gap-2 min-w-0 sm:justify-self-end">
+                      <span className="font-mono text-xs break-all">{fmtVal(live)}</span>
                       {p.defaultValue !== undefined && changed && (
                         <button
                           data-testid={`param-revert-${p.name}`}
@@ -455,7 +456,7 @@ export function StepDetail({
                       )}
                     </div>
                     {p.reason && (
-                      <p className="col-span-2 text-[10px] text-muted-foreground">{p.reason}</p>
+                      <p className="sm:col-span-2 text-[10px] text-muted-foreground">{p.reason}</p>
                     )}
                   </div>
                 );

@@ -78,12 +78,19 @@ interface ToolItem {
   icon: any
 }
 
-function ProjectsRouter() {
+function ProjectsRouter({ onNewChat }: { onNewChat: () => void }) {
+  const { setActiveProjectId } = useActiveProject();
   const [, setLocation] = useLocation();
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const projectId = searchParams.get('project');
   const initialTab = searchParams.get('tab') ?? undefined;
+  useEffect(() => {
+    if (!projectId) return;
+    setActiveProjectId(projectId);
+    if (initialTab === "chat") onNewChat();
+    else if (initialTab !== "instructions" && initialTab !== "workflows") setLocation("/files");
+  }, [projectId, initialTab]);
 
   const handleProjectSelect = (id: string) => {
     setLocation(`/projects?project=${id}`);
@@ -758,7 +765,7 @@ function Router({
           activeChatId={currentChatSession?.id}
           chatSessions={chatSessions}
         >
-          <ProjectsRouter />
+          <ProjectsRouter onNewChat={onNewChat} />
         </PlatformLayout>
       </Route>
 
