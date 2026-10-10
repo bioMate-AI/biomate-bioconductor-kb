@@ -1,0 +1,59 @@
+import { useEffect, useState } from "react"
+
+const LIMIT = 256 * 1024
+const TEXT = /\.(json|ya?ml|txt|md|csv|tsv|log|xml|html?|py|r|sh|nf|config|toml|ini|fa|fasta|pdb|smi|smiles|vcf)$/i
+const IMAGE = /\.(png|jpe?g|gif|webp)$/i
+
+/** Uses the same permission-checked signed URL as Download. HTML stays inert text. */
+export function DatasetFilePreview({ projectId, fileId, name }: {
+  projectId: string; fileId: string; name: string
+}) {
+  const [state, setState] = useState<{ url?: string; text?: string; truncated?: boolean; error?: string }>({})
+  useEffect(() => {
+    const abort = new AbortController()
+    setState({})
+    ;(async () => {
+      if (!TEXT.test(name) && !IMAGE.test(name) && !/\.pdf$/i.test(name)) return
+      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(fileId)}/url`, {
+        credentials: "include", signal: abort.signal,
+      })
+      if (!response.ok) throw new Error(`Cannot access file (${response.status}).`)
+      const { url } = await response.json()
+      if (typeof url !== "string" || !/^https?:\/\//.test(url)) throw new Error("File URL is unavailable.")
+      if (!TEXT.test(name)) { setState({ url }); return }
+      const content = await fetch(url, { signal: abort.signal })
+      if (!content.ok) throw new Error(`Cannot read file (${content.status}).`)
+      if (!content.body) throw new Error("File content is unavailable.")
+      const reader = content.body.getReader()
+      const decoder = new TextDecoder()
+      let text = "", bytes = 0, truncated = false
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          const remaining = LIMIT - bytes
+          text += decoder.decode(value.subarray(0, remaining), { stream: true })
+          bytes += value.length
+          if (bytes >= LIMIT) { truncated = true; await reader.cancel(); break }
+        }
+        text += decoder.decode()
+      } finally { reader.releaseLock() }
+      if (/\.json$/i.test(name) && !truncated) {
+        try { text = JSON.stringify(JSON.parse(text), null, 2) } catch { /* Show invalid JSON verbatim. */ }
+      }
+      if (!abort.signal.aborted) setState({ text, truncated })
+    })().catch(error => { if (!abort.signal.aborted) setState({ error: error.message }) })
+    return () => abort.abort()
+  }, [projectId, fileId, name])
+  if (!TEXT.test(name) && !IMAGE.test(name) && !/\.pdf$/i.test(name)) return (
+    <p className="text-muted-foreground">Content preview is not available for this format. Download the file to open it in a compatible application.</p>
+  )
+  if (state.error) return <p role="alert" className="text-destructive">{state.error}</p>
+  if (state.text !== undefined) return <div className="min-w-0 space-y-2" data-testid="dataset-text-preview">
+    <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-words rounded-md border bg-muted/30 p-3 text-xs">{state.text || "This file is empty."}</pre>
+    {state.truncated && <p className="text-muted-foreground">Showing the first 256 KiB. Download for the complete file.</p>}
+  </div>
+  if (state.url && IMAGE.test(name)) return <img src={state.url} alt={name} className="max-h-[60vh] max-w-full object-contain" />
+  if (state.url) return <iframe title={name} src={state.url} className="h-[60vh] w-full rounded-md border" />
+  return <p role="status" className="text-muted-foreground">Loading preview…</p>
+}

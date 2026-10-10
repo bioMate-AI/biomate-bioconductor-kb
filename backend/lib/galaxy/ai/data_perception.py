@@ -34,6 +34,7 @@ from __future__ import annotations
 import csv
 import gzip
 import io
+import json
 import logging
 import os
 from collections import Counter
@@ -98,6 +99,7 @@ _SPLIT_NAME_TOKENS = ("split", "fold", "partition", "subset")
 class DataProfile:
     """Mirror of the frontend ``DataProfile`` TS interface."""
 
+    structured: Optional[Dict[str, Any]] = None
     rows: int = 0
     cols: int = 0
     quality: str = "good"  # good | watch | blocked
@@ -120,6 +122,8 @@ class DataProfile:
             "quality": self.quality,
             "notes": list(self.notes),
         }
+        if self.structured is not None:
+            out["structured"] = self.structured
         if self.leakage_detail:
             out["leakage"] = {"detail": self.leakage_detail}
         if self.effective_n is not None:
@@ -172,6 +176,8 @@ def profile_to_dataclass(path: str, *, name: Optional[str] = None) -> DataProfil
 
     kind = _sniff_kind(path)
     try:
+        if kind in ("json", "yaml"):
+            return _profile_structured(path, kind)
         if kind == "fastq":
             return _profile_fastq(path)
         if kind == "vcf":
@@ -192,6 +198,44 @@ def profile_to_dataclass(path: str, *, name: Optional[str] = None) -> DataProfil
         return p
 
 
+def _profile_structured(path: str, kind: str) -> DataProfile:
+    """Structural validation, not a claim about scientific dataset quality."""
+    p = DataProfile(quality="watch")
+    with _open_text(path) as handle:
+        text = handle.read(2 * 1024 * 1024 + 1)
+    if len(text) > 2 * 1024 * 1024:
+        p.notes.append("Structured validation is limited to files under 2 million characters; download for complete validation.")
+        return p
+    if kind == "json":
+        data = json.loads(text)
+    else:
+        import yaml
+        data = yaml.safe_load(text)
+    nodes = keys = nulls = depth = 0
+    stack = [(data, 0)]
+    visited = set()
+    while stack:
+        value, level = stack.pop()
+        nodes += 1
+        depth = max(depth, level)
+        if value is None:
+            nulls += 1
+        if isinstance(value, (dict, list)):
+            identity = id(value)
+            if identity in visited:
+                continue  # YAML aliases may be shared or recursive.
+            visited.add(identity)
+            children = value.values() if isinstance(value, dict) else value
+            if isinstance(value, dict):
+                keys += len(value)
+            stack.extend((child, level + 1) for child in children)
+    root = "object" if isinstance(data, dict) else "array" if isinstance(data, list) else "scalar"
+    p.structured = {"format": kind.upper(), "root": root, "nodes": nodes,
+                    "keys": keys, "nulls": nulls, "depth": depth}
+    p.notes.append(f"Valid {kind.upper()} syntax; {root} root. Structural checks only; scientific quality has not been assessed.")
+    return p
+
+
 # ---------------------------------------------------------------------------
 # Sniffing
 # ---------------------------------------------------------------------------
@@ -209,6 +253,8 @@ def _sniff_kind(path: str) -> str:
     """Return one of: 'fastq', 'vcf', 'table', 'unknown'."""
     lower = _strip_gz(path.lower())
     _, ext = os.path.splitext(lower)
+    if ext in (".json", ".yaml", ".yml"):
+        return "json" if ext == ".json" else "yaml"
     if ext in (".fastq", ".fq"):
         return "fastq"
     if ext == ".vcf":

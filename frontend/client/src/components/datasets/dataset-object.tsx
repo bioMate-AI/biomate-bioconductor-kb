@@ -14,7 +14,7 @@
  * ModelObject shows `not_evaluated` for an unmeasured gate.
  */
 
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -95,6 +95,7 @@ interface DatasetObjectProps {
    *  to run a workflow on it, so work flows OUT of the data panel. */
   onAnalyze?: () => void
   className?: string
+  preview?: ReactNode
 }
 
 // Header quality pill — reinforces the file-tree row's dot on the object itself
@@ -113,6 +114,7 @@ export function DatasetObject({
   onOpenRun,
   onAnalyze,
   className,
+  preview,
 }: DatasetObjectProps) {
   // Tabs lazily fetch their backing data when first opened (mirrors Quality).
   const [lineageOpened, setLineageOpened] = useState(false)
@@ -335,7 +337,7 @@ export function DatasetObject({
                     : ""}. Sorting, filtering and full paging use the table viewer.
                 </p>
               </div>
-            ) : null}
+            ) : preview ?? null}
             <Row k="Name" v={dataset.name} mono />
             <Row k="Size" v={formatBytes(dataset.size)} mono />
             <Row k="Type" v={fmt(dataset.contentType)} mono />

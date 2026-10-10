@@ -44,6 +44,7 @@ export interface LeakageFinding {
 export interface DataProfile {
   /** Raw shape the profiler observed. */
   shape: { rows: number; cols: number };
+  structured?: { format: string; root: string; nodes: number; keys: number; nulls: number; depth: number };
   /** Suspected data-leakage finding, if any. */
   leakage?: LeakageFinding;
   /** Effective sample size after accounting for correlation / imbalance. */
@@ -169,8 +170,17 @@ export function DataPerception({
 
       {/* Shape + effective-N stat strip */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Stat k={rowLabel} v={fmtInt(profile.shape.rows)} />
-        <Stat k={colLabel} v={fmtInt(profile.shape.cols)} />
+        {profile.structured ? <>
+          <Stat k="Format" v={profile.structured.format} />
+          <Stat k="Root" v={profile.structured.root} />
+          <Stat k="Values" v={fmtInt(profile.structured.nodes)} />
+          <Stat k="Keys" v={fmtInt(profile.structured.keys)} />
+          <Stat k="Null values" v={fmtInt(profile.structured.nulls)} />
+          <Stat k="Nesting depth" v={fmtInt(profile.structured.depth)} />
+        </> : <>
+          <Stat k={rowLabel} v={fmtInt(profile.shape.rows)} />
+          <Stat k={colLabel} v={fmtInt(profile.shape.cols)} />
+        </>}
         {typeof profile.effectiveN === "number" && (
           <Stat
             k="Effective N"

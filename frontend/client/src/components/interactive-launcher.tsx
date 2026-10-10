@@ -159,42 +159,6 @@ export function InteractiveLauncher({
     return () => { cancelled = true; clearInterval(timer) }
   }, [session?.jobId, session?.entryPointUrl])
 
-  // Galaxy launches interactive tools asynchronously: /api/interactive/launch
-  // returns { state: "queued", entry_point_url: null } immediately, and the
-  // real URL only appears once the session container starts. That URL surfaces
-  // on /api/interactive/sessions as the `target` field (rewritten server-side
-  // to the public proxy host). Poll for it until it's ready, then stop.
-  useEffect(() => {
-    if (!session?.jobId || session.entryPointUrl) return
-    let cancelled = false
-    let attempts = 0
-    const maxAttempts = 40 // ~2 min at 3s intervals
-    const timer = setInterval(async () => {
-      attempts += 1
-      if (cancelled) return
-      try {
-        const resp = await fetch('/api/interactive/sessions', { credentials: 'include' })
-        if (resp.ok) {
-          const data = await resp.json()
-          const match = (data.sessions || []).find((s: any) => s.job_id === session.jobId)
-          const url = match?.target || match?.entry_point_url || match?.url
-          if (url) {
-            if (!cancelled) {
-              setSession(prev => prev ? { ...prev, entryPointUrl: url, state: match?.state || 'running' } : prev)
-            }
-            clearInterval(timer)
-            return
-          }
-        }
-      } catch { /* keep polling */ }
-      if (attempts >= maxAttempts) {
-        clearInterval(timer)
-        if (!cancelled) setError('Session is taking longer than expected to start. Please try again.')
-      }
-    }, 3000)
-    return () => { cancelled = true; clearInterval(timer) }
-  }, [session?.jobId, session?.entryPointUrl])
-
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 B'
     const k = 1024

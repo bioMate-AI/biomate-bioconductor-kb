@@ -21,6 +21,7 @@
  * not a bare list.
  */
 
+import { DatasetFilePreview } from "@/components/datasets/dataset-file-preview"
 import { useEffect, useState } from "react"
 import { useSearch } from "wouter"
 import {
@@ -258,6 +259,7 @@ export default function DataHubPage() {
             {selected ? (
               <DatasetObject
                 dataset={toDatasetRef(selected)}
+                preview={<DatasetFilePreview projectId={activeProjectId!} fileId={selected.id} name={selected.name} />}
                 onBack={() => setSelected(null)}
                 onDownload={() => handleDownload(selected)}
                 onOpenRun={(runId) =>

@@ -241,6 +241,31 @@ def test_unknown_type_degrades(tmp):
     print("PASS test_unknown_type_degrades")
 
 
+def test_structured_json_and_yaml(tmp):
+    for suffix, text in (("json", '{"samples": [{"id": "A", "value": null}, {"id": "B", "value": 2}]}'),
+                         ("yml", "samples:\n  - id: A\n    value: null\n  - id: B\n    value: 2\n")):
+        p = profile_dataset(_write(tmp, "structured." + suffix, text))
+        assert p["structured"]["keys"] == 5, p
+        assert p["structured"]["nulls"] == 1, p
+        assert p["structured"]["depth"] == 3, p
+        assert "columns" not in p and "effectiveN" not in p, p
+    print("PASS test_structured_json_and_yaml")
+
+
+def test_invalid_structured_file(tmp):
+    for suffix, text in (("json", '{"bad": }'), ("yaml", "bad: [")):
+        p = profile_dataset(_write(tmp, "invalid." + suffix, text))
+        assert p["quality"] == "blocked", p
+        assert "Could not parse" in p["notes"][0], p
+    print("PASS test_invalid_structured_file")
+
+
+def test_yaml_recursive_alias(tmp):
+    p = profile_dataset(_write(tmp, "recursive.yml", "loop: &loop [*loop]"))
+    assert p["structured"]["nodes"] == 3, p
+    print("PASS test_yaml_recursive_alias")
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     with tempfile.TemporaryDirectory() as tmp:
