@@ -27,7 +27,7 @@ export async function upsertTOML(filePath: string, append: string): Promise<void
   }
   if (existing.includes('[mcp_servers.biomate]')) {
     // Naive replacement: drop the existing block and re-append.
-    existing = existing.replace(/\n\[mcp_servers\.biomate\][\s\S]*?(?=\n\[|$)/g, '');
+    existing = existing.replace(/(?:^|\n)\[mcp_servers\.biomate(?:\.[^\]]+)?\][\s\S]*?(?=\n\[|$)/g, '');
   }
   await atomicWrite(filePath, existing + append);
 }

@@ -1,0 +1,2336 @@
+--- /Users/kky/biomate-connector/remote_mcp/identity.py
++++ /private/tmp/biomate-connector-auth-review/remote_mcp/identity.py
+@@ -39,9 +39,8 @@
+ 
+     Returns the per-user ``bm_live_`` key minted + stored at authorize time
+     (BioMate's middleware resolves it to the owning user, so calls run as that
+-    user). Falls back to the shared ``BIOMATE_API_KEY`` only if no per-user key
+-    is stored (e.g. a token issued before minting was wired).
++    user). Missing per-user credentials fail closed; shared credentials are never used.
+     """
+     from .credentials import get_api_key
+ 
+-    return get_api_key(user_id) or os.environ.get("BIOMATE_API_KEY", "")
++    return get_api_key(user_id) or ""
+--- /Users/kky/biomate-connector/remote_mcp/server.py
++++ /private/tmp/biomate-connector-auth-review/remote_mcp/server.py
+@@ -39,6 +39,7 @@
+     "search_workflow": "workflows:search",
+     "get_workflow_spec": "workflows:search",
+     "get_run": "runs:read",
++    "watch_run": "runs:read",
+     "list_runs": "runs:read",
+     "run_workflow": "runs:write",
+     "cancel_run": "runs:write",
+@@ -95,10 +96,10 @@
+ def _client_for_call() -> "stdio.BioMateClient":
+     ident = current_identity()
+     if ident is None:
+-        return _client
++        raise ValueError("Authentication required")
+     api_key = resolve_api_key(ident.user_id)
+     if not api_key:
+-        return _client
++        raise ValueError("Reconnect BioMate: personal credentials unavailable")
+     client = _client_cache.get(api_key)
+     if client is None:
+         client = stdio.BioMateClient(stdio.BIOMATE_API_URL, api_key)
+--- /Users/kky/biomate-connector/remote_mcp/oauth_app.py
++++ /private/tmp/biomate-connector-auth-review/remote_mcp/oauth_app.py
+@@ -233,35 +233,30 @@
+ 
+ 
+ async def _ensure_user_api_key(user_id: str, session_token: str | None) -> None:
+-    """Mint + store a per-user bm_live_ API key so tool calls run as this user.
+-
+-    Idempotent-ish: reuses an already-stored key. Best-effort — a failure here
+-    leaves the shared-key fallback in place rather than blocking authorization.
+-    """
+-    import logging
+-
++    """Provision the caller's credential; never authorize a shared-account fallback."""
+     import httpx
+-
+-    from .credentials import has_api_key, put_api_key
++    from .credentials import get_api_key, put_api_key
+     from oauth_server.oauth.tokens import now
+-
+-    log = logging.getLogger("biomate.remote_mcp.oauth")
+-    if not session_token or has_api_key(user_id):
+-        return
+-    try:
++    existing = get_api_key(user_id)
++    if existing:
+         async with httpx.AsyncClient(timeout=15) as http:
+-            r = await http.post(
+-                f"{_login_url()}/api/user/api-keys",
+-                headers={"Authorization": f"Bearer {session_token}"},
+-                json={"name": "Claude MCP connector"},
+-            )
+-        key = r.json().get("key") if r.status_code == 200 else None
+-        if key:
+-            put_api_key(user_id, key, now())
+-        else:
+-            log.warning("api-key mint returned no key (status=%s) — using shared key fallback", r.status_code)
+-    except Exception as exc:  # noqa: BLE001
+-        log.warning("api-key mint failed (%s) — using shared key fallback", exc.__class__.__name__)
++            probe = await http.get(f"{_login_url()}/api/auth/me", headers={"Authorization": f"Bearer {existing}"})
++        if probe.is_success and str((probe.json().get("user") or {}).get("id")) == user_id:
++            return
++        if not probe.is_success and probe.status_code not in (401, 403):
++            raise ValueError("Could not verify existing connector credentials")
++    if not session_token:
++        raise ValueError("Missing authenticated BioMate session")
++    async with httpx.AsyncClient(timeout=15) as http:
++        response = await http.post(
++            f"{_login_url()}/api/user/api-keys",
++            headers={"Authorization": f"Bearer {session_token}"},
++            json={"name": "BioMate OAuth connector"},
++        )
++    key = response.json().get("key") if response.is_success else None
++    if not isinstance(key, str) or not key.startswith("bm_live_"):
++        raise ValueError("Could not provision personal connector credentials")
++    put_api_key(user_id, key, now())
+ 
+ 
+ async def authorize(request: Request) -> Response:
+@@ -300,8 +295,11 @@
+     login = await _biomate_login(str(form.get("email", "")), str(form.get("password", "")))
+     if not login["ok"]:
+         return _consent_page(req, outcome.client_name, outcome.requested_scopes, error=login["error"])
+-    # Mint + store a per-user API key so tool calls run as this user (best-effort).
+-    await _ensure_user_api_key(login["user_id"], login.get("token"))
++    # Mint + store a per-user API key so tool calls run as this user (required).
++    try:
++        await _ensure_user_api_key(login["user_id"], login.get("token"))
++    except Exception:
++        return _consent_page(req, outcome.client_name, outcome.requested_scopes, error="Could not connect your account. Please retry.")
+     return _issue_code(req, login["user_id"], outcome.requested_scopes)
+ 
+ 
+--- /Users/kky/biomate-connector/remote_mcp/app.py
++++ /private/tmp/biomate-connector-auth-review/remote_mcp/app.py
+@@ -131,6 +131,7 @@
+         yield
+ 
+ 
++from .tool_bridge import oauth_tool
+ from .oauth_app import authorize, register, token  # noqa: E402
+ 
+ _starlette_app = Starlette(
+@@ -158,6 +159,7 @@
+         Route("/oauth/register", register, methods=["POST"]),
+         Route("/oauth/authorize", authorize, methods=["GET", "POST"]),
+         Route("/oauth/token", token, methods=["POST"]),
++        Route("/oauth/tools/{name}", oauth_tool, methods=["POST"]),
+     ],
+ )
+ 
+--- /Users/kky/biomate-connector/remote_mcp/tool_bridge.py
++++ /private/tmp/biomate-connector-auth-review/remote_mcp/tool_bridge.py
+@@ -0,0 +1,35 @@
++"""OAuth-scoped access to the same Node tools used by personal API-key clients."""
++import httpx
++from starlette.responses import JSONResponse
++from oauth_server.oauth import verify_access_token
++from .credentials import get_api_key
++from .oauth_app import _login_url
++from .server import _TOOL_SCOPES
++
++async def oauth_tool(request):
++    authorization = request.headers.get("authorization", "")
++    claims = verify_access_token(authorization[7:]) if authorization.startswith("Bearer ") else None
++    if claims is None:
++        return JSONResponse({"error": "invalid_token"}, status_code=401)
++    name = request.path_params["name"]
++    required = _TOOL_SCOPES.get(name)
++    if required is None:
++        return JSONResponse({"error": "Unknown tool"}, status_code=404)
++    if required not in claims.scopes:
++        return JSONResponse({"error": "insufficient_scope", "required_scope": required}, status_code=403)
++    key = get_api_key(claims.sub)
++    if not key:
++        return JSONResponse({"error": "Reconnect BioMate: personal credentials unavailable"}, status_code=401)
++    try:
++        body = await request.json()
++    except Exception:
++        return JSONResponse({"error": "Invalid JSON"}, status_code=400)
++    if not isinstance(body, dict):
++        return JSONResponse({"error": "Tool arguments must be an object"}, status_code=400)
++    try:
++        async with httpx.AsyncClient(timeout=120) as client:
++            response = await client.post(f"{_login_url()}/tools/{name}",
++                headers={"Authorization": f"Bearer {key}"}, json=body)
++        return JSONResponse(response.json(), status_code=response.status_code)
++    except Exception:
++        return JSONResponse({"error": "BioMate tool service unavailable"}, status_code=502)
+--- /Users/kky/biomate-connector/connectors/mcp-server/src/index.ts
++++ /private/tmp/biomate-connector-auth-review/connectors/mcp-server/src/index.ts
+@@ -8,13 +8,14 @@
+  * Configuration (environment variables):
+  *   BIOMATE_API_BASE   BioMate server URL (default: https://dev-public.biomate.ai)
+  *   BIOMATE_API_KEY    Personal API key (bm_live_xxx) from biomate.ai/account/api-keys
+- *   BIOMATE_REFRESH_TOKEN  OAuth refresh token (alternative to API key)
++ *   BIOMATE_OAUTH_FILE  Protected credential file written by @biomate/connect
+  *
+  * Each tool call POSTs to ${BIOMATE_API_BASE}/tools/${toolName} with the
+  * Authorization header set. The /tools/* routes are served by BioMate's
+  * Node.js API server.
+  */
+ 
++import { oauthCredential } from "./auth.js";
+ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+ import {
+@@ -29,7 +30,7 @@
+ // ── Config ────────────────────────────────────────────────────────────────────
+ const API_BASE =
+   (process.env.BIOMATE_API_BASE ?? "https://dev-public.biomate.ai").replace(/\/$/, "");
+-const API_KEY = process.env.BIOMATE_API_KEY ?? process.env.BIOMATE_REFRESH_TOKEN ?? "";
++const API_KEY = process.env.BIOMATE_API_KEY ?? "";
+ 
+ // ── Tools manifest ────────────────────────────────────────────────────────────
+ const manifest = require("./tools_manifest.json") as {
+@@ -69,7 +70,16 @@
+   let ok = true;
+ 
+   try {
+-    const res = await fetch(`${API_BASE}/tools/${name}`, {
++    if (!TOOLS.some(tool => tool.name === name)) throw new Error("Unknown tool");
++    let endpoint = `${API_BASE}/tools/${name}`;
++    if (!API_KEY) {
++      if (!process.env.BIOMATE_OAUTH_FILE) throw new Error("Reconnect BioMate with the updated installer or configure a personal API key");
++      const credential = await oauthCredential(process.env.BIOMATE_OAUTH_FILE);
++      headers.Authorization = `Bearer ${credential.access_token}`;
++      endpoint = `${credential.authBase}/oauth/tools/${name}`;
++    }
++    const res = await fetch(endpoint, {
++      redirect: "error",
+       method: "POST",
+       headers,
+       body: JSON.stringify(args ?? {}),
+@@ -95,7 +105,7 @@
+ });
+ 
+ // ── Start ─────────────────────────────────────────────────────────────────────
+-if (!API_KEY) {
++if (!API_KEY && !process.env.BIOMATE_OAUTH_FILE) {
+   process.stderr.write(
+     "[biomate-mcp] WARNING: BIOMATE_API_KEY not set. " +
+     "Get your key at https://dev-public.biomate.ai/account/api-keys\n"
+--- /Users/kky/biomate-connector/connectors/mcp-server/src/auth.ts
++++ /private/tmp/biomate-connector-auth-review/connectors/mcp-server/src/auth.ts
+@@ -0,0 +1,37 @@
++import { promises as fs } from 'node:fs';
++import { randomUUID } from 'node:crypto';
++export type Credential = { authBase: string; clientId: string; access_token: string; refresh_token: string; expires_at: number };
++function origin(value: string) {
++  const url = new URL(value);
++  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(url.hostname))) throw new Error('OAuth requires HTTPS');
++  if (url.username || url.password || url.search || url.hash || url.pathname !== '/') throw new Error('OAuth base must be an origin');
++  return url.origin;
++}
++export async function oauthCredential(file: string): Promise<Credential> {
++  const lock = file + '.lock';
++  let handle;
++  for (let attempt = 0; attempt < 100; attempt++) {
++    try { handle = await fs.open(lock, 'wx', 0o600); break; }
++    catch (error: any) { if (error.code !== 'EEXIST') throw error; await new Promise(resolve => setTimeout(resolve, 100)); }
++  }
++  if (!handle) throw new Error('OAuth credentials locked; retry or reconnect BioMate');
++  try {
++    const current = JSON.parse(await fs.readFile(file, 'utf8')) as Credential;
++    current.authBase = origin(current.authBase);
++    if (!current.clientId || !current.refresh_token) throw new Error('Reconnect BioMate: incomplete OAuth credentials');
++    if (current.access_token && current.expires_at > Date.now() + 60000) return current;
++    const response = await fetch(current.authBase + '/oauth/token', {
++      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(15000),
++      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
++      body: new URLSearchParams({ grant_type: 'refresh_token', client_id: current.clientId, refresh_token: current.refresh_token }),
++    });
++    if (!response.ok) throw new Error(`OAuth refresh failed (HTTP ${response.status}); reconnect BioMate`);
++    const updated = await response.json() as any;
++    if (!updated.access_token || !updated.refresh_token || !(Number(updated.expires_in) > 0)) throw new Error('Invalid OAuth token response; reconnect BioMate');
++    const next = { ...current, access_token: updated.access_token, refresh_token: updated.refresh_token, expires_at: Date.now() + Number(updated.expires_in) * 1000 };
++    const tmp = file + '.' + randomUUID() + '.tmp';
++    await fs.writeFile(tmp, JSON.stringify(next), { mode: 0o600 });
++    await fs.rename(tmp, file);
++    return next;
++  } finally { await handle.close(); await fs.unlink(lock); }
++}
+--- /Users/kky/biomate-connector/connectors/mcp-server/src/tools_manifest.json
++++ /private/tmp/biomate-connector-auth-review/connectors/mcp-server/src/tools_manifest.json
+@@ -1,58 +1,26 @@
+ {
+   "version": "2.0.0",
+-  "generated_from": "mcp/tools_manifest.py",
+-  "server": {
+-    "name": "BioMate",
+-    "vendor": "BioMate AI",
+-    "documentation_url": "https://biomate.ai/connectors",
+-    "privacy_policy_url": "https://biomate.ai/legal/privacy",
+-    "terms_of_service_url": "https://biomate.ai/legal/terms",
+-    "support_email": "support@biomate.ai",
+-    "support_url": "https://biomate.ai/support"
+-  },
++  "generated_from": "backend/lib/mcp/tools_manifest.py",
+   "mcp": [
+     {
+       "name": "biomate_session",
+-      "title": "Run BioMate Session",
+-      "description": "**Primary entry point \u2014 use this for 90% of requests.** Run a complete BioMate scientific session from a natural-language goal. BioMate selects the right workflow from 2,455 indexed pipelines, pre-fills parameters from your goal text, executes on BioMate cloud, handles QC gates with auto-loop remediation, and produces structured findings. While running, the tool streams real-time progress (phase started, step completed, QC gate, auto-loop remediation, finding) back to the host. Returns a final run summary, a deep link to the live results panel, and the report URL. \n\n**How to write the `goal` parameter** \u2014 plain English, one to three sentences:\n\u2022 Include the *what*: analysis type + subject (e.g. 'ADMET screening', 'RNA-seq DE', 'variant calling')\n\u2022 Include *data location*: inline SMILES/sequences, S3 paths, accession numbers, or upload first with upload_file\n\u2022 Include key *parameters* that matter: organism, library type, comparisons, thresholds\n\u2022 You can omit anything BioMate can infer (it will ask if genuinely ambiguous)\n\n**Good examples:**\n  'Screen aspirin (CC(=O)Oc1ccccc1C(=O)O) and caffeine (Cn1cnc2c1c(=O)n(c(=O)n2C)C) for hERG inhibition, CYP3A4, and oral bioavailability'\n  'RNA-seq differential expression on s3://lab-bucket/exp42/fastqs/ \u2014 human GRCh38, dUTP strand-specific, treated (n=3) vs control (n=3), FDR 0.05'\n  'Whole-genome variant calling on the uploaded FASTQ pair, GRCh38, GATK HaplotypeCaller, germline mode'\n  'Run homogeneous 3D refinement in CryoSPARC on s3://cryo/job042/, C2 symmetry, box size 256'\n  'Fetch GSE183947 from GEO and run the same RNA-seq pipeline'\n\nUse run_workflow instead when the user wants to call a specific workflow by ID with explicit parameter control.",
++      "description": "Ask BioMate to plan an analysis or answer a scientific workflow question. Returns the final response, suggested workflow, branch plans and clarification requests. Review the plan before separately running a workflow. Does not automatically execute or stream progress.",
+       "inputSchema": {
+         "type": "object",
+         "properties": {
+           "goal": {
+             "type": "string",
+-            "description": "Natural-language scientific goal. Include: analysis type, data location (inline SMILES/sequences, s3:// paths, or GEO/SRA accession numbers), and key parameters (organism, comparisons, thresholds). BioMate infers the rest. Examples: 'Screen these 5 SMILES for hERG IC50 and CYP3A4 inhibition', 'RNA-seq DE on s3://bucket/exp1/ human GRCh38 paired-end treated vs control', 'Fetch GSE183947 and run differential expression'."
+-          },
+-          "inputs": {
+-            "type": "object",
+-            "description": "Optional structured inputs passed alongside `goal`. BioMate's inner AI sees these as a JSON block appended to the goal text and merges them with any parameters it extracts from the goal string. Use this to pass: S3 keys from upload_file, sequences, SMILES lists, accession numbers, or explicit parameter overrides. Examples:\n  After upload_file: {\"fastq_file\": \"users/42/uploads/uuid-sample.fastq.gz\"} (use the s3_key value returned by upload_file)\n  SMILES list: {\"smiles_list\": [\"CC(=O)Oc1ccccc1C(=O)O\"], \"organism\": \"human\"}\n  Parameter override: {\"genome\": \"GRCh38\", \"aligner\": \"STAR\", \"fdr\": 0.05}",
+-            "additionalProperties": true
+-          },
+-          "experiment_id": {
+-            "type": "string",
+-            "description": "Optional experiment to attach this run to (from recall_memory)."
+-          },
+-          "stream": {
+-            "type": "boolean",
+-            "description": "Emit progress notifications during execution. Default true. Set false for hosts without MCP notification support \u2014 then poll with get_run.",
+-            "default": true
++            "description": "Natural language description of what to do. Examples: 'screen these 12 SMILES for hERG and CYP3A4 liability', 'run nf-core/rnaseq on FASTQ files in s3://bucket/exp42/, human, paired-end', 'predict the structure of P04637 and the top 5 destabilizing mutations'."
+           }
+         },
+         "required": [
+           "goal"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Run BioMate Session",
+-        "readOnlyHint": false,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": true
+       }
+     },
+     {
+       "name": "search_workflow",
+-      "title": "Search Workflows",
+-      "description": "Search the BioMate workflow catalog (2,455 indexed workflows across 34 domains) by natural language. Returns ranked workflow cards with id, name, domain, one-line description, and estimated BioMate cloud cost. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
++      "description": "Search the BioMate workflow catalog (4,200+ indexed workflows across 36 domains) by natural language. Returns ranked workflow cards with id, name, domain, and a one-line description. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
+       "inputSchema": {
+         "type": "object",
+         "properties": {
+@@ -73,19 +41,11 @@
+         "required": [
+           "query"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Search Workflows",
+-        "readOnlyHint": true,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": true
+       }
+     },
+     {
+       "name": "get_workflow_spec",
+-      "title": "Get Workflow Spec",
+-      "description": "Return the full specification for a workflow: required + optional parameters (with types and allowed values), default QC profile and thresholds, expected input files, estimated cost and runtime, and any license requirements. Call this before run_workflow when the user wants explicit parameter control.",
++      "description": "Return the full specification for a workflow: required + optional parameters (with types and allowed values), default QC profile and thresholds, expected input files, and any license requirements. Call this before run_workflow when the user wants explicit parameter control.",
+       "inputSchema": {
+         "type": "object",
+         "properties": {
+@@ -97,19 +57,11 @@
+         "required": [
+           "workflow_id"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Get Workflow Spec",
+-        "readOnlyHint": true,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": false
+       }
+     },
+     {
+       "name": "run_workflow",
+-      "title": "Run Workflow",
+-      "description": "Execute a specific BioMate workflow on BioMate cloud with explicit parameters. Returns a run_id immediately. If stream=true, also emits progress notifications until the run terminates (same events as biomate_session). Use biomate_session instead when the user gave you a natural-language goal.",
++      "description": "Launch a specified workflow with parameters. Returns the run identifier; poll get_run for status and results.",
+       "inputSchema": {
+         "type": "object",
+         "properties": {
+@@ -121,56 +73,15 @@
+             "type": "object",
+             "description": "Parameter dict. Required params come from get_workflow_spec.",
+             "additionalProperties": true
+-          },
+-          "experiment_id": {
+-            "type": "string",
+-            "description": "Optional experiment to attach to."
+-          },
+-          "stream": {
+-            "type": "boolean",
+-            "description": "Emit progress notifications while running. Default false.",
+-            "default": false
+           }
+         },
+         "required": [
+           "workflow_id"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Run Workflow",
+-        "readOnlyHint": false,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": true
+-      }
+-    },
+-    {
+-      "name": "watch_run",
+-      "title": "",
+-      "description": "Stream real-time progress for a running BioMate workflow and return full results when done. Emits MCP notifications/progress for every phase start/complete, step update, and QC gate. When the run finishes, automatically fetches output files (with download URLs) and AI findings. Use after run_workflow (non-streaming) to watch a submitted run. Does not require re-submitting \u2014 takes an existing run_id.",
+-      "inputSchema": {
+-        "type": "object",
+-        "properties": {
+-          "run_id": {
+-            "type": "string",
+-            "description": "Run ID returned by run_workflow."
+-          }
+-        },
+-        "required": [
+-          "run_id"
+-        ]
+-      },
+-      "annotations": {
+-        "title": "",
+-        "readOnlyHint": false,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": false
+       }
+     },
+     {
+       "name": "get_run",
+-      "title": "Get Run Details",
+       "description": "Return everything about a run in one call: status (pending|running|completed|failed), per-phase and per-step progress with timestamps, output files with download URLs, structured findings, QC gate results, and any auto-loop remediations applied. Replaces get_run_status + get_run_results + step-level findings polling.",
+       "inputSchema": {
+         "type": "object",
+@@ -188,19 +99,11 @@
+         "required": [
+           "run_id"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Get Run Details",
+-        "readOnlyHint": true,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": false
+       }
+     },
+     {
+       "name": "cancel_run",
+-      "title": "Cancel Run",
+-      "description": "Cancel a running or queued BioMate workflow on BioMate cloud.",
++      "description": "Cancel a running or queued BioMate workflow on AWS Batch.",
+       "inputSchema": {
+         "type": "object",
+         "properties": {
+@@ -212,18 +115,10 @@
+         "required": [
+           "run_id"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Cancel Run",
+-        "readOnlyHint": false,
+-        "destructiveHint": true,
+-        "idempotentHint": true,
+-        "openWorldHint": false
+       }
+     },
+     {
+       "name": "list_runs",
+-      "title": "List Runs",
+       "description": "List the user's recent runs with status and timestamps. Filter by status or experiment.",
+       "inputSchema": {
+         "type": "object",
+@@ -249,25 +144,33 @@
+             "description": "Optional experiment filter."
+           }
+         }
+-      },
+-      "annotations": {
+-        "title": "List Runs",
+-        "readOnlyHint": true,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": false
++      }
++    },
++    {
++      "name": "watch_run",
++      "description": "Read a snapshot of run status, outputs and available findings. Poll for updates; this tool does not stream progress notifications.",
++      "inputSchema": {
++        "type": "object",
++        "properties": {
++          "run_id": {
++            "type": "string",
++            "description": "Run ID returned by run_workflow."
++          }
++        },
++        "required": [
++          "run_id"
++        ]
+       }
+     },
+     {
+       "name": "preview_file",
+-      "title": "Preview Output File",
+       "description": "Render a server-side preview of an output file (FASTA, VCF, CSV/TSV, image, PDF). Returns markdown + optional thumbnail PNG. Use this to show the user what an output looks like without downloading multi-GB files. For input QC of files the user is about to upload, prefer biomate_session (it runs a real QC workflow).",
+       "inputSchema": {
+         "type": "object",
+         "properties": {
+           "s3_key": {
+             "type": "string",
+-            "description": "The full s3_uri value (must start with 's3://') copied verbatim from a get_run output_files entry \u2014 e.g. 's3://bucket/path/file.json'. NOT a bare key; the s3:// prefix is required."
++            "description": "S3 key (s3://bucket/path) from get_run output_files."
+           },
+           "run_id": {
+             "type": "string",
+@@ -282,19 +185,11 @@
+         "required": [
+           "s3_key"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Preview Output File",
+-        "readOnlyHint": true,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": false
+       }
+     },
+     {
+       "name": "export_report",
+-      "title": "Export Report",
+-      "description": "Render a publication-ready report for a completed run as PDF or markdown. Includes the methods section, QC audit trail, structured findings, and figures. This is what users need for IND submissions, CRO compliance packages, and publication supplementary materials.",
++      "description": "Export the findings report as Markdown. Returns pending while findings are prepared; poll again until ready. PDF, DOCX and other sections are not supported.",
+       "inputSchema": {
+         "type": "object",
+         "properties": {
+@@ -305,42 +200,27 @@
+           "format": {
+             "type": "string",
+             "enum": [
+-              "pdf",
+-              "markdown",
+-              "docx"
++              "markdown"
+             ],
+-            "default": "pdf"
++            "default": "markdown"
+           },
+           "sections": {
+             "type": "array",
+             "items": {
+               "type": "string",
+               "enum": [
+-                "methods",
+-                "qc",
+-                "findings",
+-                "figures",
+-                "appendix"
++                "findings"
+               ]
+-            },
+-            "description": "Which sections to include (default: all)."
++            }
+           }
+         },
+         "required": [
+           "run_id"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Export Report",
+-        "readOnlyHint": false,
+-        "destructiveHint": false,
+-        "idempotentHint": true,
+-        "openWorldHint": false
+       }
+     },
+     {
+       "name": "analyze_results",
+-      "title": "Analyze Results",
+       "description": "Ask BioMate's AI to interpret a completed run. Returns natural-language analysis: key findings, quality assessment, scientific interpretation, recommended next steps. Use after get_run when the user asks 'what does this mean?'.",
+       "inputSchema": {
+         "type": "object",
+@@ -357,18 +237,10 @@
+         "required": [
+           "run_id"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Analyze Results",
+-        "readOnlyHint": true,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": true
+       }
+     },
+     {
+       "name": "explain_error",
+-      "title": "Explain Run Error",
+       "description": "Diagnose a failed run. Returns the likely root cause (genome mismatch, missing input, OOM, container pull failure, etc.) and the specific fix. Often the next step is run_workflow with corrected params.",
+       "inputSchema": {
+         "type": "object",
+@@ -385,90 +257,53 @@
+         "required": [
+           "run_id"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Explain Run Error",
+-        "readOnlyHint": true,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": true
+       }
+     },
+     {
+       "name": "query_database",
+-      "title": "Query Biological Database",
+-      "description": "Query a biological/chemical database by accession or name. Use database='federated' to fan out across all sources simultaneously and merge results. Single-source options: uniprot, pdb, pdbe, alphafold, ncbi_gene, dbsnp, clinvar, gnomad, kegg, reactome, chebi, chembl, pubchem, bindingdb, pharos, hpo, string, pubmed.",
++      "description": "Query a biological/chemical database by accession or name. Supported: uniprot, pdb, alphafold, ncbi_gene, dbsnp, clinvar, gnomad, kegg, reactome, chebi, pubchem, hpo, omim, string.",
+       "inputSchema": {
+         "type": "object",
+         "properties": {
+           "database": {
+             "type": "string",
+-            "description": "Database to query. Use 'federated' to query all sources in parallel.",
++            "description": "Database to query. Kept in lock-step with ai_assistant.query_database handlers; every id has a real _query_* method.",
+             "enum": [
+-              "federated",
+               "uniprot",
+               "pdb",
+               "pdbe",
+               "alphafold",
++              "interpro",
++              "string",
+               "ncbi_gene",
++              "ensembl",
+               "dbsnp",
+               "clinvar",
+               "gnomad",
+               "kegg",
+               "reactome",
++              "go",
++              "hpo",
+               "chebi",
+               "chembl",
+               "pubchem",
+               "bindingdb",
+-              "pharos",
+-              "hpo",
+-              "string",
+-              "pubmed"
+-            ],
+-            "default": "federated"
++              "pharos"
++            ]
+           },
+           "query": {
+             "type": "string",
+-            "description": "Accession, gene symbol, compound name, or free text."
+-          },
+-          "operation": {
+-            "type": "string",
+-            "description": "Search mode chosen from user intent: 'lookup' (by ID/name, default), 'similarity' (chembl/pubchem=chemical similarity over SMILES; pdb=sequence homologs over the whole PDB), or 'text' (keyword search).",
+-            "enum": [
+-              "lookup",
+-              "similarity",
+-              "text"
+-            ],
+-            "default": "lookup"
+-          },
+-          "entity_type": {
+-            "type": "string",
+-            "description": "Hint for federated routing: gene, protein, variant, compound, pathway, disease, or omit to auto-detect.",
+-            "enum": [
+-              "gene",
+-              "protein",
+-              "variant",
+-              "compound",
+-              "pathway",
+-              "disease"
+-            ]
+-          }
+-        },
+-        "required": [
++            "description": "Accession, gene symbol, or compound name."
++          }
++        },
++        "required": [
++          "database",
+           "query"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Query Biological Database",
+-        "readOnlyHint": true,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": true
+       }
+     },
+     {
+       "name": "resolve_accession",
+-      "title": "Resolve Accession",
+       "description": "Identify a public archive accession (GEO, SRA, ENA, DDBJ) and return the best BioMate workflow to fetch it plus pre-filled params ready for run_workflow. Examples: GSE183947 \u2192 Geo Data Connector; SRR12345 \u2192 nf-core/fetchngs. Call this before run_workflow whenever the user provides an accession instead of a file.",
+       "inputSchema": {
+         "type": "object",
+@@ -481,18 +316,10 @@
+         "required": [
+           "accession"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Resolve Accession",
+-        "readOnlyHint": true,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": true
+       }
+     },
+     {
+       "name": "browse_data",
+-      "title": "Browse Data Repository",
+       "description": "Browse a biological data repository or S3 workspace by listing files and directories at a given path. Public sources (EBI, NCBI, Ensembl, UCSC) require a path. S3 sources (biomate_workspace, user_s3) accept an optional prefix. Use before fetch_public_data to navigate to the exact file you need.",
+       "inputSchema": {
+         "type": "object",
+@@ -512,24 +339,16 @@
+           },
+           "path": {
+             "type": "string",
+-            "description": "Directory path or S3 prefix to list (e.g. '/pub/databases/uniprot/' or 'results/run-xyz/')."
++            "description": "Directory path or S3 prefix to list."
+           }
+         },
+         "required": [
+           "source_id"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Browse Data Repository",
+-        "readOnlyHint": true,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": true
+       }
+     },
+     {
+       "name": "fetch_public_data",
+-      "title": "Fetch Public Data",
+       "description": "Download a file from a public biological repository (EBI, NCBI, Ensembl, UCSC) into BioMate's S3 workspace and return a presigned URL and S3 URI. Use the S3 URI as a workflow input parameter. Call browse_data first to find the exact path.",
+       "inputSchema": {
+         "type": "object",
+@@ -547,7 +366,7 @@
+           },
+           "remote_path": {
+             "type": "string",
+-            "description": "Path on the FTP server (e.g. '/pub/databases/uniprot/.../uniprot_sprot.fasta.gz')."
++            "description": "Path on the FTP server."
+           },
+           "url": {
+             "type": "string",
+@@ -557,18 +376,36 @@
+         "required": [
+           "source_id"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Fetch Public Data",
+-        "readOnlyHint": false,
+-        "destructiveHint": false,
+-        "idempotentHint": true,
+-        "openWorldHint": true
++      }
++    },
++    {
++      "name": "search_literature",
++      "description": "Search published scientific literature across PubMed, EuropePMC, Semantic Scholar, and OpenAlex. Uses an iterative depth-loop: starts broad, then drills into related topics until min_results are found or max_depth is reached. Returns ranked papers with title, authors, year, DOI, abstract snippet, and citation count. Best for: finding prior art, understanding a disease mechanism, locating validation datasets, or reviewing methods before running a workflow.",
++      "inputSchema": {
++        "type": "object",
++        "properties": {
++          "query": {
++            "type": "string",
++            "description": "Natural-language search query. Be specific: include organism, assay type, or drug name. E.g. 'DESeq2 bulk RNA-seq breast cancer ER+ 2020-2024'."
++          },
++          "max_depth": {
++            "type": "integer",
++            "default": 2,
++            "description": "How many iterative refinement rounds to run (1\u20134). Higher = more thorough, slower."
++          },
++          "min_results": {
++            "type": "integer",
++            "default": 10,
++            "description": "Stop when at least this many papers are found."
++          }
++        },
++        "required": [
++          "query"
++        ]
+       }
+     },
+     {
+       "name": "recall_memory",
+-      "title": "Recall Memory",
+       "description": "Retrieve relevant prior context for the current goal: past runs on similar inputs, validated procedures, findings tagged by the user, learned parameter preferences. Call before biomate_session for repeat users \u2014 it dramatically improves param auto-fill and avoids re-running work.",
+       "inputSchema": {
+         "type": "object",
+@@ -595,53 +432,11 @@
+         "required": [
+           "query"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Recall Memory",
+-        "readOnlyHint": true,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": false
+-      }
+-    },
+-    {
+-      "name": "search_literature",
+-      "title": "Search Literature",
+-      "description": "Search published scientific literature across PubMed, EuropePMC, Semantic Scholar, and OpenAlex. Uses an iterative depth-loop: starts broad, then drills into related topics until min_results are found or max_depth is reached. Returns ranked papers with title, authors, year, DOI, abstract snippet, and citation count. Best for: finding prior art, understanding a disease mechanism, locating validation datasets, or reviewing methods before running a workflow.",
+-      "inputSchema": {
+-        "type": "object",
+-        "properties": {
+-          "query": {
+-            "type": "string",
+-            "description": "Natural-language search query. Be specific: include organism, assay type, or drug name. E.g. 'DESeq2 bulk RNA-seq breast cancer ER+ 2020-2024'."
+-          },
+-          "max_depth": {
+-            "type": "integer",
+-            "default": 2,
+-            "description": "How many iterative refinement rounds to run (1\u20134). Higher = more thorough, slower."
+-          },
+-          "min_results": {
+-            "type": "integer",
+-            "default": 10,
+-            "description": "Stop when at least this many papers are found."
+-          }
+-        },
+-        "required": [
+-          "query"
+-        ]
+-      },
+-      "annotations": {
+-        "title": "Search Literature",
+-        "readOnlyHint": true,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": true
+       }
+     },
+     {
+       "name": "upload_file",
+-      "title": "Upload File",
+-      "description": "Get a one-shot signed S3 PUT URL so the host can upload a local file directly to BioMate's data plane without proxying bytes through the chat transport. For files >5MB this is mandatory; for small text payloads, inline strings are fine.\n\n**Returns** `{upload_url, s3_key}` \u2014 two fields:\n- `upload_url`: a presigned HTTPS URL. You MUST upload the file bytes to it with an HTTP PUT before calling any other tool: `curl -X PUT -T <local_path> \"<upload_url>\"`\n- `s3_key`: a bare S3 object key (e.g. `users/42/uploads/uuid-sample.fastq.gz`). Pass this value directly into the `inputs` dict of `biomate_session` or as a `params` value in `run_workflow` \u2014 BioMate resolves the bucket internally. Example: `inputs={\"fastq_file\": s3_key}` or `params={\"input\": s3_key}`.\n\n**Full upload workflow:**\n1. `upload_file(filename='sample.fastq.gz', size_bytes=52000000)` \u2192 get `upload_url` + `s3_key`\n2. `curl -X PUT -T sample.fastq.gz \"<upload_url>\"` (or equivalent HTTP PUT \u2014 no auth header needed)\n3. `biomate_session(goal='Run RNA-seq DE on the uploaded FASTQs, human GRCh38', inputs={\"fastq_file\": s3_key})`",
++      "description": "Get a one-shot signed S3 PUT URL so the host can upload a local file directly to BioMate's data plane without proxying bytes through the chat transport. Returns the s3_key to use in subsequent tool calls. For files >5MB this is mandatory; for small text payloads, inline strings are fine.",
+       "inputSchema": {
+         "type": "object",
+         "properties": {
+@@ -661,166 +456,32 @@
+         "required": [
+           "filename"
+         ]
+-      },
+-      "annotations": {
+-        "title": "Upload File",
+-        "readOnlyHint": false,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": false
+-      }
+-    },
+-    {
+-      "name": "list_instruments",
+-      "title": "List Lab Instruments",
+-      "description": "Discover lab instruments reachable on the local network (currently OpenTrons OT-2/Flex liquid-handling robots). Returns each robot's IP, name, model, and health. Runs locally \u2014 only works when the MCP server is on the same network as the instruments. Set the OPENTRONS_ROBOT_IPS env var or pass `ips` to skip network scanning.",
+-      "inputSchema": {
+-        "type": "object",
+-        "properties": {
+-          "ips": {
+-            "type": "array",
+-            "items": {
+-              "type": "string"
+-            },
+-            "description": "Explicit robot IPs to probe (e.g. ['192.168.1.42']). Omit to use OPENTRONS_ROBOT_IPS."
+-          }
+-        }
+-      },
+-      "annotations": {
+-        "title": "List Lab Instruments",
+-        "readOnlyHint": true,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": true
+-      }
+-    },
+-    {
+-      "name": "get_instrument_status",
+-      "title": "Get Instrument Status",
+-      "description": "Get the status of a run on a lab instrument (OpenTrons). Returns status ('idle'|'running'|'paused'|'succeeded'|'failed'|'stopped'), timestamps, and any errors. Poll this after run_instrument_protocol.",
+-      "inputSchema": {
+-        "type": "object",
+-        "properties": {
+-          "robot_ip": {
+-            "type": "string",
+-            "description": "IP of the robot running the protocol."
+-          },
+-          "run_id": {
+-            "type": "string",
+-            "description": "Run ID returned by run_instrument_protocol."
+-          }
+-        },
+-        "required": [
+-          "robot_ip",
+-          "run_id"
+-        ]
+-      },
+-      "annotations": {
+-        "title": "Get Instrument Status",
+-        "readOnlyHint": true,
+-        "destructiveHint": false,
+-        "idempotentHint": false,
+-        "openWorldHint": true
+-      }
+-    },
+-    {
+-      "name": "run_instrument_protocol",
+-      "title": "Run Instrument Protocol",
+-      "description": "Execute a liquid-handling protocol on an OpenTrons robot. **Physical action \u2014 actuates real hardware.** Two-step guardrail: called with `confirm=false` (the DEFAULT) it performs a DRY RUN \u2014 compiles and returns the exact protocol that WOULD run, WITHOUT contacting or actuating the robot. Review it, then call again with `confirm=true` to verify reachability, upload, and physically start the run. Provide either raw `protocol_code` (a valid OT-2/Flex Python protocol) or a structured `transfers` spec (source/dest labware + pipette + well transfers), which is compiled into a protocol for you. Returns {protocol_id, run_id, status}; poll get_instrument_status to follow the run.",
+-      "inputSchema": {
+-        "type": "object",
+-        "properties": {
+-          "robot_ip": {
+-            "type": "string",
+-            "description": "Target robot IP (from list_instruments)."
+-          },
+-          "confirm": {
+-            "type": "boolean",
+-            "default": false,
+-            "description": "MUST be true to physically run. false (default) = dry-run preview only, no actuation."
+-          },
+-          "protocol_code": {
+-            "type": "string",
+-            "description": "Full OT-2/Flex Python protocol source. Omit if using `transfers`."
+-          },
+-          "protocol_name": {
+-            "type": "string",
+-            "default": "biomate_protocol.py",
+-            "description": "Filename on the robot (must end in .py)."
+-          },
+-          "transfers": {
+-            "type": "array",
+-            "description": "Structured well-to-well transfers; compiled to a protocol when protocol_code is omitted.",
+-            "items": {
+-              "type": "object",
+-              "properties": {
+-                "from_well": {
+-                  "type": "string"
+-                },
+-                "to_well": {
+-                  "type": "string"
+-                },
+-                "volume_ul": {
+-                  "type": "number"
+-                }
+-              },
+-              "required": [
+-                "from_well",
+-                "to_well",
+-                "volume_ul"
+-              ]
+-            }
+-          },
+-          "source_labware": {
+-            "type": "string",
+-            "description": "OT-2 labware for the source plate (required with `transfers`)."
+-          },
+-          "dest_labware": {
+-            "type": "string",
+-            "description": "OT-2 labware for the destination plate (required with `transfers`)."
+-          },
+-          "pipette": {
+-            "type": "string",
+-            "default": "p300_single_gen2",
+-            "description": "Pipette model (used with `transfers`)."
+-          }
+-        },
+-        "required": [
+-          "robot_ip"
+-        ]
+-      },
+-      "annotations": {
+-        "title": "Run Instrument Protocol",
+-        "readOnlyHint": false,
+-        "destructiveHint": true,
+-        "idempotentHint": false,
+-        "openWorldHint": true
+       }
+     }
+   ],
+   "anthropic": [
+     {
+       "name": "biomate_session",
+-      "description": "**Primary entry point \u2014 use this for 90% of requests.** Run a complete BioMate scientific session from a natural-language goal. BioMate selects the right workflow from 2,455 indexed pipelines, pre-fills parameters from your goal text, executes on BioMate cloud, handles QC gates with auto-loop remediation, and produces structured findings. While running, the tool streams real-time progress (phase started, step completed, QC gate, auto-loop remediation, finding) back to the host. Returns a final run summary, a deep link to the live results panel, and the report URL. \n\n**How to write the `goal` parameter** \u2014 plain English, one to three sentences:\n\u2022 Include the *what*: analysis type + subject (e.g. 'ADMET screening', 'RNA-seq DE', 'variant calling')\n\u2022 Include *data location*: inline SMILES/sequences, S3 paths, accession numbers, or upload first with upload_file\n\u2022 Include key *parameters* that matter: organism, library type, comparisons, thresholds\n\u2022 You can omit anything BioMate can infer (it will ask if genuinely ambiguous)\n\n**Good examples:**\n  'Screen aspirin (CC(=O)Oc1ccccc1C(=O)O) and caffeine (Cn1cnc2c1c(=O)n(c(=O)n2C)C) for hERG inhibition, CYP3A4, and oral bioavailability'\n  'RNA-seq differential expression on s3://lab-bucket/exp42/fastqs/ \u2014 human GRCh38, dUTP strand-specific, treated (n=3) vs control (n=3), FDR 0.05'\n  'Whole-genome variant calling on the uploaded FASTQ pair, GRCh38, GATK HaplotypeCaller, germline mode'\n  'Run homogeneous 3D refinement in CryoSPARC on s3://cryo/job042/, C2 symmetry, box size 256'\n  'Fetch GSE183947 from GEO and run the same RNA-seq pipeline'\n\nUse run_workflow instead when the user wants to call a specific workflow by ID with explicit parameter control.",
++      "description": "Run a complete BioMate scientific session from a natural-language goal. BioMate picks the workflow, fills parameters from context, runs on AWS Batch, handles QC gates with auto-loop remediation, and produces findings. While running, the tool streams progress events (phase started, step completed, QC gate fired, auto-loop remediation, finding) to the host so the user sees real-time updates the same way BioMate's web panel does. Returns the final run summary, a deep link to the live panel, and the report URL.",
+       "input_schema": {
+         "type": "object",
+         "properties": {
+           "goal": {
+             "type": "string",
+-            "description": "Natural-language scientific goal. Include: analysis type, data location (inline SMILES/sequences, s3:// paths, or GEO/SRA accession numbers), and key parameters (organism, comparisons, thresholds). BioMate infers the rest. Examples: 'Screen these 5 SMILES for hERG IC50 and CYP3A4 inhibition', 'RNA-seq DE on s3://bucket/exp1/ human GRCh38 paired-end treated vs control', 'Fetch GSE183947 and run differential expression'."
++            "description": "Natural language description of what to do. Examples: 'screen these 12 SMILES for hERG and CYP3A4 liability', 'run nf-core/rnaseq on FASTQ files in s3://bucket/exp42/, human, paired-end', 'predict the structure of P04637 and the top 5 destabilizing mutations'."
+           },
+           "inputs": {
+             "type": "object",
+-            "description": "Optional structured inputs passed alongside `goal`. BioMate's inner AI sees these as a JSON block appended to the goal text and merges them with any parameters it extracts from the goal string. Use this to pass: S3 keys from upload_file, sequences, SMILES lists, accession numbers, or explicit parameter overrides. Examples:\n  After upload_file: {\"fastq_file\": \"users/42/uploads/uuid-sample.fastq.gz\"} (use the s3_key value returned by upload_file)\n  SMILES list: {\"smiles_list\": [\"CC(=O)Oc1ccccc1C(=O)O\"], \"organism\": \"human\"}\n  Parameter override: {\"genome\": \"GRCh38\", \"aligner\": \"STAR\", \"fdr\": 0.05}",
++            "description": "Optional structured inputs (S3 keys, sequences, SMILES, parameter overrides). BioMate will merge these with whatever it extracts from `goal`.",
+             "additionalProperties": true
+           },
+           "experiment_id": {
+             "type": "string",
+-            "description": "Optional experiment to attach this run to (from recall_memory)."
++            "description": "Optional experiment to attach this run to (from recall_memory or create_experiment)."
+           },
+           "stream": {
+             "type": "boolean",
+-            "description": "Emit progress notifications during execution. Default true. Set false for hosts without MCP notification support \u2014 then poll with get_run.",
++            "description": "Emit progress notifications during execution. Default true. Set false for hosts without notification support (then poll get_run).",
+             "default": true
+           }
+         },
+@@ -831,7 +492,7 @@
+     },
+     {
+       "name": "search_workflow",
+-      "description": "Search the BioMate workflow catalog (2,455 indexed workflows across 34 domains) by natural language. Returns ranked workflow cards with id, name, domain, one-line description, and estimated BioMate cloud cost. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
++      "description": "Search the BioMate workflow catalog (4,200+ indexed workflows across 36 domains) by natural language. Returns ranked workflow cards with id, name, domain, and a one-line description. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
+       "input_schema": {
+         "type": "object",
+         "properties": {
+@@ -856,7 +517,7 @@
+     },
+     {
+       "name": "get_workflow_spec",
+-      "description": "Return the full specification for a workflow: required + optional parameters (with types and allowed values), default QC profile and thresholds, expected input files, estimated cost and runtime, and any license requirements. Call this before run_workflow when the user wants explicit parameter control.",
++      "description": "Return the full specification for a workflow: required + optional parameters (with types and allowed values), default QC profile and thresholds, expected input files, and any license requirements. Call this before run_workflow when the user wants explicit parameter control.",
+       "input_schema": {
+         "type": "object",
+         "properties": {
+@@ -872,7 +533,7 @@
+     },
+     {
+       "name": "run_workflow",
+-      "description": "Execute a specific BioMate workflow on BioMate cloud with explicit parameters. Returns a run_id immediately. If stream=true, also emits progress notifications until the run terminates (same events as biomate_session). Use biomate_session instead when the user gave you a natural-language goal.",
++      "description": "Execute a specific BioMate workflow on AWS Batch with explicit parameters. Returns a run_id immediately. If stream=true, also emits progress notifications until the run terminates (same events as biomate_session). Use biomate_session instead when the user gave you a natural-language goal.",
+       "input_schema": {
+         "type": "object",
+         "properties": {
+@@ -901,22 +562,6 @@
+       }
+     },
+     {
+-      "name": "watch_run",
+-      "description": "Stream real-time progress for a running BioMate workflow and return full results when done. Emits MCP notifications/progress for every phase start/complete, step update, and QC gate. When the run finishes, automatically fetches output files (with download URLs) and AI findings. Use after run_workflow (non-streaming) to watch a submitted run. Does not require re-submitting \u2014 takes an existing run_id.",
+-      "input_schema": {
+-        "type": "object",
+-        "properties": {
+-          "run_id": {
+-            "type": "string",
+-            "description": "Run ID returned by run_workflow."
+-          }
+-        },
+-        "required": [
+-          "run_id"
+-        ]
+-      }
+-    },
+-    {
+       "name": "get_run",
+       "description": "Return everything about a run in one call: status (pending|running|completed|failed), per-phase and per-step progress with timestamps, output files with download URLs, structured findings, QC gate results, and any auto-loop remediations applied. Replaces get_run_status + get_run_results + step-level findings polling.",
+       "input_schema": {
+@@ -939,7 +584,7 @@
+     },
+     {
+       "name": "cancel_run",
+-      "description": "Cancel a running or queued BioMate workflow on BioMate cloud.",
++      "description": "Cancel a running or queued BioMate workflow on AWS Batch.",
+       "input_schema": {
+         "type": "object",
+         "properties": {
+@@ -983,6 +628,22 @@
+       }
+     },
+     {
++      "name": "watch_run",
++      "description": "Stream real-time progress for a running BioMate workflow and return full results when done. Emits MCP notifications/progress for every phase start/complete, step update, and QC gate. When the run finishes, automatically fetches output files (with download URLs) and AI findings. Use after run_workflow (non-streaming) to watch a submitted run. Does not require re-submitting \u2014 takes an existing run_id.",
++      "input_schema": {
++        "type": "object",
++        "properties": {
++          "run_id": {
++            "type": "string",
++            "description": "Run ID returned by run_workflow."
++          }
++        },
++        "required": [
++          "run_id"
++        ]
++      }
++    },
++    {
+       "name": "preview_file",
+       "description": "Render a server-side preview of an output file (FASTA, VCF, CSV/TSV, image, PDF). Returns markdown + optional thumbnail PNG. Use this to show the user what an output looks like without downloading multi-GB files. For input QC of files the user is about to upload, prefer biomate_session (it runs a real QC workflow).",
+       "input_schema": {
+@@ -990,7 +651,7 @@
+         "properties": {
+           "s3_key": {
+             "type": "string",
+-            "description": "The full s3_uri value (must start with 's3://') copied verbatim from a get_run output_files entry \u2014 e.g. 's3://bucket/path/file.json'. NOT a bare key; the s3:// prefix is required."
++            "description": "S3 key (s3://bucket/path) from get_run output_files."
+           },
+           "run_id": {
+             "type": "string",
+@@ -1088,64 +749,43 @@
+     },
+     {
+       "name": "query_database",
+-      "description": "Query a biological/chemical database by accession or name. Use database='federated' to fan out across all sources simultaneously and merge results. Single-source options: uniprot, pdb, pdbe, alphafold, ncbi_gene, dbsnp, clinvar, gnomad, kegg, reactome, chebi, chembl, pubchem, bindingdb, pharos, hpo, string, pubmed.",
++      "description": "Query a biological/chemical database by accession or name. Supported: uniprot, pdb, alphafold, ncbi_gene, dbsnp, clinvar, gnomad, kegg, reactome, chebi, pubchem, hpo, omim, string.",
+       "input_schema": {
+         "type": "object",
+         "properties": {
+           "database": {
+             "type": "string",
+-            "description": "Database to query. Use 'federated' to query all sources in parallel.",
++            "description": "Database to query. Kept in lock-step with ai_assistant.query_database handlers; every id has a real _query_* method.",
+             "enum": [
+-              "federated",
+               "uniprot",
+               "pdb",
+               "pdbe",
+               "alphafold",
++              "interpro",
++              "string",
+               "ncbi_gene",
++              "ensembl",
+               "dbsnp",
+               "clinvar",
+               "gnomad",
+               "kegg",
+               "reactome",
++              "go",
++              "hpo",
+               "chebi",
+               "chembl",
+               "pubchem",
+               "bindingdb",
+-              "pharos",
+-              "hpo",
+-              "string",
+-              "pubmed"
+-            ],
+-            "default": "federated"
++              "pharos"
++            ]
+           },
+           "query": {
+             "type": "string",
+-            "description": "Accession, gene symbol, compound name, or free text."
+-          },
+-          "operation": {
+-            "type": "string",
+-            "description": "Search mode chosen from user intent: 'lookup' (by ID/name, default), 'similarity' (chembl/pubchem=chemical similarity over SMILES; pdb=sequence homologs over the whole PDB), or 'text' (keyword search).",
+-            "enum": [
+-              "lookup",
+-              "similarity",
+-              "text"
+-            ],
+-            "default": "lookup"
+-          },
+-          "entity_type": {
+-            "type": "string",
+-            "description": "Hint for federated routing: gene, protein, variant, compound, pathway, disease, or omit to auto-detect.",
+-            "enum": [
+-              "gene",
+-              "protein",
+-              "variant",
+-              "compound",
+-              "pathway",
+-              "disease"
+-            ]
+-          }
+-        },
+-        "required": [
++            "description": "Accession, gene symbol, or compound name."
++          }
++        },
++        "required": [
++          "database",
+           "query"
+         ]
+       }
+@@ -1187,7 +827,7 @@
+           },
+           "path": {
+             "type": "string",
+-            "description": "Directory path or S3 prefix to list (e.g. '/pub/databases/uniprot/' or 'results/run-xyz/')."
++            "description": "Directory path or S3 prefix to list."
+           }
+         },
+         "required": [
+@@ -1214,7 +854,7 @@
+           },
+           "remote_path": {
+             "type": "string",
+-            "description": "Path on the FTP server (e.g. '/pub/databases/uniprot/.../uniprot_sprot.fasta.gz')."
++            "description": "Path on the FTP server."
+           },
+           "url": {
+             "type": "string",
+@@ -1223,6 +863,32 @@
+         },
+         "required": [
+           "source_id"
++        ]
++      }
++    },
++    {
++      "name": "search_literature",
++      "description": "Search published scientific literature across PubMed, EuropePMC, Semantic Scholar, and OpenAlex. Uses an iterative depth-loop: starts broad, then drills into related topics until min_results are found or max_depth is reached. Returns ranked papers with title, authors, year, DOI, abstract snippet, and citation count. Best for: finding prior art, understanding a disease mechanism, locating validation datasets, or reviewing methods before running a workflow.",
++      "input_schema": {
++        "type": "object",
++        "properties": {
++          "query": {
++            "type": "string",
++            "description": "Natural-language search query. Be specific: include organism, assay type, or drug name. E.g. 'DESeq2 bulk RNA-seq breast cancer ER+ 2020-2024'."
++          },
++          "max_depth": {
++            "type": "integer",
++            "default": 2,
++            "description": "How many iterative refinement rounds to run (1\u20134). Higher = more thorough, slower."
++          },
++          "min_results": {
++            "type": "integer",
++            "default": 10,
++            "description": "Stop when at least this many papers are found."
++          }
++        },
++        "required": [
++          "query"
+         ]
+       }
+     },
+@@ -1257,34 +923,8 @@
+       }
+     },
+     {
+-      "name": "search_literature",
+-      "description": "Search published scientific literature across PubMed, EuropePMC, Semantic Scholar, and OpenAlex. Uses an iterative depth-loop: starts broad, then drills into related topics until min_results are found or max_depth is reached. Returns ranked papers with title, authors, year, DOI, abstract snippet, and citation count. Best for: finding prior art, understanding a disease mechanism, locating validation datasets, or reviewing methods before running a workflow.",
+-      "input_schema": {
+-        "type": "object",
+-        "properties": {
+-          "query": {
+-            "type": "string",
+-            "description": "Natural-language search query. Be specific: include organism, assay type, or drug name. E.g. 'DESeq2 bulk RNA-seq breast cancer ER+ 2020-2024'."
+-          },
+-          "max_depth": {
+-            "type": "integer",
+-            "default": 2,
+-            "description": "How many iterative refinement rounds to run (1\u20134). Higher = more thorough, slower."
+-          },
+-          "min_results": {
+-            "type": "integer",
+-            "default": 10,
+-            "description": "Stop when at least this many papers are found."
+-          }
+-        },
+-        "required": [
+-          "query"
+-        ]
+-      }
+-    },
+-    {
+       "name": "upload_file",
+-      "description": "Get a one-shot signed S3 PUT URL so the host can upload a local file directly to BioMate's data plane without proxying bytes through the chat transport. For files >5MB this is mandatory; for small text payloads, inline strings are fine.\n\n**Returns** `{upload_url, s3_key}` \u2014 two fields:\n- `upload_url`: a presigned HTTPS URL. You MUST upload the file bytes to it with an HTTP PUT before calling any other tool: `curl -X PUT -T <local_path> \"<upload_url>\"`\n- `s3_key`: a bare S3 object key (e.g. `users/42/uploads/uuid-sample.fastq.gz`). Pass this value directly into the `inputs` dict of `biomate_session` or as a `params` value in `run_workflow` \u2014 BioMate resolves the bucket internally. Example: `inputs={\"fastq_file\": s3_key}` or `params={\"input\": s3_key}`.\n\n**Full upload workflow:**\n1. `upload_file(filename='sample.fastq.gz', size_bytes=52000000)` \u2192 get `upload_url` + `s3_key`\n2. `curl -X PUT -T sample.fastq.gz \"<upload_url>\"` (or equivalent HTTP PUT \u2014 no auth header needed)\n3. `biomate_session(goal='Run RNA-seq DE on the uploaded FASTQs, human GRCh38', inputs={\"fastq_file\": s3_key})`",
++      "description": "Get a one-shot signed S3 PUT URL so the host can upload a local file directly to BioMate's data plane without proxying bytes through the chat transport. Returns the s3_key to use in subsequent tool calls. For files >5MB this is mandatory; for small text payloads, inline strings are fine.",
+       "input_schema": {
+         "type": "object",
+         "properties": {
+@@ -1312,26 +952,26 @@
+       "type": "function",
+       "function": {
+         "name": "biomate_session",
+-        "description": "**Primary entry point \u2014 use this for 90% of requests.** Run a complete BioMate scientific session from a natural-language goal. BioMate selects the right workflow from 2,455 indexed pipelines, pre-fills parameters from your goal text, executes on BioMate cloud, handles QC gates with auto-loop remediation, and produces structured findings. While running, the tool streams real-time progress (phase started, step completed, QC gate, auto-loop remediation, finding) back to the host. Returns a final run summary, a deep link to the live results panel, and the report URL. \n\n**How to write the `goal` parameter** \u2014 plain English, one to three sentences:\n\u2022 Include the *what*: analysis type + subject (e.g. 'ADMET screening', 'RNA-seq DE', 'variant calling')\n\u2022 Include *data location*: inline SMILES/sequences, S3 paths, accession numbers, or upload first with upload_file\n\u2022 Include key *parameters* that matter: organism, library type, comparisons, thresholds\n\u2022 You can omit anything BioMate can infer (it will ask if genuinely ambiguous)\n\n**Good examples:**\n  'Screen aspirin (CC(=O)Oc1ccccc1C(=O)O) and caffeine (Cn1cnc2c1c(=O)n(c(=O)n2C)C) for hERG inhibition, CYP3A4, and oral bioavailability'\n  'RNA-seq differential expression on s3://lab-bucket/exp42/fastqs/ \u2014 human GRCh38, dUTP strand-specific, treated (n=3) vs control (n=3), FDR 0.05'\n  'Whole-genome variant calling on the uploaded FASTQ pair, GRCh38, GATK HaplotypeCaller, germline mode'\n  'Run homogeneous 3D refinement in CryoSPARC on s3://cryo/job042/, C2 symmetry, box size 256'\n  'Fetch GSE183947 from GEO and run the same RNA-seq pipeline'\n\nUse run_workflow instead when the user wants to call a specific workflow by ID with explicit parameter control.",
++        "description": "Run a complete BioMate scientific session from a natural-language goal. BioMate picks the workflow, fills parameters from context, runs on AWS Batch, handles QC gates with auto-loop remediation, and produces findings. While running, the tool streams progress events (phase started, step completed, QC gate fired, auto-loop remediation, finding) to the host so the user sees real-time updates the same way BioMate's web panel does. Returns the final run summary, a deep link to the live panel, and the report URL.",
+         "parameters": {
+           "type": "object",
+           "properties": {
+             "goal": {
+               "type": "string",
+-              "description": "Natural-language scientific goal. Include: analysis type, data location (inline SMILES/sequences, s3:// paths, or GEO/SRA accession numbers), and key parameters (organism, comparisons, thresholds). BioMate infers the rest. Examples: 'Screen these 5 SMILES for hERG IC50 and CYP3A4 inhibition', 'RNA-seq DE on s3://bucket/exp1/ human GRCh38 paired-end treated vs control', 'Fetch GSE183947 and run differential expression'."
++              "description": "Natural language description of what to do. Examples: 'screen these 12 SMILES for hERG and CYP3A4 liability', 'run nf-core/rnaseq on FASTQ files in s3://bucket/exp42/, human, paired-end', 'predict the structure of P04637 and the top 5 destabilizing mutations'."
+             },
+             "inputs": {
+               "type": "object",
+-              "description": "Optional structured inputs passed alongside `goal`. BioMate's inner AI sees these as a JSON block appended to the goal text and merges them with any parameters it extracts from the goal string. Use this to pass: S3 keys from upload_file, sequences, SMILES lists, accession numbers, or explicit parameter overrides. Examples:\n  After upload_file: {\"fastq_file\": \"users/42/uploads/uuid-sample.fastq.gz\"} (use the s3_key value returned by upload_file)\n  SMILES list: {\"smiles_list\": [\"CC(=O)Oc1ccccc1C(=O)O\"], \"organism\": \"human\"}\n  Parameter override: {\"genome\": \"GRCh38\", \"aligner\": \"STAR\", \"fdr\": 0.05}",
++              "description": "Optional structured inputs (S3 keys, sequences, SMILES, parameter overrides). BioMate will merge these with whatever it extracts from `goal`.",
+               "additionalProperties": true
+             },
+             "experiment_id": {
+               "type": "string",
+-              "description": "Optional experiment to attach this run to (from recall_memory)."
++              "description": "Optional experiment to attach this run to (from recall_memory or create_experiment)."
+             },
+             "stream": {
+               "type": "boolean",
+-              "description": "Emit progress notifications during execution. Default true. Set false for hosts without MCP notification support \u2014 then poll with get_run.",
++              "description": "Emit progress notifications during execution. Default true. Set false for hosts without notification support (then poll get_run).",
+               "default": true
+             }
+           },
+@@ -1345,7 +985,7 @@
+       "type": "function",
+       "function": {
+         "name": "search_workflow",
+-        "description": "Search the BioMate workflow catalog (2,455 indexed workflows across 34 domains) by natural language. Returns ranked workflow cards with id, name, domain, one-line description, and estimated BioMate cloud cost. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
++        "description": "Search the BioMate workflow catalog (4,200+ indexed workflows across 36 domains) by natural language. Returns ranked workflow cards with id, name, domain, and a one-line description. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
+         "parameters": {
+           "type": "object",
+           "properties": {
+@@ -1373,7 +1013,7 @@
+       "type": "function",
+       "function": {
+         "name": "get_workflow_spec",
+-        "description": "Return the full specification for a workflow: required + optional parameters (with types and allowed values), default QC profile and thresholds, expected input files, estimated cost and runtime, and any license requirements. Call this before run_workflow when the user wants explicit parameter control.",
++        "description": "Return the full specification for a workflow: required + optional parameters (with types and allowed values), default QC profile and thresholds, expected input files, and any license requirements. Call this before run_workflow when the user wants explicit parameter control.",
+         "parameters": {
+           "type": "object",
+           "properties": {
+@@ -1392,7 +1032,7 @@
+       "type": "function",
+       "function": {
+         "name": "run_workflow",
+-        "description": "Execute a specific BioMate workflow on BioMate cloud with explicit parameters. Returns a run_id immediately. If stream=true, also emits progress notifications until the run terminates (same events as biomate_session). Use biomate_session instead when the user gave you a natural-language goal.",
++        "description": "Execute a specific BioMate workflow on AWS Batch with explicit parameters. Returns a run_id immediately. If stream=true, also emits progress notifications until the run terminates (same events as biomate_session). Use biomate_session instead when the user gave you a natural-language goal.",
+         "parameters": {
+           "type": "object",
+           "properties": {
+@@ -1424,25 +1064,6 @@
+     {
+       "type": "function",
+       "function": {
+-        "name": "watch_run",
+-        "description": "Stream real-time progress for a running BioMate workflow and return full results when done. Emits MCP notifications/progress for every phase start/complete, step update, and QC gate. When the run finishes, automatically fetches output files (with download URLs) and AI findings. Use after run_workflow (non-streaming) to watch a submitted run. Does not require re-submitting \u2014 takes an existing run_id.",
+-        "parameters": {
+-          "type": "object",
+-          "properties": {
+-            "run_id": {
+-              "type": "string",
+-              "description": "Run ID returned by run_workflow."
+-            }
+-          },
+-          "required": [
+-            "run_id"
+-          ]
+-        }
+-      }
+-    },
+-    {
+-      "type": "function",
+-      "function": {
+         "name": "get_run",
+         "description": "Return everything about a run in one call: status (pending|running|completed|failed), per-phase and per-step progress with timestamps, output files with download URLs, structured findings, QC gate results, and any auto-loop remediations applied. Replaces get_run_status + get_run_results + step-level findings polling.",
+         "parameters": {
+@@ -1468,7 +1089,7 @@
+       "type": "function",
+       "function": {
+         "name": "cancel_run",
+-        "description": "Cancel a running or queued BioMate workflow on BioMate cloud.",
++        "description": "Cancel a running or queued BioMate workflow on AWS Batch.",
+         "parameters": {
+           "type": "object",
+           "properties": {
+@@ -1518,6 +1139,25 @@
+     {
+       "type": "function",
+       "function": {
++        "name": "watch_run",
++        "description": "Stream real-time progress for a running BioMate workflow and return full results when done. Emits MCP notifications/progress for every phase start/complete, step update, and QC gate. When the run finishes, automatically fetches output files (with download URLs) and AI findings. Use after run_workflow (non-streaming) to watch a submitted run. Does not require re-submitting \u2014 takes an existing run_id.",
++        "parameters": {
++          "type": "object",
++          "properties": {
++            "run_id": {
++              "type": "string",
++              "description": "Run ID returned by run_workflow."
++            }
++          },
++          "required": [
++            "run_id"
++          ]
++        }
++      }
++    },
++    {
++      "type": "function",
++      "function": {
+         "name": "preview_file",
+         "description": "Render a server-side preview of an output file (FASTA, VCF, CSV/TSV, image, PDF). Returns markdown + optional thumbnail PNG. Use this to show the user what an output looks like without downloading multi-GB files. For input QC of files the user is about to upload, prefer biomate_session (it runs a real QC workflow).",
+         "parameters": {
+@@ -1525,7 +1165,7 @@
+           "properties": {
+             "s3_key": {
+               "type": "string",
+-              "description": "The full s3_uri value (must start with 's3://') copied verbatim from a get_run output_files entry \u2014 e.g. 's3://bucket/path/file.json'. NOT a bare key; the s3:// prefix is required."
++              "description": "S3 key (s3://bucket/path) from get_run output_files."
+             },
+             "run_id": {
+               "type": "string",
+@@ -1635,64 +1275,43 @@
+       "type": "function",
+       "function": {
+         "name": "query_database",
+-        "description": "Query a biological/chemical database by accession or name. Use database='federated' to fan out across all sources simultaneously and merge results. Single-source options: uniprot, pdb, pdbe, alphafold, ncbi_gene, dbsnp, clinvar, gnomad, kegg, reactome, chebi, chembl, pubchem, bindingdb, pharos, hpo, string, pubmed.",
++        "description": "Query a biological/chemical database by accession or name. Supported: uniprot, pdb, alphafold, ncbi_gene, dbsnp, clinvar, gnomad, kegg, reactome, chebi, pubchem, hpo, omim, string.",
+         "parameters": {
+           "type": "object",
+           "properties": {
+             "database": {
+               "type": "string",
+-              "description": "Database to query. Use 'federated' to query all sources in parallel.",
++              "description": "Database to query. Kept in lock-step with ai_assistant.query_database handlers; every id has a real _query_* method.",
+               "enum": [
+-                "federated",
+                 "uniprot",
+                 "pdb",
+                 "pdbe",
+                 "alphafold",
++                "interpro",
++                "string",
+                 "ncbi_gene",
++                "ensembl",
+                 "dbsnp",
+                 "clinvar",
+                 "gnomad",
+                 "kegg",
+                 "reactome",
++                "go",
++                "hpo",
+                 "chebi",
+                 "chembl",
+                 "pubchem",
+                 "bindingdb",
+-                "pharos",
+-                "hpo",
+-                "string",
+-                "pubmed"
+-              ],
+-              "default": "federated"
++                "pharos"
++              ]
+             },
+             "query": {
+               "type": "string",
+-              "description": "Accession, gene symbol, compound name, or free text."
+-            },
+-            "operation": {
+-              "type": "string",
+-              "description": "Search mode chosen from user intent: 'lookup' (by ID/name, default), 'similarity' (chembl/pubchem=chemical similarity over SMILES; pdb=sequence homologs over the whole PDB), or 'text' (keyword search).",
+-              "enum": [
+-                "lookup",
+-                "similarity",
+-                "text"
+-              ],
+-              "default": "lookup"
+-            },
+-            "entity_type": {
+-              "type": "string",
+-              "description": "Hint for federated routing: gene, protein, variant, compound, pathway, disease, or omit to auto-detect.",
+-              "enum": [
+-                "gene",
+-                "protein",
+-                "variant",
+-                "compound",
+-                "pathway",
+-                "disease"
+-              ]
+-            }
+-          },
+-          "required": [
++              "description": "Accession, gene symbol, or compound name."
++            }
++          },
++          "required": [
++            "database",
+             "query"
+           ]
+         }
+@@ -1740,7 +1359,7 @@
+             },
+             "path": {
+               "type": "string",
+-              "description": "Directory path or S3 prefix to list (e.g. '/pub/databases/uniprot/' or 'results/run-xyz/')."
++              "description": "Directory path or S3 prefix to list."
+             }
+           },
+           "required": [
+@@ -1770,7 +1389,7 @@
+             },
+             "remote_path": {
+               "type": "string",
+-              "description": "Path on the FTP server (e.g. '/pub/databases/uniprot/.../uniprot_sprot.fasta.gz')."
++              "description": "Path on the FTP server."
+             },
+             "url": {
+               "type": "string",
+@@ -1779,6 +1398,35 @@
+           },
+           "required": [
+             "source_id"
++          ]
++        }
++      }
++    },
++    {
++      "type": "function",
++      "function": {
++        "name": "search_literature",
++        "description": "Search published scientific literature across PubMed, EuropePMC, Semantic Scholar, and OpenAlex. Uses an iterative depth-loop: starts broad, then drills into related topics until min_results are found or max_depth is reached. Returns ranked papers with title, authors, year, DOI, abstract snippet, and citation count. Best for: finding prior art, understanding a disease mechanism, locating validation datasets, or reviewing methods before running a workflow.",
++        "parameters": {
++          "type": "object",
++          "properties": {
++            "query": {
++              "type": "string",
++              "description": "Natural-language search query. Be specific: include organism, assay type, or drug name. E.g. 'DESeq2 bulk RNA-seq breast cancer ER+ 2020-2024'."
++            },
++            "max_depth": {
++              "type": "integer",
++              "default": 2,
++              "description": "How many iterative refinement rounds to run (1\u20134). Higher = more thorough, slower."
++            },
++            "min_results": {
++              "type": "integer",
++              "default": 10,
++              "description": "Stop when at least this many papers are found."
++            }
++          },
++          "required": [
++            "query"
+           ]
+         }
+       }
+@@ -1819,37 +1467,8 @@
+     {
+       "type": "function",
+       "function": {
+-        "name": "search_literature",
+-        "description": "Search published scientific literature across PubMed, EuropePMC, Semantic Scholar, and OpenAlex. Uses an iterative depth-loop: starts broad, then drills into related topics until min_results are found or max_depth is reached. Returns ranked papers with title, authors, year, DOI, abstract snippet, and citation count. Best for: finding prior art, understanding a disease mechanism, locating validation datasets, or reviewing methods before running a workflow.",
+-        "parameters": {
+-          "type": "object",
+-          "properties": {
+-            "query": {
+-              "type": "string",
+-              "description": "Natural-language search query. Be specific: include organism, assay type, or drug name. E.g. 'DESeq2 bulk RNA-seq breast cancer ER+ 2020-2024'."
+-            },
+-            "max_depth": {
+-              "type": "integer",
+-              "default": 2,
+-              "description": "How many iterative refinement rounds to run (1\u20134). Higher = more thorough, slower."
+-            },
+-            "min_results": {
+-              "type": "integer",
+-              "default": 10,
+-              "description": "Stop when at least this many papers are found."
+-            }
+-          },
+-          "required": [
+-            "query"
+-          ]
+-        }
+-      }
+-    },
+-    {
+-      "type": "function",
+-      "function": {
+         "name": "upload_file",
+-        "description": "Get a one-shot signed S3 PUT URL so the host can upload a local file directly to BioMate's data plane without proxying bytes through the chat transport. For files >5MB this is mandatory; for small text payloads, inline strings are fine.\n\n**Returns** `{upload_url, s3_key}` \u2014 two fields:\n- `upload_url`: a presigned HTTPS URL. You MUST upload the file bytes to it with an HTTP PUT before calling any other tool: `curl -X PUT -T <local_path> \"<upload_url>\"`\n- `s3_key`: a bare S3 object key (e.g. `users/42/uploads/uuid-sample.fastq.gz`). Pass this value directly into the `inputs` dict of `biomate_session` or as a `params` value in `run_workflow` \u2014 BioMate resolves the bucket internally. Example: `inputs={\"fastq_file\": s3_key}` or `params={\"input\": s3_key}`.\n\n**Full upload workflow:**\n1. `upload_file(filename='sample.fastq.gz', size_bytes=52000000)` \u2192 get `upload_url` + `s3_key`\n2. `curl -X PUT -T sample.fastq.gz \"<upload_url>\"` (or equivalent HTTP PUT \u2014 no auth header needed)\n3. `biomate_session(goal='Run RNA-seq DE on the uploaded FASTQs, human GRCh38', inputs={\"fastq_file\": s3_key})`",
++        "description": "Get a one-shot signed S3 PUT URL so the host can upload a local file directly to BioMate's data plane without proxying bytes through the chat transport. Returns the s3_key to use in subsequent tool calls. For files >5MB this is mandatory; for small text payloads, inline strings are fine.",
+         "parameters": {
+           "type": "object",
+           "properties": {
+@@ -1873,331 +1492,6 @@
+       }
+     }
+   ],
+-  "lite": {
+-    "mcp": [
+-      {
+-        "name": "biomate_session",
+-        "title": "Run BioMate Session",
+-        "description": "**Primary entry point \u2014 use this for 90% of requests.** Run a complete BioMate scientific session from a natural-language goal. BioMate selects the right workflow from 2,455 indexed pipelines, pre-fills parameters from your goal text, executes on BioMate cloud, handles QC gates with auto-loop remediation, and produces structured findings. While running, the tool streams real-time progress (phase started, step completed, QC gate, auto-loop remediation, finding) back to the host. Returns a final run summary, a deep link to the live results panel, and the report URL. \n\n**How to write the `goal` parameter** \u2014 plain English, one to three sentences:\n\u2022 Include the *what*: analysis type + subject (e.g. 'ADMET screening', 'RNA-seq DE', 'variant calling')\n\u2022 Include *data location*: inline SMILES/sequences, S3 paths, accession numbers, or upload first with upload_file\n\u2022 Include key *parameters* that matter: organism, library type, comparisons, thresholds\n\u2022 You can omit anything BioMate can infer (it will ask if genuinely ambiguous)\n\n**Good examples:**\n  'Screen aspirin (CC(=O)Oc1ccccc1C(=O)O) and caffeine (Cn1cnc2c1c(=O)n(c(=O)n2C)C) for hERG inhibition, CYP3A4, and oral bioavailability'\n  'RNA-seq differential expression on s3://lab-bucket/exp42/fastqs/ \u2014 human GRCh38, dUTP strand-specific, treated (n=3) vs control (n=3), FDR 0.05'\n  'Whole-genome variant calling on the uploaded FASTQ pair, GRCh38, GATK HaplotypeCaller, germline mode'\n  'Run homogeneous 3D refinement in CryoSPARC on s3://cryo/job042/, C2 symmetry, box size 256'\n  'Fetch GSE183947 from GEO and run the same RNA-seq pipeline'\n\nUse run_workflow instead when the user wants to call a specific workflow by ID with explicit parameter control.",
+-        "inputSchema": {
+-          "type": "object",
+-          "properties": {
+-            "goal": {
+-              "type": "string",
+-              "description": "Natural-language scientific goal. Include: analysis type, data location (inline SMILES/sequences, s3:// paths, or GEO/SRA accession numbers), and key parameters (organism, comparisons, thresholds). BioMate infers the rest. Examples: 'Screen these 5 SMILES for hERG IC50 and CYP3A4 inhibition', 'RNA-seq DE on s3://bucket/exp1/ human GRCh38 paired-end treated vs control', 'Fetch GSE183947 and run differential expression'."
+-            },
+-            "inputs": {
+-              "type": "object",
+-              "description": "Optional structured inputs passed alongside `goal`. BioMate's inner AI sees these as a JSON block appended to the goal text and merges them with any parameters it extracts from the goal string. Use this to pass: S3 keys from upload_file, sequences, SMILES lists, accession numbers, or explicit parameter overrides. Examples:\n  After upload_file: {\"fastq_file\": \"users/42/uploads/uuid-sample.fastq.gz\"} (use the s3_key value returned by upload_file)\n  SMILES list: {\"smiles_list\": [\"CC(=O)Oc1ccccc1C(=O)O\"], \"organism\": \"human\"}\n  Parameter override: {\"genome\": \"GRCh38\", \"aligner\": \"STAR\", \"fdr\": 0.05}",
+-              "additionalProperties": true
+-            },
+-            "experiment_id": {
+-              "type": "string",
+-              "description": "Optional experiment to attach this run to (from recall_memory)."
+-            },
+-            "stream": {
+-              "type": "boolean",
+-              "description": "Emit progress notifications during execution. Default true. Set false for hosts without MCP notification support \u2014 then poll with get_run.",
+-              "default": true
+-            }
+-          },
+-          "required": [
+-            "goal"
+-          ]
+-        },
+-        "annotations": {
+-          "title": "Run BioMate Session",
+-          "readOnlyHint": false,
+-          "destructiveHint": false,
+-          "idempotentHint": false,
+-          "openWorldHint": true
+-        }
+-      },
+-      {
+-        "name": "export_report",
+-        "title": "Export Report",
+-        "description": "Render a publication-ready report for a completed run as PDF or markdown. Includes the methods section, QC audit trail, structured findings, and figures. This is what users need for IND submissions, CRO compliance packages, and publication supplementary materials.",
+-        "inputSchema": {
+-          "type": "object",
+-          "properties": {
+-            "run_id": {
+-              "type": "string",
+-              "description": "Completed run ID."
+-            },
+-            "format": {
+-              "type": "string",
+-              "enum": [
+-                "pdf",
+-                "markdown",
+-                "docx"
+-              ],
+-              "default": "pdf"
+-            },
+-            "sections": {
+-              "type": "array",
+-              "items": {
+-                "type": "string",
+-                "enum": [
+-                  "methods",
+-                  "qc",
+-                  "findings",
+-                  "figures",
+-                  "appendix"
+-                ]
+-              },
+-              "description": "Which sections to include (default: all)."
+-            }
+-          },
+-          "required": [
+-            "run_id"
+-          ]
+-        },
+-        "annotations": {
+-          "title": "Export Report",
+-          "readOnlyHint": false,
+-          "destructiveHint": false,
+-          "idempotentHint": true,
+-          "openWorldHint": false
+-        }
+-      },
+-      {
+-        "name": "upload_file",
+-        "title": "Upload File",
+-        "description": "Get a one-shot signed S3 PUT URL so the host can upload a local file directly to BioMate's data plane without proxying bytes through the chat transport. For files >5MB this is mandatory; for small text payloads, inline strings are fine.\n\n**Returns** `{upload_url, s3_key}` \u2014 two fields:\n- `upload_url`: a presigned HTTPS URL. You MUST upload the file bytes to it with an HTTP PUT before calling any other tool: `curl -X PUT -T <local_path> \"<upload_url>\"`\n- `s3_key`: a bare S3 object key (e.g. `users/42/uploads/uuid-sample.fastq.gz`). Pass this value directly into the `inputs` dict of `biomate_session` or as a `params` value in `run_workflow` \u2014 BioMate resolves the bucket internally. Example: `inputs={\"fastq_file\": s3_key}` or `params={\"input\": s3_key}`.\n\n**Full upload workflow:**\n1. `upload_file(filename='sample.fastq.gz', size_bytes=52000000)` \u2192 get `upload_url` + `s3_key`\n2. `curl -X PUT -T sample.fastq.gz \"<upload_url>\"` (or equivalent HTTP PUT \u2014 no auth header needed)\n3. `biomate_session(goal='Run RNA-seq DE on the uploaded FASTQs, human GRCh38', inputs={\"fastq_file\": s3_key})`",
+-        "inputSchema": {
+-          "type": "object",
+-          "properties": {
+-            "filename": {
+-              "type": "string",
+-              "description": "Original filename (sets content-type and extension)."
+-            },
+-            "size_bytes": {
+-              "type": "integer",
+-              "description": "File size for quota check."
+-            },
+-            "content_type": {
+-              "type": "string",
+-              "description": "MIME type (auto-detected from filename if omitted)."
+-            }
+-          },
+-          "required": [
+-            "filename"
+-          ]
+-        },
+-        "annotations": {
+-          "title": "Upload File",
+-          "readOnlyHint": false,
+-          "destructiveHint": false,
+-          "idempotentHint": false,
+-          "openWorldHint": false
+-        }
+-      }
+-    ],
+-    "anthropic": [
+-      {
+-        "name": "biomate_session",
+-        "description": "**Primary entry point \u2014 use this for 90% of requests.** Run a complete BioMate scientific session from a natural-language goal. BioMate selects the right workflow from 2,455 indexed pipelines, pre-fills parameters from your goal text, executes on BioMate cloud, handles QC gates with auto-loop remediation, and produces structured findings. While running, the tool streams real-time progress (phase started, step completed, QC gate, auto-loop remediation, finding) back to the host. Returns a final run summary, a deep link to the live results panel, and the report URL. \n\n**How to write the `goal` parameter** \u2014 plain English, one to three sentences:\n\u2022 Include the *what*: analysis type + subject (e.g. 'ADMET screening', 'RNA-seq DE', 'variant calling')\n\u2022 Include *data location*: inline SMILES/sequences, S3 paths, accession numbers, or upload first with upload_file\n\u2022 Include key *parameters* that matter: organism, library type, comparisons, thresholds\n\u2022 You can omit anything BioMate can infer (it will ask if genuinely ambiguous)\n\n**Good examples:**\n  'Screen aspirin (CC(=O)Oc1ccccc1C(=O)O) and caffeine (Cn1cnc2c1c(=O)n(c(=O)n2C)C) for hERG inhibition, CYP3A4, and oral bioavailability'\n  'RNA-seq differential expression on s3://lab-bucket/exp42/fastqs/ \u2014 human GRCh38, dUTP strand-specific, treated (n=3) vs control (n=3), FDR 0.05'\n  'Whole-genome variant calling on the uploaded FASTQ pair, GRCh38, GATK HaplotypeCaller, germline mode'\n  'Run homogeneous 3D refinement in CryoSPARC on s3://cryo/job042/, C2 symmetry, box size 256'\n  'Fetch GSE183947 from GEO and run the same RNA-seq pipeline'\n\nUse run_workflow instead when the user wants to call a specific workflow by ID with explicit parameter control.",
+-        "input_schema": {
+-          "type": "object",
+-          "properties": {
+-            "goal": {
+-              "type": "string",
+-              "description": "Natural-language scientific goal. Include: analysis type, data location (inline SMILES/sequences, s3:// paths, or GEO/SRA accession numbers), and key parameters (organism, comparisons, thresholds). BioMate infers the rest. Examples: 'Screen these 5 SMILES for hERG IC50 and CYP3A4 inhibition', 'RNA-seq DE on s3://bucket/exp1/ human GRCh38 paired-end treated vs control', 'Fetch GSE183947 and run differential expression'."
+-            },
+-            "inputs": {
+-              "type": "object",
+-              "description": "Optional structured inputs passed alongside `goal`. BioMate's inner AI sees these as a JSON block appended to the goal text and merges them with any parameters it extracts from the goal string. Use this to pass: S3 keys from upload_file, sequences, SMILES lists, accession numbers, or explicit parameter overrides. Examples:\n  After upload_file: {\"fastq_file\": \"users/42/uploads/uuid-sample.fastq.gz\"} (use the s3_key value returned by upload_file)\n  SMILES list: {\"smiles_list\": [\"CC(=O)Oc1ccccc1C(=O)O\"], \"organism\": \"human\"}\n  Parameter override: {\"genome\": \"GRCh38\", \"aligner\": \"STAR\", \"fdr\": 0.05}",
+-              "additionalProperties": true
+-            },
+-            "experiment_id": {
+-              "type": "string",
+-              "description": "Optional experiment to attach this run to (from recall_memory)."
+-            },
+-            "stream": {
+-              "type": "boolean",
+-              "description": "Emit progress notifications during execution. Default true. Set false for hosts without MCP notification support \u2014 then poll with get_run.",
+-              "default": true
+-            }
+-          },
+-          "required": [
+-            "goal"
+-          ]
+-        }
+-      },
+-      {
+-        "name": "export_report",
+-        "description": "Render a publication-ready report for a completed run as PDF or markdown. Includes the methods section, QC audit trail, structured findings, and figures. This is what users need for IND submissions, CRO compliance packages, and publication supplementary materials.",
+-        "input_schema": {
+-          "type": "object",
+-          "properties": {
+-            "run_id": {
+-              "type": "string",
+-              "description": "Completed run ID."
+-            },
+-            "format": {
+-              "type": "string",
+-              "enum": [
+-                "pdf",
+-                "markdown",
+-                "docx"
+-              ],
+-              "default": "pdf"
+-            },
+-            "sections": {
+-              "type": "array",
+-              "items": {
+-                "type": "string",
+-                "enum": [
+-                  "methods",
+-                  "qc",
+-                  "findings",
+-                  "figures",
+-                  "appendix"
+-                ]
+-              },
+-              "description": "Which sections to include (default: all)."
+-            }
+-          },
+-          "required": [
+-            "run_id"
+-          ]
+-        }
+-      },
+-      {
+-        "name": "upload_file",
+-        "description": "Get a one-shot signed S3 PUT URL so the host can upload a local file directly to BioMate's data plane without proxying bytes through the chat transport. For files >5MB this is mandatory; for small text payloads, inline strings are fine.\n\n**Returns** `{upload_url, s3_key}` \u2014 two fields:\n- `upload_url`: a presigned HTTPS URL. You MUST upload the file bytes to it with an HTTP PUT before calling any other tool: `curl -X PUT -T <local_path> \"<upload_url>\"`\n- `s3_key`: a bare S3 object key (e.g. `users/42/uploads/uuid-sample.fastq.gz`). Pass this value directly into the `inputs` dict of `biomate_session` or as a `params` value in `run_workflow` \u2014 BioMate resolves the bucket internally. Example: `inputs={\"fastq_file\": s3_key}` or `params={\"input\": s3_key}`.\n\n**Full upload workflow:**\n1. `upload_file(filename='sample.fastq.gz', size_bytes=52000000)` \u2192 get `upload_url` + `s3_key`\n2. `curl -X PUT -T sample.fastq.gz \"<upload_url>\"` (or equivalent HTTP PUT \u2014 no auth header needed)\n3. `biomate_session(goal='Run RNA-seq DE on the uploaded FASTQs, human GRCh38', inputs={\"fastq_file\": s3_key})`",
+-        "input_schema": {
+-          "type": "object",
+-          "properties": {
+-            "filename": {
+-              "type": "string",
+-              "description": "Original filename (sets content-type and extension)."
+-            },
+-            "size_bytes": {
+-              "type": "integer",
+-              "description": "File size for quota check."
+-            },
+-            "content_type": {
+-              "type": "string",
+-              "description": "MIME type (auto-detected from filename if omitted)."
+-            }
+-          },
+-          "required": [
+-            "filename"
+-          ]
+-        }
+-      }
+-    ],
+-    "openai": [
+-      {
+-        "type": "function",
+-        "function": {
+-          "name": "biomate_session",
+-          "description": "**Primary entry point \u2014 use this for 90% of requests.** Run a complete BioMate scientific session from a natural-language goal. BioMate selects the right workflow from 2,455 indexed pipelines, pre-fills parameters from your goal text, executes on BioMate cloud, handles QC gates with auto-loop remediation, and produces structured findings. While running, the tool streams real-time progress (phase started, step completed, QC gate, auto-loop remediation, finding) back to the host. Returns a final run summary, a deep link to the live results panel, and the report URL. \n\n**How to write the `goal` parameter** \u2014 plain English, one to three sentences:\n\u2022 Include the *what*: analysis type + subject (e.g. 'ADMET screening', 'RNA-seq DE', 'variant calling')\n\u2022 Include *data location*: inline SMILES/sequences, S3 paths, accession numbers, or upload first with upload_file\n\u2022 Include key *parameters* that matter: organism, library type, comparisons, thresholds\n\u2022 You can omit anything BioMate can infer (it will ask if genuinely ambiguous)\n\n**Good examples:**\n  'Screen aspirin (CC(=O)Oc1ccccc1C(=O)O) and caffeine (Cn1cnc2c1c(=O)n(c(=O)n2C)C) for hERG inhibition, CYP3A4, and oral bioavailability'\n  'RNA-seq differential expression on s3://lab-bucket/exp42/fastqs/ \u2014 human GRCh38, dUTP strand-specific, treated (n=3) vs control (n=3), FDR 0.05'\n  'Whole-genome variant calling on the uploaded FASTQ pair, GRCh38, GATK HaplotypeCaller, germline mode'\n  'Run homogeneous 3D refinement in CryoSPARC on s3://cryo/job042/, C2 symmetry, box size 256'\n  'Fetch GSE183947 from GEO and run the same RNA-seq pipeline'\n\nUse run_workflow instead when the user wants to call a specific workflow by ID with explicit parameter control.",
+-          "parameters": {
+-            "type": "object",
+-            "properties": {
+-              "goal": {
+-                "type": "string",
+-                "description": "Natural-language scientific goal. Include: analysis type, data location (inline SMILES/sequences, s3:// paths, or GEO/SRA accession numbers), and key parameters (organism, comparisons, thresholds). BioMate infers the rest. Examples: 'Screen these 5 SMILES for hERG IC50 and CYP3A4 inhibition', 'RNA-seq DE on s3://bucket/exp1/ human GRCh38 paired-end treated vs control', 'Fetch GSE183947 and run differential expression'."
+-              },
+-              "inputs": {
+-                "type": "object",
+-                "description": "Optional structured inputs passed alongside `goal`. BioMate's inner AI sees these as a JSON block appended to the goal text and merges them with any parameters it extracts from the goal string. Use this to pass: S3 keys from upload_file, sequences, SMILES lists, accession numbers, or explicit parameter overrides. Examples:\n  After upload_file: {\"fastq_file\": \"users/42/uploads/uuid-sample.fastq.gz\"} (use the s3_key value returned by upload_file)\n  SMILES list: {\"smiles_list\": [\"CC(=O)Oc1ccccc1C(=O)O\"], \"organism\": \"human\"}\n  Parameter override: {\"genome\": \"GRCh38\", \"aligner\": \"STAR\", \"fdr\": 0.05}",
+-                "additionalProperties": true
+-              },
+-              "experiment_id": {
+-                "type": "string",
+-                "description": "Optional experiment to attach this run to (from recall_memory)."
+-              },
+-              "stream": {
+-                "type": "boolean",
+-                "description": "Emit progress notifications during execution. Default true. Set false for hosts without MCP notification support \u2014 then poll with get_run.",
+-                "default": true
+-              }
+-            },
+-            "required": [
+-              "goal"
+-            ]
+-          }
+-        }
+-      },
+-      {
+-        "type": "function",
+-        "function": {
+-          "name": "export_report",
+-          "description": "Render a publication-ready report for a completed run as PDF or markdown. Includes the methods section, QC audit trail, structured findings, and figures. This is what users need for IND submissions, CRO compliance packages, and publication supplementary materials.",
+-          "parameters": {
+-            "type": "object",
+-            "properties": {
+-              "run_id": {
+-                "type": "string",
+-                "description": "Completed run ID."
+-              },
+-              "format": {
+-                "type": "string",
+-                "enum": [
+-                  "pdf",
+-                  "markdown",
+-                  "docx"
+-                ],
+-                "default": "pdf"
+-              },
+-              "sections": {
+-                "type": "array",
+-                "items": {
+-                  "type": "string",
+-                  "enum": [
+-                    "methods",
+-                    "qc",
+-                    "findings",
+-                    "figures",
+-                    "appendix"
+-                  ]
+-                },
+-                "description": "Which sections to include (default: all)."
+-              }
+-            },
+-            "required": [
+-              "run_id"
+-            ]
+-          }
+-        }
+-      },
+-      {
+-        "type": "function",
+-        "function": {
+-          "name": "upload_file",
+-          "description": "Get a one-shot signed S3 PUT URL so the host can upload a local file directly to BioMate's data plane without proxying bytes through the chat transport. For files >5MB this is mandatory; for small text payloads, inline strings are fine.\n\n**Returns** `{upload_url, s3_key}` \u2014 two fields:\n- `upload_url`: a presigned HTTPS URL. You MUST upload the file bytes to it with an HTTP PUT before calling any other tool: `curl -X PUT -T <local_path> \"<upload_url>\"`\n- `s3_key`: a bare S3 object key (e.g. `users/42/uploads/uuid-sample.fastq.gz`). Pass this value directly into the `inputs` dict of `biomate_session` or as a `params` value in `run_workflow` \u2014 BioMate resolves the bucket internally. Example: `inputs={\"fastq_file\": s3_key}` or `params={\"input\": s3_key}`.\n\n**Full upload workflow:**\n1. `upload_file(filename='sample.fastq.gz', size_bytes=52000000)` \u2192 get `upload_url` + `s3_key`\n2. `curl -X PUT -T sample.fastq.gz \"<upload_url>\"` (or equivalent HTTP PUT \u2014 no auth header needed)\n3. `biomate_session(goal='Run RNA-seq DE on the uploaded FASTQs, human GRCh38', inputs={\"fastq_file\": s3_key})`",
+-          "parameters": {
+-            "type": "object",
+-            "properties": {
+-              "filename": {
+-                "type": "string",
+-                "description": "Original filename (sets content-type and extension)."
+-              },
+-              "size_bytes": {
+-                "type": "integer",
+-                "description": "File size for quota check."
+-              },
+-              "content_type": {
+-                "type": "string",
+-                "description": "MIME type (auto-detected from filename if omitted)."
+-              }
+-            },
+-            "required": [
+-              "filename"
+-            ]
+-          }
+-        }
+-      }
+-    ],
+-    "tool_names": [
+-      "biomate_session",
+-      "export_report",
+-      "upload_file"
+-    ]
+-  },
+   "backend_routes": [
+     {
+       "name": "biomate_session",
+@@ -2224,30 +1518,30 @@
+       "streaming": true
+     },
+     {
++      "name": "get_run",
++      "method": "GET",
++      "path": "/api/workflows/runs/{run_id}",
++      "streaming": false
++    },
++    {
++      "name": "cancel_run",
++      "method": "POST",
++      "path": "/api/workflows/runs/{run_id}/cancel",
++      "streaming": false
++    },
++    {
++      "name": "list_runs",
++      "method": "GET",
++      "path": "/api/workflows/runs",
++      "streaming": false
++    },
++    {
+       "name": "watch_run",
+       "method": "GET",
+       "path": "/api/workflows/runs/{run_id}",
+       "streaming": true
+     },
+     {
+-      "name": "get_run",
+-      "method": "GET",
+-      "path": "/api/workflows/runs/{run_id}",
+-      "streaming": false
+-    },
+-    {
+-      "name": "cancel_run",
+-      "method": "POST",
+-      "path": "/api/workflows/runs/{run_id}/cancel",
+-      "streaming": false
+-    },
+-    {
+-      "name": "list_runs",
+-      "method": "GET",
+-      "path": "/api/workflows/runs",
+-      "streaming": false
+-    },
+-    {
+       "name": "preview_file",
+       "method": "POST",
+       "path": "/api/files/preview",
+@@ -2255,7 +1549,7 @@
+     },
+     {
+       "name": "export_report",
+-      "method": "POST",
++      "method": "GET",
+       "path": "/api/workflows/runs/{run_id}/findings/report",
+       "streaming": false
+     },
+@@ -2285,7 +1579,7 @@
+     },
+     {
+       "name": "browse_data",
+-      "method": "POST",
++      "method": "GET",
+       "path": "/api/data/browse",
+       "streaming": false
+     },
+@@ -2296,40 +1590,22 @@
+       "streaming": false
+     },
+     {
+-      "name": "recall_memory",
+-      "method": "POST",
+-      "path": "/api/memory/relevant",
+-      "streaming": false
+-    },
+-    {
+       "name": "search_literature",
+       "method": "POST",
+       "path": "/api/literature/search",
+       "streaming": false
+     },
+     {
++      "name": "recall_memory",
++      "method": "GET",
++      "path": "/api/memory/relevant",
++      "streaming": false
++    },
++    {
+       "name": "upload_file",
+       "method": "POST",
+       "path": "/api/uploads/signed_url",
+       "streaming": false
+-    },
+-    {
+-      "name": "list_instruments",
+-      "method": "GET",
+-      "path": "local:opentrons/discover",
+-      "streaming": false
+-    },
+-    {
+-      "name": "get_instrument_status",
+-      "method": "GET",
+-      "path": "local:opentrons/run_status",
+-      "streaming": false
+-    },
+-    {
+-      "name": "run_instrument_protocol",
+-      "method": "POST",
+-      "path": "local:opentrons/run",
+-      "streaming": false
+     }
+   ]
+ }
+--- /Users/kky/biomate-connector/connectors/mcp-server/package.json
++++ /private/tmp/biomate-connector-auth-review/connectors/mcp-server/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "@biomate/mcp-server",
+-  "version": "0.1.0",
+-  "description": "BioMate MCP server — exposes 19 scientific workflow tools (RNA-seq, ADMET, WGS, CryoEM, proteomics, drug discovery) to any MCP-compatible AI host via stdio.",
++  "version": "0.1.1",
++  "description": "BioMate MCP server \u2014 exposes 19 scientific workflow tools (RNA-seq, ADMET, WGS, CryoEM, proteomics, drug discovery) to any MCP-compatible AI host via stdio.",
+   "type": "module",
+   "bin": {
+     "biomate-mcp-server": "./dist/index.js"
+@@ -11,7 +11,16 @@
+     "build": "tsc && cp src/tools_manifest.json dist/tools_manifest.json",
+     "prepublishOnly": "npm run build"
+   },
+-  "keywords": ["biomate", "mcp", "bioinformatics", "claude", "cursor", "rna-seq", "genomics", "drug-discovery"],
++  "keywords": [
++    "biomate",
++    "mcp",
++    "bioinformatics",
++    "claude",
++    "cursor",
++    "rna-seq",
++    "genomics",
++    "drug-discovery"
++  ],
+   "author": "BioMate AI <support@biomate.ai>",
+   "license": "MIT",
+   "repository": {
+@@ -29,7 +38,10 @@
+     "@types/node": "^20.0.0",
+     "typescript": "^5.4.0"
+   },
+-  "files": ["dist", "README.md"],
++  "files": [
++    "dist",
++    "README.md"
++  ],
+   "publishConfig": {
+     "access": "public"
+   }
+--- /Users/kky/biomate-review/connectors/installer/src/surfaces.ts
++++ /private/tmp/biomate-connector-auth-review/connectors/installer/src/surfaces.ts
+@@ -1,4 +1,5 @@
+ import * as os from 'os';
++import { mkdirSync, writeFileSync, renameSync } from 'node:fs';
+ import * as path from 'path';
+ 
+ export type SurfaceId =
+@@ -42,15 +43,21 @@
+   return path.join(home(), '.config');
+ }
+ 
+-function mcpServerEntry(refreshToken: string) {
+-  const apiBase = process.env.BIOMATE_API_BASE ?? 'https://api.biomate.ai';
++function mcpServerEntry(accessToken: string, refreshToken: string, clientId: string) {
++  const authBase = process.env.BIOMATE_AUTH_BASE ?? 'https://api.biomate.ai';
++  const directory = path.join(home(), '.config', 'biomate');
++  mkdirSync(directory, { recursive: true, mode: 0o700 });
++  const credentialFile = path.join(directory, clientId + '.json');
++  const temporary = credentialFile + '.' + process.pid + '.tmp';
++  writeFileSync(temporary, JSON.stringify({
++    authBase, clientId: process.env.BIOMATE_OAUTH_CLIENT_ID ?? clientId,
++    access_token: accessToken, refresh_token: refreshToken,
++    expires_at: 0,
++  }), { mode: 0o600 });
++  renameSync(temporary, credentialFile);
+   return {
+-    command: 'npx',
+-    args: ['-y', '@biomate/mcp-server'],
+-    env: {
+-      BIOMATE_API_BASE: apiBase,
+-      BIOMATE_REFRESH_TOKEN: refreshToken,
+-    },
++    command: 'npx', args: ['-y', '@biomate/mcp-server@0.1.1'],
++    env: { BIOMATE_OAUTH_FILE: credentialFile },
+   };
+ }
+ 
+@@ -64,11 +71,11 @@
+     callbackPort: 53682,
+     scopes: DEFAULT_SCOPES,
+     configPath: () => path.join(home(), '.claude.json'),
+-    install: async (_t, refresh) => {
++    install: async (access, refresh) => {
+       const p = path.join(home(), '.claude.json');
+       await upsertJSON(p, (cfg) => {
+         cfg.mcpServers ??= {};
+-        cfg.mcpServers.biomate = mcpServerEntry(refresh);
++        cfg.mcpServers.biomate = mcpServerEntry(access, refresh, 'biomate-claude-code');
+         return cfg;
+       });
+       return p;
+@@ -81,11 +88,11 @@
+     callbackPort: 53683,
+     scopes: DEFAULT_SCOPES,
+     configPath: () => path.join(platformConfigDir(), 'Claude', 'claude_desktop_config.json'),
+-    install: async (_t, refresh) => {
++    install: async (access, refresh) => {
+       const p = path.join(platformConfigDir(), 'Claude', 'claude_desktop_config.json');
+       await upsertJSON(p, (cfg) => {
+         cfg.mcpServers ??= {};
+-        cfg.mcpServers.biomate = mcpServerEntry(refresh);
++        cfg.mcpServers.biomate = mcpServerEntry(access, refresh, 'biomate-claude-desktop');
+         return cfg;
+       });
+       return p;
+@@ -98,11 +105,11 @@
+     callbackPort: 53684,
+     scopes: DEFAULT_SCOPES,
+     configPath: () => path.join(home(), '.cursor', 'mcp.json'),
+-    install: async (_t, refresh) => {
++    install: async (access, refresh) => {
+       const p = path.join(home(), '.cursor', 'mcp.json');
+       await upsertJSON(p, (cfg) => {
+         cfg.mcpServers ??= {};
+-        cfg.mcpServers.biomate = mcpServerEntry(refresh);
++        cfg.mcpServers.biomate = mcpServerEntry(access, refresh, 'biomate-cursor');
+         return cfg;
+       });
+       return p;
+@@ -115,10 +122,10 @@
+     callbackPort: 53685,
+     scopes: DEFAULT_SCOPES,
+     configPath: () => path.join(home(), '.codex', 'config.toml'),
+-    install: async (_t, refresh) => {
++    install: async (access, refresh) => {
+       const p = path.join(home(), '.codex', 'config.toml');
+-      const apiBase = process.env.BIOMATE_API_BASE ?? 'https://api.biomate.ai';
+-      await upsertTOML(p, `\n[mcp_servers.biomate]\ncommand = "npx"\nargs = ["-y", "@biomate/mcp-server"]\n\n[mcp_servers.biomate.env]\nBIOMATE_API_BASE = "${apiBase}"\nBIOMATE_REFRESH_TOKEN = "${refresh}"\n`);
++      const entry = mcpServerEntry(access, refresh, 'biomate-codex');
++      await upsertTOML(p, `\n[mcp_servers.biomate]\ncommand = "npx"\nargs = ["-y", "@biomate/mcp-server@0.1.1"]\n\n[mcp_servers.biomate.env]\nBIOMATE_OAUTH_FILE = ${JSON.stringify(entry.env.BIOMATE_OAUTH_FILE)}\n`);
+       return p;
+     },
+   },
+@@ -152,7 +159,7 @@
+     callbackPort: 53687,
+     scopes: DEFAULT_SCOPES,
+     configPath: () => '(Open Claw — hosted by BioMate)',
+-    install: async (_t, refresh) => {
++    install: async (access, refresh) => {
+       console.log(`
+ Open Claw runs as a hosted webhook — there's nothing to install locally.
+ We've linked your account; in WeChat search the BioMate Open Claw bot and
+--- /Users/kky/biomate-review/connectors/installer/src/oauth.ts
++++ /private/tmp/biomate-connector-auth-review/connectors/installer/src/oauth.ts
+@@ -1,6 +1,7 @@
+ import { createServer, IncomingMessage, ServerResponse } from 'http';
+ import { URL } from 'url';
+ import open from 'open';
++import { randomBytes } from 'node:crypto';
+ import { generatePKCE } from './pkce.js';
+ import { SurfaceConfig } from './surfaces.js';
+ 
+@@ -18,7 +19,17 @@
+   const { verifier, challenge } = generatePKCE();
+   const port = surface.callbackPort;
+   const redirectUri = `http://127.0.0.1:${port}/callback`;
+-  const state = Math.random().toString(36).slice(2);
++  const state = randomBytes(32).toString('base64url');
++  const registration = await fetch(`${authBaseUrl}/oauth/register`, {
++    method: 'POST', headers: { 'content-type': 'application/json' },
++    body: JSON.stringify({ client_name: `BioMate ${surface.label}`, redirect_uris: [redirectUri], token_endpoint_auth_method: 'none' }),
++    redirect: 'error', signal: AbortSignal.timeout(15000),
++  });
++  if (!registration.ok) throw new Error(`OAuth registration failed: HTTP ${registration.status}`);
++  const { client_id } = await registration.json() as { client_id: string };
++  if (!client_id) throw new Error('OAuth registration returned no client ID');
++  process.env.BIOMATE_OAUTH_CLIENT_ID = client_id;
++  process.env.BIOMATE_AUTH_BASE = authBaseUrl;
+ 
+   const codePromise = catchCallback(port, state);
+   // Mark the rejection as handled — the awaiter below will still receive it.
+@@ -28,7 +39,7 @@
+ 
+   const authUrl = new URL(`${authBaseUrl}/oauth/authorize`);
+   authUrl.searchParams.set('response_type', 'code');
+-  authUrl.searchParams.set('client_id', surface.clientId);
++  authUrl.searchParams.set('client_id', client_id);
+   authUrl.searchParams.set('redirect_uri', redirectUri);
+   authUrl.searchParams.set('code_challenge', challenge);
+   authUrl.searchParams.set('code_challenge_method', 'S256');
+@@ -45,7 +56,7 @@
+     grant_type: 'authorization_code',
+     code,
+     redirect_uri: redirectUri,
+-    client_id: surface.clientId,
++    client_id,
+     code_verifier: verifier,
+   });
+   const resp = await fetch(`${authBaseUrl}/oauth/token`, {
+@@ -94,10 +105,11 @@
+     });
+     server.on('error', reject);
+     server.listen(port, '127.0.0.1');
+-    setTimeout(() => {
++    const timeout = setTimeout(() => {
+       server.close();
+       reject(new Error('OAuth callback timed out after 3 minutes'));
+     }, 3 * 60 * 1000);
++    server.on('close', () => clearTimeout(timeout));
+   });
+ }
+ 
+--- /Users/kky/biomate-review/connectors/installer/src/cli.ts
++++ /private/tmp/biomate-connector-auth-review/connectors/installer/src/cli.ts
+@@ -20,7 +20,12 @@
+   }
+ 
+   try {
+-    const tokens = await runPKCEFlow(surface, AUTH_BASE);
++    const flag = args.indexOf('--auth-base');
++    if (flag !== -1 && !args[flag + 1]) throw new Error('--auth-base requires a URL');
++    const authBase = flag === -1 ? AUTH_BASE : args[flag + 1];
++    const origin = new URL(authBase);
++    if (origin.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(origin.hostname)) throw new Error('OAuth requires HTTPS');
++    const tokens = await runPKCEFlow(surface, origin.origin);
+     const where = await surface.install(tokens.access_token, tokens.refresh_token);
+ 
+     // Stash the refresh token in the OS keychain too (best-effort).
+--- /Users/kky/biomate-review/connectors/installer/src/configWriters.ts
++++ /private/tmp/biomate-connector-auth-review/connectors/installer/src/configWriters.ts
+@@ -27,7 +27,7 @@
+   }
+   if (existing.includes('[mcp_servers.biomate]')) {
+     // Naive replacement: drop the existing block and re-append.
+-    existing = existing.replace(/\n\[mcp_servers\.biomate\][\s\S]*?(?=\n\[|$)/g, '');
++    existing = existing.replace(/(?:^|\n)\[mcp_servers\.biomate(?:\.[^\]]+)?\][\s\S]*?(?=\n\[|$)/g, '');
+   }
+   await atomicWrite(filePath, existing + append);
+ }
+--- /Users/kky/biomate-review/connectors/installer/src/__tests__/flow.test.ts
++++ /private/tmp/biomate-connector-auth-review/connectors/installer/src/__tests__/flow.test.ts
+@@ -76,6 +76,11 @@
+ 
+   const server: Server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+     const u = new URL(req.url ?? '/', `http://${req.headers.host}`);
++    if (u.pathname === '/oauth/register') {
++      res.writeHead(201, { 'content-type': 'application/json' });
++      res.end(JSON.stringify({ client_id: 'registered-test-client' }));
++      return;
++    }
+ 
+     if (u.pathname === '/oauth/authorize' && req.method === 'GET') {
+       // The installer never hits /oauth/authorize as an HTTP client — its
+@@ -200,7 +205,12 @@
+ 
+     const cfg = JSON.parse(await fs.readFile(path.join(tmpHome, '.claude.json'), 'utf8'));
+     expect(cfg.mcpServers.biomate.command).toBe('npx');
+-    expect(cfg.mcpServers.biomate.env.BIOMATE_REFRESH_TOKEN).toBe('mock_refresh_token');
++    expect(cfg.mcpServers.biomate.env).not.toHaveProperty('BIOMATE_REFRESH_TOKEN');
++    const credentialFile = cfg.mcpServers.biomate.env.BIOMATE_OAUTH_FILE;
++    const credential = JSON.parse(await fs.readFile(credentialFile, 'utf8'));
++    expect(credential.refresh_token).toBe('mock_refresh_token');
++    expect(credential.clientId).toBe('registered-test-client');
++    expect((await fs.stat(credentialFile)).mode & 0o777).toBe(0o600);
+   });
+ 
+   it('§3.2.2 claude-code: preserves existing keys in ~/.claude.json', async () => {
+@@ -254,7 +264,8 @@
+ 
+     const cfg = await fs.readFile(path.join(tmpHome, '.codex', 'config.toml'), 'utf8');
+     expect(cfg).toContain('[mcp_servers.biomate]');
+-    expect(cfg).toContain('mock_refresh_token');
++    expect(cfg).toContain('BIOMATE_OAUTH_FILE');
++    expect(cfg).not.toContain('mock_refresh_token');
+   });
+ 
+   it('§3.2.6 chatgpt: prints instructions, writes no file', async () => {
+--- /Users/kky/biomate-review/connectors/installer/package.json
++++ /private/tmp/biomate-connector-auth-review/connectors/installer/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "@biomate/connect",
+-  "version": "0.1.0",
++  "version": "0.1.1",
+   "description": "One-line installer that connects BioMate to Claude Code, Claude Desktop, Cursor, Codex, and ChatGPT via OAuth 2.1 + PKCE.",
+   "bin": {
+     "biomate-connect": "./dist/cli.js"
+@@ -11,7 +11,15 @@
+     "test": "vitest run",
+     "prepublishOnly": "npm run build"
+   },
+-  "keywords": ["biomate", "mcp", "claude", "cursor", "codex", "chatgpt", "bioinformatics"],
++  "keywords": [
++    "biomate",
++    "mcp",
++    "claude",
++    "cursor",
++    "codex",
++    "chatgpt",
++    "bioinformatics"
++  ],
+   "author": "BioMate AI",
+   "license": "MIT",
+   "repository": {
+@@ -31,5 +39,8 @@
+     "typescript": "^5.4.0",
+     "vitest": "^1.0.0"
+   },
+-  "files": ["dist", "README.md"]
++  "files": [
++    "dist",
++    "README.md"
++  ]
+ }

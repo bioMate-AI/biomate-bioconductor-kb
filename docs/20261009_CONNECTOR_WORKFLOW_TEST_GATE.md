@@ -2,6 +2,8 @@
 
 ## Decision
 
+Latest status: the deployed repair and a fresh connector-only workflow passed the core journey (see the final verification section). The initial failure described below is historical. Additional compatibility testing passed 9 of 11 checks; two advertised instrument operations are unsupported. See `20261009_CONNECTOR_COMPATIBILITY_FOLLOWUP.md` for remaining updates. Recording remains HOLD.
+
 **HOLD recording.** A real three-compound ADMET workflow launched through the published npm connector and completed, but the connector-only user journey failed at output discovery and report export. No new tutorial video was recorded or approved. Chinese editions must use the integrated Chinese UI, Chinese narration and reviewed Chinese captions.
 
 This takes over the connector handoff supplied by the user. It does not mark other workflow tutorials or external client applications verified.

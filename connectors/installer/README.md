@@ -2,7 +2,7 @@
 
 > One-line installer that wires BioMate AI into Claude Code, Claude Desktop, Cursor, OpenAI Codex, ChatGPT, and Open Claw (WeChat).
 
-Real bioinformatics — `nf-core/sarek`, CryoSPARC, AlphaFold, ADMET screens, PBPK — runs from your favorite AI coding assistant. No SaaS lock-in: tokens are stored locally and revocable per-surface from your BioMate account.
+Real bioinformatics — `nf-core/sarek`, CryoSPARC, AlphaFold, ADMET screens, PBPK — runs from your favorite AI coding assistant. No SaaS lock-in: tokens are stored locally in a protected credential file.
 
 ## Install
 
@@ -17,7 +17,7 @@ npx @biomate/connect cursor
 npx @biomate/connect codex
 ```
 
-That's it. The CLI opens your browser, runs OAuth 2.1 + PKCE against `https://biomate.ai`, writes the MCP server entry into the right host config file, and stashes a refresh token in your OS keychain.
+The CLI opens your browser for OAuth with PKCE and writes the MCP configuration. Version 0.1.1 stores rotating tokens in a mode-0600 file under `~/.config/biomate/`; host configurations contain only its path. This release defaults explicitly to the verified development deployment at `https://dev-public.biomate.ai`; use `--auth-base` to select a different deployed server. Existing OAuth installations must reconnect with the updated installer.
 
 ## Supported surfaces
 
@@ -34,9 +34,9 @@ That's it. The CLI opens your browser, runs OAuth 2.1 + PKCE against `https://bi
 
 After connecting, your AI assistant has access to BioMate's 19-tool MCP surface:
 
-- **`biomate_session`** — natural-language goal → streaming workflow run with phase/step/QC/findings events
-- **`search_workflow`** + **`get_workflow_spec`** — discover from 2,455 indexed workflows
-- **`run_workflow`** + **`get_run`** + **`watch_run`** + **`cancel_run`** — fine control and progress retrieval
+- **`biomate_session`** — natural-language goal → analysis plan, workflow suggestions and clarification requests; review the plan before execution
+- **`search_workflow`** + **`get_workflow_spec`** — discover workflows in the catalog
+- **`run_workflow`** + **`get_run`** + **`watch_run`** + **`cancel_run`** — launch, cancel and poll run status (snapshot updates)
 - **`preview_file`**, **`export_report`**, **`analyze_results`**, **`explain_error`**, **`query_database`**, **`resolve_accession`**, **`browse_data`**, **`fetch_public_data`**, **`search_literature`**, **`recall_memory`**, **`upload_file`**
 
 ## Try it
@@ -59,9 +59,9 @@ Look up UniProt P04637.
 
 ## Privacy & security
 
-- OAuth 2.1 + PKCE; tokens scoped per surface, revocable individually at
-  https://biomate.ai/account/connectors
-- Refresh tokens hashed at rest with HMAC-SHA256
+- OAuth with PKCE; access tokens carry permission scopes enforced by
+  the OAuth service; access is also blocked when the associated personal API key is revoked
+- Server-side refresh-token records are hashed; local credential files contain secrets and must stay private
 - Access tokens are 30-minute JWTs; refresh tokens rotate on use (OAuth 2.1 §6.1)
 - No telemetry beyond standard API logs
 
@@ -76,3 +76,7 @@ npm test
 ## License
 
 MIT
+
+## Supported exports
+
+This package exports Markdown findings reports. PDF, DOCX, other report sections, instrument tools and MCP progress notifications are not advertised by the 0.1.1 stdio package. ChatGPT Actions and hosted WeChat setup are separate integrations and are not validated by the desktop installer tests.

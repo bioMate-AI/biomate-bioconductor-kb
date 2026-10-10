@@ -379,7 +379,7 @@ deploy_remote_mcp() {
       -e BIOMATE_API_URL=http://biomate-dev-frontend:3000 \
       -e BIOMATE_MCP_PUBLIC_URL=https://dev-public.biomate.ai \
       -e BIOMATE_OAUTH_ISSUER=https://dev-public.biomate.ai \
-      -e BIOMATE_MCP_REQUIRE_AUTH=0 \
+      -e BIOMATE_MCP_REQUIRE_AUTH=1 \
       -e BIOMATE_OAUTH_SIGNING_KEY="$SIGNING_KEY" \
       -e BIOMATE_OAUTH_DB=/var/lib/biomate/oauth.db \
       -v /opt/biomate/remote_mcp_data:/var/lib/biomate \

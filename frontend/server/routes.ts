@@ -1,3 +1,4 @@
+import { readConnectorSession } from "./connector-session";
 import { createConnectorRunTools } from "./connector-run-tools";
 import { localOnly, localMessagesClient } from './local-llm.js';
 import type { Express } from "express";
@@ -17118,34 +17119,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
             body: JSON.stringify({ message: goal, context: {} }),
           });
 
-          let responseText = "";
-          let workflowCard: unknown = null;
-          let sessionRunId: string | null = null;
-
-          if (streamRes.body) {
-            const dec = new TextDecoder();
-            let buf = "";
-            for await (const chunk of streamRes.body as any) {
-              buf += dec.decode(chunk as Uint8Array, { stream: true });
-              const lines = buf.split("\n");
-              buf = lines.pop() ?? "";
-              for (const line of lines) {
-                if (!line.startsWith("data: ")) continue;
-                try {
-                  const d = JSON.parse(line.slice(6));
-                  if (typeof d.text === "string") responseText += d.text;
-                  if (d.workflow_ga) workflowCard = d.workflow_ga;
-                  if (d.run_id) sessionRunId = d.run_id;
-                } catch { /* skip malformed SSE data lines */ }
-              }
-            }
-          }
-
-          result = {
-            response: responseText || "Session complete.",
-            workflow_suggested: workflowCard ?? null,
-            ...(sessionRunId ? { run_id: sessionRunId } : {}),
-          };
+          result = await readConnectorSession(streamRes);
           break;
         }
 
@@ -17339,6 +17313,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   app.all("/oauth/register", mcpProxy);
   app.all("/oauth/authorize", mcpProxy);
   app.all("/oauth/token", mcpProxy);
+  app.post("/oauth/tools/:name", mcpProxy);
   app.get("/healthz", (_req, res) => res.json({ ok: true }));
 
   // ── Interactive Tools reverse proxy — MULTI-SESSION (per-token) ─────────────
