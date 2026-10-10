@@ -175,7 +175,7 @@ describe("Workspace Connections panel", () => {
     render(<ConnectorsDialog embedded open onOpenChange={() => {}} />);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Connectors" })).toBeInTheDocument();
-    for (const tab of ["databases", "ai", "skills", "mcp", "yours", "instruments"]) {
+    for (const tab of ["databases", "ai", "skills", "mcp"]) {
       expect(screen.getByTestId(`connector-tab-${tab}`)).toBeInTheDocument();
     }
   });

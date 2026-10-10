@@ -1,3 +1,4 @@
+import { useActiveProjectIdSafe } from "@/contexts/active-project-context"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { uploadFile as uploadFileShared } from "@/lib/upload"
 import { tOr } from "@/lib/i18n"
@@ -493,11 +494,13 @@ export function ChatInterface({
   // actually has — never a fabricated one. Refreshed on the shared
   // 'biomate:projects-updated' event so a newly-created project can be
   // proposed without a reload.
+  const contextProjectId = useActiveProjectIdSafe();
   const [composerProjects, setComposerProjects] = useState<ComposerProject[]>([])
   const [activeProjectId, setActiveProjectId] = useState<string | null>(() => {
     try { return typeof window !== 'undefined' ? localStorage.getItem('biomate-active-project-id') : null }
     catch { return null }
   })
+  useEffect(() => { setActiveProjectId(contextProjectId) }, [contextProjectId])
   useEffect(() => {
     let cancelled = false
     const loadProjects = () => {

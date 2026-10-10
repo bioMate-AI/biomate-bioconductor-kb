@@ -637,19 +637,41 @@ function Router({
           components/design-generate (DesignGenerate). Node proxy routes for
           /api/models·/api/inference·/api/generate live in server/routes.ts. */}
       <Route path="/models">
-        <AuthenticatedPageLayout>
+        <PlatformLayout
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+          onNewChat={onNewChat}
+          onChatSelect={onChatSelect}
+          onCategorySelect={onCategorySelect}
+          onToolSelect={onToolSelect}
+          onProjectSelect={onProjectSelect}
+          onNewProject={onNewProject}
+          activeChatId={currentChatSession?.id}
+          chatSessions={chatSessions}
+        >
           <div className="max-w-5xl mx-auto p-4">
             <ModelsPanel />
           </div>
-        </AuthenticatedPageLayout>
+        </PlatformLayout>
       </Route>
 
       <Route path="/design">
-        <AuthenticatedPageLayout>
+        <PlatformLayout
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+          onNewChat={onNewChat}
+          onChatSelect={onChatSelect}
+          onCategorySelect={onCategorySelect}
+          onToolSelect={onToolSelect}
+          onProjectSelect={onProjectSelect}
+          onNewProject={onNewProject}
+          activeChatId={currentChatSession?.id}
+          chatSessions={chatSessions}
+        >
           <div className="max-w-5xl mx-auto p-4">
             <DesignGenerate />
           </div>
-        </AuthenticatedPageLayout>
+        </PlatformLayout>
       </Route>
 
       {/* Tier-1 data surface — the data hub. Datasets as first-class objects
@@ -673,9 +695,20 @@ function Router({
       </Route>
 
       <Route path="/files">
-        <AuthenticatedPageLayout>
+        <PlatformLayout
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+          onNewChat={onNewChat}
+          onChatSelect={onChatSelect}
+          onCategorySelect={onCategorySelect}
+          onToolSelect={onToolSelect}
+          onProjectSelect={onProjectSelect}
+          onNewProject={onNewProject}
+          activeChatId={currentChatSession?.id}
+          chatSessions={chatSessions}
+        >
           <DataHubPage />
-        </AuthenticatedPageLayout>
+        </PlatformLayout>
       </Route>
 
 {/* Deep link from chat connectors — loads a generated workflow by id and

@@ -209,14 +209,16 @@ function DeclaredFact({ label, value }: { label: string; value?: string }) {
 }
 
 function ConnectorTable({
-  rows, selected, onToggle, scopes, onScopeChange,
+  rows, selected, onToggle, scopes, onScopeChange, compact = false,
 }: {
+  compact?: boolean;
   rows: Connector[];
   selected?: string[];
   onToggle?: (name: string) => void;
   scopes: Record<string, Scope>;
   onScopeChange: (name: string, scope: Scope) => void;
 }) {
+  if (compact) return <div className="p-5"><div className="rounded-lg border border-border bg-background px-4" data-testid="connector-table">{rows.map(row => <article key={row.name} data-testid={`connector-row-${row.name}`} className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center py-3 border-b border-border last:border-0"><div className="min-w-0"><h3 className="text-[13px] font-semibold">{row.name}</h3><p className="text-xs text-muted-foreground mt-1">{row.description}</p>{row.needs && <p className="text-xs text-muted-foreground mt-1">Requires {row.needs}</p>}</div><ResidencyBadge residency={row.residency} /><span className="text-[11px] text-muted-foreground">{row.category}</span></article>)}</div></div>;
   const checkable = !!onToggle;
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }} data-testid="connector-table">
@@ -287,8 +289,9 @@ function ConnectorTable({
 }
 
 function DatabasesTab({
-  selected, onToggle, scopes, onScopeChange,
+  selected, onToggle, scopes, onScopeChange, compact = false,
 }: {
+  compact?: boolean;
   selected: string[];
   onToggle: (name: string) => void;
   scopes: Record<string, Scope>;
@@ -343,7 +346,7 @@ function DatabasesTab({
           );
         })}
       </div>
-      <ConnectorTable rows={rows} selected={selected} onToggle={onToggle} scopes={scopes} onScopeChange={onScopeChange} />
+      <ConnectorTable compact={compact} rows={rows} selected={selected} onToggle={onToggle} scopes={scopes} onScopeChange={onScopeChange} />
     </div>
   );
 }
@@ -395,7 +398,7 @@ function YourConnectionsTab() {
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode; count?: number; tip: string }[] = [
   { id: 'databases', label: 'Data sources',   icon: <Database style={{ width: 13, height: 13 }} />, count: DB.length, tip: 'Public protein, genomics, omics, chemical, pathway, disease, literature, and imaging sources BioMate can query from chat' },
-  { id: 'ai',        label: 'Models & platforms',      icon: <Brain    style={{ width: 13, height: 13 }} />, count: AI.length, tip: 'LLM providers and messaging / IDE surfaces BioMate exposes — reference only, not configured here' },
+  { id: 'ai',        label: 'Models & LLMs',      icon: <Brain    style={{ width: 13, height: 13 }} />, count: AI.length, tip: 'LLM providers and messaging / IDE surfaces BioMate exposes — reference only, not configured here' },
   { id: 'skills', label: 'Skills & experts', icon: <Brain style={{ width: 13, height: 13 }} />, tip: 'Available expert packs; select packs for a request in the chat composer' },
   { id: 'mcp', label: 'MCP servers', icon: <Plug style={{ width: 13, height: 13 }} />, tip: 'Manage your MCP server connections' },
   { id: 'yours',     label: 'Private databases',    icon: <Plug     style={{ width: 13, height: 13 }} />,                   tip: 'Connect your OWN private database and MCP server — the one writable surface here, backed by real endpoints' },
@@ -414,6 +417,8 @@ interface ConnectorsDialogProps {
 }
 
 export function ConnectorsDialog({ open, onOpenChange, embedded = false }: ConnectorsDialogProps) {
+  const [sourceView, setSourceView] = useState<'public' | 'private' | 'instruments'>('public');
+  const [adding, setAdding] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [packs, setPacks] = useState<SkillPack[] | null>(null);
   const [packsError, setPacksError] = useState(false);
@@ -462,7 +467,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
         data-testid="connectors-dialog"
       >
         <div style={{ padding: '16px 20px 0', flexShrink: 0 }}>
-          {embedded ? <><p className="text-xs text-muted-foreground mb-2">Workspace / Connections</p><h1 className="text-xl font-semibold">Connectors</h1></> : <DialogTitle>Connectors</DialogTitle>}
+          {embedded ? <><p className="text-xs text-muted-foreground mb-2">Workspace / Connections</p><div className="flex items-center justify-between gap-4"><h1 className="text-xl font-semibold">Connectors</h1><button className="text-sm border border-border rounded-md px-3 py-1.5" onClick={() => setAdding(v => !v)}>{adding ? "Close" : "Add a connector"}</button></div></> : <DialogTitle>Connectors</DialogTitle>}
           <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '8px 0' }}>Browse public sources or manage your private database, MCP server, and instrument connections.</p>
           {/* Residency legend (§0.9.3): the five values, so a badge is readable at a glance */}
           <div data-testid="residency-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 8px', marginTop: 8, fontSize: 10.5, color: 'var(--muted-foreground)' }}>
@@ -479,7 +484,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
         </div>
 
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: '10px 20px 0', gap: 2, overflowX: 'auto', flexShrink: 0 }}>
-          {TABS.map(t => (
+          {TABS.filter(t => t.id !== 'yours' && t.id !== 'instruments').map(t => (
             <button
               key={t.id}
               data-testid={`connector-tab-${t.id}`}
@@ -514,9 +519,10 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
           ))}
         </div>
 
+        {adding && <div className="p-5 border-b border-border flex flex-wrap gap-3"><button className="text-sm border border-border rounded-md px-3 py-2" onClick={() => { setActiveTab('databases'); setSourceView('private'); setAdding(false); }}>Private database</button><button className="text-sm border border-border rounded-md px-3 py-2" onClick={() => { setActiveTab('mcp'); setAdding(false); }}>MCP server</button><button className="text-sm border border-border rounded-md px-3 py-2" onClick={() => { setActiveTab('databases'); setSourceView('instruments'); setAdding(false); }}>Instrument</button><button className="text-sm border border-border rounded-md px-3 py-2" onClick={() => { setSettingsOpen(true); setAdding(false); }}>Model provider</button></div>}
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', display: 'flex', flexDirection: 'column' }}>
-          {activeTab === 'databases' && <DatabasesTab selected={selectedDbs} onToggle={toggleDb} scopes={scopes} onScopeChange={setScope} />}
-          {activeTab === 'ai' && <><div className="p-4"><button className="text-sm underline" onClick={() => setSettingsOpen(true)}>Configure model providers and API keys</button></div><ConnectorTable rows={AI} scopes={scopes} onScopeChange={setScope} /></>}
+          {activeTab === 'databases' && <><div className="flex flex-wrap gap-2 px-5 py-3 border-b border-border">{(['public', 'private', 'instruments'] as const).map(view => <button key={view} className={sourceView === view ? 'text-xs rounded-md px-3 py-1.5 bg-muted font-semibold' : 'text-xs rounded-md px-3 py-1.5 text-muted-foreground'} onClick={() => setSourceView(view)}>{view === 'public' ? 'Public databases' : view === 'private' ? 'Private databases' : 'Instruments'}</button>)}</div>{sourceView === 'public' ? <DatabasesTab compact={embedded} selected={selectedDbs} onToggle={toggleDb} scopes={scopes} onScopeChange={setScope} /> : sourceView === 'private' ? <div className="p-5"><PrivateDbConnectionForm /></div> : <InstrumentsSection />}</>}
+          {activeTab === 'ai' && <><div className="p-4"><button className="text-sm underline" onClick={() => setSettingsOpen(true)}>Configure model providers and API keys</button></div><ConnectorTable compact={embedded} rows={AI} scopes={scopes} onScopeChange={setScope} /></>}
           {activeTab === 'yours' && <div className="p-5"><PrivateDbConnectionForm /></div>}
           {activeTab === 'mcp' && <div className="p-5"><McpServerForm /></div>}
           {activeTab === 'skills' && <div className="p-5"><p className="text-sm text-muted-foreground mb-4">Select expert packs for each request using Skills &amp; experts in the chat composer.</p>{packsError ? <p role="alert">Could not load expert packs. Please reload to try again.</p> : packs === null ? <p>Loading expert packs…</p> : packs.length === 0 ? <p>No expert packs available yet.</p> : packs.map(pack => <article key={pack.id} className="py-4 border-b border-border"><h3 className="text-sm font-medium">{pack.label}</h3>{pack.description && <p className="text-sm text-muted-foreground mt-1">{pack.description}</p>}</article>)}</div>}
@@ -524,7 +530,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
         </div>
 
         <div style={{ flexShrink: 0, padding: '6px 20px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--muted-foreground)' }}>
-          {activeTab === 'databases' && dbFooter}
+          {activeTab === 'databases' && sourceView === 'public' && (embedded ? 'Public sources are queried automatically when relevant to your request.' : dbFooter)}
           {activeTab === 'ai'        && `${AI.length} AI models and platform surfaces BioMate exposes — reference only. This panel does not configure them; set up messaging bots / IDE (MCP) / GPT-action access from their own tools or the BioMate MCP install flow.`}
           {activeTab === 'yours'     && 'Your own private database and MCP server — the one writable surface here. Connections you add are used by BioMate chat; DB queries are read-only and credentials are encrypted at rest.'}
         </div>
