@@ -7,18 +7,23 @@
  * Handles proteins, small molecules, DNA, RNA, glycosylations, and multi-chain
  * complexes in a single forward pass. Apache 2.0 licensed.
  *
- * Inputs:
- *   params.input_fasta   -- FASTA file (use FASTA headers to specify chain type:
+ * Inputs (provide one):
+ *   params.input_fasta   -- path to a FASTA file (use Chai-1 headers for multi-chain:
  *                           >protein|name=A, >ligand|name=LIG|smiles=CCO, >rna|name=R)
- *   params.num_trunk_recycles -- trunk recycling steps (default: 3)
- *   params.num_diffusion_timesteps -- diffusion steps (default: 200)
- *   params.seed          -- random seed for reproducibility (default: 42)
- *   params.outdir        -- output directory
+ *   params.sequence      -- raw amino-acid sequence string; the workflow writes a
+ *                           FASTA file automatically (single-chain protein assumed)
+ *
+ * Other params:
+ *   params.num_trunk_recycles        -- trunk recycling steps (default: 3)
+ *   params.num_diffusion_timesteps   -- diffusion steps (default: 200)
+ *   params.seed                      -- random seed (default: 42)
+ *   params.outdir                    -- output directory
  */
 
 nextflow.enable.dsl = 2
 
 params.input_fasta               = ''
+params.sequence                  = ''  // raw AA/NT sequence — alternative to input_fasta
 params.num_trunk_recycles        = 3
 params.num_diffusion_timesteps   = 200
 params.seed                      = 42
@@ -26,6 +31,21 @@ params.outdir                    = 'results'
 params.publish_dir_mode          = 'copy'
 
 def ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/chai1:latest'
+
+// -- Write raw sequence to FASTA (used when params.sequence is provided) -------
+
+process WRITE_FASTA {
+    label 'process_low'
+
+    output:
+    path "input_sequence.fasta"
+
+    script:
+    def seq = params.sequence.trim()
+    """
+    printf '>protein|name=query\\n${seq}\\n' > input_sequence.fasta
+    """
+}
 
 // -- Chai-1 structure prediction -----------------------------------------------
 
@@ -96,7 +116,18 @@ EOF
 }
 
 workflow {
-    fasta_ch = Channel.fromPath(params.input_fasta, checkIfExists: true)
+    def has_file = params.input_fasta && params.input_fasta.toString().trim()
+    def has_seq  = params.sequence    && params.sequence.toString().trim()
+
+    if (has_file) {
+        fasta_ch = Channel.fromPath(params.input_fasta, checkIfExists: true)
+    } else if (has_seq) {
+        WRITE_FASTA()
+        fasta_ch = WRITE_FASTA.out
+    } else {
+        error "Provide params.input_fasta (FASTA file path) or params.sequence (raw AA/NT sequence)"
+    }
+
     CHAI1_PREDICT(fasta_ch)
     SUMMARISE_RESULTS(CHAI1_PREDICT.out.results_dir)
 }
