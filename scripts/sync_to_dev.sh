@@ -321,7 +321,7 @@ deploy_frontend() {
   # Verify the actual public bundle, not only a newly-created container.
   # Worktrees may contain different branches while all produce healthy images.
   local _served_commit
-  if ! _served_commit="$(curl --fail --silent --show-error --max-time 30 \
+  if ! _served_commit="$(curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 2 --retry-max-time 60 --max-time 10 \
       "https://dev-public.biomate.ai/build-info.json?commit=${CURRENT_COMMIT}" | \
       python3 -c 'import json,sys; print(json.load(sys.stdin).get("commit", ""))')" \
       || [[ "$_served_commit" != "$CURRENT_COMMIT" ]]; then
