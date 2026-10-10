@@ -25,7 +25,8 @@ import { LicenseGate } from "./license-gate";
 import { AutoLoopPanel } from "./auto-loop-panel";
 import type { AutoLoopPanelState } from "./auto-loop-panel";
 import { ApprovalGate, type ApprovalGateData } from "./approval-gate";
-import { RolesCard, VerifyPattern, type RolesData, type VerifyKind } from "./roles-verify";
+// Hidden from Workflow settings at user request; retain the components for later review.
+// import { RolesCard, VerifyPattern, type RolesData, type VerifyKind } from "./roles-verify";
 import { SkipDependency, type PhaseSkipInfo } from "./skip-dependency";
 import { stripAnsi } from "@/lib/utils";
 import { AfterRunReport } from "@/v2/AfterRunReport";
@@ -3247,14 +3248,7 @@ export function NextflowWorkflowViewer({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             </div>
 
-          {/* ── Permissions & verification (§7.3) ──────────────────────────────
-              Governance surfaces in the Settings tab. RolesCard shows what the
-              current user can/cannot do here — disabled-not-hidden, with the
-              role each control needs. VerifyPattern shows every gate kind in the
-              one measured · threshold · verdict grammar. Both are read-only.
-              The roles here reflect the real ownership model (you own your own
-              run / project); a richer multi-collaborator role feed is a
-              documented follow-up when a project-roles endpoint surfaces here. */}
+          {/* Permissions and verification summaries hidden at user request.
           {(() => {
             const scope = projectId ? tOr('panel.scope_project', 'This project') : tOr('panel.scope_run', 'This run');
             const rolesData: RolesData = {
@@ -3280,6 +3274,7 @@ export function NextflowWorkflowViewer({
               </div>
             );
           })()}
+          */}
           </div>{/* end settings-tab-only section */}
 
           {/* ── Phases-tab-only — phase cards + everything below ──────────── */}
