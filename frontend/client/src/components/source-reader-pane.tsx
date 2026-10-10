@@ -35,6 +35,7 @@ interface SourceReaderPaneProps {
 export function sourceUrl(c: EvidenceCitation): string | null {
   if (c.doi) return `https://doi.org/${c.doi}`
   if (c.pmid) return `https://pubmed.ncbi.nlm.nih.gov/${c.pmid}`
+  if (c.url && /^https?:\/\//i.test(c.url)) return c.url
   return null
 }
 
@@ -45,8 +46,8 @@ export function sourceUrl(c: EvidenceCitation): string | null {
  * and a "cited for" line naming the locus, with next/prev navigation so a
  * reader can audit a whole answer without leaving the thread.
  *
- * Full text is not available to us, so the body is an honest "open at source"
- * fallback to the DOI / PubMed URL rather than a faked passage.
+ * Show the retrieved abstract when available, followed by an external link
+ * for full text. Missing content uses a compact fallback without a blank panel.
  */
 export function SourceReaderPane({
   sources,
@@ -128,8 +129,9 @@ export function SourceReaderPane({
               )}
             </SheetHeader>
 
-            <div className="flex-1 min-h-0 mt-4 rounded-md border bg-muted/30 p-4 flex flex-col items-center justify-center text-center gap-3">
-              <p className="text-xs text-muted-foreground max-w-xs">
+            <div className="min-h-0 mt-4 overflow-y-auto space-y-4 text-sm leading-relaxed">
+              {source.abstract?.trim() && <section data-testid="reader-abstract"><h3 className="font-medium mb-2">Abstract</h3><p className="whitespace-pre-wrap">{source.abstract}</p></section>}
+              <p className="text-xs text-muted-foreground">
                 Full text is not available in the reader for this source. Open it
                 at the publisher to read
                 {source.locus ? ` the ${source.locus}` : " the relied-on passage"}

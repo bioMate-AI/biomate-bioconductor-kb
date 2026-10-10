@@ -74,6 +74,7 @@ export interface CitationConflict {
 }
 
 interface CitationPanelProps {
+  kind?: "workflow" | "literature"
   citations: Citation[]
   methodsSection?: MethodsSection
   workflow?: Record<string, any>  // Galaxy workflow for API calls
@@ -105,6 +106,7 @@ interface CitationPanelProps {
 }
 
 export function CitationPanel({
+  kind = "workflow",
   citations,
   methodsSection,
   workflow,
@@ -361,7 +363,7 @@ export function CitationPanel({
     <Card className={cn("border border-muted", className)}>
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CardHeader className="p-3 pb-2">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <CollapsibleTrigger asChild>
               <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
                 <div className="flex items-center gap-2">
@@ -378,7 +380,7 @@ export function CitationPanel({
 
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="text-xs">
-                {toolsWithCitations.length}/{totalTools} tools
+                {kind === "literature" ? `${toolsWithCitations.length} sources` : `${toolsWithCitations.length}/${totalTools} tools`}
               </Badge>
 
               {/* Spec 01 §1.5 — answer→project exits. Two sanctioned exits
@@ -469,26 +471,26 @@ export function CitationPanel({
         <CollapsibleContent>
           <CardContent className="p-3 pt-0">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2 h-8">
+              {kind === "workflow" && <TabsList className="grid w-full grid-cols-2 h-auto min-h-8">
                 <TabsTrigger value="citations" className="text-xs">
                   Tool Citations
                 </TabsTrigger>
                 <TabsTrigger value="methods" className="text-xs" disabled={!displayMethodsSection && !workflow}>
                   Methods Section
                 </TabsTrigger>
-              </TabsList>
+              </TabsList>}
 
               <TabsContent value="citations" className="mt-3 space-y-2">
                 {/* Spec 09 — "How this was searched". Retrieval transparency:
                     per-source found · kept. Only rendered when the retrieval
                     path supplied real counts (honest-empty otherwise). */}
                 {retrievalSources.length > 0 && (
-                  <div
-                    className="rounded-md border bg-muted/30 p-2.5 space-y-1.5"
+                  <details
+                    className="rounded-md bg-muted/30 p-2.5 space-y-1.5"
                     data-testid="retrieval-transparency"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium">How this was searched</span>
+                    <summary className="cursor-pointer text-xs font-medium">
+                      <span>How this was searched</span>
                       <span className="flex-1" />
                       <Badge
                         variant="secondary"
@@ -497,7 +499,7 @@ export function CitationPanel({
                       >
                         {retrievalKept} of {retrievalFound} kept
                       </Badge>
-                    </div>
+                    </summary>
                     <div className="space-y-1">
                       {retrievalSources.map((s) => {
                         const pct = s.found > 0 ? Math.round((s.kept / s.found) * 100) : 0
@@ -521,7 +523,7 @@ export function CitationPanel({
                         )
                       })}
                     </div>
-                  </div>
+                  </details>
                 )}
 
                 {/* Spec 01 §1.3.2 — conflict affordance. Never smooth
@@ -761,7 +763,7 @@ function CitationItem({ citation, index, isExpanded, onToggle, onCopy, copiedId,
           ) : (
             <ChevronRight className="h-3 w-3 flex-shrink-0" />
           )}
-          <span className="text-sm font-medium truncate">{citation.tool_name}</span>
+          <span className="text-sm font-medium break-words">{citation.tool_name}</span>
         </button>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {citation.locus && (
@@ -866,7 +868,7 @@ function CitationItem({ citation, index, isExpanded, onToggle, onCopy, copiedId,
                 Read
               </Button>
             )}
-            <Button
+            {citation.formatted_apa?.trim() && <Button
               size="sm"
               variant="ghost"
               className="h-6 text-xs flex-1"
@@ -878,8 +880,8 @@ function CitationItem({ citation, index, isExpanded, onToggle, onCopy, copiedId,
                 <Copy className="h-3 w-3 mr-1" />
               )}
               APA
-            </Button>
-            <Button
+            </Button>}
+            {citation.formatted_bibtex?.trim() && <Button
               size="sm"
               variant="ghost"
               className="h-6 text-xs flex-1"
@@ -892,7 +894,7 @@ function CitationItem({ citation, index, isExpanded, onToggle, onCopy, copiedId,
                 <FileText className="h-3 w-3 mr-1" />
               )}
               BibTeX
-            </Button>
+            </Button>}
           </div>
         </div>
       )}

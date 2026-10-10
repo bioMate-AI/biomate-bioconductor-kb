@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Send, Paperclip, X, FileText, Eye, Square, Database, FolderInput, SlidersHorizontal, ChevronDown, ChevronRight } from "lucide-react"
+import { Send, Paperclip, X, FileText, Square, Database, FolderInput, SlidersHorizontal, ChevronDown, ChevronRight } from "lucide-react"
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser"
 import { SkillsSelector, type SkillPack } from "./skills-selector"
 import { LanePreview, type LaneKind } from "./lane-preview"
@@ -464,17 +464,10 @@ export function ChatInput({
               data-filename={file.name}
             >
               <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="max-w-[150px] truncate">{file.name}</span>
+              <button type="button" onClick={() => openPreview(file)} title={`Preview ${file.name}`} className="max-w-[220px] truncate text-left hover:underline focus-visible:underline">{file.name}</button>
               <span className="text-xs text-muted-foreground">
                 ({formatFileSize(file.size)})
               </span>
-              <button
-                onClick={() => openPreview(file)}
-                className="ml-0.5 p-0.5 rounded hover:bg-background transition-colors"
-                title="Preview file"
-              >
-                <Eye className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-              </button>
               <button
                 onClick={() => removeFile(file.id)}
                 className="p-0.5 rounded hover:bg-background transition-colors"

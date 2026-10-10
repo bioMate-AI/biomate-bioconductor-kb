@@ -2228,10 +2228,9 @@ class ResearchAgent:
             if grounded_pool is not None:
                 lit_pool = grounded_pool
             else:
-                # No numeric [N] markers (e.g. attached-paper answer) — fall back
-                # to the top relevance-ranked pool, capped.
-                _cite_cap = max(self.max_citations, 15) if _deep_synth else self.max_citations
-                lit_pool = pool[:_cite_cap]
+                # Retrieved candidates are not citations unless synthesis actually
+                # uses them. Clarification replies must not inherit search results.
+                lit_pool = []
 
             # ── Retrieval transparency ────────────────────────────────────────
             # Per-source found/kept from the REAL source-tagged pool: `found` =
@@ -2246,8 +2245,8 @@ class ResearchAgent:
                 citations.append(Citation(
                     title=lit_citation.title,
                     authors=lit_citation.authors,
-                    year=lit_citation.year or 2023,
-                    journal=lit_citation.journal or "Unknown",
+                    year=lit_citation.year,
+                    journal=lit_citation.journal,
                     doi=lit_citation.doi,
                     pmid=lit_citation.pmid,
                     abstract=lit_citation.abstract,
@@ -2422,7 +2421,7 @@ class ResearchAgent:
 
         Returns (rewritten_answer, grounded_pool). grounded_pool is None when
         the answer has no numeric [N] markers (e.g. attached-paper answers),
-        signalling the caller to fall back to the relevance-ranked top-N.
+        signalling that no retrieved literature is cited by this answer.
         """
         import re
         if not pool or not answer:

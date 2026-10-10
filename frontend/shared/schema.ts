@@ -526,6 +526,8 @@ export const citationSchema = z.object({
   authors: z.array(z.string()).default([]),
   year: z.number().optional(),
   journal: z.string().optional(),
+  abstract: z.string().optional(),
+  url: z.string().optional(),
   formatted_apa: z.string().default(""),
   formatted_short: z.string().default(""),
   formatted_bibtex: z.string().default(""),

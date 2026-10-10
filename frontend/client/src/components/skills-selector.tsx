@@ -173,10 +173,10 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
           style={{
             position: "absolute",
             bottom: "calc(100% + 4px)",
-            left: 0,
+            right: 0,
             zIndex: 50,
-            width: 300,
-            maxHeight: 280,
+            width: "min(420px, calc(100vw - 32px))",
+            maxHeight: "min(440px, 60vh)",
             overflowY: "auto",
             background: "var(--bm-bg-elev, hsl(var(--background)))",
             border: `1px solid ${BORDER}`,

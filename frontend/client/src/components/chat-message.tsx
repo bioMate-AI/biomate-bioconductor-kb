@@ -180,6 +180,7 @@ interface ChatMessageProps {
   isWorkflowRunning?: boolean
   workflowProgress?: number
   currentExecutionRun?: ExecutionRun | null
+  isStreaming?: boolean
   isLatestAssistantMessage?: boolean
   isRunAnchorFocused?: boolean
   isRunAnchorHighlighted?: boolean
@@ -196,6 +197,7 @@ interface ChatMessageProps {
 
 export function ChatMessage({
   message,
+  isStreaming = false,
   sessionId,
   onCopy = () => console.log('Copy message triggered'),
   onRegenerate = () => console.log('Regenerate message triggered'),
@@ -224,6 +226,9 @@ export function ChatMessage({
   onRedoAsValidatedRun,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
+  const foldResponse = !isUser && (isStreaming || Boolean(message.metadata?.workflow))
+  const ResponseContainer = foldResponse ? "details" : "div"
+
   const isWorkflowMessage = !isUser && message.metadata?.type === "workflow" && !!message.metadata?.workflow
   // "Compute/analysis result" answer — an instant-lane reply that ran code or
   // a tool (metadata.toolBlocks) or otherwise produced a numeric/analysis
@@ -480,7 +485,7 @@ export function ChatMessage({
         )}
       </div>
 
-      <div className={cn("max-w-full space-y-3", isUser && "flex flex-col items-end")}>
+      <div className={cn("w-full min-w-0 max-w-full space-y-3", isUser && "flex flex-col items-end")}>
         <div className={cn(
           isUser
             ? "bubble"  /* reference: .msg.user .bubble */
@@ -490,7 +495,11 @@ export function ChatMessage({
           color: 'var(--bm-text, oklch(0.22 0.01 260))',
           borderRadius: '14px 14px 2px 14px',
           padding: '10px 14px',
-          maxWidth: '80%',
+          maxWidth: 'min(80%, 900px)',
+          minWidth: 0,
+          overflowWrap: 'anywhere',
+          whiteSpace: 'pre-wrap',
+          overflow: 'visible',
           fontSize: 14,
           lineHeight: 1.5,
           alignSelf: 'flex-end',
@@ -540,6 +549,8 @@ export function ChatMessage({
                   <span>{(message.metadata as any).progressStatus}</span>
                 </div>
               )}
+              <ResponseContainer className="w-full">
+              {foldResponse && <summary className="cursor-pointer text-sm text-muted-foreground py-2">{isStreaming ? "Writing response…" : "Analysis plan"}<span className="block truncate text-xs max-w-md">{message.content?.replace(/[#*`]/g, "").slice(-160)}</span></summary>}
               <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none
                 prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
                 prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
@@ -589,6 +600,7 @@ export function ChatMessage({
                   )}
                 </ReactMarkdown>
               </div>
+              </ResponseContainer>
               </>
             )}
           </div>

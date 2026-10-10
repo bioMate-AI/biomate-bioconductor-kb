@@ -110,3 +110,26 @@ describe("live research answer → rich CitationPanel (retrieval + conflicts)", 
     expect(screen.queryByTestId("conflict-row")).toBeNull()
   })
 })
+
+describe("research source detail", () => {
+  it("preserves the retrieved abstract into the reader and omits unavailable formats", () => {
+    render(<ChatMessage message={researchMessage({ ...baseResponse, citations: [{ title: "Study with abstract", doi: "10.1/a", abstract: "Measured inhibition across two experimental conditions." }] })} />)
+    expandCitations()
+    expect(screen.queryByText("Tool Citations")).toBeNull()
+    expect(screen.queryByText("Methods Section")).toBeNull()
+    fireEvent.click(screen.getByText("Study with abstract"))
+    expect(screen.queryByRole("button", { name: "APA" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "BibTeX" })).toBeNull()
+    fireEvent.click(screen.getByTestId("source-open-0"))
+    expect(screen.getByTestId("reader-abstract")).toHaveTextContent("Measured inhibition across two experimental conditions.")
+  })
+
+  it("folds streaming content and reveals the completed answer", () => {
+    const message = { ...researchMessage(baseResponse), content: "A detailed analysis is being written." }
+    const { rerender } = render(<ChatMessage message={message} isStreaming />)
+    expect(screen.getByText("Writing response…").closest("details")).not.toHaveAttribute("open")
+    rerender(<ChatMessage message={message} isStreaming={false} />)
+    expect(screen.queryByText("Writing response…")).toBeNull()
+    expect(screen.getByText(message.content)).toBeVisible()
+  })
+})

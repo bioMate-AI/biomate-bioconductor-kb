@@ -470,6 +470,7 @@ function toEvidenceCitations(citations: ResearchCitation[]): EvidenceCitation[] 
     journal: c.journal,
     doi: c.doi,
     pmid: c.pmid,
+    abstract: c.abstract,
     formatted_apa: "",
     formatted_short: "",
     formatted_bibtex: "",
@@ -537,6 +538,7 @@ export function ResearchResponseDisplay({
           payload carries the claim with its sources. */}
       {response.citations && response.citations.length > 0 && (
         <CitationPanel
+          kind="literature"
           citations={toEvidenceCitations(response.citations)}
           retrieval={response.retrieval}
           conflicts={response.conflicts}
