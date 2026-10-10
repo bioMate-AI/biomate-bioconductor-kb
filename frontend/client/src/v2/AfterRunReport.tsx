@@ -211,6 +211,42 @@ export function AfterRunReport({
     setTimeout(() => setDownloadToast(null), 4000);
   };
 
+  // Pre-run state: no execution has started yet. Show a placeholder rather
+  // than empty tabs + citations fetched from the workflow DB, which misleads
+  // users into thinking the system has already produced results.
+  if (!executionStatus && !runId) {
+    return (
+      <div className="after-run-report" style={styles.root}>
+        <div style={styles.head}>
+          <span style={styles.kicker}>After run</span>
+        </div>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '48px 24px',
+          gap: 12,
+          textAlign: 'center',
+        }}>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="oklch(0.75 0.01 260)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'oklch(0.40 0.012 260)' }}>
+            Run not started yet
+          </div>
+          <div style={{ fontSize: 13, color: 'oklch(0.55 0.01 260)', maxWidth: 280, lineHeight: 1.5 }}>
+            Outputs, findings, QC report, methods, and citations will appear here once the workflow completes.
+          </div>
+          <div style={{ fontSize: 12, color: 'oklch(0.62 0.01 260)', marginTop: 4 }}>
+            Use the <strong>Workflow settings</strong> tab to configure and launch.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="after-run-report" style={styles.root}>
       <div style={styles.head}>

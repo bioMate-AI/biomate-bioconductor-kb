@@ -1092,6 +1092,196 @@ def _classify_failure(
                    "You can resume from the last completed step.", False, "resume")
 
 
+def _find_alternative_workflow(failed_path: str, domain: Optional[str]) -> Optional[Dict[str, Any]]:
+    """Query the workflow DB for an alternative to a failed workflow.
+
+    Strategy:
+    1. Look up same-domain workflows in galaxy_ai_tools.db.
+    2. For each candidate, verify the .nf file is actually resolvable on disk
+       (uses the same _resolve_nextflow_path logic as execute).
+    3. Return the first resolvable match, or None when nothing is available.
+
+    Returns {name, nextflow_path, domain} or None.
+    """
+    import sqlite3 as _sql
+    db_path = Path(__file__).resolve().parents[5] / "database" / "galaxy_ai_tools.db"
+    if not db_path.exists():
+        log.debug("[auto_reroute] DB not found at %s", db_path)
+        return None
+    if not domain:
+        return None
+    try:
+        with _sql.connect(str(db_path)) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT name, nextflow_path, domain FROM workflows "
+                "WHERE domain=? AND nextflow_path != ? "
+                "AND nextflow_path IS NOT NULL AND nextflow_path != '' "
+                "ORDER BY RANDOM() LIMIT 30",
+                (domain, failed_path),
+            )
+            rows = cur.fetchall()
+    except Exception as e:
+        log.debug("[auto_reroute] DB lookup failed: %s", e)
+        return None
+
+    for name, nf_path, dom in rows:
+        if not nf_path:
+            continue
+        try:
+            _resolve_nextflow_path(nf_path)
+            return {"name": name, "nextflow_path": nf_path, "domain": dom}
+        except FileNotFoundError:
+            continue
+    return None
+
+
+def _trigger_auto_reroute_on_failure(
+    run_id: str,
+    inv_id: str,
+    run_meta: Dict[str, Any],
+    returncode: int,
+) -> None:
+    """After a run failure, decide between Layer-1 (silent auto-reroute) and
+    Layer-2 (AI diagnosis chat card). Runs in a daemon thread — never raises.
+
+    Layer 1 (silent): When the failure is a tool/infrastructure error AND a
+    same-domain alternative exists on disk, auto-submit it and emit
+    ``auto_reroute`` SSE so the frontend loads the new run transparently.
+
+    Layer 2 (interactive): When no auto-fix is possible, emit ``ai_diagnosis``
+    SSE so the frontend injects a plain-language diagnosis card.
+    """
+    try:
+        # Don't reroute an already-rerouted run (prevents infinite loops).
+        if run_meta.get("is_auto_reroute"):
+            log.debug("[auto_reroute] skipping — run %s is already a rerouted run", run_id)
+            return
+
+        failed_path = run_meta.get("nextflow_path", "")
+        domain = run_meta.get("workflow_domain")
+        if not domain:
+            domain = _lookup_workflow_domain_from_db(
+                Path(failed_path).stem if failed_path else ""
+            )
+
+        # Read the last ~60 lines of the Nextflow log for classification.
+        log_tail: list = []
+        work_dir = run_meta.get("work_dir") or run_meta.get("workdir") or ""
+        if work_dir and not str(work_dir).startswith("s3://"):
+            try:
+                _full, log_tail = _read_run_nextflow_log_text(Path(work_dir))
+            except Exception:
+                pass
+
+        failure_verdict = _classify_failure("failed", log_tail, returncode)
+        if not failure_verdict:
+            return
+
+        category = failure_verdict.get("category", "unknown")
+        fix_strategy = failure_verdict.get("fix_strategy", "not_fixable")
+        user_message = failure_verdict.get("user_message", "")
+        suggested_action = failure_verdict.get("suggested_action", "resume")
+
+        # ── Layer 1: silent auto-reroute ──────────────────────────────────
+        # Attempt when the failure is a tool error or transient infra issue
+        # and an executable alternative exists in the same domain.
+        if category in ("tool_error", "infra_transient") and domain:
+            alternative = _find_alternative_workflow(failed_path, domain)
+            if alternative:
+                new_run_id = str(uuid.uuid4())
+                new_inv_id = str(uuid.uuid4())
+                log.info(
+                    "[auto_reroute] Layer-1 reroute run=%s → %s (alt=%s)",
+                    run_id, new_run_id, alternative["nextflow_path"],
+                )
+                # Register pre-record so status polls return "configuring"
+                # while the background launch is starting.
+                _pre = {
+                    "run_id": new_run_id,
+                    "invocation_id": new_inv_id,
+                    "status": "configuring",
+                    "returncode": None,
+                    "nextflow_path": alternative["nextflow_path"],
+                    "user_id": run_meta.get("user_id", "anonymous"),
+                    "is_pilot": run_meta.get("is_pilot", False),
+                    "is_auto_reroute": True,
+                    "rerouted_from": run_id,
+                    "started_at": time.time(),
+                    "workflow_domain": alternative["domain"],
+                }
+                with _runs_lock:
+                    _runs[new_run_id] = dict(_pre)
+                try:
+                    get_run_state_store().set_run(new_run_id, _pre)
+                except Exception:
+                    pass
+
+                _post_sse_direct(inv_id, "auto_reroute", {
+                    "from_workflow": failed_path,
+                    "from_workflow_name": Path(failed_path).parts[-2] if "/" in failed_path else failed_path,
+                    "to_workflow": alternative["nextflow_path"],
+                    "to_workflow_name": alternative["name"],
+                    "reason": (
+                        f"'{Path(failed_path).parts[-2] if '/' in failed_path else failed_path}' "
+                        f"is not available in this environment. "
+                        f"Automatically switching to '{alternative['name']}' for this analysis."
+                    ),
+                    "new_run_id": new_run_id,
+                    "new_invocation_id": new_inv_id,
+                })
+
+                # Launch in a fresh daemon thread.
+                def _reroute_bg(req_path: str, req_user: str, req_params: dict,
+                                req_domain: str, rrid: str, riid: str) -> None:
+                    try:
+                        alt_req = NextflowExecuteRequest(
+                            nextflow_path=req_path,
+                            parameters=req_params,
+                            user_id=req_user,
+                            is_pilot=run_meta.get("is_pilot", False),
+                            workflow_domain=req_domain,
+                            compute_config=run_meta.get("compute_config"),
+                            qc_profile=run_meta.get("qc_profile"),
+                        )
+                        _execute_nextflow_impl(alt_req, _run_id=rrid, _invocation_id=riid)
+                    except Exception as exc:
+                        log.warning("[auto_reroute] alternative launch failed run=%s: %s", rrid, exc)
+                        _fail_run(rrid, f"auto-reroute launch failed: {exc}")
+                        _narrate_launch_failure(riid, rrid, f"auto-reroute: {exc}")
+
+                threading.Thread(
+                    target=_reroute_bg,
+                    args=(
+                        alternative["nextflow_path"],
+                        run_meta.get("user_id", "anonymous"),
+                        dict(run_meta.get("parameters") or {}),
+                        alternative["domain"],
+                        new_run_id,
+                        new_inv_id,
+                    ),
+                    daemon=True,
+                    name=f"nf-reroute-{new_run_id[:8]}",
+                ).start()
+                return  # Layer-1 handled; skip Layer-2.
+
+        # ── Layer 2: AI diagnosis card ────────────────────────────────────
+        # Emit a structured diagnosis so the frontend can surface it as a
+        # helpful, actionable card instead of a raw "FAILED" state.
+        _post_sse_direct(inv_id, "ai_diagnosis", {
+            "category": category,
+            "user_message": user_message,
+            "suggested_action": suggested_action,
+            "fix_strategy": fix_strategy,
+            "is_transient": failure_verdict.get("is_transient", False),
+            "run_id": run_id,
+        })
+        log.debug("[auto_reroute] Layer-2 diagnosis emitted for run=%s category=%s", run_id, category)
+
+    except Exception as exc:
+        log.warning("[auto_reroute] trigger failed for run %s: %s", run_id, exc)
+
+
 def _sanitize_status_payload(resp: Dict[str, Any]) -> Dict[str, Any]:
     """Single chokepoint before a status payload leaves for the browser: attach a
     classified `failure` verdict on failed runs and redact backend internals from
@@ -4447,6 +4637,15 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 _narrate_chat(_inv_id, "workflow.completed", {"run_id": run_id, "returncode": returncode})
             elif final_status == "failed":
                 _narrate_chat(_inv_id, "workflow.failed", {"run_id": run_id, "returncode": returncode, "reason": f"exit {returncode}"})
+                # Snapshot run_meta before releasing the lock path to the reroute thread.
+                with _runs_lock:
+                    _reroute_meta = dict(_runs.get(run_id, {}))
+                threading.Thread(
+                    target=_trigger_auto_reroute_on_failure,
+                    args=(run_id, _inv_id, _reroute_meta, returncode),
+                    daemon=True,
+                    name=f"nf-reroute-trigger-{run_id[:8]}",
+                ).start()
             elif final_status == "interrupted":
                 _narrate_chat(_inv_id, "workflow.failed", {"run_id": run_id, "reason": "workflow was interrupted"})
 

@@ -929,7 +929,8 @@ export function ChatInterface({
             } else if (eventName === 'workflow_ready') {
               setWorkflowGeneratingPhase('workflow')
             } else if (eventName === 'error') {
-              throw new Error('__maintenance__')
+              const errDetail = payload?.message || payload?.error || payload?.detail || 'An error occurred during chat'
+              throw new Error(errDetail)
             }
           }
         }
@@ -1193,7 +1194,7 @@ export function ChatInterface({
       const guidance = getChatAsyncGuidance(errorMessage, { isOnline });
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: 'The system is currently under maintenance. Please try again in a few moments.',
+        content: `I encountered an error: ${errorMessage}. Please try again.`,
         role: "assistant",
         timestamp: new Date(),
         suggestions: ["Try again"],

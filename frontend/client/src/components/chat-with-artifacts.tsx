@@ -2079,9 +2079,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           <div className="space-y-2 text-sm text-red-700 dark:text-red-300">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
-              <span className="font-semibold">The system is currently under maintenance.</span>
+              <span className="font-semibold">Workflow execution failed.</span>
             </div>
-            <p>Please try again in a few moments.</p>
+            <p className="text-xs opacity-80 break-all">{executionError}</p>
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs" style={{ visibility: 'hidden' }}>{executionGuidance.escalation}</p>
               <div className="flex items-center gap-2">
@@ -2509,6 +2509,34 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                         ...ev,
                         invocationId: currentRun?.execution?.galaxyInvocationId || currentRun?.id,
                       })}
+                      onRerunStarted={async (runId) => {
+                        // After a successful /rerun call, restart polling immediately.
+                        // forcePolling:true skips the DB status check — the backend may
+                        // still show 'failed' for a few seconds while launching Nextflow.
+                        if (runId) {
+                          try { await loadRun(runId, { forcePolling: true }); } catch (e) {
+                            console.error('[rerun] loadRun restart failed:', e);
+                          }
+                        }
+                      }}
+                      onAutoReroute={async ({ fromWorkflow, toWorkflowName, reason, newRunId, newInvocationId }) => {
+                        // Layer-1 silent reroute: inject a chat progress message + load the new run.
+                        if (currentChatSession && currentRun?.execution?.galaxyInvocationId) {
+                          handlePanelWorkflowProgress({
+                            kind: 'auto_reroute',
+                            friendly_message: reason,
+                            invocationId: currentRun.execution.galaxyInvocationId,
+                            technical: { from: fromWorkflow, to: toWorkflowName, newRunId },
+                          });
+                        }
+                        if (newRunId) {
+                          try {
+                            await loadRun(newRunId);
+                          } catch (e) {
+                            console.error('[auto_reroute] loadRun failed:', e);
+                          }
+                        }
+                      }}
                     />
                   )
                 })()

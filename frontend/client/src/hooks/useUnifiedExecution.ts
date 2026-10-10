@@ -651,7 +651,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
    * Pass { silent: true } for background session-restore calls so that a 404
    * (e.g. stale invocationId) does not surface as an error banner in the UI.
    */
-  const loadRun = useCallback(async (runId: string, opts?: { silent?: boolean }) => {
+  const loadRun = useCallback(async (runId: string, opts?: { silent?: boolean; forcePolling?: boolean }) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
@@ -678,7 +678,10 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
         run.execution.galaxyInvocationId
       ) {
         connectToSSE(run.execution.galaxyWorkflowId, run.execution.galaxyInvocationId);
-      } else if (run.execution.status === 'running') {
+      } else if (run.execution.status === 'running' || opts?.forcePolling) {
+        // forcePolling: caller just triggered a /rerun; DB may still show 'failed'
+        // for a few seconds while the backend launches the new Nextflow process.
+        // Start polling unconditionally — it will stop itself on the next terminal state.
         startPolling(runId);
       }
 
