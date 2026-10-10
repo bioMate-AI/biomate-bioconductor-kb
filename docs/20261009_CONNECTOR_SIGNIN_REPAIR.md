@@ -32,3 +32,23 @@ The first broad direct edit was rejected by automatic approval review. The patch
 Pre-deploy expectations: health stays successful; unauthenticated /mcp returns 401; /oauth/tools rejects missing/expired tokens and missing scopes; the newly published npm client can sign in, refresh and read the existing fixture run. Rollback uses the existing sync deployment snapshots. This changes connector authentication, so previously anonymous remote clients need to sign in.
 
 Final pre-deployment gate: TypeScript passed; full frontend suite passed 144 files / 1,718 tests, with 2 files / 7 tests skipped. The previously failing pipeline test passed in the complete rerun. Installer 0.1.1 explicitly defaults to the verified dev-public endpoint, documented as development; the broken production hostname is not silently presented as verified. The credential file is authoritative; the CLI no longer stores an immediately stale refresh-token copy in the OS keychain.
+
+## Deployment and release progress
+
+The dirty-tree safeguard stopped the first deployment before it changed the service. A clean sparse checkout of `7a2ae3e54` was created instead, preserving other ongoing edits. TypeScript passed there. The full suite's only failures were omitted cross-layer source/reference files; after including the committed backend and tutorial references and linking the existing catalog database, all 30 affected tests passed. Other tests in that full run passed.
+
+Dev deployment completed healthy at 21:50 America/Chicago. Frontend image: `sha256:2d31ffe17505de5ac2a7ef298b3aa7bf074e2486b84c0f44b2072b74bb0e8753`. The running build revision was verified as `7a2ae3e54e694e8eaf1fe2439073dabbb71b8da7`. Remote MCP is healthy and returns 401 to unauthenticated requests. Connector contract smoke checks: zero failed, zero inconclusive. The existing migration replay again reported the already-existing users table; health and application smoke checks passed. No workflow/database layer was uploaded.
+
+The deployed planning route returned a valid final response (1,571 characters) without executing a workflow. Real fixture-account OAuth login, PKCE exchange, refresh rotation, stale-refresh rejection, scoped write denial, owned-run retrieval and client restart all passed against the public deployed service. Evidence: `compatibility/session-deployed-proof.json` and `compatibility/oauth-deployed-proof.json`.
+
+npm accepted both `@biomate/mcp-server@0.1.1` and `@biomate/connect@0.1.1` for public publication. Registry processing was still pending on the first installation attempt; final published-package verification remains to be recorded. The installer now builds as ESM, starts under Node 18, has no unused native keychain dependency, and excludes development tests from its package.
+
+## Final published-package verification — passed
+
+Both version 0.1.1 packages are now visible in npm. The actual published MCP package was installed into a fresh temporary directory and tested against the deployed dev service. All 14 checks passed, including login, PKCE, refresh rotation, old-refresh rejection, client restart, owned-run output inventory, Markdown report export, permission denial and test-key cleanup. Evidence records packageVersion 0.1.1 and the installed npm entry path.
+
+The actual published installer starts successfully with --help. Its built source also starts under Node 18. Four additional live checks passed for personal API-key creation/use/revocation and denial after revocation with the published MCP client. Existing API-key users remain supported; existing OAuth users should reconnect with @biomate/connect@0.1.1 and restart their host.
+
+Connector repository commits d7542d4 and d8ec0a6 were pushed to feat/instrument-actuation-dbtl. Main-repository repair/packaging commits are 7a2ae3e54, c2e58eac2 and f115bac85; the inherited GitHub workflow-scope restriction on pushing that branch remains separate from successful deployment and npm publication.
+
+Scope: the 19-tool npm/desktop adapter and its OAuth gateway are verified as described above. This is not a certification of every tool/domain, ChatGPT Actions/WeChat UI flows, report editing, production deployment, or scientific interpretation. Recording remains subject to the separate scientific and client-specific tutorial gates.

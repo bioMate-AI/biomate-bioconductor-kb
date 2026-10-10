@@ -2,8 +2,8 @@
 import fs from 'node:fs';import {pathToFileURL} from 'node:url';
 import {FIXTURE_EMAIL,FIXTURE_PASSWORD,E2E_TOKEN} from '../frontend/e2e/_fixture-login';
 async function main(){
- const base='https://dev-public.biomate.ai',prefix='/private/tmp/biomate-connector-20261009/node_modules';
- const out='docs/qa/20261009-connector-workflows/api-key-proof.json';const checks:any[]=[];
+ const base='https://dev-public.biomate.ai',prefix=process.env.CONNECTOR_TEST_PREFIX||'/private/tmp/biomate-connector-20261009/node_modules';
+ const out=process.env.CONNECTOR_KEY_PROOF_OUTPUT||'docs/qa/20261009-connector-workflows/api-key-proof.json';const checks:any[]=[];
  const save=()=>fs.writeFileSync(out,JSON.stringify({date:new Date().toISOString(),checks},null,2)+'\n');
  const login=await fetch(base+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-E2E-Test-Token':E2E_TOKEN},body:JSON.stringify({email:FIXTURE_EMAIL,password:FIXTURE_PASSWORD})});
  if(!login.ok)throw new Error('Fixture login HTTP '+login.status);const {token}=await login.json() as any;
