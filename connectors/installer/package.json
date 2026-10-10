@@ -39,7 +39,8 @@
     "vitest": "^1.0.0"
   },
   "files": [
-    "dist",
+    "dist/*.js",
+    "dist/*.d.ts",
     "README.md"
   ],
   "type": "module"
