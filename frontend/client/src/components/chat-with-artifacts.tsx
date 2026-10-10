@@ -517,6 +517,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
 
   // Resizable panel width (px)
   const [panelWidth, setPanelWidth] = useState(480)
+  const [chatHidden, setChatHidden] = useState(false)
   const splitLayoutRef = useRef<HTMLDivElement>(null)
   const [splitWidth, setSplitWidth] = useState(1200)
   useEffect(() => {
@@ -526,8 +527,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     observer.observe(node)
     return () => observer.disconnect()
   }, [])
-  const panelIsOverlay = isMobile || splitWidth < 720
-  const maxPanelWidth = Math.max(320, Math.min(900, splitWidth - 380))
+  const panelIsOverlay = isMobile || splitWidth < 880
+  const maxPanelWidth = Math.max(320, Math.min(860, splitWidth - 380))
   const visiblePanelWidth = Math.min(panelWidth, maxPanelWidth)
   const panelResizingRef = useRef(false)
   const panelResizeStartX = useRef(0)
@@ -610,7 +611,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     cancelRun,
     loadRun,
   } = useUnifiedExecution()
-  const { activeProjectId } = useActiveProject()
+  const { activeProjectId, activeProject } = useActiveProject()
   const { isOnline } = useNetworkStatus()
 
   // Update progress based on execution run
@@ -1881,14 +1882,15 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         padding: '0 18px',
         background: 'var(--bm-bg-elev, hsl(var(--background)))',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1, minWidth: 0, overflow: 'hidden' }}>
+          <span style={{ fontSize: 10.5, color: 'var(--bm-text-dim)' }}>{activeProject?.name || 'Unfiled'} / {currentChatSession ? 'chat' : 'new chat'}</span>
           <span style={{
             fontWeight: 600, fontSize: 14,
             color: 'var(--bm-text, hsl(var(--foreground)))',
             fontFamily: 'var(--bm-font-ui)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
-            {currentChatSession?.title || 'New thread'}
+            {currentChatSession?.title || 'New chat'}
           </span>
           {isConnected && (
             <span style={{ fontSize: 11, color: 'var(--bm-ok, oklch(0.62 0.13 150))', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1897,7 +1899,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          {panelOpen && !panelIsOverlay && <Button variant="ghost" size="sm" data-testid="button-toggle-chat-pane" onClick={() => setChatHidden(v => !v)} style={{ fontSize: 12, height: 28 }}>{chatHidden ? 'Show chat' : 'Hide chat'}</Button>}
           <Button
             variant="ghost"
             size="sm"
@@ -2156,7 +2159,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       {/* Split layout: Chat (left, flexible) + Workflow Panel (right, fixed 420px) */}
       <div ref={splitLayoutRef} data-testid="chat-workflow-split" className={`flex-1 min-h-0 min-w-0 overflow-hidden flex ${panelOpen ? "gap-0" : ""}`}>
         {/* Center: Chat — hidden on mobile when workflow panel is open */}
-        <div className={`overflow-hidden min-w-0 ${panelIsOverlay && panelOpen ? 'hidden' : 'flex-1'}`}>
+        <div className={`overflow-hidden min-w-0 ${(panelIsOverlay || chatHidden) && panelOpen ? 'hidden' : 'flex-1'}`}>
           {pendingStructuralEdits.length > 0 && (
             <div
               data-testid="workflow-edits-pending"
@@ -2311,13 +2314,13 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         {panelOpen && (
           <div
             className="flex-shrink-0 border-l bg-background flex flex-col overflow-hidden relative"
-            style={panelIsOverlay
+            style={(panelIsOverlay || chatHidden)
               ? { width: '100%', minWidth: 0, maxWidth: '100%' }
               : { width: visiblePanelWidth, minWidth: 320, maxWidth: maxPanelWidth }}
             data-testid="workflow-right-panel"
           >
             {/* Drag handle — desktop only */}
-            {!panelIsOverlay && (
+            {!panelIsOverlay && !chatHidden && (
               <div
                 className="absolute top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-10 select-none"
                 style={{ left: -3 }}
@@ -2325,6 +2328,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 title="Drag to resize panel"
               />
             )}
+            {!panelWorkflow && <div className="flex justify-end px-3 py-2 border-b"><button onClick={handleClosePanelWorkflow} aria-label="Close workflow panel" data-testid="workflow-panel-close"><X className="h-4 w-4" /></button></div>}
             {/* Generating banner — shows while AI is streaming a response */}
             {panelGenerating && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/60 border-b text-xs text-muted-foreground flex-shrink-0">
@@ -2332,43 +2336,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 Generating…
               </div>
             )}
-            {/* Slim chrome bar */}
-            <div className="flex items-center gap-2 px-3 py-1 border-b flex-shrink-0" style={{ minHeight: 36 }}>
-              {/* Mobile: back-to-chat button on the left */}
-              {panelIsOverlay && (
-                <button
-                  onClick={handleClosePanelWorkflow}
-                  className="flex items-center gap-1 rounded-sm px-2 py-1 hover:bg-muted text-sm font-medium"
-                  aria-label="Back to chat"
-                  data-testid="workflow-panel-back"
-                >
-                  ← Chat
-                </button>
-              )}
-              <div className="ml-auto flex items-center gap-2">
-                {/* Tutorial button — commented out; replace with contextual help later
-                {!isMobile && (
-                  <button
-                    className="tut-btn"
-                    onClick={startTour}
-                    title="Start the workflow panel tutorial"
-                    data-testid="button-start-tour"
-                  >
-                    <span style={{ fontSize: 9 }}>▶</span> Tutorial
-                  </button>
-                )}
-                */}
-                <button
-                  onClick={handleClosePanelWorkflow}
-                  className="rounded-sm p-1 hover:bg-muted"
-                  aria-label="Close workflow panel"
-                  data-testid="workflow-panel-close"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
             {/* v2 after-run 7-tab report — gated by ?afterrun=v2 flag, shown
                 above the v1 viewer when the run is completed. Phase 4 preview. */}
             {afterRunFlavor === 'v2'
@@ -2461,6 +2428,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   return (
                     <NextflowWorkflowViewer
                       workflowDefinition={panelWorkflow}
+                      onClose={handleClosePanelWorkflow}
+                      onToggleExpand={() => setChatHidden(v => !v)}
+                      expanded={chatHidden}
+                      projectId={activeProjectId || undefined}
+                      projectName={activeProject?.name}
                       invocationId={runMatchesPanel ? (currentRun?.execution?.galaxyInvocationId || currentRun?.id) : undefined}
                       workflowId={panelWorkflow?.id}
                       lastSubmittedParams={runMatchesPanel ? extractSubmittedParams(currentRun) : undefined}

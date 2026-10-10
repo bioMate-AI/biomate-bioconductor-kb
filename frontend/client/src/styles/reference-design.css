@@ -8,7 +8,7 @@
 /* ── Global design tokens ─────────────────────────────────── */
 :root {
   /* Neutrals — cool-leaning oklch, matches reference tokens.css */
-  --bm-bg:            oklch(0.99  0.003 240);
+  --bm-bg:            #ffffff;
   --bm-bg-elev:       #ffffff;
   --bm-surface:       oklch(0.985 0.003 240);
   --bm-surface-2:     oklch(0.965 0.004 240);
@@ -23,6 +23,8 @@
   --bm-accent:        oklch(0.55  0.14  245);
   --bm-accent-soft:   oklch(0.96  0.03  245);
   --bm-accent-ink:    oklch(0.38  0.12  245);
+
+  --bm-primary:       #007fbd;
 
   /* Status colours */
   --bm-ok:            oklch(0.62  0.13  150);

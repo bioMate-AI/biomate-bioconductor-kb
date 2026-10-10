@@ -114,3 +114,14 @@ describe("ProjectDetailPage — Members & roles panel", () => {
     expect(screen.getByTestId("role-verdict-Read & download files")).toHaveTextContent("you can")
   })
 })
+
+
+describe("Project instructions route", () => {
+  it("presents the existing persisted instruction editor in the main pane", async () => {
+    installFetch({ role: "owner", members: [OWNER_MEMBER] })
+    render(<ProjectDetailPage projectId={PROJECT.id} initialTab="instructions" onBack={() => {}} />)
+    expect(await screen.findByRole("heading", { name: "Instructions", exact: true })).toBeInTheDocument()
+    expect(screen.getByTestId("project-instructions-panel")).not.toHaveClass("w-72")
+    expect(screen.getByTestId("button-edit-instructions")).toBeInTheDocument()
+  })
+})

@@ -622,73 +622,6 @@ export function ChatInput({
         </div>
       )}
 
-      {/* Instructions affordance (spec 06 §6.5). A lightweight, collapsible
-          field for standing instructions the assistant applies to every
-          request in this composer. Its value threads into the submit context
-          as `composerInstructions`. Collapsed by default so it adds no noise;
-          shows a "on" dot when instructions are present. The §6.5 "experts"
-          catalogue ships alongside it — see the Experts affordance
-          (SkillsSelector) below, backed by the real GET /api/skills catalogue. */}
-      <div style={{ marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ flex: "1 1 auto", minWidth: 0 }}>
-        <button
-          type="button"
-          data-testid="composer-instructions-toggle"
-          onClick={() => setInstructionsOpen((o) => !o)}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            border: "none", background: "transparent", cursor: "pointer",
-            fontSize: 12, color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
-            padding: "2px 2px",
-          }}
-        >
-          {instructionsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-          <SlidersHorizontal className="w-3 h-3" />
-          <span>Instructions</span>
-          {instructions.trim() && (
-            <span
-              data-testid="composer-instructions-on"
-              aria-hidden
-              style={{ width: 6, height: 6, borderRadius: 999, background: "var(--bm-ok, oklch(0.62 0.14 155))" }}
-            />
-          )}
-        </button>
-        {instructionsOpen && (
-          <textarea
-            data-testid="composer-instructions"
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-            placeholder="Standing instructions for this composer — e.g. report FDR<0.05, use GRCh38, prefer conservative thresholds. Applied to every request here."
-            rows={2}
-            style={{
-              width: "100%", marginTop: 6, resize: "vertical",
-              minHeight: 44, maxHeight: 160,
-              border: "1px solid var(--bm-border, oklch(0.88 0.004 240))",
-              borderRadius: "var(--bm-r-md, 8px)",
-              background: "var(--bm-bg-elev, hsl(var(--background)))",
-              padding: "6px 8px", fontSize: 12.5, lineHeight: 1.45,
-              fontFamily: "var(--bm-font-ui)", color: "var(--bm-text, oklch(0.22 0.01 260))",
-              outline: "none",
-            }}
-          />
-        )}
-        </div>
-
-        {/* Experts affordance (spec 06 §6.5 / §0.9.2). Per-project skill/expert
-            packs toggled where the request is made, so the selected packs are
-            recorded on the answer/run. Backed by the REAL GET /api/skills
-            catalogue; honest-empty ("No expert packs available yet") when it's
-            unpopulated, never fake toggles. Selection threads into the submit
-            context as `skillPackIds`. */}
-        <div style={{ flexShrink: 0 }}>
-          <SkillsSelector
-            selectedIds={selectedSkillIds}
-            onChange={setSelectedSkillIds}
-            packs={skillPacks}
-          />
-        </div>
-      </div>
-
       {/* Lane preview (spec 06 §6.2) — advisory Instant/Cloud verdict shown as
           the user types. Debounced so it settles rather than flickering
           mid-word. Never blocks send. Hidden while streaming or when a file/
@@ -727,17 +660,20 @@ export function ChatInput({
         borderRadius: 'var(--bm-r-lg, 12px)',
         background: 'var(--bm-bg-elev, hsl(var(--background)))',
         boxShadow: 'var(--bm-shadow-sm, 0 1px 2px rgba(15,23,42,0.04))',
-        padding: '8px 10px',
+        padding: '10px 12px',
+        maxWidth: 660,
+        margin: '0 auto',
+        width: '100%',
         display: 'flex',
         flexDirection: 'column',
-        gap: 4,
+        gap: 9,
         transition: 'border-color .15s',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, minWidth: 0 }}>
           {/* Upload local file button */}
           <button
             disabled={disabled}
-            title="Attach file"
+            title="Attach data file" aria-label="Attach data file"
             data-testid="chat-attach-file-button"
             onClick={() => fileInputRef.current?.click()}
             style={{
@@ -834,12 +770,80 @@ export function ChatInput({
               order: -1,
               flexBasis: '100%',
               fontFamily: 'var(--bm-font-ui)',
-              fontSize: 14,
-              lineHeight: 1.5,
+              fontSize: 13.5,
+              lineHeight: 1.55,
               color: 'var(--bm-text)',
             }}
             rows={1}
           />
+
+      {/* Instructions affordance (spec 06 §6.5). A lightweight, collapsible
+          field for standing instructions the assistant applies to every
+          request in this composer. Its value threads into the submit context
+          as `composerInstructions`. Collapsed by default so it adds no noise;
+          shows a "on" dot when instructions are present. The §6.5 "experts"
+          catalogue ships alongside it — see the Experts affordance
+          (SkillsSelector) below, backed by the real GET /api/skills catalogue. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minWidth: 0, flexBasis: instructionsOpen ? "100%" : undefined }}>
+        <div style={{ minWidth: 0, flex: instructionsOpen ? "1 1 100%" : undefined }}>
+        <button
+          type="button"
+          data-testid="composer-instructions-toggle"
+          onClick={() => setInstructionsOpen((o) => !o)}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            border: "none", background: "transparent", cursor: "pointer",
+            fontSize: 12, color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+            padding: "2px 2px",
+          }}
+        >
+          {instructionsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+          <SlidersHorizontal className="w-3 h-3" />
+          <span>Instructions</span>
+          {instructions.trim() && (
+            <span
+              data-testid="composer-instructions-on"
+              aria-hidden
+              style={{ width: 6, height: 6, borderRadius: 999, background: "var(--bm-ok, oklch(0.62 0.14 155))" }}
+            />
+          )}
+        </button>
+        {instructionsOpen && (
+          <textarea
+            data-testid="composer-instructions"
+            value={instructions}
+            onChange={(e) => setInstructions(e.target.value)}
+            placeholder="Standing instructions for this composer — e.g. report FDR<0.05, use GRCh38, prefer conservative thresholds. Applied to every request here."
+            rows={2}
+            style={{
+              width: "100%", marginTop: 6, resize: "vertical",
+              minHeight: 44, maxHeight: 160,
+              border: "1px solid var(--bm-border, oklch(0.88 0.004 240))",
+              borderRadius: "var(--bm-r-md, 8px)",
+              background: "var(--bm-bg-elev, hsl(var(--background)))",
+              padding: "6px 8px", fontSize: 12.5, lineHeight: 1.45,
+              fontFamily: "var(--bm-font-ui)", color: "var(--bm-text, oklch(0.22 0.01 260))",
+              outline: "none",
+            }}
+          />
+        )}
+        </div>
+
+        {/* Experts affordance (spec 06 §6.5 / §0.9.2). Per-project skill/expert
+            packs toggled where the request is made, so the selected packs are
+            recorded on the answer/run. Backed by the REAL GET /api/skills
+            catalogue; honest-empty ("No expert packs available yet") when it's
+            unpopulated, never fake toggles. Selection threads into the submit
+            context as `skillPackIds`. */}
+        <div style={{ flexShrink: 0 }}>
+          <SkillsSelector
+            selectedIds={selectedSkillIds}
+            onChange={setSelectedSkillIds}
+            packs={skillPacks}
+          />
+        </div>
+      </div>
+
 
           {/* Send / Stop button */}
           {isStreaming ? (

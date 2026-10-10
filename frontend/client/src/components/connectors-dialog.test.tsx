@@ -168,3 +168,15 @@ describe("<ConnectorsDialog> existing behaviour intact", () => {
     expect(selected).toContain("UniProt / Swiss-Prot");
   });
 });
+
+
+describe("Workspace Connections panel", () => {
+  it("renders in the workspace without a modal and exposes the real connection surfaces", () => {
+    render(<ConnectorsDialog embedded open onOpenChange={() => {}} />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Connectors" })).toBeInTheDocument();
+    for (const tab of ["databases", "ai", "skills", "mcp", "yours", "instruments"]) {
+      expect(screen.getByTestId(`connector-tab-${tab}`)).toBeInTheDocument();
+    }
+  });
+});

@@ -113,7 +113,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   const [loadingProject, setLoadingProject] = useState(true)
   const [isEditingInstructions, setIsEditingInstructions] = useState(false)
   const [instructionsValue, setInstructionsValue] = useState("")
-  const validTabs = ["chat", "files", "workflows"]
+  const validTabs = ["chat", "files", "workflows", "instructions"]
   const [activeTab, setActiveTab] = useState(validTabs.includes(initialTab || "") ? initialTab! : "files")
 
   const [sessions, setSessions] = useState<any[]>([])
@@ -404,6 +404,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
       if (r.ok) {
         setProject(prev => prev ? { ...prev, instructions: instructionsValue.trim() } : prev)
         setIsEditingInstructions(false)
+        window.dispatchEvent(new CustomEvent("biomate:projects-updated"))
       }
     } catch { /* keep editing open */ }
   }
@@ -610,7 +611,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="border-b border-border px-6 py-4 shrink-0">
+      <div className="border-b border-border px-6 py-4 shrink-0" style={activeTab === "instructions" ? { display: "none" } : undefined}>
         <div className="flex items-center gap-3 mb-3">
           <Button variant="ghost" size="sm" onClick={onBack} data-testid="button-back-to-projects">
             <ArrowLeft className="w-4 h-4 mr-2" />All projects
@@ -705,7 +706,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
 
       {/* Body */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={activeTab === "instructions" ? { display: "none" } : undefined}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <TabsList className="w-fit mx-4 mt-3 mb-0 shrink-0">
               <TabsTrigger value="chat" className="flex items-center gap-1.5" data-testid="tab-project-chat">
@@ -931,10 +932,11 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
         </div>
 
         {/* Right sidebar */}
-        <div className="w-72 border-l border-border bg-muted/20 shrink-0 flex flex-col overflow-hidden">
-          <div className="p-4 flex-1 overflow-y-auto space-y-6">
+        <div data-testid="project-instructions-panel" className={activeTab === "instructions" ? "flex-1 min-w-0 flex flex-col overflow-y-auto bg-background" : "w-72 border-l border-border bg-muted/20 shrink-0 flex flex-col overflow-hidden"}>
+          {activeTab === "instructions" && <div className="w-full max-w-4xl mx-auto px-8 pt-8"><p className="text-xs text-muted-foreground mb-2">{project.name} / Instructions</p><h2 className="text-xl font-semibold">Instructions</h2><p className="text-sm text-muted-foreground mt-2">Standing instructions apply to every chat in this project. Notes record context for your team.</p></div>}
+          <div className={activeTab === "instructions" ? "p-8 w-full max-w-4xl mx-auto space-y-8" : "p-4 flex-1 overflow-y-auto space-y-6"}>
             {/* Standing instructions — the agent-read directives (persist to researchGoal). */}
-            <div data-testid="standing-instructions-card">
+            <div data-testid="standing-instructions-card" className={activeTab === "instructions" ? "rounded-lg border border-border p-5" : undefined}>
               <div className="flex items-center justify-between mb-1">
                 <h3 className="font-medium text-sm">Standing instructions</h3>
                 {canEdit && !isEditingInstructions && (
@@ -983,7 +985,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             </div>
 
             {/* Notes — human-only free text, NOT read by the assistant. */}
-            <div className="border-t border-border pt-4" data-testid="notes-card">
+            <div className={activeTab === "instructions" ? "rounded-lg border border-border p-5" : "border-t border-border pt-4"} data-testid="notes-card">
               <h3 className="font-medium text-sm">Notes</h3>
               <p className="text-[11px] text-muted-foreground mb-3">
                 Private to you — <span className="font-medium">not read by the assistant</span>. Promote a note to make it a standing instruction.

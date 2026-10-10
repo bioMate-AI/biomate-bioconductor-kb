@@ -974,13 +974,13 @@ export function ColdStartDashboard({ onSeed }: ColdStartDashboardProps) {
         flexDirection: "column",
         gap: 20,
         width: "100%",
-        maxWidth: 720,
+        maxWidth: 792,
         margin: "0 auto",
-        padding: "24px 0 8px",
+        padding: "32px 0 8px",
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <span style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
+        <span style={{ fontSize: 18, textAlign: "center", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
           What are you trying to do?
         </span>
         <IntentBar onSeed={onSeed} />

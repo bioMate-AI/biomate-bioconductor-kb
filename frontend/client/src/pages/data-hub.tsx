@@ -260,6 +260,19 @@ export default function DataHubPage() {
                 dataset={toDatasetRef(selected)}
                 onBack={() => setSelected(null)}
                 onDownload={() => handleDownload(selected)}
+                onOpenRun={(runId) =>
+                  window.location.assign(`/?reuseWorkflow=${encodeURIComponent(runId)}`)
+                }
+                onAnalyze={() => {
+                  // Launch-from-dataset: open chat IN this project with a pre-filled
+                  // (not auto-sent) prompt to run a workflow on this dataset — work
+                  // flows OUT of the data panel. Mirrors the "Analyze with BioMate" flow.
+                  const msg = `Run an analysis on the dataset "${selected.name}" — suggest the right workflow and set it up.`
+                  const q = new URLSearchParams()
+                  if (activeProjectId) q.set("project", activeProjectId)
+                  q.set("draft", msg)
+                  window.location.assign(`/?${q.toString()}`)
+                }}
               />
             ) : (
               // No file picked yet — an honest prompt, not a blank pane.

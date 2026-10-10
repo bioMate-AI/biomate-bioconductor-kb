@@ -122,34 +122,6 @@ import { DOMAIN_TAXONOMY, DOMAIN_LABELS } from "@/components/domain-profile-sele
 const ONBOARDING_DONE_KEY = 'biomate_onboarding_done'
 
 // Example queries shown as clickable chips on the empty-state chat screen.
-// First entry is the conference demo default (MG patient stratification chain).
-/** Files to auto-attach when a demo chip is clicked. Fetched from /public at click time. */
-const DEMO_FILE_BASE = '/demo/mg_demo'
-
-const EXAMPLE_QUERIES = [
-  {
-    label: 'MG patient stratification → ADMET',
-    query: 'Run differential expression on AChR+ myasthenia gravis PBMC data (GSE227835, 10 MG patients vs 10 healthy controls) — find the key differentially expressed genes.',
-    demoFiles: [
-      `${DEMO_FILE_BASE}/sample_metadata.csv`,
-      `${DEMO_FILE_BASE}/counts_matrix.csv`,
-      `${DEMO_FILE_BASE}/contrasts.csv`,
-    ],
-  },
-  {
-    label: 'ADMET screen from SMILES',
-    query: 'Screen these compounds for hERG cardiotoxicity, CYP3A4 inhibition, and oral bioavailability: aspirin (CC(=O)Oc1ccccc1C(=O)O), ibuprofen (CC(C)Cc1ccc(cc1)C(C)C(=O)O)',
-  },
-  {
-    label: 'RNA-seq differential expression',
-    query: 'Run nf-core RNA-seq differential expression on s3://my-bucket/fastqs/ — human GRCh38, paired-end, treated (n=3) vs control (n=3), FDR 0.05',
-  },
-  {
-    label: 'Variant calling on WGS sample',
-    query: 'Whole-genome variant calling on the uploaded FASTQ pair, human GRCh38, GATK HaplotypeCaller, germline mode',
-  },
-] as const
-
 function OnboardingWelcome({
   onComplete,
   visible,
@@ -531,7 +503,7 @@ export function ChatInterface({
     const loadProjects = () => {
       fetch('/api/projects', { credentials: 'include' })
         .then((r) => (r.ok ? r.json() : { projects: [] }))
-        .then((d) => { if (!cancelled) setComposerProjects((d.projects ?? []) as ComposerProject[]) })
+        .then((d) => { if (!cancelled) setComposerProjects((d.projects ?? []).map((p: any) => ({ ...p, instructions: p.researchGoal ?? p.instructions ?? "" })) as ComposerProject[]) })
         .catch(() => { /* honest-empty: no projects → no suggestion */ })
     }
     loadProjects()
@@ -2385,71 +2357,10 @@ export function ChatInterface({
       )}
       {/* Reference design chat input wrap — padding clamp like layout.css */}
       <div style={{
-        padding: '14px clamp(16px, 4%, 56px) 18px',
-        background: 'var(--bm-bg, hsl(var(--background)))',
+        padding: '14px 24px 18px',
+        borderTop: '1px solid var(--bm-border)',
+        background: 'var(--bm-bg-elev)',
       }}>
-        {displayMessages.length === 0 && (
-          <>
-            <p style={{
-              fontSize: 13,
-              color: 'var(--bm-text-dim, oklch(0.60 0.008 240))',
-              marginBottom: 10,
-              textAlign: 'center',
-            }}>
-              Input your use case here
-            </p>
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 6,
-              justifyContent: 'center',
-              marginBottom: 10,
-            }}>
-              {EXAMPLE_QUERIES.map((q) => (
-                <button
-                  key={q.label}
-                  onClick={async () => {
-                    localSetDraftRef.current?.(q.query)
-                    const demoFiles = (q as any).demoFiles as string[] | undefined
-                    if (demoFiles && localAddFilesRef.current) {
-                      const addFiles = localAddFilesRef.current
-                      const files = await Promise.all(
-                        demoFiles.map(async (url) => {
-                          const res = await fetch(url)
-                          const blob = await res.blob()
-                          const name = url.split('/').pop() ?? 'file'
-                          return new File([blob], name, { type: blob.type || 'text/plain' })
-                        })
-                      ).catch(() => [] as File[])
-                      if (files.length > 0) addFiles(files)
-                    }
-                  }}
-                  style={{
-                    fontSize: 12,
-                    padding: '4px 10px',
-                    borderRadius: 16,
-                    border: '1px solid var(--bm-border, oklch(0.88 0.004 240))',
-                    background: 'var(--bm-surface, oklch(0.97 0.002 240))',
-                    color: 'var(--bm-text-dim, oklch(0.45 0.012 240))',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'background 0.15s, color 0.15s',
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--bm-accent-light, oklch(0.93 0.012 245))'
-                    ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--bm-accent, oklch(0.48 0.18 245))'
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--bm-surface, oklch(0.97 0.002 240))'
-                    ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--bm-text-dim, oklch(0.45 0.012 240))'
-                  }}
-                >
-                  {q.label}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
         <ChatInput
           onSend={handleSendOrQueue}
           pendingCount={pendingMessages.length}

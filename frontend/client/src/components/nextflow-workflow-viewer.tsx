@@ -80,6 +80,10 @@ interface NextflowWorkflowViewerProps {
    * The parent should apply the width to the panel container.
    */
   onResize?: (width: number) => void;
+  onClose?: () => void;
+  onToggleExpand?: () => void;
+  expanded?: boolean;
+  projectName?: string;
   /** When provided, shows a "Go to project" chip in the panel header. */
   projectId?: string;
 }
@@ -1037,6 +1041,10 @@ export function NextflowWorkflowViewer({
   onWorkflowProgress,
   executionMetrics,
   onResize,
+  onClose,
+  onToggleExpand,
+  expanded,
+  projectName,
   projectId: projectIdProp,
 }: NextflowWorkflowViewerProps) {
   const [, navigate] = useLocation();
@@ -2578,6 +2586,8 @@ export function NextflowWorkflowViewer({
         const phaseCount = hasRealPhases ? groupedPhases.length : groupedPhases.length > 0 ? 1 : 0;
         const stepCount = updatedPhases.length;
         const subtitleParts: string[] = [];
+        if (projectName) subtitleParts.push(projectName);
+        if (workflowDefinition?.version) subtitleParts.push(String(workflowDefinition.version));
         if (phaseCount > 0) subtitleParts.push(t(phaseCount === 1 ? 'panel.phase_count_one' : 'panel.phase_count_other', { n: phaseCount }));
         const panelSub = subtitleParts.length > 0
           ? subtitleParts.join(' · ')
@@ -2591,6 +2601,8 @@ export function NextflowWorkflowViewer({
                 {panelSub && <div className="panel-sub">{panelSub}</div>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                {onToggleExpand && <button type="button" className="iconbtn" aria-label={expanded ? 'Restore split view' : 'Expand workflow panel'} onClick={onToggleExpand} data-testid="workflow-panel-expand"><Square style={{ width: 13, height: 13 }} /></button>}
+                {onClose && <button type="button" className="iconbtn" aria-label="Close workflow panel" data-testid="workflow-panel-close" onClick={onClose}><span aria-hidden style={{ fontSize: 20, lineHeight: 1 }}>×</span></button>}
                 {projectId && (
                   <button
                     onClick={() => navigate(`/projects?project=${projectId}`)}
@@ -2637,10 +2649,6 @@ export function NextflowWorkflowViewer({
                 )}
               </div>
             </div>
-            {/* Progress bar — commented out per UX review 2026-06-19.
-                Status is already conveyed by the header badge + per-phase chip;
-                a separate bar duplicated the signal. Re-enable if a user-test
-                shows the absence is missed.
             {(status === 'running' || status === 'completed') && effectiveProgress > 0 && (
               <div className="run-bar">
                 <div className="progress">
@@ -2652,7 +2660,7 @@ export function NextflowWorkflowViewer({
                 )}
               </div>
             )}
-            */}
+
           </div>
         );
       })()}
@@ -3104,7 +3112,7 @@ export function NextflowWorkflowViewer({
             const requiredUnfilled = requiredParams.filter(p => p.required && (!p.value || p.value === ''));
 
             if (globalParams.length === 0 && !mismatch) return (
-              <div style={{ height: '100%', minHeight: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+              <div style={{ minHeight: 100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
                 <div style={{ marginBottom: 6 }}>{tOr('panel.no_configurable_params', 'This workflow has no configurable parameters.')}</div>
                 <div style={{ fontSize: 12, opacity: 0.75 }}>{tOr('panel.confirm_to_start', 'Click "Confirm and run workflow" below to start it.')}</div>
               </div>
@@ -3429,7 +3437,7 @@ export function NextflowWorkflowViewer({
             )}
             {/* ── No steps found after fetch completed ─────────────────────── */}
             {groupedPhases.length === 0 && !lazyStepsFetching && lazySteps !== null && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
-              <div style={{ height: '100%', minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}>
+              <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}>
                 {status === 'failed'
                   ? tOr('panel.run_failed_no_phases', 'Run failed before any phases started. Check the error details above.')
                   : tOr('panel.phases_appear', 'Execution phases will appear here once the workflow starts.')}
@@ -3437,7 +3445,7 @@ export function NextflowWorkflowViewer({
             )}
             {/* ── Idle / no nextflow_path — personal workflow not yet run ─── */}
             {groupedPhases.length === 0 && !lazyStepsFetching && lazySteps === null && status === 'idle' && (
-              <div style={{ height: '100%', minHeight: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+              <div style={{ minHeight: 100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
                 <div style={{ marginBottom: 6 }}>{tOr('panel.no_phases', 'No phases defined yet.')}</div>
                 <div style={{ fontSize: 12, opacity: 0.75 }}>{tOr('panel.phases_appear', 'Execution phases will appear here once the workflow starts.')}</div>
               </div>
@@ -3603,7 +3611,7 @@ export function NextflowWorkflowViewer({
                 </div>
               )}
               {/* ── Post-run links row ─────────────────────────────────────────── */}
-              {status === 'completed' && (
+              {status === 'completed' && activeTab === 'after-run' && (
                 <div className="results-links">
                   <button
                     className="linkish"
@@ -3671,7 +3679,7 @@ export function NextflowWorkflowViewer({
               )}
 
             {/* ── Run metrics strip ─────────────────────────────────────────── */}
-              {(nextflowStatus?.duration_s != null || nextflowStatus?.started_at != null) && (
+              {activeTab === 'phases' && (nextflowStatus?.duration_s != null || nextflowStatus?.started_at != null) && (
                 <div className="metrics-strip" data-testid="run-metrics-strip">
                   {nextflowStatus?.duration_s != null && (
                     <div className="cell" data-testid="run-metric-duration">
@@ -3795,7 +3803,7 @@ export function NextflowWorkflowViewer({
             </div>
           )}
 
-          {(invocationId || runId) && showResults && (
+          {activeTab === 'after-run' && (invocationId || runId) && showResults && (
             <div style={{ padding: '8px 0 0' }}>
               <div style={{ padding: '0 18px 6px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-dim)' }}>{tOr('panel.output_results', 'Output Results')}</div>
               <ChatOutputAttachments

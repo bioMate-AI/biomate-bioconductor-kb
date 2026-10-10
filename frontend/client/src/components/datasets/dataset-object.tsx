@@ -32,6 +32,7 @@ import {
   Download,
   FileArchive,
   Plus,
+  Play,
 } from "lucide-react"
 import { DataPerception, type PerceptionQuality } from "@/components/data-perception"
 import {
@@ -87,6 +88,12 @@ interface DatasetObjectProps {
   dataset: DatasetRef
   onBack?: () => void
   onDownload?: () => void
+  /** Open the workflow run that produced (or reads) this dataset — makes
+   *  lineage/consumers navigable rather than static text (data-centric flow). */
+  onOpenRun?: (runId: string) => void
+  /** Launch an analysis FROM this dataset — opens chat primed (review-before-send)
+   *  to run a workflow on it, so work flows OUT of the data panel. */
+  onAnalyze?: () => void
   className?: string
 }
 
@@ -103,6 +110,8 @@ export function DatasetObject({
   dataset,
   onBack,
   onDownload,
+  onOpenRun,
+  onAnalyze,
   className,
 }: DatasetObjectProps) {
   // Tabs lazily fetch their backing data when first opened (mirrors Quality).
@@ -224,6 +233,18 @@ export function DatasetObject({
               >
                 <FileArchive className="h-3 w-3" />
                 {exporting ? "Exporting…" : "Export RO-Crate"}
+              </Button>
+            )}
+            {onAnalyze && (
+              <Button
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={onAnalyze}
+                data-testid="dataset-object-analyze"
+                title="Run an analysis on this dataset — opens chat for you to review and send"
+              >
+                <Play className="h-3 w-3" />
+                Analyze
               </Button>
             )}
             {onDownload && (
@@ -358,7 +379,17 @@ export function DatasetObject({
               </div>
             ) : lineageQ.data?.available && lineageQ.data.producedBy ? (
               <>
-                <Row k="Produced by run" v={fmt(lineageQ.data.producedBy.runId)} mono />
+                <Row
+                  k="Produced by run"
+                  v={fmt(lineageQ.data.producedBy.runId)}
+                  mono
+                  onClick={
+                    onOpenRun && lineageQ.data.producedBy.runId
+                      ? () => onOpenRun(lineageQ.data!.producedBy!.runId!)
+                      : undefined
+                  }
+                  testid="lineage-open-run"
+                />
                 <Row
                   k="Workflow"
                   v={fmt(lineageQ.data.producedBy.workflow ?? dataset.workflowName)}
@@ -375,7 +406,13 @@ export function DatasetObject({
               // Prop says it's a run output but the backend has no surviving
               // provenance record — show what the caller holds, honestly.
               <>
-                <Row k="Produced by run" v={fmt(dataset.runId)} mono />
+                <Row
+                  k="Produced by run"
+                  v={fmt(dataset.runId)}
+                  mono
+                  onClick={onOpenRun && dataset.runId ? () => onOpenRun(dataset.runId!) : undefined}
+                  testid="lineage-open-run"
+                />
                 <Row k="Workflow" v={fmt(dataset.workflowName)} mono />
                 <Row k="Step" v={fmt(dataset.stepName)} mono last />
                 <p className="text-[10px] text-muted-foreground pt-1">
@@ -401,7 +438,9 @@ export function DatasetObject({
               consumers.map((c) => (
                 <div
                   key={c.runId}
-                  className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
+                  role={onOpenRun ? "button" : undefined}
+                  onClick={onOpenRun ? () => onOpenRun(c.runId) : undefined}
+                  className={`flex items-center gap-2 rounded border px-2 py-1 text-xs${onOpenRun ? " cursor-pointer hover:bg-muted/50" : ""}`}
                   data-testid={`dataset-consumer-${c.runId}`}
                 >
                   <Badge variant="outline" className="text-[10px]">reads</Badge>
@@ -546,16 +585,31 @@ function Row({
   v,
   mono,
   last,
+  onClick,
+  testid,
 }: {
   k: string
   v: string
   mono?: boolean
   last?: boolean
+  onClick?: () => void
+  testid?: string
 }) {
   return (
     <div className={`grid grid-cols-[9rem_1fr] gap-1 py-1${last ? "" : " border-b"}`}>
       <span className="text-muted-foreground">{k}</span>
-      <span className={mono ? "font-mono truncate" : "truncate"}>{v}</span>
+      {onClick ? (
+        <button
+          type="button"
+          data-testid={testid}
+          onClick={onClick}
+          className={`text-left underline underline-offset-2 hover:text-foreground cursor-pointer truncate${mono ? " font-mono" : ""}`}
+        >
+          {v}
+        </button>
+      ) : (
+        <span className={mono ? "font-mono truncate" : "truncate"}>{v}</span>
+      )}
     </div>
   )
 }

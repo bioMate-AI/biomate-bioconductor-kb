@@ -55,6 +55,7 @@ import DebugViewerChain from "@/pages/DebugViewerChain";
 import WorkflowDeepLink from "@/pages/WorkflowDeepLink";
 import CapabilitiesPage from "@/pages/capabilities";
 import { ModelsPanel } from "@/components/models";
+import { ConnectorsDialog } from "@/components/connectors-dialog";
 import DataHubPage from "@/pages/data-hub";
 import { DesignGenerate } from "@/components/design-generate/DesignGenerate";
 import { SiteHeader } from "@/components/site-header";
@@ -95,6 +96,7 @@ function ProjectsRouter() {
   if (projectId) {
     return (
       <ProjectDetailPage
+        key={`${projectId}:${initialTab ?? "files"}`}
         projectId={projectId}
         onBack={handleBackToProjects}
         initialTab={initialTab}
@@ -470,7 +472,7 @@ function PlatformLayout({
             </div>
           ) : (
             /* Full sidebar */
-            <div className="flex-shrink-0 flex overflow-hidden" style={{ width: 260, minWidth: 260, maxWidth: 260 }}>
+            <div className="flex-shrink-0 flex overflow-hidden" data-testid="platform-sidebar" style={{ width: 224, minWidth: 224, maxWidth: 224 }}>
               <AppSidebar
                 onNewChat={onNewChat}
                 onChatSelect={onChatSelect}
@@ -653,6 +655,23 @@ function Router({
       {/* Tier-1 data surface — the data hub. Datasets as first-class objects
           (DatasetObject) with perception-at-ingest quality. Node proxy for
           /api/perception lives in server/routes.ts. */}
+      <Route path="/settings/connections">
+        <PlatformLayout
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+          onNewChat={onNewChat}
+          onChatSelect={onChatSelect}
+          onCategorySelect={onCategorySelect}
+          onToolSelect={onToolSelect}
+          onProjectSelect={onProjectSelect}
+          onNewProject={onNewProject}
+          activeChatId={currentChatSession?.id}
+          chatSessions={chatSessions}
+        >
+          <ConnectorsDialog embedded open onOpenChange={() => {}} />
+        </PlatformLayout>
+      </Route>
+
       <Route path="/files">
         <AuthenticatedPageLayout>
           <DataHubPage />

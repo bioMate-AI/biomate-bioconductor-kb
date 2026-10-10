@@ -136,17 +136,18 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
           display: "inline-flex",
           alignItems: "center",
           gap: 6,
-          border: "none",
-          background: "transparent",
+          border: `1px solid ${BORDER}`,
+          borderRadius: 5,
+          background: "var(--bm-accent-soft)",
           cursor: "pointer",
           fontSize: 12,
-          color: DIM,
-          padding: "2px 2px",
+          color: "var(--bm-accent-ink)",
+          padding: "4px 7px",
         }}
       >
         {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         <Sparkles className="w-3 h-3" />
-        <span>Experts</span>
+        <span>Skills &amp; experts</span>
         {onCount > 0 && (
           <span
             data-testid="composer-experts-count"

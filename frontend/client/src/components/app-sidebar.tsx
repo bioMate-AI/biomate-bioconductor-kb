@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils"
 import { t } from "@/lib/i18n"
 import { analytics } from "@/lib/analytics"
+import { useActiveProject } from "@/contexts/active-project-context"
 import { useAuth } from "@/contexts/auth-context"
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
 
@@ -122,10 +123,27 @@ export function AppSidebar({
   const [showRecentToolsDialog, setShowRecentToolsDialog] = useState(false);
   const [, setLocation] = useLocation();
   const { user, logout } = useAuth();
+  const { activeProjectId: contextProjectId, setActiveProjectId: setContextProjectId } = useActiveProject();
+  const selectedProjectId = activeProjectId || contextProjectId;
+  const [projectSessions, setProjectSessions] = useState<Record<string, Array<{ session_id: string; title: string }>>>({});
 
   // Projects — fetched from API (not localStorage) so they survive page reload
   const [apiProjects, setApiProjects] = useState<Array<{ id: string; name: string; status: string; userId?: string }>>([]);
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    let cancelled = false;
+    const ids = Array.from(expandedProjectIds);
+    Promise.allSettled(ids.map(async id => {
+      const response = await fetch(`/api/projects/${encodeURIComponent(id)}/sessions`, { credentials: 'include' });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (!cancelled) setProjectSessions(prev => ({ ...prev, [id]: data.sessions || [] }));
+    }));
+    return () => { cancelled = true; };
+  }, [expandedProjectIds, activeChatId]);
+  useEffect(() => {
+    if (selectedProjectId) setExpandedProjectIds(prev => new Set([...prev, selectedProjectId]));
+  }, [selectedProjectId]);
   const refreshProjects = () => {
     fetch("/api/projects", { credentials: "include" })
       .then((r) => r.ok ? r.json() : { projects: [] })
@@ -252,17 +270,7 @@ export function AppSidebar({
             </span>
           </span>
         </button>
-        <button
-          className="side-link"
-          data-testid="button-connectors-nav"
-          style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
-          onClick={() => setShowConnectorsDialog(true)}
-        >
-          <Cable className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>Connectors</span>
-          </span>
-        </button>
+
         {/* IND Report hidden from sidebar for now (per request 2026-09-22). Route still exists. */}
         {/* <button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
           <FileText className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
@@ -270,30 +278,15 @@ export function AppSidebar({
             <span>IND Report</span>
           </span>
         </button> */}
-        <button className="side-link" data-testid="button-data-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/files')}>
-          <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>Data</span>
-          </span>
-        </button>
+
         <button className="side-link" data-testid="button-models-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/models')}>
           <Layers className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>Models</span>
           </span>
         </button>
-        <button className="side-link" data-testid="button-design-generate-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/design')}>
-          <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>Design &amp; Generate</span>
-          </span>
-        </button>
-        <button className="side-link" data-testid="button-recent-tools" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowRecentToolsDialog(true)}>
-          <Wrench className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span>Recent Tools</span>
-          </span>
-        </button>
+
+
         {/* Billing hidden — /billing page crashes (BillingPage toFixed on undefined).
             Restore this nav entry once the page is hardened. */}
         {/* <button className="side-link" data-testid="button-billing-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/billing')}>
@@ -305,7 +298,7 @@ export function AppSidebar({
       </div>
 
       {/* Projects section — always visible */}
-      <div style={{ marginBottom: 8, borderTop: '1px solid var(--bm-border)', paddingTop: 8 }}>
+      <div style={{ marginBottom: 8, borderTop: '1px solid var(--bm-border)', paddingTop: 8, maxHeight: '50vh', overflowY: 'auto', flexShrink: 1 }}>
           <button
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px 4px', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', fontWeight: 600, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer' }}
             onClick={() => setProjectsExpanded(p => !p)}
@@ -320,12 +313,12 @@ export function AppSidebar({
             return (
               <div key={proj.id}>
                 <button
-                  style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 10px', borderRadius: 5, color: activeProjectId === proj.id ? 'var(--bm-text)' : 'var(--bm-text-muted)', background: activeProjectId === proj.id ? 'var(--bm-surface-3)' : 'transparent', fontSize: 12.5, cursor: 'pointer', border: 'none', width: '100%', textAlign: 'left' }}
-                  onClick={() => { onProjectSelect(proj.id); setExpandedProjectIds(prev => { const n = new Set(prev); if (n.has(proj.id)) n.delete(proj.id); else n.add(proj.id); return n; }); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 10px', borderRadius: 5, color: selectedProjectId === proj.id ? 'var(--bm-text)' : 'var(--bm-text-muted)', background: selectedProjectId === proj.id ? 'var(--bm-surface-3)' : 'transparent', fontSize: 12.5, cursor: 'pointer', border: 'none', width: '100%', textAlign: 'left' }}
+                  onClick={() => { setContextProjectId(proj.id); setExpandedProjectIds(prev => { const n = new Set(prev); if (n.has(proj.id)) n.delete(proj.id); else n.add(proj.id); return n; }); }}
                   data-testid={`button-project-${proj.id}`}
                 >
                   {isExpanded ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
-                  <FolderOpen className="w-3.5 h-3.5 shrink-0" style={{ color: activeProjectId === proj.id ? 'var(--bm-accent, oklch(0.55 0.14 245))' : 'var(--bm-text-dim)', opacity: 0.8 }} />
+                  <FolderOpen className="w-3.5 h-3.5 shrink-0" style={{ color: selectedProjectId === proj.id ? 'var(--bm-accent, oklch(0.55 0.14 245))' : 'var(--bm-text-dim)', opacity: 0.8 }} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proj.name}</span>
                   {proj.userId && user && proj.userId !== user.id && (
                     <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--bm-accent, oklch(0.55 0.14 245))', opacity: 0.8, flexShrink: 0 }}>shared</span>
@@ -333,18 +326,20 @@ export function AppSidebar({
                 </button>
                 {isExpanded && (
                   <div style={{ paddingLeft: 28 }}>
+                    <button className="side-link" style={{ display: 'flex', gap: 6, padding: '3px 10px', fontSize: 11.5, width: '100%', textAlign: 'left' }} onClick={() => setLocation(`/projects?project=${proj.id}&tab=instructions`)} data-testid={`project-link-instructions-${proj.id}`}><Settings className="w-3 h-3" />Instructions</button>
                     <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => setLocation(`/projects?project=${proj.id}&tab=chat`)} data-testid={`project-link-chats-${proj.id}`}>
                       <MessageCircle className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
                       Chats
                     </button>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => setLocation(`/projects?project=${proj.id}&tab=files`)} data-testid={`project-link-files-${proj.id}`}>
+                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => (() => { setContextProjectId(proj.id); setLocation("/files"); })()} data-testid={`project-link-files-${proj.id}`}>
                       <FileText className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
                       Files
                     </button>
                     <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => setLocation(`/projects?project=${proj.id}&tab=workflows`)} data-testid={`project-link-workflows-${proj.id}`}>
                       <FlaskConical className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
-                      Workflows
+                      Runs
                     </button>
+                    {(projectSessions[proj.id] || []).map(chat => <button key={chat.session_id} data-testid={`button-project-chat-${chat.session_id}`} onClick={() => onChatSelect(chat.session_id)} style={{ display: 'flex', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 12, width: '100%', textAlign: 'left', color: 'var(--bm-text-muted)', background: activeChatId === chat.session_id ? 'var(--bm-bg-elev)' : 'transparent' }}><span style={{ flexShrink: 0 }}>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span></button>)}
                   </div>
                 )}
               </div>
@@ -364,8 +359,8 @@ export function AppSidebar({
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {recentChats.length > 0 && (
           <>
-            <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 8 }}>Current</div>
-            {recentChats.slice(0, 6).map((chat) => {
+            <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 8 }}>Other chats</div>
+            {recentChats.filter(chat => !Object.values(projectSessions).some(sessions => sessions.some(session => session.session_id === chat.id))).slice(0, 12).map((chat) => {
               const dotStatus = sessionStatusMap.get(chat.id)
               const isActive = activeChatId === chat.id
               return (
@@ -395,29 +390,7 @@ export function AppSidebar({
                 </button>
               )
             })}
-            {recentChats.length > 6 && (
-              <>
-                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 14 }}>Recent</div>
-                {recentChats.slice(6, 12).map((chat) => (
-                  <button
-                    key={chat.id}
-                    onClick={() => onChatSelect(chat.id)}
-                    data-testid={`button-chat-${chat.id}`}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 9,
-                      padding: '5px 10px', borderRadius: 6,
-                      color: activeChatId === chat.id ? 'var(--bm-text)' : 'var(--bm-text-muted)',
-                      background: activeChatId === chat.id ? 'var(--bm-surface-3)' : 'transparent',
-                      fontSize: 12.5, cursor: 'pointer', border: 'none',
-                      width: '100%', textAlign: 'left',
-                    }}
-                  >
-                    <span style={{ width: 8, flexShrink: 0 }} />
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span>
-                  </button>
-                ))}
-              </>
-            )}
+
           </>
         )}
         {recentChats.length === 0 && (
@@ -426,6 +399,8 @@ export function AppSidebar({
           </div>
         )}
 
+        <button className="side-link" data-testid="button-workspace-connections" onClick={() => setLocation("/settings/connections")} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', fontSize: 12.5, color: 'var(--bm-text-muted)', width: '100%', textAlign: 'left' }}><Cable className="w-3.5 h-3.5" />Workspace connections</button>
+        <details className="text-xs text-muted-foreground px-2 py-2"><summary className="cursor-pointer">More tools</summary><div className="flex flex-col items-start gap-2 pt-3"><button onClick={() => setLocation('/files')}>Data</button><button onClick={() => setLocation('/design')}>Design &amp; generate</button><button onClick={() => setShowRecentToolsDialog(true)}>Recent tools</button></div></details>
         {/* Settings entry — visible in sidebar nav as well as the footer gear icon */}
         <div style={{ marginTop: 12, borderTop: '1px solid var(--bm-border)', paddingTop: 8 }}>
           <button
