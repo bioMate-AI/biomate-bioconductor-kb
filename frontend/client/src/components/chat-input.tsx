@@ -249,6 +249,7 @@ export function ChatInput({
 
 
   const handleSend = () => {
+    if (disabled) return
     if (message.trim() || attachedFiles.length > 0 || selectedDatasets.length > 0) {
       const files = attachedFiles.map(f => f.file)
       // Append dataset references invisibly so the AI/backend can resolve them,
@@ -761,6 +762,7 @@ export function ChatInput({
           <Textarea
             ref={textareaRef}
             data-testid="chat-input"
+            disabled={disabled}
             value={message}
             onInput={handleInput}
             onKeyDown={handleKeyDown}
@@ -867,7 +869,7 @@ export function ChatInput({
               data-testid="chat-send-button"
               onClick={handleSend}
               title={t('chat.send')}
-              disabled={!message.trim() && attachedFiles.length === 0 && selectedDatasets.length === 0}
+              disabled={disabled || (!message.trim() && attachedFiles.length === 0 && selectedDatasets.length === 0)}
               style={{
                 marginLeft: 'auto',
                 width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',

@@ -1,4 +1,6 @@
-import { useActiveProjectIdSafe } from "@/contexts/active-project-context"
+import { prepareColdStartExample, INTERNAL_EXAMPLES, PREPARED_EXAMPLES, ensureInternalDemoProject } from "./cold-start-examples"
+import { toast } from "@/hooks/use-toast"
+import { useActiveProjectIdSafe, useActiveProjectSafe } from "@/contexts/active-project-context"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { uploadFile as uploadFileShared } from "@/lib/upload"
 import { tOr } from "@/lib/i18n"
@@ -482,6 +484,8 @@ export function ChatInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   // Captured setter from ChatInput — lets empty-state chips pre-fill the textarea
   const localSetDraftRef = useRef<((draft: string) => void) | null>(null)
+  const [preparingExample, setPreparingExample] = useState(false)
+  const preparingExampleRef = useRef(false)
   const localAddFilesRef = useRef<((files: File[]) => void) | null>(null)
   // Track whether we've pre-loaded the GSE227835 de_genes.txt for Turn 2
   const deGenesPreloadedRef = useRef(false)
@@ -495,6 +499,7 @@ export function ChatInterface({
   // 'biomate:projects-updated' event so a newly-created project can be
   // proposed without a reload.
   const contextProjectId = useActiveProjectIdSafe();
+  const activeProjectContext = useActiveProjectSafe();
   const [composerProjects, setComposerProjects] = useState<ComposerProject[]>([])
   const [activeProjectId, setActiveProjectId] = useState<string | null>(() => {
     try { return typeof window !== 'undefined' ? localStorage.getItem('biomate-active-project-id') : null }
@@ -2128,9 +2133,30 @@ export function ChatInterface({
                 still reviews and sends. Spec 00 §0.4/§0.5. */}
             <ReturningUserWelcome onSend={(q) => handleSendOrQueue(q)} />
             <ColdStartDashboard
-              onSeed={(text) => {
-                if (localSetDraftRef.current) localSetDraftRef.current(text);
-                else handleSendOrQueue(text);
+              onSeed={async (text) => {
+                if (preparingExampleRef.current) return;
+                preparingExampleRef.current = true;
+                setPreparingExample(true);
+                try {
+                  const internal = INTERNAL_EXAMPLES.includes(text);
+                  const example = await prepareColdStartExample(internal ? PREPARED_EXAMPLES[0].label : text);
+                  if (internal) {
+                    const projectId = await ensureInternalDemoProject(example.files);
+                    activeProjectContext?.setActiveProjectId(projectId);
+                    handleFileToProject(projectId);
+                    example.prompt = `${text} Project ID: ${projectId}. Use the project files and attached tutorial inputs. Do not infer prior assay results or completed runs from these input files.`;
+                  }
+                  if (!localSetDraftRef.current || (example.files.length && !localAddFilesRef.current)) {
+                    throw new Error("The composer is still loading. Please try again.");
+                  }
+                  if (example.files.length) localAddFilesRef.current!(example.files);
+                  localSetDraftRef.current(example.prompt);
+                } catch (error) {
+                  toast({ title: "Could not prepare example", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" });
+                } finally {
+                  preparingExampleRef.current = false;
+                  setPreparingExample(false);
+                }
               }}
             />
           </>
@@ -2364,7 +2390,9 @@ export function ChatInterface({
         borderTop: '1px solid var(--bm-border)',
         background: 'var(--bm-bg-elev)',
       }}>
+        {preparingExample && <p role="status" className="text-sm text-muted-foreground px-4">Preparing sample data…</p>}
         <ChatInput
+          disabled={preparingExample}
           onSend={handleSendOrQueue}
           pendingCount={pendingMessages.length}
           isStreaming={displayTyping}

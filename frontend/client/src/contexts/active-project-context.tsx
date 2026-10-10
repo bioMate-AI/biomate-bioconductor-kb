@@ -161,3 +161,8 @@ export function useActiveProjectIdSafe(): string | null {
   const ctx = useContext(ActiveProjectContext)
   return ctx?.activeProjectId ?? null
 }
+
+/** Optional access for reusable chat components and isolated tests. */
+export function useActiveProjectSafe() {
+  return useContext(ActiveProjectContext)
+}

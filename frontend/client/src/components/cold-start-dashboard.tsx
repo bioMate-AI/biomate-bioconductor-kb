@@ -45,6 +45,7 @@
  */
 
 import { useState } from "react";
+import { PREPARED_EXAMPLES, INTERNAL_EXAMPLES } from "./cold-start-examples";
 import { Search, FlaskConical, Dna, Sparkles, ChevronRight, ChevronDown, Send } from "lucide-react";
 import { laneForText, type LaneKind } from "./lane-preview";
 
@@ -255,17 +256,14 @@ export const COLD_MODULES: ColdModule[] = [
       },
       {
         k: "Internal",
-        ex: [
-          "Have we assayed this scaffold before, and what did we conclude?",
-          "Find the last ADMET baseline for this platform.",
-        ],
+        ex: INTERNAL_EXAMPLES,
       },
     ],
   }),
   withEx({
     id: "analysis",
     k: "Data analysis",
-    t: "Work on your own data — ad-hoc or a validated workflow",
+    t: "Work on your own data, or try a prepared sample dataset",
     icon: "beaker",
     tracks: [
       {
@@ -285,6 +283,7 @@ export const COLD_MODULES: ColdModule[] = [
           "Call variants on these samples and flag the clinically relevant ones.",
         ],
       },
+      { k: "Try sample data", ex: PREPARED_EXAMPLES.map(example => example.label) },
     ],
   }),
   withEx({
@@ -867,6 +866,16 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
               );
             })}
           </div>
+
+          {(m.id === "analysis" || track.k === "Internal") && (
+            <p className="text-xs text-muted-foreground">
+              {track.k === "Internal"
+                ? "Prepares your MG PBMC demo project with three input files, then fills a draft for review."
+                : track.k === "Try sample data"
+                  ? "Prepared public datasets. Click to fill a draft; review it before sending."
+                  : "These examples use your own inputs. For a demo with data provided, choose Try sample data."}
+            </p>
+          )}
 
           {/* Modality chip row — only on a modality-flagged module (Design &
               generate). Selecting a modality swaps the track's examples and is
