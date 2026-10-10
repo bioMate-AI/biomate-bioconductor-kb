@@ -2294,11 +2294,41 @@ Respond with a single JSON object — no other text:
         'design', 'multiqc_config', 'star_index', 'hisat2_index', 'bwa_index',
         'bowtie2_index', 'transcript_fasta', 'additional_fasta', 'transcript',
         'probeset', 'annotation', 'blacklist', 'bait_intervals', 'target_intervals',
+        # Explicit fasta-input variants — historically classified as 'string'
+        # because 'input_fasta' != 'fasta' in the exact-match check.  Adding
+        # them here ensures the AI skips them when no file path is in the query.
+        'input_fasta', 'input_fa', 'query_fasta', 'ref_fasta', 'input_fastq',
+        'query_fa', 'protein_fasta', 'nucleotide_fasta',
+    ])
+
+    # Params that hold raw biological sequence TEXT (not file paths).
+    # When a user's query contains a long AA/NT string, the AI should fill
+    # these params directly — not look for an S3 path.
+    _SEQUENCE_PARAM_NAMES: frozenset = frozenset([
+        'sequence', 'protein_sequence', 'dna_sequence', 'rna_sequence',
+        'aa_sequence', 'nt_sequence', 'peptide_sequence', 'query_sequence',
+        'target_sequence', 'input_sequence',
+    ])
+
+    # Params that hold chemical structure notations (SMILES, InChI, etc.)
+    _SMILES_PARAM_NAMES: frozenset = frozenset([
+        'smiles', 'compound_smiles', 'ligand_smiles', 'molecule_smiles',
+        'smiles_string', 'drug_smiles',
     ])
 
     def _detect_param_type(self, name: str, default_val: str) -> str:
-        """Heuristic type detection for a single Nextflow parameter."""
+        """Heuristic type detection for a single Nextflow parameter.
+
+        Returns one of: 'file' | 'sequence' | 'smiles' | 'boolean' |
+                        'integer' | 'float' | 'string'
+        """
         low = name.lower()
+        # Sequence-text params — raw AA/NT strings, not file paths
+        if low in self._SEQUENCE_PARAM_NAMES:
+            return 'sequence'
+        # Chemical-notation params
+        if low in self._SMILES_PARAM_NAMES:
+            return 'smiles'
         if low in self._INPUT_FILE_PARAM_NAMES or low.endswith('_file') or low.endswith('_path'):
             return 'file'
         if default_val in ('true', 'false', 'True', 'False'):
@@ -2698,14 +2728,17 @@ EXTRACTION RULES (apply in order):
 1. PATHS AND URLS — highest priority. If the query contains s3://, gs://, or a filesystem path AND the parameter list has a file-type param, match each path to the most appropriate parameter using the parameter name AND description. For example: a file named "featureCounts.txt" or with "matrix" in the name → param named "matrix" (if available); a metadata/samplesheet file (.xlsx, .csv with sample info) → param named "input", "samplesheet", or "contrasts"; a .fastq/.bam file → "reads" or "input"; a .mrc/.tif file → "movies_path". Match by filename semantics, not just extension. Never fabricate a path.
 2. NUMERIC SCALARS — extract values like "pixel_size=0.885", "voltage=300 kV" (strip units), "1.96 Å/px" → 1.96.
 3. IDENTIFIERS — PDB codes (4 chars), SMILES strings, gene symbols, accession numbers — copy exactly.
-4. ENUM SELECTION — map user language to an allowed enum value: "XP docking" → "XP", "de novo" → "de_novo".
-5. BOOLEAN FLAGS — "use GPU" → gpu=true, "single-end" → single_end=true.
-6. UNIT CONVERSION — "37°C" → temperature=310 (Kelvin), "ns" → n_steps=N×500 (fs timestep).
+4. RAW SEQUENCES — if the query contains a long amino-acid or nucleotide string (e.g. MVLSEGEWQL...) AND the param list has a param of type 'sequence', copy the sequence there verbatim. Never put a raw sequence into a 'file' type param.
+5. ENUM SELECTION — map user language to an allowed enum value: "XP docking" → "XP", "de novo" → "de_novo".
+6. BOOLEAN FLAGS — "use GPU" → gpu=true, "single-end" → single_end=true.
+7. UNIT CONVERSION — "37°C" → temperature=310 (Kelvin), "ns" → n_steps=N×500 (fs timestep).
 
 SKIP a parameter if:
 - Its value equals the [current: X] default shown (no change needed).
 - You would have to guess or infer beyond what the user actually said.
 - It is a path/URL and no path appears in the query.
+- It is a 'file' type and no file/path appears in the query.
+- It is a 'sequence' type and no raw AA/NT sequence appears in the query.
 
 OUTPUT: JSON array only — no prose. Max 6 entries. Format:
 [{"name": "param_name", "value": <value>, "rationale": "one sentence"}]
@@ -2759,11 +2792,30 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
 
         # Build a compact param catalogue for the prompt
         all_params = req + opt
-        # Include file params only when the query contains an explicit path-like token
-        # (S3, GCS, local path, or filename) so the LLM can extract it accurately.
+        # Gate params by what the query actually contains so the LLM doesn't
+        # hallucinate values it can't derive:
+        #   file      — only shown when an explicit path/URI is in the query
+        #   sequence  — only shown when a long AA/NT string is in the query
+        #   smiles    — only shown when a SMILES-pattern string is in the query
+        #   all others — always shown
         import re as _re2
-        _query_has_path = bool(_re2.search(r's3://|gs://|/[a-zA-Z]|\.(?:mrc|tif|eer|dm4|fastq|fq|bam|vcf|csv|tsv|xlsx)', user_intent))
-        inferable = [p for p in all_params if p.get("type") not in ("file",) or _query_has_path]
+        _query_has_path = bool(_re2.search(
+            r's3://|gs://|/[a-zA-Z]|\.(?:mrc|tif|eer|dm4|fastq|fq|bam|vcf|csv|tsv|xlsx|fasta|fa)',
+            user_intent))
+        _query_has_raw_seq = bool(_re2.search(
+            r'\b[ACDEFGHIKLMNPQRSTVWY]{15,}\b', user_intent, _re2.IGNORECASE))
+        _query_has_smiles = bool(_re2.search(
+            r'(?:^|\s)([A-Za-z0-9@+\-\[\]()=#$]{6,}(?:[A-Z][a-z]?|\d){2,})',
+            user_intent))
+        inferable = [
+            p for p in all_params
+            if (
+                p.get("type") not in ("file", "sequence", "smiles")
+                or (_query_has_path and p.get("type") == "file")
+                or (_query_has_raw_seq and p.get("type") == "sequence")
+                or (_query_has_smiles and p.get("type") == "smiles")
+            )
+        ]
         if not inferable:
             return []
 

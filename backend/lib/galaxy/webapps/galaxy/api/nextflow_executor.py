@@ -2637,33 +2637,196 @@ def _is_raw_bio_sequence(val: str) -> bool:
     return all(c in _BIO for c in val)
 
 
-def _intercept_raw_sequence_params(params: dict, nf_path: Path) -> None:
-    """Auto-redirect raw AA/NT sequence from file-path params (e.g. input_fasta) to
-    params.sequence when the workflow declares it.  Prevents Nextflow Channel.fromPath()
-    crashes when a user types a sequence instead of uploading a FASTA file."""
-    _FASTA_KEYS = frozenset({"input_fasta", "fasta", "input_fa", "query_fasta"})
-    redirected = []
+# Param-key fragments that suggest "this param expects a biological sequence file".
+# Used to detect type-mismatched values (raw sequence text in a file-path slot).
+_SEQ_FILE_KEY_FRAGMENTS: frozenset = frozenset({
+    "fasta", "fa", "fastq", "sequence_file", "seq_file",
+    "input_seq", "protein_file", "nucleotide_file",
+})
+
+# Param-key names that expect raw sequence TEXT (not a path).
+# When the workflow declares one of these, a raw sequence can go there directly.
+_SEQ_TEXT_PARAM_NAMES: frozenset = frozenset({
+    "sequence", "protein_sequence", "dna_sequence", "rna_sequence",
+    "aa_sequence", "nt_sequence", "peptide_sequence", "query_sequence",
+    "target_sequence", "input_sequence",
+})
+
+
+def _llm_coerce_param_action(
+    param_key: str,
+    param_value: str,
+    nf_path: Path,
+    workflow_name: str = "",
+) -> dict:
+    """LLM fallback: when rule-based coercion can't handle a mistyped param, ask the
+    LLM what to do.  Returns one of:
+      {"action": "rename_to", "target_param": "<name>"}
+      {"action": "write_fasta_s3"}
+      {"action": "pass"}
+    Always returns a safe dict — never raises.
+    """
+    try:
+        import re as _re
+        nf_text = nf_path.read_text(encoding="utf-8", errors="replace")
+        available = _re.findall(r'params\.(\w+)\s*=', nf_text)[:25]
+
+        from galaxy.ai.llm_client import LLMClient  # noqa: PLC0415
+        prompt = (
+            f"Bioinformatics workflow: '{workflow_name}'\n"
+            f"Param key: '{param_key}'\n"
+            f"Value (first 200 chars): '{param_value[:200]}'\n"
+            f"Other params declared in workflow: {', '.join(available)}\n\n"
+            "The value appears to be raw biological sequence text but the param "
+            "looks like it should be a file path. Decide what to do.\n"
+            "Return JSON ONLY:\n"
+            '{"action":"rename_to"|"write_fasta_s3"|"pass",'
+            '"target_param":"<param_name or null>"}\n\n'
+            "rename_to: value belongs in a different param (e.g. params.sequence).\n"
+            "write_fasta_s3: write the sequence to a temp FASTA on S3 and keep the same key.\n"
+            "pass: value is fine as-is (e.g. it really is a valid path)."
+        )
+
+        # Reuse the Galaxy config object the executor already has in module scope
+        import os as _os
+        from galaxy.ai.llm_client import LLMClient  # noqa: F811
+        cfg_obj = type("_Cfg", (), {
+            "llm_api_key": _os.environ.get("LLM_API_KEY", ""),
+            "llm_model": _os.environ.get("LLM_MODEL", ""),
+            "llm_base_url": _os.environ.get("LLM_BASE_URL", ""),
+        })()
+        text = LLMClient(cfg_obj).call(
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=128,
+            use_fast_model=True,
+        ).strip()
+
+        import json as _json
+        start, end = text.find("{"), text.rfind("}") + 1
+        if start >= 0 and end > start:
+            return _json.loads(text[start:end])
+    except Exception as _e:
+        log.debug("[param-coerce] LLM fallback skipped: %s", _e)
+
+    return {"action": "pass", "target_param": None}
+
+
+def _upload_sequence_to_s3_fasta(
+    sequence: str,
+    param_key: str,
+    s3_bucket: str,
+    user_id: str = "anonymous",
+) -> Optional[str]:
+    """Write a raw sequence to S3 as a FASTA file.  Returns the s3:// URI or None
+    on failure.  The resulting path is accessible by Nextflow's nf-amazon plugin."""
+    try:
+        import boto3 as _boto3
+        import uuid as _uuid
+        uid = _uuid.uuid4().hex[:10]
+        key = f"uploads/{user_id}/tmp/seq_{param_key}_{uid}.fasta"
+        body = f">query|{param_key}_{uid}\n{sequence.strip()}\n"
+        _boto3.client("s3").put_object(
+            Bucket=s3_bucket, Key=key, Body=body.encode("utf-8")
+        )
+        uri = f"s3://{s3_bucket}/{key}"
+        log.info("[param-coerce] Uploaded raw sequence to %s (len=%d)", uri, len(sequence))
+        return uri
+    except Exception as _e:
+        log.warning("[param-coerce] S3 FASTA upload failed: %s", _e)
+        return None
+
+
+def _coerce_mistyped_sequence_params(
+    params: dict,
+    nf_path: Path,
+    workflow_name: str = "",
+    s3_bucket: str = "",
+    user_id: str = "anonymous",
+) -> None:
+    """Generalised pre-launch coercion for params that received raw biological
+    sequence text instead of a file path.
+
+    Strategy (applied in order, stops at first success):
+    1. Rule — rename to a declared sequence-text param in the .nf (e.g. params.sequence)
+    2. Rule — find any declared param whose name is in _SEQ_TEXT_PARAM_NAMES
+    3. S3 upload — write sequence to a temp FASTA on S3, replace value with s3:// URI
+    4. LLM fallback — ask the LLM what to do when none of the above applies
+
+    This function mutates `params` in-place and never raises.
+    """
+    import re as _re
+
+    try:
+        nf_text = nf_path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        nf_text = ""
+
+    # All param keys declared in the .nf file
+    declared_params = set(_re.findall(r'params\.(\w+)\s*=', nf_text))
+
     for key in list(params.keys()):
-        if key.lower() not in _FASTA_KEYS:
-            continue
         val = params.get(key)
         if not isinstance(val, str) or not _is_raw_bio_sequence(val):
             continue
-        try:
-            nf_text = nf_path.read_text(encoding="utf-8", errors="replace")
-        except Exception:
+
+        key_l = key.lower()
+        # Only act on keys that look like they should carry a file path
+        is_fasta_key = any(frag in key_l for frag in _SEQ_FILE_KEY_FRAGMENTS)
+        is_generic_input = key_l in ("input", "query", "data", "protein", "target")
+        if not (is_fasta_key or is_generic_input):
             continue
-        import re as _re_seq
-        if _re_seq.search(r'\bparams\.sequence\s*=', nf_text):
-            params["sequence"] = val
+
+        log.info(
+            "[param-coerce] Detected raw sequence (len=%d) in file-type param '%s'",
+            len(val), key,
+        )
+
+        # ── Strategy 1: rename to an exact sequence-text param in the .nf ──────
+        seq_params_in_nf = [p for p in declared_params if p.lower() in _SEQ_TEXT_PARAM_NAMES]
+        if seq_params_in_nf:
+            target = seq_params_in_nf[0]
+            params[target] = val
             del params[key]
-            redirected.append(key)
-            log.info(
-                "[Nextflow] Redirected raw sequence from '%s' → params.sequence "
-                "(len=%d)", key, len(val)
-            )
-    if redirected:
-        log.info("[Nextflow] Raw-sequence interception: moved %s → sequence", redirected)
+            log.info("[param-coerce] S1 rename: '%s' → '%s'", key, target)
+            continue
+
+        # ── Strategy 2: find any sequence-text param in the .nf ─────────────────
+        seq_like = [
+            p for p in declared_params
+            if any(s in p.lower() for s in ("sequence", "peptide", "aa_seq", "nt_seq"))
+            and p.lower() != key_l
+        ]
+        if seq_like:
+            target = seq_like[0]
+            params[target] = val
+            del params[key]
+            log.info("[param-coerce] S2 rename: '%s' → '%s'", key, target)
+            continue
+
+        # ── Strategy 3: upload to S3 as FASTA ───────────────────────────────────
+        if s3_bucket:
+            uri = _upload_sequence_to_s3_fasta(val, key, s3_bucket, user_id)
+            if uri:
+                params[key] = uri
+                log.info("[param-coerce] S3 replaced '%s' with FASTA uri", key)
+                continue
+
+        # ── Strategy 4: LLM fallback ─────────────────────────────────────────────
+        decision = _llm_coerce_param_action(key, val, nf_path, workflow_name)
+        action = decision.get("action", "pass")
+        target = decision.get("target_param")
+
+        if action == "rename_to" and target and target in declared_params:
+            params[target] = val
+            del params[key]
+            log.info("[param-coerce] LLM rename: '%s' → '%s'", key, target)
+        elif action == "write_fasta_s3" and s3_bucket:
+            uri = _upload_sequence_to_s3_fasta(val, key, s3_bucket, user_id)
+            if uri:
+                params[key] = uri
+                log.info("[param-coerce] LLM S3 FASTA: '%s'", key)
+        else:
+            log.info("[param-coerce] No coercion applied for '%s' (action=%s)", key, action)
 
 
 def _validate_epitope_netmhc_params(nf_path: Path, params: dict) -> None:
@@ -5881,9 +6044,16 @@ def _execute_nextflow_impl(
     except Exception as _shadow_exc:  # pragma: no cover - defensive
         log.debug("[compute-v2 shadow] skipped: %s", _shadow_exc)
 
-    # If a file-type param (input_fasta, etc.) received raw sequence text, redirect
-    # it to params.sequence so the workflow's WRITE_FASTA process handles it.
-    _intercept_raw_sequence_params(params, nf_path)
+    # Generalised pre-launch coercion: if any file-type param received raw AA/NT
+    # sequence text, fix it (rename → S3 upload → LLM fallback) before Nextflow
+    # sees the params.  Workflow name is used only for LLM context.
+    _coerce_mistyped_sequence_params(
+        params,
+        nf_path,
+        workflow_name=str(nf_path.stem),
+        s3_bucket=compute.get("s3_bucket", ""),
+        user_id=str(request.user_id) if hasattr(request, "user_id") else "anonymous",
+    )
 
     # Validate all input paths exist and total size ≤ 10 GB.
     _validate_input_paths(params)
