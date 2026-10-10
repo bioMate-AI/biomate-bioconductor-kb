@@ -1066,6 +1066,19 @@ def _classify_failure(
                        "failed to run, not your input. A plain re-run would hit the same "
                        "error, so we've flagged it for the BioMate team to fix.",
                        False, "report")
+    # ── missing / bad input sequence or file path ──
+    # Channel.fromPath() throws "Missing 'fromPath' parameter" on empty string;
+    # "Path or pattern does not exist" / "No files match" when value is raw sequence text.
+    if any(k in low for k in ("missing 'frompath' parameter", "missing frompath",
+                              "path or pattern does not exist",
+                              "no files match pattern",
+                              "path does not exist")):
+        return verdict("input_data",
+                       "The workflow needs an input file (e.g. a FASTA file path) but "
+                       "none was provided, or the value given isn't a valid path. "
+                       "If you have a raw sequence, type it into the 'sequence' field "
+                       "in the parameter panel and try again.",
+                       False, "check_input")
     # ── configuration / parameter / syntax (deterministic: needs a fix) ──
     if any(k in low for k in ("unexpected token", "syntax error", "no such variable",
                               "missingpropertyexception", "cannot find", "not specified")):
@@ -2611,6 +2624,46 @@ def _validate_input_paths(params: dict) -> None:
                 ),
             },
         )
+
+
+def _is_raw_bio_sequence(val: str) -> bool:
+    """Return True if val is a raw amino-acid or nucleotide sequence (not a file path)."""
+    val = val.strip().upper()
+    if len(val) < 10:
+        return False
+    if any(c in val for c in ('/', '\\', '.', ' ', '\n', '\r')):
+        return False
+    _BIO = frozenset("ACDEFGHIKLMNPQRSTVWYBZXURYSWKMBDHVN*-")
+    return all(c in _BIO for c in val)
+
+
+def _intercept_raw_sequence_params(params: dict, nf_path: Path) -> None:
+    """Auto-redirect raw AA/NT sequence from file-path params (e.g. input_fasta) to
+    params.sequence when the workflow declares it.  Prevents Nextflow Channel.fromPath()
+    crashes when a user types a sequence instead of uploading a FASTA file."""
+    _FASTA_KEYS = frozenset({"input_fasta", "fasta", "input_fa", "query_fasta"})
+    redirected = []
+    for key in list(params.keys()):
+        if key.lower() not in _FASTA_KEYS:
+            continue
+        val = params.get(key)
+        if not isinstance(val, str) or not _is_raw_bio_sequence(val):
+            continue
+        try:
+            nf_text = nf_path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        import re as _re_seq
+        if _re_seq.search(r'\bparams\.sequence\s*=', nf_text):
+            params["sequence"] = val
+            del params[key]
+            redirected.append(key)
+            log.info(
+                "[Nextflow] Redirected raw sequence from '%s' → params.sequence "
+                "(len=%d)", key, len(val)
+            )
+    if redirected:
+        log.info("[Nextflow] Raw-sequence interception: moved %s → sequence", redirected)
 
 
 def _validate_epitope_netmhc_params(nf_path: Path, params: dict) -> None:
@@ -5827,6 +5880,10 @@ def _execute_nextflow_impl(
             log.info("[compute-v2 shadow] %s", _shadow_choice)
     except Exception as _shadow_exc:  # pragma: no cover - defensive
         log.debug("[compute-v2 shadow] skipped: %s", _shadow_exc)
+
+    # If a file-type param (input_fasta, etc.) received raw sequence text, redirect
+    # it to params.sequence so the workflow's WRITE_FASTA process handles it.
+    _intercept_raw_sequence_params(params, nf_path)
 
     # Validate all input paths exist and total size ≤ 10 GB.
     _validate_input_paths(params)
