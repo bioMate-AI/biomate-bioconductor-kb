@@ -198,9 +198,7 @@ aside[data-slot="sidebar"] {
 
 /* ── Chat input area ───────────────────────────────────────── */
 .chat-input-area,
-[class*="chat-input"],
-textarea[placeholder*="message"],
-textarea[placeholder*="BioMate"] {
+.chat-input {
   border: 1px solid var(--bm-border) !important;
   border-radius: var(--bm-r-lg) !important;
   background: var(--bm-bg-elev) !important;
@@ -375,7 +373,7 @@ code, pre, .font-mono {
 
 /* ── Chat message metadata (token count, etc.) ───────────────── */
 .text-xs.text-muted-foreground {
-  font-family: var(--bm-font-mono);
+  font-family: var(--bm-font-ui);
   color: var(--bm-text-dim) !important;
 }
 

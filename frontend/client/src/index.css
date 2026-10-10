@@ -545,3 +545,13 @@
   font-family: 'Inter', system-ui, sans-serif;
 }
 .cro-tour-callout.center { width: 420px; }
+
+/* Keep the Radix scroll viewport from sizing chat to its intrinsic table width.
+   Tables and code blocks keep their own horizontal scroll; prose reflows. */
+.chat-thread [data-radix-scroll-area-viewport] > div {
+  display: block !important;
+  width: 100%;
+  min-width: 0 !important;
+}
+.chat-thread .msg { min-width: 0; overflow-wrap: anywhere; }
+.chat-thread .msg pre { max-width: 100%; overflow-x: auto; }

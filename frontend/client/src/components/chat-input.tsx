@@ -733,7 +733,7 @@ export function ChatInput({
         gap: 4,
         transition: 'border-color .15s',
       }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, minWidth: 0 }}>
           {/* Upload local file button */}
           <button
             disabled={disabled}
@@ -829,8 +829,10 @@ export function ChatInput({
             onInput={handleInput}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="min-h-[22px] max-h-[140px] resize-none border-none outline-none shadow-none p-0 bg-transparent text-sm flex-1"
+            className="w-full min-w-0 min-h-[44px] max-h-[140px] resize-none rounded-none border-0 border-b border-solid border-border outline-none shadow-none px-0 pt-1 pb-3 bg-transparent text-sm"
             style={{
+              order: -1,
+              flexBasis: '100%',
               fontFamily: 'var(--bm-font-ui)',
               fontSize: 14,
               lineHeight: 1.5,
@@ -845,6 +847,7 @@ export function ChatInput({
               data-testid="chat-stop-button"
               onClick={onStop}
               style={{
+                marginLeft: 'auto',
                 width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
                 background: 'var(--bm-err, oklch(0.58 0.18 25))',
                 color: 'white', border: 'none', cursor: 'pointer',
@@ -862,6 +865,7 @@ export function ChatInput({
               title={t('chat.send')}
               disabled={!message.trim() && attachedFiles.length === 0 && selectedDatasets.length === 0}
               style={{
+                marginLeft: 'auto',
                 width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
                 background: (!message.trim() && attachedFiles.length === 0 && selectedDatasets.length === 0)
                   ? 'var(--bm-surface-3, oklch(0.945 0.005 240))'

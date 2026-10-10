@@ -2112,7 +2112,7 @@ export function ChatInterface({
   }, [externalPromptRequest, displayTyping])
 
   return (
-    <div className={`flex flex-col h-full ${className}`}>
+    <div className={`flex flex-col h-full min-w-0 min-h-0 ${className}`}>
       <div
         className="sr-only"
         data-testid="chat-run-anchor-state"
@@ -2141,8 +2141,8 @@ export function ChatInterface({
         </div>
       )}
 
-      <ScrollArea className="flex-1" ref={scrollRef} data-testid="chat-messages" style={{
-        padding: '28px clamp(20px, 8%, 120px) 20px',
+      <ScrollArea className="chat-thread flex-1 min-h-0 min-w-0" ref={scrollRef} data-testid="chat-messages" style={{
+        padding: '24px clamp(16px, 4%, 56px) 20px',
       }}>
         {displayMessages.length === 0 && !isTyping && !isTypingLocal && (
           <>
@@ -2385,7 +2385,7 @@ export function ChatInterface({
       )}
       {/* Reference design chat input wrap — padding clamp like layout.css */}
       <div style={{
-        padding: '10px clamp(20px, 8%, 120px) 22px',
+        padding: '14px clamp(16px, 4%, 56px) 18px',
         background: 'var(--bm-bg, hsl(var(--background)))',
       }}>
         {displayMessages.length === 0 && (

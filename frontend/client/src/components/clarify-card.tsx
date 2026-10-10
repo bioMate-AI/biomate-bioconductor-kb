@@ -219,7 +219,7 @@ export function ClarifyCard({
   return (
     <div
       data-testid="clarify-card"
-      className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)}
+      className={cn("w-full min-w-0 rounded-lg border bg-card text-card-foreground shadow-sm break-words", className)}
     >
       {/* Header */}
       <div className="flex items-center gap-2 px-4 pt-3 pb-2 border-b">
@@ -272,9 +272,7 @@ export function ClarifyCard({
                 )}
               </span>
               {o.note && <span className="text-xs text-muted-foreground">{o.note}</span>}
-              <span className="font-mono text-[11px] text-muted-foreground/80 break-all">
-                {q.field} = {o.val}
-              </span>
+
             </span>
           </button>
         ))}
@@ -298,7 +296,7 @@ export function ClarifyCard({
           </span>
           <span className="flex flex-col gap-1.5 min-w-0 w-full">
             <span className="text-sm font-medium">
-              None of these — I&apos;ll say it in my own words
+              {q.opts.length ? "Use a different value" : "Provide the missing input"}
             </span>
             {pick === FREETEXT && (
               <input
@@ -316,7 +314,7 @@ export function ClarifyCard({
 
       {/* Footer */}
       <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-        <span className="text-xs text-muted-foreground">binds to a {q.binds}</span>
+
         <span className="flex-1" />
         <button
           type="button"

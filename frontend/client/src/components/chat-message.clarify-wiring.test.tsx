@@ -85,9 +85,9 @@ describe("chat-message → ClarifyCard wiring (§6.4)", () => {
     render(<ChatMessage message={paramMessage()} />)
     expect(screen.getByTestId("clarify-card")).toBeInTheDocument()
     expect(screen.queryByTestId("param-clarification-card")).not.toBeInTheDocument()
-    // Bound value visible under the option (the §6.4 promise).
+    // Show the human option label, without internal schema assignment text.
     expect(screen.getByTestId("clarify-opt-delivery_cell-0")).toHaveTextContent(
-      "delivery_cell = T_cell",
+      "T_cell",
     )
   })
 

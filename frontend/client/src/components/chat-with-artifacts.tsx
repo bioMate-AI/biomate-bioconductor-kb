@@ -516,7 +516,19 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   }, [])
 
   // Resizable panel width (px)
-  const [panelWidth, setPanelWidth] = useState(840)
+  const [panelWidth, setPanelWidth] = useState(480)
+  const splitLayoutRef = useRef<HTMLDivElement>(null)
+  const [splitWidth, setSplitWidth] = useState(1200)
+  useEffect(() => {
+    const node = splitLayoutRef.current
+    if (!node) return
+    const observer = new ResizeObserver(([entry]) => setSplitWidth(entry.contentRect.width))
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+  const panelIsOverlay = isMobile || splitWidth < 720
+  const maxPanelWidth = Math.max(320, Math.min(900, splitWidth - 380))
+  const visiblePanelWidth = Math.min(panelWidth, maxPanelWidth)
   const panelResizingRef = useRef(false)
   const panelResizeStartX = useRef(0)
   const panelResizeStartW = useRef(0)
@@ -1711,7 +1723,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     const onMove = (ev: MouseEvent) => {
       if (!panelResizingRef.current) return
       const delta = panelResizeStartX.current - ev.clientX // dragging left = wider panel
-      const next = Math.min(900, Math.max(320, panelResizeStartW.current + delta))
+      const next = Math.min(maxPanelWidth, Math.max(320, panelResizeStartW.current + delta))
       setPanelWidth(next)
     }
     const onUp = () => {
@@ -1721,7 +1733,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [panelWidth])
+  }, [panelWidth, maxPanelWidth])
 
   // Auto-open right panel whenever a new workflow message arrives.
   // We track msgId + the inline-params signature so the effect re-fires when
@@ -2142,9 +2154,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       {tourNode}
 
       {/* Split layout: Chat (left, flexible) + Workflow Panel (right, fixed 420px) */}
-      <div className={`flex-1 overflow-hidden flex ${panelOpen ? "gap-0" : ""}`}>
+      <div ref={splitLayoutRef} data-testid="chat-workflow-split" className={`flex-1 min-h-0 min-w-0 overflow-hidden flex ${panelOpen ? "gap-0" : ""}`}>
         {/* Center: Chat — hidden on mobile when workflow panel is open */}
-        <div className={`overflow-hidden min-w-0 ${isMobile && panelOpen ? 'hidden' : 'flex-1'}`}>
+        <div className={`overflow-hidden min-w-0 ${panelIsOverlay && panelOpen ? 'hidden' : 'flex-1'}`}>
           {pendingStructuralEdits.length > 0 && (
             <div
               data-testid="workflow-edits-pending"
@@ -2299,13 +2311,13 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         {panelOpen && (
           <div
             className="flex-shrink-0 border-l bg-background flex flex-col overflow-hidden relative"
-            style={isMobile
-              ? { width: '100vw', minWidth: 0, maxWidth: '100vw' }
-              : { width: panelWidth, minWidth: 320, maxWidth: 900 }}
+            style={panelIsOverlay
+              ? { width: '100%', minWidth: 0, maxWidth: '100%' }
+              : { width: visiblePanelWidth, minWidth: 320, maxWidth: maxPanelWidth }}
             data-testid="workflow-right-panel"
           >
             {/* Drag handle — desktop only */}
-            {!isMobile && (
+            {!panelIsOverlay && (
               <div
                 className="absolute top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-10 select-none"
                 style={{ left: -3 }}
@@ -2323,7 +2335,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             {/* Slim chrome bar */}
             <div className="flex items-center gap-2 px-3 py-1 border-b flex-shrink-0" style={{ minHeight: 36 }}>
               {/* Mobile: back-to-chat button on the left */}
-              {isMobile && (
+              {panelIsOverlay && (
                 <button
                   onClick={handleClosePanelWorkflow}
                   className="flex items-center gap-1 rounded-sm px-2 py-1 hover:bg-muted text-sm font-medium"

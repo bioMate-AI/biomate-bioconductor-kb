@@ -42,10 +42,11 @@ describe("<ClarifyCard>", () => {
     expect(screen.getByTestId("clarify-count")).toHaveTextContent("1/3")
   })
 
-  it("shows the why line and the typed bind for each option", () => {
+  it("shows the explanation without internal schema bindings", () => {
     render(<ClarifyCard questions={CLARIFY_QUESTIONS} />)
     expect(screen.getByText(/two are not interchangeable downstream/)).toBeInTheDocument()
-    expect(screen.getByText("reference_build = GRCh38.p14/ens110")).toBeInTheDocument()
+    expect(screen.queryByText("reference_build = GRCh38.p14/ens110")).toBeNull()
+    expect(screen.queryByText(/binds to a/)).toBeNull()
   })
 
   it("emits a fully typed answer set and dispatches the param round-trip event", async () => {
