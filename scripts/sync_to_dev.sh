@@ -266,6 +266,7 @@ deploy_frontend() {
     BUILD_RC=0
     set +e
     docker build -t biomate-dev-frontend:next \
+        --build-arg BUILD_COMMIT='"${CURRENT_COMMIT}"' \
         -f /opt/biomate/frontend_sync/frontend/Dockerfile \
         /opt/biomate/frontend_sync/frontend/ > /tmp/biomate_frontend_build.log 2>&1
     BUILD_RC=$?
@@ -317,6 +318,17 @@ deploy_frontend() {
     log "[frontend] ERROR: post-deploy verification failed — running container image age='${_age:-?}'s (expected < 900s). Fresh code is NOT live; aborting (marker NOT advanced)."
     return 1
   fi
+  # Verify the actual public bundle, not only a newly-created container.
+  # Worktrees may contain different branches while all produce healthy images.
+  local _served_commit
+  if ! _served_commit="$(curl --fail --silent --show-error --max-time 30 \
+      "https://dev-public.biomate.ai/build-info.json?commit=${CURRENT_COMMIT}" | \
+      python3 -c 'import json,sys; print(json.load(sys.stdin).get("commit", ""))')" \
+      || [[ "$_served_commit" != "$CURRENT_COMMIT" ]]; then
+    log "[frontend] ERROR: public build commit '${_served_commit:-missing}' does not match ${CURRENT_COMMIT}; marker NOT advanced"
+    return 1
+  fi
+  log "[frontend] verified public build commit ${_served_commit}"
   log "[frontend] verified fresh container (image age ${_age}s)"
   log "[frontend] Done"
 }

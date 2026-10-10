@@ -14,7 +14,10 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+ARG BUILD_COMMIT=unknown
 RUN NODE_OPTIONS=--max-old-space-size=4096 npm run build
+# Served alongside the UI so deployment identity can be checked independently.
+RUN node -e 'require("fs").writeFileSync("dist/public/build-info.json", JSON.stringify({commit: process.env.BUILD_COMMIT || "unknown"}) + "\n")'
 
 # ─── Production stage ─────────────────────────────────────────────────────────
 FROM node:18-bookworm-slim
