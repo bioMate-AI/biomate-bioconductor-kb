@@ -118,9 +118,6 @@ function RootRoute({
   const [, setLocation] = useLocation()
   const search = useSearch()
   // All hooks must run before any conditional return (rules of hooks).
-  // useUiFlavor must be called every render — moving it after the early
-  // return below caused "Rendered more hooks than during the previous render"
-  // when isLoading flipped true→false.
   const handledSessionParam = useRef(false)
 
   // Consume pending use-case query passed via ?q= from the marketing hero input.
