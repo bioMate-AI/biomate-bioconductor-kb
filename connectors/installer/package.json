@@ -31,7 +31,6 @@
     "node": ">=18"
   },
   "dependencies": {
-    "keytar": "^7.9.0",
     "open": "^9.1.0"
   },
   "devDependencies": {
@@ -42,5 +41,6 @@
   "files": [
     "dist",
     "README.md"
-  ]
+  ],
+  "type": "module"
 }
