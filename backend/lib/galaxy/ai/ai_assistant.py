@@ -753,14 +753,59 @@ class AIAssistant:
                     ],
                 }
 
-            # No missing context — fall back to single-task generation for now.
-            # Full parallel dispatch (LangGraph + Celery) is Phase 1 of the main plan.
+            # No missing context. Reconciliation #3 (first slice): when enabled,
+            # assemble the decomposed tasks into an executable DAG plan instead of
+            # DISCARDING them (the old behaviour collapsed N tasks → one workflow).
+            # Default OFF (BIOMATE_MULTITASK_DAG_ENABLED) → byte-for-byte the prior
+            # single-task path. The assembled plan is validated against the chain
+            # executor contract (galaxy.chain.dag); if any task can't be resolved,
+            # build_dag_plan returns None and we fall back safely.
+            import os as _os
+            if _os.environ.get("BIOMATE_MULTITASK_DAG_ENABLED", "").strip().lower() in ("1", "true", "yes", "on"):
+                try:
+                    from .decomposed_dag import build_dag_plan
+                    _dag = build_dag_plan(tasks, self._resolve_task_to_workflow)
+                    if _dag:
+                        log.info(f"[MultiTask] assembled {len(_dag['steps'])}-step DAG plan (not discarded)")
+                        return {
+                            'message': f"Prepared a {len(_dag['steps'])}-step plan with dependencies. Review and run when ready.",
+                            'success': True,
+                            'execution_mode': 'dag',
+                            'workflow': _dag,
+                            'pipeline_id': pipeline_id,
+                        }
+                    log.info("[MultiTask] DAG assembly incomplete (a task did not resolve) — single-task fallback")
+                except Exception as _dag_exc:
+                    log.warning(f"[MultiTask] DAG assembly failed ({_dag_exc}) — single-task fallback")
+            # Fall back to single-task generation (default path).
             log.info(f"[MultiTask] {len(tasks)} tasks detected, generating sequentially for now")
             return await self._handle_workflow_generation(query, context)
 
         except Exception as e:
             log.warning(f"[MultiTask] Decomposition failed ({e}), falling back to single-task")
             return await self._handle_workflow_generation(query, context)
+
+    def _resolve_task_to_workflow(self, task):
+        """Best-effort per-task resolution for the decomposed DAG (reconciliation #3).
+
+        Returns ``{'nextflow_path', 'parameters'}`` or ``None``. Conservative: the
+        top workflow-search match only, and ``None`` on anything uncertain — so
+        ``build_dag_plan`` safely falls back to single-task generation rather than
+        emitting an unexecutable DAG. (Richer resolution + input binding is the
+        next sub-slice of the logical->executable adapter.)
+        """
+        try:
+            desc = getattr(task, 'description', None)
+            if desc is None and isinstance(task, dict):
+                desc = task.get('description')
+            if not desc:
+                return None
+            matches = self.workflow_search.search(desc)
+            if matches and getattr(matches[0], 'filename', None):
+                return {'nextflow_path': matches[0].filename, 'parameters': {}}
+        except Exception as exc:
+            log.debug(f"[MultiTask] task resolution failed: {exc}")
+        return None
 
     def _find_missing_context(self, tasks: list, context: dict) -> list:
         """Return list of clarification questions for missing required parameters."""
