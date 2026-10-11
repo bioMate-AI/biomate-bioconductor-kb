@@ -32,6 +32,29 @@ def _field(task: Any, key: str, default: Any = None) -> Any:
     return getattr(task, key, default)
 
 
+# Medium-confidence bar from unified_workflow_search (high >= 12, medium >= 6).
+# Below this we refuse to resolve a task so the DAG never dispatches a weak,
+# likely-wrong workflow match — it falls back to single-task generation instead.
+DAG_RESOLVE_MIN_SCORE = 6.0
+
+
+def pick_workflow_match(matches: Any, min_score: float = DAG_RESOLVE_MIN_SCORE) -> Optional[Dict[str, Any]]:
+    """Choose a CONFIDENT workflow for a task from ranked search matches, or None.
+
+    Pure + testable (accepts WorkflowMatch-like objects or dicts). Returns the top
+    match only when it clears ``min_score`` and has a filename; otherwise ``None``
+    so build_dag_plan falls back rather than wiring an uncertain workflow.
+    """
+    if not matches:
+        return None
+    top = matches[0]
+    filename = top.get("filename") if isinstance(top, dict) else getattr(top, "filename", None)
+    score = top.get("score", 0) if isinstance(top, dict) else getattr(top, "score", 0)
+    if filename and (score or 0) >= min_score:
+        return {"nextflow_path": filename, "parameters": {}}
+    return None
+
+
 def build_dag_plan(
     tasks: List[Any],
     resolver: Callable[[Any], Optional[Dict[str, Any]]],

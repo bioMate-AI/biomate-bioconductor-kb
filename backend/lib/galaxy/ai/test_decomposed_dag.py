@@ -14,8 +14,10 @@ _HERE = os.path.dirname(os.path.abspath(__file__))              # backend/lib/ga
 sys.path.insert(0, _HERE)                                       # import decomposed_dag (sibling)
 sys.path.insert(0, os.path.join(_HERE, os.pardir, os.pardir))   # backend/lib → galaxy.chain.dag
 
-from decomposed_dag import build_dag_plan  # noqa: E402
+from decomposed_dag import build_dag_plan, pick_workflow_match, DAG_RESOLVE_MIN_SCORE  # noqa: E402
 from galaxy.chain.dag import validate_plan  # noqa: E402
+
+Match = namedtuple("Match", ["filename", "score"])
 
 Task = namedtuple("Task", ["id", "description", "depends_on", "parallel_with"])
 
@@ -75,6 +77,40 @@ def test_empty_tasks_returns_none():
 def test_max_parallel_bounded():
     plan = build_dag_plan([_task("a"), _task("b")], _ok, max_parallel=99)
     assert 1 <= plan["max_parallel"] <= 16
+
+
+def test_pick_match_confident_resolves():
+    got = pick_workflow_match([Match("rnaseq.nf", 15.0), Match("other.nf", 14.0)])
+    assert got == {"nextflow_path": "rnaseq.nf", "parameters": {}}
+
+
+def test_pick_match_low_score_refused():
+    assert pick_workflow_match([Match("weak.nf", 3.0)]) is None       # below medium bar
+    assert DAG_RESOLVE_MIN_SCORE == 6.0
+
+
+def test_pick_match_empty_or_no_filename():
+    assert pick_workflow_match([]) is None
+    assert pick_workflow_match(None) is None
+    assert pick_workflow_match([Match(None, 99.0)]) is None
+
+
+def test_pick_match_accepts_dicts():
+    assert pick_workflow_match([{"filename": "x.nf", "score": 10}]) == {"nextflow_path": "x.nf", "parameters": {}}
+    assert pick_workflow_match([{"filename": "x.nf", "score": 1}]) is None
+
+
+def test_build_dag_with_pick_resolver():
+    # end-to-end: resolver backed by pick_workflow_match assembles a valid DAG
+    def resolver(t):
+        return pick_workflow_match([Match("%s.nf" % t.id, 12.0)])
+    plan = build_dag_plan([_task("a"), _task("b")], resolver)
+    assert plan is not None
+    _assert_executable(plan)
+    # a task whose only match is weak → whole plan falls back (None)
+    def weak(t):
+        return pick_workflow_match([Match("%s.nf" % t.id, 2.0)])
+    assert build_dag_plan([_task("a")], weak) is None
 
 
 if __name__ == "__main__":

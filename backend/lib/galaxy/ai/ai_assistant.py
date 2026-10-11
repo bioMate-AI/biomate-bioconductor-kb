@@ -800,9 +800,10 @@ class AIAssistant:
                 desc = task.get('description')
             if not desc:
                 return None
-            matches = self.workflow_search.search(desc)
-            if matches and getattr(matches[0], 'filename', None):
-                return {'nextflow_path': matches[0].filename, 'parameters': {}}
+            from .decomposed_dag import pick_workflow_match
+            # Confidence-gated: only a medium+ match resolves; weak matches → None
+            # → build_dag_plan falls back to single-task (never dispatches a guess).
+            return pick_workflow_match(self.workflow_search.search(desc))
         except Exception as exc:
             log.debug(f"[MultiTask] task resolution failed: {exc}")
         return None
