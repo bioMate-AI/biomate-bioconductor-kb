@@ -33,6 +33,8 @@ params.publish_dir_mode          = 'copy'
 def ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/chai1:latest'
 
 // -- Chai-1 structure prediction -----------------------------------------------
+// Handles both input modes inside the process script so no intermediate channel
+// or local temp file is needed (collectFile breaks with S3 work directories).
 
 process CHAI1_PREDICT {
     tag "chai1"
@@ -41,18 +43,21 @@ process CHAI1_PREDICT {
 
     container ECR
 
-    input:
-    path(fasta)
-
     output:
     path("chai_output/"), emit: results_dir
     path("chai_output/*.cif"), emit: structures, optional: true
     path("chai_output/scores.json"), emit: scores, optional: true
 
     script:
+    def fasta_path = params.input_fasta?.toString()?.trim() ?: ''
+    def seq        = params.sequence?.toString()?.trim()    ?: ''
+    if (!fasta_path && !seq) error "Provide params.input_fasta (FASTA file path) or params.sequence (raw AA/NT sequence)"
+    def fasta_arg  = fasta_path ?: 'input_sequence.fasta'
+    def write_cmd  = fasta_path ? '' : "printf '>protein|name=query\\\\n${seq}\\\\n' > input_sequence.fasta"
     """
+    ${write_cmd}
     python -m chai_lab.main predict \\
-        --fasta ${fasta} \\
+        --fasta ${fasta_arg} \\
         --output chai_output/ \\
         --num-trunk-recycles ${params.num_trunk_recycles} \\
         --num-diffusion-timesteps ${params.num_diffusion_timesteps} \\
@@ -101,21 +106,6 @@ EOF
 }
 
 workflow {
-    def input_fasta_val = params.input_fasta?.toString()?.trim() ?: ''
-    def sequence_val    = params.sequence?.toString()?.trim()    ?: ''
-
-    if (input_fasta_val) {
-        fasta_ch = Channel.fromPath(input_fasta_val, checkIfExists: true)
-    } else if (sequence_val) {
-        // Build FASTA inline — avoids a separate no-input process which requires
-        // its own container in AWS Batch and can cause Boolean/Path type errors
-        // when Nextflow resolves PROCESS.out without a named emit.
-        fasta_ch = Channel.of(">protein|name=query\n${sequence_val}\n")
-            .collectFile(name: 'input_sequence.fasta')
-    } else {
-        error "Provide params.input_fasta (FASTA file path) or params.sequence (raw AA/NT sequence)"
-    }
-
-    CHAI1_PREDICT(fasta_ch)
+    CHAI1_PREDICT()
     SUMMARISE_RESULTS(CHAI1_PREDICT.out.results_dir)
 }
