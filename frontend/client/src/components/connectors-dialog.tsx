@@ -218,7 +218,12 @@ function ConnectorTable({
   scopes: Record<string, Scope>;
   onScopeChange: (name: string, scope: Scope) => void;
 }) {
-  if (compact) return <div className="p-5"><div className="rounded-lg border border-border bg-background px-4" data-testid="connector-table">{rows.map(row => <article key={row.name} data-testid={`connector-row-${row.name}`} className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center py-3 border-b border-border last:border-0"><div className="min-w-0"><h3 className="text-[13px] font-semibold">{row.name}</h3><p className="text-xs text-muted-foreground mt-1">{row.description}</p>{row.needs && <p className="text-xs text-muted-foreground mt-1">Requires {row.needs}</p>}</div><ResidencyBadge residency={row.residency} /><span className="text-[11px] text-muted-foreground">{row.category}</span></article>)}</div></div>;
+  // Embedded surface: a bordered card with zebra-striped rows, mirroring the
+  // reference `.card2` / `.connrow` treatment (data_centroid_design_v2). Even
+  // rows get a subtle edge-to-edge band (--bm-surface-2, dark-mode safe) so a
+  // wide row stays followable across; horizontal padding lives on the rows so
+  // the band spans the full card width.
+  if (compact) return <div className="p-5"><div className="rounded-lg border border-border bg-background overflow-hidden" data-testid="connector-table">{rows.map((row, i) => <article key={row.name} data-testid={`connector-row-${row.name}`} className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center px-4 py-3 border-b border-border last:border-0" style={{ background: i % 2 === 1 ? 'var(--bm-surface-2)' : 'transparent' }}><div className="min-w-0"><h3 className="text-[13px] font-semibold">{row.name}</h3><p className="text-xs text-muted-foreground mt-1">{row.description}</p>{row.needs && <p className="text-xs text-muted-foreground mt-1">Requires {row.needs}</p>}</div><ResidencyBadge residency={row.residency} /><span className="text-[11px] text-muted-foreground">{row.category}</span></article>)}</div></div>;
   const checkable = !!onToggle;
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }} data-testid="connector-table">
@@ -467,7 +472,7 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
         data-testid="connectors-dialog"
       >
         <div style={{ padding: '16px 20px 0', flexShrink: 0 }}>
-          {embedded ? <><p className="text-xs text-muted-foreground mb-2">Workspace / Connections</p><div className="flex items-center justify-between gap-4"><h1 className="text-xl font-semibold">Connectors</h1><button className="text-sm border border-border rounded-md px-3 py-1.5" onClick={() => setAdding(v => !v)}>{adding ? "Close" : "Add a connector"}</button></div></> : <DialogTitle>Connectors</DialogTitle>}
+          {embedded ? <><p className="text-xs text-muted-foreground mb-2">Workspace / Connectors</p><div className="flex items-center justify-between gap-4"><h1 className="text-xl font-semibold">Connectors</h1><button className="text-sm border border-border rounded-md px-3 py-1.5" onClick={() => setAdding(v => !v)}>{adding ? "Close" : "Add a connector"}</button></div></> : <DialogTitle>Connectors</DialogTitle>}
           <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '8px 0' }}>Browse public sources or manage your private database, MCP server, and instrument connections.</p>
           {/* Residency legend (§0.9.3): the five values, so a badge is readable at a glance */}
           <div data-testid="residency-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 8px', marginTop: 8, fontSize: 10.5, color: 'var(--muted-foreground)' }}>

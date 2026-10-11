@@ -14,6 +14,8 @@
  * an explicit "unspecified" / "not declared" rather than guessing a value.
  */
 
+import { ExternalLink, Folder } from "lucide-react";
+
 // ── Residency (§0.9.3) ───────────────────────────────────────────────────────
 
 export type Residency = 'cloud' | 'onprem' | 'mount' | 'local' | 'prompt';
@@ -64,28 +66,36 @@ export function residencyDisplay(r?: Residency): { label: string; why: string; k
   return { ...RESIDENCY_UNSPECIFIED, known: false };
 }
 
-/** A residency badge, honest "unspecified" when undeclared. */
+/** A residency badge, honest "unspecified" when undeclared.
+ *  Styling mirrors the reference `.res` chip (data_centroid_design_v2):
+ *  cloud reads as the NEUTRAL default (gray) — not a warning; the secure
+ *  residencies (on-prem / mounted / this machine) are green ("data stays
+ *  inside"); prompt-only is the blue accent. Pill shape + uppercase + icon. */
 export function ResidencyBadge({ residency }: { residency?: Residency }) {
   const d = residencyDisplay(residency);
   const palette: Record<string, { bg: string; fg: string }> = {
-    cloud:  { bg: 'oklch(0.93 0.05 55)',  fg: 'oklch(0.42 0.13 55)' },   // amber — leaves the estate
-    onprem: { bg: 'oklch(0.93 0.05 150)', fg: 'oklch(0.38 0.12 150)' },  // green — stays inside
-    mount:  { bg: 'oklch(0.93 0.04 220)', fg: 'oklch(0.40 0.11 220)' },  // blue — read in place
-    local:  { bg: 'oklch(0.93 0.04 280)', fg: 'oklch(0.40 0.12 280)' },  // violet — this host
-    prompt: { bg: 'var(--muted)',         fg: 'var(--muted-foreground)' },// neutral — no data moves
+    cloud:  { bg: 'var(--bm-surface-3)',   fg: 'var(--bm-text-muted)' }, // gray — leaves the estate (the common default)
+    onprem: { bg: 'var(--bm-ok-soft)',     fg: 'var(--bm-ok)' },        // green — stays inside
+    mount:  { bg: 'var(--bm-ok-soft)',     fg: 'var(--bm-ok)' },        // green — read in place, never copied
+    local:  { bg: 'var(--bm-ok-soft)',     fg: 'var(--bm-ok)' },        // green — never leaves the host
+    prompt: { bg: 'var(--bm-accent-soft)', fg: 'var(--bm-accent)' },    // blue — instruction text, moves no data
   };
-  const c = d.known && residency ? palette[residency] : { bg: 'oklch(0.95 0.03 30)', fg: 'oklch(0.52 0.16 30)' };
+  const c = d.known && residency ? palette[residency] : { bg: 'var(--bm-surface-3)', fg: 'oklch(0.52 0.16 30)' };
+  const Glyph = residency === 'cloud' ? ExternalLink : Folder;
   return (
     <span
       data-testid="residency-badge"
       data-residency={residency || 'unspecified'}
       title={d.why}
       style={{
-        fontSize: 10, padding: '1px 6px', borderRadius: 4, whiteSpace: 'nowrap',
-        fontWeight: 600, background: c.bg, color: c.fg,
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        fontSize: 9.5, lineHeight: 1.6, padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap',
+        fontWeight: 600, letterSpacing: '0.03em', textTransform: 'uppercase',
+        background: c.bg, color: c.fg,
         border: d.known ? 'none' : '1px dashed oklch(0.72 0.12 30)',
       }}
     >
+      {d.known && <Glyph size={9} style={{ flexShrink: 0 }} aria-hidden />}
       {d.label}
     </span>
   );
