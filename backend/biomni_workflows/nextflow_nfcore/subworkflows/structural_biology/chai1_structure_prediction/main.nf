@@ -32,21 +32,6 @@ params.publish_dir_mode          = 'copy'
 
 def ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/chai1:latest'
 
-// -- Write raw sequence to FASTA (used when params.sequence is provided) -------
-
-process WRITE_FASTA {
-    label 'process_low'
-
-    output:
-    path "input_sequence.fasta"
-
-    script:
-    def seq = params.sequence.trim()
-    """
-    printf '>protein|name=query\\n${seq}\\n' > input_sequence.fasta
-    """
-}
-
 // -- Chai-1 structure prediction -----------------------------------------------
 
 process CHAI1_PREDICT {
@@ -116,18 +101,17 @@ EOF
 }
 
 workflow {
-    // Guard against boolean params (LLM occasionally emits input_fasta:true).
-    // Channel.fromPath(boolean) throws java.lang.Boolean.getFileSystem().
-    def _fasta_raw = (params.input_fasta instanceof Boolean) ? '' : params.input_fasta.toString()
-    def _seq_raw   = (params.sequence    instanceof Boolean) ? '' : params.sequence.toString()
-    def has_file = _fasta_raw && _fasta_raw.trim()
-    def has_seq  = _seq_raw   && _seq_raw.trim()
+    def input_fasta_val = params.input_fasta?.toString()?.trim() ?: ''
+    def sequence_val    = params.sequence?.toString()?.trim()    ?: ''
 
-    if (has_file) {
-        fasta_ch = Channel.fromPath(_fasta_raw, checkIfExists: true)
-    } else if (has_seq) {
-        WRITE_FASTA()
-        fasta_ch = WRITE_FASTA.out
+    if (input_fasta_val) {
+        fasta_ch = Channel.fromPath(input_fasta_val, checkIfExists: true)
+    } else if (sequence_val) {
+        // Build FASTA inline — avoids a separate no-input process which requires
+        // its own container in AWS Batch and can cause Boolean/Path type errors
+        // when Nextflow resolves PROCESS.out without a named emit.
+        fasta_ch = Channel.of(">protein|name=query\n${sequence_val}\n")
+            .collectFile(name: 'input_sequence.fasta')
     } else {
         error "Provide params.input_fasta (FASTA file path) or params.sequence (raw AA/NT sequence)"
     }
