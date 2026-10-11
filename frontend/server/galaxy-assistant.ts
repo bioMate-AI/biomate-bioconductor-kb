@@ -16,7 +16,7 @@ import { localResponsePrompt } from './local-response-prompt.js';
  */
 
 import { resolveChainHintNames } from './chain-hint-fallback';
-import { isInterpretationOnlyRequest, prohibitsWorkflowExecution } from './execution-intent-guard';
+import { isInterpretationOnlyRequest, prohibitsWorkflowExecution, prohibitsWorkflowGeneration } from './execution-intent-guard';
 import { jsonrepair } from 'jsonrepair';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
@@ -4370,12 +4370,27 @@ Rules:
     // card, prerequisite clarification, or compute launch can be produced.
     if (actions.needsWorkflowGeneration && prohibitsWorkflowExecution(message)) {
       const interpretationOnly = isInterpretationOnlyRequest(message);
-      log(`Execution-prohibition guard: routing to ${interpretationOnly ? 'data_interpretation' : 'research_question'} without workflow generation`);
-      actions.needsWorkflowGeneration = false;
-      actions.needsWorkflowModification = false;
-      actions.needsResearchAgent = true;
-      actions.needsLLMReasoning = true;
-      intent.type = interpretationOnly ? 'data_interpretation' : 'research_question';
+      const generationProhibited = prohibitsWorkflowGeneration(message);
+      if (interpretationOnly || generationProhibited) {
+        // The user wants NO plan produced — a pure interpretation request, or an
+        // explicit "do not generate a workflow". Suppress generation and route to
+        // interpretation/research (unchanged behaviour for these cases).
+        log(`Execution-prohibition guard: routing to ${interpretationOnly ? 'data_interpretation' : 'research_question'} without workflow generation`);
+        actions.needsWorkflowGeneration = false;
+        actions.needsWorkflowModification = false;
+        actions.needsResearchAgent = true;
+        actions.needsLLMReasoning = true;
+        intent.type = interpretationOnly ? 'data_interpretation' : 'research_question';
+      } else {
+        // Launch is prohibited but a plan/draft IS wanted ("draft the plan, but do
+        // not launch the jobs yet"). KEEP workflow generation: it only produces a
+        // DRAFT card — launching requires a separate, explicit user action (Confirm
+        // & Run), so no job can start here (verified: no auto-launch on generation).
+        // Separating draft intent from launch permission is the fix for the
+        // prepare-a-plan-but-don't-launch gap. See
+        // docs/20261011_CODEX_WORK_REVIEW_AND_CONSOLIDATION.md (reconciliation #1).
+        log('Execution-prohibition guard: launch prohibited but a plan/draft was requested — producing a draft workflow card (no auto-launch; Confirm & Run required to execute).');
+      }
     }
 
     // Paper-question guard (FINAL gate):

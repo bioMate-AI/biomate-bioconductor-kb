@@ -10,7 +10,9 @@
 
 const NO_EXECUTION = /\b(?:(?:do\s+not|don't|dont|without)\s+(?:run(?:ning)?|launch(?:ing)?|execute|execut(?:ing|ion)|start(?:ing)?|submit(?:ting)?|trigger(?:ing)?|generat(?:e|ing|ion)|creat(?:e|ing|ion))|no\s+(?:run|launch|execution|compute|computation|simulation|workflow|pipeline|job))\b/i;
 
-const EXECUTION_OBJECT = /\b(?:nextflow|workflow|pipeline|job|compute|simulation|analysis|pbpk|model)\b/i;
+// Objects accept plurals ("do not launch the jobs") — broadening this only makes the
+// launch-prohibition detection MORE conservative (it never loosens a launch block).
+const EXECUTION_OBJECT = /\b(?:nextflow|workflows?|pipelines?|jobs?|compute|simulations?|analys[ei]s|pbpk|models?)\b/i;
 
 // The English classifier has historically been used for these requests, but
 // an explicit Chinese instruction must be just as authoritative.  Keep this
@@ -43,4 +45,21 @@ export function prohibitsWorkflowExecution(message: string): boolean {
 export function isInterpretationOnlyRequest(message: string): boolean {
   return prohibitsWorkflowExecution(message) &&
     /\b(?:interpret|interpretation|explain|assess|evaluate|review|summari[sz]e|what\s+(?:does|do)|mean(?:ing)?|implication)\b|(?:解释|解读|评估|分析|说明|含义)/iu.test(message);
+}
+
+// A prohibition on *generating/drafting* a plan — distinct from prohibiting its
+// launch. Only generation verbs (generate/create/build/draft/produce/write),
+// never run/launch/execute, so "do not launch the jobs" does NOT match here.
+const NO_GENERATION = /\b(?:do\s+not|don't|dont|without|refrain\s+from|no\s+need\s+to)\s+(?:generat(?:e|ing|ion)|creat(?:e|ing|ion)|build(?:ing)?|draft(?:ing)?|produc(?:e|ing)|writ(?:e|ing)|author(?:ing)?)\b/i;
+const CHINESE_NO_GENERATION = /(?:不要|别|无需|不需要)\s*(?:生成|创建|编写|起草|制作|构建)\s*(?:任何\s*)?(?:新的\s*)?(?:工作流|流程|方案|计划|pipeline|workflow)?/u;
+
+/**
+ * True when the user explicitly rules out *generating/drafting* a workflow or
+ * plan at all — distinct from `prohibitsWorkflowExecution`, which only prohibits
+ * launching. "Draft the plan, but do not launch the jobs yet" must still PRODUCE
+ * a plan, so a launch prohibition alone must never suppress generation; only an
+ * explicit generation prohibition (or an interpretation-only request) may.
+ */
+export function prohibitsWorkflowGeneration(message: string): boolean {
+  return CHINESE_NO_GENERATION.test(message) || NO_GENERATION.test(message);
 }
