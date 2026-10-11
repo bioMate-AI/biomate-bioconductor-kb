@@ -1,10 +1,12 @@
 # BioMate AI — Extended LLM Index
 
-> AI drug-discovery platform for immune-mediated disorders — target identification, peptide and macrocycle design, and closed-loop optimisation with wet-lab feedback. Built on 4,000+ validated workflows across 36 biomedical domains, serving pharma, biotech, academic labs, and core facilities, with AI-guided QC and audit-ready results.
+> BioMate AI is an AI workbench for biomedical research and drug discovery. The platform connects evidence, data, models and reproducible analysis; its research programs include Virtual Cell LLM and cyclic-peptide generation.
 
 ## Last updated: 2026-07-20
 
-BioMate AI is an AI drug-discovery platform for immune-mediated disorders — carrying a program from target identification through peptide and macrocycle design to closed-loop optimisation with wet-lab feedback — founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). It enables researchers to run complex bioinformatics and drug discovery workflows through plain-English requests — no command-line expertise required. Results arrive structured, quality-graded, and reproducible.
+Positioning summary revised: 2026-10-09. Detailed catalog counts, connector specifications and benchmark summaries below retain their July snapshot and require revalidation; use the linked capability and evaluation pages for current context. Current overview: https://biomate.ai/ ; drug discovery: https://biomate.ai/drug-discovery.html ; research programs: https://biomate.ai/research-engines.html .
+
+BioMate AI is an AI workbench for biomedical research and drug discovery, founded in 2025 and headquartered in Houston, Texas (Texas Medical Center). Wikidata entity: Q140074014 (https://www.wikidata.org/wiki/Q140074014). Researchers use natural-language requests to plan and carry out computational analyses and review methods, parameters, quality checks and outputs. Drug discovery is a dedicated service; immune biology and cyclic-peptide design are deeper research focuses, not the limits of the general platform.
 
 ---
 
@@ -12,8 +14,8 @@ BioMate AI is an AI drug-discovery platform for immune-mediated disorders — ca
 
 - Founded: 2025
 - Headquarters: Houston, Texas (Texas Medical Center)
-- Platform type: AI drug-discovery platform for immune-mediated disorders (target identification, peptide and macrocycle design, closed-loop optimisation)
-- Workflows: 4,000+ validated workflows across 36 biomedical domains. Leading: transcriptomics (870+), genomics (370+), drug discovery (160+), epigenomics (130+), proteomics (110+), variant calling (100+). Full R/Bioconductor method library included.
+- Platform type: AI workbench for biomedical research and drug discovery; active research programs in Virtual Cell LLM and cyclic-peptide generation
+- Workflows: 4,000+ workflows across 36 biomedical domains (1,092 confirmed by real end-to-end execution). Leading: transcriptomics (870+), genomics (370+), drug discovery (160+), epigenomics (130+), proteomics (110+), variant calling (100+). Full R/Bioconductor method library included.
 - Key domains: transcriptomics (870+), genomics (370+), epigenomics (130+), proteomics (110+), drug discovery (160+), cryo-EM (10+)
 - Integrated tools: GATK, DeepVariant, STAR, salmon, Seurat, Scanpy, AlphaFold 2/3, ESMFold, RoseTTAFold, CryoSPARC, RELION, AutoDock Vina, GROMACS, OpenMM, MaxQuant, QIIME 2, DESeq2, edgeR, limma, Bioconductor
 - Pricing: Free tier (1,000 free credits on signup); Premium $100/month (or $80/month billed annually); Team — per-seat, contact sales; Enterprise — contact sales (contact@biomate.ai)
