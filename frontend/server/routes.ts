@@ -1138,6 +1138,10 @@ const upload = multer({
       '.bam', '.sam', '.cram',
       '.mzml', '.mzxml', '.mgf',
       '.csv', '.tsv', '.txt', '.tab',
+      // Markdown — provenance/notes (cold-start demo_notes.md, pilot_README.md),
+      // IND report sections, and after-run reports are all .md. Omitting it made
+      // chat-attached .md uploads 500 (fileFilter reject -> Internal server error).
+      '.md', '.markdown',
       '.fasta', '.fa', '.fna', '.fas', '.faa', '.fap',
       '.vcf', '.vcf.gz', '.bed', '.gff', '.gtf',
       '.h5ad', '.h5', '.hdf5', '.loom',
