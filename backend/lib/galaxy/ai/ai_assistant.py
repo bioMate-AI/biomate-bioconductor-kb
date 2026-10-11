@@ -555,6 +555,37 @@ class AIAssistant:
         context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Handle workflow generation requests."""
+        # --- Flag-gated Pattern-Router hook (default OFF). -------------------
+        # When BIOMATE_PATTERN_ROUTER_ENABLED is off (the default), this reads a
+        # single env var and does nothing else -- no import, no new call -- so the
+        # path below is behaviorally identical to today's single-pass generation.
+        # Only when enabled does it consult the (already-tested) pattern_router,
+        # which itself only reaches the dormant multi-agent orchestrator for a
+        # MULTI_SPECIALIST decision. Any failure falls through to the default path.
+        import os as _os
+        if _os.environ.get("BIOMATE_PATTERN_ROUTER_ENABLED", "").strip().lower() in (
+            "1", "true", "yes", "on"
+        ):
+            try:
+                from .pattern_router import maybe_route_workflow_generation
+                _pr = maybe_route_workflow_generation(query, context, enabled=True)
+                _res = _pr.get("result")
+                if _pr.get("dispatched") and isinstance(_res, dict):
+                    return {
+                        "success": _res.get("success", True),
+                        "handler": "agent_orchestrator",
+                        "workflow": _res.get("workflow_ga") or _res.get("workflow"),
+                        "source": _res.get("source", "pattern_router:multi_specialist"),
+                        "confidence": _res.get("confidence"),
+                        "message": _res.get("message"),
+                        "pattern": (_pr.get("decision") or {}).get("pattern"),
+                    }
+            except Exception as _hook_exc:  # never break the live path
+                log.warning(
+                    "[PatternRouter] hook skipped (%s); using unified generation",
+                    _hook_exc,
+                )
+        # ---------------------------------------------------------------------
         # Use the existing generate_workflow_unified method
         datasets = context.get('datasets', []) if context else []
         result = self.generate_workflow_unified(query, available_datasets=datasets)

@@ -94,7 +94,7 @@ ENTITY_SOURCES: Dict[str, List[str]] = {
     "pathway":    ["kegg", "reactome", "go", "pubmed"],
     "structure":  ["pdb", "alphafold", "interpro"],
     "disease":    ["hpo", "clinvar", "pubmed", "europepmc", "semantic_scholar"],
-    "literature": ["pubmed", "europepmc", "semantic_scholar", "openalex"],
+    "literature": ["corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex"],
 }
 
 # ── Redis cache ────────────────────────────────────────────────────────────────
@@ -473,6 +473,72 @@ def _fetch_semantic_scholar(query: str) -> Dict:
         })
     return {"source": "semantic_scholar", "results": results}
 
+def _fetch_corpus_fs(query: str) -> Dict:
+    """Grounded local corpus-as-filesystem source (Option B).
+
+    SAFE / opt-in by design: this joins the literature fan-out only when a local
+    corpus index is explicitly configured AND present on disk. With no corpus
+    configured it returns ``[]`` immediately -- it never errors, never performs a
+    network call, and never blocks the rest of the fan-out. Every returned result
+    is grounded by construction (a literal snippet that exists in the store, with
+    full provenance), so this source cannot confabulate citations.
+    """
+    import os
+
+    db = os.environ.get("CORPUS_INDEX_DB")
+    backend = (os.environ.get("CORPUS_INDEX_BACKEND") or "fts5").strip().lower()
+    # Only the embedded fts5 backend is file-backed + opt-in here; without an
+    # explicit, existing DB path there is no in-perimeter corpus to query.
+    if backend != "fts5" or not db or not os.path.exists(db):
+        return {"source": "corpus_fs", "results": []}
+
+    try:
+        from .corpus_fs import get_corpus_index, key_terms  # lazy, additive
+    except Exception:
+        try:  # loose/script import context (ai dir on sys.path)
+            from corpus_fs import get_corpus_index, key_terms  # type: ignore
+        except Exception as e:  # pragma: no cover - import guard
+            log.debug("[federated_query] corpus_fs unavailable: %s", e)
+            return {"source": "corpus_fs", "results": []}
+
+    try:
+        index = get_corpus_index(db)
+        terms = key_terms(query) or [query.strip()]
+        results: List[Dict] = []
+        seen = set()
+        for term in terms:
+            if not term:
+                continue
+            for hit in index.grep(term, limit=10):
+                dedup = (hit.get("doc_id"), hit.get("path"), hit.get("line_start"))
+                if dedup in seen:
+                    continue
+                seen.add(dedup)
+                meta = {}
+                try:
+                    meta = index.doc_meta(hit.get("doc_id")) or {}
+                except Exception:
+                    meta = {}
+                results.append({
+                    "doc_id": hit.get("doc_id"),
+                    "title": meta.get("title"),
+                    "year": meta.get("year"),
+                    "section": hit.get("section"),
+                    "path": hit.get("path"),
+                    "line_start": hit.get("line_start"),
+                    "line_end": hit.get("line_end"),
+                    "snippet": hit.get("snippet"),
+                    "url": meta.get("url"),
+                    "licence": meta.get("licence"),
+                    "_grounded": True,
+                    "_term": term,
+                })
+        return {"source": "corpus_fs", "results": results}
+    except Exception as e:  # must never break the fan-out
+        log.debug("[federated_query] corpus_fs query failed: %s", e)
+        return {"source": "corpus_fs", "results": []}
+
+
 def _fetch_openalex(query: str) -> Dict:
     """OpenAlex — 250M works, concept tagging, institution filtering."""
     q = urllib.parse.quote(query)
@@ -520,9 +586,12 @@ _FETCHERS = {
     "europepmc":        _fetch_europepmc,
     "semantic_scholar": _fetch_semantic_scholar,
     "openalex":         _fetch_openalex,
+    # Grounded local corpus-as-filesystem (Option B). Opt-in: returns [] unless
+    # a local corpus index is configured + present (see _fetch_corpus_fs).
+    "corpus_fs":        _fetch_corpus_fs,
 }
 
-_LITERATURE_SOURCES = {"pubmed", "europepmc", "semantic_scholar", "openalex"}
+_LITERATURE_SOURCES = {"corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex"}
 
 # ── Main entry point ───────────────────────────────────────────────────────────
 
@@ -633,7 +702,7 @@ def _merge_results(results: Dict[str, Dict], entity_type: str) -> List[Dict]:
         "pathway":    ["reactome", "kegg", "go", "pubmed"],
         "structure":  ["pdb", "alphafold", "interpro"],
         "disease":    ["hpo", "clinvar", "europepmc", "pubmed", "semantic_scholar"],
-        "literature": ["pubmed", "europepmc", "semantic_scholar", "openalex"],
+        "literature": ["corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex"],
     }
     ordered = priority.get(entity_type, list(results.keys()))
     remaining = [s for s in results if s not in ordered]
