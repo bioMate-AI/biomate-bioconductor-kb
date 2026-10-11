@@ -184,8 +184,11 @@ export function DatasetObject({
           <span>/</span>
           <span>{isRunOutput ? "Outputs" : "Inputs"}</span>
           <span>/</span>
-          <span className="font-mono truncate" data-testid="dataset-object-id">
-            {dataset.id}
+          {/* Breadcrumb ends in the human filename, not the raw UUID (poor UX,
+              and diverges from the reference's path-like crumb). The immutable
+              id stays available on hover for identity-on-demand. */}
+          <span className="truncate" data-testid="dataset-object-id" title={dataset.id}>
+            {dataset.name}
           </span>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -306,12 +309,16 @@ export function DatasetObject({
               <div className="space-y-1" data-testid="dataset-preview-table">
                 <div className="overflow-x-auto rounded border">
                   <table className="w-full border-collapse text-[11px]">
+                    {/* Header reads as a header without a heavy rule — a light
+                        blue band (--bm-accent-soft) + accent-ink text, mirroring
+                        the reference data-table header. */}
                     <thead>
-                      <tr className="bg-muted/50">
+                      <tr style={{ background: 'var(--bm-accent-soft)' }}>
                         {profile.columns.map((c, i) => (
                           <th
                             key={i}
-                            className="whitespace-nowrap px-2 py-1 text-left font-medium border-b"
+                            className="whitespace-nowrap px-2 py-1 text-left font-semibold border-b"
+                            style={{ color: 'var(--bm-accent-ink)' }}
                           >
                             {c}
                           </th>
