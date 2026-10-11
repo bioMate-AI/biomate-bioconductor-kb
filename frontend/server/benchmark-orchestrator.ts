@@ -85,6 +85,7 @@ export interface BenchmarkScore {
   mode: 'ground_truth' | 'agreement';
   report: Array<{
     method: string; n: number; available_n: number; rank: number | null;
+    status?: 'scored' | 'failed';
     ARI?: number | null; NMI?: number | null; mean_agreement?: number | null;
   }>;
   winner: string | null;
@@ -126,6 +127,24 @@ export function scoreBenchmark(
   });
   const tied = report[1].rank === 1;
   return { mode, report, winner: tied ? null : report[0].method, reason: tied ? 'tied' : null, common_samples: common };
+}
+
+/**
+ * Append explicit rows for methods that produced no clusters, so a PARTIAL
+ * comparison report shows WHICH method failed instead of hiding it in
+ * `coverage.missing_methods`. Failed rows carry null metrics and rank=null, so
+ * they never enter ranking or winner selection (scoreBenchmark already decided
+ * those over the scored methods only). Pure + unit-testable.
+ */
+export function withFailedMethodRows(
+  score: BenchmarkScore,
+  missingMethods: string[],
+): BenchmarkScore['report'] {
+  const failed = missingMethods.map(method => ({
+    method, n: 0, available_n: 0, rank: null, status: 'failed' as const,
+    ...(score.mode === 'ground_truth' ? { ARI: null, NMI: null } : { mean_agreement: null }),
+  }));
+  return [...score.report.map(r => ({ ...r, status: 'scored' as const })), ...failed];
 }
 
 // ------------------------------------------------------------------ orchestrator deps (injected)
@@ -229,6 +248,7 @@ export function registerBenchmarkOrchestrator(app: Express, deps: BenchmarkDeps)
       const partial = missingMethods.length > 0;
       res.json({
         benchmarkId: bid, status: partial ? 'partial' : 'completed', children, ...score,
+        report: withFailedMethodRows(score, missingMethods),
         winner: partial ? null : score.winner,
         reason: partial ? 'incomplete_method_coverage' : score.reason,
         coverage: { expected: grp.methods.length, observed: grp.methods.length - missingMethods.length, missing_methods: missingMethods },
