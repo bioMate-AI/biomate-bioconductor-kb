@@ -31,7 +31,7 @@
     "@context": "https://schema.org",
     "@type": "WebPage",
     "name": "AI Routing, Agent Evaluation & Language Understanding — BioMate AI Benchmarks",
-    "description": "Detailed benchmark results for BioMate AI exact first-choice workflow routing (90.8%, n=120, Apr 2026; 94.6% including closely-related equivalent pipelines), cross-run stability (100%, Cohen's Kappa=1.0), license gating (98.2%), prerequisite recovery (97.5%), BixBench bioinformatics agent score (92.7% vs Biomni Lab 88.7%), and parameter extraction from natural language (84.8% vs ~50% LLM-only baseline).",
+    "description": "Detailed benchmark results for BioMate AI exact first-choice workflow routing (90.8%, n=120, Apr 2026; 94.6% including closely-related equivalent pipelines), cross-run stability (100%, Cohen's Kappa=1.0), license gating (98.1%, 53/54), prerequisite recovery (97.5%), BixBench bioinformatics agent score (92.7% vs Biomni Lab 88.7%), and parameter extraction from natural language (mean per-case F1 0.848, v10, n=115; partial credit).",
     "url": "https://biomate.ai/benchmarks-routing.html",
     "isPartOf": { "@type": "WebSite", "url": "https://biomate.ai" },
     "breadcrumb": {
@@ -78,7 +78,7 @@
         "name": "How accurate is BioMate's parameter extraction from natural language?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "BioMate extracts workflow parameters from plain-language descriptions at 84.8% accuracy (v10, n=115), up from approximately 50% using LLM-only extraction. The improvement comes from a hybrid rule + LLM architecture: rules handle deterministic mappings like unit conversions (ns→n_steps), boolean flags (single-end→true), and canonical aliases (human→GRCh38), while the LLM handles free-text values like SMILES strings and gene names."
+          "text": "BioMate extracts workflow parameters from plain-language descriptions with a mean per-case F1 of 0.848 (v10, n=115; partial credit, not all-or-nothing), up from an LLM-only baseline. The improvement comes from a hybrid rule + LLM architecture: rules handle deterministic mappings like unit conversions (ns→n_steps), boolean flags (single-end→true), and canonical aliases (human→GRCh38), while the LLM handles free-text values like SMILES strings and gene names."
         }
       },
       {
@@ -86,7 +86,7 @@
         "name": "What is license gating and why does it matter?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "License gating prevents BioMate from routing a user to a workflow that requires a commercial license they do not hold. For example, Schrödinger Glide molecular docking requires a paid license — if a user without that license requests molecular docking, BioMate correctly routes them to an open-source alternative (AutoDock Vina) instead of silently failing mid-run. BioMate achieves 98.2% license gating accuracy across 54 test cases."
+          "text": "License gating prevents BioMate from routing a user to a workflow that requires a commercial license they do not hold. For example, Schrödinger Glide molecular docking requires a paid license — if a user without that license requests molecular docking, BioMate correctly routes them to an open-source alternative (AutoDock Vina) instead of silently failing mid-run. BioMate achieves 98.1% license gating accuracy (53 of 54 test cases)."
         }
       }
     ]
@@ -215,11 +215,11 @@
         </div>
         <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
           <div style="font-size:2rem;font-weight:700;color:#fff;">84.8%</div>
-          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Parameter extraction accuracy</div>
-          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">vs ~50% LLM-only baseline</div>
+          <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">Parameter extraction (mean F1)</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">v10 &middot; n=115 &middot; partial credit</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1.25rem;">
-          <div style="font-size:2rem;font-weight:700;color:#fff;">98.2%</div>
+          <div style="font-size:2rem;font-weight:700;color:#fff;">98.1%</div>
           <div style="font-size:.85rem;font-weight:600;color:rgba(255,255,255,.85);margin-top:.3rem;">License gating accuracy</div>
           <div style="font-size:.75rem;color:rgba(255,255,255,.45);margin-top:.3rem;">n=54 &middot; blocks unlicensed pipelines</div>
         </div>
@@ -326,14 +326,14 @@
   <section class="bm-section bm-bg-2">
     <div style="max-width:var(--maxw);margin:0 auto;">
       <span class="bm-eyebrow">Benchmark 3</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">License Gating Accuracy — 98.2%</h2>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">License Gating Accuracy — 98.1%</h2>
       <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
         Several high-value bioinformatics tools require commercial licenses &mdash; Schr&ouml;dinger Glide and Prime (molecular docking and protein preparation), MOE, and GOLD are the most common examples. If BioMate routes a user without the required license to one of these tools, the run will fail mid-execution on AWS Batch, wasting compute time and returning a confusing error.
       </p>
 
       <div class="bm-metric-grid" style="max-width:720px;">
         <div class="bm-metric-card">
-          <div class="bm-metric-number">98.2%</div>
+          <div class="bm-metric-number">98.1%</div>
           <div class="bm-metric-label">License gating accuracy</div>
           <div class="bm-metric-note">54 test cases &middot; Target &ge;90%<br>Blocks unlicensed commercial workflows</div>
           <span class="bm-pass-badge">PASS</span>
@@ -348,10 +348,10 @@
       <div class="bm-explain-box" style="margin-top:2rem;">
         <div class="bm-explain-label">How license gating works</div>
         <p>Each workflow in BioMate&rsquo;s index carries a <code>license_required</code> field (open / academic / commercial). When a routing decision resolves to a licensed pipeline, BioMate checks the requesting user&rsquo;s license profile before confirming the route. If the license is absent, BioMate re-routes to the best available open-source alternative (e.g., AutoDock Vina for Glide, HMMER for commercial sequence search tools) and informs the researcher why.</p>
-        <p>The 98.2% accuracy means that in only 1 of 54 test cases did BioMate either fail to block an unlicensed route or incorrectly block a licensed user. The test set covers 8 commercially licensed tool families and their open-source counterparts.</p>
+        <p>The 98.1% accuracy means that in only 1 of 54 test cases did BioMate either fail to block an unlicensed route or incorrectly block a licensed user. The test set covers 8 commercially licensed tool families and their open-source counterparts.</p>
       </div>
 
-      <p class="bm-footnote" style="max-width:720px;">Test set composed of 54 routing decisions paired with user license profiles. Accuracy measures whether the final resolved route is appropriate for the user&rsquo;s license tier. Target was 90%; 98.2% substantially exceeds it.</p>
+      <p class="bm-footnote" style="max-width:720px;">Test set composed of 54 routing decisions paired with user license profiles. Accuracy measures whether the final resolved route is appropriate for the user&rsquo;s license tier. Target was 90%; 98.1% substantially exceeds it.</p>
     </div>
   </section>
 
@@ -428,7 +428,7 @@
   <section class="bm-section bm-bg-1">
     <div style="max-width:var(--maxw);margin:0 auto;">
       <span class="bm-eyebrow">Benchmark 6</span>
-      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">Parameter Extraction from Natural Language — 84.8%</h2>
+      <h2 class="bm-h2" style="margin-top:.75rem;margin-bottom:.5rem;">Parameter Extraction from Natural Language — 0.848 F1</h2>
       <p style="max-width:680px;color:var(--text-muted);font-size:1rem;line-height:1.6;margin-bottom:1rem;">
         Once the correct workflow is identified, BioMate must extract every parameter the pipeline needs &mdash; species, genome build, sequencing mode, read length, strandedness, concentration units, thresholds &mdash; directly from the researcher&rsquo;s plain-language description, without requiring them to fill out a form. This is parameter extraction.
       </p>
@@ -439,7 +439,7 @@
       <div class="bm-metric-grid" style="max-width:720px;">
         <div class="bm-metric-card">
           <div class="bm-metric-number">84.8%</div>
-          <div class="bm-metric-label">Parameter extraction accuracy</div>
+          <div class="bm-metric-label">Parameter extraction (mean F1)</div>
           <div class="bm-metric-note">v10 benchmark &middot; n=115 test cases<br>Hybrid rule + LLM architecture</div>
           <span class="bm-pass-badge">PASS</span>
         </div>
@@ -481,7 +481,7 @@
         Rules run first &mdash; they are deterministic, instant, and never hallucinate. The LLM only handles what rules cannot. After extraction, all values are validated against the per-workflow JSON schema (allowed_values, min/max, type). Values that fail validation are dropped or flagged rather than silently passed to the pipeline as invalid inputs.
       </p>
 
-      <p class="bm-footnote" style="max-width:720px;">v10 benchmark &middot; 115 held-out test cases across 12 workflow categories. A test case passes if all required parameters are extracted with correct values and types. Improvement from ~50% (LLM-only) to 84.8% (hybrid) documented across 6 benchmark versions. Target &ge;70%.</p>
+      <p class="bm-footnote" style="max-width:720px;">v10 benchmark &middot; 115 held-out test cases across 12 workflow categories. Score is the mean per-case F1 (partial credit per parameter), not an all-or-nothing pass rate. Improvement over an LLM-only baseline documented across 6 benchmark versions. Target &ge;70% (F1).</p>
     </div>
   </section>
 

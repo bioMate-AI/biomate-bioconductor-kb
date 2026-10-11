@@ -76,6 +76,16 @@ test('the full workflow catalog count is not conflated with the validated subset
     assert.ok(!/4,015 validated/i.test(txt), `${file}: "4,015" is a catalog count, not "validated"`);
   }
 });
+test('routing-family metrics use evidence-backed numbers and the correct metric type', () => {
+  const html = read('benchmarks-routing.html');
+  // License gating: every source says 98.1% (53/54); 98.2% was a transcription error the page
+  // even contradicted with its own "1 of 54" prose.
+  assert.ok(!/98\.2%/.test(html), 'license gating must be 98.1% (53/54), not 98.2%');
+  assert.ok(/98\.1%/.test(html), 'license gating 98.1% must be shown');
+  // Parameter extraction 0.848 is a mean per-case F1 (partial credit), not an all-or-nothing pass.
+  assert.ok(!/test case passes if all required parameters/i.test(html), 'do not describe parameter extraction as all-or-nothing');
+  assert.match(html, /mean per-case F1|mean F1/i, 'parameter extraction must be labeled as a mean F1');
+});
 test('canonical public HTML pages are represented once in the sitemap', () => {
   const xml = new JSDOM(read('sitemap.xml'), {contentType:'text/xml'}).window.document;
   const urls = [...xml.querySelectorAll('loc')].map(n => n.textContent);
