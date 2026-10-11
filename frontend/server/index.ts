@@ -110,7 +110,7 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
+      if (capturedJsonResponse && !path.startsWith("/api/voice/")) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 

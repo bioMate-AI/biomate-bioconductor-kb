@@ -722,9 +722,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
               <TabsTrigger value="files" className="flex items-center gap-1.5" data-testid="tab-project-files">
                 <FileText className="w-3.5 h-3.5" />Files
               </TabsTrigger>
-              <TabsTrigger value="workflows" className="flex items-center gap-1.5" data-testid="tab-project-workflows">
-                <FlaskConical className="w-3.5 h-3.5" />Workflow Runs
-              </TabsTrigger>
+              {/* Project Runs tab hidden to avoid duplicating chat execution history. */}
             </TabsList>
 
             {/* CHAT TAB */}

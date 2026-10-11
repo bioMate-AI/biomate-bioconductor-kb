@@ -71,6 +71,9 @@ export function mapRunBucket(status?: string): Exclude<RunBucket, "needs_attenti
       return "running"
     case "configuring":
     case "queued":
+    case "submitted":
+    case "pending":
+    case "initializing":
     case "paused":
       return "queued"
     case "failed":
@@ -157,4 +160,9 @@ export function runUpdatedAtMs(run: RunListItem): number {
   if (!value) return 0
   const ms = new Date(value).getTime()
   return Number.isFinite(ms) ? ms : 0
+}
+
+/** Active execution only; configured drafts and terminal runs belong elsewhere. */
+export function isActiveJob(run: RunListItem): boolean {
+  return ['running', 'queued', 'paused', 'submitted', 'pending', 'initializing'].includes(run.execution?.status ?? '')
 }

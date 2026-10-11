@@ -1,6 +1,6 @@
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ChatInput } from './chat-input';
 
 vi.mock('./galaxy-dataset-browser', () => ({
@@ -23,6 +23,26 @@ vi.mock('./skills-selector', () => ({
 }));
 
 describe('ChatInput — request-scoped dataset references', () => {
+  afterEach(() => { vi.unstubAllGlobals(); window.history.replaceState(null, '', '/'); });
+  it('links a project file by ID with an empty query and waits for user intent', async () => {
+    window.history.replaceState(null, '', '/?project=project-a&attachFile=file-a');
+    const fetch = vi.fn(async (url: string) => ({ ok: true, json: async () => url.endsWith('/url')
+      ? { name: 'QUICKSTART.txt', url: 'https://files.example/real-file' }
+      : { settings: { outputRequirements: '', skillPackIds: [] } } }));
+    vi.stubGlobal('fetch', fetch);
+    const onSend = vi.fn();
+    render(<ChatInput activeProjectId="project-a" onSend={onSend} />);
+    expect(await screen.findByTestId('composer-dataset-ref')).toHaveTextContent('QUICKSTART.txt');
+    expect(screen.getByTestId('chat-input')).toHaveValue('');
+    expect(screen.getByTestId('chat-send-button')).toBeDisabled();
+    expect(onSend).not.toHaveBeenCalled();
+    fireEvent.input(screen.getByTestId('chat-input'), { target: { value: 'Summarize this file.' } });
+    await waitFor(() => expect(screen.getByTestId('chat-send-button')).not.toBeDisabled());
+    fireEvent.click(screen.getByTestId('chat-send-button'));
+    expect(onSend.mock.calls[0][2].datasetReferences).toEqual([{ id: 'file-a', name: 'QUICKSTART.txt' }]);
+    expect(onSend.mock.calls[0][0]).not.toContain('suggest the right workflow');
+  });
+
   it('carries the exact selected project-file IDs with a multi-file comparison request', () => {
     const onSend = vi.fn();
     render(<ChatInput onSend={onSend} isStreaming={false} />);

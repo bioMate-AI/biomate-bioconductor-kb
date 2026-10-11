@@ -1,3 +1,5 @@
+import { registerVoiceRoutes } from "./voice-routes";
+import { classifyChainRunStatus } from './chain-run-status';
 import { readConnectorSession } from "./connector-session";
 import { createConnectorRunTools } from "./connector-run-tools";
 import { localOnly, localMessagesClient } from './local-llm.js';
@@ -1379,6 +1381,7 @@ ${auditLog.length > 0 ? `
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  registerVoiceRoutes(app, authenticateToken);
   /** Resolve either BioMate's run ID or the Galaxy invocation alias and apply
    * the single owner/project-member policy used by every output surface. */
   const resolveAuthorizedRun = async (req: any, res: any, anyRunId: string): Promise<any | null> => {
@@ -11501,9 +11504,11 @@ ${paramLines || '(none recorded)'}`;
               progress.completedSteps ?? chainStatus.steps_completed ?? run.progress.completedSteps;
             const totalSteps =
               progress.totalSteps ?? chainStatus.steps_total ?? run.progress.totalSteps;
-            const isTerminal = ['succeeded', 'failed', 'cancelled'].includes(chainState);
-            const isPaused = chainState === 'awaiting_approval';
-            const mappedStatus = toValidRunStatus(chainState);
+            const outcome = classifyChainRunStatus(chainState);
+            const isTerminal = outcome.terminal;
+            const isPaused = outcome.status === 'paused';
+            const mappedStatus = outcome.status;
+            const statusChanged = run.execution.status !== mappedStatus;
             const progressPatch = {
               totalSteps,
               completedSteps,
@@ -11512,13 +11517,14 @@ ${paramLines || '(none recorded)'}`;
                 : run.progress.percentComplete,
             };
 
-            if (isTerminal && run.execution.status !== mappedStatus) {
+            if (isTerminal) {
               run =
                 (await storage.updateExecutionRun(run.id, {
                   execution: {
                     ...run.execution,
                     status: mappedStatus,
-                    completedAt: new Date(),
+                    completedAt: run.execution.completedAt || new Date(),
+                    errorMessage: outcome.errorMessage,
                     nextflowStatus: chainStatus,
                   },
                   progress: { ...run.progress, ...progressPatch },
@@ -11526,7 +11532,7 @@ ${paramLines || '(none recorded)'}`;
 
               const chainName =
                 run.workflowDefinition?.chain_name || run.workflowDefinition?.name;
-              if (chainState === 'succeeded' && chainName) {
+              if (statusChanged && mappedStatus === 'completed' && chainName) {
                 fetch(`${galaxyUrl}/api/workflow-chains/record-run`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -11539,15 +11545,20 @@ ${paramLines || '(none recorded)'}`;
                   execution: {
                     ...run.execution,
                     status: 'paused',
+                    errorMessage: undefined,
+                    completedAt: undefined,
                     nextflowStatus: chainStatus,
                   },
                   progress: { ...run.progress, ...progressPatch },
                 })) || run;
-            } else if (run.execution.status === 'running' || run.execution.status === 'paused') {
+            } else {
               run =
                 (await storage.updateExecutionRun(run.id, {
                   execution: {
                     ...run.execution,
+                    status: mappedStatus,
+                    errorMessage: undefined,
+                    completedAt: undefined,
                     nextflowStatus: chainStatus,
                   },
                   progress: { ...run.progress, ...progressPatch },
@@ -11864,7 +11875,7 @@ ${paramLines || '(none recorded)'}`;
           ? redactInternalText(run.execution.errorMessage)
           : run.execution.errorMessage,
         autofix,
-        nextflowStatus: sanitizeNextflowStatusForClient(nextflowStatus),
+        nextflowStatus: sanitizeNextflowStatusForClient(isChainRun ? chainStatus : nextflowStatus),
         artifactReadiness,
       });
     } catch (error: any) {
@@ -12854,10 +12865,14 @@ Rules:
         const status = (run as any)?.execution?.status || null;
         return status ? { status: String(status) } : null;
       },
-      getOutputFiles: async (runId: string) => {
+      getOutputFiles: async (runId, req) => {
         const r = await fetch(
           `${_selfBase()}/api/workflows/runs/${runId}/output_files`,
-          { headers: { 'X-Forwarded-Proto': 'https' } as any },
+          { headers: {
+            Authorization: req.headers.authorization || '',
+            cookie: req.headers.cookie || '',
+            'X-Forwarded-Proto': 'https',
+          } },
         );
         const d: any = await r.json().catch(() => ({}));
         return ((d.output_files as any[]) || []).map((f: any) => ({ name: f.name || f.filename, s3_uri: f.s3_uri }));

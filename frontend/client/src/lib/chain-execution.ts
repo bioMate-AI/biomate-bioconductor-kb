@@ -7,6 +7,7 @@ export interface ChainConnection {
   from_output: string
   to_step: number
   to_input: string
+  context_params?: Record<string, unknown>
 }
 
 export interface ChainStepSubmit {
@@ -15,6 +16,8 @@ export interface ChainStepSubmit {
   role?: string
   step_key?: string
   params?: Record<string, unknown>
+  depends_on?: number[]
+  dimensions?: Record<string, string>
 }
 
 export interface ChainSubmitResult {
@@ -57,6 +60,13 @@ export function pickChainStepSource(workflow: Record<string, unknown>): unknown[
   return []
 }
 
+/** Explicit dependency plans require approval of the entire graph. */
+export function pipelineApprovalOptions(workflow: Record<string, unknown>): { endAtStep?: number } {
+  const explicitGraph = pickChainStepSource(workflow).some(raw =>
+    raw !== null && typeof raw === 'object' && (raw as Record<string, unknown>).depends_on != null)
+  return explicitGraph ? {} : { endAtStep: 0 }
+}
+
 export function buildChainSubmitSteps(chainSteps: unknown[]): ChainStepSubmit[] {
   return (chainSteps || []).map((raw) => {
     // A step may arrive as a bare display string (some pipeline artifacts carry a
@@ -76,6 +86,8 @@ export function buildChainSubmitSteps(chainSteps: unknown[]): ChainStepSubmit[] 
         (s.workflow_name as string | undefined) ||
         (s.name as string | undefined),
       role: (s.role as string | undefined),
+      depends_on: s.depends_on as number[] | undefined,
+      dimensions: s.dimensions as Record<string, string> | undefined,
       step_key:
         (s.step_key as string | undefined) ||
         (s.stepKey as string | undefined),
@@ -99,6 +111,7 @@ export function buildChainConnections(workflow: Record<string, unknown>): ChainC
     from_output: String(c.from_output || ''),
     to_step: Number(c.to_step),
     to_input: String(c.to_input || ''),
+    context_params: c.context_params as Record<string, unknown> | undefined,
   }))
 }
 
@@ -110,7 +123,13 @@ export async function submitWorkflowChain(options: {
   connections?: ChainConnection[]
   startFromStep?: number
   endAtStep?: number
+  coverageAxes?: Record<string, string[]>
+  maxParallel?: number
 }): Promise<ChainSubmitResult> {
+  const isDag = options.steps.some(step => step.depends_on != null)
+  if (isDag && (options.startFromStep || options.endAtStep != null)) {
+    throw new Error('Dependency-based plans require whole-plan submission; step-by-step approval is not supported.')
+  }
   const resp = await fetch('/api/workflows/chain', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -122,6 +141,8 @@ export async function submitWorkflowChain(options: {
       connections: options.connections,
       start_from_step: options.startFromStep,
       end_at_step: options.endAtStep,
+      coverage_axes: options.coverageAxes,
+      max_parallel: options.maxParallel,
     }),
   })
   const data = (await resp.json().catch(() => ({}))) as ChainSubmitResult & {
@@ -173,7 +194,7 @@ export async function pollChainStatus(
 ): Promise<{ status: string; payload: Record<string, unknown> }> {
   const intervalMs = options?.intervalMs ?? 5000
   const timeoutMs = options?.timeoutMs ?? 20 * 60 * 1000
-  const terminal = new Set(['succeeded', 'failed', 'cancelled', 'awaiting_approval'])
+  const terminal = new Set(['succeeded', 'completed', 'failed', 'error', 'cancelled', 'canceled', 'partial', 'blocked', 'awaiting_approval'])
   const started = Date.now()
 
   while (Date.now() - started < timeoutMs) {
@@ -203,6 +224,8 @@ export async function submitWorkflowFromArtifact(
   return submitWorkflowChain({
     steps,
     connections,
+    coverageAxes: workflow.coverage_axes as Record<string, string[]> | undefined,
+    maxParallel: workflow.max_parallel as number | undefined,
     chainName:
       (workflow.chain_display_name as string) ||
       (workflow.name as string) ||

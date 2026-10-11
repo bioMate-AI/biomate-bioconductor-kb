@@ -1,3 +1,4 @@
+import { ReadAloud } from "./voice-controls"
 import { useState, useRef } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -55,6 +56,7 @@ import { ThinkingDisplay } from "./thinking-display"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
 import { WorkflowChainPlan } from "./workflow-chain-plan"
 import { WorkflowDisambiguationCard, type DisambigCandidate } from "./workflow-disambiguation-card"
+import { pipelineApprovalOptions } from "@/lib/chain-execution"
 import { PipelineListView } from "./pipeline-list-view"
 import { WorkflowRationale } from "./workflow-rationale"
 import { IdeationRigorSection } from "./ideation-rigor-section"
@@ -420,15 +422,15 @@ export function ChatMessage({
         data-message-type="workflow_progress"
         data-progress-kind={kind ?? "unknown"}
         style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          fontSize: 12, fontStyle: 'italic',
+          display: 'flex', flexDirection: 'row', alignItems: 'baseline', justifyContent: 'flex-start', flexWrap: 'wrap', gap: 6,
+          width: '100%', minWidth: 0, textAlign: 'left',
+          fontSize: 12, fontStyle: 'normal',
           color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
           opacity: 0.85,
         }}
       >
-        <span aria-hidden style={{ fontStyle: 'normal' }}>🔹</span>
         <span className="speaker-pill" data-speaker={speaker} aria-label={pillLabel}>{pillLabel}</span>
-        <span>{message.content}</span>
+        <span style={{ flex: '1 1 240px', minWidth: 0, overflowWrap: 'anywhere' }}>{message.content}</span>
         <WhyAnchor rationaleId={rationaleId} workflowName={wfName} phaseId={phaseId} />
         {timeLabel && (
           <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 4 }}>· {timeLabel}</span>
@@ -848,6 +850,9 @@ export function ChatMessage({
                   params: s.params || s.parameters || {},
                   status: s.status || 'pending' as const,
                   outputTypes: s.output_types || [],
+                  dependsOn: s.depends_on,
+                  dimensions: s.dimensions,
+                  errorMessage: s.errorMessage || s.error,
                   usesStepId: s.uses_step_id || s.input_from,
                   usesDescription: s.uses_description || s.input_type,
                 }))
@@ -858,7 +863,8 @@ export function ChatMessage({
                   >
                     <PipelineListView
                       steps={steps}
-                      approvalGate
+                      approvalGate={pipelineApprovalOptions(wf).endAtStep === 0}
+                      chainStatus={wf.chain_status}
                       chainRunId={wf.chain_run_id}
                       onConfirmRun={() => onRunPipeline?.(wf)}
                       onApproveStep={(completedStepId, nextStepId) =>
@@ -1092,6 +1098,7 @@ export function ChatMessage({
             >
               <Copy className="h-4 w-4" />
             </Button>
+            <ReadAloud text={message.content || ""} disabled={isStreaming} />
             {/* Save response as file */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

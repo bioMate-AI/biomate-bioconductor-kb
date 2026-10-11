@@ -140,6 +140,9 @@ export function FoldedProgressGroup({
         className="chat-progress-fold__caret"
         style={{
           display: 'flex',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          textAlign: 'left',
           alignItems: 'center',
           gap: 6,
           padding: '2px 8px',

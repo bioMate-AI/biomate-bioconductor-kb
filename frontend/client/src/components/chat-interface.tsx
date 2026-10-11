@@ -1,3 +1,4 @@
+import { LiveVoicePanel } from "./live-voice-panel"
 import { prepareColdStartExample, INTERNAL_EXAMPLES, PREPARED_EXAMPLES, ensureInternalDemoProject } from "./cold-start-examples"
 import { toast } from "@/hooks/use-toast"
 import { useActiveProjectIdSafe, useActiveProjectSafe } from "@/contexts/active-project-context"
@@ -2392,7 +2393,11 @@ export function ChatInterface({
         background: 'var(--bm-bg-elev)',
       }}>
         {preparingExample && <p role="status" className="text-sm text-muted-foreground px-4">Preparing sample data…</p>}
+        <LiveVoicePanel key={chatSession?.id || "new-chat"} busy={displayTyping || preparingExample}
+          reply={[...displayMessages].reverse().find(m => m.role === "assistant" && m.metadata?.type !== "error" && m.content?.trim())}
+          onSend={text => handleSendOrQueue(text)} />
         <ChatInput
+          voiceContextKey={chatSession?.id || "new-chat"}
           disabled={preparingExample}
           onSend={handleSendOrQueue}
           pendingCount={pendingMessages.length}

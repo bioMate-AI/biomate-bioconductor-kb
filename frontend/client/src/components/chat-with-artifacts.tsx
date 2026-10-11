@@ -15,8 +15,8 @@ import { hasInlineInputData, normalizePrereqChecklist } from "@/lib/prereq-norma
 import { buildRunCompletionSummary } from "@/lib/chat-completion-summary"
 // WorkflowHistoryPanel removed
 import { chatHistoryService } from "@/lib/chat-history"
-import { submitWorkflowFromArtifact, buildChainSubmitSteps, buildChainConnections, resumeWorkflowChain } from "@/lib/chain-execution"
-import { fetchChainStatus, syncPipelineStepsFromChain } from "@/lib/chain-pipeline-sync"
+import { submitWorkflowFromArtifact, pipelineApprovalOptions, buildChainSubmitSteps, buildChainConnections, resumeWorkflowChain } from "@/lib/chain-execution"
+import { fetchChainStatus, syncPipelineStepsFromChain, syncWorkflowFromChain, isChainTerminal } from "@/lib/chain-pipeline-sync"
 import { emitUxEvent } from "@/lib/ux-telemetry"
 import { useNetworkStatus } from "@/lib/network-status"
 import { WorkflowExecutionErrorNotice } from "./workflow-execution-error-notice"
@@ -1354,6 +1354,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           workflow: {
             ...wf,
             chain_run_id: chainRunId,
+            chain_status: String(chainPayload?.status || 'running'),
             [stepsKey]: syncedSteps,
           },
           // Only set invocationId to the DB execution run UUID; chain_run_id is a
@@ -1380,7 +1381,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       const result = await submitWorkflowFromArtifact(
         workflow,
         currentChatSession?.id,
-        { endAtStep: 0 },
+        pipelineApprovalOptions(workflow),
       );
 
       if (result.runId) {
@@ -1473,7 +1474,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       const chainRunId = wf?.chain_run_id as string | undefined;
       if (!chainRunId) continue;
       const wtype = wf?.workflow_type;
-      if (wtype === 'pipeline' || wtype === 'chain') {
+      if ((wtype === 'pipeline' || wtype === 'chain') && !isChainTerminal(wf?.chain_status)) {
         activeIds.add(chainRunId);
       }
     }
@@ -1482,8 +1483,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     let cancelled = false;
 
     const syncChainPayload = (chainRunId: string, payload: Record<string, unknown>) => {
-      const chainSteps = (payload.steps as Record<string, unknown>[]) || [];
-      const chainStatus = String(payload.status || 'running').toLowerCase();
       const freshSession = chatHistoryService.getSession(currentChatSession.id);
       if (!freshSession) return;
 
@@ -1492,21 +1491,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         const wf = msg.metadata?.workflow as Record<string, unknown> | undefined;
         if (!wf || wf.chain_run_id !== chainRunId) return msg;
 
-        const stepsKey = wf.workflow_type === 'pipeline' ? 'pipeline_steps' : 'chain_steps';
-        const existingSteps = (wf[stepsKey] as Record<string, unknown>[]) || [];
-        const syncedSteps = syncPipelineStepsFromChain(existingSteps, chainSteps);
-        const stepsChanged = JSON.stringify(syncedSteps) !== JSON.stringify(existingSteps);
-        if (stepsChanged) changed = true;
+        const syncedWorkflow = syncWorkflowFromChain(wf, payload);
+        if (syncedWorkflow !== wf) changed = true;
 
         return {
           ...msg,
           metadata: {
             ...msg.metadata,
-            workflow: {
-              ...wf,
-              [stepsKey]: syncedSteps,
-              chain_status: chainStatus,
-            },
+            workflow: syncedWorkflow,
           },
         };
       });
@@ -1521,9 +1513,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         if (cancelled) return;
         try {
           const payload = await fetchChainStatus(chainRunId);
+          if (cancelled) return;
           syncChainPayload(chainRunId, payload);
           const status = String(payload.status || 'running').toLowerCase();
-          if (['succeeded', 'failed', 'cancelled'].includes(status)) {
+          if (isChainTerminal(status)) {
             activeIds.delete(chainRunId);
           }
         } catch {

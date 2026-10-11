@@ -256,20 +256,7 @@ export function AppSidebar({
             <span>{t('chat.new_chat')}</span>
           </span>
         </button>
-        <button
-          className="side-link"
-          data-testid="button-workflows-nav"
-          style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
-          onClick={() => { analytics.track('workflows_sidebar_opened'); setHistoryInitialTab('runs'); setShowHistoryDialog(true); }}
-        >
-          <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {t('nav.workflows')}
-              {runningCount > 0 && (<span data-testid="workflows-running-badge" style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 999, background: 'oklch(0.92 0.04 230)', color: 'oklch(0.40 0.13 230)' }}>{runningCount}</span>)}
-            </span>
-          </span>
-        </button>
+        {/* Workflow navigation moved to Settings > Import workflow. */}
 
         {/* IND Report hidden from sidebar for now (per request 2026-09-22). Route still exists. */}
         {/* <button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
@@ -331,10 +318,7 @@ export function AppSidebar({
                       <FileText className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
                       Files
                     </button>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', fontSize: 11.5, color: 'var(--bm-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', borderRadius: 4 }} onClick={() => { setContextProjectId(proj.id); setLocation(`/projects?project=${proj.id}&tab=workflows`); }} data-testid={`project-link-workflows-${proj.id}`}>
-                      <FlaskConical className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
-                      Runs
-                    </button>
+                    {/* Project Runs navigation hidden: executions are accessible from their chats. */}
                     {(projectSessions[proj.id] || []).map(chat => <button key={chat.session_id} data-testid={`button-project-chat-${chat.session_id}`} onClick={() => { setContextProjectId(proj.id); onChatSelect(chat.session_id); }} style={{ display: 'flex', gap: 7, padding: '5px 10px', borderRadius: 5, fontSize: 12, width: '100%', textAlign: 'left', color: 'var(--bm-text-muted)', background: activeChatId === chat.session_id ? 'var(--bm-bg-elev)' : 'transparent' }}><span style={{ flexShrink: 0 }}>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span></button>)}
                     <button className="side-link" style={{ display: "flex", gap: 6, padding: "5px 10px", fontSize: 12, width: "100%", color: "var(--bm-text-muted)" }} data-testid={`project-new-chat-${proj.id}`} onClick={() => { setContextProjectId(proj.id); onNewChat(); }}><Plus className="w-3 h-3" />New chat</button>
                   </div>
@@ -396,7 +380,6 @@ export function AppSidebar({
           </div>
         )}
 
-        <button className="side-link" data-testid="button-workspace-connections" onClick={() => setLocation("/settings/connections")} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', fontSize: 12.5, color: 'var(--bm-text-muted)', width: '100%', textAlign: 'left' }}><Cable className="w-3.5 h-3.5" />Workspace connections</button>
         <details className="text-xs text-muted-foreground px-2 py-2"><summary className="cursor-pointer">More tools</summary><div className="flex flex-col items-start gap-2 pt-3"><button onClick={() => setLocation('/files')}>Data</button><button onClick={() => setLocation('/design')}>Design &amp; generate</button><button onClick={() => setShowRecentToolsDialog(true)}>Recent tools</button></div></details>
         {/* Settings entry — visible in sidebar nav as well as the footer gear icon */}
         <div style={{ marginTop: 12, borderTop: '1px solid var(--bm-border)', paddingTop: 8 }}>
@@ -407,6 +390,14 @@ export function AppSidebar({
           >
             <Settings className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
             <span>{t('settings.title')} &amp; {t('settings.api_keys')}</span>
+          </button>
+          <button className="side-link" data-testid="button-import-workflow-settings" onClick={() => { setHistoryInitialTab('upload'); setShowHistoryDialog(true); }} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px 5px 33px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, width: '100%', textAlign: 'left' }}>
+            <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
+            <span>Import workflow</span>
+          </button>
+          <button className="side-link" data-testid="button-workspace-connections" onClick={() => setLocation("/settings/connections")} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px 5px 33px', borderRadius: 6, fontSize: 12.5, color: 'var(--bm-text-muted)', width: '100%', textAlign: 'left' }}>
+            <Cable className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
+            <span>Connectors</span>
           </button>
         </div>
       </div>
@@ -450,7 +441,7 @@ export function AppSidebar({
 
       {/* Dialogs */}
       <SettingsDialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog} />
-      <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} initialTab={historyInitialTab} onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} onRunAgain={(row) => { window.location.assign(`/?reuseWorkflow=${encodeURIComponent(row.runId)}`); }} />
+      <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} initialTab={historyInitialTab} importOnly onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} onRunAgain={(row) => { window.location.assign(`/?reuseWorkflow=${encodeURIComponent(row.runId)}`); }} />
       <ConnectorsDialog open={showConnectorsDialog} onOpenChange={setShowConnectorsDialog} />
 <RecentToolsDialog open={showRecentToolsDialog} onOpenChange={setShowRecentToolsDialog}
         onToolSelect={(tool) => { if (onToolSelect) onToolSelect(tool as any); }}

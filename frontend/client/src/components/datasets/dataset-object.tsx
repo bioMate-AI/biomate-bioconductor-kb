@@ -243,10 +243,10 @@ export function DatasetObject({
                 className="h-7 text-xs gap-1"
                 onClick={onAnalyze}
                 data-testid="dataset-object-analyze"
-                title="Run an analysis on this dataset — opens chat for you to review and send"
+                title="Attach this file to a new chat, then enter your question"
               >
                 <Play className="h-3 w-3" />
-                Analyze
+                Use in chat
               </Button>
             )}
             {onDownload && (

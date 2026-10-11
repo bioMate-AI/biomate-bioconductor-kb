@@ -1,3 +1,4 @@
+import { VoiceInput } from "./voice-controls"
 import { useState, useRef, useEffect, KeyboardEvent } from "react"
 import { useLocation } from "wouter"
 import { Button } from "@/components/ui/button"
@@ -89,6 +90,7 @@ export function suggestProject(
 }
 
 interface ChatInputProps {
+  voiceContextKey?: string;
   onSend: (message: string, files?: File[], contextOverride?: Record<string, unknown>) => void
   disabled?: boolean
   /** Number of messages queued behind the current AI response */
@@ -148,6 +150,7 @@ interface ChatInputProps {
 const MAX_DATASET_REFS = 32
 
 export function ChatInput({
+  voiceContextKey,
   onSend,
   disabled = false,
   pendingCount = 0,
@@ -223,6 +226,31 @@ export function ChatInput({
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
   // Dataset references selected from the browser — shown as chips, injected into message on send
   const [selectedDatasets, setSelectedDatasets] = useState<Array<{ id: string; name: string; value: string }>>([])
+  const [linkingDataset, setLinkingDataset] = useState(false)
+  const [datasetLinkError, setDatasetLinkError] = useState("")
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search)
+    const fileId = query.get("attachFile")
+    if (!fileId || !activeProjectId || query.get("project") !== activeProjectId) return
+    let cancelled = false
+    const abort = new AbortController()
+    setLinkingDataset(true)
+    setDatasetLinkError("")
+    fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/files/${encodeURIComponent(fileId)}/url`, {
+      credentials: "include", signal: abort.signal,
+    }).then(async response => {
+      if (!response.ok) throw new Error(`Cannot link this project file (${response.status}).`)
+      const file = await response.json()
+      if (typeof file.name !== "string") throw new Error("The project file is unavailable.")
+      if (cancelled) return
+      setSelectedDatasets(previous => [...previous.filter(d => d.value !== fileId), { id: fileId, value: fileId, name: file.name }])
+      query.delete("attachFile")
+      window.history.replaceState(null, "", `${window.location.pathname}?${query.toString()}`)
+      textareaRef.current?.focus()
+    }).catch(error => { if (!cancelled) setDatasetLinkError(error.message) })
+      .finally(() => { if (!cancelled) setLinkingDataset(false) })
+    return () => { cancelled = true; abort.abort() }
+  }, [activeProjectId])
   const [showDatasetBrowser, setShowDatasetBrowser] = useState(false)
   const [, setLocation] = useLocation()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -287,8 +315,8 @@ export function ChatInput({
 
 
   const handleSend = () => {
-    if (disabled || projectSettingsLoading || projectSettingsError) return
-    if (message.trim() || attachedFiles.length > 0 || selectedDatasets.length > 0) {
+    if (disabled || linkingDataset || projectSettingsLoading || projectSettingsError) return
+    if (message.trim() || attachedFiles.length > 0) {
       const files = attachedFiles.map(f => f.file)
       // Append dataset references invisibly so the AI/backend can resolve them,
       // without forcing the user to see raw IDs in the textarea.
@@ -494,6 +522,8 @@ export function ChatInput({
 
       {/* Attached files + selected dataset chips */}
       {projectSettingsError && <p role="alert" className="text-xs text-destructive">{projectSettingsError}</p>}
+      {linkingDataset && <p role="status" className="text-xs text-muted-foreground">Linking project file…</p>}
+      {datasetLinkError && <p role="alert" className="text-xs text-destructive">{datasetLinkError} Return to Files and select an available file.</p>}
       {(attachedFiles.length > 0 || selectedDatasets.length > 0) && (
         <div className="flex flex-wrap gap-2 mb-3">
           {attachedFiles.map(file => (
@@ -691,6 +721,8 @@ export function ChatInput({
           <LanePreview text={debouncedMessage} onOverride={setLaneOverride} />
         )
       )}
+
+      <VoiceInput key={voiceContextKey} disabled={disabled || isStreaming} onTranscript={text => setMessage(previous => previous.trim() ? `${previous}\n${text}` : text)} />
 
       {/* Reference design: pill input with attachment + textarea + send */}
       <div className="chat-input" style={{
@@ -908,7 +940,7 @@ export function ChatInput({
               data-testid="chat-send-button"
               onClick={handleSend}
               title={t('chat.send')}
-              disabled={disabled || projectSettingsLoading || !!projectSettingsError || (!message.trim() && attachedFiles.length === 0 && selectedDatasets.length === 0)}
+              disabled={disabled || linkingDataset || projectSettingsLoading || !!projectSettingsError || (!message.trim() && attachedFiles.length === 0)}
               style={{
                 marginLeft: 'auto',
                 width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',

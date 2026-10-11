@@ -35,6 +35,7 @@
     "@aws-sdk/client-s3": "^3.919.0",
     "@aws-sdk/client-ses": "^3.1082.0",
     "@aws-sdk/s3-request-presigner": "^3.919.0",
+    "@elevenlabs/client": "^1.27.0",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",

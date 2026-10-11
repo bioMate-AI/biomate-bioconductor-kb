@@ -45,6 +45,7 @@ interface WorkflowHistoryDialogProps {
   onRunAgain?: (row: RunRow) => void;
   /** Open dialog directly on this tab (default: 'runs') */
   initialTab?: 'runs' | 'imports' | 'upload';
+  importOnly?: boolean;
 }
 
 function statusColor(status: string): string {
@@ -72,8 +73,8 @@ function formatWhen(iso: string | undefined | null): string {
 
 const PAGE_SIZE = 50;
 
-export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgain, initialTab }: WorkflowHistoryDialogProps) {
-  const [activeTab, setActiveTab] = useState<'runs' | 'imports' | 'upload'>(initialTab ?? 'runs');
+export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgain, initialTab, importOnly = false }: WorkflowHistoryDialogProps) {
+  const [activeTab, setActiveTab] = useState<'runs' | 'imports' | 'upload'>(initialTab ?? (importOnly ? 'upload' : 'runs'));
   const [rows, setRows] = useState<RunRow[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -271,7 +272,8 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
   // Reset state when dialog closes; restore initialTab when it opens
   useEffect(() => {
     if (open) {
-      if (initialTab) setActiveTab(initialTab);
+      if (importOnly) setActiveTab(initialTab === 'imports' ? 'imports' : 'upload');
+      else if (initialTab) setActiveTab(initialTab);
     } else {
       setSearch('');
       setOffset(0);
@@ -281,7 +283,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
       setImportsSearch('');
       resetUpload();
     }
-  }, [open]);
+  }, [open, initialTab, importOnly]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const currentPage = offset / PAGE_SIZE;
@@ -292,12 +294,12 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl" data-testid="workflow-history-dialog">
         <DialogHeader>
-          <DialogTitle>Workflows</DialogTitle>
+          <DialogTitle>{importOnly ? "Import workflow" : "Workflows"}</DialogTitle>
         </DialogHeader>
 
         {/* Tabs */}
         <div className="flex gap-1 border-b pb-0 -mb-px">
-          <button
+          {!importOnly && <button
             data-testid="tab-runs"
             onClick={() => setActiveTab('runs')}
             className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors ${
@@ -307,7 +309,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
             }`}
           >
             Run History
-          </button>
+          </button>}
           <button
             data-testid="tab-my-imports"
             onClick={() => setActiveTab('imports')}
@@ -333,7 +335,7 @@ export function WorkflowHistoryDialog({ open, onOpenChange, onOpenRun, onRunAgai
           </button>
         </div>
 
-        {activeTab === 'runs' && (
+        {!importOnly && activeTab === 'runs' && (
           <>
             {/* Search */}
             <div className="relative mt-1">

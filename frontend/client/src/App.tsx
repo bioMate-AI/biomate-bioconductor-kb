@@ -468,9 +468,7 @@ function PlatformLayout({
               <button onClick={onNewChat} data-testid="button-new-chat" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="New chat">
                 <Plus className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
               </button>
-              <button onClick={toggleSidebar} data-testid="button-rail-workflows" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Workflows — expand sidebar">
-                <FlaskConical className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
-              </button>
+              {/* Import workflow is available under Settings in the expanded sidebar. */}
               <button onClick={toggleSidebar} data-testid="button-rail-chat-history" className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Chat history — expand sidebar">
                 <MessageCircle className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
               </button>

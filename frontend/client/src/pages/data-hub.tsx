@@ -266,13 +266,10 @@ export default function DataHubPage() {
                   window.location.assign(`/?reuseWorkflow=${encodeURIComponent(runId)}`)
                 }
                 onAnalyze={() => {
-                  // Launch-from-dataset: open chat IN this project with a pre-filled
-                  // (not auto-sent) prompt to run a workflow on this dataset — work
-                  // flows OUT of the data panel. Mirrors the "Analyze with BioMate" flow.
-                  const msg = `Run an analysis on the dataset "${selected.name}" — suggest the right workflow and set it up.`
+                  // Carry the exact file identity, without choosing a goal or sending a message.
                   const q = new URLSearchParams()
                   if (activeProjectId) q.set("project", activeProjectId)
-                  q.set("draft", msg)
+                  q.set("attachFile", selected.id)
                   window.location.assign(`/?${q.toString()}`)
                 }}
               />

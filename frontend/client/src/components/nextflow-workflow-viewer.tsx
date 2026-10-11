@@ -1151,12 +1151,7 @@ export function NextflowWorkflowViewer({
   const [qcSettingsOpen, setQcSettingsOpen] = useState(false);
   const [pauseAtQcFailures, setPauseAtQcFailures] = useState(true);
   const [qcProfile, setQcProfile] = useState('');
-  // Phase C — output location picker state. Defaults to BioMate-managed.
-  // user_s3 is "Advanced" — see tooltip in the picker UI for setup docs.
-  const [outputLocationType, setOutputLocationType] = useState<'default' | 'project' | 'user_s3'>('default');
-  const [userS3Uri, setUserS3Uri] = useState<string>('');
-  // projectId for "My project folder" — sourced from the active chat session's
-  // project_id, or the explicit prop passed by the project detail Workflow Runs tab.
+  // Output storage follows the chat's project automatically.
   const projectId = projectIdProp ?? (workflowDefinition as any)?.projectId ?? null;
   const [availableQcProfiles, setAvailableQcProfiles] = useState<Array<{ id: string; description: string; domain_hint: string; overrides: Record<string, number>; autoloop?: boolean }>>([]);
   const [qcDefaults, setQcDefaults] = useState<Record<string, { bound: number; direction: string; rationale?: string }>>({});
@@ -1680,17 +1675,7 @@ export function NextflowWorkflowViewer({
           ...(qcProfile && { qcProfile }),
           ...(Object.keys(qcOverrides).length > 0 && { qcOverrides }),
         },
-        // Phase C — output location, optional. See
-        // docs/20260619_OUTPUT_LOCKDOWN_PHASE_B_C_SPEC.md (C.1+C.2).
-        // Omitted when user selects "default" — backend falls back to
-        // s3://biomate-nextflow-work/nextflow/outputs/<user>/<run>/.
-        ...(outputLocationType !== 'default' && {
-          __outputLocation: {
-            type: outputLocationType,
-            ...(outputLocationType === 'project' && projectId ? { projectId } : {}),
-            ...(outputLocationType === 'user_s3' && userS3Uri ? { userS3Uri } : {}),
-          },
-        }),
+        ...(projectId ? { __outputLocation: { type: 'project', projectId } } : {}),
       });
     }
   };
@@ -3177,73 +3162,8 @@ export function NextflowWorkflowViewer({
                         />
                       )}
 
-                      {/* ── Output location (Phase C) ─────────────────────────────
-                          Restored 2026-09-22: the picker UI was removed in
-                          112181d64 ("output location removal") but the backend
-                          plumbing (NextflowExecuteRequest.output_location +
-                          _resolve_outdir in nextflow_executor.py) and the
-                          routes.ts __outputLocation forwarding were never
-                          removed — outputLocationType was stuck at 'default'
-                          with no way to change it. This re-activates the
-                          fully-supported backend feature.
-                          Only shown for Nextflow workflows — Galaxy .ga
-                          workflows write to Galaxy history automatically; no
-                          output path is user-configurable. */}
-                      {(workflowDefinition as any)?.workflow_type !== 'galaxy' &&
-                       (workflowDefinition as any)?.format !== 'galaxy' && (
-                      <div data-testid="output-location-section"
-                           style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}>
-                          {tOr('panel.output_location', 'Output location')}
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                            <input type="radio"
-                                   name="output-location"
-                                   value="default"
-                                   checked={outputLocationType === 'default'}
-                                   onChange={() => setOutputLocationType('default')}
-                                   data-testid="output-location-default" />
-                            <span>{tOr('panel.output_default', 'Default (BioMate-managed, kept 90 days)')}</span>
-                          </label>
-                          {projectId && (
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                              <input type="radio"
-                                     name="output-location"
-                                     value="project"
-                                     checked={outputLocationType === 'project'}
-                                     onChange={() => setOutputLocationType('project')}
-                                     data-testid="output-location-project" />
-                              <span>{tOr('panel.output_project_folder', 'My project folder')}</span>
-                            </label>
-                          )}
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                            <input type="radio"
-                                   name="output-location"
-                                   value="user_s3"
-                                   checked={outputLocationType === 'user_s3'}
-                                   onChange={() => setOutputLocationType('user_s3')}
-                                   data-testid="output-location-user-s3" />
-                            <span title={tOr('panel.output_s3_tip', "Advanced — your bucket must grant BioMate's service role write access.")}>
-                              {tOr('panel.output_s3', 'My S3 bucket')} <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>({tOr('panel.advanced', 'Advanced')})</span>
-                            </span>
-                          </label>
-                          {outputLocationType === 'user_s3' && (
-                            <input
-                              type="text"
-                              placeholder="s3://my-bucket/my-prefix"
-                              value={userS3Uri}
-                              onChange={(e) => setUserS3Uri(e.target.value)}
-                              data-testid="output-location-user-s3-uri"
-                              style={{ marginLeft: 22, fontSize: 12, padding: '3px 6px',
-                                       border: '1px solid var(--border)', borderRadius: 3,
-                                       background: 'var(--surface)', color: 'var(--text)',
-                                       fontFamily: 'var(--font-mono)', width: 320 }}
-                            />
-                          )}
-                        </div>
-                      </div>
-                      )}
+                      {/* Output-location controls hidden at user request.
+                          Project runs use the project folder; standalone runs use managed storage. */}
 
                     </div>
                   </div>

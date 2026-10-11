@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  isActiveJob,
   getRunPrimaryCta,
   getOutputReadinessHint,
   isRunNeedsAttention,
@@ -134,4 +135,9 @@ describe("run-manager-utils", () => {
     expect(getRunPrimaryCta(run)).toBe("Open Logs")
     expect(isRunNeedsAttention(run)).toBe(true)
   })
+})
+
+it('keeps terminal history and unstarted drafts out of Running jobs', () => {
+  for (const status of ['running', 'queued', 'paused', 'submitted']) expect(isActiveJob(buildRun({ execution: { status } }))).toBe(true)
+  for (const status of ['completed', 'failed', 'cancelled', 'configuring', 'unknown']) expect(isActiveJob(buildRun({ execution: { status } }))).toBe(false)
 })
