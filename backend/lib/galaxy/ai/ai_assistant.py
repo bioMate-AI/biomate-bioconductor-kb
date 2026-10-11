@@ -764,7 +764,10 @@ class AIAssistant:
             if _os.environ.get("BIOMATE_MULTITASK_DAG_ENABLED", "").strip().lower() in ("1", "true", "yes", "on"):
                 try:
                     from .decomposed_dag import build_dag_plan
-                    _dag = build_dag_plan(tasks, self._resolve_task_to_workflow)
+                    _dag = build_dag_plan(
+                        tasks, self._resolve_task_to_workflow,
+                        type_provider=self._workflow_io_types,
+                    )
                     if _dag:
                         log.info(f"[MultiTask] assembled {len(_dag['steps'])}-step DAG plan (not discarded)")
                         return {
@@ -807,6 +810,17 @@ class AIAssistant:
         except Exception as exc:
             log.debug(f"[MultiTask] task resolution failed: {exc}")
         return None
+
+    def _workflow_io_types(self, nextflow_path):
+        """(input_types, output_types) for a workflow — used to wire dependent-step
+        handoffs in the decomposed DAG by type compatibility. Returns None on any
+        failure so build_dag_plan refuses to fabricate a handoff and falls back."""
+        try:
+            from galaxy.webapps.galaxy.api.workflow_chain import _get_workflow_types
+            return _get_workflow_types(nextflow_path)
+        except Exception as exc:
+            log.debug(f"[MultiTask] io-types lookup failed for {nextflow_path}: {exc}")
+            return None
 
     def _find_missing_context(self, tasks: list, context: dict) -> list:
         """Return list of clarification questions for missing required parameters."""

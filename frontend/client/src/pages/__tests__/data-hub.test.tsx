@@ -221,8 +221,10 @@ describe("DataHubPage — two-pane hub", () => {
     expect(screen.queryByTestId("data-hub-detail-empty")).toBeNull()
 
     // Real identity: name + id + content-type carried straight from the file.
+    // The breadcrumb shows the human filename; the immutable id stays on hover.
     expect(screen.getByTestId("dataset-object-name").textContent).toContain("counts.csv")
-    expect(screen.getByTestId("dataset-object-id").textContent).toContain("file-counts")
+    expect(screen.getByTestId("dataset-object-id").textContent).toContain("counts.csv")
+    expect(screen.getByTestId("dataset-object-id").getAttribute("title")).toBe("file-counts")
 
     // Real quality: the default Preview tab renders the actual profiled table
     // (columns + a real sample row), not a placeholder.

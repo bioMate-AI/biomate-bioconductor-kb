@@ -58,18 +58,22 @@ def pick_workflow_match(matches: Any, min_score: float = DAG_RESOLVE_MIN_SCORE) 
 def build_dag_plan(
     tasks: List[Any],
     resolver: Callable[[Any], Optional[Dict[str, Any]]],
+    type_provider: Optional[Callable[[str], Any]] = None,
     max_parallel: Optional[int] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Convert decomposed ``tasks`` into a DAG plan, or ``None`` if any task is
-    unresolvable (caller must then fall back to single-task generation).
+    """Convert decomposed ``tasks`` into a DAG plan, or ``None`` if it cannot be
+    assembled executably (caller then falls back to single-task generation).
 
-    ``resolver(task)`` must return ``{"nextflow_path": str, "parameters": dict}``
-    or ``None``. ``depends_on``/``parallel_with`` on a task (if present) are used
-    to shape the graph; otherwise steps are sequential.
+    ``resolver(task)`` -> ``{"nextflow_path": str, "parameters": dict}`` or None.
+    ``type_provider(nextflow_path)`` -> ``(input_types, output_types)`` is used to
+    wire the handoff between DEPENDENT steps by type compatibility. Root steps
+    (``depends_on == []``, e.g. a fan-out of tools over the same input) need no
+    inter-step connection. A dependent step that cannot be type-matched to any of
+    its dependencies -- or a dependent plan with no ``type_provider`` -- makes the
+    whole function return ``None`` (never a fabricated, fragile handoff).
     """
     if not tasks:
         return None
-    n = len(tasks)
     steps: List[Dict[str, Any]] = []
     for i, task in enumerate(tasks):  # i is 0-based; the step is 1-based (i+1)
         resolved = resolver(task)
@@ -93,9 +97,34 @@ def build_dag_plan(
             "depends_on": deps,
         })
 
+    # Wire dependent-step handoffs by declared-type compatibility (non-fragile:
+    # only a real type match produces a connection; otherwise we refuse).
+    connections: List[Dict[str, Any]] = []
+    bound = set()  # (to_step, to_input) — validate_plan requires one binding per input
+    for i, step in enumerate(steps):
+        if not step["depends_on"]:
+            continue  # root: consumes the user's input, no inter-step connection
+        if type_provider is None:
+            return None  # dependent plan but no way to verify the handoff → fallback
+        dst = i + 1
+        dst_in = (type_provider(step["nextflow_path"]) or ([], []))[0] or []
+        wired = False
+        for src in step["depends_on"]:
+            src_out = (type_provider(steps[src - 1]["nextflow_path"]) or ([], []))[1] or []
+            for t in src_out:
+                if t in dst_in and (dst, t) not in bound:
+                    connections.append({"from_step": src, "from_output": t, "to_step": dst, "to_input": t})
+                    bound.add((dst, t))
+                    wired = True
+                    break
+            if wired:
+                break
+        if not wired:
+            return None  # no type-compatible handoff for a dependent step → fallback
+
     if max_parallel is None:
         max_parallel = sum(1 for s in steps if not s["depends_on"]) or 1
     # dag.validate_plan requires an int in [1, 16] — always clamp.
     max_parallel = max(1, min(16, int(max_parallel)))
 
-    return {"execution_mode": "dag", "steps": steps, "max_parallel": max_parallel}
+    return {"execution_mode": "dag", "steps": steps, "connections": connections, "max_parallel": max_parallel}

@@ -35,30 +35,53 @@ def _task(tid, deps=None, par=None):
 
 
 def _assert_executable(plan):
-    # The assembled steps must pass the real chain-DAG executor contract.
-    validate_plan(plan["steps"], [], plan["max_parallel"])  # raises if invalid
+    # The assembled steps + connections must pass the real chain-DAG executor contract.
+    validate_plan(plan["steps"], plan.get("connections", []), plan["max_parallel"])
+
+
+# type_provider: every workflow consumes + produces the "data" type → handoffs match
+def _tp_match(_path):
+    return (["data"], ["data"])
+
+
+# type_provider where outputs never match the next step's inputs → no handoff
+def _tp_mismatch(path):
+    return (["in_" + path], ["out_" + path])
 
 
 def test_sequential_plan_is_valid():
-    plan = build_dag_plan([_task("a"), _task("b"), _task("c")], _ok)
+    plan = build_dag_plan([_task("a"), _task("b"), _task("c")], _ok, type_provider=_tp_match)
     assert plan["execution_mode"] == "dag"
     assert [s["depends_on"] for s in plan["steps"]] == [[], [1], [2]]
-    assert all(s["nextflow_path"].endswith(".nf") for s in plan["steps"])
+    # each dependent step got a type-matched connection from its dependency
+    assert {(c["from_step"], c["to_step"]) for c in plan["connections"]} == {(1, 2), (2, 3)}
     _assert_executable(plan)
 
 
-def test_parallel_tasks_become_roots():
-    # two tasks declared parallel → both roots (depends_on []), run in first wave
+def test_sequential_without_types_refuses():
+    # dependent steps but no type_provider → cannot verify handoff → fallback (None)
+    assert build_dag_plan([_task("a"), _task("b")], _ok) is None
+
+
+def test_dependent_type_mismatch_refuses():
+    # a's outputs never match b's inputs → no connection → fallback (None)
+    assert build_dag_plan([_task("a"), _task("b")], _ok, type_provider=_tp_mismatch) is None
+
+
+def test_parallel_tasks_become_roots_no_connections():
+    # two tasks declared parallel → both roots, no inter-step connection needed
     plan = build_dag_plan([_task("a", par=[2]), _task("b", par=[1])], _ok)
     assert [s["depends_on"] for s in plan["steps"]] == [[], []]
+    assert plan["connections"] == []          # fan-out: no handoff
     assert plan["max_parallel"] >= 2
     _assert_executable(plan)
 
 
 def test_explicit_backward_deps_kept_forward_dropped():
     # step 3 depends on 1 (backward, kept) and 5 (out of range, dropped)
-    plan = build_dag_plan([_task("a"), _task("b"), _task("c", deps=[1, 5])], _ok)
+    plan = build_dag_plan([_task("a"), _task("b"), _task("c", deps=[1, 5])], _ok, type_provider=_tp_match)
     assert plan["steps"][2]["depends_on"] == [1]
+    assert (1, 3) in {(c["from_step"], c["to_step"]) for c in plan["connections"]}
     _assert_executable(plan)
 
 
@@ -75,7 +98,7 @@ def test_empty_tasks_returns_none():
 
 
 def test_max_parallel_bounded():
-    plan = build_dag_plan([_task("a"), _task("b")], _ok, max_parallel=99)
+    plan = build_dag_plan([_task("a", par=[2]), _task("b", par=[1])], _ok, max_parallel=99)
     assert 1 <= plan["max_parallel"] <= 16
 
 
@@ -104,7 +127,7 @@ def test_build_dag_with_pick_resolver():
     # end-to-end: resolver backed by pick_workflow_match assembles a valid DAG
     def resolver(t):
         return pick_workflow_match([Match("%s.nf" % t.id, 12.0)])
-    plan = build_dag_plan([_task("a"), _task("b")], resolver)
+    plan = build_dag_plan([_task("a"), _task("b")], resolver, type_provider=_tp_match)
     assert plan is not None
     _assert_executable(plan)
     # a task whose only match is weak → whole plan falls back (None)
