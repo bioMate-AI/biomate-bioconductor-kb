@@ -1,12 +1,154 @@
 # Research & BD Brief: Sun Yat-sen University Cancer Center (SYSUCC / 中山大学肿瘤防治中心)
 
 **Date:** 2026-09-30
-**Purpose:** Survey the "Guangdong Zhongshan hospital tumor department" (→ SYSUCC) for a **cyclic-peptide drug-development research collaboration** — target nomination, wet-lab validation, and a clinical path for our macrocycle design engine. Companion to the Soochow rheumatology/immunology survey (items 4–5 of `reference/0930_todo.md`). *Note: this is an independent research-collaboration survey and is unrelated to the ACT accelerator application (item 3).*
+**Purpose:** Survey the "Guangdong Zhongshan hospital tumor department" (→ SYSUCC) for a **cyclic-peptide drug-development research collaboration** — target nomination, wet-lab validation, and a clinical path for our macrocycle design engine. Companion to the Soochow rheumatology/immunology survey (items 4–5 of `reference/0930_todo.md`).
+
+> **⚠ SCOPE UPDATE (2026-10-11): this survey is NO LONGER independent of the ACT application.** Per founder directive, SYSUCC is now being positioned as a **multi-site partner for the ACT cyclic-peptide immuno-oncology program (alongside MD Anderson)** — the αvβ6-integrin radioligand theranostic (PDAC lead) + PD-L1 checkpoint peptide. The original 2026-09-30 content below (EBV/NPC entry-receptor targets) is retained as a **parallel, SYSUCC-native track**. The new strategic reframe + 2026-10-11 verified facts are in the **"UPDATE 2026-10-11"** section immediately below. Presentation deck: `docs/20261011_SYSUCC_COLLABORATION_DECK_EN.md` (+ `.pptx`).
 **Method:** Adversarial cited web deep-research (EN + ZH, ~31 tool calls). Every factual claim cites a real URL; unverified author orderings/DOIs are flagged, not fabricated.
 
 **Institution profiled:** Sun Yat-sen University Cancer Center — 中山大学肿瘤防治中心 (also 中山大学附属肿瘤医院), Guangzhou, Guangdong, China.
 
 **Interpretation note / disambiguation:** "Guangdong Zhongshan hospital tumor department" maps unambiguously to **SYSUCC**. "中山" (Zhongshan = Sun Yat-sen) + "肿瘤" (tumor) + Guangdong points to this institution, the dominant comprehensive cancer hospital in southern China. Two other "Zhongshan" institutions are *not* the target: (a) **Zhongshan Hospital of Fudan University** (Shanghai — a general hospital, not oncology-specialized, not in Guangdong); (b) **Zhongshan City People's Hospital** (a general municipal hospital in Zhongshan City, Guangdong, no national oncology standing). Profiled SYSUCC with high confidence. ([SYSUCC English](https://english.sysucc.org.cn/index_25.aspx?lcid=118); [Wikipedia](https://en.wikipedia.org/wiki/Sun_Yat-sen_University_Cancer_Center))
+
+---
+
+## UPDATE 2026-10-11 — SYSUCC as a multi-site partner for the ACT program (with MD Anderson)
+
+> **⚠ CORRECTION (2026-10-11, later — founder):** the lead is a **DIRECT-acting cyclic-peptide THERAPEUTIC**,
+> **NOT a radioligand/theranostic.** The peptide *is* the drug — an **αvβ6 antagonist** (blocks the integrin →
+> latent-TGF-β activation → relieves the immunosuppressive PDAC TME) + a **PD-L1 checkpoint-inhibitor** peptide.
+> **Ignore the Ga-68 / Lu-177 / nuclear-medicine / radiochemistry framing below for strategy** — it came from a
+> now-superseded reading of the ACT status note; those SYSUCC nuclear-medicine facts are **true but no longer
+> strategically central**, and the **Lu-177 diligence item is MOOT**. SYSUCC fit now = **patient-derived
+> organoid/wet-lab validation + PDAC/GI cohorts + checkpoint/IO trials & biomarkers + biobank + Phase-I path**.
+> The SYSUCC-facing deck (`docs/20261011_SYSUCC_COLLABORATION_DECK_EN`) already reflects this corrected framing.
+
+**New strategic frame.** SYSUCC is being positioned as the **China site of our ACT cyclic-peptide
+immuno-oncology program** — lead = **αvβ6-integrin cyclic-peptide antagonist (a direct therapeutic) in PDAC +
+broader epithelial carcinomas**; second showcase = **PD-L1 checkpoint-inhibitor cyclic peptide**.
+The US site is being built through the **TMC ACT accelerator → MD Anderson** ecosystem (our team includes an
+MD Anderson GI medical oncologist for organoid/in-vivo validation; the rest of the MDACC footprint is the ACT
+application + cold outreach in progress — do **not** represent MDACC collaborations as secured). SYSUCC adds a
+second site for independent multi-ethnic validation, a dual FDA+NMPA path, deeper cohorts, and nuclear-medicine
+capacity.
+
+**Method (this update):** a dedicated cited web-research pass (2026-10-11), EN+ZH, primary sources where
+possible. Every fact below carries a confidence tag + a real URL; genuinely unverified items are flagged, not
+asserted.
+
+> **EXTERNAL-MESSAGING RULE (founder directive 2026-10-11) — this is an INTERNAL record; SYSUCC-facing
+> materials must NOT.** In the SYSUCC deck (and any SYSUCC-facing doc/email): **do NOT mention ACT / the
+> accelerator / CPRIT / RADIATE**, and **do NOT reveal our status with MD Anderson** (no "applying," no
+> "on-ramp," no team-member detail, no "collaborations being established," no secured/unsecured framing).
+> MD Anderson may appear externally ONLY as (a) SYSUCC's own public sister-institution partner and (b) one of
+> the Texas Medical Center institutions — never as "our partner/site." The US site is presented generically as
+> our planned US clinical/translational site within the Texas Medical Center. (The deck
+> `docs/20261011_SYSUCC_COLLABORATION_DECK_EN` already enforces this; the ACT/MDA-status facts are retained
+> below only as our internal record.)
+
+### The single most important structural fact
+- **SYSUCC and MD Anderson have been *sister institutions since 2003*,** with an active **Sister Institution
+  Network Fund (SINF)** collaborative-grant channel; in 2015 MD Anderson received a top Chinese S&T award
+  **nominated by its sister institution SYSUCC**. *(VERIFIED — [MDACC newsroom](https://www.mdanderson.org/newsroom/2015/01/md-anderson-receives-top-chinese-science-and-technology-award.html);
+  [Wikipedia/SYSUCC](https://en.wikipedia.org/wiki/Sun_Yat-sen_University_Cancer_Center))* → a program anchored
+  at **both** institutions is a natural extension of an existing 20-year tie, not a cold multi-site pairing.
+  (Other Western ties: Karolinska joint lab 2004; Warwick MoU 2015; Fred Hutch 5-yr MoU 2017.)
+
+### Nuclear medicine / theranostics — the radioligand enabler (KEY new finding)
+- **Dedicated Department of Nuclear Medicine, est. 1993, "cancer theranostics as the core of its work."**
+  46 FTE incl. 17 physicians; **Head: Dr. Fan Wei (范伟)**, whose stated specialty *is* targeted radionuclide
+  (radioimmuno/radioreceptor) therapy + dosimetry. Facilities: **GE 16.5 MeV cyclotron; 9 radiopharmaceutical
+  hot cells; total-body uEXPLORER PET/CT, 2 general PET/CT, PET/MR, 2 SPECT/CT, small-animal Micro-PET; 13
+  inpatient radionuclide-therapy beds.** In-house isotopes: **¹⁸F, ¹¹C, ¹³N, ⁶⁴Cu, ⁶⁸Ga, ¹²⁴I.**
+  *(VERIFIED — [SYSUCC English, Nuclear Medicine](https://english.sysucc.org.cn/index_25.aspx?lcid=128))*
+- **Lu-177 — RESOLVED 2026-10-11: NOT VERIFIED at SYSUCC (treat as a genuine gap / site-readiness item).**
+  - What **IS** verified (Fan Wei's SYSUCC profile): a radionuclide-**therapy** service using **beta-emitters
+    — I-131, ¹⁵³Sm-EDTMP, ⁸⁹Sr** (bone mets) — plus ⁶⁸Ga PET imaging and **dosimetry** expertise; 13 therapy
+    beds (supported for I-131 + bone-seeking beta therapy). *(VERIFIED — [Fan Wei profile](https://english.sysucc.org.cn/info_26.aspx?itemid=470))*
+  - What is **NOT** verified: **any ¹⁷⁷Lu radioligand/theranostic program at SYSUCC** — ¹⁷⁷Lu is not on the
+    isotope list (and a 16.5 MeV cyclotron cannot make it); **ClinicalTrials.gov returns 0 SYSUCC-sponsored
+    ¹⁷⁷Lu studies**; no ¹⁷⁷Lu/PRRT/PSMA/DOTATATE in the dept-head profile. *(VERIFIED negative — [CT.gov query](https://clinicaltrials.gov/api/v2/studies?query.spons=Sun+Yat-sen+University+Cancer+Center&query.term=lutetium+OR+177Lu))*
+  - **Attribution traps (do NOT credit to SYSUCC):** the "first ¹⁷⁷Lu in mainland China (Guangzhou)" was
+    **Jinan University First Affiliated Hospital**, not SYSUCC; the ¹⁷⁷Lu-PSMA-617 Ph II (NCT05670106, Novartis)
+    — SYSUCC participation **not confirmed**; SYSU **First Affiliated Hospital / Nansha** (which does run ¹⁷⁷Lu)
+    is a different legal entity; the ⁶⁸Ga-FAPI-LM3 NPC imaging is **Xiamen University**. Keep all separate.
+  - **Honest framing:** SYSUCC has the theranostics *foundation* (Ga-68 imaging + beta-emitter therapy +
+    dosimetry + 13 beds) that a ¹⁷⁷Lu program would extend; the ¹⁷⁷Lu sourcing + GMP ¹⁷⁷Lu-peptide labeling +
+    bed authorization is a **site-readiness item to confirm directly**, not a current capability.
+
+### GI / pancreatic (PDAC) program — the lead-indication fit
+- 36 clinical departments incl. **Pancreaticobiliary Surgery, Gastric, Colorectal, Liver Surgery + Medical
+  Oncology**. *(VERIFIED — [SYSUCC English](https://english.sysucc.org.cn/index_25.aspx?lcid=128))*
+- **Prof. Feng Wang (王峰)** — **Assistant President + Director of Medical Oncology**, GI med-onc + translational
+  GI research, "thousands of GI-cancer patients annually"; **the credible scientific+institutional BD entry
+  point.** *(VERIFIED — [expert profile](https://english.sysucc.org.cn/info_26.aspx?itemid=426))*
+- **≥7 PDAC trials (SYSUCC site/sponsor)** incl. PD-1 + sapropterin (NCT06396637); surufatinib combinations
+  (NCT05481463 / NCT05481476, PI Dongsheng Zhang 张东生); mFOLFIRINOX adjuvant (NCT04084496, PI Yu-hong Li
+  李宇红); **KRAS-G12V TCR-T Phase I (NCT06898385)**; nab-pac+gem+camrelizumab+RT LA-PDAC (NCT04365049).
+  *(VERIFIED — ClinicalTrials.gov)* → real pancreatic clinical volume **and** early-phase capability.
+- **No SYSUCC αvβ6 / RGD / integrin / FAP program found (NOT VERIFIED).** That is fine — αvβ6 is **our** program;
+  αvβ6-in-PDAC/epithelial-carcinoma biology is general literature, not a SYSUCC asset to borrow.
+
+### Checkpoint (PD-1/PD-L1) depth — the second-showcase fit
+- Pivotal **camrelizumab (anti-PD-1)** programs across NPC/esophageal/HCC/GI; SYSUCC-authored Phase I examined
+  **PD-1 receptor occupancy on peripheral T cells + RO↔safety/efficacy**. *(VERIFIED — [PMC9892498](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9892498/))*
+- A large **PD-L1 IHC + IO-response biobank** is plausible but **NOT independently verified** here → diligence.
+
+### Infrastructure (re-confirmed)
+- **Biobank est. 2001, ~6M-sample capacity, world's largest NPC collection.** NMPA/CFDA-certified **Clinical
+  Trials Center + national anticancer-drug study center**; ~1,600 open beds; **State Key Laboratory of Oncology
+  in South China**. *(VERIFIED secondary — [Wikipedia](https://en.wikipedia.org/wiki/Sun_Yat-sen_University_Cancer_Center))*
+- **PDO/PDX — RESOLVED 2026-10-11: VERIFIED at the "published use / co-built biobank" level; a NAMED
+  catalog-scale core = NOT VERIFIED.**
+  - **NPC patient-derived organoid "living biobank"** co-led by SYSUCC — Wang X-W et al., *Ann Transl Med*
+    2022;10(9), **DOI 10.21037/atm-22-1076**; co-corresponding **Ming-Yuan Chen (陈明远, SYSUCC)**; 39 NPC
+    organoids from 62 samples (recurrent-NPC success 81.25%, primary 47.06%). *(VERIFIED — [ATM journal page](https://atm.amegroups.org/article/view/94712/html))*
+  - **Broad organoid footprint** — ~168 Europe PMC affiliation hits ("Sun Yat-sen University Cancer Center" AND
+    organoid) across NPC/colorectal/gastric/lung/breast/hepatic. *(WIDELY-STATED — index count, individual
+    PMIDs not each re-verified — [Europe PMC query](https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=AFF:%22Sun%20Yat-sen%20University%20Cancer%20Center%22%20AND%20organoid))*
+  - **NOT VERIFIED:** a formally named SYSUCC organoid/PDX **core facility with a published catalog scale**, and
+    **PDX-specific** capacity/throughput (plus SPR/BLI + peptide-chemistry) → confirm directly.
+  - *(Attribution traps avoided: a "99-line/6-patient" breast PDO platform = **Univ. of Macau**; a 17-line
+    breast PDO+mini-PDX paper (PMID 38722288) = **Xi'an Jiaotong Univ** — neither is SYSUCC.)*
+
+### Data governance (HGRAC) — materially easier than the 2019 picture
+- **2023 Implementing Rules (eff. 2023-07-01) EXCLUDE clinical data, medical images, protein data, and metabolic
+  data from the scope of "HGR data."** With an approved/recorded Sino-foreign cooperative research arrangement +
+  a joint-use contract, no separate HGR-data-sharing notification is required.
+  *(VERIFIED — [Ropes & Gray 2023](https://www.ropesgray.com/en/insights/alerts/2023/06/china-unveils-implementing-rules-on-the-administration-of-human-genetic-resources);
+  2019 baseline [Ropes & Gray](https://www.ropesgray.com/en/insights/alerts/2019/06/chinas-state-council-publishes-new-regulations-on-the-management-of-human-genetic-resources))*
+- **Practical read:** patient *samples / raw sequence* still need a **Sino-foreign cooperative research
+  approval** up front; but **AI/model work on clinical/imaging/protein/metabolic data sits largely outside
+  HGR-data constraints post-2023**. Structure the collaboration **domestically via our Chinese entity**; only
+  de-identified results inform the design engine. SYSUCC's own HGRAC-filing track record = NOT VERIFIED (confirm).
+
+### Multi-site mapping (US via ACT/MDACC × China via SYSUCC)
+| Capability | US (TMC ACT / MD Anderson) | China (SYSUCC) | Status of SYSUCC side |
+|---|---|---|---|
+| Design & prioritization | BioMate | BioMate | — (ours, both sites) |
+| Patient cohorts | TMC/MDACC PDAC & IO | GI/PDAC (≥7 trials) + checkpoint | VERIFIED |
+| Wet-lab validation | Organoid/in-vivo (team MDACC GI) | Organoids (NPC biobank + multi-tumor) | VERIFIED use; named core NOT |
+| Radiochemistry/imaging | Cyclotron / RADIATE (via ACT) | Cyclotron + 9 hot cells + ⁶⁸Ga + 13 RLT beds + beta-emitter therapy | ⁶⁸Ga + beta VERIFIED; ¹⁷⁷Lu NOT |
+| Clinical path | TMC Phase-I on-ramp | NMPA Phase-I / anticancer-drug center | VERIFIED |
+| Institutional tie | — | **MDACC sister institution since 2003 (SINF)** | VERIFIED |
+
+### BD contact reality (no fabrication)
+- **President Xu Ruihua (徐瑞华)** ([profile](https://english.sysucc.org.cn/index_64.aspx?lcid=99)); **Asst.
+  President / Dir. Medical Oncology Feng Wang (王峰)** = realistic scientific entry point. **No foreign-affairs
+  office email surfaced — do NOT invent one.** Best channels: the **MD Anderson Sister-Institution program
+  office**, or Feng Wang / Xu Ruihua's labs, or the official site contact pages.
+
+### Diligence list (confirm directly with SYSUCC before committing)
+*(Items 1–2 RESOLVED this pass — see above; downgraded to the narrower confirmations below.)*
+1. **¹⁷⁷Lu site-readiness** (highest priority for the radioligand therapy arm): ¹⁷⁷Lu sourcing + **GMP
+   ¹⁷⁷Lu-peptide labeling** + therapy-bed authorization. *(Verified today: Ga-68 imaging + beta-emitter therapy
+   + dosimetry exist; a ¹⁷⁷Lu program does NOT — it would be a build, not a current capability.)*
+2. **Organoid/PDX scale:** a named organoid/PDX core's catalog size + **PDX-specific** capacity + SPR/BLI +
+   peptide-chemistry. *(Verified today: published organoid use incl. an NPC organoid biobank; named
+   catalog-scale core unconfirmed.)*
+3. A **SYSUCC-owned checkpoint responder dataset** (PD-L1 IHC + outcome) pinned to a citable cohort.
+4. SYSUCC's **HGRAC international-data-sharing filing** experience.
+5. The correct **international-collaboration channel** (via the MDACC sister-institution office is likely best).
 
 ---
 
