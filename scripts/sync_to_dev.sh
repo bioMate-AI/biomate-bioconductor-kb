@@ -232,7 +232,13 @@ deploy_frontend() {
 
   if ! ec2_ssh '
     set -e
-    rm -rf /opt/biomate/frontend_sync && mkdir -p /opt/biomate/frontend_sync
+    # Use sudo for the staging-dir wipe: a prior sync (or a root docker step)
+    # can leave root-owned files under /opt/biomate/frontend_sync (observed
+    # 2026-10-11: research_agent_v2/* owned by root -> `rm` Permission denied
+    # -> tar "Cannot open: File exists" -> frontend build aborted). sudo rm
+    # guarantees a clean staging dir; the fresh mkdir is then owned by $USER.
+    sudo rm -rf /opt/biomate/frontend_sync 2>/dev/null || rm -rf /opt/biomate/frontend_sync
+    mkdir -p /opt/biomate/frontend_sync
     tar -xzf /tmp/frontend_sync.tar.gz -C /opt/biomate/frontend_sync
     # Prune dangling images + build cache to prevent disk-full build failures
     docker image prune -f > /dev/null 2>&1 || true
