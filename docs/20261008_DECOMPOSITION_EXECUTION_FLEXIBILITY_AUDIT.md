@@ -1,5 +1,7 @@
 # Decomposition & Execution Flexibility Audit — Can BioMate Handle "Easy but Needs Mature Task Decomposition"?
 
+> **2026-10-09 evidence correction:** The screenshot is an external user-provided example, not verified execution ground truth. It does not establish parallel execution or that BioMate research scripts produced the shown run. The attribution below to the bespoke research track is unsupported and must not be relied on. Broad claims about absent fan-out, a linear-only composer and current connection failure rates also require the qualifications in the [updated capability audit](20261009_ORCHESTRATION_CAPABILITY_AUDIT_AND_PLAN.md). Use the [new peptide evaluation specification](20261009_PEPTIDE_SHORTLIST_EVALUATION_CASE.md) for this example's acceptance criteria.
+
 **Date:** 2026-10-08
 **Mode:** Read-only code investigation. No files changed.
 **Question asked:** Is BioMate's interpretation + execution *too literal* to flexibly handle tasks that are not hard but need mature task decomposition — the canonical example being *"take the cyclic peptides from this prior run, run ALL peptide-property prediction tools on them, and shortlist 5 for validation"* (recover inputs → fan out to a **dynamic SET** of tools in parallel → aggregate/rank → select)?

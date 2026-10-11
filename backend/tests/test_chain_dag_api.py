@@ -30,12 +30,14 @@ def api(tmp_path, monkeypatch):
 
 def test_request_retains_dependencies_dimensions_and_persistence(api):
     req = api.ChainSubmitRequest(steps=[
-        {'nextflow_path':'one.nf','depends_on':[], 'dimensions':{'target':'X'}},
+        {'nextflow_path':'one.nf','depends_on':[], 'dimensions':{'target':'X'}, 'step_key':'inhibitor_A:target_X'},
         {'nextflow_path':'two.nf','depends_on':[1]},
     ])
     result = asyncio.run(api.submit_chain(req))
     saved = api._load_chain(result['chain_run_id'])
     assert saved['execution_mode'] == 'dag'
+    assert saved['steps'][0]['step_key'] == 'inhibitor_A:target_X'
+    assert saved['steps'][1]['step_key'] == 'step_2'
     assert saved['steps'][0]['dimensions'] == {'target':'X'}
     assert saved['steps'][1]['depends_on'] == [1]
     assert api._resolve_submit_steps(req.steps)[1]['depends_on'] == [1]

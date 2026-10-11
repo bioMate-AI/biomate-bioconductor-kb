@@ -1347,7 +1347,7 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
                 "nextflow_path": step.get("nextflow_path"),
                 "workflow_name": step.get("workflow_name"),
                 "role": step.get("role"),
-                "step_key": f"step_{i + 1}" if is_dag else step.get("step_key"),
+                "step_key": (request.steps[i].step_key or f"step_{i + 1}") if is_dag else step.get("step_key"),
                 "depends_on": step.get("depends_on"),
                 "dimensions": step.get("dimensions") or {},
                 "params": step.get("params") or {},

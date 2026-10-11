@@ -81,3 +81,10 @@ it('rejects invalid tool parameters before execution', () => {
   expect(() => validateToolInput({ language: 'shell', code: 'x' }, schema)).toThrow('enum');
   expect(() => validateToolInput({ language: 'python', code: ['x'] }, schema)).toThrow('string');
 });
+
+it('passes the configured local reasoning mode without changing existing callers', async () => {
+  process.env.BIOMATE_LOCAL_LLM_REASONING_EFFORT = 'none';
+  const fetch = vi.fn().mockResolvedValue(reply({ content: 'ok' })); vi.stubGlobal('fetch', fetch);
+  await localCompletion({ messages: [{ role: 'user', content: 'test' }] });
+  expect(JSON.parse(fetch.mock.calls[0][1].body).reasoning_effort).toBe('none');
+});

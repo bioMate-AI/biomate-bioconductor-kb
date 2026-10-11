@@ -29,7 +29,9 @@ export async function localCompletion(body: Record<string, any>) {
       method: 'POST', redirect: 'error', signal: AbortSignal.timeout(cfg.timeout),
       headers: { 'Content-Type': 'application/json', ...(process.env.BIOMATE_LOCAL_LLM_KEY
         ? { Authorization: `Bearer ${process.env.BIOMATE_LOCAL_LLM_KEY}` } : {}) },
-      body: JSON.stringify({ chat_template_kwargs: { enable_thinking: false }, ...body, model: cfg.model, stream: false }),
+      body: JSON.stringify({ chat_template_kwargs: { enable_thinking: false },
+        ...(process.env.BIOMATE_LOCAL_LLM_REASONING_EFFORT ? { reasoning_effort: process.env.BIOMATE_LOCAL_LLM_REASONING_EFFORT } : {}),
+        ...body, model: cfg.model, stream: false }),
     };
     const response = await fetch(`${cfg.url}/chat/completions`, options);
     if (!response.ok) throw new Error(`Local inference HTTP ${response.status}`);

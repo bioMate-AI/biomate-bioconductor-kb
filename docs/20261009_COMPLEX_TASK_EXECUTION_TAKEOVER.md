@@ -1,5 +1,9 @@
 # Complex-task execution takeover — 2026-10-09
 
+> Follow-up audit: [capabilities, gaps and detailed integration plan](20261009_ORCHESTRATION_CAPABILITY_AUDIT_AND_PLAN.md).
+> That investigation corrects overly broad earlier claims about fan-out, composer edges and reporting,
+> and identifies additional browser/router/scoring gaps. The implementation below remains provisional.
+
 ## Status
 
 The user's acceptance bar is **request → decomposition → real execution → evidence-backed report**.
