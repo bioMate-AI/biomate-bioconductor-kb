@@ -853,27 +853,34 @@ function App() {
     setChatSessions(sessions)
   }, [user?.id])
 
+  // Tracks the latest session ID the user has intentionally selected/created,
+  // used to guard against stale async callbacks overwriting the active session.
+  const activeSessionIdRef = useRef<string | null>(null)
+
   const handleNewChat = () => {
     console.log('Creating new chat session')
     const newSession = chatHistoryService.createNewSession()
+    activeSessionIdRef.current = newSession.id
     setCurrentChatSession(newSession)
-    
+
     // Update sessions list
     const updatedSessions = chatHistoryService.getAllSessions()
     setChatSessions(updatedSessions)
-    
+
     // Navigate to home page for new chat
     setLocation('/')
   }
 
   const handleChatSelect = async (chatId: string) => {
     console.log('Loading chat session:', chatId)
+    activeSessionIdRef.current = chatId
     const local = chatHistoryService.getSession(chatId)
     // If session has no messages (e.g. synced from backend on another machine), fetch full detail
     const session = (!local || local.messages.length === 0)
       ? await chatHistoryService.fetchSessionDetail(chatId)
       : local
-    if (session) {
+    // Guard: user may have clicked "New Chat" or a different session while the fetch was in flight
+    if (session && activeSessionIdRef.current === chatId) {
       setCurrentChatSession(session)
       // Navigate to the chat page; the URL-sync effect below adds ?session=.
       setLocation('/')
@@ -903,10 +910,13 @@ function App() {
   }, [location, currentChatSession?.id, currentChatSession?.messages.length])
 
   const handleChatUpdated = (session: ChatSession) => {
-    console.log('App: Updating chat session:', session.id, 'workflows:', session.workflows)
-    // Save the updated session to chat history service
+    // Save the updated session to chat history service regardless of which session is active
     chatHistoryService.updateSession(session.id, session)
-    setCurrentChatSession(session)
+    // Only promote to currentChatSession if this is still the active session.
+    // Streaming callbacks from a previous session fire onChatUpdated after the
+    // user has already switched — without this guard they would revert the UI
+    // back to the old session.
+    setCurrentChatSession(prev => prev?.id === session.id ? session : prev)
     setChatSessions(chatHistoryService.getAllSessions())
   }
 

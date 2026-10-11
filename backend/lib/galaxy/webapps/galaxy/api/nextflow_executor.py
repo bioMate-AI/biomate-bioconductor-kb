@@ -8434,6 +8434,9 @@ def _execute_nextflow_impl(
         # a run supplied no file/S3 params). See datasets_object.py.
         "parameters": dict(request.parameters or {}),
         "resume_from_run_id": request.resume_from_run_id,
+        # Original params — persisted so resume_nextflow_run can re-inject them
+        # when the "Restart" button sends no body (avoids params.sequence = '' default).
+        "params": dict(params),
     }
     with _runs_lock:
         _runs[run_id] = dict(_run_record_init)
@@ -8454,6 +8457,7 @@ def _execute_nextflow_impl(
             "outdir": str(outdir),
             "workflow_domain": workflow_domain or "",
             "nextflow_path": request.nextflow_path or str(nf_path),
+            "params": dict(params),
         }))
     except Exception as _te:
         log.debug("[timing] Could not write timing.json for %s: %s", run_id, _te)
@@ -9002,13 +9006,32 @@ def resume_nextflow_run(run_id: str, body: ResumeRunRequest = ResumeRunRequest()
             f"[resume/{run_id}] _runs miss — reconstructed: nextflow_path={nextflow_path} is_batch={_force_batch} user_id={body.user_id!r}"
         )
 
+    # When "Restart" sends no body.parameters, recover the original params so
+    # sequence/fasta params are not silently dropped (Nextflow would use defaults
+    # like params.sequence='' and the workflow fails at startup with "Provide input").
+    # Priority: caller-supplied params > _runs cache > timing.json disk fallback.
+    _resolved_params = body.parameters or None
+    if not _resolved_params:
+        _recovered = prev.get("params") or {}
+        if not _recovered:
+            # Cross-worker fallback: try timing.json
+            try:
+                import json as _rj
+                _tp = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs")) / run_id / "timing.json"
+                _recovered = _rj.loads(_tp.read_text()).get("params") or {}
+            except Exception:
+                pass
+        if _recovered:
+            _resolved_params = _recovered
+            log.info("[resume/%s] Re-injecting %d original params (no body.parameters supplied)", run_id, len(_recovered))
+
     resume_request = NextflowExecuteRequest(
         nextflow_path=prev["nextflow_path"],
         profile=prev.get("profile"),
         entry=prev.get("entry"),
         workflow_domain=prev.get("workflow_domain"),
         user_id=prev.get("user_id") or body.user_id,
-        parameters=body.parameters or None,
+        parameters=_resolved_params,
         resume_from_run_id=run_id,
         compute_config=(
             {"executor": "awsbatch"} if prev.get("is_batch") else None
