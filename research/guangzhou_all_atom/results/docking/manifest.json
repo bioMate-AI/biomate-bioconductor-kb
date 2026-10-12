@@ -1,0 +1,197 @@
+{
+  "engine_available": null,
+  "status": "prepared_not_scored",
+  "targets": {
+    "avb6": {
+      "receptor_pdb_candidates": [
+        "4UM9",
+        "6OM2"
+      ],
+      "pocket": "RGD-binding cleft at the \u03b1v/\u03b26 interface; Asp carboxylate -> \u03b26 MIDAS Mg2+/Mn2+",
+      "box_hint": "center on the MIDAS metal + the \u03b1v propeller Asp pocket"
+    },
+    "pdl1": {
+      "receptor_pdb_candidates": [
+        "5O45",
+        "5N2D"
+      ],
+      "pocket": "PD-L1 IgV front \u03b2-sheet hydrophobic cleft (the PD-1 / antagonist interface)",
+      "box_hint": "center on the Tyr56/Met115/Ala121 cleft"
+    }
+  },
+  "shortlist": {
+    "avb6": [
+      {
+        "id": "AVB6-K-01",
+        "backbone": "FRGDLSWPA",
+        "decision": "DOCK",
+        "notes": [
+          "FTO-watch: close structural analog to the same-target genus (T=0.87) \u2014 novelty caveat"
+        ],
+        "ligand_sdf": "results/docking/ligands/AVB6-K-01.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "AVB6-K-02",
+        "backbone": "WRGDLTFPV",
+        "decision": "DOCK",
+        "notes": [],
+        "ligand_sdf": "results/docking/ligands/AVB6-K-02.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "AVB6-K-03",
+        "backbone": "YRGDLGHPL",
+        "decision": "DOCK",
+        "notes": [],
+        "ligand_sdf": "results/docking/ligands/AVB6-K-03.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "AVB6-K-04",
+        "backbone": "HRGDLAWPK",
+        "decision": "DOCK_AFTER_FIX",
+        "notes": [
+          "liability WATCH: sar:renal-charge: net peptide charge +1 (extra cationic=1); cationic peptides are reabsorbed in the proximal tubule -> HIGHER kidney dose (dose-limiting organ). Added Lys/Arg worsens, not 'tunes', renal clearance."
+        ],
+        "ligand_sdf": "results/docking/ligands/AVB6-K-04.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "AVB6-K-05",
+        "backbone": "FRGDLIFPA",
+        "decision": "DOCK",
+        "notes": [
+          "FTO-watch: close structural analog to the same-target genus (T=0.88) \u2014 novelty caveat"
+        ],
+        "ligand_sdf": "results/docking/ligands/AVB6-K-05.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "AVB6-K-06",
+        "backbone": "RGDLQFPSG",
+        "decision": "DOCK",
+        "notes": [],
+        "ligand_sdf": "results/docking/ligands/AVB6-K-06.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "AVB6-K-07",
+        "backbone": "LRGDLSFPT",
+        "decision": "DOCK",
+        "notes": [],
+        "ligand_sdf": "results/docking/ligands/AVB6-K-07.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "AVB6-K-08",
+        "backbone": "YRGDLIWPA",
+        "decision": "DOCK",
+        "notes": [],
+        "ligand_sdf": "results/docking/ligands/AVB6-K-08.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "AVB6-K-09",
+        "backbone": "FRGDLAFPE",
+        "decision": "DROP",
+        "notes": [
+          "FTO: occupied on genus sequence axis (seqID>=0.80) -> redesign before any dock"
+        ],
+        "ligand_sdf": null
+      },
+      {
+        "id": "AVB6-K-10",
+        "backbone": "WRGDLKYPA",
+        "decision": "DOCK_AFTER_FIX",
+        "notes": [
+          "liability WATCH: sar:renal-charge: net peptide charge +1 (extra cationic=1); cationic peptides are reabsorbed in the proximal tubule -> HIGHER kidney dose (dose-limiting organ). Added Lys/Arg worsens, not 'tunes', renal clearance."
+        ],
+        "ligand_sdf": "results/docking/ligands/AVB6-K-10.sdf",
+        "embed": "ok"
+      }
+    ],
+    "pdl1": [
+      {
+        "id": "PDL1-K-01",
+        "backbone": "FWLPYSFDTK",
+        "decision": "DOCK",
+        "notes": [],
+        "ligand_sdf": "results/docking/ligands/PDL1-K-01.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "PDL1-K-02",
+        "backbone": "WMFPILSEKG",
+        "decision": "DOCK_AFTER_FIX",
+        "notes": [
+          "liability WATCH: cmc:Met-ox: methionine oxidation liability"
+        ],
+        "ligand_sdf": "results/docking/ligands/PDL1-K-02.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "PDL1-K-03",
+        "backbone": "YFPWLADSRTG",
+        "decision": "DOCK_AFTER_FIX",
+        "notes": [
+          "liability WATCH: cmc:DS: Asp-Ser isomerisation"
+        ],
+        "ligand_sdf": "results/docking/ligands/PDL1-K-03.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "PDL1-K-04",
+        "backbone": "FLWPMYSKDG",
+        "decision": "DOCK_AFTER_FIX",
+        "notes": [
+          "liability HOLD: cmc:DG: Asp-Gly isomerisation -> isoAsp (fastest)"
+        ],
+        "ligand_sdf": "results/docking/ligands/PDL1-K-04.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "PDL1-K-05",
+        "backbone": "WYFPLITENKSG",
+        "decision": "DOCK",
+        "notes": [],
+        "ligand_sdf": "results/docking/ligands/PDL1-K-05.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "PDL1-K-06",
+        "backbone": "FWLYPMSDKT",
+        "decision": "DOCK_AFTER_FIX",
+        "notes": [
+          "liability WATCH: cmc:Met-ox: methionine oxidation liability"
+        ],
+        "ligand_sdf": "results/docking/ligands/PDL1-K-06.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "PDL1-K-07",
+        "backbone": "FWPYILFERS",
+        "decision": "DOCK",
+        "notes": [],
+        "ligand_sdf": "results/docking/ligands/PDL1-K-07.sdf",
+        "embed": "ok"
+      },
+      {
+        "id": "PDL1-K-08",
+        "backbone": "CFWLYFMSDC",
+        "decision": "DOCK_AFTER_FIX",
+        "notes": [
+          "liability WATCH: cmc:Met-ox: methionine oxidation liability; sar:aggregation: hydrophobic fraction 0.80 > 0.60 -> aggregation / poor solubility risk (amphipathic is wanted, all-hydrophobic is not)"
+        ],
+        "ligand_sdf": "results/docking/ligands/PDL1-K-08.sdf",
+        "embed": "ok"
+      }
+    ]
+  },
+  "ligand_dir": "results/docking/ligands",
+  "scoring_route": [
+    "BioMate drug_discovery molecular-docking workflow (preferred: BioMate is the execution engine)",
+    "or smina/vina on AWS spot with the confirmed receptor PDBQT + box"
+  ],
+  "ncAA_caveat": "ligand SDFs are L-backbone; production scoring must use full-HELM stereochem (D-Pro/N-methyl)."
+}

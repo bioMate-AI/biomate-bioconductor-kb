@@ -111,6 +111,39 @@ docking spend; WATCH items dock after the cheap fix, HOLD (PDL1-K-04) does not d
 designed out. This moves step 1 (docking) from "score 18 hypotheses" to "score 11 liability-clean ones" —
 the rule layer paid for itself before any GPU-hour.
 
+## 3c. FTO gate run on the K-sets + docking gate stood up
+
+**FTO/novelty** (`run_fto_on_kset.py` → `results/fto_novelty_kset.json`). αvβ6 got the decisive SEQUENCE
+axis vs the known cyclic-RGDL genus (Trivehexin `YRGDLAYPK`, avebehexin `FRGDLAFPK`, A20FMDV2) plus the
+same-target structural NN vs the αvβ6 ChEMBL actives (CHEMBL4445931 / CHEMBL4575627):
+- **AVB6-K-09 → DROP:** genus identity 0.889 to avebehexin (it is avebehexin with Glu for the N-methyl-Lys)
+  **and** same-target Tanimoto 0.929 — occupied on both axes. Redesign before any dock.
+- **FTO-watch (close structural analog to the genus, distinct sequence):** K-05 (T 0.88), K-01 (0.87),
+  K-02, K-07 — the mechanism-vs-novelty squeeze the review named (the RGD-cyclic backbone *is* the
+  patented chemotype). Dockable, novelty caveat carried.
+- **Cleanest novelty:** K-03, K-06, K-08, K-10 (same-target T < 0.85, genus id ≤ 0.67).
+- **PD-L1:** all 8 novel on structure; sequence-axis FTO deferred (WL12/dmp10/BMS pulled from primary refs,
+  not recited — citation integrity).
+- Caveat: αvβ6 backbones scored as L one-letter (stereo/N-methyl stripped) — correct for re-discovery/FTO
+  identity, not for activity (activity-cliff doc).
+
+**Lead surviving all three cheap gates** (liability PASS + extended-affinity bonus + FTO-clean both axes):
+**AVB6-K-08 `YRGDLIWPA`** — RGDL selectivity + RGDL-I affinity bonus + D-Pro/N-methyl lock + net-0 charge.
+
+**Docking gate** (`cyclic_llm/docking_gate.py` → `results/docking/manifest.json` + 17 ligand SDFs). Consumes
+the two cheap gates to decide per candidate, then builds REAL 3D conformers (RDKit ETKDGv3 macrocycle) for
+the dock set:
+- αvβ6: **7 DOCK, 2 DOCK_AFTER_FIX** (K-04/K-10 renal charge), **1 DROP** (K-09 FTO).
+- PD-L1: **3 DOCK, 5 DOCK_AFTER_FIX** (Met-ox / Asp-Ser / the K-04 Asp-Gly HOLD).
+- Targets: αvβ6 RGD/MIDAS cleft (receptor PDB 4UM9/6OM2 — confirm vs RCSB); PD-L1 IgV cleft (5O45/5N2D —
+  confirm). **No docking binary in this environment → `status=prepared_not_scored`; no ΔG fabricated.**
+  Scoring route recorded: BioMate drug_discovery docking workflow (preferred — BioMate is the execution
+  engine) or smina/vina on AWS spot, with full-HELM stereochemistry (the SDFs here are the L-backbone smoke).
+
+**Net:** the 18 raw hypotheses are now a scored funnel — DROP 1, DOCK_AFTER_FIX 7, DOCK 10 — with real
+ligand inputs prepared. The only remaining pre-synthesis compute is the dock-score itself, which needs an
+engine/route (next action), not more design.
+
 ## 4. Honest gate (unchanged)
 Every candidate set needs docking + FTO-vs-genus + wet-lab SPR before it means "binder." Indication
 expansion and any linked construct are downstream of validated single-agent ligands. The value delivered
