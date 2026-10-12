@@ -9,7 +9,7 @@ Use prior conversation and recorded facts to understand follow-ups. Preserve exa
 Types:
 general_question: explanations, greetings, how a tool works, or explicit knowledge checks without planning/running an analysis.
 tool_search: find/recommend available tools or workflows.
-workflow_generation: explicitly create/configure/run an analysis, conversion, visualization or multi-step procedure. Missing inputs remain missing; classification does not authorize execution.
+workflow_generation: explicitly create/configure/run an analysis, conversion, visualization or multi-step procedure — INCLUDING requests to prepare/draft/stage the plan, or that say "don't launch/run yet", "just plan it" or "review before running" (preparing a draft is still workflow_generation; launching is a separate confirmation). Do not downgrade these to general_question or experiment_design. Missing inputs remain missing; classification does not authorize execution.
 workflow_modification: change an existing workflow/parameters, preserving everything else.
 dataset_inquiry: inspect/list files, datasets or run history.
 research_question: scientific synthesis or literature evidence.
