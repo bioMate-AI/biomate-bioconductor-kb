@@ -15,7 +15,7 @@ sys.path.insert(0, _HERE)                                       # import decompo
 sys.path.insert(0, os.path.join(_HERE, os.pardir, os.pardir))   # backend/lib → galaxy.chain.dag
 
 from decomposed_dag import (  # noqa: E402
-    build_dag_plan, pick_workflow_match, bind_shared_inputs, DAG_RESOLVE_MIN_SCORE,
+    build_dag_plan, pick_workflow_match, bind_shared_inputs, to_pipeline_card, DAG_RESOLVE_MIN_SCORE,
 )
 from galaxy.chain.dag import validate_plan  # noqa: E402
 
@@ -172,6 +172,23 @@ def test_bind_does_not_overwrite_and_skips_dependent_steps():
     plan2["steps"][0]["parameters"]["samplesheet"] = "already.csv"
     bind_shared_inputs(plan2, ["new.csv"])
     assert plan2["steps"][0]["parameters"]["samplesheet"] == "already.csv"
+
+
+def test_to_pipeline_card_shape():
+    plan = build_dag_plan([_task("a", par=[2]), _task("b", par=[1])], _ok)
+    card = to_pipeline_card(plan, name="Peptide screen")
+    assert card["workflow_type"] == "pipeline"      # frontend render trigger
+    assert card["execution_mode"] == "dag"
+    assert card["name"] == "Peptide screen"
+    assert card["connections"] == plan["connections"]
+    assert card["max_parallel"] == plan["max_parallel"]
+    assert len(card["pipeline_steps"]) == 2
+    s0 = card["pipeline_steps"][0]
+    # fields the chat card / submit path read
+    assert set(["id", "workflow_name", "nextflow_path", "params", "depends_on"]).issubset(s0)
+    assert s0["nextflow_path"] == "a.nf"
+    assert s0["depends_on"] == []
+    assert to_pipeline_card(None) is None
 
 
 if __name__ == "__main__":

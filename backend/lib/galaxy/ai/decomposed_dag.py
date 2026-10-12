@@ -55,6 +55,39 @@ def pick_workflow_match(matches: Any, min_score: float = DAG_RESOLVE_MIN_SCORE) 
     return None
 
 
+def to_pipeline_card(dag_plan: Optional[Dict[str, Any]], name: str = "Decomposed plan") -> Optional[Dict[str, Any]]:
+    """Render a DAG plan in the frontend's existing pipeline-card shape.
+
+    The chat UI renders a whole-plan chain card when ``workflow.workflow_type ==
+    'pipeline'`` and reads ``pipeline_steps`` + ``connections`` + ``max_parallel``
+    (chat-message.tsx / chat-with-artifacts.tsx / chain-execution.ts). This maps the
+    executor-shaped plan from ``build_dag_plan`` onto that contract WITHOUT changing
+    the frontend — the executor fields (``depends_on``, ``connections``,
+    ``max_parallel``, ``execution_mode``) are preserved for whole-plan submission.
+    """
+    if not dag_plan:
+        return None
+    pipeline_steps = []
+    for i, s in enumerate(dag_plan.get("steps", [])):
+        pipeline_steps.append({
+            "id": s.get("step_key") or "step_%d" % (i + 1),
+            "workflow_name": s.get("description") or s.get("nextflow_path"),
+            "nextflow_path": s.get("nextflow_path"),
+            "params": s.get("parameters") or {},
+            "depends_on": s.get("depends_on") or [],
+            "output_types": [],
+            "status": "pending",
+        })
+    return {
+        "workflow_type": "pipeline",
+        "execution_mode": "dag",
+        "name": name,
+        "pipeline_steps": pipeline_steps,
+        "connections": dag_plan.get("connections") or [],
+        "max_parallel": dag_plan.get("max_parallel", 4),
+    }
+
+
 # Extension → the most common primary input param name for a Nextflow workflow.
 # Used for BEST-EFFORT prefill of a fan-out's shared input onto each root step;
 # the whole-plan-approval card lets the user correct it, so this is not

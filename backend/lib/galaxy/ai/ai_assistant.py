@@ -763,7 +763,7 @@ class AIAssistant:
             import os as _os
             if _os.environ.get("BIOMATE_MULTITASK_DAG_ENABLED", "").strip().lower() in ("1", "true", "yes", "on"):
                 try:
-                    from .decomposed_dag import build_dag_plan, bind_shared_inputs
+                    from .decomposed_dag import build_dag_plan, bind_shared_inputs, to_pipeline_card
                     _dag = build_dag_plan(
                         tasks, self._resolve_task_to_workflow,
                         type_provider=self._workflow_io_types,
@@ -772,11 +772,13 @@ class AIAssistant:
                         # Best-effort: prefill the user's input onto fan-out root steps.
                         _dag = bind_shared_inputs(_dag, self._extract_input_refs(context))
                         log.info(f"[MultiTask] assembled {len(_dag['steps'])}-step DAG plan (not discarded)")
+                        # Emit the frontend's pipeline-card shape so the existing
+                        # whole-plan chain card renders + submits it (no frontend change).
                         return {
                             'message': f"Prepared a {len(_dag['steps'])}-step plan with dependencies. Review and run when ready.",
                             'success': True,
                             'execution_mode': 'dag',
-                            'workflow': _dag,
+                            'workflow': to_pipeline_card(_dag),
                             'pipeline_id': pipeline_id,
                         }
                     log.info("[MultiTask] DAG assembly incomplete (a task did not resolve) — single-task fallback")
