@@ -35,7 +35,22 @@ test.afterAll(async () => {
 });
 
 async function newSession(page: Page) {
-  await page.goto(`${BASE_URL}/`, { waitUntil: "networkidle" });
+  // Proven dev navigation (ui-interaction-flows.e2e.ts gotoFreshChat): `networkidle`
+  // NEVER fires on the dev production build (deferred resources) and hangs the goto —
+  // use `domcontentloaded` + a bounded load wait, then wait for the composer to be
+  // interactive. The previous `networkidle` wait left the page non-interactive, so the
+  // message was never actually sent (0 cards regardless of query) — verified via dev logs.
+  await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await page.waitForLoadState("load").catch(() => {});
+  await page.evaluate(() => {
+    try {
+      localStorage.setItem("biomate_survey_suppressed_until", String(Date.now() + 7 * 86400_000));
+    } catch {}
+  });
+  await page
+    .locator('[data-testid="chat-input"], textarea')
+    .first()
+    .waitFor({ state: "visible", timeout: 30_000 });
   const newChatBtn = page.locator('[data-testid="button-new-chat"]').first();
   if (await newChatBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await newChatBtn.click();
@@ -45,11 +60,12 @@ async function newSession(page: Page) {
 
 async function sendMessage(page: Page, text: string) {
   const composer = page
-    .locator('textarea, input[placeholder*="Ask"], input[placeholder*="Describe"]')
+    .locator('[data-testid="chat-input"], textarea[placeholder*="Ask BioMate"], textarea[placeholder*="Ask"], textarea')
     .first();
   await expect(composer).toBeVisible({ timeout: 30_000 });
+  await composer.click();
   await composer.fill(text);
-  await composer.press("Enter");
+  await page.keyboard.press("Enter");
 }
 
 test("multi-task request produces a whole-plan DAG draft card (no dispatch)", async () => {
