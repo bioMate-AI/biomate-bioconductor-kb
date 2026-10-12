@@ -967,7 +967,12 @@ resync_galaxy_env() {
     # values for the same key (last --env-file wins on docker run). Capture
     # the rest from the running container so we do not lose JWT_SECRET etc.
     LIVE_ENV=$(mktemp)
-    CLEANUP_FILES="$CLEANUP_FILES $LIVE_ENV"   # cleaned by on_exit; do NOT re-trap (would drop lock removal)
+    # NOTE: CLEANUP_FILES is a LOCAL-side var (outer on_exit trap). This block runs
+    # REMOTELY under set -u, where referencing it is an "unbound variable" fatal that
+    # aborts the recreate before docker stop/rm/run — a silent no-op that still prints
+    # "Done" and passes the health gate on the OLD container. Clean the temp file
+    # remotely instead (trap fires even on the early-exit paths above).
+    trap '"'"'rm -f "$LIVE_ENV"'"'"' EXIT
 
     # Keys present in .env — we will let the file supply them
     NEW_KEYS=$(grep -v "^#\|^$" "$ENV_FILE" | awk -F= "{print \$1}" | sort -u)
@@ -989,7 +994,17 @@ resync_galaxy_env() {
     PORTS=$(docker inspect "$CONTAINER" --format "{{range \$p, \$bs := .HostConfig.PortBindings}}{{range \$bs}}-p {{.HostPort}}:{{\$p}} {{end}}{{end}}" | sed "s|/tcp||g")
     MOUNTS=$(docker inspect "$CONTAINER" --format "{{range .Mounts}}-v {{.Source}}:{{.Destination}}{{if .RW}}{{else}}:ro{{end}} {{end}}")
 
-    echo "  preserving image=$IMAGE network=$NETWORK ports=$PORTS"
+    # The Galaxy DB bind mount is already captured by MOUNTS for a normally-launched
+    # container. Adding it a SECOND time here makes docker run fail with "Duplicate
+    # mount point: /app/database" — and that failure lands AFTER docker rm, taking dev
+    # down. So add the explicit mount ONLY if MOUNTS somehow lacks it.
+    DB_MOUNT=""
+    case "$MOUNTS" in
+      *:/app/database*|*:/app/database:ro*) : ;;   # already preserved
+      *) DB_MOUNT="-v '"$GALAXY_DB_HOST_PATH"':/app/database" ;;
+    esac
+
+    echo "  preserving image=$IMAGE network=$NETWORK ports=$PORTS db_mount_extra=${DB_MOUNT:-none}"
     echo "  live env to preserve: $(wc -l < $LIVE_ENV) vars; env-file to apply: $(echo "$NEW_KEYS" | wc -l) keys"
 
     echo "[galaxy-env] Stopping + removing $CONTAINER..."
@@ -1004,7 +1019,7 @@ resync_galaxy_env() {
       --network "$NETWORK" \
       $PORTS \
       $MOUNTS \
-      -v $GALAXY_DB_HOST_PATH:/app/database \
+      $DB_MOUNT \
       --restart unless-stopped \
       --env-file "$ENV_FILE" \
       $(awk "{print \"-e\", \$0}" "$LIVE_ENV" | tr "\n" " ") \
