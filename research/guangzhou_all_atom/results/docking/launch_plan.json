@@ -1,0 +1,30 @@
+{
+  "stage1_pose": {
+    "tool": "Boltz-2 cofold (BioMate structural_biology/boltz_structure_prediction) \u2014 pose source; BoltzGen refold is the prior-pipeline alternative",
+    "pdl1": {
+      "receptor_fasta": "results/docking/receptors/5O45.fasta (chain A, ~128aa IgV)",
+      "ligands": "results/docking/pdl1_dock_smiles.json (8: 3 DOCK + 5 DOCK_AFTER_FIX)",
+      "native_ref": "5O45 chain B macrocyclic peptide-71 FFXGDVFYGWYLCGX (pocket/pose reference)",
+      "tractability": "HIGH (small single-chain receptor)"
+    },
+    "avb6": {
+      "receptor_fasta": "results/docking/receptors/9XMM.fasta (chain A \u03b1V + chain B \u03b26)",
+      "ligands": "results/docking/avb6_dock_smiles.json (7 DOCK + CTRL-avebehexin)",
+      "native_ref": "9xmm chain E cyclic-RGD AWRGDXCNP (RGD pocket + MIDAS Ca/Mn)",
+      "tractability": "LOWER (large 2-chain receptor; pocket-truncate via avb6_pocket_truncate.py before MM-GBSA)"
+    }
+  },
+  "stage2_mmgbsa": {
+    "tool": "peptide_mmgbsa_run.sh / launch_mmgbsa_pool.sh (OpenMM GBn2 CHARMM36m, single-traj, EC2 GPU spot)",
+    "input": "stage-1 complex CIFs staged to S3 (DESIGNS_S3)",
+    "avb6_pocket": "peptide_mmgbsa_pocket_run.sh + avb6_pocket_truncate.py (10 \u00c5, 4.5 \u00c5 contact shell)",
+    "output": "\u0394G per candidate on the SAME scale as pdl1_round1_CRO_order_SCREENED (\u221224.97..\u221253.47) / avb6 bind_q",
+    "caveat": "relative ranking oracle (Sun PCCP rp~0.75), entropy omitted, size-biased; FEP for finalists"
+  },
+  "predicted_outcome": [
+    "PD-L1: Boltz-2 ranks the 8 K-set peptides by predicted affinity + gives complexes; MM-GBSA \u0394G should land them against the round-1 SCREENED band (\u221225..\u221253). A K-set peptide beating ~\u221235 (round-1 median) is a real hit.",
+    "AVB6-K-08 (lead, FTO-clean) expected to pose into the RGD/MIDAS cleft with the Asp\u2192MIDAS contact; CTRL-avebehexin is the positive-control anchor its \u0394G should approach or beat.",
+    "Risk: ncAA (D-Pro/N-methyl) stripped in the L-backbone SMILES/seq -> cofold pose is approximate; production needs full-HELM stereochem. Flagged."
+  ],
+  "status_blocker": "BioMate backend returning HTTP 500 'fetch failed' (transient) as of this staging; launch stage-1 when it recovers."
+}
