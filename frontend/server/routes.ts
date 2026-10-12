@@ -36,6 +36,7 @@ import { WorkflowSSEManager } from "./workflow-sse";
 import { createWorkflowNotificationService, type WorkflowNotificationService } from "./workflow-notification-service";
 import { assessOutputCompletion } from "./output-completion-contract";
 import { GalaxyAssistant, type ModelConfig, stripNarratedToolCalls, StreamToolCallFilter } from "./galaxy-assistant";
+import { isRunnableWorkflow } from "./workflow-runnable";
 import { parameterRepository } from "./parameter-repository";
 import { workflowRepository } from "./workflow-repository";
 import { memoryService } from "./memory-repository";
@@ -6371,18 +6372,11 @@ ${paramLines || '(none recorded)'}`;
         }, 'support@biomate.ai').catch((e: any) => console.error('[EmailAlert] send failed:', e.message));
       }
 
-      const runnableWorkflow = !!(
-        workflowPayload?.success &&
-        !workflowPayload?.error &&
-        (workflowPayload?.workflow_ga || workflowPayload?.nextflow_path ||
-         workflowPayload?.workflow_type === "chain" || workflowPayload?.chain_name ||
-         workflowPayload?.workflow_type === "cryosparc" ||
-         // Sequential/DAG pipeline card (galaxy-assistant.ts processSequentialPipeline):
-         // success:true + workflow_type:'pipeline' + pipeline_steps, no workflow_ga/nextflow_path.
-         // It IS runnable (whole-plan "Confirm & Run"); without this it was mis-scored
-         // workflow_failed. The frontend renders it via PipelineListView (chat-message.tsx:841).
-         (workflowPayload?.workflow_type === "pipeline" && Array.isArray(workflowPayload?.pipeline_steps) && workflowPayload.pipeline_steps.length > 0))
-      );
+      // Single source of truth in ./workflow-runnable (unit-tested in
+      // workflow-runnable.test.ts). Accepts workflow_ga / nextflow_path / chain /
+      // cryosparc / a non-empty 'pipeline' card (processSequentialPipeline), all with
+      // success && !error.
+      const runnableWorkflow = isRunnableWorkflow(workflowPayload);
       const workflowGenerationFailed = !!workflowPayload && !runnableWorkflow;
 
       const workflowGenerationDiagnostics = (() => {

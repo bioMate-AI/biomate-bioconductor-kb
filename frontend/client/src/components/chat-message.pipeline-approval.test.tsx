@@ -10,8 +10,15 @@ it.each([true, false])('wires the correct approval mode for explicit graph=%s', 
     { workflow_name: 'Second', ...(graph ? { depends_on: [1] } : {}) },
   ] }
   const onRunPipeline = vi.fn()
-  render(<ChatMessage message={{ id: 'approval', role: 'assistant', content: '', timestamp: new Date(),
+  const { container } = render(<ChatMessage message={{ id: 'approval', role: 'assistant', content: '', timestamp: new Date(),
     metadata: { type: 'workflow', workflow } } as Message} onRunPipeline={onRunPipeline} />)
+  // Inline PipelineListView representation renders one row per step (data-testid
+  // pipeline-step-<id>), excluding the per-step remove buttons (pipeline-step-remove-<id>).
+  expect(screen.getByTestId('pipeline-list-view')).toBeInTheDocument()
+  const stepRows = container.querySelectorAll(
+    '[data-testid^="pipeline-step-"]:not([data-testid^="pipeline-step-remove-"])',
+  )
+  expect(stepRows.length).toBe(workflow.pipeline_steps.length)
   const button = screen.getByTestId('pipeline-confirm-run')
   expect(button).toHaveTextContent(graph ? 'Confirm & Run Pipeline' : 'Confirm & Run Step 1')
   await userEvent.click(button)
