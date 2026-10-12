@@ -1,0 +1,226 @@
+{
+  "target": "avb6",
+  "constraint": {
+    "target": "avb6",
+    "must_contain": [
+      "RGD",
+      "residue:D"
+    ],
+    "prefer_regex": "RGDL[A-Z]{2}[LI]",
+    "require_lock": [
+      "D-Pro",
+      "N-methyl"
+    ],
+    "enforce": "constrained decoding: fix an RGD (ideally RGDLxxL/I) span + require >=1 Asp; sample flanks/scaffold with the LLM; add a D-Pro + N-methyl lock (needs the HELM/ncAA representation).",
+    "refs": "Trivehexin c[YRGDLAYp(NMe)K]; avebehexin cyclo(FRGDLAFp(NMe)K)"
+  },
+  "n": 12,
+  "n_with_pharmacophore": 0,
+  "n_fail": 12,
+  "verdicts": [
+    {
+      "target": "avb6",
+      "class": "RGD-integrin (MIDAS)",
+      "sequence": "GRGRNKYYP",
+      "has_required_pharmacophore": false,
+      "has_preferred_extended_motif": false,
+      "has_conformational_lock": false,
+      "needs_structure_gate": false,
+      "pass": false,
+      "reasons": [
+        "missing required motif RGD",
+        "missing required residue D",
+        "no conformational lock (D-Pro/N-methyl) \u2014 motif presented uncontrolled"
+      ],
+      "note": "sequence gate decisive for RGD-integrin",
+      "id": "AVB6-B-01"
+    },
+    {
+      "target": "avb6",
+      "class": "RGD-integrin (MIDAS)",
+      "sequence": "NKYRSRRGK",
+      "has_required_pharmacophore": false,
+      "has_preferred_extended_motif": false,
+      "has_conformational_lock": false,
+      "needs_structure_gate": false,
+      "pass": false,
+      "reasons": [
+        "missing required motif RGD",
+        "missing required residue D",
+        "no conformational lock (D-Pro/N-methyl) \u2014 motif presented uncontrolled"
+      ],
+      "note": "sequence gate decisive for RGD-integrin",
+      "id": "AVB6-B-02"
+    },
+    {
+      "target": "avb6",
+      "class": "RGD-integrin (MIDAS)",
+      "sequence": "GSLASLGIGRR",
+      "has_required_pharmacophore": false,
+      "has_preferred_extended_motif": false,
+      "has_conformational_lock": false,
+      "needs_structure_gate": false,
+      "pass": false,
+      "reasons": [
+        "missing required motif RGD",
+        "missing required residue D",
+        "no conformational lock (D-Pro/N-methyl) \u2014 motif presented uncontrolled"
+      ],
+      "note": "sequence gate decisive for RGD-integrin",
+      "id": "AVB6-B-03"
+    },
+    {
+      "target": "avb6",
+      "class": "RGD-integrin (MIDAS)",
+      "sequence": "ARRGNLAPLG",
+      "has_required_pharmacophore": false,
+      "has_preferred_extended_motif": false,
+      "has_conformational_lock": false,
+      "needs_structure_gate": false,
+      "pass": false,
+      "reasons": [
+        "missing required motif RGD",
+        "missing required residue D",
+        "no conformational lock (D-Pro/N-methyl) \u2014 motif presented uncontrolled"
+      ],
+      "note": "sequence gate decisive for RGD-integrin",
+      "id": "AVB6-B-04"
+    },
+    {
+      "target": "avb6",
+      "class": "RGD-integrin (MIDAS)",
+      "sequence": "KGLRGRSG",
+      "has_required_pharmacophore": false,
+      "has_preferred_extended_motif": false,
+      "has_conformational_lock": false,
+      "needs_structure_gate": false,
+      "pass": false,
+      "reasons": [
+        "missing required motif RGD",
+        "missing required residue D",
+        "no conformational lock (D-Pro/N-methyl) \u2014 motif presented uncontrolled"
+      ],
+      "note": "sequence gate decisive for RGD-integrin",
+      "id": "AVB6-B-05"
+    },
+    {
+      "target": "avb6",
+      "class": "RGD-integrin (MIDAS)",
+      "sequence": "GLFGGRGRR",
+      "has_required_pharmacophore": false,
+      "has_preferred_extended_motif": false,
+      "has_conformational_lock": false,
+      "needs_structure_gate": false,
+      "pass": false,
+      "reasons": [
+        "missing required motif RGD",
+        "missing required residue D",
+        "no conformational lock (D-Pro/N-methyl) \u2014 motif presented uncontrolled"
+      ],
+      "note": "sequence gate decisive for RGD-integrin",
+      "id": "AVB6-B-06"
+    },
+    {
+      "target": "avb6",
+      "class": "RGD-integrin (MIDAS)",
+      "sequence": "RGKLMPGRG",
+      "has_required_pharmacophore": false,
+      "has_preferred_extended_motif": false,
+      "has_conformational_lock": false,
+      "needs_structure_gate": false,
+      "pass": false,
+      "reasons": [
+        "missing required motif RGD",
+        "missing required residue D",
+        "no conformational lock (D-Pro/N-methyl) \u2014 motif presented uncontrolled"
+      ],
+      "note": "sequence gate decisive for RGD-integrin",
+      "id": "AVB6-B-07"
+    },
+    {
+      "target": "avb6",
+      "class": "RGD-integrin (MIDAS)",
+      "sequence": "GTGTGSLGRLR",
+      "has_required_pharmacophore": false,
+      "has_preferred_extended_motif": false,
+      "has_conformational_lock": false,
+      "needs_structure_gate": false,
+      "pass": false,
+      "reasons": [
+        "missing required motif RGD",
+        "missing required residue D",
+        "no conformational lock (D-Pro/N-methyl) \u2014 motif presented uncontrolled"
+      ],
+      "note": "sequence gate decisive for RGD-integrin",
+      "id": "AVB6-B-08"
+    },
+    {
+      "target": "avb6",
+      "class": "RGD-integrin (MIDAS)",
+      "sequence": "SSRSSLGHLLG",
+      "has_required_pharmacophore": false,
+      "has_preferred_extended_motif": false,
+      "has_conformational_lock": false,
+      "needs_structure_gate": false,
+      "pass": false,
+      "reasons": [
+        "missing required motif RGD",
+        "missing required residue D",
+        "no conformational lock (D-Pro/N-methyl) \u2014 motif presented uncontrolled"
+      ],
+      "note": "sequence gate decisive for RGD-integrin",
+      "id": "AVB6-B-09"
+    },
+    {
+      "target": "avb6",
+      "class": "RGD-integrin (MIDAS)",
+      "sequence": "SRKGIVKGP",
+      "has_required_pharmacophore": false,
+      "has_preferred_extended_motif": false,
+      "has_conformational_lock": false,
+      "needs_structure_gate": false,
+      "pass": false,
+      "reasons": [
+        "missing required motif RGD",
+        "missing required residue D",
+        "no conformational lock (D-Pro/N-methyl) \u2014 motif presented uncontrolled"
+      ],
+      "note": "sequence gate decisive for RGD-integrin",
+      "id": "AVB6-B-10"
+    },
+    {
+      "target": "avb6",
+      "class": "RGD-integrin (MIDAS)",
+      "sequence": "GTGIGSLGKLL",
+      "has_required_pharmacophore": false,
+      "has_preferred_extended_motif": false,
+      "has_conformational_lock": false,
+      "needs_structure_gate": false,
+      "pass": false,
+      "reasons": [
+        "missing required motif RGD",
+        "missing required residue D",
+        "no conformational lock (D-Pro/N-methyl) \u2014 motif presented uncontrolled"
+      ],
+      "note": "sequence gate decisive for RGD-integrin",
+      "id": "AVB6-B-11"
+    },
+    {
+      "target": "avb6",
+      "class": "RGD-integrin (MIDAS)",
+      "sequence": "APRGALASLG",
+      "has_required_pharmacophore": false,
+      "has_preferred_extended_motif": false,
+      "has_conformational_lock": false,
+      "needs_structure_gate": false,
+      "pass": false,
+      "reasons": [
+        "missing required motif RGD",
+        "missing required residue D",
+        "no conformational lock (D-Pro/N-methyl) \u2014 motif presented uncontrolled"
+      ],
+      "note": "sequence gate decisive for RGD-integrin",
+      "id": "AVB6-B-12"
+    }
+  ]
+}
