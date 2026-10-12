@@ -4692,6 +4692,14 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         if any(kw in _low for kw in _nucleotide_only_kw):
             return None
 
+        # Do NOT trigger for multi-sequence conservation / alignment requests
+        _MULTI_SEQ_SIGNALS = (
+            'conserv', 'align', 'phylogen', 'multiple sequence', 'multi.*sequence',
+            'compare.*sequence', 'msa', 'homolog', 'evolution',
+        )
+        if any(_re_prot.search(sig, _low) for sig in _MULTI_SEQ_SIGNALS):
+            return None
+
         # A peptide-property request was answered with proteinfold on live dev
         # (2026-11-07), although the prose named an entirely different workflow.
         # Require positive structure intent rather than adding an ever-growing
@@ -4941,6 +4949,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             # ADMET-prediction request: skip the ADMET fast path and steer search (hint below).
             _admet_as_constraint = self._admet_is_generation_constraint(user_intent)
             _generative_task = self._is_generative_task(user_intent)
+
             try:
                 _fast_admet = None if _admet_as_constraint else self._try_fast_path_admet_workflow(
                     user_intent, uploaded_datasets=uploaded_datasets
