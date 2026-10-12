@@ -2582,11 +2582,19 @@ Respond with a single JSON object — no other text:
     # Params that hold raw biological sequence TEXT (not file paths).
     # When a user's query contains a long AA/NT string, the AI should fill
     # these params directly — not look for an S3 path.
+    # Include both singular and plural forms so e.g. nf-core/proteinfold's
+    # `protein_sequences` param gets auto-filled when a raw AA string is pasted.
     _SEQUENCE_PARAM_NAMES: frozenset = frozenset([
-        'sequence', 'protein_sequence', 'protein_sequences',
-        'dna_sequence', 'rna_sequence',
-        'aa_sequence', 'nt_sequence', 'peptide_sequence', 'query_sequence',
-        'target_sequence', 'input_sequence',
+        'sequence', 'sequences',
+        'protein_sequence', 'protein_sequences',
+        'dna_sequence', 'dna_sequences',
+        'rna_sequence', 'rna_sequences',
+        'aa_sequence', 'aa_sequences',
+        'nt_sequence', 'nt_sequences',
+        'peptide_sequence', 'peptide_sequences',
+        'query_sequence', 'query_sequences',
+        'target_sequence', 'target_sequences',
+        'input_sequence', 'input_sequences',
     ])
 
     # Params that hold chemical structure notations (SMILES, InChI, etc.)

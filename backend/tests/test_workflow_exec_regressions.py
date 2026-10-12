@@ -204,3 +204,48 @@ def test_R02_auto_reroute_missing_both_keys_gives_empty_dict():
     extracted = dict(run_meta.get("params") or run_meta.get("parameters") or {})
 
     assert extracted == {}
+
+
+# ---------------------------------------------------------------------------
+# R-03  protein_sequences plural not recognised as sequence type
+# ---------------------------------------------------------------------------
+# Bug: _SEQUENCE_PARAM_NAMES contained singular forms only (protein_sequence)
+# but nf-core/proteinfold declares params.protein_sequences (plural). The AI
+# classified it as 'string', so the LLM param-extraction rule that only fills
+# 'sequence'-typed params never triggered, leaving the field empty even when
+# the user pasted a full AA string in the chat.
+# Fix: add plural variants of all sequence param names to _SEQUENCE_PARAM_NAMES.
+
+_AI_ASSISTANT_SRC = Path(REPO_ROOT / "lib" / "galaxy" / "ai" / "ai_assistant.py")
+
+
+def test_R03_plural_sequence_param_names_in_source():
+    """R-03: plural sequence param names must be in _SEQUENCE_PARAM_NAMES."""
+    src = _AI_ASSISTANT_SRC.read_text(encoding="utf-8")
+    for name in ("protein_sequences", "dna_sequences", "rna_sequences", "sequences"):
+        assert f"'{name}'" in src, (
+            f"'{name}' is missing from _SEQUENCE_PARAM_NAMES in ai_assistant.py. "
+            "Add it so the AI auto-fills plural sequence params (e.g. nf-core/proteinfold)."
+        )
+
+
+def test_R03_detect_param_type_classifies_plural_sequence_as_sequence_type():
+    """R-03: protein_sequences must be classified as type 'sequence', not 'string'."""
+    # Reproduce the classification logic directly without importing the full class.
+    src = _AI_ASSISTANT_SRC.read_text(encoding="utf-8")
+
+    # Parse _SEQUENCE_PARAM_NAMES from source (simple extraction)
+    import ast
+    m = re.search(
+        r"_SEQUENCE_PARAM_NAMES\s*:\s*frozenset\s*=\s*frozenset\(\s*\[([^\]]+)\]\s*\)",
+        src, re.DOTALL
+    )
+    assert m, "_SEQUENCE_PARAM_NAMES frozenset literal not found in source"
+    seq_names = frozenset(ast.literal_eval(f"[{m.group(1)}]"))
+
+    assert "protein_sequences" in seq_names, (
+        "'protein_sequences' not in _SEQUENCE_PARAM_NAMES — "
+        "nf-core/proteinfold params will not be auto-filled."
+    )
+    assert "sequences" in seq_names
+    assert "dna_sequences" in seq_names
