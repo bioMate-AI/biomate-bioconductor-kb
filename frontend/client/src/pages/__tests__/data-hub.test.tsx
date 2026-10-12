@@ -233,9 +233,8 @@ describe("DataHubPage — two-pane hub", () => {
     )
     expect(screen.getByTestId("dataset-preview-table").textContent).toContain("TP53")
 
-    // The Quality tab renders the honest verdict from the profile (watch),
-    // proving quality is real, not fabricated.
-    fireEvent.mouseDown(screen.getByTestId("dataset-tab-quality"))
+    // Quality is folded into the Preview tab (no separate tab): the honest
+    // verdict from the profile (watch) renders inline, proving quality is real.
     await waitFor(() =>
       expect(screen.getByTestId("data-perception")).toBeInTheDocument(),
     )

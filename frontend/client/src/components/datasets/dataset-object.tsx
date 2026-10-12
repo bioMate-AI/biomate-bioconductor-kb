@@ -24,11 +24,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   ChevronLeft,
   Eye,
-  ShieldCheck,
   GitBranch,
-  Boxes,
   History,
-  MapPin,
   Download,
   FileArchive,
   Plus,
@@ -277,29 +274,24 @@ export function DatasetObject({
         <Tabs
           defaultValue="preview"
           onValueChange={(v) => {
-            if (v === "lineage") setLineageOpened(true)
-            else if (v === "consumers") setConsumersOpened(true)
+            // Lineage now also holds Consumers (and Origin), so opening it
+            // lazy-loads both the producedBy and the consumers queries.
+            if (v === "lineage") { setLineageOpened(true); setConsumersOpened(true) }
             else if (v === "versions") setVersionsOpened(true)
           }}
         >
+          {/* Three tabs, not six: Quality folds into Preview (the header already
+              carries the quality badge); Consumers + Origin fold into Lineage as
+              one "where it came from / what reads it" provenance view. */}
           <TabsList className="mb-3 flex-wrap h-auto">
             <TabsTrigger value="preview" className="text-xs" data-testid="dataset-tab-preview">
               <Eye className="h-3 w-3 mr-1" />Preview
             </TabsTrigger>
-            <TabsTrigger value="quality" className="text-xs" data-testid="dataset-tab-quality">
-              <ShieldCheck className="h-3 w-3 mr-1" />Quality
-            </TabsTrigger>
             <TabsTrigger value="lineage" className="text-xs" data-testid="dataset-tab-lineage">
               <GitBranch className="h-3 w-3 mr-1" />Lineage
             </TabsTrigger>
-            <TabsTrigger value="consumers" className="text-xs" data-testid="dataset-tab-consumers">
-              <Boxes className="h-3 w-3 mr-1" />Consumers
-            </TabsTrigger>
             <TabsTrigger value="versions" className="text-xs" data-testid="dataset-tab-versions">
               <History className="h-3 w-3 mr-1" />Versions
-            </TabsTrigger>
-            <TabsTrigger value="origin" className="text-xs" data-testid="dataset-tab-origin">
-              <MapPin className="h-3 w-3 mr-1" />Origin
             </TabsTrigger>
           </TabsList>
 
@@ -353,30 +345,31 @@ export function DatasetObject({
               A dataset is an object, not a path in a chat message: it carries its own identity,
               quality, lineage, and the list of runs that read it.
             </p>
-          </TabsContent>
-
-          {/* ── Quality: the mounted perception panel ── */}
-          <TabsContent value="quality" className="space-y-2" data-testid="dataset-quality">
-            {!dataset.ref ? (
-              <p className="text-[11px] text-muted-foreground" data-testid="dataset-quality-noref">
-                No resolvable reference — quality profiling is not available for this dataset.
-              </p>
-            ) : isLoading ? (
-              <div className="space-y-2" data-testid="dataset-quality-loading">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-16 w-full" />
-              </div>
-            ) : isError || !profile ? (
-              <p className="text-[11px] text-muted-foreground" data-testid="dataset-quality-error">
-                Quality not available — the profiler could not read this dataset.
-              </p>
-            ) : (
-              <DataPerception
-                profile={profile}
-                planImpact={profile.planImpact}
-                datasetName={dataset.name}
-              />
-            )}
+            {/* Quality folded into Preview — the header already carries the
+                pass/watch/blocked badge, so it needs no separate tab. */}
+            <div className="pt-3 mt-1 border-t space-y-2" data-testid="dataset-quality">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Quality</p>
+              {!dataset.ref ? (
+                <p className="text-[11px] text-muted-foreground" data-testid="dataset-quality-noref">
+                  No resolvable reference — quality profiling is not available for this dataset.
+                </p>
+              ) : isLoading ? (
+                <div className="space-y-2" data-testid="dataset-quality-loading">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : isError || !profile ? (
+                <p className="text-[11px] text-muted-foreground" data-testid="dataset-quality-error">
+                  Quality not available — the profiler could not read this dataset.
+                </p>
+              ) : (
+                <DataPerception
+                  profile={profile}
+                  planImpact={profile.planImpact}
+                  datasetName={dataset.name}
+                />
+              )}
+            </div>
           </TabsContent>
 
           {/* ── Lineage: what produced it ── */}
@@ -434,10 +427,11 @@ export function DatasetObject({
                 Uploaded input — no upstream workflow produced this dataset.
               </p>
             )}
-          </TabsContent>
 
-          {/* ── Consumers: what reads it ── */}
-          <TabsContent value="consumers" className="space-y-1" data-testid="dataset-consumers">
+            {/* Read by (consumers) — folded into Lineage: downstream runs that
+                read this dataset, so provenance is one view, not three tabs. */}
+            <div className="pt-3 mt-2 border-t space-y-1" data-testid="dataset-consumers">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Read by</p>
             {consumersQ.isLoading ? (
               <div className="space-y-2" data-testid="dataset-consumers-loading">
                 <Skeleton className="h-8 w-full" />
@@ -475,10 +469,23 @@ export function DatasetObject({
                 No runs are recorded as reading this dataset yet.
               </p>
             )}
-            <p className="text-[10px] text-muted-foreground pt-1">
-              When consumers are recorded, replacing a dataset becomes a decision with a visible
-              blast radius rather than a silent change under a running analysis.
-            </p>
+              <p className="text-[10px] text-muted-foreground pt-1">
+                When consumers are recorded, replacing a dataset becomes a decision with a visible
+                blast radius rather than a silent change under a running analysis.
+              </p>
+            </div>
+
+            {/* Origin — where it lives + when it arrived (folded into Lineage) */}
+            <div className="pt-3 mt-2 border-t space-y-1" data-testid="dataset-origin">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Origin</p>
+              <Row k="Source" v={fmt(dataset.source)} />
+              <Row k="Storage ref" v={fmt(dataset.ref)} mono />
+              <Row
+                k="Added"
+                v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString() : "—"}
+                last
+              />
+            </div>
           </TabsContent>
 
           {/* ── Versions ── */}
@@ -573,16 +580,6 @@ export function DatasetObject({
             )}
           </TabsContent>
 
-          {/* ── Origin: where it lives + when it arrived ── */}
-          <TabsContent value="origin" className="space-y-1 text-xs" data-testid="dataset-origin">
-            <Row k="Source" v={fmt(dataset.source)} />
-            <Row k="Storage ref" v={fmt(dataset.ref)} mono />
-            <Row
-              k="Added"
-              v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString() : "—"}
-              last
-            />
-          </TabsContent>
         </Tabs>
       </CardContent>
     </Card>
