@@ -1424,7 +1424,7 @@ def _trigger_auto_reroute_on_failure(
                     args=(
                         alternative["nextflow_path"],
                         run_meta.get("user_id", "anonymous"),
-                        dict(run_meta.get("parameters") or {}),
+                        dict(run_meta.get("params") or run_meta.get("parameters") or {}),
                         alternative["domain"],
                         new_run_id,
                         new_inv_id,
