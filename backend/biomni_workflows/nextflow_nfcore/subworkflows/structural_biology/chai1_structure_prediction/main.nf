@@ -52,16 +52,50 @@ process CHAI1_PREDICT {
     def fasta_path = params.input_fasta?.toString()?.trim() ?: ''
     def seq        = params.sequence?.toString()?.trim()    ?: ''
     if (!fasta_path && !seq) error "Provide params.input_fasta (FASTA file path) or params.sequence (raw AA/NT sequence)"
-    def fasta_arg  = fasta_path ?: 'input_sequence.fasta'
-    def write_cmd  = fasta_path ? '' : "printf '>protein|name=query\\\\n${seq}\\\\n' > input_sequence.fasta"
+    def use_fasta  = fasta_path ? 'True' : 'False'
     """
-    ${write_cmd}
-    python -m chai_lab.main predict \\
-        --fasta ${fasta_arg} \\
-        --output chai_output/ \\
-        --num-trunk-recycles ${params.num_trunk_recycles} \\
-        --num-diffusion-timesteps ${params.num_diffusion_timesteps} \\
-        --seed ${params.seed}
+    python3 - <<'PYEOF'
+import json, sys
+from pathlib import Path
+
+try:
+    from chai_lab.chai1 import run_inference
+except ImportError as e:
+    print(f"[chai1] Import error: {e}", file=sys.stderr)
+    sys.exit(1)
+
+# Resolve FASTA input (values below are substituted by Groovy before bash runs this)
+use_provided_fasta = ${use_fasta}
+if use_provided_fasta:
+    fasta_file = Path("${fasta_path}")
+else:
+    fasta_file = Path("input_sequence.fasta")
+    fasta_file.write_text(">protein|name=query\\n${seq}\\n")
+
+output_dir = Path("chai_output")
+output_dir.mkdir(parents=True, exist_ok=True)
+
+candidates = run_inference(
+    fasta_file=fasta_file,
+    output_dir=output_dir,
+    num_trunk_recycles=${params.num_trunk_recycles},
+    num_diffn_timesteps=${params.num_diffusion_timesteps},
+    seed=${params.seed},
+    device="cuda",
+    use_esm_embeddings=True,
+)
+
+print(f"[chai1] Predicted {len(candidates)} candidate(s)")
+
+def to_float(v):
+    return float(v.item() if hasattr(v, 'item') else v)
+
+scores = [{"aggregate_score": to_float(c.aggregate_score)} for c in candidates]
+with open(output_dir / "scores.json", "w") as fh:
+    json.dump(scores, fh, indent=2)
+if candidates:
+    print(f"[chai1] Best aggregate_score: {to_float(candidates[0].aggregate_score):.4f}")
+PYEOF
     """
 }
 
