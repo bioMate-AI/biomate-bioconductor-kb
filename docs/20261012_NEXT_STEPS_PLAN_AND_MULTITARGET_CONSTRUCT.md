@@ -80,6 +80,37 @@ first.
    αvβ6×PD-L1 *anchor* (linker-length scan) only if the selectivity play is wanted — after step 1 validates
    both single-agent arms.
 
+## 3b. Gap closed — deterministic "obvious-knowledge" liability + SAR flag layer (pre-docking)
+
+Audited the prior validation/ranking stack (`peptide_select.py` Pareto/HVI, `drug_novelty_fto.py`,
+`property_guided_selection.py` learned-stability, `developability_guidance.py` generation guidance, the
+pharmacophore *presence* gate, mm-gbsa artifacts). **Gap:** none of them encode textbook medchem /
+radiopharmacy knowledge as *hard rules that flag or disqualify a candidate with zero compute* — a grep for
+`deamid|isomer|oxidat|free-cys|aggreg|selectivit|integrin|renal|net-charge` across every selection script
+returned nothing. Closed it with `cyclic_llm/knowledge_liability_flags.py` (CMC motifs: NG/NS deamidation,
+DG/DS/DP Asp-isomerisation, Met/free-Cys oxidation, cyclic-aware; αvβ6 SAR: RGD**L** β6-selectivity gate +
+extended-affinity bonus + D-Pro/N-methyl lock + renal net-charge; PD-L1 SAR: aggregation/aromatic-stack +
+disulfide pairing). Run on both sets (`results/knowledge_liability_{avb6,pdl1}.json`); results folded into
+the candidate files.
+
+**What obvious knowledge directly flagged (zero docking spend):**
+- **PDL1-K-04 → HOLD:** terminal **Asp-Gly** = the fastest isoAsp isomerisation hotspot — a hard CMC defect
+  baked in unnoticed. Root-cause fix recorded (reorder tail `…K-G-D`; M→Nle).
+- **AVB6-K-10 → rationale was backwards:** its "Lys flank for renal-clearance tuning" is wrong — cationic
+  residues *raise* proximal-tubule reabsorption → **higher** kidney dose (the dose-limiting organ for
+  peptide RLT). Corrected in place; renal-safer Ser/Glu variant recorded. AVB6-K-04 carries the same +1
+  caveat.
+- **Selectivity rule self-correction:** the first draft required the full `RGDLxxL/I` helix and wrongly
+  flagged 8/10 — but validated cyclic ligands Trivehexin (RGDL**AY**) / avebehexin (RGDL**AF**) are
+  β6-selective *without* it. Fixed the rule to gate on **RGDL** (the Leu after Asp) and treat `RGDL[L/I]`
+  as a bonus → **8 PASS** (K-05/K-08 top), **2 WATCH** (renal), **0 HOLD**.
+- PD-L1: 3 PASS, 4 WATCH (Met-ox / Asp-Ser / all-hydrophobic aggregation), 1 HOLD.
+
+**Consequence for the roadmap:** the αvβ6 PASS set (8) and PD-L1 PASS set (3) are now the *only* ones worth
+docking spend; WATCH items dock after the cheap fix, HOLD (PDL1-K-04) does not dock until the Asp-Gly is
+designed out. This moves step 1 (docking) from "score 18 hypotheses" to "score 11 liability-clean ones" —
+the rule layer paid for itself before any GPU-hour.
+
 ## 4. Honest gate (unchanged)
 Every candidate set needs docking + FTO-vs-genus + wet-lab SPR before it means "binder." Indication
 expansion and any linked construct are downstream of validated single-agent ligands. The value delivered
