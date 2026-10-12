@@ -14,7 +14,9 @@ _HERE = os.path.dirname(os.path.abspath(__file__))              # backend/lib/ga
 sys.path.insert(0, _HERE)                                       # import decomposed_dag (sibling)
 sys.path.insert(0, os.path.join(_HERE, os.pardir, os.pardir))   # backend/lib → galaxy.chain.dag
 
-from decomposed_dag import build_dag_plan, pick_workflow_match, DAG_RESOLVE_MIN_SCORE  # noqa: E402
+from decomposed_dag import (  # noqa: E402
+    build_dag_plan, pick_workflow_match, bind_shared_inputs, DAG_RESOLVE_MIN_SCORE,
+)
 from galaxy.chain.dag import validate_plan  # noqa: E402
 
 Match = namedtuple("Match", ["filename", "score"])
@@ -134,6 +136,42 @@ def test_build_dag_with_pick_resolver():
     def weak(t):
         return pick_workflow_match([Match("%s.nf" % t.id, 2.0)])
     assert build_dag_plan([_task("a")], weak) is None
+
+
+def _fanout_plan():
+    # two parallel roots (fan-out of two tools over the same input)
+    return build_dag_plan([_task("a", par=[2]), _task("b", par=[1])], _ok)
+
+
+def test_bind_shared_input_fanout_csv():
+    plan = bind_shared_inputs(_fanout_plan(), ["s3://b/samples.csv"])
+    assert all(s["parameters"].get("samplesheet") == "s3://b/samples.csv" for s in plan["steps"])
+
+
+def test_bind_shared_input_dict_ref_fastq():
+    plan = bind_shared_inputs(_fanout_plan(), [{"path": "reads_R1.fastq"}])
+    assert all(s["parameters"].get("reads") == "reads_R1.fastq" for s in plan["steps"])
+
+
+def test_bind_unknown_ext_or_no_input_is_noop():
+    p1 = bind_shared_inputs(_fanout_plan(), ["mystery.xyz"])
+    assert all(s["parameters"] == {"p": 1} for s in p1["steps"])    # unknown ext → resolver params unchanged
+    p2 = bind_shared_inputs(_fanout_plan(), [])
+    assert all(s["parameters"] == {"p": 1} for s in p2["steps"])    # no input → unchanged
+    assert bind_shared_inputs(None, ["x.csv"]) is None
+
+
+def test_bind_does_not_overwrite_and_skips_dependent_steps():
+    # dependent plan (type-matched) → only the root gets the shared input
+    plan = build_dag_plan([_task("a"), _task("b")], _ok, type_provider=_tp_match)
+    bind_shared_inputs(plan, ["in.vcf"])
+    assert plan["steps"][0]["parameters"].get("vcf") == "in.vcf"    # root bound
+    assert "vcf" not in plan["steps"][1]["parameters"]              # dependent step untouched
+    # does not overwrite a resolver-set param
+    plan2 = _fanout_plan()
+    plan2["steps"][0]["parameters"]["samplesheet"] = "already.csv"
+    bind_shared_inputs(plan2, ["new.csv"])
+    assert plan2["steps"][0]["parameters"]["samplesheet"] == "already.csv"
 
 
 if __name__ == "__main__":

@@ -55,6 +55,59 @@ def pick_workflow_match(matches: Any, min_score: float = DAG_RESOLVE_MIN_SCORE) 
     return None
 
 
+# Extension → the most common primary input param name for a Nextflow workflow.
+# Used for BEST-EFFORT prefill of a fan-out's shared input onto each root step;
+# the whole-plan-approval card lets the user correct it, so this is not
+# safety-critical (unlike the typed inter-step connections above).
+_DEFAULT_EXT_TO_PARAM = {
+    "fastq": "reads", "fq": "reads", "gz": "reads",
+    "fa": "genome", "fasta": "genome",
+    "bam": "bam", "vcf": "vcf", "bed": "input",
+    "csv": "samplesheet", "tsv": "samplesheet", "txt": "input",
+    "h5ad": "input", "h5": "input", "rds": "input",
+    "sdf": "ligand_file", "smi": "smiles", "pdb": "receptor",
+}
+
+
+def _ref_path(ref: Any) -> str:
+    if isinstance(ref, str):
+        return ref
+    if isinstance(ref, dict):
+        return ref.get("path") or ref.get("s3_uri") or ref.get("filename") or ref.get("url") or ""
+    return ""
+
+
+def _ext_of(ref: Any) -> str:
+    name = _ref_path(ref)
+    return name.rsplit(".", 1)[-1].lower() if "." in name else ""
+
+
+def bind_shared_inputs(
+    plan: Optional[Dict[str, Any]],
+    input_refs: Optional[List[Any]],
+    ext_to_param: Optional[Dict[str, str]] = None,
+) -> Optional[Dict[str, Any]]:
+    """Best-effort: bind the user's primary input file onto each ROOT step's primary
+    input param (chosen by file extension). This is the fan-out case — N tools over
+    the same user input (the motivating screenshot). Never overwrites a param the
+    resolver already set, and binds nothing when the extension is unknown (the user
+    then fills it in the whole-plan-approval card). Returns the plan unchanged if
+    there is no plan or no input. Does not touch dependent steps (they are wired by
+    typed connections)."""
+    if not plan or not input_refs:
+        return plan
+    ext_to_param = ext_to_param or _DEFAULT_EXT_TO_PARAM
+    primary = input_refs[0]
+    path = _ref_path(primary)
+    param = ext_to_param.get(_ext_of(primary))
+    if not path or not param:
+        return plan
+    for step in plan.get("steps", []):
+        if not step.get("depends_on") and param not in (step.get("parameters") or {}):
+            step.setdefault("parameters", {})[param] = path
+    return plan
+
+
 def build_dag_plan(
     tasks: List[Any],
     resolver: Callable[[Any], Optional[Dict[str, Any]]],

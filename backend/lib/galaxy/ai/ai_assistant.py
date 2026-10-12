@@ -763,12 +763,14 @@ class AIAssistant:
             import os as _os
             if _os.environ.get("BIOMATE_MULTITASK_DAG_ENABLED", "").strip().lower() in ("1", "true", "yes", "on"):
                 try:
-                    from .decomposed_dag import build_dag_plan
+                    from .decomposed_dag import build_dag_plan, bind_shared_inputs
                     _dag = build_dag_plan(
                         tasks, self._resolve_task_to_workflow,
                         type_provider=self._workflow_io_types,
                     )
                     if _dag:
+                        # Best-effort: prefill the user's input onto fan-out root steps.
+                        _dag = bind_shared_inputs(_dag, self._extract_input_refs(context))
                         log.info(f"[MultiTask] assembled {len(_dag['steps'])}-step DAG plan (not discarded)")
                         return {
                             'message': f"Prepared a {len(_dag['steps'])}-step plan with dependencies. Review and run when ready.",
@@ -821,6 +823,16 @@ class AIAssistant:
         except Exception as exc:
             log.debug(f"[MultiTask] io-types lookup failed for {nextflow_path}: {exc}")
             return None
+
+    def _extract_input_refs(self, context):
+        """User-provided input file references (for best-effort DAG root prefill)."""
+        ctx = context or {}
+        refs = []
+        for key in ('datasets', 'inputFiles', 'input_files', 'files'):
+            val = ctx.get(key)
+            if isinstance(val, list):
+                refs.extend(val)
+        return refs
 
     def _find_missing_context(self, tasks: list, context: dict) -> list:
         """Return list of clarification questions for missing required parameters."""
