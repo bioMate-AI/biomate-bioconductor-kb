@@ -4594,6 +4594,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Auto-save a completed project-scoped run's outputs into its project
+      // Files (idempotent; no-op when the run has no project).
+      if (status === 'completed') { void autoSaveCompletedRunOutputs(run); }
+
       return res.json({ ok: true, runId: run.id, status });
     } catch (e: any) {
       return res.status(500).json({ error: 'update failed', message: e?.message ?? String(e) });
@@ -11631,6 +11635,11 @@ ${paramLines || '(none recorded)'}`;
                 state: nfState === 'succeeded' ? 'ok' : 'failed',
               });
             }
+
+            // Auto-save outputs into the project's Files on terminal success
+            // (idempotent; no-op for runs with no project). `run` now holds the
+            // terminal nextflowStatus with s3_output_files.
+            if (mappedStatus === 'completed') { void autoSaveCompletedRunOutputs(run); }
           } else if (run.execution.status === 'running') {
             // Keep latest Nextflow status snapshot for UI visibility.
             run = await storage.updateExecutionRun(run.id, {
@@ -11665,6 +11674,9 @@ ${paramLines || '(none recorded)'}`;
                   nextflowStatus: nextflowStatus,
                 },
               }) || run;
+              // Outputs just became available post-terminal — save them now
+              // (the earlier terminal hook may have skipped on empty outputs).
+              if (String(run.execution.status) === 'completed') { void autoSaveCompletedRunOutputs(run); }
             }
           }
         } catch (statusError: any) {
@@ -13357,6 +13369,94 @@ Rules:
     }
   });
 
+  // Shared: resolve a run's output files and register them into a project as
+  // source='run_output' datasets. Idempotent (registerRunOutputsInProject uses
+  // ON CONFLICT DO NOTHING), so it is safe to call repeatedly / from multiple
+  // completion paths. Returns the counts, or {skipped} when no outputs resolve.
+  // Declared as a hoisted function so completion handlers earlier in this file
+  // can call it.
+  async function saveRunOutputsToProject(
+    run: any,
+    projectId: string,
+    uid: string,
+  ): Promise<{ registered: number; total: number } | { skipped: true; reason: string }> {
+    const ns: any = run.execution?.nextflowStatus;
+    let rawFiles: any[] = Array.isArray(ns?.s3_output_files) ? ns.s3_output_files : [];
+    // If empty, do a live fetch from the Galaxy backend.
+    if (rawFiles.length === 0) {
+      try {
+        const galUrl = process.env.GALAXY_URL || "http://localhost:8081";
+        const nfRunId = run.execution?.nextflowRunId || ns?.run_id;
+        if (nfRunId) {
+          const r = await fetch(`${galUrl}/api/nextflow/status?run_id=${nfRunId}`, {
+            headers: { "X-API-Key": process.env.GALAXY_API_KEY || "" },
+          });
+          if (r.ok) {
+            const live = await r.json();
+            rawFiles = Array.isArray(live?.s3_output_files) ? live.s3_output_files : [];
+          }
+        }
+      } catch { /* live fetch optional */ }
+    }
+    if (rawFiles.length === 0) return { skipped: true, reason: "no_outputs" };
+
+    const { registerRunOutputsInProject } = await import("./project-routes");
+
+    // Build input context: user intent (the message that triggered the run) + input file names.
+    let userIntent: string | undefined;
+    if ((run as any).chatSessionId) {
+      try {
+        const sessRow = await pool.query(
+          `SELECT messages FROM chat_sessions WHERE session_id = $1 LIMIT 1`,
+          [(run as any).chatSessionId]
+        );
+        const msgs: Array<{ role: string; content: string }> = sessRow.rows[0]?.messages ?? [];
+        const userMsgs = msgs.filter(m => m.role === 'user');
+        userIntent = userMsgs[userMsgs.length - 1]?.content?.slice(0, 300) || undefined;
+      } catch { /* non-fatal */ }
+    }
+    const inputFiles: string[] = ((run as any).inputDatasets ?? []).map((d: any) => d.name || d.filename || String(d)).filter(Boolean);
+    const inputContext = {
+      intent: userIntent,
+      inputFiles: inputFiles.length ? inputFiles : undefined,
+    };
+
+    const files = rawFiles.map((f: any) => {
+      const uri: string = f.s3_uri || f.path || "";
+      const s3Key = uri.startsWith("s3://") ? uri.replace(/^s3:\/\/[^/]+\//, "") : uri;
+      const stepName: string | undefined = f.step_name || f.process_name || undefined;
+      return {
+        name: f.filename || f.name || s3Key.split("/").pop() || "file",
+        s3Key,
+        size: f.size ?? 0,
+        contentType: f.content_type || "application/octet-stream",
+        stepName,
+      };
+    }).filter((f: any) => f.s3Key);
+
+    const workflowName: string = (run as any).workflowName || "Workflow";
+    const count = await registerRunOutputsInProject({ projectId, userId: uid, runId: run.id, workflowName, inputContext, files });
+    return { registered: count, total: files.length };
+  }
+
+  // Auto-save a completed project-scoped run's outputs into its project Files.
+  // Fire-and-forget + idempotent, so firing it from several completion paths
+  // (or more than once) never duplicates files. No-op for runs with no project.
+  async function autoSaveCompletedRunOutputs(run: any): Promise<void> {
+    try {
+      const projectId = (run as any).projectId || (run as any).execution?.projectId;
+      if (!projectId) return;
+      const uid = (run as any).userId ?? (run as any).execution?.userId;
+      if (!uid) return;
+      const result = await saveRunOutputsToProject(run, String(projectId), String(uid));
+      if ('registered' in result && result.registered > 0) {
+        console.log(`[autoSave] registered ${result.registered}/${result.total} outputs for run ${run.id} → project ${projectId}`);
+      }
+    } catch (e: any) {
+      console.warn(`[autoSave] failed for run ${run?.id}:`, e?.message ?? e);
+    }
+  }
+
   // Save run outputs to a project's file directory.
   // Body: { projectId: string }
   // Reads output files from nextflowStatus.s3_output_files (or triggers a
@@ -13372,77 +13472,17 @@ Rules:
 
       const uid = (req as any).user?.id ? String((req as any).user.id) : run.userId ?? "system";
 
-      // Collect output files from stored nextflowStatus first.
-      const ns: any = run.execution?.nextflowStatus;
-      let rawFiles: any[] = Array.isArray(ns?.s3_output_files) ? ns.s3_output_files : [];
-
-      // If empty, do a live fetch from the Galaxy backend.
-      if (rawFiles.length === 0) {
-        try {
-          const galUrl = process.env.GALAXY_URL || "http://localhost:8081";
-          const nfRunId = run.execution?.nextflowRunId || ns?.run_id;
-          if (nfRunId) {
-            const r = await fetch(`${galUrl}/api/nextflow/status?run_id=${nfRunId}`, {
-              headers: { "X-API-Key": process.env.GALAXY_API_KEY || "" },
-            });
-            if (r.ok) {
-              const live = await r.json();
-              rawFiles = Array.isArray(live?.s3_output_files) ? live.s3_output_files : [];
-            }
-          }
-        } catch { /* live fetch optional */ }
-      }
-
-      if (rawFiles.length === 0) {
+      const result = await saveRunOutputsToProject(run, projectId, uid);
+      if ('skipped' in result) {
         return res.status(422).json({ error: "No output files found for this run yet. Try again after the run completes." });
       }
-
-      const { registerRunOutputsInProject } = await import("./project-routes");
-
-      // Build input context: user intent (the message that triggered the run) + input file names.
-      // Parameters are already in the workflow report — we don't repeat them here.
-      let userIntent: string | undefined;
-      if ((run as any).chatSessionId) {
-        try {
-          const sessRow = await pool.query(
-            `SELECT messages FROM chat_sessions WHERE session_id = $1 LIMIT 1`,
-            [(run as any).chatSessionId]
-          );
-          const msgs: Array<{ role: string; content: string }> = sessRow.rows[0]?.messages ?? [];
-          // Find the last user message before the run started — that's the intent.
-          const userMsgs = msgs.filter(m => m.role === 'user');
-          userIntent = userMsgs[userMsgs.length - 1]?.content?.slice(0, 300) || undefined;
-        } catch { /* non-fatal */ }
-      }
-      const inputFiles: string[] = ((run as any).inputDatasets ?? []).map((d: any) => d.name || d.filename || String(d)).filter(Boolean);
-      const inputContext = {
-        intent: userIntent,
-        inputFiles: inputFiles.length ? inputFiles : undefined,
-      };
-
-      const files = rawFiles.map((f: any) => {
-        const uri: string = f.s3_uri || f.path || "";
-        const s3Key = uri.startsWith("s3://") ? uri.replace(/^s3:\/\/[^/]+\//, "") : uri;
-        // step_name comes from the executor if present (task-level tagging), or inferred from path
-        const stepName: string | undefined = f.step_name || f.process_name || undefined;
-        return {
-          name: f.filename || f.name || s3Key.split("/").pop() || "file",
-          s3Key,
-          size: f.size ?? 0,
-          contentType: f.content_type || "application/octet-stream",
-          stepName,
-        };
-      }).filter((f: any) => f.s3Key);
-
-      const workflowName: string = (run as any).workflowName || "Workflow";
-      const count = await registerRunOutputsInProject({ projectId, userId: uid, runId: run.id, workflowName, inputContext, files });
 
       // Also persist projectId on the run so the UI can navigate to it.
       if (!(run as any).projectId) {
         await pool.query(`UPDATE execution_runs SET project_id = $1 WHERE id = $2`, [projectId, run.id]);
       }
 
-      res.json({ ok: true, registered: count, total: files.length });
+      res.json({ ok: true, registered: result.registered, total: result.total });
     } catch (e: any) {
       console.error("[save-to-project]", e?.message ?? e);
       res.status(500).json({ error: e?.message ?? "Failed" });
