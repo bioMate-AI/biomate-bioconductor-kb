@@ -1,0 +1,126 @@
+{
+  "target": "pdl1",
+  "n": 8,
+  "flags": [
+    {
+      "id": "PDL1-K-01",
+      "helm": "cyclo(F-W-L-[dP]-Y-S-[NMeF]-D-T-K)",
+      "seq": "FWLPYSFDTK",
+      "net_charge": 0,
+      "n_hard": 0,
+      "n_soft": 0,
+      "flags": [],
+      "tier": "PASS"
+    },
+    {
+      "id": "PDL1-K-05",
+      "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-T-E-N-K-S-G)",
+      "seq": "WYFPLITENKSG",
+      "net_charge": 0,
+      "n_hard": 0,
+      "n_soft": 0,
+      "flags": [],
+      "tier": "PASS"
+    },
+    {
+      "id": "PDL1-K-07",
+      "helm": "cyclo(F-W-[dP]-Y-I-L-[NMeF]-E-R-S)",
+      "seq": "FWPYILFERS",
+      "net_charge": 0,
+      "n_hard": 0,
+      "n_soft": 0,
+      "flags": [],
+      "tier": "PASS"
+    },
+    {
+      "id": "PDL1-K-02",
+      "helm": "cyclo(W-M-F-[dP]-I-[NMeL]-S-E-K-G)",
+      "seq": "WMFPILSEKG",
+      "net_charge": 0,
+      "n_hard": 0,
+      "n_soft": 1,
+      "flags": [
+        {
+          "severity": "soft",
+          "code": "cmc:Met-ox",
+          "detail": "methionine oxidation liability"
+        }
+      ],
+      "tier": "WATCH"
+    },
+    {
+      "id": "PDL1-K-03",
+      "helm": "cyclo(Y-F-[dP]-W-L-[NMeA]-D-S-R-T-G)",
+      "seq": "YFPWLADSRTG",
+      "net_charge": 0,
+      "n_hard": 0,
+      "n_soft": 1,
+      "flags": [
+        {
+          "severity": "soft",
+          "code": "cmc:DS",
+          "detail": "Asp-Ser isomerisation"
+        }
+      ],
+      "tier": "WATCH"
+    },
+    {
+      "id": "PDL1-K-06",
+      "helm": "cyclo([dF]-W-L-Y-[dP]-[NMeM]-S-D-K-T)",
+      "seq": "FWLYPMSDKT",
+      "net_charge": 0,
+      "n_hard": 0,
+      "n_soft": 1,
+      "flags": [
+        {
+          "severity": "soft",
+          "code": "cmc:Met-ox",
+          "detail": "methionine oxidation liability"
+        }
+      ],
+      "tier": "WATCH"
+    },
+    {
+      "id": "PDL1-K-08",
+      "helm": "C-F-W-L-Y-[NMeF]-M-S-D-C (disulfide C1-C9)",
+      "seq": "CFWLYFMSDC",
+      "net_charge": -1,
+      "n_hard": 0,
+      "n_soft": 2,
+      "flags": [
+        {
+          "severity": "soft",
+          "code": "cmc:Met-ox",
+          "detail": "methionine oxidation liability"
+        },
+        {
+          "severity": "soft",
+          "code": "sar:aggregation",
+          "detail": "hydrophobic fraction 0.80 > 0.60 -> aggregation / poor solubility risk (amphipathic is wanted, all-hydrophobic is not)"
+        }
+      ],
+      "tier": "WATCH"
+    },
+    {
+      "id": "PDL1-K-04",
+      "helm": "cyclo(F-L-W-[dP]-M-Y-[NMeS]-K-D-G)",
+      "seq": "FLWPMYSKDG",
+      "net_charge": 0,
+      "n_hard": 1,
+      "n_soft": 1,
+      "flags": [
+        {
+          "severity": "hard",
+          "code": "cmc:DG",
+          "detail": "Asp-Gly isomerisation -> isoAsp (fastest)"
+        },
+        {
+          "severity": "soft",
+          "code": "cmc:Met-ox",
+          "detail": "methionine oxidation liability"
+        }
+      ],
+      "tier": "HOLD"
+    }
+  ]
+}
