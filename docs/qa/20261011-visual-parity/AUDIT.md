@@ -43,6 +43,16 @@ The cold-start **Validated workflows → ADMET** demo attaches 4 files; the two 
 - Breadcrumb now ends in the human filename (`Data / Inputs / counts_matrix.csv`), raw UUID moved to hover `title`. ✅
 - Preview-table header: light-blue band (`--bm-accent-soft`) + accent-ink text, matching the reference data-table header. ✅
 
+## Run outputs auto-saved to project Files (`a4424b0f8`)
+Gap: run outputs only landed in a project via a **manual** `save-to-project` endpoint — completed project runs never auto-registered, so outputs weren't first-class dataset objects (and no run-output datasets existed to test Lineage).
+Fix: extracted `saveRunOutputsToProject` helper + `autoSaveCompletedRunOutputs`; called on terminal success from the Nextflow status completion path + the orphan-finalizer (idempotent via `ON CONFLICT DO NOTHING`).
+**Verified live** (manual endpoint exercises the same helper):
+- 6/6 ADMET outputs registered as `source='run_output'` (versions.yml, toxicity_report.json, qc_metrics.json, …), tagged with producing run + workflow.
+- Idempotent: re-save → `registered:0`.
+- UI: outputs appear in Files **grouped under a run folder** ("Predict ADMET Properties (AI) · <ts>", 6 files).
+- **Non-empty Lineage** now works: "Produced by run … · Workflow … · Step run" + READ BY section (closes the earlier Lineage test gap).
+Auto-trigger chain fully code-traced (project chat → `projectId` on launch → `run.project_id` → hook at the proven ADMET completion path); the live run that watches auto-fire on a *fresh* project run was not performed (every component is independently verified).
+
 ## Deferred / needs direction
 - Workflow panel running/completed/failed states (needs a launched Batch run — cost).
 - Reference extras not yet mirrored (judgment): Table/Columns/Plot toggle on preview; ROWS/COLUMNS/MISSING stat tiles (dev shows these in the Quality tab instead).
