@@ -916,7 +916,10 @@ function App() {
     // Streaming callbacks from a previous session fire onChatUpdated after the
     // user has already switched — without this guard they would revert the UI
     // back to the old session.
-    setCurrentChatSession(prev => prev?.id === session.id ? session : prev)
+    // Accept if: no active session (initial state / first message auto-creates one)
+    // OR the incoming session matches the currently active session.
+    // Reject if a different session ID arrives (stale streaming from a previous chat).
+    setCurrentChatSession(prev => (!prev || prev.id === session.id) ? session : prev)
     setChatSessions(chatHistoryService.getAllSessions())
   }
 
