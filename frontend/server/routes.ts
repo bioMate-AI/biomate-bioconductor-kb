@@ -6376,7 +6376,12 @@ ${paramLines || '(none recorded)'}`;
         !workflowPayload?.error &&
         (workflowPayload?.workflow_ga || workflowPayload?.nextflow_path ||
          workflowPayload?.workflow_type === "chain" || workflowPayload?.chain_name ||
-         workflowPayload?.workflow_type === "cryosparc")
+         workflowPayload?.workflow_type === "cryosparc" ||
+         // Sequential/DAG pipeline card (galaxy-assistant.ts processSequentialPipeline):
+         // success:true + workflow_type:'pipeline' + pipeline_steps, no workflow_ga/nextflow_path.
+         // It IS runnable (whole-plan "Confirm & Run"); without this it was mis-scored
+         // workflow_failed. The frontend renders it via PipelineListView (chat-message.tsx:841).
+         (workflowPayload?.workflow_type === "pipeline" && Array.isArray(workflowPayload?.pipeline_steps) && workflowPayload.pipeline_steps.length > 0))
       );
       const workflowGenerationFailed = !!workflowPayload && !runnableWorkflow;
 
