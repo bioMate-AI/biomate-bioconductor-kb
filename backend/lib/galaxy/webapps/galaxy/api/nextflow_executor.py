@@ -7684,6 +7684,41 @@ def _execute_nextflow_impl(
         user_id=str(request.user_id) if hasattr(request, "user_id") else "anonymous",
     )
 
+    # ── Param type sanitization ──────────────────────────────────────────────
+    # Guard against the UI / LLM sending boolean True for string/file params.
+    # `isinstance(True, str)` is False so _coerce_mistyped_sequence_params
+    # silently skips booleans, letting them propagate to Nextflow as the string
+    # "true"/"false" — which breaks any .nf that reads the value as a path.
+    #
+    # Strategy: read the .nf file's param defaults. Params declared as string
+    # (params.X = '' or params.X = "something") should never receive a boolean.
+    # For those, drop boolean True/False so the .nf default takes effect.
+    try:
+        _nf_src = nf_path.read_text(encoding="utf-8", errors="replace")
+        import re as _re_san
+        # Collect params declared with string defaults: params.X = '' / params.X = "..."
+        _string_declared_params: set = set()
+        for _m in _re_san.finditer(
+            r"params\.(\w+)\s*=\s*(?:'[^']*'|\"[^\"]*\"|null\b)",
+            _nf_src,
+        ):
+            _string_declared_params.add(_m.group(1))
+        # Also catch params with empty-string defaults (params.X = '')
+        for _m in _re_san.finditer(r"params\.(\w+)\s*=\s*['\"]?\s*['\"]?\s*(?://|$)", _nf_src, _re_san.MULTILINE):
+            _string_declared_params.add(_m.group(1))
+        for _k in list(params.keys()):
+            _v = params[_k]
+            if not isinstance(_v, bool):
+                continue
+            if _k in _string_declared_params:
+                log.info(
+                    "[Nextflow run %s] sanitize: dropping boolean %s for string-typed param '%s'",
+                    run_id, _v, _k,
+                )
+                del params[_k]
+    except Exception as _san_exc:
+        log.debug("[Nextflow run %s] param sanitize skipped: %s", run_id, _san_exc)
+
     # Docking-class param normalization (box_center/box_size → JSON vectors;
     # smiles_list compound NAMES → SMILES). Same pre-launch boundary as the
     # sequence coercion above. No-op for non-docking workflows.
