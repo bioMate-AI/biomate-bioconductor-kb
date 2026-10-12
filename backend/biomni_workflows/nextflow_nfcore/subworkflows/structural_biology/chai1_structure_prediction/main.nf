@@ -49,9 +49,12 @@ process CHAI1_PREDICT {
     path("chai_output/scores.json"), emit: scores, optional: true
 
     script:
-    def fasta_path = params.input_fasta?.toString()?.trim() ?: ''
+    // Guard against Groovy coercing missing/boolean params to the string "true"/"false"
+    def raw_fasta  = params.input_fasta?.toString()?.trim() ?: ''
+    def fasta_path = (raw_fasta && raw_fasta != 'true' && raw_fasta != 'false' && !raw_fasta.startsWith('null')) ? raw_fasta : ''
     def seq        = params.sequence?.toString()?.trim()    ?: ''
-    if (!fasta_path && !seq) error "Provide params.input_fasta (FASTA file path) or params.sequence (raw AA/NT sequence)"
+    def clean_seq  = (seq && seq != 'true' && seq != 'false') ? seq : ''
+    if (!fasta_path && !clean_seq) error "Provide params.input_fasta (FASTA file path) or params.sequence (raw AA/NT sequence)"
     def use_fasta  = fasta_path ? 'True' : 'False'
     """
     python3 - <<'PYEOF'
@@ -66,11 +69,17 @@ except ImportError as e:
 
 # Resolve FASTA input (values below are substituted by Groovy before bash runs this)
 use_provided_fasta = ${use_fasta}
-if use_provided_fasta:
-    fasta_file = Path("${fasta_path}")
+fasta_path_str = "${fasta_path}"
+
+if use_provided_fasta and fasta_path_str and Path(fasta_path_str).exists():
+    fasta_file = Path(fasta_path_str)
 else:
     fasta_file = Path("input_sequence.fasta")
-    fasta_file.write_text(">protein|name=query\\n${seq}\\n")
+    seq_str = "${clean_seq}"
+    if not seq_str:
+        print("[chai1] ERROR: no valid fasta_path or sequence provided", file=sys.stderr)
+        sys.exit(1)
+    fasta_file.write_text(">protein|name=query\\n" + seq_str + "\\n")
 
 output_dir = Path("chai_output")
 output_dir.mkdir(parents=True, exist_ok=True)
