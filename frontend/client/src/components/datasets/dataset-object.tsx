@@ -272,6 +272,9 @@ export function DatasetObject({
 
       <CardContent>
         <Tabs
+          // Remount per dataset so selecting a different file resets to Preview
+          // instead of keeping whatever tab the previous file was showing.
+          key={dataset.id}
           defaultValue="preview"
           onValueChange={(v) => {
             // Lineage now also holds Consumers (and Origin), so opening it
