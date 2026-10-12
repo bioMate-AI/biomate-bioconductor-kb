@@ -1882,7 +1882,9 @@ export function ChatInterface({
       setPendingMessages(prev => [...prev, content.trim()])
       return
     }
-    handleSendMessage(content, files, contextOverride)
+    // Use ref so we always call the latest handleSendMessage even when
+    // displayTyping hasn't changed (e.g. user just clicked "New Chat").
+    handleSendMessageRef.current(content, files, contextOverride)
   }, [displayTyping]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopStreaming = useCallback(() => {
@@ -1901,7 +1903,7 @@ export function ChatInterface({
     if (!displayTyping && pendingMessagesRef.current.length > 0) {
       const [next, ...rest] = pendingMessagesRef.current
       setPendingMessages(rest)
-      handleSendMessage(next)
+      handleSendMessageRef.current(next)
     }
   }, [displayTyping]) // eslint-disable-line react-hooks/exhaustive-deps
 
