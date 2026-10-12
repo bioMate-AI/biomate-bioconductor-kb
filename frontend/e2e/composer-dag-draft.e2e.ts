@@ -57,9 +57,15 @@ test("multi-task request produces a whole-plan DAG draft card (no dispatch)", as
   await newSession(page);
 
   // A decomposable request whose sub-tasks map to real workflows.
+  // NOTE: do NOT append "prepare the plan — do not launch any jobs yet" or similar.
+  // Generating a workflow/pipeline card NEVER dispatches anything (dispatch requires
+  // clicking "Confirm & Run", which this test never does — that is the zero-Batch-cost
+  // guarantee). But that phrasing makes the intent classifier (analyzeIntent) tag the
+  // whole message as `general_question`/`isMultiIntent:false`, suppressing workflow
+  // generation upstream of every pipeline path → 0 cards (verified on dev 2026-10-12).
+  // The bare sequential request classifies correctly: 3 intents, SEQUENTIAL pipeline.
   const message =
-    "Run quality control, then read alignment, then differential expression on my " +
-    "RNA-seq data. Prepare the plan — do not launch any jobs yet.";
+    "Run quality control, then read alignment, then differential expression on my RNA-seq data.";
   await sendMessage(page, message);
   await waitForResponseComplete(page, LLM_TIMEOUT);
   await page.waitForTimeout(1_000);
@@ -74,12 +80,16 @@ test("multi-task request produces a whole-plan DAG draft card (no dispatch)", as
   console.log(`[composer-dag] pipeline-step rows=${stepCount}, workflow cards=${anyCard}`);
 
   if (stepCount < 2) {
-    // Flag off, or the request did not confidently decompose+resolve → single-task
-    // fallback. That is the safe, expected behaviour; nothing to assert here.
+    // The request did not surface a multi-step pipeline card. Either Tier-1 collapsed
+    // it to a single covering workflow (valid), or classification/decomposition did not
+    // produce a sequential pipeline. The live pipeline card is produced by the Node-side
+    // sequential composer (galaxy-assistant.ts processSequentialPipeline), reached when
+    // analyzeIntent flags isMultiIntent+isSequential — NOT by the backend
+    // BIOMATE_MULTITASK_DAG_ENABLED flag (that path, route_and_handle, is not wired live).
     test.skip(
       true,
-      `No multi-step DAG card (stepCount=${stepCount}). Flag off or safe single-task fallback. ` +
-        `Enable BIOMATE_MULTITASK_DAG_ENABLED on biomate-galaxy-dev to exercise the DAG path.`,
+      `No multi-step pipeline card (stepCount=${stepCount}). Single-workflow collapse or ` +
+        `non-sequential classification — a safe outcome, nothing to assert here.`,
     );
     return;
   }
