@@ -486,6 +486,21 @@ class AIAssistant:
         """
         Route a query to the appropriate handler and execute.
 
+        .. warning::
+            NOT WIRED TO THE LIVE PATH (as of 2026-10-12). This method (and the
+            multi-task clarification + backend DAG composer it calls:
+            ``_looks_like_multi_task`` / ``_handle_multi_task_clarification`` /
+            ``decomposed_dag.build_dag_plan``, gated by ``BIOMATE_MULTITASK_DAG_ENABLED``)
+            has NO live callers — only unit tests. The live chat/generation endpoint is
+            ``generate_workflow_unified`` (``/api/ai_assistant/generate_workflow``), and
+            the live multi-step composer is the Node-side
+            ``galaxy-assistant.ts::processSequentialPipeline`` (reached when
+            ``analyzeIntent`` flags ``isMultiIntent``/``isSequential``). Enabling
+            ``BIOMATE_MULTITASK_DAG_ENABLED`` therefore changes NO live behaviour.
+            This remains as a tested, validated (``galaxy.chain.dag.validate_plan``)
+            candidate for a future *rigorous* composer — wire or remove deliberately.
+            See docs/20261012_COMPOSER_FLAG_ENABLED_AND_WIRING_GAP.md.
+
         This is the main entry point for the unified AI assistant that
         automatically determines intent and routes to the right component.
 
