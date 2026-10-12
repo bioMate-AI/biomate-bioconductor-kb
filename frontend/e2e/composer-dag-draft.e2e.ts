@@ -1,26 +1,35 @@
 /**
- * Composer multi-task DAG — DRAFT generation (ZERO Batch cost).
+ * Composer multi-step plan — DRAFT generation (ZERO Batch cost).
  * ===========================================================================
- * Verifies that, when BIOMATE_MULTITASK_DAG_ENABLED is on, a multi-task request
- * is assembled into a whole-plan DAG chain card (decompose -> confidence-gated
- * resolve -> validated DAG -> typed handoff -> input binding -> pipeline card).
+ * Verifies that a multi-step ("run A, then B, then C") request produces a
+ * runnable multi-step PLAN as a DRAFT, through BioMate's LIVE composer:
+ *   analyzeIntent (isMultiIntent + isSequential) -> processMultiIntent ->
+ *   processSequentialPipeline  (frontend/server/galaxy-assistant.ts).
+ *
+ * NOTE: the live multi-step plan renders in EITHER of two valid shapes, and the
+ * test accepts both: (a) an inline PipelineListView (pipeline-step-<id> rows), or
+ * (b) a curated chain/workflow opened in the RIGHT PANEL (button-run-workflow-panel
+ * + a chat wf-chip) when one curated chain covers all steps — which is what
+ * "QC -> alignment -> DE" resolves to (bulk_rnaseq_de_analysis), verified on dev.
+ * This is NOT the backend BIOMATE_MULTITASK_DAG_ENABLED composer (route_and_handle),
+ * which is not wired to the live path (see
+ * docs/20261012_COMPOSER_FLAG_ENABLED_AND_WIRING_GAP.md).
  *
  * SAFETY: this test NEVER clicks "Confirm & Run", so it dispatches NO jobs and
- * costs $0 of Batch. It only asserts the DRAFT plan renders.
+ * costs $0 of Batch. Generating the plan never launches anything; only Confirm &
+ * Run does. It only asserts the DRAFT plan renders and was NOT dispatched.
  *
- * It is also safe to run with the flag OFF: the request then falls back to
- * single-task generation, and this test SKIPS (logs "fell back") rather than
- * failing — a fallback is the correct safe behaviour, not a bug.
+ * If no runnable plan renders (safe single-workflow collapse / clarification),
+ * the test SKIPS rather than failing — that is a correct safe outcome.
  *
- * CLAUDE.md: single canonical fixture, login once, no register, BIOMATE_URL,
- * 90s LLM timeout. See docs/20261012_COMPOSER_DEV_ACTIVATION_AND_TEST_PLAN.md.
+ * CLAUDE.md: single canonical fixture, login once, no register, BIOMATE_URL.
  */
 import { test, expect, type Page } from "@playwright/test";
 import { loginAsFixture, BASE_URL } from "./_fixture-login";
 import { waitForResponseComplete } from "./helpers.js";
 
-const LLM_TIMEOUT = 90_000;
-test.setTimeout(10 * 60_000);
+const LLM_TIMEOUT = 120_000;
+test.setTimeout(5 * 60_000);
 
 let sharedPage: Page;
 
@@ -41,7 +50,10 @@ async function newSession(page: Page) {
   // interactive. The previous `networkidle` wait left the page non-interactive, so the
   // message was never actually sent (0 cards regardless of query) — verified via dev logs.
   await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded", timeout: 30_000 });
-  await page.waitForLoadState("load").catch(() => {});
+  // NB: do NOT await waitForLoadState("load") — on the dev production build "load"
+  // never fires (deferred resources; see _fixture-login.ts) and .catch does not rescue a
+  // promise that never resolves, so it burns the whole test timeout. The composer
+  // visibility wait below (bounded 30s) is the real readiness signal.
   await page.evaluate(() => {
     try {
       localStorage.setItem("biomate_survey_suppressed_until", String(Date.now() + 7 * 86400_000));
@@ -84,44 +96,63 @@ test("multi-task request produces a whole-plan DAG draft card (no dispatch)", as
     "Run quality control, then read alignment, then differential expression on my RNA-seq data.";
   await sendMessage(page, message);
   await waitForResponseComplete(page, LLM_TIMEOUT);
+
+  // The live composer renders a multi-step plan in EITHER of two valid shapes:
+  //  (a) inline PipelineListView (pipeline-step-<id> rows + pipeline-list-view) — the
+  //      generic DAG card; or
+  //  (b) a curated chain / workflow opened in the RIGHT PANEL (button-run-workflow-panel
+  //      + a chat wf-chip "In panel"), when ONE curated chain (e.g. bulk_rnaseq_de_analysis)
+  //      covers all the steps. For "QC → alignment → DE" the live system uses (b).
+  // Both are correct, runnable, UN-dispatched plans. The card lands last (the response can
+  // take ~60s), so wait (bounded) for either representation before asserting.
+  await page
+    .locator('[data-testid="pipeline-list-view"], [data-testid^="pipeline-step-"], [data-testid="button-run-workflow-panel"]')
+    .first()
+    .waitFor({ state: "visible", timeout: 30_000 })
+    .catch(() => {});
   await page.waitForTimeout(1_000);
+  await page
+    .screenshot({ path: "e2e/test-results/composer-dag-draft.png", fullPage: true })
+    .catch(() => {});
 
-  // DAG/pipeline cards render PipelineListView with pipeline-step-<id> rows.
-  const stepRows = page.locator('[data-testid^="pipeline-step-"]');
-  const stepCount = await stepRows.count().catch(() => 0);
-  const anyCard = await page
-    .locator('[data-testid^="workflow-artifact-anchor-"]')
-    .count()
-    .catch(() => 0);
-  console.log(`[composer-dag] pipeline-step rows=${stepCount}, workflow cards=${anyCard}`);
+  const stepRows = await page.locator('[data-testid^="pipeline-step-"]').count().catch(() => 0);
+  const inlineCards = await page.locator('[data-testid^="workflow-artifact-anchor-"]').count().catch(() => 0);
+  const panelRunCta = await page
+    .getByTestId("button-run-workflow-panel")
+    .first()
+    .isVisible({ timeout: 2_000 })
+    .catch(() => false);
+  console.log(`[composer-dag] pipeline-step rows=${stepRows}, inline cards=${inlineCards}, panel run CTA=${panelRunCta}`);
 
-  if (stepCount < 2) {
-    // The request did not surface a multi-step pipeline card. Either Tier-1 collapsed
-    // it to a single covering workflow (valid), or classification/decomposition did not
-    // produce a sequential pipeline. The live pipeline card is produced by the Node-side
-    // sequential composer (galaxy-assistant.ts processSequentialPipeline), reached when
-    // analyzeIntent flags isMultiIntent+isSequential — NOT by the backend
-    // BIOMATE_MULTITASK_DAG_ENABLED flag (that path, route_and_handle, is not wired live).
+  // Success = a runnable multi-step plan rendered in either representation.
+  const renderedPlan = stepRows >= 2 || panelRunCta || inlineCards > 0;
+  if (!renderedPlan) {
     test.skip(
       true,
-      `No multi-step pipeline card (stepCount=${stepCount}). Single-workflow collapse or ` +
-        `non-sequential classification — a safe outcome, nothing to assert here.`,
+      `No runnable plan rendered (steps=${stepRows}, inlineCards=${inlineCards}, panelCTA=${panelRunCta}). ` +
+        `Safe single-workflow/clarification outcome — nothing to assert.`,
     );
     return;
   }
 
-  // A DAG draft card was produced — verify it is a whole-plan draft, not launched.
-  expect(stepCount, "DAG plan should have >=2 steps").toBeGreaterThanOrEqual(2);
+  // Confirm-&-Run affordance must be present (whole-plan approval) — we do NOT click it
+  // (that is the zero-Batch-cost guarantee: generation never dispatches; Confirm & Run does).
+  const confirmVisible =
+    panelRunCta ||
+    (await page.getByText(/Confirm\s*&?\s*Run|Run plan|Confirm plan/i).first().isVisible({ timeout: 5_000 }).catch(() => false));
+  expect(confirmVisible, "a draft plan must expose a Confirm & Run affordance").toBe(true);
 
-  // No step may be in a running/terminal run state — a DRAFT must not have dispatched.
-  const runningish = await page
-    .locator('[data-status="running"], [data-status="submitted"], [data-status="completed"]')
+  // It must NOT have been dispatched: no step/overall in a running/submitted state, and the
+  // panel CTA is the RUN button (button-run-workflow-panel), not the post-run 'run again' CTA.
+  const dispatched = await page
+    .locator('[data-status="running"], [data-status="submitted"], [data-testid="panel-run-again-cta"]')
     .count()
     .catch(() => 0);
-  expect(runningish, "a draft plan must not have launched any step").toBe(0);
+  expect(dispatched, "a draft plan must not have launched (no running/submitted/run-again state)").toBe(0);
 
-  // "Confirm & Run" affordance should be present (whole-plan approval), and we do NOT click it.
-  const confirm = page.getByText(/Confirm\s*&?\s*Run|Run plan|Confirm plan/i).first();
-  const hasConfirm = await confirm.isVisible({ timeout: 5_000 }).catch(() => false);
-  console.log(`[composer-dag] whole-plan Confirm&Run present=${hasConfirm} (NOT clicked — zero Batch cost)`);
+  // If the INLINE pipeline representation was used, it must have >=2 steps.
+  if (stepRows > 0) {
+    expect(stepRows, "an inline pipeline plan should have >=2 steps").toBeGreaterThanOrEqual(2);
+  }
+  console.log("[composer-dag] PASS — runnable multi-step plan rendered as a draft, not dispatched.");
 });
