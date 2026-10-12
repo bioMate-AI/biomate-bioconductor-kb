@@ -1152,6 +1152,17 @@ def _classify_failure(
                        "run this workflow on ARM64 hardware.",
                        False, "report")
 
+    # ── CloudWatch / IAM permission errors (infra configuration gap) ──
+    # Nextflow (Java SDK) logs this when the EC2 instance role lacks logs:GetLogEvents.
+    # It is not a user-fixable input error — point at the IAM root cause.
+    if ("cloudwatchlogs" in low or "accessdeniedexception" in low
+            or "logs:getlogevents" in low or "logs:putlogevents" in low):
+        return verdict("infra_transient",
+                       "The compute environment is missing an AWS CloudWatch Logs "
+                       "permission (logs:GetLogEvents). The run may have partially "
+                       "completed — resume to skip already-finished steps. "
+                       "Ask your admin to add logs:GetLogEvents to the EC2 instance role.",
+                       True, "resume")
     # ── transient infrastructure (a plain resume can succeed) ──
     if any(k in low for k in ("spot", "reclaim", "instance was terminated", "host ec2",
                               "dockertimeouterror", "cannot pull", "unable to pull",

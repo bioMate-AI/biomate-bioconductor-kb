@@ -4719,7 +4719,33 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             log.info('[ProteinStructureFastPath] sequence present without folding intent; skipping')
             return None
 
-        top = self.workflow_search.get_workflow_by_filename_pattern('%proteinfold%')
+        # Semantic search is more reliable than DB pattern lookup here because
+        # the DB stores nf-core workflow names with hyphens ("nf-core/proteinfold")
+        # which the LIKE-based helpers don't match consistently.
+        results = self.workflow_search.search(
+            "protein structure prediction single sequence folding ESMFold AlphaFold proteinfold",
+            domain="structural_biology",
+            limit=15,
+        )
+        # Walk results: prefer 'proteinfold', accept any single-sequence fold workflow,
+        # but explicitly EXCLUDE multi-sequence conservation/alignment pipelines.
+        _FOLD_NAMES = ('proteinfold', 'alphafold', 'esmfold', 'openfold', 'rosettafold')
+        _EXCLUDE_NAMES = ('conservation', 'align', 'homolog', 'phylogen', 'evolution', 'msa',
+                          'comparative', 'chai1', 'multiple')
+        top = None
+        for match in results:
+            name_low = (getattr(match, 'name', '') or '').lower()
+            fname_low = (getattr(match, 'filename', '') or '').lower()
+            combined = name_low + ' ' + fname_low
+            if any(ex in combined for ex in _EXCLUDE_NAMES):
+                continue
+            if any(fn in combined for fn in _FOLD_NAMES) and self._is_executable_nextflow_match(match):
+                top = match
+                break
+
+        # Fallback to DB LIKE lookup if semantic search didn't yield a runnable match
+        if not top:
+            top = self.workflow_search.get_workflow_by_filename_pattern('%proteinfold%')
         if not top:
             log.warning("[ProteinStructureFastPath] proteinfold not found in DB — skipping")
             return None
