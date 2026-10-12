@@ -29,13 +29,18 @@ OUT = ROOT / "results/docking"; LIGDIR = OUT / "ligands"
 
 # Receptor targets. PDB IDs are CANDIDATES to confirm against RCSB before the real run (not asserted
 # as final) — the pocket/MIDAS definition is the load-bearing part.
+# Receptors reconciled with the canonical pipeline (docs/20260930_CYCLIC_PEPTIDE_END_TO_END_PROCESS.md,
+# boltzgen_ourtarget.sh, launch_mmgbsa_pool.sh): αvβ6 = 9xmm (replaces the gapped 4UM9 that broke design),
+# PD-L1 = 5O45. The program's trusted physics discriminator is MM-GBSA on a BoltzGen-cofolded COMPLEX, not
+# docking (VALIDATION_LADDER / MMGBSA_RESULTS: MM-GBSA >> docking for these cyclic peptides). This docking
+# harness is a cheap PRE-MM-GBSA triage / pose-source alternative only, never the deciding scorer.
 TARGETS = {
-    "avb6": {"receptor_pdb_candidates": ["4UM9", "6OM2"],  # αvβ6 headpiece; CONFIRM vs RCSB
-             "pocket": "RGD-binding cleft at the αv/β6 interface; Asp carboxylate -> β6 MIDAS Mg2+/Mn2+",
-             "box_hint": "center on the MIDAS metal + the αv propeller Asp pocket"},
-    "pdl1": {"receptor_pdb_candidates": ["5O45", "5N2D"],  # PD-L1 IgV small-molecule-bound; CONFIRM vs RCSB
-             "pocket": "PD-L1 IgV front β-sheet hydrophobic cleft (the PD-1 / antagonist interface)",
-             "box_hint": "center on the Tyr56/Met115/Ala121 cleft"},
+    "avb6": {"receptor_pdb": "9xmm", "chains": "A,B(αV) + β6; native cyclic RGD peptide in chain E",
+             "pocket": "RGD cleft at the αv/β6 interface; Asp carboxylate -> β6 MIDAS Ca/Mn (<5 Å of native ligand)",
+             "mmgbsa_pocket": "avb6_pocket_truncate.py: both subunits, residues within 10 Å of peptide (4.5 Å contact shell)"},
+    "pdl1": {"receptor_pdb": "5O45", "chains": "A (IgV, 129 res); macrocyclic peptide-71 in chain B",
+             "pocket": "PD-L1 IgV front β-sheet hydrophobic cleft (PD-1 / antagonist interface; Tyr56/Met115/Ala121)",
+             "mmgbsa_pocket": "whole IgV (small single chain — no truncation needed)"},
 }
 
 def decide(target, lab, fto):
@@ -87,9 +92,13 @@ def main():
 
     manifest = {"engine_available": engine_available(), "status": "prepared_not_scored",
                 "targets": TARGETS, "shortlist": {}, "ligand_dir": str(LIGDIR.relative_to(ROOT)),
-                "scoring_route": ["BioMate drug_discovery molecular-docking workflow (preferred: BioMate is the execution engine)",
-                                  "or smina/vina on AWS spot with the confirmed receptor PDBQT + box"],
-                "ncAA_caveat": "ligand SDFs are L-backbone; production scoring must use full-HELM stereochem (D-Pro/N-methyl)."}
+                "scoring_route": ["CANONICAL (trusted, matches round-1 panels): cofold each sequence into the receptor "
+                                  "(BoltzGen/Boltz-2 on 9xmm/5O45) -> COMPLEX -> MM-GBSA rescore (peptide_mmgbsa_run.sh, "
+                                  "OpenMM/GBn2/CHARMM36m, EC2 GPU spot) -> rank on the same ΔG scale as pdl1/avb6 round-1",
+                                  "Vina docking is only a cheap pre-MM-GBSA pose-source; the program trusts MM-GBSA >> docking"],
+                "ncAA_caveat": "ligand SDFs are L-backbone; production scoring must use full-HELM stereochem (D-Pro/N-methyl).",
+                "mmgbsa_needs_complex": "MM-GBSA requires a bound receptor+peptide COMPLEX (pose). K-sets are sequence-only -> "
+                                        "a pose-generation stage (cofold/dock) MUST precede MM-GBSA."}
     for t in ("avb6", "pdl1"):
         rows = []
         for c in cands[t]:

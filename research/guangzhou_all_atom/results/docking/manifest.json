@@ -3,20 +3,16 @@
   "status": "prepared_not_scored",
   "targets": {
     "avb6": {
-      "receptor_pdb_candidates": [
-        "4UM9",
-        "6OM2"
-      ],
-      "pocket": "RGD-binding cleft at the \u03b1v/\u03b26 interface; Asp carboxylate -> \u03b26 MIDAS Mg2+/Mn2+",
-      "box_hint": "center on the MIDAS metal + the \u03b1v propeller Asp pocket"
+      "receptor_pdb": "9xmm",
+      "chains": "A,B(\u03b1V) + \u03b26; native cyclic RGD peptide in chain E",
+      "pocket": "RGD cleft at the \u03b1v/\u03b26 interface; Asp carboxylate -> \u03b26 MIDAS Ca/Mn (<5 \u00c5 of native ligand)",
+      "mmgbsa_pocket": "avb6_pocket_truncate.py: both subunits, residues within 10 \u00c5 of peptide (4.5 \u00c5 contact shell)"
     },
     "pdl1": {
-      "receptor_pdb_candidates": [
-        "5O45",
-        "5N2D"
-      ],
-      "pocket": "PD-L1 IgV front \u03b2-sheet hydrophobic cleft (the PD-1 / antagonist interface)",
-      "box_hint": "center on the Tyr56/Met115/Ala121 cleft"
+      "receptor_pdb": "5O45",
+      "chains": "A (IgV, 129 res); macrocyclic peptide-71 in chain B",
+      "pocket": "PD-L1 IgV front \u03b2-sheet hydrophobic cleft (PD-1 / antagonist interface; Tyr56/Met115/Ala121)",
+      "mmgbsa_pocket": "whole IgV (small single chain \u2014 no truncation needed)"
     }
   },
   "shortlist": {
@@ -190,8 +186,9 @@
   },
   "ligand_dir": "results/docking/ligands",
   "scoring_route": [
-    "BioMate drug_discovery molecular-docking workflow (preferred: BioMate is the execution engine)",
-    "or smina/vina on AWS spot with the confirmed receptor PDBQT + box"
+    "CANONICAL (trusted, matches round-1 panels): cofold each sequence into the receptor (BoltzGen/Boltz-2 on 9xmm/5O45) -> COMPLEX -> MM-GBSA rescore (peptide_mmgbsa_run.sh, OpenMM/GBn2/CHARMM36m, EC2 GPU spot) -> rank on the same \u0394G scale as pdl1/avb6 round-1",
+    "Vina docking is only a cheap pre-MM-GBSA pose-source; the program trusts MM-GBSA >> docking"
   ],
-  "ncAA_caveat": "ligand SDFs are L-backbone; production scoring must use full-HELM stereochem (D-Pro/N-methyl)."
+  "ncAA_caveat": "ligand SDFs are L-backbone; production scoring must use full-HELM stereochem (D-Pro/N-methyl).",
+  "mmgbsa_needs_complex": "MM-GBSA requires a bound receptor+peptide COMPLEX (pose). K-sets are sequence-only -> a pose-generation stage (cofold/dock) MUST precede MM-GBSA."
 }
