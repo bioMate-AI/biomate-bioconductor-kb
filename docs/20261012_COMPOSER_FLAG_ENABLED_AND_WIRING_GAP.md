@@ -165,3 +165,20 @@ Pre-sync: `tsc` clean; `vitest` 1847 passed / 0 failed.
 classification gap that hid it is fixed with regression controls; the inert flag/dead code is clearly
 labelled. Remaining optional: on-prem `localIntentPrompt` parity for rule #1, and the deliberate
 backend-vs-Node composer consolidation.
+
+## 8. Coverage gaps closed (follow-up to "tested fully?") — synced `c8a4f0da`
+- **#1 generalization + baseline** — 7 live dev classification probes total: original failing phrasing;
+  generalization ("set up a variant calling pipeline … do not run it yet" → workflow_generation;
+  "draft an ATAC-seq workflow … review before running" → workflow_generation); baseline intact
+  ("Run nf-core/rnaseq on my FASTQ" → workflow_generation; "DESeq2 vs edgeR" → result_comparison,
+  not over-triggered; conceptual → troubleshooting; design → experiment_design). Bounded + generalizes.
+- **#2 now unit-tested** — extracted the allowlist into `server/workflow-runnable.ts`
+  (`isRunnableWorkflow`) and pinned every accepted/rejected shape in `workflow-runnable.test.ts`
+  (10 tests incl. empty-pipeline_steps → NOT runnable, error/no-success → NOT runnable). routes.ts
+  calls the helper (behavior-identical; live SSE re-confirmed `state:workflow_ready` post-extraction).
+- **Inline pipeline representation now unit-tested** — `chat-message.pipeline-approval.test.tsx` asserts
+  `pipeline-step` rows == `pipeline_steps.length` (both graph modes). The live e2e only exercises the
+  panel/chain representation for the RNA-seq query; this pins the inline PipelineListView branch.
+- **e2e** re-run: 2/2 PASS (not flaky on these runs). vitest 1857 passed / 0 failed; tsc clean.
+- Still open (minor): firefox browser binary not installed locally (chromium-only); on-prem
+  `localIntentPrompt` parity.
