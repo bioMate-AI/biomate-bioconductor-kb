@@ -78,3 +78,53 @@ Wire multi-task detection + the composer into `generate_workflow_unified` so the
 **Discipline note:** `generate_workflow_unified` is a hot, critical endpoint. The hook must be
 additive, flag-gated, and fail-safe — never alter the default single-task path. Review the full
 function + frontend render contract before editing (per CLAUDE.md "Review Code Before Testing").
+
+## 5. RESOLUTION (same day) — the composer already works live; the test was self-defeating
+Investigating the 0-card result end to end changed the conclusion. **BioMate already has a working,
+live, Node-side sequential-pipeline composer** — I do NOT need to wire the backend DAG composer to
+make the common case work.
+
+- **Live path (works):** `galaxy-assistant.ts` `analyzeIntent` → `isMultiIntent`/`isSequential` →
+  `processMultiIntent` → `processSequentialPipeline` (@5021) → emits a `workflow_type:'pipeline'`
+  card the frontend renders (`chat-message.tsx:841` PipelineListView).
+- **Proof (live dev, zero cost):** POSTing the bare query *"Run quality control, then read alignment,
+  then differential expression on my RNA-seq data."* to dev `POST /api/biomate/chat` logged:
+  `Multi-intent detected: 3 intents [workflow_generation ×3] (SEQUENTIAL pipeline)
+  domains=[transcriptomics] chain=bulk_rnaseq_de_analysis` → `isMultiIntent:true, intents:3` →
+  `[SEQ] Building sequential pipeline: 3 steps`. The composer decomposed + routed + built correctly.
+  → **The "too literal / inflexible decomposition" worry is not borne out for the canonical
+  sequential case.**
+- **Why the e2e got 0 cards (two bugs, neither in the composer):**
+  1. The e2e query appended *"Prepare the plan — do not launch any jobs yet"*, which made
+     `analyzeIntent` classify the whole message as `general_question`/`isMultiIntent:false` and
+     suppress workflow generation. (Dev log for the earlier e2e: `Intent: general_question,
+     isMultiIntent:false, intents:1` ×4.) That tail was never needed for cost safety — generating a
+     card never dispatches; `Confirm & Run` does, which the test never clicks. **Fixed** (commit
+     `31d2d02ec`): dropped the tail.
+  2. **The harness does not drive the live chat UI.** After the fix, the e2e still skipped with 0
+     cards, and a dev-log check showed the e2e's message **never reached the backend** (only the
+     direct API probe did). So the UI-interaction (fixture-cookie auth + composer send + SSE wait) is
+     broken and must be repaired against the canonical `allometric-qc-coverage.e2e.ts` pattern. This
+     is a test-harness bug, not a product bug.
+
+## 6. Revised, prioritised follow-ups
+1. **(product gap) "Plan it, don't run yet" suppresses generation.** `analyzeIntent` tags
+   "prepare the plan / do not launch yet" as `general_question`, so it never reaches the
+   execution-intent guard that is designed to keep generation as a *draft* when only launch is
+   prohibited (reconciliation #1). Fix: recognise draft/"don't-launch-yet" execution requests as
+   (draft) `workflow_generation` at classification. Touches the hot `analyzeIntent` path → careful,
+   tested change.
+2. **(frontend) `runnableWorkflow` allowlist omits `workflow_type==='pipeline'`** (`routes.ts:6374`)
+   → pipeline cards scored non-runnable → wrong `responseState`. One-line, reviewed fix.
+3. **(test) repair `composer-dag-draft.e2e.ts` UI-drive** so it actually sends the message and
+   asserts the live pipeline card renders.
+4. **(cleanup) the backend DAG composer is dead code.** Either wire it as the rigorous canonical
+   composer (replacing/validating the Node-side `processSequentialPipeline`, which the 2026-10-08
+   audit flagged as having 41% broken chain connections) or remove it. Enabling
+   `BIOMATE_MULTITASK_DAG_ENABLED` is inert until then — the flag is now live on dev but changes no
+   live behaviour.
+
+**Bottom line:** the canonical sequential composition works live today; the flag enablement was the
+assigned task and is done (though inert); the real remaining value is (1) the "don't-launch-yet"
+classification gap and (4) deciding the backend-vs-Node composer story — both deliberate, tested
+changes, not done in this session.
