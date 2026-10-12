@@ -2066,11 +2066,14 @@ class AIAssistant:
         # on disk that the resolved file is actually standalone-runnable.
         if filename.endswith('/main.nf'):
             resolved = self._resolve_execution_nf(getattr(match, 'filename', '') or '')
-            if resolved is not None and not self._nf_file_is_standalone_runnable(resolved):
+            if resolved is None:
+                return False  # file not on disk — can't run it
+            if not self._nf_file_is_standalone_runnable(resolved):
                 return False
             return True
         if filename.endswith('.nf') and ('/workflows/' in filename or 'biomni_nf/' in filename or '/bioconductor/' in filename):
-            return True
+            resolved = self._find_nf_file(getattr(match, 'filename', '') or '')
+            return resolved is not None
         return False
 
     def _resolve_execution_nf(self, filename: str) -> Optional[Any]:
