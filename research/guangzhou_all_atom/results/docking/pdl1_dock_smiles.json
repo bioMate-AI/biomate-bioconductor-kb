@@ -1,0 +1,58 @@
+[
+  {
+    "id": "PDL1-K-01",
+    "seq": "FWLPYSFDTK",
+    "decision": "DOCK",
+    "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CCCCN)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CC(=O)O)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CO)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@@H]2CCCN2C1=O",
+    "status": "ok_cyclic"
+  },
+  {
+    "id": "PDL1-K-02",
+    "seq": "WMFPILSEKG",
+    "decision": "DOCK_AFTER_FIX",
+    "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CCSC)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)CNC(=O)[C@H](CCCCN)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](CO)NC(=O)[C@H](CC(C)C)NC1=O",
+    "status": "ok_cyclic"
+  },
+  {
+    "id": "PDL1-K-03",
+    "seq": "YFPWLADSRTG",
+    "decision": "DOCK_AFTER_FIX",
+    "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)CNC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CO)NC(=O)[C@H](CC(=O)O)NC(=O)[C@H](C)NC1=O",
+    "status": "ok_cyclic"
+  },
+  {
+    "id": "PDL1-K-04",
+    "seq": "FLWPMYSKDG",
+    "decision": "DOCK_AFTER_FIX",
+    "smiles": "CSCC[C@@H]1NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](Cc2ccccc2)NC(=O)CNC(=O)[C@H](CC(=O)O)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CO)NC(=O)[C@H](Cc2ccc(O)cc2)NC1=O",
+    "status": "ok_cyclic"
+  },
+  {
+    "id": "PDL1-K-05",
+    "seq": "WYFPLITENKSG",
+    "decision": "DOCK",
+    "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](CC(C)C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)CNC(=O)[C@H](CO)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CC(N)=O)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H]([C@@H](C)O)NC1=O",
+    "status": "ok_cyclic"
+  },
+  {
+    "id": "PDL1-K-06",
+    "seq": "FWLYPMSDKT",
+    "decision": "DOCK_AFTER_FIX",
+    "smiles": "CSCC[C@@H]1NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CC(=O)O)NC(=O)[C@H](CO)NC1=O",
+    "status": "ok_cyclic"
+  },
+  {
+    "id": "PDL1-K-07",
+    "seq": "FWPYILFERS",
+    "decision": "DOCK",
+    "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CO)NC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CCC(=O)O)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CC(C)C)NC1=O",
+    "status": "ok_cyclic"
+  },
+  {
+    "id": "PDL1-K-08",
+    "seq": "CFWLYFMSDC",
+    "decision": "DOCK_AFTER_FIX",
+    "smiles": "CSCC[C@@H]1NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CS)NC(=O)[C@H](CS)NC(=O)[C@H](CC(=O)O)NC(=O)[C@H](CO)NC1=O",
+    "status": "ok_cyclic"
+  }
+]
