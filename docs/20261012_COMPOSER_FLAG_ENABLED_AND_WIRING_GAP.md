@@ -128,3 +128,40 @@ make the common case work.
 assigned task and is done (though inert); the real remaining value is (1) the "don't-launch-yet"
 classification gap and (4) deciding the backend-vs-Node composer story — both deliberate, tested
 changes, not done in this session.
+
+## 7. ALL FOUR FOLLOW-UPS FIXED + VERIFIED ON DEV (2026-10-12, later same day)
+Synced at `33643a3e` (`result=healthy`); frontend refinements committed through `9b2a3c2a5`.
+Pre-sync: `tsc` clean; `vitest` 1847 passed / 0 failed.
+
+1. **"Plan it, don't run yet" classification — FIXED** (`7f9a576a7`, `galaxy-assistant.ts` analyzeIntent
+   prompt). The exact phrasing that previously classified `general_question`/`isMultiIntent:false`
+   now classifies `workflow_generation, isMultiIntent:true, intents:3, SEQUENTIAL pipeline,
+   chain=bulk_rnaseq_de_analysis` (dev log). **Regression controls pass** (no over-trigger):
+   conceptual "what does a low alignment rate mean?" → `troubleshooting`; "help me design an
+   experiment…" → `experiment_design` (neither becomes workflow_generation). On-prem
+   `localIntentPrompt` intentionally NOT changed (dev uses the cloud prompt) — parity follow-up.
+2. **`runnableWorkflow` allowlist — FIXED** (`94059377a`, `routes.ts:6374`). Added
+   `workflow_type==='pipeline'` (+ non-empty `pipeline_steps`). Verified: the `/api/chat/stream`
+   SSE for the RNA-seq request now returns `state:"workflow_ready"` (was `workflow_failed`).
+3. **Composer e2e — FIXED + PASSES** (`e69fa3ea2`, `9b2a3c2a5`). Root causes were in the harness, not
+   the product: (a) `waitUntil:"networkidle"` hung the goto (page non-interactive → message never
+   sent → 0 cards; the message reaching the backend was confirmed only after the fix); (b)
+   `waitForLoadState("load")` never resolves on the dev build and burned the test timeout; (c) the
+   assertion only accepted the inline `pipeline-step` shape, but the live system renders this query
+   as a curated **chain in the right panel** (`button-run-workflow-panel` + wf-chip). Now
+   representation-agnostic. Result: **PASS (2.4m)** — `pipeline-step rows=0, inline cards=0, panel run
+   CTA=true` → runnable multi-step DRAFT plan, not dispatched. Screenshot:
+   `frontend/e2e/test-results/composer-dag-draft.png` (chat "Analysis plan — review the steps, then
+   Confirm & Run" + right panel "Bulk RNA-seq Differential Expression Analysis" with Phases/After-run
+   tabs + Confirm & Run).
+4. **Backend DAG composer dead code — RESOLVED (marked, not wired/removed)** (`33643a3eb`,
+   `ai_assistant.py`). Added a prominent warning docstring on `route_and_handle` stating it + the
+   `BIOMATE_MULTITASK_DAG_ENABLED` composer have no live callers and the live path is
+   `generate_workflow_unified` + `processSequentialPipeline`. Kept the tested code as a candidate
+   future *rigorous* composer rather than deleting it (per the never-delete-without-asking rule); the
+   flag stays inert by design until a deliberate wire-or-remove decision.
+
+**Net:** the user-facing multi-step composition flow is correct and now has a passing live e2e; the
+classification gap that hid it is fixed with regression controls; the inert flag/dead code is clearly
+labelled. Remaining optional: on-prem `localIntentPrompt` parity for rule #1, and the deliberate
+backend-vs-Node composer consolidation.
