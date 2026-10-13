@@ -25,7 +25,8 @@ AMI=${AMI:-ami-04f7da1c787a89267}
 SG=sg-011121fdf81073ec8
 KEY=biomate-trial-resume-20260912
 PROFILE=AutoimmuneCorpusProfile
-TARGET=${TARGET:-5o45}                 # 5o45 (PD-L1) tractable; 9xmm (avb6) needs 2-chain receptor + truncation
+TARGET=${TARGET:-5o45}                 # 5o45 (PD-L1) single-chain; 9xmm (avb6) = 2-chain, 1069-res receptor
+NO_KERNELS=${NO_KERNELS:-1}            # 1 = boltz --no_kernels (small folds, e.g. PD-L1); 0 = cuequivariance kernels (big receptors like 9xmm — memory-efficient, needs cuequivariance-ops)
 DRY_RUN=${DRY_RUN:-1}
 MARKET=${MARKET:-ondemand}
 DISK_GB=${DISK_GB:-150}
@@ -41,13 +42,13 @@ python3 - "$TARGET" "$PGROUP" "$DRY_RUN" > /tmp/cofold_input.json <<'PY'
 import json, sys
 target, pgroup, dry = sys.argv[1], sys.argv[2], sys.argv[3]
 plan = json.load(open("results/docking/cofold_mmgbsa_plan_v2.json"))
-R = plan["receptors"][target]["chains"].get("R")
-if R is None:
-    sys.exit(f"FATAL: receptor {target} has no single R chain in the plan (2-chain target needs the multi-chain path)")
+chains = {k: v for k, v in plan["receptors"][target]["chains"].items() if isinstance(v, str) and v and k != "NOTE"}
+if not chains:
+    sys.exit(f"FATAL: receptor {target} has no chain sequences in the plan")
 peps = plan["peptides"][pgroup]
 if dry == "1":
     peps = peps[:1]
-json.dump({"target": target, "receptor": R, "peptides": peps}, sys.stdout, indent=2)
+json.dump({"target": target, "receptor_chains": chains, "peptides": peps}, sys.stdout, indent=2)
 PY
 NPEP=$(python3 -c "import json;print(len(json.load(open('/tmp/cofold_input.json'))['peptides']))")
 echo "[cofold] TARGET=$TARGET DRY_RUN=$DRY_RUN peptides=$NPEP"
@@ -58,7 +59,7 @@ cat > /tmp/cofold_v2_driver.sh <<'DRIVER'
 #!/bin/bash
 set -Eeuo pipefail
 export AWS_DEFAULT_REGION=us-west-2 HOME=/root PYTHONUNBUFFERED=1
-ROOT=/opt/cofold; OUT_S3=${OUT_S3:?}; TARGET=${TARGET:?}; MAX_RUNTIME=${MAX_RUNTIME:-3h}
+ROOT=/opt/cofold; OUT_S3=${OUT_S3:?}; TARGET=${TARGET:?}; MAX_RUNTIME=${MAX_RUNTIME:-3h}; NO_KERNELS=${NO_KERNELS:-1}
 mkdir -p "$ROOT/status" "$ROOT/w"; cd "$ROOT/w"
 exec > >(tee -a "$ROOT/status/cofold.log") 2>&1
 stage(){ printf '{"stage":"%s","time":"%s"}\n' "$1" "$(date -u +%FT%TZ)" > "$ROOT/status/status.json"; aws s3 sync "$ROOT/status" "$OUT_S3/status/" --only-show-errors || true; }
@@ -78,13 +79,18 @@ conda activate boltz
 pip install -q --upgrade pip
 pip install -q boltz || { echo "FATAL: boltz install failed"; exit 1; }
 pip install -q cuequivariance-torch || { echo "FATAL: cuequivariance-torch failed"; exit 1; }
+if [ "${NO_KERNELS:-1}" != 1 ]; then
+  # kernels path (big receptors): need the compiled ops backend; try cu12 then cu13
+  pip install -q cuequivariance-ops-torch-cu12 || pip install -q cuequivariance-ops-torch-cu13 || echo "WARN: cuequivariance-ops install failed (kernels may be unavailable)"
+fi
 python -c "import boltz, cuequivariance_torch; print('boltz', getattr(boltz,'__version__','?'),'cueq OK')"
 
 aws s3 cp "$OUT_S3/input/cofold_input.json" ./input.json --only-show-errors
 stage folding
 python - <<'PYEOF'
 import json, os, glob, shutil, subprocess
-d = json.load(open("input.json")); R = d["receptor"]; T = d["target"]
+d = json.load(open("input.json")); RC = d["receptor_chains"]; T = d["target"]
+NK = os.environ.get("NO_KERNELS", "1")
 os.makedirs(T, exist_ok=True)
 summary = []
 for it in d["peptides"]:
@@ -92,11 +98,14 @@ for it in d["peptides"]:
     y = f"in_{pid}.yaml"
     with open(y, "w") as f:
         f.write("version: 1\nsequences:\n")
-        f.write(f"  - protein:\n      id: R\n      sequence: {R}\n")
+        for cid, cseq in RC.items():
+            f.write(f"  - protein:\n      id: {cid}\n      sequence: {cseq}\n")
         f.write(f"  - protein:\n      id: P\n      sequence: {pep}\n      cyclic: true\n")
     rec = {"id": pid, "pep": pep}
     try:
-        subprocess.run(["boltz","predict",y,"--out_dir",f"out_{pid}","--use_msa_server","--no_kernels","--override"], check=True)
+        cmd = ["boltz","predict",y,"--out_dir",f"out_{pid}","--use_msa_server","--override"]
+        if NK == "1": cmd.append("--no_kernels")
+        subprocess.run(cmd, check=True)
         cifs = (glob.glob(f"out_{pid}/**/*_model_0.cif", recursive=True)
                 or glob.glob(f"out_{pid}/**/*.cif", recursive=True))
         if cifs:
@@ -126,7 +135,7 @@ exec > /var/log/cofold-boot.log 2>&1
 mkdir -p /opt/cofold/code
 for i in 1 2 3 4 5; do aws s3 cp $S3RUN/code/cofold_v2_driver.sh /opt/cofold/code/driver.sh --region us-west-2 && break; sleep 10; done
 chmod +x /opt/cofold/code/driver.sh
-OUT_S3=$S3RUN TARGET=$TARGET MAX_RUNTIME=$MAX_RUNTIME bash /opt/cofold/code/driver.sh
+OUT_S3=$S3RUN TARGET=$TARGET MAX_RUNTIME=$MAX_RUNTIME NO_KERNELS=$NO_KERNELS bash /opt/cofold/code/driver.sh
 EOF
 UD=$(base64 < "$BOOT" | tr -d '\n')
 
@@ -136,6 +145,10 @@ declare -a COMBO=(
   "g5.4xlarge subnet-0254e4c3634b41bfc" "g6.4xlarge subnet-0254e4c3634b41bfc"
   "g5.4xlarge subnet-03b277a7a08d388c1" "g5.4xlarge subnet-09e4dce46682a6c60"
 )
+# 9xmm = 1069-res receptor -> needs high single-GPU memory (L40S 48GB); kernels keep memory low
+if [ "$TARGET" = 9xmm ]; then
+  COMBO=( "g6e.2xlarge subnet-0254e4c3634b41bfc" "g6e.4xlarge subnet-0254e4c3634b41bfc" "g6e.8xlarge subnet-0254e4c3634b41bfc" "g5.12xlarge subnet-0254e4c3634b41bfc" )
+fi
 launch_one(){
   local market="$1" c TYPE SUBNET market_opt=""
   [ "$market" = spot ] && market_opt='--instance-market-options {"MarketType":"spot","SpotOptions":{"SpotInstanceType":"one-time","InstanceInterruptionBehavior":"terminate"}}'
