@@ -1,40 +1,51 @@
 # v2 CRO order — selection rationale (internal; the shipped CSV is score-free)
 
-**Date:** 2026-10-13 · Ship-ready order: `docs/20261013_CRO_SEND_v2.csv` (= `results/CRO_SEND_v2.csv`),
-GenScript CRO_SEND schema, **score-free** (no ΔG/iptm/tier/FTO columns — internal evidence stays here).
-Selection rule: **multi-objective Pareto front ∩ (NOT committee NO-GO) ∩ liability-acceptable**, on the
-candidates that cleared pharmacophore + liability + FTO + MM-GBSA. 6 candidates (4 αvβ6 + 2 PD-L1).
+**Date:** 2026-10-13 · Ship-ready: `docs/20261013_CRO_SEND_v2.csv` (= `results/CRO_SEND_v2.csv`), GenScript
+CRO_SEND schema, **score-free**. **12 candidates (8 αvβ6 + 4 PD-L1)** — round-1-comparable scale.
 
-## What ships (production HELM, with the real ncAA)
-| Item | id | HELM (N→C, cyclic) | internal evidence |
+## Correction (why this is 12, not 6)
+A first pass produced only 6 because it required an MM-GBSA ΔG to enter the Pareto selection — but the
+psfgen build bug left **5/10 αvβ6 unscored**, so good candidates were dropped for a **tooling reason, not
+merit** (including the original lead **K-08** and committee top-picks **K-05/K-07**). Corrected: select on
+**ALL evidence** — MM-GBSA ΔG where available, else the cofold peptide↔receptor interface confidence + the
+cheap gates (pharmacophore, liability, FTO) + the committee. A missing ΔG (tooling gap) is not a demerit.
+
+## What ships
+**αvβ6 (8)** — all carry RGD·L + D-Pro/N-methyl lock, liability- and FTO-screened:
+| Item | id | HELM | evidence |
 |---|---|---|---|
-| AVB6-V2-01 | AVB6-K-02 | cyclo(W-R-G-D-L-T-F-[dP]-[NMeV]) | MM-GBSA **−26.5** (lead), Pareto, FTO-clean, RGDL+lock |
-| AVB6-V2-02 | AVB6-K-06 | cyclo(R-G-D-L-Q-F-[dP]-[NMeS]-G) | MM-GBSA −22.8, Pareto, PASS tier, committee top pick |
-| AVB6-V2-03 | AVB6-K-03 | cyclo(Y-R-G-D-L-G-H-[dP]-[NMeL]) | MM-GBSA −18.0, Pareto, PASS, committee top pick |
-| AVB6-V2-04 | AVB6-K-01 | cyclo(F-R-G-D-L-S-W-[dP]-[NMeA]) | MM-GBSA −16.6, Pareto, FTO-clean |
-| PDL1-V2-01 | PDL1-K-05 | cyclo(W-Y-F-[dP]-L-[NMeI]-T-E-N-K-S-G) | MM-GBSA **−29.0** (PD-L1 best), Pareto, committee top pick |
-| PDL1-V2-02 | PDL1-K-02 | cyclo(W-[Nle]-F-[dP]-I-[NMeL]-S-E-K-G) | MM-GBSA −22.9, Pareto, Met→**Nle** (oxidation fix, production form) |
+| AVB6-V2-01 | K-02 | cyclo(W-R-G-D-L-T-F-[dP]-[NMeV]) | MM-GBSA **−26.5** (lead) |
+| AVB6-V2-02 | K-06 | cyclo(R-G-D-L-Q-F-[dP]-[NMeS]-G) | MM-GBSA −22.8; committee pick; PASS |
+| AVB6-V2-03 | K-03 | cyclo(Y-R-G-D-L-G-H-[dP]-[NMeL]) | MM-GBSA −18.0; committee pick; PASS |
+| AVB6-V2-04 | K-01 | cyclo(F-R-G-D-L-S-W-[dP]-[NMeA]) | MM-GBSA −16.6; FTO-clean |
+| AVB6-V2-05 | K-04 | cyclo(H-R-G-D-L-A-W-[dP]-[NMeE]) | MM-GBSA −16.5; renal-fixed (net −1) |
+| AVB6-V2-06 | K-05 | cyclo(F-R-G-D-L-I-F-[dP]-[NMeA]) | cofold iptm 0.91; **extended-affinity RGDL-I**; committee pick (ΔG pending) |
+| AVB6-V2-07 | K-07 | cyclo([dL]-R-G-D-L-S-F-[dP]-[NMeT]) | cofold iptm 0.89; committee pick (ΔG pending) |
+| AVB6-V2-08 | K-08 | cyclo(Y-R-G-D-L-I-W-[dP]-[NMeA]) | **original lead**: PASS + extended-affinity + FTO-clean; cofold iptm 0.91 (ΔG pending) |
 
-## Why these and not others
-- **αvβ6:** the scored Pareto front is {K-02, K-06, K-03, K-01} (K-04 dominated); none committee-NO-GO → all 4 ship.
-  K-05/07/08/09/10 have no MM-GBSA ΔG (the 5/10 psfgen build bug, stopped after 3 fixes) so they are not in
-  the physics-selected set this round.
-- **PD-L1:** Pareto front {K-05, K-03, K-04, K-02}, but the committee **NO-GO'd K-03 and K-04** (their liability-fix
-  edits — Asp-Ser→Ser-Asp, K-D-G→K-G-D tail reorder — risk breaking the structure-gated binding, an activity
-  cliff). Respecting that, PD-L1 ships only **K-05 and K-02**. K-03/K-04 are dock-validate/redesign-first.
+**PD-L1 (4)** — committee-clean, best-within-v2 (PD-L1 physics is confounded-weak overall):
+| Item | id | HELM | evidence |
+|---|---|---|---|
+| PDL1-V2-01 | K-05 | cyclo(W-Y-F-[dP]-L-[NMeI]-T-E-N-K-S-G) | MM-GBSA **−29.0** (best); committee pick |
+| PDL1-V2-02 | K-02 | cyclo(W-[Nle]-F-[dP]-I-[NMeL]-S-E-K-G) | MM-GBSA −22.9; Met→**Nle** (oxidation fix) |
+| PDL1-V2-03 | K-01 | cyclo(F-W-L-[dP]-Y-S-[NMeF]-D-T-K) | MM-GBSA −23.4; unedited |
+| PDL1-V2-04 | K-07 | cyclo(F-W-[dP]-Y-I-L-[NMeF]-E-R-S) | MM-GBSA −23.2; unedited |
 
-## Honest caveats (carry into the assay plan, not the CRO CSV)
-- **Binding-only physics.** MM-GBSA/cofold rank *binding*; the CRO order must be paired with **functional +
-  selectivity assays** — αvβ6 vs αvβ3/αvβ5/αvβ8 counterscreen; PD-L1 PD-1/PD-L1 blockade reporter. Binding ≠ function.
-- **Proxies, not trained models.** Permeability (RDKit TPSA) and safety (liability tier) in the Pareto step are
-  transparent proxies — the trained EnsembleCycPerm / HistGBM-P[stable] models are a follow-up.
-- **MM-GBSA is relative-within-set** (entropy omitted, rₚ≈0.75); it decides ranking, not absolute affinity.
-  FEP on the αvβ6 leaders (K-02/K-06) is the accuracy upgrade (pending the OpenFE build).
-- **PD-L1 physics is confounded-weak** vs round-1's generator set (pose-source + length confounds); K-05/K-02
-  are the best *within v2*, not proven strong binders.
-- **ncAA synthesis:** Nle (PDL1-V2-02) and D-Pro/N-methyl are in the HELM; confirm GenScript can source them.
+## Excluded on merit (not tooling)
+- **αvβ6 K-09** — committee NO-GO (4-mutation FTO-dodge, cliff risk; lowest-with-K-10 cofold iptm 0.78).
+- **αvβ6 K-10** — weakest cofold pose (0.73) + residual renal; heavy edit.
+- **PD-L1 K-03, K-04** — committee NO-GO (liability-fix edits risk breaking the structure-gated binding).
+- **PD-L1 K-08** — committee aggregation flag + weakest ΔG (−21.8); disulfide scaffold.
 
-## Pre-ship gate (the lesson, applied)
-This set cleared, in order: **pharmacophore (mechanism) → liability/SAR → FTO → MM-GBSA (binding) →
-multi-objective Pareto → cross-model committee**. That is the gate round-1 lacked when its 0/12-RGD panel
-reached the order stage. Nothing here is a validated drug — it is the best-evidenced *hypothesis set* to test.
+## Honest caveats (into the assay plan, not the CRO CSV)
+- **Binding-only.** Pair with functional + selectivity assays: αvβ6 vs αvβ3/αvβ5/αvβ8 counterscreen; PD-L1
+  PD-1/PD-L1 blockade. Binding ≠ function.
+- **3 αvβ6 (K-05/07/08) have no MM-GBSA ΔG yet** (psfgen bug) — included on cofold-confidence + gates +
+  committee; their ΔG completes once the full-10 build is fixed (deferred sub-task).
+- Permeability/safety in the Pareto step were RDKit/liability **proxies** (trained models = follow-up);
+  MM-GBSA is relative-within-set; PD-L1 physics confounded vs round-1; FEP (OpenFE) on finalists pending.
+- ncAA (Nle, D-Pro, N-methyl) in HELM — confirm the CRO can source them.
+
+## Gate applied (the round-1 lesson)
+pharmacophore → liability/SAR → FTO → MM-GBSA → multi-objective Pareto → cross-model committee. Best-
+evidenced hypothesis set to test — not validated drugs.
