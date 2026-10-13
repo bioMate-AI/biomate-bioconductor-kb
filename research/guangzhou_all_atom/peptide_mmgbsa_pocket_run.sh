@@ -11,7 +11,7 @@
 # MM-GBSA is a RELATIVE ranking oracle (Sun PCCP 2019), not absolute; confirm finalists with FEP.
 set -Eeuo pipefail
 export AWS_DEFAULT_REGION=us-west-2 DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1 HOME=/root
-ROOT=/opt/mmg; OUT_S3=${OUT_S3:?}; DESIGNS_S3=${DESIGNS_S3:?}
+ROOT=/opt/mmg; OUT_S3=${OUT_S3:?}; DESIGNS_S3=${DESIGNS_S3:?}; export OUT_S3 DESIGNS_S3
 NS=${NS:-0.5}   # MD length in ns (implicit solvent; short is fine for ranking)
 mkdir -p "$ROOT/status" "$ROOT/w"; cd "$ROOT/w"
 exec > >(tee -a "$ROOT/status/mmg.log") 2>&1
@@ -222,6 +222,7 @@ for cif in designs:
         import traceback; rec['ok']=False; rec['error']=type(e).__name__+': '+str(e)[:200]
         print(f"{tag} FAILED:", rec['error']); traceback.print_exc()
     results.append(rec); json.dump({'results':results}, open('/opt/mmg/status/mmgbsa_results.json','w'), indent=2)
+    __import__('os').system("aws s3 cp /opt/mmg/status/mmgbsa_results.json %s/status/mmgbsa_results.json --only-show-errors 2>/dev/null" % __import__('os').environ.get('OUT_S3',''))  # per-design sync -> continuous middle outputs
 
 ok=[r for r in results if r.get('ok')]
 ok.sort(key=lambda r: r['dG_bind_kcal_mol'])
