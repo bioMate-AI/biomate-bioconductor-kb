@@ -15,12 +15,14 @@ cream/navy brand tokens).
   drug discovery is framed at the **capability / therapeutic-area** level only.
 - **Citation integrity.** Every proof point added to the homepage is a figure
   **already published on `benchmarks.html`** — nothing new was asserted.
-- **Status framed as the iteration cycle, not a linear milestone.** Both "in silico
-  design complete" and "…underway" read as a one-shot waterfall; what we sell is the
-  closed design→evaluate→test→learn loop. Final public wording: **"running
-  computational design–evaluation cycles · first experimental validation round
-  planned Q4 2026 · results feed the next iteration in Q1 2027."** Accurate
-  (computational iterations are actively running) and foregrounds the cycle.
+- **Status = a continuous loop, no dated milestones.** Any phrasing with calendar
+  dates ("…complete", "…underway", "validation Q4 2026 → results Q1 2027") reads as
+  a one-shot waterfall. What we sell is a design→evaluate→test→learn loop that runs
+  continuously. Final framing carries **no dates**: drug-discovery chip = "Active
+  program · design → evaluate → test → learn, iterating continuously"; research-
+  engines = the loop diagram + "The loop runs continuously: every round of
+  experimental results feeds the next generation of designs" (redundant dated pill
+  removed).
 
 ## Changes by file
 
@@ -56,9 +58,9 @@ loop diagram), `.wb-note`, `.wb-cycle-note`. Mobile: collapse to 2-up, hide arro
 - Kept **"Candidates remain hypotheses until tested experimentally."**
 - Added the **4-step loop diagram**: Design → Computational evaluation →
   Synthesis & assays → Model update, with a "loop repeats" note.
-- Added **program-status** line (cycle-framed): running computational design–
-  evaluation cycles · first experimental validation round planned Q4 2026 ·
-  results feed the next iteration in Q1 2027.
+- **Continuous-loop** framing (no dates): the loop diagram + "The loop runs
+  continuously: every round of experimental results feeds the next generation of
+  designs."
 - Hero now names immunology, immuno-oncology, cyclic peptides.
 
 ### `compare.html` ("BioMate vs. the alternatives") — reviewed, no change
