@@ -92,6 +92,17 @@ function shortenId(raw?: string, prefix = "", maxLen = 8): string {
 }
 
 /**
+ * The persisted active-project id — the synced source of truth (the context
+ * writes it on every setActiveProjectId and clears it on null). Read it at
+ * LAUNCH time so a stale callback closure (a memoized child holding an older
+ * handler whose `activeProjectId` was null) can't launch a project run as
+ * proj=none. A genuinely standalone chat resolves to undefined (key absent).
+ */
+function persistedActiveProjectId(): string | undefined {
+  try { return localStorage.getItem('biomate-active-project-id') || undefined } catch { return undefined }
+}
+
+/**
  * Chat-first layout: Full-width chat with workflows displayed inline as artifacts.
  * No split panel - workflows appear as collapsible cards within chat messages.
  */
@@ -1189,12 +1200,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             galaxyInvocationId: workflow.__retryContext.galaxyInvocationId,
           }
         : undefined;
-      console.log('[launch][diag] executeWorkflow activeProjectId=', activeProjectId, 'localStorage=', (() => { try { return localStorage.getItem('biomate-active-project-id') } catch { return 'ERR' } })())
       const run = await executeWorkflow({
         workflowDefinition,
         workflowName: workflow.name || 'bioMate Workflow',
         chatSessionId: currentChatSession?.id || undefined,
-        projectId: activeProjectId || undefined,
+        projectId: activeProjectId || persistedActiveProjectId(),
         executionConfig: {
           mode: 'sandbox',
           dataScope: { fraction: 1.0, samplingStrategy: 'sequential', sampledIds: [] },
@@ -1296,7 +1306,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       const result = await submitWorkflowFromArtifact(
         workflow,
         currentChatSession?.id,
-        { projectId: activeProjectId || undefined },
+        { projectId: activeProjectId || persistedActiveProjectId() },
       );
 
       if (result.runId) {
@@ -1383,7 +1393,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       const result = await submitWorkflowFromArtifact(
         workflow,
         currentChatSession?.id,
-        { ...pipelineApprovalOptions(workflow), projectId: activeProjectId || undefined },
+        { ...pipelineApprovalOptions(workflow), projectId: activeProjectId || persistedActiveProjectId() },
       );
 
       if (result.runId) {
