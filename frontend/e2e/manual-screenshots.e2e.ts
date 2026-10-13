@@ -100,15 +100,16 @@ test("capture data-hub drill-in (I.5)", async ({ page }) => {
 });
 
 // Capture the run-dependent after-run report from an EXISTING completed run
-// (no fresh Batch run) via /debug/viewer/:runId, which mounts the workflow
-// viewer in completed state. Set MANUAL_RUN_ID to a run that has outputs.
-const RUN_ID = process.env.MANUAL_RUN_ID || "15736778-6689-44d9-bca1-563987669457";
+// (no fresh Batch run) via /debug/afterrun/:runId, which mounts the v2
+// AfterRunReport (the MERGED "Results" view) in completed state. Set
+// MANUAL_RUN_ID to a run that has findings + outputs. Default = the ADMET run.
+const RUN_ID = process.env.MANUAL_RUN_ID || "c79a9ccc-2e9b-4fa6-94ce-a3f54aaaa950";
 test("capture after-run report from an existing run (I.6/I.8/I.9)", async ({ page }) => {
   test.setTimeout(150_000);
   await loginAsFixture(page);
   const log: string[] = [];
-  const shot = async (name: string) => {
-    await page.screenshot({ path: path.join(ASSETS, name) });
+  const shot = async (name: string, el?: import("@playwright/test").Locator) => {
+    await (el ?? page).screenshot({ path: path.join(ASSETS, name) });
     log.push(`OK   ${name}`);
   };
   const clickTab = async (testid: string) => {
@@ -118,10 +119,17 @@ test("capture after-run report from an existing run (I.6/I.8/I.9)", async ({ pag
   };
   try {
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto(BASE_URL + `/debug/viewer/${RUN_ID}`, { waitUntil: "domcontentloaded", timeout: 45_000 });
-    await page.waitForTimeout(6000); // viewer + after-run report render
-    await shot("i09-1-three-tabs.png"); // Summary (landing) of the 3-tab report
-    if (await clickTab("after-tab-outputs")) await shot("i08-1-outputs-tab.png");
+    await page.goto(BASE_URL + `/debug/afterrun/${RUN_ID}`, { waitUntil: "domcontentloaded", timeout: 45_000 });
+    await page.waitForTimeout(6000); // AfterRunReport + findings fetch + lazy previews render
+    // Merged "Results" tab is the landing tab: findings banner on top, then the
+    // searchable inline Outputs gallery (no separate Outputs tab anymore).
+    await shot("i09-1-three-tabs.png"); // now: the Results tab (findings banner + outputs below)
+    const outputs = page.locator('[data-testid="output-files-table"]').first();
+    if (await outputs.isVisible({ timeout: 4000 }).catch(() => false)) {
+      await outputs.scrollIntoViewIfNeeded().catch(() => {});
+      await page.waitForTimeout(1500);
+      await shot("i08-1-outputs-tab.png", outputs); // the inline output-preview gallery (Results tab)
+    }
     if (await clickTab("after-tab-record")) await shot("i09-2-reproducibility-record.png");
   } catch (e: any) {
     log.push(`FAIL after-run — ${e?.message?.split("\n")[0] ?? e}`);
