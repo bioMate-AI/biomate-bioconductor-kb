@@ -72,10 +72,21 @@ export function ActiveProjectProvider({ children }: { children: React.ReactNode 
     try {
       const res = await api.listProjects('active')
       setProjects(res.projects ?? [])
-      // If the persisted active project is no longer in the active list,
-      // clear it — the user may have archived/deleted it elsewhere.
+      // Only clear the active project when it is CONFIRMED no longer active —
+      // not merely absent from THIS list response. "Absent from one 'active'
+      // list" races with a freshly-created or not-yet-listed project (and a
+      // capped/stale list); treating it as "deleted" wrongly nulled a valid
+      // active project, so a run launched from that chat lost its projectId and
+      // its outputs did not auto-save. Verify with a direct GET: a 404/403 means
+      // really gone; a non-active status means archived/completed (also clear);
+      // a live active project that's just missing from this page is KEPT.
       if (activeProjectId && !(res.projects ?? []).some((p) => p.id === activeProjectId)) {
-        setActiveProjectId(null)
+        try {
+          const { project } = await api.getProject(activeProjectId)
+          if (!project || project.status !== 'active') setActiveProjectId(null)
+        } catch {
+          setActiveProjectId(null)
+        }
       }
     } catch (e) {
       console.warn('[active-project] refresh failed:', e)
