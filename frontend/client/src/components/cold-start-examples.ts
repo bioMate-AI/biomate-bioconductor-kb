@@ -6,7 +6,7 @@ export const PREPARED_EXAMPLES = [
   { label: 'Try sample data: CTCF ChIP-seq peak calling', prompt: 'Run perform_chipseq_peak_calling_with_macs2 using its built-in MACS3 CTCF_SE ChIP and control chr22 50k-read BED demo files. Use the real public demo defaults.' },
   { label: 'Try sample data: histology nuclei segmentation', prompt: 'Run wsi_he_nuclei_segmentation using the built-in real OpenSlide CMU-1-Small-Region.svs demo slide. Use the public sample data defaults.' },
   { label: 'Try sample data: ATAC-seq accessibility', prompt: 'Run analyze_atac_seq_differential_accessibility using its built-in real nf-core treatment and control BAM demo pair. Use the public sample data defaults.' },
-  { label: 'Try sample data: proteomics pull-down QC', prompt: 'Run chemoproteomics_pulldown using its built-in real LFQ-Analyst proteinGroups.txt public demo dataset. This demonstrates the workflow and QC, not a biologically specific pull-down experiment. Use the sample data defaults.' },
+  { label: 'Try sample data: proteomics pull-down QC', prompt: 'Run the chemoproteomics_pulldown workflow on its built-in LFQ-Analyst proteinGroups.txt public demo dataset; use the sample-data defaults. (A workflow + QC demonstration on public demo data, not a biologically specific pull-down.)' },
 ] as const;
 
 export async function prepareColdStartExample(text: string): Promise<{ prompt: string; files: File[] }> {
