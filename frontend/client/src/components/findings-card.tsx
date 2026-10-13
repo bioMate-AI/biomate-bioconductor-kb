@@ -97,7 +97,9 @@ export function linkifyFindings(
 export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpenOutput }: FindingsCardProps) {
   const [data, setData] = useState<FindingsData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [resultsExpanded, setResultsExpanded] = useState(false)
+  // Preview the Key Results table by default (don't hide the content behind a
+  // click) — users can still collapse it. The headline chips remain a fast glance.
+  const [resultsExpanded, setResultsExpanded] = useState(true)
   const [citationsExpanded, setCitationsExpanded] = useState(false)
 
   const runFailed = executionStatus === 'failed' || executionStatus === 'error'
@@ -341,7 +343,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
           <Button variant="outline" size="sm" className="text-xs h-7" asChild>
             <a href={reportUrl} download>
               <Download className="h-3 w-3 mr-1" />
-              {tOr('panel.findings.download_report', 'Download report')}
+              {tOr('panel.findings.download_report', 'Download findings')}
             </a>
           </Button>
           {ns && ns.length > 0 && onContinueAnalysis && (
