@@ -51,7 +51,7 @@ Fix: extracted `saveRunOutputsToProject` helper + `autoSaveCompletedRunOutputs`;
 - Idempotent: re-save → `registered:0`.
 - UI: outputs appear in Files **grouped under a run folder** ("Predict ADMET Properties (AI) · <ts>", 6 files).
 - **Non-empty Lineage** now works: "Produced by run … · Workflow … · Step run" + READ BY section (closes the earlier Lineage test gap).
-Auto-trigger chain fully code-traced (project chat → `projectId` on launch → `run.project_id` → hook at the proven ADMET completion path); the live run that watches auto-fire on a *fresh* project run was not performed (every component is independently verified).
+**End-to-end auto-trigger — verified live:** launched a fresh project-scoped ADMET run (scratch project, project New-chat → cold-start ADMET). Run picked up the project id (`projScoped=YES`), completed in 144s, and **6 outputs auto-appeared** in the project's Files (`source=run_output`) with **zero manual `save-to-project` calls**. `RESULT {projectScopedRun:true, finalStatus:completed, autoSavedOutputs:6}`. Scratch project deleted after.
 
 ## Deferred / needs direction
 - Workflow panel running/completed/failed states (needs a launched Batch run — cost).
