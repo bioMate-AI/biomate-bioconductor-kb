@@ -15,14 +15,16 @@ cream/navy brand tokens).
   drug discovery is framed at the **capability / therapeutic-area** level only.
 - **Citation integrity.** Every proof point added to the homepage is a figure
   **already published on `benchmarks.html`** — nothing new was asserted.
-- **Status = a continuous loop, no dated milestones.** Any phrasing with calendar
-  dates ("…complete", "…underway", "validation Q4 2026 → results Q1 2027") reads as
-  a one-shot waterfall. What we sell is a design→evaluate→test→learn loop that runs
-  continuously. Final framing carries **no dates**: drug-discovery chip = "Active
-  program · design → evaluate → test → learn, iterating continuously"; research-
-  engines = the loop diagram + "The loop runs continuously: every round of
-  experimental results feeds the next generation of designs" (redundant dated pill
-  removed).
+- **Continuous loop first, dates as phase markers within it.** A start→finish dated
+  line ("…complete", "validation Q4 2026 → results Q1 2027") reads as a one-shot
+  waterfall and kills the iteration story. Final framing keeps the loop central AND
+  shows Q4/Q1 estimates as rounds *within* the ongoing cycle:
+  - drug-discovery chip = "Active program · design → evaluate → test → learn,
+    iterating continuously" (no dates on the teaser).
+  - research-engines = loop diagram + "The loop runs continuously…" + an
+    **"Estimated phasing"** strip of two chips: "Q4 2026 · first wet-lab validation
+    rounds enter the loop" and "Q1 2027 · results feed the next round of designs."
+    Wording ("rounds", "enter the loop", "next round") keeps it cyclic, not linear.
 
 ## Changes by file
 
@@ -58,9 +60,9 @@ loop diagram), `.wb-note`, `.wb-cycle-note`. Mobile: collapse to 2-up, hide arro
 - Kept **"Candidates remain hypotheses until tested experimentally."**
 - Added the **4-step loop diagram**: Design → Computational evaluation →
   Synthesis & assays → Model update, with a "loop repeats" note.
-- **Continuous-loop** framing (no dates): the loop diagram + "The loop runs
-  continuously: every round of experimental results feeds the next generation of
-  designs."
+- **Continuous-loop** framing: loop diagram + "The loop runs continuously…" + an
+  "Estimated phasing" strip with Q4 2026 and Q1 2027 milestone chips framed as
+  rounds within the ongoing cycle.
 - Hero now names immunology, immuno-oncology, cyclic peptides.
 
 ### `compare.html` ("BioMate vs. the alternatives") — reviewed, no change
