@@ -1,0 +1,68 @@
+/* Editorial workbench pages: preserve the cream/navy brand and shared shell. */
+.wb-container { max-width: 1200px; margin:auto; padding:0 clamp(22px,5vw,64px); }
+.wb-section { padding:clamp(64px,8vw,112px) 0; }
+.wb-eyebrow { font-size:.74rem; text-transform:uppercase; letter-spacing:.14em; font-weight:700; margin-bottom:20px; }
+.wb-section h2,.wb-page-hero h1 { font-family:var(--font-head); font-size:clamp(36px,4.5vw,60px); font-weight:400; line-height:1.08; letter-spacing:-.025em; margin:0 0 26px; }
+.wb-section h3 { font-size:1.15rem; font-weight:600; line-height:1.3; margin-bottom:12px; }
+.wb-section p { color:var(--text-muted); }
+.wb-section .wb-eyebrow { color:var(--accent); }
+.wb-hero { min-height:650px; min-height:min(820px,90svh); position:relative; display:flex; align-items:center; color:#fff; background:var(--bg-ink); }
+.wb-hero-image,.wb-hero-shade { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.wb-hero-image { object-position:70% center; }
+.wb-hero-shade { background:linear-gradient(90deg,rgba(10,26,39,.94),rgba(10,26,39,.68) 48%,rgba(10,26,39,.08)); }
+.wb-hero-copy { position:relative; width:100%; padding-top:70px; padding-bottom:70px; }
+.wb-hero h1 { font-family:var(--font-head); font-size:clamp(58px,8vw,108px); font-weight:400; line-height:.98; letter-spacing:-.035em; margin:0 0 30px; }
+.wb-hero-copy>p { max-width:510px; color:#e1e7eb; }
+.wb-hero-copy .wb-intro { font-size:clamp(20px,2vw,26px); line-height:1.35; margin-bottom:18px; color:#fff; }
+.wb-actions { display:flex; align-items:center; flex-wrap:wrap; gap:24px; margin-top:32px; }
+.wb-light-link { color:#fff; font-weight:600; text-decoration:underline; text-underline-offset:6px; }
+.wb-light-link:hover { color:#d6e8f8; }
+.wb-cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:28px; margin-top:42px; }
+.wb-card { color:var(--text); display:block; border-bottom:1px solid var(--border); padding-bottom:26px; }
+.wb-card img { aspect-ratio:4/3; width:100%; object-fit:cover; border-radius:3px; }
+.wb-card>div { padding-top:24px; }
+.wb-card .wb-eyebrow { margin-bottom:12px; }
+.wb-card h3 { font-family:var(--font-head); font-size:29px; }
+.wb-card p:not(.wb-eyebrow) { margin-bottom:20px; }
+.wb-link { display:inline-block; color:var(--accent); font-weight:600; text-decoration:underline; text-underline-offset:5px; }
+.wb-card:hover .wb-link { color:var(--text); }
+.wb-tint { background:var(--bg-2); }
+.wb-split { display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:clamp(32px,7vw,90px); }
+.wb-lead { font-size:1.08rem; max-width:560px; margin-bottom:28px; }
+.wb-process>div { position:relative; padding:26px 0 26px 44px; border-bottom:1px solid var(--border); }
+.wb-process>div:first-child { padding-top:0; }
+.wb-process span { position:absolute; left:0; font-size:.8rem; color:var(--accent); }
+.wb-process p { font-size:.94rem; }
+.wb-feature-image { width:100%; aspect-ratio:1; object-fit:cover; border-radius:3px; }
+.wb-sequence { font-size:.85rem; line-height:1.8; padding:22px 0; border-block:1px solid var(--border); margin:24px 0; }
+.wb-dark { background:var(--bg-ink); color:#fff; }
+.wb-dark p,.wb-dark .wb-eyebrow { color:#c6d5df; }
+.wb-dark a:not(.bm-btn) { color:#e3edf4; }
+.wb-trust { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:44px; margin:40px 0 50px; }
+.wb-trust p { margin-bottom:18px; }
+.wb-trust a { font-size:.9rem; text-decoration:underline; text-underline-offset:5px; }
+.wb-page-hero { padding:clamp(72px,10vw,130px) 0 70px; }
+.wb-page-hero h1 { max-width:850px; font-size:clamp(46px,6vw,82px); }
+.wb-page-hero .wb-lead { max-width:720px; }
+.wb-stage { font-size:.78rem; border:1px solid var(--border); border-radius:30px; display:inline-block; padding:5px 12px; margin-bottom:20px; }
+@media(min-width:901px) { .bm-nav-links a { padding-inline:10px; font-size:.83rem; } }
+
+/* Proof strip — benchmarked figures shown as a compact credibility band */
+.wb-proof { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:30px 26px; margin:36px 0 4px; }
+.wb-proof>div { border-top:2px solid var(--accent); padding-top:14px; }
+.wb-proof .num { font-family:var(--font-head); font-size:clamp(30px,3.4vw,46px); line-height:1; color:var(--text); }
+.wb-proof .lbl { font-size:.8rem; color:var(--text-muted); margin:9px 0 0; line-height:1.45; }
+.wb-proof-note { font-size:.85rem; color:var(--text-muted); margin-top:26px; }
+
+/* Step flow — worked example (funnel) and the design/test/learn loop diagram */
+.wb-flow { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin:36px 0 6px; align-items:stretch; }
+.wb-flow>div { position:relative; border:1px solid var(--border); border-radius:10px; padding:20px 18px; background:var(--bg); }
+.wb-flow .n { display:inline-block; font-size:.72rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); margin-bottom:10px; }
+.wb-flow h3 { font-size:1rem; font-weight:600; line-height:1.3; margin:0 0 8px; }
+.wb-flow p { font-size:.86rem; color:var(--text-muted); margin:0; }
+.wb-flow .stat { display:block; font-family:var(--font-head); font-size:1.5rem; line-height:1.1; color:var(--text); margin-top:12px; }
+.wb-flow--arrow>div:not(:last-child)::after { content:"\2192"; position:absolute; right:-11px; top:50%; transform:translateY(-50%); color:var(--accent); font-size:1.15rem; z-index:1; }
+.wb-note { font-size:.8rem; color:var(--text-muted); font-style:italic; margin-top:14px; }
+.wb-cycle-note { font-size:.86rem; color:var(--text-muted); margin-top:16px; }
+
+@media(max-width:760px) { .wb-cards,.wb-trust,.wb-split { grid-template-columns:1fr; } .wb-hero { min-height:680px; } .wb-hero-shade { background:linear-gradient(90deg,rgba(10,26,39,.9),rgba(10,26,39,.62)); } .wb-trust { gap:30px; } .wb-feature-image { aspect-ratio:4/3; } .wb-proof,.wb-flow { grid-template-columns:repeat(2,1fr); } .wb-flow--arrow>div::after { display:none; } }
