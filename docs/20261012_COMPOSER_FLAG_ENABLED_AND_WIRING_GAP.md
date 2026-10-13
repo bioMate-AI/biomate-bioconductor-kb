@@ -180,5 +180,20 @@ backend-vs-Node composer consolidation.
   `pipeline-step` rows == `pipeline_steps.length` (both graph modes). The live e2e only exercises the
   panel/chain representation for the RNA-seq query; this pins the inline PipelineListView branch.
 - **e2e** re-run: 2/2 PASS (not flaky on these runs). vitest 1857 passed / 0 failed; tsc clean.
-- Still open (minor): firefox browser binary not installed locally (chromium-only); on-prem
-  `localIntentPrompt` parity.
+
+## 9. Full test pass ("test fully") — synced `15084f71`
+- **Cross-browser e2e** — installed the firefox browser; composer e2e now PASSES on **chromium
+  (2/2)** and **firefox (1/1)** (panel run CTA, draft, not dispatched).
+- **On-prem prompt parity (#1)** — mirrored the draft/"don't launch yet" rule into
+  `server/local-intent-prompt.ts`; added `local-intent-prompt.test.ts` (3 tests: rule present,
+  chain-hint matching, parseable output-schema). CODE parity only — runtime on-prem classification
+  needs the on-prem LLM (dev runs the cloud prompt), stated honestly.
+- **Single-workflow regression (live SSE)** — "Run nf-core/rnaseq on my FASTQ (GRCh38)" still returns
+  `state:workflow_ready`, `workflow_type:nextflow`, with `workflow_ga` + `nextflow_path` — the
+  allowlist extraction + #1 prompt did NOT regress the normal single-workflow path.
+- **Unit** — `tsc` clean; **vitest 1860 passed / 0 failed** (1847 baseline + 10 runnableWorkflow +
+  3 local-intent-prompt; inline-pipeline rows added to the existing pipeline test).
+- **Remaining (acknowledged, low-risk):** the exhaustive *entire* live-e2e suite was not run
+  (diminishing returns vs. cost; the affected surface is covered by unit + 8 live classification
+  probes + 3 live SSE checks + cross-browser e2e). On-prem prompt runtime validation pending the
+  on-prem model.
