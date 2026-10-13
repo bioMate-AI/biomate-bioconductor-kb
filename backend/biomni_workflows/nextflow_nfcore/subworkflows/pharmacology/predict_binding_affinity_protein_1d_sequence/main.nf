@@ -76,24 +76,25 @@ def auto_convert(val):
 
 
 def predict_binding_affinity_protein_1d_sequence(smiles_list, amino_acid_sequence, affinity_model_type="MPNN-CNN"):
-    # Install required dependencies
+    # Ensure DeepPurpose is importable. If the image lacks it, install into a task-local dir and retry.
+    # Do NOT return a fake-success stub on failure — that silently produces no scores; fail loudly instead.
     import subprocess
     import sys
     import os
     os.environ['HOME'] = '/tmp'
     target_dir = os.path.join(os.getcwd(), "pip_packages")
     os.makedirs(target_dir, exist_ok=True)
+    if target_dir not in sys.path:
+        sys.path.insert(0, target_dir)
 
-    # Install DeepPurpose and its dependencies
-    deep_purpose_available = False
     try:
         from DeepPurpose import DTI, utils
-        deep_purpose_available = True
     except ImportError:
-        pass
-
-    if not deep_purpose_available:
-        return "Binding affinity prediction workflow validated successfully. DeepPurpose package is not available in this environment. In production with a DeepPurpose Docker image, this would: 1) Load the pre-trained " + str(affinity_model_type) + " model, 2) Process SMILES and protein sequences, 3) Predict binding affinities in nM."
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "--target", target_dir, "--no-cache-dir", "DeepPurpose"],
+            check=True,
+        )
+        from DeepPurpose import DTI, utils  # if this still raises, the run fails (no silent stub)
 
     # Define available model types for Binding Affinity
     available_affinity_model_types = [
