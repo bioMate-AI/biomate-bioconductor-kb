@@ -18,6 +18,8 @@ params.max_time         = '24.h'
 
 // [Input validation] — write sequence to FASTA
 process VALIDATE_INPUT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "sequence.fasta", emit: samplesheet
 
@@ -32,6 +34,8 @@ process VALIDATE_INPUT {
 
 // [Structure prediction — ESMFold stub]
 process ESMFOLD {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     input:
     path fasta
 
@@ -50,6 +54,8 @@ process ESMFOLD {
 
 // [Quality assessment]
 process QUALITY_ASSESSMENT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     input:
     path pdb
 
@@ -64,6 +70,8 @@ process QUALITY_ASSESSMENT {
 
 // [Report]
 process REPORT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     input:
     path pdb
     path metrics
