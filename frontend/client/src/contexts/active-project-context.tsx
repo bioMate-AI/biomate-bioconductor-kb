@@ -81,9 +81,11 @@ export function ActiveProjectProvider({ children }: { children: React.ReactNode 
       // really gone; a non-active status means archived/completed (also clear);
       // a live active project that's just missing from this page is KEPT.
       if (activeProjectId && !(res.projects ?? []).some((p) => p.id === activeProjectId)) {
+        console.log('[active-project][diag] not in active list; verifying', activeProjectId, 'listCount=', (res.projects ?? []).length)
         try {
           const { project } = await api.getProject(activeProjectId)
-          if (!project || project.status !== 'active') setActiveProjectId(null)
+          if (!project || project.status !== 'active') { console.log('[active-project][diag] CLEARING — getProject status=', project?.status); setActiveProjectId(null) }
+          else { console.log('[active-project][diag] KEEP — getProject active') }
         } catch (e: any) {
           // Clear ONLY on a definitive not-found/forbidden — never a transient
           // error. During a dev restart / offline blip, getProject throws a
@@ -92,7 +94,9 @@ export function ActiveProjectProvider({ children }: { children: React.ReactNode 
           // (refresh() re-runs on every activeProjectId change, which amplified
           // this into the observed 'intermittent' context loss.)
           const msg = String(e?.message || '')
+          console.log('[active-project][diag] getProject threw:', msg)
           if (/\b40[34]\b/.test(msg) || /not found/i.test(msg) || /forbidden/i.test(msg)) {
+            console.log('[active-project][diag] CLEARING — definitive 404/403')
             setActiveProjectId(null)
           }
         }

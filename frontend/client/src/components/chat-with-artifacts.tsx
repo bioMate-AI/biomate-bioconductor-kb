@@ -1189,6 +1189,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             galaxyInvocationId: workflow.__retryContext.galaxyInvocationId,
           }
         : undefined;
+      console.log('[launch][diag] executeWorkflow activeProjectId=', activeProjectId, 'localStorage=', (() => { try { return localStorage.getItem('biomate-active-project-id') } catch { return 'ERR' } })())
       const run = await executeWorkflow({
         workflowDefinition,
         workflowName: workflow.name || 'bioMate Workflow',
