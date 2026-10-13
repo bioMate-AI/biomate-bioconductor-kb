@@ -99,3 +99,24 @@ Runner: `research/screenshot_committee/review.py` → `results/committee_raw.jso
 - Roster: OpenAI `openai/gpt-6.1-sol-pro`, Google `google/gemini-3.1-pro-preview-customtools`, Anthropic `anthropic/claude-opus-5.5` — each reviewed all 56 assets independently via OpenRouter.
 - Model errors/empties (honest gaps): 2 — i11-1-design.png:anthropic, t11-1-composer-goal.png:anthropic
 - This is a **review/sanity layer, not validation** — it flags quality/correctness; it does not replace a human design pass.
+
+## Bucket C follow-up — domain end-to-end execution diagnosis (2026-10-13)
+
+Parametrized harness (`frontend/e2e/domain-e2e-capture.e2e.ts` + `domain-results-capture.e2e.ts`, commit `9721a9ad0`) drove the 6 CPU-cheap self-contained cold-start examples against dev.
+
+**Routing: 6/6 correct** (new coverage win — these domains had zero e2e screenshots). Committed 8 assets (6 `domain-*-prerun.png` + 2 `-running.png`, all 2×). **No completed/results figure** committed — the runs genuinely do not finish, and shipping "completed" chrome over a failed run is forbidden by CLAUDE.md.
+
+Root-cause diagnosis of the execution gaps (read-only, via fixture `/api/workflows/runs`):
+
+| Domain | Routed to | Run outcome | Root cause |
+|---|---|---|---|
+| single-cell | `nf-core/scdownstream` | **failed pre-flight (404), 0 Batch spend** | Script not resolvable: `Could not resolve Nextflow script 'nfcore/scdownstream/main.nf'. Set NEXTFLOW_SEARCH_ROOTS…`. Catalog entry points at a `.nf` not deployed at the resolver's search roots. Example (`singlecell` demo) pins no workflow → routing picks an undeployed pipeline. |
+| metabolomics | `metaboanalystr_timeseries` | **ran on Batch ~20 min, failed** (run `4f03d6cc`) | Workflow↔data mismatch. Log: `qs2::qs_read could not read .qs/.qs2 file: asca.qs` → `BIOC_METABOANALYSTR_TIMESERIES_TWO_FACTOR_ASCA failed`. The human_cachexia demo is cross-sectional 2-group; a two-factor ASCA (time-series) step has no axis to decompose → emits no valid `asca.qs`. Example says "metaboanalystr" generically → routing picked the timeseries variant. |
+| epigenomics, proteomics, CRISPR, variant-calling | chipseq/macs, chemoproteomics_pulldown, mageck, sarek | **Confirm clicked, no run persisted** | Overlaps a concurrent session's active launch-resolution / projectId debug (`20083555e`, cf. `7749049d3`). Not re-diagnosed here to avoid duplication. |
+
+**Recommended fixes (routing/catalog layer — product decision on example targets):**
+1. single-cell: either register/deploy `scdownstream` at the resolver roots, or steer the `singlecell` example to a single-cell workflow that is deployed and E2E-verified. (Note `project_workflow_validation_gaps`: single-cell has no real E2E yet — the deeper gap.)
+2. metabolomics: steer the example to a non-timeseries MetaboAnalystR workflow matching the 2-group cachexia demo, or give the timeseries workflow a real time-series demo dataset.
+3. Harness bug fixed in `9721a9ad0`: `waitForFunction(fn, {timeout})` → `waitForFunction(fn, null, {timeout})` (timeout was being passed as the page-fn arg, silently capped at the 60s actionTimeout).
+
+**GPU domains held for explicit go:** cryo-EM, structural-biology/AlphaFold, histology nuclei-seg. **No self-contained CPU demo located:** metagenomics, multi-omics.
