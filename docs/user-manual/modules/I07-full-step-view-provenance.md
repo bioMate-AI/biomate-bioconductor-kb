@@ -26,6 +26,8 @@ delegated to the shipped `StepOutputPreview` (see I.8), which already resolves i
 density / sequence / VCF / text by file type. The full step view adds the *raw* side of the toggle and the
 provenance + param-origin framing on top (`step-detail.tsx:11-18`, `:396-405`).
 
+![A completed step row in the run panel's phase list, with the **Details** button that opens the full step view for that step.](../assets/w3-1-step-row.png)
+
 ## Where you open it (and where you can't yet)
 
 This is the honest part — read it before you go looking.

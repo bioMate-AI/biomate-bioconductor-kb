@@ -183,6 +183,8 @@ context without opening each tab:
 - The **underlying error**, rewritten into a readable one-line cause (the raw pipeline log is trimmed for you).
 - The **failed step(s)** and a **log tail** (the last lines of output) for the details.
 
+![A failed run's after-run block — the "Run failed" badge above the tabs, the failed step with a log tail showing the actual failure cause, and the Restart / Fix & resume buttons at the foot of the panel.](../assets/w2-failed-run.png)
+
 The start button at the bottom of the panel also changes to match: **Restart** (re-run from the beginning), or,
 when the failure is recoverable, **Resume from last step** / **Fix & resume** (reuse the work already done), with
 a **Start over** link if you'd rather discard the cached work.

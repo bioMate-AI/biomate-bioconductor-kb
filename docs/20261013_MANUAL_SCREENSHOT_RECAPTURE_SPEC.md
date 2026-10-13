@@ -88,5 +88,19 @@ So the bulk is a **comprehensive re-capture pass against current UI, driven into
 |---|---|---|---|---|
 | `i13-1-cro-library` | CRO (unref) | /drug-discovery-cro | library | real CRO page (route is hidden → 404) |
 
-## Orphans (unreferenced by any manual page)
-r-fail-state, r2b-running-metrics, t7-0-project-overview, t11-3-pareto, w1-0-panel-overview, w2-failed-run, w3-1-step-row, w3-2-fullstep-provenance, i13-1-cro-library, i09-1-three-tabs — re-capturing these is wasted unless wired in or kept intentionally; decide per asset.
+## Orphans — resolution (2026-10-13, per "if useful, add into manual")
+
+All 10 confirmed truly unreferenced (grep across `docs/user-manual/**.md`). Decision per asset:
+
+**Wired into a manual page (5)** — each goes to a page that *lacked* that figure; they now get re-captured with everything else:
+- `w3-2-fullstep-provenance` → `tutorials/W3-full-step-view.md` §1 (the full step view object — the tutorial's subject; page had no figures).
+- `w3-1-step-row` → `modules/I07-full-step-view-provenance.md` (the step-row Details entry point; page had no figures).
+- `w2-failed-run` → `tutorials/W2-after-run-panel.md` §8 "When a run failed" (no failed-run figure existed).
+- `i09-1-three-tabs` → `modules/I09-reports-and-reproducibility.md` (the Results-landing figure; only the reproducibility figure existed).
+- `t7-0-project-overview` → `tutorials/T7-projects-and-collaboration.md` intro (establishing project overview).
+
+**Held (1):** `t11-3-pareto` — do NOT wire until the re-capture confirms the Pareto frontier actually renders (committee: "all dominated, no non-dominated front" — a possible viz bug, not just a stale shot). Wire into `modules/I11` only after the viz is verified correct.
+
+**Left un-referenced, NOT deleted (3):** `r-fail-state` (redundant with the wired `w2-failed-run`), `r2b-running-metrics` (redundant with `r2-running`), `w1-0-panel-overview` (redundant — W1 already has 5 current figures). Kept on disk pending explicit removal instruction.
+
+**Blocked on a route decision (1):** `i13-1-cro-library` — shows a 404 because `/drug-discovery-cro` is intentionally commented out. Cannot be captured truthfully until the route is un-hidden; not wired.

@@ -32,6 +32,8 @@ the normal rendered view and the **raw bytes** the rendered view was built from.
 > with and where each setting came from, and check its output by flipping between the rendered view and the raw
 > bytes behind it.
 
+![The full step view opened as an object — the provenance row at the top, the resolved parameters each tagged with where its value came from (default, project instruction, or your change), and an output shown with the rendered ⇄ raw toggle.](../assets/w3-2-fullstep-provenance.png)
+
 ---
 
 ## 2. The ideas you need first (plain-language background)

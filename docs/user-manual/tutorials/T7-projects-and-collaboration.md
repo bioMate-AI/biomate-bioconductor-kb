@@ -10,6 +10,8 @@
 > data in. This tutorial is the container that holds many chats, many files, and many people together —
 > the thing you open when one conversation isn't enough.
 
+![A project page overview — the project's chats and files on the left, and on the right rail the Standing instructions card above the Members & roles section.](../assets/t7-0-project-overview.png)
+
 ---
 
 ## 1. The problem this solves

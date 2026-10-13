@@ -47,6 +47,8 @@ generated directly from the run manifest, not typed in (`:280-282`).
 > **Tip — where a number came from.** Each headline metric and Key Result names its `source_file` in the
 > Source column; that output is previewed inline in the Outputs section on the same tab.
 
+![The Results tab (the landing tab) — the Findings Summary banner on top with the Key Results table and its Source column, then each output previewed inline in the Outputs section just below, on the same tab.](../assets/i09-1-three-tabs.png)
+
 ### Outputs — the files (on the Results tab)
 
 The middle tab lists every output file with in-app viewers, bulk download, interactive-tool launchers
