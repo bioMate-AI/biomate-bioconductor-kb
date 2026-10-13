@@ -1,0 +1,277 @@
+{
+  "round": 4,
+  "target": "avb6",
+  "scaffold": "cyclo(P1-R-G-D-L-P6-P7-[dP]-[NMeK])",
+  "gate": "acceptance_gate.avb6_gate (ncAA-aware)",
+  "candidates": [
+    {
+      "id": "AVB6-R4-01",
+      "helm": "cyclo([2Nal]-R-G-D-L-A-F-[dP]-[NMeK])",
+      "class": "ncAA",
+      "design_note": "2-naphthylalanine N-flank (bulk -> avb6>avb8 selectivity bet)",
+      "gate": {
+        "H1_RGD": true,
+        "H2_RGDL": true,
+        "H3_turn_nmethyl": true,
+        "H4_aromatic_flanks": true,
+        "H5_single_handle": true,
+        "H8_fto": "ncAA-divergent from literal published sequences -> counsel on genus SCOPE (ncAA flanks may fall outside narrow composition claims)",
+        "PASS_H1_H5": true,
+        "H6_H7_docking": "pending (dock vs avb6 + avb8/avb3/avb5/a5b1, controls in-batch, A2 validation first)"
+      },
+      "free_positions": {
+        "P1": "2Nal",
+        "P7": "F",
+        "ncaa": [
+          "2Nal"
+        ]
+      }
+    },
+    {
+      "id": "AVB6-R4-02",
+      "helm": "cyclo(F-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+      "class": "ncAA",
+      "design_note": "2-Nal C-flank",
+      "gate": {
+        "H1_RGD": true,
+        "H2_RGDL": true,
+        "H3_turn_nmethyl": true,
+        "H4_aromatic_flanks": true,
+        "H5_single_handle": true,
+        "H8_fto": "ncAA-divergent from literal published sequences -> counsel on genus SCOPE (ncAA flanks may fall outside narrow composition claims)",
+        "PASS_H1_H5": true,
+        "H6_H7_docking": "pending (dock vs avb6 + avb8/avb3/avb5/a5b1, controls in-batch, A2 validation first)"
+      },
+      "free_positions": {
+        "P1": "F",
+        "P7": "2Nal",
+        "ncaa": [
+          "2Nal"
+        ]
+      }
+    },
+    {
+      "id": "AVB6-R4-03",
+      "helm": "cyclo([Phe4F]-R-G-D-L-A-W-[dP]-[NMeK])",
+      "class": "ncAA",
+      "design_note": "4-fluoro-Phe N-flank (metabolic block + divergence)",
+      "gate": {
+        "H1_RGD": true,
+        "H2_RGDL": true,
+        "H3_turn_nmethyl": true,
+        "H4_aromatic_flanks": true,
+        "H5_single_handle": true,
+        "H8_fto": "ncAA-divergent from literal published sequences -> counsel on genus SCOPE (ncAA flanks may fall outside narrow composition claims)",
+        "PASS_H1_H5": true,
+        "H6_H7_docking": "pending (dock vs avb6 + avb8/avb3/avb5/a5b1, controls in-batch, A2 validation first)"
+      },
+      "free_positions": {
+        "P1": "Phe4F",
+        "P7": "W",
+        "ncaa": [
+          "Phe4F"
+        ]
+      }
+    },
+    {
+      "id": "AVB6-R4-04",
+      "helm": "cyclo(W-R-G-D-L-[Aib]-F-[dP]-[NMeK])",
+      "class": "ncAA",
+      "design_note": "Aib P6 (extra turn rigidity + selectivity knob)",
+      "gate": {
+        "H1_RGD": true,
+        "H2_RGDL": true,
+        "H3_turn_nmethyl": true,
+        "H4_aromatic_flanks": true,
+        "H5_single_handle": true,
+        "H8_fto": "LITERAL nonapeptide genus (canonical F/Y/W flanks) -> patent counsel",
+        "PASS_H1_H5": true,
+        "H6_H7_docking": "pending (dock vs avb6 + avb8/avb3/avb5/a5b1, controls in-batch, A2 validation first)"
+      },
+      "free_positions": {
+        "P1": "W",
+        "P7": "F",
+        "ncaa": [
+          "Aib"
+        ]
+      }
+    },
+    {
+      "id": "AVB6-R4-05",
+      "helm": "cyclo([2Nal]-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+      "class": "ncAA",
+      "design_note": "di-naphthyl (max composition divergence)",
+      "gate": {
+        "H1_RGD": true,
+        "H2_RGDL": true,
+        "H3_turn_nmethyl": true,
+        "H4_aromatic_flanks": true,
+        "H5_single_handle": true,
+        "H8_fto": "ncAA-divergent from literal published sequences -> counsel on genus SCOPE (ncAA flanks may fall outside narrow composition claims)",
+        "PASS_H1_H5": true,
+        "H6_H7_docking": "pending (dock vs avb6 + avb8/avb3/avb5/a5b1, controls in-batch, A2 validation first)"
+      },
+      "free_positions": {
+        "P1": "2Nal",
+        "P7": "2Nal",
+        "ncaa": [
+          "2Nal",
+          "2Nal"
+        ]
+      }
+    },
+    {
+      "id": "AVB6-R4-06",
+      "helm": "cyclo(Y-R-G-D-L-[Abu]-W-[dP]-[NMeK])",
+      "class": "ncAA",
+      "design_note": "alpha-aminobutyrate P6 knob",
+      "gate": {
+        "H1_RGD": true,
+        "H2_RGDL": true,
+        "H3_turn_nmethyl": true,
+        "H4_aromatic_flanks": true,
+        "H5_single_handle": true,
+        "H8_fto": "LITERAL nonapeptide genus (canonical F/Y/W flanks) -> patent counsel",
+        "PASS_H1_H5": true,
+        "H6_H7_docking": "pending (dock vs avb6 + avb8/avb3/avb5/a5b1, controls in-batch, A2 validation first)"
+      },
+      "free_positions": {
+        "P1": "Y",
+        "P7": "W",
+        "ncaa": [
+          "Abu"
+        ]
+      }
+    },
+    {
+      "id": "AVB6-R4-07",
+      "helm": "cyclo([Phe4Cl]-R-G-D-L-A-F-[dP]-[NMeK])",
+      "class": "ncAA",
+      "design_note": "4-chloro-Phe N-flank",
+      "gate": {
+        "H1_RGD": true,
+        "H2_RGDL": true,
+        "H3_turn_nmethyl": true,
+        "H4_aromatic_flanks": true,
+        "H5_single_handle": true,
+        "H8_fto": "ncAA-divergent from literal published sequences -> counsel on genus SCOPE (ncAA flanks may fall outside narrow composition claims)",
+        "PASS_H1_H5": true,
+        "H6_H7_docking": "pending (dock vs avb6 + avb8/avb3/avb5/a5b1, controls in-batch, A2 validation first)"
+      },
+      "free_positions": {
+        "P1": "Phe4Cl",
+        "P7": "F",
+        "ncaa": [
+          "Phe4Cl"
+        ]
+      }
+    },
+    {
+      "id": "AVB6-R4-08",
+      "helm": "cyclo(W-R-G-D-L-A-[hPhe]-[dP]-[NMeK])",
+      "class": "ncAA",
+      "design_note": "homophenylalanine C-flank",
+      "gate": {
+        "H1_RGD": true,
+        "H2_RGDL": true,
+        "H3_turn_nmethyl": true,
+        "H4_aromatic_flanks": true,
+        "H5_single_handle": true,
+        "H8_fto": "ncAA-divergent from literal published sequences -> counsel on genus SCOPE (ncAA flanks may fall outside narrow composition claims)",
+        "PASS_H1_H5": true,
+        "H6_H7_docking": "pending (dock vs avb6 + avb8/avb3/avb5/a5b1, controls in-batch, A2 validation first)"
+      },
+      "free_positions": {
+        "P1": "W",
+        "P7": "hPhe",
+        "ncaa": [
+          "hPhe"
+        ]
+      }
+    },
+    {
+      "id": "AVB6-R4-09",
+      "helm": "cyclo(W-R-G-D-L-A-F-[dP]-[NMeK])",
+      "class": "canonical",
+      "design_note": "canonical anchor (lowest synthesis risk)",
+      "gate": {
+        "H1_RGD": true,
+        "H2_RGDL": true,
+        "H3_turn_nmethyl": true,
+        "H4_aromatic_flanks": true,
+        "H5_single_handle": true,
+        "H8_fto": "LITERAL nonapeptide genus (canonical F/Y/W flanks) -> patent counsel",
+        "PASS_H1_H5": true,
+        "H6_H7_docking": "pending (dock vs avb6 + avb8/avb3/avb5/a5b1, controls in-batch, A2 validation first)"
+      },
+      "free_positions": {
+        "P1": "W",
+        "P7": "F",
+        "ncaa": []
+      }
+    },
+    {
+      "id": "AVB6-R4-10",
+      "helm": "cyclo(Y-R-G-D-L-S-F-[dP]-[NMeK])",
+      "class": "canonical",
+      "design_note": "canonical anchor, Ser P6 knob",
+      "gate": {
+        "H1_RGD": true,
+        "H2_RGDL": true,
+        "H3_turn_nmethyl": true,
+        "H4_aromatic_flanks": true,
+        "H5_single_handle": true,
+        "H8_fto": "LITERAL nonapeptide genus (canonical F/Y/W flanks) -> patent counsel",
+        "PASS_H1_H5": true,
+        "H6_H7_docking": "pending (dock vs avb6 + avb8/avb3/avb5/a5b1, controls in-batch, A2 validation first)"
+      },
+      "free_positions": {
+        "P1": "Y",
+        "P7": "F",
+        "ncaa": []
+      }
+    },
+    {
+      "id": "CTRL-TRIVEHEXIN-mono",
+      "helm": "cyclo(Y-R-G-D-L-A-Y-[dP]-[NMeK])",
+      "class": "control",
+      "design_note": "Trivehexin targeting MONOMER (~47 pM as trimer) - A2 assay-validation control",
+      "gate": {
+        "H1_RGD": true,
+        "H2_RGDL": true,
+        "H3_turn_nmethyl": true,
+        "H4_aromatic_flanks": true,
+        "H5_single_handle": true,
+        "H8_fto": "LITERAL nonapeptide genus (canonical F/Y/W flanks) -> patent counsel",
+        "PASS_H1_H5": true,
+        "H6_H7_docking": "pending (dock vs avb6 + avb8/avb3/avb5/a5b1, controls in-batch, A2 validation first)"
+      },
+      "free_positions": {
+        "P1": "Y",
+        "P7": "Y",
+        "ncaa": []
+      }
+    },
+    {
+      "id": "CTRL-AVEBEHEXIN",
+      "helm": "cyclo(F-R-G-D-L-A-F-[dP]-[NMeK])",
+      "class": "control",
+      "design_note": "avebehexin (0.3-0.8 nM) - A2 assay-validation control",
+      "gate": {
+        "H1_RGD": true,
+        "H2_RGDL": true,
+        "H3_turn_nmethyl": true,
+        "H4_aromatic_flanks": true,
+        "H5_single_handle": true,
+        "H8_fto": "LITERAL nonapeptide genus (canonical F/Y/W flanks) -> patent counsel",
+        "PASS_H1_H5": true,
+        "H6_H7_docking": "pending (dock vs avb6 + avb8/avb3/avb5/a5b1, controls in-batch, A2 validation first)"
+      },
+      "free_positions": {
+        "P1": "F",
+        "P7": "F",
+        "ncaa": []
+      }
+    }
+  ]
+}
