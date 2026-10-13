@@ -145,16 +145,15 @@ declare -a COMBO=(
   "g5.4xlarge subnet-0254e4c3634b41bfc" "g6.4xlarge subnet-0254e4c3634b41bfc"
   "g5.4xlarge subnet-03b277a7a08d388c1" "g5.4xlarge subnet-09e4dce46682a6c60"
 )
-# 9xmm = 1069-res receptor. Kernels keep memory low, so try L40S 48GB FIRST (known-good from the
-# dry-run), then fall back to the far-more-available 24GB A10G/L4 (g5/g6) across every AZ, then A100.
+# 9xmm = 1069-res receptor. EMPIRICAL: 24GB A10G (g5/g6) OOMs even with kernels (ran out allocating
+# ~3GB with <1GB free) — the fold needs >=48GB. So L40S (g6e, 48GB) ONLY, across all AZs, then A100/H100
+# (p4d/p5, 40/80GB). The Spark GB10 (128GB unified) is the capacity-independent alternative.
 if [ "$TARGET" = 9xmm ]; then
   COMBO=(
     "g6e.2xlarge subnet-0254e4c3634b41bfc" "g6e.4xlarge subnet-0254e4c3634b41bfc" "g6e.8xlarge subnet-0254e4c3634b41bfc"
-    "g6e.2xlarge subnet-0b35a6e2c1cf02dc2" "g6e.4xlarge subnet-03b277a7a08d388c1" "g6e.2xlarge subnet-09e4dce46682a6c60"
-    "g5.12xlarge subnet-0254e4c3634b41bfc" "g5.12xlarge subnet-03b277a7a08d388c1" "g5.12xlarge subnet-09e4dce46682a6c60"
-    "g5.2xlarge subnet-0254e4c3634b41bfc" "g5.4xlarge subnet-0254e4c3634b41bfc" "g5.4xlarge subnet-03b277a7a08d388c1"
-    "g5.4xlarge subnet-09e4dce46682a6c60" "g6.4xlarge subnet-0254e4c3634b41bfc" "g6.2xlarge subnet-0b35a6e2c1cf02dc2"
-    "p4d.24xlarge subnet-0254e4c3634b41bfc"
+    "g6e.12xlarge subnet-0254e4c3634b41bfc" "g6e.2xlarge subnet-0b35a6e2c1cf02dc2" "g6e.4xlarge subnet-0b35a6e2c1cf02dc2"
+    "g6e.2xlarge subnet-03b277a7a08d388c1" "g6e.4xlarge subnet-03b277a7a08d388c1" "g6e.2xlarge subnet-09e4dce46682a6c60"
+    "g6e.4xlarge subnet-09e4dce46682a6c60" "p4d.24xlarge subnet-0254e4c3634b41bfc" "p5.48xlarge subnet-0254e4c3634b41bfc"
   )
 fi
 launch_one(){
