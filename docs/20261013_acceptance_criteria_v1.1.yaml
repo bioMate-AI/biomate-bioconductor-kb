@@ -1,0 +1,66 @@
+# BioMate AI — Candidate Design Requirements, acceptance_criteria v1.1 (working copy)
+# Extends v1.0 (source: /Users/kky/Downloads/acceptance_criteria.yaml, BioMate_Candidate_Design_Requirements.docx)
+# with the reviewer additions agreed 2026-10-13. v1.0 gates (H1-H9, P1-P5, X1-X5) stand unchanged; this
+# file records the DELTAS the generation+scoring loop must also honor. Gate impl: cyclic_llm/acceptance_gate.py.
+
+extends: "acceptance_criteria.yaml v1.0"
+additions:
+
+  A1_chelator_chemistry:
+    rule: >
+      Name the chelator + radionuclide, not just 'a handle'. The Lys e-amine (H5/P3) is conjugated to a
+      specific chelator: DOTA / DOTAGA for Lu-177 (therapy), NODAGA / TRAP for Ga-68 (imaging). The chelator's
+      charge/size perturbs binding AND renal dose, so H6/H7 score the CONJUGATED construct (makes X2 concrete).
+    type: report+design
+
+  A2_control_validation_gate:
+    rule: >
+      Strengthen X3/H6: before ANY candidate H6/H7 number is trusted, the docking/physics pipeline MUST first
+      reproduce the controls' known order in the same batch — Trivehexin (~47 pM, ~131x avb8) ranked above
+      avebehexin (0.3-0.8 nM), and the published selectivity order recovered. If the method cannot rank the
+      controls, its candidate affinity/selectivity are not admissible evidence (cyclic-ncAA docking is unreliable).
+    type: hard  (on the pipeline, not the candidate)
+
+  A3_multivalency:
+    rule: >
+      The validated drug class is MULTIVALENT (Trivehexin = trimer of cyclic-RGDL on a TRAP scaffold); the
+      monomer is the targeting unit, not the final construct. Add valency (1-3 moieties on the chelator scaffold)
+      as an explicit affinity/avidity design axis. Monomer gates (H1-H9) are necessary; the construct may be multivalent.
+    type: design axis
+
+  A4_representation:
+    rule: >
+      Candidates specified in full-stereochemistry HELM/BILN (D-Pro, N-methyl, Nle unambiguous); the SAME
+      representation feeds docking/MM-GBSA. NO L-backbone approximation for the scored construct (the v2 scoring
+      used the L-backbone — wrong for the real ncAA molecule).
+    type: hard  (representation)
+
+  A5_renal_flag:
+    rule: >
+      Elevate the renal-retention proxy from report (H9/X4) to a FLAG on the LABELED construct's net charge
+      (kidney = dose-limiting). But NOT a hard gate: the active scaffold is intrinsically cationic (Arg + Lys
+      handle), so de-cationizing the sequence breaks the handle/pharmacophore (the v2 error). Mitigation is at
+      the CONSTRUCT/clinical layer (chelator charge choice; Gelofusine / Lys-Arg co-infusion), not the sequence.
+    type: flag  route: "dosimetry review"
+
+  A6_pdl1_sink_caveat:
+    rule: >
+      For PD-L1 as a RADIOLIGAND target, the governing problem is the expression SINK (PD-L1 broadly expressed
+      on normal/immune cells -> high background + target-mediated clearance), arguably bigger than PD-L2
+      selectivity (P4). Report tumor-vs-sink dosimetry risk, and flag the open strategic question: is PD-L1 a
+      viable radioligand target vs. a blockade-antibody target?
+    type: report+flag
+
+  A7_constrained_generation:
+    rule: >
+      Generation satisfies H1-H5 BY CONSTRUCTION (constrained decoding on the P1-R-G-D-L-P6-P7-[dP]-[NMeK]
+      frame; P1/P7 in {F,Y,W}, P6 small, NMeK handle), not freely-then-filtered. Scoring then decides P1/P6/P7,
+      valency, and FTO — never re-litigates the hard scaffold.
+    type: process
+
+  A8_H4_is_selectivity_proxy:
+    rule: >
+      Note (not a change): H4 (aromatic flanks) is a HARD gate but is really a SELECTIVITY proxy for H7. Keep it
+      hard while docking is unreliable; once H7 counter-target docking is validated (A2), a non-aromatic flank is
+      caught there directly.
+    type: note
