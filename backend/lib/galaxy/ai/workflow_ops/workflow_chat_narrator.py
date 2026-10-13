@@ -26,8 +26,25 @@ pipeline. Backend stays stateless w.r.t. chat history.
 from __future__ import annotations
 
 import logging
+import re
 import time
 from typing import Any, Dict, Optional
+
+# A bare process exit code ("exit 1", "exit 127", "rc=1", "127") is meaningless to
+# a user — it belongs in the engineer log, not the friendly line.
+_BARE_EXIT_RE = re.compile(
+    r"^(exit(\s?code)?|return\s?code|returncode|rc|status|code|signal)?\s*[:=]?\s*-?\d+$",
+    re.IGNORECASE,
+)
+
+
+def _clean_reason(reason: Any) -> Optional[str]:
+    if not reason:
+        return None
+    head = str(reason).split(".")[0].strip()
+    if not head or _BARE_EXIT_RE.match(head):
+        return None
+    return head
 
 
 log = logging.getLogger(__name__)
@@ -66,10 +83,9 @@ def _phase_completed(t: Dict[str, Any]) -> str:
 
 def _phase_failed(t: Dict[str, Any]) -> str:
     name = t.get("phase_name") or t.get("name") or "Step"
-    reason = t.get("reason")
+    reason = _clean_reason(t.get("reason"))
     if reason:
-        head = str(reason).split(".")[0].strip()
-        return f"{name} failed — {head}."
+        return f"{name} failed — {reason}."
     return f"{name} failed — auto-fixing…"
 
 
@@ -128,10 +144,9 @@ def _failed_msg(t: Dict[str, Any]) -> str:
     # Not necessarily terminal — an attempt failure triggers auto-fix (deepagent).
     # Neutral wording so an auto-recovered (COMPLETED) run doesn't read "stopped";
     # the run status badge carries the terminal truth.
-    reason = t.get("reason") or t.get("error")
+    reason = _clean_reason(t.get("reason") or t.get("error"))
     if reason:
-        head = str(reason).split(".")[0].strip()
-        return f"Workflow hit an error — {head}."
+        return f"Workflow hit an error — {reason}."
     return "Workflow hit an error."
 
 

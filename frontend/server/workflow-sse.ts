@@ -77,7 +77,9 @@ function renderFriendly(kind: string, t: Record<string, any>): string {
     case 'workflow.failed': {
       // Not necessarily terminal — an attempt failure triggers auto-fix. Neutral
       // wording so an auto-recovered (COMPLETED) run doesn't read "stopped".
-      const reason = t.reason ? String(t.reason).split('.')[0].trim() : null;
+      // Drop bare exit codes ("exit 1", "rc=127") — meaningless to a user.
+      const head = t.reason ? String(t.reason).split('.')[0].trim() : '';
+      const reason = head && !/^(exit(\s?code)?|return\s?code|returncode|rc|status|code|signal)?\s*[:=]?\s*-?\d+$/i.test(head) ? head : null;
       return reason ? `Workflow hit an error — ${reason}.` : 'Workflow hit an error.';
     }
     case 'workflow.paused': return 'Workflow paused.';
