@@ -96,7 +96,7 @@ for it in d["peptides"]:
         f.write(f"  - protein:\n      id: P\n      sequence: {pep}\n      cyclic: true\n")
     rec = {"id": pid, "pep": pep}
     try:
-        subprocess.run(["boltz","predict",y,"--out_dir",f"out_{pid}","--use_msa_server","--override"], check=True)
+        subprocess.run(["boltz","predict",y,"--out_dir",f"out_{pid}","--use_msa_server","--no_kernels","--override"], check=True)
         cifs = (glob.glob(f"out_{pid}/**/*_model_0.cif", recursive=True)
                 or glob.glob(f"out_{pid}/**/*.cif", recursive=True))
         if cifs:
