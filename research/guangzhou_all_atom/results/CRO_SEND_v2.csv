@@ -1,0 +1,7 @@
+Item,Sequence_N_to_C,Length,Cyclization,Purity,Quantity_mg,Salt_form,QC,Priority
+AVB6-V2-01,cyclo(W-R-G-D-L-T-F-[dP]-[NMeV]),9,Head-to-tail backbone amide (no free termini); D-Pro + N-methyl per HELM,>=95% (RP-HPLC),5,Acetate,"RP-HPLC, ESI-MS, net peptide content, CoA",Expedite
+AVB6-V2-02,cyclo(R-G-D-L-Q-F-[dP]-[NMeS]-G),9,Head-to-tail backbone amide (no free termini); D-Pro + N-methyl per HELM,>=95% (RP-HPLC),5,Acetate,"RP-HPLC, ESI-MS, net peptide content, CoA",Expedite
+AVB6-V2-03,cyclo(Y-R-G-D-L-G-H-[dP]-[NMeL]),9,Head-to-tail backbone amide (no free termini); D-Pro + N-methyl per HELM,>=95% (RP-HPLC),5,Acetate,"RP-HPLC, ESI-MS, net peptide content, CoA",Expedite
+AVB6-V2-04,cyclo(F-R-G-D-L-S-W-[dP]-[NMeA]),9,Head-to-tail backbone amide (no free termini); D-Pro + N-methyl per HELM,>=95% (RP-HPLC),5,Acetate,"RP-HPLC, ESI-MS, net peptide content, CoA",Expedite
+PDL1-V2-01,cyclo(W-Y-F-[dP]-L-[NMeI]-T-E-N-K-S-G),12,Head-to-tail backbone amide (no free termini); D-Pro + N-methyl per HELM,>=95% (RP-HPLC),5,Acetate,"RP-HPLC, ESI-MS, net peptide content, CoA",Expedite
+PDL1-V2-02,cyclo(W-[Nle]-F-[dP]-I-[NMeL]-S-E-K-G),10,Head-to-tail backbone amide (no free termini); D-Pro + N-methyl per HELM,>=95% (RP-HPLC),5,Acetate,"RP-HPLC, ESI-MS, net peptide content, CoA",Expedite
