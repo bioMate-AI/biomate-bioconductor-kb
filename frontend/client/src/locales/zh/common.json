@@ -570,6 +570,15 @@
     "outputs_count": "输出文件（{{n}}）",
     "parameters_count": "参数（{{n}}）",
     "preparing": "正在准备…",
+    "preview": "预览",
+    "outputs_heading": "输出文件",
+    "outputs_search_ph": "搜索输出文件…",
+    "no_outputs_match": "没有匹配的输出文件。",
+    "showing_n_of_m": "显示 {{m}} 个中的 {{n}} 个",
+    "filtered_from": "筛选自 {{t}} 个",
+    "show_n_more": "再显示 {{n}} 个",
+    "show_preview": "显示预览",
+    "view_fullsize": "放大查看",
     "project_fallback": "项目",
     "qc_all_passed": "所有质量闸门均通过",
     "qc_all_passed_sub": "本次运行未超出任何质控阈值。所有指标均在可接受范围内。",
@@ -625,6 +634,7 @@
     "tab": {
       "outputs": "输出文件",
       "record": "可复现记录",
+      "results": "结果",
       "summary": "摘要"
     },
     "totp_verified": "TOTP 已验证",
