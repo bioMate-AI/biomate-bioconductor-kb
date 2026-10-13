@@ -22,9 +22,11 @@ cream/navy brand tokens).
   - drug-discovery chip = "Active program · design → evaluate → test → learn,
     iterating continuously" (no dates on the teaser).
   - research-engines = loop diagram + "The loop runs continuously…" + an
-    **"Estimated phasing"** strip of two chips: "Q4 2026 · first wet-lab validation
-    rounds enter the loop" and "Q1 2027 · results feed the next round of designs."
-    Wording ("rounds", "enter the loop", "next round") keeps it cyclic, not linear.
+    **"Estimated phasing — a fast cycle"** strip: "Computational loop · continuous",
+    "Wet-lab validation rounds · from Q4 2026", "Each turn · weeks, not quarters",
+    then "By Q1 2027 the program is many turns deep — the loop compounds, rather than
+    waiting on any single result." The cycle is FAST: the earlier two-chip
+    "Q4 validation → Q1 results" split wrongly implied a quarter per turn.
 
 ## Changes by file
 
