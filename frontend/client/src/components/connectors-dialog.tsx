@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Brain, Database, CheckSquare, Square, Plug } from 'lucide-react';
 import {
-  ResidencyBadge, ScopeSelector, NOT_DECLARED,
+  ResidencyBadge, ScopeSelector, NOT_DECLARED, runsInFromResidency,
   type Residency, type Scope, type DeclaredFacts,
 } from './connector-residency';
 import { PrivateDbConnectionForm } from './private-db-connection-form';
@@ -274,7 +274,7 @@ function ConnectorTable({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, lineHeight: 1.4 }}>
                   <DeclaredFact label="needs" value={row.needs} />
                   <DeclaredFact label="produces" value={row.produces} />
-                  <DeclaredFact label="where it runs" value={row.runsIn} />
+                  <DeclaredFact label="where it runs" value={row.runsIn ?? runsInFromResidency(row.residency)} />
                 </div>
               </td>
               {/* Three scopes (§0.9.2) — account / project / request; one library, one state */}

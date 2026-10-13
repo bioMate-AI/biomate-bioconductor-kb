@@ -2469,6 +2469,15 @@ export function NextflowWorkflowViewer({
       0
   );
 
+  // The overall bar must never read 100% while the run is still going — 100% is
+  // reserved for a terminal/completed run. The backend's progressPercent can
+  // reach 100 (all Batch tasks dispatched/finished) before the run is finalised
+  // (a QC gate still pending review, outputs hydrating), which otherwise renders
+  // "100% · Running" next to a per-step bar at 50% — a self-contradiction the
+  // screenshot committee flagged on r-fail-state. Cap at 99% until completed.
+  const overallProgressDisplay =
+    status === 'completed' ? effectiveProgress : Math.min(effectiveProgress, 99);
+
   // Detect the S3 cache-scan phase: running but 0 tasks for >30s.
   // Nextflow scans the entire S3 work dir before emitting any task counts.
   const isScanningCache = status === 'running'
@@ -2686,9 +2695,9 @@ export function NextflowWorkflowViewer({
             {(status === 'running' || status === 'completed') && effectiveProgress > 0 && (
               <div className="run-bar">
                 <div className="progress">
-                  <div className="fill" style={{ width: `${effectiveProgress}%` }} />
+                  <div className="fill" style={{ width: `${overallProgressDisplay}%` }} />
                 </div>
-                <span className="pct">{effectiveProgress}%</span>
+                <span className="pct">{overallProgressDisplay}%</span>
                 {status === 'completed' && stepCount > 0 && (
                   <span className="meta">{stepCount}/{stepCount}</span>
                 )}

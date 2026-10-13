@@ -66,6 +66,23 @@ export function residencyDisplay(r?: Residency): { label: string; why: string; k
   return { ...RESIDENCY_UNSPECIFIED, known: false };
 }
 
+/** The "where it runs" declared fact (§0.9.1) expressed from the residency when a
+ *  connector states no free-text `runsIn`. Residency IS the where-it-runs fact, so
+ *  a row with a known residency must never render "where it runs: not declared" —
+ *  that would contradict its own residency badge (committee i12-1). Returns
+ *  undefined only when residency is itself undeclared, which stays "not declared". */
+export function runsInFromResidency(r?: Residency): string | undefined {
+  if (!r || !RESIDENCY[r]) return undefined;
+  const phrase: Record<Residency, string> = {
+    cloud:  'remote endpoint — data leaves the estate',
+    onprem: 'inside your network (on-prem)',
+    mount:  'read in place (mounted)',
+    local:  'this machine — never leaves the host',
+    prompt: 'no data moves (prompt only)',
+  };
+  return phrase[r];
+}
+
 /** A residency badge, honest "unspecified" when undeclared.
  *  Styling mirrors the reference `.res` chip (data_centroid_design_v2):
  *  cloud reads as the NEUTRAL default (gray) — not a warning; the secure

@@ -400,7 +400,8 @@ function MultiObjectiveView({
         <p className="text-[10px] text-muted-foreground">
           {tOr("design.mov_help_a", "Each objective keeps its own units and its own target — no single blended number. The")}{" "}
           <span className="font-mono">score</span>{" "}
-          {tOr("design.mov_help_b", "column ranks only.")}
+          {tOr("design.mov_help_b", "column ranks only.")}{" "}
+          {tOr("design.mov_help_verdict", "Each objective's target is a design goal, not a pass/fail gate — a value below its goal is shown in amber but is not a rejection.")}
         </p>
       </CardHeader>
       <CardContent>
@@ -418,7 +419,12 @@ function MultiObjectiveView({
                 <th className="px-2 py-1 text-left font-semibold" title={tOr("design.ranking_key_only", "Ranking key only")}>
                   {tOr("design.score_star", "score*")}
                 </th>
-                <th className="px-2 py-1 text-left font-semibold">{tOr("design.col_verdict", "Verdict")}</th>
+                <th
+                  className="px-2 py-1 text-left font-semibold"
+                  title={tOr("design.verdict_tip", "Verdict reflects the safety gate and drug-likeness only, not every per-objective goal. A candidate can be accepted while still below one of the objective goals shown on its left.")}
+                >
+                  {tOr("design.col_verdict", "Verdict")}
+                </th>
                 <th className="px-2 py-1 text-left font-semibold">{tOr("design.why", "why?")}</th>
               </tr>
             </thead>
