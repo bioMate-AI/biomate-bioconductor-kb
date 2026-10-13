@@ -1257,6 +1257,12 @@ export function NextflowWorkflowViewer({
   // backend/lib/galaxy/jobs/qc_trace_monitor.py:5744.
   const [qcAdvisoryByStep, setQcAdvisoryByStep] = useState<Record<string, { metric?: string; value?: any; threshold?: any }[]>>({});
   const [qcGateSecondsLeft, setQcGateSecondsLeft] = useState<number | null>(null);
+  // Safety HALT gate: a blocking (non-advisory) QC gate PAUSES the run and waits
+  // for the user — Resume or Cancel, no 10s auto-proceed. Gated by pauseAtQcFailures.
+  // Ref mirrors the state so the long-lived SSE listener sees the current value.
+  const [qcGateHalt, setQcGateHalt] = useState(false);
+  const pauseAtQcFailuresRef = React.useRef(pauseAtQcFailures);
+  React.useEffect(() => { pauseAtQcFailuresRef.current = pauseAtQcFailures; }, [pauseAtQcFailures]);
   // Low-confidence "Confirm anyway" auto-proceed countdown
   const [lowConfSecondsLeft, setLowConfSecondsLeft] = useState<number | null>(null);
   const lowConfTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
@@ -1737,6 +1743,7 @@ export function NextflowWorkflowViewer({
     setShowQcInline(false);
     setQCGateData(null);
     setQcGateSecondsLeft(null);
+    setQcGateHalt(false);
     if (reason === 'timeout') {
       toast({
         title: 'QC gate timed out',
@@ -1756,6 +1763,7 @@ export function NextflowWorkflowViewer({
   // Start countdown when gate card appears; auto-dismiss after QC_GATE_TIMEOUT_S seconds
   React.useEffect(() => {
     if (!showQcInline) return;
+    if (qcGateHalt) { setQcGateSecondsLeft(null); return; } // halt gate: no auto-proceed countdown
     setQcGateSecondsLeft(QC_GATE_TIMEOUT_S);
     qcGateTimerRef.current = setInterval(() => {
       setQcGateSecondsLeft(prev => {
@@ -1767,14 +1775,28 @@ export function NextflowWorkflowViewer({
       });
     }, 1000);
     return () => { if (qcGateTimerRef.current) { clearInterval(qcGateTimerRef.current); qcGateTimerRef.current = null; } };
-  }, [showQcInline, dismissQcGate]);
+  }, [showQcInline, qcGateHalt, dismissQcGate]);
 
   const handleProceedAnyway = () => dismissQcGate('user');
+
+  // Safety HALT gate: the run was paused; the user explicitly Resumes (continue
+  // from cached steps via the existing /resume) or Cancels. No auto-proceed.
+  const handleResumeAfterHalt = () => {
+    if (activeRunId) {
+      fetch(`/api/workflows/runs/${encodeURIComponent(activeRunId)}/resume`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: '{}',
+      }).catch(err => console.error("[QC Gate NFViewer] Halt-resume failed:", err));
+    }
+    setShowQcInline(false);
+    setQCGateData(null);
+    setQcGateHalt(false);
+  };
 
   const handleCancelWorkflow = () => {
     console.log("[QC Gate NFViewer] User cancelled workflow due to QC failures");
     setShowQcInline(false);
     setQCGateData(null);
+    setQcGateHalt(false);
     onCancel?.();
   };
 
@@ -2185,6 +2207,34 @@ export function NextflowWorkflowViewer({
         // Auto-loop OFF → show confirmation card and let user decide.
         const phaseKey = data.phase_key ?? data.process_name ?? '';
         const autoloopOn = autoloopMapRef.current[phaseKey] === true;
+
+        // SAFETY HALT: a qc_gate_triggered event only fires when a blocking
+        // (halt-threshold) failure exists — advisory-only crossings come via
+        // qc_warning. So when pauseAtQcFailures is on (default) and this is a
+        // blocking gate, PAUSE the run and wait for the user (Resume / Cancel) —
+        // no 10s auto-proceed. We EXEMPT phases the user explicitly set to
+        // auto-loop (!autoloopOn): that is a deliberate opt-in to auto-remediate.
+        // Blocking = advisory !== true (mirrors the backend's blocking_failures).
+        const isHaltGate = Array.isArray(gateData.failures)
+          && gateData.failures.some((f: any) => f && typeof f === 'object' && f.advisory !== true);
+        if (pauseAtQcFailuresRef.current && isHaltGate && activeRunId && !autoloopOn) {
+          setQCGateData(gateData);
+          setQcGateHalt(true);
+          setShowQcInline(true);
+          fetch(`/api/workflows/runs/${encodeURIComponent(activeRunId)}/pause`, { method: 'POST', credentials: 'include' })
+            .catch(err => console.error("[QC Gate NFViewer] Halt-pause request failed:", err));
+          const failSummary = gateData.failures
+            .map((f: any) => (typeof f === 'string' ? f : `${f.metric} ${f.operator ?? ''} ${f.threshold} (got ${f.value})`))
+            .join(", ");
+          onWorkflowProgress?.({
+            kind: 'workflow.qc_halt_paused',
+            friendly_message: `Paused on a safety QC gate (${failSummary}). Review the result, then Resume or Cancel.`,
+            ts: Date.now() / 1000,
+            technical: { decision: 'paused on halt gate', source: 'qc_gate_halt' },
+          });
+          return;
+        }
+
         if (autoloopOn && gateData.suggestions.length > 0 && activeRunId) {
           // Auto-apply: update params and resume — notify user of what happened
           const phaseName = gateData.processName.includes(":")
@@ -2849,7 +2899,9 @@ export function NextflowWorkflowViewer({
                   <div style={{ fontWeight: 600, marginBottom: 2 }}>
                     {tOr('panel.qc_gate_prefix', 'QC Gate — ')}{qcGateData.processName.includes(":")
                       ? qcGateData.processName.split(":").pop()?.replace(/_/g, " ")
-                      : qcGateData.processName.replace(/_/g, " ")}{tOr('panel.qc_gate_review_suffix', ' — Review Required')}
+                      : qcGateData.processName.replace(/_/g, " ")}{qcGateHalt
+                        ? tOr('panel.qc_gate_paused_suffix', ' — run paused · action required')
+                        : tOr('panel.qc_gate_review_suffix', ' — Review Required')}
                   </div>
                   {qcGateData.failures.length > 0 && (
                     <div style={{ marginTop: 4 }}>
@@ -2886,13 +2938,22 @@ export function NextflowWorkflowViewer({
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                    {qcGateData.suggestions.length > 0 && (
-                      <button className="btn sm" data-testid="qc-gate-apply" onClick={() => { void handleRetryWithSuggestions(); }} disabled={isApplyingSuggestions}>
-                        {isApplyingSuggestions ? tOr('panel.qc_applying', 'Applying…') : tOr('panel.qc_apply_suggestions', 'Apply suggestions')}
-                      </button>
+                    {qcGateHalt ? (
+                      <>
+                        <button className="btn sm" data-testid="qc-gate-resume" onClick={handleResumeAfterHalt}>{tOr('panel.qc_resume', 'Resume')}</button>
+                        <button className="btn ghost sm danger" data-testid="qc-gate-cancel-run" onClick={handleCancelWorkflow}>{tOr('panel.cancel_run', 'Cancel run')}</button>
+                      </>
+                    ) : (
+                      <>
+                        {qcGateData.suggestions.length > 0 && (
+                          <button className="btn sm" data-testid="qc-gate-apply" onClick={() => { void handleRetryWithSuggestions(); }} disabled={isApplyingSuggestions}>
+                            {isApplyingSuggestions ? tOr('panel.qc_applying', 'Applying…') : tOr('panel.qc_apply_suggestions', 'Apply suggestions')}
+                          </button>
+                        )}
+                        <button className="btn ghost sm" data-testid="qc-gate-keep" onClick={handleProceedAnyway}>{tOr('panel.qc_keep_current', 'Keep current')}</button>
+                        <button className="btn ghost sm danger" data-testid="qc-gate-cancel-run" onClick={handleCancelWorkflow}>{tOr('panel.cancel_run', 'Cancel run')}</button>
+                      </>
                     )}
-                    <button className="btn ghost sm" data-testid="qc-gate-keep" onClick={handleProceedAnyway}>{tOr('panel.qc_keep_current', 'Keep current')}</button>
-                    <button className="btn ghost sm danger" data-testid="qc-gate-cancel-run" onClick={handleCancelWorkflow}>{tOr('panel.cancel_run', 'Cancel run')}</button>
                   </div>
                 </div>
               </div>
