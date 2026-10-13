@@ -199,7 +199,7 @@ mcmicro 要求输入是 OME-TIFF**，而非原始厂商 WSI —— 见 §6。
 |---|---|
 | 把某台仪器的文件送进 BioMate | **教程六** |
 | 手动上传单张图像 | **教程四** |
-| 读懂三标签页报告 | **教程三** |
+| 读懂两标签页报告 | **教程三** |
 | 跨多重 panel 定量标志物 | 索取 **`segment_and_quantify_cells_in_multiplexed_images`** |
 | 分析整张切片（今天仅限 OME-TIFF） | 索取 **`nf-core/mcmicro`** |
 

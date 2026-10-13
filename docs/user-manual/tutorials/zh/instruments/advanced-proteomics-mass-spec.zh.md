@@ -230,7 +230,7 @@ nf-core/mhcquant 官方文档。
 | 做普通非标记 DDA/DIA 蛋白质组学，或代谢组学 | 主 [LC-MS 教程](./lcms-proteomics-metabolomics.zh.md) |
 | 连接质谱仪，让运行自动送达 | **教程六** |
 | 手动转换/上传单个 `.mzML` | **教程四** |
-| 读懂三标签页报告 | **教程三** |
+| 读懂两标签页报告 | **教程三** |
 | 构建等重标记 PSM 表 / 做 DEqMS 检验 | 向 BioMate 要 **`deqms/psm_table_isobaric`** |
 | 从免疫肽组里排序候选抗原 | 向 BioMate 要 **`immunology/antigen_resolution`** |
 
