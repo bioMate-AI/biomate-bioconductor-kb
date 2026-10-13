@@ -136,7 +136,14 @@ def build_psf(kind, tag, npep, rec_pdbs):
     if kind in ('complex','receptor'):
         for i,rp in enumerate(rec_pdbs):
             sid=f'R{i}'
-            g.add_segment(segid=sid, pdbfile=rp); g.read_coords(segid=sid, filename=rp)
+            # Neutral ACE/CT3 caps on the ragged POCKET-CUT termini: default NTER/CTER left psfgen
+            # guessing terminal atoms inconsistently -> complex cpdb/cpsf atom-count mismatch -> the
+            # 5/10 setPositions failure. Caps are deterministic + chemically correct for a truncation.
+            try:
+                g.add_segment(segid=sid, pdbfile=rp, first='ACE', last='CT3')
+            except Exception:
+                g.add_segment(segid=sid, pdbfile=rp)
+            g.read_coords(segid=sid, filename=rp)
     if kind in ('complex','ligand'):
         g.add_segment(segid='PEP', pdbfile=f'{tag}_pep.pdb', first='none', last='none')
         g.read_coords(segid='PEP', filename=f'{tag}_pep.pdb')
