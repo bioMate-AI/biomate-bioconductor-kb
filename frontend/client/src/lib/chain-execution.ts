@@ -125,6 +125,10 @@ export async function submitWorkflowChain(options: {
   endAtStep?: number
   coverageAxes?: Record<string, string[]>
   maxParallel?: number
+  /** Project scope for the chain run — the backend sets execution_runs.project_id
+   *  from this so a project chat's pipeline run is project-scoped (and its
+   *  outputs auto-save to the project). Omitted → a standalone run. */
+  projectId?: string
 }): Promise<ChainSubmitResult> {
   const isDag = options.steps.some(step => step.depends_on != null)
   if (isDag && (options.startFromStep || options.endAtStep != null)) {
@@ -143,6 +147,7 @@ export async function submitWorkflowChain(options: {
       end_at_step: options.endAtStep,
       coverage_axes: options.coverageAxes,
       max_parallel: options.maxParallel,
+      projectId: options.projectId,
     }),
   })
   const data = (await resp.json().catch(() => ({}))) as ChainSubmitResult & {
@@ -217,7 +222,7 @@ export async function pollChainStatus(
 export async function submitWorkflowFromArtifact(
   workflow: Record<string, unknown>,
   chatSessionId?: string,
-  options?: { startFromStep?: number; chainRunId?: string; endAtStep?: number },
+  options?: { startFromStep?: number; chainRunId?: string; endAtStep?: number; projectId?: string },
 ): Promise<ChainSubmitResult> {
   const steps = buildChainSubmitSteps(pickChainStepSource(workflow))
   const connections = buildChainConnections(workflow)
@@ -234,5 +239,10 @@ export async function submitWorkflowFromArtifact(
     chainRunId: options?.chainRunId,
     startFromStep: options?.startFromStep,
     endAtStep: options?.endAtStep,
+    // Thread project scope through so pipeline/chain runs are project-scoped
+    // (backend reads body.projectId -> execution_runs.project_id). Without
+    // this, a project chat's pipeline run launched proj=none and its outputs
+    // did not auto-save to the project.
+    projectId: options?.projectId,
   })
 }

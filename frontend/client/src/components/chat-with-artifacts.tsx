@@ -1295,6 +1295,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       const result = await submitWorkflowFromArtifact(
         workflow,
         currentChatSession?.id,
+        { projectId: activeProjectId || undefined },
       );
 
       if (result.runId) {
@@ -1381,7 +1382,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       const result = await submitWorkflowFromArtifact(
         workflow,
         currentChatSession?.id,
-        pipelineApprovalOptions(workflow),
+        { ...pipelineApprovalOptions(workflow), projectId: activeProjectId || undefined },
       );
 
       if (result.runId) {
