@@ -1115,8 +1115,14 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
             </div>}
           </div>
 
-          {/* Members & roles — owner-only invite UI + member list visible to all */}
-          {activeTab !== "instructions" && <div className="border-t border-border p-4 shrink-0" data-testid="members-panel">
+          {/* Members & roles — owner-only invite UI + member list visible to all.
+              Rendered on every tab where the project panel is visible, INCLUDING
+              instructions: the files/chat tabs that used to host this panel now
+              redirect to /files (App.tsx), and the workflows tab hides the whole
+              panel, so instructions is the only reachable home — and T7 documents
+              Standing instructions + Members & roles together here. On instructions
+              it aligns to the same centered content column as the cards above. */}
+          {project && <div className={`border-t border-border p-4 shrink-0${activeTab === "instructions" ? " w-full max-w-4xl mx-auto sm:px-6" : ""}`} data-testid="members-panel">
             <div className="flex items-center gap-1.5 mb-3">
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
               <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground flex-1">Members & roles</h4>
