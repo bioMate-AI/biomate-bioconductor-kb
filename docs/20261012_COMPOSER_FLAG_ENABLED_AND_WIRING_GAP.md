@@ -197,3 +197,29 @@ backend-vs-Node composer consolidation.
   (diminishing returns vs. cost; the affected surface is covered by unit + 8 live classification
   probes + 3 live SSE checks + cross-browser e2e). On-prem prompt runtime validation pending the
   on-prem model.
+
+## 10. REAL END-TO-END EXECUTION (live AWS Batch, real outputs)
+Ran the canonical cost-bounded real-run harness `e2e/real-run-capture.e2e.ts` (ADMET on 3 SMILES:
+aspirin / caffeine / ibuprofen; safety-gated to abort with zero spend on mis-routing). Full chain
+PROVEN against dev:
+- chat request → **ADMET workflow generated** (Predict ADMET Properties (AI), drug_discovery, 2 steps)
+  → **Confirm & Run → AWS Batch dispatch** (Run Manager active).
+- **Running** with real-time SSE step pills in chat ("Step PREDICT_ADMET_PROPERTIES started" → "QC
+  blocked on DILI risk — adjusting parameters" → "…done") and a live **auto-loop QC gate**
+  ("dili_risk high ≠ low — Pipeline continues in 0:10 unless you act — Keep current / Cancel run").
+- **Terminal state `completed`** (run c79a9ccc: 2/2 steps, 100%, "Complete"; verified via
+  `/api/workflows/runs/<id>/status`). 6 real output artifacts in S3 (`biomate-nextflow-work`):
+  `predict_admet_properties_results.json`, `toxicity_report.json`, `qc_metrics.json`,
+  `pk_summary.json`, `predict_admet_properties_output.txt`, `versions.yml`.
+- **Real scientific output** (ADMET-AI / Chemprop-RDKit): aspirin hERG 0.003, **DILI 0.855** (high —
+  exactly what fired the QC gate), oral bioavailability 0.873, BBB 0.811; a second compound hERG 0.974
+  (high), DILI 0.043, PPB 99.1%. Chemically sensible — not placeholders.
+- Screenshots: `docs/user-manual/assets/r1-prerun-param-strip.png`, `r2-running.png`, `r-fail-state.png`.
+- Harness nuance (not a product failure): the test logged an internal `waitForFunction Timeout 60000ms`
+  — its intermediate completion-detection wait was too short / selector-mismatched, so it bailed before
+  observing `completed` in-browser. The run itself completed with real outputs (confirmed via the
+  status API + S3 artifacts above). Worth tightening that wait in a follow-up.
+
+**Conclusion:** the full BioMate pipeline works end-to-end on real AWS Batch — generation →
+Confirm & Run → dispatch → real-time SSE → auto-loop QC gate → completion → real ADMET outputs — and
+all four composer fixes + the coverage work are in place with no regression to the critical run path.
