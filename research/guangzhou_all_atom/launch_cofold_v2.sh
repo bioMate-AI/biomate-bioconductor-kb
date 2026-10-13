@@ -69,7 +69,11 @@ stage installing_boltz
 command -v aws >/dev/null 2>&1 || { apt-get update -qq && apt-get install -y -qq unzip curl && curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/a.zip && (cd /tmp && unzip -q -o a.zip && ./aws/install --update); }
 curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/mc.sh
 bash /tmp/mc.sh -b -p /opt/mc; source /opt/mc/etc/profile.d/conda.sh
-conda create -y -n boltz -c conda-forge python=3.11 numpy scipy >/dev/null 2>&1 || { echo FATAL conda; exit 1; }
+# Accept channel ToS (newer conda refuses to solve default channels otherwise) — as peptide_mmgbsa_run.sh does.
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main || true
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r || true
+# --override-channels so the solve uses ONLY conda-forge (no defaults ToS); do NOT suppress errors.
+conda create -y -n boltz --override-channels -c conda-forge python=3.11 numpy scipy || { echo "FATAL: conda create failed"; exit 1; }
 conda activate boltz
 pip install -q --upgrade pip
 pip install -q boltz || { echo "FATAL: boltz install failed"; exit 1; }
