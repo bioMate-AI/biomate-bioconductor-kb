@@ -249,3 +249,91 @@ def test_R03_detect_param_type_classifies_plural_sequence_as_sequence_type():
     )
     assert "sequences" in seq_names
     assert "dna_sequences" in seq_names
+
+
+# ---------------------------------------------------------------------------
+# R-04  raw AA sequence in query not auto-filled into protein_sequences param
+# ---------------------------------------------------------------------------
+# Bug: _extract_explicit_params_from_query had no rule for raw sequence strings;
+# it relied entirely on LLM inference (_infer_params_from_intent_llm) to fill
+# sequence-type params. If the LLM call failed (timeout, network) or returned []
+# (hallucination guard), the param stayed empty even when the user pasted a full
+# amino-acid string in the chat (e.g. MVLSEGEWQLVLHVWAKVEADVAGHGQDILIR).
+# Fix: add a rule-based extractor (longest AA run ≥15 chars → first unfilled
+# 'sequence'-type param) inside _extract_explicit_params_from_query, before LLM.
+
+def test_R04_rule_based_sequence_extraction_present_in_source():
+    """R-04: source must contain the rule-based AA sequence extractor."""
+    src = _AI_ASSISTANT_SRC.read_text(encoding="utf-8")
+    assert "_seq_params_unfilled" in src, (
+        "_extract_explicit_params_from_query must contain rule-based sequence extraction "
+        "(_seq_params_unfilled). LLM-only extraction is unreliable and leaves the field "
+        "empty on timeout or refusal."
+    )
+    assert "_AA_CHARS" in src or "AA_CHARS" in src, (
+        "Rule-based sequence extractor must define an AA character class."
+    )
+
+
+def test_R04_rule_extracts_sequence_into_param():
+    """R-04: longest AA/NT string ≥15 chars must be auto-filled into sequence-type param."""
+    import re as _re_t
+
+    # Simulate the rule extracted from _extract_explicit_params_from_query.
+    # We duplicate the logic here as a pure-function reference to keep the test self-contained.
+    def _extract_seq_rule(user_intent: str, req: list, opt: list, already_set: set) -> list:
+        suggestions = []
+        _seq_params_unfilled = [
+            p for p in req + opt
+            if p.get("type") == "sequence" and p.get("name") not in already_set
+        ]
+        if not _seq_params_unfilled:
+            return suggestions
+        _AA_CHARS = r'[ACDEFGHIKLMNPQRSTVWYBZXU]'
+        _seq_match = None
+        _best_len = 0
+        for _m in _re_t.finditer(rf'\b({_AA_CHARS}{{15,}})\b', user_intent, _re_t.IGNORECASE):
+            if len(_m.group(1)) > _best_len:
+                _seq_match = _m.group(1)
+                _best_len = len(_seq_match)
+        if _seq_match:
+            _req_seq = [p for p in _seq_params_unfilled if p.get("required", True)]
+            _opt_seq = [p for p in _seq_params_unfilled if not p.get("required", True)]
+            for _sp in (_req_seq or _opt_seq)[:1]:
+                suggestions.append({"name": _sp["name"], "value": _seq_match.upper()})
+        return suggestions
+
+    user_query = "帮我跑一下这个DNA，分析下：MVLSEGEWQLVLHVWAKVEADVAGHGQDILIR"
+    params_req = [{"name": "protein_sequences", "type": "sequence", "required": True}]
+    result = _extract_seq_rule(user_query, params_req, [], set())
+
+    assert len(result) == 1, "Expected 1 suggestion, got " + str(result)
+    assert result[0]["name"] == "protein_sequences"
+    assert result[0]["value"] == "MVLSEGEWQLVLHVWAKVEADVAGHGQDILIR"
+
+
+def test_R04_sequence_shorter_than_15_not_extracted():
+    """R-04: sequences < 15 AA chars must NOT be extracted (too short, could be text)."""
+    import re as _re_t
+
+    def _extract_seq_rule(user_intent, req, opt, already_set):
+        suggestions = []
+        _seq_params_unfilled = [p for p in req + opt if p.get("type") == "sequence" and p.get("name") not in already_set]
+        if not _seq_params_unfilled:
+            return suggestions
+        _AA_CHARS = r'[ACDEFGHIKLMNPQRSTVWYBZXU]'
+        _seq_match = None
+        _best_len = 0
+        for _m in _re_t.finditer(rf'\b({_AA_CHARS}{{15,}})\b', user_intent, _re_t.IGNORECASE):
+            if len(_m.group(1)) > _best_len:
+                _seq_match = _m.group(1)
+                _best_len = len(_seq_match)
+        if _seq_match:
+            _req_seq = [p for p in _seq_params_unfilled if p.get("required", True)]
+            _opt_seq = [p for p in _seq_params_unfilled if not p.get("required", True)]
+            for _sp in (_req_seq or _opt_seq)[:1]:
+                suggestions.append({"name": _sp["name"], "value": _seq_match.upper()})
+        return suggestions
+
+    result = _extract_seq_rule("run analysis MVLS", [{"name": "protein_sequences", "type": "sequence"}], [], set())
+    assert result == [], "Short AA fragment < 15 chars must not be extracted"

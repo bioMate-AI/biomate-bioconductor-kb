@@ -3536,6 +3536,38 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 })
                 _already_set.add('smiles_list')
 
+        # Rule: extract raw AA or NT sequence from query → first unfilled 'sequence'-type param.
+        # This is rule-based (no LLM) so it is zero-latency and 100% reliable.
+        # Handles patterns like:
+        #   "analyze MVLSEGEWQLVLHVWAKVEADVAGHGQDILIR"
+        #   "帮我跑一下：MVLSEGEWQLVLHVWAKVEADVAGHGQDILIR"
+        # We look for the LONGEST contiguous run of AA/NT letters (≥15) in the query.
+        # If the workflow has a sequence-type param that isn't already set, fill it.
+        _seq_params_unfilled = [
+            p for p in req + opt
+            if self._detect_param_type(p.get("name", ""), str(p.get("default", "") or "")) == "sequence"
+            and p.get("name") not in _already_set
+        ]
+        if _seq_params_unfilled:
+            _AA_CHARS = r'[ACDEFGHIKLMNPQRSTVWYBZXU]'
+            _seq_match = None
+            _best_len = 0
+            for _m in _re.finditer(rf'\b({_AA_CHARS}{{15,}})\b', user_intent, _re.IGNORECASE):
+                if len(_m.group(1)) > _best_len:
+                    _seq_match = _m.group(1)
+                    _best_len = len(_seq_match)
+            if _seq_match:
+                # Fill the first required sequence param, then any optional ones.
+                _req_seq = [p for p in _seq_params_unfilled if p.get("required", True)]
+                _opt_seq = [p for p in _seq_params_unfilled if not p.get("required", True)]
+                for _sp in (_req_seq or _opt_seq)[:1]:
+                    suggestions.append({
+                        "name": _sp["name"],
+                        "value": _seq_match.upper(),
+                        "rationale": f"Amino-acid/nucleotide sequence extracted directly from your query.",
+                    })
+                    _already_set.add(_sp["name"])
+
         return suggestions
 
     def _apply_llm_suggestions(
