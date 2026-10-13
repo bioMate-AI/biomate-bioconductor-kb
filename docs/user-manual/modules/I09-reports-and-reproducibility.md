@@ -72,7 +72,7 @@ opens with the reproducibility record itself and folds the rest as expandable se
 You can download the record as JSON from the record section (`:1573`, "↓ Download record (JSON)").
 
 ![The Reproducibility record tab — identity, resolved parameters, and the outputs table with the SHA-256 column](../assets/i09-2-reproducibility-record.png)
-<!-- CAPTURE route=/ (completed run, Reproducibility record tab open) ; state=a completed run ; focus=[data-testid="repro-tab"] ; note=show the identity table, Parameters, Input bindings, and the Outputs table with the SHA-256 column (dash by default) -->
+<!-- CAPTURE route=/ (completed run, Reproducibility record tab open) ; state=a completed run ; focus=[data-testid="repro-tab"] ; note=show the identity table, Parameters, Input bindings, and the Outputs sectionle with the SHA-256 column (dash by default) -->
 
 ## Per-output checksums (SHA-256) — real, and honest about it
 

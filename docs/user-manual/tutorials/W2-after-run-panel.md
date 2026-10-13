@@ -92,7 +92,7 @@ normal, honest states, not errors):
 read, so the Summary says so rather than fabricating a result. The "RUN ORIGINAL" badge marks the unedited
 record. On a normal run this tab shows the populated Findings Summary described above.*
 
-<!-- CAPTURE route=/ ; state=After run → Summary tab on a run with findings present — Findings Summary card showing a summary paragraph with a clickable number, headline metric chips, Key Results expanded, and the Download report button ; focus=findings-card ; note=show a populated findings card (not the withheld state), with at least one finding number rendered as a link -->
+<!-- CAPTURE route=/ ; state=After run → Results tab on a run with findings present — Findings Summary card showing a summary paragraph with a clickable number, headline metric chips, Key Results expanded, and the Download findings button ; focus=findings-card ; note=show a populated findings card (not the withheld state), with at least one finding number rendered as a link -->
 ![A completed ADMET run — the chat confirms completion and points you to the Findings panel, and the panel header carries the correct workflow title with a green "Completed" badge. On this run the output files could not be read, so the Summary honestly withholds the findings rather than fabricating them; on a run whose outputs are readable, this is where the populated Findings Summary appears.](../assets/r8-completed-chat-and-panel.png)
 
 ---
@@ -120,7 +120,7 @@ grouped by the step that produced them, so you can trace any result to its stage
 **If there are no files:** the tab says *"No output files registered yet"* — or, on a failed run, *"No outputs —
 run did not complete successfully."*
 
-![The Outputs tab of a completed ADMET run — the six real output files (pk_summary.json, predict_admet_properties_results.json, qc_metrics.json, toxicity_report.json, versions.yml…) each with view/download, plus Download-all-as-ZIP, Reproducibility bundle, Save to Project, and Explore in Jupyter.](../assets/r5-outputs.png)
+![The Outputs section of a completed ADMET run — the six real output files (pk_summary.json, predict_admet_properties_results.json, qc_metrics.json, toxicity_report.json, versions.yml…) each with view/download, plus Download-all-as-ZIP, Reproducibility bundle, Save to Project, and Explore in Jupyter.](../assets/r5-outputs.png)
 *A real run's outputs (the in-vivo CAR-T co-design from Tutorial 3), grouped by step. Each row carries the step
 that made it, the file type, and a **view** / **dl** action. Clicking **view** opens the file inline (Tutorial
 5).*
@@ -198,8 +198,8 @@ and log tail, and the "Restart" button at the bottom.)*
 
 ## 9. Honest limits — what to expect
 
-- **Three tabs, not more.** The After-run section is exactly **Summary · Outputs · Reproducibility record**.
-  The **findings** live inside the Summary tab (not a separate "Findings" tab), and the **parameters** live
+- **Two tabs, not more.** The After-run section is exactly **Results · Reproducibility record**.
+  The **findings** live inside the Results tab (not a separate "Findings" tab), and the **parameters** live
   inside the Reproducibility record (as "Resolved parameters" and in the record itself) — not a standalone
   "Parameters" tab. Everything is reachable; it's just grouped this way.
 - **Findings are never fabricated.** If the outputs can't be read, the Summary says the findings are
@@ -234,7 +234,7 @@ The habit: **After run → Summary (read findings) → Outputs (open and check t
 | Term | What it means — and why you care |
 |---|---|
 | **After-run section** | The panel once a run finishes — two tabs: Results (findings + previewed outputs) and Reproducibility record. |
-| **Summary tab** | The landing tab holding the plain-language **findings**; numbers link back to their source file. |
+| **Results tab** | The landing tab holding the plain-language **findings**; numbers link back to their source file. |
 | **Findings** | The results read **from the real outputs**; withheld honestly if outputs can't be read, never invented. |
 | **Outputs section** | Every file the run produced, previewed inline on the Results tab (searchable), each with **view** and **dl**; plus ZIP / bundle / save-to-project. |
 | **Reproducibility record** | The full audit trail — identity, resolved parameters, inputs, outputs, methods, software, citations, QC, trajectory. |

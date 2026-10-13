@@ -39,7 +39,7 @@ Two ways a viewer opens:
 - **You click "view"** on a file (or read its inline preview) in the Outputs section.
 - **A finding names its source file.** Each Key Result carries a `source_file` (the **Source** column), so "log2FC = 2.4" is traceable to the DEG table it came from — evidence, not a floating number. The file itself is previewed inline in the Outputs section on the same Results tab. (The findings→output click-to-jump navigation was removed when Findings and Outputs merged into one tab.)
 
-![The Outputs tab: each file row shows its step, name, type, and view/download actions.](../assets/i08-1-outputs-tab.png)
+![The Outputs section: each file row shows its step, name, type, and view/download actions.](../assets/i08-1-outputs-tab.png)
 <!-- CAPTURE route=/ (open a completed run's after-run report → Results tab, Outputs section) ; state=a completed run with several output files (table + figure) ; focus=output-files-table ; note=show the per-file table with "view" and "dl" actions and the "Explore in" interactive row above it -->
 
 ## The in-app viewer taxonomy (what renders inline)
@@ -163,7 +163,7 @@ lineage, versions; see I.5, `:1084-1144`).
 ## Pitfalls & tips
 
 > **Tip — the viewer fetches the real file.** Every inline viewer reads from the same
-> `/api/workflows/runs/:id/step-file` endpoint the Outputs table already uses
+> `/api/workflows/runs/:id/step-file` endpoint the Outputs sectionle already uses
 > (`step-output-preview.tsx:811`); there's no separate "preview" data path that could drift from the
 > real bytes. What you see is the file.
 

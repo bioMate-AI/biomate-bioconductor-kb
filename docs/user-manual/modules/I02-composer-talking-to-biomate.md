@@ -170,7 +170,7 @@ attached files, and dataset chips are all reset (`chat-input.tsx:290-296`).
 
 ### Send behavior & the cold-start seed
 
-When a chat is empty, the cold-start dashboard's example cards **seed** the composer instead of sending.
+When a chat is empty, the cold-start dashboard's example cards **seed** the composer (and attach the example's prepared demo dataset) instead of sending.
 Clicking an example calls the dashboard's `onSeed(text)` (`cold-start-dashboard.tsx:516`, wired in
 `chat-interface.tsx:2134-2139`). That handler prefers `localSetDraftRef.current(text)` — the composer's
 externally registered draft setter — and only falls back to sending if no setter is registered

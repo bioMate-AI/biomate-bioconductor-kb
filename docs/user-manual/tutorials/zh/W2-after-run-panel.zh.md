@@ -1,4 +1,4 @@
-# 教程 W2 —— 运行后面板：Summary、Outputs 与可复现记录
+# 教程 W2 —— 运行后面板：Results（结果）与可复现记录
 
 > **适合谁读：** 任何一次运行已经结束（或失败）、想弄懂工作流面板 **After run（运行后）** 这一节每一个部分的
 > 人。不需要编程。读完这一篇，你会知道分析结果住在哪里、如何打开并下载输出文件、完整的审计留痕在哪里，以及
@@ -27,7 +27,7 @@
 
 ## 2. 开始前需要了解的几个概念（用大白话讲）
 
-**运行后这一节正好有三个标签页。** 它们是 **Summary（摘要）**、**Outputs（输出）** 和
+**运行后这一节正好有两个标签页。** 它们是 **Summary（摘要）**、**Outputs（输出）** 和
 **Reproducibility record（可复现记录）**。一次运行一旦完成或失败，面板就自动打开在这里。*（为什么重要：这是
 一份简短、固定的清单 —— 你用不着翻一堆标签页。）*
 
@@ -70,7 +70,7 @@ Summary 是落地标签页。顶部坐着一个 **Run original（原始记录）
 - **Key Results（关键结果）** —— 一张可折叠的表（指标 · 值 · 解读 · 来源），默认折叠。
 - **Supporting Literature（佐证文献）** —— 当工作流提供时的参考文献，每条都链接出去。
 - **Caveats（注意事项）** —— BioMate 想让你知道的任何局限。
-- **Download report（下载报告）**，以及在提供时的 **Continue analysis（继续分析，把一个建议的下一步发到
+- **下载分析发现（Download findings）**，以及在提供时的 **Continue analysis（继续分析，把一个建议的下一步发到
   聊天里）**。
 
 **分析结果还在准备中、或读不到时你会看到什么**（对这些要有心理准备 —— 它们是正常、如实的状态，不是错误）：
@@ -87,7 +87,7 @@ Summary 是落地标签页。顶部坐着一个 **Run original（原始记录）
 结果。"RUN ORIGINAL" 徽标标记的是未经编辑的记录。在一次正常运行中，这个标签页会显示上面所述的那张已填充的
 分析结果摘要。*
 
-<!-- CAPTURE route=/ ; state=After run → Summary tab on a run with findings present — Findings Summary card showing a summary paragraph with a clickable number, headline metric chips, Key Results expanded, and the Download report button ; focus=findings-card ; note=展示一张已填充的分析结果卡片（而不是暂不给出的状态），其中至少有一个发现数字渲染成链接 -->
+<!-- CAPTURE route=/ ; state=After run → Results tab on a run with findings present — Findings Summary card showing a summary paragraph with a clickable number, headline metric chips, Key Results expanded, and the Download findings button ; focus=findings-card ; note=展示一张已填充的分析结果卡片（而不是暂不给出的状态），其中至少有一个发现数字渲染成链接 -->
 ![一次已完成的 ADMET 运行 —— 聊天里确认运行完成并提示你打开 Findings（分析结果）面板，面板顶栏带着正确的工作流标题和一个绿色的 "Completed"（已完成）徽标。这次运行的输出文件读不到，于是 Summary 据实把发现按下不表、而不是编造；在一次输出可读的运行上，这里正是那张已填充的分析结果摘要出现的地方。](../../assets/r8-completed-chat-and-panel.png)
 
 ---
@@ -189,7 +189,7 @@ successfully（分析不可用 —— 工作流未成功完成）"* 消息（§4
 
 ## 9. 如实的边界 —— 该抱什么预期
 
-- **三个标签页，不多不少。** 运行后这一节正好是 **Summary · Outputs · Reproducibility record**。
+- **两个标签页，不多不少。** 运行后这一节正好是 **Summary · Outputs · Reproducibility record**。
   **分析结果（findings）** 住在 Summary 标签页里（没有单独的"Findings"标签页），而**参数**住在可复现记录里
   （作为"Resolved parameters"、以及记录本身）—— 没有一个独立的"Parameters"标签页。一切都够得着；只是这么
   归类而已。
@@ -224,7 +224,7 @@ successfully（分析不可用 —— 工作流未成功完成）"* 消息（§4
 
 | 术语 | 含义 —— 以及你为什么要在意 |
 |---|---|
-| **运行后这一节（After-run section）** | 一次运行结束后的面板 —— 三个标签页：Summary、Outputs、Reproducibility record。 |
+| **运行后这一节（After-run section）** | 一次运行结束后的面板 —— 两个标签页：Results、Reproducibility record。 |
 | **Summary 标签页** | 装着大白话**分析结果**的落地标签页；数字链接回它的来源文件。 |
 | **分析结果（Findings）** | **从真实输出**里读出的结果；输出读不到时如实暂不给出，绝不编造。 |
 | **Outputs 标签页** | 运行产生的每个文件，按步骤分组，每个都带 **view** 和 **dl**；外加 ZIP／打包／保存到项目。 |

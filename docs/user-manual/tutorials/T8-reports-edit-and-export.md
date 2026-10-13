@@ -35,10 +35,11 @@ report away, BioMate exports it in a small set of real, well-defined formats.
 
 ## 2. The ideas you need first (plain-language background)
 
-**The after-run report (recap from Tutorial 3).** When a run finishes, BioMate shows a report with three tabs:
-**Summary** (the plain-language finding), **Outputs** (every file), and **Reproducibility record** (the audit
-trail). This tutorial lives mostly in two places: the top of the report, where the download buttons are, and
-the **Methods** section inside the Reproducibility record, which is the part you can edit.
+**The after-run report (recap from Tutorial 3).** When a run finishes, BioMate shows a report with two tabs:
+**Results** (the plain-language findings on top, then every output file previewed inline) and
+**Reproducibility record** (the audit trail). This tutorial lives mostly in two places: the top of the report,
+where the download buttons are, and the **Methods** section inside the Reproducibility record, which is the
+part you can edit.
 
 **The immutable run original.** BioMate marks the run's first, unedited report as the **run original** (labelled
 **v0**). It is never changed — not when you edit, not when you save. *(Why it matters: months later, when you
@@ -112,8 +113,8 @@ The download buttons sit at the top of the **After run** section and inside the 
 |---|---|---|---|
 | **A readable write-up** to share or paste into a draft | One document that stitches together the summary, parameters, methods, QC events, software, and citations | **Markdown** (`.md`) | **↓ Download report** (top of After run) |
 | **A machine-checkable record** | The reproducibility record (identity, parameters, input bindings, outputs with checksums) | **JSON** | **↓ Download record (JSON)** (Reproducibility record tab) |
-| **Everything needed to re-run elsewhere** | Configs, command scripts, logs, and the software-version file | **ZIP** | **↓ Reproducibility bundle** (Outputs tab) |
-| **All the result files** in one go | Every output the run produced | **ZIP** | **↓ Download all as ZIP** (Outputs tab) |
+| **Everything needed to re-run elsewhere** | Configs, command scripts, logs, and the software-version file | **ZIP** | **↓ Reproducibility bundle** (Outputs section) |
+| **All the result files** in one go | Every output the run produced | **ZIP** | **↓ Download all as ZIP** (Outputs section) |
 | **Just the methods section** on its own | The methods write-up by itself | **Plain text** (`.txt`) | **Download methods report** (on the workflow panel) |
 
 A few things worth knowing:
@@ -126,9 +127,9 @@ A few things worth knowing:
   with the run. If the server can't be reached, the same action **downloads your edit as a Markdown file**
   instead — an honest fallback so the edit is never lost.
 
-<!-- CAPTURE route=/ (completed run → After run) ; state=a completed run ; focus=[data-testid="afterrun-download-report"] ; note=show the "↓ Download report" button at the top of the After run panel, and (Outputs tab) the "↓ Reproducibility bundle" + "↓ Download all as ZIP" buttons -->
+<!-- CAPTURE route=/ (completed run → After run) ; state=a completed run ; focus=[data-testid="afterrun-download-report"] ; note=show the "↓ Download report" button at the top of the After run panel, and (Outputs section) the "↓ Reproducibility bundle" + "↓ Download all as ZIP" buttons -->
 *(Figure to add: the export buttons — "↓ Download report" at the top of the After run panel, and the
-"↓ Reproducibility bundle" / "↓ Download all as ZIP" buttons on the Outputs tab.)*
+"↓ Reproducibility bundle" / "↓ Download all as ZIP" buttons on the Outputs section.)*
 
 ![The reproducibility record, with its one-click JSON download](../assets/t3-4-after-run-reproducibility.png)
 *The Reproducibility record tab: identity, parameters, and the outputs table, with "↓ Download record (JSON)"

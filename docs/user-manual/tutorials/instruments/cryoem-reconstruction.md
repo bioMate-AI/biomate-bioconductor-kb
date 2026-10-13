@@ -110,7 +110,7 @@ Do Tutorial 6 (*Connecting instruments*) first if the microscope is not yet conn
 
 ## 6. Reading the result — the map and the numbers
 
-Open the **After run** report (the same three-tab report as any BioMate workflow — see Tutorial 3). For
+Open the **After run** report (the same two-tab report as any BioMate workflow — see Tutorial 3). For
 single-particle cryo-EM, look for:
 
 - **The 3-D density map** — usually an `.mrc` volume file. This is the headline output: the reconstructed
@@ -123,13 +123,13 @@ single-particle cryo-EM, look for:
 - **2-D class averages** — picture-like images of your particle seen from different angles, produced mid-run.
   Clean, detailed class averages are a good sign the particles are real and well-aligned; smeary ones warn of
   junk or heterogeneity.
-- **The Summary tab** — a plain-language account built **from the real output files**. If BioMate cannot read
+- **The Results tab** — a plain-language account built **from the real output files**. If BioMate cannot read
   an output, it withholds that finding rather than inventing a number (the honesty behaviour from Tutorial 3).
 - **The Reproducibility record** — every parameter, tool version, and output file, downloadable as one file
   for a paper's methods section or a deposition record.
 
-<!-- CAPTURE route=/ ; state=After-run report for a cryosparc_standard_spa run: Outputs tab listing the .mrc map + 2D class averages + FSC/resolution report ; focus=cryoem-outputs ; note=show the reconstruction outputs grouped by phase (map volume, class averages, resolution report) -->
-*(Figure to add: the After-run Outputs tab for a reconstruction — the 3-D map volume, 2-D class averages, and
+<!-- CAPTURE route=/ ; state=After-run report for a cryosparc_standard_spa run: Outputs section listing the .mrc map + 2D class averages + FSC/resolution report ; focus=cryoem-outputs ; note=show the reconstruction outputs grouped by phase (map volume, class averages, resolution report) -->
+*(Figure to add: the After-run Outputs section for a reconstruction — the 3-D map volume, 2-D class averages, and
 the resolution/FSC report, grouped by phase.)*
 
 ---
@@ -158,7 +158,7 @@ the resolution/FSC report, grouped by phase.)*
 | You want to… | Where |
 |---|---|
 | Register the microscope / check connectivity | **Tutorial 6 — Connecting instruments** |
-| Understand the three-tab report in depth | **Tutorial 3 — Running a workflow and reading the report** |
+| Understand the two-tab report in depth | **Tutorial 3 — Running a workflow and reading the report** |
 | View and interpret output files | **Tutorial 5 — Viewing your results** |
 | Act on a New-data event | **Tutorial 6 §6** |
 

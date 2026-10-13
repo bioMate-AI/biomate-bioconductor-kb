@@ -112,7 +112,7 @@ Benchling，并把监管用的 IND 文书组装起来。**
 **怎么据此行动：** 把那些既强效（实测）、ADMET 又干净（预测）的化合物往前推进；把那些因 hERG 或吸收差而
 被标记的，先搁置或重新设计。预测是一个*把下一轮真实实验聚焦起来的过滤器*，而不是最终定论。
 
-<!-- CAPTURE route=/drug-discovery-cro ; state=After-run ADMET report Outputs tab showing per-compound predicted endpoints incl hERG, with a safety flag on one compound ; focus=admet-outputs ; note=展示逐化合物的 ADMET 预测以及一个 hERG 安全性标记 -->
+<!-- CAPTURE route=/drug-discovery-cro ; state=After-run ADMET report Outputs section showing per-compound predicted endpoints incl hERG, with a safety flag on one compound ; focus=admet-outputs ; note=展示逐化合物的 ADMET 预测以及一个 hERG 安全性标记 -->
 *（待补图：ADMET 的 After-run（运行后）Outputs（输出）—— 逐化合物的预测端点，包括 hERG，其中一个化合物
 在一道安全闸门上被标记。）*
 

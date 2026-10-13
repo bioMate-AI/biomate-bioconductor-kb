@@ -92,7 +92,7 @@ chapter that covers it in full is noted in *(italics)*.
 
 ## Reports & reproducibility
 
-- **Report / methods report** — the after-run write-up (Summary / Outputs / Reproducibility). It is a
+- **Report / methods report** — the after-run write-up (Results / Reproducibility). It is a
   versioned, editable object, not a throwaway. *(Module I.9)*
 - **Reproducibility record** — the machine-readable record of a run: exact parameters, input bindings,
   outputs with sizes and SHA-256 checksums, plus software and citations. *(Module I.9)*

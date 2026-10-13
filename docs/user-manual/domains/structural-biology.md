@@ -304,7 +304,7 @@ should place erlotinib in the ATP pocket.
 
 ## Outputs & visualization
 
-Structure and docking outputs render in the after-run panel's Outputs tab through
+Structure and docking outputs render in the after-run panel's Outputs section through
 the in-app viewer taxonomy (`frontend/client/src/components/step-output-preview.tsx`);
 the mapping below is by file type. Cross-referenced from
 [I.8 Outputs, viewers & interactive panels](../modules/I08-outputs-viewers-interactive.md),

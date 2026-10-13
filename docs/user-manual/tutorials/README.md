@@ -19,7 +19,7 @@ Full coverage map (design spec 00–14 → tutorial → built/backlog): `docs/20
 | T0 | [Getting started](T0-getting-started.md) | First question, the composer, how BioMate answers |
 | T1 | [Design & generate](T1-design-and-generate.md) | The Design & Generate module (small-molecule) + closed loop |
 | T2 | [Models & the closed loop](T2-models-and-the-closed-loop.md) | Using models; the predict→run→learn loop |
-| T3 | [Running a workflow & reading the report](T3-running-a-workflow-and-reading-the-report.md) | The end-to-end run + three-tab report |
+| T3 | [Running a workflow & reading the report](T3-running-a-workflow-and-reading-the-report.md) | The end-to-end run + two-tab report |
 | T4 | [Bringing your own data](T4-bringing-your-own-data.md) | Uploading a file; data quality gates |
 | T5 | [Viewing your results](T5-viewing-your-results.md) | Output viewers (image/table/FASTA/VCF/3-D) |
 | T6 | [Connecting instruments](T6-connecting-instruments.md) | Registering a lab/hospital instrument (the registry) |
@@ -44,7 +44,7 @@ Full coverage map (design spec 00–14 → tutorial → built/backlog): `docs/20
 |---------|----------|
 | Every sidebar function | [S1 — Sidebar navigation](S1-sidebar-navigation.md) |
 | Workflow panel (before/during a run) | [W1 — Workflow panel tabs](W1-workflow-panel-tabs.md) |
-| After-run panel (Summary · Outputs · Reproducibility) | [W2 — After-run panel](W2-after-run-panel.md) |
+| After-run panel (Results · Reproducibility) | [W2 — After-run panel](W2-after-run-panel.md) |
 | Full step view & provenance | [W3 — Full step view](W3-full-step-view.md) |
 
 ## Per-instrument — the analysis each instrument's data drives

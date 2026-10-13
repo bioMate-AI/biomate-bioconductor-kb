@@ -21,7 +21,7 @@ re-reading.
 | **Run** | status · parameters · live steps · outputs · findings | the run panel beside the chat; lives in its chat session | [I.6](../modules/I06-running-an-analysis.md) |
 | **Step** | inputs → tool+version → outputs · params-by-origin · rendered⇄raw | the full step view | [I.7](../modules/I07-full-step-view-provenance.md) |
 | **Output** | bytes · type · size · SHA-256 · the step that made it | an in-app viewer by evidence type | [I.8](../modules/I08-outputs-viewers-interactive.md) |
-| **Report** | the after-run record + editable, versioned methods; immutable v0 "run original" | the 3-tab after-run report | [I.9](../modules/I09-reports-and-reproducibility.md) |
+| **Report** | the after-run record + editable, versioned methods; immutable v0 "run original" | the two-tab after-run report | [I.9](../modules/I09-reports-and-reproducibility.md) |
 | **Model** | identity · evidence · lineage · versions · interface | the model object / registry | [I.10](../modules/I10-models.md) |
 | **Plan / hypothesis** | goal + hypothesis a run can cite | a card on the project | [I.4](../modules/I04-projects-instructions-collaboration.md) |
 

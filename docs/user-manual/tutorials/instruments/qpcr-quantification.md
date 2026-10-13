@@ -114,7 +114,7 @@ workflow asks for this by name.
 
 ## 5. Reading the result / report
 
-When the run finishes, open the **After run** section (the same three-tab report explained in **Tutorial 3**):
+When the run finishes, open the **After run** section (the same two-tab report explained in **Tutorial 3**):
 
 - **Summary** — the plain-language finding: which genes went up or down and by how much, as **fold change
   (2^−ΔΔCt)**. Read it like this:
@@ -166,7 +166,7 @@ When the run finishes, open the **After run** section (the same three-tab report
 |---|---|
 | Connect the qPCR machine so runs arrive automatically | **Tutorial 6** |
 | Bring a single Cq file in by hand | **Tutorial 4** |
-| Understand the three-tab report in depth | **Tutorial 3** |
+| Understand the two-tab report in depth | **Tutorial 3** |
 | Measure expression genome-wide instead of a few genes | **BaseSpace → RNA-seq tutorial** (`basespace-sequencing.md`) |
 | Pick the most stable reference genes first | ask for `nf-core/stableexpression` |
 

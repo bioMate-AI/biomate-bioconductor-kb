@@ -110,7 +110,7 @@ The after-run report has two tabs — **Results** and **Reproducibility record**
 
 **Outputs — every file, previewed inline on the Results tab.**
 
-![The Outputs tab](../assets/t3-3-after-run-outputs.png)
+![The Outputs section](../assets/t3-3-after-run-outputs.png)
 *On the Results tab, below the findings, every file the run produced is shown as an inline preview — searchable — here 11 files across
 the four phases (e.g. `atlas_safety.json` from the Atlas-safety phase, `lnp_tropism.json` from the LNP phase,
 `cart_construct.fasta` — a sequence file — and `design_report.txt` from the final assembly). File types are

@@ -67,7 +67,7 @@ or living in your Data area (Tutorial 4). When you drop a file in, BioMate often
 card** automatically (see §5), so you can see the file is the shape you expected *before* you compute on it.
 
 **The validated gear = Tutorial 3.** The heavy end of this module — picking a pipeline, setting parameters,
-watching phases run on cloud computers, and reading the three-tab report — is covered in full by
+watching phases run on cloud computers, and reading the two-tab report — is covered in full by
 **Tutorial 3**. This tutorial gets you to its door and spends its depth on the quick gear and the handoff
 between the two.
 
@@ -113,7 +113,7 @@ badge, and the "Redo as a validated run" action.)*
    conditions · needs a counts matrix · ~40 min"). A few shapes even come with a provided sample dataset so
    you can run one end-to-end before bringing your own.
 2. **Confirm and run, then read the report.** From here it is the full run-and-read-the-report flow — set
-   parameters, confirm, watch the phases run, read the Summary / Outputs / Reproducibility-record tabs.
+   parameters, confirm, watch the phases run, read the Results / Reproducibility-record tabs.
    **That is Tutorial 3** — follow it for the details.
 
 <!-- CAPTURE route=/ ; state=cold start with the Data analysis card expanded on the "Validated workflows" track, domain chips visible and one domain selected showing its workflow shapes (title · what it needs · time), a couple with a "sample" badge ; focus=cold-start Data analysis card, Validated workflows track ; note=show domain chips + shape rows + sample-dataset badge; nothing sent -->
@@ -179,7 +179,7 @@ result turns out to matter, you **promote it** instead of starting over:
   presenting the second attempt as the first. If a result is suspiciously trivial (a correlation over four
   rows), it reports the result *with its n*, not a lone coefficient.
 - **The validated gear's detail lives in Tutorial 3.** Parameters, phases, quality gates / auto-loop, the
-  three-tab report, and skipping phases are all specified there — this tutorial deliberately stops at the
+  two-tab report, and skipping phases are all specified there — this tutorial deliberately stops at the
   door so it doesn't duplicate (or drift from) that one.
 
 ---
@@ -219,7 +219,7 @@ defensible.**
 > sandbox and returns the result with its code; in deployment that sandbox runs network-off. The data-check
 > card parses real FASTQ/FASTA/CSV/VCF files you bring in (local/reachable files; cloud-only paths are not
 > inspected inline). The "Redo as a validated run" / "Check against our data" escalation is wired to the
-> real workflow path. The full validated-run experience — parameters, phases, gates, the three-tab report —
+> real workflow path. The full validated-run experience — parameters, phases, gates, the two-tab report —
 > is documented and grounded in a real completed run in **Tutorial 3**.
 
 _Companion technical references (for power users / developers): `docs/user-manual/modules/` (running an

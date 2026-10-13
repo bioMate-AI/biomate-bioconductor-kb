@@ -111,7 +111,7 @@ Compiled directly from the coverage ledger. Two legends:
 | Cold start: "Start"/normalized-seed button, thin launcher, project-scope line | 🗺️ | Seeds raw text only (I.1) |
 | Composer: chip quality dot / id@version / kind; @-mention typeahead; URL-paste quality card; inherited-vs-deviated experts | 🗺️ | I.2 |
 | Files: clickable "Open run" in lineage/consumers; cross-project browser | 🗺️ | Static text today (I.5) |
-| Full step view from the after-run report Outputs tab | 🗺️ | Reaches StepOutputPreview but not the full step view (report lacks per-step params) (I.7) |
+| Full step view from the after-run report Outputs section | 🗺️ | Reaches StepOutputPreview but not the full step view (report lacks per-step params) (I.7) |
 | "Re-run from here" inside StepDetail on the run panel | 🗺️ | Not wired; re-run via step-row/report instead (I.7) |
 | Reproducibility checksums default-on | 🗺️ | Opt-in (`?checksums=1`); column shows "—" until you press Compute checksums (I.9) |
 | Report chat-edit (propose-diff); manuscript Stage 6; cross-run report | 🗺️ | Hand-edit + Save version only (I.9) |

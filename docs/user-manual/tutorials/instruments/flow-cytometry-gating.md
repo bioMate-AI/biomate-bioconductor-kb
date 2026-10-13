@@ -102,7 +102,7 @@ BioMate also has sibling workflows for other cytometry assays, routed automatica
 
 ## 5. Reading the result / report
 
-Open the **After run** section (three tabs — see **Tutorial 3**):
+Open the **After run** section (two tabs — see **Tutorial 3**):
 
 - **Summary** — the populations found and **what fraction of cells each one is**. Read it as a gating tree:
   e.g. "lymphocytes 62% of singlets → of those, CD3+ 71% → of those, CD4+ 43% / CD8+ 29%." Percentages are the
@@ -148,7 +148,7 @@ Open the **After run** section (three tabs — see **Tutorial 3**):
 |---|---|
 | Connect the cytometer so runs arrive automatically | **Tutorial 6** |
 | Bring a single `.fcs` file in by hand | **Tutorial 4** |
-| Understand the three-tab report | **Tutorial 3** |
+| Understand the two-tab report | **Tutorial 3** |
 | Measure cell division instead of phenotype | ask for **`Analyze Cfse Cell Proliferation`** |
 | Measure cytokine production in CD4+ T cells | ask for **`Analyze Cytokine Production In Cd4 Tcells`** |
 

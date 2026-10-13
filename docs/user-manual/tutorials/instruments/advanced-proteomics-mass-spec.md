@@ -169,7 +169,7 @@ conversion (ProteoWizard **msconvert**) may be needed first — see the main LC-
 
 ## 5. Reading the result / report
 
-Open the **After run** section (three tabs — see **Tutorial 3**).
+Open the **After run** section (two tabs — see **Tutorial 3**).
 
 **TMT (`msstatstmt`):**
 - **Protein-level quantification** — `quant_msstats_protein_level.csv` (normalized abundance per protein per
@@ -264,7 +264,7 @@ Beyond these three assays, the facility's MS data can drive a wide BioMate prote
 | Plain label-free DDA/DIA proteomics, or metabolomics | the main [LC-MS tutorial](./lcms-proteomics-metabolomics.md) |
 | Connect the MS instrument so runs arrive automatically | **Tutorial 6** |
 | Convert/upload a single `.mzML` by hand | **Tutorial 4** |
-| Understand the three-tab report | **Tutorial 3** |
+| Understand the two-tab report | **Tutorial 3** |
 | Build isobaric PSM tables / DEqMS testing | ask for **`deqms/psm_table_isobaric`** |
 | Rank candidate antigens from the immunopeptidome | ask for **`immunology/antigen_resolution`** |
 

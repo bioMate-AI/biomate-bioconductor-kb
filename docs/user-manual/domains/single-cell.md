@@ -68,7 +68,7 @@ The through-line of this chapter is the same as the rest of the book:
 | "Cluster my 10x run and tell me what cell types are there" | `scrnaseq_standard_endtoend` (the end-to-end `.nf`: nf-core/scrnaseq **12777** → scDblFinder QC → Harmony → Leiden+UMAP → celltypist), surfaced via chain **`scrnaseq_standard_to_isee`** | 10x FASTQ + samplesheet (or Cell Ranger `.h5ad`) | `annotated.h5ad` + `celltype_assignments.csv` + `marker_genes_per_cluster.csv` + `qc_metrics.csv` + `umap_celltypes.png` + Methods report; **+ the in-app UMAP panel** when the `.summary.json` sidecar is emitted | Cloud (AWS Batch) |
 | "Full multi-sample scRNA analysis with donor batch correction, then which populations shift" | chain **`single_cell_multimodal_analysis`**: QC/normalise → Harmony integration → clustering+annotation → trajectory → differential abundance (donor as random effect) | Cell Ranger output (or `.h5ad`) + sample metadata (donor + condition) | `h5ad_final` + `cell_type_umap` (pdf) + `da_results` (tsv) + `trajectory_plot` (pdf) | Cloud |
 | "I already have cell types — run pseudobulk DE across conditions the right way" | chain **`scrna_pseudobulk_de_bioc`** ("scRNA-seq → Pseudobulk DESeq2 (OSCA)") | Annotated `.h5ad` / SCE + condition metadata | Pseudobulk DE table per cell type | Cloud |
-| "Open my clustered `.h5ad` in an interactive browser" | chained **iSEE** (id **11653**) after `scrnaseq_standard_endtoend`; or CellxGene/Jupyter from the Outputs tab | `annotated.h5ad` | iSEE Shiny app / interactive session | Cloud (interactive, environment-gated — see *What's not covered*) |
+| "Open my clustered `.h5ad` in an interactive browser" | chained **iSEE** (id **11653**) after `scrnaseq_standard_endtoend`; or CellxGene/Jupyter from the Outputs section | `annotated.h5ad` | iSEE Shiny app / interactive session | Cloud (interactive, environment-gated — see *What's not covered*) |
 
 > **Tip — you don't need FASTQ to get value.** If a collaborator or core gave you
 > a Cell Ranger `.h5ad`, skip alignment and enter the downstream chain directly.
@@ -262,7 +262,7 @@ which is the "gold-standard-comparable artifact" the manual mandates.
 
 ## Outputs & visualization
 
-Every output renders in the after-run panel's Outputs tab via the in-app viewer
+Every output renders in the after-run panel's Outputs section via the in-app viewer
 taxonomy (see **I.8 — Outputs, viewers & interactive panels**). The mapping below
 is by file type.
 

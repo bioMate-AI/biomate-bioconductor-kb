@@ -29,8 +29,8 @@ BioMate 让这件事保持诚实。运行的**原始报告绝不会被覆盖**�
 
 ## 2. 开始前需要了解的几个概念（用大白话讲）
 
-**运行后报告（recap，回顾教程三）。** 一次运行结束时，BioMate 会显示一份带三个标签页的报告：**Summary（摘要，
-大白话的结论）**、**Outputs（输出，每一个文件）** 和 **Reproducibility record（可复现记录，审计轨迹）**。这一篇
+**运行后报告（recap，回顾教程三）。** 一次运行结束时，BioMate 会显示一份带两个标签页的报告：**Results（结果：
+顶部是大白话发现，下面每个输出文件就地内嵌预览、可搜索）** 和 **Reproducibility record（可复现记录，审计轨迹）**。这一篇
 主要落在两个地方：报告顶部那些下载按钮，以及可复现记录里那个 **Methods（方法）** 小节 —— 它就是你能编辑的
 部分。
 
@@ -102,8 +102,8 @@ v2，依此类推）。列表会按从旧到新的顺序列出每一个版本，
 |---|---|---|---|
 | **一份可读的综述**，用来分享或粘进草稿 | 一份文档，把摘要、参数、方法、QC 事件、软件和引用缝合在一起 | **Markdown**（`.md`） | **↓ Download report（下载报告）**（After run 顶部） |
 | **一份机器可核查的记录** | 可复现记录（标识、参数、输入绑定、带校验和的输出） | **JSON** | **↓ Download record (JSON)（下载记录）**（可复现记录标签页） |
-| **在别处重跑所需的一切** | 配置、命令脚本、日志，以及软件版本文件 | **ZIP** | **↓ Reproducibility bundle（可复现打包）**（输出标签页） |
-| **一次性拿到全部结果文件** | 运行产出的每一个输出 | **ZIP** | **↓ Download all as ZIP（打包下载为 ZIP）**（输出标签页） |
+| **在别处重跑所需的一切** | 配置、命令脚本、日志，以及软件版本文件 | **ZIP** | **↓ Reproducibility bundle（可复现打包）**（输出部分） |
+| **一次性拿到全部结果文件** | 运行产出的每一个输出 | **ZIP** | **↓ Download all as ZIP（打包下载为 ZIP）**（输出部分） |
 | **只要方法小节本身** | 单独的方法综述 | **纯文本**（`.txt`） | **Download methods report（下载方法报告）**（在工作流面板上） |
 
 有几点值得知道：
@@ -114,8 +114,8 @@ v2，依此类推）。列表会按从旧到新的顺序列出每一个版本，
 - 当你**保存一个编辑过的方法版本**（上面第 4 步）且服务器可达时，那个版本会随运行一起存储。如果连不上服务器，
   同一个操作会转而**把你的编辑以一个 Markdown 文件下载下来** —— 一个如实的兜底，好让编辑永不丢失。
 
-<!-- CAPTURE route=/ (completed run → After run) ; state=a completed run ; focus=[data-testid="afterrun-download-report"] ; note=展示 After run 面板顶部的"↓ Download report（下载报告）"按钮，以及（输出标签页里）"↓ Reproducibility bundle（可复现打包）"+ "↓ Download all as ZIP（打包下载为 ZIP）"按钮 -->
-*（待补图：导出按钮 —— After run 面板顶部的"↓ Download report（下载报告）"，以及输出标签页上的
+<!-- CAPTURE route=/ (completed run → After run) ; state=a completed run ; focus=[data-testid="afterrun-download-report"] ; note=展示 After run 面板顶部的"↓ Download report（下载报告）"按钮，以及（输出部分里）"↓ Reproducibility bundle（可复现打包）"+ "↓ Download all as ZIP（打包下载为 ZIP）"按钮 -->
+*（待补图：导出按钮 —— After run 面板顶部的"↓ Download report（下载报告）"，以及输出部分上的
 "↓ Reproducibility bundle（可复现打包）" / "↓ Download all as ZIP（打包下载为 ZIP）"按钮。）*
 
 ![可复现记录，带它一键下载的 JSON](../../assets/t3-4-after-run-reproducibility.png)

@@ -105,7 +105,7 @@ MinKNOW 连接器会检测到一次已完成的运行，并根据它发现的内
   那条发现按下不表，而不是编造它（教程三里的那种如实行为）。
 - **可复现记录（Reproducibility record）** —— 每一个参数和工具版本，可下载用于方法部分。
 
-<!-- CAPTURE route=/ ; state=After-run report for a nanopore run: Outputs tab listing basecalled fastq + (if variant calling) a VCF + read-quality summary ; focus=nanopore-outputs ; note=展示按阶段归类的已识别碱基读段 和/或 一个 VCF -->
+<!-- CAPTURE route=/ ; state=After-run report for a nanopore run: Outputs section listing basecalled fastq + (if variant calling) a VCF + read-quality summary ; focus=nanopore-outputs ; note=展示按阶段归类的已识别碱基读段 和/或 一个 VCF -->
 *（待补图：一次纳米孔运行的 After-run（运行后）Outputs（输出）标签页 —— 已识别碱基的 FASTQ 读段、一份
 读段质量概要，以及（DNA 路径下）一个变异 VCF。）*
 

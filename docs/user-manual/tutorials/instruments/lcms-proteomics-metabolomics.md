@@ -122,7 +122,7 @@ untargeted-metabolomics first steps.
 
 ## 5. Reading the result / report
 
-Open the **After run** section (three tabs — see **Tutorial 3**):
+Open the **After run** section (two tabs — see **Tutorial 3**):
 
 **Proteomics (DDA/DIA):**
 - **Summary** — the headline: how many **proteins identified**, and which are **differentially abundant** between
@@ -133,7 +133,7 @@ Open the **After run** section (three tabs — see **Tutorial 3**):
   differential-abundance table, and QC plots (MultiQC / PTXQC). Downloadable for your figures.
 
 **Metabolomics:**
-- **Summary / Outputs** — the **feature table** (each row = one m/z × retention-time feature, with intensity per
+- **Results** — the **feature table** (each row = one m/z × retention-time feature, with intensity per
   sample), plus any putative annotations (candidate metabolite names from HMDB/KEGG). *Caution:* an annotation
   from mass alone is a **putative identification**, not a confirmed compound — confirming an ID usually needs a
   matching standard or MS/MS evidence.
@@ -180,7 +180,7 @@ Open the **After run** section (three tabs — see **Tutorial 3**):
 |---|---|
 | Connect the LC-MS instrument so runs arrive automatically | **Tutorial 6** |
 | Convert/upload a single `.mzML` by hand | **Tutorial 4** |
-| Understand the three-tab report | **Tutorial 3** |
+| Understand the two-tab report | **Tutorial 3** |
 | Integrate proteomics + metabolomics on the same samples | ask for **`Lc Ms Proteomics Metabolomics`** |
 | Check a license-clean proteomics route | ask for **`proteomics_dda_search`** (Comet/Sage/mokapot) |
 

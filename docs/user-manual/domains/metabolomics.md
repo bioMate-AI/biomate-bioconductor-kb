@@ -220,7 +220,7 @@ mandates.
 
 ## Outputs & visualization
 
-Every output renders in the after-run panel's Outputs tab via the in-app viewer
+Every output renders in the after-run panel's Outputs section via the in-app viewer
 taxonomy (`frontend/client/src/components/step-output-preview.tsx:66-105`); the
 mapping below is by file extension.
 

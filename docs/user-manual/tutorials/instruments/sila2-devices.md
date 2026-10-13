@@ -108,7 +108,7 @@ Do Tutorial 6 (*Connecting instruments*) first:
   (e.g. the incubator reached temperature, the plate was dispensed). There is no analysis report, because there
   is no measurement.
 - **For a measuring device:** the measurement (e.g. the plate reader's absorbance values) feeds a BioMate
-  analysis workflow, and you read **that** workflow's three-tab report (Summary, Outputs, Reproducibility
+  analysis workflow, and you read **that** workflow's two-tab report (Results, Reproducibility
   record) as in Tutorial 3. The analysis — not the SiLA2 layer — is where the findings come from.
 
 Because the analysis depends on the measurement type, there is no single "SiLA2 result screen." Match your

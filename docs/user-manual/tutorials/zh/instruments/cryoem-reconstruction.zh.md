@@ -116,7 +116,7 @@ SPA 工作流，带 Launch（启动）和 Dismiss（忽略）。）*
 - **可复现记录（Reproducibility record）** —— 每一个参数、工具版本和输出文件，可作为一个文件下载，用于
   论文的方法部分或一份存库记录。
 
-<!-- CAPTURE route=/ ; state=After-run report for a cryosparc_standard_spa run: Outputs tab listing the .mrc map + 2D class averages + FSC/resolution report ; focus=cryoem-outputs ; note=展示按阶段归类的重构输出（图体数据、类平均、分辨率报告） -->
+<!-- CAPTURE route=/ ; state=After-run report for a cryosparc_standard_spa run: Outputs section listing the .mrc map + 2D class averages + FSC/resolution report ; focus=cryoem-outputs ; note=展示按阶段归类的重构输出（图体数据、类平均、分辨率报告） -->
 *（待补图：一次重构的 After-run（运行后）Outputs（输出）标签页 —— 三维图体数据、二维类平均，以及
 分辨率 / FSC 报告，按阶段归类。）*
 

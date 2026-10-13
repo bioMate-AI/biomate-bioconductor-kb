@@ -32,7 +32,9 @@ The cold start renders in the **empty state of a new chat** — when a session h
    it and send.
 2. **Open a module card and pick an example.** Each card is collapsed by default; click its header to
    expand (`:748`). Inside, the module's **tracks** appear as tabs (`.trackbar`), each with example
-   goals. Click an example (`ExampleRow`, `:639-646`) → it seeds the composer with that goal.
+   goals. Click an example (`ExampleRow`, `:639-646`) → it fills the composer with that goal **and
+   attaches the example's prepared public demo dataset** (`prepareColdStartExample`,
+   `chat-interface.tsx:2138-2155`), so it is ready to run as-is — no upload needed.
    - For **Design & generate**, the card also carries a **modality** (small-molecule / peptide /
      biologic); the picked modality is threaded into the seeded goal (`seedWithModality`, `:720-760`).
 
@@ -49,14 +51,16 @@ to are described in the overview (`overview/00-what-is-biomate.md`) and their ow
 
 ## What you control
 
-- **Review before sending** — seeded text lands in the composer; edit it, add data, then send (I.2).
+- **Review before sending** — the seeded goal **and its attached demo dataset** land in the composer;
+  review, optionally edit the goal or swap in your own data, then send (I.2).
 - **The lane** — if the router's Instant/Cloud read isn't what you want, override it in the composer
   (I.2 / the lane chip).
 
 ## Pitfalls & tips
 
-> **Tip — the cards don't run anything.** Clicking an example *seeds* your composer so you can adjust
-> it; you still press send. Nothing launches behind your back.
+> **Tip — the cards don't run anything.** Clicking an example *fills* your composer with the goal
+> **and its prepared demo dataset** so you can run it as-is (or adjust it first); you still press
+> send. Nothing launches behind your back.
 
 > **Tip — get it back anytime.** The cold start is the empty-chat state — open a new chat to return to
 > the doorway.

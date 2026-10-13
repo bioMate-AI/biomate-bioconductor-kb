@@ -110,7 +110,7 @@ threshold, and fits 4PL dose–response where replicate concentration data exist
 
 ## 5. Reading the result / report
 
-Open the **After run** section (three tabs — see **Tutorial 3**):
+Open the **After run** section (two tabs — see **Tutorial 3**):
 
 - **Summary** — the headline number:
   - **IC50 / EC50** — the concentration giving half-maximal effect. **Lower IC50 = more potent** inhibitor. Read
@@ -162,7 +162,7 @@ Open the **After run** section (three tabs — see **Tutorial 3**):
 |---|---|
 | Connect the plate reader so runs arrive automatically | **Tutorial 6** |
 | Bring a single plate file in by hand | **Tutorial 4** |
-| Understand the three-tab report | **Tutorial 3** |
+| Understand the two-tab report | **Tutorial 3** |
 | Screen a whole plate and QC it | ask for **`Hts Plate Qc Hit Calling`** |
 | Fit enzyme kinetics (Km/Vmax) | ask for **`Analyze Enzyme Kinetics Assay`** |
 | Take a hit forward to ADMET/safety screening | the **BioMate drug-discovery (ADMET) flow** (see the main run tutorial, T3) |

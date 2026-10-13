@@ -124,7 +124,7 @@ differential comparison; for **16S**, your primer sequences and target region.
 
 ## 5. Reading the result / report
 
-Open the **After run** section (three tabs — see **Tutorial 3**):
+Open the **After run** section (two tabs — see **Tutorial 3**):
 
 **RNA-seq:**
 - **Summary** — the differentially expressed genes: read by **log2 fold-change** (how many doublings up/down; +1
@@ -134,7 +134,7 @@ Open the **After run** section (three tabs — see **Tutorial 3**):
   run quality). Downloadable for your figures.
 
 **WGS / variant calling:**
-- **Summary / Outputs** — an annotated **VCF** (the list of variants: position, reference vs. alternate base, and
+- **Results** — an annotated **VCF** (the list of variants: position, reference vs. alternate base, and
   SnpEff annotation of likely effect), a recalibrated **BAM** (the alignment), and coverage/QC metrics. The VCF
   is the headline; coverage tells you whether you sequenced deeply enough to trust the calls.
 - Previewing: a VCF previews as a variant table; a **BAM** is download/interactive (no inline genome-browser
@@ -182,7 +182,7 @@ Open the **After run** section (three tabs — see **Tutorial 3**):
 | You want to… | Where |
 |---|---|
 | Connect BaseSpace (API key + poll, residency) | **Tutorial 6** |
-| Understand the three-tab report and the QC gate | **Tutorial 3** |
+| Understand the two-tab report and the QC gate | **Tutorial 3** |
 | View a VCF / BAM and other outputs | **Tutorial 5** |
 | Measure a few genes instead of genome-wide | the **qPCR tutorial** (`qpcr-quantification.md`) |
 | Call variants in tumour samples | ask for **`nf-core/sarek`** |

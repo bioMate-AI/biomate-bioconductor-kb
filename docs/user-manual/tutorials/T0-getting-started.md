@@ -57,8 +57,10 @@ Why you care: the lane tells you the **time and cost** consequence of your reque
 paid computation until you confirm.
 
 **Nothing runs until you review and send.** This is the safety rule that applies throughout the product.
-The module cards and the intent bar only **seed** (pre-fill) your message box — they never send on their
-own. You read what was filled in, adjust it, attach any data, and press Send yourself.
+The intent bar only **seeds** (pre-fills) your message box; picking an **example** inside a module card
+also **attaches that example's prepared demo dataset**, so it is ready to run with no upload — but either
+way nothing sends on its own. You read what was filled in, optionally adjust it or swap in your own data,
+and press Send yourself.
 
 ---
 

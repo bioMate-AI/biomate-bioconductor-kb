@@ -293,7 +293,7 @@ CryoSPARC job tree.
 
 ## Outputs & visualization
 
-Every cryo-EM output renders in the after-run panel's Outputs tab through the
+Every cryo-EM output renders in the after-run panel's Outputs section through the
 in-app viewer taxonomy (`frontend/client/src/components/step-output-preview.tsx`);
 the mapping below is by file type. This is cross-referenced from
 [I.8 Outputs, viewers & interactive panels](../modules/I08-outputs-viewers-interactive.md).

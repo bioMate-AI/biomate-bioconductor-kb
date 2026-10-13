@@ -150,7 +150,7 @@ nf-core/mhcquant 官方文档。
 
 ## 5. 读结果 / 报告
 
-打开 **After run** 区（三个标签页 —— 见**教程三**）。
+打开 **After run** 区（两个标签页 —— 见**教程三**）。
 
 **TMT（`msstatstmt`）：**
 - **蛋白层定量** —— `quant_msstats_protein_level.csv`（每个蛋白在每个通道里的归一化丰度），以及序列化的

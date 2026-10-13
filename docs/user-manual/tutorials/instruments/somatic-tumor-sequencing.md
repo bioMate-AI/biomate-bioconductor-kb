@@ -142,7 +142,7 @@ Report phase cards, with the somatic Variant-Calling phase in the running state.
 
 ## 5. Reading the result / report
 
-Open the **After run** section (three tabs — see **Tutorial 3**):
+Open the **After run** section (two tabs — see **Tutorial 3**):
 
 - **Summary** — the headline count of **somatic** variants, and the most consequential ones. These are the
   mutations the tumour *acquired* (the germline has already been subtracted using the matched normal), read by
@@ -245,7 +245,7 @@ Public cancer reference resources the annotation step draws on include **COSMIC*
 |---|---|
 | Get your tumour + matched-normal FASTQs into BioMate | **Tutorial 6** (connection) / **Tutorial 4** (manual upload) |
 | Run germline / RNA-seq / 16S instead | the sequencing tutorial ([`basespace-sequencing.md`](basespace-sequencing.md)) |
-| Understand the three-tab report and the QC gate | **Tutorial 3** |
+| Understand the two-tab report and the QC gate | **Tutorial 3** |
 | View a VCF / BAM output | **Tutorial 5** |
 | Analyse a Sanger `.ab1` trace | **not yet supported** — roadmap item **B5** (§7) |
 

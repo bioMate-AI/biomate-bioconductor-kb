@@ -251,7 +251,7 @@ exactly the "gold-standard-comparable artifact" the tutorial-demo plan mandates.
 
 ## Outputs & visualization
 
-Outputs render in the after-run panel's Outputs tab via the in-app viewer taxonomy
+Outputs render in the after-run panel's Outputs section via the in-app viewer taxonomy
 (`frontend/client/src/components/step-output-preview.tsx`); the mapping is by file
 extension. See **I.8 Outputs, viewers & interactive panels** for the full taxonomy.
 

@@ -273,7 +273,7 @@ result, not a process tree.
 
 ## Outputs & visualization
 
-Outputs render in the after-run panel's Outputs tab via the in-app viewer taxonomy
+Outputs render in the after-run panel's Outputs section via the in-app viewer taxonomy
 (`frontend/client/src/components/step-output-preview.tsx`), mapped by file extension.
 
 | Output | File | In-app viewer | When to go interactive |

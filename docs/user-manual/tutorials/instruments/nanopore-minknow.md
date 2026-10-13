@@ -103,7 +103,7 @@ Do Tutorial 6 (*Connecting instruments*) first if the sequencer is not yet conne
 
 ## 6. Reading the result
 
-Open the **After run** report (the three-tab report from Tutorial 3). What to look for depends on which
+Open the **After run** report (the two-tab report from Tutorial 3). What to look for depends on which
 workflow ran:
 
 - **Basecalling** → `.fastq.gz` reads plus a quality summary (how many reads, read lengths, and average base
@@ -112,12 +112,12 @@ workflow ran:
   (SNPs, small indels, and — a nanopore strength — larger structural variants). Each row is one variant with
   its position and quality.
 - **RNA-seq (RNA)** → a table of gene expression levels, used to compare which genes differ between groups.
-- **Summary tab** — a plain-language account built **from the real outputs**; if an output cannot be read,
+- **Results tab** — a plain-language account built **from the real outputs**; if an output cannot be read,
   BioMate withholds that finding rather than inventing it (the Tutorial 3 honesty behaviour).
 - **Reproducibility record** — every parameter and tool version, downloadable for a methods section.
 
-<!-- CAPTURE route=/ ; state=After-run report for a nanopore run: Outputs tab listing basecalled fastq + (if variant calling) a VCF + read-quality summary ; focus=nanopore-outputs ; note=show basecalled reads and/or a VCF grouped by phase -->
-*(Figure to add: the After-run Outputs tab for a nanopore run — basecalled FASTQ reads, a read-quality
+<!-- CAPTURE route=/ ; state=After-run report for a nanopore run: Outputs section listing basecalled fastq + (if variant calling) a VCF + read-quality summary ; focus=nanopore-outputs ; note=show basecalled reads and/or a VCF grouped by phase -->
+*(Figure to add: the After-run Outputs section for a nanopore run — basecalled FASTQ reads, a read-quality
 summary, and (for the DNA path) a VCF of variants.)*
 
 ---
@@ -147,7 +147,7 @@ summary, and (for the DNA path) a VCF of variants.)*
 | You want to… | Where |
 |---|---|
 | Register the sequencer / check connectivity | **Tutorial 6 — Connecting instruments** |
-| Understand the three-tab report | **Tutorial 3 — Running a workflow and reading the report** |
+| Understand the two-tab report | **Tutorial 3 — Running a workflow and reading the report** |
 | View a VCF or read-quality file | **Tutorial 5 — Viewing your results** |
 | Bring a run folder in by hand | **Tutorial 4 — Bringing your own data** |
 

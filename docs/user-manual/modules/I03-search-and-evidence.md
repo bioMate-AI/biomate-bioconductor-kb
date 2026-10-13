@@ -33,7 +33,8 @@ either saved as a reusable project object or turned into a real run on your own 
 
 The Search & evidence module presents four tracks on the cold-start card
 (`COLD_MODULES[0]`, `cold-start-dashboard.tsx:225-263`). Clicking an example **seeds** your composer
-(it does not send — you review and send). The tracks are framings of the same question surface, not
+(and, for data-backed examples, **attaches its prepared demo dataset**; it does not send — you review
+and send). The tracks are framings of the same question surface, not
 four different engines:
 
 | Track | What you ask | Example (real seed) | Backed by |

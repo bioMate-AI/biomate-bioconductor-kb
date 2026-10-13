@@ -13,7 +13,8 @@ brings the result back in the same place you were talking.
 
 Everything starts at the **cold start** (`/`): four **function-module** cards plus an **intent router**
 (`cold-start-dashboard.tsx`). The cards don't launch anything — clicking an example **seeds** your
-composer with that goal ("onSeed — they do not send; you still review and send"). The router reads what
+composer with that goal **and attaches its prepared public demo dataset** (ready to run, no upload;
+"onSeed — they do not send; you still review and send"). The router reads what
 you typed and **restates it** as a lane + domain — it never dumps a list of workflow names.
 
 ## The two lanes (the consequence model)

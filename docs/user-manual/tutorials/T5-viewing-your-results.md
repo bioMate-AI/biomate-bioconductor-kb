@@ -68,7 +68,7 @@ matters: every headline number is evidence you can open and check, not a number 
 3. **Click "view".** The file opens inline in an overlay, displayed the right way for its type (see §5). Use
    **dl** instead only when you want the raw file on your computer.
 
-![The Outputs tab — each file row shows its step, name, type, and view / download actions](../assets/i08-1-outputs-tab.png)
+![The Outputs section — each file row shows its step, name, type, and view / download actions](../assets/i08-1-outputs-tab.png)
 *The Outputs section: every file the run produced, each shown as an inline preview card with **view** / **dl**
 action. Clicking **view** opens the file inline.*
 
@@ -178,7 +178,7 @@ result. Here is the honest scope, because it is easy to expect too much:
 |---|---|
 | Run the analysis whose outputs you're viewing | **Tutorial 3** |
 | Turn a saved output into the input for the next analysis | **Tutorial 4** |
-| Understand the whole report (Summary / Outputs / Reproducibility) | **Tutorial 3** |
+| Understand the whole report (Results / Reproducibility) | **Tutorial 3** |
 | Learn from results over rounds (the closed loop) | **Tutorial 2** |
 
 The habit: **open the Results tab → read each output previewed inline → read it (and sanity-check it) → save or share what

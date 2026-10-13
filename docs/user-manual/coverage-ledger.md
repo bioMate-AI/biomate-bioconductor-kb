@@ -174,7 +174,7 @@ Page: `modules/I07-full-step-view-provenance.md`. Tier C.
 |---|---|---|---|
 | StepDetail = step-as-object: provenance row + param-origin badges + rendered⇄raw + claim→output hook; honest "n/a" empty states (never fabricated) | C | ✅ | `steps/step-detail.tsx:6-18,104-138,158-182,188-242,312-337`; `nextflow-workflow-viewer.tsx:198-215` (+tests) |
 | Reachable from the LIVE phase view (step "Details" button + preview "Full step view") | C | ✅ | `nextflow-workflow-viewer.tsx:769-776,3162-3173,3453-3474`; `step-output-preview.tsx:863-874` |
-| GAP: after-run report Outputs tab reaches StepOutputPreview but NOT the full step view (no onOpenFullStepView) — needs per-step param data the report lacks | C | 🗺️ | `AfterRunReport.tsx:1211-1216` |
+| GAP: after-run report Outputs section reaches StepOutputPreview but NOT the full step view (no onOpenFullStepView) — needs per-step param data the report lacks | C | 🗺️ | `AfterRunReport.tsx:1211-1216` |
 | GAP: "Re-run from here" inside StepDetail not wired on run panel (mounted without onAdjustAndRerun); re-run via step-row/report instead | C | 🗺️ | `nextflow-workflow-viewer.tsx:3465-3471` vs `:777-790` |
 
 ## I.8 Outputs, viewers & interactive panels
@@ -193,7 +193,7 @@ Page: `modules/I09-reports-and-reproducibility.md`. Tier C.
 
 | Chapter / claim | Tier | Status | Evidence |
 |---|---|---|---|
-| 3-tab after-run report; Summary=FindingsCard (headline chips + findings→output links) + immutable "Run original" badge | C | ✅ | `AfterRunReport.tsx:148-152,224-282`; `findings-card.tsx:77-96,229-249` |
+| two-tab after-run report; Results-tab banner=FindingsCard (headline chips + findings→output links) + immutable "Run original" badge | C | ✅ | `AfterRunReport.tsx:148-152,224-282`; `findings-card.tsx:77-96,229-249` |
 | Reproducibility record: params + input bindings + outputs (name/type/size/SHA-256) + JSON download; software/citations/QC hide-when-empty | C | ✅ | `AfterRunReport.tsx:1470,1500-1618`; `routes.ts:12193-12269` |
 | Per-output SHA-256 real + bounded (≤25 files/≤25MB); chain-of-custody wording honesty-gated on hashedCount | C | ✅ | `reproducibility-record.ts:28,40-68`; `AfterRunReport.tsx:1740-1743,1882-1896` |
 | Methods report = versioned object: server-first POST /report/versions + local fallback; v0 immutable "run original" | C | ✅ | `AfterRunReport.tsx:1310-1388`; `routes.ts:12290`; `report-version-store.ts:159-167` |

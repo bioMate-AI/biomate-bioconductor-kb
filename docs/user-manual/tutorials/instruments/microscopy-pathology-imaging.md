@@ -139,7 +139,7 @@ BioMate, come back here to run the analysis.
 
 ## 5. Reading the outputs
 
-Open the **After run** section (three tabs — see **Tutorial 3**):
+Open the **After run** section (two tabs — see **Tutorial 3**):
 
 - **Segmentation mask / labelled image** — every detected cell or nucleus drawn as a distinct labelled object.
   This is the primary output; overlay it on the original image to sanity-check that boundaries track real cells
@@ -227,7 +227,7 @@ The underlying toolkits are license-clean and standard: **Cellpose / Omnipose** 
 |---|---|
 | Get an instrument's files into BioMate | **Tutorial 6** |
 | Upload a single image by hand | **Tutorial 4** |
-| Understand the three-tab report | **Tutorial 3** |
+| Understand the two-tab report | **Tutorial 3** |
 | Quantify markers across a multiplex panel | ask for **`segment_and_quantify_cells_in_multiplexed_images`** |
 | Analyse a whole slide (OME-TIFF only, today) | ask for **`nf-core/mcmicro`** |
 

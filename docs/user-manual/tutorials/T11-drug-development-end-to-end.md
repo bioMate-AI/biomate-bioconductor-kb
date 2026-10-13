@@ -367,7 +367,7 @@ Open the completed run and inspect **Summary**, **Outputs**, and **Reproducibili
 ![The inspected ADMET reproducibility panel.](../../qa/20261003-tutorial-release/panel-record.png)
 *Check actual field values. The default record inspected here has empty input bindings and tool parameters, and no populated output checksums.*
 
-**Evidence boundary.** The three tabs and six file downloads were checked for this run. The presence of the record does not establish complete reproducibility. Preserve the submitted inputs separately, verify software and parameter information, and document missing metadata. Record export and on-demand checksum computation require their own checks before being demonstrated as working.
+**Evidence boundary.** The two tabs and six file downloads were checked for this run. The presence of the record does not establish complete reproducibility. Preserve the submitted inputs separately, verify software and parameter information, and document missing metadata. Record export and on-demand checksum computation require their own checks before being demonstrated as working.
 
 ---
 
@@ -420,7 +420,7 @@ Open the completed run and inspect **Summary**, **Outputs**, and **Reproducibili
 | Understand the closed loop and models (stages 5–6) | **Tutorial 2 — Models and the closed loop** |
 | Learn how to run any single workflow and read its report (stages 3–8) | **Tutorial 3 — Running a workflow and reading the report** |
 | See the workflow panel's states (pre-run, running, QC gates) | **Tutorial W1 — The workflow panel before and during a run** |
-| Read the after-run report in detail (Summary / Outputs / Reproducibility) | **Tutorial W2 — The after-run panel** |
+| Read the after-run report in detail (Results / Reproducibility) | **Tutorial W2 — The after-run panel** |
 | Bring your own data (SMILES lists, activity CSVs, PK data) | **Tutorial 4 — Bringing your own data** |
 | Explore and preview the output datasets each stage produces | **Tutorial 10 — Exploring your datasets** |
 

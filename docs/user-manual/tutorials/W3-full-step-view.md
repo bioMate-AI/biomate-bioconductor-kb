@@ -6,7 +6,7 @@
 > a self-contained object and check a result for yourself, instead of taking it on trust.
 > **Time:** ~9 minutes to read.
 > **Where it fits:** Tutorial W1 covered the workflow panel's tabs *before* and *during* a run; Tutorial W2
-> covered the *after-run* section (Summary, Outputs, Reproducibility record). This tutorial is the deepest
+> covered the *after-run* section (Results, Reproducibility record). This tutorial is the deepest
 > level: the **one-step detail view** you open from a step row. Tutorial 5 taught you to open individual output
 > *files*; this goes further, wrapping a step's files together with its provenance and the exact settings it
 > used.
@@ -193,7 +193,7 @@ place you **read and verify** a step; re-running happens from those neighbouring
   capability.
 - **Clicking a finding *number* does not jump *into* this view yet.** The output-selection hook is scaffolding;
   the finding-side call that would open this view at the exact backing output is a documented follow-up. Today,
-  a finding number links to its output **file** in the Outputs tab (W2 §4 / Tutorial 5), not into the full step
+  a finding number links to its output **file** in the Outputs section (W2 §4 / Tutorial 5), not into the full step
   view.
 - **Resolved parameters are read-only here.** You *read* the values and their origins; there is no in-place
   edit-and-apply on this screen. Editing is done via the Rerun/Params flow (W1) or "Run again with edits" (W2).
@@ -219,7 +219,7 @@ place you **read and verify** a step; re-running happens from those neighbouring
 | You want to… | Where |
 |---|---|
 | The panel *before* and *during* a run (settings, phases, QC gate) | **Tutorial W1** |
-| The *after-run* section (Summary, Outputs, Reproducibility record) | **Tutorial W2** |
+| The *after-run* section (Results, Reproducibility record) | **Tutorial W2** |
 | Open and read an individual output file (tables, structures, 3-D, etc.) | **Tutorial 5** |
 | Change a setting and re-run a step | **Tutorial W1** (Rerun / Params) or **W2** (Run again with edits) |
 | Understand project instructions (the source of "inherited" values) | **Tutorial 4** |
@@ -241,7 +241,7 @@ output to raw to confirm it.**
 | **"N not default"** | A count beside the parameters telling you how many settings were inherited or overridden — i.e. whether the step ran plain or tuned. |
 | **Rendered ⇄ raw** | The switch between the normal file view and the file's actual bytes, so you can check that the rendered view and summary match the real file. |
 | **Raw bytes** | The plain text the step wrote, shown exactly (first bytes). The auditor's view; binary files are offered as a download instead. |
-| **Number → source** | The intended "click a finding number to open its exact backing output" path. Today a finding number opens its output **file** in the Outputs tab; landing *inside* the full step view is a follow-up. |
+| **Number → source** | The intended "click a finding number to open its exact backing output" path. Today a finding number opens its output **file** in the Outputs section; landing *inside* the full step view is a follow-up. |
 
 ---
 

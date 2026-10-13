@@ -119,7 +119,7 @@ Do Tutorial 6 (*Connecting instruments*) first for the connection basics:
   ion-channel risk): a compound predicted to block hERG strongly is a cardiac-safety concern, no matter how
   potent it is. Others — solubility, CYP inhibition, blood–brain-barrier — flag absorption, drug–drug
   interaction, and brain-exposure issues.
-- **The three-tab report** (Tutorial 3) for an ADMET run — Summary (plain-language findings built from the real
+- **The two-tab report** (Tutorial 3) for an ADMET run — Summary (plain-language findings built from the real
   output files), Outputs (the per-compound predictions), and the Reproducibility record.
 - **Export / paperwork** — the campaign can export a CRO order and, further along, assemble the regulatory IND
   document — the formal output a team hands to a contract research organisation or a regulator.
@@ -128,7 +128,7 @@ Do Tutorial 6 (*Connecting instruments*) first for the connection basics:
 hold or redesign the ones flagged for hERG or poor absorption. Predictions are a *filter that focuses the next
 round of real experiments*, not a final verdict.
 
-<!-- CAPTURE route=/drug-discovery-cro ; state=After-run ADMET report Outputs tab showing per-compound predicted endpoints incl hERG, with a safety flag on one compound ; focus=admet-outputs ; note=show the ADMET per-compound predictions and a hERG safety flag -->
+<!-- CAPTURE route=/drug-discovery-cro ; state=After-run ADMET report Outputs section showing per-compound predicted endpoints incl hERG, with a safety flag on one compound ; focus=admet-outputs ; note=show the ADMET per-compound predictions and a hERG safety flag -->
 *(Figure to add: the ADMET After-run Outputs — per-compound predicted endpoints including hERG, with one
 compound flagged on a safety gate.)*
 
@@ -163,7 +163,7 @@ compound flagged on a safety gate.)*
 | Connect Benchling / check residency | **Tutorial 6 — Connecting instruments** |
 | Design new compounds to screen | **Tutorial 1 — Design & generate** |
 | Understand the closed learning loop (measured data improving models) | **Tutorial 2 — Models & the closed loop** |
-| Read any workflow's three-tab report | **Tutorial 3 — Running a workflow and reading the report** |
+| Read any workflow's two-tab report | **Tutorial 3 — Running a workflow and reading the report** |
 | Analyse a compound plate you physically prepared | **Opentrons instrument tutorial** |
 
 The habit for this instrument: **connect Benchling (real key, not mock) → pull compounds + assays into a

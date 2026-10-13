@@ -34,12 +34,12 @@ This is the honest part — read it before you go looking.
 |---|---|---|
 | **Live phase view** — a step's **"Details"** button | **Yes** | `PhaseGroupSection` renders a `Details` button on each **completed or failed** step (`nextflow-workflow-viewer.tsx:769-776`); it calls `onOpenFullStepView(step)` → `setFullViewStep(buildStepDetailStep(step))` (`:3162-3173`), which opens `StepDetail` in a dialog (`:3453-3474`). |
 | **Live phase view** — a step-output preview's **"Full step view"** button | **Yes** | When you preview a step's file in the running/finished panel, the preview header shows a **"Full step view"** button (`step-output-preview.tsx:863-874`). It is wired only when the panel knows which step owns the file (`nextflow-workflow-viewer.tsx:3428-3430`); the same handler opens `StepDetail`. |
-| **After-run report → Outputs tab** | **No** | The Outputs tab opens the rich evidence viewer (`StepOutputPreview`) in an overlay (`AfterRunReport.tsx:1211-1216`), **but it does not pass `onOpenFullStepView`** — so there is no "Full step view" button there, and the param-origin / provenance surface is not reachable from the after-run report. |
+| **After-run report → Outputs section** | **No** | The Outputs section opens the rich evidence viewer (`StepOutputPreview`) in an overlay (`AfterRunReport.tsx:1211-1216`), **but it does not pass `onOpenFullStepView`** — so there is no "Full step view" button there, and the param-origin / provenance surface is not reachable from the after-run report. |
 
 > **Pitfall — the full step view lives in the run panel, not the after-run report.** To open a step as an
 > object with its param origins, use the run panel's phase list (the **"Details"** button on a completed or
 > failed step) *before you close the panel*, or open a step file's preview there and click **"Full step
-> view."** The after-run report's Outputs tab gives you the rich viewer and a download, but not the
+> view."** The after-run report's Outputs section gives you the rich viewer and a download, but not the
 > param-origin / provenance surface. This is a real wiring gap — see **What's not covered**.
 
 ## The provenance row (what fed it → what ran → what came out)
@@ -148,7 +148,7 @@ parameter re-run flow (`StepAdjustModal`) for that step.
 
 ## What's not covered
 
-- **The after-run report's Outputs tab does not reach the full step view.** It opens the rich evidence
+- **The after-run report's Outputs section does not reach the full step view.** It opens the rich evidence
   viewer (`StepOutputPreview`) but doesn't pass `onOpenFullStepView`, so there is no "Full step view" button
   and no param-origin/provenance surface from the report (`AfterRunReport.tsx:1211-1216`). Reaching the full
   step view after a run means reopening the run panel's phase list. Wiring the button into the report is a
