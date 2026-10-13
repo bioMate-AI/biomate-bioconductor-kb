@@ -75,8 +75,23 @@ test("capture cold-start modules (M1/M2/T0)", async ({ page }) => {
   test.setTimeout(150_000);
   await loginAsFixture(page);
   const log: string[] = [];
-  const shot = async (name: string) => { await page.screenshot({ path: path.join(ASSETS, name) }); log.push("OK   " + name); };
+  // Element-crop the PlatformLayout content column (the flex-1 div that is the
+  // sibling right after the expanded sidebar) so the left sidebar — polluted on
+  // the fixture with many E2E/duplicate projects (committee bucket B) — is dropped
+  // along with full-page dead space. NOTE: the app has NO <main> on this route
+  // (PlatformLayout, not AuthenticatedPageLayout), so the old locator("main")
+  // crop silently fell back to full page and kept the sidebar. Falls back to page.
+  const shot = async (name: string) => {
+    const content = page.locator('[data-testid="platform-sidebar"] + div');
+    const target = (await content.count().catch(() => 0)) > 0 ? content.first() : page;
+    await target.screenshot({ path: path.join(ASSETS, name) });
+    log.push("OK   " + name);
+  };
   try {
+    // Widen so the content column alone (viewport − 224px sidebar) is ≥1440 CSS →
+    // ≥2880px at 2× DPR (high-res manual-figure requirement). DPR stays 2 (set at
+    // context creation via test.use); setViewportSize only changes width/height.
+    await page.setViewportSize({ width: 1680, height: 1050 });
     await page.goto(BASE_URL + "/", { waitUntil: "domcontentloaded", timeout: 45_000 });
     await settle(page);
     await shot("m0-1-intent-bar.png"); // intent bar + four module cards (cold start)
@@ -92,6 +107,12 @@ test("capture cold-start modules (M1/M2/T0)", async ({ page }) => {
       const expand = card.getByTestId("cold-module-expand");
       try { if ((await expand.count()) > 0) await expand.first().click({ timeout: 6000 }); else await card.click({ timeout: 6000 }); } catch { /* best effort */ }
       await settle(page, 2500);
+      // M2 (Data analysis) must show the "Validated workflows" track (domain chips +
+      // workflow shapes), not the default "Ad-hoc compute" tab (committee bucket B).
+      if (name === "m2-1-data-analysis-module.png") {
+        const vw = card.getByTestId("cold-track-validated-workflows");
+        try { if ((await vw.count()) > 0) { await vw.first().click({ timeout: 6000 }); await settle(page, 1800); } } catch { /* best effort */ }
+      }
       await shot(name);
     }
   } catch (e: any) { log.push("FAIL cold-start — " + (e?.message?.split("\n")[0] ?? e)); }

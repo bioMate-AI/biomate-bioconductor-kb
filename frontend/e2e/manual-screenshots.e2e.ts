@@ -41,12 +41,23 @@ test("capture data-independent manual surfaces", async ({ page }) => {
   const results: string[] = [];
   for (const shot of SHOTS) {
     try {
-      await page.setViewportSize({ width: 1440, height: 900 });
+      // i01 cold-start is element-cropped to the content column (see below), which
+      // needs a wider viewport so the column alone (viewport − 224px sidebar) is
+      // ≥1440 CSS → ≥2880px at 2× DPR. Other (full-page) shots stay at 1440.
+      const wide = shot.name.startsWith("i01-");
+      await page.setViewportSize(wide ? { width: 1680, height: 1050 } : { width: 1440, height: 900 });
       await page.goto(BASE_URL + shot.route, { waitUntil: "domcontentloaded", timeout: 45_000 });
       // Production build defers resources; give the app a moment to render.
       await page.waitForTimeout(4500);
       // Viewport (above-the-fold) — readable for a manual, unlike a fullPage strip.
-      await page.screenshot({ path: path.join(ASSETS, shot.name) });
+      // i01 cold-start: crop the PlatformLayout content column (the flex-1 div that
+      // is the sibling right after the expanded sidebar) to drop the fixture-
+      // polluted sidebar (many E2E/duplicate projects) + dead space (committee
+      // bucket B). This route has NO <main> (the old locator("main") crop fell back
+      // to full page and kept the sidebar). Falls back to page if not found.
+      const content = page.locator('[data-testid="platform-sidebar"] + div');
+      const tgt = wide && (await content.count().catch(() => 0)) > 0 ? content.first() : page;
+      await tgt.screenshot({ path: path.join(ASSETS, shot.name) });
       results.push(`OK   ${shot.name}  (${shot.route})`);
     } catch (e: any) {
       results.push(`FAIL ${shot.name}  (${shot.route}) — ${e?.message?.split("\n")[0] ?? e}`);
@@ -65,22 +76,39 @@ test("capture data-hub drill-in (I.5)", async ({ page }) => {
   test.setTimeout(120_000);
   await loginAsFixture(page);
   const log: string[] = [];
+  // Crop the PlatformLayout content column (the flex-1 div that is the sibling
+  // right after the expanded sidebar) to drop the fixture-polluted sidebar + dead
+  // space (committee bucket B). This route has NO <main>, so the old
+  // locator("main") crop fell back to full page and kept the sidebar. Falls back
+  // to page if the content column isn't found.
   const shot = async (name: string) => {
-    await page.screenshot({ path: path.join(ASSETS, name) });
+    const content = page.locator('[data-testid="platform-sidebar"] + div');
+    const target = (await content.count().catch(() => 0)) > 0 ? content.first() : page;
+    await target.screenshot({ path: path.join(ASSETS, name) });
     log.push(`OK   ${name}`);
   };
   try {
-    await page.setViewportSize({ width: 1440, height: 900 });
+    // Wide so the content column alone is ≥2880px at 2× DPR (high-res requirement).
+    await page.setViewportSize({ width: 1680, height: 1050 });
     await page.goto(BASE_URL + "/files", { waitUntil: "domcontentloaded", timeout: 45_000 });
     await page.waitForTimeout(4000);
-    // Prefer a project that clearly has files; fall back to the first card.
-    const preferred = page.getByText(/E2E File Tree/i).first();
+    // Target the CLEAN reader-facing demo project by name (committee bucket B:
+    // avoid the "E2E File Tree 1789…" fixture name in the breadcrumb). Falls back
+    // to the old E2E project, then the first card.
+    const clean = page.getByText("MG PBMC — sample data demo").first();
+    const preferred = (await clean.count()) > 0 ? clean : page.getByText(/E2E File Tree/i).first();
     const target = (await preferred.count()) > 0 ? preferred : page.locator('[data-testid^="project-card"], .cursor-pointer').first();
     await target.click({ timeout: 10_000 });
     await page.waitForTimeout(4000);
     await shot("i05-1-file-tree.png"); // file tree for the chosen project
     // Open a file by its NAME (clicking the row's dot doesn't select) → dataset object.
-    const fileName = page.getByText(/\.(fastq|fq|csv|tsv|txt|vcf|bam|h5ad|pdb|json)$/i).first();
+    // Prefer a REAL demo dataset (the counts matrix / a CSV) so the figure shows a
+    // working table preview — not the internal preview_checks.json, whose preview
+    // 400s and would put a red "Cannot read file" error in the manual (committee
+    // bucket B: wrong content captured). Falls back to any previewable file.
+    const demoData = page.getByText(/counts_matrix|sample_metadata|contrasts/i).first();
+    const fileName = (await demoData.count()) > 0 ? demoData
+      : page.getByText(/\.(fastq|fq|csv|tsv|txt|vcf|bam|h5ad|pdb|json)$/i).first();
     if ((await fileName.count()) > 0) {
       await fileName.click({ timeout: 8_000 });
       await page.waitForTimeout(3500);
