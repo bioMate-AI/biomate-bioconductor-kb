@@ -200,19 +200,27 @@ for cif in designs:
         # minimize complex, then single-point MM-GBSA (Sun PCCP 2019: minimized-structure MM-GBSA is
         # the best protocol for short peptides — and fast/robust on CPU, no MD needed).
         cp, csys = make_system(cpsf)
-        # NOTE: 6/12 succeed here; the other 6 hit a psfgen/OpenMM atom-count mismatch. A parmed xyz=
-        # overlay was tried to fix it but that API regressed to 0/12 (reverted). αvβ6 ships on the
-        # BoltzGen ranking + the 6 physics ΔG; full-12 ΔG deferred (needs ACE/NME capping, not worth
-        # blocking the CRO send). See docs for the follow-up.
+        # FIX (was 5/10): building receptor-only / ligand-only as SEPARATE psfgen jobs gave divergent
+        # cut-termini atom counts -> P[:natom_rec] slice mismatch -> 'setPositions wrong number of
+        # positions'. Instead minimize the COMPLEX once, then SPLIT the minimized complex with parmed
+        # by segid (PEP=ligand, rest=receptor) so atoms/counts are identical by construction (correct
+        # single-trajectory MM-GBSA). No separate rec/lig psfgen builds needed.
         pos = app.PDBFile(cpdb).getPositions()
         integ=mm.LangevinMiddleIntegrator(300*unit.kelvin,1/unit.picosecond,0.002*unit.picoseconds)
         sim=app.Simulation(cp.topology, csys, integ, PLAT)
         sim.context.setPositions(pos)
         sim.minimizeEnergy(maxIterations=5000)
-        rp, rsys = make_system(rpsf); lp2, lsys = make_system(lpsf)
-        natom_rec = rsys.getNumParticles()
-        st=sim.context.getState(getPositions=True); P=st.getPositions()
-        Ecom=energy(csys, P); Erec=energy(rsys, P[:natom_rec]); Elig=energy(lsys, P[natom_rec:])
+        import numpy as _np
+        P=sim.context.getState(getPositions=True).getPositions()
+        Ecom=energy(csys, P)
+        comp_pmd=pmd.charmm.CharmmPsfFile(cpsf); comp_pmd.load_parameters(pmd.charmm.CharmmParameterSet(RTF,PRM))
+        comp_pmd.coordinates=_np.array(P.value_in_unit(unit.angstrom))
+        rec_idx=[a.idx for a in comp_pmd.atoms if a.residue.segid!='PEP']
+        lig_idx=[a.idx for a in comp_pmd.atoms if a.residue.segid=='PEP']
+        rst=comp_pmd[rec_idx]; lst=comp_pmd[lig_idx]
+        _opt=dict(nonbondedMethod=app.CutoffNonPeriodic, nonbondedCutoff=2.0*unit.nanometer, constraints=app.HBonds, implicitSolvent=app.GBn2)
+        rsys=rst.createSystem(**_opt); lsys=lst.createSystem(**_opt)
+        Erec=energy(rsys, rst.positions); Elig=energy(lsys, lst.positions)
         rec['dG_bind_kcal_mol']=round(float(Ecom-Erec-Elig),2)
         rec['E_complex_kcal']=round(Ecom,1); rec['E_receptor_kcal']=round(Erec,1); rec['E_ligand_kcal']=round(Elig,1)
         rec['protocol']='minimized single-point, implicit GBn2 (CHARMM36m)'
