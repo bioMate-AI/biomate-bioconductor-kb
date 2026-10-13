@@ -1,0 +1,160 @@
+{
+  "target": "9xmm",
+  "n_designs": 10,
+  "n_ok": 5,
+  "within_target_ranking": [
+    {
+      "design": "AVB6-K-02",
+      "seq": "WRGDLTFPV",
+      "dG": -25.02,
+      "ring": true
+    },
+    {
+      "design": "AVB6-K-06",
+      "seq": "RGDLQFPSG",
+      "dG": -23.41,
+      "ring": true
+    },
+    {
+      "design": "AVB6-K-03",
+      "seq": "YRGDLG PL",
+      "dG": -18.74,
+      "ring": true
+    },
+    {
+      "design": "AVB6-K-04",
+      "seq": " RGDLAWPE",
+      "dG": -15.64,
+      "ring": true
+    },
+    {
+      "design": "AVB6-K-01",
+      "seq": "FRGDLSWPA",
+      "dG": -15.34,
+      "ring": true
+    }
+  ],
+  "note": "Within-TARGET MM-GBSA ranking of designs for one receptor (the valid use). Implicit GBn2 minimized single-point, CHARMM36m, cyclic via psfgen CYCP patch. RELATIVE ranking, not absolute affinity; entropy omitted; confirm finalists with FEP. Trust only ring=true rows.",
+  "all": [
+    {
+      "target": "9xmm",
+      "design": "AVB6-K-01",
+      "n_rec_frags": 15,
+      "npep_res": 9,
+      "ligand_ring_closed": true,
+      "seq": "FRGDLSWPA",
+      "dG_bind_kcal_mol": -15.34,
+      "E_complex_kcal": -2029.6,
+      "E_receptor_kcal": -1724.6,
+      "E_ligand_kcal": -289.7,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "9xmm",
+      "design": "AVB6-K-02",
+      "n_rec_frags": 14,
+      "npep_res": 9,
+      "ligand_ring_closed": true,
+      "seq": "WRGDLTFPV",
+      "dG_bind_kcal_mol": -25.02,
+      "E_complex_kcal": -1827.0,
+      "E_receptor_kcal": -1493.1,
+      "E_ligand_kcal": -308.9,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "9xmm",
+      "design": "AVB6-K-03",
+      "n_rec_frags": 17,
+      "npep_res": 9,
+      "ligand_ring_closed": true,
+      "seq": "YRGDLG PL",
+      "dG_bind_kcal_mol": -18.74,
+      "E_complex_kcal": -2064.0,
+      "E_receptor_kcal": -1663.3,
+      "E_ligand_kcal": -382.0,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "9xmm",
+      "design": "AVB6-K-04",
+      "n_rec_frags": 18,
+      "npep_res": 9,
+      "ligand_ring_closed": true,
+      "seq": " RGDLAWPE",
+      "dG_bind_kcal_mol": -15.64,
+      "E_complex_kcal": -2140.2,
+      "E_receptor_kcal": -1705.0,
+      "E_ligand_kcal": -419.6,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "9xmm",
+      "design": "AVB6-K-05",
+      "n_rec_frags": 19,
+      "npep_res": 9,
+      "ligand_ring_closed": true,
+      "seq": "FRGDLIFPA",
+      "ok": false,
+      "error": "OpenMMException: Called setPositions() on a Context with the wrong number of positions"
+    },
+    {
+      "target": "9xmm",
+      "design": "AVB6-K-06",
+      "n_rec_frags": 15,
+      "npep_res": 9,
+      "ligand_ring_closed": true,
+      "seq": "RGDLQFPSG",
+      "dG_bind_kcal_mol": -23.41,
+      "E_complex_kcal": -1932.7,
+      "E_receptor_kcal": -1536.4,
+      "E_ligand_kcal": -372.9,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    },
+    {
+      "target": "9xmm",
+      "design": "AVB6-K-07",
+      "n_rec_frags": 17,
+      "npep_res": 9,
+      "ligand_ring_closed": true,
+      "seq": "LRGDLSFPT",
+      "ok": false,
+      "error": "OpenMMException: Called setPositions() on a Context with the wrong number of positions"
+    },
+    {
+      "target": "9xmm",
+      "design": "AVB6-K-08",
+      "n_rec_frags": 18,
+      "npep_res": 9,
+      "ligand_ring_closed": true,
+      "seq": "YRGDLIWPA",
+      "ok": false,
+      "error": "OpenMMException: Called setPositions() on a Context with the wrong number of positions"
+    },
+    {
+      "target": "9xmm",
+      "design": "AVB6-K-09",
+      "n_rec_frags": 19,
+      "npep_res": 9,
+      "ligand_ring_closed": true,
+      "seq": "WRGDLT PE",
+      "ok": false,
+      "error": "OpenMMException: Called setPositions() on a Context with the wrong number of positions"
+    },
+    {
+      "target": "9xmm",
+      "design": "AVB6-K-10",
+      "n_rec_frags": 19,
+      "npep_res": 9,
+      "ligand_ring_closed": true,
+      "seq": "WRGDLSYPA",
+      "ok": false,
+      "error": "OpenMMException: Called setPositions() on a Context with the wrong number of positions"
+    }
+  ]
+}

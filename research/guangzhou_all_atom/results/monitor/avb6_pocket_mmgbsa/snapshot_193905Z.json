@@ -1,0 +1,18 @@
+{
+  "results": [
+    {
+      "target": "9xmm",
+      "design": "AVB6-K-01",
+      "n_rec_frags": 15,
+      "npep_res": 9,
+      "ligand_ring_closed": true,
+      "seq": "FRGDLSWPA",
+      "dG_bind_kcal_mol": -15.34,
+      "E_complex_kcal": -2029.6,
+      "E_receptor_kcal": -1724.6,
+      "E_ligand_kcal": -289.7,
+      "protocol": "minimized single-point, implicit GBn2 (CHARMM36m)",
+      "ok": true
+    }
+  ]
+}
