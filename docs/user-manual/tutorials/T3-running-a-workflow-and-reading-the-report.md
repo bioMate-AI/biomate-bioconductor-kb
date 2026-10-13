@@ -61,8 +61,8 @@ threshold, the run pauses and shows you the measured value versus the required o
 suggests a new setting and runs that step again automatically. **It never silently continues past a failed
 check** — this is one of BioMate's most important trust features.
 
-**The after-run report.** When the run finishes, BioMate opens a report with three tabs — **Summary**
-(plain-language findings), **Outputs** (every file, by step), and **Reproducibility record** (the full audit
+**The after-run report.** When the run finishes, BioMate opens a report with two tabs — **Results**
+(plain-language findings on top, then each output previewed inline below), and **Reproducibility record** (the full audit
 trail: a complete record of parameters, software, and results, kept so the run can be checked later).
 
 **Checksum (SHA-256).** A short fingerprint of a file, so anyone can verify they have the exact same output.
@@ -94,7 +94,7 @@ In BioMate these are generated **on demand** (you click "Compute checksums").
 4. **Watch it run.** In the **Phases** tab, each phase moves from *pending* → *running* → *completed* in real
    time. If a quality gate fires, the run pauses and shows a message with the measured value and the required
    one; follow the on-screen instruction (BioMate tells you whether to adjust a setting or continue).
-5. **Read the report.** When the run completes, open the **After run** section and read the three tabs
+5. **Read the report.** When the run completes, open the **After run** section and read the two tabs
    (see §5).
 
 ![A completed workflow run](../assets/t3-1-workflow-panel.png)
@@ -106,12 +106,12 @@ configuration, the phase-by-phase progress, and the report. "Run again" re-runs 
 
 ## 5. How to read the report
 
-The after-run report has three tabs.
+The after-run report has two tabs — **Results** and **Reproducibility record**.
 
-**Outputs — every file, organised by step.**
+**Outputs — every file, previewed inline on the Results tab.**
 
 ![The Outputs tab](../assets/t3-3-after-run-outputs.png)
-*The Outputs tab lists every file the run produced, grouped by the step that made it — here 11 files across
+*On the Results tab, below the findings, every file the run produced is shown as an inline preview — searchable — here 11 files across
 the four phases (e.g. `atlas_safety.json` from the Atlas-safety phase, `lnp_tropism.json` from the LNP phase,
 `cart_construct.fasta` — a sequence file — and `design_report.txt` from the final assembly). File types are
 shown (FASTA = a sequence, JSON = structured data, TXT = text, YML = a software-version record). Steps named
@@ -133,16 +133,15 @@ versions, Citations, QC report, and the full decision trajectory. (This particul
 record (JSON)" gives you the whole thing for a paper or a submission.*
 
 **Summary — the plain-language findings.** Normally the Summary turns the outputs into a short, readable
-account, with the key numbers taken directly from the output files (and each number links back to the output
-it came from). Crucially, those findings are generated **from the real output files** — so if BioMate cannot
+account, with the key numbers taken directly from the output files. Crucially, those findings are generated **from the real output files** — so if BioMate cannot
 read them, it **withholds the findings and says so, rather than inventing a summary.** That honesty is the
 feature; the screenshot below shows exactly that behaviour on a run where output access was unavailable.
 
-![The Summary tab — findings withheld honestly](../assets/t3-2-after-run-summary.png)
+![The Results tab — findings withheld honestly](../assets/t3-2-after-run-summary.png)
 *The honesty behaviour in action: this run completed and produced 11 files, but its outputs could not be read,
-so the Summary withholds the findings and says so — it does not fabricate a result. (The "RUN ORIGINAL" badge
+so the Results tab withholds the findings and says so — it does not fabricate a result. (The "RUN ORIGINAL" badge
 marks the unedited record; any report you edit is saved alongside it and the original is never overwritten.)
-On a normal run this tab shows the findings described above.*
+On a normal run this tab shows the findings described above, with each output previewed just below them.*
 
 ---
 
@@ -170,7 +169,7 @@ what lets you explain and justify every result, not just report that the run fin
 | **Phase / step** | A big stage / an individual tool within it; each takes inputs and produces outputs. |
 | **Parameters** | The settings a workflow runs with (e.g. target, indication); shown before the run so you can check them. |
 | **QC gate / auto-loop** | An automatic mid-run quality check that can pause and suggest a fix — it never silently passes a failed check. |
-| **After-run report** | The results view with three tabs: Summary, Outputs, Reproducibility record. |
+| **After-run report** | The results view with two tabs: Results (findings + previewed outputs) and Reproducibility record. |
 | **Outputs** | Every file the run produced, organised by the step that made it. |
 | **Reproducibility record / audit trail** | A complete record of every parameter, tool version, and output, kept so the run can be checked or repeated later; downloadable as one file. |
 | **Checksum (SHA-256)** | A fingerprint of a file, so anyone can verify they have the exact same output; generated on demand. |

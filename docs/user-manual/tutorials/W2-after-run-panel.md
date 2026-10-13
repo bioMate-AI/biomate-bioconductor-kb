@@ -1,4 +1,4 @@
-# Tutorial W2 — The after-run panel: Summary, Outputs, and the Reproducibility record
+# Tutorial W2 — The after-run panel: the Results tab and the Reproducibility record
 
 > **Who this is for:** anyone whose run has finished (or failed) and who wants to understand every part of the
 > **After run** section of the workflow panel. No coding needed. By the end you'll know where the findings
@@ -29,7 +29,7 @@ when the underlying data is available, and about how a *failed* run looks.
 
 ## 2. The ideas you need first (plain-language background)
 
-**The After-run section has exactly three tabs.** They are **Summary**, **Outputs**, and **Reproducibility
+**The After-run section has exactly two tabs.** They are **Results** and **Reproducibility
 record**. The panel opens here automatically once a run completes or fails. *(Why it matters: it's a short,
 fixed list — you don't have to look through many tabs.)*
 
@@ -59,22 +59,23 @@ the whole run in one file.
 
 ---
 
-## 4. The Summary tab — where the findings live
+## 4. The Results tab — findings on top, outputs below
 
-The Summary is the landing tab. At the top sits a **Run original** badge with a short note: this is the
+The Results tab is the landing tab. The findings banner sits at the top; the outputs are previewed inline just below it.
+
+![The merged Results tab — the Findings Summary banner on top, then each output previewed inline, with a search box](../assets/r-merged-results-view.png)
+*The Results tab of a completed ADMET run: findings (summary, headline chips, Key Results expanded, Caveats, **Download findings**) on top, then the Outputs section — each file previewed inline, searchable.* At the top sits a **Run original** badge with a short note: this is the
 unedited record of what the run produced; any report you edit later is saved *alongside* it and the original is
 never overwritten.
 
 Below that is the **Findings Summary** card:
 
-- **A summary paragraph** in plain language, with the key numbers taken from the outputs. Each number that can
-  be traced to a file is a **live link** — click it and BioMate jumps to the Outputs tab and opens that file
-  (the "findings link to their output" idea from Tutorial 5).
+- **A summary paragraph** in plain language, with the key numbers taken from the outputs. Each number is read from a specific output file, named in the **Source** column of the Key Results table below.
 - **Headline metric chips** — the top few results as at-a-glance chips.
-- **Key Results** — a collapsible table (Metric · Value · Interpretation · Source), collapsed by default.
+- **Key Results** — the table (Metric · Value · Interpretation · Source), **shown expanded by default** (collapsible).
 - **Supporting Literature** — references, when the workflow provides them, each linking out.
 - **Caveats** — any limitations BioMate wants you to know about.
-- **Download report** and, when offered, **Continue analysis** (sends a suggested next step to chat).
+- **Download findings** and, when offered, **Continue analysis** (sends a suggested next step to chat).
 
 **What you'll see while findings are still being prepared, or can't be read** (be ready for these — they are
 normal, honest states, not errors):
@@ -86,7 +87,7 @@ normal, honest states, not errors):
 - On a **failed** run: *"Analysis not available — workflow did not complete successfully."* — a static message,
   with no stuck spinner.
 
-![The Summary tab — findings withheld honestly](../assets/t3-2-after-run-summary.png)
+![The Results tab — findings withheld honestly](../assets/t3-2-after-run-summary.png)
 *The honesty behaviour from Tutorial 3: this run completed and produced files, but its outputs couldn't be
 read, so the Summary says so rather than fabricating a result. The "RUN ORIGINAL" badge marks the unedited
 record. On a normal run this tab shows the populated Findings Summary described above.*
@@ -96,10 +97,9 @@ record. On a normal run this tab shows the populated Findings Summary described 
 
 ---
 
-## 5. The Outputs tab — every file, by step
+## 5. Outputs — every file, previewed inline (same Results tab)
 
-This lists every file the run produced. (Tutorial 5 is the deep dive on *opening and reading* each file; here
-is the tab's layout.)
+Below the findings on the Results tab, every file the run produced is shown as an **inline preview** (JSON/tables/text render in place; large or binary files preview on click), with a **search box** to filter them. (Tutorial 5 is the deep dive on *opening and reading* each file.)
 
 **At the top, bulk actions:**
 
@@ -233,10 +233,10 @@ The habit: **After run → Summary (read findings) → Outputs (open and check t
 
 | Term | What it means — and why you care |
 |---|---|
-| **After-run section** | The panel once a run finishes — three tabs: Summary, Outputs, Reproducibility record. |
+| **After-run section** | The panel once a run finishes — two tabs: Results (findings + previewed outputs) and Reproducibility record. |
 | **Summary tab** | The landing tab holding the plain-language **findings**; numbers link back to their source file. |
 | **Findings** | The results read **from the real outputs**; withheld honestly if outputs can't be read, never invented. |
-| **Outputs tab** | Every file the run produced, grouped by step, each with **view** and **dl**; plus ZIP / bundle / save-to-project. |
+| **Outputs section** | Every file the run produced, previewed inline on the Results tab (searchable), each with **view** and **dl**; plus ZIP / bundle / save-to-project. |
 | **Reproducibility record** | The full audit trail — identity, resolved parameters, inputs, outputs, methods, software, citations, QC, trajectory. |
 | **Checksum (SHA-256)** | A file fingerprint for tamper-evidence; computed **on demand** via "Compute checksums". |
 | **Run original** | The unedited record of what the run produced; edits are saved alongside it, never overwriting it. |

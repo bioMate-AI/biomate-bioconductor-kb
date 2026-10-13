@@ -139,13 +139,12 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
     <div class="kicker">The everyday middle — run it, then read it</div>
     <h2>Run a tested pipeline, and read a report you can defend.</h2>
     <p class="caption">A <b>workflow</b> is a whole multi-step analysis, already tested and connected for you. You describe your goal in plain English, attach your data, and BioMate runs the pipeline on cloud computers and hands back one report — the results, every output file, and a complete record of how they were produced.</p>
-    <p class="caption sub">Running example: <b>Predict ADMET Properties (AI)</b> on three molecules — aspirin, caffeine, ibuprofen — a real, completed run. We'll watch it go from set-up, to live progress, to a three-tab report: Summary, Outputs, and the Reproducibility record.</p>
+    <p class="caption sub">Running example: <b>Predict ADMET Properties (AI)</b> on three molecules — aspirin, caffeine, ibuprofen — a real, completed run. We'll watch it go from set-up, to live progress, to a two-tab report: the <b>Results</b> tab, and the Reproducibility record.</p>
     <div class="scene-body" style="align-items:flex-end">
       <div class="flowline">
         <span class="chip"><span class="i"></span>Confirm &amp; run</span><span class="arrow">→</span>
         <span class="chip"><span class="i"></span>Watch live phases</span><span class="arrow">→</span>
-        <span class="chip"><span class="i"></span>Summary</span><span class="arrow">→</span>
-        <span class="chip"><span class="i"></span>Outputs</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>Results</span><span class="arrow">→</span>
         <span class="chip"><span class="i"></span>Reproducibility record</span>
       </div>
     </div>
@@ -164,7 +163,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <div class="tile"><div class="n">2 · PHASES / STEPS</div><h4>The stages</h4><p>Big phases, each made of individual tool steps. Each takes an input, makes an output.</p></div>
             <div class="tile"><div class="n">3 · PARAMETERS</div><h4>The settings</h4><p>What the run uses — shown with sensible defaults <b>before</b> anything runs.</p></div>
             <div class="tile"><div class="n">4 · QC GATE</div><h4>The guardrail</h4><p>An automatic mid-run check. It never silently passes a failed result.</p></div>
-            <div class="tile"><div class="n">5 · AFTER-RUN REPORT</div><h4>The result</h4><p>Three tabs: Summary, Outputs, and the Reproducibility record.</p></div>
+            <div class="tile"><div class="n">5 · AFTER-RUN REPORT</div><h4>The result</h4><p>Two tabs: Results (findings + previewed outputs) and the Reproducibility record.</p></div>
           </div>
           <p class="footnote" style="margin-top:22px">"Tested / validated" means each step uses a published, established method — not that the result is clinically proven. A workflow is in-silico triage, not a finished answer.</p>
         </div>
@@ -221,17 +220,17 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <section class="scene" data-seconds="47.0">
     <div class="kicker"><span class="st">Step 3</span> · Completed — the findings report</div>
     <h2>One readable summary, with numbers drawn straight from your results.</h2>
-    <p class="caption">The run completes: a green <b>Completed</b> badge, and the three-tab report opens on <b>Summary</b> — a short, plain-language account of what the run found, with the key values read directly from the result files.</p>
+    <p class="caption">The run completes: a green <b>Completed</b> badge, and the two-tab report opens on <b>Results</b> — a short, plain-language account of what the run found, with the key values read directly from the result files, and every output previewed just below.</p>
     <div class="scene-body">
       <figure class="shotcol">
-        <span class="lbl">Completed · Summary tab</span>
+        <span class="lbl">Completed · Results tab</span>
         <div class="frame"><img src="assets/live/completed.png" alt="ADMET completed with populated findings summary"/></div>
       </figure>
       <div class="teachcol">
         <ul class="points">
           <li><span class="b gr"></span><span><b>Completed, with a clear verdict.</b> "ADMET prediction completed for 3 compounds" — the key properties assessed against standard thresholds.</span></li>
           <li><span class="b"></span><span><b>Real values, front and centre.</b> hERG inhibition <b>0.003</b>, DILI probability <b>0.855</b>, oral bioavailability <b>0.873</b> — pulled from the result files, not written by hand.</span></li>
-          <li><span class="b"></span><span><b>Expand for detail.</b> <b>Key Results</b> opens the full per-compound table; <b>Download report</b> saves the whole summary in one click.</span></li>
+          <li><span class="b"></span><span><b>Expand for detail.</b> <b>Key Results</b> shows the full per-compound table by default; <b>Download findings</b> saves the summary in one click.</span></li>
           <li><span class="b am"></span><span><b>Stated plainly.</b> A Caveats note reminds you these are computational estimates — confirm with wet-lab assays before advancing.</span></li>
         </ul>
         <div><span class="verdict ok"><span class="mk"></span>Results read straight from your files</span></div>
@@ -241,20 +240,20 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 5 — OUTPUTS (r5) -->
   <section class="scene" data-seconds="35.3">
-    <div class="kicker"><span class="st">Step 4</span> · Outputs — every file, by step</div>
+    <div class="kicker"><span class="st">Step 4</span> · Outputs — every file, previewed in place</div>
     <h2>Behind the summary: every file the run produced.</h2>
-    <p class="caption">The <b>Outputs</b> tab lists every file the run produced, grouped by the step that made it — the raw results behind the summary, ready to download and read yourself.</p>
+    <p class="caption">On the same <b>Results</b> tab, scroll past the findings: every file the run produced is shown as an <b>inline preview</b> you can read in place — with a search box to find one fast — not just a list of names.</p>
     <div class="scene-body">
       <figure class="shotcol">
-        <span class="lbl">After run · Outputs tab</span>
+        <span class="lbl">Results tab · Outputs section</span>
         <div class="frame"><img src="assets/live/outputs.png" alt="ADMET outputs — six files grouped by step"/></div>
       </figure>
       <div class="teachcol">
         <ul class="points">
           <li><span class="b"></span><span><b>Every file, each with its type.</b> <code>predict_admet_properties_results.json</code>, <code>toxicity_report.json</code>, <code>qc_metrics.json</code>, <code>pk_summary.json</code>, a results table, and <code>versions.yml</code> (the software record).</span></li>
-          <li><span class="b"></span><span><b>Filed under the step</b> that produced it — so you can trace the pipeline from start to finish.</span></li>
+          <li><span class="b"></span><span><b>Previewed inline</b> — JSON, tables and text render right in the card; large or binary files preview on click. A <b>search box</b> filters the list.</span></li>
           <li><span class="b"></span><span><b>View or download</b> any single file, grab them <b>all as one archive</b>, open them for interactive analysis, or save them to a project.</span></li>
-          <li><span class="b"></span><span>This is the clearest view of <b>each step's input and output</b> — the raw truth behind the summary.</span></li>
+          <li><span class="b"></span><span>This is the raw truth behind the summary — now right under it, on the same tab.</span></li>
         </ul>
         <div><span class="verdict ok"><span class="mk"></span>Every result file, yours to keep</span></div>
       </div>
@@ -286,16 +285,16 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <!-- 7 — CLOSING -->
   <section class="scene title" data-seconds="39.0">
     <div class="kicker">The habit at a glance</div>
-    <h2 style="font-size:40px">Confirm &amp; run → watch live → read the three tabs.</h2>
+    <h2 style="font-size:40px">Confirm &amp; run → watch live → read the two tabs.</h2>
     <div class="scene-body">
       <div class="two-col">
         <div class="lead-col">
-          <p class="caption" style="font-size:17px">Every run follows the same shape. Set it up and confirm; watch the phases and QC gates in real time; then read Summary, Outputs, and the Reproducibility record. The record is what turns "the run finished" into a result you can explain and justify.</p>
+          <p class="caption" style="font-size:17px">Every run follows the same shape. Set it up and confirm; watch the phases and QC gates in real time; then read the <b>Results</b> tab (findings + previewed outputs) and the Reproducibility record. The record is what turns "the run finished" into a result you can explain and justify.</p>
           <ol class="habit">
             <li><span class="k">1</span>Ask in plain English; check the settings; Confirm &amp; Run</li>
             <li><span class="k">2</span>Watch phases go pending → running → completed; mind the QC gates</li>
             <li><span class="k">3</span>Read the Summary — the key findings in plain language</li>
-            <li><span class="k">4–5</span>Read Outputs file-by-file; download the Reproducibility record</li>
+            <li><span class="k">4–5</span>Read each output previewed inline on the Results tab; download the Reproducibility record</li>
           </ol>
         </div>
         <div class="lead-col">
@@ -303,7 +302,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <tr><td>Run set-up &amp; confirm</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Nothing runs until you confirm</span></td></tr>
             <tr><td>Live phases &amp; QC gates</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Real-time progress</span></td></tr>
             <tr><td>Summary findings</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Read from your files</span></td></tr>
-            <tr><td>Outputs (every file, by step)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Yours to download</span></td></tr>
+            <tr><td>Outputs (previewed inline, Results tab)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Yours to download</span></td></tr>
             <tr><td>Reproducibility record</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Full audit trail</span></td></tr>
           </table>
           <p class="footnote">One report: a plain-language summary, every output file, and a complete reproducibility record with verifiable checksums — no software to license. A workflow is in-silico triage, not a clinical result.</p>

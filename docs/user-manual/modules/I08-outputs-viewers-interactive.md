@@ -36,15 +36,11 @@ that file type. The **view** action appears for every file type BioMate can rend
 
 Two ways a viewer opens:
 
-- **You click "view"** on a file in the Outputs table.
-- **You click a number or figure in the Summary tab.** Findings are linked to their source output:
-  `FindingsCard`'s `onOpenOutput(ref)` sets the output to open and switches to the Outputs tab
-  (`AfterRunReport.tsx:260`); `OutputsTab` then matches that reference (by exact name, exact path, or
-  basename) and opens its preview (`AfterRunReport.tsx:958-972`). So "log2FC = 2.4" in the summary is a
-  live link back to the DEG table it came from — evidence, not a floating number.
+- **You click "view"** on a file (or read its inline preview) in the Outputs section.
+- **A finding names its source file.** Each Key Result carries a `source_file` (the **Source** column), so "log2FC = 2.4" is traceable to the DEG table it came from — evidence, not a floating number. The file itself is previewed inline in the Outputs section on the same Results tab. (The findings→output click-to-jump navigation was removed when Findings and Outputs merged into one tab.)
 
 ![The Outputs tab: each file row shows its step, name, type, and view/download actions.](../assets/i08-1-outputs-tab.png)
-<!-- CAPTURE route=/ (open a completed run's after-run report → Outputs tab) ; state=a completed run with several output files (table + figure) ; focus=output-files-table ; note=show the per-file table with "view" and "dl" actions and the "Explore in" interactive row above it -->
+<!-- CAPTURE route=/ (open a completed run's after-run report → Results tab, Outputs section) ; state=a completed run with several output files (table + figure) ; focus=output-files-table ; note=show the per-file table with "view" and "dl" actions and the "Explore in" interactive row above it -->
 
 ## The in-app viewer taxonomy (what renders inline)
 
@@ -151,14 +147,14 @@ alert and disables the launch button when the selected tool is unavailable
 > R global environment.
 
 > **Note — the "Explore in" row in Outputs is a convenience, not a promise.** The `InteractiveToolsRow`
-> at the top of the Outputs tab (`AfterRunReport.tsx:780`, testid `afterrun-interactive-tools-row`)
+> at the top of the Outputs section (`AfterRunReport.tsx`, testid `afterrun-interactive-tools-row`)
 > lists tools that *could* apply to your file types, but it does **not** itself check provisioning —
 > the honest gate fires when you actually try to launch (the launcher's disabled button + alert, above).
 > On dev, opening the launcher from that row will surface the "not enabled" alert.
 
 ## Bulk actions & saving
 
-Beyond per-file view/download, the Outputs tab offers: **Download all as ZIP** (async job,
+Beyond per-file view/download, the Outputs section offers: **Download all as ZIP** (async job,
 `AfterRunReport.tsx:1066`), a **Reproducibility bundle** download (configs, command scripts, logs,
 `versions.yml` — enough to re-run elsewhere; see I.9, `:1074-1081`), and **Save to Project** — which
 copies the outputs into a project so they become first-class dataset objects in `/files` (quality,

@@ -56,7 +56,7 @@ There is **no separate "runs" page.** The platform is the chat.
    (e.g. ADMET), a remediation card shows the was→now parameter change and re-runs. Gates are HALT
    (stops + remediates) or ADVISORY (logs, continues). *(Details per domain; see the domain chapters.)*
 7. **Completed / Failed → the after-run report.** The panel swaps to `AfterRunReport`
-   (`chat-with-artifacts.tsx:2371`) with three tabs — **Summary** (headline findings, the immutable
+   (`chat-with-artifacts.tsx:2371`) with two tabs — **Results** (headline findings on top, each output previewed inline below; the immutable
    "run original"), **Outputs** (files, with in-app viewers — see I.8), and **Reproducibility record**
    (parameters, software, citations, checksums — see I.9). A failed run shows the offending step, the
    error, and a path forward instead of a spinner.

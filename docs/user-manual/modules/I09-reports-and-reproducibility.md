@@ -10,45 +10,44 @@
 ## What this is for
 
 When a Cloud run finishes, the run panel swaps to the **after-run report** (`AfterRunReport`,
-`chat-with-artifacts.tsx:2371`). It is a **three-tab** surface — **Summary**, **Outputs**, and
-**Reproducibility record** — that answers three questions in order: *what did the run find, what files
-did it produce, and how do I trust or re-run it.* The report is not a throwaway view: the run's original
+`chat-with-artifacts.tsx:2371`). It is a **two-tab** surface — **Results** (findings on top, then every output previewed inline) and
+**Reproducibility record** — that answers, in order: *what did the run find and produce, and how do I
+trust or re-run it.* The report is not a throwaway view: the run's original
 findings are kept as an immutable record, and any edits you make are saved as **versions** alongside it.
 
-This chapter is about the Summary and Reproducibility-record tabs, plus report versioning and download.
-The Outputs tab (files, viewers, interactive tools) is covered in I.8.
+This chapter is about the Results tab's findings banner and the Reproducibility-record tab, plus report
+versioning and download. The Outputs section (files, viewers, interactive tools) is covered in I.8.
 
-## The three tabs
+## The two tabs
 
-`AfterRunReport` renders exactly three top-level tabs — Summary (the landing tab), Outputs, and
-Reproducibility record (`AfterRunReport.tsx:148-152`, tab bar `:224-240`). Everything that used to be a
+`AfterRunReport` renders two top-level tabs — Results (the landing tab, merging the findings banner and
+the inline-preview outputs gallery) and Reproducibility record (`AfterRunReport.tsx:148-152`, tab bar `:224-240`). Everything that used to be a
 separate tab (resolved parameters, methods, software, citations, QC report, trajectory) is now folded
 into the Reproducibility record tab as expandable sections — nothing is hidden, just re-nested
 (`:1500-1528`).
 
-### Summary — the headline finding
+### Results — findings on top, outputs below
 
-The Summary tab is the run's answer at a glance. It renders the `FindingsCard` (`AfterRunReport.tsx:256`),
+The Results tab opens with the run's answer at a glance. It renders the `FindingsCard` (`AfterRunReport.tsx:256`),
 which shows:
 
 - A **summary paragraph** generated from the run manifest.
 - **Headline metric chips** — the top key-results as scannable chips, so the answer is legible without
   expanding the table (`findings-card.tsx:229-249`).
-- A **findings→output link**: when a metric carries a `source_file`, clicking the chip (or a linkified
-  number in the summary prose) calls `onOpenOutput`, which jumps you to the **Outputs** tab and opens
-  that file's preview (`AfterRunReport.tsx:260`; `findings-card.tsx:77-96`, `linkifyFindings`). Numbers
-  in the report are traceable back to the file they came from.
+- **Source traceability**: each metric carries a `source_file` (shown in the Key Results **Source**
+  column), so every number in the report is traceable back to the output file it came from. That file is
+  previewed inline in the Outputs section just below, on the same Results tab. (The older click-to-jump
+  findings→output navigation was removed when the tabs merged.)
 
 Above the findings sits the **"Run original" badge** (`AfterRunReport.tsx:248`), with the standing
 note: *"The unedited record of what this run produced. Reports you edit are saved alongside it; this
 original is never overwritten."* A footnote reinforces that findings — numbers and figures — are
 generated directly from the run manifest, not typed in (`:280-282`).
 
-> **Tip — click a number to see where it came from.** A headline metric chip with a source file is a
-> link: it takes you straight to that output in the Outputs tab. If a chip isn't clickable, that metric
-> has no single source file attached.
+> **Tip — where a number came from.** Each headline metric and Key Result names its `source_file` in the
+> Source column; that output is previewed inline in the Outputs section on the same tab.
 
-### Outputs — the files
+### Outputs — the files (on the Results tab)
 
 The middle tab lists every output file with in-app viewers, bulk download, interactive-tool launchers
 (Jupyter / RStudio / CellxGene), and Save-to-Project. It also carries the **reproducibility-bundle**
@@ -134,7 +133,7 @@ Two downloads serve two different needs:
   (`:157, :2112`). It inlines the real findings prose and the real QC table, and ends with a
   reproducibility note referencing the parameters and software versions used (`:2320-2330`). Saved as
   `biomate-run-<runId>.md`.
-- **↓ Reproducibility bundle** (on the Outputs tab, `:1074-1081`) links to
+- **↓ Reproducibility bundle** (in the Outputs section of the Results tab) links to
   `/api/nextflow/runs/:id/reproducibility` — configs, command scripts, logs, and `versions.yml`,
   enough to re-run elsewhere.
 - **↓ Download record (JSON)** (record section, `:1573`) is the machine-readable version of the

@@ -139,13 +139,12 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
     <div class="kicker">日常的中间环节——先跑起来，再读结果</div>
     <h2>运行一条经过测试的流水线，读一份你拿得出依据的报告。</h2>
     <p class="caption"><b>工作流</b>就是一整套多步骤的分析，已经替你测试并连接好。你用大白话说清楚目标、附上数据，BioMate 就在云端把这条流水线跑完，再交回一份报告——结果、每一个输出文件，以及一份完整的生成过程记录。</p>
-    <p class="caption sub">贯穿示例：对三个分子——阿司匹林、咖啡因、布洛芬——运行<b>预测 ADMET 性质（AI）</b>，一次真实、已完成的运行。我们会看着它从配置、到实时进度、再到那份三标签页的报告：摘要、输出，以及可复现记录。</p>
+    <p class="caption sub">贯穿示例：对三个分子——阿司匹林、咖啡因、布洛芬——运行<b>预测 ADMET 性质（AI）</b>，一次真实、已完成的运行。我们会看着它从配置、到实时进度、再到那份两标签页的报告：结果（发现摘要 + 内嵌预览的输出），以及可复现记录。</p>
     <div class="scene-body" style="align-items:flex-end">
       <div class="flowline">
         <span class="chip"><span class="i"></span>确认并运行</span><span class="arrow">→</span>
         <span class="chip"><span class="i"></span>看实时阶段</span><span class="arrow">→</span>
-        <span class="chip"><span class="i"></span>摘要</span><span class="arrow">→</span>
-        <span class="chip"><span class="i"></span>输出</span><span class="arrow">→</span>
+        <span class="chip"><span class="i"></span>结果</span><span class="arrow">→</span>
         <span class="chip"><span class="i"></span>可复现记录</span>
       </div>
     </div>
@@ -164,7 +163,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <div class="tile"><div class="n">2 · 阶段／步骤</div><h4>各个阶段</h4><p>大的阶段，每个由一个个具体的工具步骤组成。每一步接收输入、产出输出。</p></div>
             <div class="tile"><div class="n">3 · 参数</div><h4>各项设置</h4><p>运行所用的设置——带着合理的默认值，在任何东西开跑<b>之前</b>先展示。</p></div>
             <div class="tile"><div class="n">4 · 质控闸门</div><h4>护栏</h4><p>运行途中的一次自动检查。它绝不会悄悄放过一个没通过的结果。</p></div>
-            <div class="tile"><div class="n">5 · 运行后报告</div><h4>结果</h4><p>三个标签页：摘要、输出，以及可复现记录。</p></div>
+            <div class="tile"><div class="n">5 · 运行后报告</div><h4>结果</h4><p>两个标签页：结果（发现摘要 + 内嵌预览的输出），以及可复现记录。</p></div>
           </div>
           <p class="footnote" style="margin-top:22px">"测试过／经过验证"是指每一步用的都是已发表、成熟的方法——不代表结果在临床上已被证明。工作流是计算层面的早期筛查，不是成品答案。</p>
         </div>
@@ -221,17 +220,17 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <section class="scene" data-seconds="47.0">
     <div class="kicker"><span class="st">第三步</span> · 完成——发现报告</div>
     <h2>一段好读的摘要，数字直接取自你的结果。</h2>
-    <p class="caption">运行完成了：一个绿色的 <b>Completed</b>（已完成）徽标，三标签页的报告停在 <b>Summary</b>（摘要）上——一段简短、大白话的说明，讲清这次运行发现了什么，关键数值都直接读自结果文件。</p>
+    <p class="caption">运行完成了：一个绿色的 <b>Completed</b>（已完成）徽标，两标签页的报告停在 <b>Results</b>（结果）上——一段简短、大白话的说明，讲清这次运行发现了什么，关键数值都直接读自结果文件，每个输出就预览在其下方。</p>
     <div class="scene-body">
       <figure class="shotcol">
-        <span class="lbl">已完成 · Summary 标签页</span>
+        <span class="lbl">已完成 · Results 标签页</span>
         <div class="frame"><img src="assets/live/completed.png" alt="ADMET 已完成，带填好的发现摘要"/></div>
       </figure>
       <div class="teachcol">
         <ul class="points">
           <li><span class="b gr"></span><span><b>已完成，并给出清晰结论。</b>"已为 3 个化合物完成 ADMET 预测"——关键性质均对照标准阈值做了评估。</span></li>
           <li><span class="b"></span><span><b>真实数值，摆在最显眼处。</b>hERG 抑制 <b>0.003</b>、DILI 概率 <b>0.855</b>、口服生物利用度 <b>0.873</b>——取自结果文件，而非手写。</span></li>
-          <li><span class="b"></span><span><b>展开看细节。</b><b>Key Results</b>（关键结果）展开按化合物逐一列出的完整表格；<b>Download report</b>（下载报告）一键存下整份摘要。</span></li>
+          <li><span class="b"></span><span><b>展开看细节。</b><b>Key Results</b>（关键结果）默认就按化合物逐一列出完整表格；<b>Download findings</b>（下载分析发现）一键存下整份摘要。</span></li>
           <li><span class="b am"></span><span><b>如实说明。</b>一行 Caveats（注意事项）提醒你，这些都是计算得出的估计值——在推进之前仍需用湿实验加以验证。</span></li>
         </ul>
         <div><span class="verdict ok"><span class="mk"></span>结果直接读自你的文件</span></div>
@@ -241,20 +240,20 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
 
   <!-- 5 — OUTPUTS (r5) -->
   <section class="scene" data-seconds="35.3">
-    <div class="kicker"><span class="st">第四步</span> · 输出——每个文件，按步骤归类</div>
+    <div class="kicker"><span class="st">第四步</span> · 输出——每个文件，就地预览</div>
     <h2>摘要的背后：运行产生的每一个文件。</h2>
-    <p class="caption"><b>Outputs</b>（输出）标签页列出运行产生的每一个文件，并按产生它的步骤分组——那是摘要背后的原始结果，可供你亲自下载、阅读。</p>
+    <p class="caption">就在同一个 <b>Results</b>（结果）标签页，往下滑过发现摘要：运行产生的每一个文件都以内嵌预览直接呈现、可当场阅读——还带一个搜索框，快速定位某个文件——不再只是一串文件名。</p>
     <div class="scene-body">
       <figure class="shotcol">
-        <span class="lbl">运行后 · Outputs 标签页</span>
+        <span class="lbl">Results 标签页 · 输出区</span>
         <div class="frame"><img src="assets/live/outputs.png" alt="ADMET 输出——六个文件按步骤分组"/></div>
       </figure>
       <div class="teachcol">
         <ul class="points">
           <li><span class="b"></span><span><b>每个文件，各带其类型。</b><code>predict_admet_properties_results.json</code>、<code>toxicity_report.json</code>、<code>qc_metrics.json</code>、<code>pk_summary.json</code>、一张结果表格，以及 <code>versions.yml</code>（软件记录）。</span></li>
-          <li><span class="b"></span><span><b>归在产生它的步骤之下</b>——于是你能从头到尾追溯整条流水线。</span></li>
+          <li><span class="b"></span><span><b>就地内嵌预览</b>——JSON、表格和文本直接在卡片里呈现；大文件或二进制文件点一下再预览，还有搜索框可过滤列表。</span></li>
           <li><span class="b"></span><span><b>查看或下载</b>任意单个文件，把它们<b>全部打包成一个压缩包</b>，打开来做交互式分析，或保存到某个项目。</span></li>
-          <li><span class="b"></span><span>这是看清<b>每一步输入与输出</b>的最清晰视图——摘要背后的原始真相。</span></li>
+          <li><span class="b"></span><span>这就是摘要背后的原始真相——如今就在它下方、同一个标签页里。</span></li>
         </ul>
         <div><span class="verdict ok"><span class="mk"></span>每一个结果文件，都归你所有</span></div>
       </div>
@@ -286,16 +285,16 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
   <!-- 7 — CLOSING -->
   <section class="scene title" data-seconds="39.0">
     <div class="kicker">一眼看懂这个习惯</div>
-    <h2 style="font-size:40px">确认并运行 → 实时查看 → 读那三个标签页。</h2>
+    <h2 style="font-size:40px">确认并运行 → 实时查看 → 读那两个标签页。</h2>
     <div class="scene-body">
       <div class="two-col">
         <div class="lead-col">
-          <p class="caption" style="font-size:17px">每一次运行都是同一个样子。配置好并确认；实时看着各个阶段和质控闸门；然后读摘要、输出，以及可复现记录。正是这份记录，把"运行完了"变成一个你能够解释、也拿得出依据的结果。</p>
+          <p class="caption" style="font-size:17px">每一次运行都是同一个样子。配置好并确认；实时看着各个阶段和质控闸门；然后读 <b>Results</b>（结果）标签页（发现摘要 + 内嵌预览的输出），以及可复现记录。正是这份记录，把"运行完了"变成一个你能够解释、也拿得出依据的结果。</p>
           <ol class="habit">
             <li><span class="k">1</span>用大白话提出要求；核对设置；确认并运行</li>
             <li><span class="k">2</span>看着各阶段从 pending → running → completed；留意质控闸门</li>
             <li><span class="k">3</span>读摘要——用大白话给出的关键发现</li>
-            <li><span class="k">4–5</span>逐个文件读输出；下载可复现记录</li>
+            <li><span class="k">4–5</span>在 Results 标签页逐个查看内嵌预览的输出；下载可复现记录</li>
           </ol>
         </div>
         <div class="lead-col">
@@ -303,7 +302,7 @@ code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padd
             <tr><td>运行配置与确认</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">在你确认之前什么都不会运行</span></td></tr>
             <tr><td>实时阶段与质控闸门</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">实时进度</span></td></tr>
             <tr><td>摘要发现</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">读自你的文件</span></td></tr>
-            <tr><td>输出（每个文件，按步骤）</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">归你下载</span></td></tr>
+            <tr><td>输出（在结果标签页内嵌预览）</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">归你下载</span></td></tr>
             <tr><td>可复现记录</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">完整审计轨迹</span></td></tr>
           </table>
           <p class="footnote">一份报告：一段大白话的摘要、每一个输出文件，以及一份带可核验校验和的完整可复现记录——无需购买任何软件授权。工作流是计算层面的早期筛查，不是临床结果。</p>

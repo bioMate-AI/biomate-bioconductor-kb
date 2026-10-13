@@ -30,7 +30,7 @@ result, not a stale copy.
 
 ## 2. The ideas you need first (plain-language background)
 
-**The Outputs tab.** When a run finishes, its files appear in the **Outputs** tab of the after-run report (the
+**The Outputs section.** When a run finishes, its files appear in the **Outputs** section of the after-run report's **Results** tab (the
 report you met in Tutorial 3). Each row shows **which step made the file**, the **file name**, its **type**,
 and two actions — **view** (open it inline) and **dl** (download). *(Why it matters: files are grouped by the
 step that produced them, so you can trace any result back to the stage it came from.)*
@@ -69,7 +69,7 @@ matters: every headline number is evidence you can open and check, not a number 
    **dl** instead only when you want the raw file on your computer.
 
 ![The Outputs tab — each file row shows its step, name, type, and view / download actions](../assets/i08-1-outputs-tab.png)
-*The Outputs tab: every file the run produced, each row carrying the step that made it and a **view** / **dl**
+*The Outputs section: every file the run produced, each shown as an inline preview card with **view** / **dl**
 action. Clicking **view** opens the file inline.*
 
 ![Outputs grouped by step, from a real completed run](../assets/t3-3-after-run-outputs.png)
@@ -136,7 +136,7 @@ Opening the file is also how you sanity-check it. A few quick reads:
 
 ## 7. Saving and sharing what you found
 
-Beyond viewing one file at a time, the Outputs tab lets you:
+Beyond viewing one file at a time, the Outputs section lets you:
 
 - **Download all as a ZIP** — every output in one archive.
 - **Download a reproducibility bundle** — the configs, command scripts, logs, and software versions needed to
@@ -181,7 +181,7 @@ result. Here is the honest scope, because it is easy to expect too much:
 | Understand the whole report (Summary / Outputs / Reproducibility) | **Tutorial 3** |
 | Learn from results over rounds (the closed loop) | **Tutorial 2** |
 
-The habit: **open the Outputs tab → view the file inline → read it (and sanity-check it) → save or share what
+The habit: **open the Results tab → read each output previewed inline → read it (and sanity-check it) → save or share what
 matters.**
 
 ---
@@ -190,7 +190,7 @@ matters.**
 
 | Term | What it means — and why you care |
 |---|---|
-| **Outputs tab** | The part of the after-run report listing every file a run produced, grouped by the step that made it, each with a **view** and **download** action. |
+| **Outputs section** | The part of the after-run report's Results tab that previews every file a run produced inline (searchable), each with a **view** and **download** action. |
 | **Inline viewer** | A reader built into the page that shows a file as the thing it is (image, table, sequence, structure…), so you don't download it or leave BioMate. |
 | **Preview reads the real file** | The inline view shows the actual stored bytes, not a separate copy — so a preview can't drift from the real result. |
 | **pLDDT** | A per-residue confidence score (0–100) for a *predicted* protein structure; read it by colour/region, not one global number. Above ~90 very high, 70–90 confident, below 50 often disordered. |
