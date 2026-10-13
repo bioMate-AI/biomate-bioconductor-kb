@@ -52,6 +52,7 @@ import DrugDiscoveryCroDemoPage from "@/pages/drug-discovery-cro-demo";
 import IndReportPage from "@/pages/ind-report";
 import DebugOutputs from "@/pages/DebugOutputs";
 import DebugViewerChain from "@/pages/DebugViewerChain";
+import DebugAfterRun from "@/pages/DebugAfterRun";
 import WorkflowDeepLink from "@/pages/WorkflowDeepLink";
 import CapabilitiesPage from "@/pages/capabilities";
 import { ModelsPanel } from "@/components/models";
@@ -539,6 +540,7 @@ function Router({
       {/* Debug-only harness — see frontend/client/src/pages/DebugOutputs.tsx */}
       <Route path="/debug/outputs/:runId" component={DebugOutputs} />
       <Route path="/debug/viewer/:runId" component={DebugViewerChain} />
+      <Route path="/debug/afterrun/:runId" component={DebugAfterRun} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />
