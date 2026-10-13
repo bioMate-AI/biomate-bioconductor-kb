@@ -69,7 +69,9 @@ def test_autoloop_started_with_changes():
 
 def test_failed_msg_with_reason():
     msg = render_friendly("workflow.failed", {"reason": "exit 127"})
-    assert "Workflow stopped" in msg
+    # Neutral wording (not "stopped"): an attempt failure triggers auto-fix, so a
+    # run that auto-recovers and COMPLETES must not read as terminally stopped.
+    assert "hit an error" in msg
     assert "exit 127" in msg
 
 

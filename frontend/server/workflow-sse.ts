@@ -75,8 +75,10 @@ function renderFriendly(kind: string, t: Record<string, any>): string {
       return (typeof done === 'number' && typeof total === 'number') ? `Workflow finished. ${done}/${total} steps succeeded.` : 'Workflow finished.';
     }
     case 'workflow.failed': {
+      // Not necessarily terminal — an attempt failure triggers auto-fix. Neutral
+      // wording so an auto-recovered (COMPLETED) run doesn't read "stopped".
       const reason = t.reason ? String(t.reason).split('.')[0].trim() : null;
-      return reason ? `Workflow stopped — ${reason}. Looking into why…` : 'Workflow stopped.';
+      return reason ? `Workflow hit an error — ${reason}.` : 'Workflow hit an error.';
     }
     case 'workflow.paused': return 'Workflow paused.';
     case 'workflow.cancelled': return 'Workflow cancelled.';

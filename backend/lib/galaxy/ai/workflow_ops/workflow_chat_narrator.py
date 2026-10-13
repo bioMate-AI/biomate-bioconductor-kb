@@ -70,7 +70,7 @@ def _phase_failed(t: Dict[str, Any]) -> str:
     if reason:
         head = str(reason).split(".")[0].strip()
         return f"{name} failed — {head}."
-    return f"{name} failed. Looking into why…"
+    return f"{name} failed — auto-fixing…"
 
 
 def _completed_summary(t: Dict[str, Any]) -> str:
@@ -125,11 +125,14 @@ def _autoloop_started(t: Dict[str, Any]) -> str:
 
 
 def _failed_msg(t: Dict[str, Any]) -> str:
+    # Not necessarily terminal — an attempt failure triggers auto-fix (deepagent).
+    # Neutral wording so an auto-recovered (COMPLETED) run doesn't read "stopped";
+    # the run status badge carries the terminal truth.
     reason = t.get("reason") or t.get("error")
     if reason:
         head = str(reason).split(".")[0].strip()
-        return f"Workflow stopped — {head}. Looking into why…"
-    return "Workflow stopped. Looking into why…"
+        return f"Workflow hit an error — {head}."
+    return "Workflow hit an error."
 
 
 def _cancelled_msg(t: Dict[str, Any]) -> str:
@@ -170,7 +173,7 @@ _TEMPLATES: Dict[str, Any] = {
     "workflow.auto_proceeded": _auto_proceeded_msg,
     # deepagent.* events are emitted by DeepAnalysisAgent via its own
     # progress_callback; they flow through emit() too for consistency.
-    "deepagent.start": "Looking into why your workflow failed…",
+    "deepagent.start": "Auto-diagnosing and fixing the error…",
     "deepagent.investigating": lambda t: t.get("friendly_message") or "Investigating…",
     "deepagent.tool_call": lambda t: t.get("friendly_message") or "Checking something in the workflow files…",
     "deepagent.suggestion": lambda t: t.get("friendly_message") or "Got a suggestion — see the workflow panel.",
