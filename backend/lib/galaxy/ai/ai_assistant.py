@@ -3557,14 +3557,18 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                     _seq_match = _m.group(1)
                     _best_len = len(_seq_match)
             if _seq_match:
-                # Fill the first required sequence param, then any optional ones.
+                # Fill ALL required sequence params with the found sequence.
+                # Some workflows (e.g. nf-core/proteinfold) declare both `sequence`
+                # and `protein_sequences` as null-required aliases for the same input —
+                # filling only the first leaves the other blocking the Run button.
+                # If there are NO required sequence params, fill the first optional one.
                 _req_seq = [p for p in _seq_params_unfilled if p.get("required", True)]
                 _opt_seq = [p for p in _seq_params_unfilled if not p.get("required", True)]
-                for _sp in (_req_seq or _opt_seq)[:1]:
+                for _sp in (_req_seq if _req_seq else _opt_seq[:1]):
                     suggestions.append({
                         "name": _sp["name"],
                         "value": _seq_match.upper(),
-                        "rationale": f"Amino-acid/nucleotide sequence extracted directly from your query.",
+                        "rationale": "Amino-acid/nucleotide sequence extracted directly from your query.",
                     })
                     _already_set.add(_sp["name"])
 
