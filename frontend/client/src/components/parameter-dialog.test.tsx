@@ -106,6 +106,35 @@ describe("ParameterDialog — required-field validation", () => {
     });
   });
 
+  it("re-flags a required field if the user fills then empties it again", async () => {
+    const onSave = vi.fn();
+    render(
+      <ParameterDialog open onOpenChange={() => {}} step={step as any} onSave={onSave} />
+    );
+    await waitFor(() => expect(screen.getByText("reads_fwd")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /Save Changes/i }));
+    await waitFor(() =>
+      expect(screen.getByTestId("param-dialog-missing-required")).toBeInTheDocument()
+    );
+
+    const readsInput = screen.getByPlaceholderText(/Dataset \(fastq\)/i);
+    // Fill → banner clears.
+    fireEvent.change(readsInput, { target: { value: "/x" } });
+    await waitFor(() =>
+      expect(screen.queryByTestId("param-dialog-missing-required")).toBeNull()
+    );
+    // Empty again → the DERIVED banner must re-surface (the old imperative Set
+    // only ever removed fields, so it would have stayed hidden and misled the user).
+    fireEvent.change(readsInput, { target: { value: "" } });
+    await waitFor(() =>
+      expect(screen.getByTestId("param-dialog-missing-required")).toHaveTextContent("reads_fwd")
+    );
+    // …and save stays blocked.
+    fireEvent.click(screen.getByRole("button", { name: /Save Changes/i }));
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
   it("shows the file-format hint in the placeholder", async () => {
     render(<ParameterDialog open onOpenChange={() => {}} step={step as any} onSave={() => {}} />);
     await waitFor(() => {
