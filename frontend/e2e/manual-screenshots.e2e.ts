@@ -102,11 +102,19 @@ test("capture data-hub drill-in (I.5)", async ({ page }) => {
     await page.waitForTimeout(4000);
     await shot("i05-1-file-tree.png"); // file tree for the chosen project
     // Open a file by its NAME (clicking the row's dot doesn't select) → dataset object.
-    // Prefer a REAL demo dataset (the counts matrix / a CSV) so the figure shows a
-    // working table preview — not the internal preview_checks.json, whose preview
-    // 400s and would put a red "Cannot read file" error in the manual (committee
-    // bucket B: wrong content captured). Falls back to any previewable file.
-    const demoData = page.getByText(/counts_matrix|sample_metadata|contrasts/i).first();
+    // Prefer the RICH multi-row counts_matrix.csv (genes×samples) so the quality
+    // panel has real distributions to profile. Do NOT pick contrasts.csv: it has a
+    // single data row, so every column is trivially constant and the panel
+    // self-contradicts ("4 near-constant columns" vs Notes "no constant-column
+    // issues") with broken plurals ("First 1 rows") — committee re-score rated that
+    // capture MAJOR (docs/20261013_SCREENSHOT_COMMITTEE_REVIEW.md). Order of
+    // preference: counts_matrix → sample_metadata → any previewable CSV/data file;
+    // never the internal preview_checks.json (its preview 400s → red error banner).
+    const rich = page.getByText(/counts_matrix/i).first();
+    const meta = page.getByText(/sample_metadata/i).first();
+    const demoData = (await rich.count()) > 0 ? rich
+      : (await meta.count()) > 0 ? meta
+      : page.getByText(/\.(csv|tsv|txt)$/i).first();
     const fileName = (await demoData.count()) > 0 ? demoData
       : page.getByText(/\.(fastq|fq|csv|tsv|txt|vcf|bam|h5ad|pdb|json)$/i).first();
     if ((await fileName.count()) > 0) {
