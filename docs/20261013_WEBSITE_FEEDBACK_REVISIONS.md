@@ -15,10 +15,12 @@ cream/navy brand tokens).
   drug discovery is framed at the **capability / therapeutic-area** level only.
 - **Citation integrity.** Every proof point added to the homepage is a figure
   **already published on `benchmarks.html`** — nothing new was asserted.
-- **Honesty over the suggested wording.** The feedback proposed stating "in silico
-  design *complete*." In-silico design/screening is still ongoing (LOTO eval
-  pending, cross-target generalization unsolved field-wide), so the public status
-  reads "**in silico design underway**" instead. Same forward timeline, accurate.
+- **Status framed as the iteration cycle, not a linear milestone.** Both "in silico
+  design complete" and "…underway" read as a one-shot waterfall; what we sell is the
+  closed design→evaluate→test→learn loop. Final public wording: **"running
+  computational design–evaluation cycles · first experimental validation round
+  planned Q4 2026 · results feed the next iteration in Q1 2027."** Accurate
+  (computational iterations are actively running) and foregrounds the cycle.
 
 ## Changes by file
 
@@ -54,8 +56,9 @@ loop diagram), `.wb-note`, `.wb-cycle-note`. Mobile: collapse to 2-up, hide arro
 - Kept **"Candidates remain hypotheses until tested experimentally."**
 - Added the **4-step loop diagram**: Design → Computational evaluation →
   Synthesis & assays → Model update, with a "loop repeats" note.
-- Added **program-status** line: in silico design underway · wet-lab validation
-  planned Q4 2026 · initial results anticipated Q1 2027.
+- Added **program-status** line (cycle-framed): running computational design–
+  evaluation cycles · first experimental validation round planned Q4 2026 ·
+  results feed the next iteration in Q1 2027.
 - Hero now names immunology, immuno-oncology, cyclic peptides.
 
 ### `compare.html` ("BioMate vs. the alternatives") — reviewed, no change
