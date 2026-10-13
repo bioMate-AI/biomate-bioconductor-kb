@@ -51,6 +51,9 @@ interface DomainCase {
   attach: string[];
   /** SAFETY-GATE: the generated workflow / panel text must match this, or we abort with no Batch spend. */
   expect: RegExp;
+  /** GPU tier: cryo-EM / structure-prediction / histology run on a GPU Batch
+   *  queue — slower to dispatch (capacity) and to execute. Extends timeouts. */
+  gpu?: boolean;
 }
 
 // Self-contained prepared prompts. The three built-in-demo cases (metabolomics,
@@ -110,11 +113,41 @@ const DOMAINS: DomainCase[] = [
     ],
     expect: /sarek|variant|haplotype|strelka|deepvariant|mutect|germline|somatic/i,
   },
+  // --- GPU tier (expensive; run scoped via --grep, greenlit explicitly) ---
+  // histology: PREPARED_EXAMPLES built-in demo slide, no attachment.
+  {
+    key: "histology",
+    query:
+      "Run wsi_he_nuclei_segmentation using the built-in real OpenSlide CMU-1-Small-Region.svs demo slide. Use the public sample data defaults.",
+    attach: [],
+    expect: /wsi|nuclei|segment|histolog|openslide|cellpose|he\b|h&e/i,
+    gpu: true,
+  },
+  // cryo-EM: catalog `cryo` intent + staged EMPIAR-10028 movies (S3); cryo_inputs.json manifest attached.
+  {
+    key: "cryo-em",
+    query:
+      "Process this cryo-EM dataset to a density map and report the resolution.\n\nPrepared demo context:\nUse the already staged EMPIAR-10028 beta-galactosidase movies at s3://biomate-cryo-data/empiar-10028/Micrographs/ (001_movie.mrcs through 020_movie.mrcs). cryo_inputs.json provides acquisition settings: pixel size 0.885 Å, 300 kV, Cs 2.7 mm, amplitude contrast 0.1, symmetry D2, particle diameter 180 Å. Bind the staged movie prefix as the workflow input, not this manifest as a micrograph. This 20-movie tutorial subset is not guaranteed to reconstruct the full-dataset resolution; report observed QC/resolution honestly.",
+    attach: ["cryo_inputs.json"],
+    expect: /cryo|cryosparc|relion|density|reconstruct|particle|micrograph|resolution/i,
+    gpu: true,
+  },
+  // structural-biology: catalog `structure` intent + attached 1LYZ lysozyme (prepareColdStartExample rewrites the sequence tail to "the attached lysozyme sequence").
+  {
+    key: "structural-biology",
+    query:
+      "Predict the structure for the attached lysozyme sequence and tell me where to trust it.\n\nPrepared demo context:\nUse the experimental hen egg-white lysozyme sequence in 1LYZ.fasta for structure prediction and the supplied 1LYZ.pdb as a reference for assessment. Report model confidence and measured comparison separately.",
+    attach: ["1LYZ.fasta", "1LYZ.pdb"],
+    expect: /alphafold|esmfold|openfold|structure|fold|confidence|plddt|lysozyme|predict/i,
+    gpu: true,
+  },
 ];
 
 for (const d of DOMAINS) {
   test(`domain e2e: ${d.key}`, async ({ page }) => {
-    test.setTimeout(45 * 60 * 1000); // 45 min
+    test.setTimeout((d.gpu ? 60 : 45) * 60 * 1000); // GPU 60 min, CPU 45 min
+    const RUNNING_TIMEOUT = d.gpu ? 10 * 60 * 1000 : 240_000; // GPU queue/capacity can be slow to dispatch
+    const TERMINAL_TIMEOUT = (d.gpu ? 50 : 30) * 60 * 1000;    // cryoSPARC ~35-45 min, AlphaFold ~10-40 min
     await loginAsFixture(page);
     const log: string[] = [];
     const shot = async (suffix: string, el?: import("@playwright/test").Locator) => {
@@ -192,11 +225,11 @@ for (const d of DOMAINS) {
         // NOTE: waitForFunction signature is (pageFunction, arg, options) — the
         // timeout MUST be the 3rd arg. Passing it as the 2nd arg silently makes
         // it the page-function argument and falls back to the config actionTimeout.
-        await page.waitForFunction(() => !!document.querySelector('[data-status="running"]'), null, { timeout: 240_000 });
+        await page.waitForFunction(() => !!document.querySelector('[data-status="running"]'), null, { timeout: RUNNING_TIMEOUT });
         await page.waitForTimeout(1500);
         await shot("running");
       } catch {
-        log.push("SKIP running (running state not observed in 240s)");
+        log.push(`SKIP running (running state not observed in ${Math.round(RUNNING_TIMEOUT / 1000)}s)`);
       }
 
       // 6. Terminal — Completed or Failed — up to 30 min. Capture the runId first
@@ -212,7 +245,7 @@ for (const d of DOMAINS) {
       await page.waitForFunction(
         () => /Run again|COMPLETED|Completed|FAILED|Failed|Restart/.test(document.body.innerText || ""),
         null,
-        { timeout: 30 * 60 * 1000 },
+        { timeout: TERMINAL_TIMEOUT },
       );
       await page.waitForTimeout(5000);
       await shot("completed");
