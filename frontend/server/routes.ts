@@ -10212,11 +10212,6 @@ ${paramLines || '(none recorded)'}`;
 
     try {
       const request = req.body;
-      // DIAG (project-scoping): records the projectId the client actually sent,
-      // so any real project run shows whether the frontend forwards it (vs the
-      // intermittent proj=none). Also logged: whether an idempotency dedupe
-      // later reuses an existing run (see [execute][dedupe] below).
-      console.log(`[execute] projectId=${JSON.stringify(request.projectId ?? null)} user=${req.user?.id ?? 'anon'} wf=${JSON.stringify(request.workflowName || request.workflowDefinition?.name || null)} session=${JSON.stringify(request.chatSessionId ?? null)}`);
       const generationAssessment = request.generationAssessment || request.workflowDefinition?.__generationAssessment;
       const retryContext = request.retryContext || request.workflowDefinition?.__retryContext;
       const retryOfRunId =

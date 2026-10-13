@@ -1200,7 +1200,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             galaxyInvocationId: workflow.__retryContext.galaxyInvocationId,
           }
         : undefined;
-      console.log('[launch][diag] activeProjectId=', activeProjectId, '| persisted=', persistedActiveProjectId(), '| resolved=', activeProjectId || persistedActiveProjectId())
       const run = await executeWorkflow({
         workflowDefinition,
         workflowName: workflow.name || 'bioMate Workflow',

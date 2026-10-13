@@ -54,7 +54,6 @@ export function ActiveProjectProvider({ children }: { children: React.ReactNode 
   })
 
   const setActiveProjectId = useCallback((id: string | null) => {
-    console.log('[ap-set][diag] setActiveProjectId(', id, ')')
     setActiveProjectIdState(id)
     try {
       if (id) localStorage.setItem(STORAGE_KEY, id)
@@ -82,10 +81,8 @@ export function ActiveProjectProvider({ children }: { children: React.ReactNode 
       // really gone; a non-active status means archived/completed (also clear);
       // a live active project that's just missing from this page is KEPT.
       if (activeProjectId && !(res.projects ?? []).some((p) => p.id === activeProjectId)) {
-        console.log('[ap-guard][diag]', activeProjectId, 'NOT in active list (n=', (res.projects ?? []).length, ') — verifying')
         try {
           const { project } = await api.getProject(activeProjectId)
-          console.log('[ap-guard][diag] getProject status=', project?.status)
           if (!project || project.status !== 'active') setActiveProjectId(null)
         } catch (e: any) {
           // Clear ONLY on a definitive not-found/forbidden — never a transient
@@ -95,7 +92,6 @@ export function ActiveProjectProvider({ children }: { children: React.ReactNode 
           // (refresh() re-runs on every activeProjectId change, which amplified
           // this into the observed 'intermittent' context loss.)
           const msg = String(e?.message || '')
-          console.log('[ap-guard][diag] getProject threw:', msg)
           if (/\b40[34]\b/.test(msg) || /not found/i.test(msg) || /forbidden/i.test(msg)) {
             setActiveProjectId(null)
           }
