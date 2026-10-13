@@ -84,8 +84,17 @@ export function ActiveProjectProvider({ children }: { children: React.ReactNode 
         try {
           const { project } = await api.getProject(activeProjectId)
           if (!project || project.status !== 'active') setActiveProjectId(null)
-        } catch {
-          setActiveProjectId(null)
+        } catch (e: any) {
+          // Clear ONLY on a definitive not-found/forbidden — never a transient
+          // error. During a dev restart / offline blip, getProject throws a
+          // network/5xx error; clearing then wrongly dropped a live active
+          // project, so the next run launched proj=none and skipped auto-save.
+          // (refresh() re-runs on every activeProjectId change, which amplified
+          // this into the observed 'intermittent' context loss.)
+          const msg = String(e?.message || '')
+          if (/\b40[34]\b/.test(msg) || /not found/i.test(msg) || /forbidden/i.test(msg)) {
+            setActiveProjectId(null)
+          }
         }
       }
     } catch (e) {
