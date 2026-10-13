@@ -542,14 +542,16 @@ describe("v2/AfterRunReport — three-tab consolidation (accepted design)", () =
   });
   afterEach(() => { vi.clearAllMocks(); });
 
-  it("renders exactly three top-level tabs — Summary, Outputs, Reproducibility record", () => {
+  it("renders exactly two top-level tabs — Results, Reproducibility record", () => {
     render(<AfterRunReport {...baseProps} />);
     const tablist = screen.getByRole("tablist");
     const tabs = within(tablist).getAllByRole("tab");
     expect(tabs.map(t => t.textContent)).toEqual([
-      "Summary", "Outputs", "Reproducibility record",
+      "Results", "Reproducibility record",
     ]);
-    // The former peer tabs must NOT be top-level anymore.
+    // The former peer tabs (incl. the now-merged Summary/Outputs) must NOT be top-level.
+    expect(screen.queryByTestId("after-tab-summary")).toBeNull();
+    expect(screen.queryByTestId("after-tab-outputs")).toBeNull();
     expect(screen.queryByTestId("after-tab-findings")).toBeNull();
     expect(screen.queryByTestId("after-tab-qc")).toBeNull();
     expect(screen.queryByTestId("after-tab-methods")).toBeNull();
@@ -560,13 +562,14 @@ describe("v2/AfterRunReport — three-tab consolidation (accepted design)", () =
     expect(screen.queryByTestId("after-tab-reproducibility")).toBeNull();
   });
 
-  it("opens on the Summary tab and marks the run original", () => {
+  it("opens on the merged Results tab and marks the run original", () => {
     render(<AfterRunReport {...baseProps} />);
-    // Summary is selected by default.
-    expect(screen.getByTestId("after-tab-summary")).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByTestId("after-tab-outputs")).toHaveAttribute("aria-selected", "false");
+    // Results is selected by default.
+    expect(screen.getByTestId("after-tab-results")).toHaveAttribute("aria-selected", "true");
     expect(screen.getByTestId("after-tab-record")).toHaveAttribute("aria-selected", "false");
-    // Summary tab body + "run original" badge are visible without any click.
+    // Results tab body (findings banner, keeping after-summary-tab id) + "run
+    // original" badge are visible without any click.
+    expect(screen.getByTestId("after-results-tab")).toBeInTheDocument();
     expect(screen.getByTestId("after-summary-tab")).toBeInTheDocument();
     expect(screen.getByTestId("after-run-original-badge")).toHaveTextContent(/run original/i);
   });

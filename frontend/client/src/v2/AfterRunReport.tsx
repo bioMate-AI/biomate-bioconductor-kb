@@ -16,7 +16,7 @@
  * Hides empty tabs entirely rather than showing placeholders — per audit,
  * placeholders read as "this product is unfinished".
  */
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { tOr } from "@/lib/i18n";
 import { FindingsCard } from "@/components/findings-card";
 import { StepOutputPreview } from "@/components/step-output-preview";
@@ -78,12 +78,13 @@ interface AfterRunReportProps {
   onContinueAnalysis?: (suggestion: string) => void;
 }
 
-// Accepted design (RunSurface.jsx RTABS): the after-run surface is exactly
-// three top-level tabs — Summary (landing), Outputs, and Reproducibility
-// record. Methods / resolved parameters / software / citations / QC report /
-// trajectory are no longer top-level peers; they are collapsible sections
-// nested INSIDE the Reproducibility record tab.
-type TabId = "summary" | "outputs" | "record";
+// Merged surface: "Results" (findings summary banner on top + each output as an
+// inline preview) and "Reproducibility record". Findings and Outputs — previously
+// separate tabs — are now one scrollable Results view (user request): the
+// interpretation sits above the artifacts it was read from. Methods / resolved
+// parameters / software / citations / QC report / trajectory remain collapsible
+// sections nested INSIDE the Reproducibility record tab.
+type TabId = "results" | "record";
 
 interface OutputFile {
   step: string;
@@ -117,12 +118,8 @@ export function AfterRunReport({
   // directory toolbar work; intentionally unread in v0.
   void nextflowOutputDir;
   const isFailed = executionStatus === "failed" || executionStatus === "cancelled" || executionStatus === "error";
-  // Landing tab is Summary (accepted design) — not Outputs.
-  const [tab, setTab] = useState<TabId>("summary");
-  // §7.8 findings-as-links — when a numeric claim in the Summary is clicked,
-  // FindingsCard reports the output ref it was read from; we jump to the
-  // Outputs tab and ask it to open that file's preview. Cleared once opened.
-  const [outputToOpen, setOutputToOpen] = useState<string | null>(null);
+  // Landing tab is the merged Results view.
+  const [tab, setTab] = useState<TabId>("results");
 
   // Outputs come from the parent's executionRun state (no /steps endpoint exists).
   const outputs = outputsProp ?? [];
@@ -148,8 +145,7 @@ export function AfterRunReport({
   // report, Trajectory) is now a collapsible section inside the record tab —
   // still reachable, just re-nested (nothing is hidden or discarded).
   const visibleTabs: Array<[TabId, string]> = [
-    ["summary", tOr('afterrun.tab.summary', "Summary")],
-    ["outputs", tOr('afterrun.tab.outputs', "Outputs")],
+    ["results", tOr('afterrun.tab.results', "Results")],
     ["record", tOr('afterrun.tab.record', "Reproducibility record")],
   ];
 
@@ -241,48 +237,61 @@ export function AfterRunReport({
         ))}
       </div>
       <div style={styles.body}>
-        {/* Summary (landing tab) — the run's headline findings summary, marked
-            as the immutable "run original". Reuses the existing FindingsCard +
-            figures rendering. */}
-        {tab === "summary" && (
-          <div data-testid="after-summary-tab">
-            <div style={styles.runOriginalRow}>
-              <span style={styles.runOriginalBadge} data-testid="after-run-original-badge">
-                {tOr('afterrun.run_original', 'Run original')}
-              </span>
-              <span style={styles.runOriginalHint}>
-                {tOr('afterrun.run_original_hint', 'The unedited record of what this run produced. Reports you edit are saved alongside it; this original is never overwritten.')}
-              </span>
+        {/* Results (landing tab) — merged Findings + Outputs. The run's headline
+            findings summary (marked as the immutable "run original") sits on top
+            as a banner; below it, each output renders as an inline preview. A
+            finding number links down to the output card it was read from. */}
+        {tab === "results" && (
+          <div data-testid="after-results-tab">
+            <div data-testid="after-summary-tab">
+              <div style={styles.runOriginalRow}>
+                <span style={styles.runOriginalBadge} data-testid="after-run-original-badge">
+                  {tOr('afterrun.run_original', 'Run original')}
+                </span>
+                <span style={styles.runOriginalHint}>
+                  {tOr('afterrun.run_original_hint', 'The unedited record of what this run produced. Reports you edit are saved alongside it; this original is never overwritten.')}
+                </span>
+              </div>
+              {/* Findings banner is purely informational here — no cross-nav to
+                  outputs (the gallery below is searchable). onOpenOutput omitted. */}
+              <FindingsCard
+                runId={runId}
+                onContinueAnalysis={onContinueAnalysis}
+                executionStatus={executionStatus}
+              />
+              {findings?.figures && findings.figures.length > 0 && (
+                <FindingsFiguresPanel figures={findings.figures} />
+              )}
+              {/* Contract note — hoisted out of FindingsFiguresPanel (audit A1)
+                  so it renders whether the figures panel is visible or not.
+                  Wording covers numbers AND figures (the FindingsCard headline
+                  metrics and bullets fall under this same contract). */}
+              <div
+                data-testid="findings-manifest-note"
+                style={{
+                  fontSize: 10.5,
+                  color: "oklch(0.48 0.012 260)",
+                  fontStyle: "italic",
+                  marginTop: 12,
+                  paddingTop: 10,
+                  borderTop: "1px solid oklch(0.94 0.008 260)",
+                }}
+              >
+                {tOr('afterrun.findings_manifest_note', 'Findings are generated directly from the run manifest. Numbers and figures in this section come from the workflow outputs.')}
+              </div>
             </div>
-            <FindingsCard
-              runId={runId}
-              onContinueAnalysis={onContinueAnalysis}
-              executionStatus={executionStatus}
-              onOpenOutput={(ref) => { setOutputToOpen(ref); setTab("outputs"); }}
-            />
-            {findings?.figures && findings.figures.length > 0 && (
-              <FindingsFiguresPanel figures={findings.figures} />
-            )}
-            {/* Contract note — hoisted out of FindingsFiguresPanel (audit A1)
-                so it renders whether the figures panel is visible or not.
-                Wording covers numbers AND figures (the FindingsCard headline
-                metrics and bullets fall under this same contract). */}
-            <div
-              data-testid="findings-manifest-note"
-              style={{
-                fontSize: 10.5,
-                color: "oklch(0.48 0.012 260)",
-                fontStyle: "italic",
-                marginTop: 12,
-                paddingTop: 10,
-                borderTop: "1px solid oklch(0.94 0.008 260)",
-              }}
-            >
-              {tOr('afterrun.findings_manifest_note', 'Findings are generated directly from the run manifest. Numbers and figures in this section come from the workflow outputs.')}
+            {/* Divider + outputs gallery (inline previews). */}
+            <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid oklch(0.92 0.008 260)" }}>
+              <OutputsTab
+                outputs={outputs}
+                runId={runId}
+                invocationId={invocationId}
+                executionStatus={executionStatus}
+                projectId={projectId}
+              />
             </div>
           </div>
         )}
-        {tab === "outputs" && <OutputsTab outputs={outputs} runId={runId} invocationId={invocationId} executionStatus={executionStatus} projectId={projectId} openOutputRef={outputToOpen} onOpenedOutput={() => setOutputToOpen(null)} />}
         {/* Reproducibility record — the unified audit trail. Everything that
             used to be a peer tab is folded here as an expandable section;
             nothing is hidden or discarded. */}
@@ -881,25 +890,68 @@ function InteractiveToolsRow({ outputs }: { outputs: OutputFile[] }) {
   );
 }
 
+// Known heavy / binary-ish extensions: never AUTO-render an inline preview for
+// these (the modal still previews them on explicit click). Density maps,
+// single-cell/AnnData, R objects, BAM, CryoSPARC datasets.
+const HEAVY_EXTS = new Set(["mrc", "map", "mrcs", "rec", "h5ad", "loom", "h5", "rds", "rdata", "rda", "bam", "cs", "csg"]);
+// Above this byte size an otherwise-previewable file is treated as heavy and
+// only previewed on demand (via the modal), not inlined.
+const INLINE_SIZE_CAP = 3_000_000;
+// How many (filtered) output cards to render before "Show more".
+const OUTPUT_RENDER_CAP = 24;
+
+/** Human-readable byte size; returns "" when size is absent/unknown. */
+function humanSize(bytes?: number): string {
+  if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let v = bytes / 1024, i = 0;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return `${v.toFixed(v >= 10 ? 0 : 1)} ${units[i]}`;
+}
+
+/**
+ * Mount children only once scrolled near the viewport — so a long outputs
+ * gallery doesn't fire N step-file fetches on mount. Falls back to mounting
+ * immediately where IntersectionObserver is unavailable (e.g. jsdom in tests).
+ */
+function LazyMount({ children, minHeight = 56 }: { children: React.ReactNode; minHeight?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (visible) return;
+    if (typeof IntersectionObserver === "undefined") { setVisible(true); return; }
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { setVisible(true); io.disconnect(); }
+    }, { rootMargin: "300px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visible]);
+  return (
+    <div ref={ref}>
+      {visible ? children : (
+        <div style={{ minHeight, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 11 }}>
+          {tOr("afterrun.preview_lazy", "Scroll to load preview…")}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OutputsTab({
   outputs,
   runId,
   invocationId,
   executionStatus,
   projectId: initialProjectId,
-  openOutputRef,
-  onOpenedOutput,
 }: {
   outputs: OutputFile[];
   runId: string;
   invocationId?: string;
   executionStatus?: string;
   projectId?: string;
-  /** §7.8 — a source-file ref (path or name) the parent wants opened, set when
-   *  a finding number was clicked in the Summary. Matched against this run's
-   *  outputs and opened in the inline preview; unresolved refs are ignored. */
-  openOutputRef?: string | null;
-  onOpenedOutput?: () => void;
 }) {
   // Audit 2026-06-17: the parent's outputs prop is derived from the DB-stored
   // nextflowStatus.s3_output_files snapshot. That snapshot is often empty
@@ -958,27 +1010,11 @@ function OutputsTab({
 
   // Must be declared before any early return — Rules of Hooks.
   const [previewFile, setPreviewFile] = useState<OutputFile | null>(null);
-
-  // §7.8 — when the Summary reports an output ref (a finding number was
-  // clicked), find the matching output and open its preview. Match, in order:
-  // exact name, exact path, path/name ending in the ref's basename. An
-  // unresolvable ref is ignored (we never open the wrong file). Clears the
-  // request either way so a dismissed preview isn't reopened.
-  useEffect(() => {
-    if (!openOutputRef) return;
-    // Outputs may still be resolving (the empty-prop → fetch fallback above).
-    // Wait for a non-empty set before attempting — otherwise we'd clear the
-    // ref and never reopen once the fetch lands.
-    if (effectiveOutputs.length === 0) return;
-    const ref = openOutputRef;
-    const base = ref.split("/").filter(Boolean).pop() || ref;
-    const match =
-      effectiveOutputs.find((o) => o.name === ref || o.path === ref) ||
-      effectiveOutputs.find((o) => o.path?.endsWith(`/${base}`) || o.name === base) ||
-      effectiveOutputs.find((o) => (o.path || o.name || "").includes(base));
-    if (match) setPreviewFile(match);
-    onOpenedOutput?.(); // matched or genuinely absent — request is consumed
-  }, [openOutputRef, effectiveOutputs, onOpenedOutput]);
+  // Inline-preview cards the user has collapsed (keyed by card key).
+  const [collapsedCards, setCollapsedCards] = useState<Set<string>>(new Set());
+  // Search box + render cap ("Show more") for long output lists.
+  const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
 
   // Save-to-Project state — declared before any early return (Rules of Hooks).
   const [savedProjectId, setSavedProjectId] = useState<string | undefined>(initialProjectId);
@@ -1066,6 +1102,25 @@ function OutputsTab({
       'rds','rdata','rda',
       'fasta','fa','faa','fna','vcf','bed','gff','gtf','sam',
     ].includes(ext);
+
+  // AUTO-inline a preview only for a previewable file that is light: not a known
+  // heavy/binary type and (when the size is known) under the size cap. Heavy /
+  // large / unknown-large previewable files get a compact card with an on-demand
+  // "preview" (opens the modal) — we never auto-fetch a huge/binary artifact.
+  const shouldInlinePreview = (f: OutputFile) => {
+    if (!canPreview(f.ext)) return false;
+    if (HEAVY_EXTS.has((f.ext || '').toLowerCase())) return false;
+    if (typeof f.size === 'number' && f.size > INLINE_SIZE_CAP) return false;
+    return true;
+  };
+
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? effectiveOutputs.filter((f) =>
+        (f.name || '').toLowerCase().includes(q) || (f.ext || '').toLowerCase().includes(q))
+    : effectiveOutputs;
+  const shown = showAll ? filtered : filtered.slice(0, OUTPUT_RENDER_CAP);
+  const cardKey = (f: OutputFile, i: number) => (f.path || f.name) + '::' + i;
 
   return (
     <div style={styles.tabContent}>
@@ -1155,48 +1210,94 @@ function OutputsTab({
 
       <InteractiveToolsRow outputs={effectiveOutputs} />
 
-      {/* Per-file table matching design reference */}
-      <div style={{ overflowX: 'auto' }} data-testid="output-files-table">
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
-          <thead>
-            <tr style={{ background: 'oklch(0.96 0.004 260)', textAlign: 'left' }}>
-              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11 }}>{tOr('afterrun.col_step', 'Step')}</th>
-              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11 }}>{tOr('afterrun.col_file', 'File')}</th>
-              <th style={{ padding: '6px 8px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 11, width: 60 }}>{tOr('afterrun.col_type', 'Type')}</th>
-              <th style={{ padding: '6px 8px', width: 90 }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {effectiveOutputs.map((f, i) => (
-              <tr key={f.path || f.name + i} style={{ borderTop: '1px solid var(--border)' }}>
-                <td style={{ padding: '6px 8px', color: 'var(--text-muted)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                    title={f.step}>{f.step}</td>
-                <td style={{ padding: '6px 8px' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ fontSize: 13 }}>{iconForExt(f.ext)}</span>
-                    <span style={{ color: 'var(--text)' }}>{f.name}</span>
-                  </span>
-                </td>
-                <td style={{ padding: '6px 8px', color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: 10 }}>{f.ext || '—'}</td>
-                <td style={{ padding: '6px 8px', fontFamily: 'var(--font-ui, system-ui)' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    {canPreview(f.ext) && (
-                      <button
-                        onClick={() => setPreviewFile(f)}
-                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11 }}
-                      >{tOr('afterrun.view', 'view')}</button>
-                    )}
-                    <a
-                      href={fileUrl(f, true)}
-                      download
-                      style={{ color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11, textDecoration: 'none' }}
-                    >{tOr('afterrun.dl', 'dl')}</a>
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Outputs gallery — each output as an inline preview card. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '2px 0 10px' }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }} data-testid="outputs-heading">
+          {tOr('afterrun.outputs_heading', 'Outputs')} ({totalCount})
+        </span>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setShowAll(false); }}
+          placeholder={tOr('afterrun.outputs_search_ph', 'Search outputs…')}
+          data-testid="outputs-search"
+          style={{ fontSize: 12, padding: '3px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg, transparent)', color: 'var(--text)', minWidth: 160 }}
+        />
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }} data-testid="outputs-count">
+          {tOr('afterrun.showing_n_of_m', 'showing {{n}} of {{m}}', { n: shown.length, m: filtered.length })}
+          {filtered.length !== totalCount && ` (${tOr('afterrun.filtered_from', 'filtered from {{t}}', { t: totalCount })})`}
+        </span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} data-testid="output-files-table">
+        {shown.map((f, i) => {
+          const key = cardKey(f, i);
+          const canPrev = canPreview(f.ext);
+          const inline = shouldInlinePreview(f);
+          const collapsed = collapsedCards.has(key);
+          const sizeLabel = humanSize(f.size);
+          return (
+            <div
+              key={key}
+              data-testid="output-card"
+              style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}
+            >
+              {/* Card header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                <span style={{ fontSize: 14 }}>{iconForExt(f.ext)}</span>
+                <span style={{ fontFamily: 'ui-monospace, monospace', fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }} title={f.name}>{f.name}</span>
+                <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: 10 }}>{f.ext || '—'}</span>
+                {f.step && (
+                  <span style={{ color: 'var(--text-muted)', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }} title={f.step}>· {f.step}</span>
+                )}
+                <span style={{ flex: 1 }} />
+                {sizeLabel && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{sizeLabel}</span>}
+                {canPrev && (
+                  <button
+                    onClick={() => setPreviewFile(f)}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11 }}
+                    title={tOr('afterrun.view_fullsize', 'Open full size')}
+                  >{inline ? tOr('afterrun.view', 'view') : tOr('afterrun.preview', 'preview')}</button>
+                )}
+                <a
+                  href={fileUrl(f, true)}
+                  download
+                  style={{ color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11, textDecoration: 'none' }}
+                >{tOr('afterrun.dl', 'dl')}</a>
+              </div>
+
+              {/* Inline preview (lazy-mounted) ONLY for light previewable files.
+                  Heavy/binary/large files preview on demand via the "preview" modal. */}
+              {inline && !collapsed && (
+                <LazyMount>
+                  <StepOutputPreview
+                    runId={runId}
+                    file={{ name: f.name, path: f.path || f.name, extension: f.ext }}
+                    projectId={savedProjectId}
+                    onClose={() => setCollapsedCards((s) => { const n = new Set(s); n.add(key); return n; })}
+                  />
+                </LazyMount>
+              )}
+              {inline && collapsed && (
+                <button
+                  onClick={() => setCollapsedCards((s) => { const n = new Set(s); n.delete(key); return n; })}
+                  style={{ marginTop: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11 }}
+                >{tOr('afterrun.show_preview', 'Show preview')}</button>
+              )}
+            </div>
+          );
+        })}
+        {filtered.length === 0 && (
+          <p style={{ ...styles.empty, fontSize: 12 }} data-testid="outputs-no-match">
+            {tOr('afterrun.no_outputs_match', 'No outputs match your search.')}
+          </p>
+        )}
+        {!showAll && filtered.length > shown.length && (
+          <button
+            onClick={() => setShowAll(true)}
+            data-testid="outputs-show-more"
+            style={{ alignSelf: 'flex-start', fontSize: 12, padding: '5px 10px', borderRadius: 4, cursor: 'pointer', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)' }}
+          >{tOr('afterrun.show_n_more', 'Show {{n}} more', { n: filtered.length - shown.length })}</button>
+        )}
       </div>
 
       {/* Inline preview overlay */}

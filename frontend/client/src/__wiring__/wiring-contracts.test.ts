@@ -84,25 +84,25 @@ describe("1. CitationPanel is wired into the live chat answer", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
-// 2. FindingsCard receives onOpenOutput at its after-run mount.
-//    Regression guard: the "one unpassed prop" bug — findings numbers went
-//    un-clickable because onOpenOutput was dropped at the mount site.
+// 2. Merged Results view: FindingsCard (informational banner) sits in the same
+//    tab as the outputs gallery. Findings and Outputs were merged into one
+//    "Results" view; the findings banner no longer cross-navigates to a
+//    separate Outputs tab (the outputs are right below it, searchable).
 // ─────────────────────────────────────────────────────────────────────────
-describe("2. FindingsCard is mounted WITH onOpenOutput (findings numbers stay clickable)", () => {
+describe("2. FindingsCard is mounted in the merged Results view (informational banner)", () => {
   const active = stripComments(AFTER_RUN);
 
   it("AfterRunReport imports FindingsCard", () => {
     expect(active).toMatch(/import\s*\{\s*FindingsCard\s*\}\s*from\s*["']@\/components\/findings-card["']/);
   });
 
-  it("the FindingsCard mount passes onOpenOutput (the click-through prop)", () => {
-    const start = active.indexOf("<FindingsCard");
-    expect(start).toBeGreaterThan(-1);
-    // JSX element spans until its self-close or open-close; grab a generous window.
-    const el = active.slice(start, start + 400);
-    expect(el).toMatch(/onOpenOutput=\{/);
-    // and the handler jumps to the outputs tab so the number is actually openable
-    expect(el).toMatch(/setOutputToOpen\(/);
+  it("the merged Results tab renders both the findings banner and the outputs gallery", () => {
+    // One merged tab ("results"), not separate Summary/Outputs tabs.
+    expect(active).toMatch(/data-testid="after-results-tab"/);
+    expect(active).toMatch(/\["results",\s*tOr\('afterrun\.tab\.results'/);
+    // FindingsCard (banner) and OutputsTab (gallery) are both mounted.
+    expect(active).toMatch(/<FindingsCard\b/);
+    expect(active).toMatch(/<OutputsTab\b/);
   });
 });
 
