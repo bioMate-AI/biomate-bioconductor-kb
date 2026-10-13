@@ -105,6 +105,11 @@ def flag_candidate(cand, target):
             flags.append({"severity": sev, "code": f"cmc:{dp}", "detail": mech})
     if "M" in seq:
         flags.append({"severity": "soft", "code": "cmc:Met-ox", "detail": "methionine oxidation liability"})
+    if "W" in seq:
+        # added after the 2026-10-13 cross-model committee (GPT-6 + Gemini) flagged Trp oxidation as a
+        # widespread liability our layer missed. NOTE: Trp is frequently a load-bearing binding residue
+        # (esp. the PD-L1 aromatic cleft face) — flag it, do NOT auto-remove; address by formulation/engineering.
+        flags.append({"severity": "soft", "code": "cmc:Trp-ox", "detail": "tryptophan oxidation liability (often load-bearing — flag, do not auto-remove)"})
     # free/odd cysteines (paired disulfide scaffold with even Cys is fine)
     if scaf["n_cys"] and scaf["n_cys"] % 2 == 1:
         flags.append({"severity": "hard", "code": "cmc:free-Cys", "detail": f"odd Cys count ({scaf['n_cys']}) -> unpaired thiol / scrambling"})

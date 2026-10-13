@@ -7,57 +7,71 @@
       "id": "PDL1-K-01",
       "helm": "cyclo(F-W-L-[dP]-Y-S-[NMeF]-D-T-K)",
       "edit": "(unchanged \u2014 v1 PASS)",
-      "tier": "PASS",
+      "tier": "WATCH",
       "net_charge": 0,
-      "flags": []
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ]
     },
     {
       "id": "PDL1-K-02",
       "helm": "cyclo(W-L-F-[dP]-I-[NMeL]-S-E-K-G)",
       "edit": "OXIDATION: Met -> Leu (non-oxidisable; prod = Nle isostere)",
-      "tier": "PASS",
+      "tier": "WATCH",
       "net_charge": 0,
-      "flags": []
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ]
     },
     {
       "id": "PDL1-K-03",
       "helm": "cyclo(Y-F-[dP]-W-L-[NMeA]-S-D-R-T-G)",
       "edit": "ISOMERISATION: swap Asp-Ser -> Ser-Asp (removes the D-S isoAsp hotspot)",
-      "tier": "PASS",
+      "tier": "WATCH",
       "net_charge": 0,
-      "flags": []
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ]
     },
     {
       "id": "PDL1-K-04",
       "helm": "cyclo(F-L-W-[dP]-L-Y-[NMeS]-K-G-D)",
       "edit": "HOLD-FIX: reorder tail K-D-G -> K-G-D (removes fastest Asp-Gly hotspot) + Met->Leu",
-      "tier": "PASS",
+      "tier": "WATCH",
       "net_charge": 0,
-      "flags": []
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ]
     },
     {
       "id": "PDL1-K-05",
       "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-T-E-N-K-S-G)",
       "edit": "(unchanged \u2014 v1 PASS)",
-      "tier": "PASS",
+      "tier": "WATCH",
       "net_charge": 0,
-      "flags": []
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ]
     },
     {
       "id": "PDL1-K-06",
       "helm": "cyclo(F-W-L-Y-[dP]-L-S-D-K-T)",
       "edit": "OXIDATION: Met -> Leu",
-      "tier": "PASS",
+      "tier": "WATCH",
       "net_charge": 0,
-      "flags": []
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ]
     },
     {
       "id": "PDL1-K-07",
       "helm": "cyclo(F-W-[dP]-Y-I-L-[NMeF]-E-R-S)",
       "edit": "(unchanged \u2014 v1 PASS)",
-      "tier": "PASS",
+      "tier": "WATCH",
       "net_charge": 0,
-      "flags": []
+      "flags": [
+        "[soft] cmc:Trp-ox"
+      ]
     },
     {
       "id": "PDL1-K-08",
@@ -66,6 +80,7 @@
       "tier": "WATCH",
       "net_charge": -1,
       "flags": [
+        "[soft] cmc:Trp-ox",
         "[soft] sar:aggregation"
       ]
     }
