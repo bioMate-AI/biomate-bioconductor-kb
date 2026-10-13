@@ -5,9 +5,9 @@
 
 params.sequence         = null
 params.sequence_type    = 'protein'
-params.sequence_length  = null
+params.sequence_length  = 0
 params.protein_sequences = null
-params.input            = null
+params.input            = ''
 params.mode             = 'esmfold'
 params.num_recycles     = 3
 params.use_gpu          = false
