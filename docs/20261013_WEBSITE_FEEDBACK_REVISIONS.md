@@ -79,7 +79,46 @@ from Jansen et al. 2025). Capability-based and citation-backed — meets the ask
 - Full-page screenshots (1280px) of all three pages: components render on-brand,
   section rhythm clean, no overflow. Screenshots in session scratchpad.
 
+## Committee audit (2026-10-13) + fixes applied
+
+Convened a 5-reviewer committee (parallel): scientific/grant, pharma BD, claims-
+integrity, regulatory/confidentiality, brand/copy. **Unanimous SHIP-WITH-FIXES, no
+blockers. Confidentiality clean — no internal-program leakage. All four headline
+metrics verified exact vs `benchmarks.html`.**
+
+Two reviewer concerns resolved against the source (no change needed):
+- **"main-stage" is backed** — `blog-summit-2026.html:212` "Talk + live demo — main stage".
+- **"Your data and results stay yours" matches ToS** — `terms.html:55/58` grant input + output ownership.
+
+Fixes applied from committee consensus:
+- **Cadence/dates framed as intent, not fact** (scientific + claims + regulatory, 3/5):
+  "Each turn · weeks, not quarters" → "designed to run in weeks"; "from Q4 2026" →
+  "targeted from Q4 2026"; "By Q1 2027 … many turns deep — the loop compounds" →
+  "By Q1 2027 we expect to be several design–test–learn turns in…". Keeps the
+  fast-cycle message, drops the demonstrated-performance read.
+- **Worked-example filter made peptide-appropriate** (scientific): hERG/CYP (small-
+  molecule endpoints) → "membrane permeability, metabolic and proteolytic stability,
+  solubility and synthetic feasibility." Step title "ADMET & developability" →
+  "Developability".
+- **Therapeutic area above the fold** (BD): homepage hero + drug-discovery hero now
+  name immunology & immuno-oncology (platform breadth preserved — framed as a
+  "focused research program", not the whole platform).
+- **Proof band gains a drug-design metric** (BD): swapped "4,000+ pipelines" →
+  "96.3% ADMET workflow handling across 20 compounds (routing, parameters, inputs)"
+  — honestly labeled as workflow handling, not prediction accuracy.
+- **Superlative softened** (claims + brand): "the best available systems" → "leading
+  AI systems."
+- **Minor copy**: "PBPK pharmacokinetic" → "PBPK model validation pass rate (18 FDA
+  compounds)"; worked-example tile 1 "1 target" → "Target + site"; "immune and
+  immuno-oncology" → "… in immunology and immuno-oncology"; "Our current focus is" →
+  "An area of focus is".
+
 ## Open / deferred
+- **"HIPAA-compliant" → "HIPAA-ready"** (regulatory MAJOR, pre-existing homepage copy
+  outside this diff): a bare absolute is hard to defend; recommend softening, but it
+  is a legal/leadership call on pre-existing copy — flagged, not changed.
+- **Homepage hero CTA** (BD minor): could raise a "Talk to our team" CTA to co-
+  primary; left as-is for now.
 - `index.html` headline is a brand-level choice; easy to swap if leadership
   prefers the explicit "…from target to cyclic peptide" variant.
 - Services page: no change (feedback said it's already clean).
