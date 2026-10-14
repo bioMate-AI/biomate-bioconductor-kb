@@ -524,19 +524,21 @@ export function ChatMessage({
             ? "bubble"  /* reference: .msg.user .bubble */
             : ""        /* assistant: no card wrapper */
         )} style={isUser ? {
-          background: 'var(--bm-surface-3, oklch(0.945 0.005 240))',
+          // Design .bubble: surface-2, uniform r-md (no speech-tail), 13.5/1.6,
+          // padding 11/13, max-width 86% (audit C2#6/C2#8).
+          background: 'var(--bm-surface-2, oklch(0.965 0.004 240))',
           color: 'var(--bm-text, oklch(0.22 0.01 260))',
-          borderRadius: '14px 14px 2px 14px',
-          padding: '10px 14px',
-          maxWidth: 'min(80%, 900px)',
+          borderRadius: 'var(--bm-r-md, 8px)',
+          padding: '11px 13px',
+          maxWidth: '86%',
           minWidth: 0,
           overflowWrap: 'anywhere',
           whiteSpace: 'pre-wrap',
           overflow: 'visible',
-          fontSize: 14,
-          lineHeight: 1.5,
+          fontSize: 13.5,
+          lineHeight: 1.6,
           alignSelf: 'flex-end',
-        } : { lineHeight: 1.55 }}>
+        } : { lineHeight: 1.65 }}>
             {isUser ? (() => {
               const raw = message.content || ''
               // Extract attached file names from metadata blocks before stripping them

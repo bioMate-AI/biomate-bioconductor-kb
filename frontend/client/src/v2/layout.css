@@ -131,9 +131,9 @@
   letter-spacing: 0.13em; font-weight: 600;
 }
 .msg.user .bubble {
-  align-self: flex-end; background: var(--surface-3);
-  padding: 10px 14px; border-radius: 14px 14px 2px 14px;
-  max-width: 80%;
+  align-self: flex-end; background: var(--surface-2);
+  padding: 11px 13px; border-radius: var(--r-md);
+  max-width: 86%;
 }
 .msg.user { align-items: flex-end; }
 .msg.assistant .bubble {
