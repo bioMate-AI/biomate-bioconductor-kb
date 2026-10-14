@@ -28,3 +28,31 @@ canonical physics discriminator: Boltz-2 cofold (cyclic) into PD-L1 → MM-GBSA 
   Summary saved `results/pdl1_cofold_summary.json`, complexes in S3. MM-GBSA is the ranking step.
 - 2026-10-14T01:15Z — MM-GBSA pool launched `mmgbsa-pool-5o45-s0of1-20261014T011511Z` (g4dn/T4 on-demand,
   NS=0.5, standard single-chain runner — pocket-truncation αvβ6 bug N/A here); monitoring.
+- 2026-10-14T01:45Z — **MM-GBSA DONE, 14/14 OK.** `results/pdl1_mmgbsa_results.json`.
+
+## Result — MM-GBSA ΔG ranking (A2 PASS: control #2 of 14)
+| rank | design | ΔG (kcal/mol) | note |
+|---|---|---|---|
+| 1 | PDL1-K-05 | −39.86 | beats control |
+| 2 | **CTRL-5O45-pep71** | **−34.22** | **positive control (known binder) — validates pipeline** |
+| 3 | PDL1-G1-06 | −31.18 | top new candidate |
+| 4 | PDL1-G1-03 | −30.53 | top new candidate |
+| 5 | PDL1-G1-09 | −30.26 | top new candidate |
+| 6 | PDL1-G1-04 | −27.66 | |
+| 7 | PDL1-G1-05 | −25.46 | |
+| 8 | PDL1-G1-01 | −24.70 | |
+| 9 | PDL1-G1-08 | −23.52 | |
+| 10 | PDL1-G1-07 | −22.94 | |
+| 11 | PDL1-G1-02 | −20.67 | |
+| 12 | PDL1-K-02 | −19.83 | prior, weak |
+| 13 | PDL1-K-01 | −16.92 | prior, weak |
+| 14 | PDL1-G1-10 | −14.98 | weakest |
+
+**A2:** control ranks #2 and the scale separates a top tier (−30 to −40) from a weak tail (−15 to −20) → ranking is admissible.
+**Caveats:** (1) canonical-backbone approximation (ncAA→canonical) → ΔG is a *relative* prioritizer, not absolute
+affinity; (2) single short MD (0.5 ns, 1 trajectory) → differences within ~3 kcal/mol (e.g. G1-06/03/09) are a tie-tier, not a strict order; (3) ground truth = the PD-1/PD-L1 competition assay.
+
+## Prioritized order (recommendation)
+Order the control + the top tier at/near the control's affinity: **CTRL-5O45-pep71, PDL1-K-05, PDL1-G1-06,
+PDL1-G1-03, PDL1-G1-09** (optionally PDL1-G1-04). Drop the weak tail (G1-10, K-01, K-02, G1-02, G1-07). Synthesize
+with FULL stereochemistry (the real [2Nal]/[dP]/[NMe] molecule, not the docking backbone) + the BMS control.
