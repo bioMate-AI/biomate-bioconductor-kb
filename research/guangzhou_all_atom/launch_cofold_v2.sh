@@ -48,7 +48,9 @@ if not chains:
 peps = plan["peptides"][pgroup]
 if dry == "1":
     peps = peps[:1]
-json.dump({"target": target, "receptor_chains": chains, "peptides": peps}, sys.stdout, indent=2)
+# optional cofactor ions (CCD codes, e.g. ["MN","MN","MN"]) so metal-dependent sites (integrin MIDAS) fold with the metal
+ligands = plan["receptors"][target].get("ligands", [])
+json.dump({"target": target, "receptor_chains": chains, "peptides": peps, "ligands": ligands}, sys.stdout, indent=2)
 PY
 NPEP=$(python3 -c "import json;print(len(json.load(open('/tmp/cofold_input.json'))['peptides']))")
 echo "[cofold] TARGET=$TARGET DRY_RUN=$DRY_RUN peptides=$NPEP"
@@ -90,6 +92,7 @@ stage folding
 python - <<'PYEOF'
 import json, os, glob, shutil, subprocess
 d = json.load(open("input.json")); RC = d["receptor_chains"]; T = d["target"]
+LIG = d.get("ligands", [])   # cofactor ion CCD codes (e.g. ["MN","MN","MN"]) for metal-dependent sites
 NK = os.environ.get("NO_KERNELS", "1")
 os.makedirs(T, exist_ok=True)
 summary = []
@@ -100,6 +103,8 @@ for it in d["peptides"]:
         f.write("version: 1\nsequences:\n")
         for cid, cseq in RC.items():
             f.write(f"  - protein:\n      id: {cid}\n      sequence: {cseq}\n")
+        for mi, ccd in enumerate(LIG):
+            f.write(f"  - ligand:\n      id: M{mi+1}\n      ccd: {ccd}\n")
         f.write(f"  - protein:\n      id: P\n      sequence: {pep}\n      cyclic: true\n")
     rec = {"id": pid, "pep": pep}
     try:
