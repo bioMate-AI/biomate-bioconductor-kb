@@ -124,6 +124,23 @@ phase/step paddings + dot offsets, param-row 160px, footer/button heights, etc.
 
 ---
 
+## Corrections found during fix execution (2026-10-14, later)
+- **C2#1 ("composer is a flat full-width bar, no 660px card") is a FALSE finding** —
+  an artifact of the code-only cluster-2 audit (that fork had no Chromium). The
+  composer card already exists: `chat-input.tsx:728-743` (`.chat-input`) is the
+  design `.composer2` — `maxWidth 660`, `margin 0 auto` (centered), `bg-elev`,
+  `shadow-sm`, `borderRadius var(--bm-r-lg)` 12px, `padding 10px 12px` — inside the
+  outer `.composerwrap` bar (`:496`). Only a 1-token nit remained (border →
+  border-strong), now applied. Lesson: code-only audits of layout can misread
+  structure; browser capture is required to confirm layout/IA findings.
+- **C2#5 (who-label)** needed two edits, not one: the inline style *and* a
+  conflicting `.msg .who { text-transform:uppercase }` CSS rule
+  (`v2/layout.css:128`) — the rule won after the inline dropped the property. Both
+  now set mono / 9.5px / .13em / mixed-case.
+- **Phase 0 token migration** verified clean app-wide, light + dark; the blank
+  code-box (invisible `#e5e7eb`-on-light) was a separate pre-existing bug, now
+  fixed (`text-foreground` on `bg-muted`).
+
 ## Note on the parallel cryo `dataset_id` thread
 Dev logs (read-only SSM) show the server data is clean: Node sends
 `manifest_dataset_id` + `file_path` as separate clean keys; Python returns

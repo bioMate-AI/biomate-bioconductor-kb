@@ -728,7 +728,7 @@ export function ChatInput({
       <div className="chat-input" style={{
         border: isDraggingOver
           ? '1px solid var(--bm-primary, oklch(0.55 0.20 265))'
-          : '1px solid var(--bm-border, hsl(var(--border)))',
+          : '1px solid var(--bm-border-strong, var(--bm-border, hsl(var(--border))))',
         borderRadius: 'var(--bm-r-lg, 12px)',
         background: 'var(--bm-bg-elev, hsl(var(--background)))',
         boxShadow: 'var(--bm-shadow-sm, 0 1px 2px rgba(15,23,42,0.04))',
