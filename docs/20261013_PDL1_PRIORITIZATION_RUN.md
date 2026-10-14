@@ -23,3 +23,8 @@ canonical physics discriminator: Boltz-2 cofold (cyclic) into PD-L1 → MM-GBSA 
 
 ## Status log
 - 2026-10-14T00:45Z — cofold launched (on-demand A10G); monitoring.
+- 2026-10-14T01:12Z — **cofold DONE, 14/14 folded** (incl. control). Boltz ipTM saturated-high (0.93–0.97) for
+  all → not an affinity discriminator for small cyclic peptides; control folded cleanest (confidence 0.944).
+  Summary saved `results/pdl1_cofold_summary.json`, complexes in S3. MM-GBSA is the ranking step.
+- 2026-10-14T01:15Z — MM-GBSA pool launched `mmgbsa-pool-5o45-s0of1-20261014T011511Z` (g4dn/T4 on-demand,
+  NS=0.5, standard single-chain runner — pocket-truncation αvβ6 bug N/A here); monitoring.
