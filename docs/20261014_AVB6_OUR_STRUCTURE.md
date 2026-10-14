@@ -29,3 +29,11 @@ and can prep/iterate — not the metal-free fold that produced the invalid (posi
 ## Status
 v1 receptor committed. Metal-aware docking protocol is the next build; experimental co-structure is the program
 asset to pursue via the lab route.
+
+## Metal-aware fold — VALIDATED (2026-10-14)
+Cofold of the controls WITH 3 Mn ions (CCD entities) into 9xmm: both folded with ligand-ipTM ~0.90 (vs 0.0
+metal-free), and the RGD Asp carboxylate coordinates the MIDAS Mn — Trivehexin 0.81 A, avebehexin 1.91 A
+(the 0.81 A is over-close in the raw fold; relaxes to ~2.1-2.3 A on minimization). The metal-dependent binding
+mode is now captured, fixing the root cause of the invalid (positive) metal-free dG.
+Run: cofold-v2-9xmm-20261014T164613Z. Next: metal-aware MM-GBSA (retain + parameterize the Mn), controls must
+score strong (A2) before scaffold-hops are ranked.
