@@ -2102,6 +2102,18 @@ def _infer_params_from_intent_llm(
             _LLM_PARAM_CACHE.move_to_end(_key)
             return _hit
     _res = _infer_params_from_intent_llm_impl(user_intent, workflow_name, all_params, llm_client=llm_client)
+    # Validation guardrail (CLAUDE.md extraction = rules + LLM + validation): the LLM
+    # sometimes copies a whole uploaded-dataset context entry ("<id>, s3_uri=<uri>" /
+    # "<id>, galaxy_dataset_id=<gid>") into a dataset/id param, which then renders as a
+    # raw serialized object in the field (e.g. cryo "Dataset Id"). Keep only the leading
+    # id/uri token, dropping any trailing ", key=..." metadata. This is the single
+    # chokepoint for BOTH the sync generation prefill and the async extract_params path.
+    if isinstance(_res, dict):
+        for _pk, _pv in list(_res.items()):
+            if isinstance(_pv, str):
+                _pm = re.match(r'^\s*(\S+?)\s*,\s*(?:s3_uri|galaxy_dataset_id|dataset_id|name)=', _pv)
+                if _pm:
+                    _res[_pk] = _pm.group(1)
     if _key is not None and isinstance(_res, dict):
         _LLM_PARAM_CACHE[_key] = _res
         _LLM_PARAM_CACHE.move_to_end(_key)
