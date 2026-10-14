@@ -34,3 +34,22 @@ R3-04 +0.2, R3-02 +5.4. Do not use.
 ## Status
 Cofold `cofold-v2-9xmm-20261014T095643Z` (10/10 folded). MM-GBSA `mmgbsa-pool-9xmm-s0of1-20261014T105902Z`
 (cap-fix verified; metal-omission makes ΔG invalid). `results/avb6_r3_mmgbsa.json` (7 designs, do-not-use).
+
+## Metal-aware attempt (2026-10-14) — proper αvβ6 affinity is a method-dev sub-project
+Reference 9XMM carries the full metal cluster (3× Mn at MIDAS/ADMIDAS/SyMBS + 4× Ca) — transplant is feasible
+in principle. Crux test (does the metal-free pose place the RGD Asp at MIDAS?) was INCONCLUSIVE: a quick local
+pure-numpy superposition gave 18 Å RMSD (inadequate — multi-chain CA sequence-matching isn't spatially coherent
+without chain-aware alignment), so the measured metal→Asp distance is not trustworthy.
+
+The real "proper" path is therefore a genuine method build, not a re-run:
+1. **Metal-aware FOLDING, not transplant** — a metal-free cofold cannot be trusted to place the RGD Asp at the
+   MIDAS, so the complexes should be *re-folded with the Mn ions present* (Boltz-2 supports ion/ligand entities
+   in the YAML), so the Asp coordinates the metal by construction.
+2. **Divalent-ion parameterization in MM-GBSA** — CHARMM ions (Mg²⁺/Ca²⁺ well-parameterized; Mn²⁺ often modeled
+   as Mg²⁺), ions as psfgen segments, toppar_water_ions.
+3. **Control validation (A2)** — Trivehexin (~47 pM) and avebehexin must rank strong, or even the metal-aware
+   ΔG is not admissible.
+
+This is multi-step method development with real uncertainty, and the output remains FTO-blocked (genus). So the
+honest αvβ6 status: the cap bug is fixed; a trustworthy monomer-affinity ranking needs the metal-aware rebuild;
+and that ranking is decision-irrelevant under FTO. αvβ6 value = FTO read + construct.
