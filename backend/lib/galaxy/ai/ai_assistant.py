@@ -3124,6 +3124,20 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 suggestions = resolve_smiles_params(suggestions)
             except Exception as _resolve_exc:
                 log.debug("[ParamSuggest] SMILES resolution skipped: %s", _resolve_exc)
+            # Validation guardrail (CLAUDE.md extraction = rules + LLM + validation):
+            # the LLM is fed the "[Uploaded datasets: name: dataset_id=<id>, ...,
+            # s3_uri=<uri>]" block and sometimes copies a whole entry into a dataset/id
+            # param value as "<id>, s3_uri=<uri>" / "<id>, galaxy_dataset_id=<gid>",
+            # which then renders as a raw serialized object in the field (e.g. the cryo
+            # "Dataset Id"). Keep only the leading id/uri token. The leading token is a
+            # valid dataset reference (BioMate stages id->S3 at execute time), so the
+            # executor input binding is unaffected — this only cleans the composite.
+            for _s in suggestions:
+                _v = _s.get("value")
+                if isinstance(_v, str):
+                    _m = _re_llm.match(r'^\s*(\S+?)\s*,\s*(?:s3_uri|galaxy_dataset_id|dataset_id|name)=', _v)
+                    if _m:
+                        _s["value"] = _m.group(1)
             return suggestions
         except Exception as exc:
             log.debug("[ParamSuggest] LLM inference failed: %s", exc)
