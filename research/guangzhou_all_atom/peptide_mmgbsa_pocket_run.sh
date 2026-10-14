@@ -136,13 +136,15 @@ def build_psf(kind, tag, npep, rec_pdbs):
     if kind in ('complex','receptor'):
         for i,rp in enumerate(rec_pdbs):
             sid=f'R{i}'
-            # Neutral ACE/CT3 caps on the ragged POCKET-CUT termini: default NTER/CTER left psfgen
-            # guessing terminal atoms inconsistently -> complex cpdb/cpsf atom-count mismatch -> the
-            # 5/10 setPositions failure. Caps are deterministic + chemically correct for a truncation.
-            try:
-                g.add_segment(segid=sid, pdbfile=rp, first='ACE', last='CT3')
-            except Exception:
-                g.add_segment(segid=sid, pdbfile=rp)
+            # ROOT-CAUSE FIX (was 5/10): ACE/CT3 caps and default NTER/CTER both ADD terminal atoms
+            # (NT/HT/OXT) that psfgen must GUESS on the ragged pocket cuts; for some pose geometries the
+            # guess fails ("bad angle O C NT" / "add ... failed in patch ACE") so those atoms are in the
+            # PSF but not consistently in the written PDB -> app.PDBFile count != PSF atom count ->
+            # setPositions throws. Pose-dependent -> the deterministic 5/10. Using first/last='none' adds
+            # NO terminal atoms (bare truncation termini) -> every PSF atom has a real coord from the pose
+            # -> PDB/PSF counts match by construction. Non-physical terminal charge is acceptable for a
+            # single-point pocket MM-GBSA used only for WITHIN-target relative ranking.
+            g.add_segment(segid=sid, pdbfile=rp, first='none', last='none')
             g.read_coords(segid=sid, filename=rp)
     if kind in ('complex','ligand'):
         g.add_segment(segid='PEP', pdbfile=f'{tag}_pep.pdb', first='none', last='none')
