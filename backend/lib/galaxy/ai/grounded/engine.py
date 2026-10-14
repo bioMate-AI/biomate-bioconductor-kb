@@ -120,6 +120,48 @@ def to_markdown(ans: GroundedAnswer) -> str:
     return "\n".join(lines)
 
 
+def to_solicitation(ans: GroundedAnswer, max_questions: int = 3) -> Dict:
+    """Convert a GroundedAnswer into the SOLICIT-flow shape (ContextGatherer-compatible).
+
+    This is the bridge between the two systems BioMate already has:
+      * the parallel multi-agent SEARCH produces candidate sources;
+      * the Grounded trust lattice decides what is actually grounded and where
+        the record STOPS (the boundary);
+      * when it stops, instead of fabricating, we SOLICIT — in exactly the shape
+        `agents/context_gatherer.ContextGatherer.gather_context()` returns
+        (`status` + `questions` + `gathered_so_far`), so the existing
+        "assistant is soliciting missing information" UI renders it unchanged.
+
+    No boundary -> 'context_complete'. A boundary -> 'need_more_context' with the
+    concrete questions to put to a human/deeper search (capped like the solicit
+    flow's "max 3 questions at a time"). This generalises the research agent's
+    one hardcoded "Please provide…" refusal into a reusable, evidence-driven loop.
+    """
+    grounded = [c.text for c in ans.claims if c.is_grounded]
+    if not ans.boundaries:
+        return {
+            "status": "context_complete",
+            "questions": [],
+            "gathered_so_far": grounded,
+            "grade": ans.grade.value,
+        }
+    questions: List[str] = []
+    escalate: List[str] = []
+    gaps: List[str] = []
+    for b in ans.boundaries:
+        gaps.append(b.question_fragment)
+        questions.extend(b.suggested_questions)
+        escalate.extend(b.escalate_to)
+    return {
+        "status": "need_more_context",
+        "reason": "The authoritative record stops at: " + "; ".join(gaps),
+        "questions": questions[:max_questions],
+        "escalate_to": escalate,
+        "gathered_so_far": grounded,
+        "grade": ans.grade.value,
+    }
+
+
 def to_dict(ans: GroundedAnswer) -> Dict:
     """Structured result for the MCP tool and the frontend API."""
     return {

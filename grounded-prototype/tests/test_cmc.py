@@ -68,6 +68,22 @@ def test_personal_heuristic_never_endorsed_as_fact():
             assert not c.is_grounded
 
 
+def test_boundary_drives_solicitation_in_context_gatherer_shape():
+    # A Grounded boundary must emit a solicitation shaped like
+    # agents/context_gatherer.ContextGatherer output, so the existing solicit UI
+    # can render it: status 'need_more_context' + <=3 questions + gathered_so_far.
+    from engine import to_solicitation
+    s = to_solicitation(ask("Why is the ICH M7 impurity limit 1.5 ug/day?",
+                            user="u", domain="cmc"))
+    assert s["status"] == "need_more_context"
+    assert 0 < len(s["questions"]) <= 3
+    assert s["gathered_so_far"], "must report what WAS grounded, not only the gap"
+    # No boundary -> context_complete (nothing to solicit)
+    s2 = to_solicitation(ask("What is the hERG threshold a compound must pass?",
+                             user="u", domain="cmc"))
+    assert s2["status"] == "context_complete"
+
+
 def test_cmc_cross_tenant_isolation():
     # alice's CMC note must never surface for bob, and vice-versa.
     a_bob = ask("genotoxic impurity 1.5 ug/day compound-specific higher limit",

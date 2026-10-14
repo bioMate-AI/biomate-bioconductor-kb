@@ -9,7 +9,7 @@ Public API:
     load_corpus()              -> List[Source]
 """
 
-from .engine import ask, to_dict, to_markdown
+from .engine import ask, to_dict, to_markdown, to_solicitation
 from .corpus import load_corpus
 from .retrievers import (
     Retriever,
@@ -34,6 +34,7 @@ __all__ = [
     "ask",
     "to_dict",
     "to_markdown",
+    "to_solicitation",
     "load_corpus",
     "Retriever",
     "CorpusRetriever",
