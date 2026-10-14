@@ -44,60 +44,81 @@ _EXTRA_GUIDELINE_HINTS = {
 }
 
 
-def _regulatory_search_fn():
-    """Adapter over BioMate's siloed ICH/FDA/EMA corpus, or None if absent.
+_REG_STOP = frozenset(
+    "the a an of to for in on and or that this it is are was were be why what "
+    "how does do set at by with as from".split()
+)
 
-    Turns a free-text query into Tier-A guideline passages: detect candidate
-    guideline(s) from the query (explicit citation + domain keywords), then pull
-    the best-matching passage from each via the corpus's BM25.
+
+def _reg_tokens(text):
+    return [t for t in "".join(c if c.isalnum() or c == "." else " "
+            for c in text.lower()).split() if len(t) > 2 and t not in _REG_STOP]
+
+
+def _regulatory_search_fn():
+    """Tier-A guideline-passage search over the pre-extracted ICH text bundle.
+
+    Self-contained: reads `_ich_bundle` (base64(gzip) text shipped as a .py, so it
+    rides the backend sync) and the citation/keyword maps from ich_corpus (pure
+    data — no PyMuPDF at import). NO PDFs on disk and NO fitz/rank_bm25 needed at
+    runtime; passage ranking is pure-Python token overlap. Returns None only if
+    the bundle or the maps are unavailable (then the engine uses the curated pack).
     """
     try:
+        from . import _ich_bundle
+        guideline_text = _ich_bundle.load()  # {filename: [chunks]}
+    except Exception as exc:  # pragma: no cover
+        log.info("[grounded.live] ICH text bundle unavailable: %s", exc)
+        return None
+    try:
         from galaxy.ai.drug_discovery.ich_corpus import (
-            get_ich_corpus, _GUIDELINE_FILES, _DOMAIN_KEYWORDS,
-            _extract_citations_local,
+            _GUIDELINE_FILES, _DOMAIN_KEYWORDS, _extract_citations_local,
         )
     except Exception as exc:  # pragma: no cover
-        log.info("[grounded.live] ICH corpus unavailable: %s", exc)
+        log.info("[grounded.live] ICH citation maps unavailable: %s", exc)
         return None
 
-    def _detect(query: str):
+    def _detect(query):
         q = query.lower()
         cands = []
-        # explicit citation strings in the query
         for cit in _extract_citations_local(query):
             for key in _GUIDELINE_FILES:
                 if cit.lower().replace(" ", "") in key.lower().replace(" ", ""):
                     cands.append(key)
-        # domain-keyword match (corpus's own map + extra hints)
         for cit, kws in list(_DOMAIN_KEYWORDS.items()) + list(_EXTRA_GUIDELINE_HINTS.items()):
             if any(kw in q for kw in kws):
                 cands.append(cit)
-        # de-dup, keep order
         seen, out = set(), []
         for c in cands:
             if c not in seen:
                 seen.add(c); out.append(c)
         return out
 
-    def _fn(query: str, limit: int):
-        corpus = get_ich_corpus()
-        out = []
-        for cit in _detect(query)[:limit]:
-            try:
-                r = corpus.verify_citation(cit, query)
-                text = r.top_chunk or ""
-                if not text:
-                    chunks = corpus._load_guideline(cit)  # fallback to first passage
-                    text = (chunks[0][:400] if chunks else "")
-                if text:
-                    out.append({
-                        "citation": cit,
-                        "text": text,
-                        "score": getattr(r, "score", 0.0),
-                        "locator": _GUIDELINE_FILES.get(cit),
-                    })
-            except Exception as exc:  # pragma: no cover
-                log.debug("[grounded.live] verify %s failed: %s", cit, exc)
+    def _best_passage(filename, qtokens):
+        chunks = guideline_text.get(filename) or []
+        best, best_score = None, 0.0
+        for ch in chunks:
+            ctoks = set(_reg_tokens(ch))
+            hits = sum(1 for t in qtokens if t in ctoks)
+            if hits > best_score:
+                best_score, best = hits, ch
+        if best is None:
+            return None, 0.0
+        return best[:400], best_score / max(len(qtokens), 1)
+
+    def _fn(query, limit):
+        qtokens = _reg_tokens(query)
+        out, seen_files = [], set()
+        for cit in _detect(query):
+            fn = _GUIDELINE_FILES.get(cit)
+            if not fn or fn in seen_files:
+                continue
+            seen_files.add(fn)
+            text, score = _best_passage(fn, qtokens)
+            if text:
+                out.append({"citation": cit, "text": text, "score": score, "locator": fn})
+            if len(out) >= limit:
+                break
         return out
 
     return _fn
