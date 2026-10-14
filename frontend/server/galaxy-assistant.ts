@@ -7982,6 +7982,34 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
         }
       }
 
+      // Normalize composite dataset-ref param VALUES at the Node response chokepoint.
+      // An uploaded/attached file sometimes reaches a dataset/id param as the whole
+      // context entry ("<id>, s3_uri=<uri>" / "<id>, galaxy_dataset_id=<gid>") instead of
+      // a single clean token — the cryo "Dataset Id" leak. This runs on the final
+      // workflow_ga regardless of which upstream path (LLM suggest/infer/recommend, or a
+      // binding) produced the value, so it is the one place that reliably catches it.
+      // Keep only the leading id/uri token: the composite is malformed for the executor
+      // anyway (no code parses it; BioMate stages id→S3 at execute time), so this fixes
+      // both the display and any downstream resolution without weakening the input gate
+      // (the gate validates step-bound `inputs`, a separate structure, not this value).
+      {
+        const _wfGaN: any = (response as any).workflow_ga || (response as any);
+        const _normComposite = (v: unknown): unknown => {
+          if (typeof v !== 'string') return v;
+          const m = v.match(/^\s*(\S+?)\s*,\s*(?:s3_uri|galaxy_dataset_id|dataset_id|name)=/);
+          return m ? m[1] : v;
+        };
+        for (const _pList of ['required_params', 'optional_params']) {
+          for (const _p of (_wfGaN?.[_pList] || [])) {
+            const _nv = _normComposite(_p?.value);
+            if (_nv !== _p?.value) {
+              console.log(`[GalaxyAssistant] NormalizeComposite ${_pList} ${_p.name}: "${String(_p.value).slice(0, 60)}" → "${String(_nv).slice(0, 60)}"`);
+              _p.value = _nv;
+            }
+          }
+        }
+      }
+
       console.log('[GalaxyAssistant] ========================================');
     } else {
       console.error('[GalaxyAssistant] ❌ Workflow generation failed');
