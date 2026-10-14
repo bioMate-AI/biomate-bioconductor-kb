@@ -14752,6 +14752,55 @@ Respond ONLY with valid JSON (no markdown wrapper):
     }
   });
 
+  // Convert a report Markdown document to PPTX (or PDF) via Pandoc — on-prem, no
+  // external service (data never leaves the estate). The after-run Results view
+  // builds the rich report markdown client-side (buildFullReportMarkdown) and
+  // POSTs it here to get a shareable deck. Pandoc is a local binary bundled in
+  // the image (same one used for the DOCX Methods export). PDF needs a pandoc
+  // pdf-engine (weasyprint) and is deferred to increment 2.
+  app.post("/api/reports/convert", authenticateToken, express.json({ limit: '8mb' }), async (req: any, res) => {
+    const { markdown, format = 'pptx', filename } = (req.body || {}) as { markdown?: string; format?: string; filename?: string };
+    const fmt = String(format).toLowerCase();
+    if (typeof markdown !== 'string' || !markdown.trim()) {
+      return res.status(400).json({ error: 'markdown (non-empty string) required' });
+    }
+    if (fmt !== 'pptx' && fmt !== 'pdf') {
+      return res.status(400).json({ error: `Unsupported format: ${fmt} (pptx|pdf)` });
+    }
+    const { writeFileSync, readFileSync, mkdtempSync, rmSync, existsSync } = await import('node:fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'bmreport-'));
+    const mdPath = path.join(dir, 'report.md');
+    const outPath = path.join(dir, `report.${fmt}`);
+    const safeName = String(filename || 'biomate-report').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80) || 'biomate-report';
+    try {
+      writeFileSync(mdPath, markdown, 'utf8');
+      if (fmt === 'pptx') {
+        // Optional branded template; pandoc's default pptx template is used otherwise.
+        const refDoc = path.join(process.cwd(), 'dist', 'assets', 'biomate-reference.pptx');
+        const ref = existsSync(refDoc) ? ` --reference-doc=${JSON.stringify(refDoc)}` : '';
+        _execSync(`pandoc ${JSON.stringify(mdPath)} -o ${JSON.stringify(outPath)} --slide-level=2${ref}`, { timeout: 60_000 });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+      } else {
+        _execSync(`pandoc ${JSON.stringify(mdPath)} -o ${JSON.stringify(outPath)} --pdf-engine=weasyprint`, { timeout: 90_000 });
+        res.setHeader('Content-Type', 'application/pdf');
+      }
+      res.setHeader('Content-Disposition', `attachment; filename="${safeName}.${fmt}"`);
+      return res.send(readFileSync(outPath));
+    } catch (e: any) {
+      const msg = String(e?.message || e);
+      const pdfEngineMissing = fmt === 'pdf' && /weasyprint|pdf-engine|not found|ENOENT|command not found/i.test(msg);
+      return res.status(pdfEngineMissing ? 501 : 500).json({
+        error: `${fmt.toUpperCase()} export failed`,
+        detail: msg.slice(0, 300),
+        ...(pdfEngineMissing ? { note: 'PDF export needs a pandoc pdf-engine (weasyprint) in the image — deferred to increment 2.' } : {}),
+      });
+    } finally {
+      try { rmSync(dir, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
+    }
+  });
+
   // Proxy for internal analysis trigger (used by FindingsCard polling)
   app.post("/api/internal/analyze-outputs", optionalAuth, express.json(), async (req, res) => {
     const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';

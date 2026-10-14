@@ -138,6 +138,7 @@ export function AfterRunReport({
   // Lightweight download-UX state — keeps users from double-clicking and
   // gives a clear "started" signal (PM must-fix #4, client-side portion).
   const [downloadState, setDownloadState] = useState<'idle' | 'preparing'>('idle');
+  const [deckState, setDeckState] = useState<'idle' | 'preparing'>('idle');
   const [downloadToast, setDownloadToast] = useState<string | null>(null);
 
   // Accepted design: exactly three top-level tabs, Summary first. Everything
@@ -177,6 +178,41 @@ export function AfterRunReport({
     setTimeout(() => setDownloadToast(null), 4000);
   };
 
+  // Export the same comprehensive report as a PowerPoint deck (.pptx), rendered
+  // on-prem by Pandoc on the server — data never leaves the estate.
+  const handleDownloadDeck = async () => {
+    if (deckState !== 'idle') return;
+    setDeckState('preparing');
+    try {
+      const md = buildFullReportMarkdown({
+        runId, workflowName, parameters, outputs,
+        methods: methods.text, qcEvents, findings, software, citations,
+      });
+      const resp = await fetch('/api/reports/convert', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markdown: md, format: 'pptx', filename: `biomate-run-${runId}` }),
+      });
+      if (!resp.ok) throw new Error(`Export failed (${resp.status})`);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `biomate-run-${runId}.pptx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setDownloadToast(tOr('afterrun.deck_downloaded', 'Deck (PPTX) downloaded — check your browser'));
+    } catch {
+      setDownloadToast(tOr('afterrun.deck_failed', 'Deck export failed — try the markdown report'));
+    } finally {
+      setDeckState('idle');
+      setTimeout(() => setDownloadToast(null), 4000);
+    }
+  };
+
   return (
     <div className="after-run-report" style={styles.root}>
       <div style={styles.head}>
@@ -201,6 +237,24 @@ export function AfterRunReport({
           data-testid="afterrun-download-report"
         >
           ↓ {downloadState === 'preparing' ? tOr('afterrun.preparing', 'Preparing…') : tOr('afterrun.download_report', 'Download report')}
+        </button>
+        <button
+          type="button"
+          onClick={handleDownloadDeck}
+          disabled={deckState !== 'idle'}
+          style={{
+            ...styles.linkish,
+            background: "none",
+            border: "none",
+            cursor: deckState === 'idle' ? "pointer" : "default",
+            padding: 0,
+            marginLeft: 12,
+            opacity: deckState === 'idle' ? 1 : 0.6,
+          }}
+          title={tOr('afterrun.download_deck_title', 'Export this report as a PowerPoint deck (.pptx), rendered on-prem — no external service')}
+          data-testid="afterrun-download-deck"
+        >
+          ↓ {deckState === 'preparing' ? tOr('afterrun.preparing', 'Preparing…') : tOr('afterrun.download_deck', 'Download deck (PPTX)')}
         </button>
       </div>
 
