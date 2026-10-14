@@ -8047,6 +8047,26 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
             }
           }
         }
+        // The viewer ALSO seeds its params from workflow_ga.inline_parameters — an
+        // OBJECT the Python backend builds from the attached dataset (read as the
+        // panel base at routes.ts:6563; the camelCase overlay lacks `dataset_id`, so
+        // this composite base wins). The array loop above never touches this object,
+        // which is why the cryo "Dataset Id" leak survived the required/optional_params,
+        // inlineParameters-overlay, and mergedInlineParameters-request fixes — none
+        // normalized THIS field. This is the one the viewer actually reads. Normalize it
+        // on both workflow_ga and the response root (whichever carries it).
+        for (const _host of [_wfGaN, (response as any)]) {
+          const _inlineObj = _host?.inline_parameters;
+          if (_inlineObj && typeof _inlineObj === 'object' && !Array.isArray(_inlineObj)) {
+            for (const _k of Object.keys(_inlineObj)) {
+              const _nv = _normComposite(_inlineObj[_k]);
+              if (_nv !== _inlineObj[_k]) {
+                console.log(`[GalaxyAssistant] NormalizeComposite inline_parameters ${_k}: "${String(_inlineObj[_k]).slice(0, 60)}" → "${String(_nv).slice(0, 60)}"`);
+                _inlineObj[_k] = _nv;
+              }
+            }
+          }
+        }
       }
 
       console.log('[GalaxyAssistant] ========================================');
