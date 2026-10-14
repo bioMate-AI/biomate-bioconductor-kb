@@ -78,6 +78,14 @@ body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:10
 .bignum .bn span{font-size:12.5px; color:var(--mut); letter-spacing:.04em}
 .freetrial{position:fixed; right:40px; bottom:18px; z-index:31; font-family:var(--ff-mono); font-size:12px; letter-spacing:.03em; color:var(--mut); background:rgba(251,252,253,.82); padding:5px 12px; border:1px solid var(--line2); border-radius:999px; backdrop-filter:blur(4px)}
 .freetrial b{color:var(--blue); font-weight:600; letter-spacing:0}
+
+.cmp{display:grid; grid-template-columns:150px 1fr 1fr; border:1px solid var(--line2); border-radius:8px; overflow:hidden; font-size:13.5px; line-height:1.4}
+.cmp>div{padding:9px 15px; border-top:1px solid var(--line)}
+.cmp .hd{border-top:none; background:var(--panel2); font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--mut)}
+.cmp .lbl{font-weight:600; color:var(--ink); background:var(--panel)}
+.cmp .r{color:var(--ink2); border-left:1px solid var(--line)}
+.cmp .bm{color:var(--ink2); background:var(--blue-bg); border-left:1px solid var(--line)}
+.cmp .bm.hd{color:var(--blue); font-weight:600; background:var(--blue-bg)}
 </style>
 </head>
 <body>
@@ -136,6 +144,25 @@ body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:10
         <div class="tile"><div class="n">05</div><h4>Private &amp; auditable</h4><p>Data stays in your environment; deterministic execution; versioned, traceable evidence.</p></div>
         <div class="tile accent" style="border:none"><div class="n" style="color:#3763b0">BioMate</div><h4 style="color:var(--blue)">Search · Run · Verify · Learn</h4><p style="color:#2c4a7a">The same loop, across every domain.</p></div>
       </div>
+    </div></div>
+  </section>
+
+  <!-- 3b WHY NOT R -->
+  <section class="scene" data-seconds="15">
+    <div class="kicker">Why not just R / Excel</div>
+    <h2>You already have R. Why BioMate?</h2>
+    <p class="caption sub">BioMate doesn't replace R's methods — it <b>runs</b> them. 1,000+ of its workflows are Bioconductor/R (DESeq2, limma, edgeR, Seurat, flowCore, survival). It replaces everything you build and maintain around them.</p>
+    <div class="scene-body"><div class="concept" style="justify-content:flex-start; gap:0">
+    <div class="cmp">
+      <div class="hd"></div><div class="hd r">Raw R / Excel</div><div class="hd bm">BioMate</div>
+      <div class="lbl">Coding</div><div class="r">Write &amp; debug scripts; manage installs, versions, dependencies</div><div class="bm">Describe the goal in plain language — it runs</div>
+      <div class="lbl">Method choice</div><div class="r">You must know DESeq2 vs limma vs edgeR</div><div class="bm">Routes across 4,210 workflows and explains why</div>
+      <div class="lbl">Reproducibility</div><div class="r">Scripts drift — versions, manual steps</div><div class="bm">Deterministic, versioned record: params, versions, checksums, methods, citations</div>
+      <div class="lbl">Scale</div><div class="r">Laptop memory / CPU</div><div class="bm">AWS Batch / Nextflow or on-prem — large data, parallel</div>
+      <div class="lbl">QC</div><div class="r">Manual, or none</div><div class="bm">Automatic QC gates: halt → review → resume, auto-remediation</div>
+      <div class="lbl">Integration</div><div class="r">The analysis step only</div><div class="bm">Instrument → analysis, ELN/LIMS, literature &amp; workflow search, results write-back</div>
+    </div>
+    <p style="font-size:13px; color:var(--mut); margin:14px 0 0; max-width:96ch"><b>Honest boundary:</b> for an expert bioinformatician doing bespoke, novel analysis, raw R gives more flexibility — BioMate's value is highest for non-coders, reproducibility &amp; compliance, scale, and method routing.</p>
     </div></div>
   </section>
 

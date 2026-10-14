@@ -25,7 +25,7 @@ const ASSETS = "/Users/kky/biomate-review/docs/user-manual/assets";
 const EN = {
   tagline: "Search · Run · Verify · Learn",
   sub: "The AI bioinformatics platform — from any instrument and dataset to a reproducible, decision-ready result",
-  kick: ["", "The problem", "Why BioMate", "Research domains", "Instruments", "Search & evidence",
+  kick: ["", "The problem", "Why BioMate", "Why not just R", "Research domains", "Instruments", "Search & evidence",
          "Product", "Execution + QC", "Engineering", "Value", "Deliverable", "Get started"],
   s2t: "Bioinformatics today is fragmented",
   s2: [["Tools scattered per domain","RNA-seq, variants, proteomics, cryo-EM each need different, separately-licensed software"],
@@ -102,7 +102,7 @@ const EN = {
 const CN = {
   tagline: "检索 · 运行 · 验证 · 学习",
   sub: "AI 生物信息平台 — 从任意仪器与数据到可复现、可决策的结果",
-  kick: ["", "痛点", "为什么选择 BioMate", "研究领域", "仪器", "检索与证据",
+  kick: ["", "痛点", "为什么选择 BioMate", "为什么不用 R", "研究领域", "仪器", "检索与证据",
          "产品", "执行与质控", "工程落地", "价值", "交付物", "如何开始"],
   s2t: "当下生物信息分析的痛点",
   s2: [["工具按领域割裂","RNA-seq、变异、蛋白质组、冷冻电镜各需不同且需单独授权的软件"],
@@ -226,28 +226,35 @@ function buildDeck(L, isCN, outFile) {
   iconRows(p, s, L.s3, C.teal);
 
   // ---- Slide 4: domains ----
-  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,4); title(s, L.s4t);
+  // Slide 4 — Why not just R
+  { const R = isCN ? RCMP.cn : RCMP.en;
+    s = p.addSlide(); s.background = { color: C.bg }; kicker(s,4); title(s, R.t);
+    s.addText(R.sub, { x: M, y: 1.5, w: W-2*M, h: 0.55, fontFace: FF, fontSize: 12.5, color: C.slate, isTextBox: true, margin: 0 });
+    s.addTable(R.rows, { x: M, y: 2.3, w: W-2*M, colW: [1.7, (W-2*M-1.7)/2, (W-2*M-1.7)/2], rowH: 0.56, fontFace: FF, fontSize: 11.5, valign: "middle", border: { type: "solid", pt: 0.5, color: "E3E7EE" } });
+    s.addText(R.bound, { x: M, y: H-0.85, w: W-2*M, h: 0.5, fontFace: FF, fontSize: 10.5, italic: true, color: C.slate, isTextBox: true, margin: 0 });
+  }
+  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,5); title(s, L.s4t);
   s.addText(L.s4sub, { x: M, y: 1.55, w: W-2*M, h: 0.35, fontFace: FF, fontSize: 15, italic: true, color: C.slate, isTextBox: true, margin: 0 });
   domainGrid(p, s, L.s4);
   footer(s, L.s4foot);
 
   // ---- Slide 5: instruments — arrow rows ----
-  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,5); title(s, L.s5t);
+  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,6); title(s, L.s5t);
   instrRows(p, s, L.s5, isCN); footer(s, L.s5foot);
 
   // ---- Slide 6: search — 2x2 cards ----
-  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,6); title(s, L.s6t);
+  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,7); title(s, L.s6t);
   grid2x2(p, s, L.s6, C.blue); footer(s, L.s6foot);
 
   // ---- Slide 7: product UI — bullets + screenshot ----
-  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,7); title(s, L.s7t);
+  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,8); title(s, L.s7t);
   bulletsLeft(p, s, L.s7, 6.0);
   try { s.addImage({ path: ASSETS + "/rnaseq-results.png", x: 7.0, y: 1.7, w: 5.6, h: 3.9, sizing: { type: "contain", w: 5.6, h: 3.9 } });
         s.addText(isCN?"合并的「结果」报告 — 发现 + 输出 + 可复现记录":"The merged Results report — findings + outputs + record",
           { x: 7.0, y: 5.65, w: 5.6, h: 0.3, fontFace: FF, fontSize: 10, italic: true, color: C.slate, align: "center", isTextBox: true, margin: 0 }); } catch(e){}
 
   // ---- Slide 8: execution + QC — 5 numbered blocks + state chips ----
-  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,8); title(s, L.s8t);
+  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,9); title(s, L.s8t);
   numberedBlocks(p, s, L.s8);
   // QC state chips
   const states = isCN ? [["通过",C.green],["暂停·复核",C.amber],["恢复",C.teal]] : [["pass",C.green],["halt · review",C.amber],["resume",C.teal]];
@@ -258,15 +265,15 @@ function buildDeck(L, isCN, outFile) {
   footer(s, L.s8foot);
 
   // ---- Slide 9: engineering — 2x3 cards ----
-  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,9); title(s, L.s9t);
+  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,10); title(s, L.s9t);
   grid3x2(p, s, L.s9, C.teal);
 
   // ---- Slide 10: value — 4 big callouts ----
-  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,10); title(s, L.s10t);
+  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,11); title(s, L.s10t);
   valueCallouts(p, s, L.s10);
 
   // ---- Slide 11: deliverable — 4 rows ----
-  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,11); title(s, L.s11t);
+  s = p.addSlide(); s.background = { color: C.bg }; kicker(s,12); title(s, L.s11t);
   iconRows(p, s, L.s11.map(([a,b])=>[a,b]), C.blue, true); footer(s, L.s11foot);
 
   // ---- Slide 12: get started (dark) — 5 steps timeline ----
@@ -348,6 +355,17 @@ function stepsTimeline(p, s, items) {
     s.addText(it[1],{x:x+0.18,y:y+1.15,w:cw-0.36,h:0.9,align:"center",fontFace: FF,fontSize:14,bold:true,color:"FFFFFF",isTextBox:true,margin:0,valign:"top"});
     s.addText(it[2],{x:x+0.2,y:y+2.0,w:cw-0.4,h:ch-2.1,align:"center",fontFace: FF,fontSize:11,color:"CFE0EE",isTextBox:true,margin:0,valign:"top"}); });
 }
+
+const RCMP = {
+  en: { t:"You already have R. Why BioMate?",
+    sub:"BioMate doesn't replace R's methods — it runs them (1,000+ workflows are Bioconductor/R: DESeq2, limma, edgeR, Seurat, flowCore, survival). It replaces what you build around them.",
+    bound:"Honest boundary: for bespoke, novel analysis an expert gets more flexibility from raw R; BioMate's value is highest for non-coders, reproducibility & compliance, scale, and routing.",
+    rows:[[{text:"",options:{fill:{color:"F1F3F7"}}},{text:"Raw R / Excel",options:{fill:{color:"F1F3F7"},color:"5A6474",fontSize:10}},{text:"BioMate",options:{fill:{color:"E7F0FF"},color:"1A4A9C",bold:true,fontSize:10}}],[{text:"Coding",options:{bold:true,fill:{color:"F7F8FA"}}},{text:"Write & debug scripts; manage installs, versions, dependencies"},{text:"Describe the goal in plain language — it runs",options:{fill:{color:"E7F0FF"}}}],[{text:"Method choice",options:{bold:true,fill:{color:"F7F8FA"}}},{text:"You must know DESeq2 vs limma vs edgeR"},{text:"Routes across 4,210 workflows and explains why",options:{fill:{color:"E7F0FF"}}}],[{text:"Reproducibility",options:{bold:true,fill:{color:"F7F8FA"}}},{text:"Scripts drift — versions, manual steps"},{text:"Deterministic, versioned record: params, versions, checksums, methods, citations",options:{fill:{color:"E7F0FF"}}}],[{text:"Scale",options:{bold:true,fill:{color:"F7F8FA"}}},{text:"Laptop memory / CPU"},{text:"AWS Batch / Nextflow or on-prem — large data, parallel",options:{fill:{color:"E7F0FF"}}}],[{text:"QC",options:{bold:true,fill:{color:"F7F8FA"}}},{text:"Manual, or none"},{text:"Automatic QC gates: halt, review, resume, auto-remediation",options:{fill:{color:"E7F0FF"}}}],[{text:"Integration",options:{bold:true,fill:{color:"F7F8FA"}}},{text:"The analysis step only"},{text:"Instrument to analysis, ELN/LIMS, literature & workflow search, results write-back",options:{fill:{color:"E7F0FF"}}}]] },
+  cn: { t:"你已经有 R，为什么还要 BioMate？",
+    sub:"BioMate 不替代 R 的方法——而是运行它们（1,000+ 工作流本身就是 Bioconductor/R：DESeq2、limma、edgeR、Seurat、flowCore、survival）。它替代的是你围绕这些方法搭建与维护的一切。",
+    bound:"诚实边界：做定制化、全新分析时资深专家用原生 R 更灵活；BioMate 的价值在于面向非编程用户、可复现与合规、规模化与方法路由。",
+    rows:[[{text:"",options:{fill:{color:"F1F3F7"}}},{text:"原生 R / Excel",options:{fill:{color:"F1F3F7"},color:"5A6474",fontSize:10}},{text:"BioMate",options:{fill:{color:"E7F0FF"},color:"1A4A9C",bold:true,fontSize:10}}],[{text:"编码",options:{bold:true,fill:{color:"F7F8FA"}}},{text:"编写与调试脚本；管理安装、版本与依赖"},{text:"用自然语言描述目标即可运行",options:{fill:{color:"E7F0FF"}}}],[{text:"方法选择",options:{bold:true,fill:{color:"F7F8FA"}}},{text:"需自行判断 DESeq2 / limma / edgeR"},{text:"在 4,210 个工作流中路由并解释原因",options:{fill:{color:"E7F0FF"}}}],[{text:"可复现",options:{bold:true,fill:{color:"F7F8FA"}}},{text:"脚本易漂移——版本、手工步骤"},{text:"确定性、版本化记录：参数、版本、校验和、方法、引用",options:{fill:{color:"E7F0FF"}}}],[{text:"规模",options:{bold:true,fill:{color:"F7F8FA"}}},{text:"受限于本机内存/CPU"},{text:"AWS Batch / Nextflow 或本地——大数据、并行",options:{fill:{color:"E7F0FF"}}}],[{text:"质控",options:{bold:true,fill:{color:"F7F8FA"}}},{text:"手工，或无"},{text:"自动质控门：暂停、复核、恢复、自动修复",options:{fill:{color:"E7F0FF"}}}],[{text:"集成",options:{bold:true,fill:{color:"F7F8FA"}}},{text:"仅分析这一步"},{text:"仪器到分析、ELN/LIMS、文献与工作流检索、结果回写",options:{fill:{color:"E7F0FF"}}}]] }
+};
 
 (async () => {
   await buildDeck(EN, false, "/Users/kky/biomate-review/docs/20261014_BioMate_Platform_Deck_EN.pptx");

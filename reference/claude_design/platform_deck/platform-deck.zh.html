@@ -73,6 +73,14 @@ body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:10
 .bignum .bn span{font-family:var(--ff-ui); font-size:12.5px; color:var(--mut); letter-spacing:.02em}
 .freetrial{position:fixed; right:40px; bottom:18px; z-index:31; font-family:var(--ff-mono); font-size:12px; letter-spacing:.03em; color:var(--mut); background:rgba(251,252,253,.82); padding:5px 12px; border:1px solid var(--line2); border-radius:999px; backdrop-filter:blur(4px)}
 .freetrial b{color:var(--blue); font-weight:600; letter-spacing:0}
+
+.cmp{display:grid; grid-template-columns:150px 1fr 1fr; border:1px solid var(--line2); border-radius:8px; overflow:hidden; font-size:13.5px; line-height:1.4}
+.cmp>div{padding:9px 15px; border-top:1px solid var(--line)}
+.cmp .hd{border-top:none; background:var(--panel2); font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--mut)}
+.cmp .lbl{font-weight:600; color:var(--ink); background:var(--panel)}
+.cmp .r{color:var(--ink2); border-left:1px solid var(--line)}
+.cmp .bm{color:var(--ink2); background:var(--blue-bg); border-left:1px solid var(--line)}
+.cmp .bm.hd{color:var(--blue); font-weight:600; background:var(--blue-bg)}
 </style>
 </head>
 <body>
@@ -131,6 +139,25 @@ body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:10
         <div class="tile"><div class="n">05</div><h4>私域可审计</h4><p>数据不出域；确定性执行；结果可版本化、可溯源。</p></div>
         <div class="tile accent" style="border:none"><div class="n" style="color:#3763b0">BioMate</div><h4 style="color:var(--blue)">检索 · 运行 · 验证 · 学习</h4><p style="color:#2c4a7a">同一个闭环，贯穿每一个领域。</p></div>
       </div>
+    </div></div>
+  </section>
+
+  <!-- 3b WHY NOT R -->
+  <section class="scene" data-seconds="15">
+    <div class="kicker">为什么不直接用 R / Excel</div>
+    <h2>你已经有 R，为什么还要 BioMate？</h2>
+    <p class="caption sub">BioMate 不替代 R 的方法——而是<b>运行</b>它们。其 1,000+ 工作流本身就是 Bioconductor/R（DESeq2、limma、edgeR、Seurat、flowCore、survival）。它替代的是你围绕这些方法自行搭建与维护的一切。</p>
+    <div class="scene-body"><div class="concept" style="justify-content:flex-start; gap:0">
+    <div class="cmp">
+      <div class="hd"></div><div class="hd r">原生 R / Excel</div><div class="hd bm">BioMate</div>
+      <div class="lbl">编码</div><div class="r">编写与调试脚本；管理安装、版本与依赖</div><div class="bm">用自然语言描述目标——即可运行</div>
+      <div class="lbl">方法选择</div><div class="r">需自行判断 DESeq2 / limma / edgeR</div><div class="bm">在 4,210 个工作流中智能路由，并解释原因</div>
+      <div class="lbl">可复现</div><div class="r">脚本易漂移——版本、手工步骤</div><div class="bm">确定性、版本化记录：参数、版本、校验和、方法、引用</div>
+      <div class="lbl">规模</div><div class="r">受限于本机内存/CPU</div><div class="bm">AWS Batch / Nextflow 或本地——大数据、并行</div>
+      <div class="lbl">质控</div><div class="r">手工，或无</div><div class="bm">自动质控门：暂停→复核→恢复、自动修复</div>
+      <div class="lbl">集成</div><div class="r">仅分析这一步</div><div class="bm">仪器→分析、ELN/LIMS、文献与工作流检索、结果回写</div>
+    </div>
+    <p style="font-size:13px; color:var(--mut); margin:14px 0 0; max-width:96ch"><b>诚实边界：</b>对于做定制化、全新分析的资深生物信息专家，原生 R 更灵活——BioMate 的价值在于面向非编程用户、可复现与合规、规模化与方法路由。</p>
     </div></div>
   </section>
 

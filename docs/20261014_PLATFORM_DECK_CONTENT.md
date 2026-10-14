@@ -42,7 +42,28 @@
 - **统一执行** — 云端（AWS Batch / Nextflow）或本地部署，带质控门与从每轮运行中学习的闭环
 - **私域可审计** — 数据不出域；确定性执行；结果可版本化、可溯源
 
-## Slide 4 — Research domains (the breadth)
+## Slide 4 — Why not just R / Excel
+**EN title:** You already have R. Why BioMate?
+- BioMate doesn't replace R's methods — it **runs** them (1,000+ workflows are Bioconductor/R: DESeq2, limma, edgeR, Seurat, flowCore, survival). It replaces what you build and maintain around them:
+- **Coding** — Raw R: write & debug scripts, manage installs/versions/dependencies · BioMate: describe the goal in plain language — it runs
+- **Method choice** — Raw R: you must know DESeq2 vs limma vs edgeR · BioMate: routes across 4,210 workflows and explains why
+- **Reproducibility** — Raw R: scripts drift (versions, manual steps) · BioMate: deterministic, versioned record (params, versions, checksums, methods, citations)
+- **Scale** — Raw R: laptop memory/CPU · BioMate: AWS Batch / Nextflow or on-prem — large data, parallel
+- **QC** — Raw R: manual, or none · BioMate: automatic QC gates (halt→review→resume, auto-remediation)
+- **Integration** — Raw R: the analysis step only · BioMate: instrument→analysis, ELN/LIMS, literature & workflow search, results write-back
+- *Honest boundary:* for bespoke, novel analysis an expert bioinformatician gets more flexibility from raw R; BioMate's value is highest for non-coders, reproducibility & compliance, scale, and method routing.
+
+**CN title:** 你已经有 R，为什么还要 BioMate？
+- BioMate 不替代 R 的方法——而是**运行**它们（1,000+ 工作流本身就是 Bioconductor/R：DESeq2、limma、edgeR、Seurat、flowCore、survival）。它替代的是你围绕这些方法搭建与维护的一切：
+- **编码** — 原生 R：编写调试脚本，管理安装/版本/依赖 · BioMate：用自然语言描述目标即可运行
+- **方法选择** — 原生 R：需自行判断 DESeq2 / limma / edgeR · BioMate：在 4,210 个工作流中路由并解释原因
+- **可复现** — 原生 R：脚本易漂移（版本、手工步骤）· BioMate：确定性、版本化记录（参数、版本、校验和、方法、引用）
+- **规模** — 原生 R：受限于本机内存/CPU · BioMate：AWS Batch / Nextflow 或本地——大数据、并行
+- **质控** — 原生 R：手工或无 · BioMate：自动质控门（暂停→复核→恢复、自动修复）
+- **集成** — 原生 R：仅分析这一步 · BioMate：仪器→分析、ELN/LIMS、文献与工作流检索、结果回写
+- *诚实边界：* 做定制化、全新分析时资深专家用原生 R 更灵活；BioMate 的价值在于面向非编程用户、可复现与合规、规模化与方法路由。
+
+## Slide 5 — Research domains (the breadth)
 **EN title:** 42 domains · 4,210 workflows · 12,312 tools
 - **Transcriptomics** (1,695) — bulk & single-cell RNA-seq, differential expression, splicing, spatial
 - **Genomics** (756) — assembly, annotation, alignment, QC
@@ -65,7 +86,7 @@
 - **冷冻电镜**（19）、代谢组、宏基因组、免疫、结构生物学、影像、系统生物学……
 - *脚注：* 其中 1,092 个工作流具备干净的真实执行证据（验证子集）
 
-## Slide 5 — Instrument-connected workflows
+## Slide 6 — Instrument-connected workflows
 **EN title:** From the bench instrument to the analysis, in one flow
 - **Flow cytometer** (FCS) → gating → marker-positive subset quantification (immunophenotyping)
 - **Plate reader** (BMG/BioTek/Tecan) → ELISA standard-curve → titers by group
@@ -84,7 +105,7 @@
 - **移液机器人** — Opentrons OT-2 / Flex（对话驱动）；**ELN/LIMS** — Benchling
 - *脚注：* 真实连接器位于 `backend/lib/integrations/`；感知数据驻留（本地 / 挂载 / 云）
 
-## Slide 6 — Search & evidence
+## Slide 7 — Search & evidence
 **EN title:** Find the right method, and the evidence behind it
 - **Workflow routing** — describe the goal in plain language; BioMate selects from 4,210 workflows and explains why
 - **Accession → workflow** — paste a GEO/SRA/EMPIAR accession; it resolves modality and the matching pipeline
@@ -99,7 +120,7 @@
 - **数据库与结构** — 活性/SAR、结构与相似性检索；适用领域的 FTO/专利
 - *脚注：* 每个路由决策都有解释；每个数字都可溯源到其来源文件
 
-## Slide 7 — Product interface (RNA-seq example)
+## Slide 8 — Product interface (RNA-seq example)
 **EN title:** A project-centric workspace
 - One workspace per project — chats, data, workflows and runs together
 - The workflow panel — an RNA-seq differential-expression run: params before it runs, phases live, one merged Results report after
@@ -114,7 +135,7 @@
 - 全量前可先跑小样试点；参数与质控阈值可就地调整
 - *脚注：* 结果可回写到你的 ELN / 数据系统
 
-## Slide 8 — Execution + QC
+## Slide 9 — Execution + QC
 **EN title:** Run anywhere, with quality gates and a closed loop
 - **Execution** — AWS Batch + Nextflow DSL2 in the cloud, or on-prem; jobs stream results to storage
 - **Phases & steps** — every run is broken into inspectable phases and tool steps
@@ -131,7 +152,7 @@
 - **运行后报告** — 一个合并的"结果"视图（发现 + 每个输出预览）+ 一份可复现记录
 - *脚注：* 所有领域共用同一机制 — RNA-seq、变异、蛋白质组、冷冻电镜、ADMET
 
-## Slide 9 — Private / auditable engineering (carries over)
+## Slide 10 — Private / auditable engineering (carries over)
 **EN title:** Private deployment, auditable, reproducible
 - **Data stays in your environment** — local / private deployment as the default; compute runs inside your estate
 - **Reference data & models localized** — train and fine-tune on your own data
@@ -148,7 +169,7 @@
 - **版本化** — 探索在演化层完成，线上只执行已接受的版本，变更留有记录
 - **权限与对接** — 按团队/项目/人员授权；与 ELN / 化合物库 / LIMS 双向打通
 
-## Slide 10 — Value
+## Slide 11 — Value
 **EN title:** What the platform delivers
 - **Cost** — one platform replaces many single-point tools; less compute outsourcing; pilot-before-full-run reduces wasted runs
 - **Speed** — from data to insight faster; QC gates and auto-loop reduce rework
@@ -161,7 +182,7 @@
 - **整合** — 仪器、数据系统与领域统一；结果回写
 - **知识** — 运行、质控与专家纠正沉淀为可复用、可审计的资产
 
-## Slide 11 — Deliverable
+## Slide 12 — Deliverable
 **EN title:** The deliverable is a reproducible result — for any domain
 - **Findings** — a plain-language summary with the key numbers, each traced to its output file
 - **Outputs** — every file the run produced, previewed inline by type (table, image, structure, VCF…)
@@ -176,7 +197,7 @@
 - **下一步** — 结果支持什么，下一步该运行什么
 - *脚注：* 无论任务是 RNA-seq、变异检测、仪器读出还是 ADMET，交付同一套结果包
 
-## Slide 12 — Collaboration / landing path
+## Slide 13 — Collaboration / landing path
 **EN title:** How we start
 - **01 Survey & data audit** — your domains, instruments, data systems and goals
 - **02 Connect** — wire up instruments / ELN / accessions; bring a representative dataset
@@ -201,6 +222,6 @@
    - **Domain A: RNA-seq differential expression** — the MG PBMC demo: run on Batch → phases live → QC → merged Results report (findings + outputs + reproducibility record)
    - **Domain B: an instrument→analysis flow** — e.g. ELISA/plate-reader titers or flow-cytometry immunophenotyping → results
    - **Close** — the deliverable package + "search · run · verify · learn", ~90–120s
-4. **Close card** — contact / collaboration path (Slide 12)
+4. **Close card** — contact / collaboration path (Slide 13)
 
 **Build order:** HTML auto-play deck (EN + CN, reuse `tutorials_v2` style, `window.__timeline`) → PPTX (EN + CN) → record the HTML deck via `scripts/make_tutorial_video.py` + capture the E2E demo (multi-domain) → stitch into the intro video.
