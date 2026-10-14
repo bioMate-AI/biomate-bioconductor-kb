@@ -103,6 +103,7 @@ biomni_workflows/nextflow_nfcore/**/.nextflow/
 biomni_workflows/nextflow_nfcore/**/.nextflow.log*
 biomni_workflows/nextflow_nfcore/**/work/
 biomni_workflows/nextflow_nfcore/**/results/
+biomni_workflows/nextflow_nfcore/**/test_results/
 biomni_workflows/nextflow_nfcore/**/test_data/
 
 # Docs and notes
