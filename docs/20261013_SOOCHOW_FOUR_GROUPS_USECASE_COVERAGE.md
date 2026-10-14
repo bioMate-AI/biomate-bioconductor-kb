@@ -94,3 +94,65 @@ If you want the gaps closed (not just audited), the top two — a **flow-cytomet
 **Remaining follow-up (needs a dev run / small fix — not done here):**
 - **Flow-cytometry cold-start example not yet added as wire-ready.** The FCS demo file exists in-repo (`backend/biomni_workflows/sample_data/flow_cytometry/Accuri_C6_A01_H2O.fcs`), but `analyze_flow_cytometry_immunophenotyping`'s default `fcs_file_path` is a **developer-local absolute path** (`/home/yzhang/biomate/backend/lib/galaxy/datatypes/test/Accuri_C6_A01_H2O.fcs`) that will not resolve on dev. The one-line fix is to repoint that default to the deployed `sample_data/flow_cytometry/` path (or stage the FCS where the executor resolves it), then add the cold-start "flow-cytometry immunophenotyping" example and verify E2E on dev. Left undone because editing an executed subworkflow's default without a dev test is unsafe from a no-sync fork.
 - **E2E verification of the ELISA example** on dev pending a sync (param-only → high confidence it dispatches, like ADMET).
+
+---
+
+## Per-faculty-group direction → BioMate workflow mapping (expanded, catalog-verified 2026-10-14)
+
+Catalog probe (`backend/database/galaxy_ai_tools.db`, 4,210 workflows) confirms BioMate already **has** runnable workflows for each group's directions — far beyond the original flow/ELISA pair. Each row cites a real catalog workflow. Legend: ✅ workflow exists · 🎬 cold-start demo exists · ➕ recommend adding a demo.
+
+### Group 1 — Wu Jian 武剑 (cell-therapy / severe autoimmune / national drug-trial base)
+| Direction | BioMate workflow(s) | Status |
+|---|---|---|
+| CAR construct / CAR-Vδ1T design (UTAA91) | `cart_construct_design`, `in_vivo_cart_codesign`, `modality_triage` | ✅ ➕ (high value — directly UTAA91-aligned) |
+| CD19 / PD-1 nanobody design | `biologics` (6Z43 nanobody–spike) | ✅ 🎬 |
+| Multicenter drug trials (national base) | `clinical_trial_simulation`, `patient_recruitment_feasibility`, BOIN dose-escalation | ✅ 🎬 (trial-sim) |
+| Difficult-autoimmune cohort / responder | `survival_cox_proportional_hazards_regression` (+ 61 survival workflows) | ✅ ➕ |
+
+### Group 2 — Liu Cuiping 刘翠萍 (immune receptors / checkpoint; flow + ELISA)
+| Direction | BioMate workflow(s) | Status |
+|---|---|---|
+| Flow-cytometry immunophenotyping (CD226⁺ B / TIGIT⁺ NK / BST2⁺CD4⁺ T) | `Analyze Flow Cytometry Immunophenotyping`, `flowcore` (307 flow workflows) | ✅ ➕ (demo needs the FCS default-path fix) |
+| Soluble checkpoint-ligand ELISA (B7 family) | `Analyze Ebv Antibody Titers` | ✅ 🎬 (added) |
+| Immune-subset profiling / deconvolution | `deconrnaseq`, `demixt`, `consica`, `easier` | ✅ ➕ |
+| Receptor–ligand cell interaction (CD226–CD155) | `InterCellar` | ✅ ➕ |
+
+### Group 3 — Chang Xin 常新 (clinical cohorts; responder stratification; epidemiology)
+| Direction | BioMate workflow(s) | Status |
+|---|---|---|
+| Responder stratification (telitacicept / belimumab) | survival/Cox (61 workflows) | ✅ ➕ |
+| Autoimmune cohort differential expression (SLE/RA/pSS) | `nf-core/differentialabundance` | ✅ 🎬 (the MG RNA-seq demo) |
+| Inflammatory-marker mortality epidemiology | survival/Cox, `patient_recruitment_feasibility` | ✅ ➕ |
+| Disease-activity clustering | clustering / consensus-cluster workflows | ✅ |
+
+### Group 4 — Zhang Xueguang 张学光 (antibody engineering; B7 family; interface assays)
+| Direction | BioMate workflow(s) | Status |
+|---|---|---|
+| Antibody / nanobody engineering | `biologics` | ✅ 🎬 |
+| Binding kinetics / interface affinity (SPR-class) | `Analyze Itc Binding Thermodynamics`, `Analyze Enzyme Kinetics Assay`, `Predict Binding Affinity` (106 kinetics/affinity workflows) | ✅ ➕ |
+| B7-family target structural design | structural biology / docking / `cyclic_peptide_design` | ✅ 🎬 (design) |
+| Recombinant-protein interface modelling | AlphaFold / structure prediction | ✅ |
+
+### Group 5 — Mo Xingbo 莫兴波 (immunogenetics)
+| Direction | BioMate workflow(s) | Status |
+|---|---|---|
+| SLE susceptibility GWAS | GWAS workflows (76), `Bayesian Finemapping With Deep VI` | ✅ ➕ |
+| Mendelian randomization / causal inference | MR / colocalization workflows | ✅ ➕ |
+| eQTL / cell-type-specific / colocalization | `Analyze Protein Colocalization`, `cageminer` | ✅ ➕ |
+
+### Cross-cutting (serve all groups' autoimmune focus)
+| Direction | BioMate workflow(s) | Status |
+|---|---|---|
+| IL-23 / CD226 / B7 macrocycle design (collaboration core) | `cyclic_peptide_design` (autoimmune-tagged) | ✅ 🎬 |
+| TCR / BCR repertoire & clonality | `lymphoseq`, `powertcr`, `immunotation`, `BloodGen3Module` (22 repertoire workflows) | ✅ ➕ |
+| HLA typing | 30 HLA workflows | ✅ |
+| Spatial / multi-omics immune integration | `spatial_multiomics_integration` | ✅ ➕ |
+
+### Instruments per group (connectors confirmed; `frontend/shared/schema.ts`)
+- **Liu Cuiping** — `flow_cytometer` (FCS), `plate_reader` (ELISA) ✅
+- **Wu Jian (CAR-T)** — `flow_cytometer` (CAR product QC / Vδ1 purity) ✅
+- **Chang Xin / cohorts** — `benchling` (ELN/cohort), `basespace` / `minknow` (sequencing) ✅
+- **Zhang Xueguang** — ITC/kinetics *analysis* workflows exist ✅; **gap:** no native SPR/ITC *instrument* connector (data imported as a file) — candidate connector to add.
+
+### Bottom line
+BioMate's **capabilities cover all five faculty groups** across ~20 directions (not just the original two). The remaining work is **demonstration, not capability**: add cold-start demos (➕) for the highest-value per-group flows — **CAR-T construct design (Wu Jian), flow-cytometry immunophenotyping (Liu Cuiping), responder-survival (Chang Xin), binding-kinetics/ITC (Zhang Xueguang), GWAS/MR (Mo Xingbo)** — each pointing at the existing workflow with public demo data. The only true *capability* gap is an SPR/ITC instrument connector (analysis already supported).
