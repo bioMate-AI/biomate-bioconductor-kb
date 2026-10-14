@@ -9,6 +9,7 @@ import { SettingsDialog } from "./settings-dialog"
 import { WorkflowHistoryDialog } from "./workflow-history-dialog"
 import { RecentToolsDialog } from "./recent-tools-dialog"
 import { ConnectorsDialog } from "./connectors-dialog"
+import { StarredWorkflowsDialog } from "./starred-workflows-dialog"
 import { projectService } from "@/lib/projects"
 import type { Project } from "@shared/schema"
 import {
@@ -26,6 +27,7 @@ import {
   Layers,
   CreditCard,
   Wrench,
+  Workflow,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { t } from "@/lib/i18n"
@@ -103,6 +105,7 @@ export function AppSidebar({
   }, [fetchSessionStatuses])
   const [projectsExpanded, setProjectsExpanded] = useState(true);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [showWorkflowsDialog, setShowWorkflowsDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [historyInitialTab, setHistoryInitialTab] = useState<'runs' | 'imports' | 'upload'>('runs');
   const [runningCount, setRunningCount] = useState<number>(0);
@@ -256,7 +259,22 @@ export function AppSidebar({
             <span>{t('chat.new_chat')}</span>
           </span>
         </button>
-        {/* Workflow navigation moved to Settings > Import workflow. */}
+        {/* Workflows — top-level Workspace entry (design App.jsx NAV); opens the
+            starred-workflows browser. */}
+        <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowWorkflowsDialog(true)}>
+          <Workflow className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>Workflows</span>
+          </span>
+        </button>
+
+        {/* Data — the dataset object is a first-class surface (spec 04). */}
+        <button className="side-link" data-testid="button-data-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/files')}>
+          <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>Data</span>
+          </span>
+        </button>
 
         {/* IND Report hidden from sidebar for now (per request 2026-09-22). Route still exists. */}
         {/* <button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
@@ -441,6 +459,7 @@ export function AppSidebar({
 
       {/* Dialogs */}
       <SettingsDialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog} />
+      <StarredWorkflowsDialog open={showWorkflowsDialog} onOpenChange={setShowWorkflowsDialog} />
       <WorkflowHistoryDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog} initialTab={historyInitialTab} importOnly onOpenRun={(row) => { if (row.chatSessionId) { window.location.assign(`/?session=${encodeURIComponent(row.chatSessionId)}`); } }} onRunAgain={(row) => { window.location.assign(`/?reuseWorkflow=${encodeURIComponent(row.runId)}`); }} />
       <ConnectorsDialog open={showConnectorsDialog} onOpenChange={setShowConnectorsDialog} />
 <RecentToolsDialog open={showRecentToolsDialog} onOpenChange={setShowRecentToolsDialog}
