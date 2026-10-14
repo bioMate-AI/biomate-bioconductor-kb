@@ -53,7 +53,16 @@ design something differentiated.
 3. Because the handle constraint is gone, run **unconstrained macrocycle generation** against the PD-1-interface
    (this is where the design freedom — and the novelty you wanted — actually exists for this target).
 
+## Combination strategy (decided 2026-10-13): two agents, regimen-level — NOT one molecule
+αvβ6 and PD-L1 are pursued as **two independent single-target molecules** (αvβ6 radioligand; PD-L1 blocker)
+and, if used together, **combined at the regimen level** as a radio-immunotherapy: αvβ6-targeted RLT drives
+immunogenic cell death + antigen release (warms the cold PDAC/GI microenvironment) and the PD-L1 blocker
+releases the checkpoint brake. This realizes the cold→hot thesis with two coherent single-target drugs instead
+of a modality-incoherent fused bispecific (a radiometal-delivery warhead and a PPI blocker on one macrocycle
+would fight each other). No fused molecule; the combination is clinical/regimen, not molecular design.
+
 ## Scope boundaries
 - Single-target PD-L1 blockade only. No αvβ6×PD-L1 bispecific, no multivalent dual-target construct
   (`20261013_CONSTRUCT_DESIGN_AVB6_PDL1.md` remains HALTED).
 - αvβ6 remains its own separate single-target program (unchanged by this doc).
+- Any αvβ6+PD-L1 pairing is a **combination of two separate agents**, handled as a regimen/trial design, not a build task.
