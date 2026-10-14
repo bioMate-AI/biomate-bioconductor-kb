@@ -126,8 +126,9 @@
   display: flex; flex-direction: column; gap: 6px;
 }
 .msg .who {
-  font-size: 11px; color: var(--text-dim); text-transform: uppercase;
-  letter-spacing: 0.05em; font-weight: 600;
+  font-family: var(--bm-font-mono, 'JetBrains Mono', monospace);
+  font-size: 9.5px; color: var(--text-dim); text-transform: none;
+  letter-spacing: 0.13em; font-weight: 600;
 }
 .msg.user .bubble {
   align-self: flex-end; background: var(--surface-3);
