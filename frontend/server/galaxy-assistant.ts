@@ -7927,10 +7927,21 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     const domainHint = (_explicitRegistryFastPath || _transcriptomicsPenalized)
       ? undefined
       : await this._inferDomainWithLLM(userIntent, currentWorkflowText || recentContext || undefined);
-    const mergedInlineParameters = {
-      ...(inlineParameters || {}),
-      ...(domainHint ? { domain_hint: domainHint } : {}),
-    };
+    // Normalize composite dataset-ref values (e.g. the cryo "Dataset Id" leak
+    // "<uuid>, s3_uri=s3://…]") at the SOURCE. This map is both (a) sent to the
+    // backend as generateWorkflow's inline_parameters, and (b) echoed back onto
+    // the workflow object as `wf.metadata.workflow.inline_parameters` — the BASE
+    // map the viewer seeds its `params` from (chat-with-artifacts.tsx:1793,
+    // nextflow-workflow-viewer.tsx:1051). Normalizing the camelCase overlay alone
+    // (stringifyParamValues) missed it because groundInlineParameters remaps/drops
+    // the `dataset_id` key off the overlay, so the composite only survives on this
+    // base map. Cleaning it here fixes both the executor input and the display.
+    const mergedInlineParameters = Object.fromEntries(
+      Object.entries({
+        ...(inlineParameters || {}),
+        ...(domainHint ? { domain_hint: domainHint } : {}),
+      }).map(([k, v]) => [k, String(normalizeCompositeDatasetRef(v))])
+    );
 
     console.log('[GalaxyAssistant] ========================================');
     console.log('[GalaxyAssistant] Generating workflow using Unified AI');
