@@ -4873,6 +4873,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Grounded Standards Assistant — evidence-tiered, provenance-honest answering.
+  // Proxies POST /api/grounded/answer to the Galaxy backend router
+  // (webapps/galaxy/api/grounded.py), which resolves the tenant from the
+  // authenticated Galaxy session so isolation cannot be spoofed by the caller.
+  // Mirrors the /api/regulatory/* proxy above.
+  app.all("/api/grounded/*", optionalAuth, async (req: any, res: any) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const fullPath = `${req.path}${queryStr}`;
+      const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
+      const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
+      const headers: Record<string, string> = {
+        'Content-Type': req.headers['content-type'] || 'application/json',
+        'X-API-Key': apiKey,
+      };
+      const fetchOpts: RequestInit = {
+        method: req.method.toUpperCase(),
+        headers,
+        signal: AbortSignal.timeout(120000),
+      };
+      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
+        fetchOpts.body = JSON.stringify(req.body);
+      }
+      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
+      const contentType = resp.headers.get('content-type') || 'application/json';
+      res.setHeader('Content-Type', contentType);
+      res.status(resp.status);
+      if (contentType.includes('application/json')) {
+        const data = await resp.json().catch(() => ({}));
+        return res.json(data);
+      }
+      const buf = Buffer.from(await resp.arrayBuffer());
+      return res.send(buf);
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json({ error: 'grounded proxy error', detail: err.message });
+    }
+  });
+
   // ─────────────────────────────────────────────────────────────────────────
   // DL upgrade wave-1/wave-2 — Models + Design&Generate surfaces.
   // Proxy the Galaxy-served WS1 endpoints to the browser, mirroring the
