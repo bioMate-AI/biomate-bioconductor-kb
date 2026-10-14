@@ -19,6 +19,7 @@ def ask(
     user: str,
     corpus: Optional[List[Source]] = None,
     domain: Optional[str] = None,
+    retriever: "Optional[object]" = None,
     limit: int = 8,
 ) -> GroundedAnswer:
     """Answer a regulated-domain question with provenance and honest boundaries.
@@ -26,19 +27,27 @@ def ask(
     `user` is the requesting tenant — the isolation gate uses it so one user's
     unverified notes never reach another.
 
-    Corpus selection, in priority order:
-      * `corpus` given  -> use it verbatim (production injects a tenant-scoped,
-        retrieval-backed corpus here).
-      * `domain` given  -> load that domain pack (e.g. "cmc", "gmp_steam").
-      * neither         -> the original steam pack (back-compat default).
+    Candidate-source selection, in priority order:
+      * `retriever` given -> call retriever.fetch(question, user) for candidates
+        (production passes a CompositeRetriever over BioMate's live literature +
+        firm records + the curated normative pack; see galaxy.ai.grounded.live).
+      * `corpus` given    -> use it verbatim.
+      * `domain` given    -> load that domain pack (e.g. "cmc", "gmp_steam").
+      * none of the above -> the original steam pack (back-compat default).
+
+    Whatever the source, the SAME scoring + tenant-isolation gate runs over the
+    candidates, so the isolation guarantee holds regardless of origin.
     """
-    if corpus is None:
-        if domain is not None:
-            from .domains import get_corpus
-            corpus = get_corpus(domain)
-        else:
-            corpus = load_corpus()
-    scored, isolation = retrieve(question, corpus, requesting_user=user, limit=limit)
+    if retriever is not None:
+        candidates = retriever.fetch(question, user)
+    elif corpus is not None:
+        candidates = corpus
+    elif domain is not None:
+        from .domains import get_corpus
+        candidates = get_corpus(domain)
+    else:
+        candidates = load_corpus()
+    scored, isolation = retrieve(question, candidates, requesting_user=user, limit=limit)
     return assemble(question, scored, isolation, requesting_user=user)
 
 

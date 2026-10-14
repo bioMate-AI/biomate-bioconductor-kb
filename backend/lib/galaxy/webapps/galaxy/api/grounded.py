@@ -43,12 +43,23 @@ except Exception as exc:  # pragma: no cover
     _to_dict = None
     _ENGINE_OK = False
 
+try:
+    from galaxy.ai.grounded.live import build_live_retriever as _build_live
+except Exception as exc:  # pragma: no cover
+    log.info("[grounded] live retriever unavailable: %s", exc)
+    _build_live = None
+
 
 class GroundedRequest(BaseModel):
     question: str = Field(..., min_length=1, description="Regulated-domain question.")
     domain: Optional[str] = Field(
         None,
         description="Knowledge domain: 'cmc' (R&D/CMC) or 'gmp_steam'; omit for all.",
+    )
+    live: bool = Field(
+        True,
+        description="Ground in BioMate's live literature (+ curated normative) via "
+                    "the live retriever. False = curated domain corpus only.",
     )
     # Optional override is accepted but IGNORED for authenticated users: the
     # tenant is always taken from the session. It exists only so internal/
@@ -85,8 +96,20 @@ def grounded_answer(
     if not _ENGINE_OK or _ask is None:
         raise HTTPException(status_code=503, detail="Grounded assistant engine unavailable")
     tenant = _tenant(trans, request)
+    domain = request.domain or "cmc"
     try:
-        answer = _ask(request.question, user=tenant, domain=request.domain)
+        if request.live and _build_live is not None:
+            # Live literature + curated normative pack. If the live build or a
+            # backend call fails, fall back to the curated corpus (never 500 on
+            # a transient literature-service issue).
+            try:
+                retriever = _build_live(domain=domain)
+                answer = _ask(request.question, user=tenant, retriever=retriever)
+            except Exception as live_exc:
+                log.warning("[grounded] live retrieval failed, using corpus: %s", live_exc)
+                answer = _ask(request.question, user=tenant, domain=request.domain)
+        else:
+            answer = _ask(request.question, user=tenant, domain=request.domain)
         return _to_dict(answer)
     except Exception as exc:  # pragma: no cover
         log.exception("[grounded] answer failed")

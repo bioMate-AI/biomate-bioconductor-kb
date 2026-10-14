@@ -11,6 +11,14 @@ Public API:
 
 from .engine import ask, to_dict, to_markdown
 from .corpus import load_corpus
+from .retrievers import (
+    Retriever,
+    CorpusRetriever,
+    CompositeRetriever,
+    LiteratureRetriever,
+    FirmRecordRetriever,
+    literature_item_to_source,
+)
 from .models import (
     Boundary,
     Claim,
@@ -27,6 +35,12 @@ __all__ = [
     "to_dict",
     "to_markdown",
     "load_corpus",
+    "Retriever",
+    "CorpusRetriever",
+    "CompositeRetriever",
+    "LiteratureRetriever",
+    "FirmRecordRetriever",
+    "literature_item_to_source",
     "Boundary",
     "Claim",
     "EvidenceGrade",
