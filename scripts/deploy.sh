@@ -334,6 +334,42 @@ ssm_run "chown -R 1000:1000 /opt/biomate/data 2>/dev/null; ls -la /opt/biomate/d
   "Ensuring /opt/biomate/data is writable by galaxy:1000"
 echo ""
 
+# Step 5.6: Sync nfcore NF stubs from backend image to host bind-mount.
+#
+# ROOT CAUSE FIXED HERE: /opt/biomate/data/nextflow_nfcore is bind-mounted into
+# the galaxy container and the step parser reads .nf files from this path at
+# run time. Previously this dir was "seeded once" per host and never refreshed
+# on deploy — so any NF file edited in git stayed stale in the running container
+# until a manual SSM hot-patch. This step fixes that by copying the files OUT
+# of the deploying backend image (which was built from the exact git commit) into
+# the host dir before containers start.
+#
+# What IS in the image: all nextflow_nfcore subdirs EXCEPT the four large ones
+# (bioconductor 69MB, genomics 59MB, drug_discovery 224MB, pharmacology 40MB)
+# which are excluded from the image to keep build size manageable. Those large
+# dirs stay on the host as-is; they are pre-seeded once per host and change
+# infrequently.
+#
+# What the copy does: `cp -r /app/biomni_workflows/nextflow_nfcore/. /target/`
+# ADDS and OVERWRITES files present in the image — it does NOT delete files that
+# exist only on the host (bioconductor/genomics/drug_discovery/pharmacology).
+# Net effect: small domain dirs (structural_biology, cryo_em, transcriptomics…)
+# are refreshed every deploy; large pre-seeded dirs are left intact.
+echo "=== Step 5.6: Sync nfcore NF stubs from backend image to host ==="
+ssm_run "
+  set -euo pipefail
+  mkdir -p /opt/biomate/data/nextflow_nfcore
+  echo 'Extracting nfcore NF stubs from backend image $BACKEND_IMAGE ...'
+  docker run --rm \\
+    -v /opt/biomate/data/nextflow_nfcore:/target \\
+    --entrypoint sh \\
+    $BACKEND_IMAGE \\
+    -c 'cp -r /app/biomni_workflows/nextflow_nfcore/. /target/ 2>/dev/null; echo done'
+  echo 'Sync complete. NF file count:'
+  find /opt/biomate/data/nextflow_nfcore -name '*.nf' | wc -l
+" "Syncing nfcore NF stubs from backend image" 180
+echo ""
+
 # Step 6: Deploy + health check + auto-rollback (single host-side script)
 echo "=== Step 6: Deploy + health check + auto-rollback ==="
 #
