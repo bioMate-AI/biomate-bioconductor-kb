@@ -31,10 +31,76 @@ from .retrievers import (
     CorpusRetriever,
     FirmRecordRetriever,
     LiteratureRetriever,
+    RegulatoryRetriever,
     Retriever,
 )
 
 log = logging.getLogger(__name__)
+
+# Extra query->guideline hints for guidelines not in ich_corpus._DOMAIN_KEYWORDS.
+_EXTRA_GUIDELINE_HINTS = {
+    "ICH M7": ["mutagenic impurity", "mutagenic impurities", "ttc",
+               "dna reactive", "genotoxic impurity", "1.5 ug", "1.5 microgram"],
+}
+
+
+def _regulatory_search_fn():
+    """Adapter over BioMate's siloed ICH/FDA/EMA corpus, or None if absent.
+
+    Turns a free-text query into Tier-A guideline passages: detect candidate
+    guideline(s) from the query (explicit citation + domain keywords), then pull
+    the best-matching passage from each via the corpus's BM25.
+    """
+    try:
+        from galaxy.ai.drug_discovery.ich_corpus import (
+            get_ich_corpus, _GUIDELINE_FILES, _DOMAIN_KEYWORDS,
+            _extract_citations_local,
+        )
+    except Exception as exc:  # pragma: no cover
+        log.info("[grounded.live] ICH corpus unavailable: %s", exc)
+        return None
+
+    def _detect(query: str):
+        q = query.lower()
+        cands = []
+        # explicit citation strings in the query
+        for cit in _extract_citations_local(query):
+            for key in _GUIDELINE_FILES:
+                if cit.lower().replace(" ", "") in key.lower().replace(" ", ""):
+                    cands.append(key)
+        # domain-keyword match (corpus's own map + extra hints)
+        for cit, kws in list(_DOMAIN_KEYWORDS.items()) + list(_EXTRA_GUIDELINE_HINTS.items()):
+            if any(kw in q for kw in kws):
+                cands.append(cit)
+        # de-dup, keep order
+        seen, out = set(), []
+        for c in cands:
+            if c not in seen:
+                seen.add(c); out.append(c)
+        return out
+
+    def _fn(query: str, limit: int):
+        corpus = get_ich_corpus()
+        out = []
+        for cit in _detect(query)[:limit]:
+            try:
+                r = corpus.verify_citation(cit, query)
+                text = r.top_chunk or ""
+                if not text:
+                    chunks = corpus._load_guideline(cit)  # fallback to first passage
+                    text = (chunks[0][:400] if chunks else "")
+                if text:
+                    out.append({
+                        "citation": cit,
+                        "text": text,
+                        "score": getattr(r, "score", 0.0),
+                        "locator": _GUIDELINE_FILES.get(cit),
+                    })
+            except Exception as exc:  # pragma: no cover
+                log.debug("[grounded.live] verify %s failed: %s", cit, exc)
+        return out
+
+    return _fn
 
 
 def _literature_search_fn() -> Optional[Callable[[str, int], Any]]:
@@ -65,7 +131,13 @@ def build_live_retriever(
     """
     retrievers: List[Retriever] = []
 
-    # Tier A: curated normative/standards pack for the domain.
+    # Tier A (live): BioMate's real ICH/FDA/EMA guideline corpus (if present).
+    reg_fn = _regulatory_search_fn()
+    if reg_fn is not None:
+        retrievers.append(RegulatoryRetriever(reg_fn))
+
+    # Tier A (curated): domain pack — covers guidelines not in the ICH corpus
+    # (e.g. ICH Q3A) and acts as a fallback when the corpus PDFs aren't present.
     try:
         from .domains import get_corpus
         retrievers.append(CorpusRetriever(get_corpus(domain)))

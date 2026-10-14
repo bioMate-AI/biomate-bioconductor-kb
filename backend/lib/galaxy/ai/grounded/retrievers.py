@@ -100,6 +100,48 @@ def literature_item_to_source(item: Dict[str, Any]) -> Optional[Source]:
     )
 
 
+class RegulatoryRetriever(Retriever):
+    """Tier-A normative passages (standards/guidance) via an injected search fn.
+
+    `search_fn(query, limit) -> [ {citation, text, score?, locator?}, ... ]`
+    (or {"results": [...]}). In production this wraps BioMate's existing ICH/FDA/
+    EMA corpus (galaxy.ai.drug_discovery.ich_corpus) — a REAL normative source
+    that today is siloed to IND generation. Each hit becomes a verified Tier-A
+    Source, so a guideline passage outranks literature/notes in the lattice.
+    """
+
+    def __init__(self, search_fn: Callable[..., Any], limit: int = 4):
+        self._search_fn = search_fn
+        self._limit = limit
+
+    def fetch(self, query: str, user: str) -> List[Source]:
+        try:
+            raw = self._search_fn(query, self._limit)
+        except Exception:
+            return []
+        items = raw.get("results") if isinstance(raw, dict) else raw
+        out: List[Source] = []
+        for item in (items or [])[: self._limit]:
+            if not isinstance(item, dict):
+                continue
+            citation = (item.get("citation") or "").strip()
+            text = (item.get("text") or "").strip()
+            if not citation or not text:
+                continue
+            out.append(Source(
+                id=f"reg:{citation}",
+                tier=SourceTier.NORMATIVE_PRIMARY,
+                title=f"{citation} (regulatory guidance)",
+                citation=citation,
+                text=text,
+                owner=None,
+                verified=True,            # the actual controlled guideline text
+                locator=item.get("locator"),
+                keywords=_keywords_from_text(citation, text),
+            ))
+        return out
+
+
 class LiteratureRetriever(Retriever):
     """Tier-B peer-reviewed literature via an injected search function.
 

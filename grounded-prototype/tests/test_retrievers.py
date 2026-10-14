@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 
 from engine import (  # noqa: E402
     ask, CompositeRetriever, CorpusRetriever, LiteratureRetriever,
-    FirmRecordRetriever, literature_item_to_source,
+    RegulatoryRetriever, FirmRecordRetriever, literature_item_to_source,
 )
 from engine.domains import get_corpus  # noqa: E402
 from engine.models import SourceTier  # noqa: E402
@@ -96,6 +96,34 @@ def test_firm_record_is_tenant_scoped():
     a_bob = ask("steam dryness CPV trend batches line 3", user="bob", retriever=retr)
     ids_bob = {s.id for c in a_bob.claims for s in c.supporting}
     assert not any(i.startswith("firm:alice") for i in ids_bob)
+
+
+def _fake_ich_search(query, limit):
+    # shape of the backend ICH-corpus adapter (galaxy.ai.grounded.live)
+    if "mutagenic" in query.lower() or "m7" in query.lower():
+        return [{
+            "citation": "ICH M7",
+            "text": "A TTC-based acceptable intake of 1.5 micrograms per day is "
+                    "applied as a default for a mutagenic impurity, corresponding "
+                    "to a negligible theoretical excess lifetime cancer risk.",
+            "score": 0.8,
+            "locator": "ICH_M7_R2.pdf",
+        }]
+    return []
+
+
+def test_regulatory_source_is_tier_A_and_grounds():
+    from engine.models import SourceTier
+    retr = CompositeRetriever([
+        RegulatoryRetriever(_fake_ich_search),          # Tier A (live guideline)
+        LiteratureRetriever(_fake_literature_search),   # Tier B
+    ])
+    a = ask("Why is the mutagenic impurity limit 1.5 ug/day in ICH M7?",
+            user="alice", retriever=retr)
+    cited = [s for c in a.claims for s in c.supporting]
+    reg = [s for s in cited if s.id.startswith("reg:")]
+    assert reg, "the ICH guideline passage must be retrieved and cited"
+    assert reg[0].tier == SourceTier.NORMATIVE_PRIMARY and reg[0].verified
 
 
 def test_dead_literature_backend_degrades_not_crashes():

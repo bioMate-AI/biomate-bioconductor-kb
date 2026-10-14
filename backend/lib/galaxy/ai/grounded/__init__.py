@@ -16,6 +16,7 @@ from .retrievers import (
     CorpusRetriever,
     CompositeRetriever,
     LiteratureRetriever,
+    RegulatoryRetriever,
     FirmRecordRetriever,
     literature_item_to_source,
 )
@@ -40,6 +41,7 @@ __all__ = [
     "CorpusRetriever",
     "CompositeRetriever",
     "LiteratureRetriever",
+    "RegulatoryRetriever",
     "FirmRecordRetriever",
     "literature_item_to_source",
     "Boundary",
