@@ -138,8 +138,11 @@ test("capture data-hub drill-in (I.5)", async ({ page }) => {
 // Capture the run-dependent after-run report from an EXISTING completed run
 // (no fresh Batch run) via /debug/afterrun/:runId, which mounts the v2
 // AfterRunReport (the MERGED "Results" view) in completed state. Set
-// MANUAL_RUN_ID to a run that has findings + outputs. Default = the ADMET run.
-const RUN_ID = process.env.MANUAL_RUN_ID || "c79a9ccc-2e9b-4fa6-94ce-a3f54aaaa950";
+// MANUAL_RUN_ID to a run that has findings + outputs. Default = a completed ADMET
+// run with READABLE findings (the old c79a9ccc had unreadable outputs → the report
+// showed "Analysis in progress…"; fbd72e81 renders a full Findings Summary + Key
+// Results table + "Download findings", verified 2026-10-13).
+const RUN_ID = process.env.MANUAL_RUN_ID || "fbd72e81-4bb7-488b-9eb8-ff045dad0b3d";
 test("capture after-run report from an existing run (I.6/I.8/I.9)", async ({ page }) => {
   test.setTimeout(150_000);
   await loginAsFixture(page);
