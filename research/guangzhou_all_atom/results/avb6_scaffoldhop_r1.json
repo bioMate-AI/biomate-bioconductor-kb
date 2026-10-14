@@ -1,0 +1,119 @@
+{
+  "round": "scaffold-hop-1",
+  "target": "avb6",
+  "goal": "present RGD.L pharmacophore + turn + chelator handle while EXITING the Cyclo-(Arg-X1-Asp-X2-X3-X4-X5-X6-X7) nonapeptide genus (CA2998968)",
+  "candidates": [
+    {
+      "id": "SH-BCY-01",
+      "chemotype": "bicyclic",
+      "representation": "bicyclo[TBMB](Ac-C-R-G-D-L-A-F-C-G-S-K-G-C-NH2)",
+      "note": "loop1=RGDLAF (avebehexin-like pharmacophore+aromatic flank -> keeps b6 selectivity); loop2=GSKG (Lys handle); TBMB tris-thiol core",
+      "checks": {
+        "RGD": true,
+        "RGDL": true,
+        "handle": true,
+        "turn": true,
+        "genus_exit": true
+      },
+      "pharmacophore_ok": true
+    },
+    {
+      "id": "SH-BCY-02",
+      "chemotype": "bicyclic",
+      "representation": "bicyclo[TBMB](Ac-C-R-G-D-L-A-W-C-S-K-G-C-NH2)",
+      "note": "loop1 Trp flank; loop2 handle",
+      "checks": {
+        "RGD": true,
+        "RGDL": true,
+        "handle": true,
+        "turn": true,
+        "genus_exit": true
+      },
+      "pharmacophore_ok": true
+    },
+    {
+      "id": "SH-BCY-03",
+      "chemotype": "bicyclic",
+      "representation": "bicyclo[TBMB](Ac-C-Y-R-G-D-L-A-Y-C-G-K-G-C-NH2)",
+      "note": "loop1=YRGDLAY (Trivehexin-like pharmacophore); loop2 handle",
+      "checks": {
+        "RGD": true,
+        "RGDL": true,
+        "handle": true,
+        "turn": true,
+        "genus_exit": true
+      },
+      "pharmacophore_ok": true
+    },
+    {
+      "id": "SH-BCY-04",
+      "chemotype": "bicyclic",
+      "representation": "bicyclo[TBMB](Ac-C-R-G-D-L-[dP]-F-C-H-K-S-C-NH2)",
+      "note": "D-Pro turn inside loop1; loop2 handle",
+      "checks": {
+        "RGD": true,
+        "RGDL": true,
+        "handle": true,
+        "turn": true,
+        "genus_exit": true
+      },
+      "pharmacophore_ok": true
+    },
+    {
+      "id": "SH-CYC-01",
+      "chemotype": "short-cyclic",
+      "representation": "cyclo(R-G-D-L-[dP]-[NMeK])",
+      "note": "6-mer (ring size != 9 -> literally outside the nonapeptide claim); keeps RGDL+dPro+NMeK handle; SELECTIVITY RISK (no aromatic flank)",
+      "checks": {
+        "RGD": true,
+        "RGDL": true,
+        "handle": true,
+        "turn": true,
+        "genus_exit": true
+      },
+      "pharmacophore_ok": true
+    },
+    {
+      "id": "SH-CYC-02",
+      "chemotype": "short-cyclic",
+      "representation": "cyclo(R-G-D-L-W-[dK])",
+      "note": "6-mer with one aromatic for partial selectivity; D-Lys handle",
+      "checks": {
+        "RGD": true,
+        "RGDL": true,
+        "handle": true,
+        "turn": true,
+        "genus_exit": true
+      },
+      "pharmacophore_ok": true
+    },
+    {
+      "id": "SH-DEP-01",
+      "chemotype": "depsipeptide",
+      "representation": "cyclo(R-G-D-L-A-F-[dP]-[NMeK]) with the X1(Gly) amide->ESTER (depsi)",
+      "note": "backbone chemistry change at one bond -> not a claimed all-amide peptide; keeps geometry; FORMAT novelty",
+      "checks": {
+        "RGD": true,
+        "RGDL": true,
+        "handle": true,
+        "turn": true,
+        "genus_exit": true
+      },
+      "pharmacophore_ok": true
+    },
+    {
+      "id": "SH-KNO-01",
+      "chemotype": "knottin",
+      "representation": "EETI-II-type cystine-knot, loop1 grafted = ...C-R-G-D-L-A-F-P-C... (3 disulfides)",
+      "note": "distinct ~30-mer scaffold; FLAG: Cochran/Stanford avb6-knottin IP must be cleared separately",
+      "checks": {
+        "RGD": true,
+        "RGDL": true,
+        "handle": false,
+        "turn": true,
+        "genus_exit": true
+      },
+      "pharmacophore_ok": false
+    }
+  ]
+}
