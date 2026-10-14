@@ -40,6 +40,37 @@ function addCitationLinks(text: string): string {
 
   return linkedBody + linkedRefs;
 }
+
+/**
+ * Renders a markdown-embedded figure. If the image fails to load (or has no
+ * src), it shows a VISIBLE labeled placeholder with the alt text and a link to
+ * open the source — never a silent blank gap. The old behaviour set
+ * `display:none` on error, which left a cited figure as a mysterious empty box.
+ */
+function MarkdownFigure({ src, alt }: { src?: string; alt?: string }) {
+  const [errored, setErrored] = useState(false);
+  const label = (alt && alt.trim()) || "Figure";
+  if (!src || errored) {
+    return (
+      <span className="my-2 flex flex-col items-start gap-1 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        <span>🖼 {label} — figure could not be displayed.</span>
+        {src && (
+          <a href={src} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 break-all">
+            Open figure source ↗
+          </a>
+        )}
+      </span>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={alt ?? ""}
+      className="my-2 max-w-full rounded-md border border-border"
+      onError={() => setErrored(true)}
+    />
+  );
+}
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -557,8 +588,8 @@ export function ChatMessage({
                 prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
                 prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
                 prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5
-                prose-code:text-xs prose-code:bg-muted prose-code:px-1 prose-code:rounded
-                prose-pre:bg-muted prose-pre:text-xs prose-pre:overflow-x-auto
+                prose-code:text-xs prose-code:bg-muted prose-code:text-foreground prose-code:px-1 prose-code:rounded
+                prose-pre:bg-muted prose-pre:text-foreground prose-pre:border prose-pre:border-border prose-pre:text-xs prose-pre:overflow-x-auto
                 prose-blockquote:border-l-4 prose-blockquote:pl-3 prose-blockquote:italic prose-blockquote:text-muted-foreground
                 prose-hr:my-3">
                 <ReactMarkdown
@@ -580,17 +611,17 @@ export function ChatMessage({
                         <table className="w-full text-xs" {...props}>{children}</table>
                       </div>
                     ),
-                    img: ({ src, alt, ...props }) => {
-                      if (!src) return null;
-                      return (
-                        <img
-                          src={src}
-                          alt={alt ?? ''}
-                          {...props}
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                        />
-                      );
-                    },
+                    img: ({ src, alt }) => (
+                      <MarkdownFigure src={typeof src === 'string' ? src : undefined} alt={alt} />
+                    ),
+                    // Explicit token-styled quote/callout box so a cited passage
+                    // always shows a visible accent border + readable text (the
+                    // prose default border color can render near-invisible).
+                    blockquote: ({ children }) => (
+                      <blockquote className="my-2 border-l-4 border-primary/60 bg-muted/40 pl-3 pr-2 py-1.5 rounded-r text-foreground/90 not-italic">
+                        {children}
+                      </blockquote>
+                    ),
                   }}
                 >
                   {addCitationLinks(
