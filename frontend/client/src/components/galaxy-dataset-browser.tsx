@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ChevronRight, ChevronLeft, Search, Database, Clock, HardDrive, Link2, Upload, Info, FolderArchive, Lightbulb, Folder } from "lucide-react";
+import { Loader2, ChevronRight, ChevronLeft, Search, Database, Clock, HardDrive, Link2, Upload, Info, FolderArchive, Folder } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SessionDataset {
@@ -178,21 +178,11 @@ function SessionTab({
       </div>
       {uploadError && <p className="text-xs text-destructive px-1">{uploadError}</p>}
 
-      {/* Tips */}
-      <div className="rounded-md border border-muted bg-muted/30 text-xs text-muted-foreground divide-y divide-muted mb-3">
-        <div className="flex gap-2 px-2.5 py-2">
-          <Info className="h-3 w-3 text-blue-500 mt-0.5 shrink-0" />
-          <span><span className="font-medium text-foreground">50 GB limit</span> per local file (chunked S3 multipart with resume) · For data already hosted on S3/HTTP/FTP, switch to the <span className="font-medium text-foreground">From URL</span> tab — no transfer at all.</span>
-        </div>
-        <div className="flex gap-2 px-2.5 py-2">
-          <FolderArchive className="h-3 w-3 text-amber-500 mt-0.5 shrink-0" />
-          <span><span className="font-medium text-foreground">Folders:</span> zip first (<code className="font-mono bg-background/60 px-1 rounded">zip -r data.zip folder/</code>), then upload the <code className="font-mono bg-background/60 px-1 rounded">.zip</code>. Or paste an S3 prefix in From URL.</span>
-        </div>
-        <div className="flex gap-2 px-2.5 py-2">
-          <Lightbulb className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
-          <span><span className="font-medium text-foreground">Accepted:</span> FASTQ, BAM, VCF, FASTA, CSV, H5AD, MRC, ZIP/TAR.GZ, IPYNB, and 40+ more.</span>
-        </div>
-      </div>
+      {/* One-line hint — full limits/formats live in docs, not this dialog */}
+      <p className="flex items-start gap-2 text-[11px] text-muted-foreground px-1 mb-3">
+        <Info className="h-3 w-3 mt-0.5 shrink-0" />
+        <span>Up to 50 GB per file; zip folders first. Already on S3/HTTP/FTP? Use <span className="font-medium text-foreground">From URL</span>.</span>
+      </p>
 
       {datasets.length === 0 && !uploading && (
         <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
@@ -645,15 +635,6 @@ export function GalaxyDatasetBrowser({
           {activeTab === 'url' && (
             <UrlImportForm onImported={(id, name) => { handleSelect(id, name); }} />
           )}
-        </div>
-
-        {/* Footer: 32-ref cap reminder */}
-        <div className="px-4 py-2.5 border-t bg-muted/20 flex items-start gap-2">
-          <Lightbulb className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Up to <strong>32</strong> file references are visible to the AI per conversation.
-            For 33+ files, zip them or use an S3 prefix URL — one reference covers the whole collection.
-          </p>
         </div>
       </DialogContent>
     </Dialog>
