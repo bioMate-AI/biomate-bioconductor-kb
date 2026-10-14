@@ -3754,8 +3754,11 @@ export function NextflowWorkflowViewer({
                   onOpenChange={(open) => { if (!open) setFullViewStep(null); }}
                 >
                   <DialogContent
-                    className="w-[calc(100vw-2rem)] max-w-3xl min-w-0 p-0 gap-0 border-0 bg-transparent shadow-none [&>button]:hidden"
-                    data-testid="full-step-view-dialog"
+                    /* Full step view is a PANEL, not a centered pop-up (design spec 08):
+                       a full-height side panel anchored right, overriding the shadcn
+                       centered modal positioning. StepDetail provides its own back/close. */
+                    className="!left-auto !right-0 !top-0 !translate-x-0 !translate-y-0 h-screen max-h-screen w-[min(960px,96vw)] max-w-none min-w-0 p-0 gap-0 border-0 border-l bg-background shadow-xl rounded-none overflow-y-auto [&>button]:hidden"
+                    data-testid="full-step-view-panel"
                   >
                     <VisuallyHidden>
                       <DialogTitle>{tOr('panel.full_step_view_title', 'Full step view: {{name}}', { name: fullViewStep.name })}</DialogTitle>
