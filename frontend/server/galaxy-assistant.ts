@@ -1259,12 +1259,33 @@ export async function groundInlineParameters(args: {
  * `Record<string, string>` consumer (workflow form pre-fill) accepts them.
  * The form's multi-value renderer splits on comma for list-typed params.
  */
+// Strip a composite dataset-ref value down to its leading id/uri token.
+// An uploaded/attached file sometimes reaches a dataset/id param as the whole
+// uploaded-dataset context entry ("<id>, s3_uri=<uri>" / "<id>, galaxy_dataset_id=<gid>",
+// sometimes with a trailing "]" from the "[Uploaded datasets: …]" block) instead of
+// a single clean token — the cryo "Dataset Id" leak. The composite is malformed for
+// the executor anyway (nothing parses it; BioMate stages id→S3 at execute time), so
+// keeping only the leading token fixes display and downstream resolution alike.
+// Shared single source of truth: used both here (the emitted inlineParameters map the
+// viewer merges into `params` as the top-precedence userValue) and by the workflow_ga
+// value/default normalization at the generate chokepoint.
+export function normalizeCompositeDatasetRef(v: unknown): unknown {
+  if (typeof v !== 'string') return v;
+  const m = v.match(/^\s*(\S+?)\s*,\s*(?:s3_uri|galaxy_dataset_id|dataset_id|name)=/);
+  return m ? m[1] : v;
+}
+
 function stringifyParamValues(
   params: Record<string, string | string[]>,
 ): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(params)) {
-    out[k] = Array.isArray(v) ? v.join(',') : String(v);
+    const s = Array.isArray(v) ? v.join(',') : String(v);
+    const n = normalizeCompositeDatasetRef(s);
+    if (n !== s) {
+      console.log(`[GalaxyAssistant] NormalizeComposite inlineParam ${k}: "${s.slice(0, 60)}" → "${String(n).slice(0, 60)}"`);
+    }
+    out[k] = String(n);
   }
   return out;
 }
@@ -7994,11 +8015,7 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       // (the gate validates step-bound `inputs`, a separate structure, not this value).
       {
         const _wfGaN: any = (response as any).workflow_ga || (response as any);
-        const _normComposite = (v: unknown): unknown => {
-          if (typeof v !== 'string') return v;
-          const m = v.match(/^\s*(\S+?)\s*,\s*(?:s3_uri|galaxy_dataset_id|dataset_id|name)=/);
-          return m ? m[1] : v;
-        };
+        const _normComposite = normalizeCompositeDatasetRef;
         // Normalize EVERY value-bearing field, not just `value`. The viewer's
         // display precedence is userValue → p.value → p.default → "" (and it also
         // surfaces p.defaultValue), so a composite that lands in `default` while
