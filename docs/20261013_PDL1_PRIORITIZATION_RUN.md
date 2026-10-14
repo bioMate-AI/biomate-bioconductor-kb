@@ -87,3 +87,17 @@ Both occupy the real PD-1-binding hydrophobic groove (not an off-surface artifac
 ## PD-L2 counter-score (P4) — in progress
 Cofold `cofold-v2-pdl2-20261014T035108Z` (PD-L2 IgV, Q9BQ51) of K-05 + G1-09; MM-GBSA to follow. Selectivity =
 ΔG(PD-L1) − ΔG(PD-L2); want PD-L1 clearly stronger. Results appended when the run completes.
+
+## PD-L2 counter-score (P4) — DONE (2026-10-14): K-05 selective, G1-09 fails
+Selectivity = ΔG(PD-L1) − ΔG(PD-L2); more negative = more PD-L1-selective. (`results/pdl1_pdl2_counter_mmgbsa.json`)
+| candidate | PD-L1 ΔG | PD-L2 ΔG | gap | ipTM PD-L1→PD-L2 | PD-L2 contacts | verdict |
+|---|---|---|---|---|---|---|
+| PDL1-K-05 | −39.86 | −24.59 | **−15.3** | 0.97→0.37 | 18→11 | **PASS — PD-L1-selective** |
+| PDL1-G1-09 | −30.26 | −25.90 | −4.4 (noise) | 0.97→0.63 | 16→18 | **FAIL — not selective vs PD-L2** |
+
+## FINAL verdict — one fully-gated lead
+**PDL1-K-05** clears every gate: top PD-L1 ΔG (−39.86), cleanest developability (0 × 2Nal, meanH 0.60),
+93% groove occupancy vs the validated control pose, and ~15 kcal/mol PD-L1-over-PD-L2 selectivity on three
+independent signals. **Order K-05.** G1-09 is dropped on selectivity (its PD-L1 binding is real — a redesign
+candidate, not an order candidate). Caveats stand: relative (not absolute) ΔG on canonical-backbone approx;
+confirm K-05 by PD-1/PD-L1 competition + a PD-L2 counter-assay (and FEP if desired) before trusting magnitudes.
