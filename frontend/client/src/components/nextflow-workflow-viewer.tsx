@@ -2922,11 +2922,11 @@ export function NextflowWorkflowViewer({
                         return (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0', borderBottom: i < qcGateData.failures.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
                             <span style={{ flex: 1, fontSize: 12, color: 'var(--text-2)' }}>{fail.metric}</span>
-                            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: 'var(--red, #dc2626)', fontSize: 13 }} data-testid="qc-gate-measured">
+                            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: 'var(--err)', fontSize: 13 }} data-testid="qc-gate-measured">
                               {typeof fail.value === 'number' ? fail.value.toFixed(fail.value < 10 ? 2 : 0) : fail.value}
                             </span>
                             <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>{fail.operator}</span>
-                            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--green, #16a34a)', fontSize: 13 }} data-testid="qc-gate-threshold">
+                            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--ok)', fontSize: 13 }} data-testid="qc-gate-threshold">
                               {typeof fail.threshold === 'number' ? fail.threshold.toFixed(fail.threshold < 10 ? 2 : 0) : fail.threshold}
                             </span>
                           </div>
@@ -2994,7 +2994,7 @@ export function NextflowWorkflowViewer({
                 {allMetrics.map((m: any, i: number) => (
                   <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, padding: '3px 0', borderBottom: i < allMetrics.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
                     <span style={{ flex: 1, color: 'var(--text-2)' }}>{m.name}</span>
-                    <span style={{ fontVariantNumeric: 'tabular-nums', color: m.pass ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
+                    <span style={{ fontVariantNumeric: 'tabular-nums', color: m.pass ? 'var(--ok)' : 'var(--err)', fontWeight: 600 }}>
                       {typeof m.measured === 'number' ? m.measured.toFixed(m.measured < 10 ? 2 : 0) : m.measured}
                       {m.unit ? ` ${m.unit}` : ''}
                     </span>

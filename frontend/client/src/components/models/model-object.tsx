@@ -21,9 +21,10 @@ import type { ModelDetail, ModelGate } from "./types"
 
 // ── verdict → colour ─────────────────────────────────────────────────────────
 function verdictColor(verdict: string): string {
-  if (verdict === "pass") return "#22c55e"
-  if (verdict === "fail") return "#ef4444"
-  return "#94a3b8" // not_evaluated / unknown
+  // Design tokens (global --bm-* oklch, dark-adaptive) instead of fixed Tailwind hex.
+  if (verdict === "pass") return "var(--bm-ok)"
+  if (verdict === "fail") return "var(--bm-err)"
+  return "var(--bm-text-dim)" // not_evaluated / unknown
 }
 
 function GateVerdict({ verdict }: { verdict: string }) {

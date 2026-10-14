@@ -483,9 +483,9 @@ export function ChatMessage({
     >
       {/* Who label — "YOU · 3:40 PM" or "BIOMATE + speaker pill" */}
       <div className="who" style={{
-        fontSize: 11, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
-        textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600,
-        fontFamily: 'var(--bm-font-ui)',
+        fontSize: 9.5, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
+        letterSpacing: '0.13em', fontWeight: 600,
+        fontFamily: 'var(--bm-font-mono)',
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
         {isUser ? `You${timeLabel ? ` · ${timeLabel}` : ''}` : (

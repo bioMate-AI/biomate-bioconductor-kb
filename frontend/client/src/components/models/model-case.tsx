@@ -38,10 +38,10 @@ import type {
 
 // ── verdict → colour (matches model-object.tsx) ──────────────────────────────
 function verdictColor(verdict: string): string {
-  if (verdict === "pass") return "#22c55e"
-  if (verdict === "fail") return "#ef4444"
-  if (verdict === "flag") return "#f59e0b"
-  return "#94a3b8" // not_evaluated / unknown
+  if (verdict === "pass") return "var(--bm-ok)"
+  if (verdict === "fail") return "var(--bm-err)"
+  if (verdict === "flag") return "var(--bm-warn)"
+  return "var(--bm-text-dim)" // not_evaluated / unknown
 }
 
 function VerdictBadge({ verdict }: { verdict: string }) {
@@ -211,7 +211,7 @@ export function ModelCase({
                   data-status={s.status}
                 >
                   <span className="inline-block h-1.5 w-1.5 rounded-full"
-                    style={{ background: s.status === "done" ? "#22c55e" : "#cbd5e1" }} />
+                    style={{ background: s.status === "done" ? "var(--bm-ok)" : "var(--bm-border-strong)" }} />
                   {s.label}
                   {s.status === "waiting" && <span className="italic"> · waiting</span>}
                 </Badge>
