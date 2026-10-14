@@ -120,3 +120,32 @@ Root-cause diagnosis of the execution gaps (read-only, via fixture `/api/workflo
 3. Harness bug fixed in `9721a9ad0`: `waitForFunction(fn, {timeout})` → `waitForFunction(fn, null, {timeout})` (timeout was being passed as the page-fn arg, silently capped at the 60s actionTimeout).
 
 **GPU domains held for explicit go:** cryo-EM, structural-biology/AlphaFold, histology nuclei-seg. **No self-contained CPU demo located:** metagenomics, multi-omics.
+
+## Re-score (2026-10-13) — after the re-capture passes
+
+Re-ran the 3-model committee on the **36 re-captured assets** (`research/screenshot_committee/rescore.py` → `results/rescore_raw.json` + `rescore_aggregated.json`).
+
+**Validity note (important):** the FIRST re-score run scored **35/36 major** — a *measurement artifact*, not real regressions. Two systematic false-positive sources, both now fixed:
+1. The rubric wrongly declared **"Download report" stale**. It is a *legitimate separate* comprehensive-report button that coexists with "Download findings" — so every after-run shot was falsely majored. Rubric corrected (`review.py`).
+2. Several **manual alt-text captions were stale** relative to the (correct) re-captured images (e.g. t3-2 "findings withheld" vs. the now-populated findings; r2/r6 tab attributions). Corrected intended-states passed via `CONTEXT_OVERRIDE` (`rescore.py`). Contaminated v1 preserved as `rescore_raw_v1_contaminated.json`.
+
+**Corrected tally: 9 minor · 27 major** (down from the contaminated 35/36).
+
+**Dropped first-pass major → now minor (artifacts resolved, 9):** `t7-2-members-roles`, `t3-2-after-run-summary`, `t3-4-after-run-reproducibility`, `i09-1-three-tabs`, `i09-2-reproducibility-record`, `i11-3-multi-objective`, `t11-2-design-candidates`, `t10-1-dataset-preview`, `t6-1-instruments-tab`.
+
+**Still major — classified honestly (27):**
+
+*(a) Real UI/content bugs — actionable:*
+- `r2-running`, `w1-1-phases` — **broken/missing icon placeholders (empty squares) next to the "Running" badge** in the panel header (real render bug on the running state).
+- `domain-cryo-em-prerun` — **raw string/object leaking into the "Dataset Id" field** (concatenated identifier/URI).
+- `w3-1-step-row` — **step row localized in Chinese** in the EN manual (i18n leak).
+- `r6-reproducibility` — raw unstyled `runId: …` text above the header + all SHA-256 cells show a dash (both `/debug/afterrun` capture artifacts; checksums are on-demand).
+
+*(b) Wrong state — re-capture needed:*
+- `w1-1-phases` (progress 0/2 — catch one step DONE while another RUNNING), `i05-0-data-hub` (open a result CSV, not `counts_matrix.csv`), `t7-0-project-overview` (the true project overview, not the Instructions page), `t10-2-dataset-lineage` (a run-OUTPUT dataset with "Produced by run" + Status row), `i12-1-connectors-dialog` (the Connectors **dialog-table** with scope selectors + the A5 residency row, not the `/settings/connections` card page).
+
+*(c) Crop / margin / whitespace / fixture-pollution polish (minor dressed as major):* `s1-1-sidebar`, `r5-outputs`, `t3-3-after-run-outputs`, `i08-1-outputs-tab`, `r1-prerun-param-strip`, `t3-1-workflow-panel`, `w1-2-workflow-settings`, `t10-4-dataset-versions`, `t7-1-standing-instructions`, `w3-2-fullstep-provenance`.
+
+*(d) Accepted limitation — prerun-only domains (8 `domain-*-prerun`):* these are intentionally pre-run only (the pipelines aren't deployed on dev, per the approved plan). Residual nits: plural "1 steps", truncated analysis-plan preview text, "background-running claim vs confirmation state" inconsistency; several are also flagged "unreferenced — attach to a page or remove".
+
+**Bottom line:** the re-captures **did** clear the redesign-staleness (merged Results / Download findings / 3-tab nav) and the fixture-pollution/low-res issues that drove the first pass. The honest residual is a **handful of real UI bugs** (running-badge icons, cryo dataset-Id leak, w3-1 Chinese, r6 debug-route chrome), **~5 wrong-state re-captures**, **~10 crop/polish nits**, and the **accepted prerun-only domain limitation** — not a wall of regressions.
