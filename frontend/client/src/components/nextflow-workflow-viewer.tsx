@@ -12,7 +12,7 @@ import { StepAdjustModal } from "./step-adjust-modal";
 import { StepDetail, type StepDetailStep } from "./steps/step-detail";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward, FolderOpen, Database } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward, FolderOpen, Database, Maximize2, Minimize2, Ban } from "lucide-react";
 import { useLocation } from 'wouter';
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
@@ -2644,7 +2644,7 @@ export function NextflowWorkflowViewer({
                 {panelSub && <div className="panel-sub">{panelSub}</div>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                {onToggleExpand && <button type="button" className="iconbtn" aria-label={expanded ? 'Restore split view' : 'Expand workflow panel'} onClick={onToggleExpand} data-testid="workflow-panel-expand"><Square style={{ width: 13, height: 13 }} /></button>}
+                {onToggleExpand && <button type="button" className="iconbtn" aria-label={expanded ? 'Restore split view' : 'Expand workflow panel'} onClick={onToggleExpand} data-testid="workflow-panel-expand">{expanded ? <Minimize2 style={{ width: 13, height: 13 }} /> : <Maximize2 style={{ width: 13, height: 13 }} />}</button>}
                 {onClose && <button type="button" className="iconbtn" aria-label="Close workflow panel" data-testid="workflow-panel-close" onClick={onClose}><span aria-hidden style={{ fontSize: 20, lineHeight: 1 }}>×</span></button>}
                 {projectId && (
                   <button
@@ -2686,8 +2686,8 @@ export function NextflowWorkflowViewer({
                   />
                 )}
                 {(status === 'running' || status === 'paused') && (
-                  <button className="iconbtn" data-testid="button-cancel-workflow-panel" onClick={onCancel} title={t('actions.cancel')}>
-                    <Square style={{ width: 14, height: 14 }} />
+                  <button className="iconbtn" data-testid="button-cancel-workflow-panel" onClick={onCancel} title={t('actions.cancel')} aria-label={t('actions.cancel')}>
+                    <Ban style={{ width: 14, height: 14 }} />
                   </button>
                 )}
               </div>

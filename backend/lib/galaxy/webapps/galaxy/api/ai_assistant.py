@@ -4036,10 +4036,23 @@ def generate_workflow_unified(
                 )
 
             # Process parameter recommendations
+            # Guardrail (CLAUDE.md extraction: rules + LLM + validation): the LLM
+            # sometimes copies a whole uploaded-dataset context entry
+            # ("<id>, s3_uri=<uri>" / "<id>, galaxy_dataset_id=<gid>") into a
+            # dataset/id param instead of just the value, which then renders as a
+            # raw serialized object in the field (e.g. cryo "Dataset Id"). Keep
+            # only the leading id/uri token, dropping the trailing ", key=..." metadata.
+            def _normalize_param_value(v):
+                if isinstance(v, str):
+                    m = re.match(r'^\s*(\S+?)\s*,\s*(?:s3_uri|galaxy_dataset_id|dataset_id|name)=', v)
+                    if m:
+                        return m.group(1)
+                return v
             param_recommendations = {}
             for param_data in result.get('generated_parameters', []):
                 if param_data.get('parameters'):
                     for param_name, param_value in param_data['parameters'].items():
+                        param_value = _normalize_param_value(param_value)
                         param_recommendations[f"{param_data['tool_id']}:{param_name}"] = ParameterRecommendationModel(
                             parameter_name=param_name,
                             recommended_value=param_value,
