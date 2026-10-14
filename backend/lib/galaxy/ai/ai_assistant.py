@@ -3958,6 +3958,75 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             'needsWorkflowGeneration': False,
         }
 
+    def _try_fast_path_protein_structure(  # noqa: deploy-trigger
+        self,
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Route to nf-core/proteinfold when an amino-acid sequence is detected in the query.
+
+        Triggers purely on sequence content — regardless of whether the user calls it
+        'DNA', 'protein', or anything else — so routing is deterministic and
+        chai1_structure_prediction cannot win the LLM lottery.
+
+        The detected sequence is injected as the `sequence` param suggestion so the
+        frontend renders it pre-filled without the user having to copy-paste again.
+        """
+        import re as _re_prot
+
+        _AA_CHARS = r'[ACDEFGHIKLMNPQRSTVWYBZXUacdefghiklmnpqrstvwyb]'
+        _best_seq: Optional[str] = None
+        _best_len = 0
+        for _m in _re_prot.finditer(rf'\b({_AA_CHARS}{{15,}})\b', user_intent):
+            if len(_m.group(1)) > _best_len:
+                _best_seq = _m.group(1).upper()
+                _best_len = len(_best_seq)
+
+        if not _best_seq:
+            return None
+
+        # Only route here if the query is NOT clearly about nucleotide analysis
+        # (e.g. "align to reference genome", "variant calling") — those also match AA regex.
+        _nucleotide_only_kw = ('variant call', 'snp', 'indel', 'vcf', 'genome align', 'bwa',
+                               'bowtie', 'gatk', 'samtools', 'fastq', 'methylat')
+        _low = user_intent.lower()
+        if any(kw in _low for kw in _nucleotide_only_kw):
+            return None
+
+        top = self.workflow_search.get_workflow_by_filename_pattern('nfcore/proteinfold/main.nf')
+        if not top:
+            log.warning("[ProteinStructureFastPath] proteinfold not found in DB — skipping")
+            return None
+
+        log.info(
+            "[UnifiedWorkflowGeneration] protein-structure fast path → proteinfold "
+            "(seq_len=%d, workflow_id=%d)",
+            _best_len,
+            top.id,
+        )
+        result = self._return_nextflow_match(
+            match=top,
+            score=top.score,
+            user_intent=user_intent,
+            source='template_reuse',
+            needs_user_feedback=False,
+            search_results=[top],
+            selected_trial='',
+            trials=[],
+            uploaded_datasets=uploaded_datasets,
+        )
+        # Inject sequence into all sequence-type required params so the frontend
+        # renders them pre-filled (same logic as _extract_explicit_params_from_query
+        # but applied post-routing so the correct param list is available).
+        if result and result.get('workflow_ga'):
+            _wf = result['workflow_ga']
+            for _p in _wf.get('required_params', []) + _wf.get('optional_params', []):
+                if self._detect_param_type(_p.get('name', ''), '') == 'sequence' \
+                        and not _p.get('value'):
+                    _p['value'] = _best_seq
+                    _p['default'] = _best_seq
+        return result
+
     def _try_fast_path_nfcore_pipeline(  # noqa: deploy-trigger
         self,
         user_intent: str,
@@ -4156,6 +4225,16 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 _fast_geo = None
             if _fast_geo:
                 return _fast_geo
+
+            try:
+                _fast_prot = self._try_fast_path_protein_structure(
+                    user_intent, uploaded_datasets=uploaded_datasets
+                )
+            except Exception as _fp_exc:
+                log.error("[ProteinStructureFastPath] Unexpected exception: %s", _fp_exc, exc_info=True)
+                _fast_prot = None
+            if _fast_prot:
+                return _fast_prot
 
             _fast_nfcore = self._try_fast_path_nfcore_pipeline(
                 user_intent, uploaded_datasets=uploaded_datasets
