@@ -138,6 +138,14 @@ source instrument, the experiment type, and the workflow it maps to. For each ev
 > **Who does what.** You register the instrument and act on events; an admin wires up the on-network connector
 > once; BioMate watches for new data, surfaces it, and runs only what you confirm.
 
+> **What you can run once connected (an immunology / rheumatology lab).** A flow cytometer's `.fcs` exports
+> feed the flow-cytometry workflows — `flowcore` (compensation + gating) or
+> `analyze_flow_cytometry_immunophenotyping` (marker-positive subsets, e.g. CD-marker⁺ B/NK cells); an ELISA
+> plate reader's OD tables feed `analyze_ebv_antibody_titers` (standard-curve fit → titers by group — try the
+> cold-start **"EBV antibody titers (ELISA)"** example first, it runs on built-in demo data); LC-MS feeds the
+> proteomics / metabolomics workflows. See **I.14 → "Worked example — from a bench instrument to an immunology
+> readout"** for the full instrument → analysis path.
+
 ---
 
 ## 7. Honest limits — what to expect

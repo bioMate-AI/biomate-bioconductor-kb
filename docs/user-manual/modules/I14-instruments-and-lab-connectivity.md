@@ -97,6 +97,30 @@ file → `/api/instruments/new-data` → an `instrument_events` row (and, via th
 an S3 upload + Galaxy dataset). The provenance of anything that reaches a workflow is then recorded the same
 way as any other run (see I.7 / I.9).
 
+### Worked example — from a bench instrument to an immunology readout
+
+Tie the connector to a real analysis use case — what a rheumatology/immunology lab actually does:
+
+- **Flow cytometer → immunophenotyping.** The `flow_cytometer` watcher settles each `.fcs` export and POSTs
+  it to `/api/instruments/new-data` → an `instrument_events` row (and, via the Unified Instrument Service, an
+  S3 upload + a Galaxy dataset). That FCS dataset feeds the catalog's flow-cytometry workflows — **`flowcore`**
+  (compensation → fluorescence transform → manual gating; real-execution-verified) or
+  **`analyze_flow_cytometry_immunophenotyping`** (a gating strategy → marker-positive population
+  quantification, e.g. CD-marker⁺ B-cell / NK subsets). The chat-driven analysis half is live today; the
+  automatic instrument→dataset hop is the admin-deployed watcher above.
+- **ELISA plate reader → soluble-ligand titers.** The `plate_reader` connector lands OD tables;
+  **`analyze_ebv_antibody_titers`** fits a standard curve and quantifies titers across sample groups — the
+  same soluble-protein-ELISA → titer → group-comparison pattern used for soluble checkpoint-ligand
+  biomarkers. It is self-contained on its built-in demo data: try the cold-start **"EBV antibody titers
+  (ELISA)"** example before wiring a real plate reader.
+- **LC-MS → proteomics / metabolomics.** The `lcms` watcher lands `.mzML/.raw`; the proteomics/metabolomics
+  workflows (e.g. `metaboanalystr`) take it from there.
+
+> **Honest split.** The *analysis* workflows are in the catalog and runnable from chat today; the *automatic
+> instrument → dataset* ingestion is the admin-deployed watcher (no in-app instrument registry yet — see
+> "What's not covered"). For a demo, drive the analysis from a cold-start example; for a production lab, an
+> admin stands up the watcher so exports flow in without manual upload.
+
 ## Pitfalls & tips
 
 > **Pitfall — the Connectors dialog is not the instrument surface.** I.12's dialog manages databases and

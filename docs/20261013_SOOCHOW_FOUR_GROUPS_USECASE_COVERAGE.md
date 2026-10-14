@@ -78,3 +78,19 @@ BioMate's `INSTRUMENT_TYPES` (`frontend/shared/schema.ts`) and real connectors (
 
 ## Next step
 If you want the gaps closed (not just audited), the top two — a **flow-cytometry** and a **plate-reader/ELISA** cold-start example + runnable workflow, plus the **instrument demonstration** — would make the manual/demo fully cover these four groups' use cases. Flag and I will scope them.
+
+---
+
+## Update (2026-10-13) — gaps addressed
+
+**Correction to the audit:** the analysis *capability* was NOT missing — it is already in the catalog. The real gap was a cold-start *demo example* + the instrument→analysis story. Workflows found:
+- **Flow cytometry:** `flowcore` (id 11393, bioconductor) — **real-execution-verified (`ok_warnings`, produced 3 outputs)**: FCS → compensation → transform → gating. Plus `analyze_flow_cytometry_immunophenotyping` (10612, cell_biology): gating strategy → marker-positive population quantification (CD-marker⁺ subsets — exactly the Liu Cuiping readout).
+- **ELISA / soluble-ligand:** `analyze_ebv_antibody_titers` (10694, immunology) — standard-curve fit → titer quantification by group; **fully self-contained on built-in demo data** (OD + standard curve + EBV+/active/− groups as default params). Also `Dose Response` (10565) and `hts_plate_qc_hit_calling` (12882) for plate-reader QC/curves.
+
+**Done (committed, not synced):**
+1. **ELISA cold-start example added** — `PREPARED_EXAMPLES` in `cold-start-examples.ts`: "EBV antibody titers (ELISA)" → `analyze_ebv_antibody_titers`, param-only / built-in data (self-contained like the ADMET + metaboanalystr examples). Demonstrates the soluble-protein-ELISA → titer → group-comparison method.
+2. **Instrument → analysis worked example** added to `I14` ("Worked example — from a bench instrument to an immunology readout") and a pointer in `T6` §6: flow cytometer→`flowcore`/immunophenotyping, plate reader→`analyze_ebv_antibody_titers`, LC-MS→proteomics/metabolomics — honest about the connector (admin-deployed watcher) vs the analysis (live from chat).
+
+**Remaining follow-up (needs a dev run / small fix — not done here):**
+- **Flow-cytometry cold-start example not yet added as wire-ready.** The FCS demo file exists in-repo (`backend/biomni_workflows/sample_data/flow_cytometry/Accuri_C6_A01_H2O.fcs`), but `analyze_flow_cytometry_immunophenotyping`'s default `fcs_file_path` is a **developer-local absolute path** (`/home/yzhang/biomate/backend/lib/galaxy/datatypes/test/Accuri_C6_A01_H2O.fcs`) that will not resolve on dev. The one-line fix is to repoint that default to the deployed `sample_data/flow_cytometry/` path (or stage the FCS where the executor resolves it), then add the cold-start "flow-cytometry immunophenotyping" example and verify E2E on dev. Left undone because editing an executed subworkflow's default without a dev test is unsafe from a no-sync fork.
+- **E2E verification of the ELISA example** on dev pending a sync (param-only → high confidence it dispatches, like ADMET).
