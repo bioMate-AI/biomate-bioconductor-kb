@@ -242,7 +242,7 @@ function buildDeck(L, isCN, outFile) {
   // ---- Slide 7: product UI — bullets + screenshot ----
   s = p.addSlide(); s.background = { color: C.bg }; kicker(s,7); title(s, L.s7t);
   bulletsLeft(p, s, L.s7, 6.0);
-  try { s.addImage({ path: ASSETS + "/i09-1-three-tabs.png", x: 7.0, y: 1.7, w: 5.6, h: 3.9, sizing: { type: "contain", w: 5.6, h: 3.9 } });
+  try { s.addImage({ path: ASSETS + "/rnaseq-results.png", x: 7.0, y: 1.7, w: 5.6, h: 3.9, sizing: { type: "contain", w: 5.6, h: 3.9 } });
         s.addText(isCN?"合并的「结果」报告 — 发现 + 输出 + 可复现记录":"The merged Results report — findings + outputs + record",
           { x: 7.0, y: 5.65, w: 5.6, h: 0.3, fontFace: FF, fontSize: 10, italic: true, color: C.slate, align: "center", isTextBox: true, margin: 0 }); } catch(e){}
 
