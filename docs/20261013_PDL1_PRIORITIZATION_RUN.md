@@ -73,3 +73,17 @@ developability/hydrophobicity guard (A10) — the di-2Nal candidates are greasy 
 Revised order (`docs/20261014_PDL1_ORDER.xlsx`): **K-05 + G1-09** advance, **G1-06** optional, di-2Nal dropped.
 Review's P3-handle objection rejected (stale radioligand premise). Still pending before final commit (P1/P2/P4):
 per-pose groove-occupancy check + PD-L2 counter-score.
+
+## Groove-occupancy check (P2, 2026-10-14) — PASS for both advance candidates
+Metric: the native control pose (5O45 peptide-71) defines the validated PD-1-binding groove = the 15 receptor
+residues it contacts (ILE38,TYR40,TRP41,GLU42,ASN47,ILE48,ILE49,GLN50,VAL60,MET99,ILE100,SER101,ALA105,ASP106,TYR107).
+Overlap of each candidate's receptor-contact set with that groove (poses from the 5o45 cofold):
+| candidate | groove overlap | aromatics buried | verdict |
+|---|---|---|---|
+| PDL1-K-05 | 14/15 = **93%** | 2/3 | binds the same groove as the known binder — clean |
+| PDL1-G1-09 | 11/15 = **73%** | 2/2 | genuinely in the groove, slightly less complete |
+Both occupy the real PD-1-binding hydrophobic groove (not an off-surface artifact). P2 (pose) satisfied.
+
+## PD-L2 counter-score (P4) — in progress
+Cofold `cofold-v2-pdl2-20261014T035108Z` (PD-L2 IgV, Q9BQ51) of K-05 + G1-09; MM-GBSA to follow. Selectivity =
+ΔG(PD-L1) − ΔG(PD-L2); want PD-L1 clearly stronger. Results appended when the run completes.
