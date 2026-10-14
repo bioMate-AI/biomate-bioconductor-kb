@@ -1,0 +1,60 @@
+{
+  "round": "avb6-monocyclic-scaffold-hop",
+  "note": "monocyclic is viable; only the head-to-tail 9-mer genus is excluded. Ranked by structural distance from the claim (DoE risk).",
+  "candidates": [
+    {
+      "id": "SH-M7-01",
+      "representation": "cyclo(R-G-D-L-F-[dP]-[NMeK])",
+      "route": "ring-size (7-mer)",
+      "genus_exit_basis": "7 residues != claimed 9 (and != 8=Triveoctin beta8)",
+      "DoE_risk": "MED",
+      "note": "drops one flank -> partial selectivity; keeps RGDL+turn+NMeK handle",
+      "head_to_tail_9mer": false
+    },
+    {
+      "id": "SH-M11-01",
+      "representation": "cyclo(S-G-R-G-D-L-A-F-[dP]-[NMeK]-G)",
+      "route": "ring-size (11-mer)",
+      "genus_exit_basis": "11 residues != 9; extra residues for selectivity/solubility",
+      "DoE_risk": "MED",
+      "note": "keeps full RGDLAF pharmacophore+flank",
+      "head_to_tail_9mer": false
+    },
+    {
+      "id": "SH-SL-01",
+      "representation": "H-[Glu*]-R-G-D-L-A-F-[dP]-K-[Lys*]-OH ; macrocycle = Glu*-Lys* SIDE-CHAIN LACTAM",
+      "route": "cyclization-topology (side-chain lactam)",
+      "genus_exit_basis": "ring formed by a side-chain amide, NOT head-to-tail backbone -> not a 'Cyclo-(Arg..)' head-to-tail peptide",
+      "DoE_risk": "LOW-MED",
+      "note": "separate Lys = chelator handle; keeps full RGDLAF",
+      "head_to_tail_9mer": false
+    },
+    {
+      "id": "SH-SL-02",
+      "representation": "Ac-[Asp*]-R-G-D-L-A-W-[dP]-[Dab*]-K-NH2 ; macrocycle = Asp*-Dab* side-chain lactam",
+      "route": "cyclization-topology (side-chain lactam)",
+      "genus_exit_basis": "side-chain-bridged macrocycle, not head-to-tail",
+      "DoE_risk": "LOW-MED",
+      "note": "Trp flank; Lys handle outside ring",
+      "head_to_tail_9mer": false
+    },
+    {
+      "id": "SH-SS-01",
+      "representation": "Ac-C-R-G-D-L-A-F-[dP]-C-K-NH2 ; macrocycle = Cys-Cys DISULFIDE",
+      "route": "cyclization-topology (disulfide)",
+      "genus_exit_basis": "disulfide macrocycle, not head-to-tail amide",
+      "DoE_risk": "LOW-MED",
+      "note": "note: disulfide = a developability/reduction liability; Lys handle",
+      "head_to_tail_9mer": false
+    },
+    {
+      "id": "SH-NCAA-01",
+      "representation": "cyclo([2Nal]-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+      "route": "ncAA flanks (still 9-mer head-to-tail)",
+      "genus_exit_basis": "flank residues (2Nal) outside the enumerated X4/X7 canonical lists",
+      "DoE_risk": "HIGH",
+      "note": "closest to the claim -> highest DoE risk; weakest escape (noted for completeness)",
+      "head_to_tail_9mer": true
+    }
+  ]
+}
