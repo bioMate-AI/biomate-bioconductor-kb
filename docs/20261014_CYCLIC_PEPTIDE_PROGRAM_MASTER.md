@@ -36,8 +36,9 @@ Gate catalog (αvβ6 H1–H9 hard gates, PD-L1 P1–P5, cross-cutting X, additio
   di-2Nal greasy artifacts; groove PASS (K-05 93%, G1-09 73%); **PD-L2 selectivity: K-05 PASS (−15 kcal/mol gap),
   G1-09 FAIL (−4.4).** → **K-05 = single fully-gated lead.** `20261013_PDL1_PRIORITIZATION_RUN.md`, `20261014_PDL1_ORDER.xlsx`.
 - **G2 (24)** [to extend the order]: hard developability pre-filter (K-05 analogs + fresh). Cofold 24/24;
-  MM-GBSA 24/24 (F05 −36 beats control); groove **8/8 strong tier PASS (60–80%)**; **PD-L2 counter-screen RUNNING**
-  on the 8 → survivors extend the order. `pdl1_g2_*.json`.
+  MM-GBSA 24/24 (F05 −36 beats control); groove **8/8 strong tier PASS (60–80%)**; **PD-L2 selectivity: 0/8 PASS**
+  — all bind PD-L2 as well or better (pan / PD-L2-preferring). **Order stays at K-05** (only selective lead G1+G2).
+  `pdl1_g2_*.json`. **Finding: PD-L1/PD-L2 selectivity is the bottleneck, not affinity/developability.**
 - **Factors that actually decided it:** developability (2Nal/Trp hydrophobicity artifacts), groove occupancy,
   and PD-L2 selectivity gap. ΔG alone was not trusted (over-rewards greasy burial).
 
