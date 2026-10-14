@@ -78,8 +78,9 @@ class Handler(BaseHTTPRequestHandler):
             self._send(400, {"error": "'question' is required"})
             return
         user = data.get("user") or "anonymous"
+        domain = data.get("domain") or None
         try:
-            answer = ask(question, user=user)
+            answer = ask(question, user=user, domain=domain)
             self._send(200, to_dict(answer))
         except Exception as exc:  # pragma: no cover
             self._send(500, {"error": str(exc)})

@@ -46,6 +46,10 @@ except Exception as exc:  # pragma: no cover
 
 class GroundedRequest(BaseModel):
     question: str = Field(..., min_length=1, description="Regulated-domain question.")
+    domain: Optional[str] = Field(
+        None,
+        description="Knowledge domain: 'cmc' (R&D/CMC) or 'gmp_steam'; omit for all.",
+    )
     # Optional override is accepted but IGNORED for authenticated users: the
     # tenant is always taken from the session. It exists only so internal/
     # service callers (e.g. the MCP connector forwarding on a user's behalf)
@@ -82,7 +86,7 @@ def grounded_answer(
         raise HTTPException(status_code=503, detail="Grounded assistant engine unavailable")
     tenant = _tenant(trans, request)
     try:
-        answer = _ask(request.question, user=tenant)
+        answer = _ask(request.question, user=tenant, domain=request.domain)
         return _to_dict(answer)
     except Exception as exc:  # pragma: no cover
         log.exception("[grounded] answer failed")

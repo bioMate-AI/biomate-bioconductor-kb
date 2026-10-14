@@ -179,6 +179,23 @@ because the engine is a pure library.
   VectorToolSearch). **The isolation filter stays exactly where it is and keeps its
   shape** regardless of the scorer.
 
+## 6.5 R&D/CMC domain pack — the edge BioMate already owns (added 2026-10-14)
+
+Per the manufacturing survey's recommendation (`docs/20261014_PHARMA_MANUFACTURING_PHASE_SURVEY.md` §8), the engine was first pointed at the **R&D/CMC edge where BioMate already has the buyer and the corpus**, rather than the GMP plant floor. The engine is now **domain-pluggable**: the trust lattice, retrieval, classification, boundary logic, and isolation are domain-agnostic; only the corpus changes (`engine/domains/`, registry in `engine/domains/__init__.py`; `ask(question, user, domain="cmc"|"gmp_steam")`). The CMC pack (`engine/domains/cmc.py`) is mirrored to `galaxy.ai.grounded.domains`, and `domain` is threaded through the MCP tool, the HTTP API, and the backend route.
+
+The CMC pack deliberately spans the **groundedness spectrum of regulatory/discovery thresholds**, which is the differentiator against a naive RAG assistant — the engine assigns a *different honest verdict* to each:
+
+| Threshold | Reality | Engine verdict |
+|---|---|---|
+| **ICH M7 mutagenic-impurity TTC (1.5 µg/day)** | documented quantitative derivation (10⁻⁵ lifetime cancer risk; TD50 linear extrapolation) **but** a published peer-reviewed critique exists | grade **MODERATE** + *"documented but contested"* boundary (surfaces both the derivation and the debate) |
+| **ICH Q3A/Q3B qualification threshold (0.15%)** | harmonized expert/experience convention, dose-dependent, "whichever is lower" | grade **MODERATE** + *"exact value is convention, not derived"* boundary |
+| **Lipinski Rule of Five (MW ≤ 500)** | empirical developability heuristic, not a regulatory spec | boundary: a heuristic, no first-principles derivation |
+| **hERG cardiotoxicity** | **no fixed regulatory cutoff**; governed by ICH S7B + E14 as an integrated risk assessment; the ~10 µM screen is a discovery heuristic | grounded **refusal** — states there is no fixed threshold, and does **not** endorse a colleague's "<10 µM is automatically fine" personal note (shown only as that user's unverified note) |
+
+Citations are real (ICH M7(R2) FDA media/170461; ICH M7(R1) database.ich.org; ICH Q3A FDA media/71727; the TTC-derivation critique in *Regul. Toxicol. Pharmacol.*; Lipinski *Adv. Drug Deliv. Rev.*; ICH S7B/E14 Q&A). Tests: `grounded-prototype/tests/test_cmc.py` (7 passing) + `test_engine.py` (11 passing). Demo: `demo_cmc.py`.
+
+Why this is the right first application: same buyer BioMate already serves (R&D/CMC, not GMP Quality), same corpus BioMate can already reach (literature + regulatory packs + run data), and it proves the traceability-graph value — spec/threshold → derivation → debate/evidence — without a GMP-plant sale. It is the low-risk step from the survey's recommended sequencing.
+
 ## 7. Next steps
 
 - Replace the seed corpus with a real tenant-scoped ingestion (standards under

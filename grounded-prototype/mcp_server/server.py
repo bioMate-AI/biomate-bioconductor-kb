@@ -81,6 +81,14 @@ TOOLS = [
                         "notes are never retrievable. Defaults to 'anonymous'."
                     ),
                 },
+                "domain": {
+                    "type": "string",
+                    "description": (
+                        "Knowledge domain to ground against: 'cmc' (R&D/CMC — "
+                        "ICH M7/Q3A impurities, hERG, Lipinski) or 'gmp_steam' "
+                        "(GMP manufacturing example). Omit to search all domains."
+                    ),
+                },
                 "format": {
                     "type": "string",
                     "enum": ["markdown", "json"],
@@ -112,8 +120,9 @@ def _call_grounded_answer(args):
         raise ValueError("'question' is required and must be a string")
     user = (args or {}).get("user") or "anonymous"
     fmt = (args or {}).get("format") or "markdown"
+    domain = (args or {}).get("domain") or None
 
-    answer = ask(question, user=user)
+    answer = ask(question, user=user, domain=domain)
     structured = to_dict(answer)
 
     if fmt == "json":

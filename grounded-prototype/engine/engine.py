@@ -18,15 +18,26 @@ def ask(
     question: str,
     user: str,
     corpus: Optional[List[Source]] = None,
+    domain: Optional[str] = None,
     limit: int = 8,
 ) -> GroundedAnswer:
     """Answer a regulated-domain question with provenance and honest boundaries.
 
     `user` is the requesting tenant — the isolation gate uses it so one user's
     unverified notes never reach another.
+
+    Corpus selection, in priority order:
+      * `corpus` given  -> use it verbatim (production injects a tenant-scoped,
+        retrieval-backed corpus here).
+      * `domain` given  -> load that domain pack (e.g. "cmc", "gmp_steam").
+      * neither         -> the original steam pack (back-compat default).
     """
     if corpus is None:
-        corpus = load_corpus()
+        if domain is not None:
+            from .domains import get_corpus
+            corpus = get_corpus(domain)
+        else:
+            corpus = load_corpus()
     scored, isolation = retrieve(question, corpus, requesting_user=user, limit=limit)
     return assemble(question, scored, isolation, requesting_user=user)
 

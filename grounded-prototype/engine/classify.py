@@ -33,7 +33,7 @@ _RATIONALE_PATTERNS = [
 ]
 
 _NORMATIVE_PATTERNS = [
-    r"\bwhat .{0,50}(require|requirement|limit|specif|acceptance|allow|value|criteria|minimum|maximum)",
+    r"\bwhat .{0,50}(require|requirement|limit|specif|acceptance|allow|value|criteria|minimum|maximum|threshold|cutoff|pass)",
     r"\b(acceptance criteria|acceptance limit|required value|minimum|maximum)\b",
     r"\bdoes .{0,40}(require|specify|allow|state|say|mandate|permit)\b",
     r"\bis .{0,30}(compliant|within spec|acceptable)\b",
