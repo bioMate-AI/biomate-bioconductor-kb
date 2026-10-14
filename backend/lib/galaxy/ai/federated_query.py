@@ -94,7 +94,7 @@ ENTITY_SOURCES: Dict[str, List[str]] = {
     "pathway":    ["kegg", "reactome", "go", "pubmed"],
     "structure":  ["pdb", "alphafold", "interpro"],
     "disease":    ["hpo", "clinvar", "pubmed", "europepmc", "semantic_scholar"],
-    "literature": ["corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex"],
+    "literature": ["corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex", "crossref"],
 }
 
 # ── Redis cache ────────────────────────────────────────────────────────────────
@@ -561,6 +561,40 @@ def _fetch_openalex(query: str) -> Dict:
         })
     return {"source": "openalex", "results": results}
 
+def _fetch_crossref(query: str) -> Dict:
+    """Crossref — cross-publisher scholarly metadata (~150M works across all
+    journals/publishers). Broadens peer-reviewed coverage well beyond the
+    bibliographic trio (EuropePMC/Semantic Scholar/OpenAlex); JSON REST."""
+    q = urllib.parse.quote(query)
+    data = _get(
+        f"https://api.crossref.org/works?query={q}&rows=5"
+        f"&select=title,author,issued,abstract,DOI,URL,container-title"
+    )
+    results = []
+    for it in (((data or {}).get("message") or {}).get("items") or [])[:5]:
+        title = (it.get("title") or [""])[0]
+        if not title:
+            continue
+        authors = ", ".join(
+            " ".join(p for p in [a.get("given"), a.get("family")] if p)
+            for a in (it.get("author") or [])[:3]
+        )
+        date_parts = ((it.get("issued") or {}).get("date-parts") or [[None]])
+        year = date_parts[0][0] if date_parts and date_parts[0] else None
+        journal = (it.get("container-title") or [""])[0]
+        # Crossref abstracts are JATS-XML fragments — strip tags for a clean snippet.
+        abstract = re.sub(r"<[^>]+>", "", it.get("abstract") or "")[:500]
+        results.append({
+            "title": title,
+            "authors": authors,
+            "year": year,
+            "journal": journal,
+            "doi": it.get("DOI"),
+            "url": it.get("URL") or (f"https://doi.org/{it.get('DOI')}" if it.get("DOI") else None),
+            "abstract": abstract,
+        })
+    return {"source": "crossref", "results": results}
+
 # ── Source dispatch table ──────────────────────────────────────────────────────
 
 _FETCHERS = {
@@ -586,12 +620,13 @@ _FETCHERS = {
     "europepmc":        _fetch_europepmc,
     "semantic_scholar": _fetch_semantic_scholar,
     "openalex":         _fetch_openalex,
+    "crossref":         _fetch_crossref,
     # Grounded local corpus-as-filesystem (Option B). Opt-in: returns [] unless
     # a local corpus index is configured + present (see _fetch_corpus_fs).
     "corpus_fs":        _fetch_corpus_fs,
 }
 
-_LITERATURE_SOURCES = {"corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex"}
+_LITERATURE_SOURCES = {"corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex", "crossref"}
 
 # ── Main entry point ───────────────────────────────────────────────────────────
 
@@ -702,7 +737,7 @@ def _merge_results(results: Dict[str, Dict], entity_type: str) -> List[Dict]:
         "pathway":    ["reactome", "kegg", "go", "pubmed"],
         "structure":  ["pdb", "alphafold", "interpro"],
         "disease":    ["hpo", "clinvar", "europepmc", "pubmed", "semantic_scholar"],
-        "literature": ["corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex"],
+        "literature": ["corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex", "crossref"],
     }
     ordered = priority.get(entity_type, list(results.keys()))
     remaining = [s for s in results if s not in ordered]
