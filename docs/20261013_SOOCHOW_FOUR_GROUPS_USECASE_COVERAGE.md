@@ -105,7 +105,7 @@ Catalog probe (`backend/database/galaxy_ai_tools.db`, 4,210 workflows) confirms 
 | Direction | BioMate workflow(s) | Status |
 |---|---|---|
 | CAR construct / CAR-Vδ1T design (UTAA91) | `cart_construct_design`, `in_vivo_cart_codesign`, `modality_triage` | ✅ ➕ (high value — directly UTAA91-aligned) |
-| CD19 / PD-1 nanobody design | `biologics` (6Z43 nanobody–spike) | ✅ 🎬 |
+| CD19 / PD-1 nanobody design | Design & generate `biologics` cold-start example (6Z43 nanobody–spike) — *a design surface, not a catalog workflow* | ✅ 🎬 |
 | Multicenter drug trials (national base) | `clinical_trial_simulation`, `patient_recruitment_feasibility`, BOIN dose-escalation | ✅ 🎬 (trial-sim) |
 | Difficult-autoimmune cohort / responder | `survival_cox_proportional_hazards_regression` (+ 61 survival workflows) | ✅ ➕ |
 
@@ -128,7 +128,7 @@ Catalog probe (`backend/database/galaxy_ai_tools.db`, 4,210 workflows) confirms 
 ### Group 4 — Zhang Xueguang 张学光 (antibody engineering; B7 family; interface assays)
 | Direction | BioMate workflow(s) | Status |
 |---|---|---|
-| Antibody / nanobody engineering | `biologics` | ✅ 🎬 |
+| Antibody / nanobody engineering | Design & generate `biologics` cold-start example — *a design surface, not a catalog workflow* | ✅ 🎬 |
 | Binding kinetics / interface affinity (SPR-class) | `Analyze Itc Binding Thermodynamics`, `Analyze Enzyme Kinetics Assay`, `Predict Binding Affinity` (106 kinetics/affinity workflows) | ✅ ➕ |
 | B7-family target structural design | structural biology / docking / `cyclic_peptide_design` | ✅ 🎬 (design) |
 | Recombinant-protein interface modelling | AlphaFold / structure prediction | ✅ |
@@ -138,7 +138,7 @@ Catalog probe (`backend/database/galaxy_ai_tools.db`, 4,210 workflows) confirms 
 |---|---|---|
 | SLE susceptibility GWAS | GWAS workflows (76), `Bayesian Finemapping With Deep VI` | ✅ ➕ |
 | Mendelian randomization / causal inference | MR / colocalization workflows | ✅ ➕ |
-| eQTL / cell-type-specific / colocalization | `Analyze Protein Colocalization`, `cageminer` | ✅ ➕ |
+| eQTL / cell-type-specific candidate-gene mining | `cageminer` (GWAS SNPs + coexpression networks) | ✅ ➕ |
 
 ### Cross-cutting (serve all groups' autoimmune focus)
 | Direction | BioMate workflow(s) | Status |
@@ -156,3 +156,6 @@ Catalog probe (`backend/database/galaxy_ai_tools.db`, 4,210 workflows) confirms 
 
 ### Bottom line
 BioMate's **capabilities cover all five faculty groups** across ~20 directions (not just the original two). The remaining work is **demonstration, not capability**: add cold-start demos (➕) for the highest-value per-group flows — **CAR-T construct design (Wu Jian), flow-cytometry immunophenotyping (Liu Cuiping), responder-survival (Chang Xin), binding-kinetics/ITC (Zhang Xueguang), GWAS/MR (Mo Xingbo)** — each pointing at the existing workflow with public demo data. The only true *capability* gap is an SPR/ITC instrument connector (analysis already supported).
+
+### Mapping audit (2026-10-14)
+Each cited workflow was verified against its real catalog description (not just a name-keyword match). **23 of 25 confirmed accurate** (e.g. `cart_construct_design` = "Full CAR-T construct design from antigen target to complete protein sequence"; `analyze_itc_binding_thermodynamics` = ITC binding affinity/thermodynamics). **Two corrected:** (1) `biologics` is the Design & generate **cold-start example**, not a catalog workflow; (2) `Analyze Protein Colocalization` is **fluorescence-microscopy** colocalization (domain=physiology), NOT genetic/eQTL colocalization — removed as a false match from Mo Xingbo's immunogenetics row (`cageminer` + `Bayesian Finemapping` are the correct genetic ones).
