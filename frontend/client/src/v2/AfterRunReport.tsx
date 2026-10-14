@@ -1358,13 +1358,16 @@ function OutputsTab({
       {previewFile && (
         <div
           onClick={() => setPreviewFile(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end' }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end' }}
         >
           {/* The output-file detail view is a PANE, not a centered pop-up
-              (design spec 08/12): a full-height side panel anchored right. */}
+              (design spec 08/12): a right-anchored side panel. Height fits its
+              CONTENT up to the viewport (maxHeight 100vh) — a non-previewable
+              artefact (.rds etc.) shows a compact card (spec 14.2) instead of a
+              near-empty full-height void; a big table/image still fills the pane. */}
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: 'var(--bg, #fff)', padding: 20, width: 'min(760px, 96vw)', maxWidth: 'none', height: '100vh', maxHeight: '100vh', overflow: 'auto', borderLeft: '1px solid var(--border, #e5e7eb)', boxShadow: '-8px 0 32px rgba(0,0,0,0.18)' }}
+            style={{ background: 'var(--bg, #fff)', padding: 20, width: 'min(760px, 96vw)', maxWidth: 'none', height: 'auto', maxHeight: '100vh', overflow: 'auto', borderLeft: '1px solid var(--border, #e5e7eb)', boxShadow: '-8px 0 32px rgba(0,0,0,0.18)' }}
           >
             {previewFile.step && (
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>{previewFile.step}</div>

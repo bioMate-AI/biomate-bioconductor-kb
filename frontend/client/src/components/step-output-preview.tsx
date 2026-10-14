@@ -274,32 +274,49 @@ function InlineJsonViewer({ value }: { value: unknown }) {
   );
 }
 
+// Round a full-precision numeric string to ~4 significant figures for display
+// (keeps non-numeric and integer-ish values verbatim). Spec 14.2: tables should
+// show readable cells, not raw floats like 2.58942740502748.
+function fmtCell(v: string | undefined): string {
+  if (v == null || v === '') return '';
+  const n = Number(v);
+  if (!Number.isFinite(n) || !/^-?\d*\.?\d+(e-?\d+)?$/i.test(v.trim())) return v;
+  if (Number.isInteger(n)) return v;
+  // Only shorten genuinely long decimals; leave short ones (e.g. 0.05) alone.
+  if (v.replace(/^-/, '').length <= 6) return v;
+  const abs = Math.abs(n);
+  if (abs !== 0 && (abs < 1e-4 || abs >= 1e6)) return n.toExponential(3);
+  return String(Number(n.toPrecision(4)));
+}
+
 function TableGrid({ headers, rows, totalRows }: { headers: string[]; rows: string[][]; totalRows: number }) {
   return (
-    <div className="overflow-auto max-h-64 rounded border text-xs font-mono">
-      <table className="min-w-full">
-        <thead className="sticky top-0 bg-muted">
-          <tr>
-            {headers.map((h, i) => (
-              <th key={i} className="px-2 py-1 text-left font-semibold whitespace-nowrap border-b">{h || `Col ${i + 1}`}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, ri) => (
-            <tr key={ri} className="hover:bg-muted/40 border-b last:border-0">
-              {headers.map((_, ci) => (
-                <td key={ci} className="px-2 py-0.5 max-w-[180px] truncate" title={row[ci]}>{row[ci] ?? ''}</td>
+    <div className="rounded border text-xs font-mono">
+      {/* Shape header — spec 14.2: the header states N rows × M cols. */}
+      <div className="flex items-center justify-between px-2 py-1 border-b bg-muted/60 text-[10px] text-muted-foreground font-sans">
+        <span>{totalRows.toLocaleString()} {totalRows === 1 ? 'row' : 'rows'} × {headers.length} {headers.length === 1 ? 'col' : 'cols'}</span>
+        {totalRows > rows.length && <span>showing first {rows.length.toLocaleString()}</span>}
+      </div>
+      <div className="overflow-auto max-h-64">
+        <table className="min-w-full">
+          <thead className="sticky top-0 bg-muted">
+            <tr>
+              {headers.map((h, i) => (
+                <th key={i} className="px-2 py-1 text-left font-semibold whitespace-nowrap border-b">{h || `Col ${i + 1}`}</th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-      {totalRows > 200 && (
-        <p className="text-[10px] text-muted-foreground px-2 py-1">
-          {t('preview.rows_shown', { total: totalRows })}
-        </p>
-      )}
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => (
+              <tr key={ri} className="hover:bg-muted/40 border-b last:border-0">
+                {headers.map((_, ci) => (
+                  <td key={ci} className="px-2 py-0.5 max-w-[180px] truncate" title={row[ci]}>{fmtCell(row[ci])}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
