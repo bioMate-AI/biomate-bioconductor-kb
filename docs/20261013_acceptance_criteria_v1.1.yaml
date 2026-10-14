@@ -64,3 +64,28 @@ additions:
       hard while docking is unreliable; once H7 counter-target docking is validated (A2), a non-aromatic flank is
       caught there directly.
     type: note
+
+  A9_gate_before_score:
+    rule: >
+      Apply hard gates as a PRE-FILTER, then rank only the survivors — never rank first and read gates off the
+      ordinal list. For PD-L1 the gates are: P1 provenance (docked pose + ΔG), P2 class/pose (aromatic cluster
+      sits IN the PD-L1 hydrophobic groove, not merely on the surface), P4 PD-L2 counter-selectivity, and the
+      A10 developability guard. Score (MM-GBSA ΔG) ranks the gate survivors only.
+    type: process
+
+  A10_developability_guard:
+    rule: >
+      Add an explicit developability filter so hydrophobicity artifacts are visible BEFORE ranking, not hidden
+      inside the score: flag/penalize high hydrophobicity (e.g. mean Fauchère-Pliska > ~0.9), ≥2 bulky unnatural
+      aromatics (e.g. 2×[2Nal]), aggregation-prone aromatic runs, and oxidation-prone multi-Trp. Docking/MM-GBSA
+      systematically over-rewards buried aromatic/greasy surface → a high rank for a 2Nal-stuffed peptide is a
+      classic false positive and collides with the PD-L1 PK/tumor-accumulation failure mode (dev+PK weighted 0.30).
+    type: hard (ranking guard)
+
+  A11_pdl1_is_blocker_no_handle:
+    rule: >
+      PD-L1 is pursued as a BLOCKER (PD-1/PD-L1 PPI inhibitor), NOT a radioligand (decided 2026-10-13). Therefore
+      the radioligand P3 "single Lys chelator handle" gate is N/A to PD-L1 candidates — a blocker carries no DOTA/
+      radiometal, so absence of a Lys is not a defect (a Lys only aids solubility). Do NOT fail PD-L1 candidates
+      for lacking a chelator handle. (The chelator-handle gate remains hard for the αvβ6 RADIOLIGAND only.)
+    type: correction

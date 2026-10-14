@@ -56,3 +56,20 @@ affinity; (2) single short MD (0.5 ns, 1 trajectory) → differences within ~3 k
 Order the control + the top tier at/near the control's affinity: **CTRL-5O45-pep71, PDL1-K-05, PDL1-G1-06,
 PDL1-G1-03, PDL1-G1-09** (optionally PDL1-G1-04). Drop the weak tail (G1-10, K-01, K-02, G1-02, G1-07). Synthesize
 with FULL stereochemistry (the real [2Nal]/[dP]/[NMe] molecule, not the docking backbone) + the BMS control.
+
+## Gate-applied revision (2026-10-14, after external review)
+A review flagged (correctly) that the ranking scored before gating and is fooled by hydrophobicity, and
+(incorrectly) that candidates fail P3 for "no Lys chelator handle." **P3 handle is N/A — PD-L1 is a BLOCKER**
+(no DOTA/radiometal), so absence of a Lys is not a defect (spec A11). Applying the *correct* gate — the
+developability/hydrophobicity guard (A10) — the di-2Nal candidates are greasy docking artifacts:
+| ID | ΔG | 2Nal | meanH (FP) | verdict |
+|---|---|---|---|---|
+| PDL1-K-05 | −39.86 | 0 | 0.60 | **ADVANCE** (cleanest) |
+| PDL1-G1-09 | −30.26 | 0 | 0.61 | **ADVANCE** |
+| PDL1-G1-06 | −31.18 | 0 | 1.00 | optional — greasy / 2×Trp (oxidation+aggregation risk) |
+| PDL1-G1-03 | −30.53 | 2 | 0.85 | DROP — greasy (2×2Nal) docking artifact |
+| PDL1-G1-04 | −27.66 | 2 | 0.96 | DROP — greasy (2×2Nal) docking artifact |
+
+Revised order (`docs/20261014_PDL1_ORDER.xlsx`): **K-05 + G1-09** advance, **G1-06** optional, di-2Nal dropped.
+Review's P3-handle objection rejected (stale radioligand premise). Still pending before final commit (P1/P2/P4):
+per-pose groove-occupancy check + PD-L2 counter-score.
