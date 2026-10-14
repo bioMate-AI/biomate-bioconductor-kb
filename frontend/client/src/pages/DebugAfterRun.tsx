@@ -14,6 +14,19 @@ import { AfterRunReport } from "@/v2/AfterRunReport";
 export default function DebugAfterRun() {
   const [, params] = useRoute("/debug/afterrun/:runId");
   const runId = params?.runId || "";
+  // Optional query overrides so the harness can render non-completed states too
+  // (e.g. ?status=failed to capture the failed after-run block, with ?wf= to set
+  // the matching workflow name). Default stays the completed ADMET view; only the
+  // known non-completed statuses are honored.
+  const qs = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search)
+    : new URLSearchParams();
+  const statusParam = qs.get("status");
+  const executionStatus =
+    statusParam === "failed" || statusParam === "cancelled" || statusParam === "error" || statusParam === "running"
+      ? statusParam
+      : "completed";
+  const workflowName = qs.get("wf") || "Predict ADMET Properties (AI)";
   return (
     <div style={{ padding: 16, maxWidth: 820, margin: "0 auto" }} data-testid="debug-afterrun-root">
       <p style={{ fontFamily: "monospace", fontSize: 12 }}>
@@ -21,8 +34,8 @@ export default function DebugAfterRun() {
       </p>
       <AfterRunReport
         runId={runId}
-        executionStatus="completed"
-        workflowName="Predict ADMET Properties (AI)"
+        executionStatus={executionStatus}
+        workflowName={workflowName}
       />
     </div>
   );
