@@ -1358,11 +1358,13 @@ function OutputsTab({
       {previewFile && (
         <div
           onClick={() => setPreviewFile(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end' }}
         >
+          {/* The output-file detail view is a PANE, not a centered pop-up
+              (design spec 08/12): a full-height side panel anchored right. */}
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: 'var(--bg, #fff)', borderRadius: 8, padding: 20, maxWidth: 720, width: '90vw', maxHeight: '80vh', overflow: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
+            style={{ background: 'var(--bg, #fff)', padding: 20, width: 'min(760px, 96vw)', maxWidth: 'none', height: '100vh', maxHeight: '100vh', overflow: 'auto', borderLeft: '1px solid var(--border, #e5e7eb)', boxShadow: '-8px 0 32px rgba(0,0,0,0.18)' }}
           >
             {previewFile.step && (
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>{previewFile.step}</div>

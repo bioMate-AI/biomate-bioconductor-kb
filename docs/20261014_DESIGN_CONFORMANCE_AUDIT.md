@@ -62,3 +62,11 @@ The first pass had already caught the real structural (interaction-pattern) devi
 
 ### Coverage honesty (unchanged intent)
 This pass verified **element presence + the detail-view-modal class** across all 15 specs via `dataui/*.jsx` + the implementation components. It did **not** pixel-compare every label's exact copy or every state's rendering against the live reference (`:7779`) — a few behaviors (cold-start lane rendering, panel collapse-to-rail) are marked **live-ref-only, not pixel-verified** and could surface minor low-severity copy/spacing items on a dedicated visual pass. **No new high/medium structural deviations were found** — the actionable list remains: fix **#2 Report viewer → editable pane** (HIGH), then **#3** (MED) and **#4** (LOW).
+
+---
+
+## Resolutions (2026-10-14)
+- **HIGH — Full step view** (`nextflow-workflow-viewer.tsx:3753`): ✅ FIXED — modal → full-height side panel (`6bb43c7ad`).
+- **HIGH — Report viewer** (`workflow-report-viewer.tsx:124`): ✅ FIXED — centered `max-w-4xl` modal → full-height side panel; all editing/save/download preserved.
+- **LOW — Output-file preview** (`AfterRunReport.tsx:1357` `previewFile` overlay): ✅ FIXED — the rich `StepOutputPreview` detail view → right side pane (was a centered modal box). The image **lightbox** in `step-output-preview.tsx:329` is LEFT as-is — a legitimate image-enlarge lightbox, not a detail-view-as-modal.
+- **MED — Workflow-panel header/progress vs `RunSurface`**: ⏸ FLAGGED for a separate pass — the viewer header already carries the right elements (kicker · name · tabs · run-bar · status) and is a **functional superset** of RunSurface (extra product controls: expand/project/QC/cancel). No crisp low-risk reorder identified; aligning exactly would remove product functions or be a larger restructure (keep-extras policy).
