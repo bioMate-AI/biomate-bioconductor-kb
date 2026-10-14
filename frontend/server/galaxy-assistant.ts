@@ -7999,12 +7999,23 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
           const m = v.match(/^\s*(\S+?)\s*,\s*(?:s3_uri|galaxy_dataset_id|dataset_id|name)=/);
           return m ? m[1] : v;
         };
+        // Normalize EVERY value-bearing field, not just `value`. The viewer's
+        // display precedence is userValue → p.value → p.default → "" (and it also
+        // surfaces p.defaultValue), so a composite that lands in `default` while
+        // `value` is undefined renders straight from `default` and a value-only
+        // pass never catches it — the exact reason the cryo "Dataset Id" leak
+        // survived four value-targeted fixes. One loop over all three fields at
+        // this chokepoint is the reliable fix regardless of which field the
+        // upstream path populated.
         for (const _pList of ['required_params', 'optional_params']) {
           for (const _p of (_wfGaN?.[_pList] || [])) {
-            const _nv = _normComposite(_p?.value);
-            if (_nv !== _p?.value) {
-              console.log(`[GalaxyAssistant] NormalizeComposite ${_pList} ${_p.name}: "${String(_p.value).slice(0, 60)}" → "${String(_nv).slice(0, 60)}"`);
-              _p.value = _nv;
+            for (const _field of ['value', 'default', 'defaultValue']) {
+              if (!(_field in (_p || {}))) continue;
+              const _nv = _normComposite(_p[_field]);
+              if (_nv !== _p[_field]) {
+                console.log(`[GalaxyAssistant] NormalizeComposite ${_pList} ${_p.name}.${_field}: "${String(_p[_field]).slice(0, 60)}" → "${String(_nv).slice(0, 60)}"`);
+                _p[_field] = _nv;
+              }
             }
           }
         }
