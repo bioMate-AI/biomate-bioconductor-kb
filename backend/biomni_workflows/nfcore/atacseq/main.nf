@@ -23,6 +23,8 @@ params.max_time         = '240.h'
 
 // [Input Validation]
 process VALIDATE_INPUT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     check_samplesheet.py --input ${params.input} \
         --paired_end ${params.paired_end} \
@@ -32,6 +34,8 @@ process VALIDATE_INPUT {
 
 // [Trimming & QC]
 process TRIMGALORE {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     trim_galore \
         ${params.paired_end ? '--paired' : ''} \
@@ -43,6 +47,8 @@ process TRIMGALORE {
 
 // [Alignment]
 process BWA_MEM {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     bwa mem ${params.genome} \
         ${params.keep_mito ? '' : '--filter-mito'} \
@@ -54,6 +60,8 @@ process BWA_MEM {
 
 // [Peak Calling]
 process MACS2_CALLPEAK {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     macs2 callpeak \
         --gsize ${params.macs_gsize} \
@@ -65,6 +73,8 @@ process MACS2_CALLPEAK {
 
 // [Annotation & Report]
 process CHIPSEEKER_ANNOTATE {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     chipseeker_annotate.R \
         --genome ${params.genome} \

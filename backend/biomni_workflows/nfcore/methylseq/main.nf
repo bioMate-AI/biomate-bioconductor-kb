@@ -28,6 +28,8 @@ params.max_time         = '240.h'
 
 // [Input Validation]
 process VALIDATE_INPUT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     check_samplesheet.py --input ${params.input} \
         ${params.rrbs ? '--rrbs' : ''} \
@@ -37,6 +39,8 @@ process VALIDATE_INPUT {
 
 // [Trimming]
 process TRIMGALORE {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     trim_galore \
         ${params.skip_trimming ? '--skip' : ''} \
@@ -49,6 +53,8 @@ process TRIMGALORE {
 
 // [Alignment]
 process BISMARK_ALIGN {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     ${params.aligner} \
         --genome ${params.genome} \
@@ -60,6 +66,8 @@ process BISMARK_ALIGN {
 
 // [Methylation Extraction]
 process BISMARK_METHYLATION_EXTRACTOR {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     bismark_methylation_extractor \
         ${params.comprehensive ? '--comprehensive' : ''} \
@@ -71,6 +79,8 @@ process BISMARK_METHYLATION_EXTRACTOR {
 
 // [Coverage Filtering]
 process COVERAGE2CYTOSINE {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     coverage2cytosine.R \
         --min_coverage ${params.min_coverage} \
@@ -81,6 +91,8 @@ process COVERAGE2CYTOSINE {
 
 // [Report]
 process MULTIQC {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     multiqc --outdir ${params.outdir} \
         ${params.email ? "--email ${params.email}" : ''}

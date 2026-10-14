@@ -27,6 +27,8 @@ params.max_time             = '72.h'
 
 // [Input Validation]
 process VALIDATE_INPUT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "validated_samplesheet.csv",  emit: samplesheet
 
@@ -39,6 +41,8 @@ process VALIDATE_INPUT {
 
 // [Database Search]
 process PEPTIDE_IDENTIFICATION {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "*.idXML",      emit: idxml
     path "*.log",        emit: log
@@ -58,6 +62,8 @@ process PEPTIDE_IDENTIFICATION {
 
 // [Quantification]
 process LFQ_QUANTIFICATION {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "out.consensusXML",  emit: consensus_xml
     path "out.mzTab",         emit: mztab
@@ -74,6 +80,8 @@ process LFQ_QUANTIFICATION {
 
 // [Statistical Analysis]
 process MSSTATS_ANALYSIS {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "msstats_results.csv",    emit: results
     path "VolcanoPlot.pdf",        emit: volcano
@@ -91,6 +99,8 @@ process MSSTATS_ANALYSIS {
 
 // [QC]
 process PTXQC {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "report_*.html",  emit: qc_html
     path "report_*.pdf",   emit: qc_pdf
@@ -102,6 +112,8 @@ process PTXQC {
 
 // [Report]
 process MULTIQC {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "multiqc_report.html",  emit: report
     path "multiqc_data/",        emit: data
