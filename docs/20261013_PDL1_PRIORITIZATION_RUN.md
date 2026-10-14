@@ -101,3 +101,17 @@ Selectivity = ΔG(PD-L1) − ΔG(PD-L2); more negative = more PD-L1-selective. (
 independent signals. **Order K-05.** G1-09 is dropped on selectivity (its PD-L1 binding is real — a redesign
 candidate, not an order candidate). Caveats stand: relative (not absolute) ΔG on canonical-backbone approx;
 confirm K-05 by PD-1/PD-L1 competition + a PD-L2 counter-assay (and FEP if desired) before trusting magnitudes.
+
+## G2 round — result: PD-L1/PD-L2 selectivity is the bottleneck (0/8 selective)
+G2 (24, hard dev pre-filter): cofold 24/24; MM-GBSA 24/24; groove 8/8 strong-tier PASS. But the PD-L2
+counter-screen killed the whole tier — **0 of 8 are PD-L1-selective** (gap = PD-L1 − PD-L2; selective ≤ −8):
+all bind PD-L2 as well or BETTER (F10/A02/F01/F11/A04 strongly PD-L2-preferring, +8 to +14; F05/F13/A08 ~equal).
+`results/pdl1_g2_pdl2_counter.json`.
+
+**Finding:** the dominant filter for a PD-L1 blocker is **PD-1-interface selectivity vs PD-L2**, not affinity or
+developability — PD-L1 and PD-L2 share that interface, so generic amphipathic groove-binders hit both. Even
+K-05 *analogs* (the A-series) mostly lost selectivity → selectivity is specific/fragile, not a property of the
+chemotype. **The PD-L1 order stays at K-05** (still the only PD-L1-selective lead across G1+G2).
+
+**Next-gen strategy:** bias generation toward the residues that DIFFER between PD-L1 and PD-L2 at the PD-1 face
+(selectivity-driven design), and score PD-L2 as an in-loop counter-target during generation, not only post-hoc.
