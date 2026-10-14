@@ -1,5 +1,8 @@
 # Construct design — where the differentiation lives (αvβ6 multivalent + αvβ6×PD-L1 bispecific)
 
+> **HALTED 2026-10-13 (user directive "no multi targets, no need to proceed").** The αvβ6×PD-L1
+> bispecific (Track B) and the construct program are not being pursued. Retained for the record.
+
 **Date:** 2026-10-13 · Living design doc. Premise (established 2026-10-13): the αvβ6 **monomer** is a commodity
 in a patented, heavily-mined genus — rule-constrained generation cannot produce a differentiated monomer
 (`20261013_RULE_VS_NOVELTY_AND_PATH.md`). The sequence owns ~4 of 11 treatment problems

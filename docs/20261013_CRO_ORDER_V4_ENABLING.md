@@ -1,5 +1,8 @@
 # CRO order v4 — the enabling order (controls + warhead), NOT a novelty bet
 
+> **DROPPED 2026-10-13 (user directive "order drop"). DO NOT SEND.** This order was prepared but
+> withdrawn before transmission. Kept for the record only. No CRO synthesis was ordered.
+
 **Date:** 2026-10-13 · Supersedes the withdrawn v2 order. This is the order to send **today**. It is
 deliberately small and honestly scoped: it is **not** a claim of a novel αvβ6 monomer (there isn't one to
 make — see below). It is the enabling experiment that validates the binding/selectivity assay and sources the
