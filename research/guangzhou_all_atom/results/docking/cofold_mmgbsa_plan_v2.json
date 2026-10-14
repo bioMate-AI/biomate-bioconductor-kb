@@ -75,6 +75,79 @@
     ],
     "pdl1": [
       {
+        "id": "PDL1-G1-01",
+        "pep": "VNFKWRFFNPFT",
+        "helm": "cyclo(V-N-[2Nal]-K-W-R-[2Nal]-[NMeF]-N-[dP]-[2Nal]-T)"
+      },
+      {
+        "id": "PDL1-G1-02",
+        "pep": "LPRYEFNVRFFQ",
+        "helm": "cyclo(L-[dP]-R-Y-E-F-N-V-R-[2Nal]-[NMeF]-Q)"
+      },
+      {
+        "id": "PDL1-G1-03",
+        "pep": "VQYDLRFWDVPHF",
+        "helm": "cyclo(V-Q-Y-D-L-R-[2Nal]-[NMeW]-D-V-[dP]-H-[2Nal])"
+      },
+      {
+        "id": "PDL1-G1-04",
+        "pep": "WHLRFPSVEIFQY",
+        "helm": "cyclo(W-H-L-R-[2Nal]-[dP]-S-V-E-[NMeI]-[2Nal]-Q-Y)"
+      },
+      {
+        "id": "PDL1-G1-05",
+        "pep": "FQFHPFEVLSY",
+        "helm": "cyclo([2Nal]-Q-F-H-[dP]-F-E-V-[NMeL]-S-Y)"
+      },
+      {
+        "id": "PDL1-G1-06",
+        "pep": "YSWFDIPTWHL",
+        "helm": "cyclo(Y-S-[NMeW]-F-D-I-[dP]-T-W-H-L)"
+      },
+      {
+        "id": "PDL1-G1-07",
+        "pep": "FLQIDLTLSFPQF",
+        "helm": "cyclo([NMeF]-L-Q-I-D-L-T-L-S-[2Nal]-[dP]-Q-[2Nal])"
+      },
+      {
+        "id": "PDL1-G1-08",
+        "pep": "VKFPFQINYHL",
+        "helm": "cyclo(V-K-[NMeF]-[dP]-F-Q-I-N-Y-H-L)"
+      },
+      {
+        "id": "PDL1-G1-09",
+        "pep": "VKWINIDIEYPQ",
+        "helm": "cyclo(V-K-W-[NMeI]-N-I-D-I-E-Y-[dP]-Q)"
+      },
+      {
+        "id": "PDL1-G1-10",
+        "pep": "IHFTIPRFITL",
+        "helm": "cyclo(I-H-[2Nal]-T-I-[dP]-R-[2Nal]-[NMeI]-T-L)"
+      },
+      {
+        "id": "PDL1-K-01",
+        "pep": "FWLPYSFDTK",
+        "helm": "cyclo(F-W-L-[dP]-Y-S-[NMeF]-D-T-K)"
+      },
+      {
+        "id": "PDL1-K-02",
+        "pep": "WLFPILSEKG",
+        "helm": "cyclo(W-[Nle]-F-[dP]-I-[NMeL]-S-E-K-G)"
+      },
+      {
+        "id": "PDL1-K-05",
+        "pep": "WYFPLITENKSG",
+        "helm": "cyclo(W-Y-F-[dP]-L-[NMeI]-T-E-N-K-S-G)"
+      },
+      {
+        "id": "CTRL-5O45-pep71",
+        "pep": "FFKGDVFYGWYLCG",
+        "helm": "5O45 chain B (PHE-MEA-9KK-SAR-ASP-VAL-MEA-TYR-SAR-TRP-TYR-LEU-CCS-GLY-NH2) canonical approx; A2 positive control",
+        "role": "control"
+      }
+    ],
+    "pdl1_round3_full": [
+      {
         "id": "PDL1-K-01",
         "pep": "FWLPYSFDTK"
       },
