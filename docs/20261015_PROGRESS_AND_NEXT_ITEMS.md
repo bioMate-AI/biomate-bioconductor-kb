@@ -13,7 +13,8 @@ Code lives in `research/guangzhou_all_atom/cyclic_llm/`. Design refs: the five 2
 | **Consolidated score() / reward** | `score.py` | merges cheap tier (rule, FTO, developability) inline + expensive-tier hooks (binding dG, selectivity gap, groove, geometry from GPU pipeline); hard-gate verdict + rank key | avebehexin gate=False(infringing); clean ncAA gate=True; di-2Nal gate=False(greasy+rule) |
 | **Closed optimizer loop** | `loop.py` | `propose (gen_avb6) → score() → select (freeze gate-passers) → revise → repeat`; revise = deterministic, score-record-reading repair operator (honest stand-in for the LLM-revise move) that reads the failing objective and applies one targeted free-position edit; trace distinguishes revised/converged/abandoned | 3 deliberately-failing seeds (infringing, greasy, rule-fail) all converge into the gated set in 2 rounds; **0 abandoned**; final = 5 FTO-clean MED-DoE de-greased candidates, Pareto-ranked by `score.rank_key` |
 | **Neural proposer (SNG L2 neural)** | `neural_generator.py` | uses the unified_cyclic_llm_v4 ckpt to PROPOSE free-position chemistry: scores each scaffold macrocycle's likelihood under null-target + `<p_hi>` permeability, samples free-position triples ∝ likelihood (temperature = exploration), then the same rule+FTO+dev constrain+reject; same `(H,X)` interface; enumeration fallback if torch/ckpt absent | backend=`neural (unified_cyclic_llm_v4)`; model sharply prefers 2Nal flanks (permeability); temp 1.0→5 / 2.0→19 survivors of a 62-clean ceiling; `loop.py --neural` converges to 7 gated, 0 abandoned. Honest: v4 NOT trained on avb6 → signal is developable/permeable chemistry, not affinity; palette = model-known ∩ gate-known monomers |
-| **Physics auto-dispatch (expensive tier)** | `physics_dispatch.py`, `score.py` `tier='full'` | READS existing MM-GBSA/counter/groove artifacts (no GPU run); joins HELM→design-ID→result; **A2 control-anchoring at receptor level** (admissible only if a control row anchors the receptor's ΔG scale — direct or inherited by a same-receptor sibling run); avb6 MM-GBSA VOIDed (metal dropped + no control); groove control-independent; geometry pending (no artifact) | K-05 → binding −39.86 (A2 direct, ctrl #2/14), selectivity −15.27, groove pending (G1 groove doc-only); G2 A02 → binding −28.17 (A2 inherited), selectivity +14.11 (NOT selective, matches 0/8), groove 0.733; novel avb6 HELM → all pending (never folded) |
+| **Physics auto-dispatch (expensive tier)** | `physics_dispatch.py`, `score.py` `tier='full'` | READS existing MM-GBSA/counter/groove artifacts (no GPU run); joins HELM→design-ID→result; **A2 control-anchoring at receptor level** (admissible only if a control row anchors the receptor's ΔG scale — direct or inherited by a same-receptor sibling run); groove control-independent; geometry pending (no artifact) | K-05 → binding −39.86 (A2 direct, ctrl #2/14), selectivity −15.27, groove pending (G1 groove doc-only); G2 A02 → binding −28.17 (A2 inherited), selectivity +14.11 (NOT selective, matches 0/8), groove 0.733; novel avb6 HELM → all pending (never folded) |
+| **Mechanism-matched scorer config** | `scorer_config.py` (+ `physics_dispatch` gate) | derives the scorer config from the KB `mechanism` tag: metal to retain (integrin MIDAS Mn vs none), pose method by epitope (linear-motif → dock-prepose-ok; discontinuous → cofold-required), counter-targets, metal-complete receptor, controls; physics admissibility now gated on `mechanism_compliant()` (replaces the hard-coded VOID list) | avb6 metal-free run → non-compliant ("requires Mn at β6 MIDAS; run does not record the metal"); **synthetic metal-aware + control-anchored avb6 run → admitted automatically** (unlock proven); pdl1 (no metal) unchanged |
 
 ## Architecture as realized (SNG pattern, working)
 - **Symbolic (outside LLM):** induced rule (L1) + FTO claim constraint + developability — deterministic, cheap,
@@ -52,8 +53,13 @@ Code lives in `research/guangzhou_all_atom/cyclic_llm/`. Design refs: the five 2
      (b) **G1 groove artifact** — K-05's groove is doc-only (0.93); write a machine-readable G1 groove JSON so the
      dispatcher can fill it; (c) **auto-launch** for a gate-passing candidate with NO result yet (dispatch the GPU
      job, not just read) — currently read-only by design (spot-cost discipline).
-4. **Mechanism-matched scorer config (Phase 0.7).**
-   - Target KB `mechanism` tag → auto-configure the scorer (inject metal for integrins; cofold vs dock by epitope).
+4. ~~**Mechanism-matched scorer config (Phase 0.7).**~~ **✅ DONE — `scorer_config.py`.**
+   - KB `mechanism` tag → scorer config (metal, pose method by epitope, counter-targets, receptor, controls);
+     physics admissibility now gated on `mechanism_compliant()` not a hard-coded void list. **Remaining (the real
+     GPU work, out of band — spot-cost discipline):** produce the metal-aware (Mn@β6-MIDAS), control-anchored
+     αvβ6 MM-GBSA run — the config declares exactly what it must record (`metal:"Mn"` + metal-complete receptor +
+     Trivehexin/avebehexin control), and the dispatcher will admit it automatically (unlock proven on a synthetic
+     run). Also: produce integrin counter-target (avb8/avb3/avb5/a5b1) runs so selectivity can be computed for avb6.
 5. **Patent/FTO compound layer (Phase 0.5 follow-on).**
    - Ingest SureChEMBL / Google Patents Public Datasets → real nearest-patented dissimilarity (replace the
      known-compound seq-identity stub). Add PD-L1 (BMS macrocycle estate — source-verify) + counter-integrin patents.
@@ -72,6 +78,8 @@ The full loop skeleton is now built and verified end-to-end: **neural proposer**
 → repeat (`loop.py`, 0-abandoned convergence). Remaining labeled stand-ins / known gaps, all documented in the
 next-item list: the revise operator is a deterministic repair (not a learned RL/LLM policy — #2-remainder/#8);
 the neural proposer is target-agnostic for avb6 and restricted to a gate-known monomer palette (#1-remainder);
-the expensive tier reads results only — there is **no admissible avb6 ΔG yet** (metal-aware MM-GBSA is a TODO,
-avb6 files are VOIDed) and G1 groove is doc-only (#3-remainder). Physics scores remain relative/feasibility-level
-and control-anchored; the wet-lab assay is ground truth.
+the expensive tier reads results only — there is **no admissible avb6 ΔG yet**, but the reason is now principled:
+the mechanism-matched config (`scorer_config.py`, #4) requires Mn@β6-MIDAS and the existing avb6 runs are
+metal-free, so they are non-compliant; a metal-aware + control-anchored run will be admitted automatically when
+produced (the one remaining piece is the GPU run itself, out of band). G1 groove is doc-only (#3-remainder).
+Physics scores remain relative/feasibility-level and control-anchored; the wet-lab assay is ground truth.
