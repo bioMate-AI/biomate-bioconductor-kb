@@ -215,6 +215,7 @@ function RootRoute({
       chatSessions={chatSessions}
     >
       <ChatWithArtifacts
+        key={currentChatSession?.id ?? 'new'}
         currentChatSession={currentChatSession}
         onChatUpdated={onChatUpdated}
         onWorkflowPanelOpenChange={(open) => setSidebarCollapsed(open)}
