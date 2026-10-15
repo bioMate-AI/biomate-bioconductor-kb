@@ -9,7 +9,7 @@ most common formats/tools, is it actually proven to run?
 | Capability (common path) | Workflow | Container | Validated (before) |
 |---|---|---|---|
 | WSI H&E → tiling/QC → nuclei seg → cell table (OpenSlide `.svs`/OME-TIFF + Cellpose) | `wsi_he_nuclei_segmentation` (id 14651) | `bioc-domain-pathology:1.0` ✅ purpose-built | `real_exec_status=None` |
-| IHC quantification (protein expr + spatial) | `analyze_immunohistochemistry_image` (id 10695) | `biomni-tools` | None |
+| IHC quantification (protein expr + spatial) | `analyze_immunohistochemistry_image` (id 10695) | `biomni-tools` | None → **fixed + `ok`** (run 22ae9a78) |
 | H&E histology (thrombus, CNS-lesion) | 2 biomni workflows | biomni-tools | None |
 | Multiplex IF (segment + quantify) | `segment_and_quantify_cells_in_multiplexed_images` (10760); `nf-core/mcmicro` (12729) | biomni-tools / **mcmicro: empty** 🛑 | None |
 | IF / morphometry (corneal nerve, Rhod2, bone µCT, aortic) | 5 biomni workflows | biomni-tools | None |
@@ -53,10 +53,22 @@ a concurrent session's dev-side DB change not present locally — so this flag
 propagates on a deliberate DB sync once local==dev is confirmed. The authoritative
 proof meanwhile is the two green runs + S3 outputs.
 
+### 4. IHC pipeline — was BROKEN, now FIXED + VALIDATED ✅ (commit `7a025b5f`)
+First validation (run `6f645eea`) exposed three real defects behind
+`executable=1`: (a) **phantom demo** — the comment promised a mock image but no
+code generated it, so the default `image_path` didn't exist and `io.imread`
+failed; (b) **dishonest success** — the load error was returned as a string, so
+the run recorded `success:true` and exited 0 (a failed analysis logged as
+successful); (c) no http/s3 input fetch. Fixes: `_resolve_image_path` uses the
+REAL scikit-image reference IHC image (`data.immunohistochemistry()`) for the
+demo + fetches http/s3 URIs; load failure now raises → `success:false` → exit 1.
+Re-validated (run `22ae9a78`, param-less): genuine `success:true`, real metrics —
+**27 tissue regions**, protein-expression quantification (total intensity
+91380.05, avg 0.73), spatial distribution (avg 235.47 px) — loaded from the real
+reference image. `real_exec_status='ok'` recorded (row 10695, local DB).
+
 ## Remaining to a "complete" common pathology suite
-1. **IHC** (`analyze_immunohistochemistry_image`) — validation in progress (demo
-   mock-image path; real-IHC-image run is a stronger follow-up).
-2. **Multiplex** (`segment_and_quantify_cells_in_multiplexed_images`) — needs a
+1. **Multiplex** (`segment_and_quantify_cells_in_multiplexed_images`) — needs a
    multichannel test image + a Batch run.
 3. **`nf-core/mcmicro`** — `docker_image` empty → won't run until a container is pinned.
 4. **Stain normalization** (Macenko/Reinhard) as a reusable standalone step
