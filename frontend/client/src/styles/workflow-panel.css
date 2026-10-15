@@ -331,9 +331,12 @@
 
 .wf-panel .step-head .actions {
   display: flex; gap: 2px;
-  opacity: 1; flex-shrink: 0;
+  opacity: 0; transition: opacity .12s; flex-shrink: 0;
 }
-.wf-panel .step:hover .step-head .actions { opacity: 1; }
+/* Hover-reveal (design wfpanel.css:109), plus focus-within so keyboard users
+   can still reach the row actions. */
+.wf-panel .step:hover .step-head .actions,
+.wf-panel .step:focus-within .step-head .actions { opacity: 1; }
 
 .wf-panel .step-meta {
   font-size: 11px; color: var(--text-dim);
