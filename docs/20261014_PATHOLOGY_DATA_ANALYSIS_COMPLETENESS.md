@@ -68,12 +68,14 @@ Re-validated (run `22ae9a78`, param-less): genuine `success:true`, real metrics 
 reference image. `real_exec_status='ok'` recorded (row 10695, local DB).
 
 ## Remaining to a "complete" common pathology suite
-1. **Multiplex** (`segment_and_quantify_cells_in_multiplexed_images`) — needs a
-   multichannel test image + a Batch run.
-3. **`nf-core/mcmicro`** — `docker_image` empty → won't run until a container is pinned.
-4. **Stain normalization** (Macenko/Reinhard) as a reusable standalone step
+1. **Multiplex** (`segment_and_quantify_cells_in_multiplexed_images`) — no demo
+   path; needs a multichannel test image + a Batch run.
+2. **`nf-core/mcmicro`** — full nf-core pipeline; `docker_image` empty (nf-core
+   self-resolves per-module containers, so this may not be the real blocker) but
+   validating it needs real CODEX/CyCIF data + a sample sheet + heavy compute.
+3. **Stain normalization** (Macenko/Reinhard) as a reusable standalone step
    (currently only `rgb2hed` embedded in the WSI pipeline).
-5. **Tissue/tumor-content classification** (tile classifier; the frontier-FM route
+4. **Tissue/tumor-content classification** (tile classifier; the frontier-FM route
    = UNI/CONCH/Virchow2 is the heavier B2 track).
 
 ## Infra note
