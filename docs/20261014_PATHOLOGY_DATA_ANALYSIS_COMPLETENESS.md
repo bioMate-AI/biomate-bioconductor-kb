@@ -67,6 +67,27 @@ Re-validated (run `22ae9a78`, param-less): genuine `success:true`, real metrics 
 91380.05, avg 0.73), spatial distribution (avg 235.47 px) — loaded from the real
 reference image. `real_exec_status='ok'` recorded (row 10695, local DB).
 
+### 5. Systemic integrity remediation across the biomni stubs (2026-10-15)
+Execution-grading the biomni image/assay workflows exposed a **class defect**:
+(a) **dishonest success** — a failure returned as an error STRING so the caller
+recorded `success:true`/exit 0; (b) **fabrication** — stubs inventing metrics
+(cns_lesion hardcoded 1250/7.5 + clinical interpretation; quantify_cell_cycle RNG
+counts). Scope: 2 fabrication + 15 dishonest-success out of 2,239 (the broad
+bioconductor/nf-core catalog is genuine; "simulate" hits like SimBu are real
+simulation packages). All 17 fixed + re-validated param-less on Batch:
+- **Dishonest-success ELIMINATED 17/17** — failures now raise → honest non-zero
+  exit, no `results.json`; legitimate empty results ("no FDA match", "no BLAST
+  hits", image-only PDF) kept as valid successes.
+- **Both fabrication stubs honest-fail** — no invented numbers.
+- **8 genuinely validated** (`real_exec_status='ok'`, local DB): WSI + IHC +
+  corneal_nerve, multiplex, calcium_imaging, blast_sequence (real NCBI BLAST),
+  protease_kinetics, panhumanpy.
+- **7 honest-fail, follow-up:** 3 image (`aortic`, `mitochondrial`, `cell_morphology`)
+  — root cause **cv2/opencv missing from biomni-tools** (opencv-python-headless added,
+  commit 603722965; needs a biomni-tools:x86 rebuild+push); 4 external-API (`fda_*`,
+  `pdf`) — suspected Batch worker egress to api.fda.gov / PDF host (BLAST reached
+  NCBI, so egress is partial), pending triage.
+
 ## Remaining to a "complete" common pathology suite
 1. **Multiplex** (`segment_and_quantify_cells_in_multiplexed_images`) — no demo
    path; needs a multichannel test image + a Batch run.
