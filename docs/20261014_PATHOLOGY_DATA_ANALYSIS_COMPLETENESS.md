@@ -105,8 +105,9 @@ simulation packages). All 17 fixed + re-validated param-less on Batch:
 
 ### Final tally
 - **Integrity: 17/17 dishonest-success eliminated + 2 fabrication stubs stopped.**
-- **10 genuinely validated** (`real_exec_status='ok'`, local DB): WSI, IHC, corneal_nerve,
-  multiplex, calcium_imaging, blast, protease_kinetics, panhumanpy, fda_label, fda_safety.
+- **11 genuinely validated** (`real_exec_status='ok'`, local DB): WSI, IHC, corneal_nerve,
+  multiplex, calcium_imaging, blast, protease_kinetics, panhumanpy, fda_label, fda_safety,
+  fda_recalls (run 04caefa6, real aspirin recalls — earlier fail was a one-off transient).
 - **Intended honest-fails (4):** 2 fabrication (cns_lesion, quantify_cell_cycle) + 2
   no-demo-data (cosinor, metabolic_sim).
 - **Blocked-on-rebuild (4):** aortic, mitochondrial, cell_morphology (cv2), extract_pdf_content
