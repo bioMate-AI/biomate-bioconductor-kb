@@ -50,10 +50,12 @@ describe("<ColdStartDashboard>", () => {
     );
   });
 
-  it("shows the cold-start prompt heading and an intent bar", () => {
+  it("shows the cold-start prompt heading and NO second intent bar (single launcher = the pinned composer)", () => {
     render(<ColdStartDashboard onSeed={() => {}} />);
     expect(screen.getByText("What are you trying to do?")).toBeInTheDocument();
-    expect(screen.getByTestId("cold-intent-bar")).toBeInTheDocument();
+    // The centred intent bar was removed (audit C1#2 "double composer"): the
+    // pinned bottom composer is the single launcher; routing preview lives there.
+    expect(screen.queryByTestId("cold-intent-bar")).toBeNull();
   });
 
   it("expands a card on click (body + tracks + examples visible) and collapses on a second click", async () => {
@@ -179,49 +181,22 @@ describe("<ColdStartDashboard>", () => {
     expect(onSeed).toHaveBeenCalledWith(first);
   });
 
-  it("intent bar seeds via Enter and via the send button", async () => {
-    const user = userEvent.setup();
-    const onSeed = vi.fn();
-    render(<ColdStartDashboard onSeed={onSeed} />);
-
-    const input = screen.getByTestId("cold-intent-input");
-    await user.type(input, "screen these SMILES for hERG{Enter}");
-    expect(onSeed).toHaveBeenCalledWith("screen these SMILES for hERG");
-
-    onSeed.mockClear();
-    await user.click(screen.getByTestId("cold-intent-send"));
-    expect(onSeed).toHaveBeenCalledWith("screen these SMILES for hERG");
+  // The centred IntentBar was removed (single-launcher resolution of the "double
+  // composer", audit C1#2). Its routing coverage is preserved here against the
+  // readIntent() logic directly (the bottom composer's LanePreview uses the same
+  // read), rather than via the deleted UI.
+  it("readIntent classifies a SMILES/ADMET query to the Cloud lane (Drug discovery)", () => {
+    const r = readIntent("screen these SMILES for hERG liabilities");
+    expect(r).not.toBeNull();
+    expect(r!.lane).toBe("cloud");
+    expect(r!.domain).toBe("Drug discovery");
   });
 
-  it("router shows a route-box with lane + domain on matching text", async () => {
-    const user = userEvent.setup();
-    render(<ColdStartDashboard onSeed={() => {}} />);
-
-    // Short text: no verdict yet (>6 char gate).
-    expect(screen.queryByTestId("cold-intent-route")).toBeNull();
-
-    await user.type(screen.getByTestId("cold-intent-input"), "screen these SMILES for hERG liabilities");
-    const route = screen.getByTestId("cold-intent-route");
-    expect(route).toBeInTheDocument();
-    expect(route).toHaveAttribute("data-lane", "cloud");
-    expect(screen.getByTestId("cold-intent-route-domain")).toHaveTextContent("Drug discovery");
-    // Lane label must reflect the Cloud lane (not merely be non-empty, and not the
-    // Instant label). When the coarse read disagrees with the resolved lane the
-    // component shows the plain Cloud label "Prepare an analysis · review before
-    // starting" (see laneLabel in cold-start-dashboard.tsx) rather than the raw word.
-    expect(screen.getByTestId("cold-intent-route-lane")).toHaveTextContent(/cloud|prepare an analysis|review before/i);
-  });
-
-  it("routes an evidence question to the Instant lane", async () => {
-    const user = userEvent.setup();
-    render(<ColdStartDashboard onSeed={() => {}} />);
-    await user.type(
-      screen.getByTestId("cold-intent-input"),
-      "what is the evidence linking this target to disease?",
-    );
-    const route = screen.getByTestId("cold-intent-route");
-    expect(route).toHaveAttribute("data-lane", "instant");
-    expect(screen.getByTestId("cold-intent-route-domain")).toHaveTextContent("Literature");
+  it("readIntent routes an evidence question to the Instant lane (Literature)", () => {
+    const r = readIntent("what is the evidence linking this target to disease?");
+    expect(r).not.toBeNull();
+    expect(r!.lane).toBe("instant");
+    expect(r!.domain).toBe("Literature");
   });
 
   it("no fabricated inventory count appears on any card (no-inventory rule §0.9)", async () => {

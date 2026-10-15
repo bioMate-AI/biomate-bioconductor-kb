@@ -988,11 +988,14 @@ export function ColdStartDashboard({ onSeed }: ColdStartDashboardProps) {
         padding: "32px 0 8px",
       }}
     >
+      {/* Single launcher: the pinned bottom composer (it already carries the
+          lane/routing preview via LanePreview). A second centred input here was
+          the "double composer" (audit C1#2); removed. The module cards + example
+          rows below seed that one composer. Heading only. */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <span style={{ fontSize: 18, textAlign: "center", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
           What are you trying to do?
         </span>
-        <IntentBar onSeed={onSeed} />
       </div>
       <div
         style={{
