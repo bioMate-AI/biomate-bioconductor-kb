@@ -426,9 +426,9 @@ describe("ModelObject", () => {
     // The verdict text is the honest word, not "pass".
     expect(verdict.textContent).toContain("fail")
     expect(verdict.textContent).not.toContain("pass")
-    // Colour is the fail red (#ef4444 -> rgb), not the pass green (#22c55e).
-    expect(verdict.getAttribute("style") || "").toContain("rgb(239, 68, 68)")
-    expect(verdict.getAttribute("style") || "").not.toContain("rgb(34, 197, 94)")
+    // Colour is the fail token (--bm-err, dark-adaptive oklch), not the pass token (--bm-ok).
+    expect(verdict.getAttribute("style") || "").toContain("var(--bm-err)")
+    expect(verdict.getAttribute("style") || "").not.toContain("var(--bm-ok)")
     // The measured value is below threshold \u2014 the numbers back the verdict.
     expect(screen.getByTestId("model-gate-measured").textContent).toBe("0.61")
     expect(screen.getByTestId("model-gate-threshold").textContent).toBe("0.75")
@@ -451,11 +451,11 @@ describe("ModelObject", () => {
     expect(verdict.textContent).toContain("not_evaluated")
     // Crucially NOT presented as a pass.
     expect(verdict.textContent).not.toContain("pass")
-    // Neutral slate colour (#94a3b8 -> rgb), neither pass green nor fail red.
+    // Neutral token (--bm-text-dim), neither the pass token (--bm-ok) nor fail (--bm-err).
     const style = verdict.getAttribute("style") || ""
-    expect(style).toContain("rgb(148, 163, 184)")
-    expect(style).not.toContain("rgb(34, 197, 94)") // pass green
-    expect(style).not.toContain("rgb(239, 68, 68)") // fail red
+    expect(style).toContain("var(--bm-text-dim)")
+    expect(style).not.toContain("var(--bm-ok)") // pass
+    expect(style).not.toContain("var(--bm-err)") // fail
     // Un-measured gate shows the honest em-dash, not a fabricated number.
     expect(screen.getByTestId("model-gate-measured").textContent).toBe("\u2014")
     expect(screen.getByTestId("model-gate-threshold").textContent).toBe("\u2014")
