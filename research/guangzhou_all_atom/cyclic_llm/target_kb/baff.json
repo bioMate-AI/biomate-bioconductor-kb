@@ -1,0 +1,26 @@
+{
+  "target": "baff",
+  "name": "BAFF/BLyS (TNFSF13B)",
+  "indication": "SLE",
+  "modality": "PPI blocker (belimumab axis)",
+  "mechanism": {
+    "epitope": "discontinuous",
+    "motif": null,
+    "metal_cofactor": null,
+    "site": "BAFF-R/TACI/BCMA interface (trimer)"
+  },
+  "counter_targets": [
+    "april"
+  ],
+  "receptor_structure": "1OQD \u2014 needs prep",
+  "source": "docs/20260727_CROSS_DISEASE_TARGET_SCORECARD.md (OT-ranked, drug-blind rediscovery)",
+  "controls": [],
+  "fto": {
+    "status": "to assess"
+  },
+  "examples": {
+    "actives": [],
+    "non_actives": [],
+    "note": "cold-start: no labeled actives yet"
+  }
+}

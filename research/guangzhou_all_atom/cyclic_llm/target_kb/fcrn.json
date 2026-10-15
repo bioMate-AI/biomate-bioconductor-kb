@@ -1,0 +1,24 @@
+{
+  "target": "fcrn",
+  "name": "FcRn (FCGRT/\u03b22m)",
+  "indication": "myasthenia gravis",
+  "modality": "PPI blocker (efgartigimod/rozanolixizumab axis)",
+  "mechanism": {
+    "epitope": "discontinuous",
+    "motif": null,
+    "metal_cofactor": null,
+    "site": "pH-dependent IgG-Fc binding site"
+  },
+  "counter_targets": [],
+  "receptor_structure": "4N0U \u2014 needs prep",
+  "source": "docs/20260727_CROSS_DISEASE_TARGET_SCORECARD.md (OT-ranked, drug-blind rediscovery)",
+  "controls": [],
+  "fto": {
+    "status": "to assess"
+  },
+  "examples": {
+    "actives": [],
+    "non_actives": [],
+    "note": "cold-start: no labeled actives yet"
+  }
+}

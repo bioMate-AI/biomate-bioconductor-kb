@@ -1,0 +1,26 @@
+{
+  "target": "c5",
+  "name": "complement C5",
+  "indication": "myasthenia gravis / gMG / aHUS",
+  "modality": "PPI blocker (eculizumab/ravulizumab axis)",
+  "mechanism": {
+    "epitope": "discontinuous",
+    "motif": null,
+    "metal_cofactor": null,
+    "site": "C5 convertase / C5a cleavage interface"
+  },
+  "counter_targets": [
+    "c3"
+  ],
+  "receptor_structure": "5I5K \u2014 needs prep",
+  "source": "docs/20260727_CROSS_DISEASE_TARGET_SCORECARD.md (OT-ranked, drug-blind rediscovery)",
+  "controls": [],
+  "fto": {
+    "status": "to assess"
+  },
+  "examples": {
+    "actives": [],
+    "non_actives": [],
+    "note": "cold-start: no labeled actives yet"
+  }
+}
