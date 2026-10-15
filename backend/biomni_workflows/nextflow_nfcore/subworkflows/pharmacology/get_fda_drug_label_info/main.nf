@@ -88,6 +88,38 @@ def _standardize_drug_name_fda(drug_name: str) -> str:
 
     return name
 
+
+class OpenFDAClient:
+    '''Minimal openFDA (api.fda.gov) client. The biomni->nextflow generator
+    REFERENCED this class but never inlined it, so the workflow crashed with
+    NameError before any HTTP call. Defined here (requests-based) so it actually
+    queries api.fda.gov. Returns openFDA-native JSON ({"results":[...],"meta":...});
+    a 404 (openFDA's "no match") becomes {"results": []} so callers report an empty
+    result instead of crashing. Real network/HTTP errors raise (honest failure).'''
+    BASE = "https://api.fda.gov/drug"
+
+    def _get(self, endpoint, search, limit):
+        import requests
+        resp = requests.get("%s/%s.json" % (self.BASE, endpoint),
+                            params={"search": search, "limit": limit}, timeout=30)
+        if resp.status_code == 404:
+            return {"results": []}
+        resp.raise_for_status()
+        return resp.json()
+
+    def query_drug_labels(self, name, sections=None):
+        return self._get("label", 'openfda.generic_name:"%s"' % name, 1)
+
+    def query_drug_recalls(self, name, classification=None):
+        search = 'product_description:"%s"' % name
+        if classification:
+            search += ' AND classification:"%s"' % classification
+        return self._get("enforcement", search, 10)
+
+    def query_adverse_events(self, name, limit=200):
+        return self._get("event", 'patient.drug.medicinalproduct:"%s"' % name, limit)
+
+
 def _format_drug_label_summary(response_data: dict, drug_name: str, sections: list[str] | None = None) -> str:
     '''Format drug label information into readable summary.'''
     if not response_data.get("results"):
