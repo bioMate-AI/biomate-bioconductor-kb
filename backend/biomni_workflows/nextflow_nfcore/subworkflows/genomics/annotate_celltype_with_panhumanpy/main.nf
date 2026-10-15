@@ -219,7 +219,7 @@ def annotate_celltype_with_panhumanpy(
         subprocess.run(run_cmd, check=True)
     except subprocess.CalledProcessError as e:
         shutil.rmtree(temp_dir)
-        return f"Error running panhumanpy in conda env: {e}"
+        raise RuntimeError(f"Error running panhumanpy in conda env: {e}")
 
     # 4. Read the result
     try:
