@@ -1,0 +1,98 @@
+{
+  "H": [
+    "has_rgd",
+    "has_rgdl",
+    "flank_aromatic_p1",
+    "flank_aromatic_p7"
+  ],
+  "X": [
+    {
+      "helm": "cyclo(W-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+      "free": {
+        "p1": "W",
+        "p6": "G",
+        "p7": "Nal"
+      },
+      "ncaa_count": 1,
+      "fto_verdict": "literally OUTSIDE at X4(P7)",
+      "doe": "MED",
+      "nearest_patented_id": 0.67,
+      "neural_loglik": -48.065
+    },
+    {
+      "helm": "cyclo(Y-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+      "free": {
+        "p1": "Y",
+        "p6": "G",
+        "p7": "Nal"
+      },
+      "ncaa_count": 1,
+      "fto_verdict": "literally OUTSIDE at X4(P7)",
+      "doe": "MED",
+      "nearest_patented_id": 0.78,
+      "neural_loglik": -45.785
+    },
+    {
+      "helm": "cyclo(W-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+      "free": {
+        "p1": "W",
+        "p6": "A",
+        "p7": "Nal"
+      },
+      "ncaa_count": 1,
+      "fto_verdict": "literally OUTSIDE at X4(P7)",
+      "doe": "MED",
+      "nearest_patented_id": 0.78,
+      "neural_loglik": -50.758
+    },
+    {
+      "helm": "cyclo(Y-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+      "free": {
+        "p1": "Y",
+        "p6": "A",
+        "p7": "Nal"
+      },
+      "ncaa_count": 1,
+      "fto_verdict": "literally OUTSIDE at X4(P7)",
+      "doe": "MED",
+      "nearest_patented_id": 0.89,
+      "neural_loglik": -51.974
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "A",
+        "p7": "Nal"
+      },
+      "ncaa_count": 1,
+      "fto_verdict": "literally OUTSIDE at X4(P7)",
+      "doe": "MED",
+      "nearest_patented_id": 0.89,
+      "neural_loglik": -53.565
+    }
+  ],
+  "meta": {
+    "backend": "neural (unified_cyclic_llm_v4)",
+    "conditioning": "null-target + <p_hi> permeability",
+    "palette": {
+      "flank": [
+        "F",
+        "Y",
+        "W",
+        "Nal"
+      ],
+      "p6": [
+        "A",
+        "G",
+        "S",
+        "Aib",
+        "Abu"
+      ]
+    },
+    "oov_handling": "[NMeK]->K for model context only",
+    "target_agnostic": true,
+    "n_sampled": 320,
+    "ckpt": "runs_helm/unified_cyclic_llm_v4.pt"
+  }
+}

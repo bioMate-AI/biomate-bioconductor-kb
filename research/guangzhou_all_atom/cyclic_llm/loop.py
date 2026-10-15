@@ -111,16 +111,29 @@ def optimize(seed, target="avb6", rounds=4):
 
 
 if __name__ == "__main__":
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--neural", action="store_true",
+                    help="use the neural proposer (unified_cyclic_llm_v4) instead of the enumeration stand-in")
+    ap.add_argument("--rounds", type=int, default=4)
+    cli = ap.parse_args()
     # propose: clean by-construction survivors  +  a deliberately-FAILING seed set (so revise has real work)
-    _H, clean = gen_avb6(4)
+    if cli.neural:
+        from neural_generator import gen_avb6_neural
+        _H, clean, _meta = gen_avb6_neural(n=4)
+        proposer = f"neural ({_meta['backend']})"
+    else:
+        _H, clean = gen_avb6(4)
+        proposer = "enumeration"
     failing = [
         "cyclo(F-R-G-D-L-A-F-[dP]-[NMeK])",                 # avebehexin  -> INFRINGING (literal genus)
         "cyclo([2Nal]-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",       # di-2Nal     -> GREASY (developability)
         "cyclo(A-R-G-D-L-G-A-[dP]-[NMeK])",                 # di-Ala flank-> RULE FAIL (no aromatic flanks)
     ]
     seed = [c["helm"] for c in clean] + failing
-    res = optimize(seed, "avb6", rounds=4)
+    res = optimize(seed, "avb6", rounds=cli.rounds)
 
+    print(f"PROPOSER: {proposer}")
     print(f"SEED ({len(seed)}): {len(clean)} clean(by-construction) + {len(failing)} deliberately-failing\n")
     for t in res["trace"]:
         print(f"round {t['round']}: scored={t['scored']} gated={t['gated_now']} failed={t['failed']} "
