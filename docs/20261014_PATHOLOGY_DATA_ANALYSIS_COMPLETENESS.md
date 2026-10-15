@@ -82,11 +82,21 @@ simulation packages). All 17 fixed + re-validated param-less on Batch:
 - **8 genuinely validated** (`real_exec_status='ok'`, local DB): WSI + IHC +
   corneal_nerve, multiplex, calcium_imaging, blast_sequence (real NCBI BLAST),
   protease_kinetics, panhumanpy.
-- **7 honest-fail, follow-up:** 3 image (`aortic`, `mitochondrial`, `cell_morphology`)
-  — root cause **cv2/opencv missing from biomni-tools** (opencv-python-headless added,
-  commit 603722965; needs a biomni-tools:x86 rebuild+push); 4 external-API (`fda_*`,
-  `pdf`) — suspected Batch worker egress to api.fda.gov / PDF host (BLAST reached
-  NCBI, so egress is partial), pending triage.
+- **7 honest-fail — triaged:**
+  - **4 = missing-dependency in biomni-tools (code/image fix, ready):** 3 image
+    (`aortic`, `mitochondrial`, `cell_morphology`) need **cv2/opencv**; `extract_pdf_content`
+    needs **PyPDF2** (triage: `ModuleNotFoundError: No module named 'PyPDF2'`). Both
+    added to `backend/docker/biomni-tools/Dockerfile` + build-time import smoke checks
+    (commits 603722965, c7270768f). **Requires a biomni-tools:x86 rebuild + ECR push**
+    to take effect — BLOCKED in the working env (no local docker; a dev-EC2 build is
+    out-of-band + resource-risky for a live instance). Run via the normal image-build
+    path (CI / docker host): `docker buildx build --platform linux/amd64 -t <ECR>/biomate/biomni-tools:x86 --push backend/docker/biomni-tools/`, then re-validate the 4.
+  - **3 = suspected api.fda.gov egress (infra):** `get_fda_drug_label_info`,
+    `check_fda_drug_recalls`, `analyze_fda_safety_signals`. `requests` is present and
+    the no-results path returns success, so the raise is a genuine exception on the
+    openFDA HTTP call; NCBI/BLAST egress worked, so it's api.fda.gov-specific. Confirm
+    Batch-worker reachability to api.fda.gov (a stderr-teed re-run); if blocked, it's a
+    NAT/egress config, not a code fix.
 
 ## Remaining to a "complete" common pathology suite
 1. **Multiplex** (`segment_and_quantify_cells_in_multiplexed_images`) — no demo
