@@ -73,6 +73,52 @@ def auto_convert(val):
 
 
 
+def _resolve_image_path(p):
+    # Resolve input to a real local image (no fabricated results).
+    #  - missing/placeholder -> a DETERMINISTIC synthetic image of drawn cells
+    #    (filled disks with brighter rims; no RNG) so the param-less demo runs the
+    #    real thresholding/segmentation/morphometry pipeline.
+    #  - http(s)://, s3:// -> downloaded locally (executor bind-mounts aws CLI at /opt/aws-cli).
+    import os
+    if p in (None, "", "null"):
+        import numpy as np
+        from skimage import io as _sio
+        from skimage.draw import disk as _disk
+        demo = np.zeros((512, 512), dtype=np.uint8)
+        for i, (r, c) in enumerate([(120,120),(120,360),(360,120),(360,360),(240,240),(120,240),(360,240)]):
+            rr, cc = _disk((r, c), 45, shape=demo.shape); demo[rr, cc] = 150
+            rr, cc = _disk((r, c), 45, shape=demo.shape)  # rim
+            rr2, cc2 = _disk((r, c), 30, shape=demo.shape)
+            demo[rr, cc] = 150; demo[rr2, cc2] = 90
+        dest = os.path.join(os.getcwd(), "cell_morphology_synthetic_demo.png")
+        _sio.imsave(dest, demo)
+        print(f"No image_path supplied; using a DETERMINISTIC SYNTHETIC demo image (drawn cells, no RNG) [DEMO DATA]: {dest}")
+        return dest
+    if isinstance(p, str) and p.startswith(("http://", "https://", "s3://")):
+        base = os.path.basename(p.split("?")[0]) or "cell_input.png"
+        dest = os.path.join(os.getcwd(), base)
+        if p.startswith(("http://", "https://")):
+            import urllib.request
+            urllib.request.urlretrieve(p, dest)
+        else:
+            try:
+                import boto3, urllib.parse
+                u = urllib.parse.urlparse(p)
+                boto3.client("s3").download_file(u.netloc, u.path.lstrip("/"), dest)
+            except Exception as _e_boto:
+                import subprocess, shutil
+                aws_bin = shutil.which("aws") or next(
+                    (q for q in ("/opt/aws-cli/aws", "/opt/aws-cli/bin/aws", "/usr/local/bin/aws") if os.path.exists(q)), None)
+                if not aws_bin:
+                    raise RuntimeError(f"cannot fetch s3 image {p}: boto3 unavailable ({_e_boto!r}) and no aws CLI found")
+                r = subprocess.run([aws_bin, "s3", "cp", p, dest], capture_output=True, text=True)
+                if r.returncode != 0:
+                    raise RuntimeError(f"aws s3 cp failed for {p}: {(r.stderr or '').strip()}")
+        print(f"Fetched remote input image [{p.split('://',1)[0]}]: {p}")
+        return dest
+    return p
+
+
 def analyze_cell_morphology_and_cytoskeleton(image_path, output_dir="./results", threshold_method="otsu"):
     '''Quantifies cell morphology and cytoskeletal organization from fluorescence microscopy images.
 
@@ -122,7 +168,7 @@ def analyze_cell_morphology_and_cytoskeleton(image_path, output_dir="./results",
         gray_image = exposure.equalize_hist(gray_image)
         log += "- Enhanced image contrast\\n"
     except Exception as e:
-        return f"Error loading image: {str(e)}"
+        raise RuntimeError(f"Error loading image from {image_path}: {str(e)}")
 
     # Segment cells
     log += "\\nStep 2: Segmenting cells from background\\n"
@@ -275,7 +321,7 @@ def analyze_cell_morphology_and_cytoskeleton(image_path, output_dir="./results",
 # Execute the function
 try:
     result = analyze_cell_morphology_and_cytoskeleton(
-        image_path=auto_convert(os.environ.get("PARAM_IMAGE_PATH", "")),
+        image_path=_resolve_image_path(auto_convert(os.environ.get("PARAM_IMAGE_PATH", ""))),
         output_dir=auto_convert(os.environ.get("PARAM_OUTPUT_DIR", "./results")),
         threshold_method=auto_convert(os.environ.get("PARAM_THRESHOLD_METHOD", "otsu")),
     )
