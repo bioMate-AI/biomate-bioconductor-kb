@@ -257,15 +257,15 @@ def analyze_fda_safety_signals(
     try:
         # Validate input parameters
         if not drug_list:
-            return "Error: At least one drug must be provided for analysis"
+            raise ValueError("At least one drug must be provided for analysis")
 
         if len(drug_list) < 2:
-            return "Error: At least 2 drugs required for comparative safety signal analysis"
+            raise ValueError("At least 2 drugs required for comparative safety signal analysis")
 
         # Validate drug names
         valid_drugs = [drug.strip() for drug in drug_list if drug and drug.strip()]
         if not valid_drugs:
-            return "Error: No valid drug names provided"
+            raise ValueError("No valid drug names provided")
 
         client = OpenFDAClient()
 
@@ -282,7 +282,7 @@ def analyze_fda_safety_signals(
 
         # Check if we got any data
         if not all_responses:
-            return "Error: No adverse event data found for any of the provided drugs"
+            raise RuntimeError("No adverse event data found for any of the provided drugs; cannot compute comparative safety signals")
 
         # Extract safety signals
         signals = _extract_fda_safety_signals(all_responses)
@@ -291,7 +291,7 @@ def analyze_fda_safety_signals(
         return _format_safety_signal_summary(signals, valid_drugs, comparison_period, signal_threshold)
 
     except Exception as e:
-        return f"Error analyzing FDA safety signals: {str(e)}"
+        raise RuntimeError(f"Error analyzing FDA safety signals: {str(e)}")
 
 # Execute the function
 try:
