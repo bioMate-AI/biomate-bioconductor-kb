@@ -3769,6 +3769,23 @@ export function NextflowWorkflowViewer({
                       workflowDefinition={workflowDefinition}
                       projectId={projectId}
                       onClose={() => setFullViewStep(null)}
+                      onApplyAndRerun={(edited) => {
+                        // Apply the in-place-edited params to the form and re-run
+                        // with the merged set (pass merged directly — setParams is
+                        // async, so handleExecute would otherwise see stale params).
+                        setParams(prev => ({ ...prev, ...edited }));
+                        setFullViewStep(null);
+                        if (onExecute) onExecute({
+                          ...params,
+                          ...edited,
+                          __qcConfig: {
+                            pauseAtQcFailures,
+                            ...(qcProfile && { qcProfile }),
+                            ...(Object.keys(qcOverrides).length > 0 && { qcOverrides }),
+                          },
+                          ...(projectId ? { __outputLocation: { type: 'project', projectId } } : {}),
+                        });
+                      }}
                     />
                   </DialogContent>
                 </Dialog>

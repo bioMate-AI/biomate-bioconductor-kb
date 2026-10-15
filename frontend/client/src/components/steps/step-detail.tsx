@@ -87,6 +87,10 @@ export interface StepDetailProps {
   onOpenOutput?: (outputId: string) => void;
   /** Optional: open the parameter re-run flow (StepAdjustModal) for this step. */
   onAdjustAndRerun?: () => void;
+  /** Optional: apply in-place-edited parameters and re-run from this step
+   *  (spec 08: "parameters editable in place" + "Apply & re-run from here").
+   *  Receives the edited {name: value} map. */
+  onApplyAndRerun?: (params: Record<string, unknown>) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -247,7 +251,7 @@ function RawBytesViewer({ runId, file }: { runId: string; file: StepDetailOutput
 // ---------------------------------------------------------------------------
 
 export function StepDetail({
-  runId, step, workflowDefinition, projectId, onClose, onOpenOutput, onAdjustAndRerun,
+  runId, step, workflowDefinition, projectId, onClose, onOpenOutput, onAdjustAndRerun, onApplyAndRerun,
 }: StepDetailProps) {
   const outputs = useMemo<StepDetailOutput[]>(
     () => (step.outputs || []).map(o => ({ ...o, id: o.id ?? o.path })),
@@ -283,6 +287,8 @@ export function StepDetail({
 
   const selected = outputs.find(o => o.id === selectedId) || outputs[0] || null;
   const notDefault = params.filter(p => p.origin === "override" || p.origin === "inherited").length;
+  // Any in-place edit pending (drives the "Apply & re-run from here" affordance).
+  const anyChanged = params.some(p => !sameValue(vals[p.name], p.value));
 
   return (
     <div
@@ -444,11 +450,20 @@ export function StepDetail({
                       <OriginBadge origin={p.origin} />
                     </div>
                     <div className="flex items-center gap-2 min-w-0 sm:justify-self-end">
-                      <span className="font-mono text-xs break-all">{fmtVal(live)}</span>
-                      {p.defaultValue !== undefined && changed && (
+                      {/* Editable in place (spec 08). Edits live in `vals`; the
+                          revert (below) restores the ran-with value; Apply &
+                          re-run (under the list) submits the edited set. */}
+                      <input
+                        data-testid={`param-input-${p.name}`}
+                        className={`font-mono text-xs break-all bg-transparent border-b border-dashed outline-none text-right min-w-0 flex-1 ${changed ? "border-primary text-foreground" : "border-border/60 text-foreground"}`}
+                        value={live === null || live === undefined ? "" : String(live)}
+                        onChange={e => setVals(v => ({ ...v, [p.name]: e.target.value }))}
+                        spellCheck={false}
+                      />
+                      {changed && (
                         <button
                           data-testid={`param-revert-${p.name}`}
-                          className="text-[11px] text-primary hover:underline"
+                          className="text-[11px] text-primary hover:underline shrink-0"
                           onClick={() => setVals(v => ({ ...v, [p.name]: p.value }))}
                         >
                           revert
@@ -461,6 +476,18 @@ export function StepDetail({
                   </div>
                 );
               })}
+            </div>
+          )}
+          {onApplyAndRerun && anyChanged && (
+            <div className="mt-2 flex justify-end">
+              <Button
+                size="sm"
+                className="h-7 gap-1.5 text-xs"
+                data-testid="apply-and-rerun"
+                onClick={() => onApplyAndRerun(vals)}
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Apply &amp; re-run from here
+              </Button>
             </div>
           )}
           <p className="text-[10px] text-muted-foreground mt-2">
