@@ -86,7 +86,8 @@ RUN pip install --no-cache-dir \
 RUN pip install --no-cache-dir \
     statsmodels \
     scikit-image \
-    opencv-python-headless
+    opencv-python-headless \
+    PyPDF2
 # opencv (cv2, headless — no GUI libs): several biomni image-analysis workflows
 # (aortic geometry, mitochondrial morphology, cell morphology/cytoskeleton) import
 # cv2. It was MISSING, so those workflows failed at `import cv2` — previously hidden
@@ -118,6 +119,7 @@ import meeko; print('Meeko OK')" && \
     python3 -c "import statsmodels; print('statsmodels OK')" && \
     python3 -c "import skimage; print('scikit-image OK')" && \
     python3 -c "import cv2; print('OpenCV OK  version={}'.format(cv2.__version__))" && \
+    python3 -c "import PyPDF2; print('PyPDF2 OK')" && \
     aws --version && \
     echo "All biomni-tools checks passed."
 
