@@ -244,12 +244,16 @@ def assemble(
     elif qtype == QuestionType.NORMATIVE:
         if limit_clause or org:
             support = (limit_clause or org)
-            # Attach only the top (primary) source: a normative "what is the
-            # requirement" answer is grounded by the single most-relevant clause,
-            # not by every clause in the domain.
+            # Attach the single most-relevant clause (the answer), PLUS any
+            # topically-linked live guideline passage (reg:*) so a normative
+            # answer also carries its underlying standard text — without
+            # re-attaching unrelated clauses from the domain.
+            primary = support[0]
+            extra = [s for s in _linked_sources(sources, primary)
+                     if s is not primary and s.id.startswith("reg:")]
             claims.append(Claim(
-                text="The applicable requirement: " + support[0].text,
-                supporting=support[:1],
+                text="The applicable requirement: " + primary.text,
+                supporting=[primary] + extra,
             ))
         if org:
             claims.append(Claim(
