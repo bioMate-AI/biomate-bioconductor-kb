@@ -2305,7 +2305,8 @@ Respond with a single JSON object — no other text:
     # When a user's query contains a long AA/NT string, the AI should fill
     # these params directly — not look for an S3 path.
     _SEQUENCE_PARAM_NAMES: frozenset = frozenset([
-        'sequence', 'protein_sequence', 'dna_sequence', 'rna_sequence',
+        'sequence', 'protein_sequence', 'protein_sequences',
+        'dna_sequence', 'rna_sequence',
         'aa_sequence', 'nt_sequence', 'peptide_sequence', 'query_sequence',
         'target_sequence', 'input_sequence',
     ])
@@ -3993,7 +3994,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         if any(kw in _low for kw in _nucleotide_only_kw):
             return None
 
-        top = self.workflow_search.get_workflow_by_filename_pattern('nfcore/proteinfold/main.nf')
+        top = self.workflow_search.get_workflow_by_filename_pattern('%proteinfold%')
         if not top:
             log.warning("[ProteinStructureFastPath] proteinfold not found in DB — skipping")
             return None
@@ -4020,11 +4021,16 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         # but applied post-routing so the correct param list is available).
         if result and result.get('workflow_ga'):
             _wf = result['workflow_ga']
+            _best_len = len(_best_seq)
             for _p in _wf.get('required_params', []) + _wf.get('optional_params', []):
-                if self._detect_param_type(_p.get('name', ''), '') == 'sequence' \
+                _pname = _p.get('name', '')
+                if self._detect_param_type(_pname, '') == 'sequence' \
                         and not _p.get('value'):
                     _p['value'] = _best_seq
                     _p['default'] = _best_seq
+                elif _pname == 'sequence_length' and not _p.get('value'):
+                    _p['value'] = str(_best_len)
+                    _p['default'] = str(_best_len)
         return result
 
     def _try_fast_path_nfcore_pipeline(  # noqa: deploy-trigger
