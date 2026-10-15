@@ -251,7 +251,7 @@ Analysis completed successfully.
         return research_log
 
     except Exception as e:
-        return f"Error during analysis: {str(e)}"
+        raise RuntimeError(f"Error during analysis: {str(e)}")
 
 # Execute the function
 try:
