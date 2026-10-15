@@ -343,22 +343,37 @@ for rec in compat[:1000]:
 # =====================================================================================
 # 7. FINDINGS — biomate_run_output (given run outputs, state the finding). Bounded length
 #    (narration may be longer than a label, but capped so it does not teach unbounded rambling).
+#
+#    VERIFICATION GATE (P0, 2026-10-15): every biomate_run_output_candidate carries
+#    eligible_for_training=False / review_status=needs_review — the teacher/BioMate `produced_output`
+#    is a CANDIDATE until independently verified (collect_local_corpus.py). Training the findings task
+#    on `produced_output` teaches unverified model narration (the model's own guesses as if gold).
+#    So we ingest ONLY rows that carry an INDEPENDENT gold finding (has_gold) that also passed the
+#    structural check (score.passed), and we train on that gold `expected` text — never on
+#    `produced_output`. This drops the ~564 no-gold rows + ~20 failed-check rows that the old
+#    sort-and-take-800 pulled in via the `expected or produced_output` fallback.
+#    (score.passed is only a structural key/order check, NOT execution grading; execution_grader.
+#    grade_run needs a live run object and cannot retro-grade these static candidates — promoting
+#    more rows to eligible via real execution grading is the follow-on P1/P2 work, not this gate.)
 # =====================================================================================
 ro = jload(f"{CAND}/biomate_run_output_candidates.jsonl")
-# prefer has_gold / passing rows
-ro.sort(key=lambda r: (0 if r.get("has_gold") else 1,
-                       0 if (isinstance(r.get("score"), dict) and r["score"].get("passed")) else 1))
-kept_ro = 0
+kept_ro = 0; skipped_unverified = 0
 for r in ro:
-    out = r.get("expected") or r.get("produced_output")
-    if not out or not isinstance(out, str): continue
+    has_gold = bool(r.get("has_gold"))
+    passed = isinstance(r.get("score"), dict) and r["score"].get("passed") is True
+    gold = r.get("expected")
+    if not (has_gold and passed and isinstance(gold, str) and gold.strip()):
+        skipped_unverified += 1
+        continue
     task = r.get("intended_task", "analysis")
-    ans = out.replace("\n\n", "\n").strip()[:1200]  # bounded narration
+    ans = gold.replace("\n\n", "\n").strip()[:1200]  # bounded narration, gold only
     user = ("Given the outputs this BioMate run produced, state the key finding(s) concisely for the "
             f"user. Run context: {task}.")
     add("findings", "biomate_run_output", u_a(user, ans, SYS))
     kept_ro += 1
     if kept_ro >= 800: break
+print(f"[findings gate] kept {kept_ro} gold-verified findings rows; "
+      f"skipped {skipped_unverified} unverified (no independent gold / failed structural check)")
 
 # =====================================================================================
 # 8. SELF-FIX — git_fix_pair (issue -> fix). Concise summary of the fix.
