@@ -3749,20 +3749,16 @@ export function NextflowWorkflowViewer({
                   mapped step data (see buildStepDetailStep) plus the workflow
                   definition (for param defaults/origins) — nothing fabricated. */}
               {fullViewStep && (
-                <Dialog
-                  open={!!fullViewStep}
-                  onOpenChange={(open) => { if (!open) setFullViewStep(null); }}
+                /* Full step view is a PANEL WITHIN the workflow-view artifact (not a
+                   screen-level Dialog overlay): an absolutely-positioned sub-panel
+                   covering the workflow panel's content (the .wf-panel root is
+                   position:relative). StepDetail provides its own header + back/close. */
+                <div
+                  className="absolute inset-0 z-30 flex flex-col bg-background overflow-hidden"
+                  data-testid="full-step-view-panel"
+                  role="region"
+                  aria-label={tOr('panel.full_step_view_title', 'Full step view: {{name}}', { name: fullViewStep.name })}
                 >
-                  <DialogContent
-                    /* Full step view is a PANEL, not a centered pop-up (design spec 08):
-                       a full-height side panel anchored right, overriding the shadcn
-                       centered modal positioning. StepDetail provides its own back/close. */
-                    className="!left-auto !right-0 !top-0 !translate-x-0 !translate-y-0 h-screen max-h-screen w-[min(960px,96vw)] max-w-none min-w-0 p-0 gap-0 border-0 border-l bg-background shadow-xl rounded-none overflow-y-auto [&>button]:hidden"
-                    data-testid="full-step-view-panel"
-                  >
-                    <VisuallyHidden>
-                      <DialogTitle>{tOr('panel.full_step_view_title', 'Full step view: {{name}}', { name: fullViewStep.name })}</DialogTitle>
-                    </VisuallyHidden>
                     <StepDetail
                       runId={activeRunId || ""}
                       step={fullViewStep}
@@ -3787,8 +3783,7 @@ export function NextflowWorkflowViewer({
                         });
                       }}
                     />
-                  </DialogContent>
-                </Dialog>
+                </div>
               )}
 
           {/* ── Error recovery card ───────────────────────────────────────────── */}
