@@ -30,15 +30,29 @@ def developability(helm):
     return {"meanH": meanH, "n2Nal": n2, "net_charge": net, "liabilities": liab, "greasy": greasy,
             "pass": (not liab) and (not greasy) and (-2 <= net <= 2)}
 
-def score(helm, target="avb6", binding_dG=None, selectivity_gap=None, groove=None, geometry=None):
-    """Merge every objective into one record + a hard-gate verdict + a rank key."""
+def score(helm, target="avb6", binding_dG=None, selectivity_gap=None, groove=None, geometry=None, tier="cheap"):
+    """Merge every objective into one record + a hard-gate verdict + a rank key.
+    tier='cheap' (default): deterministic tier only; expensive hooks stay 'pending' unless passed explicitly.
+    tier='full': auto-dispatch the expensive tier from the GPU pipeline RESULTS (physics_dispatch), control-
+    anchored (A2) — only admissible values are filled; explicit kwargs still override."""
     rec = {"helm": helm, "target": target}
     # cheap deterministic tier
     rec["rule_pass"] = avb6_gate(helm)["PASS_H1_H5"] if target == "avb6" else None
     f = fto_score(helm, target); rec["fto"] = {"verdict": f["claim"]["verdict"], "doe": f["claim"]["doe"],
                                                "patent_id": f["nearest_patented_identity"]}
     rec["developability"] = developability(helm)
-    # expensive tier (from GPU pipeline when available; control-anchored)
+    # expensive tier: auto-dispatch admissible physics when tier='full' (explicit kwargs take precedence)
+    if tier == "full":
+        from physics_dispatch import physics_for
+        p = physics_for(helm, target)
+        for fld, var in (("binding_dG", binding_dG), ("selectivity_gap", selectivity_gap),
+                         ("groove", groove), ("geometry", geometry)):
+            if var is None and p["admissible"].get(fld) and p[fld] is not None:
+                if fld == "binding_dG": binding_dG = p[fld]
+                elif fld == "selectivity_gap": selectivity_gap = p[fld]
+                elif fld == "groove": groove = p[fld]
+                elif fld == "geometry": geometry = p[fld]
+        rec["physics"] = {"design_id": p["design_id"], "provenance": p["provenance"], "reasons": p["reasons"]}
     rec["binding_dG"] = binding_dG if binding_dG is not None else "pending"
     rec["selectivity_gap"] = selectivity_gap if selectivity_gap is not None else "pending"
     rec["groove_occupancy"] = groove if groove is not None else "pending"
