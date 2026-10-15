@@ -30,6 +30,7 @@ collection (target / structure / patent KBs) is the prerequisite foundation.
 | Neural proposer | `neural_generator.py` | ✅ unified_cyclic_llm_v4 proposes free-position chemistry by permeability-conditioned macrocycle likelihood (temp = exploration); same reject+rank + `(H,X)`; `loop.py --neural`; enumeration fallback |
 | Expensive-tier auto-dispatch | `physics_dispatch.py` | ✅ reads MM-GBSA/counter/groove artifacts (no GPU run), joins HELM→ID→result, A2 control-anchored at receptor level (K-05 binding −39.86/sel −15.27 admissible) |
 | Mechanism-matched scorer config | `scorer_config.py` | ✅ KB mechanism → metal/pose/counter-target/receptor/controls config; physics admissibility gated on `mechanism_compliant()` (avb6 requires Mn@MIDAS → metal-free runs non-compliant; metal-aware+anchored run admitted automatically) |
+| FTO compound/patent axis | `fto_score.py` → `drug_novelty_fto` | ✅ real NW identity + ECFP Tanimoto vs 136k ChEMBL/BindingDB + live SureChEMBL patent presence (replaces 2-HELM seq stub); `score(tier='full')` carries `fto.novelty`; fail-open |
 
 The **loop skeleton is now built end-to-end**: neural proposer → score (cheap + auto-dispatched physics,
 A2-gated) → select → revise → repeat. Remaining labeled stand-ins / gaps (see progress doc next-item list):
@@ -47,7 +48,7 @@ developability, mechanism as symbolic specs too (partially — FTO is encoded).
 2. ~~Optimizer loop~~ ✅ DONE (`loop.py`) — remaining: swap the deterministic revise for the learned driver (REINVENT/Saturn RL with `score()` as reward, or LLM-revise); folds into #1/#8.
 3. ~~Expensive-tier auto-dispatch into `score()`~~ ✅ DONE (`physics_dispatch.py`, `score(tier='full')`) — remaining: a **G1 groove JSON** and optional **auto-launch** of the GPU job for gate-passers with no result yet.
 4. ~~Mechanism-matched scorer config~~ ✅ DONE (`scorer_config.py`) — the config now declares exactly what an admissible avb6 run needs (Mn@MIDAS + metal-complete receptor + control); remaining is the **GPU run itself** (metal-aware MM-GBSA + integrin counter-targets), out of band (spot-cost discipline).
-5. Patent compound layer (SureChEMBL/Google Patents ingestion; add PD-L1 + counter-integrin estates).
+5. ~~Patent compound layer~~ ✅ DONE (`fto_score`→`drug_novelty_fto`: NW identity + 136k-lib Tanimoto + live SureChEMBL) — remaining: structured claim KBs for PD-L1 BMS + counter-integrin estates; SureChEMBL substructure (genus) search; library same-target tag enrichment.
 6. Real ILP (Popper/Aleph) + richer rule families + more negatives.
 7. Governance (Mozi verifiable stages).
 8. Own-LLM: continue gold SFT → peptide generator → RLVR with `score()` as reward.

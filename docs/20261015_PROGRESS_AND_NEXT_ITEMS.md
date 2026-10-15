@@ -15,6 +15,7 @@ Code lives in `research/guangzhou_all_atom/cyclic_llm/`. Design refs: the five 2
 | **Neural proposer (SNG L2 neural)** | `neural_generator.py` | uses the unified_cyclic_llm_v4 ckpt to PROPOSE free-position chemistry: scores each scaffold macrocycle's likelihood under null-target + `<p_hi>` permeability, samples free-position triples ∝ likelihood (temperature = exploration), then the same rule+FTO+dev constrain+reject; same `(H,X)` interface; enumeration fallback if torch/ckpt absent | backend=`neural (unified_cyclic_llm_v4)`; model sharply prefers 2Nal flanks (permeability); temp 1.0→5 / 2.0→19 survivors of a 62-clean ceiling; `loop.py --neural` converges to 7 gated, 0 abandoned. Honest: v4 NOT trained on avb6 → signal is developable/permeable chemistry, not affinity; palette = model-known ∩ gate-known monomers |
 | **Physics auto-dispatch (expensive tier)** | `physics_dispatch.py`, `score.py` `tier='full'` | READS existing MM-GBSA/counter/groove artifacts (no GPU run); joins HELM→design-ID→result; **A2 control-anchoring at receptor level** (admissible only if a control row anchors the receptor's ΔG scale — direct or inherited by a same-receptor sibling run); groove control-independent; geometry pending (no artifact) | K-05 → binding −39.86 (A2 direct, ctrl #2/14), selectivity −15.27, groove pending (G1 groove doc-only); G2 A02 → binding −28.17 (A2 inherited), selectivity +14.11 (NOT selective, matches 0/8), groove 0.733; novel avb6 HELM → all pending (never folded) |
 | **Mechanism-matched scorer config** | `scorer_config.py` (+ `physics_dispatch` gate) | derives the scorer config from the KB `mechanism` tag: metal to retain (integrin MIDAS Mn vs none), pose method by epitope (linear-motif → dock-prepose-ok; discontinuous → cofold-required), counter-targets, metal-complete receptor, controls; physics admissibility now gated on `mechanism_compliant()` (replaces the hard-coded VOID list) | avb6 metal-free run → non-compliant ("requires Mn at β6 MIDAS; run does not record the metal"); **synthetic metal-aware + control-anchored avb6 run → admitted automatically** (unlock proven); pdl1 (no metal) unchanged |
+| **FTO compound/patent axis** | `fto_score.py` → `drug_novelty_fto` | replaces the 2-HELM seq-identity STUB: `nearest_patented_identity` now via real Needleman-Wunsch; new `novelty_axis` = Morgan/ECFP Tanimoto vs a **136,730-row ChEMBL/BindingDB** library (+ same-target subset) + **real SureChEMBL-via-PubChem** patent presence; faithful ncAA-stripped backbone (fixes parse_helm dropping 2Nal); `score(tier='full')` attaches `fto.novelty` | avebehexin FRGDLAFPK → T 0.9186 vs CHEMBL4575627 (avb6 RGD analog) → known_active; de-novo WRGDLGFPK → 0.8163 → novel; live patent check runs (present=False, honest); fail-open on missing RDKit/lib/network |
 
 ## Architecture as realized (SNG pattern, working)
 - **Symbolic (outside LLM):** induced rule (L1) + FTO claim constraint + developability — deterministic, cheap,
@@ -60,9 +61,14 @@ Code lives in `research/guangzhou_all_atom/cyclic_llm/`. Design refs: the five 2
      αvβ6 MM-GBSA run — the config declares exactly what it must record (`metal:"Mn"` + metal-complete receptor +
      Trivehexin/avebehexin control), and the dispatcher will admit it automatically (unlock proven on a synthetic
      run). Also: produce integrin counter-target (avb8/avb3/avb5/a5b1) runs so selectivity can be computed for avb6.
-5. **Patent/FTO compound layer (Phase 0.5 follow-on).**
-   - Ingest SureChEMBL / Google Patents Public Datasets → real nearest-patented dissimilarity (replace the
-     known-compound seq-identity stub). Add PD-L1 (BMS macrocycle estate — source-verify) + counter-integrin patents.
+5. ~~**Patent/FTO compound layer (Phase 0.5 follow-on).**~~ **✅ DONE — `fto_score` → `drug_novelty_fto`.**
+   - Wired the existing honest gate: real NW nearest-patented identity + structure Tanimoto vs 136k ChEMBL/
+     BindingDB actives + live SureChEMBL-via-PubChem patent presence; `score(tier='full')` carries `fto.novelty`.
+     **Remaining:** (a) PD-L1 BMS macrocycle-estate + counter-integrin patents are not yet added as structured
+     claim KBs (only CA2998968 is) — add `fto_kb/<patent>.json` for them; (b) the PubChem patent axis only flags
+     REGISTERED exact structures — a SureChEMBL **structure-substructure** search (patent genus coverage of novel
+     analogs) is the deeper follow-on; (c) tag-enrich the library so `restrict_tag` same-target subsets are
+     complete for avb6/pdl1.
 6. **Real ILP (method upgrade).**
    - Swap the greedy learner for Popper/Aleph with background theory + recursion; richer negatives per target
      (pdl1 cold-start needs more non-actives). Extend induction to FTO/developability/mechanism rule families.
