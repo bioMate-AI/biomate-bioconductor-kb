@@ -158,14 +158,14 @@ def get_fda_drug_label_info(drug_name: str, sections: list[str] | None = None) -
     try:
         # Validate input
         if not drug_name or not drug_name.strip():
-            return "Error: Drug name cannot be empty"
+            raise ValueError("Drug name cannot be empty")
 
         client = OpenFDAClient()
 
         # Standardize drug name
         standardized_name = _standardize_drug_name_fda(drug_name)
         if not standardized_name:
-            return f"Error: Unable to standardize drug name '{drug_name}'"
+            raise ValueError(f"Unable to standardize drug name '{drug_name}'")
 
         # Query drug labels
         response = client.query_drug_labels(standardized_name, sections=sections)
@@ -178,7 +178,7 @@ def get_fda_drug_label_info(drug_name: str, sections: list[str] | None = None) -
         return _format_drug_label_summary(response, drug_name, sections=sections)
 
     except Exception as e:
-        return f"Error retrieving FDA drug label for {drug_name}: {str(e)}"
+        raise RuntimeError(f"Error retrieving FDA drug label for {drug_name}: {str(e)}")
 
 # Execute the function
 try:
