@@ -116,11 +116,15 @@ EOF
 }
 
 workflow {
-    def has_file = params.input_fasta && params.input_fasta.toString().trim()
-    def has_seq  = params.sequence    && params.sequence.toString().trim()
+    // Guard against boolean params (LLM occasionally emits input_fasta:true).
+    // Channel.fromPath(boolean) throws java.lang.Boolean.getFileSystem().
+    def _fasta_raw = (params.input_fasta instanceof Boolean) ? '' : params.input_fasta.toString()
+    def _seq_raw   = (params.sequence    instanceof Boolean) ? '' : params.sequence.toString()
+    def has_file = _fasta_raw && _fasta_raw.trim()
+    def has_seq  = _seq_raw   && _seq_raw.trim()
 
     if (has_file) {
-        fasta_ch = Channel.fromPath(params.input_fasta, checkIfExists: true)
+        fasta_ch = Channel.fromPath(_fasta_raw, checkIfExists: true)
     } else if (has_seq) {
         WRITE_FASTA()
         fasta_ch = WRITE_FASTA.out
