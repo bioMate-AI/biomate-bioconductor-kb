@@ -75,6 +75,57 @@ def auto_convert(val):
 
 
 
+def _resolve_multiplex_inputs(image_path, markers_list):
+    # Resolve inputs to a real local multichannel image + a matching markers list
+    # (no fabrication of results).
+    #  - missing/placeholder image -> a DETERMINISTIC synthetic 3-channel image
+    #    (channels, H, W) of drawn nuclei/marker blobs (no RNG), with a default
+    #    3-marker list, so the param-less demo runs the real segmentation pipeline.
+    #  - http(s)://, s3:// -> downloaded locally (executor bind-mounts aws CLI at /opt/aws-cli).
+    import os
+    if image_path in (None, "", "null"):
+        import numpy as np
+        from skimage import io as _sio
+        from skimage.draw import disk as _disk
+        H = W = 256
+        img = np.zeros((3, H, W), dtype=np.uint8)
+        centers = [(60, 60), (60, 180), (180, 60), (180, 180), (120, 120)]
+        for i, (r, c) in enumerate(centers):
+            rr, cc = _disk((r, c), 18, shape=(H, W))
+            img[0, rr, cc] = 220            # nuclear channel
+            img[1, rr, cc] = 120 + 20 * i   # marker A
+            img[2, rr, cc] = 200 - 20 * i   # marker B
+        dest = os.path.join(os.getcwd(), "multiplex_synthetic_demo.tif")
+        _sio.imsave(dest, img)
+        if markers_list in (None, "", "null"):
+            markers_list = ["DAPI", "MarkerA", "MarkerB"]
+        print(f"No image_path supplied; using a DETERMINISTIC SYNTHETIC 3-channel demo image (drawn cells, no RNG) [DEMO DATA]: {dest}")
+        return dest, markers_list
+    if isinstance(image_path, str) and image_path.startswith(("http://", "https://", "s3://")):
+        base = os.path.basename(image_path.split("?")[0]) or "multiplex_input.tif"
+        dest = os.path.join(os.getcwd(), base)
+        if image_path.startswith(("http://", "https://")):
+            import urllib.request
+            urllib.request.urlretrieve(image_path, dest)
+        else:
+            try:
+                import boto3, urllib.parse
+                u = urllib.parse.urlparse(image_path)
+                boto3.client("s3").download_file(u.netloc, u.path.lstrip("/"), dest)
+            except Exception as _e_boto:
+                import subprocess, shutil
+                aws_bin = shutil.which("aws") or next(
+                    (q for q in ("/opt/aws-cli/aws", "/opt/aws-cli/bin/aws", "/usr/local/bin/aws") if os.path.exists(q)), None)
+                if not aws_bin:
+                    raise RuntimeError(f"cannot fetch s3 image {image_path}: boto3 unavailable ({_e_boto!r}) and no aws CLI found")
+                r = subprocess.run([aws_bin, "s3", "cp", image_path, dest], capture_output=True, text=True)
+                if r.returncode != 0:
+                    raise RuntimeError(f"aws s3 cp failed for {image_path}: {(r.stderr or '').strip()}")
+        print(f"Fetched remote multichannel image: {image_path}")
+        return dest, markers_list
+    return image_path, markers_list
+
+
 def segment_and_quantify_cells_in_multiplexed_images(
     image_path, markers_list, nuclear_channel_index=0, output_dir="./output"
 ):
@@ -124,9 +175,7 @@ def segment_and_quantify_cells_in_multiplexed_images(
 
         # Validate image dimensions
         if len(image.shape) < 3:
-            return (
-                "Error: Image should be multichannel with shape (channels, height, width) or (height, width, channels)"
-            )
+            raise RuntimeError("Image should be multichannel with shape (channels, height, width) or (height, width, channels)")
 
         # Determine image format
         if image.shape[0] == len(markers_list):
@@ -140,12 +189,12 @@ def segment_and_quantify_cells_in_multiplexed_images(
             # Extract nuclear channel
             nuclear_channel = image[:, :, nuclear_channel_index]
         else:
-            return f"Error: Number of channels in image ({image.shape}) doesn't match markers list length ({len(markers_list)})"
+            raise RuntimeError(f"Number of channels in image ({image.shape}) does not match markers list length ({len(markers_list)})")
 
         log.append(f"Processing image with {num_channels} channels, dimensions: {height}x{width}")
 
     except Exception as e:
-        return f"Error loading image: {str(e)}"
+        raise RuntimeError(f"Error loading multichannel image from {image_path}: {str(e)}")
 
     # Segment nuclei
     log.append("Performing nuclear segmentation")
@@ -228,8 +277,7 @@ def segment_and_quantify_cells_in_multiplexed_images(
 # Execute the function
 try:
     result = segment_and_quantify_cells_in_multiplexed_images(
-        image_path=auto_convert(os.environ.get("PARAM_IMAGE_PATH", "")),
-        markers_list=auto_convert(os.environ.get("PARAM_MARKERS_LIST", "")),
+        **dict(zip(("image_path","markers_list"), _resolve_multiplex_inputs(auto_convert(os.environ.get("PARAM_IMAGE_PATH","")), auto_convert(os.environ.get("PARAM_MARKERS_LIST",""))))),
         nuclear_channel_index=auto_convert(os.environ.get("PARAM_NUCLEAR_CHANNEL_INDEX", "0")),
         output_dir=auto_convert(os.environ.get("PARAM_OUTPUT_DIR", "./output")),
     )
