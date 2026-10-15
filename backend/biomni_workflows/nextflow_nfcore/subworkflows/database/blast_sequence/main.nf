@@ -174,7 +174,7 @@ def blast_sequence(sequence: str, database: str, program: str) -> dict[str, str 
                 print(f"Error during BLAST search: {str(e)}. Retrying...")
                 time.sleep(2)  # Wait briefly before retrying
             else:
-                return f"Error during BLAST search after maximum attempts: {str(e)}"
+                raise RuntimeError(f"BLAST search failed after maximum attempts: {str(e)}")
 
 # Execute the function
 try:
