@@ -18,6 +18,7 @@ A2 model (matches the program's reasoning, docs/20261013_PDL1_PRIORITIZATION_RUN
 """
 import json, os, math, functools
 from acceptance_gate import raw_tokens
+from scorer_config import mechanism_compliant, config_for
 
 HERE = os.path.dirname(__file__)
 RESULTS = os.path.join(os.path.dirname(HERE), "results")
@@ -32,11 +33,13 @@ REG = {
              "counter": [], "groove": [],
              "candidates": ["knowledge_grounded_candidates_v1.json", "knowledge_grounded_candidates_v2.json"]},
 }
-# files whose numbers are void regardless of join (metal dropped + no control): never emit binding from these
-VOID = {"avb6_r3_mmgbsa.json": "metal (MIDAS Mn) dropped -> unphysical positive ΔG; no control (A2 FAIL)",
-        "mmgbsa_avb6_v2.json": "metal-free cofold + no control (A2 FAIL); incomplete run"}
+# Admissibility of a MM-GBSA file is decided per TARGET MECHANISM (scorer_config.mechanism_compliant), not a
+# hard-coded filename list: e.g. αvβ6 requires Mn@β6-MIDAS, so a metal-free run is non-compliant -> void for the
+# right reason, and a future metal-aware run becomes admissible automatically. A2 control-anchoring is enforced
+# on top of mechanism compliance below.
 
 
+@functools.lru_cache(maxsize=None)
 def _load(fname):
     p = os.path.join(RESULTS, fname)
     return json.load(open(p)) if os.path.exists(p) else None
@@ -52,20 +55,24 @@ def _key(helm):
 
 @functools.lru_cache(maxsize=None)
 def _helm_index(target):
-    """{token-tuple: design-id} from every list-of-dicts (with id+helm) in the target's candidate files."""
+    """{token-tuple: design-id} from every dict with id+helm anywhere in the target's candidate files
+    (recursive: handles both top-level lists and nested {avb6:{candidates:[...]}} layouts)."""
     idx = {}
+
+    def walk(o):
+        if isinstance(o, dict):
+            if "id" in o and "helm" in o:
+                k = _key(o["helm"])
+                if k:
+                    idx.setdefault(k, o["id"])
+            for v in o.values():
+                walk(v)
+        elif isinstance(o, list):
+            for x in o:
+                walk(x)
+
     for f in REG.get(target, {}).get("candidates", []):
-        d = _load(f)
-        if not d:
-            continue
-        lists = d.values() if isinstance(d, dict) else [d]
-        for v in lists:
-            if isinstance(v, list):
-                for r in v:
-                    if isinstance(r, dict) and "id" in r and "helm" in r:
-                        k = _key(r["helm"])
-                        if k:
-                            idx.setdefault(k, r["id"])
+        walk(_load(f))
     return idx
 
 
@@ -92,9 +99,9 @@ def _receptor_anchor(target):
             continue
         rec = fj.get("target", "?")
         cs = _control_status(fj)
-        voided = f in VOID
+        compliant, _ = mechanism_compliant(target, fj)
         cur = anc.get(rec)
-        if cs["pass"] and not voided and (cur is None or not cur["anchored"]):
+        if cs["pass"] and compliant and (cur is None or not cur["anchored"]):
             anc[rec] = {"anchored": True, "via_file": f, "control": cs}
         elif cur is None:
             anc[rec] = {"anchored": False, "via_file": None, "control": cs}
@@ -147,10 +154,11 @@ def physics_for(helm, target):
 
     # binding_dG
     rec, fname, receptor = _mmgbsa_record(target, did)
+    compliant, creason = (mechanism_compliant(target, _load(fname)) if fname else (False, "no file"))
     if rec is None:
         out["reasons"]["binding_dG"] = "no MM-GBSA record for this ID"
-    elif fname in VOID:
-        out["reasons"]["binding_dG"] = f"voided: {VOID[fname]}"
+    elif not compliant:
+        out["reasons"]["binding_dG"] = creason
     elif not (rec.get("ok") and rec.get("ligand_ring_closed")):
         out["reasons"]["binding_dG"] = f"run not ok/ring-closed (ok={rec.get('ok')}, ring={rec.get('ligand_ring_closed')})"
     else:
@@ -202,8 +210,10 @@ if __name__ == "__main__":
     g2 = _load("pdl1_g2_candidates.json")
     a02 = next(r["helm"] for r in g2["candidates"] if r["id"] == "PDL1-G2-A02")
     novel = "cyclo(W-R-G-D-L-G-[2Nal]-[dP]-[NMeK])"   # from our avb6 generator -> never folded
+    avb6_mapped = "cyclo(F-R-G-D-L-S-W-[dP]-[NMeA])"  # AVB6-K-01: HAS a MM-GBSA record, but metal-free run
     for label, helm, tgt in [("PD-L1 lead K-05", k05, "pdl1"),
                              ("PD-L1 G2 A02 (no in-file ctrl)", a02, "pdl1"),
+                             ("avb6 AVB6-K-01 (mapped, metal-free run)", avb6_mapped, "avb6"),
                              ("novel avb6 generator HELM", novel, "avb6")]:
         p = physics_for(helm, tgt)
         print(f"\n=== {label} ===\n  {helm}  -> id={p['design_id']}")
