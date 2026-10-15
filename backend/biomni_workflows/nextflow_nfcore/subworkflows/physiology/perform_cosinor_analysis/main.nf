@@ -168,7 +168,7 @@ def perform_cosinor_analysis(time_data, physiological_data, period=24.0):
         return log
 
     except Exception as e:
-        return f"Error in cosinor analysis: {str(e)}"
+        raise RuntimeError(f"Error in cosinor analysis: {str(e)}")
 
 # Execute the function
 try:
