@@ -1,0 +1,25 @@
+{
+  "patent": "CA2998968A1/C",
+  "assignee": "TU Munich / TRIMT (Quigley, Notni)",
+  "status": "granted; active ~2036",
+  "jurisdiction_read": "CA (confirm family members US/EP/WO per jurisdiction)",
+  "target": "avb6",
+  "claim_form": {
+    "type": "head-to-tail cyclic nonapeptide",
+    "genus": "Cyclo-(Arg-X1-Asp-X2-X3-X4-X5-X6-X7)",
+    "positions": {
+      "Arg": ["R"], "Asp": ["D"],
+      "X1": ["S", "G", "T"],
+      "X2": ["L", "I", "Nle", "V", "F"],
+      "X3": ["G", "A"],
+      "X4": ["L", "I", "Nle", "V", "F", "K", "Y", "W", "R"],
+      "X5": ["dP", "NMe-D-lipophilic"],
+      "X6": ["P", "NMe", "NMeK", "NMeK(Ac)"],
+      "X7": ["A", "L", "I", "Nle", "V", "F", "Y", "W"]
+    }
+  },
+  "also_claimed": ["multimers (n=2-6)", "chelator conjugates (DOTA/NODAGA/NOPO/TRAP)"],
+  "scaffold_mapping_note": "cyclo(P1-R-G-D-L-P6-P7-[dP]-[NMeK]) read from Arg: X1=G, X2=L, X3=P6, X4=P7, X5=dP, X6=NMeK, X7=P1",
+  "doe_notes": "conservative substitution outside a listed residue (e.g. Ser@X3 vs Gly/Ala) = HIGH DoE risk; ncAA homolog of a listed residue (2Nal vs Phe) = MED DoE; topology change (side-chain lactam, bicycle) or ring-size != 9 = LOW DoE (not the claimed head-to-tail nonapeptide). All require counsel.",
+  "known_compounds": ["cyclo(Y-R-G-D-L-A-Y-[dP]-[NMeK])", "cyclo(F-R-G-D-L-A-F-[dP]-[NMeK])"]
+}
