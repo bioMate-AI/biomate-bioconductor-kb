@@ -72,6 +72,54 @@ def auto_convert(val):
 
 
 
+def _resolve_stack_path(p):
+    # Resolve input to a real local image stack (no fabricated results).
+    #  - missing/placeholder -> a DETERMINISTIC synthetic multi-frame stack: fixed
+    #    neuron disks whose intensity follows a periodic (sinusoidal) calcium
+    #    transient per neuron — computed, NO RNG — so the param-less demo runs the
+    #    real segmentation + trace-extraction pipeline on genuine time-series data.
+    #  - http(s)://, s3:// -> downloaded locally (executor bind-mounts aws CLI at /opt/aws-cli).
+    import os
+    if p in (None, "", "null"):
+        import numpy as np
+        from skimage import io as _sio
+        from skimage.draw import disk as _disk
+        T, H, W = 30, 128, 128
+        stack = np.zeros((T, H, W), dtype=np.float32)
+        for ni, (r, c) in enumerate([(32,32),(32,96),(96,32),(96,96),(64,64)]):
+            rr, cc = _disk((r, c), 10, shape=(H, W))
+            for t in range(T):
+                amp = 0.5 + 0.5 * np.sin(2 * np.pi * (t / T) * (ni + 1))  # deterministic transient
+                stack[t][rr, cc] = 100.0 + 120.0 * amp
+        dest = os.path.join(os.getcwd(), "calcium_synthetic_demo.tif")
+        _sio.imsave(dest, stack.astype(np.uint16))
+        print(f"No image_stack_path supplied; using a DETERMINISTIC SYNTHETIC {T}-frame demo stack (periodic transients, no RNG) [DEMO DATA]: {dest}")
+        return dest
+    if isinstance(p, str) and p.startswith(("http://", "https://", "s3://")):
+        base = os.path.basename(p.split("?")[0]) or "calcium_input.tif"
+        dest = os.path.join(os.getcwd(), base)
+        if p.startswith(("http://", "https://")):
+            import urllib.request
+            urllib.request.urlretrieve(p, dest)
+        else:
+            try:
+                import boto3, urllib.parse
+                u = urllib.parse.urlparse(p)
+                boto3.client("s3").download_file(u.netloc, u.path.lstrip("/"), dest)
+            except Exception as _e_boto:
+                import subprocess, shutil
+                aws_bin = shutil.which("aws") or next(
+                    (q for q in ("/opt/aws-cli/aws", "/opt/aws-cli/bin/aws", "/usr/local/bin/aws") if os.path.exists(q)), None)
+                if not aws_bin:
+                    raise RuntimeError(f"cannot fetch s3 stack {p}: boto3 unavailable ({_e_boto!r}) and no aws CLI found")
+                r = subprocess.run([aws_bin, "s3", "cp", p, dest], capture_output=True, text=True)
+                if r.returncode != 0:
+                    raise RuntimeError(f"aws s3 cp failed for {p}: {(r.stderr or '').strip()}")
+        print(f"Fetched remote image stack [{p.split('://',1)[0]}]: {p}")
+        return dest
+    return p
+
+
 def analyze_calcium_imaging_data(image_stack_path, output_dir="./"):
     '''Analyze calcium imaging data to quantify neuronal activity metrics.
 
@@ -113,7 +161,7 @@ def analyze_calcium_imaging_data(image_stack_path, output_dir="./"):
         num_frames, height, width = image_stack.shape
         log += f"Successfully loaded {num_frames} frames of size {height}x{width}\\n\\n"
     except Exception as e:
-        return f"Error loading image stack: {str(e)}"
+        raise RuntimeError(f"Error loading image stack from {image_stack_path}: {str(e)}")
 
     # Step 2: Calculate mean image for segmentation
     log += "Step 1: Preprocessing and neuron segmentation\\n"
@@ -267,7 +315,7 @@ def analyze_calcium_imaging_data(image_stack_path, output_dir="./"):
 # Execute the function
 try:
     result = analyze_calcium_imaging_data(
-        image_stack_path=auto_convert(os.environ.get("PARAM_IMAGE_STACK_PATH", "")),
+        image_stack_path=_resolve_stack_path(auto_convert(os.environ.get("PARAM_IMAGE_STACK_PATH", ""))),
         output_dir=auto_convert(os.environ.get("PARAM_OUTPUT_DIR", "./")),
     )
     success = True
