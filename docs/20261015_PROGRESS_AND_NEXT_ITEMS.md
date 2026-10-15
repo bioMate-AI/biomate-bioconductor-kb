@@ -11,6 +11,7 @@ Code lives in `research/guangzhou_all_atom/cyclic_llm/`. Design refs: the five 2
 | **FTO claim layer** | `fto_kb/ca2998968.json`, `fto_score.py` | structured genus claim; `in_claim` maps candidate→X1–X7 → INSIDE / literally-OUTSIDE(pos)+DoE / OUTSIDE(form); + patent seq-identity | avebehexin INSIDE; 2Nal flank OUTSIDE-X4 MED; Ser@X3 HIGH; 7-mer OUTSIDE(form) MED; lactam OUTSIDE(form) LOW |
 | **Rule-conditioned generator (SNG L2/L5)** | `rule_conditioned_generator.py` | conditions on induced rule + KB mechanism; satisfies by construction; **rejects rule-violators AND patent-INFRINGING**; ranks survivors by DoE then patent-id; emits (H,X) | all-canonical (genus) auto-rejected; survivors = ncAA-flank, MED DoE, ranked |
 | **Consolidated score() / reward** | `score.py` | merges cheap tier (rule, FTO, developability) inline + expensive-tier hooks (binding dG, selectivity gap, groove, geometry from GPU pipeline); hard-gate verdict + rank key | avebehexin gate=False(infringing); clean ncAA gate=True; di-2Nal gate=False(greasy+rule) |
+| **Closed optimizer loop** | `loop.py` | `propose (gen_avb6) → score() → select (freeze gate-passers) → revise → repeat`; revise = deterministic, score-record-reading repair operator (honest stand-in for the LLM-revise move) that reads the failing objective and applies one targeted free-position edit; trace distinguishes revised/converged/abandoned | 3 deliberately-failing seeds (infringing, greasy, rule-fail) all converge into the gated set in 2 rounds; **0 abandoned**; final = 5 FTO-clean MED-DoE de-greased candidates, Pareto-ranked by `score.rank_key` |
 
 ## Architecture as realized (SNG pattern, working)
 - **Symbolic (outside LLM):** induced rule (L1) + FTO claim constraint + developability — deterministic, cheap,
@@ -25,10 +26,14 @@ Code lives in `research/guangzhou_all_atom/cyclic_llm/`. Design refs: the five 2
    - Wire HELM/BoltzGen as the proposer behind `gen_*`; pass the induced rule + FTO constraint as conditioning;
      keep the reject+rank. Deliverable: generator that proposes *diverse* free-position chemistry (not enumerated),
      still FTO-clean by construction.
-2. **Close the optimizer loop (Phase 1.2).**
-   - `propose → score() → select/revise → repeat`. Two drivers: (a) REINVENT4/Saturn-style RL with `score()` as
-     reward; (b) LLM-in-the-loop revise (the SL-01→SL-v3 move) reading the failing objective. Deliverable:
-     `loop.py` that runs N rounds and returns the Pareto-ranked gated set.
+2. ~~**Close the optimizer loop (Phase 1.2).**~~ **✅ DONE — `loop.py`.**
+   - Built the loop HARNESS: `propose → score() → select (freeze gate-passers) → revise → repeat`, returns the
+     Pareto-ranked gated set + a per-round revise trace. The `revise` operator is the deterministic,
+     score-record-reading repair (honest stand-in for the LLM-revise move); it slots out for driver (a)
+     REINVENT4/Saturn RL with `score()` as reward, or (b) the neural/LLM revise, when those land.
+   - Verified: 3 deliberately-failing seeds (infringing / greasy / rule-fail) converge into the gated set,
+     0 abandoned. **Remaining for this item:** the learned drivers (RL policy or LLM revise) replacing the
+     deterministic repair — folds into items #1 (neural generator) and #8 (own-LLM RLVR).
 3. **Expensive-tier integration into score() (Phase 0.6).**
    - Auto-dispatch the GPU pipeline (metal-aware cofold+MM-GBSA, counter-target, groove, geometry) for gate-passing
      candidates; cache results; enforce A2 control-anchoring (scores inadmissible if controls fail). Deliverable:
@@ -49,6 +54,9 @@ Code lives in `research/guangzhou_all_atom/cyclic_llm/`. Design refs: the five 2
 
 ## Honest state
 Cheap, deterministic half of the loop (rule + FTO + developability + generation-by-construction + reward merge)
-is **built and verified**. The expensive half (physics scoring) exists as validated GPU pipelines from this
-session but is **not yet auto-dispatched from score()** — that is item #3. The neural generator and the automated
-loop (#1, #2) are the next real builds. Scores remain relative/feasibility-level; wet-lab assay is ground truth.
+is **built and verified**, and the **loop harness now closes end-to-end** (`loop.py`: propose → score → revise →
+repeat, 0-abandoned convergence on the stress seeds). What is still a labeled STAND-IN: the proposer
+(enumeration, not neural — item #1) and the revise operator (deterministic repair, not a learned RL/LLM policy —
+folds into #1/#8). The expensive half (physics scoring) exists as validated GPU pipelines from this session but
+is **not yet auto-dispatched from score()** — item #3. Scores remain relative/feasibility-level; wet-lab assay
+is ground truth.

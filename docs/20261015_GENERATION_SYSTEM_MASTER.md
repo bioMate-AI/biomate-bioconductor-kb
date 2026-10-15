@@ -26,10 +26,13 @@ collection (target / structure / patent KBs) is the prerequisite foundation.
 | FTO claim layer (`in_claim` + DoE) | `fto_kb/ca2998968.json`, `fto_score.py` | ✅ INSIDE / literally-OUTSIDE+DoE / OUTSIDE(form) |
 | Rule-conditioned generator (SNG L2/L5) | `rule_conditioned_generator.py` | ✅ rejects rule-violators AND patent-infringing; ranks by patent risk; emits (H,X) |
 | Consolidated verifier/reward `score()` | `score.py` | ✅ cheap tier live (rule+FTO+developability, hard-gate+rank); expensive-tier hooks |
+| Closed optimizer loop | `loop.py` | ✅ propose→score→select→revise→repeat closes end-to-end; 0-abandoned convergence on infringing/greasy/rule-fail stress seeds; revise = labeled stand-in for RL/LLM driver |
 
 The **cheap, deterministic half of the loop is built and working** (induce rule → generate FTO-clean by
-construction → score). The **expensive half** (metal-aware cofold+MM-GBSA, counter-target, groove, geometry)
-exists as validated GPU pipelines from the program work but is not yet auto-dispatched from `score()`.
+construction → score → revise → repeat, now closed end-to-end in `loop.py`). The proposer (enumeration) and the
+revise operator (deterministic repair) are labeled stand-ins for the neural generator / learned driver. The
+**expensive half** (metal-aware cofold+MM-GBSA, counter-target, groove, geometry) exists as validated GPU
+pipelines from the program work but is not yet auto-dispatched from `score()`.
 
 ## SNG learnings applied (`20261015_DETAILED_DESIGN_SYMBOLIC_NEURAL_LEARNINGS.md`)
 L1 induce the design rule from the few actives (not hand-code) ✅; L2 rules condition + reject ✅; L3 emit (H,X)
@@ -38,7 +41,7 @@ developability, mechanism as symbolic specs too (partially — FTO is encoded).
 
 ## Next items (prioritized; `20261015_PROGRESS_AND_NEXT_ITEMS.md` has detail)
 1. Neural peptide generator (HELM/BoltzGen) replacing the enumeration stand-in.
-2. Optimizer loop: `propose → score() → revise` (REINVENT/Saturn RL + LLM-revise).
+2. ~~Optimizer loop~~ ✅ DONE (`loop.py`) — remaining: swap the deterministic revise for the learned driver (REINVENT/Saturn RL with `score()` as reward, or LLM-revise); folds into #1/#8.
 3. Expensive-tier auto-dispatch into `score()` (GPU physics, control-anchored).
 4. Mechanism-matched scorer config (Target KB tag → scorer).
 5. Patent compound layer (SureChEMBL/Google Patents ingestion; add PD-L1 + counter-integrin estates).
