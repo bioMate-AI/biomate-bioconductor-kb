@@ -71,6 +71,47 @@ def auto_convert(val):
 
 
 
+def _resolve_image_path(p):
+    # Resolve input to a real local image (no fabricated results).
+    #  - missing/placeholder -> a DETERMINISTIC synthetic grayscale cross-section
+    #    (a bright filled vessel + wall ring drawn with cv2; no RNG) so the param-
+    #    less demo runs the real segmentation/geometry pipeline.
+    #  - http(s)://, s3:// -> downloaded locally (executor bind-mounts aws CLI at /opt/aws-cli).
+    import os
+    if p in (None, "", "null"):
+        import numpy as np, cv2
+        demo = np.zeros((512, 512), dtype=np.uint8)
+        cv2.circle(demo, (256, 256), 120, 180, -1)   # vessel lumen
+        cv2.circle(demo, (256, 256), 120, 255, 10)    # vessel wall
+        dest = os.path.join(os.getcwd(), "aortic_synthetic_demo.png")
+        cv2.imwrite(dest, demo)
+        print(f"No image_path supplied; using a DETERMINISTIC SYNTHETIC demo image (drawn vessel cross-section, no RNG) [DEMO DATA]: {dest}")
+        return dest
+    if isinstance(p, str) and p.startswith(("http://", "https://", "s3://")):
+        base = os.path.basename(p.split("?")[0]) or "aortic_input.png"
+        dest = os.path.join(os.getcwd(), base)
+        if p.startswith(("http://", "https://")):
+            import urllib.request
+            urllib.request.urlretrieve(p, dest)
+        else:
+            try:
+                import boto3, urllib.parse
+                u = urllib.parse.urlparse(p)
+                boto3.client("s3").download_file(u.netloc, u.path.lstrip("/"), dest)
+            except Exception as _e_boto:
+                import subprocess, shutil
+                aws_bin = shutil.which("aws") or next(
+                    (q for q in ("/opt/aws-cli/aws", "/opt/aws-cli/bin/aws", "/usr/local/bin/aws") if os.path.exists(q)), None)
+                if not aws_bin:
+                    raise RuntimeError(f"cannot fetch s3 image {p}: boto3 unavailable ({_e_boto!r}) and no aws CLI found")
+                r = subprocess.run([aws_bin, "s3", "cp", p, dest], capture_output=True, text=True)
+                if r.returncode != 0:
+                    raise RuntimeError(f"aws s3 cp failed for {p}: {(r.stderr or '').strip()}")
+        print(f"Fetched remote input image [{p.split('://',1)[0]}]: {p}")
+        return dest
+    return p
+
+
 def analyze_aortic_diameter_and_geometry(image_path, output_dir="./output"):
     '''Analyze aortic diameter and geometry from cardiovascular imaging data.
 
@@ -110,12 +151,12 @@ def analyze_aortic_diameter_and_geometry(image_path, output_dir="./output"):
     try:
         # Check if file exists
         if not os.path.exists(image_path):
-            return f"Error: File {image_path} not found"
+            raise RuntimeError(f"Input image not found: {image_path}")
 
         # Load image
         image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
         if image is None:
-            return f"Error: Could not read image {image_path}"
+            raise RuntimeError(f"Could not read image: {image_path}")
 
         log.append(f"  - Image loaded: {image.shape[1]}x{image.shape[0]} pixels")
 
@@ -129,7 +170,7 @@ def analyze_aortic_diameter_and_geometry(image_path, output_dir="./output"):
         log.append("  - Enhanced contrast using CLAHE")
 
     except Exception as e:
-        return f"Error during image loading: {str(e)}"
+        raise RuntimeError(f"Error during image loading from {image_path}: {str(e)}")
 
     # Step 2: Segment the aorta
     log.append("\\n2. Aorta segmentation")
@@ -278,7 +319,7 @@ def analyze_aortic_diameter_and_geometry(image_path, output_dir="./output"):
 # Execute the function
 try:
     result = analyze_aortic_diameter_and_geometry(
-        image_path=auto_convert(os.environ.get("PARAM_IMAGE_PATH", "")),
+        image_path=_resolve_image_path(auto_convert(os.environ.get("PARAM_IMAGE_PATH", ""))),
         output_dir=auto_convert(os.environ.get("PARAM_OUTPUT_DIR", "./output")),
     )
     success = True
