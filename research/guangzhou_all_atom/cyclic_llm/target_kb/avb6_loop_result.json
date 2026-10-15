@@ -1,0 +1,236 @@
+{
+  "target": "avb6",
+  "n_gated": 5,
+  "pareto": [
+    {
+      "helm": "cyclo(F-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+      "target": "avb6",
+      "rule_pass": true,
+      "fto": {
+        "verdict": "literally OUTSIDE at X4(P7)",
+        "doe": "MED",
+        "patent_id": 0.78
+      },
+      "developability": {
+        "meanH": 0.47,
+        "n2Nal": 1,
+        "net_charge": 1,
+        "liabilities": [],
+        "greasy": false,
+        "pass": true
+      },
+      "binding_dG": "pending",
+      "selectivity_gap": "pending",
+      "groove_occupancy": "pending",
+      "geometry": "pending",
+      "hard_gate_pass": true,
+      "hard_gate_reasons": {
+        "rule": true,
+        "fto_not_infringing": true,
+        "developability": true
+      },
+      "rank_key": [
+        0,
+        1,
+        0.0,
+        0.78
+      ]
+    },
+    {
+      "helm": "cyclo([2Nal]-R-G-D-L-A-[Phe4F]-[dP]-[NMeK])",
+      "target": "avb6",
+      "rule_pass": true,
+      "fto": {
+        "verdict": "literally OUTSIDE at X7(P1), X4(P7)",
+        "doe": "MED",
+        "patent_id": 0.78
+      },
+      "developability": {
+        "meanH": 0.52,
+        "n2Nal": 1,
+        "net_charge": 1,
+        "liabilities": [],
+        "greasy": false,
+        "pass": true
+      },
+      "binding_dG": "pending",
+      "selectivity_gap": "pending",
+      "groove_occupancy": "pending",
+      "geometry": "pending",
+      "hard_gate_pass": true,
+      "hard_gate_reasons": {
+        "rule": true,
+        "fto_not_infringing": true,
+        "developability": true
+      },
+      "rank_key": [
+        0,
+        1,
+        0.0,
+        0.78
+      ]
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+      "target": "avb6",
+      "rule_pass": true,
+      "fto": {
+        "verdict": "literally OUTSIDE at X4(P7)",
+        "doe": "MED",
+        "patent_id": 0.89
+      },
+      "developability": {
+        "meanH": 0.51,
+        "n2Nal": 1,
+        "net_charge": 1,
+        "liabilities": [],
+        "greasy": false,
+        "pass": true
+      },
+      "binding_dG": "pending",
+      "selectivity_gap": "pending",
+      "groove_occupancy": "pending",
+      "geometry": "pending",
+      "hard_gate_pass": true,
+      "hard_gate_reasons": {
+        "rule": true,
+        "fto_not_infringing": true,
+        "developability": true
+      },
+      "rank_key": [
+        0,
+        1,
+        0.0,
+        0.89
+      ]
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-A-[Phe4F]-[dP]-[NMeK])",
+      "target": "avb6",
+      "rule_pass": true,
+      "fto": {
+        "verdict": "literally OUTSIDE at X4(P7)",
+        "doe": "MED",
+        "patent_id": 0.89
+      },
+      "developability": {
+        "meanH": 0.41,
+        "n2Nal": 0,
+        "net_charge": 1,
+        "liabilities": [],
+        "greasy": false,
+        "pass": true
+      },
+      "binding_dG": "pending",
+      "selectivity_gap": "pending",
+      "groove_occupancy": "pending",
+      "geometry": "pending",
+      "hard_gate_pass": true,
+      "hard_gate_reasons": {
+        "rule": true,
+        "fto_not_infringing": true,
+        "developability": true
+      },
+      "rank_key": [
+        0,
+        1,
+        0.0,
+        0.89
+      ]
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-A-[Phe4Cl]-[dP]-[NMeK])",
+      "target": "avb6",
+      "rule_pass": true,
+      "fto": {
+        "verdict": "literally OUTSIDE at X4(P7)",
+        "doe": "MED",
+        "patent_id": 0.89
+      },
+      "developability": {
+        "meanH": 0.42,
+        "n2Nal": 0,
+        "net_charge": 1,
+        "liabilities": [],
+        "greasy": false,
+        "pass": true
+      },
+      "binding_dG": "pending",
+      "selectivity_gap": "pending",
+      "groove_occupancy": "pending",
+      "geometry": "pending",
+      "hard_gate_pass": true,
+      "hard_gate_reasons": {
+        "rule": true,
+        "fto_not_infringing": true,
+        "developability": true
+      },
+      "rank_key": [
+        0,
+        1,
+        0.0,
+        0.89
+      ]
+    }
+  ],
+  "trace": [
+    {
+      "round": 1,
+      "scored": 7,
+      "gated_now": 4,
+      "failed": 3,
+      "revised": 2,
+      "converged": 1,
+      "abandoned": 0,
+      "revisions": [
+        {
+          "from": "cyclo(F-R-G-D-L-A-F-[dP]-[NMeK])",
+          "to": "cyclo(F-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+          "action": "fto:p7->[2Nal] (ncAA-divergent, out of literal genus)",
+          "status": "converged (= existing candidate)",
+          "failed": [
+            "fto_not_infringing"
+          ]
+        },
+        {
+          "from": "cyclo([2Nal]-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+          "to": "cyclo([2Nal]-R-G-D-L-A-[Phe4F]-[dP]-[NMeK])",
+          "action": "dev:p7:[2Nal]->[Phe4F]",
+          "status": "revised",
+          "failed": [
+            "developability"
+          ]
+        },
+        {
+          "from": "cyclo(A-R-G-D-L-G-A-[dP]-[NMeK])",
+          "to": "cyclo(F-R-G-D-L-G-F-[dP]-[NMeK])",
+          "action": "rule:flank-aromatic(p1->F,p7->F)",
+          "status": "revised",
+          "failed": [
+            "rule"
+          ]
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "scored": 2,
+      "gated_now": 1,
+      "failed": 1,
+      "revised": 0,
+      "converged": 1,
+      "abandoned": 0,
+      "revisions": [
+        {
+          "from": "cyclo(F-R-G-D-L-G-F-[dP]-[NMeK])",
+          "to": "cyclo(F-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+          "action": "fto:p7->[2Nal] (ncAA-divergent, out of literal genus)",
+          "status": "converged (= existing candidate)",
+          "failed": [
+            "fto_not_infringing"
+          ]
+        }
+      ]
+    }
+  ]
+}
