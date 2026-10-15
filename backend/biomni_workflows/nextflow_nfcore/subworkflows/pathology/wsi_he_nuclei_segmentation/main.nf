@@ -229,11 +229,18 @@ def _fetch_remote_wsi(uri):
             p = urllib.parse.urlparse(uri)
             boto3.client("s3").download_file(p.netloc, p.path.lstrip("/"), dest)
         except Exception as _e_boto:
-            import subprocess
-            r = subprocess.run(["aws", "s3", "cp", uri, dest], capture_output=True, text=True)
+            import subprocess, shutil
+            # The executor bind-mounts the aws CLI at /opt/aws-cli (see Dockerfile.pathology),
+            # so resolve it robustly rather than assuming it is on $PATH.
+            aws_bin = shutil.which("aws") or next(
+                (p for p in ("/opt/aws-cli/aws", "/opt/aws-cli/bin/aws", "/usr/local/bin/aws") if os.path.exists(p)),
+                None)
+            if not aws_bin:
+                fail("could not download s3 input WSI %s: boto3 unavailable (%r) and no aws CLI "
+                     "found (checked PATH + /opt/aws-cli)." % (uri, _e_boto))
+            r = subprocess.run([aws_bin, "s3", "cp", uri, dest], capture_output=True, text=True)
             if r.returncode != 0:
-                fail("could not download s3 input WSI %s (boto3: %r; aws cli: %s). "
-                     "Worker needs boto3 or awscli + S3 read access." % (uri, _e_boto, (r.stderr or '').strip()))
+                fail("aws s3 cp failed for input WSI %s: %s" % (uri, (r.stderr or '').strip()))
     else:
         return None
     sz = os.path.getsize(dest) if os.path.exists(dest) else 0
