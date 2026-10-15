@@ -10,7 +10,14 @@
     "help": "帮助",
     "logout": "退出登录",
     "admin": "管理",
-    "billing": "账单"
+    "billing": "账单",
+    "connectors": "连接器",
+    "workspace": "工作区",
+    "other_chats": "其他对话",
+    "import_workflow": "导入工作流",
+    "collapse_sidebar": "收起侧边栏",
+    "sign_out": "退出登录",
+    "beta_tooltip": "抢先体验版 — 功能可能变动"
   },
   "actions": {
     "run": "运行",

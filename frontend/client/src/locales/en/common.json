@@ -10,7 +10,14 @@
     "help": "Help",
     "logout": "Log out",
     "admin": "Admin",
-    "billing": "Billing"
+    "billing": "Billing",
+    "connectors": "Connectors",
+    "workspace": "Workspace",
+    "other_chats": "Other chats",
+    "import_workflow": "Import workflow",
+    "collapse_sidebar": "Collapse sidebar",
+    "sign_out": "Sign out",
+    "beta_tooltip": "Early-access beta — features may change"
   },
   "actions": {
     "run": "Run",

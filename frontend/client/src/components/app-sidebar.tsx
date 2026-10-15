@@ -219,7 +219,7 @@ export function AppSidebar({
             style={{ height: 26, width: 'auto', display: 'block', flexShrink: 0 }}
           />
           <span
-            title="Early-access beta — features may change"
+            title={t('nav.beta_tooltip')}
             style={{
               fontSize: 9,
               fontWeight: 700,
@@ -244,7 +244,7 @@ export function AppSidebar({
             borderRadius: 4, cursor: 'pointer', color: 'var(--bm-text-dim)',
             flexShrink: 0,
           }}
-          title="Collapse sidebar"
+          title={t('nav.collapse_sidebar')}
         >
           <PanelLeft className="h-4 w-4" />
         </button>
@@ -252,7 +252,7 @@ export function AppSidebar({
 
       {/* Workspace nav */}
       <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>Workspace</div>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>{t('nav.workspace')}</div>
         <button className="side-link" onClick={onNewChat} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
           <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -358,7 +358,7 @@ export function AppSidebar({
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {recentChats.length > 0 && (
           <>
-            <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 8 }}>Other chats</div>
+            <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 8 }}>{t('nav.other_chats')}</div>
             {recentChats.filter(chat => !Object.values(projectSessions).some(sessions => sessions.some(session => session.session_id === chat.id))).slice(0, 12).map((chat) => {
               const dotStatus = sessionStatusMap.get(chat.id)
               const isActive = activeChatId === chat.id
@@ -411,11 +411,11 @@ export function AppSidebar({
           </button>
           <button className="side-link" data-testid="button-import-workflow-settings" onClick={() => { setHistoryInitialTab('upload'); setShowHistoryDialog(true); }} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px 5px 33px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, width: '100%', textAlign: 'left' }}>
             <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
-            <span>Import workflow</span>
+            <span>{t('nav.import_workflow')}</span>
           </button>
           <button className="side-link" data-testid="button-workspace-connections" onClick={() => setLocation("/settings/connections")} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px 5px 33px', borderRadius: 6, fontSize: 12.5, color: 'var(--bm-text-muted)', width: '100%', textAlign: 'left' }}>
             <Cable className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
-            <span>Connectors</span>
+            <span>{t('nav.connectors')}</span>
           </button>
         </div>
       </div>
@@ -436,7 +436,7 @@ export function AppSidebar({
         <button
           onClick={() => { analytics.track('settings_opened'); setShowSettingsDialog(true); }}
           data-testid="button-settings"
-          title="Settings"
+          title={t('nav.settings')}
           style={{
             flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer',
             padding: '4px 6px', borderRadius: 6, display: 'grid', placeItems: 'center', color: 'var(--bm-text-muted)',
@@ -447,7 +447,7 @@ export function AppSidebar({
         <button
           onClick={async () => { await logout(); setLocation('/login'); }}
           data-testid="button-logout"
-          title="Sign out"
+          title={t('nav.sign_out')}
           style={{
             flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer',
             padding: '4px 8px', borderRadius: 6, fontSize: 11, color: 'var(--bm-text-muted)',
