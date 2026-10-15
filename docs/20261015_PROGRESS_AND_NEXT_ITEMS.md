@@ -16,6 +16,7 @@ Code lives in `research/guangzhou_all_atom/cyclic_llm/`. Design refs: the five 2
 | **Physics auto-dispatch (expensive tier)** | `physics_dispatch.py`, `score.py` `tier='full'` | READS existing MM-GBSA/counter/groove artifacts (no GPU run); joins HELM→design-ID→result; **A2 control-anchoring at receptor level** (admissible only if a control row anchors the receptor's ΔG scale — direct or inherited by a same-receptor sibling run); groove control-independent; geometry pending (no artifact) | K-05 → binding −39.86 (A2 direct, ctrl #2/14), selectivity −15.27, groove pending (G1 groove doc-only); G2 A02 → binding −28.17 (A2 inherited), selectivity +14.11 (NOT selective, matches 0/8), groove 0.733; novel avb6 HELM → all pending (never folded) |
 | **Mechanism-matched scorer config** | `scorer_config.py` (+ `physics_dispatch` gate) | derives the scorer config from the KB `mechanism` tag: metal to retain (integrin MIDAS Mn vs none), pose method by epitope (linear-motif → dock-prepose-ok; discontinuous → cofold-required), counter-targets, metal-complete receptor, controls; physics admissibility now gated on `mechanism_compliant()` (replaces the hard-coded VOID list) | avb6 metal-free run → non-compliant ("requires Mn at β6 MIDAS; run does not record the metal"); **synthetic metal-aware + control-anchored avb6 run → admitted automatically** (unlock proven); pdl1 (no metal) unchanged |
 | **FTO compound/patent axis** | `fto_score.py` → `drug_novelty_fto` | replaces the 2-HELM seq-identity STUB: `nearest_patented_identity` now via real Needleman-Wunsch; new `novelty_axis` = Morgan/ECFP Tanimoto vs a **136,730-row ChEMBL/BindingDB** library (+ same-target subset) + **real SureChEMBL-via-PubChem** patent presence; faithful ncAA-stripped backbone (fixes parse_helm dropping 2Nal); `score(tier='full')` attaches `fto.novelty` | avebehexin FRGDLAFPK → T 0.9186 vs CHEMBL4575627 (avb6 RGD analog) → known_active; de-novo WRGDLGFPK → 0.8163 → novel; live patent check runs (present=False, honest); fail-open on missing RDKit/lib/network |
+| **RLVR reward + loop→DPO bridge** | `reward.py` (→ `dpo_pairs.py` / `dpo_peptide_trainer.py`) | `reward(score_record)→scalar`: hard gate dominates, **selectivity is first-class** (encodes the G2 lesson — reward ALL gates, not just binding); only admissible objectives contribute. `build_preference_pairs(scored)` ranks by reward → chosen≻rejected pairs in the existing `dpo_pairs` schema → TRL DPOTrainer. **Does NOT train** (gated on loop volume + GPU, OWN_LLM §5) | gated ~+1.38 vs gate-failed ~−0.65..−0.80 (infringing lowest); 27 DPO pairs emitted; K-05 selectivity_term=0.6 vs non-selective G2-A02 selectivity_term=0.0 |
 
 ## Architecture as realized (SNG pattern, working)
 - **Symbolic (outside LLM):** induced rule (L1) + FTO claim constraint + developability — deterministic, cheap,
@@ -74,9 +75,13 @@ Code lives in `research/guangzhou_all_atom/cyclic_llm/`. Design refs: the five 2
      (pdl1 cold-start needs more non-actives). Extend induction to FTO/developability/mechanism rule families.
 7. **Governance (Phase 1.3, Mozi pattern).**
    - Verifiable stages + provenance + honest "feasibility-level, not absolute" labels on every output.
-8. **Own-LLM track (parallel).**
-   - (B) continue DB-gold SFT (routing/decomp/findings); (A) stand up the peptide/HELM generator; then RLVR with
-     `score()` as reward once the loop produces volume. Always validate vs frontier on the narrow slice.
+8. **Own-LLM track (parallel).** — **RLVR reward + loop→DPO bridge ✅ DONE (`reward.py`)**; the rest is sequenced.
+   - (A) peptide/HELM generator ✅ (item #1, `neural_generator.py`); (B) DB-gold SFT (routing/decomp/findings) is
+     active in `evaluation/local_trial` (other sessions); **(C) RLVR connective tissue ✅** — `score()`→scalar
+     reward + preference-pair emitter into the existing `dpo_pairs`/`dpo_peptide_trainer`. **Remaining (gated, by
+     design):** the gradient run itself — DPO then RL — which waits on the loop producing scored candidates at
+     VOLUME (OWN_LLM §5 + no-tiny-dataset) and, later, assay outcomes as the ground-truth reward. Always validate
+     the own-LLM vs frontier on the narrow slice.
 
 ## Honest state
 The full loop skeleton is now built and verified end-to-end: **neural proposer** (`neural_generator.py`, v4 ckpt)
@@ -88,4 +93,6 @@ the expensive tier reads results only — there is **no admissible avb6 ΔG yet*
 the mechanism-matched config (`scorer_config.py`, #4) requires Mn@β6-MIDAS and the existing avb6 runs are
 metal-free, so they are non-compliant; a metal-aware + control-anchored run will be admitted automatically when
 produced (the one remaining piece is the GPU run itself, out of band). G1 groove is doc-only (#3-remainder).
+The own-LLM RLVR connective tissue is built (`reward.py`: `score()`→scalar reward + loop→DPO pairs, selectivity
+first-class) but deliberately NOT trained — the gradient DPO→RL run is gated on loop volume + GPU (#8-remainder).
 Physics scores remain relative/feasibility-level and control-anchored; the wet-lab assay is ground truth.

@@ -31,12 +31,15 @@ collection (target / structure / patent KBs) is the prerequisite foundation.
 | Expensive-tier auto-dispatch | `physics_dispatch.py` | ✅ reads MM-GBSA/counter/groove artifacts (no GPU run), joins HELM→ID→result, A2 control-anchored at receptor level (K-05 binding −39.86/sel −15.27 admissible) |
 | Mechanism-matched scorer config | `scorer_config.py` | ✅ KB mechanism → metal/pose/counter-target/receptor/controls config; physics admissibility gated on `mechanism_compliant()` (avb6 requires Mn@MIDAS → metal-free runs non-compliant; metal-aware+anchored run admitted automatically) |
 | FTO compound/patent axis | `fto_score.py` → `drug_novelty_fto` | ✅ real NW identity + ECFP Tanimoto vs 136k ChEMBL/BindingDB + live SureChEMBL patent presence (replaces 2-HELM seq stub); `score(tier='full')` carries `fto.novelty`; fail-open |
+| RLVR reward + loop→DPO bridge | `reward.py` → `dpo_pairs.py`/`dpo_peptide_trainer.py` | ✅ `score()`→scalar reward (gate dominates, selectivity first-class — encodes the G2 lesson) + reward-ranked preference pairs into the existing DPO trainer; emitter only, gradient RLVR gated on volume+GPU |
 
 The **loop skeleton is now built end-to-end**: neural proposer → score (cheap + auto-dispatched physics,
-A2-gated) → select → revise → repeat. Remaining labeled stand-ins / gaps (see progress doc next-item list):
-revise = deterministic repair (not a learned RL/LLM policy); the neural proposer is target-agnostic for avb6 and
+A2 + mechanism-gated; real FTO compound/patent axis) → select → revise → repeat, with a `score()`→reward +
+loop→DPO tap for the own-LLM. Remaining labeled stand-ins / gaps (see progress doc next-item list): revise =
+deterministic repair (not a learned RL/LLM policy); the neural proposer is target-agnostic for avb6 and
 restricted to a gate-known monomer palette; the expensive tier reads results only and there is **no admissible
-avb6 ΔG yet** (metal-aware MM-GBSA TODO; avb6 files VOIDed).
+avb6 ΔG yet** — now a principled mechanism-noncompliance (requires Mn@MIDAS; existing avb6 runs are metal-free),
+so a metal-aware + control-anchored run will be admitted automatically when produced.
 
 ## SNG learnings applied (`20261015_DETAILED_DESIGN_SYMBOLIC_NEURAL_LEARNINGS.md`)
 L1 induce the design rule from the few actives (not hand-code) ✅; L2 rules condition + reject ✅; L3 emit (H,X)
@@ -51,7 +54,7 @@ developability, mechanism as symbolic specs too (partially — FTO is encoded).
 5. ~~Patent compound layer~~ ✅ DONE (`fto_score`→`drug_novelty_fto`: NW identity + 136k-lib Tanimoto + live SureChEMBL) — remaining: structured claim KBs for PD-L1 BMS + counter-integrin estates; SureChEMBL substructure (genus) search; library same-target tag enrichment.
 6. Real ILP (Popper/Aleph) + richer rule families + more negatives.
 7. Governance (Mozi verifiable stages).
-8. Own-LLM: continue gold SFT → peptide generator → RLVR with `score()` as reward.
+8. Own-LLM: continue gold SFT → peptide generator → RLVR with `score()` as reward. — generator ✅ (#1), **RLVR reward + loop→DPO bridge ✅ (`reward.py`)**; the gradient DPO→RL run itself is gated on loop volume + GPU (OWN_LLM §5); gold SFT is active in `evaluation/local_trial`.
 
 ## Document index (detailed docs)
 - Lessons: `20261015_LESSONS_AND_GENERATION_SYSTEM_UPGRADE.md`
@@ -66,6 +69,8 @@ developability, mechanism as symbolic specs too (partially — FTO is encoded).
 ## Honest framing
 The loop skeleton now works end-to-end — neural proposer → score (cheap + A2-gated physics) → select → revise →
 repeat — and is genuinely novel for peptides (the OSS loops are all small-molecule). Scores are relative/
-feasibility-level and control-anchored; the wet-lab assay is ground truth. What remains is hardening, not
-greenfield: a learned revise policy, a target-aware/palette-expanded neural proposer, and admissible avb6 physics
-(metal-aware MM-GBSA) — each specified in the progress doc's next-item list and grounded in existing components.
+feasibility-level and control-anchored, and the FTO axis now runs real structure/patent checks; the wet-lab
+assay is ground truth. What remains is hardening and the two resource-gated runs, not greenfield: a learned
+revise policy, a target-aware/palette-expanded neural proposer, admissible avb6 physics (the metal-aware MM-GBSA
+GPU run), and the gradient DPO→RL run on the `reward.py` signal once the loop produces volume — each specified in
+the progress doc's next-item list and grounded in existing components.
