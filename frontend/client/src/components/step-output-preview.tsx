@@ -294,8 +294,8 @@ function TableGrid({ headers, rows, totalRows }: { headers: string[]; rows: stri
     <div className="rounded border text-xs font-mono">
       {/* Shape header — spec 14.2: the header states N rows × M cols. */}
       <div className="flex items-center justify-between px-2 py-1 border-b bg-muted/60 text-[10px] text-muted-foreground font-sans">
-        <span>{totalRows.toLocaleString()} {totalRows === 1 ? 'row' : 'rows'} × {headers.length} {headers.length === 1 ? 'col' : 'cols'}</span>
-        {totalRows > rows.length && <span>showing first {rows.length.toLocaleString()}</span>}
+        <span>{t('preview.table_shape', { rows: totalRows.toLocaleString(), cols: headers.length })}</span>
+        {totalRows > rows.length && <span>{t('preview.table_showing_first', { n: rows.length.toLocaleString() })}</span>}
       </div>
       <div className="overflow-auto max-h-64">
         <table className="min-w-full">

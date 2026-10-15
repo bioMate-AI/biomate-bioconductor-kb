@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { CodeExecutionBlock, type ToolBlock } from "./code-execution-block"
+import { t } from "@/lib/i18n"
 
 /**
  * Pre-processes assistant markdown to:
@@ -53,10 +54,10 @@ function MarkdownFigure({ src, alt }: { src?: string; alt?: string }) {
   if (!src || errored) {
     return (
       <span className="my-2 flex flex-col items-start gap-1 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-        <span>🖼 {label} — figure could not be displayed.</span>
+        <span>🖼 {t('preview.figure_unavailable', { label })}</span>
         {src && (
           <a href={src} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 break-all">
-            Open figure source ↗
+            {t('preview.figure_open_source')}
           </a>
         )}
       </span>
