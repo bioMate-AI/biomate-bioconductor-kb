@@ -213,8 +213,46 @@ if model_type not in ("nuclei", "cyto", "cyto2", "cyto3"):
 # download fails we honest-fail (non-zero); a fabricated slide is NEVER used.
 input_is_demo = False
 slide_source  = "user_supplied"
-if input_wsi not in (None, "", "null") and not os.path.exists(input_wsi):
-    fail("input WSI path does not exist on the worker: %s" % input_wsi)
+
+def _fetch_remote_wsi(uri):
+    # Download a user-supplied http(s):// or s3:// WSI to a local file — OpenSlide
+    # needs a local path, and BioMate stages uploaded slides as an s3:// URI, so
+    # this is the common real-user path. Honest-fail on any error; never fabricate.
+    base = os.path.basename(uri.split('?')[0]) or "input_wsi.svs"
+    dest = os.path.join(os.getcwd(), base)
+    if uri.startswith(("http://", "https://")):
+        import urllib.request
+        urllib.request.urlretrieve(uri, dest)
+    elif uri.startswith("s3://"):
+        try:
+            import boto3, urllib.parse
+            p = urllib.parse.urlparse(uri)
+            boto3.client("s3").download_file(p.netloc, p.path.lstrip("/"), dest)
+        except Exception as _e_boto:
+            import subprocess
+            r = subprocess.run(["aws", "s3", "cp", uri, dest], capture_output=True, text=True)
+            if r.returncode != 0:
+                fail("could not download s3 input WSI %s (boto3: %r; aws cli: %s). "
+                     "Worker needs boto3 or awscli + S3 read access." % (uri, _e_boto, (r.stderr or '').strip()))
+    else:
+        return None
+    sz = os.path.getsize(dest) if os.path.exists(dest) else 0
+    if sz < 100000:
+        fail("downloaded input WSI is unexpectedly small/empty at %s (%d bytes); "
+             "refusing to proceed on a corrupt/failed download of %s." % (dest, sz, uri))
+    print("Fetched remote input WSI [%s]: %s (%d bytes)" % (uri.split('://', 1)[0], uri, sz))
+    return dest
+
+# Remote URI (http/s3) → download to a local path. Local path → must exist.
+if input_wsi not in (None, "", "null") and str(input_wsi).startswith(("http://", "https://", "s3://")):
+    _orig_uri = input_wsi
+    _local = _fetch_remote_wsi(input_wsi)
+    if _local:
+        input_wsi = _local
+        slide_source = "user_supplied (fetched from %s)" % _orig_uri
+elif input_wsi not in (None, "", "null") and not os.path.exists(input_wsi):
+    fail("input WSI path does not exist on the worker: %s. Supply a local staged "
+         "path, an http(s):// URL, or an s3:// URI." % input_wsi)
 if input_wsi in (None, "", "null"):
     import urllib.request
     demo_url  = ("https://openslide.cs.cmu.edu/download/openslide-testdata/"
