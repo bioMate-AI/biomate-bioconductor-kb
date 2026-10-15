@@ -285,6 +285,17 @@ export function StepDetail({
     if (!selectedId && outputs[0]) setSelectedId(outputs[0].id!);
   }, [outputs, selectedId]);
 
+  // Evidence class per output (spec 08 EvBadge), derived from the file extension:
+  // perceptual (images/figures) · quantitative (tables/data) · symbolic
+  // (sequences/structures/genomic) · procedural (logs/text/scripts).
+  const evClass = (ext: string): { label: string; color: string } => {
+    const e = (ext || "").toLowerCase().replace(/^\./, "");
+    if (["png", "jpg", "jpeg", "svg", "pdf", "tif", "tiff", "gif", "webp"].includes(e)) return { label: "perceptual", color: "var(--bm-accent, oklch(0.55 0.14 245))" };
+    if (["csv", "tsv", "xlsx", "json", "parquet", "h5", "h5ad", "feather"].includes(e)) return { label: "quantitative", color: "var(--bm-ok, oklch(0.62 0.13 150))" };
+    if (["fasta", "fa", "fastq", "vcf", "pdb", "cif", "mrc", "bam", "sam", "gff", "gtf", "bed", "nwk"].includes(e)) return { label: "symbolic", color: "var(--bm-warn, oklch(0.72 0.14 75))" };
+    return { label: "procedural", color: "var(--bm-text-dim, oklch(0.62 0.01 260))" };
+  };
+
   const selected = outputs.find(o => o.id === selectedId) || outputs[0] || null;
   const notDefault = params.filter(p => p.origin === "override" || p.origin === "inherited").length;
   // Any in-place edit pending (drives the "Apply & re-run from here" affordance).
@@ -362,7 +373,15 @@ export function StepDetail({
                   o.id === selectedId ? "border-primary bg-primary/10" : "border-transparent bg-muted/50 hover:bg-muted",
                 )}
               >
-                <FileText className="h-3 w-3 shrink-0" />
+                {(() => { const ev = evClass(o.extension); return (
+                  <span
+                    data-testid={`step-output-evidence-${o.name}`}
+                    data-evidence={ev.label}
+                    title={`evidence: ${ev.label}`}
+                    className="h-1.5 w-1.5 rounded-full shrink-0"
+                    style={{ background: ev.color }}
+                  />
+                ); })()}
                 <span className="truncate max-w-[160px]">{o.name}</span>
               </button>
             ))}
