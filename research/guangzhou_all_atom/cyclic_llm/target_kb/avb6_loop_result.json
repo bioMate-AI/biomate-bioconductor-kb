@@ -9,7 +9,7 @@
       "fto": {
         "verdict": "literally OUTSIDE at X4(P7)",
         "doe": "MED",
-        "patent_id": 0.78
+        "patent_id": 0.89
       },
       "developability": {
         "meanH": 0.47,
@@ -33,41 +33,7 @@
         0,
         1,
         0.0,
-        0.78
-      ]
-    },
-    {
-      "helm": "cyclo([2Nal]-R-G-D-L-A-[Phe4F]-[dP]-[NMeK])",
-      "target": "avb6",
-      "rule_pass": true,
-      "fto": {
-        "verdict": "literally OUTSIDE at X7(P1), X4(P7)",
-        "doe": "MED",
-        "patent_id": 0.78
-      },
-      "developability": {
-        "meanH": 0.52,
-        "n2Nal": 1,
-        "net_charge": 1,
-        "liabilities": [],
-        "greasy": false,
-        "pass": true
-      },
-      "binding_dG": "pending",
-      "selectivity_gap": "pending",
-      "groove_occupancy": "pending",
-      "geometry": "pending",
-      "hard_gate_pass": true,
-      "hard_gate_reasons": {
-        "rule": true,
-        "fto_not_infringing": true,
-        "developability": true
-      },
-      "rank_key": [
-        0,
-        1,
-        0.0,
-        0.78
+        0.89
       ]
     },
     {
@@ -77,7 +43,7 @@
       "fto": {
         "verdict": "literally OUTSIDE at X4(P7)",
         "doe": "MED",
-        "patent_id": 0.89
+        "patent_id": 1.0
       },
       "developability": {
         "meanH": 0.51,
@@ -101,7 +67,7 @@
         0,
         1,
         0.0,
-        0.89
+        1.0
       ]
     },
     {
@@ -111,7 +77,7 @@
       "fto": {
         "verdict": "literally OUTSIDE at X4(P7)",
         "doe": "MED",
-        "patent_id": 0.89
+        "patent_id": 1.0
       },
       "developability": {
         "meanH": 0.41,
@@ -135,7 +101,7 @@
         0,
         1,
         0.0,
-        0.89
+        1.0
       ]
     },
     {
@@ -145,7 +111,7 @@
       "fto": {
         "verdict": "literally OUTSIDE at X4(P7)",
         "doe": "MED",
-        "patent_id": 0.89
+        "patent_id": 1.0
       },
       "developability": {
         "meanH": 0.42,
@@ -169,7 +135,41 @@
         0,
         1,
         0.0,
-        0.89
+        1.0
+      ]
+    },
+    {
+      "helm": "cyclo([2Nal]-R-G-D-L-A-[Phe4F]-[dP]-[NMeK])",
+      "target": "avb6",
+      "rule_pass": true,
+      "fto": {
+        "verdict": "literally OUTSIDE at X7(P1), X4(P7)",
+        "doe": "MED",
+        "patent_id": 1.0
+      },
+      "developability": {
+        "meanH": 0.52,
+        "n2Nal": 1,
+        "net_charge": 1,
+        "liabilities": [],
+        "greasy": false,
+        "pass": true
+      },
+      "binding_dG": "pending",
+      "selectivity_gap": "pending",
+      "groove_occupancy": "pending",
+      "geometry": "pending",
+      "hard_gate_pass": true,
+      "hard_gate_reasons": {
+        "rule": true,
+        "fto_not_infringing": true,
+        "developability": true
+      },
+      "rank_key": [
+        0,
+        1,
+        0.0,
+        1.0
       ]
     }
   ],

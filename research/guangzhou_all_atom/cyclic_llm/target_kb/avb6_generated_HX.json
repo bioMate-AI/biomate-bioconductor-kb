@@ -16,7 +16,7 @@
       "ncaa_count": 1,
       "fto_verdict": "literally OUTSIDE at X4(P7)",
       "doe": "MED",
-      "nearest_patented_id": 0.78
+      "nearest_patented_id": 0.89
     },
     {
       "helm": "cyclo(F-R-G-D-L-G-[Phe4F]-[dP]-[NMeK])",
@@ -28,7 +28,7 @@
       "ncaa_count": 1,
       "fto_verdict": "literally OUTSIDE at X4(P7)",
       "doe": "MED",
-      "nearest_patented_id": 0.78
+      "nearest_patented_id": 0.89
     },
     {
       "helm": "cyclo(F-R-G-D-L-G-[Phe4Cl]-[dP]-[NMeK])",
@@ -40,7 +40,7 @@
       "ncaa_count": 1,
       "fto_verdict": "literally OUTSIDE at X4(P7)",
       "doe": "MED",
-      "nearest_patented_id": 0.78
+      "nearest_patented_id": 0.89
     },
     {
       "helm": "cyclo(F-R-G-D-L-S-[2Nal]-[dP]-[NMeK])",
@@ -52,7 +52,7 @@
       "ncaa_count": 1,
       "fto_verdict": "literally OUTSIDE at X3(P6), X4(P7)",
       "doe": "MED",
-      "nearest_patented_id": 0.78
+      "nearest_patented_id": 0.89
     },
     {
       "helm": "cyclo(F-R-G-D-L-S-[Phe4F]-[dP]-[NMeK])",
@@ -64,7 +64,7 @@
       "ncaa_count": 1,
       "fto_verdict": "literally OUTSIDE at X3(P6), X4(P7)",
       "doe": "MED",
-      "nearest_patented_id": 0.78
+      "nearest_patented_id": 0.89
     },
     {
       "helm": "cyclo(F-R-G-D-L-S-[Phe4Cl]-[dP]-[NMeK])",
@@ -76,7 +76,7 @@
       "ncaa_count": 1,
       "fto_verdict": "literally OUTSIDE at X3(P6), X4(P7)",
       "doe": "MED",
-      "nearest_patented_id": 0.78
+      "nearest_patented_id": 0.89
     },
     {
       "helm": "cyclo(F-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
@@ -88,7 +88,7 @@
       "ncaa_count": 1,
       "fto_verdict": "literally OUTSIDE at X4(P7)",
       "doe": "MED",
-      "nearest_patented_id": 0.89
+      "nearest_patented_id": 1.0
     },
     {
       "helm": "cyclo(F-R-G-D-L-A-[Phe4F]-[dP]-[NMeK])",
@@ -100,7 +100,7 @@
       "ncaa_count": 1,
       "fto_verdict": "literally OUTSIDE at X4(P7)",
       "doe": "MED",
-      "nearest_patented_id": 0.89
+      "nearest_patented_id": 1.0
     },
     {
       "helm": "cyclo(F-R-G-D-L-A-[Phe4Cl]-[dP]-[NMeK])",
@@ -112,7 +112,7 @@
       "ncaa_count": 1,
       "fto_verdict": "literally OUTSIDE at X4(P7)",
       "doe": "MED",
-      "nearest_patented_id": 0.89
+      "nearest_patented_id": 1.0
     },
     {
       "helm": "cyclo(F-R-G-D-L-S-Y-[dP]-[NMeK])",

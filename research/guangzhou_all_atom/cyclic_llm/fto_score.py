@@ -1,11 +1,26 @@
-"""Patent/FTO KB — claim layer. Generalizes the hand CA2998968 read into a reusable in_claim(candidate, claim)
-that maps a candidate onto a structured genus claim and returns {inside | literally-outside + position + DoE}.
-Plus a sequence-identity dissimilarity to known patented compounds (stand-in for a SureChEMBL/Google-Patents
-compound layer, which is the data-ingestion follow-on)."""
-import json, os
+"""Patent/FTO KB — claim layer + real compound/patent axis.
+
+Two complementary axes:
+  (1) CLAIM-GENUS layer — `in_claim` maps a candidate onto the structured CA2998968 genus and returns
+      {inside | literally-outside + position + DoE}. This is the primary FTO axis for these RGD peptides.
+  (2) COMPOUND/PATENT axis (item #5) — `novelty_axis` wires the already-built, honest `drug_novelty_fto` gate:
+      Morgan/ECFP Tanimoto vs a 136k-row ChEMBL/BindingDB known-actives library (structure re-discovery) +
+      a REAL SureChEMBL-via-PubChem patent-presence check. Replaces the old 2-HELM seq-identity STUB.
+      `nearest_patented_identity` now uses drug_novelty_fto's Needleman-Wunsch identity (not the crude zip).
+
+Honesty: the compound/patent axis runs on the ncAA-stripped CANONICAL backbone (same approximation the program's
+cofold/MM-GBSA use — 2Nal→F, dP→P, NMeK→K via knowledge_liability_flags.parse_helm); this is recorded as a
+caveat on every novelty result. Each axis fails OPEN with an explicit status if a dependency (RDKit, library,
+network) is unavailable — it never fabricates a verdict."""
+import json, os, sys
 from acceptance_gate import raw_tokens, _strip_mods, _canon1
 
 HERE = os.path.dirname(__file__)
+PARENT = os.path.dirname(HERE)   # research/guangzhou_all_atom — where drug_novelty_fto lives
+for _p in (HERE, PARENT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+_LIB = None   # lazily built, cached known-actives library
 # residue -> allowed-class tokens, so ncAA map onto the claim's canonical enumerations
 NCAA_HOMOLOG = {"2Nal": "F", "1Nal": "F", "Phe4F": "F", "Phe4Cl": "F", "hPhe": "F", "Bip": "F", "Nle": "Nle"}
 
@@ -49,18 +64,94 @@ def in_claim(helm, claim):
     return {"verdict": "literally OUTSIDE at " + ", ".join(o["position"] for o in out),
             "outside_positions": out, "doe": max(o["doe"] for o in out)}
 
-def nearest_patented(helm, claim):
-    bb = "".join(_canon1(t) for t in raw_tokens(helm))
-    best = 0.0
-    for kc in claim.get("known_compounds", []):
-        kbb = "".join(_canon1(t) for t in raw_tokens(kc))
-        if len(kbb) == len(bb):
-            best = max(best, sum(a == b for a, b in zip(bb, kbb)) / len(bb))
-    return round(best, 2)
+_AA = set("ACDEFGHIKLMNPQRSTVWY")
+# ncAA core (after _strip_mods removes NMe/d- prefixes) -> nearest canonical for the folded backbone
+_BB_MAP = {"2Nal": "F", "1Nal": "F", "Nal": "F", "Phe4F": "F", "Phe4Cl": "F", "hPhe": "F", "Bip": "F",
+           "Nle": "L", "Aib": "A", "Abu": "A", "Sar": "G"}
 
-def fto_score(helm, target="avb6"):
+
+def _backbone(helm):
+    """Faithful, length-preserving canonical backbone: _strip_mods handles NMe*/d- prefixes (NMeK→K, dP→P),
+    then ncAA cores map to their nearest canonical (2Nal/Phe4F→F, Aib/Abu→A, Nle→L). Unknown ncAA are dropped
+    (and never silently coerced). This is the ncAA-stripped approximation the cofold/MM-GBSA pipeline also uses."""
+    out = []
+    for t in raw_tokens(helm):
+        c = _strip_mods(t)
+        if c in _AA:
+            out.append(c)
+        elif c in _BB_MAP:
+            out.append(_BB_MAP[c])
+    return "".join(out)
+
+
+def nearest_patented(helm, claim):
+    """Real Needleman-Wunsch sequence identity (drug_novelty_fto) of the candidate backbone vs the claim's known
+    patented-compound backbones. Replaces the old crude equal-length zip. Pure-Python; no RDKit needed."""
+    refs = [_backbone(k) for k in claim.get("known_compounds", [])]
+    if not refs:
+        return 0.0
+    try:
+        from drug_novelty_fto import nearest_sequence
+        best, _ = nearest_sequence(_backbone(helm), refs)
+        return round(best, 2)
+    except Exception:
+        # fallback to the old equal-length identity if the module is unavailable (never hard-fail)
+        bb = _backbone(helm); best = 0.0
+        for r in refs:
+            if len(r) == len(bb) and bb:
+                best = max(best, sum(a == b for a, b in zip(bb, r)) / len(bb))
+        return round(best, 2)
+
+
+def _library():
+    """Build + cache the known-actives library once. Returns None (honestly) if RDKit/CSV unavailable."""
+    global _LIB
+    if _LIB is not None:
+        return _LIB or None
+    csv_path = os.path.join(PARENT, "data", "raw", "binding_affinity", "binding_affinity_v1.csv")
+    try:
+        import drug_novelty_fto as nf
+        if not os.path.exists(csv_path):
+            _LIB = False; return None
+        cache = os.path.join(PARENT, "data", "_registry_cache", "novelty_lib_binding_affinity_v1.pkl")
+        _LIB = nf.build_library(csv_path, tag_cols=["is_pdl1", "is_avb6", "target_name"], cache_path=cache)
+    except Exception:
+        _LIB = False
+    return _LIB or None
+
+
+def novelty_axis(helm, target, check_patents=False):
+    """Compound/patent axis via drug_novelty_fto: structure Tanimoto vs the known-actives library (+ same-target
+    subset) and optional live SureChEMBL/PubChem patent presence. Runs on the canonical backbone (caveat)."""
+    bb = _backbone(helm)
+    out = {"backbone": bb, "backbone_caveat": "ncAA-stripped canonical backbone (2Nal/Phe4F→F, Aib/Abu→A, "
+           "Nle→L, dP→P, NMe*→parent; unknown ncAA dropped); structure/patent axes approximate the real molecule"}
+    try:
+        import drug_novelty_fto as nf
+    except Exception as e:
+        out["status"] = f"unavailable: drug_novelty_fto import failed ({e})"
+        return out
+    restrict = {"avb6": ("is_avb6", "True"), "pdl1": ("is_pdl1", "True")}.get(target)
+    v = nf.score_candidate(f"{target}:{bb}", seq=bb, cyclic=True, library=_library(),
+                           restrict_tag=restrict, check_patents=check_patents)
+    out.update({
+        "structure_status": v.structure_status, "structure_tier": v.structure_tier,
+        "max_tanimoto": v.max_tanimoto, "nearest_known_id": v.nearest_known_id,
+        "same_target_max_tanimoto": v.nearest_known_tag.get("same_target_max_tanimoto"),
+        "same_target_nearest_id": v.nearest_known_tag.get("same_target_nearest_id"),
+        "patent": v.patent, "verdict": v.verdict, "occupied": v.occupied, "reasons": v.reasons,
+    })
+    return out
+
+
+def fto_score(helm, target="avb6", structure=False, check_patents=False):
+    """Claim-genus verdict (+ real NW nearest-patented identity) always; opt-in compound/patent novelty axis.
+    structure=True adds structure-Tanimoto vs known actives; check_patents=True adds a live SureChEMBL check."""
     claim = json.load(open(os.path.join(HERE, "fto_kb", "ca2998968.json")))
-    return {"claim": in_claim(helm, claim), "nearest_patented_identity": nearest_patented(helm, claim)}
+    res = {"claim": in_claim(helm, claim), "nearest_patented_identity": nearest_patented(helm, claim)}
+    if structure or check_patents:
+        res["novelty"] = novelty_axis(helm, target, check_patents=check_patents)
+    return res
 
 if __name__ == "__main__":
     tests = [
@@ -73,3 +164,14 @@ if __name__ == "__main__":
     for h in tests:
         r = fto_score(h)
         print(f"{h}\n   -> {r['claim']['verdict']} | DoE {r['claim']['doe']} | nearest-patented id {r['nearest_patented_identity']}")
+
+    import sys as _sys
+    patents = "--patents" in _sys.argv
+    print("\n=== compound/patent axis (structure Tanimoto vs 136k known actives" +
+          (" + live SureChEMBL" if patents else "") + ") ===")
+    for h in ["cyclo(F-R-G-D-L-A-F-[dP]-[NMeK])", "cyclo(W-R-G-D-L-G-[2Nal]-[dP]-[NMeK])"]:
+        n = fto_score(h, "avb6", structure=True, check_patents=patents)["novelty"]
+        pat = n.get("patent", {})
+        print(f"{h}\n   backbone={n['backbone']} | {n.get('structure_status')} tier={n.get('structure_tier')} "
+              f"max_T={n.get('max_tanimoto')} (same-target {n.get('same_target_max_tanimoto')}, {n.get('same_target_nearest_id')}) "
+              f"| verdict={n.get('verdict')}" + (f" | patent present={pat.get('present')} n={pat.get('n_patents')}" if patents else ""))

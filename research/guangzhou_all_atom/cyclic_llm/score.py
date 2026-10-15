@@ -38,8 +38,11 @@ def score(helm, target="avb6", binding_dG=None, selectivity_gap=None, groove=Non
     rec = {"helm": helm, "target": target}
     # cheap deterministic tier
     rec["rule_pass"] = avb6_gate(helm)["PASS_H1_H5"] if target == "avb6" else None
-    f = fto_score(helm, target); rec["fto"] = {"verdict": f["claim"]["verdict"], "doe": f["claim"]["doe"],
-                                               "patent_id": f["nearest_patented_identity"]}
+    f = fto_score(helm, target, structure=(tier == "full"))   # full tier adds the real structure/patent axis
+    rec["fto"] = {"verdict": f["claim"]["verdict"], "doe": f["claim"]["doe"],
+                  "patent_id": f["nearest_patented_identity"]}
+    if "novelty" in f:
+        rec["fto"]["novelty"] = f["novelty"]
     rec["developability"] = developability(helm)
     # expensive tier: auto-dispatch admissible physics when tier='full' (explicit kwargs take precedence)
     if tier == "full":
