@@ -1,0 +1,130 @@
+{
+  "H": [
+    "has_rgd",
+    "has_rgdl",
+    "flank_aromatic_p1",
+    "flank_aromatic_p7"
+  ],
+  "X": [
+    {
+      "helm": "cyclo(F-R-G-D-L-A-F-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "A",
+        "p7": "F"
+      },
+      "ncaa_count": 0,
+      "fto": "LITERAL nonapeptide genus (canonical F/Y/W flanks) -> patent counsel"
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-A-Y-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "A",
+        "p7": "Y"
+      },
+      "ncaa_count": 0,
+      "fto": "LITERAL nonapeptide genus (canonical F/Y/W flanks) -> patent counsel"
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-A-W-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "A",
+        "p7": "W"
+      },
+      "ncaa_count": 0,
+      "fto": "LITERAL nonapeptide genus (canonical F/Y/W flanks) -> patent counsel"
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-A-[2Nal]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "A",
+        "p7": "[2Nal]"
+      },
+      "ncaa_count": 1,
+      "fto": "ncAA-divergent from literal published sequences -> counsel on genus SCOPE (ncAA flanks may fall outside narrow composition claims)"
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-A-[Phe4F]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "A",
+        "p7": "[Phe4F]"
+      },
+      "ncaa_count": 1,
+      "fto": "ncAA-divergent from literal published sequences -> counsel on genus SCOPE (ncAA flanks may fall outside narrow composition claims)"
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-A-[Phe4Cl]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "A",
+        "p7": "[Phe4Cl]"
+      },
+      "ncaa_count": 1,
+      "fto": "ncAA-divergent from literal published sequences -> counsel on genus SCOPE (ncAA flanks may fall outside narrow composition claims)"
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-G-F-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "G",
+        "p7": "F"
+      },
+      "ncaa_count": 0,
+      "fto": "LITERAL nonapeptide genus (canonical F/Y/W flanks) -> patent counsel"
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-G-Y-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "G",
+        "p7": "Y"
+      },
+      "ncaa_count": 0,
+      "fto": "LITERAL nonapeptide genus (canonical F/Y/W flanks) -> patent counsel"
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-G-W-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "G",
+        "p7": "W"
+      },
+      "ncaa_count": 0,
+      "fto": "LITERAL nonapeptide genus (canonical F/Y/W flanks) -> patent counsel"
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-G-[2Nal]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "G",
+        "p7": "[2Nal]"
+      },
+      "ncaa_count": 1,
+      "fto": "ncAA-divergent from literal published sequences -> counsel on genus SCOPE (ncAA flanks may fall outside narrow composition claims)"
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-G-[Phe4F]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "G",
+        "p7": "[Phe4F]"
+      },
+      "ncaa_count": 1,
+      "fto": "ncAA-divergent from literal published sequences -> counsel on genus SCOPE (ncAA flanks may fall outside narrow composition claims)"
+    },
+    {
+      "helm": "cyclo(F-R-G-D-L-G-[Phe4Cl]-[dP]-[NMeK])",
+      "free": {
+        "p1": "F",
+        "p6": "G",
+        "p7": "[Phe4Cl]"
+      },
+      "ncaa_count": 1,
+      "fto": "ncAA-divergent from literal published sequences -> counsel on genus SCOPE (ncAA flanks may fall outside narrow composition claims)"
+    }
+  ]
+}
