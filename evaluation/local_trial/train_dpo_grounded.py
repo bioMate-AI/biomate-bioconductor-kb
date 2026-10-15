@@ -95,15 +95,108 @@ def mine_routing_pairs(args):
     Path(args.pairs_out).write_text("\n".join(json.dumps(p) for p in pairs))
     print(f"ROUTING DPO PAIRS (near-tie hard negatives): {len(pairs)} -> {args.pairs_out}")
 
+# --- execution-GROUNDED preference pairs (no GPU, no Batch): prefer workflows that ACTUALLY ran ---
+EXEC_OK   = {"ok", "ok_warnings"}
+EXEC_FAIL = {"exec_error", "fixture_failed", "timeout", "ran_empty_output"}
+INSTR_ROUTING = ("Bioinformatics workflows come primarily from three sources: Nextflow/nf-core, Galaxy, "
+    "and Bioconductor. Route this request to the single correct WORKFLOW, using its canonical name "
+    "(e.g. 'nf-core/rnaseq').")
+_HERE = os.path.dirname(os.path.abspath(__file__))
+DEF_SPEC = os.path.join(_HERE, "../../docs/20260912_onprem_llm/data_candidates_v2/workflow_spec_candidates.jsonl")
+DEF_PUB  = os.path.join(_HERE, "../datasets/public_export")
+
+def _mj(x):
+    if isinstance(x, (list, dict)): return x
+    try: return json.loads(x) if isinstance(x, str) and x.strip() else []
+    except Exception: return []
+
+def _norm_q(s): return re.sub(r"\s+", " ", str(s or "").strip().lower())
+
+def _load_eval_queries(pub):
+    """eval-leakage guard: every public_export eval item's query text (so a mined prompt can't echo one)."""
+    qs=set()
+    if not pub or not os.path.isdir(pub): return qs
+    for task in os.listdir(pub):
+        d=os.path.join(pub, task, "data.jsonl")
+        if not os.path.isfile(d): continue
+        for l in open(d):
+            try: r=json.loads(l)
+            except Exception: continue
+            for f in ("query","user_query","question","intent","protocol","description"):
+                if r.get(f): qs.add(_norm_q(r[f]))
+    return qs
+
+def mine_execution_pairs(args):
+    """Phase 'exec': execution-GROUNDED preference pairs from workflow_spec_candidates — the reward is
+    'did it actually run', using the PERSISTED real_exec_status (no GPU sampling, no new Batch jobs).
+      chosen   = a workflow that executed (real_exec_status in ok/ok_warnings)
+      rejected = a confusable SAME-DOMAIN sibling that FAILED execution (exec_error/fixture_failed/
+                 timeout/ran_empty_output), ranked by shared tools + input/output types.
+    The request is synthesized ONLY from signal the two SHARE (domain + overlapping IO + tools) so the
+    negative genuinely fits the request and the single learnable distinction is executability. This is
+    the contained, no-spend step toward execution-feedback DPO (full grade_run-on-Batch reward = C3)."""
+    import random as _r, collections as _c; _r.seed(13)
+    rows=[json.loads(l) for l in open(args.spec) if l.strip()]
+    by_dom=_c.defaultdict(lambda: {"ok": [], "fail": []})
+    for r in rows:
+        st=r.get("real_exec_status"); dom=r.get("domain"); nm=r.get("workflow_name")
+        if not dom or not nm: continue
+        if st in EXEC_OK: by_dom[dom]["ok"].append(r)
+        elif st in EXEC_FAIL: by_dom[dom]["fail"].append(r)
+    evalq=_load_eval_queries(args.pub); dropped_leak=0
+    pairs=[]
+    for dom, grp in by_dom.items():
+        if not grp["ok"] or not grp["fail"]: continue
+        made=0
+        for ch in grp["ok"]:
+            ch_t=set(map(str,_mj(ch.get("tools_used")))); ch_i=set(map(str,_mj(ch.get("input_types")))); ch_o=set(map(str,_mj(ch.get("output_types"))))
+            best=None
+            for rj in grp["fail"]:
+                if rj.get("workflow_name")==ch.get("workflow_name"): continue
+                rt=set(map(str,_mj(rj.get("tools_used")))); ri=set(map(str,_mj(rj.get("input_types")))); ro=set(map(str,_mj(rj.get("output_types"))))
+                sh_t, sh_i, sh_o = ch_t&rt, ch_i&ri, ch_o&ro
+                ov=len(sh_t)*2+len(sh_i)+len(sh_o)
+                if best is None or ov>best[0]: best=(ov, rj, sh_t, sh_i, sh_o)
+            if best is None or best[0] < 1: continue   # require genuine confusability (shared tool/IO), not an arbitrary same-domain negative
+            ov, rj, sh_t, sh_i, sh_o = best
+            art="an" if dom[:1].lower() in "aeiou" else "a"
+            clauses=[]
+            if sh_i: clauses.append(f"takes {', '.join(sorted(sh_i)[:3])} input")
+            if sh_o: clauses.append(f"produces {', '.join(sorted(sh_o)[:3])}")
+            req=f"Recommend {art} {dom} workflow"
+            if clauses: req+=" that "+" and ".join(clauses)
+            if sh_t: req+=f" (tools like {', '.join(sorted(sh_t)[:3])})"
+            req+="."
+            if _norm_q(req) in evalq: dropped_leak+=1; continue
+            pairs.append({"prompt":f"{INSTR_ROUTING}\n\nRequest: {req}", "chosen":ch.get("workflow_name"),
+                          "rejected":rj.get("workflow_name"), "task":"routing",
+                          "source":"execution_grounded", "domain":dom, "confusability":ov})
+            made+=1
+            if made>=args.per_domain: break
+    seen=set(); uniq=[]
+    for p in pairs:
+        k=(p["prompt"],p["chosen"],p["rejected"])
+        if k in seen or p["chosen"]==p["rejected"]: continue
+        seen.add(k); uniq.append(p)
+    _r.shuffle(uniq)
+    Path(args.pairs_out).write_text("\n".join(json.dumps(p) for p in uniq))
+    print(f"EXECUTION-GROUNDED DPO PAIRS: {len(uniq)} (chosen=ran, rejected=failed) across "
+          f"{len(set(p['domain'] for p in uniq))} domains, dropped {dropped_leak} eval-leak -> {args.pairs_out}")
+
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--phase", choices=["pairs","mine","train"], required=True)
-    ap.add_argument("--model", required=True, help="merged SFT model")
+    ap.add_argument("--phase", choices=["pairs","mine","exec","train"], required=True)
+    ap.add_argument("--model", help="merged SFT model (phases pairs/train)")
     ap.add_argument("--prompts", help="jsonl {task,prompt,ground_truth} (phase pairs)")
     ap.add_argument("--pairs-out", default="dpo_pairs.jsonl")
     ap.add_argument("--out", default="dpo_out"); ap.add_argument("--k", type=int, default=6)
+    ap.add_argument("--spec", default=DEF_SPEC, help="workflow_spec_candidates.jsonl (phase exec)")
+    ap.add_argument("--pub", default=DEF_PUB, help="public_export dir for eval-leak guard (phase exec)")
+    ap.add_argument("--per-domain", type=int, default=40, help="max exec pairs per domain (phase exec)")
     a=ap.parse_args()
     if a.phase=="mine": return mine_routing_pairs(a)   # cheap: direct near-tie hard-negative pairs
+    if a.phase=="exec": return mine_execution_pairs(a) # cheap: execution-grounded pairs (no GPU/Batch)
+    if a.phase in ("pairs","train") and not a.model: ap.error("--model required for phase "+a.phase)
     return build_pairs(a) if a.phase=="pairs" else train(a)
 
 if __name__=="__main__": raise SystemExit(main())

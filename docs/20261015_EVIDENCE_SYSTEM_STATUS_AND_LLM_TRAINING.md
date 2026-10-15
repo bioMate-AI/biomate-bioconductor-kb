@@ -130,14 +130,22 @@ headline was ~78% label-memorization leakage). Real wiring, small-and-honest, da
 
 Ordered by leverage / cost. All reuse owned code (`feedback_audit_biomate_capabilities_first`).
 
-**P0 — Stop the leak (hours).** Gate the findings SFT block on `eligible_for_training` and
-replace the `score.passed` skeleton check with `execution_grader.grade_run`. Evidence should
-*protect* training quality before it adds to it. (Gap 2.)
+**P0 — Stop the leak (hours). SHIPPED 2026-10-15 (commit 3417e1456).** `build_sft_from_gold.py`
+section 7 now ingests ONLY `has_gold AND score.passed` rows and trains on the gold `expected`
+text, never unverified `produced_output` — findings 800→216 clean (1,491 unverified dropped).
+`grade_run` can't retro-grade these static candidates (it needs a live run object), so promoting
+more rows via real execution grading is the follow-on P1/P2 work. (Gap 2.)
 
-**P1 — Execution grading as the DPO reward (days).** Swap `train_dpo_grounded.py`'s gold-string
-match for `execution_grader.grade_run` on real Batch outputs (or a cached grade store). This is
-the un-gameable reward roadmap C3 wants and the "verifiable rewards" framing the QC auto-loop
-already embodies. Keep gold-match as a cheap fallback where execution is unavailable. (Gaps 1, 5.)
+**P1 — Execution grading as the DPO reward.** Full version (`grade_run` on Batch outputs) is the
+un-gameable reward roadmap C3 wants, but needs live Batch spend + a graded-run store that doesn't
+exist yet. **Option-1 (no-spend) SHIPPED 2026-10-15:** `train_dpo_grounded.py --phase exec`
+(`mine_execution_pairs`) builds execution-GROUNDED preference pairs from the persisted
+`real_exec_status` — chosen = a workflow that ran (ok/ok_warnings), rejected = a confusable
+same-domain sibling that failed execution (exec_error/fixture_failed/timeout/ran_empty_output),
+request synthesized from SHARED signal so executability is the only learnable distinction. 286
+pairs / 15 domains, eval-leak guarded, no GPU/Batch. **Still TODO (option-2):** run the bakeoff to
+persist a graded-run store, then wire `grade_run` verdicts into the reward (Batch budget required).
+Keep gold-match as the cheap fallback. (Gaps 1, 5.)
 
 **P2 — Evidence system as training-data generator (the virtual-pharma payoff, 1-2 weeks).**
 Wire the dormant multi-agent layer into a *trajectory collector*, not the live chat path:
