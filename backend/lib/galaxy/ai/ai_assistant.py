@@ -3993,7 +3993,7 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         if any(kw in _low for kw in _nucleotide_only_kw):
             return None
 
-        top = self.workflow_search.get_workflow_by_filename_pattern('nfcore/proteinfold/main.nf')
+        top = self.workflow_search.get_workflow_by_filename_pattern('%proteinfold%')
         if not top:
             log.warning("[ProteinStructureFastPath] proteinfold not found in DB — skipping")
             return None
