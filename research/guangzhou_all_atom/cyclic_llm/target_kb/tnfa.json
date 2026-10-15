@@ -1,0 +1,25 @@
+{
+  "name": "TNF-alpha",
+  "indication": "RA / IBD / psoriasis",
+  "modality": "trimer PPI disruptor",
+  "mechanism": {
+    "epitope": "discontinuous",
+    "motif": null,
+    "metal_cofactor": null,
+    "site": "TNFR1/2 interface (trimer groove)"
+  },
+  "counter_targets": [
+    "ltalpha"
+  ],
+  "receptor_structure": "2AZ5 / 1TNF \u2014 needs prep",
+  "target": "tnfa",
+  "controls": [],
+  "fto": {
+    "status": "to assess"
+  },
+  "examples": {
+    "actives": [],
+    "non_actives": [],
+    "note": "cold-start: no labeled actives yet (rule induction honestly abstains until actives are added)"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "IL-17A",
+  "indication": "psoriasis / ankylosing spondylitis",
+  "modality": "IL-17RA PPI blocker",
+  "mechanism": {
+    "epitope": "discontinuous",
+    "motif": null,
+    "metal_cofactor": null,
+    "site": "IL-17RA-binding groove"
+  },
+  "counter_targets": [
+    "il17f"
+  ],
+  "receptor_structure": "4HSA \u2014 needs prep",
+  "target": "il17a",
+  "controls": [],
+  "fto": {
+    "status": "to assess"
+  },
+  "examples": {
+    "actives": [],
+    "non_actives": [],
+    "note": "cold-start: no labeled actives yet (rule induction honestly abstains until actives are added)"
+  }
+}

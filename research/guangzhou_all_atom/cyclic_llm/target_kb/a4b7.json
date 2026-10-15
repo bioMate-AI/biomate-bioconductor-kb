@@ -1,0 +1,25 @@
+{
+  "name": "integrin alpha4-beta7",
+  "indication": "IBD / ulcerative colitis (gut-homing)",
+  "modality": "PPI blocker (MAdCAM-1 / VCAM axis)",
+  "mechanism": {
+    "epitope": "linear-motif",
+    "motif": "LDV/IDS",
+    "metal_cofactor": "Mn",
+    "site": "beta7 MIDAS"
+  },
+  "counter_targets": [
+    "a4b1"
+  ],
+  "receptor_structure": "3V4V (alpha4beta7 headpiece) \u2014 needs prep",
+  "target": "a4b7",
+  "controls": [],
+  "fto": {
+    "status": "to assess"
+  },
+  "examples": {
+    "actives": [],
+    "non_actives": [],
+    "note": "cold-start: no labeled actives yet (rule induction honestly abstains until actives are added)"
+  }
+}

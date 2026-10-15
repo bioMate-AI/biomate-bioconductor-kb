@@ -1,0 +1,25 @@
+{
+  "name": "integrin alphaL-beta2 (LFA-1)",
+  "indication": "psoriasis / MS (leukocyte adhesion)",
+  "modality": "ICAM-1 PPI blocker (I-domain)",
+  "mechanism": {
+    "epitope": "I-domain-MIDAS",
+    "motif": null,
+    "metal_cofactor": "Mg",
+    "site": "alphaL I-domain MIDAS"
+  },
+  "counter_targets": [
+    "mac1"
+  ],
+  "receptor_structure": "5E6U / 1MQ8 (alphaL I-domain) \u2014 needs prep",
+  "target": "lfa1",
+  "controls": [],
+  "fto": {
+    "status": "to assess"
+  },
+  "examples": {
+    "actives": [],
+    "non_actives": [],
+    "note": "cold-start: no labeled actives yet (rule induction honestly abstains until actives are added)"
+  }
+}
