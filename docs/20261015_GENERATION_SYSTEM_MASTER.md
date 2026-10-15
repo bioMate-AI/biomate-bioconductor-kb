@@ -25,14 +25,16 @@ collection (target / structure / patent KBs) is the prerequisite foundation.
 | Rule induction (SNG L1 — learn the rule from few actives) | `rule_induction.py` | ✅ reproduces the αvβ6 gate from data (0 error); pdl1 honest cold-start |
 | FTO claim layer (`in_claim` + DoE) | `fto_kb/ca2998968.json`, `fto_score.py` | ✅ INSIDE / literally-OUTSIDE+DoE / OUTSIDE(form) |
 | Rule-conditioned generator (SNG L2/L5) | `rule_conditioned_generator.py` | ✅ rejects rule-violators AND patent-infringing; ranks by patent risk; emits (H,X) |
-| Consolidated verifier/reward `score()` | `score.py` | ✅ cheap tier live (rule+FTO+developability, hard-gate+rank); expensive-tier hooks |
+| Consolidated verifier/reward `score()` | `score.py` | ✅ cheap tier live; **`tier='full'` auto-dispatches the expensive physics tier**, A2-gated |
 | Closed optimizer loop | `loop.py` | ✅ propose→score→select→revise→repeat closes end-to-end; 0-abandoned convergence on infringing/greasy/rule-fail stress seeds; revise = labeled stand-in for RL/LLM driver |
+| Neural proposer | `neural_generator.py` | ✅ unified_cyclic_llm_v4 proposes free-position chemistry by permeability-conditioned macrocycle likelihood (temp = exploration); same reject+rank + `(H,X)`; `loop.py --neural`; enumeration fallback |
+| Expensive-tier auto-dispatch | `physics_dispatch.py` | ✅ reads MM-GBSA/counter/groove artifacts (no GPU run), joins HELM→ID→result, A2 control-anchored at receptor level (avb6 VOIDed; K-05 binding −39.86/sel −15.27 admissible) |
 
-The **cheap, deterministic half of the loop is built and working** (induce rule → generate FTO-clean by
-construction → score → revise → repeat, now closed end-to-end in `loop.py`). The proposer (enumeration) and the
-revise operator (deterministic repair) are labeled stand-ins for the neural generator / learned driver. The
-**expensive half** (metal-aware cofold+MM-GBSA, counter-target, groove, geometry) exists as validated GPU
-pipelines from the program work but is not yet auto-dispatched from `score()`.
+The **loop skeleton is now built end-to-end**: neural proposer → score (cheap + auto-dispatched physics,
+A2-gated) → select → revise → repeat. Remaining labeled stand-ins / gaps (see progress doc next-item list):
+revise = deterministic repair (not a learned RL/LLM policy); the neural proposer is target-agnostic for avb6 and
+restricted to a gate-known monomer palette; the expensive tier reads results only and there is **no admissible
+avb6 ΔG yet** (metal-aware MM-GBSA TODO; avb6 files VOIDed).
 
 ## SNG learnings applied (`20261015_DETAILED_DESIGN_SYMBOLIC_NEURAL_LEARNINGS.md`)
 L1 induce the design rule from the few actives (not hand-code) ✅; L2 rules condition + reject ✅; L3 emit (H,X)
@@ -40,9 +42,9 @@ artifact ✅; L4/L5 fits cold-start + correctness-by-construction ✅. Extend be
 developability, mechanism as symbolic specs too (partially — FTO is encoded).
 
 ## Next items (prioritized; `20261015_PROGRESS_AND_NEXT_ITEMS.md` has detail)
-1. Neural peptide generator (HELM/BoltzGen) replacing the enumeration stand-in.
+1. ~~Neural peptide generator replacing the enumeration stand-in~~ ✅ DONE (`neural_generator.py`) — remaining: gate-known **monomer-palette expansion** (needs a vetted monomer-property table) + a **target-aware** (BoltzGen/affinity-conditioned) proposer for avb6.
 2. ~~Optimizer loop~~ ✅ DONE (`loop.py`) — remaining: swap the deterministic revise for the learned driver (REINVENT/Saturn RL with `score()` as reward, or LLM-revise); folds into #1/#8.
-3. Expensive-tier auto-dispatch into `score()` (GPU physics, control-anchored).
+3. ~~Expensive-tier auto-dispatch into `score()`~~ ✅ DONE (`physics_dispatch.py`, `score(tier='full')`) — remaining: produce **admissible avb6 physics** (metal-aware MM-GBSA, control-gated), a **G1 groove JSON**, and optional **auto-launch** of the GPU job for gate-passers with no result yet.
 4. Mechanism-matched scorer config (Target KB tag → scorer).
 5. Patent compound layer (SureChEMBL/Google Patents ingestion; add PD-L1 + counter-integrin estates).
 6. Real ILP (Popper/Aleph) + richer rule families + more negatives.
@@ -60,7 +62,8 @@ developability, mechanism as symbolic specs too (partially — FTO is encoded).
 - Program context (the αvβ6/PD-L1 rounds this was learned from): `20261014_CYCLIC_PEPTIDE_PROGRAM_MASTER.md`
 
 ## Honest framing
-The deterministic half works end-to-end and is genuinely novel for peptides (the OSS loops are all
-small-molecule). Scores are relative/feasibility-level; the wet-lab assay is ground truth. The remaining builds
-(neural generator, automated loop, expensive-tier dispatch) are specified and grounded in components that already
-exist — assembly + hardening, not greenfield.
+The loop skeleton now works end-to-end — neural proposer → score (cheap + A2-gated physics) → select → revise →
+repeat — and is genuinely novel for peptides (the OSS loops are all small-molecule). Scores are relative/
+feasibility-level and control-anchored; the wet-lab assay is ground truth. What remains is hardening, not
+greenfield: a learned revise policy, a target-aware/palette-expanded neural proposer, and admissible avb6 physics
+(metal-aware MM-GBSA) — each specified in the progress doc's next-item list and grounded in existing components.

@@ -12,20 +12,29 @@ Code lives in `research/guangzhou_all_atom/cyclic_llm/`. Design refs: the five 2
 | **Rule-conditioned generator (SNG L2/L5)** | `rule_conditioned_generator.py` | conditions on induced rule + KB mechanism; satisfies by construction; **rejects rule-violators AND patent-INFRINGING**; ranks survivors by DoE then patent-id; emits (H,X) | all-canonical (genus) auto-rejected; survivors = ncAA-flank, MED DoE, ranked |
 | **Consolidated score() / reward** | `score.py` | merges cheap tier (rule, FTO, developability) inline + expensive-tier hooks (binding dG, selectivity gap, groove, geometry from GPU pipeline); hard-gate verdict + rank key | avebehexin gate=False(infringing); clean ncAA gate=True; di-2Nal gate=False(greasy+rule) |
 | **Closed optimizer loop** | `loop.py` | `propose (gen_avb6) → score() → select (freeze gate-passers) → revise → repeat`; revise = deterministic, score-record-reading repair operator (honest stand-in for the LLM-revise move) that reads the failing objective and applies one targeted free-position edit; trace distinguishes revised/converged/abandoned | 3 deliberately-failing seeds (infringing, greasy, rule-fail) all converge into the gated set in 2 rounds; **0 abandoned**; final = 5 FTO-clean MED-DoE de-greased candidates, Pareto-ranked by `score.rank_key` |
+| **Neural proposer (SNG L2 neural)** | `neural_generator.py` | uses the unified_cyclic_llm_v4 ckpt to PROPOSE free-position chemistry: scores each scaffold macrocycle's likelihood under null-target + `<p_hi>` permeability, samples free-position triples ∝ likelihood (temperature = exploration), then the same rule+FTO+dev constrain+reject; same `(H,X)` interface; enumeration fallback if torch/ckpt absent | backend=`neural (unified_cyclic_llm_v4)`; model sharply prefers 2Nal flanks (permeability); temp 1.0→5 / 2.0→19 survivors of a 62-clean ceiling; `loop.py --neural` converges to 7 gated, 0 abandoned. Honest: v4 NOT trained on avb6 → signal is developable/permeable chemistry, not affinity; palette = model-known ∩ gate-known monomers |
+| **Physics auto-dispatch (expensive tier)** | `physics_dispatch.py`, `score.py` `tier='full'` | READS existing MM-GBSA/counter/groove artifacts (no GPU run); joins HELM→design-ID→result; **A2 control-anchoring at receptor level** (admissible only if a control row anchors the receptor's ΔG scale — direct or inherited by a same-receptor sibling run); avb6 MM-GBSA VOIDed (metal dropped + no control); groove control-independent; geometry pending (no artifact) | K-05 → binding −39.86 (A2 direct, ctrl #2/14), selectivity −15.27, groove pending (G1 groove doc-only); G2 A02 → binding −28.17 (A2 inherited), selectivity +14.11 (NOT selective, matches 0/8), groove 0.733; novel avb6 HELM → all pending (never folded) |
 
 ## Architecture as realized (SNG pattern, working)
 - **Symbolic (outside LLM):** induced rule (L1) + FTO claim constraint + developability — deterministic, cheap,
   used to CONDITION generation + REJECT violators (L2) + emit (H,X) (L3).
-- **Neural (inside LLM):** the proposer — currently a rule-constrained enumeration STAND-IN; the HELM/BoltzGen
-  peptide LLM slots in here next.
+- **Neural (inside LLM):** the proposer — now the unified_cyclic_llm_v4 model (`neural_generator.py`, `loop.py
+  --neural`), proposing free-position chemistry by permeability-conditioned macrocycle likelihood; the rule-
+  constrained enumeration remains the default/fallback. (Honest: target-agnostic for avb6 — see built table.)
 - **Verifier/reward:** `score()` — cheap tier live; expensive tier (metal-aware cofold+MM-GBSA, counter-target,
   groove, geometry) hooks into the GPU pipeline results we built this session, control-anchored (A2).
 
 ## Next item list (detailed, prioritized)
-1. **Replace the enumeration stand-in with the neural peptide generator (Phase 1.1).**
-   - Wire HELM/BoltzGen as the proposer behind `gen_*`; pass the induced rule + FTO constraint as conditioning;
-     keep the reject+rank. Deliverable: generator that proposes *diverse* free-position chemistry (not enumerated),
-     still FTO-clean by construction.
+1. ~~**Replace the enumeration stand-in with the neural peptide generator (Phase 1.1).**~~ **✅ DONE — `neural_generator.py`.**
+   - Wired the unified_cyclic_llm_v4 model as the proposer: permeability-conditioned macrocycle likelihood over
+     the scaffold's free positions, temperature-controlled sampling, same rule+FTO+dev reject+rank, same `(H,X)`
+     interface; enumeration fallback. `loop.py --neural` runs it. **Remaining for this item:**
+     (a) **palette expansion** — the model knows 363 ncAA monomers but the neural palette is restricted to those
+     the symbolic gate already classifies correctly (F/Y/W/Nal; A/G/S/Aib/Abu); expanding to exotic aromatic ncAA
+     (3Pal, Bal, Bn_Gly, Ala(indol-2-yl)…) needs a **vetted monomer-property table** (aromaticity + hydrophobicity
+     FP + FTO homolog) added to `acceptance_gate`/`fto_score`/`score` — a data task, do NOT guess values;
+     (b) **target-aware avb6** — v4 is not trained on avb6, so today's neural signal is developable/permeable
+     chemistry, not affinity; a BoltzGen/affinity-conditioned proposer is the real target-aware upgrade.
 2. ~~**Close the optimizer loop (Phase 1.2).**~~ **✅ DONE — `loop.py`.**
    - Built the loop HARNESS: `propose → score() → select (freeze gate-passers) → revise → repeat`, returns the
      Pareto-ranked gated set + a per-round revise trace. The `revise` operator is the deterministic,
@@ -34,10 +43,15 @@ Code lives in `research/guangzhou_all_atom/cyclic_llm/`. Design refs: the five 2
    - Verified: 3 deliberately-failing seeds (infringing / greasy / rule-fail) converge into the gated set,
      0 abandoned. **Remaining for this item:** the learned drivers (RL policy or LLM revise) replacing the
      deterministic repair — folds into items #1 (neural generator) and #8 (own-LLM RLVR).
-3. **Expensive-tier integration into score() (Phase 0.6).**
-   - Auto-dispatch the GPU pipeline (metal-aware cofold+MM-GBSA, counter-target, groove, geometry) for gate-passing
-     candidates; cache results; enforce A2 control-anchoring (scores inadmissible if controls fail). Deliverable:
-     `score(..., tier="full")` that fills binding/selectivity/groove/geometry.
+3. ~~**Expensive-tier integration into score() (Phase 0.6).**~~ **✅ DONE — `physics_dispatch.py` + `score(tier='full')`.**
+   - Auto-dispatches admissible MM-GBSA/counter/groove RESULTS into the four hooks, A2-gated at the receptor level
+     (inadmissible if no control anchors the receptor; avb6 VOIDed). **Remaining for this item:**
+     (a) **produce admissible avb6 physics** — needs the metal-aware MM-GBSA run (retain+parameterize MIDAS Mn),
+     control-gated; receptor asset `results/receptors/avb6_ourstructure_v1.cif` exists, the control-gated ranking
+     is still a TODO (folds into #4 mechanism-matched scorer: inject metal for integrins);
+     (b) **G1 groove artifact** — K-05's groove is doc-only (0.93); write a machine-readable G1 groove JSON so the
+     dispatcher can fill it; (c) **auto-launch** for a gate-passing candidate with NO result yet (dispatch the GPU
+     job, not just read) — currently read-only by design (spot-cost discipline).
 4. **Mechanism-matched scorer config (Phase 0.7).**
    - Target KB `mechanism` tag → auto-configure the scorer (inject metal for integrins; cofold vs dock by epitope).
 5. **Patent/FTO compound layer (Phase 0.5 follow-on).**
@@ -53,10 +67,11 @@ Code lives in `research/guangzhou_all_atom/cyclic_llm/`. Design refs: the five 2
      `score()` as reward once the loop produces volume. Always validate vs frontier on the narrow slice.
 
 ## Honest state
-Cheap, deterministic half of the loop (rule + FTO + developability + generation-by-construction + reward merge)
-is **built and verified**, and the **loop harness now closes end-to-end** (`loop.py`: propose → score → revise →
-repeat, 0-abandoned convergence on the stress seeds). What is still a labeled STAND-IN: the proposer
-(enumeration, not neural — item #1) and the revise operator (deterministic repair, not a learned RL/LLM policy —
-folds into #1/#8). The expensive half (physics scoring) exists as validated GPU pipelines from this session but
-is **not yet auto-dispatched from score()** — item #3. Scores remain relative/feasibility-level; wet-lab assay
-is ground truth.
+The full loop skeleton is now built and verified end-to-end: **neural proposer** (`neural_generator.py`, v4 ckpt)
+→ **score()** (cheap deterministic tier + **auto-dispatched expensive physics**, A2-gated) → **select** → **revise**
+→ repeat (`loop.py`, 0-abandoned convergence). Remaining labeled stand-ins / known gaps, all documented in the
+next-item list: the revise operator is a deterministic repair (not a learned RL/LLM policy — #2-remainder/#8);
+the neural proposer is target-agnostic for avb6 and restricted to a gate-known monomer palette (#1-remainder);
+the expensive tier reads results only — there is **no admissible avb6 ΔG yet** (metal-aware MM-GBSA is a TODO,
+avb6 files are VOIDed) and G1 groove is doc-only (#3-remainder). Physics scores remain relative/feasibility-level
+and control-anchored; the wet-lab assay is ground truth.
