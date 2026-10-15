@@ -1,0 +1,28 @@
+{
+  "target": "avb6",
+  "name": "integrin alpha-v beta-6",
+  "indication": "PDAC / cold-GI cancers",
+  "modality": "targeted radioligand (Lu-177; Ga-68 companion)",
+  "mechanism": {"epitope": "linear-motif", "motif": "RGD.L", "metal_cofactor": "Mn", "site": "beta6 MIDAS"},
+  "pharmacophore_hint": "RGD + extended L + beta-turn (D-Pro) lock; single Lys chelator handle",
+  "counter_targets": ["avb8", "avb3", "avb5", "a5b1"],
+  "receptor_structure": "avb6_ourstructure_v1.cif (9XMM-derived, metal-complete)",
+  "controls": [
+    {"id": "Trivehexin-mono", "helm": "cyclo(Y-R-G-D-L-A-Y-[dP]-[NMeK])", "affinity_nM": 0.033, "note": "monomer of clinical trimer"},
+    {"id": "avebehexin", "helm": "cyclo(F-R-G-D-L-A-F-[dP]-[NMeK])", "affinity_nM": 0.5}
+  ],
+  "fto": {"patent": "CA2998968A1", "genus": "Cyclo-(Arg-X1-Asp-X2-X3-X4-X5-X6-X7)", "status": "granted/active ~2036"},
+  "examples": {
+    "actives": [
+      "cyclo(Y-R-G-D-L-A-Y-[dP]-[NMeK])",
+      "cyclo(F-R-G-D-L-A-F-[dP]-[NMeK])",
+      "cyclo(W-R-G-D-L-A-F-[dP]-[NMeK])"
+    ],
+    "non_actives": [
+      "cyclo(F-W-L-[dP]-Y-S-[NMeF]-D-T-K)",
+      "cyclo(W-Y-F-[dP]-L-[NMeI]-T-E-N-K-S-G)",
+      "cyclo(Y-S-A-G-P-F-[dP]-[NMeK])",
+      "cyclo(F-A-G-R-D-L-A-F-[dP]-[NMeK])"
+    ]
+  }
+}
