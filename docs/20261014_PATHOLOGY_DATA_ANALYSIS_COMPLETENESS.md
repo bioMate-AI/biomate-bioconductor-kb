@@ -91,12 +91,28 @@ simulation packages). All 17 fixed + re-validated param-less on Batch:
     to take effect — BLOCKED in the working env (no local docker; a dev-EC2 build is
     out-of-band + resource-risky for a live instance). Run via the normal image-build
     path (CI / docker host): `docker buildx build --platform linux/amd64 -t <ECR>/biomate/biomni-tools:x86 --push backend/docker/biomni-tools/`, then re-validate the 4.
-  - **3 = suspected api.fda.gov egress (infra):** `get_fda_drug_label_info`,
-    `check_fda_drug_recalls`, `analyze_fda_safety_signals`. `requests` is present and
-    the no-results path returns success, so the raise is a genuine exception on the
-    openFDA HTTP call; NCBI/BLAST egress worked, so it's api.fda.gov-specific. Confirm
-    Batch-worker reachability to api.fda.gov (a stderr-teed re-run); if blocked, it's a
-    NAT/egress config, not a code fix.
+  - **3 FDA = CODE bug, FIXED (NOT egress):** a fresh run (f0b8d4d9) captured the real
+    error — `NameError: name 'OpenFDAClient' is not defined`: the generator referenced
+    `OpenFDAClient()` but never inlined the class, so all 3 crashed before any HTTP call
+    (empty stderr → the earlier egress guess). Inlined a requests-based `OpenFDAClient`
+    (api.fda.gov/drug/{label,enforcement,event}.json; commit 0e7fa853; no rebuild — uses
+    `requests`). Re-validated: **`get_fda_drug_label_info` ✅** (real aspirin label) and
+    **`analyze_fda_safety_signals` ✅** (real adverse events, 190 reports/91 serious) now
+    return genuine openFDA data (`real_exec_status='ok'`); **`check_fda_drug_recalls`**
+    fixed the same way but hit a *separate* failure (crashed before writing results.json
+    — identical imports/client to the two that passed, so most likely a transient
+    Batch/OOM kill, not code) → one confirming re-run recommended.
+
+### Final tally
+- **Integrity: 17/17 dishonest-success eliminated + 2 fabrication stubs stopped.**
+- **10 genuinely validated** (`real_exec_status='ok'`, local DB): WSI, IHC, corneal_nerve,
+  multiplex, calcium_imaging, blast, protease_kinetics, panhumanpy, fda_label, fda_safety.
+- **Intended honest-fails (4):** 2 fabrication (cns_lesion, quantify_cell_cycle) + 2
+  no-demo-data (cosinor, metabolic_sim).
+- **Blocked-on-rebuild (4):** aortic, mitochondrial, cell_morphology (cv2), extract_pdf_content
+  (PyPDF2) — Dockerfile fix staged (603722965/c7270768f); needs a biomni-tools:x86 rebuild on
+  a host with ECR connectivity (dev EC2 lacks it; local has no docker).
+- **1 confirming re-run:** check_fda_drug_recalls (likely transient).
 
 ## Remaining to a "complete" common pathology suite
 1. **Multiplex** (`segment_and_quantify_cells_in_multiplexed_images`) — no demo
