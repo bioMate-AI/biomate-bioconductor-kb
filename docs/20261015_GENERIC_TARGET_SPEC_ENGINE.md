@@ -42,8 +42,19 @@ product (not per-target scripts): one spec → `search_workflow`/`run_workflow` 
 `nextflow_executor`. Next integration step: register the spec-driven generate→cofold→score as a BioMate workflow
 and route the physics through Batch instead of the standalone EC2 launcher.
 
+## Generation is now spec-driven too (`cyclic_llm/propose.py`)
+`propose(spec, n)` picks the mode from the spec — **not from metal**:
+- `motif` present (+ a scaffold impl, today RGD.L) → **scaffold-conditioned** (integrins).
+- otherwise → **de-novo**: the v4 generator conditioned on the target's **receptor sequence** — this is the path
+  for every non-metal PPI target (TNF, IL-17, IL-23, C5, FcRn, CD40, BAFF, IL-2Rα, CD20, and PD-L1).
+
+Verified non-metal, our-own-target, end-to-end: `propose(pdl1)` → de-novo macrocycles conditioned on the real
+118-aa PD-L1 sequence (ncAA-rich: `[Sar]`, `[Phe(4-CF3)]`, `[Me_dL]`…), scored generically (developability +
+FTO-novelty, all novel). No metal, no RGD scaffold, no avb6 special-case.
+
 ## Still spec-able (follow-ons)
-- Generator: wire `motif → scaffold` (and de-novo when `motif=null`) so generation is spec-driven too (today the
-  RGD scaffold is still avb6-family-specific in `rule_conditioned_generator`/`neural_generator`).
+- Add an **LDV scaffold impl** so a4b7/a4b1 use scaffold-conditioned (today they fall to de-novo — correct but
+  not motif-optimal).
 - `physics_dispatch` result registry: make per-target result locations spec data rather than the `REG` dict.
 - Cofold launcher: read `build_cofold_input(spec, candidates)` instead of the hand-written plan JSON.
+- Prep receptor structures for the autoimmune targets so their physics tier can run (today: cold-start).
