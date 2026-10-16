@@ -120,6 +120,28 @@
     "loading_expert_packs": "Loading expert packs…",
     "no_expert_packs": "No expert packs available yet."
   },
+  "chat_msg": {
+    "figure": "Figure",
+    "copied": "Copied response",
+    "copy_failed": "Copy failed",
+    "clipboard_unavailable": "Clipboard permission unavailable.",
+    "download_started": "Download started",
+    "no_workflow_to_copy": "No workflow to copy",
+    "copied_workflow_json": "Copied workflow JSON",
+    "no_outputs_yet": "No outputs yet",
+    "no_outputs_desc": "Run a workflow first to enable download.",
+    "copy_response": "Copy response",
+    "save_as_file": "Save response as file",
+    "regenerate_response": "Regenerate response",
+    "rerun_validated_tip": "Re-run this as a validated Cloud workflow with quality gates and an audit-ready report",
+    "download_outputs": "Download outputs",
+    "try_again": "Try again",
+    "save_as_txt": "Save as .txt",
+    "save_as_md": "Save as .md",
+    "save_as_docx": "Save as .docx",
+    "redo_as_validated": "Redo as a validated run",
+    "generate_ind": "Generate IND §2.6 report from these results →"
+  },
   "projects": {
     "create_project": "Create Project",
     "project_name": "Project name",

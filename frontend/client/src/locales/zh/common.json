@@ -120,6 +120,28 @@
     "loading_expert_packs": "正在加载专家包…",
     "no_expert_packs": "暂无可用的专家包。"
   },
+  "chat_msg": {
+    "figure": "图",
+    "copied": "已复制回复",
+    "copy_failed": "复制失败",
+    "clipboard_unavailable": "无法获取剪贴板权限。",
+    "download_started": "已开始下载",
+    "no_workflow_to_copy": "没有可复制的工作流",
+    "copied_workflow_json": "已复制工作流 JSON",
+    "no_outputs_yet": "暂无输出",
+    "no_outputs_desc": "请先运行工作流以启用下载。",
+    "copy_response": "复制回复",
+    "save_as_file": "将回复另存为文件",
+    "regenerate_response": "重新生成回复",
+    "rerun_validated_tip": "作为带质量门控与可供审计报告的已验证云端工作流重新运行",
+    "download_outputs": "下载输出",
+    "try_again": "重试",
+    "save_as_txt": "保存为 .txt",
+    "save_as_md": "保存为 .md",
+    "save_as_docx": "保存为 .docx",
+    "redo_as_validated": "作为已验证运行重做",
+    "generate_ind": "根据这些结果生成 IND §2.6 报告 →"
+  },
   "projects": {
     "create_project": "创建项目",
     "project_name": "项目名称",

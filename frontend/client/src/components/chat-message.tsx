@@ -50,7 +50,7 @@ function addCitationLinks(text: string): string {
  */
 function MarkdownFigure({ src, alt }: { src?: string; alt?: string }) {
   const [errored, setErrored] = useState(false);
-  const label = (alt && alt.trim()) || "Figure";
+  const label = (alt && alt.trim()) || t('chat_msg.figure');
   if (!src || errored) {
     return (
       <span className="my-2 flex flex-col items-start gap-1 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
@@ -312,34 +312,34 @@ export function ChatMessage({
     onCopy()
     try {
       await navigator.clipboard.writeText(message.content || "")
-      toast({ title: "Copied response" })
+      toast({ title: t('chat_msg.copied') })
     } catch {
-      toast({ title: "Copy failed", description: "Clipboard permission unavailable.", variant: "destructive" })
+      toast({ title: t('chat_msg.copy_failed'), description: t('chat_msg.clipboard_unavailable'), variant: "destructive" })
     }
   }
 
   const handleCopyWorkflow = async () => {
     const workflow = message.metadata?.workflow
     if (!workflow) {
-      toast({ title: "No workflow to copy", variant: "destructive" })
+      toast({ title: t('chat_msg.no_workflow_to_copy'), variant: "destructive" })
       return
     }
     try {
       await navigator.clipboard.writeText(JSON.stringify(workflow, null, 2))
-      toast({ title: "Copied workflow JSON" })
+      toast({ title: t('chat_msg.copied_workflow_json') })
     } catch {
-      toast({ title: "Copy failed", description: "Clipboard permission unavailable.", variant: "destructive" })
+      toast({ title: t('chat_msg.copy_failed'), description: t('chat_msg.clipboard_unavailable'), variant: "destructive" })
     }
   }
 
   const handleDownloadOutputs = () => {
     if (!effectiveInvocationId) {
-      toast({ title: "No outputs yet", description: "Run a workflow first to enable download.", variant: "destructive" })
+      toast({ title: t('chat_msg.no_outputs_yet'), description: t('chat_msg.no_outputs_desc'), variant: "destructive" })
       return
     }
     window.open(`/api/invocations/${effectiveInvocationId}/download-all`, "_blank")
     setDownloadPromptOpen(true)
-    toast({ title: "Download started" })
+    toast({ title: t('chat_msg.download_started') })
   }
 
   // Format timestamp like reference: "YOU · 3:40 PM"
@@ -1105,7 +1105,7 @@ export function ChatMessage({
                   <path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/>
                   <path d="M5 6h6M5 8.5h4M5 11h3"/>
                 </svg>
-                <span>{label} — <strong>Generate IND §2.6 report from these results →</strong></span>
+                <span>{label} — <strong>{t('chat_msg.generate_ind')}</strong></span>
               </a>
             )
           })()}
@@ -1127,8 +1127,8 @@ export function ChatMessage({
               size="icon"
               onClick={handleCopyResponse}
               data-testid="button-copy-response-icon"
-              title="Copy response"
-              aria-label="Copy response"
+              title={t('chat_msg.copy_response')}
+              aria-label={t('chat_msg.copy_response')}
             >
               <Copy className="h-4 w-4" />
             </Button>
@@ -1139,8 +1139,8 @@ export function ChatMessage({
                 <Button
                   variant="ghost"
                   size="icon"
-                  title="Save response as file"
-                  aria-label="Save response as file"
+                  title={t('chat_msg.save_as_file')}
+                  aria-label={t('chat_msg.save_as_file')}
                   data-testid="button-save-response"
                 >
                   <FileDown className="h-4 w-4" />
@@ -1152,21 +1152,21 @@ export function ChatMessage({
                   className="gap-2"
                 >
                   <FileText className="h-4 w-4" />
-                  Save as .txt
+                  {t('chat_msg.save_as_txt')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => downloadAsMd(message.content || '', message.content)}
                   className="gap-2"
                 >
                   <FileText className="h-4 w-4" />
-                  Save as .md
+                  {t('chat_msg.save_as_md')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => downloadAsDocx(message.content || '', message.content)}
                   className="gap-2"
                 >
                   <FileDown className="h-4 w-4" />
-                  Save as .docx
+                  {t('chat_msg.save_as_docx')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -1175,8 +1175,8 @@ export function ChatMessage({
               size="icon"
               onClick={onRegenerate}
               data-testid="button-regenerate-message-icon"
-              title="Regenerate response"
-              aria-label="Regenerate response"
+              title={t('chat_msg.regenerate_response')}
+              aria-label={t('chat_msg.regenerate_response')}
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
@@ -1186,11 +1186,11 @@ export function ChatMessage({
                 size="sm"
                 onClick={() => onRedoAsValidatedRun(message)}
                 data-testid="button-redo-as-validated-run"
-                title="Re-run this as a validated Cloud workflow with quality gates and an audit-ready report"
+                title={t('chat_msg.rerun_validated_tip')}
                 className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
               >
                 <FlaskConical className="h-3.5 w-3.5" />
-                Redo as a validated run
+                {t('chat_msg.redo_as_validated')}
               </Button>
             )}
             {effectiveInvocationId && (
@@ -1199,8 +1199,8 @@ export function ChatMessage({
                 size="icon"
                 onClick={handleDownloadOutputs}
                 data-testid="button-download-outputs-icon"
-                title="Download outputs"
-                aria-label="Download outputs"
+                title={t('chat_msg.download_outputs')}
+                aria-label={t('chat_msg.download_outputs')}
               >
                 <Download className="h-4 w-4" />
               </Button>
@@ -1225,7 +1225,7 @@ export function ChatMessage({
               data-testid="button-async-try-again"
               onClick={() => onSuggestionClick("Try again", message)}
             >
-              Try again
+              {t('chat_msg.try_again')}
             </Button>
             <ReportConfusionButton
               sessionId={sessionId}
