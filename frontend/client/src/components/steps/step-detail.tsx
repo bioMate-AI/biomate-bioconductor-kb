@@ -25,6 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn, stripAnsi } from "@/lib/utils";
 import { StepOutputPreview } from "@/components/step-output-preview";
+import { t } from "@/lib/i18n";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -179,7 +180,7 @@ function OriginBadge({ origin }: { origin?: ParamOrigin }) {
       data-testid={`param-origin-${label}`}
       data-origin={label}
       className={cn("inline-block rounded border px-1.5 py-0.5 text-[10px] font-medium leading-none", style)}
-      title={origin ? undefined : "origin not reported by the run — shown honestly rather than guessed"}
+      title={origin ? undefined : t('step_view.origin_not_reported')}
     >
       {label}
     </span>
@@ -212,7 +213,7 @@ function RawBytesViewer({ runId, file }: { runId: string; file: StepDetailOutput
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-xs text-muted-foreground py-4 justify-center">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading raw bytes…
+        <Loader2 className="h-4 w-4 animate-spin" /> {t('step_view.loading_raw')}
       </div>
     );
   }
@@ -221,7 +222,7 @@ function RawBytesViewer({ runId, file }: { runId: string; file: StepDetailOutput
     // plainly instead of a dead "download to inspect" (Terminal-surface rule).
     return (
       <div className="text-xs text-muted-foreground bg-muted/40 rounded p-3 space-y-1.5">
-        <p>Raw bytes could not be read as text ({error}).</p>
+        <p>{t('step_view.raw_unreadable', { error })}</p>
         <a
           href={`${url}&download=1`}
           download={file.name}
@@ -310,7 +311,7 @@ export function StepDetail({
       <div className="border-b px-4 py-3 space-y-2 shrink-0">
         <div className="flex items-center gap-2">
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Full step view{step.status ? ` · ${step.status}` : ""}</p>
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t('step_view.title')}{step.status ? ` · ${step.status}` : ""}</p>
             <p className="font-semibold break-words" title={step.processName || step.name}>
               {step.processName || step.name}
             </p>
@@ -318,10 +319,10 @@ export function StepDetail({
           <div className="ml-auto flex items-center gap-1 shrink-0">
             {onAdjustAndRerun && (
               <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" onClick={onAdjustAndRerun}>
-                <RotateCcw className="h-3.5 w-3.5" /> Re-run from here
+                <RotateCcw className="h-3.5 w-3.5" /> {t('step_view.rerun_from_here')}
               </Button>
             )}
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose} aria-label="Close full step view">
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose} aria-label={t('step_view.close')}>
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -332,25 +333,25 @@ export function StepDetail({
           data-testid="step-provenance"
           className="flex items-center gap-1.5 flex-wrap text-xs"
         >
-          <span className="text-muted-foreground">{step.status && !/completed|ok|failed|error/i.test(step.status) ? "inputs" : "ran with"}</span>
+          <span className="text-muted-foreground">{step.status && !/completed|ok|failed|error/i.test(step.status) ? t('step_view.inputs') : t('step_view.ran_with')}</span>
           {step.inputs && step.inputs.length > 0
             ? step.inputs.map((inp, i) => (
                 <span key={i} className="rounded border bg-muted/60 px-1.5 py-0.5 font-mono">{inp}</span>
               ))
-            : <span className="rounded border bg-muted/60 px-1.5 py-0.5 text-muted-foreground">upstream step output</span>}
+            : <span className="rounded border bg-muted/60 px-1.5 py-0.5 text-muted-foreground">{t('step_view.upstream_output')}</span>}
           <ArrowRight className="h-3 w-3 text-muted-foreground" />
           <span className="rounded border bg-muted/60 px-1.5 py-0.5">
-            {step.tool ? step.tool : <span className="text-muted-foreground">tool not reported</span>}
+            {step.tool ? step.tool : <span className="text-muted-foreground">{t('step_view.tool_not_reported')}</span>}
             {step.toolVersion
               ? <span className="ml-1 font-mono text-muted-foreground">{step.toolVersion}</span>
-              : <span className="ml-1 text-[10px] text-muted-foreground">(version n/a)</span>}
+              : <span className="ml-1 text-[10px] text-muted-foreground">{t('step_view.version_na')}</span>}
           </span>
           <ArrowRight className="h-3 w-3 text-muted-foreground" />
           <span className="rounded border bg-muted/60 px-1.5 py-0.5">
-            {outputs.length} output{outputs.length !== 1 ? "s" : ""}
+            {t(outputs.length === 1 ? 'step_view.output_one' : 'step_view.output_other', { n: outputs.length })}
           </span>
           <span className="ml-auto font-mono text-muted-foreground">
-            {step.duration ? step.duration : "duration n/a"}
+            {step.duration ? step.duration : t('step_view.duration_na')}
           </span>
         </div>
       </div>
@@ -361,7 +362,7 @@ export function StepDetail({
         <div>
           <div className="flex items-center gap-1.5 flex-wrap mb-2">
             {outputs.length === 0 && (
-              <p className="text-xs text-muted-foreground">{step.status && !/completed|ok|failed|error/i.test(step.status) ? "Outputs will appear here as the step runs." : "This step produced no output files, or none were recorded."}</p>
+              <p className="text-xs text-muted-foreground">{step.status && !/completed|ok|failed|error/i.test(step.status) ? t('step_view.outputs_running') : t('step_view.outputs_none')}</p>
             )}
             {outputs.map(o => (
               <button
@@ -377,7 +378,7 @@ export function StepDetail({
                   <span
                     data-testid={`step-output-evidence-${o.name}`}
                     data-evidence={ev.label}
-                    title={`evidence: ${ev.label}`}
+                    title={t('step_view.evidence', { label: ev.label })}
                     className="h-1.5 w-1.5 rounded-full shrink-0"
                     style={{ background: ev.color }}
                   />
@@ -390,7 +391,7 @@ export function StepDetail({
                 data-testid="rendered-raw-toggle"
                 className="ml-auto inline-flex rounded-md border overflow-hidden"
                 role="group"
-                aria-label="rendered or raw"
+                aria-label={t('step_view.rendered_or_raw')}
               >
                 <button
                   data-testid="toggle-rendered"
@@ -398,7 +399,7 @@ export function StepDetail({
                   onClick={() => setRaw(false)}
                   className={cn("px-2 py-1 text-xs", !raw ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted")}
                 >
-                  rendered
+                  {t('step_view.rendered')}
                 </button>
                 <button
                   data-testid="toggle-raw"
@@ -406,7 +407,7 @@ export function StepDetail({
                   onClick={() => setRaw(true)}
                   className={cn("px-2 py-1 text-xs", raw ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted")}
                 >
-                  raw
+                  {t('step_view.raw')}
                 </button>
               </div>
             )}
@@ -433,8 +434,8 @@ export function StepDetail({
               )}
               <p className="text-[10px] text-muted-foreground mt-1.5">
                 {raw
-                  ? "Raw first: the summary above is derived from these bytes, and you can check it."
-                  : "Rendered by the evidence class resolved from the output itself — the same viewer used on every surface."}
+                  ? t('step_view.caption_raw')
+                  : t('step_view.caption_rendered')}
               </p>
             </div>
           )}
@@ -443,16 +444,16 @@ export function StepDetail({
         {/* Resolved parameters — origin badges + per-row revert */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <p className="text-xs font-semibold">{step.status && !/completed|ok|failed|error/i.test(step.status) ? "Step parameters" : "Parameters this step actually ran with"}</p>
+            <p className="text-xs font-semibold">{step.status && !/completed|ok|failed|error/i.test(step.status) ? t('step_view.params_running') : t('step_view.params_ran_with')}</p>
             <span
               data-testid="not-default-count"
               className="rounded border bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground"
             >
-              {notDefault} not default
+              {t('step_view.not_default', { n: notDefault })}
             </span>
           </div>
           {params.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No parameters were recorded for this step.</p>
+            <p className="text-xs text-muted-foreground">{t('step_view.no_params')}</p>
           ) : (
             <div className="space-y-1.5">
               {params.map(p => {
@@ -485,7 +486,7 @@ export function StepDetail({
                           className="text-[11px] text-primary hover:underline shrink-0"
                           onClick={() => setVals(v => ({ ...v, [p.name]: p.value }))}
                         >
-                          revert
+                          {t('step_view.revert')}
                         </button>
                       )}
                     </div>
@@ -505,13 +506,12 @@ export function StepDetail({
                 data-testid="apply-and-rerun"
                 onClick={() => onApplyAndRerun(vals)}
               >
-                <RotateCcw className="h-3.5 w-3.5" /> Apply &amp; re-run from here
+                <RotateCcw className="h-3.5 w-3.5" /> {t('step_view.apply_rerun')}
               </Button>
             </div>
           )}
           <p className="text-[10px] text-muted-foreground mt-2">
-            Defaults are quiet; anything the project inherited or you overrode is marked. Where the run did not
-            report an origin, the badge says <span className="font-medium">unknown</span> rather than guessing.
+            {t('step_view.params_caption')}
           </p>
         </div>
       </div>
@@ -524,10 +524,10 @@ export function StepDetail({
             download={selected.name}
             className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
           >
-            <Download className="h-3.5 w-3.5" /> Download {selected.name}
+            <Download className="h-3.5 w-3.5" /> {t('step_view.download', { name: selected.name })}
           </a>
           <span className="ml-auto text-[10px] text-muted-foreground inline-flex items-center gap-1">
-            <ExternalLink className="h-3 w-3" /> the artifact itself, unmodified
+            <ExternalLink className="h-3 w-3" /> {t('step_view.artifact_unmodified')}
           </span>
         </div>
       )}
