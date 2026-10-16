@@ -30,6 +30,7 @@ import { PostRunMicroSurvey } from "./feedback/post-run-micro-survey"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
 import { SessionEndPulse } from "./feedback/session-end-pulse"
 import { analytics } from "@/lib/analytics"
+import { t } from "@/lib/i18n"
 import {
   getOutputReadinessHint,
   getRunPrimaryCta,
@@ -715,7 +716,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       if (requestSeq !== runListRequestSeqRef.current) {
         return
       }
-      setRunListError(error?.message || "Failed to fetch runs")
+      setRunListError(error?.message || t('runs_ui.failed_to_fetch'))
     } finally {
       if (requestSeq !== runListRequestSeqRef.current) {
         return
@@ -751,18 +752,18 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       if (prevBucket && prevBucket !== bucket) {
         if (bucket === "completed") {
           toast({
-            title: "Workflow complete",
-            description: run.workflowName || "Your workflow finished successfully.",
+            title: t('runs_ui.workflow_complete'),
+            description: run.workflowName || t('runs_ui.finished_successfully'),
             action: (
               <ToastAction
-                altText="View results"
+                altText={t('runs_ui.view_results')}
                 onClick={() => {
                   const invId = run.execution?.galaxyInvocationId || run.id
                   const el = document.querySelector(`[data-invocation-id="${invId}"]`)
                   el?.scrollIntoView({ behavior: "smooth", block: "center" })
                 }}
               >
-                View results
+                {t('runs_ui.view_results')}
               </ToastAction>
             ),
             duration: 8000,
@@ -770,11 +771,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         } else if (bucket === "failed") {
           toast({
             variant: "destructive",
-            title: "Workflow failed",
-            description: run.workflowName || "A workflow encountered an error.",
+            title: t('runs_ui.workflow_failed_title'),
+            description: run.workflowName || t('runs_ui.encountered_error'),
             action: (
               <ToastAction
-                altText="View & fix"
+                altText={t('runs_ui.view_and_fix')}
                 onClick={() => {
                   const invId = run.execution?.galaxyInvocationId || run.id
                   const el = document.querySelector(`[data-invocation-id="${invId}"]`)
@@ -783,7 +784,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   setShowRunManager(true)
                 }}
               >
-                View & fix
+                {t('runs_ui.view_and_fix')}
               </ToastAction>
             ),
             duration: 0,
@@ -1933,7 +1934,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             data-testid="button-refresh-run-manager"
             onClick={fetchRunList}
             disabled={isRunListLoading}
-            title="Refresh run list"
+            title={t('runs_ui.refresh_run_list')}
             className="h-7 w-7"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isRunListLoading ? "animate-spin" : ""}`} />
@@ -1950,7 +1951,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           />
           {runListError && (
             <p className="text-xs text-red-600 dark:text-red-400 mb-2">
-              Failed to refresh runs: {runListError}
+              {t('runs_ui.failed_to_refresh', { error: runListError })}
             </p>
           )}
           <div className="mb-3 flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
@@ -1963,7 +1964,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   runManagerScope === "current_chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                 }`}
               >
-                Current chat
+                {t('runs_ui.current_chat')}
               </button>
               <button
                 type="button"
@@ -1973,7 +1974,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   runManagerScope === "all_chats" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                 }`}
               >
-                All chats
+                {t('runs_ui.all_chats')}
               </button>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:min-w-[720px]">
@@ -1981,7 +1982,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 value={runSearchQuery}
                 onChange={(event) => setRunSearchQuery(event.target.value)}
                 data-testid="run-manager-search-input"
-                placeholder="Search workflow or run id"
+                placeholder={t('runs_ui.search_placeholder')}
                 className="h-8 rounded-md border bg-background px-2 text-xs"
               />
               <select
@@ -1990,12 +1991,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 data-testid="run-manager-filter-status"
                 className="h-8 rounded-md border bg-background px-2 text-xs"
               >
-                <option value="all">All statuses</option>
-                <option value="needs_attention">Needs Attention</option>
-                <option value="running">Running</option>
-                <option value="queued">Queued</option>
-                <option value="failed">Failed</option>
-                <option value="completed">Completed</option>
+                <option value="all">{t('runs_ui.status_all')}</option>
+                <option value="needs_attention">{t('runs_ui.status_needs_attention')}</option>
+                <option value="running">{t('workflow.status.running')}</option>
+                <option value="queued">{t('workflow.status.queued')}</option>
+                <option value="failed">{t('workflow.status.failed')}</option>
+                <option value="completed">{t('workflow.status.completed')}</option>
               </select>
               <select
                 value={runSort}
@@ -2003,9 +2004,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 data-testid="run-manager-sort-select"
                 className="h-8 rounded-md border bg-background px-2 text-xs"
               >
-                <option value="updated_desc">Updated (newest first)</option>
-                <option value="running_first">Running first</option>
-                <option value="failed_first">Failed first</option>
+                <option value="updated_desc">{t('runs_ui.sort_updated_desc')}</option>
+                <option value="running_first">{t('runs_ui.sort_running_first')}</option>
+                <option value="failed_first">{t('runs_ui.sort_failed_first')}</option>
               </select>
             </div>
           </div>
@@ -2087,10 +2088,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         >
           <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
             <AlertTriangle className="h-4 w-4" />
-            <span className="font-medium">You appear to be offline.</span>
+            <span className="font-medium">{t('runs_ui.offline')}</span>
           </div>
           <p className="mt-1 text-xs text-amber-700 dark:text-amber-300" data-testid="offline-retry-guidance">
-            Reconnect to continue chat and workflow operations. Your current session remains available locally.
+            {t('runs_ui.offline_guidance')}
           </p>
         </div>
       )}
@@ -2109,7 +2110,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   onClick={handleRetryExecution}
                   disabled={isWorkflowRunning || isAutofixActive}
                 >
-                  {isAutofixActive ? "Auto-fix in progress" : "Try again"}
+                  {isAutofixActive ? t('runs_ui.autofix_in_progress') : t('runs_ui.try_again')}
                 </Button>
                 <ReportConfusionButton
                   runId={currentRun?.id}
@@ -2189,14 +2190,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   <span>{p.summary}</span>
                   <button
                     type="button"
-                    aria-label="apply"
+                    aria-label={t('runs_ui.apply')}
                     data-testid={`button-apply-${p.id}`}
                     onClick={() => confirmStructuralEdit(p.id)}
                     style={{ marginLeft: 4, padding: '0 4px', border: 'none', background: 'oklch(0.60 0.15 145)', color: 'white', borderRadius: 4, cursor: 'pointer', fontSize: 10 }}
-                  >Apply</button>
+                  >{t('runs_ui.apply')}</button>
                   <button
                     type="button"
-                    aria-label="dismiss"
+                    aria-label={t('runs_ui.dismiss')}
                     data-testid={`button-dismiss-${p.id}`}
                     onClick={() => dismissStructuralEdit(p.id)}
                     style={{ marginLeft: 2, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit', opacity: 0.6 }}
@@ -2231,15 +2232,15 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   {chip.snapshot && (
                     <button
                       type="button"
-                      aria-label="undo"
+                      aria-label={t('runs_ui.undo')}
                       data-testid={`button-undo-${chip.id}`}
                       onClick={() => undoAppliedEdit(chip.id)}
                       style={{ marginLeft: 4, padding: '0 4px', border: '1px solid currentColor', background: 'transparent', borderRadius: 3, cursor: 'pointer', color: 'inherit', fontSize: 9, opacity: 0.75 }}
-                    >Undo</button>
+                    >{t('runs_ui.undo')}</button>
                   )}
                   <button
                     type="button"
-                    aria-label="dismiss"
+                    aria-label={t('runs_ui.dismiss')}
                     onClick={() => setAppliedEditsDisplay((prev) => prev.filter((c) => c.id !== chip.id))}
                     style={{ marginLeft: 2, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit', opacity: 0.6, lineHeight: 1 }}
                   >×</button>
@@ -2330,10 +2331,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                 className="absolute top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-10 select-none"
                 style={{ left: -3 }}
                 onMouseDown={handlePanelResizeStart}
-                title="Drag to resize panel"
+                title={t('runs_ui.drag_resize')}
               />
             )}
-            {!panelWorkflow && <div className="flex justify-end px-3 py-2 border-b"><button onClick={handleClosePanelWorkflow} aria-label="Close workflow panel" data-testid="workflow-panel-close"><X className="h-4 w-4" /></button></div>}
+            {!panelWorkflow && <div className="flex justify-end px-3 py-2 border-b"><button onClick={handleClosePanelWorkflow} aria-label={t('runs_ui.close_panel')} data-testid="workflow-panel-close"><X className="h-4 w-4" /></button></div>}
             {/* Generating banner — shows while AI is streaming a response */}
             {panelGenerating && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/60 border-b text-xs text-muted-foreground flex-shrink-0">
