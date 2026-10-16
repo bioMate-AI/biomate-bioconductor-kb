@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { t } from "@/lib/i18n"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -100,7 +101,7 @@ export function StarredWorkflowsDialog({
         <DialogHeader className="p-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-            Starred Workflows
+            {t('dialogs.starred_title')}
           </DialogTitle>
         </DialogHeader>
 
@@ -110,7 +111,7 @@ export function StarredWorkflowsDialog({
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search starred workflows..."
+                placeholder={t('dialogs.starred_search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -123,10 +124,10 @@ export function StarredWorkflowsDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Complexity</SelectItem>
-                <SelectItem value="simple">Simple</SelectItem>
-                <SelectItem value="intermediate">Intermediate</SelectItem>
-                <SelectItem value="complex">Complex</SelectItem>
+                <SelectItem value="all">{t('dialogs.complexity_all')}</SelectItem>
+                <SelectItem value="simple">{t('dialogs.complexity_simple')}</SelectItem>
+                <SelectItem value="intermediate">{t('dialogs.complexity_intermediate')}</SelectItem>
+                <SelectItem value="complex">{t('dialogs.complexity_complex')}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterType} onValueChange={setFilterType}>
@@ -135,7 +136,7 @@ export function StarredWorkflowsDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="all">{t('dialogs.all_types')}</SelectItem>
                 {workflowTypes.map(type => (
                   <SelectItem key={type} value={type.toLowerCase()}>
                     {type}
@@ -151,11 +152,11 @@ export function StarredWorkflowsDialog({
           {filteredWorkflows.length === 0 ? (
             <div className="text-center py-12">
               <Star className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">No starred workflows found</h3>
+              <h3 className="text-lg font-semibold mb-2">{t('dialogs.no_starred')}</h3>
               <p className="text-muted-foreground mb-4">
-                {searchQuery || filterComplexity !== "all" || filterType !== "all" 
-                  ? "Try adjusting your search or filters" 
-                  : "Star your favorite workflows to access them quickly"}
+                {searchQuery || filterComplexity !== "all" || filterType !== "all"
+                  ? t('dialogs.adjust_filters')
+                  : t('dialogs.starred_empty_hint')}
               </p>
               {(searchQuery || filterComplexity !== "all" || filterType !== "all") && (
                 <Button 
@@ -167,7 +168,7 @@ export function StarredWorkflowsDialog({
                   }}
                   data-testid="button-clear-filters"
                 >
-                  Clear Filters
+                  {t('dialogs.clear_filters')}
                 </Button>
               )}
             </div>
@@ -226,7 +227,7 @@ export function StarredWorkflowsDialog({
                             </div>
                           )}
                           <div className="text-sm text-muted-foreground">
-                            Starred {formatTimeAgo(workflow.starredAt)}
+                            {t('dialogs.starred_ago', { time: formatTimeAgo(workflow.starredAt) })}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { t } from "@/lib/i18n"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -134,7 +135,7 @@ export function RecentToolsDialog({
         <DialogHeader className="p-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5" />
-            Recent Tools
+            {t('dialogs.recent_title')}
           </DialogTitle>
         </DialogHeader>
 
@@ -144,7 +145,7 @@ export function RecentToolsDialog({
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search recent tools..."
+                placeholder={t('dialogs.recent_search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -157,7 +158,7 @@ export function RecentToolsDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="all">{t('dialogs.all_categories')}</SelectItem>
                 {categories.map(category => (
                   <SelectItem key={category} value={category}>
                     {formatCategory(category)}
@@ -171,9 +172,9 @@ export function RecentToolsDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="recent">Recent</SelectItem>
-                <SelectItem value="usage">Most Used</SelectItem>
-                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="recent">{t('dialogs.sort_recent')}</SelectItem>
+                <SelectItem value="usage">{t('dialogs.sort_most_used')}</SelectItem>
+                <SelectItem value="name">{t('dialogs.sort_name')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -181,9 +182,9 @@ export function RecentToolsDialog({
           {recentTools.length > 0 && (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span>{filteredTools.length} of {recentTools.length} tools</span>
+                <span>{t('dialogs.tools_count', { shown: filteredTools.length, total: recentTools.length })}</span>
                 <span>•</span>
-                <span>Total usage: {recentTools.reduce((sum, tool) => sum + tool.usageCount, 0)}</span>
+                <span>{t('dialogs.total_usage', { n: recentTools.reduce((sum, tool) => sum + tool.usageCount, 0) })}</span>
               </div>
               <Button
                 variant="outline"
@@ -192,7 +193,7 @@ export function RecentToolsDialog({
                 data-testid="button-clear-recent"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Clear All
+                {t('dialogs.clear_all')}
               </Button>
             </div>
           )}
@@ -203,11 +204,11 @@ export function RecentToolsDialog({
           {filteredTools.length === 0 ? (
             <div className="text-center py-12">
               <Clock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">No recent tools found</h3>
+              <h3 className="text-lg font-semibold mb-2">{t('dialogs.no_recent')}</h3>
               <p className="text-muted-foreground mb-4">
-                {searchQuery || filterCategory !== "all" 
-                  ? "Try adjusting your search or filters" 
-                  : "Start using bioinformatics tools and they'll appear here"}
+                {searchQuery || filterCategory !== "all"
+                  ? t('dialogs.adjust_filters')
+                  : t('dialogs.recent_empty_hint')}
               </p>
               {(searchQuery || filterCategory !== "all") && (
                 <Button 
@@ -218,7 +219,7 @@ export function RecentToolsDialog({
                   }}
                   data-testid="button-clear-filters"
                 >
-                  Clear Filters
+                  {t('dialogs.clear_filters')}
                 </Button>
               )}
             </div>
@@ -252,7 +253,7 @@ export function RecentToolsDialog({
                             <div className="flex items-center gap-4 text-xs text-muted-foreground">
                               <span>Used {formatTimeAgo(tool.lastUsed)}</span>
                               <span>•</span>
-                              <span>{tool.usageCount} time{tool.usageCount !== 1 ? 's' : ''}</span>
+                              <span>{t(tool.usageCount === 1 ? 'dialogs.times_one' : 'dialogs.times_other', { n: tool.usageCount })}</span>
                             </div>
                           </div>
                         </div>
