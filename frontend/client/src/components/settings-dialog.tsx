@@ -436,7 +436,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 */}
                 <TabsTrigger value="api-keys" className="justify-start gap-2 p-3" data-testid="tab-api-keys">
                   <Key className="w-4 h-4" />
-                  API Keys
+                  {t('settings.api_keys')}
                 </TabsTrigger>
               </TabsList>
 
@@ -905,11 +905,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               {/* API Keys Tab */}
               <TabsContent value="api-keys" className="space-y-6 m-0" data-testid="tab-content-api-keys">
                 <div>
-                  <h3 className="text-lg font-semibold mb-1">API Keys</h3>
+                  <h3 className="text-lg font-semibold mb-1">{t('settings.api_keys')}</h3>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Personal keys for connecting BioMate to external surfaces (Slack, Feishu, WeChat, MCP clients)
-                    via biomate-connector. Send the key as <code className="bg-muted px-1 rounded text-[11px]">Authorization: Bearer &lt;key&gt;</code>.
-                    Requests authenticate as <span className="font-medium">you</span> — your runs, quota, and history.
+                    {t('settings.api.conn_desc_pre')} <code className="bg-muted px-1 rounded text-[11px]">Authorization: Bearer &lt;key&gt;</code>{t('settings.api.conn_desc_mid')} <span className="font-medium">{t('settings.api.you')}</span> {t('settings.api.conn_desc_post')}
                   </p>
 
                   {/* Freshly created key — shown once */}
@@ -918,10 +916,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium flex items-center gap-2">
                           <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          New API key created
+                          {t('settings.api.new_key_created')}
                         </CardTitle>
                         <CardDescription className="text-xs">
-                          Copy it now — for your security it will <span className="font-medium">not be shown again</span>.
+                          {t('settings.api.copy_now_pre')} <span className="font-medium">{t('settings.api.not_shown_again')}</span>.
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-2">
@@ -935,10 +933,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                           />
                           <Button size="sm" variant="outline" className="h-8 text-xs gap-1 shrink-0" onClick={apiKeysState.copyFresh} data-testid="button-copy-fresh-key">
                             <Copy className="h-3.5 w-3.5" />
-                            {apiKeysState.copied ? 'Copied' : 'Copy'}
+                            {apiKeysState.copied ? t('settings.api.copied') : t('settings.api.copy')}
                           </Button>
                           <Button size="sm" variant="ghost" className="h-8 text-xs shrink-0" onClick={apiKeysState.dismissFresh} data-testid="button-dismiss-fresh-key">
-                            Done
+                            {t('settings.api.done')}
                           </Button>
                         </div>
                       </CardContent>
@@ -950,10 +948,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     <CardContent className="pt-4">
                       <div className="flex items-end gap-2">
                         <div className="flex-1 space-y-1.5">
-                          <Label htmlFor="api-key-name" className="text-xs">Name (optional)</Label>
+                          <Label htmlFor="api-key-name" className="text-xs">{t('settings.api.name_optional')}</Label>
                           <Input
                             id="api-key-name"
-                            placeholder="e.g. Feishu bot, Slack prod"
+                            placeholder={t('settings.api.name_placeholder')}
                             value={apiKeysState.newName}
                             onChange={(e) => apiKeysState.setNewName(e.target.value)}
                             className="text-xs h-8"
@@ -968,7 +966,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                           data-testid="button-create-api-key"
                         >
                           {apiKeysState.creating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                          Generate key
+                          {t('settings.api.generate_key')}
                         </Button>
                       </div>
                     </CardContent>
@@ -985,11 +983,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   <div className="space-y-2" data-testid="api-keys-list">
                     {apiKeysState.loading && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground p-2">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('settings.api.loading')}
                       </div>
                     )}
                     {!apiKeysState.loading && apiKeysState.keys.length === 0 && (
-                      <p className="text-xs text-muted-foreground p-2">No API keys yet.</p>
+                      <p className="text-xs text-muted-foreground p-2">{t('settings.api.no_keys')}</p>
                     )}
                     {apiKeysState.keys.map((k) => (
                       <div
@@ -999,15 +997,15 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium truncate">{k.name || 'Unnamed key'}</span>
+                            <span className="text-sm font-medium truncate">{k.name || t('settings.api.unnamed_key')}</span>
                             {k.revokedAt
-                              ? <Badge variant="secondary" className="text-[10px]">Revoked</Badge>
-                              : <Badge variant="secondary" className="text-[10px] gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" />Active</Badge>}
+                              ? <Badge variant="secondary" className="text-[10px]">{t('settings.api.revoked')}</Badge>
+                              : <Badge variant="secondary" className="text-[10px] gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" />{t('settings.api.active')}</Badge>}
                           </div>
                           <div className="text-[11px] text-muted-foreground font-mono mt-0.5">{k.keyPrefix}</div>
                           <div className="text-[11px] text-muted-foreground mt-0.5">
-                            Created {new Date(k.createdAt).toLocaleDateString()}
-                            {k.lastUsedAt ? ` · last used ${new Date(k.lastUsedAt).toLocaleDateString()}` : ' · never used'}
+                            {t('settings.api.created', { date: new Date(k.createdAt).toLocaleDateString() })}
+                            {k.lastUsedAt ? t('settings.api.last_used', { date: new Date(k.lastUsedAt).toLocaleDateString() }) : t('settings.api.never_used')}
                           </div>
                         </div>
                         {!k.revokedAt && (
@@ -1018,7 +1016,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                             onClick={() => apiKeysState.revoke(k.id)}
                             data-testid={`button-revoke-api-key-${k.id}`}
                           >
-                            <Trash2 className="h-3.5 w-3.5" /> Revoke
+                            <Trash2 className="h-3.5 w-3.5" /> {t('settings.api.revoke')}
                           </Button>
                         )}
                       </div>
@@ -1029,19 +1027,17 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 {/* ── LLM Provider selection ───────────────────────────── */}
                 <Separator />
                 <div>
-                  <h3 className="text-lg font-semibold mb-1">LLM Provider</h3>
+                  <h3 className="text-lg font-semibold mb-1">{t('settings.api.llm_provider')}</h3>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Choose which AI model powers your BioMate chats. The default uses BioMate's shared Claude quota
-                    and supports full workflow execution. OpenRouter lets you use economic models (DeepSeek, Qwen, Llama)
-                    with your own key — keys are stored encrypted and never returned to the browser.
+                    {t('settings.api.llm_desc')}
                   </p>
 
                   {/* Provider radio group */}
                   <div className="space-y-2 mb-4">
                     {([
-                      { value: 'default', label: 'BioMate Default', desc: 'Claude Sonnet — workflow execution, no key needed' },
-                      { value: 'openrouter', label: 'OpenRouter', desc: '200+ models including DeepSeek, Qwen, Llama · bring your own key' },
-                      { value: 'anthropic', label: 'Anthropic (BYOK)', desc: 'Your own Anthropic key and quota' },
+                      { value: 'default', label: t('settings.api.provider_default_label'), desc: t('settings.api.provider_default_desc') },
+                      { value: 'openrouter', label: 'OpenRouter', desc: t('settings.api.provider_openrouter_desc') },
+                      { value: 'anthropic', label: t('settings.api.provider_anthropic_label'), desc: t('settings.api.provider_anthropic_desc') },
                     ] as const).map(opt => (
                       <button
                         key={opt.value}
@@ -1066,16 +1062,16 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       <CardContent className="pt-4 space-y-3">
                         {/* Model selector */}
                         <div className="space-y-1.5">
-                          <Label className="text-xs">Model <span className="text-muted-foreground font-normal">(any slug from openrouter.ai/models)</span></Label>
+                          <Label className="text-xs">{t('settings.api.model')} <span className="text-muted-foreground font-normal">{t('settings.api.model_hint')}</span></Label>
                           <Input
                             className="font-mono text-xs h-8"
-                            placeholder="paste model slug from openrouter.ai/models"
+                            placeholder={t('settings.api.model_placeholder')}
                             value={llmKeys.selectedModel}
                             onChange={e => llmKeys.setSelectedModel(e.target.value)}
                             data-testid="input-llm-model"
                           />
                           <p className="text-xs text-muted-foreground">
-                            Browse all models at <span className="font-mono">openrouter.ai/models</span> — filter by provider (DeepSeek, Qwen, etc.) and sort by price.
+                            {t('settings.api.browse_pre')} <span className="font-mono">openrouter.ai/models</span> {t('settings.api.browse_post')}
                           </p>
                         </div>
                         {/* API key input */}
@@ -1083,25 +1079,25 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                           <div className="flex items-center justify-between gap-3 rounded-md bg-green-500/10 px-3 py-2">
                             <div className="flex items-center gap-2 text-xs text-green-700">
                               <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                              <span>OpenRouter key saved</span>
+                              <span>{t('settings.api.openrouter_saved')}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
                                 onClick={llmKeys.saveModelOnly} disabled={llmKeys.saving}>
                                 {llmKeys.saving ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                                Update model
+                                {t('settings.api.update_model')}
                               </Button>
                               <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive gap-1"
                                 onClick={() => llmKeys.removeProvider('openrouter')} disabled={llmKeys.removing}
                                 data-testid="button-remove-openrouter-key">
                                 {llmKeys.removing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                                Remove
+                                {t('settings.api.remove')}
                               </Button>
                             </div>
                           </div>
                         ) : (
                           <div className="space-y-1.5">
-                            <Label htmlFor="openrouter-api-key" className="text-xs">OpenRouter API Key</Label>
+                            <Label htmlFor="openrouter-api-key" className="text-xs">{t('settings.api.openrouter_key_label')}</Label>
                             <div className="flex items-center gap-2">
                               <div className="relative flex-1">
                                 <Input
@@ -1123,11 +1119,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                                 onClick={llmKeys.saveOpenrouterKey} disabled={llmKeys.saving}
                                 data-testid="button-save-openrouter-key">
                                 {llmKeys.saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Key className="h-3.5 w-3.5" />}
-                                Save key
+                                {t('settings.api.save_key')}
                               </Button>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              Get a key at <span className="font-mono">openrouter.ai</span> — free tier available.
+                              {t('settings.api.get_key_pre')} <span className="font-mono">openrouter.ai</span> {t('settings.api.get_key_post')}
                             </p>
                           </div>
                         )}
@@ -1143,19 +1139,19 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                           <div className="flex items-center justify-between gap-3 rounded-md bg-green-500/10 px-3 py-2">
                             <div className="flex items-center gap-2 text-xs text-green-700">
                               <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                              <span>Anthropic key saved — chats use your quota</span>
+                              <span>{t('settings.api.anthropic_saved')}</span>
                             </div>
                             <Button size="sm" variant="ghost"
                               className="h-7 text-xs text-destructive hover:text-destructive gap-1 shrink-0"
                               onClick={() => llmKeys.removeProvider('anthropic')} disabled={llmKeys.removing}
                               data-testid="button-remove-llm-key">
                               {llmKeys.removing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                              Remove
+                              {t('settings.api.remove')}
                             </Button>
                           </div>
                         ) : (
                           <div className="space-y-1.5">
-                            <Label htmlFor="anthropic-api-key" className="text-xs">Anthropic API Key</Label>
+                            <Label htmlFor="anthropic-api-key" className="text-xs">{t('settings.api.anthropic_key_label')}</Label>
                             <div className="flex items-center gap-2">
                               <div className="relative flex-1">
                                 <Input
@@ -1177,7 +1173,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                                 onClick={llmKeys.saveAnthropicKey} disabled={llmKeys.saving}
                                 data-testid="button-save-llm-key">
                                 {llmKeys.saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Key className="h-3.5 w-3.5" />}
-                                Save key
+                                {t('settings.api.save_key')}
                               </Button>
                             </div>
                           </div>
