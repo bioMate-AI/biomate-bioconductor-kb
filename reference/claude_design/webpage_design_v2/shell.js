@@ -9,26 +9,32 @@
   var chevron = `<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>`;
 
   function navHTML(active) {
-    // Normalize legacy active slugs → 4-group structure
+    // Company first; both workbenches belong to Services.
     var slugMap = {
-      home: '', services: 'platform', platform: 'platform',
-      newsroom: 'newsroom',
-      pricing: 'pricing', about: 'company', contact: 'company', company: 'company',
+      home: '', services: 'services', platform: 'services', drug: 'services',
+      newsroom: 'company',
+      pricing: 'services', about: 'company', contact: 'company', company: 'company',
       tutorials: 'research', benchmarks: 'research', research: 'research',
     };
     active = Object.prototype.hasOwnProperty.call(slugMap, active) ? slugMap[active] : active;
 
-    function dropdown(slug, label, href, items) {
+    function dropdown(slug, label, href, groups) {
       var isActive = active === slug;
       return `
         <li class="bm-has-dropdown">
-          <a href="${href}" class="${isActive ? 'active' : ''}">${label}${chevron}</a>
-          <ul class="bm-dropdown" role="menu">
-            ${items.map(function(item) {
-              if (item.divider) return `<li class="bm-dropdown-divider" role="separator"></li>`;
-              return `<li role="none"><a href="${item.href}" role="menuitem"${item.bold ? ' style="font-weight:600"' : ''}>${item.label}</a></li>`;
-            }).join('')}
-          </ul>
+          <button type="button" class="bm-nav-trigger ${isActive ? 'active' : ''}" aria-expanded="false" aria-controls="bm-panel-${slug}">${label}${chevron}</button>
+          <div class="bm-dropdown" id="bm-panel-${slug}" inert>
+            <div class="bm-dropdown-inner">
+              <div class="bm-dropdown-heading"><span>${label}</span><a href="${href}">Overview &rarr;</a></div>
+              <div class="bm-dropdown-grid">
+                ${groups.map(function(group) {
+                  return `<section class="bm-dropdown-group"><h2><a href="${group.href}">${group.label}</a></h2><p>${group.description}</p><ul>${(group.links || []).map(function(item) {
+                    return `<li><a href="${item.href}">${item.label} &rarr;</a></li>`;
+                  }).join('')}</ul></section>`;
+                }).join('')}
+              </div>
+            </div>
+          </div>
         </li>`;
     }
 
@@ -38,57 +44,45 @@
           <a href="index.html" class="bm-brand" aria-label="BioMate AI">
             <img src="assets/logo.png?v=3" alt="BioMate AI" />
           </a>
-          <ul class="bm-nav-links" id="bmNavLinks">
+          <nav aria-label="Primary navigation" class="bm-primary-nav"><ul class="bm-nav-links" id="bmNavLinks">
+            <li><a class="bm-nav-trigger${active === 'therapeutic-areas' ? ' active' : ''}" href="therapeutic-areas.html">Therapeutic Areas</a></li>
             ${dropdown('company', 'Company', 'about.html', [
-              { label: 'Home',          href: 'index.html' },
-              { divider: true },
-              { label: 'About BioMate', href: 'about.html' },
-              { divider: true },
-              { label: 'BioMate vs. The Alternatives', href: 'compare.html' },
-              { divider: true },
-              { label: 'Contact',       href: 'contact.html' }
+              { label: 'About BioMate', href: 'about.html', description: 'Our mission and approach to AI-powered science.', links: [
+                { label: 'BioMate vs. the alternatives', href: 'compare.html' }
+              ] },
+              { label: 'Newsroom', href: 'blog.html?cat=news', description: 'Company news and the latest from our team.' },
+              { label: 'Contact', href: 'contact.html', description: 'Discuss your research and working with BioMate.' }
             ])}
-            ${dropdown('platform', 'Services', 'services.html', [
-              { label: 'Platform Features',                   href: 'features.html' },
-              { label: 'MCP Connectors',                      href: 'connectors.html' },
-              { divider: true },
-              { label: 'Drug Discovery',                      href: 'services.html#drug-discovery' },
-              { label: 'Genomics &amp; Multi-Omics',          href: 'services.html#genomics' },
-              { label: 'Clinical Research &amp; Applications', href: 'services.html#clinical-research' },
-              { label: 'Structural Biology',                  href: 'services.html#structural-biology' },
-              { divider: true },
-              { label: 'All Services &rarr;',                 href: 'services.html', bold: true }
+            ${dropdown('services', 'Services', 'services.html', [
+              { label: 'Biomedical Research Platform', href: 'features.html', description: 'From scientific questions to reproducible analyses.', links: [
+                { label: 'Explore applications', href: 'services.html' },
+                { label: 'Connectors & developer docs', href: 'connectors.html' }
+              ] },
+              { label: 'Drug Discovery', href: 'drug-discovery.html', description: 'Target intelligence, molecular design and candidate evaluation.', links: [
+                { label: 'Explore the workbench', href: 'drug-discovery.html' }
+              ] },
+              { label: 'Getting Started', href: 'tutorials.html', description: 'Practical guidance for your research team.', links: [
+                { label: 'Tutorials', href: 'tutorials.html' },
+                { label: 'Pricing', href: 'pricing.html' }
+              ] }
             ])}
-            ${dropdown('research', 'Research', 'benchmarks.html', [
-              { label: 'Benchmarks',   href: 'benchmarks.html' },
-              { label: 'Tutorials',    href: 'tutorials.html' },
-              { label: 'Publications', href: 'publications.html' },
-              { divider: true },
-              { label: 'Research Surveys',          href: 'surveys.html', bold: true },
-              { label: 'Target Identification',     href: 'survey-target-identification.html' },
-              { label: 'Patient Stratification',    href: 'survey-patient-stratification.html' },
-              { label: 'Multi-Omics Integration',   href: 'survey-multi-omics.html' },
-              { label: 'Virtual Cell Modeling',     href: 'survey-virtual-cell.html' },
-              { label: 'Protein Conformation',      href: 'survey-protein-conformation.html' }
+            ${dropdown('engines', 'Research Engines', 'research-engines.html', [
+              { label: 'Our Research Programs', href: 'research-engines.html', description: 'Advancing biological understanding and molecular design.' },
+              { label: 'Virtual Cell LLM', href: 'research-engines.html#virtual-cell', description: 'Research into cellular states, responses and disease mechanisms.' },
+              { label: 'Cyclic-Peptide Generation', href: 'research-engines.html#cyclic-peptides', description: 'Research into structure-aware generation and optimization.' }
             ])}
-            <li><a href="pricing.html"${active === 'pricing' ? ' class="active"' : ''}>Pricing</a></li>
-            ${dropdown('developers', 'Developers', 'connectors.html', [
-              { label: 'MCP Connectors — Docs',      href: 'connectors.html' },
-              { divider: true },
-              { label: 'GitHub →',                   href: 'https://github.com/bioMate-AI/biomate-connector', bold: true }
-            ])}
-            ${dropdown('newsroom', 'Newsroom', 'blog.html', [
-              { label: 'Scientific Articles',        href: 'blog.html?cat=science' },
-              { label: 'Company News',               href: 'blog.html?cat=news' },
-              { divider: true },
-              { label: 'MCP Connector Architecture', href: 'blog-connectors.html' },
-              { divider: true },
-              { label: 'All Posts &rarr;',           href: 'blog.html', bold: true }
+            ${dropdown('research', 'Evidence', 'benchmarks.html', [
+              { label: 'Benchmarks & Evaluations', href: 'benchmarks.html', description: 'Inspect performance, methods and evaluation criteria.' },
+              { label: 'Research Perspectives', href: 'surveys.html', description: 'Explore approaches, comparisons and scientific limitations.' },
+              { label: 'Scientific Publishing', href: 'publications.html', description: 'Follow the research and its applications.', links: [
+                { label: 'Publications', href: 'publications.html' },
+                { label: 'Scientific articles', href: 'blog.html?cat=science' }
+              ] }
             ])}
             <li><a href="https://dev-public.biomate.ai/login" class="bm-nav-login">Log in</a></li>
             <li><a href="https://dev-public.biomate.ai/register" class="bm-nav-cta">Start free</a></li>
-          </ul>
-          <button class="bm-mobile-toggle" aria-label="Open menu" aria-expanded="false" id="bmMobileToggle">
+          </ul></nav>
+          <button class="bm-mobile-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="bmNavLinks" id="bmMobileToggle">
             ${svg('<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>')}
           </button>
         </div>
@@ -101,7 +95,7 @@
         <div class="bm-cta-bar-inner">
           <p class="bm-cta-bar-eyebrow">BioMate AI</p>
           <h2 class="bm-cta-bar-head">Try BioMate free.</h2>
-          <p class="bm-cta-bar-sub">One AI platform for biomedical research — with drug discovery focused on immune-mediated disorders.</p>
+          <p class="bm-cta-bar-sub">Move faster from scientific question to actionable results.</p>
           <div class="bm-cta-bar-btns">
             <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-on-ink-primary bm-btn-lg">
               Start free <span class="bm-btn-arrow">&rarr;</span>
@@ -127,7 +121,9 @@
             <div class="bm-footer-col">
               <h4>Platform</h4>
               <ul>
-                <li><a href="services.html">Services</a></li>
+                <li><a href="features.html">Research Workbench</a></li>
+                <li><a href="drug-discovery.html">Drug Discovery</a></li>
+                <li><a href="research-engines.html">Research Engines</a></li>
                 <li><a href="features.html">Features</a></li>
                 <li><a href="benchmarks.html">Benchmarks</a></li>
                 <li><a href="pricing.html">Pricing</a></li>
@@ -140,7 +136,7 @@
                 <li><a href="services.html#drug-discovery">Drug Discovery</a></li>
                 <li><a href="services.html#genomics">Genomics &amp; Multi-Omics</a></li>
                 <li><a href="services.html#structural-biology">Structural Biology</a></li>
-                <li><a href="surveys.html">Research Surveys</a></li>
+                <li><a href="surveys.html">Research Perspectives</a></li>
                 <li><a href="blog.html">Newsroom &rarr;</a></li>
               </ul>
             </div>
@@ -167,6 +163,12 @@
       </footer>`;
   }
 
+  // Static preparation and browser enhancement share one markup definition.
+  if (typeof module === 'object' && module.exports) {
+    module.exports = { navHTML: navHTML, ctaHTML: ctaHTML, footerHTML: footerHTML };
+    return;
+  }
+
   window.renderShell = function (opts) {
     var active = (opts && opts.active) || '';
     var showCta = (opts && opts.cta === false) ? false : true;
@@ -177,53 +179,73 @@
     var footMount = document.getElementById('bm-foot');
     if (footMount) footMount.outerHTML = (showCta ? ctaHTML() : '') + footerHTML();
 
-    // ── Dropdown: close when clicking outside ──
+    var header = document.querySelector('.bm-nav');
+    var dropdowns = Array.from(document.querySelectorAll('.bm-has-dropdown'));
+    function setOpen(el, open) {
+      el.classList.toggle('bm-dd-open', open);
+      el.querySelector('.bm-nav-trigger').setAttribute('aria-expanded', String(open));
+      el.querySelector('.bm-dropdown').toggleAttribute('inert', !open);
+    }
+    function closeAll() { dropdowns.forEach(function(el) { setOpen(el, false); }); }
+    function openOnly(el) { closeAll(); setOpen(el, true); }
+
     document.addEventListener('click', function(e) {
-      if (!e.target.closest('.bm-has-dropdown')) {
-        document.querySelectorAll('.bm-has-dropdown').forEach(function(el) {
-          el.classList.remove('bm-dd-open');
-        });
-      }
+      if (!e.target.closest('.bm-has-dropdown')) closeAll();
     });
 
-    // ── Dropdown: single unified toggle (desktop + mobile, one listener per element) ──
-    document.querySelectorAll('.bm-has-dropdown > a').forEach(function(a) {
-      a.addEventListener('click', function(e) {
-        var li = a.closest('.bm-has-dropdown');
-        var isOpen = li.classList.contains('bm-dd-open');
-        var isMobileNav = window.innerWidth <= 900;
-        // Close all other dropdowns first
-        document.querySelectorAll('.bm-has-dropdown').forEach(function(el) {
-          if (el !== li) el.classList.remove('bm-dd-open');
-        });
-        if (!isOpen) {
-          li.classList.add('bm-dd-open');
-          // Prevent navigation on both desktop and mobile when opening dropdown
-          e.preventDefault();
-        } else if (isMobileNav) {
-          // Mobile: close accordion, never navigate
-          li.classList.remove('bm-dd-open');
-          e.preventDefault();
+    // Native disclosure buttons: click/touch toggles; links always navigate.
+    dropdowns.forEach(function(el) {
+      var button = el.querySelector('.bm-nav-trigger');
+      button.addEventListener('click', function() {
+        var open = button.getAttribute('aria-expanded') === 'true';
+        closeAll();
+        if (!open) setOpen(el, true);
+      });
+      button.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault(); openOnly(el);
+          el.querySelector('.bm-dropdown a').focus();
         }
-        // Desktop + already open: allow navigation to the section href
+      });
+      el.addEventListener('focusout', function(e) {
+        // On touch layouts, collapsing before another trigger's click moves that
+        // trigger under the pointer. Let the click switch sections atomically.
+        if (window.innerWidth <= 900 && header.contains(e.relatedTarget)) return;
+        if (!el.contains(e.relatedTarget)) setOpen(el, false);
+      });
+      // Opening is deliberate: no hover-only state that disagrees with aria-expanded.
+      el.querySelectorAll('.bm-dropdown a').forEach(function(a) {
+        a.addEventListener('click', function() {
+          closeAll();
+          if (window.innerWidth <= 900) setMobile(false);
+        });
       });
     });
 
     // ── Mobile toggle ──
     var tog = document.getElementById('bmMobileToggle');
     var links = document.getElementById('bmNavLinks');
+    function setMobile(open) {
+      if (!tog || !links) return;
+      tog.setAttribute('aria-expanded', String(open));
+      tog.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+      links.classList.toggle('bm-nav-open', open);
+      if (!open) closeAll();
+    }
     if (tog && links) {
       tog.addEventListener('click', function() {
-        var open = tog.getAttribute('aria-expanded') === 'true';
-        tog.setAttribute('aria-expanded', open ? 'false' : 'true');
-        links.classList.toggle('bm-nav-open', !open);
-        // Close all dropdowns when closing the mobile menu
-        if (open) {
-          links.querySelectorAll('.bm-has-dropdown').forEach(function(el) {
-            el.classList.remove('bm-dd-open');
-          });
-        }
+        setMobile(tog.getAttribute('aria-expanded') !== 'true');
       });
     }
+    document.addEventListener('keydown', function(e) {
+      if (e.key !== 'Escape') return;
+      var open = header && header.querySelector('.bm-dd-open');
+      if (open) { closeAll(); open.querySelector('.bm-nav-trigger').focus(); }
+      else if (links && links.classList.contains('bm-nav-open')) { setMobile(false); tog.focus(); }
+    });
+    document.addEventListener('click', function(e) {
+      if (header && !header.contains(e.target)) setMobile(false);
+    });
+    window.matchMedia('(max-width: 900px)').addEventListener('change', function() { setMobile(false); });
   };
 })();
