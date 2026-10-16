@@ -22,5 +22,7 @@
     "actives": [],
     "non_actives": [],
     "note": "cold-start: no labeled actives yet"
-  }
+  },
+  "cofactors": [],
+  "receptor_pdb": "5n92"
 }

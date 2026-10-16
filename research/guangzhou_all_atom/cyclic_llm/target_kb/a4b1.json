@@ -22,5 +22,13 @@
     "actives": [],
     "non_actives": [],
     "note": "cold-start: no labeled actives yet"
-  }
+  },
+  "cofactors": [
+    {
+      "ccd": "MN",
+      "n": 3,
+      "site": "beta1 I-like: MIDAS/ADMIDAS/SyMBS"
+    }
+  ],
+  "receptor_pdb": "4irz"
 }

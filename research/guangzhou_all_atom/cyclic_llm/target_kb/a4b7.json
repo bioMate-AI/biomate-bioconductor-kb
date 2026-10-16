@@ -21,5 +21,13 @@
     "actives": [],
     "non_actives": [],
     "note": "cold-start: no labeled actives yet (rule induction honestly abstains until actives are added)"
-  }
+  },
+  "cofactors": [
+    {
+      "ccd": "MN",
+      "n": 3,
+      "site": "beta7 I-like: MIDAS/ADMIDAS/SyMBS"
+    }
+  ],
+  "receptor_pdb": "3v4v"
 }

@@ -19,13 +19,7 @@ import json, os, functools
 HERE = os.path.dirname(__file__)
 KB = os.path.join(HERE, "target_kb")
 
-# epitope -> pose-method policy
-_POSE = {
-    "linear-motif": {"pose_method": "cofold+mmgbsa", "dock_acceptable_prepose": True,
-                     "rationale": "clear linear anchor (RGD.L); dock is a valid cheap pre-pose, MM-GBSA decides"},
-    "discontinuous": {"pose_method": "cofold+mmgbsa", "dock_acceptable_prepose": False,
-                      "rationale": "no linear anchor (groove PPI); cofold required, docking unreliable"},
-}
+# NOTE: the epitope->pose table now lives once in target_spec.POSE_BY_EPITOPE (this module is a view over it).
 # KB counter-target label -> the receptor code that appears in result files' "target" field (where known)
 _OFFTARGET_RECEPTOR = {"pdl2": "pdl2"}   # integrin off-targets have no result-file code yet (runs not produced)
 
@@ -40,33 +34,33 @@ def load_kb(target):
 
 @functools.lru_cache(maxsize=None)
 def config_for(target):
-    """Derive the mechanism-matched scorer config for a target from its KB mechanism tag."""
-    kb = load_kb(target)
-    if kb is None:
+    """Mechanism-matched scorer config — now a thin VIEW over the one generic engine (target_spec.load_spec).
+    Metal/pose/counter all come from the spec (metal = the spec's `cofactors`); this keeps the back-compat
+    output keys physics_dispatch depends on, with no second copy of the mechanism logic."""
+    from target_spec import load_spec, cofactor_ccds
+    s = load_spec(target)
+    if s is None:
         return {"target": target, "known": False,
                 "reason": f"no Target KB entry (target_kb/{target}.json)"}
-    mech = kb.get("mechanism", {})
-    metal = mech.get("metal_cofactor")
-    epitope = mech.get("epitope", "unknown")
-    pose = _POSE.get(epitope, {"pose_method": "cofold+mmgbsa", "dock_acceptable_prepose": False,
-                               "rationale": f"unknown epitope '{epitope}' -> default to cofold+MM-GBSA"})
-    counter = kb.get("counter_targets", [])
-    controls = [{"id": c.get("id"), "helm": c.get("helm")} for c in kb.get("controls", [])]
+    cof = s.get("cofactors", [])
+    metal = cof[0]["ccd"] if cof else None          # primary cofactor (back-compat 'metal' field)
+    site = cof[0].get("site") if cof else None
     return {
-        "target": target, "known": True, "name": kb.get("name"),
-        "epitope": epitope, "motif": mech.get("motif"),
-        "requires_metal": metal is not None,
-        "metal": metal, "metal_site": mech.get("site") if metal else None,
-        "pose_method": pose["pose_method"], "dock_acceptable_prepose": pose["dock_acceptable_prepose"],
-        "pose_rationale": pose["rationale"],
-        "counter_targets": counter,
-        "counter_receptor_codes": {ct: _OFFTARGET_RECEPTOR.get(ct) for ct in counter},
-        "receptor_asset": kb.get("receptor_structure"),
-        "controls": controls,
-        # what a MM-GBSA result file must declare to be mechanism-compliant for this target:
+        "target": target, "known": True, "name": s.get("name"),
+        "epitope": s.get("epitope"), "motif": s.get("motif"),
+        "cofactors": cof,                            # the general field (metal = just this)
+        "requires_metal": bool(cof),
+        "metal": metal, "metal_site": site,
+        "pose_method": s["pose_method"], "dock_acceptable_prepose": s["dock_prepose_ok"],
+        "pose_rationale": s["pose_why"],
+        "counter_targets": s["counter_targets"],
+        "counter_receptor_codes": {ct: _OFFTARGET_RECEPTOR.get(ct) for ct in s["counter_targets"]},
+        "receptor_asset": s["receptor"]["structure"],
+        "controls": [{"id": c.get("id"), "helm": c.get("helm")} for c in s.get("controls", [])],
         "result_requirements": (
-            [f"metal '{metal}' present at {mech.get('site')} (metal-complete receptor {kb.get('receptor_structure')})"]
-            if metal else []) + ["A2 control row anchors the receptor ΔG scale"],
+            [f"cofactor(s) {','.join(cofactor_ccds(s))} present at {site} "
+             f"(prepared receptor {s['receptor']['structure']})"] if cof else [])
+            + ["A2 control row anchors the receptor ΔG scale"],
     }
 
 

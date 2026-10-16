@@ -19,5 +19,7 @@
     "actives": [],
     "non_actives": [],
     "note": "cold-start: no labeled actives yet (rule induction honestly abstains until actives are added)"
-  }
+  },
+  "cofactors": [],
+  "receptor_pdb": "1p9m"
 }

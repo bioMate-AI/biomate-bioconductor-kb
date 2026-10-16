@@ -21,5 +21,13 @@
     "actives": [],
     "non_actives": [],
     "note": "cold-start: no labeled actives yet (rule induction honestly abstains until actives are added)"
-  }
+  },
+  "cofactors": [
+    {
+      "ccd": "MG",
+      "n": 1,
+      "site": "alphaL I-domain MIDAS"
+    }
+  ],
+  "receptor_pdb": "5e6u"
 }
