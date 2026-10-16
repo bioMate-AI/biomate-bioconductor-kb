@@ -52,9 +52,17 @@ Verified non-metal, our-own-target, end-to-end: `propose(pdl1)` → de-novo macr
 118-aa PD-L1 sequence (ncAA-rich: `[Sar]`, `[Phe(4-CF3)]`, `[Me_dL]`…), scored generically (developability +
 FTO-novelty, all novel). No metal, no RGD scaffold, no avb6 special-case.
 
+## Scaffolds are data too (`cyclic_llm/scaffold.py`) ✅
+A scaffold is a **template keyed by canonical motif** (motif residues + β-turn + handle + free slots); one generic
+fill routine (neural-ranked via the v4 model, else enumeration) works for every motif. Registered: `RGDL` (αvβ6)
+and `LDV` (α4β7 / α4β1). `propose(spec)` now routes a4b7/a4b1 through the **LDV scaffold** — zero per-motif code;
+add a template row to extend.
+
+## Launcher reads the spec ✅
+`launch_cofold_v2.sh` now builds the cofold input via `target_spec.build_cofold_input(spec, candidates)` — the
+**ligands come from `spec.cofactors`** (avb6 → `[MN,MN,MN]`, pdl1 → `[]`), not a hand-set per-target field.
+
 ## Still spec-able (follow-ons)
-- Add an **LDV scaffold impl** so a4b7/a4b1 use scaffold-conditioned (today they fall to de-novo — correct but
-  not motif-optimal).
 - `physics_dispatch` result registry: make per-target result locations spec data rather than the `REG` dict.
-- Cofold launcher: read `build_cofold_input(spec, candidates)` instead of the hand-written plan JSON.
 - Prep receptor structures for the autoimmune targets so their physics tier can run (today: cold-start).
+- Register the spec-driven generate→cofold→score as a BioMate workflow (Batch via `nextflow_executor`).

@@ -39,18 +39,23 @@ S3RUN=s3://$BUCKET/cyclic_peptide/runs/$RUNID
 # ---- build the cofold input (receptor seq + peptide list) from the staged plan ----
 PGROUP=$([ "$TARGET" = 9xmm ] && echo avb6 || echo pdl1)
 python3 - "$TARGET" "$PGROUP" "$DRY_RUN" > /tmp/cofold_input.json <<'PY'
-import json, sys
+import json, sys, os
 target, pgroup, dry = sys.argv[1], sys.argv[2], sys.argv[3]
+sys.path.insert(0, "cyclic_llm")
+from target_spec import load_spec, build_cofold_input   # one generic engine
 plan = json.load(open("results/docking/cofold_mmgbsa_plan_v2.json"))
-chains = {k: v for k, v in plan["receptors"][target]["chains"].items() if isinstance(v, str) and v and k != "NOTE"}
-if not chains:
-    sys.exit(f"FATAL: receptor {target} has no chain sequences in the plan")
-peps = plan["peptides"][pgroup]
+peps = plan["peptides"][pgroup]                          # the candidate list to fold
 if dry == "1":
     peps = peps[:1]
-# optional cofactor ions (CCD codes, e.g. ["MN","MN","MN"]) so metal-dependent sites (integrin MIDAS) fold with the metal
-ligands = plan["receptors"][target].get("ligands", [])
-json.dump({"target": target, "receptor_chains": chains, "peptides": peps, "ligands": ligands}, sys.stdout, indent=2)
+spec = load_spec(pgroup)
+if spec is None:
+    sys.exit(f"FATAL: no target spec for {pgroup}")
+# SPEC-DERIVED: ligands come from spec.cofactors (metal is just one case of cofactors), chains from the
+# prepped-structure plan via the spec. No hand-set per-target ligand field.
+inp = build_cofold_input(spec, peps)
+if "error" in inp:
+    sys.exit("FATAL: " + inp["error"])
+json.dump(inp, sys.stdout, indent=2)
 PY
 NPEP=$(python3 -c "import json;print(len(json.load(open('/tmp/cofold_input.json'))['peptides']))")
 echo "[cofold] TARGET=$TARGET DRY_RUN=$DRY_RUN peptides=$NPEP"
@@ -98,6 +103,9 @@ os.makedirs(T, exist_ok=True)
 summary = []
 for it in d["peptides"]:
     pid, pep = it["id"], it["pep"]
+    # resume: skip candidates already folded on S3 (a relaunch continues, never re-folds)
+    if subprocess.run(["aws","s3","ls",f"{os.environ['OUT_S3']}/complexes/{T}/{pid}.cif"], capture_output=True).returncode == 0:
+        print(pid, "skip(cached)"); summary.append({"id": pid, "pep": pep, "status": "ok_cached"}); continue
     y = f"in_{pid}.yaml"
     with open(y, "w") as f:
         f.write("version: 1\nsequences:\n")
@@ -117,13 +125,19 @@ for it in d["peptides"]:
             shutil.copy(sorted(cifs)[0], f"{T}/{pid}.cif"); rec["status"] = "ok"; rec["cif"] = os.path.basename(cifs[0])
             conf = glob.glob(f"out_{pid}/**/confidence_*.json", recursive=True)
             if conf: rec["confidence"] = json.load(open(sorted(conf)[0]))
+            # incremental upload: push each complex AS it folds so a deadline/interruption never loses work
+            try: subprocess.run(["aws","s3","cp",f"{T}/{pid}.cif",f"{os.environ['OUT_S3']}/complexes/{T}/{pid}.cif","--only-show-errors"], check=False)
+            except Exception: pass
         else:
             rec["status"] = "no_cif"
     except Exception as e:
         rec["status"] = "fail"; rec["error"] = str(e)[:300]
     print(pid, rec["status"])
     summary.append(rec)
-json.dump({"target": T, "results": summary}, open("/opt/cofold/status/cofold_summary.json","w"), indent=2)
+    # incremental summary upload every fold (resumable progress)
+    json.dump({"target": T, "results": summary}, open("/opt/cofold/status/cofold_summary.json","w"), indent=2)
+    try: subprocess.run(["aws","s3","cp","/opt/cofold/status/cofold_summary.json",f"{os.environ['OUT_S3']}/status/cofold_summary.json","--only-show-errors"], check=False)
+    except Exception: pass
 PYEOF
 stage uploading
 aws s3 sync "./$TARGET/" "$OUT_S3/complexes/$TARGET/" --only-show-errors || true

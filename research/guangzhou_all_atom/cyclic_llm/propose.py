@@ -18,8 +18,6 @@ for _p in (HERE, PARENT):
 from target_spec import load_spec
 
 CKPT = os.path.join(PARENT, "runs_helm", "unified_cyclic_llm_v4.pt")
-# motif -> (scaffold generator). Extend by adding a motif's scaffold impl; today RGD.L is implemented (integrins).
-SCAFFOLD_IMPL = {"RGD.L": "avb6_rgd"}
 
 
 def _receptor_seq(spec):
@@ -30,12 +28,9 @@ def _receptor_seq(spec):
 
 def propose(spec, n=12, temp=1.0, seed=0):
     """Return {target, mode, candidates:[{helm,...}], ...} — generation mode chosen from the spec."""
-    motif = spec.get("motif")
-    if motif in SCAFFOLD_IMPL and SCAFFOLD_IMPL[motif] == "avb6_rgd" and spec["target"] == "avb6":
-        from neural_generator import gen_avb6_neural
-        _H, X, meta = gen_avb6_neural(n=n)
-        return {"target": spec["target"], "mode": "scaffold-conditioned", "motif": motif,
-                "candidates": X, "backend": meta.get("backend")}
+    from scaffold import canon_motif, scaffold_propose
+    if canon_motif(spec.get("motif")):                 # any motif with a scaffold template -> scaffold-conditioned
+        return scaffold_propose(spec, n=n)
 
     # de-novo: condition the v4 generator on the target's receptor sequence
     seq = _receptor_seq(spec)
@@ -67,12 +62,12 @@ if __name__ == "__main__":
     targets = ["avb6", "pdl1", "a4b7", "a4b1", "lfa1", "c5", "fcrn", "baff", "cd40",
                "il2ra", "tnfa", "il17a", "il17f", "il23", "il6r", "cd20"]
     print("=== proposer mode per target (chosen from spec; metal is irrelevant to the choice) ===")
+    from scaffold import canon_motif
     for t in targets:
         s = load_spec(t)
-        motif = s.get("motif")
-        mode = "scaffold-conditioned" if (motif in SCAFFOLD_IMPL and t == "avb6") else "de-novo"
+        mode = "scaffold-conditioned" if canon_motif(s.get("motif")) else "de-novo"
         cof = ",".join(c["ccd"] for c in s["cofactors"]) or "—"
-        print(f"  {t:7s} cofactors={cof:9s} motif={str(motif):14s} -> {mode}")
+        print(f"  {t:7s} cofactors={cof:9s} motif={str(s.get('motif')):16s} -> {mode}")
 
     # prove the NON-METAL de-novo path end-to-end on PD-L1 (our own target), then general scoring
     print("\n=== de-novo generation for a NON-METAL target (PD-L1), scored generically ===")
