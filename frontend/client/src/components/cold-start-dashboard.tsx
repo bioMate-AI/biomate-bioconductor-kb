@@ -48,6 +48,7 @@ import { useState } from "react";
 import { PREPARED_EXAMPLES, INTERNAL_EXAMPLES } from "./cold-start-examples";
 import { Search, FlaskConical, Dna, Sparkles, ChevronRight, ChevronDown, Send } from "lucide-react";
 import { laneForText, type LaneKind } from "./lane-preview";
+import { t } from "@/lib/i18n";
 
 // ── A validated-workflow SHAPE. Title + what it needs + how long. No pipeline
 //    name, no count — a shape a scientist recognises, not a catalogue row.
@@ -540,8 +541,8 @@ function IntentBar({ onSeed }: IntentBarProps) {
           onKeyDown={(e) => {
             if (e.key === "Enter" && q.trim()) onSeed(q.trim());
           }}
-          placeholder="Describe the goal — e.g. screen these molecules for hERG, then rank by developability"
-          aria-label="Describe the goal"
+          placeholder={t('cold_start.describe_goal_placeholder')}
+          aria-label={t('cold_start.describe_goal')}
           style={{
             flex: 1,
             minWidth: 0,
@@ -557,7 +558,7 @@ function IntentBar({ onSeed }: IntentBarProps) {
           data-testid="cold-intent-send"
           disabled={!canSend}
           onClick={() => canSend && onSeed(q.trim())}
-          aria-label="Seed the composer with this goal"
+          aria-label={t('cold_start.seed_composer')}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -870,10 +871,10 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
           {(
             <p className="text-xs text-muted-foreground">
               {track.k === "Internal"
-                ? "Prepares your MG PBMC demo project with three input files, then fills a draft for review."
+                ? t('cold_start.caption_internal')
                 : track.k === "Try sample data"
-                  ? "Prepared public datasets. Click to fill a draft; review it before sending."
-                  : "Demo inputs are provided for every example. Click to prepare a draft and its data; review before sending."}
+                  ? t('cold_start.caption_sample_data')
+                  : t('cold_start.caption_default')}
             </p>
           )}
 
@@ -882,8 +883,8 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
               threaded into the seeded goal. (reference MODALITIES / tr.exBy) */}
           {m.modalities && (
             <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
-              <span style={{ fontSize: 11.5, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>Modality</span>
-              {COLD_MODALITIES.map(([k, label]) => {
+              <span style={{ fontSize: 11.5, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>{t('cold_start.modality')}</span>
+              {COLD_MODALITIES.map(([k]) => {
                 const on = mod === k;
                 return (
                   <button
@@ -903,7 +904,7 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
                       cursor: "pointer",
                     }}
                   >
-                    {label}
+                    {t('cold_start.modality_' + k)}
                   </button>
                 );
               })}

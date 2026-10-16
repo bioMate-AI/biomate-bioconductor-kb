@@ -148,6 +148,18 @@
     "drag_resize": "拖动以调整面板宽度",
     "close_panel": "关闭工作流面板"
   },
+  "cold_start": {
+    "describe_goal_placeholder": "描述目标 — 例如：筛选这些分子的 hERG，再按成药性排序",
+    "describe_goal": "描述目标",
+    "seed_composer": "用此目标填充输入框",
+    "modality": "类型",
+    "caption_internal": "为您准备 MG PBMC 演示项目及三个输入文件，然后填充草稿以供审阅。",
+    "caption_sample_data": "已准备的公开数据集。点击以填充草稿；发送前请先审阅。",
+    "caption_default": "每个示例均提供演示输入。点击以准备草稿及其数据；发送前请审阅。",
+    "modality_sm": "小分子",
+    "modality_pep": "多肽",
+    "modality_bio": "蛋白质 / 生物制剂"
+  },
   "chat_msg": {
     "figure": "图",
     "copied": "已复制回复",
