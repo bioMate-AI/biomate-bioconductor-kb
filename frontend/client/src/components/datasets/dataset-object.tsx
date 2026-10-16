@@ -32,6 +32,7 @@ import {
   Play,
 } from "lucide-react"
 import { DataPerception, type PerceptionQuality } from "@/components/data-perception"
+import { t } from "@/lib/i18n"
 import {
   usePerceptionProfile,
   useDatasetLineage,
@@ -175,11 +176,11 @@ export function DatasetObject({
               data-testid="dataset-object-back"
             >
               <ChevronLeft className="h-3 w-3" />
-              Data
+              {t('nav.data')}
             </button>
           )}
           <span>/</span>
-          <span>{isRunOutput ? "Outputs" : "Inputs"}</span>
+          <span>{isRunOutput ? t('dataset_obj.outputs') : t('dataset_obj.inputs')}</span>
           <span>/</span>
           {/* Breadcrumb ends in the human filename, not the raw UUID (poor UX,
               and diverges from the reference's path-like crumb). The immutable
@@ -203,10 +204,10 @@ export function DatasetObject({
               className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px]"
               data-testid="dataset-header-quality"
               data-quality={profile.quality}
-              title={`Ingest quality: ${profile.quality}`}
+              title={t('file_tree.quality', { quality: profile.quality })}
             >
               <span className={`h-2 w-2 rounded-full ${HEADER_QUALITY[profile.quality].dot}`} />
-              {HEADER_QUALITY[profile.quality].label}
+              {t('dataset_obj.quality_' + profile.quality)}
             </span>
           )}
           {/* Version count chip — surfaces that the object has history without
@@ -216,10 +217,10 @@ export function DatasetObject({
               variant="outline"
               className="text-[10px] gap-1"
               data-testid="dataset-header-versions"
-              title={`${propVersions.length} version${propVersions.length > 1 ? "s" : ""} recorded — see the Versions tab`}
+              title={t(propVersions.length === 1 ? 'dataset_obj.versions_recorded_one' : 'dataset_obj.versions_recorded_other', { n: propVersions.length })}
             >
               <History className="h-3 w-3" />
-              {propVersions.length} ver{propVersions.length > 1 ? "s" : ""}
+              {t(propVersions.length === 1 ? 'dataset_obj.ver_count_one' : 'dataset_obj.ver_count_other', { n: propVersions.length })}
             </Badge>
           )}
           <div className="ml-auto flex items-center gap-2">
@@ -230,11 +231,11 @@ export function DatasetObject({
                 className="h-7 text-xs gap-1"
                 onClick={handleExportRoCrate}
                 disabled={exporting}
-                title="Export an RO-Crate metadata manifest for this dataset"
+                title={t('file_tree.export_crate')}
                 data-testid="dataset-object-rocrate"
               >
                 <FileArchive className="h-3 w-3" />
-                {exporting ? "Exporting…" : "Export RO-Crate"}
+                {exporting ? t('dataset_obj.exporting') : t('dataset_obj.export_rocrate')}
               </Button>
             )}
             {onAnalyze && (
@@ -243,10 +244,10 @@ export function DatasetObject({
                 className="h-7 text-xs gap-1"
                 onClick={onAnalyze}
                 data-testid="dataset-object-analyze"
-                title="Attach this file to a new chat, then enter your question"
+                title={t('file_tree.attach_to_chat')}
               >
                 <Play className="h-3 w-3" />
-                Use in chat
+                {t('dataset_obj.use_in_chat')}
               </Button>
             )}
             {onDownload && (
@@ -258,7 +259,7 @@ export function DatasetObject({
                 data-testid="dataset-object-download"
               >
                 <Download className="h-3 w-3" />
-                Download
+                {t('actions.download')}
               </Button>
             )}
           </div>
@@ -288,13 +289,13 @@ export function DatasetObject({
               one "where it came from / what reads it" provenance view. */}
           <TabsList className="mb-3 flex-wrap h-auto">
             <TabsTrigger value="preview" className="text-xs" data-testid="dataset-tab-preview">
-              <Eye className="h-3 w-3 mr-1" />Preview
+              <Eye className="h-3 w-3 mr-1" />{t('file_tree.preview')}
             </TabsTrigger>
             <TabsTrigger value="lineage" className="text-xs" data-testid="dataset-tab-lineage">
-              <GitBranch className="h-3 w-3 mr-1" />Lineage
+              <GitBranch className="h-3 w-3 mr-1" />{t('dataset_obj.lineage')}
             </TabsTrigger>
             <TabsTrigger value="versions" className="text-xs" data-testid="dataset-tab-versions">
-              <History className="h-3 w-3 mr-1" />Versions
+              <History className="h-3 w-3 mr-1" />{t('dataset_obj.versions')}
             </TabsTrigger>
           </TabsList>
 
@@ -334,27 +335,27 @@ export function DatasetObject({
                   </table>
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  First {profile.sampleRows.length} rows{profile.shape?.rows
-                    ? ` of ${profile.shape.rows.toLocaleString()}`
-                    : ""}. Sorting, filtering and full paging use the table viewer.
+                  {t('dataset_obj.preview_rows', {
+                    shown: profile.sampleRows.length,
+                    of: profile.shape?.rows ? t('dataset_obj.rows_of', { total: profile.shape.rows.toLocaleString() }) : "",
+                  })}
                 </p>
               </div>
             ) : preview ?? null}
-            <Row k="Name" v={dataset.name} mono />
-            <Row k="Size" v={formatBytes(dataset.size)} mono />
-            <Row k="Type" v={fmt(dataset.contentType)} mono />
-            <Row k="Reference" v={fmt(dataset.ref)} mono last />
+            <Row k={t('dataset_obj.row_name')} v={dataset.name} mono />
+            <Row k={t('dataset_obj.row_size')} v={formatBytes(dataset.size)} mono />
+            <Row k={t('dataset_obj.row_type')} v={fmt(dataset.contentType)} mono />
+            <Row k={t('dataset_obj.row_reference')} v={fmt(dataset.ref)} mono last />
             <p className="text-[10px] text-muted-foreground pt-1">
-              A dataset is an object, not a path in a chat message: it carries its own identity,
-              quality, lineage, and the list of runs that read it.
+              {t('dataset_obj.preview_note')}
             </p>
             {/* Quality folded into Preview — the header already carries the
                 pass/watch/blocked badge, so it needs no separate tab. */}
             <div className="pt-3 mt-1 border-t space-y-2" data-testid="dataset-quality">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Quality</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{t('dataset_obj.quality_heading')}</p>
               {!dataset.ref ? (
                 <p className="text-[11px] text-muted-foreground" data-testid="dataset-quality-noref">
-                  No resolvable reference — quality profiling is not available for this dataset.
+                  {t('dataset_obj.quality_noref')}
                 </p>
               ) : isLoading ? (
                 <div className="space-y-2" data-testid="dataset-quality-loading">
@@ -363,7 +364,7 @@ export function DatasetObject({
                 </div>
               ) : isError || !profile ? (
                 <p className="text-[11px] text-muted-foreground" data-testid="dataset-quality-error">
-                  Quality not available — the profiler could not read this dataset.
+                  {t('dataset_obj.quality_error')}
                 </p>
               ) : (
                 <DataPerception
@@ -385,7 +386,7 @@ export function DatasetObject({
             ) : lineageQ.data?.available && lineageQ.data.producedBy ? (
               <>
                 <Row
-                  k="Produced by run"
+                  k={t('dataset_obj.produced_by')}
                   v={fmt(lineageQ.data.producedBy.runId)}
                   mono
                   onClick={
@@ -396,15 +397,14 @@ export function DatasetObject({
                   testid="lineage-open-run"
                 />
                 <Row
-                  k="Workflow"
+                  k={t('workflow.labels.workflow')}
                   v={fmt(lineageQ.data.producedBy.workflow ?? dataset.workflowName)}
                   mono
                 />
-                <Row k="Status" v={fmt(lineageQ.data.producedBy.status)} mono />
-                <Row k="Step" v={fmt(dataset.stepName)} mono last />
+                <Row k={t('dataset_obj.status')} v={fmt(lineageQ.data.producedBy.status)} mono />
+                <Row k={t('workflow.labels.step')} v={fmt(dataset.stepName)} mono last />
                 <p className="text-[10px] text-muted-foreground pt-1">
-                  This dataset was written by a workflow run; the run is an object you can open,
-                  not a string in a description.
+                  {t('dataset_obj.lineage_note')}
                 </p>
               </>
             ) : isRunOutput ? (
@@ -412,29 +412,28 @@ export function DatasetObject({
               // provenance record — show what the caller holds, honestly.
               <>
                 <Row
-                  k="Produced by run"
+                  k={t('dataset_obj.produced_by')}
                   v={fmt(dataset.runId)}
                   mono
                   onClick={onOpenRun && dataset.runId ? () => onOpenRun(dataset.runId!) : undefined}
                   testid="lineage-open-run"
                 />
-                <Row k="Workflow" v={fmt(dataset.workflowName)} mono />
-                <Row k="Step" v={fmt(dataset.stepName)} mono last />
+                <Row k={t('workflow.labels.workflow')} v={fmt(dataset.workflowName)} mono />
+                <Row k={t('workflow.labels.step')} v={fmt(dataset.stepName)} mono last />
                 <p className="text-[10px] text-muted-foreground pt-1">
-                  This dataset was written by a workflow run; live provenance is no longer
-                  retained for this run.
+                  {t('dataset_obj.lineage_note_noprov')}
                 </p>
               </>
             ) : (
               <p className="text-[11px] text-muted-foreground" data-testid="dataset-lineage-uploaded">
-                Uploaded input — no upstream workflow produced this dataset.
+                {t('dataset_obj.uploaded_input')}
               </p>
             )}
 
             {/* Read by (consumers) — folded into Lineage: downstream runs that
                 read this dataset, so provenance is one view, not three tabs. */}
             <div className="pt-3 mt-2 border-t space-y-1" data-testid="dataset-consumers">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Read by</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{t('dataset_obj.read_by')}</p>
             {consumersQ.isLoading ? (
               <div className="space-y-2" data-testid="dataset-consumers-loading">
                 <Skeleton className="h-8 w-full" />
@@ -449,7 +448,7 @@ export function DatasetObject({
                   className={`flex items-center gap-2 rounded border px-2 py-1 text-xs${onOpenRun ? " cursor-pointer hover:bg-muted/50" : ""}`}
                   data-testid={`dataset-consumer-${c.runId}`}
                 >
-                  <Badge variant="outline" className="text-[10px]">reads</Badge>
+                  <Badge variant="outline" className="text-[10px]">{t('dataset_obj.reads')}</Badge>
                   <span className="font-mono truncate">{c.workflow ?? c.runId}</span>
                   {c.status && (
                     <Badge variant="outline" className="text-[10px] ml-auto">{c.status}</Badge>
@@ -463,28 +462,27 @@ export function DatasetObject({
                   className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
                   data-testid={`dataset-consumer-${c}`}
                 >
-                  <Badge variant="outline" className="text-[10px]">reads</Badge>
+                  <Badge variant="outline" className="text-[10px]">{t('dataset_obj.reads')}</Badge>
                   <span className="font-mono truncate">{c}</span>
                 </div>
               ))
             ) : (
               <p className="text-[11px] text-muted-foreground" data-testid="dataset-no-consumers">
-                No runs are recorded as reading this dataset yet.
+                {t('dataset_obj.no_consumers')}
               </p>
             )}
               <p className="text-[10px] text-muted-foreground pt-1">
-                When consumers are recorded, replacing a dataset becomes a decision with a visible
-                blast radius rather than a silent change under a running analysis.
+                {t('dataset_obj.consumers_note')}
               </p>
             </div>
 
             {/* Origin — where it lives + when it arrived (folded into Lineage) */}
             <div className="pt-3 mt-2 border-t space-y-1" data-testid="dataset-origin">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Origin</p>
-              <Row k="Source" v={fmt(dataset.source)} />
-              <Row k="Storage ref" v={fmt(dataset.ref)} mono />
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{t('dataset_obj.origin')}</p>
+              <Row k={t('dataset_obj.source')} v={fmt(dataset.source)} />
+              <Row k={t('dataset_obj.storage_ref')} v={fmt(dataset.ref)} mono />
               <Row
-                k="Added"
+                k={t('dataset_obj.added')}
                 v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString() : "—"}
                 last
               />
@@ -507,7 +505,7 @@ export function DatasetObject({
                   <div className="flex items-center gap-2">
                     <span className="font-mono font-semibold">{v.label}</span>
                     {v.current && (
-                      <Badge variant="outline" className="text-[10px]">current</Badge>
+                      <Badge variant="outline" className="text-[10px]">{t('dataset_obj.current')}</Badge>
                     )}
                     {v.createdAt && (
                       <span className="ml-auto text-[10px] text-muted-foreground">
@@ -539,7 +537,7 @@ export function DatasetObject({
               ))
             ) : (
               <p className="text-[11px] text-muted-foreground" data-testid="dataset-no-versions">
-                Version history is not available yet — only the current dataset is recorded.
+                {t('dataset_obj.no_versions')}
               </p>
             )}
 
@@ -553,7 +551,7 @@ export function DatasetObject({
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleAddVersion()
                     }}
-                    placeholder="Add a version note (e.g. re-derived after QC fix)"
+                    placeholder={t('file_tree.version_note_placeholder')}
                     className="h-7 text-xs"
                     disabled={appendVersion.isPending}
                     data-testid="dataset-version-note-input"
@@ -567,17 +565,16 @@ export function DatasetObject({
                     data-testid="dataset-version-add-button"
                   >
                     <Plus className="h-3 w-3" />
-                    {appendVersion.isPending ? "Adding…" : "Add version"}
+                    {appendVersion.isPending ? t('dataset_obj.adding') : t('dataset_obj.add_version')}
                   </Button>
                 </div>
                 {appendVersion.isError && (
                   <p className="text-[10px] text-destructive" data-testid="dataset-version-add-error">
-                    {(appendVersion.error as Error)?.message || "Could not add version"}
+                    {(appendVersion.error as Error)?.message || t('dataset_obj.add_version_error')}
                   </p>
                 )}
                 <p className="text-[10px] text-muted-foreground">
-                  Version entries are append-only — a note records a re-derivation or sign-off
-                  without ever rewriting a prior entry.
+                  {t('dataset_obj.version_note_help')}
                 </p>
               </div>
             )}

@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 
 export interface ProjectFile {
   id: string;
@@ -81,7 +82,7 @@ function buildTree(files: ProjectFile[]): TreeNode[] {
   }
   for (const [runId, nodes] of Object.entries(outputsByRun)) {
     const firstFile = nodes[0]?.file;
-    const wfName = firstFile?.workflow_name ?? "Workflow";
+    const wfName = firstFile?.workflow_name ?? t('workflow.labels.workflow');
     // Format: "nf-core/rnaseq · Jul 11 14:23" — lets users distinguish multiple runs
     const ts = firstFile?.created_at
       ? new Date(firstFile.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
@@ -174,8 +175,8 @@ function QualityDot({ file }: { file: ProjectFile }) {
 
   const cls = QUALITY_DOT[quality] ?? QUALITY_DOT.unknown;
   const title = profilable
-    ? `Ingest quality: ${quality}`
-    : "Ingest quality: not profiled (unsupported file type)";
+    ? t('file_tree.quality', { quality })
+    : t('file_tree.quality_unprofiled');
   return (
     <span
       className={cn("h-1.5 w-1.5 rounded-full shrink-0", cls)}
@@ -275,7 +276,7 @@ function FileRow({
             type="button"
             onClick={() => onOpenDataset(file)}
             className="flex-1 min-w-0 truncate text-left text-xs text-foreground hover:underline cursor-pointer"
-            title="Open dataset"
+            title={t('file_tree.open_dataset')}
             data-testid={`file-open-${file.id}`}
           >
             {file.name}
@@ -291,7 +292,7 @@ function FileRow({
         <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{formatBytes(file.size)}</span>
         {showPreview && (
           <button
-            title={previewOpen ? "Hide preview" : "Preview"}
+            title={previewOpen ? t('file_tree.hide_preview') : t('file_tree.preview')}
             onClick={handleTogglePreview}
             className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
           >
@@ -299,7 +300,7 @@ function FileRow({
           </button>
         )}
         <button
-          title="Copy S3 path"
+          title={t('file_tree.copy_s3')}
           onClick={() => onCopy(file.id, file.s3_key)}
           className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
           data-testid={`file-copy-${file.id}`}
@@ -307,7 +308,7 @@ function FileRow({
           {isCopied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
         </button>
         <button
-          title="Download"
+          title={t('actions.download')}
           onClick={() => onDownload(file.id)}
           className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted"
           data-testid={`file-download-${file.id}`}
@@ -316,7 +317,7 @@ function FileRow({
         </button>
         {file.source === "upload" && canEdit && (
           <button
-            title="Delete"
+            title={t('actions.delete')}
             onClick={() => onDelete(file.id)}
             className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-50 hover:text-red-600"
             data-testid={`file-delete-${file.id}`}
@@ -408,7 +409,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
       setFiles(loaded);
       onFilesChanged?.(loaded.filter(f => f.source === "upload").map(f => ({ name: f.name, size: f.size })));
     } catch (e: any) {
-      setError(e?.message ?? "Failed to load files");
+      setError(e?.message ?? t('file_tree.err_load'));
     } finally {
       setLoading(false);
     }
@@ -452,14 +453,14 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
       }
       await load();
     } catch (e: any) {
-      setError(e?.message ?? "Upload failed");
+      setError(e?.message ?? t('file_tree.err_upload'));
     } finally {
       setUploading(false);
     }
   };
 
   const handleDelete = async (fileId: string) => {
-    if (!confirm("Delete this file?")) return;
+    if (!confirm(t('file_tree.confirm_delete'))) return;
     try {
       const res = await fetch(`/api/projects/${projectId}/files/${fileId}`, {
         method: "DELETE",
@@ -472,7 +473,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
         return next;
       });
     } catch (e: any) {
-      setError(e?.message ?? "Delete failed");
+      setError(e?.message ?? t('file_tree.err_delete'));
     }
   };
 
@@ -493,7 +494,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
       a.download = data.name;
       a.click();
     } catch (e: any) {
-      setError(e?.message ?? "Download failed");
+      setError(e?.message ?? t('file_tree.err_download'));
     }
   };
 
@@ -526,7 +527,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
     >
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30 shrink-0">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex-1">Files</span>
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex-1">{t('file_tree.files')}</span>
         {/* Desktop: native file picker. Browser: standard input. Owner/editor only. */}
         {canEdit && (isDesktop() ? (
           <Button
@@ -541,14 +542,14 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
                 await desktopPickAndUpload(projectId);
                 await load();
               } catch (e: any) {
-                setError(e?.message ?? "Upload failed");
+                setError(e?.message ?? t('file_tree.err_upload'));
               } finally {
                 setUploading(false);
               }
             }}
           >
             {uploading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-            Upload
+            {t('file_tree.upload')}
           </Button>
         ) : (
           <Button
@@ -564,7 +565,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
             ) : (
               <Upload className="h-3 w-3" />
             )}
-            Upload
+            {t('file_tree.upload')}
           </Button>
         ))}
         <Button
@@ -573,7 +574,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
           className="h-6 w-6 p-0"
           onClick={load}
           disabled={loading}
-          title="Refresh"
+          title={t('file_tree.refresh')}
           data-testid="project-files-refresh-btn"
         >
           <RefreshCw className={cn("h-3 w-3", loading && "animate-spin")} />
@@ -596,8 +597,8 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
         {!loading && tree.length === 0 && !error && (
           <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground">
             <Folder className="h-8 w-8 opacity-30" />
-            <p className="text-xs">No files yet</p>
-            <p className="text-xs opacity-70">Drag & drop or click Upload</p>
+            <p className="text-xs">{t('file_tree.no_files')}</p>
+            <p className="text-xs opacity-70">{t('file_tree.drop_hint')}</p>
           </div>
         )}
         {tree.map((node) => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { uploadFile as uploadFileShared } from '@/lib/upload';
+import { t } from "@/lib/i18n";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -607,7 +608,7 @@ export function GalaxyDatasetBrowser({
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search datasets..."
+                placeholder={t('file_tree.search_datasets')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="h-8 pl-8 text-sm"

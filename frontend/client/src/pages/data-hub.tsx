@@ -39,6 +39,7 @@ import {
   type ProjectFile,
 } from "@/components/project-file-tree"
 import { DatasetObject, type DatasetRef } from "@/components/datasets/dataset-object"
+import { t } from "@/lib/i18n"
 
 function toDatasetRef(f: ProjectFile): DatasetRef {
   return {
@@ -198,7 +199,7 @@ export default function DataHubPage() {
       <div className="space-y-1">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Database className="h-3.5 w-3.5" />
-          <span>Data</span>
+          <span>{t('nav.data')}</span>
           {activeProject && (
             <>
               <span>/</span>
@@ -207,7 +208,7 @@ export default function DataHubPage() {
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <h1 className="text-lg font-semibold">Data</h1>
+          <h1 className="text-lg font-semibold">{t('nav.data')}</h1>
           {activeProject && (
             <>
               <Badge variant="outline" className="text-[10px] capitalize">
@@ -229,14 +230,13 @@ export default function DataHubPage() {
                 data-testid="data-hub-change-project"
               >
                 <ArrowLeftRight className="h-3 w-3" />
-                Change project
+                {t('data_hub.change_project')}
               </Button>
             </>
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          Every dataset is an object: its identity, ingest quality, the runs that read it, its
-          versions and where it came from — not just a path in a chat message.
+          {t('data_hub.intro')}
         </p>
       </div>
 
@@ -278,10 +278,9 @@ export default function DataHubPage() {
               <Card className="h-full" data-testid="data-hub-detail-empty">
                 <CardContent className="flex h-full flex-col items-center justify-center gap-2 py-16 text-center">
                   <Database className="h-8 w-8 text-muted-foreground/40" />
-                  <p className="text-sm font-medium">Select a dataset</p>
+                  <p className="text-sm font-medium">{t('data_hub.select_dataset')}</p>
                   <p className="text-xs text-muted-foreground max-w-xs">
-                    Pick a file from the tree to open it as an object — its quality profile, the
-                    runs that produced and consumed it, and its version history.
+                    {t('data_hub.select_dataset_hint')}
                   </p>
                 </CardContent>
               </Card>
