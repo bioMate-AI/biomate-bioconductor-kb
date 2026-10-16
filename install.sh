@@ -85,6 +85,15 @@ else
   ok "磁盘剩余 ${DISK_FREE_GB}GB"
 fi
 
+# 架构检测 (Architecture detection)
+HOST_ARCH="$(uname -m)"
+case "$HOST_ARCH" in
+  x86_64)          HOST_ARCH_NORM=amd64  ;;
+  aarch64|arm64)   HOST_ARCH_NORM=arm64  ;;
+  *)               HOST_ARCH_NORM="$HOST_ARCH" ;;
+esac
+ok "主机架构: ${HOST_ARCH} (${HOST_ARCH_NORM})"
+
 # 内存 (至少 16GB)
 if [[ "$(uname)" == "Linux" ]]; then
   MEM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)
@@ -309,7 +318,10 @@ for _img in "$GALAXY_IMAGE" "$FRONTEND_IMAGE"; do
       echo "  可能原因:"
       echo "    1. 网络问题（检查是否能访问 ghcr.io）"
       echo "    2. 镜像为私有包，需要认证（在 .env 中设置 GHCR_TOKEN=ghp_xxxx）"
-      echo "    3. 离线部署：将 docker 镜像 tar 包传入并 docker load"
+      echo "    3. 离线部署：将对应架构的 docker 镜像 tar 包传入并 docker load"
+      echo "       当前架构: ${HOST_ARCH_NORM}"
+      echo "       S3 离线包: biomate-images-${HOST_ARCH_NORM}.tar.gz"
+      echo "       加载命令: docker load < biomate-images-${HOST_ARCH_NORM}.tar.gz"
       echo ""
       die "请解决上述问题后重新运行 install.sh"
     fi
@@ -334,7 +346,7 @@ else
     info "拉取 biomni-tools 镜像: $_BIOMNI_REMOTE ..."
     if ! docker pull "$_BIOMNI_REMOTE" 2>&1; then
       warn "biomni-tools 拉取失败。工作流（ADMET、BOIN、药物发现等）将无法运行。"
-      warn "离线部署：docker load -i biomni-tools.tar，然后重新运行 install.sh"
+      warn "离线部署（架构: ${HOST_ARCH_NORM}）：docker load -i biomni-tools-${HOST_ARCH_NORM}.tar，然后重新运行 install.sh"
     fi
   fi
   if docker image inspect "$_BIOMNI_REMOTE" &>/dev/null; then
