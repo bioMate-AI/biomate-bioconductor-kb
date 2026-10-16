@@ -745,7 +745,7 @@ export function ChatInput({
           {/* Upload local file button */}
           <button
             disabled={disabled}
-            title="Attach data file" aria-label="Attach data file"
+            title={t('composer.attach_file')} aria-label={t('composer.attach_file')}
             data-testid="chat-attach-file-button"
             onClick={() => fileInputRef.current?.click()}
             style={{
@@ -761,7 +761,7 @@ export function ChatInput({
           {/* Upload a folder */}
           <button
             disabled={disabled}
-            title="Attach a folder"
+            title={t('composer.attach_folder')}
             onClick={() => folderInputRef.current?.click()}
             data-testid="chat-attach-folder-button"
             style={{
@@ -777,7 +777,7 @@ export function ChatInput({
           {/* Browse BioMate datasets */}
           <button
             disabled={disabled}
-            title="Browse BioMate datasets"
+            title={t('composer.browse_datasets')}
             onClick={() => setShowDatasetBrowser(true)}
             style={{
               width: 22, height: 22, borderRadius: 'var(--bm-r-sm, 6px)',
@@ -872,7 +872,7 @@ export function ChatInput({
         >
           {instructionsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
           <SlidersHorizontal className="w-3 h-3" />
-          <span>Instructions</span>
+          <span>{t('composer.instructions')}</span>
           {instructions.trim() && (
             <span
               data-testid="composer-instructions-on"
@@ -886,7 +886,7 @@ export function ChatInput({
             data-testid="composer-instructions"
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
-            placeholder="Standing instructions for this composer — e.g. report FDR<0.05, use GRCh38, prefer conservative thresholds. Applied to every request here."
+            placeholder={t('composer.instructions_placeholder')}
             rows={2}
             style={{
               width: "100%", marginTop: 6, resize: "vertical",
@@ -931,7 +931,7 @@ export function ChatInput({
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
               }}
-              title="Stop reply"
+              title={t('composer.stop_reply')}
             >
               <Square className="w-3.5 h-3.5 fill-current" />
             </button>

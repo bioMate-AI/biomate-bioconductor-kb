@@ -107,6 +107,19 @@
     "regenerate": "Regenerate",
     "attach_file": "Attach file"
   },
+  "composer": {
+    "attach_file": "Attach data file",
+    "attach_folder": "Attach a folder",
+    "browse_datasets": "Browse BioMate datasets",
+    "instructions": "Instructions",
+    "instructions_placeholder": "Standing instructions for this composer — e.g. report FDR<0.05, use GRCh38, prefer conservative thresholds. Applied to every request here.",
+    "stop_reply": "Stop reply",
+    "skills_and_experts": "Skills & experts",
+    "count_on": "{{n}} on",
+    "experts_header": "Expert packs applied to this request — the answer records which were on.",
+    "loading_expert_packs": "Loading expert packs…",
+    "no_expert_packs": "No expert packs available yet."
+  },
   "projects": {
     "create_project": "Create Project",
     "project_name": "Project name",

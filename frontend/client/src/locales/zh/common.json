@@ -107,6 +107,19 @@
     "regenerate": "重新生成",
     "attach_file": "附加文件"
   },
+  "composer": {
+    "attach_file": "附加数据文件",
+    "attach_folder": "附加文件夹",
+    "browse_datasets": "浏览 BioMate 数据集",
+    "instructions": "指令",
+    "instructions_placeholder": "此输入框的常设指令 — 例如要求 FDR<0.05、使用 GRCh38、优先采用保守阈值。将应用于此处的每次请求。",
+    "stop_reply": "停止回复",
+    "skills_and_experts": "技能与专家",
+    "count_on": "已启用 {{n}}",
+    "experts_header": "应用于本次请求的专家包 — 回答将记录启用了哪些。",
+    "loading_expert_packs": "正在加载专家包…",
+    "no_expert_packs": "暂无可用的专家包。"
+  },
   "projects": {
     "create_project": "创建项目",
     "project_name": "项目名称",

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Sparkles, ChevronDown, ChevronRight, Check } from "lucide-react"
+import { t } from "@/lib/i18n"
 
 /**
  * A single expert / skill pack surfaced in the composer (spec 06 §6.5 /
@@ -147,7 +148,7 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
       >
         {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         <Sparkles className="w-3 h-3" />
-        <span>Skills &amp; experts</span>
+        <span>{t('composer.skills_and_experts')}</span>
         {onCount > 0 && (
           <span
             data-testid="composer-experts-count"
@@ -163,7 +164,7 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            {onCount} on
+            {t('composer.count_on', { n: onCount })}
           </span>
         )}
       </button>
@@ -195,18 +196,18 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
               borderBottom: `1px solid ${BORDER}`,
             }}
           >
-            Expert packs applied to this request — the answer records which were on.
+            {t('composer.experts_header')}
           </p>
 
           {loading ? (
             <p data-testid="composer-experts-loading" style={{ fontSize: 12, color: DIM, padding: "10px 6px", margin: 0 }}>
-              Loading expert packs…
+              {t('composer.loading_expert_packs')}
             </p>
           ) : resolved.length === 0 ? (
             // Honest-empty: no fabricated packs. This is the real state when
             // the backend catalogue is unpopulated.
             <p data-testid="composer-experts-empty" style={{ fontSize: 12, color: DIM, padding: "10px 6px", margin: 0 }}>
-              No expert packs available yet.
+              {t('composer.no_expert_packs')}
             </p>
           ) : (
             <div style={{ marginTop: 4 }}>
