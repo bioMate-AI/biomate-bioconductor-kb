@@ -45,7 +45,9 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
     main: [
       { name: "About", href: "/about" },
       { name: "Tutorials", href: "/tutorials" },
-      { name: "Pricing", href: "/pricing" },
+      // Pricing link commented out — pricing page content is disabled pending a
+      // verified pricing model (no fabricated billing figures). Restore with it.
+      // { name: "Pricing", href: "/pricing" },
       { name: "Blog", href: "/blog" },
     ],
     authenticated: [

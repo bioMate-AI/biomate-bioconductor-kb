@@ -97,6 +97,13 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-background py-24">
+      {/* Billing / pricing content commented out — plan prices, credit amounts,
+          usage rates, example costs, rollover/trial terms and dashboard
+          references were unverified placeholders, not confirmed pricing. Do not
+          present fabricated billing figures. Restore (and localize) once a real
+          pricing + usage model is finalized. Billing nav and /checkout, /billing
+          routes are likewise disabled. */}
+      {false && (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
@@ -315,6 +322,7 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
+      )}
     </div>
   )
 }
