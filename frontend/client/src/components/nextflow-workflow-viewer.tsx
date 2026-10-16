@@ -1799,7 +1799,14 @@ export function NextflowWorkflowViewer({
     : renderedParameters
         .filter((p: any) => p.required === true)
         .some((p: any) => (p.value === '' || p.value === null || p.value === undefined));
-  const isPrereqBlocked = (!!prereqChecklist && !prereqChecklist.canRun) || hasUnfilledRequired;
+  // Block Run if file-type params have no value — even when schema marks them optional, the
+  // workflow will fail at runtime without them (e.g. samplesheet/matrix in differentialabundance).
+  const missingFileInputs = prereqChecklist?.overrideAllowed
+    ? []
+    : renderedParameters.filter(
+        (p: any) => p.type === 'file' && !p.value && !p.default
+      );
+  const isPrereqBlocked = (!!prereqChecklist && !prereqChecklist.canRun) || hasUnfilledRequired || missingFileInputs.length > 0;
   const [isLicenseBlocked, setIsLicenseBlocked] = useState(false);
   const isGlobalExecutionActive = status === "running" || status === "paused";
   const isAutofixActive =
@@ -1871,10 +1878,11 @@ export function NextflowWorkflowViewer({
     }
   }, [status]);
 
-  // Auto-expand workflow settings when required params are still empty
+  // Auto-expand workflow settings when required params are still empty, or when
+  // file-type params have no value (so the user can see and fill them easily).
   useEffect(() => {
-    if (hasUnfilledRequired) setGlobalParamsOpen(true);
-  }, [hasUnfilledRequired]);
+    if (hasUnfilledRequired || missingFileInputs.length > 0) setGlobalParamsOpen(true);
+  }, [hasUnfilledRequired, missingFileInputs.length]);
 
   // Auto-expand when the LLM extracted inline params for the user — they should
   // see what was prefilled before clicking Run (and so the form is actually in
@@ -3527,6 +3535,15 @@ export function NextflowWorkflowViewer({
             ) : globalRequiredUnfilledCount > 0 ? (
               <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.01 260)', marginTop: 4 }}>
                 Fill in {globalRequiredUnfilledCount} required parameter{globalRequiredUnfilledCount > 1 ? 's' : ''} above before running
+              </div>
+            ) : (missingFileInputs.length > 0) ? (
+              <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
+                <span>⚠</span>
+                <span>
+                  Input files required:{' '}
+                  <strong>{missingFileInputs.map((p: any) => p.label || p.name).join(', ')}</strong>
+                  {' '}— upload via the file button in chat or paste an S3 path in the parameter field above
+                </span>
               </div>
             ) : (isPrereqBlocked && !prereqChecklist?.overrideAllowed) ? (
               <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
