@@ -100,25 +100,37 @@ cross-disease target scorecard (`docs/20260727_CROSS_DISEASE_TARGET_SCORECARD.md
 + the 16-target autoimmune panel + the immuno-oncology arm. **Honest framing: these are the disease categories and
 validated mechanisms we DESIGN FOR (pre-clinical focus areas), not programs in the clinic.**
 
-**Page header:** *"Immune-mediated disease — where we focus."* Sub: *"One engine, many targets. We design
-cyclic-peptide and macrocycle therapeutics against the mechanisms that drive immune-mediated disease — anchored on
-human genetics and validated target biology."*
+**Page header:** *"Immune-mediated disease — where we focus."*
+**Unifying thesis (the one idea that makes the three categories one realm):** *"Immune-mediated disease has three
+faces — an immune system that **attacks** the body (autoimmune), **fails to clear** a pathogen (chronic infection),
+or is **evaded** by a tumor (cancer). One engine, built for the immune system, is designed to address all three."*
 
-| Category | Disorders | Validated mechanisms we design against | Modality |
-|---|---|---|---|
-| **Rheumatologic & systemic autoimmune** | Rheumatoid arthritis, Lupus (SLE) | TNF, IL-6R, CD40, BAFF, CTLA-4, TYK2 | cyclic-peptide PPI blockers |
-| **Inflammatory bowel disease** | Crohn's, Ulcerative colitis | IL-23 / IL-12B, α4β7 integrin, TNF, JAK | PPI blockers + integrin (metal-site) binders |
-| **Dermatologic & spondyloarthritis** | Psoriasis, Ankylosing spondylitis | IL-17A/F, IL-23, TNF, TYK2 | cyclic-peptide PPI blockers |
-| **Neuroimmune** | Multiple sclerosis, Myasthenia gravis | C5 (complement), FcRn, CD20, S1P₁, IL-2Rα, α4 integrin | PPI blockers + integrin binders |
-| **Endocrine autoimmune** | Type 1 diabetes | CTLA-4, TYK2 | cyclic-peptide binders |
-| **Immuno-oncology (cold tumors)** | Pancreatic cancer, IO-resistant solid tumors | αvβ6 integrin (lead), PD-L1 | radioligand theranostic (αvβ6) + PPI blocker (PD-L1) |
+Three top-level categories (high-level, Moderna-style — list disorders, not targets). No clinical phases (we are
+pre-clinical); use **Lead** / **Discovery-stage focus** instead.
+
+### Autoimmune — *immunity that attacks the self*
+Rheumatoid arthritis · Systemic lupus erythematosus · Sjögren's · Systemic sclerosis · Vasculitis ·
+Inflammatory bowel disease (Crohn's, ulcerative colitis) · Psoriasis & psoriatic arthritis ·
+Ankylosing spondylitis · Multiple sclerosis · Myasthenia gravis · Type 1 diabetes
+*One-liner:* "We design therapeutics against the validated drivers of autoimmune inflammation — the deepest part
+of our target map and data."
+
+### Chronic infection — *immunity that fails to clear*
+Chronic viral hepatitis (HBV) · HIV · Persistent / latent viral infection · Infection-driven immune exhaustion
+*One-liner:* "The same immune-design engine, turned to infections the immune system can't resolve on its own —
+restoring or redirecting the response."
+
+### Immuno-oncology — *immunity that is evaded*
+Pancreatic cancer (**lead**) · Immunologically "cold" solid tumors · Checkpoint-resistant cancers
+*One-liner:* "Making cold tumors visible and targetable — our lead is a cyclic-peptide radioligand for pancreatic
+cancer."
 
 Design notes for the page:
-- Each row → a short card (Moderna-style): disease(s), the mechanism(s), one line on *why cyclic peptides fit*
-  (reach PPI/groove targets small molecules miss; private, metal-aware physics for integrins).
-- Mark the **lead** clearly (αvβ6 radioligand, PDAC) and everything else as **discovery-stage focus areas**.
-- A footnote on provenance: *"Target mechanisms are drug-blind rediscoveries from a human-genetics-anchored
-  cross-disease analysis; disease areas reflect where our engine and data are strongest."* (true, per the scorecard).
+- One card per category: the "face of immune dysregulation" line + the list of disorders + one capability line.
+  **No per-target mechanism lists** on this page (too specific — those live in a deeper science/pipeline view).
+- Mark the **lead** (pancreatic / αvβ6) explicitly; everything else = **discovery-stage focus**.
+- Honest depth note: **autoimmune + immuno-oncology are where our engine and data are strongest today; chronic
+  infection is an extension of the same engine** — say so rather than imply equal maturity.
 - CN mirror required (per the platform deck's EN+CN standard).
 
 ## 4. Honesty & disclosure guardrails (do not skip)
