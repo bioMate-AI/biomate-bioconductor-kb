@@ -157,7 +157,9 @@ services:
       - "127.0.0.1:9001:9001"   # Web 管理界面
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      # Use the MinIO health endpoint directly — works with the official minio/minio
+      # image and any custom builds, without requiring the mc client inside the image.
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/minio/health/live || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 5
