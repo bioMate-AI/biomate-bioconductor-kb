@@ -1,14 +1,12 @@
 name: Mirror MinIO to GHCR
 
-# Builds minimal minio (server) and mc (client) images from official GitHub
-# release binaries and pushes multi-arch manifests to GHCR.
+# Builds a minimal minio server image from Alpine's package repo and pushes
+# a multi-arch manifest to GHCR. Only the server image is needed:
+# - Healthcheck uses curl (not mc)
+# - Bucket creation (minio-init) uses amazon/aws-cli via S3-compatible API
 #
-# Why build instead of mirror: Docker Hub and Quay.io now require auth for
-# pulls. GitHub releases are publicly accessible and version-pinnable.
-#
-# Result (multi-arch amd64+arm64 manifests):
-#   ghcr.io/biomate-ai/minio:latest
-#   ghcr.io/biomate-ai/minio-mc:latest
+# Result:
+#   ghcr.io/biomate-ai/minio:latest  → amd64 + arm64 manifest
 #
 # Triggered: weekly (keeps image fresh) + manual dispatch.
 
@@ -23,11 +21,10 @@ permissions:
 
 env:
   MINIO_DST: ghcr.io/biomate-ai/minio
-  MC_DST: ghcr.io/biomate-ai/minio-mc
 
 jobs:
   build-amd64:
-    name: Build amd64
+    name: Build minio amd64
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -38,58 +35,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get latest MinIO release tag
-        id: minio_version
-        run: |
-          TAG=$(curl -sf "https://api.github.com/repos/minio/minio/releases/latest" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" | \
-            jq -r '.tag_name')
-          echo "minio_tag=$TAG" >> "$GITHUB_OUTPUT"
-          TAG=$(curl -sf "https://api.github.com/repos/minio/mc/releases/latest" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" | \
-            jq -r '.tag_name')
-          echo "mc_tag=$TAG" >> "$GITHUB_OUTPUT"
-
       - name: Build and push minio amd64
         run: |
-          mkdir -p /tmp/minio-ctx
-          curl -fL "https://github.com/minio/minio/releases/download/${{ steps.minio_version.outputs.minio_tag }}/minio.linux-amd64" \
-            -o /tmp/minio-ctx/minio
-          chmod +x /tmp/minio-ctx/minio
-          cat > /tmp/minio-ctx/Dockerfile << 'DEOF'
-          FROM ubuntu:22.04
-          RUN apt-get update -qq && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
-          COPY minio /usr/bin/minio
+          cat > /tmp/Dockerfile.minio << 'DEOF'
+          FROM alpine:3.20
+          # Alpine community repo ships the minio binary (server only).
+          # curl is added for the healthcheck: curl -sf http://localhost:9000/minio/health/live
+          RUN apk add --no-cache minio curl ca-certificates
           EXPOSE 9000 9001
-          ENTRYPOINT ["minio"]
+          ENTRYPOINT ["/usr/bin/minio"]
           CMD ["server", "/data", "--console-address", ":9001"]
           DEOF
           docker build --platform linux/amd64 \
             -t "$MINIO_DST:latest-amd64" \
-            /tmp/minio-ctx/
+            -f /tmp/Dockerfile.minio \
+            /tmp
           docker push "$MINIO_DST:latest-amd64"
 
-      - name: Build and push mc amd64
-        run: |
-          mkdir -p /tmp/mc-ctx
-          curl -fL "https://github.com/minio/mc/releases/download/${{ steps.minio_version.outputs.mc_tag }}/mc.linux-amd64" \
-            -o /tmp/mc-ctx/mc 2>/dev/null || \
-          curl -fL "https://dl.min.io/client/mc/release/linux-amd64/mc" \
-            -o /tmp/mc-ctx/mc
-          chmod +x /tmp/mc-ctx/mc
-          cat > /tmp/mc-ctx/Dockerfile << 'DEOF'
-          FROM ubuntu:22.04
-          RUN apt-get update -qq && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
-          COPY mc /usr/bin/mc
-          ENTRYPOINT ["mc"]
-          DEOF
-          docker build --platform linux/amd64 \
-            -t "$MC_DST:latest-amd64" \
-            /tmp/mc-ctx/
-          docker push "$MC_DST:latest-amd64"
-
   build-arm64:
-    name: Build arm64
+    name: Build minio arm64
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     steps:
@@ -100,58 +64,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get latest MinIO release tag
-        id: minio_version
-        run: |
-          TAG=$(curl -sf "https://api.github.com/repos/minio/minio/releases/latest" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" | \
-            jq -r '.tag_name')
-          echo "minio_tag=$TAG" >> "$GITHUB_OUTPUT"
-          TAG=$(curl -sf "https://api.github.com/repos/minio/mc/releases/latest" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" | \
-            jq -r '.tag_name')
-          echo "mc_tag=$TAG" >> "$GITHUB_OUTPUT"
-
       - name: Build and push minio arm64
         run: |
-          mkdir -p /tmp/minio-ctx
-          curl -fL "https://github.com/minio/minio/releases/download/${{ steps.minio_version.outputs.minio_tag }}/minio.linux-arm64" \
-            -o /tmp/minio-ctx/minio
-          chmod +x /tmp/minio-ctx/minio
-          cat > /tmp/minio-ctx/Dockerfile << 'DEOF'
-          FROM ubuntu:22.04
-          RUN apt-get update -qq && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
-          COPY minio /usr/bin/minio
+          cat > /tmp/Dockerfile.minio << 'DEOF'
+          FROM alpine:3.20
+          # Alpine community repo ships the minio binary (server only).
+          # curl is added for the healthcheck: curl -sf http://localhost:9000/minio/health/live
+          RUN apk add --no-cache minio curl ca-certificates
           EXPOSE 9000 9001
-          ENTRYPOINT ["minio"]
+          ENTRYPOINT ["/usr/bin/minio"]
           CMD ["server", "/data", "--console-address", ":9001"]
           DEOF
           docker build --platform linux/arm64 \
             -t "$MINIO_DST:latest-arm64" \
-            /tmp/minio-ctx/
+            -f /tmp/Dockerfile.minio \
+            /tmp
           docker push "$MINIO_DST:latest-arm64"
 
-      - name: Build and push mc arm64
-        run: |
-          mkdir -p /tmp/mc-ctx
-          curl -fL "https://github.com/minio/mc/releases/download/${{ steps.minio_version.outputs.mc_tag }}/mc.linux-arm64" \
-            -o /tmp/mc-ctx/mc 2>/dev/null || \
-          curl -fL "https://dl.min.io/client/mc/release/linux-arm64/mc" \
-            -o /tmp/mc-ctx/mc
-          chmod +x /tmp/mc-ctx/mc
-          cat > /tmp/mc-ctx/Dockerfile << 'DEOF'
-          FROM ubuntu:22.04
-          RUN apt-get update -qq && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
-          COPY mc /usr/bin/mc
-          ENTRYPOINT ["mc"]
-          DEOF
-          docker build --platform linux/arm64 \
-            -t "$MC_DST:latest-arm64" \
-            /tmp/mc-ctx/
-          docker push "$MC_DST:latest-arm64"
-
   merge-manifest:
-    name: Merge multi-arch manifests
+    name: Merge multi-arch manifest
     runs-on: ubuntu-latest
     needs: [build-amd64, build-arm64]
     timeout-minutes: 15
@@ -166,24 +97,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create multi-arch manifest for minio
+      - name: Create multi-arch manifest
         run: |
           docker buildx imagetools create \
             --tag "$MINIO_DST:latest" \
             "$MINIO_DST:latest-amd64" \
             "$MINIO_DST:latest-arm64"
+          echo "=== Multi-arch manifest ==="
           docker buildx imagetools inspect "$MINIO_DST:latest"
-
-      - name: Create multi-arch manifest for mc
-        run: |
-          docker buildx imagetools create \
-            --tag "$MC_DST:latest" \
-            "$MC_DST:latest-amd64" \
-            "$MC_DST:latest-arm64"
-          docker buildx imagetools inspect "$MC_DST:latest"
 
       - name: Summary
         run: |
           echo "## MinIO GHCR Build" >> "$GITHUB_STEP_SUMMARY"
-          echo "- \`$MINIO_DST:latest\` (amd64 + arm64)" >> "$GITHUB_STEP_SUMMARY"
-          echo "- \`$MC_DST:latest\` (amd64 + arm64)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`$MINIO_DST:latest\` (amd64 + arm64, from Alpine apk)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- minio-init uses amazon/aws-cli — no separate mc image needed" >> "$GITHUB_STEP_SUMMARY"
