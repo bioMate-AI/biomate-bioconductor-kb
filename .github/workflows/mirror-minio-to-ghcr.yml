@@ -1,13 +1,14 @@
 name: Mirror MinIO to GHCR
 
-# Mirrors official MinIO (minio + mc) images to GHCR so on-prem customers can
-# pull them using only their GHCR_TOKEN — no Docker Hub auth needed.
+# Builds minimal minio (server) and mc (client) images from official GitHub
+# release binaries and pushes multi-arch manifests to GHCR.
 #
-# Strategy: pull per-arch from Docker Hub (GHA runners have elevated pull
-# quota so no auth required), then push per-arch tags and create a multi-arch
-# manifest on GHCR. Result:
-#   ghcr.io/biomate-ai/minio:latest       → amd64 + arm64 manifest
-#   ghcr.io/biomate-ai/minio-mc:latest    → amd64 + arm64 manifest
+# Why build instead of mirror: Docker Hub and Quay.io now require auth for
+# pulls. GitHub releases are publicly accessible and version-pinnable.
+#
+# Result (multi-arch amd64+arm64 manifests):
+#   ghcr.io/biomate-ai/minio:latest
+#   ghcr.io/biomate-ai/minio-mc:latest
 #
 # Triggered: weekly (keeps image fresh) + manual dispatch.
 
@@ -21,20 +22,15 @@ permissions:
   contents: read
 
 env:
-  MINIO_SRC: minio/minio:latest
-  MC_SRC: minio/mc:latest
   MINIO_DST: ghcr.io/biomate-ai/minio
   MC_DST: ghcr.io/biomate-ai/minio-mc
 
 jobs:
-  mirror-amd64:
-    name: Mirror amd64
+  build-amd64:
+    name: Build amd64
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -42,26 +38,61 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Mirror minio amd64
+      - name: Get latest MinIO release tag
+        id: minio_version
         run: |
-          docker pull --platform linux/amd64 "$MINIO_SRC"
-          docker tag "$MINIO_SRC" "$MINIO_DST:latest-amd64"
+          TAG=$(curl -sf "https://api.github.com/repos/minio/minio/releases/latest" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" | \
+            jq -r '.tag_name')
+          echo "minio_tag=$TAG" >> "$GITHUB_OUTPUT"
+          TAG=$(curl -sf "https://api.github.com/repos/minio/mc/releases/latest" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" | \
+            jq -r '.tag_name')
+          echo "mc_tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push minio amd64
+        run: |
+          mkdir -p /tmp/minio-ctx
+          curl -fL "https://github.com/minio/minio/releases/download/${{ steps.minio_version.outputs.minio_tag }}/minio.linux-amd64" \
+            -o /tmp/minio-ctx/minio
+          chmod +x /tmp/minio-ctx/minio
+          cat > /tmp/minio-ctx/Dockerfile << 'DEOF'
+          FROM ubuntu:22.04
+          RUN apt-get update -qq && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
+          COPY minio /usr/bin/minio
+          EXPOSE 9000 9001
+          ENTRYPOINT ["minio"]
+          CMD ["server", "/data", "--console-address", ":9001"]
+          DEOF
+          docker build --platform linux/amd64 \
+            -t "$MINIO_DST:latest-amd64" \
+            /tmp/minio-ctx/
           docker push "$MINIO_DST:latest-amd64"
 
-      - name: Mirror mc amd64
+      - name: Build and push mc amd64
         run: |
-          docker pull --platform linux/amd64 "$MC_SRC"
-          docker tag "$MC_SRC" "$MC_DST:latest-amd64"
+          mkdir -p /tmp/mc-ctx
+          curl -fL "https://github.com/minio/mc/releases/download/${{ steps.minio_version.outputs.mc_tag }}/mc.linux-amd64" \
+            -o /tmp/mc-ctx/mc 2>/dev/null || \
+          curl -fL "https://dl.min.io/client/mc/release/linux-amd64/mc" \
+            -o /tmp/mc-ctx/mc
+          chmod +x /tmp/mc-ctx/mc
+          cat > /tmp/mc-ctx/Dockerfile << 'DEOF'
+          FROM ubuntu:22.04
+          RUN apt-get update -qq && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+          COPY mc /usr/bin/mc
+          ENTRYPOINT ["mc"]
+          DEOF
+          docker build --platform linux/amd64 \
+            -t "$MC_DST:latest-amd64" \
+            /tmp/mc-ctx/
           docker push "$MC_DST:latest-amd64"
 
-  mirror-arm64:
-    name: Mirror arm64
+  build-arm64:
+    name: Build arm64
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -69,22 +100,60 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Mirror minio arm64
+      - name: Get latest MinIO release tag
+        id: minio_version
         run: |
-          docker pull --platform linux/arm64 "$MINIO_SRC"
-          docker tag "$MINIO_SRC" "$MINIO_DST:latest-arm64"
+          TAG=$(curl -sf "https://api.github.com/repos/minio/minio/releases/latest" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" | \
+            jq -r '.tag_name')
+          echo "minio_tag=$TAG" >> "$GITHUB_OUTPUT"
+          TAG=$(curl -sf "https://api.github.com/repos/minio/mc/releases/latest" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" | \
+            jq -r '.tag_name')
+          echo "mc_tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push minio arm64
+        run: |
+          mkdir -p /tmp/minio-ctx
+          curl -fL "https://github.com/minio/minio/releases/download/${{ steps.minio_version.outputs.minio_tag }}/minio.linux-arm64" \
+            -o /tmp/minio-ctx/minio
+          chmod +x /tmp/minio-ctx/minio
+          cat > /tmp/minio-ctx/Dockerfile << 'DEOF'
+          FROM ubuntu:22.04
+          RUN apt-get update -qq && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
+          COPY minio /usr/bin/minio
+          EXPOSE 9000 9001
+          ENTRYPOINT ["minio"]
+          CMD ["server", "/data", "--console-address", ":9001"]
+          DEOF
+          docker build --platform linux/arm64 \
+            -t "$MINIO_DST:latest-arm64" \
+            /tmp/minio-ctx/
           docker push "$MINIO_DST:latest-arm64"
 
-      - name: Mirror mc arm64
+      - name: Build and push mc arm64
         run: |
-          docker pull --platform linux/arm64 "$MC_SRC"
-          docker tag "$MC_SRC" "$MC_DST:latest-arm64"
+          mkdir -p /tmp/mc-ctx
+          curl -fL "https://github.com/minio/mc/releases/download/${{ steps.minio_version.outputs.mc_tag }}/mc.linux-arm64" \
+            -o /tmp/mc-ctx/mc 2>/dev/null || \
+          curl -fL "https://dl.min.io/client/mc/release/linux-arm64/mc" \
+            -o /tmp/mc-ctx/mc
+          chmod +x /tmp/mc-ctx/mc
+          cat > /tmp/mc-ctx/Dockerfile << 'DEOF'
+          FROM ubuntu:22.04
+          RUN apt-get update -qq && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+          COPY mc /usr/bin/mc
+          ENTRYPOINT ["mc"]
+          DEOF
+          docker build --platform linux/arm64 \
+            -t "$MC_DST:latest-arm64" \
+            /tmp/mc-ctx/
           docker push "$MC_DST:latest-arm64"
 
   merge-manifest:
     name: Merge multi-arch manifests
     runs-on: ubuntu-latest
-    needs: [mirror-amd64, mirror-arm64]
+    needs: [build-amd64, build-arm64]
     timeout-minutes: 15
     steps:
       - name: Set up Docker Buildx
@@ -115,6 +184,6 @@ jobs:
 
       - name: Summary
         run: |
-          echo "## MinIO GHCR Mirror" >> "$GITHUB_STEP_SUMMARY"
+          echo "## MinIO GHCR Build" >> "$GITHUB_STEP_SUMMARY"
           echo "- \`$MINIO_DST:latest\` (amd64 + arm64)" >> "$GITHUB_STEP_SUMMARY"
           echo "- \`$MC_DST:latest\` (amd64 + arm64)" >> "$GITHUB_STEP_SUMMARY"
