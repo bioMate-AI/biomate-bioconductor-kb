@@ -51,31 +51,46 @@ jobs:
           echo "sha_tag=${SHA_TAG}" >> "$GITHUB_OUTPUT"
           echo "full_sha_tag=${GHCR_IMAGE}:${SHA_TAG}" >> "$GITHUB_OUTPUT"
 
-      - name: Build image (x86, public base — no ECR auth needed)
-        run: |
-          docker build \
-            --platform linux/amd64 \
-            -f backend/docker/biomni-tools/Dockerfile.onprem \
-            -t "${{ steps.tags.outputs.full_sha_tag }}" \
-            .
+      - name: Set up QEMU (for arm64 cross-build)
+        uses: docker/setup-qemu-action@v3
 
-      - name: Smoke test (gates the push)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Smoke on amd64 only (native runner) — gates the multi-arch push.
+      # We build amd64 first with `load`, smoke it, then do the full multi-arch push.
+      - name: Build amd64 image for smoke (public base — no ECR auth needed)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/docker/biomni-tools/Dockerfile.onprem
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: ${{ steps.tags.outputs.full_sha_tag }}
+
+      - name: Smoke test on amd64 (gates the push)
         run: |
           docker run --rm \
             -v "${{ github.workspace }}/backend/docker/biomni-tools/smoke.py:/smoke.py:ro" \
             "${{ steps.tags.outputs.full_sha_tag }}" \
             python3 /smoke.py
 
-      - name: Push sha tag + :latest (only if smoke passed)
-        run: |
-          docker push "${{ steps.tags.outputs.full_sha_tag }}"
-          docker tag "${{ steps.tags.outputs.full_sha_tag }}" "${GHCR_IMAGE}:latest"
-          docker push "${GHCR_IMAGE}:latest"
+      - name: Build and push multi-arch image (amd64 + arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/docker/biomni-tools/Dockerfile.onprem
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.tags.outputs.full_sha_tag }}
+            ${{ env.GHCR_IMAGE }}:latest
 
       - name: Summary
         if: always()
         run: |
-          echo "### biomni-tools (on-prem)" >> "$GITHUB_STEP_SUMMARY"
+          echo "### biomni-tools (on-prem, multi-arch)" >> "$GITHUB_STEP_SUMMARY"
           echo "- sha tag: \`${{ steps.tags.outputs.sha_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- pushed as: \`${GHCR_IMAGE}:latest\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- pushed as: \`${GHCR_IMAGE}:latest\` (linux/amd64 + linux/arm64)" >> "$GITHUB_STEP_SUMMARY"
           echo "- base: python:3.10-slim (public)" >> "$GITHUB_STEP_SUMMARY"
