@@ -97,7 +97,9 @@ describe("DataHubPage — project picker", () => {
     expect(rna.textContent).toContain("transcriptomics")
     expect(rna.textContent).toContain("Bulk RNA-seq of the cohort")
     expect(admet.textContent).toContain("ADMET screen")
-    expect(admet.textContent).toContain("completed")
+    // Status renders as the localized lifecycle label (statusLabel → t("data_hub.status_completed")),
+    // not the raw lowercase enum, so assert the human-readable label.
+    expect(admet.textContent).toContain("Completed")
 
     // Clicking activates the project via the context setter.
     fireEvent.click(rna)
