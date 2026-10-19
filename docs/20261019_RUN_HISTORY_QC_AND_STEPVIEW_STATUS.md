@@ -59,15 +59,40 @@ do not.** On reopen the QC tab falls back to "passed", and findings re-trigger/s
 3. **Reuse = a separate, explicit "Run again" action:** the `reuseWorkflow` path (load
    definition, strip ids, fresh run). Never the default click.
 
-### Fix plan
-- **Backend (primary):** persist QC events + findings at completion
-  (`nextflow_executor.py` completion path → storage/S3), keyed by invocation id; serve
-  them from the persisted store on `/qc-events` and `/findings` for historical runs.
-- **Frontend (secondary):** `project-detail.tsx` reopen passes
-  `invocationId={run?.execution?.galaxyInvocationId}`; keep reopen (history) and reuse
-  (`reuseWorkflow`) as distinct, clearly-labeled actions.
-- **Verify:** reopen a QC-gated completed run (ADMET) and confirm the gate table +
-  findings render from persisted data.
+### Fix plan + implementation status (2026-10-19)
+
+**DONE (committed):**
+- **Findings persistence (Node):** `frontend/server/routes.ts` — the findings handler now
+  writes genuine results (deterministic + Gemini + Claude-fallback) to the S3 sidecar
+  `<outdir>/output/findings_data.json` via `PutObject` (`persistFindingsSidecar`). The
+  reopen read path (step 2) already served that key — so a reopened run now loads
+  persisted findings instead of re-running the LLM. Best-effort (failure → re-generate).
+- **Reopen invocation id (frontend):** `project-detail.tsx` reopen passes
+  `invocationId={run?.execution?.galaxyInvocationId}` into `NextflowWorkflowViewer`, so
+  after-run fetches resolve the backend invocation rather than the runId fallback.
+- Reopen (history) and reuse (`reuseWorkflow`, strips ids) remain distinct actions.
+
+**QC-events persistence — DESIGNED, not yet implemented (harder than findings):**
+The durable full gate list is split across two contexts, so it is NOT a one-line write:
+- The **full gate/warning log** lives in the per-worker monitor
+  (`nextflow_monitor.py` `qc_handler.get_qc_report()`, served as `source:"live_monitor"`).
+- The **executor completion thread** (`nextflow_executor.py` `_stream_logs`, ~4455) has
+  the **S3 outdir** but only `_qc_gates_s3` = `_evaluate_qc_from_s3(...)`, which returns
+  **failures only** (not the full pass+fail table the QcAuditTab renders) and only for
+  ADMET/CryoEM/preproc domains. And `_stream_logs` has **no `trans.app`**, so it can't
+  reach `get_monitor_service` to pull the full report.
+- **Feasible approach:** write the sidecar from the **monitor's completion handler**
+  (`nextflow_monitor.py` — it has `qc_handler` + `app` + `invocation_id`): flush
+  `get_qc_report()` → `<outdir>/output/qc_events.json` (outdir from the shared
+  `_runs[invocation_id]` dict or app), then have the **Node `/qc-events` handler**
+  (`routes.ts:5055`) fall back to that S3 sidecar on an empty/`not_found` backend
+  response — mirroring the findings read.
+- **Risk/validation:** touches the Galaxy backend + monitor (crash-sensitive; Py3.9
+  module-load check mandatory) and needs a **QC-gated E2E (ADMET-hERG)** to confirm the
+  gate table renders. Not to be shipped unvalidated.
+
+**Verify (both halves):** reopen a QC-gated completed run (ADMET) and confirm the gate
+table + findings render from persisted data (not the "passed" fallback / "pending").
 
 ---
 
