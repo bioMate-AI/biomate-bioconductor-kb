@@ -14330,6 +14330,30 @@ Rules:
       const workflowName: string = (run as any).workflowName || (run as any).name || "Workflow";
       const apiKey = process.env.ANTHROPIC_API_KEY;
 
+      // Durably persist a real findings result to the run's S3 output dir so a
+      // reopened/historical run serves it from the S3 sidecar (read path above,
+      // step 2) instead of re-running the LLM each time. Best-effort: a failure
+      // only means the next open re-generates, never a crash. Only called with
+      // genuine findings (not the "_generating"/"_notReadable" transients).
+      const persistFindingsSidecar = async (result: any) => {
+        try {
+          const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+          const nfRunId: string = (run as any).execution?.nextflowRunId || runId;
+          const storedOutdir: string = (run as any).execution?.nextflowOutputDir || '';
+          const sidecarBase = storedOutdir || `s3://${s3Bucket}/nextflow/outputs/${nfRunId}`;
+          const s3Uri = `${sidecarBase.replace(/\/?$/, '')}/output/findings_data.json`;
+          const mm = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+          if (!mm) return;
+          const [, bucket, key] = mm;
+          const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+          const s3 = await _s3ClientForBucket(bucket);
+          await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: JSON.stringify(result), ContentType: 'application/json' }));
+          console.log(`[Findings] persisted sidecar s3://${bucket}/${key}`);
+        } catch (e: any) {
+          console.warn(`[Findings] sidecar persist failed for ${runId}: ${e?.message}`);
+        }
+      };
+
       const runAsync = async () => {
         try {
           // Gather output files (local or S3) via the output_files endpoint
@@ -14480,6 +14504,7 @@ Rules:
           if (preprocessed?.findings) {
             console.log(`[Findings] deterministic parse succeeded for "${workflowName}" — skipping LLM`);
             _findingsCache.set(runId, preprocessed.findings);
+            void persistFindingsSidecar(preprocessed.findings);
             return;
           }
 
@@ -14670,6 +14695,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
             }
 
             _findingsCache.set(runId, parsed);
+            void persistFindingsSidecar(parsed);
           } catch (parseErr: any) {
             console.warn('[Findings] Gemini JSON parse failed:', parseErr?.message, '— retrying with Claude');
             // Gemini truncated or returned malformed JSON — retry with Claude using a
@@ -14691,6 +14717,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
               const _parsed = JSON.parse(_clean);
               console.log('[Findings] Claude fallback succeeded');
               _findingsCache.set(runId, _parsed);
+              void persistFindingsSidecar(_parsed);
             } catch (claudeErr: any) {
               console.warn('[Findings] Claude fallback also failed:', claudeErr?.message);
               _findingsCache.set(runId, {

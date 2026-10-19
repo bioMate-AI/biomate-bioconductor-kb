@@ -912,6 +912,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                           )}
                           <div className="flex-1 min-h-0 min-w-0 overflow-hidden"><NextflowWorkflowViewer
                             runId={selectedRunId}
+                            invocationId={run?.execution?.galaxyInvocationId}
                             sessionId={run?.chatSessionId}
                             workflowId={run?.workflowName}
                             workflowDefinition={run?.workflowDefinition}
