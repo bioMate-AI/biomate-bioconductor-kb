@@ -94,6 +94,19 @@ compatible; (c) 4-bit prep — code already does `prepare_model_for_kbit_trainin
 **`i-03726d2f9389d3965`** (us-east-1 az4 = 9/10, confirmed spot). This is a 2nd re-fire, justified by a *complete*
 static reconciliation (not blind one-error looping). If it still errors, STOP and report.
 
+## 3g. PeftModel fix VALIDATED; 3rd gap (reward scorer staging) fixed; now HELD on spot capacity
+Re-fire #2 (`i-03726d2f9389d3965`) **passed GRPOConfig AND GRPOTrainer construction** (the peft_config fix works —
+reached + held at `[grpo] START GRPO` ~3 min), then hit a 3rd, non-API gap: `FileNotFoundError` for
+`../datasets/decomposition_v2/score.py` — `decomp_reward.py`'s structural scorer (stdlib-only) was not staged on the
+box (the tarball unpacks to `code/`; `../datasets` is absent). **Fix:** `spot_grpo_decomp_entry.sh` now stages
+`$S3/eval/decompv2/score.py` → `$SCRATCH/datasets/decomposition_v2/score.py`. All reward deps are now present
+(scorer stdlib-only + DB staged) and the reward is CPU-selftest-validated, so the next fire should train end-to-end.
+Tarball rebuilt. **Pipeline status: fully reconciled to trl 1.14.1 and validated on-box through GRPOTrainer
+construction + reward setup — one resume-safe spot fire from the end-to-end run.**
+**HELD:** at this moment no AZ meets the spot-only ≥6 threshold (us-east-1 best use1-az2=5; use1-az4 dipped 9→4;
+us-west-2=1). Transient (az4 was 9 minutes earlier). Per spot-only, NOT firing into thin capacity or on-demand.
+**Re-fire when ≥6 returns** (same command, §3c, pointing at subnet for the ≥6 AZ); then grade on decomposition_real.
+
 ## 3d. First us-east-1 run: booted clean, then crashed on a trl-API bug (adapter did NOT land)
 The box (`i-09fff702deba10e2f`) booted fully: venv (torch2.14.1/transformers5.18/trl1.14.1/peft0.21), base
 Qwen3.5-9B, and **the adapter/data/DB pulls all succeeded** — reaching

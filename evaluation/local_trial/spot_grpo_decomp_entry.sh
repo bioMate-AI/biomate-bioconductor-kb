@@ -34,6 +34,10 @@ echo "[grpo] $(date) pulling base + SFT-decomp adapter + data + verifier DB"
 aws s3 cp "$SFT_ADAPTER_S3/" "$SCRATCH/sft_decomp/" --recursive --quiet || { echo SFT_ADAPTER_FAIL; exit 11; }
 aws s3 cp "$DATA_S3" "$SCRATCH/data/decomp_depgraph.jsonl" --quiet || { echo DATA_FAIL; exit 12; }
 aws s3 cp "$DB_S3"   "$SCRATCH/data/galaxy_ai_tools.db"    --quiet || { echo DB_FAIL;   exit 13; }
+# decomp_reward.py loads its structural scorer from ../datasets/decomposition_v2/score.py (stdlib-only,
+# relative to the code dir). The tarball unpacks to $SCRATCH/code, so stage the scorer at $SCRATCH/datasets/.
+mkdir -p "$SCRATCH/datasets/decomposition_v2"
+aws s3 cp "$S3/eval/decompv2/score.py" "$SCRATCH/datasets/decomposition_v2/score.py" --quiet || { echo SCORER_FAIL; exit 14; }
 
 echo "[grpo] resume check"; aws s3 sync "$CKPT_S3/" "$OUT/" --quiet || true
 RESUME=""; LAST=$(ls -d "$OUT"/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1) || LAST=""
