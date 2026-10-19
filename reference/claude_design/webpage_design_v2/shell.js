@@ -46,6 +46,7 @@
           </a>
           <nav aria-label="Primary navigation" class="bm-primary-nav"><ul class="bm-nav-links" id="bmNavLinks">
             <li><a class="bm-nav-trigger${active === 'therapeutic-areas' ? ' active' : ''}" href="therapeutic-areas.html">Therapeutic Areas</a></li>
+            <li><a class="bm-nav-trigger${active === 'how-we-design' ? ' active' : ''}" href="how-we-design.html">How We Design</a></li>
             ${dropdown('company', 'Company', 'about.html', [
               { label: 'About BioMate', href: 'about.html', description: 'Our mission and approach to AI-powered science.', links: [
                 { label: 'BioMate vs. the alternatives', href: 'compare.html' }
