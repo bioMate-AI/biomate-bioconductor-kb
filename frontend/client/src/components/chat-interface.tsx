@@ -108,6 +108,9 @@ interface ChatInterfaceProps {
   onStreamingChange?: (isStreaming: boolean) => void
   /** Called just before a message with file attachments is submitted. */
   onSubmitWithFiles?: () => void
+  /** The workflow currently open in the right panel (if any). Sent to the
+   *  backend so follow-up messages can auto-fill parameters. */
+  currentPanelWorkflow?: any | null
 }
 
 // ── Onboarding welcome ────────────────────────────────────────────────────────
@@ -483,6 +486,7 @@ export function ChatInterface({
   onRegisterSendMessage,
   onStreamingChange,
   onSubmitWithFiles,
+  currentPanelWorkflow,
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
   // Notify parent when streaming state changes so it can show a panel skeleton.
@@ -826,6 +830,10 @@ export function ChatInterface({
             ...(_activeProjectId && { projectId: _activeProjectId }),
             ...(_activeSkillIds && { activeSkillIds: _activeSkillIds }),
             assistantMessageId: placeholderId,
+            // Pass the currently open panel workflow so the backend can
+            // extract parameter values from follow-up user messages and
+            // return workflowEdits ops to auto-fill the panel.
+            ...(currentPanelWorkflow && { currentWorkflow: currentPanelWorkflow }),
             // Caller-supplied override (e.g. intentOverride from
             // IntentClarificationCard re-submit). Spread LAST so it can
             // augment but not be clobbered by defaults above.
