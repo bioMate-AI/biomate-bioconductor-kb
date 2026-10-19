@@ -2121,7 +2121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set HTTP-only cookie
       res.cookie('biomate_token', result.token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
         sameSite: 'lax',
         maxAge: result.expiresIn * 1000, // Convert to milliseconds
       });
@@ -2183,14 +2183,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (result.rememberMe) {
         res.cookie('biomate_token', result.token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
           sameSite: 'lax',
           maxAge: result.expiresIn * 1000, // 30 days in ms
         });
       } else {
         res.cookie('biomate_token', result.token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
           sameSite: 'lax',
           // No maxAge → session cookie; dropped when browser closes
         });
@@ -2372,7 +2372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sessionToken = authService.generateToken(user as any, false); // 24h
       res.cookie('biomate_token', sessionToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
         sameSite: 'lax',
         maxAge: 24 * 60 * 60 * 1000,
       });
@@ -2715,7 +2715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Set cookie
         res.cookie('biomate_token', token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
           sameSite: 'lax',
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
@@ -2751,7 +2751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Set cookie
         res.cookie('biomate_token', token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
           sameSite: 'lax',
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
