@@ -5061,7 +5061,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `/api/invocations/${backendId}/qc-events`,
         { params: req.query }
       );
-      return res.status(response.status).json(response.data);
+      const qd: any = response.data;
+      // The live monitor is gone for a reopened/historical run → the backend
+      // returns source:"not_found" (or zero events). Fall back to the durable
+      // S3 sidecar written at run completion (nextflow_executor qc_events.json)
+      // so the reopened run shows the same QC gate table it showed live.
+      const noLiveQc = qd && (qd.source === 'not_found' ||
+        (Array.isArray(qd.events) && qd.events.length === 0 && Number(qd.gates_triggered || 0) === 0));
+      if (noLiveQc) {
+        try {
+          const run = (await storage.getExecutionRun(invocationId).catch(() => null))
+            || (await storage.getExecutionRunByGalaxyId(invocationId).catch(() => null));
+          if (run) {
+            const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+            const nfRunId: string = (run as any).execution?.nextflowRunId || (run as any).id;
+            const storedOutdir: string = (run as any).execution?.nextflowOutputDir || '';
+            const sidecarBase = storedOutdir || `s3://${s3Bucket}/nextflow/outputs/${nfRunId}`;
+            const s3Uri = `${sidecarBase.replace(/\/?$/, '')}/output/qc_events.json`;
+            const galaxyUrl2 = process.env.GALAXY_URL || 'http://localhost:8081';
+            const presignResp = await fetch(
+              `${galaxyUrl2}/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=${nfRunId}&presigned_only=1`,
+              { signal: AbortSignal.timeout(5_000) }
+            );
+            if (presignResp.ok) {
+              const { url } = await presignResp.json() as { url: string };
+              const dataResp = await fetch(url, { signal: AbortSignal.timeout(5_000) });
+              if (dataResp.ok) return res.status(200).json(await dataResp.json());
+            }
+          }
+        } catch { /* sidecar unavailable — serve the backend response as-is */ }
+      }
+      return res.status(response.status).json(qd);
     } catch (err: any) {
       const status = err.response?.status || 502;
       // AfterRunReport hides the tab on any non-200; a 404 here is the

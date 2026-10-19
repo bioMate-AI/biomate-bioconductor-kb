@@ -3550,6 +3550,35 @@ def _evaluate_qc_from_s3(
         _, all_failures = handler._check_qc_thresholds(
             "PREDICT_ADMET_PROPERTIES", metrics
         )
+
+        # Persist the full QC report to an S3 sidecar next to the outputs, so a
+        # reopened/historical run (live monitor gone, work dir ephemeral) serves
+        # the SAME detailed QC table the live view shows — not the empty
+        # "all passed" fallback. Best-effort: a failure here never blocks the run
+        # or the gate result. Read back by the Node /qc-events handler.
+        try:
+            _report = handler.get_qc_report()
+            _report["source"] = "s3_sidecar"
+            _sidecar_uri = ""
+            for _f in s3_output_files:
+                _u = _f.get("s3_uri", "")
+                if _u.startswith("s3://"):
+                    _sidecar_uri = _u.rsplit("/", 1)[0] + "/qc_events.json"
+                    break
+            if _sidecar_uri:
+                import boto3 as _boto3
+                _sb, _sk = _sidecar_uri[5:].split("/", 1)
+                _boto3.client(
+                    "s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2")
+                ).put_object(
+                    Bucket=_sb, Key=_sk,
+                    Body=_json.dumps(_report).encode("utf-8"),
+                    ContentType="application/json",
+                )
+                log.info("[QC S3] persisted qc_events sidecar %s", _sidecar_uri)
+        except Exception as _sc_exc:  # noqa: BLE001 — sidecar is best-effort
+            log.warning("[QC S3] qc_events sidecar write failed for %s: %s", run_id, _sc_exc)
+
         return all_failures
 
     except Exception as _exc:
