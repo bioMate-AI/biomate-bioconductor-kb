@@ -22,7 +22,7 @@ test('all prepared public pages expose static navigation and a footer', () => {
       assert.ok(fallback.querySelector(`a[href="${href}"]`), `${file}: ${href}`);
     }
   }
-  assert.equal(checked, 95);
+  assert.equal(checked, 97);
 });
 test('interactive enhancement replaces static markup without duplicate shells', () => {
   const dom = new JSDOM(read('index.html'), {runScripts:'outside-only', url:'https://biomate.ai/'});

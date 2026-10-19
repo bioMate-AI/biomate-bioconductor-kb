@@ -85,55 +85,67 @@
     <p class="wb-eyebrow">三个闭环，而非一个</p>
     <h2 id="loop-heading">计算、实验与临床，<br>三个相互增益的闭环。</h2>
     <p class="wb-lead">真正的药物设计不止一个闭环&mdash;&mdash;而其中最宝贵的输入，是患者与临床数据。<strong>&#9312; 计算闭环</strong>依据我们已知的一切&mdash;&mdash;患者与临床数据、已知的生物学与结构、专利与自由实施权（FTO）、药物化学家的专业判断，以及各类预测模型&mdash;&mdash;生成并评估候选分子，经过多轮快速、低成本的迭代，在合成之前收敛为一小组候选。<strong>&#9313; 湿实验闭环</strong>随之接手&mdash;&mdash;合成、体外实验、ADMET 与体内实验，皆为实际的实验环节&mdash;&mdash;所得结果反过来校准计算模型，于是每一轮计算愈发精准，每一轮实验愈发精简。<strong>&#9314; 临床闭环</strong>则贯穿两者之外：患者与临床数据指引靶点的选择、验证作用机制，并不断反馈，使整个体系在&ldquo;该做什么&rdquo;上愈发精准。</p>
-    <div style="max-width:1000px;margin:36px auto 0;">
-      <svg viewBox="0 0 1040 344" width="100%" role="img" aria-label="三个相互嵌套的闭环。计算闭环（靶点与表位、生成、评分与筛选）快速而低成本地迭代，受患者与临床数据、已知生物学与结构、专利与自由实施权、药物化学家经验以及预测模型的约束，在合成之前收敛为一小组候选。湿实验闭环（合成、体外实验、ADMET 与体内实验）皆为实际实验，其结果校准计算模型。临床闭环：患者与临床数据指引靶点选择，临床结果再反馈。" style="font-family:inherit">
+    <div style="max-width:1020px;margin:36px auto 0;">
+      <svg viewBox="0 0 1040 532" width="100%" role="img" aria-label="三个相互嵌套的闭环。临床数据层（队列与标签、多组学、靶点证据、临床结局）指引靶点选择。计算闭环（靶点与表位、生成、评分与筛选）快速而低成本地迭代，还受已知生物学与结构、专利与自由实施权、药物化学家经验以及预测模型的约束，在合成之前收敛为一小组候选。随后湿实验闭环对每个候选逐项检验——合成与鉴定、亲和力与选择性、功能活性、成药性、安全性与 ADMET、体内 PK 与药效——其结果校准计算模型。候选推进至临床，临床结局再反馈回数据层。" style="font-family:inherit">
         <defs>
           <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#1f8a95"/></marker>
           <marker id="ahl" markerWidth="8" markerHeight="8" refX="5" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#5bc8d6"/></marker>
         </defs>
-        <path d="M984,120 C984,50 660,52 542,40" fill="none" stroke="#1f8a95" stroke-width="2.4" stroke-dasharray="2 7" stroke-linecap="round" marker-end="url(#ah)"/>
-        <text x="748" y="40" text-anchor="middle" fill="#2a3a4d" font-size="11" font-weight="700">&#9314; 临床闭环 &mdash; 临床结果指引下一批靶点</text>
-        <rect x="206" y="14" width="332" height="38" rx="10" fill="#1f8a95"/>
-        <text x="372" y="39" text-anchor="middle" fill="#fff" font-size="15" font-weight="700">患者与临床数据</text>
-        <line x1="372" y1="52" x2="372" y2="81" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
-        <text x="14" y="92" fill="#1f8a95" font-size="11" font-weight="700">每个设计的约束条件</text>
-        <g font-size="11.5" font-weight="600">
-          <rect x="14" y="100" width="180" height="30" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="104" y="119" text-anchor="middle" fill="#0e2a4e">已知生物学与结构</text>
-          <rect x="14" y="138" width="180" height="30" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="104" y="157" text-anchor="middle" fill="#0e2a4e">专利 &middot; FTO</text>
-          <rect x="14" y="176" width="180" height="30" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="104" y="195" text-anchor="middle" fill="#0e2a4e">药物化学家经验</text>
-          <rect x="14" y="214" width="180" height="30" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="104" y="233" text-anchor="middle" fill="#0e2a4e">预测模型</text>
+        <rect x="60" y="14" width="920" height="100" rx="14" fill="#123f56"/>
+        <text x="76" y="37" fill="#fff" font-size="13.5" font-weight="700">患者与临床数据 &mdash; 我们标注并使用的内容</text>
+        <g>
+          <text x="76" y="59" fill="#86c8d6" font-size="11" font-weight="700">队列与标签</text>
+          <text x="76" y="75" fill="#cfe2e8" font-size="10">疾病 vs. 健康</text><text x="76" y="89" fill="#cfe2e8" font-size="10">应答 vs. 非应答</text><text x="76" y="103" fill="#cfe2e8" font-size="10">严重程度与分期</text>
+          <text x="306" y="59" fill="#86c8d6" font-size="11" font-weight="700">多组学</text>
+          <text x="306" y="75" fill="#cfe2e8" font-size="10">转录组</text><text x="306" y="89" fill="#cfe2e8" font-size="10">蛋白质组</text><text x="306" y="103" fill="#cfe2e8" font-size="10">人类遗传学 / GWAS</text>
+          <text x="536" y="59" fill="#86c8d6" font-size="11" font-weight="700">靶点证据</text>
+          <text x="536" y="75" fill="#cfe2e8" font-size="10">疾病组织中的表达</text><text x="536" y="89" fill="#cfe2e8" font-size="10">遗传学关联</text><text x="536" y="103" fill="#cfe2e8" font-size="10">机制验证</text>
+          <text x="766" y="59" fill="#86c8d6" font-size="11" font-weight="700">临床结局</text>
+          <text x="766" y="75" fill="#cfe2e8" font-size="10">治疗应答</text><text x="766" y="89" fill="#cfe2e8" font-size="10">生物标志物</text><text x="766" y="103" fill="#cfe2e8" font-size="10">疾病进展</text>
         </g>
-        <line x1="198" y1="115" x2="204" y2="146" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
-        <line x1="198" y1="153" x2="204" y2="150" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
-        <line x1="198" y1="191" x2="204" y2="154" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
-        <line x1="198" y1="229" x2="204" y2="158" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
-        <rect x="206" y="84" width="332" height="182" rx="16" fill="#eaf3f4" stroke="#9cc3c9" stroke-width="1.5" stroke-dasharray="3 6"/>
-        <text x="216" y="106" fill="#1f8a95" font-size="12.5" font-weight="700">&#9312; 计算闭环 &mdash; 快速、低成本，先于任何合成</text>
-        <rect x="220" y="120" width="92" height="60" rx="11" fill="#0e2a4e"/><text x="266" y="146" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">靶点与</text><text x="266" y="164" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">表位</text>
-        <rect x="326" y="120" width="92" height="60" rx="11" fill="#0e2a4e"/><text x="372" y="155" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">生成</text>
-        <rect x="432" y="120" width="92" height="60" rx="11" fill="#0e2a4e"/><text x="478" y="146" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">评分与</text><text x="478" y="164" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">筛选</text>
-        <line x1="312" y1="150" x2="326" y2="150" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
-        <line x1="418" y1="150" x2="432" y2="150" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
-        <path d="M470,182 C470,206 274,206 274,184" fill="none" stroke="#5bc8d6" stroke-width="2.2" stroke-dasharray="2 6" stroke-linecap="round" marker-end="url(#ahl)"/>
-        <text x="372" y="201" text-anchor="middle" fill="#1f8a95" font-size="10.5" font-weight="600">迭代 &middot; 多轮</text>
-        <text x="560" y="128" text-anchor="middle" fill="#1f8a95" font-size="10.5" font-weight="600">收敛候选</text>
-        <line x1="540" y1="150" x2="549" y2="150" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
-        <circle cx="560" cy="150" r="11" fill="#1f8a95" stroke="#fff" stroke-width="1.5"/>
-        <path d="M555,150 l3,3.5 l7,-8" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        <line x1="571" y1="150" x2="580" y2="150" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
-        <rect x="582" y="84" width="332" height="182" rx="16" fill="#f3eee4" stroke="#d8c9a8" stroke-width="1.5" stroke-dasharray="3 6"/>
-        <text x="592" y="106" fill="#9a7324" font-size="12.5" font-weight="700">&#9313; 湿实验闭环 &mdash; 自合成起，皆为实验</text>
-        <rect x="596" y="120" width="92" height="60" rx="11" fill="#0e2a4e"/><text x="642" y="155" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">合成</text>
-        <rect x="702" y="120" width="92" height="60" rx="11" fill="#0e2a4e"/><text x="748" y="146" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">体外</text><text x="748" y="164" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">实验</text>
-        <rect x="808" y="120" width="92" height="60" rx="11" fill="#0e2a4e"/><text x="854" y="146" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">ADMET 与</text><text x="854" y="164" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">体内</text>
-        <line x1="688" y1="150" x2="702" y2="150" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
-        <line x1="794" y1="150" x2="808" y2="150" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
-        <rect x="938" y="120" width="92" height="60" rx="12" fill="#13324f" stroke="#1f8a95" stroke-width="1.5"/><text x="984" y="155" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">迈向临床</text>
-        <line x1="914" y1="150" x2="936" y2="150" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
-        <path d="M748,266 C748,306 372,306 372,268" fill="none" stroke="#1f8a95" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round" marker-end="url(#ah)"/>
-        <text x="560" y="328" text-anchor="middle" fill="#5b6b7d" font-size="12">湿实验结果校准计算模型</text>
+        <line x1="246" y1="114" x2="246" y2="147" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
+        <text x="258" y="136" fill="#1f8a95" font-size="10" font-weight="600">指引靶点选择</text>
+        <rect x="16" y="150" width="460" height="320" rx="16" fill="#eaf3f4" stroke="#9cc3c9" stroke-width="1.5" stroke-dasharray="3 6"/>
+        <text x="28" y="174" fill="#1f8a95" font-size="12.5" font-weight="700">&#9312; 计算闭环 &mdash; 快速、低成本，先于任何合成</text>
+        <rect x="41" y="194" width="120" height="58" rx="11" fill="#0e2a4e"/><text x="101" y="228" text-anchor="middle" fill="#fff" font-size="14" font-weight="600">靶点与表位</text>
+        <rect x="186" y="194" width="120" height="58" rx="11" fill="#0e2a4e"/><text x="246" y="228" text-anchor="middle" fill="#fff" font-size="14" font-weight="600">生成</text>
+        <rect x="331" y="194" width="120" height="58" rx="11" fill="#0e2a4e"/><text x="391" y="228" text-anchor="middle" fill="#fff" font-size="14" font-weight="600">评分与筛选</text>
+        <line x1="161" y1="223" x2="186" y2="223" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
+        <line x1="306" y1="223" x2="331" y2="223" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
+        <path d="M391,254 C391,278 101,278 101,256" fill="none" stroke="#5bc8d6" stroke-width="2.2" stroke-dasharray="2 6" stroke-linecap="round" marker-end="url(#ahl)"/>
+        <text x="246" y="274" text-anchor="middle" fill="#1f8a95" font-size="10.5" font-weight="600">迭代 &middot; 多轮快速</text>
+        <text x="28" y="303" fill="#5b6b7d" font-size="10.5">&hellip; 此外还受约束于</text>
+        <g font-size="11" font-weight="600">
+          <rect x="36" y="310" width="200" height="30" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.1"/><text x="136" y="329" text-anchor="middle" fill="#0e2a4e">已知生物学与结构</text>
+          <rect x="244" y="310" width="200" height="30" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.1"/><text x="344" y="329" text-anchor="middle" fill="#0e2a4e">专利 &middot; FTO</text>
+          <rect x="36" y="346" width="200" height="30" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.1"/><text x="136" y="365" text-anchor="middle" fill="#0e2a4e">药物化学家经验</text>
+          <rect x="244" y="346" width="200" height="30" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.1"/><text x="344" y="365" text-anchor="middle" fill="#0e2a4e">预测模型</text>
+        </g>
+        <text x="508" y="208" text-anchor="middle" fill="#1f8a95" font-size="10.5" font-weight="600">收敛候选</text>
+        <line x1="478" y1="223" x2="497" y2="223" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
+        <circle cx="508" cy="223" r="11" fill="#1f8a95" stroke="#fff" stroke-width="1.5"/>
+        <path d="M503,223 l3,3.5 l7,-8" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="519" y1="223" x2="538" y2="223" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
+        <rect x="540" y="150" width="484" height="300" rx="16" fill="#f3eee4" stroke="#d8c9a8" stroke-width="1.5" stroke-dasharray="3 6"/>
+        <text x="552" y="174" fill="#9a7324" font-size="12.5" font-weight="700">&#9313; 湿实验闭环 &mdash; 每个候选都须通过这些检验</text>
+        <g>
+          <rect x="552" y="188" width="224" height="54" rx="10" fill="#fff" stroke="#e0d3b4" stroke-width="1.2"/><text x="564" y="210" fill="#0e2a4e" font-size="12" font-weight="700">合成与鉴定</text><text x="564" y="228" fill="#6b6150" font-size="9.5">HPLC &middot; 质谱 &middot; 纯度</text>
+          <rect x="552" y="248" width="224" height="54" rx="10" fill="#fff" stroke="#e0d3b4" stroke-width="1.2"/><text x="564" y="270" fill="#0e2a4e" font-size="12" font-weight="700">亲和力与选择性</text><text x="564" y="288" fill="#6b6150" font-size="9.5">Kd（SPR/BLI）&middot; 反靶点</text>
+          <rect x="552" y="308" width="224" height="54" rx="10" fill="#fff" stroke="#e0d3b4" stroke-width="1.2"/><text x="564" y="330" fill="#0e2a4e" font-size="12" font-weight="700">功能活性</text><text x="564" y="348" fill="#6b6150" font-size="9.5">细胞 EC50 &middot; 机制读出</text>
+          <rect x="788" y="188" width="224" height="54" rx="10" fill="#fff" stroke="#e0d3b4" stroke-width="1.2"/><text x="800" y="210" fill="#0e2a4e" font-size="12" font-weight="700">成药性</text><text x="800" y="228" fill="#6b6150" font-size="9.5">溶解度 &middot; 渗透性 &middot; 稳定性</text>
+          <rect x="788" y="248" width="224" height="54" rx="10" fill="#fff" stroke="#e0d3b4" stroke-width="1.2"/><text x="800" y="270" fill="#0e2a4e" font-size="12" font-weight="700">安全性 / ADMET</text><text x="800" y="288" fill="#6b6150" font-size="9.5">hERG &middot; CYP &middot; 细胞毒性</text>
+          <rect x="788" y="308" width="224" height="54" rx="10" fill="#fff" stroke="#e0d3b4" stroke-width="1.2"/><text x="800" y="330" fill="#0e2a4e" font-size="12" font-weight="700">体内 PK 与药效</text><text x="800" y="348" fill="#6b6150" font-size="9.5">暴露量 &middot; 半衰期 &middot; 疾病模型</text>
+        </g>
+        <text x="782" y="392" text-anchor="middle" fill="#5b6b7d" font-size="10">候选须通过以上全部，方可推进</text>
+        <rect x="690" y="420" width="200" height="38" rx="10" fill="#13324f" stroke="#1f8a95" stroke-width="1.5"/><text x="790" y="444" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">候选推进至临床</text>
+        <line x1="782" y1="408" x2="782" y2="419" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
+        <path d="M640,450 C640,500 246,500 246,472" fill="none" stroke="#1f8a95" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round" marker-end="url(#ah)"/>
+        <text x="430" y="516" text-anchor="middle" fill="#5b6b7d" font-size="12" font-weight="600">&#9313; 湿实验结果校准计算模型</text>
+        <path d="M890,439 C1016,420 1016,170 982,116" fill="none" stroke="#1f8a95" stroke-width="2.4" stroke-dasharray="2 7" stroke-linecap="round" marker-end="url(#ah)"/>
+        <text x="936" y="150" fill="#2a3a4d" font-size="10.5" font-weight="700">&#9314; 临床结局</text><text x="936" y="164" fill="#2a3a4d" font-size="10.5" font-weight="700">反馈回流</text>
       </svg>
     </div>
+    <p class="wb-lead" style="margin-top:22px">选对靶点，本身就是一门专门的功夫&mdash;&mdash;<a class="wb-link" href="target-identification-zh.html">了解我们如何识别靶点 &rarr;</a></p>
   </div>
 </section>
 <section class="wb-section wb-tint" aria-labelledby="checks-heading">
