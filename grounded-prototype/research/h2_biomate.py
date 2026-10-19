@@ -43,15 +43,25 @@ from engine import to_markdown                                   # noqa: E402
 from engine.domains import get_corpus                            # noqa: E402
 from engine.retrieve import retrieve as _retrieve                # noqa: E402
 from .controller import Budget, Verdict, research                # noqa: E402
+from .verifiers import select_verifier                           # noqa: E402
 
 _CMC = get_corpus("cmc")
 
-# Research tasks (one "domain" of biomedical questions).
+# Research tasks (one "domain" of biomedical questions). A task may carry
+# `ground_truth` -> the loop scores it answer-BASED (a real verifier); without it,
+# scoring is answer-FREE (the trust lattice). This is the P0 verifier bridge.
 _TASKS = {
     "admet-impurity": ("What are the ADMET and regulatory risks of a mutagenic "
                        "impurity, and how are its acceptable limits justified?"),
     "herg-cardiac": ("What governs hERG cardiac safety assessment, and is there a "
                      "fixed regulatory threshold a compound must pass?"),
+    "m7-limit-value": ("What is the acceptable intake (TTC) for a mutagenic "
+                       "impurity under ICH M7?"),
+}
+
+# ground_truth shape mirrors BioMate's eval tasks; present => answer-based scoring.
+_GROUND_TRUTH = {
+    "m7-limit-value": {"expected_params": {"TTC": "1.5"}, "must_not_fill": []},
 }
 
 
@@ -180,6 +190,19 @@ class BioMateResearchAdapter:
 
     def deliverable_files(self, run_dir: Path) -> dict:
         return {"answer.txt": self.deliverable_text(run_dir)}
+
+    def score(self, run_dir: Path, task_id: str) -> dict:
+        """Harness2 judge hook — called ONLY post-selection, for reporting/library
+        (selection itself stays blind). The P0 bridge: BioMate's real ground-truth
+        verifier when the task has one, else the answer-free trust lattice. Swap in
+        the production scorers (evaluation/scorers/*) by implementing the same
+        Verifier.score(ground_truth, response) signature."""
+        deliverable = self.deliverable_text(run_dir)
+        gt = _GROUND_TRUTH.get(task_id)
+        verifier = select_verifier(gt)
+        value = verifier.score(gt, deliverable)
+        return {"score": round(float(value), 4), "verifier": verifier.name,
+                "answer_free": verifier.answer_free}
 
 
 class BioMateProposer(Proposer):
