@@ -83,6 +83,19 @@ The local env (`conda env mmgbsa_mn`: openmm 8.5.2 + parmed + psfgen + gemmi) is
 non-bonded Mn²⁺ made the controls diverge by 115 kcal/mol (see table). This is itself the useful finding: a
 simple non-bonded +2 metal is **not** adequate for an admissible αvβ6 energy ranking.
 
+## 12-6-4 attempt (2026-10-19) — sourced, but not curative; C4 not fabricated
+Per the plan to tame the +2 over-electrostatics, the Li-Merz **12-6-4** Mn²⁺ LJ was sourced + verified:
+**Rmin/2 = 1.485 Å, ε = 0.0345020 kcal/mol** (Li, Song, Merz, *JCTC* 2014, 10, 289; AmberTools
+`frcmod.ions234lm_1264_tip3p`), and the polarizability table (`lj_1264_pol.dat`) was obtained. **Not wired, for
+two honest reasons:** (1) the frcmod carries only the LJ — the **C4 term needs the ion→water-O reference
+coefficient C4(Mn²⁺,O_w)**, an AMBER-internal/paper-table value **not confirmable from the frcmod**, and the
+guardrail forbids fabricating it; (2) more fundamentally, **C4 is a small ion-induced-dipole (r⁻⁴) correction —
+it modifies the LJ-range interaction, not the dominant charge-charge Coulomb** (Asp⁻ / Mn²⁺) that drives the
+115 kcal/mol control divergence. The real root cause is the **artifactual, variable cofold metal-ligand
+geometry** (Trivehexin's 0.81 Å Asp-Mn clash) which minimization resolves inconsistently. 12-6-4 would not make
+the controls cluster. The correct fix is a **bonded / cationic-dummy (CaDA) metal model that pins the MIDAS
+coordination geometry**, scored by **FEP/TI** — not a single-point fixed-charge MM-GBSA.
+
 ## Precise next step
 The **defensible metal-aware result today is the geometric gate** (controls + both scaffold-hops engage the
 MIDAS Mn via Asp; M7 1.96 Å < M11 2.34 Å). For an admissible **energy** ranking, re-parameterize Mn with the
