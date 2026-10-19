@@ -7819,7 +7819,12 @@ def get_invocation_qc_events(
             _od_outdir = (_qp.get("outdir") or "").strip()
             _od_domain = (_qp.get("workflow_domain") or _qp.get("domain") or "").strip()
             _od_run_id = (_qp.get("run_id") or "").strip() or invocation_id
-            if _od_outdir.startswith("s3://") and _od_domain:
+            # Do NOT require a domain here: the stored run record often has a null
+            # domain (e.g. runs launched via the MCP session), but
+            # _evaluate_qc_from_s3 self-detects ADMET/CryoEM/preproc from the
+            # output FILE signatures (toxicity_report.json, qc_report.json, ...).
+            # Gate on a resolvable S3 outdir alone; non-QC domains return [] fast.
+            if _od_outdir.startswith("s3://"):
                 try:
                     import json as _json2
                     _od_overrides = {}
