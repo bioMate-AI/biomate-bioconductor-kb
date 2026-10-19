@@ -110,7 +110,13 @@
     "generating": "生成回复中...",
     "copy_message": "复制消息",
     "regenerate": "重新生成",
-    "attach_file": "附加文件"
+    "attach_file": "附加文件",
+    "progress": {
+      "intent": "正在理解您的目标…",
+      "matched": "已匹配到工作流",
+      "plan": "正在准备方案…",
+      "search": "正在检索 4,000+ 个工作流…"
+    }
   },
   "composer": {
     "attach_file": "附加数据文件",
@@ -715,7 +721,8 @@
     "wall_time": "墙钟时间",
     "what_went_wrong": "问题所在：",
     "workflow_failed": "工作流失败",
-    "workflow_parameters": "工作流参数"
+    "workflow_parameters": "工作流参数",
+    "styleA_attach_hint": "此工作流需要一个数据文件。请用下方消息框中的回形针（📎）附加文件 — BioMate 会自动将您上传的文件接入工作流。"
   },
   "preview": {
     "loading": "正在加载预览…",
@@ -931,7 +938,12 @@
     },
     "totp_verified": "TOTP 已验证",
     "unknown": "未知",
-    "view": "查看"
+    "view": "查看",
+    "deck_downloaded": "演示文稿（PPTX）已下载 — 请查看浏览器",
+    "deck_failed": "演示文稿导出失败 — 请改用 Markdown 报告",
+    "download_deck": "下载演示文稿（PPTX）",
+    "download_deck_title": "将此报告导出为 PowerPoint 演示文稿（.pptx），在本地生成 — 不经过任何外部服务",
+    "preview_lazy": "滚动以加载预览…"
   },
   "design": {
     "axis_x": "横轴",
@@ -1056,6 +1068,8 @@
     "verdict_rejected": "驳回",
     "verdict_flagged": "已标记",
     "verdict_held": "已保留",
-    "score_footnote": "*score 是一个排序键（各分目标归一化得分的均值），并非流水线所优化的综合指标——上方各目标是被一同优化的。"
+    "score_footnote": "*score 是一个排序键（各分目标归一化得分的均值），并非流水线所优化的综合指标——上方各目标是被一同优化的。",
+    "mov_help_verdict": "每个目标",
+    "verdict_tip": "评定仅反映安全门控与成药性，并不涵盖每一项分目标。候选物即使在左侧某一分目标上尚未达标，仍可能被接受。"
   }
 }
