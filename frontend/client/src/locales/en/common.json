@@ -20,7 +20,7 @@
     "new_project": "New project",
     "more_tools": "More tools",
     "recent_tools": "Recent tools",
-    "design_generate": "Design & generate",
+    "design_generate": "Molecule design & generate",
     "run_manager": "Run Manager",
     "beta_tooltip": "Early-access beta — features may change"
   },
@@ -141,7 +141,7 @@
     "mod_search_desc": "A cited answer over literature, databases and patents",
     "mod_analysis_name": "Data analysis",
     "mod_analysis_desc": "Work on your own data, or try a prepared sample dataset",
-    "mod_design_name": "Design & generate",
+    "mod_design_name": "Molecule design & generate",
     "mod_design_desc": "Propose candidates — molecules, peptides, proteins — then optimise and rank them",
     "mod_models_name": "Models",
     "mod_models_desc": "Train, adapt or optimise a model on your data"

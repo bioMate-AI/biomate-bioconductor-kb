@@ -289,7 +289,7 @@ export const COLD_MODULES: ColdModule[] = [
   }),
   withEx({
     id: "design",
-    k: "Design & generate",
+    k: "Molecule design & generate",
     t: "Propose candidates — molecules, peptides, proteins — then optimise and rank them",
     icon: "dna",
     modalities: true,
