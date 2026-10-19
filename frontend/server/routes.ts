@@ -793,7 +793,8 @@ async function executeOpenClaudeTool(
   toolName: string,
   input: Record<string, any>,
   userId: string | null,
-  req: any
+  req: any,
+  goalContext: string = ""
 ): Promise<any> {
   const baseUrl = `http://localhost:${process.env.PORT || 5000}`;
   const authHeader = req.headers.authorization || "";
@@ -847,12 +848,48 @@ async function executeOpenClaudeTool(
             message: `No workflow found matching '${input.workflow_id}'. Use search_workflow first to find the correct workflow name.`,
           };
         }
-        if (input.params && Object.keys(input.params).length > 0) {
-          workflowDef.parameters = { ...(workflowDef.parameters ?? {}), ...input.params };
+
+        const isEmptyVal = (v: any) =>
+          v === undefined || v === null || (typeof v === "string" && v.trim() === "");
+        const mergedParams: Record<string, any> = { ...(input.params || {}) };
+
+        // Guardrail: if any REQUIRED param is still unfilled after applying the
+        // model's input.params, re-prefill from the GOAL text. The inner LLM
+        // reliably fills the first run_workflow call but omits params on the 2nd+
+        // parallel call, so a multi-workflow session launches later workflows with
+        // empty required_params → missing_required_params at the execute gate.
+        // This deterministic backstop prefills each workflow from the goal,
+        // resolved against THAT workflow's own schema (so the SMILES land on the
+        // right param name). Model-supplied params remain authoritative.
+        const reqParams: any[] = Array.isArray(workflowDef.required_params) ? workflowDef.required_params : [];
+        const needsPrefill = reqParams.some(
+          (p: any) => p?.name && isEmptyVal(mergedParams[p.name]) && isEmptyVal(p.value) && isEmptyVal(p.default));
+        if (needsPrefill && goalContext) {
+          try {
+            const prefill = await post("/api/workflows/search", {
+              query: `${input.workflow_id}\n\n${goalContext}`,
+              limit: 1,
+              defer_param_prefill: false,
+            });
+            const pdef = prefill?.workflow_ga;
+            const pall: any[] = [
+              ...(Array.isArray(pdef?.required_params) ? pdef.required_params : []),
+              ...(Array.isArray(pdef?.optional_params) ? pdef.optional_params : []),
+            ];
+            for (const p of pall) {
+              if (p?.name && isEmptyVal(mergedParams[p.name]) && !isEmptyVal(p.value)) {
+                mergedParams[p.name] = p.value; // fill the gap; model params win on conflict
+              }
+            }
+          } catch { /* prefill best-effort; execute gate still validates */ }
+        }
+
+        if (Object.keys(mergedParams).length > 0) {
+          workflowDef.parameters = { ...(workflowDef.parameters ?? {}), ...mergedParams };
         }
         return await post("/api/workflows/execute", {
           workflowDefinition: workflowDef,
-          ...(input.params && typeof input.params === "object" ? { params: input.params } : {}),
+          ...(Object.keys(mergedParams).length > 0 ? { params: mergedParams } : {}),
           ...(input.message ? { message: input.message } : {}),
         });
       }
@@ -16203,6 +16240,25 @@ Respond ONLY with valid JSON (no markdown wrapper):
       const client = (localOnly() ? localMessagesClient() as unknown as import('@anthropic-ai/sdk').default : new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }));
       const userId = req.user ? String((req.user as any).id) : null;
 
+      // The user's goal text (first user message). Passed into the tool executor
+      // so run_workflow can deterministically re-prefill a workflow's required
+      // params from the goal when the inner LLM omits them — which it reliably
+      // does on the 2nd+ workflow of a parallel multi-workflow request (the hERG
+      // QSAR run arrived with empty toolParameters:{} because the model filled
+      // the ADMET call's params and dropped the hERG call's).
+      const goalText: string = (() => {
+        const firstUser = (messages as any[]).find((m) => m?.role === "user");
+        if (!firstUser) return "";
+        if (typeof firstUser.content === "string") return firstUser.content;
+        if (Array.isArray(firstUser.content)) {
+          return firstUser.content
+            .filter((b: any) => b?.type === "text")
+            .map((b: any) => b.text)
+            .join("\n");
+        }
+        return "";
+      })();
+
       const systemPrompt = system || `You are Claude, an AI assistant with access to BioMate's scientific workflow tools.
 BioMate is a bioinformatics platform that runs genomics, proteomics, drug discovery, and cryo-EM workflows on AWS Batch.
 When the user asks to run an analysis or search for a workflow, use the BioMate tools directly.
@@ -16277,7 +16333,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
         // Execute tool calls
         for (const block of assistantContent) {
           if (block.type !== "tool_use") continue;
-          const toolResult = await executeOpenClaudeTool(block.name, block.input, userId, req);
+          const toolResult = await executeOpenClaudeTool(block.name, block.input, userId, req, goalText);
           safeSend("tool_result", { tool_use_id: block.id, name: block.name, result: toolResult });
           toolResults.push({ type: "tool_result", tool_use_id: block.id, content: JSON.stringify(toolResult) });
           // Capture run_id from run_workflow so the MCP server can fetch outputs post-loop
