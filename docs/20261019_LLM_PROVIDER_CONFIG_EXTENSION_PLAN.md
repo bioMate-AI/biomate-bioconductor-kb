@@ -94,12 +94,12 @@ model name. Document the common runtimes inline:
 - Keep BioMate-Default 429s on the existing silent-retry path (don't alarm users about the
   shared pool unless it hard-fails).
 
-### 3.4 Capability honesty
-The default BioMate Claude supports **full agentic workflow execution** (tool-use/SSE).
-Some BYOK/on-prem models are weaker at tool-use. Keep the current honest hint ("BioMate
-Default — workflow execution") and show a per-provider capability note so users aren't
-surprised when a small local model can't drive a workflow. (Ties to the on-prem own-model
-work — see `project_onprem_uses_own_llm`.)
+### 3.4 Treat every provider equally
+Whatever provider/model the user configures (named BYOK, OpenRouter, or a Custom
+OpenAI-compatible / on-prem endpoint) is used as-is for their chats — **no capability
+hints, warnings, or "this model may not…" nudges.** Users know their own models. The
+per-model `capabilities` fields in the Custom form (§3.1) are optional routing *config*
+the user sets, not a prompt telling them what they can't do.
 
 ---
 
@@ -129,6 +129,9 @@ work — see `project_onprem_uses_own_llm`.)
 - **On-prem:** the **Custom (OpenAI-compatible) Base URL** provider — the exact mechanism
   every harness uses; generalize BioMate's existing `localMessagesClient` to a
   user-settable base URL, and document Ollama/vLLM/LM Studio/TGI endpoints.
+
+> **No capability hinting.** Every configured provider/model is used as the user chose it;
+> BioMate does not warn or nudge about what a model "can't" do.
 
 ## Sources
 - [Cline — OpenRouter / custom provider](https://docs.cline.bot/provider-config/openrouter)
