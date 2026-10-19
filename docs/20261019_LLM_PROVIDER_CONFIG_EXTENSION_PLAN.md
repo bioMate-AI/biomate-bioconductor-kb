@@ -23,6 +23,39 @@ rate-limited**, and let them **point BioMate at their own on-premise LLM**.
 
 So the foundation exists; this is an **extension**, not a rebuild.
 
+### Already built by a colleague on `integration/next-phase` (we are 181 commits behind)
+A substantial amount of this is **done at the deployment/admin level** on next-phase —
+reconcile with it, don't duplicate:
+- **Multi-provider backend config** (`backend/config/llm_providers.yml` + `config/galaxy.yml`
+  `ai_llm_provider:`): **gemini, anthropic, openai, DeepSeek, Qwen (通义千问), Zhipu GLM
+  (智谱), Moonshot/Kimi (月之暗面), Ollama, local**.
+- **On-prem / air-gapped LLM** (`openai_compatible` provider): env-driven —
+  `GALAXY_AI_LLM_PROVIDER=openai_compatible`, `LLM_API_URL=http://<server>:8000/v1`
+  (vLLM / LMDeploy / Ollama≥0.4 / llama.cpp / LM Studio / FastChat), `LLM_API_KEY=<key|none>`.
+  Bypasses the fallback chain. **This is the on-prem mechanism my plan proposed — already
+  built.** (commits `db7a9678d`, PRs #249/#252.)
+- **Manual exists:** `backend/MULTI_LLM_SETUP_GUIDE.md` (303 lines, 中文) — per-provider
+  setup, key acquisition, `config/galaxy.yml` templates, 本地模型 + 自定义端点 (custom endpoint).
+- **Test script:** `scripts/test_llm_provider.sh` (255 lines).
+- Plus full on-prem infra (MinIO object store, ARM64, SLURM/k8s/local Nextflow executors,
+  scope-layer, on-prem quota skip, `.env.onprem.example`, `ONPREM_SETUP.md`).
+
+**What the colleague's work is:** *deployment-level* — one provider per instance, set by
+the admin/deployer in `galaxy.yml`/env. Excellent for on-prem/air-gapped customers.
+
+**The remaining gap (what this plan should actually add):**
+1. **Per-USER in-app config** — our `settings-dialog` already does per-user
+   `default/anthropic/openrouter`; extend it to **expose the colleague's providers**
+   (Qwen/Zhipu/DeepSeek/OpenAI/Gemini/Ollama/openai_compatible) as per-user BYOK choices,
+   plus a per-user **Custom Base URL** (the same openai_compatible path, user-settable).
+2. **OpenRouter aggregator** at the per-user level (we have it; next-phase is per-provider).
+3. **Rate-limit notification** (§3.3) — not in the colleague's deployment-level work.
+4. **Docs:** the manual exists (中文, deployment-level) — add an **EN** version + a
+   **per-user / end-user** chapter in `docs/user-manual/`, and a **demo** (no demo exists).
+
+> On merge: per `[[project_branch_divergence_qwen_fixes]]`, **preserve next-phase's LLM
+> files** — our per-user layer sits on top of the colleague's provider set, not instead of it.
+
 ---
 
 ## 2. How other harnesses do it (research)
