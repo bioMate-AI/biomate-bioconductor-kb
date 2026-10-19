@@ -82,41 +82,47 @@
 </section>
 <section class="wb-section" aria-labelledby="loop-heading">
   <div class="wb-container">
-    <p class="wb-eyebrow">一个闭环</p>
-    <h2 id="loop-heading">设计、合成、检验、学习。<br>一轮比一轮更好。</h2>
-    <p class="wb-lead">好药从来不是一次就设计出来的。每一轮设计，都从上一轮的结果里学到东西&mdash;&mdash;分子于是一轮比一轮更好。</p>
-    <div style="max-width:860px;margin:36px auto 0;">
-      <svg viewBox="0 0 920 300" width="100%" role="img" aria-label="四个阶段构成的闭环——设计、合成、检验、学习。分子在合成前必须先经把关，每个设计都在湿实验中检验，结果再回流到下一轮，让每一轮都更好。" style="font-family:inherit">
-        <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#1f8a95"/></marker></defs>
-        <g>
-          <rect x="10" y="56" width="180" height="104" rx="14" fill="#0e2a4e"/>
-          <circle cx="36" cy="82" r="14" fill="#1f8a95"/><text x="36" y="87" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">1</text>
-          <text x="100" y="109" text-anchor="middle" fill="#fff" font-size="22" font-weight="600">设计</text>
-          <text x="100" y="135" text-anchor="middle" fill="#9db8cf" font-size="13">生成并打分</text>
-
-          <rect x="250" y="56" width="180" height="104" rx="14" fill="#0e2a4e"/>
-          <circle cx="276" cy="82" r="14" fill="#1f8a95"/><text x="276" y="87" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">2</text>
-          <text x="340" y="109" text-anchor="middle" fill="#fff" font-size="22" font-weight="600">合成</text>
-          <text x="340" y="135" text-anchor="middle" fill="#9db8cf" font-size="13">合成一组分子</text>
-
-          <rect x="490" y="56" width="180" height="104" rx="14" fill="#0e2a4e"/>
-          <circle cx="516" cy="82" r="14" fill="#1f8a95"/><text x="516" y="87" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">3</text>
-          <text x="580" y="109" text-anchor="middle" fill="#fff" font-size="22" font-weight="600">检验</text>
-          <text x="580" y="135" text-anchor="middle" fill="#9db8cf" font-size="13">在湿实验中检验</text>
-
-          <rect x="730" y="56" width="180" height="104" rx="14" fill="#0e2a4e"/>
-          <circle cx="756" cy="82" r="14" fill="#1f8a95"/><text x="756" y="87" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">4</text>
-          <text x="820" y="109" text-anchor="middle" fill="#fff" font-size="22" font-weight="600">学习</text>
-          <text x="820" y="135" text-anchor="middle" fill="#9db8cf" font-size="13">更新模型</text>
+    <p class="wb-eyebrow">两个闭环，而非一个</p>
+    <h2 id="loop-heading">真正要紧的工作，<br>发生在动手之前。</h2>
+    <p class="wb-lead">我们的设计，不是把分子直接丢给实验室&mdash;&mdash;它跑的是两个闭环。<strong>第一个，是计算闭环：</strong>在任何分子被合成之前，每个候选分子都会在计算中受已有认知的约束&mdash;&mdash;已知的生物学与数据、专利与自由实施权（FTO）、药物化学家的反馈，以及我们的各类预测模型&mdash;&mdash;经过许多次快速、低成本的迭代，收敛成一小组站得住脚的分子。<strong>随后，是湿实验闭环：</strong>这组分子被真正合成、检验，结果再反过来强化计算引擎&mdash;&mdash;于是每一轮所需的实验更少、更准，在实验台上花的时间和成本也更低。</p>
+    <div style="max-width:920px;margin:36px auto 0;">
+      <svg viewBox="0 0 980 364" width="100%" role="img" aria-label="两个闭环。内层是计算闭环：在任何分子被合成之前，每个候选分子都会在计算中受已知生物学与数据、专利与自由实施权、药物化学家反馈以及预测模型的约束，经过多次快速迭代收敛成一小组分子。随后是外层的湿实验闭环：这组分子被合成、检验，结果再强化计算引擎，于是每一轮所需实验更少、更准，更省时省钱。" style="font-family:inherit">
+        <defs>
+          <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#1f8a95"/></marker>
+          <marker id="ahl" markerWidth="8" markerHeight="8" refX="5" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#5bc8d6"/></marker>
+        </defs>
+        <rect x="8" y="96" width="452" height="168" rx="16" fill="#eaf3f4" stroke="#b9d6da" stroke-width="1.5" stroke-dasharray="3 6"/>
+        <text x="16" y="86" fill="#1f8a95" font-size="13" font-weight="700">&#9312; 计算闭环 &mdash; 多次快速迭代，都在动手之前</text>
+        <g font-size="12" font-weight="600">
+          <rect x="24" y="108" width="156" height="32" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="102" y="128" text-anchor="middle" fill="#0e2a4e">已知生物学与数据</text>
+          <rect x="24" y="148" width="156" height="32" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="102" y="168" text-anchor="middle" fill="#0e2a4e">专利 &middot; FTO</text>
+          <rect x="24" y="188" width="156" height="32" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="102" y="208" text-anchor="middle" fill="#0e2a4e">药化专家反馈</text>
+          <rect x="24" y="228" width="156" height="32" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="102" y="248" text-anchor="middle" fill="#0e2a4e">预测模型</text>
         </g>
-        <line x1="196" y1="108" x2="244" y2="108" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
-        <line x1="436" y1="108" x2="484" y2="108" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
-        <line x1="676" y1="108" x2="724" y2="108" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
-        <text x="220" y="80" text-anchor="middle" fill="#1f8a95" font-size="12" font-weight="600">把关</text>
-        <circle cx="220" cy="108" r="13" fill="#1f8a95" stroke="#fff" stroke-width="1.5"/>
-        <path d="M214,108 l4,4 l8,-9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M820,160 C820,252 100,252 100,162" fill="none" stroke="#1f8a95" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round" marker-end="url(#ah)"/>
-        <text x="460" y="206" text-anchor="middle" fill="#5b6b7d" font-size="15">实验结果回流到下一轮 &mdash; 一轮比一轮更好</text>
+        <line x1="182" y1="124" x2="252" y2="172" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
+        <line x1="182" y1="164" x2="252" y2="180" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
+        <line x1="182" y1="204" x2="252" y2="188" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
+        <line x1="182" y1="244" x2="252" y2="196" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
+        <rect x="256" y="132" width="168" height="104" rx="14" fill="#0e2a4e"/>
+        <text x="340" y="179" text-anchor="middle" fill="#fff" font-size="22" font-weight="600">设计</text>
+        <text x="340" y="205" text-anchor="middle" fill="#9db8cf" font-size="13">生成 · 打分 · 改良</text>
+        <path d="M334,112 A11,11 0 1 1 345,123" fill="none" stroke="#5bc8d6" stroke-width="2.3" marker-end="url(#ahl)"/>
+        <text x="352" y="120" fill="#1f8a95" font-size="10.5" font-weight="600">迭代</text>
+        <text x="482" y="150" text-anchor="middle" fill="#1f8a95" font-size="11" font-weight="600">收敛的一组</text>
+        <line x1="426" y1="184" x2="465" y2="184" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
+        <circle cx="482" cy="184" r="13" fill="#1f8a95" stroke="#fff" stroke-width="1.5"/>
+        <path d="M476,184 l4,4 l8,-9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="499" y1="184" x2="528" y2="184" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
+        <rect x="532" y="132" width="150" height="104" rx="14" fill="#0e2a4e"/>
+        <text x="607" y="179" text-anchor="middle" fill="#fff" font-size="22" font-weight="600">合成</text>
+        <text x="607" y="205" text-anchor="middle" fill="#9db8cf" font-size="13">合成这组分子</text>
+        <line x1="684" y1="184" x2="748" y2="184" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
+        <rect x="752" y="132" width="150" height="104" rx="14" fill="#0e2a4e"/>
+        <text x="827" y="179" text-anchor="middle" fill="#fff" font-size="22" font-weight="600">检验</text>
+        <text x="827" y="205" text-anchor="middle" fill="#9db8cf" font-size="13">湿实验检测</text>
+        <path d="M827,236 C827,298 234,298 234,268" fill="none" stroke="#1f8a95" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round" marker-end="url(#ah)"/>
+        <text x="530" y="330" text-anchor="middle" fill="#2a3a4d" font-size="13" font-weight="700">&#9313; 湿实验闭环</text>
+        <text x="530" y="352" text-anchor="middle" fill="#5b6b7d" font-size="13">实验结果强化模型 &mdash; 于是每一轮所需实验更少、更准（更省时省钱）</text>
       </svg>
     </div>
   </div>
