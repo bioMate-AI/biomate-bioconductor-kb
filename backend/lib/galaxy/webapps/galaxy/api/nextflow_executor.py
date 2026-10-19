@@ -3574,6 +3574,66 @@ def _evaluate_qc_from_s3(
             "PREDICT_ADMET_PROPERTIES", metrics
         )
 
+        # Build a FLAT per-gate audit table (pass AND fail) for the after-run QC
+        # document. Needed, and not optional, for two reasons:
+        #  (1) This S3/on-demand eval path never calls _emit_qc_gate_event, so the
+        #      handler's qc_event_log (what get_qc_report().events returns) is empty
+        #      even when gates FAILED — the detailed table would be blank.
+        #  (2) An all-pass run must still show every evaluated gate with its
+        #      measured-vs-threshold value, not the empty "all passed" placeholder
+        #      (the exact symptom the user reported).
+        # Rows use the FLAT shape the after-run QcAuditTab renders directly
+        # ({ts, gate, threshold, measured, status, message}); thresholds are read
+        # from handler._get_threshold so pass rows match the gate-decision logic.
+        import datetime as _dt
+        _ts_now = _dt.datetime.now(_dt.timezone.utc).isoformat()
+        _failed_by_metric: Dict[str, Any] = {}
+        for _f in (all_failures or []):
+            _failed_by_metric.setdefault(_f.get("metric"), _f)
+        _gate_rows: List[Dict[str, Any]] = []
+
+        def _emit_row(_metric, _label, _measured, _threshold, _status, _msg="", _adv=False):
+            _gate_rows.append({
+                "ts": _ts_now, "gate": _label, "threshold": _threshold,
+                "measured": _measured, "status": _status, "message": _msg,
+                "advisory": _adv, "metric": _metric,
+            })
+
+        def _pass_or_fail(_metric, _label, _pass_threshold, _pass_measured, _pass_msg):
+            _ff = _failed_by_metric.get(_metric)
+            if _ff:
+                _emit_row(_metric, _label, _ff.get("value"), _ff.get("threshold"),
+                          "advisory" if _ff.get("advisory") else "fail",
+                          _ff.get("message", ""), bool(_ff.get("advisory")))
+            else:
+                _emit_row(_metric, _label, _pass_measured, _pass_threshold, "pass", _pass_msg)
+
+        if metrics.get("herg_ic50_uM") is not None:
+            _hv = round(float(metrics["herg_ic50_uM"]), 3)
+            _ht = handler._get_threshold("herg_ic50_medium_risk_uM", 10.0)
+            _pass_or_fail("herg_ic50_uM", "hERG IC50 (μM)", f">= {_ht}", _hv,
+                          f"hERG IC50 {_hv} μM — low cardiotoxicity risk")
+        elif metrics.get("herg_inhibition_prob") is not None:
+            _hp = round(float(metrics["herg_inhibition_prob"]), 3)
+            _hpt = handler._get_threshold("herg_inhibition_prob_threshold", 0.9)
+            _pass_or_fail("herg_inhibition_prob", "hERG inhibition prob", f"< {_hpt}", _hp,
+                          f"hERG inhibition probability {_hp} — low risk")
+        if metrics.get("ames_positive") is not None or metrics.get("ames_probability") is not None:
+            _ap = metrics.get("ames_probability")
+            _apt = handler._get_threshold("ames_probability_threshold", 0.7)
+            _am = round(float(_ap), 3) if _ap is not None else int(bool(metrics.get("ames_positive")))
+            _pass_or_fail("ames_positive", "Ames mutagenicity", f"< {_apt}", _am,
+                          f"Ames probability {_am} — negative")
+        if metrics.get("dili_risk") is not None or metrics.get("dili_probability") is not None:
+            _dv = metrics.get("dili_probability")
+            _dm = metrics.get("dili_risk") or (round(float(_dv), 3) if _dv is not None else "low")
+            _pass_or_fail("dili_risk", "DILI risk", "low", _dm, "DILI risk low")
+        if metrics.get("clintox_probability") is not None:
+            _cv = round(float(metrics["clintox_probability"]), 3)
+            _ct = handler._get_threshold("clintox_probability_threshold", 0.8)
+            _pass_or_fail("clintox_probability", "Clinical toxicity", f"< {_ct}", _cv,
+                          f"ClinTox probability {_cv} — low clinical-toxicity risk")
+
         # Persist the full QC report to an S3 sidecar next to the outputs, so a
         # reopened/historical run (live monitor gone, work dir ephemeral) serves
         # the SAME detailed QC table the live view shows — not the empty
@@ -3582,6 +3642,13 @@ def _evaluate_qc_from_s3(
         try:
             _report = handler.get_qc_report()
             _report["source"] = "s3_sidecar"
+            # Replace the (empty, nested-shape) qc_event_log events with the flat
+            # per-gate rows the after-run QcAuditTab renders directly, so a reopened
+            # run shows the full measured-vs-threshold gate table (pass + fail).
+            if _gate_rows:
+                _report["events"] = _gate_rows
+                _report["gates_triggered"] = sum(1 for _r in _gate_rows if _r["status"] == "fail")
+                _report["warnings_emitted"] = sum(1 for _r in _gate_rows if _r["status"] == "advisory")
             # Write to <outdir>/output/qc_events.json — the SAME path the Node
             # /qc-events handler reads (sidecarBase = run.nextflowOutputDir, then
             # "/output/qc_events.json"). Nextflow publishes the actual outputs under
