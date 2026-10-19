@@ -76,52 +76,69 @@
   <div class="wb-container wb-hero-copy">
     <p class="wb-eyebrow">How we design · <a href="how-we-design-zh.html" style="color:inherit;text-decoration:underline">中文</a></p>
     <h1>How we design<br>medicines.</h1>
-    <p class="wb-intro">We take on the molecules others defer &mdash; and let the lab decide.</p>
+    <p class="wb-intro">Designed in silico, tested in the lab, guided by patient data.</p>
   </div>
 </section>
 <section class="wb-section" aria-labelledby="loop-heading">
   <div class="wb-container">
-    <p class="wb-eyebrow">Two loops, not one</p>
-    <h2 id="loop-heading">Computation narrows the field;<br>the wet lab proves it.</h2>
-    <p class="wb-lead">Our design does not simply hand a molecule to the lab &mdash; it runs two loops. <strong>First, a computational loop:</strong> before anything is synthesized, every candidate is bounded <em>in silico</em> by what we already know &mdash; existing biology and data, patents and freedom-to-operate, medicinal-chemist feedback, and our predictors &mdash; over many fast, low-cost iterations that converge on a small, defensible set. <strong>Then, a wet-lab loop:</strong> that set is made and tested, and the results strengthen the computational engine &mdash; so each round needs fewer, better experiments, and less time and cost at the bench.</p>
-    <div style="max-width:920px;margin:36px auto 0;">
-      <svg viewBox="0 0 980 364" width="100%" role="img" aria-label="Two loops. An inner computational loop: before anything is synthesized, each candidate is bounded in silico by existing biology and data, patents and freedom-to-operate, medicinal-chemist feedback, and predictors, over many fast iterations that converge on a small set. Then an outer wet-lab loop: that set is made and tested, and the results strengthen the computational engine so each round needs fewer, better experiments at less time and cost." style="font-family:inherit">
+    <p class="wb-eyebrow">Three loops, not one</p>
+    <h2 id="loop-heading">Computer, lab, and clinic &mdash;<br>three loops that compound.</h2>
+    <p class="wb-lead">Real drug design runs more than one loop &mdash; and its most valuable input is patient and clinical data. <strong>&#9312; An in-silico loop</strong> generates and scores candidates against everything we know &mdash; patient and clinical data, known biology and structure, patents and freedom-to-operate, medicinal-chemist expertise, and our predictors &mdash; over many fast, low-cost rounds that converge on a small set, before anything is synthesized. <strong>&#9313; A wet-lab loop</strong> takes over from there &mdash; synthesis, in-vitro assays, ADMET and in-vivo are all experimental &mdash; and the results recalibrate the computational models, so each in-silico round sharpens while each wet-lab round shrinks. <strong>&#9314; A clinical loop</strong> closes around both: patient and clinical data guides which targets to pursue and validates the mechanism, feeding back so the whole system gets better at choosing what to make.</p>
+    <div style="max-width:1000px;margin:36px auto 0;">
+      <svg viewBox="0 0 1040 344" width="100%" role="img" aria-label="Three nested loops. An in-silico loop (target and epitope, generate, score and select) iterates quickly and cheaply, bounded by patient and clinical data, known biology and structure, patents and freedom-to-operate, medicinal-chemist expertise, and predictors, converging on a set before synthesis. A wet-lab loop (synthesize, in-vitro assays, ADMET and in-vivo) is all experimental, and its results recalibrate the computational models. A clinical loop: patient and clinical data guides target selection, and clinical outcomes feed back." style="font-family:inherit">
         <defs>
           <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#1f8a95"/></marker>
           <marker id="ahl" markerWidth="8" markerHeight="8" refX="5" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#5bc8d6"/></marker>
         </defs>
-        <rect x="8" y="96" width="452" height="168" rx="16" fill="#eaf3f4" stroke="#b9d6da" stroke-width="1.5" stroke-dasharray="3 6"/>
-        <text x="16" y="86" fill="#1f8a95" font-size="13" font-weight="700">&#9312; The computational loop &mdash; many fast iterations, before anything is made</text>
-        <g font-size="12" font-weight="600">
-          <rect x="24" y="108" width="156" height="32" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="102" y="128" text-anchor="middle" fill="#0e2a4e">Known biology &amp; data</text>
-          <rect x="24" y="148" width="156" height="32" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="102" y="168" text-anchor="middle" fill="#0e2a4e">Patents &middot; FTO</text>
-          <rect x="24" y="188" width="156" height="32" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="102" y="208" text-anchor="middle" fill="#0e2a4e">Chemist feedback</text>
-          <rect x="24" y="228" width="156" height="32" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="102" y="248" text-anchor="middle" fill="#0e2a4e">Predictors</text>
+        <!-- Clinical loop (3): clinical outcomes guide the next targets -->
+        <path d="M984,120 C984,50 660,52 542,40" fill="none" stroke="#1f8a95" stroke-width="2.4" stroke-dasharray="2 7" stroke-linecap="round" marker-end="url(#ah)"/>
+        <text x="742" y="40" text-anchor="middle" fill="#2a3a4d" font-size="11" font-weight="700">&#9314; Clinical loop &mdash; outcomes guide the next targets</text>
+        <!-- Patient & clinical data banner -->
+        <rect x="206" y="14" width="332" height="38" rx="10" fill="#1f8a95"/>
+        <text x="372" y="39" text-anchor="middle" fill="#fff" font-size="15" font-weight="700">Patient &amp; clinical data</text>
+        <line x1="372" y1="52" x2="372" y2="81" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
+        <!-- inputs that bound each design -->
+        <text x="14" y="92" fill="#1f8a95" font-size="11" font-weight="700">What bounds each design</text>
+        <g font-size="11.5" font-weight="600">
+          <rect x="14" y="100" width="180" height="30" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="104" y="119" text-anchor="middle" fill="#0e2a4e">Known biology &amp; structure</text>
+          <rect x="14" y="138" width="180" height="30" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="104" y="157" text-anchor="middle" fill="#0e2a4e">Patents &middot; FTO</text>
+          <rect x="14" y="176" width="180" height="30" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="104" y="195" text-anchor="middle" fill="#0e2a4e">Med-chem expertise</text>
+          <rect x="14" y="214" width="180" height="30" rx="8" fill="#fff" stroke="#1f8a95" stroke-width="1.2"/><text x="104" y="233" text-anchor="middle" fill="#0e2a4e">Predictors</text>
         </g>
-        <line x1="182" y1="124" x2="252" y2="172" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
-        <line x1="182" y1="164" x2="252" y2="180" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
-        <line x1="182" y1="204" x2="252" y2="188" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
-        <line x1="182" y1="244" x2="252" y2="196" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
-        <rect x="256" y="132" width="168" height="104" rx="14" fill="#0e2a4e"/>
-        <text x="340" y="180" text-anchor="middle" fill="#fff" font-size="21" font-weight="600">Design</text>
-        <text x="340" y="204" text-anchor="middle" fill="#9db8cf" font-size="13">generate &middot; score &middot; revise</text>
-        <path d="M334,112 A11,11 0 1 1 345,123" fill="none" stroke="#5bc8d6" stroke-width="2.3" marker-end="url(#ahl)"/>
-        <text x="352" y="120" fill="#1f8a95" font-size="10.5" font-weight="600">iterate</text>
-        <text x="482" y="150" text-anchor="middle" fill="#1f8a95" font-size="11" font-weight="600">converged set</text>
-        <line x1="426" y1="184" x2="465" y2="184" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
-        <circle cx="482" cy="184" r="13" fill="#1f8a95" stroke="#fff" stroke-width="1.5"/>
-        <path d="M476,184 l4,4 l8,-9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-        <line x1="499" y1="184" x2="528" y2="184" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
-        <rect x="532" y="132" width="150" height="104" rx="14" fill="#0e2a4e"/>
-        <text x="607" y="180" text-anchor="middle" fill="#fff" font-size="21" font-weight="600">Make</text>
-        <text x="607" y="204" text-anchor="middle" fill="#9db8cf" font-size="13">synthesize the set</text>
-        <line x1="684" y1="184" x2="748" y2="184" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
-        <rect x="752" y="132" width="150" height="104" rx="14" fill="#0e2a4e"/>
-        <text x="827" y="180" text-anchor="middle" fill="#fff" font-size="21" font-weight="600">Test</text>
-        <text x="827" y="204" text-anchor="middle" fill="#9db8cf" font-size="13">wet-lab assay</text>
-        <path d="M827,236 C827,298 234,298 234,268" fill="none" stroke="#1f8a95" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round" marker-end="url(#ah)"/>
-        <text x="530" y="330" text-anchor="middle" fill="#2a3a4d" font-size="13" font-weight="700">&#9313; The wet-lab loop</text>
-        <text x="530" y="352" text-anchor="middle" fill="#5b6b7d" font-size="13">results strengthen the model &mdash; so each round needs fewer, better experiments (less time &amp; cost)</text>
+        <line x1="198" y1="115" x2="204" y2="146" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
+        <line x1="198" y1="153" x2="204" y2="150" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
+        <line x1="198" y1="191" x2="204" y2="154" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
+        <line x1="198" y1="229" x2="204" y2="158" stroke="#1f8a95" stroke-width="2" marker-end="url(#ah)"/>
+        <!-- Zone 1: in-silico loop -->
+        <rect x="206" y="84" width="332" height="182" rx="16" fill="#eaf3f4" stroke="#9cc3c9" stroke-width="1.5" stroke-dasharray="3 6"/>
+        <text x="216" y="106" fill="#1f8a95" font-size="12.5" font-weight="700">&#9312; In-silico loop &mdash; fast, low-cost, before any synthesis</text>
+        <rect x="220" y="120" width="92" height="60" rx="11" fill="#0e2a4e"/><text x="266" y="146" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">Target &amp;</text><text x="266" y="162" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">epitope</text>
+        <rect x="326" y="120" width="92" height="60" rx="11" fill="#0e2a4e"/><text x="372" y="154" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">Generate</text>
+        <rect x="432" y="120" width="92" height="60" rx="11" fill="#0e2a4e"/><text x="478" y="146" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">Score &amp;</text><text x="478" y="162" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">select</text>
+        <line x1="312" y1="150" x2="326" y2="150" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
+        <line x1="418" y1="150" x2="432" y2="150" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
+        <path d="M470,182 C470,206 274,206 274,184" fill="none" stroke="#5bc8d6" stroke-width="2.2" stroke-dasharray="2 6" stroke-linecap="round" marker-end="url(#ahl)"/>
+        <text x="372" y="201" text-anchor="middle" fill="#1f8a95" font-size="10.5" font-weight="600">iterate &middot; many rounds</text>
+        <!-- converged-set gate -->
+        <text x="560" y="128" text-anchor="middle" fill="#1f8a95" font-size="10.5" font-weight="600">converged set</text>
+        <line x1="540" y1="150" x2="549" y2="150" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
+        <circle cx="560" cy="150" r="11" fill="#1f8a95" stroke="#fff" stroke-width="1.5"/>
+        <path d="M555,150 l3,3.5 l7,-8" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="571" y1="150" x2="580" y2="150" stroke="#1f8a95" stroke-width="3" marker-end="url(#ah)"/>
+        <!-- Zone 2: wet-lab loop -->
+        <rect x="582" y="84" width="332" height="182" rx="16" fill="#f3eee4" stroke="#d8c9a8" stroke-width="1.5" stroke-dasharray="3 6"/>
+        <text x="592" y="106" fill="#9a7324" font-size="12.5" font-weight="700">&#9313; Wet-lab loop &mdash; synthesis onward is all experimental</text>
+        <rect x="596" y="120" width="92" height="60" rx="11" fill="#0e2a4e"/><text x="642" y="154" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">Synthesize</text>
+        <rect x="702" y="120" width="92" height="60" rx="11" fill="#0e2a4e"/><text x="748" y="146" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">In-vitro</text><text x="748" y="162" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">assays</text>
+        <rect x="808" y="120" width="92" height="60" rx="11" fill="#0e2a4e"/><text x="854" y="146" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">ADMET &amp;</text><text x="854" y="162" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">in-vivo</text>
+        <line x1="688" y1="150" x2="702" y2="150" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
+        <line x1="794" y1="150" x2="808" y2="150" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
+        <!-- Clinic node -->
+        <rect x="938" y="120" width="92" height="60" rx="12" fill="#13324f" stroke="#1f8a95" stroke-width="1.5"/><text x="984" y="146" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">Toward</text><text x="984" y="162" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">the clinic</text>
+        <line x1="914" y1="150" x2="936" y2="150" stroke="#1f8a95" stroke-width="2.5" marker-end="url(#ah)"/>
+        <!-- Wet-lab feedback into the in-silico models (part of loop 2) -->
+        <path d="M748,266 C748,306 372,306 372,268" fill="none" stroke="#1f8a95" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round" marker-end="url(#ah)"/>
+        <text x="560" y="328" text-anchor="middle" fill="#5b6b7d" font-size="12">wet-lab results recalibrate the in-silico models</text>
       </svg>
     </div>
   </div>
