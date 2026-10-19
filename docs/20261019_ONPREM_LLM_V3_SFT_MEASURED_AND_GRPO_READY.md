@@ -62,6 +62,22 @@ adapter `…/models_20260919/med/grpo_grpo_decomp_adapter/`. Grade when it lands
 **This is a LOW-EV bet** (decomp is hard; base/v3 on decomposition_real ≈ 0.016/0.087 — a near-zero start;
 start policy is the general `sft_gold`, off-design). A near-floor result is the likely, honest outcome.
 
+## 3d. us-east-1 run RESULT: booted clean, then crashed on a trl-API bug (adapter did NOT land)
+The box (`i-09fff702deba10e2f`) booted fully: venv (torch2.14.1/transformers5.18/trl1.14.1/peft0.21), base
+Qwen3.5-9B, and **the adapter/data/DB pulls all succeeded** — reaching
+`[grpo] START GRPO (steps=400 numgen=8 beta=0.04 … EVAL_HOOK=0)`. **This validates the env-propagation fix**
+(the `sft_gold` start policy + `EVAL_HOOK=0` reached the box; no SFT_ADAPTER_FAIL). It then crashed immediately at
+config construction:
+`TypeError: GRPOConfig.__init__() got an unexpected keyword argument 'max_prompt_length'`
+(`train_grpo_decomp.py:212`, which also passes `max_completion_length`). The pinned **trl 1.14.1 GRPOConfig does
+not accept these kwargs** — a trl-API mismatch in the trainer. The instance **self-terminated** (clean, no cost
+runaway); **no adapter landed, so there is no measured result.**
+**Fix before any re-fire (do NOT guess — it risks whack-a-mole on other kwargs like `log_completions`):** in the
+pinned venv, introspect `inspect.signature(trl.GRPOConfig.__init__)` and reconcile the `GRPOConfig(...)` call
+(drop/rename `max_prompt_length`/`max_completion_length` and verify every other kwarg), then rebuild the tarball
+(`evaluation_local_trial_grpo_decomp.tgz`) and re-fire the **validated us-east-1 spot path** (capacity + launch +
+env propagation are all confirmed working). Held per "one bounded attempt, don't loop."
+
 ## 3b. First attempt (us-west-2) — BLOCKED on spot GPU capacity
 Staging completed (was missing; the launcher was "ready, never run"): built + uploaded the GRPO code tarball
 `code/evaluation_local_trial_grpo_decomp.tgz` (includes the §3 honesty fix) and the train pool
