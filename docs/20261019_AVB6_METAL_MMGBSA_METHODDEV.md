@@ -41,10 +41,31 @@ vdW repulsion — Trivehexin's 0.81 Å is below physical inner-sphere and is a m
 **RELATIVE/qualitative site-fidelity** verdict (does the ligand engage the metal site), **never an affinity**.
 Ground truth remains the wet-lab binding/competition assay.
 
-## Energy half — launch-ready, blocked on ONE sourced parameter
-The OpenMM GBn2 MM-GBSA energy step (per `peptide_mmgbsa_pocket_run.sh`) needs three code changes, all
-specified; the local env (`conda env mmgbsa_mn`: openmm 8.5.2 + parmed + psfgen + gemmi) is built, so it is a
-**local CPU job (~minutes for 4 poses), no GPU/cloud**:
+## Energy half — RAN (2026-10-19); controls DIVERGE → INADMISSIBLE with a non-bonded Mn model
+`mmgbsa_metal_local.py` (local CPU, `mmgbsa_mn` env) ran all 4 poses with the **verified** Li-Merz 12-6 CM
+Mn²⁺ param (Rmin/2 = **1.407 Å**, ε = **0.0168671 kcal/mol**; Li,Roberts,Chakravorty,Merz *JCTC* 2013, 9, 2733,
+transcribed from AmberTools `frcmod.ions234lm_126_tip3p`). All 3 Mn retained on the receptor side; all peptides
+ring-closed. 8 Å pocket, GBn2/CHARMM36m minimized single-point.
+
+| pose | ΔG (kcal/mol) | — |
+|---|---|---|
+| CTRL-TRIVEHEXIN (known binder) | **−7.2** | |
+| CTRL-AVEBEHEXIN (known binder) | **−122.2** | |
+| AVB6-SH-M7-01 | −113.6 | |
+| AVB6-SH-M11-01 | −123.9 | |
+
+**A2 control-anchoring FAILS → scores INADMISSIBLE.** The two comparable known αvβ6 binders differ by
+**115 kcal/mol** — physically impossible for real binding. The ΔG is dominated by the artifactual,
+distance-sensitive **Asp⁻···Mn²⁺ electrostatic** (a fixed-charge +2 metal at cofold-placed, sometimes sub-Å,
+separations), not recoverable affinity — the documented failure mode of non-bonded metal MM-GBSA. **No ranking
+is reported.** The geometric site-fidelity gate (above) remains the defensible metal-aware result. To make the
+energy step admissible, the Mn needs a **12-6-4 LJ** (Li & Merz, *JCTC* 2014/2015) or a **bonded / cationic-dummy
+(CaDA)** model, and the controls must cluster before any candidate ΔG is trusted.
+
+(`results/avb6_metal_mmgbsa_dG.json` carries the raw ΔG + the inadmissible verdict.)
+
+### Code (built + run): the three changes, all in `mmgbsa_metal_local.py`
+The local env (`conda env mmgbsa_mn`: openmm 8.5.2 + parmed + psfgen + gemmi) is built; **CPU, no GPU/cloud**:
 1. **split_design** → use `metal_mmgbsa_prep.split_sides()`: write the 3 Mn as a psfgen `ION` segment
    (resname `MN2`, atom `MN`, `first='none' last='none'`) on the receptor side; keep them in the
    `rec_idx` (segid≠PEP) slice so E_receptor includes the metal.
@@ -58,12 +79,13 @@ specified; the local env (`conda env mmgbsa_mn`: openmm 8.5.2 + parmed + psfgen 
    guard must abort if `mn_charmm_param.str` is absent/placeholder — so no number is ever produced with
    unvalidated Mn params.
 
-**Predicted outcome (energy step, once param supplied):** controls flip from the metal-free weak/positive
-ΔG to strongly negative and correctly ordered (gate passes); M7 and M11 both score negative with M7 ≈ or
-slightly stronger than M11 (consistent with the tighter coordination), giving the first physically-valid
-within-αvβ6 ΔG ranking of the scaffold-hops. FEP confirmation of finalists still required.
+**Actual outcome:** the prediction (controls cluster strongly-negative) was **wrong** — the fixed-charge
+non-bonded Mn²⁺ made the controls diverge by 115 kcal/mol (see table). This is itself the useful finding: a
+simple non-bonded +2 metal is **not** adequate for an admissible αvβ6 energy ranking.
 
 ## Precise next step
-Supply `mn_charmm_param.str` (Li-Merz 12-6 Mn²⁺), then:
-`conda run -n mmgbsa_mn python mmgbsa_metal_local.py` (energy runner per the 3 changes above) → controls-gated
-ΔG ranking of `avb6_scaffoldhop_r1.json` / `avb6_monocyclic_scaffoldhop.json`. Then per-scaffold FTO + CRO.
+The **defensible metal-aware result today is the geometric gate** (controls + both scaffold-hops engage the
+MIDAS Mn via Asp; M7 1.96 Å < M11 2.34 Å). For an admissible **energy** ranking, re-parameterize Mn with the
+**12-6-4 LJ** set (Li, Song, Merz, *JCTC* 2014/2015 — the polarization term tames the +2 electrostatics) or a
+bonded/CaDA model, re-run `mmgbsa_metal_local.py`, and require the controls to **cluster** (A2) before reporting
+any scaffold-hop ΔG. Do **not** advance to a CRO order on these numbers. FEP confirmation of any finalist.
