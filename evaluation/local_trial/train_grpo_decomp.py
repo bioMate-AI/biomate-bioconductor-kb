@@ -199,10 +199,11 @@ def main():
     # frozen initial state of this same policy, so KL anchors to SFT-decomp behaviour).
     model = PeftModel.from_pretrained(model, a.adapter, is_trainable=True)
 
-    lora = LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05, bias="none",
-                      task_type="CAUSAL_LM",
-                      target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
-                                      "gate_proj", "up_proj", "down_proj"])
+    # Train the SFT adapter already loaded above as the policy. Do NOT pass a peft_config to
+    # GRPOTrainer: trl 1.14.1 rejects a PeftModel + peft_config together, and with peft>=0.20 the
+    # no-peft_config path adds a frozen "ref" copy of THIS adapter as the KL reference — exactly the
+    # intended "anchor to SFT-decomp behaviour". (A fresh LoraConfig here would start a new adapter
+    # from base, discarding the SFT start policy — wrong.)
     ds = Dataset.from_list(prompts)
 
     cfg = GRPOConfig(
@@ -224,7 +225,7 @@ def main():
 
     trainer = GRPOTrainer(model=model, args=cfg, train_dataset=ds,
                           reward_funcs=[reward_fn], processing_class=tok,
-                          peft_config=lora, callbacks=callbacks)
+                          callbacks=callbacks)
     trainer.train(resume_from_checkpoint=a.resume)
     trainer.save_model(a.out)
     print("GRPO_DONE ->", a.out)

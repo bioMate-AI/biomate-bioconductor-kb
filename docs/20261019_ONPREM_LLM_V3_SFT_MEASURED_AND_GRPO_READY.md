@@ -79,6 +79,21 @@ same validated path (`sft_gold` start policy, `EVAL_HOOK=0`). Expected to pass G
 GRPO loop. Adapter → `…/models_20260919/med/grpo_grpo_decomp_adapter/`; grade on decomposition_real vs frontier
 when it lands. Headline deliverable = the RLVR pipeline runs end-to-end; the score is expected near-floor.
 
+## 3f. GRPOConfig fix VALIDATED; 2nd trl-API issue found + fully reconciled (static), re-fired again
+Re-fire #1 (`i-03c2a5b5939e78677`) **passed GRPOConfig** (the `max_prompt_length` fix works — confirmed via boot.log
+reaching `[grpo] START GRPO` with no config error), then hit a *downstream* `GRPOTrainer` error:
+`ValueError: You passed a PeftModel instance together with a peft_config`. Cause: the code loads the SFT adapter as
+a `PeftModel` AND passes `peft_config=lora` — trl 1.14.1 forbids both. This revealed the trainer was written for an
+older trl and never ran end-to-end, so I **statically reconciled the whole trainer path against the trl-1.14.1 wheel**
+(no GPU, no whack-a-mole): (a) GRPOTrainer peft — drop `peft_config`; with peft≥0.20 (we have 0.21.2) the
+no-peft_config + PeftModel path adds a frozen "ref" copy of the SFT adapter as the **KL reference** — exactly the
+intended anchor-to-SFT behaviour, so semantics are preserved, not compromised; (b) reward calling — trl forwards
+dataset columns (`gold`) as kwargs (grpo_trainer.py:1670/1712), so our `reward_fn(prompts,completions,gold,**kw)` is
+compatible; (c) 4-bit prep — code already does `prepare_model_for_kbit_training`; (d) train/save/resume — standard.
+**Fix: drop `peft_config` (+ the now-unused LoraConfig) from the GRPOTrainer call.** Rebuilt the tarball; re-fired
+**`i-03726d2f9389d3965`** (us-east-1 az4 = 9/10, confirmed spot). This is a 2nd re-fire, justified by a *complete*
+static reconciliation (not blind one-error looping). If it still errors, STOP and report.
+
 ## 3d. First us-east-1 run: booted clean, then crashed on a trl-API bug (adapter did NOT land)
 The box (`i-09fff702deba10e2f`) booted fully: venv (torch2.14.1/transformers5.18/trl1.14.1/peft0.21), base
 Qwen3.5-9B, and **the adapter/data/DB pulls all succeeded** — reaching
