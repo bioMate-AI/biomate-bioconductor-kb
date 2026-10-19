@@ -62,7 +62,24 @@ adapter `…/models_20260919/med/grpo_grpo_decomp_adapter/`. Grade when it lands
 **This is a LOW-EV bet** (decomp is hard; base/v3 on decomposition_real ≈ 0.016/0.087 — a near-zero start;
 start policy is the general `sft_gold`, off-design). A near-floor result is the likely, honest outcome.
 
-## 3d. us-east-1 run RESULT: booted clean, then crashed on a trl-API bug (adapter did NOT land)
+## 3e. trl GRPOConfig API reconciled (introspected, not guessed) + RE-FIRED
+Introspected the pinned signatures by downloading the wheels (no torch install):
+`trl-1.14.1` `GRPOConfig` (79 own fields + TrainingArguments parent) and `transformers-5.18.0` `TrainingArguments`.
+Result: **the ONLY invalid kwarg is `max_prompt_length`** — trl 1.14.1 removed it from `GRPOConfig` (prompts are
+tokenized as-is; truncation is tokenizer-side). Every other kwarg we pass is valid: `max_completion_length`,
+`num_generations`, `beta`, `temperature`, `learning_rate`, `log_completions` (GRPOConfig fields) and
+`output_dir/lr_scheduler_type/warmup_steps/max_steps/save_steps/per_device_train_batch_size/gradient_accumulation_steps/
+bf16/gradient_checkpointing/gradient_checkpointing_kwargs/optim/report_to/seed` (TrainingArguments, all present in
+5.18.0); and all `GRPOTrainer(...)` ctor args are valid. **Reconciliation: drop `max_prompt_length` only.**
+Semantics preserved: the decomp prompts are ≤~505 tokens, so the old `--max-prompt-len 1024` cap never truncated —
+dropping it is a **no-op**; the completion cap stays via `max_completion_length=640`. Fixed both the real
+`GRPOConfig(...)` (train_grpo_decomp.py) and the `--dry-run` preview dict; rebuilt + re-uploaded the tarball.
+**Re-fired ONE spot instance (us-east-1 use1-az4 still 9/10): `i-03c2a5b5939e78677`, confirmed spot, g6e.xlarge**,
+same validated path (`sft_gold` start policy, `EVAL_HOOK=0`). Expected to pass GRPOConfig this time and enter the
+GRPO loop. Adapter → `…/models_20260919/med/grpo_grpo_decomp_adapter/`; grade on decomposition_real vs frontier
+when it lands. Headline deliverable = the RLVR pipeline runs end-to-end; the score is expected near-floor.
+
+## 3d. First us-east-1 run: booted clean, then crashed on a trl-API bug (adapter did NOT land)
 The box (`i-09fff702deba10e2f`) booted fully: venv (torch2.14.1/transformers5.18/trl1.14.1/peft0.21), base
 Qwen3.5-9B, and **the adapter/data/DB pulls all succeeded** — reaching
 `[grpo] START GRPO (steps=400 numgen=8 beta=0.04 … EVAL_HOOK=0)`. **This validates the env-propagation fix**

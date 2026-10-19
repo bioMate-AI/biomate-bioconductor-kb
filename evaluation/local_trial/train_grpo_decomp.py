@@ -172,7 +172,7 @@ def main():
                    temperature=a.temperature, learning_rate=a.lr, max_steps=a.max_steps,
                    save_steps=a.save_steps, per_device_train_batch_size=a.batch_size,
                    gradient_accumulation_steps=a.grad_accum,
-                   max_prompt_length=a.max_prompt_len, max_completion_length=a.max_completion_len,
+                   max_completion_length=a.max_completion_len,
                    reward_weights=[a.w_node, a.w_edge, a.w_struct])
         print("           " + json.dumps(cfg))
         print("DRY_RUN_OK")
@@ -210,7 +210,10 @@ def main():
         temperature=a.temperature, learning_rate=a.lr, lr_scheduler_type="cosine",
         warmup_steps=10, max_steps=a.max_steps, save_steps=a.save_steps,
         per_device_train_batch_size=a.batch_size, gradient_accumulation_steps=a.grad_accum,
-        max_prompt_length=a.max_prompt_len, max_completion_length=a.max_completion_len,
+        # trl 1.14.1 removed GRPOConfig.max_prompt_length (prompts are tokenized as-is; truncation is
+        # tokenizer-side). Our decomp prompts are <=~505 tok << context, so the old 1024 cap never
+        # truncated — dropping it is a semantic no-op. Completion cap preserved via max_completion_length.
+        max_completion_length=a.max_completion_len,
         bf16=True, gradient_checkpointing=True,
         gradient_checkpointing_kwargs={"use_reentrant": False},
         optim="paged_adamw_8bit", report_to=[], seed=13, log_completions=True)
