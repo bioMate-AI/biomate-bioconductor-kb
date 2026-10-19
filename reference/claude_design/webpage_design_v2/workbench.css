@@ -11,7 +11,7 @@
 .wb-hero-image { object-position:70% center; }
 .wb-hero-shade { background:linear-gradient(90deg,rgba(10,26,39,.94),rgba(10,26,39,.68) 48%,rgba(10,26,39,.08)); }
 .wb-hero-copy { position:relative; width:100%; padding-top:70px; padding-bottom:70px; }
-.wb-hero h1 { font-family:var(--font-head); font-size:clamp(58px,8vw,108px); font-weight:400; line-height:.98; letter-spacing:-.035em; margin:0 0 30px; }
+.wb-hero h1 { font-family:var(--font-head); font-size:clamp(38px,4.8vw,62px); font-weight:400; line-height:1.03; letter-spacing:-.02em; margin:0 0 26px; }
 .wb-hero-copy>p { max-width:510px; color:#e1e7eb; }
 .wb-hero-copy .wb-intro { font-size:clamp(20px,2vw,26px); line-height:1.35; margin-bottom:18px; color:#fff; }
 .wb-actions { display:flex; align-items:center; flex-wrap:wrap; gap:24px; margin-top:32px; }
