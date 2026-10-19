@@ -47,7 +47,19 @@ SFT_ADAPTER_S3=s3://biomate-models-399683337364/biomate-core-local-trial/2026091
 ```
 **Cost/time:** 1 spot GPU (g5/g6 pool), ~2–4 h, ~$2–5; no Batch.
 
-## 4. Why it was NOT launched here (held for sign-off)
+## 3b. Launch ATTEMPTED (2026-10-19, with sign-off) — BLOCKED on spot GPU capacity
+Staging completed (was missing; the launcher was "ready, never run"): built + uploaded the GRPO code tarball
+`code/evaluation_local_trial_grpo_decomp.tgz` (includes the §3 honesty fix) and the train pool
+`sft/decomp_depgraph.jsonl` (4,300 `catalog_depgraph_synth` rows, all buildable). Fired spot-only:
+`SFT_ADAPTER_S3=…/sft_gold_adapter EVAL_HOOK=0 bash run_grpo_decomp_9b.sh`.
+**Result: no instance obtained in ~8 min.** Config is valid (`run-instances --dry-run` → "would have
+succeeded"); the blocker is **spot capacity** — `get-spot-placement-scores` returns **1/10 (lowest) across all
+four us-west-2 AZs** for the g5/g6 (L4/L40S) pool, and zero instances were created. Per the spot-only rule
+(no on-demand fallback), the retry loop was stopped (clean state: no orphaned instance). **Re-fire unchanged when
+capacity returns** — staging persists on S3, so just re-run the command above; then grade with
+`ADAPTER_TAG=_grpo_decomp bash run_eval_sftv3real.sh` (decomposition_real headline vs frontier).
+
+## 4. Why the result is not yet measured (honest)
 GRPO-on-decomp is a **research bet** (decomp is hard — flat ~0.40 zero-shot across 9B→27B; out-of-generator
 base/v3 = 0.016/0.087, a near-zero start), and starting from `sft_gold` (a general gold adapter, not a
 decomp-specialized SFT) is **off the designed path**. Cost/safety are controlled, but the *result* is genuinely
