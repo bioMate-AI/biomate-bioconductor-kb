@@ -48,10 +48,14 @@ def main():
         adapter = BioMateResearchAdapter(root)
         prop = BioMateProposer(adapter.spec.channels["proposer"])
 
-        # the BioMate harness c1..c8 tree includes the editable route table as .py
+        # the BioMate harness c1..c8 tree includes the editable route table (INV)
         base = adapter.base_harness()
         ck("base harness has editable scripts/route_table.py",
            (base / "scripts/route_table.py").is_file())
+        # P1: the DOM surface is an editable SKILL (the only editable-as-data
+        # BioMate surface) that Harness2 improves.
+        ck("base harness has editable skills/admet-evidence/SKILL.md",
+           (base / "skills/admet-evidence/SKILL.md").is_file())
 
         res = schedule.run_domain("biomedical_research", adapter.tasks(), 2,
                                   adapter=adapter, prop=prop,
