@@ -75,34 +75,43 @@ Click a file name and it opens in the right pane as a `DatasetObject` (`dataset-
 `data-hub.tsx:258-263`). The **header** shows the name, the content type, the byte size, and — as soon
 as the profile returns — a **quality pill** (Good/Watch/Blocked) and a **version-count chip**, so
 identity reads at a glance rather than hiding behind tabs (`dataset-object.tsx:180-213`). The header
-also carries **Export RO-Crate** and **Download** actions (`dataset-object.tsx:214-241`).
+also carries **Export RO-Crate**, **Use in chat**, **Run full QC**, and **Download** actions
+(`dataset-object.tsx:233-285`). **Run full QC** runs a real QC workflow through BioMate's engine (not the
+ingest heuristic): it navigates to the chat with this file attached and a QC request pre-filled
+(`?attachFile=…&draft=…`), so the user reviews before the billable run; the chat pipeline then selects the QC
+workflow (FastQC/MultiQC, or the domain's QC), feeds the file, runs it and shows the report
+(`data-hub.tsx:283-295`).
 
 ![A dataset object header: name, content type, size, the Good/Watch/Blocked quality pill and the version-count chip](../assets/i05-2-dataset-header.png)
 <!-- CAPTURE route=/files?file=<example-csv-id> ; state=a profiled CSV that returns quality=good and has at least one recorded version ; focus=[data-testid="dataset-object"] ; note=show the header row with the content-type badge, size badge, the [data-testid="dataset-header-quality"] pill, and the [data-testid="dataset-header-versions"] chip -->
 
-Below the header are six tabs (`dataset-object.tsx:251-278`):
+Below the header are **three tabs** — **Preview**, **Lineage**, and **Versions**
+(`dataset-object.tsx:295-320`). This is a consolidation of the earlier six: the former **Quality** tab folds
+into Preview as a **Data profile** section (the header already carries the pass/watch/blocked pill), and the
+former **Consumers** and **Origin** tabs fold into the **Lineage** tab as sections
+(`dataset-object.tsx:301-310`).
 
 ### Preview
 
 The default tab. When the profiler returned columns and sample rows, it renders the first rows of the
 data as a table with a footnote of how many rows were shown out of the total; then a small identity
-block (name, size, type, storage reference) (`dataset-object.tsx:281-326`). This is the fastest "what
-is in this file" answer without downloading it.
+block (name, size, type, storage reference), and finally the **Data profile** section below
+(`dataset-object.tsx:323-397`). This is the fastest "what is in this file" answer without downloading it.
 
-### Quality
+### Data profile (a section inside the Preview tab)
 
-Mounts the **perception panel** (`DataPerception`) fed by the same `POST /api/perception/profile`
-profile (`dataset-object.tsx:329-349`, `datasets-api.ts:45-66`). It answers two questions: *what did we
-see in your data?* (rows, columns, effective N, class balance, leakage, signal summary, notes) and *how
-did that shape the plan?* (`data-perception.tsx:118-278`). Effective-N below the row count is flagged as
-"correlation / imbalance discounted it" (`data-perception.tsx:165-176`).
+Folded into Preview (no longer a separate "Quality" tab), it mounts the **perception panel**
+(`DataPerception`) fed by the same `POST /api/perception/profile` profile (`dataset-object.tsx:372-397`,
+`datasets-api.ts:45-66`). Its sub-line is explicit — *"A quick heuristic read of the data itself — not a full
+QC run. For real QC, use Run full QC."* It answers two questions: *what did we see in your data?* (rows,
+columns, effective N, class balance, leakage, signal summary, notes) and *how did that shape the plan?*
+(`data-perception.tsx:118-278`). Effective-N below the row count is flagged as "correlation / imbalance
+discounted it" (`data-perception.tsx:165-176`). It does **not** re-profile the file — it shows what the backend
+profiler already observed at ingest. For a real QC run, use the header's **Run full QC** button (above).
 
 The verdict comes from the backend profiler, not the UI — a FASTQ with mean Phred below 20 becomes
 **Watch**, an unreadable file becomes **Blocked** (`data_perception.py:288-293`, `:160-190`). The panel
 never fabricates a field it was not handed (`data-perception.tsx:14-21`).
-
-![The Quality tab: the perception panel for a FASTQ flagged Watch — reads, read length, mean base quality (Phred), and a trimming note](../assets/i05-3-quality-tab.png)
-<!-- CAPTURE route=/files?file=<example-id> ; state=a profiled dataset's perception panel ; focus=[data-testid="data-perception"] ; note=current asset shows a FASTQ Watch (reads / read length / mean Phred / "below 20 — consider trimming"); a table example instead shows Rows/Columns/Effective-N + class-balance bars -->
 
 > **QC gate — the quality pill is an ingest gate, not a workflow QC gate.** Good/Watch/Blocked
 > describes what the profiler saw *at ingest* (readability, balance, obvious leakage). It is separate
@@ -123,7 +132,7 @@ workflow produced this dataset" (`dataset-object.tsx:386-390`).
 > `:544-561`). There is no "Open run" action yet — you cannot click through to the run from here.
 > To open the run, go to its chat session (see I.6).
 
-### Consumers
+### Consumers (a section within the Lineage tab)
 
 Shows the runs recorded as reading this dataset as an input, from
 `GET /api/datasets/:ref/consumers` (`dataset-object.tsx:394-434`, `datasets-api.ts:145-155`). When
@@ -141,7 +150,7 @@ re-derivation or a sign-off.
 > **Tip — versions are a log, not a rollback.** Adding a version records *that* the dataset changed and
 > why; it does not snapshot bytes or let you revert. It is provenance, not object storage.
 
-### Origin
+### Origin (a section within the Lineage tab)
 
 The plain facts: source (`upload` / `run_output`), storage reference, and when it was added
 (`dataset-object.tsx:529-537`).

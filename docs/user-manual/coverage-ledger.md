@@ -252,7 +252,8 @@ Page: `modules/I13-billing-quotas-two-lane-cost.md`. Tier C.
 | Asset | Surface | Status |
 |---|---|---|
 | i01-1-cold-start.png | cold start (4 modules + intent bar + composer) | ✅ wired overview/I.1 |
-| i05-0-data-hub.png · i05-1-file-tree.png · i05-2-dataset-header.png · i05-3-quality-tab.png | data hub picker · file tree · dataset object · quality tab | ✅ wired I.5 |
+| i05-0-data-hub.png · i05-1-file-tree.png · i05-2-dataset-header.png | data hub picker · file tree · dataset object header (shows Data profile + Run full QC) | ✅ wired I.5 |
+| i05-3-quality-tab.png | former standalone Quality tab (removed — Quality folded into Preview as the Data profile section) | ⚠️ stale; references dropped, asset retained on disk |
 | i10-1-models.png · i11-1-design.png · capabilities.png | models · design · capabilities | ✅ wired I.10/I.11 |
 | Run-dependent shots (after-run report, outputs, full step view) | need a completed run | ⏳ placeholders kept (not faked) |
 

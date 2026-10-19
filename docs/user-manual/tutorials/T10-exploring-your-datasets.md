@@ -48,7 +48,8 @@ not visible in another; if you can't find a file, check you're in the right proj
 layout; here we focus on the right-hand detail pane.
 
 **The dataset object.** When you click a file name, the right pane opens it as an object with a **header**
-(identity) and six **tabs**: **Preview**, **Quality**, **Lineage**, **Consumers**, **Versions**, and **Origin**.
+(identity + actions) and three **tabs**: **Preview** (which also holds a quick **Data profile** of the file),
+**Lineage** (which also holds its **Consumers** and **Origin** as sections), and **Versions**.
 *(Why it matters: these tabs are the whole subject of this tutorial — each answers one of the questions in §1.)*
 
 **Metadata.** The plain, factual description of a file — its name, its content type, its size, where it is
@@ -87,8 +88,9 @@ steps are the same for any file — an uploaded CSV of assay readings, a FASTQ, 
 ## 4. Step by step — reading a dataset object
 
 Open the Data hub (sidebar → **Data**), pick your project, and click a file name in the tree. It opens in the
-right pane. The **header** at the top shows the file's identity at a glance; below it are the six tabs. We'll
-take them in the order the questions in §1 arise.
+right pane. The **header** at the top shows the file's identity (and carries the **Export RO-Crate**, **Use in
+chat**, **Run full QC**, and **Download** actions); below it are the three tabs. We'll take them in the order
+the questions in §1 arise.
 
 <!-- CAPTURE route=/files ; state=a project selected, a result CSV (e.g. de_results.csv) clicked open in the right pane ; focus=the whole two-pane Data hub with the dataset object open ; note=show the file tree on the left and the dataset object (header + tabs) on the right -->
 
@@ -106,9 +108,9 @@ The header shows the file's identity without you opening any tab:
 - a **version count chip** (e.g. "2 vers") when the dataset has more than one version-log entry.
 
 The **Preview** tab repeats the core facts as labelled rows — **Name**, **Size**, **Type**, and **Reference**
-(the storage key or path BioMate resolves the file by). The **Origin** tab adds the rest: the **Source**
-(`upload` or `run_output`), the **Storage ref**, and the date it was **Added**. Everything here is a real field
-read from the file record — nothing is computed or guessed.
+(the storage key or path BioMate resolves the file by). The **Lineage** tab's **Origin** section adds the rest:
+the **Source** (`upload` or `run_output`), the **Storage ref**, and the date it was **Added**. Everything here
+is a real field read from the file record — nothing is computed or guessed.
 
 <!-- CAPTURE route=/files ; state=dataset object open, header visible ; focus=the dataset object header (name, content-type badge, size badge, quality pill, version chip, action buttons) ; note=show a file with a green quality pill and at least one version so the version chip appears -->
 
@@ -144,6 +146,15 @@ as data — before you rely on the result.
   Preview tab. If you want to open a structure or a variant file in its full viewer, go through the run's
   Outputs (T5).
 
+**The Data profile section (inside Preview).** Below the identity rows, Preview shows a **Data profile** — the
+same ingest read behind the header's quality pill, which used to be a separate "Quality" tab. Its sub-line says
+it plainly: *"A quick heuristic read of the data itself — not a full QC run. For real QC, use Run full QC."* It
+reports the shape (rows × columns), the Good / Watch / Blocked verdict, and notes on leakage, class imbalance,
+or constant columns. It does **not** re-profile the file — it shows what the backend profiler already observed
+at ingest. For a *real* QC run, use the header's **Run full QC** button: it opens the chat with this dataset
+attached and a QC request pre-filled, then (after you send) selects and runs a QC workflow (e.g. FastQC /
+MultiQC, or the domain's QC) through BioMate's engine and shows the report.
+
 > **How to read it:** use the Preview tab to confirm a table's shape and columns at a glance. If you need the
 > full typed viewer for a non-table result (a structure, a VCF, a figure), that lives in the run's Outputs —
 > this tab is the quick tabular check on the object itself.
@@ -169,7 +180,7 @@ retained for this run"* rather than hiding the gap.
 
 ![The Lineage tab of a result file — "Produced by run c40459b2…" shown as a clickable link, with the Workflow (Predict ADMET Properties (AI)) and Step rows beneath it.](../assets/t10-2-dataset-lineage.png)
 
-**Consumers tab — what has read this file.** This lists every run recorded as reading the dataset as an input.
+**Consumers (a section within the Lineage tab) — what has read this file.** This lists every run recorded as reading the dataset as an input.
 Each row is clickable too, opening that consuming run. When nothing has read it yet, the tab says *"No runs are
 recorded as reading this dataset yet"* — an honest empty state, not a blank. The tab also explains *why* this
 matters: when consumers are recorded, replacing a dataset becomes a visible decision (you can see what depends
@@ -267,7 +278,7 @@ object says so plainly rather than faking it.
 |---|---|
 | Bring a new file in and check its ingest quality | **Tutorial 4 — Bringing your own data** |
 | Open a run's results in their full type-aware viewers | **Tutorial 5 — Viewing your results** |
-| Run an analysis on a dataset (the **Analyze** button primes this) | **Tutorial 3 — Running a workflow** |
+| Run an analysis on a dataset (the **Use in chat** button primes this) | **Tutorial 3 — Running a workflow** |
 | Understand how results feed the next round | **Tutorial 2 — Models & the closed loop** |
 
 The habit: **open the file as an object → check its metadata and preview → trace its lineage and consumers →
@@ -279,9 +290,11 @@ leave a version note when you re-derive it → and know that access follows its 
 
 | Term | What it means — and why you care |
 |---|---|
-| **Dataset object** | A file opened as a first-class thing with a header and six tabs (Preview, Quality, Lineage, Consumers, Versions, Origin) — not just a name in a list. It is what lets you interrogate a file. |
+| **Dataset object** | A file opened as a first-class thing with a header and three tabs (Preview, Lineage, Versions) — not just a name in a list. It is what lets you interrogate a file. |
 | **Metadata** | A file's plain facts: name, content type, size, storage reference, source, and date added. How you confirm you have the right file. |
-| **Preview (object)** | A tabular sample (columns + first rows) of a parseable file, shown in the object. Full typed viewers for structures/VCF/etc. live in the run Outputs (T5). |
+| **Preview (object)** | A tabular sample (columns + first rows) of a parseable file, plus its identity rows and a **Data profile** section, shown in the object. Full typed viewers for structures/VCF/etc. live in the run Outputs (T5). |
+| **Data profile** | A quick, heuristic read of the data (shape, Good/Watch/Blocked verdict, leakage / imbalance / constant-column notes) shown as a section in Preview — not a full QC run. Replaces the former "Quality" tab. |
+| **Run full QC** | A header button that runs a real QC workflow (e.g. FastQC / MultiQC, or the domain's QC) through BioMate's engine: it opens the chat with the dataset attached and a QC request pre-filled for you to review and send. |
 | **Lineage** | The run, workflow, and step that **produced** a dataset — shown as a clickable link back to that run. An uploaded file honestly has none. |
 | **Consumers** | The runs that have **read** a dataset as input — each clickable. Tells you what depends on the file before you change it. |
 | **Provenance** | Lineage + consumers together: the chain that lets you defend where a result came from and what it affected. |

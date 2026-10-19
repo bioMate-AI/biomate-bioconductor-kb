@@ -40,14 +40,17 @@ a file, check you're in the right project.)*
 *The Data hub, captured live: the two-pane layout where every file becomes a dataset object you can open.*
 
 **The dataset object — a file is not just a file.** When you click a file, it opens as a **dataset object**
-with everything BioMate knows about it in one place: a **Preview** of the real data, a **Quality** verdict, its
-**Lineage** (what produced it) and **Consumers** (what has used it), a **Versions** log, and its **Origin**.
+with everything BioMate knows about it in one place, across three tabs: a **Preview** of the real data (with a
+quick **Data profile** read and the file's plain facts), a **Lineage** tab (what produced it, what has read it,
+and where it came from), and a **Versions** log.
 *(Why it matters: this is what lets a result trace back to the exact input it used.)*
 
 **Quality — is this file clean enough to run on?** BioMate runs a quick **profiler** on readable files and
-gives a one-word verdict: **Good** (green), **Watch** (amber), or **Blocked** (red). *(Why it matters: it
-catches an unreadable or badly skewed file *before* you spend time and money analysing it.)* A fourth state,
-**grey**, means **"not profiled" — not "bad"** (see §5).
+gives a one-word verdict: **Good** (green), **Watch** (amber), or **Blocked** (red). You see it as the pill on
+the dataset header and, in more detail, as the **Data profile** section inside the Preview tab. *(Why it
+matters: it catches an unreadable or badly skewed file *before* you spend time and money analysing it.)* A
+fourth state, **grey**, means **"not profiled" — not "bad"** (see §5). This quick read is a heuristic, not a
+real QC run — when you want a full QC workflow on the file, use the **Run full QC** button (§5).
 
 **Lineage / provenance.** **Provenance** is the record of where a dataset came from and what has read it.
 *(Why it matters: in science you must be able to say how a number was produced; BioMate keeps that record for
@@ -108,31 +111,38 @@ your workspace. Both end up as the same kind of dataset object.)*
 
 Click a file name and it opens in the right pane. The **header** shows the name, the content type, the size,
 and — once the profiler finishes — a **quality pill** and a **version count**, so you can see its status at once.
+It also carries four actions: **Export RO-Crate**, **Use in chat** (attach this dataset to the chat so your next
+question runs on it), **Run full QC** (run a real QC workflow on it — see below), and **Download**.
 
 ![A dataset object header — name, type, size, quality pill, version count](../assets/i05-2-dataset-header.png)
 *The dataset header: identity (name, type, size) plus the Good/Watch/Blocked quality pill and version count.*
 
-Below the header are tabs. The ones you'll use most:
+Below the header are **three tabs**: **Preview**, **Lineage**, and **Versions**.
 
-- **Preview** — the first rows of the real data as a table, without downloading it. *The fastest way to catch
+- **Preview** — the first rows of the real data as a table, without downloading it, followed by the file's
+  plain facts (name, size, type, storage reference) and a **Data profile** section. *The fastest way to catch
   a wrong file, a wrong column separator, or a header row that isn't actually a header — read this before you
   run.*
-- **Quality** — the detail behind the pill: for a table, how many rows and columns, the **effective N** (the
-  usable sample size, which can be smaller than the row count when the data is correlated or imbalanced), class
-  balance, and any notes; for sequencing reads it shows reads, read length, and average base quality (Phred)
-  instead of rows and columns. *The verdict comes from BioMate reading your data, not from a guess.*
-- **Lineage** — for a result file, the run, workflow, and step that produced it. An uploaded file honestly
-  says "no upstream workflow produced this" (you made it, not a run).
-- **Consumers** — the analyses that have read this dataset. If none have yet, it says so plainly rather than
-  showing an empty guess.
+  - **Data profile** — the detail behind the quality pill, shown as a section inside Preview (it is no longer a
+    separate "Quality" tab). It is a **quick heuristic read of the data itself — not a full QC run**: for a
+    table, how many rows and columns, the **effective N** (the usable sample size, which can be smaller than the
+    row count when the data is correlated or imbalanced), class balance, and any notes on leakage or constant
+    columns; for sequencing reads it shows reads, read length, and average base quality (Phred) instead of rows
+    and columns. *The verdict comes from BioMate reading your data, not from a guess.* For a real QC run, use the
+    **Run full QC** button (below).
+- **Lineage** — for a result file, the run, workflow, and step that produced it (an uploaded file honestly says
+  "no upstream workflow produced this" — you made it, not a run). This tab also holds **Consumers** (the
+  analyses that have read this dataset — if none have yet, it says so plainly rather than showing an empty guess)
+  and the file's **Origin** (whether it was uploaded or produced by a run, its storage reference, and when it
+  was added).
 - **Versions** — a log where you can add a note ("re-derived after fixing the header"). It records *that* the
   data changed and why.
-- **Origin** — the plain facts: whether it was uploaded or produced by a run, its storage reference, and when
-  it was added.
 
-![The Quality tab — shape, effective N, class balance, and notes with a verdict](../assets/i05-3-quality-tab.png)
-*The Quality tab: here a FASTQ the profiler flagged **Watch** — reads, read length, and mean base quality
-(Phred), with a note like "below 20 — consider trimming" and a plain line on how it shaped the suggested plan.*
+**Run full QC — a real QC workflow, not the heuristic.** The **Run full QC** button on the header runs an actual
+QC pipeline on the dataset through BioMate's engine (for example FastQC + MultiQC for sequencing, or the domain's
+QC). Clicking it opens the chat with **this dataset attached and a QC request pre-filled**, so you review it and
+send; BioMate then selects the QC workflow, runs it on this file, and shows you the report — unlike the
+lightweight **Data profile** read, which only describes what the ingest profiler already saw.
 
 **How to read the quality verdict:**
 - **Good (green)** — readable and nothing obviously wrong; you can proceed.
@@ -199,7 +209,9 @@ get results that trace back to it.**
 |---|---|
 | **Data hub** | The two-pane place your data lives (sidebar → **Data**): file tree on the left, dataset detail on the right. It's project-scoped — pick the project that owns the data. |
 | **Dataset object** | A file opened as a first-class thing carrying its type, quality, preview, lineage, consumers, and version log — not just a stored copy. It's what lets a result trace back to its input. |
-| **Quality (Good / Watch / Blocked / grey)** | An ingest check of your file: green = fine, amber = look at the notes, red = unreadable (fix it), grey = not profiled (no claim made, *not* "bad"). |
+| **Quality (Good / Watch / Blocked / grey)** | An ingest check of your file: green = fine, amber = look at the notes, red = unreadable (fix it), grey = not profiled (no claim made, *not* "bad"). Shown as the header pill and, in detail, the **Data profile** section in Preview. |
+| **Data profile** | The quick, heuristic read of a file (shape, effective N, class balance, leakage / constant-column notes), shown as a section inside the Preview tab — not a full QC run. |
+| **Run full QC** | A header button that runs a real QC workflow on the dataset through BioMate's engine (e.g. FastQC + MultiQC); it opens the chat with the dataset attached and a QC request pre-filled for you to review and send. |
 | **Effective N** | The usable sample size, which can be smaller than the raw row count when data is correlated or imbalanced. Tells you how much your data really supports. |
 | **Lineage / provenance** | The record of where a dataset came from and what has used it. Lets you explain and defend how a number was produced. |
 | **Consumers** | The analyses recorded as having read this dataset. Honest-empty when none have. |

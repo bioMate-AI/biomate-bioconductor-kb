@@ -42,6 +42,12 @@ fixed list — you don't have to look through many tabs.)*
 not invented. If BioMate cannot read the outputs, it **says the findings are unavailable rather than fabricating
 them** — that honesty is the feature (Tutorial 3 shows this exact behaviour).
 
+**Reopening a run shows its saved results.** You don't have to keep a run open to keep its results. Open a
+completed run again later — from a project's **Runs** list — and its After-run report is rebuilt from
+**persisted data**: the **Outputs** and the **Findings** are shown from what the run saved, so the findings
+survive across sessions rather than showing "pending" or regenerating. *(Why it matters: a finished result
+stays readable whenever you come back to it.)*
+
 **A checksum (SHA-256) is a file's fingerprint.** It lets anyone confirm they have the identical file. In
 BioMate these are computed **on demand** — you click "Compute checksums" in the record. *(Why it matters: it's
 the tamper-evidence a reproducibility record exists for.)*
@@ -213,6 +219,9 @@ and log tail, and the "Restart" button at the bottom.)*
   when the run recorded it — an honest empty state, not an error.
 - **Editing the Methods report saves a copy, not a server-side version history (today).** The edit-and-save
   affordance works; full versioned report history is a documented follow-up.
+- **Reopened runs restore Outputs and Findings; the QC gate table is still being made durable.** When you reopen
+  a completed run, its Outputs and Findings come back from saved data. The per-run **QC gate** table may not
+  always be restored on reopen yet — that durability is a documented follow-up.
 
 ---
 
