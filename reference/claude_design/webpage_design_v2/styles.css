@@ -4,6 +4,10 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Accessible primary links when JavaScript is unavailable. */
+.bm-static-nav { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; padding: 1.25rem max(1rem, calc((100% - 1200px) / 2)); border-bottom: 1px solid var(--border); background: var(--bg); }
+.bm-static-nav a { color: var(--text); font-size: .95rem; }
+
 :root {
   /* Default palette: brand cream + navy (matches logo) */
   --bg:           #f6efde;          /* logo background cream */
@@ -143,6 +147,7 @@ html[data-palette="deepnavy"] .bm-nav { background: rgba(239,230,207,.93); }
   display: flex; align-items: center; gap: 4px;
   list-style: none; margin-left: auto;
 }
+.bm-primary-nav { margin-left:auto; }
 .bm-nav-links a {
   color: var(--text); font-size: .9rem; font-weight: 500;
   padding: 8px 14px; border-radius: 7px;
@@ -166,49 +171,52 @@ html[data-palette="deepnavy"] .bm-nav { background: rgba(239,230,207,.93); }
 .bm-mobile-toggle svg { width: 18px; height: 18px; }
 
 /* ════════════════════════════════════════════ NAV DROPDOWNS ═══ */
-.bm-has-dropdown { position: relative; }
-.bm-has-dropdown > a { display: flex; align-items: center; gap: 4px; }
+.bm-has-dropdown { position:static; }
+.bm-nav-trigger { display:flex; align-items:center; gap:5px; padding:8px 14px; border:0; border-radius:7px; background:transparent; font:500 .9rem var(--font-body); color:var(--text); cursor:pointer; }
+.bm-nav-trigger:hover,.bm-nav-trigger.active,.bm-nav-trigger[aria-expanded="true"] { background:var(--accent-tint); color:var(--accent-2); }
+.bm-nav-trigger:focus-visible,.bm-nav-links a:focus-visible,.bm-mobile-toggle:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .bm-chevron { width: 14px; height: 14px; stroke-width: 2.2; flex-shrink: 0; transition: transform .2s; }
-.bm-has-dropdown:hover .bm-chevron,
 .bm-has-dropdown.bm-dd-open .bm-chevron { transform: rotate(180deg); }
-
-/* Invisible bridge between the trigger and the dropdown so the mouse can
-   traverse the visual gap without leaving the :hover region. Without this,
-   the submenu closed the instant the cursor crossed the 6px gap below the
-   trigger and the user had to click to anchor it open. */
-.bm-has-dropdown::before {
-  content: "";
-  position: absolute;
-  top: 100%; left: 0; right: 0;
-  height: 10px;
-  /* transparent, but takes pointer events to keep hover continuous */
-  background: transparent;
-}
-
 .bm-dropdown {
-  position: absolute; top: calc(100% + 6px); left: 0;
-  min-width: 210px; list-style: none;
-  background: var(--bg); border: 1px solid var(--border);
-  border-radius: 10px; padding: .4rem 0;
-  box-shadow: 0 8px 28px -6px rgba(20,40,58,.18), 0 2px 8px rgba(20,40,58,.06);
-  opacity: 0; visibility: hidden; pointer-events: none;
-  transform: translateY(-4px);
-  transition: opacity .15s, transform .15s, visibility .15s;
-  z-index: 200;
+  position:absolute; top:100%; left:0; right:0; display:none;
+  background:var(--bg); border-block:1px solid var(--border);
+  box-shadow:0 18px 28px -22px rgba(20,40,58,.3); z-index:200;
+  max-height:calc(100dvh - var(--nav-h)); overflow-y:auto;
 }
-.bm-has-dropdown:hover .bm-dropdown,
-.bm-has-dropdown.bm-dd-open .bm-dropdown {
-  opacity: 1; visibility: visible; pointer-events: auto;
-  transform: translateY(0);
+.bm-has-dropdown.bm-dd-open .bm-dropdown { display:block; }
+.bm-dropdown-inner { max-width:var(--maxw); margin:auto; padding:26px clamp(1rem,4vw,2rem) 36px; }
+.bm-dropdown-heading { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:18px; margin-bottom:26px; }
+.bm-dropdown-heading>span { font-size:.7rem; text-transform:uppercase; letter-spacing:.13em; color:var(--text-muted); }
+.bm-nav-links .bm-dropdown-heading>a { padding:0; border-radius:0; font-size:.8rem; color:var(--accent); }
+.bm-dropdown-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:40px; }
+.bm-dropdown-group { min-width:0; }
+.bm-dropdown-group+.bm-dropdown-group { border-left:1px solid var(--border); padding-left:32px; }
+.bm-dropdown-group h2 { margin:0 0 12px; font:600 1.15rem/1.4 var(--font-body); }
+.bm-nav-links .bm-dropdown-group h2>a { display:inline; padding:0; font:inherit; border-radius:0; }
+.bm-dropdown-group p { color:var(--text-muted); font-size:.85rem; line-height:1.6; max-width:310px; margin-bottom:17px; }
+.bm-dropdown-group ul { list-style:none; padding:0; margin:0; }
+.bm-dropdown-group li+li { margin-top:8px; }
+.bm-nav-links .bm-dropdown-group li>a { display:inline-block; padding:0; font-size:.82rem; color:var(--accent); border-radius:0; }
+.bm-dropdown a:hover { text-decoration:underline; text-underline-offset:4px; background:transparent; }
+
+@media(max-width:900px) {
+  .bm-nav-links { display:none; }
+  .bm-primary-nav { margin-left:0; }
+  .bm-mobile-toggle { display:inline-flex; }
+  .bm-nav-links.bm-nav-open { display:flex; flex-direction:column; align-items:stretch; position:fixed; top:var(--nav-h); left:0; right:0; background:var(--bg); border-bottom:1px solid var(--border); padding:16px; gap:4px; z-index:99; max-height:calc(100dvh - var(--nav-h)); overflow-y:auto; }
+  .bm-nav-links.bm-nav-open>li { width:100%; }
+  .bm-nav-trigger { justify-content:space-between; width:100%; padding:12px; text-align:left; }
+  .bm-nav-links.bm-nav-open>li>a { display:block; padding:12px; }
+  .bm-nav-links.bm-nav-open .bm-dropdown { position:static; border:0; box-shadow:none; background:transparent; max-height:none; overflow:visible; }
+  .bm-dropdown-inner { padding:12px 12px 24px; }
+  .bm-dropdown-heading { margin-bottom:20px; padding-bottom:12px; }
+  .bm-dropdown-grid { grid-template-columns:1fr; gap:22px; }
+  .bm-dropdown-group+.bm-dropdown-group { border-left:0; border-top:1px solid var(--border); padding:20px 0 0; }
+  .bm-dropdown-group h2 { font-size:1rem; }
+  .bm-dropdown-group p { max-width:none; margin-bottom:12px; }
+  .bm-nav-links .bm-dropdown-group li>a { padding-block:5px; }
+  .bm-nav-login { margin-left:0; }
 }
-.bm-dropdown a {
-  display: block; padding: .52rem 1.1rem;
-  color: var(--text); font-size: .88rem; font-weight: 400;
-  transition: background .12s, color .12s;
-  border-radius: 0;
-}
-.bm-dropdown a:hover { background: var(--accent-tint); color: var(--accent-2); }
-.bm-dropdown-divider { height: 1px; background: var(--border); margin: .35rem .75rem; }
 
 /* ════════════════════════════════════════════ CTA BAR ═══ */
 .bm-cta-bar {
@@ -247,8 +255,9 @@ html[data-palette="deepnavy"] .bm-nav { background: rgba(239,230,207,.93); }
 }
 .bm-btn-lg { padding: 15px 28px; font-size: 1rem; }
 .bm-btn-sm { padding: 9px 16px; font-size: .85rem; }
-.bm-btn-primary { background: var(--accent); color: #fff; box-shadow: var(--shadow-sm); }
-.bm-btn-primary:hover { background: var(--accent-2); color: #fff; transform: translateY(-1px); box-shadow: var(--shadow-md); }
+/* Article link colors must not make filled-button labels disappear. */
+.bm-btn-primary, .bm-prose a.bm-btn-primary, .article-body a.bm-btn-primary, .ed-article a.bm-btn-primary { background: var(--accent); color: #fff; box-shadow: var(--shadow-sm); }
+.bm-btn-primary:hover, .bm-prose a.bm-btn-primary:hover, .article-body a.bm-btn-primary:hover, .ed-article a.bm-btn-primary:hover { background: var(--accent-2); color: #fff; transform: translateY(-1px); box-shadow: var(--shadow-md); }
 .bm-btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
 .bm-btn-outline:hover { border-color: var(--accent); color: var(--accent-2); }
 .bm-btn-ghost { background: transparent; color: var(--text); }
@@ -827,27 +836,6 @@ html[data-type="editorial"] .bm-h1, html[data-type="editorial"] .bm-h2 { font-we
   .bm-approach-list { grid-template-columns: 1fr; gap: 0; }
 }
 @media (max-width: 720px) {
-  .bm-nav-links { display: none; }
-  .bm-nav-links.bm-nav-open {
-    display: flex; flex-direction: column; align-items: stretch;
-    position: fixed; top: var(--nav-h); left: 0; right: 0;
-    background: var(--bg); border-bottom: 1px solid var(--border);
-    padding: .75rem 1rem 1.25rem; gap: 2px; z-index: 99;
-    max-height: calc(100vh - var(--nav-h)); overflow-y: auto;
-  }
-  .bm-nav-links.bm-nav-open li { width: 100%; }
-  .bm-nav-links.bm-nav-open a { display: block; padding: 10px 12px; border-radius: 7px; }
-  /* Dropdowns as accordions on mobile */
-  .bm-nav-links.bm-nav-open .bm-dropdown {
-    position: static; opacity: 1; visibility: visible; pointer-events: auto;
-    transform: none; box-shadow: none; border: none; border-radius: 0;
-    background: transparent; padding: 0 0 0 1rem;
-    display: none;
-  }
-  .bm-nav-links.bm-nav-open .bm-has-dropdown.bm-dd-open .bm-dropdown { display: block; }
-  .bm-nav-links.bm-nav-open .bm-dropdown a { font-size: .87rem; padding: 8px 12px; color: var(--text-muted); }
-  .bm-nav-links.bm-nav-open .bm-dropdown-divider { display: none; }
-  .bm-mobile-toggle { display: inline-flex; }
   .bm-hero-photo { max-width: 360px; }
   .bm-hero-photo-img { aspect-ratio: 1 / 1; }
   .bm-hero-chip { min-width: 0; padding: 10px 12px; }
@@ -891,6 +879,18 @@ html[data-type="editorial"] .bm-h1, html[data-type="editorial"] .bm-h2 { font-we
 
 /* ════════════════════════════════════════════════════ PRICING ═══ */
 .bm-price-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.bm-price-grid.bm-price-grid-four { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.bm-table-scroll { max-width:100%; overflow-x:auto; margin:1.5rem 0; }
+.bm-table-scroll:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.bm-responsive-pair > *, .article-outer > *, .page-wrap > * { min-width:0; }
+.article-body, .doc-content { overflow-wrap:anywhere; min-width:0; }
+.article-body pre, .doc-content pre { max-width:100%; overflow-x:auto; }
+/* Separately managed legacy articles cannot receive static table wrappers. */
+.article-body table { display:block; max-width:100%; overflow-x:auto; }
+@media(max-width:760px) {
+  .bm-price-grid.bm-price-grid-four { grid-template-columns:1fr; }
+  .bm-responsive-pair { grid-template-columns:minmax(0,1fr) !important; }
+}
 .bm-price-card {
   background: var(--bg-2); border: 1px solid var(--border);
   border-radius: var(--radius);
