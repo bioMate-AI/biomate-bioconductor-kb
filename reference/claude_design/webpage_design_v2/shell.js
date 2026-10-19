@@ -81,7 +81,6 @@
           <button type="button" class="bm-nav-trigger ${isActive ? 'active' : ''}" aria-expanded="false" aria-controls="bm-panel-${slug}">${label}${chevron}</button>
           <div class="bm-dropdown" id="bm-panel-${slug}" inert>
             <div class="bm-dropdown-inner">
-              <div class="bm-dropdown-heading"><span>${label}</span><a href="${href}">${s.overview} &rarr;</a></div>
               <div class="bm-dropdown-grid">
                 ${groups.map(function(group) {
                   return `<section class="bm-dropdown-group"><h2><a href="${group.href}">${group.label}</a></h2><p>${group.description}</p><ul>${(group.links || []).map(function(item) {
