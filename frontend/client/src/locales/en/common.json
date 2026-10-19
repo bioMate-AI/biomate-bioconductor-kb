@@ -169,6 +169,7 @@
     "generate_ind": "Generate IND §2.6 report from these results →"
   },
   "runs_ui": {
+    "run_manager": "Run Manager",
     "workflow_complete": "Workflow complete",
     "finished_successfully": "Your workflow finished successfully.",
     "view_results": "View results",

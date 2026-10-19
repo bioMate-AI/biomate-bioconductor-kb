@@ -132,6 +132,7 @@
     "no_expert_packs": "暂无可用的专家包。"
   },
   "runs_ui": {
+    "run_manager": "运行管理器",
     "workflow_complete": "工作流完成",
     "finished_successfully": "您的工作流已成功完成。",
     "view_results": "查看结果",
