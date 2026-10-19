@@ -280,6 +280,19 @@ export default function DataHubPage() {
                   q.set("attachFile", selected.id)
                   window.location.assign(`/?${q.toString()}`)
                 }}
+                onRunQC={() => {
+                  // Run REAL QC through BioMate's engine: attach the dataset and
+                  // pre-fill a QC request (?draft= — review before the billable
+                  // run, and avoids the attach/auto-send race). The chat pipeline
+                  // then selects the QC workflow (FastQC/MultiQC/domain QC), feeds
+                  // this file as input, runs it and shows the report — unlike the
+                  // lightweight ingest profiler in the Data profile section.
+                  const q = new URLSearchParams()
+                  if (activeProjectId) q.set("project", activeProjectId)
+                  q.set("attachFile", selected.id)
+                  q.set("draft", t("dataset_obj.qc_request"))
+                  window.location.assign(`/?${q.toString()}`)
+                }}
               />
             ) : (
               // No file picked yet — an honest prompt, not a blank pane.

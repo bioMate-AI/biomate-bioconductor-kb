@@ -30,6 +30,7 @@ import {
   FileArchive,
   Plus,
   Play,
+  ShieldCheck,
 } from "lucide-react"
 import { DataPerception, type PerceptionQuality } from "@/components/data-perception"
 import { t } from "@/lib/i18n"
@@ -92,6 +93,11 @@ interface DatasetObjectProps {
   /** Launch an analysis FROM this dataset — opens chat primed (review-before-send)
    *  to run a workflow on it, so work flows OUT of the data panel. */
   onAnalyze?: () => void
+  /** Run a full QC workflow ON this dataset — opens chat primed with the
+   *  dataset attached + a QC request (review-before-send), so the real
+   *  FastQC/MultiQC (or domain QC) workflow runs through BioMate's engine
+   *  rather than the lightweight ingest profiler shown in the panel. */
+  onRunQC?: () => void
   className?: string
   preview?: ReactNode
 }
@@ -111,6 +117,7 @@ export function DatasetObject({
   onDownload,
   onOpenRun,
   onAnalyze,
+  onRunQC,
   className,
   preview,
 }: DatasetObjectProps) {
@@ -250,6 +257,19 @@ export function DatasetObject({
                 {t('dataset_obj.use_in_chat')}
               </Button>
             )}
+            {onRunQC && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={onRunQC}
+                data-testid="dataset-object-run-qc"
+                title={t('dataset_obj.run_qc_tip')}
+              >
+                <ShieldCheck className="h-3 w-3" />
+                {t('dataset_obj.run_qc')}
+              </Button>
+            )}
             {onDownload && (
               <Button
                 variant="outline"
@@ -353,6 +373,7 @@ export function DatasetObject({
                 pass/watch/blocked badge, so it needs no separate tab. */}
             <div className="pt-3 mt-1 border-t space-y-2" data-testid="dataset-quality">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{t('dataset_obj.quality_heading')}</p>
+              <p className="text-[10px] text-muted-foreground" data-testid="dataset-quality-sub">{t('dataset_obj.quality_sub')}</p>
               {!dataset.ref ? (
                 <p className="text-[11px] text-muted-foreground" data-testid="dataset-quality-noref">
                   {t('dataset_obj.quality_noref')}
