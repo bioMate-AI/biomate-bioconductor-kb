@@ -47,7 +47,22 @@ SFT_ADAPTER_S3=s3://biomate-models-399683337364/biomate-core-local-trial/2026091
 ```
 **Cost/time:** 1 spot GPU (g5/g6 pool), ~2–4 h, ~$2–5; no Batch.
 
-## 3b. Launch ATTEMPTED (2026-10-19, with sign-off) — BLOCKED on spot GPU capacity
+## 3c. FIRED in us-east-1 (2026-10-19) — spot capacity found there
+us-west-2 spot stayed 1/10; a cross-region check found **us-east-1 use1-az1/az4 = 9/10** for the g5/g6/g6e pool.
+Discovered + fixed a latent launcher bug: `spot_launch.sh` did not propagate the GRPO env vars into instance
+USERDATA, so on-box `SFT_ADAPTER_S3` fell back to the non-existent `sft_decompv2_adapter` (SFT_ADAPTER_FAIL) —
+i.e. the GRPO launcher was never actually runnable. Fix: bake `SFT_ADAPTER_S3/DATA_S3/DB_S3/MAX_STEPS/…/EVAL_HOOK`
+into the USERDATA export (empty + harmless for non-GRPO stages). Then fired **one** spot instance via
+`spot_launch.sh` with us-east-1 overrides (AMI `ami-07ab2d4b1490816c3`, subnet `subnet-056f0aba4ab4f7ec2`=use1-az4,
+default SG `sg-09a2408a8b8ca874b`, `g6e.xlarge` L40S 48GB, `SFT_ADAPTER_S3=sft_gold_adapter`, `EVAL_HOOK=0`).
+**Instance `i-09fff702deba10e2f` — confirmed spot (sir-76jqmymh), running.** Logs/ckpts/final land in the
+us-west-2 bucket (cross-region S3 read is functional): train.log `…/spot_logs/med/grpo_grpo_decomp/train.log`,
+adapter `…/models_20260919/med/grpo_grpo_decomp_adapter/`. Grade when it lands:
+`ADAPTER_TAG=_grpo_decomp bash run_eval_sftv3real.sh` (decomposition_real headline vs frontier).
+**This is a LOW-EV bet** (decomp is hard; base/v3 on decomposition_real ≈ 0.016/0.087 — a near-zero start;
+start policy is the general `sft_gold`, off-design). A near-floor result is the likely, honest outcome.
+
+## 3b. First attempt (us-west-2) — BLOCKED on spot GPU capacity
 Staging completed (was missing; the launcher was "ready, never run"): built + uploaded the GRPO code tarball
 `code/evaluation_local_trial_grpo_decomp.tgz` (includes the §3 honesty fix) and the train pool
 `sft/decomp_depgraph.jsonl` (4,300 `catalog_depgraph_synth` rows, all buildable). Fired spot-only:
