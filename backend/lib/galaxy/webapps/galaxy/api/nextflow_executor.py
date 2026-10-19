@@ -3559,18 +3559,44 @@ def _evaluate_qc_from_s3(
         try:
             _report = handler.get_qc_report()
             _report["source"] = "s3_sidecar"
-            _sidecar_uri = ""
-            for _f in s3_output_files:
-                _u = _f.get("s3_uri", "")
-                if _u.startswith("s3://"):
-                    _sidecar_uri = _u.rsplit("/", 1)[0] + "/qc_events.json"
-                    break
+            # Write to <outdir>/output/qc_events.json — the SAME path the Node
+            # /qc-events handler reads (sidecarBase = run.nextflowOutputDir, then
+            # "/output/qc_events.json"). Nextflow publishes the actual outputs under
+            # <outdir>/run/ and <outdir>/pipeline_info/, NOT <outdir>/output/, so the
+            # old "parent dir of the first output file" derivation put the sidecar in
+            # /run/ where Node never looks. The run's stored outdir is authoritative;
+            # fall back to stripping the publish subdir from an output URI.
+            _outdir = ""
+            try:
+                _snap = get_run_state_store().get_run(run_id) or {}
+                _outdir = (_snap.get("outdir") or "").rstrip("/")
+            except Exception:
+                _outdir = ""
+            if not _outdir.startswith("s3://"):
+                for _f in s3_output_files:
+                    _u = _f.get("s3_uri", "")
+                    if _u.startswith("s3://"):
+                        for _sub in ("/run/", "/pipeline_info/"):
+                            if _sub in _u:
+                                _outdir = _u.split(_sub)[0]
+                                break
+                        if _outdir.startswith("s3://"):
+                            break
+            _sidecar_uri = (_outdir + "/output/qc_events.json") if _outdir.startswith("s3://") else ""
             if _sidecar_uri:
                 import boto3 as _boto3
                 _sb, _sk = _sidecar_uri[5:].split("/", 1)
-                _boto3.client(
-                    "s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2")
-                ).put_object(
+                # Resolve the bucket's real region (biomate-nextflow-work is us-east-1);
+                # a cross-region PutObject raises PermanentRedirect and the sidecar is lost.
+                _s3c = _boto3.client(
+                    "s3", region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1"
+                )
+                try:
+                    _loc = _s3c.get_bucket_location(Bucket=_sb).get("LocationConstraint") or "us-east-1"
+                    _s3c = _boto3.client("s3", region_name=_loc)
+                except Exception:
+                    pass
+                _s3c.put_object(
                     Bucket=_sb, Key=_sk,
                     Body=_json.dumps(_report).encode("utf-8"),
                     ContentType="application/json",
