@@ -16,11 +16,16 @@ What it does
     the §dry-run proves is correct (oracle > all-chain on parallel/mixed).
   * QLoRA (4-bit nf4, paged_adamw_8bit), same pinned venv as SFT (trl==1.14.1 has GRPOTrainer).
   * save_steps checkpoints (resume-safe, mirrored to S3 by spot_train-style entry) + an optional
-    held-out eval hook against decomposition_v2 (EVAL_HOOK=1): every eval_steps it generates on a
+    held-out eval hook against decomposition_REAL (EVAL_HOOK=1): every eval_steps it generates on a
     small bench slice and logs node/edge-F1 + per-class structure via the benchmark scorer.
+    NOTE (2026-10-19): the eval default is decomposition_REAL (out-of-generator: real nf-core/chain/
+    GTN topologies), NOT decomposition_v2. decomposition_v2 is IN-DISTRIBUTION to build_decomp_depgraph.py
+    (it emits both the GRPO TRAIN prompts and decomposition_v2), so a v2 "gain" is the same leaked
+    artifact that got the SFT decomp 0.73 retracted. The only honest gauge is decomposition_real.
+    Enabling EVAL_HOOK=1 requires the entry to stage datasets/decomposition_real/{decomposition_real.jsonl,score.py}.
 
 GRPO prompts come from the TRAIN pool of decomp_depgraph.jsonl (the SFT training rows) — the SAME
-hash split that holds decomposition_v2 out, so the benchmark stays a true held-out gauge. Each row
+hash split that holds the benchmark out. Each row
 carries its gold DAG as the `gold` column; TRL forwards dataset columns to the reward fn as kwargs.
 
 Run (on the GPU box; NOT run here):
@@ -108,10 +113,12 @@ def main():
     ap.add_argument("--data", required=True, help="decomp_depgraph.jsonl (TRAIN-pool GRPO prompts)")
     ap.add_argument("--db", required=True, help="galaxy_ai_tools.db for the structural verifier")
     ap.add_argument("--out", required=True)
+    # Honest default: eval on decomposition_REAL (out-of-generator). decomposition_v2 is
+    # in-distribution to the GRPO train generator (build_decomp_depgraph.py) and must not gauge.
     ap.add_argument("--scorer", default=os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                    "..", "datasets", "decomposition_v2", "score.py"))
+                    "..", "datasets", "decomposition_real", "score.py"))
     ap.add_argument("--bench", default=os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                    "..", "datasets", "decomposition_v2", "decomposition_v2.jsonl"))
+                    "..", "datasets", "decomposition_real", "decomposition_real.jsonl"))
     ap.add_argument("--max-steps", type=int, default=400)
     ap.add_argument("--save-steps", type=int, default=25)
     ap.add_argument("--eval-steps", type=int, default=25)
