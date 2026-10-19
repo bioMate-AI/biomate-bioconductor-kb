@@ -92,6 +92,7 @@ def research(
     assess_fn: Optional[Callable[[str, List[Source]], Verdict]] = None,
     intent_fn: Optional[Callable[[str], str]] = None,
     budget: Optional[Budget] = None,
+    kinds_override: Optional[dict] = None,
 ) -> ResearchResult:
     budget = budget or Budget()
     decompose_fn = decompose_fn or _default_decompose
@@ -114,7 +115,8 @@ def research(
         intents: List[str] = []
         for sq in subqs:
             srcs, intent = router.route(sq, intent_fn=intent_fn,
-                                        max_sources=budget.max_sources_per_subq)
+                                        max_sources=budget.max_sources_per_subq,
+                                        kinds_override=kinds_override)
             intents.append(intent)
             for s in srcs:
                 tasks.append((sq, s.id))

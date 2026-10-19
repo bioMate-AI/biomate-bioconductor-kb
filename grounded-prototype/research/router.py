@@ -62,15 +62,19 @@ def route(
     allow_nonkeyless: bool = False,
     intent_fn: Optional[Callable[[str], str]] = None,
     max_sources: int = 6,
+    kinds_override: Optional[dict] = None,
 ) -> Tuple[List[registry.SourceSpec], str]:
     """Return (ranked source set, detected intent) for this question.
 
     `intent_fn` is the injectable LLM fallback; defaults to the rule detector.
+    `kinds_override` ({intent: [kinds]}) lets a harness config change which source
+    KINDS an intent pulls — the knob the Harness2-style improver edits.
     Sources are ordered by intent-kind priority, then authority (A>B>C), and
     filtered to keyless unless `allow_nonkeyless`.
     """
     intent = (intent_fn or detect_intent)(question)
-    kinds = _INTENT_KINDS.get(intent, _INTENT_KINDS["general"])
+    table = {**_INTENT_KINDS, **(kinds_override or {})}
+    kinds = table.get(intent, table["general"])
     kind_rank = {k: i for i, k in enumerate(kinds)}
 
     picked: List[registry.SourceSpec] = []
