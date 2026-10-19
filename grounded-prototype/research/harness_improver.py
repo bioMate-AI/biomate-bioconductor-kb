@@ -7,6 +7,12 @@ Google's Harness2 (arXiv:2610.14224, Apache-2.0) improves an agent's *harness*
 the technique — NOT the benchmark CLI (which runs sandbox-disabled with
 unrestricted network and is "not an officially supported Google product").
 
+NOTE: this module is the LIGHTWEIGHT local variant (a hand-rolled single PPC step,
+useful for quick in-process scoring). The FAITHFUL integration REUSES Google's
+actual vendored method code (recursion/selection/library/proposer) via the
+`BenchmarkAdapter` seam — see `research/h2_biomate.py` + `research/vendor/harness2/`.
+Prefer that for real harness adaptation; keep this for cheap inline checks.
+
 Two BioMate-specific adaptations that make it safe and better here:
 
   1. VERIFIER-FREE PROBE = the Grounded TRUST LATTICE. Harness2 compares raw
