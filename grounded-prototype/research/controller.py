@@ -24,13 +24,13 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Set
 
-from engine.answer import assemble
 from engine.models import GroundedAnswer, Source
 from engine.retrieve import retrieve
 
 from . import router
+from .synthesis import synthesize
 
 
 @dataclass
@@ -98,8 +98,10 @@ def research(
     assess_fn = assess_fn or _default_assess
 
     collected: Dict[str, Source] = {}     # id -> Source (dedup)
+    provenance: Dict[str, Set[str]] = {}  # source id -> sub-questions that found it
     trace: List[RoundTrace] = []
     stop_reason = "max_rounds"
+    unresolved: List[str] = []
 
     subqs = decompose_fn(question)[: budget.max_breadth]
     round_no = 0
@@ -124,7 +126,9 @@ def research(
                 futs = {ex.submit(_safe_retrieve, retrieve_fn, sid, sq): (sq, sid)
                         for (sq, sid) in tasks}
                 for fut in as_completed(futs):
+                    sq_done, _sid = futs[fut]
                     for src in fut.result():
+                        provenance.setdefault(src.id, set()).add(sq_done)
                         if src.id not in collected:
                             collected[src.id] = src
                             new_sources.append(src)
@@ -143,7 +147,10 @@ def research(
         ))
 
         if verdict.sufficient:
-            stop_reason = "sufficient"; break
+            stop_reason = "sufficient"; unresolved = []; break
+        # From here the question is NOT yet sufficient — remember the open gaps so
+        # synthesis can flag them honestly if we stop.
+        unresolved = verdict.gaps or verdict.follow_up
         if not new_auth:
             # Anti-spin: a round that added no new authoritative evidence won't be
             # rescued by drilling the same gaps — stop rather than burn budget.
@@ -152,15 +159,20 @@ def research(
         if not subqs:
             stop_reason = "no_follow_up"; break
 
-    # Final synthesis via the Grounded engine: trust lattice + citations + boundary.
-    # min_score=0: the gathered evidence is ALREADY curated (each item was retrieved
-    # for a sub-question), so we don't re-apply the lexical relevance floor against
-    # the top-level question — that would drop evidence relevant to a sub-question.
-    # The isolation gate + tier lattice still apply; scoring only orders the set.
+    # Final synthesis. min_score=0: the gathered evidence is ALREADY curated (each
+    # item was retrieved for a sub-question), so we don't re-apply the lexical
+    # relevance floor against the top-level question. The isolation gate + tier
+    # lattice still apply; scoring only orders the set. Then the research
+    # synthesizer builds a multi-claim, theme-labelled, boundary-honest answer.
     gathered = list(collected.values())
     scored, isolation = retrieve(question, gathered, requesting_user=user,
                                  limit=max(8, len(gathered)), min_score=0.0)
-    answer = assemble(question, scored, isolation, requesting_user=user)
+    kept = {s.source.id for s in scored}
+    answer = synthesize(
+        question, [s.source for s in scored], isolation,
+        requesting_user=user, open_gaps=unresolved,
+        provenance={sid: sqs for sid, sqs in provenance.items() if sid in kept},
+    )
 
     return ResearchResult(
         question=question, answer=answer, rounds=round_no, trace=trace,
