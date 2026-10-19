@@ -48,18 +48,33 @@ def main():
         adapter = BioMateResearchAdapter(root)
         prop = BioMateProposer(adapter.spec.channels["proposer"])
 
-        # the BioMate harness c1..c8 tree includes the editable route table as .py
+        # the BioMate harness c1..c8 tree includes the editable route table (INV)
         base = adapter.base_harness()
         ck("base harness has editable scripts/route_table.py",
            (base / "scripts/route_table.py").is_file())
+        # P1: the DOM surface is an editable SKILL (the only editable-as-data
+        # BioMate surface) that Harness2 improves.
+        ck("base harness has editable skills/admet-evidence/SKILL.md",
+           (base / "skills/admet-evidence/SKILL.md").is_file())
 
         res = schedule.run_domain("biomedical_research", adapter.tasks(), 2,
                                   adapter=adapter, prop=prop,
                                   runs_root=adapter.spec.runs_root,
                                   library_root=root / "library" / "2")
         ck("harness2 run_domain completes with no failures",
-           res.get("done") == 2 and res.get("failed") == 0)
+           res.get("done") == len(adapter.tasks()) and res.get("failed") == 0)
         ck("the research controller actually executed rollouts", adapter.execution_count > 0)
+
+        # P0 verifier bridge: answer-based where a task has ground truth, else trust lattice.
+        run_dir = adapter.execute("m7-limit-value", None, "verif-ab")
+        ab = adapter.score(run_dir, "m7-limit-value")
+        ck("ground-truth task scored answer-BASED (real verifier)",
+           ab["answer_free"] is False and ab["verifier"] == "expected_params_f1")
+        ck("answer-based score is a real reward in [0,1]", 0.0 <= ab["score"] <= 1.0)
+        run_dir2 = adapter.execute("herg-cardiac", None, "verif-af")
+        af = adapter.score(run_dir2, "herg-cardiac")
+        ck("open-world task scored answer-FREE (trust lattice)",
+           af["answer_free"] is True and af["verifier"] == "trust_lattice")
 
         lib = root / "library" / "2"
         ck("harnessing-level library was written (adopted harnesses banked)",
