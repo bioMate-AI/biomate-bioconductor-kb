@@ -144,7 +144,7 @@
               <a href="${home}" class="bm-brand">
                 <img src="assets/logo.png?v=3" alt="BioMate AI" />
               </a>
-              <p>${zh ? '面向生物医学研究与药物发现的 AI 平台。' : 'The AI platform for biomedical research &amp; drug discovery.'}</p>
+              <p>${zh ? '面向药物发现的生物医学研究平台。' : 'A biomedical research platform for drug discovery.'}</p>
             </div>
             <div class="bm-footer-col">
               <h4>${zh ? '平台' : 'Platform'}</h4>
