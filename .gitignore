@@ -195,3 +195,6 @@ docs/20260912_onprem_llm/midtrain_corpus/*.jsonl
 # Live-UI focal stills for the drug-dev flagship video (regenerable:
 # capture-live-admet-focal.cjs -> build-live-focal.sh); do not commit the binaries.
 reference/claude_design/tutorials/assets/live/*.png
+
+# Tutorial redesign handoff — derived from tutorials_v2 (24MB assets dup); zip/share directly, reproducible via the handoff build.
+reference/claude_design/tutorials_handoff/
