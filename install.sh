@@ -422,6 +422,22 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 4c. 多架构容器支持（ARM64 宿主机）
+# ─────────────────────────────────────────────────────────────────────────────
+# On non-amd64 hosts (ARM64 Graviton, Apple Silicon), some images in the stack
+# may ship only an amd64 variant. Docker can run them transparently via QEMU
+# user-mode emulation when binfmt_misc is registered. Install it proactively so
+# the stack starts even if the image hasn't been rebuilt for the host platform.
+if [[ "$HOST_ARCH_NORM" != "amd64" ]]; then
+  info "ARM64 宿主机，启用多架构容器支持（QEMU binfmt）..."
+  if docker run --rm --privileged tonistiigi/binfmt --install amd64 >/dev/null 2>&1; then
+    ok "多架构支持已启用 (amd64 on ${HOST_ARCH})"
+  else
+    warn "多架构支持安装失败 — amd64 镜像可能无法在 ${HOST_ARCH} 上运行"
+  fi
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 5. 启动服务
 # ─────────────────────────────────────────────────────────────────────────────
 step "启动服务 / Starting services"
