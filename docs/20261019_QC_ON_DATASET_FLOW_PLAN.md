@@ -93,12 +93,17 @@ Dimensions: **ingest source** (file-panel upload / chat attach / workflow output
   "large" (sampling applies). Returns `{ hasQC, workflowHint, sampleRecommended }`.
 - **Consistency:** reuses `_sniff_kind` + `UnifiedWorkflowSearch` — no hardcoded map.
 
-### 4.3 Sampling (R3)
-- The QC dispatch carries a **scope**: `sample` (default) or `full`, mapped onto the
-  engine's existing `dataScope`. Small datasets (below a documented threshold — e.g.
-  FASTQ reads < N, or table rows < N, or file < X MB) ⇒ `sample == full`, choice hidden.
+### 4.3 Sampling (R3) — **reuses the existing `DataScopeConfig`**
+- Workflow execution **already has** a data-scope control: `components/data-scope-config.tsx`
+  — a fraction slider (1–100%) + sampling strategies (random / first-N / diverse-
+  representative) + strata selection. QC sampling **reuses this verbatim**; it is not
+  a new control (platform consistency).
+- **Default random sample = 30%** (decision 2026-10-19): the QC default is
+  `fraction = 0.30, strategy = random`. "Full" sets `fraction = 1.0`.
+- Small datasets (below a documented threshold — FASTQ reads / table rows / bytes,
+  pinned in Phase 1 from `data_perception` shape) ⇒ `sample == full`, choice hidden.
 - The chat request text names the scope so the router/panel applies it; the
-  workflow-panel data-scope control remains the manual override (consistency).
+  `DataScopeConfig` control remains the visible/manual override (consistency).
 
 ### 4.4 Proactive on-ingest prompt (R1)
 - **Trigger:** a new dataset enters a session — file-panel upload, chat attach, or a
@@ -107,9 +112,22 @@ Dimensions: **ingest source** (file-panel upload / chat attach / workflow output
   surface), e.g. *"I can run QC on `<name>`."* → **[Random sample]** · **[Full]** ·
   **[Skip]** (sample/full shown only when large).
 - **Default / auto-run:** if the user proceeds without choosing (the spec's "did not
-  respond"), **auto-start QC on a random sample**. Bounded cost by construction.
+  respond"), **auto-start QC on a 30% random sample**. Bounded cost by construction.
+  Realized through the platform-wide Confirm & Run auto-start (§4.7) — no QC-specific
+  timer.
 - **Suppression:** respects `state != none` (E/I/J) and type-without-QC (D); one prompt
   per dataset version; dismiss = don't re-ask this version.
+
+### 4.7 Confirm & Run auto-start (platform-wide — decision 2026-10-19)
+> Not QC-specific. A general workflow-panel behavior that QC (and R1's auto-run) ride on.
+- When a workflow is **ready to run** — i.e. **all required parameters are filled** —
+  and the user has not interacted for **10 seconds**, Confirm & Run **auto-starts**.
+- **Gate:** if any *important/required* parameter is still unfilled, the timer does
+  **not** run — the panel waits for the user (never auto-run an underspecified workflow).
+- Any user interaction (focus, edit, hover on the control, explicit cancel) **resets/
+  cancels** the countdown; a visible countdown affordance makes it non-surprising.
+- Applies uniformly to every workflow run, so dataset QC inherits the auto-run with no
+  special-casing. This is what satisfies R1's "auto-start if the user didn't respond."
 
 ### 4.5 Conditional QC button (R4)
 - DatasetObject **eagerly** fetches `qc-status` (cheap) when it opens.
@@ -155,21 +173,28 @@ Each phase is independently shippable and testable (tsc + vitest + dev sync +
 
 ---
 
-## 6. Open decisions / edge cases to confirm during build
+## 6. Decisions (resolved 2026-10-19) + remaining edge cases
 
-1. **Large-dataset threshold** for offering sample/full (FASTQ reads, table rows,
-   or bytes) — pick concrete numbers in Phase 1 from `data_perception` shape.
-2. **Auto-run on sample without a confirm** — the spec says auto-start; cost is
-   bounded by the sample. Confirm whether even the sampled run should still pass the
-   workflow-panel "Confirm & Run", or be truly automatic.
-3. **QC verdict ↔ Data-profile verdict** — once a real QC run completes, its verdict
-   should drive the header pill (supersede the heuristic Good/Watch/Blocked) for
-   consistency; define the precedence.
-4. **Output datasets (G)** — only user-provided/uploaded datasets get the QC prompt;
-   QC *report* outputs and intermediate outputs do not (avoid prompt loops).
+**Resolved with the user:**
+1. **Default random sample = 30%** (`DataScopeConfig` fraction 0.30, strategy random).
+   The "large" threshold (when the sample/full choice is *offered* vs `sample==full`)
+   is pinned in Phase 1 from `data_perception` shape.
+2. **Auto-run via a 10 s timer, gated on required params (§4.7).** Confirm & Run
+   auto-starts 10 s after the last interaction **only when all required params are
+   filled**; otherwise it waits. Platform-wide, not QC-specific — QC inherits it.
+3. **QC verdict supersedes the heuristic.** Once a real QC run completes, its verdict
+   drives the dataset header pill (Good/Watch/Blocked), overriding the `data_perception`
+   heuristic verdict; the heuristic remains the instant placeholder until QC lands.
+   *(Confirmed: workflow execution already ships the sample control `DataScopeConfig`;
+   QC reuses it — §4.3.)*
+4. **Only user-provided/uploaded datasets get the QC prompt** (G) — QC report outputs
+   and intermediate outputs never trigger a prompt (no loops).
+
+**Still to pin during build:**
 5. **Ad-hoc QC (H)** — allowed; the auto-filing notice is project-only.
 6. **Persistence** — v1 derives qc-status from provenance (no new table). If that's
    too slow or lossy, add a `dataset_qc` record keyed by (ref, version).
+7. **Large-dataset threshold numbers** — concrete reads/rows/bytes cutoffs (Phase 1).
 
 ---
 
