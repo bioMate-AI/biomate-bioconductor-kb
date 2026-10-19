@@ -263,6 +263,10 @@ services:
       # Explicit disable — prevents the frontend default (executor="awsbatch")
       # from overriding local mode. Set to "true" only when using AWS Batch.
       NEXTFLOW_USE_AWS: ${NEXTFLOW_USE_AWS:-false}
+      # On ARM64 hosts, Nextflow workflow containers are amd64-only images.
+      # Setting this env var tells the Docker CLI (invoked by Nextflow) to
+      # default to linux/amd64 so image pulls and runs use QEMU emulation.
+      DOCKER_DEFAULT_PLATFORM: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
       # local: 用本机 Docker 跑 Nextflow（需要挂载 docker.sock，见下方 volumes）
       # Nextflow 工作目录（容器内路径，对应下方 volume 挂载）
       NEXTFLOW_WORK_DIR: ${NEXTFLOW_WORK_DIR:-/app/nf-work}
