@@ -200,7 +200,7 @@ html[data-palette="deepnavy"] .bm-nav { background: rgba(239,230,207,.93); }
 .bm-nav-links .bm-dropdown-group li>a { display:inline-block; padding:0; font-size:.82rem; color:var(--accent); border-radius:0; }
 .bm-dropdown a:hover { text-decoration:underline; text-underline-offset:4px; background:transparent; }
 
-@media(max-width:1240px) {
+@media(max-width:1280px) {
   .bm-nav-links { display:none; }
   .bm-primary-nav { margin-left:0; }
   .bm-mobile-toggle { display:inline-flex; }
