@@ -46,7 +46,7 @@
   }
   </script>
   <link rel="stylesheet" href="fonts/fonts.css"/>
-  <link rel="stylesheet" href="styles.css"/>
+  <link rel="stylesheet" href="styles.css?v=20261010-ui2"/>
   <style>
     :root {
       --bg: #F5F8FB; --bg-card: #EBF1F7; --bg-card2: #E2EAF2;
@@ -121,9 +121,12 @@
     .stat-box .num { font-family: var(--font-head); font-size: 2rem; font-weight: 700; color: var(--accent); line-height: 1; }
     .stat-box .lbl { font-size: .72rem; color: var(--text-muted); margin-top: .25rem; }
   </style>
+  <link rel="stylesheet" href="editorial.css" />
 </head>
 <body>
-<div id="bm-nav"></div>
+<!-- bm-static-nav:start -->
+<div id="bm-nav"><header class="bm-nav"> <div class="bm-nav-inner"> <a href="index.html" class="bm-brand" aria-label="BioMate AI"> <img src="assets/logo.png?v=3" alt="BioMate AI" /> </a> <nav aria-label="Primary navigation" class="bm-primary-nav"><ul class="bm-nav-links" id="bmNavLinks"> <li><a class="bm-nav-trigger" href="therapeutic-areas.html">Therapeutic Areas</a></li> <li><a class="bm-nav-trigger" href="how-we-design.html">How We Design</a></li> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger active" aria-expanded="false" aria-controls="bm-panel-company">Company<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-company" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-heading"><span>Company</span><a href="about.html">Overview &rarr;</a></div> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="about.html">About BioMate</a></h2><p>Our mission and approach to AI-powered science.</p><ul><li><a href="compare.html">BioMate vs. the alternatives &rarr;</a></li></ul></section><section class="bm-dropdown-group"><h2><a href="blog.html?cat=news">Newsroom</a></h2><p>Company news and the latest from our team.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="contact.html">Contact</a></h2><p>Discuss your research and working with BioMate.</p><ul></ul></section> </div> </div> </div> </li> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger " aria-expanded="false" aria-controls="bm-panel-services">Services<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-services" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-heading"><span>Services</span><a href="services.html">Overview &rarr;</a></div> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="features.html">Biomedical Research Platform</a></h2><p>From scientific questions to reproducible analyses.</p><ul><li><a href="services.html">Explore applications &rarr;</a></li><li><a href="connectors.html">Connectors & developer docs &rarr;</a></li></ul></section><section class="bm-dropdown-group"><h2><a href="drug-discovery.html">Drug Discovery</a></h2><p>Target intelligence, molecular design and candidate evaluation.</p><ul><li><a href="drug-discovery.html">Explore the workbench &rarr;</a></li></ul></section><section class="bm-dropdown-group"><h2><a href="tutorials.html">Getting Started</a></h2><p>Practical guidance for your research team.</p><ul><li><a href="tutorials.html">Tutorials &rarr;</a></li><li><a href="pricing.html">Pricing &rarr;</a></li></ul></section> </div> </div> </div> </li> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger " aria-expanded="false" aria-controls="bm-panel-engines">Research Engines<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-engines" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-heading"><span>Research Engines</span><a href="research-engines.html">Overview &rarr;</a></div> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="research-engines.html">Our Research Programs</a></h2><p>Advancing biological understanding and molecular design.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="research-engines.html#virtual-cell">Virtual Cell LLM</a></h2><p>Research into cellular states, responses and disease mechanisms.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="research-engines.html#cyclic-peptides">Cyclic-Peptide Generation</a></h2><p>Research into structure-aware generation and optimization.</p><ul></ul></section> </div> </div> </div> </li> <li class="bm-has-dropdown"> <button type="button" class="bm-nav-trigger " aria-expanded="false" aria-controls="bm-panel-research">Evidence<svg class="bm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button> <div class="bm-dropdown" id="bm-panel-research" inert> <div class="bm-dropdown-inner"> <div class="bm-dropdown-heading"><span>Evidence</span><a href="benchmarks.html">Overview &rarr;</a></div> <div class="bm-dropdown-grid"> <section class="bm-dropdown-group"><h2><a href="benchmarks.html">Benchmarks & Evaluations</a></h2><p>Inspect performance, methods and evaluation criteria.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="surveys.html">Research Perspectives</a></h2><p>Explore approaches, comparisons and scientific limitations.</p><ul></ul></section><section class="bm-dropdown-group"><h2><a href="publications.html">Scientific Publishing</a></h2><p>Follow the research and its applications.</p><ul><li><a href="publications.html">Publications &rarr;</a></li><li><a href="blog.html?cat=science">Scientific articles &rarr;</a></li></ul></section> </div> </div> </div> </li> <li><a href="https://dev-public.biomate.ai/login" class="bm-nav-login">Log in</a></li> <li><a href="https://dev-public.biomate.ai/register" class="bm-nav-cta">Start free</a></li> </ul></nav> <button class="bm-mobile-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="bmNavLinks" id="bmMobileToggle"> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg> </button> </div> </header><noscript><style>.bm-nav{display:none}</style><nav class="bm-static-nav" aria-label="Primary navigation without JavaScript"><a href="index.html">BioMate AI</a><a href="about.html">Company</a><a href="features.html">Research Platform</a><a href="drug-discovery.html">Drug Discovery</a><a href="research-engines.html">Research Engines</a><a href="benchmarks.html">Evidence</a><a href="pricing.html">Pricing</a><a href="contact.html">Contact</a></nav></noscript></div>
+<!-- bm-static-nav:end -->
 <div class="bm-blog">
 
 <div class="article-hero">
@@ -161,7 +164,7 @@
       </div>
 
       <span class="section-label">Background</span>
-      <h2>Why Clinical Endpoint Selection Is Both a Science and a Regulatory Art</h2>
+      <h2 id="endpoint-science">Why Clinical Endpoint Selection Is Both a Science and a Regulatory Art</h2>
 
       <p>Every clinical trial outcome measure must satisfy four FDA criteria: (1) it must be clinically meaningful from the patient perspective; (2) it must be reliable and reproducible across sites and raters; (3) it must be sensitive to change at the proposed dose level and treatment duration; and (4) it must have existing regulatory precedent or a defined evidentiary pathway to qualification.</p>
 
@@ -176,7 +179,7 @@
       </ul>
 
       <span class="section-label">Validation results</span>
-      <h2>20-Drug Retrospective Test &mdash; Full Scorecard</h2>
+      <h2 id="20-drug-test">20-Drug Retrospective Test &mdash; Full Scorecard</h2>
 
       <p>Each drug was tested by providing BioMate with the INN name, proposed indication (blinded to approval), and MOA classification. BioMate was asked to recommend: (1) primary endpoint and timepoint, (2) co-primary or key secondary, (3) patient-reported outcome (PRO) endpoint. The ground truth was the primary endpoint from the FDA statistical review of the pivotal trial.</p>
 
@@ -222,7 +225,7 @@
       <p><strong>Risankizumab in CD:</strong> The CD program introduced a dual co-primary (CDAI clinical remission + endoscopic improvement), following FDA&rsquo;s 2018 draft guidance on CD endpoint qualification that required objective mucosal healing evidence in addition to symptom-based CDAI. BioMate recommended CDAI alone, which would have been correct in 2010 but is no longer sufficient for new IBD approvals. This reveals a gap in BioMate&rsquo;s IBD endpoint database for post-2018 FDA guidance.</p>
 
       <span class="section-label">Hallucination analysis</span>
-      <h2>Why Zero Hallucinated Endpoints Is the Key Safety Result</h2>
+      <h2 id="hallucination">Why Zero Hallucinated Endpoints Is the Key Safety Result</h2>
 
       <p>Endpoint hallucination &mdash; inventing a composite measure that doesn&rsquo;t exist in regulatory precedent &mdash; is the failure mode that makes AI endpoint recommendation dangerous in practice. A clinical team that acts on a hallucinated composite endpoint (e.g., &ldquo;PASI-ACR Composite Score&rdquo; for PsA with co-morbid psoriasis) will submit a trial design that FDA will reject in the End-of-Phase 2 meeting, costing 1&ndash;2 years of trial delay and $50&ndash;200M in budget.</p>
 
@@ -237,7 +240,7 @@
       </div>
 
       <span class="section-label">Comparison</span>
-      <h2>Claude Science Comparison &mdash; General LLM Capability vs. Regulatory Grounding</h2>
+      <h2 id="claude-science">Claude Science Comparison &mdash; General LLM Capability vs. Regulatory Grounding</h2>
 
       <p>We tested Claude Science directly on a subset of 10 cases from the same panel (blinded to BioMate&rsquo;s results). Claude Science&rsquo;s endpoint recommendations drew on training data knowledge of clinical trial design, FDA guidance, and published trial results. This is a genuinely strong knowledge base &mdash; the comparison is not trivial.</p>
 
@@ -292,7 +295,7 @@
       </div>
 
       <span class="section-label">The three misses &mdash; fixes in progress</span>
-      <h2>Open Items and Planned Improvements</h2>
+      <h2 id="open-items">Open Items and Planned Improvements</h2>
 
       <p>The three incorrect recommendations point to three specific gaps that BioMate is addressing:</p>
 
@@ -382,8 +385,11 @@
 </div>
 </div>
 
-<div id="bm-foot"></div>
+<!-- bm-static-foot:start -->
+<div id="bm-foot"><section class="bm-cta-bar"> <div class="bm-cta-bar-inner"> <p class="bm-cta-bar-eyebrow">BioMate AI</p> <h2 class="bm-cta-bar-head">Try BioMate free.</h2> <p class="bm-cta-bar-sub">Move faster from scientific question to actionable results.</p> <div class="bm-cta-bar-btns"> <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-on-ink-primary bm-btn-lg"> Start free <span class="bm-btn-arrow">&rarr;</span> </a> <a href="contact.html?topic=General%20inquiry" class="bm-btn bm-btn-ink bm-btn-lg">Contact us</a> </div> </div> </section> <footer class="bm-footer"> <div class="bm-footer-inner"> <div class="bm-footer-grid"> <div class="bm-footer-brand"> <a href="index.html" class="bm-brand"> <img src="assets/logo.png?v=3" alt="BioMate AI" /> </a> <p>The AI platform for biomedical research &amp; drug discovery.</p> </div> <div class="bm-footer-col"> <h4>Platform</h4> <ul> <li><a href="features.html">Research Workbench</a></li> <li><a href="drug-discovery.html">Drug Discovery</a></li> <li><a href="research-engines.html">Research Engines</a></li> <li><a href="features.html">Features</a></li> <li><a href="benchmarks.html">Benchmarks</a></li> <li><a href="pricing.html">Pricing</a></li> <li><a href="https://dev-public.biomate.ai/register">Start free</a></li> </ul> </div> <div class="bm-footer-col"> <h4>Science</h4> <ul> <li><a href="services.html#drug-discovery">Drug Discovery</a></li> <li><a href="services.html#genomics">Genomics &amp; Multi-Omics</a></li> <li><a href="services.html#structural-biology">Structural Biology</a></li> <li><a href="surveys.html">Research Perspectives</a></li> <li><a href="blog.html">Newsroom &rarr;</a></li> </ul> </div> <div class="bm-footer-col"> <h4>Company</h4> <ul> <li><a href="about.html">About</a></li> <li><a href="tutorials.html">Tutorials</a></li> <li><a href="glossary.html">Glossary</a></li> <li><a href="blog.html">Newsroom</a></li> <li><a href="contact.html">Contact</a></li> <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li> </ul> </div> </div> <div class="bm-footer-bottom"> <span>&copy; 2026 BioMate AI &middot; contact@biomate.ai</span> <span class="links"> <a href="privacy.html">Privacy</a> <a href="terms.html">Terms</a> </span> </div> </div> </footer></div>
+<!-- bm-static-foot:end -->
 <script src="shell.js"></script>
 <script>renderShell({ active: 'newsroom' });</script>
+  <script src="editorial.js"></script>
 </body>
 </html>
