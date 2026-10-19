@@ -810,8 +810,8 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
           <Icon size={16} />
         </span>
         <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: 1 }}>
-          <span style={{ fontWeight: 600, fontSize: 13.5, color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{m.k}</span>
-          <span style={{ fontSize: 12, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>{m.t}</span>
+          <span style={{ fontWeight: 600, fontSize: 13.5, color: "var(--bm-text, oklch(0.22 0.01 260))" }}>{t('cold_start.mod_' + m.id + '_name')}</span>
+          <span style={{ fontSize: 12, color: "var(--bm-text-dim, oklch(0.62 0.010 260))" }}>{t('cold_start.mod_' + m.id + '_desc')}</span>
         </span>
         <span
           aria-hidden
@@ -837,7 +837,7 @@ function ModuleCard({ m, open, onToggle, onSeed }: ModuleCardProps) {
           }}
         >
           {/* .trackbar — the module's tracks as tabs. */}
-          <div role="tablist" aria-label={`${m.k} tracks`} style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div role="tablist" aria-label={t('cold_start.mod_' + m.id + '_name')} style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {m.tracks.map((tr, i) => {
               const on = i === ti;
               return (
@@ -995,7 +995,7 @@ export function ColdStartDashboard({ onSeed }: ColdStartDashboardProps) {
           rows below seed that one composer. Heading only. */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <span style={{ fontSize: 18, textAlign: "center", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
-          What are you trying to do?
+          {t('cold_start.heading')}
         </span>
       </div>
       <div

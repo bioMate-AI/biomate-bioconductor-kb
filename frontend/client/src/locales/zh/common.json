@@ -17,6 +17,11 @@
     "import_workflow": "导入工作流",
     "collapse_sidebar": "收起侧边栏",
     "sign_out": "退出登录",
+    "new_project": "新建项目",
+    "more_tools": "更多工具",
+    "recent_tools": "最近使用的工具",
+    "design_generate": "设计与生成",
+    "run_manager": "运行管理器",
     "beta_tooltip": "抢先体验版 — 功能可能变动"
   },
   "actions": {
@@ -158,7 +163,16 @@
     "caption_default": "每个示例均提供演示输入。点击以准备草稿及其数据；发送前请审阅。",
     "modality_sm": "小分子",
     "modality_pep": "多肽",
-    "modality_bio": "蛋白质 / 生物制剂"
+    "modality_bio": "蛋白质 / 生物制剂",
+    "heading": "您想做什么？",
+    "mod_search_name": "检索与证据",
+    "mod_search_desc": "基于文献、数据库与专利的带引用回答",
+    "mod_analysis_name": "数据分析",
+    "mod_analysis_desc": "分析您自己的数据，或试用已准备的样例数据集",
+    "mod_design_name": "设计与生成",
+    "mod_design_desc": "提出候选物 — 小分子、多肽、蛋白质 — 并优化与排序",
+    "mod_models_name": "模型",
+    "mod_models_desc": "在您的数据上训练、适配或优化模型"
   },
   "chat_msg": {
     "figure": "图",
@@ -263,6 +277,12 @@
     "version_note_help": "版本条目仅追加 — 备注用于记录重新生成或签署，绝不会改写先前的条目。"
   },
   "data_hub": {
+    "choose_project": "选择一个项目",
+    "project_scoped": "数据按项目划分。请选择一个项目以浏览其数据集、质量与血缘。",
+    "status_active": "进行中",
+    "status_archived": "已归档",
+    "status_completed": "已完成",
+    "status_paused": "已暂停",
     "change_project": "切换项目",
     "intro": "每个数据集都是一个对象：它的身份、导入质量、读取它的运行、版本及来源 — 而不仅仅是对话消息中的一个路径。",
     "select_dataset": "选择一个数据集",

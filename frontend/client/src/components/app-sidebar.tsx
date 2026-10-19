@@ -350,7 +350,7 @@ export function AppSidebar({
             data-testid="button-new-project"
           >
             <Plus className="w-3 h-3 shrink-0" style={{ opacity: 0.6 }} />
-            New project
+            {t('nav.new_project')}
           </button>
         </div>
 
@@ -398,7 +398,7 @@ export function AppSidebar({
           </div>
         )}
 
-        <details className="text-xs text-muted-foreground px-2 py-2"><summary className="cursor-pointer">More tools</summary><div className="flex flex-col items-start gap-2 pt-3"><button onClick={() => setLocation('/files')}>Data</button><button onClick={() => setLocation('/design')}>Design &amp; generate</button><button onClick={() => setShowRecentToolsDialog(true)}>Recent tools</button></div></details>
+        <details className="text-xs text-muted-foreground px-2 py-2"><summary className="cursor-pointer">{t('nav.more_tools')}</summary><div className="flex flex-col items-start gap-2 pt-3"><button onClick={() => setLocation('/files')}>{t('nav.data')}</button><button onClick={() => setLocation('/design')}>{t('nav.design_generate')}</button><button onClick={() => setShowRecentToolsDialog(true)}>{t('nav.recent_tools')}</button></div></details>
         {/* Settings entry — visible in sidebar nav as well as the footer gear icon */}
         <div style={{ marginTop: 12, borderTop: '1px solid var(--bm-border)', paddingTop: 8 }}>
           <button
@@ -453,7 +453,7 @@ export function AppSidebar({
             padding: '4px 8px', borderRadius: 6, fontSize: 11, color: 'var(--bm-text-muted)',
           }}
         >
-          Sign&nbsp;out
+          {t('nav.sign_out')}
         </button>
       </div>
 

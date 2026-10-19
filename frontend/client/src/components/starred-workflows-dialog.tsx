@@ -241,7 +241,7 @@ export function StarredWorkflowsDialog({
                             data-testid={`button-view-workflow-${workflow.id}`}
                           >
                             <ExternalLink className="w-4 h-4 mr-2" />
-                            View
+                            {t('actions.view')}
                           </Button>
                           <Button 
                             size="sm"
@@ -252,7 +252,7 @@ export function StarredWorkflowsDialog({
                             data-testid={`button-run-workflow-${workflow.id}`}
                           >
                             <Play className="w-4 h-4 mr-2" />
-                            Run
+                            {t('actions.run')}
                           </Button>
                         </div>
                       </div>

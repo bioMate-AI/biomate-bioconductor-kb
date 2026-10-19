@@ -17,6 +17,11 @@
     "import_workflow": "Import workflow",
     "collapse_sidebar": "Collapse sidebar",
     "sign_out": "Sign out",
+    "new_project": "New project",
+    "more_tools": "More tools",
+    "recent_tools": "Recent tools",
+    "design_generate": "Design & generate",
+    "run_manager": "Run Manager",
     "beta_tooltip": "Early-access beta — features may change"
   },
   "actions": {
@@ -130,7 +135,16 @@
     "caption_default": "Demo inputs are provided for every example. Click to prepare a draft and its data; review before sending.",
     "modality_sm": "Small molecule",
     "modality_pep": "Peptide",
-    "modality_bio": "Protein / biologic"
+    "modality_bio": "Protein / biologic",
+    "heading": "What are you trying to do?",
+    "mod_search_name": "Search & evidence",
+    "mod_search_desc": "A cited answer over literature, databases and patents",
+    "mod_analysis_name": "Data analysis",
+    "mod_analysis_desc": "Work on your own data, or try a prepared sample dataset",
+    "mod_design_name": "Design & generate",
+    "mod_design_desc": "Propose candidates — molecules, peptides, proteins — then optimise and rank them",
+    "mod_models_name": "Models",
+    "mod_models_desc": "Train, adapt or optimise a model on your data"
   },
   "chat_msg": {
     "figure": "Figure",
@@ -263,6 +277,12 @@
     "version_note_help": "Version entries are append-only — a note records a re-derivation or sign-off without ever rewriting a prior entry."
   },
   "data_hub": {
+    "choose_project": "Choose a project",
+    "project_scoped": "Data is project-scoped. Pick a project to browse its datasets, quality and lineage.",
+    "status_active": "Active",
+    "status_archived": "Archived",
+    "status_completed": "Completed",
+    "status_paused": "Paused",
     "change_project": "Change project",
     "intro": "Every dataset is an object: its identity, ingest quality, the runs that read it, its versions and where it came from — not just a path in a chat message.",
     "select_dataset": "Select a dataset",

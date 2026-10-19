@@ -64,6 +64,14 @@ const STATUS_DOT: Record<string, string> = {
   archived: "bg-muted-foreground/50",
 }
 
+// Localized label for a known lifecycle status; unknown values (real data we
+// don't have a translation for) pass through unchanged rather than showing a
+// raw i18n key.
+const KNOWN_STATUSES = new Set(["active", "archived", "completed", "paused"])
+function statusLabel(status: string): string {
+  return KNOWN_STATUSES.has(status) ? t("data_hub.status_" + status) : status
+}
+
 function formatDate(iso?: string | null): string | null {
   if (!iso) return null
   const d = new Date(iso)
@@ -111,9 +119,9 @@ function ProjectPicker({
   return (
     <Card data-testid="data-hub-picker">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm">Choose a project</CardTitle>
+        <CardTitle className="text-sm">{t('data_hub.choose_project')}</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Data is project-scoped. Pick a project to browse its datasets, quality and lineage.
+          {t('data_hub.project_scoped')}
         </p>
       </CardHeader>
       <CardContent>
@@ -138,7 +146,7 @@ function ProjectPicker({
                   <p className="text-xs text-muted-foreground line-clamp-2">{p.description}</p>
                 )}
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <Badge variant="outline" className="text-[10px] capitalize">{p.status}</Badge>
+                  <Badge variant="outline" className="text-[10px] capitalize">{statusLabel(p.status)}</Badge>
                   {p.primaryDomain && (
                     <Badge variant="outline" className="text-[10px]">{p.primaryDomain}</Badge>
                   )}
@@ -212,7 +220,7 @@ export default function DataHubPage() {
           {activeProject && (
             <>
               <Badge variant="outline" className="text-[10px] capitalize">
-                {activeProject.status}
+                {statusLabel(activeProject.status)}
               </Badge>
               {activeProject.primaryDomain && (
                 <Badge variant="outline" className="text-[10px]">

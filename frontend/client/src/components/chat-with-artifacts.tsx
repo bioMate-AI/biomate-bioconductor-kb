@@ -1915,7 +1915,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             style={{ fontSize: 12, height: 28, gap: 5 }}
           >
             <Layers className="h-3 w-3" style={{ flexShrink: 0 }} />
-            Run Manager
+            {t('runs_ui.run_manager')}
             {runningCount > 0 ? (
               <span style={{
                 background: 'var(--bm-blue, oklch(0.55 0.18 240))',
