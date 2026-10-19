@@ -3325,6 +3325,29 @@ def _parse_trace_progress(trace_path: Path) -> dict:
     }
 
 
+def _read_qc_events_sidecar(outdir: str) -> Optional[dict]:
+    """Read the QC gate report sidecar that _evaluate_qc_from_s3 writes at
+    <outdir>/output/qc_events.json. Returns the parsed report, or None if it is
+    absent/unreadable. Region-aware (the nextflow outputs bucket is us-east-1, so
+    a client pinned to the wrong region would fail the GET)."""
+    try:
+        import json as _json3, boto3 as _boto3
+        _uri = (outdir or "").rstrip("/") + "/output/qc_events.json"
+        if not _uri.startswith("s3://"):
+            return None
+        _b, _k = _uri[5:].split("/", 1)
+        _c = _boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
+        try:
+            _loc = _c.get_bucket_location(Bucket=_b).get("LocationConstraint") or "us-east-1"
+            _c = _boto3.client("s3", region_name=_loc)
+        except Exception:
+            pass
+        _obj = _c.get_object(Bucket=_b, Key=_k)
+        return _json3.loads(_obj["Body"].read().decode("utf-8"))
+    except Exception:
+        return None
+
+
 def _evaluate_qc_from_s3(
     run_id: str,
     s3_output_files: list,
@@ -7731,6 +7754,7 @@ async def list_qc_profiles() -> Dict[str, Any]:
             summary="Get QC event log for a workflow invocation")
 def get_invocation_qc_events(
     invocation_id: str,
+    request: Request,
     trans: ProvidesUserContext = DependsOnTrans,
 ):
     """
@@ -7779,6 +7803,53 @@ def get_invocation_qc_events(
                         "events": entries,
                         "methods_text": "QC governance applied (see audit log for details).",
                     }
+
+            # On-demand S3 QC evaluation — the live monitor and audit log are both
+            # gone (reopened/historical run, or a Batch run whose Galaxy-side
+            # completion thread never fired), but the QC source files
+            # (qc_metrics.json / toxicity_report.json / qc_report.json) persist
+            # durably in S3. The caller (the Node /qc-events proxy, which owns the
+            # authoritative run->outdir lookup from Postgres) passes the run's
+            # outdir + domain as query params; evaluate the gates now from S3 and
+            # return the report. _evaluate_qc_from_s3 also writes the qc_events.json
+            # sidecar, so a second read is served from there. Without this, every
+            # AWS Batch run whose completion handler was orphaned shows the empty
+            # "all passed" QC fallback even though its gate data is sitting in S3.
+            _qp = request.query_params
+            _od_outdir = (_qp.get("outdir") or "").strip()
+            _od_domain = (_qp.get("workflow_domain") or _qp.get("domain") or "").strip()
+            _od_run_id = (_qp.get("run_id") or "").strip() or invocation_id
+            if _od_outdir.startswith("s3://") and _od_domain:
+                try:
+                    import json as _json2
+                    _od_overrides = {}
+                    _ov_raw = _qp.get("qc_overrides") or ""
+                    if _ov_raw:
+                        try:
+                            _od_overrides = _json2.loads(_ov_raw)
+                        except Exception:
+                            _od_overrides = {}
+                    _od_files = _list_s3_output_files(_od_outdir)
+                    _od_workdir = (_qp.get("workdir") or "").strip()
+                    if not _od_files and _od_workdir.startswith("s3://"):
+                        _od_files = _list_s3_work_output_files(_od_workdir)
+                    # Runs the QC handler + writes <outdir>/output/qc_events.json.
+                    _evaluate_qc_from_s3(
+                        run_id=_od_run_id,
+                        s3_output_files=_od_files,
+                        workflow_domain=_od_domain,
+                        qc_overrides=_od_overrides,
+                    )
+                    # Read back the sidecar it just wrote (the full gate report).
+                    _sc = _read_qc_events_sidecar(_od_outdir)
+                    if _sc:
+                        _sc["invocation_id"] = invocation_id
+                        _sc["source"] = "s3_ondemand"
+                        return _sc
+                except Exception as _od_exc:  # noqa: BLE001
+                    log.warning("[QC Events] on-demand S3 eval failed for %s: %s",
+                                invocation_id, _od_exc)
+
             return {
                 "invocation_id": invocation_id,
                 "source": "not_found",
