@@ -4519,18 +4519,36 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         if returncode == 0:
             final_status = "succeeded"
         elif returncode < 0:
-            # Negative return code means killed by signal (e.g. SIGTERM = -15)
-            import signal as _signal
+            # Negative return code means killed by signal (e.g. SIGTERM = -15).
+            # BUT a halt-severity QC gate / user pause terminates the process the
+            # SAME way (soft cancel → SIGTERM) and sets status="paused" so a later
+            # -resume works. If this run was deliberately PAUSED, the signal is NOT
+            # a failure — do NOT clobber "paused" to "interrupted"/"failed", or the
+            # run shows "Failed" and Resume (which requires status=paused) is dead.
+            _cur_status = ""
             try:
-                sig_name = _signal.Signals(-returncode).name
-            except ValueError:
-                sig_name = str(-returncode)
-            final_status = "interrupted"
-            log.warning(
-                "[Nextflow run %s] process killed by signal %s (%s) — "
-                "gunicorn restart or container stop; resume required",
-                run_id, sig_name, returncode,
-            )
+                with _runs_lock:
+                    _cur_status = (_runs.get(run_id) or {}).get("status", "") if run_id in _runs else ""
+                if _cur_status != "paused":
+                    _cur_status = (get_run_state_store().get_run(run_id) or {}).get("status", "") or _cur_status
+            except Exception:
+                pass
+            if _cur_status == "paused":
+                final_status = "paused"
+                log.info("[Nextflow run %s] signal-killed as part of a deliberate pause — "
+                         "keeping status=paused (resumable), not interrupted", run_id)
+            else:
+                import signal as _signal
+                try:
+                    sig_name = _signal.Signals(-returncode).name
+                except ValueError:
+                    sig_name = str(-returncode)
+                final_status = "interrupted"
+                log.warning(
+                    "[Nextflow run %s] process killed by signal %s (%s) — "
+                    "gunicorn restart or container stop; resume required",
+                    run_id, sig_name, returncode,
+                )
         else:
             final_status = "failed"
 

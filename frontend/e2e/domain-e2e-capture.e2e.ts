@@ -84,6 +84,15 @@ const DOMAINS: DomainCase[] = [
     attach: [],
     expect: /proteom|pulldown|pull-down|lfq|chemoproteomic/i,
   },
+  {
+    // Soochow immunology gap-closer: soluble-protein ELISA -> titer -> group
+    // comparison (analyze_ebv_antibody_titers, param-only built-in demo data).
+    key: "elisa",
+    query:
+      "Run the analyze_ebv_antibody_titers workflow using its built-in ELISA OD readings and standard-curve demo data; quantify antibody titers (VCA / EA / EBNA1, IgG & IgM) across the EBV-positive, EBV-active and EBV-negative sample groups. Use the public sample-data defaults; do not require my own uploads.",
+    attach: [],
+    expect: /ebv|titer|titre|elisa|antibody/i,
+  },
   // --- attached demo data from /demo/cold-start/ ---
   {
     key: "crispr",
@@ -140,6 +149,23 @@ const DOMAINS: DomainCase[] = [
     attach: ["1LYZ.fasta", "1LYZ.pdb"],
     expect: /alphafold|esmfold|openfold|structure|fold|confidence|plddt|lysozyme|predict/i,
     gpu: true,
+  },
+  // --- drug-development demos (feed the d2 / drug-dev / t1 walkthrough decks) ---
+  {
+    // ADMET flow — prerun/running/completed shared by d2-admet + drug-dev decks.
+    key: "admet",
+    query:
+      "Screen these SMILES for ADMET liabilities, hERG first.\n\nPrepared demo context:\nScreen the SMILES column of pilot_compounds.csv. pilot_assay_results_arm3.csv contains curated published controls and illustrative analog annotations, not a new experiment; preserve those distinctions. Prioritize hERG, CYP3A4 and solubility. Distinguish predictions from supplied evidence.",
+    attach: ["pilot_compounds.csv", "pilot_assay_results_arm3.csv", "pilot_README.md"],
+    expect: /admet|herg|toxicity|predict_admet|cyp/i,
+  },
+  {
+    // Design & Generate — feeds t1 (form / results / pareto / rejection).
+    key: "design",
+    query:
+      "Generate candidates for this target with drug-like properties.\n\nPrepared demo context:\nUse the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled test library (not experimentally validated ABL1 binders). Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; reference_actives.smi supplies the binding pharmacophore. For fragment growth use c1ccncc1 (pyridine). Generate/score proposed molecules and distinguish all predictions from measurements. Safety/developability gates: hERG IC50 >30 µM, MW <=500, logP <=5; preserve supplied reference IDs.",
+    attach: ["candidate_library.csv", "1IEP.pdb", "pilot_reference_actives.smi", "pilot_target_info.json"],
+    expect: /generat|design|reinvent|candidate|scaffold|developab/i,
   },
 ];
 
