@@ -1,3 +1,6 @@
+// Redeploy marker 2026-10-20: force a frontend container restart to re-establish
+// its connection to biomate-dev-postgres (DNS dropped on dev ~2h after the last
+// sync → login/register 401). Harmless no-op comment.
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
