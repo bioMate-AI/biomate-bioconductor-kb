@@ -32,6 +32,12 @@ const QUERY =
 test("ADMET prerun panel: no phantom CN1C row, all 3 SMILES present", async ({ page }) => {
   test.setTimeout(6 * 60 * 1000);
   await loginAsFixture(page);
+  // Capture the EXACT body the UI POSTs to /api/chat/stream for diagnosis.
+  page.on("request", (req) => {
+    if (req.url().includes("/api/chat/stream") && req.method() === "POST") {
+      try { fs.writeFileSync(path.join(OUT, "ui-chat-body.json"), req.postData() || ""); } catch {}
+    }
+  });
 
   await page.goto(BASE_URL + "/", { waitUntil: "domcontentloaded", timeout: 60_000 });
   await page.getByTestId("chat-input").waitFor({ state: "visible", timeout: 45_000 });
@@ -59,7 +65,13 @@ test("ADMET prerun panel: no phantom CN1C row, all 3 SMILES present", async ({ p
   await page.screenshot({ path: path.join(OUT, "verify-prerun-full.png") });
 
   const panelText = await panel.first().innerText().catch(() => "");
-  console.log("\n[verify] panel text:\n" + panelText + "\n");
+  // SMILES values live inside <input>/<textarea>, which innerText does NOT
+  // capture — collect their values explicitly and fold into the haystack.
+  const inputValues = await panel.first().locator("input, textarea").evaluateAll(
+    (els) => els.map((e) => (e as HTMLInputElement).value || "").join("\n")
+  ).catch(() => "");
+  const haystack = panelText + "\n" + inputValues;
+  console.log("\n[verify] panel text:\n" + panelText + "\n[verify] input values:\n" + inputValues + "\n");
 
   // 1) It routed to ADMET
   expect(panelText.toLowerCase()).toMatch(/admet|predict admet/);
@@ -72,9 +84,9 @@ test("ADMET prerun panel: no phantom CN1C row, all 3 SMILES present", async ({ p
 
   // 3) All three compounds present in the SMILES value (caffeine is the one that
   //    was previously split/lost). Match on distinctive fragments.
-  expect(panelText).toContain("CC(=O)Oc1ccccc1C(=O)O");      // aspirin
-  expect(panelText).toContain("CC(C)Cc1ccc(cc1)C(C)C(=O)O"); // ibuprofen (the lost one)
-  expect(panelText).toMatch(/CN1C=NC2=C1C\(=O\)N\(C\(=O\)N2C\)C/); // caffeine intact
+  expect(haystack).toContain("CC(=O)Oc1ccccc1C(=O)O");      // aspirin
+  expect(haystack).toContain("CC(C)Cc1ccc(cc1)C(C)C(=O)O"); // ibuprofen (the lost one)
+  expect(haystack).toMatch(/CN1C=NC2=C1C\(=O\)N\(C\(=O\)N2C\)C/); // caffeine intact
 
   console.log("[verify] PASS — no phantom CN1C row; all 3 SMILES present");
 });
