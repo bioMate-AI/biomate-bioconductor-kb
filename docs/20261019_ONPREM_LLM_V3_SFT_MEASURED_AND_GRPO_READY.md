@@ -110,9 +110,25 @@ pieces, stdlib-only, audit-first (reuse the grader):
 - **CPU-validated** (`--selftest`): synthetic runs at each tier → correct verdicts, strictly increasing reward
   (0.00/0.20/0.30/0.45/1.00), store round-trip, and consistency vs `grade_run`. **MEASURED (dry-run) PASS.**
 This is the reward source the peptide RLVR consumes once the sibling closed loop streams real
-synthesize→assay→execute runs (add workflow-specific `CONTRACTS` for peptide assay outputs then). Status:
-**BUILT-NOT-FED** — the wiring is real and tested; it needs the closed loop's run volume + AWS Batch to execute
-candidates before it trains anything.
+synthesize→assay→execute runs. Status: **BUILT-NOT-FED** — the wiring is real and tested; it needs the closed
+loop's run volume + AWS Batch to execute candidates before it trains anything.
+
+### 5a. Reward↔loop convergence — fully plumbed + CPU-validated (2026-10-19)
+The reward is now connected to the sibling loop so it records real scalars the moment runs flow:
+- **Peptide-assay CONTRACTS** (`execution_grader.CONTRACTS`): `cyclic_peptide_cofold` (require `complex.cif` —
+  what Boltz-2 cofold/`physics_batch` emits), `cyclic_peptide_mmgbsa` (require `mmgbsa_result.json` with
+  `dG_bind_kcal_mol`+`target` — what `physics_dispatch` reads), `cyclic_peptide_assay` (wet-lab ingest:
+  `assay_result.json` with `target`+`binding_dG`). Verdict = did the run emit the expected artifact with the
+  expected fields; ΔG *quality* stays `score()`'s multi-objective reward, kept separate.
+- **Loop→store bridge** (`cyclic_llm/loop_grade_bridge.py`): `record_scored_run`/`record_round` map
+  `loop_batch.run_round`/`score()` output + a candidate's completed cofold/MM-GBSA/assay outputs into
+  `graded_run_store` (via `run_from_outputs`); pending candidates are skipped and recorded when they land;
+  RLVR reads the reward by `run_id`/`campaign`.
+- **CPU-validated end-to-end** (`--selftest`): scored run → peptide CONTRACT → `grade_detailed` → store →
+  `get_reward` returns the right scalar — mmgbsa/cofold PASS=1.0, missing-required=0.45, crashed=0.0; deep:
+  valid ΔG=1.0, missing ΔG=`content_invalid`=0.65; round-level skips pending. **MEASURED (dry-run) PASS.**
+Still **BUILT-NOT-FED** by design — it begins producing training signal when the loop's Batch physics/assay runs
+actually complete (the sibling thread + Batch budget).
 
 ## 3g. PeftModel fix VALIDATED; 3rd gap (reward scorer staging) fixed; now HELD on spot capacity
 Re-fire #2 (`i-03726d2f9389d3965`) **passed GRPOConfig AND GRPOTrainer construction** (the peft_config fix works —
