@@ -69,31 +69,38 @@ def _equil_command(in_s3, out_s3):
     Validates the fully-parameterized cyclic junction (+ the flagged CMAP omission) holds under dynamics
     before committing ~2 GPU-days to the ddG. Image ENTRYPOINT is ['/bin/bash','-c'], so the command MUST
     be a SINGLE script string (a ['bash','-c',...] list would be double-wrapped and run nothing)."""
+    # ALL tprs are grompp'd ON the GPU box from the version-independent ionized.gro + fep.top -- the staged
+    # em.tpr is NOT used (it was written by the build box's GROMACS 2026/tpx-138, unreadable by this image's
+    # GROMACS 2024/tpx-133: "reading tpx file version 138 with version 133 program"). Chain fails loudly:
+    # the && chain stops at the first failed stage, RC propagates, and the job exits non-zero so a Batch
+    # SUCCEEDED means NVT+NPT genuinely completed. Logs are uploaded on success AND failure.
     s = (
         "set -x; export PATH=$PATH:/usr/local/gromacs/bin; source /usr/local/gromacs/bin/GMXRC 2>/dev/null || true; "
         "(command -v aws || pip install -q awscli 2>/dev/null) >/dev/null 2>&1 || true; "
         "mkdir -p /work && cd /work; "
-        f"aws s3 cp {in_s3} /work/in --recursive --region {REGION}; "
+        f"aws s3 cp {in_s3} /work/in --recursive --region {REGION}; RC=0; "
         "for leg in solvent complex; do "
         "  echo EQUIL_LEG_START $leg; mkdir -p /work/$leg && cd /work/$leg; "
         "  cp /work/in/$leg/* . 2>/dev/null; cp -r /work/in/ff/charmm36m-mut.ff .; cp /work/in/mdp/*.mdp .; "
-        # rewrite the absolute pmx-mutff includes -> relative (ff dir is now in cwd / GMXLIB)
         "  sed -i 's#/opt/fepenv/lib/python3.10/site-packages/pmx/data/mutff/##g' fep.top; export GMXLIB=$PWD; "
         "  printf 'nstxout-compressed = 5000\\n' >> nvt.mdp; printf 'nstxout-compressed = 5000\\n' >> npt.mdp; "
-        # EM from the staged self-contained em.tpr, then NVT, then NPT (grompp needs the ff+top -> provided above)
-        "  gmx mdrun -s em.tpr -deffnm em -ntmpi 1 -nb gpu > em.log 2>&1 || echo $leg:EM_MDRUN_FAIL; "
-        "  gmx grompp -f nvt.mdp -c em.gro -r em.gro -p fep.top -o nvt.tpr -maxwarn 50 > nvt_grompp.log 2>&1 || echo $leg:NVT_GROMPP_FAIL; "
-        "  gmx mdrun -deffnm nvt -ntmpi 1 -nb gpu > nvt.log 2>&1 || echo $leg:NVT_MDRUN_FAIL; "
-        "  gmx grompp -f npt.mdp -c nvt.gro -r nvt.gro -t nvt.cpt -p fep.top -o npt.tpr -maxwarn 50 > npt_grompp.log 2>&1 || echo $leg:NPT_GROMPP_FAIL; "
-        "  gmx mdrun -deffnm npt -ntmpi 1 -nb gpu > npt.log 2>&1 || echo $leg:NPT_MDRUN_FAIL; "
-        # energy terms + stability scan (acceptance data; full check done post-hoc on the uploaded edr/gro/logs)
+        # em -> nvt -> npt, ALL grompp'd here; && chain + -f checks so any break stops the chain
+        "  gmx grompp -f em.mdp  -c ionized.gro -p fep.top -o em.tpr  -maxwarn 50 > em_grompp.log  2>&1 "
+        "  && gmx mdrun -deffnm em  -ntmpi 1 -nb gpu > em.log  2>&1 && [ -f em.gro ] "
+        "  && gmx grompp -f nvt.mdp -c em.gro  -r em.gro  -p fep.top -o nvt.tpr -maxwarn 50 > nvt_grompp.log 2>&1 "
+        "  && gmx mdrun -deffnm nvt -ntmpi 1 -nb gpu > nvt.log 2>&1 && [ -f nvt.gro ] "
+        "  && gmx grompp -f npt.mdp -c nvt.gro -r nvt.gro -t nvt.cpt -p fep.top -o npt.tpr -maxwarn 50 > npt_grompp.log 2>&1 "
+        "  && gmx mdrun -deffnm npt -ntmpi 1 -nb gpu > npt.log 2>&1 && [ -f npt.gro ] ; STG=$?; "
+        # best-effort acceptance DATA (only meaningful if STG==0; harmless otherwise)
         "  printf 'Potential\\nTemperature\\nPressure\\nDensity\\n' | gmx energy -f npt.edr -o ${leg}_ener.xvg > ${leg}_energy.log 2>&1 || true; "
         "  echo \"$leg ENERGY:\"; grep -iE '^(Potential|Temperature|Pressure|Density)' ${leg}_energy.log | head; "
         "  LW=$(grep -i 'LINCS WARNING' em.log nvt.log npt.log 2>/dev/null | wc -l); FA=$(grep -i 'Fatal error' *.log 2>/dev/null | wc -l); "
-        "  echo \"$leg STABILITY LINCS_WARN=$LW FATAL=$FA npt_gro=$([ -f npt.gro ] && echo yes || echo no)\"; "
-        "  if [ -f npt.gro ] && [ \"$LW\" -eq 0 ] && [ \"$FA\" -eq 0 ]; then echo \"$leg:EQUIL_OK\"; else echo \"$leg:EQUIL_CHECK\"; fi; "
+        "  echo \"$leg STABILITY stage_rc=$STG LINCS_WARN=$LW FATAL=$FA npt_gro=$([ -f npt.gro ] && echo yes || echo no)\"; "
+        # ALWAYS upload logs (success or failure) for diagnosis
         f"  aws s3 cp /work/$leg {out_s3}$leg/ --recursive --region {REGION} --exclude '*.trr' --exclude 'charmm36m-mut.ff/*' --exclude '*.itp' --exclude 'ionized.gro'; "
-        "  cd /work; done; echo EQUIL_ALL_DONE"
+        "  if [ \"$STG\" -eq 0 ] && [ -f npt.gro ] && [ \"$LW\" -eq 0 ] && [ \"$FA\" -eq 0 ]; then echo \"$leg:EQUIL_OK\"; else echo \"$leg:EQUIL_FAIL\"; RC=1; fi; "
+        "  cd /work; done; "
+        "  [ $RC -eq 0 ] && echo EQUIL_ALL_OK || echo EQUIL_FAILED; exit $RC"
     )
     return [s]
 
