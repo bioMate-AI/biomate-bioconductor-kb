@@ -22,6 +22,16 @@
 ### What this is, honestly
 Mostly **wiring the live composer to the built DAG machinery** + improving decomposition quality against an existing benchmark. The orchestration *engine* already exists and is excellent; the gap is that chat never drives it with a branching plan.
 
+### Built this increment (A-core, in-worktree, tested offline)
+`grounded-prototype/research/decompose.py` + `research.verifiers.StructureVerifier` — the **harness-owned decider** that is the actual missing piece:
+- **`infer_edges` / `build_plan`** — the LLM proposes sub-tasks (with optional `produces`/`consumes` I/O tokens); the harness infers dependency edges deterministically (a node depends on an earlier node whose output it consumes) and **defaults to PARALLEL when no handoff is evident** — the exact correction for the live over-collapse. Emits the benchmark/engine plan shape `[{sub_task, order, depends_on}]`, so it drops straight into `galaxy.chain.dag.run_plan`.
+- **`validate_plan`** — deterministic guardrails the DAG engine assumes (acyclic, orders resolvable, no dangling/self edge), raising *before* the engine runs.
+- **`select_pattern`** — QC-loop goal → `ITERATIVE_QC`; single node → `SINGLE`; else the plan's own topology (`parallel`/`sequential`/`mixed`). The pattern is a property of the graph, not an LLM flag.
+- **`StructureVerifier`** — mirrors `evaluation/datasets/decomposition_v2/score.py::score_one` (node_f1 + edge_f1 + structure match), routed by `select_verifier` on a `gold_subtasks` ground-truth shape, so decomposition plans score the same way the real benchmark scores them and plug into the gated Harness2 improver.
+- **Tests** (`tests/test_decompose.py`, 18/18): independent tasks → parallel (over-collapse fix); handoff → sequential edges; fan-in → mixed; single/QC overlays; cycle/dangling/self-dep rejection; injectable LLM `depends_fn`; exact plan scores >0.9 and strictly beats a collapsed-to-parallel answer; verifier-bridge routing.
+
+**Remaining for Part A (needs the live stack, documented for a gated dev run):** wire `galaxy-assistant.ts::analyzeIntent` to emit this plan shape (reusing `decomposed_dag.build_dag_plan`) and drive `_run_dag_chain`, keeping the collapse guard; measure the live composer on the 262 gold rows.
+
 ---
 
 ## Part B — A real instruction-panel feedback loop
