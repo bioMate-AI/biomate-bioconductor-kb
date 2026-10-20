@@ -124,8 +124,24 @@ def dispatch_control_edge(run_id=None, dry_run=True):
                 "in_s3": in_s3, "result_prefix": out_s3,
                 "PREFLIGHT_BLOCKER": "topology not locally validated (no GROMACS on author box); "
                                      "live submit gated on in-container grompp preflight passing"}
-    # REAL submit — one spot GPU job (~1 GPU-day). Caller must have the review note + the
-    # topology inputs staged to S3 (stateA.pdb, mutations.txt, topol.top, solv_ions.gro, mdp/, cada_mn.itp).
+    # REAL submit — GATED. A relative FEP RUN needs the pmx hybrid (A->B dual-state) topology + a
+    # fully solvated/equilibrated system. The GROMACS image has NO pip/pmx (proven 2026-10-20), so the
+    # hybrid CANNOT be built in-container; and the preflight validated FF-ASSEMBLY/grompp of the
+    # components, NOT the alchemical hybrid or a solvated complex. The GPU job must therefore run
+    # mdrun on a PRE-BUILT (offline, gromacs+pmx) system. Refuse to submit until that system is staged,
+    # signalled by an `in/FEP_INPUTS_READY` sentinel. This prevents firing a job that would download
+    # nothing and die at the pmx step (predicted-failure spend). See docs/20261019_AVB6_FEP_CONTROL_EDGE_REVIEW.md.
+    ready_key = f"{PREFIX}/{run_id}/in/FEP_INPUTS_READY"
+    try:
+        _boto("s3").head_object(Bucket=BUCKET, Key=ready_key)
+    except Exception:
+        return {"dry_run": False, "submitted": False,
+                "REFUSED": "FEP inputs not staged -> submit would produce a predicted-failure job "
+                           "(no inputs + image has no pip/pmx). Build the hybrid + solvated system OFFLINE "
+                           "(gromacs+pmx: pdb2gmx -> pmx mutate charmm36m-mut -> gentop -> solvate/genion, "
+                           "both legs, per-lambda .tpr), stage under in/ with an FEP_INPUTS_READY sentinel, "
+                           "then re-run --submit. The GPU job then runs mdrun only.",
+                "expected_ready_key": f"s3://{BUCKET}/{ready_key}", "in_s3": in_s3}
     jid = _boto("batch").submit_job(**payload)["jobId"]
     return {"dry_run": False, "submitted_job_id": jid, "in_s3": in_s3, "result_prefix": out_s3}
 
