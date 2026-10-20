@@ -16,7 +16,8 @@ import { loginAsFixture, BASE_URL } from "./_fixture-login";
 
 test.use({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 });
 
-const OUT = "/Users/kky/Desktop/business/bioconductor_screenshot/e2e_review_20261020";
+const OUT = process.env.DECK_OUT
+  || "/Users/kky/Desktop/business/bioconductor_screenshot/e2e_review_20261020/d2-admet";
 fs.mkdirSync(OUT, { recursive: true });
 
 // Aspirin, caffeine, ibuprofen — the narration's safe panel (all gates pass).
@@ -47,11 +48,15 @@ test("full BioMate journey → numbered end-to-end screenshots", async ({ page }
   };
 
   try {
-    // 01 — Cold start (landing)
+    // 01 — Cold start (landing). Start a CLEAN chat so the shared fixture's
+    // cluttered history does not rehydrate a prior card into the capture.
     await page.goto(BASE_URL + "/", { waitUntil: "domcontentloaded", timeout: 60_000 });
+    await page.getByTestId("chat-input").waitFor({ state: "visible", timeout: 45_000 });
+    const newChat = page.getByTestId("button-new-chat");
+    if ((await newChat.count().catch(() => 0)) > 0) { await newChat.first().click({ timeout: 8000 }).catch(() => {}); await page.waitForTimeout(1500); }
     const input = page.getByTestId("chat-input");
     await input.waitFor({ state: "visible", timeout: 45_000 });
-    await page.waitForTimeout(3500);
+    await page.waitForTimeout(3000);
     await shot("cold-start");
 
     // 02 — Goal typed in the composer
