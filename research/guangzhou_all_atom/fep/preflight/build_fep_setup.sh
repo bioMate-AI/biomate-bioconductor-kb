@@ -159,14 +159,13 @@ PYEOF
      python3 - <<'PYEOF' > ${leg}_mngro.out 2>&1 || { echo MN_GRO_FAIL; exit 23; }
 g=open('box.gro').read().splitlines(); n=int(g[1]); body=g[2:2+n]; box=g[2+n]
 mn=[]; resn=1; idx=0
-for ln in open('mn_cada.pdb'):
+for ln in open('../mn_cada.pdb'):   # mn_cada.pdb lives at /work (STAGE_C), not in the leg subdir
     if ln.startswith('HETATM'):
         x=float(ln[30:38])/10;y=float(ln[38:46])/10;z=float(ln[46:54])/10;nm=ln[12:16].strip()
         if nm=='MN' and idx!=0: resn+=1
         mn.append('%5d%-5s%5s%5d%8.3f%8.3f%8.3f'%(resn,'MN2',nm,(n+len(mn)+1)%100000,x,y,z)); idx+=1
 open('box.gro','w').write(g[0]+'\n%d\n'%(n+len(mn))+'\n'.join(body+mn)+'\n'+box+'\n'); print('MNGRO_OK +%d'%len(mn))
 PYEOF
-     cp mn_cada.pdb . 2>/dev/null
    fi
    gmx solvate -cp box.gro -cs spc216.gro -p fep.top -o solv.gro > ${leg}_solvate.out 2>&1 || { echo "SOLVATE_FAIL $(GFATAL ${leg}_solvate.out)"; exit 24; }
    # ions: grompp a dummy em then genion
