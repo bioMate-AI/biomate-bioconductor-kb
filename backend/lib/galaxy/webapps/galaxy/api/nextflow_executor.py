@@ -4533,10 +4533,11 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                     _cur_status = (get_run_state_store().get_run(run_id) or {}).get("status", "") or _cur_status
             except Exception:
                 pass
-            if _cur_status == "paused":
-                final_status = "paused"
-                log.info("[Nextflow run %s] signal-killed as part of a deliberate pause — "
-                         "keeping status=paused (resumable), not interrupted", run_id)
+            if _cur_status in ("paused", "cancelled"):
+                final_status = _cur_status
+                log.info("[Nextflow run %s] signal-killed as part of a deliberate %s — "
+                         "keeping that status (resumable/terminal), not interrupted",
+                         run_id, _cur_status)
             else:
                 import signal as _signal
                 try:
@@ -7073,6 +7074,24 @@ def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
         if info:
             invocation_id = info.get("invocation_id")
             proc = info.get("process")
+
+    # Write the terminal status BEFORE signalling the process. The completion
+    # thread (process.wait()) wakes the instant the SIGTERM lands and classifies
+    # the run by returncode (<0 → interrupted/failed). If "paused"/"cancelled"
+    # isn't already recorded, it clobbers the deliberate pause/cancel to a false
+    # "failed" (the ADMET-run-shows-Failed bug) and Resume dies. Setting it first
+    # lets the returncode<0 handler recognise the signal-kill as intentional.
+    _terminal_status = "paused" if soft else "cancelled"
+    _completed_at_now = time.time()
+    with _runs_lock:
+        if run_id in _runs:
+            _runs[run_id]["status"] = _terminal_status
+            _runs[run_id]["completed_at"] = _completed_at_now
+    try:
+        get_run_state_store().update_run(
+            run_id, status=_terminal_status, completed_at=_completed_at_now)
+    except Exception as _pre_exc:
+        log.debug("[runs] pre-terminate status write failed for %s: %s", run_id, _pre_exc)
 
     pids_terminated: List[int] = []
     note: str
