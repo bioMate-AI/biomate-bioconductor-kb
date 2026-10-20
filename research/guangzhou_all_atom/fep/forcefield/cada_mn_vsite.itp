@@ -1,0 +1,65 @@
+; cada_mn_vsite.itp — CaDA octahedral Mn2+ as a RIGID vsite/constraint cluster (runs at dt=2 fs).
+; SOURCE physics identical to the bonded cada_mn.itp (Duarte 2014, JPCB 118, 4351): center -1.00,
+; six dummies +0.50 (net +2); LJ center Rmin/2=0.952 A eps=12.83 kcal/mol (sigma 0.169627 nm,
+; eps 53.68072 kJ/mol), dummies eps=0; octahedral M-D 0.9 A. ONLY the geometry-maintenance mechanism
+; changes: stiff bonds (unstable at 2 fs -> SIGSEGV, needed dt<=0.5 fs) are replaced by a rigid cluster.
+;
+; WHY THIS IS PHYSICS-PRESERVING (not a different model):
+;  - The octahedron's inertia tensor is isotropic. Putting the 54.94 amu Mn mass as 36.94 on the center
+;    + 6.00 on each of the THREE orthogonal frame dummies (+x,+y,+z) reproduces the bonded model's
+;    moment of inertia EXACTLY: I/axis = 2*6.0*0.9^2 = 9.72 = 4*3.0*0.9^2 (bonded). (fep/validate note)
+;  - The three OPPOSITE dummies (-x,-y,-z) are virtual_sites2 at 2*center - partner (a=-1): exact
+;    octahedral positions, reconstructed each step, massless; their +0.5 charge + forces spread to the
+;    frame. Charge, LJ, and octahedral geometry are bit-for-bit the sourced values.
+;  - The frame (center + 3 orthogonal dummies) is held by 6 HOLONOMIC CONSTRAINTS (exactly determined
+;    for a 4-atom rigid body: 4*3-6=6), solved by LINCS -> stable at dt=2 fs. Rigidity is the limit the
+;    stiff bonds only approximated; the small octahedron vibrations they allowed were an artifact.
+; Atom order matches the staged .gro: MN, D1=+x, D2=-x, D3=+y, D4=-y, D5=+z, D6=-z (so opposite dummies
+; have HIGHER indices than their +axis frame partners -> valid vsite construction-before-use ordering).
+; VALIDATE before production: complex equilibration at dt=2 fs must be stable (no LINCS blow-up) and keep
+; the Mn-O(Asp) inner-sphere coordination (~2.0-2.4 A). Only then does this replace cada_mn.itp for Layer B.
+
+[ atomtypes ]
+; name  at.num   mass      charge  ptype   sigma(nm)     epsilon(kJ/mol)
+  MNC    25     36.94000   0.00000   A     1.69627e-01   5.368072e+01
+  MND     1      0.00000   0.00000   A     1.00000e-02   0.000000e+00
+
+[ moleculetype ]
+; name   nrexcl
+  MN2     3
+
+[ atoms ]
+; id  type  resnr resname atom cgnr  charge    mass     ; role
+   1   MNC    1    MN2     MN   1    -1.00000  36.94000  ; center (real, carries most mass)
+   2   MND    1    MN2     D1   1     0.50000   6.00000  ; +x  frame (real)
+   3   MND    1    MN2     D2   1     0.50000   0.00000  ; -x  VSITE (from 1,2)
+   4   MND    1    MN2     D3   1     0.50000   6.00000  ; +y  frame (real)
+   5   MND    1    MN2     D4   1     0.50000   0.00000  ; -y  VSITE (from 1,4)
+   6   MND    1    MN2     D5   1     0.50000   6.00000  ; +z  frame (real)
+   7   MND    1    MN2     D6   1     0.50000   0.00000  ; -z  VSITE (from 1,6)
+
+[ constraints ]
+; rigid frame: center(1) + the three orthogonal frame dummies (2=+x, 4=+y, 6=+z). func 1.
+; M-D = 0.0900 nm ; adjacent D-D = 0.9*sqrt(2) = 0.127279 nm. 6 constraints, 4 atoms -> exactly rigid.
+   1   2   1   0.090000
+   1   4   1   0.090000
+   1   6   1   0.090000
+   2   4   1   0.127279
+   4   6   1   0.127279
+   2   6   1   0.127279
+
+[ virtual_sites2 ]
+; opposite dummy = center + (-1)*(frame_partner - center) = 2*center - partner  (exact octahedral vertex)
+; site  from_i from_j  func   a
+   3     1     2        1    -1.000   ; -x from center,+x
+   5     1     4        1    -1.000   ; -y from center,+y
+   7     1     6        1    -1.000   ; -z from center,+z
+
+[ exclusions ]
+; all intra-cluster non-bonded excluded (center<->dummy and dummy<->dummy are not physical interactions)
+  1  2 3 4 5 6 7
+  2  3 4 5 6 7
+  3  4 5 6 7
+  4  5 6 7
+  5  6 7
+  6  7

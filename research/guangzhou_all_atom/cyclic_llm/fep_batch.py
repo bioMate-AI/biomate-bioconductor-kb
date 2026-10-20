@@ -64,7 +64,7 @@ def _boto(svc):
     return boto3.client(svc, region_name=REGION)
 
 
-def _equil_command(in_s3, out_s3, legs="solvent complex"):
+def _equil_command(in_s3, out_s3, legs="solvent complex", metal_model="bonded"):
     """SHORT equilibration ONLY (em -> NVT -> NPT), on the staged inputs. NOT production FEP.
     Image ENTRYPOINT is ['/bin/bash','-c'] -> the command MUST be a SINGLE script string.
 
@@ -84,24 +84,31 @@ def _equil_command(in_s3, out_s3, legs="solvent complex"):
     s = (
         "set -x; export PATH=$PATH:/usr/local/gromacs/bin; source /usr/local/gromacs/bin/GMXRC 2>/dev/null || true; "
         "(command -v aws || pip install -q awscli 2>/dev/null) >/dev/null 2>&1 || true; "
+        f"  METAL={metal_model}; "
         "mkdir -p /work && cd /work; "
         f"aws s3 cp {in_s3} /work/in --recursive --region {REGION}; RC=0; "
         f"for leg in {legs}; do "
-        "  echo EQUIL_LEG_START $leg; mkdir -p /work/$leg && cd /work/$leg; "
+        "  echo EQUIL_LEG_START $leg metal=$METAL; mkdir -p /work/$leg && cd /work/$leg; "
         "  cp /work/in/$leg/* . 2>/dev/null; cp -r /work/in/ff/charmm36m-mut.ff .; cp /work/in/mdp/*.mdp .; "
         "  sed -i 's#/opt/fepenv/lib/python3.10/site-packages/pmx/data/mutff/##g' fep.top; export GMXLIB=$PWD; "
         "  printf 'nstxout-compressed = 5000\\n' >> nvt.mdp; printf 'nstxout-compressed = 5000\\n' >> npt.mdp; "
         "  NVTC=em.gro; "
-        # ---- COMPLEX leg: re-idealize CaDA octahedra + small timestep (CaDA stiff bonds) ----
+        # ---- COMPLEX leg metal-model handling ----
         "  if [ \"$leg\" = complex ]; then "
-        "    sed -i 's/^dt .*/dt = 0.0002/; s/^nsteps .*/nsteps = 100000/' nvt.mdp; "   # 20 ps @ 0.2 fs, keeps -DPOSRES
-        "    sed -i 's/^dt .*/dt = 0.0005/; s/^nsteps .*/nsteps = 200000/' npt.mdp; "   # 100 ps @ 0.5 fs
+        "    if [ \"$METAL\" = vsite ]; then "
+        # vsite CaDA = rigid cluster -> STANDARD dt=2fs (same protocol as the working solvent leg); swap the itp
+        "      cp /work/in/cada_mn_vsite.itp cada_mn.itp && echo 'VSITE_ITP_SWAPPED'; "
+        "    else "
+        # bonded CaDA = stiff bonds -> small timestep (fallback)
+        "      sed -i 's/^dt .*/dt = 0.0002/; s/^nsteps .*/nsteps = 100000/' nvt.mdp; "   # 20 ps @ 0.2 fs
+        "      sed -i 's/^dt .*/dt = 0.0005/; s/^nsteps .*/nsteps = 200000/' npt.mdp; "   # 100 ps @ 0.5 fs
+        "    fi; "
         "  fi; "
         # ---- EM (steep) ----
         "  gmx grompp -f em.mdp -c ionized.gro -p fep.top -o em.tpr -maxwarn 50 > em_grompp.log 2>&1 "
         "  && gmx mdrun -deffnm em -ntmpi 1 -nb gpu > em.log 2>&1 && [ -f em.gro ] ; STG=$?; "
-        # ---- COMPLEX only: reset each CaDA octahedron (D1..D6 = Mn center +/- 0.09 nm) to zero bonded strain ----
-        "  if [ \"$leg\" = complex ] && [ \"$STG\" -eq 0 ]; then "
+        # ---- BONDED-complex only: reset each CaDA octahedron (D1..D6 = Mn center +/- 0.09 nm) to zero bonded strain ----
+        "  if [ \"$leg\" = complex ] && [ \"$METAL\" != vsite ] && [ \"$STG\" -eq 0 ]; then "
         "    python3 - em.gro em_fixed.gro <<'PYEOF' > reidealize.log 2>&1 && NVTC=em_fixed.gro || STG=97\n"
         "import sys\n"
         "L=open(sys.argv[1]).read().splitlines(); n=int(L[1]); body=L[2:2+n]; box=L[2+n:]\n"
@@ -136,15 +143,17 @@ def _equil_command(in_s3, out_s3, legs="solvent complex"):
     return [s]
 
 
-def dispatch_equilibration(run_id, dry_run=True, legs="solvent complex"):
+def dispatch_equilibration(run_id, dry_run=True, legs="solvent complex", metal_model="bonded"):
     """Dispatch the SHORT equilibration job to the GROMACS GPU-spot job-def. Requires the FEP_INPUTS_READY
-    sentinel; gated by EQUIL_CMD_READY. `legs` selects which legs to run. Production ddG stays guarded."""
+    sentinel; gated by EQUIL_CMD_READY. `legs` selects legs; `metal_model` = bonded (small-dt) | vsite (2fs)."""
     base = f"s3://{BUCKET}/{PREFIX}/{run_id}"
-    in_s3, out_s3 = f"{base}/in/", f"{base}/equil_out/"
+    # separate output prefix per metal model so the bonded cross-check and the vsite run don't clobber
+    out_dir = "equil_out" if metal_model == "bonded" else f"equil_out_{metal_model}"
+    in_s3, out_s3 = f"{base}/in/", f"{base}/{out_dir}/"
     payload = dict(
-        jobName=f"equil-{run_id}".replace("_", "-")[:120],
+        jobName=f"equil-{metal_model}-{run_id}".replace("_", "-")[:120],
         jobQueue=QUEUE, jobDefinition=JOBDEF,
-        containerOverrides=dict(command=_equil_command(in_s3, out_s3, legs=legs)),
+        containerOverrides=dict(command=_equil_command(in_s3, out_s3, legs=legs, metal_model=metal_model)),
         tags={"pipeline": "cyclic-peptide", "stage": "equilibration", "target": "avb6",
               "edge": CONTROL_EDGE["edge_id"]},
     )
@@ -268,7 +277,8 @@ if __name__ == "__main__":
     rid = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--run-id=")), None)
     if "--equil" in sys.argv:          # SHORT equilibration (em->nvt->npt); NOT production ddG
         legs = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--legs=")), "solvent complex").replace(",", " ")
-        out = dispatch_equilibration(run_id=rid, dry_run=not submit, legs=legs)
+        metal = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--metal=")), "bonded")
+        out = dispatch_equilibration(run_id=rid, dry_run=not submit, legs=legs, metal_model=metal)
     else:                              # FULL per-lambda production ddG (stays guarded by MDRUN_CMD_READY)
         out = dispatch_control_edge(run_id=rid, dry_run=not submit)
     print(json.dumps(out, indent=2, default=str))
