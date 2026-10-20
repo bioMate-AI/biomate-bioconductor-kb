@@ -59,7 +59,8 @@ import shutil
 import sys
 from typing import Any
 
-STEPS = ["define_edge", "prepare", "equilibrate", "fep_production", "analyze"]
+STEPS = ["define_edge", "knowledge_liability_gate", "fto_gate",
+         "prepare", "equilibrate", "fep_production", "analyze"]
 
 # --- hard-won defaults (see module docstring) --------------------------------
 DEFAULTS = {
@@ -93,7 +94,14 @@ GPU_STEPS = {"equilibrate", "fep_production"}
 # user clears. Every step still surfaces params/inputs/outputs, and the user can switch to
 # manual/step-by-step (--step) or pause at any point.
 STEP_GATES = {
-    "define_edge":    {"spend": False, "qc": False},   # CPU — auto-advance
+    "define_edge":             {"spend": False, "qc": False},  # CPU — auto-advance
+    # Knowledge + patent/FTO are CHEAP (zero-compute, no GPU) gates placed BEFORE the
+    # expensive physics, so a liability-dirty or patent-occupied edge is dropped before a
+    # GPU-hour is spent on it (the research loop's `pharmacophore -> liability/SAR -> FTO ->
+    # DOCKING` order, generalised). Each emits a QC verdict (which endpoints PASS/WATCH/HOLD
+    # or are FTO-occupied) the user inspects/clears — it never auto-proceeds past a hard flag.
+    "knowledge_liability_gate": {"spend": False, "qc": True},  # CPU — SAR/CMC liability verdict
+    "fto_gate":                 {"spend": False, "qc": True},  # CPU — patent/FTO verdict
     "prepare":        {"spend": False, "qc": False},   # CPU — auto-advance
     "equilibrate":    {"spend": True,  "qc": True},    # GPU spend; emits stability QC
     "fep_production": {"spend": True,  "qc": False},   # GPU spend
@@ -163,6 +171,185 @@ def resolve_metal(metal_model: str) -> dict:
     }
 
 
+# --- knowledge / FTO gates (CPU, pre-physics) --------------------------------
+# Generalised from the research loop's `knowledge_liability_flags.py` (universal CMC
+# rules are target-agnostic) and `fto_score.py` (patent/FTO). The UNIVERSAL CMC rules
+# below are generic; target-specific SAR lives in optional named PACKS. The FTO gate is
+# a KB/rule axis (optional claim genus + optional known-compound identity), NOT exhaustive
+# IP clearance, and it FAILS OPEN (honest status, no fabricated verdict) when no KB is given.
+CATIONIC, ANIONIC = set("RK"), set("DE")
+HYDROPHOBIC, AROMATIC = set("AILMFWVYC"), set("FWY")
+# cyclic-aware 2-mer CMC liability hotspots (target-agnostic): motif -> (severity, mechanism)
+DIPEPTIDE_LIABILITIES = {
+    "NG": ("hard", "Asn-Gly deamidation hotspot (fastest)"),
+    "NS": ("soft", "Asn-Ser deamidation"), "NH": ("soft", "Asn-His deamidation"),
+    "NA": ("soft", "Asn-Ala deamidation (slower)"),
+    "DG": ("hard", "Asp-Gly isomerisation -> isoAsp (fastest)"),
+    "DS": ("soft", "Asp-Ser isomerisation"), "DP": ("soft", "Asp-Pro acid-labile cleavage"),
+}
+
+
+def parse_peptide(s: str):
+    """Parse a cyclo(...)/one-letter/HELM-ish peptide into (residues, mods, scaffold).
+    Minimal generic port of knowledge_liability_flags.parse_helm (no target assumptions)."""
+    s = (s or "").strip()
+    cyclic = s.lower().startswith("cyclo(")
+    disulfide = "disulfide" in s.lower()
+    if cyclic:
+        inner = s[s.index("(") + 1: s.rindex(")")]
+    else:
+        inner = s.split(" (")[0]
+    toks = [t for t in inner.split("-") if t] if "-" in inner else list(inner)
+    residues, mods = [], []
+    for t in toks:
+        t = t.strip()
+        d_stereo = n_methyl = False
+        core = t[1:-1] if (t.startswith("[") and t.endswith("]")) else t
+        if core.startswith("NMe"):
+            n_methyl = True; core = core[3:]
+        elif core.startswith("d") and len(core) >= 2 and core[1].isupper():
+            d_stereo = True; core = core[1:]
+        aa = core[:1].upper()
+        if aa.isalpha():
+            residues.append(aa); mods.append({"d_stereo": d_stereo, "n_methyl": n_methyl})
+    return residues, mods, {"cyclic": cyclic, "disulfide": disulfide, "n_cys": residues.count("C")}
+
+
+def _cyclic_dimers(residues, cyclic):
+    seq = "".join(residues)
+    pairs = [seq[i:i + 2] for i in range(len(seq) - 1)]
+    if cyclic and len(seq) >= 2:
+        pairs.append(seq[-1] + seq[0])
+    return pairs
+
+
+def cmc_liability_flags(residues, mods, scaf):
+    """Universal (target-agnostic) CMC/chemical liability flags for one peptide."""
+    seq = "".join(residues)
+    flags = []
+    for dp in _cyclic_dimers(residues, scaf["cyclic"]):
+        if dp in DIPEPTIDE_LIABILITIES:
+            sev, mech = DIPEPTIDE_LIABILITIES[dp]
+            flags.append({"severity": sev, "code": f"cmc:{dp}", "detail": mech})
+    if "M" in seq:
+        flags.append({"severity": "soft", "code": "cmc:Met-ox", "detail": "methionine oxidation liability"})
+    if "W" in seq:
+        flags.append({"severity": "soft", "code": "cmc:Trp-ox",
+                      "detail": "tryptophan oxidation liability (often load-bearing — flag, do not auto-remove)"})
+    if scaf["n_cys"] and scaf["n_cys"] % 2 == 1:
+        flags.append({"severity": "hard", "code": "cmc:free-Cys",
+                      "detail": f"odd Cys count ({scaf['n_cys']}) -> unpaired thiol / scrambling"})
+    return flags
+
+
+def sar_pack_flags(pack, residues, mods, scaf):
+    """Optional TARGET-SPECIFIC SAR rule pack (honestly not generic — named packs only).
+    Ported in brief from the research avb6/pdl1 SAR; unknown pack -> no flags + a note."""
+    import re as _re
+    seq = "".join(residues)
+    net = sum(1 for a in seq if a in CATIONIC) - sum(1 for a in seq if a in ANIONIC)
+    flags = []
+    if pack == "avb6":  # RGD integrin radioligand SAR
+        w = seq + seq[:6] if scaf["cyclic"] else seq
+        if "RGD" in w and "RGDL" not in w:
+            flags.append({"severity": "hard", "code": "sar:pan-RGD",
+                          "detail": "RGD without RGD-L selectivity element -> pan-integrin (off-target tox)"})
+        if _re.search(r"RGDL[A-Z]{2}[LI]", w) or _re.search(r"RGDL[LI]", w):
+            flags.append({"severity": "note", "code": "sar:extended-affinity",
+                          "detail": "carries RGDL-[L/I] extended high-affinity motif (affinity bonus)"})
+        if not (any(m["d_stereo"] and residues[i] == "P" for i, m in enumerate(mods))
+                or any(m["n_methyl"] for m in mods)):
+            flags.append({"severity": "hard", "code": "sar:no-lock",
+                          "detail": "no D-Pro / N-methyl conformational lock"})
+        if net > 0:
+            flags.append({"severity": "soft", "code": "sar:renal-charge",
+                          "detail": f"net charge +{net}; cationic peptides raise kidney dose (dose-limiting organ)"})
+    elif pack == "pdl1":  # macrocycle cleft binder SAR
+        if seq:
+            hf = sum(1 for a in seq if a in HYDROPHOBIC) / len(seq)
+            af = sum(1 for a in seq if a in AROMATIC) / len(seq)
+            if hf > 0.6:
+                flags.append({"severity": "soft", "code": "sar:aggregation",
+                              "detail": f"hydrophobic fraction {hf:.2f} > 0.60 -> aggregation / poor solubility"})
+            if af > 0.45:
+                flags.append({"severity": "soft", "code": "sar:aromatic-stack",
+                              "detail": f"aromatic fraction {af:.2f} > 0.45 -> π-stacking aggregation risk"})
+    return flags, net
+
+
+def screen_knowledge_liability(sequences, target_pack=None):
+    """Per-sequence CMC (+ optional target SAR pack) liability tiering (PASS/WATCH/HOLD)."""
+    rows = []
+    for sid, seq in sequences:
+        residues, mods, scaf = parse_peptide(seq)
+        flags = cmc_liability_flags(residues, mods, scaf)
+        pack_flags, net = ([], 0)
+        if target_pack:
+            pack_flags, net = sar_pack_flags(target_pack, residues, mods, scaf)
+            flags += pack_flags
+        hard = [f for f in flags if f["severity"] == "hard"]
+        soft = [f for f in flags if f["severity"] == "soft"]
+        tier = "HOLD" if hard else ("WATCH" if soft else "PASS")
+        rows.append({"id": sid, "seq": "".join(residues), "net_charge": net,
+                     "n_hard": len(hard), "n_soft": len(soft), "tier": tier, "flags": flags})
+    return rows
+
+
+def screen_fto(sequences, claim_kb=None, known_compounds=None):
+    """Patent/FTO verdict per sequence. KB/rule axis, NOT exhaustive IP clearance.
+    - claim_kb (optional): a genus spec {form, motif, ...}; without it -> honest no_claim_kb.
+    - known_compounds (optional): list of known/patented sequences -> nearest identity (novelty axis).
+    Fails OPEN: no KB and no known-compounds -> status 'no_fto_reference', verdict None (never fabricated)."""
+    def _ident(a, b):
+        if not a or not b:
+            return 0.0
+        n = min(len(a), len(b))
+        return round(sum(x == y for x, y in zip(a[:n], b[:n])) / max(len(a), len(b)), 2)
+    rows = []
+    for sid, seq in sequences:
+        residues, _, scaf = parse_peptide(seq)
+        bb = "".join(residues)
+        row = {"id": sid, "backbone": bb, "cyclic": scaf["cyclic"],
+               "caveat": "KB/rule FTO axis (genus membership + known-compound identity); "
+                         "NOT exhaustive IP clearance — a live patent-office search is a separate, deeper check."}
+        if not claim_kb and not known_compounds:
+            row.update({"status": "no_fto_reference", "verdict": None,
+                        "note": "No claim-genus KB or known-compound set supplied -> FTO fails OPEN "
+                                "(no fabricated verdict). Supply --claim-kb and/or --known-compounds to screen."})
+            rows.append(row); continue
+        row["status"] = "screened"
+        if known_compounds:
+            nearest = max(((_ident(bb, "".join(parse_peptide(k)[0])), k) for k in known_compounds),
+                          default=(0.0, None))
+            row["nearest_known_identity"] = nearest[0]
+            row["nearest_known"] = nearest[1]
+            row["novelty_watch"] = nearest[0] >= 0.85  # close analog of a known/patented compound
+        if claim_kb:
+            motif = claim_kb.get("motif")
+            form_ok = (claim_kb.get("cyclic") in (None, scaf["cyclic"]))
+            size_ok = (claim_kb.get("ring_size") in (None, len(residues)))
+            w = bb + bb[:6] if scaf["cyclic"] else bb
+            motif_in = (motif is None) or (motif in w)
+            row["claim_form_match"] = bool(form_ok and size_ok and motif_in)
+            row["occupied"] = bool(form_ok and size_ok and motif_in)  # inside the genus FORM+motif
+            row["verdict"] = ("INSIDE claim genus (form+motif) -> redesign/DoE before progressing"
+                              if row["occupied"] else "OUTSIDE claim genus form -> FTO-clear on this claim")
+        rows.append(row)
+    return rows
+
+
+def _edge_sequences(args):
+    """Resolve the edge's endpoint sequence(s) to screen. --sequences 'A|B' (or 'A,B') if given;
+    else a peptide_pair edge_spec of the same shape; else none (honest no_sequence)."""
+    raw = (args.sequences or "").strip()
+    if not raw and args.edge_kind == "peptide_pair" and ("|" in (args.edge_spec or "")):
+        raw = args.edge_spec
+    if not raw:
+        return []
+    parts = [p.strip() for p in raw.replace("|", ",").split(",") if p.strip()]
+    return [(f"endpoint_{i+1}", p) for i, p in enumerate(parts)]
+
+
 # --- per-step validation + param surfacing -----------------------------------
 def validate_edge(args) -> dict:
     """define_edge logic: validate + normalise into an edge spec the user reviews."""
@@ -220,15 +407,33 @@ def param_schema() -> dict:
                 },
                 "required": ["receptor", "edge_spec"],
             },
-            "2_prepare": {
-                "title": "2 · Prepare systems", "type": "object",
+            "2_knowledge_liability_gate": {
+                "title": "2 · Knowledge / liability gate", "type": "object",
+                "properties": {
+                    "sequences": {"type": "string",
+                                  "description": "Edge endpoint peptide sequence(s) 'A|B' to screen (CMC + SAR)."},
+                    "target_pack": {"type": "string",
+                                    "description": "Optional target SAR pack (avb6, pdl1); universal CMC rules always run."},
+                },
+            },
+            "3_fto_gate": {
+                "title": "3 · Patent / FTO gate", "type": "object",
+                "properties": {
+                    "claim_kb": {"type": "string", "format": "file-path",
+                                 "description": "Optional claim-genus KB JSON; without it FTO fails open (no fabricated verdict)."},
+                    "known_compounds": {"type": "string",
+                                        "description": "Optional known/patented sequences 'A|B' for the novelty/identity axis."},
+                },
+            },
+            "4_prepare": {
+                "title": "4 · Prepare systems", "type": "object",
                 "properties": {
                     "legs": {"type": "string", "default": "complex,solvent",
                              "description": "Which thermodynamic legs to build."},
                 },
             },
-            "3_equilibrate": {
-                "title": "3 · Equilibrate", "type": "object",
+            "5_equilibrate": {
+                "title": "5 · Equilibrate", "type": "object",
                 "properties": {
                     "dt_fs": {"type": "number", "default": 2.0,
                               "description": "MD timestep (fs). cada-bonded forces <=0.5; cada-vsite/non-metal use 2."},
@@ -237,8 +442,8 @@ def param_schema() -> dict:
                                    "description": "Position restraints during equilibration."},
                 },
             },
-            "4_fep_production": {
-                "title": "4 · FEP production", "type": "object",
+            "6_fep_production": {
+                "title": "6 · FEP production", "type": "object",
                 "properties": {
                     "lambda_windows": {"type": "integer", "default": 12, "description": "Number of λ windows."},
                     "production_ns": {"type": "number", "default": 5.0, "description": "ns per λ window."},
@@ -246,8 +451,8 @@ def param_schema() -> dict:
                     "temperature": {"type": "number", "default": 298.15, "description": "K."},
                 },
             },
-            "5_analyze": {
-                "title": "5 · Analyze (ΔΔG + QC)", "type": "object",
+            "7_analyze": {
+                "title": "7 · Analyze (ΔΔG + QC)", "type": "object",
                 "properties": {
                     "control_edge_expected": {"type": "number",
                                               "description": "Known ΔΔG for a control edge (kcal/mol); analyze gate checks recovery."},
@@ -263,6 +468,62 @@ def step_define_edge(args) -> dict:
     out = {"step": "define_edge", "status": "ok", "edge_spec": spec,
            "note": "Review/edit the edge, then advance to Prepare."}
     _write(args.outdir, "edge_spec.json", spec)
+    return out
+
+
+def step_knowledge_liability_gate(args) -> dict:
+    """CPU, pre-physics. Flags CMC/SAR liabilities on the edge endpoint sequence(s) and
+    tiers each PASS/WATCH/HOLD, so a HOLD edge is caught before any GPU is spent. QC gate:
+    the chain halts for the user to inspect/clear. Honest: no sequence -> no_sequence."""
+    seqs = _edge_sequences(args)
+    if not seqs:
+        out = {"step": "knowledge_liability_gate", "status": "no_sequence",
+               "rows": [], "note": "No endpoint sequence to screen (give --sequences 'A|B' or a "
+                                   "peptide_pair edge_spec). Zero-compute SAR/CMC screen skipped honestly."}
+        _write(args.outdir, "knowledge_liability.json", out)
+        return out
+    rows = screen_knowledge_liability(seqs, target_pack=args.target_pack or None)
+    worst = "HOLD" if any(r["tier"] == "HOLD" for r in rows) else (
+        "WATCH" if any(r["tier"] == "WATCH" for r in rows) else "PASS")
+    out = {"step": "knowledge_liability_gate", "status": "screened", "worst_tier": worst,
+           "target_pack": args.target_pack or None, "rows": rows,
+           "note": "Zero-compute CMC (universal) + optional target-SAR-pack liability screen. "
+                   "HOLD = design out the hard liability before spending FEP; WATCH = flagged, proceed with caveat."}
+    _write(args.outdir, "knowledge_liability.json", out)
+    return out
+
+
+def step_fto_gate(args) -> dict:
+    """CPU, pre-physics. Patent/FTO screen (KB/rule axis, NOT exhaustive IP clearance) on the
+    edge endpoint sequence(s). Fails OPEN (honest status, no fabricated verdict) without a
+    claim-genus KB or known-compound set. QC gate: halts for user inspection."""
+    seqs = _edge_sequences(args)
+    if not seqs:
+        out = {"step": "fto_gate", "status": "no_sequence", "rows": [],
+               "note": "No endpoint sequence to screen for FTO. Give --sequences."}
+        _write(args.outdir, "fto.json", out)
+        return out
+    claim_kb = None
+    if args.claim_kb:
+        try:
+            with open(args.claim_kb) as fh:
+                claim_kb = json.load(fh)
+        except OSError as e:
+            out = {"step": "fto_gate", "status": "claim_kb_unreadable", "rows": [],
+                   "note": f"--claim-kb {args.claim_kb} could not be read ({e}); not fabricating a verdict."}
+            _write(args.outdir, "fto.json", out)
+            return out
+    known = [k.strip() for k in (args.known_compounds or "").replace("|", ",").split(",") if k.strip()] or None
+    rows = screen_fto(seqs, claim_kb=claim_kb, known_compounds=known)
+    occupied = any(r.get("occupied") for r in rows)
+    novelty_watch = any(r.get("novelty_watch") for r in rows)
+    status = "screened" if (claim_kb or known) else "no_fto_reference"
+    out = {"step": "fto_gate", "status": status, "any_claim_occupied": occupied,
+           "any_novelty_watch": novelty_watch, "rows": rows,
+           "note": "Patent/FTO KB-rule axis (genus membership + known-compound identity). "
+                   "NOT exhaustive IP clearance — a live patent search is a separate deeper check. "
+                   "Fails OPEN without a KB rather than fabricating."}
+    _write(args.outdir, "fto.json", out)
     return out
 
 
@@ -359,6 +620,8 @@ def step_analyze(args) -> dict:
 
 STEP_FN = {
     "define_edge": step_define_edge,
+    "knowledge_liability_gate": step_knowledge_liability_gate,
+    "fto_gate": step_fto_gate,
     "prepare": step_prepare,
     "equilibrate": step_equilibrate,
     "fep_production": step_fep_production,
@@ -422,6 +685,17 @@ def build_argparser() -> argparse.ArgumentParser:
     p.add_argument("--modality", default=DEFAULTS["modality"])
     p.add_argument("--metal-model", default=DEFAULTS["metal_model"], dest="metal_model")
     p.add_argument("--legs", default=DEFAULTS["legs"])
+    # knowledge_liability_gate / fto_gate (CPU, pre-physics)
+    p.add_argument("--sequences", default="", dest="sequences",
+                   help="Edge endpoint peptide sequence(s) to screen, 'A|B' or 'A,B' "
+                        "(e.g. 'cyclo(F-R-G-D-L-A-F-[dP]-[NMeK])|cyclo(Y-R-G-D-L-A-Y-[dP]-[NMeK])').")
+    p.add_argument("--target-pack", default="", dest="target_pack",
+                   help="Optional target SAR rule pack for the liability gate (e.g. avb6, pdl1). "
+                        "Universal CMC rules always run; a pack adds target-specific SAR.")
+    p.add_argument("--claim-kb", default="", dest="claim_kb",
+                   help="Optional FTO claim-genus KB JSON {cyclic,ring_size,motif}; without it FTO fails open.")
+    p.add_argument("--known-compounds", default="", dest="known_compounds",
+                   help="Optional known/patented sequences ('A|B') for the FTO novelty (identity) axis.")
     # equilibrate
     p.add_argument("--dt-fs", type=float, default=DEFAULTS["dt_fs"], dest="dt_fs")
     p.add_argument("--equil-ns", type=float, default=DEFAULTS["equil_ns"], dest="equil_ns")
