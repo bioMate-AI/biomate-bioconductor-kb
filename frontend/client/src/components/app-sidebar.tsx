@@ -74,24 +74,30 @@ export function AppSidebar({
 }: AppSidebarProps) {
   // Map chatSessionId → status dot ('running' | 'completed' | 'failed' | undefined).
   // Fetched from the run list API independently so no state lifting is needed.
-  const [sessionStatusMap, setSessionStatusMap] = useState<Map<string, 'running' | 'completed' | 'failed'>>(new Map())
+  const [sessionStatusMap, setSessionStatusMap] = useState<Map<string, 'running' | 'completed' | 'failed' | 'cancelled'>>(new Map())
   const fetchSessionStatuses = useCallback(async () => {
     try {
       const res = await fetch('/api/workflows/runs?limit=50')
       if (!res.ok) return
       const runs: Array<{ id: string; chatSessionId?: string; execution?: { status?: string } }> = await res.json()
-      const map = new Map<string, 'running' | 'completed' | 'failed'>()
+      const map = new Map<string, 'running' | 'completed' | 'failed' | 'cancelled'>()
       for (const run of runs) {
         if (!run.chatSessionId) continue
         const s = run.execution?.status ?? ''
-        const bucket: 'running' | 'completed' | 'failed' =
+        // A cancelled / paused run is NOT a failure — it gets its own neutral
+        // bucket so the sidebar dot is grey, not red or (misleadingly) green
+        // (UI refinement item 2).
+        const bucket: 'running' | 'completed' | 'failed' | 'cancelled' =
           ['running', 'configuring', 'queued'].some(v => s.includes(v)) ? 'running'
           : ['failed', 'error'].some(v => s.includes(v)) ? 'failed'
-          : s === 'completed' ? 'completed'
+          : ['cancelled', 'canceled', 'paused'].some(v => s.includes(v)) ? 'cancelled'
           : 'completed'
-        // Prefer 'running' > 'failed' > 'completed' for a session with multiple runs
+        // Prefer running > failed > cancelled > completed for a multi-run session.
         const existing = map.get(run.chatSessionId)
-        if (!existing || bucket === 'running' || (bucket === 'failed' && existing === 'completed')) {
+        if (!existing
+            || bucket === 'running'
+            || (bucket === 'failed' && existing !== 'running')
+            || (bucket === 'cancelled' && (existing === 'completed'))) {
           map.set(run.chatSessionId, bucket)
         }
       }
@@ -218,23 +224,8 @@ export function AppSidebar({
             alt="BioMate"
             style={{ height: 26, width: 'auto', display: 'block', flexShrink: 0 }}
           />
-          <span
-            title={t('nav.beta_tooltip')}
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              padding: '1px 5px',
-              borderRadius: 3,
-              background: 'var(--bm-surface-2, oklch(0.965 0.003 260))',
-              color: 'var(--bm-text-dim)',
-              lineHeight: 1.3,
-              flexShrink: 0,
-            }}
-          >
-            BETA
-          </span>
+          {/* BETA tag removed 2026-10-20 (UI refinement item 1c) — the design
+              wordmark is clean. */}
         </div>
         <button
           onClick={onToggleSidebar}
@@ -253,7 +244,7 @@ export function AppSidebar({
       {/* Workspace nav */}
       <div style={{ marginBottom: 8 }}>
         <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>{t('nav.workspace')}</div>
-        <button className="side-link" onClick={onNewChat} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
+        <button className="side-link" onClick={() => { setContextProjectId(null); onNewChat(); }} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
           <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>{t('chat.new_chat')}</span>
@@ -381,6 +372,7 @@ export function AppSidebar({
                     width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
                     background: dotStatus === 'running' ? 'var(--bm-accent, oklch(0.55 0.14 245))' :
                                 dotStatus === 'failed'  ? 'var(--bm-err, oklch(0.58 0.18 25))' :
+                                dotStatus === 'cancelled' ? 'var(--bm-text-dim, oklch(0.62 0.01 260))' :
                                 dotStatus === 'completed' ? 'var(--bm-ok, oklch(0.62 0.13 150))' :
                                 'var(--bm-border-strong, oklch(0.80 0.008 240))',
                     animation: dotStatus === 'running' ? 'pulse 1.5s infinite' : 'none',

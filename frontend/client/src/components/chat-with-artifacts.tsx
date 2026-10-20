@@ -2328,10 +2328,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             {/* Drag handle — desktop only */}
             {!panelIsOverlay && !chatHidden && (
               <div
-                className="absolute top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-10 select-none"
-                style={{ left: -3 }}
+                // z-40 so the handle stays grabbable even when the full step view
+                // (an absolute z-30 panel inside the viewer) is open — at z-10 it
+                // was covered, making the split look un-resizable (UI refinement item 12).
+                className="absolute top-0 bottom-0 w-2 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-40 select-none"
+                style={{ left: -4 }}
                 onMouseDown={handlePanelResizeStart}
                 title={t('runs_ui.drag_resize')}
+                data-testid="panel-resize-handle"
               />
             )}
             {!panelWorkflow && <div className="flex justify-end px-3 py-2 border-b"><button onClick={handleClosePanelWorkflow} aria-label={t('runs_ui.close_panel')} data-testid="workflow-panel-close"><X className="h-4 w-4" /></button></div>}
