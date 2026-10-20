@@ -320,22 +320,27 @@ export const COLD_MODULES: ColdModule[] = [
         },
       },
       {
+        // The evaluate step of the design chain: a ladder from fast (dock) to
+        // rigorous (relative binding free energy / ΔΔG, a Cloud · GPU-hours run).
         k: "Predict & filter",
         ex: [
           "Predict binding affinity for these candidates against my target.",
           "Which of these would you expect to bind, and why?",
           "Dock the top 50 and check the poses are plausible.",
+          "Compute the relative binding free energy between two analogues against my target.",
         ],
         exBy: {
           sm: [
             "Predict binding affinity for these candidates against my target.",
             "Which of these would you expect to bind, and why?",
             "Dock the top 50 and check the poses are plausible.",
+            "Compute the relative binding free energy between two analogues against my target.",
           ],
           pep: [
             "Predict binding and serum stability for these peptides.",
             "Which macrocycles are likely to be cell-permeable?",
             "Screen these peptides for aggregation risk.",
+            "Compute the relative binding free energy for a single-residue change in this peptide binder.",
           ],
           bio: [
             "Predict developability liabilities for these antibody candidates.",
@@ -457,6 +462,11 @@ const DOMAIN_RULES: Array<{ m: RegExp; dom: string; lane: LaneKind }> = [
   { m: /(screen this library|virtual (library|screen)|predicted hits|re-?rank these hits)/i, dom: "Library screening", lane: "cloud" },
   { m: /(train|fine-?tune|adapt (the |a )?model|re-?train)/i, dom: "Models & training", lane: "cloud" },
   // Design pipeline, most specific first.
+  // Relative FEP / ΔΔG is the rigorous end of the evaluate ladder — matched
+  // before "analogue"/"binding"/"optimise" so a free-energy goal reads as its
+  // own Cloud capability (internally routed to openfe_rbfe or gromacs_pmx_fep),
+  // not "Molecular design" or "Activity prediction".
+  { m: /(relative binding free energy|free[- ]?energy perturbation|\bfep\b|\bddg\b|ΔΔg|alchemical|thermodynamic cycle)/i, dom: "Relative FEP", lane: "cloud" },
   { m: /(optimis|optimiz|multi-?objective|trade-?off|without losing|re-?score|improve.*(while|but|without))/i, dom: "Property optimisation", lane: "cloud" },
   // Peptide / protein-biologic design (reference INFER + design routes) —
   // before the small-molecule design rule so a modality-specific goal reads as
