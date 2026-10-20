@@ -558,12 +558,252 @@ def step_prepare(args) -> dict:
     return out
 
 
-def _real_prepare(args, legs):  # pragma: no cover - requires gmx+pmx
-    raise NotImplementedError(
-        "Real PREPARE executes in the GROMACS+pmx run image; the validated reference "
-        "implementation is research/guangzhou_all_atom/fep/preflight/build_fep_setup.sh "
-        "(instance-zero). Generalising it into this module is the remaining engine work; "
-        "until then PREPARE honestly reports requires_tools rather than fabricating.")
+# --- PREPARE build helpers (generalised from build_fep_setup.sh) -------------
+# The PURE-PYTHON helpers below (origin rotation, junction injection, metal merges)
+# are the hard-won correctness logic and are unit-tested. The gmx/pmx subprocess
+# orchestration in _real_prepare is a faithful port of the validated build_leg and runs
+# ONLY in the GROMACS+pmx run image (gated by _tools_available); locally it is never
+# reached (step_prepare returns requires_tools), so the honesty contract holds.
+import re as _re
+import subprocess as _subprocess
+
+
+def rotate_cyclic_origin(n_res: int, mut_resids):
+    """A cyclic peptide's numbering origin is arbitrary. Choose a new start residue so
+    EVERY mutation site is interior (never new-position 1 or N) and the linear 'cut' falls
+    on a non-mutated junction — so pmx gentop's i±1 dihedral lookup never hits resid 0.
+    Returns (order, new_mut_positions); order[new-1] = original resid. Generalises the
+    αvβ6 hardcoded order=[3,4,5,6,7,8,9,1,2]. Raises if no such origin exists."""
+    M = set(mut_resids)
+
+    def prev(k):
+        return k - 1 if k > 1 else n_res
+    for k in range(1, n_res + 1):
+        if k in M or prev(k) in M:
+            continue
+        order = [((k - 1 + i) % n_res) + 1 for i in range(n_res)]
+        new_mut = [order.index(m) + 1 for m in mut_resids]
+        return order, new_mut
+    raise ValueError(f"no cyclic origin leaves all mutation sites {sorted(M)} interior "
+                     f"(ring size {n_res}); edge too dense for the rotation approach")
+
+
+def apply_rotation_to_pdb(pdb_path: str, order, out_path: str) -> None:
+    """Rewrite a peptide PDB in the rotated residue order (coordinates unchanged; only
+    resSeq renumbered), matching build_fep_setup.sh's rotate step."""
+    byres: dict[int, list] = {}
+    for ln in open(pdb_path):
+        if ln.startswith(("ATOM", "HETATM")):
+            rs = int(ln[22:26]); byres.setdefault(rs, []).append(ln.rstrip("\n"))
+    out = []
+    for newid, orig in enumerate(order, 1):
+        for ln in byres[orig]:
+            out.append(ln[:22] + ("%4d" % newid) + ln[26:])
+    with open(out_path, "w") as fh:
+        fh.write("\n".join(out) + "\nEND\n")
+
+
+def add_cyclic_junction(workdir: str) -> str:
+    """Fully parameterize the head-to-tail junction (bond + Urey-Bradley angles + proper
+    + improper dihedrals, CHARMM36m functs 1/5/9/2) in the PEPTIDE moleculetype — selected
+    BY NAME as the fewest-residue [atoms] block across fep.top + its local #includes (robust
+    in a multi-chain complex). Params left empty -> grompp resolves by atom type. CMAP at the
+    2 junction residues is omitted (bounded approximation; backbone func-9 dihedrals carry the
+    torsional energy). Faithful port of build_fep_setup.sh's add_cyclic_junction. Returns a
+    status string (JUNC_OK ... / JUNC_NO_ATOMS / JUNC_ATOM_MISSING ...)."""
+    top = os.path.join(workdir, "fep.top")
+    t0 = open(top).read()
+    cands = [top]
+    for inc in _re.findall(r'#include\s+"([^"]+)"', t0):
+        if (not inc.startswith("/")) and inc.endswith(".itp") and os.path.exists(os.path.join(workdir, inc)):
+            cands.append(os.path.join(workdir, inc))
+    best = None
+    for fn in cands:
+        tt = open(fn).read()
+        for m in _re.finditer(r"\[ atoms \](.*?)(?=\n\[|\Z)", tt, _re.S):
+            amap, resnrs = {}, set()
+            for ln in m.group(1).splitlines():
+                p = ln.split()
+                if len(p) >= 5 and p[0].isdigit():
+                    amap[(int(p[2]), p[4])] = int(p[0]); resnrs.add(int(p[2]))
+            if resnrs and (best is None or len(resnrs) < best[0]):
+                best = (len(resnrs), fn, m.end(), tt, amap, min(resnrs), max(resnrs))
+    if best is None:
+        return "JUNC_NO_ATOMS"
+    nres, fn, endpos, tt, amap, r1, rN = best
+
+    def A(rnr, *names):
+        for n in names:
+            if (rnr, n) in amap:
+                return amap[(rnr, n)]
+        return None
+    N1, CA1, C1 = A(r1, "N"), A(r1, "CA"), A(r1, "C")
+    HN1 = A(r1, "HN", "H", "H1", "HT1")
+    NN, CAN, CN = A(rN, "N"), A(rN, "CA"), A(rN, "C")
+    ON = A(rN, "O", "O1", "OT1", "OC1")
+    if not all([N1, CA1, C1, NN, CAN, CN, ON]):
+        return (f"JUNC_ATOM_MISSING file={os.path.basename(fn)} nres={nres} r1={r1} rN={rN}")
+    bonds = [(CN, N1)]
+    angles = [(CAN, CN, N1), (ON, CN, N1), (CN, N1, CA1)]
+    if HN1:
+        angles.append((CN, N1, HN1))
+    dih = [(CAN, CN, N1, CA1), (ON, CN, N1, CA1), (NN, CAN, CN, N1), (CN, N1, CA1, C1)]
+    if HN1:
+        dih += [(CAN, CN, N1, HN1), (ON, CN, N1, HN1)]
+    impr = [(CN, CAN, N1, ON)]
+    if HN1:
+        impr.append((N1, CN, CA1, HN1))
+    ins = "\n[ bonds ]\n" + "".join("%5d %5d     1 ; CYCJUNC head-to-tail amide\n" % b for b in bonds)
+    ins += "[ angles ]\n" + "".join("%5d %5d %5d     5 ; CYCJUNC\n" % a for a in angles)
+    ins += "[ dihedrals ]\n" + "".join("%5d %5d %5d %5d     9 ; CYCJUNC proper\n" % d for d in dih)
+    ins += "[ dihedrals ]\n" + "".join("%5d %5d %5d %5d     2 ; CYCJUNC improper\n" % i for i in impr)
+    with open(fn, "w") as fh:
+        fh.write(tt[:endpos] + ins + tt[endpos:])
+    return (f"JUNC_OK file={os.path.basename(fn)} r1={r1} rN={rN} bonds={len(bonds)} "
+            f"angles={len(angles)} dih={len(dih)} impr={len(impr)} HN={'y' if HN1 else 'n'} cmap=OMITTED")
+
+
+def merge_metal_topology(topfile: str, itp_name: str, resname: str, count: int) -> None:
+    """Include the CaDA metal itp after the first #include and append the metal molecule to
+    [ molecules ] WITH a guaranteed trailing newline — so a later `gmx solvate` SOL append
+    lands on its own line (a missing newline concatenated 'MN2 3'+'SOL N' -> '3SOL' and
+    silently dropped the waters). Faithful port."""
+    lines = open(topfile).read().splitlines()
+    out, done = [], False
+    for ln in lines:
+        out.append(ln)
+        if ln.strip().startswith("#include") and not done:
+            out.append(f'#include "{itp_name}"'); done = True
+    s = "\n".join(out).rstrip("\n") + f"\n{resname:<18} {count}\n"
+    with open(topfile, "w") as fh:
+        fh.write(s)
+
+
+def merge_metal_gro(box_gro: str, metal_pdb: str, resname: str) -> int:
+    """Append the metal (CaDA dummy) atoms from a PDB to a solute box .gro BEFORE solvation.
+    Returns the number of atoms added. Faithful port of the mngro step."""
+    g = open(box_gro).read().splitlines()
+    n = int(g[1]); body = g[2:2 + n]; box = g[2 + n]
+    mn = []; resn = 1; idx = 0
+    for ln in open(metal_pdb):
+        if ln.startswith("HETATM"):
+            x = float(ln[30:38]) / 10; y = float(ln[38:46]) / 10; z = float(ln[46:54]) / 10
+            nm = ln[12:16].strip()
+            if nm == "MN" and idx != 0:
+                resn += 1
+            mn.append("%5d%-5s%5s%5d%8.3f%8.3f%8.3f" % (resn, resname, nm, (n + len(mn) + 1) % 100000, x, y, z))
+            idx += 1
+    with open(box_gro, "w") as fh:
+        fh.write(g[0] + "\n%d\n" % (n + len(mn)) + "\n".join(body + mn) + "\n" + box + "\n")
+    return len(mn)
+
+
+def _parse_mutations(edge_spec: str):
+    """'P:1 TYR->PHE,P:7 TYR->PHE' (or 'P 1 PHE,...') -> (resids, pmx_script_lines).
+    pmx expects 'CHAIN RESID NEWRES' per line."""
+    resids, lines = [], []
+    for part in edge_spec.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        m = _re.match(r"([A-Za-z]):?\s*(\d+)\s+([A-Z]{3})\s*(?:->\s*([A-Z]{3}))?", part)
+        if not m:
+            raise ValueError(f"unparseable mutation {part!r}; expected 'P:1 TYR->PHE'")
+        chain, resid, a, b = m.group(1), int(m.group(2)), m.group(3), m.group(4)
+        new = b or a
+        resids.append(resid); lines.append(f"{chain} {resid} {new}")
+    return resids, lines
+
+
+def _sh(cmd: str, cwd: str, logname: str, env: dict):
+    """Run a shell stage, fail loudly (raise on non-zero), tee to a log. Mirrors the
+    build_leg stage calls; success only on return 0."""
+    with open(os.path.join(cwd, logname), "w") as log:
+        r = _subprocess.run(cmd, cwd=cwd, shell=True, stdout=log, stderr=_subprocess.STDOUT, env=env)
+    if r.returncode != 0:
+        tail = open(os.path.join(cwd, logname)).read().splitlines()[-6:]
+        raise RuntimeError(f"stage failed ({logname} rc={r.returncode}): " + " | ".join(tail))
+
+
+def _real_prepare(args, legs):  # pragma: no cover - requires gmx+pmx (runs in run image)
+    """Build the pmx hybrid + solvated system per leg, faithful to the validated
+    build_fep_setup.sh, generalised (FF/mutations/metal from params; no αvβ6 hardcoding).
+    Runs ONLY where gmx+pmx exist (gated upstream). Fail-loudly; returns per-leg real
+    atom counts + staged version-independent files. NEVER fabricates numbers."""
+    ff = args.force_field
+    metal = resolve_metal(args.metal_model)
+    env = dict(os.environ)
+    workroot = os.path.join(args.outdir, "build")
+    os.makedirs(workroot, exist_ok=True)
+    # inputs expected staged next to outdir: receptor.pdb, peptide.pdb, (metal itp + metal pdb if metal)
+    receptor = os.path.join(args.outdir, "receptor.pdb")
+    peptide = os.path.join(args.outdir, "peptide.pdb")
+    mut_resids, pmx_lines = _parse_mutations(args.edge_spec)
+    pep_use = peptide
+    if args.modality == "cyclic_peptide":
+        n_res = len({int(l[22:26]) for l in open(peptide) if l.startswith(("ATOM", "HETATM"))})
+        order, new_mut = rotate_cyclic_origin(n_res, mut_resids)
+        pep_use = os.path.join(workroot, "peptide_rot.pdb")
+        apply_rotation_to_pdb(peptide, order, pep_use)
+        # remap mutation resids to the rotated numbering for the pmx script
+        remap = {orig: new for new, orig in enumerate(order, 1)}
+        pmx_lines = [f"{l.split()[0]} {remap[int(l.split()[1])]} {l.split()[2]}" for l in pmx_lines]
+    muts = os.path.join(workroot, "muts.txt")
+    open(muts, "w").write("\n".join(pmx_lines) + "\n")
+    pmxcli = os.environ.get("PMXCLI", "pmx")
+    results = {}
+    for leg in legs:
+        W = os.path.join(workroot, leg); os.makedirs(W, exist_ok=True)
+        with_metal = (leg == "complex" and metal["kind"] != "none")
+        if leg == "solvent":
+            start = os.path.join(W, "start.pdb"); shutil.copy(pep_use, start)
+        else:  # complex: receptor + rotated peptide as one PDB (chains A,B,P)
+            start = os.path.join(W, "start.pdb")
+            with open(start, "w") as fh:
+                for ln in open(receptor):
+                    if ln.startswith(("ATOM", "TER")):
+                        fh.write(ln)
+                fh.write("TER\n")
+                for ln in open(pep_use):
+                    if ln.startswith(("ATOM", "HETATM")):
+                        fh.write(ln)
+                fh.write("END\n")
+        env["GMXLIB"] = os.environ.get("GMXLIB", "")
+        _sh(f"gmx pdb2gmx -f start.pdb -o conf.pdb -p topol.top -i posre.itp -ff {ff} -water tip3p -ignh < /dev/null",
+            W, f"{leg}_pdb2gmx.out", env)
+        _sh(f"{pmxcli} mutate -f conf.pdb -o hybrid.pdb -ff {ff} --script {muts} --ref start.pdb",
+            W, f"{leg}_mutate.out", env)
+        _sh(f"gmx pdb2gmx -f hybrid.pdb -o hconf.pdb -p htop.top -i hposre.itp -ff {ff} -water tip3p < /dev/null",
+            W, f"{leg}_hpdb2gmx.out", env)
+        _sh(f"{pmxcli} gentop -p htop.top -o fep.top -ff {ff}", W, f"{leg}_gentop.out", env)
+        if args.modality == "cyclic_peptide":
+            jr = add_cyclic_junction(W)
+            if not jr.startswith("JUNC_OK"):
+                raise RuntimeError(f"{leg} cyclic junction: {jr}")
+        if with_metal:
+            itp = metal.get("itp") if metal["kind"] == "cada-vsite" else metal["fallback"]["itp"]
+            shutil.copy(os.path.join(args.outdir, itp), os.path.join(W, itp))
+            merge_metal_topology(os.path.join(W, "fep.top"), itp, f"{metal['ion'].upper()}2", 3)
+        _sh("gmx editconf -f hconf.pdb -o box.gro -c -d 1.2 -bt dodecahedron", W, f"{leg}_editconf.out", env)
+        if with_metal:
+            merge_metal_gro(os.path.join(W, "box.gro"),
+                            os.path.join(args.outdir, f"{metal['ion'].lower()}_metal.pdb"), f"{metal['ion'].upper()}2")
+        _sh("gmx solvate -cp box.gro -cs spc216.gro -p fep.top -o solv.gro", W, f"{leg}_solvate.out", env)
+        _sh(f"gmx grompp -f {args.outdir}/mdp/em.mdp -c solv.gro -p fep.top -o ions.tpr -maxwarn 20",
+            W, f"{leg}_ionsgrompp.out", env)
+        _sh("echo SOL | gmx genion -s ions.tpr -o ionized.gro -p fep.top -pname NA -nname CL -neutral -conc 0.15",
+            W, f"{leg}_genion.out", env)
+        _sh(f"gmx grompp -f {args.outdir}/mdp/em.mdp -c ionized.gro -p fep.top -o em.tpr -maxwarn 20",
+            W, f"{leg}_emgrompp.out", env)
+        natoms = None
+        d = _subprocess.run("gmx dump -s em.tpr", cwd=W, shell=True,
+                            stdout=_subprocess.PIPE, stderr=_subprocess.DEVNULL, env=env, text=True)
+        mobj = _re.search(r"natoms\s*=\s*(\d+)", d.stdout or "")
+        if mobj:
+            natoms = int(mobj.group(1))
+        results[leg] = {"atoms": natoms, "staged": ["fep.top", "ionized.gro", "em.tpr"],
+                        "cyclic_junction": args.modality == "cyclic_peptide", "metal": with_metal}
+    return results
 
 
 def _gpu_step(args, step_name: str, outfile: str, numeric_keys: list[str]) -> dict:
@@ -685,6 +925,8 @@ def build_argparser() -> argparse.ArgumentParser:
     p.add_argument("--modality", default=DEFAULTS["modality"])
     p.add_argument("--metal-model", default=DEFAULTS["metal_model"], dest="metal_model")
     p.add_argument("--legs", default=DEFAULTS["legs"])
+    p.add_argument("--force-field", default="charmm36m-mut", dest="force_field",
+                   help="GROMACS force field for pdb2gmx/pmx (default charmm36m-mut; provides the hybrid residues).")
     # knowledge_liability_gate / fto_gate (CPU, pre-physics)
     p.add_argument("--sequences", default="", dest="sequences",
                    help="Edge endpoint peptide sequence(s) to screen, 'A|B' or 'A,B' "
