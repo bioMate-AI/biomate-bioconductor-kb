@@ -63,7 +63,29 @@ FF=charmm36m-mut
 mkdir -p in && aws s3 cp "$SRC" in --recursive --region "${REGION:-us-west-2}" >/dev/null 2>&1
 for f in receptor.pdb peptide.pdb mn_cada.pdb cada_mn.itp; do cp "in/$f" . 2>/dev/null; done
 [ -f peptide.pdb ] && [ -f receptor.pdb ] && [ -f cada_mn.itp ] && R C OK "precursors present" || { R C FAIL "missing precursors"; exit 0; }
-printf "P 1 PHE\nP 7 PHE\n" > muts.txt   # mutate ONLY peptide chain P residues 1,7 (Tyr->Phe); resolved via --ref
+# CYCLIC-PEPTIDE handling: pmx gentop crashes mutating a residue at the chain terminus of a cyclic peptide
+# (alchemy.py _find_predefined_dihedrals fetches resid i-1/i+1; for the arbitrary terminus that neighbor
+# does not exist -> "resid 0 not found"). pmx's own cyclic path (scripts/build_cyclic_top.py, from
+# gmx_makecyclictop) extends the chain with dummy terminal copies + post-adds the wrap-around bonded terms;
+# it is NOT integrated with the mutation/gentop path. Canonical, non-hack fix: the cyclic numbering origin
+# is arbitrary, so rotate it (start at orig resid 3=GLY) -> Tyr1->new8, Tyr7->new5 (BOTH interior), and the
+# cut falls on the orig 2-3 amide (a non-mutated junction). gentop's i+-1 then resolves; the head-to-tail
+# bond is re-added post-gentop across the (non-mutated) cut. All other amides (incl. orig 9-1) become
+# ordinary sequential bonds pdb2gmx builds. Coordinates unchanged (bound pose preserved); only resSeq order.
+python3 - <<'PYEOF' > rotate.out 2>&1 || true
+order=[3,4,5,6,7,8,9,1,2]
+byres={}
+for ln in open('peptide.pdb'):
+    if ln.startswith(('ATOM','HETATM')):
+        rs=int(ln[22:26]); byres.setdefault(rs,[]).append(ln.rstrip('\n'))
+out=[]
+for newid,orig in enumerate(order,1):
+    for ln in byres[orig]: out.append(ln[:22]+('%4d'%newid)+ln[26:])
+open('peptide_rot.pdb','w').write('\n'.join(out)+'\nEND\n')
+import sys; print('ROT_OK sites new5=%s new8=%s'%(out and [l[17:20].strip() for l in out if int(l[22:26])==5][0], [l[17:20].strip() for l in out if int(l[22:26])==8][0]))
+PYEOF
+if [ -f peptide_rot.pdb ]; then R rotate OK "$(cat rotate.out)"; else R rotate FAIL "$(tail -3 rotate.out)"; exit 0; fi
+printf "P 5 PHE\nP 8 PHE\n" > muts.txt   # Tyr sites after cyclic-origin rotation (orig Tyr1->new8, Tyr7->new5)
 
 add_cyclization(){ # $1=topfile : inject head-to-tail C(last)-N(first) amide bond into the peptide moleculetype
   $PY - "$1" <<'PYEOF'
@@ -159,13 +181,13 @@ PYEOF
 }
 
 # ---- SOLVENT leg (hybrid peptide alone) ----
-build_leg solvent peptide.pdb no ; SOLV=$?
+build_leg solvent peptide_rot.pdb no ; SOLV=$?
 
 # ---- COMPLEX leg (receptor + peptide together via pdb2gmx; CaDA-Mn added post-hoc) ----
 # combine receptor + peptide into one PDB so pdb2gmx builds a single consistent topology (chains A,B,P)
 grep -hE '^(ATOM|TER)' receptor.pdb > complex_noMn.pdb
 echo "TER" >> complex_noMn.pdb
-grep -hE '^(ATOM|HETATM)' peptide.pdb >> complex_noMn.pdb
+grep -hE '^(ATOM|HETATM)' peptide_rot.pdb >> complex_noMn.pdb   # cyclic-origin-rotated peptide (sites interior)
 echo "END" >> complex_noMn.pdb
 build_leg complex complex_noMn.pdb yes ; CPLX=$?
 
