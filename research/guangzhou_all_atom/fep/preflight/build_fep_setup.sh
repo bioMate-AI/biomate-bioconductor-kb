@@ -35,6 +35,11 @@ PY=$(command -v python3)
 # env's modern setuptools under pip's strict build isolation (the i-02906edd failure). --no-build-isolation
 # bypasses that pin and builds with the env's own setuptools/wheel/numpy + c-compiler. VERIFIED working.
 if ! $PY -c "import pmx" >/dev/null 2>&1; then
+  # Force an older C standard for pmx's C extension: the conda-forge gcc defaults to C23, where
+  # `bool` is a reserved keyword, so pmx's legacy `typedef int bool;` (pmx.h) fails to compile
+  # ("'bool' cannot be defined via 'typedef'", the i-0e19d6d4 failure). -std=gnu11 restores the
+  # pre-C23 behaviour where that typedef is legal. VERIFIED error+fix from the real compile log.
+  export CFLAGS="-std=gnu11 ${CFLAGS:-}"
   pip install --no-build-isolation "git+https://github.com/deGrootLab/pmx.git@develop" > pmx_install.out 2>&1 || true
 fi
 if $PY -c "import pmx" >/dev/null 2>&1; then
