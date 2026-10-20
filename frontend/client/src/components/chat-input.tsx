@@ -832,56 +832,11 @@ export function ChatInput({
           shows a "on" dot when instructions are present. The §6.5 "experts"
           catalogue ships alongside it — see the Experts affordance
           (SkillsSelector) below, backed by the real GET /api/skills catalogue. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minWidth: 0, flexBasis: instructionsOpen ? "100%" : undefined }}>
-        <div style={{ minWidth: 0, flex: instructionsOpen ? "1 1 100%" : undefined }}>
-        <button
-          type="button"
-          data-testid="composer-instructions-toggle"
-          onClick={() => setInstructionsOpen((o) => !o)}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            border: "none", background: "transparent", cursor: "pointer",
-            fontSize: 12, color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
-            padding: "2px 2px",
-          }}
-        >
-          {instructionsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-          <SlidersHorizontal className="w-3 h-3" />
-          <span>{t('composer.instructions')}</span>
-          {instructions.trim() && (
-            <span
-              data-testid="composer-instructions-on"
-              aria-hidden
-              style={{ width: 6, height: 6, borderRadius: 999, background: "var(--bm-ok, oklch(0.62 0.14 155))" }}
-            />
-          )}
-        </button>
-        {instructionsOpen && (
-          <textarea
-            data-testid="composer-instructions"
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-            placeholder={t('composer.instructions_placeholder')}
-            rows={2}
-            style={{
-              width: "100%", marginTop: 6, resize: "vertical",
-              minHeight: 44, maxHeight: 160,
-              border: "1px solid var(--bm-border, oklch(0.88 0.004 240))",
-              borderRadius: "var(--bm-r-md, 8px)",
-              background: "var(--bm-bg-elev, hsl(var(--background)))",
-              padding: "6px 8px", fontSize: 12.5, lineHeight: 1.45,
-              fontFamily: "var(--bm-font-ui)", color: "var(--bm-text, oklch(0.22 0.01 260))",
-              outline: "none",
-            }}
-          />
-        )}
-        </div>
-
-        {/* Experts affordance (spec 06 §6.5 / §0.9.2). Per-project skill/expert
-            packs toggled where the request is made, so the selected packs are
-            recorded on the answer/run. Backed by the REAL GET /api/skills
-            catalogue; honest-empty ("No expert packs available yet") when it's
-            unpopulated, never fake toggles. Selection threads into the submit
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minWidth: 0, flexBasis: (!activeProjectId && instructionsOpen) ? "100%" : undefined }}>
+        {/* Experts affordance (spec 06 §6.5 / §0.9.2) — placed first per the
+            design composer row (data → skills & experts → instructions). Backed
+            by the REAL GET /api/skills catalogue; honest-empty ("No expert packs
+            available yet") when unpopulated. Selection threads into the submit
             context as `skillPackIds`. */}
         <div style={{ flexShrink: 0 }}>
           <SkillsSelector
@@ -890,6 +845,80 @@ export function ChatInput({
             packs={skillPacks}
           />
         </div>
+
+        {/* Instructions affordance. In a project (design ChatView onOpenInstr):
+            a single button that opens the project's Instructions panel directly
+            — standing instructions, output requirements and experts live there
+            and apply to every request. Outside a project there is no panel to
+            open, so a lightweight inline field remains for projectless chats. */}
+        {activeProjectId ? (
+          <button
+            type="button"
+            data-testid="composer-instructions-toggle"
+            onClick={() => setLocation(`/projects?project=${activeProjectId}&tab=instructions`)}
+            title={t('composer.instructions_open_panel')}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              border: "none", background: "transparent", cursor: "pointer",
+              fontSize: 12, color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+              padding: "2px 2px",
+            }}
+          >
+            <SlidersHorizontal className="w-3 h-3" />
+            <span>{t('composer.instructions')}</span>
+            {(instructions.trim() || projectOutputRequirements.trim() || selectedSkillIds.length > 0) && (
+              <span
+                data-testid="composer-instructions-on"
+                aria-hidden
+                style={{ width: 6, height: 6, borderRadius: 999, background: "var(--bm-ok, oklch(0.62 0.14 155))" }}
+              />
+            )}
+          </button>
+        ) : (
+          <div style={{ minWidth: 0, flex: instructionsOpen ? "1 1 100%" : undefined }}>
+            <button
+              type="button"
+              data-testid="composer-instructions-toggle"
+              onClick={() => setInstructionsOpen((o) => !o)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                border: "none", background: "transparent", cursor: "pointer",
+                fontSize: 12, color: "var(--bm-text-dim, oklch(0.62 0.010 260))",
+                padding: "2px 2px",
+              }}
+            >
+              {instructionsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              <SlidersHorizontal className="w-3 h-3" />
+              <span>{t('composer.instructions')}</span>
+              {instructions.trim() && (
+                <span
+                  data-testid="composer-instructions-on"
+                  aria-hidden
+                  style={{ width: 6, height: 6, borderRadius: 999, background: "var(--bm-ok, oklch(0.62 0.14 155))" }}
+                />
+              )}
+            </button>
+            {instructionsOpen && (
+              <textarea
+                data-testid="composer-instructions"
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder={t('composer.instructions_placeholder')}
+                rows={2}
+                style={{
+                  width: "100%", marginTop: 6, resize: "vertical",
+                  minHeight: 44, maxHeight: 160,
+                  border: "1px solid var(--bm-border, oklch(0.88 0.004 240))",
+                  borderRadius: "var(--bm-r-md, 8px)",
+                  background: "var(--bm-bg-elev, hsl(var(--background)))",
+                  padding: "6px 8px", fontSize: 12.5, lineHeight: 1.45,
+                  fontFamily: "var(--bm-font-ui)", color: "var(--bm-text, oklch(0.22 0.01 260))",
+                  outline: "none",
+                }}
+              />
+            )}
+          </div>
+        )}
       </div>
 
 

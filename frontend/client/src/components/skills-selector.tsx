@@ -146,27 +146,23 @@ export function SkillsSelector({ selectedIds, onChange, packs }: SkillsSelectorP
           padding: "4px 7px",
         }}
       >
-        {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-        <Sparkles className="w-3 h-3" />
-        <span>{t('composer.skills_and_experts')}</span>
-        {onCount > 0 && (
-          <span
-            data-testid="composer-experts-count"
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              lineHeight: 1,
-              padding: "2px 6px",
-              borderRadius: 999,
-              background: "var(--bm-surface, oklch(0.97 0.002 240))",
-              border: `1px solid ${BORDER}`,
-              color: TEXT,
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            {t('composer.count_on', { n: onCount })}
-          </span>
-        )}
+        {/* Design composer row: "Skills & experts · N on ▾" — inline count,
+            caret on the right (not a separate pill / left chevron). */}
+        <span>
+          {t('composer.skills_and_experts')}
+          {onCount > 0 && (
+            <>
+              {' · '}
+              <span data-testid="composer-experts-count" style={{ fontVariantNumeric: "tabular-nums" }}>
+                {t('composer.count_on', { n: onCount })}
+              </span>
+            </>
+          )}
+        </span>
+        <ChevronDown
+          className="w-3 h-3"
+          style={{ transform: open ? "rotate(180deg)" : undefined, transition: "transform .15s" }}
+        />
       </button>
 
       {open && (
