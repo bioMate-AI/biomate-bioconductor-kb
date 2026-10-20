@@ -25,6 +25,10 @@ _on_exit(){ ec=$?; echo "FEPBUILD_EXIT code=$ec";
 trap _on_exit EXIT
 R(){ echo "STAGE_$1:$2  ${3:-}"; }
 GFATAL(){ grep -A8 -iE 'fatal error' "$1" 2>/dev/null | head -10 | tr '\n' '|'; }   # full GROMACS fatal block on one line
+# Clear any stale success sentinel FIRST, so a failed re-run can never be misread as a prior success
+# (the launcher does not clear it). Correctness invariant for the gromacs_pmx_fep engine.
+[ -n "${DEST:-}" ] && aws s3 rm "${DEST}/in/FEP_INPUTS_READY" --region "${REGION:-us-west-2}" >/dev/null 2>&1 || true
+echo "SENTINEL_CLEARED ${DEST:-?}/in/FEP_INPUTS_READY"
 
 # ---- env ----
 eval "$(/opt/micromamba shell hook -s bash 2>/dev/null)" 2>/dev/null || true
@@ -100,41 +104,52 @@ add_cyclic_junction(){ # $1=topfile : fully parameterize the head-to-tail juncti
   # approximation to confirm by a short equilibration before the production ddG. build_cyclic_top's
   # single-moleculetype whole-topology helpers do NOT fit the complex leg (would target the receptor), which
   # is why this targets the peptide moleculetype by local index instead.
+  # $1 = workdir ($W). The peptide moleculetype lives INLINE in fep.top (solvent leg) OR in a
+  # fep.top-included per-chain itp (complex leg: pmx_htop_Protein_chain_P.itp, residues renumbered
+  # 1070..1078). So scan fep.top + its LOCAL (non-ff, relative) #includes and pick the moleculetype whose
+  # [atoms] has the FEWEST distinct residues (~9 = the peptide; receptor chains have hundreds); inject into
+  # THAT file. Local atom ids (restart at 1 per moleculetype) -> the terms are identical in both legs.
   $PY - "$1" <<'PYEOF'
-import re,sys
-f=sys.argv[1]; t=open(f).read()
-blocks=[m for m in re.finditer(r'\[ atoms \](.*?)(?=\n\[)', t, re.S)]
-if not blocks: print("JUNC_NO_ATOMS"); sys.exit()
-blk=blocks[-1]                      # peptide = last inline moleculetype (before #include water/ions)
-amap={}; resnrs=set()
-for ln in blk.group(1).splitlines():
-    p=ln.split()
-    if len(p)>=5 and p[0].isdigit():
-        amap[(int(p[2]),p[4])]=int(p[0]); resnrs.add(int(p[2]))
-r1=min(resnrs); rN=max(resnrs)
+import re,sys,os
+W=sys.argv[1]; top=os.path.join(W,'fep.top'); t0=open(top).read()
+cands=[top]
+for inc in re.findall(r'#include\s+"([^"]+)"', t0):
+    if (not inc.startswith('/')) and inc.endswith('.itp') and os.path.exists(os.path.join(W,inc)):
+        cands.append(os.path.join(W,inc))     # local per-chain itps only (ff/water/ion includes are absolute)
+best=None
+for fn in cands:
+    tt=open(fn).read()
+    for m in re.finditer(r'\[ atoms \](.*?)(?=\n\[|\Z)', tt, re.S):
+        amap={}; resnrs=set()
+        for ln in m.group(1).splitlines():
+            p=ln.split()
+            if len(p)>=5 and p[0].isdigit():
+                amap[(int(p[2]),p[4])]=int(p[0]); resnrs.add(int(p[2]))
+        if resnrs and (best is None or len(resnrs)<best[0]):
+            best=(len(resnrs), fn, m.end(), tt, amap, min(resnrs), max(resnrs))
+if best is None: print("JUNC_NO_ATOMS"); sys.exit()
+nres, fn, endpos, tt, amap, r1, rN = best
 def A(rnr,*names):
     for n in names:
         if (rnr,n) in amap: return amap[(rnr,n)]
     return None
 N1=A(r1,'N'); CA1=A(r1,'CA'); C1=A(r1,'C'); HN1=A(r1,'HN','H','H1','HT1')
 NN=A(rN,'N'); CAN=A(rN,'CA'); CN=A(rN,'C'); ON=A(rN,'O','O1','OT1','OC1')
-need=[N1,CA1,C1,NN,CAN,CN,ON]
-if not all(need):
-    print("JUNC_ATOM_MISSING r1=%s rN=%s N1=%s CA1=%s C1=%s NN=%s CAN=%s CN=%s ON=%s HN1=%s"%(r1,rN,N1,CA1,C1,NN,CAN,CN,ON,HN1)); sys.exit()
+if not all([N1,CA1,C1,NN,CAN,CN,ON]):
+    print("JUNC_ATOM_MISSING file=%s nres=%d r1=%s rN=%s N1=%s CA1=%s C1=%s NN=%s CAN=%s CN=%s ON=%s HN1=%s"%(os.path.basename(fn),nres,r1,rN,N1,CA1,C1,NN,CAN,CN,ON,HN1)); sys.exit()
 bonds=[(CN,N1)]                                             # func 1
-angles=[(CAN,CN,N1),(ON,CN,N1),(CN,N1,CA1)]                 # func 5 (Urey-Bradley)
+angles=[(CAN,CN,N1),(ON,CN,N1),(CN,N1,CA1)]                 # func 5 (Urey-Bradley, CHARMM)
 if HN1: angles.append((CN,N1,HN1))
 dih=[(CAN,CN,N1,CA1),(ON,CN,N1,CA1),(NN,CAN,CN,N1),(CN,N1,CA1,C1)]   # func 9 propers (omega/psi/phi)
 if HN1: dih += [(CAN,CN,N1,HN1),(ON,CN,N1,HN1)]
-impr=[(CN,CAN,N1,ON)]                                       # func 2: carbonyl C planarity (C CA +N O)
-if HN1: impr.append((N1,CN,CA1,HN1))                        # func 2: amide N planarity (N -C CA HN)
+impr=[(CN,CAN,N1,ON)]                                       # func 2: carbonyl C planarity
+if HN1: impr.append((N1,CN,CA1,HN1))                        # func 2: amide N planarity
 ins ="\n[ bonds ]\n"+"".join("%5d %5d     1 ; CYCJUNC head-to-tail amide\n"%b for b in bonds)
 ins+="[ angles ]\n"+"".join("%5d %5d %5d     5 ; CYCJUNC\n"%a for a in angles)
 ins+="[ dihedrals ]\n"+"".join("%5d %5d %5d %5d     9 ; CYCJUNC proper\n"%d for d in dih)
 ins+="[ dihedrals ]\n"+"".join("%5d %5d %5d %5d     2 ; CYCJUNC improper\n"%i for i in impr)
-t=t[:blk.end()]+ins+t[blk.end():]   # insert right after the peptide [atoms] block (merged by grompp)
-open(f,'w').write(t)
-print("JUNC_OK r1=%d rN=%d bonds=%d angles=%d dih=%d impr=%d HN=%s cmap=OMITTED"%(r1,rN,len(bonds),len(angles),len(dih),len(impr),'y' if HN1 else 'n'))
+open(fn,'w').write(tt[:endpos]+ins+tt[endpos:])   # insert right after that moleculetype's [atoms] (grompp merges)
+print("JUNC_OK file=%s r1=%d rN=%d bonds=%d angles=%d dih=%d impr=%d HN=%s cmap=OMITTED"%(os.path.basename(fn),r1,rN,len(bonds),len(angles),len(dih),len(impr),'y' if HN1 else 'n'))
 PYEOF
 }
 
@@ -154,8 +169,9 @@ build_leg(){ # $1=legname(complex|solvent)  $2=input.pdb  $3=withMn(yes/no)
    # 4. pmx gentop -> fill B-states
    $PMXCLI gentop -p htop.top -o fep.top -ff $FF > ${leg}_gentop.out 2>&1 || { echo "${leg}:GENTOP_FAIL $(tail -6 ${leg}_gentop.out | tr '\n' '|')"; exit 14; }
   ) ; r=$?; [ $r -ne 0 ] && { R ${leg}_build FAIL "see ${leg}/*.out (rc=$r)"; return $r; }
-  # fully parameterize the head-to-tail cyclic junction (bond+angles+dih+impropers) on the hybrid fep.top
-  add_cyclic_junction "$W/fep.top" > $W/${leg}_cyc.out 2>&1
+  # fully parameterize the head-to-tail cyclic junction (bond+angles+dih+impropers) in the peptide
+  # moleculetype (inline fep.top for solvent, or the included per-chain itp for complex) -> pass workdir
+  add_cyclic_junction "$W" > $W/${leg}_cyc.out 2>&1
   if grep -q JUNC_OK $W/${leg}_cyc.out; then R ${leg}_cycjunction OK "$(grep JUNC_OK $W/${leg}_cyc.out)"
   else R ${leg}_cycjunction FAIL "$(cat $W/${leg}_cyc.out | tr '\n' '|')"; return 1; fi
   (cd $W
