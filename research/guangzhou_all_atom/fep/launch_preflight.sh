@@ -34,7 +34,10 @@ docker pull \$IMG
 mkdir -p /tmp/work
 aws s3 cp \$PFX/in /tmp/work/in --recursive --region $REGION
 aws s3 cp \$PFX/preflight_in_container.sh /tmp/work/preflight_in_container.sh --region $REGION
-docker run --rm -v /tmp/work:/work -e S3LOG=\$PFX/out/logs.tgz -e AWS_DEFAULT_REGION=$REGION \$IMG bash /work/preflight_in_container.sh > /tmp/work/preflight_stdout.txt 2>&1
+# IMPORTANT: image ENTRYPOINT is ['/bin/bash','-c'] (confirmed via ECR config) -> a bare
+# \`docker run IMG bash /work/x.sh\` runs the literal string "bash" (interactive, EOF, exits 0 silent)
+# and the script NEVER executes (0-byte output). Override entrypoint + run under a login shell:
+docker run --rm --entrypoint /bin/bash -v /tmp/work:/work -e S3LOG=\$PFX/out/logs.tgz -e AWS_DEFAULT_REGION=$REGION \$IMG -lc 'bash /work/preflight_in_container.sh' > /tmp/work/preflight_stdout.txt 2>&1
 aws s3 cp /tmp/work/preflight_stdout.txt \$PFX/out/preflight_stdout.txt --region $REGION
 aws s3 cp /var/log/pf.log \$PFX/out/bootstrap.log --region $REGION
 echo DONE > /tmp/DONE; aws s3 cp /tmp/DONE \$PFX/out/DONE --region $REGION

@@ -4,8 +4,15 @@
 #   CTRL-TRIVEHEXIN_metal.cif, cada_mn.itp, prep_complex.py, mdp/
 # Continue-on-error: each stage prints STAGE_<x>:OK or STAGE_<x>:FAIL <msg>; a SUMMARY prints at the end.
 # No GPU. grompp only (no mdrun). Writes full log to S3 if $S3LOG set.
+# NOTE: the gromacs-cuda:2024-cu12 image ENTRYPOINT is ['/bin/bash','-c'] (confirmed via ECR config).
+# The launcher therefore invokes this with `--entrypoint /bin/bash ... -lc 'bash /work/preflight_in_container.sh'`.
+# CANARY FIRST (before set -u) so a silent/intercepted container can NEVER again masquerade as a clean 0-marker run:
+cd /work 2>/dev/null || true
+echo "PREFLIGHT_START $(date -u 2>/dev/null) host=$(hostname 2>/dev/null) pwd=$(pwd) gmx=$(command -v gmx 2>/dev/null || echo none)"
+# Unconditional diagnostics on ANY exit (early or clean): always ship logs.tgz + an exit-code marker.
+_on_exit(){ ec=$?; echo "PREFLIGHT_EXIT code=$ec"; if [ -n "${S3LOG:-}" ]; then tar czf /tmp/logs.tgz *.out *.top *.gro *.pdb 2>/dev/null; aws s3 cp /tmp/logs.tgz "$S3LOG" >/dev/null 2>&1 && echo "LOGS_UPLOADED $S3LOG" || echo "LOGS_UPLOAD_FAIL"; fi; }
+trap _on_exit EXIT
 set -uo pipefail
-cd /work
 R(){ echo "STAGE_$1:$2  ${3:-}"; }
 
 # ---- A: gmx + python ----
@@ -145,6 +152,4 @@ PYEOF
   else R Frec FAIL "$(grep -iE 'error|fatal|not found|does not match' f_rec.out | head -5)"; fi
 else R F SKIP "no receptor.pdb"; fi
 
-echo "SUMMARY_BEGIN"; grep -h "^STAGE_" <(echo) 2>/dev/null; echo "(stage markers above)"; echo "SUMMARY_END"
-# ship full logs
-if [ -n "${S3LOG:-}" ]; then tar czf logs.tgz *.out *.top *.gro 2>/dev/null; aws s3 cp logs.tgz "$S3LOG" 2>/dev/null && echo "LOGS_UPLOADED $S3LOG"; fi
+echo "PREFLIGHT_STAGES_DONE"   # the EXIT trap above ships logs.tgz + PREFLIGHT_EXIT unconditionally
