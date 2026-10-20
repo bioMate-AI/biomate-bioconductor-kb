@@ -1,0 +1,200 @@
+[
+  {
+    "beat": "Defend the number",
+    "user": "alice",
+    "caption": "A CMC scientist asks WHY a regulatory limit is the number it is \u2014 and what work produced it.",
+    "answer": {
+      "question": "Why is the mutagenic-impurity acceptable intake set at 1.5 \u00b5g/day, and what work produced that number?",
+      "question_type": "rationale",
+      "grade": "moderate",
+      "summary": "rationale question \u00b7 grade=moderate \u00b7 3/4 claims grounded \u00b7 1 boundary note(s)",
+      "claims": [
+        {
+          "text": "What the standard states (the requirement itself): A Threshold of Toxicological Concern (TTC)-based acceptable intake of 1.5 micrograms per person per day for a mutagenic impurity is used as a default to derive a control limit for most pharmaceuticals, taken to be associated with negligible risk. This is the normative acceptance position; it states the limit, not its full derivation.",
+          "grounded": true,
+          "best_tier": "A",
+          "sources": [
+            {
+              "id": "ich-m7-ttc-clause",
+              "tier": "A",
+              "tier_label": "Normative (primary standard/regulation)",
+              "title": "ICH M7 \u2014 mutagenic-impurity acceptable intake (TTC)",
+              "citation": "ICH M7(R2), Assessment and Control of DNA-Reactive (Mutagenic) Impurities",
+              "verified": false,
+              "locator": "https://www.fda.gov/media/170461/download"
+            },
+            {
+              "id": "ich-q3a-thresholds",
+              "tier": "A",
+              "tier_label": "Normative (primary standard/regulation)",
+              "title": "ICH Q3A/Q3B \u2014 impurity reporting / identification / qualification thresholds",
+              "citation": "ICH Q3A(R2) Impurities in New Drug Substances (dose-dependent thresholds)",
+              "verified": false,
+              "locator": "https://www.fda.gov/media/71727/download"
+            }
+          ]
+        },
+        {
+          "text": "Why a limit of this kind exists (documented mechanism): The exact derivation of the cancer TTC is not settled science: peer-reviewed work critiques the statistical derivation of the 1.5 ug/day cancer TTC and recommends structural-class-based limits instead. So 'why exactly 1.5 ug/day' has a grounded derivation AND an active scientific debate \u2014 both must be surfaced, not one asserted as final.",
+          "grounded": true,
+          "best_tier": "B",
+          "sources": [
+            {
+              "id": "lit-ttc-critique",
+              "tier": "B",
+              "tier_label": "Peer-reviewed literature",
+              "title": "Peer-reviewed critique of the cancer-TTC derivation",
+              "citation": "Critique of the derivation of the cancer TTC and recommendations for structural-class-based limits (Regul. Toxicol. Pharmacol.)",
+              "verified": true,
+              "locator": "https://www.sciencedirect.com/science/article/abs/pii/S0273230013001311"
+            }
+          ]
+        },
+        {
+          "text": "How the specific figure was arrived at (process, not a re-derivation): Unlike many pragmatic limits, the TTC figure HAS a documented quantitative derivation: 1.5 ug/day corresponds to a theoretical 10^-5 (1 in 100,000) excess lifetime cancer risk. It is obtained by simple linear extrapolation from the TD50 (dose giving 50% tumour incidence) for the most sensitive species and tumour site, across a carcinogenicity analysis of >1000 chemicals; the TTC concept itself originated as the US FDA 'threshold of regulation' for food-contact substances. The methods are regarded as conservative.",
+          "grounded": true,
+          "best_tier": "A",
+          "sources": [
+            {
+              "id": "ich-m7-ttc-derivation",
+              "tier": "A",
+              "tier_label": "Normative (primary standard/regulation)",
+              "title": "ICH M7 TTC \u2014 documented quantitative derivation",
+              "citation": "ICH M7(R1) Guideline, TTC basis",
+              "verified": false,
+              "locator": "https://database.ich.org/sites/default/files/M7_R1_Guideline.pdf"
+            }
+          ]
+        },
+        {
+          "text": "Your own working note (UNVERIFIED \u2014 not evidence): \u201cDraft thought: our genotoxic impurity is just over 1.5 ug/day at the highest clinical dose \u2014 maybe we can justify a higher limit via a compound-specific risk assessment? Need to confirm \u2014 my own guess.\u201d Treat as a hypothesis to confirm, not a confirmed result.",
+          "grounded": false,
+          "best_tier": "D",
+          "sources": [
+            {
+              "id": "note-alice-cmc",
+              "tier": "D",
+              "tier_label": "Unverified personal note",
+              "title": "Alice's working note (draft, unverified)",
+              "citation": "personal note \u2014 not reviewed",
+              "verified": false,
+              "locator": "note://alice/2026-10-10"
+            }
+          ]
+        }
+      ],
+      "boundaries": [
+        {
+          "question_fragment": "whether the derivation of this figure is settled (it is documented, but actively contested)",
+          "reason": "Unlike a pragmatic limit, this figure HAS a documented quantitative derivation \u2014 but that derivation is actively debated in the peer-reviewed literature (a critique was retrieved above). Treat the figure as the current harmonized position, not as settled science: the derivation and its published critique must be weighed together, not one asserted as final.",
+          "escalate_to": [
+            "The guideline's expert working group (e.g. the ICH EWG) \u2014 confirm the current status of the derivation and any revision",
+            "Weigh the primary derivation against the peer-reviewed critique before relying on the exact value",
+            "Your internal toxicology / regulatory-affairs function for a compound-specific risk assessment where justified"
+          ],
+          "suggested_questions": [
+            "What assumptions in the derivation does the critique challenge, and do they apply to this compound/class?",
+            "Is a compound-specific or structural-class-based limit justifiable instead of the default figure?"
+          ]
+        }
+      ],
+      "isolation": {
+        "requesting_user": "alice",
+        "shared_sources_used": 5,
+        "own_personal_sources_used": 1,
+        "other_tenant_personal_blocked": 1,
+        "unverified_demoted": 4
+      }
+    }
+  },
+  {
+    "beat": "Honest boundary",
+    "user": "alice",
+    "caption": "When the record sets no number, the assistant says so \u2014 it does not invent one.",
+    "answer": {
+      "question": "What hERG limit must a compound pass before it can progress?",
+      "question_type": "normative",
+      "grade": "high",
+      "summary": "normative question \u00b7 grade=high \u00b7 1/2 claims grounded \u00b7 0 boundary note(s)",
+      "claims": [
+        {
+          "text": "The applicable requirement: There is NO single regulatory hERG 'threshold' a compound must pass. Proarrhythmic cardiac risk is assessed under ICH S7B (nonclinical in-vitro IKr/hERG + in-vivo QT) and ICH E14 (clinical QT/QTc), as an integrated risk assessment, not a pass/fail number. The commonly quoted ~10 uM hERG screening value is an empirical DISCOVERY heuristic (a safety-margin rule of thumb versus free Cmax), not a regulatory acceptance limit.",
+          "grounded": true,
+          "best_tier": "A",
+          "sources": [
+            {
+              "id": "herg-no-fixed-limit",
+              "tier": "A",
+              "tier_label": "Normative (primary standard/regulation)",
+              "title": "hERG / cardiac safety \u2014 governed by ICH S7B + E14, no fixed numeric cutoff",
+              "citation": "ICH S7B (nonclinical) and ICH E14 (clinical QT/QTc) / Q&A",
+              "verified": false,
+              "locator": "https://database.ich.org/sites/default/files/E14-S7B_QAs_Step4_2022_0221.pdf"
+            }
+          ]
+        },
+        {
+          "text": "Your own working note (UNVERIFIED \u2014 not evidence): \u201cDraft thought: our genotoxic impurity is just over 1.5 ug/day at the highest clinical dose \u2014 maybe we can justify a higher limit via a compound-specific risk assessment? Need to confirm \u2014 my own guess.\u201d Treat as a hypothesis to confirm, not a confirmed result.",
+          "grounded": false,
+          "best_tier": "D",
+          "sources": [
+            {
+              "id": "note-alice-cmc",
+              "tier": "D",
+              "tier_label": "Unverified personal note",
+              "title": "Alice's working note (draft, unverified)",
+              "citation": "personal note \u2014 not reviewed",
+              "verified": false,
+              "locator": "note://alice/2026-10-10"
+            }
+          ]
+        }
+      ],
+      "boundaries": [],
+      "isolation": {
+        "requesting_user": "alice",
+        "shared_sources_used": 4,
+        "own_personal_sources_used": 1,
+        "other_tenant_personal_blocked": 1,
+        "unverified_demoted": 4
+      }
+    }
+  },
+  {
+    "beat": "Provenance isolation",
+    "user": "carol",
+    "caption": "Carol asks the same thing. A colleague's unverified personal note exists \u2014 it must never leak across users or be cited as authority.",
+    "answer": {
+      "question": "Is anything under 10 \u00b5M hERG automatically fine to progress?",
+      "question_type": "unknown",
+      "grade": "high",
+      "summary": "unknown question \u00b7 grade=high \u00b7 1/1 claims grounded \u00b7 0 boundary note(s)",
+      "claims": [
+        {
+          "text": "There is NO single regulatory hERG 'threshold' a compound must pass. Proarrhythmic cardiac risk is assessed under ICH S7B (nonclinical in-vitro IKr/hERG + in-vivo QT) and ICH E14 (clinical QT/QTc), as an integrated risk assessment, not a pass/fail number. The commonly quoted ~10 uM hERG screening value is an empirical DISCOVERY heuristic (a safety-margin rule of thumb versus free Cmax), not a regulatory acceptance limit.",
+          "grounded": true,
+          "best_tier": "A",
+          "sources": [
+            {
+              "id": "herg-no-fixed-limit",
+              "tier": "A",
+              "tier_label": "Normative (primary standard/regulation)",
+              "title": "hERG / cardiac safety \u2014 governed by ICH S7B + E14, no fixed numeric cutoff",
+              "citation": "ICH S7B (nonclinical) and ICH E14 (clinical QT/QTc) / Q&A",
+              "verified": false,
+              "locator": "https://database.ich.org/sites/default/files/E14-S7B_QAs_Step4_2022_0221.pdf"
+            }
+          ]
+        }
+      ],
+      "boundaries": [],
+      "isolation": {
+        "requesting_user": "carol",
+        "shared_sources_used": 3,
+        "own_personal_sources_used": 0,
+        "other_tenant_personal_blocked": 2,
+        "unverified_demoted": 2
+      }
+    }
+  }
+]
