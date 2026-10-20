@@ -64,11 +64,18 @@ def _boto(svc):
     return boto3.client(svc, region_name=REGION)
 
 
-def _equil_command(in_s3, out_s3):
-    """SHORT equilibration ONLY (em -> NVT -> NPT), both legs, on the staged inputs. NOT production FEP.
-    Validates the fully-parameterized cyclic junction (+ the flagged CMAP omission) holds under dynamics
-    before committing ~2 GPU-days to the ddG. Image ENTRYPOINT is ['/bin/bash','-c'], so the command MUST
-    be a SINGLE script string (a ['bash','-c',...] list would be double-wrapped and run nothing)."""
+def _equil_command(in_s3, out_s3, legs="solvent complex"):
+    """SHORT equilibration ONLY (em -> NVT -> NPT), on the staged inputs. NOT production FEP.
+    Image ENTRYPOINT is ['/bin/bash','-c'] -> the command MUST be a SINGLE script string.
+
+    The COMPLEX leg carries the CaDA Mn (stiff M-D/D-D dummy bonds, k~669440 kJ/mol/nm^2, r0~0.09 nm).
+    Steep EM stalls at machine precision with a large residual force ON THE Mn CENTER (atom 16428, res
+    1080 MN2) and dt=2 fs then SIGSEGVs at NVT step 0 -- the stiff short dummy bonds are unstable at 2 fs.
+    The solvent leg (no Mn) is fine at 2 fs. So the complex leg gets: (1) re-idealize each CaDA octahedron
+    (reset D1..D6 to center +/- 0.09 nm along axes) to zero the bonded strain EM could not relieve, and
+    (2) a SMALL timestep (NVT 0.2 fs, NPT 0.5 fs). Solvent leg keeps the standard 2 fs protocol.
+    (Production note: dt<=0.5 fs makes the 2-GPU-day ddG ~4-8x costlier -> reformulating the CaDA dummies
+    as VIRTUAL SITES, which need no timestep reduction, is the right build-level fix before production.)"""
     # ALL tprs are grompp'd ON the GPU box from the version-independent ionized.gro + fep.top -- the staged
     # em.tpr is NOT used (it was written by the build box's GROMACS 2026/tpx-138, unreadable by this image's
     # GROMACS 2024/tpx-133: "reading tpx file version 138 with version 133 program"). Chain fails loudly:
@@ -79,24 +86,48 @@ def _equil_command(in_s3, out_s3):
         "(command -v aws || pip install -q awscli 2>/dev/null) >/dev/null 2>&1 || true; "
         "mkdir -p /work && cd /work; "
         f"aws s3 cp {in_s3} /work/in --recursive --region {REGION}; RC=0; "
-        "for leg in solvent complex; do "
+        f"for leg in {legs}; do "
         "  echo EQUIL_LEG_START $leg; mkdir -p /work/$leg && cd /work/$leg; "
         "  cp /work/in/$leg/* . 2>/dev/null; cp -r /work/in/ff/charmm36m-mut.ff .; cp /work/in/mdp/*.mdp .; "
         "  sed -i 's#/opt/fepenv/lib/python3.10/site-packages/pmx/data/mutff/##g' fep.top; export GMXLIB=$PWD; "
         "  printf 'nstxout-compressed = 5000\\n' >> nvt.mdp; printf 'nstxout-compressed = 5000\\n' >> npt.mdp; "
-        # em -> nvt -> npt, ALL grompp'd here; && chain + -f checks so any break stops the chain
-        "  gmx grompp -f em.mdp  -c ionized.gro -p fep.top -o em.tpr  -maxwarn 50 > em_grompp.log  2>&1 "
-        "  && gmx mdrun -deffnm em  -ntmpi 1 -nb gpu > em.log  2>&1 && [ -f em.gro ] "
-        "  && gmx grompp -f nvt.mdp -c em.gro  -r em.gro  -p fep.top -o nvt.tpr -maxwarn 50 > nvt_grompp.log 2>&1 "
-        "  && gmx mdrun -deffnm nvt -ntmpi 1 -nb gpu > nvt.log 2>&1 && [ -f nvt.gro ] "
-        "  && gmx grompp -f npt.mdp -c nvt.gro -r nvt.gro -t nvt.cpt -p fep.top -o npt.tpr -maxwarn 50 > npt_grompp.log 2>&1 "
-        "  && gmx mdrun -deffnm npt -ntmpi 1 -nb gpu > npt.log 2>&1 && [ -f npt.gro ] ; STG=$?; "
-        # best-effort acceptance DATA (only meaningful if STG==0; harmless otherwise)
+        "  NVTC=em.gro; "
+        # ---- COMPLEX leg: re-idealize CaDA octahedra + small timestep (CaDA stiff bonds) ----
+        "  if [ \"$leg\" = complex ]; then "
+        "    sed -i 's/^dt .*/dt = 0.0002/; s/^nsteps .*/nsteps = 100000/' nvt.mdp; "   # 20 ps @ 0.2 fs, keeps -DPOSRES
+        "    sed -i 's/^dt .*/dt = 0.0005/; s/^nsteps .*/nsteps = 200000/' npt.mdp; "   # 100 ps @ 0.5 fs
+        "  fi; "
+        # ---- EM (steep) ----
+        "  gmx grompp -f em.mdp -c ionized.gro -p fep.top -o em.tpr -maxwarn 50 > em_grompp.log 2>&1 "
+        "  && gmx mdrun -deffnm em -ntmpi 1 -nb gpu > em.log 2>&1 && [ -f em.gro ] ; STG=$?; "
+        # ---- COMPLEX only: reset each CaDA octahedron (D1..D6 = Mn center +/- 0.09 nm) to zero bonded strain ----
+        "  if [ \"$leg\" = complex ] && [ \"$STG\" -eq 0 ]; then "
+        "    python3 - em.gro em_fixed.gro <<'PYEOF' > reidealize.log 2>&1 && NVTC=em_fixed.gro || STG=97\n"
+        "import sys\n"
+        "L=open(sys.argv[1]).read().splitlines(); n=int(L[1]); body=L[2:2+n]; box=L[2+n:]\n"
+        "cent={}\n"
+        "for ln in body:\n"
+        "    if ln[5:10].strip()=='MN2' and ln[10:15].strip()=='MN': cent[ln[0:5]]=(float(ln[20:28]),float(ln[28:36]),float(ln[36:44]))\n"
+        "off={'D1':(0.09,0,0),'D2':(-0.09,0,0),'D3':(0,0.09,0),'D4':(0,-0.09,0),'D5':(0,0,0.09),'D6':(0,0,-0.09)}\n"
+        "out=[]\n"
+        "for ln in body:\n"
+        "    a=ln[10:15].strip(); r=ln[0:5]\n"
+        "    if ln[5:10].strip()=='MN2' and a in off and r in cent:\n"
+        "        c=cent[r]; d=off[a]; out.append(ln[:20]+'%8.3f%8.3f%8.3f'%(c[0]+d[0],c[1]+d[1],c[2]+d[2])+ln[44:])\n"
+        "    else: out.append(ln)\n"
+        "open(sys.argv[2],'w').write(L[0]+'\\n'+str(n)+'\\n'+'\\n'.join(out)+'\\n'+'\\n'.join(box)+'\\n')\n"
+        "print('REIDEALIZE_OK centers=%d'%len(cent))\n"
+        "PYEOF\n"
+        "  fi; "
+        # ---- NVT -> NPT ----
+        "  [ \"$STG\" -eq 0 ] && { gmx grompp -f nvt.mdp -c $NVTC -r $NVTC -p fep.top -o nvt.tpr -maxwarn 50 > nvt_grompp.log 2>&1 "
+        "    && gmx mdrun -deffnm nvt -ntmpi 1 -nb gpu > nvt.log 2>&1 && [ -f nvt.gro ] "
+        "    && gmx grompp -f npt.mdp -c nvt.gro -r nvt.gro -t nvt.cpt -p fep.top -o npt.tpr -maxwarn 50 > npt_grompp.log 2>&1 "
+        "    && gmx mdrun -deffnm npt -ntmpi 1 -nb gpu > npt.log 2>&1 && [ -f npt.gro ] ; STG=$?; }; "
         "  printf 'Potential\\nTemperature\\nPressure\\nDensity\\n' | gmx energy -f npt.edr -o ${leg}_ener.xvg > ${leg}_energy.log 2>&1 || true; "
         "  echo \"$leg ENERGY:\"; grep -iE '^(Potential|Temperature|Pressure|Density)' ${leg}_energy.log | head; "
-        "  LW=$(grep -i 'LINCS WARNING' em.log nvt.log npt.log 2>/dev/null | wc -l); FA=$(grep -i 'Fatal error' *.log 2>/dev/null | wc -l); "
+        "  LW=$(grep -i 'LINCS WARNING' *.log 2>/dev/null | wc -l); FA=$(grep -i 'Fatal error' *.log 2>/dev/null | wc -l); "
         "  echo \"$leg STABILITY stage_rc=$STG LINCS_WARN=$LW FATAL=$FA npt_gro=$([ -f npt.gro ] && echo yes || echo no)\"; "
-        # ALWAYS upload logs (success or failure) for diagnosis
         f"  aws s3 cp /work/$leg {out_s3}$leg/ --recursive --region {REGION} --exclude '*.trr' --exclude 'charmm36m-mut.ff/*' --exclude '*.itp' --exclude 'ionized.gro'; "
         "  if [ \"$STG\" -eq 0 ] && [ -f npt.gro ] && [ \"$LW\" -eq 0 ] && [ \"$FA\" -eq 0 ]; then echo \"$leg:EQUIL_OK\"; else echo \"$leg:EQUIL_FAIL\"; RC=1; fi; "
         "  cd /work; done; "
@@ -105,15 +136,15 @@ def _equil_command(in_s3, out_s3):
     return [s]
 
 
-def dispatch_equilibration(run_id, dry_run=True):
-    """Dispatch the SHORT equilibration job (both legs) to the GROMACS GPU-spot job-def. Requires the
-    FEP_INPUTS_READY sentinel; gated by EQUIL_CMD_READY. Production ddG stays separately guarded."""
+def dispatch_equilibration(run_id, dry_run=True, legs="solvent complex"):
+    """Dispatch the SHORT equilibration job to the GROMACS GPU-spot job-def. Requires the FEP_INPUTS_READY
+    sentinel; gated by EQUIL_CMD_READY. `legs` selects which legs to run. Production ddG stays guarded."""
     base = f"s3://{BUCKET}/{PREFIX}/{run_id}"
     in_s3, out_s3 = f"{base}/in/", f"{base}/equil_out/"
     payload = dict(
         jobName=f"equil-{run_id}".replace("_", "-")[:120],
         jobQueue=QUEUE, jobDefinition=JOBDEF,
-        containerOverrides=dict(command=_equil_command(in_s3, out_s3)),
+        containerOverrides=dict(command=_equil_command(in_s3, out_s3, legs=legs)),
         tags={"pipeline": "cyclic-peptide", "stage": "equilibration", "target": "avb6",
               "edge": CONTROL_EDGE["edge_id"]},
     )
@@ -235,8 +266,9 @@ def dispatch_control_edge(run_id=None, dry_run=True):
 if __name__ == "__main__":
     submit = "--submit" in sys.argv
     rid = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--run-id=")), None)
-    if "--equil" in sys.argv:          # SHORT equilibration (em->nvt->npt both legs); NOT production ddG
-        out = dispatch_equilibration(run_id=rid, dry_run=not submit)
+    if "--equil" in sys.argv:          # SHORT equilibration (em->nvt->npt); NOT production ddG
+        legs = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--legs=")), "solvent complex").replace(",", " ")
+        out = dispatch_equilibration(run_id=rid, dry_run=not submit, legs=legs)
     else:                              # FULL per-lambda production ddG (stays guarded by MDRUN_CMD_READY)
         out = dispatch_control_edge(run_id=rid, dry_run=not submit)
     print(json.dumps(out, indent=2, default=str))
