@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { FileContentView } from "../file-content-view"
 
 const LIMIT = 256 * 1024
 const TEXT = /\.(json|ya?ml|txt|md|csv|tsv|log|xml|html?|py|r|sh|nf|config|toml|ini|fa|fasta|pdb|smi|smiles|vcf)$/i
@@ -38,9 +39,8 @@ export function DatasetFilePreview({ projectId, fileId, name }: {
         }
         text += decoder.decode()
       } finally { reader.releaseLock() }
-      if (/\.json$/i.test(name) && !truncated) {
-        try { text = JSON.stringify(JSON.parse(text), null, 2) } catch { /* Show invalid JSON verbatim. */ }
-      }
+      // JSON / CSV / TSV / STAR and other formats are rendered structurally by
+      // FileContentView (shared with the run-output preview) — pass raw text.
       if (!abort.signal.aborted) setState({ text, truncated })
     })().catch(error => { if (!abort.signal.aborted) setState({ error: error.message }) })
     return () => abort.abort()
@@ -50,7 +50,7 @@ export function DatasetFilePreview({ projectId, fileId, name }: {
   )
   if (state.error) return <p role="alert" className="text-destructive">{state.error}</p>
   if (state.text !== undefined) return <div className="min-w-0 space-y-2" data-testid="dataset-text-preview">
-    <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-words rounded-md border bg-muted/30 p-3 text-xs">{state.text || "This file is empty."}</pre>
+    {state.text ? <FileContentView name={name} text={state.text} /> : <p className="text-muted-foreground">This file is empty.</p>}
     {state.truncated && <p className="text-muted-foreground">Showing the first 256 KiB. Download for the complete file.</p>}
   </div>
   if (state.url && IMAGE.test(name)) return <img src={state.url} alt={name} className="max-h-[60vh] max-w-full object-contain" />

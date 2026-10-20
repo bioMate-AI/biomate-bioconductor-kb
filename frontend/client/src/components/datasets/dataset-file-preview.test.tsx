@@ -12,10 +12,14 @@ function mockFile(text: string) {
   vi.stubGlobal("fetch", fetch)
   return { fetch, cancel }
 }
-it("renders JSON content through the project permission endpoint", async () => {
+it("renders JSON content as a structured key/value view through the project permission endpoint", async () => {
   const { fetch } = mockFile('{"sample":"A","value":2}')
   render(<DatasetFilePreview projectId="p" fileId="f" name="data.json" />)
-  expect(await screen.findByTestId("dataset-text-preview")).toHaveTextContent('"sample": "A"')
+  // Shared FileContentView → structured JSON table (keys + values), not a raw dump.
+  const view = await screen.findByTestId("json-preview")
+  expect(view).toHaveTextContent("sample")
+  expect(view).toHaveTextContent("A")
+  expect(view).toHaveTextContent("value")
   expect(fetch.mock.calls[0][0]).toBe("/api/projects/p/files/f/url")
 })
 it("keeps YAML and HTML inert, including malformed content", async () => {
