@@ -17,11 +17,14 @@ set -o pipefail
 cd /work 2>/dev/null || { mkdir -p /work && cd /work; }
 echo "FEPBUILD_START $(date -u 2>/dev/null) host=$(hostname 2>/dev/null) pwd=$(pwd)"
 _on_exit(){ ec=$?; echo "FEPBUILD_EXIT code=$ec";
-  if [ -n "${DEST:-}" ]; then tar czf /tmp/fepbuild_logs.tgz *.out *.top *.gro *.itp *.mdp *.tpr 2>/dev/null;
+  # RECURSIVE tar from /work so per-leg solvent/*.out + complex/*.out (the real pdb2gmx/grompp errors)
+  # are captured; exclude the big pulled inputs (in/) and any tarball.
+  if [ -n "${DEST:-}" ]; then (cd /work 2>/dev/null && tar czf /tmp/fepbuild_logs.tgz --exclude='./in' --exclude='*.tgz' . 2>/dev/null);
     aws s3 cp /tmp/fepbuild_logs.tgz "${DEST}/fepbuild_logs.tgz" --region "${REGION:-us-west-2}" >/dev/null 2>&1 \
       && echo "LOGS_UPLOADED ${DEST}/fepbuild_logs.tgz" || echo "LOGS_UPLOAD_FAIL"; fi; }
 trap _on_exit EXIT
 R(){ echo "STAGE_$1:$2  ${3:-}"; }
+GFATAL(){ grep -A8 -iE 'fatal error' "$1" 2>/dev/null | head -10 | tr '\n' '|'; }   # full GROMACS fatal block on one line
 
 # ---- env ----
 eval "$(/opt/micromamba shell hook -s bash 2>/dev/null)" 2>/dev/null || true
@@ -94,17 +97,18 @@ PYEOF
 build_leg(){ # $1=legname(complex|solvent)  $2=input.pdb  $3=withMn(yes/no)
   leg=$1; inp=$2; withmn=$3; W=$leg; mkdir -p $W; cp "$inp" $W/start.pdb; (cd $W
    export GMXLIB="$MUTFF"
-   # 1. pdb2gmx (reduced CYS, no -ss; charmm36m-mut adds H)
-   gmx pdb2gmx -f start.pdb -o conf.pdb -p topol.top -i posre.itp -ff $FF -water tip3p -ignh < /dev/null > ${leg}_pdb2gmx.out 2>&1 || { echo "${leg}:PDB2GMX_FAIL"; grep -iE 'error|fatal' ${leg}_pdb2gmx.out|head -3; exit 11; }
-   # 2. pmx mutate -> A->B hybrid structure. Use the pdb2gmx-hydrogenated structure (pmx needs backbone
-   #    HN/HA) and --ref start.pdb (original chains): pmx maps pdb2gmx's re-chained/renumbered output back
-   #    to the chained reference, so "P 1 PHE / P 7 PHE" targets ONLY the peptide (not receptor res 1/7).
-   gmx pdb2gmx -f start.pdb -o withH.pdb -p _t.top -i _p.itp -ff $FF -water tip3p -ignh < /dev/null > _h.out 2>&1 || true
-   $PMXCLI mutate -f withH.pdb -o hybrid.pdb -ff $FF --script ../muts.txt --ref start.pdb > ${leg}_mutate.out 2>&1 || { echo "${leg}:PMX_MUTATE_FAIL"; tail -6 ${leg}_mutate.out; exit 12; }
-   # 3. pdb2gmx the hybrid structure -> hybrid topology
-   gmx pdb2gmx -f hybrid.pdb -o hconf.pdb -p htop.top -i hposre.itp -ff $FF -water tip3p -ignh < /dev/null > ${leg}_hpdb2gmx.out 2>&1 || { echo "${leg}:HYBRID_PDB2GMX_FAIL"; grep -iE 'error|fatal' ${leg}_hpdb2gmx.out|head -3; exit 13; }
+   # canonical pmx mutation-FEP order: pdb2gmx WT (hydrogenate) -> pmx mutate -> pdb2gmx hybrid (NO -ignh:
+   # keep pmx's placed hybrid-residue atoms; -ignh would strip+regenerate H from an hdb that does not know
+   # the hybrid residue -> the HYBRID_PDB2GMX_FAIL fatal) -> pmx gentop (fill B-states).
+   # 1. pdb2gmx WT -> hydrogenated conf.pdb + topol.top  (reduced CYS, no -ss; -ignh ok: input pose lacks H)
+   gmx pdb2gmx -f start.pdb -o conf.pdb -p topol.top -i posre.itp -ff $FF -water tip3p -ignh < /dev/null > ${leg}_pdb2gmx.out 2>&1 || { echo "${leg}:PDB2GMX_FAIL $(GFATAL ${leg}_pdb2gmx.out)"; exit 11; }
+   # 2. pmx mutate on the hydrogenated conf.pdb; --ref start.pdb maps pdb2gmx re-chain/renumber back to the
+   #    original chains so "P 1 PHE / P 7 PHE" targets ONLY the peptide (not receptor res 1/7).
+   $PMXCLI mutate -f conf.pdb -o hybrid.pdb -ff $FF --script ../muts.txt --ref start.pdb > ${leg}_mutate.out 2>&1 || { echo "${leg}:PMX_MUTATE_FAIL $(tail -6 ${leg}_mutate.out | tr '\n' '|')"; exit 12; }
+   # 3. pdb2gmx the hybrid structure -> hybrid topology (NO -ignh)
+   gmx pdb2gmx -f hybrid.pdb -o hconf.pdb -p htop.top -i hposre.itp -ff $FF -water tip3p < /dev/null > ${leg}_hpdb2gmx.out 2>&1 || { echo "${leg}:HYBRID_PDB2GMX_FAIL $(GFATAL ${leg}_hpdb2gmx.out)"; exit 13; }
    # 4. pmx gentop -> fill B-states
-   $PMXCLI gentop -p htop.top -o fep.top -ff $FF > ${leg}_gentop.out 2>&1 || { echo "${leg}:GENTOP_FAIL"; tail -6 ${leg}_gentop.out; exit 14; }
+   $PMXCLI gentop -p htop.top -o fep.top -ff $FF > ${leg}_gentop.out 2>&1 || { echo "${leg}:GENTOP_FAIL $(tail -6 ${leg}_gentop.out | tr '\n' '|')"; exit 14; }
   ) ; r=$?; [ $r -ne 0 ] && { R ${leg}_build FAIL "see ${leg}/*.out (rc=$r)"; return $r; }
   # cyclization on the hybrid fep.top
   add_cyclization "$W/fep.top" > $W/${leg}_cyc.out 2>&1
@@ -127,7 +131,7 @@ open('fep.top','w').write(s); print('MN_TOP_OK')
 PYEOF
    fi
    # box + solvate + ions
-   gmx editconf -f $CONF -o box.gro -c -d 1.2 -bt dodecahedron > ${leg}_editconf.out 2>&1 || { echo EDITCONF_FAIL; exit 22; }
+   gmx editconf -f $CONF -o box.gro -c -d 1.2 -bt dodecahedron > ${leg}_editconf.out 2>&1 || { echo "EDITCONF_FAIL $(GFATAL ${leg}_editconf.out)"; exit 22; }
    if [ "$withmn" = yes ]; then
      # append the 21 CaDA-Mn atoms to the (protein+peptide) box gro BEFORE solvation
      python3 - <<'PYEOF' > ${leg}_mngro.out 2>&1 || { echo MN_GRO_FAIL; exit 23; }
@@ -142,12 +146,12 @@ open('box.gro','w').write(g[0]+'\n%d\n'%(n+len(mn))+'\n'.join(body+mn)+'\n'+box+
 PYEOF
      cp mn_cada.pdb . 2>/dev/null
    fi
-   gmx solvate -cp box.gro -cs spc216.gro -p fep.top -o solv.gro > ${leg}_solvate.out 2>&1 || { echo SOLVATE_FAIL; tail -3 ${leg}_solvate.out; exit 24; }
+   gmx solvate -cp box.gro -cs spc216.gro -p fep.top -o solv.gro > ${leg}_solvate.out 2>&1 || { echo "SOLVATE_FAIL $(GFATAL ${leg}_solvate.out)"; exit 24; }
    # ions: grompp a dummy em then genion
-   gmx grompp -f ../in/mdp/em.mdp -c solv.gro -p fep.top -o ions.tpr -maxwarn 20 > ${leg}_ionsgrompp.out 2>&1 || { echo IONS_GROMPP_FAIL; grep -iE 'error|fatal' ${leg}_ionsgrompp.out|head -5; exit 25; }
-   echo SOL | gmx genion -s ions.tpr -o ionized.gro -p fep.top -pname NA -nname CL -neutral -conc 0.15 > ${leg}_genion.out 2>&1 || { echo GENION_FAIL; tail -4 ${leg}_genion.out; exit 26; }
+   gmx grompp -f ../in/mdp/em.mdp -c solv.gro -p fep.top -o ions.tpr -maxwarn 20 > ${leg}_ionsgrompp.out 2>&1 || { echo "IONS_GROMPP_FAIL $(GFATAL ${leg}_ionsgrompp.out)"; exit 25; }
+   echo SOL | gmx genion -s ions.tpr -o ionized.gro -p fep.top -pname NA -nname CL -neutral -conc 0.15 > ${leg}_genion.out 2>&1 || { echo "GENION_FAIL $(GFATAL ${leg}_genion.out)"; exit 26; }
    # readiness proof: grompp em on the final ionized system
-   gmx grompp -f ../in/mdp/em.mdp -c ionized.gro -p fep.top -o em.tpr -maxwarn 20 > ${leg}_emgrompp.out 2>&1 || { echo EM_GROMPP_FAIL; grep -iE 'error|fatal' ${leg}_emgrompp.out|head -6; exit 27; }
+   gmx grompp -f ../in/mdp/em.mdp -c ionized.gro -p fep.top -o em.tpr -maxwarn 20 > ${leg}_emgrompp.out 2>&1 || { echo "EM_GROMPP_FAIL $(GFATAL ${leg}_emgrompp.out)"; exit 27; }
    echo "${leg}_EM_TPR_OK atoms=$(gmx dump -s em.tpr 2>/dev/null | grep -m1 'natoms' | tr -dc '0-9')"
   ) ; r=$?
   if [ $r -eq 0 ] && [ -f $W/em.tpr ]; then R ${leg}_system OK "$W/em.tpr built (hybrid+solvate+0.15M)"; return 0
