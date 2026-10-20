@@ -127,4 +127,9 @@ def select_verifier(ground_truth: Optional[Any]) -> Verifier:
             return _PARAMS
         if ground_truth.get("classes") is not None:
             return _CLASS
+        if ground_truth.get("expected") is not None:
+            # a user-correction task (research/feedback.py): the corrected value
+            # is ground truth. Lazy import avoids a cycle.
+            from .feedback import CorrectionVerifier
+            return CorrectionVerifier()
     return _TRUST
