@@ -34,9 +34,14 @@ test("ADMET prerun panel: no phantom CN1C row, all 3 SMILES present", async ({ p
   await loginAsFixture(page);
 
   await page.goto(BASE_URL + "/", { waitUntil: "domcontentloaded", timeout: 60_000 });
+  await page.getByTestId("chat-input").waitFor({ state: "visible", timeout: 45_000 });
+  // Start a CLEAN chat — the shared fixture has a cluttered history and "/" can
+  // rehydrate a prior workflow card. A new session guarantees a fresh generation.
+  const newChat = page.getByTestId("button-new-chat");
+  if ((await newChat.count().catch(() => 0)) > 0) { await newChat.first().click({ timeout: 8000 }).catch(() => {}); await page.waitForTimeout(1500); }
   const input = page.getByTestId("chat-input");
   await input.waitFor({ state: "visible", timeout: 45_000 });
-  await page.waitForTimeout(2500);
+  await page.waitForTimeout(2000);
   await input.click();
   await input.fill(QUERY);
 

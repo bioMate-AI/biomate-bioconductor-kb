@@ -61,6 +61,27 @@ prerun-only, no Batch spend): if the panel still shows a truncated / fragmented
 SMILES value after the row fix, enable schema-grounded extraction as the general
 value fix rather than adding SMILES-specific parsing rules.
 
+## Empirical verification on dev (2026-10-20, post-deploy)
+Direct probes against `https://dev-public.biomate.ai` after the fix deployed:
+
+- `POST /api/ai_assistant/generate_workflow` (no inline extraction): `required_params:[]`,
+  `optional_params:[smiles_list, ADMET_model_type, admet_shard_size]`, **no CN1C** — the
+  backend never creates CN1C.
+- `POST /api/chat/stream` (the real chat path, which DOES run inline extraction),
+  **4 distinct fresh queries** (varied SMILES order + phrasing): every one returned
+  `required_params:[]`, a single `inlineParameters:{smiles_list: "<all 3 SMILES>"}`
+  (rationale "Extracted list of SMILES strings provided explicitly in the query"), and
+  **zero `"CN1C"` keys**. Stream completed (`event: done`).
+
+Conclusion: fresh generations are clean. `normalizeAdmetSmiles` folds any mis-split
+fragment's SMILES value into `smiles_list` and never keeps the fragment key, so the
+grounded `inlineParameters` the viewer reads carry only schema params. The CN1C row seen
+in the earlier Playwright capture was a **stale-session rehydration** — the shared fixture
+(`lifeifei163361@163.com`) has a cluttered history and `/` reloaded a prior workflow card.
+The verify harness (`e2e/admet-prerun-verify.e2e.ts`) now starts a clean chat
+(`button-new-chat`) before sending, matching the demo-capture requirement to use a clean
+session.
+
 ## Related
 - Bug B (ADMET run marked FAILED on Graphviz DAG render) — fixed via `dag.html`
   across 277 nextflow.config files (commit `66c0f669f`), workflows sync landed.
