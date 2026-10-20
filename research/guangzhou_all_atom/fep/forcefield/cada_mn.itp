@@ -26,8 +26,13 @@
 ;   Rmin = 1.904 A ; sigma = 1.904 / 2^(1/6) = 1.904/1.122462 = 1.69627 A = 0.169627 nm
 ;   epsilon = 12.83 * 4.184 = 53.68072 kJ/mol
   MNC    25     36.94000   0.00000   A     1.69627e-01   5.368072e+01
-; dummy: Duarte mass 3.00, B_i=0 => epsilon = 0 (point charge, negligible vdW); sigma nominal
-  MND     0      3.00000   0.00000   A     1.00000e-02   0.000000e+00
+; dummy: Duarte mass 3.00, B_i=0 => epsilon = 0 (point charge, negligible vdW); sigma nominal.
+; at.num is a COSMETIC label GROMACS ignores for energetics; it is set NONZERO (1) only so that
+; ParmEd/OpenMM parsers (used elsewhere in this repo) do not misclassify the dummy as a massless
+; virtual site and refuse its bonds. The dummy is a REAL mass-bearing, bonded, charged particle
+; (CaDA convention), NOT a GROMACS [virtual_sites*] entry. Verified: with at.num=1 ParmEd parses
+; the full bonded network and OpenMM builds a valid System (fep/validate_cada_itp.py).
+  MND     1      3.00000   0.00000   A     1.00000e-02   0.000000e+00
 
 [ moleculetype ]
 ; name   nrexcl
@@ -70,12 +75,13 @@
 
 [ angles ]
 ; Kth=250 kcal/mol/rad^2 -> k=250*8.368=2092.0 kJ/mol/rad^2 (func 1 harmonic; th0 in degrees)
-; D-M-D trans (opposite dummies) = 180 deg ; D-M-D cis (adjacent) = 90 deg
-; opposite pairs here: (2,7),(3,6)? -- NOTE pairing below assumes D1..D6 placed as
-;   +x -x +y -y +z -z => opposite = (2,3)?  THE OCTAHEDRON PAIRING MUST BE FIXED BY THE
-;   ACTUAL BUILT COORDINATES. Left explicit + flagged: the trans/cis assignment below is
-;   a PLACEHOLDER pattern (adjacent=90, opposite=180) that the build step must reconcile
-;   against the generated Mn dummy coordinates before grompp. DO NOT submit until fixed.
+; D-M-D trans (opposite dummies) = 180 deg ; D-M-D cis (adjacent) = 90 deg.
+; PAIRING RESOLVED (fep/validate_cada_itp.py): the dummy build convention is
+;   D1..D6 (atoms 2..7) = +x,-x,+y,-y,+z,-z. Geometry proof confirms the three TRANS (180 deg)
+;   pairs are exactly (2,3),(4,5),(6,7) and the twelve CIS (90 deg) pairs are the remaining
+;   X-M-X combinations -- which match the [bonds] D-D list (adjacent D-D = 0.9*sqrt2 = 1.273 A;
+;   opposite D-D = 1.800 A, intentionally NOT bonded). The coordinate builder MUST emit dummies
+;   in this +x,-x,+y,-y,+z,-z order for the pairing to hold.
 ; --- trans (180): the three opposite pairs through the center
    2   1   3   1   180.0   2092.0
    4   1   5   1   180.0   2092.0

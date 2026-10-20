@@ -62,6 +62,34 @@ validation step.
 4. Run **only** the control edge; report ΔΔG + convergence/replicate error honestly. Candidate-ladder
    edges do **not** run until the control edge is recovered.
 
+## Preflight outcome (2026-10-19, CPU-only, no spend)
+Ran the CPU validation step. No GROMACS/docker locally; used the repo's `mmgbsa_mn` env (ParmEd + OpenMM)
+for a grompp-equivalent topology check. Both flagged unknowns are now **RESOLVED**:
+
+- **(a) CaDA `.itp` conversions + angle pairing — VALIDATED.** `fep/validate_cada_itp.py` →
+  **`GROMPP_EQUIV_OK`**: (A) a numpy geometry proof confirms the dummy convention +x,−x,+y,−y,+z,−z gives
+  TRANS pairs exactly (2,3),(4,5),(6,7) and the twelve CIS pairs matching the `[bonds]` D–D list (adjacent
+  D–D = 1.273 Å bonded; opposite = 1.800 Å not bonded); (B) ParmEd parses the exact shipped `.itp` and
+  OpenMM builds a valid System — 7 atoms, 18 bonds, 15 angles, angle θ₀ histogram {180°:3, 90°:12}, **net
+  charge +2.000**, total mass 54.94 = Mn, center/dummy LJ+charges as sourced. The unit conversions
+  (669440 kJ/mol/nm², 2092 kJ/mol/rad², σ=0.169627 nm, ε=53.68 kJ/mol) are confirmed.
+  - **One real fix committed:** the dummy `at.num` was `0`, which ParmEd/OpenMM (used elsewhere in this
+    repo) misclassify as a massless virtual site and refuse to bond. Set to `1` (cosmetic; GROMACS ignores
+    the column); the dummy is a real mass-bearing bonded particle, not a vsite. CaDA params stay sourced.
+- **(b) cyclization — RESOLVED structurally.** Both control peptides are **head-to-tail cyclic** (N(res1)–
+  C(res9) = 1.30 / 1.32 Å, a covalent amide; zero cysteines → no disulfide). The cyclization is a single
+  standard backbone amide bond across the res9→res1 junction, added in `topol.top` with uncharged termini.
+  The Y1F+Y7F perturbation is a textbook pmx mutation between two standard residues.
+
+**What literal `gmx grompp` on the FULL assembled complex still needs (container step, not local):** the
+CHARMM36m cyclic-peptide topology (pdb2gmx + the one cyclization bond) merged with the validated
+`cada_mn.itp` + solvation. This is now standard assembly over **validated** components (the novel/risky
+CaDA metal topology is the part that is validated here), and is confirmed by the in-container
+`GROMPP_PREFLIGHT` gate in `fep_batch.py` at submit time (it fails fast on CPU before any GPU). pmx
+availability in `gromacs-cuda:2024-cu12` is the last open item; the command `pip`-installs it if absent.
+
 ## Status
-Wired + infra-validated + dry-run clean. **Not submitted.** Gate = local topology validation (above),
-**not** spot capacity. Ground truth remains the wet-lab assay.
+Wired + infra-validated + dry-run clean + **CaDA `.itp` GROMPP-equivalent validated (local, no spend)** +
+both flagged unknowns resolved + one fix committed. **Not submitted** (no GPU, no Batch this turn, per
+instruction). The remaining full-complex `gmx grompp` is low-risk standard assembly, gated by the
+in-container preflight at submit. Ground truth remains the wet-lab assay.
