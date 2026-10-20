@@ -32,9 +32,11 @@ class TargetEvidence:
     per_channel_z: Dict[str, float] = field(default_factory=dict)
     fired_channels: List[str] = field(default_factory=list)
     n_fired: int = 0
-    tier: str = "none"            # "corroborated" (AND, >=2) | "nominated" (OR, >=1) | "none"
+    tier: str = "none"            # "corroborated" (AND, >=2) | "nominated" (OR, >=1) | "none" | "vetoed"
     max_z: float = 0.0
     mean_fired_z: float = 0.0
+    conflict: bool = False        # channels disagree (one strong, others present-but-weak)
+    note: str = ""                # human-readable conflict/veto note
 
 
 @dataclass

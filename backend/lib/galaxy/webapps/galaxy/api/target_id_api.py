@@ -42,7 +42,7 @@ async def identify_targets(request: IdentifyTargetsRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail="query required")
 
     from galaxy.ai.target_id import (
-        EvidenceGateArbiter, TargetIDOrchestrator, default_channels,
+        HarmonicSumArbiter, TargetIDOrchestrator, default_channels,
     )
 
     llm = None
@@ -68,7 +68,7 @@ async def identify_targets(request: IdentifyTargetsRequest) -> Dict[str, Any]:
 
     orch = TargetIDOrchestrator(
         channels,
-        arbiter=EvidenceGateArbiter(z_thresh=request.z_thresh),
+        arbiter=HarmonicSumArbiter(),  # adopted open-source scheme (OT harmonic sum + reliability weights)
         llm_client=llm,
         max_concurrent=request.max_concurrent,
     )

@@ -62,6 +62,100 @@ class EvidenceGateArbiter(Arbiter):
         return out
 
 
+# Per-source reliability weights (general priors, NOT eval-tuned) — the Open Targets precedent of
+# down-weighting noisy sources (text-mining 0.2, etc.). Curated genetics/essentiality = 1.0; network/
+# pathway guilt-by-association = 0.5; LLM-reasoned / literature = 0.2; unknown (e.g. a frozen FM on
+# probation) = 0.7. Override per-call via channel_weights. See
+# benchmarks/evidence_ranking_refs/EVIDENCE_RANKING_SCHEMES.md.
+DEFAULT_RELIABILITY = {
+    "genetics_ot": 1.0, "table": 1.0, "depmap": 1.0, "clin": 1.0,
+    "ppi_string": 0.5, "pathway_comembership": 0.5,
+    "llm_reasoned": 0.2,
+}
+_DEFAULT_UNKNOWN_WEIGHT = 0.7
+
+
+def _to_unit(scores):
+    """Map a channel's raw scores to [0,1]. Already-[0,1] scores (OpenTargets, STRING, LLM) pass
+    through; others (pathway counts, z-scores) are min-maxed. Returns {target: s in [0,1]}."""
+    import numpy as np
+    if not scores:
+        return {}
+    vals = np.asarray(list(scores.values()), dtype=float)
+    lo, hi = float(vals.min()), float(vals.max())
+    if 0.0 <= lo and hi <= 1.0:
+        return {k: float(v) for k, v in scores.items()}        # already calibrated — consume as-is
+    rng = hi - lo
+    if rng < 1e-12:
+        v = 1.0 if hi > 0 else 0.0
+        return {k: v for k in scores}
+    return {k: (float(v) - lo) / rng for k, v in scores.items()}
+
+
+class HarmonicSumArbiter(Arbiter):
+    """Open Targets weighted-harmonic-sum aggregation + convergence/conflict flag + veto hook.
+
+    THE adopted open-source scheme (replaces the binary gate as default; see
+    benchmarks/evidence_ranking_refs/EVIDENCE_RANKING_SCHEMES.md):
+      - consume each channel's [0,1] score (don't recompute; min-max only non-[0,1] channels),
+        multiply by a per-source RELIABILITY WEIGHT (OT precedent; noisy sources down-weighted),
+      - per target: sort the weighted scores desc and take Sum(s_i / i^2), normalised by Sum(1/i^2)
+        over the channels present -> [0,1]. Monotonic: a channel strong in one source is never
+        dragged BELOW its own evidence by a weak/absent source (the averaging-drag the gate hit),
+      - convergence TIER: >=2 channels strong -> corroborated; 1 -> nominated; 0 -> none,
+      - CONFLICT flag: exactly one strong channel while others are present-but-weak (disagreement),
+      - VETO hook: optional callable(target, context)->bool to hard-cap a target (Pharos-TDL-style
+        lexicographic safety/essentiality liability) regardless of score.
+    """
+
+    name = "harmonic_sum"
+
+    def __init__(self, channel_weights=None, strong_thresh: float = 0.5, veto=None):
+        self.channel_weights = dict(DEFAULT_RELIABILITY)
+        if channel_weights:
+            self.channel_weights.update(channel_weights)
+        self.strong_thresh = strong_thresh
+        self.veto = veto
+
+    def _weight(self, channel: str) -> float:
+        return float(self.channel_weights.get(channel, _DEFAULT_UNKNOWN_WEIGHT))
+
+    def rank(self, channel_results: List[ChannelResult], context: Dict[str, Any]) -> List[TargetScore]:
+        from .types import TargetEvidence
+        ok = [cr for cr in channel_results if cr.ok]
+        unit = {cr.channel: _to_unit(cr.scores) for cr in ok}
+        universe = sorted({t for cr in ok for t in cr.scores})
+        rows = []
+        for t in universe:
+            per = {cr.channel: unit[cr.channel].get(t, 0.0) for cr in ok}          # [0,1] per channel
+            weighted = sorted(((ch, self._weight(ch) * s, s) for ch, s in per.items()), key=lambda x: -x[1])
+            num = sum(w / ((i + 1) ** 2) for i, (_, w, _) in enumerate(weighted))
+            den = sum(1.0 / ((i + 1) ** 2) for i in range(len(weighted))) or 1.0
+            score = num / den
+            strong = [ch for ch, _, s in weighted if s >= self.strong_thresh]
+            present = [ch for ch, _, s in weighted if s > 0]
+            tier = "corroborated" if len(strong) >= 2 else ("nominated" if len(strong) == 1 else "none")
+            conflict = bool(len(strong) == 1 and len(present) > 1)
+            ev = TargetEvidence(
+                target=t, per_channel_z={ch: round(s, 4) for ch, s in per.items() if s > 0},
+                fired_channels=strong, n_fired=len(strong), tier=tier,
+                max_z=max(per.values()) if per else 0.0,
+                mean_fired_z=(sum(per[c] for c in strong) / len(strong) if strong else 0.0),
+                conflict=conflict,
+                note=("disagreement: strong in %s only" % strong[0]) if conflict else "",
+            )
+            if self.veto is not None:
+                try:
+                    if self.veto(t, context or {}):
+                        ev.tier = "vetoed"; ev.note = "hard veto (safety/essentiality liability)"; score = 0.0
+                except Exception:
+                    pass
+            rows.append((t, float(score), ev))
+        rows.sort(key=lambda r: -r[1])
+        return [TargetScore(target=t, score=s, tier=ev.tier, rank=i + 1, evidence=ev)
+                for i, (t, s, ev) in enumerate(rows)]
+
+
 class TabularArbiter(Arbiter):
     """Learned tabular ranker over the per-channel-z feature matrix.
 

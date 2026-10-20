@@ -17,7 +17,7 @@ PASS gate P1 (pre-registered): system AUROC > every single channel AND > the nul
 """
 from typing import Any, Dict, List, Optional, Sequence
 
-from .arbiter import EvidenceGateArbiter, _collect_per_channel_z
+from .arbiter import EvidenceGateArbiter, HarmonicSumArbiter, _collect_per_channel_z
 from .types import ChannelResult
 
 
@@ -68,15 +68,23 @@ def run_demonstration(channel_results: List[ChannelResult], gold: Sequence[str],
     chan_universe = {t for cr in ok for t in cr.scores}
     universe = sorted(chan_universe | gold)
 
-    # system arm: fused evidence-gate score
+    # system arm (adopted scheme): Open Targets harmonic sum + reliability weights
     system_scores = {t: 0.0 for t in universe}
-    for ts in EvidenceGateArbiter(z_thresh=z_thresh, null_method=null_method).rank(channel_results, {}):
+    for ts in HarmonicSumArbiter().rank(channel_results, {}):
         system_scores[ts.target] = ts.score
+
+    # comparison arm: the earlier binary evidence gate (kept to show harmonic > gate)
+    gate_scores = {t: 0.0 for t in universe}
+    for ts in EvidenceGateArbiter(z_thresh=z_thresh, null_method=null_method).rank(channel_results, {}):
+        gate_scores[ts.target] = ts.score
 
     # single-channel arms: each channel's z over the universe
     pcz = _collect_per_channel_z(channel_results, method=null_method)
 
-    arms: Dict[str, Any] = {"system": _rank_metrics(system_scores, gold, universe, k_list)}
+    arms: Dict[str, Any] = {
+        "system": _rank_metrics(system_scores, gold, universe, k_list),            # harmonic (default)
+        "system_gate": _rank_metrics(gate_scores, gold, universe, k_list),          # old binary gate
+    }
     for ch, zmap in pcz.items():
         arms["channel:" + ch] = _rank_metrics({t: zmap.get(t, 0.0) for t in universe}, gold, universe, k_list)
 

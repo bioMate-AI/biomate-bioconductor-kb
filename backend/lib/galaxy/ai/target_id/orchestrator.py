@@ -12,7 +12,7 @@ import json
 import re
 from typing import Any, Dict, List, Optional
 
-from .arbiter import Arbiter, EvidenceGateArbiter
+from .arbiter import Arbiter, HarmonicSumArbiter
 from .channels import Channel
 from .types import ChannelResult, OrchestratorResult
 
@@ -42,7 +42,7 @@ class TargetIDOrchestrator:
     def __init__(self, channels: List[Channel], arbiter: Optional[Arbiter] = None,
                  llm_client: Any = None, max_concurrent: int = 8):
         self.channels = list(channels)
-        self.arbiter = arbiter or EvidenceGateArbiter()
+        self.arbiter = arbiter or HarmonicSumArbiter()  # adopted open-source scheme (OT harmonic sum)
         self.llm = llm_client
         self.max_concurrent = max_concurrent
 

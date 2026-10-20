@@ -9,7 +9,7 @@ place via the evidence gate (linear-advantage). See docs/20261020_INNOVATION_DEM
 Design map (audited primitives reused): parallel fan-out via galaxy.ai.map_reduce (ThreadPool
 fallback), LLM via galaxy.ai.llm_client.LLMClient, workflows via UnifiedWorkflowSearch.
 """
-from .arbiter import Arbiter, EvidenceGateArbiter, TabularArbiter
+from .arbiter import Arbiter, EvidenceGateArbiter, HarmonicSumArbiter, TabularArbiter
 from .channels import CallableChannel, Channel, LLMReasonedChannel, MockChannel
 from .data_channels import OpenTargetsGeneticsChannel, TableChannel, default_channels, frozen_fm_channel
 from .demonstration import run_demonstration
@@ -18,7 +18,7 @@ from .orchestrator import TargetIDOrchestrator, create_target_id_orchestrator
 from .types import ChannelResult, OrchestratorResult, TargetEvidence, TargetScore
 
 __all__ = [
-    "Arbiter", "EvidenceGateArbiter", "TabularArbiter",
+    "Arbiter", "EvidenceGateArbiter", "HarmonicSumArbiter", "TabularArbiter",
     "Channel", "MockChannel", "LLMReasonedChannel", "CallableChannel",
     "OpenTargetsGeneticsChannel", "TableChannel", "default_channels", "frozen_fm_channel",
     "StringPpiChannel", "PathwayCoMembershipChannel",
