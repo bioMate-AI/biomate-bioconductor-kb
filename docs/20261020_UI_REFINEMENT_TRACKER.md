@@ -225,6 +225,38 @@ Status: NOT started. Items 11 + 17 + the trajectory rename are one sub-project.
 
 ---
 
+## Item 18 — Methods editor: wrong §2.6.x sections + bogus edit count (`why_edit_format_werd_wrongcounts.png`)
+The Methods report reused the IND `RegulatoryDocumentEditor`, which rendered
+§2.6.1–§2.6.6 Module-2.6 section tabs + an "N edited / 0 AI" counter — wrong for an
+after-run methods report (1./2./3. sections). **FIXED** (commit `6477cd31c`): the
+methods editor is now a plain prose textarea; Save version still exports the edit.
+
+## Item 19 — Cold-start proportion / too much blank (`blank_UI.png` vs `design_cold_start.png`)
+Real cold-start crams the 4 goal cards at the top with a large blank middle and is
+MISSING the prominent "DESCRIBE THE GOAL" input the design shows under the title; the
+design distributes title + goal input + cards in the upper area. Also the dev
+screenshot showed a raw `runs_ui.run_manager` key (the key IS defined now → stale dev
+build; sync fixes it). The goal input (`cold-intent-bar`) exists in code
+(`cold-start-dashboard.tsx:523`) but wasn't in the dev capture → verify on dev post-
+sync whether it renders; then fix the vertical proportion if still crammed. Status:
+to verify on dev after sync.
+
+---
+
+## Status summary (autonomous session 2026-10-20)
+DONE + committed: 3, 4, 6 (dataset panel: object + file tree), 8, 9, 10, 12, 13, 14,
+15, 16 (visible Biomni scrub), 17 (Trajectory removed), 18, 1c (BETA), 1e (new-chat
+routing), 2 (cancelled dot), Run-QC fix, backend pause/cancel fix.
+TO VERIFY ON DEV: 19 (cold-start), 2 (cancel render end-to-end), the whole batch.
+NOT DONE (reason): 5 (rerun-not-traced — risky core chat-flow change, deferred to
+avoid destabilising the demo), 11 + 17-software (step-detail + software population —
+need backend endpoints), 1d/1f/1g/1h (blank-chat dedup, Settings/API overlap, API
+modal — need deeper work), 16 folder/docker/DB-name rename (path-sensitive refactor).
+Visual fidelity (fonts/colors/spacing/proportions): partial (dataset panel bumped);
+a full design-token pass is best done with dev renders vs the design captures.
+
+---
+
 ## Meta — "over-complicating the system in many modules"
 Guiding correction: simplify toward the design; remove duplication (e.g. the orphan
 `DatasetDialog` "Select or Upload Datasets" is defined but rendered nowhere — a dead
