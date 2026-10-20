@@ -25,20 +25,34 @@ test("files module renders JSON structurally and CSV as a table", async ({ page 
   test.setTimeout(4 * 60 * 1000);
   await loginAsFixture(page);
 
-  await page.goto(`${BASE_URL}/files?project=${PROJECT}&file=${JSON_FILE}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
-  await page.waitForTimeout(5000);
+  // Data hub → choose the demo project (sets it active), then open a file.
+  await page.goto(`${BASE_URL}/files`, { waitUntil: "domcontentloaded", timeout: 60_000 });
+  await page.waitForTimeout(3000);
+  await page.screenshot({ path: path.join(OUT, "files-viz-00-data-hub.png") });
+  const proj = page.getByTestId(`data-hub-project-${PROJECT}`);
+  await proj.first().waitFor({ state: "visible", timeout: 30_000 });
+  await proj.first().click({ timeout: 10_000 });
+  await page.waitForTimeout(3000);
+
+  const openFile = async (fileId: string) => {
+    const row = page.getByTestId(`file-open-${fileId}`);
+    await row.first().waitFor({ state: "visible", timeout: 20_000 });
+    await row.first().click({ timeout: 10_000 });
+    await page.waitForTimeout(3500);
+  };
 
   // JSON → structured key/value viewer (data-testid json-preview from the shared viewer).
+  await openFile(JSON_FILE);
   const jsonView = page.getByTestId("json-preview");
-  await jsonView.first().waitFor({ state: "visible", timeout: 30_000 }).catch(() => {});
+  await jsonView.first().waitFor({ state: "visible", timeout: 20_000 }).catch(() => {});
   await page.screenshot({ path: path.join(OUT, "files-viz-json.png") });
   const jsonCount = await jsonView.count().catch(() => 0);
   console.log("[files-viz] json-preview count:", jsonCount);
   expect(jsonCount).toBeGreaterThan(0);
 
   // CSV → table (shared TableGrid: shows "N rows × M cols" header).
-  await page.goto(`${BASE_URL}/files?project=${PROJECT}&file=${CSV_FILE}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
-  await page.waitForTimeout(5000);
+  await openFile(CSV_FILE);
+  await page.waitForTimeout(2000);
   await page.screenshot({ path: path.join(OUT, "files-viz-csv.png") });
   const previewText = await page.getByTestId("dataset-text-preview").first().innerText().catch(() => "");
   console.log("[files-viz] CSV preview text (head):\n" + previewText.slice(0, 400));
