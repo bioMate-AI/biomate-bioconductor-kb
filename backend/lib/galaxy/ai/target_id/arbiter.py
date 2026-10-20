@@ -18,12 +18,22 @@ from . import evidence_gate as eg
 from .types import ChannelResult, TargetScore
 
 
-def _collect_per_channel_z(channel_results: List[ChannelResult], method="robust"):
-    """{channel: {target: z}} from the OK channels (empty/errored channels are skipped)."""
+def _collect_per_channel_z(channel_results: List[ChannelResult], method="robust", baseline=0.0):
+    """{channel: {target: z}} from the OK channels, z-scored over the UNION candidate universe.
+
+    Each channel's raw scores are backfilled to ``baseline`` (default 0.0) for targets it did not
+    score, then z-scored over that full universe. This is deliberate: a target absent from a
+    channel's hit list is LOW evidence from that channel (not "unknown"), so a target that is a
+    hit in two channels (and implicitly ~baseline in the rest) can corroborate. Without the
+    backfill, a channel that only returns its top hits (e.g. OpenTargets associatedTargets, all
+    high-scoring) would have nothing fire because its own hits cluster near their own median.
+    """
+    ok = [cr for cr in channel_results if cr.ok]
+    universe = sorted({t for cr in ok for t in cr.scores})
     per_channel_z = {}
-    for cr in channel_results:
-        if cr.ok:
-            per_channel_z[cr.channel] = eg.channel_z(cr.scores, method=method)
+    for cr in ok:
+        full = {t: float(cr.scores.get(t, baseline)) for t in universe}
+        per_channel_z[cr.channel] = eg.channel_z(full, method=method)
     return per_channel_z
 
 
