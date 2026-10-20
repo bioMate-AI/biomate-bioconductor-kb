@@ -1,0 +1,22 @@
+"""Target identification — multi-agent, multi-channel, tabular-arbitered target nomination.
+
+A first-class BioMate capability that fuses evidence channels (genetics, PPI, pathway/TF,
+literature, and VC/FM-as-channel incl. CAPTAIN/scGPT and — once it PROVES contribution — our
+immune-FM) into a ranked, confidence-tiered, provenance-backed target list. The learned
+arbiter is TABULAR (GBDT/TabPFN) by default, not a deep net; every channel must earn its
+place via the evidence gate (linear-advantage). See docs/20261020_INNOVATION_DEMONSTRATION_PROTOCOL.md.
+
+Design map (audited primitives reused): parallel fan-out via galaxy.ai.map_reduce (ThreadPool
+fallback), LLM via galaxy.ai.llm_client.LLMClient, workflows via UnifiedWorkflowSearch.
+"""
+from .arbiter import Arbiter, EvidenceGateArbiter, TabularArbiter
+from .channels import CallableChannel, Channel, LLMReasonedChannel, MockChannel
+from .orchestrator import TargetIDOrchestrator, create_target_id_orchestrator
+from .types import ChannelResult, OrchestratorResult, TargetEvidence, TargetScore
+
+__all__ = [
+    "Arbiter", "EvidenceGateArbiter", "TabularArbiter",
+    "Channel", "MockChannel", "LLMReasonedChannel", "CallableChannel",
+    "TargetIDOrchestrator", "create_target_id_orchestrator",
+    "ChannelResult", "OrchestratorResult", "TargetEvidence", "TargetScore",
+]
