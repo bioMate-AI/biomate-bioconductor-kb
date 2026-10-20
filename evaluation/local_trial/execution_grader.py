@@ -76,27 +76,35 @@ def content_ok(o):
     return (len(txt.strip()) > 0, "non-empty" if txt.strip() else "empty")
 
 
-def grade_run(run, deep=False):
+# Execution ladder tiers, worst -> best. A monotone tier is what the RLVR reward maps over
+# (graded_run_store.reward_for_tier); the binary PASS/FAIL is just (tier == "pass").
+TIERS = ["crashed", "no_outputs", "empty_outputs", "missing_required", "content_invalid", "pass"]
+
+
+def grade_detailed(run, deep=False):
+    """Objective grade as (verdict, reason, tier). verdict is PASS iff tier == 'pass'.
+    Same checks/order as before; `tier` names how far the run got on the execution ladder so a
+    reward can be dense (partial credit) instead of binary. No similarity, no LLM."""
     wf = run.get("workflowName", "?")
     ok, why = terminal_ok(run)
     if not ok:
-        return "FAIL", f"not-terminal-success: {why}"
+        return "FAIL", f"not-terminal-success: {why}", "crashed"
     res = result_outputs(run)
     if not res:
-        return "FAIL", "no result outputs (only versions/none)"
+        return "FAIL", "no result outputs (only versions/none)", "no_outputs"
     if all((o.get("size") or 0) == 0 for o in res):
-        return "FAIL", "all result outputs empty"
+        return "FAIL", "all result outputs empty", "empty_outputs"
     con = CONTRACTS.get(wf)
     if con:
         have = {o.get("name") for o in res}
         missing = [r for r in con["required_outputs"] if r not in have]
         if missing:
-            return "FAIL", f"missing required outputs: {missing}"
+            return "FAIL", f"missing required outputs: {missing}", "missing_required"
     if deep:
         for o in res:
             cok, cwhy = content_ok(o)
             if not cok:
-                return "FAIL", f"content check failed on {o.get('name')}: {cwhy}"
+                return "FAIL", f"content check failed on {o.get('name')}: {cwhy}", "content_invalid"
         # molecular-identity check: the reported per-compound MWs must match the intended molecules
         # (within tol). This makes a backend's SMILES-knowledge error EXECUTION-visible: a wrong SMILES
         # runs fine but yields the wrong MW -> FAIL.
@@ -104,15 +112,15 @@ def grade_run(run, deep=False):
         if exp_mw:
             rep = next((o for o in res if o.get("name") == "toxicity_report.json"), None)
             if not rep:
-                return "FAIL", "expect_mw set but no toxicity_report.json"
+                return "FAIL", "expect_mw set but no toxicity_report.json", "content_invalid"
             try:
                 j = json.loads(s3_text(rep["s3_uri"]))
                 got = [c.get("mw") for c in j.get("per_compound", []) if c.get("mw") is not None]
             except Exception:
-                return "FAIL", "toxicity_report.json unreadable for MW check"
+                return "FAIL", "toxicity_report.json unreadable for MW check", "content_invalid"
             for want in exp_mw:
                 if not any(abs(float(g) - float(want)) <= 1.5 for g in got):
-                    return "FAIL", f"wrong molecule: expected MW {want} not in reported {got} (bad SMILES)"
+                    return "FAIL", f"wrong molecule: expected MW {want} not in reported {got} (bad SMILES)", "content_invalid"
         if con:
             for fn, keys in con.get("json_keys", {}).items():
                 o = next((x for x in res if x.get("name") == fn), None)
@@ -121,10 +129,16 @@ def grade_run(run, deep=False):
                         j = json.loads(s3_text(o["s3_uri"]))
                         miss = [k for k in keys if k not in j]
                         if miss:
-                            return "FAIL", f"{fn} missing keys {miss}"
+                            return "FAIL", f"{fn} missing keys {miss}", "content_invalid"
                     except Exception:
-                        return "FAIL", f"{fn} unreadable"
-    return "PASS", f"{len(res)} result outputs" + (" + content valid" if deep else "")
+                        return "FAIL", f"{fn} unreadable", "content_invalid"
+    return "PASS", f"{len(res)} result outputs" + (" + content valid" if deep else ""), "pass"
+
+
+def grade_run(run, deep=False):
+    """Backward-compatible (verdict, reason). Thin wrapper over grade_detailed."""
+    v, why, _tier = grade_detailed(run, deep)
+    return v, why
 
 
 def main():
