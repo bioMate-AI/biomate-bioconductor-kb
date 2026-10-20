@@ -156,6 +156,54 @@ def evaluate_signature(cohorts: Dict[str, Tuple[Any, Any]], score_fn: Callable[[
             "pooled_n": len(pooled_y), "pooled_n_resp": int(sum(pooled_y))}
 
 
+_FIELD_SIGS = {
+    "CYT": cyt_score,
+    "IFNG_6": lambda e: signature_score(e, IFNG6_GENES, "zmean"),
+    "IFNG_GEP_18": lambda e: signature_score(e, IFNG_GEP_GENES, "zmean"),
+    "IMPRES": impres_score,
+}
+
+
+def _cohort_feature_frame(expr, meta):
+    """Per-sample field-signature feature matrix (within-cohort z) + response labels."""
+    import numpy as np
+    import pandas as pd
+    feats = {name: fn(expr) for name, fn in _FIELD_SIGS.items()}
+    samples = [s for s in expr.columns if s in meta.index]
+    rows = [[feats[name].get(s, np.nan) for name in _FIELD_SIGS] for s in samples]
+    y = np.array([int(meta.loc[s, "response_binary"]) for s in samples])
+    X = pd.DataFrame(rows, columns=list(_FIELD_SIGS), index=samples)
+    X = (X - X.mean()) / X.std(ddof=0).replace(0, 1.0)      # within-cohort z so cohorts are comparable
+    return X.fillna(0.0), y, samples
+
+
+def leave_cohort_out_fusion(cohorts: Dict[str, Tuple[Any, Any]]) -> Dict[str, Any]:
+    """The 'our-system' placeholder arm: a LOGISTIC fusion of the field signals, trained
+    leave-cohort-out (held-out cohort never seen in training -> no circularity). Returns pooled +
+    per-held-out response-AUROC. This is the learnable fusion the immune-FM responder head will later
+    feed/replace as one more feature."""
+    import numpy as np
+    from sklearn.linear_model import LogisticRegression
+    frames = {n: _cohort_feature_frame(e, m) for n, (e, m) in cohorts.items()}
+    names = [n for n in frames if len(set(frames[n][1].tolist())) > 1]  # cohort must have both classes
+    pooled_y, pooled_p, per = [], [], {}
+    for held in names:
+        Xtr = [frames[n][0].values for n in names if n != held]
+        ytr = [frames[n][1] for n in names if n != held]
+        if not Xtr:
+            continue
+        Xtr = np.vstack(Xtr); ytr = np.concatenate(ytr)
+        if len(set(ytr.tolist())) < 2:
+            continue
+        clf = LogisticRegression(max_iter=1000).fit(Xtr, ytr)
+        Xte, yte, _ = frames[held]
+        p = clf.predict_proba(Xte.values)[:, 1]
+        per[held] = {"auroc": _auroc(yte, p), "n": len(yte)}
+        pooled_y.extend(yte.tolist()); pooled_p.extend(p.tolist())
+    return {"per_cohort": per, "pooled_auroc": _auroc(pooled_y, pooled_p), "pooled_n": len(pooled_y),
+            "model": "logistic(field-signal fusion)", "features": list(_FIELD_SIGS)}
+
+
 def load_cohorts(local_dir: str, cohort_names: Optional[Sequence[str]] = None) -> Dict[str, Tuple[Any, Any]]:
     """Load all <name>.expr.csv/<name>.meta.csv pairs under local_dir (already fetched from S3)."""
     out = {}
@@ -190,11 +238,19 @@ def run_clinical_demonstration(local_dir: str, cohort_names: Optional[Sequence[s
     tide = evaluate_signature(cohorts, lambda e: tide_score(e))
     if tide["pooled_auroc"] is not None or any(v.get("n") for v in tide["per_cohort"].values()):
         sigs["TIDE"] = tide
+
+    learned = leave_cohort_out_fusion(cohorts)                       # the 'our-system' placeholder arm
+    best_field = max((v["pooled_auroc"] or 0.0) for v in sigs.values())
+    best_field_name = max(sigs, key=lambda k: (sigs[k]["pooled_auroc"] or 0.0))
+    learned_pooled = learned["pooled_auroc"] or 0.0
     return {
         "signatures": sigs,
+        "learned_fusion": learned,
+        "best_field_tool": {"name": best_field_name, "pooled_auroc": best_field},
+        "learned_beats_best_field": bool(learned_pooled > best_field),
         "cohorts": {n: {"n": expr.shape[1]} for n, (expr, meta) in cohorts.items()},
-        "note": ("Field-tool baselines our system must beat: CYT (Rooney 2015), IFN-gamma 6-gene + "
-                 "18-gene T-cell-inflamed GEP (Ayers 2017), IMPRES 15-pair (Auslander 2018). TIDE "
-                 "(Jiang 2018) included only if the tidepy package is installed (trained model). "
-                 "The learned our-system arm + predictive>prognostic (P2/P3) need a non-ICB control cohort."),
+        "note": ("Field-tool baselines (CYT/IFN-gamma-6/IFN-gamma-GEP-18/IMPRES/TIDE) vs a leave-cohort-out "
+                 "LOGISTIC fusion of them (the 'our-system' placeholder). The immune-FM responder head (h_strat) "
+                 "plugs in later as one more feature. Full predictive>prognostic (P2/P3) still needs a non-ICB "
+                 "control cohort (TIGER is all-ICB)."),
     }
