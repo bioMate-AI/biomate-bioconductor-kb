@@ -2376,10 +2376,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                     const ods = exec?.outputDatasets || []
                     if (ods.length > 0) {
                       return ods.map((d: any) => ({
+                        // id is used for selection + launch dataset_ids; fall back
+                        // to a stable path/name so rows are individually selectable.
+                        id: d.galaxyDatasetId || d.id || d.path || d.name || '',
                         step: d.step || d.galaxyDatasetId || '',
                         name: d.name || '',
                         path: d.path || '',
                         ext: (d.extension || d.name?.split('.').pop() || '').toLowerCase(),
+                        size: d.file_size ?? d.size ?? undefined,
                       }))
                     }
                     const s3 = exec?.nextflowStatus?.s3_output_files || []
@@ -2391,7 +2395,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                       // looks like a process name (CRYOSPARC_REFINE/ etc.).
                       const parts = path.split('/')
                       const step = parts.length >= 2 ? parts[parts.length - 2] : ''
-                      return { step, name, path, ext }
+                      // Nextflow S3 listings are often bare path strings with no
+                      // size; leave size undefined so the launcher hides it rather
+                      // than showing a misleading "0 B".
+                      const size = typeof f === 'object' ? (f.size ?? f.file_size ?? undefined) : undefined
+                      return { id: path || name, step, name, path, ext, size }
                     })
                   })()}
                 />

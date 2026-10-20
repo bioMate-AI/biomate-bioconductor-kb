@@ -23,7 +23,9 @@ import {
 interface OutputFile {
   id: string
   name: string
-  size: number
+  /** Byte size when known; omitted for sources (e.g. Nextflow S3 listings)
+   *  that don't report it — the row then shows no size rather than "0 B". */
+  size?: number
   type?: string
 }
 
@@ -332,9 +334,14 @@ export function InteractiveLauncher({
                         />
                         <FileOutput className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm flex-1 truncate">{output.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatFileSize(output.size)}
-                        </span>
+                        {/* Only show a size when we actually know it — Nextflow S3
+                            output listings often carry no byte count, and a bogus
+                            "0 B" on a non-empty file is worse than no size. */}
+                        {typeof output.size === 'number' && output.size > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {formatFileSize(output.size)}
+                          </span>
+                        )}
                       </label>
                     ))}
                   </div>

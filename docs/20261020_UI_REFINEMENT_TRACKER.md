@@ -154,6 +154,32 @@ drop the count-badge text; collapse the overlapping browse sources. Status: NOT 
 
 ---
 
+## Item 9 — Interactive "Data to Load" shows 0 B for every file (`interactivePanel_0filesize.png`)
+The InteractiveLauncher output-selection list renders `formatFileSize(output.size)`
+(`interactive-launcher.tsx:336`) and every row shows **0 B** → `output.size` is 0/
+missing at the CALLER that builds the `outputs` prop. Fix: populate real sizes from
+the run's output-file records at the call site. Status: NOT fixed (locate caller).
+
+## Item 10 — Parameter editing cramped for long/array values (`parameter_edit_inconvinient.png`)
+In PARAMETERS, "Smiles List" (a JSON array) is shown in a tiny single-line input that
+truncates (`["CC(=O)Oc1ccccc1C…`). Long/array/multiline values need a larger editable
+field (textarea / expandable). Fix in the param input renderer. Status: NOT fixed.
+
+## Item 11 — Full Step View shows invalid/empty details for a COMPLETED step (`invalid_step_details.png`)
+`steps/step-detail.tsx` "FULL STEP VIEW · COMPLETED" shows "tool not reported", "0
+outputs", "duration n/a", "0 not default", "No parameters were recorded" — none of the
+step's real metadata (tool, outputs, params, duration) is populated for a finished step.
+Likely the per-step record isn't persisted/fetched after completion (step parser /
+run metadata). Status: NOT fixed (needs data-source trace, likely backend).
+
+## Item 12 — Chat ↔ step-view split not resizable (`view_width_not_editable.png`)
+A panel resizer exists for the workflow panel (`chat-with-artifacts.tsx:531`
+`panelWidth` + `handlePanelResizeStart:1724`), but in the FULL STEP VIEW mode the split
+has no draggable divider. Fix: expose the resize handle (or a drag divider) in the
+step-view layout too. Status: NOT fixed.
+
+---
+
 ## Meta — "over-complicating the system in many modules"
 Guiding correction: simplify toward the design; remove duplication (e.g. the orphan
 `DatasetDialog` "Select or Upload Datasets" is defined but rendered nowhere — a dead

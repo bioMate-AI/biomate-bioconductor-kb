@@ -730,18 +730,43 @@ function PhaseGroupSection({
                             return <option key={val} value={val}>{lbl}</option>;
                           })}
                         </select>
-                      ) : (
-                        <input
-                          type={p.type === 'number' ? 'number' : 'text'}
-                          className="v"
-                          value={String(p.value ?? p.defaultValue ?? '')}
-                          placeholder={p.required ? tOr('panel.required', 'required') : ''}
-                          style={{ fontSize: 11, padding: '2px 6px', width: 140, background: 'var(--surface)',
-                            border: `1px solid ${p.required && (!p.value || p.value === '') ? 'var(--warn)' : 'var(--border)'}`,
-                            borderRadius: 3, color: 'var(--text)', fontFamily: p.type === 'file' ? 'var(--font-mono)' : undefined }}
-                          onChange={e => onParamChange(p.id, e.target.value)}
-                        />
-                      )}
+                      ) : (() => {
+                        const strVal = String(p.value ?? p.defaultValue ?? '');
+                        const trimmed = strVal.trimStart();
+                        // Long free-text and JSON arrays/objects (e.g. a SMILES
+                        // list) were truncated in the 140px single-line input —
+                        // give them a resizable multi-line field instead.
+                        const isLong = p.type !== 'number' && p.type !== 'file' &&
+                          (strVal.length > 32 || trimmed.startsWith('[') || trimmed.startsWith('{'));
+                        const borderCol = p.required && (!p.value || p.value === '') ? 'var(--warn)' : 'var(--border)';
+                        if (isLong) {
+                          return (
+                            <textarea
+                              className="v"
+                              value={strVal}
+                              placeholder={p.required ? tOr('panel.required', 'required') : ''}
+                              rows={Math.min(6, Math.max(2, Math.ceil(strVal.length / 36)))}
+                              spellCheck={false}
+                              style={{ fontSize: 11, padding: '3px 6px', width: 220, maxWidth: '100%', background: 'var(--surface)',
+                                border: `1px solid ${borderCol}`, borderRadius: 3, color: 'var(--text)',
+                                fontFamily: 'var(--font-mono)', resize: 'vertical', lineHeight: 1.4 }}
+                              onChange={e => onParamChange(p.id, e.target.value)}
+                            />
+                          );
+                        }
+                        return (
+                          <input
+                            type={p.type === 'number' ? 'number' : 'text'}
+                            className="v"
+                            value={strVal}
+                            placeholder={p.required ? tOr('panel.required', 'required') : ''}
+                            style={{ fontSize: 11, padding: '2px 6px', width: 140, background: 'var(--surface)',
+                              border: `1px solid ${borderCol}`,
+                              borderRadius: 3, color: 'var(--text)', fontFamily: p.type === 'file' ? 'var(--font-mono)' : undefined }}
+                            onChange={e => onParamChange(p.id, e.target.value)}
+                          />
+                        );
+                      })()}
                     </div>
                   ))}
                 </div>
