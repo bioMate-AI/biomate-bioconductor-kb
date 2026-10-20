@@ -86,6 +86,15 @@ register_contract(
     required_outputs=["assay_result.json"],
     json_keys={"assay_result.json": ["target", "binding_dG"]},
 )
+# --- generic relative-FEP engine (gromacs_pmx_fep; Layer B) ---
+# The analyze step must emit a ΔΔG summary with the expected fields. EXECUTION fact only:
+# status + ddg_kcal_per_mol keys present (value may be null under the honesty contract when the
+# run was held for GPU) — NOT a judgement of the ΔΔG; that is score()'s reward, kept separate.
+register_contract(
+    "gromacs_pmx_fep",
+    required_outputs=["ddg_summary.json"],
+    json_keys={"ddg_summary.json": ["status", "ddg_kcal_per_mol"]},
+)
 
 
 def _nf(run):
