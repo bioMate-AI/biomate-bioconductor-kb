@@ -1010,7 +1010,7 @@ const SMILES_LIST_WORKFLOWS = new Set([
  * A value is treated as SMILES when its first whitespace-delimited token contains characters
  * typical of SMILES notation (=, #, [, ], /, \, @).  Trailing prose is stripped.
  */
-function normalizeAdmetSmiles(
+export function normalizeAdmetSmiles(
   workflowName: string | undefined | null,
   raw: Record<string, string> | undefined | null,
 ): Record<string, string> {
@@ -1030,37 +1030,48 @@ function normalizeAdmetSmiles(
     const token = v.split(/\s/)[0];
     return /[=#\[\]\/\\@]/.test(token) && token.length >= 5 ? token : null;
   };
+  // Parse a value into a flat list of SMILES. Handles (a) a JS array, (b) a JSON
+  // array STRING ('["A","B"]' — the deterministic multi-SMILES form), (c) a raw
+  // comma-separated list ("A, B, C"), and (d) a single token. Prevents the
+  // first-token-only truncation and the double-wrap that occurred when a JSON
+  // array string reached getSmilesToken (it treated "[" as a ring char).
+  const parseSmilesValues = (v: unknown): string[] => {
+    if (Array.isArray(v)) {
+      return v.map((i) => String(i).trim()).filter((t) => getSmilesToken(t));
+    }
+    const sv = String(v ?? '').trim();
+    if (!sv) return [];
+    if (sv.startsWith('[')) {
+      try {
+        const arr = JSON.parse(sv);
+        if (Array.isArray(arr)) {
+          return arr.map((i) => String(i).trim()).filter((t) => getSmilesToken(t));
+        }
+      } catch { /* not valid JSON — fall through to comma/space split */ }
+    }
+    // Comma-separated list, or single token (strip trailing prose per token).
+    const parts = sv.includes(',') ? sv.split(',') : [sv];
+    return parts.map((p) => getSmilesToken(p.trim())).filter((t): t is string => !!t);
+  };
   const smilesList: string[] = [];
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(raw)) {
     if (k === 'smiles_list') {
-      if (Array.isArray(v)) {
-        out[k] = JSON.stringify(v);
-      } else {
-        const sv = String(v).trim();
-        if (sv.startsWith('[')) {
-          // Already a JSON array string (e.g. from Galaxy backend) — keep as-is
-          out[k] = sv;
-        } else {
-          // Raw SMILES string from LLM extraction — wrap in JSON array for Groovy JsonSlurper
-          const firstToken = getSmilesToken(sv) ?? sv.split(/\s/)[0];
-          out[k] = JSON.stringify([firstToken]);
-          console.log('[normalizeAdmetSmiles] Wrapped raw smiles_list → JSON array:', out[k]);
-        }
+      const parsed = parseSmilesValues(v);
+      if (parsed.length > 0) {
+        out[k] = JSON.stringify(parsed);
+      } else if (typeof v === 'string' && v.trim().startsWith('[')) {
+        out[k] = v.trim(); // valid JSON array we couldn't SMILES-validate — keep as-is
+      } else if (v != null) {
+        out[k] = JSON.stringify([String(v).split(/\s/)[0]]);
       }
     } else if (k === 'ADMET_model_type') {
       out[k] = Array.isArray(v) ? JSON.stringify(v) : String(v);
-    } else if (Array.isArray(v)) {
-      // Array of SMILES strings from the Galaxy backend — treat each element as a SMILES candidate
-      for (const item of v) {
-        const smilesToken = getSmilesToken(item);
-        if (smilesToken) smilesList.push(smilesToken);
-      }
     } else {
-      const smilesToken = getSmilesToken(v);
-      if (smilesToken) {
-        smilesList.push(smilesToken);
-      } else if (v != null) {
+      const parsed = parseSmilesValues(v);
+      if (parsed.length > 0) {
+        smilesList.push(...parsed);
+      } else if (!Array.isArray(v) && v != null) {
         out[k] = String(v);
       }
     }
@@ -8063,6 +8074,36 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
               if (_nv !== _inlineObj[_k]) {
                 console.log(`[GalaxyAssistant] NormalizeComposite inline_parameters ${_k}: "${String(_inlineObj[_k]).slice(0, 60)}" → "${String(_nv).slice(0, 60)}"`);
                 _inlineObj[_k] = _nv;
+              }
+            }
+          }
+        }
+        // Schema-authoritative param rows: the viewer renders a param row for every
+        // key in workflow_ga.inline_parameters (nextflow-workflow-viewer seeds its
+        // `params` from this object). An upstream extractor that invents a key not
+        // in the workflow's real schema — e.g. the LLM mis-reading caffeine's
+        // "CN1C=NC2…" as key=value and emitting "CN1C" — would otherwise surface as
+        // a phantom "Recommended" param row. Intersect inline_parameters with the
+        // actual schema (required ∪ optional) so ONLY real params can prefill and no
+        // hallucinated key becomes a row. General (not value-type specific): any key
+        // the schema does not declare is dropped, whatever produced it.
+        {
+          const _schemaNames = new Set<string>();
+          for (const _pList of ['required_params', 'optional_params']) {
+            for (const _p of (_wfGaN?.[_pList] || [])) {
+              if (_p?.name) _schemaNames.add(String(_p.name));
+            }
+          }
+          if (_schemaNames.size > 0) {
+            for (const _host of [_wfGaN, (response as any)]) {
+              const _inlineObj = _host?.inline_parameters;
+              if (_inlineObj && typeof _inlineObj === 'object' && !Array.isArray(_inlineObj)) {
+                for (const _k of Object.keys(_inlineObj)) {
+                  if (!_schemaNames.has(_k) && _k !== 'domain_hint') {
+                    console.log(`[GalaxyAssistant] Dropping non-schema inline param "${_k}" (not in ${_wfGaN?.name || 'workflow'} schema) — prevents phantom param row`);
+                    delete _inlineObj[_k];
+                  }
+                }
               }
             }
           }
