@@ -180,3 +180,60 @@ capability that routes by edge type. The alternative (one engine for everything)
 cannot do residue/metal edges and GROMACS/pmx is heavier than needed for drug-like small molecules. The cost
 of the recommendation is maintaining two engines; the benefit is each edge runs on the tool validated for it,
 with zero disruption to the shipped `openfe_rbfe`.
+
+---
+
+## 5. Decision log
+
+- **2026-10-20 — Layer B engine strategy CONFIRMED (user):** two engines, composer routes by edge
+  type. `openfe_rbfe` kept as-is for small-molecule congeneric pairs; new sibling `gromacs_pmx_fep`
+  for residue-mutation / peptide / cyclic / metal edges; one unified "Relative FEP" capability routes
+  by edge type. This section records the plan that follows from that decision.
+
+---
+
+## 6. Tracked build sequence (C → B → A)
+
+Build order follows the dependency graph, not the layer letters: the reward substrate (C) and the
+grader workflows (B) are prerequisites for the design loop (A). Status tags: **DONE / IN PROGRESS /
+HELD (awaiting user go) / PENDING**.
+
+### 6.0 The design loop decomposed (what Layer A actually is)
+Six orthogonal parts — ~70% reuse of existing BioMate primitives, not new subsystems:
+1. **Config/spec** `DesignCampaign` — *new, small*; declarative `{target, modality, proposer, grader_stack[], reward, budget}`.
+2. **Proposer** — *pluggable*; generative model or enumerator behind one interface. Peptide proposer exists; small-molecule needs a new one.
+3. **Grader stack** — *reuse*; an ordered list of real BioMate workflows (cofold → MM-GBSA → FEP) invoked via `run_workflow`/`nextflow_executor` on Batch, cheap→expensive.
+4. **Reward** — *reuse (Layer C)*; each graded run mints a scalar via the contract registry.
+5. **Learn** — *optional, research*; RLVR updates the proposer from `graded_run_store.get_reward(campaign)`. Separable — a campaign can run as pure ranking without it.
+6. **Orchestrator** — *refactor*; `loop_batch.run_round` with `target="avb6"`/HELM assumptions lifted into the config.
+**Integration surfaces (all reuse):** execution via `run_workflow`→Batch (lineage/billing/SSE free); persistence via the run-state-store/Redis pattern; invocation via a composer intent; UI = the existing auto-loop/QC panel generalized (gate table + was→now diff + candidate leaderboard). DesignCampaign is the existing QC auto-loop (gate→remediate→re-run over one workflow) lifted to propose-new-candidates-and-learn across rounds.
+
+### 6.1 Layer C — execution-verified reward registry
+- **[DONE]** `register_contract()` / `get_contract()` + `register_run_kind()` / `workflow_for()`; existing cyclic contracts refactored through the registry; backward-compat confirmed (selftests + `test_execution_grader.py` green). Commit `d4f3023d3`.
+- **[PENDING] C1** — relocate `execution_grader.py` + `graded_run_store.py` from `evaluation/local_trial/` to a stable platform module (churns 5 dependent imports; do as one atomic change).
+- **[PENDING] C2** — wire `get_reward(run_id)` / `rewards(campaign)` into the RLVR trainer. Blocks Layer A part 5 (learn).
+
+### 6.2 Layer B — unified relative-FEP capability
+- **[IN PROGRESS] B0 — αvβ6 instance-zero acceptance test** (the hardest case: metal + cyclic + non-standard residues):
+  - **[DONE]** Setup pipeline validated end-to-end — both legs `em.tpr`, `FEP_INPUTS_READY` staged. Bugs cleared en route (each a generic-engine requirement): entrypoint override, offline gemmi prep, `-std=gnu11` for pmx's C ext, pmx console-CLI, `--ref` (not `--keep_resid`) to confine mutations to the peptide, `-ignh` strip, **cyclic origin-rotation so mutation sites stay interior**, `mn_cada.pdb` path, `[molecules]` newline. Commits through `55c384f25`.
+  - **[IN PROGRESS]** Cyclic-junction parameterization — add cross-boundary angles/dihedrals/impropers at the head-to-tail junction (production accuracy; the single amide bond only satisfies the `em.tpr` readiness proof).
+  - **[HELD — awaiting user go]** Control-edge ΔΔG GPU run (`_fep_command` mdrun-only rewrite → `fep_batch.py --submit`). Spot GPU, ~1 GPU-day/leg (~$15–60). **Acceptance:** control↔control ΔΔG recovers the known Trivehexin-mono↔avebehexin gap within replicate error. This is also the key missing preprint P0 result.
+- **[PENDING] B1** — generalize `fep_batch`/`build_fep_setup` into a `gromacs_pmx_fep` catalog workflow: stub `.nf` under `biomni_workflows/nfcore/…` (never production `nextflow_nfcore/**`) + reviewed `bin/run_gromacs_pmx_fep.py`; param schema per §2 Layer B; `metal_model` optional; offline-prep staged step; honesty contract. Starts after B0 validates the engine.
+- **[PENDING] B2** — composer FEP router: edge type → engine (small-molecule → `openfe_rbfe`; mutation/peptide/metal → `gromacs_pmx_fep`), one "Relative FEP" intent.
+- **[PENDING] B3** — `fep_cycle_closure` / control-edge QC gate (register its contract via Layer C's `validate()` hook).
+
+### 6.3 Layer A — target-agnostic DesignCampaign loop (LAST — depends on B1 + C)
+- **[PENDING] A1** — generalize `loop_batch.run_round` into a `DesignCampaign`-driven driver (target_spec + modality + proposer + declarative grader_stack); remove the `avb6`/HELM defaults.
+- **[PENDING] A2** — persist a campaign as a first-class object (rounds + candidates + rewards) via the run-state-store/Redis pattern.
+- **[PENDING] A3** — composer "design campaign" intent (`workflow_ga`-style entry) that creates + drives the campaign.
+- **[PENDING] A4** — campaign UI: generalize the auto-loop panel (gate table, was→now proposer diff, candidate leaderboard by reward).
+- **[PENDING] A5** — wire the learn step (RLVR via `get_reward(campaign)`); depends on C2.
+
+### 6.4 Dependency graph
+```
+C (registry DONE) ──┬─> C2 (trainer wiring) ─────────────────┐
+                    │                                         v
+B0 (αvβ6 setup DONE; junction IN PROGRESS; ΔΔG HELD) ─> B1 ─> A1 ─> A2 ─> A3 ─> A4 ─> A5
+                                                   └─> B2, B3
+```
+Instance-zero (B0) is the acceptance test for the `gromacs_pmx_fep` engine; it must validate (ΔΔG recovers the control gap) before B1 generalizes it. Nothing in A is throwaway — it is thin orchestration over C + B.
