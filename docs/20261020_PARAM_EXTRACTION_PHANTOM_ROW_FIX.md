@@ -61,6 +61,29 @@ prerun-only, no Batch spend): if the panel still shows a truncated / fragmented
 SMILES value after the row fix, enable schema-grounded extraction as the general
 value fix rather than adding SMILES-specific parsing rules.
 
+## CORRECTION — the real root cause was CLIENT-SIDE (commit `9592d63aa`)
+The server probes below were all clean because the phantom row was **never** a
+server-extraction artifact. It came from the **client-side workflow-edit
+extractor** (`client/src/lib/workflow-edits-extract.ts`, wired in
+`chat-with-artifacts.tsx`): after a workflow card opens, the client reads
+`<key>=<value>` / `<key>: <value>` edits from the user message and applies them
+as `set_param`. The SMILES `CN1C=NC2=C1C(=O)N(C(=O)N2C)C` matches the `=`
+pattern → param `CN1C` = `NC2=…`, which `applyWorkflowEdits` injects as a
+"Recommended" row (the `✓ CN1C: … [Undo]` toast visible in the capture). The
+single-workflow path (`steps===null` → `stepId='single'`) and the single-step
+fallback emitted the edit **without checking the param exists**.
+
+**Fix:** a schema gate — only emit a `set_param` for a name the workflow actually
+declares (step params ∪ `inline_parameters` ∪ `required_params` ∪
+`optional_params`, via the new `knownParamNames` helper); fall through to legacy
+behaviour only when no param metadata is present (lazy-loaded workflow). The LLM
+fallback in `chat-with-artifacts.tsx` is gated identically. Regression tests in
+`workflow-edits-extract.test.ts`.
+
+The earlier server-side changes (schema-intersection of `workflow_ga.inline_parameters`;
+`normalizeAdmetSmiles` multi-SMILES hardening) remain as sound defense-in-depth and
+genuine correctness improvements, but were not the operative fix for this row.
+
 ## Empirical verification on dev (2026-10-20, post-deploy)
 Direct probes against `https://dev-public.biomate.ai` after the fix deployed:
 
