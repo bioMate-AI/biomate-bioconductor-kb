@@ -236,7 +236,10 @@
     "export_crate": "为此数据集导出 RO-Crate 元数据清单",
     "attach_to_chat": "将此文件附加到新对话，然后输入您的问题",
     "version_note_placeholder": "添加版本备注（例如：QC 修复后重新生成）",
-    "search_datasets": "搜索数据集..."
+    "search_datasets": "搜索数据集...",
+    "add": "添加",
+    "scope_hint": "本项目中的上传文件与运行产物。",
+    "search_files": "搜索文件"
   },
   "dataset_obj": {
     "quality_good": "良好",

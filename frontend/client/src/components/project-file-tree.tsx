@@ -12,6 +12,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { isDesktop, desktopPickAndUpload, desktopSaveFile } from "@/lib/desktop";
 import {
+  Search,
   Folder,
   FolderOpen,
   File,
@@ -396,6 +397,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [search, setSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -508,7 +510,8 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
     }
   };
 
-  const tree = buildTree(files);
+  const q = search.trim().toLowerCase();
+  const tree = buildTree(q ? files.filter((f) => f.name.toLowerCase().includes(q)) : files);
 
   return (
     <div
@@ -549,7 +552,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
             }}
           >
             {uploading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-            {t('file_tree.upload')}
+            {t('file_tree.add')}
           </Button>
         ) : (
           <Button
@@ -565,7 +568,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
             ) : (
               <Upload className="h-3 w-3" />
             )}
-            {t('file_tree.upload')}
+            {t('file_tree.add')}
           </Button>
         ))}
         <Button
@@ -587,6 +590,22 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
           onChange={(e) => handleUpload(e.target.files)}
           data-testid="project-files-input"
         />
+      </div>
+
+      {/* Scope hint + search (design §4.2.2) */}
+      <div className="px-3 pt-1.5 pb-1 space-y-1.5 border-b">
+        <p className="text-[11px] text-muted-foreground">{t('file_tree.scope_hint')}</p>
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('file_tree.search_files')}
+            aria-label={t('file_tree.search_files')}
+            data-testid="project-files-search"
+            className="w-full h-7 pl-7 pr-2 text-xs rounded border bg-background"
+          />
+        </div>
       </div>
 
       {/* Tree body */}

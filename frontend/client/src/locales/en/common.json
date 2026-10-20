@@ -230,7 +230,10 @@
     "export_crate": "Export an RO-Crate metadata manifest for this dataset",
     "attach_to_chat": "Attach this file to a new chat, then enter your question",
     "version_note_placeholder": "Add a version note (e.g. re-derived after QC fix)",
-    "search_datasets": "Search datasets..."
+    "search_datasets": "Search datasets...",
+    "add": "Add",
+    "scope_hint": "Uploads and run outputs in this project.",
+    "search_files": "Search files"
   },
   "dataset_obj": {
     "quality_good": "Good",
