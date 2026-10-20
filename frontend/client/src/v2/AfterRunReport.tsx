@@ -917,41 +917,39 @@ function InteractiveToolsRow({ outputs }: { outputs: OutputFile[] }) {
         flexWrap: 'wrap' as React.CSSProperties['flexWrap'],
       }}
     >
-      <span style={{ fontSize: 11, color: 'oklch(0.48 0.012 260)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 4 }}>
-        {tOr('afterrun.explore_in', 'Explore in')}
-      </span>
-      {availableTools.map(tool => {
-        const { label } = toolMap.get(tool)!;
-        const icons: Record<string, string> = {
-          cellxgene: '◉',
-          rstudio: 'R',
-          jupyter: '⌥',
-        };
+      {/* One "Interactive panel" entry (not a button per tool): it opens the
+          launcher where files are selected and the environment is chosen. The
+          hint names the bundled environments (Jupyter / RStudio / CellxGene) so
+          the single button isn't opaque. */}
+      {(() => {
+        const toolNames: Record<string, string> = { jupyter: 'Jupyter', rstudio: 'RStudio', cellxgene: 'CellxGene' };
+        const primaryTool = availableTools[0] ?? 'jupyter';
+        const names = availableTools.map((t) => toolNames[t]);
+        const hint = names.length <= 1
+          ? names[0]
+          : `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`;
         return (
-          <button
-            key={tool}
-            type="button"
-            data-testid={`afterrun-launch-${tool}`}
-            onClick={() => openWith(tool)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '5px 12px',
-              fontSize: 12,
-              fontWeight: 500,
-              background: 'white',
-              border: '1px solid oklch(0.88 0.01 245)',
-              borderRadius: 6,
-              cursor: 'pointer',
-              color: 'oklch(0.22 0.01 260)',
-            }}
-          >
-            <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11 }}>{icons[tool]}</span>
-            {label}
-          </button>
+          <>
+            <button
+              type="button"
+              data-testid="afterrun-launch-interactive"
+              onClick={() => openWith(primaryTool)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '5px 12px', fontSize: 12, fontWeight: 500,
+                background: 'white', border: '1px solid oklch(0.88 0.01 245)',
+                borderRadius: 6, cursor: 'pointer', color: 'oklch(0.22 0.01 260)',
+              }}
+            >
+              <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11 }}>⌥</span>
+              {tOr('afterrun.interactive_panel', 'Interactive panel')}
+            </button>
+            <span style={{ fontSize: 11, color: 'oklch(0.55 0.012 260)' }}>
+              {tOr('afterrun.interactive_hint', 'Pick files, then open in {{tools}}', { tools: hint })}
+            </span>
+          </>
         );
-      })}
+      })()}
       <InteractiveLauncher
         open={open}
         onOpenChange={setOpen}

@@ -450,7 +450,7 @@ function InlineTextViewer({ text }: { text: string }) {
           </button>
         </div>
       )}
-      <pre className={cn("text-xs font-mono bg-muted p-2 rounded max-h-64 overflow-auto whitespace-pre-wrap")}>
+      <pre className={cn("text-xs font-mono bg-muted p-2 rounded max-h-40 overflow-auto whitespace-pre-wrap")}>
         {showTail && lines.length > 80 && <span className="text-muted-foreground italic">… {lines.length - 80} lines above …{'\n'}</span>}
         {displayed}
       </pre>
@@ -952,50 +952,10 @@ function FetchingPreview({
         <ViewerContent viewer={viewer} content={content} file={file} ext={ext} />
       )}
 
-      {/* Secondary action: open in the appropriate interactive tool.
-          Shown for table/text/sequence/annotation/vcf viewers — all file types
-          a biologist might want to analyse further. Image, PDF, structure,
-          and density viewers are excluded (not useful in Jupyter/RStudio). */}
-      {(['table', 'text', 'sequence', 'annotation', 'vcf'] as ViewerKind[]).includes(viewer)
-        && !loading && !error && (() => {
-          const { tool, label } = pickInteractiveTool(ext);
-          return (
-            <div className="mt-2 pt-2 border-t flex items-center gap-2 flex-wrap">
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 h-7 text-xs"
-                onClick={() => { setLauncherTool(tool); setLauncherOpen(true); }}
-              >
-                <Laptop className="h-3.5 w-3.5" />
-                {label}
-              </Button>
-              {tool !== 'jupyter' && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="gap-1.5 h-7 text-xs"
-                  onClick={() => { setLauncherTool('jupyter'); setLauncherOpen(true); }}
-                  data-tool="jupyter"
-                >
-                  <Laptop className="h-3.5 w-3.5" />
-                  {t('preview.open_jupyter')}
-                </Button>
-              )}
-              <span className="text-[10px] text-muted-foreground">{t('preview.opens_preloaded')}</span>
-            </div>
-          );
-        })()
-      }
-
-      {(['table', 'text', 'sequence', 'annotation', 'vcf'] as ViewerKind[]).includes(viewer) && (
-        <InteractiveLauncher
-          open={launcherOpen}
-          onOpenChange={setLauncherOpen}
-          outputs={[{ id: file.path, name: file.name, size: 0, type: file.extension }]}
-          initialTool={launcherTool}
-        />
-      )}
+      {/* Per-file "Open in Jupyter / Analyze in RStudio" buttons removed
+          2026-10-20 (UI refinement): too much per row. Interactive sessions
+          launch once from the "Interactive panel" button at the top of the
+          output list, where files are selected — not per preview. */}
     </div>
   );
 }
@@ -1192,7 +1152,7 @@ function InlineStructureViewer({ text, ext }: { text: string; ext: string }) {
 
   if (status === 'fallback') {
     return (
-      <pre className="text-xs font-mono bg-muted p-2 rounded max-h-64 overflow-auto whitespace-pre-wrap">
+      <pre className="text-xs font-mono bg-muted p-2 rounded max-h-40 overflow-auto whitespace-pre-wrap">
         {text.slice(0, 4000)}{text.length > 4000 ? '\n…' : ''}
       </pre>
     );
