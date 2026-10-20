@@ -235,11 +235,12 @@ describe("DataHubPage — two-pane hub", () => {
     )
     expect(screen.getByTestId("dataset-preview-table").textContent).toContain("TP53")
 
-    // Quality is folded into the Preview tab (no separate tab): the honest
-    // verdict from the profile (watch) renders inline, proving quality is real.
-    await waitFor(() =>
-      expect(screen.getByTestId("data-perception")).toBeInTheDocument(),
-    )
-    expect(screen.getByTestId("data-perception").getAttribute("data-quality")).toBe("watch")
+    // Quality at ingest lives in the "Where it came from" tab (design §4.5.2):
+    // opening it renders the honest verdict from the profile (watch), proving
+    // quality is real.
+    fireEvent.click(screen.getByTestId("dataset-tab-wherefrom"))
+    const dp = await screen.findByTestId("data-perception", {}, { timeout: 4000 })
+    expect(dp.getAttribute("data-quality")).toBe("watch")
   })
+
 })

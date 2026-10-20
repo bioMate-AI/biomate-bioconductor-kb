@@ -1,25 +1,32 @@
 /**
- * DatasetObject — a dataset presented as a first-class object, mirroring the
- * proven ModelObject template (components/models/model-object.tsx): identity in
- * the header, then a tabbed body. Tabs:
+ * DatasetObject — a file presented as a first-class object, conformed to design
+ * spec 04 ("Files & the dataset object") + the rendered prototype
+ * (data_centroid_design_v2). See docs/20261020_DATASET_PANEL_DESIGN_AUDIT.md.
  *
- *   Preview / Quality / Lineage / Consumers / Versions / Origin
+ * Header:  name · v{N} chip · quality pill · [Ask in chat] [Download]
+ * Tabs:    Preview · Versions · Where it came from
+ *   Preview       — Table / Columns / Plot toggle + a 4-card stat grid.
+ *   Versions      — the append-only version log + "why versions matter".
+ *   Where it came — Origin + Quality-at-ingest (the perception profile) +
+ *                   what used it, with Export for deposit (RO-Crate).
  *
- * Data arrives via the `dataset` prop (a DatasetRef built by the caller — the
- * file tree already has every field). The Quality tab mounts the orphaned
- * `DataPerception` panel, fed by the backend perception profiler
- * (POST /api/perception/profile). Everything the backend cannot yet answer —
- * lineage graph, consumer list, version history — is rendered as an honest
- * "not available yet" state, NEVER a fabricated value. This mirrors how
- * ModelObject shows `not_evaluated` for an unmeasured gate.
+ * Everything rendered is backed by a real endpoint. Parts of the design that
+ * have NO backend yet are commented out with a FUTURE marker rather than faked:
+ *   - Open in Jupyter / RStudio / Plot viewer  (needs a dataset→history staging
+ *     endpoint; interactive tools can't bind an arbitrary project file today)
+ *   - Preview → Columns per-column stats, Preview → Plot distributions
+ *     (the perception profiler returns column names + a sample only)
+ *   - Edit → new version + "Ask BioMate to edit this" (no content-versioning /
+ *     edit-save endpoint — POST versions appends a NOTE only)
+ *   - Versions → Compare / Restore (no diff/restore endpoint)
+ *   - Origin → content hash + dedup, visibility control; Produced outputs list
+ * These are tracked as backend work in the audit doc.
  */
 
 import { useState, type ReactNode } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   ChevronLeft,
@@ -28,9 +35,11 @@ import {
   History,
   Download,
   FileArchive,
-  Plus,
   Play,
   ShieldCheck,
+  Table as TableIcon,
+  Columns3,
+  BarChart3,
 } from "lucide-react"
 import { DataPerception, type PerceptionQuality } from "@/components/data-perception"
 import { t } from "@/lib/i18n"
@@ -39,7 +48,6 @@ import {
   useDatasetLineage,
   useDatasetConsumers,
   useDatasetVersions,
-  useAppendDatasetVersion,
   downloadDatasetRoCrate,
 } from "./datasets-api"
 
@@ -87,29 +95,25 @@ interface DatasetObjectProps {
   dataset: DatasetRef
   onBack?: () => void
   onDownload?: () => void
-  /** Open the workflow run that produced (or reads) this dataset — makes
-   *  lineage/consumers navigable rather than static text (data-centric flow). */
+  /** Open the workflow run that produced (or reads) this dataset. */
   onOpenRun?: (runId: string) => void
-  /** Launch an analysis FROM this dataset — opens chat primed (review-before-send)
-   *  to run a workflow on it, so work flows OUT of the data panel. */
+  /** Ask in chat FROM this dataset — opens the composer with it attached. */
   onAnalyze?: () => void
-  /** Run a full QC workflow ON this dataset — opens chat primed with the
-   *  dataset attached + a QC request (review-before-send), so the real
-   *  FastQC/MultiQC (or domain QC) workflow runs through BioMate's engine
-   *  rather than the lightweight ingest profiler shown in the panel. */
+  /** Run a full QC workflow ON this dataset through BioMate's engine. */
   onRunQC?: () => void
   className?: string
   preview?: ReactNode
 }
 
-// Header quality pill — reinforces the file-tree row's dot on the object itself
-// (Good/Watch/Blocked), so identity (quality + version) reads at a glance rather
-// than hiding behind the Quality/Versions tabs.
+// Header quality pill — Good / Watch / Blocked, so identity (quality + version)
+// reads at a glance.
 const HEADER_QUALITY: Record<PerceptionQuality, { dot: string; label: string }> = {
   good: { dot: "bg-emerald-500", label: "Good" },
   watch: { dot: "bg-amber-500", label: "Watch" },
   blocked: { dot: "bg-red-500", label: "Blocked" },
 }
+
+type PreviewView = "table" | "columns" | "plot"
 
 export function DatasetObject({
   dataset,
@@ -121,33 +125,38 @@ export function DatasetObject({
   className,
   preview,
 }: DatasetObjectProps) {
-  // Tabs lazily fetch their backing data when first opened (mirrors Quality).
-  const [lineageOpened, setLineageOpened] = useState(false)
-  const [consumersOpened, setConsumersOpened] = useState(false)
+  // "Where it came from" + Versions lazily fetch their backing data on first open.
+  const [wherefromOpened, setWherefromOpened] = useState(false)
   const [versionsOpened, setVersionsOpened] = useState(false)
+  const [previewView, setPreviewView] = useState<PreviewView>("table")
+  const [tab, setTab] = useState<"preview" | "versions" | "wherefrom">("preview")
+
   // Preview is the default tab and needs the profile (columns + sample rows), so
-  // profiling runs when the object opens — not gated behind the Quality tab.
+  // profiling runs when the object opens.
   const { data: profile, isLoading, isError } = usePerceptionProfile(
     dataset.ref,
     dataset.name,
   )
-  const lineageQ = useDatasetLineage(lineageOpened ? dataset.ref : null)
-  const consumersQ = useDatasetConsumers(consumersOpened ? dataset.ref : null)
+  const lineageQ = useDatasetLineage(wherefromOpened ? dataset.ref : null)
+  const consumersQ = useDatasetConsumers(wherefromOpened ? dataset.ref : null)
   const versionsQ = useDatasetVersions(versionsOpened ? dataset.ref : null)
-  const appendVersion = useAppendDatasetVersion(dataset.ref)
 
-  // Draft note for the "add version" input (append-only log).
-  const [note, setNote] = useState("")
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
 
-  // Consumers: prefer live backend data; fall back to any refs the caller held.
   const consumers = consumersQ.data?.consumers ?? []
   const propConsumers = dataset.consumers ?? []
-  // Versions: backend returns at least "v1 · current"; else the caller's list.
   const versions = versionsQ.data?.versions ?? []
   const propVersions = dataset.versions ?? []
   const isRunOutput = dataset.source === "run_output"
+
+  // Current version label for the header chip + stat grid. Falls back to the
+  // caller's list, else v1 (every file has at least an implicit v1).
+  const currentVersionLabel =
+    versions.find((v) => v.current)?.label ||
+    versions[0]?.label ||
+    propVersions[0] ||
+    "v1"
 
   async function handleExportRoCrate() {
     if (!dataset.ref) return
@@ -162,18 +171,13 @@ export function DatasetObject({
     }
   }
 
-  function handleAddVersion() {
-    const trimmed = note.trim()
-    if (!trimmed || appendVersion.isPending) return
-    appendVersion.mutate(
-      { note: trimmed },
-      { onSuccess: () => setNote("") },
-    )
-  }
+  const shapeRows = profile?.shape?.rows
+  const shapeCols = profile?.shape?.cols
 
   return (
     <Card className={className} data-testid="dataset-object">
       <CardHeader className="pb-2 space-y-2">
+        {/* Breadcrumb — project crumb is shown by the page; here: Files / kind / name */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {onBack && (
             <button
@@ -189,26 +193,22 @@ export function DatasetObject({
           <span>/</span>
           <span>{isRunOutput ? t('dataset_obj.outputs') : t('dataset_obj.inputs')}</span>
           <span>/</span>
-          {/* Breadcrumb ends in the human filename, not the raw UUID (poor UX,
-              and diverges from the reference's path-like crumb). The immutable
-              id stays available on hover for identity-on-demand. */}
           <span className="truncate" data-testid="dataset-object-id" title={dataset.id}>
             {dataset.name}
           </span>
         </div>
+
+        {/* Identity row: name · v{N} · quality pill · actions */}
         <div className="flex items-center gap-2 flex-wrap">
-          <CardTitle className="text-base font-mono truncate" data-testid="dataset-object-name">
+          <CardTitle className="text-lg font-mono font-semibold truncate" data-testid="dataset-object-name">
             {dataset.name}
           </CardTitle>
-          {dataset.contentType && (
-            <Badge variant="outline" className="text-[10px]">{dataset.contentType}</Badge>
-          )}
-          <Badge variant="outline" className="text-[10px]">{formatBytes(dataset.size)}</Badge>
-          {/* Quality pill (from the already-fetched perception profile) — object
-              identity on the header, not buried in the Quality tab. */}
+          <Badge variant="secondary" className="text-xs" data-testid="dataset-header-version">
+            {currentVersionLabel}
+          </Badge>
           {profile?.quality && HEADER_QUALITY[profile.quality] && (
             <span
-              className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px]"
+              className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs"
               data-testid="dataset-header-quality"
               data-quality={profile.quality}
               title={t('file_tree.quality', { quality: profile.quality })}
@@ -217,34 +217,14 @@ export function DatasetObject({
               {t('dataset_obj.quality_' + profile.quality)}
             </span>
           )}
-          {/* Version count chip — surfaces that the object has history without
-              opening the Versions tab. Honest count; details live in the tab. */}
-          {propVersions.length > 0 && (
-            <Badge
-              variant="outline"
-              className="text-[10px] gap-1"
-              data-testid="dataset-header-versions"
-              title={t(propVersions.length === 1 ? 'dataset_obj.versions_recorded_one' : 'dataset_obj.versions_recorded_other', { n: propVersions.length })}
-            >
-              <History className="h-3 w-3" />
-              {t(propVersions.length === 1 ? 'dataset_obj.ver_count_one' : 'dataset_obj.ver_count_other', { n: propVersions.length })}
-            </Badge>
-          )}
+
           <div className="ml-auto flex items-center gap-2">
-            {dataset.ref && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs gap-1"
-                onClick={handleExportRoCrate}
-                disabled={exporting}
-                title={t('file_tree.export_crate')}
-                data-testid="dataset-object-rocrate"
-              >
-                <FileArchive className="h-3 w-3" />
-                {exporting ? t('dataset_obj.exporting') : t('dataset_obj.export_rocrate')}
-              </Button>
-            )}
+            {/* Open in — Jupyter / RStudio / Plot viewer (design §4.3.1).
+                FUTURE: launching an interactive tool on a data-hub dataset needs a
+                dataset→history staging endpoint (presign → import-url → launch);
+                interactive tools can't bind an arbitrary project file today. Wire
+                these here once that endpoint exists. For now, "Ask in chat" is the
+                supported path to work on a file interactively. */}
             {onAnalyze && (
               <Button
                 size="sm"
@@ -254,20 +234,7 @@ export function DatasetObject({
                 title={t('file_tree.attach_to_chat')}
               >
                 <Play className="h-3 w-3" />
-                {t('dataset_obj.use_in_chat')}
-              </Button>
-            )}
-            {onRunQC && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs gap-1"
-                onClick={onRunQC}
-                data-testid="dataset-object-run-qc"
-                title={t('dataset_obj.run_qc_tip')}
-              >
-                <ShieldCheck className="h-3 w-3" />
-                {t('dataset_obj.run_qc')}
+                {t('dataset_obj.ask_in_chat')}
               </Button>
             )}
             {onDownload && (
@@ -284,98 +251,281 @@ export function DatasetObject({
             )}
           </div>
         </div>
-        {exportError && (
-          <p className="text-[10px] text-destructive" data-testid="dataset-rocrate-error">
-            {exportError}
-          </p>
-        )}
       </CardHeader>
 
       <CardContent>
-        <Tabs
-          // Remount per dataset so selecting a different file resets to Preview
-          // instead of keeping whatever tab the previous file was showing.
-          key={dataset.id}
-          defaultValue="preview"
-          onValueChange={(v) => {
-            // Lineage now also holds Consumers (and Origin), so opening it
-            // lazy-loads both the producedBy and the consumers queries.
-            if (v === "lineage") { setLineageOpened(true); setConsumersOpened(true) }
-            else if (v === "versions") setVersionsOpened(true)
-          }}
-        >
-          {/* Three tabs, not six: Quality folds into Preview (the header already
-              carries the quality badge); Consumers + Origin fold into Lineage as
-              one "where it came from / what reads it" provenance view. */}
-          <TabsList className="mb-3 flex-wrap h-auto">
-            <TabsTrigger value="preview" className="text-xs" data-testid="dataset-tab-preview">
-              <Eye className="h-3 w-3 mr-1" />{t('file_tree.preview')}
-            </TabsTrigger>
-            <TabsTrigger value="lineage" className="text-xs" data-testid="dataset-tab-lineage">
-              <GitBranch className="h-3 w-3 mr-1" />{t('dataset_obj.lineage')}
-            </TabsTrigger>
-            <TabsTrigger value="versions" className="text-xs" data-testid="dataset-tab-versions">
-              <History className="h-3 w-3 mr-1" />{t('dataset_obj.versions')}
-            </TabsTrigger>
-          </TabsList>
+        {/* Underlined text tabs (design §4.2.1 .tab2 style) — not boxed. */}
+        <div className="flex items-center gap-4 border-b mb-3" role="tablist">
+          {([
+            ["preview", Eye, t('file_tree.preview')],
+            ["versions", History, t('dataset_obj.versions')],
+            ["wherefrom", GitBranch, t('dataset_obj.where_from')],
+          ] as const).map(([key, Icon, label]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              data-testid={`dataset-tab-${key}`}
+              onClick={() => {
+                setTab(key)
+                if (key === "wherefrom") setWherefromOpened(true)
+                else if (key === "versions") setVersionsOpened(true)
+              }}
+              className={
+                "inline-flex items-center gap-1 -mb-px border-b-2 pb-2 pt-1 text-sm transition-colors " +
+                (tab === key
+                  ? "border-primary text-foreground font-medium"
+                  : "border-transparent text-muted-foreground hover:text-foreground")
+              }
+            >
+              <Icon className="h-3.5 w-3.5" />{label}
+            </button>
+          ))}
+        </div>
 
-          {/* ── Preview: the actual data (columns + first rows) then identity ── */}
-          <TabsContent value="preview" className="space-y-2 text-xs" data-testid="dataset-preview">
-            {profile?.columns?.length && profile.sampleRows?.length ? (
-              <div className="space-y-1" data-testid="dataset-preview-table">
-                <div className="overflow-x-auto rounded border">
-                  <table className="w-full border-collapse text-[11px]">
-                    {/* Header reads as a header without a heavy rule — a light
-                        blue band (--bm-accent-soft) + accent-ink text, mirroring
-                        the reference data-table header. */}
-                    <thead>
-                      <tr style={{ background: 'var(--bm-accent-soft)' }}>
-                        {profile.columns.map((c, i) => (
-                          <th
-                            key={i}
-                            className="whitespace-nowrap px-2 py-1 text-left font-semibold border-b"
-                            style={{ color: 'var(--bm-accent-ink)' }}
-                          >
-                            {c}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {profile.sampleRows.map((r, ri) => (
-                        <tr key={ri} className="odd:bg-muted/20">
-                          {profile.columns!.map((_, ci) => (
-                            <td key={ci} className="whitespace-nowrap px-2 py-0.5 font-mono border-b">
-                              {r[ci] ?? ""}
-                            </td>
+          {/* ── Preview: Table / Columns / Plot + stat grid ── */}
+          {tab === "preview" && (<div className="space-y-3 text-sm" data-testid="dataset-preview">
+            {/* View toggle (design §4.3). Table is backed today; Columns + Plot
+                show the honest "open in Jupyter / ask in chat" fallback until the
+                profiler returns per-column stats + distributions. */}
+            <div className="flex items-center gap-1.5">
+              {([
+                ["table", TableIcon, t('dataset_obj.view_table')],
+                ["columns", Columns3, t('dataset_obj.view_columns')],
+                ["plot", BarChart3, t('dataset_obj.view_plot')],
+              ] as const).map(([key, Icon, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setPreviewView(key)}
+                  data-testid={`dataset-preview-toggle-${key}`}
+                  aria-pressed={previewView === key}
+                  className={
+                    "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-sm " +
+                    (previewView === key
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "hover:bg-muted/50")
+                  }
+                >
+                  <Icon className="h-3 w-3" />{label}
+                </button>
+              ))}
+            </div>
+
+            {previewView === "table" && (
+              profile?.columns?.length && profile.sampleRows?.length ? (
+                <div className="space-y-1" data-testid="dataset-preview-table">
+                  <div className="overflow-x-auto rounded border">
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr style={{ background: 'var(--bm-accent-soft)' }}>
+                          {profile.columns.map((c, i) => (
+                            <th
+                              key={i}
+                              className="whitespace-nowrap px-2 py-1 text-left font-semibold border-b"
+                              style={{ color: 'var(--bm-accent-ink)' }}
+                            >
+                              {c}
+                            </th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {profile.sampleRows.map((r, ri) => (
+                          <tr key={ri} className="odd:bg-muted/20">
+                            {profile.columns!.map((_, ci) => (
+                              <td key={ci} className="whitespace-nowrap px-2 py-0.5 font-mono border-b">
+                                {r[ci] ?? ""}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {t('dataset_obj.preview_rows', {
+                      shown: profile.sampleRows.length,
+                      of: shapeRows ? t('dataset_obj.rows_of', { total: shapeRows.toLocaleString() }) : "",
+                    })}
+                  </p>
                 </div>
-                <p className="text-[10px] text-muted-foreground">
-                  {t('dataset_obj.preview_rows', {
-                    shown: profile.sampleRows.length,
-                    of: profile.shape?.rows ? t('dataset_obj.rows_of', { total: profile.shape.rows.toLocaleString() }) : "",
-                  })}
-                </p>
+              ) : isLoading ? (
+                <div className="space-y-2" data-testid="dataset-preview-loading">
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : (
+                preview ?? (
+                  <p className="text-sm text-muted-foreground" data-testid="dataset-preview-none">
+                    {t('dataset_obj.no_preview')}
+                  </p>
+                )
+              )
+            )}
+
+            {previewView === "columns" && (
+              // FUTURE: per-column type / % missing / distinct. The profiler returns
+              // column names + a sample only — no per-column stats — so we don't fake
+              // a column profile. Offer the real path to look deeper.
+              <div className="rounded border bg-muted/20 p-3 text-sm text-muted-foreground space-y-2" data-testid="dataset-preview-columns-future">
+                <p>{t('dataset_obj.columns_future')}</p>
+                {onAnalyze && (
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAnalyze}>
+                    <Play className="h-3 w-3" />{t('dataset_obj.ask_in_chat')}
+                  </Button>
+                )}
               </div>
-            ) : preview ?? null}
-            <Row k={t('dataset_obj.row_name')} v={dataset.name} mono />
-            <Row k={t('dataset_obj.row_size')} v={formatBytes(dataset.size)} mono />
-            <Row k={t('dataset_obj.row_type')} v={fmt(dataset.contentType)} mono />
-            <Row k={t('dataset_obj.row_reference')} v={fmt(dataset.ref)} mono last />
-            <p className="text-[10px] text-muted-foreground pt-1">
-              {t('dataset_obj.preview_note')}
-            </p>
-            {/* Quality folded into Preview — the header already carries the
-                pass/watch/blocked badge, so it needs no separate tab. */}
-            <div className="pt-3 mt-1 border-t space-y-2" data-testid="dataset-quality">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{t('dataset_obj.quality_heading')}</p>
-              <p className="text-[10px] text-muted-foreground" data-testid="dataset-quality-sub">{t('dataset_obj.quality_sub')}</p>
+            )}
+
+            {previewView === "plot" && (
+              // Spec-sanctioned fallback (§4.3): "if nothing numeric is present the
+              // view says so and offers Jupyter or chat, rather than an empty axis."
+              // Real distributions/PCA are FUTURE (no plot data from the profiler).
+              <div className="rounded border bg-muted/20 p-3 text-sm text-muted-foreground space-y-2" data-testid="dataset-preview-plot-future">
+                <p>{t('dataset_obj.plot_future')}</p>
+                {onAnalyze && (
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAnalyze}>
+                    <Play className="h-3 w-3" />{t('dataset_obj.ask_in_chat')}
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Stat grid (design §4.3): rows · columns · size · current version. */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" data-testid="dataset-stat-grid">
+              <StatCard k={t('dataset_obj.stat_rows')} v={shapeRows != null ? shapeRows.toLocaleString() : "—"} />
+              <StatCard k={t('dataset_obj.stat_columns')} v={shapeCols != null ? String(shapeCols) : "—"} />
+              <StatCard k={t('dataset_obj.stat_size')} v={formatBytes(dataset.size)} />
+              <StatCard k={t('dataset_obj.stat_version')} v={currentVersionLabel} />
+            </div>
+
+            {/* FUTURE: "Ask BioMate to edit this" — a conversational edit that writes
+                a new version. Needs an edit-save / content-versioning endpoint
+                (POST versions appends a NOTE only). Tracked in the audit doc. */}
+          </div>)}
+
+          {/* ── Versions ── */}
+          {tab === "versions" && (<div className="space-y-2" data-testid="dataset-versions">
+            {versionsQ.isLoading ? (
+              <div className="space-y-2" data-testid="dataset-versions-loading">
+                <Skeleton className="h-8 w-full" />
+              </div>
+            ) : versions.length ? (
+              versions.map((v) => (
+                <div
+                  key={v.version}
+                  className={`rounded border px-2 py-1.5 text-xs ${v.current ? "bg-primary/5 border-primary/40" : ""}`}
+                  data-testid={`dataset-version-${v.version}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-semibold">{v.label}</span>
+                    {v.current && (
+                      <Badge variant="outline" className="text-xs">{t('dataset_obj.current')}</Badge>
+                    )}
+                    {v.createdAt && (
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {new Date(
+                          typeof v.createdAt === "number" ? v.createdAt * 1000 : v.createdAt,
+                        ).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                  {v.note && (
+                    <p className="text-sm text-foreground pt-0.5">
+                      {v.note}
+                      {v.author && <span className="text-muted-foreground"> — {v.author}</span>}
+                    </p>
+                  )}
+                  {/* FUTURE: Compare / Restore — no diff/restore endpoint yet. */}
+                </div>
+              ))
+            ) : propVersions.length ? (
+              propVersions.map((v) => (
+                <div key={v} className="rounded border px-2 py-1 text-xs" data-testid={`dataset-version-${v}`}>
+                  <span className="font-mono font-semibold">{v}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground" data-testid="dataset-no-versions">
+                {t('dataset_obj.one_version_only')}
+              </p>
+            )}
+
+            {/* Why versions matter (design §4.4) — static, always-true copy. */}
+            <div className="rounded border bg-muted/20 p-2.5 space-y-1" data-testid="dataset-why-versions">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {t('dataset_obj.why_versions_title')}
+              </p>
+              <p className="text-sm text-muted-foreground">{t('dataset_obj.why_versions_body')}</p>
+            </div>
+
+            {/* FUTURE: a manual add-note box created versions by hand; the design
+                has versions come from edits / runs, which need the edit-save
+                endpoint. Removed until that exists. */}
+          </div>)}
+
+          {/* ── Where it came from ── */}
+          {tab === "wherefrom" && (<div className="space-y-3 text-sm" data-testid="dataset-wherefrom">
+            {/* Origin */}
+            <div className="rounded border p-2.5 space-y-1" data-testid="dataset-origin">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {t('dataset_obj.origin')}
+              </p>
+              <Row k={t('dataset_obj.source')} v={fmt(dataset.source)} />
+              {isRunOutput ? (
+                lineageQ.isLoading ? (
+                  <Skeleton className="h-4 w-40" />
+                ) : (
+                  <>
+                    <Row
+                      k={t('dataset_obj.produced_by')}
+                      v={fmt(lineageQ.data?.producedBy?.workflow ?? dataset.workflowName ?? dataset.runId)}
+                      mono
+                      onClick={
+                        onOpenRun && (lineageQ.data?.producedBy?.runId || dataset.runId)
+                          ? () => onOpenRun((lineageQ.data?.producedBy?.runId || dataset.runId)!)
+                          : undefined
+                      }
+                      testid="lineage-open-run"
+                    />
+                    {lineageQ.data?.producedBy?.status && (
+                      <Row k={t('dataset_obj.status')} v={fmt(lineageQ.data.producedBy.status)} />
+                    )}
+                  </>
+                )
+              ) : null}
+              <Row k={t('dataset_obj.storage_ref')} v={fmt(dataset.ref)} mono />
+              <Row
+                k={t('dataset_obj.added')}
+                v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString() : "—"}
+                last
+              />
+              {/* FUTURE: content hash + dedup note, and a this-project / whole-account
+                  visibility control — neither is exposed by the backend yet. */}
+            </div>
+
+            {/* Quality, at ingest (design §4.5.2) — the perception profile lives here. */}
+            <div className="rounded border p-2.5 space-y-2" data-testid="dataset-quality">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1">
+                  {t('dataset_obj.quality_heading')}
+                </p>
+                {onRunQC && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-sm gap-1"
+                    onClick={onRunQC}
+                    data-testid="dataset-object-run-qc"
+                    title={t('dataset_obj.run_qc_tip')}
+                  >
+                    <ShieldCheck className="h-3 w-3" />{t('dataset_obj.run_qc')}
+                  </Button>
+                )}
+              </div>
               {!dataset.ref ? (
-                <p className="text-[11px] text-muted-foreground" data-testid="dataset-quality-noref">
+                <p className="text-sm text-muted-foreground" data-testid="dataset-quality-noref">
                   {t('dataset_obj.quality_noref')}
                 </p>
               ) : isLoading ? (
@@ -384,7 +534,7 @@ export function DatasetObject({
                   <Skeleton className="h-16 w-full" />
                 </div>
               ) : isError || !profile ? (
-                <p className="text-[11px] text-muted-foreground" data-testid="dataset-quality-error">
+                <p className="text-sm text-muted-foreground" data-testid="dataset-quality-error">
                   {t('dataset_obj.quality_error')}
                 </p>
               ) : (
@@ -395,215 +545,76 @@ export function DatasetObject({
                 />
               )}
             </div>
-          </TabsContent>
 
-          {/* ── Lineage: what produced it ── */}
-          <TabsContent value="lineage" className="space-y-1 text-xs" data-testid="dataset-lineage">
-            {lineageQ.isLoading ? (
-              <div className="space-y-2" data-testid="dataset-lineage-loading">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ) : lineageQ.data?.available && lineageQ.data.producedBy ? (
-              <>
-                <Row
-                  k={t('dataset_obj.produced_by')}
-                  v={fmt(lineageQ.data.producedBy.runId)}
-                  mono
-                  onClick={
-                    onOpenRun && lineageQ.data.producedBy.runId
-                      ? () => onOpenRun(lineageQ.data!.producedBy!.runId!)
-                      : undefined
-                  }
-                  testid="lineage-open-run"
-                />
-                <Row
-                  k={t('workflow.labels.workflow')}
-                  v={fmt(lineageQ.data.producedBy.workflow ?? dataset.workflowName)}
-                  mono
-                />
-                <Row k={t('dataset_obj.status')} v={fmt(lineageQ.data.producedBy.status)} mono />
-                <Row k={t('workflow.labels.step')} v={fmt(dataset.stepName)} mono last />
-                <p className="text-[10px] text-muted-foreground pt-1">
-                  {t('dataset_obj.lineage_note')}
+            {/* What used it, and what came out (design §4.5.3) */}
+            <div className="rounded border p-2.5 space-y-1" data-testid="dataset-consumers">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1">
+                  {t('dataset_obj.what_used_it')}
                 </p>
-              </>
-            ) : isRunOutput ? (
-              // Prop says it's a run output but the backend has no surviving
-              // provenance record — show what the caller holds, honestly.
-              <>
-                <Row
-                  k={t('dataset_obj.produced_by')}
-                  v={fmt(dataset.runId)}
-                  mono
-                  onClick={onOpenRun && dataset.runId ? () => onOpenRun(dataset.runId!) : undefined}
-                  testid="lineage-open-run"
-                />
-                <Row k={t('workflow.labels.workflow')} v={fmt(dataset.workflowName)} mono />
-                <Row k={t('workflow.labels.step')} v={fmt(dataset.stepName)} mono last />
-                <p className="text-[10px] text-muted-foreground pt-1">
-                  {t('dataset_obj.lineage_note_noprov')}
-                </p>
-              </>
-            ) : (
-              <p className="text-[11px] text-muted-foreground" data-testid="dataset-lineage-uploaded">
-                {t('dataset_obj.uploaded_input')}
-              </p>
-            )}
-
-            {/* Read by (consumers) — folded into Lineage: downstream runs that
-                read this dataset, so provenance is one view, not three tabs. */}
-            <div className="pt-3 mt-2 border-t space-y-1" data-testid="dataset-consumers">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{t('dataset_obj.read_by')}</p>
-            {consumersQ.isLoading ? (
-              <div className="space-y-2" data-testid="dataset-consumers-loading">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            ) : consumers.length ? (
-              consumers.map((c) => (
-                <div
-                  key={c.runId}
-                  role={onOpenRun ? "button" : undefined}
-                  onClick={onOpenRun ? () => onOpenRun(c.runId) : undefined}
-                  className={`flex items-center gap-2 rounded border px-2 py-1 text-xs${onOpenRun ? " cursor-pointer hover:bg-muted/50" : ""}`}
-                  data-testid={`dataset-consumer-${c.runId}`}
-                >
-                  <Badge variant="outline" className="text-[10px]">{t('dataset_obj.reads')}</Badge>
-                  <span className="font-mono truncate">{c.workflow ?? c.runId}</span>
-                  {c.status && (
-                    <Badge variant="outline" className="text-[10px] ml-auto">{c.status}</Badge>
-                  )}
-                </div>
-              ))
-            ) : propConsumers.length ? (
-              propConsumers.map((c) => (
-                <div
-                  key={c}
-                  className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
-                  data-testid={`dataset-consumer-${c}`}
-                >
-                  <Badge variant="outline" className="text-[10px]">{t('dataset_obj.reads')}</Badge>
-                  <span className="font-mono truncate">{c}</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-[11px] text-muted-foreground" data-testid="dataset-no-consumers">
-                {t('dataset_obj.no_consumers')}
-              </p>
-            )}
-              <p className="text-[10px] text-muted-foreground pt-1">
-                {t('dataset_obj.consumers_note')}
-              </p>
-            </div>
-
-            {/* Origin — where it lives + when it arrived (folded into Lineage) */}
-            <div className="pt-3 mt-2 border-t space-y-1" data-testid="dataset-origin">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{t('dataset_obj.origin')}</p>
-              <Row k={t('dataset_obj.source')} v={fmt(dataset.source)} />
-              <Row k={t('dataset_obj.storage_ref')} v={fmt(dataset.ref)} mono />
-              <Row
-                k={t('dataset_obj.added')}
-                v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString() : "—"}
-                last
-              />
-            </div>
-          </TabsContent>
-
-          {/* ── Versions ── */}
-          <TabsContent value="versions" className="space-y-1" data-testid="dataset-versions">
-            {versionsQ.isLoading ? (
-              <div className="space-y-2" data-testid="dataset-versions-loading">
-                <Skeleton className="h-8 w-full" />
-              </div>
-            ) : versions.length ? (
-              versions.map((v) => (
-                <div
-                  key={v.version}
-                  className="rounded border px-2 py-1 text-xs"
-                  data-testid={`dataset-version-${v.version}`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-semibold">{v.label}</span>
-                    {v.current && (
-                      <Badge variant="outline" className="text-[10px]">{t('dataset_obj.current')}</Badge>
-                    )}
-                    {v.createdAt && (
-                      <span className="ml-auto text-[10px] text-muted-foreground">
-                        {new Date(
-                          typeof v.createdAt === "number" ? v.createdAt * 1000 : v.createdAt,
-                        ).toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                  {v.note && (
-                    <p className="text-[11px] text-foreground pt-0.5">
-                      {v.note}
-                      {v.author && (
-                        <span className="text-muted-foreground"> — {v.author}</span>
-                      )}
-                    </p>
-                  )}
-                </div>
-              ))
-            ) : propVersions.length ? (
-              propVersions.map((v) => (
-                <div
-                  key={v}
-                  className="flex items-center gap-2 rounded border px-2 py-1 text-xs"
-                  data-testid={`dataset-version-${v}`}
-                >
-                  <span className="font-mono font-semibold">{v}</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-[11px] text-muted-foreground" data-testid="dataset-no-versions">
-                {t('dataset_obj.no_versions')}
-              </p>
-            )}
-
-            {/* Append-only version note — never mutates a prior entry. */}
-            {dataset.ref && (
-              <div className="pt-2 space-y-1" data-testid="dataset-version-add">
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleAddVersion()
-                    }}
-                    placeholder={t('file_tree.version_note_placeholder')}
-                    className="h-7 text-xs"
-                    disabled={appendVersion.isPending}
-                    data-testid="dataset-version-note-input"
-                  />
+                {dataset.ref && (
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="h-7 text-xs gap-1 shrink-0"
-                    onClick={handleAddVersion}
-                    disabled={!note.trim() || appendVersion.isPending}
-                    data-testid="dataset-version-add-button"
+                    className="h-6 text-sm gap-1"
+                    onClick={handleExportRoCrate}
+                    disabled={exporting}
+                    title={t('file_tree.export_crate')}
+                    data-testid="dataset-object-rocrate"
                   >
-                    <Plus className="h-3 w-3" />
-                    {appendVersion.isPending ? t('dataset_obj.adding') : t('dataset_obj.add_version')}
+                    <FileArchive className="h-3 w-3" />
+                    {exporting ? t('dataset_obj.exporting') : t('dataset_obj.export_for_deposit')}
                   </Button>
-                </div>
-                {appendVersion.isError && (
-                  <p className="text-[10px] text-destructive" data-testid="dataset-version-add-error">
-                    {(appendVersion.error as Error)?.message || t('dataset_obj.add_version_error')}
-                  </p>
                 )}
-                <p className="text-[10px] text-muted-foreground">
-                  {t('dataset_obj.version_note_help')}
-                </p>
               </div>
-            )}
-          </TabsContent>
-
-        </Tabs>
+              {exportError && (
+                <p className="text-xs text-destructive" data-testid="dataset-rocrate-error">{exportError}</p>
+              )}
+              {consumersQ.isLoading ? (
+                <div className="space-y-2" data-testid="dataset-consumers-loading">
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              ) : consumers.length ? (
+                consumers.map((c) => (
+                  <div
+                    key={c.runId}
+                    role={onOpenRun ? "button" : undefined}
+                    onClick={onOpenRun ? () => onOpenRun(c.runId) : undefined}
+                    className={`flex items-center gap-2 rounded border px-2 py-1 text-xs${onOpenRun ? " cursor-pointer hover:bg-muted/50" : ""}`}
+                    data-testid={`dataset-consumer-${c.runId}`}
+                  >
+                    <Badge variant="outline" className="text-xs">{t('dataset_obj.reads')}</Badge>
+                    <span className="font-mono truncate">{c.workflow ?? c.runId}</span>
+                    {c.status && <Badge variant="outline" className="text-xs ml-auto">{c.status}</Badge>}
+                  </div>
+                ))
+              ) : propConsumers.length ? (
+                propConsumers.map((c) => (
+                  <div key={c} className="flex items-center gap-2 rounded border px-2 py-1 text-xs" data-testid={`dataset-consumer-${c}`}>
+                    <Badge variant="outline" className="text-xs">{t('dataset_obj.reads')}</Badge>
+                    <span className="font-mono truncate">{c}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground" data-testid="dataset-no-consumers">
+                  {t('dataset_obj.no_consumers')}
+                </p>
+              )}
+              {/* FUTURE: the "Produced" list (typed outputs that open as dataset
+                  objects) — not available from the lineage endpoint yet. */}
+            </div>
+          </div>)}
       </CardContent>
     </Card>
+  )
+}
+
+function StatCard({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="rounded border px-2.5 py-2">
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{k}</div>
+      <div className="text-lg font-mono font-semibold text-foreground">{v}</div>
+    </div>
   )
 }
 

@@ -156,9 +156,10 @@ describe("4. Dataset-object header surfaces the quality pill + version chip", ()
     expect(active).toMatch(/profile\?\.quality/);
   });
 
-  it("the header renders the version-count chip from dataset.versions", () => {
-    expect(active).toMatch(/data-testid="dataset-header-versions"/);
-    // propVersions is the header's version source and it derives from dataset.versions.
+  it("the header renders the v{N} version chip derived from dataset.versions", () => {
+    // Design §4.3.1: the header shows the current version (v2), not a count.
+    expect(active).toMatch(/data-testid="dataset-header-version"/);
+    // propVersions feeds currentVersionLabel and derives from dataset.versions.
     expect(active).toMatch(/const\s+propVersions\s*=\s*dataset\.versions/);
   });
 
@@ -169,7 +170,7 @@ describe("4. Dataset-object header surfaces the quality pill + version chip", ()
     expect(headEnd).toBeGreaterThan(headStart);
     const header = active.slice(headStart, headEnd);
     expect(header).toMatch(/data-testid="dataset-header-quality"/);
-    expect(header).toMatch(/data-testid="dataset-header-versions"/);
+    expect(header).toMatch(/data-testid="dataset-header-version"/);
   });
 });
 
