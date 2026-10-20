@@ -8,7 +8,12 @@
 # Expects: micromamba env /opt/fepenv with gromacs + pmx (develop) already created by the launcher's
 # user-data, and these env vars: SRC (precursor in/ prefix), DEST (FEP inputs out prefix), REGION.
 # Inputs pulled from SRC: receptor.pdb peptide.pdb mn_cada.pdb cada_mn.itp mdp/.
-set -uo pipefail
+# NOTE: NO `set -u` here. The micromamba/conda shell hook + `micromamba activate` below
+# reference unbound vars (e.g. $PS1); under `set -u` that is a FATAL shell abort that `|| true`
+# cannot catch, so the script died on env activation before the first STAGE marker (the
+# i-00f9a406 / i-02906edd silent code=1 exits). Var refs here are already ${VAR:-}-guarded, and
+# dropping -u means a real failure now PRINTS its marker instead of aborting blind. Keep pipefail.
+set -o pipefail
 cd /work 2>/dev/null || { mkdir -p /work && cd /work; }
 echo "FEPBUILD_START $(date -u 2>/dev/null) host=$(hostname 2>/dev/null) pwd=$(pwd)"
 _on_exit(){ ec=$?; echo "FEPBUILD_EXIT code=$ec";
