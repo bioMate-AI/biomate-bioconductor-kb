@@ -1,7 +1,7 @@
 #!/bin/bash
 # preflight_in_container.sh — full-complex grompp preflight for the avb6 FEP control edge.
 # Runs INSIDE gromacs-cuda:2024-cu12. Inputs staged in /work/in/:
-#   CTRL-TRIVEHEXIN_metal.cif, cada_mn.itp, prep_complex.py, mdp/
+#   receptor.pdb, peptide.pdb, mn_cada.pdb (prepped offline), cada_mn.itp, mdp/
 # Continue-on-error: each stage prints STAGE_<x>:OK or STAGE_<x>:FAIL <msg>; a SUMMARY prints at the end.
 # No GPU. grompp only (no mdrun). Writes full log to S3 if $S3LOG set.
 # NOTE: the gromacs-cuda:2024-cu12 image ENTRYPOINT is ['/bin/bash','-c'] (confirmed via ECR config).
@@ -22,13 +22,28 @@ if ! command -v gmx >/dev/null 2>&1; then
 fi
 VER=$(gmx --version 2>&1 | grep -i "GROMACS version" | head -1)
 [ -n "$VER" ] && R A OK "$VER" || { R A FAIL "no gmx on PATH"; echo SUMMARY_END; exit 0; }
-PY=$(command -v python3 || command -v python)
-$PY -m pip install -q gemmi numpy >/dev/null 2>&1 && R Apy OK || R Apy WARN "pip gemmi/numpy issue (prep may still work)"
+# prep is done OFFLINE now (gemmi runs on the author's box; PDBs staged in in/), so the container
+# needs NO gemmi/numpy. Inline python in stages D/F uses stdlib only (re, file IO).
+PY=$(command -v python3 || command -v python || echo "")
+[ -n "$PY" ] && R Apy OK "python=$PY (prep done offline; in-container python uses stdlib only)" \
+             || R Apy WARN "no python3 (stages D/F inline python + pmx will be skipped)"
+# probe for an existing conda/mamba env (an image built for structural work may already have tools)
+if command -v conda >/dev/null 2>&1; then echo "CONDA_PRESENT: $(conda env list 2>/dev/null | tr '\n' ';')"; fi
 
-# ---- A2: pmx ----
+# ---- A2: pmx (un-swallowed: capture the REAL install error; try fallbacks in order) ----
 PMX=FAIL
-$PY -m pip install -q pmx >/dev/null 2>&1 || $PY -m pip install -q git+https://github.com/deGrootLab/pmx.git >/dev/null 2>&1 || true
-if $PY -c "import pmx" >/dev/null 2>&1; then PMX=OK; V=$($PY -c "import pmx;print(getattr(pmx,'__version__','?'))" 2>/dev/null); R A2pmx OK "pmx $V"; else R A2pmx FAIL "pmx not importable after pip (image lacks it; pip install failed)"; fi
+: > pmx_install.out
+if [ -n "$PY" ] && $PY -c "import pmx" >/dev/null 2>&1; then PMX=OK; echo "pmx already importable" >> pmx_install.out; fi
+for ATT in "pip" "pip --break-system-packages" "pip --break-system-packages git+https://github.com/deGrootLab/pmx.git"; do
+  [ "$PMX" = OK ] && break
+  [ -z "$PY" ] && break
+  echo "--- attempt: $PY -m pip install $ATT pmx ---" >> pmx_install.out
+  if echo "$ATT" | grep -q git; then $PY -m pip install $ATT >> pmx_install.out 2>&1 || true
+  else $PY -m pip install $ATT pmx >> pmx_install.out 2>&1 || true; fi
+  $PY -c "import pmx" >/dev/null 2>&1 && PMX=OK
+done
+if [ "$PMX" = OK ]; then R A2pmx OK "pmx $($PY -c 'import pmx;print(getattr(pmx,"__version__","?"))' 2>/dev/null)"
+else R A2pmx FAIL "pmx install failed. REAL ERROR TAIL: $(tail -6 pmx_install.out | tr '\n' '|')"; fi
 
 # ---- B: CHARMM36m ff ----
 FF=""
@@ -40,8 +55,14 @@ done
 if [ -n "$FF" ]; then FFNAME=$(basename "$FF" .ff); R B OK "CHARMM36m = $FFNAME"; else FFNAME=charmm27; R B WARN "CHARMM36m DL failed; using bundled $FFNAME for MECHANICS validation only"; fi
 export GMXLIB=$PWD
 
-# ---- C: prep components ----
-$PY in/prep_complex.py in/CTRL-TRIVEHEXIN_metal.cif > prep.out 2>&1 && R C OK "$(grep PREP_OK prep.out)" || { R C FAIL "$(tail -3 prep.out)"; }
+# ---- C: components (pre-generated OFFLINE with gemmi on the author's box; staged in in/) ----
+# No gemmi in-container: just stage the known-good PDBs into CWD.
+cp in/receptor.pdb in/peptide.pdb in/mn_cada.pdb . 2>/dev/null
+if [ -f receptor.pdb ] && [ -f peptide.pdb ] && [ -f mn_cada.pdb ]; then
+  R C OK "pre-staged PDBs: receptor=$(grep -c '^ATOM' receptor.pdb) peptide=$(grep -c '^ATOM' peptide.pdb) mn_cada=$(grep -c '^HETATM' mn_cada.pdb) atoms"
+else
+  R C FAIL "pre-staged PDBs missing in in/ (expected receptor.pdb, peptide.pdb, mn_cada.pdb)"
+fi
 
 # ---- D: cyclic PEPTIDE topology + grompp (the FEP-mutated molecule; solvent-leg) ----
 # default termini (robust); then demonstrate the head-to-tail cyclization amide as an added C-N bond.
