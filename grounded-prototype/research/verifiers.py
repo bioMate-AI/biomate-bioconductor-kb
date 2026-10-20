@@ -93,6 +93,113 @@ class ExpectedParamsVerifier:
         return max(0.0, f1 * (1.0 - 0.5 * penalty))
 
 
+class StructureVerifier:
+    """Decomposition-plan reward, mirroring evaluation/datasets/decomposition_v2/
+    score.py :: score_one — a blend of node_f1 (did we recover the right
+    sub-tasks, token-matched), edge_f1 (right dependency edges on matched nodes),
+    and structure match (parallel/sequential/mixed). This is the Part A signal:
+    reward decomposing CORRECTLY (parallel when parallel), not merely more.
+
+    ground_truth = {"gold_subtasks": [{"sub_task","order","depends_on",
+    "domain"?,"tool_id"?}, ...]}. `response` is the predicted plan as a JSON list
+    (or its JSON string). Weighting follows the benchmark's emphasis: nodes and
+    structure first, edges conditioned on matched nodes.
+    """
+
+    name = "decomp_structure"
+    answer_free = False
+
+    _WORD = re.compile(r"[a-z0-9]+")
+
+    def _toks(self, s: Any) -> set:
+        return set(self._WORD.findall(str(s).lower()))
+
+    def _tok_f1(self, a: set, b: set) -> float:
+        if not a or not b:
+            return 0.0
+        inter = len(a & b)
+        if not inter:
+            return 0.0
+        p, r = inter / len(a), inter / len(b)
+        return 2 * p * r / (p + r)
+
+    def _gold_match_tokens(self, gn: dict) -> set:
+        t = self._toks(gn.get("sub_task", ""))
+        t |= self._toks(str(gn.get("domain", "")).replace("_", " "))
+        t |= self._toks(gn.get("tool_id", ""))
+        return t
+
+    def _match_nodes(self, pred: list, gold: list, thresh: float = 0.3) -> Dict[int, int]:
+        gtoks = [self._gold_match_tokens(g) for g in gold]
+        ptoks = [self._toks(p.get("sub_task", "")) for p in pred]
+        cand = []
+        for pi, pt in enumerate(ptoks):
+            for gi, gt in enumerate(gtoks):
+                s = self._tok_f1(pt, gt)
+                if s >= thresh:
+                    cand.append((s, pi, gi))
+        cand.sort(reverse=True)
+        pused, gused, m = set(), set(), {}
+        for s, pi, gi in cand:
+            if pi in pused or gi in gused:
+                continue
+            pused.add(pi); gused.add(gi); m[pi] = gi
+        return m
+
+    def _edges(self, plan: list) -> set:
+        idx = {}
+        for i, s in enumerate(plan):
+            idx[s.get("order", i + 1)] = i
+        E = set()
+        for i, s in enumerate(plan):
+            for d in (s.get("depends_on", []) or []):
+                if d in idx:
+                    E.add((idx[d], i))
+        return E
+
+    def _structure_of(self, plan: list) -> str:
+        deps = [len(s.get("depends_on", []) or []) for s in plan if isinstance(s, dict)]
+        if not deps:
+            return "empty"
+        if all(d == 0 for d in deps):
+            return "parallel"
+        if all(d > 0 for d in deps[1:]):
+            return "sequential"
+        return "mixed"
+
+    def score(self, ground_truth: Any, response: str) -> float:
+        import json
+        gold = (ground_truth or {}).get("gold_subtasks", []) or []
+        pred = response
+        if isinstance(pred, str):
+            try:
+                pred = json.loads(pred)
+            except Exception:
+                pred = []
+        if not isinstance(pred, list):
+            pred = []
+        if not gold:
+            return 0.0
+
+        m = self._match_nodes(pred, gold)
+        tp = len(m)
+        node_p = tp / len(pred) if pred else 0.0
+        node_r = tp / len(gold) if gold else 0.0
+        node_f1 = 2 * node_p * node_r / (node_p + node_r) if (node_p + node_r) else 0.0
+
+        ge = self._edges(gold)
+        pe = {(m[u], m[v]) for (u, v) in self._edges(pred) if u in m and v in m}
+        etp = len(pe & ge)
+        edge_p = etp / len(pe) if pe else (1.0 if not ge else 0.0)
+        edge_r = etp / len(ge) if ge else (1.0 if not pe else 0.0)
+        edge_f1 = (2 * edge_p * edge_r / (edge_p + edge_r)) if (edge_p + edge_r) else (
+            1.0 if (not ge and not pe) else 0.0)
+
+        structure_hit = 1.0 if self._structure_of(pred) == self._structure_of(gold) else 0.0
+        # nodes + structure are the primary signal; edges conditioned on nodes.
+        return max(0.0, min(1.0, 0.45 * node_f1 + 0.30 * structure_hit + 0.25 * edge_f1))
+
+
 class ExactClassVerifier:
     """Exact class-match accuracy over labelled properties — the logic of
     evaluation/scorers/admet_scorer.py.
@@ -117,6 +224,7 @@ class ExactClassVerifier:
 _TRUST = TrustLatticeVerifier()
 _PARAMS = ExpectedParamsVerifier()
 _CLASS = ExactClassVerifier()
+_STRUCT = StructureVerifier()
 
 
 def select_verifier(ground_truth: Optional[Any]) -> Verifier:
@@ -127,4 +235,13 @@ def select_verifier(ground_truth: Optional[Any]) -> Verifier:
             return _PARAMS
         if ground_truth.get("classes") is not None:
             return _CLASS
+        if ground_truth.get("gold_subtasks") is not None:
+            # a decomposition-plan task (research/decompose.py): the gold plan is
+            # ground truth, scored graph-aware (node/edge/structure).
+            return _STRUCT
+        if ground_truth.get("expected") is not None:
+            # a user-correction task (research/feedback.py): the corrected value
+            # is ground truth. Lazy import avoids a cycle.
+            from .feedback import CorrectionVerifier
+            return CorrectionVerifier()
     return _TRUST
