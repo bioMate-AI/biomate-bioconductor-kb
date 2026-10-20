@@ -54,7 +54,7 @@ with open("reconstruct_3d_face_from_mri_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("reconstruct_3d_face_from_mri_output.txt", "w") as f:
-    f.write("Biomni: Reconstruct 3D Face From Mri Results" + NL)
+    f.write("BioMate: Reconstruct 3D Face From Mri Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

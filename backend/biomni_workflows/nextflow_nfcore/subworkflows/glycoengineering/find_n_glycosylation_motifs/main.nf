@@ -144,7 +144,7 @@ with open("find_n_glycosylation_motifs_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("find_n_glycosylation_motifs_output.txt", "w") as f:
-    f.write("Biomni: Find N Glycosylation Motifs" + NL)
+    f.write("BioMate: Find N Glycosylation Motifs" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

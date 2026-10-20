@@ -255,7 +255,7 @@ with open("analyze_arsenic_speciation_hplc_icpms_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_arsenic_speciation_hplc_icpms_output.txt", "w") as f:
-    f.write("Biomni: Analyze Arsenic Speciation Hplc Icpms" + NL)
+    f.write("BioMate: Analyze Arsenic Speciation Hplc Icpms" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

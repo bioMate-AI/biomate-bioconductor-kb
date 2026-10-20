@@ -346,7 +346,7 @@ with open("perform_chipseq_peak_calling_with_macs2_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("perform_chipseq_peak_calling_with_macs2_output.txt", "w") as f:
-    f.write("Biomni: Perform Chipseq Peak Calling With Macs2" + NL)
+    f.write("BioMate: Perform Chipseq Peak Calling With Macs2" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

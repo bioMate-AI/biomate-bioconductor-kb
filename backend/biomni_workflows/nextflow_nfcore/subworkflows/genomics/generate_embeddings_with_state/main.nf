@@ -392,7 +392,7 @@ with open("generate_embeddings_with_state_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("generate_embeddings_with_state_output.txt", "w") as f:
-    f.write("Biomni: Generate Embeddings With State" + NL)
+    f.write("BioMate: Generate Embeddings With State" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

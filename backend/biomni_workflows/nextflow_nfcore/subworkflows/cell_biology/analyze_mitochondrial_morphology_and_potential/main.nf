@@ -338,7 +338,7 @@ with open("analyze_mitochondrial_morphology_and_potential_results.json", "w") as
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_mitochondrial_morphology_and_potential_output.txt", "w") as f:
-    f.write("Biomni: Analyze Mitochondrial Morphology And Potential" + NL)
+    f.write("BioMate: Analyze Mitochondrial Morphology And Potential" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

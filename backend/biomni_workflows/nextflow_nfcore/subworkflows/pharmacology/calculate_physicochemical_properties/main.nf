@@ -195,7 +195,7 @@ with open("calculate_physicochemical_properties_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("calculate_physicochemical_properties_output.txt", "w") as f:
-    f.write("Biomni: Calculate Physicochemical Properties" + NL)
+    f.write("BioMate: Calculate Physicochemical Properties" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

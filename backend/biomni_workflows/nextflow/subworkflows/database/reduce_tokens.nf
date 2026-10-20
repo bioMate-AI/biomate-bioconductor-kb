@@ -48,7 +48,7 @@ with open("reduce_tokens_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("reduce_tokens_output.txt", "w") as f:
-    f.write("Biomni: Reduce Tokens Results" + NL)
+    f.write("BioMate: Reduce Tokens Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

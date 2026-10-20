@@ -297,7 +297,7 @@ with open("simulate_gene_circuit_with_growth_feedback_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("simulate_gene_circuit_with_growth_feedback_output.txt", "w") as f:
-    f.write("Biomni: Simulate Gene Circuit With Growth Feedback" + NL)
+    f.write("BioMate: Simulate Gene Circuit With Growth Feedback" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

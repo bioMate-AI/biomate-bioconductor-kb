@@ -357,7 +357,7 @@ with open("analyze_fda_safety_signals_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_fda_safety_signals_output.txt", "w") as f:
-    f.write("Biomni: Analyze Fda Safety Signals" + NL)
+    f.write("BioMate: Analyze Fda Safety Signals" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

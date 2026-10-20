@@ -47,7 +47,7 @@ with open("get_gene_set_enrichment_analysis_supported_database_list_results.json
 # Create human-readable output
 NL = chr(10)
 with open("get_gene_set_enrichment_analysis_supported_database_list_output.txt", "w") as f:
-    f.write("Biomni: Get Gene Set Enrichment Analysis Supported Database List Results" + NL)
+    f.write("BioMate: Get Gene Set Enrichment Analysis Supported Database List Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

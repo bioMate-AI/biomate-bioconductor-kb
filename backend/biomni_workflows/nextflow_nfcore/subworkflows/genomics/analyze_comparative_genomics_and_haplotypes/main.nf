@@ -331,7 +331,7 @@ with open("analyze_comparative_genomics_and_haplotypes_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_comparative_genomics_and_haplotypes_output.txt", "w") as f:
-    f.write("Biomni: Analyze Comparative Genomics And Haplotypes" + NL)
+    f.write("BioMate: Analyze Comparative Genomics And Haplotypes" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

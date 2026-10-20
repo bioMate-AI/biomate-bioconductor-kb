@@ -353,7 +353,7 @@ with open("analyze_cell_morphology_and_cytoskeleton_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_cell_morphology_and_cytoskeleton_output.txt", "w") as f:
-    f.write("Biomni: Analyze Cell Morphology And Cytoskeleton" + NL)
+    f.write("BioMate: Analyze Cell Morphology And Cytoskeleton" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

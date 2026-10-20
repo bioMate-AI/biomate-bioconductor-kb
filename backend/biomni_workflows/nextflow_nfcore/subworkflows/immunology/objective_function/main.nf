@@ -131,7 +131,7 @@ with open("objective_function_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("objective_function_output.txt", "w") as f:
-    f.write("Biomni: Objective Function" + NL)
+    f.write("BioMate: Objective Function" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

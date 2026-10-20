@@ -431,7 +431,7 @@ with open("analyze_cell_migration_metrics_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_cell_migration_metrics_output.txt", "w") as f:
-    f.write("Biomni: Analyze Cell Migration Metrics" + NL)
+    f.write("BioMate: Analyze Cell Migration Metrics" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

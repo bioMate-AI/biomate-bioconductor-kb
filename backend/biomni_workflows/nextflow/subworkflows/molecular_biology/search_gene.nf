@@ -47,7 +47,7 @@ with open("search_gene_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("search_gene_output.txt", "w") as f:
-    f.write("Biomni: Search Gene Results" + NL)
+    f.write("BioMate: Search Gene Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

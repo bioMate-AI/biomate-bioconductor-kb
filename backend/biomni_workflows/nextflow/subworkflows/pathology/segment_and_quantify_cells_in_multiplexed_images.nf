@@ -54,7 +54,7 @@ with open("segment_and_quantify_cells_in_multiplexed_images_results.json", "w") 
 # Create human-readable output
 NL = chr(10)
 with open("segment_and_quantify_cells_in_multiplexed_images_output.txt", "w") as f:
-    f.write("Biomni: Segment And Quantify Cells In Multiplexed Images Results" + NL)
+    f.write("BioMate: Segment And Quantify Cells In Multiplexed Images Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

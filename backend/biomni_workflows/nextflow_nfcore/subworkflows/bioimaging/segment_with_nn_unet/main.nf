@@ -484,7 +484,7 @@ with open("segment_with_nn_unet_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("segment_with_nn_unet_output.txt", "w") as f:
-    f.write("Biomni: Segment With Nn Unet" + NL)
+    f.write("BioMate: Segment With Nn Unet" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

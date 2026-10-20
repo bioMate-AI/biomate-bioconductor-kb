@@ -283,7 +283,7 @@ with open("analyze_cytokine_production_in_cd4_tcells_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_cytokine_production_in_cd4_tcells_output.txt", "w") as f:
-    f.write("Biomni: Analyze Cytokine Production In Cd4 Tcells" + NL)
+    f.write("BioMate: Analyze Cytokine Production In Cd4 Tcells" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

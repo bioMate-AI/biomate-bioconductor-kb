@@ -126,7 +126,7 @@ with open("mass_action_kinetics_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("mass_action_kinetics_output.txt", "w") as f:
-    f.write("Biomni: Mass Action Kinetics" + NL)
+    f.write("BioMate: Mass Action Kinetics" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

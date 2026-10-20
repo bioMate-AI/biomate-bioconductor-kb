@@ -150,7 +150,7 @@ with open("gene_circuit_odes_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("gene_circuit_odes_output.txt", "w") as f:
-    f.write("Biomni: Gene Circuit Odes" + NL)
+    f.write("BioMate: Gene Circuit Odes" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -48,7 +48,7 @@ with open("conda_env_exists_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("conda_env_exists_output.txt", "w") as f:
-    f.write("Biomni: Conda Env Exists Results" + NL)
+    f.write("BioMate: Conda Env Exists Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

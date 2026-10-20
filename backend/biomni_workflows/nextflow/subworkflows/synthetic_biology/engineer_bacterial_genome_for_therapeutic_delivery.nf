@@ -50,7 +50,7 @@ with open("engineer_bacterial_genome_for_therapeutic_delivery_results.json", "w"
 # Create human-readable output
 NL = chr(10)
 with open("engineer_bacterial_genome_for_therapeutic_delivery_output.txt", "w") as f:
-    f.write("Biomni: Engineer Bacterial Genome For Therapeutic Delivery Results" + NL)
+    f.write("BioMate: Engineer Bacterial Genome For Therapeutic Delivery Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

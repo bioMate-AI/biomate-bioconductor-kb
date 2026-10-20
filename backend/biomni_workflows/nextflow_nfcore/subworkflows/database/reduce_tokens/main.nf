@@ -137,7 +137,7 @@ with open("reduce_tokens_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("reduce_tokens_output.txt", "w") as f:
-    f.write("Biomni: Reduce Tokens" + NL)
+    f.write("BioMate: Reduce Tokens" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

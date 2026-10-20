@@ -50,7 +50,7 @@ with open("quantify_cell_cycle_phases_from_microscopy_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("quantify_cell_cycle_phases_from_microscopy_output.txt", "w") as f:
-    f.write("Biomni: Quantify Cell Cycle Phases From Microscopy Results" + NL)
+    f.write("BioMate: Quantify Cell Cycle Phases From Microscopy Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

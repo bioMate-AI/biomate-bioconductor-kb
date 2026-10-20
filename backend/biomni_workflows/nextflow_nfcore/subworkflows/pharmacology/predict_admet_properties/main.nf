@@ -723,7 +723,7 @@ with open("predict_admet_properties_results.json", "w") as f:
 # ── Save human-readable output ───────────────────────────────────────────────
 NL = chr(10)
 with open("predict_admet_properties_output.txt", "w") as f:
-    f.write("Biomni: Predict ADMET Properties" + NL)
+    f.write("BioMate: Predict ADMET Properties" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

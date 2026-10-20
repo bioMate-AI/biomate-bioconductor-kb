@@ -56,7 +56,7 @@ with open("test_pylabrobot_script_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("test_pylabrobot_script_output.txt", "w") as f:
-    f.write("Biomni: Test Pylabrobot Script Results" + NL)
+    f.write("BioMate: Test Pylabrobot Script Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

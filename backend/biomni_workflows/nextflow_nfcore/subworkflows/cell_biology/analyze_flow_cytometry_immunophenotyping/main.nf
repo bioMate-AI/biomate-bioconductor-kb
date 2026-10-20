@@ -274,7 +274,7 @@ with open("analyze_flow_cytometry_immunophenotyping_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_flow_cytometry_immunophenotyping_output.txt", "w") as f:
-    f.write("Biomni: Analyze Flow Cytometry Immunophenotyping" + NL)
+    f.write("BioMate: Analyze Flow Cytometry Immunophenotyping" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

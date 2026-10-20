@@ -307,7 +307,7 @@ with open("analyze_genomic_region_overlap_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_genomic_region_overlap_output.txt", "w") as f:
-    f.write("Biomni: Analyze Genomic Region Overlap" + NL)
+    f.write("BioMate: Analyze Genomic Region Overlap" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

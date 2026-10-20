@@ -297,7 +297,7 @@ with open("simulate_metabolic_network_perturbation_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("simulate_metabolic_network_perturbation_output.txt", "w") as f:
-    f.write("Biomni: Simulate Metabolic Network Perturbation" + NL)
+    f.write("BioMate: Simulate Metabolic Network Perturbation" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

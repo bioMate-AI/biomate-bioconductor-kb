@@ -249,7 +249,7 @@ with open("count_bacterial_colonies_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("count_bacterial_colonies_output.txt", "w") as f:
-    f.write("Biomni: Count Bacterial Colonies" + NL)
+    f.write("BioMate: Count Bacterial Colonies" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

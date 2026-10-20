@@ -52,7 +52,7 @@ with open("model_protein_dimerization_network_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("model_protein_dimerization_network_output.txt", "w") as f:
-    f.write("Biomni: Model Protein Dimerization Network Results" + NL)
+    f.write("BioMate: Model Protein Dimerization Network Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

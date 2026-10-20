@@ -182,7 +182,7 @@ with open("predict_binding_affinity_protein_1d_sequence_results.json", "w") as f
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("predict_binding_affinity_protein_1d_sequence_output.txt", "w") as f:
-    f.write("Biomni: Predict Binding Affinity Protein 1D Sequence" + NL)
+    f.write("BioMate: Predict Binding Affinity Protein 1D Sequence" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

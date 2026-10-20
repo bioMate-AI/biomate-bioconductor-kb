@@ -187,7 +187,7 @@ with open("check_model_files_exist_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("check_model_files_exist_output.txt", "w") as f:
-    f.write("Biomni: Check Model Files Exist" + NL)
+    f.write("BioMate: Check Model Files Exist" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

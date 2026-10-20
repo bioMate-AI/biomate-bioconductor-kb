@@ -52,7 +52,7 @@ with open("analyze_arsenic_speciation_hplc_icpms_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("analyze_arsenic_speciation_hplc_icpms_output.txt", "w") as f:
-    f.write("Biomni: Analyze Arsenic Speciation Hplc Icpms Results" + NL)
+    f.write("BioMate: Analyze Arsenic Speciation Hplc Icpms Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

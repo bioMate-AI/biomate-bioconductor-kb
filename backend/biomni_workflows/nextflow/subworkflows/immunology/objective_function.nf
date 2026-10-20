@@ -48,7 +48,7 @@ with open("objective_function_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("objective_function_output.txt", "w") as f:
-    f.write("Biomni: Objective Function Results" + NL)
+    f.write("BioMate: Objective Function Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

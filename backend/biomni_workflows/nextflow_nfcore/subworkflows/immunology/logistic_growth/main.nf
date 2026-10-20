@@ -126,7 +126,7 @@ with open("logistic_growth_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("logistic_growth_output.txt", "w") as f:
-    f.write("Biomni: Logistic Growth" + NL)
+    f.write("BioMate: Logistic Growth" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

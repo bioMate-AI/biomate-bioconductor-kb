@@ -54,7 +54,7 @@ with open("quantify_biofilm_biomass_crystal_violet_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("quantify_biofilm_biomass_crystal_violet_output.txt", "w") as f:
-    f.write("Biomni: Quantify Biofilm Biomass Crystal Violet Results" + NL)
+    f.write("BioMate: Quantify Biofilm Biomass Crystal Violet Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

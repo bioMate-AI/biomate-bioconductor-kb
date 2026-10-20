@@ -372,7 +372,7 @@ with open("detect_and_characterize_structural_variations_results.json", "w") as 
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("detect_and_characterize_structural_variations_output.txt", "w") as f:
-    f.write("Biomni: Detect And Characterize Structural Variations" + NL)
+    f.write("BioMate: Detect And Characterize Structural Variations" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

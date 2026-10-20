@@ -281,7 +281,7 @@ with open("analyze_chromatin_interactions_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_chromatin_interactions_output.txt", "w") as f:
-    f.write("Biomni: Analyze Chromatin Interactions" + NL)
+    f.write("BioMate: Analyze Chromatin Interactions" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

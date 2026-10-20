@@ -218,7 +218,7 @@ with open("analyze_western_blot_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_western_blot_output.txt", "w") as f:
-    f.write("Biomni: Analyze Western Blot" + NL)
+    f.write("BioMate: Analyze Western Blot" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

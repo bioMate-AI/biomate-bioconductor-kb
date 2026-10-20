@@ -346,7 +346,7 @@ with open("analyze_calcium_imaging_data_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_calcium_imaging_data_output.txt", "w") as f:
-    f.write("Biomni: Analyze Calcium Imaging Data" + NL)
+    f.write("BioMate: Analyze Calcium Imaging Data" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

@@ -50,7 +50,7 @@ with open("get_fda_drug_label_info_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("get_fda_drug_label_info_output.txt", "w") as f:
-    f.write("Biomni: Get Fda Drug Label Info Results" + NL)
+    f.write("BioMate: Get Fda Drug Label Info Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

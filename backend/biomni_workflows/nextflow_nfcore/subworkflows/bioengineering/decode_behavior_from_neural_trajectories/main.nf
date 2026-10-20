@@ -330,7 +330,7 @@ with open("decode_behavior_from_neural_trajectories_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("decode_behavior_from_neural_trajectories_output.txt", "w") as f:
-    f.write("Biomni: Decode Behavior From Neural Trajectories" + NL)
+    f.write("BioMate: Decode Behavior From Neural Trajectories" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

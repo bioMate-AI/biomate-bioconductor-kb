@@ -52,7 +52,7 @@ with open("perform_cosinor_analysis_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("perform_cosinor_analysis_output.txt", "w") as f:
-    f.write("Biomni: Perform Cosinor Analysis Results" + NL)
+    f.write("BioMate: Perform Cosinor Analysis Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

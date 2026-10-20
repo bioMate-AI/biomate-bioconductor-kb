@@ -52,7 +52,7 @@ with open("michaelis_menten_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("michaelis_menten_output.txt", "w") as f:
-    f.write("Biomni: Michaelis Menten Results" + NL)
+    f.write("BioMate: Michaelis Menten Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

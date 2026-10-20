@@ -228,7 +228,7 @@ with open("check_fda_drug_recalls_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("check_fda_drug_recalls_output.txt", "w") as f:
-    f.write("Biomni: Check Fda Drug Recalls" + NL)
+    f.write("BioMate: Check Fda Drug Recalls" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

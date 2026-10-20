@@ -477,7 +477,7 @@ with open("analyze_cns_lesion_histology_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("analyze_cns_lesion_histology_output.txt", "w") as f:
-    f.write("Biomni: Analyze Cns Lesion Histology" + NL)
+    f.write("BioMate: Analyze Cns Lesion Histology" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

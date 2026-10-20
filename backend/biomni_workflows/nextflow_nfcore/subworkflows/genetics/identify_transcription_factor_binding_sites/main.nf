@@ -235,7 +235,7 @@ with open("identify_transcription_factor_binding_sites_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("identify_transcription_factor_binding_sites_output.txt", "w") as f:
-    f.write("Biomni: Identify Transcription Factor Binding Sites" + NL)
+    f.write("BioMate: Identify Transcription Factor Binding Sites" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):

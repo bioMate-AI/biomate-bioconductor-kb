@@ -56,7 +56,7 @@ with open("compare_protein_structures_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)
 with open("compare_protein_structures_output.txt", "w") as f:
-    f.write("Biomni: Compare Protein Structures Results" + NL)
+    f.write("BioMate: Compare Protein Structures Results" + NL)
     f.write("=" * 60 + NL + NL)
     if isinstance(result, dict):
         for key, value in result.items():

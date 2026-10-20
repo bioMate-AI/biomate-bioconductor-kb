@@ -107,7 +107,7 @@ with open("target_results.json", "w") as f:
 # Create human-readable output
 NL = chr(10)  # newline character
 with open("target_output.txt", "w") as f:
-    f.write("Biomni: Target" + NL)
+    f.write("BioMate: Target" + NL)
     f.write("=" * 60 + NL + NL)
     if success:
         if isinstance(result, str):
