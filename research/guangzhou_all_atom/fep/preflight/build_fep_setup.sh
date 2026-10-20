@@ -1,0 +1,153 @@
+#!/bin/bash
+# build_fep_setup.sh — OFFLINE (CPU, no GPU/mdrun) build of the avb6 FEP CONTROL-EDGE inputs.
+# Control edge ONLY: Trivehexin-mono (YRGDLAYPK, Tyr1/Tyr7) -> avebehexin (FRGDLAFPK), i.e. Y1F+Y7F.
+# Builds BOTH legs (complex + solvent) as pmx A->B dual-state hybrids, solvates+ionizes, grompp em.tpr
+# as the readiness proof, stages everything to DEST/in/, and writes in/FEP_INPUTS_READY LAST iff all OK.
+# The GPU Batch job then runs mdrun only (em->nvt->npt->per-lambda HREX) — NO pmx needed there.
+#
+# Expects: micromamba env /opt/fepenv with gromacs + pmx (develop) already created by the launcher's
+# user-data, and these env vars: SRC (precursor in/ prefix), DEST (FEP inputs out prefix), REGION.
+# Inputs pulled from SRC: receptor.pdb peptide.pdb mn_cada.pdb cada_mn.itp mdp/.
+set -uo pipefail
+cd /work 2>/dev/null || { mkdir -p /work && cd /work; }
+echo "FEPBUILD_START $(date -u 2>/dev/null) host=$(hostname 2>/dev/null) pwd=$(pwd)"
+_on_exit(){ ec=$?; echo "FEPBUILD_EXIT code=$ec";
+  if [ -n "${DEST:-}" ]; then tar czf /tmp/fepbuild_logs.tgz *.out *.top *.gro *.itp *.mdp *.tpr 2>/dev/null;
+    aws s3 cp /tmp/fepbuild_logs.tgz "${DEST}/fepbuild_logs.tgz" --region "${REGION:-us-west-2}" >/dev/null 2>&1 \
+      && echo "LOGS_UPLOADED ${DEST}/fepbuild_logs.tgz" || echo "LOGS_UPLOAD_FAIL"; fi; }
+trap _on_exit EXIT
+R(){ echo "STAGE_$1:$2  ${3:-}"; }
+
+# ---- env ----
+eval "$(/opt/micromamba shell hook -s bash 2>/dev/null)" 2>/dev/null || true
+micromamba activate /opt/fepenv 2>/dev/null || true
+command -v gmx >/dev/null 2>&1 || source /opt/fepenv/bin/GMXRC 2>/dev/null || true
+GV=$(gmx --version 2>&1 | grep -i "GROMACS version" | head -1); [ -n "$GV" ] && R A OK "$GV" || { R A FAIL "no gmx in env"; exit 0; }
+PY=$(command -v python3)
+MUTFF=$($PY -c "import pmx,os;print(os.path.join(os.path.dirname(pmx.__file__),'data','mutff'))" 2>/dev/null)
+if [ -n "$MUTFF" ] && [ -d "$MUTFF" ]; then R A2pmx OK "pmx mutff=$MUTFF"; else R A2pmx FAIL "pmx/mutff missing"; exit 0; fi
+export GMXLIB="$MUTFF"        # so pdb2gmx/grompp find charmm36m-mut.ff + ions + spc216
+FF=charmm36m-mut
+
+# ---- inputs ----
+mkdir -p in && aws s3 cp "$SRC" in --recursive --region "${REGION:-us-west-2}" >/dev/null 2>&1
+for f in receptor.pdb peptide.pdb mn_cada.pdb cada_mn.itp; do cp "in/$f" . 2>/dev/null; done
+[ -f peptide.pdb ] && [ -f receptor.pdb ] && [ -f cada_mn.itp ] && R C OK "precursors present" || { R C FAIL "missing precursors"; exit 0; }
+printf "P 1 PHE\nP 7 PHE\n" > muts.txt   # mutate ONLY peptide chain P residues 1,7 (Tyr->Phe); keep_resid needs chain
+
+add_cyclization(){ # $1=topfile : inject head-to-tail C(last)-N(first) amide bond into the peptide moleculetype
+  $PY - "$1" <<'PYEOF'
+import re,sys
+f=sys.argv[1]; t=open(f).read()
+# operate on the LAST [ atoms ] block's molecule (the peptide, smallest). Find all moleculetype atom blocks.
+blocks=[m for m in re.finditer(r'\[ atoms \](.*?)(?=\n\[)', t, re.S)]
+if not blocks: print("CYC_NO_ATOMS"); sys.exit()
+blk=blocks[-1]  # peptide is the last-defined moleculetype in the merged top
+ids=[]
+for ln in blk.group(1).splitlines():
+    p=ln.split()
+    if len(p)>=5 and p[0].isdigit(): ids.append((int(p[0]),p[4]))
+firstN=next((i for i,an in ids if an=='N'),None)
+lastC=None
+for i,an in ids:
+    if an=='C': lastC=i
+if firstN and lastC and lastC>firstN:
+    # add bond under the peptide's own [ bonds ]; find the [ bonds ] that follows this [ atoms ]
+    tail=t[blk.end():]
+    nb=re.search(r'\[ bonds \]\n',tail)
+    if nb:
+        pos=blk.end()+nb.end()
+        t=t[:pos]+("%5d %5d     1 ; HEAD-TO-TAIL CYCLIZATION (C_last-N_first)\n"%(lastC,firstN))+t[pos:]
+        open(f,'w').write(t); print("CYC_ADDED lastC=%d firstN=%d"%(lastC,firstN))
+    else: print("CYC_NO_BONDS_BLOCK")
+else: print("CYC_INDEX_FAIL firstN=%s lastC=%s"%(firstN,lastC))
+PYEOF
+}
+
+build_leg(){ # $1=legname(complex|solvent)  $2=input.pdb  $3=withMn(yes/no)
+  leg=$1; inp=$2; withmn=$3; W=$leg; mkdir -p $W; cp "$inp" $W/start.pdb; (cd $W
+   export GMXLIB="$MUTFF"
+   # 1. pdb2gmx (reduced CYS, no -ss; charmm36m-mut adds H)
+   gmx pdb2gmx -f start.pdb -o conf.pdb -p topol.top -i posre.itp -ff $FF -water tip3p -ignh < /dev/null > ${leg}_pdb2gmx.out 2>&1 || { echo "${leg}:PDB2GMX_FAIL"; grep -iE 'error|fatal' ${leg}_pdb2gmx.out|head -3; exit 11; }
+   # 2. pmx mutate -> A->B hybrid structure (only chain P res 1,7)
+   gmx pdb2gmx -f start.pdb -o withH.pdb -p _t.top -i _p.itp -ff $FF -water tip3p -ignh < /dev/null > _h.out 2>&1 || true
+   python3 -m pmx mutate -f withH.pdb -o hybrid.pdb -ff $FF --script ../muts.txt --keep_resid > ${leg}_mutate.out 2>&1 || { echo "${leg}:PMX_MUTATE_FAIL"; tail -4 ${leg}_mutate.out; exit 12; }
+   # 3. pdb2gmx the hybrid structure -> hybrid topology
+   gmx pdb2gmx -f hybrid.pdb -o hconf.pdb -p htop.top -i hposre.itp -ff $FF -water tip3p -ignh < /dev/null > ${leg}_hpdb2gmx.out 2>&1 || { echo "${leg}:HYBRID_PDB2GMX_FAIL"; grep -iE 'error|fatal' ${leg}_hpdb2gmx.out|head -3; exit 13; }
+   # 4. pmx gentop -> fill B-states
+   python3 -m pmx gentop -p htop.top -o fep.top -ff $FF > ${leg}_gentop.out 2>&1 || { echo "${leg}:GENTOP_FAIL"; tail -4 ${leg}_gentop.out; exit 14; }
+  ) ; r=$?; [ $r -ne 0 ] && { R ${leg}_build FAIL "see ${leg}/*.out (rc=$r)"; return $r; }
+  # cyclization on the hybrid fep.top
+  add_cyclization "$W/fep.top" > $W/${leg}_cyc.out 2>&1
+  (cd $W
+   export GMXLIB="$MUTFF"
+   CONF=hconf.pdb
+   if [ "$withmn" = yes ]; then
+     # add CaDA Mn: include cada_mn.itp (atomtypes+MN2) after ff include; append MN2 x3 to [molecules]; add 21 Mn atoms to gro
+     cp ../cada_mn.itp .
+     python3 - <<'PYEOF' > ${leg}_mn.out 2>&1 || { echo MN_MERGE_FAIL; exit 21; }
+import re
+t=open('fep.top').read().splitlines(); out=[]; done=False
+for ln in t:
+    out.append(ln)
+    if ln.strip().startswith('#include') and not done:
+        out.append('#include "cada_mn.itp"'); done=True
+s='\n'.join(out)
+s=re.sub(r'(\[ molecules \].*)$', r'\1\nMN2                 3', s, flags=re.S)
+open('fep.top','w').write(s); print('MN_TOP_OK')
+PYEOF
+   fi
+   # box + solvate + ions
+   gmx editconf -f $CONF -o box.gro -c -d 1.2 -bt dodecahedron > ${leg}_editconf.out 2>&1 || { echo EDITCONF_FAIL; exit 22; }
+   if [ "$withmn" = yes ]; then
+     # append the 21 CaDA-Mn atoms to the (protein+peptide) box gro BEFORE solvation
+     python3 - <<'PYEOF' > ${leg}_mngro.out 2>&1 || { echo MN_GRO_FAIL; exit 23; }
+g=open('box.gro').read().splitlines(); n=int(g[1]); body=g[2:2+n]; box=g[2+n]
+mn=[]; resn=1; idx=0
+for ln in open('mn_cada.pdb'):
+    if ln.startswith('HETATM'):
+        x=float(ln[30:38])/10;y=float(ln[38:46])/10;z=float(ln[46:54])/10;nm=ln[12:16].strip()
+        if nm=='MN' and idx!=0: resn+=1
+        mn.append('%5d%-5s%5s%5d%8.3f%8.3f%8.3f'%(resn,'MN2',nm,(n+len(mn)+1)%100000,x,y,z)); idx+=1
+open('box.gro','w').write(g[0]+'\n%d\n'%(n+len(mn))+'\n'.join(body+mn)+'\n'+box+'\n'); print('MNGRO_OK +%d'%len(mn))
+PYEOF
+     cp mn_cada.pdb . 2>/dev/null
+   fi
+   gmx solvate -cp box.gro -cs spc216.gro -p fep.top -o solv.gro > ${leg}_solvate.out 2>&1 || { echo SOLVATE_FAIL; tail -3 ${leg}_solvate.out; exit 24; }
+   # ions: grompp a dummy em then genion
+   gmx grompp -f ../in/mdp/em.mdp -c solv.gro -p fep.top -o ions.tpr -maxwarn 20 > ${leg}_ionsgrompp.out 2>&1 || { echo IONS_GROMPP_FAIL; grep -iE 'error|fatal' ${leg}_ionsgrompp.out|head -5; exit 25; }
+   echo SOL | gmx genion -s ions.tpr -o ionized.gro -p fep.top -pname NA -nname CL -neutral -conc 0.15 > ${leg}_genion.out 2>&1 || { echo GENION_FAIL; tail -4 ${leg}_genion.out; exit 26; }
+   # readiness proof: grompp em on the final ionized system
+   gmx grompp -f ../in/mdp/em.mdp -c ionized.gro -p fep.top -o em.tpr -maxwarn 20 > ${leg}_emgrompp.out 2>&1 || { echo EM_GROMPP_FAIL; grep -iE 'error|fatal' ${leg}_emgrompp.out|head -6; exit 27; }
+   echo "${leg}_EM_TPR_OK atoms=$(gmx dump -s em.tpr 2>/dev/null | grep -m1 'natoms' | tr -dc '0-9')"
+  ) ; r=$?
+  if [ $r -eq 0 ] && [ -f $W/em.tpr ]; then R ${leg}_system OK "$W/em.tpr built (hybrid+solvate+0.15M)"; return 0
+  else R ${leg}_system FAIL "see $W/*.out (rc=$r); markers: $(grep -hoE '[A-Z_]+_FAIL' $W/*.out 2>/dev/null|tr '\n' ',')"; return $r; fi
+}
+
+# ---- SOLVENT leg (hybrid peptide alone) ----
+build_leg solvent peptide.pdb no ; SOLV=$?
+
+# ---- COMPLEX leg (receptor + peptide together via pdb2gmx; CaDA-Mn added post-hoc) ----
+# combine receptor + peptide into one PDB so pdb2gmx builds a single consistent topology (chains A,B,P)
+grep -hE '^(ATOM|TER)' receptor.pdb > complex_noMn.pdb
+echo "TER" >> complex_noMn.pdb
+grep -hE '^(ATOM|HETATM)' peptide.pdb >> complex_noMn.pdb
+echo "END" >> complex_noMn.pdb
+build_leg complex complex_noMn.pdb yes ; CPLX=$?
+
+# ---- stage FEP inputs + sentinel (LAST, only if BOTH legs built em.tpr) ----
+if [ "$SOLV" -eq 0 ] && [ "$CPLX" -eq 0 ]; then
+  for leg in solvent complex; do
+    aws s3 cp $leg "${DEST}/in/$leg" --recursive --region "${REGION:-us-west-2}" \
+      --exclude '*' --include 'fep.top' --include 'ionized.gro' --include 'em.tpr' --include '*.itp' >/dev/null 2>&1
+  done
+  aws s3 cp in/mdp "${DEST}/in/mdp" --recursive --region "${REGION:-us-west-2}" >/dev/null 2>&1
+  aws s3 cp cada_mn.itp "${DEST}/in/cada_mn.itp" --region "${REGION:-us-west-2}" >/dev/null 2>&1
+  echo "control-edge Y1F+Y7F; both legs; $(date -u)" > FEP_INPUTS_READY
+  aws s3 cp FEP_INPUTS_READY "${DEST}/in/FEP_INPUTS_READY" --region "${REGION:-us-west-2}" >/dev/null 2>&1 \
+    && R READY OK "FEP_INPUTS_READY staged -> ${DEST}/in/" || R READY FAIL "sentinel upload failed"
+else
+  R READY SKIP "legs incomplete (solvent rc=$SOLV complex rc=$CPLX); NO sentinel written"
+fi
+echo "FEPBUILD_STAGES_DONE"

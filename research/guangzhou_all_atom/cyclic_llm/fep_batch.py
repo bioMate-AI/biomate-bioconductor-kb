@@ -40,6 +40,12 @@ PREFIX = "cyclic_peptide/fep"
 HERE = os.path.dirname(os.path.abspath(__file__))
 FEP  = os.path.join(os.path.dirname(HERE), "fep")
 
+# _fep_command below still builds the pmx hybrid IN-CONTAINER (impossible: image has no pip). Once the
+# OFFLINE build (fep/build_fep_inputs.sh) stages the hybrid+solvated legs + em.tpr under in/ with the
+# FEP_INPUTS_READY sentinel, _fep_command must be REWRITTEN to mdrun-only (em->nvt->npt->per-lambda HREX
+# on the staged fep.top + ionized.gro, NO pmx). This flag gates --submit until that rewrite is done.
+MDRUN_CMD_READY = False
+
 CONTROL_EDGE = {
     "edge_id": "CTRL-TRIVEHEXIN__to__CTRL-AVEBEHEXIN",
     "state_A": {"name": "CTRL-TRIVEHEXIN", "seq": "YRGDLAYPK",
@@ -131,6 +137,10 @@ def dispatch_control_edge(run_id=None, dry_run=True):
     # mdrun on a PRE-BUILT (offline, gromacs+pmx) system. Refuse to submit until that system is staged,
     # signalled by an `in/FEP_INPUTS_READY` sentinel. This prevents firing a job that would download
     # nothing and die at the pmx step (predicted-failure spend). See docs/20261019_AVB6_FEP_CONTROL_EDGE_REVIEW.md.
+    if not MDRUN_CMD_READY:
+        return {"dry_run": False, "submitted": False,
+                "REFUSED": "_fep_command still does in-container pmx (impossible). Rewrite it to mdrun-only "
+                           "on the staged hybrid legs, then set MDRUN_CMD_READY=True. (Done at submit hand-back.)"}
     ready_key = f"{PREFIX}/{run_id}/in/FEP_INPUTS_READY"
     try:
         _boto("s3").head_object(Bucket=BUCKET, Key=ready_key)
