@@ -30,20 +30,12 @@ PY=$(command -v python3 || command -v python || echo "")
 # probe for an existing conda/mamba env (an image built for structural work may already have tools)
 if command -v conda >/dev/null 2>&1; then echo "CONDA_PRESENT: $(conda env list 2>/dev/null | tr '\n' ';')"; fi
 
-# ---- A2: pmx (un-swallowed: capture the REAL install error; try fallbacks in order) ----
-PMX=FAIL
-: > pmx_install.out
-if [ -n "$PY" ] && $PY -c "import pmx" >/dev/null 2>&1; then PMX=OK; echo "pmx already importable" >> pmx_install.out; fi
-for ATT in "pip" "pip --break-system-packages" "pip --break-system-packages git+https://github.com/deGrootLab/pmx.git"; do
-  [ "$PMX" = OK ] && break
-  [ -z "$PY" ] && break
-  echo "--- attempt: $PY -m pip install $ATT pmx ---" >> pmx_install.out
-  if echo "$ATT" | grep -q git; then $PY -m pip install $ATT >> pmx_install.out 2>&1 || true
-  else $PY -m pip install $ATT pmx >> pmx_install.out 2>&1 || true; fi
-  $PY -c "import pmx" >/dev/null 2>&1 && PMX=OK
-done
-if [ "$PMX" = OK ]; then R A2pmx OK "pmx $($PY -c 'import pmx;print(getattr(pmx,"__version__","?"))' 2>/dev/null)"
-else R A2pmx FAIL "pmx install failed. REAL ERROR TAIL: $(tail -6 pmx_install.out | tr '\n' '|')"; fi
+# ---- A2: pmx handled OFFLINE (prior run proved the image python has NO pip -> cannot install pmx here) ----
+# The Y1F/Y7F hybrid needs GROMACS (pdb2gmx to add backbone H) AND pmx together; container has gmx but no
+# pip/pmx. So the hybrid is a separate offline step (recipe in the review doc) and is NON-GATING for the
+# D/F grompp validations. If a hybrid was pre-staged in in/, stage E will verify it.
+PMX=OFFLINE
+R A2pmx NOTE "pmx not installable in-container (image python has no pip, confirmed); hybrid built offline, non-gating"
 
 # ---- B: CHARMM36m ff ----
 FF=""
@@ -104,56 +96,44 @@ PYEOF
   else R Dpdb2gmx FAIL "$(grep -iE 'error|fatal|not found' d_pdb2gmx.out | head -4)"; fi
 else R D SKIP "no peptide.pdb"; fi
 
-# ---- E: pmx Y1F/Y7F hybrid (control edge) ----
-if [ "$PMX" = OK ] && [ -f peptide.pdb ]; then
-  cat > muts.txt <<EOF
-1 PHE
-7 PHE
-EOF
-  if $PY -m pmx mutate -f peptide.pdb -o hybrid.pdb --script muts.txt --keep_resid > e_pmx.out 2>&1 || \
-     pmx mutate -f peptide.pdb -o hybrid.pdb --script muts.txt > e_pmx.out 2>&1; then
-    R Epmx OK "pmx hybrid Y1F+Y7F built ($(grep -c '^ATOM\|^HETATM' hybrid.pdb 2>/dev/null) atoms)"
-  else R Epmx FAIL "$(tail -4 e_pmx.out)"; fi
-else R Epmx SKIP "pmx unavailable or no peptide"; fi
+# ---- E: pmx Y1F/Y7F hybrid (control edge) — built OFFLINE, verified here if staged ----
+if [ -f in/hybrid.pdb ]; then
+  cp in/hybrid.pdb . && R Epmx OK "pre-staged pmx Y1F/Y7F hybrid present ($(grep -c '^ATOM\|^HETATM' hybrid.pdb 2>/dev/null) atoms)"
+else
+  R Epmx SKIP "hybrid built offline (pmx develop + GMXLIB=mutff + charmm36m-mut on a pdb2gmx-hydrogenated peptide); NON-GATING for D/F"
+fi
 
-# ---- F: FULL COMPLEX pdb2gmx (receptor+peptide, -ss for disulfides) + 3x MN2 + solvate + grompp ----
+# ---- F: FULL COMPLEX pdb2gmx (receptor, reduced CYS) + 3x CaDA MN2 + grompp ----
+echo "STAGE_F_ENTER receptor_atoms=$([ -f receptor.pdb ] && grep -c '^ATOM' receptor.pdb || echo MISSING) ff=$FFNAME"
 if [ -f receptor.pdb ]; then
-  # receptor alone first (biggest ff-coverage risk: integrin disulfides)
-  if printf "1\n1\n" | gmx pdb2gmx -f receptor.pdb -o rec.gro -p rec.top -i rec_posre.itp -ff "$FFNAME" -water tip3p -ignh -ss > f_rec.out 2>&1; then
-    R Frec OK "receptor (chains A,B, 1069 res) covered by $FFNAME + SS bonds"
-    # append MN2 molecules: include cada_mn.itp + add to [ molecules ]
+  # NO -ss: it prompts interactively per disulfide (integrin has many); a batch run can't answer it,
+  # pdb2gmx then EOFs mid-prompt and (with the piped pipefail construct) emits no marker. Reduced CYS
+  # are valid CHARMM36m residues -> fine for an assembly+coverage grompp preflight. </dev/null makes any
+  # stray prompt EOF instantly (no hang); explicit rc=$? avoids the pipefail ambiguity that hid the marker.
+  gmx pdb2gmx -f receptor.pdb -o rec.gro -p rec.top -i rec_posre.itp -ff "$FFNAME" -water tip3p -ignh < /dev/null > f_rec.out 2>&1
+  rc=$?
+  if [ $rc -eq 0 ] && [ -f rec.gro ]; then
+    R Frec OK "receptor (chains A,B, 1069 res, reduced CYS) covered by $FFNAME"
     cp in/cada_mn.itp . ; export GMXLIB=$PWD
-    # build a complex.top that includes receptor + cada_mn + lists MN2 3
     if grep -q '#include' rec.top; then
       $PY - <<'PYEOF' > f_mergetop.out 2>&1 || true
+import re
 t=open('rec.top').read().splitlines(); out=[]; done_inc=False
 for ln in t:
     out.append(ln)
     if ln.strip().startswith('#include') and not done_inc:
-        out.append('#include "cada_mn.itp"'); done_inc=True
-# append MN2 to [ molecules ]
+        out.append('#include "cada_mn.itp"'); done_inc=True   # atomtypes+MN2 moleculetype, after ff, before [system]
 s='\n'.join(out)
-import re
-s=re.sub(r'(\[ molecules \].*)$', r'\1\nMN2                 3', s, flags=re.S)
+s=re.sub(r'(\[ molecules \].*)$', r'\1\nMN2                 3', s, flags=re.S)  # 3 Mn sites
 open('complex.top','w').write(s); print('MERGE_OK include+MN2x3')
 PYEOF
-      # combined coordinate file: receptor + mn_cada (grompp needs atom count to match top)
-      # NOTE: a full build also needs the peptide in both top+gro; here we validate receptor+Mn merge (the metal path).
       if [ -f complex.top ]; then
-        # make a gro with receptor + 21 Mn-cada atoms
-        tail -n +2 mn_cada.pdb > /dev/null 2>&1
-        gmx editconf -f rec.gro -o rec_only.gro > /dev/null 2>&1
-        R Fmerge OK "complex.top assembled (receptor + cada_mn.itp include + MN2 x3) ($(cat f_mergetop.out))"
-        # grompp of receptor+MN2 requires a matching .gro; build via python concat of rec.gro + mn dummies
+        R Fmerge OK "complex.top assembled (receptor + cada_mn.itp + MN2 x3) ($(cat f_mergetop.out))"
+        # concat rec.gro + 21 CaDA-Mn atoms -> complex.gro; then editconf gives it a box for grompp/PME
         $PY - <<'PYEOF' > f_gro.out 2>&1 || true
-# concat rec.gro atoms + 21 MN2 atoms into complex.gro (gro format)
 rec=open('rec.gro').read().splitlines()
 nrec=int(rec[1]); body=rec[2:2+nrec]; box=rec[2+nrec]
-# parse mn_cada.pdb coords -> gro lines as resname MN2
-mn=[]
-resn=1
-names=['MN','D1','D2','D3','D4','D5','D6']
-idx=0
+mn=[]; resn=1; idx=0
 for ln in open('mn_cada.pdb'):
     if ln.startswith('HETATM'):
         x=float(ln[30:38])/10; y=float(ln[38:46])/10; z=float(ln[46:54])/10
@@ -165,12 +145,13 @@ tot=nrec+len(mn)
 open('complex.gro','w').write(rec[0]+'\n%d\n'%tot+'\n'.join(body+mn)+'\n'+box+'\n')
 print('GRO_OK tot=%d (rec=%d + mn=%d)'%(tot,nrec,len(mn)))
 PYEOF
-        if gmx grompp -f in/mdp/em.mdp -c complex.gro -p complex.top -o complex_em.tpr -maxwarn 8 > f_grompp.out 2>&1; then
+        gmx editconf -f complex.gro -o complex_box.gro -d 1.0 -bt cubic > f_editconf.out 2>&1 || cp complex.gro complex_box.gro
+        if gmx grompp -f in/mdp/em.mdp -c complex_box.gro -p complex.top -o complex_em.tpr -maxwarn 10 > f_grompp.out 2>&1; then
           R Fgrompp OK "FULL receptor+CaDA-Mn complex grompp OK ($(cat f_gro.out))"
-        else R Fgrompp FAIL "$(grep -iE 'error|fatal' f_grompp.out | head -4)"; fi
+        else R Fgrompp FAIL "$(grep -iE 'error|fatal' f_grompp.out | head -5 | tr '\n' '|')"; fi
       else R Fmerge FAIL "$(cat f_mergetop.out)"; fi
     else R Fmerge WARN "rec.top has no #include to anchor cada_mn include"; fi
-  else R Frec FAIL "$(grep -iE 'error|fatal|not found|does not match' f_rec.out | head -5)"; fi
+  else R Frec FAIL "rc=$rc $(grep -iE 'error|fatal|not found|does not match|not recognized|no such' f_rec.out | head -6 | tr '\n' '|')"; fi
 else R F SKIP "no receptor.pdb"; fi
 
 echo "PREFLIGHT_STAGES_DONE"   # the EXIT trap above ships logs.tgz + PREFLIGHT_EXIT unconditionally

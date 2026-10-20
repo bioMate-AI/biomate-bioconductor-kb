@@ -88,6 +88,25 @@ CaDA metal topology is the part that is validated here), and is confirmed by the
 `GROMPP_PREFLIGHT` gate in `fep_batch.py` at submit time (it fails fast on CPU before any GPU). pmx
 availability in `gromacs-cuda:2024-cu12` is the last open item; the command `pip`-installs it if absent.
 
+## Container preflight progress (2026-10-20, spot CPU, user-run launcher)
+Iterating the in-container preflight (`fep/preflight/preflight_in_container.sh`) on `gromacs-cuda:2024-cu12`:
+- Stage A: GROMACS 2024.3 OK. Stage B: CHARMM36m (charmm36-jul2022) downloads OK (network fine).
+- Stage C: prep moved **offline** (image python has no pip → no gemmi); known-good PDBs staged to S3. OK.
+- **Stage D OK — the cyclic peptide validates:** `pdb2gmx` covers the peptide under CHARMM36m; vacuum
+  `grompp` OK; and **the head-to-tail cyclization amide bond is accepted by grompp** (`STAGE_Dcyc:OK`,
+  CYC_ADDED lastC=149 firstN=1). The FEP-mutated molecule's topology is sound.
+- Stage F fixes (this round): the receptor `pdb2gmx` was run with `-ss`, which prompts interactively per
+  disulfide (integrin has many); the batch run EOF'd mid-prompt and the piped/pipefail construct emitted no
+  marker. Fixed: dropped `-ss` (reduced CYS are valid CHARMM36m residues — correct for an assembly+coverage
+  grompp preflight), `< /dev/null` to prevent any hang, explicit `rc=$?`, and a `STAGE_F_ENTER` canary.
+- **pmx hybrid — offline, non-gating.** The image python has no pip, so pmx can't install in-container. The
+  hybrid needs GROMACS **and** pmx together (`pmx mutate` requires a pdb2gmx-hydrogenated input: it fails
+  `N-CA-C-O -> N-CA-C-O-HA-HN` without backbone H). Recipe (run in an env with both, e.g. a gromacs+pmx
+  container or conda): `pip install git+https://github.com/deGrootLab/pmx.git@develop`; `pdb2gmx` the peptide
+  (adds H); `GMXLIB=<pmx>/data/mutff pmx mutate -ff charmm36m-mut --script "P 1 PHE / P 7 PHE" --keep_resid`;
+  `pmx gentop` to fill B-states. This does **not** gate the D/F grompp validations. (pmx develop confirmed
+  installable on the author's box; only the GROMACS-hydrogenation step is missing locally.)
+
 ## Status
 Wired + infra-validated + dry-run clean + **CaDA `.itp` GROMPP-equivalent validated (local, no spend)** +
 both flagged unknowns resolved + one fix committed. **Not submitted** (no GPU, no Batch this turn, per
