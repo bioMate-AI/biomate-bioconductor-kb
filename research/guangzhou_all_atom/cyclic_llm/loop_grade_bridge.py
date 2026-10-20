@@ -18,8 +18,28 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_HERE, "..", "..", "..", "evaluation", "local_trial"))
 import graded_run_store as S  # noqa: E402
 
-# score()/loop physics run-kind -> execution_grader CONTRACT workflow name
+# score()/loop physics run-kind -> execution_grader CONTRACT workflow name. A small registry (not a
+# frozen dict): a new run-kind (e.g. a gromacs_pmx_fep edge) is added via register_run_kind(...) + its
+# contract via graded_run_store.G.register_contract(...), without editing this module — mirroring the
+# generic contract registry in execution_grader (Layer C of the physics-in-loop framework).
 WORKFLOW = {"cofold": "cyclic_peptide_cofold", "mmgbsa": "cyclic_peptide_mmgbsa", "assay": "cyclic_peptide_assay"}
+
+
+def register_run_kind(run_kind, workflow_name):
+    """Map a closed-loop physics run-kind to its execution_grader contract workflow name (idempotent).
+    The contract itself is registered separately via execution_grader.register_contract(workflow_name, ...)."""
+    WORKFLOW[run_kind] = workflow_name
+    return workflow_name
+
+
+def workflow_for(run_kind):
+    """The contract workflow name for a run-kind, with an actionable error if it is unregistered."""
+    try:
+        return WORKFLOW[run_kind]
+    except KeyError:
+        raise KeyError(f"unknown run_kind {run_kind!r}; register it via "
+                       f"register_run_kind({run_kind!r}, '<workflow_name>') and "
+                       f"execution_grader.register_contract('<workflow_name>', ...)")
 
 
 def _run_id(scored):
@@ -36,7 +56,7 @@ def record_scored_run(db_path, scored, physics_outputs, *, run_kind="mmgbsa", ca
                       (canonical names: complex.cif / mmgbsa_result.json / assay_result.json).
     Returns the grade dict {run_id, verdict, tier, reward, ...}.
     """
-    wf = WORKFLOW[run_kind]
+    wf = workflow_for(run_kind)
     prov = {"helm": scored.get("helm"), "target": scored.get("target"),
             "hard_gate_pass": scored.get("hard_gate_pass"),
             "binding_dG": scored.get("binding_dG"), "rank_key": scored.get("rank_key")}

@@ -15,37 +15,77 @@ Run objects are the raw dicts from the BioMate `list_runs` / `get_run` API.
 """
 import argparse, json, subprocess, sys, io, csv
 
-# Per-workflow correctness contracts (what a CORRECT run must emit). Extend as tasks are added.
-CONTRACTS = {
-    "merfish_spatial_analysis": {
-        "required_outputs": ["spatial_domains.csv", "spatial_qc.json", "spatially_variable_genes.csv"],
-        "json_keys": {"spatial_qc.json": []},  # keys required inside the JSON (empty = just valid JSON)
-    },
-    "Predict Admet Properties": {
-        "required_outputs": ["toxicity_report.json", "predict_admet_properties_results.json", "qc_metrics.json"],
-        "json_keys": {"toxicity_report.json": ["compounds_assessed", "per_compound", "toxicity"]},
-    },
-    # --- cyclic-peptide program (αvβ6 / PD-L1) synthesize->assay->execute runs ---
-    # A cofold run must emit a bound-complex structure; an MM-GBSA run must emit a parseable binding-ΔG
-    # record; an assay-ingest run must emit a target+ΔG record. These are EXECUTION facts (the run
-    # produced the expected artifact with the expected fields) — NOT a judgement of the ΔG's quality
-    # (that is score()'s multi-objective reward, kept separate).
-    "cyclic_peptide_cofold": {
-        # Boltz-2 cofold (physics_batch) copies the model to complex.cif (metal entities just work).
-        "required_outputs": ["complex.cif"],
-        "json_keys": {},  # structure file; content_ok enforces non-empty
-    },
-    "cyclic_peptide_mmgbsa": {
-        # MM-GBSA record must carry the binding ΔG (physics_dispatch reads dG_bind_kcal_mol) + its target.
-        "required_outputs": ["mmgbsa_result.json"],
-        "json_keys": {"mmgbsa_result.json": ["dG_bind_kcal_mol", "target"]},
-    },
-    "cyclic_peptide_assay": {
-        # wet-lab assay-ingest run (when real assays flow): a measured binding readout for a target.
-        "required_outputs": ["assay_result.json"],
-        "json_keys": {"assay_result.json": ["target", "binding_dG"]},
-    },
-}
+# ── Per-workflow correctness contracts: a REGISTRY, not a frozen dict ────────────────────────────
+# A contract states what a CORRECT run of a workflow / run-kind must emit. It is the ONE thing that is
+# workflow-specific — the execution ladder (TIERS) and the tier→reward map (graded_run_store) are
+# generic. `register_contract(...)` is the platform primitive: ANY workflow — not just the built-ins
+# registered below — plugs a contract in WITHOUT editing this module (e.g. a new gromacs_pmx_fep or a
+# small-molecule RBFE workflow calls it at import time), and its real runs then mint an objective,
+# execution-verified reward through the same grader. (Layer C of the generic physics-in-loop framework;
+# see docs/20261020_GENERIC_PHYSICS_IN_LOOP_FRAMEWORK_DESIGN.md.)
+#
+# A contract = {
+#   "required_outputs": [basename, ...],   # a correct run must emit these   -> tier 'missing_required'
+#   "json_keys": {basename: [key, ...]},   # keys required inside a JSON output (deep) -> 'content_invalid'
+#   "validate": callable,                  # OPTIONAL extra deep check json_keys can't express (see below)
+# }
+CONTRACTS = {}
+
+
+def register_contract(workflow_name, required_outputs=None, json_keys=None, validate=None):
+    """Register (idempotent upsert) the correctness contract for a workflow / run-kind.
+
+    required_outputs : output basenames a correct run must emit -> 'missing_required' if any are absent.
+    json_keys        : {output_basename: [required keys]} checked in the deep path -> 'content_invalid'.
+    validate         : OPTIONAL callable(run, result_outputs, fetch_text) -> (ok: bool, reason: str), an
+                       extra deep-path content check for correctness the generic json_keys check cannot
+                       express (e.g. an FEP ΔΔG cycle-closure / sign check). `fetch_text(uri)` fetches an
+                       output's text. Built-in contracts register NO validate, so their grading is
+                       byte-for-byte unchanged by this refactor.
+    Returns the stored contract dict. Any module may call this to extend the platform's graded run-kinds
+    without editing the grader core — the registry is the generic reward surface."""
+    if not workflow_name or not isinstance(workflow_name, str):
+        raise ValueError("register_contract: workflow_name must be a non-empty string")
+    if validate is not None and not callable(validate):
+        raise TypeError("register_contract: validate must be callable or None")
+    con = {"required_outputs": list(required_outputs or []), "json_keys": dict(json_keys or {})}
+    if validate is not None:
+        con["validate"] = validate
+    CONTRACTS[workflow_name] = con
+    return con
+
+
+def get_contract(workflow_name):
+    """The registered contract for a workflow / run-kind, or None if none is registered."""
+    return CONTRACTS.get(workflow_name)
+
+
+# ── Built-in contracts (registered THROUGH the interface above; examples, not hard dependencies) ──
+register_contract(
+    "merfish_spatial_analysis",
+    required_outputs=["spatial_domains.csv", "spatial_qc.json", "spatially_variable_genes.csv"],
+    json_keys={"spatial_qc.json": []},  # keys required inside the JSON (empty = just valid JSON)
+)
+register_contract(
+    "Predict Admet Properties",
+    required_outputs=["toxicity_report.json", "predict_admet_properties_results.json", "qc_metrics.json"],
+    json_keys={"toxicity_report.json": ["compounds_assessed", "per_compound", "toxicity"]},
+)
+# --- cyclic-peptide program (αvβ6 / PD-L1) synthesize->assay->execute runs ---
+# A cofold run must emit a bound-complex structure; an MM-GBSA run a parseable binding-ΔG record; an
+# assay-ingest run a target+ΔG record. These are EXECUTION facts (the run produced the expected artifact
+# with the expected fields) — NOT a judgement of the ΔG's quality (that is score()'s reward, kept separate).
+register_contract("cyclic_peptide_cofold", required_outputs=["complex.cif"])  # structure; content_ok enforces non-empty
+register_contract(
+    "cyclic_peptide_mmgbsa",
+    required_outputs=["mmgbsa_result.json"],
+    json_keys={"mmgbsa_result.json": ["dG_bind_kcal_mol", "target"]},
+)
+register_contract(
+    "cyclic_peptide_assay",
+    required_outputs=["assay_result.json"],
+    json_keys={"assay_result.json": ["target", "binding_dG"]},
+)
 
 
 def _nf(run):
@@ -114,7 +154,7 @@ def grade_detailed(run, deep=False):
         return "FAIL", "no result outputs (only versions/none)", "no_outputs"
     if all((o.get("size") or 0) == 0 for o in res):
         return "FAIL", "all result outputs empty", "empty_outputs"
-    con = CONTRACTS.get(wf)
+    con = get_contract(wf)
     if con:
         have = {o.get("name") for o in res}
         missing = [r for r in con["required_outputs"] if r not in have]
@@ -152,6 +192,16 @@ def grade_detailed(run, deep=False):
                             return "FAIL", f"{fn} missing keys {miss}", "content_invalid"
                     except Exception:
                         return "FAIL", f"{fn} unreadable", "content_invalid"
+            # Optional per-contract validator for correctness json_keys can't express (FEP cycle-closure,
+            # ΔΔG sign, …). Absent on built-in contracts, so their behaviour is unchanged.
+            vfn = con.get("validate")
+            if vfn:
+                try:
+                    vok, vwhy = vfn(run, res, s3_text)
+                except Exception as e:
+                    return "FAIL", f"contract validate() raised: {e}", "content_invalid"
+                if not vok:
+                    return "FAIL", f"contract validate failed: {vwhy}", "content_invalid"
     return "PASS", f"{len(res)} result outputs" + (" + content valid" if deep else ""), "pass"
 
 
@@ -161,11 +211,78 @@ def grade_run(run, deep=False):
     return v, why
 
 
+# ── CPU self-test of the contract REGISTRY ───────────────────────────────────────────────────────
+# Proves (a) the built-in contracts survived the registry refactor and (b) a run-kind registered from
+# OUTSIDE the grader core grades through the generic ladder (pass / missing_required / crashed) and the
+# deep path honours json_keys + an optional validate() — i.e. any workflow can plug in. No AWS (S3 mocked).
+def selftest():
+    import unittest.mock as mock
+
+    # (a) regression: every built-in contract is still registered after the refactor.
+    for wf in ["merfish_spatial_analysis", "Predict Admet Properties",
+               "cyclic_peptide_cofold", "cyclic_peptide_mmgbsa", "cyclic_peptide_assay"]:
+        assert get_contract(wf), f"built-in contract {wf} lost after registry refactor"
+
+    # (b) a NEW run-kind registered the way a gromacs_pmx_fep / RBFE workflow would, WITHOUT editing core.
+    def _ddg_sane(run, res, fetch):  # an extra deep check json_keys can't express
+        o = next((x for x in res if x.get("name") == "ddg_result.json"), None)
+        v = json.loads(fetch(o["s3_uri"])).get("ddg_kcal_mol")
+        return isinstance(v, (int, float)), f"ddg_kcal_mol={v!r}"
+    register_contract("demo_rbfe_edge", required_outputs=["ddg_result.json"],
+                      json_keys={"ddg_result.json": ["ddg_kcal_mol", "edge"]}, validate=_ddg_sane)
+    assert get_contract("demo_rbfe_edge"), "newly-registered contract not retrievable"
+
+    import graded_run_store as GRS  # lazy (GRS imports us) — for the tier→reward endpoints
+    assert GRS.reward_for_tier("pass") == 1.00 and GRS.reward_for_tier("crashed") == 0.00
+
+    def ex(files, status="completed"):
+        return {"status": status,
+                "nextflowStatus": {"status": "succeeded" if status == "completed" else "failed",
+                                   "returncode": 0, "s3_output_files": files}}
+    f = lambda name, size: {"name": name, "size": size, "s3_uri": f"s3://fixture/{name}"}
+
+    print("=== registry selftest: a run-kind registered OUTSIDE the core grades on the generic ladder ===")
+    l1 = [
+        ("pass",             {"id": "e_pass",  "workflowName": "demo_rbfe_edge", "execution": ex([f("ddg_result.json", 256)])}),
+        ("missing_required", {"id": "e_miss",  "workflowName": "demo_rbfe_edge", "execution": ex([f("run.log", 99)])}),
+        ("crashed",          {"id": "e_crash", "workflowName": "demo_rbfe_edge", "execution": ex([f("ddg_result.json", 256)], status="running")}),
+    ]
+    for exp_tier, run in l1:
+        v, why, tier = grade_detailed(run, deep=False)
+        rw = GRS.reward_for_tier(tier)
+        print(f"  {run['id']:8s} tier={tier:16s} verdict={v:4s} reward={rw:.2f}  ({why})")
+        assert tier == exp_tier, f"{run['id']}: tier {tier} != {exp_tier}"
+    assert GRS.reward_for_tier("pass") == 1.00 and GRS.reward_for_tier("missing_required") == 0.45
+
+    print("=== deep path on the registered contract: json_keys + validate() (S3 mocked) ===")
+    runp = {"id": "e_deep", "workflowName": "demo_rbfe_edge", "execution": ex([f("ddg_result.json", 256)])}
+    deep_cases = [
+        ('{"ddg_kcal_mol": -1.2, "edge": "A->B"}', "pass",            "PASS", "valid"),
+        ('{"edge": "A->B"}',                       "content_invalid", "FAIL", "missing json key"),
+        ('{"ddg_kcal_mol": "oops", "edge": "A->B"}', "content_invalid", "FAIL", "validate() rejects"),
+    ]
+    for payload, exp_tier, exp_v, label in deep_cases:
+        with mock.patch.object(sys.modules[__name__], "s3_text", return_value=payload):
+            v, why, tier = grade_detailed(runp, deep=True)
+        print(f"  {label:18s} tier={tier:16s} verdict={v:4s}  ({why})")
+        assert tier == exp_tier and v == exp_v, f"{label}: {tier}/{v} != {exp_tier}/{exp_v} ({why})"
+
+    print("\nSELFTEST PASS — built-in contracts preserved; a contract registered outside the core grades"
+          " on the generic ladder (pass=1.00 / missing_required=0.45 / crashed=0.00) and the deep path"
+          " honours json_keys + validate(). The reward surface is generic over any registered run-kind.")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--runs", required=True, help="JSON array of run objects (from list_runs/get_run)")
+    ap.add_argument("--runs", help="JSON array of run objects (from list_runs/get_run)")
     ap.add_argument("--deep", action="store_true", help="also validate output CONTENT from S3")
+    ap.add_argument("--selftest", action="store_true", help="CPU self-test of the contract registry (no AWS)")
     a = ap.parse_args()
+    if a.selftest:
+        return selftest()
+    if not a.runs:
+        ap.error("one of --runs / --selftest is required")
     runs = json.load(open(a.runs))
     if isinstance(runs, dict):
         runs = [runs]
