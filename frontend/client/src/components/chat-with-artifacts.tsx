@@ -10,7 +10,7 @@ import { extractSubmittedParams } from "@/hooks/useRunAgainParamCarryover"
 import { useUnifiedExecution } from "@/hooks/useUnifiedExecution"
 import { useActiveProject } from "@/contexts/active-project-context"
 import { applyWorkflowEdits, type WorkflowEdit } from "@/lib/workflow-edits"
-import { extractWorkflowEdits } from "@/lib/workflow-edits-extract"
+import { extractWorkflowEdits, knownParamNames } from "@/lib/workflow-edits-extract"
 import { hasInlineInputData, normalizePrereqChecklist } from "@/lib/prereq-normalizer"
 import { buildRunCompletionSummary } from "@/lib/chat-completion-summary"
 // WorkflowHistoryPanel removed
@@ -329,7 +329,13 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         const data = await r.json()
         const edits = (data?.edits || []) as WorkflowEdit[]
         if (edits.length === 0) return
-        const auto = edits.filter((e) => e.op === 'set_param')
+        // Schema gate (mirrors the rule extractor): only auto-apply a set_param
+        // the workflow actually declares, so an LLM mis-parse of chemistry/prose
+        // (e.g. a SMILES fragment → phantom "CN1C" param) is never injected.
+        const _known = knownParamNames(panelWorkflow)
+        const auto = edits
+          .filter((e) => e.op === 'set_param')
+          .filter((e) => _known.size === 0 || _known.has((e as { paramName?: string }).paramName || ''))
         const structural = edits.filter((e) => e.op !== 'set_param')
         if (auto.length > 0) {
           const snapshot = panelWorkflow
