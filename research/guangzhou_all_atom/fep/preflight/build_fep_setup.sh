@@ -87,32 +87,54 @@ PYEOF
 if [ -f peptide_rot.pdb ]; then R rotate OK "$(cat rotate.out)"; else R rotate FAIL "$(tail -3 rotate.out)"; exit 0; fi
 printf "P 5 PHE\nP 8 PHE\n" > muts.txt   # Tyr sites after cyclic-origin rotation (orig Tyr1->new8, Tyr7->new5)
 
-add_cyclization(){ # $1=topfile : inject head-to-tail C(last)-N(first) amide bond into the peptide moleculetype
+add_cyclic_junction(){ # $1=topfile : fully parameterize the head-to-tail junction in the PEPTIDE moleculetype
+  # Adds the cross-boundary bond + angles + proper dihedrals + impropers between the peptide's last residue
+  # (C,CA,O,N) and first residue (N,CA,C,HN). CHARMM36m GROMACS functs: bond=1, angle=5 (Urey-Bradley),
+  # proper dih=9, improper dih=2 (NOT build_cyclic_top's AMBER funct-1 angles / funct-4 impropers). Params
+  # left empty -> grompp resolves by atom TYPE from CHARMM36m ffbonded (a missing type is a FATAL, not a
+  # maxwarn-maskable warning, so reaching em.tpr proves the junction types resolved). Targets the PEPTIDE
+  # moleculetype specifically (last [atoms] block) with LOCAL indices -> identical in solvent & complex legs.
+  # HONEST LIMITATION: CMAP (CHARMM backbone phi/psi correction map) is NOT added for the two junction
+  # residues -- adding a wrong cmaptype is worse than relying on the explicit funct-9 backbone dihedrals,
+  # which carry the primary torsional energy; the residual CMAP omission at 2 residues is a bounded
+  # approximation to confirm by a short equilibration before the production ddG. build_cyclic_top's
+  # single-moleculetype whole-topology helpers do NOT fit the complex leg (would target the receptor), which
+  # is why this targets the peptide moleculetype by local index instead.
   $PY - "$1" <<'PYEOF'
 import re,sys
 f=sys.argv[1]; t=open(f).read()
-# operate on the LAST [ atoms ] block's molecule (the peptide, smallest). Find all moleculetype atom blocks.
 blocks=[m for m in re.finditer(r'\[ atoms \](.*?)(?=\n\[)', t, re.S)]
-if not blocks: print("CYC_NO_ATOMS"); sys.exit()
-blk=blocks[-1]  # peptide is the last-defined moleculetype in the merged top
-ids=[]
+if not blocks: print("JUNC_NO_ATOMS"); sys.exit()
+blk=blocks[-1]                      # peptide = last inline moleculetype (before #include water/ions)
+amap={}; resnrs=set()
 for ln in blk.group(1).splitlines():
     p=ln.split()
-    if len(p)>=5 and p[0].isdigit(): ids.append((int(p[0]),p[4]))
-firstN=next((i for i,an in ids if an=='N'),None)
-lastC=None
-for i,an in ids:
-    if an=='C': lastC=i
-if firstN and lastC and lastC>firstN:
-    # add bond under the peptide's own [ bonds ]; find the [ bonds ] that follows this [ atoms ]
-    tail=t[blk.end():]
-    nb=re.search(r'\[ bonds \]\n',tail)
-    if nb:
-        pos=blk.end()+nb.end()
-        t=t[:pos]+("%5d %5d     1 ; HEAD-TO-TAIL CYCLIZATION (C_last-N_first)\n"%(lastC,firstN))+t[pos:]
-        open(f,'w').write(t); print("CYC_ADDED lastC=%d firstN=%d"%(lastC,firstN))
-    else: print("CYC_NO_BONDS_BLOCK")
-else: print("CYC_INDEX_FAIL firstN=%s lastC=%s"%(firstN,lastC))
+    if len(p)>=5 and p[0].isdigit():
+        amap[(int(p[2]),p[4])]=int(p[0]); resnrs.add(int(p[2]))
+r1=min(resnrs); rN=max(resnrs)
+def A(rnr,*names):
+    for n in names:
+        if (rnr,n) in amap: return amap[(rnr,n)]
+    return None
+N1=A(r1,'N'); CA1=A(r1,'CA'); C1=A(r1,'C'); HN1=A(r1,'HN','H','H1','HT1')
+NN=A(rN,'N'); CAN=A(rN,'CA'); CN=A(rN,'C'); ON=A(rN,'O','O1','OT1','OC1')
+need=[N1,CA1,C1,NN,CAN,CN,ON]
+if not all(need):
+    print("JUNC_ATOM_MISSING r1=%s rN=%s N1=%s CA1=%s C1=%s NN=%s CAN=%s CN=%s ON=%s HN1=%s"%(r1,rN,N1,CA1,C1,NN,CAN,CN,ON,HN1)); sys.exit()
+bonds=[(CN,N1)]                                             # func 1
+angles=[(CAN,CN,N1),(ON,CN,N1),(CN,N1,CA1)]                 # func 5 (Urey-Bradley)
+if HN1: angles.append((CN,N1,HN1))
+dih=[(CAN,CN,N1,CA1),(ON,CN,N1,CA1),(NN,CAN,CN,N1),(CN,N1,CA1,C1)]   # func 9 propers (omega/psi/phi)
+if HN1: dih += [(CAN,CN,N1,HN1),(ON,CN,N1,HN1)]
+impr=[(CN,CAN,N1,ON)]                                       # func 2: carbonyl C planarity (C CA +N O)
+if HN1: impr.append((N1,CN,CA1,HN1))                        # func 2: amide N planarity (N -C CA HN)
+ins ="\n[ bonds ]\n"+"".join("%5d %5d     1 ; CYCJUNC head-to-tail amide\n"%b for b in bonds)
+ins+="[ angles ]\n"+"".join("%5d %5d %5d     5 ; CYCJUNC\n"%a for a in angles)
+ins+="[ dihedrals ]\n"+"".join("%5d %5d %5d %5d     9 ; CYCJUNC proper\n"%d for d in dih)
+ins+="[ dihedrals ]\n"+"".join("%5d %5d %5d %5d     2 ; CYCJUNC improper\n"%i for i in impr)
+t=t[:blk.end()]+ins+t[blk.end():]   # insert right after the peptide [atoms] block (merged by grompp)
+open(f,'w').write(t)
+print("JUNC_OK r1=%d rN=%d bonds=%d angles=%d dih=%d impr=%d HN=%s cmap=OMITTED"%(r1,rN,len(bonds),len(angles),len(dih),len(impr),'y' if HN1 else 'n'))
 PYEOF
 }
 
@@ -132,8 +154,10 @@ build_leg(){ # $1=legname(complex|solvent)  $2=input.pdb  $3=withMn(yes/no)
    # 4. pmx gentop -> fill B-states
    $PMXCLI gentop -p htop.top -o fep.top -ff $FF > ${leg}_gentop.out 2>&1 || { echo "${leg}:GENTOP_FAIL $(tail -6 ${leg}_gentop.out | tr '\n' '|')"; exit 14; }
   ) ; r=$?; [ $r -ne 0 ] && { R ${leg}_build FAIL "see ${leg}/*.out (rc=$r)"; return $r; }
-  # cyclization on the hybrid fep.top
-  add_cyclization "$W/fep.top" > $W/${leg}_cyc.out 2>&1
+  # fully parameterize the head-to-tail cyclic junction (bond+angles+dih+impropers) on the hybrid fep.top
+  add_cyclic_junction "$W/fep.top" > $W/${leg}_cyc.out 2>&1
+  if grep -q JUNC_OK $W/${leg}_cyc.out; then R ${leg}_cycjunction OK "$(grep JUNC_OK $W/${leg}_cyc.out)"
+  else R ${leg}_cycjunction FAIL "$(cat $W/${leg}_cyc.out | tr '\n' '|')"; return 1; fi
   (cd $W
    export GMXLIB="$MUTFF"
    CONF=hconf.pdb
@@ -173,11 +197,19 @@ PYEOF
    # ions: grompp a dummy em then genion
    gmx grompp -f ../in/mdp/em.mdp -c solv.gro -p fep.top -o ions.tpr -maxwarn 20 > ${leg}_ionsgrompp.out 2>&1 || { echo "IONS_GROMPP_FAIL $(GFATAL ${leg}_ionsgrompp.out)"; exit 25; }
    echo SOL | gmx genion -s ions.tpr -o ionized.gro -p fep.top -pname NA -nname CL -neutral -conc 0.15 > ${leg}_genion.out 2>&1 || { echo "GENION_FAIL $(GFATAL ${leg}_genion.out)"; exit 26; }
-   # readiness proof: grompp em on the final ionized system
-   gmx grompp -f ../in/mdp/em.mdp -c ionized.gro -p fep.top -o em.tpr -maxwarn 20 > ${leg}_emgrompp.out 2>&1 || { echo "EM_GROMPP_FAIL $(GFATAL ${leg}_emgrompp.out)"; exit 27; }
+   # readiness proof: grompp em on the final ionized system. Try WITHOUT maxwarn first (does the fully
+   # parameterized junction grompp cleanly now?); fall back to -maxwarn only if needed, and record which.
+   if gmx grompp -f ../in/mdp/em.mdp -c ionized.gro -p fep.top -o em.tpr > ${leg}_emgrompp.out 2>&1; then
+     echo "${leg}_EM_OK_NOMAXWARN warns=$(grep -ci warning ${leg}_emgrompp.out)"
+   else
+     echo "${leg}_EM_RETRY_MAXWARN (nomaxwarn failed; warns below)"; grep -i 'warning\|fatal' ${leg}_emgrompp.out | head -8
+     gmx grompp -f ../in/mdp/em.mdp -c ionized.gro -p fep.top -o em.tpr -maxwarn 20 >> ${leg}_emgrompp.out 2>&1 || { echo "EM_GROMPP_FAIL $(GFATAL ${leg}_emgrompp.out)"; exit 27; }
+     echo "${leg}_EM_OK_NEEDS_MAXWARN warns=$(grep -ci warning ${leg}_emgrompp.out)"
+   fi
    echo "${leg}_EM_TPR_OK atoms=$(gmx dump -s em.tpr 2>/dev/null | grep -m1 'natoms' | tr -dc '0-9')"
   ) ; r=$?
-  if [ $r -eq 0 ] && [ -f $W/em.tpr ]; then R ${leg}_system OK "$W/em.tpr built (hybrid+solvate+0.15M)"; return 0
+  if [ $r -eq 0 ] && [ -f $W/em.tpr ]; then
+    R ${leg}_system OK "em.tpr built (hybrid+junction+solvate+0.15M); em grompp warnings=$(grep -ci warning $W/${leg}_emgrompp.out 2>/dev/null) (see ${leg}_EM_OK_* line for maxwarn status)"; return 0
   else R ${leg}_system FAIL "see $W/*.out (rc=$r); markers: $(grep -hoE '[A-Z_]+_FAIL' $W/*.out 2>/dev/null|tr '\n' ',')"; return $r; fi
 }
 
