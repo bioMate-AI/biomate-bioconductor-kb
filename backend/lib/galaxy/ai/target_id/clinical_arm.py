@@ -17,15 +17,29 @@ import os
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 
-# --- verified signatures only -------------------------------------------------------------
+# --- verified signatures (constants confirmed from source; see benchmarks/.../FIELD_TOOL_CONSTANTS.md) ---
 # CYT: cytolytic activity, geometric mean of GZMA & PRF1 (Rooney et al., Cell 2015, PMID 25594174).
 CYT_GENES = ["GZMA", "PRF1"]
 
-# Framework slots — fill from the cited source before use; left empty so nothing is fabricated.
-# Ayers 2017 (JCI 10.1172/JCI91190) 18-gene T-cell-inflamed GEP; Auslander 2018 (Nat Med
-# 10.1038/s41591-018-0157-9) 15 ordered gene pairs.
-IFNG_GEP_GENES: List[str] = []          # TODO: populate verbatim from Ayers 2017 (unverified this session)
-IMPRES_PAIRS: List[Tuple[str, str]] = []  # TODO: populate the 15 ordered (A>B) pairs from Auslander 2018
+# IFN-gamma signatures (Ayers et al., JCI 2017, 10.1172/JCI91190):
+IFNG6_GENES: List[str] = ["IDO1", "CXCL10", "CXCL9", "HLA-DRA", "STAT1", "IFNG"]  # Table 2 "IFN-gamma"
+IFNG_GEP_GENES: List[str] = [  # final 18-gene T-cell-inflamed GEP (paper Fig.4; = canonical NanoString TIS)
+    "TIGIT", "CD27", "CD8A", "PDCD1LG2", "LAG3", "CD274", "CXCR6", "CMKLR1", "NKG7",
+    "CCL5", "PSMB10", "IDO1", "CXCL9", "HLA-DQA1", "CD276", "STAT1", "HLA-DRB1", "HLA-E",
+]
+
+# IMPRES (Auslander et al., Nat Med 2018, 10.1038/s41591-018-0157-9): 15 ordered pairs; feature =
+# expr(A) > expr(B); score = count fulfilled, 0-15, higher = responder. Verified across 5 independent
+# code encodings (easier, Sahni2024, et al.); A>B direction confirmed.
+IMPRES_PAIRS: List[Tuple[str, str]] = [
+    ("PDCD1", "TNFSF4"), ("CD27", "PDCD1"), ("CTLA4", "TNFSF4"), ("CD40", "CD28"),
+    ("CD86", "TNFSF4"), ("CD28", "CD86"), ("CD80", "TNFSF9"), ("CD274", "C10orf54"),
+    ("CD86", "HAVCR2"), ("CD40", "PDCD1"), ("CD86", "CD200"), ("CD40", "CD80"),
+    ("CD28", "CD276"), ("CD40", "CD274"), ("TNFRSF14", "CD86"),
+]
+# symbol aliases so a pair gene resolves whichever symbol the matrix uses
+_GENE_ALIASES = {"C10orf54": ["VSIR"], "VSIR": ["C10orf54"], "TNFSF4": ["OX40L"],
+                 "TNFSF9": ["CD137L"], "HAVCR2": ["TIM3", "TIMD3"], "PDCD1LG2": ["PDL2", "CD273"]}
 
 
 def load_tiger_cohort(expr_path: str, meta_path: str):
@@ -61,6 +75,52 @@ def signature_score(expr, genes: Sequence[str], method: str = "zmean"):
 
 def cyt_score(expr):
     return signature_score(expr, CYT_GENES, method="geomean")
+
+
+def _resolve_gene(index_set, gene):
+    if gene in index_set:
+        return gene
+    for a in _GENE_ALIASES.get(gene, []):
+        if a in index_set:
+            return a
+    return None
+
+
+def impres_score(expr):
+    """IMPRES = count of the 15 ordered pairs with expr(A) > expr(B) (0-15; higher = responder).
+    Comparison is monotone-invariant so raw expression is fine. Pairs with a missing gene are
+    skipped (not penalised); returns {sample: count}. Fail-soft."""
+    idx = set(expr.index)
+    resolved = [(_resolve_gene(idx, a), _resolve_gene(idx, b)) for a, b in IMPRES_PAIRS]
+    usable = [(a, b) for a, b in resolved if a and b]
+    if not usable:
+        return {}
+    out = {}
+    for s in expr.columns:
+        cnt = 0
+        for a, b in usable:
+            va, vb = expr.at[a, s], expr.at[b, s]
+            if math.isfinite(va) and math.isfinite(vb) and va > vb:
+                cnt += 1
+        out[s] = float(cnt)
+    return out
+
+
+def tide_score(expr, cancer="Melanoma"):
+    """TIDE (Jiang 2018) via the tidepy package (a TRAINED model — no gene-list reimplementation).
+    Returns {sample: -TIDE} so higher = predicted responder (TIDE itself: higher = resistant), or {}
+    with a note if tidepy is unavailable. NOT faked offline."""
+    try:
+        import pandas as pd  # noqa: F401
+        from tidepy.pred import TIDE
+    except Exception:
+        return {}
+    try:
+        res = TIDE(expr, cancer=cancer, pretreat=False, vthres=0.0)
+        col = "TIDE" if "TIDE" in getattr(res, "columns", []) else res.columns[0]
+        return {str(s): -float(v) for s, v in res[col].items() if math.isfinite(float(v))}
+    except Exception:
+        return {}
 
 
 def _auroc(labels: Sequence[int], scores: Sequence[float]) -> Optional[float]:
@@ -121,13 +181,20 @@ def run_clinical_demonstration(local_dir: str, cohort_names: Optional[Sequence[s
     cohorts = load_cohorts(local_dir, cohort_names)
     if not cohorts:
         return {"error": "no cohorts loaded from %s" % local_dir}
-    sigs = {"CYT": evaluate_signature(cohorts, cyt_score)}
-    if IFNG_GEP_GENES:
-        sigs["IFNG_GEP"] = evaluate_signature(cohorts, lambda e: signature_score(e, IFNG_GEP_GENES, "zmean"))
+    sigs = {
+        "CYT": evaluate_signature(cohorts, cyt_score),
+        "IFNG_6": evaluate_signature(cohorts, lambda e: signature_score(e, IFNG6_GENES, "zmean")),
+        "IFNG_GEP_18": evaluate_signature(cohorts, lambda e: signature_score(e, IFNG_GEP_GENES, "zmean")),
+        "IMPRES": evaluate_signature(cohorts, impres_score),
+    }
+    tide = evaluate_signature(cohorts, lambda e: tide_score(e))
+    if tide["pooled_auroc"] is not None or any(v.get("n") for v in tide["per_cohort"].values()):
+        sigs["TIDE"] = tide
     return {
         "signatures": sigs,
         "cohorts": {n: {"n": expr.shape[1]} for n, (expr, meta) in cohorts.items()},
-        "note": ("CYT (Rooney 2015) is the only VERIFIED-constant field signature wired. IFN-gamma GEP "
-                 "(Ayers 2017) / IMPRES (Auslander 2018) / TIDE require their exact constants + are "
-                 "framework slots. predictive>prognostic (P2/P3) needs a non-ICB control cohort."),
+        "note": ("Field-tool baselines our system must beat: CYT (Rooney 2015), IFN-gamma 6-gene + "
+                 "18-gene T-cell-inflamed GEP (Ayers 2017), IMPRES 15-pair (Auslander 2018). TIDE "
+                 "(Jiang 2018) included only if the tidepy package is installed (trained model). "
+                 "The learned our-system arm + predictive>prognostic (P2/P3) need a non-ICB control cohort."),
     }
