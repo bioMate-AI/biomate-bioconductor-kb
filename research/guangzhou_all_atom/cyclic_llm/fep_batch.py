@@ -84,7 +84,7 @@ def _equil_command(in_s3, out_s3, legs="solvent complex", metal_model="bonded"):
     s = (
         "set -x; export PATH=$PATH:/usr/local/gromacs/bin; source /usr/local/gromacs/bin/GMXRC 2>/dev/null || true; "
         "(command -v aws || pip install -q awscli 2>/dev/null) >/dev/null 2>&1 || true; "
-        f"  METAL={metal_model}; "
+        f"  METAL={metal_model}; UPD=''; [ \"$METAL\" = vsite ] && UPD='-update cpu'; "  # vsite: constraints/update on CPU (GPU update is stricter on coupled constraints)
         "mkdir -p /work && cd /work; "
         f"aws s3 cp {in_s3} /work/in --recursive --region {REGION}; RC=0; "
         f"for leg in {legs}; do "
@@ -98,6 +98,8 @@ def _equil_command(in_s3, out_s3, legs="solvent complex", metal_model="bonded"):
         "    if [ \"$METAL\" = vsite ]; then "
         # vsite CaDA = rigid cluster -> STANDARD dt=2fs (same protocol as the working solvent leg); swap the itp
         "      cp /work/in/cada_mn_vsite.itp cada_mn.itp && echo 'VSITE_ITP_SWAPPED'; "
+        # harder LINCS for the coupled rigid CaDA cluster (K4) that failed at default order 4
+        "      for f in em.mdp nvt.mdp npt.mdp; do printf 'lincs-order = 8\\nlincs-iter = 2\\n' >> $f; done; "
         "    else "
         # bonded CaDA = stiff bonds -> small timestep (fallback)
         "      sed -i 's/^dt .*/dt = 0.0002/; s/^nsteps .*/nsteps = 100000/' nvt.mdp; "   # 20 ps @ 0.2 fs
@@ -128,9 +130,9 @@ def _equil_command(in_s3, out_s3, legs="solvent complex", metal_model="bonded"):
         "  fi; "
         # ---- NVT -> NPT ----
         "  [ \"$STG\" -eq 0 ] && { gmx grompp -f nvt.mdp -c $NVTC -r $NVTC -p fep.top -o nvt.tpr -maxwarn 50 > nvt_grompp.log 2>&1 "
-        "    && gmx mdrun -deffnm nvt -ntmpi 1 -nb gpu > nvt.log 2>&1 && [ -f nvt.gro ] "
+        "    && gmx mdrun -deffnm nvt -ntmpi 1 -nb gpu $UPD > nvt.log 2>&1 && [ -f nvt.gro ] "
         "    && gmx grompp -f npt.mdp -c nvt.gro -r nvt.gro -t nvt.cpt -p fep.top -o npt.tpr -maxwarn 50 > npt_grompp.log 2>&1 "
-        "    && gmx mdrun -deffnm npt -ntmpi 1 -nb gpu > npt.log 2>&1 && [ -f npt.gro ] ; STG=$?; }; "
+        "    && gmx mdrun -deffnm npt -ntmpi 1 -nb gpu $UPD > npt.log 2>&1 && [ -f npt.gro ] ; STG=$?; }; "
         "  printf 'Potential\\nTemperature\\nPressure\\nDensity\\n' | gmx energy -f npt.edr -o ${leg}_ener.xvg > ${leg}_energy.log 2>&1 || true; "
         "  echo \"$leg ENERGY:\"; grep -iE '^(Potential|Temperature|Pressure|Density)' ${leg}_energy.log | head; "
         "  LW=$(grep -i 'LINCS WARNING' *.log 2>/dev/null | wc -l); FA=$(grep -i 'Fatal error' *.log 2>/dev/null | wc -l); "
