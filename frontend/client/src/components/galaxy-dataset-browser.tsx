@@ -131,11 +131,50 @@ function SessionTab({
     setIsDragging(true);
   };
   const handleDragLeave = () => setIsDragging(false);
-  const handleDrop = (e: React.DragEvent) => {
+  // Accept BOTH files and folders on drop. A dropped folder has no entry in
+  // `dataTransfer.files`, so we walk `dataTransfer.items` via the (non-standard
+  // but universally-shipped) webkitGetAsEntry API and recurse directories.
+  // `webkitGetAsEntry()` must be called synchronously while the drop event is
+  // live, so we collect the top-level entries first, then await the walk.
+  const collectEntryFiles = async (entries: any[]): Promise<File[]> => {
+    const out: File[] = [];
+    const walk = (entry: any): Promise<void> =>
+      new Promise((resolve) => {
+        if (!entry) return resolve();
+        if (entry.isFile) {
+          entry.file((f: File) => { out.push(f); resolve(); }, () => resolve());
+        } else if (entry.isDirectory) {
+          const reader = entry.createReader();
+          const readBatch = () =>
+            reader.readEntries(async (batch: any[]) => {
+              if (!batch.length) return resolve();
+              await Promise.all(batch.map(walk));
+              readBatch(); // directory reads are paginated; keep going until empty
+            }, () => resolve());
+          readBatch();
+        } else resolve();
+      });
+    await Promise.all(entries.map(walk));
+    return out;
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const files = Array.from(e.dataTransfer.files);
-    handleFiles(files);
+    const items = e.dataTransfer.items;
+    const canTraverse = items && items.length > 0 &&
+      typeof (items[0] as any).webkitGetAsEntry === 'function';
+    if (canTraverse) {
+      const entries: any[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const entry = (items[i] as any).webkitGetAsEntry?.();
+        if (entry) entries.push(entry);
+      }
+      const files = await collectEntryFiles(entries);
+      handleFiles(files.length ? files : Array.from(e.dataTransfer.files));
+    } else {
+      handleFiles(Array.from(e.dataTransfer.files));
+    }
   };
 
   const filtered = datasets.filter(ds => {
@@ -170,10 +209,10 @@ function SessionTab({
             : <Upload className="h-4 w-4 text-muted-foreground" />
           }
           <span className="text-xs text-muted-foreground">
-            {uploading ? 'Uploading…' : isDragging ? 'Drop files here' : 'Drop files here or click to browse'}
+            {uploading ? 'Uploading…' : isDragging ? 'Drop files or folders here' : 'Drop files or folders here, or click to browse'}
           </span>
           {!uploading && (
-            <span className="text-[11px] text-muted-foreground/60">Multiple files supported</span>
+            <span className="text-[11px] text-muted-foreground/60">Files and folders supported</span>
           )}
         </div>
       </div>
@@ -182,7 +221,7 @@ function SessionTab({
       {/* One-line hint — full limits/formats live in docs, not this dialog */}
       <p className="flex items-start gap-2 text-[11px] text-muted-foreground px-1 mb-3">
         <Info className="h-3 w-3 mt-0.5 shrink-0" />
-        <span>Up to 50 GB per file; zip folders first. Already on S3/HTTP/FTP? Use <span className="font-medium text-foreground">From URL</span>.</span>
+        <span>Up to 50 GB per file; drop a folder to upload its files. Already on S3/HTTP/FTP? Use <span className="font-medium text-foreground">From URL</span>.</span>
       </p>
 
       {datasets.length === 0 && !uploading && (
@@ -306,9 +345,6 @@ function HistoryTab({
         <div className="flex items-center gap-2 pb-1 border-b">
           <Database className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-sm font-medium truncate">{selectedHistory.name}</span>
-          <Badge variant="outline" className="text-xs ml-auto shrink-0">
-            {selectedHistory.count} items
-          </Badge>
         </div>
 
         {datasetsLoading ? (
@@ -392,11 +428,6 @@ function HistoryTab({
               )}
             </div>
             <div className="flex items-center gap-3 mt-0.5">
-              {h.source !== 'run' && (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Database className="h-3 w-3" />{h.count} datasets
-                </span>
-              )}
               {h.size > 0 && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <HardDrive className="h-3 w-3" />{formatBytes(h.size)}

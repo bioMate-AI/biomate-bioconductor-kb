@@ -162,9 +162,17 @@ function RootRoute({
   // Pre-filled draft (?draft=) from the project "Analyze with BioMate" flow. Unlike ?q=,
   // this populates the chat input for review/edit and is NOT auto-submitted.
   const [initialDraft] = useState<string | undefined>(() => {
-    const urlDraft = new URLSearchParams(window.location.search).get('draft')
+    const params = new URLSearchParams(window.location.search)
+    const urlDraft = params.get('draft')
     if (urlDraft) {
-      window.history.replaceState(null, '', window.location.pathname)
+      // Strip ONLY the draft param. The same navigation (e.g. the Data panel's
+      // "Run full QC") also carries ?project= and ?attachFile=, which the chat
+      // composer reads to attach the dataset — wiping the whole query here
+      // deleted attachFile before the composer could see it, so QC pre-filled
+      // the prompt but never attached the file. Preserve the rest.
+      params.delete('draft')
+      const rest = params.toString()
+      window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''))
       return decodeURIComponent(urlDraft)
     }
     return undefined

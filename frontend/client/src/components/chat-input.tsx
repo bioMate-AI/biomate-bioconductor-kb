@@ -499,7 +499,10 @@ export function ChatInput({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* Hidden file input for local file picking */}
+      {/* Hidden file/folder inputs — no visible buttons (removed 2026-10-20 per
+          UI refinement: the one visible entry point is the dataset browser).
+          Kept for the composer's drag-drop attach path and for programmatic /
+          e2e `setInputFiles` on a hidden input. */}
       <input
         ref={fileInputRef}
         type="file"
@@ -509,7 +512,6 @@ export function ChatInput({
         accept="*/*"
         data-testid="chat-attach-file-input"
       />
-      {/* Hidden folder input — same attach path as files (matches the upload panel) */}
       <input
         ref={folderInputRef}
         type="file"
@@ -742,12 +744,16 @@ export function ChatInput({
         transition: 'border-color .15s',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, minWidth: 0 }}>
-          {/* Upload local file button */}
+          {/* Add data — the single entry point. Opens the assembled dataset
+              browser (upload file/folder via drop, session, project, From URL).
+              The two former standalone file/folder buttons were removed: the
+              browser's session box is now the one place to attach data. */}
           <button
             disabled={disabled}
-            title={t('composer.attach_file')} aria-label={t('composer.attach_file')}
-            data-testid="chat-attach-file-button"
-            onClick={() => fileInputRef.current?.click()}
+            title={t('composer.browse_datasets')}
+            aria-label={t('composer.browse_datasets')}
+            data-testid="chat-attach-data-button"
+            onClick={() => setShowDatasetBrowser(true)}
             style={{
               width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
               border: 'none', background: 'transparent',
@@ -757,37 +763,6 @@ export function ChatInput({
             }}
           >
             <Paperclip className="w-4 h-4" />
-          </button>
-          {/* Upload a folder */}
-          <button
-            disabled={disabled}
-            title={t('composer.attach_folder')}
-            onClick={() => folderInputRef.current?.click()}
-            data-testid="chat-attach-folder-button"
-            style={{
-              width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
-              border: 'none', background: 'transparent',
-              color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <FolderInput className="w-4 h-4" />
-          </button>
-          {/* Browse BioMate datasets */}
-          <button
-            disabled={disabled}
-            title={t('composer.browse_datasets')}
-            onClick={() => setShowDatasetBrowser(true)}
-            style={{
-              width: 22, height: 22, borderRadius: 'var(--bm-r-sm, 6px)',
-              border: 'none', background: 'transparent',
-              color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Database className="w-3 h-3" />
           </button>
 
           {/* Attached-count indicator. Hidden at 0 (no noise pre-attach);
