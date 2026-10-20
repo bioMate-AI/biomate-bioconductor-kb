@@ -11,11 +11,14 @@ set -euo pipefail
 REGION=us-west-2
 SRC="s3://biomate-nextflow-work/cyclic_peptide/fep/preflight-1792465588/in"      # precursor PDBs + itp + mdp
 DEST="s3://biomate-nextflow-work/cyclic_peptide/fep/avb6-fep-ctrl-build1"        # FEP inputs out (run_id=avb6-fep-ctrl-build1)
-AMI=ami-0803a33fd43db1fbf
-SUBNET=subnet-0254e4c3634b41bfc
 SG=sg-0de9af2d4437a8c90
 PROFILE=ec2-ecr-builder-profile
 SETUP_LOCAL="$(cd "$(dirname "$0")" && pwd)/preflight/build_fep_setup.sh"
+# resolve the AL2023 x86_64 AMI live via SSM (never a stale hard-coded id)
+AMI=$(aws ssm get-parameter --name /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64 --region $REGION --query 'Parameter.Value' --output text)
+# interchangeable small CPU types (x86_64, ~2xlarge; 4xlarge as last resort) and all us-west-2 AZs
+TYPES="c6i.2xlarge c6a.2xlarge c5.2xlarge m6i.2xlarge m5.2xlarge c7i.2xlarge c6i.4xlarge m6i.4xlarge"
+AZS="us-west-2a us-west-2b us-west-2c us-west-2d"
 
 # stage the setup script so the box can pull it (same pattern as the preflight script in S3)
 aws s3 cp "$SETUP_LOCAL" "$DEST/build_fep_setup.sh" --region $REGION
@@ -46,23 +49,41 @@ echo DONE > /tmp/DONE; aws s3 cp /tmp/DONE "\$DEST/DONE" --region "\$REGION"
 shutdown -h now
 EOF
 
-IID=$(aws ec2 run-instances \
-  --region $REGION \
-  --image-id $AMI \
-  --instance-type c6i.2xlarge \
-  --instance-market-options '{"MarketType":"spot","SpotOptions":{"SpotInstanceType":"one-time"}}' \
-  --instance-initiated-shutdown-behavior terminate \
-  --iam-instance-profile Name=$PROFILE \
-  --subnet-id $SUBNET \
-  --security-group-ids $SG \
-  --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":50,"VolumeType":"gp3","DeleteOnTermination":true}}]' \
-  --metadata-options '{"HttpTokens":"required","HttpPutResponseHopLimit":2,"HttpEndpoint":"enabled"}' \
-  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=avb6-fep-build},{Key=purpose,Value=fep-input-build-cpu},{Key=autoterminate,Value=90min}]' \
-  --user-data "file://$UD" \
-  --query 'Instances[0].InstanceId' --output text)
+# SPOT-ONLY resilient launch: iterate (type, AZ) until one has spot capacity. NEVER on-demand.
+IID=""; LT=""; LAZ=""
+set +e
+for ty in $TYPES; do
+  for az in $AZS; do
+    sn=$(aws ec2 describe-subnets --filters Name=default-for-az,Values=true Name=availability-zone,Values=$az \
+          --region $REGION --query 'Subnets[0].SubnetId' --output text 2>/dev/null)
+    [ -z "$sn" ] || [ "$sn" = "None" ] && continue    # no default subnet in this AZ -> skip
+    echo "trying spot $ty in $az (subnet $sn) ..."
+    OUT=$(aws ec2 run-instances \
+      --region $REGION --image-id $AMI --instance-type $ty \
+      --instance-market-options '{"MarketType":"spot","SpotOptions":{"SpotInstanceType":"one-time"}}' \
+      --instance-initiated-shutdown-behavior terminate \
+      --iam-instance-profile Name=$PROFILE \
+      --subnet-id $sn --security-group-ids $SG \
+      --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":50,"VolumeType":"gp3","DeleteOnTermination":true}}]' \
+      --metadata-options '{"HttpTokens":"required","HttpPutResponseHopLimit":2,"HttpEndpoint":"enabled"}' \
+      --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=avb6-fep-build},{Key=purpose,Value=fep-input-build-cpu},{Key=autoterminate,Value=90min}]' \
+      --user-data "file://$UD" \
+      --query 'Instances[0].InstanceId' --output text 2>&1)
+    if [ $? -eq 0 ] && [ "${OUT#i-}" != "$OUT" ]; then IID=$OUT; LT=$ty; LAZ=$az; break 2; fi
+    if echo "$OUT" | grep -qiE 'InsufficientInstanceCapacity|insufficient capacity|capacity-not-available|SpotMaxPriceTooLow|Unsupported|not supported in your requested Availability Zone'; then
+      echo "  no capacity for $ty/$az -> next"; continue
+    fi
+    echo "FATAL non-capacity error on $ty/$az:"; echo "$OUT"; rm -f "$UD"; exit 2   # don't loop past real errors (auth, quota, bad AMI)
+  done
+done
+set -e
 rm -f "$UD"
+if [ -z "$IID" ]; then
+  echo "NO SPOT CAPACITY across us-west-2 (all types x AZs exhausted) right now — retry later."
+  echo "NEVER falling back to on-demand."; exit 1
+fi
 
-echo "LAUNCHED instance: $IID  (spot c6i.2xlarge, self-terminates <=90 min)"
+echo "LAUNCHED instance: $IID  type=$LT az=$LAZ  (spot one-time, self-terminates <=90 min)"
 echo "Poll (~15-30 min; conda gromacs + pmx build + both legs):"
 echo "  aws s3 cp $DEST/fepbuild_stdout.txt - --region $REGION    # STAGE_*:OK/FAIL markers"
 echo "  aws s3 ls $DEST/in/ --region $REGION                       # FEP_INPUTS_READY sentinel = success"
