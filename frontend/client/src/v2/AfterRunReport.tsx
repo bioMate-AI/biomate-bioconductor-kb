@@ -139,6 +139,9 @@ export function AfterRunReport({
   // gives a clear "started" signal (PM must-fix #4, client-side portion).
   const [downloadState, setDownloadState] = useState<'idle' | 'preparing'>('idle');
   const [deckState, setDeckState] = useState<'idle' | 'preparing'>('idle');
+  // Item 4 (UI refinement): the two separate download links merged into one
+  // "Download" control that unfolds a menu (Markdown report · PPTX deck).
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   const [downloadToast, setDownloadToast] = useState<string | null>(null);
 
   // Accepted design: exactly three top-level tabs, Summary first. Everything
@@ -221,41 +224,57 @@ export function AfterRunReport({
         {downloadToast && (
           <span style={styles.toast} role="status">{downloadToast}</span>
         )}
-        <button
-          type="button"
-          onClick={handleDownload}
-          disabled={downloadState !== 'idle'}
-          style={{
-            ...styles.linkish,
-            background: "none",
-            border: "none",
-            cursor: downloadState === 'idle' ? "pointer" : "default",
-            padding: 0,
-            opacity: downloadState === 'idle' ? 1 : 0.6,
-          }}
-          title={tOr('afterrun.download_report_title', 'Download a comprehensive markdown report stitching every tab')}
-          data-testid="afterrun-download-report"
-        >
-          ↓ {downloadState === 'preparing' ? tOr('afterrun.preparing', 'Preparing…') : tOr('afterrun.download_report', 'Download report')}
-        </button>
-        <button
-          type="button"
-          onClick={handleDownloadDeck}
-          disabled={deckState !== 'idle'}
-          style={{
-            ...styles.linkish,
-            background: "none",
-            border: "none",
-            cursor: deckState === 'idle' ? "pointer" : "default",
-            padding: 0,
-            marginLeft: 12,
-            opacity: deckState === 'idle' ? 1 : 0.6,
-          }}
-          title={tOr('afterrun.download_deck_title', 'Export this report as a PowerPoint deck (.pptx), rendered on-prem — no external service')}
-          data-testid="afterrun-download-deck"
-        >
-          ↓ {deckState === 'preparing' ? tOr('afterrun.preparing', 'Preparing…') : tOr('afterrun.download_deck', 'Download deck (PPTX)')}
-        </button>
+        <div style={{ position: 'relative' }} data-testid="afterrun-download">
+          <button
+            type="button"
+            onClick={() => setDownloadMenuOpen((o) => !o)}
+            style={{ ...styles.linkish, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            aria-haspopup="menu"
+            aria-expanded={downloadMenuOpen}
+            data-testid="afterrun-download-toggle"
+          >
+            ↓ {tOr('afterrun.download', 'Download')} ▾
+          </button>
+          {downloadMenuOpen && (
+            <>
+              <div onClick={() => setDownloadMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 19 }} />
+              <div
+                role="menu"
+                data-testid="afterrun-download-menu"
+                style={{
+                  position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 20,
+                  minWidth: 210, display: 'flex', flexDirection: 'column', gap: 2, padding: 4,
+                  background: 'var(--bm-surface, #fff)',
+                  border: '1px solid var(--bm-border, oklch(0.90 0.005 260))',
+                  borderRadius: 8, boxShadow: '0 6px 20px rgba(16,24,40,0.12)',
+                }}
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setDownloadMenuOpen(false); handleDownload(); }}
+                  disabled={downloadState !== 'idle'}
+                  style={{ ...styles.linkish, background: "none", border: "none", textAlign: 'left', padding: '7px 10px', borderRadius: 6, cursor: downloadState === 'idle' ? "pointer" : "default", opacity: downloadState === 'idle' ? 1 : 0.6 }}
+                  title={tOr('afterrun.download_report_title', 'Download a comprehensive markdown report stitching every tab')}
+                  data-testid="afterrun-download-report"
+                >
+                  ↓ {downloadState === 'preparing' ? tOr('afterrun.preparing', 'Preparing…') : tOr('afterrun.download_report_md', 'Markdown report')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setDownloadMenuOpen(false); handleDownloadDeck(); }}
+                  disabled={deckState !== 'idle'}
+                  style={{ ...styles.linkish, background: "none", border: "none", textAlign: 'left', padding: '7px 10px', borderRadius: 6, cursor: deckState === 'idle' ? "pointer" : "default", opacity: deckState === 'idle' ? 1 : 0.6 }}
+                  title={tOr('afterrun.download_deck_title', 'Export this report as a PowerPoint deck (.pptx), rendered on-prem — no external service')}
+                  data-testid="afterrun-download-deck"
+                >
+                  ↓ {deckState === 'preparing' ? tOr('afterrun.preparing', 'Preparing…') : tOr('afterrun.download_deck_pptx', 'PowerPoint deck (PPTX)')}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* PM must-fix #1: failed-run section above the tab bar. Shown for

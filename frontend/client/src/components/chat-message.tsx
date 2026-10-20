@@ -463,7 +463,14 @@ export function ChatMessage({
       >
         <span className="speaker-pill" data-speaker={speaker} aria-label={pillLabel}>{pillLabel}</span>
         <span style={{ flex: '1 1 240px', minWidth: 0, overflowWrap: 'anywhere' }}>{message.content}</span>
-        <WhyAnchor rationaleId={rationaleId} workflowName={wfName} phaseId={phaseId} />
+        {/* "(why?)" rationale anchor — commented out 2026-10-20 (UI refinement).
+            WhyAnchor renders the "(why?)" link whenever a workflow_name+phase_id
+            (or rationaleId) is present, BEFORE confirming a curated rationale
+            exists, so steps with no rationale (the common drug-dev case) showed a
+            void link. Curated rationale content is sparse. Re-enable once the
+            step event carries a rationale-exists flag so the link only renders
+            when it leads somewhere.
+        <WhyAnchor rationaleId={rationaleId} workflowName={wfName} phaseId={phaseId} /> */}
         {timeLabel && (
           <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 4 }}>· {timeLabel}</span>
         )}
