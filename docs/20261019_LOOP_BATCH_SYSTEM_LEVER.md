@@ -55,6 +55,19 @@ output to `s3://biomate-nextflow-work/cyclic_peptide/batch_cofold/<run>/complexe
 explicit go-ahead** (guardrail: no unreviewed Batch spend). Predicted: one metal-aware complex CIF in S3,
 retrievable by `fetch_result` — proving the seam end-to-end — then feed it to the MM-GBSA job-def.
 
+## 4b. Executed (2026-10-19, go-ahead given)
+- **Container artifact built:** `cyclic_llm/json_to_boltz_yaml.py` (build_cofold_input JSON → Boltz-2 YAML,
+  receptor chains + cofactor CCD ligands + cyclic peptide; validated locally on avb6 = 3 proteins + 3 MN).
+  Pulled from S3 by the job — no image rebuild.
+- **ONE validation cofold Batch job submitted** (`physics_batch.dispatch_cofold('avb6', [FRGDLAFPK], dry_run=False)`):
+  job id **`68a28fa6-68f6-40d7-91cf-3bec8829af40`**, queue **`biomate-gpu-spot-queue`**, job-def
+  `boltz-snat2-direct`, spec-derived ligands `[MN,MN,MN]`. Inputs uploaded; status reached **RUNNABLE** on the
+  spot GPU queue (awaiting spot capacity). Output lands at
+  `s3://biomate-nextflow-work/cyclic_peptide/batch_cofold/avb6-val-20261019/complexes/`. One job only — no sweep.
+- **Driver first slice built + dry-run validated:** `cyclic_llm/loop_batch.py::run_round` — propose →
+  (physics-miss → Batch dispatch) → `score(tier='full')` reward → rank → revise. Dry-run: proposed 3
+  spec-driven candidates, dispatched their physics through the Batch seam (dry-run), scored + ranked + revised.
+
 ## 5. Next steps (after go-ahead)
 (a) add the container converter + run the one validation job; (b) wire `physics_dispatch.physics_for` to call
 the seam on a miss (behind an `enable_dispatch` flag); (c) add the MM-GBSA Batch job-def call (AmberTools/
