@@ -49,6 +49,10 @@ else
 fi
 MUTFF=$($PY -c "import pmx,os;print(os.path.join(os.path.dirname(pmx.__file__),'data','mutff'))" 2>/dev/null)
 if [ -n "$MUTFF" ] && [ -d "$MUTFF" ]; then R mutff OK "$MUTFF"; else R mutff FAIL "pmx/mutff dir missing"; exit 0; fi
+# pmx CLI entry point: this pmx (develop) has NO pmx.__main__, so `python -m pmx` fails. The real CLI is
+# the console script `pmx` (= pmx.scripts.cli:entry_point) next to the env python; module fallback if absent.
+PMXCLI="$(dirname "$PY")/pmx"; [ -x "$PMXCLI" ] || PMXCLI="$PY -m pmx.scripts.cli"
+R pmxcli OK "$PMXCLI"
 export GMXLIB="$MUTFF"        # so pdb2gmx/grompp find charmm36m-mut.ff + ions + spc216
 FF=charmm36m-mut
 
@@ -56,7 +60,7 @@ FF=charmm36m-mut
 mkdir -p in && aws s3 cp "$SRC" in --recursive --region "${REGION:-us-west-2}" >/dev/null 2>&1
 for f in receptor.pdb peptide.pdb mn_cada.pdb cada_mn.itp; do cp "in/$f" . 2>/dev/null; done
 [ -f peptide.pdb ] && [ -f receptor.pdb ] && [ -f cada_mn.itp ] && R C OK "precursors present" || { R C FAIL "missing precursors"; exit 0; }
-printf "P 1 PHE\nP 7 PHE\n" > muts.txt   # mutate ONLY peptide chain P residues 1,7 (Tyr->Phe); keep_resid needs chain
+printf "P 1 PHE\nP 7 PHE\n" > muts.txt   # mutate ONLY peptide chain P residues 1,7 (Tyr->Phe); resolved via --ref
 
 add_cyclization(){ # $1=topfile : inject head-to-tail C(last)-N(first) amide bond into the peptide moleculetype
   $PY - "$1" <<'PYEOF'
@@ -92,13 +96,15 @@ build_leg(){ # $1=legname(complex|solvent)  $2=input.pdb  $3=withMn(yes/no)
    export GMXLIB="$MUTFF"
    # 1. pdb2gmx (reduced CYS, no -ss; charmm36m-mut adds H)
    gmx pdb2gmx -f start.pdb -o conf.pdb -p topol.top -i posre.itp -ff $FF -water tip3p -ignh < /dev/null > ${leg}_pdb2gmx.out 2>&1 || { echo "${leg}:PDB2GMX_FAIL"; grep -iE 'error|fatal' ${leg}_pdb2gmx.out|head -3; exit 11; }
-   # 2. pmx mutate -> A->B hybrid structure (only chain P res 1,7)
+   # 2. pmx mutate -> A->B hybrid structure. Use the pdb2gmx-hydrogenated structure (pmx needs backbone
+   #    HN/HA) and --ref start.pdb (original chains): pmx maps pdb2gmx's re-chained/renumbered output back
+   #    to the chained reference, so "P 1 PHE / P 7 PHE" targets ONLY the peptide (not receptor res 1/7).
    gmx pdb2gmx -f start.pdb -o withH.pdb -p _t.top -i _p.itp -ff $FF -water tip3p -ignh < /dev/null > _h.out 2>&1 || true
-   python3 -m pmx mutate -f withH.pdb -o hybrid.pdb -ff $FF --script ../muts.txt --keep_resid > ${leg}_mutate.out 2>&1 || { echo "${leg}:PMX_MUTATE_FAIL"; tail -4 ${leg}_mutate.out; exit 12; }
+   $PMXCLI mutate -f withH.pdb -o hybrid.pdb -ff $FF --script ../muts.txt --ref start.pdb > ${leg}_mutate.out 2>&1 || { echo "${leg}:PMX_MUTATE_FAIL"; tail -6 ${leg}_mutate.out; exit 12; }
    # 3. pdb2gmx the hybrid structure -> hybrid topology
    gmx pdb2gmx -f hybrid.pdb -o hconf.pdb -p htop.top -i hposre.itp -ff $FF -water tip3p -ignh < /dev/null > ${leg}_hpdb2gmx.out 2>&1 || { echo "${leg}:HYBRID_PDB2GMX_FAIL"; grep -iE 'error|fatal' ${leg}_hpdb2gmx.out|head -3; exit 13; }
    # 4. pmx gentop -> fill B-states
-   python3 -m pmx gentop -p htop.top -o fep.top -ff $FF > ${leg}_gentop.out 2>&1 || { echo "${leg}:GENTOP_FAIL"; tail -4 ${leg}_gentop.out; exit 14; }
+   $PMXCLI gentop -p htop.top -o fep.top -ff $FF > ${leg}_gentop.out 2>&1 || { echo "${leg}:GENTOP_FAIL"; tail -6 ${leg}_gentop.out; exit 14; }
   ) ; r=$?; [ $r -ne 0 ] && { R ${leg}_build FAIL "see ${leg}/*.out (rc=$r)"; return $r; }
   # cyclization on the hybrid fep.top
   add_cyclization "$W/fep.top" > $W/${leg}_cyc.out 2>&1
