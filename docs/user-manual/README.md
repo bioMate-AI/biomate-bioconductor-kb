@@ -6,8 +6,10 @@ against the live system (dev) before anything is marked "supported" — see `cov
 
 - Content lives here as markdown + a page-model; Claude design polishes it into the in-app `/manual`
   (doc-page style, per `reference/claude_design/data_centroid_design_v2/spec`).
-- **Honesty rule:** nothing is documented as supported unless it is green in `coverage-ledger.md`.
-  Unverified / coverage-gapped items go in Appendix E (roadmap), never sold as present.
+- **Honesty rule (2026-10-19, per user):** the manual documents **only functioning features that
+  are present to the user today**. If something does not function, it is simply **not mentioned** —
+  no roadmap, no "not yet available", no "what's not covered" sections. (Roadmap / Appendix E
+  removed from the user manual; internal coverage tracking, if any, lives outside the book.)
 - Every domain/module page follows `_CHAPTER_TEMPLATE.md`.
 
 ## Index (table of contents)
@@ -60,7 +62,6 @@ against the live system (dev) before anything is marked "supported" — see `cov
 - [~] `appendix/B-file-formats.md`
 - [~] `appendix/C-qc-gate-reference.md`
 - [~] `appendix/D-troubleshooting-routing.md`
-- [~] `appendix/E-coverage-and-roadmap.md`   (honest "not yet supported")
 - [~] `appendix/F-api-cli-quickref.md`
 
 (`[ ]` = not started · `[~]` = drafted, verifying · `[x]` = verified + polished)
