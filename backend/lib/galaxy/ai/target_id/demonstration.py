@@ -110,15 +110,13 @@ def run_demonstration(channel_results: List[ChannelResult], gold: Sequence[str],
     }
 
 
-def run_clinical_arm(*args, **kwargs):
-    """STAGE 2 (documented, not faked): ICB-response leave-cohort-out with field tools.
+def run_clinical_arm(local_dir, cohort_names=None):
+    """Clinical arm (protocol §3 CL): ICB-response on the TIGER bulk cohorts under local_dir.
 
-    The clinical half of the demonstration (protocol §3 P2/P3): score the TIGER bulk ICB cohorts
-    (s3://.../acquisitions/icb_bulk_tigeR, 11 cohorts) by our fused system vs TIDE / IMPRES /
-    IFN-gamma-GEP, leave-cohort-out, and test predictive>prognostic (gate-3 interaction). Requires
-    the bulk expression matrices + field-tool signature implementations; wire before claiming P2/P3.
+    v1 runs the VERIFIED field signature (CYT, Rooney 2015) -> per-cohort + pooled response-AUROC
+    (the baseline our system must beat). IFN-gamma GEP / IMPRES / TIDE are framework slots pending
+    verified constants; the learned our-system arm + predictive>prognostic (P2/P3) need a learned
+    predictor + a non-ICB control cohort. See clinical_arm.py.
     """
-    raise NotImplementedError(
-        "clinical arm (TIDE/IMPRES, leave-cohort-out ICB) is stage-2 — needs the TIGER bulk cohorts "
-        "and field-tool signatures; build before claiming the predictive>prognostic (P2/P3) gates"
-    )
+    from .clinical_arm import run_clinical_demonstration
+    return run_clinical_demonstration(local_dir, cohort_names)
