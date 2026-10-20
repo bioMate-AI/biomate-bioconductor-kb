@@ -192,6 +192,39 @@ where the `dataset` value is injected for a SMILES-list workflow.
 
 ---
 
+## Item 15 — Findings summary incomplete/ambiguous for multi-compound (`finding_not_complete.png`)
+"2 compounds" but 3 un-attributed chips (hERG/DILI/bioavailability) from only the
+first compound. **FIXED** (commit `604f94e3e`): backend already tags each key result
+`(Compound N)` (`routes.ts:14096-14108`); the card now, for multi-entity runs, drops
+the chips and shows the full per-compound Key Results table (auto-expanded, tagged).
+Card kept (user asked "fix & keep"). Also: JSON output files now render as a
+structured key/value view, not a raw dump (user ask, same commit).
+
+## Item 16 — Remove competitor name "Biomni" from DB / workflows / folder names (`dataset_output_view...png`)
+"Biomni" (a competitor) appears in the UI — the ADMET output file content starts
+"Biomni: Predict ADMET Properties". Scope (large, partly path-sensitive):
+- **User-visible:** the string is written INTO workflow OUTPUT content by the ADMET
+  script → fix the header string in the generating workflow/script (low risk). Plus
+  any DB workflow **display names** with "biomni" (19 workflows: `biomni_<domain>_<task>`).
+- **Internal / path-sensitive (risky):** folders `Biomni/`, `backend/biomni_workflows`,
+  `backend/tools/biomni_generated`, `backend/docker/biomni-admet|-structure-to-drug|
+  -pharma|-tools`; docker image names; `nextflow_path`/workflow ids in the DB. Renaming
+  these breaks path + image references across the executor — NOT a blind sed.
+Plan: scrub user-visible first (output labels + DB display names), then the folder/
+docker/path rename as a careful, tested refactor. Status: NOT started (scoped).
+
+## Item 17 + trajectory — Software & Trajectory panels empty; consolidate trajectory (`software_trajectory_missing.png`)
+In the Reproducibility record: **Software** = "No software versions recorded" and
+**Trajectory** (Agent trajectory) = "No entries of this kind" — both wrongly empty
+(data not populated/fetched; same class as item 11). User direction:
+- **Use the step view AS the trajectory** (fix item 11 — populate step tool/outputs/
+  duration/params), and **remove the separate Trajectory panel** (it's a duplicate).
+- The **Reproducibility/replication bundle could be reframed as "Trajectory".**
+- **Software panel** still needs its data populated (software/tool versions per run).
+Status: NOT started. Items 11 + 17 + the trajectory rename are one sub-project.
+
+---
+
 ## Meta — "over-complicating the system in many modules"
 Guiding correction: simplify toward the design; remove duplication (e.g. the orphan
 `DatasetDialog` "Select or Upload Datasets" is defined but rendered nowhere — a dead
