@@ -60,16 +60,16 @@ test("files module renders JSON structurally and CSV as a table", async ({ page 
   console.log("[files-viz] json-preview count:", jsonCount);
   expect(jsonCount).toBeGreaterThan(0);
 
-  // CSV → table (shared TableGrid: shows "N rows × M cols" header).
+  // CSV → a real <table> (the dataset-object's rich table viewer; shared
+  // TableGrid is the fallback for the text-preview path). Either way, a CSV must
+  // render as a table, never a raw <pre> dump.
   await openFile(CSV_FILE);
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(2500);
   await page.screenshot({ path: path.join(OUT, "files-viz-csv.png") });
-  const previewText = await page.getByTestId("dataset-text-preview").first().innerText().catch(() => "");
-  console.log("[files-viz] CSV preview text (head):\n" + previewText.slice(0, 400));
-  // TableGrid renders a shape header and a real <table> (not a raw <pre> dump).
-  const tableCount = await page.getByTestId("dataset-text-preview").locator("table").count().catch(() => 0);
-  console.log("[files-viz] <table> count in CSV preview:", tableCount);
-  expect(tableCount).toBeGreaterThan(0);
+  const panelTables = await page.locator('[data-testid="dataset-object"] table, [data-testid="dataset-text-preview"] table').count().catch(() => 0);
+  const panelText = await page.getByTestId("dataset-object").first().innerText().catch(() => "");
+  console.log("[files-viz] <table> count:", panelTables, "| has gene header:", /\bgene\b/i.test(panelText));
+  expect(panelTables).toBeGreaterThan(0);
 
   console.log("[files-viz] PASS — JSON structured + CSV table in the files module");
 });
