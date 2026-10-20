@@ -325,8 +325,11 @@ export function AfterRunReport({
                   {tOr('afterrun.run_original_hint', 'The unedited record of what this run produced. Reports you edit are saved alongside it; this original is never overwritten.')}
                 </span>
               </div>
-              {/* Findings banner is purely informational here — no cross-nav to
-                  outputs (the gallery below is searchable). onOpenOutput omitted. */}
+              {/* Findings banner. Fixed 2026-10-20 (item 15): for multi-compound
+                  runs the card now drops the un-attributed headline chips and
+                  shows the full per-compound Key Results table, so it's always
+                  clear which entity a number belongs to (see findings-card.tsx
+                  `multiEntity`). */}
               <FindingsCard
                 runId={runId}
                 onContinueAnalysis={onContinueAnalysis}
@@ -335,10 +338,6 @@ export function AfterRunReport({
               {findings?.figures && findings.figures.length > 0 && (
                 <FindingsFiguresPanel figures={findings.figures} />
               )}
-              {/* Contract note — hoisted out of FindingsFiguresPanel (audit A1)
-                  so it renders whether the figures panel is visible or not.
-                  Wording covers numbers AND figures (the FindingsCard headline
-                  metrics and bullets fall under this same contract). */}
               <div
                 data-testid="findings-manifest-note"
                 style={{

@@ -205,22 +205,27 @@ describe("StepOutputPreview — viewer routing by extension", () => {
     });
   });
 
-  it("renders a JSON object as pretty JSON, not as comma-split CSV rows", async () => {
+  it("renders a JSON object as a readable key/value view, not comma-split CSV rows", async () => {
     mockFetch({ dili_probability: 0.875, dili_probability_threshold: 0.5, admet_dili_probability_passes: false, citation: "Redfern 2003, Kazius 2005" }, "application/json");
     render(<StepOutputPreview runId={runId} file={{ name: "qc_metrics.json", path: "/p", extension: "json" }} onClose={onClose} />);
     const preview = await screen.findByTestId("json-preview");
-    const pre = preview.querySelector("pre")!;
-    expect(pre.textContent).toContain('"admet_dili_probability_passes": false');
-    expect(pre.textContent).toContain('"citation": "Redfern 2003, Kazius 2005"');
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    // Keys and scalar values are present as a structured view.
+    expect(preview.textContent).toContain("admet_dili_probability_passes");
+    expect(preview.textContent).toContain("false");
+    // The citation stays a single value cell, not split across CSV columns.
+    const citationCell = Array.from(preview.querySelectorAll("td")).find((td) => td.textContent?.includes("Redfern 2003"));
+    expect(citationCell?.textContent).toContain("Redfern 2003, Kazius 2005");
   });
 
   it("shows a multi-line string field of a JSON object with its line breaks", async () => {
     mockFetch({ success: true, result: "Compound: CCO\n  hERG inhibition : 0.003\n  DILI probability : 0.855" }, "application/json");
     render(<StepOutputPreview runId={runId} file={{ name: "predict_admet_properties_results.json", path: "/p", extension: "json" }} onClose={onClose} />);
-    const field = await screen.findByTestId("json-preview-text-field");
-    expect(field.textContent).toContain("result");
-    expect(field.querySelector("pre")!.textContent).toBe("Compound: CCO\n  hERG inhibition : 0.003\n  DILI probability : 0.855");
+    const preview = await screen.findByTestId("json-preview");
+    // The multi-line "result" value is rendered in its own cell with line breaks intact.
+    const resultCell = Array.from(preview.querySelectorAll("td")).find((td) => td.textContent?.includes("hERG inhibition"));
+    expect(resultCell?.textContent).toContain("Compound: CCO");
+    expect(resultCell?.textContent).toContain("hERG inhibition : 0.003");
+    expect(resultCell?.textContent).toContain("DILI probability : 0.855");
   });
 
   it("keeps an array of records as a table", async () => {

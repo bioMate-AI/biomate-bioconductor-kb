@@ -256,20 +256,71 @@ function InlineTableViewer({ text, ext }: { text: string; ext: string }) {
   return <TableGrid headers={headers} rows={rows} totalRows={lines.length - 1} />;
 }
 
-/** Pretty-printed JSON; top-level multi-line strings (e.g. a tool's text report) are also shown with their line breaks. */
-function InlineJsonViewer({ value }: { value: unknown }) {
-  const multiline = value && typeof value === 'object' && !Array.isArray(value)
-    ? Object.entries(value as Record<string, unknown>).filter((e): e is [string, string] => typeof e[1] === 'string' && e[1].includes('\n'))
-    : [];
+/** Render a single JSON value: scalars inline, arrays as lists, objects as a
+ *  key/value table (recursive). Much more legible than a raw stringified dump. */
+function JsonValue({ v, depth = 0 }: { v: unknown; depth?: number }) {
+  if (v === null || v === undefined) return <span className="text-muted-foreground italic">—</span>;
+  if (typeof v === 'number' || typeof v === 'boolean') {
+    return <span className="font-mono text-blue-800 dark:text-blue-300">{String(v)}</span>;
+  }
+  if (typeof v === 'string') {
+    // Long / multi-line strings (e.g. a disclaimer block) wrap rather than truncate.
+    return <span className="whitespace-pre-wrap break-words">{v}</span>;
+  }
+  if (Array.isArray(v)) {
+    if (v.length === 0) return <span className="text-muted-foreground italic">empty</span>;
+    const allScalar = v.every(x => x === null || typeof x !== 'object');
+    if (allScalar) {
+      return (
+        <ul className="list-disc ml-4 space-y-0.5">
+          {v.slice(0, 50).map((x, i) => <li key={i}><JsonValue v={x} depth={depth + 1} /></li>)}
+          {v.length > 50 && <li className="text-muted-foreground italic">…and {v.length - 50} more</li>}
+        </ul>
+      );
+    }
+    return (
+      <div className="space-y-1">
+        {v.slice(0, 20).map((x, i) => (
+          <div key={i} className="rounded border border-border/50 p-1.5"><JsonValue v={x} depth={depth + 1} /></div>
+        ))}
+        {v.length > 20 && <div className="text-muted-foreground italic">…and {v.length - 20} more</div>}
+      </div>
+    );
+  }
+  if (typeof v === 'object') {
+    // Guard against pathological nesting — fall back to text past 4 levels.
+    if (depth > 4) return <InlineTextViewer text={JSON.stringify(v, null, 2)} />;
+    return <JsonObjectTable obj={v as Record<string, unknown>} depth={depth} />;
+  }
+  return <span>{String(v)}</span>;
+}
+
+function JsonObjectTable({ obj, depth = 0 }: { obj: Record<string, unknown>; depth?: number }) {
+  const entries = Object.entries(obj);
+  if (entries.length === 0) return <span className="text-muted-foreground italic">empty</span>;
   return (
-    <div data-testid="json-preview">
-      <InlineTextViewer text={JSON.stringify(value, null, 2)} />
-      {multiline.map(([key, str]) => (
-        <div key={key} className="mt-2" data-testid="json-preview-text-field">
-          <p className="text-[10px] text-muted-foreground mb-1 font-mono">{key}</p>
-          <InlineTextViewer text={str} />
-        </div>
-      ))}
+    <table className="w-full text-xs border-collapse">
+      <tbody>
+        {entries.map(([k, val]) => (
+          <tr key={k} className="border-b border-border/30 align-top">
+            <td className="py-1 pr-3 font-mono text-muted-foreground whitespace-nowrap align-top">{k}</td>
+            <td className="py-1 align-top break-words" style={{ wordBreak: 'break-word' }}>
+              <JsonValue v={val} depth={depth + 1} />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** Structured JSON preview — a key/value view for objects/arrays (legible at a
+ *  glance), falling back to text for a top-level scalar. */
+function InlineJsonViewer({ value }: { value: unknown }) {
+  const isObj = value !== null && typeof value === 'object';
+  return (
+    <div data-testid="json-preview" className="max-h-64 overflow-auto rounded border bg-muted/20 p-2">
+      {isObj ? <JsonValue v={value} /> : <InlineTextViewer text={String(value)} />}
     </div>
   );
 }

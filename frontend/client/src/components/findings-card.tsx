@@ -214,6 +214,14 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
 
   const { summary, keyResults: kr, citations: cits, caveats: cavs, nextSteps: ns } = parsedData
 
+  // When a run assessed multiple entities (e.g. several compounds) the backend
+  // tags each key result "(Compound N)" in its interpretation. The 3 headline
+  // chips would then show only the FIRST entity's values with no attribution —
+  // which reads as if those numbers are "the" result. In that case we drop the
+  // chips and surface the full, per-entity Key Results table (which carries the
+  // tags) instead, so it's always clear which entity a number belongs to.
+  const multiEntity = (kr || []).some(r => /\((?:Compound|Entity|Sample) \d+\)/i.test(r.interpretation || ''))
+
   return (
     <Card data-testid="findings-card" className="mt-3 border-blue-200 bg-blue-50/30 dark:border-blue-900/40 dark:bg-blue-950/10">
       <CardHeader className="pb-2 pt-3 px-3">
@@ -232,7 +240,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
         {/* §7.8 headline metrics — the top results as scannable chips so the
             answer is legible at a glance without expanding the table. Each chip
             with a known source opens that output (same path as the prose links). */}
-        {kr && kr.length > 0 && (
+        {kr && kr.length > 0 && !multiEntity && (
           <div className="flex flex-wrap gap-1.5" data-testid="findings-headline-metrics">
             {kr.slice(0, 3).map((r, i) => {
               const clickable = Boolean(r.source_file && onOpenOutput)
@@ -263,9 +271,11 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
               className="text-xs text-muted-foreground flex items-center gap-1 mb-1 hover:text-foreground transition-colors"
               onClick={() => setResultsExpanded(e => !e)}
             >
-              {tOr('panel.findings.key_results', 'Key Results')} {resultsExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              {tOr('panel.findings.key_results', 'Key Results')}
+              {multiEntity && <span className="opacity-70">{tOr('panel.findings.per_entity', '(per compound)')}</span>}
+              {(resultsExpanded || multiEntity) ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
-            {resultsExpanded && (
+            {(resultsExpanded || multiEntity) && (
               <div className="overflow-x-auto">
                 <table className="text-xs w-full border-collapse">
                   <thead>
