@@ -148,6 +148,23 @@ class TableChannel(Channel):
                              provenance={"source": "table", "path": self.path, "n": len(scores)})
 
 
+def frozen_fm_channel(path: str, model_name: str = "captain", **table_kwargs) -> "TableChannel":
+    """A frozen SOTA cell-FM (CAPTAIN / scGPT) as a target-ID CHANNEL — never the arbiter.
+
+    The FM's precomputed per-target relevance scores (produced where GPU + public weights exist,
+    then dumped to a CSV/TSV ``target,score``) enter as a TableChannel so the FM is a probationary
+    column that must earn linear-advantage through the gate like any other channel. We deliberately
+    do NOT run GPU inference inside the orchestrator.
+
+    Runner spec (to produce ``path``): run CAPTAIN (github.com/iamjiboya/CAPTAIN, CAPTAIN_Base /
+    CAPTAIN_PBMC weights) — e.g. its protein-informed cell-cell-communication task on the cohort —
+    map the FM output to per-gene relevance, and write a ``target,score`` table. scGPT is analogous.
+    Provenance is tagged with the model name so the arbiter's audit shows it as an FM channel.
+    """
+    ch = TableChannel(path, name=model_name, **table_kwargs)
+    return ch
+
+
 def default_channels(disease_id: Optional[str] = None, tables: Optional[List[Dict[str, Any]]] = None,
                      llm_client: Any = None) -> List[Channel]:
     """Assemble a sensible default channel set from whatever inputs are available.
