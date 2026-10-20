@@ -24,8 +24,21 @@ micromamba activate /opt/fepenv 2>/dev/null || true
 command -v gmx >/dev/null 2>&1 || source /opt/fepenv/bin/GMXRC 2>/dev/null || true
 GV=$(gmx --version 2>&1 | grep -i "GROMACS version" | head -1); [ -n "$GV" ] && R A OK "$GV" || { R A FAIL "no gmx in env"; exit 0; }
 PY=$(command -v python3)
+# pmx: install as an EXPLICIT marked stage (install -> import -> mutff), each emitting a marker and
+# exiting 0 cleanly on failure so the trap+markers always diagnose it (never a bare exit).
+# --no-build-isolation: pmx pins setuptools~=46.0.0 in build-system.requires, which conflicts with the
+# env's modern setuptools under pip's strict build isolation (the i-02906edd failure). --no-build-isolation
+# bypasses that pin and builds with the env's own setuptools/wheel/numpy + c-compiler. VERIFIED working.
+if ! $PY -c "import pmx" >/dev/null 2>&1; then
+  pip install --no-build-isolation "git+https://github.com/deGrootLab/pmx.git@develop" > pmx_install.out 2>&1 || true
+fi
+if $PY -c "import pmx" >/dev/null 2>&1; then
+  R pmx OK "pmx $($PY -c 'import pmx;print(getattr(pmx,"__version__","?"))' 2>/dev/null)"
+else
+  R pmx FAIL "import pmx failed: $(tail -4 pmx_install.out 2>/dev/null | tr '\n' '|')"; exit 0
+fi
 MUTFF=$($PY -c "import pmx,os;print(os.path.join(os.path.dirname(pmx.__file__),'data','mutff'))" 2>/dev/null)
-if [ -n "$MUTFF" ] && [ -d "$MUTFF" ]; then R A2pmx OK "pmx mutff=$MUTFF"; else R A2pmx FAIL "pmx/mutff missing"; exit 0; fi
+if [ -n "$MUTFF" ] && [ -d "$MUTFF" ]; then R mutff OK "$MUTFF"; else R mutff FAIL "pmx/mutff dir missing"; exit 0; fi
 export GMXLIB="$MUTFF"        # so pdb2gmx/grompp find charmm36m-mut.ff + ions + spc216
 FF=charmm36m-mut
 

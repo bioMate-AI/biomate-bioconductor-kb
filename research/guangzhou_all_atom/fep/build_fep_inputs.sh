@@ -32,16 +32,16 @@ dnf install -y bzip2 tar awscli >/dev/null 2>&1
 cd /opt && curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj bin/micromamba
 mv /opt/bin/micromamba /opt/micromamba
 export MAMBA_ROOT_PREFIX=/opt/mamba
-/opt/micromamba create -y -p /opt/fepenv -c conda-forge gromacs python=3.10 pip numpy matplotlib c-compiler make git >/dev/null 2>&1
+# setuptools+wheel explicitly in the env so pmx's --no-build-isolation build has its toolchain.
+/opt/micromamba create -y -p /opt/fepenv -c conda-forge gromacs python=3.10 pip setuptools wheel numpy matplotlib c-compiler make git >/dev/null 2>&1
 eval "\$(/opt/micromamba shell hook -s bash)"
 micromamba activate /opt/fepenv
-pip install "git+https://github.com/deGrootLab/pmx.git@develop" > /var/log/pmx_pip.log 2>&1
+# pmx is installed as a MARKED STAGE inside build_fep_setup.sh (--no-build-isolation) so a failure shows a marker, not a bare exit.
 mkdir -p /work && cd /work
 aws s3 cp "\$DEST/build_fep_setup.sh" /work/build_fep_setup.sh --region "\$REGION"
 SRC="\$SRC" DEST="\$DEST" REGION="\$REGION" bash /work/build_fep_setup.sh > /work/fepbuild_stdout.txt 2>&1
 aws s3 cp /work/fepbuild_stdout.txt "\$DEST/fepbuild_stdout.txt" --region "\$REGION"
 aws s3 cp /var/log/fepbuild.log "\$DEST/bootstrap.log" --region "\$REGION"
-aws s3 cp /var/log/pmx_pip.log  "\$DEST/pmx_pip.log" --region "\$REGION"
 echo DONE > /tmp/DONE; aws s3 cp /tmp/DONE "\$DEST/DONE" --region "\$REGION"
 shutdown -h now
 EOF
