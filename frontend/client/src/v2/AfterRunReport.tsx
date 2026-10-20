@@ -1867,21 +1867,10 @@ function ParametersTab({
 
   return (
     <div style={styles.tabContent}>
-      {entries.length > 0 && (
-        <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            type="button"
-            onClick={handleRunAgain}
-            style={styles.runAgainBtn}
-            data-testid="afterrun-run-again-params"
-          >
-            ↻ {tOr('afterrun.run_again_edits', 'Run again with edits')}
-          </button>
-          {ctaToast && (
-            <span role="status" style={styles.toast} data-testid="afterrun-cta-toast-params">{ctaToast}</span>
-          )}
-        </div>
-      )}
+      {/* "Run again with edits" button removed 2026-10-20 (UI refinement): it
+          dispatched an immediate re-run, so the "with edits" label was wrong —
+          there was no chance to edit. Re-running lives on the workflow panel
+          footer ("Run again"), which opens the editable param view. */}
       {entries.length === 0 ? (
         <p style={styles.empty}>{tOr('afterrun.no_param_values', 'No parameter values recorded.')}</p>
       ) : (

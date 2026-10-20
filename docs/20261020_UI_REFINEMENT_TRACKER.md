@@ -178,6 +178,18 @@ A panel resizer exists for the workflow panel (`chat-with-artifacts.tsx:531`
 has no draggable divider. Fix: expose the resize handle (or a drag divider) in the
 step-view layout too. Status: NOT fixed.
 
+## Item 13 — Remove "Run again with edits" button in Resolved parameters (`wrong_input_wrong_rerunwithedit_button.png`)
+The blue "↻ Run again with edits" button in the after-run Parameters/Reproducibility
+tab (`AfterRunReport.tsx:1872`) dispatched `biomate:run-again-with-edits`, which
+launched immediately — the "with edits" label was wrong (no edit step). **REMOVED**
+(commit pending). The failed-run section keeps its own retry button (`:485`, useful
+after a failure). Re-running with edits lives on the panel footer "Run again" (opens
+the editable param view).
+Sub-note (not fixed): the same screenshot shows `dataset: QUICKSTART.txt` in the
+resolved params for an ADMET run whose real input is `smiles_list` — a spurious/
+wrong `dataset` param captured in the record. Separate param-resolution bug; trace
+where the `dataset` value is injected for a SMILES-list workflow.
+
 ---
 
 ## Meta — "over-complicating the system in many modules"
