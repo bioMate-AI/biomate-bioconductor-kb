@@ -147,8 +147,10 @@ for ln in t:
     out.append(ln)
     if ln.strip().startswith('#include') and not done:
         out.append('#include "cada_mn.itp"'); done=True
-s='\n'.join(out)
-s=re.sub(r'(\[ molecules \].*)$', r'\1\nMN2                 3', s, flags=re.S)
+# append MN2 x3 to [ molecules ] (the last section) WITH a trailing newline, so gmx solvate's
+# subsequent "SOL <n>" append lands on its own line (not concatenated onto the MN2 line -> grompp
+# would then read count "3SOL" and silently drop the waters: the 16441-vs-205738 mismatch).
+s='\n'.join(out).rstrip('\n') + '\nMN2                 3\n'
 open('fep.top','w').write(s); print('MN_TOP_OK')
 PYEOF
    fi
