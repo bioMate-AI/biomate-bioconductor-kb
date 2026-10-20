@@ -12,6 +12,7 @@ fallback), LLM via galaxy.ai.llm_client.LLMClient, workflows via UnifiedWorkflow
 from .arbiter import Arbiter, EvidenceGateArbiter, TabularArbiter
 from .channels import CallableChannel, Channel, LLMReasonedChannel, MockChannel
 from .data_channels import OpenTargetsGeneticsChannel, TableChannel, default_channels, frozen_fm_channel
+from .demonstration import run_demonstration
 from .network_channels import PathwayCoMembershipChannel, StringPpiChannel
 from .orchestrator import TargetIDOrchestrator, create_target_id_orchestrator
 from .types import ChannelResult, OrchestratorResult, TargetEvidence, TargetScore
@@ -21,6 +22,7 @@ __all__ = [
     "Channel", "MockChannel", "LLMReasonedChannel", "CallableChannel",
     "OpenTargetsGeneticsChannel", "TableChannel", "default_channels", "frozen_fm_channel",
     "StringPpiChannel", "PathwayCoMembershipChannel",
+    "run_demonstration",
     "TargetIDOrchestrator", "create_target_id_orchestrator",
     "ChannelResult", "OrchestratorResult", "TargetEvidence", "TargetScore",
 ]
