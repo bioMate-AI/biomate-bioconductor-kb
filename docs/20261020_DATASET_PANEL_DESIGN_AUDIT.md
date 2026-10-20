@@ -79,6 +79,48 @@ no-preview, no-ref). Largely aligned — keep.
 
 ---
 
+## Visualization-confirmed enrichments (rendered the prototype, all tabs captured 2026-10-20)
+
+Drove the standalone prototype (expand project → Files → each tab) and viewed every
+state. Confirms the audit and adds exact detail the spec text under-conveyed:
+
+- **Header (all tabs):** `GSE184880_counts.tsv` + `v2` chip + green `● Quality: pass`
+  pill, then **[Jupyter] [RStudio] [Plot viewer]** boxed buttons + **Ask in chat**
+  (plain text, no box), right-aligned. Tabs: **Preview · Versions · Where it came from**.
+- **Preview / Columns:** per-column row = mono name · **type badge** (string/integer) ·
+  **% missing bar** · `N% missing` · **domain note** ("Ensembl ids · 99.7% resolve
+  against GRCh38", "HGNC symbols · 462 blank", "raw counts · median 812"). **[FUTURE]**
+- **Preview — "ASK BIOMATE TO EDIT THIS"** box (present on every Preview view): prompt
+  input ("e.g. fill the missing batch values, drop the low-depth samples…") + send,
+  "nothing changes until you accept", and a **suggestion chip** ("Drop the two samples
+  below the depth floor"). Conversational data-edit → new version. **[FUTURE]** (no edit/
+  content-version backend).
+- **Preview — stat grid = 4 cards:** `ROWS 38,214` · `COLUMNS 24` · `MISSING 0.4%` ·
+  `SIZE 14.2 MB`. **[BUILD]** rows/cols/size from profile.shape; MISSING **[PARTIAL]**.
+- **Preview / Plot:** TWO charts — **library-size-per-sample bars** (dashed FLOOR line,
+  amber bars below floor, "2 samples below floor" badge) + caption; **PCA scatter**
+  (PC1/PC2 %variance, colour-by control/treated/low-depth, "Colour by ▾") + caption.
+  Actions: **Save as output · Export figure · Ask for another plot**. **[FUTURE]** (no
+  distribution data from profiler) — ship the honest "nothing numeric → Jupyter/chat"
+  fallback now.
+- **Versions:** v2 (current, accent) "two low-depth samples flagged (no data changed) ·
+  BioMate · quality check · 12 Aug" + `● current`; v1 "fetched from GEO GSE184880 ·
+  A. Dike" + **Compare** · **Restore**. "WHY VERSIONS MATTER HERE" card. "completed ·
+  Bulk RNA-seq differential expression · read v2". Compare/Restore **[FUTURE]**.
+- **Where it came from:** two cards over a full-width card.
+  - ORIGIN: "Public repository" badge · GEO · GSE184880; "Added by you… Checksum
+    recorded; replayable from the audit trail"; **content hash sha256:… + dedup note**;
+    **Visible to [this project] [the whole account]** two-button + consequence copy. **[FUTURE]** (hash, visibility).
+  - QUALITY, AT INGEST: ● pass / ● pass / ● watch rows with specific notes + inheritance
+    rule. **[BUILD]** move DataPerception here.
+  - WHAT USED IT…: "● completed Bulk RNA-seq differential expression · read v2 · 4/4
+    gates passed · Open run"; **PRODUCED**: `table` de_results.tsv (open file →), `figure`
+    volcano.png, `report` after-run.pdf (typed, open-as-dataset). + **Export for deposit**
+    (top-right). Run+gates+open-run **[PARTIAL]**; produced-outputs **[FUTURE]**; export **[BUILD]** (move here).
+
+No new contradictions with the table above — the visualization sharpens the content of
+each cell; the BUILD / PARTIAL / FUTURE split stands.
+
 ## Build plan (derived from the audit)
 
 **Do now (BUILD):** T1 (＋ Add menu), T2 (search), T4 (scope hint); H2/H6 relocate
