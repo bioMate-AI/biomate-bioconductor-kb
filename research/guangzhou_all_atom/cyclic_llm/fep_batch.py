@@ -156,6 +156,12 @@ def dispatch_equilibration(run_id, dry_run=True, legs="solvent complex", metal_m
         jobName=f"equil-{metal_model}-{run_id}".replace("_", "-")[:120],
         jobQueue=QUEUE, jobDefinition=JOBDEF,
         containerOverrides=dict(command=_equil_command(in_s3, out_s3, legs=legs, metal_model=metal_model)),
+        # Spot resilience: auto-retry a SPOT RECLAIM (host terminated), but EXIT on a real non-zero
+        # container exit so a true physics/LINCS crash still fails loudly (not retried into the same wall).
+        retryStrategy=dict(attempts=3, evaluateOnExit=[
+            dict(onStatusReason="Host EC2*", action="RETRY"),   # spot interruption / host terminated -> retry
+            dict(onExitCode="*", action="EXIT"),                # any real container exit -> fail loudly
+        ]),
         tags={"pipeline": "cyclic-peptide", "stage": "equilibration", "target": "avb6",
               "edge": CONTROL_EDGE["edge_id"]},
     )
