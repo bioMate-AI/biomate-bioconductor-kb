@@ -94,6 +94,26 @@ compatible; (c) 4-bit prep — code already does `prepare_model_for_kbit_trainin
 **`i-03726d2f9389d3965`** (us-east-1 az4 = 9/10, confirmed spot). This is a 2nd re-fire, justified by a *complete*
 static reconciliation (not blind one-error looping). If it still errors, STOP and report.
 
+## 5. Execution-graded RL reward infra — BUILT + CPU-validated (the higher-EV lever's missing piece)
+The execution grader (`execution_grader.grade_run`: objective PASS/FAIL from what a run DID — terminal
+success + output existence/non-empty + contract-required outputs + content/type/identity checks) existed but was
+**never persisted or wired to a reward** — the gap blocking the peptide/HELM generator's RLVR. Built both missing
+pieces, stdlib-only, audit-first (reuse the grader):
+- `execution_grader.py`: `grade_run` refactored into `grade_detailed(run,deep) -> (verdict, reason, tier)` over an
+  execution **ladder** (`TIERS`: crashed < no_outputs < empty_outputs < missing_required < content_invalid < pass);
+  `grade_run` stays a backward-compatible `(verdict,reason)` wrapper (existing unit tests still pass).
+- `graded_run_store.py`: **(a)** a persisted SQLite store (schema + `record`/`record_many` writer, `get_reward`/
+  `rewards` reader, upsert by `run_id`, `run_json` provenance, campaign scoping) so verdicts accumulate as the loop
+  produces runs; **(b)** verdict→scalar-reward wiring (`reward_for_tier`/`grade_and_reward`): a dense **monotone**
+  reward in [0,1] over the ladder — **no similarity, no LLM**. PASS=1.0; FAILs get partial credit for how far they
+  executed (an RL gradient, not all-or-nothing).
+- **CPU-validated** (`--selftest`): synthetic runs at each tier → correct verdicts, strictly increasing reward
+  (0.00/0.20/0.30/0.45/1.00), store round-trip, and consistency vs `grade_run`. **MEASURED (dry-run) PASS.**
+This is the reward source the peptide RLVR consumes once the sibling closed loop streams real
+synthesize→assay→execute runs (add workflow-specific `CONTRACTS` for peptide assay outputs then). Status:
+**BUILT-NOT-FED** — the wiring is real and tested; it needs the closed loop's run volume + AWS Batch to execute
+candidates before it trains anything.
+
 ## 3g. PeftModel fix VALIDATED; 3rd gap (reward scorer staging) fixed; now HELD on spot capacity
 Re-fire #2 (`i-03726d2f9389d3965`) **passed GRPOConfig AND GRPOTrainer construction** (the peft_config fix works —
 reached + held at `[grpo] START GRPO` ~3 min), then hit a 3rd, non-API gap: `FileNotFoundError` for
