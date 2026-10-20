@@ -22,7 +22,6 @@ import { FindingsCard } from "@/components/findings-card";
 import { StepOutputPreview } from "@/components/step-output-preview";
 import { useInteractiveToolsAvailable } from "@/hooks/use-interactive-tools";
 import { TrajectoryView, type TrajectoryRow, type TrajectoryKind } from "@/components/trajectory-view";
-import { RegulatoryDocumentEditor } from "@/components/regulatory-document-editor";
 
 // Strip raw Nextflow debug log lines down to a readable one-liner.
 // Input:  "Jul-22 07:56:33.018 [Task monitor] DEBUG ... name: STEP (DESeq2); ... exit: 1; error: Essential container...; workDir: s3://..."
@@ -1575,16 +1574,23 @@ export function MethodsTab({
 
       {editing ? (
         <div style={styles.methodsEditor} data-testid="methods-editor">
-          <RegulatoryDocumentEditor
-            content={methods.text}
-            isLocked={false}
-            onEdit={(text) => setEditedText(text)}
-            molecule={workflowName || ""}
-            generatedAt={new Date().toISOString()}
-            // This is an after-run methods report, not IND §2.6 regulatory
-            // assembly — do NOT emit DPO feedback pairs to the regulatory
-            // training endpoint.
-            recordEditPairs={false}
+          {/* Simple prose editor for the methods report. Replaced the IND §2.6
+              RegulatoryDocumentEditor (item 18): its §2.6.1–§2.6.6 section tabs and
+              AI/edited counters are for a regulatory Module-2.6 assembly, not an
+              after-run methods report (which has its own 1./2./3. sections) — so it
+              showed a wrong section sequence and a meaningless "N edited" count. */}
+          <textarea
+            value={editedText}
+            onChange={(e) => setEditedText(e.target.value)}
+            data-testid="methods-editor-textarea"
+            spellCheck={false}
+            style={{
+              width: "100%", minHeight: 420, resize: "vertical",
+              fontFamily: "var(--font-mono, ui-monospace, monospace)", fontSize: 13,
+              lineHeight: 1.55, padding: 12, border: "1px solid var(--border)",
+              borderRadius: 8, background: "var(--surface, #fff)", color: "var(--text)",
+              whiteSpace: "pre-wrap",
+            }}
           />
         </div>
       ) : (

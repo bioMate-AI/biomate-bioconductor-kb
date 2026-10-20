@@ -74,8 +74,8 @@ describe("MethodsTab — edited text survives a source refresh mid-edit", () => 
     fireEvent.click(screen.getByTestId("methods-edit-toggle"));
     expect(screen.getByTestId("methods-editor")).toBeInTheDocument();
 
-    // User edits the report.
-    fireEvent.change(screen.getByTestId("mock-rde"), {
+    // User edits the report (now a plain prose textarea — item 18).
+    fireEvent.change(screen.getByTestId("methods-editor-textarea"), {
       target: { value: "USER-EDITED prose the user must keep" },
     });
 
