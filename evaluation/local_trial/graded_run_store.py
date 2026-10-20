@@ -40,6 +40,22 @@ def reward_for_tier(tier):
     return TIER_REWARD[tier]
 
 
+def run_from_outputs(run_id, workflow, outputs, status="succeeded", returncode=0, provenance=None):
+    """Build a grade_detailed-compatible run dict from a completed job's S3 outputs.
+    outputs: list of {name, size, s3_uri}. `provenance` fields are carried into run_json for traceability.
+    This is the generic seam the closed loop uses to hand a finished (cofold/MM-GBSA/assay) run to grading."""
+    run = {
+        "id": str(run_id), "workflowName": workflow,
+        "execution": {
+            "status": "completed" if status == "succeeded" else (status or "failed"),
+            "nextflowStatus": {"status": status, "returncode": returncode, "s3_output_files": outputs or []},
+        },
+    }
+    if provenance:
+        run.update(provenance)
+    return run
+
+
 def grade_and_reward(run, deep=False):
     """Objective grade of one run -> {run_id, workflow, verdict, tier, reward, reason, deep}."""
     verdict, reason, tier = G.grade_detailed(run, deep=deep)

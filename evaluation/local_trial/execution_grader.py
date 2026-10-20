@@ -25,6 +25,26 @@ CONTRACTS = {
         "required_outputs": ["toxicity_report.json", "predict_admet_properties_results.json", "qc_metrics.json"],
         "json_keys": {"toxicity_report.json": ["compounds_assessed", "per_compound", "toxicity"]},
     },
+    # --- cyclic-peptide program (αvβ6 / PD-L1) synthesize->assay->execute runs ---
+    # A cofold run must emit a bound-complex structure; an MM-GBSA run must emit a parseable binding-ΔG
+    # record; an assay-ingest run must emit a target+ΔG record. These are EXECUTION facts (the run
+    # produced the expected artifact with the expected fields) — NOT a judgement of the ΔG's quality
+    # (that is score()'s multi-objective reward, kept separate).
+    "cyclic_peptide_cofold": {
+        # Boltz-2 cofold (physics_batch) copies the model to complex.cif (metal entities just work).
+        "required_outputs": ["complex.cif"],
+        "json_keys": {},  # structure file; content_ok enforces non-empty
+    },
+    "cyclic_peptide_mmgbsa": {
+        # MM-GBSA record must carry the binding ΔG (physics_dispatch reads dG_bind_kcal_mol) + its target.
+        "required_outputs": ["mmgbsa_result.json"],
+        "json_keys": {"mmgbsa_result.json": ["dG_bind_kcal_mol", "target"]},
+    },
+    "cyclic_peptide_assay": {
+        # wet-lab assay-ingest run (when real assays flow): a measured binding readout for a target.
+        "required_outputs": ["assay_result.json"],
+        "json_keys": {"assay_result.json": ["target", "binding_dG"]},
+    },
 }
 
 
