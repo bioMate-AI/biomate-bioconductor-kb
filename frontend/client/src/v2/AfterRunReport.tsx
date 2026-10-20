@@ -1705,11 +1705,11 @@ function ReproducibilityRecordTab({
         <QcAuditTab events={qcEvents} outputs={[]} />
       </ReproSection>
 
-      <ReproSection title={tOr('afterrun.section.trajectory', 'Trajectory')} testId="record-section-trajectory">
-        <div style={{ padding: "4px 2px" }}>
-          <TrajectoryView rows={trajectoryRows} />
-        </div>
-      </ReproSection>
+      {/* Trajectory section removed 2026-10-20 (UI refinement item 17): there is
+          no backend agent-trajectory endpoint, so it was always "No entries of
+          this kind", and it duplicates the per-step record already shown in the
+          Full Step View (the step view IS the trajectory). Re-add when a real
+          agent-trajectory endpoint ships. */}
     </div>
   );
 }

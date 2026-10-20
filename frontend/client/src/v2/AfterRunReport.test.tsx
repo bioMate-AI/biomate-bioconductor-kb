@@ -574,7 +574,7 @@ describe("v2/AfterRunReport — three-tab consolidation (accepted design)", () =
     expect(screen.getByTestId("after-run-original-badge")).toHaveTextContent(/run original/i);
   });
 
-  it("folds Methods, Parameters, Software, Citations, QC report and Trajectory as sections inside the record tab", () => {
+  it("folds Methods, Parameters, Software, Citations and QC report as sections inside the record tab", () => {
     render(<AfterRunReport {...baseProps} />);
     fireEvent.click(screen.getByTestId("after-tab-record"));
     const record = screen.getByTestId("after-record-tab");
@@ -588,9 +588,11 @@ describe("v2/AfterRunReport — three-tab consolidation (accepted design)", () =
       "record-section-software",
       "record-section-citations",
       "record-section-qc",
-      "record-section-trajectory",
     ]) {
       expect(within(record).getByTestId(id)).toBeInTheDocument();
     }
+    // Trajectory section removed (item 17) — no backend endpoint; the step view
+    // is the trajectory. It must NOT appear.
+    expect(within(record).queryByTestId("record-section-trajectory")).toBeNull();
   });
 });
