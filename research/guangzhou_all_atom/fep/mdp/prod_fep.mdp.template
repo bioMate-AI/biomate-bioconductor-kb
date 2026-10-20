@@ -1,0 +1,44 @@
+; prod_fep.mdp.template — one HREX lambda-window of the relative FEP (Y->F double perturbation).
+; __LAMBDA_STATE__ is substituted per window (0..N-1) by fep_batch.py.
+; This is a RELATIVE alchemical FEP via a hybrid (dual-state) topology built by pmx:
+;   state A = Trivehexin arm (Tyr1, Tyr7), state B = avebehexin (Phe1, Phe7).
+; The control<->control edge: ddG_bind = dG_complex(A->B) - dG_solvent(A->B) must recover
+; the small experimental affinity gap between two known avb6 binders. That recovery is the
+; admissibility test; only then is the candidate ladder (M7/M11 vs control) trustworthy.
+integrator      = md
+dt              = 0.002
+nsteps          = 2500000         ; 5 ns / window (>=5 ns per the setup doc)
+nstlist         = 20
+cutoff-scheme   = Verlet
+coulombtype     = PME
+rcoulomb        = 1.2
+rvdw            = 1.2
+vdw-modifier    = Potential-shift
+constraints     = h-bonds
+constraint-algorithm = lincs
+tcoupl          = V-rescale
+tc-grps         = System
+tau-t           = 0.1
+ref-t           = 300
+pcoupl          = Parrinello-Rahman
+pcoupltype      = isotropic
+tau-p           = 2.0
+ref-p           = 1.0
+compressibility = 4.5e-5
+gen-vel         = no
+pbc             = xyz
+
+; ---- free energy (alchemical) ----
+free-energy       = yes
+init-lambda-state = __LAMBDA_STATE__
+; 12 windows (coul decoupled first, then vdw) — the >=12-window HREX schedule in the setup doc.
+coul-lambdas    = 0.0 0.25 0.5 0.75 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+vdw-lambdas     = 0.0 0.0  0.0 0.0  0.0 0.2 0.35 0.5 0.65 0.8 0.9 1.0
+bonded-lambdas  = 0.0 0.1  0.2 0.3  0.4 0.5 0.6  0.7 0.8  0.9 1.0 1.0
+sc-alpha        = 0.5
+sc-power        = 1
+sc-sigma        = 0.3
+couple-intramol = no
+nstdhdl         = 100
+dhdl-print-energy = potential
+; HREX is driven by mdrun -replex over the 12 windows (set in the container command).
