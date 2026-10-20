@@ -88,6 +88,7 @@ import { ThinkingDisplay } from "./thinking-display"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
 import { WorkflowChainPlan } from "./workflow-chain-plan"
 import { WorkflowDisambiguationCard, type DisambigCandidate } from "./workflow-disambiguation-card"
+import { buildDisambiguationCorrection, submitCorrection } from "@/lib/corrections"
 import { pipelineApprovalOptions } from "@/lib/chain-execution"
 import { PipelineListView } from "./pipeline-list-view"
 import { WorkflowRationale } from "./workflow-rationale"
@@ -865,7 +866,14 @@ export function ChatMessage({
                     <WorkflowDisambiguationCard
                       message={wf.message || 'Which workflow best fits what you need?'}
                       candidates={candidates}
-                      onSelect={(c) => onAdjustViaChat?.(`Use ${c.display_name || c.name}`)}
+                      onSelect={(c) => {
+                        // A pick that differs from the system's top-scored guess is a
+                        // genuine routing correction — record it so the next turn's
+                        // _buildCorrectionContextBlock injection prefers it.
+                        const correction = buildDisambiguationCorrection(candidates, c, { sessionId })
+                        if (correction) void submitCorrection(correction)
+                        onAdjustViaChat?.(`Use ${c.display_name || c.name}`)
+                      }}
                     />
                   </div>
                 )
