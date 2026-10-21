@@ -883,6 +883,39 @@ def _read_run_timing_json(run_id: str) -> Dict[str, Any]:
         return {}
 
 
+def _collect_failed_task_errors(work_dir: Path, max_tasks: int = 3, max_chars: int = 2000) -> str:
+    """Read .command.err from the most recently modified task work directories.
+
+    Nextflow's own log only shows exit codes; the actual error (e.g. Python
+    tracebacks, QEMU segfaults, R errors) lives in .command.err inside each
+    task's work subdirectory.  This function surfaces that content so failure
+    classification and the user-facing diagnosis have the real error to work from.
+    """
+    work_subdir = work_dir / "work"
+    if not work_subdir.is_dir():
+        return ""
+    try:
+        err_files = sorted(
+            work_subdir.rglob(".command.err"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except Exception:
+        return ""
+    snippets: list[str] = []
+    for ef in err_files[:max_tasks]:
+        try:
+            content = ef.read_text(errors="replace").strip()
+            if not content:
+                continue
+            # Keep only the last max_chars characters of each file to avoid
+            # flooding the classifier with MB-scale core dumps.
+            snippets.append(content[-max_chars:])
+        except Exception:
+            continue
+    return "\n---\n".join(snippets)
+
+
 def _read_run_nextflow_log_text(log_dir: Path) -> tuple[str, list[str]]:
     """Merge launcher and work-dir Nextflow logs (AWS Batch runs often only complete in work/.nextflow.log).
 
@@ -993,20 +1026,37 @@ def _classify_failure(
     log_tail: Optional[Union[list, str]] = None,
     returncode: Optional[int] = None,
     duration_s: Optional[int] = None,
+    task_stderr: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Classify a failed run into a user-safe verdict. Reads the RAW log for pattern
-    matching but returns NONE of it. `suggested_action` in
-    {resume, resume_more_resources, fix_and_resume, check_input, report,
-    restart_last_resort}. `is_transient=True` means a plain resume can succeed
-    unchanged; False means the cause is deterministic and something must change
-    before resuming. `fix_strategy` is the language-neutral tier the UI renders —
-    {auto_fixable, user_action_required, not_fixable} — mirroring
-    autofix.user_guidance.FixStrategy (docs/20260823_FAILURE_COMMUNICATION_STRATIFICATION.md)."""
+    """Classify a failed run into a user-safe verdict.
+
+    Searches BOTH the Nextflow orchestrator log (log_tail) AND the actual task
+    stderr (.command.err content via task_stderr) so that errors buried inside
+    task containers — Python tracebacks, R errors, QEMU segfaults — are visible
+    to classification and surfaced to the user.
+
+    `suggested_action` ∈ {resume, resume_more_resources, fix_and_resume,
+    check_input, report, restart_last_resort}.
+    `is_transient=True` → plain resume can succeed unchanged.
+    `fix_strategy` ∈ {auto_fixable, user_action_required, not_fixable}.
+    `task_error_snippet` → sanitized excerpt of the actual task stderr, shown
+    in the UI and passed to the auto-fix LLM so it has real context.
+    """
     if str(status).lower() not in ("failed", "error", "cancelled"):
         return None
     raw = "\n".join(str(x) for x in log_tail) if isinstance(log_tail, list) else str(log_tail or "")
-    low = raw.lower()
+    task_err_raw = str(task_stderr or "")
+    # Classify against BOTH sources combined so task-level errors are detected.
+    combined = raw + "\n" + task_err_raw
+    low = combined.lower()
     rc = returncode
+
+    # Build a sanitized snippet of the task error for the user-facing diagnosis.
+    # Use the task stderr in preference to the orchestrator log — it has the real cause.
+    _snippet_source = task_err_raw if task_err_raw.strip() else raw
+    _snippet_lines = [l for l in _snippet_source.splitlines() if l.strip()][-20:]
+    _raw_snippet = "\n".join(_snippet_lines)
+    task_error_snippet = _redact_internal(_raw_snippet)[:1500]
 
     # category → fix_strategy tier (T1 auto-fix / T2 needs-you / T3-T4 not-user-fixable).
     _STRATEGY = {
@@ -1016,6 +1066,7 @@ def _classify_failure(
         "config_param": "user_action_required",
         "input_data": "user_action_required",
         "tool_error": "user_action_required",
+        "arch_compat": "not_fixable",     # T4: architecture mismatch (e.g. ARM64 + amd64 image)
         "workflow_code": "not_fixable",   # T4: BioMate's defect, not the user's
         "unknown": "not_fixable",
     }
@@ -1023,7 +1074,25 @@ def _classify_failure(
     def verdict(category: str, msg: str, transient: bool, action: str) -> Dict[str, Any]:
         return {"category": category, "user_message": msg,
                 "is_transient": transient, "suggested_action": action,
-                "fix_strategy": _STRATEGY.get(category, "not_fixable")}
+                "fix_strategy": _STRATEGY.get(category, "not_fixable"),
+                "task_error_snippet": task_error_snippet}
+
+    # ── architecture / emulation incompatibility (QEMU segfault, signal 11, etc.) ──
+    # exit 139 = 128 + SIGSEGV(11). Common when running amd64 containers via QEMU on ARM64:
+    # ML libraries (PyTorch, TensorFlow) use AVX2/AVX-512 SIMD that QEMU can't emulate.
+    if (rc == 139
+            or any(k in low for k in ("segmentation fault", "signal 11", "sigsegv",
+                                     "qemu: uncaught target signal",
+                                     "illegal instruction", "signal 4",
+                                     "bus error", "signal 7"))):
+        return verdict("arch_compat",
+                       "A workflow step crashed with a low-level CPU signal (likely a "
+                       "segmentation fault or illegal instruction). This typically happens "
+                       "when running x86/amd64 container images via QEMU emulation on an "
+                       "ARM64 host — some libraries use CPU instructions (AVX2/SIMD) that "
+                       "QEMU cannot emulate correctly. A native ARM64 image is required to "
+                       "run this workflow on ARM64 hardware.",
+                       False, "report")
 
     # ── transient infrastructure (a plain resume can succeed) ──
     if any(k in low for k in ("spot", "reclaim", "instance was terminated", "host ec2",
@@ -1178,16 +1247,24 @@ def _trigger_auto_reroute_on_failure(
                 Path(failed_path).stem if failed_path else ""
             )
 
-        # Read the last ~60 lines of the Nextflow log for classification.
+        # Read Nextflow orchestrator log + actual task .command.err for classification.
+        # The orchestrator log only has exit codes; the real error (tracebacks, QEMU
+        # segfaults, R errors) is in the task work directory's .command.err files.
         log_tail: list = []
+        task_stderr: str = ""
         work_dir = run_meta.get("work_dir") or run_meta.get("workdir") or ""
         if work_dir and not str(work_dir).startswith("s3://"):
+            work_path = Path(work_dir)
             try:
-                _full, log_tail = _read_run_nextflow_log_text(Path(work_dir))
+                _full, log_tail = _read_run_nextflow_log_text(work_path)
+            except Exception:
+                pass
+            try:
+                task_stderr = _collect_failed_task_errors(work_path)
             except Exception:
                 pass
 
-        failure_verdict = _classify_failure("failed", log_tail, returncode)
+        failure_verdict = _classify_failure("failed", log_tail, returncode, task_stderr=task_stderr)
         if not failure_verdict:
             return
 
@@ -1281,12 +1358,15 @@ def _trigger_auto_reroute_on_failure(
         # ── Layer 2: AI diagnosis card ────────────────────────────────────
         # Emit a structured diagnosis so the frontend can surface it as a
         # helpful, actionable card instead of a raw "FAILED" state.
+        # task_error_snippet is the sanitized actual task stderr — the real
+        # error that auto-fix and the user need to understand what went wrong.
         _post_sse_direct(inv_id, "ai_diagnosis", {
             "category": category,
             "user_message": user_message,
             "suggested_action": suggested_action,
             "fix_strategy": fix_strategy,
             "is_transient": failure_verdict.get("is_transient", False),
+            "task_error_snippet": failure_verdict.get("task_error_snippet", ""),
             "run_id": run_id,
         })
         log.debug("[auto_reroute] Layer-2 diagnosis emitted for run=%s category=%s", run_id, category)
@@ -1298,14 +1378,27 @@ def _trigger_auto_reroute_on_failure(
 def _sanitize_status_payload(resp: Dict[str, Any]) -> Dict[str, Any]:
     """Single chokepoint before a status payload leaves for the browser: attach a
     classified `failure` verdict on failed runs and redact backend internals from
-    log_tail + error string fields. Never ships raw Nextflow logs to the client."""
+    log_tail + error string fields.
+
+    Task stderr (.command.err) is collected from the work directory and included
+    in classification + the failure.task_error_snippet field so the browser and
+    auto-fix LLM have the real error, not just an exit code.
+    """
     if not isinstance(resp, dict):
         return resp
     status = str(resp.get("status", "")).lower()
     raw_tail = resp.get("log_tail")
     if status in ("failed", "error", "cancelled"):
+        task_stderr = ""
+        work_dir = resp.get("work_dir") or resp.get("workdir") or ""
+        if work_dir and not str(work_dir).startswith("s3://"):
+            try:
+                task_stderr = _collect_failed_task_errors(Path(work_dir))
+            except Exception:
+                pass
         resp["failure"] = _classify_failure(
-            status, raw_tail, resp.get("returncode"), resp.get("duration_s"))
+            status, raw_tail, resp.get("returncode"), resp.get("duration_s"),
+            task_stderr=task_stderr)
     if "log_tail" in resp:
         resp["log_tail"] = _sanitize_log_tail(raw_tail)
     for _k in ("error", "errorMessage", "error_message", "message"):
