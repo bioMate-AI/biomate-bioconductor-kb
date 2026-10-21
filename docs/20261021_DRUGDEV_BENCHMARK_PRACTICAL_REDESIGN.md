@@ -137,8 +137,13 @@ speculatively.
   projection, FIH starting dose) add a numeric-tolerance scorer (reuse `pbpk_scorer`);
   A/B (target go/no-go, hit triage) reuse `decision_scorer` with Open-Targets /
   known-actives ground truth.
-- A `run_decision_benchmark.py` runner that iterates `DECISION_DATASETS` + sweep
-  wiring (offline-scorable now; the execution layer gated).
+- ~~A `run_decision_benchmark.py` runner that iterates `DECISION_DATASETS`~~ **DONE**
+  (`evaluation/runners/run_decision_benchmark.py`): `--dry-run` lists all tasks
+  offline; live mode health-checks the BioMate server and **skips execution when it is
+  down** (never a speculative live run); per-archetype + per-difficulty score summary,
+  JSON metrics out. Still to add: roster sweep wiring (run across models) + the gated
+  L5–L6 execution-grading path (ADMET/FEP run → `execution_grader` → decision
+  consistency).
 
 **Honesty note (carry forward):** report baselines unedited. The value of this suite
 is that it exposes where an agent *looks* capable (routes correctly) but makes the
