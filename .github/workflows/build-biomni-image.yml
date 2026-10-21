@@ -1,13 +1,18 @@
 name: Build biomni image (reusable)
 
-# Reusable build+verify+push for the biomni-* Batch containers. Builds on the x86
-# GitHub runner (native — no QEMU, so C extensions run in the smoke), runs a smoke
-# script INSIDE the freshly built image, and only pushes if the smoke passes. This is
-# the framework guard: a dependency drift that breaks the image fails CI here instead
-# of being discovered when a real workflow runs on Batch.
+# Reusable build+verify+push for the biomni-* Batch containers.
 #
-# Callers pass their ECR repo, Dockerfile, and a smoke script (a python file in the
-# repo, run inside the image via bind-mount). Optionally emit a pip-freeze lockfile.
+# Multi-arch strategy (native parallel runners — no QEMU):
+#   amd64: ubuntu-latest (x86), builds :x86 tag — always runs
+#   arm64: ubuntu-24.04-arm (native Graviton), builds :arm64 tag — gated by build_arm64 input
+#   merge: creates :latest multi-arch manifest pointing to both platform images
+#
+# Both builds use host `docker build` (NOT buildx docker-container), so the host's
+# ECR credentials are inherited by the daemon that pulls the private FROM base.
+# Smoke tests run natively on each arch — no emulation, no C-extension segfaults.
+#
+# Prerequisite for arm64: biomate-nextflow-base:latest must carry an arm64 manifest.
+# Until that base is multi-arch, set build_arm64: false in callers.
 
 on:
   workflow_call:
@@ -34,6 +39,11 @@ on:
         required: false
         default: ""
         type: string
+      build_arm64:
+        description: "Build a native arm64 image in addition to amd64. Requires the FROM base to have an arm64 manifest."
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   id-token: write
@@ -45,7 +55,8 @@ env:
   ROLE_ARN: arn:aws:iam::399683337364:role/GitHubActionsECRPush
 
 jobs:
-  build-verify-push:
+  # ── amd64 build (always runs) ───────────────────────────────────────────────
+  build-amd64:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -82,8 +93,6 @@ jobs:
           CPUFLAG=""
           if [ -n "${{ inputs.smoke_cpus }}" ]; then
             N="${{ inputs.smoke_cpus }}"
-            # pin affinity (--cpuset-cpus 0..N-1) so os.sched_getaffinity/cpu_count sees N,
-            # + --cpus quota. This reproduces a 1-vCPU Batch container's view.
             CPUFLAG="--cpus=${N} --cpuset-cpus=0-$((N-1))"
             echo "smoke pinned to ${N} cpu(s): $CPUFLAG"
           fi
@@ -100,7 +109,7 @@ jobs:
             python3 -m pip freeze --all | LC_ALL=C sort -f
           echo "=====PIPFREEZE_END====="
 
-      - name: Push (only reached if smoke passed)
+      - name: Push amd64 tags
         run: |
           docker tag \
             "${ECR_REGISTRY}/${{ inputs.image_repo }}:${{ steps.tags.outputs.sha_tag }}" \
@@ -111,6 +120,113 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "### ${{ inputs.image_repo }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "### ${{ inputs.image_repo }} (amd64)" >> "$GITHUB_STEP_SUMMARY"
           echo "- tag: \`${{ inputs.image_repo }}:x86\` (+ \`${{ steps.tags.outputs.sha_tag }}\`)" >> "$GITHUB_STEP_SUMMARY"
           echo "- smoke: \`${{ inputs.smoke_script }}\` (native x86, run inside image before push)" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── arm64 build (optional, gated by build_arm64 input) ─────────────────────
+  build-arm64:
+    if: ${{ inputs.build_arm64 }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute tag
+        id: tags
+        run: echo "sha_tag=arm64-${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image with host docker (native arm64 runner)
+        # Native arm64 runner — no QEMU. Host `docker build` inherits ECR creds
+        # from the daemon (same approach as the amd64 job above).
+        # ARG TARGETARCH=arm64 is set implicitly via --platform linux/arm64.
+        run: |
+          docker build \
+            --platform linux/arm64 \
+            --build-arg TARGETARCH=arm64 \
+            -f "${{ inputs.dockerfile }}" \
+            -t "${ECR_REGISTRY}/${{ inputs.image_repo }}:${{ steps.tags.outputs.sha_tag }}" \
+            .
+
+      - name: Smoke test (native arm64 — no emulation)
+        run: |
+          test -f "${{ inputs.smoke_script }}" || { echo "::error::smoke script not found: ${{ inputs.smoke_script }}"; exit 1; }
+          CPUFLAG=""
+          if [ -n "${{ inputs.smoke_cpus }}" ]; then
+            N="${{ inputs.smoke_cpus }}"
+            CPUFLAG="--cpus=${N} --cpuset-cpus=0-$((N-1))"
+            echo "smoke pinned to ${N} cpu(s): $CPUFLAG"
+          fi
+          docker run --rm $CPUFLAG \
+            -v "${{ github.workspace }}/${{ inputs.smoke_script }}:/smoke.py:ro" \
+            "${ECR_REGISTRY}/${{ inputs.image_repo }}:${{ steps.tags.outputs.sha_tag }}" \
+            python3 /smoke.py
+
+      - name: Push arm64 tags
+        run: |
+          docker tag \
+            "${ECR_REGISTRY}/${{ inputs.image_repo }}:${{ steps.tags.outputs.sha_tag }}" \
+            "${ECR_REGISTRY}/${{ inputs.image_repo }}:arm64"
+          docker push "${ECR_REGISTRY}/${{ inputs.image_repo }}:${{ steps.tags.outputs.sha_tag }}"
+          docker push "${ECR_REGISTRY}/${{ inputs.image_repo }}:arm64"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### ${{ inputs.image_repo }} (arm64)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- tag: \`${{ inputs.image_repo }}:arm64\` (+ \`${{ steps.tags.outputs.sha_tag }}\`)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- smoke: \`${{ inputs.smoke_script }}\` (native arm64, run inside image before push)" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Multi-arch manifest merge ───────────────────────────────────────────────
+  merge-manifest:
+    needs: [build-amd64, build-arm64]
+    # Run even if arm64 was skipped (not requested). Fail if amd64 failed.
+    if: |
+      always() &&
+      needs.build-amd64.result == 'success' &&
+      (needs.build-arm64.result == 'success' || needs.build-arm64.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx (for imagetools manifest create)
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create multi-arch :latest manifest
+        run: |
+          REPO="${ECR_REGISTRY}/${{ inputs.image_repo }}"
+          SHA="${GITHUB_SHA::12}"
+          SRCS="${REPO}:x86-${SHA}"
+          if [[ "${{ needs.build-arm64.result }}" == "success" ]]; then
+            SRCS="${SRCS} ${REPO}:arm64-${SHA}"
+          fi
+          docker buildx imagetools create --tag "${REPO}:latest" ${SRCS}
+          echo "Created :latest manifest from: ${SRCS}"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### ${{ inputs.image_repo }} :latest manifest" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${{ needs.build-arm64.result }}" == "success" ]]; then
+            echo "- Platforms: \`linux/amd64\` + \`linux/arm64\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Platforms: \`linux/amd64\` only (arm64 not requested or skipped)" >> "$GITHUB_STEP_SUMMARY"
+          fi

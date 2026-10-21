@@ -18,16 +18,21 @@
 # NOT included (those live in biomni-tools):
 #   ViennaRNA, AutoDock Vina, Meeko, openbabel, codon-tools, seaborn, plotly
 #
-# Build (x86 for AWS Batch):
-#   docker buildx build --platform linux/amd64 \
+# Build (amd64 for AWS Batch):
+#   docker build --platform linux/amd64 \
 #     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86 \
-#     --push -f backend/docker/biomni-admet/Dockerfile .
+#     -f backend/docker/biomni-admet/Dockerfile .
 #
-# Local:
-#   docker build -t biomate/biomni-admet:latest \
+# Build (arm64 for Graviton on-prem — requires biomate-nextflow-base:arm64):
+#   docker build --platform linux/arm64 --build-arg TARGETARCH=arm64 \
+#     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:arm64 \
 #     -f backend/docker/biomni-admet/Dockerfile .
 
 FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+
+# TARGETARCH is passed by the CI build job (--build-arg TARGETARCH=arm64|amd64).
+# Defaults to amd64 for plain `docker build` without --build-arg.
+ARG TARGETARCH=amd64
 
 LABEL maintainer="BioMate Team"
 LABEL version="1.0.0"
@@ -57,10 +62,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # (ADMETModel.predict) gate the change; then regenerate the lock from the new freeze.
 COPY backend/docker/biomni-admet/requirements.lock /tmp/biomni-admet.lock
 
-# CPU-only PyTorch (CPU wheel ~250 MB vs CUDA ~2 GB; ADMET is small-batch inference).
-# torch==2.3.1+cpu comes from the lock; the CPU index supplies the +cpu build.
-RUN pip install --no-cache-dir -c /tmp/biomni-admet.lock \
-    torch --index-url https://download.pytorch.org/whl/cpu
+# CPU-only PyTorch (~250 MB vs CUDA ~2 GB; ADMET is small-batch inference).
+# amd64: the +cpu wheel index carries torch==2.3.1+cpu (matches the lock pin).
+# arm64: standard PyPI has aarch64 CPU wheels as plain torch==2.3.1 (no +cpu suffix);
+#        the lock pin torch==2.3.1+cpu would fail on arm64, so we skip -c for torch only.
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      pip install --no-cache-dir torch; \
+    else \
+      pip install --no-cache-dir -c /tmp/biomni-admet.lock \
+        torch --index-url https://download.pytorch.org/whl/cpu; \
+    fi
 
 # Everything else — versions come from the lock (numpy 1.26.4, chemprop 1.6.1,
 # descriptastorus 2.8.0, admet-ai 1.3.1, mordred, PyTDC, sklearn, matplotlib,
@@ -71,10 +82,10 @@ RUN pip install --no-cache-dir -c /tmp/biomni-admet.lock \
 RUN pip install --no-cache-dir -c /tmp/biomni-admet.lock \
     chemprop admet-ai
 
-# ── Package verification (pip show only — no import/execution) ───────────────
-# C extensions (RDKit, mordred, PyTorch/Chemprop) segfault under QEMU x86_64
-# emulation used by buildx cross-compilation. Verify via pip metadata only;
-# all imports and inference are tested when the container runs on real hardware.
+# ── Package verification ──────────────────────────────────────────────────────
+# CI builds use native runners (amd64 on ubuntu-latest, arm64 on ubuntu-24.04-arm),
+# so the full smoke test (ADMETModel.predict) runs natively inside the built image.
+# No QEMU, no C-extension segfaults during build or smoke.
 RUN pip show admet-ai mordred PyTDC chembl_webresource_client scikit-learn | \
     grep -E "^Name:|^Version:" && \
     aws --version && \
