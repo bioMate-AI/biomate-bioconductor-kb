@@ -9,6 +9,17 @@ exec > >(tee -a "$TRAIN_LOG") 2>&1
 SIZE=${MODEL_SIZE:-small}; STAGE=${STAGE:-sft}; TAG=${TAG:-}   # TAG namespaces outputs for A/B variants (e.g. _mix)
 SCRATCH=${SCRATCH:-/opt/dlami/nvme}; HERE=$(cd "$(dirname "$0")" && pwd)
 S3=s3://biomate-models-399683337364/biomate-core-local-trial/20260912
+# EXPORT-AND-VERIFY GATE (2026-10-20): a training exit=0 is NOT proof the adapter reloads and
+# generates real text — the 2026-10-07 deploy promoted a silently-broken adapter. gate_adapter
+# reloads <base>+<adapter>, proves it changes logits + generates non-degenerately, and exits 31
+# to BLOCK promotion. Call it before EVERY served-adapter upload, with that adapter's REAL base
+# (the SFT adapter's base is the original base; the DPO adapter's base is sft_merged). Fail-closed;
+# set VERIFY_EXPORT=0 to skip (escape hatch, not the default).
+gate_adapter() {  # gate_adapter <base> <adapter_dir>
+  [ "${VERIFY_EXPORT:-1}" = 1 ] || return 0
+  python3 "$HERE/verify_export.py" --base "$1" --adapter "$2" --out "$2/export_gate.json" \
+    || { echo "[spot] FATAL: export gate blocked promotion of $2 — not uploading"; exit 31; }
+}
 CKPT_S3="$S3/spot_ckpt/$SIZE/$STAGE$TAG"; LOG_S3="$S3/spot_logs/$SIZE/$STAGE$TAG"
 OUT="$SCRATCH/out/$SIZE/$STAGE"; mkdir -p "$OUT" "$SCRATCH/data" "$SCRATCH/models"
 case "$SIZE" in
@@ -142,6 +153,7 @@ elif [ "$STAGE" = full ]; then
   [ -n "$SLAST" ] && SR="--resume $SLAST" && echo "[spot] resume sft from $SLAST"
   $LAUNCH "$HERE/train_qlora_pilot.py" --base "$OUT/base_domain" --data "$SCRATCH/data/sft_enriched.jsonl" \
      --out "$OUT/sft" --max-steps $SFT --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $SR
+  PROMOTE_BASE="$OUT/base_domain"   # the full-stage SFT adapter's base is the merged domain model
   OUT="$OUT/sft"   # so the upload below grabs the SFT adapter
 elif [ "$STAGE" = sftdpo ]; then
   # SFT on v5 (clean+openbook+contrastive+paraphrase) -> merge -> DPO on hard-negative pairs.
@@ -157,13 +169,16 @@ elif [ "$STAGE" = sftdpo ]; then
     [ -f "$OUT/sft/adapter_config.json" ] || { echo "[spot] FATAL: SFT produced no adapter — aborting"; exit 21; }
     python3 "$HERE/merge_lora.py" --base "${BASE_DOMAIN:-$BASE}" --adapter "$OUT/sft" --out "$OUT/sft_merged"
     [ -f "$OUT/sft_merged/config.json" ] || { echo "[spot] FATAL: merge produced no model — aborting"; exit 22; }
+    gate_adapter "${BASE_DOMAIN:-$BASE}" "$OUT/sft"
     aws s3 cp "$OUT/sft/" "$S3/models_20260919/$SIZE/sft${TAG}_adapter/" --recursive --exclude "checkpoint-*/*" --quiet
     aws s3 cp "$OUT/sft_merged/" "$S3/models_20260919/$SIZE/sft${TAG}_merged/" --recursive --quiet
   fi
   [ -f "$OUT/sft_merged/config.json" ] || { echo "[spot] FATAL: no merged SFT model for DPO — aborting"; exit 23; }
   $LAUNCH "$HERE/train_dpo_grounded.py" --phase train --model "$OUT/sft_merged" \
      --pairs-out "$SCRATCH/data/dpo_pairs.jsonl" --out "$OUT/dpo"
+  gate_adapter "$OUT/sft_merged" "$OUT/dpo"   # the DPO adapter's base is the merged SFT model
   aws s3 cp "$OUT/dpo/" "$S3/models_20260919/$SIZE/dpo${TAG}_adapter/" --recursive --quiet
+  PROMOTE_BASE="$OUT/sft_merged"   # the final promote below re-uploads this DPO adapter; gate it on the right base
   OUT="$OUT/dpo"
 else
   $LAUNCH "$HERE/train_qlora_pilot.py" --base "${BASE_DOMAIN:-$BASE}" --data "$SCRATCH/data/sft_enriched.jsonl" \
@@ -171,14 +186,9 @@ else
 fi
 RC=$?
 echo "[spot] training exit=$RC — verify export before promoting"
-# EXPORT-AND-VERIFY GATE (2026-10-20): a training exit=0 is NOT proof the adapter reloads
-# and generates real text — the 2026-10-07 deploy promoted a silently-broken adapter. Reload
-# + prove non-degenerate (changes logits, non-degenerate generation) BEFORE upload; a BLOCK
-# (exit 31) aborts promotion. Set VERIFY_EXPORT=0 to skip (escape hatch, not the default).
-if [ "${VERIFY_EXPORT:-1}" = 1 ]; then
-  python3 "$HERE/verify_export.py" --base "${BASE_DOMAIN:-$BASE}" --adapter "$OUT" --out "$OUT/export_gate.json" \
-    || { echo "[spot] FATAL: export gate blocked promotion of $OUT — not uploading"; exit 31; }
-fi
+# Gate the final promote on the stage's REAL base (PROMOTE_BASE set per-branch where the
+# adapter's base differs from the original, e.g. sftdpo -> sft_merged; default = original base).
+gate_adapter "${PROMOTE_BASE:-${BASE_DOMAIN:-$BASE}}" "$OUT"
 echo "[spot] export gate passed — upload final adapter"
 aws s3 cp "$OUT/" "$S3/models_20260919/$SIZE/${STAGE}${TAG}_adapter/" --recursive --quiet
 echo "SPOT_${STAGE}${TAG}_DONE size=$SIZE rc=$RC"

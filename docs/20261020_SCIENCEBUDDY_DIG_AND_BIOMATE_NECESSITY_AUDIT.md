@@ -129,5 +129,5 @@ All offline adoptions implemented, CPU-tested (no GPU / dev-stack run), and **me
 **Open / next:**
 - **#3 final step** — a gated path into production `pattern_router` (the first *live-stack* change; needs the dev-stack verification loop). Not started.
 - **#2 AST validation** — deprioritised (the Docker sandbox is the real boundary; low ROI).
-- **Export-gate follow-up** — gate the `sftdpo` branch's separate promote points (`spot_train.sh:160/161/166`) the same way.
+- **Export-gate follow-up — DONE (2026-10-20).** Refactored the gate into a `gate_adapter <base> <adapter>` helper and applied it to **every** served-adapter promote in `spot_train.sh` with that adapter's **real** base (SFT→original base, DPO→`sft_merged`, full-stage SFT→`base_domain` via a per-branch `PROMOTE_BASE`). Closes the class: no promote path can ship a degenerate adapter. (`sft_merged` is a merged full model, not a LoRA adapter, so it is correctly not gated; its downstream DPO adapter is.) `bash -n` clean.
 - **admet/routing real-scorer bridges** — not cleanly bridgeable (structured-dict / task-coupled inputs); the mirror stays.
