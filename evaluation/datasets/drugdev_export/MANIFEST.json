@@ -14,9 +14,9 @@
     "exclude data-boundary tasks (Phase II/III outcomes, PopPK, survival, RWE)"
   ],
   "tracks": {
-    "T1_molecular_tool_workflow": "ADMET/docking/RBFE/QSAR/generation/retrosynthesis — compete + cite external (TDC, PoseBusters, OpenFE, MoleculeACE, GuacaMol, PaRoutes)",
-    "T2_early_stage_target_perturbation": "target-ID/druggability, perturbation response, experiment design — compete + cite (Open Targets, PrimeKG, GEARS, Virtual Cell Challenge, BioDiscoveryAgent)",
-    "T3_search_knowledge": "literature/evidence retrieval + drug/chem knowledge + KG reasoning — compete + cite (PaperQA2, STaRK-PRIME, ChemBench, MoleculeQA, BioKGBench)",
+    "T1_molecular_tool_workflow": "ADMET/docking/RBFE/QSAR/generation/retrosynthesis \u2014 compete + cite external (TDC, PoseBusters, OpenFE, MoleculeACE, GuacaMol, PaRoutes)",
+    "T2_early_stage_target_perturbation": "target-ID/druggability, perturbation response, experiment design \u2014 compete + cite (Open Targets, PrimeKG, GEARS, Virtual Cell Challenge, BioDiscoveryAgent)",
+    "T3_search_knowledge": "literature/evidence retrieval + drug/chem knowledge + KG reasoning \u2014 compete + cite (PaperQA2, STaRK-PRIME, ChemBench, MoleculeQA, BioKGBench)",
     "T4_execution_grounded_cross_stage": "OWN/white-space: end-to-end pipeline execution, cross-stage chains, PBPK, dose-from-data, stability, FTO, ABFE, antibody developability"
   },
   "benchmarks": [
@@ -26,7 +26,7 @@
       "stage": "S2 hit-to-lead",
       "items": 20,
       "gt": "reference",
-      "status": "built_internal_ready_to_export",
+      "status": "exported",
       "scorer": "evaluation/scorers/admet_scorer.py",
       "adapter": "evaluation/adapters/admet_benchmark_adapter.py",
       "gold": "evaluation/datasets/admet_benchmark/cases.yaml",
@@ -73,7 +73,7 @@
       "stage": "S0 target ID",
       "items": 10,
       "gt": "expected_pocket_residues",
-      "status": "built_internal_ready_to_export",
+      "status": "exported",
       "adapter": "evaluation/adapters/target_structure_adapter.py",
       "gold": "evaluation/datasets/target_structure_benchmark/cases.yaml",
       "external_baseline": "CASP; CAMEO; PLINDER; PoseBusters",
