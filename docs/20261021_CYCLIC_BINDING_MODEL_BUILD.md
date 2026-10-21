@@ -90,3 +90,26 @@ Hypothesis (coordinator): ECFP+ChemBERTa plateaued because they are LIGAND-ONLY 
 **Leakage probe (clean):** target_only is weak on grouped CV (~0.17) and NEGATIVE on the PD-L1/αvβ6 holdout (RF −0.099; PD-L1 −0.350). → The grouped split prevents target-identity memorization; ligand_only's ~0.42 is genuine ligand→affinity signal, NOT target leakage.
 
 **Convergent finding:** across ECFP (0.43), ChemBERTa (0.40), ESM-target-concat (0.35), the novel-target Spearman holds-or-drops. Strong evidence the limit is **data/task-fundamental for generic ML**, not a missing-target-input problem. Honest (a)/(b): (a) data/task wall vs (b) a crude *concat* is the wrong target-aware architecture — a protein-ligand **interaction** model (DrugCLIP-style cross-attention) is the one untried target-aware architecture; it is the remaining ML lever before declaring a hard data wall. Evidence so far favors (a), pointing to **physics-grounding (the §5 physics gate) rather than a bigger ML model** as the route to a strong novel-target model.
+
+---
+
+## 10. LEVER 1 — license-clean INTERACTION model (learned ligand×target); edges up but does NOT break the ceiling (2026-10-21)
+**License verdict (commercial):** training data (BindingDB CC-BY-4.0 / ChEMBL CC-BY-SA-3.0) is commercial-OK with attribution (ChEMBL share-alike applies to redistributed *data*; flag for legal). DrugCLIP data/weights are CC-BY-4.0 but its **code + Uni-Mol weight licenses are unverified** → per the commercial-safe rule, did NOT depend on DrugCLIP; built from license-clean parts: **ESM-2 (MIT)** target emb + **RDKit ECFP (BSD)** ligand + a learned interaction head (torch, from scratch on our data). Sources: DrugCLIP_data (huggingface, CC-BY-4.0), ChEMBL CC-BY-SA-3.0, BindingDB CC-BY-4.0.
+
+**Result — grouped leave-targets-out CV (26,598 rows, 694 targets), torch MLP:**
+| Model | Spearman |
+|---|---|
+| ligand_only MLP | 0.424 ± 0.100 |
+| target_only MLP (leakage probe) | 0.139 ± 0.087 |
+| **interaction MLP (ligand ⊕ target ⊕ ligand⊙target gated)** | **0.462 ± 0.080** |
+| (ref) ligand_only RF, same subset | 0.445 |
+| (ref) naive concat-into-RF (§9) | 0.351 |
+
+**Verdict — interaction edges up but is WITHIN fold noise of the ceiling; not a meaningful break.** The learned gated interaction (0.462) beats the ligand_only MLP (0.424) by +0.038 and the naive concat-into-tree (0.351) by +0.11 — so **how** you combine target+ligand matters (a learned interaction head ≫ dumping the embedding into a tree). But +0.038 over ligand-only is *inside the ±0.08–0.10 fold std*, and 0.462 sits essentially at the ligand-only RF ceiling (0.445). So interaction **recovers** what concat destroyed and lands *at* the ceiling — it does not exceed it. Leakage probe (target_only 0.139) confirms the split is clean.
+
+**Convergent across everything tried:** ligand-only ECFP 0.445 / ChemBERTa 0.40 / MLP 0.424; concat-tree 0.351; learned interaction 0.462. All land at **~0.42–0.46** novel-target. The ~0.42 ceiling is robust to representation AND to a learned interaction head → **data/task-fundamental, not model-capacity.**
+
+**Remaining formal unknown (honest):** this is a POOLED interaction, not full **token-level cross-attention** (residue×atom, DrugCLIP-style). That GPU variant is the one architecture untested. But given concat hurt and pooled-interaction lands exactly at the ceiling, the evidence strongly indicates token cross-attention would not meaningfully break it either. (Per-target PD-L1/αvβ6 MLP single-slice not separately run; the grouped CV subsumes both as held-out targets within folds — the robust headline — and the ligand-only RF slices were PD-L1 0.385 / αvβ6 0.216.)
+
+## 11. Consolidated verdict — a STRONG standalone novel-target model is not reached from existing data/ML
+Ligand-only (any representation), naive concat, pretrained FM embeddings, and a learned interaction head **all plateau at ~0.42–0.46 novel-target Spearman** on the leakage-safe grouped split. The ceiling is **convergent and data/task-fundamental** (novel-target coverage + pooled IC50/Ki/EC50/Kd label heterogeneity), not a modeling deficiency. The two levers that could still move it both add **signal/data, not model capacity**: (1) full token cross-attention (GPU, unlikely per the above); (2) **physics-grounding** — but that is blocked on a SMILES→GAFF MM-GBSA pipeline we don't have (§ physics-gate doc). Honest bottom line: "strong + publishable" on *novel-target* cyclic affinity is **data-bound**; the defensible near-term claims are the *within-target* ranking (modest) and this **convergent-ceiling negative** (a real, publishable methods finding: representation/architecture don't break a data-limited novel-target ceiling).

@@ -393,5 +393,44 @@
         }
       }
     }
+  },
+  "lever1_interaction_mlp": {
+    "n_rows": 26598,
+    "note": "pooled bilinear/gated interaction MLP (license-clean: ESM-2 MIT + RDKit ECFP); NOT token cross-attention",
+    "splits": {
+      "ligand_only": {
+        "spearman_mean": 0.42392751153943137,
+        "spearman_std": 0.09960611702822637,
+        "folds": [
+          0.601,
+          0.445,
+          0.403,
+          0.365,
+          0.306
+        ]
+      },
+      "target_only": {
+        "spearman_mean": 0.1394770282182886,
+        "spearman_std": 0.08690289085929527,
+        "folds": [
+          0.043,
+          0.029,
+          0.243,
+          0.2,
+          0.182
+        ]
+      },
+      "interaction": {
+        "spearman_mean": 0.4624976583387964,
+        "spearman_std": 0.07962738589049399,
+        "folds": [
+          0.609,
+          0.484,
+          0.414,
+          0.417,
+          0.388
+        ]
+      }
+    }
   }
 }
