@@ -84,12 +84,15 @@
       "code": "N1",
       "name": "rbfe_benchmark",
       "stage": "S3 lead optimization",
-      "items": null,
+      "items": 8,
       "gt": "ddg_ref",
-      "status": "planned_stub",
+      "status": "gold_and_scorer_built_adapter_pending",
       "workflow": "openfe_rbfe, amber_peptide_mmgbsa, peptide_mmgbsa",
       "external_baseline": "OpenFE public benchmark; JACS-FEP (Wang 2015); Merck/Schindler FEP",
-      "task": "Given a congeneric series and a reference ligand, predict relative binding free energies (ddG); RMSE + Kendall tau vs experimental, on leakage-controlled congeneric series."
+      "task": "Given a congeneric series and a reference ligand, predict relative binding free energies (ddG); RMSE + Kendall tau vs experimental, on leakage-controlled congeneric series.",
+      "ligands": 264,
+      "gold": "evaluation/datasets/drugdev_export/rbfe_benchmark/data.jsonl (MIT, Merck FEP)",
+      "scorer": "evaluation/scorers/rbfe_scorer.py"
     },
     {
       "code": "N2",
