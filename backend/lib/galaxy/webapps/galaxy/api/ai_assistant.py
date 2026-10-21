@@ -2885,14 +2885,21 @@ def workflow_citations(
     name = (request.name or "").strip()
     if not name:
         return []
+    # The UI passes the DISPLAY name (e.g. "Predict ADMET Properties (AI)"),
+    # which differs from the DB `name` ("Predict Admet Properties") by casing
+    # and a trailing " (AI)"/" (BYOL)" tag. Match tolerantly: exact →
+    # case-insensitive → case-insensitive with the trailing tag stripped.
+    import re as _re
+    cleaned = _re.sub(r"\s*\((?:AI|BYOL|beta)\)\s*$", "", name, flags=_re.I).strip()
     import sqlite3 as _sq, json as _json
     from pathlib import Path as _P
     db_path = _P(__file__).resolve().parents[5] / "database" / "galaxy_ai_tools.db"
     try:
         conn = _sq.connect(str(db_path))
         row = conn.execute(
-            "SELECT domain, tags, tools_used FROM workflows WHERE name=? LIMIT 1",
-            (name,),
+            "SELECT domain, tags, tools_used FROM workflows "
+            "WHERE name=? OR lower(name)=lower(?) OR lower(name)=lower(?) LIMIT 1",
+            (name, name, cleaned),
         ).fetchone()
         conn.close()
     except Exception:
