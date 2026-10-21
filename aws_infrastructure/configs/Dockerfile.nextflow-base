@@ -22,9 +22,11 @@ FROM python:3.11-slim
 #     --push .
 
 # Install system dependencies
-RUN apt-get update \
+RUN set -eux; \
+    AWSARCH="$(uname -m | sed 's/aarch64/aarch64/;s/x86_64/x86_64/')"; \
+    apt-get update \
     && apt-get install -y --no-install-recommends curl unzip ca-certificates procps \
-    && curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip \
+    && curl -s "https://awscli.amazonaws.com/awscli-exe-linux-${AWSARCH}.zip" -o /tmp/awscliv2.zip \
     && unzip -q /tmp/awscliv2.zip -d /tmp \
     && /tmp/aws/install \
     && rm -rf /tmp/awscliv2.zip /tmp/aws \
