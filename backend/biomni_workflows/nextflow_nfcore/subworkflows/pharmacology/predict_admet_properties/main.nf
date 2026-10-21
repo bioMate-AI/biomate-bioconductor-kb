@@ -91,7 +91,11 @@ PYEOF
 process PREDICT_ADMET_PROPERTIES {
     tag "admet-merge"
     label 'process_medium'
-    publishDir path: "${params.outdir}/run", mode: 'copy'
+    // Publish under the step-named dir (not a generic "run"): the executor's
+    // output→step attribution reads the first outdir segment, and the "02_"
+    // prefix maps to step id 1 (int("02")-1), i.e. "Predict Admet Properties",
+    // so outputs attribute to the real step instead of a phantom "run" step.
+    publishDir path: "${params.outdir}/02_predict_admet_properties", mode: 'copy'
 
     // biomni-admet: dedicated ADMET container (admet-ai/Chemprop, mordred, PyTDC)
     // Starts from biomate-nextflow-base directly — lean, not biomni-tools
