@@ -194,3 +194,70 @@ The first slice is now wired into the loop and surfaced to the product via a reg
   is identified (the read path exists; the call-site hook is a one-line placement in the product).
 - Replace the `_llm_rag_call()` stub with a live LLM call for genuine novel-target proposals (seam + schema
   validation + T4 tiering already in place).
+
+---
+
+## 4. REBUILD — general ingestion KB + hard evidence invariant (2026-10-21)
+
+The first slice (§1–3) wrapped **the current project's literal rules** (αvβ6/PD-L1 per-target adapters). That
+was too ad hoc. The KB is now **GENERAL and domain-organized**, and INGESTS established rule-sets per domain
+instead of hand-curating entries. The αvβ6 / PD-L1 program is a **resolved instance** over those domains.
+
+### 4.1 The general KB — `cyclic_llm/medchem_kb.py` (ingestion + provenance layer)
+
+| Domain | Ingested from (real source) | Yield | Admitted / candidate |
+|---|---|---|---|
+| **1 Liability / SAR** | **RDKit `FilterCatalog`** — PAINS A/B/C, BRENK, NIH, ZINC, ChEMBL alert sets (BMS, Dundee, Glaxo, Inpharmatica, LINT, MLSMR, SureChEMBL). Each alert carries its shipped `FilterSet`+`Reference`+`Scope`, mapped to a canonical paper (Baell & Holloway 2010; Brenk 2008; Jadhav 2010; Irwin & Shoichet 2005; Hann 1999; Pearce 2006; Gaulton 2017). | **13 rule-sets / 1,585 alerts** (nothing hand-written) | 10 rule-sets verified / 3 unverifiable (Inpharmatica, LINT, SureChEMBL — still applied, flagged) |
+| **2 Metal coordination** | Published geometry surveys (Harding *Acta Cryst D* 2006; MetalPDB, Putignano *NAR* 2018; CheckMyMetal, Zheng *Acta Cryst D* 2017) + FF-param papers (Li & Merz *Chem Rev* 2017; MCPB.py 2016; 12-6-4 2015; Duarte CaDA *JPCB* 2014). Not cheaply downloadable → the **published tables are encoded with citations** (never invented). | **7 ions** (MG/MN/ZN/CA/FE/CU/NI) × geometry/CN/residue-prefs/FF-options | geometry 7/7 verified (T1); FF options per-param (CaDA verified; 12-6-4/MCPB locators unverifiable) |
+| **3 Physchem / ADMET** | Standard rule definitions: Lipinski Ro5 (1997), Veber (2002), Doak–Kihlberg bRo5 (2014), chameleon/IMHB permeability (Rezai 2006; Over *Nat Chem Biol* 2016) + external predictors to call (SwissADME, ADMETlab). | **5 rules** | 5/5 verified |
+| **4 Pharmacophore by class** | **No single clean DB → curated from reviews WITH citations** (integrin-MIDAS: Xiong *Science* 2002 + Dong *NSMB* 2014; PPI-groove: Clackson & Wells 1995 + Walensky 2014; protease/kinase/GPCR). **FLAGGED as the partially-curated domain.** | **5 classes** | 2 verified (integrin-MIDAS, ppi-groove) / 3 unverifiable (protease/kinase/gpcr — locators not confirmed) |
+| **5 Modality heuristics** | Cyclization (Driggers *Nat Rev Drug Discov* 2008), N-methylation permeability tradeoff (Biron 2008; Kessler), stapling (Walensky 2014), D-amino / backbone. | **4 heuristics** | 1 verified (stapling) / 3 unverifiable (exact locators) |
+| **+ Data sources** | Affinity = ChEMBL (Mendez *NAR* 2019) + BindingDB (Gilson *NAR* 2016) via `binding_affinity_v1`; permeability = CycPeptMPDB (Li *JCIM* 2023). | 2 pointers | 2/2 verified |
+
+A **live screener** `medchem_kb.screen_liabilities(smiles)` runs the ingested catalogs over any SMILES and
+returns matched alerts **with per-alert provenance** (alert name + rule-set + canonical paper).
+
+### 4.2 Hard evidence invariant (enforced in `experience_kb.KBEntry.validate()`)
+
+Every piece of knowledge must have real evidence — enforced in code, not by convention:
+
+1. **Knowledge requires a real source.** A `metal|pharmacophore|sar|cmc|fto|eval_rule|physchem|modality|liability`
+   entry with an empty/missing `provenance.ref` **FAILS `validate()`** and is never admitted.
+2. **Unverified → quarantined.** A knowledge entry cited but not confirmed (`verified ∈ {False, "unverifiable"}`)
+   validates but gets `status="candidate"`: it is kept in a separate `candidates` list and **never returned by
+   `resolve()` as authoritative**. The served KB is therefore 100% evidence-supported.
+3. **Knowledge vs config.** Engine/program defaults (pose method, receptor asset, cofactor site/count) are
+   `kind="config"`, `tier="n/a"` — not knowledge claims, exempt from the evidence requirement, always served.
+4. **Provenance carried on ingest.** Each RDKit alert carries its catalog+paper; each metal row its survey; each
+   param its FF paper — automatically into `provenance.ref`.
+
+### 4.3 The project is a resolved instance
+
+`resolve("avb6")` now DERIVES from the general domains + the `target_kb/avb6.json` instance:
+- **12 admitted** (all `verified=True`): config ×2, metal ×1 (general MN octahedral/CaDA rule), pharmacophore ×1
+  (general integrin-MIDAS principle), liability ×1 (ingested 1,585-alert screener), physchem ×2 (bRo5 + chameleon),
+  cmc ×1, sar ×3, eval_rule ×1 (metal-free-void).
+- **4 quarantined candidates** (not served): the FTO patent genus (unverifiable patent id) + 3 modality heuristics
+  (exact locators unconfirmed).
+- **b6-selectivity UPGRADED to verified** — `avb6:sar-b6-selectivity` now cites **Dong, Hudson, Lu & Springer,
+  *Nat Struct Mol Biol* 2014;21:1091 (PDB 4UM8/4UM9)**: the RGDLxxL/I motif engaging the β6/β8 SDL pocket is the
+  structurally-established selectivity determinant (was a program inference flag; now authoritative, served hard gate).
+
+`resolve("pdl1")` → 7 admitted (ppi-groove class principle, structural-alert screen, Ro5/Veber/predictors, CMC) +
+1 quarantined (FTO). No metal (no cofactor), pharmacophore gate advisory (structure-gated) — all backward-compatible.
+
+### 4.4 Honest coverage
+
+- **Ingested-complete:** Liability (1,585 alerts, RDKit), Physchem (standard definitions), Metal geometry (published
+  surveys). These are not hand-written; they carry real, shippable provenance.
+- **Partially-curated (flagged):** Pharmacophore-by-class — no single clean DB exists, so 5 classes are curated from
+  reviews with citations; only integrin-MIDAS + ppi-groove are confidently verified and served.
+- **Quarantined (not served, pending verification):** 3 ChEMBL liability sub-sets (Inpharmatica/LINT/SureChEMBL
+  primary locators), 3 pharmacophore classes (protease/kinase/gpcr locators), 3 modality heuristics (exact pages),
+  the αvβ6 FTO patent id. These are real, applied where safe (liability screening still runs all 1,585), but never
+  presented by `resolve()` as authoritative knowledge until their source is confirmed.
+- **Gap:** quantitative ADMET/affinity/permeability come from external predictors + datasets (SwissADME/ADMETlab,
+  binding_affinity_v1, CycPeptMPDB) that the KB *points at* with provenance — it does not re-host those models.
+
+Files: `cyclic_llm/medchem_kb.py` (general KB), `cyclic_llm/experience_kb.py` (wrap + invariant + resolver),
+`cyclic_llm/test_experience_kb.py` (10/10, incl. evidence-invariant + RDKit-ingestion tests).

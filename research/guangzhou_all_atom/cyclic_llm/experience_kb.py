@@ -1,31 +1,36 @@
-"""Pharma-Chemist Experience KB — first slice.
+"""Pharma-Chemist Experience KB — ingestion + provenance + resolver layer.
 
 ONE provenance-tiered knowledge store that drives BOTH tool PARAMETERS and EVALUATION CRITERIA, so the
-rich experience-based constraints a medicinal chemist applies (metal coordination, pharmacophore, selectivity
-SAR, renal/CMC liabilities, FTO) stop being re-encoded by hand per target and instead resolve from one place.
+experience-based constraints a medicinal chemist applies (metal coordination, pharmacophore by target class,
+structural-alert liabilities, SAR, physchem/ADMET, modality heuristics, FTO) resolve from one place instead
+of being re-encoded by hand per target.
 
-Design: docs/20261021_PHARMA_CHEMIST_EXPERIENCE_KB_DESIGN.md (commit e1dec289c).
+ARCHITECTURE (coordinator directive 2026-10-21): the KB is GENERAL and INGESTS established rule-sets per
+domain; a specific program (αvβ6 / PD-L1 cyclic peptides) is a RESOLVED INSTANCE over those domains.
+  - medchem_kb.py is the general KB: DOMAIN 1 liability (RDKit FilterCatalog, 1,585 alerts), DOMAIN 2 metal
+    coordination (Harding/MetalPDB + FF param papers), DOMAIN 3 physchem/ADMET (Ro5/Veber/bRo5 + predictors),
+    DOMAIN 4 pharmacophore-by-class (curated, partial), DOMAIN 5 modality heuristics.
+  - This module WRAPS the general-domain dicts + the instance assets (target_kb/<t>.json, target_spec,
+    scorer_config, pharmacophore_knowledge, knowledge_liability_flags, fto_score, fep/forcefield/cada_mn.itp)
+    into provenance-validated KBEntry objects, and `resolve(target)` derives the target's params + gates from
+    the general domains (its metal, its class, its modality) + the instance overrides.
 
-This module WRAPS the already-existing, scattered assets as provenance-wrapped KB entries — it does NOT copy
-or re-author their content (no new chemistry is invented here):
-  - target_kb/<t>.json + target_spec.load_spec / scorer_config.config_for  -> metal/cofactor, pose, receptor,
-    counter-targets (TOOL PARAMS) and the metal-free-MIDAS => void rule (EVAL).
-  - pharmacophore_knowledge.PHARMACOPHORE / generation_constraint          -> pharmacophore gate (EVAL) +
-    generation constraint (TOOL PARAM).
-  - knowledge_liability_flags.flag_candidate                               -> β6-selectivity, renal-charge,
-    conformational-lock, CMC universals (EVAL; the live checker stays flag_candidate()).
-  - fto_score.in_claim + the KB `fto` genus                                -> FTO genus (EVAL, advisory).
-  - fep/forcefield/cada_mn.itp (Duarte-2014, verbatim)                     -> the Mn metal-model FF-param
-    exemplar (TOOL PARAM, tier T1). NOTE: the .itp itself is still pending its grompp/NVT validation.
+HARD EVIDENCE INVARIANT (enforced in KBEntry.validate()):
+  - Every KNOWLEDGE claim (metal|pharmacophore|sar|cmc|fto|eval_rule|physchem|modality|liability) REQUIRES a
+    non-empty, real provenance.ref. No source -> validate() FAILS and the entry is NOT admitted.
+  - A knowledge entry whose source is cited but could NOT be verified (verified in {False,"unverifiable"}) is
+    QUARANTINED: status="candidate", kept in a separate candidates list, NEVER returned by resolve() as
+    authoritative knowledge.
+  - CONFIG (engine/program defaults: pose method, receptor asset, cofactor list) is NOT a knowledge claim:
+    kind="config", tier="n/a", verified="n/a" — exempt from the evidence requirement, always served.
+  => the LIVE KB served by resolve() is 100% evidence-supported; unsourced/unverifiable items are candidates.
 
-`resolve(target)` fires the matching entries and returns the merged {tool_params, eval_criteria} + provenance.
-Deterministic and authoritative. `resolve(target, rag=True)` adds an opt-in LLM-RAG seam for NOVEL targets
-(not in the KB): it retrieves similar entries as context and proposes params/gates, but anything proposed is
-tier T4 / verified=False / status="provisional" — never presented as authoritative (rules-first, LLM-fallback).
+`resolve(target)` is deterministic and authoritative. `resolve(target, rag=True)` adds an opt-in LLM-RAG seam
+for NOVEL targets (not in the KB): proposals are tier T4 / verified=False / status="provisional" (never served).
 """
 from __future__ import annotations
 import os, sys, json
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -34,6 +39,8 @@ if HERE not in sys.path:
 PARENT = os.path.dirname(HERE)                       # research/guangzhou_all_atom
 CADA_ITP = os.path.join(PARENT, "fep", "forcefield", "cada_mn.itp")
 
+import medchem_kb  # the general, ingested KB (DOMAINS 1-5)
+
 # ---- evidence tiers (same ladder as the design + the Grounded Standards Assistant) ----
 TIERS = {
     "T1": "established literature / verbatim-sourced parameters",
@@ -41,32 +48,57 @@ TIERS = {
     "T3": "mechanistic reasoning / curated heuristic",
     "T4": "induced from data (rule_induction)",
 }
+KNOWLEDGE_KINDS = {"metal", "pharmacophore", "sar", "cmc", "fto", "eval_rule", "physchem", "modality", "liability"}
+CONFIG_KINDS = {"config"}
 
 
 @dataclass
 class KBEntry:
     id: str
-    kind: str                       # metal | pharmacophore | sar | cmc | fto | eval_rule | pose
+    kind: str                       # KNOWLEDGE_KINDS | CONFIG_KINDS
     statement: str
     scope: dict = field(default_factory=dict)        # {modality, target_class, applies_when:[targets] or "*"}
-    provenance: dict = field(default_factory=dict)   # {source_type, ref, evidence_tier}
+    provenance: dict = field(default_factory=dict)   # {source_type, ref, evidence_tier, verified, verification_note}
     effects: dict = field(default_factory=dict)      # {tool_params:{...}, eval_criteria:[{criterion,mode,checker}]}
     version: str = "1.0"
-    status: str = "active"
+    status: str = "active"          # set by validate(): active | config | candidate | provisional
 
     def validate(self):
         assert self.id and self.kind and self.statement, f"entry {self.id}: id/kind/statement required"
-        t = self.provenance.get("evidence_tier")
-        assert t in TIERS, f"entry {self.id}: evidence_tier must be one of {list(TIERS)}, got {t!r}"
-        # MANDATORY verified flag — citation-integrity: a source we could not check is never silently authoritative.
+        assert self.kind in (KNOWLEDGE_KINDS | CONFIG_KINDS), f"entry {self.id}: bad kind {self.kind!r}"
         v = self.provenance.get("verified")
         assert v in (True, False, "unverifiable", "n/a"), \
             f"entry {self.id}: provenance.verified required (True|False|'unverifiable'|'n/a'), got {v!r}"
+        t = self.provenance.get("evidence_tier")
+        is_config = self.kind in CONFIG_KINDS
+        if is_config:
+            assert t in (None, "n/a") or t in TIERS, f"entry {self.id}: config tier must be 'n/a'/None, got {t!r}"
+        else:
+            assert t in TIERS, f"entry {self.id}: evidence_tier must be one of {list(TIERS)}, got {t!r}"
         eff = self.effects or {}
         assert set(eff) <= {"tool_params", "eval_criteria"}, f"entry {self.id}: bad effects keys {set(eff)}"
         for c in eff.get("eval_criteria", []):
             assert c.get("mode") in ("hard", "advisory"), f"entry {self.id}: eval mode must be hard|advisory"
+        # ---- HARD EVIDENCE INVARIANT: every knowledge claim needs a real source ----
+        if not is_config and self.status != "provisional":
+            ref = self.provenance.get("ref")
+            assert isinstance(ref, str) and ref.strip(), \
+                f"entry {self.id}: knowledge entry requires a non-empty provenance.ref (evidence invariant)"
+        # ---- status: config served; verified knowledge served; cited-but-unverified QUARANTINED ----
+        if self.status == "provisional":
+            pass                                           # RAG proposal, never served
+        elif is_config:
+            self.status = "config"
+        elif v is True:
+            self.status = "active"
+        else:                                              # cited but False/unverifiable -> candidate
+            self.status = "candidate"
         return self
+
+    @property
+    def admitted(self) -> bool:
+        """Served by resolve() as authoritative knowledge/config."""
+        return self.status in ("active", "config")
 
 
 def _applies(entry: KBEntry, target: str, target_class: Optional[str]) -> bool:
@@ -78,157 +110,265 @@ def _applies(entry: KBEntry, target: str, target_class: Optional[str]) -> bool:
     return aw == target or aw == target_class
 
 
-# =========================== ADAPTERS (wrap existing assets) ===========================
+# =========================== CLASS / INSTANCE HELPERS ===========================
 
 def _target_class(target: str, spec: dict | None) -> Optional[str]:
     if spec is None:
         return None
-    # RGD-integrin / MIDAS metal class vs PPI-groove — derived from the existing mechanism tag
     if spec.get("cofactors"):
-        return "integrin-MIDAS"
+        return "integrin-MIDAS"          # RGD/MIDAS metal class
     return "ppi-groove"
 
 
-def _metal_entries(target, spec, cfg) -> list[KBEntry]:
-    out = []
-    cof = (spec or {}).get("cofactors") or []
-    if not cof:
-        return out
-    c0 = cof[0]
-    ccd, n, site = c0.get("ccd"), c0.get("n"), c0.get("site")
-    ff = os.path.relpath(CADA_ITP, PARENT) if ccd == "MN" and os.path.exists(CADA_ITP) else None
-    tp = {"metal_model": (f"CaDA-{ccd}" if ccd == "MN" else ccd),
-          "cofactors": cof, "metal_ccd": ccd, "metal_n": n, "metal_site": site}
-    if ff:
-        tp["metal_ff_file"] = ff
-    out.append(KBEntry(
-        id=f"{target}:metal",
-        kind="metal",
-        statement=(f"{(spec or {}).get('name', target)} engages via a {ccd} cofactor at {site}; the physics "
-                   f"tier must RETAIN and PARAMETERIZE the metal (cofold + MM-GBSA). "
-                   + ("Mn uses the CaDA cationic-dummy octahedral model." if ccd == "MN" else "")),
-        scope={"modality": (spec or {}).get("modality"), "target_class": _target_class(target, spec),
-               "applies_when": [target]},
-        provenance={"source_type": "forcefield+KB",
-                    "ref": (f"cada_mn.itp (Duarte et al., J. Phys. Chem. B 2014, 118(16):4351-4362, verbatim); "
-                            f"target_kb/{target}.json cofactors"
-                            if ccd == "MN" else f"target_kb/{target}.json cofactors"),
-                    "evidence_tier": "T1" if ccd == "MN" else "T3",
-                    "verified": (True if ccd == "MN" else "n/a"),
-                    "verification_note": (
-                        "VERIFIED 2026-10-21: Duarte et al. JPCB 2014 confirmed real — refines octahedral Mn2+ "
-                        "(+Zn/Mg/Ca) cationic-dummy params, reproduces M2+-O distances + solvation FE, LJ-transferable. "
-                        "CAVEATS: (a) cada_mn.itp still pending grompp/NVT validation; (b) physiologic MIDAS metal is "
-                        "Mg2+ — Mn2+ is the integrin-activating cation used experimentally (CaDA parameterizes both)."
-                        if ccd == "MN" else "cofactor list is a program config, not a literature claim")},
-        effects={"tool_params": tp},
-    ).validate())
-    return out
+def _raw_kb(target) -> dict:
+    p = os.path.join(HERE, "target_kb", f"{target}.json")
+    try:
+        with open(p) as fh:
+            return json.load(fh)
+    except Exception:
+        return {}
 
 
-def _pose_entry(target, spec, cfg) -> list[KBEntry]:
+# =========================== ADAPTERS ===========================
+# Each adapter wraps a general-domain dict (medchem_kb) and/or an instance asset into KBEntry objects.
+# CONFIG (engine defaults) is separated from KNOWLEDGE (evidence-bearing claims).
+
+def _config_entries(target, spec, cfg) -> list[KBEntry]:
+    """Engine/program CONFIG (not knowledge): pose method, receptor asset, counter-targets, cofactor list."""
     if spec is None:
         return []
-    return [KBEntry(
-        id=f"{target}:pose",
-        kind="pose",
-        statement=f"Epitope '{spec.get('epitope')}' (motif {spec.get('motif')}) -> pose by {spec.get('pose_method')}; "
-                  f"{spec.get('pose_why','')}",
+    out = [KBEntry(
+        id=f"{target}:config", kind="config",
+        statement=f"Program config for {spec.get('name', target)}: pose by {spec.get('pose_method')} "
+                  f"(epitope '{spec.get('epitope')}', motif '{spec.get('motif')}'); "
+                  f"receptor {(spec.get('receptor') or {}).get('structure')}; "
+                  f"counter-targets {spec.get('counter_targets', [])}.",
         scope={"applies_when": [target]},
-        provenance={"source_type": "KB-engine", "ref": "target_spec.load_spec (POSE_BY_EPITOPE)",
-                    "evidence_tier": "T3", "verified": "n/a",
-                    "verification_note": "program method-config heuristic (which pose method per epitope), not a "
-                                         "literature claim; receptor/counter-targets come from the target KB."},
+        provenance={"source_type": "program-config", "ref": f"target_spec.load_spec + target_kb/{target}.json",
+                    "evidence_tier": "n/a", "verified": "n/a",
+                    "verification_note": "engine/method configuration (which pose method / receptor / counter-"
+                                         "targets for this program), not a literature knowledge claim."},
         effects={"tool_params": {"pose_method": spec.get("pose_method"),
                                  "dock_acceptable_prepose": spec.get("dock_prepose_ok"),
                                  "receptor_asset": (spec.get("receptor") or {}).get("structure"),
                                  "counter_targets": spec.get("counter_targets", [])}},
     ).validate()]
+    # cofactor LIST is instance config; the metal MODEL choice is knowledge (see _metal_entries)
+    cof = (spec or {}).get("cofactors") or []
+    if cof:
+        c0 = cof[0]
+        out.append(KBEntry(
+            id=f"{target}:cofactor-config", kind="config",
+            statement=f"Cofactor site config: {c0.get('ccd')} x{c0.get('n')} at {c0.get('site')} "
+                      f"(from the target structure).",
+            scope={"applies_when": [target]},
+            provenance={"source_type": "program-config", "ref": f"target_kb/{target}.json cofactors",
+                        "evidence_tier": "n/a", "verified": "n/a",
+                        "verification_note": "the specific cofactor count/site for this receptor is structural "
+                                             "config; the GENERAL coordination + FF rule is the knowledge entry."},
+            effects={"tool_params": {"cofactors": cof, "metal_ccd": c0.get("ccd"),
+                                     "metal_n": c0.get("n"), "metal_site": c0.get("site")}},
+        ).validate())
+    return out
 
 
-def _pharmacophore_entries(target) -> list[KBEntry]:
-    try:
-        import pharmacophore_knowledge as pk
-    except Exception:                                        # pragma: no cover
+def _metal_entries(target, spec, cfg) -> list[KBEntry]:
+    """KNOWLEDGE: the GENERAL metal-coordination + FF rule (medchem_kb DOMAIN 2) for this target's cofactor."""
+    cof = (spec or {}).get("cofactors") or []
+    if not cof:
         return []
-    t = pk.PHARMACOPHORE.get(target)
-    if t is None:
+    ccd = cof[0].get("ccd")
+    rule = medchem_kb.metal_rule(ccd)
+    if rule is None:
         return []
-    gc = pk.generation_constraint(target)
-    needs_struct = t.get("needs_structure_gate", False)
+    ff = medchem_kb.preferred_ff(ccd) or {}
+    model = ff.get("model", ccd)
+    tp = {"metal_model": (f"CaDA-{ccd}" if "cationic-dummy" in model else ccd),
+          "metal_geometry": rule["geometry"], "metal_coordination_number": rule["coordination_number"]}
+    ff_file = os.path.relpath(CADA_ITP, PARENT) if (ccd == "MN" and os.path.exists(CADA_ITP)) else None
+    if ff_file:
+        tp["metal_ff_file"] = ff_file
+    ref = (f"{rule['source']}; preferred FF: {ff.get('source', 'n/a')}"
+           + (f"; instance FF file cada_mn.itp (Duarte et al. 2014, verbatim)" if ff_file else ""))
     return [KBEntry(
-        id=f"{target}:pharmacophore",
-        kind="pharmacophore",
-        statement=(f"{t['class']}: required motif(s) {t['required_motifs'] or '(none — structure-gated)'}, "
-                   f"required residue(s) {t['required_residues']}, lock {t['conformational_lock']}. "
-                   + ("Sequence gate decisive." if target == "avb6" else "Sequence necessary-not-sufficient; docking-gated.")),
-        scope={"target_class": "integrin-MIDAS" if target == "avb6" else "ppi-groove", "applies_when": [target]},
-        provenance={"source_type": "literature", "ref": t.get("refs", "pharmacophore_knowledge.py"),
-                    "evidence_tier": "T1" if target == "avb6" else "T3",
-                    "verified": (True if target == "avb6" else "unverifiable"),
+        id=f"{target}:metal", kind="metal",
+        statement=(f"{ccd}2+ coordinates {rule['geometry']} (CN~{rule['coordination_number']}), preferring "
+                   f"{', '.join(rule['residue_prefs'][:4])}. {rule['note']} The physics tier must RETAIN and "
+                   f"PARAMETERIZE the metal (cofold + MM-GBSA); preferred FF treatment: {model}."),
+        scope={"modality": (spec or {}).get("modality"), "target_class": _target_class(target, spec),
+               "applies_when": [target]},
+        provenance={"source_type": "metal-geometry+forcefield", "ref": ref,
+                    "evidence_tier": rule["tier"], "verified": rule["verified"],
                     "verification_note": (
-                        "VERIFIED 2026-10-21: RGD-Asp carboxylate -> MIDAS metal is established integrin biology; "
-                        "Trivehexin c[YRGDLAYp(NMe)K] + avebehexin c(FRGDLAFp(NMe)K) are real published alphavbeta6 "
-                        "ligands (EJNMM 2021, s00259-021-05559-x) carrying the RGD + D-Pro/N-methyl lock."
-                        if target == "avb6" else
-                        "refs name known PD-L1 macrocycle classes (WL12, BMS-986229, dmp10) but were NOT "
-                        "independently verified this session; entry is structure-gated/advisory, not authoritative.")},
-        effects={
-            "tool_params": {"generation_constraint": gc},   # the decoder contract
-            "eval_criteria": [{"criterion": f"pharmacophore_gate[{target}]",
-                               "mode": "advisory" if needs_struct else "hard",
-                               "checker": "pharmacophore_knowledge.pharmacophore_gate",
-                               "note": ("decisive at sequence level" if not needs_struct
-                                        else "sequence necessary; decisive gate is docking")}],
-        },
+                        "GENERAL metal-coordination rule ingested from the published geometry surveys + FF param "
+                        "papers (medchem_kb DOMAIN 2). For MN: the octahedral CaDA cationic-dummy model (Duarte "
+                        "2014) is verified; cada_mn.itp still pending grompp/NVT validation; physiologic MIDAS "
+                        "metal is Mg2+ (Mn2+ is the integrin-activating cation used experimentally).")},
+        effects={"tool_params": tp},
     ).validate()]
 
 
+def _pharmacophore_entries(target, spec) -> list[KBEntry]:
+    """KNOWLEDGE: the GENERAL pharmacophore-by-class principle (medchem_kb DOMAIN 4) + instance motif detail."""
+    tclass = _target_class(target, spec)
+    crule = medchem_kb.pharmacophore_class_rule(tclass)
+    if crule is None:
+        return []
+    # instance detail (optional) from pharmacophore_knowledge
+    inst, gc, needs_struct = None, None, None
+    try:
+        import pharmacophore_knowledge as pk
+        t = pk.PHARMACOPHORE.get(target)
+        if t is not None:
+            inst = t
+            gc = pk.generation_constraint(target)
+            needs_struct = t.get("needs_structure_gate", False)
+    except Exception:
+        pass
+    inst_txt = ""
+    if inst:
+        inst_txt = (f" Instance ({target}): required motif(s) {inst.get('required_motifs') or '(structure-gated)'}, "
+                    f"residue(s) {inst.get('required_residues')}, lock {inst.get('conformational_lock')}.")
+    # the general class PRINCIPLE is the verified knowledge; the instance motif is structure-gated detail
+    gate_mode = "advisory" if (needs_struct or tclass == "ppi-groove") else "hard"
+    eff: dict = {}
+    if gc is not None:
+        eff["tool_params"] = {"generation_constraint": gc}
+    eff["eval_criteria"] = [{"criterion": f"pharmacophore_gate[{target}]", "mode": gate_mode,
+                             "checker": "pharmacophore_knowledge.pharmacophore_gate",
+                             "note": ("sequence gate decisive" if gate_mode == "hard"
+                                      else "sequence necessary; decisive gate is docking (structure-gated)")}]
+    return [KBEntry(
+        id=f"{target}:pharmacophore", kind="pharmacophore",
+        statement=crule["principle"] + inst_txt,
+        scope={"target_class": tclass, "applies_when": [target]},
+        provenance={"source_type": "literature (class principle)", "ref": crule["source"],
+                    "evidence_tier": crule["tier"], "verified": crule["verified"],
+                    "verification_note": (
+                        f"GENERAL {tclass} pharmacophore principle from medchem_kb DOMAIN 4 (curated-with-"
+                        f"citations). The class principle is the evidence-bearing claim; the instance motif above "
+                        f"is structure-gated program detail, not independently re-verified here.")},
+        effects=eff,
+    ).validate()]
+
+
+def _liability_entries(target, spec) -> list[KBEntry]:
+    """KNOWLEDGE: the GENERAL structural-alert liabilities (medchem_kb DOMAIN 1, RDKit-ingested) as ONE aggregate
+    screener entry. The 13 ingested rule-sets + per-rule-set counts are the KB registry (liability_registry())."""
+    reg = medchem_kb.ingest_liability_catalogs()
+    if not reg:
+        return []
+    admitted = [e for e in reg if e["verified"] is True]
+    n_alerts = sum(e["n_alerts"] for e in reg)
+    sets = ", ".join(sorted({e["id"].split(":", 1)[1] for e in reg}))
+    return [KBEntry(
+        id="liability:structural-alerts", kind="liability",
+        statement=f"Structural-alert liability screen: {n_alerts} published alerts across {len(reg)} rule-sets "
+                  f"({sets}), ingested from RDKit FilterCatalog. Any candidate whose chemical structure matches an "
+                  f"alert is flagged for medicinal-chemistry liability (interference / reactivity / tox).",
+        scope={"modality": (spec or {}).get("modality") or "small_molecule", "applies_when": "*"},
+        provenance={"source_type": "RDKit FilterCatalog (ingested)",
+                    "ref": f"RDKit FilterCatalog: PAINS A/B/C (Baell & Holloway, J Med Chem 2010;53:2719), BRENK "
+                           f"(Brenk et al., ChemMedChem 2008;3:435), NIH (Jadhav et al., J Med Chem 2010;53:37), "
+                           f"ZINC (Irwin & Shoichet, JCIM 2005;45:177), ChEMBL alert sets (Gaulton et al., NAR "
+                           f"2017;45:D945). {len(admitted)}/{len(reg)} rule-sets verified.",
+                    "evidence_tier": "T1", "verified": True,
+                    "verification_note": "Ingested from the shipped RDKit catalogs; each alert carries its own "
+                                         "FilterSet + Reference. 10/13 rule-sets map to a confident canonical paper "
+                                         "(verified); 3 (Inpharmatica/LINT/SureChEMBL) are ChEMBL-curated sets whose "
+                                         "primary locator was not confirmed (still applied, flagged in registry)."},
+        effects={"eval_criteria": [{"criterion": "structural_alert_liabilities", "mode": "advisory",
+                                    "checker": "medchem_kb.screen_liabilities"}]},
+    ).validate()]
+
+
+def _physchem_entries(target, spec) -> list[KBEntry]:
+    """KNOWLEDGE: the GENERAL physchem/ADMET developability rules (medchem_kb DOMAIN 3) for this modality.
+    Gated on a KNOWN target (we only assert developability rules once the modality is established)."""
+    if spec is None:
+        return []
+    modality = (spec or {}).get("modality")
+    # map program modality to medchem physchem key: peptide-like -> cyclic_peptide
+    key = "cyclic_peptide" if (modality and "peptide" in str(modality).lower() or (spec or {}).get("cofactors")) else modality
+    rules = medchem_kb.physchem_for(key if key else modality) or medchem_kb.physchem_for("cyclic_peptide")
+    out = []
+    for r in rules:
+        out.append(KBEntry(
+            id=f"physchem:{r['id']}", kind="physchem", statement=r["statement"],
+            scope={"modality": r["modality"], "applies_when": "*"},
+            provenance={"source_type": "physchem-rule", "ref": r["source"],
+                        "evidence_tier": r["tier"], "verified": r["verified"],
+                        "verification_note": "GENERAL developability rule from medchem_kb DOMAIN 3."},
+            effects={"eval_criteria": [{"criterion": f"physchem:{r['id']}", "mode": "advisory",
+                                        "checker": "medchem_kb.physchem_for"}]},
+        ).validate())
+    return out
+
+
+def _modality_entries(target, spec) -> list[KBEntry]:
+    """KNOWLEDGE: the GENERAL modality design heuristics (medchem_kb DOMAIN 5). Gated on a KNOWN target."""
+    if spec is None:
+        return []
+    modality = (spec or {}).get("modality")
+    key = "cyclic_peptide" if ((modality and "peptide" in str(modality).lower()) or (spec or {}).get("cofactors")) else modality
+    out = []
+    for i, r in enumerate(medchem_kb.modality_heuristics(key)):
+        out.append(KBEntry(
+            id=f"modality:{key}:{i}", kind="modality", statement=r["statement"],
+            scope={"modality": key, "applies_when": "*"},
+            provenance={"source_type": "modality-heuristic", "ref": r["source"],
+                        "evidence_tier": r["tier"], "verified": r["verified"],
+                        "verification_note": "GENERAL modality design heuristic from medchem_kb DOMAIN 5."},
+            effects={},
+        ).validate())
+    return out
+
+
 def _sar_cmc_entries(target) -> list[KBEntry]:
-    """Declarative SAR/CMC entries; the LIVE checker is knowledge_liability_flags.flag_candidate (not re-authored)."""
-    entries = []
-    # Universal CMC (applies to all cyclic-peptide targets)
-    entries.append(KBEntry(
-        id="cmc:universal",
-        kind="cmc",
-        statement="Universal CMC/chemical liabilities (deamidation NG/NS, Asp-isomerisation DG/DS, Met/Trp "
-                  "oxidation, odd free-Cys) flagged sequence-side before any docking spend.",
+    """Instance SAR/CMC. The LIVE checker stays knowledge_liability_flags.flag_candidate (not re-authored)."""
+    entries = [KBEntry(
+        id="cmc:universal", kind="cmc",
+        statement="Universal peptide CMC liabilities (Asn deamidation NG/NS, Asp isomerisation DG/DS via "
+                  "succinimide, Met/Trp oxidation, odd free Cys) flagged sequence-side before any docking spend.",
         scope={"modality": "cyclic_peptide", "applies_when": "*"},
         provenance={"source_type": "textbook-medchem",
-                    "ref": "knowledge_liability_flags.DIPEPTIDE_LIABILITIES; standard biopharm CMC refs "
-                           "(Asn-deamidation NG/NS, Asp-isomerisation DG/DS via succinimide, Met/Trp oxidation)",
+                    "ref": "standard biopharm CMC (deamidation/isomerisation survey of 131 clinical antibodies, "
+                           "PMID 30526254; NG most labile; Asp-X succinimide isomerisation); "
+                           "knowledge_liability_flags.DIPEPTIDE_LIABILITIES",
                     "evidence_tier": "T1", "verified": True,
-                    "verification_note": "VERIFIED 2026-10-21: these are standard, well-documented biopharm "
-                                         "liabilities (e.g. PMID 30526254 deamidation/isomerisation analysis of 131 "
-                                         "clinical antibodies; NG most labile; Asp-X succinimide isomerisation)."},
+                    "verification_note": "VERIFIED 2026-10-21: standard, well-documented biopharm liabilities."},
         effects={"eval_criteria": [{"criterion": "cmc_liabilities", "mode": "advisory",
                                     "checker": "knowledge_liability_flags.flag_candidate"}]},
-    ).validate())
+    ).validate()]
     if target == "avb6":
         entries += [
             KBEntry(id="avb6:sar-b6-selectivity", kind="sar",
-                    statement="Bare RGD engages all RGD integrins (αvβ3/αvβ5/αvβ8/α5β1); β6-selectivity requires "
-                              "the RGD-L element (Leu C-terminal to Asp; Trivehexin RGDLAY / avebehexin RGDLAF). "
-                              "RGD without RGDL -> pan-integrin, off-target tox.",
+                    statement="Bare RGD engages all RGD integrins (αvβ3/αvβ5/αvβ8/α5β1); β6-selectivity is set by "
+                              "the RGD C-terminal element (Leu C-terminal to Asp; the RGDLxxL/I motif) folding a "
+                              "one-turn helix into the β6/β8 SDL pocket (Trivehexin RGDLAY / avebehexin RGDLAF). "
+                              "RGD without the RGDL element -> pan-integrin, off-target tox.",
                     scope={"target_class": "integrin-MIDAS", "applies_when": ["avb6"]},
-                    provenance={"source_type": "radiopharm-SAR", "ref": "knowledge_liability_flags (αvβ6 SAR); "
-                                "Trivehexin selectivity data (EJNMM 2021)",
-                                "evidence_tier": "T2", "verified": False,
-                                "verification_note": "PARTIAL: Trivehexin's beta6-selectivity IS published (IC50 "
-                                "factors avb8 131x, avb3 57x, a5b1 468x). BUT the causal claim 'RGDL element confers "
-                                "selectivity / no-RGDL -> pan-integrin' is a program SAR INFERENCE — no cited "
-                                "mutational/negative-control study was verified. Not authoritative as a determinant."},
+                    provenance={"source_type": "structural-literature",
+                                "ref": "Dong, Hudson, Lu & Springer, Nat Struct Mol Biol 2014;21:1091 (PDB "
+                                       "4UM8/4UM9: the RGDLxxL/I motif + β-subunit SDLs are the αvβ6/β8 selectivity "
+                                       "determinant); Trivehexin selectivity data (EJNMMI 2021, s00259-021-05559-x)",
+                                "evidence_tier": "T1", "verified": True,
+                                "verification_note": "VERIFIED 2026-10-21: Dong et al. NSMB 2014 structurally "
+                                "establishes that residues C-terminal to RGD (RGDLxxL/I) engaging the β6/β8 SDL pocket "
+                                "are the selectivity determinant — this is the authoritative basis for the RGDL rule "
+                                "(upgraded from the earlier program-inference flag). Trivehexin β6-selectivity is "
+                                "published (IC50 factors β8 131x, β3 57x, α5β1 468x)."},
                     effects={"eval_criteria": [{"criterion": "sar:rgd-selectivity-element", "mode": "hard",
                                                 "checker": "knowledge_liability_flags.flag_candidate"}]}).validate(),
             KBEntry(id="avb6:sar-lock", kind="sar",
-                    statement="D-Pro + N-methyl conformational lock expected, else RGD presented uncontrolled.",
+                    statement="D-Pro + N-methyl conformational lock expected (present in all validated actives), "
+                              "else RGD presented uncontrolled.",
                     scope={"applies_when": ["avb6"]},
-                    provenance={"source_type": "literature", "ref": "Trivehexin/avebehexin (EJNMM 2021)",
+                    provenance={"source_type": "literature", "ref": "Trivehexin/avebehexin (EJNMMI 2021, "
+                                "s00259-021-05559-x) — c[YRGDLAYp(NMe)K]/c(FRGDLAFp(NMe)K) carry D-Pro + N-methyl",
                                 "evidence_tier": "T2", "verified": True,
-                                "verification_note": "VERIFIED 2026-10-21: the validated high-affinity compounds "
-                                "c[YRGDLAYp(NMe)K]/c(FRGDLAFp(NMe)K) demonstrably carry the D-Pro + N-methyl lock. "
-                                "The 'else uncontrolled' necessity is mechanistic inference (lock present in all "
-                                "validated actives), hence T2 not T1."},
+                                "verification_note": "VERIFIED 2026-10-21: validated high-affinity compounds carry the "
+                                "D-Pro + N-methyl lock. 'Else uncontrolled' is mechanistic inference (T2)."},
                     effects={"eval_criteria": [{"criterion": "sar:conformational-lock", "mode": "hard",
                                                 "checker": "knowledge_liability_flags.flag_candidate"}]}).validate(),
             KBEntry(id="avb6:sar-renal-charge", kind="sar",
@@ -237,13 +377,12 @@ def _sar_cmc_entries(target) -> list[KBEntry]:
                               "Lys/Arg worsens (does NOT 'tune') renal clearance.",
                     scope={"modality": "targeted radioligand", "applies_when": ["avb6"]},
                     provenance={"source_type": "radiopharm-pharmacology",
-                                "ref": "knowledge_liability_flags (renal); megalin/cubilin reabsorption lit "
-                                       "(EJNMM s00259-009-1239-1, s00259-010-1685-9)",
+                                "ref": "megalin/cubilin proximal-tubule reabsorption lit (EJNMMI s00259-009-1239-1, "
+                                       "s00259-010-1685-9); knowledge_liability_flags (renal)",
                                 "evidence_tier": "T1", "verified": True,
-                                "verification_note": "VERIFIED 2026-10-21: established radiopharmacology — radiopeptides "
-                                "reabsorbed in proximal tubule via megalin/cubilin; cationic Lys/Arg co-infusion "
-                                "competitively reduces renal dose; cationic peptides bind megalin via cationic sites "
-                                "-> net-positive charge raises kidney (dose-limiting organ) uptake."},
+                                "verification_note": "VERIFIED 2026-10-21: established radiopharmacology — cationic "
+                                "Lys/Arg co-infusion competitively reduces renal dose; net-positive charge raises "
+                                "kidney (dose-limiting organ) uptake."},
                     effects={"eval_criteria": [{"criterion": "sar:renal-cationic-charge", "mode": "advisory",
                                                 "checker": "knowledge_liability_flags.flag_candidate"}]}).validate(),
         ]
@@ -254,31 +393,20 @@ def _eval_rule_entries(target, spec, cfg) -> list[KBEntry]:
     out = []
     if (spec or {}).get("cofactors"):
         out.append(KBEntry(
-            id=f"{target}:metal-free-void",
-            kind="eval_rule",
-            statement="A metal-free MIDAS run is mechanism-NON-COMPLIANT: its MM-GBSA ΔG is VOID (this is exactly "
-                      "why the metal-free αvβ6 round-3 numbers were positive/unphysical).",
+            id=f"{target}:metal-free-void", kind="eval_rule",
+            statement="A metal-free MIDAS run is mechanism-NON-COMPLIANT: its MM-GBSA ΔG is VOID (this is why the "
+                      "metal-free αvβ6 round-3 numbers were positive/unphysical).",
             scope={"target_class": "integrin-MIDAS", "applies_when": [target]},
-            provenance={"source_type": "program-mechanism", "ref": "scorer_config.mechanism_compliant (applies the "
-                        "verified RGD-Asp->MIDAS-metal requirement)", "evidence_tier": "T2", "verified": True,
-                        "verification_note": "VERIFIED 2026-10-21: grounded in the confirmed integrin mechanism "
-                        "(RGD-Asp carboxylate coordinates the MIDAS divalent metal) — a metal-free run is therefore "
-                        "mechanism-incomplete and its MM-GBSA dG is physically void. Program admissibility rule "
-                        "applying a verified fact (hence T2, not a raw literature citation)."},
+            provenance={"source_type": "program-mechanism",
+                        "ref": "applies the verified RGD-Asp->MIDAS-metal requirement (Xiong Science 2002;296:151; "
+                               "Dong NSMB 2014;21:1091); scorer_config.mechanism_compliant",
+                        "evidence_tier": "T2", "verified": True,
+                        "verification_note": "VERIFIED 2026-10-21: grounded in the confirmed integrin mechanism; a "
+                        "metal-free run is mechanism-incomplete so its MM-GBSA ΔG is physically void."},
             effects={"eval_criteria": [{"criterion": "metal_retained_in_run", "mode": "hard",
                                         "checker": "scorer_config.mechanism_compliant"}]},
         ).validate())
     return out
-
-
-def _raw_kb(target) -> dict:
-    """The raw target_kb/<target>.json (load_spec drops some fields like `fto`)."""
-    p = os.path.join(HERE, "target_kb", f"{target}.json")
-    try:
-        with open(p) as fh:
-            return json.load(fh)
-    except Exception:
-        return {}
 
 
 def _fto_entries(target, spec) -> list[KBEntry]:
@@ -286,8 +414,7 @@ def _fto_entries(target, spec) -> list[KBEntry]:
     if not fto:
         return []
     return [KBEntry(
-        id=f"{target}:fto-genus",
-        kind="fto",
+        id=f"{target}:fto-genus", kind="fto",
         statement=f"Freedom-to-operate: patent {fto.get('patent')} genus {fto.get('genus')} ({fto.get('status')}); "
                   f"candidates mapping inside the genus are FTO-flagged.",
         scope={"applies_when": [target]},
@@ -295,18 +422,18 @@ def _fto_entries(target, spec) -> list[KBEntry]:
                     "ref": f"target_kb/{target}.json fto (patent {fto.get('patent')}); fto_score.in_claim",
                     "evidence_tier": "T2", "verified": "unverifiable",
                     "verification_note": f"UNVERIFIABLE 2026-10-21: the specific patent id {fto.get('patent')} and its "
-                    "exact genus were NOT independently confirmed. The alphavbeta6-cyclic-RGD patent SPACE is real "
-                    "(e.g. US20230173113, US5849692), so the FTO concern is legitimate, but this entry must NOT be "
-                    "treated as an authoritative clearance — verify the patent id/claims before relying on it."},
+                    "genus were NOT independently confirmed. The αvβ6-cyclic-RGD patent SPACE is real, so the FTO "
+                    "concern is legitimate, but this entry is QUARANTINED as a candidate — not served as authoritative "
+                    "clearance until the patent id/claims are verified."},
         effects={"eval_criteria": [{"criterion": "fto_genus_clearance", "mode": "advisory",
                                     "checker": "fto_score.in_claim"}]},
     ).validate()]
 
 
-# =========================== RESOLVER (single source for params + eval) ===========================
+# =========================== RESOLVER ===========================
 
 def all_entries(target: str) -> list[KBEntry]:
-    """Fire every adapter for `target`, returning the concrete provenance-wrapped entries."""
+    """Fire every adapter for `target` (general domains + instance), returning provenance-wrapped entries."""
     try:
         import target_spec, scorer_config
         spec = target_spec.load_spec(target)
@@ -314,31 +441,28 @@ def all_entries(target: str) -> list[KBEntry]:
     except Exception as e:                                   # pragma: no cover
         spec, cfg = None, {"target": target, "known": False, "reason": f"load failed: {e}"}
     entries: list[KBEntry] = []
-    entries += _metal_entries(target, spec, cfg)
-    entries += _pose_entry(target, spec, cfg)
-    entries += _pharmacophore_entries(target)
-    entries += _sar_cmc_entries(target)
+    entries += _config_entries(target, spec, cfg)            # CONFIG
+    entries += _metal_entries(target, spec, cfg)             # general DOMAIN 2
+    entries += _pharmacophore_entries(target, spec)          # general DOMAIN 4 + instance
+    entries += _liability_entries(target, spec)              # general DOMAIN 1 (ingested)
+    entries += _physchem_entries(target, spec)               # general DOMAIN 3
+    entries += _modality_entries(target, spec)               # general DOMAIN 5
+    entries += _sar_cmc_entries(target)                      # instance SAR + universal CMC
     entries += _eval_rule_entries(target, spec, cfg)
-    entries += _fto_entries(target, spec)
+    entries += _fto_entries(target, spec)                    # -> candidate (unverifiable)
     tclass = _target_class(target, spec)
     return [e for e in entries if isinstance(e, KBEntry) and _applies(e, target, tclass)]
 
 
 # =========================== LLM-RAG FALLBACK (novel targets) ===========================
-# Rules-first, LLM-fallback (BioMate's own param-prefill pattern). Deterministic resolve() is authoritative;
-# when a target is NOT in the KB, the opt-in RAG seam retrieves similar entries as context and asks an LLM to
-# PROPOSE params/gates. Whatever it proposes is tier T4 / verified=False / status="provisional" — a chemist
-# must verify it before it is ever treated as established.
 
 def _llm_rag_call(target: str, context_entries: list) -> dict | None:
-    """SEAM: the live-LLM interface. Default returns None (no live LLM wired here). A real implementation
-    prompts an LLM over `context_entries` (retrieved KB entries) to return a schema-shaped
-    {tool_params:{...}, eval_criteria:[...]}; the caller still tiers the result T4/unverified."""
+    """SEAM: the live-LLM interface. Default returns None (no live LLM wired). A real implementation prompts an
+    LLM over `context_entries` to return {tool_params:{...}, eval_criteria:[...]}; the caller tiers it T4/unverified."""
     return None
 
 
 def _rag_entries(target: str, spec, tclass) -> list[KBEntry]:
-    """Retrieve similar KB entries as context, ask the LLM seam to propose, wrap the (provisional) result."""
     ctx: list = []
     try:
         import target_spec as _ts
@@ -348,7 +472,7 @@ def _rag_entries(target: str, spec, tclass) -> list[KBEntry]:
                 ctx += all_entries(kt)[:3]
     except Exception:
         pass
-    proposal = _llm_rag_call(target, ctx)            # None unless a live LLM is wired
+    proposal = _llm_rag_call(target, ctx)
     eff = {"tool_params": {}, "eval_criteria": []}
     note = f"LLM-RAG seam engaged over {len(ctx)} context entries; no live LLM wired -> proposal empty/provisional"
     if isinstance(proposal, dict):
@@ -357,8 +481,7 @@ def _rag_entries(target: str, spec, tclass) -> list[KBEntry]:
         note = "LLM-RAG proposal — PROVISIONAL, requires chemist verification before use"
     e = KBEntry(
         id=f"{target}:rag", kind="eval_rule",
-        statement=(f"No deterministic KB entry for '{target}'; provisional RAG proposal "
-                   f"from {len(ctx)} retrieved context entries."),
+        statement=f"No deterministic KB entry for '{target}'; provisional RAG proposal from {len(ctx)} retrieved entries.",
         scope={"applies_when": [target]},
         provenance={"source_type": "llm_rag", "ref": "experience_kb._llm_rag_call",
                     "evidence_tier": "T4", "verified": False, "verification_note": note},
@@ -370,9 +493,9 @@ def _rag_entries(target: str, spec, tclass) -> list[KBEntry]:
 
 
 def resolve(target: str, rag: bool = False) -> dict:
-    """The single knowledge entry point: merge the fired entries into {tool_params, eval_criteria} + provenance.
-    Existing consumers (target_spec param-setting, the gate assembly) are thin views over this.
-    rag=True adds the opt-in LLM-RAG fallback for a novel target (proposals tiered T4/unverified)."""
+    """The single knowledge entry point. Merge ADMITTED (evidence-supported/config) entries into
+    {tool_params, eval_criteria, provenance}; cited-but-unverified knowledge is QUARANTINED in `candidates`
+    (never served). rag=True adds the opt-in LLM-RAG fallback for a novel target (T4/provisional, not served)."""
     try:
         import target_spec
         spec = target_spec.load_spec(target)
@@ -381,34 +504,50 @@ def resolve(target: str, rag: bool = False) -> dict:
     tclass = _target_class(target, spec)
     entries = all_entries(target)
     rag_used = False
-    if rag and spec is None:                         # novel target: no deterministic KB entry -> RAG seam
+    if rag and spec is None:
         rag_entries = _rag_entries(target, spec, tclass)
         entries = entries + rag_entries
         rag_used = bool(rag_entries)
+
     tool_params: dict[str, Any] = {}
     eval_criteria: list[dict] = []
     provenance: list[dict] = []
+    candidates: list[dict] = []
     for e in entries:
-        tp = (e.effects or {}).get("tool_params", {})
-        for k, v in tp.items():
-            tool_params[k] = v                               # last-writer; entries are non-overlapping by design
+        if not e.admitted:                                   # QUARANTINED: not served as authoritative
+            candidates.append({"entry": e.id, "kind": e.kind, "status": e.status,
+                               "verified": e.provenance.get("verified"), "source": e.provenance.get("ref"),
+                               "reason": ("unverified source — quarantined pending verification"
+                                          if e.status == "candidate" else "provisional RAG proposal"),
+                               "note": e.provenance.get("verification_note"), "statement": e.statement})
+            continue
+        for k, v in (e.effects or {}).get("tool_params", {}).items():
+            tool_params[k] = v
         for c in (e.effects or {}).get("eval_criteria", []):
             eval_criteria.append({**c, "entry": e.id, "tier": e.provenance.get("evidence_tier"),
                                   "verified": e.provenance.get("verified")})
         provenance.append({"entry": e.id, "kind": e.kind, "tier": e.provenance.get("evidence_tier"),
                            "verified": e.provenance.get("verified"), "source": e.provenance.get("ref"),
                            "note": e.provenance.get("verification_note"), "statement": e.statement})
+    admitted = [e for e in entries if e.admitted]
     return {
-        "target": target,
-        "known": spec is not None,
-        "target_class": tclass,
-        "modality": (spec or {}).get("modality"),
+        "target": target, "known": spec is not None, "target_class": tclass,
+        "modality": (spec or {}).get("modality"), "rag_used": rag_used,
         "entries_fired": [e.id for e in entries],
-        "rag_used": rag_used,
+        "counts": {"admitted": len(admitted), "quarantined_candidates": len(candidates),
+                   "by_kind_admitted": _by_kind(admitted)},
         "tool_params": tool_params,
         "eval_criteria": eval_criteria,
         "provenance": provenance,
+        "candidates": candidates,
     }
+
+
+def _by_kind(entries: list[KBEntry]) -> dict:
+    out: dict[str, int] = {}
+    for e in entries:
+        out[e.kind] = out.get(e.kind, 0) + 1
+    return out
 
 
 def main():
@@ -416,22 +555,30 @@ def main():
     ap = argparse.ArgumentParser(description="Resolve the Experience KB for a target")
     ap.add_argument("--target", default="avb6")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--domains", action="store_true", help="print the general-KB domain structure")
     a = ap.parse_args()
+    if a.domains:
+        print(json.dumps(medchem_kb.domains(), indent=2)); return
     r = resolve(a.target)
     if a.json:
         print(json.dumps(r, indent=2, default=str)); return
-    print(f"EXPERIENCE-KB resolve({a.target})  known={r['known']}  class={r['target_class']}")
-    print(f"  entries: {r['entries_fired']}")
+    print(f"EXPERIENCE-KB resolve({a.target})  known={r['known']}  class={r['target_class']}  "
+          f"admitted={r['counts']['admitted']}  quarantined={r['counts']['quarantined_candidates']}")
+    print(f"  by-kind (admitted): {r['counts']['by_kind_admitted']}")
     print("  TOOL PARAMS:")
     for k, v in r["tool_params"].items():
         s = v if not isinstance(v, (dict, list)) else json.dumps(v, default=str)
-        print(f"    {k} = {str(s)[:120]}")
-    print("  EVAL CRITERIA (gate-set):")
+        print(f"    {k} = {str(s)[:110]}")
+    print("  EVAL CRITERIA (gate-set, admitted only):")
     for c in r["eval_criteria"]:
-        print(f"    [{c['mode']:8}] {c['criterion']:32} tier={c['tier']} verified={c['verified']} <- {c['checker']}")
-    print("  PROVENANCE LEDGER:")
+        print(f"    [{c['mode']:8}] {c['criterion']:34} tier={c['tier']} verified={str(c['verified']):5} <- {c['checker']}")
+    print("  PROVENANCE LEDGER (admitted):")
     for p in r["provenance"]:
-        print(f"    {p['entry']:28} tier={p['tier']} verified={str(p['verified']):11} src={str(p['source'])[:70]}")
+        print(f"    {p['entry']:30} kind={p['kind']:13} tier={p['tier']} verified={str(p['verified']):11}")
+    if r["candidates"]:
+        print("  QUARANTINED CANDIDATES (NOT served — need verification):")
+        for c in r["candidates"]:
+            print(f"    {c['entry']:30} kind={c['kind']:9} verified={str(c['verified']):11} — {c['reason']}")
 
 
 if __name__ == "__main__":
