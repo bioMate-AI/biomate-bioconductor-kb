@@ -32,11 +32,17 @@ from typing import Any, Dict, List, Optional
 from evaluation.core.base_adapter import BenchmarkAdapter, BenchmarkTask
 
 try:
-    from evaluation.scorers.decision_scorer import score_decision, score_categorical_decision
+    from evaluation.scorers.decision_scorer import (
+        score_decision, score_categorical_decision, score_set_decision,
+    )
     from evaluation.scorers.boin_scorer import score_mtd_decision
+    from evaluation.scorers.chain_scorer import score_chain
 except ImportError:  # pragma: no cover
-    from scorers.decision_scorer import score_decision, score_categorical_decision  # type: ignore
+    from scorers.decision_scorer import (  # type: ignore
+        score_decision, score_categorical_decision, score_set_decision,
+    )
     from scorers.boin_scorer import score_mtd_decision  # type: ignore
+    from scorers.chain_scorer import score_chain  # type: ignore
 
 _DATASET_DIR = Path(__file__).parent.parent / "datasets" / "drugdev_export"
 
@@ -48,6 +54,8 @@ DECISION_DATASETS = {
     "dose_decision":     _DATASET_DIR / "dose_decision" / "data.jsonl",      # archetype H
     "tissue_exposure":   _DATASET_DIR / "tissue_exposure" / "data.jsonl",    # archetype F2
     "special_population": _DATASET_DIR / "special_population" / "data.jsonl", # archetype F4
+    "process_knowledge": _DATASET_DIR / "process_knowledge" / "data.jsonl",  # archetype P
+    "workflow_chain":    _DATASET_DIR / "workflow_chain" / "data.jsonl",     # archetype W
 }
 
 _DEFAULT_DATASET = DECISION_DATASETS["leadopt_triage"]
@@ -130,6 +138,10 @@ class DecisionBenchmarkAdapter(BenchmarkAdapter):
             return score_mtd_decision(agent_response, task.ground_truth)
         if kind == "categorical":
             return score_categorical_decision(agent_response, task.ground_truth)
+        if kind == "set":
+            return score_set_decision(agent_response, task.ground_truth)
+        if kind == "chain":
+            return score_chain(agent_response, task.ground_truth)
         return score_decision(agent_response, task.ground_truth, task.metadata.get("labels"))
 
 
@@ -229,6 +241,38 @@ def _selftest() -> int:
                      "action: no_change") > 0.9)
     ck("F4: over-adjusting the negative control → low score",
        pop.score(p4, "action: avoid_or_contraindicated") < 0.2)
+
+    # ---- archetype P: process/stage knowledge (categorical + set) ----
+    proc = DecisionBenchmarkAdapter(config={"dataset": "process_knowledge"})
+    prtasks = proc.load_tasks()
+    ck("P: loads process_knowledge (6 tasks, categorical+set)",
+       len(prtasks) == 6 and {t.metadata["scorer"] for t in prtasks} == {"categorical", "set"})
+    pind = next(t for t in prtasks if t.task_id == "PROC-02")
+    ck("P: IND prerequisites set answered correctly → high score",
+       proc.score(pind, "Phase 2 efficacy and the NDA come later.\nrequired: GLP toxicology, "
+                        "CMC manufacturing, nonclinical pharmacology/PK package (2.6), "
+                        "phase 1 clinical protocol. This is the IND package.") > 0.9)
+    pseq = next(t for t in prtasks if t.task_id == "PROC-04")
+    ck("P: 'Phase III before Phase I' → correct 'no'",
+       proc.score(pseq, "No — Phase 1 must come first.\nverdict: no") > 0.9)
+
+    # ---- archetype W: long workflow chains (chain scorer) ----
+    chain = DecisionBenchmarkAdapter(config={"dataset": "workflow_chain"})
+    ctasks = chain.load_tasks()
+    ck("W: loads workflow_chain (3 chains)",
+       len(ctasks) == 3 and all(t.metadata["scorer"] == "chain" for t in ctasks))
+    crna = next(t for t in ctasks if t.task_id == "CHAIN-rnaseq")
+    good_chain = ("From FASTQ:\nchain: QC/FastQC -> alignment (STAR) -> quantification "
+                  "(featureCounts) -> differential expression (DESeq2) -> pathway enrichment "
+                  "(enrichGO) -> report")
+    ck("W: correct ordered RNA-seq chain → high score", chain.score(crna, good_chain) > 0.9)
+    cremed = next(t for t in ctasks if t.task_id == "CHAIN-admet-remediation")
+    bad_order = ("chain: decide to advance -> estimate PK -> re-screen ADMET -> redesign -> "
+                 "initial ADMET screen for hERG")
+    ck("W: reversed remediation loop → low order/gate score",
+       chain.score(cremed, bad_order) < chain.score(cremed,
+           "chain: ADMET screen flags hERG -> redesign the analogue -> re-screen ADMET to "
+           "confirm the fix -> re-estimate PK (PBPK) -> advance/hold decision"))
 
     passed = sum(R)
     print(f"\n{passed}/{len(R)} passed")

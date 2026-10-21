@@ -207,6 +207,63 @@ def _assert_verdicts(response: str, vocab: Dict[str, Sequence[str]]) -> Set[str]
     return asserted
 
 
+def _assert_members(response: str, vocab: Dict[str, Sequence[str]]) -> Set[str]:
+    """All canonical items the response asserts (multi-select), negation-guarded. Unlike
+    _assert_verdicts this never early-returns — used for 'which of these apply' tasks."""
+    low = (response or "").lower()
+    got: Set[str] = set()
+    for canon, aliases in vocab.items():
+        for a in list(aliases) + [canon.lower()]:
+            matched = False
+            for m in re.finditer(re.escape(a), low):
+                pre = low[max(0, m.start() - 6):m.start()]
+                if pre.rstrip().endswith(("not", "n't", "no", "without", "exclud")):
+                    continue
+                matched = True
+                break
+            if matched:
+                got.add(canon)
+                break
+    return got
+
+
+def score_set_decision(response: str, ground_truth: Dict[str, Any]) -> Dict[str, Any]:
+    """Grade a multi-select decision — which items from a controlled vocabulary apply
+    (e.g. which deliverables are prerequisite before advancing a stage gate).
+
+    ground_truth:
+      required     : list of canonical items that MUST be named
+      item_vocab   : {canonical: [aliases]} covering required items AND distractors
+      rationale_must_mention : optional [terms]
+    Composite: 0.85 set-F1 (penalises naming a distractor and missing a required item)
+               + 0.15 rationale.
+    """
+    vocab = {k: [a.lower() for a in v] for k, v in ground_truth.get("item_vocab", {}).items()}
+    required = {str(x) for x in ground_truth.get("required", [])}
+    # Prefer a structured answer line ('required:' / 'prerequisites:' / 'answer:'); only
+    # items named ON that line count, so distractors the prose dismisses ("the NDA comes
+    # later") are not miscounted. Fall back to a whole-text scan.
+    structured = None
+    for key in ("required", "prerequisites", "prerequisite", "answer", "items"):
+        m = re.search(rf"(?im)^\s*{key}\s*[:=]\s*(.+)$", response or "")
+        if m:
+            structured = m.group(1)
+            break
+    got = _assert_members(structured if structured is not None else (response or ""), vocab)
+    set_f1 = _set_f1(got, required)
+    rationale = _rationale_coverage(response, ground_truth.get("rationale_must_mention", []))
+    score = 0.85 * set_f1 + 0.15 * rationale
+    return {
+        "score": round(score, 4),
+        "set_f1": round(set_f1, 4),
+        "parsed_items": sorted(got),
+        "required": sorted(required),
+        "missing": sorted(required - got),
+        "extra": sorted(got - required),
+        "rationale_coverage": round(rationale, 4),
+    }
+
+
 def score_categorical_decision(response: str, ground_truth: Dict[str, Any]) -> Dict[str, Any]:
     """Grade a single categorical decision + optional numeric estimate.
 
@@ -345,6 +402,31 @@ def _selftest() -> int:
         {**gt_f4, "verdict": "no_change"})
     ck("F4 negation guard: 'not contraindicated' not counted as contraindicated",
        "avoid_or_contraindicated" not in cneg["parsed_verdicts"] and cneg["verdict_score"] == 1.0)
+
+    # ---- set-membership scorer (process-knowledge prerequisites) ----
+    gt_set = {
+        "required": ["glp_tox", "cmc", "nonclinical_package", "clinical_protocol"],
+        "item_vocab": {
+            "glp_tox": ["glp tox", "glp toxicolog", "ind-enabling tox", "preclinical safety"],
+            "cmc": ["cmc", "manufacturing", "drug substance", "formulation and manufacturing"],
+            "nonclinical_package": ["nonclinical package", "2.6", "pharmacology/pk package",
+                                    "nonclinical pharmacology"],
+            "clinical_protocol": ["clinical protocol", "phase 1 protocol", "study protocol"],
+            "phase2_efficacy": ["phase 2 efficacy", "proof of concept efficacy", "phase ii data"],
+            "nda": ["nda", "new drug application", "marketing application"],
+        },
+        "rationale_must_mention": ["ind"],
+    }
+    good_set = ("Phase 2 efficacy and the NDA come much later, not before the IND.\n"
+                "required: GLP toxicology, CMC/manufacturing, the nonclinical "
+                "pharmacology/PK package (2.6), clinical protocol")
+    ss = score_set_decision(good_set, gt_set)
+    ck("set: structured answer, 4 IND prerequisites, no distractors → high score",
+       ss["set_f1"] == 1.0 and ss["extra"] == [] and ss["score"] > 0.95)
+    bad_set = score_set_decision(
+        "You need GLP tox and also Phase 2 efficacy data and an NDA.", gt_set)
+    ck("set: missing prereqs + names distractors → low score",
+       bad_set["set_f1"] < 0.5 and "nda" in bad_set["extra"])
 
     passed = sum(R)
     print(f"\n{passed}/{len(R)} passed")

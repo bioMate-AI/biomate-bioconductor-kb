@@ -78,8 +78,31 @@ sourcing pass (all from public measured data — no fabrication).
   **reframes the old routing-style BOIN adapter as a real decision task.**
 
 One adapter (`DecisionBenchmarkAdapter`) serves every archetype: it dispatches to the
-scorer each task declares (`"scorer": "decision" | "mtd" | "categorical"`) and loads
-any archetype via `config["dataset"]` (`DECISION_DATASETS` registry). `--selftest` 22/22.
+scorer each task declares (`"scorer": "decision" | "mtd" | "categorical" | "set" |
+"chain"`) and loads any archetype via `config["dataset"]` (`DECISION_DATASETS`
+registry). `--selftest` 28/28; the runner spans 7 archetypes / 24 tasks.
+
+### 4d. Process/stage knowledge (P) and long workflow chains (W)
+
+Two further dimensions the within-stage archetypes miss:
+
+- **P — process/stage knowledge** (`process_knowledge/data.jsonl`, 6 tasks): the long
+  development lifecycle — next-gate after candidate nomination, **IND prerequisites**
+  (a set task: GLP tox + CMC + nonclinical package + Phase 1 protocol, vs the Phase 2 /
+  NDA distractors), CMC-vs-tox **parallelism**, can-Phase-III-precede-Phase-I (hard
+  gate), Phase I objective, next regulatory milestone. Ground truth is the standard
+  FDA/ICH process — objective structural knowledge; **no fabricated durations/attrition**.
+  New `score_set_decision` (controlled-vocab multi-select, prefers a `required:` line,
+  set-F1 penalising distractors).
+- **W — long workflow chains** (`workflow_chain/data.jsonl`, 3 chains): plan the ordered
+  multi-stage pipeline — RNA-seq (QC→align→quant→DE→enrichment→report), WGS
+  (→variant→annotate→prioritize), and the **cross-stage causal remediation loop**
+  (hERG flagged → redesign → re-screen → PK → decision). New `score_chain`: coverage
+  (set-F1) + order fidelity (LCS vs the reference order) + **gate adherence** (before→after
+  constraints, e.g. QC before align, confirm-fix before decide). This is the **N8/N9
+  flagship**: the **plan layer is graded offline here**; the **execution layer** — run
+  each stage on Batch and grade the real artifacts — is graded by `execution_grader` on
+  the live stack and stays **gated** (never run speculatively).
 
 ### 4c. Dosing is multi-axial — F expanded into F1–F4 (F2, F4 built)
 
