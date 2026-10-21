@@ -1,0 +1,123 @@
+# DrugDev Benchmark — Practical Redesign: Decision Tasks, Not Tool-Routing
+
+**Date:** 2026-10-21
+**Status:** design + first exemplar built (lead-op triage, archetype C)
+**Related:** `docs/20261021_DRUGDEV_BENCHMARK_LANDSCAPE_AND_SERIES.md` (landscape + 4-track series),
+`docs/20260427_DRUG_DEV_BENCHMARK_PLAN.md` (original B1–B5 plan),
+`evaluation/local_trial/execution_grader.py` (the end-to-end run grader).
+
+## 1. The problem this fixes
+
+The first-cut B1/N1 adapters graded **plumbing**, not drug-development judgement.
+A task looked like: *"given a SMILES, did the agent route to the ADMET workflow and
+extract the `smiles_list` param?"* — with `complete` / `incomplete` /
+`negative_control` variants. That is a tool-selection test. A model can score 1.0 on
+it and still be useless to a project team, because real drug-development work is not
+"pick the tool" — it is **making a defensible decision under a project context, using
+the tool's output**.
+
+> Design principle: **grade the decision and its reasoning, not the route.** Tool
+> execution is the *means*; the run is graded end-to-end by `execution_grader.py`
+> (terminal success + S3 output-content validation), and the recommendation it
+> produces is graded against a real-data ground truth.
+
+## 2. What a practical task looks like
+
+Each task is a **project vignette**:
+
+1. **Context** — project stage, prior data, the real constraint (e.g. "potency is
+   comparable across the series; you can carry at most three forward").
+2. **Inputs** — the data a scientist actually has (structures, measured properties,
+   PK, a screen hit-list), referenced by a single source of truth (e.g. the B1 ADMET
+   case id) rather than re-embedded.
+3. **Decision required** — the go/no-go, the ranking, the dose, the target call.
+4. **Ground truth** — the correct decision, derived objectively from **real measured
+   data** (ChEMBL/FDA-label ADMET, Merck experimental ΔΔG, BOIN operating
+   characteristics, clinical PK). Never invented.
+5. **Scoring** — the decision (advance/deprioritize set), the liability/driver named,
+   and whether the rationale cites the right mechanism/threshold.
+
+The ground truth is **hidden from the prompt** (the agent must reach it from the
+tool output), and the answer is grounded in a measured fact, so scoring stays
+objective — not an LLM-judge vibe check.
+
+## 3. Archetypes — the decisions that matter across the pipeline
+
+Each is anchored to real ground-truth data we have or can source.
+
+| # | Stage | The decision | Real ground truth | Data status |
+|---|-------|--------------|-------------------|-------------|
+| A | S0 target | Pursue or deprioritize this target? | Open Targets assoc + known druggability | to source |
+| B | S1 hit | Which screen hits are real vs PAINS/artifact? | known actives vs frequent-hitters | to source |
+| **C** | **S3 lead-op** | **Which analogue to make next; which to drop & why** | **measured ADMET/potency** | **HAVE (B1)** |
+| D | S3 lead-op | Compound has a liability → what structural fix? | matched-pair that fixed it (ChEMBL MMP) | to source |
+| E | S3 lead-op | FEP-rank the series; which analogues advance | Merck experimental ΔΔG | HAVE (N1) |
+| F | S4 DMPK | Project the human dose from preclinical PK | observed clinical PK | to source |
+| G | S5 | First-in-human starting dose | NOAEL→HED→MRSD (FDA guidance) | formula + labels |
+| H | Ph I | Dose-escalation MTD decision | BOIN operating characteristics | HAVE (B4) |
+| I | regulatory | IND §2.6.1 nonclinical narrative | skeleton/MRSD/adversity checklist | partial (regulatory_v6) |
+
+Archetypes C/E/H already sit on real gold; A/B/D/F/G/I need a sourcing pass (all
+from public measured data — no fabrication).
+
+## 4. First exemplar built — archetype C (lead-op multi-parameter triage)
+
+**Gold:** `evaluation/datasets/drugdev_export/leadopt_triage/data.jsonl` — 3 scenarios
+(easy / medium / hard), each a 4-analogue series where the decision turns on
+developability, not potency. Compounds are referenced by **B1 ADMET case id** (single
+source of truth; no SMILES duplication, no propagation of any SMILES errors in the
+existing gold). The ground-truth liabilities are literature-correct measured facts:
+
+- **LEADOPT-01 (easy):** one Terfenadine-like analogue with a hERG IC50 of 0.2 µM →
+  drop it (hERG/QT); the rest are hERG-safe.
+- **LEADOPT-02 (medium):** one Thalidomide-like, Ames-positive analogue → drop it
+  (genotoxicity is the single hard stop; hERG-safe, DILI-negative).
+- **LEADOPT-03 (hard):** *no* clean compound — every analogue has a moderate hERG
+  signal; the drop is the one stacking Ames+ / DILI+ / Ro5-fail, the advance set is
+  the two with clean DILI/Ames and the widest hERG margins. A genuine trade-off.
+
+**Scorer:** `evaluation/scorers/decision_scorer.py` — `score_decision(response, gt,
+labels)` → composite in [0,1]:
+
+- `0.60` decision = deprioritize-set F1 (penalises dropping a keeper) + best-pick
+  acceptable (and *not* advancing a must-drop compound)
+- `0.25` liability = named the correct dominant liability (alias hit)
+- `0.15` rationale = coverage of the mechanism/evidence terms
+
+Parses a trailing `DECISION:` block (robust, format-light) and falls back to a
+tolerant clause-level free-text parse. Labels are non-colliding tokens (`C1`…`C4`,
+never bare `A`, which collides with the English article); boundary matching excludes
+apostrophes so label `D` never matches the `d` in "I'd". Pure/stdlib, `--selftest` 5/5.
+
+**Adapter:** `evaluation/adapters/decision_benchmark_adapter.py` —
+`DecisionBenchmarkAdapter` loads any decision-task jsonl (point it with
+`config["dataset"]`), renders the vignette, and scores via `decision_scorer`.
+Exported from `evaluation/adapters/__init__.py`; `--selftest` 7/7 (verifies the gold
+does not leak the answer into the prompt).
+
+## 5. How execution grading plugs in (L5–L6, gated)
+
+The offline score grades the stated recommendation. The **live** variant:
+
+1. agent runs `predict_admet_properties` on the series (real Batch run),
+2. `execution_grader.grade_detailed(run, deep=True)` confirms terminal success + the
+   ADMET output parses with the expected per-compound keys (register a contract via
+   `register_contract` if needed),
+3. `decision_scorer` grades whether the agent's advance/drop recommendation is
+   consistent with those real predictions vs the thresholds.
+
+That live path is the gated piece — it needs the dev/Batch loop and is **not** run
+speculatively.
+
+## 6. Next
+
+- Roll the vignette shape across archetypes C→E→H first (they have gold), then source
+  A/B/D/F/G/I from public measured data.
+- A `run_decision_benchmark.py` runner + sweep wiring (offline-scorable now; the
+  execution layer gated).
+- The decision-scorer handles ranking/triage/go-no-go; dose/PK archetypes (F/G/H) add
+  a numeric-tolerance scorer (reuse `pbpk_scorer` / `boin_scorer` patterns).
+
+**Honesty note (carry forward):** report baselines unedited. The value of this suite
+is that it exposes where an agent *looks* capable (routes correctly) but makes the
+wrong call — which the routing-only design could never show.

@@ -5,6 +5,8 @@
   "status": "scaffold",
   "created": "2026-10-21",
   "design_doc": "docs/20261021_DRUGDEV_BENCHMARK_LANDSCAPE_AND_SERIES.md",
+  "practical_redesign_doc": "docs/20261021_DRUGDEV_BENCHMARK_PRACTICAL_REDESIGN.md",
+  "task_philosophy": "Context-rich DECISION tasks (project vignette -> go/no-go / ranking / dose / target call), graded on the decision + reasoning against real-data ground truth and end-to-end execution (execution_grader) -- NOT tool-routing keyword matching. The routing-style B1/N1 L1-L4 scoring is retained only as a plumbing sub-check.",
   "sibling_suite": "RealBio Benchmark (evaluation/datasets/public_export)",
   "model_roster": "RealBio roster (frontier flagships + Qwen/DeepSeek/GLM/Kimi + BioMate + Biomni)",
   "design_requirements": [
@@ -20,6 +22,22 @@
     "T4_execution_grounded_cross_stage": "OWN/white-space: end-to-end pipeline execution, cross-stage chains, PBPK, dose-from-data, stability, FTO, ABFE, antibody developability"
   },
   "benchmarks": [
+    {
+      "code": "D1",
+      "name": "leadopt_triage",
+      "track": "T1/T4 (decision)",
+      "stage": "S3 lead optimization",
+      "archetype": "multiparameter_triage",
+      "items": 3,
+      "status": "exemplar_built_offline",
+      "gt": "ground_truth (advance_best / deprioritize / primary_liability)",
+      "scorer": "evaluation/scorers/decision_scorer.py",
+      "adapter": "evaluation/adapters/decision_benchmark_adapter.py",
+      "gold": "evaluation/datasets/drugdev_export/leadopt_triage/data.jsonl",
+      "external_baseline": "none direct (decision framing); liabilities from ChEMBL/FDA (B1 ADMET gold)",
+      "task": "Project vignette: rank a congeneric series for advancement, deprioritize the liability compound, name its dominant liability. Decision graded vs real measured ADMET; live variant grades the ADMET run via execution_grader.",
+      "note": "First exemplar of the PRACTICAL (decision, not tool-routing) redesign. Same shape rolls across archetypes A/B/D/E/F/G/H/I in the redesign doc."
+    },
     {
       "code": "B1",
       "name": "admet_benchmark",
