@@ -87,11 +87,29 @@ captured no screenshot. Rather than relaunch a ~$1.50/45-min speculative run
    attribute to "Predict Admet Properties". (Pre-fix runs still show 796 files
    under `/run/`; the fix only affects runs after deploy.)
 
+## Done this session (closed loops)
+
+- **dd1 "Untitled"** — ✅ root-caused (chain payload) + fixed (backend `name=
+  display_name` + viewer fallback), deployed (sync healthy at `312bd5e5`).
+- **dd4 novelty/FTO** — ✅ indexed + synced + **re-verified on dev**: routes to
+  "Compound Novelty Scorer", 3 SMILES parsed into `query_smiles` (no CN1C
+  phantom), params (`fpsim2_db`, `check_patents`, cutoff) match the `.nf`.
+  Capture: `dd4_verify_20261021/`.
+- **ADMET step attribution** — ✅ verified empirically (S3 outputs under
+  `02_predict_admet_properties/`).
+- **Videos → Google Drive** — ✅ 50 demo/tutorial videos already in
+  `biomate_drive:biomate_tutorial_recordings/`; backed up 12 local-only
+  user-manual cuts (incl. `biomate-intro` EN/ZH) to `…/user_manual_cuts/`.
+
 ## Open items
 
-1. **dd1 "Untitled"** — apply the display-name fix once the trace lands.
-2. **DB sync** — push the novelty indexing to dev (db layer) and re-capture dd4.
-3. **Dense embeddings** — the 12 new workflows have no `.npz` embedding yet; FTS
+1. **git push + PR** — BLOCKED: the push token lacks `workflow` scope (one commit
+   edits `.github/workflows/ind-pi-suite.yml`). User action:
+   `gh auth refresh -h github.com -s workflow`, then push + open PR to
+   `integration/next-phase`.
+2. **Dense embeddings** — the 12 new workflows have no `.npz` embedding yet; FTS
    covers exact-term routing (dd4 verified), but a dev-side embedding backfill
    would restore semantic recall for them.
-4. **Demo videos** — generate from captures and push to **Google Drive**.
+3. **`compound_novelty_scorer` runtime** — to actually RUN (not just route), the
+   mounted FPSim2 `.h5` (`params.fpsim2_db`) must be registered on dev (the `.nf`
+   notes this is a separate dev-side step); prerun demo panel is complete.
