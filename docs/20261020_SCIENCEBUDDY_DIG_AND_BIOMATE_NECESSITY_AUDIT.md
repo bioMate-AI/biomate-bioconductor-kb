@@ -106,3 +106,28 @@ Non-actions: do not import SkyRL; do not build a logprob/trajectory store; do no
 - Paper: *ScienceBuddy: Recursive-in-Recursive Self-Improvement for Interactive Scientific Agents*, arXiv:2609.17523.
 - Repo: `github.com/Gen-Verse/ScienceBuddy` (MIT), cloned at `/Users/kky/sciencebuddy-dig`; `skyrl/` submodule = pinned `NovaSky-AI/SkyRL`, unchecked-out.
 - Related internal: `docs/20261019_HARNESS2_DIG_AND_BIOMATE_FIT.md` (the Harness2 dig — same RSI lineage, verifier-free variant), `docs/20261019_DECOMP_ORCHESTRATION_AND_FEEDBACK_DESIGN.md`, `docs/20260912_onprem_llm/20261006_DECOMP_STAGE2_GRPO_DESIGN.md`.
+
+---
+
+## 7. Implementation log & landed state (2026-10-20)
+
+All offline adoptions implemented, CPU-tested (no GPU / dev-stack run), and **merged into biomate-review's branch** (`cursor/tutorial-live-recording-and-report-editing-4ea7`) via merge commit **`d7b13a20f`** — no conflicts, concurrent uncommitted work untouched (pre-checked: the 9 grounded files were disjoint from both the dirty tree and the branch's 74-commit advance).
+
+**Commits** (developed on `grounded-harness2`, then merged):
+| Commit | What |
+|---|---|
+| `bb288b20a` | **Export-and-verify gate** — `evaluation/local_trial/verify_export.py` reloads the exported adapter in a fresh process, asserts it changes logits + generates non-degenerately, exits 31 to **block promotion**; wired into `spot_train.sh` between training exit and the S3 upload (fail-closed, `VERIFY_EXPORT=0` escape). |
+| `7c9ef7948` | **Stricter selection gate** — `harness_improver.py::propose_probe_compose` now scores on a held-out `val_tasks` set and adopts only on zero-error + strict-improvement + no-regression, else keeps the parent (backward-compatible single-task). |
+| `b17260c7e` | **Real decomposition scorer** — `verifiers.RealDecompVerifier` wraps `evaluation/datasets/decomposition_v2/score.py::score_one`; `select_verifier` prefers it; agrees with the mirror. |
+| `d0f46d665` | **Real param-prefill matcher** — `verifiers.RealParamsVerifier` reuses the production `_values_match` (real alias/unit normalisation, e.g. `human`≡`GRCh38`) + `_MUST_NOT_FILL_PENALTY` + F1 for structured responses, degrades to the text mirror. |
+| `0d2d123dc` | This dig + necessity-audit doc. |
+
+**Tests (merged tree, CPU only):** `verify_export --selftest` PASS (3 good accepted, 5 degenerate rejected); full prototype suite **98/98** (engine 11, cmc 8, retrievers 6, research 7, harness 8, verifiers 22, h2_biomate 9, feedback 9, decompose 18).
+
+**Deliberately not done:** no `git push`, no `scripts/sync_to_dev.sh` — the export gate + `spot_train.sh` are **GPU on-prem** scripts (spot EC2, not dev) and the prototype is offline; none routes through dev sync. The GPU load path of `verify_export.py` is reviewed, **not run** (no speculative GPU).
+
+**Open / next:**
+- **#3 final step** — a gated path into production `pattern_router` (the first *live-stack* change; needs the dev-stack verification loop). Not started.
+- **#2 AST validation** — deprioritised (the Docker sandbox is the real boundary; low ROI).
+- **Export-gate follow-up** — gate the `sftdpo` branch's separate promote points (`spot_train.sh:160/161/166`) the same way.
+- **admet/routing real-scorer bridges** — not cleanly bridgeable (structured-dict / task-coupled inputs); the mirror stays.
