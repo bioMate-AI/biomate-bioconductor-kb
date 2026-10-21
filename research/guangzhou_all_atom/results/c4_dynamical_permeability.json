@@ -1,0 +1,27 @@
+{
+ "n": 8466,
+ "n_scaffolds": 1441,
+ "baseline_ref_r2": 0.231,
+ "results": {
+  "ECFP (static baseline)": {
+   "scaffold_r2": 0.237,
+   "mae": 0.641,
+   "spearman": 0.498
+  },
+  "chameleon-3D (computed, no EPSA)": {
+   "scaffold_r2": 0.037,
+   "mae": 0.732,
+   "spearman": 0.336
+  },
+  "ECFP + chameleon-3D": {
+   "scaffold_r2": 0.301,
+   "mae": 0.585,
+   "spearman": 0.624
+  },
+  "chameleon-3D + EPSA (experimental)": {
+   "scaffold_r2": 0.047,
+   "mae": 0.728,
+   "spearman": 0.346
+  }
+ }
+}
