@@ -5224,11 +5224,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/workflows/:name/citations", async (req: any, res: any) => {
     try {
       const { name } = req.params;
-      const response = await (galaxyAPIProxy.client as any).get(
-        `/api/workflows/${encodeURIComponent(name)}/citations`,
-        { params: req.query }
+      // The Galaxy side exposes POST /api/ai_assistant/workflow_citations
+      // (resolves the workflow by name → _build_workflow_citations: curated
+      // tool_knowledge + domain-landmark papers, NOT the confabulation-prone
+      // literature path). It returns a bare array; the frontend accepts either
+      // an array or { citations }.
+      const response = await (galaxyAPIProxy.client as any).post(
+        `/api/ai_assistant/workflow_citations`,
+        { name }
       );
-      return res.status(response.status).json(response.data);
+      const data = response.data;
+      const citations = Array.isArray(data) ? data : (data?.citations || []);
+      return res.status(200).json({ citations, count: citations.length });
     } catch (err: any) {
       const status = err.response?.status || 404;
       return res.status(status).json(err.response?.data || { citations: [], count: 0 });
@@ -11427,27 +11434,6 @@ ${paramLines || '(none recorded)'}`;
         message: 'Something went wrong while preparing your workflow. Our team has been notified. Please try again or come back later.',
         runId: executionRun?.id,
       });
-    }
-  });
-
-  // Curated citations for a workflow by name — backs the after-run
-  // Reproducibility-record Citations section (frontend useFetchCitations).
-  // Proxies to the Galaxy endpoint, which builds citations from the
-  // tool_knowledge DB + domain landmark papers (no LLM / no confabulation).
-  // Not sensitive (published papers) → optionalAuth so it returns data rather
-  // than 401-ing and hiding the section. Always 200s with an array.
-  app.get("/api/workflows/:name/citations", optionalAuth, async (req: any, res: any) => {
-    try {
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const r = await fetch(`${galaxyUrl}/api/ai_assistant/workflow_citations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-API-Key': process.env.GALAXY_API_KEY || '' },
-        body: JSON.stringify({ name: req.params.name }),
-      });
-      const data = r.ok ? await r.json() : [];
-      res.json(Array.isArray(data) ? data : (data?.citations || []));
-    } catch {
-      res.json([]);
     }
   });
 
