@@ -39,6 +39,45 @@ the answer/evidence/routing surfaces instead of a run.
 | **d2-admet-deep-learning** | "Screen these SMILES for ADMET liabilities and rank by developability" | **safe panel** aspirin `CC(=O)Oc1ccccc1C(=O)O`, caffeine `CN1C=NC2=C1C(=O)N(C(=O)N2C)C`, ibuprofen `CC(C)Cc1ccc(cc1)C(C)C(=O)O` → clean Completed; **gate scenario** add terfenadine (hERG) for the halt beat | ADMET-AI (Chemprop) `pharmacology/predict_admet_properties` |
 | **d3-generative-lead-design** | "Generate optimized analogs of this scaffold against hERG/QED and rank them" | seed scaffold SMILES | `drug_discovery/reinvent4_lead_design` |
 | **d4-binding-free-energy** | "Rank this congeneric series against the reference by relative binding free energy" | reference + series (ligand set) | `drug_discovery/openfe_rbfe` (OpenFE RBFE) |
+
+### Drug-development demo set (expanded — >10, full pipeline)
+
+Grounded in BioMate's real catalog (49 pharmacology + 61 drug_discovery subworkflows +
+structural biology). Routing **verified live on dev** `/api/ai_assistant/generate_workflow`
+on 2026-10-20 (✓ = routed to the named workflow; ~ = routed to a related chain/variant,
+query to be tuned). Pipeline-ordered: target → hit → lead → structure/dynamics → DMPK →
+safety → clinical/regulatory.
+
+| Deck | Use-case query | Data / inputs | Grounding workflow | Routing |
+|---|---|---|---|---|
+| **dd1-target-id** | "Rank candidate targets for an autoimmune indication by tractability and genetic evidence" | indication / gene set (OpenTargets live) | `drug_discovery/gwas_scrna_eqtl_target_chain`, `target_scorecard_ranker` | ✓ |
+| **dd2-virtual-screening** | "Virtual screen a compound library against this target with DrugCLIP" | target + library | `drug_discovery/drugclip_virtual_screening` | ✓ |
+| **dd3-docking** | "Dock these ligands into the binding site with AutoDock Vina" | receptor PDB + ligand set | `drug_discovery/docking_autodock_vina` | ✓ |
+| **dd4-qsar** (=d1) | "Predict hERG cardiac safety for these SMILES with a QSAR model" | inline SMILES | `pharmacology/herg_cardiac_safety_qsar` | ✓ |
+| **dd5-admet** (=d2) | ADMET liability screen + developability rank | SMILES panel | `pharmacology/predict_admet_properties` | ✓ |
+| **dd6-generative** (=d3) | "Use REINVENT to generate novel analogs of this scaffold optimized for QED and potency" | seed SMILES | `drug_discovery/reinvent4_lead_design` | ~ (emphasize "REINVENT/generate") |
+| **dd7-rbfe** (=d4) | congeneric series → relative binding free energy | ref + series | `drug_discovery/openfe_rbfe` | ✓ |
+| **dd8-md** | "Run a molecular dynamics simulation of this protein–ligand complex" | complex PDB | `drug_discovery/amber_pmemd_md` / `gromacs_protein_md` | ✓ |
+| **dd9-structure** | "Predict the 3D structure of this protein sequence" | sequence | `structural_biology/boltz_structure_prediction` | ~ (routes to structure chain) |
+| **dd10-retrosynthesis** | "Plan a retrosynthetic route for this molecule" | SMILES | `drug_discovery/syncraft_synthesizability` / `aizynthfinder_retrosynthesis` | ✓ |
+| **dd11-pbpk** (=s2) | "Predict plasma concentration over time with a PBPK model" | PK params | `drug_discovery/pbpk_simulation` | ✓ |
+| **dd12-nca** (=s1) | "Run non-compartmental PK on this concentration–time data" | conc–time CSV | `drug_discovery/nca_pknca` | ✓ |
+| **dd13-ames** | "Predict AMES genotoxicity for these compounds" | SMILES | `pharmacology/genotoxicity_ames_prediction` | ✓ |
+| **dd14-cyclic-peptide** | "Design a cyclic peptide binder against this target epitope" | target / epitope | `structural_biology/cyclic_peptide_cofold` / `cyclic_peptide_design` | ✓ |
+| **dd15-clinical-trial** | "Simulate a phase 2 clinical trial for this dose range" | trial params | `drug_discovery/clinical_trial_simulation` | ✓ |
+| **dd16-novelty-fto** | "Score chemical novelty and freedom-to-operate for these compounds" | SMILES | `drug_discovery/compound_novelty_scorer` | ✓ (generated) |
+| **dd17-cro-ind-export** | "Export a CRO submission / IND package for this program" | program results | `drug_discovery/cro_submission_export`, `run_audit_export` | capability |
+
+Further real drug-dev workflows available if more are wanted: `antibody_developability`,
+`bispecific_antibody_design`, `fcrn_antibody_pk`, `metabolite_prediction_biotransformer`,
+`cyp_ddi_panel`, `pocket_detection_druggability`, `ich_s7a_safety_pharmacology`,
+`ich_s5_reproductive_tox`, `analyze_fda_safety_signals`, `scaffold_hopping`,
+`pharmacophore_filtering`, `nonmem_poppk`, `allometric_scaling`, `pbpk_pediatric_pregnancy`.
+
+**Capture economics:** dd5/d2 runs full (Batch) as the flagship. The rest are captured at
+**prerun/routing + card** depth by default (cheap, no Batch) — each shows cold-start → goal
+→ AI plan → workflow card + prerun panel (name, steps, params). Promote individual ones to a
+full completed run only when a specific deck needs the completed/findings/outputs beats.
 | **m1-search-and-evidence** | "Is JAK1 linked to rheumatoid arthritis? give cited evidence" | none (literature) | search & evidence (instant lane) |
 | **m2-rnaseq-differential-expression** | "Which genes change between treated and control?" | **GSE52778** counts (airway smooth-muscle, dex vs ctrl) | nf-core/rnaseq → DESeq2 |
 | **m3-accession-to-workflow** | "Analyze GSE52778" (accession → inferred method → workflow) | accession **GSE52778** / SRR1039508 | resolve_accession + context routing |
