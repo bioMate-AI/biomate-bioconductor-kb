@@ -68,3 +68,18 @@ Dominated by cofold on the held-out candidate pools; MM-GBSA on shortlists; FEP 
 ---
 
 *Design only. Every target/number traces to `research/guangzhou_all_atom/results/` artifacts. The within-target contribution (AUC 0.9405 leakage-safe, +0.077 over baseline) stands independently and is not contingent on this experiment.*
+
+---
+
+## 8. Slice-0 execution status (2026-10-21)
+
+**First attempt to actually feed the loop the cross-target question — and it surfaced a real setup finding.**
+
+- **Finding (important):** FIKK13 has **no prepped receptor `target_spec`** — `target_spec.load_spec("FIKK13")` → False, so the standard closed loop (`physics_batch.dispatch_cofold`) **cold-starts** on it. The loop was only ever wired for prepped αvβ6-type targets, **not the mRNA-display targets the LM trains on**. That is the concrete "built-not-fed" gap for the cross-target question: the cofold reward could not reach FIKK13 through the normal path.
+- **Resolution (manual path, validated):** the FIKK13 target sequence **is** available (`data/display/target_proteins.json`: UniProt A0A143ZWL4, 561 aa). `cyclic_llm/slice0_fikk13_cofold.py` builds the cofold input manually (receptor chain A = FIKK13 + cyclic peptide chain P) and reuses `json_to_boltz_yaml.py` + `physics_batch._boltz_command` on the same spot GPU job-def. Boltz YAML build **validated locally** (rc=0).
+- **Candidate manifest:** `results/slice0_fikk13_manifest.json` — 100 distinct candidates (**38 display binders + 62 length-matched non-binders**). Independent endpoint = display `is_binder`; training reward = cofold geometry (iptm/pTM) — kept separate (circularity control §5.2).
+- **Cost:** full sample ≈ 100 cofolds × ~15 GPU-min (561-aa receptor) ≈ 25 GPU-hr ≈ **$38–50 spot** — within the Slice-0 budget.
+- **Submitted (review-before-spend: smoke first):** 3-cofold smoke on `biomate-gpu-spot-queue` to prove the custom path runs end-to-end before the full sample — jobs `2eb297b8…` (B000 binder), `df02e0d5…` (B001 binder), `a99502bf…` (N000 nonbinder), all **RUNNABLE** (awaiting spot GPU). `results/slice0_fikk13_cofold_smoke_jobs.json`.
+- **NULL baseline (established):** `cyclic_llm_v3_1_FIKK13_eval.json` — `cross_target_transfer: NULL`, `target_features_matter: false` (own-LM-without-loop does not discriminate FIKK13 binders cross-target).
+- **Verdict: PENDING — cannot complete in one pass (honest).** The decisive read (does cofold-geometry rank the 38 display binders above the NULL/chance baseline on the independent endpoint?) requires the cofold jobs to COMPLETE (spot-gated) and `complex.cif`/iptm per candidate. Next steps once the smoke confirms the path: `--full` (100 cofolds), then AUC/enrichment of cofold-iptm vs display `is_binder` on the motif-distinct subset, vs NULL (~chance) and vs adopted-BoltzGen. **Flat vs NULL remains a valid refutation (publishable data-wall negative) — no fabricated improvement.**
+- **n=1 fold caveat:** FIKK13 is one held-out target; this is a directional read, not the clean ≥3-same-chemistry-target claim (§5.1 — only 2 thioether targets exist today).
