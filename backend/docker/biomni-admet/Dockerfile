@@ -28,7 +28,7 @@
 #     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:arm64 \
 #     -f backend/docker/biomni-admet/Dockerfile .
 
-FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:latest
 
 # TARGETARCH is passed by the CI build job (--build-arg TARGETARCH=arm64|amd64).
 # Defaults to amd64 for plain `docker build` without --build-arg.
