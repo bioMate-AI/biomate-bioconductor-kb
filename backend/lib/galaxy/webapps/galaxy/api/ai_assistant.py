@@ -2489,6 +2489,12 @@ def search_nextflow_workflow(
             return {
                 "success": True,
                 "workflow_type": "chain",
+                # Top-level `name` so every consumer (panel title, run record,
+                # SSE label) has a human label — a chain omits `workflow_ga`,
+                # and the panel reads `workflowDefinition.name` directly, so
+                # without this a chain card renders "Untitled". See
+                # nextflow-workflow-viewer.tsx panel-name fallback (defense).
+                "name": best_chain.display_name,
                 "chain_name": best_chain.name,
                 "chain_display_name": best_chain.display_name,
                 "chain_domain": best_chain.domain,

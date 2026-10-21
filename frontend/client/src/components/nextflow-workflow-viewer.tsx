@@ -2665,7 +2665,7 @@ export function NextflowWorkflowViewer({
             <div className="top-row">
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="kicker" data-testid="panel-kicker" data-run-kind={runKind}>{kickerLabel}</div>
-                <div className="panel-name">{workflowDefinition?.name || t('panel.untitled')}</div>
+                <div className="panel-name">{workflowDefinition?.name || workflowDefinition?.chain_display_name || workflowDefinition?.workflow_name || t('panel.untitled')}</div>
                 {panelSub && <div className="panel-sub">{panelSub}</div>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
