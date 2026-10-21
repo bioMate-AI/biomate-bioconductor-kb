@@ -73,6 +73,25 @@ We must **not** present the adopted-BoltzGen reranking workflow as the LLM innov
 4. **Circularity** — if the reward that *trains* the model is the same physics that *evaluates* it, a "win" can be self-fulfilling. Mitigation: the held-out evaluator must be a modality the training reward did not directly optimize (e.g. train on cofold-geometry reward, evaluate on independent MM-GBSA/FEP or display enrichment), and wet-lab remains the only non-circular endpoint.
 5. **Data scarcity** — the signal that scales is display depth, not structural binder labels; the thesis lives or dies on exploiting that.
 
+## 7. RLVR wiring — what is already built, and the FEP-ΔΔG reward upgrade (2026-10-21)
+
+The closed-loop→model path is **not vaporware**; the data-factory tap is built and CPU-testable, and training is honestly gated on volume + GPU (per the no-tiny-dataset rule):
+
+| Component | File | State |
+|---|---|---|
+| RLVR reward (gate-dominant; selectivity first-class) | `cyclic_llm/reward.py` | built, tested (CPU) |
+| Preference-pair emitter (3 streams: verify_select / activity / expert; provenance + dedup + symmetric-conflict drop) | `dpo_pairs.py` | built, tested (CPU) |
+| TRL DPOTrainer | `dpo_peptide_trainer.py` | built; **not run** — gated on loop volume + GPU |
+| Loop→score→reward→pairs bridge | `cyclic_llm/loop_grade_bridge.py`, `reward.build_preference_pairs()` | built |
+
+**The upgrade that makes the reward "physics-*verified*" rather than "physics-*proxied*".** The reward's binding term was MM-GBSA ΔG (`binding_dG`) — the weak proxy flagged in the "SMILES→GAFF MM-GBSA?" critique, and (fatally for a training signal) the *same* physics that would evaluate a win → circularity threat #4. Fixed 2026-10-21:
+
+- `score()` now carries a first-class **`ddg_fep`** hook = relative FEP ΔΔG (negative = tighter than the reference edge), admissible only when the FEP **control edge validated** (recovered the known affinity gap within tolerance — the FEP analogue of A2 control-anchoring). For αvβ6 this is the *only* admissible binding signal, since the metal-free MM-GBSA is voided.
+- `reward()` makes `ddg_fep` the **primary** binding term (weight 0.90); MM-GBSA is demoted to a **feasibility-level fallback** (0.45), used only when no FEP ΔΔG exists, emitted under an explicit `binding_mmgbsa_proxy` key so audits see which physics drove the reward.
+- Because the RL **training reward** (FEP ΔΔG) is now a *different* physics from any MM-GBSA / display-enrichment **held-out evaluator**, the circularity in §6.4 is structurally mitigated — the win, if it comes, is not self-fulfilling.
+
+**Still gated (unchanged, honest):** gradient DPO/RLVR waits on (a) the loop producing scored candidates at volume, and (b) the FEP control edge actually running (`fep_batch.py`, `MDRUN_CMD_READY=False` until explicit go) so `ddg_fep` is populated rather than `pending`. Until then the reward runs at feasibility level (gate + FTO + developability + MM-GBSA fallback), which is the correct, non-overclaiming state.
+
 ---
 
-*Artifacts cited are under `research/guangzhou_all_atom/`. The discredited in-distribution decomposition figure is deliberately not used. No training/eval/GPU was run to produce this document.*
+*Artifacts cited are under `research/guangzhou_all_atom/`. The discredited in-distribution decomposition figure is deliberately not used. §1–6 report no training/eval/GPU; §7 reports CPU-only wiring validated with synthetic/stub records — no GPU training or FEP run was launched.*
