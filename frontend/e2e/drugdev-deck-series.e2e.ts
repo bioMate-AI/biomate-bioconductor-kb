@@ -72,7 +72,9 @@ test("drug-dev deck series — prerun captures", async ({ page }) => {
     summary.push("FAIL dd17-expert-feedback — " + (e?.message?.split("\n")[0] ?? e));
   }
 
+  const only = process.env.DECK_ONLY ? process.env.DECK_ONLY.split(",") : null;
   for (const deck of DECKS) {
+    if (only && !only.includes(deck.slug)) continue;
     const out = path.join(BASE_OUT, deck.slug);
     fs.mkdirSync(out, { recursive: true });
     try {
@@ -86,7 +88,8 @@ test("drug-dev deck series — prerun captures", async ({ page }) => {
 
       const send = page.locator('[data-testid="chat-send-button"]:not([disabled])');
       await send.waitFor({ state: "visible", timeout: 30_000 });
-      await send.click({ timeout: 15_000 });
+      await send.scrollIntoViewIfNeeded().catch(() => {});
+      await send.click({ timeout: 15_000 }).catch(async () => { await send.click({ force: true, timeout: 10_000 }); });
 
       await page.waitForTimeout(8000);
       await page.screenshot({ path: path.join(out, "03-ai-response-plan.png") });
