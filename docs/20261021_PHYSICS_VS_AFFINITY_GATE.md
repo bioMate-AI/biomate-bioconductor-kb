@@ -32,3 +32,25 @@ The physics we would actually augment with is **Boltz cofold → MM-GBSA** (the 
 - **Cannot be answered CPU-cheaply or from existing data.** The honest gate is a bounded GPU cofold→MM-GBSA run on measured macrocycles (scoped above, ~$20–30, not fired).
 - **Key a-priori distinction preserved:** because CPU docking is invalid for macrocycles, a future flat result from the *cofold→MM-GBSA* path would be a clean **(a) physics-doesn't-track** finding (a real data/physics wall), since cofold is the appropriate pose method — not a (b) docking artifact.
 - Recommended order: run the CPU **target-aware ligand model** first (cheaper lever for a standalone model); then, gated on a go, the bounded cofold→MM-GBSA physics gate. Both feed the same question — is the ceiling model-capacity (ligand-only) or data/physics-fundamental.
+
+---
+
+## 6. LEVER 2 execution (2026-10-21) — cofold adapter BUILT; MM-GBSA half BLOCKED on a FF pipeline (not fired)
+Green-lit to build the SMILES-ligand cofold adapter and run cofold→MM-GBSA. On execution a decisive obstacle surfaced that changes the scope honestly.
+
+**Done (CPU, no spend):**
+- **SMILES-ligand cofold adapter built + validated** — `cyclic_llm/smiles_cofold_adapter.py::smiles_cofold_yaml` emits a well-formed Boltz-2 YAML (receptor `protein` chains + a `ligand: smiles:`), the piece `json_to_boltz_yaml` lacked (it only did CCD ligands + peptide-by-sequence). Dry-run YAML validated (`ADAPTER_YAML_WELLFORMED: True`).
+- **Measured αvβ6 subset staged** — `results/physics_gate/avb6_measured_subset.csv`: 20 macrocycles spanning pAff 3.68–9.59 (weak→strong), ready for the cofold run.
+
+**The obstacle (newly surfaced) — the MM-GBSA half is not a quick run:**
+- **No small-molecule FF toolchain is installed** — antechamber / tleap / parmchk2 / openff / openmm are all MISSING here.
+- The **existing MM-GBSA is peptide-CHARMM36m** (psfgen CYCP on standard residues); it **cannot parameterize arbitrary SMILES macrocycles** (non-standard residues, thioether/photo linkers). MM-GBSA on these ligands requires a **SMILES → GAFF (AmberTools/OpenFF) → topology** pipeline that does not exist in the current codebase.
+- Therefore "cofold→MM-GBSA on measured SMILES macrocycles" is **not a small adapter + bounded run** — the MM-GBSA half is a real pipeline build.
+
+**Why I did NOT fire a cofold-only GPU run:** cofold alone would yield Boltz-2's own **ML affinity head / confidence**, which tests *Boltz-2's learned model*, not **our physics (MM-GBSA/FEP)** — the wrong question for this gate, and a misleading spend. Review-before-spend → not fired.
+
+**Scoped true gate (for the coordinator's decision):**
+1. Build the SMILES→GAFF→MM-GBSA pipeline (AmberTools/OpenFF param of the macrocycle ligand, MM-GBSA on the cofold pose in the GPU container). This is the real remaining build.
+2. Then: cofold (adapter ready) the 20 αvβ6 + 20 PD-L1 measured macrocycles → GAFF-MM-GBSA ΔG → Spearman vs measured pAff. Est cost: cofold ~$10–15/target; MM-GBSA GPU bounded; total ~$25–40 **after the FF-pipeline build**.
+
+**Verdict (this pass):** physics gate **NOT run** — blocked on a SMILES-macrocycle MM-GBSA FF pipeline (a build, not a cost/go). The cofold adapter + measured subset are ready. Because CPU docking was excluded and this is genuine MM-GBSA, a future flat result would still be a clean (a) physics-wall finding. **This obstacle itself is informative: our "physics engine" is peptide-sequence-specific; applying it to real measured (SMILES, often non-standard) macrocycles needs a small-molecule FF layer we don't have — a concrete capability gap.**
