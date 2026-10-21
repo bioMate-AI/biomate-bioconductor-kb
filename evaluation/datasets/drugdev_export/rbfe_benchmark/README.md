@@ -18,4 +18,6 @@ license: cc-by-4.0
 
 **Honesty.** Free-energy calculation is compute-heavy and accuracy is modest even for mature engines (JACS/Merck RMSE ~1 kcal/mol); the benchmark grades **whether the agent can correctly select, run, and return a valid FEP result**, not a claim of beating specialized FEP engines on accuracy.
 
-**TODO to build:** (1) curate the congeneric-series gold with leakage-aware splits; (2) add `evaluation/scorers/rbfe_scorer.py` (ΔΔG RMSE/τ + L6 validity); (3) add `evaluation/adapters/rbfe_benchmark_adapter.py` (L1–L6); (4) export items here; (5) add to the sweep.
+**TODO to build:** (1) curate the congeneric-series gold with leakage-aware splits — real experimental ΔΔG from the public FEP sets (Merck/Schindler `github.com/MCompChem/fep-benchmark` CC-BY; JACS-FEP; OpenFF Protein-Ligand Benchmark); **do not invent ΔΔG values**; (2) ~~`evaluation/scorers/rbfe_scorer.py`~~ **DONE** (ΔΔG RMSE/MUE + Kendall-τ/Spearman rank fidelity + within-1-kcal + composite score; CPU `--selftest` 6/6); (3) add `evaluation/adapters/rbfe_benchmark_adapter.py` (L1–L6, calls `parse_rbfe_output` + `score_rbfe_series`); (4) export items here; (5) add to the sweep.
+
+**Scorer contract (built):** `rbfe_scorer.score_rbfe_series(predicted, reference, within_kcal=1.0)` → `{n, rmse, mue, kendall_tau, spearman, within_frac, score}`; `score_rbfe_batch([{predicted, reference}])` aggregates. Reference ΔΔG keyed by ligand/edge id (kcal/mol). Multi-signal score (rank + accuracy), not affinity-only.
