@@ -48,25 +48,36 @@ on 2026-10-20 (✓ = routed to the named workflow; ~ = routed to a related chain
 query to be tuned). Pipeline-ordered: target → hit → lead → structure/dynamics → DMPK →
 safety → clinical/regulatory.
 
+Pipeline order (revised 2026-10-20 per feedback): novelty/FTO moved **early** (a
+hit-to-lead triage — screen for novel, patentable matter before investing in
+optimization); CRO/IND export dropped for now; **expert-feedback integration added**.
+
 | Deck | Use-case query | Data / inputs | Grounding workflow | Routing |
 |---|---|---|---|---|
 | **dd1-target-id** | "Rank candidate targets for an autoimmune indication by tractability and genetic evidence" | indication / gene set (OpenTargets live) | `drug_discovery/gwas_scrna_eqtl_target_chain`, `target_scorecard_ranker` | ✓ |
 | **dd2-virtual-screening** | "Virtual screen a compound library against this target with DrugCLIP" | target + library | `drug_discovery/drugclip_virtual_screening` | ✓ |
 | **dd3-docking** | "Dock these ligands into the binding site with AutoDock Vina" | receptor PDB + ligand set | `drug_discovery/docking_autodock_vina` | ✓ |
-| **dd4-qsar** (=d1) | "Predict hERG cardiac safety for these SMILES with a QSAR model" | inline SMILES | `pharmacology/herg_cardiac_safety_qsar` | ✓ |
-| **dd5-admet** (=d2) | ADMET liability screen + developability rank | SMILES panel | `pharmacology/predict_admet_properties` | ✓ |
-| **dd6-generative** (=d3) | "Use REINVENT to generate novel analogs of this scaffold optimized for QED and potency" | seed SMILES | `drug_discovery/reinvent4_lead_design` | ~ (emphasize "REINVENT/generate") |
-| **dd7-rbfe** (=d4) | congeneric series → relative binding free energy | ref + series | `drug_discovery/openfe_rbfe` | ✓ |
-| **dd8-md** | "Run a molecular dynamics simulation of this protein–ligand complex" | complex PDB | `drug_discovery/amber_pmemd_md` / `gromacs_protein_md` | ✓ |
-| **dd9-structure** | "Predict the 3D structure of this protein sequence" | sequence | `structural_biology/boltz_structure_prediction` | ~ (routes to structure chain) |
-| **dd10-retrosynthesis** | "Plan a retrosynthetic route for this molecule" | SMILES | `drug_discovery/syncraft_synthesizability` / `aizynthfinder_retrosynthesis` | ✓ |
-| **dd11-pbpk** (=s2) | "Predict plasma concentration over time with a PBPK model" | PK params | `drug_discovery/pbpk_simulation` | ✓ |
-| **dd12-nca** (=s1) | "Run non-compartmental PK on this concentration–time data" | conc–time CSV | `drug_discovery/nca_pknca` | ✓ |
-| **dd13-ames** | "Predict AMES genotoxicity for these compounds" | SMILES | `pharmacology/genotoxicity_ames_prediction` | ✓ |
-| **dd14-cyclic-peptide** | "Design a cyclic peptide binder against this target epitope" | target / epitope | `structural_biology/cyclic_peptide_cofold` / `cyclic_peptide_design` | ✓ |
-| **dd15-clinical-trial** | "Simulate a phase 2 clinical trial for this dose range" | trial params | `drug_discovery/clinical_trial_simulation` | ✓ |
-| **dd16-novelty-fto** | "Score chemical novelty and freedom-to-operate for these compounds" | SMILES | `drug_discovery/compound_novelty_scorer` | ✓ (generated) |
-| **dd17-cro-ind-export** | "Export a CRO submission / IND package for this program" | program results | `drug_discovery/cro_submission_export`, `run_audit_export` | capability |
+| **dd4-novelty-fto** | "Score chemical novelty and freedom-to-operate for these hits" (hit-to-lead triage) | SMILES hits | `drug_discovery/compound_novelty_scorer` | ✓ |
+| **dd5-qsar** (=d1) | "Predict hERG cardiac safety for these SMILES with a QSAR model" | inline SMILES | `pharmacology/herg_cardiac_safety_qsar` | ✓ |
+| **dd6-admet** (=d2) | ADMET liability screen + developability rank | SMILES panel | `pharmacology/predict_admet_properties` | ✓ |
+| **dd7-generative** (=d3) | "Use REINVENT to generate novel analogs of this scaffold optimized for QED and potency" | seed SMILES | `drug_discovery/reinvent4_lead_design` | ~ (emphasize "REINVENT/generate") |
+| **dd8-rbfe** (=d4) | congeneric series → relative binding free energy | ref + series | `drug_discovery/openfe_rbfe` | ✓ |
+| **dd9-md** | "Run a molecular dynamics simulation of this protein–ligand complex" | complex PDB | `drug_discovery/amber_pmemd_md` / `gromacs_protein_md` | ✓ |
+| **dd10-structure** | "Predict the 3D structure of this protein sequence" | sequence | `structural_biology/boltz_structure_prediction` | ~ (routes to structure chain) |
+| **dd11-retrosynthesis** | "Plan a retrosynthetic route for this molecule" | SMILES | `drug_discovery/syncraft_synthesizability` / `aizynthfinder_retrosynthesis` | ✓ |
+| **dd12-pbpk** (=s2) | "Predict plasma concentration over time with a PBPK model" | PK params | `drug_discovery/pbpk_simulation` | ✓ |
+| **dd13-nca** (=s1) | "Run non-compartmental PK on this concentration–time data" | conc–time CSV | `drug_discovery/nca_pknca` | ✓ |
+| **dd14-ames** | "Predict AMES genotoxicity for these compounds" | SMILES | `pharmacology/genotoxicity_ames_prediction` | ✓ |
+| **dd15-cyclic-peptide** | "Design a cyclic peptide binder against this target epitope" | target / epitope | `structural_biology/cyclic_peptide_cofold` / `cyclic_peptide_design` | ✓ |
+| **dd16-clinical-trial** | "Simulate a phase 2 clinical trial for this dose range" | trial params | `drug_discovery/clinical_trial_simulation` | ✓ |
+| **dd17-expert-feedback** | Turn on a domain expert (e.g. **Medicinal Chemist**) in **Skills & experts** so the request is shaped by expert priors; and show the **ApprovalGate** pausing a run for a human expert's approve / deny / ask-a-question (who·when·decision·reason recorded) | any drug-dev request | **Skills & experts** (`/api/skills` — 9 live packs incl. Medicinal Chemist, Clinical Biostatistician, Structural Biologist) + **ApprovalGate** (`nextflow-workflow-viewer.tsx`, human-in-the-loop gate) | ✓ live |
+
+**Expert-feedback integration (dd17) is real and live**, not a mockup: the composer's
+Skills & experts selector applies codified expert packs to a request (threaded as
+`skillPackIds` onto the answer/run), and the ApprovalGate is a wired gate whose
+"measurement is a person" — it pauses, asks what/why/cost, and records the human
+expert's decision. Capture both surfaces: the experts popover (drug-dev packs on) and
+a run paused at an approval gate.
 
 Further real drug-dev workflows available if more are wanted: `antibody_developability`,
 `bispecific_antibody_design`, `fcrn_antibody_pk`, `metabolite_prediction_biotransformer`,
