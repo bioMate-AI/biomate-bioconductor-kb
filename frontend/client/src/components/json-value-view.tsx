@@ -103,14 +103,17 @@ export function InlineJsonView({
   value,
   renderText = defaultRenderText,
   className,
+  maxHClass = "max-h-64",
 }: {
   value: unknown;
   renderText?: RenderTextFn;
   className?: string;
+  /** Overrides the default height when `className` is not supplied. */
+  maxHClass?: string;
 }) {
   const isObj = value !== null && typeof value === "object";
   return (
-    <div data-testid="json-preview" className={className ?? "max-h-64 overflow-auto rounded border bg-muted/20 p-2"}>
+    <div data-testid="json-preview" className={className ?? `${maxHClass} overflow-auto rounded border bg-muted/20 p-2`}>
       {isObj ? <JsonValueView v={value} renderText={renderText} /> : renderText(String(value))}
     </div>
   );

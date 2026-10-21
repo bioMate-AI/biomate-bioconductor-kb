@@ -50,7 +50,8 @@ export function DatasetFilePreview({ projectId, fileId, name }: {
   )
   if (state.error) return <p role="alert" className="text-destructive">{state.error}</p>
   if (state.text !== undefined) return <div className="min-w-0 space-y-2" data-testid="dataset-text-preview">
-    {state.text ? <FileContentView name={name} text={state.text} /> : <p className="text-muted-foreground">This file is empty.</p>}
+    {/* Files module: a tall, scrollable reading pane (not the compact run-output height). */}
+    {state.text ? <FileContentView name={name} text={state.text} maxHClass="max-h-[60vh]" /> : <p className="text-muted-foreground">This file is empty.</p>}
     {state.truncated && <p className="text-muted-foreground">Showing the first 256 KiB. Download for the complete file.</p>}
   </div>
   if (state.url && IMAGE.test(name)) return <img src={state.url} alt={name} className="max-h-[60vh] max-w-full object-contain" />

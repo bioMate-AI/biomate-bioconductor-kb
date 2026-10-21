@@ -65,7 +65,7 @@ export function fmtCell(v: string | undefined): string {
   return String(Number(n.toPrecision(4)));
 }
 
-export function TableGrid({ headers, rows, totalRows }: { headers: string[]; rows: string[][]; totalRows: number }) {
+export function TableGrid({ headers, rows, totalRows, maxHClass = "max-h-64" }: { headers: string[]; rows: string[][]; totalRows: number; maxHClass?: string }) {
   return (
     <div className="rounded border text-xs font-mono">
       {/* Shape header — spec 14.2: the header states N rows × M cols. */}
@@ -73,7 +73,7 @@ export function TableGrid({ headers, rows, totalRows }: { headers: string[]; row
         <span>{t("preview.table_shape", { rows: totalRows.toLocaleString(), cols: headers.length })}</span>
         {totalRows > rows.length && <span>{t("preview.table_showing_first", { n: rows.length.toLocaleString() })}</span>}
       </div>
-      <div className="overflow-auto max-h-64">
+      <div className={cn("overflow-auto", maxHClass)}>
         <table className="min-w-full">
           <thead className="sticky top-0 bg-muted">
             <tr>
@@ -100,7 +100,7 @@ export function TableGrid({ headers, rows, totalRows }: { headers: string[]; row
 // ---------------------------------------------------------------------------
 // Text viewer with tail toggle (log files are useful from the end)
 // ---------------------------------------------------------------------------
-export function InlineTextViewer({ text }: { text: string }) {
+export function InlineTextViewer({ text, maxHClass = "max-h-40" }: { text: string; maxHClass?: string }) {
   const cleanText = stripAnsi(text);
   const lines = cleanText.split("\n");
   const [showTail, setShowTail] = useState(lines.length > 50);
@@ -118,7 +118,7 @@ export function InlineTextViewer({ text }: { text: string }) {
           </button>
         </div>
       )}
-      <pre className={cn("text-xs font-mono bg-muted p-2 rounded max-h-40 overflow-auto whitespace-pre-wrap")}>
+      <pre className={cn("text-xs font-mono bg-muted p-2 rounded overflow-auto whitespace-pre-wrap", maxHClass)}>
         {showTail && lines.length > 80 && <span className="text-muted-foreground italic">… {lines.length - 80} lines above …{"\n"}</span>}
         {displayed}
       </pre>
@@ -129,7 +129,7 @@ export function InlineTextViewer({ text }: { text: string }) {
 // ---------------------------------------------------------------------------
 // Inline table viewer (CSV / TSV / JSON / STAR)
 // ---------------------------------------------------------------------------
-export function InlineTableViewer({ text, ext }: { text: string; ext: string }) {
+export function InlineTableViewer({ text, ext, maxHClass }: { text: string; ext: string; maxHClass?: string }) {
   const lines = text.trim().split("\n").filter(Boolean);
   if (lines.length === 0) return <p className="text-xs text-muted-foreground">{t("preview.empty_file")}</p>;
 
@@ -140,7 +140,7 @@ export function InlineTableViewer({ text, ext }: { text: string; ext: string }) 
       return (
         <>
           <p className="text-[10px] text-muted-foreground mb-1">STAR/RELION format · {star.rows.length} particles shown</p>
-          <TableGrid headers={star.headers} rows={star.rows} totalRows={star.rows.length} />
+          <TableGrid headers={star.headers} rows={star.rows} totalRows={star.rows.length} maxHClass={maxHClass} />
         </>
       );
     }
@@ -159,11 +159,11 @@ export function InlineTableViewer({ text, ext }: { text: string; ext: string }) 
         const rows = records.slice(0, 200).map((item) =>
           headers.map((h) => (item[h] != null ? (typeof item[h] === "object" ? JSON.stringify(item[h]) : String(item[h])) : ""))
         );
-        return <TableGrid headers={headers} rows={rows} totalRows={records.length} />;
+        return <TableGrid headers={headers} rows={rows} totalRows={records.length} maxHClass={maxHClass} />;
       }
-      return <InlineJsonView value={parsed} renderText={(txt) => <InlineTextViewer text={txt} />} />;
+      return <InlineJsonView value={parsed} renderText={(txt) => <InlineTextViewer text={txt} maxHClass={maxHClass} />} maxHClass={maxHClass} />;
     }
-    if (ext === "json") return <InlineTextViewer text={text} />;
+    if (ext === "json") return <InlineTextViewer text={text} maxHClass={maxHClass} />;
   }
 
   // Delimiter detection (CSV / TSV)
@@ -174,7 +174,7 @@ export function InlineTableViewer({ text, ext }: { text: string; ext: string }) 
   const headers = firstLine.split(delimiter).map((h) => h.trim().replace(/^"|"$/g, ""));
   const rows = lines.slice(1, 201).map((l) => l.split(delimiter).map((c) => c.trim().replace(/^"|"$/g, "")));
 
-  return <TableGrid headers={headers} rows={rows} totalRows={lines.length - 1} />;
+  return <TableGrid headers={headers} rows={rows} totalRows={lines.length - 1} maxHClass={maxHClass} />;
 }
 
 /**
@@ -184,8 +184,8 @@ export function InlineTableViewer({ text, ext }: { text: string; ext: string }) 
  * renders as text with a tail toggle. Image/PDF are NOT handled here — callers
  * that fetch a signed URL render those directly.
  */
-export function FileContentView({ name, text }: { name: string; text: string }) {
+export function FileContentView({ name, text, maxHClass }: { name: string; text: string; maxHClass?: string }) {
   const ext = (name.split(".").pop() || "").toLowerCase();
-  if (TABLE_EXTS.has(ext)) return <InlineTableViewer text={text} ext={ext} />;
-  return <InlineTextViewer text={text} />;
+  if (TABLE_EXTS.has(ext)) return <InlineTableViewer text={text} ext={ext} maxHClass={maxHClass} />;
+  return <InlineTextViewer text={text} maxHClass={maxHClass} />;
 }
