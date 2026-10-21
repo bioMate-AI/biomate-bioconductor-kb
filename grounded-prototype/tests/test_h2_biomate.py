@@ -69,7 +69,8 @@ def main():
         run_dir = adapter.execute("m7-limit-value", None, "verif-ab")
         ab = adapter.score(run_dir, "m7-limit-value")
         ck("ground-truth task scored answer-BASED (real verifier)",
-           ab["answer_free"] is False and ab["verifier"] == "expected_params_f1")
+           ab["answer_free"] is False
+           and ab["verifier"] in ("expected_params_real", "expected_params_f1"))
         ck("answer-based score is a real reward in [0,1]", 0.0 <= ab["score"] <= 1.0)
         run_dir2 = adapter.execute("herg-cardiac", None, "verif-af")
         af = adapter.score(run_dir2, "herg-cardiac")

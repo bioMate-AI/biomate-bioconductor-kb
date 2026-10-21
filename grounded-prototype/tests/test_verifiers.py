@@ -23,8 +23,8 @@ def ck(name, cond):
 
 
 # selection
-ck("ground truth with expected_params -> answer-based params verifier",
-   select_verifier({"expected_params": {"genome": "GRCh38"}}).name == "expected_params_f1")
+ck("ground truth with expected_params -> answer-based params verifier (real preferred, mirror fallback)",
+   select_verifier({"expected_params": {"genome": "GRCh38"}}).name in ("expected_params_real", "expected_params_f1"))
 ck("ground truth with classes -> answer-based class verifier",
    select_verifier({"classes": {"herg": "blocker"}}).name == "exact_class_accuracy")
 ck("no ground truth -> answer-free trust lattice",
@@ -87,6 +87,24 @@ if _real is not None:
        abs(_real.score(_gold, _collapsed) - _mirror.score(_gold, _collapsed)) < 1e-9)
     ck("real scorer ranks the exact plan above the collapsed one",
        _real.score(_gold, _exact) > _real.score(_gold, _collapsed))
+
+# RealParamsVerifier — BioMate's production param matcher (alias/unit normalisation)
+from research.verifiers import real_params_verifier  # noqa: E402
+_rp = real_params_verifier()
+ck("real param matcher loads from evaluation/", _rp is not None)
+if _rp is not None:
+    ck("select_verifier routes expected_params to the REAL matcher",
+       select_verifier({"expected_params": {"genome": "human"}}).name == "expected_params_real")
+    _gt = {"expected_params": {"genome": "human"}, "must_not_fill": ["adapter"]}
+    # REAL alias normalisation: a structured 'GRCh38' matches expected 'human' (mirror cannot)
+    ck("real matcher normalises human==GRCh38 on a structured response",
+       _rp.score(_gt, _json.dumps({"genome": "GRCh38"})) == 1.0)
+    ck("the text mirror CANNOT match human vs GRCh38 (shows the real gain)",
+       ExpectedParamsVerifier().score(_gt, "genome GRCh38") < 1.0)
+    ck("real matcher penalises a must_not_fill violation on a structured response",
+       _rp.score(_gt, _json.dumps({"genome": "GRCh38", "adapter": "trimgalore"})) < 1.0)
+    ck("real matcher degrades to the text mirror for a free-text response",
+       _rp.score(_gt, "genome human") == ExpectedParamsVerifier().score(_gt, "genome human"))
 
 passed = sum(1 for c in _R if c)
 print(f"\n{passed}/{len(_R)} passed")

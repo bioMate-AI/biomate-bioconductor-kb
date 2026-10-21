@@ -266,6 +266,81 @@ def real_decomp_verifier():
     return _REAL_DECOMP
 
 
+class RealParamsVerifier:
+    """Param-prefill reward using BioMate's PRODUCTION value-matching + F1 + must_not_fill
+    penalty (evaluation/adapters/param_prefill_adapter.py: `_values_match` — real alias/unit
+    normalisation via `_normalise`, e.g. human->GRCh38 — and `_MUST_NOT_FILL_PENALTY`),
+    computed exactly as the adapter's `_compute_score`, WHEN the response is a structured
+    params dict (or a JSON object). For a free-text response it degrades to the text mirror
+    (ExpectedParamsVerifier), so it is a strict superset: production metric when inputs allow."""
+
+    name = "expected_params_real"
+    answer_free = False
+
+    def __init__(self, values_match, penalty: float):
+        self._values_match = values_match
+        self._penalty = penalty
+
+    def score(self, ground_truth: Any, response: str) -> float:
+        import json
+        gt = ground_truth or {}
+        expected: Dict[str, Any] = gt.get("expected_params", {}) or {}
+        must_not: List[str] = gt.get("must_not_fill", []) or []
+        generated: Optional[Dict[str, Any]] = None
+        if isinstance(response, dict):
+            generated = response
+        elif isinstance(response, str):
+            try:
+                v = json.loads(response)
+                generated = v if isinstance(v, dict) else None
+            except Exception:
+                generated = None
+        if generated is None:
+            # free-text response — the production matcher needs structured params; use the mirror.
+            return _PARAMS.score(ground_truth, response if isinstance(response, str) else "")
+        # production F1 + penalty (mirrors _compute_score with the REAL _values_match)
+        ek, gk = set(expected), set(generated)
+        if ek:
+            correct = {k for k in ek & gk if self._values_match(k, expected[k], generated[k])}
+            precision = len(correct) / max(1, len(gk))
+            recall = len(correct) / len(ek)
+            base = (2 * precision * recall / (precision + recall)) if (precision + recall) else 0.0
+        else:
+            base = 1.0
+        penalty = sum(self._penalty for k in must_not
+                      if k in gk and generated[k] not in (None, "", [], {}))
+        return max(0.0, base - penalty)
+
+
+_REAL_PARAMS = "unset"
+
+
+def real_params_verifier():
+    """Load BioMate's real param matcher once; return a RealParamsVerifier or None (→ the
+    text mirror) when evaluation/ is unavailable. Resilient to any import failure."""
+    global _REAL_PARAMS
+    if _REAL_PARAMS == "unset":
+        _REAL_PARAMS = None
+        try:
+            import importlib
+            import os
+            import sys
+            here = os.path.dirname(os.path.abspath(__file__))
+            repo_root = os.path.abspath(os.path.join(here, "..", ".."))
+            # the adapter does `from evaluation.core... import ...`, so it must load as a
+            # package with the repo root importable (not a standalone file).
+            if os.path.exists(os.path.join(repo_root, "evaluation", "adapters",
+                                           "param_prefill_adapter.py")):
+                if repo_root not in sys.path:
+                    sys.path.insert(0, repo_root)
+                mod = importlib.import_module("evaluation.adapters.param_prefill_adapter")
+                if hasattr(mod, "_values_match") and hasattr(mod, "_MUST_NOT_FILL_PENALTY"):
+                    _REAL_PARAMS = RealParamsVerifier(mod._values_match, mod._MUST_NOT_FILL_PENALTY)
+        except Exception:
+            _REAL_PARAMS = None
+    return _REAL_PARAMS
+
+
 class ExactClassVerifier:
     """Exact class-match accuracy over labelled properties — the logic of
     evaluation/scorers/admet_scorer.py.
@@ -298,7 +373,9 @@ def select_verifier(ground_truth: Optional[Any]) -> Verifier:
     answer-FREE trust lattice. This is the P0 bridge decision."""
     if isinstance(ground_truth, dict):
         if ground_truth.get("expected_params") is not None:
-            return _PARAMS
+            # prefer BioMate's REAL param matcher (alias/unit normalisation + F1 + penalty);
+            # it degrades to the text mirror for a free-text response.
+            return real_params_verifier() or _PARAMS
         if ground_truth.get("classes") is not None:
             return _CLASS
         if ground_truth.get("gold_subtasks") is not None:
