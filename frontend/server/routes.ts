@@ -11430,6 +11430,27 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // Curated citations for a workflow by name — backs the after-run
+  // Reproducibility-record Citations section (frontend useFetchCitations).
+  // Proxies to the Galaxy endpoint, which builds citations from the
+  // tool_knowledge DB + domain landmark papers (no LLM / no confabulation).
+  // Not sensitive (published papers) → optionalAuth so it returns data rather
+  // than 401-ing and hiding the section. Always 200s with an array.
+  app.get("/api/workflows/:name/citations", optionalAuth, async (req: any, res: any) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const r = await fetch(`${galaxyUrl}/api/ai_assistant/workflow_citations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': process.env.GALAXY_API_KEY || '' },
+        body: JSON.stringify({ name: req.params.name }),
+      });
+      const data = r.ok ? await r.json() : [];
+      res.json(Array.isArray(data) ? data : (data?.citations || []));
+    } catch {
+      res.json([]);
+    }
+  });
+
   // Get all execution runs for the current user
   app.get("/api/workflows/runs", authenticateToken, async (req, res) => {
     try {

@@ -2861,6 +2861,65 @@ class ExtractParamsRequest(BaseModel):
     params: Optional[List[Dict[str, Any]]] = None
 
 
+class WorkflowCitationsRequest(BaseModel):
+    name: str = ""
+
+
+@router.post(
+    "/api/ai_assistant/workflow_citations",
+    summary="Curated citations for a workflow by name (no LLM; DB + domain landmarks).",
+)
+def workflow_citations(
+    request: WorkflowCitationsRequest,
+    trans: ProvidesUserContext = DependsOnTrans,
+) -> List[Dict[str, Any]]:
+    """Return APA-style citations for a workflow, resolved by name.
+
+    Backs the frontend ``useFetchCitations`` -> the Reproducibility-record
+    Citations section (GET /api/workflows/:name/citations is proxied here by
+    the Node server). Citations come from curated sources only (tool_knowledge
+    DB + domain landmark papers via ``_build_workflow_citations``) — never the
+    confabulation-prone research/literature path. Empty list when the workflow
+    is unknown or has no resolvable citations (the UI then hides the section).
+    """
+    name = (request.name or "").strip()
+    if not name:
+        return []
+    import sqlite3 as _sq, json as _json
+    from pathlib import Path as _P
+    db_path = _P(__file__).resolve().parents[5] / "database" / "galaxy_ai_tools.db"
+    try:
+        conn = _sq.connect(str(db_path))
+        row = conn.execute(
+            "SELECT domain, tags, tools_used FROM workflows WHERE name=? LIMIT 1",
+            (name,),
+        ).fetchone()
+        conn.close()
+    except Exception:
+        return []
+    if not row:
+        return []
+    domain, tags_json, tools_json = row
+
+    def _loads(s):
+        try:
+            return _json.loads(s) if s else []
+        except Exception:
+            return []
+
+    sa = get_ai_assistant(trans)
+    if not sa or not hasattr(sa, "_build_workflow_citations"):
+        return []
+    try:
+        cites = sa._build_workflow_citations(_loads(tools_json), domain or "", _loads(tags_json)) or []
+    except Exception:
+        return []
+    for c in cites:
+        if isinstance(c, dict) and c.get("doi") and not c.get("url"):
+            c["url"] = f"https://doi.org/{c['doi']}"
+    return cites
+
+
 @router.post(
     "/api/ai_assistant/extract_params",
     summary="Extract param values from a query for a known workflow (async prefill companion).",
