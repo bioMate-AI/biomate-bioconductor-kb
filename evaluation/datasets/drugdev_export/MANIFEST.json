@@ -86,13 +86,15 @@
       "stage": "S3 lead optimization",
       "items": 8,
       "gt": "ddg_ref",
-      "status": "gold_and_scorer_built_adapter_pending",
+      "status": "gold_scorer_adapter_built_runner_pending",
       "workflow": "openfe_rbfe, amber_peptide_mmgbsa, peptide_mmgbsa",
       "external_baseline": "OpenFE public benchmark; JACS-FEP (Wang 2015); Merck/Schindler FEP",
       "task": "Given a congeneric series and a reference ligand, predict relative binding free energies (ddG); RMSE + Kendall tau vs experimental, on leakage-controlled congeneric series.",
       "ligands": 264,
       "gold": "evaluation/datasets/drugdev_export/rbfe_benchmark/data.jsonl (MIT, Merck FEP)",
-      "scorer": "evaluation/scorers/rbfe_scorer.py"
+      "scorer": "evaluation/scorers/rbfe_scorer.py",
+      "adapter": "evaluation/adapters/rbfe_benchmark_adapter.py",
+      "note": "Adapter scores L1-L4 offline (routing/prereq) + L5-L6 via score_execution(task, output_dir); the dedicated runner that launches openfe_rbfe on Batch is the remaining live-stack piece."
     },
     {
       "code": "N2",

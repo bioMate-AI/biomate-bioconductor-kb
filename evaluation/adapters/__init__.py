@@ -20,6 +20,7 @@ from .docking_benchmark_adapter import DockingBenchmarkAdapter
 from .pbpk_benchmark_adapter import PBPKBenchmarkAdapter
 from .boin_benchmark_adapter import BOINClinicalBenchmarkAdapter
 from .target_structure_adapter import TargetStructureAdapter
+from .rbfe_benchmark_adapter import RbfeBenchmarkAdapter
 
 __all__ = [
     "BiomniEval1Adapter",
@@ -44,4 +45,5 @@ __all__ = [
     "PBPKBenchmarkAdapter",
     "BOINClinicalBenchmarkAdapter",
     "TargetStructureAdapter",
+    "RbfeBenchmarkAdapter",
 ]
