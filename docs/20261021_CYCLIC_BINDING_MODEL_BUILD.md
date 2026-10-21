@@ -113,3 +113,33 @@ Hypothesis (coordinator): ECFP+ChemBERTa plateaued because they are LIGAND-ONLY 
 
 ## 11. Consolidated verdict — a STRONG standalone novel-target model is not reached from existing data/ML
 Ligand-only (any representation), naive concat, pretrained FM embeddings, and a learned interaction head **all plateau at ~0.42–0.46 novel-target Spearman** on the leakage-safe grouped split. The ceiling is **convergent and data/task-fundamental** (novel-target coverage + pooled IC50/Ki/EC50/Kd label heterogeneity), not a modeling deficiency. The two levers that could still move it both add **signal/data, not model capacity**: (1) full token cross-attention (GPU, unlikely per the above); (2) **physics-grounding** — but that is blocked on a SMILES→GAFF MM-GBSA pipeline we don't have (§ physics-gate doc). Honest bottom line: "strong + publishable" on *novel-target* cyclic affinity is **data-bound**; the defensible near-term claims are the *within-target* ranking (modest) and this **convergent-ceiling negative** (a real, publishable methods finding: representation/architecture don't break a data-limited novel-target ceiling).
+
+---
+
+## 12. Few-shot sweep (clean analog-disjoint vs leaky) — NO strong standalone model; few-shot gains are analog memorization (2026-10-21)
+Realistic regime: per held-out target, train on all OTHER targets (bg subsample 6000) + k shots of the held-out target; eval on remaining held-out compounds. **CLEAN** = shots and eval drawn from DIFFERENT ECFP-Tanimoto≥0.5 clusters (analog-disjoint, the headline); **LEAKY** = random shots/eval (near-dups can span both). HistGBM ECFP+physchem, 10 held-out targets (incl. ITGB6/P18564 = αvβ6 subunit, Q9NZQ7 = PD-L1 representative), 3 repeats. Code `fewshot_sweep.py`; results `results/binding_model_benchmark_cyclic.json` (`fewshot_sweep`). CPU, ~43 min, no spend.
+
+**Aggregate Spearman by k:**
+| k | clean (analog-disjoint) | leaky (random) | gap |
+|---|---|---|---|
+| 0 | 0.291 ± 0.172 | 0.291 | 0 |
+| 5 | 0.265 ± 0.183 | 0.345 | +0.08 |
+| 10 | 0.344 ± 0.160 | 0.374 | +0.03 |
+| 20 | 0.335 ± 0.220 | 0.413 | +0.08 |
+| 50 | 0.294 ± 0.195 | 0.465 | +0.17 |
+
+**Verdict — there is NO strong standalone model in the clean few-shot regime.** The LEAKY curve rises monotonically with k (0.29→0.47) — the "few-shot helps" story — but the CLEAN (analog-disjoint) curve is **flat** (~0.29–0.34, no rise, dips at k=50). The leaky−clean gap *widens* with k (+0.17 at k=50): the apparent few-shot gain is **the model memorizing near-duplicates of the eval compounds among the k shots**, not within-target generalization. This is the exact leakage that made the random-split 0.71–0.74 untrustworthy, now quantified in the few-shot regime.
+
+**Per-target (clean / leaky):** αvβ6-ITGB6 P18564 k20 0.27/0.25 (modest, no clean rise); PD-L1 Q9NZQ7 k50 **−0.10**/0.61 (stark memorization); flat-zero-shot targets P35346 0.52→0.51, P41968 0.49→0.49 (clean adds nothing); the only clean bump — KRAS P01116 k20 0.71 — **collapsed at k50 (0.36)** and that target has 2497 compounds (not the scarce regime), so it's erratic, not a reliable few-shot win. (k=0 aggregate here is 0.29 vs the earlier 0.42–0.45 because this target set is broader/more diverse and bg was subsampled; the valid signal is the clean-vs-leaky SHAPE on the identical split.)
+
+## 13. FINAL verdict on a strong standalone cyclic-affinity model
+Every lever has now been tested on the leakage-safe protocol:
+| approach | novel-target Spearman |
+|---|---|
+| ligand-only ECFP-RF | ~0.42–0.45 |
+| ligand-only ChemBERTa FM | ~0.40 |
+| naive target concat → tree | 0.35 (hurts) |
+| learned ligand×target interaction MLP | 0.46 (within fold noise of ceiling) |
+| **clean few-shot (k≤50, analog-disjoint)** | **flat ~0.29–0.34 (no gain)** |
+
+**A strong standalone novel-target cyclic-affinity model is NOT reachable from the existing data by any representation, architecture, or realistic few-shot.** The ~0.42 zero-shot ceiling is convergent and **data/task-fundamental**; clean few-shot adds nothing (the apparent gains are analog leakage). This is a real, publishable **methods/negative result**: representation, interaction architecture, and few-shot all fail to break a data-limited novel-target ceiling, and the leaky-vs-clean gap quantifies how much reported few-shot performance is near-duplicate memorization. The only levers left add *new signal* — physics-grounding (blocked on a SMILES→GAFF MM-GBSA pipeline) or genuinely new measured data (more targets / assay) — not a bigger or cleverer ML model.
