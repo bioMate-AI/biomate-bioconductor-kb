@@ -1,0 +1,161 @@
+{
+  "suite": "BioMate DrugDev Benchmark",
+  "repo": "drugdev_benchmark",
+  "tagline": "Execution-grounded, cross-stage drug-development benchmarks for AI agents",
+  "status": "scaffold",
+  "created": "2026-10-21",
+  "design_doc": "docs/20261021_DRUGDEV_BENCHMARK_LANDSCAPE_AND_SERIES.md",
+  "sibling_suite": "RealBio Benchmark (evaluation/datasets/public_export)",
+  "model_roster": "RealBio roster (frontier flagships + Qwen/DeepSeek/GLM/Kimi + BioMate + Biomni)",
+  "benchmarks": [
+    {
+      "code": "B1",
+      "name": "admet_benchmark",
+      "stage": "S2 hit-to-lead",
+      "items": 20,
+      "gt": "reference",
+      "status": "built_internal_ready_to_export",
+      "scorer": "evaluation/scorers/admet_scorer.py",
+      "adapter": "evaluation/adapters/admet_benchmark_adapter.py",
+      "gold": "evaluation/datasets/admet_benchmark/cases.yaml",
+      "external_baseline": "TDC ADMET Group; ADMET-AI; PharmaBench",
+      "task": "Given a compound (SMILES), predict hERG/DILI/Ames/Ro5 class and physchem properties; scored over L1 intent -> L6 output validity."
+    },
+    {
+      "code": "B2",
+      "name": "docking_benchmark",
+      "stage": "S1 hit discovery",
+      "items": 15,
+      "gt": "ligand_rank_order",
+      "status": "public_in_realbio",
+      "realbio_name": "drug_discovery_e2e",
+      "scorer": "evaluation/scorers/docking_scorer.py",
+      "external_baseline": "PDBbind; CASF-2016; DUD-E; LIT-PCBA; PoseBusters",
+      "task": "Given a protein and candidate ligands, rank by predicted affinity (Spearman rho vs experimental Kd)."
+    },
+    {
+      "code": "B3",
+      "name": "pbpk_benchmark",
+      "stage": "S4 preclinical",
+      "items": 15,
+      "gt": "reference",
+      "status": "public_in_realbio",
+      "scorer": "evaluation/scorers/pbpk_scorer.py",
+      "external_baseline": "none (novel - no external PBPK ML benchmark; field is mechanistic: Simcyp/GastroPlus/PK-Sim)",
+      "task": "Given a compound (SMILES), dose and route, predict PK (Cmax/AUC/t-half); within-2-fold vs published clinical PK."
+    },
+    {
+      "code": "B4",
+      "name": "boin_benchmark",
+      "stage": "S5/6 Phase I",
+      "items": 20,
+      "gt": "reference",
+      "status": "public_in_realbio",
+      "scorer": "evaluation/scorers/boin_scorer.py",
+      "external_baseline": "TrialBench dose-finding (BOIN itself is a method, not a dataset)",
+      "task": "Given a BOIN dose-escalation scenario, produce the correct MTD dose decision and safety flags."
+    },
+    {
+      "code": "B5",
+      "name": "target_structure_benchmark",
+      "stage": "S0 target ID",
+      "items": 10,
+      "gt": "expected_pocket_residues",
+      "status": "built_internal_ready_to_export",
+      "adapter": "evaluation/adapters/target_structure_adapter.py",
+      "gold": "evaluation/datasets/target_structure_benchmark/cases.yaml",
+      "external_baseline": "CASP; CAMEO; PLINDER; PoseBusters",
+      "task": "Given a target (FASTA/UniProt), predict structure and detect the druggable pocket; leakage-controlled splits required.",
+      "note": "structure_scorer.py (full L6) specified in the plan but adapter currently scores L1-L4; confirm before relying on L6."
+    },
+    {
+      "code": "N1",
+      "name": "rbfe_benchmark",
+      "stage": "S3 lead optimization",
+      "items": null,
+      "gt": "ddg_ref",
+      "status": "planned_stub",
+      "workflow": "openfe_rbfe, amber_peptide_mmgbsa, peptide_mmgbsa",
+      "external_baseline": "OpenFE public benchmark; JACS-FEP (Wang 2015); Merck/Schindler FEP",
+      "task": "Given a congeneric series and a reference ligand, predict relative binding free energies (ddG); RMSE + Kendall tau vs experimental, on leakage-controlled congeneric series."
+    },
+    {
+      "code": "N2",
+      "name": "qsar_benchmark",
+      "stage": "S3 lead optimization",
+      "items": null,
+      "status": "planned",
+      "external_baseline": "MoleculeACE (RMSE_cliff)",
+      "task": "QSAR regression with explicit activity-cliff stratification."
+    },
+    {
+      "code": "N3",
+      "name": "generation_benchmark",
+      "stage": "S3 lead optimization",
+      "items": null,
+      "status": "planned",
+      "workflow": "reinvent4_lead_design, mpo_denovo_optimization, scaffold_hopping",
+      "external_baseline": "GuacaMol; MOSES",
+      "task": "Goal-directed de-novo generation / multi-parameter optimization."
+    },
+    {
+      "code": "N4",
+      "name": "retrosynthesis_benchmark",
+      "stage": "synthesis",
+      "items": null,
+      "status": "planned",
+      "workflow": "aizynthfinder_retrosynthesis, syncraft_synthesizability",
+      "external_baseline": "USPTO-50k; PaRoutes/Syntheseus",
+      "task": "Single/multi-step retrosynthetic route planning + synthesizability."
+    },
+    {
+      "code": "N5",
+      "name": "stability_benchmark",
+      "stage": "CMC formulation",
+      "items": null,
+      "status": "planned",
+      "workflow": "analyze_accelerated_stability_of_pharmaceutical_formulations, polymorph_stability_screening",
+      "external_baseline": "none (novel)",
+      "task": "Accelerated stability / formulation prediction."
+    },
+    {
+      "code": "N6",
+      "name": "novelty_fto_benchmark",
+      "stage": "IP",
+      "items": null,
+      "status": "planned",
+      "workflow": "compound_novelty_scorer",
+      "external_baseline": "none (novel)",
+      "task": "Novelty vs prior art / freedom-to-operate reasoning."
+    },
+    {
+      "code": "N7",
+      "name": "ind_narrative_benchmark",
+      "stage": "S5/6 regulatory",
+      "items": null,
+      "status": "planned_partial",
+      "existing_eval": "evaluation/results/regulatory_v6/",
+      "external_baseline": "none (novel)",
+      "task": "Generate IND module 2.6.1-style nonclinical narrative; graded on skeleton completion, MRSD, adversity language, phase gating."
+    },
+    {
+      "code": "N8",
+      "name": "pipeline_e2e_benchmark",
+      "stage": "cross-stage (flagship)",
+      "items": null,
+      "status": "planned",
+      "engine": "evaluation/local_trial/execution_grader.py",
+      "external_baseline": "none (novel - no external end-to-end execution benchmark)",
+      "task": "Grade a full pipeline run (request -> workflow selection -> execution -> QC -> interpretation -> report) against real terminal + S3 output artifacts."
+    },
+    {
+      "code": "N9",
+      "name": "cross_stage_benchmark",
+      "stage": "cross-stage",
+      "items": null,
+      "status": "planned",
+      "external_baseline": "none (novel)",
+      "task": "Causally-linked multi-stage reasoning (e.g. hERG liability -> reformulate -> re-screen -> re-estimate PK)."
+    }
+  ]
+}
