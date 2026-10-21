@@ -170,6 +170,15 @@ else
      --out "$OUT" --max-steps $SFT --seq-len $SEQ --lora-r $R --batch-size $BS --grad-accum $GA $RESUME
 fi
 RC=$?
-echo "[spot] training exit=$RC — upload final adapter"
+echo "[spot] training exit=$RC — verify export before promoting"
+# EXPORT-AND-VERIFY GATE (2026-10-20): a training exit=0 is NOT proof the adapter reloads
+# and generates real text — the 2026-10-07 deploy promoted a silently-broken adapter. Reload
+# + prove non-degenerate (changes logits, non-degenerate generation) BEFORE upload; a BLOCK
+# (exit 31) aborts promotion. Set VERIFY_EXPORT=0 to skip (escape hatch, not the default).
+if [ "${VERIFY_EXPORT:-1}" = 1 ]; then
+  python3 "$HERE/verify_export.py" --base "${BASE_DOMAIN:-$BASE}" --adapter "$OUT" --out "$OUT/export_gate.json" \
+    || { echo "[spot] FATAL: export gate blocked promotion of $OUT — not uploading"; exit 31; }
+fi
+echo "[spot] export gate passed — upload final adapter"
 aws s3 cp "$OUT/" "$S3/models_20260919/$SIZE/${STAGE}${TAG}_adapter/" --recursive --quiet
 echo "SPOT_${STAGE}${TAG}_DONE size=$SIZE rc=$RC"
