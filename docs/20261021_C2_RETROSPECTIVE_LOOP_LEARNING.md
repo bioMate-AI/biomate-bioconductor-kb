@@ -22,13 +22,30 @@ random (and fixed) on hit-finding is the operational "the loop learns" claim —
 - **Reuse, not rebuild:** uses the existing `benchmark_binding_models` loader + the cached ECFP+physchem
   features (`results/binding_feature_cache.npz`) + HistGBM — the same stack as the binding-model work.
 
-## Status: BUILT + READY — NOT YET RUN (compute-blocked this session)
-The simulation did **not** complete in this session. Under heavy concurrent CPU load in the
-environment, even the data load + sklearn import did not finish within 30 min (a load-only probe did
-not finish in 180 s, producing no output). No simulation output was ever flushed, so **there is no
-result to report — and none is fabricated.** The script is committed and ready; it needs a
-less-contended compute slot (or a smaller config: fewer targets/seeds/rounds, smaller background) to
-produce the LEARN-vs-FIXED-vs-RANDOM curves.
+## Status: OFFLOADED to a clean spot CPU box — ready to run, not yet run
+**Diagnosis:** the blocker was purely **local CPU contention**, not the code — the data load is 4.9 s,
+but a *single* HistGBM fit took **231 s** here (vs ~1 s on an idle machine), and the AL loop does
+hundreds of fits. So it's offloaded to a dedicated, uncontended spot CPU box.
+
+- **Launcher:** `research/guangzhou_all_atom/c2_launch.sh` — mirrors `build_fep_inputs.sh`: multi-type/AZ
+  **spot** sweep (c6i/c6a/c5/m6i 2xlarge across us-west-2 AZs), `instance-initiated-shutdown=terminate`,
+  90-min hard cap, self-terminating user-data; installs a **clean** python via micromamba
+  (`python=3.11 numpy scipy scikit-learn` — NOT the broken anaconda py3.9), pulls the staged inputs,
+  runs the FULL config (all targets×seeds×rounds — the box has the slot), writes results + a
+  `C2_START`/`C2_DONE` canary log to the S3 `out/` prefix, then shuts down. Fresh results only (clears
+  the stale sentinel at start); fail-loud (always uploads stdout+log, records `rc`).
+- **Self-contained inputs (staged to S3):** `c2_retro_loop.py` + `c2_staged.npz`
+  (fp+desc+pAff+target+flags; 2.1 MB) at `s3://biomate-nextflow-work/cyclic_peptide/c2_loop/`. No CSV,
+  rdkit, or pandas needed on the box. (Rebuild the npz locally with the one-liner in the commit if lost.)
+- **S3 out/ prefix:** `s3://biomate-nextflow-work/cyclic_peptide/c2_loop/out/`
+- **Run (parent, from this worktree):** `bash research/guangzhou_all_atom/c2_launch.sh`
+- **Poll:** `aws s3 cp s3://biomate-nextflow-work/cyclic_peptide/c2_loop/out/c2_stdout.txt - --region us-west-2`
+  (C2_START → per-target → `FINAL[raw]`/`FINAL[novel]` → C2_DONE); full curves in `out/c2_result.json`; `out/DONE` (`rc=0`) = finished.
+
+The honesty cut is built into the sim: it reports **both** raw hit-recall **and** `novel_cluster_hits`
+(hits in Tanimoto clusters NOT present in the seed set) for LEARN/FIXED/RANDOM — the LEARN-vs-RANDOM
+margin must survive the **novel-cluster** cut to count as genuine SAR generalization rather than
+analog hit-expansion. No result is fabricated; the box produces the real curves.
 
 ## Honest caveat to carry into interpretation (when it runs)
 Within-target greedy acquisition tends to acquire analogs of known hits (hit expansion) — which is
