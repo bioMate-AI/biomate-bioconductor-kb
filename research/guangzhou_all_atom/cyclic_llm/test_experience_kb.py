@@ -73,6 +73,32 @@ def test_unknown_target_safe():
     assert all(c["mode"] == "advisory" for c in r["eval_criteria"])
 
 
+def test_loop_consumes_resolve():
+    """The DesignCampaign loop's params + eval gate-set come from resolve() (single source)."""
+    import loop_batch
+    r = loop_batch.run_round(["cyclo(F-R-G-D-L-A-F-P-K)"], target="avb6", submit=False, round_id="t")
+    # params come from the KB, not a divergent path
+    assert r["kb_params"].get("metal_model") == "CaDA-MN"
+    assert r["kb_params"].get("cofactors")                       # metal cofactors surfaced
+    # the hard gate-set is exactly the KB's, tier+verified carried through
+    hard = {c["criterion"] for c in r["kb_gate_set"] if c["mode"] == "hard"}
+    assert "pharmacophore_gate[avb6]" in hard and "sar:rgd-selectivity-element" in hard
+    assert all("tier" in c and "verified" in c for c in r["kb_gate_set"])
+
+
+def test_rag_fallback_novel_target():
+    """Novel target: opt-in RAG seam proposes params/gates but tiers them T4/unverified (never authoritative)."""
+    # default resolve stays deterministic-only (unknown target -> no target params)
+    base = kb.resolve("no_such_target_xyz")
+    assert base["tool_params"] == {}
+    # opt-in RAG fallback: schema-valid, provenance-honest
+    rag = kb.resolve("no_such_target_xyz", rag=True)
+    assert rag["rag_used"] is True
+    for p in rag["provenance"]:
+        if p["entry"].endswith(":rag"):
+            assert p["tier"] == "T4" and p["verified"] is False     # LLM-proposed is never silently authoritative
+
+
 if __name__ == "__main__":
     import traceback
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]

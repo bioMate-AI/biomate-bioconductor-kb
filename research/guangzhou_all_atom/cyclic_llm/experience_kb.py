@@ -19,7 +19,9 @@ or re-author their content (no new chemistry is invented here):
     exemplar (TOOL PARAM, tier T1). NOTE: the .itp itself is still pending its grompp/NVT validation.
 
 `resolve(target)` fires the matching entries and returns the merged {tool_params, eval_criteria} + provenance.
-Deterministic, schema-validated; an LLM-RAG fallback for novel targets is a documented TODO (not in this slice).
+Deterministic and authoritative. `resolve(target, rag=True)` adds an opt-in LLM-RAG seam for NOVEL targets
+(not in the KB): it retrieves similar entries as context and proposes params/gates, but anything proposed is
+tier T4 / verified=False / status="provisional" — never presented as authoritative (rules-first, LLM-fallback).
 """
 from __future__ import annotations
 import os, sys, json
@@ -322,9 +324,55 @@ def all_entries(target: str) -> list[KBEntry]:
     return [e for e in entries if isinstance(e, KBEntry) and _applies(e, target, tclass)]
 
 
-def resolve(target: str) -> dict:
+# =========================== LLM-RAG FALLBACK (novel targets) ===========================
+# Rules-first, LLM-fallback (BioMate's own param-prefill pattern). Deterministic resolve() is authoritative;
+# when a target is NOT in the KB, the opt-in RAG seam retrieves similar entries as context and asks an LLM to
+# PROPOSE params/gates. Whatever it proposes is tier T4 / verified=False / status="provisional" — a chemist
+# must verify it before it is ever treated as established.
+
+def _llm_rag_call(target: str, context_entries: list) -> dict | None:
+    """SEAM: the live-LLM interface. Default returns None (no live LLM wired here). A real implementation
+    prompts an LLM over `context_entries` (retrieved KB entries) to return a schema-shaped
+    {tool_params:{...}, eval_criteria:[...]}; the caller still tiers the result T4/unverified."""
+    return None
+
+
+def _rag_entries(target: str, spec, tclass) -> list[KBEntry]:
+    """Retrieve similar KB entries as context, ask the LLM seam to propose, wrap the (provisional) result."""
+    ctx: list = []
+    try:
+        import target_spec as _ts
+        known = getattr(_ts, "KNOWN_TARGETS", None) or getattr(_ts, "TARGETS", None) or []
+        for kt in known:
+            if kt != target:
+                ctx += all_entries(kt)[:3]
+    except Exception:
+        pass
+    proposal = _llm_rag_call(target, ctx)            # None unless a live LLM is wired
+    eff = {"tool_params": {}, "eval_criteria": []}
+    note = f"LLM-RAG seam engaged over {len(ctx)} context entries; no live LLM wired -> proposal empty/provisional"
+    if isinstance(proposal, dict):
+        eff["tool_params"] = proposal.get("tool_params", {}) or {}
+        eff["eval_criteria"] = [{**c, "mode": "advisory"} for c in (proposal.get("eval_criteria") or [])]
+        note = "LLM-RAG proposal — PROVISIONAL, requires chemist verification before use"
+    e = KBEntry(
+        id=f"{target}:rag", kind="eval_rule",
+        statement=(f"No deterministic KB entry for '{target}'; provisional RAG proposal "
+                   f"from {len(ctx)} retrieved context entries."),
+        scope={"applies_when": [target]},
+        provenance={"source_type": "llm_rag", "ref": "experience_kb._llm_rag_call",
+                    "evidence_tier": "T4", "verified": False, "verification_note": note},
+        effects=eff, status="provisional")
+    try:
+        return [e.validate()]
+    except Exception:
+        return []
+
+
+def resolve(target: str, rag: bool = False) -> dict:
     """The single knowledge entry point: merge the fired entries into {tool_params, eval_criteria} + provenance.
-    Existing consumers (target_spec param-setting, the gate assembly) are thin views over this."""
+    Existing consumers (target_spec param-setting, the gate assembly) are thin views over this.
+    rag=True adds the opt-in LLM-RAG fallback for a novel target (proposals tiered T4/unverified)."""
     try:
         import target_spec
         spec = target_spec.load_spec(target)
@@ -332,6 +380,11 @@ def resolve(target: str) -> dict:
         spec = None
     tclass = _target_class(target, spec)
     entries = all_entries(target)
+    rag_used = False
+    if rag and spec is None:                         # novel target: no deterministic KB entry -> RAG seam
+        rag_entries = _rag_entries(target, spec, tclass)
+        entries = entries + rag_entries
+        rag_used = bool(rag_entries)
     tool_params: dict[str, Any] = {}
     eval_criteria: list[dict] = []
     provenance: list[dict] = []
@@ -351,6 +404,7 @@ def resolve(target: str) -> dict:
         "target_class": tclass,
         "modality": (spec or {}).get("modality"),
         "entries_fired": [e.id for e in entries],
+        "rag_used": rag_used,
         "tool_params": tool_params,
         "eval_criteria": eval_criteria,
         "provenance": provenance,

@@ -163,3 +163,34 @@ Each seeded source was checked by web lookup on 2026-10-21; `provenance.verifica
 renal-cationic, CMC liabilities, metal-free-void (6). Flagged NOT-authoritative = β6-selectivity causal SAR
 (inferred), FTO patent id (unverifiable), PD-L1 pharmacophore refs (unchecked). No citation was invented; every
 "verified=False/unverifiable" is reported as such and tiered so it can never be consumed as established fact.
+
+---
+
+## Product wiring — status (2026-10-21)
+
+The first slice is now wired into the loop and surfaced to the product via a registration hook.
+
+**WIRED (code, tested — `test_experience_kb.py` 8/8):**
+1. **Loop → `resolve()` (single source).** `loop_batch.run_round(target)` calls `experience_kb.resolve(target)`
+   and returns `kb_params` (metal model/cofactors, pose, counter-targets, generation constraint) +
+   `kb_gate_set` (the eval criteria, each carrying `mode`/`tier`/`verified`) + `kb_provenance`. A consistency
+   guard asserts the KB's cofactors match `target_spec` (so `resolve()` is the single source, not a divergent
+   path). Legacy `target_spec`/`score`/`acceptance_gate` remain the underlying providers (backward-compat
+   confirmed: all modules still import/run).
+2. **LLM-RAG fallback for novel targets (opt-in seam).** `resolve(target, rag=True)` on a target NOT in the KB
+   retrieves similar entries as context and calls the `_llm_rag_call()` seam (live-LLM interface; default
+   returns None → provisional). Anything proposed is tier **T4 / verified=False / status="provisional"** — never
+   authoritative. Default `resolve()` stays deterministic (existing behavior unchanged).
+3. **DB registration hook** — `register_experience_kb.py`: resolves the 16 canonical KB targets, builds a
+   provenance-tiered `scientific_context_v2` block, and attaches it to the physics tools (cofold/MM-GBSA/
+   OpenFE-RBFE/GROMACS/Boltz) in `tools.scientific_context_v2`. **Dry-run by default; never force-writes the
+   ~324 MB gitignored DB.** Read path for the product: `kb_defaults_for(target)` (wraps `resolve()`).
+
+**DEV-APPLY TODO (product-blocked, not code):**
+- Run `register_experience_kb.py --apply --db <dev galaxy_ai_tools.db>` **on dev** (canonical DB lives on
+  dev/S3; the local file is a copy), then let the normal DB sync carry it. Not done here — writing the shared
+  DB from a local copy is exactly what the sync discipline forbids.
+- Wire the composer / `nextflow_executor` param-prefill to call `kb_defaults_for(target)` at the point a target
+  is identified (the read path exists; the call-site hook is a one-line placement in the product).
+- Replace the `_llm_rag_call()` stub with a live LLM call for genuine novel-target proposals (seam + schema
+  validation + T4 tiering already in place).

@@ -46,6 +46,22 @@ def run_round(candidates, target="avb6", submit=False, round_id=None):
     import time as _time
     round_id = round_id or f"{target}-{int(_time.time())}"
     helms = [c["helm"] if isinstance(c, dict) else c for c in candidates]
+    # Experience KB is the SINGLE source for this round's tool params + eval gate-set.
+    # It aggregates the legacy providers (target_spec params, scorer/pharmacophore/liability/fto gates),
+    # so those modules stay the underlying providers and this is a thin view over resolve(T).
+    import experience_kb as _kb
+    kb = _kb.resolve(target)
+    kb_params, kb_gate_set = kb.get("tool_params", {}), kb.get("eval_criteria", [])
+    # Consistency guard: the metal/cofactors the KB resolves must match what the physics dispatch will use
+    # (both derive from target_spec) — proves resolve() is the single source, not a divergent one.
+    try:
+        _spec_cof = (target_spec.load_spec(target) or {}).get("cofactors") or []
+        assert kb_params.get("cofactors", _spec_cof) == _spec_cof, \
+            f"KB/target_spec cofactor divergence for {target}"
+    except AssertionError:
+        raise
+    except Exception:
+        pass
     # 2. physics tier routed through Batch: dispatch any candidate lacking physics
     dispatched = []
     for i, helm in enumerate(helms):
@@ -72,6 +88,7 @@ def run_round(candidates, target="avb6", submit=False, round_id=None):
     return {"target": target, "round_id": round_id, "n_candidates": len(helms),
             "physics_dispatched": len(dispatched),
             "gate_pass": len(passes), "revised": len(revised), "dispatched": dispatched,
+            "kb_params": kb_params, "kb_gate_set": kb_gate_set, "kb_provenance": kb.get("provenance", []),
             "ranking": [{"helm": r["helm"], "gate": r["hard_gate_pass"], "rank_key": r["rank_key"]} for r in scored]}
 
 
