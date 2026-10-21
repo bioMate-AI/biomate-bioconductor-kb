@@ -45,11 +45,17 @@ _LIABILITY_CANON = {   # FilterSet value (RDKit) -> (canonical reference, eviden
     "ChEMBL23_BMS":        ("Pearce et al., J Chem Inf Model 2006;46:1060 — BMS HTS deck exclusion filters (via ChEMBL)", "T1", True),
     "ChEMBL23_Dundee":     ("Brenk et al., ChemMedChem 2008;3:435 (Dundee set, via ChEMBL)", "T1", True),
     "ChEMBL23_Glaxo":      ("Hann et al., J Chem Inf Comput Sci 1999;39:897 — GSK hard filters (via ChEMBL)", "T1", True),
-    "ChEMBL23_Inpharmatica":("Inpharmatica unwanted-fragment alerts (ChEMBL structural-alert set; Gaulton et al., "
-                             "Nucleic Acids Res 2017;45:D945)", "T2", "unverifiable"),
-    "ChEMBL23_LINT":       ("Pfizer LINT lead-likeness alerts (ChEMBL structural-alert set; Gaulton et al., NAR 2017)", "T2", "unverifiable"),
+    # Inpharmatica/LINT/SureChEMBL: per ChEMBL's own v26 curation, these sets were RETAINED without a clean
+    # PRIMARY literature reference (unlike PAINS/Brenk/BMS/Glaxo). Documented only as compiled sets in the
+    # ChEMBL-2017 DB paper (Gaulton et al., NAR 2017;45(D1):D945-D954) — a verifiable SECONDARY source, but no
+    # primary science per alert. Kept screened (screen_liabilities runs them) but NOT asserted as established fact.
+    "ChEMBL23_Inpharmatica":("Inpharmatica unwanted-fragment alerts (ChEMBL-compiled set, no primary ref; "
+                             "documented in Gaulton et al., Nucleic Acids Res 2017;45(D1):D945-D954)", "T2", "unverifiable"),
+    "ChEMBL23_LINT":       ("Pfizer 'LINT' lead-likeness alerts (ChEMBL-compiled set, no peer-reviewed primary; "
+                            "documented in Gaulton et al., NAR 2017;45(D1):D945-D954)", "T2", "unverifiable"),
     "ChEMBL23_MLSMR":      ("NIH MLSMR excluded-functionality alerts (ChEMBL structural-alert set; Gaulton et al., NAR 2017)", "T1", True),
-    "ChEMBL23_SureChEMBL": ("SureChEMBL non-MedChem-friendly alerts (ChEMBL structural-alert set; Gaulton et al., NAR 2017)", "T2", "unverifiable"),
+    "ChEMBL23_SureChEMBL": ("SureChEMBL non-MedChem-friendly alerts (ChEMBL-compiled set; the SureChEMBL DB paper "
+                            "Papadatos et al., NAR 2016;44(D1):D1220 does NOT define this alert set; Gaulton et al., NAR 2017)", "T2", "unverifiable"),
 }
 # RDKit FilterCatalogs enum names to load:
 _RDKIT_CATALOGS = ["PAINS_A", "PAINS_B", "PAINS_C", "BRENK", "NIH", "ZINC", "CHEMBL"]
@@ -161,7 +167,7 @@ METAL_COORDINATION = {
     "MG": {"geometry": "octahedral", "coordination_number": 6,
            "residue_prefs": ["Asp(O)", "Glu(O)", "backbone-carbonyl-O", "water", "phosphate-O"],
            "note": "hard cation; O-donors + water; the physiologic integrin-MIDAS cation.",
-           "ff_options": [{"model": "nonbonded + 12-6-4", "source": _FF_1264, "verified": "unverifiable"},
+           "ff_options": [{"model": "nonbonded + 12-6-4", "source": _FF_1264, "verified": True},
                           {"model": "cationic-dummy (CaDA)", "source": _FF_CADA, "verified": True}],
            "source": _GEOM + "; " + _FF_CHEMREV, "tier": "T1", "verified": True},
     "MN": {"geometry": "octahedral", "coordination_number": 6,
@@ -169,36 +175,36 @@ METAL_COORDINATION = {
            "note": "borderline cation; octahedral, tolerates His(N); the integrin-ACTIVATING cation used "
                    "experimentally at MIDAS (physiologic MIDAS metal is Mg2+).",
            "ff_options": [{"model": "cationic-dummy (CaDA)", "source": _FF_CADA, "verified": True},
-                          {"model": "nonbonded + 12-6-4", "source": _FF_1264, "verified": "unverifiable"},
-                          {"model": "bonded / MCPB.py", "source": _FF_MCPB, "verified": "unverifiable"}],
+                          {"model": "nonbonded + 12-6-4", "source": _FF_1264, "verified": True},
+                          {"model": "bonded / MCPB.py", "source": _FF_MCPB, "verified": True}],
            "source": _GEOM + "; " + _FF_CADA, "tier": "T1", "verified": True},
     "ZN": {"geometry": "tetrahedral", "coordination_number": 4,
            "residue_prefs": ["His(N)", "Cys(S)", "Asp(O)", "Glu(O)", "water"],
            "note": "borderline-soft; catalytic Zn ~4-coord tetrahedral (His/Cys/Asp), can be 5-coord; "
                    "structural Zn Cys4/His-Cys.",
-           "ff_options": [{"model": "bonded / MCPB.py", "source": _FF_MCPB, "verified": "unverifiable"},
+           "ff_options": [{"model": "bonded / MCPB.py", "source": _FF_MCPB, "verified": True},
                           {"model": "cationic-dummy", "source": "Pang, Proteins 2001;45:183; " + _FF_CADA, "verified": "unverifiable"},
-                          {"model": "12-6-4 nonbonded", "source": _FF_1264, "verified": "unverifiable"}],
+                          {"model": "12-6-4 nonbonded", "source": _FF_1264, "verified": True}],
            "source": _GEOM, "tier": "T1", "verified": True},
     "CA": {"geometry": "variable (6-8; pentagonal-bipyramidal common)", "coordination_number": 7,
            "residue_prefs": ["Asp(O)", "Glu(O)", "backbone-carbonyl-O", "Asn/Gln(O)", "water"],
            "note": "hard cation, O-only, flexible high coordination; EF-hand / ADMIDAS.",
-           "ff_options": [{"model": "nonbonded + 12-6-4", "source": _FF_1264, "verified": "unverifiable"}],
+           "ff_options": [{"model": "nonbonded + 12-6-4", "source": _FF_1264, "verified": True}],
            "source": _GEOM, "tier": "T1", "verified": True},
     "FE": {"geometry": "octahedral", "coordination_number": 6,
            "residue_prefs": ["His(N)", "Cys(S)", "Asp(O)", "Glu(O)", "Tyr(O)", "porphyrin"],
            "note": "redox-active; heme vs non-heme; needs bonded/MCPB + ox-state-specific params.",
-           "ff_options": [{"model": "bonded / MCPB.py", "source": _FF_MCPB, "verified": "unverifiable"}],
+           "ff_options": [{"model": "bonded / MCPB.py", "source": _FF_MCPB, "verified": True}],
            "source": _GEOM, "tier": "T1", "verified": True},
     "CU": {"geometry": "variable (square-planar/tetragonal 4-6)", "coordination_number": 4,
            "residue_prefs": ["His(N)", "Cys(S)", "Met(S)", "Asp/Glu(O)"],
            "note": "soft; type-1/2/3 Cu; Jahn-Teller distortion for Cu(II).",
-           "ff_options": [{"model": "bonded / MCPB.py", "source": _FF_MCPB, "verified": "unverifiable"}],
+           "ff_options": [{"model": "bonded / MCPB.py", "source": _FF_MCPB, "verified": True}],
            "source": _GEOM, "tier": "T1", "verified": True},
     "NI": {"geometry": "octahedral", "coordination_number": 6,
            "residue_prefs": ["His(N)", "Cys(S)", "Asp/Glu(O)"],
            "note": "borderline; often octahedral; urease/hydrogenase.",
-           "ff_options": [{"model": "bonded / MCPB.py", "source": _FF_MCPB, "verified": "unverifiable"}],
+           "ff_options": [{"model": "bonded / MCPB.py", "source": _FF_MCPB, "verified": True}],
            "source": _GEOM, "tier": "T1", "verified": True},
 }
 
@@ -232,8 +238,9 @@ PHARMACOPHORE_CLASS = {
                      "(reversible/covalent) to the catalytic nucleophile. Selectivity from subsite (esp. S1) fit.",
         "requires": ["catalytic-site engagement", "subsite (S1) fit", "optional warhead"],
         "selectivity_handle": "S1/S2 subsite specificity",
-        "source": "Schechter & Berger subsite nomenclature, Biochem Biophys Res Commun 1967;27:157",
-        "tier": "T1", "verified": "unverifiable"},
+        "source": "Schechter & Berger, Biochem Biophys Res Commun 1967;27:157-162 "
+                  "(S/P subsite nomenclature of the protease active site, papain)",
+        "tier": "T1", "verified": True},
     "kinase": {
         "principle": "ATP-site inhibitors H-bond the hinge (1-3 contacts); type-I bind DFG-in, type-II reach the "
                      "DFG-out back pocket; selectivity from gatekeeper + back-pocket/allosteric contacts.",
@@ -247,8 +254,9 @@ PHARMACOPHORE_CLASS = {
                      "aminergic receptors); allosteric modulators offer subtype selectivity.",
         "requires": ["orthosteric/allosteric pocket engagement"],
         "selectivity_handle": "allosteric site + extracellular-loop contacts",
-        "source": "Congreve, de Graaf, Swain & Tate, Cell 2020;181:81 (GPCR SBDD review)",
-        "tier": "T1", "verified": "unverifiable"},
+        "source": "Congreve, de Graaf, Swain & Tate, Cell 2020;181(1):81-91 "
+                  "(Impact of GPCR Structures on Drug Discovery)",
+        "tier": "T1", "verified": True},
 }
 
 # =============================================================================================
@@ -294,8 +302,9 @@ MODALITY_HEURISTICS = {
          "tier": "T1", "verified": True},
         {"statement": "D-amino acids / backbone modifications confer protease resistance and conformational control "
          "(e.g. D-Pro for beta-turn nucleation).",
-         "source": "Chatterjee, Gilon, Hoffman & Kessler, Acc Chem Res 2008;41:1331 (N-methylation/D-aa peptidomimetics)",
-         "tier": "T1", "verified": "unverifiable"},
+         "source": "Chatterjee, Gilon, Hoffman & Kessler, Acc Chem Res 2008;41(10):1331-1342 "
+                   "(N-methylation of peptides: a new perspective in medicinal chemistry)",
+         "tier": "T1", "verified": True},
     ],
     "stapled_peptide": [
         {"statement": "Hydrocarbon stapling locks an alpha-helix -> stabilizes the bioactive conformation, raising "
