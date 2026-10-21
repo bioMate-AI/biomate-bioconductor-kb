@@ -8790,7 +8790,21 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       const responseModel = this.modelConfig.responseModel;
       const isClaudeBackbone = localOnly() || responseModel.startsWith('claude-');
 
-      if (!isClaudeBackbone) {
+      // Tool-eligible turns need a REAL tool loop. The non-Claude provider chain
+      // below is text-only (no tool loop) → the 60+ data-plane DBs, literature
+      // search, run_code and MCP tools never fire, and the model confabulates
+      // lookups it never ran. Route those turns through the proven Claude agentic
+      // loop when an Anthropic key is available, overriding the model (the
+      // configured responseModel, e.g. gpt-5.6-luna, is not an Anthropic model).
+      // Non-tool turns keep the configured model via the text-only chain below;
+      // if no Anthropic key, this degrades to the current text-only behavior
+      // (and the integrity guard still flags any fabricated lookup).
+      const useAgenticLoop = isClaudeBackbone || (toolsEnabledThisTurn && !!process.env.ANTHROPIC_API_KEY);
+      if (useAgenticLoop && !isClaudeBackbone) {
+        apiOptions.model = 'claude-haiku-4-5-20251001';
+      }
+
+      if (!useAgenticLoop) {
         const plainMessages = [
           ...previousMessages.map(m => ({
             role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
