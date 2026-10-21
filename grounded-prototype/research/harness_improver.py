@@ -72,6 +72,7 @@ class ProposedImprovement:
     probes: List[ProbeResult]
     lesson: str
     improved: bool
+    n_eval_tasks: int = 1
     approved: bool = False
 
     def approve(self) -> HarnessConfig:
@@ -137,6 +138,38 @@ def _default_propose(task: str, base: HarnessConfig) -> List[CandidateEdit]:
     return [general, task_specific]
 
 
+def _signature(cfg: HarnessConfig) -> tuple:
+    """Dedup key for a candidate config (budget knobs + routing table)."""
+    b = cfg.budget
+    return (b.max_rounds, b.max_breadth, b.max_parallel, b.max_evidence,
+            b.max_sources_per_subq,
+            tuple(sorted((k, tuple(v)) for k, v in cfg.kinds_override.items())))
+
+
+def _evaluate(cfg: HarnessConfig, tasks: List[str], run_one: Callable):
+    """Score a config across a task set. Returns (mean, per_task, errors).
+    An 'error' = the run raised OR produced no grounded claims (degenerate) — the
+    continuous-score analogue of ScienceBuddy selection.py's runtime-error count."""
+    per_task: Dict[str, Optional[float]] = {}
+    scores: List[float] = []
+    errors = 0
+    for t in tasks:
+        try:
+            res = run_one(t, cfg)
+            grounded = [c for c in res.answer.claims if c.is_grounded]
+            sc, _ = harness_score(res)
+            if not grounded:
+                errors += 1
+        except Exception:
+            errors += 1
+            sc = None
+        per_task[t] = sc
+        if sc is not None:
+            scores.append(sc)
+    mean = sum(scores) / len(scores) if scores else float("-inf")
+    return mean, per_task, errors
+
+
 def propose_probe_compose(
     task: str,
     base: HarnessConfig,
@@ -145,32 +178,67 @@ def propose_probe_compose(
     decompose_fn: Optional[Callable] = None,
     assess_fn: Optional[Callable] = None,
     propose_fn: Optional[Callable[[str, HarnessConfig], List[CandidateEdit]]] = None,
+    val_tasks: Optional[List[str]] = None,
+    require_no_regression: bool = True,
+    regression_tol: float = 1e-9,
 ) -> ProposedImprovement:
-    """One Harness2 task-level step: PROPOSE edits, PROBE them on `task` via the
-    trust-lattice score, COMPOSE the winner — PROPOSED only (needs .approve())."""
+    """One Harness2 task-level step with ScienceBuddy-style selection discipline:
+    PROPOSE edits, PROBE them on a HELD-OUT task set, COMPOSE the winner only if it has
+    ZERO errors, STRICTLY beats the parent's mean, and (by default) regresses on NO
+    held-out task. PROPOSED only — needs .approve().
 
-    def _run(cfg: HarnessConfig) -> ResearchResult:
-        return research(task, "harness-eval", retrieve_fn=retrieve_fn,
+    `val_tasks` is the held-out evaluation set (ScienceBuddy's D_val); omitted, the
+    triggering `task` is used (cheap single-task check, backward compatible). Candidates
+    are deduped and all scored before selection; nothing is adopted unless it is a
+    strict, regression-free, error-free improvement — otherwise the PARENT is kept.
+    """
+    eval_tasks = list(val_tasks) if val_tasks else [task]
+
+    def run_one(t: str, cfg: HarnessConfig) -> ResearchResult:
+        return research(t, "harness-eval", retrieve_fn=retrieve_fn,
                         decompose_fn=decompose_fn, assess_fn=assess_fn,
                         budget=cfg.budget, kinds_override=cfg.kinds_override)
 
-    base_score, _ = harness_score(_run(base))
+    base_mean, base_per, _ = _evaluate(base, eval_tasks, run_one)
     candidates = (propose_fn or _default_propose)(task, base)
 
+    # Generate + score every candidate (deduped) BEFORE revealing a selection.
     probes: List[ProbeResult] = []
+    seen = {_signature(base)}
     for ed in candidates:
-        sc, m = harness_score(_run(ed.config))
-        probes.append(ProbeResult(ed, sc, m))
+        sig = _signature(ed.config)
+        if sig in seen:
+            continue
+        seen.add(sig)
+        mean, per, errors = _evaluate(ed.config, eval_tasks, run_one)
+        min_delta = min((per[t] - base_per[t] for t in eval_tasks
+                         if per[t] is not None and base_per[t] is not None), default=0.0)
+        probes.append(ProbeResult(ed, mean, {
+            "mean_score": mean, "errors": float(errors), "min_delta_vs_base": min_delta,
+        }))
 
-    winner = max(probes, key=lambda p: p.score)
-    improved = winner.score > base_score
-    lesson = (
-        f"intent '{router.detect_intent(task)}': '{winner.edit.description}' "
-        f"improved the trust-lattice score {base_score:.1f} -> {winner.score:.1f}"
-        if improved else
-        f"no proposed edit beat the base harness (base {base_score:.1f})"
-    )
-    return ProposedImprovement(task, base_score, winner, probes, lesson, improved)
+    def _eligible(p: ProbeResult) -> bool:
+        return (p.metrics["errors"] == 0
+                and p.score > base_mean + regression_tol
+                and not (require_no_regression and p.metrics["min_delta_vs_base"] < -regression_tol))
+
+    winners = [p for p in probes if _eligible(p)]
+    if winners:
+        winner = max(winners, key=lambda p: p.score)
+        improved = True
+        lesson = (f"intent '{router.detect_intent(task)}': '{winner.edit.description}' "
+                  f"strictly improved the held-out mean {base_mean:.1f} -> {winner.score:.1f} "
+                  f"over {len(eval_tasks)} task(s), no regression")
+    else:
+        # No strict, regression-free improvement — KEEP THE PARENT (selection.py rule).
+        base_edit = CandidateEdit("base", "keep parent harness", base)
+        winner = ProbeResult(base_edit, base_mean, {"mean_score": base_mean, "errors": 0.0})
+        improved = False
+        lesson = (f"no proposed edit strictly improved the held-out mean without regression "
+                  f"(parent {base_mean:.1f} over {len(eval_tasks)} task(s)) — kept parent")
+
+    return ProposedImprovement(task, base_mean, winner, probes, lesson, improved,
+                               n_eval_tasks=len(eval_tasks))
 
 
 @dataclass

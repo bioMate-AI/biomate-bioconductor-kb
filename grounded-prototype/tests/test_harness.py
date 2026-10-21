@@ -97,6 +97,52 @@ def test_gate_blocks_adoption_until_approved():
     assert harness.lessons, "an approved lesson is recorded (harnessing-level recursion)"
 
 
+# ── ScienceBuddy-style strict selection gate (held-out Val, zero-error, no-regression) ──
+
+from dataclasses import replace  # noqa: E402
+from research.harness_improver import CandidateEdit  # noqa: E402
+
+_VAL = ["ADMET hERG CYP toxicity risk", "ADMET AMES mutagenicity solubility"]
+
+
+def test_val_gate_adopts_regression_free_improvement_across_holdout():
+    base = HarnessConfig(budget=Budget(max_sources_per_subq=3, max_rounds=1))
+    prop = propose_probe_compose("ADMET risk", base, retrieve_fn=_retrieve,
+                                 assess_fn=_sufficient, decompose_fn=lambda q: [q],
+                                 val_tasks=_VAL)
+    assert prop.n_eval_tasks == 2, "selection must score on the held-out set, not one task"
+    # broadening adds authoritative sources on BOTH val tasks -> strict, regression-free
+    assert prop.improved and prop.winner.edit.kind != "base"
+    assert prop.winner.metrics["min_delta_vs_base"] >= 0, "no held-out regression allowed"
+
+
+def test_val_gate_keeps_parent_when_no_strict_improvement():
+    base = HarnessConfig(budget=Budget(max_sources_per_subq=3, max_rounds=1))
+    # a NARROWING edit (fewer sources) lowers authoritative evidence -> must be rejected
+    def narrow(task, b):
+        cfg = HarnessConfig(budget=replace(b.budget, max_sources_per_subq=1),
+                            kinds_override=dict(b.kinds_override), label="narrow")
+        return [CandidateEdit("general", "narrow breadth (-2 sources)", cfg)]
+    prop = propose_probe_compose("ADMET risk", base, retrieve_fn=_retrieve,
+                                 assess_fn=_sufficient, decompose_fn=lambda q: [q],
+                                 val_tasks=_VAL, propose_fn=narrow)
+    assert not prop.improved, "a strictly-worse edit must not be adopted"
+    assert prop.winner.edit.kind == "base", "the parent harness must be kept"
+
+
+def test_zero_error_candidate_rejected():
+    base = HarnessConfig(budget=Budget(max_sources_per_subq=3, max_rounds=1))
+    # an edit that empties the intent's source kinds -> degenerate (no grounded claims)
+    def break_routing(task, b):
+        cfg = HarnessConfig(budget=b.budget, kinds_override={"admet": []}, label="broken")
+        return [CandidateEdit("task_specific", "empty admet source kinds", cfg)]
+    prop = propose_probe_compose("ADMET hERG risk", base, retrieve_fn=_retrieve,
+                                 assess_fn=_sufficient, decompose_fn=lambda q: [q],
+                                 val_tasks=_VAL, propose_fn=break_routing)
+    assert prop.probes[0].metrics["errors"] > 0, "degenerate run must be counted as an error"
+    assert not prop.improved and prop.winner.edit.kind == "base", "an erroring edit is never adopted"
+
+
 def _run_all():
     import traceback
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
