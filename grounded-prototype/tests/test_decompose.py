@@ -107,9 +107,10 @@ ck("collapsing the chain to all-parallel scores strictly worse",
    sv.score(gold, json.dumps(wrong)) < sv.score(gold, json.dumps(p_chain)))
 ck("non-JSON response scores 0", sv.score(gold, "I cannot decompose this") == 0.0)
 
-# ── P0 verifier bridge routes a decomposition task to StructureVerifier ──
-ck("select_verifier routes a gold_subtasks task to StructureVerifier",
-   select_verifier(gold).name == "decomp_structure" and select_verifier(gold).answer_free is False)
+# ── P0 verifier bridge routes a decomposition task to the (real or mirror) decomp scorer ──
+_v = select_verifier(gold)
+ck("select_verifier routes a gold_subtasks task to a decomposition scorer",
+   _v.name in ("decomp_structure_real", "decomp_structure") and _v.answer_free is False)
 
 
 if __name__ == "__main__":
