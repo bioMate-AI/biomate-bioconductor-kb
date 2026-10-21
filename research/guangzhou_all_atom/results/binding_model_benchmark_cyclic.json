@@ -1,0 +1,132 @@
+{
+  "n_cyclic": 28875,
+  "n_targets_for_cv": 847,
+  "headline": "grouped leave-targets-out CV (leakage-safe); PD-L1/avb6 holdout matches baseline",
+  "baseline_ref": "results/binding_model_metrics_cyclic.json (RF/XGB novel-target Spearman 0.42/0.38)",
+  "splits": {
+    "grouped_cv_base": {
+      "Ridge": {
+        "spearman_mean": 0.3214596796155146,
+        "spearman_std": 0.05331694039129878,
+        "folds": [
+          0.371,
+          0.384,
+          0.323,
+          0.293,
+          0.237
+        ],
+        "n_splits": 5
+      },
+      "RandomForest": {
+        "spearman_mean": 0.41641731202078064,
+        "spearman_std": 0.08394342855555208,
+        "folds": [
+          0.534,
+          0.434,
+          0.388,
+          0.449,
+          0.278
+        ],
+        "n_splits": 5
+      },
+      "HistGBM": {
+        "spearman_mean": 0.4101589274268175,
+        "spearman_std": 0.12106914546178615,
+        "folds": [
+          0.603,
+          0.426,
+          0.392,
+          0.409,
+          0.221
+        ],
+        "n_splits": 5
+      }
+    },
+    "grouped_cv_rich": {
+      "Ridge": {
+        "spearman_mean": 0.3009374910514516,
+        "spearman_std": 0.053574008950358666,
+        "folds": [
+          0.28,
+          0.383,
+          0.32,
+          0.303,
+          0.218
+        ],
+        "n_splits": 5
+      },
+      "RandomForest": {
+        "spearman_mean": 0.42778923267392577,
+        "spearman_std": 0.10019254128508552,
+        "folds": [
+          0.582,
+          0.438,
+          0.392,
+          0.456,
+          0.272
+        ],
+        "n_splits": 5
+      },
+      "HistGBM": {
+        "spearman_mean": 0.41281997982754987,
+        "spearman_std": 0.10758620283877958,
+        "folds": [
+          0.577,
+          0.427,
+          0.399,
+          0.423,
+          0.238
+        ],
+        "n_splits": 5
+      }
+    },
+    "pdl1_avb6_holdout_base": {
+      "Ridge": {
+        "spearman": 0.3799075727736826,
+        "n": 327
+      },
+      "RandomForest": {
+        "spearman": 0.42142958216560283,
+        "n": 327
+      },
+      "HistGBM": {
+        "spearman": 0.3700052542760749,
+        "n": 327
+      },
+      "breakdown": {
+        "PD-L1": {
+          "spearman": 0.3854372860916028,
+          "n": 162
+        },
+        "avb6": {
+          "spearman": 0.2163653674660387,
+          "n": 165
+        }
+      }
+    },
+    "pdl1_avb6_holdout_rich": {
+      "Ridge": {
+        "spearman": 0.26394398327733215,
+        "n": 327
+      },
+      "RandomForest": {
+        "spearman": 0.42544545866310873,
+        "n": 327
+      },
+      "HistGBM": {
+        "spearman": 0.3909817762943082,
+        "n": 327
+      },
+      "breakdown": {
+        "PD-L1": {
+          "spearman": 0.4113828814353187,
+          "n": 162
+        },
+        "avb6": {
+          "spearman": 0.2652725738919819,
+          "n": 165
+        }
+      }
+    }
+  }
+}
