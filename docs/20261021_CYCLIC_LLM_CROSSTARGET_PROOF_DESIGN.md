@@ -83,3 +83,17 @@ Dominated by cofold on the held-out candidate pools; MM-GBSA on shortlists; FEP 
 - **NULL baseline (established):** `cyclic_llm_v3_1_FIKK13_eval.json` — `cross_target_transfer: NULL`, `target_features_matter: false` (own-LM-without-loop does not discriminate FIKK13 binders cross-target).
 - **Verdict: PENDING — cannot complete in one pass (honest).** The decisive read (does cofold-geometry rank the 38 display binders above the NULL/chance baseline on the independent endpoint?) requires the cofold jobs to COMPLETE (spot-gated) and `complex.cif`/iptm per candidate. Next steps once the smoke confirms the path: `--full` (100 cofolds), then AUC/enrichment of cofold-iptm vs display `is_binder` on the motif-distinct subset, vs NULL (~chance) and vs adopted-BoltzGen. **Flat vs NULL remains a valid refutation (publishable data-wall negative) — no fabricated improvement.**
 - **n=1 fold caveat:** FIKK13 is one held-out target; this is a directional read, not the clean ≥3-same-chemistry-target claim (§5.1 — only 2 thioether targets exist today).
+
+### 8.1 CIRCULARITY CORRECTION (2026-10-21) — the endpoint is severely circular; baseline is the abundance null, not chance
+
+A within-target SOTA benchmark found `is_binder` is essentially a **threshold on display enrichment**, and a trivial **read-count/abundance null recovers it at AUC≈1.0**. The Slice-0 endpoint is the same FIKK13 `is_binder`, so "cofold beats chance (0.5)" would be meaningless and potentially circular. Measured on the FIKK13 data:
+
+- `is_binder` is a clean enrichment threshold (**min binder enrichment 3.46 > max non-binder 3.32**).
+- **Read count trivially separates:** binder median count **89** vs non-binder median **3**; an abundance null ≈ **AUC 1.0**.
+
+**Fix applied** (`slice0_fikk13_cofold.py::load_candidates`): the eval set is now **abundance (read-count) matched** — restricted to the overlap window count∈[21,107] and **bin-equalized** so each count bin has equal binders/non-binders. This drives the **abundance-null AUC to 0.500** (verified), making cofold-geometry — which never sees read counts — a **non-circular** test. The baseline to beat is this abundance null, reported explicitly, **not** chance.
+
+- **Circularity-safe set:** **13 binders + 13 non-binders** (n=26), abundance-null AUC = **0.500**, cost ≈ **$10–13 spot**. Manifest `results/slice0_fikk13_manifest.json` carries the `circularity` block (window, null AUC).
+- **Honest cost of cleanliness:** forcing the null to 0.5 collapses the usable set to **n=13/class** — statistically **underpowered** (wide CIs; a cofold AUC would need to be large to exclude 0.5). The previous length-matched 100-candidate set was **circular** (abundance null ≈ 1.0) and is **not used**.
+- **Key methodological finding:** a *well-powered* non-circular cross-target read is **not cleanly constructible from enrichment-labeled display sequences** — the only abundance-clean subset is tiny. A clean cross-target claim ultimately needs **measured-affinity ground truth or truly novel designs**, not display `is_binder`. This is a publishable methodological result in its own right.
+- **Revised verdict rule:** cofold-iptm AUC is reported **against the 0.500 abundance null** on the matched set (with n=13/class CIs). Flat/at/below the null = valid data-wall negative, reported straight. A "win" that only beats chance, or that rides residual abundance/provenance, is **not** claimed. Read still PENDING cofold completion (smoke-gated, spot-gated).

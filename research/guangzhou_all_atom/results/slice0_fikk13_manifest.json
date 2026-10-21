@@ -1,511 +1,177 @@
 {
  "target": "FIKK13",
  "target_uniprot": "A0A143ZWL4",
- "n_candidates": 100,
- "n_binders": 38,
- "n_nonbinders": 62,
+ "n_candidates": 26,
+ "n_binders": 13,
+ "n_nonbinders": 13,
  "endpoint": "display is_binder (independent)",
  "reward": "cofold geometry (iptm/pTM) \u2014 NOT the eval endpoint (circularity control)",
+ "circularity": {
+  "note": "is_binder is an enrichment threshold AND read count trivially separates (binder median count 89 vs nonbinder 3); set is ABUNDANCE-MATCHED so the read-count null ~= chance -> cofold (never sees reads) is the non-circular test",
+  "count_window": [
+   21.0,
+   107.0
+  ],
+  "n_eval_binders": 13,
+  "n_matched_nonbinders": 13,
+  "abundance_null_auc": 0.5
+ },
  "candidates": [
   {
    "id": "B000",
-   "pep": "RIFRIWWER",
-   "is_binder": 1
+   "pep": "ESCRYRQVLQR",
+   "is_binder": 1,
+   "count": 21.0
   },
   {
    "id": "B001",
-   "pep": "ESCRYRQVLRL",
-   "is_binder": 1
+   "pep": "PISSLTTKYSY",
+   "is_binder": 1,
+   "count": 25.0
   },
   {
    "id": "B002",
-   "pep": "YLNHRFWNR",
-   "is_binder": 1
+   "pep": "SRCRRDIFTWLY",
+   "is_binder": 1,
+   "count": 36.0
   },
   {
    "id": "B003",
    "pep": "PLRFLSDKYH",
-   "is_binder": 1
+   "is_binder": 1,
+   "count": 29.0
   },
   {
    "id": "B004",
-   "pep": "VWSNSAISYII",
-   "is_binder": 1
+   "pep": "VIYSISKRSHI",
+   "is_binder": 1,
+   "count": 32.0
   },
   {
    "id": "B005",
-   "pep": "ESCRYRQVLQL",
-   "is_binder": 1
+   "pep": "YRCKCYHMCDIN",
+   "is_binder": 1,
+   "count": 37.0
   },
   {
    "id": "B006",
-   "pep": "ESRRYRQVLQL",
-   "is_binder": 1
+   "pep": "FMWRNLAVK",
+   "is_binder": 1,
+   "count": 39.0
   },
   {
    "id": "B007",
-   "pep": "YRCKCYHMCDIN",
-   "is_binder": 1
+   "pep": "YLNHRFWNR",
+   "is_binder": 1,
+   "count": 45.0
   },
   {
    "id": "B008",
-   "pep": "ESCRYRQMLQL",
-   "is_binder": 1
+   "pep": "VWSNSAISYII",
+   "is_binder": 1,
+   "count": 59.0
   },
   {
    "id": "B009",
-   "pep": "ESCRYGQVLQL",
-   "is_binder": 1
+   "pep": "ESCRYRKVLQL",
+   "is_binder": 1,
+   "count": 69.0
   },
   {
    "id": "B010",
-   "pep": "SRCRRDIFTWLY",
-   "is_binder": 1
+   "pep": "GSCRYRQVLQL",
+   "is_binder": 1,
+   "count": 70.0
   },
   {
    "id": "B011",
-   "pep": "PFITSPRYCFML",
-   "is_binder": 1
+   "pep": "ESCRYRQVLPL",
+   "is_binder": 1,
+   "count": 85.0
   },
   {
    "id": "B012",
-   "pep": "ESCRYRQVLQR",
-   "is_binder": 1
-  },
-  {
-   "id": "B013",
-   "pep": "ESCRYRQVLPL",
-   "is_binder": 1
-  },
-  {
-   "id": "B014",
-   "pep": "ESCRYRQVPQL",
-   "is_binder": 1
-  },
-  {
-   "id": "B015",
-   "pep": "SFPVYRIWYRD",
-   "is_binder": 1
-  },
-  {
-   "id": "B016",
-   "pep": "ESCRYHQVLQL",
-   "is_binder": 1
-  },
-  {
-   "id": "B017",
-   "pep": "VSMWHERYC",
-   "is_binder": 1
-  },
-  {
-   "id": "B018",
-   "pep": "SISFEFWNR",
-   "is_binder": 1
-  },
-  {
-   "id": "B019",
-   "pep": "ESCQYRQVLQL",
-   "is_binder": 1
-  },
-  {
-   "id": "B020",
-   "pep": "PITITFLTMKY",
-   "is_binder": 1
-  },
-  {
-   "id": "B021",
-   "pep": "ESCRYRQVLQP",
-   "is_binder": 1
-  },
-  {
-   "id": "B022",
-   "pep": "KSCRYRQVLQL",
-   "is_binder": 1
-  },
-  {
-   "id": "B023",
-   "pep": "DDCHKVMIVWL",
-   "is_binder": 1
-  },
-  {
-   "id": "B024",
-   "pep": "FNPLTIRGF",
-   "is_binder": 1
-  },
-  {
-   "id": "B025",
-   "pep": "IYPIFPYTYRL",
-   "is_binder": 1
-  },
-  {
-   "id": "B026",
-   "pep": "KAFMGTV",
-   "is_binder": 1
-  },
-  {
-   "id": "B027",
-   "pep": "ESCRYRRVLQL",
-   "is_binder": 1
-  },
-  {
-   "id": "B028",
-   "pep": "GSCRYRQVLQL",
-   "is_binder": 1
-  },
-  {
-   "id": "B029",
-   "pep": "ESYRYRQVLQL",
-   "is_binder": 1
-  },
-  {
-   "id": "B030",
    "pep": "YRCQCFEHIDM",
-   "is_binder": 1
-  },
-  {
-   "id": "B031",
-   "pep": "EPCRYRQVLQL",
-   "is_binder": 1
-  },
-  {
-   "id": "B032",
-   "pep": "PISSLTTKYSY",
-   "is_binder": 1
-  },
-  {
-   "id": "B033",
-   "pep": "PLRFLSVKYH",
-   "is_binder": 1
-  },
-  {
-   "id": "B034",
-   "pep": "ETCRYRQVLQL",
-   "is_binder": 1
-  },
-  {
-   "id": "B035",
-   "pep": "VIYSISKRSHI",
-   "is_binder": 1
-  },
-  {
-   "id": "B036",
-   "pep": "ESCRYRKVLQL",
-   "is_binder": 1
-  },
-  {
-   "id": "B037",
-   "pep": "FMWRNLAVK",
-   "is_binder": 1
+   "is_binder": 1,
+   "count": 86.0
   },
   {
    "id": "N000",
-   "pep": "KHHHLTEGRS",
-   "is_binder": 0
+   "pep": "ESCRYRQVLHL",
+   "is_binder": 0,
+   "count": 22.0
   },
   {
    "id": "N001",
-   "pep": "LLITNKVPWV",
-   "is_binder": 0
+   "pep": "ESCRYRQVLLL",
+   "is_binder": 0,
+   "count": 25.0
   },
   {
    "id": "N002",
-   "pep": "NPCVIEGFI",
-   "is_binder": 0
+   "pep": "ESCRYRLVLQL",
+   "is_binder": 0,
+   "count": 35.0
   },
   {
    "id": "N003",
-   "pep": "VPSARTLVSHKC",
-   "is_binder": 0
+   "pep": "ESCRYRPVLQL",
+   "is_binder": 0,
+   "count": 28.0
   },
   {
    "id": "N004",
-   "pep": "MMNCHSVER",
-   "is_binder": 0
+   "pep": "QSCRYRQVLQL",
+   "is_binder": 0,
+   "count": 32.0
   },
   {
    "id": "N005",
-   "pep": "EIGLHFRYA",
-   "is_binder": 0
+   "pep": "ESCRYRQVLKL",
+   "is_binder": 0,
+   "count": 37.0
   },
   {
    "id": "N006",
-   "pep": "VYLTEEASNLTH",
-   "is_binder": 0
+   "pep": "ESCWYRQVLQL",
+   "is_binder": 0,
+   "count": 45.0
   },
   {
    "id": "N007",
-   "pep": "KSAQSYPLGQW",
-   "is_binder": 0
+   "pep": "ESCRYRQVFQL",
+   "is_binder": 0,
+   "count": 42.0
   },
   {
    "id": "N008",
-   "pep": "TEWLRNERS",
-   "is_binder": 0
+   "pep": "ESCRYRHVLQL",
+   "is_binder": 0,
+   "count": 48.0
   },
   {
    "id": "N009",
-   "pep": "MWEIIHRMH",
-   "is_binder": 0
+   "pep": "ESCRYCQVLQL",
+   "is_binder": 0,
+   "count": 64.0
   },
   {
    "id": "N010",
-   "pep": "WRSCHTFRNRI",
-   "is_binder": 0
+   "pep": "ESCRCRQVLQL",
+   "is_binder": 0,
+   "count": 74.0
   },
   {
    "id": "N011",
-   "pep": "SPMYVHQYGCS",
-   "is_binder": 0
+   "pep": "ESCRYRQVVQL",
+   "is_binder": 0,
+   "count": 85.0
   },
   {
    "id": "N012",
-   "pep": "WRLTSKSLS",
-   "is_binder": 0
-  },
-  {
-   "id": "N013",
-   "pep": "GVPSTVRMCVDV",
-   "is_binder": 0
-  },
-  {
-   "id": "N014",
-   "pep": "DPVPNGPSRFW",
-   "is_binder": 0
-  },
-  {
-   "id": "N015",
-   "pep": "YNNGASDKDYF",
-   "is_binder": 0
-  },
-  {
-   "id": "N016",
-   "pep": "RSLLESKKFVR",
-   "is_binder": 0
-  },
-  {
-   "id": "N017",
-   "pep": "RTRKFCAMSRD",
-   "is_binder": 0
-  },
-  {
-   "id": "N018",
-   "pep": "DDRQPDDVSSY",
-   "is_binder": 0
-  },
-  {
-   "id": "N019",
-   "pep": "SRTDYSNDTIA",
-   "is_binder": 0
-  },
-  {
-   "id": "N020",
-   "pep": "TIHRILRSTVR",
-   "is_binder": 0
-  },
-  {
-   "id": "N021",
-   "pep": "VFRRMFSDAGV",
-   "is_binder": 0
-  },
-  {
-   "id": "N022",
-   "pep": "HYVSEILYQIH",
-   "is_binder": 0
-  },
-  {
-   "id": "N023",
-   "pep": "IFVWLLLLNCV",
-   "is_binder": 0
-  },
-  {
-   "id": "N024",
-   "pep": "KIVSTLPVIAS",
-   "is_binder": 0
-  },
-  {
-   "id": "N025",
-   "pep": "SFTYTRPKSTD",
-   "is_binder": 0
-  },
-  {
-   "id": "N026",
-   "pep": "PYSSRTENYIT",
-   "is_binder": 0
-  },
-  {
-   "id": "N027",
-   "pep": "GSSRKHRNTLN",
-   "is_binder": 0
-  },
-  {
-   "id": "N028",
-   "pep": "TKCLGPLIDSS",
-   "is_binder": 0
-  },
-  {
-   "id": "N029",
-   "pep": "GISTKITTDRD",
-   "is_binder": 0
-  },
-  {
-   "id": "N030",
-   "pep": "VSCRYRQVLQL",
-   "is_binder": 0
-  },
-  {
-   "id": "N031",
-   "pep": "GCRVCYTLEDI",
-   "is_binder": 0
-  },
-  {
-   "id": "N032",
-   "pep": "FSDKSTIHEMD",
-   "is_binder": 0
-  },
-  {
-   "id": "N033",
-   "pep": "AISHIAMRDES",
-   "is_binder": 0
-  },
-  {
-   "id": "N034",
-   "pep": "VVSVEMNCDDM",
-   "is_binder": 0
-  },
-  {
-   "id": "N035",
-   "pep": "ESCRYCQVLQL",
-   "is_binder": 0
-  },
-  {
-   "id": "N036",
-   "pep": "VCLKVIRSCLI",
-   "is_binder": 0
-  },
-  {
-   "id": "N037",
-   "pep": "RRVEYIH",
-   "is_binder": 0
-  },
-  {
-   "id": "N038",
-   "pep": "SNDAIIRPGK",
-   "is_binder": 0
-  },
-  {
-   "id": "N039",
-   "pep": "KMHQRSNWTD",
-   "is_binder": 0
-  },
-  {
-   "id": "N040",
-   "pep": "AYRHMKFYED",
-   "is_binder": 0
-  },
-  {
-   "id": "N041",
-   "pep": "RGSLKIAEKM",
-   "is_binder": 0
-  },
-  {
-   "id": "N042",
-   "pep": "CDTVIIFLRG",
-   "is_binder": 0
-  },
-  {
-   "id": "N043",
-   "pep": "LCWYWNWSLN",
-   "is_binder": 0
-  },
-  {
-   "id": "N044",
-   "pep": "VSQLYYCRVN",
-   "is_binder": 0
-  },
-  {
-   "id": "N045",
-   "pep": "CTYECPRYNG",
-   "is_binder": 0
-  },
-  {
-   "id": "N046",
-   "pep": "CIGRGKVIYP",
-   "is_binder": 0
-  },
-  {
-   "id": "N047",
-   "pep": "SKFCVLSMI",
-   "is_binder": 0
-  },
-  {
-   "id": "N048",
-   "pep": "FAVCKNPQL",
-   "is_binder": 0
-  },
-  {
-   "id": "N049",
-   "pep": "CGSFLPGGN",
-   "is_binder": 0
-  },
-  {
-   "id": "N050",
-   "pep": "KIIDKTNAV",
-   "is_binder": 0
-  },
-  {
-   "id": "N051",
-   "pep": "SSLSLDLYRS",
-   "is_binder": 0
-  },
-  {
-   "id": "N052",
-   "pep": "NNKCEGISEL",
-   "is_binder": 0
-  },
-  {
-   "id": "N053",
-   "pep": "LMNYTGVFTN",
-   "is_binder": 0
-  },
-  {
-   "id": "N054",
-   "pep": "RWYVNIYFNC",
-   "is_binder": 0
-  },
-  {
-   "id": "N055",
-   "pep": "IVKDNSYYLW",
-   "is_binder": 0
-  },
-  {
-   "id": "N056",
-   "pep": "ISLIMIMDLK",
-   "is_binder": 0
-  },
-  {
-   "id": "N057",
-   "pep": "VPIMHRYCFV",
-   "is_binder": 0
-  },
-  {
-   "id": "N058",
-   "pep": "RLSGTCPFV",
-   "is_binder": 0
-  },
-  {
-   "id": "N059",
-   "pep": "CPVYCRVSCA",
-   "is_binder": 0
-  },
-  {
-   "id": "N060",
-   "pep": "IPSAWHYIN",
-   "is_binder": 0
-  },
-  {
-   "id": "N061",
-   "pep": "VYRVVTRMQ",
-   "is_binder": 0
+   "pep": "ESCRYREVLQL",
+   "is_binder": 0,
+   "count": 107.0
   }
  ]
 }
