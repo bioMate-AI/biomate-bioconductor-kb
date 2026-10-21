@@ -54,6 +54,12 @@ export interface StepOutputPreviewProps {
    * provenance, resolved params with origin badges, and a rendered ⇄ raw toggle.
    */
   onOpenFullStepView?: () => void;
+  /**
+   * Optional max-height class for the text/table inline viewers. Defaults to the
+   * compact run-output height; a larger preview surface (e.g. the Outputs modal
+   * pane) passes a taller value like "max-h-[70vh]".
+   */
+  maxHClass?: string;
 }
 
 interface FetchedContent {
@@ -652,7 +658,7 @@ function DlJsonPreview({ runId, file, onClose, viewerKind }: StepOutputPreviewPr
   );
 }
 
-export function StepOutputPreview({ runId, file, onClose, projectId, onOpenFullStepView }: StepOutputPreviewProps) {
+export function StepOutputPreview({ runId, file, onClose, projectId, onOpenFullStepView, maxHClass }: StepOutputPreviewProps) {
   const ext = file.extension.toLowerCase().replace(/^\./, '');
   const viewer = resolveViewer(ext);
 
@@ -684,11 +690,11 @@ export function StepOutputPreview({ runId, file, onClose, projectId, onOpenFullS
     }
   }
 
-  return <FetchingPreview runId={runId} file={file} onClose={onClose} projectId={projectId} viewer={viewer} ext={ext} onOpenFullStepView={onOpenFullStepView} />;
+  return <FetchingPreview runId={runId} file={file} onClose={onClose} projectId={projectId} viewer={viewer} ext={ext} onOpenFullStepView={onOpenFullStepView} maxHClass={maxHClass} />;
 }
 
 function FetchingPreview({
-  runId, file, onClose, projectId, viewer, ext, onOpenFullStepView,
+  runId, file, onClose, projectId, viewer, ext, onOpenFullStepView, maxHClass,
 }: StepOutputPreviewProps & { viewer: ViewerKind; ext: string }) {
   const [content, setContent] = useState<FetchedContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -783,7 +789,7 @@ function FetchingPreview({
         </div>
       )}
       {!loading && !error && content && (
-        <ViewerContent viewer={viewer} content={content} file={file} ext={ext} />
+        <ViewerContent viewer={viewer} content={content} file={file} ext={ext} maxHClass={maxHClass} />
       )}
 
       {/* Per-file "Open in Jupyter / Analyze in RStudio" buttons removed
@@ -799,12 +805,13 @@ function FetchingPreview({
 // ---------------------------------------------------------------------------
 
 function ViewerContent({
-  viewer, content, file, ext,
+  viewer, content, file, ext, maxHClass,
 }: {
   viewer: ViewerKind;
   content: FetchedContent;
   file: { name: string; path: string; extension: string };
   ext: string;
+  maxHClass?: string;
 }) {
   switch (viewer) {
     case 'image':
@@ -828,7 +835,7 @@ function ViewerContent({
       );
 
     case 'table':
-      return content.text != null ? <InlineTableViewer text={content.text} ext={ext} /> : null;
+      return content.text != null ? <InlineTableViewer text={content.text} ext={ext} maxHClass={maxHClass} /> : null;
 
     case 'sequence':
       return content.text != null ? <InlineSequenceViewer text={content.text} /> : null;
@@ -848,7 +855,7 @@ function ViewerContent({
     }
 
     case 'text':
-      return content.text != null ? <InlineTextViewer text={content.text} /> : null;
+      return content.text != null ? <InlineTextViewer text={content.text} maxHClass={maxHClass} /> : null;
 
     case 'density':
       // Handled above in the self-fetching early-return path; unreachable here.

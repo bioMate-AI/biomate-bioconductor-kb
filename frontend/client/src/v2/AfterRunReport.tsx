@@ -17,6 +17,7 @@
  * placeholders read as "this product is unfinished".
  */
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDownToLine } from "lucide-react";
 import { tOr } from "@/lib/i18n";
 import { FindingsCard } from "@/components/findings-card";
 import { StepOutputPreview } from "@/components/step-output-preview";
@@ -1330,8 +1331,10 @@ function OutputsTab({
                 <a
                   href={fileUrl(f, true)}
                   download
-                  style={{ color: 'var(--accent, oklch(0.55 0.18 260))', fontSize: 11, textDecoration: 'none' }}
-                >{tOr('afterrun.dl', 'dl')}</a>
+                  title={tOr('afterrun.download', 'Download')}
+                  aria-label={tOr('afterrun.download', 'Download')}
+                  style={{ color: 'var(--accent, oklch(0.55 0.18 260))', display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
+                ><ArrowDownToLine size={14} /></a>
               </div>
 
               {/* Inline preview (lazy-mounted) ONLY for light previewable files.
@@ -1382,7 +1385,7 @@ function OutputsTab({
               near-empty full-height void; a big table/image still fills the pane. */}
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: 'var(--bg, #fff)', padding: 20, width: 'min(760px, 96vw)', maxWidth: 'none', height: 'auto', maxHeight: '100vh', overflow: 'auto', borderLeft: '1px solid var(--border, #e5e7eb)', boxShadow: '-8px 0 32px rgba(0,0,0,0.18)' }}
+            style={{ background: 'var(--bg, #fff)', padding: 20, width: 'min(1080px, 96vw)', maxWidth: 'none', height: 'auto', maxHeight: '100vh', overflow: 'auto', borderLeft: '1px solid var(--border, #e5e7eb)', boxShadow: '-8px 0 32px rgba(0,0,0,0.18)' }}
           >
             {previewFile.step && (
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>{previewFile.step}</div>
@@ -1397,6 +1400,7 @@ function OutputsTab({
               file={{ name: previewFile.name, path: previewFile.path || previewFile.name, extension: previewFile.ext }}
               onClose={() => setPreviewFile(null)}
               projectId={savedProjectId}
+              maxHClass="max-h-[70vh]"
             />
             <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
               <a href={fileUrl(previewFile, true)} download style={{ fontSize: 12, color: 'var(--accent, oklch(0.55 0.18 260))' }}>↓ {tOr('afterrun.download', 'Download')}</a>
