@@ -101,6 +101,32 @@ captured no screenshot. Rather than relaunch a ~$1.50/45-min speculative run
   `biomate_drive:biomate_tutorial_recordings/`; backed up 12 local-only
   user-manual cuts (incl. `biomate-intro` EN/ZH) to `…/user_manual_cuts/`.
 
+## Root-cause fix — the "45-minute ADMET run" (stuck-run finalization)
+
+User asked why an ADMET run "takes 45 minutes". It doesn't — the ADMET compute
+finishes in a few minutes (S3 outputs appear), but the run never flips out of
+"running" in the UI, so an E2E/capture waits out its full timeout.
+
+**Cause:** `backend/lib/galaxy/ai/runs/orphan_finalizer.py` `_post_frontend_status`
+hard-defaulted the frontend base URL to `http://localhost:5000` when `FRONTEND_URL`
+was unset — unreachable from inside the Galaxy container → "Connection refused".
+So the terminal-status POST to `/internal/runs/by-invocation/<inv>/status` never
+landed. That one call both (a) flips the `execution_runs` row to completed and
+(b) triggers `autoSaveCompletedRunOutputs` → output registration. Failing it
+leaves the run stuck "running" AND the Outputs tab empty ("No output files
+registered yet"), which is exactly what the debug viewer shows for run
+`fd5a73ac…` (S3 outputs present, none registered).
+
+**Fix:** use the existing robust `_resolve_frontend_url()` (nextflow_executor.py)
+— honors `FRONTEND_URL`, else TCP-probes `biomate-dev-frontend:3000` / … —
+instead of the naive default. Lazy-imported + try/except so test/offline
+contexts stay safe. This fixes the stuck-run hang AND unblocks output
+registration for ALL Batch runs (not just the demo).
+
+This also **unblocks the video re-record**: with finalization working, a fresh
+ADMET run registers its outputs, so the Outputs panel can be captured showing
+"Predict Admet Properties" (not "run") to regenerate the stale asset.
+
 ## Open items
 
 1. **git push + PR** — BLOCKED: the push token lacks `workflow` scope (one commit

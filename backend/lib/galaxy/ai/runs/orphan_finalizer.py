@@ -174,7 +174,18 @@ def _post_frontend_status(invocation_id: str, status: str, returncode: int,
     _post_sse pattern used by the narrator.
     """
     import os, json as _json, urllib.request as _urllib
-    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5000")
+    # Resolve the frontend base URL the same way the SSE narrator does: honor
+    # FRONTEND_URL when set, else TCP-probe the Docker service names
+    # (biomate-dev-frontend:3000, …). The old naive default "localhost:5000"
+    # is unreachable from inside the Galaxy container, so when FRONTEND_URL was
+    # unset the status push got "Connection refused" — the run never flipped out
+    # of "running" and its outputs never registered (the 45-min stuck-run hang).
+    frontend_url = None
+    try:
+        from galaxy.webapps.galaxy.api.nextflow_executor import _resolve_frontend_url
+        frontend_url = _resolve_frontend_url()
+    except Exception:
+        frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5000")
     url = f"{frontend_url}/internal/runs/by-invocation/{invocation_id}/status"
     body = _json.dumps({
         "status": status,
