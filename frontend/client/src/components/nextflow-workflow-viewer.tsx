@@ -2071,7 +2071,7 @@ export function NextflowWorkflowViewer({
         headers: { 'Content-Type': 'application/json' },
         signal: abortController.signal,
         body: JSON.stringify({
-          workflow_name: workflowDefinition?.name || workflowDefinition?.workflow_name,
+          workflow_name: workflowDefinition?.name || workflowDefinition?.chain_display_name || workflowDefinition?.workflow_name,
           error_log: rawLog,
           run_id: runId,
           failed_steps: failedSteps,
