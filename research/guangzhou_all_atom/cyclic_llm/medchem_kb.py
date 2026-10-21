@@ -239,8 +239,9 @@ PHARMACOPHORE_CLASS = {
                      "DFG-out back pocket; selectivity from gatekeeper + back-pocket/allosteric contacts.",
         "requires": ["hinge H-bond", "gatekeeper/back-pocket fit"],
         "selectivity_handle": "gatekeeper residue + DFG-in/out + back pocket",
-        "source": "Zuccotto et al., J Med Chem 2010;53:2681 (type-I/II kinase inhibitor SAR)",
-        "tier": "T1", "verified": "unverifiable"},
+        "source": "Roskoski, Pharmacol Res 2016;103:26-48 (classification of small-molecule kinase inhibitors "
+                  "by DFG/hinge binding mode: type-I DFG-in, type-II DFG-out)",
+        "tier": "T1", "verified": True},
     "gpcr": {
         "principle": "Orthosteric vs allosteric engagement of the 7TM bundle (e.g. the conserved TM3 aspartate for "
                      "aminergic receptors); allosteric modulators offer subtype selectivity.",
@@ -283,13 +284,14 @@ MODALITY_HEURISTICS = {
     "cyclic_peptide": [
         {"statement": "Macrocyclization (head-to-tail / disulfide / thioether) rigidifies the backbone, boosts "
          "affinity/selectivity via preorganization, and improves protease resistance.",
-         "source": "Driggers et al., Nat Rev Drug Discov 2008;7:608 (macrocycles in drug discovery)",
-         "tier": "T1", "verified": "unverifiable"},
+         "source": "Driggers, Hale, Lee & Terrett, Nat Rev Drug Discov 2008;7:608-624 (macrocycles in drug discovery)",
+         "tier": "T1", "verified": True},
         {"statement": "Backbone N-methylation shields amide NH / promotes intramolecular H-bonds -> raises passive "
          "permeability, but can disrupt binding/geometry; a permeability<->binding tradeoff applied at exposed "
          "(non-interface) NH positions.",
-         "source": "Biron et al., Angew Chem Int Ed 2008;47:2595; Raeder & Kessler, Acc Chem Res 2017;50:1569",
-         "tier": "T1", "verified": "unverifiable"},
+         "source": "Biron, Chatterjee, Ovadia, ... Kessler, Angew Chem Int Ed 2008;47(14):2595-2599 "
+                   "(oral bioavailability of peptides by multiple N-methylation)",
+         "tier": "T1", "verified": True},
         {"statement": "D-amino acids / backbone modifications confer protease resistance and conformational control "
          "(e.g. D-Pro for beta-turn nucleation).",
          "source": "Chatterjee, Gilon, Hoffman & Kessler, Acc Chem Res 2008;41:1331 (N-methylation/D-aa peptidomimetics)",
