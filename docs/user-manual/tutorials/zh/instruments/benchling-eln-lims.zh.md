@@ -60,7 +60,7 @@ Benchling，并把监管用的 IND 文书组装起来。**
 > **ADMET 是什么意思：** **A**bsorption（吸收）、**D**istribution（分布）、**M**etabolism（代谢）、
 > **E**xcretion（排泄）、**T**oxicity（毒性）—— 决定一个强效分子能否真正成为一款安全、可用药物的那些性质。
 
-<!-- CAPTURE route=/drug-discovery-cro ; state=CRO Library / drug-discovery campaign view showing a compound ranking table with ADMET columns (incl hERG) and a measured assay column ; focus=campaign-ranking ; note=展示把 Benchling 实验值与预测 ADMET 结合起来的战役化合物排序 -->
+<!-- CAPTURE route=/drug-discovery-cro ; state=CRO Library / drug-discovery campaign view showing a compound ranking table with ADMET columns (incl hERG) and a measured assay column ; focus=campaign-ranking ; note=展示把 Benchling 实验值与预测 ADMET 结合起来的战役化合物排序 ; NB 路由 /drug-discovery-cro 当前被禁用（已注释掉，无侧边栏入口）—— 待重新启用后再截图 -->
 *（待补图：一个药物发现战役的排序 —— 来自 Benchling 的化合物，连同它们的实测实验值，并排放着包括 hERG
 在内的预测 ADMET 列。）*
 
@@ -76,15 +76,17 @@ Benchling，并把监管用的 IND 文书组装起来。**
   提供一个 Benchling API 密钥。
 - 这个密钥让 BioMate 能**检查并保存**这个连接；而把实验结果*自动拉进*一个战役，是前面说的那个独立的药物
   发现战役流程，由管理员配置，而不是从那个单纯的仪器注册表里来。
-- 你会创建或打开一个**药物发现战役**（侧边栏里的 **CRO Library（CRO 库）** 是这块区域的入口），并把它指向
-  存放你结果的那个 Benchling 实验架构（assay schema）。
+- 你会创建或打开一个**药物发现战役**，并把它指向存放你结果的那个 Benchling 实验架构（assay schema）。
+  请注意：那个专门的药物发现界面（`/drug-discovery-cro`）在当前构建里是**被禁用的** —— 侧边栏里**没有
+  "CRO Library（CRO 库）"这个入口**；这个战役流程由管理员配置，而不是从侧边栏打开。
 
 ---
 
 ## 5. 一步步操作 —— 运行筛选
 
-1. **打开药物发现区域。** 从侧边栏进入 **CRO Library（CRO 库）**（药物发现 / 战役界面），打开或创建你的
-   战役。
+1. **打开药物发现区域。** 那个专门的战役界面（`/drug-discovery-cro`）在当前构建里是**被禁用的**，侧边栏里
+   也**没有 "CRO Library（CRO 库）"这个入口**，所以这块区域要通过管理员配置的战役流程进入，而不是从侧边栏
+   打开。在那里打开或创建你的战役。（不过你仍然可以在聊天里直接启动 ADMET 预测本身 —— 见第 3 步。）
 2. **从 Benchling 拉取化合物和实验。** 在 Benchling 连接配置好之后，战役会吸纳你那些化合物的实验结果
    （`lims/poll` → `ingest-assay` 这条路径）。每个化合物到来时都带着它的 SMILES 和它的实测实验值。
 3. **运行 ADMET 预测。** 化合物的 SMILES 喂给 **Predict ADMET Properties (AI)** 工作流。你也可以在聊天里
@@ -112,7 +114,7 @@ Benchling，并把监管用的 IND 文书组装起来。**
 **怎么据此行动：** 把那些既强效（实测）、ADMET 又干净（预测）的化合物往前推进；把那些因 hERG 或吸收差而
 被标记的，先搁置或重新设计。预测是一个*把下一轮真实实验聚焦起来的过滤器*，而不是最终定论。
 
-<!-- CAPTURE route=/drug-discovery-cro ; state=After-run ADMET report Outputs section showing per-compound predicted endpoints incl hERG, with a safety flag on one compound ; focus=admet-outputs ; note=展示逐化合物的 ADMET 预测以及一个 hERG 安全性标记 -->
+<!-- CAPTURE route=/drug-discovery-cro ; state=After-run ADMET report Outputs section showing per-compound predicted endpoints incl hERG, with a safety flag on one compound ; focus=admet-outputs ; note=展示逐化合物的 ADMET 预测以及一个 hERG 安全性标记 ; NB 路由 /drug-discovery-cro 当前被禁用（已注释掉，无侧边栏入口）—— 待重新启用后再截图 -->
 *（待补图：ADMET 的 After-run（运行后）Outputs（输出）—— 逐化合物的预测端点，包括 hERG，其中一个化合物
 在一道安全闸门上被标记。）*
 
