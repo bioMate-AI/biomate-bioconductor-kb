@@ -13,7 +13,7 @@ No Batch runs fired — source-read verification only.
 
 ## What this is for
 
-When a run finishes, its files land in the **Outputs** tab of the after-run report (see I.6, I.9). The
+When a run finishes, its files land in the **Outputs** section of the Results tab of the after-run report (see I.6, I.9). The
 point of this page is simple: **you don't leave BioMate to look at your results.** A differential-
 expression table, a QC figure, a called-variant list, a predicted protein structure with its
 confidence colouring, a cryo-EM density map, a single-cell UMAP — BioMate resolves the right viewer for
@@ -27,8 +27,8 @@ panels" below for the honest scope.
 
 ## Where outputs live and how a viewer opens
 
-Every completed run's files appear in the **Outputs** tab of `AfterRunReport`
-(`AfterRunReport.tsx:875`, `OutputsTab`). Each row shows the step that made the file, the file name, its
+Every completed run's files appear in the **Outputs** section of the Results tab of `AfterRunReport`
+(`AfterRunReport.tsx:875`, `OutputsTab` renders as a section within Results). Each row shows the step that made the file, the file name, its
 type, and two actions — **view** and **dl** (download). Clicking **view** opens the file in an inline
 overlay that mounts `StepOutputPreview` (`AfterRunReport.tsx:1211`), which picks the correct viewer for
 that file type. The **view** action appears for every file type BioMate can render (`canPreview`,

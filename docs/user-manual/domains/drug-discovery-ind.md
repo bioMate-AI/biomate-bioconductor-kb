@@ -73,9 +73,11 @@ Assemble the dossier (stage 4):
 
 > "Assemble the IND §2.6 nonclinical package for this campaign and let me review and sign it."
 
-> **Tip — the natural doorway.** The most common start is *not* the IND page. You run an ADMET screen
-> in chat, and a **"Generate IND"** action drops under the result; it lands you in the IND workspace
-> with the project header and ADMET step pre-filled. (`DrugDiscoveryAction` handoff → `/api/drug-discovery/:id/ind-assembly`.)
+> **Tip — reaching the IND workspace.** The in-chat **"Generate IND"** handoff (the
+> `DrugDiscoveryAction` widget → `/api/drug-discovery/:id/ind-assembly`) is **not currently wired into
+> live chat**, so that button does not appear under an ADMET result today. The IND report page itself is
+> still reachable by **direct URL** (`/ind-report`) — open it there and set up the project header and
+> ADMET step yourself.
 
 **Disambiguation to avoid:**
 - "PK" alone is ambiguous. *"predict human PK from structure"* → `pbpk_simulation`; *"scale from

@@ -39,7 +39,7 @@ before you commit.
 
 Source: `COLD_MODULES` in `cold-start-dashboard.tsx:225-429`.
 
-![The BioMate cold start: the intent bar ("What are you trying to do?") and the four function-module cards, with the composer (Instructions · Experts) at the foot.](../assets/i01-1-cold-start.png)
+![The BioMate cold start: the intent bar ("What are you trying to do?") and the four function-module cards, with the composer (Skills & experts first, then Instructions) at the foot.](../assets/i01-1-cold-start.png)
 <!-- CAPTURE route=/ ; state=new/empty chat ; focus=full viewport ; note=4 module cards + intent bar + composer (captured live from dev) -->
 *The cold start — the four function modules and the intent router. (Live capture from dev.)*
 
@@ -58,9 +58,10 @@ Source: `COLD_MODULES` in `cold-start-dashboard.tsx:225-429`.
 
 The platform is the chat (`/`). Focused tool surfaces you can also open directly:
 `/files` (data hub — datasets as objects), `/models`, `/design`, `/ind-report`,
-`/drug-discovery-cro`, `/capabilities`, `/billing`, and `/workflow/:id` (deep-link to a generated
-workflow). There is **no `/dashboard`** and **no standalone runs page** — a run lives in its chat
-session (see I.6).
+`/capabilities`, and `/workflow/:id` (deep-link to a generated workflow). (The `/drug-discovery-cro`
+and `/billing` routes are currently **disabled** — both are commented out in the app, with no sidebar
+entry; see I.13 and the Drug-discovery chapter.) There is **no `/dashboard`** and **no standalone runs
+page** — a run lives in its chat session (see I.6).
 
 ## How to read the rest of this book
 - **Part I — general modules:** the cross-domain platform (this module map, in depth).

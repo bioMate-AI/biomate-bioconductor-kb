@@ -51,7 +51,7 @@ generated directly from the run manifest, not typed in (`:280-282`).
 
 ### Outputs — the files (on the Results tab)
 
-The middle tab lists every output file with in-app viewers, bulk download, interactive-tool launchers
+The Outputs section within the Results tab lists every output file with in-app viewers, bulk download, interactive-tool launchers
 (Jupyter / RStudio / CellxGene), and Save-to-Project. It also carries the **reproducibility-bundle**
 download link. See **I.8** for the full treatment.
 

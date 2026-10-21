@@ -198,11 +198,12 @@ rows clearly marked "you cannot" with the role each needs, never hidden.)*
   run-panel one.
 - **Standing instructions are per-project only.** There is no account-wide or cross-project standing
   instruction that applies everywhere. If you want the same context in two projects, you set it in each.
-- **Experts are chosen per chat, not saved as a project switch.** You can toggle **Expert** packs in
-  the composer for a given chat, and a project's standing context flows into that chat — but there is
-  **no per-project switch** on the project page that turns specific skills/experts on for the whole
-  project. (The Experts selector lives in the message box; it's honestly empty when no packs are
-  available.)
+- **Skills & experts can be set per-project, not just per chat.** You can toggle **Skills & experts**
+  packs in the composer for a given chat, *and* the project **Instructions** tab now has a per-project
+  **"Skills & experts"** switch that saves the selected packs for the whole project. Chats in the
+  project inherit those standing instructions, output requirements, and selected skills — the composer
+  seeds its selection from the project's settings. (The composer's Skills & experts selector is honestly
+  empty when no packs are available.)
 - **Notes never reach the AI unless promoted.** This is by design, but worth repeating: behavioural
   guidance belongs in Standing instructions. A note only influences the assistant after you explicitly
   **Promote to instruction ↑**.

@@ -37,8 +37,9 @@ Structurally, from top to bottom, the composer stacks (only the rows that apply 
 1. **Attachment chips** — attached local files and referenced datasets (`chat-input.tsx:442-496`).
 2. **Project-suggested row** — a quiet "this reads like *Project X* — file it there?" proposal, shown
    only when the chat has no home and a real project matches (`chat-input.tsx:565-613`).
-3. **Instructions + Experts row** — the collapsible Instructions field and the Experts selector
-   (`chat-input.tsx:623-681`).
+3. **Skills & experts + Instructions row** — the **Skills & experts** selector comes first, then the
+   Instructions affordance. Inside a project, Instructions is a button that opens the project
+   Instructions panel; outside a project it is a collapsible inline field.
 4. **Lane preview** — the advisory Instant/Cloud verdict (`chat-input.tsx:687-711`).
 5. **The input pill** — paperclip, Database icon, attachment-count indicator, the textarea, and the
    Send/Stop button (`chat-input.tsx:714-853`).
@@ -117,9 +118,9 @@ If your chat is filed into a project that carries standing instructions, the com
 into the field automatically, unless you have already typed your own (`chat-input.tsx:177`, seeding
 effect at `186-192`). This is how a filed chat picks up its project's standing context.
 
-### Expert / skill packs (the Experts selector)
+### Expert / skill packs (the Skills & experts selector)
 
-Next to Instructions is **Experts** (`SkillsSelector`, `chat-input.tsx:674-680`; component in
+Placed first, ahead of Instructions, is **Skills & experts** (`SkillsSelector`; component in
 `skills-selector.tsx`). It opens a popover of expert/skill packs, each with an on/off toggle and a
 count chip ("N on") on the button (`skills-selector.tsx:129-291`). The catalogue is fetched from the
 real `GET /api/skills` endpoint (`skills-selector.tsx:83-103`). Toggling packs on records which experts
@@ -127,9 +128,10 @@ were applied to the request: the selected ids thread into the send payload as `s
 (`chat-input.tsx:274`, `286`). When the catalogue is empty, the popover honestly says **"No expert packs
 available yet"** rather than showing fake toggles (`skills-selector.tsx:204-209`).
 
-> **Tip** — Instructions and Experts are per-request settings that ride *with* the message. They do not
-> silently persist a run behind your back — they are recorded on the answer/run so you (and an auditor)
-> can see which lens and which experts were in effect.
+> **Tip** — Instructions and Skills & experts ride *with* the message per request (and can also be set
+> per project, on the project Instructions tab, so chats inherit them). They do not silently persist a run
+> behind your back — they are recorded on the answer/run so you (and an auditor) can see which lens and
+> which skills were in effect.
 
 ### Forcing the lane (the lane preview + override)
 
@@ -194,7 +196,7 @@ Everything you set in the composer travels with the next message and nothing els
 | Local files | Paperclip / drag-drop | `File[]` uploaded with the message (`chat-input.tsx:289`) |
 | Dataset references | Database icon → browser | `datasetReferences` + invisible text refs (`chat-input.tsx:267-270`, `253-256`) |
 | Standing instructions | Instructions field | `composerInstructions` (`chat-input.tsx:281`) |
-| Expert packs | Experts selector | `skillPackIds` (`chat-input.tsx:274`, `286`) |
+| Expert packs | Skills & experts selector | `skillPackIds` (`chat-input.tsx:274`, `286`) |
 | Lane | Lane-preview override link | `intentOverride` = `workflow_generation` / `research_question` (`chat-input.tsx:277-279`) |
 | Project home | Project-suggested row | files the chat into a project (`onFileToProject`, `chat-input.tsx:589`) |
 
@@ -210,7 +212,7 @@ Everything you set in the composer travels with the next message and nothing els
   `chat-input.tsx:144`).
 - **Instructions "on" dot** — a green dot on the Instructions toggle means a standing instruction is
   active for this composer (`chat-input.tsx:639-645`).
-- **Experts "N on" chip** — the count of currently applied expert packs (`skills-selector.tsx:150-167`).
+- **Skills & experts "N on" chip** — the count of currently applied expert packs (`skills-selector.tsx:150-167`).
 - **Project-suggested row** — "This reads like *X* · filing it there brings its files and instructions
   into context. Nothing runs either way." with "File it there" / "Keep unfiled" (`chat-input.tsx:578-611`).
 

@@ -81,7 +81,7 @@ two families in the data model: **expert roles** and **Bioconductor** domain ski
 
 ### In the composer (the live surface)
 
-The composer's **Experts** control is the `SkillsSelector` popover next to the Instructions
+The composer's **Skills & experts** control is the `SkillsSelector` popover next to the Instructions
 affordance (`skills-selector.tsx:75`, `data-testid="composer-experts-toggle"`):
 
 - It fetches **`GET /api/skills`** when no packs are injected, normalises each entry to

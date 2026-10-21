@@ -232,27 +232,33 @@ change a run's parameters** — that's a separate, written project instruction.
   it would have advertised a capability that didn't exist. It was **not** replaced with another add-flow.
   (The design spec *describes* a skill/expert add mode — "you describe it; declare what it needs and
   produces" — but **that is design, not shipped**.)
-- **The only working skill/expert surface is in the chat composer**, not here. Next to the message box
-  there's an **Experts** control: a popover that lists the expert packs the backend offers and lets you
-  **toggle existing ones on or off for a single request** (the run then records which were applied).
+- **The working skill/expert surfaces are the chat composer and the project Instructions tab**, not here.
+  Next to the message box there's a **Skills & experts** control: a popover that lists the packs the
+  backend offers and lets you **toggle existing ones on or off for a single request** (the run then
+  records which were applied). Inside a **project**, the **Instructions** tab also has a **"Skills &
+  experts"** card that saves selected packs for the whole project (chats inherit them), with a **"Manage
+  account skills"** link to `/settings/connections?tab=skills`.
 - **It toggles existing packs; it does not let you create, upload, or add a new one.** And if the
   backend catalogue has no packs, the popover honestly says **"No expert packs available yet"** rather
   than showing toggles that do nothing.
 
-So, in plain terms: **you can switch existing experts on per question (in the composer); you cannot add
-a new skill or expert through the UI today.**
+So, in plain terms: **you can switch existing skills & experts on per question (in the composer) and
+save them per project (the project Instructions tab); you cannot create a brand-new skill or expert
+through the UI today.**
 
-<!-- CAPTURE route=/ ; state=main chat view, the composer "Experts" popover open showing either a list of expert-pack toggles or the "No expert packs available yet" empty state ; focus=composer-experts ; note=show the Experts control next to the message box and the popover contents (packs with on/off checks, or the honest-empty message) -->
-*(Figure to add: the composer's Experts popover — existing packs with on/off toggles, or the honest "No expert packs available yet" empty state.)*
+<!-- CAPTURE route=/ ; state=main chat view, the composer "Skills & experts" popover open showing either a list of expert-pack toggles or the "No expert packs available yet" empty state ; focus=composer-skills-experts ; note=show the Skills & experts control next to the message box and the popover contents (packs with on/off checks, or the honest-empty message) -->
+*(Figure to add: the composer's Skills & experts popover — existing packs with on/off toggles, or the honest "No expert packs available yet" empty state.)*
 
 ---
 
 ## 5. Honest limits — what to expect
 
-- **Adding a skill/expert is not wired in the UI.** There is **no add-flow** for skills/experts anywhere
-  in the shipped product; the Connectors "Skills" tab was removed on purpose. The **only** skill/expert
-  action you can take is **toggling existing packs per request** in the composer's Experts popover — and
-  that list is **honest-empty** when the backend has none. Do not expect to create or upload one.
+- **Creating a brand-new skill/expert is not wired in the UI.** There is **no create-new add-flow** for
+  skills/experts anywhere in the shipped product; the Connectors "Skills" tab was removed on purpose. The
+  skill/expert actions you *can* take are **toggling existing packs per request** in the composer's
+  Skills & experts popover and **saving selected packs per project** in the project Instructions tab —
+  and the pack list is **honest-empty** when the backend has none. Do not expect to create or upload a
+  new one.
 - **The Public Databases and AI & Platforms tabs are reference only.** Nothing is connected or switched
   on there. The row **checkboxes are a personal star/filter saved in your browser**, and the **Scope
   control is an informational preview that nothing enforces** — neither one changes what BioMate queries.
@@ -277,7 +283,7 @@ a new skill or expert through the UI today.**
 | Bring a single file or folder of data in | **Tutorial 4 (Bringing your own data)** |
 | Connect a lab or hospital **instrument** | **Tutorial 6 (Connecting instruments)** |
 | Run an analysis and read the report | **Tutorial 3** |
-| Switch an expert pack on for one question | The composer's **Experts** control (per request) |
+| Switch an expert pack on for one question | The composer's **Skills & experts** control (per request) |
 | See what public databases BioMate can reach | **Connectors → Public Databases** |
 
 The habit: **browse what's already reachable (Public Databases, read-only) → attach your own in *Your
@@ -300,7 +306,7 @@ anything.**
 | **MCP server** | A remote server that exposes a set of **tools** an AI assistant can call. Add it by URL (+ optional auth); its tools are **listed for review before** they're used. |
 | **Preview-before-attach** | The rule that you see what a connection found (a server's tools; a directory's file types/counts) **before** anything is attached. |
 | **Index in place vs. copy (directory)** | *Design concept:* a big directory is read where it lies (index/mounted, not copied); small sets can be copied in and versioned. Not a shipped Connectors flow — use the Data hub today. |
-| **Skill / expert pack** | A reasoning pack that changes *how* BioMate reads a request (never a workflow or a parameter). **Toggled per request in the composer; there is no add-flow in the UI today.** |
+| **Skill / expert pack** | A reasoning pack that changes *how* BioMate reads a request (never a workflow or a parameter). **Toggled per request in the composer's Skills & experts control and saved per project in the project Instructions tab; there is no create-new add-flow in the UI today.** |
 | **Scope (preview)** | An **informational** Account/Project/Request preference on reference rows. Not enforced — it does not change what BioMate queries. |
 
 ---

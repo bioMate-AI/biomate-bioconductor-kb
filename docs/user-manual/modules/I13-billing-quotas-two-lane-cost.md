@@ -29,8 +29,10 @@ and **S3 storage** — the exact fields the usage API returns (`billing_router.p
 
 ## Where billing lives
 
-The **billing page** is at **`/billing`** (`App.tsx:614-618`, `BillingPage` from `pages/billing.tsx`),
-reachable from the sidebar. It reads two endpoints:
+The billing **API endpoints are live**, but the **billing *page* is currently disabled**: the
+`/billing` route and its sidebar nav entry are both commented out in the app (the page crashes), so
+`pages/billing.tsx` is not reachable in the product today. The data below describes the two endpoints
+the page *reads* — they return correctly and can be queried directly — not a screen you can open:
 
 - **`GET /api/billing/usage`** — the current-month breakdown: LLM input/output tokens and cost,
   compute cost, storage cost, total, and quota % (`billing.tsx:173`; `billing_router.py:187-234`). It
@@ -38,8 +40,10 @@ reachable from the sidebar. It reads two endpoints:
 - **`GET /api/billing/quota`** — your plan limit, used amount, quota %, and an `over_quota` flag
   (`billing_router.py:268-290`).
 
-The page also shows usage history (`/api/billing/usage/history`, `billing.tsx:196`) and offers credit
-top-ups via the payments/subscription path (`/api/payments/subscription`, `billing.tsx:221`).
+The disabled page also *would* show usage history (`/api/billing/usage/history`, `billing.tsx:196`) and
+offer credit top-ups via the payments/subscription path (`/api/payments/subscription`, `billing.tsx:221`)
+— but because the page is switched off, those surfaces are not reachable from the product today; only the
+usage and quota endpoints above are live.
 
 ## The plan model — flat tiers + internal quota
 

@@ -71,7 +71,7 @@ viable.
 > **What ADMET means:** **A**bsorption, **D**istribution, **M**etabolism, **E**xcretion, **T**oxicity — the
 > properties that decide whether a potent molecule can actually become a safe, usable drug.
 
-<!-- CAPTURE route=/drug-discovery-cro ; state=CRO Library / drug-discovery campaign view showing a compound ranking table with ADMET columns (incl hERG) and a measured assay column ; focus=campaign-ranking ; note=show the campaign compound ranking combining Benchling assay values with predicted ADMET -->
+<!-- CAPTURE route=/drug-discovery-cro ; state=CRO Library / drug-discovery campaign view showing a compound ranking table with ADMET columns (incl hERG) and a measured assay column ; focus=campaign-ranking ; note=show the campaign compound ranking combining Benchling assay values with predicted ADMET ; NB route /drug-discovery-cro is currently disabled (commented out, no sidebar entry) — capture pending re-enablement -->
 *(Figure to add: a drug-discovery campaign ranking — compounds from Benchling with their measured assay value
 alongside predicted ADMET columns including hERG.)*
 
@@ -87,15 +87,19 @@ Do Tutorial 6 (*Connecting instruments*) first for the connection basics:
   (e.g. `yourorg.benchling.com`).
 - The key lets BioMate **check and store** the connection; the *automatic assay pulling* into a campaign is the
   separate drug-discovery campaign flow (above), set up by an admin, not from the plain instrument registry.
-- You will create or open a **drug-discovery campaign** (the **CRO Library** in the sidebar is the entry point
-  for this area) and point it at the Benchling assay schema that holds your results.
+- You will create or open a **drug-discovery campaign** and point it at the Benchling assay schema that holds
+  your results. Note the dedicated drug-discovery surface (`/drug-discovery-cro`) is currently **disabled** —
+  there is **no "CRO Library" sidebar entry**; the campaign flow is set up by an admin rather than opened from
+  the sidebar.
 
 ---
 
 ## 5. Step by step — run the screening
 
-1. **Open the drug-discovery area.** From the sidebar, go to **CRO Library** (the drug-discovery / campaign
-   surface) and open or create your campaign.
+1. **Open the drug-discovery area.** The dedicated campaign surface (`/drug-discovery-cro`) is currently
+   **disabled** and there is **no "CRO Library" sidebar entry**, so this area is reached through the
+   admin-configured campaign flow rather than from the sidebar. Open or create your campaign there. (You can
+   still launch the ADMET prediction itself directly in chat — see step 3.)
 2. **Pull the compounds and assays from Benchling.** With the Benchling connection configured, the campaign
    ingests the assay results for your compounds (the `lims/poll` → `ingest-assay` path). Each compound arrives
    with its SMILES and its measured assay value.
@@ -128,7 +132,7 @@ Do Tutorial 6 (*Connecting instruments*) first for the connection basics:
 hold or redesign the ones flagged for hERG or poor absorption. Predictions are a *filter that focuses the next
 round of real experiments*, not a final verdict.
 
-<!-- CAPTURE route=/drug-discovery-cro ; state=After-run ADMET report Outputs section showing per-compound predicted endpoints incl hERG, with a safety flag on one compound ; focus=admet-outputs ; note=show the ADMET per-compound predictions and a hERG safety flag -->
+<!-- CAPTURE route=/drug-discovery-cro ; state=After-run ADMET report Outputs section showing per-compound predicted endpoints incl hERG, with a safety flag on one compound ; focus=admet-outputs ; note=show the ADMET per-compound predictions and a hERG safety flag ; NB route /drug-discovery-cro is currently disabled (commented out, no sidebar entry) — capture pending re-enablement -->
 *(Figure to add: the ADMET After-run Outputs — per-compound predicted endpoints including hERG, with one
 compound flagged on a safety gate.)*
 

@@ -22,7 +22,7 @@ There is **no separate "runs" page.** The platform is the chat.
 | **Cold-start modules** | `/` (first screen) | The entry doorway — the function-module cards you start from (see I.1). |
 | **Files / data hub** | `/files` | Datasets as first-class objects (quality, lineage, versions) — see I.5 (`App.tsx:673`). |
 | **Models / Design & generate** | `/models`, `/design` | Focused tool surfaces (see I.10, I.11). |
-| **IND report / Drug-discovery CRO** | `/ind-report`, `/drug-discovery-cro` | Domain workspaces (see the Drug-discovery chapter). |
+| **IND report** | `/ind-report` | Domain workspace (see the Drug-discovery chapter). The `/drug-discovery-cro` route is currently **disabled** (commented out in `App.tsx`, no sidebar entry). |
 | **Workflow deep-link** | `/workflow/:id` | Opens a specific generated workflow in the run panel (`App.tsx:681`, `WorkflowDeepLink.tsx`). |
 | **Billing** | `/billing` | Usage & quota (see I.13). |
 

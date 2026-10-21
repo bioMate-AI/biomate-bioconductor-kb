@@ -17,7 +17,7 @@ chapter that covers it in full is noted in *(italics)*.
 - **Router / intent router** — the step that reads your prompt and decides the lane, the domain, and
   which workflow to propose. It restates its guess; it does not silently pick.
 - **Composer** — the message box where you type, attach data, add standing instructions, and pick
-  experts/skills before sending. *(Module I.2)*
+  skills & experts before sending. *(Module I.2)*
 - **@-ref / dataset chip** — a reference to a live object (a dataset, a run) dropped into your message
   so BioMate acts on that exact thing. A dataset chip deep-links to the file's page.
 - **Skill / expert** — an optional add-on persona or capability pack you attach to a message to steer

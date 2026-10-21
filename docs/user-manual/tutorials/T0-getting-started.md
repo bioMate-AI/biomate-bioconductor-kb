@@ -105,7 +105,7 @@ analysis · Design & generate · Models), and the message box (the composer) at 
 > files** (the paperclip, for files on your computer) and **point at data BioMate already holds** (the
 > Database icon — avoids re-uploading). You won't need either for an evidence question, but Tutorials 1–3
 > use them. There are also optional **Instructions** (a standing preference applied to every message, e.g.
-> "prefer conservative thresholds") and **Experts** (domain reasoning packs) — safe to ignore on your
+> "prefer conservative thresholds") and **Skills & experts** (domain reasoning packs) — safe to ignore on your
 > first run.
 
 ---
