@@ -7,6 +7,18 @@
   "design_doc": "docs/20261021_DRUGDEV_BENCHMARK_LANDSCAPE_AND_SERIES.md",
   "sibling_suite": "RealBio Benchmark (evaluation/datasets/public_export)",
   "model_roster": "RealBio roster (frontier flagships + Qwen/DeepSeek/GLM/Kimi + BioMate + Biomni)",
+  "design_requirements": [
+    "leakage-aware (temporal/similarity-stratified) splits for all structure/affinity/VS/target tasks",
+    "multi-objective, physical-validity, anti-reward-hacking success metrics (not affinity-only)",
+    "execution-grounded scoring where BioMate is differentiated",
+    "exclude data-boundary tasks (Phase II/III outcomes, PopPK, survival, RWE)"
+  ],
+  "tracks": {
+    "T1_molecular_tool_workflow": "ADMET/docking/RBFE/QSAR/generation/retrosynthesis — compete + cite external (TDC, PoseBusters, OpenFE, MoleculeACE, GuacaMol, PaRoutes)",
+    "T2_early_stage_target_perturbation": "target-ID/druggability, perturbation response, experiment design — compete + cite (Open Targets, PrimeKG, GEARS, Virtual Cell Challenge, BioDiscoveryAgent)",
+    "T3_search_knowledge": "literature/evidence retrieval + drug/chem knowledge + KG reasoning — compete + cite (PaperQA2, STaRK-PRIME, ChemBench, MoleculeQA, BioKGBench)",
+    "T4_execution_grounded_cross_stage": "OWN/white-space: end-to-end pipeline execution, cross-stage chains, PBPK, dose-from-data, stability, FTO, ABFE, antibody developability"
+  },
   "benchmarks": [
     {
       "code": "B1",
@@ -152,10 +164,51 @@
       "code": "N9",
       "name": "cross_stage_benchmark",
       "stage": "cross-stage",
+      "track": "T4",
       "items": null,
       "status": "planned",
       "external_baseline": "none (novel)",
       "task": "Causally-linked multi-stage reasoning (e.g. hERG liability -> reformulate -> re-screen -> re-estimate PK)."
+    },
+    {
+      "code": "T2a",
+      "name": "target_id_benchmark",
+      "stage": "S0 target discovery",
+      "track": "T2",
+      "items": null,
+      "status": "planned",
+      "external_baseline": "Open Targets (gene-disease ground truth); PrimeKG; TxGNN (repurposing); DrugMechDB (MoA)",
+      "task": "Given a disease/indication, nominate and prioritize druggable targets with evidence; scored vs Open Targets / curated associations. Leakage: temporal split on evidence."
+    },
+    {
+      "code": "T2b",
+      "name": "perturbation_benchmark",
+      "stage": "S0 functional genomics",
+      "track": "T2",
+      "items": null,
+      "status": "planned",
+      "external_baseline": "GEARS; PerturBench; Arc Virtual Cell Challenge; BioDiscoveryAgent (experiment design)",
+      "task": "Predict transcriptional response to genetic/chemical perturbation (incl. unseen perturbations / held-out cell type); context-generalization split required."
+    },
+    {
+      "code": "T3a",
+      "name": "retrieval_benchmark",
+      "stage": "cross (search)",
+      "track": "T3",
+      "items": null,
+      "status": "planned",
+      "external_baseline": "PaperQA2; STaRK-PRIME (over PrimeKG); LitQA2; MIRAGE",
+      "task": "Literature / evidence retrieval + synthesis grounded in sources; find supporting + missing evidence (connects to the Grounded trust-lattice work)."
+    },
+    {
+      "code": "T3b",
+      "name": "knowledge_benchmark",
+      "stage": "cross (knowledge)",
+      "track": "T3",
+      "items": null,
+      "status": "planned",
+      "external_baseline": "ChemBench; MoleculeQA; SMolInstruct; BioKGBench; GPQA chem/bio",
+      "task": "Drug/chemistry knowledge + KG reasoning QA with objective ground truth."
     }
   ]
 }
