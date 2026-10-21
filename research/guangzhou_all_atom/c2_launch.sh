@@ -17,7 +17,9 @@ SG=sg-0de9af2d4437a8c90
 PROFILE=ec2-ecr-builder-profile
 HERE="$(cd "$(dirname "$0")" && pwd)"
 AMI=$(aws ssm get-parameter --name /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64 --region $REGION --query 'Parameter.Value' --output text)
-TYPES="c6i.2xlarge c6a.2xlarge c5.2xlarge m6i.2xlarge m5.2xlarge c7i.2xlarge c6i.4xlarge m6i.4xlarge"
+# v2 all-targets + UCB/Thompson is ~10x the 10-target work -> parallelised across all vCPUs,
+# so sweep many-core boxes (32-64 vCPU) first; terminate cap raised to 180 min for headroom.
+TYPES="c6i.8xlarge c6a.8xlarge c7i.8xlarge m6i.8xlarge c6i.12xlarge c6i.16xlarge c6a.16xlarge m6i.16xlarge c6i.4xlarge"
 AZS="us-west-2a us-west-2b us-west-2c us-west-2d"
 
 # clear stale results (fresh run only) + stage the self-contained inputs
@@ -31,7 +33,7 @@ cat > "$UD" <<EOF
 #!/bin/bash
 exec > /var/log/c2.log 2>&1
 set -x
-shutdown -h +90
+shutdown -h +180
 DEST="$DEST"; REGION="$REGION"
 dnf install -y bzip2 tar awscli >/dev/null 2>&1
 cd /opt && curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj bin/micromamba
@@ -41,7 +43,7 @@ export MAMBA_ROOT_PREFIX=/opt/mamba
 mkdir -p /work && cd /work
 aws s3 cp "\$DEST/c2_retro_loop.py" /work/c2_retro_loop.py --region "\$REGION"
 aws s3 cp "\$DEST/c2_staged.npz" /work/c2_staged.npz --region "\$REGION"
-C2_STAGE=/work/c2_staged.npz C2_OUT=/work/c2_result.json /opt/c2env/bin/python /work/c2_retro_loop.py > /work/c2_stdout.txt 2>&1
+C2_STAGE=/work/c2_staged.npz C2_OUT=/work/c2_result.json C2_MAX_TARGETS=200 /opt/c2env/bin/python /work/c2_retro_loop.py > /work/c2_stdout.txt 2>&1
 RC=\$?
 # fail-loud: always upload stdout + log; result + DONE(rc) record the honest outcome
 aws s3 cp /work/c2_stdout.txt "\$DEST/out/c2_stdout.txt" --region "\$REGION"
@@ -67,7 +69,7 @@ for ty in $TYPES; do
       --subnet-id $sn --security-group-ids $SG \
       --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":50,"VolumeType":"gp3","DeleteOnTermination":true}}]' \
       --metadata-options '{"HttpTokens":"required","HttpPutResponseHopLimit":2,"HttpEndpoint":"enabled"}' \
-      --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=c2-retro-loop},{Key=purpose,Value=c2-loop-learning-cpu},{Key=autoterminate,Value=90min}]' \
+      --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=c2-retro-loop-v2-alltargets},{Key=purpose,Value=c2-loop-learning-cpu},{Key=autoterminate,Value=180min}]' \
       --user-data "file://$UD" \
       --query 'Instances[0].InstanceId' --output text 2>&1)
     if [ $? -eq 0 ] && [ "${OUT#i-}" != "$OUT" ]; then IID=$OUT; LT=$ty; LAZ=$az; break 2; fi
