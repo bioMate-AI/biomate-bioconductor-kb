@@ -33,13 +33,22 @@ from evaluation.core.base_adapter import BenchmarkAdapter, BenchmarkTask
 
 try:
     from evaluation.scorers.decision_scorer import score_decision
+    from evaluation.scorers.boin_scorer import score_mtd_decision
 except ImportError:  # pragma: no cover
     from scorers.decision_scorer import score_decision  # type: ignore
+    from scorers.boin_scorer import score_mtd_decision  # type: ignore
 
-_DEFAULT_DATASET = (
-    Path(__file__).parent.parent
-    / "datasets" / "drugdev_export" / "leadopt_triage" / "data.jsonl"
-)
+_DATASET_DIR = Path(__file__).parent.parent / "datasets" / "drugdev_export"
+
+# Named decision-task datasets in the DrugDev series (archetype → jsonl). The runner
+# iterates these; each is loadable on its own via config["dataset"].
+DECISION_DATASETS = {
+    "leadopt_triage": _DATASET_DIR / "leadopt_triage" / "data.jsonl",   # archetype C
+    "fep_selection":  _DATASET_DIR / "fep_selection" / "data.jsonl",    # archetype E
+    "dose_decision":  _DATASET_DIR / "dose_decision" / "data.jsonl",    # archetype H
+}
+
+_DEFAULT_DATASET = DECISION_DATASETS["leadopt_triage"]
 
 
 class DecisionBenchmarkAdapter(BenchmarkAdapter):
@@ -50,7 +59,12 @@ class DecisionBenchmarkAdapter(BenchmarkAdapter):
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         ds = (config or {}).get("dataset")
-        self._dataset_path = Path(ds) if ds else _DEFAULT_DATASET
+        if ds and str(ds) in DECISION_DATASETS:      # a named archetype dataset
+            self._dataset_path = DECISION_DATASETS[str(ds)]
+        elif ds:                                      # an explicit path
+            self._dataset_path = Path(ds)
+        else:
+            self._dataset_path = _DEFAULT_DATASET
         self._items: Optional[List[dict]] = None
 
     def _load(self) -> List[dict]:
@@ -78,6 +92,7 @@ class DecisionBenchmarkAdapter(BenchmarkAdapter):
                     "benchmark":  self.name,
                     "archetype":  it.get("archetype"),
                     "stage":      it.get("stage"),
+                    "scorer":     it.get("scorer", "decision"),
                     "labels":     labels,
                     "compounds":  it.get("compounds", []),
                     "evidence":   it.get("evidence", {}),
@@ -106,8 +121,12 @@ class DecisionBenchmarkAdapter(BenchmarkAdapter):
         return float(self.score_detailed(task, agent_response)["score"])
 
     def score_detailed(self, task: BenchmarkTask, agent_response: str) -> Dict[str, Any]:
-        labels = task.metadata.get("labels")
-        return score_decision(agent_response, task.ground_truth, labels)
+        """Dispatch to the scorer the task declares: 'mtd' (dose-escalation decision,
+        via boin_scorer) or 'decision' (advance/deprioritize, via decision_scorer)."""
+        kind = task.metadata.get("scorer", "decision")
+        if kind == "mtd":
+            return score_mtd_decision(agent_response, task.ground_truth)
+        return score_decision(agent_response, task.ground_truth, task.metadata.get("labels"))
 
 
 # ---------------------------------------------------------------------------
@@ -149,6 +168,31 @@ def _selftest() -> int:
           "DECISION:\n  advance: C1, C4\n  deprioritize: C3\n  primary_liability: genotoxicity")
     sh = adapter.score(hard, hd)
     ck("hard trade-off answered correctly → high score", sh > 0.9)
+
+    # ---- archetype E: FEP-guided selection (decision scorer) ----
+    fep = DecisionBenchmarkAdapter(config={"dataset": "fep_selection"})
+    ftasks = fep.load_tasks()
+    ck("E: loads fep_selection", len(ftasks) == 2 and all("L1" in t.question for t in ftasks))
+    ft = ftasks[0]
+    fok = ("FEP shows L1 and L2 bind ~3 kcal/mol tighter than the lead; L5 is +3 kcal/mol "
+           "weaker.\nDECISION:\n  advance: L1, L2\n  deprioritize: L5\n  primary_liability: weaker binding")
+    ck("E: correct FEP selection → high score", fep.score(ft, fok) > 0.95)
+    ck("E: advancing the weakest binder → low score",
+       fep.score(ft, "DECISION:\n  advance: L5\n  deprioritize: L1\n  primary_liability: none") < 0.3)
+
+    # ---- archetype H: dose-escalation MTD (mtd scorer) ----
+    dose = DecisionBenchmarkAdapter(config={"dataset": "dose_decision"})
+    dtasks = dose.load_tasks()
+    ck("H: loads dose_decision (3 tasks, mtd scorer)",
+       len(dtasks) == 3 and all(t.metadata["scorer"] == "mtd" for t in dtasks))
+    d1 = next(t for t in dtasks if t.task_id == "DOSE-001")
+    ck("H: correct MTD → high score",
+       dose.score(d1, "The MTD is dose level 5 (150 mg).") == 1.0)
+    d2 = next(t for t in dtasks if t.task_id == "DOSE-002")
+    ck("H: 'MTD not reached' recognised → high score",
+       dose.score(d2, "All tested doses were well tolerated; the MTD was not reached.") == 1.0)
+    ck("H: naming a dose when MTD not reached → low score",
+       dose.score(d2, "The MTD is dose level 3 (40 mg).") == 0.0)
 
     passed = sum(R)
     print(f"\n{passed}/{len(R)} passed")

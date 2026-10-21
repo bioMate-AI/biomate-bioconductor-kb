@@ -517,3 +517,112 @@ def score_boin_batch(
         "passes_exact_target":    exact_rate >= 0.70,
         "passes_adjacent_target": adj_rate >= 0.90,
     }
+
+
+# ---------------------------------------------------------------------------
+# Text-level MTD decision scorer (for the PRACTICAL dose-escalation decision task)
+# ---------------------------------------------------------------------------
+# Unlike score_boin_case (which reads a run's output dir), this grades the agent's
+# STATED MTD decision from free text / a DECISION block, against the scenario's
+# ground truth. Same exact/adjacent thresholds as the batch scorer (Yuan 2016):
+#   MTD exact -> 1.0, adjacent (|level diff| == 1) -> 0.5, else 0.0.
+# A "MTD not reached" scenario (true level None) is correct iff the agent says so.
+
+def _parse_stated_mtd(response: str, dose_levels: Optional[List[float]] = None):
+    """Return (level:int|None, mg:float|None, said_not_reached:bool) from agent text.
+    Prefers a `DECISION:` block (mtd_level / mtd_mg), falls back to free text."""
+    import re
+    text = response or ""
+    low = text.lower()
+    said_not_reached = any(p in low for p in [
+        "mtd not reached", "not reached", "no mtd", "mtd was not", "did not reach",
+        "could not be determined", "undetermined", "none of the dose", "not established",
+    ])
+
+    level = mg = None
+    m = re.search(r"(?im)^\s*mtd[_ ]?level\s*[:=]\s*([0-9]+)", text)
+    if m:
+        level = int(m.group(1))
+    m = re.search(r"(?im)^\s*mtd[_ ]?mg\s*[:=]\s*([0-9]+(?:\.[0-9]+)?)", text)
+    if m:
+        mg = float(m.group(1))
+
+    if level is None:
+        # free text: "MTD is dose level 4", "recommend dose level 3", "MTD: level 2"
+        m = re.search(r"(?i)(?:mtd|maximum tolerated dose|recommend\w*)\b[^.\n]{0,40}?"
+                      r"\b(?:dose\s*)?level\s*([0-9]+)", text)
+        if m:
+            level = int(m.group(1))
+    if mg is None:
+        # "MTD is 150 mg", "recommended dose of 400 mg"
+        m = re.search(r"(?i)(?:mtd|maximum tolerated dose|recommend\w*)\b[^.\n]{0,40}?"
+                      r"\b([0-9]+(?:\.[0-9]+)?)\s*mg", text)
+        if m:
+            mg = float(m.group(1))
+    # map mg -> level if only mg given and dose_levels known
+    if level is None and mg is not None and dose_levels:
+        for i, d in enumerate(dose_levels, start=1):
+            if abs(float(d) - mg) < 1e-6:
+                level = i
+                break
+    return level, mg, said_not_reached
+
+
+def score_mtd_decision(response: str, ground_truth: Dict[str, Any]) -> Dict[str, Any]:
+    """Grade an agent's Phase I MTD decision from text.
+
+    ground_truth: {true_MTD_level:int|None, true_MTD_mg:float|None,
+                   dose_levels:list[float] (optional), safety_flags:list[str] (optional)}
+    Composite in [0,1]: 0.75 MTD correctness + 0.25 safety-flag recognition.
+    """
+    true_level = ground_truth.get("true_MTD_level")
+    true_mg    = ground_truth.get("true_MTD_mg")
+    dose_levels = ground_truth.get("dose_levels")
+    gt_flags   = [str(f) for f in (ground_truth.get("safety_flags") or [])]
+
+    level, mg, said_not_reached = _parse_stated_mtd(response, dose_levels)
+
+    # ---- MTD correctness ----
+    if true_level is None:
+        mtd_score = 1.0 if (said_not_reached and level is None) else 0.0
+        mtd_exact = said_not_reached and level is None
+        mtd_adjacent = mtd_exact
+    else:
+        # accept a correct mg even if the agent did not state a level number
+        got_level = level
+        if got_level is None and mg is not None and true_mg is not None and abs(mg - float(true_mg)) < 1e-6:
+            got_level = true_level
+        if got_level is None:
+            mtd_score, mtd_exact, mtd_adjacent = 0.0, False, False
+        else:
+            diff = abs(got_level - true_level)
+            mtd_exact = diff == 0
+            mtd_adjacent = diff <= 1
+            mtd_score = 1.0 if mtd_exact else (0.5 if mtd_adjacent else 0.0)
+
+    # ---- safety-flag recognition ----
+    _FLAG_CUES = {
+        FLAG_MTD_NOT_REACHED:   ["not reached", "no mtd", "did not reach", "not established"],
+        FLAG_HIGH_DLT_START:    ["starting dose", "first dose", "too toxic at the lowest",
+                                 "high dlt at", "excess toxicity at the start"],
+        FLAG_TRIAL_SHOULD_STOP: ["stop the trial", "halt", "terminate", "should stop"],
+    }
+    low = (response or "").lower()
+    if gt_flags:
+        hit = sum(1 for f in gt_flags
+                  if any(cue in low for cue in _FLAG_CUES.get(f, [f.lower().replace("_", " ")])))
+        flag_score = hit / len(gt_flags)
+    else:
+        flag_score = 1.0  # no flags expected -> neutral
+
+    score = 0.75 * mtd_score + 0.25 * flag_score
+    return {
+        "score": round(score, 4),
+        "mtd_score": mtd_score,
+        "mtd_exact": mtd_exact,
+        "mtd_adjacent": mtd_adjacent,
+        "flag_score": round(flag_score, 4),
+        "parsed_level": level,
+        "parsed_mg": mg,
+        "said_not_reached": said_not_reached,
+    }

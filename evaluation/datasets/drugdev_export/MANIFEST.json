@@ -39,6 +39,38 @@
       "note": "First exemplar of the PRACTICAL (decision, not tool-routing) redesign. Same shape rolls across archetypes A/B/D/E/F/G/H/I in the redesign doc."
     },
     {
+      "code": "D2",
+      "name": "fep_selection",
+      "track": "T1/T4 (decision)",
+      "stage": "S3 lead optimization",
+      "archetype": "fep_guided_selection",
+      "items": 2,
+      "status": "exemplar_built_offline",
+      "gt": "ground_truth (advance_best / deprioritize), from experimental ΔΔG",
+      "scorer": "evaluation/scorers/decision_scorer.py",
+      "adapter": "evaluation/adapters/decision_benchmark_adapter.py (dataset=fep_selection)",
+      "gold": "evaluation/datasets/drugdev_export/fep_selection/data.jsonl",
+      "external_baseline": "OpenFE / Merck FEP (ranking); decision framing is novel",
+      "task": "Project vignette: FEP-rank a congeneric series vs the lead, advance the tighter binders, deprioritize the clearly weaker. Decision graded vs real experimental ΔΔG (N1 gold); live variant grades the FEP run's ranking via rbfe_scorer.",
+      "note": "Archetype E; reuses the N1 rbfe_benchmark experimental ΔΔG as ground truth."
+    },
+    {
+      "code": "D3",
+      "name": "dose_decision",
+      "track": "T4 (decision)",
+      "stage": "S5/6 Phase I",
+      "archetype": "dose_escalation_mtd",
+      "items": 3,
+      "status": "exemplar_built_offline",
+      "gt": "ground_truth (true_MTD_level / true_MTD_mg / safety_flags)",
+      "scorer": "evaluation/scorers/boin_scorer.py::score_mtd_decision",
+      "adapter": "evaluation/adapters/decision_benchmark_adapter.py (dataset=dose_decision)",
+      "gold": "evaluation/datasets/drugdev_export/dose_decision/data.jsonl",
+      "external_baseline": "BOIN operating characteristics (Yuan 2016); TrialBench dose-finding",
+      "task": "Project vignette: given a BOIN dose-escalation DLT curve + target, call the MTD (level/mg) and safety flags. Covers the clean case, MTD-not-reached, and toxic-at-starting-dose. Graded by score_mtd_decision (exact/adjacent + flag recognition).",
+      "note": "Archetype H; reuses the B4 boin_benchmark scenarios as ground truth. Reframes the old routing-style BOIN adapter as a decision task."
+    },
+    {
       "code": "B1",
       "name": "admet_benchmark",
       "stage": "S2 hit-to-lead",

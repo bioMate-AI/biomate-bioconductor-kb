@@ -1,7 +1,8 @@
 # DrugDev Benchmark — Practical Redesign: Decision Tasks, Not Tool-Routing
 
 **Date:** 2026-10-21
-**Status:** design + first exemplar built (lead-op triage, archetype C)
+**Status:** design + three exemplars built on real gold — archetype C (lead-op triage),
+E (FEP-guided selection), H (dose-escalation MTD)
 **Related:** `docs/20261021_DRUGDEV_BENCHMARK_LANDSCAPE_AND_SERIES.md` (landscape + 4-track series),
 `docs/20260427_DRUG_DEV_BENCHMARK_PLAN.md` (original B1–B5 plan),
 `evaluation/local_trial/execution_grader.py` (the end-to-end run grader).
@@ -49,16 +50,36 @@ Each is anchored to real ground-truth data we have or can source.
 |---|-------|--------------|-------------------|-------------|
 | A | S0 target | Pursue or deprioritize this target? | Open Targets assoc + known druggability | to source |
 | B | S1 hit | Which screen hits are real vs PAINS/artifact? | known actives vs frequent-hitters | to source |
-| **C** | **S3 lead-op** | **Which analogue to make next; which to drop & why** | **measured ADMET/potency** | **HAVE (B1)** |
+| **C** | **S3 lead-op** | **Which analogue to make next; which to drop & why** | **measured ADMET/potency** | **BUILT (D1)** |
 | D | S3 lead-op | Compound has a liability → what structural fix? | matched-pair that fixed it (ChEMBL MMP) | to source |
-| E | S3 lead-op | FEP-rank the series; which analogues advance | Merck experimental ΔΔG | HAVE (N1) |
+| **E** | **S3 lead-op** | **FEP-rank the series; which analogues advance** | **Merck experimental ΔΔG** | **BUILT (D2)** |
 | F | S4 DMPK | Project the human dose from preclinical PK | observed clinical PK | to source |
 | G | S5 | First-in-human starting dose | NOAEL→HED→MRSD (FDA guidance) | formula + labels |
-| H | Ph I | Dose-escalation MTD decision | BOIN operating characteristics | HAVE (B4) |
+| **H** | **Ph I** | **Dose-escalation MTD decision** | **BOIN operating characteristics** | **BUILT (D3)** |
 | I | regulatory | IND §2.6.1 nonclinical narrative | skeleton/MRSD/adversity checklist | partial (regulatory_v6) |
 
-Archetypes C/E/H already sit on real gold; A/B/D/F/G/I need a sourcing pass (all
-from public measured data — no fabrication).
+Archetypes **C/E/H are built** on real gold (D1/D2/D3 below); A/B/D/F/G/I need a
+sourcing pass (all from public measured data — no fabrication).
+
+### 4b. E and H (built)
+
+- **E — FEP-guided selection** (`fep_selection/data.jsonl`, 2 tasks c-Met/SHP2):
+  present a congeneric series vs the lead, agent runs RBFE/FEP and must advance the
+  meaningfully-tighter binders and drop the clearly-weaker one. Ground truth = real
+  experimental ΔΔG from the N1 gold (advance ≤ −1 kcal/mol, drop ≥ +2). Analogues
+  relabelled L1…L5 (the raw ligand ids like `SHP099-1/Example 7` are messy). Scored
+  by `decision_scorer`; the live FEP run's ranking is graded by `rbfe_scorer`.
+- **H — dose-escalation MTD** (`dose_decision/data.jsonl`, 3 tasks): a BOIN DLT curve
+  + target DLT rate → call the MTD (level/mg) and safety flags. Covers the clean case,
+  **MTD-not-reached** (all doses tolerated → flag, name no dose), and
+  **toxic-at-starting-dose** (MTD = lowest level + flag). Ground truth = B4 BOIN
+  operating characteristics. Scored by a new text-level `boin_scorer.score_mtd_decision`
+  (exact/adjacent MTD + flag recognition), reusing the Yuan-2016 thresholds. This
+  **reframes the old routing-style BOIN adapter as a real decision task.**
+
+One adapter (`DecisionBenchmarkAdapter`) serves all three: it dispatches to the scorer
+each task declares (`"scorer": "decision" | "mtd"`) and loads any archetype via
+`config["dataset"]` (`DECISION_DATASETS` registry). `--selftest` 14/14.
 
 ## 4. First exemplar built — archetype C (lead-op multi-parameter triage)
 
@@ -111,12 +132,13 @@ speculatively.
 
 ## 6. Next
 
-- Roll the vignette shape across archetypes C→E→H first (they have gold), then source
-  A/B/D/F/G/I from public measured data.
-- A `run_decision_benchmark.py` runner + sweep wiring (offline-scorable now; the
-  execution layer gated).
-- The decision-scorer handles ranking/triage/go-no-go; dose/PK archetypes (F/G/H) add
-  a numeric-tolerance scorer (reuse `pbpk_scorer` / `boin_scorer` patterns).
+- ~~Roll the vignette shape across C→E→H~~ **DONE** (D1/D2/D3, all on real gold).
+- Source A/B/D/F/G/I from public measured data (no fabrication). F/G (human-dose
+  projection, FIH starting dose) add a numeric-tolerance scorer (reuse `pbpk_scorer`);
+  A/B (target go/no-go, hit triage) reuse `decision_scorer` with Open-Targets /
+  known-actives ground truth.
+- A `run_decision_benchmark.py` runner that iterates `DECISION_DATASETS` + sweep
+  wiring (offline-scorable now; the execution layer gated).
 
 **Honesty note (carry forward):** report baselines unedited. The value of this suite
 is that it exposes where an agent *looks* capable (routes correctly) but makes the
