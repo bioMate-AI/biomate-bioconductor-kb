@@ -63,6 +63,30 @@ S3), so this change is not in git — it ships through the sync.
 - **dd16 clinical trial** — ✅ Clinical Trial Simulation, 20 params, BOIN input
   resolved.
 
+## ADMET step-attribution fix — verified (deterministic + empirical)
+
+The live E2E (`admet-step-verify.e2e.ts`, fresh Batch run) exceeded its 45-min
+window waiting on the UI "COMPLETED" badge — Batch runtime, not the fix — so it
+captured no screenshot. Rather than relaunch a ~$1.50/45-min speculative run
+(forbidden by the "No Speculative Deploys" rule), verified two cheaper ways:
+
+1. **Deterministic (code trace).** publishDir writes to
+   `{outdir}/02_predict_admet_properties/`; the step parser does
+   `step_id = int(step_dir.split("_")[0]) - 1` → `int("02")-1 = 1`, and indexes
+   the process under the unprefixed `predict_admet_properties` — both resolve to
+   step 1 "Predict Admet Properties" in the viewer's `nfProcessByName` lookup.
+   (Old `run/` → `int("run")` raised → fell back to a phantom "run" step.)
+
+2. **Empirical (actual S3 outputs).** The post-fix run invocation
+   `fd5a73ac-87df-4850-b8ff-6d768c1b47fb/5cfbb943/` (written 2026-10-20 23:41)
+   placed all six real outputs —
+   `predict_admet_properties_results.json`, `toxicity_report.json`,
+   `pk_summary.json`, `qc_metrics.json`, `predict_admet_properties_output.txt`,
+   `versions.yml` — under `…/02_predict_admet_properties/`, NOT `…/run/`. The
+   viewer derives the step label from exactly this path, so the Outputs now
+   attribute to "Predict Admet Properties". (Pre-fix runs still show 796 files
+   under `/run/`; the fix only affects runs after deploy.)
+
 ## Open items
 
 1. **dd1 "Untitled"** — apply the display-name fix once the trace lands.
