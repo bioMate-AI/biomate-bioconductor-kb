@@ -8,6 +8,23 @@ def test_all_entries_validate():
     for t in ("avb6", "pdl1"):
         for e in kb.all_entries(t):
             e.validate()  # schema-valid, tier in ladder, eval modes hard|advisory
+            assert e.provenance.get("verified") in (True, False, "unverifiable", "n/a")  # mandatory + surfaced
+
+
+def test_provenance_honesty():
+    """The verified flags must reflect what was actually checked — not silently authoritative."""
+    prov = {p["entry"]: p for p in kb.resolve("avb6")["provenance"]}
+    # VERIFIED-authoritative (real cited literature confirmed 2026-10-21)
+    assert prov["avb6:metal"]["verified"] is True and prov["avb6:metal"]["tier"] == "T1"
+    assert prov["avb6:pharmacophore"]["verified"] is True and prov["avb6:pharmacophore"]["tier"] == "T1"
+    assert prov["cmc:universal"]["verified"] is True
+    assert prov["avb6:sar-renal-charge"]["verified"] is True
+    # NOT authoritative — flagged honestly
+    assert prov["avb6:sar-b6-selectivity"]["verified"] is False          # causal SAR inferred, not cited
+    assert prov["avb6:fto-genus"]["verified"] == "unverifiable"          # specific patent id unconfirmed
+    # pdl1 pharmacophore refs not checked this session
+    pprov = {p["entry"]: p for p in kb.resolve("pdl1")["provenance"]}
+    assert pprov["pdl1:pharmacophore"]["verified"] == "unverifiable"
 
 
 def test_avb6_tool_params():

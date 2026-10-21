@@ -133,3 +133,33 @@ Verified `resolve("avb6")`:
   out of first-slice scope); (2) product surfacing — register in the workflow DB + feed tool `scientific_context_v2`
   defaults (gitignored 328 MB DB + shared → document the hook, not force-write it here); (3) LLM-RAG fallback for
   novel/unknown targets (deterministic rules only in this slice).
+
+---
+
+## Verified-provenance requirement (citation-integrity) — 2026-10-21
+
+The user asked whether the knowledge is **authoritative, with evidence sources**. Citation-integrity means we
+VERIFY, never assume. The schema therefore makes `provenance.verified ∈ {True, False, "unverifiable", "n/a"}`
+**MANDATORY** (`.validate()` enforces it) and `resolve()` surfaces `verified` + `evidence_tier` on every firing
+entry, so a consumer/chemist sees an induced/unverified heuristic as exactly that — never as established fact.
+Each seeded source was checked by web lookup on 2026-10-21; `provenance.verification_note` records what was checked.
+
+### Verified provenance ledger — seeded entries
+
+| Entry | Claim | Cited source | Verified | Tier |
+|---|---|---|---|---|
+| avb6:metal | CaDA octahedral Mn²⁺ cationic-dummy FF for the β6-MIDAS cofactor | Duarte et al., *J. Phys. Chem. B* 2014, 118(16):4351-4362 | **YES** (paper real, refines octahedral Mn²⁺ params) — caveats: .itp pending grompp/NVT; physiologic MIDAS=Mg²⁺, Mn=activating cation | T1 |
+| avb6:pharmacophore | RGD required; Asp→MIDAS metal; D-Pro/N-methyl lock | Trivehexin c[YRGDLAYp(NMe)K], avebehexin c(FRGDLAFp(NMe)K) (EJNMM 2021); RGD-MIDAS integrin biology | **YES** (both compounds + mechanism confirmed) | T1 |
+| avb6:sar-conformational-lock | D-Pro + N-methyl lock in validated actives | Trivehexin/avebehexin (EJNMM 2021) | **YES** (lock present in verified actives; "else uncontrolled" is inference → T2) | T2 |
+| avb6:sar-renal-charge | net-cationic ⇒ higher kidney (dose-limiting) uptake via megalin/cubilin | EJNMM s00259-009-1239-1 / -010-1685-9 (megalin/cubilin; Lys/Arg co-infusion) | **YES** (established radiopharmacology) | T1 |
+| cmc:universal | Asn-deamidation NG/NS, Asp-isomerisation DG/DS, Met/Trp oxidation | standard biopharm CMC refs (e.g. PMID 30526254) | **YES** (standard, well-documented) | T1 |
+| avb6:metal-free-void | metal-free MIDAS run ⇒ MM-GBSA ΔG void | applies the verified RGD-Asp→MIDAS-metal requirement | **YES** (program admissibility rule applying a verified fact) | T2 |
+| avb6:sar-b6-selectivity | RGD-L element confers β6-selectivity; no-RGDL → pan-integrin | knowledge_liability_flags; Trivehexin selectivity (avb8 131×/avb3 57×/a5b1 468×) | **NO** — compound selectivity IS published, but the RGDL-as-*determinant* causal claim is an SAR **inference** (no cited mutational/negative-control study) | T2 |
+| avb6:fto-genus | FTO: patent CA2998968A1 genus Cyclo-(Arg-X1-Asp-...) | target_kb/avb6.json | **UNVERIFIABLE** — specific patent id/genus not independently confirmed (the αvβ6-cyclic-RGD patent space IS real, e.g. US20230173113) | T2 |
+| avb6:pose / pdl1:pose | pose method by epitope | target_spec POSE_BY_EPITOPE | **n/a** (program method-config, not a literature claim) | T3 |
+| pdl1:pharmacophore | PD-L1 structure-gated (no SLiM); WL12/BMS/dmp10 classes | pharmacophore_knowledge refs | **UNVERIFIABLE** — refs name known PD-L1 macrocycle classes but not checked this session; advisory only | T3 |
+
+**Blunt summary:** authoritative-with-real-evidence = metal/CaDA-Mn, RGD pharmacophore, conformational-lock,
+renal-cationic, CMC liabilities, metal-free-void (6). Flagged NOT-authoritative = β6-selectivity causal SAR
+(inferred), FTO patent id (unverifiable), PD-L1 pharmacophore refs (unchecked). No citation was invented; every
+"verified=False/unverifiable" is reported as such and tiered so it can never be consumed as established fact.
