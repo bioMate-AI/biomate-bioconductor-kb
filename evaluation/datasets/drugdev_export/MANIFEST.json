@@ -136,6 +136,38 @@
       "note": "Archetype W. The PLAN layer is offline-graded here; the EXECUTION layer (run each stage on Batch, grade artifacts) is the N8/N9 flagship, graded by execution_grader on the live stack (GATED, not run speculatively)."
     },
     {
+      "code": "F1G",
+      "name": "dose_projection",
+      "track": "T4 (decision)",
+      "stage": "S4/S5 translational",
+      "archetype": "fih_starting_dose",
+      "items": 3,
+      "status": "built_offline",
+      "gt": "numeric (true_value, within-fold)",
+      "scorer": "evaluation/scorers/decision_scorer.py::score_numeric_decision",
+      "adapter": "evaluation/adapters/decision_benchmark_adapter.py (dataset=dose_projection)",
+      "gold": "evaluation/datasets/drugdev_export/dose_projection/data.jsonl",
+      "external_baseline": "FDA 2005 MRSD guidance; allometric scaling",
+      "task": "Dosing axis 1: project the systemic dose — FIH MRSD from a species NOAEL (km factors + safety factor) and human clearance by allometric scaling. DETERMINISTIC formula ground truth (objective, no fabrication); grades correct method application within-fold.",
+      "note": "Archetypes F1 + G. Numeric scorer (within-fold, half-credit band)."
+    },
+    {
+      "code": "F3",
+      "name": "dose_schedule",
+      "track": "T4 (decision)",
+      "stage": "S5 clinical",
+      "archetype": "dose_schedule",
+      "items": 3,
+      "status": "built_offline",
+      "gt": "verdict (regimen class)",
+      "scorer": "evaluation/scorers/decision_scorer.py::score_categorical_decision",
+      "adapter": "evaluation/adapters/decision_benchmark_adapter.py (dataset=dose_schedule)",
+      "gold": "evaluation/datasets/drugdev_export/dose_schedule/data.jsonl",
+      "external_baseline": "PK/PD principles (time- vs concentration-dependent killing; loading dose)",
+      "task": "Dosing axis 3: pick the regimen from the PK/PD driver — beta-lactam (time>MIC → frequent/continuous), aminoglycoside (Cmax/MIC → extended-interval high dose), long half-life (→ loading dose). Textbook PK/PD, objective.",
+      "note": "Archetype F3. Completes the four dosing axes (F1 amount / F2 tissue / F3 schedule / F4 special-population)."
+    },
+    {
       "code": "B1",
       "name": "admet_benchmark",
       "stage": "S2 hit-to-lead",

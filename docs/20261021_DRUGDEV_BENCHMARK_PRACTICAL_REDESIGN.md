@@ -127,6 +127,20 @@ Both use a new **categorical-verdict scorer** (`score_categorical_decision`): co
 vocabulary match (structured `verdict:`/`action:` line, free-text fallback with a
 negation guard) + optional numeric within-fold + rationale coverage.
 
+**F1/G and F3 now complete the four dosing axes:**
+
+- **F1/G — dose projection** (`dose_projection/data.jsonl`, 3 tasks): axis 1, systemic
+  amount. FIH **MRSD** from a species NOAEL (FDA km factors + safety factor) and human
+  **clearance by allometric scaling** (BW^0.75). **Deterministic formula ground truth** —
+  objective, nothing fabricated; a new `score_numeric_decision` grades correct method
+  application within-fold (full credit ≤ fold, half credit ≤ fold²).
+- **F3 — dose schedule** (`dose_schedule/data.jsonl`, 3 tasks): axis 3, regimen from the
+  PK/PD driver — beta-lactam (time>MIC → frequent/continuous), aminoglycoside (Cmax/MIC →
+  extended-interval high dose), long half-life (→ loading dose). Textbook PK/PD, objective.
+
+So dose is covered on all four axes: **F1 amount · F2 tissue · F3 schedule · F4
+special-population.**
+
 > **PROVISIONAL (honesty):** F2/F4 gold VALUES are textbook/class-level correct but the
 > exact Kp,uu numbers and label cutoffs were **not web-verified this session** (search
 > budget exhausted). Datasets are flagged `status: provisional_values_unverified` with a

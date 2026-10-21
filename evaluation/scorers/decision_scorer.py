@@ -207,6 +207,61 @@ def _assert_verdicts(response: str, vocab: Dict[str, Sequence[str]]) -> Set[str]
     return asserted
 
 
+def score_numeric_decision(response: str, ground_truth: Dict[str, Any]) -> Dict[str, Any]:
+    """Grade a numeric dose/PK projection (e.g. FIH MRSD, allometric human clearance)
+    against a deterministic ground-truth value.
+
+    ground_truth:
+      true_value     : the correct number
+      tolerance_fold : within-fold credit band (default 1.5) — full credit if the
+                       prediction is within this fold, half credit within fold^2
+      cue            : optional substring to anchor the number (else prefer an
+                       'answer:' line, then the last number in the text)
+      rationale_must_mention : optional [terms]
+    Composite: 0.85 numeric + 0.15 rationale.
+    """
+    import math
+    text = response or ""
+    true_val = float(ground_truth["true_value"])
+    tol = float(ground_truth.get("tolerance_fold", 1.5))
+    cue = ground_truth.get("cue")
+
+    def _nums_near(scope: str) -> List[float]:
+        return [float(x) for x in re.findall(r"-?\d+(?:\.\d+)?", scope.replace(",", ""))]
+
+    parsed: Optional[float] = None
+    m = re.search(r"(?im)^\s*answer\s*[:=]\s*(.+)$", text)
+    if m:
+        nums = _nums_near(m.group(1))
+        parsed = nums[0] if nums else None
+    if parsed is None and cue:
+        cm = re.search(re.escape(cue.lower()) + r"[^0-9\-]{0,25}(-?\d+(?:\.\d+)?)",
+                       text.lower().replace(",", ""))
+        if cm:
+            parsed = float(cm.group(1))
+    if parsed is None:
+        nums = _nums_near(text)
+        parsed = nums[-1] if nums else None
+
+    if parsed is None or parsed == 0 or true_val == 0:
+        numeric_score = 0.0
+        fold = None
+    else:
+        fold = max(parsed / true_val, true_val / parsed)
+        numeric_score = 1.0 if fold <= tol else (0.5 if fold <= tol * tol else 0.0)
+
+    rationale = _rationale_coverage(response, ground_truth.get("rationale_must_mention", []))
+    score = 0.85 * numeric_score + 0.15 * rationale
+    return {
+        "score": round(score, 4),
+        "numeric_score": numeric_score,
+        "parsed_value": parsed,
+        "true_value": true_val,
+        "fold_error": None if fold is None else round(fold, 3),
+        "rationale_coverage": round(rationale, 4),
+    }
+
+
 def _assert_members(response: str, vocab: Dict[str, Sequence[str]]) -> Set[str]:
     """All canonical items the response asserts (multi-select), negation-guarded. Unlike
     _assert_verdicts this never early-returns — used for 'which of these apply' tasks."""
@@ -427,6 +482,19 @@ def _selftest() -> int:
         "You need GLP tox and also Phase 2 efficacy data and an NDA.", gt_set)
     ck("set: missing prereqs + names distractors → low score",
        bad_set["set_f1"] < 0.5 and "nda" in bad_set["extra"])
+
+    # ---- numeric scorer (dose projection) ----
+    gt_num = {"true_value": 0.811, "tolerance_fold": 1.4, "cue": "mrsd",
+              "rationale_must_mention": ["noael"]}
+    sn_ok = score_numeric_decision(
+        "From the NOAEL and km factors, HED is 8.1 mg/kg.\nanswer: MRSD = 0.81 mg/kg", gt_num)
+    ck("numeric: correct MRSD within fold → high score",
+       sn_ok["numeric_score"] == 1.0 and sn_ok["score"] > 0.95)
+    sn_bad = score_numeric_decision("answer: 50 mg/kg", gt_num)
+    ck("numeric: off by >fold^2 → 0", sn_bad["numeric_score"] == 0.0)
+    sn_half = score_numeric_decision("answer: MRSD 1.5 mg/kg", gt_num)
+    ck("numeric: within fold^2 but not fold → half credit",
+       sn_half["numeric_score"] == 0.5)
 
     passed = sum(R)
     print(f"\n{passed}/{len(R)} passed")

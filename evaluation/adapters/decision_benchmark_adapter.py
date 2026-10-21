@@ -34,12 +34,14 @@ from evaluation.core.base_adapter import BenchmarkAdapter, BenchmarkTask
 try:
     from evaluation.scorers.decision_scorer import (
         score_decision, score_categorical_decision, score_set_decision,
+        score_numeric_decision,
     )
     from evaluation.scorers.boin_scorer import score_mtd_decision
     from evaluation.scorers.chain_scorer import score_chain
 except ImportError:  # pragma: no cover
     from scorers.decision_scorer import (  # type: ignore
         score_decision, score_categorical_decision, score_set_decision,
+        score_numeric_decision,
     )
     from scorers.boin_scorer import score_mtd_decision  # type: ignore
     from scorers.chain_scorer import score_chain  # type: ignore
@@ -56,6 +58,8 @@ DECISION_DATASETS = {
     "special_population": _DATASET_DIR / "special_population" / "data.jsonl", # archetype F4
     "process_knowledge": _DATASET_DIR / "process_knowledge" / "data.jsonl",  # archetype P
     "workflow_chain":    _DATASET_DIR / "workflow_chain" / "data.jsonl",     # archetype W
+    "dose_projection":   _DATASET_DIR / "dose_projection" / "data.jsonl",    # archetype F1/G
+    "dose_schedule":     _DATASET_DIR / "dose_schedule" / "data.jsonl",      # archetype F3
 }
 
 _DEFAULT_DATASET = DECISION_DATASETS["leadopt_triage"]
@@ -142,6 +146,8 @@ class DecisionBenchmarkAdapter(BenchmarkAdapter):
             return score_set_decision(agent_response, task.ground_truth)
         if kind == "chain":
             return score_chain(agent_response, task.ground_truth)
+        if kind == "numeric":
+            return score_numeric_decision(agent_response, task.ground_truth)
         return score_decision(agent_response, task.ground_truth, task.metadata.get("labels"))
 
 
@@ -273,6 +279,32 @@ def _selftest() -> int:
        chain.score(cremed, bad_order) < chain.score(cremed,
            "chain: ADMET screen flags hERG -> redesign the analogue -> re-screen ADMET to "
            "confirm the fix -> re-estimate PK (PBPK) -> advance/hold decision"))
+
+    # ---- archetype F1/G: dose projection (numeric scorer) ----
+    dp = DecisionBenchmarkAdapter(config={"dataset": "dose_projection"})
+    dptasks = dp.load_tasks()
+    ck("F1/G: loads dose_projection (3 numeric tasks)",
+       len(dptasks) == 3 and all(t.metadata["scorer"] == "numeric" for t in dptasks))
+    mrsd = next(t for t in dptasks if t.task_id == "DOSEPROJ-01")
+    ck("F1/G: correct MRSD (0.81) within fold → high score",
+       dp.score(mrsd, "HED = 50*6/37 = 8.1 mg/kg; with a safety factor of 10 from the NOAEL.\n"
+                      "answer: MRSD 0.81 mg/kg") > 0.95)
+    ck("F1/G: wrong MRSD (50) → low score",
+       dp.score(mrsd, "answer: 50 mg/kg") < 0.2)
+
+    # ---- archetype F3: dose schedule (categorical scorer) ----
+    ds = DecisionBenchmarkAdapter(config={"dataset": "dose_schedule"})
+    dstasks = ds.load_tasks()
+    ck("F3: loads dose_schedule (3 tasks)", len(dstasks) == 3)
+    beta = next(t for t in dstasks if t.task_id == "SCHED-01")
+    ck("F3: beta-lactam → frequent/continuous correct",
+       ds.score(beta, "Time>MIC-driven, so maximize time above MIC.\n"
+                      "verdict: frequent_or_continuous") > 0.9)
+    amino = next(t for t in dstasks if t.task_id == "SCHED-02")
+    ck("F3: aminoglycoside → extended-interval correct, not frequent",
+       ds.score(amino, "Concentration-dependent with a high peak target.\n"
+                       "verdict: high_dose_extended_interval") > 0.9
+       and ds.score(amino, "verdict: frequent_or_continuous") < 0.2)
 
     passed = sum(R)
     print(f"\n{passed}/{len(R)} passed")
