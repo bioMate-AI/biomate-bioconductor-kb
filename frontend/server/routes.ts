@@ -1154,6 +1154,51 @@ fs.mkdir(uploadDir, { recursive: true }).then(() => {
   setInterval(cleanStaleUploads, 6 * 60 * 60 * 1000);
 }).catch(() => {});
 
+// ── Stale-run reaper ────────────────────────────────────────────────────────
+// Background reconciliation for non-terminal runs whose completion was never
+// finalized (launching gunicorn worker died mid-run, container restart, or the
+// AWS Batch completion callback never fired). The /api/workflows/runs/:id/status
+// endpoint already reconciles a run against Galaxy's authoritative Nextflow state
+// when it is polled — but the dashboard LIST returns stored status, so an orphan
+// nobody opens shows 'running' forever (observed: runs stuck 'running' 5–7 days).
+//
+// This reaper self-polls that status endpoint for stale non-terminal runs, so the
+// SAME reconciliation runs without anyone opening them. It is SAFE: the status
+// endpoint only finalizes a run when Galaxy itself reports a terminal Nextflow
+// state (succeeded/failed/error, or non-batch 'interrupted') — a legitimately
+// long run that Galaxy still reports 'running' is never touched. Batch runs stay
+// deferred to Galaxy's Batch verdict. A 15-min grace avoids racing fresh runs;
+// each sweep is capped so a backlog can't hammer Galaxy.
+async function reconcileStaleRuns(): Promise<void> {
+  try {
+    const runs = await storage.getExecutionRuns(undefined, undefined, undefined, 200);
+    const now = Date.now();
+    const GRACE_MS = 15 * 60 * 1000;
+    const stale = runs.filter((r) => {
+      const st = (r as any).execution?.status;
+      if (!['running', 'configuring', 'queued'].includes(st)) return false;
+      const started = (r as any).execution?.startedAt || (r as any).createdAt;
+      const t = started ? new Date(started).getTime() : 0;
+      return t > 0 && now - t > GRACE_MS;
+    });
+    if (stale.length === 0) return;
+    const port = parseInt(process.env.PORT || '5000', 10);
+    const batch = stale.slice(0, 25);
+    for (const r of batch) {
+      await fetch(`http://127.0.0.1:${port}/api/workflows/runs/${(r as any).id}/status`, {
+        signal: AbortSignal.timeout(12000),
+      }).catch(() => undefined);
+    }
+    console.log(`[run-reaper] reconciled ${batch.length}/${stale.length} stale non-terminal run(s)`);
+  } catch (e: any) {
+    console.warn('[run-reaper] sweep failed:', e?.message ?? e);
+  }
+}
+if (!process.env.VITEST && process.env.NODE_ENV !== 'test') {
+  setTimeout(() => { void reconcileStaleRuns(); }, 60 * 1000);
+  setInterval(() => { void reconcileStaleRuns(); }, 10 * 60 * 1000);
+}
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: async (req, file, cb) => {
