@@ -39,3 +39,19 @@ Do conformational/3D features beat the static ceiling on the same leak-free spli
 ## Files
 - `research/guangzhou_all_atom/c4_dynamical_permeability.py`
 - `research/guangzhou_all_atom/results/c4_dynamical_permeability.json`
+
+## C4-forward: explicit conformer-ENSEMBLE dynamics (2026-10-21)
+
+**Goal:** push past the single-point 3D-PSA proxy (R²=0.301) toward multimodal SOTA (CPMP 0.67 / CycPeptMP 0.77) with EXPLICIT conformer-ensemble chameleon-dynamics (Rg distribution, intramolecular-H-bond dynamics, shape spread), reusing collected data before simulating.
+
+**Audit:** CycPeptMPDB (8,466) carries only SINGLE-POINT CHCl3/H2O_3DPSA (the 0.301 proxy's inputs); no explicit conformer ensembles in-repo; MacroConf (331 NMR+MD) does not overlap the permeability set (confirmed). So ensembles must be generated.
+
+**Honest obstacle — explicit ensembles are CPU-compute-bound:**
+- RDKit ETKDGv3 on these 117–167-atom macrocycles: naïve params gave 1 conformer / ~13 s/mol; fixed with `useRandomCoords=True`+multithread, no `pruneRmsThresh` (pruning collapsed macrocycles to 1 conf) → 20 confs/mol at **~9 s/mol including ensemble-feature extraction**.
+- Full 8,466 ≈ **~21 h CPU** — exceeds a compute window.
+- Small subsets are UNDERPOWERED: at n=250, even the ECFP baseline gives leak-free scaffold-CV **R²=−0.247** (vs 0.237 at full 8,466) — the subset is non-representative, so any ensemble-vs-proxy comparison at n≈250 is meaningless.
+- (Also fixed en route: broken-anaconda-py3.9 scipy ABI → pinned python3.14; HistGBM binning crash on constant feature columns → drop-degenerate-columns guard.)
+
+**Status:** built a CACHED + RESUMABLE ensemble featurizer (`c4_ensemble_permeability.py`, cache `results/c4_ensemble_cache.jsonl`) that accumulates across windows and runs the leak-free CV once ≥600 mols are cached. A trustworthy explicit-ensemble verdict requires either (a) this multi-hour (~21 h) chunked CPU accumulation to a representative n, or (b) the GPU full-membrane-MD lever (explicit shielding dynamics — the proper route to 0.67).
+
+**C4 bottom line (unchanged + bounded):** the *dynamical direction is validated* (static proxy +0.064 R² → 0.301, full 8,466). Reaching SOTA (0.67) is NOT achievable within a CPU window via explicit ETKDG ensembles — it is compute-bound, and the honest next lever is GPU membrane MD (or the long chunked accumulation). The static-proxy 0.301 stands as the deployable C4 result today.
