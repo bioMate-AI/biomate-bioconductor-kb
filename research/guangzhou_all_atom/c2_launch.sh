@@ -85,8 +85,8 @@ if [ -z "$IID" ]; then
   echo "NO SPOT CAPACITY across us-west-2 right now — retry later. NEVER on-demand."; exit 1
 fi
 
-echo "LAUNCHED instance: $IID  type=$LT az=$LAZ  (spot one-time, self-terminates <=90 min)"
-echo "Poll (~15-30 min on a clean box):"
+echo "LAUNCHED instance: $IID  type=$LT az=$LAZ  (spot one-time, self-terminates <=180 min)"
+echo "Poll (~20-40 min for all-targets x 5 acquisition modes on a many-core box):"
 echo "  aws s3 cp $DEST/out/c2_stdout.txt - --region $REGION          # C2_START ... FINAL[raw]/FINAL[novel] ... C2_DONE"
 echo "  aws s3 cp $DEST/out/c2_result.json - --region $REGION         # full learn-vs-fixed-vs-random curves"
 echo "  aws s3 ls $DEST/out/ --region $REGION                          # DONE (rc=0) = finished"
