@@ -70,3 +70,23 @@ Ran the untested lever: frozen **`DeepChem/ChemBERTa-77M-MLM`** embeddings (384-
 - **Fine-tuning not run** (bounded compute): with frozen-FM ≈ ECFP4 ≈ 0.40–0.42 and the ceiling looking data-fundamental, fine-tuning a 3–4M-param FM on ~23k rows is unlikely to break a data-limited ceiling. Noted as an unlikely-to-help further lever, not a blocker.
 
 **Consequence for "strong":** better *models/representations* are exhausted (feature-eng AND FM both ~0.42). The only levers left are the ones that add **data/signal**: physics augmentation (§5) and more measured targets (§4.3). "Strong + publishable" on novel-target affinity will come from data, or from reframing the claim to the *physics-grounded* pipeline — not from a bigger model.
+
+---
+
+## 9. Target-aware lever (ESM target embedding ⊕ ligand) — does NOT break the ceiling (2026-10-21)
+Hypothesis (coordinator): ECFP+ChemBERTa plateaued because they are LIGAND-ONLY (no target input) → ~0.42 is a ligand-only ceiling; a target-aware model should generalize to held-out targets. Tested with ESM-2-35M embeddings of the target sequence (694/796 targets resolved from UniProt) concatenated with ligand ECFP; SAME grouped leave-targets-out split + heads. Code `target_aware_binding.py`, results `results/binding_model_benchmark_cyclic.json` (`target_aware`). CPU, ~18 min, no spend.
+
+**Grouped CV (26,598 rows, 694 targets):**
+| Feature set | RF | HistGBM | Ridge |
+|---|---|---|---|
+| ligand_only (ECFP+physchem) | **0.445 ± 0.063** | 0.446 ± 0.080 | 0.338 |
+| target_only (ESM) — leakage probe | 0.187 ± 0.108 | 0.170 ± 0.118 | 0.148 |
+| target_aware (ECFP ⊕ ESM) | 0.351 ± 0.132 | 0.367 ± 0.120 | 0.369 |
+
+**PD-L1/αvβ6 holdout:** ligand_only RF 0.421 (PD-L1 0.385 / αvβ6 0.216) → target_aware RF 0.128 (PD-L1 0.081 / αvβ6 0.088).
+
+**Verdict — naive target-awareness LOWERS the ceiling, does not break it.** The ESM-target concat hurt the tree models (RF 0.445→0.351; holdout 0.421→0.128) — the embedding is mostly noise the trees can't convert into transferable matching, and is uninformative on a held-out target. Only Ridge nudged (0.338→0.369), still below the ligand-only tree.
+
+**Leakage probe (clean):** target_only is weak on grouped CV (~0.17) and NEGATIVE on the PD-L1/αvβ6 holdout (RF −0.099; PD-L1 −0.350). → The grouped split prevents target-identity memorization; ligand_only's ~0.42 is genuine ligand→affinity signal, NOT target leakage.
+
+**Convergent finding:** across ECFP (0.43), ChemBERTa (0.40), ESM-target-concat (0.35), the novel-target Spearman holds-or-drops. Strong evidence the limit is **data/task-fundamental for generic ML**, not a missing-target-input problem. Honest (a)/(b): (a) data/task wall vs (b) a crude *concat* is the wrong target-aware architecture — a protein-ligand **interaction** model (DrugCLIP-style cross-attention) is the one untried target-aware architecture; it is the remaining ML lever before declaring a hard data wall. Evidence so far favors (a), pointing to **physics-grounding (the §5 physics gate) rather than a bigger ML model** as the route to a strong novel-target model.

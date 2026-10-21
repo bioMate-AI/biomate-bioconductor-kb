@@ -197,5 +197,201 @@
         }
       }
     }
+  },
+  "target_aware": {
+    "n_rows_kept": 26598,
+    "n_targets": 796,
+    "n_resolved": 694,
+    "esm_model": "facebook/esm2_t12_35M_UR50D",
+    "esm_dim": 480,
+    "note": "grouped leave-targets-out CV; target_only is the leakage probe (should be low on held-out targets)",
+    "splits": {
+      "grouped_cv_ligand_only": {
+        "Ridge": {
+          "spearman_mean": 0.3382679102893056,
+          "spearman_std": 0.041756121442133906,
+          "folds": [
+            0.349,
+            0.382,
+            0.36,
+            0.34,
+            0.26
+          ],
+          "n_splits": 5
+        },
+        "RandomForest": {
+          "spearman_mean": 0.4452281584250447,
+          "spearman_std": 0.06334090655174913,
+          "folds": [
+            0.518,
+            0.457,
+            0.481,
+            0.44,
+            0.33
+          ],
+          "n_splits": 5
+        },
+        "HistGBM": {
+          "spearman_mean": 0.4463171983637487,
+          "spearman_std": 0.08003813986984774,
+          "folds": [
+            0.566,
+            0.445,
+            0.483,
+            0.415,
+            0.322
+          ],
+          "n_splits": 5
+        }
+      },
+      "pdl1_avb6_ligand_only": {
+        "Ridge": {
+          "spearman": 0.3799075727736826,
+          "n": 327
+        },
+        "RandomForest": {
+          "spearman": 0.42142958216560283,
+          "n": 327
+        },
+        "HistGBM": {
+          "spearman": 0.3700052542760749,
+          "n": 327
+        },
+        "breakdown": {
+          "PD-L1": {
+            "spearman": 0.3854372860916028,
+            "n": 162
+          },
+          "avb6": {
+            "spearman": 0.2163653674660387,
+            "n": 165
+          }
+        }
+      },
+      "grouped_cv_target_only": {
+        "Ridge": {
+          "spearman_mean": 0.14781591120018506,
+          "spearman_std": 0.07710651746724077,
+          "folds": [
+            0.062,
+            0.063,
+            0.258,
+            0.202,
+            0.154
+          ],
+          "n_splits": 5
+        },
+        "RandomForest": {
+          "spearman_mean": 0.18741739517359618,
+          "spearman_std": 0.1081875288977605,
+          "folds": [
+            -0.008,
+            0.163,
+            0.307,
+            0.246,
+            0.229
+          ],
+          "n_splits": 5
+        },
+        "HistGBM": {
+          "spearman_mean": 0.16989718576635768,
+          "spearman_std": 0.11830177998312903,
+          "folds": [
+            -0.033,
+            0.138,
+            0.323,
+            0.187,
+            0.235
+          ],
+          "n_splits": 5
+        }
+      },
+      "pdl1_avb6_target_only": {
+        "Ridge": {
+          "spearman": 0.25936162771490806,
+          "n": 327
+        },
+        "RandomForest": {
+          "spearman": -0.09889376745419518,
+          "n": 327
+        },
+        "HistGBM": {
+          "spearman": -0.2880664315205227,
+          "n": 327
+        },
+        "breakdown": {
+          "PD-L1": {
+            "spearman": -0.34981195278952876,
+            "n": 162
+          },
+          "avb6": {
+            "spearman": -0.009416676975551654,
+            "n": 165
+          }
+        }
+      },
+      "grouped_cv_target_aware": {
+        "Ridge": {
+          "spearman_mean": 0.3686952879416646,
+          "spearman_std": 0.08469577163013804,
+          "folds": [
+            0.521,
+            0.342,
+            0.363,
+            0.356,
+            0.261
+          ],
+          "n_splits": 5
+        },
+        "RandomForest": {
+          "spearman_mean": 0.35116015505607023,
+          "spearman_std": 0.13249134630575116,
+          "folds": [
+            0.087,
+            0.434,
+            0.416,
+            0.418,
+            0.4
+          ],
+          "n_splits": 5
+        },
+        "HistGBM": {
+          "spearman_mean": 0.367295009214368,
+          "spearman_std": 0.11986280320437388,
+          "folds": [
+            0.129,
+            0.402,
+            0.428,
+            0.445,
+            0.433
+          ],
+          "n_splits": 5
+        }
+      },
+      "pdl1_avb6_target_aware": {
+        "Ridge": {
+          "spearman": 0.38961890861228904,
+          "n": 327
+        },
+        "RandomForest": {
+          "spearman": 0.12830245473011898,
+          "n": 327
+        },
+        "HistGBM": {
+          "spearman": 0.09164112583290622,
+          "n": 327
+        },
+        "breakdown": {
+          "PD-L1": {
+            "spearman": 0.08081745736044767,
+            "n": 162
+          },
+          "avb6": {
+            "spearman": 0.08779120019683383,
+            "n": 165
+          }
+        }
+      }
+    }
   }
 }
