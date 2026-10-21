@@ -128,5 +128,74 @@
         }
       }
     }
+  },
+  "fm_chemberta": {
+    "fm_name": "DeepChem/ChemBERTa-77M-MLM",
+    "emb_dim": 384,
+    "n_cyclic": 28875,
+    "splits": {
+      "grouped_cv_fm": {
+        "Ridge": {
+          "spearman_mean": 0.1452820253803301,
+          "spearman_std": 0.028382554534913545,
+          "folds": [
+            0.116,
+            0.136,
+            0.172,
+            0.185,
+            0.117
+          ],
+          "n_splits": 5
+        },
+        "RandomForest": {
+          "spearman_mean": 0.4053953223662098,
+          "spearman_std": 0.07209117743753794,
+          "folds": [
+            0.518,
+            0.403,
+            0.393,
+            0.421,
+            0.292
+          ],
+          "n_splits": 5
+        },
+        "HistGBM": {
+          "spearman_mean": 0.3704245640131522,
+          "spearman_std": 0.051161183164594864,
+          "folds": [
+            0.428,
+            0.385,
+            0.388,
+            0.376,
+            0.274
+          ],
+          "n_splits": 5
+        }
+      },
+      "pdl1_avb6_holdout_fm": {
+        "Ridge": {
+          "spearman": 0.15269397636240278,
+          "n": 327
+        },
+        "RandomForest": {
+          "spearman": 0.39631431234288167,
+          "n": 327
+        },
+        "HistGBM": {
+          "spearman": 0.39056306610947383,
+          "n": 327
+        },
+        "breakdown": {
+          "PD-L1": {
+            "spearman": 0.2857691201007983,
+            "n": 162
+          },
+          "avb6": {
+            "spearman": 0.41723052631244106,
+            "n": 165
+          }
+        }
+      }
+    }
   }
 }

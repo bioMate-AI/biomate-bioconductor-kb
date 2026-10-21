@@ -48,3 +48,25 @@ The sequence LM stays the **generator** (propose cyclic peptides → SMILES; its
 cd research/guangzhou_all_atom
 /opt/homebrew/bin/python3.14 benchmark_binding_models.py   # ~23 min CPU, reuses results/binding_feature_cache.npz
 ```
+
+---
+
+## 8. Molecular-FM lever (ChemBERTa) — tested; does NOT break the ceiling (2026-10-21)
+Ran the untested lever: frozen **`DeepChem/ChemBERTa-77M-MLM`** embeddings (384-d, mean-pooled last hidden) → the SAME heads on the SAME grouped leave-targets-out CV + PD-L1/αvβ6 holdout. Code `chemberta_binding_benchmark.py`; results in `results/binding_model_benchmark_cyclic.json` (`fm_chemberta`). CPU, ~6 min, no spend.
+
+**Novel-target grouped CV (847 targets) — FM vs ECFP4 baseline:**
+| Head | ChemBERTa-FM | ECFP4+physchem (base/rich) |
+|---|---|---|
+| RandomForest | 0.405 ± 0.072 | 0.416 / **0.428** |
+| HistGBM | 0.370 ± 0.051 | 0.410 / 0.413 |
+| Ridge | 0.145 ± 0.028 | 0.321 / 0.301 |
+
+**PD-L1/αvβ6 holdout (FM):** RF 0.396, HistGBM 0.391; per-target **PD-L1 0.286, αvβ6 0.417**.
+
+**Verdict — the FM does NOT meaningfully beat ~0.42; the ceiling is data/task-fundamental.**
+- FM-RandomForest (0.405) is *within fold noise* of ECFP4-RF (0.428) — and slightly *lower*, not higher. FM-HistGBM is worse. Ridge-on-FM collapses (0.145). So a pretrained chemical FM representation does **no better** than substructure fingerprints on novel-target cyclic affinity.
+- This is the informative result: **two independent representations (ECFP4 fingerprints and a learned molecular-LM) both plateau at ~0.40–0.42 novel-target Spearman.** When representation doesn't matter, the limit is **not model capacity — it is data/task-fundamental** (coverage of novel targets, label heterogeneity across pooled IC50/Ki/EC50/Kd). That is a publishable finding in its own right: *the novel-target cyclic-affinity ceiling is a data problem, not a modeling problem.*
+- **αvβ6 nuance (honest):** the FM is *better* on αvβ6 (0.417 vs ECFP4 0.22–0.27) but *worse* on PD-L1 (0.286 vs 0.41) — a redistribution, not a net gain (overall RF ~0.40 either way). Per-target variance is high; neither representation is reliably better. (For αvβ6 specifically, the FM embedding is worth keeping in an ensemble.)
+- **Fine-tuning not run** (bounded compute): with frozen-FM ≈ ECFP4 ≈ 0.40–0.42 and the ceiling looking data-fundamental, fine-tuning a 3–4M-param FM on ~23k rows is unlikely to break a data-limited ceiling. Noted as an unlikely-to-help further lever, not a blocker.
+
+**Consequence for "strong":** better *models/representations* are exhausted (feature-eng AND FM both ~0.42). The only levers left are the ones that add **data/signal**: physics augmentation (§5) and more measured targets (§4.3). "Strong + publishable" on novel-target affinity will come from data, or from reframing the claim to the *physics-grounded* pipeline — not from a bigger model.
