@@ -8875,11 +8875,23 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             'methods_writing','comparative_methodology','regulatory_compliance',
           ]).has((intent as any)?.type ?? ''),
         });
-        const finalMessage = qualityEnforcedMessage || rawResponse;
+        let finalMessage = qualityEnforcedMessage || rawResponse;
         if (!finalMessage) {
           const emptyFallback = 'I\'m having trouble generating a response right now. Please try again in a moment.';
           if (onResponseDelta) onResponseDelta(emptyFallback);
           return { message: emptyFallback, truncated: false };
+        }
+        // Integrity guard — tool-less backbones (non-Claude, non-Gemini, e.g.
+        // gpt-5.6-luna via OpenRouter) have NO data-plane/literature tool loop
+        // here, so any "I'll query Open Targets / searched PubMed" narration is
+        // fabricated: the lookup never ran. Don't let the model pass training
+        // knowledge off as a live retrieval — append (and stream) an honesty note.
+        const _toolLessBackbone = !isClaudeBackbone && !responseModel.startsWith('gemini-');
+        const _claimsLiveLookup = /\b(?:I['’]?ll|let me|now|I (?:have|just)|I['’]ve|going to)\s+(?:quer|search|look(?:ing)?\s*up|pull|retriev|fetch|check)\w*\b[^.\n]{0,60}\b(?:open\s*targets|pubmed|chembl|uniprot|ensembl|reactome|clinvar|pharos|drugbank|the\s+database|the\s+literature|genetic\s+association\s+score)\b/i;
+        if (_toolLessBackbone && _claimsLiveLookup.test(finalMessage)) {
+          const _disclaimer = "\n\n> ⚠️ **Generated from the model's training knowledge** — BioMate did not run a live database or literature query for this answer. Treat specific scores, statistics, and citations as unverified until checked against the source.";
+          finalMessage += _disclaimer;
+          if (onResponseDelta) onResponseDelta(_disclaimer);
         }
         return { message: finalMessage, truncated: false };
       }
