@@ -106,3 +106,48 @@ motif family than PADI4 (18%, median 0.30). Only 37 test binders are motif-disti
   chemistries) honestly, but do **not** claim the LM categorically beats trivial baselines — report the
   per-target value-add (+0.077 / +0.001) as-is. The LM's advantage is target-dependent and, on a tight
   motif family, absent.
+
+---
+
+## 6. Motif-diversity probe — does LM value-add track binder diversity? (4 targets, CPU)
+
+Hypothesis (to test, not assume): the LM beats k-mer baselines when binders are motif-**diverse**, and adds
+~nothing on a tight single-motif family a k-mer already separates. Qualifying targets (≥10 test binders
+after dedup): **PADI4, Abeta42, hIAPP, hPCSK9** (4/5; FIKK13 disqualified at 8 test binders). Same
+leakage-safe motif-distinct protocol; diversity = 1 − (fraction of test binders ≥0.5 3-mer-Jaccard to a
+train binder), higher = more diverse. Per-seq scores + checkpoints stored for all four
+(`results/cyclic_llm_selector_{T}_*`, `runs_selector/selector_{T}.pt`). All CPU (`python3.14`), no spend.
+
+| target | chemistry | diversity | LM AUC (md) | 2-mer | comp | **value-add** (LM−best baseline) | LM full |
+|---|---|---|---|---|---|---|---|
+| PADI4 | thioether | 0.82 | 0.941 | 0.864 | 0.766 | **+0.077** | 0.951 |
+| Abeta42 | disulfide | 0.16 | 0.979 | 0.979 | 0.884 | **+0.001** | 0.987 |
+| hIAPP | disulfide | 0.74 | 0.585 | 0.605 | 0.602 | **−0.021** | 0.690 |
+| hPCSK9 | photo-xlink | 0.88 | 0.260 | 0.865 | 0.815 | **−0.605** | 0.343 |
+
+**Spearman(diversity, value-add) = −0.40 (n=4)** — the *wrong sign* for the hypothesis, and driven by
+hPCSK9 (the MOST diverse target, where the LM has the WORST value-add and is **below chance**, AUC 0.26).
+
+### Verdict — the hypothesis is refuted, and a stronger negative falls out
+1. **"LM helps on motif-diverse binders" is REFUTED** (not merely unsupported): the diversity↔value-add
+   rank correlation is −0.40 across the 4 targets, opposite the predicted direction. (n=4, so the −0.40 is
+   itself not a law — but it certainly does not support the hypothesis.)
+2. **The bigger, firmer negative: the LM has NO robust within-target advantage over a trivial 2-mer
+   baseline across targets.** LM beats the best baseline on only **2/4** (PADI4 +0.077; Abeta42 +0.001 ≈
+   tie), ties-to-loses on hIAPP (−0.021), and **fails below chance on hPCSK9 (0.26 vs 2-mer 0.865)**. The
+   2-mer logistic is the more robust selector: its AUC never drops below 0.60 ({0.864, 0.979, 0.605,
+   0.865}), whereas the LM is erratic ({0.941, 0.979, 0.585, 0.260}).
+3. **Even within-target *ranking* only holds on 2/4** (PADI4, Abeta42 strong; hIAPP weak at 0.69; hPCSK9
+   failed at 0.34 full). So the earlier "within-target win replicates" statement must be narrowed: it
+   replicates on 2 of 4 targets and fails on 2.
+
+### Honest implications for the paper
+- Do **not** claim a general within-target LM advantage. The defensible statement is narrow and must name
+  the failures: *"On 2 of 4 display targets the enrichment-conditioned LM ranks held-out binders strongly
+  (AUC 0.95/0.99) and beats trivial k-mer baselines on one (PADI4, +0.077); on the other two it matches or
+  underperforms a 2-mer logistic, and on hPCSK9 it is below chance."*
+- A **trivial 2-mer logistic is the more robust within-target selector** across these targets than the LM —
+  a result worth reporting on its own, and a caution against an LM-centric framing.
+- Caveats: n=4 targets; **PADI4 is the only traj-train target** (possible confound — though Abeta42 reaches
+  0.987 with default bucketing, so traj-train is not obviously the differentiator); hPCSK9's below-chance
+  failure (photo-crosslink chemistry) may have a target-specific cause but is a real negative as-is.
