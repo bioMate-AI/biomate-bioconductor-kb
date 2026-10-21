@@ -23,8 +23,8 @@ function userMsg(content = 'hi'): Message {
   } as unknown as Message
 }
 
-describe('groupProgressMessages', () => {
-  it('folds the canonical 8-wf / 1-agent / 5-wf fixture', () => {
+describe('groupProgressMessages — single compact stream box', () => {
+  it('streams the canonical 8-wf / 1-agent / 5-wf fixture into 2 boxes + 1 agent single', () => {
     counter = 0
     const messages: Message[] = [
       ...Array.from({ length: 8 }, () => progress('workflow.step_started')),
@@ -32,39 +32,40 @@ describe('groupProgressMessages', () => {
       ...Array.from({ length: 5 }, () => progress('workflow.step_completed')),
     ]
     const groups = groupProgressMessages(messages, 2)
-    // Expected: 1 folded wf group (7 hidden + 1 latest) + 1 agent single +
-    // 1 folded wf group (4 hidden + 1 latest) = 3 emitted entries.
     expect(groups).toHaveLength(3)
-    expect(groups[0].kind).toBe('folded')
-    if (groups[0].kind === 'folded') {
-      expect(groups[0].speaker).toBe('wf')
-      expect(groups[0].hidden).toHaveLength(7)
-      expect(groups[0].latest.id).toBe('p8')
-    }
-    expect(groups[1].kind).toBe('single')
-    if (groups[1].kind === 'single') {
-      expect(groups[1].message.id).toBe('p9')
-    }
-    expect(groups[2].kind).toBe('folded')
-    if (groups[2].kind === 'folded') {
-      expect(groups[2].speaker).toBe('wf')
-      expect(groups[2].hidden).toHaveLength(4)
-      expect(groups[2].latest.id).toBe('p14')
-    }
+    expect(groups[0].kind).toBe('stream')
+    if (groups[0].kind === 'stream') expect(groups[0].messages).toHaveLength(8)
+    expect(groups[1].kind).toBe('single') // agent never folds
+    if (groups[1].kind === 'single') expect(groups[1].message.id).toBe('p9')
+    expect(groups[2].kind).toBe('stream')
+    if (groups[2].kind === 'stream') expect(groups[2].messages).toHaveLength(5)
   })
 
-  it('does not fold runs of length ≤ threshold', () => {
+  it('boxes every foldable-progress run, including short ones', () => {
+    counter = 0
+    const messages: Message[] = [progress('workflow.x'), progress('workflow.x')]
+    const groups = groupProgressMessages(messages, 2)
+    expect(groups).toHaveLength(1)
+    expect(groups[0].kind).toBe('stream')
+    if (groups[0].kind === 'stream') expect(groups[0].messages).toHaveLength(2)
+  })
+
+  it('MERGES different foldable speakers (wf + qc + loop) into ONE box', () => {
     counter = 0
     const messages: Message[] = [
-      progress('workflow.x'),
-      progress('workflow.x'),
+      progress('workflow.a'),
+      progress('workflow.a'),
+      progress('workflow.qc_passed'), // qc
+      progress('workflow.autoloop_x'), // loop
+      progress('workflow.a'),
     ]
     const groups = groupProgressMessages(messages, 2)
-    expect(groups).toHaveLength(2)
-    expect(groups.every(g => g.kind === 'single')).toBe(true)
+    expect(groups).toHaveLength(1)
+    expect(groups[0].kind).toBe('stream')
+    if (groups[0].kind === 'stream') expect(groups[0].messages).toHaveLength(5)
   })
 
-  it('never folds agent or find speakers', () => {
+  it('never boxes agent or find speakers', () => {
     counter = 0
     const messages: Message[] = [
       ...Array.from({ length: 5 }, () => progress('deepagent.thought')),
@@ -75,44 +76,23 @@ describe('groupProgressMessages', () => {
     expect(groups.every(g => g.kind === 'single')).toBe(true)
   })
 
-  it('breaks runs on a different foldable speaker', () => {
+  it('breaks the box on an interleaved non-progress message', () => {
     counter = 0
     const messages: Message[] = [
-      progress('workflow.a'),
-      progress('workflow.a'),
-      progress('workflow.a'),
-      progress('workflow.qc_passed'), // speaker: qc, different
-      progress('workflow.a'),
-      progress('workflow.a'),
-      progress('workflow.a'),
-    ]
-    const groups = groupProgressMessages(messages, 2)
-    // wf run of 3 → folds; qc run of 1 → single; wf run of 3 → folds
-    expect(groups).toHaveLength(3)
-    expect(groups[0].kind).toBe('folded')
-    expect(groups[1].kind).toBe('single')
-    expect(groups[2].kind).toBe('folded')
-  })
-
-  it('does not fold non-progress messages interleaved between runs', () => {
-    counter = 0
-    const messages: Message[] = [
-      progress('workflow.a'),
       progress('workflow.a'),
       progress('workflow.a'),
       userMsg('a question'),
       progress('workflow.a'),
       progress('workflow.a'),
-      progress('workflow.a'),
     ]
     const groups = groupProgressMessages(messages, 2)
     expect(groups).toHaveLength(3)
-    expect(groups[0].kind).toBe('folded')
+    expect(groups[0].kind).toBe('stream')
     expect(groups[1].kind).toBe('single')
-    expect(groups[2].kind).toBe('folded')
+    expect(groups[2].kind).toBe('stream')
   })
 
-  it('threshold=0 disables folding entirely', () => {
+  it('threshold=0 disables streaming entirely', () => {
     counter = 0
     const messages: Message[] = Array.from({ length: 10 }, () => progress('workflow.a'))
     const groups = groupProgressMessages(messages, 0)
@@ -120,10 +100,7 @@ describe('groupProgressMessages', () => {
     expect(groups.every(g => g.kind === 'single')).toBe(true)
   })
 
-  it('folds reloaded progress lines by id prefix when metadata was stripped on persist', () => {
-    // On reload, persisted progress messages keep their `progress-…` id but lose
-    // metadata.type/kind. They must still be recognized as progress and fold —
-    // instead of rendering as full assistant messages (the regression this fixes).
+  it('streams reloaded progress lines (metadata stripped on persist) by id prefix', () => {
     counter = 0
     const reloaded = (): Message => {
       counter += 1
@@ -132,6 +109,7 @@ describe('groupProgressMessages', () => {
     const messages: Message[] = Array.from({ length: 6 }, reloaded)
     const groups = groupProgressMessages(messages, 2)
     expect(groups).toHaveLength(1)
-    expect(groups[0].kind).toBe('folded')
+    expect(groups[0].kind).toBe('stream')
+    if (groups[0].kind === 'stream') expect(groups[0].messages).toHaveLength(6)
   })
 })

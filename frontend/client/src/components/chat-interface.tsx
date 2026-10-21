@@ -7,7 +7,7 @@ import { uploadFile as uploadFileShared } from "@/lib/upload"
 import { tOr } from "@/lib/i18n"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
 import { ChatMessage, type Message } from "./chat-message"
-import { groupProgressMessages, FoldedProgressGroup } from "./chat-progress-fold"
+import { groupProgressMessages, ProgressStreamBox } from "./chat-progress-fold"
 import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
 import { FindingsCard } from "./findings-card"
 import { ChatInput, type ComposerProject } from "./chat-input"
@@ -2235,21 +2235,12 @@ export function ChatInterface({
                 )}
               </div>
             )
-            // Collapse consecutive same-speaker progress runs (wf/qc/loop/plan)
-            // into a caret-able "WF — N updates" summary; agent/find never fold.
+            // Collapse consecutive progress runs (wf/qc/loop/plan) into a single
+            // compact, auto-scrolling progress box; agent/find stay full messages.
             const groups = groupProgressMessages(visible, 2)
             return groups.map((g) => {
               if (g.kind === 'single') return renderOne(g.message)
-              return (
-                <div key={g.key}>
-                  <FoldedProgressGroup
-                    speaker={g.speaker}
-                    hidden={g.hidden}
-                    renderMessage={renderOne}
-                  />
-                  {renderOne(g.latest)}
-                </div>
-              )
+              return <ProgressStreamBox key={g.key} messages={g.messages} />
             })
           })()}
           {displayTyping && <TypingIndicator phase={showWorkflowCue ? 'workflow' : workflowGeneratingPhase} />}

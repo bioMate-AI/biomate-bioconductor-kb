@@ -13,15 +13,12 @@
 // `agent` (reasoning) and `find` (findings) speakers never fold — they carry
 // load-bearing content the user must not have to click to see.
 
-import { useState } from 'react'
+import { useEffect, useRef } from 'react'
 import type { Message } from '@shared/schema'
 
 // Local copies of speaker helpers — kept in sync with chat-message.tsx but
 // duplicated here so this module (and its unit test) does not transitively
 // import the full ChatMessage component graph (3Dmol, markdown, etc).
-const SPEAKER_LABELS_LOCAL: Record<string, string> = {
-  plan: 'PLAN', wf: 'WF', qc: 'QC', loop: 'LOOP', agent: 'AGENT', find: 'FIND',
-}
 const FOLDABLE_SPEAKERS_LOCAL = new Set(['wf', 'qc', 'loop', 'plan'])
 function deriveSpeakerLocal(kind: string | undefined): string {
   if (!kind) return 'wf'
@@ -36,7 +33,7 @@ function deriveSpeakerLocal(kind: string | undefined): string {
 
 export type ProgressGroup =
   | { kind: 'single'; message: Message; key: string }
-  | { kind: 'folded'; speaker: string; hidden: Message[]; latest: Message; key: string }
+  | { kind: 'stream'; messages: Message[]; key: string }
 
 function isProgress(m: Message): boolean {
   if (m.role === 'user') return false
@@ -53,13 +50,18 @@ function speakerOf(m: Message): string {
 }
 
 /**
- * Walks a flat message list and emits a render list where consecutive
- * foldable-speaker progress messages of the same speaker are collapsed.
+ * Walks a flat message list and collapses each maximal run of consecutive
+ * foldable progress messages (wf / qc / loop / plan — across speakers) into a
+ * single `stream` group. The stream renders as one compact, auto-scrolling
+ * progress box (ProgressStreamBox) — no per-speaker pills, no fold caret.
+ *
+ * `agent` (reasoning) and `find` (findings) speakers never collapse — they
+ * carry load-bearing content and render as full messages. Non-progress
+ * messages (user, workflow cards, text) also render as singles.
  *
  * @param messages   ordered list of chat messages
- * @param threshold  a run collapses when its length is STRICTLY GREATER than
- *                   this (so threshold=2 collapses runs of 3+, matching
- *                   ChatStream.jsx). Set to 0 to disable folding.
+ * @param threshold  >0 enables streaming (every foldable-progress run boxes);
+ *                   0 disables entirely (every message is a single).
  */
 export function groupProgressMessages(
   messages: Message[],
@@ -73,34 +75,23 @@ export function groupProgressMessages(
   let i = 0
   while (i < messages.length) {
     const m = messages[i]
-    if (isProgress(m)) {
-      const sp = speakerOf(m)
-      if (FOLDABLE_SPEAKERS_LOCAL.has(sp)) {
-        let j = i
-        while (
-          j < messages.length &&
-          isProgress(messages[j]) &&
-          speakerOf(messages[j]) === sp
-        ) {
-          j++
-        }
-        const run = messages.slice(i, j)
-        if (run.length > threshold) {
-          const hidden = run.slice(0, run.length - 1)
-          const latest = run[run.length - 1]
-          out.push({
-            kind: 'folded',
-            speaker: sp,
-            hidden,
-            latest,
-            key: `fold-${hidden[0].id}-${latest.id}`,
-          })
-        } else {
-          for (const r of run) out.push({ kind: 'single', message: r, key: r.id })
-        }
-        i = j
-        continue
+    if (isProgress(m) && FOLDABLE_SPEAKERS_LOCAL.has(speakerOf(m))) {
+      let j = i
+      while (
+        j < messages.length &&
+        isProgress(messages[j]) &&
+        FOLDABLE_SPEAKERS_LOCAL.has(speakerOf(messages[j]))
+      ) {
+        j++
       }
+      const run = messages.slice(i, j)
+      out.push({
+        kind: 'stream',
+        messages: run,
+        key: `stream-${run[0].id}-${run[run.length - 1].id}`,
+      })
+      i = j
+      continue
     }
     out.push({ kind: 'single', message: m, key: m.id })
     i++
@@ -108,66 +99,53 @@ export function groupProgressMessages(
   return out
 }
 
+/** One progress line's visible text — the message content, stripped. */
+function progressLineText(m: Message): string {
+  const c = (m as any).content
+  const text = typeof c === 'string' ? c : (c == null ? '' : String(c))
+  return text.trim()
+}
+
 /**
- * Caret-able summary line: "WF — 5 earlier updates · click to show".
- * Hidden messages are rendered (expanded) on click; they remain in the DOM
- * either way (display:none when collapsed) so search/Ctrl-F still finds them.
+ * Compact, auto-scrolling progress box — streams every progress line in a
+ * fixed-height scrollable pane (like Claude's streaming output), newest at the
+ * bottom. No per-speaker pills (WF/QC) and no fold caret: it's a single quiet
+ * activity log that always shows the latest update and lets the user scroll
+ * back through earlier ones.
  */
-export function FoldedProgressGroup({
-  speaker,
-  hidden,
-  renderMessage,
-}: {
-  speaker: string
-  hidden: Message[]
-  renderMessage: (m: Message) => React.ReactNode
-}) {
-  const [open, setOpen] = useState(false)
-  const label = SPEAKER_LABELS_LOCAL[speaker] ?? 'WF'
-  const n = hidden.length
+export function ProgressStreamBox({ messages }: { messages: Message[] }) {
+  const ref = useRef<HTMLDivElement>(null)
+  // Auto-scroll to the newest line as the stream grows.
+  useEffect(() => {
+    const el = ref.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages.length])
+  const lines = messages.map((m) => ({ id: m.id, text: progressLineText(m) }))
   return (
     <div
-      className="chat-progress-fold"
-      data-testid={`progress-fold-${speaker}`}
-      data-speaker={speaker}
-      data-count={n}
-      data-open={open ? 'true' : 'false'}
+      ref={ref}
+      className="chat-progress-stream"
+      data-testid="progress-stream"
+      data-count={messages.length}
+      style={{
+        margin: '4px 0 4px 40px',
+        maxHeight: 132,
+        overflowY: 'auto',
+        padding: '6px 10px',
+        borderRadius: 8,
+        background: 'var(--bm-surface-2, oklch(0.975 0.003 240))',
+        border: '1px solid var(--bm-border, oklch(0.9 0.004 240))',
+        fontFamily: 'var(--bm-font-mono, ui-monospace, SFMono-Regular, monospace)',
+        fontSize: 11.5,
+        lineHeight: 1.65,
+        color: 'var(--bm-text-dim, oklch(0.58 0.012 260))',
+      }}
     >
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="chat-progress-fold__caret"
-        style={{
-          display: 'flex',
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          textAlign: 'left',
-          alignItems: 'center',
-          gap: 6,
-          padding: '2px 8px',
-          fontSize: 12,
-          color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          fontFamily: 'var(--bm-font-ui)',
-          opacity: 0.85,
-        }}
-      >
-        <span aria-hidden style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>▶</span>
-        <span className="speaker-pill" data-speaker={speaker}>{label}</span>
-        <span>— {n} earlier update{n === 1 ? '' : 's'} · click to {open ? 'hide' : 'show'}</span>
-      </button>
-      <div
-        className="chat-progress-fold__hidden"
-        style={open ? undefined : { display: 'none' }}
-        aria-hidden={!open}
-      >
-        {hidden.map((m) => (
-          <div key={m.id}>{renderMessage(m)}</div>
-        ))}
-      </div>
+      {lines.map((l) => (
+        <div key={l.id} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          {l.text || '…'}
+        </div>
+      ))}
     </div>
   )
 }
