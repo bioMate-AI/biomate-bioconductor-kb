@@ -60,6 +60,34 @@ ck("more tier-A/B citations -> higher answer-free reward",
 ck("boundary honesty earns a bonus",
    tv.score(None, "where the record stops") > tv.score(None, "plain text"))
 
+# RealDecompVerifier — BioMate's PRODUCTION scorer wired in (not the mirror)
+from research.verifiers import real_decomp_verifier, StructureVerifier, select_verifier  # noqa: E402
+import json as _json  # noqa: E402
+
+_real = real_decomp_verifier()
+_gold = {"gold_subtasks": [
+    {"sub_task": "Align reads", "order": 1, "depends_on": [], "domain": "genomics"},
+    {"sub_task": "Call variants", "order": 2, "depends_on": [1], "domain": "variant_calling"},
+    {"sub_task": "Annotate variants", "order": 3, "depends_on": [2], "domain": "variant_calling"},
+]}
+_exact = _json.dumps([{"sub_task": s["sub_task"], "order": s["order"], "depends_on": s["depends_on"]}
+                      for s in _gold["gold_subtasks"]])
+_collapsed = _json.dumps([{"sub_task": s["sub_task"], "order": s["order"], "depends_on": []}
+                          for s in _gold["gold_subtasks"]])
+
+ck("real decomposition scorer loads from evaluation/", _real is not None)
+if _real is not None:
+    ck("select_verifier routes a gold_subtasks task to the REAL scorer",
+       select_verifier(_gold).name == "decomp_structure_real")
+    _mirror = StructureVerifier()
+    # the mirror was faithful AND the real scorer is wired correctly iff they agree
+    ck("real scorer agrees with the mirror on the exact plan",
+       abs(_real.score(_gold, _exact) - _mirror.score(_gold, _exact)) < 1e-9)
+    ck("real scorer agrees with the mirror on a collapsed plan",
+       abs(_real.score(_gold, _collapsed) - _mirror.score(_gold, _collapsed)) < 1e-9)
+    ck("real scorer ranks the exact plan above the collapsed one",
+       _real.score(_gold, _exact) > _real.score(_gold, _collapsed))
+
 passed = sum(1 for c in _R if c)
 print(f"\n{passed}/{len(_R)} passed")
 sys.exit(0 if passed == len(_R) else 1)

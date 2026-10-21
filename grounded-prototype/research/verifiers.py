@@ -93,6 +93,13 @@ class ExpectedParamsVerifier:
         return max(0.0, f1 * (1.0 - 0.5 * penalty))
 
 
+def _blend_decomp(node_f1: float, structure_hit: float, edge_f1: float) -> float:
+    """Scalar decomposition reward: nodes + structure are the primary signal, edges
+    conditioned on matched nodes. Shared by the mirror StructureVerifier AND the real
+    scorer bridge so the two produce identical rewards on identical component scores."""
+    return max(0.0, min(1.0, 0.45 * node_f1 + 0.30 * structure_hit + 0.25 * edge_f1))
+
+
 class StructureVerifier:
     """Decomposition-plan reward, mirroring evaluation/datasets/decomposition_v2/
     score.py :: score_one — a blend of node_f1 (did we recover the right
@@ -196,8 +203,67 @@ class StructureVerifier:
             1.0 if (not ge and not pe) else 0.0)
 
         structure_hit = 1.0 if self._structure_of(pred) == self._structure_of(gold) else 0.0
-        # nodes + structure are the primary signal; edges conditioned on nodes.
-        return max(0.0, min(1.0, 0.45 * node_f1 + 0.30 * structure_hit + 0.25 * edge_f1))
+        return _blend_decomp(node_f1, structure_hit, edge_f1)
+
+
+class RealDecompVerifier:
+    """Decomposition reward computed by BioMate's REAL production scorer
+    (evaluation/datasets/decomposition_v2/score.py::score_one), not the mirror. This is
+    the "production wiring" the module docstring calls for: the self-improvement loop
+    optimizes against the exact node_f1/edge_f1/structure metric the benchmark reports,
+    so a harness edit that scores well here scores well on the real benchmark. Blended
+    with _blend_decomp — identical to StructureVerifier on identical component scores."""
+
+    name = "decomp_structure_real"
+    answer_free = False
+
+    def __init__(self, scorer_module):
+        self._score_one = scorer_module.score_one
+
+    def score(self, ground_truth: Any, response: str) -> float:
+        import json
+        gold = (ground_truth or {}).get("gold_subtasks", []) or []
+        pred = response
+        if isinstance(pred, str):
+            try:
+                pred = json.loads(pred)
+            except Exception:
+                pred = []
+        if not isinstance(pred, list):
+            pred = []
+        if not gold:
+            return 0.0
+        r = self._score_one(gold, pred)
+        return _blend_decomp(float(r.get("node_f1", 0.0)),
+                             float(r.get("structure_hit", 0.0)),
+                             float(r.get("edge_f1", 0.0)))
+
+
+_REAL_DECOMP = "unset"
+
+
+def real_decomp_verifier():
+    """Load BioMate's real decomposition scorer once; return a RealDecompVerifier, or
+    None when evaluation/ is unavailable (then the caller uses the mirror). Resilient:
+    any import failure falls back to None rather than breaking the loop."""
+    global _REAL_DECOMP
+    if _REAL_DECOMP == "unset":
+        _REAL_DECOMP = None
+        try:
+            import importlib.util
+            import os
+            here = os.path.dirname(os.path.abspath(__file__))
+            path = os.path.abspath(os.path.join(
+                here, "..", "..", "evaluation", "datasets", "decomposition_v2", "score.py"))
+            if os.path.exists(path):
+                spec = importlib.util.spec_from_file_location("biomate_decomp_score", path)
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                if hasattr(mod, "score_one"):
+                    _REAL_DECOMP = RealDecompVerifier(mod)
+        except Exception:
+            _REAL_DECOMP = None
+    return _REAL_DECOMP
 
 
 class ExactClassVerifier:
@@ -236,9 +302,10 @@ def select_verifier(ground_truth: Optional[Any]) -> Verifier:
         if ground_truth.get("classes") is not None:
             return _CLASS
         if ground_truth.get("gold_subtasks") is not None:
-            # a decomposition-plan task (research/decompose.py): the gold plan is
-            # ground truth, scored graph-aware (node/edge/structure).
-            return _STRUCT
+            # a decomposition-plan task (research/decompose.py): the gold plan is ground
+            # truth, scored graph-aware (node/edge/structure). Prefer BioMate's REAL
+            # production scorer; fall back to the mirror when evaluation/ is unavailable.
+            return real_decomp_verifier() or _STRUCT
         if ground_truth.get("expected") is not None:
             # a user-correction task (research/feedback.py): the corrected value
             # is ground truth. Lazy import avoids a cycle.
