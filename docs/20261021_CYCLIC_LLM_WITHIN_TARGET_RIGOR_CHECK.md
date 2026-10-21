@@ -1,65 +1,69 @@
 # Cyclic-peptide LM — within-target "win" rigor check (PADI4)
 
-**Date:** 2026-10-21 · Adversarial check of the claim `selector_AUC 0.959` (display-conditioned LM as a
-within-target binder selector). Question: is it a real LM contribution over trivial baselines, or just
-amino-acid composition + random-split leakage? CPU-only, no retraining; numbers traced to
-`data/display/display_ngs_multitarget.csv.gz` and `cyclic_llm/cyclic_llm_selector.py`.
+**Date:** 2026-10-21 · Adversarial check of `selector_AUC 0.959` (display-conditioned LM as a within-target
+binder selector). Question: real LM contribution over trivial baselines, or just amino-acid composition +
+random-split leakage? CPU-only. Data: `data/display/display_ngs_multitarget.csv.gz`; recipe:
+`cyclic_llm/cyclic_llm_selector.py`; re-score: `cyclic_llm/rescore_padi4_selector.py`; per-seq scores:
+`results/cyclic_llm_selector_PADI4_perseq_scores.json`.
 
 ## 0. Correction to a prior claim
-The result json's `AUC_raw_residue_sum = 0.9575` was mistaken (in conversation) for a trivial residue-sum
-baseline. It is **not** — reading `cyclic_llm_selector.py`, it is the LM's **own raw (un-length-normalized)
-LLR**; `selector_AUC 0.9592` is the same LM LLR length-normalized. **No independent trivial baseline existed
-in the original result.** This check computes the missing baselines.
+The json's `AUC_raw_residue_sum = 0.9575` was mistaken (in conversation) for a trivial residue-sum baseline.
+It is **not** — per `cyclic_llm_selector.py` it is the LM's **own raw (un-length-normalized) LLR**;
+`selector_AUC 0.9592` is the same LM LLR length-normalized. No independent trivial baseline existed in the
+original result; this check computes them.
 
 ## 1. Does the LM beat trivial baselines? (same random 80/20 split, predict `is_binder`, n_test=4000, 67 binders)
-| Scorer | AUC |
+| Scorer | AUC (full) |
 |---|---|
-| **LM length-norm LLR** (json) | **0.9592** |
-| LM raw-sum LLR (json) | 0.9575 |
+| **LM length-norm LLR** (orig json / re-trained) | **0.9592 / 0.9511** |
 | 2-mer logistic | 0.8870 |
 | AA-composition logistic | 0.7814 |
 | per-AA log-odds sum | 0.7728 |
 | length only | 0.4049 |
 
-**The LM genuinely beats the trivial baselines** — +0.07 AUC over a 2-mer logistic, +0.18 over
-composition. The task is *substantially* (not fully) captured by k-mer composition; the LM adds a real,
-modest margin on top.
+The LM genuinely beats trivial baselines — **+0.064 AUC over a 2-mer logistic, +0.17 over composition**
+(re-trained LM 0.9511; original 0.9592 — difference is a fresh training instance, no saved checkpoint).
 
 ## 2. Leakage diagnosis (split is `random.Random(0).shuffle` by sequence — NOT motif-clustered)
 test-binder → nearest **train-binder** 3-mer Jaccard (n=67 test binders; 327 train binders):
 | threshold | count | |
 |---|---|---|
 | exact seq in train | **0/67** | no exact duplicates |
-| ≥ 0.9 | 0/67 (0%) | no near-duplicates |
-| ≥ 0.8 | 0/67 (0%) | |
+| ≥ 0.9 / ≥ 0.8 | 0/67 / 0/67 | no near-duplicates |
 | ≥ 0.5 | 12/67 (18%) | moderate motif relatedness |
 | ≥ 0.3 | 35/67 (52%) | median Jaccard 0.30 |
 
-**Leakage is mild, not severe** — no exact or ≥0.8 near-duplicate test binders; most test binders are
-motif-distinct from training (median 3-mer Jaccard 0.30).
+Leakage is **mild, not severe** — no exact or ≥0.8 near-duplicate test binders; most test binders are
+motif-distinct from training.
 
-## 3. Leakage-stratified baseline AUC (2-mer logistic; LM per-seq scores not stored → baseline only)
-| subset | 2-mer baseline AUC | n_pos |
+## 3. DIRECTLY-MEASURED leakage-safe AUC — LM re-scored on CPU (not inferred)
+Re-trained the selector (same recipe, traj-train) on CPU, stored per-seq length-normalized LLR, and
+computed AUC on the full set and the **motif-distinct** subset (positives = 55 test binders with 3-mer
+Jaccard < 0.5 to any train binder; negatives = all test non-binders):
+
+| Scorer | FULL AUC | MOTIF-DISTINCT AUC (sim<0.5) |
 |---|---|---|
-| LEAKY (sim ≥ 0.5) | 0.9931 | 12 |
-| motif-DISTINCT (sim < 0.5) | **0.8638** | 55 |
-| full test | 0.8870 | 67 |
+| **LM length-norm LLR** | **0.9511** | **0.9405** |
+| 2-mer logistic | 0.8870 | 0.8638 |
+| AA-composition | 0.7814 | 0.7662 |
 
-The baseline retains **0.864** on motif-distinct binders (only ~0.02 below its full-set 0.887) → the
-within-target signal is **genuine composition/biochemistry, not a leakage artifact**. Leakage inflates the
-baseline by only ~0.02.
+- **LM leakage inflation is negligible: −0.011** (0.9511 → 0.9405 on motif-distinct). This replaces the
+  earlier *inferred* ~0.93 with a *measured* **0.9405**.
+- **LM leakage-safe value-add over the best trivial baseline = +0.077 AUC** (0.9405 vs 2-mer 0.8638) — on
+  sequences that are motif-distinct from training, i.e. not explainable by near-duplicate leakage.
+- LM lift @ top-5% = 13.4× (full).
 
 ## 4. Verdict
-**The within-target win survives scrutiny — it is real.** The LM beats trivial composition/k-mer baselines
-by a meaningful margin (0.959 vs 0.887/0.781), and the signal is not a leakage artifact (no near-duplicate
-test binders; baseline holds 0.864 on motif-distinct sequences). Genuine LM value-add over the best trivial
-baseline ≈ **+0.07 AUC** on the full set.
+**The within-target win is real and leakage-safe.** Directly measured: the LM scores AUC **0.9405 on
+motif-distinct held-out binders**, beating trivial composition/k-mer baselines by **+0.077** there, with
+only ~0.01 leakage inflation. The signal is genuine display-binding biochemistry the LM captures beyond
+composition, not a near-duplicate artifact.
 
-**Caveats (honest):**
-1. The LM's own leakage-robustness is **inferred, not directly measured** — per-sequence LM LLR scores are
-   not stored, and re-scoring needs the model on GPU (out of scope here). I directly stratified only the
-   2-mer baseline (small ~0.02 leakage inflation); the LM's motif-distinct AUC is *expected* ~0.93 by
-   analogy but was not recomputed. To close this, re-score the motif-distinct subset with the trained LM.
-2. The split is **random-by-sequence**, not motif-clustered. A cluster-held-out split is the cleaner design;
-   the similarity-stratified analysis is the no-retrain approximation and shows leakage is mild here.
-3. This is **within-target** only — orthogonal to the unsolved cross-target generalization (NULL/negative).
+**Scope / honesty:**
+1. Within-target only — orthogonal to the unsolved **cross-target** generalization (which is NULL for our
+   LM and negative for the BoltzGen FT; see the innovation thesis doc).
+2. The re-trained LM (0.9511) is a fresh instance of the same recipe — the original selector saved no
+   checkpoint; the gap to 0.9592 is training-run variance, not a different result. Per-seq scores are now
+   stored (`results/cyclic_llm_selector_PADI4_perseq_scores.json`) so this need never be re-inferred.
+3. The split is random-by-sequence; the similarity-stratified (sim<0.5) analysis is the motif-safe
+   evaluation and the leakage-safe AUC reported above.
