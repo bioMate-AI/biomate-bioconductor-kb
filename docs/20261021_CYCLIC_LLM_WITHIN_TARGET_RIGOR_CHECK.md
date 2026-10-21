@@ -67,3 +67,42 @@ composition, not a near-duplicate artifact.
    stored (`results/cyclic_llm_selector_PADI4_perseq_scores.json`) so this need never be re-inferred.
 3. The split is random-by-sequence; the similarity-stratified (sim<0.5) analysis is the motif-safe
    evaluation and the leakage-safe AUC reported above.
+
+---
+
+## 5. Second target — 2-target within-target replication (Abeta42)
+
+**Target choice.** FIKK13 (the only other *same-platform* thioether target) is too sparse — after dedup only
+~40 unique binders, giving **8 test binders** at the 20% split (< the 10-binder floor). So the 2nd target is
+**Abeta42** (`cyclization = disulfide/head-to-tail`, a *different* chemistry from PADI4's thioether). Two
+chemistries is actually a stronger generality statement; the chemistry is reported honestly. Default log2fc
+bucketing (no `trajectory_Abeta42.json`); same leakage-safe protocol otherwise. CPU, no spend.
+Artifacts: `results/cyclic_llm_selector_Abeta42_{perseq_scores,leakagesafe}.json`, `runs_selector/selector_Abeta42.pt`.
+
+| Scorer | FULL AUC (237 binders) | MOTIF-DISTINCT AUC (sim<0.5, 37 binders) |
+|---|---|---|
+| LM length-norm LLR | 0.9872 (lift5 12.3×) | 0.9792 |
+| 2-mer logistic | 0.9858 | 0.9786 |
+| AA-composition | 0.9335 | 0.8837 |
+
+Leakage: 237 test binders, **84% ≥0.5** 3-mer Jaccard to a train binder (median 0.50) — a *much tighter*
+motif family than PADI4 (18%, median 0.30). Only 37 test binders are motif-distinct.
+
+### Two-target summary (motif-distinct, leakage-safe)
+| Target (chemistry) | LM AUC | 2-mer AUC | **LM − 2-mer** | composition AUC |
+|---|---|---|---|---|
+| PADI4 (thioether) | 0.9405 | 0.8638 | **+0.077** | 0.766 |
+| Abeta42 (disulfide) | 0.9792 | 0.9786 | **+0.001** | 0.884 |
+
+### Honest verdict (2-target)
+- **The within-target binder-RANKING signal replicates at 2 targets across 2 chemistries** (LM AUC
+  0.94–0.98, leakage-safe). As a *ranking capability*, the within-target result holds.
+- **BUT the LM's VALUE-ADD over a trivial 2-mer baseline does NOT replicate.** It is real on PADI4
+  (+0.077) and **essentially zero on Abeta42 (+0.001 — the 2-mer logistic ties the LM)**. On Abeta42 the
+  binders form a tight motif family a 2-mer baseline already separates at 0.979, leaving no headroom for
+  the LM. So "the LM beats trivial baselines within-target" is a **PADI4-specific** finding, not a general
+  one — a 2-mer baseline is competitive-to-equal elsewhere.
+- **Implication for the paper:** claim the within-target binder-ranking capability (2 targets, 2
+  chemistries) honestly, but do **not** claim the LM categorically beats trivial baselines — report the
+  per-target value-add (+0.077 / +0.001) as-is. The LM's advantage is target-dependent and, on a tight
+  motif family, absent.
