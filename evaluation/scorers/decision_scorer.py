@@ -173,6 +173,97 @@ def _set_f1(got: Set[str], gold: Set[str]) -> float:
     return 0.0 if (prec + rec) == 0 else 2 * prec * rec / (prec + rec)
 
 
+# ── categorical-verdict decision scorer ──────────────────────────────────────
+# Serves archetypes whose decision is a single categorical call from a controlled
+# vocabulary (plus an optional numeric estimate): F2 tissue/organ exposure
+# (reaches_target | excluded) and F4 special-population dose adjustment
+# (no_change | reduce_dose | avoid_or_contraindicated).
+
+def _assert_verdicts(response: str, vocab: Dict[str, Sequence[str]]) -> Set[str]:
+    """Which canonical verdicts the response asserts. Prefers a `verdict:`/`action:`
+    line; else scans the text for an alias not immediately negated ('not reduce')."""
+    text = response or ""
+    # 1) structured verdict/action line
+    asserted: Set[str] = set()
+    for key in ("verdict", "action", "decision"):
+        m = re.search(rf"(?im)^\s*{key}\s*[:=]\s*(.+)$", text)
+        if m:
+            val = m.group(1).lower()
+            for canon, aliases in vocab.items():
+                if any(a in val for a in aliases) or canon.lower() in val:
+                    asserted.add(canon)
+            if asserted:
+                return asserted
+    # 2) free-text: alias present and not immediately preceded by a negator
+    low = text.lower()
+    for canon, aliases in vocab.items():
+        for a in list(aliases) + [canon.lower()]:
+            for m in re.finditer(re.escape(a), low):
+                pre = low[max(0, m.start() - 6):m.start()]
+                if pre.rstrip().endswith(("not", "n't", "no")):
+                    continue
+                asserted.add(canon)
+                break
+    return asserted
+
+
+def score_categorical_decision(response: str, ground_truth: Dict[str, Any]) -> Dict[str, Any]:
+    """Grade a single categorical decision + optional numeric estimate.
+
+    ground_truth:
+      verdict        : the correct canonical verdict (str)
+      verdict_vocab  : {canonical: [lowercased alias substrings]}
+      numeric        : optional {cue, true_value, tolerance_fold} — parse a number near
+                       `cue` (regex-escaped substring) and credit if within fold
+      rationale_must_mention : optional [lowercased terms]
+    Composite: with numeric → 0.60 verdict + 0.25 numeric + 0.15 rationale;
+               without      → 0.80 verdict + 0.20 rationale.
+    """
+    vocab = {k: [a.lower() for a in v] for k, v in ground_truth.get("verdict_vocab", {}).items()}
+    true_v = ground_truth["verdict"]
+    asserted = _assert_verdicts(response, vocab)
+    if true_v in asserted and len(asserted) == 1:
+        verdict_score = 1.0
+    elif true_v in asserted:
+        verdict_score = 0.5          # hedged — asserted the right one but also others
+    else:
+        verdict_score = 0.0
+
+    num = ground_truth.get("numeric")
+    numeric_score: Optional[float] = None
+    parsed_num: Optional[float] = None
+    if num:
+        import math
+        cue = num.get("cue", "")
+        tol = float(num.get("tolerance_fold", 2.0))
+        true_val = float(num["true_value"])
+        low = (response or "").lower()
+        best = None
+        for m in re.finditer(re.escape(cue.lower()) + r"[^0-9\-]{0,25}(-?[0-9]+(?:\.[0-9]+)?)", low):
+            best = float(m.group(1))
+        parsed_num = best
+        if best is None:
+            numeric_score = 0.0
+        else:
+            fold = max(best / true_val, true_val / best) if (best and true_val) else math.inf
+            numeric_score = 1.0 if fold <= tol else 0.0
+
+    rationale = _rationale_coverage(response, ground_truth.get("rationale_must_mention", []))
+
+    if numeric_score is not None:
+        score = 0.60 * verdict_score + 0.25 * numeric_score + 0.15 * rationale
+    else:
+        score = 0.80 * verdict_score + 0.20 * rationale
+    return {
+        "score": round(score, 4),
+        "verdict_score": verdict_score,
+        "parsed_verdicts": sorted(asserted),
+        "numeric_score": numeric_score,
+        "parsed_numeric": parsed_num,
+        "rationale_coverage": round(rationale, 4),
+    }
+
+
 # ── CPU self-test ──────────────────────────────────────────────────────────
 
 def _selftest() -> int:
@@ -216,6 +307,44 @@ def _selftest() -> int:
 
     ck("word-boundary: 'C3' does not match inside 'C30'",
        _labels_in("potency is 30 nM for C30", ["C3"]) == set())
+
+    # ---- categorical verdict scorer (F2 / F4) ----
+    gt_f2 = {
+        "verdict": "excluded",
+        "verdict_vocab": {
+            "reaches": ["reaches", "engages", "penetrat", "sufficient exposure"],
+            "excluded": ["excluded", "does not reach", "will not engage", "efflux", "restricted"],
+        },
+        "rationale_must_mention": ["p-gp"],
+    }
+    cg = score_categorical_decision(
+        "P-gp efflux keeps brain exposure low.\nverdict: excluded", gt_f2)
+    ck("F2 structured verdict correct → 1.0 verdict, high score",
+       cg["verdict_score"] == 1.0 and cg["score"] > 0.9)
+    cw = score_categorical_decision("verdict: reaches", gt_f2)
+    ck("F2 wrong verdict → 0", cw["verdict_score"] == 0.0 and cw["score"] < 0.2)
+
+    gt_f4 = {
+        "verdict": "avoid_or_contraindicated",
+        "verdict_vocab": {
+            "no_change": ["no adjustment", "no change", "standard dose", "unchanged"],
+            "reduce_dose": ["reduce", "lower the dose", "dose reduction", "decrease the dose"],
+            "avoid_or_contraindicated": ["contraindicated", "avoid", "do not use", "not recommended"],
+        },
+        "numeric": {"cue": "egfr", "true_value": 30, "tolerance_fold": 1.4},
+        "rationale_must_mention": ["renal"],
+    }
+    cf = score_categorical_decision(
+        "With renal impairment below eGFR 30 this is contraindicated.\n"
+        "action: avoid_or_contraindicated", gt_f4)
+    ck("F4 verdict+numeric+rationale correct → score ~1.0", cf["score"] > 0.95)
+    cfn = score_categorical_decision("action: reduce_dose", gt_f4)
+    ck("F4 wrong action (reduce vs contraindicated) → low", cfn["verdict_score"] == 0.0)
+    cneg = score_categorical_decision(
+        "The drug is not contraindicated; use standard dose.\nverdict: no_change",
+        {**gt_f4, "verdict": "no_change"})
+    ck("F4 negation guard: 'not contraindicated' not counted as contraindicated",
+       "avoid_or_contraindicated" not in cneg["parsed_verdicts"] and cneg["verdict_score"] == 1.0)
 
     passed = sum(R)
     print(f"\n{passed}/{len(R)} passed")

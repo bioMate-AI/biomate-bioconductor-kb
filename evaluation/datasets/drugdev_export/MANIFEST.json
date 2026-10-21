@@ -71,6 +71,38 @@
       "note": "Archetype H; reuses the B4 boin_benchmark scenarios as ground truth. Reframes the old routing-style BOIN adapter as a decision task."
     },
     {
+      "code": "F2",
+      "name": "tissue_exposure",
+      "track": "T4 (decision)",
+      "stage": "S4 DMPK",
+      "archetype": "tissue_organ_exposure",
+      "items": 3,
+      "status": "provisional_values_unverified",
+      "gt": "verdict (reaches_target | excluded / organ_risk_flag)",
+      "scorer": "evaluation/scorers/decision_scorer.py::score_categorical_decision",
+      "adapter": "evaluation/adapters/decision_benchmark_adapter.py (dataset=tissue_exposure)",
+      "gold": "evaluation/datasets/drugdev_export/tissue_exposure/data.jsonl",
+      "external_baseline": "PBPK (Simcyp/GastroPlus); brain Kp,uu literature (Hammarlund-Udenaes)",
+      "task": "Dosing axis 2: does FREE drug reach the target tissue above threshold (CNS Kp,uu) / does a tox organ over-accumulate — plasma PK alone is insufficient. BioMate PBPK white space.",
+      "note": "PROVISIONAL: Kp,uu values are textbook-level (loperamide P-gp-excluded; oxycodone active uptake) but exact numbers are UNVERIFIED this session (web-search budget exhausted). Verify against cited primary sources before publication."
+    },
+    {
+      "code": "F4",
+      "name": "special_population",
+      "track": "T4 (decision)",
+      "stage": "S5 clinical",
+      "archetype": "special_population_dose",
+      "items": 4,
+      "status": "provisional_values_unverified",
+      "gt": "verdict (no_change | reduce_dose | avoid_or_contraindicated)",
+      "scorer": "evaluation/scorers/decision_scorer.py::score_categorical_decision",
+      "adapter": "evaluation/adapters/decision_benchmark_adapter.py (dataset=special_population)",
+      "gold": "evaluation/datasets/drugdev_export/special_population/data.jsonl",
+      "external_baseline": "FDA label dose-adjustment sections (renal/hepatic/DDI)",
+      "task": "Dosing axis 4: adjust dose for renal/hepatic impairment and DDIs (metformin/eGFR, simvastatin+strong-CYP3A4, enoxaparin/CrCl) + a no-adjustment negative control. Decision/knowledge, label-grounded.",
+      "note": "PROVISIONAL: dosing actions are class-level correct but exact label cutoffs/wording UNVERIFIED this session (web-search budget exhausted). NOT PopPK modeling (that stays out of scope). Verify against current FDA labels before publication."
+    },
+    {
       "code": "B1",
       "name": "admet_benchmark",
       "stage": "S2 hit-to-lead",

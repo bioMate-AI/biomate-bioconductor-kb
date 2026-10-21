@@ -32,10 +32,10 @@ from typing import Any, Dict, List, Optional
 from evaluation.core.base_adapter import BenchmarkAdapter, BenchmarkTask
 
 try:
-    from evaluation.scorers.decision_scorer import score_decision
+    from evaluation.scorers.decision_scorer import score_decision, score_categorical_decision
     from evaluation.scorers.boin_scorer import score_mtd_decision
 except ImportError:  # pragma: no cover
-    from scorers.decision_scorer import score_decision  # type: ignore
+    from scorers.decision_scorer import score_decision, score_categorical_decision  # type: ignore
     from scorers.boin_scorer import score_mtd_decision  # type: ignore
 
 _DATASET_DIR = Path(__file__).parent.parent / "datasets" / "drugdev_export"
@@ -43,9 +43,11 @@ _DATASET_DIR = Path(__file__).parent.parent / "datasets" / "drugdev_export"
 # Named decision-task datasets in the DrugDev series (archetype → jsonl). The runner
 # iterates these; each is loadable on its own via config["dataset"].
 DECISION_DATASETS = {
-    "leadopt_triage": _DATASET_DIR / "leadopt_triage" / "data.jsonl",   # archetype C
-    "fep_selection":  _DATASET_DIR / "fep_selection" / "data.jsonl",    # archetype E
-    "dose_decision":  _DATASET_DIR / "dose_decision" / "data.jsonl",    # archetype H
+    "leadopt_triage":    _DATASET_DIR / "leadopt_triage" / "data.jsonl",     # archetype C
+    "fep_selection":     _DATASET_DIR / "fep_selection" / "data.jsonl",      # archetype E
+    "dose_decision":     _DATASET_DIR / "dose_decision" / "data.jsonl",      # archetype H
+    "tissue_exposure":   _DATASET_DIR / "tissue_exposure" / "data.jsonl",    # archetype F2
+    "special_population": _DATASET_DIR / "special_population" / "data.jsonl", # archetype F4
 }
 
 _DEFAULT_DATASET = DECISION_DATASETS["leadopt_triage"]
@@ -126,6 +128,8 @@ class DecisionBenchmarkAdapter(BenchmarkAdapter):
         kind = task.metadata.get("scorer", "decision")
         if kind == "mtd":
             return score_mtd_decision(agent_response, task.ground_truth)
+        if kind == "categorical":
+            return score_categorical_decision(agent_response, task.ground_truth)
         return score_decision(agent_response, task.ground_truth, task.metadata.get("labels"))
 
 
@@ -193,6 +197,38 @@ def _selftest() -> int:
        dose.score(d2, "All tested doses were well tolerated; the MTD was not reached.") == 1.0)
     ck("H: naming a dose when MTD not reached → low score",
        dose.score(d2, "The MTD is dose level 3 (40 mg).") == 0.0)
+
+    # ---- archetype F2: tissue/organ exposure (categorical scorer) ----
+    tis = DecisionBenchmarkAdapter(config={"dataset": "tissue_exposure"})
+    ttasks = tis.load_tasks()
+    ck("F2: loads tissue_exposure (categorical)",
+       len(ttasks) == 3 and all(t.metadata["scorer"] == "categorical" for t in ttasks))
+    t01 = next(t for t in ttasks if t.task_id == "TISSUE-01")
+    # The verdict words appear only as the two OFFERED enum choices in the format line
+    # (both present ⇒ neither is singled out); the context must not assert the conclusion.
+    ql = t01.question.lower()
+    ck("F2: prompt offers both choices, does not assert the verdict",
+       "reaches_target" in ql and "excluded" in ql
+       and "is excluded" not in ql and "cns-excluded" not in ql)
+    ck("F2: correct 'excluded' + P-gp rationale → high score",
+       tis.score(t01, "P-gp efflux at the BBB limits brain exposure.\nverdict: excluded") > 0.9)
+    ck("F2: wrong 'reaches_target' → low score",
+       tis.score(t01, "verdict: reaches_target") < 0.2)
+
+    # ---- archetype F4: special-population dose (categorical scorer) ----
+    pop = DecisionBenchmarkAdapter(config={"dataset": "special_population"})
+    ptasks = pop.load_tasks()
+    ck("F4: loads special_population (4 tasks)", len(ptasks) == 4)
+    p1 = next(t for t in ptasks if t.task_id == "POP-01")
+    ck("F4: metformin eGFR 25 → contraindicated correct → high score",
+       pop.score(p1, "Below eGFR 30 with lactic-acidosis risk in renal impairment, metformin is "
+                     "contraindicated.\naction: avoid_or_contraindicated") > 0.9)
+    p4 = next(t for t in ptasks if t.task_id == "POP-04")
+    ck("F4: negative control (no_change) not over-adjusted → high score",
+       pop.score(p4, "Acetaminophen is hepatically cleared; no renal dose adjustment.\n"
+                     "action: no_change") > 0.9)
+    ck("F4: over-adjusting the negative control → low score",
+       pop.score(p4, "action: avoid_or_contraindicated") < 0.2)
 
     passed = sum(R)
     print(f"\n{passed}/{len(R)} passed")

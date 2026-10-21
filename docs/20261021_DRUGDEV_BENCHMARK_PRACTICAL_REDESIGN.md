@@ -77,9 +77,39 @@ sourcing pass (all from public measured data — no fabrication).
   (exact/adjacent MTD + flag recognition), reusing the Yuan-2016 thresholds. This
   **reframes the old routing-style BOIN adapter as a real decision task.**
 
-One adapter (`DecisionBenchmarkAdapter`) serves all three: it dispatches to the scorer
-each task declares (`"scorer": "decision" | "mtd"`) and loads any archetype via
-`config["dataset"]` (`DECISION_DATASETS` registry). `--selftest` 14/14.
+One adapter (`DecisionBenchmarkAdapter`) serves every archetype: it dispatches to the
+scorer each task declares (`"scorer": "decision" | "mtd" | "categorical"`) and loads
+any archetype via `config["dataset"]` (`DECISION_DATASETS` registry). `--selftest` 22/22.
+
+### 4c. Dosing is multi-axial — F expanded into F1–F4 (F2, F4 built)
+
+"Human-dose projection" (a single systemic number) is reductive. A real dosing
+decision spans **four axes**: (1) systemic amount, (2) **tissue/organ site exposure**,
+(3) **schedule/timing**, (4) **special-population/comorbidity adjustment**. Built so
+far:
+
+- **F2 — tissue/organ exposure** (`tissue_exposure/data.jsonl`): does FREE drug reach
+  the target tissue above threshold (CNS Kp,uu) — or does a tox organ over-accumulate?
+  Plasma PK alone misleads. Cases: P-gp-excluded (loperamide-like → `excluded`),
+  active brain uptake (oxycodone-like → `reaches_target`), liver over-exposure
+  (`organ_risk_flag`). This is BioMate's **PBPK white space** (and where LLMs are
+  weakest — PBPK scored ~0.075 before).
+- **F4 — special-population dose** (`special_population/data.jsonl`): renal/hepatic/DDI
+  adjustment — metformin at eGFR 25 (`avoid`), simvastatin + strong CYP3A4 inhibitor
+  (`avoid`), enoxaparin at CrCl 20 (`reduce`), + a no-adjustment negative control. GT =
+  FDA-label dose-adjustment sections. **This is label-grounded decision/knowledge, NOT
+  PopPK model fitting** (that stays out of scope, per the data-boundary rule).
+
+Both use a new **categorical-verdict scorer** (`score_categorical_decision`): controlled
+vocabulary match (structured `verdict:`/`action:` line, free-text fallback with a
+negation guard) + optional numeric within-fold + rationale coverage.
+
+> **PROVISIONAL (honesty):** F2/F4 gold VALUES are textbook/class-level correct but the
+> exact Kp,uu numbers and label cutoffs were **not web-verified this session** (search
+> budget exhausted). Datasets are flagged `status: provisional_values_unverified` with a
+> per-item `verify` field and cited sources. The scoring machinery is final; the numbers
+> get a verification pass when search budget returns. Nothing was fabricated — uncertain
+> values are flagged, and TISSUE-03 is deliberately principle-level (no compound asserted).
 
 ## 4. First exemplar built — archetype C (lead-op multi-parameter triage)
 
