@@ -54,3 +54,21 @@ Green-lit to build the SMILES-ligand cofold adapter and run cofold→MM-GBSA. On
 2. Then: cofold (adapter ready) the 20 αvβ6 + 20 PD-L1 measured macrocycles → GAFF-MM-GBSA ΔG → Spearman vs measured pAff. Est cost: cofold ~$10–15/target; MM-GBSA GPU bounded; total ~$25–40 **after the FF-pipeline build**.
 
 **Verdict (this pass):** physics gate **NOT run** — blocked on a SMILES-macrocycle MM-GBSA FF pipeline (a build, not a cost/go). The cofold adapter + measured subset are ready. Because CPU docking was excluded and this is genuine MM-GBSA, a future flat result would still be a clean (a) physics-wall finding. **This obstacle itself is informative: our "physics engine" is peptide-sequence-specific; applying it to real measured (SMILES, often non-standard) macrocycles needs a small-molecule FF layer we don't have — a concrete capability gap.**
+
+## §7 — Audit verdict: REUSE existing BioMate workflows, do NOT build a SMILES→GAFF pipeline (2026-10-21)
+
+**FF split of the measured set (verified):** αvβ6 = 169 cyclic measured, PD-L1 = 168 — **100% non-peptidic SMILES macrocycles** (0 rows have a plain-AA `sequence`), so the per-compound FF route is small-molecule (OpenFF/GAFF) for ALL; there is no peptidic subset needing CHARMM36m. Affinity dynamic range is good (pAff ≈ 2.3–9.6 / 4.6–9.6; ~165/162 exact `=`).
+
+**Audit (do not rebuild — the gap is wiring, not the primitive):** BioMate's catalog already contains SMILES-capable physics:
+- `backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/openfe_rbfe/` — RBFE/**FEP**, reads SDF ligands, uses OpenFF (`from openff.units import unit`), has its own `OPENFE_CONTAINER` (ECR/AWS Batch). **The small-molecule FF toolchain I was about to build from scratch already lives inside this workflow's container.** This is also the DEFINITIVE physics arbiter (FEP ≫ MM-GBSA).
+- `.../pharmacology/run_diffdock_with_smiles/` — docks a raw SMILES string (`params.smiles_string`) → the cheap pose/score screen.
+- also present: `docking_autodock_vina`, `schrodinger_glide_docking`, `moe_covalent_docking`, `amber_peptide_mmgbsa`/`peptide_mmgbsa` (peptide-only), `amber_pmemd_md`, `gromacs_protein_md`.
+- Pre-computed physics (`docs/MMGBSA_RESULTS.md`, `BASELINE_RESULTS.md`) is on **designs, not measured-affinity compounds** — so the gate is a run, not just a join.
+
+**Gate plan on top of existing capability (minimal wiring; no new FF build):**
+1. **Cheap screen** — `run_diffdock_with_smiles` (or `docking_autodock_vina`) on the 169+168 measured macrocycles → docking confidence vs measured affinity (Spearman). Minor wiring: SMILES→3D SDF (rdkit, present). *Caveat: docking of macrocycles is weak and a FLAT result is AMBIGUOUS (method limit, not a physics-wall).*
+2. **Definitive** — `openfe_rbfe` **FEP** on a handful of **congeneric measured-compound PAIRS** (RBFE needs similar-scaffold pairs with known ΔΔG): does computed ΔΔG track the measured-affinity difference? FEP sidesteps the single-trajectory/size-bias MM-GBSA weaknesses. **GPU, gated on explicit go; bounded (a few edges).** The αvβ6 FEP control edge already validates this engine.
+
+**MM-GBSA note:** rather than build a bespoke SMILES→GAFF MM-GBSA, go cheap-docking → definitive-FEP (both existing). MM-GBSA via the openfe/Amber containers remains available as an intermediate if wanted, but it is a weak arbiter (flat = ambiguous) — not worth a new build.
+
+**Verdict:** the physics↔affinity gate reduces to REUSING `run_diffdock_with_smiles` (cheap) + `openfe_rbfe` (definitive FEP), with SMILES→SDF + congeneric-pair selection as the only wiring. No new force-field pipeline was built. Nothing fired (GPU gated on go).
