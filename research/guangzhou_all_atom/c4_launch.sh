@@ -44,12 +44,15 @@ export MAMBA_ROOT_PREFIX=/opt/mamba
 mkdir -p /work && cd /work
 aws s3 cp "\$DEST/c4_ensemble_permeability.py" /work/c4_ensemble_permeability.py --region "\$REGION"
 aws s3 cp "\$DEST/CycPeptMPDB_Peptide_All.csv" /work/CycPeptMPDB_Peptide_All.csv --region "\$REGION"
-C4_CSV=/work/CycPeptMPDB_Peptide_All.csv C4_OUT=/work/c4_result.json C4_NMAX=9000 \
+# seed cache from any prior run (resumable across spot launches), then run parallel+guarded CV
+aws s3 cp "\$DEST/out/c4_cache.jsonl" /work/c4_cache.jsonl --region "\$REGION" >/dev/null 2>&1 || true
+C4_CSV=/work/CycPeptMPDB_Peptide_All.csv C4_OUT=/work/c4_result.json C4_CACHE=/work/c4_cache.jsonl C4_NMAX=9000 \
   /opt/c4env/bin/python /work/c4_ensemble_permeability.py > /work/c4_stdout.txt 2>&1
 RC=\$?
-# fail-loud: always upload stdout + log; result + DONE(rc) record the honest outcome
+# fail-loud: always upload stdout + log + cache (resumable); result + DONE(rc) record the honest outcome
 aws s3 cp /work/c4_stdout.txt "\$DEST/out/c4_stdout.txt" --region "\$REGION"
 aws s3 cp /var/log/c4.log "\$DEST/out/bootstrap.log" --region "\$REGION"
+[ -f /work/c4_cache.jsonl ] && aws s3 cp /work/c4_cache.jsonl "\$DEST/out/c4_cache.jsonl" --region "\$REGION"
 [ -f /work/c4_result.json ] && aws s3 cp /work/c4_result.json "\$DEST/out/c4_result.json" --region "\$REGION"
 echo "rc=\$RC" > /tmp/DONE; aws s3 cp /tmp/DONE "\$DEST/out/DONE" --region "\$REGION"
 shutdown -h now
