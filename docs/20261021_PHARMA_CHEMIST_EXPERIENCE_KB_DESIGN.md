@@ -97,3 +97,39 @@ Every row the audit found maps onto this: metal→`tool_params`; pharmacophore/l
 - **Already exists (≈70%):** the per-target DATA KB (20+ targets), the generic param engine (`target_spec`), the deterministic pharmacophore/liability/acceptance/FTO/metal rule modules, the mechanism→eval mapping, and an exemplar provenance pattern (`cada_mn.itp`). These already drive params and eval for the cyclic program.
 - **Genuinely new (≈30%):** (a) the **unified entry schema** linking statement→params+eval in one record; (b) the **uniform provenance/evidence-tier** layer (generalizing `cada_mn.itp`'s rigor, reusing the Grounded Standards model); (c) **one resolver** both loop and eval call (vs 5 bespoke reads); (d) **product surfacing** — promoting it into the workflow DB + chemist-editable versioned store; (e) the **tool-enrichment** tie-in.
 - **Not claimed:** this does not add new chemistry knowledge or validate any rule — it unifies, provenances, and surfaces what exists. The αvβ6 metal/pharmacophore rules remain only as good as their cited sources (and `cada_mn.itp` is still pending its grompp/NVT validation).
+
+---
+
+## First slice — BUILT (2026-10-21)
+
+`research/guangzhou_all_atom/cyclic_llm/experience_kb.py` + `test_experience_kb.py` (5/5 pass, CPU, python3.14).
+
+**Schema (implemented):** `KBEntry{ id · kind(metal|pharmacophore|sar|cmc|fto|eval_rule|pose) · statement ·
+scope{modality,target_class,applies_when} · provenance{source_type, ref, evidence_tier T1–T4} ·
+effects{tool_params{…}, eval_criteria[{criterion, mode(hard|advisory), checker}]} · version · status }`,
+with `.validate()` (tier-in-ladder, eval-mode-in-{hard,advisory}).
+
+**Adapters WRAP (not re-author) the existing assets:** `target_spec.load_spec` / `scorer_config.config_for`
+(metal/cofactor, pose, receptor, counter-targets → params; metal-free-MIDAS ⇒ void → eval);
+`pharmacophore_knowledge` (gate + generation_constraint); `knowledge_liability_flags.flag_candidate`
+(β6-selectivity, lock, renal-charge, CMC universals — the live checker stays that fn); `fto_score.in_claim`
++ raw KB `fto` genus; `fep/forcefield/cada_mn.itp` (Duarte-2014, tier T1 — **still pending grompp/NVT validation**).
+
+**`resolve(target)` = the single source** merging fired entries → `{tool_params, eval_criteria, provenance}`.
+Verified `resolve("avb6")`:
+- TOOL PARAMS: `metal_model=CaDA-MN`, `metal_ff_file=fep/forcefield/cada_mn.itp`, `cofactors=[MN×3 @β6 MIDAS]`,
+  `pose_method=cofold+mmgbsa`, `receptor_asset=avb6_ourstructure_v1.cif`, `counter_targets=[avb8,avb3,avb5,a5b1]`,
+  `generation_constraint={RGD + RGDLxxL/I + D-Pro/N-methyl lock}`.
+- EVAL GATE-SET: `metal_retained_in_run`(hard), `pharmacophore_gate[avb6]`(hard), `sar:rgd-selectivity-element`(hard),
+  `sar:conformational-lock`(hard), `sar:renal-cationic-charge`(advisory), `cmc_liabilities`(advisory),
+  `fto_genus_clearance`(advisory) — each with checker + provenance tier.
+- Contrast `resolve("pdl1")`: ppi-groove, no metal param, no void rule, pharmacophore advisory (structure-gated).
+
+**Wired vs TODO (honest):**
+- WIRED: one store drives BOTH params and the eval gate-set; backward-compat preserved (existing modules unchanged,
+  still import/run); schema-validated; provenance-tiered.
+- TODO (next slices): (1) route `loop_batch` / the DesignCampaign param+eval assembly through `resolve()` so the
+  existing param-setting and gate assembly become *thin views* (deferred — rewiring the live loop carries test risk,
+  out of first-slice scope); (2) product surfacing — register in the workflow DB + feed tool `scientific_context_v2`
+  defaults (gitignored 328 MB DB + shared → document the hook, not force-write it here); (3) LLM-RAG fallback for
+  novel/unknown targets (deterministic rules only in this slice).
