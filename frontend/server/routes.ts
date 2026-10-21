@@ -1,5 +1,6 @@
 import { registerVoiceRoutes } from "./voice-routes";
 import { classifyChainRunStatus } from './chain-run-status';
+import { isOrphanInterrupt } from './nextflow-run-status';
 import { readConnectorSession } from "./connector-session";
 import { createConnectorRunTools } from "./connector-run-tools";
 import { localOnly, localMessagesClient } from './local-llm.js';
@@ -11725,16 +11726,36 @@ ${paramLines || '(none recorded)'}`;
           // workflow-trace and S3 outputs) and rescue the run state.
           const allowRescue =
             isAlreadyTerminal && run.execution.status === 'failed' && nfState === 'succeeded';
-          if (((nfState === 'succeeded' || nfState === 'failed' || nfState === 'error') && !isAlreadyTerminal) || allowRescue) {
+          // Stuck-'running' fix (read-time reconciliation): Nextflow 'interrupted'
+          // means the subprocess was signal-killed. A DELIBERATE pause (QC gate /
+          // user cancel) kills it the same way, but then the BioMate status is
+          // 'paused'/'cancelled' and must be preserved (resumable) — so only treat
+          // 'interrupted' as terminal while the run is still 'running'/'configuring'.
+          // For a LOCAL (non-batch) run the subprocess IS the execution, so an
+          // interrupt there is a genuine orphan (the launching gunicorn worker died
+          // mid-run) that nothing finalized → the run would otherwise stick on
+          // 'running' forever, because this endpoint previously promoted only
+          // succeeded/failed/error, never 'interrupted'. Batch runs are intentionally
+          // left to the completion poller's describe_jobs check, since the local
+          // driver can be interrupted while the AWS Batch job keeps running.
+          const orphanInterrupt = isOrphanInterrupt(nfState, run.execution.status, nextflowStatus?.is_batch);
+          if (((nfState === 'succeeded' || nfState === 'failed' || nfState === 'error') && !isAlreadyTerminal) || allowRescue || orphanInterrupt) {
             if (allowRescue) {
               console.warn(
                 `[ExecutionRun] failed→succeeded rescue: ${run.id} — Galaxy reports nextflow succeeded; flipping BioMate status (was failed, likely log-stream-orphan)`
               );
             }
-            const mappedStatus: ExecutionRunStatus = toValidRunStatus(nfState);
-            const terminalMessage = nfState === 'failed'
-              ? (nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || 'Nextflow run failed')
-              : undefined;
+            if (orphanInterrupt) {
+              console.warn(
+                `[ExecutionRun] orphan-interrupt → failed: ${run.id} — local Nextflow run was signal-killed (backend restart) with BioMate still 'running'; finalizing so the UI stops showing 'running'`
+              );
+            }
+            const mappedStatus: ExecutionRunStatus = orphanInterrupt ? 'failed' : toValidRunStatus(nfState);
+            const terminalMessage = orphanInterrupt
+              ? 'The run was interrupted by a backend restart before it finished — please re-run.'
+              : (nfState === 'failed'
+                ? (nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || 'Nextflow run failed')
+                : undefined);
 
             run = await storage.updateExecutionRun(run.id, {
               execution: {
