@@ -72,3 +72,22 @@ Green-lit to build the SMILES-ligand cofold adapter and run cofold→MM-GBSA. On
 **MM-GBSA note:** rather than build a bespoke SMILES→GAFF MM-GBSA, go cheap-docking → definitive-FEP (both existing). MM-GBSA via the openfe/Amber containers remains available as an intermediate if wanted, but it is a weak arbiter (flat = ambiguous) — not worth a new build.
 
 **Verdict:** the physics↔affinity gate reduces to REUSING `run_diffdock_with_smiles` (cheap) + `openfe_rbfe` (definitive FEP), with SMILES→SDF + congeneric-pair selection as the only wiring. No new force-field pipeline was built. Nothing fired (GPU gated on go).
+
+## §8 — Cheap-screen status + SCOPED FEP gate (2026-10-21)
+
+### Cheap docking screen — scoped, NOT fired (no local tool; needs install or bounded GPU)
+Docking tools are ALL absent locally (vina/smina/qvina/obabel/meeko MISSING; only rdkit present), so the screen cannot run CPU-in-place. Two cheapest paths (state cost, pick on go):
+- **CPU:** install smina/AutoDock-Vina (static binary) + rdkit ETKDG ligand 3D + receptor pdbqt prep for αvβ6 (ITGB6) and PD-L1 (Q9NZQ7); dock the 98 αvβ6 + 116 PD-L1 unique measured macrocycles; correlate docking score vs measured pAff. ~CPU-hours + setup; **$0 compute** but real setup. *Caveat: Vina/smina macrocycle docking is weak → a FLAT correlation is AMBIGUOUS (method limit), NOT a physics-wall.*
+- **GPU:** `run_diffdock_with_smiles` (handles SMILES macrocycles better) on a subset via spot Batch — bounded ~$10–25. Same ambiguity caveat if flat.
+Recommendation: smina CPU screen first (free compute); flat→ambiguous→defer to FEP.
+
+### Definitive FEP gate — SCOPED (do NOT fire; costed plan for the user's go)
+**Congeneric edges available (Tanimoto ≥0.6, rdkit ECFP4):** αvβ6 = 98 unique compounds / **1600 congeneric pairs** (all 98 connected; measured ΔpAff median 0.60, max 4.88); PD-L1 = 116 / **1835 pairs** (112 connected; ΔpAff median 0.52, max 4.13). Far more than needed — abundant usable relative-FEP edges with real dynamic range.
+**Proposed bounded run (`openfe_rbfe`, existing workflow + OpenFF container):**
+- MINIMAL gate: αvβ6 only, a connected series of **~8 edges** spanning the ΔpAff range.
+- FULL gate: both targets, **~16 edges** (8/target).
+- Cost (spot, OpenFE default ~11 λ-windows × complex+solvent legs): **~0.5–1.5 GPU-day/edge ≈ $10–30/edge on spot** → minimal ~**$80–240** (8 edges); full ~**$160–480** (16 edges). Edges run in parallel on spot; wall-clock ~1–2 days.
+- READOUT: computed FEP ΔΔG vs measured ΔΔpAff → **Spearman + rank-order recovery** per target. Report pose/edge confidence.
+- CIRCULARITY-SAFE: FEP is a pure physics prediction; it never sees the measured affinity. A positive result both (a) makes physics-grounding a viable lever to break the ~0.42 ML data ceiling and (b) validates our FEP engine against experiment. (The αvβ6 FEP control edge already validates the engine mechanically.)
+
+**Nothing fired.** FEP/GPU gated on explicit user go; bounded + spot + review-before-spend.
