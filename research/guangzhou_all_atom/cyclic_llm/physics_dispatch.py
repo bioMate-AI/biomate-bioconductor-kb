@@ -28,9 +28,11 @@ REG = {
     "pdl1": {"mmgbsa": ["pdl1_mmgbsa_results.json", "pdl1_g2_mmgbsa.json"],
              "counter": ["pdl1_pdl2_counter_mmgbsa.json", "pdl1_g2_pdl2_counter.json"],
              "groove": ["pdl1_g2_groove.json"],
+             "fep": ["pdl1_fep_ddg.json"],
              "candidates": ["pdl1_g1_candidates.json", "pdl1_g2_candidates.json"]},
     "avb6": {"mmgbsa": ["avb6_r3_mmgbsa.json", "mmgbsa_avb6_v2.json"],
              "counter": [], "groove": [],
+             "fep": ["avb6_fep_ddg.json"],
              "candidates": ["knowledge_grounded_candidates_v1.json", "knowledge_grounded_candidates_v2.json"]},
 }
 # Admissibility of a MM-GBSA file is decided per TARGET MECHANISM (scorer_config.mechanism_compliant), not a
@@ -139,11 +141,35 @@ def _groove(target, design_id):
     return None, None
 
 
+def _fep_ddg(target, design_id):
+    """Relative FEP ΔΔG for this design, admissible ONLY if the run's CONTROL EDGE validated — i.e. the
+    known-affinity control edge was recovered within tolerance (fep_batch.py: 'MUST recover the small known
+    affinity gap'). This is the FEP analogue of A2 control-anchoring: without a validated control edge the
+    ΔΔG scale is void. Artifact schema (what fep_batch.py writes): {control_edge:{recovered, abs_err_kcal,
+    tol_kcal}, edges:[{design, ddG_kcal_mol, ref}]}. Returns (ddG, file, provenance) or (None, None, reason)."""
+    for f in REG.get(target, {}).get("fep", []):
+        fj = _load(f)
+        if not fj:
+            continue
+        ce = fj.get("control_edge", {})
+        validated = bool(ce.get("recovered")) and (
+            ce.get("abs_err_kcal") is None or ce.get("tol_kcal") is None
+            or ce["abs_err_kcal"] <= ce["tol_kcal"])
+        for e in fj.get("edges", []):
+            if e.get("design") == design_id and e.get("ddG_kcal_mol") is not None:
+                if not validated:
+                    return None, f, "FEP control edge NOT validated (ΔΔG scale void) — see control_edge"
+                return round(float(e["ddG_kcal_mol"]), 3), f, {
+                    "file": f, "ref": e.get("ref"), "control_edge": ce,
+                    "sign": "negative = tighter than reference edge"}
+    return None, None, "no validated FEP ΔΔG edge for this ID (FEP control edge is gated/not run)"
+
+
 def physics_for(helm, target):
     """Join HELM -> design-ID -> admissible physics. Returns a record with values (or None=pending) + an
     admissibility flag + reasons + provenance. Does NOT run GPU."""
     out = {"helm": helm, "target": target, "design_id": None,
-           "binding_dG": None, "selectivity_gap": None, "groove": None, "geometry": None,
+           "binding_dG": None, "selectivity_gap": None, "groove": None, "geometry": None, "ddg_fep": None,
            "admissible": {}, "reasons": {}, "provenance": {}}
     did = _helm_index(target).get(_key(helm))
     out["design_id"] = did
@@ -195,6 +221,15 @@ def physics_for(helm, target):
         out["provenance"]["groove"] = {"file": gf}
     else:
         out["reasons"]["groove"] = "no machine-readable groove artifact for this ID (G1 groove is doc-only)"
+
+    # ddg_fep (relative FEP ΔΔG — the trustworthy binding arbiter; control-edge validated)
+    dd, fep_f, fep_info = _fep_ddg(target, did)
+    if dd is not None:
+        out["ddg_fep"] = dd
+        out["admissible"]["ddg_fep"] = True
+        out["provenance"]["ddg_fep"] = fep_info
+    else:
+        out["reasons"]["ddg_fep"] = fep_info if isinstance(fep_info, str) else "pending"
 
     # geometry
     out["reasons"]["geometry"] = "no geometry result artifact (cofold ipTM saturates, not a discriminator)"

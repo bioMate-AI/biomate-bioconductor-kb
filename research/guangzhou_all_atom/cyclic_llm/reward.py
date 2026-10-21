@@ -6,6 +6,10 @@ Turns the consolidated verifier `score()` into the two signals an own-LLM genera
       just binding — the exact failure of this program's G2 round (24 binders, 0 selective). So the hard gate
       (rule ∧ not-infringing ∧ developability) dominates, and selectivity is a first-class SOFT term alongside
       binding, novelty, FTO-DoE and groove (each only when admissible / present).
+      BINDING term = the TRUSTWORTHY arbiter when present: relative FEP ΔΔG (`ddg_fep`). MM-GBSA (`binding_dG`)
+      is a weak feasibility PROXY, used only as a fallback when no FEP ΔΔG exists (the "SMILES->GAFF MM-GBSA?"
+      critique). Making the RL reward's physics = FEP ΔΔG, distinct from any MM-GBSA/display held-out evaluator,
+      also directly mitigates circularity threat #4 in the innovation-thesis doc.
   (2) build_preference_pairs(scored) -> dpo_pairs.PairSet — ranks the loop's scored candidates by reward and
       emits chosen≻rejected pairs in the EXISTING dpo_pairs schema (STREAM_VERIFY_SELECT), ready for the
       existing dpo_peptide_trainer.py / TRL DPOTrainer. The loop is the data factory; this is the tap.
@@ -32,7 +36,8 @@ DEFAULT_WEIGHTS = {
     "doe": 0.30,               # FTO doctrine-of-equivalents RISK (lower risk better) -> scaled
     "novelty": 0.30,           # 1 - nearest_patented_identity (more novel better)
     "developability": 0.20,    # liability-free + mid hydrophobicity
-    "binding": 0.60,           # admissible MM-GBSA ΔG (more negative better); 0 if pending
+    "ddg_fep": 0.90,           # TRUSTWORTHY ARBITER: relative FEP ΔΔG (more negative better); preferred binding term
+    "binding": 0.45,           # MM-GBSA ΔG — FEASIBILITY-LEVEL FALLBACK only, used iff no FEP ΔΔG (weak proxy)
     "selectivity": 0.60,       # admissible on-target selectivity gap (more negative better); 0 if pending
     "groove": 0.20,            # admissible groove occupancy (higher better); 0 if pending
     "known_active_penalty": -0.5,  # structure Tanimoto re-discovery (fto.novelty verdict == known_active)
@@ -77,9 +82,15 @@ def reward(rec, weights=None):
         terms["developability"] = w["developability"] * max(0.0, (1.0 - 0.25 * liab)) * band
 
     # expensive tier — only when admissible (numeric, not "pending")
+    # BINDING: prefer the trustworthy FEP ΔΔG arbiter; MM-GBSA is a weak feasibility proxy used ONLY as a
+    # fallback when no FEP ΔΔG is present (the "SMILES→GAFF MM-GBSA?" critique + circularity-threat #4: the
+    # RLVR training reward should be FEP ΔΔG, distinct from any MM-GBSA/display held-out evaluator).
+    ddg = _num(rec.get("ddg_fep"))
     b = _num(rec.get("binding_dG"))
-    if b is not None:
-        terms["binding"] = w["binding"] * max(0.0, min(1.0, -b / 40.0))      # ~-40 kcal/mol saturates
+    if ddg is not None:
+        terms["ddg_fep"] = w["ddg_fep"] * max(0.0, min(1.0, -ddg / 3.0))      # relative ΔΔG; ~-3 kcal/mol saturates
+    elif b is not None:
+        terms["binding_mmgbsa_proxy"] = w["binding"] * max(0.0, min(1.0, -b / 40.0))   # fallback; ~-40 kcal/mol saturates
     s = _num(rec.get("selectivity_gap"))
     if s is not None:
         terms["selectivity"] = w["selectivity"] * max(0.0, min(1.0, -s / 15.0))   # negative gap = selective

@@ -30,7 +30,8 @@ def developability(helm):
     return {"meanH": meanH, "n2Nal": n2, "net_charge": net, "liabilities": liab, "greasy": greasy,
             "pass": (not liab) and (not greasy) and (-2 <= net <= 2)}
 
-def score(helm, target="avb6", binding_dG=None, selectivity_gap=None, groove=None, geometry=None, tier="cheap"):
+def score(helm, target="avb6", binding_dG=None, selectivity_gap=None, groove=None, geometry=None,
+          ddg_fep=None, tier="cheap"):
     """Merge every objective into one record + a hard-gate verdict + a rank key.
     tier='cheap' (default): deterministic tier only; expensive hooks stay 'pending' unless passed explicitly.
     tier='full': auto-dispatch the expensive tier from the GPU pipeline RESULTS (physics_dispatch), control-
@@ -49,13 +50,19 @@ def score(helm, target="avb6", binding_dG=None, selectivity_gap=None, groove=Non
         from physics_dispatch import physics_for
         p = physics_for(helm, target)
         for fld, var in (("binding_dG", binding_dG), ("selectivity_gap", selectivity_gap),
-                         ("groove", groove), ("geometry", geometry)):
+                         ("groove", groove), ("geometry", geometry), ("ddg_fep", ddg_fep)):
             if var is None and p["admissible"].get(fld) and p[fld] is not None:
                 if fld == "binding_dG": binding_dG = p[fld]
                 elif fld == "selectivity_gap": selectivity_gap = p[fld]
                 elif fld == "groove": groove = p[fld]
                 elif fld == "geometry": geometry = p[fld]
+                elif fld == "ddg_fep": ddg_fep = p[fld]
         rec["physics"] = {"design_id": p["design_id"], "provenance": p["provenance"], "reasons": p["reasons"]}
+    # ddg_fep = relative FEP ΔΔG (trustworthy arbiter; negative = tighter than the reference edge). This is the
+    # physics the RLVR reward PREFERS over MM-GBSA binding_dG (a weak feasibility proxy). Pending until the gated
+    # FEP control edge runs + validates (fep_batch.py); for αvβ6 it is the ONLY admissible binding signal (the
+    # metal-free MM-GBSA is voided — see physics_dispatch).
+    rec["ddg_fep"] = ddg_fep if ddg_fep is not None else "pending"
     rec["binding_dG"] = binding_dG if binding_dG is not None else "pending"
     rec["selectivity_gap"] = selectivity_gap if selectivity_gap is not None else "pending"
     rec["groove_occupancy"] = groove if groove is not None else "pending"
@@ -67,7 +74,9 @@ def score(helm, target="avb6", binding_dG=None, selectivity_gap=None, groove=Non
                                 "developability": rec["developability"]["pass"]}
     # rank key: gate first, then FTO DoE (LOW<MED<HIGH), then binding (if present), then low patent-id
     doe_rank = {"LOW": 0, "MED": 1, "HIGH": 2, "infringes": 3}
-    b = binding_dG if isinstance(binding_dG, (int, float)) else 0.0
+    # prefer the trustworthy FEP ΔΔG for ranking when present; else fall back to MM-GBSA binding_dG
+    b = (ddg_fep if isinstance(ddg_fep, (int, float))
+         else (binding_dG if isinstance(binding_dG, (int, float)) else 0.0))
     rec["rank_key"] = (0 if rec["hard_gate_pass"] else 1, doe_rank.get(rec["fto"]["doe"], 1), b,
                        rec["fto"]["patent_id"])
     return rec
