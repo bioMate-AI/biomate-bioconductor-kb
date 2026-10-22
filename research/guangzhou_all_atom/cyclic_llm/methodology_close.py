@@ -99,16 +99,41 @@ def build_featurizer(rows):
     return feat, vocab
 
 
+def _cluster_disjoint_split(rows, seed=0, thr=0.6, n_max=3000):
+    """LEAKAGE-SAFE split: cluster peptides by monomer-set Tanimoto (the peptide analog of Murcko
+    scaffold clustering; cf. c2_retro_loop) and assign WHOLE clusters to A or B, so near-analogs never
+    straddle the reward oracle and the independent evaluator. Caps rows (random subsample) for tractability."""
+    rng = np.random.default_rng(seed)
+    if len(rows) > n_max:
+        idx = rng.choice(len(rows), n_max, replace=False); rows = [rows[i] for i in idx]
+    vocab = sorted({m for monos, _ in rows for m in monos}); vi = {m: i for i, m in enumerate(vocab)}
+    B = np.zeros((len(rows), len(vocab)), bool)
+    for r, (monos, _) in enumerate(rows):
+        for m in monos:
+            B[r, vi[m]] = True
+    card = B.sum(1).astype(np.float32)
+    assigned = -np.ones(len(rows), int); cid = 0
+    for i in rng.permutation(len(rows)):
+        if assigned[i] >= 0:
+            continue
+        inter = (B & B[i]).sum(1).astype(np.float32)
+        tani = inter / (card + card[i] - inter + 1e-9)
+        members = np.where((tani >= thr) & (assigned < 0))[0]
+        assigned[members] = cid; cid += 1
+    # assign clusters to A/B (alternate, so both halves get comparable size + chemotype coverage)
+    corder = rng.permutation(cid)
+    side = {c: (0 if k % 2 == 0 else 1) for k, c in enumerate(corder)}
+    A = [rows[i] for i in range(len(rows)) if side[assigned[i]] == 0]
+    Bset = [rows[i] for i in range(len(rows)) if side[assigned[i]] == 1]
+    return A, Bset, cid
+
+
 def train_oracles(rows, feat, seed=0):
-    """Two HistGBM permeability oracles on DISJOINT sequence-hash halves: A=reward, B=independent evaluator."""
+    """Two HistGBM oracles on CLUSTER-DISJOINT halves: A=reward, B=independent (leakage-safe) evaluator."""
     from sklearn.ensemble import HistGradientBoostingRegressor
     from sklearn.metrics import r2_score
 
-    def half(m):
-        return int(hashlib.md5(".".join(m).encode()).hexdigest(), 16) % 2
-
-    A = [(m, p) for m, p in rows if half(m) == 0]
-    B = [(m, p) for m, p in rows if half(m) == 1]
+    A, B, n_clusters = _cluster_disjoint_split(rows, seed=seed)
 
     def fit(split):
         X = np.array([feat(m) for m, _ in split]); y = np.array([p for _, p in split])
@@ -117,10 +142,11 @@ def train_oracles(rows, feat, seed=0):
         return mdl
 
     oa, ob = fit(A), fit(B)
-    # honest in-sample vs cross-split sanity (not the headline; just records the oracles are real signal)
+    # cross-split R2 (A predicting leakage-safe held-out B) — the honest generalization signal
     yb = np.array([p for _, p in B]); pb = oa.predict(np.array([feat(m) for m, _ in B]))
     cross_r2 = float(r2_score(yb, pb))
-    return oa, ob, {"n_A": len(A), "n_B": len(B), "oracleA_on_B_r2": round(cross_r2, 3)}
+    return oa, ob, {"n_A": len(A), "n_B": len(B), "n_clusters": n_clusters,
+                    "split": "cluster-disjoint(monomer-Tanimoto>=0.6)", "oracleA_on_B_r2": round(cross_r2, 3)}
 
 
 def load_display_binding(target_key):
@@ -179,6 +205,34 @@ def kb_admissible(monos, target):
 # ---------------------------------------------------------------- v4 generation + metrics
 def gen(model, toks, stoi, tf, dev, block, n, temp, max_len=20, e_tok="<e_na>", p_tok="<p_hi>"):
     return design.generate(model, toks, stoi, tf, dev, n, block, max_len, temp, e_tok=e_tok, p_tok=p_tok)
+
+
+def frechet_feature_distance(gen_feats, ref_feats):
+    """FCD-analog: Fréchet distance between generated and a REFERENCE (real measured peptide) set in feature
+    space (the peptide-space stand-in for Fréchet ChemNet Distance; lower = generations match real-peptide
+    distribution). FCD proper uses a small-molecule ChemNet on SMILES, which does not apply to ncAA macrocycle
+    monomer sequences — so we report the same Fréchet construction on the shared feature space, labelled as an analog."""
+    import numpy as _np
+    from scipy.linalg import sqrtm
+    g = _np.asarray(gen_feats, float); r = _np.asarray(ref_feats, float)
+    mu_g, mu_r = g.mean(0), r.mean(0)
+    cg = _np.cov(g, rowvar=False) + 1e-6 * _np.eye(g.shape[1])
+    cr = _np.cov(r, rowvar=False) + 1e-6 * _np.eye(r.shape[1])
+    covmean = sqrtm(cg @ cr)
+    if _np.iscomplexobj(covmean):
+        covmean = covmean.real
+    return float(((mu_g - mu_r) ** 2).sum() + _np.trace(cg + cr - 2 * covmean))
+
+
+def oracle_budget_auc(pool_scores):
+    """PMO-style sample efficiency: running best (top-10 mean) reward vs cumulative oracle calls, normalized AUC."""
+    import numpy as _np
+    s = _np.asarray(pool_scores, float)
+    if len(s) < 10:
+        return None
+    run = _np.array([_np.sort(s[:i + 1])[-10:].mean() for i in range(len(s))])
+    lo, hi = run.min(), run.max()
+    return round(float((run - lo).mean() / (hi - lo + 1e-9)), 4)
 
 
 def metrics(samples, oracle, feat, train_keys, gate_target=None):
@@ -309,7 +363,9 @@ def main():
     # 4) build verified-reward preference pairs (reward oracle_A)
     pool = gen(model, toks, stoi, tf, dev, block, args.pool, args.temp, e_tok=e_tok, p_tok=p_tok)
     pool = list({tuple(m): m for m in pool}.values())
-    scored = sorted(((oa.predict(feat(m)[None])[0], m) for m in pool), key=lambda t: -t[0])
+    pool_scores_genorder = [float(oa.predict(feat(m)[None])[0]) for m in pool]   # generation order (PMO acquisition)
+    budget_auc = oracle_budget_auc(pool_scores_genorder)
+    scored = sorted(zip(pool_scores_genorder, pool), key=lambda t: -t[0])
     if args.kb_gate:
         # rule-constrained: CHOSEN must pass the KB gate; gate-FAILS are the cleanest negatives, then low-property
         adm = [(s, m) for s, m in scored if kb_admissible(m, gate_target)[0]]
@@ -346,9 +402,23 @@ def main():
 
     dB = round(m_after["oracle_mean"] - m_before["oracle_mean"], 4)
     dA = round(aft_A - base_A, 4)
+
+    # ---- publication-standard extras: FCD-analog (distribution match to real peptides), random baseline ----
+    rng = np.random.default_rng(0)
+    ref_idx = rng.choice(len(rows), min(len(rows), 1000), replace=False)
+    ref_feats = np.array([feat(rows[i][0]) for i in ref_idx])
+    fcd_before = round(frechet_feature_distance([feat(m) for m in base], ref_feats), 4)
+    fcd_after = round(frechet_feature_distance([feat(m) for m in aft], ref_feats), 4)
+    # random baseline: uniform-random monomer sequences (floor the oracle/property must beat)
+    vocab_canon = [m for m, _ in [(x, 0) for x in {mm for mo, _ in rows for mm in mo}]]
+    rand = [[vocab_canon[j] for j in rng.integers(0, len(vocab_canon), rng.integers(5, 16))] for _ in range(args.eval_n)]
+    rand_B = round(float(np.mean([ob.predict(feat(m)[None])[0] for m in rand])), 4)
+
     verdict = ("LOOP IMPROVES GENERATOR (independent evaluator rose, diversity held)"
                if dB > 0 and m_after["diversity"] >= 0.5 * m_before["diversity"] and m_after["novelty"] >= 0.5 * m_before["novelty"]
                else "INCONCLUSIVE / possible reward-hacking (see dA vs dB + diversity)")
+    print(f"FCD-analog (gen vs real): {fcd_before} -> {fcd_after}  | random-baseline evalB={rand_B}  "
+          f"| oracle-budget AUC={budget_auc}", flush=True)
     res = {"what": f"RULE-CONSTRAINED verified-reward generator-close on the COLLECTED v4 model + COLLECTED {reward_name}",
            "signal": args.signal, "target": (args.target if args.signal == "binding" else None),
            "kb_rule_constraint": {"enabled": bool(args.kb_gate), "resolver": "experience_kb.resolve",
@@ -358,7 +428,14 @@ def main():
            "evaluator": "oracle_B trained on the OTHER disjoint half (anti-circular)",
            "oracle_stats": ostat, "n_pairs": len(pairs), "dpo": {"steps": args.steps, "beta": args.beta, "lr": args.lr},
            "before": m_before, "after": m_after, "reward_oracleA_before": base_A, "reward_oracleA_after": aft_A,
-           "delta_independent_evaluatorB": dB, "delta_reward_oracleA": dA, "verdict": verdict}
+           "delta_independent_evaluatorB": dB, "delta_reward_oracleA": dA,
+           "publication_metrics": {"split": ostat.get("split"), "fcd_analog_before": fcd_before,
+                                   "fcd_analog_after": fcd_after, "random_baseline_evalB": rand_B,
+                                   "oracle_budget_auc": budget_auc,
+                                   "note": "cluster-disjoint (leakage-safe) oracles; FCD-analog = Fréchet feature "
+                                           "distance to real peptides (ChemNet-FCD N/A for ncAA monomer seqs); "
+                                           "random baseline = uniform-random monomer sequences; budget AUC = PMO-style."},
+           "verdict": verdict}
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     json.dump(res, open(args.out, "w"), indent=2)
     torch.save({"model": model.state_dict(), "toks": toks, "args": a}, args.save_ckpt)
