@@ -85,7 +85,7 @@ jobs:
             aws --version
           docker run --rm \
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
-            python3 -c "import numpy, scipy, pandas, biopython, rdkit; print('imports OK')"
+            python3 -c "import numpy, scipy, pandas, Bio, rdkit; print('imports OK')"
 
       - name: Summary
         if: always()
@@ -137,7 +137,7 @@ jobs:
             aws --version
           docker run --rm \
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
-            python3 -c "import numpy, scipy, pandas, biopython, rdkit; print('imports OK')"
+            python3 -c "import numpy, scipy, pandas, Bio, rdkit; print('imports OK')"
 
       - name: Summary
         if: always()
