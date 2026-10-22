@@ -44,7 +44,7 @@ def assemble():
     rows = [json.loads(l) for l in open(os.path.join(HERE, "renal_seed_corpus.jsonl"))]
     usable = []
     for r in rows:
-        feats = rf.features_for(r["construct_id"])              # needs a SOURCED sequence
+        feats = rf.features_for_row(r)                          # row's own sourced sequence, else curated dict
         lab = _retention_label(r)
         if feats is None or lab is None:
             continue
@@ -63,7 +63,7 @@ def _spearman(a, b):
 def gate_a():
     rows, usable = assemble()
     n_total, n_usable = len(rows), len(usable)
-    n_seq = sum(1 for r in rows if rf.features_for(r["construct_id"]) is not None)
+    n_seq = sum(1 for r in rows if rf.features_for_row(r) is not None)
     n_lab = sum(1 for r in rows if _retention_label(r) is not None)
 
     report = {"n_corpus": n_total, "n_with_sequence": n_seq, "n_with_label": n_lab,

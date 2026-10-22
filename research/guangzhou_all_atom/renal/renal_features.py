@@ -98,6 +98,20 @@ def features_for(construct_id: str) -> Optional[RenalFeatures]:
     return featurize(rec["seq"], rec["chelator"], rec["cyclic_headtail"])
 
 
+# chemotypes whose backbone is head-to-tail cyclized (no free termini)
+_CYCLIC_CHEMOTYPES = {"cyclic_RGD", "cyclic_peptide", "cyclic_octapeptide", "bombesin_antagonist", "knottin"}
+
+
+def features_for_row(row: dict) -> Optional[RenalFeatures]:
+    """Featurize straight from a corpus row's OWN sourced fields (sequence/chelator/chemotype).
+    Falls back to the curated SEQUENCES dict by construct_id. Returns None if no sequence available."""
+    seq = row.get("sequence")
+    if seq:
+        cyclic = bool(row.get("cyclic_headtail", row.get("chemotype") in _CYCLIC_CHEMOTYPES))
+        return featurize(seq, row.get("chelator"), cyclic)
+    return features_for(row.get("construct_id", ""))
+
+
 if __name__ == "__main__":
     # sanity: known-charge cases
     print("=== renal_features sanity (net charge @ pH 7.4) ===")
