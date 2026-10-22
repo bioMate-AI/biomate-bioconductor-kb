@@ -144,6 +144,24 @@ clean tokens for the structural handoff. Offline, reversible (back up the two co
 validate by re-running `composer_eval.py` with the derived types. Not training, not capacity,
 not the matcher.
 
+### Dry-run of the re-derivation (`retype_dryrun.py`, READ-ONLY) — necessary but NOT sufficient
+- **64% (1619/2525)** of dirty-`input_types` workflows recover to clean tokens from `params_schema`
+  (`ExpressionSet`→`expressionset`, `counts.tsv (…)`→`counts_matrix`), non-lossy; the remaining 906
+  need a richer object-class map (missed `phyloseq`, mass-spec types) or have no type signal.
+- **BUT composer fire on the 6-pipeline eval did NOT move (2/6 → 2/6)** with derived input types.
+  Firing is **multi-gated**: the resolved workflows for the Bioconductor pipelines ALSO have
+  **empty/garbage `output_types`** (the RNA-seq align step resolves to a subworkflow with `out=[]`),
+  so there is nothing upstream to hand off into the now-clean input — and **resolver precision**
+  picks workflows that don't actually chain. Cleaning `input_types` is necessary (2/3 of the catalog
+  can't otherwise be a handoff destination) but **not sufficient** alone.
+
+**Honest conclusion:** the composer bottleneck is a STACK — (a) dirty `input_types` [64% recoverable],
+(b) sparse/empty `output_types` on resolved workflows, (c) resolver precision (a right, chainable
+workflow), plus (d) wiring (fix #1) and (e) the matcher (fix #2, done). They compound; no single
+lever unlocks it. Drive them with a **curated** multi-workflow eval (known-correct expected workflow
+per stage) that separates resolver precision from the type-metadata gates, and re-measure fire after
+each fix rather than assuming. Still none of these are model capacity/training.
+
 ## Caveats (honest)
 - **FTS/BM25 only** — the embedding model was blocked for env reasons (anaconda scipy ABI). Dense
   retrieval OFF; production with embeddings ON can only add coverage, and scores already sit ~4×
