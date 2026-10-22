@@ -12,7 +12,23 @@ pulled from the live files (leaderboard, dataset line-counts, MANIFEST), not est
 capabilities across LLMs, with a neutralized public export (`build_export.py`). Driven by
 `run_all.py` / `run_baseline.py` → `leaderboard.{csv,md}`.
 
-**RealBio-NATIVE scored tasks (general bioinformatics-agent capability) = 610 items:**
+### RealBio is a FIVE-dimension eval (Evaluation Framework v1), not accuracy-only
+`evaluation/core/five_dimension_reporter.py` (`FiveDimensionReporter`) scores every run on:
+
+| dim | measures | implementation | status |
+|---|---|---|---|
+| **D1 Performance** | accuracy score, CI, pass-rate | the task scorers → `leaderboard.{csv,md}` | surfaced in leaderboard |
+| **D2 Stability** | cross-run **consistency_rate** (all N runs agree), score-variance, Cohen's κ, **flip_rate** | `stability_runner.py`, `run_stability.py`, `run_consistency_benchmark.py` (results under `results/stability`, `results/consistency_v2`) | implemented; **CLAUDE.md target ≥90%** |
+| **D3 Time** | latency/query — mean, median, p95, total | captured per result (`BenchmarkResult.latency_sec`) | captured ("already inside") |
+| **D4 Cost** | API $/query and $/benchmark | per result (`cost_usd`, input/output tokens) | captured ("already inside") |
+| **D5 Hallucination** | grounded \| hallucinated \| unverifiable at important steps; rate + type (A/B/C/D) | `hallucination_detector.py` (LLM-judge) + `litqa2/citation_veracity.py` | implemented |
+
+Full-5D run: `FiveDimensionReporter(..., n_stability_repeats=3, hallucination_sample_frac=0.3)`.
+**Gap (presentation):** the published `leaderboard.csv` surfaces **D1 only** — D2–D5 live in
+`five_dimension_reporter` + the stability/hallucination runners and are not yet consolidated into
+the headline leaderboard. The D1 accuracy tables below are therefore one of five dimensions.
+
+**RealBio-NATIVE D1 (Performance/accuracy) tasks (general bioinformatics-agent capability) = 610 items:**
 
 | task | items | what it measures |
 |---|---|---|
