@@ -1,0 +1,170 @@
+"""renal_paper_results.py — produce ALL numbers for the manuscript (one place, reproducible, seeded).
+
+Reports: dataset summary; cross-target Leave-One-Target-Out (mechanistic grey-box vs black-box GBM vs
+net-charge heuristic) with mean-per-class Spearman + cluster bootstrap 95% CI + permutation p; temporal
+quasi-prospective validation (train on earlier publication years, test on later); and feature ablations.
+All %ID/g, mouse, timepoint as covariate. Honest: small n, wide CIs — effect sizes with uncertainty.
+"""
+from __future__ import annotations
+import collections, warnings
+import numpy as np
+from scipy.stats import spearmanr, ConstantInputWarning
+from sklearn.ensemble import GradientBoostingRegressor
+import renal_mechmodel as mm
+
+warnings.filterwarnings("ignore", category=ConstantInputWarning)
+FEATS = ["q_pos", "q_neg", "residual", "alb", "cleave", "log_t", "is_sm"]
+
+
+def _vec(o, drop=()):
+    return [o[f] for f in FEATS if f not in drop]
+
+
+def _mpc(score, y, cls):
+    per = {}
+    for c in set(cls):
+        m = np.array([cc == c for cc in cls])
+        if m.sum() >= 3 and len(set(np.array(y)[m])) > 1:
+            rho = spearmanr(np.array(score)[m], np.array(y)[m]).correlation
+            if not np.isnan(rho):
+                per[c] = rho
+    return per
+
+
+def _loto(obs, model, drop=()):
+    classes = [c for c, n in collections.Counter(o["cls"] for o in obs).items()
+               if sum(1 for o in obs if o["cls"] == c) >= 3]
+    S, Y, CL, CA = [], [], [], []
+    for held in classes:
+        tr = [o for o in obs if o["cls"] != held]
+        te = [o for o in obs if o["cls"] == held]
+        if len(tr) < 8 or len(te) < 3:
+            continue
+        if model == "mechanistic":
+            p = mm.fit(tr); s = mm.predict(p, te)
+        elif model == "net_charge":
+            s = [o["q_pos"] - o["q_neg"] for o in te]
+        else:
+            g = GradientBoostingRegressor(n_estimators=200, max_depth=2, learning_rate=0.05, random_state=0)
+            g.fit(np.array([_vec(o, drop) for o in tr]), np.array([o["y"] for o in tr]))
+            s = g.predict(np.array([_vec(o, drop) for o in te]))
+        S += list(s); Y += [o["y"] for o in te]; CL += [held] * len(te); CA += [o["canon"] for o in te]
+    return np.array(S), np.array(Y), CL, CA
+
+
+def _cluster_boot_ci(S, Y, CL, CA, n_boot=2000):
+    """Mean-per-class Spearman, bootstrap over CONSTRUCT CLUSTERS (canon) within each class."""
+    rng = np.random.default_rng(0)
+    by_cls = {}
+    for i, c in enumerate(CL):
+        by_cls.setdefault(c, []).append(i)
+    vals = []
+    for _ in range(n_boot):
+        rhos = []
+        for c, idx in by_cls.items():
+            canons = list({CA[i] for i in idx})
+            if len(canons) < 2:
+                continue
+            pick = rng.choice(canons, len(canons), replace=True)
+            sel = [i for i in idx if CA[i] in pick]  # include all obs of picked clusters
+            if len(set(Y[sel])) < 2:
+                continue
+            rho = spearmanr(S[sel], Y[sel]).correlation
+            if not np.isnan(rho):
+                rhos.append(rho)
+        if rhos:
+            vals.append(np.mean(rhos))
+    if not vals:
+        return (float("nan"), float("nan"))
+    return (round(float(np.percentile(vals, 2.5)), 3), round(float(np.percentile(vals, 97.5)), 3))
+
+
+def _perm_p(S, Y, CL, n_perm=5000):
+    obs_mpc = np.mean(list(_mpc(S, Y, CL).values()))
+    rng = np.random.default_rng(0); ge = cnt = 0
+    by = {}
+    for i, c in enumerate(CL):
+        by.setdefault(c, []).append(i)
+    for _ in range(n_perm):
+        Yp = Y.copy()
+        for c, idx in by.items():
+            Yp[idx] = rng.permutation(Y[idx])
+        per = _mpc(S, Yp, CL)
+        if per:
+            cnt += 1
+            if abs(np.mean(list(per.values()))) >= abs(obs_mpc):
+                ge += 1
+    return round(float(obs_mpc), 3), round((ge + 1) / (cnt + 1), 4)
+
+
+def cross_target():
+    obs = mm.build_observations()
+    out = {}
+    cache = {}
+    for model in ("mechanistic", "gbm", "net_charge"):
+        S, Y, CL, CA = _loto(obs, model); cache[model] = (S, Y, CL, CA)
+        per = _mpc(S, Y, CL)
+        out[model] = {"per_class": {k: round(v, 3) for k, v in per.items()}}
+    common = set.intersection(*[set(out[m]["per_class"]) for m in out])
+    for model in out:
+        S, Y, CL, CA = cache[model]
+        # restrict to common classes for fair mean + CI + p
+        keep = np.array([c in common for c in CL])
+        Sc, Yc, CLc, CAc = S[keep], Y[keep], [c for c in CL if c in common], [CA[i] for i in range(len(CL)) if CL[i] in common]
+        mpc, p = _perm_p(Sc, Yc, CLc)
+        lo, hi = _cluster_boot_ci(Sc, Yc, CLc, CAc)
+        out[model].update({"mean_per_class_common": mpc, "ci95": [lo, hi], "perm_p": p})
+    return {"n_obs": len(obs), "common_classes": sorted(common), "results": out}
+
+
+def temporal(cutoff=2021):
+    obs = [o for o in mm.build_observations() if o["year"]]
+    tr = [o for o in obs if o["year"] <= cutoff]; te = [o for o in obs if o["year"] > cutoff]
+    if len(tr) < 10 or len(te) < 5:
+        return {"runnable": False, "n_train": len(tr), "n_test": len(te)}
+    g = GradientBoostingRegressor(n_estimators=200, max_depth=2, learning_rate=0.05, random_state=0)
+    g.fit(np.array([_vec(o) for o in tr]), np.array([o["y"] for o in tr]))
+    pred = g.predict(np.array([_vec(o) for o in te])); y = np.array([o["y"] for o in te])
+    rho = spearmanr(pred, y).correlation
+    # per-class on test
+    per = _mpc(pred, y, [o["cls"] for o in te])
+    return {"runnable": True, "cutoff": cutoff, "n_train": len(tr), "n_test": len(te),
+            "pooled_spearman": round(float(rho), 3), "per_class": {k: round(v, 3) for k, v in per.items()}}
+
+
+def ablations():
+    obs = mm.build_observations()
+    base_S, base_Y, base_CL, base_CA = _loto(obs, "gbm")
+    base = np.mean(list(_mpc(base_S, base_Y, base_CL).values()))
+    rows = {"full": round(float(base), 3)}
+    for name, drop in [("drop_charge", ("q_pos", "q_neg")), ("drop_timepoint", ("log_t",)),
+                       ("drop_residual+albumin", ("residual", "alb")), ("drop_modality", ("is_sm",)),
+                       ("drop_cleavable", ("cleave",))]:
+        S, Y, CL, CA = _loto(obs, "gbm", drop=drop)
+        per = _mpc(S, Y, CL)
+        common = set(per) & set(_mpc(base_S, base_Y, base_CL))
+        rows[name] = round(float(np.mean([per[c] for c in common])), 3) if common else float("nan")
+    return rows
+
+
+if __name__ == "__main__":
+    print("=== MANUSCRIPT RESULTS (reproducible, seeded) ===\n")
+    ct = cross_target()
+    print(f"[Cross-target LOTO]  observations={ct['n_obs']}  common classes={ct['common_classes']}")
+    for m in ("mechanistic", "gbm", "net_charge"):
+        r = ct["results"][m]
+        print(f"  {m:12s} mean-per-class={r['mean_per_class_common']:+.3f}  95%CI[{r['ci95'][0]:+.2f},{r['ci95'][1]:+.2f}]  perm_p={r['perm_p']}")
+    print(f"  per-class (gbm): {ct['results']['gbm']['per_class']}")
+    print()
+    for cut in (2018, 2021):
+        t = temporal(cut)
+        if t["runnable"]:
+            print(f"[Temporal cut {cut}] train={t['n_train']} test={t['n_test']}  pooled rho={t['pooled_spearman']}  per-class={t['per_class']}")
+        else:
+            print(f"[Temporal cut {cut}] not runnable (train={t['n_train']} test={t['n_test']})")
+    print()
+    ab = ablations()
+    print(f"[Ablations — GBM LOTO mean-per-class]  full={ab['full']}")
+    for k, v in ab.items():
+        if k != "full":
+            print(f"  {k:22s} {v:+.3f}  (Delta={v-ab['full']:+.3f})")

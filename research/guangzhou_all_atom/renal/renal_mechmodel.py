@@ -19,7 +19,7 @@ POC goal: does the grey-box BEAT both net-charge AND a black-box GBM on cross-ta
 Honest about n (proof-of-concept on the current corpus; Gate A n>=50 remains the bar).
 """
 from __future__ import annotations
-import json, os, warnings
+import json, os, re, warnings
 import numpy as np
 from scipy.optimize import least_squares
 from scipy.stats import spearmanr, ConstantInputWarning
@@ -50,6 +50,8 @@ def build_observations():
         residual = 1.0 if (r.get("radiometal") in _RESIDUALIZING) else 0.0
         alb = 1.0 if r.get("albumin_binder") else 0.0
         cleave = 1.0 if r.get("cleavable_motif") else 0.0
+        yrs = re.findall(r"\b(19|20)(\d{2})\b", str(r.get("source", "")))
+        year = int("".join(yrs[-1])) if yrs else None          # publication year for temporal split
         for field, t in _TP.items():
             v = r.get(field)
             if v is None:
@@ -57,7 +59,7 @@ def build_observations():
             obs.append({"cls": tgt.get(r["construct_id"], "?"), "canon": rs._canonical(r["construct_id"]),
                         "q_pos": max(q, 0.0), "q_neg": max(-q, 0.0),
                         "residual": residual, "alb": alb, "cleave": cleave, "log_t": np.log(t), "is_sm": is_sm,
-                        "y": float(np.log1p(v))})
+                        "year": year, "y": float(np.log1p(v))})
     return obs
 
 
