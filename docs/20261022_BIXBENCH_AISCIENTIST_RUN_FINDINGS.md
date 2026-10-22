@@ -87,9 +87,22 @@ with the workflow card gone, the agentic loop only runs if `ANTHROPIC_API_KEY` i
 (`:8824` — it overrides to claude-haiku for the tool loop). If dev lacks that key, run_code still
 won't fire via the text-only chain. Check dev env after deploying the classifier fix.
 
-**Next (gated — needs dev deploy, an outward action):** sync the fix → re-run the 2-task
-BixBench-exec smoke → confirm a `run_code` tool_event fires and computed stdout appears → only then
-scale to the full 205 for an honest BioMate-vs-Biomni-Lab(88.7%) number.
+**DEPLOYED + VERIFIED (2026-10-22).** The fix reached dev via a concurrent session's full
+`sync_to_dev.sh` of the shared branch (carried commit dfbe57263; my own frontend-only sync was
+blocked by that live lock, so no second deploy was needed). Verified live:
+- Probe with the exact failing pattern ("Use run_code … Do NOT launch a Nextflow workflow") →
+  `tool_event: run_code` fires (×2), **no `workflow_ready`** — run_code executes, no card.
+- Re-ran the SAME 2-task BixBench-exec smoke: **0/2 → 1/2 (50%)**. The remaining failure changed
+  from fabrication ("ANSWER: 0.031" guessed) to a real execution miss ("No 'neutrophil' found in
+  notebook outputs… Searching for all GO terms") — run_code genuinely ran. Latency 73s→21s, cost
+  $0.025→$0.003/q (no workflow-generation overhead).
+
+So the execution path is now VALID for the Biomni comparison. n=2 is a smoke, not a headline.
+
+**Next (gated — bigger billable run):** scale to the full 205 BixBench-exec tasks for an honest
+BioMate-vs-Biomni-Lab(88.7%) number (~205 × ~$0.003 LLM + capsule downloads + wall-clock). The
+secondary ANTHROPIC_API_KEY concern is moot in practice — run_code fired, so dev's agentic loop is
+working for this path.
 
 ## Status of the broader AI-scientist comparison
 
