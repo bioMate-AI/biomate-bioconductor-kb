@@ -306,13 +306,19 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-5); ap.add_argument("--batch", type=int, default=8)
     ap.add_argument("--temp", type=float, default=1.0)
     ap.add_argument("--big", action="store_true", help="scale up (Spark/GPU): pool 6000, pairs 8000, steps 600, eval 1500")
+    ap.add_argument("--seed", type=int, default=0, help="RNG seed (torch+numpy) for replication")
+    ap.add_argument("--shuffle-reward", action="store_true",
+                    help="PLACEBO CONTROL: permute the reward scores before building pairs so chosen/rejected are "
+                         "random w.r.t. true reward. If delta_B ~ 0 here while the real reward gives delta_B>0, the "
+                         "gain is attributable to the verified signal, not to DPO pressure/diversity collapse. "
+                         "Use with --no-kb-gate (pairs are purely reward-ranked).")
     ap.add_argument("--out", default=os.path.join(ROOT, "results/methodology_close_result.json"))
     ap.add_argument("--save-ckpt", default=os.path.join(ROOT, "runs_helm/unified_cyclic_llm_v4_dpo.pt"))
     args = ap.parse_args()
     if args.big:
         args.pool, args.pairs, args.steps, args.eval_n = 6000, 8000, 600, 1500
 
-    torch.manual_seed(0); np.random.seed(0)
+    torch.manual_seed(args.seed); np.random.seed(args.seed)
     if args.signal == "permeability":
         print("loading collected measured permeability (CycPeptMPDB) ...", flush=True)
         rows = load_cycpept()
@@ -365,7 +371,13 @@ def main():
     pool = list({tuple(m): m for m in pool}.values())
     pool_scores_genorder = [float(oa.predict(feat(m)[None])[0]) for m in pool]   # generation order (PMO acquisition)
     budget_auc = oracle_budget_auc(pool_scores_genorder)
-    scored = sorted(zip(pool_scores_genorder, pool), key=lambda t: -t[0])
+    # PLACEBO CONTROL: permute the reward labels across candidates so pair chosen/rejected is random w.r.t.
+    # the true reward (the DPO machinery is otherwise identical). A sound loop gives delta_B ~ 0 here.
+    pair_scores = pool_scores_genorder
+    if args.shuffle_reward:
+        pair_scores = list(np.random.default_rng(args.seed + 777).permutation(np.asarray(pool_scores_genorder)))
+        print(f"  [PLACEBO] reward labels PERMUTED before pair construction (shuffle-reward control, seed {args.seed})", flush=True)
+    scored = sorted(zip(pair_scores, pool), key=lambda t: -t[0])
     if args.kb_gate:
         # rule-constrained: CHOSEN must pass the KB gate; gate-FAILS are the cleanest negatives, then low-property
         adm = [(s, m) for s, m in scored if kb_admissible(m, gate_target)[0]]
@@ -421,6 +433,7 @@ def main():
           f"| oracle-budget AUC={budget_auc}", flush=True)
     res = {"what": f"RULE-CONSTRAINED verified-reward generator-close on the COLLECTED v4 model + COLLECTED {reward_name}",
            "signal": args.signal, "target": (args.target if args.signal == "binding" else None),
+           "seed": args.seed, "shuffle_reward_placebo": bool(args.shuffle_reward),
            "kb_rule_constraint": {"enabled": bool(args.kb_gate), "resolver": "experience_kb.resolve",
                                   "gate_target": gate_target, "provenance_entries": len(kb_prov),
                                   "kb_admissible_before": m_before["kb_admissible"], "kb_admissible_after": m_after["kb_admissible"]},
