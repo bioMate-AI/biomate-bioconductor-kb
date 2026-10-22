@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Accelerated stability — projecting shelf-life before the clock runs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--ff-ui); color:var(--ink2); background:var(--bg); width:100vw; height:100vh; overflow:hidden;}
+.rail{position:fixed; top:0; left:0; right:0; height:62px; z-index:30; display:flex; align-items:center; gap:18px; padding:0 40px; background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2); backdrop-filter:blur(4px);}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 64px 48px; opacity:0; transform:translateY(14px); transition:none; pointer-events:none;}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:70ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:72ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict.open{background:var(--amber-bg); color:var(--amber)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.card h4{font-family:var(--ff-ui); font-size:17px; margin:0 0 8px; color:var(--ink); font-weight:600}
+.card p{font-size:14px; line-height:1.55; margin:0; color:var(--ink2)}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Accelerated stability — project long-term shelf-life from a short high-stress study, and rank formulations</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">10</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="37.0">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Accelerated Stability · Arrhenius</b></div>
+    <div class="kicker">For the formulation scientist deciding which recipe to carry forward</div>
+    <h2>How long will this formulation hold? Accelerated stability projects it before the shelf clock runs out.</h2>
+    <p class="caption">A drug product has to stay potent and clean for its whole shelf-life — but a real-time two-year study takes two years. Accelerated stability borrows a physics shortcut: stress the formulation at higher temperature and humidity, measure how fast it degrades, and project back to the real-time condition. BioMate runs this as the <b>Analyze Accelerated Stability Of Pharmaceutical Formulations</b> workflow — domain <code>drug_discovery</code> — using Arrhenius temperature acceleration plus an empirical humidity factor, following the logic of I-C-H Q1A accelerated-stability study design. In this walkthrough we build the idea from the ground up, then show exactly what the workflow does.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>Formulations + storage conditions</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Arrhenius + humidity model</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Projected potency / degradant curves</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Ranked by robustness</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Design the real study</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="39.0">
+    <div class="kicker">The problem this solves</div>
+    <h2>Shelf-life is a waiting problem — and you cannot wait two years on every candidate recipe.</h2>
+    <p class="caption">Early in development you may have several candidate formulations of the same active ingredient — different excipient systems, different concentrations. Each needs a shelf-life, and the definitive answer is a real-time study at the label condition, which runs for the product's full claimed life. You cannot afford to wait that long on recipes you may discard, so you need a defensible early estimate of which formulations are robust and which degrade.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row4">
+          <div class="tile"><div class="n">THE CHOICE</div><h4>Which recipe survives?</h4><p>Several excipient systems around one active ingredient. You cannot run full real-time stability on all of them.</p></div>
+          <div class="tile"><div class="n">THE CLOCK</div><h4>Real-time is slow</h4><p>A label shelf-life claim rests on a study that runs the product's full claimed life at the storage condition — far too long to gate early decisions.</p></div>
+          <div class="tile"><div class="n">THE COST</div><h4>Wasted chamber time</h4><p>Stability chambers, pulls, and assays are finite. Spending them on a recipe that fails late burns the program's time and budget.</p></div>
+          <div class="tile"><div class="n">THE NEED</div><h4>A physics-grounded estimate</h4><p>A projection tied to reaction kinetics, good enough to rank formulations and design the real study before the clock runs.</p></div>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>The need: project long-term stability early, well enough to triage formulations and plan the definitive study</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="43.0">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four ideas, and the whole method follows.</h2>
+    <p class="caption">You don't need the full physical chemistry — just these four concepts, in order.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · DEGRADATION</div><h4>Potency falls over time</h4><p>The active ingredient breaks down and degradants accumulate. Shelf-life is how long potency stays within spec and degradants stay below limit.</p></div>
+            <div class="tile"><div class="n">2 · ARRHENIUS</div><h4>Heat speeds reactions</h4><p>A temperature-activated reaction runs faster when warmer, by a predictable factor. That factor lets a short hot study stand in for a long cool one.</p></div>
+            <div class="tile"><div class="n">3 · HUMIDITY</div><h4>Moisture matters too</h4><p>Relative humidity — R-H — drives hydrolysis and moisture uptake. An empirical humidity factor adjusts the rate alongside temperature.</p></div>
+            <div class="tile"><div class="n">4 · PROJECTION</div><h4>Extrapolate to real time</h4><p>Combine the two factors to translate the stressed rate back to the label condition, and project potency across the requested time points.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The whole method is: measure how fast it degrades under stress, correct for temperature with <b>Arrhenius</b> and for moisture with the <b>humidity factor</b>, and project the real-time behaviour at the storage condition you care about.</p>
+        </div>
+        <div><span class="verdict plain"><span class="mk"></span>Background — the vocabulary the rest of the walkthrough uses</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — HOW BIOMATE RUNS IT -->
+  <section class="scene" data-seconds="34.0">
+    <div class="kicker"><span class="st">In BioMate</span> · goal &rarr; workflow</div>
+    <h2>State the goal; BioMate routes to the accelerated-stability workflow and fills the standard conditions.</h2>
+    <p class="caption">Ask in plain English to project a formulation's stability under stress, and BioMate opens the real <b>Analyze Accelerated Stability Of Pharmaceutical Formulations</b> workflow — formulations and storage conditions mapped, standard time points ready, one click from the run.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Live product · Accelerated Stability analysis in BioMate</span>
+        <div class="frame"><img src="assets/live/stability-live-panel.png" alt="BioMate workflow panel for the accelerated stability analysis workflow"/></div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Plain-English routing.</b> "Predict the accelerated stability (40&deg;C / 75% R-H) of my ibuprofen tablet formulation over 6 months" lands on the <b>Analyze Accelerated Stability</b> workflow — domain <code>drug_discovery</code>.</span></li>
+          <li><span class="b"></span><span><b>The inputs you bring.</b> Three params: <code>formulations</code>, <code>storage_conditions</code>, and <code>time_points</code> — each a JSON list, pre-filled with the standard I-C-H-style set so you only edit what differs.</span></li>
+          <li><span class="b"></span><span><b>Compute, handled for you.</b> The projection runs on BioMate's managed cloud compute; output defaults to BioMate-managed storage.</span></li>
+          <li><span class="b gr"></span><span><b>Confirm &amp; Run.</b> You're the Owner — a single click launches the real analysis in the cloud.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>The real stability workflow, set up for you</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — INPUTS YOU BRING -->
+  <section class="scene" data-seconds="41.0">
+    <div class="kicker"><span class="st">Inputs</span> · what you bring</div>
+    <h2>Three inputs: the formulations, the storage conditions, and the time points.</h2>
+    <p class="caption">The analysis is comparative across recipes and conditions, so the inputs are three JSON lists. You describe the formulations and the environments; BioMate uses the standard accelerated-study set as the default so you only change what is specific to your product.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">formulations</div><h4>The recipes to compare</h4><p>A JSON list; each entry has a <code>name</code>, an <code>active_ingredient</code>, a <code>concentration</code>, and its <code>excipients</code>. This is where the competing recipes enter — one active ingredient, several excipient systems.</p></div>
+          <div class="tile"><div class="n">storage_conditions</div><h4>The environments</h4><p>Each has a <code>temperature</code> in &deg;C, a <code>humidity</code> in % R-H, and a description. The standard set: 25&deg;C / 60% R-H long-term, 40&deg;C / 75% R-H accelerated, 50&deg;C / 90% R-H stress.</p></div>
+          <div class="tile"><div class="n">time_points</div><h4>When to project</h4><p>Days at which to report, for example <code>[0, 30, 60, 90, 180, 365]</code> — the pulls the projected curves are evaluated at, mirroring real-study sampling.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Params: <code>formulations</code>, <code>storage_conditions</code>, <code>time_points</code>. Every formulation is evaluated against every condition across every time point.</p>
+        <div><span class="verdict ok"><span class="mk"></span>Recipes, conditions, and time points in — a full projection matrix out</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — THE METHOD -->
+  <section class="scene" data-seconds="42.0">
+    <div class="kicker"><span class="st">The method</span> · what it actually models</div>
+    <h2>Accelerate with temperature, adjust for humidity, then project across the time points.</h2>
+    <p class="caption">For each formulation paired with each condition, the model works through three steps — the same logic that lets a short high-stress study estimate long-term real-time behaviour.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">1 · ACCELERATE</div><h4>Arrhenius temperature factor</h4><p>Model the degradation-rate increase with temperature via the Arrhenius acceleration factor, so a run at 40&deg;C or 50&deg;C maps back to the rate at 25&deg;C.</p></div>
+          <div class="tile"><div class="n">2 · ADJUST</div><h4>Empirical humidity factor</h4><p>Correct that rate for the condition's relative humidity, capturing the moisture contribution to degradation alongside temperature.</p></div>
+          <div class="tile"><div class="n">3 · PROJECT</div><h4>Potency across time</h4><p>Apply the combined rate to project the active-ingredient potency and degradant level across the requested time points, per formulation per condition.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">Standard conditions: 25&deg;C / 60% R-H long-term, 40&deg;C / 75% R-H accelerated, 50&deg;C / 90% R-H stress. Standard time points, in days: <code>[0, 30, 60, 90, 180, 365]</code>. Method basis: Arrhenius acceleration + empirical humidity factor, following I-C-H Q1A logic.</p>
+        <div><span class="verdict ok"><span class="mk"></span>A kinetics-based projection — a short stress study standing in for the long real-time one</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — THE OUTPUT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker"><span class="st">The output</span> · curves and a ranking</div>
+    <h2>Projected potency and degradation curves per formulation per condition — and a robustness ranking.</h2>
+    <p class="caption">The result is a set of projected curves: for every formulation at every storage condition, the active-ingredient potency and degradant level across the requested time points. On top of the curves sits a comparative ranking that answers the practical question — which excipient system holds up best.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3" style="grid-template-columns:1.4fr 1fr">
+          <div class="tile"><div class="n">PROJECTION CURVES</div><h4>Potency &amp; degradant vs time</h4><p>Per formulation, per condition, the projected active-ingredient potency and degradant level across the time points. A falling potency curve and a rising degradant curve show how each recipe behaves at long-term, accelerated, and stress conditions.</p></div>
+          <div class="tile"><div class="n">ROBUSTNESS RANK</div><h4>Which recipe holds up</h4><p>A comparative ranking of formulation robustness drawn from the curves, so the excipient system that resists degradation best is identified directly.</p></div>
+        </div>
+        <ul class="points" style="margin-top:4px">
+          <li><span class="b gr"></span><span><b>Every condition, side by side.</b> The same recipe is projected at long-term, accelerated, and stress conditions, so you see where it holds and where it breaks.</span></li>
+          <li><span class="b am"></span><span><b>A ranking you can act on.</b> The robustness order turns the curves into a decision — which formulation to carry forward and which to drop.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>Projected curves plus a formulation ranking — a comparison you can act on</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — USING IT -->
+  <section class="scene" data-seconds="45.0">
+    <div class="kicker"><span class="st">Using the result</span> · triage, then confirm in the chamber</div>
+    <h2>Prioritize which formulations to carry forward — and design the real stability study around them.</h2>
+    <p class="caption">The projection earns its cost by reshaping the stability program: carry forward the recipes it ranks as robust, deprioritize the fragile ones, and let the estimate inform where to place your real-study effort. It is a projection, so the definitive answer still comes from a real-time I-C-H study.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">PRIORITIZE</div><h4>Carry forward the robust recipes</h4><p>Advance the formulations the ranking marks as stable; park the ones projected to degrade. Chamber time and assay effort go where the kinetics say they will pay.</p></div>
+          <div class="tile"><div class="n">DESIGN THE STUDY</div><h4>Place conditions and pulls</h4><p>Use the projected curves to choose which storage conditions and which time points matter most for the formal study — a study design the projection informs.</p></div>
+          <div class="tile"><div class="n">VALIDATE</div><h4>Confirm in real time</h4><p>The real-time and accelerated chamber data are the ground truth. The projection narrows the field; the formal I-C-H study confirms the shelf-life.</p></div>
+        </div>
+        <p class="footnote" style="margin-top:4px">The projection ranks and triages formulations and informs study design; it does not replace the chamber data a shelf-life claim rests on.</p>
+        <div><span class="verdict ok"><span class="mk"></span>A sharper formulation decision — confirmed in the chamber, not trusted blind</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — HONEST LIMITS -->
+  <section class="scene" data-seconds="44.0">
+    <div class="kicker">What you get, precisely</div>
+    <h2>Precise about scope, so you know exactly what you get.</h2>
+    <p class="caption">Arrhenius projection is a powerful shortcut, but it rests on assumptions. Knowing exactly where it holds is what makes it trustworthy for triage decisions — and keeps it in its proper place next to a real stability study.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="row3">
+          <div class="tile"><div class="n">ONE PATHWAY ASSUMED</div><h4>A single dominant mechanism</h4><p>Arrhenius extrapolation assumes a single dominant, temperature-activated degradation pathway. It breaks for phase changes, non-Arrhenius kinetics, or moisture-driven mechanisms outside the humidity term.</p></div>
+          <div class="tile"><div class="n">EMPIRICAL HUMIDITY</div><h4>The moisture term is a model</h4><p>The humidity factor is empirical, not first-principles. Where moisture drives degradation through a mechanism the term does not capture, the projection can mislead.</p></div>
+          <div class="tile"><div class="n">ESTIMATE, NOT CLAIM</div><h4>Triage, not a regulatory substitute</h4><p>This is an in-silico estimate to triage and rank formulations and design studies — not a regulatory substitute for a real-time I-C-H stability study.</p></div>
+        </div>
+        <div><span class="verdict open"><span class="mk"></span>Specific and honest — a kinetics shortcut with stated assumptions, not a shelf-life certificate</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — CLOSING -->
+  <section class="scene title" data-seconds="37.0">
+    <div class="kicker">The value at a glance</div>
+    <h2 style="font-size:40px">Project the shelf-life with kinetics. Rank the recipes. Confirm in the chamber.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">The point in one sentence: <b>before you spend two years and a stability chamber, this workflow tells you which formulation is worth carrying forward.</b> BioMate routes your goal to the <b>Analyze Accelerated Stability</b> workflow, models the degradation-rate increase with temperature via the Arrhenius acceleration factor, adjusts for humidity, and projects active-ingredient potency and degradant level across your time points — returning curves per formulation per condition and a robustness ranking, following the logic of I-C-H Q1A.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Bring your formulations, storage conditions, and time points as JSON lists</li>
+            <li><span class="k">2</span>BioMate routes to the <code>drug_discovery</code> accelerated-stability workflow</li>
+            <li><span class="k">3</span>It projects potency / degradant curves and ranks formulation robustness</li>
+            <li><span class="k">4</span>Triage recipes and design the study; confirm the shelf-life in real time</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>What it answers</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Which formulation holds up</span></td></tr>
+            <tr><td>Method</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Arrhenius + humidity factor</span></td></tr>
+            <tr><td>Output</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Curves + robustness rank</span></td></tr>
+            <tr><td>Standard</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">I-C-H Q1A study logic</span></td></tr>
+            <tr><td>Honest edges</td><td><span class="verdict open" style="margin:0;padding:3px 8px;font-size:11px">One pathway · empirical · estimate</span></td></tr>
+          </table>
+          <p class="footnote">From candidate recipes to a kinetics-grounded ranking of which to carry forward — with the study design it informs. Chamber effort, spent where it pays.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){ setTimeout(function(){ window.__done = true; }, durations[i]*1000); return; }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>
