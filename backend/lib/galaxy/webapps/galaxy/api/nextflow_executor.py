@@ -118,6 +118,22 @@ def _run_lookup(run_id: str) -> Optional[Dict[str, Any]]:
     with _runs_lock:
         info = _runs.get(run_id)
     if info is not None:
+        # Deliberate-halt reconciliation (read-time). A soft/hard cancel — QC-gate
+        # halt or user pause — writes status 'paused'/'cancelled' to the store AND
+        # SIGTERM/SIGKILLs the process. The process-exit handler in THIS worker can
+        # race ahead and clobber the in-memory status to 'failed'/'interrupted' (the
+        # SIGKILL the pause itself sent) before the store write lands / if it reads a
+        # different worker's _runs. The store is authoritative for a deliberate halt,
+        # so when in-memory shows a NON-deliberate terminal, let a stored
+        # 'paused'/'cancelled' win — otherwise getNextflowStatus reports 'failed'
+        # while the reproducibility record says 'paused', and Resume is dead.
+        if info.get("status") in ("failed", "interrupted", "error"):
+            try:
+                _snap = get_run_state_store().get_run(run_id) or {}
+                if _snap.get("status") in ("paused", "cancelled"):
+                    info = {**info, "status": _snap["status"]}
+            except Exception as _store_exc:
+                log.debug("[runs] deliberate-halt reconcile failed for %s: %s", run_id, _store_exc)
         return info
     try:
         snap = get_run_state_store().get_run(run_id)
