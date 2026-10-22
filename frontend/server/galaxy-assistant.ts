@@ -1535,6 +1535,10 @@ export interface IntentDecomposition {
   needsThinking?: boolean;
   /** Name of a known workflow chain if the query maps to one, else null */
   chainHint?: string | null;
+  /** LLM's one-line explanation of WHY it classified the intent this way.
+   * Computed by the classifier but historically only logged; surfaced to the
+   * user as a persistent "why this routing" line. */
+  rationale?: string;
 }
 
 export interface SubIntentResult {
@@ -3975,6 +3979,14 @@ Rules:
 
     const intent = decomposition.primaryIntent;
     log(`Step 1 complete - Intent: ${intent.type}, isMultiIntent: ${decomposition.isMultiIntent}, intents: ${decomposition.intents.length}`);
+
+    // Surface the classifier's reasoning (computed above, historically only
+    // logged) as a dedicated progress event. The frontend persists this to its
+    // own metadata field so it renders as a "why this routing" line that
+    // survives after the answer text streams in (unlike transient progressStatus).
+    if (decomposition.rationale) {
+      onProgress?.('routing_rationale', decomposition.rationale);
+    }
 
     // Cross-intent ambiguity — only when no intentOverride already set.
     // Fires when the intent type looks wrong for a design-shaped query and
@@ -7390,6 +7402,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         keyTerms,
         needsThinking,
         chainHint,
+        rationale: typeof result.rationale === 'string' ? result.rationale : undefined,
       };
     }
 
@@ -7426,6 +7439,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       keyTerms,
       needsThinking,
       chainHint,
+      rationale: intentRationale,
     };
   }
 

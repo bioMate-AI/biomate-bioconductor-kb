@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { CodeExecutionBlock, type ToolBlock } from "./code-execution-block"
-import { t } from "@/lib/i18n"
+import { t, tOr } from "@/lib/i18n"
 
 /**
  * Pre-processes assistant markdown to:
@@ -592,6 +592,19 @@ export function ChatMessage({
                   <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" aria-hidden />
                   <span>{(message.metadata as any).progressStatus}</span>
                 </div>
+              )}
+              {/* Routing reasoning — the classifier's "why this routing"
+                  explanation, surfaced as a persistent, collapsible note so the
+                  user can see why BioMate interpreted the request this way. */}
+              {!isUser && (message.metadata as any)?.routingRationale && (
+                <details className="mb-1.5 text-xs text-muted-foreground">
+                  <summary className="cursor-pointer select-none hover:text-foreground transition-colors">
+                    {tOr('chat_msg.why_routing', 'Why this routing')}
+                  </summary>
+                  <div className="mt-1 pl-3 border-l-2 border-border italic leading-relaxed">
+                    {(message.metadata as any).routingRationale}
+                  </div>
+                </details>
               )}
               <ResponseContainer className="w-full">
               {foldResponse && <summary className="cursor-pointer text-sm text-muted-foreground py-2">{isStreaming ? "Writing response…" : "Analysis plan"}<span className="block truncate text-xs max-w-md">{message.content?.replace(/[#*`]/g, "").slice(-160)}</span></summary>}

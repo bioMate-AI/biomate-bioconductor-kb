@@ -184,6 +184,7 @@
   },
   "chat_msg": {
     "figure": "图",
+    "why_routing": "为什么这样理解",
     "copied": "已复制回复",
     "copy_failed": "复制失败",
     "clipboard_unavailable": "无法获取剪贴板权限。",
