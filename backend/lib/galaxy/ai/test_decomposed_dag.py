@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(_HERE, os.pardir, os.pardir))   # backend/lib �
 
 from decomposed_dag import (  # noqa: E402
     build_dag_plan, pick_workflow_match, bind_shared_inputs, to_pipeline_card, DAG_RESOLVE_MIN_SCORE,
+    type_satisfies,
 )
 from galaxy.chain.dag import validate_plan  # noqa: E402
 
@@ -85,6 +86,43 @@ def test_explicit_backward_deps_kept_forward_dropped():
     assert plan["steps"][2]["depends_on"] == [1]
     assert (1, 3) in {(c["from_step"], c["to_step"]) for c in plan["connections"]}
     _assert_executable(plan)
+
+
+# ── fix #2 (2026-10-21): SEMANTIC type handoff, not exact string match ──────────
+def _tp_semantic(path):
+    # step a PRODUCES counts_matrix; step b CONSUMES counts (an alias of counts_matrix,
+    # NOT an identical string). Exact match would refuse this; type_satisfies wires it.
+    if path == "a.nf":
+        return ([], ["counts_matrix"])
+    return (["counts"], [])
+
+
+def test_type_satisfies_semantic_and_refusal():
+    assert type_satisfies("counts_matrix", "counts")   # alias-table equivalence
+    assert type_satisfies("bam", "input_bam")          # substring alias
+    assert type_satisfies("vcf", "vcf")                # identity
+    assert not type_satisfies("bam", "vcf")            # genuinely incompatible → refuse
+    assert not type_satisfies("fasta", "pdbqt")
+
+
+def test_semantic_handoff_wires_equivalent_types():
+    # counts_matrix (a's output) satisfies counts (b's input) via the alias table —
+    # this would FAIL the old exact `t in dst_in` match; the connection records the
+    # distinct source/dest type tokens (proving it is semantic, not identity).
+    plan = build_dag_plan([_task("a"), _task("b")], _ok, type_provider=_tp_semantic)
+    assert plan is not None
+    assert len(plan["connections"]) == 1
+    c = plan["connections"][0]
+    assert (c["from_output"], c["to_input"]) == ("counts_matrix", "counts")
+    assert c["from_output"] != c["to_input"]           # NOT exact match → semantic handoff
+    _assert_executable(plan)
+
+
+def test_semantic_handoff_still_refuses_incompatible():
+    # bam output does NOT satisfy a vcf input → no connection → safe fallback (None)
+    def _tp(path):
+        return ([], ["bam"]) if path == "a.nf" else (["vcf"], [])
+    assert build_dag_plan([_task("a"), _task("b")], _ok, type_provider=_tp) is None
 
 
 def test_unresolvable_task_returns_none():
