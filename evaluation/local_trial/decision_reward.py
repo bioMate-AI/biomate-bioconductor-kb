@@ -81,12 +81,49 @@ def decision_reward(completions: List[Any], gold=None, scorer=None,
     return out
 
 
+def build_reward_fn(args=None):
+    """Standard hook a GRPO launcher calls to get the TRL reward callable. decision_reward is
+    already TRL-shaped (reads gold/scorer/labels from forwarded dataset columns), so there is
+    nothing to bind — unlike decomp_reward.make_trl_reward_fn which binds db_path/weights."""
+    return decision_reward
+
+
+def _selftest() -> int:
+    """De-risk the GATED decision-GRPO run OFFLINE: verify the data+reward contract end-to-end on
+    the real committed gold (no TRL/GPU). The gold completion for each GRPO prompt must score high;
+    a trivial wrong completion must score low. Leaves only the TRL trainer wiring for the GPU env."""
+    import json as _json
+    from pathlib import Path
+    pool = Path(__file__).resolve().parents[2] / "docs" / "20260912_onprem_llm" / "data_pool_v2"
+    grpo = [_json.loads(l) for l in (pool / "decision_grpo.jsonl").open() if l.strip()]
+    sft_gold = {}
+    for l in (pool / "decision_sft.jsonl").open():
+        if l.strip():
+            r = _json.loads(l); sft_gold[r["task_id"]] = r["messages"][2]["content"]
+    assert grpo, "no GRPO rows"
+    R = []
+    for row in grpo:
+        gold = decision_reward([sft_gold[row["task_id"]]], gold=[row["gold"]],
+                               scorer=[row["scorer"]], labels=[row.get("labels")])[0]
+        wrong = decision_reward(["I'm not sure; let's just run everything."], gold=[row["gold"]],
+                                scorer=[row["scorer"]], labels=[row.get("labels")])[0]
+        ok = gold >= 0.9 and wrong < gold
+        R.append(ok)
+        print(("PASS" if ok else "FAIL"), f"{row['task_id']:16} gold={gold:.2f} wrong={wrong:.2f}")
+    p = sum(R)
+    print(f"\n{p}/{len(R)} GRPO rows: gold-completion rewards high, wrong rewards lower")
+    # also confirm the launcher hook returns a callable
+    assert callable(build_reward_fn()), "build_reward_fn must return a callable"
+    return 0 if p == len(R) else 1
+
+
 if __name__ == "__main__":
-    # smoke test against a tiny hand-built example
+    import sys as _sys
+    if "--selftest" in _sys.argv:
+        _sys.exit(_selftest())
+    # tiny hand-built smoke
     gd = {"verdict": "excluded",
           "verdict_vocab": {"reaches_target": ["reaches"], "excluded": ["excluded", "efflux"]}}
     r = decision_reward(["P-gp efflux limits brain exposure.\nverdict: excluded"],
                         gold=[json.dumps(gd)], scorer=["categorical"])
-    print("reward:", r)
-    assert r[0] > 0.7, r
-    print("OK")
+    print("reward:", r); assert r[0] > 0.7, r; print("OK")
