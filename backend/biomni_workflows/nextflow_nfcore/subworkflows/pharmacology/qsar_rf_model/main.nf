@@ -39,81 +39,81 @@ process QSAR_RF_MODEL {
 
     script:
     """
-    #!/usr/bin/env python3
-    import json
-    import os
-    import sys
-    import csv
-    import math
+#!/usr/bin/env python3
+import json
+import os
+import sys
+import csv
+import math
 
-    target_col    = "${params.target_column}"
-    smiles_col    = "${params.smiles_column}"
-    n_folds       = int("${params.n_folds}")
-    n_estimators  = int("${params.n_estimators}")
-    random_state  = int("${params.random_state}")
-    input_path    = "${input_csv}"
+target_col    = "${params.target_column}"
+smiles_col    = "${params.smiles_column}"
+n_folds       = int("${params.n_folds}")
+n_estimators  = int("${params.n_estimators}")
+random_state  = int("${params.random_state}")
+input_path    = "${input_csv}"
 
-    # ── 1. Load data ──────────────────────────────────────────────────────────
-    rows = []
-    with open(input_path, newline="") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            try:
-                smiles = row[smiles_col].strip()
-                target = float(row[target_col])
-                rows.append((smiles, target))
-            except (KeyError, ValueError):
-                continue
+# ── 1. Load data ──────────────────────────────────────────────────────────
+rows = []
+with open(input_path, newline="") as f:
+    reader = csv.DictReader(f)
+    for row in reader:
+        try:
+            smiles = row[smiles_col].strip()
+            target = float(row[target_col])
+            rows.append((smiles, target))
+        except (KeyError, ValueError):
+            continue
 
-    n_compounds = len(rows)
-    print(f"Loaded {n_compounds} compounds with target '{target_col}'", file=sys.stderr)
+n_compounds = len(rows)
+print(f"Loaded {n_compounds} compounds with target '{target_col}'", file=sys.stderr)
 
-    results = {
-        "success": False,
-        "model_type": "random_forest",
-        "target_property": target_col,
-        "n_compounds": n_compounds,
+results = {
+    "success": False,
+    "model_type": "random_forest",
+    "target_property": target_col,
+    "n_compounds": n_compounds,
+    "n_folds": n_folds,
+    "n_estimators": n_estimators,
+}
+
+if n_compounds < 10:
+    results["error"] = f"Too few compounds ({n_compounds}); need at least 10 for QSAR."
+    with open("qsar_results.json", "w") as f:
+        json.dump(results, f, indent=2)
+    with open("qsar_model_report.txt", "w") as f:
+        f.write(f"ERROR: {results['error']}\\n")
+    print(f"ERROR: {results['error']}", file=sys.stderr)
+    sys.exit(1)
+
+# ── 2. Featurise with RDKit Morgan fingerprints ───────────────────────────
+try:
+    import subprocess, shutil
+    venv_dir = "/tmp/qsar_venv"
+    if os.path.exists(venv_dir):
+        shutil.rmtree(venv_dir)
+    subprocess.run([sys.executable, "-m", "venv", venv_dir],
+                   capture_output=True, check=True)
+    venv_py = os.path.join(venv_dir, "bin", "python")
+    subprocess.run([venv_py, "-m", "pip", "install", "-q", "--no-cache-dir",
+                    "numpy<2", "rdkit", "scikit-learn"],
+                   capture_output=True, check=True)
+except Exception as e:
+    print(f"WARNING: Could not set up venv ({e}). Using fallback features.", file=sys.stderr)
+    venv_py = sys.executable  # fallback: may lack rdkit
+
+# Write data for subprocess
+import tempfile
+data_file = "/tmp/qsar_data.json"
+with open(data_file, "w") as f:
+    json.dump({
+        "rows": rows,
         "n_folds": n_folds,
         "n_estimators": n_estimators,
-    }
+        "random_state": random_state,
+    }, f)
 
-    if n_compounds < 10:
-        results["error"] = f"Too few compounds ({n_compounds}); need at least 10 for QSAR."
-        with open("qsar_results.json", "w") as f:
-            json.dump(results, f, indent=2)
-        with open("qsar_model_report.txt", "w") as f:
-            f.write(f"ERROR: {results['error']}\\n")
-        print(f"ERROR: {results['error']}", file=sys.stderr)
-        sys.exit(1)
-
-    # ── 2. Featurise with RDKit Morgan fingerprints ───────────────────────────
-    try:
-        import subprocess, shutil
-        venv_dir = "/tmp/qsar_venv"
-        if os.path.exists(venv_dir):
-            shutil.rmtree(venv_dir)
-        subprocess.run([sys.executable, "-m", "venv", venv_dir],
-                       capture_output=True, check=True)
-        venv_py = os.path.join(venv_dir, "bin", "python")
-        subprocess.run([venv_py, "-m", "pip", "install", "-q", "--no-cache-dir",
-                        "numpy<2", "rdkit", "scikit-learn"],
-                       capture_output=True, check=True)
-    except Exception as e:
-        print(f"WARNING: Could not set up venv ({e}). Using fallback features.", file=sys.stderr)
-        venv_py = sys.executable  # fallback: may lack rdkit
-
-    # Write data for subprocess
-    import tempfile
-    data_file = "/tmp/qsar_data.json"
-    with open(data_file, "w") as f:
-        json.dump({
-            "rows": rows,
-            "n_folds": n_folds,
-            "n_estimators": n_estimators,
-            "random_state": random_state,
-        }, f)
-
-    script_content = '''
+script_content = '''
 import sys, json, math, random
 import numpy as np
 
@@ -183,50 +183,50 @@ print(json.dumps({
 }))
 '''
 
-    import subprocess
-    script_file = "/tmp/run_qsar.py"
-    with open(script_file, "w") as f:
-        f.write(script_content)
+import subprocess
+script_file = "/tmp/run_qsar.py"
+with open(script_file, "w") as f:
+    f.write(script_content)
 
-    proc = subprocess.run([venv_py, script_file, data_file],
-                          capture_output=True, text=True)
-    if proc.returncode != 0:
-        results["error"] = proc.stderr[-2000:]
-        with open("qsar_results.json", "w") as f:
-            json.dump(results, f, indent=2)
-        with open("qsar_model_report.txt", "w") as f:
-            f.write(f"QSAR modelling failed:\\n{proc.stderr}\\n")
-        sys.exit(1)
-
-    cv_output = json.loads(proc.stdout.strip())
-
-    results.update({
-        "success": True,
-        "cv_r2_score": cv_output["cv_r2_score"],
-        "cv_rmse": cv_output["cv_rmse"],
-        "cv_r2_std": cv_output.get("cv_r2_std", 0.0),
-        "n_compounds": cv_output["n_compounds"],
-        "featurizer": cv_output.get("featurizer", "unknown"),
-    })
-
+proc = subprocess.run([venv_py, script_file, data_file],
+                      capture_output=True, text=True)
+if proc.returncode != 0:
+    results["error"] = proc.stderr[-2000:]
     with open("qsar_results.json", "w") as f:
         json.dump(results, f, indent=2)
-
     with open("qsar_model_report.txt", "w") as f:
-        f.write(f"QSAR Random Forest Model Report\\n")
-        f.write(f"{'='*40}\\n")
-        f.write(f"Target property : {target_col}\\n")
-        f.write(f"Compounds       : {results['n_compounds']}\\n")
-        f.write(f"Featurizer      : {results.get('featurizer')}\\n")
-        f.write(f"CV folds        : {n_folds}\\n")
-        f.write(f"RF estimators   : {n_estimators}\\n")
-        f.write(f"\\nResults:\\n")
-        f.write(f"  CV R²   : {results['cv_r2_score']:.4f} (±{results['cv_r2_std']:.4f})\\n")
-        f.write(f"  CV RMSE : {results['cv_rmse']:.4f}\\n")
-        gate_status = "PASS" if results["cv_r2_score"] >= 0.5 else "FAIL (< 0.50 threshold)"
-        f.write(f"\\nQC gate : {gate_status}\\n")
+        f.write(f"QSAR modelling failed:\\n{proc.stderr}\\n")
+    sys.exit(1)
 
-    print(f"✓ QSAR CV R² = {results['cv_r2_score']:.3f}, RMSE = {results['cv_rmse']:.3f}", file=sys.stderr)
+cv_output = json.loads(proc.stdout.strip())
+
+results.update({
+    "success": True,
+    "cv_r2_score": cv_output["cv_r2_score"],
+    "cv_rmse": cv_output["cv_rmse"],
+    "cv_r2_std": cv_output.get("cv_r2_std", 0.0),
+    "n_compounds": cv_output["n_compounds"],
+    "featurizer": cv_output.get("featurizer", "unknown"),
+})
+
+with open("qsar_results.json", "w") as f:
+    json.dump(results, f, indent=2)
+
+with open("qsar_model_report.txt", "w") as f:
+    f.write(f"QSAR Random Forest Model Report\\n")
+    f.write(f"{'='*40}\\n")
+    f.write(f"Target property : {target_col}\\n")
+    f.write(f"Compounds       : {results['n_compounds']}\\n")
+    f.write(f"Featurizer      : {results.get('featurizer')}\\n")
+    f.write(f"CV folds        : {n_folds}\\n")
+    f.write(f"RF estimators   : {n_estimators}\\n")
+    f.write(f"\\nResults:\\n")
+    f.write(f"  CV R²   : {results['cv_r2_score']:.4f} (±{results['cv_r2_std']:.4f})\\n")
+    f.write(f"  CV RMSE : {results['cv_rmse']:.4f}\\n")
+    gate_status = "PASS" if results["cv_r2_score"] >= 0.5 else "FAIL (< 0.50 threshold)"
+    f.write(f"\\nQC gate : {gate_status}\\n")
+
+print(f"✓ QSAR CV R² = {results['cv_r2_score']:.3f}, RMSE = {results['cv_rmse']:.3f}", file=sys.stderr)
     """
 }
 
