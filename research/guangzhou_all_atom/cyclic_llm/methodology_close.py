@@ -314,12 +314,14 @@ def main():
         # rule-constrained: CHOSEN must pass the KB gate; gate-FAILS are the cleanest negatives, then low-property
         adm = [(s, m) for s, m in scored if kb_admissible(m, gate_target)[0]]
         inadm = [(s, m) for s, m in scored if not kb_admissible(m, gate_target)[0]]
-        k = min(len(adm), args.pairs)
-        chosen = adm[:k]
+        chosen = adm[:args.pairs]
         negs = inadm + adm[::-1]                      # gate-fails first (strongest neg), then admissible low-property
+        # a negative is valid iff it is a GATE-FAIL (inadmissible, regardless of property) OR genuinely
+        # lower-reward than the chosen; this prevents contradictory crossing pairs when the pool is all-admissible.
         pairs = [{"chosen": chosen[i][1], "rejected": negs[i][1], "margin": float(chosen[i][0] - negs[i][0]),
                   "kb_clean_neg": i < len(inadm)}
-                 for i in range(min(k, len(negs))) if chosen[i][1] != negs[i][1]]
+                 for i in range(min(len(chosen), len(negs)))
+                 if chosen[i][1] != negs[i][1] and (i < len(inadm) or chosen[i][0] - negs[i][0] > 0)]
         print(f"built {len(pairs)} RULE-CONSTRAINED verified-reward pairs "
               f"(chosen=KB-admissible high-{args.signal}; {len(inadm)}/{len(scored)} pool candidates gate-failed)", flush=True)
     else:
