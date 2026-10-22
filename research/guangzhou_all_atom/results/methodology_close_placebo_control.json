@@ -1,0 +1,23 @@
+{
+  "control": "shuffled-reward placebo (gate-OFF, matched config)",
+  "real_dB": [
+    0.1548,
+    0.1378,
+    0.1308,
+    0.0956,
+    0.103
+  ],
+  "shuffle_dB": [
+    0.0279,
+    0.0216,
+    0.0085,
+    -0.0236,
+    0.0383
+  ],
+  "real_mean": 0.1244,
+  "shuffle_mean": 0.0145,
+  "mannwhitney_U": 25.0,
+  "p_real_gt_shuffle": 0.004,
+  "n_each": 5,
+  "interpretation": "real reward raises the independent evaluator; permuted reward does not -> the closed-cycle gain is attributable to the verified signal, not DPO pressure/diversity collapse"
+}
