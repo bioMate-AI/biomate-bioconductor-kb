@@ -34,6 +34,36 @@ By structure (natural desc): sequential 60/60, mixed 5/5, parallel 3/3 — all r
   `generate_workflow`, not the live `generate_workflow_unified`). The lever is the endpoint hook,
   not retraining resolution confidence or a bigger model.
 
+## SECOND GATE — the type-handoff (the actual firing bottleneck)
+
+Running the FULL `build_dag_plan` (real resolver + a replicated `_get_workflow_types` type
+provider) over the same 68 topologies:
+
+| Outcome | count |
+|---|---|
+| **FIRED** (returns a plan) | **3/68 = 4.4%** |
+| fallback — a subtask unresolved | **0/68** |
+| fallback — type-handoff no exact match | **65/68** (65 have dependent steps) |
+
+Diagnostic on the resolved workflows: **96% have BOTH input and output types populated**
+(only 4% empty input). So the 65 failures are **not missing type metadata** — the types are
+present but do not **string-equal** across consecutive resolved workflows (e.g. one outputs
+`counts_matrix`, the next declares `counts`/`expression_matrix`/`input`).
+
+**Root cause:** `build_dag_plan` wires dependent handoffs by **exact** match (`decomposed_dag.py:200`
+`if t in dst_in`), whereas the same codebase's `check_step_compatibility` uses **semantic** matching
+(`_type_satisfies`, where `bam` satisfies `input_bam`, etc.). The exact gate rejects ~95% of real
+dependent chains, and because one bad link fails the whole plan, the composer almost never fires.
+
+**So P1 is two small, concrete HARNESS fixes — not training, not capacity, not a new benchmark:**
+1. **Wiring** — hook the composer into the live `generate_workflow_unified` (20261012 §4).
+2. **Handoff** — replace `build_dag_plan`'s exact type match with the sanctioned semantic
+   `_type_satisfies`/`check_step_compatibility` (still refuses a genuinely incompatible handoff,
+   but stops rejecting equivalent types). Expected: composer fire rises from 4.4% toward the 100%
+   resolution ceiling, modulo real incompatibilities.
+
+This probe re-runs both gates on demand — rerun after the handoff fix to confirm the lift.
+
 ## Caveats (honest)
 - **FTS/BM25 only** — the embedding model was blocked for env reasons (anaconda scipy ABI). Dense
   retrieval OFF; production with embeddings ON can only add coverage, and scores already sit ~4×
@@ -41,9 +71,11 @@ By structure (natural desc): sequential 60/60, mixed 5/5, parallel 3/3 — all r
 - **Perfect-decomposition assumption** — this measures the harness ceiling given correct subtasks;
   LLM decomposition QUALITY is a separate, already-benchmarked axis (decomposition_real,
   DECOMP_SOLVE_LADDER).
-- **Type-handoff gate NOT measured** — dependent steps (60/68 sequential) also need a
-  type-compatible handoff (`_workflow_io_types`/`_get_workflow_types`). That can only lower fire
-  from 100%; it is the next cheap check (needs importing `workflow_chain`). It does not change the
-  "wiring not capacity" conclusion.
+- **Type-handoff gate now measured** (see section above): it IS the firing bottleneck (4.4%),
+  via exact-match overstrictness — a local harness fix (semantic matching), still not capacity/training.
+- The resolver resolves to *a confident* workflow, not necessarily the *gold* one — resolution
+  *precision* vs the gold tool is a separate axis (already covered by decomposition_real node-F1);
+  some handoff failures could reflect a wrong-but-confident resolution, so the semantic-handoff lift
+  is an upper-ish estimate to confirm by rerunning the probe after the fix.
 
 See `20261021_PERFORMANCE_DIAGNOSIS.md`, `20261012_COMPOSER_FLAG_ENABLED_AND_WIRING_GAP.md`.
