@@ -3609,17 +3609,35 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
    * mis-route + the tool-gate; see docs/20260813 roadmap.)
    */
   private _isDirectCodeExecutionQuery(message: string): boolean {
+    // An explicit "do NOT launch a workflow/pipeline" directive is the STRONGEST direct-compute
+    // signal a user can give. Capture it separately so the words it contains ("nextflow",
+    // "workflow", "pipeline") cannot later trip the pipeline exclusion AGAINST that very sentence.
+    const noWorkflowDirective =
+      /\bdo\s+not\s+(launch|generate|create|build|run)\s+(a\s+)?(nextflow\s+)?(workflow|pipeline)\b/i.test(message);
     const explicit =
       /\b(use\s+run_?code|via\s+run_?code|with\s+run_?code|run_?code\b|run\s+this\s+(python|r|bash|code|script|snippet)|execute\s+this\s+(python|r|bash|code|script|snippet))\b/i.test(message)
-      || /\bdo\s+not\s+(launch|generate|create|build)\s+(a\s+)?(nextflow\s+)?(workflow|pipeline)\b/i.test(message)
+      || noWorkflowDirective
       // Chinese: 运行/执行这段代码, 帮我运行, 请运行以下
       || /(?:运行|执行|跑一下|帮我跑|帮我运行|请运行|请执行)(?:这段|以下|下面|如下)?(?:代码|脚本|程序|python|Python|R语言|bash)/u.test(message)
       // Message contains an explicit code block to run (triple-backtick with code)
       || /```(?:python|r|bash|sh|javascript|js)?\s*\n[\s\S]{10,}?```/i.test(message);
     if (!explicit) return false;
-    // Don't hijack genuine pipeline / named-workflow requests.
+    // An explicit no-workflow directive overrides the pipeline guard outright — the user has
+    // disclaimed a pipeline, so a method name like "deseq2" or the word "nextflow" inside that
+    // very directive must not re-route to workflow generation. This is the confirmed
+    // BixBench-exec / run_code fabrication bug: "Use run_code … Do NOT launch a Nextflow workflow"
+    // was misread as a pipeline request because the sentence contains the word "nextflow", so the
+    // direct-compute override never fired → a workflow card was generated → hasRunnableWorkflow
+    // disabled run_code → the model printed code as text and fabricated the answer.
+    if (noWorkflowDirective) return true;
+    // Otherwise scrub NEGATED pipeline mentions ("not a pipeline", "without a workflow") so a
+    // disclaimer cannot count as a pipeline request, then guard genuine pipeline/named-workflow asks.
+    const scrubbed = message.replace(
+      /\b(?:not|no|without|avoid|don'?t|do\s+not)\s+(?:a\s+|an\s+|the\s+)?(?:nextflow\s+)?(?:workflow|pipeline)\b/gi,
+      ' ',
+    );
     const pipeline =
-      /\b(nextflow|pipeline|rna-?seq|scrna|single-?cell|wgs|wes|variant\s+calling|sarek|cryo-?em|admet|pbpk|boin|fastqc|trimmomatic|\bstar\b|salmon|kallisto|alignment|assembl|clusterprofiler|deseq2|epitope|docking|autodock|codon|pocket|target\s+evidence)\b/i.test(message);
+      /\b(nextflow|pipeline|rna-?seq|scrna|single-?cell|wgs|wes|variant\s+calling|sarek|cryo-?em|admet|pbpk|boin|fastqc|trimmomatic|\bstar\b|salmon|kallisto|alignment|assembl|clusterprofiler|deseq2|epitope|docking|autodock|codon|pocket|target\s+evidence)\b/i.test(scrubbed);
     return !pipeline;
   }
 
