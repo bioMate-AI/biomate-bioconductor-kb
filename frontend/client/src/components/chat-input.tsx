@@ -162,7 +162,12 @@ export function ChatInput({
   onRegisterAddFiles,
   onRegisterExampleFiles,
   sessionDatasetCount = 0,
-  showLanePreview = true,
+  // The pre-send lane verdict ("Answer here · with sources" / "Prepare an
+  // analysis") was removed from above the composer: the routing/intent read now
+  // lives only in the post-send progress stream (the scrolling status box, via
+  // the 'intent' progress event's rationale). Default off; the lane override
+  // simply falls back to server-decides.
+  showLanePreview = false,
   projects = [],
   activeProjectId = null,
   onFileToProject,
