@@ -6,7 +6,7 @@ quasi-prospective validation (train on earlier publication years, test on later)
 All %ID/g, mouse, timepoint as covariate. Honest: small n, wide CIs — effect sizes with uncertainty.
 """
 from __future__ import annotations
-import collections, warnings
+import collections, json, warnings
 import numpy as np
 from scipy.stats import spearmanr, ConstantInputWarning
 from sklearn.ensemble import GradientBoostingRegressor
@@ -132,6 +132,68 @@ def temporal(cutoff=2021):
             "pooled_spearman": round(float(rho), 3), "per_class": {k: round(v, 3) for k, v in per.items()}}
 
 
+def _seq_clusters(obs, kmer=3, jac=0.5):
+    """Single-linkage cluster constructs by sequence 3-mer Jaccard >= jac (leakage control: RGD motifs
+    are shared across avb3/avb6, so target-out alone leaves sequence overlap). Small molecules / null-seq
+    cluster by chemotype. Returns {canon: cluster_id}."""
+    import collections
+    # one representative sequence per canon
+    seq_of, chem_of = {}, {}
+    rows = [json.loads(l) for l in open(mm.os.path.join(mm.HERE, "renal_seed_corpus.jsonl"))]
+    for r in rows:
+        c = mm.rs._canonical(r["construct_id"])
+        s = r.get("sequence")
+        if isinstance(s, str) and len(s) >= 2:
+            seq_of.setdefault(c, s.upper())
+        chem_of.setdefault(c, r.get("chemotype") or "?")
+    canons = sorted({o["canon"] for o in obs})
+
+    def kmers(s):
+        return {s[i:i+kmer] for i in range(len(s)-kmer+1)} if s and len(s) >= kmer else set()
+    parent = {c: c for c in canons}
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]; x = parent[x]
+        return x
+    def union(a, b):
+        parent[find(a)] = find(b)
+    for i, a in enumerate(canons):
+        ka = kmers(seq_of.get(a, ""))
+        for b in canons[i+1:]:
+            if a in seq_of and b in seq_of:
+                kb = kmers(seq_of[b])
+                if ka and kb and len(ka & kb) / len(ka | kb) >= jac:
+                    union(a, b)
+            elif a not in seq_of and b not in seq_of and chem_of.get(a) == chem_of.get(b):
+                union(a, b)   # small molecules / null-seq: cluster by chemotype
+    return {c: find(c) for c in canons}
+
+
+def seq_cluster_cv():
+    """Leave-one-sequence-cluster-out: pooled Spearman (model vs net-charge) with clusters held out
+    whole — stricter leakage control than target-out where motifs are shared across targets."""
+    obs = mm.build_observations()
+    cl = _seq_clusters(obs)
+    for o in obs:
+        o["clu"] = cl.get(o["canon"], o["canon"])
+    clusters = [c for c, n in collections.Counter(o["clu"] for o in obs).items()
+                if sum(1 for o in obs if o["clu"] == c) >= 2]
+    g_s, nc_s, Y = [], [], []
+    for held in clusters:
+        tr = [o for o in obs if o["clu"] != held]; te = [o for o in obs if o["clu"] == held]
+        if len(tr) < 10 or len(te) < 2:
+            continue
+        g = GradientBoostingRegressor(n_estimators=200, max_depth=2, learning_rate=0.05, random_state=0)
+        g.fit(np.array([_vec(o) for o in tr]), np.array([o["y"] for o in tr]))
+        g_s += list(g.predict(np.array([_vec(o) for o in te])))
+        nc_s += [o["q_pos"] - o["q_neg"] for o in te]; Y += [o["y"] for o in te]
+    Y = np.array(Y)
+    n_clusters_total = len(set(cl.values()))
+    return {"n_clusters_total": n_clusters_total, "n_held_clusters": len(clusters), "n_test_pooled": len(Y),
+            "gbm_pooled_spearman": round(float(spearmanr(g_s, Y).correlation), 3) if len(Y) > 3 else None,
+            "netcharge_pooled_spearman": round(float(spearmanr(nc_s, Y).correlation), 3) if len(Y) > 3 else None}
+
+
 def ablations():
     obs = mm.build_observations()
     base_S, base_Y, base_CL, base_CA = _loto(obs, "gbm")
@@ -162,6 +224,10 @@ if __name__ == "__main__":
             print(f"[Temporal cut {cut}] train={t['n_train']} test={t['n_test']}  pooled rho={t['pooled_spearman']}  per-class={t['per_class']}")
         else:
             print(f"[Temporal cut {cut}] not runnable (train={t['n_train']} test={t['n_test']})")
+    print()
+    sc = seq_cluster_cv()
+    print(f"[Sequence-cluster-disjoint CV] {sc['n_clusters_total']} clusters; held {sc['n_held_clusters']} "
+          f"(test n={sc['n_test_pooled']}): GBM pooled rho={sc['gbm_pooled_spearman']} vs net-charge {sc['netcharge_pooled_spearman']}")
     print()
     ab = ablations()
     print(f"[Ablations — GBM LOTO mean-per-class]  full={ab['full']}")
