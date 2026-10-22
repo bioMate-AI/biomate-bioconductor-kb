@@ -30,7 +30,14 @@ models:
   - {name: deepseek-v4-pro,     model: deepseek/deepseek-v4-pro,     base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: verified_by_results}   # LARGE flagship — proven by a full clean RealBio 8-task sweep (results/deepseek_deepseek-v4-pro/)
   - {name: deepseek-v4.1-flash, model: deepseek/deepseek-v4.1-flash, base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: verified_by_results}   # SMALL/fast — proven on bioc_method_selection + nextflow_coding; NOT yet on the main RealBio leaderboard (coverage gap)
   - {name: glm-5.2,        model: z-ai/glm-5.2,                 base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: UNVERIFIED_SLUG}
-  - {name: gemma-4-31b,    model: google/gemma-4-31b,           base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: UNVERIFIED_SLUG}
+  - {name: gemma-4-31b,    model: google/gemma-4-31b,           base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: UNVERIFIED_SLUG}   # small-open (Google); NOT yet run — no results
+  # ---- small/open Qwen — ALREADY SWEPT (results/ + leaderboard); roster was missing them ----
+  # These carry the harness-dividend story (9B bare 0.12 → +harness 0.815, +0.69). Slugs
+  # proven by committed results; confirm exact OpenRouter ids via --list-provider-models.
+  - {name: qwen3.8-27b,    model: qwen/qwen3.8-27b,             base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: verified_by_results}
+  - {name: qwen3.5-27b,    model: qwen/qwen3.5-27b,             base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: verified_by_results}
+  - {name: qwen3.5-9b,     model: qwen/qwen3.5-9b,              base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: verified_by_results}   # == the on-prem base size
+  - {name: qwen-2.5-7b,    model: qwen/qwen-2.5-7b-instruct,    base_url: https://openrouter.ai/api/v1,    key_env: OPENROUTER_API_KEY, status: verified_by_results}
 
 # NOTE: the OpenRouter model ids above are best-guess slugs and are marked UNVERIFIED_SLUG.
 # Before running, confirm each against the live list:  python3 run_all.py --list-provider-models
