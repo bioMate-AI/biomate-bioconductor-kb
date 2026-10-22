@@ -126,12 +126,24 @@ def _ensure_terms(text: str, must: List[str]) -> str:
     return text
 
 
-def build() -> Dict[str, Any]:
-    sft_rows: List[dict] = []
-    grpo_rows: List[dict] = []
-    report: List[dict] = []
-    failures: List[dict] = []
+def _norm(q: str) -> str:
+    import re
+    return " ".join(re.sub(r"[^a-z0-9 ]", " ", (q or "").lower()).split())
 
+
+def _toks(q: str) -> set:
+    return set(_norm(q).split())
+
+
+def _jaccard(a: str, b: str) -> float:
+    A, B = _toks(a), _toks(b)
+    return len(A & B) / len(A | B) if (A and B) else 0.0
+
+
+def build_records() -> Dict[str, Any]:
+    """Build one verified record per task (NOT yet split into train/eval)."""
+    records: List[dict] = []
+    failures: List[dict] = []
     for name in DECISION_DATASETS:
         adapter = DecisionBenchmarkAdapter({"dataset": name})
         for task in adapter.load_tasks():
@@ -139,85 +151,159 @@ def build() -> Dict[str, Any]:
             scorer = task.metadata.get("scorer", "decision")
             labels = task.metadata.get("labels")
             gold = _gold_completion(gt, scorer, task.metadata)
-            # VERIFY: the synthesized gold must actually win under its own scorer
-            s = score_one(gold, gt, scorer, labels)
-            thresh = 0.9
-            ok = s >= thresh
-            if not ok:
-                failures.append({"task_id": task.task_id, "scorer": scorer, "score": s,
-                                 "gold": gold})
-            policy = "route_not_compute" if scorer in _ROUTE_NOT_COMPUTE else "learn_decision"
-            report.append({"task_id": task.task_id, "dataset": name, "scorer": scorer,
-                           "gold_score": round(s, 4), "policy": policy, "ok": ok})
-
-            sft_rows.append({
-                "messages": [
-                    {"role": "system", "content": SYS},
-                    {"role": "user", "content": task.question},
-                    {"role": "assistant", "content": gold},
-                ],
-                "task_id": task.task_id, "archetype": task.metadata.get("archetype"),
-                "scorer": scorer, "policy": policy, "gold_score": round(s, 4),
+            s = score_one(gold, gt, scorer, labels)      # VERIFY gold wins its own scorer
+            if s < 0.9:
+                failures.append({"task_id": task.task_id, "scorer": scorer, "score": s})
+            records.append({
+                "dataset": name, "task_id": task.task_id,
+                "archetype": task.metadata.get("archetype"), "scorer": scorer,
+                "labels": labels, "prompt": task.question, "gold_completion": gold,
+                "gold_score": round(s, 4), "ground_truth": gt,
+                "policy": "route_not_compute" if scorer in _ROUTE_NOT_COMPUTE else "learn_decision",
             })
-            grpo_rows.append({
-                "prompt": f"{SYS}\n\n{task.question}",
-                "gold": json.dumps(gt), "scorer": scorer,
-                "labels": labels, "task_id": task.task_id, "policy": policy,
-            })
+    return {"records": records, "failures": failures}
 
-    return {"sft": sft_rows, "grpo": grpo_rows, "report": report, "failures": failures}
+
+def _split(records: List[dict], mode: str, holdout_dataset: Optional[str]):
+    """Split into DISJOINT train/eval, grouping by DATASET (the template source).
+    Returns (train, eval, split_meta).
+
+    mode='stratified'  : hold out the last task_id of each dataset that has >=3 items.
+                         Item-disjoint, but the held-out item shares its dataset's TEMPLATE
+                         with its train siblings -> an IN-DISTRIBUTION holdout (disclosed, not
+                         a clean OOD eval). A clean OOD eval needs newly-authored vignettes.
+    mode='leave_dataset_out' : the named dataset is fully held out (genuine cross-template
+                         generalization probe); it then gets NO training signal.
+    """
+    by_ds: Dict[str, List[dict]] = {}
+    for r in records:
+        by_ds.setdefault(r["dataset"], []).append(r)
+    train, ev = [], []
+    if mode == "leave_dataset_out":
+        for ds, items in by_ds.items():
+            (ev if ds == holdout_dataset else train).extend(items)
+        split_type = f"leave_dataset_out:{holdout_dataset} (OOD cross-template)"
+    else:
+        for ds, items in by_ds.items():
+            items = sorted(items, key=lambda r: r["task_id"])
+            if len(items) >= 3:
+                ev.append(items[-1]); train.extend(items[:-1])
+            else:
+                train.extend(items)
+        split_type = "stratified_in_distribution_holdout (directional; shares dataset template)"
+    return train, ev, split_type
+
+
+def _sft_row(r: dict) -> dict:
+    return {"messages": [{"role": "system", "content": SYS},
+                         {"role": "user", "content": r["prompt"]},
+                         {"role": "assistant", "content": r["gold_completion"]}],
+            "task_id": r["task_id"], "archetype": r["archetype"],
+            "scorer": r["scorer"], "policy": r["policy"], "gold_score": r["gold_score"]}
+
+
+def _grpo_row(r: dict) -> dict:
+    return {"prompt": f"{SYS}\n\n{r['prompt']}", "gold": json.dumps(r["ground_truth"]),
+            "scorer": r["scorer"], "labels": r["labels"], "task_id": r["task_id"],
+            "policy": r["policy"]}
+
+
+def _eval_row(r: dict) -> dict:
+    # held-out eval: NO gold_completion (don't leak the target); scored via decision_reward
+    return {"prompt": f"{SYS}\n\n{r['prompt']}", "gold": json.dumps(r["ground_truth"]),
+            "scorer": r["scorer"], "labels": r["labels"], "task_id": r["task_id"],
+            "archetype": r["archetype"], "policy": r["policy"]}
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--mode", choices=["stratified", "leave_dataset_out"],
+                    default="stratified")
+    ap.add_argument("--holdout-dataset", default=None,
+                    help="dataset name to fully hold out (leave_dataset_out mode)")
     ap.add_argument("--selftest", action="store_true",
-                    help="build + verify in memory; do not write files")
+                    help="build + verify + split + leak-check in memory; do not write files")
     args = ap.parse_args()
 
-    res = build()
-    n = len(res["report"])
-    n_ok = sum(1 for r in res["report"] if r["ok"])
-    learn = sum(1 for r in res["report"] if r["policy"] == "learn_decision")
-    route = n - learn
-    print(f"decision training rows: {n}  (gold-verified {n_ok}/{n}; "
-          f"learn_decision {learn}, route_not_compute {route})")
-    for r in res["report"]:
-        flag = "" if r["ok"] else "  <-- GOLD BELOW THRESHOLD"
-        print(f"  {r['task_id']:18} {r['scorer']:11} gold_score={r['gold_score']:.3f} "
-              f"[{r['policy']}]{flag}")
-
+    res = build_records()
+    recs = res["records"]
+    n = len(recs)
+    n_ok = sum(1 for r in recs if r["gold_score"] >= 0.9)
     if res["failures"]:
-        print(f"\nFAIL: {len(res['failures'])} synthesized gold completions scored < 0.9 — "
-              f"not emitting non-winning SFT targets. Fix templates first.")
+        print(f"FAIL: {len(res['failures'])} synthesized gold completions scored < 0.9 — "
+              f"not emitting non-winning targets. Fix templates first.")
         return 1
 
+    train, ev, split_type = _split(recs, args.mode, args.holdout_dataset)
+    train_ids = {r["task_id"] for r in train}
+    eval_ids = {r["task_id"] for r in ev}
+
+    # --- LEAK GUARD (fail-closed on true leaks; DISCLOSE in-distribution similarity) ---
+    overlap = train_ids & eval_ids
+    exact_dup = []
+    nearest = []  # per eval item: nearest train prompt Jaccard (honesty disclosure)
+    for e in ev:
+        sims = [( _jaccard(e["prompt"], t["prompt"]), t["task_id"]) for t in train]
+        best = max(sims, default=(0.0, None))
+        nearest.append({"eval": e["task_id"], "nearest_train": best[1],
+                        "jaccard": round(best[0], 3)})
+        if any(_norm(e["prompt"]) == _norm(t["prompt"]) for t in train):
+            exact_dup.append(e["task_id"])
+    if overlap or exact_dup:
+        print(f"FAIL (leak): task-id overlap={sorted(overlap)} exact-dup={exact_dup}")
+        return 1
+
+    learn = sum(1 for r in train if r["policy"] == "learn_decision")
+    route = len(train) - learn
+    print(f"decision gold: {n} tasks (gold-verified {n_ok}/{n}); split={split_type}")
+    print(f"  TRAIN {len(train)} (learn_decision {learn}, route_not_compute {route})  "
+          f"EVAL {len(ev)} (held out, disjoint)")
+    max_sim = max((x["jaccard"] for x in nearest), default=0.0)
+    print(f"  leak guard: no task-id overlap, no exact-dup; max eval→train Jaccard={max_sim:.3f} "
+          f"(within-archetype template overlap is expected for the stratified holdout)")
+    for x in nearest:
+        print(f"    eval {x['eval']:18} nearest-train {str(x['nearest_train']):18} J={x['jaccard']:.3f}")
+
     if args.selftest:
-        print("\nselftest OK (no files written)")
+        print("\nselftest OK (split + leak-check passed; no files written)")
         return 0
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     sft_path = OUT_DIR / "decision_sft.jsonl"
     grpo_path = OUT_DIR / "decision_grpo.jsonl"
+    eval_path = OUT_DIR / "decision_eval.jsonl"
     man_path = OUT_DIR / "decision_sft_manifest.json"
     with sft_path.open("w") as f:
-        for r in res["sft"]:
-            f.write(json.dumps(r) + "\n")
+        for r in train:
+            f.write(json.dumps(_sft_row(r)) + "\n")
     with grpo_path.open("w") as f:
-        for r in res["grpo"]:
-            f.write(json.dumps(r) + "\n")
+        for r in train:
+            f.write(json.dumps(_grpo_row(r)) + "\n")
+    with eval_path.open("w") as f:
+        for r in ev:
+            f.write(json.dumps(_eval_row(r)) + "\n")
     with man_path.open("w") as f:
         json.dump({
-            "n_rows": n, "gold_verified": n_ok,
-            "learn_decision": learn, "route_not_compute": route,
+            "n_tasks": n, "gold_verified": n_ok,
+            "split_mode": args.mode, "split_type": split_type,
+            "n_train": len(train), "n_eval": len(ev),
+            "train_learn_decision": learn, "train_route_not_compute": route,
+            "leak_guard": {"task_id_overlap": sorted(overlap), "exact_dup": exact_dup,
+                           "max_eval_to_train_jaccard": max_sim, "per_eval_nearest": nearest},
+            "CAVEAT": ("Train/eval are ITEM-disjoint. In 'stratified' mode the held-out item "
+                       "shares its archetype TEMPLATE with train siblings, so it is an "
+                       "IN-DISTRIBUTION holdout (directional only) — do NOT cite it as clean "
+                       "generalization. For a clean OOD eval, author new vignettes or use "
+                       "--mode leave_archetype_out. reward==scorer is intended (verifiable-reward "
+                       "RL); the fixed defect was training on the evaluated items. n is a seed."),
             "sft_file": str(sft_path.relative_to(_REPO)),
             "grpo_file": str(grpo_path.relative_to(_REPO)),
+            "eval_file": str(eval_path.relative_to(_REPO)),
             "reward_module": "evaluation/local_trial/decision_reward.py",
-            "sft_schema": "{messages:[system,user,assistant]} — train_qlora_pilot.py",
-            "grpo_schema": "{prompt, gold(json), scorer, labels} — decision_reward.decision_reward",
-            "per_task": res["report"],
+            "train_task_ids": sorted(train_ids), "eval_task_ids": sorted(eval_ids),
         }, f, indent=2)
-    print(f"\nwrote:\n  {sft_path}\n  {grpo_path}\n  {man_path}")
+    print(f"\nwrote:\n  {sft_path} (train)\n  {grpo_path} (train)\n  {eval_path} (held-out)\n  {man_path}")
     return 0
 
 
