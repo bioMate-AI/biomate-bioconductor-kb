@@ -4532,6 +4532,31 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
             )
             returncode = 0
 
+        # Trace-authoritative salvage: the driver JVM can be SIGKILL'd (-9) during
+        # shutdown AFTER Nextflow already finished ("Execution complete -- Goodbye").
+        # The returncode then looks like an interrupt/failure, but workflow-trace.txt
+        # — the same source the status API uses for completedTasks/failedTasks —
+        # shows every task COMPLETED and none FAILED. Honor that verdict so a
+        # cleanly-completed run is not marked failed. Safe: a genuinely failed run
+        # has FAILED tasks or a log failure marker, which _evaluate_workflow_trace_terminal
+        # reports as trace_failed=True, so this never rescues a real failure.
+        # (Observed on ADMET run f0d735a2: 2/2 tasks COMPLETED, 8 outputs, rc=-9 →
+        # was shown as "failed".)
+        if returncode != 0 and _trace_path.is_file():
+            try:
+                _tr_done, _tr_failed, _tr_c, _tr_f, _tr_t = _evaluate_workflow_trace_terminal(
+                    _trace_path.parent, _log_text, None
+                )
+                if _tr_done and not _tr_failed and _tr_t > 0 and _tr_c >= _tr_t:
+                    log.warning(
+                        "[Nextflow run %s] exit %d but workflow-trace shows all %d task(s) "
+                        "COMPLETED / 0 FAILED (driver signal-killed post-completion) — marking succeeded",
+                        run_id, returncode, _tr_t,
+                    )
+                    returncode = 0
+            except Exception as _tr_exc:
+                log.debug("[Nextflow run %s] trace-salvage check failed: %s", run_id, _tr_exc)
+
         if returncode == 0:
             final_status = "succeeded"
         elif returncode < 0:

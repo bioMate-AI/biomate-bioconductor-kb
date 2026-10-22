@@ -260,6 +260,39 @@ class TestBatchStatusFromDisk(unittest.TestCase):
             self.assertEqual(fail_n, 1)
             self.assertEqual(total, 2)
 
+    def test_evaluate_trace_terminal_all_completed_is_success(self):
+        """ADMET false-failure case: driver SIGKILL'd (-9) during shutdown AFTER
+        Nextflow finished. workflow-trace shows every task COMPLETED, 0 FAILED, and
+        the log has 'Execution complete' with no failure markers → done=True,
+        failed=False. This is the authoritative signal the exit-handler's
+        trace-salvage uses to mark such a run succeeded instead of failed."""
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log_dir = Path(tmp)
+            (log_dir / "workflow-trace.txt").write_text(
+                "task_id\tname\tstatus\texit\trealtime\t%cpu\trss\tpeak_rss\n"
+                "1\tPREDICT_ADMET\tCOMPLETED\t0\t90s\t180%\t512 MB\t512 MB\n"
+                "2\tRANK_COMPOUNDS\tCOMPLETED\t0\t12s\t100%\t64 MB\t64 MB\n",
+                encoding="utf-8",
+            )
+            work = log_dir / "work"
+            work.mkdir()
+            (work / ".nextflow.log").write_text(
+                "Oct-22 03:46:33 DEBUG nextflow.trace.TraceFileObserver - Workflow completed\n"
+                "> Execution complete -- Goodbye\n",
+                encoding="utf-8",
+            )
+            log_text, tail = _nf._read_run_nextflow_log_text(log_dir)
+            done, failed, completed, fail_n, total = _nf._evaluate_workflow_trace_terminal(
+                log_dir, log_text, tail,
+            )
+            self.assertTrue(done)
+            self.assertFalse(failed)
+            self.assertEqual(completed, 2)
+            self.assertEqual(fail_n, 0)
+            self.assertEqual(total, 2)
+
     def test_stub_launcher_log_alone_does_not_mark_terminal(self):
         import tempfile
 
