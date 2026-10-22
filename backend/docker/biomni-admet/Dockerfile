@@ -23,15 +23,18 @@
 #     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86 \
 #     -f backend/docker/biomni-admet/Dockerfile .
 #
-# Build (arm64 for Graviton on-prem — requires biomate-nextflow-base:arm64):
-#   docker build --platform linux/arm64 --build-arg TARGETARCH=arm64 \
+# Build (arm64 for Graviton on-prem — requires biomate/nextflow-base:arm64 in ECR):
+#   docker build --platform linux/arm64 \
+#     --build-arg TARGETARCH=arm64 --build-arg BASE_TAG=arm64 \
 #     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:arm64 \
 #     -f backend/docker/biomni-admet/Dockerfile .
 
-FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:latest
+# BASE_TAG selects the arch-specific nextflow-base image.
+# amd64 builds use :latest (= :x86); arm64 CI passes BASE_TAG=arm64.
+ARG BASE_TAG=latest
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:${BASE_TAG}
 
-# TARGETARCH is passed by the CI build job (--build-arg TARGETARCH=arm64|amd64).
-# Defaults to amd64 for plain `docker build` without --build-arg.
+# TARGETARCH controls arch-specific install paths (e.g. torch wheel index).
 ARG TARGETARCH=amd64
 
 LABEL maintainer="BioMate Team"

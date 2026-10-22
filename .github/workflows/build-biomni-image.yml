@@ -151,11 +151,13 @@ jobs:
       - name: Build image with host docker (native arm64 runner)
         # Native arm64 runner — no QEMU. Host `docker build` inherits ECR creds
         # from the daemon (same approach as the amd64 job above).
-        # ARG TARGETARCH=arm64 is set implicitly via --platform linux/arm64.
+        # BASE_TAG=arm64: tells the Dockerfile to FROM the arm64 base image.
+        # TARGETARCH=arm64: controls arch-specific install paths inside the build.
         run: |
           docker build \
             --platform linux/arm64 \
             --build-arg TARGETARCH=arm64 \
+            --build-arg BASE_TAG=arm64 \
             -f "${{ inputs.dockerfile }}" \
             -t "${ECR_REGISTRY}/${{ inputs.image_repo }}:${{ steps.tags.outputs.sha_tag }}" \
             .

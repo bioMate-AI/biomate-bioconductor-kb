@@ -65,7 +65,7 @@ jobs:
         id: tags
         run: echo "sha_tag=${GITHUB_SHA::12}-amd64" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push :x86 (amd64)
+      - name: Build and push :x86 + :latest (amd64)
         uses: docker/build-push-action@v6
         with:
           context: aws_infrastructure/configs
@@ -74,6 +74,7 @@ jobs:
           push: true
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:x86
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}
           cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache-amd64
           cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache-amd64,mode=max
