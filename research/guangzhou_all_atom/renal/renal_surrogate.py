@@ -42,7 +42,26 @@ def _retention_label(r: dict):
     return None
 
 
-def assemble():
+import re as _re
+_MODEL_SUFFIX = _re.compile(r"[-_](AR42J|CA20948|HT29(CCK2R)?|HT1080|HEK293|LNCaP|BxPC3|B16|A431|PC3)$", _re.I)
+
+
+def _canonical(cid: str) -> str:
+    """Strip tumor-model suffix so the SAME molecule measured in multiple xenograft models collapses to
+    one construct (de-pseudo-replication: those are near-replicates of the same kidney biology)."""
+    return _MODEL_SUFFIX.sub("", cid)
+
+
+def _feature_vector(feats):
+    """Modality/mechanism-aware features: BOTH signed charge AND |charge| (the charge->retention sign
+    flips between cationic and anionic peptides), plus an is_peptide modality flag (peptides clear by
+    filtration+megalin; small molecules by tubular transporters)."""
+    q = feats.net_charge_with_chelate
+    return [q, abs(q), feats.n_lys, feats.n_arg, feats.n_his, feats.n_asp_glu,
+            feats.basic_residue_frac, feats.seq_len, 1 if feats.seq_len > 0 else 0]
+
+
+def assemble(aggregate=False):
     rows = [json.loads(l) for l in open(os.path.join(HERE, "renal_seed_corpus.jsonl"))]
     usable = []
     for r in rows:
@@ -50,10 +69,20 @@ def assemble():
         lab = _retention_label(r)
         if feats is None or lab is None:
             continue
-        x = [getattr(feats, k) for k in _FEATS]
-        usable.append({"id": r["construct_id"], "x": x, "y": lab[0], "kind": lab[1],
-                       "net_charge": feats.net_charge_with_chelate,
+        usable.append({"id": r["construct_id"], "canon": _canonical(r["construct_id"]),
+                       "x": _feature_vector(feats), "y": lab[0], "kind": lab[1],
+                       "net_charge": feats.net_charge_with_chelate, "is_peptide": 1 if feats.seq_len > 0 else 0,
                        "species": r.get("species"), "protection": r.get("renal_protection")})
+    if aggregate:                                               # collapse pseudo-replicates (same molecule x models)
+        import collections, statistics
+        groups = collections.defaultdict(list)
+        for u in usable:
+            groups[(u["canon"], u["kind"])].append(u)
+        out = []
+        for (_canon, _kind), g in groups.items():
+            rep = dict(g[0]); rep["y"] = statistics.median(p["y"] for p in g); rep["n_rep"] = len(g)
+            out.append(rep)
+        usable = out
     return rows, usable
 
 
@@ -93,7 +122,7 @@ def cross_target_readiness(min_unit="pidg_4h"):
     enough points AND the pooled training set is large enough. This MEASURES target transfer; it does
     not assume it."""
     import collections
-    rows, usable = assemble()
+    rows, usable = assemble(aggregate=True)
     # restrict to one homogeneous unit (preclinical %ID/g is the dense, mechanism-relevant stratum)
     pool = [u for u in usable if u["kind"] == min_unit]
     by_class = collections.Counter()
@@ -117,7 +146,7 @@ def loto(min_unit="pidg_4h"):
                         "run #2 (dense preclinical %ID/g across CCK2/GLP-1R/MC1R/RGD) targets this."}
     import collections
     from sklearn.ensemble import GradientBoostingRegressor
-    rows, usable = assemble()
+    rows, usable = assemble(aggregate=True)
     tgt = {r["construct_id"]: _target_class(r) for r in rows}
     pool = [dict(u, cls=tgt.get(u["id"], "?")) for u in usable if u["kind"] == min_unit]
     classes = [c for c, n in collections.Counter(p["cls"] for p in pool).items() if n >= 3]
