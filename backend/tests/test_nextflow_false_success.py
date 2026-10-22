@@ -260,6 +260,22 @@ class TestBatchStatusFromDisk(unittest.TestCase):
             self.assertEqual(fail_n, 1)
             self.assertEqual(total, 2)
 
+    def test_killed_post_completion_log_is_not_a_failure(self):
+        """ADMET run a55ab8d3: driver SIGKILL'd (-9) at the report/timeline-rendering
+        step, so 'Execution complete -- Goodbye' was never flushed — but the log has
+        the definitive 'WorkflowStats[succeededCount=2; failedCount=0]' line and no
+        error. The exit-handler trace-salvage requires _log_indicates_nextflow_failure
+        to be False here (its guard), so this must NOT be flagged as a failure."""
+        killed_log = (
+            "Oct-22 04:02:37 DEBUG n.trace.WorkflowStatsObserver - Workflow completed > "
+            "WorkflowStats[succeededCount=2; failedCount=0; ignoredCount=0; cachedCount=0]\n"
+            "Oct-22 04:02:37 DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report\n"
+            "Oct-22 04:02:38 DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline\n"
+        )
+        self.assertFalse(
+            _nf._log_indicates_nextflow_failure(log_full_text=killed_log, log_tail=None)
+        )
+
     def test_evaluate_trace_terminal_all_completed_is_success(self):
         """ADMET false-failure case: driver SIGKILL'd (-9) during shutdown AFTER
         Nextflow finished. workflow-trace shows every task COMPLETED, 0 FAILED, and

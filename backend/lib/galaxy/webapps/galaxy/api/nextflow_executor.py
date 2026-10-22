@@ -4533,25 +4533,38 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
             returncode = 0
 
         # Trace-authoritative salvage: the driver JVM can be SIGKILL'd (-9) during
-        # shutdown AFTER Nextflow already finished ("Execution complete -- Goodbye").
-        # The returncode then looks like an interrupt/failure, but workflow-trace.txt
-        # — the same source the status API uses for completedTasks/failedTasks —
-        # shows every task COMPLETED and none FAILED. Honor that verdict so a
-        # cleanly-completed run is not marked failed. Safe: a genuinely failed run
-        # has FAILED tasks or a log failure marker, which _evaluate_workflow_trace_terminal
-        # reports as trace_failed=True, so this never rescues a real failure.
-        # (Observed on ADMET run f0d735a2: 2/2 tasks COMPLETED, 8 outputs, rc=-9 →
-        # was shown as "failed".)
+        # shutdown AFTER every task finished (observed on ADMET: killed at the
+        # timeline/report-rendering step, BEFORE "Execution complete -- Goodbye" was
+        # flushed). The returncode then looks like an interrupt/failure, but
+        # workflow-trace.txt — the same source the status API uses for
+        # completedTasks/failedTasks — shows every task COMPLETED and none FAILED.
+        # Honor that verdict so a cleanly-completed run is not marked failed.
+        # Deliberately does NOT require the "Execution complete" log marker (it may
+        # be truncated by the kill); the trace + absence of any failure marker is the
+        # authoritative proof. Safe: a genuinely failed run has a FAILED task in the
+        # trace (so _tr_completed != _tr_total) or a failure marker in the log, either
+        # of which blocks the rescue. (ADMET runs f0d735a2 / a55ab8d3: 2/2 COMPLETED,
+        # 0 FAILED, 8 outputs, rc=-9 → were wrongly shown as "failed".)
         if returncode != 0 and _trace_path.is_file():
             try:
-                _tr_done, _tr_failed, _tr_c, _tr_f, _tr_t = _evaluate_workflow_trace_terminal(
-                    _trace_path.parent, _log_text, None
-                )
-                if _tr_done and not _tr_failed and _tr_t > 0 and _tr_c >= _tr_t:
+                _tr_lines = [
+                    l for l in _trace_path.read_text().splitlines()
+                    if l.strip() and not l.startswith("task_id")
+                ]
+                _tr_total = len(_tr_lines)
+                _tr_completed = sum(1 for l in _tr_lines if "\tCOMPLETED\t" in l)
+                _tr_failed = sum(1 for l in _tr_lines if "\tFAILED\t" in l)
+                if (
+                    _tr_total > 0
+                    and _tr_completed == _tr_total
+                    and _tr_failed == 0
+                    and not _log_indicates_nextflow_failure(log_full_text=_log_text, log_tail=None)
+                ):
                     log.warning(
                         "[Nextflow run %s] exit %d but workflow-trace shows all %d task(s) "
-                        "COMPLETED / 0 FAILED (driver signal-killed post-completion) — marking succeeded",
-                        run_id, returncode, _tr_t,
+                        "COMPLETED / 0 FAILED and no failure marker (driver signal-killed "
+                        "post-completion) — marking succeeded",
+                        run_id, returncode, _tr_total,
                     )
                     returncode = 0
             except Exception as _tr_exc:
