@@ -46,11 +46,31 @@ run meant to settle real-transfer (v3) **was never completed**. So the design is
 - CPT eval had **5+7/261 leaked stems**; leak-controlled knowledge gain drops +5.4→+3.8pp.
 - **SELF-CORRECTION — this session's own work has the same flaw.** `build_decision_sft.py` (commit `01ad72ae0`) trains on **every** benchmark item with **no held-out split**, and the GRPO reward (`decision_reward.py`) is the **same scorer** the benchmark uses (`decision_benchmark_adapter.score`). Any decision-benchmark score from that model is ceiling-by-construction and will not survive on unseen decisions. n=30 is also non-inferential. **This must be fixed before any decision-SFT/GRPO number is cited.**
 
-### C. The execution/composer substrate is where product performance is lost
-- The LLM plans correctly: **composed_rate 1.00, validity 1.00**. The harness then **discards** the `parallel_with`/`depends_on` hints (`ai_assistant.py:724-728` — "full parallel dispatch is Phase 1" = unbuilt).
-- Chain exec is a sequential for-loop (`workflow_chain.py:465`); **41% of chain connections broken (56/137); only 5/69 chains fully OK** — the handoff/semantic resolver is the dominant failure.
-- The backend DAG composer (`decomposed_dag.py`, `build_dag_plan`, flag `BIOMATE_MULTITASK_DAG_ENABLED`) has **zero live callers**; the real executor (`map_reduce.py`, 11/11 tests) is on a separate branch — a coordination gap, not a missing capability.
-- Agentic tools "don't fire" in live chat because of **over-eager intent classification + a thinkingBudget:0 HTTP 400**, proven by isolation tests to be **"NOT the model."**
+### C. The execution/composer substrate — BUILT BUT DORMANT (corrected 2026-10-21 against current code)
+> **CORRECTION.** The bullets below originally repeated the 20261008-dated review verbatim
+> ("plan discarded at `ai_assistant.py:724-728`", "41% broken", "dead DAG composer / map_reduce
+> on another branch"). Re-verified against the CURRENT branch (~1600 commits ahead) those claims
+> are **stale**. Actual current state:
+- The parallel DAG executor **exists and is genuinely parallel**: `backend/lib/galaxy/chain/dag.py`
+  does topological ready-set waves (`:44-48`) with a `max_parallel` concurrency cap (`:153`) and
+  `validate_plan` cycle checks.
+- The DAG composer `backend/lib/galaxy/ai/decomposed_dag.py::build_dag_plan` is built + unit-tested
+  (`test_decomposed_dag.py`), handles `parallel_with`/`depends_on` (`:173`), and validates against
+  the executor contract.
+- The handoff resolver (the old "41% broken") is now a real module: `bind_inputs` +
+  `artifact_contracts.artifact_value`, invoked by `_run_dag_chain`.
+- `ai_assistant.py:779-796` **wires** build_dag_plan → `execution_mode:'dag'` → `to_pipeline_card`
+  → submit.
+- **BUT it is gated OFF by default:** `ai_assistant.py:499` — "`BIOMATE_MULTITASK_DAG_ENABLED`
+  therefore changes NO live behaviour"; `:774` — "Default OFF → byte-for-byte the prior single-task
+  path." So live chat still runs single-task; the parallel multi-task substrate is **inert**.
+- So the real P1 work is NOT building the substrate — it is: (1) validate the built DAG path
+  end-to-end on the live stack (unit-tested + contract-validated, but no evidence of a live Batch
+  run); (2) measure multi-task **resolution coverage** (`build_dag_plan` returns None → falls back
+  to single-task when it can't resolve — how often does it actually fire?); (3) the enable decision
+  (flip the flag, behind a clean eval).
+- Agentic tools "don't fire" in live chat: traced to **over-eager intent classification +
+  thinkingBudget:0 HTTP 400**, "NOT the model" (verify this is still current before acting).
 
 ### D. What the training actually did
 - SFT **did not help** model-bound tasks: routing 0.885→0.860, param 0.628→0.612, `must_not_fill` over-filling **worsened** with more training (34→61).
@@ -64,7 +84,7 @@ run meant to settle real-transfer (v3) **was never completed**. So the design is
 
 - **Not a model-capacity design error.** No evidence a bigger/deeper/newer backbone helps; several results argue the opposite.
 - **It IS a design error of *targeting*:** the effort went into training the model, when the measured leverage is in the **substrate** (execute the plan the model already produces) and the **context/KB** (inverse-scaling dividend).
-- **It IS an implementation error:** the composer discards the plan, 41% of handoffs break, the real DAG executor is dead/stranded.
+- **The implementation gap is narrower than first stated (corrected):** the parallel DAG executor + composer + handoff resolver are **built, tested, and wired** — but **gated OFF** (`BIOMATE_MULTITASK_DAG_ENABLED` default off), so the multi-task path is inert in production. The gap is **enablement + live validation + resolution-coverage**, not construction.
 - **It IS an evaluation error:** leakage + generator-overlap + coarse metrics + tiny n + a broken judge inflated the headlines; the real-transfer and RL runs that would tell the truth never ran. This *masks* the true location of every other problem.
 
 ---
@@ -76,10 +96,14 @@ run meant to settle real-transfer (v3) **was never completed**. So the design is
 - Build a **held-out decision eval disjoint from `build_decision_sft`** (split items; never train on eval); add a **paraphrase-aware** leak guard (the current one is exact-string + public_export-only).
 - Require **n, significance, and a null baseline** on every reported delta; retire the hallucination-rewarding fidelity judge.
 
-**P1 — Wire the execution substrate (where product perf is actually lost).**
-- Implement parallel fan-out + an aggregate/rank/top-k/select node; **stop discarding** the plan's `parallel_with`/`depends_on`.
-- Fix the 41%-broken handoff/semantic resolver; wire the live DAG composer (land `map_reduce.py`; give `build_dag_plan` real callers).
-- Fix the intent-classification gating + thinkingBudget:0 that turn agentic tools off.
+**P1 — Enable + validate the (already-built) execution substrate (corrected).**
+- The parallel DAG executor (`galaxy/chain/dag.py`), composer (`decomposed_dag.build_dag_plan`),
+  and handoff resolver (`bind_inputs`/`artifact_contracts`) are **built, unit-tested, and wired
+  into `ai_assistant.py:779-796`** — but gated OFF by `BIOMATE_MULTITASK_DAG_ENABLED`.
+- Work: (1) run the DAG path end-to-end on the live stack (no evidence it has run on Batch);
+  (2) measure multi-task **resolution coverage** (how often `build_dag_plan` fires vs falls back
+  to single-task); (3) flip the flag behind a clean eval; (4) re-verify the agentic-tool
+  intent-classification gating is still current, then fix if so.
 
 **P2 — Redirect training to the narrow LLM-bound slice, measured on clean evals only.**
 - Feed **context/KB** (biggest, size-robust win) and **SFT on REAL DB gold** for weak-base tasks (findings, param restraint) — not CPT, not depth.
