@@ -78,12 +78,47 @@ numbers in full text — e.g. Baum 2021 ¹⁷⁷Lu-FAP-2286 first-in-human dosim
 sustained + accuracy-critical (citation integrity): search → fetch full text → extract number +
 context → cite. This is "tedious literature work radiochemistry groups can't do at scale" — i.e. the moat.
 
+## 4. Extraction run #1 — DONE (parallel, 5 agents): corpus 13 → 55
+
+Five class-scoped extraction agents (PSMA / SSTR / FAP / GRPR+integrin / renal-protection-SAR) ran in
+parallel, each returning primary-cited records through `renal_ingest.py`'s citation-integrity gate
+(quarantines any record lacking a DOI/PMID, a renal label, or the mandatory `renal_protection` flag).
+**42 constructs admitted, 0 quarantined → corpus = 55, 47 with renal labels.** Every number traces to a
+real fetched source; agents excluded values they couldn't verify (paywalled DOTANOC, RBE-weighted ²²⁵Ac
+Sv/MBq not converted to Gy/GBq, meeting abstracts flagged `verified="abstract"`).
+
+### The key finding: the binding constraint is SEQUENCES, not dosimetry
+Stratified Gate A (`unit-kind × species`; pooling incomparable units is invalid):
+
+| stratum | labelled | with computable sequence |
+|---|---|---|
+| gy_per_gbq · human | 31 | 4 |
+| log_pidg · mouse | 8 | 1 |
+| gy_per_gbq · mouse | 5 | 0 |
+| inv_tk · mouse | 3 | 0 |
+
+Dosimetry is plentiful (47 labelled) but only **7/55 have a computable net charge**, and the best
+homogeneous stratum has **4** sequence-bearing constructs (≪ 50). **Verdict: REFUSE_TO_CERTIFY.** The
+next extraction must (1) attach one-letter sequences to the peptide constructs already collected,
+(2) add a **SMILES→formal-charge** path so small-molecule radioligands (PSMA/FAPI urea/quinoline) get a
+net charge, (3) keep unit + species + protection stratified, never pooled.
+
+### Design levers captured (RadiopharmKB.QUANTIFIED_LEVER_EFFECTS) — 7 cited, paired effects
+The magnitude each lever moves kidney retention (the generation loop's objective gradient, binder frozen):
+- **Cleavable Met-Val-Lys linker** — the strongest absolute-retention lever: −70% (single) / −77% (dual
+  MV-MVK) kidney @24h (Trachsel 2023); −30% for PSMA HTK01166 (Kuo 2020).
+- **Net charge** — non-monotonic: −44% at net −1 (N-terminal), but **+25% at net −2 (C-terminal)**;
+  placement and magnitude matter (Durante 2017). A precision lever, not "more negative = better."
+- **Albumin binder** — raises absolute kidney dose ~6× but improves T:K 2.0–2.9×: a therapeutic-index
+  lever, NOT renal-sparing (Kuo 2021).
+- **Gelofusine (succinylated gelatin) co-infusion** — −61…−85% kidney for αvβ6 peptides (EJNMMI 2024).
+
 ### Next steps
-1. Extraction pipeline run #1: fetch full text for the open-access sources above, extract kidney
-   dosimetry + sequence + protection flag, append to `renal_seed_corpus.jsonl` with per-number citation.
-2. Iterate until usable n ≥ 50, re-running Gate A each batch (it is the spend gate).
-3. Only on Gate-A PASS: re-aim the cyclic generation loop (`cyclic_denovo_adapter`) over
-   spacer/linker/chelator with the binder frozen, renal retention as the optimization objective and
-   binding physics as a preserve guard.
+1. Enrich existing corpus rows with sequences/SMILES (close the real gap) + add SMILES→formal-charge to
+   `renal_features`; re-run stratified Gate A.
+2. Extend extraction toward 300–800 cited constructs; re-run Gate A each batch (it is the spend gate).
+3. Only on Gate-A **PASS**: re-aim the cyclic generation loop (`cyclic_denovo_adapter`) over
+   spacer/linker/chelator (binder frozen), renal retention as objective — generating over exactly the
+   levers in `QUANTIFIED_LEVER_EFFECTS` — with binding physics as a preserve guard.
 
 **Do NOT** build the generation loop or commit synthesis spend before Gate A passes on real data.
