@@ -1,0 +1,89 @@
+# 2026-10-22 — RadioRenalKB surrogate/Gate-A infrastructure + medchem_kb product scale-up
+
+**Programme:** αvβ6 radioligand therapy (RLT) — renal-clearance-engineering thesis (BMA-DEC-001).
+**Scope of this session:** (1) scale `medchem_kb` to a real product via free public ingestion; (2) stand
+up the RadioRenalKB surrogate + Gate-A as executable, honest infrastructure.
+
+---
+
+## 1. medchem_kb → product scale (14,576 structured entries)
+
+Wired the free, open, programmatic ingestions into `medchem_kb_product.summary()`
+(`research/guangzhou_all_atom/cyclic_llm/`). All curated layers remain evidence-cited.
+
+| Layer | Count | Source | Cost |
+|---|---|---|---|
+| ChEMBL target classes | 905 | ChEMBL `protein_classification` | $0 |
+| ChEMBL mechanisms of action | 7,561 | ChEMBL `mechanism` | $0 |
+| ChEMBL approved drugs (max_phase=4) | 4,225 | ChEMBL `molecule` | $0 |
+| RDKit liability alerts | 1,585 | RDKit FilterCatalog | $0 |
+| RDKit physchem descriptors | 210 | RDKit | $0 |
+| TDC ADME/Tox datasets | 38 | PyTDC (NeurIPS'21) | $0 |
+| Curated (metal / physchem / modality) | ~29 | hand-cited | — |
+| **Total** | **14,576** | | **$0** |
+
+No keys, local CPU, no GPU/spot. The 38 TDC datasets carry hundreds of thousands of labeled
+molecules behind them. Files: `medchem_kb_product.py`, `medchem_kb_ingested_large.json`,
+`admet_tdc_ingested.json`. Commit `8cb31233d`.
+
+**Claim status:** this is a *capability* layer (assembled public canon), not a moat — same posture as
+before, just at product scale. The moat is the renal corpus (§2).
+
+---
+
+## 2. RadioRenalKB — surrogate + Gate A, made executable and honest
+
+### 2.1 Feature engine (`renal/renal_features.py`)
+Deterministic sequence → interpretable renal features. Net charge at pH 7.4 via Henderson-Hasselbalch
+on ionizable side chains + termini (head-to-tail cyclization handled), plus the metal-chelate complex
+charge (DOTA-M(III) ≈ −1). Returns net charge, Lys/Arg/His counts, basic-residue fraction, length.
+
+**No fabrication:** charge is a *calculation* on a *sourced* sequence; the sequence's citation is the
+provenance. Sequences added so far: A20FMDV2 (Hausner 2007), DOTATATE/DOTATOC, PSMA-617.
+
+**Mechanistic check holds** (megalin/charge thesis — higher net cationic charge → more tubular
+reabsorption → worse retention):
+
+| Construct | net charge (+chelate) | renal retention | consistent? |
+|---|---|---|---|
+| ¹⁷⁷Lu-A20FMDV2 | **+0.80** (1 Lys, 2 Arg) | 118 %ID/g @4h (renal injury + deaths) | ✓ worst |
+| ¹⁷⁷Lu-PSMA-617 | **−1.20** | 0.42 Gy/GBq (benchmark) | ✓ best |
+
+### 2.2 Gate A (`renal/renal_surrogate.py`)
+Gate A (renal_corpus.gate_a_protocol): before any synthesis spend, an interpretable surrogate must
+rank-order kidney retention **strictly better than net charge alone on ≥50 held-out published
+constructs**. The harness assembles (feature, label) pairs where BOTH a sourced sequence and a
+published renal label exist, then:
+- usable n < 50 → **REFUSE_TO_CERTIFY** (prints the deficit + extraction target). A gate that fails
+  loudly is the point — it blocks spend on a model that does not yet exist.
+- usable n ≥ 50 → leave-one-out interpretable GBM vs net-charge baseline, Spearman, PASS/FAIL.
+
+**Current verdict: REFUSE_TO_CERTIFY** — corpus=13, with_sequence=4, with_label=5, **usable=2**.
+The seed is a schema scaffold, not a trainable asset. Commit `… renal_features + renal_surrogate`.
+
+---
+
+## 3. The real bottleneck (now exposed, not hidden): corpus extraction
+
+Gate A cannot pass or fail until the corpus exists. The next phase is the proprietary asset: extract
+**300–800 constructs** across PSMA/SSTR/GRPR/FAPI/RGD/bombesin with:
+- primary-cited renal numbers (Gy/GBq human, or %ID/g preclinical, or T:K),
+- `renal_protection` flag mandatory (stratify/exclude, never impute — mixing protected/unprotected
+  silently corrupts the model),
+- sequence (→ deterministic net charge via §2.1).
+
+**Feasibility proven:** BioMate's own `search_literature` returns real open-access sources with the
+numbers in full text — e.g. Baum 2021 ¹⁷⁷Lu-FAP-2286 first-in-human dosimetry (363 cites); Uijen 2022
+¹⁷⁷Lu-PSMA-617 vs I&T 3D kidney dosimetry; ¹⁷⁷Lu-FAPI-XT phase-I dose-escalation (2026). The work is
+sustained + accuracy-critical (citation integrity): search → fetch full text → extract number +
+context → cite. This is "tedious literature work radiochemistry groups can't do at scale" — i.e. the moat.
+
+### Next steps
+1. Extraction pipeline run #1: fetch full text for the open-access sources above, extract kidney
+   dosimetry + sequence + protection flag, append to `renal_seed_corpus.jsonl` with per-number citation.
+2. Iterate until usable n ≥ 50, re-running Gate A each batch (it is the spend gate).
+3. Only on Gate-A PASS: re-aim the cyclic generation loop (`cyclic_denovo_adapter`) over
+   spacer/linker/chelator with the binder frozen, renal retention as the optimization objective and
+   binding physics as a preserve guard.
+
+**Do NOT** build the generation loop or commit synthesis spend before Gate A passes on real data.
