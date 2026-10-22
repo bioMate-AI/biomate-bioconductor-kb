@@ -79,7 +79,7 @@ params.rl_learning_rate  = 0.0001
 params.diversity_filter  = true      // reward-hacking suppression (keep ON)
 
 // Base prior (default: $REINVENT4_PRIORS/reinvent.prior inside the container)
-params.prior_path        = null
+params.prior_path        = ''        // optional: empty -> use container's baked-in default prior
 
 params.gpu               = false
 
