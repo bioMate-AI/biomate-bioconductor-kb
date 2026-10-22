@@ -51,6 +51,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     swig \
     && rm -rf /var/lib/apt/lists/*
 
+# arm64: vina 1.2.7 has no aarch64 PyPI wheel and builds from source;
+# its setup.py requires Boost headers. amd64 pulls a pre-built wheel, so
+# Boost is not needed there. Install it conditionally to keep amd64 lean.
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends \
+        libboost-all-dev \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
+
 # ── Layer 2: Domain-specific Python packages ───────────────────────────────
 # numpy/scipy/pandas/biopython/rdkit are already in biomate-nextflow-base.
 RUN pip install --no-cache-dir \
