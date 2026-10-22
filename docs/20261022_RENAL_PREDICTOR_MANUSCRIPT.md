@@ -52,9 +52,13 @@ Removing feature groups from the learned model and repeating LOTO (mean-per-clas
 
 Training on constructs published up to 2021 and testing on 2022–2026 constructs gives modest positive generalization (pooled ρ = 0.12; held-out αvβ3 ρ = 0.58, SSTR2 0.40), a weaker signal than the LOTO result and an honest indicator of the data's heterogeneity. Transfer fails systematically for two classes: **NTS1** (ρ ≈ −0.9 for every model, including the black box), where the Demotensin analogues differ in retention at essentially identical net charge — retention is driven by metabolic stabilization, not charge, which no current feature captures; and **GLP-1R**, where retention is dominated by a cleavable-linker effect under-identified at n = 2 cleavable constructs. These failures delimit the model's applicability domain: it predicts charge- and residualization-driven retention, not retention set by non-charge structural factors.
 
-### 2.7 In-silico design application (illustrative)
+### 2.7 Robustness to sequence-level leakage
 
-Because the renal term is target-agnostic, the predictor can rank candidate linker/spacer/chelator modifications for a fixed binder. We illustrate this for the αvβ6 program by scoring structural variants with the binder held constant; a prospective, synthesis-backed demonstration is future work (§4).
+Because the RGD motif is shared between αvβ3 and αvβ6, leave-one-target-out still permits sequence overlap across folds. Under a stricter **leave-one-sequence-cluster-out** split (single-linkage clustering by sequence 3-mer Jaccard ≥ 0.5; small molecules by chemotype; 23 clusters, 15 held out, n = 95), the learned model still exceeds the net-charge heuristic (pooled Spearman 0.13 vs 0.07). The margin is smaller than the target-out estimate, consistent with modest generalization, but the direction is preserved — the signal is not an artifact of near-duplicate constructs.
+
+### 2.8 In-silico design application: the model recovers the field design rule
+
+Because the renal term is target-agnostic, the predictor ranks renal-engineering modifications for a radioligand whose **binder is held constant** (here the αvβ6 RGD binder; target affinity/selectivity preserved by construction). Fitting the mechanistic grey-box on all data and scoring a net-charge × chelator grid at a fixed preclinical readout (4 h, residualizing ^177Lu), predicted kidney retention is **minimized near net charge −1 to 0 (≈5–6 %ID/g) and rises at both charge extremes** — the known U-shaped design rule recovered as an emergent property of the fitted model, now ranked quantitatively. A brush-border-cleavable linker (an established additional −70 to −77% lever; Trachsel 2023, Bendre 2020) is **not** scored by the model because, in the present dataset, the only cleavable constructs are GLP-1R exendins with high kidney uptake, perfectly confounding the cleavable flag with that class; it is applied as a known orthogonal lever rather than inferred. A prospective, synthesis-backed demonstration is future work (§4).
 
 ---
 
