@@ -51,8 +51,25 @@ def assemble():
         x = [getattr(feats, k) for k in _FEATS]
         usable.append({"id": r["construct_id"], "x": x, "y": lab[0], "kind": lab[1],
                        "net_charge": feats.net_charge_with_chelate,
-                       "protection": r.get("renal_protection")})
+                       "species": r.get("species"), "protection": r.get("renal_protection")})
     return rows, usable
+
+
+def strata(rows):
+    """Diagnostic: where the labelled data actually lives, and whether a net charge is computable.
+    A homogeneous surrogate stratum needs ONE unit-kind x species, with computable sequences."""
+    import collections
+    by = collections.Counter()
+    seq_by = collections.Counter()
+    for r in rows:
+        lab = _retention_label(r)
+        if lab is None:
+            continue
+        key = (lab[1], r.get("species") or "?")
+        by[key] += 1
+        if rf.features_for_row(r) is not None:
+            seq_by[key] += 1
+    return {f"{k[0]}|{k[1]}": {"n_labelled": by[k], "n_with_sequence": seq_by[k]} for k in by}
 
 
 def _spearman(a, b):
@@ -66,19 +83,29 @@ def gate_a():
     n_seq = sum(1 for r in rows if rf.features_for_row(r) is not None)
     n_lab = sum(1 for r in rows if _retention_label(r) is not None)
 
-    report = {"n_corpus": n_total, "n_with_sequence": n_seq, "n_with_label": n_lab,
-              "n_usable_both": n_usable, "min_gate_n": MIN_GATE_N}
+    strat = strata(rows)
+    # a valid charge-surrogate stratum is ONE unit-kind x species with computable sequences; pick the best
+    best_key = max(strat, key=lambda k: strat[k]["n_with_sequence"]) if strat else None
+    best_seq = strat[best_key]["n_with_sequence"] if best_key else 0
 
-    if n_usable < MIN_GATE_N:
+    report = {"n_corpus": n_total, "n_with_sequence": n_seq, "n_with_label": n_lab,
+              "n_usable_both": n_usable, "min_gate_n": MIN_GATE_N, "strata": strat,
+              "best_stratum": best_key, "best_stratum_n_with_sequence": best_seq}
+
+    if best_seq < MIN_GATE_N:
         report["verdict"] = "REFUSE_TO_CERTIFY"
-        report["reason"] = (f"usable n={n_usable} < {MIN_GATE_N}: the corpus is a schema scaffold, not a "
-                            f"trainable asset. No surrogate and no Gate-A verdict are valid at this n.")
-        report["deficit"] = {"need_more_usable_constructs": MIN_GATE_N - n_usable,
-                             "blocking": ("sequences+labels both present for only "
-                                          f"{n_usable}/{n_total}; sequences for {n_seq}, labels for {n_lab}")}
-        report["extraction_target"] = ("300-800 constructs across PSMA/SSTR/GRPR/FAPI/RGD/bombesin via the "
-                                       "BioMate-KB literature methodology; renal_protection flag mandatory "
-                                       "(stratify/exclude, never impute); each renal number primary-cited.")
+        report["reason"] = (
+            f"corpus has {n_lab} labelled constructs (dosimetry is plentiful) but only {n_seq} have a "
+            f"computable sequence, and the largest homogeneous stratum ({best_key}) has just {best_seq} "
+            f"sequence-bearing constructs (< {MIN_GATE_N}). A charge->retention surrogate needs ONE unit x "
+            f"species stratum with >= {MIN_GATE_N} sequence-resolved peptides.")
+        report["binding_constraint"] = ("SEQUENCE-RESOLVED, UNIT-HOMOGENEOUS peptide records — NOT dosimetry "
+            "counts. Next extraction must: (1) attach one-letter sequences to the peptide constructs already "
+            "collected; (2) add a SMILES->formal-charge path so small-molecule radioligands (PSMA/FAPI urea/"
+            "quinoline) get a net charge too; (3) keep unit (Gy/GBq vs %ID/g vs T:K) + species + protection "
+            "stratified, never pooled.")
+        report["extraction_target"] = ("fill each existing construct's sequence/SMILES, then extend to "
+                                       "300-800 cited constructs; renal_protection mandatory (never impute).")
         # still surface the mechanistic signal we DO have (direction, not a model):
         if n_usable >= 2:
             charges = [u["net_charge"] for u in usable]
@@ -89,10 +116,13 @@ def gate_a():
                         "n too small for a correlation, shown as directional evidence only"}
         return report
 
-    # --- n >= MIN_GATE_N: real Gate A (leave-one-out, interpretable surrogate vs net-charge baseline) ---
+    # --- best stratum has >= MIN_GATE_N: real Gate A WITHIN that homogeneous stratum (LOO surrogate vs baseline) ---
+    bk_kind, bk_sp = best_key.split("|")
+    strat_rows = [u for u in usable if u["kind"] == bk_kind and (u["species"] or "?") == bk_sp]
+    report["gate_stratum"] = best_key; report["gate_stratum_n"] = len(strat_rows)
     from sklearn.ensemble import GradientBoostingRegressor
-    X = np.array([u["x"] for u in usable]); y = np.array([u["y"] for u in usable])
-    base = np.array([u["net_charge"] for u in usable])
+    X = np.array([u["x"] for u in strat_rows]); y = np.array([u["y"] for u in strat_rows])
+    base = np.array([u["net_charge"] for u in strat_rows])
     preds = np.zeros(len(y))
     for i in range(len(y)):
         tr = [j for j in range(len(y)) if j != i]
@@ -108,18 +138,22 @@ def gate_a():
 if __name__ == "__main__":
     r = gate_a()
     print("=== Gate A — renal-retention surrogate vs net-charge baseline ===\n")
-    print(f"corpus={r['n_corpus']}  with_sequence={r['n_with_sequence']}  with_label={r['n_with_label']}  "
-          f"USABLE(both)={r['n_usable_both']}  (need >= {r['min_gate_n']})\n")
-    print(f"VERDICT: {r['verdict']}")
+    print(f"corpus={r['n_corpus']}  with_label={r['n_with_label']} (dosimetry)  with_sequence={r['n_with_sequence']} "
+          f"(computable charge)  usable_both={r['n_usable_both']}\n")
+    print("  strata (unit|species -> labelled / with-sequence):")
+    for k, v in sorted(r["strata"].items(), key=lambda kv: -kv[1]["n_labelled"]):
+        print(f"    {k:22s}  labelled={v['n_labelled']:3d}  with_sequence={v['n_with_sequence']:3d}")
+    print(f"\n  best charge-surrogate stratum: {r['best_stratum']}  (sequence-bearing={r['best_stratum_n_with_sequence']}, need >= {r['min_gate_n']})")
+    print(f"\nVERDICT: {r['verdict']}")
     if r["verdict"] == "REFUSE_TO_CERTIFY":
         print(f"  reason: {r['reason']}")
-        print(f"  deficit: need {r['deficit']['need_more_usable_constructs']} more usable constructs")
-        print(f"  {r['deficit']['blocking']}")
+        print(f"  BINDING CONSTRAINT: {r['binding_constraint']}")
         print(f"  extraction target: {r['extraction_target']}")
         if "charge_vs_retention_direction" in r:
             print("\n  directional evidence we DO have (net charge -> retention, NOT a fitted model):")
             for cid, q, yv, kind in r["charge_vs_retention_direction"]["constructs"]:
-                print(f"    {cid:22s} net_charge={q:+.2f}  retention({kind})={yv}")
+                print(f"    {cid:28s} net_charge={q:+.2f}  retention({kind})={yv}")
     else:
-        print(f"  surrogate Spearman = {r['spearman_surrogate']}  vs  net-charge baseline = {r['spearman_net_charge_baseline']}")
+        print(f"  gate stratum {r['gate_stratum']} (n={r['gate_stratum_n']}): surrogate Spearman={r['spearman_surrogate']} "
+              f"vs net-charge baseline={r['spearman_net_charge_baseline']}")
     print("\nGate A is the spend gate: it must PASS on real extracted data before any synthesis commitment.")

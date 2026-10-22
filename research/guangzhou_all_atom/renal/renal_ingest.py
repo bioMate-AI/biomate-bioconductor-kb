@@ -77,16 +77,24 @@ def _load_records(paths):
     return recs
 
 
+def _doi_key(r: dict):
+    m = _DOI_PMID.search(str(r.get("source", "")))
+    return m.group(1).lower() if m else ""
+
+
 def merge(paths, dry_run=False):
     existing = [json.loads(l) for l in open(CORPUS)] if os.path.exists(CORPUS) else []
-    have = {r["construct_id"] for r in existing}
+    # dedup on (construct_id, DOI/PMID): the SAME construct measured in a DIFFERENT study is a distinct,
+    # valuable record (inter-study variance), not a duplicate; only same construct + same source is a dup.
+    have = {(r["construct_id"], _doi_key(r)) for r in existing}
     incoming = _load_records(paths)
 
     admitted, quarantined, dupes = [], [], []
     seen_new = set()
     for r in incoming:
         cid = r.get("construct_id")
-        if cid in have or cid in seen_new:
+        key = (cid, _doi_key(r))
+        if key in have or key in seen_new:
             dupes.append(cid); continue
         ok, why = validate(r)
         if not ok:

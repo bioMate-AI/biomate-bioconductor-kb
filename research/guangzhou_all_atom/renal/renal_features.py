@@ -102,11 +102,22 @@ def features_for(construct_id: str) -> Optional[RenalFeatures]:
 _CYCLIC_CHEMOTYPES = {"cyclic_RGD", "cyclic_peptide", "cyclic_octapeptide", "bombesin_antagonist", "knottin"}
 
 
+import re as _re
+_ONE_LETTER = _re.compile(r"^[ACDEFGHIKLMNPQRSTVWYX]+$")
+
+
+def is_clean_one_letter(seq) -> bool:
+    """A sequence usable by featurize must be a pure one-letter peptide string. Descriptive strings
+    like 'DOTA-D-Phe-cyclo[Cys-Tyr-...]' are NOT — passing them to featurize would miscount residues."""
+    return isinstance(seq, str) and len(seq) >= 2 and bool(_ONE_LETTER.match(seq.upper()))
+
+
 def features_for_row(row: dict) -> Optional[RenalFeatures]:
     """Featurize straight from a corpus row's OWN sourced fields (sequence/chelator/chemotype).
-    Falls back to the curated SEQUENCES dict by construct_id. Returns None if no sequence available."""
+    Uses row['sequence'] ONLY if it is a clean one-letter peptide; else falls back to the curated
+    SEQUENCES dict by construct_id. Returns None if no usable sequence is available."""
     seq = row.get("sequence")
-    if seq:
+    if is_clean_one_letter(seq):
         cyclic = bool(row.get("cyclic_headtail", row.get("chemotype") in _CYCLIC_CHEMOTYPES))
         return featurize(seq, row.get("chelator"), cyclic)
     return features_for(row.get("construct_id", ""))
