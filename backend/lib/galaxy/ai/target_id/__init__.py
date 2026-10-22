@@ -22,6 +22,7 @@ from .clinical_arm import cyt_score, run_clinical_demonstration
 from .demonstration import run_clinical_arm, run_demonstration
 from .network_channels import PathwayCoMembershipChannel, StringPpiChannel
 from .orchestrator import TargetIDOrchestrator, create_target_id_orchestrator
+from .validation import nominate_and_validate, validation_plan, VALIDATION_INTENTS
 from .types import ChannelResult, OrchestratorResult, TargetEvidence, TargetScore
 
 __all__ = [
@@ -31,5 +32,6 @@ __all__ = [
     "StringPpiChannel", "PathwayCoMembershipChannel",
     "run_demonstration", "run_clinical_arm", "run_clinical_demonstration", "cyt_score",
     "TargetIDOrchestrator", "create_target_id_orchestrator",
+    "nominate_and_validate", "validation_plan", "VALIDATION_INTENTS",
     "ChannelResult", "OrchestratorResult", "TargetEvidence", "TargetScore",
 ]
