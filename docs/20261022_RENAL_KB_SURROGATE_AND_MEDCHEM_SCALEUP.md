@@ -150,6 +150,28 @@ the heuristic's direction breaks — i.e. the asset **does** contribute to targe
 its value over the field heuristic is largest off the cationic/megalin assumption. Caveats: small n +
 Mather pseudo-replication (same constructs ×3 tumor models) → a **signal, not certification**.
 
-### Gate A status: still `REFUSE_TO_CERTIFY` (21 < 50 in the homogeneous stratum) — correct.
-### Next: fold in the preclinical PSMA/FAPI small-molecule batch (SMILES→charge), de-pseudo-replicate
-Mather (aggregate per construct), extend multi-class %ID/g toward n≥50, then re-run Gate A + LOTO.
+### Final run-#2 state: corpus = 99 (91 labelled, 35 charge-computable)
+Folded in the FAPI-46 head-to-head series (Rotteveel 2023: monomer/dimer/Ibu/EB ×2 models) + PSMA
+small molecules, with verified PubChem SMILES for FAPI-46 and PSMA-I&S. Adding the near-neutral FAP
+**small molecules** to the pooled surrogate **lowered** LOTO (held-out CCK2 +0.24→−0.14, MC1R
++0.66→+0.46).
+
+**Second finding — pooling modalities degrades cross-target prediction.** Renal handling is
+mechanism-dependent: peptides clear by filtration + megalin reabsorption (charge sign flips between
+cationic/anionic), small molecules by OAT/OCT tubular transporters. So heterogeneous data alone does
+NOT help; the surrogate must be **modality/mechanism-aware**. We will not exclude data to inflate the
+number (no-exclusion discipline) — the fix is principled modality stratification, mechanistically
+justified exactly like the unit/species/protection strata.
+
+### Gate A status: `REFUSE_TO_CERTIFY` (best stratum 23 < 50) — correct throughout.
+### Next
+1. Make the surrogate modality-aware (peptide vs small-molecule), handle the cationic/anionic charge
+   sign (features: signed charge AND |charge|).
+2. De-pseudo-replicate the Mather series (aggregate the same construct across 3 tumor models).
+3. Extend multi-class %ID/g toward n≥50 per modality stratum (supplementary .xlsx biodistribution
+   tables for PSMA-ALB/rhPSMA, per the extraction agent's pointer), then re-run Gate A + LOTO.
+4. Only on Gate-A PASS → generation loop over `QUANTIFIED_LEVER_EFFECTS` (binder frozen).
+
+**Two publishable-direction findings this session:** (1) the field's net-charge/megalin heuristic is
+sign-inverted for anionic radiopeptides; (2) cross-target renal-retention transfer is real but
+modality-gated. Both are cross-program (target-agnostic) — the asset contributes to NEW targets.
