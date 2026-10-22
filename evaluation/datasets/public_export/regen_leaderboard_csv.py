@@ -62,7 +62,7 @@ MODELS = [
     ("GLM-5.3-prime", "z-ai_glm-5.3-prime", {}),
     ("GPT-5.6-luna", "openai_gpt-5.6-luna", {}),
     ("Kimi K3", "moonshotai_kimi-k3", {}),
-    ("DeepSeek V4", "deepseek_deepseek-v4-pro", {}),
+    ("DeepSeek V4-pro", "deepseek_deepseek-v4-pro", {}),
     # BioMate: ONLY same-item committed cells (routing + pbpk). Everything else blank.
     ("BioMate (engine-free, C2)", None, {
         "routing": "biomate_dev/cross_domain_routing_c2ir.jsonl",
