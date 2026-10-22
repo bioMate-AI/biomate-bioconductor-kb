@@ -16,8 +16,15 @@ run() { echo "+ $*"; if [ "$EXECUTE" = "1" ]; then ( "$@" ); else echo "  (dry; 
 
 echo "=== on-prem RL run (EXECUTE=$EXECUTE) ==="
 
-echo; echo "# PREREQ: the SFT-decomp adapter must be in S3 (start policy + KL ref). The decomp launcher"
-echo "#  already REFUSES TO LAUNCH without it (run_grpo_decomp_9b.sh:27-28). Confirm it exists first."
+echo; echo "# PREREQ (VERIFIED 2026-10-22 via read-only 'aws s3 ls', acct 399683337364):"
+echo "#  The launcher's hardcoded SFT_ADAPTER_S3=.../med/sft_decompv2_adapter is ABSENT in S3 →"
+echo "#  run_grpo_decomp_9b.sh:27-28 would REFUSE TO LAUNCH as-is. Available SFT adapters under"
+echo "#  models_20260919/med/: sft_gold_adapter, sft_v3clean_adapter, sft_sftv3real_adapter,"
+echo "#  full_today_20261003_adapter, midtrain_adapter, base_domain."
+echo "#  RECOMMENDED start policy: sft_gold_adapter (the collected-gold SFT — includes the decomp"
+echo "#  lift, node-F1 0.36→0.73). To fire T1, repoint the launcher at it (and it is GPU \$ — explicit go):"
+echo "#     SFT_ADAPTER_S3=.../models_20260919/med/sft_gold_adapter EVAL_HOOK=1 EXECUTE=1 bash $0"
+echo "#  (choosing the start policy is a real decision; sft_decompv2 was never landed — see diagnosis.)"
 
 echo; echo "# T1 (READY) — decomposition GRPO on REAL gold, clean held-out eval"
 echo "#  Spot-only, resume-safe, self-terminating; EVAL_HOOK=1 evaluates every eval_steps on"
