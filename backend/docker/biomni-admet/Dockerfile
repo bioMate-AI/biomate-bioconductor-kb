@@ -90,8 +90,20 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
 # Everything else — versions come from the lock (numpy 1.26.4, chemprop 1.6.1,
 # descriptastorus 2.8.0, admet-ai 1.3.1, mordred, PyTDC, sklearn, matplotlib,
 # chembl client + all transitive deps).
-RUN pip install --no-cache-dir -c /tmp/biomni-admet.lock \
-    numpy scikit-learn matplotlib mordred PyTDC chembl_webresource_client descriptastorus
+#
+# PyTDC arm64 note: PyTDC>=1.0 pulls in tiledbsoma→tiledb (a C++ extension with no
+# arm64 pre-built wheel on PyPI; source-building it fails).  tiledb is only used by
+# PyTDC's single-cell data path, which BioMate doesn't use — ADMET predictions come
+# from admet-ai, not TDC.  On arm64 install PyTDC --no-deps and add only the deps
+# that BioMate's ADMET path actually needs (omitting tiledb/tiledbsoma/anndata).
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      pip install --no-cache-dir -c /tmp/biomni-admet.lock \
+        numpy scikit-learn matplotlib mordred chembl_webresource_client descriptastorus && \
+      pip install --no-cache-dir --no-deps -c /tmp/biomni-admet.lock PyTDC; \
+    else \
+      pip install --no-cache-dir -c /tmp/biomni-admet.lock \
+        numpy scikit-learn matplotlib mordred PyTDC chembl_webresource_client descriptastorus; \
+    fi
 
 RUN pip install --no-cache-dir -c /tmp/biomni-admet.lock \
     chemprop admet-ai
