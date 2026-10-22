@@ -112,14 +112,39 @@ def is_clean_one_letter(seq) -> bool:
     return isinstance(seq, str) and len(seq) >= 2 and bool(_ONE_LETTER.match(seq.upper()))
 
 
+def _features_from_smiles(smiles: str, chelator: Optional[str]) -> Optional[RenalFeatures]:
+    """Small-molecule path: net charge from SMILES (renal_smiles_charge), group counts mapped to the
+    same feature slots. seq_len=0 marks a non-peptide (modality flag the surrogate can use)."""
+    try:
+        from renal_smiles_charge import smiles_net_charge
+    except Exception:
+        return None
+    chel_q = CHELATOR_COMPLEX_CHARGE.get(chelator, 0.0)
+    r = smiles_net_charge(smiles, chel_q)
+    if r is None:
+        return None
+    g = r["groups"]
+    n_lys, n_arg, n_his = g.get("aliphatic_amine", 0), g.get("guanidine", 0), g.get("imidazole", 0)
+    n_neg = g.get("carboxylic_acid", 0) + g.get("sulfonic_acid", 0) + g.get("tetrazole", 0)
+    n_basic = n_lys + n_arg + n_his
+    return RenalFeatures(
+        net_charge_pH74=r["net_charge_pH74"], n_lys=n_lys, n_arg=n_arg, n_his=n_his, n_asp_glu=n_neg,
+        basic_residue_frac=round(n_basic / max(n_basic + n_neg, 1), 3), seq_len=0, chelator_charge=chel_q,
+        net_charge_with_chelate=r["net_charge_with_chelate"])
+
+
 def features_for_row(row: dict) -> Optional[RenalFeatures]:
-    """Featurize straight from a corpus row's OWN sourced fields (sequence/chelator/chemotype).
-    Uses row['sequence'] ONLY if it is a clean one-letter peptide; else falls back to the curated
-    SEQUENCES dict by construct_id. Returns None if no usable sequence is available."""
+    """Featurize from a corpus row's OWN sourced fields. Priority: clean one-letter peptide sequence
+    (HH), else SMILES (small-molecule HH), else the curated SEQUENCES dict. None if nothing usable."""
     seq = row.get("sequence")
     if is_clean_one_letter(seq):
         cyclic = bool(row.get("cyclic_headtail", row.get("chemotype") in _CYCLIC_CHEMOTYPES))
         return featurize(seq, row.get("chelator"), cyclic)
+    smi = row.get("smiles")
+    if isinstance(smi, str) and len(smi) >= 4:
+        f = _features_from_smiles(smi, row.get("chelator"))
+        if f is not None:
+            return f
     return features_for(row.get("construct_id", ""))
 
 

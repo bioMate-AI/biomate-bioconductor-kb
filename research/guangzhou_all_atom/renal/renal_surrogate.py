@@ -77,6 +77,63 @@ def _spearman(a, b):
     return float(spearmanr(a, b).correlation)
 
 
+def _target_class(cid_row):
+    t = (cid_row.get("target") or "?").lower()
+    for k in ("psma", "sstr", "grpr", "fap", "avb6", "avb3", "cck", "mc1r", "glp"):
+        if k in t:
+            return k
+    return t
+
+
+def cross_target_readiness(min_unit="log_pidg"):
+    """Does the asset generalize to NEW targets? Report per-target-class usable counts within the
+    dense preclinical stratum. LOTO (leave-one-target-out) becomes runnable once >=2 classes each have
+    enough points AND the pooled training set is large enough. This MEASURES target transfer; it does
+    not assume it."""
+    import collections
+    rows, usable = assemble()
+    # restrict to one homogeneous unit (preclinical %ID/g is the dense, mechanism-relevant stratum)
+    pool = [u for u in usable if u["kind"] == min_unit]
+    by_class = collections.Counter()
+    # need the target field -> re-join from rows by id
+    tgt = {r["construct_id"]: _target_class(r) for r in rows}
+    for u in pool:
+        by_class[tgt.get(u["id"], "?")] += 1
+    return {"unit": min_unit, "n_pool": len(pool), "classes": dict(by_class),
+            "n_classes_with_data": sum(1 for v in by_class.values() if v >= 1),
+            "loto_runnable": sum(1 for v in by_class.values() if v >= 3) >= 2 and len(pool) >= 12}
+
+
+def loto(min_unit="log_pidg"):
+    """Leave-One-Target-Out: train on all target classes but one, predict the held-out class.
+    The direct test of 'contributes to a target it never saw'. Returns per-held-out-class Spearman
+    (model vs net-charge baseline) when runnable, else the readiness report explaining why not."""
+    ready = cross_target_readiness(min_unit)
+    if not ready["loto_runnable"]:
+        return {"runnable": False, "readiness": ready,
+                "note": "need >=2 target classes with >=3 points each and >=12 pooled in one unit; "
+                        "run #2 (dense preclinical %ID/g across CCK2/GLP-1R/MC1R/RGD) targets this."}
+    import collections
+    from sklearn.ensemble import GradientBoostingRegressor
+    rows, usable = assemble()
+    tgt = {r["construct_id"]: _target_class(r) for r in rows}
+    pool = [dict(u, cls=tgt.get(u["id"], "?")) for u in usable if u["kind"] == min_unit]
+    classes = [c for c, n in collections.Counter(p["cls"] for p in pool).items() if n >= 3]
+    out = {}
+    for held in classes:
+        tr = [p for p in pool if p["cls"] != held]
+        te = [p for p in pool if p["cls"] == held]
+        if len(tr) < 6 or len(te) < 3:
+            continue
+        m = GradientBoostingRegressor(n_estimators=200, max_depth=2, learning_rate=0.05, random_state=0)
+        m.fit(np.array([p["x"] for p in tr]), np.array([p["y"] for p in tr]))
+        pred = m.predict(np.array([p["x"] for p in te]))
+        yte = np.array([p["y"] for p in te]); base = np.array([p["net_charge"] for p in te])
+        out[held] = {"n_test": len(te), "spearman_model": round(_spearman(pred, yte), 3),
+                     "spearman_net_charge": round(_spearman(base, yte), 3)}
+    return {"runnable": True, "unit": min_unit, "per_held_out_class": out}
+
+
 def gate_a():
     rows, usable = assemble()
     n_total, n_usable = len(rows), len(usable)
@@ -144,6 +201,16 @@ if __name__ == "__main__":
     for k, v in sorted(r["strata"].items(), key=lambda kv: -kv[1]["n_labelled"]):
         print(f"    {k:22s}  labelled={v['n_labelled']:3d}  with_sequence={v['n_with_sequence']:3d}")
     print(f"\n  best charge-surrogate stratum: {r['best_stratum']}  (sequence-bearing={r['best_stratum_n_with_sequence']}, need >= {r['min_gate_n']})")
+    # cross-target generalization readiness (answers: does the asset contribute to NEW targets?)
+    lt = loto()
+    print("\n  CROSS-TARGET (new-target) generalization — Leave-One-Target-Out:")
+    if lt["runnable"]:
+        for cls, v in lt["per_held_out_class"].items():
+            print(f"    held-out {cls:6s} (n={v['n_test']}): model rho={v['spearman_model']} vs net-charge {v['spearman_net_charge']}")
+    else:
+        rd = lt["readiness"]
+        print(f"    not yet runnable — pool(%ID/g)={rd['n_pool']} across classes {rd['classes']}")
+        print(f"    {lt['note']}")
     print(f"\nVERDICT: {r['verdict']}")
     if r["verdict"] == "REFUSE_TO_CERTIFY":
         print(f"  reason: {r['reason']}")
