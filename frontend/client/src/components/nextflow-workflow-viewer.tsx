@@ -2824,6 +2824,7 @@ export function NextflowWorkflowViewer({
               status === 'completed' ? 'completed'
               : status === 'failed' ? 'failed'
               : status === 'running' ? 'running'
+              : status === 'paused' ? 'paused'
               : undefined
             }
             errorMessage={errorMessage}

@@ -65,4 +65,23 @@ describe('FindingsCard output-readability state', () => {
     expect(screen.queryByTestId('findings-card')).toBeNull()
     fetchMock.mockRestore()
   })
+
+  it('shows a paused (not failed, not in-progress) message for a QC-gate-paused run', async () => {
+    // Regression: a paused run (QC-gate halt) must not render the failed
+    // "did not complete successfully" message, nor the "Analysis in progress…"
+    // spinner (it is halted, not working). It should show the paused message.
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'pending' }),
+    } as Response)
+
+    render(<FindingsCard runId="run-paused-qc-gate" executionStatus="paused" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Paused at a QC gate/i)).toBeInTheDocument()
+    })
+    expect(screen.queryByText(/did not complete successfully/i)).toBeNull()
+    expect(screen.queryByText(/Analysis in progress/i)).toBeNull()
+    fetchMock.mockRestore()
+  })
 })

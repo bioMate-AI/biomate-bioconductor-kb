@@ -103,6 +103,10 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
   const [citationsExpanded, setCitationsExpanded] = useState(false)
 
   const runFailed = executionStatus === 'failed' || executionStatus === 'error'
+  // A paused run (QC-gate halt / user pause) is NOT failed and NOT progressing —
+  // findings can't be generated until it resumes, so show a halted message and
+  // stop polling (polling implies it's still working, which it isn't).
+  const runPaused = executionStatus === 'paused'
 
   React.useEffect(() => {
     if (!runId) return;
@@ -117,7 +121,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
             const json: FindingsData = await res.json()
             setData(json)
             setLoading(false)
-            if (json.status === 'pending' && !runFailed) {
+            if (json.status === 'pending' && !runFailed && !runPaused) {
               // Retry after 5 seconds only while run is still active
               pollTimer = setTimeout(poll, 5000)
             }
@@ -136,7 +140,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
       cancelled = true
       if (pollTimer) clearTimeout(pollTimer)
     }
-  }, [runId, runFailed])
+  }, [runId, runFailed, runPaused])
 
   // useMemo MUST be called unconditionally (Rules of Hooks — no early returns before hooks).
   // We guard for null data by defaulting to empty values.
@@ -184,6 +188,13 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
   if (!data) return null
 
   if (data.status === 'pending') {
+    if (runPaused) {
+      return (
+        <div className="text-sm text-muted-foreground mt-2">
+          {tOr('panel.findings.paused', 'Paused at a QC gate — resume the run to continue the analysis.')}
+        </div>
+      )
+    }
     if (runFailed) {
       return (
         <div className="text-sm text-muted-foreground mt-2">

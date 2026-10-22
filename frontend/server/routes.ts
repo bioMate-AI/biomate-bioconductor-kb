@@ -11833,6 +11833,30 @@ ${paramLines || '(none recorded)'}`;
             // (idempotent; no-op for runs with no project). `run` now holds the
             // terminal nextflowStatus with s3_output_files.
             if (mappedStatus === 'completed') { void autoSaveCompletedRunOutputs(run); }
+          } else if ((nfState === 'paused' || nfState === 'cancelled') && run.execution.status !== nfState) {
+            // DELIBERATE-HALT propagation (QC gate halt / user pause / cancel).
+            // 'paused'/'cancelled' are not Nextflow-native states — Galaxy sets
+            // them ONLY via the soft/hard cancel path (nextflow_executor
+            // _terminate_run_process), so when Galaxy reports one it is the
+            // authoritative, resumable truth. The reconciliation previously had
+            // NO branch for these, so a QC-gated Batch run kept its prior
+            // frontend status: it stuck on 'running', or — when an earlier
+            // interrupt/finalizer had written 'failed' — showed "Failed"/"Restart"
+            // and a "workflow did not complete successfully" findings message
+            // while the reproducibility record said 'paused' and Resume was dead.
+            // Adopt Galaxy's state and clear any stale failure message.
+            const haltStatus: ExecutionRunStatus = nfState === 'paused' ? 'paused' : 'cancelled';
+            console.warn(
+              `[ExecutionRun] deliberate-halt propagation: ${run.id} — Galaxy reports '${nfState}' (QC gate / pause / cancel); adopting over prior '${run.execution.status}'`
+            );
+            run = await storage.updateExecutionRun(run.id, {
+              execution: {
+                ...run.execution,
+                status: haltStatus,
+                errorMessage: haltStatus === 'paused' ? undefined : run.execution.errorMessage,
+                nextflowStatus: nextflowStatus,
+              },
+            }) || run;
           } else if (run.execution.status === 'running') {
             // Keep latest Nextflow status snapshot for UI visibility.
             run = await storage.updateExecutionRun(run.id, {
