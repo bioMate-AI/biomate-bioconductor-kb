@@ -133,8 +133,23 @@ def _features_from_smiles(smiles: str, chelator: Optional[str]) -> Optional[Rena
 
 
 def features_for_row(row: dict) -> Optional[RenalFeatures]:
-    """Featurize from a corpus row's OWN sourced fields. Priority: clean one-letter peptide sequence
-    (HH), else SMILES (small-molecule HH), else the curated SEQUENCES dict. None if nothing usable."""
+    """Featurize from a corpus row's OWN sourced fields. Priority: (0) a PAPER-STATED net charge
+    (authoritative — some charge differences live in terminal mods that a one-letter sequence can't
+    encode, e.g. the MC1R Ac/Suc/amide ladder), (1) clean one-letter sequence (HH), (2) SMILES (HH),
+    (3) curated SEQUENCES dict. None if nothing usable."""
+    stated = row.get("net_charge_stated")
+    if isinstance(stated, (int, float)):
+        seq = row.get("sequence")
+        if is_clean_one_letter(seq):
+            s = seq.upper()
+            n_lys, n_arg, n_his = s.count("K"), s.count("R"), s.count("H")
+            n_neg = s.count("D") + s.count("E"); L = max(len(s), 1)
+        else:
+            n_lys = n_arg = n_his = n_neg = 0; L = 1
+        return RenalFeatures(net_charge_pH74=float(stated), n_lys=n_lys, n_arg=n_arg, n_his=n_his,
+            n_asp_glu=n_neg, basic_residue_frac=round((n_lys + n_arg + n_his) / L, 3),
+            seq_len=len(row["sequence"]) if is_clean_one_letter(row.get("sequence")) else 0,
+            chelator_charge=0.0, net_charge_with_chelate=float(stated))
     seq = row.get("sequence")
     if is_clean_one_letter(seq):
         cyclic = bool(row.get("cyclic_headtail", row.get("chemotype") in _CYCLIC_CHEMOTYPES))

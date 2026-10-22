@@ -34,9 +34,11 @@ def _retention_label(r: dict):
         return (float(r["kidney_gy_per_gbq"]), "gy_per_gbq")
     if r.get("tk_ratio") is not None and r["tk_ratio"] > 0:
         return (1.0 / float(r["tk_ratio"]), "inv_tk")          # low T:K -> high retention proxy
-    for t in ("kidney_pid_g_24h", "kidney_pid_g_4h", "kidney_pid_g_1h"):
+    # %ID/g magnitude depends on timepoint, so the unit-kind encodes it (never pool 4h with 48h)
+    for t, tag in (("kidney_pid_g_1h", "pidg_1h"), ("kidney_pid_g_4h", "pidg_4h"),
+                   ("kidney_pid_g_24h", "pidg_24h"), ("kidney_pid_g_48h", "pidg_48h")):
         if r.get(t) is not None:
-            return (float(np.log1p(r[t])), "log_pidg")
+            return (float(np.log1p(r[t])), tag)
     return None
 
 
@@ -85,7 +87,7 @@ def _target_class(cid_row):
     return t
 
 
-def cross_target_readiness(min_unit="log_pidg"):
+def cross_target_readiness(min_unit="pidg_4h"):
     """Does the asset generalize to NEW targets? Report per-target-class usable counts within the
     dense preclinical stratum. LOTO (leave-one-target-out) becomes runnable once >=2 classes each have
     enough points AND the pooled training set is large enough. This MEASURES target transfer; it does
@@ -104,7 +106,7 @@ def cross_target_readiness(min_unit="log_pidg"):
             "loto_runnable": sum(1 for v in by_class.values() if v >= 3) >= 2 and len(pool) >= 12}
 
 
-def loto(min_unit="log_pidg"):
+def loto(min_unit="pidg_4h"):
     """Leave-One-Target-Out: train on all target classes but one, predict the held-out class.
     The direct test of 'contributes to a target it never saw'. Returns per-held-out-class Spearman
     (model vs net-charge baseline) when runnable, else the readiness report explaining why not."""
