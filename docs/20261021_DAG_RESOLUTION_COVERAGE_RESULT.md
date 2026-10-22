@@ -162,6 +162,33 @@ lever unlocks it. Drive them with a **curated** multi-workflow eval (known-corre
 per stage) that separates resolver precision from the type-metadata gates, and re-measure fire after
 each fix rather than assuming. Still none of these are model capacity/training.
 
+### Keystone curated eval (`composer_eval_curated.py` + `curated_pipelines.jsonl`, READ-ONLY)
+Each stage carries a curated EXPECTED workflow, separating the gates:
+
+| Measure | Result |
+|---|---|
+| (A) resolver precision (top pick == expected) | **4/7 = 57%** |
+| (B) fire with resolver's actual picks | 1/3 |
+| (C) fire with CORRECT (expected) workflows | **2/3** |
+| (D) fire with expected + DERIVED clean inputs | 2/3 |
+
+**Decomposition of the bottleneck (finally isolated):**
+1. **Resolver precision is the dominant improvable gate (57%).** C>B: with the correct workflows,
+   WGS→VEP fires; with the resolver's picks it doesn't (it chose `rsubread` over `nfcore/rnaseq`,
+   `wgs_germline_gatk` over `sarek`). This is a **retrieval** target, not capacity.
+2. **Within-universe chains already fire once resolution is correct** (nf-core genomics, pharmacology
+   fan-out) — the substrate + the (fixed) matcher WORK.
+3. **The nf-core→Bioconductor chain does NOT fire even at (D)** — `counts_matrix` (rnaseq out) ≠
+   `ExpressionSet` (Bioconductor DE in) is a **real representation gap**; it needs an adapter/convert
+   step, and the composer correctly refuses. NOT a metadata bug, NOT fixable by cleanup.
+4. `input_types` cleanup (D=C here) is a broad catalog-hygiene win (64% of 2525 workflows) but was
+   not the unlock for these 3 pipelines — confirming "necessary, not sufficient, and not always the gate."
+
+**So the ranked composer levers:** (1) resolver precision [retrieval], (2) `input_types`/`output_types`
+hygiene [catalog data, non-lossy from `params_schema`], (3) format-adapter steps for genuine
+cross-ecosystem gaps [pipeline design], (4) the wiring hook [fix #1]. All harness/data/retrieval —
+none are model capacity or training.
+
 ## Caveats (honest)
 - **FTS/BM25 only** — the embedding model was blocked for env reasons (anaconda scipy ABI). Dense
   retrieval OFF; production with embeddings ON can only add coverage, and scores already sit ~4×
