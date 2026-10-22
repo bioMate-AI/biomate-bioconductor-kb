@@ -6476,7 +6476,8 @@ Contrast with a Nextflow pipeline case where data is an accession or file path:
   "preferred_domains": ["transcriptomics"],
   "key_terms": ["RNA-seq", "differential expression", "nf-core/rnaseq"],
   "needs_thinking": false,
-  "chain_hint": null
+  "chain_hint": null,
+  "rationale": "User supplied SRA accessions plus an explicit RNA-seq differential-expression goal, so this routes to a Nextflow transcriptomics pipeline (nf-core/rnaseq) rather than a direct inline computation."
 }
 
 Note: chain_hint is null here even though this involves RNA-seq + DE, because the user did not
@@ -6515,6 +6516,12 @@ chain_hint: ONLY set if the user explicitly requests a named multi-step pipeline
   in doubt.
   Known chain names: [${chainHintList}]
 
+rationale: ALWAYS include a single plain-language sentence (max ~30 words) explaining WHY you
+  classified the request this way — the data shape you saw, the goal you inferred, and why it
+  routes to this kind of handling (inline compute vs Nextflow pipeline vs research, etc.). This
+  is shown to the user as a "why this routing" note, so write it for them, not as debug text.
+  Required for every single-intent response.
+
 For MULTI-intent messages (parallel), respond with an "intents" array:
 {
   "is_sequential": false,
@@ -6522,6 +6529,7 @@ For MULTI-intent messages (parallel), respond with an "intents" array:
   "key_terms": ["differential expression", "DESeq2", "edgeR"],
   "needs_thinking": true,
   "chain_hint": null,
+  "rationale": "User asked for two things at once — run DE on their RNA-seq data and compare DESeq2 vs edgeR — so this is split into parallel intents: one pipeline run and one methods comparison.",
   "intents": [
     {
       "id": "intent_1",
@@ -6594,7 +6602,8 @@ For KNOWLEDGE and RESEARCH questions (not workflow execution), set needsResearch
   "preferred_domains": ["genomics"],
   "key_terms": ["Huntington", "causal gene", "HTT"],
   "needs_thinking": false,
-  "chain_hint": null
+  "chain_hint": null,
+  "rationale": "This is a factual biomedical knowledge question with no data to process, so it routes to the research agent rather than a workflow."
 }
 
 "Which genes are associated with the HPO phenotype HP:0001250 (seizure)?"
