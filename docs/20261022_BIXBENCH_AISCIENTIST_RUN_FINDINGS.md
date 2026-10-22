@@ -104,6 +104,30 @@ BioMate-vs-Biomni-Lab(88.7%) number (~205 × ~$0.003 LLM + capsule downloads + w
 secondary ANTHROPIC_API_KEY concern is moot in practice — run_code fired, so dev's agentic loop is
 working for this path.
 
+## Bug-finding run on the CURRENT build (2026-10-22, n=8)
+
+Re-purposed BixBench-exec as a bug-finding harness on the post-fix dev build (user: "already tested
+before … use it to further test the current version for any bugs"). Result: **7/8 (87.5%)** —
+essentially Biomni Lab (88.7%, −1.2%), +22.2 vs Claude Code, +47.3 vs GPT-4o exec. range_verifier
+5/5, str_verifier 2/3. Latency ~18s/q, $0.0029/q.
+
+**Audit of all 8 responses → NO BioMate bugs.** Every task fired run_code, extracted real values
+from the notebook cells (chi-square p-values, odds ratios, GO p.adj), no fabrication / code-as-text /
+tracebacks / truncation. The run_code fix is validated at scale.
+
+The one miss (`bix-1-q2`, the same recurring task) is a **benchmark-prompt artifact, not a BioMate
+defect**: the notebook-parse snippet the adapter injects truncates each cell's stdout to `[:300]`
+chars, so the target term "neutrophil activation" (GO:0042119, p.adj 1.9e-05) fell outside the
+printed window. BioMate correctly extracted the enrichGO table, honestly reported "No 'neutrophil'
+found," and kept searching — right behavior on a truncated extraction. Optional benchmark-side
+improvement (not a BioMate fix): raise/remove the per-cell `[:300]` cap in
+`bixbench_adapter._biomate_exec_prompt` Path A so the full enrichGO table is surfaced (would likely
+make this 8/8). Deliberately NOT applied here — it is benchmark tuning, and the point of this run
+was BioMate bugs.
+
+Env note: the runner needs anaconda's python (`/Users/kky/opt/anaconda3/bin/python3`) — only it has
+`datasets`; the default homebrew `python3` errors "No module named 'datasets'".
+
 ## Status of the broader AI-scientist comparison
 
 - **Biomni**: already a RealBio comparator row (routing 0.95 / boin 0.5 / pbpk 0.0) + biomni_eval1.
