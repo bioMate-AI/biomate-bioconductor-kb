@@ -38,5 +38,5 @@ jobs:
       smoke_script: backend/docker/biomni-admet/smoke.py
       emit_lockfile: ${{ github.event_name == 'workflow_dispatch' && inputs.emit_lockfile || false }}
       # arm64 disabled until biomate-nextflow-base:latest carries an arm64 manifest.
-      # Enable by setting build_arm64: true once the base image is multi-arch.
-      build_arm64: false
+      # biomate/nextflow-base:arm64 exists in ECR — arm64 build enabled.
+      build_arm64: true
