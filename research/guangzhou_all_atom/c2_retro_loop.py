@@ -42,7 +42,7 @@ MAX_TARGETS = int(os.environ.get("C2_MAX_TARGETS", "200"))   # v2: default = all
 K_ENS = int(os.environ.get("C2_K_ENS", "4"))                 # bootstrap members for UCB/Thompson uncertainty
 UCB_KAPPA = float(os.environ.get("C2_UCB_KAPPA", "1.0"))
 N_WORKERS = int(os.environ.get("C2_WORKERS", str(os.cpu_count() or 4)))
-MODES = ["learn", "fixed", "random", "ucb", "thompson"]
+MODES = os.environ.get("C2_MODES", "learn,fixed,random,ucb,thompson").split(",")   # C2_MODES=learn,fixed,random for a lean run
 
 
 def model(seed=0):
