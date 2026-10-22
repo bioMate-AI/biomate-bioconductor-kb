@@ -974,16 +974,7 @@ export function ChatInterface({
               // frozen spinner. Only before the text response starts streaming.
               const stage = (payload as any).stage as string | undefined
               const detail = (payload as any).detail as string | undefined
-              if (stage === 'routing_rationale' && detail) {
-                // The classifier's "why this routing" explanation. Persist to a
-                // dedicated field (NOT progressStatus, which is cleared once the
-                // answer streams in) so it stays visible on the finished message.
-                const curSess = chatHistoryService.getSession(sessionId)
-                const curMsg = curSess?.messages.find(m => m.id === placeholderId)
-                updateMessageInSession(sessionId, placeholderId, {
-                  metadata: { ...(curMsg?.metadata ?? {}), routingRationale: detail }
-                })
-              } else if (stage && !accumulatedText) {
+              if (stage && !accumulatedText) {
                 const label =
                   stage === 'intent' ? tOr('chat.progress.intent', 'Understanding your goal…') :
                   stage === 'search' ? tOr('chat.progress.search', 'Searching 4,000+ workflows…') :
@@ -1190,13 +1181,6 @@ export function ChatInterface({
 
       console.log('[ChatInterface] Steps array:', stepsArray)
 
-      // The final message rebuilds metadata wholesale (updateMessageInSession does
-      // a top-level merge, so metadata is replaced). Carry forward the routing
-      // rationale captured from the streamed progress event so it isn't dropped.
-      const _placeholderMeta = chatHistoryService
-        .getSession(variables.sessionId || '')
-        ?.messages.find(m => m.id === variables.placeholderId)?.metadata as any
-
       const aiMessage: Message = {
         id: variables.placeholderId,
         content: workflowInfo,
@@ -1247,9 +1231,6 @@ export function ChatInterface({
           sources: data.metadata?.sources || {},
           memoryUsed: data.metadata?.memoryUsed || false,
           domainGuard: data.metadata?.domainGuard,
-          // Classifier's "why this routing" explanation — prefer the authoritative
-          // final payload, else the value captured from the streamed progress event.
-          routingRationale: data.metadata?.intentRationale ?? _placeholderMeta?.routingRationale,
           episodeId: data.episodeId,
           // Validation info from workflow if available
           validation: data.workflow?.validation || { is_valid: true, issues: [], warnings: [] },

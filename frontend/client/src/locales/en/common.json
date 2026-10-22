@@ -149,7 +149,6 @@
   },
   "chat_msg": {
     "figure": "Figure",
-    "why_routing": "Why this routing",
     "copied": "Copied response",
     "copy_failed": "Copy failed",
     "clipboard_unavailable": "Clipboard permission unavailable.",

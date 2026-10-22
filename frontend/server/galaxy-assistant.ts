@@ -3981,11 +3981,10 @@ Rules:
     log(`Step 1 complete - Intent: ${intent.type}, isMultiIntent: ${decomposition.isMultiIntent}, intents: ${decomposition.intents.length}`);
 
     // Surface the classifier's reasoning (computed above, historically only
-    // logged) as a dedicated progress event. The frontend persists this to its
-    // own metadata field so it renders as a "why this routing" line that
-    // survives after the answer text streams in (unlike transient progressStatus).
+    // logged) in the existing progress box by re-emitting the 'intent' stage
+    // with the rationale as its detail → "Understanding your goal… · <why>".
     if (decomposition.rationale) {
-      onProgress?.('routing_rationale', decomposition.rationale);
+      onProgress?.('intent', decomposition.rationale);
     }
 
     // Cross-intent ambiguity — only when no intentOverride already set.
