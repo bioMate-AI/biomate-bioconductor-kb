@@ -16,7 +16,22 @@ CORPUS = os.path.join(HERE, "renal_seed_corpus.jsonl")
 
 _LABEL_FIELDS = ("kidney_gy_per_gbq", "tk_ratio", "kidney_pid_g_1h", "kidney_pid_g_4h", "kidney_pid_g_24h")
 _PROT_OK = {"none", "lysine_arginine", "succinylated_gelatin", "amino_acid", "gelofusine", "unknown"}
+# honest "we don't know" synonyms -> "unknown". NEVER map any of these to "none" (that would impute
+# absence of protection, silently corrupting the protected/unprotected stratification).
+_PROT_UNKNOWN = {"not_reported", "not reported", "nr", "na", "n/a", "not_applicable",
+                 "not_applicable_preclinical", "unspecified", "", None}
 _DOI_PMID = re.compile(r"(10\.\d{4,9}/\S+|PMC\d+|PMID[:\s]*\d+|\b\d{7,8}\b)", re.I)
+
+
+def _norm_protection(r: dict):
+    """Normalize the renal_protection flag; honest-unknown synonyms -> 'unknown' (never -> 'none')."""
+    v = r.get("renal_protection")
+    key = v.strip().lower() if isinstance(v, str) else v
+    if key in _PROT_UNKNOWN:
+        r["renal_protection"] = "unknown"
+    elif isinstance(v, str):
+        r["renal_protection"] = v.strip().lower()
+    return r
 
 
 def _has_label(r: dict) -> bool:
@@ -32,11 +47,11 @@ def validate(r: dict):
         return False, f"source lacks a DOI/PMID ('{src[:60]}')"
     if not _has_label(r):
         return False, "no renal label (gy_per_gbq | tk_ratio | kidney_pid_g_*)"
-    prot = r.get("renal_protection")
-    if prot is None:
+    if "renal_protection" not in r:
         return False, "renal_protection flag MISSING (mandatory — never impute)"
-    if prot not in _PROT_OK:
-        return False, f"renal_protection '{prot}' not in {sorted(_PROT_OK)}"
+    _norm_protection(r)
+    if r["renal_protection"] not in _PROT_OK:
+        return False, f"renal_protection '{r['renal_protection']}' not in {sorted(_PROT_OK)}"
     return True, "ok"
 
 
