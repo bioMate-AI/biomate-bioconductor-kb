@@ -1,0 +1,17 @@
+{
+  "n_rows": 94,
+  "valid": 94,
+  "per_task": {
+    "cross_domain_routing": 45,
+    "autofix": 15,
+    "param_prefill": 34
+  },
+  "source": "evaluation/local_trial/error_analysis_gold_candidates.jsonl (model-owned failures)",
+  "routing_data_gap_subtracted": 0,
+  "cross_benchmark_leak": 0,
+  "CAVEAT": "These ARE RealBio benchmark items (routing/param/autofix). Training on them means they MUST be excluded from any RealBio eval of the trained model (train=test leak otherwise) \u2014 hold them out or eval on fresh items. GRPO rows carry {gold,scorer}; the per-task reward reuses score.py's per-item logic (wire in the GPU trainer, like decision_reward). value/missing param items are NOT included (flagged only).",
+  "files": [
+    "error_analysis_sft.jsonl",
+    "error_analysis_grpo.jsonl"
+  ]
+}
