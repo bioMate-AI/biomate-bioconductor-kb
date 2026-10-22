@@ -52,10 +52,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # arm64: vina 1.2.7 has no aarch64 PyPI wheel and builds from source;
-# its setup.py requires Boost headers. amd64 pulls a pre-built wheel, so
-# Boost is not needed there. Install it conditionally to keep amd64 lean.
+# its setup.py requires Boost headers and a C++ compiler (g++).
+# amd64 pulls a pre-built vina wheel so neither is needed there.
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
       apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
         libboost-all-dev \
       && rm -rf /var/lib/apt/lists/*; \
     fi
