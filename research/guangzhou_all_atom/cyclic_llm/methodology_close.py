@@ -31,6 +31,9 @@ import torch
 
 import design  # the real v4 interface (load/generate/loglik); imports train_cyclic_llm_v3 (make_model/TFEAT_DIM)
 from train_cyclic_llm_v3 import TFEAT_DIM
+import experience_kb            # the pragmatic-knowledge resolver (rule-constraint layer)
+import score as score_mod       # operative KB gate providers (developability + rule + FTO), as loop_batch uses
+import acceptance_gate, fto_score
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -120,19 +123,74 @@ def train_oracles(rows, feat, seed=0):
     return oa, ob, {"n_A": len(A), "n_B": len(B), "oracleA_on_B_r2": round(cross_r2, 3)}
 
 
+def load_display_binding(target_key):
+    """Return [(monos:list[str], enrichment_log2fc:float)] for one target from the collected display NGS set.
+    Sequences are canonical-AA strings (one monomer per residue) — the SAME token space v4 emits."""
+    import gzip
+    path = os.path.join(ROOT, "data/display/display_ngs_multitarget.csv.gz")
+    rows, seen = [], set()
+    with gzip.open(path, "rt") as fh:
+        for r in csv.DictReader(fh):
+            if target_key.lower() not in (r.get("target") or "").lower():
+                continue
+            seq = (r.get("sequence") or "").strip().upper()
+            try:
+                enr = float(r.get("enrichment_log2fc"))
+            except Exception:
+                continue
+            if not seq or not (3 <= len(seq) <= 24) or not all(c in CANON for c in seq):
+                continue
+            key = (seq, round(enr, 4))
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append((list(seq), enr))
+    return rows
+
+
+# ---------------------------------------------------------------- KB rule-constraint (experience_kb gate)
+def to_helm(monos):
+    """Monomer list -> HELM string the KB gate providers (acceptance_gate/score) parse."""
+    body = ".".join(m if (len(m) == 1 and m in CANON) else f"[{m}]" for m in monos)
+    return "PEPTIDE1{" + body + "}$PEPTIDE1,PEPTIDE1$$$"
+
+
+def kb_admissible(monos, target):
+    """Apply the KB's operative HARD gates to a candidate (the same providers resolve() references and
+    loop_batch enforces via score()): developability is the general cyclic-peptide hard gate; for avb6
+    the decisive RGD rule + FTO-genus clearance also apply. Fails OPEN on a parse error (never fabricate a
+    rejection). Returns (ok, reasons)."""
+    helm = to_helm(monos); reasons = {}
+    try:
+        reasons["developability"] = bool(score_mod.developability(helm).get("pass"))
+    except Exception:
+        reasons["developability"] = True
+    ok = reasons["developability"]
+    if target == "avb6":
+        try:
+            reasons["rule_rgd"] = bool(acceptance_gate.avb6_gate(helm).get("PASS_H1_H5"))
+            reasons["fto_not_infringing"] = not fto_score.fto_score(helm, "avb6")["claim"]["verdict"].startswith("INSIDE")
+            ok = ok and reasons["rule_rgd"] and reasons["fto_not_infringing"]
+        except Exception:
+            pass
+    return ok, reasons
+
+
 # ---------------------------------------------------------------- v4 generation + metrics
-def gen(model, toks, stoi, tf, dev, block, n, temp, max_len=20, p_tok="<p_hi>"):
-    return design.generate(model, toks, stoi, tf, dev, n, block, max_len, temp, e_tok="<e_na>", p_tok=p_tok)
+def gen(model, toks, stoi, tf, dev, block, n, temp, max_len=20, e_tok="<e_na>", p_tok="<p_hi>"):
+    return design.generate(model, toks, stoi, tf, dev, n, block, max_len, temp, e_tok=e_tok, p_tok=p_tok)
 
 
-def metrics(samples, oracle, feat, train_keys):
+def metrics(samples, oracle, feat, train_keys, gate_target=None):
     uniq = {tuple(m) for m in samples}
     scores = np.array([oracle.predict(feat(m)[None])[0] for m in samples]) if samples else np.array([0.0])
     novel = sum(1 for m in uniq if m not in train_keys) / max(len(uniq), 1)
+    adm = round(sum(1 for m in samples if kb_admissible(m, gate_target)[0]) / max(len(samples), 1), 3)
     return {"n": len(samples), "n_unique": len(uniq), "oracle_mean": round(float(scores.mean()), 4),
             "oracle_p50": round(float(np.median(scores)), 4), "oracle_p90": round(float(np.quantile(scores, 0.9)), 4),
             "validity": round(len(samples) / max(len(samples), 1), 3),  # design.generate already filters to valid
-            "novelty": round(novel, 3), "diversity": round(len(uniq) / max(len(samples), 1), 3)}
+            "novelty": round(novel, 3), "diversity": round(len(uniq) / max(len(samples), 1), 3),
+            "kb_admissible": adm}
 
 
 # ---------------------------------------------------------------- DPO on the real v4 LM
@@ -145,7 +203,7 @@ def seq_logp(model, stoi, monos, e_tok, p_tok, tf_t, dev):
     return tok[3:3 + len([m for m in monos if m in stoi])].sum()
 
 
-def dpo_finetune(model, stoi, pairs, tf_t, dev, steps, beta, lr, batch, log=print):
+def dpo_finetune(model, stoi, pairs, tf_t, dev, steps, beta, lr, batch, e_tok="<e_na>", p_tok="<p_hi>", log=print):
     ref = copy.deepcopy(model).eval()
     for p in ref.parameters():
         p.requires_grad_(False)
@@ -153,8 +211,8 @@ def dpo_finetune(model, stoi, pairs, tf_t, dev, steps, beta, lr, batch, log=prin
     # cache reference log-probs (frozen)
     with torch.no_grad():
         for pr in pairs:
-            pr["ref_c"] = seq_logp(ref, stoi, pr["chosen"], "<e_na>", "<p_hi>", tf_t, dev).item()
-            pr["ref_r"] = seq_logp(ref, stoi, pr["rejected"], "<e_na>", "<p_hi>", tf_t, dev).item()
+            pr["ref_c"] = seq_logp(ref, stoi, pr["chosen"], e_tok, p_tok, tf_t, dev).item()
+            pr["ref_r"] = seq_logp(ref, stoi, pr["rejected"], e_tok, p_tok, tf_t, dev).item()
     rng = np.random.default_rng(0)
     model.train()
     for step in range(steps):
@@ -162,8 +220,8 @@ def dpo_finetune(model, stoi, pairs, tf_t, dev, steps, beta, lr, batch, log=prin
         opt.zero_grad(); loss = 0.0; accd = 0.0
         for j in idx:
             pr = pairs[j]
-            lc = seq_logp(model, stoi, pr["chosen"], "<e_na>", "<p_hi>", tf_t, dev)
-            lr_ = seq_logp(model, stoi, pr["rejected"], "<e_na>", "<p_hi>", tf_t, dev)
+            lc = seq_logp(model, stoi, pr["chosen"], e_tok, p_tok, tf_t, dev)
+            lr_ = seq_logp(model, stoi, pr["rejected"], e_tok, p_tok, tf_t, dev)
             logits = beta * ((lc - pr["ref_c"]) - (lr_ - pr["ref_r"]))
             loss = loss + (-torch.nn.functional.logsigmoid(logits))
             accd += float(logits.item() > 0)
@@ -178,6 +236,15 @@ def dpo_finetune(model, stoi, pairs, tf_t, dev, steps, beta, lr, batch, log=prin
 def main():
     ap = argparse.ArgumentParser(description="Run the verified-reward generator-close on the collected v4 model.")
     ap.add_argument("--ckpt", default=CKPT)
+    ap.add_argument("--signal", choices=["permeability", "binding"], default="permeability",
+                    help="permeability = CycPeptMPDB measured logPapp (target-agnostic); "
+                         "binding = display-NGS enrichment_log2fc for --target (target-conditioned)")
+    ap.add_argument("--target", default="PADI4", help="binding signal only: target key (display + tfeat)")
+    ap.add_argument("--targets-json", default=os.path.join(ROOT, "data/display/target_proteins.json"))
+    ap.add_argument("--kb-gate", dest="kb_gate", action="store_true", default=True,
+                    help="enforce the experience_kb rule-constraint (default ON): chosen candidates must be KB-admissible")
+    ap.add_argument("--no-kb-gate", dest="kb_gate", action="store_false",
+                    help="ablation: generative + verified-reward only, no KB gate")
     ap.add_argument("--pool", type=int, default=1200, help="candidates sampled to build preference pairs")
     ap.add_argument("--pairs", type=int, default=1500, help="max preference pairs")
     ap.add_argument("--eval-n", type=int, default=400, help="samples for before/after evaluation")
@@ -192,53 +259,100 @@ def main():
         args.pool, args.pairs, args.steps, args.eval_n = 6000, 8000, 600, 1500
 
     torch.manual_seed(0); np.random.seed(0)
-    print("loading collected measured permeability (CycPeptMPDB) ...", flush=True)
-    rows = load_cycpept()
+    if args.signal == "permeability":
+        print("loading collected measured permeability (CycPeptMPDB) ...", flush=True)
+        rows = load_cycpept()
+        e_tok, p_tok, reward_name = "<e_na>", "<p_hi>", "CycPeptMPDB measured permeability"
+    else:
+        print(f"loading collected display-NGS enrichment for target {args.target} ...", flush=True)
+        rows = load_display_binding(args.target)
+        e_tok, p_tok, reward_name = "<e_hi>", "<p_na>", f"display-NGS enrichment_log2fc ({args.target})"
+    if len(rows) < 200:
+        raise SystemExit(f"too few rows ({len(rows)}) for signal={args.signal} target={args.target}")
     feat, vocab = build_featurizer(rows)
     oa, ob, ostat = train_oracles(rows, feat)
     train_keys = {tuple(m) for m, _ in rows}
-    print(f"  measured peptides={len(rows)}  vocab={len(vocab)}  oracles: {ostat}", flush=True)
+    print(f"  measured rows={len(rows)}  vocab={len(vocab)}  oracles: {ostat}", flush=True)
 
     print(f"loading collected generator {os.path.relpath(args.ckpt, ROOT)} ...", flush=True)
     model, toks, stoi, a, dev = design.load(args.ckpt); block = a["block"]
-    tf = np.zeros(TFEAT_DIM, dtype=np.float32)                    # target-agnostic: permeability is target-independent
-    tf_t = torch.tensor(tf, device=dev)[None]
-    print(f"  device={dev} block={block} vocab={len(toks)}", flush=True)
+    if args.signal == "permeability":
+        tf = np.zeros(TFEAT_DIM, dtype=np.float32)               # target-agnostic: permeability is target-independent
+    else:
+        tf = design.tfeat_for(args.target, args.targets_json)     # target-conditioned binding
+    tf_t = torch.tensor(np.asarray(tf), device=dev)[None]
+    print(f"  device={dev} block={block} vocab={len(toks)} signal={args.signal} cond=({e_tok},{p_tok})", flush=True)
+
+    # KB RULE-CONSTRAINT: resolve the pragmatic-knowledge gate-set (experience_kb). The gate is enforced in
+    # pair construction (chosen must be KB-admissible) so the close is rule-constrained + generative + verified-reward.
+    gate_target = args.target if (args.kb_gate and args.signal == "binding") else None
+    kb_prov = []
+    if args.kb_gate:
+        try:
+            kb = experience_kb.resolve(gate_target or args.target)
+            hard = [c for e in ([kb] if isinstance(kb, dict) else []) for c in e.get("eval_criteria", []) if c.get("mode") == "hard"]
+            kb_prov = kb.get("provenance", []) if isinstance(kb, dict) else []
+            print(f"  KB rule-constraint ON (experience_kb.resolve): gate_target={gate_target or args.target} "
+                  f"hard_gates={[c.get('criterion') for c in hard]} provenance_entries={len(kb_prov)}", flush=True)
+        except Exception as ex:
+            print(f"  KB resolve note: {type(ex).__name__}: {str(ex)[:120]} (falling back to general developability gate)", flush=True)
+    else:
+        print("  KB rule-constraint OFF (--no-kb-gate): generative + verified-reward only (ablation)", flush=True)
 
     # 3) baseline (independent evaluator oracle_B)
-    base = gen(model, toks, stoi, tf, dev, block, args.eval_n, args.temp)
-    m_before = metrics(base, ob, feat, train_keys)
-    base_A = metrics(base, oa, feat, train_keys)["oracle_mean"]
-    print(f"BEFORE  evalB_mean={m_before['oracle_mean']}  (rewardA_mean={base_A})  "
-          f"valid={m_before['validity']} novelty={m_before['novelty']} diversity={m_before['diversity']}", flush=True)
+    base = gen(model, toks, stoi, tf, dev, block, args.eval_n, args.temp, e_tok=e_tok, p_tok=p_tok)
+    m_before = metrics(base, ob, feat, train_keys, gate_target)
+    base_A = metrics(base, oa, feat, train_keys, gate_target)["oracle_mean"]
+    print(f"BEFORE  evalB_mean={m_before['oracle_mean']}  (rewardA_mean={base_A})  valid={m_before['validity']} "
+          f"novelty={m_before['novelty']} diversity={m_before['diversity']} kb_admissible={m_before['kb_admissible']}", flush=True)
 
     # 4) build verified-reward preference pairs (reward oracle_A)
-    pool = gen(model, toks, stoi, tf, dev, block, args.pool, args.temp)
+    pool = gen(model, toks, stoi, tf, dev, block, args.pool, args.temp, e_tok=e_tok, p_tok=p_tok)
     pool = list({tuple(m): m for m in pool}.values())
     scored = sorted(((oa.predict(feat(m)[None])[0], m) for m in pool), key=lambda t: -t[0])
-    k = min(len(scored) // 2, args.pairs)
-    hi, lo = scored[:k], scored[::-1][:k]
-    pairs = [{"chosen": hi[i][1], "rejected": lo[i][1], "margin": float(hi[i][0] - lo[i][0])}
-             for i in range(k) if hi[i][1] != lo[i][1]]
-    print(f"built {len(pairs)} verified-reward preference pairs (reward=oracle_A measured-permeability)", flush=True)
+    if args.kb_gate:
+        # rule-constrained: CHOSEN must pass the KB gate; gate-FAILS are the cleanest negatives, then low-property
+        adm = [(s, m) for s, m in scored if kb_admissible(m, gate_target)[0]]
+        inadm = [(s, m) for s, m in scored if not kb_admissible(m, gate_target)[0]]
+        k = min(len(adm), args.pairs)
+        chosen = adm[:k]
+        negs = inadm + adm[::-1]                      # gate-fails first (strongest neg), then admissible low-property
+        pairs = [{"chosen": chosen[i][1], "rejected": negs[i][1], "margin": float(chosen[i][0] - negs[i][0]),
+                  "kb_clean_neg": i < len(inadm)}
+                 for i in range(min(k, len(negs))) if chosen[i][1] != negs[i][1]]
+        print(f"built {len(pairs)} RULE-CONSTRAINED verified-reward pairs "
+              f"(chosen=KB-admissible high-{args.signal}; {len(inadm)}/{len(scored)} pool candidates gate-failed)", flush=True)
+    else:
+        k = min(len(scored) // 2, args.pairs)
+        hi, lo = scored[:k], scored[::-1][:k]
+        pairs = [{"chosen": hi[i][1], "rejected": lo[i][1], "margin": float(hi[i][0] - lo[i][0]), "kb_clean_neg": False}
+                 for i in range(k) if hi[i][1] != lo[i][1]]
+        print(f"built {len(pairs)} verified-reward pairs (property only; KB gate OFF)", flush=True)
+    if not pairs:
+        raise SystemExit("no preference pairs (all pool candidates gate-failed or identical) — relax gate or raise pool")
 
     # 5) DPO close on the real v4
-    model = dpo_finetune(model, stoi, pairs, tf_t, dev, args.steps, args.beta, args.lr, args.batch)
+    model = dpo_finetune(model, stoi, pairs, tf_t, dev, args.steps, args.beta, args.lr, args.batch,
+                         e_tok=e_tok, p_tok=p_tok)
 
     # 6) after (independent evaluator oracle_B)
-    aft = gen(model, toks, stoi, tf, dev, block, args.eval_n, args.temp)
-    m_after = metrics(aft, ob, feat, train_keys)
-    aft_A = metrics(aft, oa, feat, train_keys)["oracle_mean"]
-    print(f"AFTER   evalB_mean={m_after['oracle_mean']}  (rewardA_mean={aft_A})  "
-          f"valid={m_after['validity']} novelty={m_after['novelty']} diversity={m_after['diversity']}", flush=True)
+    aft = gen(model, toks, stoi, tf, dev, block, args.eval_n, args.temp, e_tok=e_tok, p_tok=p_tok)
+    m_after = metrics(aft, ob, feat, train_keys, gate_target)
+    aft_A = metrics(aft, oa, feat, train_keys, gate_target)["oracle_mean"]
+    print(f"AFTER   evalB_mean={m_after['oracle_mean']}  (rewardA_mean={aft_A})  valid={m_after['validity']} "
+          f"novelty={m_after['novelty']} diversity={m_after['diversity']} kb_admissible={m_after['kb_admissible']}", flush=True)
 
     dB = round(m_after["oracle_mean"] - m_before["oracle_mean"], 4)
     dA = round(aft_A - base_A, 4)
     verdict = ("LOOP IMPROVES GENERATOR (independent evaluator rose, diversity held)"
                if dB > 0 and m_after["diversity"] >= 0.5 * m_before["diversity"] and m_after["novelty"] >= 0.5 * m_before["novelty"]
                else "INCONCLUSIVE / possible reward-hacking (see dA vs dB + diversity)")
-    res = {"what": "verified-reward generator-close on the COLLECTED v4 model + COLLECTED measured permeability",
-           "reward": "oracle_A trained on CycPeptMPDB measured permeability (disjoint half)",
+    res = {"what": f"RULE-CONSTRAINED verified-reward generator-close on the COLLECTED v4 model + COLLECTED {reward_name}",
+           "signal": args.signal, "target": (args.target if args.signal == "binding" else None),
+           "kb_rule_constraint": {"enabled": bool(args.kb_gate), "resolver": "experience_kb.resolve",
+                                  "gate_target": gate_target, "provenance_entries": len(kb_prov),
+                                  "kb_admissible_before": m_before["kb_admissible"], "kb_admissible_after": m_after["kb_admissible"]},
+           "reward": f"oracle_A trained on {reward_name} (disjoint half); CHOSEN must pass the KB gate",
            "evaluator": "oracle_B trained on the OTHER disjoint half (anti-circular)",
            "oracle_stats": ostat, "n_pairs": len(pairs), "dpo": {"steps": args.steps, "beta": args.beta, "lr": args.lr},
            "before": m_before, "after": m_after, "reward_oracleA_before": base_A, "reward_oracleA_after": aft_A,
