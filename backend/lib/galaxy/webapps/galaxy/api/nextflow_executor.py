@@ -870,6 +870,21 @@ def _log_indicates_nextflow_failure(
     combined = "\n".join(text_parts)
     if not combined.strip():
         return False
+    # Benign post-completion SIGTERM: a halt-severity QC gate (or user pause) fires
+    # AFTER a fast workflow already finished its tasks, so _terminate_run_process
+    # SIGTERMs the driver and Nextflow logs "Session aborted -- Cause: SIGTERM" —
+    # but it then drains in-flight tasks and reaches its clean-completion marker with
+    # NO failed tasks. That is a completed run (the QC-gate verdict is a *finding*,
+    # not an execution failure), so the SIGTERM-abort line must not flag it as failed.
+    # Observed on ADMET (2/2 tasks COMPLETED, 8 outputs) being downgraded to failed.
+    # Guarded hard: requires Nextflow's own completion marker AND zero failed tasks;
+    # a SIGTERM that interrupted a run mid-flight has neither, so it still fails.
+    if (
+        "Session aborted -- Cause: SIGTERM" in combined
+        and "Execution complete -- Goodbye" in combined
+        and not re.search(r"failedCount\s*=\s*[1-9]", combined)
+    ):
+        combined = combined.replace("Session aborted -- Cause: SIGTERM", "")
     for marker in _NF_LOG_FAILURE_MARKERS:
         if marker in combined:
             return True

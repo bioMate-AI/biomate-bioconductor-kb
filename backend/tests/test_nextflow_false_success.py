@@ -260,20 +260,37 @@ class TestBatchStatusFromDisk(unittest.TestCase):
             self.assertEqual(fail_n, 1)
             self.assertEqual(total, 2)
 
-    def test_killed_post_completion_log_is_not_a_failure(self):
-        """ADMET run a55ab8d3: driver SIGKILL'd (-9) at the report/timeline-rendering
-        step, so 'Execution complete -- Goodbye' was never flushed — but the log has
-        the definitive 'WorkflowStats[succeededCount=2; failedCount=0]' line and no
-        error. The exit-handler trace-salvage requires _log_indicates_nextflow_failure
-        to be False here (its guard), so this must NOT be flagged as a failure."""
-        killed_log = (
-            "Oct-22 04:02:37 DEBUG n.trace.WorkflowStatsObserver - Workflow completed > "
-            "WorkflowStats[succeededCount=2; failedCount=0; ignoredCount=0; cachedCount=0]\n"
-            "Oct-22 04:02:37 DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report\n"
-            "Oct-22 04:02:38 DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline\n"
-        )
+    # ADMET false-failure: a halt-severity QC gate fires AFTER the (fast) workflow
+    # already finished, so _terminate_run_process SIGTERMs the driver. Nextflow logs
+    # "Session aborted -- Cause: SIGTERM" but still drains + reaches clean completion
+    # with 0 failed tasks → a completed run, not a failure (verified on dev: run
+    # fa825572 was "marking succeeded" by the salvage then "Downgrading false success"
+    # because this SIGTERM-abort line was treated as a failure marker).
+    _SIGTERM_COMPLETED_LOG = (
+        "Oct-22 04:14:22 [SIGTERM handler] DEBUG nextflow.Session - Session aborted -- Cause: SIGTERM\n"
+        "Oct-22 04:14:25 DEBUG n.trace.WorkflowStatsObserver - Workflow completed > "
+        "WorkflowStats[succeededCount=2; failedCount=0; ignoredCount=0; cachedCount=0]\n"
+        "Oct-22 04:14:27 DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye\n"
+    )
+
+    def test_sigterm_abort_after_completion_is_not_a_failure(self):
         self.assertFalse(
-            _nf._log_indicates_nextflow_failure(log_full_text=killed_log, log_tail=None)
+            _nf._log_indicates_nextflow_failure(log_full_text=self._SIGTERM_COMPLETED_LOG, log_tail=None)
+        )
+
+    def test_sigterm_abort_with_failed_tasks_is_a_failure(self):
+        bad = self._SIGTERM_COMPLETED_LOG.replace("failedCount=0", "failedCount=1")
+        self.assertTrue(
+            _nf._log_indicates_nextflow_failure(log_full_text=bad, log_tail=None)
+        )
+
+    def test_sigterm_abort_without_completion_marker_is_a_failure(self):
+        interrupted = (
+            "Oct-22 04:14:22 [SIGTERM handler] DEBUG nextflow.Session - Session aborted -- Cause: SIGTERM\n"
+            "Oct-22 04:14:23 DEBUG nextflow.Session - Shutting down tasks\n"
+        )
+        self.assertTrue(
+            _nf._log_indicates_nextflow_failure(log_full_text=interrupted, log_tail=None)
         )
 
     def test_evaluate_trace_terminal_all_completed_is_success(self):
