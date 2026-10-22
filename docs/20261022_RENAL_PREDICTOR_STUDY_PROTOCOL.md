@@ -219,3 +219,48 @@ We will not claim a tier above the scope actually delivered.
   this is the gate between a strong specialist paper and a top-tier one.
 - **Comparison vs any existing PBPK renal models** (e.g. published kidney dosimetry/PBPK) as an external
   baseline, so the mechanistic claim is benchmarked, not asserted.
+
+---
+
+## 13. Related work & VERIFIED novelty (3-agent prior-art survey, 2026-10-22)
+
+Every claim below was checked against the literature; citations verified against NCBI/journal/CrossRef.
+Two claims I had made earlier did NOT survive and are corrected.
+
+**What is genuinely novel (defensible):**
+- **A structure-based, cross-target, learned predictor of radioligand renal retention** — none exists.
+  Existing renal predictors are either (i) non-radioactive small-molecule QSPKR for whole-body renal
+  clearance, target-blind (Dave & Morris, *Drug Metab Dispos* 2015; Kusama/CPathPred 2010; Kaboudi 2022),
+  or (ii) radioligand kidney-dose ML that is **imaging-bound and PSMA-only** (Yazdani, *IJROBP* 2025;
+  Abdollahi, arXiv:2510.21054 2025) — useless for an unsynthesized molecule or a new target.
+- **An ML-ready, protection-stratified, cross-target renal-biodistribution database** — no such resource
+  was found; the field is still empirical med-chem (Vegt, *JNM* 2010 review).
+- **The PK–binding decomposition** (target-specific binding × target-agnostic renal PK → learn renal PK
+  once, transfer across targets) — unclaimed. Biologically grounded: megalin mediates reabsorption of
+  octreotide, exendin, neurotensin AND minigastrin (Vegt, *EJNMMI* 2011) — one mechanism across four
+  unrelated targets.
+- **The mechanistic grey-box as a single model** with saturable charge reabsorption + a separate anionic
+  route + cross-target fit — no published model has all three (nearest: Zaid, *Pharmaceutics* 2021, an
+  SSTR2-only PBPK with charge as a qualitative label on one lumped compartment).
+
+**What is NOT novel — corrected over-claims (cite, do not claim):**
+- **The charge sign-flip / U-shaped, non-monotonic charge→retention relation is PRIOR ART.** Bapst &
+  Eberle (*Front Endocrinol* 2017) explicitly report minimum uptake near net −1, rising at both +2 and
+  −2; Vegt 2010 and Melis 2007 note anionic minigastrin's high uptake. My "the field heuristic is
+  sign-inverted — a key finding" was over-claimed; it is established. We cite it as motivation.
+- **The two uptake routes are experimentally known.** Melis (*JNM* 2007) showed renal uptake is blocked
+  by lysine OR poly-glutamate but not additively — direct evidence for a cationic (lysine-inhibitable)
+  and an anionic (PGA-inhibitable) route. Our grey-box **formalizes Melis's two routes** into a saturable
+  predictive equation; the biology is theirs, the model form and cross-target fit are ours.
+
+**Honest positioning.** The *problem* (cross-target structure→renal predictor) is real white space; the
+*method* (two-route saturable grey-box + PK–binding decomposition) is a novel formalization of known
+biology; but the *demonstration* is not yet convincing — cross-target transfer is regime-dependent and
+collapses at full target diversity (mean-per-class ≈0 across 8 classes; the grey-box only beats baselines
+on a charge-dominated subset). A high-end paper therefore requires the demonstration to be strengthened by
+(1) substantially more data (figure-digitization to ≥400–600), (2) the grey-box robustly beating PBPK +
+black-box baselines under all three CV schemes, and ideally (3) prospective validation. Until then the
+honest claimable contribution is the **database + the first (preliminary) cross-target renal predictor +
+the decomposition framing**, scoped to charge-driven renal retention and citing Bapst/Vegt/Melis for the
+mechanism. Target: a strong **specialist** paper (EJNMMI / J Nucl Med / Mol Pharmaceutics) now; top-tier
+only if the demonstration and prospective step land.
