@@ -23,11 +23,27 @@ Same items scored BARE and +HARNESS(catalog) → bucket each item by owner:
 them. This is the owner-categorization in action: error analysis tells you *what not to train* as
 much as what to train.
 
+## Extended to param_prefill + autofix
+
+**param_prefill (n=170)** — owner split by failure type:
+| model | ok_restraint | must_not_fill_violation (MODEL over-fill → train) | value/missing |
+|---|---|---|---|
+| sft | 102 | **34** | 34 |
+| base | 97 | **51** | 22 |
+
+The `must_not_fill_violation` is the unambiguous model-owned error (filled a forbidden param).
+Notable: **sft (34) < base (51)** — the gold-SFT *improved* restraint over base here (a real positive
+data point; contrast with the earlier multitask-SFT that worsened it). `value/missing` is flagged,
+not auto-gold (needs alias-aware value checking, e.g. hg38≡GRCh38).
+
+**autofix (n=100)** — pure model reasoning (error-log → fix category; no harness lever): sft **15**
+model errors, base 13 → all trainable.
+
 ## Output
-`evaluation/local_trial/error_analysis_gold_candidates.jsonl` — **45** deduped MODEL-owned routing
-failures from the on-prem models, as `{id, prompt(query), gold(correct_workflow), bare_pred,
-catalog_pred}` → directly usable as SFT targets / GRPO prompts (true trainable count ≤45 after
-subtracting any DATA-gap items whose gold workflow isn't in the catalog).
+`evaluation/local_trial/error_analysis_gold_candidates.jsonl` — **94** deduped MODEL-owned failures
+(routing model/data + param must_not_fill-overfill + autofix wrong-category), each with
+`{task, owner, id, prompt, gold, …}` → directly usable as SFT targets / GRPO prompts. True trainable
+count is ≤94 after subtracting routing DATA-gap items (gold workflow not in catalog).
 
 ## Discipline
 - Clean evals only (never the leaked `decomposition_v2`).

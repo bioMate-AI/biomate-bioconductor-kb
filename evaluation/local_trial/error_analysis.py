@@ -71,6 +71,78 @@ def routing_owner_analysis(gt):
     return rows, gold_candidates
 
 
+def _lit(x):
+    import ast
+    if isinstance(x, (dict, list)):
+        return x
+    try:
+        return ast.literal_eval(x)
+    except Exception:
+        return {} if "{" in str(x) else []
+
+
+def param_owner_analysis(gt):
+    """param_prefill owner split. must_not_fill_violation = the model filled a FORBIDDEN param
+    (unambiguous model over-fill → trainable; the failure that WORSENED with SFT, 34→61).
+    value_or_missing = expected key missing/other — flagged (needs alias-aware check), NOT auto-gold."""
+    rows, cand = [], []
+    for model in ("sft", "base"):
+        preds = _preds(model, "param_prefill.jsonl")
+        if not preds:
+            continue
+        b = {"n": 0, "correct_restraint": 0, "must_not_fill_violation": 0, "value_or_missing": 0}
+        for i, r in gt.items():
+            if i not in preds:
+                continue
+            b["n"] += 1
+            pred = preds[i]
+            pred_keys = set(pred.keys()) if isinstance(pred, dict) else set(_lit(pred).keys() if isinstance(_lit(pred), dict) else [])
+            forbidden = set(_lit(r.get("must_not_fill")) or [])
+            expected = set((_lit(r.get("expected_params")) or {}).keys())
+            viol = pred_keys & forbidden
+            if viol:
+                b["must_not_fill_violation"] += 1
+                if model == "sft":
+                    cand.append({"task": "param_prefill", "owner": "model(must_not_fill_overfill)",
+                                 "src_model": model, "id": i, "prompt": r.get("user_query"),
+                                 "gold": r.get("expected_params"), "must_not_fill": r.get("must_not_fill"),
+                                 "overfilled": sorted(viol)})
+            elif not expected <= pred_keys:
+                b["value_or_missing"] += 1
+            else:
+                b["correct_restraint"] += 1
+        rows.append((model, b))
+    return rows, cand
+
+
+def autofix_owner_analysis(gt):
+    """autofix = error-log → fix category; pure model reasoning (no harness lever). Wrong category
+    = model-owned → trainable."""
+    rows, cand = [], []
+    for model in ("sft", "base"):
+        preds = _preds(model, "autofix_benchmark.jsonl")
+        if not preds:
+            continue
+        b = {"n": 0, "correct": 0, "model_error": 0}
+        for i, r in gt.items():
+            if i not in preds:
+                continue
+            b["n"] += 1
+            p = preds[i]
+            pv = _norm(p.get("category") if isinstance(p, dict) else p)
+            gold = {_norm(r.get("category")), _norm(r.get("expected_fix"))}
+            if pv in gold:
+                b["correct"] += 1
+            else:
+                b["model_error"] += 1
+                if model == "sft":
+                    cand.append({"task": "autofix", "owner": "model", "src_model": model, "id": i,
+                                 "prompt": (r.get("error_log") or r.get("description")),
+                                 "gold": r.get("category")})
+        rows.append((model, b))
+    return rows, cand
+
+
 def main():
     gt = S.load("cross_domain_routing")
     rows, cand = routing_owner_analysis(gt)
@@ -78,6 +150,22 @@ def main():
     print(f"{'model':30} {'n':>4} {'correct':>8} {'harness_fix':>12} {'model/data':>11}")
     for model, b in rows:
         print(f"{model:30} {b['n']:>4} {b['correct']:>8} {b['harness_fixable']:>12} {b['model_or_data']:>11}")
+
+    # param_prefill
+    prows, pcand = param_owner_analysis(S.load("param_prefill"))
+    print("\n=== param_prefill — owner buckets ===")
+    print(f"{'model':8} {'n':>4} {'ok_restraint':>12} {'MUSTNOTFILL_viol':>16} {'value/missing':>13}")
+    for model, b in prows:
+        print(f"{model:8} {b['n']:>4} {b['correct_restraint']:>12} {b['must_not_fill_violation']:>16} {b['value_or_missing']:>13}")
+    cand += pcand
+
+    # autofix
+    arows, acand = autofix_owner_analysis(S.load("autofix_benchmark"))
+    print("\n=== autofix — owner buckets (pure model reasoning) ===")
+    print(f"{'model':8} {'n':>4} {'correct':>8} {'model_error':>12}")
+    for model, b in arows:
+        print(f"{model:8} {b['n']:>4} {b['correct']:>8} {b['model_error']:>12}")
+    cand += acand
     # dedupe gold candidates by (id) across on-prem models, keep sft's if present
     seen, uniq = set(), []
     for c in sorted(cand, key=lambda x: (x["src_model"] != "sft", x["id"])):
