@@ -42,7 +42,14 @@ class TargetIDOrchestrator:
     def __init__(self, channels: List[Channel], arbiter: Optional[Arbiter] = None,
                  llm_client: Any = None, max_concurrent: int = 8):
         self.channels = list(channels)
-        self.arbiter = arbiter or HarmonicSumArbiter()  # adopted open-source scheme (OT harmonic sum)
+        # HONEST DEFAULT (benchmark_multidisease.py): the fusion does not beat OpenTargets-alone, so when an
+        # OpenTargets channel is present we rank BY IT and use the other channels as corroboration/provenance
+        # only (never a silent fusion that ranks worse than OT). Callers can pass an explicit arbiter to override.
+        if arbiter is None:
+            names = {getattr(ch, "name", "") for ch in self.channels}
+            prim = "genetics_ot" if "genetics_ot" in names else None
+            arbiter = HarmonicSumArbiter(primary_channel=prim)
+        self.arbiter = arbiter
         self.llm = llm_client
         self.max_concurrent = max_concurrent
 

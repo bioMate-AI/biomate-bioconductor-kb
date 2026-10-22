@@ -110,12 +110,19 @@ class HarmonicSumArbiter(Arbiter):
 
     name = "harmonic_sum"
 
-    def __init__(self, channel_weights=None, strong_thresh: float = 0.5, veto=None):
+    def __init__(self, channel_weights=None, strong_thresh: float = 0.5, veto=None,
+                 primary_channel: Optional[str] = None):
         self.channel_weights = dict(DEFAULT_RELIABILITY)
         if channel_weights:
             self.channel_weights.update(channel_weights)
         self.strong_thresh = strong_thresh
         self.veto = veto
+        # HONEST DEFAULT (2026-10-21, benchmark_multidisease.py): the multi-channel fusion does NOT beat the
+        # single strongest channel (OpenTargets) across 17 diseases — expansion dilutes, corroboration ties.
+        # So when ``primary_channel`` is set, ranking is BY THAT CHANNEL ALONE (never worse than it); the
+        # other channels only ANNOTATE each primary candidate with corroboration/conflict + provenance. We
+        # surface OpenTargets well + show agreement across sources; we do NOT claim the fusion out-ranks OT.
+        self.primary_channel = primary_channel
 
     def _weight(self, channel: str) -> float:
         return float(self.channel_weights.get(channel, _DEFAULT_UNKNOWN_WEIGHT))
@@ -124,6 +131,39 @@ class HarmonicSumArbiter(Arbiter):
         from .types import TargetEvidence
         ok = [cr for cr in channel_results if cr.ok]
         unit = {cr.channel: _to_unit(cr.scores) for cr in ok}
+        # OT-PRIMARY mode: rank only the primary channel's candidates, by its score (== that channel's own
+        # ranking), using the rest purely as corroboration annotation. Guarantees we never rank worse than OT.
+        if self.primary_channel and self.primary_channel in unit:
+            prim = unit[self.primary_channel]
+            rows = []
+            for t in sorted(prim):
+                per = {ch: unit[ch].get(t, 0.0) for ch in unit}
+                strong = [ch for ch, s in per.items() if s >= self.strong_thresh]
+                present = [ch for ch, s in per.items() if s > 0]
+                corrob = [ch for ch in strong if ch != self.primary_channel]
+                tier = "corroborated" if (self.primary_channel in strong and corrob) else (
+                    "nominated" if self.primary_channel in strong else "supporting")
+                conflict = bool(self.primary_channel in strong and not corrob and len(present) > 1)
+                ev = TargetEvidence(
+                    target=t, per_channel_z={ch: round(s, 4) for ch, s in per.items() if s > 0},
+                    fired_channels=strong, n_fired=len(strong), tier=tier,
+                    max_z=max(per.values()) if per else 0.0,
+                    mean_fired_z=(sum(per[c] for c in strong) / len(strong) if strong else 0.0),
+                    conflict=conflict,
+                    note=("ranked by %s; corroborated by %s" % (self.primary_channel, ",".join(corrob)))
+                    if corrob else ("ranked by %s (no independent corroboration)" % self.primary_channel),
+                )
+                score = prim[t]
+                if self.veto is not None:
+                    try:
+                        if self.veto(t, context or {}):
+                            ev.tier = "vetoed"; ev.note = "hard veto (safety/essentiality liability)"; score = 0.0
+                    except Exception:
+                        pass
+                rows.append((t, float(score), ev))
+            rows.sort(key=lambda r: -r[1])
+            return [TargetScore(target=t, score=s, tier=ev.tier, rank=i + 1, evidence=ev)
+                    for i, (t, s, ev) in enumerate(rows)]
         universe = sorted({t for cr in ok for t in cr.scores})
         rows = []
         for t in universe:
