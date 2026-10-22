@@ -67,6 +67,14 @@ MODELS = [
     ("GPT-5.6-luna", "openai_gpt-5.6-luna", {}),
     ("Kimi K3", "moonshotai_kimi-k3", {}),
     ("DeepSeek V4-pro", "deepseek_deepseek-v4-pro", {}),
+    # --- small / open LLMs (results committed; were missing from the leaderboard) ---
+    ("Qwen3.8-27B", "qwen_qwen3.8-27b", {}),
+    ("Qwen3.5-27B", "qwen_qwen3.5-27b", {}),
+    ("Qwen3.5-9B", "qwen_qwen3.5-9b", {}),
+    ("Qwen2.5-7B", "qwen_qwen-2.5-7b-instruct", {}),
+    # on-prem 9B (the small open model BioMate serves): base vs gold-SFT
+    ("BioMate 9B (base)", "base", {}),
+    ("BioMate 9B (SFT)", "sft", {}),
     # BioMate: ONLY same-item committed cells (routing + pbpk). Everything else blank.
     ("BioMate (engine-free, C2)", None, {
         "routing": "biomate_dev/cross_domain_routing_c2ir.jsonl",
@@ -81,7 +89,9 @@ MODELS = [
 def default_file(col, base):
     fbase = {
         "routing": "cross_domain_routing_bare",
-        "routing_harness": "cross_domain_routing_catalog",
+        # described = production-faithful catalog (UnifiedWorkflowSearch view); prefer it,
+        # fall back to the legacy names-only `catalog` in build().
+        "routing_harness": "cross_domain_routing_catalog_described",
         "autofix": "autofix_benchmark",
         "param_prefill_F1": "param_prefill", "workflow_gen": "workflow_generation",
         "protocol_QC": "protocol_thresholds", "pbpk_2fold": "pbpk_benchmark",
@@ -102,6 +112,12 @@ def build():
                 continue
             relpath = overrides.get(col) or default_file(col, base)
             full = os.path.join(HERE, "results", relpath)
+            # +harness routing: some models committed the described-catalog variant filename —
+            # both are catalog (harness) mode, so fall back to it.
+            if not os.path.exists(full) and col == "routing_harness" and base:
+                alt = f"{base}/cross_domain_routing_catalog.jsonl"
+                if os.path.exists(os.path.join(HERE, "results", alt)):
+                    relpath, full = alt, os.path.join(HERE, "results", alt)
             if not os.path.exists(full):
                 cells.append(""); continue
             v = score(col, relpath)

@@ -80,10 +80,17 @@ files; no new sweep):
 | Qwen3.8-Max | 0.345 | 0.935 | **+0.590** | | Kimi K3 | 0.450 | 0.860 | +0.410 |
 | DeepSeek V4-pro | 0.415 | 0.800 | +0.385 | | BioMate engine-free | 0.965 | — | — |
 
-**Inverse-scaling, confirmed:** the weaker a model's bare routing, the bigger the harness lift
-(Qwen +0.59, GPT-luna +0.53, GLM +0.49–0.51 vs frontier +0.35–0.40); **with the harness everyone
-converges to ~0.80–0.96 regardless of bare ability.** The harness, not the model, carries routing —
-and BioMate-engine-free already sits at 0.965.
+Small/open models are on the board too (were missing from the leaderboard; results existed):
+Qwen2.5-7B 0.140→0.725 (**+0.58**), Qwen3.5-9B 0.120→0.815 (**+0.69**), Qwen3.5-27B 0.240→0.930
+(+0.69), Qwen3.8-27B 0.175→0.865 (+0.69), **BioMate-9B-base 0.180→0.885 (+0.71)**, BioMate-9B-SFT
+0.285→0.805 (+0.52).
+
+**Inverse-scaling, confirmed:** the weaker a model's bare routing, the bigger the harness lift —
+**small/open models gain ~0.58–0.71, ≈2× the frontier's +0.35–0.40** — and everyone converges to
+~0.80–0.98 regardless of bare ability. **The 9B + harness (0.815–0.885) essentially matches
+frontier + harness (0.93–0.98):** the harness, not the model, carries routing, and BioMate-engine-free
+already sits at 0.965. (`routing_harness` prefers the production-faithful `_described` catalog;
+`base`/`sft` = the on-prem 9B before/after gold-SFT.)
 
 **Reads:** bare frontier LLMs sit at routing ~0.35–0.62; **BioMate's harness lifts routing to
 0.965** (the LLM+harness dividend — the single biggest signal, on a RealBio-native task).
