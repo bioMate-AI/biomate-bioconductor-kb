@@ -105,6 +105,29 @@ Drilling into the 42 residual fallbacks revealed a **dataset granularity mismatc
    thing**. The right composer eval is a small set of real multi-nf-core-workflow requests, to be
    authored (gold = the correct workflow per subtask + the stage DAG).
 
+## Correct-granularity composer eval (the right measurement) + the DATA root cause
+
+Authored `evaluation/datasets/composer_eval/pipelines.jsonl` (6 multi-nf-core-**workflow**
+requests) + `evaluation/local_trial/composer_eval.py`, replacing the granularity-mismatched
+`decomposition_real`. Result:
+
+| Pipeline | fires | why |
+|---|---|---|
+| pharma ADMET ∥ docking (fan-out) | **✓** | shared-input roots, no handoff |
+| WGS variant → VEP annotation | **✓** | clean genomics types (`bam` satisfies `input`) |
+| ChIP peak → annotation | ✗ | free-text input_types at the annotation step |
+| RNA-seq → DE → enrichment | ✗ | Bioconductor DE/enrichment have free-text input_types |
+| scRNA QC → clustering | ✗ | single-cell clustering input is free-text |
+| proteomics quant → diff-abundance | ✗ | free-text input_types at the diff step |
+
+**Fires 2/6; every fallback is the FREE-TEXT input_types gate** — and a DB census confirms
+**2525/3804 = 66% of workflows have free-text `input_types`** (parameter descriptions like
+`mydata (NOISeq eSet...)`, not type tokens). So the composer's dominant real-world blocker is a
+**catalog data-quality problem**: 2/3 of workflows can never be a handoff destination regardless
+of matcher, resolution, or model. The next composer fix is **DATA** — re-extract clean type tokens
+for those workflows' `input_types`/`output_types` — not training, not capacity, not the matcher.
+(Fan-out and clean-type genomics/pharma chains already compose.)
+
 ## Caveats (honest)
 - **FTS/BM25 only** — the embedding model was blocked for env reasons (anaconda scipy ABI). Dense
   retrieval OFF; production with embeddings ON can only add coverage, and scores already sit ~4×
