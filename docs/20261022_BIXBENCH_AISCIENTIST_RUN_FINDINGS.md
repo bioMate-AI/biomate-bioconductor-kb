@@ -59,6 +59,38 @@ measure a harness/architecture bug (run_code not firing), producing a fake "BioM
 Only after run_code fires is a BioMate-vs-Biomni-Lab (88.7%) number honest. Until then, report
 BioMate's execution standing as **"blocked on run_code firing in the eval path,"** not a score.
 
+## ROOT CAUSE CONFIRMED + FIX (2026-10-22, commit dfbe57263)
+
+Diagnosed by reading the firing path + a live dev probe (not inferred):
+
+- Firing gate (`galaxy-assistant.ts:8760`): `toolsEnabledThisTurn = !useThinking && onToolEvent &&
+  !hasRunnableWorkflow`. `/api/chat/stream` DOES wire `onToolEvent` (routes.ts:6510/6517), so the
+  eval path supports tools. The killer is **`hasRunnableWorkflow`** — if a workflow card is
+  generated, run_code is gated OFF on *every* backbone.
+- Live probe ("compute the mean of [2,4,6,8], not a pipeline") → dev emitted `workflow_ready` +
+  `tool_event: parameter_extraction` (NOT `run_code`) and printed code-as-text → **a workflow card
+  was generated even for trivial compute.**
+- Why: the direct-compute override (`:4103`) that should set `needsWorkflowGeneration=false` is
+  guarded by `_isDirectCodeExecutionQuery`, which ran its **pipeline-exclusion regex over the whole
+  message**. The BixBench exec prompt says *"Use run_code … **Do NOT launch a Nextflow workflow**"* —
+  the word **"nextflow" inside the negated directive** matched the exclusion → override returned
+  false → workflow card generated → run_code disabled → fabrication. (My probe's "not a pipeline"
+  tripped the identical bug.)
+
+**Fix (commit dfbe57263):** an explicit "do not launch a workflow/pipeline" directive is now the
+strongest direct-compute signal and overrides the pipeline guard outright; other negated pipeline
+mentions are scrubbed before the guard. Conservative — genuine pipeline asks untouched. Regression
+test `direct-code-execution-20261022.test.ts` 5/5; full suite 1897 pass / 22 skip; tsc clean.
+
+**Secondary concern (not yet verified on dev):** for a non-Claude backbone like `gpt-5.6-luna`, even
+with the workflow card gone, the agentic loop only runs if `ANTHROPIC_API_KEY` is set
+(`:8824` — it overrides to claude-haiku for the tool loop). If dev lacks that key, run_code still
+won't fire via the text-only chain. Check dev env after deploying the classifier fix.
+
+**Next (gated — needs dev deploy, an outward action):** sync the fix → re-run the 2-task
+BixBench-exec smoke → confirm a `run_code` tool_event fires and computed stdout appears → only then
+scale to the full 205 for an honest BioMate-vs-Biomni-Lab(88.7%) number.
+
 ## Status of the broader AI-scientist comparison
 
 - **Biomni**: already a RealBio comparator row (routing 0.95 / boin 0.5 / pbpk 0.0) + biomni_eval1.
