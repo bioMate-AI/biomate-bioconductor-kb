@@ -19,14 +19,18 @@ capabilities across LLMs, with a neutralized public export (`build_export.py`). 
 |---|---|---|---|
 | **D1 Performance** | accuracy score, CI, pass-rate | the task scorers → `leaderboard.{csv,md}` | surfaced in leaderboard |
 | **D2 Stability** | cross-run **consistency_rate** (all N runs agree), score-variance, Cohen's κ, **flip_rate** | `stability_runner.py`, `run_stability.py`, `run_consistency_benchmark.py` (results under `results/stability`, `results/consistency_v2`) | implemented; **CLAUDE.md target ≥90%** |
-| **D3 Time** | latency/query — mean, median, p95, total | captured per result (`BenchmarkResult.latency_sec`) | captured ("already inside") |
-| **D4 Cost** | API $/query and $/benchmark | per result (`cost_usd`, input/output tokens) | captured ("already inside") |
+| **D3 Time** | latency/query — p50/p95 | per result + per-task `*.usage.json` → **`leaderboard_5d.csv`** (`build_5d_leaderboard.py`) | **surfaced** |
+| **D4 Cost** | tokens in/out per query (proxy; $ needs price map) | `*.usage.json` → **`leaderboard_5d.csv`** | **surfaced** |
 | **D5 Hallucination** | grounded \| hallucinated \| unverifiable at important steps; rate + type (A/B/C/D) | `hallucination_detector.py` (LLM-judge) + `litqa2/citation_veracity.py` | implemented |
 
 Full-5D run: `FiveDimensionReporter(..., n_stability_repeats=3, hallucination_sample_frac=0.3)`.
-**Gap (presentation):** the published `leaderboard.csv` surfaces **D1 only** — D2–D5 live in
-`five_dimension_reporter` + the stability/hallucination runners and are not yet consolidated into
-the headline leaderboard. The D1 accuracy tables below are therefore one of five dimensions.
+**D3+D4 now consolidated:** `build_5d_leaderboard.py` → `leaderboard_5d.{csv,md}` (20 models), from
+the committed `*.usage.json`. It surfaces what accuracy hid — e.g. DeepSeek-v4-pro's routing 0.415
+comes at **24s p50 / 1190 output-tokens per query**, and Qwen3.8-max at 32.7s / 1326, vs
+Claude-Opus-5.5 at **4s / 92 tokens** and the on-prem stub at ~1s. The "thinking" open models are
+slow + verbose; accuracy alone misranks them on efficiency. **D2/D5 still show `pending`** per model
+(need the gated multi-run consistency + hallucination sweeps). So the headline `leaderboard.csv` =
+D1; `leaderboard_5d.csv` = D3/D4; D2/D5 pending.
 
 **RealBio-NATIVE D1 (Performance/accuracy) tasks (general bioinformatics-agent capability) = 610 items:**
 
