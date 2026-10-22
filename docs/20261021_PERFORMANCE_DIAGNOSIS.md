@@ -96,14 +96,24 @@ run meant to settle real-transfer (v3) **was never completed**. So the design is
 - Build a **held-out decision eval disjoint from `build_decision_sft`** (split items; never train on eval); add a **paraphrase-aware** leak guard (the current one is exact-string + public_export-only).
 - Require **n, significance, and a null baseline** on every reported delta; retire the hallucination-rewarding fidelity judge.
 
-**P1 — Enable + validate the (already-built) execution substrate (corrected).**
-- The parallel DAG executor (`galaxy/chain/dag.py`), composer (`decomposed_dag.build_dag_plan`),
-  and handoff resolver (`bind_inputs`/`artifact_contracts`) are **built, unit-tested, and wired
-  into `ai_assistant.py:779-796`** — but gated OFF by `BIOMATE_MULTITASK_DAG_ENABLED`.
-- Work: (1) run the DAG path end-to-end on the live stack (no evidence it has run on Batch);
-  (2) measure multi-task **resolution coverage** (how often `build_dag_plan` fires vs falls back
-  to single-task); (3) flip the flag behind a clean eval; (4) re-verify the agentic-tool
-  intent-classification gating is still current, then fix if so.
+**P1 — Implement the one unimplemented wiring hook (further corrected 2026-10-21).**
+The substrate is built AND already benchmarked/compared — do NOT build a new benchmark or
+re-build the substrate. Precise state per `docs/20261012_COMPOSER_FLAG_ENABLED_AND_WIRING_GAP.md`
++ live code check:
+- `BIOMATE_MULTITASK_DAG_ENABLED=true` is **already live on dev**.
+- `build_dag_plan` is called only inside `ai_assistant.py::generate_workflow` (~779); the LIVE chat
+  endpoint `generate_workflow_unified` (~3795) has **ZERO composer reference** (verified) → the flag
+  is inert because the composer sits on the wrong code path.
+- The fix is already SPECIFIED (`20261012` §4) but UNIMPLEMENTED: wire multi-task detection +
+  `build_dag_plan`/`to_pipeline_card` into `generate_workflow_unified`, flag-gated, fail-safe
+  fallback to single-task; the frontend already renders the `execution_mode:'dag'` pipeline card.
+- Measurement needs NO new benchmark — it already exists: `decomposition_real` (real topologies),
+  the `DECOMP_SOLVE_LADDER` cross-model solver, `HARNESS_DIVIDEND_SCALING` + `spot_harness_decompv2`
+  (bare-vs-harness), and `audit_committee_v3/v4` (exercises `build_dag_plan`).
+- Open measurement to add to the EXISTING harness eval (cheap): multi-task **resolution coverage**
+  = how often `build_dag_plan` fires vs falls back on real decompositions (the DB is present
+  offline, so the harness-side slice is computable without LLM spend).
+- Also re-verify the agentic-tool intent-classification gating is still current before acting.
 
 **P2 — Redirect training to the narrow LLM-bound slice, measured on clean evals only.**
 - Feed **context/KB** (biggest, size-robust win) and **SFT on REAL DB gold** for weak-base tasks (findings, param restraint) — not CPT, not depth.
