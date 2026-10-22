@@ -110,14 +110,28 @@ def _tdc_datasets():
     return []
 
 
+def _large_ingested():
+    """Free, open, programmatic ingestions (RDKit descriptors; ChEMBL target-classes/mechanisms/drugs)."""
+    import os, json
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "medchem_kb_ingested_large.json")
+    return json.load(open(p)) if os.path.exists(p) else {}
+
+
 def summary():
-    tdc = _tdc_datasets()
-    return {"liability_alerts_rdkit": 1585, "metal_ions": 7,
-            "admet_rules_curated": len(ADMET), "admet_tdc_datasets_ingested": len(tdc),
-            "physchem_rules": len(PHYSCHEM_EXT),
-            "pharmacophore_classes": len(PHARMACOPHORE_CLASS_EXT), "modalities": len(MODALITY_EXT),
-            "all_curated_cited": all(e.get("verified") is True for e in ADMET + PHYSCHEM_EXT)
-                         and all(v.get("verified") is True for v in list(PHARMACOPHORE_CLASS_EXT.values()) + list(MODALITY_EXT.values()))}
+    tdc = _tdc_datasets(); lg = _large_ingested()
+    gn = lambda k: lg.get(k, {}).get("n", 0)
+    s = {"liability_alerts_rdkit": 1585, "metal_ions": 7,
+         "admet_rules_curated": len(ADMET), "admet_tdc_datasets_ingested": len(tdc),
+         "physchem_rules_curated": len(PHYSCHEM_EXT), "physchem_descriptors_rdkit": gn("rdkit_descriptors"),
+         "pharmacophore_classes_curated": len(PHARMACOPHORE_CLASS_EXT),
+         "target_classes_chembl": gn("chembl_target_classes"), "mechanisms_chembl": gn("chembl_mechanisms"),
+         "approved_drugs_chembl": gn("chembl_approved_drugs"), "modalities": len(MODALITY_EXT),
+         "all_curated_cited": all(e.get("verified") is True for e in ADMET + PHYSCHEM_EXT)
+                     and all(v.get("verified") is True for v in list(PHARMACOPHORE_CLASS_EXT.values()) + list(MODALITY_EXT.values()))}
+    s["total_structured_entries"] = (1585 + 7 + len(ADMET) + len(tdc) + len(PHYSCHEM_EXT) + gn("rdkit_descriptors")
+                                     + len(PHARMACOPHORE_CLASS_EXT) + gn("chembl_target_classes")
+                                     + gn("chembl_mechanisms") + gn("chembl_approved_drugs") + len(MODALITY_EXT))
+    return s
 
 
 if __name__ == "__main__":
