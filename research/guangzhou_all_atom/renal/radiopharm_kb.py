@@ -78,6 +78,35 @@ CLEARANCE_BLOCKS = {
 }
 
 # ============================================================================================
+# 3b. QUANTIFIED lever effects — how much each clearance lever MOVES kidney retention (cited).
+# These are the magnitudes the renal generation loop optimizes over (binder frozen). Every effect is
+# a real, primary-cited paired measurement (variant vs its own reference arm). Direction + magnitude.
+# ============================================================================================
+QUANTIFIED_LEVER_EFFECTS = {
+    "cleavable_MVK_single": {"lever": "cleavable_linker", "effect": "-70% kidney uptake @24h (single Met-Val-Lys)",
+        "ref_arm": "non-cleavable exendin-4", "vector": "111In-exendin-4 (GLP-1R)",
+        "source": "Trachsel et al. EJNMMI Radiopharm Chem 2023;8:24. DOI 10.1186/s41181-023-00206-2", "verified": True},
+    "cleavable_MV_MVK_dual": {"lever": "cleavable_linker", "effect": "-77% kidney uptake @24h (dual MV-MVK; strongest arm)",
+        "ref_arm": "non-cleavable exendin-4", "vector": "111In-exendin-4 (GLP-1R)",
+        "source": "Trachsel et al. EJNMMI Radiopharm Chem 2023;8:24. DOI 10.1186/s41181-023-00206-2", "verified": True},
+    "cleavable_MVK_psma": {"lever": "cleavable_linker", "effect": "-30% kidney (104 vs 147 %ID/g @1h)",
+        "ref_arm": "non-cleavable HTK01166", "vector": "68Ga-PSMA HTK01166",
+        "source": "Kuo et al. Molecules 2020;25(17):3854. DOI 10.3390/molecules25173854; PMID 32854201", "verified": True},
+    "charge_net_minus1_Nterm": {"lever": "net_charge", "effect": "-44% kidney @4h (net -1, N-terminal negatives); best T:K of series",
+        "ref_arm": "alpha-MSH NAP-amide", "vector": "111In-Phospho-MSH2-9 (MC1R)",
+        "source": "Durante et al. Front Endocrinol 2017;8:93. DOI 10.3389/fendo.2017.00093; PMC5405074", "verified": True},
+    "charge_net_minus2_Cterm": {"lever": "net_charge", "effect": "+25% kidney @4h (net -2, C-terminal D-Asp-D-Asp) — NON-MONOTONIC: placement/magnitude matter",
+        "ref_arm": "alpha-MSH NAP-amide", "vector": "111In-NAP-dAsp-dAsp (MC1R)",
+        "source": "Durante et al. Front Endocrinol 2017;8:93. DOI 10.3389/fendo.2017.00093; PMC5405074", "verified": True},
+    "albumin_binder_IPB": {"lever": "albumin_binder", "effect": "RAISES absolute kidney dose ~6x (2.82->18.1 mGy/MBq) but improves T:K 2.0-2.9x — therapeutic-index lever, NOT renal-sparing",
+        "ref_arm": "177Lu-PSMA-617 (no binder)", "vector": "177Lu-HTK03121/03123 (4-(p-iodophenyl)butyrate)",
+        "source": "Kuo et al. J Nucl Med 2021;62(4):521-527. DOI 10.2967/jnumed.120.250738; PMID 32859704", "verified": True},
+    "gelofusine_avb6": {"lever": "succinylated_gelatin", "effect": "-61% to -85% kidney @24h (gelofusine; Arg/Lys -41%, combo -66%) for αvβ6 peptides",
+        "ref_arm": "no renal protection", "vector": "177Lu-D0301 / 68Ga-Trivehexin (αvβ6)",
+        "source": "EJNMMI 2024. DOI 10.1007/s00259-024-06738-2; PMID 38717591", "verified": True},
+}
+
+# ============================================================================================
 # 4. VECTOR PK classes — blood clearance governs isotope/organ match
 # ============================================================================================
 VECTOR_PK = {
@@ -97,15 +126,19 @@ ORGANS = ["kidney", "liver", "spleen", "red_marrow", "salivary_gland", "lacrimal
 
 def summary():
     return {"isotopes": len(ISOTOPES), "chelators": len(CHELATORS), "clearance_blocks": len(CLEARANCE_BLOCKS),
+            "quantified_lever_effects": len(QUANTIFIED_LEVER_EFFECTS),
             "vector_pk_classes": len(VECTOR_PK), "organ_axes": len(ORGANS),
-            "all_cited": all(v.get("verified") for d in (ISOTOPES, CHELATORS, CLEARANCE_BLOCKS, VECTOR_PK) for v in d.values())}
+            "all_cited": all(v.get("verified") for d in (ISOTOPES, CHELATORS, CLEARANCE_BLOCKS, QUANTIFIED_LEVER_EFFECTS, VECTOR_PK) for v in d.values())}
 
 
 if __name__ == "__main__":
     s = summary()
     print("RadiopharmKB (PRODUCT) — full radioligand design space, evidence-cited:")
-    for k in ("isotopes", "chelators", "clearance_blocks", "vector_pk_classes", "organ_axes"):
-        print(f"  {k:20s}: {s[k]}")
+    for k in ("isotopes", "chelators", "clearance_blocks", "quantified_lever_effects", "vector_pk_classes", "organ_axes"):
+        print(f"  {k:24s}: {s[k]}")
+    print("\n  QUANTIFIED lever effects (magnitude the renal loop optimizes over, binder frozen):")
+    for k, v in QUANTIFIED_LEVER_EFFECTS.items():
+        print(f"    [{v['lever']:18s}] {v['effect']}")
     print(f"  every entry cited  : {s['all_cited']}")
     print("  + RadioRenalKB (renal_corpus): cross-class construct corpus + renal surrogate + Gate-A")
     print("\nScope now spans: isotope x chelator x clearance-linker x vector-PK x multi-organ dosimetry —")
