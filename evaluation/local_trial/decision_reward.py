@@ -34,11 +34,20 @@ from evaluation.scorers.decision_scorer import (  # noqa: E402
 )
 from evaluation.scorers.boin_scorer import score_mtd_decision  # noqa: E402
 from evaluation.scorers.chain_scorer import score_chain  # noqa: E402
+from evaluation.scorers.agent_task_scorers import (  # noqa: E402
+    score_routing, score_param_select, score_autofix,
+)
 
 
-def score_one(completion: str, gold: Dict[str, Any], scorer: str,
+def score_one(completion: str, gold: Any, scorer: str,
               labels: Optional[List[str]] = None) -> float:
-    """Score a single completion string against a ground-truth dict with `scorer`."""
+    """Score a single completion string against a ground-truth dict with `scorer`.
+
+    Covers BOTH the DrugDev decision scorers (decision/categorical/set/numeric/mtd/chain) AND the
+    DB-generated + error-mined agent-task pool (routing/cross_domain_routing/param_select/autofix),
+    so ONE TRL reward fn trains the whole ~12K-row corpus. The agent-task scorers take gold in its
+    native shape (a filename string, or a {required_params,…} / {correct_workflow,…} dict), so they
+    are passed `gold` as-is rather than the dict-coerced form the decision scorers expect."""
     if scorer == "decision":
         return float(score_decision(completion, gold, labels)["score"])
     if scorer == "categorical":
@@ -51,6 +60,13 @@ def score_one(completion: str, gold: Dict[str, Any], scorer: str,
         return float(score_mtd_decision(completion, gold)["score"])
     if scorer == "chain":
         return float(score_chain(completion, gold)["score"])
+    # agent-task pool (gold passed in its native shape, not dict-coerced)
+    if scorer in ("routing", "cross_domain_routing"):
+        return float(score_routing(completion, gold))
+    if scorer in ("param_select", "param_prefill"):
+        return float(score_param_select(completion, gold))
+    if scorer == "autofix":
+        return float(score_autofix(completion, gold))
     return 0.0
 
 
@@ -74,7 +90,15 @@ def decision_reward(completions: List[Any], gold=None, scorer=None,
     out: List[float] = []
     for i, comp in enumerate(completions):
         g = _col(gold, i)
-        gd = json.loads(g) if isinstance(g, str) else (g or {})
+        # Parse JSON gold, but pass a bare string (e.g. routing filename gold) through unchanged —
+        # the agent-task scorers accept gold in its native shape.
+        if isinstance(g, str) and g.strip()[:1] in "{[":
+            try:
+                gd: Any = json.loads(g)
+            except Exception:
+                gd = g
+        else:
+            gd = g if g is not None else {}
         s = _col(scorer, i) or "decision"
         lab = _col(labels, i)
         out.append(score_one(_text(comp), gd, s, lab))
@@ -114,7 +138,79 @@ def _selftest() -> int:
     print(f"\n{p}/{len(R)} GRPO rows: gold-completion rewards high, wrong rewards lower")
     # also confirm the launcher hook returns a callable
     assert callable(build_reward_fn()), "build_reward_fn must return a callable"
-    return 0 if p == len(R) else 1
+    ok_decision = (p == len(R))
+    ok_pool = _selftest_pool(pool)
+    return 0 if (ok_decision and ok_pool) else 1
+
+
+def _oracle(gold: Any, scorer: str) -> str:
+    """Synthesize the correct completion from a verifiable-task row's gold, so the selftest tests the
+    scorer+dispatch contract directly (no fuzzy SFT-file join). Mirrors what a perfect model emits."""
+    g = json.loads(gold) if isinstance(gold, str) and gold.strip()[:1] in "{[" else gold
+    if scorer in ("routing", "cross_domain_routing"):
+        return (g.get("correct_workflow") if isinstance(g, dict) else g) or ""
+    if scorer in ("param_select", "param_prefill"):
+        req = (g.get("required_params") if isinstance(g, dict) else None) or \
+              list((g.get("expected_params") or {}).keys() if isinstance(g, dict) else [])
+        return json.dumps({"required_params": req})
+    if scorer == "autofix":
+        return str(g)
+    return str(g)
+
+
+def _anti(gold: Any, scorer: str) -> str:
+    """A genuinely-WRONG completion per scorer, so the selftest tests a real gradient (oracle >
+    anti). For a restraint-only param task, the anti NAMES the forbidden params (over-fill) — that
+    is the actual failure mode, unlike a 'fill nothing' answer which is correct there."""
+    g = json.loads(gold) if isinstance(gold, str) and gold.strip()[:1] in "{[" else gold
+    if scorer in ("routing", "cross_domain_routing"):
+        return "nfcore/__nonexistent__/main.nf"
+    if scorer in ("param_select", "param_prefill"):
+        forb = (g.get("must_not_fill") if isinstance(g, dict) else None) or []
+        return json.dumps({k: "x" for k in forb}) if forb else "nonexistent_param_zzz"
+    if scorer == "autofix":
+        return "unrelated_category_zzz"
+    return "none / not applicable"
+
+
+def _selftest_pool(pool) -> bool:
+    """Verify the SAME reward fn covers the whole agent-task pool (routing / param / autofix). These
+    are verifiable tasks, so both the oracle and a genuinely-wrong completion are derivable from each
+    row's gold. The reward fn's job for GRPO is to RANK the oracle strictly above the wrong answer
+    (the training gradient) — assert that on EVERY real GRPO row. Absolute calibration (oracle≥0.9)
+    is reported separately as a data-quality signal: rows below it are the generator's
+    must_not_fill ∩ required_params contradictions, surfaced not masked."""
+    import json as _json
+    files = ["db_generated_routing_grpo.jsonl", "db_generated_param_grpo.jsonl",
+             "error_analysis_grpo.jsonl"]
+    print("\n=== agent-task pool (one reward fn, whole corpus; oracle vs anti-oracle) ===")
+    all_ok = True
+    for grpo_f in files:
+        gp = pool / grpo_f
+        if not gp.exists():
+            print(f"SKIP {grpo_f} (missing)")
+            continue
+        grpo = [_json.loads(l) for l in gp.open() if l.strip()]
+        ranked = low = contradictions = 0
+        for row in grpo:
+            sc = row["scorer"]
+            g = _json.loads(row["gold"]) if isinstance(row["gold"], str) and row["gold"].strip()[:1] in "{[" else row["gold"]
+            gold_r = decision_reward([_oracle(row["gold"], sc)], gold=[row["gold"]], scorer=[sc])[0]
+            anti_r = decision_reward([_anti(row["gold"], sc)], gold=[row["gold"]], scorer=[sc])[0]
+            if gold_r > anti_r:
+                ranked += 1
+            if gold_r < 0.9:
+                low += 1
+                if isinstance(g, dict):
+                    req = set(g.get("required_params") or (g.get("expected_params") or {}).keys())
+                    if req & set(g.get("must_not_fill") or []):
+                        contradictions += 1
+        ok = ranked == len(grpo)
+        all_ok = all_ok and ok
+        note = f"  [{low} rows oracle<0.9; {contradictions} = must_not_fill∩required data contradictions]" if low else ""
+        print(("PASS" if ok else "FAIL"),
+              f"{grpo_f:34} {ranked}/{len(grpo)} oracle ranks > wrong{note}")
+    return all_ok
 
 
 if __name__ == "__main__":
