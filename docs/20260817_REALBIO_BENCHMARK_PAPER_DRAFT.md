@@ -16,7 +16,7 @@
 
 ## Abstract
 
-Benchmarks for AI agents in bioinformatics are typically **scored by each system's own judge on its own private task set**, making cross-system numbers non-comparable and inviting (often unintentional) self-grading. We present **RealBio**, an open, objectively-scored, cross-system benchmark that is anti-self-grading by construction: **660 real-world bioinformatics-automation items across 8 objective-ground-truth tasks** (cross-domain workflow routing, parameter pre-fill, protocol thresholds, execution auto-repair, workflow generation, BOIN dose-escalation, PBPK, and end-to-end drug-discovery), each with **published ground truth graded by a single shared open scorer** (`score.py`, CC-BY-4.0) — no LLM judge for the objective tasks. RealBio is fair by design: a frozen prompt template per task, an identical candidate set, and one scorer applied identically to every system, so any team can run its own system on the fixed items and land directly on the leaderboard. Our cross-system sweep of eight frontier and open-weight LLMs, a domain agent, and a workflow product finds that **no single system dominates**: LLMs used the way they are actually deployed fail simulation tasks (PBPK: mean 0.075 within-2-fold) and are only mediocre at deterministic dose-finding (BOIN: mean 0.271 exact-MTD), yet do well at knowledge tasks (ligand ranking: mean 0.696 Spearman). The largest cross-system spread is on curated-domain routing, where — under the disclosed product-vs-deployment-default scoping (§4) — one entrant (the BioMate platform, described in a companion systems paper by the same authors) routes at 0.965 [0.930, 0.983] with no LLM in the loop, versus 0.345–0.615 for the same LLMs used directly. RealBio's contribution is the open, objectively-scored, anti-self-grading protocol and dataset on which any team can place its own system — not a ranking of any single one.
+Benchmarks for AI agents in bioinformatics are typically **scored by each system's own judge on its own private task set**, making cross-system numbers non-comparable and inviting (often unintentional) self-grading. We present **RealBio**, an open, objectively-scored, cross-system benchmark that is anti-self-grading by construction: **610 real-world bioinformatics-automation items across 5 RealBio-native objective-ground-truth tasks** (cross-domain workflow routing, parameter pre-fill, protocol thresholds, execution auto-repair, workflow generation), together with **~50 items from three drug-development benchmarks (BOIN dose-escalation, PBPK, end-to-end drug-discovery) cross-published here from the companion DrugDev suite** (§3) because they share the same export and scorer, each with **published ground truth graded by a single shared open scorer** (`score.py`, CC-BY-4.0) — no LLM judge for the objective tasks. RealBio is fair by design: a frozen prompt template per task, an identical candidate set, and one scorer applied identically to every system, so any team can run its own system on the fixed items and land directly on the leaderboard. Our cross-system sweep of eight frontier and open-weight LLMs, a domain agent, and a workflow product finds that **no single system dominates**: LLMs used the way they are actually deployed fail simulation tasks (PBPK: mean 0.075 within-2-fold) and are only mediocre at deterministic dose-finding (BOIN: mean 0.271 exact-MTD), yet do well at knowledge tasks (ligand ranking: mean 0.696 Spearman). The largest cross-system spread is on curated-domain routing, where — under the disclosed product-vs-deployment-default scoping (§4) — one entrant (the BioMate platform, described in a companion systems paper by the same authors) routes at 0.965 [0.930, 0.983] with no LLM in the loop, versus 0.345–0.615 for the same LLMs used directly. RealBio's contribution is the open, objectively-scored, anti-self-grading protocol and dataset on which any team can place its own system — not a ranking of any single one.
 
 > **Honesty contract (kept in the paper).** Every reported number traces to committed `score.py` output on committed `predictions.jsonl`. No number is asserted from memory. Abstention (no grounded answer) is scored as not-correct but is never counted as correct — precision is protected. Systems are credited where they genuinely lead.
 
@@ -49,22 +49,24 @@ Across the five agentic-bio benchmarks we verified, each opens some axes but non
 
 ## 3. The RealBio benchmark
 
-**Tasks (8, all reported — none dropped or highlighted selectively).**
+**Tasks — 5 RealBio-native + 3 cross-published DrugDev (all reported; none dropped or highlighted selectively).** The upper block is the RealBio-native agent-capability surface (n = 610); the lower block are three drug-development benchmarks (B2/B3/B4 of the companion **DrugDev** suite) cross-published here because both suites export to the same `score.py` — they are reported for cross-system continuity, not claimed as RealBio-native capability tasks.
 
-| Task | What it tests | Ground-truth source |
-|---|---|---|
-| `cross_domain_routing` | plain-English request → correct pipeline/workflow | curated workflow catalog + acceptable-alternatives set |
-| `param_prefill` | fill a workflow's parameters from context | schema-validated expected values |
-| `protocol_thresholds` | set QC/protocol thresholds correctly | published protocol references (per-item) |
-| `autofix` | classify + repair a failed run | fixed failure categories |
-| `workflow_generation` | produce a runnable workflow for a stated goal | structural/valid-target check |
-| `boin` | BOIN dose-escalation decisions | Liu & Yuan, *JRSS-C* 2015 |
-| `pbpk` | PBPK exposure predictions | published clinical-pharmacology references |
-| `drug_discovery_e2e` | end-to-end design task | RCSB PDB structures, experimental Kd, published PK |
+| Task | What it tests | Ground-truth source | Suite |
+|---|---|---|---|
+| `cross_domain_routing` | plain-English request → correct pipeline/workflow | curated workflow catalog + acceptable-alternatives set | RealBio |
+| `param_prefill` | fill a workflow's parameters from context | schema-validated expected values | RealBio |
+| `protocol_thresholds` | set QC/protocol thresholds correctly | published protocol references (per-item) | RealBio |
+| `autofix` | classify + repair a failed run | fixed failure categories | RealBio |
+| `workflow_generation` | produce a runnable workflow for a stated goal | structural/valid-target check | RealBio |
+| `boin` | BOIN dose-escalation decisions | Liu & Yuan, *JRSS-C* 2015 | DrugDev B4 |
+| `pbpk` | PBPK exposure predictions | published clinical-pharmacology references | DrugDev B3 |
+| `drug_discovery_e2e` | end-to-end design (docking) task | RCSB PDB structures, experimental Kd, published PK | DrugDev B2 |
 
-Items are **original tasks** (not scraped from the systems' training corpora), each carrying a machine-checkable answer and, where relevant, an `acceptable_alts` set so a correct-but-differently-named answer receives credit. Total **n = 660**.
+Items are **original tasks** (not scraped from the systems' training corpora), each carrying a machine-checkable answer and, where relevant, an `acceptable_alts` set so a correct-but-differently-named answer receives credit. **RealBio-native total n = 610** (routing 200, param_prefill 170, protocol_thresholds 100, autofix 100, workflow_generation 40); the three cross-published DrugDev tasks add ~50 items (pbpk 15, boin 18 scorable of 20, dd 15).
 
 **Scoring.** One committed `score.py`. For objective tasks the metric is exact/threshold match against published ground truth (no LLM judge). The scoring rule — including `acceptable_alts` credit — is fixed and applied identically to BioMate and every baseline; any asymmetry is a fairness bug, not a result.
+
+**Five evaluation dimensions (Evaluation Framework v1).** Accuracy is one of five dimensions RealBio scores (`five_dimension_reporter.py`): **D1 Performance** (accuracy, CI, pass-rate — the leaderboard, §5.2); **D2 Stability** (cross-run consistency — consistency-rate, Cohen's κ, flip-rate over N repeats, `stability_runner.py`; design target ≥ 0.90); **D3 Time** (per-query latency, p50/p95); **D4 Cost** (input/output tokens per query, the model-agnostic cost proxy; a per-model price map gives $); and **D5 Hallucination** (grounded / hallucinated / unverifiable at important steps, via an LLM-judge `hallucination_detector.py` plus citation-veracity on `litqa2`). D3 and D4 are now reported per model in `leaderboard_5d.csv` (20 systems); **D2 and D5 are implemented but not yet swept per model across the roster** (a gated multi-run / judged pass), and are listed as future work in §6 rather than reported here. This frames the headline accuracy leaderboard explicitly as D1 of five, not the whole evaluation.
 
 ## 4. Evaluation protocol (fairness by construction)
 
@@ -83,6 +85,11 @@ The **C0 (LLM as actually used) vs C2 (a product with a curated catalog)** contr
 
 **On the C0 baseline-fairness objection.** A referee may object that C0 gives the LLMs no candidate list while BioMate (C2) queries its curated catalog, so the comparison is not model-vs-model. This is deliberate and disclosed. C0 is defined as the **deployment default** — the way practitioners actually call an LLM, with no injected catalog — because the paper's question is "the product versus the deployment default," not "catalog-versus-model." The latter question (a catalog-equipped-LLM condition) is technically constructible, and its prediction files exist in the released export, so any reader can build and score it; we **exclude it from the headline by design**, treating the catalog's sufficiency as a product result rather than a raw-capability comparison. We name this scoping choice explicitly so the leaderboard is read as a disclosed product-vs-default comparison, not a rigged model-vs-model one; consequently we do **not** add a catalog-equipped-LLM row to the results tables.
 
+**Open framing decision — the catalog-equipped-LLM (LLM+harness) condition (authors' call).** Since the freeze, a catalog-equipped condition (`routing_harness`: each model given the RAG-fair candidate list) has been scored from the committed files for 17 systems, and it yields the benchmark's most striking cross-system regularity: an **inverse-scaling harness dividend** — bare→catalog routing lifts weak/small open models by **+0.58–0.71** (Qwen3.5-9B 0.120→0.815, Qwen2.5-7B 0.140→0.725, on-prem 9B 0.180→0.885) versus only **+0.35–0.40** for the frontier (Claude 0.615→0.980, Gemini 0.580→0.950), with **every system converging to ~0.80–0.98** regardless of bare ability — i.e. a 9B + catalog ≈ a frontier model + catalog. Two defensible framings, and this is an **authors' editorial decision, not a settled result**:
+- **Option A (original scoping):** keep the headline strictly product-vs-deployment-default and relegate the catalog-equipped condition to the supplement, treating catalog-sufficiency as a product property. Cleanest anti-"rigged model-vs-model" stance.
+- **Option B (promote):** present the bare-vs-catalog dividend as a first-class, disclosed **secondary** analysis (its own table + the inverse-scaling finding), because it is cross-system, reproducible from the released files, and scientifically interesting in its own right.
+- **Recommendation (hybrid):** adopt B *as a labelled secondary analysis* while keeping A's product-vs-default framing as the headline — i.e. add a clearly-marked catalog-equipped table in §5.x and the inverse-scaling figure, explicitly not the headline comparison. This surfaces the dividend honestly without re-opening the "catalog-vs-model" question as the paper's thesis. Final inclusion is the authors' choice.
+
 **Controls.** Frozen per-task prompt template identical across models (committed in `run_baseline.py`); low/zero temperature, with N=3 seeds and mean±SD where a model is non-deterministic; capped retries on transient API errors (a permanent failure is a scored miss, not a drop); models never see ground truth or `acceptable_alts`; one scorer for all.
 
 ## 5. Results
@@ -91,7 +98,7 @@ The **C0 (LLM as actually used) vs C2 (a product with a curated catalog)** contr
 
 All results below come from the committed `score.py` on committed `predictions.jsonl`. The core cross-system view is the leaderboard in §5.2; §5.3 analyses where each system leads and where the newly-added tasks split by task type.
 
-### 5.2 Leaderboard — LLMs as actually used vs BioMate (8 tasks: 5 core + 3 newly-added; from committed `score.py`)
+### 5.2 Leaderboard — LLMs as actually used vs BioMate (8 columns: 5 RealBio-native + 3 cross-published DrugDev; from committed `score.py`)
 
 Each LLM is evaluated **the way it is actually used** — the model with its own knowledge and the task, no candidate list injected. n per cell: routing 200 · autofix 100 · param_prefill 170 · workflow_gen 40 · protocol 100 · pbpk 15 · boin 18 · dd 15. `gpt-5.3-chat-latest` is excluded (routing scored 0.000 — a failed run, not a valid measurement).
 
@@ -104,7 +111,7 @@ Each LLM is evaluated **the way it is actually used** — the model with its own
 | Gemini 3.1 Pro | 0.580 | **0.880** | 0.693 | 0.500 | **0.630** | 0.000 | 0.278 | 0.700 |
 | GPT-5.6 | 0.530 | 0.860 | 0.671 | 0.500 | 0.460 | **0.200** | **0.500** | 0.700 |
 | Kimi K3 | 0.450 | 0.770 | 0.628 | 0.450 | 0.360 | 0.000 | 0.167 | 0.700 |
-| DeepSeek V4 | 0.415 | 0.800 | 0.621 | 0.500 | 0.420 | 0.067 | 0.167 | 0.667 |
+| DeepSeek V4-pro | 0.415 | 0.800 | 0.621 | 0.500 | 0.420 | 0.067 | 0.167 | 0.667 |
 | GLM-5.2 | 0.400 | 0.830 | 0.641 | 0.500 | 0.440 | 0.000 | 0.111 | 0.700 |
 | GPT-5.6-luna | 0.355 | 0.830 | 0.624 | 0.500 | 0.340 | **0.200** | 0.389 | 0.700 |
 | Qwen3.8-Max | 0.345 | 0.860 | 0.692 | 0.500 | 0.460 | 0.000 | 0.111 | 0.700 |
@@ -120,7 +127,9 @@ Each LLM is evaluated **the way it is actually used** — the model with its own
 
 *Scope of BioMate's cells:* BioMate is reported only on the tasks with a committed **same-item** RealBio prediction file — routing (`results/biomate_dev/cross_domain_routing_c2ir.jsonl`) and pbpk (`results/biomate_product/pbpk_benchmark_sameitem.jsonl`, ◊). Its autofix, param-prefill, protocol-QC, workflow-generation, boin, and `dd` cells have **no committed same-item RealBio predictions** and are shown as not-yet-reported ("—") rather than zero; none is fabricated. (A convenience `leaderboard.csv` in the export lists BioMate param-prefill/protocol/pbpk/boin values carried over from *non-RealBio* harnesses; those are not same-item head-to-heads and are deliberately excluded from this table — `leaderboard.csv` needs regeneration to match.)
 
-*Coverage note:* the sweep covers all 8 tasks (5 core + `pbpk`/`boin`/`drug_discovery_e2e`); `litqa2` is a defined-but-unswept task not counted in the 8 and is a planned addition in a follow-up sweep.
+*Coverage note:* the sweep covers all 8 tasks (5 RealBio-native + the 3 cross-published DrugDev tasks `pbpk`/`boin`/`drug_discovery_e2e`); `litqa2` is a defined-but-unswept task not counted in the 8 and is a planned addition in a follow-up sweep.
+
+*Models added since the 2026-08-05 freeze (post-freeze, disclosed as such).* The frozen headline sweep is the eight systems above. Since the freeze the committed board has grown to **17 systems** by adding open/small models from committed result files: **GLM-5.3-prime** (the latest GLM flagship), **Qwen 2.5-7B / 3.5-9B / 3.5-27B / 3.8-27B**, and the **on-prem 9B (base and gold-SFT)**. These are reported as post-freeze additions, not part of the pre-registered frozen comparison. Two honest observations: (i) **newer ≠ better** — GLM-5.3-prime does not uniformly beat GLM-5.2 (direct routing 0.375 vs 0.400; it is higher on protocol-QC), consistent with the plateau seen across model generations; (ii) the small open models are the backbone of the inverse-scaling harness dividend above. `DeepSeek V4-pro` (large) is distinguished from `DeepSeek V4.1-flash` (small); the flash variant, GLM-5.3-prime's DrugDev columns, and `gemma-4-31b` are **not yet swept** (gated) and are listed in §6.
 
 ### 5.3 Analysis
 
@@ -142,6 +151,9 @@ A per-system failure-mode taxonomy over the committed predictions (Suppl. *Error
 - Objective scoring covers the 8 tasks by design; open-ended scientific reasoning is out of scope (and is where LLM-judge benchmarks, with their caveats, still apply).
 - **Self-grading conflict of interest — the paper's central caveat.** BioMate is one of the authors' own systems (full description in a **companion systems paper by the same authors** [11]), *and the open scorer (`score.py`) was also written by the authors* — so the system under test and the grader share an origin, and BioMate's RealBio numbers are **not** independent third-party validation. We take two concrete honesty measures rather than merely asserting neutrality. First, the items, ground truth, and scorer are public and independently re-runnable by anyone, which is the strongest available answer to self-grading (a mitigation, not an elimination of the conflict). Second, we **actively withdrew an over-favorable artifact**: an earlier BioMate headline of **pbpk = 100% (18/18 within-2-fold)** was a *cross-harness* result on a different, easier task and compound set; the genuine same-item run on the identical RealBio compounds scores **0.200 (3/15)**, and we report that instead (`docs/20260827_BIOMATE_PBPK_SAME_ITEM_RESULT.md`). The benchmark's contribution — open items, open ground truth, and one shared objective scorer — stands independent of any BioMate result.
 - Per-item ground truth for `pbpk`/`boin`/`drug_discovery_e2e` derives from published references; any reference error is a data bug fixable in the open dataset.
+- **Dimensions not yet swept per model (future work, not reported as results).** D2 Stability and D5 Hallucination are implemented (`stability_runner.py`, `hallucination_detector.py`) but not yet run per model across the roster — they require a gated multi-run / judged pass; we report D1/D3/D4 and list D2/D5 as pending rather than fabricate them.
+- **Coverage still gated.** `DeepSeek V4.1-flash` (full suite), `GLM-5.3-prime`'s three DrugDev columns, and `gemma-4-31b` are not yet swept; a staged runbook exists and these are explicitly blank, not zero.
+- **The catalog-equipped-LLM (LLM+harness) condition** is an open framing decision (§4): the inverse-scaling dividend is computed from committed files for 17 systems but its placement (supplement vs first-class secondary analysis) is deliberately left to the authors.
 
 ## 7. Data & code availability
 
