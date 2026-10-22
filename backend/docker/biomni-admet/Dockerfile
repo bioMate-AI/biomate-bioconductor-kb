@@ -68,12 +68,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # (ADMETModel.predict) gate the change; then regenerate the lock from the new freeze.
 COPY backend/docker/biomni-admet/requirements.lock /tmp/biomni-admet.lock
 
+# On arm64: strip the "+cpu" local-version suffix from the torch constraint line.
+# That suffix only exists in the amd64-specific download.pytorch.org/whl/cpu index;
+# standard PyPI carries plain torch==2.3.1 wheels for aarch64.  Leaving +cpu in the
+# constraint causes a ResolutionImpossible when pip resolves PyTDC→accelerate→torch
+# and finds the installed plain 2.3.1 doesn't satisfy the ==2.3.1+cpu pin.
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      sed -i 's/torch==\([0-9.]*\)+cpu/torch==\1/' /tmp/biomni-admet.lock; \
+    fi
+
 # CPU-only PyTorch (~250 MB vs CUDA ~2 GB; ADMET is small-batch inference).
 # amd64: the +cpu wheel index carries torch==2.3.1+cpu (matches the lock pin).
-# arm64: standard PyPI has aarch64 CPU wheels as plain torch==2.3.1 (no +cpu suffix);
-#        the lock pin torch==2.3.1+cpu would fail on arm64, so we skip -c for torch only.
+# arm64: standard PyPI has aarch64 CPU wheels as plain torch==2.3.1 (no +cpu suffix).
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
-      pip install --no-cache-dir torch; \
+      pip install --no-cache-dir -c /tmp/biomni-admet.lock torch; \
     else \
       pip install --no-cache-dir -c /tmp/biomni-admet.lock \
         torch --index-url https://download.pytorch.org/whl/cpu; \
