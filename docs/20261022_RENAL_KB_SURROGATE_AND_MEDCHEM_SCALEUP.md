@@ -122,3 +122,34 @@ The magnitude each lever moves kidney retention (the generation loop's objective
    levers in `QUANTIFIED_LEVER_EFFECTS` — with binding physics as a preserve guard.
 
 **Do NOT** build the generation loop or commit synthesis spend before Gate A passes on real data.
+
+## 5. Extraction run #2 — corpus 55 → 88; cross-target transfer MEASURED (answers "new targets?")
+
+Run #2 targeted the **dense, reachable stratum**: preclinical mouse %ID/g with *sequences/SMILES*, and
+multi-class coverage so Leave-One-Target-Out becomes runnable. Added (all primary-cited):
+- **CCK2 minigastrin** — Mather 2007 penta-Glu charge series (×3 tumor models), Laverman 2011
+  sargastrin/MG11/cyclo-MG1, Holzleitner 2024 rhCCK linker series.
+- **MC1R α-MSH4-11 charge ladder** — Froidevaux 2005: identical sequence, net charge +2/+1/0/−1 set by
+  *terminal* Ac/Suc/amide mods → stored as **paper-stated net charge** (sequence can't encode it).
+- **A20FMDV2 (αvβ6)** albumin-binder variants at 48 h.
+
+Infrastructure this forced (all committed): **timepoint-aware strata** (`pidg_1h/4h/24h/48h`, never pool);
+**chelator-aware SMILES charge** (`renal_smiles_charge.py` — excludes the whole DOTA/NOTA macrocycle +
+arms, adds the metal-complex charge; FAPI-46 ≈ 0, PSMA-617 ≈ −4); **stated-charge override** in
+`features_for_row`; the **`loto()`** Leave-One-Target-Out eval.
+
+### First real cross-target result (dense stratum `pidg_4h|mouse`, 21 sequence-bearing, 2 classes)
+| held-out class (unseen in training) | structure model ρ | net-charge-alone ρ |
+|---|---|---|
+| CCK2 (n=14) | +0.24 | **−0.74** |
+| MC1R (n=6) | +0.66 | +0.62 |
+
+**Finding:** net-charge's sign *flips* between cationic (MC1R, +0.62) and anionic CCK2 minigastrins (the
+poly-Glu tract drives retention → −0.74). A learned structure model beats net-charge-alone exactly where
+the heuristic's direction breaks — i.e. the asset **does** contribute to targets it never trained on, and
+its value over the field heuristic is largest off the cationic/megalin assumption. Caveats: small n +
+Mather pseudo-replication (same constructs ×3 tumor models) → a **signal, not certification**.
+
+### Gate A status: still `REFUSE_TO_CERTIFY` (21 < 50 in the homogeneous stratum) — correct.
+### Next: fold in the preclinical PSMA/FAPI small-molecule batch (SMILES→charge), de-pseudo-replicate
+Mather (aggregate per construct), extend multi-class %ID/g toward n≥50, then re-run Gate A + LOTO.
