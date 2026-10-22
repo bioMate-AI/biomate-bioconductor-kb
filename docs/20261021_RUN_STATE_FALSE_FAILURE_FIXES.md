@@ -126,7 +126,24 @@ that interrupted a run mid-flight has neither, so it still fails. 3 regression t
 (orphan_finalizer's `_HARD_FAILURE_LOG_MARKERS` does NOT include "Session aborted",
 so that path was never the culprit and needs no change.)
 
-**Verification:** fresh ADMET run after deploy — _pending, expect `completed`._
+**Verification (DONE):** fresh ADMET run `43d59277` after deploy (`f0a2cba1`) now
+shows **Completed / 100% / 2-of-2** in the panel and `status: completed` in the
+record — the false-failure is resolved end-to-end.
+
+### Cross-workflow check (per request)
+Not ADMET-specific. From `/app/galaxy.log`: QC gates run across **drug_discovery
+(27), metabolomics (11), proteomics (9), spatial, epigenomics** domains, and the
+"Downgrading false success" downgrade already hit two other multi-step workflows
+(`f5a286e8` 3-step/325s/6-out, `a5de4f1b` 5-step/413s/9-out). The fix lives in the
+generic `_log_indicates_nextflow_failure`, so it covers ALL QC-gated workflows at
+once; it only excuses a SIGTERM-abort that reached clean completion with zero failed
+tasks, so a genuine mid-run halt still stays paused/resumable.
+
+### Residual (lower priority, not a false-failure)
+The QC gate soft-cancels (SIGTERM) a run that has ALREADY completed — pointless work
+(nothing left to halt) and the source of the benign "Session aborted" line. Status
+is now correct regardless; a cleaner upstream refinement would skip the soft-cancel
+when the run is already terminal. Tracked, not blocking.
 
 ## Demo impact
 `outputs.png` (d2 / drug-dev / t3) is captured from a completed ADMET Results view —
