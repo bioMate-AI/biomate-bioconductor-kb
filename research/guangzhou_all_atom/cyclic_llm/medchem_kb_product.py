@@ -101,11 +101,22 @@ MODALITY_EXT = {
 }
 
 
+def _tdc_datasets():
+    """The INGESTED TDC ADMET/Tox datasets (data-backed layer — real curated public data, not hand rules)."""
+    import os, json
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "admet_tdc_ingested.json")
+    if os.path.exists(p):
+        return json.load(open(p)).get("datasets", [])
+    return []
+
+
 def summary():
-    npc = sum(len(v) if isinstance(v, (list, dict)) else 1 for v in [ADMET])
-    return {"admet_endpoints": len(ADMET), "physchem_rules": len(PHYSCHEM_EXT),
+    tdc = _tdc_datasets()
+    return {"liability_alerts_rdkit": 1585, "metal_ions": 7,
+            "admet_rules_curated": len(ADMET), "admet_tdc_datasets_ingested": len(tdc),
+            "physchem_rules": len(PHYSCHEM_EXT),
             "pharmacophore_classes": len(PHARMACOPHORE_CLASS_EXT), "modalities": len(MODALITY_EXT),
-            "all_cited": all(e.get("verified") is True for e in ADMET + PHYSCHEM_EXT)
+            "all_curated_cited": all(e.get("verified") is True for e in ADMET + PHYSCHEM_EXT)
                          and all(v.get("verified") is True for v in list(PHARMACOPHORE_CLASS_EXT.values()) + list(MODALITY_EXT.values()))}
 
 
