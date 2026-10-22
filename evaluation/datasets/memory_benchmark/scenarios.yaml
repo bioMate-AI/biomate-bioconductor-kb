@@ -643,3 +643,317 @@
     - "haplotypecaller"
   disqualified_workflow: []
   notes: "Baseline: GATK germline routing unaffected by empty correction block"
+
+# ===========================================================================
+# DRUG-DEVELOPMENT DECISION EPISODES (MB-DD*) — added 2026-10-22
+#
+# Rationale: the original 20 scenarios test workflow-routing memory. These 12
+# test the memory failures that actually bite a drug-dev PROGRAM — carrying a
+# project-specific VALUE, ENTITY, prior FAILURE, or SUPERSEDED result across
+# sessions. Design discipline:
+#   - Every seeded value is NON-GUESSABLE (not a default, not inferable from
+#     priors) so a correct recall PROVES memory, not pretraining. This is the
+#     implicit memory-OFF ablation: without the episode the model cannot know
+#     e.g. "this program gates hERG at 7.5 µM".
+#   - Mapped onto the EXISTING scorer types only (recall / correction /
+#     adversarial / baseline) → zero adapter change, published-baseline
+#     weighting (A/B/C/T/S/X) preserved. Mapping:
+#       value-carryover, entity-persistence, failure-lesson  → recall
+#       generic-bad-option avoidance                         → adversarial (forbidden-absent)
+#       tool correction                                      → correction
+#       value supersession / staleness arbitration           → correction
+#         (expected_workflow = NEW value term, disqualified_workflow = STALE
+#          value term → scores 1.0 only if new present AND stale absent)
+# ===========================================================================
+
+- id: MB-DD1
+  type: recall
+  domain: drug_discovery
+  difficulty: medium
+  description: "Value carryover: program-specific hERG gate = 7.5 µM (non-default)"
+  seed_episode:
+    userQuery: "ADMET screen for the PDL1-MC macrocycle series"
+    assistantResponse: "Ran ADMET; applied the program's cardiac-safety gate."
+    workflowGenerated: true
+    outcomeSuccess: true
+    whatWorked:
+      - "Gating hERG IC50 at 7.5 µM (not the 10 µM default) matched the program's tox cutoff"
+    whatFailed: []
+    lessonsLearned:
+      - "For the PDL1-MC program, the hERG pass/fail gate is 7.5 µM, set by the tox team — not the 10 µM default"
+    importanceScore: 0.9
+  query: >
+    Set up another ADMET screen for the PDL1-MC series. What hERG threshold
+    should the cardiac-safety gate use for this program?
+  expected_recall:
+    - "7.5"
+  disqualified_workflow: []
+  notes: "7.5 µM is a program value from the episode; the default is 10/30 µM, so recall proves memory"
+
+- id: MB-DD2
+  type: recall
+  domain: drug_discovery
+  difficulty: medium
+  description: "Value carryover: oral bioavailability acceptance cutoff = 28% for this series"
+  seed_episode:
+    userQuery: "ADMET / PK triage for the covalent KRAS series"
+    assistantResponse: "Applied the series oral-exposure acceptance criterion."
+    workflowGenerated: true
+    outcomeSuccess: true
+    whatWorked:
+      - "Accepting compounds at predicted oral F ≥ 28% retained the active chemotype"
+    whatFailed:
+      - "The generic ≥50% oral-F filter discarded every active in this series"
+    lessonsLearned:
+      - "For the covalent KRAS series, use an oral bioavailability acceptance cutoff of 28%, not the generic 50%"
+    importanceScore: 0.85
+  query: >
+    Re-run the oral-exposure triage for the covalent KRAS series. What oral
+    bioavailability cutoff did we agree to accept compounds at?
+  expected_recall:
+    - "28"
+  disqualified_workflow: []
+  notes: "28% is a non-default series criterion from memory"
+
+- id: MB-DD3
+  type: recall
+  domain: pharmacology
+  difficulty: hard
+  description: "Value carryover: PK species = cynomolgus + program allometric exponent 0.72"
+  seed_episode:
+    userQuery: "Human-dose projection from preclinical PK for the PDL1-MC lead"
+    assistantResponse: "Projected the human dose using cross-species allometry."
+    workflowGenerated: true
+    outcomeSuccess: true
+    whatWorked:
+      - "Cynomolgus was the pivotal PK species; an empirical allometric exponent of 0.72 (not 0.75) fit the macrocycle CL"
+    whatFailed: []
+    lessonsLearned:
+      - "For the PDL1-MC lead, scale clearance from cynomolgus using an exponent of 0.72 — the standard 0.75 over-predicted human CL"
+    importanceScore: 0.8
+  query: >
+    Project the human dose for the PDL1-MC lead again. Which preclinical species
+    and allometric exponent should the clearance scaling use?
+  expected_recall:
+    - "0.72"
+    - "cynomolgus"
+    - "cyno"
+  disqualified_workflow: []
+  notes: "0.72 and the cyno pivot are program-specific; recall of either proves memory"
+
+- id: MB-DD4
+  type: recall
+  domain: drug_discovery
+  difficulty: medium
+  description: "Entity persistence: target = PD-L1 macrocycle, PPI-blockade mechanism"
+  seed_episode:
+    userQuery: "Design campaign for our PD-L1 program"
+    assistantResponse: "Set up a macrocycle design campaign against the PD-1/PD-L1 interface."
+    workflowGenerated: true
+    outcomeSuccess: true
+    whatWorked:
+      - "Targeting the PD-1/PD-L1 PPI interface with a macrocyclic scaffold (blockade, single target) matched the program intent"
+    whatFailed: []
+    lessonsLearned:
+      - "This program is a PD-L1 PPI-blockade macrocycle (single target), not a bispecific"
+    importanceScore: 0.75
+  query: >
+    Let's design the next analog in the program. Remind me what the target and
+    modality are so the campaign stays on-mechanism.
+  expected_recall:
+    - "pd l1"
+    - "pd-l1"
+    - "macrocycle"
+    - "ppi"
+    - "blockade"
+  disqualified_workflow: []
+  notes: "Entity (target+modality) must persist across sessions; aligns with the program's known mechanism"
+
+- id: MB-DD5
+  type: recall
+  domain: genomics
+  difficulty: medium
+  description: "Entity persistence: program reference genome = T2T-CHM13 (not GRCh38)"
+  seed_episode:
+    userQuery: "Set up WGS alignment for the organoid cohort"
+    assistantResponse: "Aligned against the program's chosen reference assembly."
+    workflowGenerated: true
+    outcomeSuccess: true
+    whatWorked:
+      - "Using the T2T-CHM13 assembly resolved variants in the segmental-duplication regions this cohort cares about"
+    whatFailed: []
+    lessonsLearned:
+      - "This cohort is aligned to T2T-CHM13, not GRCh38 — keep all runs on CHM13 for comparability"
+    importanceScore: 0.8
+  query: >
+    Align the next batch of WGS samples for the organoid cohort. Which reference
+    genome assembly should we use to stay consistent with the prior runs?
+  expected_recall:
+    - "t2t"
+    - "chm13"
+  disqualified_workflow: []
+  notes: "CHM13 is the program choice from memory; default would be GRCh38"
+
+- id: MB-DD6
+  type: adversarial
+  domain: drug_discovery
+  difficulty: medium
+  description: "Negative memory: rhodanine scaffold was rejected (PAINS) — must not re-propose it"
+  seed_episode:
+    userQuery: "Scaffold hopping for the kinase hinge binder"
+    assistantResponse: "Proposed scaffolds and flagged a liability."
+    workflowGenerated: true
+    outcomeSuccess: false
+    whatWorked: []
+    whatFailed:
+      - "A rhodanine scaffold was proposed and later rejected by medchem as a PAINS frequent-hitter — assay artifacts"
+    lessonsLearned:
+      - "Do not propose rhodanine scaffolds for this program; they are PAINS frequent-hitters and were rejected"
+    importanceScore: 0.85
+  query: >
+    Suggest a few fresh scaffolds for the kinase hinge binder — different cores
+    we could explore next.
+  contamination_forbidden:
+    - "rhodanine"
+  expected_behavior: null
+  acceptable_responses: []
+  notes: "rhodanine is an attractive default a naive suggester emits; memory must suppress it"
+
+- id: MB-DD7
+  type: recall
+  domain: drug_discovery
+  difficulty: hard
+  description: "Failure-lesson memory: scaffold BM-4471 failed CYP3A4 TDI — surface the liability"
+  seed_episode:
+    userQuery: "ADMET profiling for the BM-4400 lead series"
+    assistantResponse: "Profiled DMPK liabilities for the series."
+    workflowGenerated: true
+    outcomeSuccess: false
+    whatWorked: []
+    whatFailed:
+      - "Analog BM-4471 showed strong CYP3A4 time-dependent inhibition (TDI) and was dropped"
+    lessonsLearned:
+      - "The BM-4400 series has a CYP3A4 TDI liability — BM-4471 failed on it; screen TDI early for this series"
+    importanceScore: 0.9
+  query: >
+    We're picking the next analogs in the BM-4400 series. Any DMPK liabilities
+    from past work we should watch for before committing?
+  expected_recall:
+    - "cyp3a4"
+    - "tdi"
+    - "time dependent"
+    - "4471"
+  disqualified_workflow: []
+  notes: "Recall of the specific past failure (CYP3A4 TDI / BM-4471) — not inferable without memory"
+
+- id: MB-DD8
+  type: correction
+  domain: variant_calling
+  difficulty: medium
+  description: "Tool correction: GATK → DeepVariant for PacBio HiFi (GATK high FPR on long reads)"
+  seed_correction:
+    suggestedApproach:
+      workflow: gatk_haplotypecaller
+      description: "GATK HaplotypeCaller germline calling"
+    correctedApproach:
+      workflow: deepvariant
+      description: "DeepVariant germline calling (long-read model)"
+    userExplanation: >
+      For our PacBio HiFi data always use DeepVariant — GATK HaplotypeCaller has
+      a high false-positive rate on long reads. Default to DeepVariant here.
+  query: "Germline variant calling for our new PacBio HiFi whole-genome samples"
+  expected_workflow:
+    - "deepvariant"
+  disqualified_workflow:
+    - "gatk"
+    - "haplotypecaller"
+  notes: "Scientifically valid correction: GATK HC is tuned for short reads; DeepVariant has a HiFi model"
+
+- id: MB-DD9
+  type: correction
+  domain: drug_discovery
+  difficulty: medium
+  description: "Tool correction: docking → RBFE/FEP+ for lead-opt affinity ranking"
+  seed_correction:
+    suggestedApproach:
+      workflow: molecular_docking
+      description: "Glide/Vina docking score ranking"
+    correctedApproach:
+      workflow: rbfe_fep
+      description: "Relative binding free energy (FEP+) ranking"
+    userExplanation: >
+      For lead-optimization ranking in this congeneric series use RBFE (FEP+),
+      not docking scores — docking does not rank our close analogs reliably.
+  query: "Rank the next batch of close analogs in our lead-opt series by predicted potency"
+  expected_workflow:
+    - "rbfe"
+    - "fep"
+    - "free energy perturbation"
+  disqualified_workflow:
+    - "docking"
+    - "vina"
+    - "glide"
+  notes: "Valid correction: docking mis-ranks congeneric analogs; RBFE is the method of record for lead-opt"
+
+- id: MB-DD10
+  type: correction
+  domain: pharmacology
+  difficulty: hard
+  description: "Value supersession: MTD updated 400 mg → 300 mg after a DLT (use current, not stale)"
+  seed_episode:
+    userQuery: "Dose-escalation status for the Phase 1 BOIN trial"
+    assistantResponse: "Updated the MTD estimate after the latest cohort."
+    workflowGenerated: false
+    outcomeSuccess: true
+    whatWorked:
+      - "An earlier interim put the MTD at 400 mg, but after a DLT at dose level 5 the MTD was revised DOWN to 300 mg"
+    whatFailed: []
+    lessonsLearned:
+      - "The current MTD for this trial is 300 mg — the earlier 400 mg estimate is superseded; use 300 mg going forward"
+    importanceScore: 0.9
+  query: >
+    What is the current MTD for our Phase 1 BOIN trial that we should carry into
+    the expansion cohort?
+  expected_workflow:
+    - "300"
+  disqualified_workflow:
+    - "400"
+  notes: "Knowledge-update/staleness: scores 1.0 only if the current 300 mg is given AND the stale 400 mg is not"
+
+- id: MB-DD11
+  type: correction
+  domain: drug_discovery
+  difficulty: hard
+  description: "Value supersession: aqueous solubility re-assayed 15 µM → 63 µM (use current)"
+  seed_episode:
+    userQuery: "DMPK property table for the lead compound"
+    assistantResponse: "Refreshed the solubility value after a repeat assay."
+    workflowGenerated: false
+    outcomeSuccess: true
+    whatWorked:
+      - "The original kinetic solubility of 15 µM was an artifact; a repeat equilibrium assay gave 63 µM, which is the value of record"
+    whatFailed: []
+    lessonsLearned:
+      - "The lead's aqueous solubility is 63 µM (repeat equilibrium assay) — the earlier 15 µM reading is superseded"
+    importanceScore: 0.8
+  query: >
+    Remind me of the lead compound's aqueous solubility of record for the DMPK
+    summary.
+  expected_workflow:
+    - "63"
+  disqualified_workflow:
+    - "15"
+  notes: "Supersession: current 63 µM present AND stale 15 µM absent → 1.0"
+
+- id: MB-DD12
+  type: baseline
+  domain: drug_discovery
+  difficulty: easy
+  description: "No-seed regression: plain ADMET routing still fires (drug-dev baseline)"
+  seed_episode: null
+  seed_correction: null
+  query: "Run an ADMET property screen (hERG, CYP, solubility, permeability) on this compound set"
+  expected_workflow:
+    - "admet"
+  disqualified_workflow: []
+  notes: "Baseline: standard ADMET routing must not regress despite seeded drug-dev episodes in the project"
