@@ -124,9 +124,25 @@ requests) + `evaluation/local_trial/composer_eval.py`, replacing the granularity
 **2525/3804 = 66% of workflows have free-text `input_types`** (parameter descriptions like
 `mydata (NOISeq eSet...)`, not type tokens). So the composer's dominant real-world blocker is a
 **catalog data-quality problem**: 2/3 of workflows can never be a handoff destination regardless
-of matcher, resolution, or model. The next composer fix is **DATA** — re-extract clean type tokens
-for those workflows' `input_types`/`output_types` — not training, not capacity, not the matcher.
-(Fan-out and clean-type genomics/pharma chains already compose.)
+of matcher, resolution, or model. (Fan-out and clean-type genomics/pharma chains already compose.)
+
+### The fix is SEPARATE, not discard — the free text is knowledge, kept in the right field
+The free text is valuable (it names the object class + role, e.g. `ExpressionSet (microarray
+expression data…)`) and it is **already preserved structurally** in the `params_schema` column
+(`{name, type, optional, description}` per input) — the dirty `input_types` is just a redundant
+`name + " (" + description + ")"` concatenation of it. Verified:
+- **2257/2525 (89%)** of dirty-`input_types` workflows have a populated `params_schema` to
+  re-derive clean tokens from — non-lossy.
+- Nothing depends on the free text living in `input_types`; `chain_planner._is_meaningful_input_types()`
+  already *filters it out* as unusable.
+
+So the fix: **re-derive `input_types`/`output_types` as CLEAN type tokens from `params_schema`
+(normalise name/type to the type vocabulary), while leaving `params_schema`/`description`/
+`annotation_v2`/`step_metadata` — the knowledge — untouched.** Not re-extract-and-overwrite, not
+delete. The rich descriptions keep feeding the resolver / param-prefill / LLM; the composer gets
+clean tokens for the structural handoff. Offline, reversible (back up the two columns first);
+validate by re-running `composer_eval.py` with the derived types. Not training, not capacity,
+not the matcher.
 
 ## Caveats (honest)
 - **FTS/BM25 only** — the embedding model was blocked for env reasons (anaconda scipy ABI). Dense
