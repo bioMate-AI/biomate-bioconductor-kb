@@ -175,3 +175,36 @@ justified exactly like the unit/species/protection strata.
 **Two publishable-direction findings this session:** (1) the field's net-charge/megalin heuristic is
 sign-inverted for anionic radiopeptides; (2) cross-target renal-retention transfer is real but
 modality-gated. Both are cross-program (target-agnostic) — the asset contributes to NEW targets.
+
+## 6. Publication-grade evaluation (`renal_eval.py`) — corpus = 136
+
+Per the directive "evaluation should be qualified for a research paper," the LOTO was rebuilt to a
+methods-paper standard, and it corrected two things the point estimates hid.
+
+**Evaluation design.** Leave-One-Target-Out (train on all target classes but one, predict the held-out
+class). **Primary metric = mean WITHIN-CLASS Spearman** across held-out classes — because the naive
+*pooled* Spearman is confounded by cross-class scale (a Simpson's paradox: pidg_1h pools to −0.33 while
+per-class is +0.93 / +0.63). Baselines under the identical protocol: signed net-charge, |net-charge|.
+Uncertainty: bootstrap 95% CI (resample within class). Significance: permutation p (shuffle truth within
+class). Pseudo-replicates (same molecule across tumor models) aggregated.
+
+**Results (mouse %ID/g, de-pseudo-replicated):**
+
+| stratum (classes) | surrogate mean-per-class ρ | perm p | net-charge ρ | reading |
+|---|---|---|---|---|
+| pidg_1h integrin (αvβ3 n=8, αvβ6 n=4) | **+0.78** [−0.05, +0.98] | **0.012** | +0.55 (p=0.11) | significant transfer to unseen target |
+| pidg_4h (cck 6, mc1r 6, nts1 3) | +0.48 [−0.15, +0.92] | 0.13 | **−0.40** | positive but N.S.; model fails on held-out MC1R |
+
+**Finding, rigorously quantified:** net-charge as a *global* predictor is actively bad (mean-per-class
+**−0.40**) — its sign inverts between cationic and anionic ligands, so the field-standard megalin
+heuristic fails and a learned structure model is needed. Within a mechanistically-coherent family
+(integrins), the surrogate generalizes to a held-out target at ρ≈0.78 (permutation p=0.012).
+
+**Honest power (stated, not hidden):** pooled n in the tens, bootstrap CIs wide (the integrin lower
+bound is −0.05). These are **hypothesis-generating effect sizes with uncertainty, not a powered
+confirmatory result.** Gate A (n≥50 sequence-resolved per homogeneous stratum) remains the
+certification bar and is still `REFUSE_TO_CERTIFY`. The paper claim must be scoped accordingly:
+*"a target-agnostic structure surrogate shows cross-target renal-retention generalization within
+mechanistic families, where the net-charge heuristic fails due to sign inversion"* — with the diverse-
+class and powered-confirmation results flagged as future work (extend each stratum to n≥50; the limiter
+is sequence-resolved records, not dosimetry).
