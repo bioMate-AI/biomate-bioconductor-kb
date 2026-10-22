@@ -38,7 +38,7 @@ Under leave-one-target-out (LOTO) cross-validation — train on all target class
 
 ### 2.3 Radioligand renal retention is structure-learnable and transfers across targets
 
-A learned model on interpretable physicochemical features (net positive/negative charge, residualizing metal, albumin binder, cleavable linker, imaging timepoint, modality) **generalizes to unseen target classes: mean-per-class ρ = 0.27 (95% CI [0.01, 0.51], permutation p = 0.036)** under identical LOTO, with cluster bootstrap by construct (so multimers/replicates of one molecule cannot leak between folds). Per-class, held-out generalization is strong for GRPR (ρ = 0.80), CCK2 (0.68) and MC1R (0.62), moderate for αvβ3 (0.41) and SSTR2 (0.25), and fails for GLP-1R and NTS1 (see §2.6). This is, to our knowledge, the first demonstration that radioligand renal retention can be predicted from structure for a target class held out of training.
+A learned model on interpretable physicochemical features (net positive/negative charge, residualizing metal, albumin binder, cleavable linker, imaging timepoint, modality) **generalizes to unseen target classes: mean-per-class ρ = 0.27 (95% CI [0.01, 0.51], permutation p = 0.036)** under identical LOTO (Fig. 2), with cluster bootstrap by construct (so multimers/replicates of one molecule cannot leak between folds). Per-class, held-out generalization is strong for GRPR (ρ = 0.80), CCK2 (0.68) and MC1R (0.62), moderate for αvβ3 (0.41) and SSTR2 (0.25), and fails for GLP-1R and NTS1 (see §2.6). This is, to our knowledge, the first demonstration that radioligand renal retention can be predicted from structure for a target class held out of training.
 
 ### 2.4 An interpretable mechanistic grey-box formalizes the two-route biology
 
@@ -86,7 +86,7 @@ We show that radioligand renal retention — the central dose-limiting liability
 
 ## 5. Data and code availability
 
-Dataset (`renal_seed_corpus.jsonl`), charge models (`renal_features.py`, `renal_smiles_charge.py`), mechanistic model (`renal_mechmodel.py`), evaluation (`renal_surrogate.py`, `renal_eval.py`), and the reproducible results pipeline (`renal_paper_results.py`) are released. Every data record carries primary-source provenance.
+Dataset (`renal_seed_corpus.jsonl`; figure-digitized sensitivity tier `renal_figure_tier.jsonl`), charge models (`renal_features.py`, `renal_smiles_charge.py`), mechanistic model (`renal_mechmodel.py`), evaluation (`renal_surrogate.py`, `renal_eval.py`), reproducible results pipeline (`renal_paper_results.py`), design loop (`renal_design.py`) and figure generation (`make_figures.py` → `figures/`) are released. Figures: **F1** dataset composition by target class; **F2** cross-target generalization with 95% CIs (learned vs grey-box vs net-charge); **F3** model-guided design U-shape; **F4** feature ablations. Every data record carries primary-source provenance.
 
 ## 6. References (verified; to be formatted to journal style)
 
