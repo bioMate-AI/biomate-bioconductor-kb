@@ -76,15 +76,34 @@ pure module in a full env). Unit tests 18/18 still pass (incompatible-type cases
 | exact string match (before) | 3/68 = 4.4% | 65/68 |
 | **semantic `type_satisfies` (after)** | **26/68 = 38.2%** | 42/68 |
 
-**~9× lift from one local change** — confirming exact-match was a real bottleneck. But 42/68
-still fall back, so semantic matching is necessary, not sufficient. The residual is NOT
-resolution (still 0 unresolved) — it is (a) **alias-table coverage**: `_TYPE_ALIASES` covers ~15
-nf-core tokens, but resolved Bioconductor workflows carry out-of-table types (`rma_eset`,
-`lumi_eset`, protein tokens); and (b) **resolver precision**: the resolver returns *a confident*
-workflow, not necessarily the *correct* one, so some "incompatible" handoffs are wrong-but-confident
-resolutions. Both are harness/retrieval targets (extend the alias table; improve resolution
-precision), still NOT model capacity or training. Next: widen `_TYPE_ALIASES` and/or measure
-resolution PRECISION vs the gold tool (decomposition_real has `tool_id`).
+**~9× lift from one local change** — confirming exact-match was a real overstrictness worth
+fixing. The semantic fix is a correct keeper (18/18 tests, still refuses true incompatibilities).
+
+### ⚠️ BUT these fire/precision numbers are on the WRONG granularity — do not cite as a product metric
+
+Drilling into the 42 residual fallbacks revealed a **dataset granularity mismatch**, not an alias gap:
+- **Resolver precision vs the gold `tool_id` is 4% (10/246).** The 100% "resolution" above was
+  *confidence* (a ≥6 match exists), NOT *correctness* — the search confidently picks the WRONG
+  workflow for these subtasks.
+- The failing "type tokens" are free-text param descriptions of those wrong workflows
+  (`Dasypus_novemcinctus…gtf.gz`, `mydata (NOISeq eSet…)`), not clean types.
+- **Root cause:** `decomposition_real` is built from **GTN tutorials** (44/68 `real_gtn_tutorial`)
+  whose gold `tool_id`s are **individual Galaxy Toolshed tools** (`…/feelnc/0.2.1`, `BIOC_DMRcate`,
+  `interactive_tool_copernicus_notebook`) — **only 16% of them exist in the workflow DB**. But
+  `build_dag_plan` composes **nf-core-style WORKFLOWS**. These are different abstraction levels; you
+  cannot resolve a fine-grained Galaxy tool to a whole nf-core workflow.
+
+**Consequences (honest):**
+1. The semantic-handoff fix is still correct and kept — but its measured "4.4%→38%" lift on this
+   dataset is **not a valid product number**; do not report it as composer performance.
+2. **Widening `_TYPE_ALIASES` would GAME a mismatched eval** (fabricating handoffs between
+   wrong-granularity workflows) — explicitly NOT done.
+3. The composer's real metric needs **multi-WORKFLOW decomposition inputs** (user requests chaining
+   several nf-core-style workflows, e.g. rnaseq→deseq2→enrichment→report), where resolution
+   precision can be high. `decomposition_real` (GTN tool-chains) cannot measure this.
+4. This is itself an instance of the diagnosis's core lesson — **a benchmark measuring the wrong
+   thing**. The right composer eval is a small set of real multi-nf-core-workflow requests, to be
+   authored (gold = the correct workflow per subtask + the stage DAG).
 
 ## Caveats (honest)
 - **FTS/BM25 only** — the embedding model was blocked for env reasons (anaconda scipy ABI). Dense
