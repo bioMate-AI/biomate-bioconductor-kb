@@ -226,6 +226,10 @@ with open("qsar_model_report.txt", "w") as f:
     gate_status = "PASS" if results["cv_r2_score"] >= 0.5 else "FAIL (< 0.50 threshold)"
     f.write(f"\\nQC gate : {gate_status}\\n")
 
+# nf-core provenance: the process declares versions.yml as a required output
+with open("versions.yml", "w") as vf:
+    vf.write(f'"QSAR_RF_MODEL":\\n    python: "{sys.version.split()[0]}"\\n    featurizer: "morgan_fp_r2_1024"\\n')
+
 print(f"✓ QSAR CV R² = {results['cv_r2_score']:.3f}, RMSE = {results['cv_rmse']:.3f}", file=sys.stderr)
     """
 }
