@@ -103,9 +103,30 @@ Something SIGTERMs the ADMET driver right as it completes. Prime suspect: the
 properly (not a "Session aborted after success" special-case, which would mask the
 spurious SIGTERM) requires the dev Galaxy container logs around the SIGTERM.
 
-**Decision pending (user):** (a) get backend-log access and find/stop the SIGTERM
-source; (b) classification special-case (faster, borderline workaround); (c) defer
-and proceed with the demo using a non-ADMET completed run or the existing outputs.
+### CONFIRMED root cause (dev Galaxy logs, /app/galaxy.log)
+The SIGTERM is the **ADMET QC gate halt**. The dev log shows the exact chain:
+```
+[QC Gate] S3 evaluation for fa825572: 1 gate(s)
+[workflow.paused] ... terminated_pids=[613379]        # _terminate_run_process → SIGTERM
+[Nextflow run fa825572] exit -9 ... all tasks COMPLETED ... — marking succeeded   # my salvage worked
+[Nextflow] Downgrading false success for run fa825572 (steps=2, outputs=8)        # re-failed here
+```
+The QC gate fires a halt AFTER the fast ADMET workflow already finished, so
+`_terminate_run_process` SIGTERMs the driver; Nextflow drains + completes, but the
+leftover `Session aborted -- Cause: SIGTERM` line is in `_NF_LOG_FAILURE_MARKERS`,
+so `_looks_like_false_success` → `_log_indicates_nextflow_failure` **downgrades the
+completed run to failed** (repeatedly, on status polls across workers). A QC-gate
+verdict on a finished prediction is a **finding**, not an execution failure.
+
+### Fix (committed)
+`_log_indicates_nextflow_failure`: a `Session aborted -- Cause: SIGTERM` line is
+benign when the log ALSO has Nextflow's clean-completion marker (`Execution
+complete -- Goodbye`) and zero failed tasks (`failedCount` not `[1-9]`). A SIGTERM
+that interrupted a run mid-flight has neither, so it still fails. 3 regression tests.
+(orphan_finalizer's `_HARD_FAILURE_LOG_MARKERS` does NOT include "Session aborted",
+so that path was never the culprit and needs no change.)
+
+**Verification:** fresh ADMET run after deploy — _pending, expect `completed`._
 
 ## Demo impact
 `outputs.png` (d2 / drug-dev / t3) is captured from a completed ADMET Results view —
