@@ -32,6 +32,44 @@ def _field(task: Any, key: str, default: Any = None) -> Any:
     return getattr(task, key, default)
 
 
+# Semantic type-compatibility for inter-step handoffs. MIRRORS
+# workflow_chain._type_satisfies / _TYPE_ALIASES (the sanctioned matcher used by
+# check_step_compatibility) — copied here because workflow_chain is a heavy module
+# (FastAPI/beaker) that does not import in the pure/offline contexts this module +
+# its test run in. Using EXACT string match here instead was the composer's real
+# firing bottleneck: it rejected ~95% of real dependent chains whose resolved
+# workflows have equivalent-but-not-identical type tokens (counts_matrix vs counts).
+# See docs/20261021_DAG_RESOLUTION_COVERAGE_RESULT.md.
+# TODO(dedup): extract to a shared pure module (e.g. galaxy.chain.type_match) and
+# point workflow_chain at it, once that edit can be verified in a full Galaxy env.
+_TYPE_ALIASES: Dict[str, List[str]] = {
+    "bam":             ["bam", "input_bam", "alignments", "reads_bam", "input"],
+    "vcf":             ["vcf", "input_vcf", "variants", "variant_file"],
+    "fastq":           ["fastq", "reads", "input", "samplesheet"],
+    "counts_matrix":   ["counts_matrix", "counts", "matrix", "input", "samplesheet"],
+    "tpm_matrix":      ["tpm_matrix", "tpm", "expression_matrix", "counts_matrix"],
+    "bed_peaks":       ["bed_peaks", "peaks", "bed", "input"],
+    "fasta":           ["fasta", "genome", "reference", "input"],
+    "fasta_assembly":  ["fasta_assembly", "fasta", "assembly", "input"],
+    "tsv_taxonomy":    ["tsv_taxonomy", "taxonomy", "tsv", "input"],
+    "h5ad":            ["h5ad", "anndata", "input"],
+    "csv":             ["csv", "samplesheet", "input"],
+    "tsv_proteins":    ["tsv_proteins", "protein_groups", "input"],
+    "bigwig":          ["bigwig", "signal", "coverage"],
+    "multiqc_report":  ["multiqc_report", "qc_report"],
+    "results_dir":     ["results_dir", "outdir", "output_dir"],
+}
+
+
+def type_satisfies(out_type: str, in_type: str) -> bool:
+    """True iff a step producing ``out_type`` can feed a step consuming ``in_type``
+    (semantic, via the alias table) — e.g. ``bam`` satisfies ``input_bam``."""
+    if out_type == in_type:
+        return True
+    aliases = _TYPE_ALIASES.get(out_type, [out_type])
+    return any(a == in_type or in_type in a or a in in_type for a in aliases)
+
+
 # Medium-confidence bar from unified_workflow_search (high >= 12, medium >= 6).
 # Below this we refuse to resolve a task so the DAG never dispatches a weak,
 # likely-wrong workflow match — it falls back to single-task generation instead.
@@ -197,11 +235,18 @@ def build_dag_plan(
         wired = False
         for src in step["depends_on"]:
             src_out = (type_provider(steps[src - 1]["nextflow_path"]) or ([], []))[1] or []
-            for t in src_out:
-                if t in dst_in and (dst, t) not in bound:
-                    connections.append({"from_step": src, "from_output": t, "to_step": dst, "to_input": t})
-                    bound.add((dst, t))
-                    wired = True
+            # SEMANTIC handoff (type_satisfies), not exact string match: a source output
+            # type may be an equivalent-but-different token from the dest input type
+            # (counts_matrix→counts). Still refuses a genuinely incompatible handoff.
+            for out_t in src_out:
+                for in_t in dst_in:
+                    if type_satisfies(out_t, in_t) and (dst, in_t) not in bound:
+                        connections.append({"from_step": src, "from_output": out_t,
+                                             "to_step": dst, "to_input": in_t})
+                        bound.add((dst, in_t))
+                        wired = True
+                        break
+                if wired:
                     break
             if wired:
                 break

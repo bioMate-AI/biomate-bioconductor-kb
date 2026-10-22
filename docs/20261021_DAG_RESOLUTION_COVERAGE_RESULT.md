@@ -64,6 +64,28 @@ dependent chains, and because one bad link fails the whole plan, the composer al
 
 This probe re-runs both gates on demand — rerun after the handoff fix to confirm the lift.
 
+### Fix #2 landed (semantic handoff) — measured lift
+
+`build_dag_plan`'s handoff was switched from exact string match to the semantic
+`type_satisfies` (alias table mirrored from `workflow_chain._type_satisfies`, inlined in
+`decomposed_dag.py` because `workflow_chain` doesn't import offline; TODO: dedup into a shared
+pure module in a full env). Unit tests 18/18 still pass (incompatible-type cases still refuse).
+
+| build_dag_plan handoff | FIRED | type-handoff fallback |
+|---|---|---|
+| exact string match (before) | 3/68 = 4.4% | 65/68 |
+| **semantic `type_satisfies` (after)** | **26/68 = 38.2%** | 42/68 |
+
+**~9× lift from one local change** — confirming exact-match was a real bottleneck. But 42/68
+still fall back, so semantic matching is necessary, not sufficient. The residual is NOT
+resolution (still 0 unresolved) — it is (a) **alias-table coverage**: `_TYPE_ALIASES` covers ~15
+nf-core tokens, but resolved Bioconductor workflows carry out-of-table types (`rma_eset`,
+`lumi_eset`, protein tokens); and (b) **resolver precision**: the resolver returns *a confident*
+workflow, not necessarily the *correct* one, so some "incompatible" handoffs are wrong-but-confident
+resolutions. Both are harness/retrieval targets (extend the alias table; improve resolution
+precision), still NOT model capacity or training. Next: widen `_TYPE_ALIASES` and/or measure
+resolution PRECISION vs the gold tool (decomposition_real has `tool_id`).
+
 ## Caveats (honest)
 - **FTS/BM25 only** — the embedding model was blocked for env reasons (anaconda scipy ABI). Dense
   retrieval OFF; production with embeddings ON can only add coverage, and scores already sit ~4×

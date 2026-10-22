@@ -176,13 +176,13 @@ def main() -> int:
             handoff_fail += 1  # all resolved but a dependent step had no EXACT type match
 
     n = len(rows)
-    print(f"\nFULL build_dag_plan (resolver + exact-match type handoff), {n} plans:")
+    print(f"\nFULL build_dag_plan (real resolver + current type-handoff), {n} plans:")
     print(f"  FIRED (returns a plan):           {fired}/{n} = {fired/n:.1%}")
     print(f"  fallback — a subtask unresolved:  {unresolved}/{n}")
     print(f"  fallback — type-handoff no match: {handoff_fail}/{n}  ({dependent_plans} plans have dependent steps)")
-    print("  NOTE: build_dag_plan uses EXACT type-string match; check_step_compatibility uses "
-          "SEMANTIC (_type_satisfies). If handoff_fail is high, the exact-match gate (not resolution) "
-          "is the real composer bottleneck — a harness fix (semantic handoff), not training.")
+    print("  NOTE: build_dag_plan now uses SEMANTIC handoff (type_satisfies); exact-string match "
+          "fired only 3/68 (4.4%). Any remaining handoff_fail is alias-table coverage + resolver "
+          "PRECISION (wrong-but-confident workflow), not resolution coverage (0 unresolved).")
     return 0
 
 
