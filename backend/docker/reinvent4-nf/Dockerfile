@@ -32,8 +32,10 @@ ENV PYTHONUNBUFFERED=1
 ENV REINVENT4_PRIORS=/opt/reinvent4/priors
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git curl ca-certificates libxrender1 libxext6 \
+    git curl ca-certificates procps libxrender1 libxext6 \
     && rm -rf /var/lib/apt/lists/*
+# procps provides `ps`, which Nextflow requires to collect task metrics; without
+# it tasks fail at launch ("Command 'ps' required by nextflow ... cannot be found").
 
 # ── Layer 1: REINVENT4 + deps via pip (CPU torch by default) ────────────────
 # REINVENT4 is published on PyPI as `reinvent`. Pin a released tag for
