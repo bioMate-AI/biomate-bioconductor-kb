@@ -46,13 +46,13 @@
       "archetype": "fep_guided_selection",
       "items": 2,
       "status": "exemplar_built_offline",
-      "gt": "ground_truth (advance_best / deprioritize), from experimental ΔΔG",
+      "gt": "ground_truth (advance_best / deprioritize), from experimental \u0394\u0394G",
       "scorer": "evaluation/scorers/decision_scorer.py",
       "adapter": "evaluation/adapters/decision_benchmark_adapter.py (dataset=fep_selection)",
       "gold": "evaluation/datasets/drugdev_export/fep_selection/data.jsonl",
       "external_baseline": "OpenFE / Merck FEP (ranking); decision framing is novel",
-      "task": "Project vignette: FEP-rank a congeneric series vs the lead, advance the tighter binders, deprioritize the clearly weaker. Decision graded vs real experimental ΔΔG (N1 gold); live variant grades the FEP run's ranking via rbfe_scorer.",
-      "note": "Archetype E; reuses the N1 rbfe_benchmark experimental ΔΔG as ground truth."
+      "task": "Project vignette: FEP-rank a congeneric series vs the lead, advance the tighter binders, deprioritize the clearly weaker. Decision graded vs real experimental \u0394\u0394G (N1 gold); live variant grades the FEP run's ranking via rbfe_scorer.",
+      "note": "Archetype E; reuses the N1 rbfe_benchmark experimental \u0394\u0394G as ground truth."
     },
     {
       "code": "D3",
@@ -83,7 +83,7 @@
       "adapter": "evaluation/adapters/decision_benchmark_adapter.py (dataset=tissue_exposure)",
       "gold": "evaluation/datasets/drugdev_export/tissue_exposure/data.jsonl",
       "external_baseline": "PBPK (Simcyp/GastroPlus); brain Kp,uu literature (Hammarlund-Udenaes)",
-      "task": "Dosing axis 2: does FREE drug reach the target tissue above threshold (CNS Kp,uu) / does a tox organ over-accumulate — plasma PK alone is insufficient. BioMate PBPK white space.",
+      "task": "Dosing axis 2: does FREE drug reach the target tissue above threshold (CNS Kp,uu) / does a tox organ over-accumulate \u2014 plasma PK alone is insufficient. BioMate PBPK white space.",
       "note": "PROVISIONAL: Kp,uu values are textbook-level (loperamide P-gp-excluded; oxycodone active uptake) but exact numbers are UNVERIFIED this session (web-search budget exhausted). Verify against cited primary sources before publication."
     },
     {
@@ -148,7 +148,7 @@
       "adapter": "evaluation/adapters/decision_benchmark_adapter.py (dataset=dose_projection)",
       "gold": "evaluation/datasets/drugdev_export/dose_projection/data.jsonl",
       "external_baseline": "FDA 2005 MRSD guidance; allometric scaling",
-      "task": "Dosing axis 1: project the systemic dose — FIH MRSD from a species NOAEL (km factors + safety factor) and human clearance by allometric scaling. DETERMINISTIC formula ground truth (objective, no fabrication); grades correct method application within-fold.",
+      "task": "Dosing axis 1: project the systemic dose \u2014 FIH MRSD from a species NOAEL (km factors + safety factor) and human clearance by allometric scaling. DETERMINISTIC formula ground truth (objective, no fabrication); grades correct method application within-fold.",
       "note": "Archetypes F1 + G. Numeric scorer (within-fold, half-credit band)."
     },
     {
@@ -164,7 +164,7 @@
       "adapter": "evaluation/adapters/decision_benchmark_adapter.py (dataset=dose_schedule)",
       "gold": "evaluation/datasets/drugdev_export/dose_schedule/data.jsonl",
       "external_baseline": "PK/PD principles (time- vs concentration-dependent killing; loading dose)",
-      "task": "Dosing axis 3: pick the regimen from the PK/PD driver — beta-lactam (time>MIC → frequent/continuous), aminoglycoside (Cmax/MIC → extended-interval high dose), long half-life (→ loading dose). Textbook PK/PD, objective.",
+      "task": "Dosing axis 3: pick the regimen from the PK/PD driver \u2014 beta-lactam (time>MIC \u2192 frequent/continuous), aminoglycoside (Cmax/MIC \u2192 extended-interval high dose), long half-life (\u2192 loading dose). Textbook PK/PD, objective.",
       "note": "Archetype F3. Completes the four dosing axes (F1 amount / F2 tissue / F3 schedule / F4 special-population)."
     },
     {
@@ -247,10 +247,13 @@
       "code": "N2",
       "name": "qsar_benchmark",
       "stage": "S3 lead optimization",
-      "items": null,
-      "status": "planned",
-      "external_baseline": "MoleculeACE (RMSE_cliff)",
-      "task": "QSAR regression with explicit activity-cliff stratification."
+      "items": 2,
+      "status": "provisional_to_source",
+      "external_baseline": "MoleculeACE (RMSE_cliff, van Tilborg 2022)",
+      "task": "QSAR potency regression with explicit activity-cliff stratification (rmse + rmse_cliff).",
+      "scorer": "evaluation/scorers/qsar_scorer.py",
+      "gold": "evaluation/datasets/drugdev_export/qsar_benchmark/data.jsonl",
+      "note": "SCAFFOLD: scorer --selftest 4/4; gold is ILLUSTRATIVE placeholder flagged provisional_to_source \u2014 source = a real MoleculeACE CHEMBL target's measured pIC50 + cliff labels."
     },
     {
       "code": "N3",
@@ -266,11 +269,14 @@
       "code": "N4",
       "name": "retrosynthesis_benchmark",
       "stage": "synthesis",
-      "items": null,
-      "status": "planned",
+      "items": 2,
+      "status": "provisional_to_source",
       "workflow": "aizynthfinder_retrosynthesis, syncraft_synthesizability",
-      "external_baseline": "USPTO-50k; PaRoutes/Syntheseus",
-      "task": "Single/multi-step retrosynthetic route planning + synthesizability."
+      "external_baseline": "USPTO-50k (single-step top-k); PaRoutes (multi-step)",
+      "task": "Retrosynthetic route proposal: top-k route match + step validity.",
+      "scorer": "evaluation/scorers/retrosynthesis_scorer.py",
+      "gold": "evaluation/datasets/drugdev_export/retrosynthesis_benchmark/data.jsonl",
+      "note": "SCAFFOLD: scorer --selftest 4/4; gold ILLUSTRATIVE (SMILES placeholders) flagged provisional_to_source \u2014 source = USPTO-50k / PaRoutes. Validity is STRUCTURAL only; RDKit/template chemistry check is the to-source upgrade."
     },
     {
       "code": "N5",
@@ -327,10 +333,13 @@
       "name": "target_id_benchmark",
       "stage": "S0 target discovery",
       "track": "T2",
-      "items": null,
-      "status": "planned",
-      "external_baseline": "Open Targets (gene-disease ground truth); PrimeKG; TxGNN (repurposing); DrugMechDB (MoA)",
-      "task": "Given a disease/indication, nominate and prioritize druggable targets with evidence; scored vs Open Targets / curated associations. Leakage: temporal split on evidence."
+      "items": 2,
+      "status": "provisional_to_source",
+      "external_baseline": "Open Targets Platform (gene-disease association)",
+      "task": "Target prioritization vs validated associations (hit@k + MRR); grounds in backend/lib/galaxy/ai/target_id (channels->OT harmonic-sum arbiter).",
+      "scorer": "evaluation/scorers/target_id_scorer.py",
+      "gold": "evaluation/datasets/drugdev_export/target_id_benchmark/data.jsonl",
+      "note": "SCAFFOLD: scorer --selftest 5/5; gold_targets are real validated targets (approved drugs) but the EXACT set/order is provisional_to_source \u2014 pull from an Open Targets score cut with a TEMPORAL split."
     },
     {
       "code": "T2b",
