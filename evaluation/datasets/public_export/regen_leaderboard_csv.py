@@ -57,6 +57,9 @@ MODELS = [
                             "dd_spearman": "openai_gpt-5.6/drug_discovery_e2e.jsonl"}),
     ("Qwen3.8-Max", "qwen_qwen3.8-max", {}),
     ("GLM-5.2", "z-ai_glm-5.2", {}),
+    # GLM-5.3-prime = latest GLM flagship (roster-verified). Only the 5 RealBio-native tasks are
+    # committed; boin/pbpk/dd (DrugDev) left blank until the gated sweep runs them.
+    ("GLM-5.3-prime", "z-ai_glm-5.3-prime", {}),
     ("GPT-5.6-luna", "openai_gpt-5.6-luna", {}),
     ("Kimi K3", "moonshotai_kimi-k3", {}),
     ("DeepSeek V4", "deepseek_deepseek-v4-pro", {}),

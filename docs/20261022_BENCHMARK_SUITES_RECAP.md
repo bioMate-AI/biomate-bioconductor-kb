@@ -82,6 +82,15 @@ on-prem + Biomni. Bare-vs-harness is a first-class axis (`HARNESS_DIVIDEND_SCALI
 (≈0.016 base), never the retracted 0.73. DeepSeek roster slugs were stale (fixed; small model not yet
 on the leaderboard — `20261021_DEEPSEEK_COVERAGE_AUDIT.md`).
 
+**Open-model coverage (Kimi / GLM audit, 2026-10-22):**
+- **Kimi K3** — fully compared: D1 leaderboard (routing 0.450 / param 0.628 / autofix 0.770 …), full
+  9-task sweep, in `leaderboard_5d` (17s p50 / 1272 out-tok). Roster-verified.
+- **GLM** — the leaderboard carried only the *older* GLM-5.2. **Added GLM-5.3-prime** (flagship) this
+  session from its committed 5 RealBio-native tasks → routing 0.375 / autofix 0.820 / param 0.651 /
+  wf_gen 0.500 / QC 0.550; **boin/pbpk/dd blank (pending the gated DrugDev sweep)**. Note: the newer
+  flagship is NOT uniformly better than 5.2 (routing 0.375<0.400; QC 0.550>0.440) — a "newer-gen ≠
+  better" signal consistent with the size-sweep findings.
+
 ---
 
 ## 2. DrugDev Benchmark (`evaluation/datasets/drugdev_export/` + decision suite)
