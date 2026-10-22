@@ -26,7 +26,10 @@
 
 # All BioMate Nextflow/Batch containers MUST start from this base so that
 # nxf_s3_upload / nxf_s3_download shell functions have 'aws' on PATH.
-FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:latest
+ARG BASE_TAG=latest
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:${BASE_TAG}
+
+ARG TARGETARCH=amd64
 
 LABEL maintainer="BioMate Team"
 LABEL description="biomni-tools: ViennaRNA, AutoDock Vina, RDKit, Biopython, openbabel + pharmacology (statsmodels, scikit-image, DeepPurpose)"
