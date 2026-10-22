@@ -232,16 +232,18 @@ if __name__ == "__main__":
     for k, v in sorted(r["strata"].items(), key=lambda kv: -kv[1]["n_labelled"]):
         print(f"    {k:22s}  labelled={v['n_labelled']:3d}  with_sequence={v['n_with_sequence']:3d}")
     print(f"\n  best charge-surrogate stratum: {r['best_stratum']}  (sequence-bearing={r['best_stratum_n_with_sequence']}, need >= {r['min_gate_n']})")
-    # cross-target generalization readiness (answers: does the asset contribute to NEW targets?)
-    lt = loto()
-    print("\n  CROSS-TARGET (new-target) generalization — Leave-One-Target-Out:")
-    if lt["runnable"]:
-        for cls, v in lt["per_held_out_class"].items():
-            print(f"    held-out {cls:6s} (n={v['n_test']}): model rho={v['spearman_model']} vs net-charge {v['spearman_net_charge']}")
-    else:
-        rd = lt["readiness"]
-        print(f"    not yet runnable — pool(%ID/g)={rd['n_pool']} across classes {rd['classes']}")
-        print(f"    {lt['note']}")
+    # cross-target generalization (answers: does the asset contribute to NEW targets?) — ALL runnable strata
+    print("\n  CROSS-TARGET (new-target) generalization — Leave-One-Target-Out, per homogeneous %ID/g stratum:")
+    any_run = False
+    for unit in ("pidg_1h", "pidg_4h", "pidg_6h", "pidg_24h", "pidg_48h"):
+        lt = loto(min_unit=unit)
+        if lt.get("runnable"):
+            any_run = True
+            print(f"    [{unit}]")
+            for cls, v in lt["per_held_out_class"].items():
+                print(f"      held-out {cls:6s} (n={v['n_test']}): model rho={v['spearman_model']:+.3f} vs net-charge {v['spearman_net_charge']:+.3f}")
+    if not any_run:
+        print("    none runnable yet (need >=2 target classes with >=3 charge-computable constructs in one unit)")
     print(f"\nVERDICT: {r['verdict']}")
     if r["verdict"] == "REFUSE_TO_CERTIFY":
         print(f"  reason: {r['reason']}")
