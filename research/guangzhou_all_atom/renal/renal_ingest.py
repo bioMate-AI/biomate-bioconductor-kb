@@ -14,7 +14,7 @@ import json, os, sys, glob, re
 HERE = os.path.dirname(os.path.abspath(__file__))
 CORPUS = os.path.join(HERE, "renal_seed_corpus.jsonl")
 
-_LABEL_FIELDS = ("kidney_gy_per_gbq", "tk_ratio", "kidney_pid_g_1h", "kidney_pid_g_4h", "kidney_pid_g_24h", "kidney_pid_g_48h")
+_LABEL_FIELDS = ("kidney_gy_per_gbq", "tk_ratio", "kidney_pid_g_1h", "kidney_pid_g_4h", "kidney_pid_g_6h", "kidney_pid_g_24h", "kidney_pid_g_48h")
 _PROT_OK = {"none", "lysine_arginine", "succinylated_gelatin", "amino_acid", "gelofusine", "unknown"}
 # honest "we don't know" synonyms -> "unknown". NEVER map any of these to "none" (that would impute
 # absence of protection, silently corrupting the protected/unprotected stratification).

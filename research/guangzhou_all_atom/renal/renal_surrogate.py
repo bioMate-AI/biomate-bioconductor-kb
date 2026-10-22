@@ -35,7 +35,7 @@ def _retention_label(r: dict):
     if r.get("tk_ratio") is not None and r["tk_ratio"] > 0:
         return (1.0 / float(r["tk_ratio"]), "inv_tk")          # low T:K -> high retention proxy
     # %ID/g magnitude depends on timepoint, so the unit-kind encodes it (never pool 4h with 48h)
-    for t, tag in (("kidney_pid_g_1h", "pidg_1h"), ("kidney_pid_g_4h", "pidg_4h"),
+    for t, tag in (("kidney_pid_g_1h", "pidg_1h"), ("kidney_pid_g_4h", "pidg_4h"), ("kidney_pid_g_6h", "pidg_6h"),
                    ("kidney_pid_g_24h", "pidg_24h"), ("kidney_pid_g_48h", "pidg_48h")):
         if r.get(t) is not None:
             return (float(np.log1p(r[t])), tag)
