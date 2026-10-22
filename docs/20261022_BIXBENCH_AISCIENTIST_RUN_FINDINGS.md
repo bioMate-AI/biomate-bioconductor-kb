@@ -128,6 +128,46 @@ was BioMate bugs.
 Env note: the runner needs anaconda's python (`/Users/kky/opt/anaconda3/bin/python3`) — only it has
 `datasets`; the default homebrew `python3` errors "No module named 'datasets'".
 
+## Broader bug-finding sweep (n=20, new capsule types) — a SECOND finding
+
+Sweep over bix-11+ (phylogenomics capsules: multi-zip `scogs_fungi.zip`/`scogs_animals.zip`, PhyKIT):
+9/20 exact (down from 87.5% on single-notebook capsules). The drop is concentrated in **multi-file
+capsules + `llm_verifier` tasks (mean 0.273)**, and the audit shows a real, distinct weakness (not a
+crash, not fabrication):
+
+- On multi-file capsules, run_code spends its turn **exploring the filesystem** instead of using the
+  provided path hint — `find /galaxy` (a nonexistent Galaxy path assumption leaking into the
+  sandbox), listing `/work/output` (empty), checking `/tmp` — and the captured answer is an
+  **incomplete exploration fragment** (turn/timeout budget consumed before the compute step).
+- Data access itself WORKS: `bix-12-q3` successfully extracted `/work/input/<uuid>/scogs_fungi.zip`.
+  So the data is reachable at `DATA_DIR=/work/input/<uuid>/`; the issue is agent STRATEGY + turn
+  budget on multi-file tasks, plus the odd `/galaxy` assumption.
+
+**Actionable (BioMate-side, not a benchmark fix):** run_code's data-staging guidance should point the
+agent straight at `$DATA_DIR/<id>/<name>` for multi-file inputs and discourage `/galaxy`/root-fs
+exploration; and/or raise the exploration turn budget. Single-notebook capsules (unambiguous path)
+already work at 87.5%. Worth a backend run_code system-prompt/staging check — distinct from the
+(now-fixed) workflow-card gating.
+
+## FutureHouse comparison — LAB-Bench (current build, n=40, 10/subtask)
+
+LAB-Bench is FutureHouse's benchmark (Karagiannis et al., arXiv:2407.10362). Current build vs
+FutureHouse's published Claude-3.5-Sonnet baselines:
+
+| Subtask | BioMate (2026-10-22) | FutureHouse (Sonnet) | BioMate v1 (2026-04) |
+|---|---|---|---|
+| ProtocolQA | **100%** | ~55% | 70.4% |
+| SeqQA | 80% | ~45% | — |
+| CloningScenarios | 70% | ~60% | 39.4% |
+| DbQA | 50% | ~60% | — |
+| **Overall** | **75%** | ~55% | 50.9% |
+
+Beats the FutureHouse baseline on 3/4 subtasks; +24pt over BioMate v1. **ProtocolQA 100%** (v1 was
+70.4% with 30% of items triggering workflow dispatch) is direct evidence the run_code/workflow-card
+fix cleared the MCQ workflow-dispatch failure mode too. **DbQA 50%** is the weak spot — pure
+database-knowledge recall with no retrieval (LitQA2 excluded here: coverage-bound, scoped out).
+Caveat: n=10/subtask → wide CI; the signal is directional but strong and consistent.
+
 ## Status of the broader AI-scientist comparison
 
 - **Biomni**: already a RealBio comparator row (routing 0.95 / boin 0.5 / pbpk 0.0) + biomni_eval1.
