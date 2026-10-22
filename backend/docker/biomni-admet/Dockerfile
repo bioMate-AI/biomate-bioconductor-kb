@@ -47,10 +47,13 @@ ENV PYTHONUNBUFFERED=1
 # ── System deps needed by admet-ai / mordred ───────────────────────────────
 # libgomp1: OpenMP required by Chemprop's C extensions
 # libxrender1 + libxext6: RDKit 2D rendering (already in base but be explicit)
+# git: needed by PyTDC/mordred setup.py when building from source on arm64
+#      (no pre-built arm64 wheel for some pinned versions)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     libxrender1 \
     libxext6 \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Reproducible dependency lock ───────────────────────────────────────────
