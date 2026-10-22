@@ -17,6 +17,18 @@ from __future__ import annotations
 from typing import Optional
 
 PH = 7.4
+# chelator -> net charge of the METAL COMPLEX at pH 7.4. The metal-free SMILES counts the WHOLE chelator
+# (ring amines AND carboxylate arms) as ionizable; in vivo they all coordinate the metal, so we EXCLUDE
+# every chelator atom from group matching (macrocycle ring + acetate arms, atom-claimed) and add this
+# single complex charge instead.
+CHELATOR_COMPLEX_CHARGE = {
+    "DOTA": -1.0, "DOTAGA": -2.0, "NOTA": 0.0, "NODAGA": -1.0, "DTPA": -2.0, "CHX-A-DTPA": -2.0,
+    "macropa": -1.0, "TRAP": -2.0, "DFO": 0.0, None: 0.0, "": 0.0,
+}
+# azamacrocycle cores: DOTA/DOTAGA/NODAGA share cyclen (12-membered tetraaza); NOTA/NODAGA = TACN (9-membered triaza)
+_MACROCYCLE_SMARTS = ["[#7]1[#6][#6][#7][#6][#6][#7][#6][#6][#7][#6][#6]1",   # cyclen (DOTA)
+                      "[#7]1[#6][#6][#7][#6][#6][#7][#6][#6]1"]                # TACN (NOTA)
+_ARM_SMARTS = "[#7;R][CH2][CX3](=O)[OX2H1,OX1-]"   # ring-N-CH2-COOH acetate arm
 # (name, SMARTS, pKa, is_acid)
 _GROUPS = [
     ("carboxylic_acid", "[CX3](=O)[OX2H1,OX1-]", 4.2, True),
@@ -36,8 +48,13 @@ def _hh(pKa: float, is_acid: bool) -> float:
     return -1.0 / (1.0 + 10 ** (pKa - PH)) if is_acid else 1.0 / (1.0 + 10 ** (PH - pKa))
 
 
-def smiles_net_charge(smiles: str, chelator_charge: float = 0.0) -> Optional[dict]:
-    """Return {net_charge_pH74, net_charge_with_chelate, groups:{...}} or None if SMILES unparseable."""
+def smiles_net_charge(smiles: str, chelator: Optional[str] = None) -> Optional[dict]:
+    """In-vivo net charge of the metal complex at pH 7.4 from a METAL-FREE ligand SMILES.
+
+    The SMILES counts the chelator's arms as free carboxylic acids (~ -1 each), but in vivo they
+    coordinate the metal. So: in-vivo = raw_HH_charge + (n_chelator_COOH) + complex_charge — we add back
+    the n carboxylates the SMILES over-counted as -1, then add the true metal-complex charge. Returns
+    {net_charge_pH74 (raw ligand), net_charge_with_chelate (in-vivo complex), groups}."""
     try:
         from rdkit import Chem
     except Exception:
@@ -55,6 +72,17 @@ def smiles_net_charge(smiles: str, chelator_charge: float = 0.0) -> Optional[dic
     except Exception:
         pass
     q, counts, claimed = 0.0, {}, set()
+    # 1) claim EVERY chelator atom (macrocycle ring + acetate arms) so none is counted as ionizable —
+    #    the metal coordinates them in vivo; their contribution is the single complex charge added below.
+    chel_claimed = False
+    for sma in _MACROCYCLE_SMARTS:
+        patt = Chem.MolFromSmarts(sma)
+        for match in (mol.GetSubstructMatches(patt, uniquify=True) if patt else []):
+            claimed |= set(match); chel_claimed = True
+    if chel_claimed:
+        arm = Chem.MolFromSmarts(_ARM_SMARTS)
+        for match in (mol.GetSubstructMatches(arm, uniquify=True) if arm else []):
+            claimed |= set(match)
     for name, sma, pKa, is_acid in _GROUPS:      # _GROUPS ordered specific-first (guanidine before amidine)
         patt = Chem.MolFromSmarts(sma)
         if patt is None:
@@ -69,8 +97,11 @@ def smiles_net_charge(smiles: str, chelator_charge: float = 0.0) -> Optional[dic
         if n:
             counts[name] = n
             q += n * _hh(pKa, is_acid)
-    return {"net_charge_pH74": round(q, 3), "net_charge_with_chelate": round(q + chelator_charge, 3),
-            "groups": counts}
+    complex_q = CHELATOR_COMPLEX_CHARGE.get(chelator, 0.0)
+    # q already EXCLUDES all chelator atoms (claimed above); add the metal-complex charge once.
+    invivo = q + (complex_q if chel_claimed or chelator in CHELATOR_COMPLEX_CHARGE else 0.0)
+    return {"net_charge_pH74": round(q, 3), "net_charge_with_chelate": round(invivo, 3),
+            "groups": counts, "chelator_excluded": chel_claimed, "complex_charge": complex_q}
 
 
 if __name__ == "__main__":
