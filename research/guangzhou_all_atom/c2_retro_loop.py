@@ -35,7 +35,7 @@ N_SEED = 5
 BATCH = 5
 N_ROUNDS = 12
 N_BG = 3000
-SEEDS = 6
+SEEDS = int(os.environ.get("C2_SEEDS", "6"))
 HIT_Q = 0.80      # top-20% pAff within target = hits
 TAN_THR = 0.5     # Tanimoto cluster threshold
 MAX_TARGETS = int(os.environ.get("C2_MAX_TARGETS", "200"))   # v2: default = all >= N_MIN
@@ -172,17 +172,26 @@ def main():
 
     raw = {m: [] for m in MODES}; novel = {m: [] for m in MODES}; per_target = {}
     done = 0
-    with ProcessPoolExecutor(max_workers=N_WORKERS) as ex:
-        futs = {ex.submit(run_target, w): w[0] for w in work}
-        for fut in as_completed(futs):
-            t, res, line = fut.result()
-            done += 1
-            print(f"[{done}/{len(work)}] {line}  ({time.time()-t0:.0f}s)", flush=True)
-            if res is None:
-                continue
-            for m in MODES:
-                raw[m].append(res["raw"][m]); novel[m].append(res["nov"][m])
-            per_target[t] = res["meta"]
+
+    def _consume(t, res, line):
+        nonlocal done
+        done += 1
+        print(f"[{done}/{len(work)}] {line}  ({time.time()-t0:.0f}s)", flush=True)
+        if res is None:
+            return
+        for m in MODES:
+            raw[m].append(res["raw"][m]); novel[m].append(res["nov"][m])
+        per_target[t] = res["meta"]
+
+    if N_WORKERS <= 1:
+        # SERIAL path — no pool (macOS ProcessPoolExecutor fork/spawn deadlocks at 0% CPU here)
+        for w in work:
+            _consume(*run_target(w))
+    else:
+        with ProcessPoolExecutor(max_workers=N_WORKERS) as ex:
+            futs = {ex.submit(run_target, w): w[0] for w in work}
+            for fut in as_completed(futs):
+                _consume(*fut.result())
 
     budget = [N_SEED + i * BATCH for i in range(N_ROUNDS + 1)]
     out = {"question": "does the closed loop LEARN on real measured affinity, surviving a cluster-disjoint cut? "
@@ -218,4 +227,12 @@ def main():
 
 
 if __name__ == "__main__":
+    # macOS fork + Accelerate-BLAS in ProcessPoolExecutor deadlocks (0% CPU hang); use 'spawn' there.
+    # Linux (spot) keeps the default fast fork. (Local macOS: prefer C2_WORKERS=1 serial path anyway.)
+    if sys.platform == "darwin":
+        import multiprocessing as _mp
+        try:
+            _mp.set_start_method("spawn", force=True)
+        except RuntimeError:
+            pass
     main()

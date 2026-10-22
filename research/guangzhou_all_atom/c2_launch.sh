@@ -43,7 +43,7 @@ export MAMBA_ROOT_PREFIX=/opt/mamba
 mkdir -p /work && cd /work
 aws s3 cp "\$DEST/c2_retro_loop.py" /work/c2_retro_loop.py --region "\$REGION"
 aws s3 cp "\$DEST/c2_staged.npz" /work/c2_staged.npz --region "\$REGION"
-C2_STAGE=/work/c2_staged.npz C2_OUT=/work/c2_result.json C2_MAX_TARGETS=200 /opt/c2env/bin/python /work/c2_retro_loop.py > /work/c2_stdout.txt 2>&1
+C2_STAGE=/work/c2_staged.npz C2_OUT=/work/c2_result.json C2_MAX_TARGETS=200 C2_MODES=learn,fixed,random C2_SEEDS=6 /opt/c2env/bin/python /work/c2_retro_loop.py > /work/c2_stdout.txt 2>&1
 RC=\$?
 # fail-loud: always upload stdout + log; result + DONE(rc) record the honest outcome
 aws s3 cp /work/c2_stdout.txt "\$DEST/out/c2_stdout.txt" --region "\$REGION"
