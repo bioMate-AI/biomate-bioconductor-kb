@@ -68,6 +68,23 @@ same export:
 | **BioMate (engine-free, C2)** | **0.965** | — | — | — | — | 0.200 | — | — |
 | Biomni (A1 scaffold) | 0.950 | 0.950 | 0.708 | 0.500 | 0.500 | 0.000 | 0.500 | 1.0 (n=4) |
 
+**LLM+harness dividend — now a first-class leaderboard column** (`routing` = bare vs
+`routing_harness` = catalog/RAG-fair, both scored by `S.score_routing` from each model's committed
+files; no new sweep):
+
+| model | bare | +harness | Δ | | model | bare | +harness | Δ |
+|---|---|---|---|---|---|---|---|---|
+| Claude Opus 5 | 0.615 | 0.960 | +0.345 | | GLM-5.3-prime | 0.375 | 0.885 | **+0.510** |
+| Gemini 3.1 Pro | 0.580 | 0.950 | +0.370 | | GLM-5.2 | 0.400 | 0.890 | +0.490 |
+| GPT-5.6 | 0.530 | 0.930 | +0.400 | | GPT-5.6-luna | 0.355 | 0.885 | +0.530 |
+| Qwen3.8-Max | 0.345 | 0.935 | **+0.590** | | Kimi K3 | 0.450 | 0.860 | +0.410 |
+| DeepSeek V4-pro | 0.415 | 0.800 | +0.385 | | BioMate engine-free | 0.965 | — | — |
+
+**Inverse-scaling, confirmed:** the weaker a model's bare routing, the bigger the harness lift
+(Qwen +0.59, GPT-luna +0.53, GLM +0.49–0.51 vs frontier +0.35–0.40); **with the harness everyone
+converges to ~0.80–0.96 regardless of bare ability.** The harness, not the model, carries routing —
+and BioMate-engine-free already sits at 0.965.
+
 **Reads:** bare frontier LLMs sit at routing ~0.35–0.62; **BioMate's harness lifts routing to
 0.965** (the LLM+harness dividend — the single biggest signal, on a RealBio-native task).
 On the DrugDev columns (◆): PBPK is near-floor for all LLMs (~0.0–0.2) — a known hard task where

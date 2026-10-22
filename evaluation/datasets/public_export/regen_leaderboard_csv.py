@@ -28,6 +28,10 @@ S = importlib.util.module_from_spec(spec); spec.loader.exec_module(S)
 # CSV column -> (benchmark dir, scorer, headline key)
 TASKS = {
     "routing":          ("cross_domain_routing", S.score_routing,      "accuracy"),
+    # +harness (catalog) routing — same scorer, reads each model's cross_domain_routing_catalog
+    # file (the RAG-fair candidate list = the production retrieval harness). Bare vs this column
+    # = the LLM+harness dividend. Blank where a model has no committed catalog file.
+    "routing_harness":  ("cross_domain_routing", S.score_routing,      "accuracy"),
     "autofix":          ("autofix_benchmark",    S.score_autofix,      "fix_category_accuracy"),
     "param_prefill_F1": ("param_prefill",        S.score_param_prefill,"param_f1"),
     "workflow_gen":     ("workflow_generation",  S.score_workflow_gen, "accuracy"),
@@ -76,7 +80,9 @@ MODELS = [
 
 def default_file(col, base):
     fbase = {
-        "routing": "cross_domain_routing_bare", "autofix": "autofix_benchmark",
+        "routing": "cross_domain_routing_bare",
+        "routing_harness": "cross_domain_routing_catalog",
+        "autofix": "autofix_benchmark",
         "param_prefill_F1": "param_prefill", "workflow_gen": "workflow_generation",
         "protocol_QC": "protocol_thresholds", "pbpk_2fold": "pbpk_benchmark",
         "boin_mtd": "boin_benchmark", "dd_spearman": "drug_discovery_e2e",
