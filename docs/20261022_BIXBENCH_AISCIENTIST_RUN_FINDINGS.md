@@ -194,3 +194,36 @@ Caveat: n=10/subtask → wide CI; the signal is directional but strong and consi
 - **SAB / BAB**: blocked on gated external data (SAB gold behind password OneDrive + stale adapter;
   BAB source unconfirmed).
 - **TxAgent / FutureHouse / STELLA**: not yet added as rows.
+
+## Fairness correction — BioMate is a MULTI-LLM SYSTEM, and the Sonnet bar is dated (2026-10-22)
+
+The LAB-Bench "beats FutureHouse" framing was NOT fair as first stated. Two corrections:
+
+1. **BioMate is a multi-LLM system, not "gpt-5.6-luna + harness."** The answer passes through
+   intentModel (gemini-3.8-flash) → toolRankingModel / agentic-loop (claude-haiku-4-5) →
+   responseModel (gpt-5.6-luna). The eval's `model=gpt-5.6-luna` is only the response role. The
+   right comparison is **system vs single model**, not "our model vs Sonnet."
+2. **The ~55% "FutureHouse" bar is a single 2024 model (Sonnet 3.5) bare** — dated, single-component.
+
+Fair control run: **gpt-5.6-luna BARE** (OpenRouter, no BioMate pipeline) on the IDENTICAL seed=42
+items, same adapter-scaffolded prompt (n=80, 20/subtask):
+
+| Subtask | bare gpt-5.6-luna | BioMate system | Sonnet-3.5 (2024) |
+|---|---|---|---|
+| ProtocolQA | 60% | 85% | ~55% |
+| CloningScenarios | 85% | 90% | ~60% |
+| SeqQA | 40%* | 90% | ~45% |
+| DbQA | 35% | 40% | ~60% |
+| **Overall** | **55.0%** | **76.2%** | ~55% |
+
+**Honest conclusions:**
+- The bare MODERN model (55.0%) ≈ the 2024 Sonnet bar (55%) → the earlier +30–45 gap was NOT
+  model-era inflation; a single modern model is no better than 2024 Sonnet on these MCQs.
+- BioMate the SYSTEM adds **+21.2pp over the same bare model** (same items, same response model) —
+  the real, isolated bare-vs-harness dividend. This is the defensible claim: *system over single
+  model*, not *our model over Sonnet*.
+- **DbQA is the honest exception**: system 40% barely > bare 35%, both < Sonnet 60%. The
+  database-knowledge-recall weakness is real and the system does not fix it (no retrieval wired for
+  DbQA-type lookups) — a concrete improvement candidate.
+- `*` **Caveat:** bare SeqQA had ~6/20 empty-response errors (scored 0), so bare SeqQA 40% is a
+  floor and the +50 system delta on SeqQA is an upper bound; a clean bare SeqQA re-run is pending.
