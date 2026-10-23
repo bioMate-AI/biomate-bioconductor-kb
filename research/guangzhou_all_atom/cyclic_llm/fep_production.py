@@ -23,7 +23,7 @@ IN, EQUIL, OUT = f"{BASE}/in", f"{BASE}/equil_out", f"{BASE}/prod_out"
 QUEUE, JOBDEF = "biomate-gpu-t4-queue", "biomate-gromacs-cu12-gpu"
 COMPLEX_QUEUE = "galaxy-cloud-queue-gpu"   # g5/g6/p3 — faster for the 205k-atom complex leg
 NLAMBDA = 12                      # proven template schedule (coul 0-4, vdw 5-11)
-NS = 2.0                          # per-window production (ns) — shorter than 5 ns; BAR-gate to extend
+NS = 1.0                          # per-window production (ns) — shorter than 5 ns; BAR-gate to extend
 LEGS = ("solvent", "complex")
 
 
@@ -46,8 +46,7 @@ def window_command(leg: str, lam: int) -> str:
         "sed -i 's/^nsteps .*/nsteps = %d/' prod.mdp; " % nsteps + dtfix +
         "gmx grompp -f prod.mdp -c npt.gro -t npt.cpt -p fep.top -o prod.tpr -maxwarn 60 > grompp.log 2>&1; GR=$?; "
         "echo GROMPP_RC=$GR; [ $GR -ne 0 ] && { tail -20 grompp.log; } ; "
-        "[ $GR -eq 0 ] && { gmx mdrun -deffnm prod -nb gpu -pme gpu -bonded gpu -update gpu -ntmpi 1 "
-        "  -dhdl prod_dhdl.xvg > md.log 2>&1 || gmx mdrun -deffnm prod -nb gpu -ntmpi 1 -dhdl prod_dhdl.xvg > md.log 2>&1; }; "
+        "[ $GR -eq 0 ] && gmx mdrun -deffnm prod -nb gpu -pme cpu -ntmpi 1 -ntomp $(nproc) -dhdl prod_dhdl.xvg > md.log 2>&1; "
         "RC=$?; grep -iE 'Performance|ns/day|Fatal|error' md.log | tail -4; "
         f"aws s3 cp /work/run {OUT}/{leg}/lambda_{lam}/ --recursive --region {REGION} "
         "  --exclude '*.trr' --exclude 'charmm36m-mut.ff/*' --exclude 'prod_fep.mdp.template' >/dev/null; "
@@ -96,9 +95,10 @@ def submit_collect() -> str:
 def submit(leg: str, lam: int) -> str:
     cmd = window_command(leg, lam)
     q = COMPLEX_QUEUE if leg == "complex" else QUEUE
+    rr = [{"type":"VCPU","value":"16"},{"type":"MEMORY","value":"60000"},{"type":"GPU","value":"1"}] if leg=="complex" else None
     req = {"jobName": f"fep-prod-{leg}-l{lam}-{RUN}".replace("_", "-")[:120],
            "jobQueue": q, "jobDefinition": JOBDEF,
-           "containerOverrides": {"command": [cmd]},
+           "containerOverrides": ({"command": [cmd], "resourceRequirements": rr} if rr else {"command": [cmd]}),
            "tags": {"pipeline": "cyclic-peptide", "stage": "fep-prod", "leg": leg, "lambda": str(lam)}}
     p = subprocess.run(["aws", "batch", "submit-job", "--region", BATCH_REGION,
                         "--cli-input-json", json.dumps(req)], capture_output=True, text=True)
