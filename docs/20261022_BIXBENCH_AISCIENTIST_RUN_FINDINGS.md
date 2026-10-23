@@ -149,6 +149,25 @@ exploration; and/or raise the exploration turn budget. Single-notebook capsules 
 already work at 87.5%. Worth a backend run_code system-prompt/staging check — distinct from the
 (now-fixed) workflow-card gating.
 
+### FIXED + VERIFIED (2026-10-22, commit 16d0c70af, deployed)
+
+Fix: `code-runner.ts` preamble now predefines executable **`INPUT_FILES`** (filename → absolute
+container path) and **`INPUT_PATHS`** for every staged dataset (Python + R), so the model has a
+guaranteed handle; the `run_code` tool description documents them, says to use them directly, and
+**forbids `find`/`ls` over `/`, `/galaxy`, `/tmp` or cwd**. Also fixed a latent bug (the Python
+staged comment printed the host path the sandbox can't see → now container path).
+
+Verification on dev (apples-to-apples re-run of the exact failing sweep, skip 8 max 20):
+- **Exploration eliminated: 0/20 tasks run `find /galaxy` or probe `/tmp`** (was the dominant failure
+  mode). Behavioral fix confirmed.
+- **Same sweep 9/20 → 12/20 (+15pp)**; a dedicated multi-file window hit **9/10 (90%) ≈ Biomni Lab**.
+  bix-12-q3/q5, bix-11-q5/q6 now pass.
+- Residual phylo failures are **genuine capability/difficulty, NOT bugs**: `bix-11-q4` ran a full
+  Mann-Whitney (extracted 100/249 treeness values) but answered a different statistic than the GT
+  count (question-interpretation); `bix-12-q2` invoked PhyKIT 2.8.0 correctly but used a wrong CLI
+  flag (tool-syntax knowledge); `bix-11-q1` now reads `DATA_DIR` correctly, output truncated (turn
+  budget). run_code + PhyKIT install + data access all work.
+
 ## FutureHouse comparison — LAB-Bench (current build, n=40, 10/subtask)
 
 LAB-Bench is FutureHouse's benchmark (Karagiannis et al., arXiv:2407.10362). Current build vs
