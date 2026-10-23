@@ -227,3 +227,14 @@ items, same adapter-scaffolded prompt (n=80, 20/subtask):
   DbQA-type lookups) — a concrete improvement candidate.
 - `*` **Caveat:** bare SeqQA had ~6/20 empty-response errors (scored 0), so bare SeqQA 40% is a
   floor and the +50 system delta on SeqQA is an upper bound; a clean bare SeqQA re-run is pending.
+
+### CORRECTION after the clean bare re-run (empty-response retry)
+
+The empties were gpt-5.6-luna exhausting the token budget on long SeqQA prompts. Firmed bare (retry
+at 6000 tokens): **SeqQA 40% → 80%**, so **bare gpt-5.6-luna overall 55.0% → 68.8%** and the system
+dividend on this STRONG model is **+7.4pp (76.2 vs 68.8), not +21**. This is the honest number — and
+it *confirms* the inverse-scaling / on-prem thesis rather than weakening it: on a strong frontier
+model the harness adds little (+7), while on weak OPEN models it adds +39–70 (see
+`20261022_OPEN_MODEL_BARE_VS_HARNESS_ONPREM.md`). The harness is a great equalizer for the deployable
+(open, on-prem/China) models, which is where it matters. DbQA stays the exception (system 40 vs bare
+35, both < Sonnet 60 — DB-recall weakness, no retrieval).
