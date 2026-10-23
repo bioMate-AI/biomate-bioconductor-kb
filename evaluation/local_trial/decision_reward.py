@@ -26,17 +26,28 @@ import sys
 from typing import Any, Dict, List, Optional
 
 _REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if _REPO not in sys.path:
-    sys.path.insert(0, _REPO)
+for _p in (_REPO, os.path.dirname(os.path.abspath(__file__))):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
-from evaluation.scorers.decision_scorer import (  # noqa: E402
-    score_decision, score_categorical_decision, score_set_decision, score_numeric_decision,
-)
-from evaluation.scorers.boin_scorer import score_mtd_decision  # noqa: E402
-from evaluation.scorers.chain_scorer import score_chain  # noqa: E402
-from evaluation.scorers.agent_task_scorers import (  # noqa: E402
-    score_routing, score_param_select, score_autofix,
-)
+try:
+    # repo layout (package path)
+    from evaluation.scorers.decision_scorer import (  # noqa: E402
+        score_decision, score_categorical_decision, score_set_decision, score_numeric_decision,
+    )
+    from evaluation.scorers.boin_scorer import score_mtd_decision  # noqa: E402
+    from evaluation.scorers.chain_scorer import score_chain  # noqa: E402
+    from evaluation.scorers.agent_task_scorers import (  # noqa: E402
+        score_routing, score_param_select, score_autofix,
+    )
+except ModuleNotFoundError:
+    # flat layout (GPU-box tarball): scorer modules shipped alongside this file
+    from decision_scorer import (  # noqa: E402
+        score_decision, score_categorical_decision, score_set_decision, score_numeric_decision,
+    )
+    from boin_scorer import score_mtd_decision  # noqa: E402
+    from chain_scorer import score_chain  # noqa: E402
+    from agent_task_scorers import score_routing, score_param_select, score_autofix  # noqa: E402
 
 
 def score_one(completion: str, gold: Any, scorer: str,
