@@ -75,6 +75,19 @@ dated reconciliation note at the top of the draft (not a rewrite — shared work
 - Rescope the paper draft §3.1 per the reconciliation note before any submission.
 - Methodology-scoped closed-cycle paper section drafted: `docs/20261022_CYCLIC_LLM_CLOSED_CYCLE_METHODS_SECTION.md`.
 
+## 6b. UPDATE (2026-10-23) — grompp preflight CLEARED on EC2
+
+Using EC2 (spot c5.2xlarge, Amazon Linux 2023, ~$0.04, SSM-driven, terminated after), the FEP
+control-edge **grompp preflight now PASSES** — clearing the one blocker below ("topology not locally
+validated"). GROMACS 2024.5 built the CHARMM36m topology for the αvβ6 complex + 9-mer peptide
+(`PDB2GMX_EXIT=0`, `GROMPP_EXIT=0`, em.tpr 4.2 MB), and the **metal-aware** build (3 CaDA-Mn via
+`cada_mn.itp`, solvated, 16,439+ atoms) likewise grompp'd cleanly (`GROMPP_MN_EXIT=0`, em_mn.tpr 6.3 MB).
+`cada_mn.itp` is now validated by actual GROMACS grompp (previously only ParmEd/OpenMM). Reproducible
+recipe: `research/guangzhou_all_atom/fep/ec2_preflight/`. **Remaining:** pmx alchemical hybrid (Y1F+Y7F;
+pmx build failed, and keep chain P unmerged for the real run) + the GPU production FEP (~2 GPU-days,
+GATED). So the binding-reward path is no longer blocked by topology validation — only by the pmx hybrid
+build and the (gated) GPU spend.
+
 ## 6. FEP control-edge runbook (why it can't run here; exact steps on handoff)
 
 Goal: replace the permeability oracle with an **execution-verified binding reward** by first recovering
