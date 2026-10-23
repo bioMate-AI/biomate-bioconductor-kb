@@ -20,7 +20,7 @@ BUCKET = "biomate-nextflow-work"; REGION = "us-east-1"; BATCH_REGION = "us-west-
 RUN = "avb6-fep-ctrl-build1"
 BASE = f"s3://{BUCKET}/cyclic_peptide/fep/{RUN}"
 IN, EQUIL, OUT = f"{BASE}/in", f"{BASE}/equil_out", f"{BASE}/prod_out"
-QUEUE, JOBDEF = "biomate-gpu-spot-queue", "biomate-gromacs-cu12-gpu"
+QUEUE, JOBDEF = "biomate-gpu-t4-queue", "biomate-gromacs-cu12-gpu"
 NLAMBDA = 12                      # proven template schedule (coul 0-4, vdw 5-11)
 NS = 2.0                          # per-window production (ns) — shorter than 5 ns; BAR-gate to extend
 LEGS = ("solvent", "complex")
