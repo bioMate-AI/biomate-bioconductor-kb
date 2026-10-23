@@ -73,3 +73,34 @@ dated reconciliation note at the top of the draft (not a rewrite — shared work
   control edge) and ≥3 same-chemistry targets for a clean LOTO — both currently blocked (physics engine
   not local; same-chemistry targets n=2). Do not run the circular Slice-0 proof as-is.
 - Rescope the paper draft §3.1 per the reconciliation note before any submission.
+- Methodology-scoped closed-cycle paper section drafted: `docs/20261022_CYCLIC_LLM_CLOSED_CYCLE_METHODS_SECTION.md`.
+
+## 6. FEP control-edge runbook (why it can't run here; exact steps on handoff)
+
+Goal: replace the permeability oracle with an **execution-verified binding reward** by first recovering
+the αvβ6 relative-FEP **control edge** (CTRL-TRIVEHEXIN → CTRL-AVEBEHEXIN, a double Y→F double
+perturbation; both states standard, ΔΔG ≈ 0 expected — the A2 anchor that makes any candidate ladder
+admissible). Architecture: AWS Batch GROMACS-CUDA GPU-spot (`fep_batch.py`; queue
+`biomate-gromacs-fep-gpu`, job-def `biomate-gromacs-cu12-gpu`).
+
+**Why it cannot run from this environment (verified 2026-10-22):**
+- No `boto3`/AWS credentials locally → cannot dispatch or even validate the queue/job-def.
+- No GROMACS + pmx on the local Mac **or** the Spark box (aarch64: `gmx`/`pmx`/`openmm` all MISSING) →
+  the alchemical **hybrid topology cannot be built**, and the GROMACS-CUDA image has **no pip/pmx**, so it
+  cannot be built in-container either.
+- Guards (correct): `MDRUN_CMD_READY=False` and an `in/FEP_INPUTS_READY` S3 sentinel — `dispatch_control_edge`
+  REFUSES to submit until a pre-built, staged system exists (prevents a predicted-failure GPU spend).
+
+**Ordered runbook (on a box with GROMACS 2024 + pmx + CHARMM36m-mut + AWS creds):**
+1. Build the hybrid + solvated/equilibrated legs OFFLINE, both legs (solvent + complex), with the
+   metal-aware CaDA-Mn parameters (`fep/forcefield/cada_mn.itp`): `pdb2gmx → pmx mutate (charmm36m-mut,
+   Y→F ×2) → gentop → solvate/genion`, then per-λ `.tpr` (12 λ windows).
+2. `gmx grompp` **preflight on CPU** (fail-fast) on the hybrid topology; must exit 0.
+3. Stage the built system to `s3://…/{run_id}/in/` and write the `in/FEP_INPUTS_READY` sentinel.
+4. Rewrite `_fep_command` to **mdrun-only** on the staged legs (em→nvt→npt→per-λ HREX production); set
+   `MDRUN_CMD_READY=True`.
+5. `python fep_batch.py --submit --run-id=<id>` → one GPU-spot job; read ΔΔG from `out/`. Control edge is
+   recovered iff |ΔΔG| ≈ 0 within error; only then is `_fep_ddg` admissible and the binding reward usable
+   in the closed loop.
+See `docs/20261019_AVB6_FEP_CONTROL_EDGE_REVIEW.md` and `docs/20261019_AVB6_CADA_AND_FEP_SETUP.md`.
+**Do not flip the guards or submit speculatively** (no-speculative-GPU-spend rule; the build must exist first).
