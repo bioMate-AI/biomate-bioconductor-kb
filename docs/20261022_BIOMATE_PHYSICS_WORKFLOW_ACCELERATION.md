@@ -21,10 +21,18 @@ Model the parallel axis as concurrent jobs, not an inner loop.
 - Engine: independent workflow steps as **parallel Nextflow processes**; the collect step depends on the
   array. **Status:** Batch + run-state exist; the GAP is that physics steps aren't fanned out.
 
-### 2. GPU efficiency per job (2–5× cost AND time)
-- **Full GPU residency the DEFAULT**: `-nb -pme -bonded -update gpu` (GROMACS), pmemd.cuda, OpenMM CUDA —
-  minimize CPU↔GPU transfer. Not opt-in.
-- **Right GPU by system size**: large complexes → A100/H100; small/solvent legs → T4/A10G.
+### 2. GPU efficiency per job (2–5× cost AND time) — WITH a critical FEP caveat
+- **Full GPU residency** (`-nb -pme -bonded -update gpu`, pmemd.cuda, OpenMM CUDA) for plain MD/docking.
+- **CAVEAT discovered empirically (2026-10-23): FEP breaks full-GPU residency.** GROMACS 2024 **cannot run
+  PME on GPU with perturbed charges** (the alchemical B-state), so an FEP mdrun with `-pme gpu` fails and
+  falls back to `-nb gpu` only → **PME/bonded/update run on CPU**. A large FEP complex leg (here 205k atoms)
+  is therefore **CPU-PME-bound**, and a faster GPU does NOT help (T4 and g5/p3 both failed to finish 2 ns in
+  ~2 h). The right levers for FEP complex legs are: **(a) many CPU cores for PME** (request high vCPU → land
+  on g5.12xlarge/g6.12xlarge-class, or use `-npme` PME ranks), **(b) fewer steps** (HMR/larger dt, shorter
+  sampling), **(c) a smaller/truncated+restrained pocket** (receptor cancels in relative FEP). Do NOT assume
+  GPU-residency speedups transfer to FEP.
+- **Right GPU by system size** still holds for the GPU-amenable (nonbonded) part; but for FEP, **CPU is the
+  bottleneck**, so size the instance by vCPU, not just GPU.
 
 ### 3. Algorithmic / physics (2–4×)
 - **HMR** (H-mass repartitioning) → 4 fs steps, ~2× fewer steps; first-class template toggle.
