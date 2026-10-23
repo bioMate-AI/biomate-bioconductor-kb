@@ -21,6 +21,7 @@ RUN = "avb6-fep-ctrl-build1"
 BASE = f"s3://{BUCKET}/cyclic_peptide/fep/{RUN}"
 IN, EQUIL, OUT = f"{BASE}/in", f"{BASE}/equil_out", f"{BASE}/prod_out"
 QUEUE, JOBDEF = "biomate-gpu-t4-queue", "biomate-gromacs-cu12-gpu"
+COMPLEX_QUEUE = "galaxy-cloud-queue-gpu"   # g5/g6/p3 — faster for the 205k-atom complex leg
 NLAMBDA = 12                      # proven template schedule (coul 0-4, vdw 5-11)
 NS = 2.0                          # per-window production (ns) — shorter than 5 ns; BAR-gate to extend
 LEGS = ("solvent", "complex")
@@ -94,8 +95,9 @@ def submit_collect() -> str:
 
 def submit(leg: str, lam: int) -> str:
     cmd = window_command(leg, lam)
+    q = COMPLEX_QUEUE if leg == "complex" else QUEUE
     req = {"jobName": f"fep-prod-{leg}-l{lam}-{RUN}".replace("_", "-")[:120],
-           "jobQueue": QUEUE, "jobDefinition": JOBDEF,
+           "jobQueue": q, "jobDefinition": JOBDEF,
            "containerOverrides": {"command": [cmd]},
            "tags": {"pipeline": "cyclic-peptide", "stage": "fep-prod", "leg": leg, "lambda": str(lam)}}
     p = subprocess.run(["aws", "batch", "submit-job", "--region", BATCH_REGION,
