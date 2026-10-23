@@ -54,6 +54,44 @@ def window_command(leg: str, lam: int) -> str:
     )
 
 
+def collect_command() -> str:
+    """gmx bar per leg over the 12 dhdl windows -> ΔG; ΔΔG_bind = ΔG_complex - ΔG_solvent (the control
+    edge must recover the known small affinity gap -> ~0)."""
+    return (
+        "set -x; export PATH=$PATH:/usr/local/gromacs/bin; source /usr/local/gromacs/bin/GMXRC 2>/dev/null || true; "
+        "(command -v aws || pip install -q awscli) >/dev/null 2>&1 || true; mkdir -p /work && cd /work; "
+        f"aws s3 cp {OUT} /work/prod --recursive --region {REGION} --exclude '*' --include '*/prod_dhdl.xvg' >/dev/null; "
+        "python3 - <<'PY'\n"
+        "import glob,subprocess,re,json\n"
+        "res={}\n"
+        "for leg in ('solvent','complex'):\n"
+        "    fs=sorted(glob.glob(f'/work/prod/{leg}/lambda_*/prod_dhdl.xvg'), key=lambda p:int(re.search(r'lambda_(\\d+)',p).group(1)))\n"
+        "    if len(fs)<3: res[leg]={'n':len(fs),'error':'too few windows'}; continue\n"
+        "    p=subprocess.run(['gmx','bar','-f']+fs+['-o',f'/work/bar_{leg}.xvg'],capture_output=True,text=True)\n"
+        "    log=p.stdout+p.stderr; open(f'/work/bar_{leg}.log','w').write(log)\n"
+        "    m=re.search(r'total\\s+\\S+\\s+-?\\d.*?(-?\\d+\\.\\d+)\\s*\\+/-\\s*(\\d+\\.\\d+)',log)\n"
+        "    tot=[l for l in log.splitlines() if l.strip().lower().startswith('total')]\n"
+        "    res[leg]={'n':len(fs),'total_line':tot[-1] if tot else None}\n"
+        "print('BAR_RESULT '+json.dumps(res))\n"
+        "open('/work/ddg_result.json','w').write(json.dumps(res,indent=2))\n"
+        "PY\n"
+        f"aws s3 cp /work/bar_solvent.log {OUT}/ddg/ --region {REGION} 2>/dev/null; "
+        f"aws s3 cp /work/bar_complex.log {OUT}/ddg/ --region {REGION} 2>/dev/null; "
+        f"aws s3 cp /work/ddg_result.json {OUT}/ddg/ --region {REGION} 2>/dev/null; "
+        "echo COLLECT_DONE"
+    )
+
+
+def submit_collect() -> str:
+    req = {"jobName": f"fep-collect-{RUN}".replace("_", "-")[:120], "jobQueue": QUEUE, "jobDefinition": JOBDEF,
+           "containerOverrides": {"command": [collect_command()]}, "tags": {"pipeline": "cyclic-peptide", "stage": "fep-collect"}}
+    p = subprocess.run(["aws", "batch", "submit-job", "--region", BATCH_REGION, "--cli-input-json", json.dumps(req)],
+                       capture_output=True, text=True)
+    if p.returncode != 0:
+        raise SystemExit(f"collect submit failed: {p.stderr[:300]}")
+    return json.loads(p.stdout)["jobId"]
+
+
 def submit(leg: str, lam: int) -> str:
     cmd = window_command(leg, lam)
     req = {"jobName": f"fep-prod-{leg}-l{lam}-{RUN}".replace("_", "-")[:120],
@@ -78,6 +116,6 @@ if __name__ == "__main__":
         for k, v in ids.items():
             print(f"  {k}: {v}")
     elif a and a[0] == "--collect":
-        print("collect: run `gmx bar -f prod_out/<leg>/lambda_*/prod_dhdl.xvg` per leg; ΔΔG = complex - solvent")
+        print(f"COLLECT job -> {submit_collect()}  (gmx bar per leg; ΔΔG_bind = ΔG_complex - ΔG_solvent)")
     else:
         print(__doc__)
