@@ -38,7 +38,7 @@ def window_command(leg: str, lam: int) -> str:
         f"aws s3 cp {IN} /work/in --recursive --region {REGION} >/dev/null && "
         f"aws s3 cp {EQUIL}/{leg}/npt.gro /work/run/ --region {REGION} && "
         f"aws s3 cp {EQUIL}/{leg}/npt.cpt /work/run/ --region {REGION}; cd /work/run; "
-        "cp /work/in/%s/fep.top . && cp -r /work/in/ff/charmm36m-mut.ff . && cp /work/in/cada_mn.itp . && "
+        "cp /work/in/%s/* . && cp -r /work/in/ff/charmm36m-mut.ff . && cp /work/in/cada_mn.itp . && "
         "cp /work/in/mdp/prod_fep.mdp.template . ; " % leg +
         "sed -i 's#/opt/fepenv/lib/python3.10/site-packages/pmx/data/mutff/##g' fep.top; export GMXLIB=$PWD; "
         "sed 's/__LAMBDA_STATE__/%d/' prod_fep.mdp.template > prod.mdp; " % lam +
