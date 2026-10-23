@@ -86,6 +86,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Firefox'],
         viewport: { width: 1920, height: 1080 },
+        deviceScaleFactor: 2, // HIGH-RES: match chromium — 2x retina PNGs (no video on this project, so safe)
       },
     },
   ],
