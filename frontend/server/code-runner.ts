@@ -138,13 +138,6 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
     // Build the wrapper script that sets DATA_DIR, OUTPUT_DIR, then runs user code
     const dataDir = inputDir;
 
-    // Generate a comment block listing staged files so the AI's code knows exact paths
-    const stagedComment = stagedFiles.length > 0
-      ? '# Staged input files:\n' + stagedFiles.map(
-          f => `#   ${f.id}/${f.filename}  →  ${path.join(f.dir, f.filename)}`
-        ).join('\n') + '\n'
-      : '';
-
     let scriptPath: string;
     let interpreter: string;
     let args: string[];
@@ -155,12 +148,33 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
     const containerOutput = '/work/output';
     let scriptName: string;
 
+    // Absolute CONTAINER path of each staged file (not the host f.dir — that was a latent bug in
+    // the Python comment, which printed the host path the sandbox can't see).
+    const containerPathOf = (f: { id: string; filename: string }) =>
+      path.posix.join(containerData, f.id, f.filename);
+    // Comment block listing staged files (human-readable).
+    const stagedComment = stagedFiles.length > 0
+      ? '# Staged input files:\n' + stagedFiles.map(
+          f => `#   ${f.id}/${f.filename}  ->  ${containerPathOf(f)}`
+        ).join('\n') + '\n'
+      : '';
+
     if (req.language === 'python') {
+      // Pre-define every staged input's absolute path as a ready-to-use variable, so the model
+      // NEVER has to explore the filesystem (the multi-file-capsule failure: it ran `find /galaxy`,
+      // listed empty dirs, and burned its turn instead of reading the known path).
+      const pyInputFiles = stagedFiles.length > 0
+        ? 'INPUT_FILES = {\n' + stagedFiles.map(
+            f => `    ${JSON.stringify(f.filename)}: ${JSON.stringify(containerPathOf(f))},`
+          ).join('\n') + '\n}'
+        : 'INPUT_FILES = {}';
       const preamble = [
         `import os`,
         `os.environ['DATA_DIR'] = ${JSON.stringify(containerData)}`,
         `os.environ['OUTPUT_DIR'] = ${JSON.stringify(containerOutput)}`,
         `os.chdir(${JSON.stringify(containerOutput)})`,
+        pyInputFiles,
+        `INPUT_PATHS = list(INPUT_FILES.values())`,
       ].join('\n');
       scriptName = 'script.py';
       scriptPath = path.join(baseDir, scriptName);
@@ -168,19 +182,21 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
       interpreter = 'python3';
       args = [`/work/${scriptName}`];
     } else if (req.language === 'r') {
+      const rInputFiles = stagedFiles.length > 0
+        ? 'INPUT_FILES <- list(\n' + stagedFiles.map(
+            f => `  ${JSON.stringify(f.filename)} = ${JSON.stringify(containerPathOf(f))}`
+          ).join(',\n') + '\n)'
+        : 'INPUT_FILES <- list()';
       const preamble = [
         `Sys.setenv(DATA_DIR = ${JSON.stringify(containerData)})`,
         `Sys.setenv(OUTPUT_DIR = ${JSON.stringify(containerOutput)})`,
         `setwd(${JSON.stringify(containerOutput)})`,
+        rInputFiles,
+        `INPUT_PATHS <- unlist(INPUT_FILES, use.names = FALSE)`,
       ].join('\n');
-      const rStagedComment = stagedFiles.length > 0
-        ? '# Staged input files:\n' + stagedFiles.map(
-            f => `#   ${f.id}/${f.filename}  ->  ${path.posix.join(containerData, f.id, f.filename)}`
-          ).join('\n') + '\n'
-        : '';
       scriptName = 'script.R';
       scriptPath = path.join(baseDir, scriptName);
-      await fs.writeFile(scriptPath, `${preamble}\n\n${rStagedComment}${req.code}`);
+      await fs.writeFile(scriptPath, `${preamble}\n\n${stagedComment}${req.code}`);
       interpreter = 'Rscript';
       args = [`/work/${scriptName}`];
     } else {

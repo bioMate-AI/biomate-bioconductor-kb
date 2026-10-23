@@ -83,13 +83,16 @@ const BIOMATE_TOOLS: Anthropic.Tool[] = [
 Use this for: filtering/subsetting data, format conversion, statistics, generating plots,
 exploring file contents, counting rows/records, parsing ZIP/archive files, or any ad-hoc computation.
 
-File access: Input datasets are staged at $DATA_DIR/<dataset_id>/<original_filename>.
-Use galaxy_dataset_id if present, otherwise use dataset_id — both work as the path component.
-The preamble comment in your script shows the exact path for each dataset.
-Example — if raw_counts.csv was uploaded with dataset_id=abc123:
+File access: Input datasets are staged at $DATA_DIR/<dataset_id>/<original_filename>, and a
+preamble predefines INPUT_FILES (a map from original filename -> absolute path) and INPUT_PATHS
+(the list of those paths) for every dataset you list in input_datasets. USE THESE DIRECTLY — e.g.
+Python: path = INPUT_FILES['raw_counts.csv']  (or just iterate INPUT_PATHS); R: INPUT_FILES[["x.zip"]].
+Do NOT run find/ls over '/', '/galaxy', '/tmp', or the working directory to locate inputs, and do
+NOT guess paths: every input is under $DATA_DIR and already in INPUT_FILES. If INPUT_FILES is empty
+you forgot to pass input_datasets — pass the ids from the [Uploaded datasets:] block and retry.
+Example — if raw_counts.csv was uploaded with dataset_id=abc123 (pass input_datasets=['abc123']):
   import os, pandas as pd
-  path = os.path.join(os.environ['DATA_DIR'], 'abc123', 'raw_counts.csv')
-  df = pd.read_csv(path, index_col=0)
+  df = pd.read_csv(INPUT_FILES['raw_counts.csv'], index_col=0)   # or os.path.join(os.environ['DATA_DIR'], 'abc123', 'raw_counts.csv')
 
 Write output files to $OUTPUT_DIR (os.environ['OUTPUT_DIR']) — they will be shown to the user.
 Prefer Python for data manipulation; R for Bioconductor/statistical analysis.
