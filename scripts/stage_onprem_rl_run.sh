@@ -11,6 +11,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LT="$ROOT/evaluation/local_trial"
+S3dir="s3://biomate-models-399683337364/biomate-core-local-trial/20260912"
 EXECUTE="${EXECUTE:-0}"
 run() { echo "+ $*"; if [ "$EXECUTE" = "1" ]; then ( "$@" ); else echo "  (dry; EXECUTE=1 to launch spot GPU)"; fi; }
 
@@ -53,7 +54,31 @@ echo "#  REMAINING GLUE (GPU env): a thin train_grpo_decision.py reusing train_g
 echo "#   scaffolding with reward_funcs=[decision_reward.build_reward_fn()], dataset=decision_grpo.jsonl"
 echo "#   (prompt/gold/scorer/labels columns), eval hook over decision_eval.jsonl. n=22 is a SEED."
 run bash -c "cd '$LT' && python3 decision_reward.py --selftest"   # offline contract check (safe)
-echo "+   (after trainer glue, GPU) python3 train_grpo_decision.py --base \$BASE --adapter \$SFT --data decision_grpo.jsonl --bench decision_eval.jsonl ..."
+echo "+   (after trainer glue, GPU) python3 train_grpo_decision.py --base \$BASE --adapter \$SFT --data unified_grpo_corpus.jsonl --bench decision_eval.jsonl ..."
+echo
+echo "#  ===== PREPPED TO FIRE (2026-10-22) — everything offline-verifiable is DONE ====="
+echo "#  [x] Start policy EXISTS: $S3dir/models_20260919/med/sft_gold_adapter/adapter_config.json"
+echo "#      (the collected-gold SFT: routing+decomp node-F1 0.36->0.73; the recommended start, NOT the"
+echo "#       absent sft_decompv2). It unblocks run_grpo_decomp_9b.sh's REFUSAL at line 27-28."
+echo "#  [x] Unified corpus (12,275 rows) assembled + in S3:"
+echo "#      $S3dir/sft/unified_grpo_corpus.jsonl  (prompt/gold/scorer/labels/src; 0 contract gaps;"
+echo "#       all 11 scorer tags covered by decision_reward.score_one)."
+echo "#  [x] Reward proven: decision_reward.py --selftest = decision 22/22 + agent-task pool"
+echo "#       oracle>anti-oracle on all 12,275 rows."
+echo "#  [x] Clean OUT-OF-GENERATOR held-outs: datasets/decomposition_real (decomp) + decision_eval.jsonl."
+echo "#  [ ] ONE remaining GPU-env step (write+test ON the spot box, trl==1.14.1 — do NOT guess offline):"
+echo "#      cp train_grpo_decomp.py -> train_grpo_unified.py and swap 'import decomp_reward as R' ->"
+echo "#      'import decision_reward as R'; reward_funcs=[R.decision_reward] (already TRL-shaped, no"
+echo "#      weights); dataset=unified_grpo_corpus.jsonl; drop W_NODE/EDGE/STRUCT; eval hook scores the"
+echo "#      held-out via the same scorers. Likewise cp spot_grpo_decomp_entry.sh -> _unified_entry.sh,"
+echo "#      pointing DATA_S3 at the unified corpus + SFT_ADAPTER_S3 at sft_gold_adapter."
+echo "#  FIRE (spot GPU \$ — explicit go only):"
+echo "#      SFT_ADAPTER_S3=$S3dir/models_20260919/med/sft_gold_adapter \\"
+echo "#      DATA_S3=$S3dir/sft/unified_grpo_corpus.jsonl ENTRY=spot_grpo_unified_entry.sh \\"
+echo "#      TAG=_grpo_unified EVAL_HOOK=1 bash evaluation/local_trial/run_grpo_unified_9b.sh"
+echo "#  WIN GATE: re-eval the resulting grpo_unified_adapter on decomposition_real + decision_eval +"
+echo "#      the RealBio bare-vs-harness, and require a real lift vs the sft_gold start policy (leakage"
+echo "#      lessons: never score the in-generator decomposition_v2)."
 
 echo; echo "# T3 (FURTHEST) — grounded DPO"
 echo "#  train_dpo_grounded.py exists (preference pairs from grounded rewards) but has NO launcher and"
