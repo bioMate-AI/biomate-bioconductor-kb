@@ -43,7 +43,6 @@ def window_command(leg: str, lam: int) -> str:
         "sed -i 's#/opt/fepenv/lib/python3.10/site-packages/pmx/data/mutff/##g' fep.top; export GMXLIB=$PWD; "
         "sed 's/__LAMBDA_STATE__/%d/' prod_fep.mdp.template > prod.mdp; " % lam +
         "sed -i 's/^nsteps .*/nsteps = %d/' prod.mdp; " % nsteps + dtfix +
-        "printf 'nstdhdl = 200\\nnstcalcenergy = 100\\n' >> prod.mdp; "
         "gmx grompp -f prod.mdp -c npt.gro -t npt.cpt -p fep.top -o prod.tpr -maxwarn 60 > grompp.log 2>&1; GR=$?; "
         "echo GROMPP_RC=$GR; [ $GR -ne 0 ] && { tail -20 grompp.log; } ; "
         "[ $GR -eq 0 ] && { gmx mdrun -deffnm prod -nb gpu -pme gpu -bonded gpu -update gpu -ntmpi 1 "
