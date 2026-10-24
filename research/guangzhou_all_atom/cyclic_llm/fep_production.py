@@ -51,8 +51,12 @@ def window_command(leg: str, lam: int) -> str:
         "sed -i 's#/opt/fepenv/lib/python3.10/site-packages/pmx/data/mutff/##g' fep.top; export GMXLIB=$PWD; "
         "sed 's/__LAMBDA_STATE__/%d/' prod_fep.mdp.template > prod.mdp; " % lam +
         "sed -i 's/^nsteps .*/nsteps = %d/' prod.mdp; " % nsteps + dtfix +
-        # resume: if a prior attempt left a checkpoint in S3, restore it so mdrun continues from it
-        f"aws s3 cp {wdir}/prod.cpt ./prod.cpt --region {REGION} 2>/dev/null && CPI='-cpi prod.cpt' || CPI=''; "
+        # resume ONLY on a spot-reclaim RETRY of THIS submission (attempt>1): pull the whole prior window dir
+        # (cpt + log/edr/dhdl companions needed for append) and continue with -cpi. On attempt 1 (fresh run)
+        # ignore any stale S3 checkpoint from a prior run — a mismatched nsteps/dt cpt would break the restart.
+        'if [ "${AWS_BATCH_JOB_ATTEMPT:-1}" != "1" ] && '
+        f"aws s3 cp {wdir}/ . --recursive --region {REGION} --exclude '*' --include 'prod.*' 2>/dev/null && [ -f prod.cpt ]; "
+        "then CPI='-cpi prod.cpt'; else CPI=''; rm -f prod.cpt; fi; "
         "gmx grompp -f prod.mdp -c npt.gro -t npt.cpt -p fep.top -o prod.tpr -maxwarn 60 > grompp.log 2>&1; GR=$?; "
         "echo GROMPP_RC=$GR; [ $GR -ne 0 ] && { tail -20 grompp.log; } ; "
         # -cpt 5 => flush checkpoint every 5 min; stream it to S3 in the background so a spot reclaim keeps it
