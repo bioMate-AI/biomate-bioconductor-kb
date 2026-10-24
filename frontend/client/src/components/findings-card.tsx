@@ -16,6 +16,9 @@ interface KeyResult {
   value: string
   interpretation: string
   source_file?: string
+  /** Real entity this result belongs to (e.g. a compound name/SMILES), when a run
+   *  assessed several — carried as structured data, not parsed from prose. */
+  entity?: string
 }
 
 interface FindingsData {
@@ -231,7 +234,7 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
   // which reads as if those numbers are "the" result. In that case we drop the
   // chips and surface the full, per-entity Key Results table (which carries the
   // tags) instead, so it's always clear which entity a number belongs to.
-  const multiEntity = (kr || []).some(r => /\((?:Compound|Entity|Sample) \d+\)/i.test(r.interpretation || ''))
+  const multiEntity = (kr || []).some(r => Boolean(r.entity) || /\((?:Compound|Entity|Sample) \d+\)/i.test(r.interpretation || ''))
 
   return (
     <Card data-testid="findings-card" className="mt-3 border-blue-200 bg-blue-50/30 dark:border-blue-900/40 dark:bg-blue-950/10">

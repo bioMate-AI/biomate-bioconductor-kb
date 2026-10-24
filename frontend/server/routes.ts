@@ -14189,9 +14189,13 @@ Rules:
       'CYP3A4 substrate':      {             label: 'CYP3A4 substrate probability' },
       'Ames mutagenicity':     { high: 0.5, label: 'Ames mutagenicity risk' },
     };
-    const key_results: Array<{metric: string; value: string; interpretation: string; source_file: string}> = [];
+    const key_results: Array<{metric: string; value: string; interpretation: string; source_file: string; entity?: string}> = [];
     for (const [ci, compound] of compounds.entries()) {
-      const tag = compounds.length === 1 ? '' : `(Compound ${ci + 1}) `;
+      // Carry the REAL compound identity (parsed from the "Drug:/Compound:" line,
+      // e.g. "aspirin") both as a structured `entity` field and in the prose — never
+      // the anonymous "Compound N" (only a fallback when the output has no name).
+      const entity = (compound.id || '').trim() || `Compound ${ci + 1}`;
+      const tag = compounds.length === 1 ? '' : `(${entity}) `;
       for (const [metric, info] of Object.entries(THRESHOLDS)) {
         const val = compound.metrics[metric];
         if (!val) continue;
@@ -14202,7 +14206,7 @@ Rules:
           else if (info.low !== undefined && num < info.low) interpretation = `${tag}Low ${info.label} (${val}) — potential liability`;
           else if (info.high !== undefined || info.low !== undefined) interpretation = `${tag}Acceptable ${info.label} (${val})`;
         }
-        key_results.push({ metric, value: val, interpretation, source_file: f.name });
+        key_results.push({ metric, value: val, interpretation, source_file: f.name, entity: compounds.length === 1 ? undefined : entity });
       }
     }
     const liabilities = key_results.filter(kr => /liability|Elevated|Low/.test(kr.interpretation)).map(kr => kr.metric);
