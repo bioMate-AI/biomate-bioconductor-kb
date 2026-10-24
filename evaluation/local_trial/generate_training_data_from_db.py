@@ -148,10 +148,26 @@ def _is_prose(desc):
     return " " in desc.strip()
 
 
+# LLM-generated task descriptions for workflows whose DB description is a package name / param dump
+# (gen_workflow_descriptions.py; committee-validated query_realistic 0.15->0.90). Keyed by filename.
+_GEN_DESCS = {}
+_gd_path = OUT / "generated_workflow_descriptions.jsonl"
+if _gd_path.exists():
+    for _l in _gd_path.read_text().splitlines():
+        if _l.strip():
+            try:
+                _r = json.loads(_l); _GEN_DESCS[_r["filename"]] = _r["generated_description"]
+            except Exception:
+                pass
+
+
 def routing_queries(row):
     desc = _first_sentence(row["annotation_v2"] or row["description"])
     if not _is_prose(desc):
-        return []   # no realistic routing query without a real prose description — skip for routing
+        # fall back to the committee-validated LLM-generated task description for this workflow
+        desc = _GEN_DESCS.get(row["filename"], "")
+    if not _is_prose(desc):
+        return []   # no realistic routing query (DB desc not prose and no generated one) — skip
     domain = (row["domain"] or "").replace("_", " ").strip()
     tools = _lit(row["tools_used"]) or []
     tool = (tools[0].split("/")[-1] if tools else "").strip()

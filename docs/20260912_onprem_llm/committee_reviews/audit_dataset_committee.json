@@ -1,5 +1,5 @@
 {
-  "n_per_set": 20,
+  "n_per_set": 25,
   "committee": [
     "anthropic/claude-opus-5.5",
     "openai/gpt-6.1-sol",
@@ -9,64 +9,58 @@
   "sets": {
     "routing": {
       "anthropic/claude-opus-5.5": {
-        "n": 20,
-        "query_realistic": 0.1,
-        "gold_plausible": 0.95,
-        "fail_rate": 0.85,
+        "n": 25,
+        "query_realistic": 0.88,
+        "gold_plausible": 1.0,
+        "fail_rate": 0.04,
         "fail_issues": [
-          "raw key_parameters template leak; no task stated",
-          "truncated raw parameter dump",
-          "template leak; truncated mid-word",
-          "template leak; truncated, stray '?'",
-          "template leak; stray '<'; truncated",
-          "workflow path leaked into query text"
+          "nonsensical query; name echo with odd casing, no task described"
         ]
       },
       "openai/gpt-6.1-sol": {
-        "n": 20,
-        "query_realistic": 0.1,
+        "n": 25,
+        "query_realistic": 0.84,
         "gold_plausible": 1.0,
         "fail_rate": 0.0,
         "fail_issues": []
       },
       "deepseek/deepseek-v4-pro": {
-        "error": "no JSON parsed"
+        "n": 25,
+        "query_realistic": 0.96,
+        "gold_plausible": 0.96,
+        "fail_rate": 0.04,
+        "fail_issues": [
+          "Query is a package name statement, not a workflow request; gold is a workflow file, mismatch."
+        ]
       },
       "google/gemini-3.1-pro-preview": {
-        "n": 20,
-        "query_realistic": 0.1,
+        "n": 25,
+        "query_realistic": 0.68,
         "gold_plausible": 1.0,
-        "fail_rate": 0.9,
+        "fail_rate": 0.12,
         "fail_issues": [
-          "templated artifact with key_parameters",
-          "awkward templated phrasing",
-          "templated artifact with key_parameters and truncation",
-          "templated artifact with key_parameters and truncation",
-          "templated artifact with key_parameters",
-          "templated artifact with key_parameters and truncation"
+          "missing verb / awkward grammar",
+          "scraped package description",
+          "templated repo description"
         ]
       }
     },
     "dpo_routing_confusable": {
       "anthropic/claude-opus-5.5": {
-        "n": 20,
-        "chosen_correct": 0.95,
-        "negative_valid": 0.8,
-        "fail_rate": 0.15,
+        "n": 25,
+        "chosen_correct": 0.96,
+        "negative_valid": 0.68,
+        "fail_rate": 0.04,
         "fail_issues": [
-          "rejected is same workflow; query says drug discovery",
-          "rejected is duplicate of chosen",
-          "query is alpha diversity, chosen is DESeq2 DA"
+          "query names pharmacology path but chosen is drug_discovery; labels inverted"
         ]
       },
       "openai/gpt-6.1-sol": {
-        "n": 20,
-        "chosen_correct": 0.95,
-        "negative_valid": 0.15,
-        "fail_rate": 0.05,
-        "fail_issues": [
-          "Query specifies alpha diversity, not DESeq2 differential abundance"
-        ]
+        "n": 25,
+        "chosen_correct": 1.0,
+        "negative_valid": 0.28,
+        "fail_rate": 0.0,
+        "fail_issues": []
       },
       "deepseek/deepseek-v4-pro": {
         "error": "no JSON parsed"
@@ -77,28 +71,20 @@
     },
     "dpo_exec_grounded": {
       "anthropic/claude-opus-5.5": {
-        "n": 20,
-        "chosen_correct": 0.85,
-        "negative_valid": 0.4,
-        "fail_rate": 0.15,
-        "fail_issues": [
-          "cosmiq is mass-spec, not epigenomics; bumphunter is a valid epigenomics answer",
-          "GOSemSim does not take count data; BaseSpaceR is an unrelated data-access tool",
-          "bugsigdbr does not take count data; neither option fits"
-        ]
+        "error": "no JSON parsed"
       },
       "openai/gpt-6.1-sol": {
-        "n": 20,
-        "chosen_correct": 0.7,
-        "negative_valid": 0.25,
-        "fail_rate": 0.3,
+        "n": 25,
+        "chosen_correct": 0.68,
+        "negative_valid": 0.12,
+        "fail_rate": 0.32,
         "fail_issues": [
-          "cosmiq is metabolomics; bumphunter fits epigenomics",
-          "tilingArray primarily targets transcriptome tiling arrays",
-          "tilingArray is not a good epigenomics target; epigraHMM is plausible",
-          "GOSemSim takes gene or GO identifiers, not count data",
-          "bugsigdbr retrieves curated signatures rather than accepting count data",
-          "Both workflows primarily target metabolomics rather than proteomics"
+          "hpar provides reference atlas data rather than count-data analysis",
+          "Prediction is not normalization; rejected Hi-C normalization workflow fits",
+          "fedup produces enrichment results, not differential-expression tables",
+          "MsBackendRawFileReader reads raw spectra rather than count data",
+          "affycomp benchmarks microarray expression estimates rather than counts",
+          "flowSpecs processes cytometry intensities rather than count matrices"
         ]
       },
       "deepseek/deepseek-v4-pro": {
@@ -110,18 +96,22 @@
     },
     "param": {
       "anthropic/claude-opus-5.5": {
-        "n": 20,
-        "gold_sensible": 1.0,
+        "n": 25,
+        "gold_sensible": 0.96,
         "restraint_valid": 1.0,
-        "fail_rate": 0.0,
-        "fail_issues": []
+        "fail_rate": 0.04,
+        "fail_issues": [
+          "truncated placeholder path as param name"
+        ]
       },
       "openai/gpt-6.1-sol": {
-        "n": 20,
-        "gold_sensible": 1.0,
-        "restraint_valid": 1.0,
-        "fail_rate": 0.0,
-        "fail_issues": []
+        "n": 25,
+        "gold_sensible": 0.96,
+        "restraint_valid": 0.88,
+        "fail_rate": 0.04,
+        "fail_issues": [
+          "Required name is a truncated directory-path placeholder"
+        ]
       },
       "deepseek/deepseek-v4-pro": {
         "error": "no JSON parsed"

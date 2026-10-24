@@ -2,13 +2,13 @@
   "generator": "generate_training_data_from_db.py",
   "db": "backend/database/galaxy_ai_tools.db",
   "counts": {
-    "routing_sft": 8891,
-    "routing_grpo": 8891,
+    "routing_sft": 28685,
+    "routing_grpo": 28685,
     "param_sft": 2741,
     "param_grpo": 2741,
-    "dev": 1372
+    "dev": 3486
   },
-  "total_train_rows": 23264,
+  "total_train_rows": 62852,
   "excluded": {
     "ineligible": 90,
     "gold_leak": 74,
@@ -19,7 +19,7 @@
     "status": "CLEAN (0 overlap)"
   },
   "dev_split": {
-    "rows": 1372,
+    "rows": 3486,
     "rule": "md5(filename)%10==0 (~10%), held out of train"
   },
   "CAVEAT": "TARGETS are REAL catalog entries; QUERIES are SYNTHETIC/templated from real metadata. This is a SCALED CANDIDATE POOL \u2014 validate ONLY on the REAL held-out distribution (cross_domain_routing / param_prefill / decomposition_real), NEVER on this generator's own distribution (the decomp_depgraph leaked-win mistake). PARAM gold = required param NAMES + must_not_fill (selection+restraint), NOT value prediction (DB has no gold values)."
