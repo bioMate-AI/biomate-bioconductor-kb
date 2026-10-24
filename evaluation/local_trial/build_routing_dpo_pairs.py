@@ -70,11 +70,14 @@ def main():
         sibs = [s for s in by_dom[gmeta["domain"]] if s != gkey]
         if not sibs:
             continue
-        # rank siblings by tool overlap with the gold (hardest negative first)
+        # rank siblings by tool overlap with the gold; REQUIRE a genuinely-confusable negative
+        # (>=1 shared tool). Committee audit 2026-10-23 flagged random same-domain negatives as
+        # "too easy / possibly also-correct" — so we drop the random fallback and skip golds with no
+        # shared-tool sibling rather than emit a weak pair.
         ranked = sorted(sibs, key=lambda s: -len(gtools & cat[s]["tools"]))
-        rng = random.Random(int(hashlib.md5(gkey.encode()).hexdigest(), 16))
-        picked = ranked[:max(1, a.neg_per)] if any(cat[s]["tools"] & gtools for s in ranked[:3]) \
-            else [rng.choice(sibs)]
+        picked = [s for s in ranked if (gtools & cat[s]["tools"])][:max(1, a.neg_per)]
+        if not picked:
+            continue
         for s in picked:
             ov = len(gtools & cat[s]["tools"])
             pairs.append({"prompt": f"{INSTR}\n\n{q}", "chosen": gold, "rejected": cat[s]["fn"],

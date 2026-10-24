@@ -130,8 +130,28 @@ def _dev(fn):
     return int(hashlib.md5(fn.encode()).hexdigest(), 16) % 10 == DEV_FRAC_BUCKET
 
 
+_PARAM_DUMP = re.compile(r"key_parameters|::|;;|object=|classVar|\w+=[A-Z]|=The |=A |=List of|ExpressionSet.*phenotyp", re.I)
+
+
+def _is_prose(desc):
+    """True iff `desc` reads like a natural-language description, not a raw param-schema dump.
+    Many Bioconductor subworkflows store a param template in description/annotation_v2 (e.g.
+    'key_parameters: object=An ExpressionSet ;; groups=...'); routing queries built from those are
+    unrealistic garbage (committee audit 2026-10-23: query_realistic~0.10). Require real prose."""
+    if not desc or len(desc) < 12:
+        return False
+    if _PARAM_DUMP.search(desc):
+        return False
+    # a prose sentence has spaces and few '=' / ';' schema punctuation
+    if desc.count("=") + desc.count(";") > 1:
+        return False
+    return " " in desc.strip()
+
+
 def routing_queries(row):
     desc = _first_sentence(row["annotation_v2"] or row["description"])
+    if not _is_prose(desc):
+        return []   # no realistic routing query without a real prose description — skip for routing
     domain = (row["domain"] or "").replace("_", " ").strip()
     tools = _lit(row["tools_used"]) or []
     tool = (tools[0].split("/")[-1] if tools else "").strip()

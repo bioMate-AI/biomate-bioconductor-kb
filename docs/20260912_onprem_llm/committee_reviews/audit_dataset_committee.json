@@ -1,0 +1,134 @@
+{
+  "n_per_set": 20,
+  "committee": [
+    "anthropic/claude-opus-5.5",
+    "openai/gpt-6.1-sol",
+    "deepseek/deepseek-v4-pro",
+    "google/gemini-3.1-pro-preview"
+  ],
+  "sets": {
+    "routing": {
+      "anthropic/claude-opus-5.5": {
+        "n": 20,
+        "query_realistic": 0.1,
+        "gold_plausible": 0.95,
+        "fail_rate": 0.85,
+        "fail_issues": [
+          "raw key_parameters template leak; no task stated",
+          "truncated raw parameter dump",
+          "template leak; truncated mid-word",
+          "template leak; truncated, stray '?'",
+          "template leak; stray '<'; truncated",
+          "workflow path leaked into query text"
+        ]
+      },
+      "openai/gpt-6.1-sol": {
+        "n": 20,
+        "query_realistic": 0.1,
+        "gold_plausible": 1.0,
+        "fail_rate": 0.0,
+        "fail_issues": []
+      },
+      "deepseek/deepseek-v4-pro": {
+        "error": "no JSON parsed"
+      },
+      "google/gemini-3.1-pro-preview": {
+        "n": 20,
+        "query_realistic": 0.1,
+        "gold_plausible": 1.0,
+        "fail_rate": 0.9,
+        "fail_issues": [
+          "templated artifact with key_parameters",
+          "awkward templated phrasing",
+          "templated artifact with key_parameters and truncation",
+          "templated artifact with key_parameters and truncation",
+          "templated artifact with key_parameters",
+          "templated artifact with key_parameters and truncation"
+        ]
+      }
+    },
+    "dpo_routing_confusable": {
+      "anthropic/claude-opus-5.5": {
+        "n": 20,
+        "chosen_correct": 0.95,
+        "negative_valid": 0.8,
+        "fail_rate": 0.15,
+        "fail_issues": [
+          "rejected is same workflow; query says drug discovery",
+          "rejected is duplicate of chosen",
+          "query is alpha diversity, chosen is DESeq2 DA"
+        ]
+      },
+      "openai/gpt-6.1-sol": {
+        "n": 20,
+        "chosen_correct": 0.95,
+        "negative_valid": 0.15,
+        "fail_rate": 0.05,
+        "fail_issues": [
+          "Query specifies alpha diversity, not DESeq2 differential abundance"
+        ]
+      },
+      "deepseek/deepseek-v4-pro": {
+        "error": "no JSON parsed"
+      },
+      "google/gemini-3.1-pro-preview": {
+        "error": "no JSON parsed"
+      }
+    },
+    "dpo_exec_grounded": {
+      "anthropic/claude-opus-5.5": {
+        "n": 20,
+        "chosen_correct": 0.85,
+        "negative_valid": 0.4,
+        "fail_rate": 0.15,
+        "fail_issues": [
+          "cosmiq is mass-spec, not epigenomics; bumphunter is a valid epigenomics answer",
+          "GOSemSim does not take count data; BaseSpaceR is an unrelated data-access tool",
+          "bugsigdbr does not take count data; neither option fits"
+        ]
+      },
+      "openai/gpt-6.1-sol": {
+        "n": 20,
+        "chosen_correct": 0.7,
+        "negative_valid": 0.25,
+        "fail_rate": 0.3,
+        "fail_issues": [
+          "cosmiq is metabolomics; bumphunter fits epigenomics",
+          "tilingArray primarily targets transcriptome tiling arrays",
+          "tilingArray is not a good epigenomics target; epigraHMM is plausible",
+          "GOSemSim takes gene or GO identifiers, not count data",
+          "bugsigdbr retrieves curated signatures rather than accepting count data",
+          "Both workflows primarily target metabolomics rather than proteomics"
+        ]
+      },
+      "deepseek/deepseek-v4-pro": {
+        "error": "no JSON parsed"
+      },
+      "google/gemini-3.1-pro-preview": {
+        "error": "no JSON parsed"
+      }
+    },
+    "param": {
+      "anthropic/claude-opus-5.5": {
+        "n": 20,
+        "gold_sensible": 1.0,
+        "restraint_valid": 1.0,
+        "fail_rate": 0.0,
+        "fail_issues": []
+      },
+      "openai/gpt-6.1-sol": {
+        "n": 20,
+        "gold_sensible": 1.0,
+        "restraint_valid": 1.0,
+        "fail_rate": 0.0,
+        "fail_issues": []
+      },
+      "deepseek/deepseek-v4-pro": {
+        "error": "no JSON parsed"
+      },
+      "google/gemini-3.1-pro-preview": {
+        "error": "no JSON parsed"
+      }
+    }
+  }
+}
