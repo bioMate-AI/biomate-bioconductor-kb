@@ -51,6 +51,15 @@ SYS_PARAM = ("You are BioMate's parameter assistant. Given a request and the tar
              "the required input parameters as JSON. Do not invent parameters the workflow lacks.")
 
 MAX_ROUTING_VARIANTS = 3
+# Prioritized coverage: deeper paraphrase depth for the big/important domains (counts from the
+# catalog), shallower for the long tail. Caps the per-workflow routing variants by domain.
+DOMAIN_PRIORITY = {
+    "transcriptomics": 12, "genomics": 10, "drug_discovery": 10, "variant_calling": 9,
+    "single_cell": 9, "proteomics": 8, "epigenomics": 8, "metagenomics": 7, "cryo_em": 7,
+    "systems_biology": 6, "immunology": 6, "structural_biology": 6, "metabolomics": 6,
+    "pharmacology": 6, "imaging": 5, "spatial_transcriptomics": 7,
+}
+DEFAULT_PRIORITY = 4
 DEV_FRAC_BUCKET = 0   # hash(filename)%10 == 0 -> dev split (~10%)
 
 
@@ -126,20 +135,35 @@ def routing_queries(row):
     domain = (row["domain"] or "").replace("_", " ").strip()
     tools = _lit(row["tools_used"]) or []
     tool = (tools[0].split("/")[-1] if tools else "").strip()
+    tool2 = (tools[1].split("/")[-1] if len(tools) > 1 else "").strip()
     qs = []
     if desc:
+        d_low = desc[0].lower() + desc[1:]
+        d_stub = d_low.rstrip(".")
+        # all paraphrases stay GROUNDED in real DB text (desc/domain/tools) — no hallucinated specifics
         qs.append(desc)
+        qs.append(f"Looking for a pipeline to {d_low}")
+        qs.append(f"Recommend a workflow to {d_low}")
+        qs.append(f"How do I {d_stub}?")
         if domain:
-            qs.append(f"I need a {domain} workflow that will {desc[0].lower() + desc[1:]}")
+            qs.append(f"I need a {domain} workflow that will {d_low}")
+            qs.append(f"{domain} analysis: {desc}")
+            qs.append(f"Which {domain} pipeline should I use to {d_stub}?")
         if tool:
             qs.append(f"{desc} (using {tool})")
-    # dedup + cap, keep grounded in real text
+            qs.append(f"{d_stub} with {tool}")
+        if tool and tool2:
+            qs.append(f"{desc} (tools: {tool}, {tool2})")
+        if domain and tool:
+            qs.append(f"{domain} workflow using {tool} to {d_low}")
+    # dedup + domain-prioritized cap (big domains get deeper coverage)
+    cap = max(MAX_ROUTING_VARIANTS, DOMAIN_PRIORITY.get(row["domain"], DEFAULT_PRIORITY))
     seen, out = set(), []
     for q in qs:
         k = norm(q)
         if k and k not in seen:
             seen.add(k); out.append(q)
-        if len(out) >= MAX_ROUTING_VARIANTS:
+        if len(out) >= cap:
             break
     return out
 

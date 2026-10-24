@@ -68,15 +68,26 @@ def train(args):
     model=AutoModelForCausalLM.from_pretrained(args.model, quantization_config=bnb, device_map="auto",
         torch_dtype=torch.bfloat16, trust_remote_code=True)
     model=prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
-    lora=LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05, bias="none", task_type="CAUSAL_LM",
-        target_modules=["q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj"])
+    # Start policy / KL reference. Mirror the proven GRPO loading (train_grpo_unified.py): when an
+    # --adapter is given (sft_gold), load it as the trainable policy and pass NO peft_config —
+    # trl's DPOTrainer then uses the adapter-DISABLED model as the frozen reference, so DPO anchors
+    # to sft_gold and improves over it (not from base). Without --adapter, start a fresh LoRA.
+    peft_cfg=None
+    if getattr(args, "adapter", None):
+        from peft import PeftModel
+        model=PeftModel.from_pretrained(model, args.adapter, is_trainable=True)
+    else:
+        peft_cfg=LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05, bias="none", task_type="CAUSAL_LM",
+            target_modules=["q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj"])
     ds=load_dataset("json", data_files=args.pairs_out, split="train")
     cfg=DPOConfig(output_dir=args.out, per_device_train_batch_size=1, gradient_accumulation_steps=16,
         num_train_epochs=int(os.environ.get("DPO_EPOCHS","3")), learning_rate=5e-6, lr_scheduler_type="cosine", warmup_steps=10,
         bf16=True, gradient_checkpointing=True, gradient_checkpointing_kwargs={"use_reentrant":False},
-        optim="paged_adamw_8bit", beta=0.1, max_length=1024, report_to=[], seed=13)
-    tr=DPOTrainer(model=model, args=cfg, train_dataset=ds, processing_class=tok, peft_config=lora)
-    tr.train(); tr.save_model(args.out); print("DPO_DONE ->", args.out)
+        optim="paged_adamw_8bit", beta=0.1, max_length=1024, save_steps=int(os.environ.get("DPO_SAVE_STEPS","50")),
+        report_to=[], seed=13)
+    tr=DPOTrainer(model=model, args=cfg, train_dataset=ds, processing_class=tok, peft_config=peft_cfg)
+    tr.train(resume_from_checkpoint=getattr(args, "resume", None) or None)
+    tr.save_model(args.out); print("DPO_DONE ->", args.out)
 
 def mine_routing_pairs(args):
     """Direct contrastive pairs from rag_routing hard_negatives (near-ties): chosen = verified gold,
@@ -150,28 +161,34 @@ def mine_execution_pairs(args):
         made=0
         for ch in grp["ok"]:
             ch_t=set(map(str,_mj(ch.get("tools_used")))); ch_i=set(map(str,_mj(ch.get("input_types")))); ch_o=set(map(str,_mj(ch.get("output_types"))))
-            best=None
+            # Collect ALL genuinely-confusable failed siblings (shared tool/IO >= 1), ranked by
+            # confusability, and emit the top `neg_per_chosen` as separate preference pairs (each
+            # chosen>rejected is an independent DPO example). neg_per_chosen=1 reproduces the original
+            # single-best behaviour; >1 expands the set without lowering the confusability bar.
+            cands=[]
             for rj in grp["fail"]:
                 if rj.get("workflow_name")==ch.get("workflow_name"): continue
                 rt=set(map(str,_mj(rj.get("tools_used")))); ri=set(map(str,_mj(rj.get("input_types")))); ro=set(map(str,_mj(rj.get("output_types"))))
                 sh_t, sh_i, sh_o = ch_t&rt, ch_i&ri, ch_o&ro
                 ov=len(sh_t)*2+len(sh_i)+len(sh_o)
-                if best is None or ov>best[0]: best=(ov, rj, sh_t, sh_i, sh_o)
-            if best is None or best[0] < 1: continue   # require genuine confusability (shared tool/IO), not an arbitrary same-domain negative
-            ov, rj, sh_t, sh_i, sh_o = best
-            art="an" if dom[:1].lower() in "aeiou" else "a"
-            clauses=[]
-            if sh_i: clauses.append(f"takes {', '.join(sorted(sh_i)[:3])} input")
-            if sh_o: clauses.append(f"produces {', '.join(sorted(sh_o)[:3])}")
-            req=f"Recommend {art} {dom} workflow"
-            if clauses: req+=" that "+" and ".join(clauses)
-            if sh_t: req+=f" (tools like {', '.join(sorted(sh_t)[:3])})"
-            req+="."
-            if _norm_q(req) in evalq: dropped_leak+=1; continue
-            pairs.append({"prompt":f"{INSTR_ROUTING}\n\nRequest: {req}", "chosen":ch.get("workflow_name"),
-                          "rejected":rj.get("workflow_name"), "task":"routing",
-                          "source":"execution_grounded", "domain":dom, "confusability":ov})
-            made+=1
+                if ov >= 1:   # require genuine confusability, not an arbitrary same-domain negative
+                    cands.append((ov, rj, sh_t, sh_i, sh_o))
+            cands.sort(key=lambda x: -x[0])
+            for ov, rj, sh_t, sh_i, sh_o in cands[:max(1, getattr(args, "neg_per_chosen", 1))]:
+                art="an" if dom[:1].lower() in "aeiou" else "a"
+                clauses=[]
+                if sh_i: clauses.append(f"takes {', '.join(sorted(sh_i)[:3])} input")
+                if sh_o: clauses.append(f"produces {', '.join(sorted(sh_o)[:3])}")
+                req=f"Recommend {art} {dom} workflow"
+                if clauses: req+=" that "+" and ".join(clauses)
+                if sh_t: req+=f" (tools like {', '.join(sorted(sh_t)[:3])})"
+                req+="."
+                if _norm_q(req) in evalq: dropped_leak+=1; continue
+                pairs.append({"prompt":f"{INSTR_ROUTING}\n\nRequest: {req}", "chosen":ch.get("workflow_name"),
+                              "rejected":rj.get("workflow_name"), "task":"routing",
+                              "source":"execution_grounded", "domain":dom, "confusability":ov})
+                made+=1
+                if made>=args.per_domain: break
             if made>=args.per_domain: break
     seen=set(); uniq=[]
     for p in pairs:
@@ -193,6 +210,8 @@ def main():
     ap.add_argument("--spec", default=DEF_SPEC, help="workflow_spec_candidates.jsonl (phase exec)")
     ap.add_argument("--pub", default=DEF_PUB, help="public_export dir for eval-leak guard (phase exec)")
     ap.add_argument("--per-domain", type=int, default=40, help="max exec pairs per domain (phase exec)")
+    ap.add_argument("--neg-per-chosen", type=int, default=1,
+                    help="exec phase: emit the top-N most-confusable failed siblings per chosen (>1 expands pairs)")
     a=ap.parse_args()
     if a.phase=="mine": return mine_routing_pairs(a)   # cheap: direct near-tie hard-negative pairs
     if a.phase=="exec": return mine_execution_pairs(a) # cheap: execution-grounded pairs (no GPU/Batch)
