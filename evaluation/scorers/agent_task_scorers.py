@@ -43,6 +43,33 @@ def score_routing(completion: str, gold: Any) -> float:
     return 0.0
 
 
+def score_routing_graded(completion: str, gold: Any, partial: float = 0.3) -> float:
+    """TRAINING-ONLY graded variant of score_routing. Exact (canon) match = 1.0; otherwise award a
+    small partial credit proportional to path-token overlap between the predicted and gold workflow
+    ids (shared org/tool tokens), capped at `partial`. This breaks the zero-within-group-variance
+    problem that stalls GRPO on the binary reward: near-miss rollouts (right family, wrong workflow)
+    score above random ones, so a rollout group has non-zero reward variance → non-zero advantage →
+    the policy gets gradient toward the right family first. Eval still uses the strict binary
+    score_routing — this is only the GRPO reward shaping."""
+    g = _as_gold(gold)
+    alts = ([g.get("correct_workflow")] + list(g.get("acceptable_alts") or [])) if isinstance(g, dict) else [g]
+    comp = _norm_wf(completion)
+    best = 0.0
+    for a in alts:
+        if not a:
+            continue
+        ca = _norm_wf(a)
+        if ca and (ca == comp or ca in comp):
+            return 1.0
+        # path-token overlap (split on / - _ .) between gold id and the completion text
+        gtok = {t for t in re.split(r"[/\-_.\s]+", ca) if len(t) > 2}
+        ctok = {t for t in re.split(r"[/\-_.\s]+", comp) if len(t) > 2}
+        if gtok and ctok:
+            jac = len(gtok & ctok) / len(gtok | ctok)
+            best = max(best, partial * jac)
+    return round(best, 4)
+
+
 def _names_in(text: str, names) -> set:
     """Match each param NAME as a whole identifier (word-bounded), not a raw substring — so a
     forbidden `input` does NOT falsely match inside a required `input_files`."""
