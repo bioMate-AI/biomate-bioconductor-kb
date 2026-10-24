@@ -78,27 +78,39 @@ def main():
                      "tools": tools, "params": params})
     if a.n:
         poor = poor[:a.n]
-    print(f"description-poor workflows to describe: {len(poor)} (model={MODEL})")
-    out = []
-    for i in range(0, len(poor), a.batch):
-        chunk = poor[i:i + a.batch]
-        payload = [{"idx": j, "name": w["name"], "domain": w["domain"], "tools": w["tools"], "params": w["params"]}
-                   for j, w in enumerate(chunk)]
-        try:
-            txt = _call(PROMPT + json.dumps(payload, indent=0))
-            m = re.search(r"\[.*\]", txt, re.S)
-            descs = json.loads(m.group()) if m else []
-        except Exception as e:
-            print(f"  batch {i} failed: {str(e)[:100]}"); descs = []
-        by_idx = {d.get("idx"): d.get("task", "") for d in descs if isinstance(d, dict)}
-        for j, w in enumerate(chunk):
-            task = (by_idx.get(j) or "").strip()
-            if task and _is_prose(task):
-                out.append({"filename": w["filename"], "name": w["name"], "domain": w["domain"],
-                            "generated_description": task})
-        print(f"  {min(i+a.batch,len(poor))}/{len(poor)} done, kept {len(out)}")
-    Path(a.out).write_text("\n".join(json.dumps(r) for r in out))
-    print(f"GENERATED {len(out)} descriptions -> {a.out}")
+    # RESUME: skip workflows already written to the output (incremental append → kill-safe)
+    outp = Path(a.out)
+    done = set()
+    if outp.exists():
+        for l in outp.read_text().splitlines():
+            if l.strip():
+                try:
+                    done.add(json.loads(l)["filename"])
+                except Exception:
+                    pass
+    todo = [w for w in poor if w["filename"] not in done]
+    print(f"description-poor: {len(poor)} | already done: {len(done)} | to do: {len(todo)} (model={MODEL})")
+    kept = len(done)
+    with outp.open("a") as fout:
+        for i in range(0, len(todo), a.batch):
+            chunk = todo[i:i + a.batch]
+            payload = [{"idx": j, "name": w["name"], "domain": w["domain"], "tools": w["tools"], "params": w["params"]}
+                       for j, w in enumerate(chunk)]
+            try:
+                txt = _call(PROMPT + json.dumps(payload, indent=0))
+                m = re.search(r"\[.*\]", txt, re.S)
+                descs = json.loads(m.group()) if m else []
+            except Exception as e:
+                print(f"  batch {i} failed: {str(e)[:100]}"); descs = []
+            by_idx = {d.get("idx"): d.get("task", "") for d in descs if isinstance(d, dict)}
+            for j, w in enumerate(chunk):
+                task = (by_idx.get(j) or "").strip()
+                if task and _is_prose(task):
+                    fout.write(json.dumps({"filename": w["filename"], "name": w["name"],
+                                           "domain": w["domain"], "generated_description": task}) + "\n")
+                    fout.flush(); kept += 1
+            print(f"  {min(i+a.batch,len(todo))}/{len(todo)} done, kept total {kept}")
+    print(f"GENERATED (cumulative) {kept} descriptions -> {a.out}")
 
 
 if __name__ == "__main__":
