@@ -21,7 +21,7 @@ RUN = "avb6-fep-ctrl-build1"
 BASE = f"s3://{BUCKET}/cyclic_peptide/fep/{RUN}"
 IN, EQUIL, OUT = f"{BASE}/in", f"{BASE}/equil_out", f"{BASE}/prod_out"
 QUEUE, JOBDEF = "biomate-gpu-t4-queue", "biomate-gromacs-cu12-gpu"
-COMPLEX_QUEUE = "galaxy-cloud-queue-gpu"   # g5/g6/p3 — faster for the 205k-atom complex leg
+COMPLEX_QUEUE = "biomate-gpu-spot-queue"   # SPOT g6.12xlarge (48 vCPU) — cheap + many cores for CPU-PME-bound FEP
 NLAMBDA = 12                      # proven template schedule (coul 0-4, vdw 5-11)
 NS = 1.0                          # per-window production (ns) — shorter than 5 ns; BAR-gate to extend
 LEGS = ("solvent", "complex")
@@ -95,7 +95,7 @@ def submit_collect() -> str:
 def submit(leg: str, lam: int) -> str:
     cmd = window_command(leg, lam)
     q = COMPLEX_QUEUE if leg == "complex" else QUEUE
-    rr = [{"type":"VCPU","value":"16"},{"type":"MEMORY","value":"60000"},{"type":"GPU","value":"1"}] if leg=="complex" else None
+    rr = [{"type":"VCPU","value":"48"},{"type":"MEMORY","value":"180000"},{"type":"GPU","value":"1"}] if leg=="complex" else None
     req = {"jobName": f"fep-prod-{leg}-l{lam}-{RUN}".replace("_", "-")[:120],
            "jobQueue": q, "jobDefinition": JOBDEF,
            "containerOverrides": ({"command": [cmd], "resourceRequirements": rr} if rr else {"command": [cmd]}),
