@@ -88,6 +88,37 @@ pmx build failed, and keep chain P unmerged for the real run) + the GPU producti
 GATED). So the binding-reward path is no longer blocked by topology validation — only by the pmx hybrid
 build and the (gated) GPU spend.
 
+## 6c. UPDATE (2026-10-24) — CONTROL EDGE RUN AND RECOVERED ≈ 0 (the A2 anchor is cleared)
+
+The relative-FEP **control edge has now run end-to-end on AWS Batch GPU-spot** and recovered the expected
+null. Both legs, 12 λ windows each, BAR estimator:
+
+```
+ΔG_solvent = 146.45 ± 0.28 kJ/mol
+ΔG_complex = 145.71 ± 0.56 kJ/mol
+ΔΔG_bind   = ΔG_complex − ΔG_solvent = −0.74 ± 0.63 kJ/mol  =  −0.18 ± 0.15 kcal/mol
+```
+
+For the CTRL double-Y→F edge (both end states standard; ΔΔG_bind expected 0) this is **~1.2σ from zero and
+|ΔΔG| < 0.5 kcal/mol** — the control is **recovered**. The pmx hybrid + CaDA-Mn metal model + CHARMM36m +
+12-λ BAR pipeline therefore reproduces the known null, so a candidate ΔΔG ladder built on this edge is
+**admissible** (the A2 anchor). This updates the §3-reconciliation caveat "nothing that has run is
+physics-verified": the **FEP control edge is now execution-verified**. (The closed DPO loop still uses the
+permeability ML oracle — wiring the FEP binding reward into the loop is the next step, now unblocked.)
+
+**Caveats (honest):** 0.5-ns/window, single replica, BAR *analytical* errors (not block/bootstrap), so the
+true uncertainty is somewhat larger than ±0.15 kcal/mol; the central value being ≈0 is the load-bearing
+result. A candidate (non-control) edge should use ≥1–2 ns/window and a convergence (BAR-overlap) gate.
+
+**How it ran (infra, matters for BioMate):** fan-out — one Batch GPU job per (leg, λ), 24 windows
+concurrent from the pre-equilibrated npt state, **all on spot** (`biomate-gpu-spot-queue`, g6.12xlarge,
+48 vCPU; FEP is CPU-PME-bound so sized by vCPU). Spot-resilient: `retryStrategy` RETRY on `Host EC2*`
+reclaim, `prod.cpt` streamed to S3 every 5 min + `-cpi` resume scoped to retries (`AWS_BATCH_JOB_ATTEMPT>1`),
+`tee` logging. One window hit a stale-checkpoint bug (resume read a prior 1-ns cpt against the new 0.5-ns
+tpr) → fixed at root cause (commits `d568d392f`, `f98b33f22`) and rerun clean. Total spend: a few dollars
+of spot, no on-demand. Driver: `research/guangzhou_all_atom/cyclic_llm/fep_production.py`
+(`--complex` / `--collect`). Result artifacts: `…/prod_out/ddg/{ddg_result.json,bar_solvent.log,bar_complex.log}`.
+
 ## 6. FEP control-edge runbook (why it can't run here; exact steps on handoff)
 
 Goal: replace the permeability oracle with an **execution-verified binding reward** by first recovering
