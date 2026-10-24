@@ -37,6 +37,14 @@ def _norm(fn):
     return str(fn or "").strip().lower().replace("nf-core", "nfcore")
 
 
+def _stem(fn):
+    """Workflow identity = the last 1-2 meaningful path parts (drops path-prefix variants like
+    'nextflow_nfcore/subworkflows/bioconductor/a4/main.nf' vs 'bioconductor/a4/main.nf' -> 'a4').
+    Used to reject path-variant 'negatives' that are really the SAME workflow (committee round-2)."""
+    parts = [p for p in _norm(fn).split("/") if p and p not in ("main.nf", "main", "subworkflows", "nextflow_nfcore", "nf-core-modules", "modules")]
+    return "/".join(parts[-2:]) if parts else _norm(fn)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--routing", default=str(POOL / "db_generated_routing_grpo.jsonl"))
@@ -67,7 +75,9 @@ def main():
         if not gmeta or not gmeta["domain"]:
             continue
         gtools = gmeta["tools"]
-        sibs = [s for s in by_dom[gmeta["domain"]] if s != gkey]
+        gstem = _stem(gold)
+        # exclude path-variants of the SAME workflow (same stem) — those are not valid negatives
+        sibs = [s for s in by_dom[gmeta["domain"]] if s != gkey and _stem(cat[s]["fn"]) != gstem]
         if not sibs:
             continue
         # rank siblings by tool overlap with the gold; REQUIRE a genuinely-confusable negative
