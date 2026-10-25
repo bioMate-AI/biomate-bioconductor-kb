@@ -117,7 +117,9 @@ reclaim, `prod.cpt` streamed to S3 every 5 min + `-cpi` resume scoped to retries
 `tee` logging. One window hit a stale-checkpoint bug (resume read a prior 1-ns cpt against the new 0.5-ns
 tpr) → fixed at root cause (commits `d568d392f`, `f98b33f22`) and rerun clean. Total spend: a few dollars
 of spot, no on-demand. Driver: `research/guangzhou_all_atom/cyclic_llm/fep_production.py`
-(`--complex` / `--collect`). Result artifacts: `…/prod_out/ddg/{ddg_result.json,bar_solvent.log,bar_complex.log}`.
+(`--complex` / `--collect`). Result artifacts committed at
+`research/guangzhou_all_atom/cyclic_llm/results/fep_ctrl_build1_ddg/{ddg_result.json,bar_solvent.log,bar_complex.log}`
+(also on S3 at `s3://biomate-nextflow-work/cyclic_peptide/fep/avb6-fep-ctrl-build1/prod_out/ddg/`).
 
 ## 6. FEP control-edge runbook (why it can't run here; exact steps on handoff)
 
