@@ -57,3 +57,21 @@ serve it (vLLM) and re-run the same 5 subtasks — pending the SFT eval box. Sam
   config path empty. Needs manual download + unzip under the repo.
 - **BioAgentBench:** dataset source (arXiv:2601.21800 repo) unconfirmed; `bioagentbench_dir` empty.
 - Once their data is local, run BioMate + local LLM on them and record the same way.
+
+## DbQA retrieval A/B (improvement test, 2026-10-24)
+
+Tested the DbQA improvement hypothesis directly: dropped the harness's no-tool guard and let BioMate
+use its DB lookup tools, on a 40-item DbQA sample.
+
+| Condition | DbQA |
+|---|---|
+| Parametric (tools disabled by harness) | 41.8% (full n=110) |
+| **+ retrieval (DB tools enabled)** | **50.0%** (n=40) |
+| FutureHouse Sonnet-24 baseline | ~60% |
+
+**Finding (honest, n=40 → ±~15% CI):** retrieval gives **+8pp** — so the DbQA weakness is *partly a
+harness artifact* (tools were forcibly off) and *partly a real gap*: even with tools enabled, 50% <
+60% baseline, i.e. BioMate's DB-fact lookup→answer path does not reliably surface the exact
+gene–disease/identifier fact. **Improvement action:** tighten the DB-fact retrieval path (query the
+right DB for the association + extract the specific value) rather than just enabling tools. Not a
+one-line fix; a real (bounded) product-improvement item, now evidenced.
