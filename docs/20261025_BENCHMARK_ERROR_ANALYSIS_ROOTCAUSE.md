@@ -62,15 +62,34 @@ front-load discriminators / add a short "use X not Y" disambiguator to near-dupl
 Definitive magnitude on the on-prem 9B requires re-running the routing eval with the patched DB (bounded spot
 run; the eval box pulls the DB from S3 so the patched DB must be uploaded first).
 
-## 4. Benchmark gold errors (fix the benchmark, documented per policy)
+### Measured on the EXACT on-prem model (no GPU box needed)
+`qwen/qwen3.5-9b` (the stock base BioMate serves on-prem) is on OpenRouter, so the description-fix effect was
+measured directly via a controlled A/B (old-DB vs new-DB menu, same model, all 200 items), avoiding a
+speculative GPU-box run for a predictable delta (No-Speculative-Deploys discipline):
+
+| menu descriptions | routing (Qwen3.5-9B) |
+|---|---|
+| OLD (shipping) | 0.800 |
+| NEW (front-loaded discriminators) | **0.825** (+2.5pp, +5 items) |
+
+So the targeted 3-description fix is worth **+2.5pp on the exact on-prem 9B** (bigger than the +1pp on the
+7b proxy). Caveat: the OpenRouter checkpoint's *absolute* (0.800) differs from the on-prem served eval's
+0.880 base (harness/revision/quantization differences) — the controlled **delta** (+2.5pp) is the meaningful
+figure, not the absolute. The systemic catalog-wide front-loading would add more.
+
+## 4. Benchmark gold errors (fix the benchmark, documented per policy) — DONE
 A minority of "misses" are the gold being wrong or under-specified (empty `acceptable_alts`):
 - `sc_007`: gold `nf-core/scrnaseq`, whose own description says *"NOT for filtering doublets"* — but the
   query **is** doublet filtering; the model's `scrna_doublet_qc` is correct. **Flip the gold.**
 - Defensible alternates to add to `acceptable_alts`: `sc_022` MERFISH↔`spatialxe` (Xenium; both imaging,
   subcellular, 300-gene panel), `mo_009` `cite_seq_preprocessing`↔`scrapper_multimodal_rna_adt` (both
   CITE-seq ADT), `sc_011` `spatialvi`↔`spatial_visium_banksy` (banksy = spatial clustering).
-These are ~4–6 items; crediting them (with the scorer fix) puts base routing ≈0.92. Each must be justified in
-the data README, never silently baked in.
+**DONE (commit aa85ef6a8):** added `acceptable_alts` for the 3 clear cases (sc_007 +scrna_doublet_qc,
+sc_022 +nf-core/spatialxe, mo_009 +scrapper_multimodal_rna_adt), each justified in
+`cross_domain_routing/README.md`; gold `correct_workflow` unchanged, the alt also credited. sc_011 NOT
+changed (query names "Space Ranger" = spatialvi, which banksy doesn't run). With the scorer fix, **base+harness
+routing 0.880 → 0.885 (scorer) → 0.900 (gold corrections)**. Genuine model errors (scnanoseq 10x confusion,
+etc.) were NOT papered over — fixed at the source (descriptions).
 
 ## MEASURED: the production rule layer closes most of the gap (+18pp, no retraining)
 Confirmed with a capability audit (file:line): the deterministic rule layer **exists and is wired into the
