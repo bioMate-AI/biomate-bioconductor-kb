@@ -612,6 +612,11 @@ interface FindingsKeyResult {
   label?: string;
   value?: string;
   interpretation?: string;
+  // Entity attribution + provenance (findings framework, migration step 1 — optional
+  // until the emitter migrates to FindingRecord). See
+  // docs/20261025_FINDINGS_PROVENANCE_FRAMEWORK.md.
+  entity?: string;
+  source_file?: string;
 }
 
 /**

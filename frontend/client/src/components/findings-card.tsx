@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { ChevronDown, ChevronUp, Download, MessageSquare, BookOpen } from 'lucide-react'
 import { tOr } from '@/lib/i18n'
+import type { LegacyKeyResult } from '@shared/findings'
 
 interface Citation {
   pmid: string
@@ -11,15 +12,10 @@ interface Citation {
   relevance: string
 }
 
-interface KeyResult {
-  metric: string
-  value: string
-  interpretation: string
-  source_file?: string
-  /** Real entity this result belongs to (e.g. a compound name/SMILES), when a run
-   *  assessed several — carried as structured data, not parsed from prose. */
-  entity?: string
-}
+/** The flat findings row shape — now the single shared definition (see
+ *  docs/20261025_FINDINGS_PROVENANCE_FRAMEWORK.md; `FindingRecord` is the structured
+ *  migration target). */
+type KeyResult = LegacyKeyResult
 
 interface FindingsData {
   status?: 'pending' | 'ready' | 'unavailable'
