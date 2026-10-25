@@ -40,7 +40,7 @@ def revise(rec):
         return None, "ring-size!=9 (not repairable by free-position edit)"
     r = rec["hard_gate_reasons"]
     # 1) rule fail -> restore aromatic character at whichever flank is non-aromatic
-    if not r["rule"]:
+    if not r.get("rule", True):          # absent = rule not applicable for this target
         fixed = []
         for idx in (P1, P7):
             if not _is_arom(toks[idx]):

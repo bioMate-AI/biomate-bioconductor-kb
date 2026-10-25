@@ -85,9 +85,16 @@ def score(helm, target="avb6", binding_dG=None, selectivity_gap=None, groove=Non
     rec["geometry"] = geometry if geometry is not None else "pending"
     # hard gates (cheap): rule + not-infringing + developability
     infring = rec["fto"]["verdict"].startswith("INSIDE")
-    rec["hard_gate_pass"] = bool(rec["rule_pass"]) and (not infring) and rec["developability"]["pass"]
-    rec["hard_gate_reasons"] = {"rule": rec["rule_pass"], "fto_not_infringing": not infring,
-                                "developability": rec["developability"]["pass"]}
+    # Binding-rule gate exists ONLY for avb6 (the RGD pharmacophore). For a target with no defined rule the rule is NOT APPLICABLE:
+    # it is left out of the gate and out of hard_gate_reasons (previously rule_pass=None -> bool(None)=False auto-failed EVERY
+    # PD-L1 candidate and reward()/loop counted it as a failed gate). A pass for such a target means FTO + developability only,
+    # never binding evidence -- rec["rule_applicable"]=False says so explicitly.
+    rec["rule_applicable"] = rec["rule_pass"] is not None
+    rule_ok = bool(rec["rule_pass"]) if rec["rule_applicable"] else True
+    rec["hard_gate_pass"] = rule_ok and (not infring) and rec["developability"]["pass"]
+    rec["hard_gate_reasons"] = {"fto_not_infringing": not infring, "developability": rec["developability"]["pass"]}
+    if rec["rule_applicable"]:
+        rec["hard_gate_reasons"] = {"rule": rec["rule_pass"], **rec["hard_gate_reasons"]}
     # rank key: gate first, then FTO DoE (LOW<MED<HIGH), then binding (if present), then low patent-id
     doe_rank = {"LOW": 0, "MED": 1, "HIGH": 2, "infringes": 3}
     # prefer the trustworthy FEP ΔΔG for ranking when present; else fall back to MM-GBSA binding_dG
