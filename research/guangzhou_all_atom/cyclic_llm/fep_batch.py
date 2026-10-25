@@ -207,6 +207,75 @@ def dispatch_equilibration(run_id, dry_run=True, legs="solvent complex", metal_m
             "result_prefix": out_s3, "note": "em->nvt->npt both legs; NOT production ddG"}
 
 
+def _mn_validation_command(in_s3, restr_s3, out_s3, ns=1.0):
+    """UNRESTRAINED NPT continuation of the COMPLEX leg -- the actual CaDA-Mn metal-model test.
+
+    Continues from the (Mn-restrained) equilibration's npt.gro/npt.cpt with NO restraints at all (no -DMN_RESTRAIN, no
+    -DPOSRES), bonded CaDA, dt = 0.5 fs, `ns` nanoseconds. Frames every 5 ps; the non-water subset is dumped as gro every
+    50 ps for fep/validate_mn_coordination.py. The restrained run only proves the site can be assembled; THIS run decides
+    whether the model keeps its Mn..O coordination on its own (docs/20261025_CADA_MN_METAL_MODEL_VALIDATION.md).
+    Spot reclaim => the whole job restarts from scratch (~1 h); no append-resume path (untestable here, easy to get wrong)."""
+    nsteps = int(round(ns * 1000 / 0.0005))
+    wdir = out_s3.rstrip("/") + "/complex"
+    return [(
+        "set -x -o pipefail; export PATH=$PATH:/usr/local/gromacs/bin; source /usr/local/gromacs/bin/GMXRC 2>/dev/null || true; "
+        "(command -v aws || pip install -q awscli) >/dev/null 2>&1 || true; "
+        f"mkdir -p /work/complex && cd /work; aws s3 cp {in_s3} /work/in --recursive --region {REGION} >/dev/null; "
+        "cd /work/complex; cp /work/in/complex/* . && cp -r /work/in/ff/charmm36m-mut.ff . && cp /work/in/mdp/*.mdp . ; "
+        f"aws s3 cp {restr_s3}complex/npt.gro . --region {REGION} && aws s3 cp {restr_s3}complex/npt.cpt . --region {REGION}; "
+        "sed -i 's#/opt/fepenv/lib/python3.10/site-packages/pmx/data/mutff/##g' fep.top; export GMXLIB=$PWD; "
+        # set/replace an mdp key under both hyphen and underscore spellings (GROMACS treats them as the same key)
+        "setmdp(){ sed -i -e \"/^$1 *=/d\" -e \"/^${1//-/_} *=/d\" npt.mdp; printf '%s = %s\\n' \"$1\" \"$2\" >> npt.mdp; }; "
+        "sed -i '/^define/d' npt.mdp; "
+        f"setmdp dt 0.0005; setmdp nsteps {nsteps}; setmdp nstxout-compressed 10000; setmdp continuation yes; setmdp gen-vel no; "
+        "grep -ciE '^define' npt.mdp | sed 's/^/NO_DEFINE_LINES=/'; "
+        "gmx grompp -f npt.mdp -c npt.gro -t npt.cpt -p fep.top -o val.tpr -maxwarn 50 > val_grompp.log 2>&1; GR=$?; "
+        "echo GROMPP_RC=$GR; [ $GR -ne 0 ] && tail -20 val_grompp.log; "
+        f"( while sleep 300; do [ -f val.cpt ] && aws s3 cp val.cpt {wdir}/val.cpt --region {REGION} >/dev/null 2>&1; done ) & CPW=$!; "
+        "[ $GR -eq 0 ] && gmx mdrun -deffnm val -ntmpi 1 -nb gpu -cpt 5 2>&1 | tee val_md.log; RC=${PIPESTATUS[0]}; kill $CPW 2>/dev/null; "
+        "grep -iE 'Performance|Fatal|error' val_md.log | tail -3; "
+        # non-water trajectory + one gro every 50 ps for the coordination validator (waters dominate size and are not needed)
+        "if [ -f val.xtc ]; then "
+        "  printf 'non-Water\\n' | gmx trjconv -s val.tpr -f val.xtc -o val_nowat.xtc > trj1.log 2>&1; "
+        "  printf 'non-Water\\n' | gmx trjconv -s val.tpr -f val.xtc -sep -dt 50 -o fr_.gro > trj2.log 2>&1; "
+        "  echo FRAMES=$(ls fr_*.gro 2>/dev/null | wc -l); "
+        "fi; "
+        f"aws s3 cp /work/complex {wdir}/ --recursive --region {REGION} --exclude '*.trr' --exclude 'val.xtc' "
+        "  --exclude 'charmm36m-mut.ff/*' --exclude '*.itp' --exclude 'ionized.gro' --exclude 'em.tpr' >/dev/null; "
+        "if [ $RC -eq 0 ] && ls fr_*.gro >/dev/null 2>&1; then echo MN_VALIDATION_RUN_OK; else echo MN_VALIDATION_RUN_FAIL; exit 1; fi"
+    )]
+
+
+def dispatch_mn_validation(run_id, dry_run=True, ns=1.0, restr_dir="equil_out_mnrestr"):
+    """Submit the UNRESTRAINED Mn-coordination validation run (see _mn_validation_command). Spot GPU, ~1.2 h per ns.
+    Preconditions (real submit): EQUIL_CMD_READY; in/complex/mn_site_gate.txt (frame-fixed inputs); the restrained
+    equilibration's complex/npt.gro + npt.cpt exist. Result prefix: <run>/mn_validation/ ; analyse locally with
+    `fep/validate_mn_coordination.py --mode post fr_*.gro`."""
+    base = f"s3://{BUCKET}/{PREFIX}/{run_id}"
+    in_s3, restr_s3, out_s3 = f"{base}/in/", f"{base}/{restr_dir}/", f"{base}/mn_validation/"
+    payload = dict(
+        jobName=f"mnval-{run_id}".replace("_", "-")[:120], jobQueue=QUEUE, jobDefinition=JOBDEF,
+        containerOverrides=dict(command=_mn_validation_command(in_s3, restr_s3, out_s3, ns=ns)),
+        retryStrategy=dict(attempts=3, evaluateOnExit=[dict(onStatusReason="Host EC2*", action="RETRY"),
+                                                       dict(onExitCode="*", action="EXIT")]),
+        tags={"pipeline": "cyclic-peptide", "stage": "mn-validation", "target": "avb6"},
+    )
+    if dry_run:
+        return {"dry_run": True, "mode": "mn_validation", "ns": ns, "would_submit": payload, "result_prefix": out_s3}
+    if not EQUIL_CMD_READY:
+        return {"submitted": False, "REFUSED": "EQUIL_CMD_READY is False"}
+    s3 = _boto("s3")
+    for key, why in ((f"{PREFIX}/{run_id}/in/complex/mn_site_gate.txt", "inputs predate the Mn frame fix"),
+                     (f"{PREFIX}/{run_id}/{restr_dir}/complex/npt.gro", "restrained equilibration has not produced npt.gro"),
+                     (f"{PREFIX}/{run_id}/{restr_dir}/complex/npt.cpt", "restrained equilibration has not produced npt.cpt")):
+        try:
+            s3.head_object(Bucket=BUCKET, Key=key)
+        except Exception:
+            return {"submitted": False, "REFUSED": f"{why}: s3://{BUCKET}/{key} missing"}
+    jid = _boto("batch").submit_job(**payload)["jobId"]
+    return {"submitted": True, "mode": "mn_validation", "submitted_job_id": jid, "ns": ns, "result_prefix": out_s3}
+
+
 def _fep_command(in_s3, out_s3):
     """Container command: pull inputs; pmx hybrid topology; grompp PREFLIGHT (fail fast, CPU);
     only then em -> nvt -> npt -> 12-window HREX production on GPU; upload. The preflight gate
@@ -303,7 +372,10 @@ def dispatch_control_edge(run_id=None, dry_run=True):
 if __name__ == "__main__":
     submit = "--submit" in sys.argv
     rid = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--run-id=")), None)
-    if "--equil" in sys.argv:          # SHORT equilibration (em->nvt->npt); NOT production ddG
+    if "--mn-validate" in sys.argv:    # UNRESTRAINED Mn-coordination validation run (the metal-model test)
+        ns = float(next((x.split("=", 1)[1] for x in sys.argv if x.startswith("--ns=")), "1.0"))
+        out = dispatch_mn_validation(run_id=rid, dry_run=not submit, ns=ns)
+    elif "--equil" in sys.argv:        # SHORT equilibration (em->nvt->npt); NOT production ddG
         legs = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--legs=")), "solvent complex").replace(",", " ")
         metal = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--metal=")), "bonded")
         out = dispatch_equilibration(run_id=rid, dry_run=not submit, legs=legs, metal_model=metal,
