@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFindingsDocument } from './findings-extract';
+import { buildFindingsDocument, documentToLegacy } from './findings-extract';
 import { matchDescriptor, DESCRIPTORS } from './findings-descriptors';
 
 const CAFFEINE = 'Cn1c(=O)c2c(ncn2C)n(C)c1=O';
@@ -104,6 +104,92 @@ describe('buildFindingsDocument — DESeq2 (csv, gene entity)', () => {
   });
 });
 
-it('registry exposes both ported descriptors', () => {
-  expect(DESCRIPTORS.map(d => d.id).sort()).toEqual(['admet', 'deseq2']);
+it('registry exposes all four ported parsers (+ ADMET JSON variant) as descriptors', () => {
+  expect(DESCRIPTORS.map(d => d.id).sort()).toEqual(['admet', 'admet_report', 'deseq2', 'enrichgo', 'variant']);
+});
+
+// ADMET structured JSON report: per_compound[] (per-entity) + toxicity{} (batch) — the real
+// toxicity_report.json shape, including the batch hERG IC50 that belongs to no compound.
+const ADMET_JSON = {
+  name: 'toxicity_report.json',
+  content: JSON.stringify({
+    per_compound: [
+      { smiles: 'CC(=O)Oc1ccccc1C(=O)O', dili_probability: 0.855, herg_ic50_uM: 52.725, dili_risk: 'high', logP: 1.31, mw: 180.2 },
+      { smiles: 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C', dili_probability: 0.875, herg_ic50_uM: 6633.041, dili_risk: 'high' },
+      { smiles: 'CC(C)Cc1ccc(C(C)C(=O)O)cc1', dili_probability: 0.487, herg_ic50_uM: 5.227, dili_risk: 'medium' },
+    ],
+    toxicity: { herg_ic50_uM: 432.4246, dili_probability: 0.875, ames_probability: 0.1 },
+  }),
+};
+
+describe('buildFindingsDocument — ADMET structured report (jsonReport + batch)', () => {
+  const m = matchDescriptor('Predict ADMET Properties (AI)', [ADMET_JSON]);
+  const doc = buildFindingsDocument(m!.descriptor, m!.file);
+
+  it('matches the JSON report descriptor and reads per-compound entities', () => {
+    expect(m?.descriptor.id).toBe('admet_report');
+    expect(doc.entityRoster).toHaveLength(3);
+  });
+
+  it('flags aspirin DILI liability, passes ibuprofen (0.487 < 0.5), with SMILES identity', () => {
+    const asp = doc.records.find(r => r.entity.label === 'CC(=O)Oc1ccccc1C(=O)O' && r.metric.name === 'DILI probability')!;
+    expect(asp.assessment?.flag).toBe('liability');
+    expect(asp.entity.identifier?.scheme).toBe('SMILES');
+    const ibu = doc.records.find(r => r.entity.label === 'CC(C)Cc1ccc(C(C)C(=O)O)cc1' && r.metric.name === 'DILI probability')!;
+    expect(ibu.assessment?.flag).toBe('pass');
+  });
+
+  it('attaches units to hERG IC50 (never a bare number)', () => {
+    const herg = doc.records.find(r => r.entity.label === 'CC(=O)Oc1ccccc1C(=O)O' && r.metric.name === 'hERG IC50')!;
+    expect(herg.metric.units).toBe('µM');
+    expect(herg.metric.value).toBe('52.725');
+  });
+
+  it('carries the batch hERG IC50 as scope:batch (belongs to no named compound)', () => {
+    const batchHerg = doc.records.find(r => r.entity.scope === 'batch' && r.metric.name === 'hERG IC50 (panel)')!;
+    expect(batchHerg).toBeTruthy();
+    expect(batchHerg.metric.value).toBe('432.4246');
+    expect(batchHerg.metric.units).toBe('µM');
+    expect(batchHerg.entity.label).toBe('panel');
+  });
+
+  it('applies the categorical DILI-risk verdict (high→liability, medium→neutral)', () => {
+    const aspRisk = doc.records.find(r => r.entity.label === 'CC(=O)Oc1ccccc1C(=O)O' && r.metric.name === 'DILI risk')!;
+    expect(aspRisk.assessment?.flag).toBe('liability');
+    const ibuRisk = doc.records.find(r => r.entity.label === 'CC(C)Cc1ccc(C(C)C(=O)O)cc1' && r.metric.name === 'DILI risk')!;
+    expect(ibuRisk.assessment?.flag).toBe('neutral');
+  });
+
+  it('uses the Report evidence class', () => {
+    expect(doc.provenance.p0.evidenceClass).toBe('Report');
+  });
+});
+
+describe('buildFindingsDocument — variant (categorical IMPACT verdict, autodelim)', () => {
+  const VCF_TSV = {
+    name: 'annotated_variants.tsv',
+    content: ['gene\tIMPACT\tConsequence', 'TP53\tHIGH\tstop_gained', 'BRCA2\tMODERATE\tmissense_variant', 'EGFR\tLOW\tsynonymous_variant'].join('\n'),
+  };
+  const m = matchDescriptor('nf-core/raredisease', [VCF_TSV]);
+  const doc = buildFindingsDocument(m!.descriptor, m!.file);
+  it('flags HIGH impact as liability, MODERATE as neutral', () => {
+    expect(m?.descriptor.id).toBe('variant');
+    const tp53 = doc.records.find(r => r.entity.label === 'TP53' && r.metric.name === 'IMPACT')!;
+    expect(tp53.entity.type).toBe('variant');
+    expect(tp53.assessment?.flag).toBe('liability');
+    const brca = doc.records.find(r => r.entity.label === 'BRCA2' && r.metric.name === 'IMPACT')!;
+    expect(brca.assessment?.flag).toBe('neutral');
+  });
+});
+
+describe('documentToLegacy — backward-compatible flat projection', () => {
+  const m = matchDescriptor('Predict ADMET Properties (AI)', [ADMET_JSON]);
+  const legacy = documentToLegacy(buildFindingsDocument(m!.descriptor, m!.file));
+  it('projects records to {metric,value,interpretation,source_file,entity}', () => {
+    const asp = legacy.key_results.find(k => k.entity === 'CC(=O)Oc1ccccc1C(=O)O' && k.metric === 'hERG IC50')!;
+    expect(asp.value).toBe('52.725 µM');          // units preserved in the flat value
+    expect(asp.source_file).toBe('toxicity_report.json');
+    const batchHerg = legacy.key_results.find(k => k.metric === 'hERG IC50 (panel)')!;
+    expect(batchHerg.entity).toBe('panel (batch)'); // batch marked, not fabricated as a compound
+  });
 });

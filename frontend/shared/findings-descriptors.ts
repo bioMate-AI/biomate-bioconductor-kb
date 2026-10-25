@@ -12,45 +12,70 @@ import type { EntityType, EvidenceClass } from './findings';
 
 export interface MetricSpec {
   name: string;
-  /** csv/tsv: header name match. kvBlocks: the "key: value" key match. */
+  /** csv/tsv header match · kvBlocks "key: value" key match · jsonReport field name (dot path). */
   source: string | RegExp;
   units?: string;
+  /** numeric pass/fail gate (ADMET safety). Absent for descriptive/selection metrics. */
   threshold?: { value: number; direction: 'high_bad' | 'low_bad' | 'band'; label?: string };
-  /** human label used in the interpretation sentence, e.g. "hERG (cardiac) liability risk". */
+  /** categorical verdict map (e.g. variant IMPACT HIGH→liability). First match wins. */
+  categories?: Array<{ match: string | RegExp; flag: 'pass' | 'liability' | 'neutral'; label?: string }>;
   label?: string;
 }
 
 export interface PatternDescriptor {
   id: string;
-  /** recognize the output file. fileRegex OR any contentIncludes hit. */
   match: { fileRegex?: RegExp; contentIncludes?: string[] };
-  parse: 'csv' | 'tsv' | 'kvBlocks';
+  parse: 'csv' | 'tsv' | 'autodelim' | 'kvBlocks' | 'jsonReport';
   entity: {
     type: EntityType;
-    /** csv/tsv: the entity column name match. */
-    column?: string | RegExp;
-    /** kvBlocks: the line that starts a new entity block; capture group 1 = the id. */
-    blockHeaderRegex?: RegExp;
-    /** identifier scheme for the entity id when it is an accession/SMILES/etc. */
-    scheme?: string;
+    column?: string | RegExp;        // csv/tsv: entity column
+    blockHeaderRegex?: RegExp;       // kvBlocks: new-entity line; capture group 1 = id
+    arrayPath?: string;              // jsonReport: dot path to the entity array
+    idField?: string;                // jsonReport: field in each entity object for the id
+    scheme?: string;                 // identifier scheme (SMILES, Ensembl, …)
   };
-  /** explicit metric list (ADMET) — the generic extractor reads exactly these. */
   metrics: MetricSpec[];
-  /** optional row selection for high-cardinality entities (e.g. DE genes). */
+  /** jsonReport: aggregate/batch fields that belong to no single entity (scope:'batch'). */
+  batch?: { path?: string; metrics: MetricSpec[] };
+  /** optional row selection for high-cardinality entities. */
   select?: {
     significant?: { metric: string; op: '<' | '>'; value: number };
-    sortByAbs?: string;      // metric name to sort by |value|, descending
+    sort?: { metric: string; mode: 'absDesc' | 'asc' | 'desc' };
     topN?: number;
   };
   evidenceClass: EvidenceClass;
 }
 
-/** Looks like a SMILES (has ring/bond/hetero tokens and no spaces) vs a plain name. */
+/** Looks like a SMILES (ring/bond/hetero tokens, no spaces) vs a plain name. */
 export function looksLikeSmiles(s: string): boolean {
   return /[=#()\[\]]/.test(s) && /[A-Za-z]/.test(s) && !/\s/.test(s) && s.length <= 200;
 }
 
-// ── ADMET (ported from _parseAdmetOutput THRESHOLDS; parse = per-compound kv blocks) ──
+// ── ADMET structured report (toxicity_report.json: per_compound[] + batch toxicity{}) ──
+const ADMET_REPORT: PatternDescriptor = {
+  id: 'admet_report',
+  match: { fileRegex: /toxicity_report|admet.*\.json/i, contentIncludes: ['per_compound'] },
+  parse: 'jsonReport',
+  entity: { type: 'compound', arrayPath: 'per_compound', idField: 'smiles', scheme: 'SMILES' },
+  metrics: [
+    { name: 'DILI probability', source: 'dili_probability', threshold: { value: 0.5, direction: 'high_bad' }, label: 'drug-induced liver injury risk' },
+    { name: 'hERG IC50',        source: 'herg_ic50_uM', units: 'µM', label: 'hERG (cardiac) IC50' },
+    { name: 'logP',             source: 'logP', label: 'lipophilicity (logP)' },
+    { name: 'MW',               source: 'mw', units: 'Da', label: 'molecular weight' },
+    { name: 'DILI risk',        source: 'dili_risk', categories: [{ match: /high/i, flag: 'liability', label: 'high DILI risk' }, { match: /medium|moderate/i, flag: 'neutral' }, { match: /low/i, flag: 'pass' }], label: 'DILI risk tier' },
+  ],
+  batch: {
+    path: 'toxicity',
+    metrics: [
+      { name: 'hERG IC50 (panel)', source: 'herg_ic50_uM', units: 'µM', label: 'panel hERG IC50' },
+      { name: 'DILI probability (panel)', source: 'dili_probability', threshold: { value: 0.5, direction: 'high_bad' }, label: 'panel worst-compound DILI' },
+      { name: 'Ames probability (panel)', source: 'ames_probability', threshold: { value: 0.5, direction: 'high_bad' }, label: 'panel Ames risk' },
+    ],
+  },
+  evidenceClass: 'Report',
+};
+
+// ── ADMET per-compound kv-block text (the earlier _parseAdmetOutput format) ──
 const ADMET: PatternDescriptor = {
   id: 'admet',
   match: { fileRegex: /admet|predict_admet|predict.*prop/i, contentIncludes: ['hERG', 'DILI'] },
@@ -71,24 +96,55 @@ const ADMET: PatternDescriptor = {
   evidenceClass: 'Table',
 };
 
-// ── DESeq2 differential expression (ported from _parseDeseq2Output; parse = csv) ──
+// ── DESeq2 differential expression (gene entity; significance = selection not verdict) ──
 const DESEQ2: PatternDescriptor = {
   id: 'deseq2',
   match: { fileRegex: /deseq2|de_results|differential/i, contentIncludes: ['log2FoldChange'] },
   parse: 'csv',
   entity: { type: 'gene', column: /^(gene|gene_id|geneid|gene\.name|name|symbol)$/i, scheme: 'symbol' },
-  // NOTE: padj carries NO assessment threshold — significance is a SELECTION criterion
-  // (a DE hit is not a pass/fail "verdict"), handled by `select` below. `assessment` is
-  // reserved for domains with a real quality gate (e.g. ADMET safety). See framework §4.
   metrics: [
     { name: 'log2FoldChange', source: /log2fold/i, label: 'log2 fold-change' },
     { name: 'padj',           source: /^(padj|p\.adj|fdr|bh|q\.value)$/i, label: 'adjusted p-value' },
   ],
-  select: { significant: { metric: 'padj', op: '<', value: 0.05 }, sortByAbs: 'log2FoldChange', topN: 16 },
+  select: { significant: { metric: 'padj', op: '<', value: 0.05 }, sort: { metric: 'log2FoldChange', mode: 'absDesc' }, topN: 16 },
   evidenceClass: 'Table',
 };
 
-export const DESCRIPTORS: PatternDescriptor[] = [ADMET, DESEQ2];
+// ── GO / pathway enrichment (go_term entity; smallest padj first) ──
+const ENRICHGO: PatternDescriptor = {
+  id: 'enrichgo',
+  match: { fileRegex: /enrichgo|enrich_go|go_enrich|clusterprofiler|gsea|pathway/i, contentIncludes: ['GeneRatio'] },
+  parse: 'csv',
+  entity: { type: 'go_term', column: /^(description|term|pathway|name)$/i },
+  metrics: [
+    { name: 'p.adjust',  source: /^(p\.adjust|padj|fdr|qvalue)$/i, label: 'adjusted p-value' },
+    { name: 'GeneRatio', source: /^(generatio|gene_ratio|ratio)$/i, label: 'gene ratio' },
+    { name: 'Count',     source: /^(count|gene_count)$/i, label: 'gene count' },
+  ],
+  select: { significant: { metric: 'p.adjust', op: '<', value: 0.05 }, sort: { metric: 'p.adjust', mode: 'asc' }, topN: 12 },
+  evidenceClass: 'Table',
+};
+
+// ── Rare-disease / annotated variants (variant entity; categorical IMPACT verdict) ──
+const VARIANT: PatternDescriptor = {
+  id: 'variant',
+  match: { fileRegex: /variant|annotated|vep|snpeff|filtered/i },
+  parse: 'autodelim',
+  entity: { type: 'variant', column: /gene|gene\.refgene|symbol/i, scheme: 'symbol' },
+  metrics: [
+    { name: 'IMPACT', source: /^(impact|severity)$/i,
+      categories: [
+        { match: /high/i, flag: 'liability', label: 'high-impact variant' },
+        { match: /moderate|^mod$/i, flag: 'neutral', label: 'moderate-impact variant' },
+        { match: /low|modifier/i, flag: 'pass', label: 'low-impact variant' },
+      ], label: 'predicted impact' },
+    { name: 'consequence', source: /func|consequence|exonicfunc/i, label: 'consequence' },
+  ],
+  select: { topN: 200 },
+  evidenceClass: 'Table',
+};
+
+export const DESCRIPTORS: PatternDescriptor[] = [ADMET_REPORT, ADMET, DESEQ2, ENRICHGO, VARIANT];
 
 /** Pick the first descriptor whose match hits for (workflowName, files). */
 export function matchDescriptor(
@@ -98,8 +154,8 @@ export function matchDescriptor(
   for (const d of DESCRIPTORS) {
     for (const f of files) {
       const nameHit = d.match.fileRegex ? d.match.fileRegex.test(f.name) || d.match.fileRegex.test(workflowName) : false;
-      const contentHit = d.match.contentIncludes ? d.match.contentIncludes.some(c => f.content.includes(c)) : false;
-      if (nameHit || contentHit) return { descriptor: d, file: f };
+      const contentHit = d.match.contentIncludes ? d.match.contentIncludes.every(c => f.content.includes(c)) : false;
+      if (nameHit || (d.match.contentIncludes && contentHit)) return { descriptor: d, file: f };
     }
   }
   return null;
