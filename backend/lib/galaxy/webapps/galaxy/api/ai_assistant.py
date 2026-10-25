@@ -1589,6 +1589,20 @@ def _validate_extracted_params(
         "auto": "auto",
     }
 
+    # Data-plane / IO params come from the user's uploaded data (or a dedicated SRA/GEO accession
+    # extractor), NEVER from free-text inference. An LLM routinely hallucinates a prose assay
+    # description into these (observed on param_prefill: input='RNA-seq' / 'FFPE tissue' /
+    # 'tumor-only' / 'WES'), which is never a valid file input and would break the run. We keep such
+    # a value ONLY when it is shaped like a real path / URL / glob / archive accession; otherwise drop.
+    _IO_DATAPLANE_PARAMS = {
+        "input", "input_dir", "outdir", "output_dir", "reads", "fasta", "fastq",
+        "bam", "cram", "vcf", "gtf", "gff", "gff3", "bed", "samplesheet", "sample_sheet",
+    }
+    _IO_SHAPE_RE = re.compile(
+        r"[\\/]|\*|://|\.\w{1,6}(\.(gz|bz2|zip|tar))?$|^(GSE|GSM|PRJ[A-Z]+|SAMN|SRR|ERR|DRR|SRP|ERP)\w+$",
+        re.I,
+    )
+
     validated: Dict[str, Any] = {}
     for name, value in extracted.items():
         v_str = str(value).strip()
@@ -1610,6 +1624,17 @@ def _validate_extracted_params(
                 validated[name] = canonical
             else:
                 log.warning("[ParamGuardrail] strandedness=%r not recognized — dropping", v_str)
+            continue
+
+        # Data-plane / IO params: keep only path/URL/glob/accession-shaped values; drop prose
+        if name in _IO_DATAPLANE_PARAMS:
+            if _IO_SHAPE_RE.search(v_str):
+                validated[name] = value
+            else:
+                log.warning(
+                    "[ParamGuardrail] %s=%r is not a path/URL/accession/glob — dropping hallucinated IO value",
+                    name, v_str,
+                )
             continue
 
         # Schema-declared allowed values

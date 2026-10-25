@@ -101,11 +101,26 @@ along; the benchmark measured the one configuration we never deploy. (Caveat: fa
 using the committed 9B LLM preds; the end-to-end `run_param_prefill.py` adapter against the live backend is
 the canonical measurement and should produce the official number.)
 
-**Concrete follow-up fix the merge surfaced:** must_not_fill violations are high (53→56) and come entirely
-from the LLM fallback over-filling forbidden params — the rule layer alone has only 4. `_validate_extracted_params`
-should take the workflow's `must_not_fill`/forbidden set and DROP those keys as a final guardrail (the rules
-already know restraint; the LLM doesn't). That turns ~56 violations into ~4 and is a real production
-robustness fix, not a benchmark edit.
+**Follow-up fix the merge surfaced — DONE (IO-param guardrail).** must_not_fill violations were high (56) and
+came almost entirely from the LLM fallback: 24/53 were a prose assay-description shoved into `input`
+(`input='RNA-seq'`/`'FFPE tissue'`/`'tumor-only'`/`'WES'`), which is never a valid file input. Added a
+data-plane guardrail to `_validate_extracted_params` (`ai_assistant.py`): IO params
+(`input`/`fasta`/`reads`/`bam`/`vcf`/`gtf`/`outdir`/samplesheet/…) are kept ONLY when the value is shaped like
+a path/URL/glob/archive-accession; prose is dropped (dedicated SRA/GEO extractors still handle real
+accessions/paths). Measured effect on the production merge:
+
+| | param F1 | precision | recall | must_not_fill viol |
+|---|---|---|---|---|
+| production rules+9B (before guardrail) | 0.803 | 0.812 | 0.793 | 56 |
+| **+ IO-param guardrail** | **0.843** | **0.900** | 0.793 | **27** |
+
++4pp F1, precision 0.81→0.90, violations halved, **zero recall loss** (no legitimate param dropped). Real
+production robustness fix (generalizes to every workflow with IO params), not a benchmark edit. NOTE: not yet
+synced — needs the Galaxy container module-load test + `sync_to_dev.sh` (local env lacks the `beaker` dep, so
+the full import test runs at sync; AST/syntax verified locally).
+
+**Net:** BioMate's real on-prem param_prefill is **≈0.84** (rules + 9B + guardrail), vs the published raw-LLM
+0.634 — **+21pp, zero retraining.**
 
 **Leaderboard action:** relabel the raw rows "on-prem 9B (raw LLM, no harness)" and add a
 "BioMate on-prem (rule layer + 9B)" row at F1≈0.81, or the public leaderboard keeps mis-stating BioMate's

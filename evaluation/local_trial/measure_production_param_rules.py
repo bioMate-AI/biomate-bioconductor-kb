@@ -63,15 +63,22 @@ def main():
     gt = [json.loads(l) for l in open(BENCH)]
     llm = {r["id"]: (r.get("prediction") or {}) for r in (json.loads(l) for l in open(LLM_PREDS))}
 
-    def rules_only(r):
+    def _ap(r):
         wp = r.get("expected_params", {}) or {}; mnf = r.get("must_not_fill") or []
-        ap = [{"name": k} for k in (set(wp) | set(mnf))]
-        try: return val(rbpi(r["user_query"], ap), ap) or {}
+        return [{"name": k} for k in (set(wp) | set(mnf))]
+    def rules_only(r):
+        try: return val(rbpi(r["user_query"], _ap(r)), _ap(r)) or {}
         except Exception: return {}
     def raw_llm(r): return llm.get(r["id"], {})
     def production(r):
-        out = dict(raw_llm(r)); out.update(rules_only(r))  # rules WIN (production setdefault semantics)
-        return out
+        # Mirror production ai_assistant.py:2139/2224/2232: rules run first + win; LLM fills the
+        # residual; the FINAL merged dict passes through _validate_extracted_params (the guardrail).
+        ap = _ap(r)
+        try: rule = rbpi(r["user_query"], ap) or {}
+        except Exception: rule = {}
+        merged = dict(raw_llm(r)); merged.update(rule)   # rules win
+        try: return val(merged, ap) or {}
+        except Exception: return merged
 
     for lab, g in [("raw on-prem 9B (leaderboard shows this)", raw_llm),
                    ("rule layer ALONE (no LLM)", rules_only),
