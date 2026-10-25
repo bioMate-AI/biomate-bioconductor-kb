@@ -174,3 +174,19 @@ Safety check before reusing build1's copy: build1's `in/ff/charmm36m-mut.ff` is 
 (develop HEAD 0dd5f0a, 2026-07-28), i.e. what build2's builder installed. (My first comparison used the wrong branch/directory — `mutff45dna`, 2024 — and was discarded.)
 Fixes: (i) `build_fep_setup.sh` now stages `$MUTFF/charmm36m-mut.ff` to `in/ff/` and withholds the sentinel if that fails; (ii) `fep_batch.dispatch_equilibration` refuses unless
 `in/ff/charmm36m-mut.ff/forcefield.itp` exists (verified: it refused build2 before the copy); (iii) build2's `in/ff/` populated from build1 (26 files).
+
+## 10. GPU stage 1 RESULT (restrained equilibration, job 71604d50…, 25 min) — scored against §9
+`complex:EQUIL_OK`, 0 LINCS warnings, 0 fatal; EM converged (Fmax < 1000 in 8,737 steps); NPT T 300.0 K, 1040 kg/m³, 2.2 bar.
+`validate_mn_coordination.py --mode post` on em / em_fixed / nvt / npt: **PASS 0/3 failing at every stage.** Mn1: 6 protein O at 2.09–2.16 Å; Mn2: 6 O at 2.09–2.16 Å;
+**Mn3 (MIDAS-like): 6–7 O, in contact with ligand Asp1071 OD2 (2.10–2.20 Å)** — the 0.82 Å clash resolved. Matches the "most likely (≈60 %)" branch of §9; neither failure branch occurred.
+**What this is NOT:** a validation — only 3 of Mn3's 6–7 contacts were restrained (Asp1071 OD2, Glu818 OE2, Ser720 OG), and Mn1/Mn2 contacts at ≥1.8 Å satisfy the strict ≥2-O criterion trivially under restraint.
+**What is notable:** Mn3's contacts to Asp718 (OD2 2.13→2.16 Å), Asp849 (OD1 2.14→2.21 Å) and Glu818 OE1 (2.20→2.12 Å) were NOT restrained and formed during minimisation; Asp718 and Ser720 fit the integrin MIDAS
+DxSxS motif (D718-x-S720-x-S722 in this file's numbering — not checked against UniProt numbering). Suggests a chemically sensible site; says nothing about stability without restraints.
+
+## 11. GPU stage 2 — UNRESTRAINED 1 ns continuation (the actual metal-model screen). Predictions written BEFORE submitting.
+`fep_batch.py --mn-validate --ns=1.0 --run-id=avb6-fep-ctrl-build2 --submit`: continues from the restrained npt.gro/cpt with **no** `MN_RESTRAIN`/`POSRES`, bonded CaDA, dt 0.5 fs; non-water frames every 50 ps (21 frames);
+spot restarts from scratch. ≈ 1.2 h, ≈ $2–4.
+- **Pass rule (screen only):** in EVERY dumped frame each Mn has ≥ 2 protein/ligand O within 3.0 Å and none closer than 1.8 Å; cage M–D stays 0.90 ± 0.02 Å; no LINCS/fatal. A pass is "structural-stability screen passed", never "metal model validated".
+- **Priors:** job completes cleanly ≈ 85 %; all three Mn keep ≥ 2 O in all 21 frames ≈ 70 %; Mn3 still contacts ligand Asp1071 (< 3.0 Å) in the last frame ≈ 60 %; Mn1/Mn2 stay 6-coordinate (≥ 5 O) ≈ 60 %; cage intact ≈ 90 %.
+- **If Mn3 loses the ligand Asp** (while keeping ≥ 2 O): informative, not a crash — the MIDAS–ligand contact is exactly what the binding free energy needs; would motivate 10 ns × 3 and a re-pose from 8TCG/4UM9/9XMM.
+- **If any Mn leaves (< 2 O) or the cage breaks:** the CaDA model does not hold this site without help; FEP stays masked.
