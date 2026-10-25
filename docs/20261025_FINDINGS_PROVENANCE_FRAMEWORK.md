@@ -213,6 +213,11 @@ run outputs ──► classify output file(s) by shape ──► ADAPTER (declar
   A `pass` is not an overall-safety conclusion. No rejected "model prediction, not a
   measured result" sentence. Retain threshold flags as findings on a **completed** run —
   never a fabricated pause (ties to the QC-vs-execution fix already shipped in PR #298).
+- **`assessment` is a quality-gate verdict, distinct from SELECTION.** A domain with a real
+  gate (ADMET safety) attaches a threshold → pass/liability. Where a cutoff only *selects
+  which entities to show* (DE padj < 0.05 picks significant genes; a hit is not a pass/fail
+  verdict), it belongs in `PatternDescriptor.select`, **not** `assessment.threshold` — else
+  a significant gene is wrongly framed as a "liability". (Found while porting DESeq2.)
 
 **Chat vs. panel split**
 - **Chat completion answer** = concise, entity-aware highlight (flagged liabilities / top-N
