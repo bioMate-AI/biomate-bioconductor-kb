@@ -73,6 +73,29 @@ today vs which backend contract is pending (agree with engineering before depict
 action). Not a generalized production renderer until the schema lands — so no hardcoded
 compounds, no per-workflow layouts.
 
+## Open questions for Design (please weigh in — these shape the data contract)
+
+The engineering contract (`FindingRecord`) is a proposal, not frozen. Your answers to these
+change it, so decide them before I finalize the extractor:
+
+1. **Grouping** — group by entity (compound → its metrics) or by metric (metric → all
+   entities)? ADMET is 3 compounds × ~10 metrics; DESeq2 is top-16 genes × 2 metrics. One
+   layout for both, or switch by cardinality?
+2. **Batch / global rows** — how should a value that belongs to *no* entity (panel hERG
+   IC50 432.4246 µM) sit relative to per-entity rows: a separate "panel" section, a
+   footnote, an inline-flagged row?
+3. **Provenance footer** — one shared footer resolving all sources, or per-entity
+   provenance when entities come from different files? What is the row→Outputs link
+   affordance?
+4. **Flag vocabulary** — is `pass | liability | neutral` enough, or do you want a
+   domain-neutral "notable/attention" state? (A significant DE gene is a hit, not a safety
+   "liability" — see framework §4.)
+5. **State density** — which of {per-entity, batch, global, unresolved, censored,
+   generating, unavailable} need distinct visual treatment vs. a shared pattern?
+
+Mark any field you need that the contract lacks, or any contract field that has no home in
+the layout — that feedback reshapes the schema before code lands.
+
 ## Fixed (do not change)
 
 Three after-run tabs; five evidence classes; one owner per control; chat stays concise
