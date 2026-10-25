@@ -80,12 +80,36 @@ EM either converges with a displaced Asp/Glu (then `--mode post` decides) or fai
 informative, not a regression. If the gate prints UNBOUND anywhere, the frame assumption is wrong and the build must
 not proceed.
 
+### 5b. Relaxation design (implemented, opt-in) — decision taken: restrained relaxation first
+Chosen over re-posing because it is the cheapest test and reuses the existing pipeline; re-posing from 8TCG/4UM9/9XMM stays
+the fallback if the relaxed site does not hold unrestrained.
+- **Build (`build_fep_setup.sh`, complex leg):** after genion, append an `#ifdef MN_RESTRAIN` block of soft harmonic Mn…O
+  bonds (`[ intermolecular_interactions ] [ bonds ]`, type 6, kb = 2000 kJ/mol/nm², global atom indices) for every protein/ligand
+  O within 2.7 Å of a Mn in the input frame. **Per-pair b0 = clamp(input distance, 0.205, 0.240 nm)**: contacts already in the
+  physical window feel zero force; only clashed or stretched ones are pulled to the window edge. Production tprs never define
+  `MN_RESTRAIN`, so production topologies are unchanged.
+- **Build-time proof:** an extra `grompp` with `define = -DMN_RESTRAIN` must succeed (`complex_EM_RESTR_TPR_OK`), else exit 30 —
+  a bad index or syntax error is caught on the CPU box, not in a GPU job.
+- **Equil (`fep_batch.py --equil --mn-restrain`):** defines `MN_RESTRAIN` in em/nvt/npt for the complex leg only; outputs go to
+  `equil_out*_mnrestr/` and never clobber an unrestrained run.
+- **Dispatch guard:** a real submit for the complex leg is **refused** unless `in/complex/mn_site_gate.txt` exists (written only
+  when every Mn passed the pre-EM gate). Verified: a submit attempt on `avb6-fep-ctrl-build1` is refused before any job exists.
+- **Launcher:** `build_fep_inputs.sh` now defaults to `RUN_ID=avb6-fep-ctrl-build2` and refuses to overwrite a run that already has
+  `FEP_INPUTS_READY` (override: new `RUN_ID=` or `FORCE=1`). `avb6-fep-ctrl-build1` is preserved as the record of the metal-free run.
+- **Restraints are not a validation.** A restrained run proves only that the site can be assembled without blowing up. The metal model
+  is validated only by an **unrestrained** continuation that keeps coordination (still to be built — to-do 4b).
+
+**Local test of the generator** (extracted verbatim from the script, run on the real input-frame structure): 14 restraint pairs for
+3 Mn — **Mn1: 6, Mn2: 5, Mn3: 3** — every index verified to be an (Mn centre → O) pair; Mn3's two clashed contacts get b0 = 0.205 nm,
+in-window contacts keep b0 = their input distance (0.210–0.240). *Correction to my own earlier note:* I had expected 4/4/3 because I
+had read only the four nearest O per Mn; the 2.7 Å rule also picks up Asp238 OD2 / Asp230 OD1 (Mn1) and Asp349 OD1 (Mn2).
+
 ## 6. To-do (ordered; items 2+ need an explicit go because they spend spot compute)
 1. ✅ Root-cause fix + gate + validator + tests (this commit).
 2. **Pick the Mn3 relaxation strategy (§5)** — design decision, no compute.
 3. Rebuild the complex leg (CPU preflight on Batch) → read the `MN_SITE` lines → confirm predictions above.
-4. Re-equilibrate (bonded CaDA, small dt) → `validate_mn_coordination.py --mode post` on em/nvt/npt, then ≥ 1 ns
-   unrestrained: per-Mn Mn–O(protein/ligand) distances 2.0–2.6 Å, coordination number, cage M–D / angles. Acceptance
+4a. Re-equilibrate **with** `--mn-restrain` (bonded CaDA, small dt) → inspect em/nvt/npt with `validate_mn_coordination.py`.
+4b. **Unrestrained continuation (NOT YET BUILT)** → `--mode post`, ≥ 1 ns: per-Mn Mn–O(protein/ligand) distances 2.0–2.6 Å, coordination number, cage M–D / angles. Acceptance
    = every Mn keeps ≥ 2 protein/ligand O for the whole run and the cage holds. **This is the actual metal-model validation.**
 5. Only then re-run the YY→FF control against the measured **−0.95 kcal/mol**, and the metal-perturbing Asp→Ala edge
    (`EDGE_MUTS='P 2 ALA'`, already stubbed). Report sign **and** magnitude; no "recovered ≈0" framing.
@@ -103,3 +127,12 @@ not proceed.
   and a second dataset for robustness. It is informational only for surface targets.
 - Cyclic-LLM manuscript: the display-selector result is circular (abundance null); the FEP wording has been corrected twice
   (−0.95 measured; and now: the control ran on a metal-free pocket).
+
+## 7. Runbook (what needs you vs. what I can run)
+Only EC2 launches need you (the in-session agent cannot call `run-instances`); I can submit the Batch job and read S3.
+1. **You:** `! bash research/guangzhou_all_atom/fep/build_fep_inputs.sh` — spot CPU, self-terminates ≤ 90 min, writes `…/avb6-fep-ctrl-build2/`.
+2. **Me:** read `…/build2/fepbuild_stdout.txt`. **Predictions (written before running):**
+   `MN_SITE res=1 … OK`, `res=2 … OK`, `res=3 … CLASH(warn) minO=0.82`; `MN_RESTR_OK pairs=14 for 3 Mn`; `complex_EM_RESTR_TPR_OK`;
+   `FEP_INPUTS_READY`. Any `MN_UNBOUND` means the frame assumption is wrong → stop. Any `MN_RESTR_GROMPP_FAIL` = restraint syntax/index
+   problem → fix on CPU, no GPU spent.
+3. **Me (after your go, spot GPU):** `python3 cyclic_llm/fep_batch.py --equil --legs=complex --mn-restrain --run-id=avb6-fep-ctrl-build2 --submit`.

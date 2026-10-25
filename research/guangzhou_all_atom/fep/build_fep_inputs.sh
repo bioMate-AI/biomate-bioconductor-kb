@@ -6,11 +6,19 @@
 # Bounded + safe (identical to launch_preflight.sh): SPOT only (one-time), terminate-on-shutdown,
 # 50 GB gp3, 90-min hard self-terminate, IAM profile ec2-ecr-builder-profile (S3). CONTROL EDGE ONLY.
 # On success it writes the sentinel  <DEST>/in/FEP_INPUTS_READY ; then the agent runs fep_batch.py --submit.
+# Usage: bash fep/build_fep_inputs.sh            (RUN_ID defaults to avb6-fep-ctrl-build2; override with RUN_ID=...)
 set -euo pipefail
 
 REGION=us-west-2
 SRC="s3://biomate-nextflow-work/cyclic_peptide/fep/preflight-1792465588/in"      # precursor PDBs + itp + mdp
-DEST="s3://biomate-nextflow-work/cyclic_peptide/fep/avb6-fep-ctrl-build1"        # FEP inputs out (run_id=avb6-fep-ctrl-build1)
+# RUN_ID: NEVER reuse a run id that already has results. avb6-fep-ctrl-build1 holds the equil/ddG artifacts of the
+# 2026-10-20 build whose Mn were NOT at the binding site (docs/20261025_CADA_MN_METAL_MODEL_VALIDATION.md); it is kept
+# intact as the record of that run. The Mn-frame fix is built as build2.
+RUN_ID="${RUN_ID:-avb6-fep-ctrl-build2}"
+DEST="s3://biomate-nextflow-work/cyclic_peptide/fep/$RUN_ID"                       # FEP inputs out
+if aws s3 ls "$DEST/in/FEP_INPUTS_READY" --region $REGION >/dev/null 2>&1 && [ "${FORCE:-0}" != "1" ]; then
+  echo "REFUSING: $DEST/in/FEP_INPUTS_READY already exists (would overwrite a finished build). Pick a new RUN_ID=..., or FORCE=1."; exit 3
+fi
 SG=sg-0de9af2d4437a8c90
 PROFILE=ec2-ecr-builder-profile
 SETUP_LOCAL="$(cd "$(dirname "$0")" && pwd)/preflight/build_fep_setup.sh"
@@ -89,4 +97,4 @@ echo "  aws s3 cp $DEST/fepbuild_stdout.txt - --region $REGION    # STAGE_*:OK/F
 echo "  aws s3 ls $DEST/in/ --region $REGION                       # FEP_INPUTS_READY sentinel = success"
 echo "Confirm terminated:"
 echo "  aws ec2 describe-instances --instance-ids $IID --region $REGION --query 'Reservations[].Instances[].State.Name' --output text"
-echo "Then the agent runs: python3 cyclic_llm/fep_batch.py --submit --run-id=avb6-fep-ctrl-build1"
+echo "Then the agent runs: python3 cyclic_llm/fep_batch.py --submit --run-id=$RUN_ID"

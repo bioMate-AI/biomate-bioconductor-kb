@@ -64,7 +64,7 @@ def _boto(svc):
     return boto3.client(svc, region_name=REGION)
 
 
-def _equil_command(in_s3, out_s3, legs="solvent complex", metal_model="bonded"):
+def _equil_command(in_s3, out_s3, legs="solvent complex", metal_model="bonded", mn_restrain=False):
     """SHORT equilibration ONLY (em -> NVT -> NPT), on the staged inputs. NOT production FEP.
     Image ENTRYPOINT is ['/bin/bash','-c'] -> the command MUST be a SINGLE script string.
 
@@ -81,6 +81,12 @@ def _equil_command(in_s3, out_s3, legs="solvent complex", metal_model="bonded"):
     # GROMACS 2024/tpx-133: "reading tpx file version 138 with version 133 program"). Chain fails loudly:
     # the && chain stops at the first failed stage, RC propagates, and the job exits non-zero so a Batch
     # SUCCEEDED means NVT+NPT genuinely completed. Logs are uploaded on success AND failure.
+    # mn_restrain (opt-in, COMPLEX leg only): define MN_RESTRAIN in em/nvt/npt so the soft Mn..O restraint block that
+    # build_fep_setup.sh appended to fep.top (inside #ifdef MN_RESTRAIN) is ACTIVE. Used to relax the cofold MIDAS-Mn clash
+    # (docs/20261025_CADA_MN_METAL_MODEL_VALIDATION.md sec.5). Restraints are NOT a validation: the metal model is only
+    # validated by an UNRESTRAINED continuation that keeps its coordination (fep/validate_mn_coordination.py --mode post).
+    mnr = ("printf '\\ndefine = -DMN_RESTRAIN\\n' >> em.mdp; sed -i 's/^define .*/define = -DPOSRES -DMN_RESTRAIN/' nvt.mdp; "
+           "printf '\\ndefine = -DMN_RESTRAIN\\n' >> npt.mdp; echo MN_RESTRAIN_ON; ") if mn_restrain else ""
     s = (
         "set -x; export PATH=$PATH:/usr/local/gromacs/bin; source /usr/local/gromacs/bin/GMXRC 2>/dev/null || true; "
         "(command -v aws || pip install -q awscli 2>/dev/null) >/dev/null 2>&1 || true; "
@@ -95,6 +101,7 @@ def _equil_command(in_s3, out_s3, legs="solvent complex", metal_model="bonded"):
         "  NVTC=em.gro; "
         # ---- COMPLEX leg metal-model handling ----
         "  if [ \"$leg\" = complex ]; then "
+        f"    {mnr}"
         "    if [ \"$METAL\" = vsite ]; then "
         # vsite CaDA = rigid cluster -> STANDARD dt=2fs (same protocol as the working solvent leg); swap the itp
         "      cp /work/in/cada_mn_vsite.itp cada_mn.itp && echo 'VSITE_ITP_SWAPPED'; "
@@ -145,17 +152,19 @@ def _equil_command(in_s3, out_s3, legs="solvent complex", metal_model="bonded"):
     return [s]
 
 
-def dispatch_equilibration(run_id, dry_run=True, legs="solvent complex", metal_model="bonded"):
+def dispatch_equilibration(run_id, dry_run=True, legs="solvent complex", metal_model="bonded", mn_restrain=False):
     """Dispatch the SHORT equilibration job to the GROMACS GPU-spot job-def. Requires the FEP_INPUTS_READY
     sentinel; gated by EQUIL_CMD_READY. `legs` selects legs; `metal_model` = bonded (small-dt) | vsite (2fs)."""
     base = f"s3://{BUCKET}/{PREFIX}/{run_id}"
     # separate output prefix per metal model so the bonded cross-check and the vsite run don't clobber
     out_dir = "equil_out" if metal_model == "bonded" else f"equil_out_{metal_model}"
+    if mn_restrain:
+        out_dir += "_mnrestr"      # restrained-relaxation outputs never clobber an unrestrained run
     in_s3, out_s3 = f"{base}/in/", f"{base}/{out_dir}/"
     payload = dict(
         jobName=f"equil-{metal_model}-{run_id}".replace("_", "-")[:120],
         jobQueue=QUEUE, jobDefinition=JOBDEF,
-        containerOverrides=dict(command=_equil_command(in_s3, out_s3, legs=legs, metal_model=metal_model)),
+        containerOverrides=dict(command=_equil_command(in_s3, out_s3, legs=legs, metal_model=metal_model, mn_restrain=mn_restrain)),
         # Spot resilience: auto-retry a SPOT RECLAIM (host terminated), but EXIT on a real non-zero
         # container exit so a true physics/LINCS crash still fails loudly (not retried into the same wall).
         retryStrategy=dict(attempts=3, evaluateOnExit=[
@@ -178,6 +187,17 @@ def dispatch_equilibration(run_id, dry_run=True, legs="solvent complex", metal_m
                 "validated": validated, "in_s3": in_s3, "result_prefix": out_s3}
     if not EQUIL_CMD_READY:
         return {"submitted": False, "REFUSED": "EQUIL_CMD_READY is False"}
+    if "complex" in legs.split():
+        # CaDA-Mn frame-fix gate (2026-10-25): inputs built before the fix put the Mn in bulk water (31-37 A from the
+        # site), so equilibrating them proves nothing about the metal. build_fep_setup.sh now stages mn_site_gate.txt
+        # only when every Mn passed the pre-EM coordination gate.
+        try:
+            _boto("s3").head_object(Bucket=BUCKET, Key=f"{PREFIX}/{run_id}/in/complex/mn_site_gate.txt")
+        except Exception:
+            return {"submitted": False,
+                    "REFUSED": f"{run_id}: no in/complex/mn_site_gate.txt -> these inputs predate the Mn frame fix (Mn were not at "
+                               "the binding site). Rebuild with fep/build_fep_inputs.sh (new RUN_ID). "
+                               "See docs/20261025_CADA_MN_METAL_MODEL_VALIDATION.md"}
     try:
         _boto("s3").head_object(Bucket=BUCKET, Key=f"{PREFIX}/{run_id}/in/FEP_INPUTS_READY")
     except Exception:
@@ -286,7 +306,8 @@ if __name__ == "__main__":
     if "--equil" in sys.argv:          # SHORT equilibration (em->nvt->npt); NOT production ddG
         legs = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--legs=")), "solvent complex").replace(",", " ")
         metal = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--metal=")), "bonded")
-        out = dispatch_equilibration(run_id=rid, dry_run=not submit, legs=legs, metal_model=metal)
+        out = dispatch_equilibration(run_id=rid, dry_run=not submit, legs=legs, metal_model=metal,
+                                     mn_restrain=("--mn-restrain" in sys.argv))
     else:                              # FULL per-lambda production ddG (stays guarded by MDRUN_CMD_READY)
         out = dispatch_control_edge(run_id=rid, dry_run=not submit)
     print(json.dumps(out, indent=2, default=str))
