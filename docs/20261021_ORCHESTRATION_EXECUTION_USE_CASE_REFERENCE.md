@@ -174,23 +174,49 @@ prove the step1→step2 mechanism at minimal Batch cost. Fixture login on
   blocked-on-failure flow works end-to-end. [proven]
 - **Handoff NOT exercised** — step 1 produced no output, so no step1→step2 param
   resolution occurred. [still UNPROVEN]
-- **Defect surfaced:** the ADMET step failed at/near launch — `run_id` is absent from
-  `execution_runs` (`/api/workflows/runs/<id>` → "not found"), `outdir` domain segment is
-  `unknown`, `artifacts: {}`. The chain executor resolves `nextflow_path` relative to a
-  workflows root (`workflow_chain.py:431-437`: tries `backend/<path>` …); the DB
-  `filename` path `nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf`
-  likely does not resolve to the actual file (found earlier at
-  `backend/biomni_workflows/nextflow/subworkflows/pharmacology/predict_admet_properties.nf`).
-  Needs the dev backend error log for run `ae8dc627` (SSM) to confirm path-resolution vs.
-  `smiles_list` format.
+- **Root cause (confirmed via dev galaxy.log, run `ae8dc627`) — NOT path resolution.**
+  My earlier path hypothesis was WRONG: the path resolved and Nextflow actually launched
+  (`/app/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf -profile aws --smiles_list CC(=O)...,CN1... --ADMET_model_type MPNN`),
+  then exited 1 in ~13 s with `ERROR ~ Unable to determine the current character ... read is 'C' ... CC(=O)Oc1ccccc1C(=O)O,CN1... (main.nf line 845)`.
+  The workflow **JSON-parses `smiles_list`** (expects a JSON array `["s1","s2"]`); I passed a
+  **comma-joined string**. This is a **harness-input error, not a BioMate bug** — and it is
+  exactly the list-param shape the repo already guards
+  (`backend/tests/test_nextflow_executor_list_param_json.py`): pass the param as a real
+  **list** and the executor `json.dumps`es it.
+- Separate real observation (not the cause): the chain path logs **`domain=unknown`**
+  (outdir `.../unknown/...`, QC `domain=unknown`) — it drops the workflow's `drug_discovery`
+  domain the single-run path resolves. Worth fixing (domain-correct QC/outdir on chain
+  steps) but did not cause this failure.
 
-**Net:** the orchestration *control plane* is now evidenced end-to-end against real dev
-(submit → launch → blocked-on-failure), moving those rows from UNPROVEN toward proven;
-the *output→input handoff* remains unproven pending a step-1 success. Next: get the
-run-`ae8dc627` backend error (path resolution is the leading hypothesis), fix the step
-path, re-run the cheap chain to show the handoff, then the RNA-seq→DESeq2 UC-1.
+### 7.2 — Re-run 2026-10-24 (corrected JSON-array smiles): sequential execution PROVEN, value handoff is a DEFECT
 
-_(UC-1 RNA-seq→DESeq2 still pending — to run after the cheap-chain handoff is green.)_
+`chain_run_id=chain_1792888760_9e17a4`, both steps succeeded:
+- step 0 ADMET `run_id=d5fda65f-47af-430e-8817-1ae36c2e5592` → **succeeded** (~2 min).
+- step 1 CiPA `run_id=08ef3812-57a7-4c1c-93d5-3d06291e8383` → **auto-launched after step 0,
+  succeeded** (~150 s, 5 outputs). Chain status `succeeded`.
+
+**✅ PROVEN (moves the UNPROVEN-E2E rows to proven):** the sequential executor runs **≥2
+real workflows to completion from one chain request** — step 0 finishes, step 1 launches
+automatically, both complete against real AWS Batch. The "≥2 real workflows run to
+completion" and "works against real Nextflow/AWS Batch" rows in §5 are now evidenced.
+
+**❌ DEFECT — the output→input VALUE handoff did NOT work.** The step-1 launch command
+(dev galaxy.log) was `--herg_ic50_nM {{step1.herg_ic50_nM}} --cmax_nM {{step1.cmax_nM}}` —
+i.e. CiPA ran with the **literal template strings**, not step 0's hERG value; **no
+`_apply_connection_handoffs`/`_resolve_outputs_for_run` lines fired**. step 1 succeeded only
+because CiPA tolerated/defaulted the unparsed param. Root cause (hypothesis, from §3.2):
+the handoff resolves prior-run **output FILES** into file params, but `herg_ic50_nM` is a
+**scalar inside** an ADMET JSON output, and the `{{stepN.field}}` scalar templating is not
+actually substituted by the executor. So **scalar value handoff is unwired** — only
+output-file resolution exists, and it did not apply here.
+
+**Net (honest):** control plane + **sequential multi-workflow execution to completion** are
+now proven against real dev; the **scalar output→input handoff is a real, newly-surfaced
+defect** (step 2 ran on a template literal). This is exactly the kind of gap §7 live
+validation exists to find. Next: fix scalar handoff (resolve `{{stepN.field}}` from the
+prior run's parsed JSON outputs, or document that only file-level handoff is supported),
+re-prove with a value check, then the RNA-seq→DESeq2 UC-1 (file-level handoff — the count
+matrix IS a file, so it may already work).
 
 ---
 
