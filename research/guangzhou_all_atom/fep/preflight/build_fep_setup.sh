@@ -89,7 +89,13 @@ open('peptide_rot.pdb','w').write('\n'.join(out)+'\nEND\n')
 import sys; print('ROT_OK sites new5=%s new8=%s'%(out and [l[17:20].strip() for l in out if int(l[22:26])==5][0], [l[17:20].strip() for l in out if int(l[22:26])==8][0]))
 PYEOF
 if [ -f peptide_rot.pdb ]; then R rotate OK "$(cat rotate.out)"; else R rotate FAIL "$(tail -3 rotate.out)"; exit 0; fi
-printf "P 5 PHE\nP 8 PHE\n" > muts.txt   # Tyr sites after cyclic-origin rotation (orig Tyr1->new8, Tyr7->new5)
+# EDGE_MUTS: newline-separated pmx `mutate` lines in ROTATED resid numbering (order=[3,4,5,6,7,8,9,1,2],
+# so orig resid k -> new position order.index(k)+1). Default = CONTROL edge Y1F+Y7F
+# (orig Tyr1->new8, Tyr7->new5). Override for other edges on the SAME 9-mer ring, e.g.
+#   EDGE_MUTS='P 2 ALA'   = RGD Asp4->Ala (orig D4 -> new2): the affinity-abolishing POSITIVE-control edge.
+# Only single-residue swaps that keep the 9-mer ring are pmx-tractable here (ring-size changes are NOT).
+if [ -z "${EDGE_MUTS:-}" ]; then printf "P 5 PHE\nP 8 PHE\n" > muts.txt; else printf "%b\n" "$EDGE_MUTS" > muts.txt; fi
+R muts OK "edge='${EDGE_ID:-control Y1F+Y7F}' muts=[$(tr '\n' ';' < muts.txt)]"
 
 add_cyclic_junction(){ # $1=topfile : fully parameterize the head-to-tail junction in the PEPTIDE moleculetype
   # Adds the cross-boundary bond + angles + proper dihedrals + impropers between the peptide's last residue
