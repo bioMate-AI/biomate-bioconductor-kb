@@ -250,6 +250,41 @@ not integrity of the underlying computation.
   abundance-null + CI-crosses-zero caveats in every excerpt. Re-check any already-produced derivative for
   pre-rescope "physics-verified"/SOTA/"WIN" language.
 
+## Addendum (2026-10-24) — M1 re-run outcome + PRE-REGISTERED improvement analyses
+
+**Re-run outcome (commit `bd4449950`).** Implementing the committee's 6 charge fixes + construct-level
+estimand + pinned bootstrap **collapsed the M1 headline**: the prior GBM LOTO ρ=0.269 (p=0.036) was largely
+a **charge-feature artifact** (a free N-terminal amine counted on N-terminally chelator-conjugated peptides).
+Corrected construct-level GBM ρ = **−0.258** (pinned CI [−0.545, +0.091], p=0.108); net-charge ≈ 0; grey-box
++0.14 (p=0.40). Dropping the (corrected) charge feature now *raises* the score → it no longer carries signal.
+**The paper's central claim — cross-target structural generalization — is not supported by the corrected
+analysis**, consistent with the study protocol's own §13 ("≈0 at full target diversity").
+
+**Pre-registered improvement analyses (decided and written BEFORE running, to avoid garden-of-forking-paths).**
+The user directed: improve method/data if the result is not as expected. The following is the complete,
+fixed set we will run **once** and report in full regardless of outcome; no config search, no post-hoc
+selection. Primary metric throughout = construct-level mean-per-class Spearman with the pinned cluster
+bootstrap CI + permutation p (same estimator as the corrected re-run).
+1. **Confound-controlled stratum:** restrict to the ¹⁷⁷Lu-DOTA therapy constructs (radiometal + chelator
+   fixed), LOTO within that stratum. Hypothesis: a genuine *target-agnostic* structural retention term should
+   appear more cleanly once the radiometal/chelator confound is removed. Report feasibility (per-class n) too.
+2. **Fixed-timepoint:** restrict to a single imaging window (the modal timepoint) so the transfer signal
+   cannot be the within-molecule time trend (the largest ablation). Report the n retained.
+3. **Fuller feature set + fair baselines:** add logD / MW / TPSA / basic-residue count + a receptor-kidney-
+   expression flag (PSMA/SSTR2/GRPR kidney-expressed vs not), and run the full single-feature baseline set
+   (not just signed/|charge|), so "structure-learnable" is a fair comparison.
+4. **Model selection by nested CV:** GBM vs ridge/logistic-linear vs the mechanistic grey-box, chosen by
+   nested CV, all reported.
+
+**Pre-committed decision rule.** If (1) — the confound-controlled stratum — yields a construct-level signal
+whose pinned cluster CI excludes zero AND permutation p<0.05, we report that as the (narrower, honest)
+defensible result and rescope the paper to it. **If all four remain null/negative, the honest conclusion
+stands: cross-target structural transfer is not demonstrated at this scale**, and M1 is reframed as a
+**dataset + evaluation-protocol + negative/cautionary resource paper** (net-charge heuristic fails; naive
+structure-ML does not transfer cross-target; the earlier positive was a charge artifact; interpretable
+grey-box provided) — a legitimate contribution, not an over-claimed one. We will NOT keep searching configs
+to manufacture a positive.
+
 ## Change log
 - 2026-10-24 — Created from a 4-lens peer-review committee (A nuclear-medicine, B biostatistics [re-ran
   pipeline], C peptide/comp chemistry+FEP, D integrity [re-ran pipeline]). Decisions: M1 Major (4/4), M2
