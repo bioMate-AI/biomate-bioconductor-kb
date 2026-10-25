@@ -155,3 +155,13 @@ now centred on receptor+peptide+Mn, so the water/ion count differs slightly.)
 
 Still true: `grompp` succeeding does **not** show EM converges from the 0.82 Å Mn3 clash. The restrained equilibration is the first
 step that tests that; the unrestrained run (`fep_batch.py --mn-validate`, built, not run) is the metal-model test. Neither has been submitted.
+
+## 9. GPU stage 1 — restrained equilibration of build2 (submitted 2026-10-25; predictions written BEFORE the run)
+`python3 cyclic_llm/fep_batch.py --equil --legs=complex --mn-restrain --run-id=avb6-fep-ctrl-build2 --submit` → spot queue, complex leg only, bonded CaDA
+(EM → octahedron re-idealisation → NVT 20 ps @ 0.2 fs → NPT 100 ps @ 0.5 fs), `-DMN_RESTRAIN` active in all three. Output: `…/build2/equil_out_mnrestr/complex/`.
+Pre-run review: staged `fep.top` ends with the restraint block (Mn3 centre index 16435 = 16421 + 14, consistent); dry-run payload checked; restraints appear only in the 3 intended places.
+- **Cost/time:** ≈ 20–30 min wall, < $1 (NVT ran 8.3 ns/day at 0.2 fs in build1).
+- **Most likely (≈ 60 %):** `complex:EQUIL_OK`; `validate_mn_coordination.py --mode post` on em/nvt/npt: Mn1 and Mn2 OK (≥ 2 protein/ligand O, min ≥ 1.8 Å), Mn3 OK with Asp1071 contact after the restraint pulls OD2/OE2 out to ~2.05–2.4 Å.
+- **≈ 25 %:** job completes but Mn3 stays CLASH (< 1.8 Å) because EM resolves the LJ/Coulomb overlap by moving other atoms before the 20 kJ/mol restraints win → next step would be the re-pose option (8TCG/4UM9/9XMM), not more restraint.
+- **≈ 15 %:** EM/NVT blow-up (LINCS/fatal) from the 0.82 Å start → informative; no unrestrained run is submitted.
+- **Not a validation either way:** restraints hold the geometry by construction. The unrestrained continuation (`--mn-validate`) decides.
