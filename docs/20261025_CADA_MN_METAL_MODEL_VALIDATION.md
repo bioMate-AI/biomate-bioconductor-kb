@@ -165,3 +165,12 @@ Pre-run review: staged `fep.top` ends with the restraint block (Mn3 centre index
 - **≈ 25 %:** job completes but Mn3 stays CLASH (< 1.8 Å) because EM resolves the LJ/Coulomb overlap by moving other atoms before the 20 kJ/mol restraints win → next step would be the re-pose option (8TCG/4UM9/9XMM), not more restraint.
 - **≈ 15 %:** EM/NVT blow-up (LINCS/fatal) from the 0.82 Å start → informative; no unrestrained run is submitted.
 - **Not a validation either way:** restraints hold the geometry by construction. The unrestrained continuation (`--mn-validate`) decides.
+
+### 9a. First submission failed for an input I had not staged (not a physics result) — fixed, resubmitted
+Job `af424862…` FAILED after 1.5 min at grompp: `cp: cannot stat '/work/in/ff/charmm36m-mut.ff'` → `Topology include file "charmm36m-mut.ff/forcefield.itp" not found`.
+Root cause: the equilibration/production containers copy the force-field library from `in/ff/`, but `build_fep_setup.sh` never staged it — build1 had it by hand (an
+undocumented manual step). **No physics was tested; the predictions in §9 stand unchanged.**
+Safety check before reusing build1's copy: build1's `in/ff/charmm36m-mut.ff` is **byte-identical** (`diff -rq`) to pmx `develop`'s `src/pmx/data/mutff/charmm36m-mut.ff`
+(develop HEAD 0dd5f0a, 2026-07-28), i.e. what build2's builder installed. (My first comparison used the wrong branch/directory — `mutff45dna`, 2024 — and was discarded.)
+Fixes: (i) `build_fep_setup.sh` now stages `$MUTFF/charmm36m-mut.ff` to `in/ff/` and withholds the sentinel if that fails; (ii) `fep_batch.dispatch_equilibration` refuses unless
+`in/ff/charmm36m-mut.ff/forcefield.itp` exists (verified: it refused build2 before the copy); (iii) build2's `in/ff/` populated from build1 (26 files).

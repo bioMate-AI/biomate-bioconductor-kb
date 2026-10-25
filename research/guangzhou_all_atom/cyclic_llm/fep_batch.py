@@ -187,6 +187,12 @@ def dispatch_equilibration(run_id, dry_run=True, legs="solvent complex", metal_m
                 "validated": validated, "in_s3": in_s3, "result_prefix": out_s3}
     if not EQUIL_CMD_READY:
         return {"submitted": False, "REFUSED": "EQUIL_CMD_READY is False"}
+    try:
+        _boto("s3").head_object(Bucket=BUCKET, Key=f"{PREFIX}/{run_id}/in/ff/charmm36m-mut.ff/forcefield.itp")
+    except Exception:
+        return {"submitted": False, "REFUSED": f"{run_id}: in/ff/charmm36m-mut.ff not staged -> the job would die at grompp "
+                                                "('forcefield.itp not found'). build_fep_setup.sh now stages it; for an older run copy it from "
+                                                "a build whose ff is byte-identical to pmx develop's mutff."}
     if "complex" in legs.split():
         # CaDA-Mn frame-fix gate (2026-10-25): inputs built before the fix put the Mn in bulk water (31-37 A from the
         # site), so equilibrating them proves nothing about the metal. build_fep_setup.sh now stages mn_site_gate.txt

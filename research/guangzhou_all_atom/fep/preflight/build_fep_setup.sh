@@ -324,6 +324,11 @@ if [ "$SOLV" -eq 0 ] && [ "$CPLX" -eq 0 ]; then
       --exclude '*' --include 'fep.top' --include 'ionized.gro' --include 'em.tpr' --include '*.itp' --include 'mn_site_gate.txt' >/dev/null 2>&1
   done
   aws s3 cp in/mdp "${DEST}/in/mdp" --recursive --region "${REGION:-us-west-2}" >/dev/null 2>&1
+  # force-field library the hybrid topologies were built against: the equilibration/production containers do
+  # `cp -r in/ff/charmm36m-mut.ff .` and grompp dies ("charmm36m-mut.ff/forcefield.itp not found") without it. Was a manual step
+  # (build1 had it by hand; build2's first GPU job failed on it, 2026-10-25) -> stage it, and refuse to write the sentinel if it fails.
+  aws s3 cp "$MUTFF/charmm36m-mut.ff" "${DEST}/in/ff/charmm36m-mut.ff" --recursive --region "${REGION:-us-west-2}" >/dev/null 2>&1 \
+    || { R READY FAIL "force-field staging failed (MUTFF=$MUTFF)"; exit 0; }
   aws s3 cp cada_mn.itp "${DEST}/in/cada_mn.itp" --region "${REGION:-us-west-2}" >/dev/null 2>&1
   echo "control-edge Y1F+Y7F; both legs; $(date -u)" > FEP_INPUTS_READY
   aws s3 cp FEP_INPUTS_READY "${DEST}/in/FEP_INPUTS_READY" --region "${REGION:-us-west-2}" >/dev/null 2>&1 \
