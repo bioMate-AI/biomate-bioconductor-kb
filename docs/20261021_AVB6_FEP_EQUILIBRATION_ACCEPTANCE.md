@@ -1,5 +1,11 @@
 # αvβ6 FEP control-edge — equilibration acceptance check (BOTH legs pass)
 
+> **CORRECTION (2026-10-25).** The verdict below ("dynamically validated and scientifically ready") covers the
+> **peptide junction geometry only**. It never measured the metal. Measured later, all three CaDA-Mn in the complex leg
+> were **31–37 Å from the receptor, free in bulk water** (em/nvt/npt alike) because `editconf -c` translated the
+> receptor but not the later-appended Mn; the pocket was metal-free. The "metal model used … carries the experiment"
+> statement is therefore void for this run. Fix, gate and validator: `docs/20261025_CADA_MN_METAL_MODEL_VALIDATION.md`.
+
 **Date:** 2026-10-21 · Internal. Acceptance verdict for the short equilibration that gates the control-edge
 ΔΔG. Both legs (solvent + complex) are now equilibrated; this records the metrics and the verdict. Read-only
 analysis of the staged `equil_out/` outputs — no GPU spend.

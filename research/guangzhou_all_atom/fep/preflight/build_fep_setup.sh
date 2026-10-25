@@ -201,20 +201,48 @@ open('fep.top','w').write(s); print('MN_TOP_OK')
 PYEOF
    fi
    # box + solvate + ions
-   gmx editconf -f $CONF -o box.gro -c -d 1.2 -bt dodecahedron > ${leg}_editconf.out 2>&1 || { echo "EDITCONF_FAIL $(GFATAL ${leg}_editconf.out)"; exit 22; }
+   # FRAME CONSISTENCY (root-cause fix 2026-10-25): `gmx editconf -c` RIGIDLY TRANSLATES every atom to centre the
+   # system in the new box, but mn_cada.pdb is in the INPUT frame. The CaDA-Mn must therefore join the structure
+   # BEFORE editconf so receptor+peptide+Mn are translated together. (Old order = editconf -c, THEN append Mn:
+   # the receptor moved 161 A and the Mn did not, so all 3 Mn ended 31-36 A from the site, free in bulk water,
+   # and the complex-leg ddG was computed on a metal-free binding site -- see
+   # docs/20261025_CADA_MN_METAL_MODEL_VALIDATION.md.) pdb2gmx/pmx do not translate, so hconf.pdb is still in
+   # the input frame, i.e. the same frame as mn_cada.pdb.
+   gmx editconf -f $CONF -o conf_in.gro > ${leg}_conf2gro.out 2>&1 || { echo "CONF2GRO_FAIL $(GFATAL ${leg}_conf2gro.out)"; exit 22; }
    if [ "$withmn" = yes ]; then
-     # append the 21 CaDA-Mn atoms to the (protein+peptide) box gro BEFORE solvation
+     # append the 21 CaDA-Mn atoms to the (protein+peptide) gro in the SAME (input) frame, BEFORE editconf -c / solvation
      python3 - <<'PYEOF' > ${leg}_mngro.out 2>&1 || { echo MN_GRO_FAIL; exit 23; }
-g=open('box.gro').read().splitlines(); n=int(g[1]); body=g[2:2+n]; box=g[2+n]
+g=open('conf_in.gro').read().splitlines(); n=int(g[1]); body=g[2:2+n]; box=g[2+n]
 mn=[]; resn=1; idx=0
 for ln in open('../mn_cada.pdb'):   # mn_cada.pdb lives at /work (STAGE_C), not in the leg subdir
     if ln.startswith('HETATM'):
         x=float(ln[30:38])/10;y=float(ln[38:46])/10;z=float(ln[46:54])/10;nm=ln[12:16].strip()
         if nm=='MN' and idx!=0: resn+=1
         mn.append('%5d%-5s%5s%5d%8.3f%8.3f%8.3f'%(resn,'MN2',nm,(n+len(mn)+1)%100000,x,y,z)); idx+=1
-open('box.gro','w').write(g[0]+'\n%d\n'%(n+len(mn))+'\n'.join(body+mn)+'\n'+box+'\n'); print('MNGRO_OK +%d'%len(mn))
+open('conf_in.gro','w').write(g[0]+'\n%d\n'%(n+len(mn))+'\n'.join(body+mn)+'\n'+box+'\n'); print('MNGRO_OK +%d'%len(mn))
 PYEOF
+     # GATE (closes the frame-bug class): every Mn centre must already have >=2 protein/ligand O within 3.0 A BEFORE
+     # EM. UNBOUND = hard fail (build aborts, no FEP_INPUTS_READY). A <1.8 A contact is only a WARN here (the cofold
+     # pose has a known Mn3-Asp clash); fep/validate_mn_coordination.py --mode post enforces it after EM/NVT/NPT.
+     python3 - <<'PYEOF' > ${leg}_mnsite.out 2>&1 || { echo "MN_SITE_FAIL $(tr '\n' '|' < ${leg}_mnsite.out)"; exit 28; }
+import math
+g=open('conf_in.gro').read().splitlines(); n=int(g[1]); rows=g[2:2+n]
+W={'SOL','HOH','WAT','TIP3'}
+xyz=lambda l:(float(l[20:28])*10,float(l[28:36])*10,float(l[36:44])*10)
+rn=lambda l:l[5:10].strip(); an=lambda l:l[10:15].strip()
+cent=[(l,xyz(l)) for l in rows if rn(l).upper().startswith('MN') and an(l).upper()=='MN']
+O=[xyz(l) for l in rows if an(l).startswith('O') and rn(l) not in W and not rn(l).upper().startswith('MN')]
+assert cent, 'MN_SITE: no Mn centres found'
+bad=0
+for l,q in cent:
+    d=sorted(math.dist(q,p) for p in O); nO=sum(1 for x in d if x<3.0)
+    st='UNBOUND' if nO<2 else ('CLASH(warn)' if d[0]<1.8 else 'OK'); bad+=(nO<2)
+    print('MN_SITE res=%s nO<3A=%d minO=%.2f A %s'%(l[0:5].strip(),nO,d[0],st))
+raise SystemExit('MN_UNBOUND x%d (Mn not in a metal site: frame mismatch?)'%bad if bad else 0)
+PYEOF
+     cat ${leg}_mnsite.out
    fi
+   gmx editconf -f conf_in.gro -o box.gro -c -d 1.2 -bt dodecahedron > ${leg}_editconf.out 2>&1 || { echo "EDITCONF_FAIL $(GFATAL ${leg}_editconf.out)"; exit 22; }
    gmx solvate -cp box.gro -cs spc216.gro -p fep.top -o solv.gro > ${leg}_solvate.out 2>&1 || { echo "SOLVATE_FAIL $(GFATAL ${leg}_solvate.out)"; exit 24; }
    # ions: grompp a dummy em then genion
    gmx grompp -f ../in/mdp/em.mdp -c solv.gro -p fep.top -o ions.tpr -maxwarn 20 > ${leg}_ionsgrompp.out 2>&1 || { echo "IONS_GROMPP_FAIL $(GFATAL ${leg}_ionsgrompp.out)"; exit 25; }
