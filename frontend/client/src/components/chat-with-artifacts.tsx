@@ -881,6 +881,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         metadata: {
           // NOT 'workflow_progress' → chat-progress-fold keeps it visible.
           type: 'findings',
+          runId,
+          galaxyInvocationId: invocationId,
           kind: 'findings.summary',
         } as any,
       }
@@ -1079,18 +1081,18 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     if (!currentChatSession?.id) return
     const session = chatHistoryService.getSession(currentChatSession.id)
     if (!session) return
-    const last = [...session.messages].reverse().find(
-      (m) => m.metadata?.type === 'workflow_progress' && (m as any).invocationId === event.invocationId,
-    )
-    if (last && last.metadata?.kind === event.kind && (last.metadata as any)?.ts === event.ts) return
+    const eventId = `progress-${event.invocationId ?? 'inv'}-${event.kind}-${event.ts ?? Date.now()}`
+    if (session.messages.some(message => message.id === eventId)) return
     const progressMsg: Message = {
-      id: `progress-${event.invocationId ?? 'inv'}-${event.kind}-${event.ts ?? Date.now()}`,
+      id: eventId,
       role: 'assistant',
       content: event.friendly_message,
       timestamp: new Date(),
       invocationId: event.invocationId,
       metadata: {
         type: 'workflow_progress',
+        ...(event.invocationId && [currentRun?.id, currentRun?.execution?.galaxyInvocationId].includes(event.invocationId)
+          ? { runId: currentRun?.id } : {}),
         kind: event.kind,
         ts: event.ts,
         technical: event.technical,
@@ -1100,9 +1102,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       messages: [...session.messages, progressMsg],
     })
     if (updatedSession) onChatUpdated(updatedSession)
-  }, [currentChatSession?.id, onChatUpdated])
+  }, [currentChatSession?.id, onChatUpdated, currentRun?.id, currentRun?.execution?.galaxyInvocationId])
 
-  const handleRunWorkflow = async (workflow: any, steps: any[]) => {
+  const handleRunWorkflow = async (workflow: any, steps: any[], sourceMessageId?: string) => {
     emitUxEvent('workflow.run_clicked', {
       sessionId: currentChatSession?.id,
       workflowId: workflow?.id ?? workflow?.name,
@@ -1257,28 +1259,20 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           // session-restore loadRun() can find it via DB UUID lookup.
           const invocationForMessage = run.id;
 
-          // Prefer exact workflow-name match, but always fall back to latest workflow message.
-          let targetIndex = updatedMessages.findIndex(
-            (msg) =>
-              msg.metadata?.type === 'workflow' &&
-              msg.metadata?.workflow?.name &&
-              workflow.name &&
-              msg.metadata.workflow.name === workflow.name
-          );
-          if (targetIndex < 0) {
-            for (let i = updatedMessages.length - 1; i >= 0; i--) {
-              if (updatedMessages[i].metadata?.type === 'workflow') {
-                targetIndex = i;
-                break;
-              }
-            }
-          }
+          // The triggering chat/panel owns this run. Names are not unique across runs.
+          const ownerMessageId = sourceMessageId ?? panelWorkflowMessageId;
+          const targetIndex = updatedMessages.findIndex(msg => msg.id === ownerMessageId);
 
           if (targetIndex >= 0) {
             console.log('[ChatWithArtifacts] Updating message with invocation ID:', invocationForMessage);
             updatedMessages[targetIndex] = {
               ...updatedMessages[targetIndex],
               invocationId: invocationForMessage,
+              metadata: {
+                ...updatedMessages[targetIndex].metadata,
+                runId: run.id,
+                galaxyInvocationId: run.execution?.galaxyInvocationId,
+              },
             };
           }
 

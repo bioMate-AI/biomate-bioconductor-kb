@@ -1,19 +1,6 @@
-// Same-speaker progress fold for chat-interface.
-//
-// Ports the collapse logic from reference/claude_design/bioconductor-handoff/
-// src/ChatStream.jsx (CollapsedSpeakerBlock + ChatStream.display memo) into
-// the live BioMate chat.
-//
-// A "run" is a maximal sequence of consecutive workflow_progress messages
-// whose derived speaker is identical AND is in FOLDABLE_SPEAKERS. Runs longer
-// than `threshold` collapse into a single caret-able summary; the last
-// message in the run stays visible as the "latest" line so the user always
-// sees the most recent status update.
-//
-// `agent` (reasoning) and `find` (findings) speakers never fold — they carry
-// load-bearing content the user must not have to click to see.
+// Run-owned, unfolded progress streams for workflow responses.
 
-import { useEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import type { Message } from '@shared/schema'
 
 // Local copies of speaker helpers — kept in sync with chat-message.tsx but
@@ -35,12 +22,63 @@ export type ProgressGroup =
   | { kind: 'single'; message: Message; key: string }
   | { kind: 'stream'; messages: Message[]; key: string }
 
+/** Explicit persisted identities only; never infer ownership from message IDs/text. */
+function ownerIds(m: Message): string[] {
+  return [m.invocationId, m.metadata?.runId, m.metadata?.galaxyInvocationId]
+    .filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
+}
+
+export type WorkflowResponseGroup = ProgressGroup | {
+  kind: 'response'; message: Message; progress: Message[]; findings: Message[]; key: string
+}
+
+/** Attach updates only to an unambiguous workflow owner, leaving user turns in place. */
+export function groupWorkflowResponses(
+  messages: Message[],
+  knownRun?: { id: string; invocationId?: string },
+): WorkflowResponseGroup[] {
+  const owners = new Map<string, Message | null>()
+  const responses = new Map<string, Extract<WorkflowResponseGroup, { kind: 'response' }>>()
+  for (const m of messages) {
+    if (m.role !== 'assistant' || m.metadata?.type !== 'workflow' || !m.metadata?.workflow) continue
+    const ids = ownerIds(m)
+    if (knownRun?.invocationId && ids.includes(knownRun.id)) ids.push(knownRun.invocationId)
+    if (!ids.length) continue
+    responses.set(m.id, { kind: 'response', message: m, progress: [], findings: [], key: m.id })
+    for (const id of new Set(ids)) owners.set(id, owners.has(id) ? null : m)
+  }
+  const attached = new Set<string>()
+  for (const m of messages) {
+    const progress = isProgress(m) && FOLDABLE_SPEAKERS_LOCAL.has(speakerOf(m))
+    if (!progress && !(m.role === 'assistant' && m.metadata?.type === 'findings')) continue
+    const matches = ownerIds(m).map(id => owners.get(id))
+    if (matches.includes(null)) continue
+    const candidates = matches.filter(Boolean) as Message[]
+    const owner = candidates[0]
+    if (!owner || candidates.some(candidate => candidate.id !== owner.id)) continue
+    const response = responses.get(owner.id)!
+    const target = progress ? response.progress : response.findings
+    if (!target.some(existing => existing.id === m.id)) target.push(m)
+    attached.add(m.id)
+  }
+  const out: WorkflowResponseGroup[] = []
+  let pending: Message[] = []
+  const flush = () => { out.push(...groupProgressMessages(pending)); pending = [] }
+  for (const m of messages) {
+    if (attached.has(m.id)) continue
+    const response = responses.get(m.id)
+    if (response) { flush(); out.push(response) }
+    else pending.push(m)
+  }
+  flush()
+  return out
+}
+
 function isProgress(m: Message): boolean {
   if (m.role === 'user') return false
   // Primary signal (live): metadata.type. Durable fallback (reload): the
-  // `progress-<inv>-<kind>-<ts>` id created by handleWorkflowProgress survives
-  // persistence even though metadata is stripped on save — so a reloaded
-  // session's progress lines still fold instead of rendering as full messages.
+  // Older records may have lost metadata. Recognize their display type only;
+  // never parse these ambiguous IDs to assign them to a workflow.
   return (m as any).metadata?.type === 'workflow_progress'
     || (typeof m.id === 'string' && m.id.startsWith('progress-'))
 }
@@ -75,10 +113,12 @@ export function groupProgressMessages(
   let i = 0
   while (i < messages.length) {
     const m = messages[i]
-    if (isProgress(m) && FOLDABLE_SPEAKERS_LOCAL.has(speakerOf(m))) {
+    const owner = ownerIds(m)[0]
+    if (owner && isProgress(m) && FOLDABLE_SPEAKERS_LOCAL.has(speakerOf(m))) {
       let j = i
       while (
         j < messages.length &&
+        ownerIds(messages[j])[0] === owner &&
         isProgress(messages[j]) &&
         FOLDABLE_SPEAKERS_LOCAL.has(speakerOf(messages[j]))
       ) {
@@ -88,7 +128,7 @@ export function groupProgressMessages(
       out.push({
         kind: 'stream',
         messages: run,
-        key: `stream-${run[0].id}-${run[run.length - 1].id}`,
+        key: `stream-${run[0].id}`,
       })
       i = j
       continue
@@ -113,22 +153,41 @@ function progressLineText(m: Message): string {
  * activity log that always shows the latest update and lets the user scroll
  * back through earlier ones.
  */
-export function ProgressStreamBox({ messages }: { messages: Message[] }) {
+export function ProgressStreamBox({ messages, inline = false, plan }: { messages: Message[]; inline?: boolean; plan?: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
-  // Auto-scroll to the newest line as the stream grows.
-  useEffect(() => {
+  const contentRef = useRef<HTMLDivElement>(null)
+  const followTail = useRef(true)
+  useLayoutEffect(() => {
     const el = ref.current
-    if (el) el.scrollTop = el.scrollHeight
-  }, [messages.length])
+    if (el && followTail.current) el.scrollTop = el.scrollHeight
+  }, [messages, plan])
+  useLayoutEffect(() => {
+    const observer = new ResizeObserver(() => {
+      if (ref.current && followTail.current) ref.current.scrollTop = ref.current.scrollHeight
+    })
+    if (contentRef.current) observer.observe(contentRef.current)
+    return () => observer.disconnect()
+  }, [])
   const lines = messages.map((m) => ({ id: m.id, text: progressLineText(m) }))
   return (
     <div
       ref={ref}
+      role="log"
+      aria-label="Workflow updates"
+      aria-live="off"
+      tabIndex={0}
+      onScroll={(event) => {
+        const el = event.currentTarget
+        followTail.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 24
+      }}
       className="chat-progress-stream"
       data-testid="progress-stream"
       data-count={messages.length}
       style={{
-        margin: '4px 0 4px 40px',
+        margin: inline ? '4px 0' : '4px 0 4px 40px',
+        width: inline ? '100%' : 'auto',
+        minWidth: 0,
+        overscrollBehavior: 'contain',
         maxHeight: 132,
         overflowY: 'auto',
         padding: '6px 10px',
@@ -138,14 +197,17 @@ export function ProgressStreamBox({ messages }: { messages: Message[] }) {
         fontFamily: 'var(--bm-font-mono, ui-monospace, SFMono-Regular, monospace)',
         fontSize: 11.5,
         lineHeight: 1.65,
-        color: 'var(--bm-text-dim, oklch(0.58 0.012 260))',
+        color: 'var(--bm-text-muted, oklch(0.48 0.012 260))',
       }}
     >
+      <div ref={contentRef}>
+        {plan && <div data-testid="response-plan">{plan}</div>}
       {lines.map((l) => (
         <div key={l.id} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
           {l.text || '…'}
         </div>
       ))}
+      </div>
     </div>
   )
 }

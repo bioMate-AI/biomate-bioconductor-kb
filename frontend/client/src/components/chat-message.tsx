@@ -1,3 +1,4 @@
+import { ProgressStreamBox } from "./chat-progress-fold"
 import { ReadAloud } from "./voice-controls"
 import { useState, useRef } from "react"
 import ReactMarkdown from "react-markdown"
@@ -194,6 +195,9 @@ function IntentClarifyBridge({
 
 interface ChatMessageProps {
   message: Message
+  progressMessages?: Message[]
+  continuation?: boolean
+  hideActions?: boolean
   sessionId?: string
   onCopy?: () => void
   onRegenerate?: () => void
@@ -232,6 +236,9 @@ interface ChatMessageProps {
 
 export function ChatMessage({
   message,
+  progressMessages = [],
+  continuation = false,
+  hideActions = false,
   isStreaming = false,
   sessionId,
   onCopy = () => console.log('Copy message triggered'),
@@ -261,10 +268,11 @@ export function ChatMessage({
   onRedoAsValidatedRun,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
-  const foldResponse = !isUser && (isStreaming || Boolean(message.metadata?.workflow))
-  const ResponseContainer = foldResponse ? "details" : "div"
 
   const isWorkflowMessage = !isUser && message.metadata?.type === "workflow" && !!message.metadata?.workflow
+  // Keep workflow intent readable throughout execution. Research streaming uses its existing disclosure.
+  const foldResponse = !isUser && isStreaming && !isWorkflowMessage
+  const ResponseContainer = foldResponse ? "details" : "div"
   // "Compute/analysis result" answer — an instant-lane reply that ran code or
   // a tool (metadata.toolBlocks) or otherwise produced a numeric/analysis
   // result, but is NOT already a validated (Cloud-lane) workflow message.
@@ -479,6 +487,58 @@ export function ChatMessage({
     )
   }
 
+  const responseContent = (
+              <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none
+                prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
+                prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
+                prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5
+                prose-code:text-xs prose-code:bg-muted prose-code:text-foreground prose-code:px-1 prose-code:rounded
+                prose-pre:bg-muted prose-pre:text-foreground prose-pre:border prose-pre:border-border prose-pre:text-xs prose-pre:overflow-x-auto
+                prose-blockquote:border-l-4 prose-blockquote:pl-3 prose-blockquote:italic prose-blockquote:text-muted-foreground
+                prose-hr:my-3" style={isWorkflowMessage ? { fontSize: 'inherit' } : undefined}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={{
+                    a: ({ href, children, ...props }) => (
+                      <a
+                        href={href}
+                        target={href?.startsWith('#') ? '_self' : '_blank'}
+                        rel={href?.startsWith('#') ? undefined : 'noopener noreferrer'}
+                        {...props}
+                      >
+                        {children}
+                      </a>
+                    ),
+                    table: ({ children, ...props }) => (
+                      <div className="overflow-x-auto my-2 max-w-full">
+                        <table className="w-full text-xs" {...props}>{children}</table>
+                      </div>
+                    ),
+                    img: ({ src, alt }) => (
+                      <MarkdownFigure src={typeof src === 'string' ? src : undefined} alt={alt} />
+                    ),
+                    // Explicit token-styled quote/callout box so a cited passage
+                    // always shows a visible accent border + readable text (the
+                    // prose default border color can render near-invisible).
+                    blockquote: ({ children }) => (
+                      <blockquote className="my-2 border-l-4 border-primary/60 bg-muted/40 pl-3 pr-2 py-1.5 rounded-r text-foreground/90 not-italic">
+                        {children}
+                      </blockquote>
+                    ),
+                  }}
+                >
+                  {addCitationLinks(
+                    // Strip trailing References section when structured citations are rendered below
+                    (message.metadata?.type === 'research_response' &&
+                      (message.metadata?.research_response as any)?.citations?.length > 0)
+                      ? (message.content || '').replace(/\n+(?:#{1,3}\s+|\*{1,2})?references?\**\s*\n[\s\S]*$/i, '').trim()
+                      : (message.content || '')
+                  )}
+                </ReactMarkdown>
+              </div>
+  )
+
   return (
     <div
       className={cn("msg", isUser ? "user" : "assistant")}
@@ -491,7 +551,7 @@ export function ChatMessage({
       style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: isUser ? 'flex-end' : 'flex-start', maxWidth: '100%' }}
     >
       {/* Who label — "YOU · 3:40 PM" or "BIOMATE + speaker pill" */}
-      <div className="who" style={{
+      {!continuation && <div className="who" style={{
         fontSize: 9.5, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
         letterSpacing: '0.13em', fontWeight: 600,
         fontFamily: 'var(--bm-font-mono)',
@@ -525,9 +585,12 @@ export function ChatMessage({
             })()}
           </>
         )}
-      </div>
+      </div>}
 
       <div className={cn("w-full min-w-0 max-w-full space-y-3", isUser && "flex flex-col items-end")}>
+        {(progressMessages.length > 0 || (isWorkflowMessage && message.content?.trim())) && (
+          <ProgressStreamBox messages={progressMessages} inline plan={isWorkflowMessage ? responseContent : undefined} />
+        )}
         <div className={cn(
           isUser
             ? "bubble"  /* reference: .msg.user .bubble */
@@ -594,56 +657,8 @@ export function ChatMessage({
                 </div>
               )}
               <ResponseContainer className="w-full">
-              {foldResponse && <summary className="cursor-pointer text-sm text-muted-foreground py-2">{isStreaming ? "Writing response…" : "Analysis plan"}<span className="block truncate text-xs max-w-md">{message.content?.replace(/[#*`]/g, "").slice(-160)}</span></summary>}
-              <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none
-                prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
-                prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
-                prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5
-                prose-code:text-xs prose-code:bg-muted prose-code:text-foreground prose-code:px-1 prose-code:rounded
-                prose-pre:bg-muted prose-pre:text-foreground prose-pre:border prose-pre:border-border prose-pre:text-xs prose-pre:overflow-x-auto
-                prose-blockquote:border-l-4 prose-blockquote:pl-3 prose-blockquote:italic prose-blockquote:text-muted-foreground
-                prose-hr:my-3">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw]}
-                  components={{
-                    a: ({ href, children, ...props }) => (
-                      <a
-                        href={href}
-                        target={href?.startsWith('#') ? '_self' : '_blank'}
-                        rel={href?.startsWith('#') ? undefined : 'noopener noreferrer'}
-                        {...props}
-                      >
-                        {children}
-                      </a>
-                    ),
-                    table: ({ children, ...props }) => (
-                      <div className="overflow-x-auto my-2 max-w-full">
-                        <table className="w-full text-xs" {...props}>{children}</table>
-                      </div>
-                    ),
-                    img: ({ src, alt }) => (
-                      <MarkdownFigure src={typeof src === 'string' ? src : undefined} alt={alt} />
-                    ),
-                    // Explicit token-styled quote/callout box so a cited passage
-                    // always shows a visible accent border + readable text (the
-                    // prose default border color can render near-invisible).
-                    blockquote: ({ children }) => (
-                      <blockquote className="my-2 border-l-4 border-primary/60 bg-muted/40 pl-3 pr-2 py-1.5 rounded-r text-foreground/90 not-italic">
-                        {children}
-                      </blockquote>
-                    ),
-                  }}
-                >
-                  {addCitationLinks(
-                    // Strip trailing References section when structured citations are rendered below
-                    (message.metadata?.type === 'research_response' &&
-                      (message.metadata?.research_response as any)?.citations?.length > 0)
-                      ? (message.content || '').replace(/\n+(?:#{1,3}\s+|\*{1,2})?references?\**\s*\n[\s\S]*$/i, '').trim()
-                      : (message.content || '')
-                  )}
-                </ReactMarkdown>
-              </div>
+              {foldResponse && <summary className="cursor-pointer text-sm text-muted-foreground py-2">Writing response…</summary>}
+              {!isWorkflowMessage && responseContent}
               </ResponseContainer>
               </>
             )}
@@ -703,15 +718,9 @@ export function ChatMessage({
               or was previously in the panel (panel closed after opening) */}
           {isWorkflowMessage && everInPanel && message.metadata?.workflow && (() => {
               const runStatus = currentExecutionRun?.execution?.status;
-              const chipClass = runStatus === 'failed' ? 'chip-fail' : runStatus === 'running' ? 'chip-run' : 'chip-ok';
-              const chipLabel = runStatus === 'failed' ? 'Failed' : runStatus === 'completed' ? 'Done' : runStatus === 'running' ? 'Running' : isInPanel ? 'In panel' : 'Open in panel';
-              const hint = runStatus === 'failed'
-                ? 'This run did not complete. Check the panel for details and try again.'
-                : runStatus === 'completed'
-                ? 'Run complete — results are available in the panel.'
-                : isInPanel
-                ? 'You can keep chatting while this run continues in the background.'
-                : 'Click Open to view this workflow in the panel.';
+              const completed = ['completed', 'succeeded', 'ok'].includes(runStatus || '');
+              const chipClass = runStatus === 'failed' ? 'chip-fail' : runStatus === 'running' ? 'chip-run' : completed ? 'chip-ok' : 'chip';
+              const chipLabel = completed ? 'Completed' : ({ running:'Running', failed:'Failed', paused:'Paused', cancelled:'Cancelled', pending:'Ready', configuring:'Ready' } as Record<string,string>)[runStatus || ''] || null;
               return (
                 <>
                   <div className="wf-chip" data-tour="chat-handoff">
@@ -720,19 +729,11 @@ export function ChatMessage({
                     </div>
                     <div className="wf-chip-body">
                       <div className="wf-chip-name">{message.metadata.workflow.name || message.metadata.workflow.display_name || 'Workflow'}</div>
-                      <div className="wf-chip-sub">
-                        {[
-                          message.metadata.workflow.domain,
-                          message.metadata.workflow.subtitle ||
-                            (message.metadata.workflow.steps && typeof message.metadata.workflow.steps === 'object' && !Array.isArray(message.metadata.workflow.steps) && Object.keys(message.metadata.workflow.steps).length > 0
-                              ? `${Object.keys(message.metadata.workflow.steps).length} steps` : null),
-                        ].filter(Boolean).join(' · ')}
-                      </div>
                     </div>
-                    <span className={chipClass}>
+                    {chipLabel && <span className={chipClass}>
                       <span className="dot" />
                       {chipLabel}
-                    </span>
+                    </span>}
                     {!isInPanel && onOpenInPanel && (
                       <button
                         onClick={onOpenInPanel}
@@ -741,13 +742,6 @@ export function ChatMessage({
                         Open
                       </button>
                     )}
-                  </div>
-                  <div
-                    className="wf-chip-hint"
-                    data-testid="wf-chip-background-hint"
-                    style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.45 }}
-                  >
-                    {hint}
                   </div>
                 </>
               );
@@ -1127,7 +1121,7 @@ export function ChatMessage({
         </div>
 
         {/* Action buttons — only shown when there is actual response content */}
-        {!isUser && message.metadata?.type !== "error" && !!message.content?.trim() && (
+        {!hideActions && !isUser && message.metadata?.type !== "error" && !!message.content?.trim() && (
           <div className="flex items-center gap-2 flex-wrap">
             <DownloadOutcomePrompt
               open={downloadPromptOpen}

@@ -1,3 +1,4 @@
+import { normalizeQcEvents, qcActionTaken, qcResultLabel, type QcAssessment } from "@shared/qc-assessment";
 /**
  * AfterRunReport — 7-tab inline after-run panel for the v2 workflow surface.
  *
@@ -335,6 +336,20 @@ export function AfterRunReport({
                 onContinueAnalysis={onContinueAnalysis}
                 executionStatus={executionStatus}
               />
+              {qcEvents.some(e => e.status === 'fail' || e.status === 'advisory') && (
+                <section data-testid="completed-qc-findings" style={{ marginTop: 12 }}>
+                  <h3 style={{ fontSize: 13, fontWeight: 600 }}>{tOr('afterrun.qc_findings', 'QC findings')}</h3>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead><tr><th align="left">Check</th><th align="left">Observed</th><th align="left">Flag condition</th><th align="left">Result</th></tr></thead>
+                    <tbody>{qcEvents.filter(e => e.status === 'fail' || e.status === 'advisory').map((e, i) => (
+                      <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td>{e.gate ?? '—'}</td><td>{e.measured ?? '—'}</td>
+                        <td>{e.operator ? `${e.operator} ` : ''}{e.threshold ?? '—'}</td><td>{qcResultLabel(e.status)}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </section>
+              )}
               {findings?.figures && findings.figures.length > 0 && (
                 <FindingsFiguresPanel figures={findings.figures} />
               )}
@@ -741,14 +756,7 @@ function useFetchMethods(invocationId: string): MethodsData & { state: string; p
 // backend route ships. Restoration template kept inline near the visibleTabs
 // builder for re-enabling later.
 
-interface QcEvent {
-  ts?: string;
-  gate?: string;
-  status?: string;
-  message?: string;
-  measured?: string | number;
-  threshold?: string | number;
-}
+type QcEvent = QcAssessment;
 
 /**
  * useFetchTrajectory — best-effort fetch of the agent/step decision log for the
@@ -787,14 +795,14 @@ function useFetchTrajectory(runId: string): TrajectoryRow[] {
 function useFetchQcEvents(invocationId: string): QcEvent[] {
   const [events, setEvents] = useState<QcEvent[]>([]);
   useEffect(() => {
+    setEvents([]);
     if (!invocationId) return;
     let cancelled = false;
     fetch(`/api/invocations/${invocationId}/qc-events`, { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (cancelled || !data) return;
-        const arr = Array.isArray(data) ? data : data.events || [];
-        setEvents(arr);
+        setEvents(normalizeQcEvents(data));
       })
       .catch(() => { /* not all workflows emit QC; tab simply hides */ });
     return () => { cancelled = true; };
@@ -1932,21 +1940,11 @@ interface QcAuditTabProps {
 }
 
 function isPassedStatus(status?: string): boolean {
-  if (!status) return true;
-  const s = status.toLowerCase();
-  return s === "pass" || s === "passed" || s === "ok" || s === "✓";
-}
-
-function isAutoCorrectedStatus(status?: string): boolean {
-  if (!status) return false;
-  const s = status.toLowerCase();
-  return s.includes("auto") || s.includes("loop") || s.includes("retry") || s.includes("fail");
+  return status === "pass";
 }
 
 function deriveAction(e: QcEvent): string {
-  if (isPassedStatus(e.status)) return tOr('afterrun.action_continue', "continue");
-  if (isAutoCorrectedStatus(e.status)) return tOr('afterrun.action_autoloop', "auto-loop · re-run with adjusted parameters");
-  return e.message ?? tOr('afterrun.action_manual', "manual intervention required");
+  return qcActionTaken(e);
 }
 
 function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
@@ -1958,8 +1956,8 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
   const anyHashed = hashedCount > 0;
   const allHashed = totalOutputs > 0 && hashedCount === totalOutputs;
   const passed = events.filter(e => isPassedStatus(e.status)).length;
-  const autoCorrected = events.filter(e => !isPassedStatus(e.status) && isAutoCorrectedStatus(e.status)).length;
-  const manualInterventions = events.length - passed - autoCorrected;
+  const failed = events.filter(e => e.status === "fail").length;
+  const other = events.length - passed - failed;
 
   if (events.length === 0) {
     return (
@@ -1972,15 +1970,11 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
           padding: '48px 24px',
           gap: 8,
           textAlign: 'center',
-          color: 'oklch(0.62 0.16 145)',
+          color: 'var(--text-muted)',
         }}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-            <polyline points="22 4 12 14.01 9 11.01"/>
-          </svg>
-          <div style={{ fontWeight: 600, fontSize: 15 }} data-testid="qc-all-passed">{tOr('afterrun.qc_all_passed', 'All quality gates passed')}</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }} data-testid="qc-unavailable">{tOr('afterrun.qc_no_results', 'QC results unavailable')}</div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 320 }}>
-            {tOr('afterrun.qc_all_passed_sub', 'No QC thresholds were exceeded during this run. All metrics are within acceptable ranges.')}
+            {tOr('afterrun.qc_no_results_detail', 'No QC evaluations were recorded. This does not establish that the checks passed.')}
           </div>
         </div>
       </div>
@@ -1999,10 +1993,10 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
         }}
       >
         {[
-          { label: tOr('afterrun.qc_evaluated', 'Gates evaluated'), value: events.length, color: undefined, testid: 'qc-stat-evaluated' },
+          { label: tOr('afterrun.qc_recorded', 'Checks recorded'), value: events.length, color: undefined, testid: 'qc-stat-evaluated' },
           { label: tOr('afterrun.qc_passed', 'Passed'),           value: passed,        color: 'oklch(0.62 0.16 145)', testid: 'qc-stat-passed' },
-          { label: tOr('afterrun.qc_autocorrected', 'Auto-corrected'),   value: autoCorrected, color: 'oklch(0.62 0.16 60)',  testid: 'qc-stat-autoloop' },
-          { label: tOr('afterrun.qc_manual', 'Manual interventions'), value: manualInterventions, color: undefined, testid: 'qc-stat-manual' },
+          { label: tOr('afterrun.qc_failed_checks', 'Flagged'), value: failed, color: 'oklch(0.62 0.16 60)', testid: 'qc-stat-failed' },
+          { label: tOr('afterrun.qc_other_checks', 'Advisory / unavailable'), value: other, color: undefined, testid: 'qc-stat-other' },
         ].map(s => (
           <div
             key={s.label}
@@ -2069,7 +2063,7 @@ function QcAuditTab({ events, outputs, eSignature }: QcAuditTabProps) {
                       }}
                       data-testid={`qc-row-${i}-result`}
                     >
-                      {pass ? tOr('afterrun.qc_pass', '✓ PASS') : tOr('afterrun.qc_fail_loop', '↻ FAIL → loop')}
+                      {qcResultLabel(e.status)}
                     </td>
                     <td style={{ padding: '7px 8px', color: 'oklch(0.40 0.012 260)' }}>{deriveAction(e)}</td>
                   </tr>
@@ -2329,7 +2323,8 @@ function buildFullReportMarkdown(args: {
   software?: Record<string, string>;
   citations?: Citation[];
 }): string {
-  const { runId, workflowName, parameters, outputs, methods, qcEvents, findings, software, citations } = args;
+  const { runId, workflowName, parameters, outputs, methods, qcEvents: rawQcEvents, findings, software, citations } = args;
+  const qcEvents = normalizeQcEvents(rawQcEvents);
   const lines: string[] = [];
 
   // ── Header ────────────────────────────────────────────────────────────────

@@ -4,8 +4,8 @@
  * Focus: the rich QcAuditTab (just ported from v2/Modals.tsx legacy JSX
  * into the proper TS pipeline). Covers the three design surfaces the
  * old bare table was missing:
- *   1. 4-stat header (Gates evaluated / Passed / Auto-corrected / Manual)
- *   2. Audit log with PASS / FAIL → loop styling + action column
+ *   1. 4-stat header (Gates recorded / Passed / Flagged / Advisory or unavailable)
+ *   2. Audit log with recorded outcomes and explicit actions
  *   3. Chain-of-custody block + hide-when-empty e-signature
  */
 import React from "react";
@@ -360,16 +360,26 @@ describe("v2/AfterRunReport — MethodsTab editable report (Spec 12 increment)",
 });
 
 describe("v2/AfterRunReport — QcAuditTab (rich panel)", () => {
+  it("presents completed checks as findings without remediation controls", async () => {
+    render(<AfterRunReport {...baseProps} />);
+    const findings = await screen.findByTestId('completed-qc-findings');
+    expect(findings).toHaveTextContent('ctf_quality');
+    expect(findings).toHaveTextContent('0.22');
+    expect(findings).toHaveTextContent('FAIL');
+    expect(within(findings).queryByRole('button')).toBeNull();
+    expect(findings).not.toHaveTextContent(/paused|adjusting parameters|resume/i);
+  });
+
   it("renders 4-stat summary with correct counts", async () => {
     render(<AfterRunReport {...baseProps} />);
     await openQcTab();
     const audit = await screen.findByTestId("qc-audit-tab", {}, { timeout: 5000 });
     const summary = within(audit).getByTestId("qc-summary");
-    // 3 gates total: 2 passed (fsc + particle_count), 1 fail→auto-loop (ctf_quality)
+    // 3 recorded checks: 2 passed, 1 failed; no retry execution is inferred.
     expect(within(summary).getByTestId("qc-stat-evaluated")).toHaveTextContent("3");
     expect(within(summary).getByTestId("qc-stat-passed")).toHaveTextContent("2");
-    expect(within(summary).getByTestId("qc-stat-autoloop")).toHaveTextContent("1");
-    expect(within(summary).getByTestId("qc-stat-manual")).toHaveTextContent("0");
+    expect(within(summary).getByTestId("qc-stat-failed")).toHaveTextContent("1");
+    expect(within(summary).getByTestId("qc-stat-other")).toHaveTextContent("0");
   });
 
   it("renders audit log table with the design column order", async () => {
@@ -382,13 +392,13 @@ describe("v2/AfterRunReport — QcAuditTab (rich panel)", () => {
     ]);
   });
 
-  it("shows ✓ PASS for passing gates and ↻ FAIL → loop for failing ones", async () => {
+  it("shows actual results without claiming automatic remediation", async () => {
     render(<AfterRunReport {...baseProps} />);
     await openQcTab();
     await screen.findByTestId("qc-audit-log");
-    expect(screen.getByTestId("qc-row-0-result")).toHaveTextContent("✓ PASS");
-    expect(screen.getByTestId("qc-row-1-result")).toHaveTextContent("↻ FAIL → loop");
-    expect(screen.getByTestId("qc-row-2-result")).toHaveTextContent("✓ PASS");
+    expect(screen.getByTestId("qc-row-0-result")).toHaveTextContent("PASS");
+    expect(screen.getByTestId("qc-row-1-result")).toHaveTextContent("FAIL");
+    expect(screen.getByTestId("qc-row-2-result")).toHaveTextContent("PASS");
   });
 
   it("renders Chain-of-custody block when events exist", async () => {
@@ -419,7 +429,7 @@ describe("v2/AfterRunReport — QcAuditTab (rich panel)", () => {
     expect(screen.queryByTestId("qc-e-signature")).toBeNull();
   });
 
-  it("auto-corrected count tracks fail/loop keywords; manual is the leftover", async () => {
+  it("blocked checks count as failures without inventing a retry", async () => {
     vi.restoreAllMocks();
     vi.spyOn(global, "fetch").mockImplementation(async (input) => {
       const url = String(input);
@@ -439,8 +449,8 @@ describe("v2/AfterRunReport — QcAuditTab (rich panel)", () => {
     const summary = await screen.findByTestId("qc-summary");
     expect(within(summary).getByTestId("qc-stat-evaluated")).toHaveTextContent("2");
     expect(within(summary).getByTestId("qc-stat-passed")).toHaveTextContent("1");
-    expect(within(summary).getByTestId("qc-stat-autoloop")).toHaveTextContent("0");
-    expect(within(summary).getByTestId("qc-stat-manual")).toHaveTextContent("1");
+    expect(within(summary).getByTestId("qc-stat-failed")).toHaveTextContent("1");
+    expect(within(summary).getByTestId("qc-stat-other")).toHaveTextContent("0");
   });
 
   it("renders em-dash placeholders when event fields are missing (partial backend payload)", async () => {
@@ -457,10 +467,10 @@ describe("v2/AfterRunReport — QcAuditTab (rich panel)", () => {
     await openQcTab();
     const row = await screen.findByTestId("qc-row-0");
     expect(within(row).getAllByText("—").length).toBeGreaterThanOrEqual(4);
-    expect(screen.getByTestId("qc-row-0-result")).toHaveTextContent("✓ PASS");
+    expect(screen.getByTestId("qc-row-0-result")).toHaveTextContent("NOT EVALUATED");
   });
 
-  it("shows the 'all quality gates passed' empty state when qcEvents is [] (QC tab always visible)", async () => {
+  it("shows unavailable instead of inventing an all-pass result when qcEvents is [] (QC tab always visible)", async () => {
     vi.restoreAllMocks();
     vi.spyOn(global, "fetch").mockImplementation(async (input) => {
       if (String(input).includes("qc-events")) {
@@ -475,7 +485,7 @@ describe("v2/AfterRunReport — QcAuditTab (rich panel)", () => {
     // the tab is absent (which only passed because the default tab is Outputs).
     await openQcTab();
     const audit = await screen.findByTestId("qc-audit-tab");
-    expect(within(audit).getByTestId("qc-all-passed")).toHaveTextContent(/all quality gates passed/i);
+    expect(within(audit).getByTestId("qc-unavailable")).toHaveTextContent(/QC results unavailable/i);
     // The audit-log table (which needs events) is NOT rendered in the empty state.
     expect(within(audit).queryByTestId("qc-audit-log")).toBeNull();
   });

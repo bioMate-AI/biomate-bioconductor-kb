@@ -7,7 +7,7 @@ import { uploadFile as uploadFileShared } from "@/lib/upload"
 import { tOr } from "@/lib/i18n"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
 import { ChatMessage, type Message } from "./chat-message"
-import { groupProgressMessages, ProgressStreamBox } from "./chat-progress-fold"
+import { groupWorkflowResponses, ProgressStreamBox } from "./chat-progress-fold"
 import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
 import { FindingsCard } from "./findings-card"
 import { ChatInput, type ComposerProject } from "./chat-input"
@@ -72,7 +72,7 @@ interface ChatInterfaceProps {
   showProgress?: boolean
   onToggleProgress?: () => void
   // Workflow execution props for inline artifacts
-  onRunWorkflow?: (workflow: any, steps: any[]) => void
+  onRunWorkflow?: (workflow: any, steps: any[], sourceMessageId?: string) => void
   onRunChain?: (workflow: any) => void
   onRunPipeline?: (workflow: any) => void
   onApprovePipelineStep?: (workflow: any, completedStepId: string, nextStepId: string) => void
@@ -483,6 +483,7 @@ export function ChatInterface({
   const abortControllerRef = useRef<AbortController | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const followChatTailRef = useRef(true)
   // Captured setter from ChatInput — lets empty-state chips pre-fill the textarea
   const localSetDraftRef = useRef<((draft: string) => void) | null>(null)
   const [preparingExample, setPreparingExample] = useState(false)
@@ -583,9 +584,13 @@ export function ChatInterface({
     console.log('[ChatInterface] displayMessages IDs:', displayMessages.map(m => m.id))
   }, [displayMessages])
 
-  // Auto-scroll to bottom when messages change
+  useEffect(() => { followChatTailRef.current = true }, [chatSession?.id])
+
+  // Follow new messages only while the reader is at the end of both chat and its streams.
   useEffect(() => {
-    if (messagesEndRef.current) {
+    const readingEarlierUpdate = Array.from(scrollRef.current?.querySelectorAll<HTMLElement>('[role="log"]') ?? [])
+      .some(log => log.scrollHeight - log.scrollTop - log.clientHeight > 24)
+    if (followChatTailRef.current && !readingEarlierUpdate && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [displayMessages, displayTyping])
@@ -753,21 +758,19 @@ export function ChatInterface({
     if (!chatSession?.id) return
     const session = chatHistoryService.getSession(chatSession.id)
     if (!session) return
-    // De-dupe: skip if the most-recent progress msg for this invocation has same kind+ts.
-    const last = [...session.messages].reverse().find(
-      (m) => m.metadata?.type === 'workflow_progress' && (m as any).invocationId === event.invocationId,
-    )
-    if (last && last.metadata?.kind === event.kind && (last.metadata as any)?.ts === event.ts) {
-      return
-    }
+    // Exact IDs also reject replayed events that arrive after a newer update.
+    const eventId = `progress-${event.invocationId ?? 'inv'}-${event.kind}-${event.ts ?? Date.now()}`
+    if (session.messages.some(message => message.id === eventId)) return
     const progressMsg: Message = {
-      id: `progress-${event.invocationId ?? 'inv'}-${event.kind}-${event.ts ?? Date.now()}`,
+      id: eventId,
       role: 'assistant',
       content: event.friendly_message,
       timestamp: new Date(),
       invocationId: event.invocationId,
       metadata: {
         type: 'workflow_progress',
+        ...(event.invocationId && [currentExecutionRun?.id, currentExecutionRun?.execution?.galaxyInvocationId].includes(event.invocationId)
+          ? { runId: currentExecutionRun?.id } : {}),
         kind: event.kind,
         ts: event.ts,
         technical: event.technical,
@@ -778,7 +781,7 @@ export function ChatInterface({
     if (updatedSession && onChatUpdated) {
       onChatUpdated(updatedSession)
     }
-  }, [chatSession?.id, onChatUpdated])
+  }, [chatSession?.id, onChatUpdated, currentExecutionRun?.id, currentExecutionRun?.execution?.galaxyInvocationId])
 
   // Galaxy Chat API integration with full hybrid intelligence
   // Uses /api/chat which provides: intent analysis, tool search, dataset RAG, workflow generation
@@ -2123,7 +2126,13 @@ export function ChatInterface({
         </div>
       )}
 
-      <ScrollArea className="chat-thread flex-1 min-h-0 min-w-0" ref={scrollRef} data-testid="chat-messages" style={{
+      <ScrollArea className="chat-thread flex-1 min-h-0 min-w-0" ref={scrollRef}
+        onScrollCapture={(event) => {
+          const viewport = event.target as HTMLElement
+          if (viewport.hasAttribute('data-radix-scroll-area-viewport')) {
+            followChatTailRef.current = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= 48
+          }
+        }} data-testid="chat-messages" style={{
         padding: '24px clamp(16px, 4%, 56px) 20px',
       }}>
         {displayMessages.length === 0 && !isTyping && !isTypingLocal && (
@@ -2170,13 +2179,14 @@ export function ChatInterface({
               // progressStatus to show (research-phase progress indicator).
               msg => !(msg.role === 'assistant' && !msg.content?.trim() && !(msg.metadata as any)?.progressStatus && (isTyping || isTypingLocal))
             )
-            // Render a single message exactly as before (used for un-folded
-            // singles AND for the "latest" line of a folded group AND inside
-            // the expanded hidden block).
-            const renderOne = (message: Message) => (
+            // One assistant identity owns the run's progress and completion answer.
+            const renderOne = (message: Message, progress: Message[] = [], continuation = false, hideActions = false) => (
               <div key={message.id}>
                 <ChatMessage
                   message={message}
+                  progressMessages={progress}
+                  continuation={continuation}
+                  hideActions={hideActions}
                   sessionId={chatSession?.id}
                   onToolClick={handleToolClick}
                   onDatasetClick={handleDatasetClick}
@@ -2186,7 +2196,7 @@ export function ChatInterface({
                     }
                   }}
                   // Workflow execution props for inline artifacts
-                  onRunWorkflow={onRunWorkflow}
+                  onRunWorkflow={onRunWorkflow ? (workflow, steps) => onRunWorkflow(workflow, steps, message.id) : undefined}
                   onRunChain={onRunChain}
                   onRunPipeline={onRunPipeline}
                   onApprovePipelineStep={onApprovePipelineStep}
@@ -2200,7 +2210,9 @@ export function ChatInterface({
                   onWorkflowProgress={handleWorkflowProgress}
                   isWorkflowRunning={isWorkflowRunning}
                   workflowProgress={workflowProgress}
-                  currentExecutionRun={currentExecutionRun}
+                  currentExecutionRun={currentExecutionRun && message.invocationId &&
+                    ![currentExecutionRun.id, currentExecutionRun.execution?.galaxyInvocationId].includes(message.invocationId)
+                    ? null : currentExecutionRun}
                   isStreaming={(isTyping || isTypingLocal) && message.id === lastMsg?.id && message.role === "assistant"}
                   isLatestAssistantMessage={message.id === latestAssistantMessageId}
                   isRunAnchorFocused={focusedAnchorMessageId === message.id}
@@ -2235,10 +2247,18 @@ export function ChatInterface({
                 )}
               </div>
             )
-            // Collapse consecutive progress runs (wf/qc/loop/plan) into a single
-            // compact, auto-scrolling progress box; agent/find stay full messages.
-            const groups = groupProgressMessages(visible, 2)
+            // Use persisted run identities; unrelated and legacy entries keep their chronology.
+            const groups = groupWorkflowResponses(visible, currentExecutionRun ? {
+              id: currentExecutionRun.id,
+              invocationId: currentExecutionRun.execution?.galaxyInvocationId,
+            } : undefined)
             return groups.map((g) => {
+              if (g.kind === 'response') return (
+                <section key={g.key} aria-label="Workflow response" className="min-w-0 space-y-3">
+                  {renderOne(g.message, g.progress, false, g.findings.length > 0)}
+                  {g.findings.map(message => renderOne(message, [], true))}
+                </section>
+              )
               if (g.kind === 'single') return renderOne(g.message)
               return <ProgressStreamBox key={g.key} messages={g.messages} />
             })

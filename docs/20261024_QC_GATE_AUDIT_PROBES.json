@@ -1,0 +1,114 @@
+[
+  {
+    "process": "DOCKING_AUTODOCK_VINA",
+    "input": {
+      "best_score_kcal_mol": -3,
+      "n_poses_generated": 10
+    },
+    "passed": false,
+    "blocking": [
+      "best_score_kcal_mol"
+    ],
+    "advisory": []
+  },
+  {
+    "process": "QSAR_RF_MODEL",
+    "input": {
+      "cv_r2_score": 0.2,
+      "n_compounds": 100
+    },
+    "passed": false,
+    "blocking": [
+      "cv_r2_score"
+    ],
+    "advisory": []
+  },
+  {
+    "process": "PBPK_SIMULATION",
+    "input": {
+      "pbpk_tmax_fraction": 0.95,
+      "pbpk_simulation_end_h": 24,
+      "Tmax_h": 22.8,
+      "t_half_h": null
+    },
+    "passed": false,
+    "blocking": [
+      "pbpk_tmax_fraction"
+    ],
+    "advisory": [
+      "t_half_h"
+    ]
+  },
+  {
+    "process": "NCA_PKNCA_ANALYSIS",
+    "input": {
+      "auc_extrap_pct_max": 50,
+      "subjects_with_no_terminal_slope": 5,
+      "n_subjects": 10
+    },
+    "passed": true,
+    "blocking": [],
+    "advisory": [
+      "t_half_h"
+    ]
+  },
+  {
+    "process": "NCA_ANALYSIS",
+    "input": {
+      "auc_extrap_pct_max": 50,
+      "subjects_with_no_terminal_slope": 5,
+      "n_subjects": 10,
+      "t_half_h": 5
+    },
+    "passed": true,
+    "blocking": [],
+    "advisory": []
+  },
+  {
+    "process": "MULTIQC",
+    "input": {
+      "module_failures": 1
+    },
+    "passed": false,
+    "blocking": [
+      "module_failures"
+    ],
+    "advisory": []
+  },
+  {
+    "process": "FASTQC",
+    "input": {
+      "module_failures": 1
+    },
+    "passed": false,
+    "blocking": [
+      "module_failures"
+    ],
+    "advisory": []
+  },
+  {
+    "process": "DOCKING_AUTODOCK_VINA",
+    "input": {},
+    "passed": true,
+    "blocking": [],
+    "advisory": []
+  },
+  {
+    "process": "UNRECOGNIZED_PROCESS",
+    "input": {
+      "some_bad_metric": -1
+    },
+    "passed": true,
+    "blocking": [],
+    "advisory": []
+  },
+  {
+    "process": "POLYMORPH_STABILITY_SCREENING",
+    "input": {
+      "form_conversion_detected": true
+    },
+    "passed": true,
+    "blocking": [],
+    "advisory": []
+  }
+]

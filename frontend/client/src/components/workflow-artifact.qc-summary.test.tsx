@@ -1,6 +1,6 @@
 import React from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, waitFor, cleanup, act } from "@testing-library/react";
 import { WorkflowArtifact } from "./workflow-artifact";
 
 vi.mock("./parameter-dialog", () => ({
@@ -29,17 +29,23 @@ vi.mock("./qc-gate-modal", () => ({
 }));
 
 class MockEventSource {
+  static instances: MockEventSource[] = [];
+  listeners = new Map<string, (event: any) => void>();
+  constructor() { MockEventSource.instances.push(this); }
   onopen: ((this: EventSource, ev: Event) => any) | null = null;
   onmessage: ((this: EventSource, ev: MessageEvent) => any) | null = null;
   onerror: ((this: EventSource, ev: Event) => any) | null = null;
-  addEventListener() {}
+  addEventListener(kind: string, listener: (event: any) => void) { this.listeners.set(kind, listener); }
   removeEventListener() {}
   close() {}
 }
 
 describe("WorkflowArtifact QC summary panel", () => {
+  afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    MockEventSource.instances = [];
     vi.stubGlobal("EventSource", MockEventSource as unknown as typeof EventSource);
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -109,6 +115,21 @@ describe("WorkflowArtifact QC summary panel", () => {
     expect(globalThis.navigator.clipboard.writeText).toHaveBeenCalledWith(
       "QC was applied with rnaseq_ribodepleted profile."
     );
+  });
+
+  it("does not rerun or edit parameters for a late post-process finding", async () => {
+    const onRun = vi.fn();
+    const onParameterChange = vi.fn();
+    render(<WorkflowArtifact workflow={{ name: "ADMET" }} steps={[]} isCompleted
+      invocationId="inv-1" onRun={onRun} onParameterChange={onParameterChange} />);
+    await waitFor(() => expect(MockEventSource.instances.length).toBeGreaterThan(0));
+    const event = { data: JSON.stringify({ process_name: "ADMET", execution_control: "assessment_only",
+      failures: [{ metric: "DILI", value: 0.875, threshold: 0.5 }],
+      suggestions: [{ parameter: "logp_max", suggestedValue: 4, confidence: 0.9 }] }) };
+    act(() => MockEventSource.instances[0].listeners.get('qc_gate_triggered')?.(event));
+    expect(onRun).not.toHaveBeenCalled();
+    expect(onParameterChange).not.toHaveBeenCalled();
+    expect(screen.queryByText(/apply suggestions/i)).not.toBeInTheDocument();
   });
 
   // Audit gap #8 (2026-09-09): the happy-path test above never exercised the

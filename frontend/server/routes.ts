@@ -1,3 +1,4 @@
+import { normalizeQcEvents } from "../shared/qc-assessment";
 import { registerVoiceRoutes } from "./voice-routes";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
@@ -5183,11 +5184,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (presignResp.ok) {
             const { url } = await presignResp.json() as { url: string };
             const dataResp = await fetch(url, { signal: AbortSignal.timeout(5_000) });
-            if (dataResp.ok) return res.status(200).json(await dataResp.json());
+            if (dataResp.ok) {
+              const report = await dataResp.json() as any;
+              return res.status(200).json({ ...report, events: normalizeQcEvents(report) });
+            }
           }
         } catch { /* sidecar unavailable — serve the backend response as-is */ }
       }
-      return res.status(response.status).json(qd);
+      return res.status(response.status).json({ ...qd, events: normalizeQcEvents(qd) });
     } catch (err: any) {
       const status = err.response?.status || 502;
       // AfterRunReport hides the tab on any non-200; a 404 here is the
@@ -13720,6 +13724,27 @@ Rules:
         return res.status(400).json({ error: "Can only pause running workflows" });
       }
 
+      // REAL pause: terminate the local Nextflow subprocess so it stops
+      // submitting new tasks. The work-dir + cache survive, so /resume can
+      // pick up via -resume. Only a confirmed backend pause updates local state.
+      const nextflowRunId =
+        run.execution.nextflowRunId || run.execution.galaxyInvocationId || req.params.id;
+      try {
+        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+        const pauseResponse = await fetch(`${galaxyUrl}/api/nextflow/pause/${encodeURIComponent(nextflowRunId)}`, {
+          method: 'POST',
+          signal: AbortSignal.timeout(15_000),
+        });
+        const confirmation = await pauseResponse.json() as any;
+        if (!pauseResponse.ok || confirmation.ok !== true || confirmation.status !== 'paused') {
+          return res.status(409).json({ error: 'The backend did not confirm a pause.',
+            executionStatus: confirmation.status });
+        }
+      } catch (gxyErr) {
+        console.warn('[ExecutionRun] Pause not confirmed:', gxyErr);
+        return res.status(502).json({ error: 'Pause could not be confirmed. Refresh the run status.' });
+      }
+
       // Record interaction
       await storage.addExecutionRunInteraction(req.params.id, {
         id: uuidv4(),
@@ -13729,22 +13754,6 @@ Rules:
         reason,
         userId: req.user?.id,
       });
-
-      // REAL pause: terminate the local Nextflow subprocess so it stops
-      // submitting new tasks. The work-dir + cache survive, so /resume can
-      // pick up via -resume. Best-effort — failures are logged but don't
-      // block the frontend status update.
-      const nextflowRunId =
-        run.execution.nextflowRunId || run.execution.galaxyInvocationId || req.params.id;
-      try {
-        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-        await fetch(`${galaxyUrl}/api/nextflow/pause/${encodeURIComponent(nextflowRunId)}`, {
-          method: 'POST',
-          signal: AbortSignal.timeout(15_000),
-        });
-      } catch (gxyErr) {
-        console.warn('[ExecutionRun] Galaxy pause-call failed (continuing):', gxyErr);
-      }
 
       // Update frontend-side status
       const updated = await storage.updateExecutionRun(req.params.id, {

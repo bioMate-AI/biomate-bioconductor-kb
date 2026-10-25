@@ -1,3 +1,4 @@
+import { canControlExecutionFromQc, normalizeQcEvents, qcResultLabel } from "@shared/qc-assessment";
 import { useState, useEffect, useRef } from "react"
 import { analytics } from "@/lib/analytics"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -255,6 +256,9 @@ export function WorkflowArtifact({
 
   const citationsCount = citations.filter(c => c.doi || c.pmid || c.title).length
   const isFailed = currentExecutionRun?.execution.status === 'failed'
+  const qcExecutionStatusRef = useRef("idle")
+  qcExecutionStatusRef.current = isCompleted ? "completed" : isFailed ? "failed" : isRunning ? "running" : "idle"
+  useEffect(() => { if (isCompleted || isFailed) setShowQcInline(false) }, [isCompleted, isFailed])
   const autofixWorkflowId = currentExecutionRun?.execution?.galaxyWorkflowId || galaxyWorkflowId
   const autofixInvocationId = currentExecutionRun?.execution?.galaxyInvocationId || invocationId
   const nextflowStatus = currentExecutionRun?.execution?.nextflowStatus
@@ -298,6 +302,10 @@ export function WorkflowArtifact({
           const data = JSON.parse(event.data)
           console.log("[QC Gate] Event received:", data)
 
+          if (!canControlExecutionFromQc(data, qcExecutionStatusRef.current)) {
+            annotateQCStep(data.process_name, data.failures || [], "warning")
+            return
+          }
           const processKey = data.process_name
           // US-7.3 — save previous metrics before overwriting, increment retry count
           setQCPreviousMetrics((prev) => ({
@@ -509,13 +517,16 @@ export function WorkflowArtifact({
     }
   }, [sseInvocationId, sseRetryKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // US-6.2: fetch QC event report when workflow completes
+  // Preserve completed findings; a late response for another run cannot replace them.
   useEffect(() => {
+    setQCReport(null)
     if (!isCompleted || !invocationId) return
+    let cancelled = false
     fetch(`/api/invocations/${invocationId}/qc-events`)
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setQCReport(data) })
-      .catch(() => {}) // non-critical; summary section simply won't show
+      .then(data => { if (data && !cancelled) setQCReport({ ...data, events: normalizeQcEvents(data) }) })
+      .catch(() => {})
+    return () => { cancelled = true }
   }, [isCompleted, invocationId])
 
   // Gap 3: Poll AI realtime status every 5s while workflow is running
@@ -1116,7 +1127,7 @@ export function WorkflowArtifact({
             )}
 
             {/* Auto-loop enriched QC panel (ADMET / docking / CYP-DDI / NCA-PK) */}
-            {autoLoopPanel.gateResults && (
+            {canControlExecutionFromQc(autoLoopPanel.gateResults, qcExecutionStatusRef.current) && autoLoopPanel.gateResults && (
               <div className="mt-3">
                 <AutoLoopPanel
                   state={autoLoopPanel}
@@ -1126,7 +1137,7 @@ export function WorkflowArtifact({
             )}
 
             {/* Inline QC Gate Review (replaces full-screen modal) */}
-            {showQcInline && qcGateData && (
+            {showQcInline && qcGateData && !isCompleted && !isFailed && (
               <div
                 data-testid="qc-gate-inline"
                 className="mt-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3"
@@ -1481,17 +1492,15 @@ export function WorkflowArtifact({
                             {qcReport.events.map((ev: any, i: number) => (
                               <div key={i} className={cn(
                                 "rounded px-2 py-1.5 space-y-0.5",
-                                ev.type === "gate" ? "bg-red-50/60 dark:bg-red-950/20" : "bg-amber-50/60 dark:bg-amber-950/20"
+                                ev.status === "fail" ? "bg-red-50/60 dark:bg-red-950/20" : "bg-amber-50/60 dark:bg-amber-950/20"
                               )}>
                                 <p className="font-medium capitalize">
-                                  {ev.type === "gate" ? "🔴" : "⚠️"}{" "}
-                                  {(ev.process_name || "").replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                                  {qcResultLabel(ev.status)}{" "}
+                                  {(ev.gate || ev.process_name || "").replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}
                                 </p>
-                                {(ev.failures || ev.warnings || []).map((f: any, j: number) => (
-                                  <p key={j} className="text-muted-foreground pl-2">
-                                    {typeof f === "string" ? f : f.message || `${f.metric}: ${f.value}`}
-                                  </p>
-                                ))}
+                                <p className="text-muted-foreground pl-2">
+                                  {ev.message || `${ev.gate || 'QC'}: ${ev.measured ?? '—'}`}
+                                </p>
                               </div>
                             ))}
                             <div className="pt-1 border-t">

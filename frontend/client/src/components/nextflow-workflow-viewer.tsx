@@ -1,3 +1,4 @@
+import { canControlExecutionFromQc } from "@shared/qc-assessment";
 import React, { useState, useEffect, useRef } from 'react';
 import '@/styles/workflow-panel.css';
 import { useRunAgainParamCarryover } from '@/hooks/useRunAgainParamCarryover';
@@ -1274,6 +1275,15 @@ export function NextflowWorkflowViewer({
 
   // QC gate inline panel state (SSE-triggered)
   const [showQcInline, setShowQcInline] = useState(false);
+  const qcExecutionStatusRef = useRef(status);
+  qcExecutionStatusRef.current = status;
+  useEffect(() => {
+    if (status !== "running" && status !== "paused") {
+      setShowQcInline(false);
+      setQcGateHalt(false);
+      setQcGateSecondsLeft(null);
+    }
+  }, [status]);
   const [qcGateData, setQCGateData] = useState<QCGateData | null>(null);
   // Gap 1 (inverse) — near-threshold QC advisories keyed by process_name.
   // The narrator already emits a chat line via workflow.qc_gate_warning; here
@@ -2227,6 +2237,15 @@ export function NextflowWorkflowViewer({
           failures: data.failures ?? [],
           suggestions: data.suggestions ?? [],
         };
+        // A completed-process observation is a result finding. Only an explicitly
+        // confirmed orchestration boundary can authorize pause/retry controls.
+        if (!canControlExecutionFromQc(data, qcExecutionStatusRef.current)) {
+          const processName = data.process_name || "QC";
+          setQcAdvisoryByStep(prev => ({ ...prev, [processName]: gateData.failures
+            .filter((f): f is QCGateFailure => !!f && typeof f === "object")
+            .map(f => ({ metric: f.metric, value: f.value, threshold: f.threshold })) }));
+          return;
+        }
         // Determine if auto-loop is enabled for this phase.
         // Auto-loop ON → apply suggestions automatically using Nextflow -resume, no card shown.
         // Auto-loop OFF → show confirmation card and let user decide.
@@ -2926,7 +2945,7 @@ export function NextflowWorkflowViewer({
             </div>
           )}
           {/* QC Gate Inline Review Panel — appears when backend fires a qc_gate_triggered SSE event */}
-          {showQcInline && qcGateData && (
+          {showQcInline && qcGateData && (status === "running" || status === "paused") && (
             <div className="alert warn" data-testid="qc-gate-inline" style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
                 <AlertTriangle className="h-3.5 w-3.5" style={{ flexShrink: 0, marginTop: 1 }} />
@@ -3500,6 +3519,7 @@ export function NextflowWorkflowViewer({
                     isAutofixActive={isAutofixActive}
                     isGlobalExecutionActive={isGlobalExecutionActive}
                     autoLoopPanelState={
+                      canControlExecutionFromQc(autoLoopPanel.gateResults, status) &&
                       autoLoopPanel.gateResults &&
                       autoloopPhaseMatches(group.key, autoLoopPanel.gateResults.phase)
                         ? autoLoopPanel

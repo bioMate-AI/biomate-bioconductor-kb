@@ -10,6 +10,7 @@ Emits SSE events when QC gates are triggered.
 from __future__ import annotations
 import json
 import logging
+from galaxy.ai.qc_records import normalize_qc_events
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, Callable, Optional
@@ -21,6 +22,19 @@ except ImportError:
     SUGGESTER_AVAILABLE = False
 
 log = logging.getLogger(__name__)
+
+
+class _ObservedMetrics(dict):
+    """Track real input metrics consulted by the selected rule, not defaults."""
+
+    def __init__(self, values):
+        super().__init__(values)
+        self.observed = set()
+
+    def get(self, key, default=None):
+        if key in self and super().get(key) is not None:
+            self.observed.add(key)
+        return super().get(key, default)
 
 
 # ---------------------------------------------------------------------------
@@ -1344,6 +1358,13 @@ class NextflowQCGateHandler:
 
         if not qc_metrics:
             log.debug(f"[QC Gate] No QC metrics calculated for {process_name}")
+            self.qc_event_log.append({
+                "type": "assessment", "process_name": process_name,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "status": "unavailable", "message": "QC metrics could not be read.",
+                "execution_control": "assessment_only",
+            })
+            self._persist_qc_report()
             return
 
         # Check if QC thresholds are met
@@ -1354,12 +1375,12 @@ class NextflowQCGateHandler:
         advisory_items = [f for f in all_failures if f.get("advisory", False)]
 
         # Emit SSE event based on whether hard (blocking) failures exist
-        if not qc_passed:
+        if qc_passed is False:
             log.warning(f"[QC Gate] TRIGGERED for {process_name}: {blocking_failures}")
             # Pass all_failures (blocking + advisory) so the gate modal can display full context.
             # Frontend distinguishes advisory items via the advisory=True flag for different styling.
             self._emit_qc_gate_event(process_name, qc_metrics, all_failures)
-        else:
+        elif qc_passed is True:
             log.info(f"[QC Gate] PASSED for {process_name}")
             # When no hard failures: advisory items + near-threshold warnings surface via warning event
             near_threshold = self._check_qc_warnings(process_name, qc_metrics)
@@ -1367,6 +1388,24 @@ class NextflowQCGateHandler:
             if all_warnings:
                 log.info(f"[QC Gate] Near-threshold/advisory warnings for {process_name}: {len(all_warnings)}")
                 self._emit_qc_warning_event(process_name, qc_metrics, all_warnings)
+            else:
+                self.qc_event_log.append({
+                    "type": "assessment", "process_name": process_name,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "status": "pass", "metrics": qc_metrics,
+                    "message": "No threshold violations in the available evaluated metrics.",
+                    "execution_control": "assessment_only",
+                    "active_profile": self.active_profile,
+                    "active_overrides": dict(self.qc_overrides),
+                })
+        else:
+            self.qc_event_log.append({
+                "type": "assessment", "process_name": process_name,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "status": "not_evaluated", "metrics": qc_metrics,
+                "message": "No supported QC rule evaluated the supplied metrics.",
+                "execution_control": "assessment_only",
+            })
 
         # ── Auto-loop enriched evaluation (drug discovery domains) ─────────────
         # Runs in addition to the existing QC gate system.  Produces autoloop_*
@@ -1402,6 +1441,19 @@ class NextflowQCGateHandler:
             )
         except Exception:
             pass  # fail-safe: never block the existing QC pipeline
+
+        self._persist_qc_report()
+
+    def _persist_qc_report(self):
+        """Keep observed results in the run outputs even after the monitor exits."""
+        try:
+            self.work_dir.mkdir(parents=True, exist_ok=True)
+            path = self.work_dir / "qc_events.json"
+            temporary = path.with_suffix(".json.tmp")
+            temporary.write_text(json.dumps(self.get_qc_report(), default=str, indent=2))
+            temporary.replace(path)
+        except Exception as exc:
+            log.warning("[QC] Could not persist assessment report: %s", exc)
 
     def _calculate_qc_metrics(
         self,
@@ -1585,12 +1637,12 @@ class NextflowQCGateHandler:
 
         # --- PBPK simulation (PK-Sim, BioMate native, Simcyp fallback) ---
         elif any(k in process_upper for k in ("PK_SIM", "PKSIM", "PBPK_SIMULATION",
-                                               "PBPK_SIM", "NCA_ANALYSIS",
+                                               "PBPK_SIM",
                                                "PK_REPORT", "GENERATE_PK_REPORT")):
             return self._parse_pbpk_results(task_work_dir)
 
         # --- Non-compartmental analysis (PKNCA) ---
-        elif any(k in process_upper for k in ("NCA_PKNCA", "NONCOMPARTMENTAL", "PKNCA")):
+        elif any(k in process_upper for k in ("NCA_PKNCA", "NCA_ANALYSIS", "NONCOMPARTMENTAL", "PKNCA")):
             return self._parse_nca_results(task_work_dir)
 
         # --- Population pharmacokinetics (nlmixr2 / SAEM) ---
@@ -4390,7 +4442,7 @@ class NextflowQCGateHandler:
         self,
         process_name: str,
         qc_metrics: Dict[str, Any]
-    ) -> tuple[bool, list]:
+    ) -> tuple[Optional[bool], list]:
         """
         Check if QC metrics meet quality thresholds.
 
@@ -4404,6 +4456,9 @@ class NextflowQCGateHandler:
             operator  – ">" or "<" indicating the direction of violation
             message   – human-readable description
         """
+        if not qc_metrics:
+            return None, []
+        qc_metrics = _ObservedMetrics(qc_metrics)
         failures = []
         process_upper = process_name.upper()
 
@@ -5560,7 +5615,7 @@ class NextflowQCGateHandler:
                 })
 
         elif any(k in process_upper for k in ("PK_SIM", "PKSIM", "PBPK_SIMULATION",
-                                               "PBPK_SIM", "NCA_ANALYSIS",
+                                               "PBPK_SIM",
                                                "PK_REPORT", "GENERATE_PK_REPORT")):
             # ── PBPK simulation QC ──────────────────────────────────────────────
             # [GOLD] No terminal elimination phase — Tmax at end of simulation
@@ -6166,6 +6221,8 @@ class NextflowQCGateHandler:
 
         # Advisory items (advisory=True) are informational only — they do not block the workflow.
         # qc_passed is determined solely by hard (non-advisory) failures.
+        if not qc_metrics.observed:
+            return None, []
         blocking_failures = [f for f in failures if not f.get("advisory", False)]
         return (len(blocking_failures) == 0, failures)
 
@@ -6207,6 +6264,8 @@ class NextflowQCGateHandler:
 
         event_data = {
             "invocation_id": self.invocation_id,
+            # This trace observer cannot stop consumers before they are scheduled.
+            "execution_control": "assessment_only",
             "process_name": process_name,
             "qc_metrics": qc_metrics,
             "failures": failures,
@@ -6248,7 +6307,7 @@ class NextflowQCGateHandler:
             metric = primary.get("metric") or "metric"
             value = primary.get("value")
             threshold = primary.get("threshold")
-            kind = "workflow.qc_gate_blocked" if blocking else "workflow.qc_gate_warning"
+            kind = "workflow.qc_gate_warning"
             _narrator_emit(
                 self.invocation_id,
                 kind,
@@ -6383,7 +6442,7 @@ class NextflowQCGateHandler:
                 f"({', '.join(e['process_name'] for e in gate_events)}). "
             )
         else:
-            gate_phrase = "All processes passed automated QC gates without intervention. "
+            gate_phrase = "No failed QC assessments were recorded; this does not establish that every check was evaluated. "
 
         methods_text = (
             f"Quality control was performed automatically by BioMate{profile_phrase}{override_phrase}. "
@@ -6399,7 +6458,8 @@ class NextflowQCGateHandler:
             "active_overrides": dict(self.qc_overrides) if self.qc_overrides else {},
             "gates_triggered": len(gate_events),
             "warnings_emitted": len(warn_events),
-            "events": list(self.qc_event_log),
+            "events": normalize_qc_events(self.qc_event_log),
+            "raw_events": list(self.qc_event_log),
             "methods_text": methods_text,
         }
 

@@ -3379,11 +3379,101 @@ def _read_qc_events_sidecar(outdir: str) -> Optional[dict]:
         return None
 
 
+def _reconstruct_qc_from_s3(run_id, files, workflow_domain, qc_overrides, retrospective, outdir=None):
+    """Read standard QC outputs for other domains; never emit execution events."""
+    import fnmatch
+    import json
+    import os
+    from datetime import datetime, timezone
+    import boto3
+    from galaxy.ai.qc_records import assess_qc_document
+    from galaxy.ai.retrievers.qc_gate_emit import classify_gate_only_domain
+    from galaxy.ai.retrievers.qc_gate_reader import build_gate_event
+    from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler
+
+    original = get_run_state_store().get_run(run_id) or {}
+    handler = NextflowQCGateHandler(
+        invocation_id=run_id, work_dir=Path("/tmp"), sse_callback=lambda *args: None,
+        app=None, workflow_domain=workflow_domain,
+        qc_overrides=original.get("qc_overrides", qc_overrides), qc_profile=original.get("qc_profile"),
+    )
+    def gate_checker(process, metrics):
+        domain = classify_gate_only_domain(process)
+        return build_gate_event(process, domain, metrics).get("gates", []) if domain else []
+
+    clients = {}
+    def client_for(bucket):
+        if bucket not in clients:
+            client = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
+            try:
+                region = client.get_bucket_location(Bucket=bucket).get("LocationConstraint") or "us-east-1"
+                client = boto3.client("s3", region_name=region)
+            except Exception:
+                pass  # Reading outputs need not require GetBucketLocation permission.
+            clients[bucket] = client
+        return clients[bucket]
+
+    rows = []
+    seen = set()
+    patterns = [pattern for _, pattern in handler._S3_REPORT_PATHS.values()]
+    for file in files:
+        uri = file.get("s3_uri", "")
+        name = file.get("name") or file.get("filename") or uri.rsplit("/", 1)[-1]
+        basename = name.rsplit("/", 1)[-1]
+        if uri in seen or not uri.startswith("s3://") or not (
+            basename in {"qc_metrics.json", "qc_report.json", "qc.json"}
+            or any(fnmatch.fnmatch(basename, pattern) for pattern in patterns)
+        ):
+            continue
+        seen.add(uri)
+        try:
+            bucket, key = uri[5:].split("/", 1)
+            blob = json.loads(client_for(bucket).get_object(Bucket=bucket, Key=key)["Body"].read())
+            # Never infer a producing process from an ambiguous qc_metrics.json basename.
+            # Exact registered report names or a step directory may identify it.
+            if isinstance(blob, dict) and not blob.get("process"):
+                candidates = [process for process, (_, pattern) in handler._S3_REPORT_PATHS.items()
+                              if process in uri.upper() or (pattern not in {"qc_metrics.json", "qc_report.json"}
+                                                           and fnmatch.fnmatch(basename, pattern))]
+                if len(set(candidates)) == 1:
+                    blob = {**blob, "process": candidates[0]}
+            rows.extend(assess_qc_document(blob, handler._check_qc_thresholds, uri, gate_checker))
+        except Exception as exc:
+            log.warning("[QC] Cannot reconstruct %s: %s", uri, exc)
+            rows.append({"gate": basename, "status": "unavailable", "source": uri,
+                         "message": "The QC source could not be read."})
+
+    if not rows:
+        return []
+    now = datetime.now(timezone.utc).isoformat()
+    rows = [{**row, "ts": now} for row in rows]
+    report = {
+        "invocation_id": run_id, "source": "s3_sidecar", "events": rows,
+        "evaluation_context": "retrospective" if retrospective else "completion",
+        "evaluated_at": now,
+        "criteria_basis": "stored profile/overrides with evaluator defaults"
+                          if "qc_overrides" in original or "qc_profile" in original else
+                          "original criteria unavailable; evaluator defaults",
+        "active_profile": handler.active_profile, "active_overrides": handler.qc_overrides,
+        "gates_triggered": sum(row["status"] == "fail" for row in rows),
+        "warnings_emitted": sum(row["status"] == "advisory" for row in rows),
+        "methods_text": "QC findings reconstructed from the recorded output files. No execution action was taken.",
+    }
+    outdir = (original.get("outdir") or outdir or "").rstrip("/")
+    if outdir.startswith("s3://"):
+        bucket, key = (outdir + "/output/qc_events.json")[5:].split("/", 1)
+        client_for(bucket).put_object(Bucket=bucket, Key=key, Body=json.dumps(report).encode(),
+                                     ContentType="application/json")
+    return [row for row in rows if row["status"] == "fail"]
+
+
 def _evaluate_qc_from_s3(
     run_id: str,
     s3_output_files: list,
     workflow_domain: str,
     qc_overrides: dict,
+    retrospective: bool = False,
+    outdir: Optional[str] = None,
 ) -> list:
     """
     Evaluate QC gates for completed AWS Batch runs by reading output files from S3.
@@ -3395,61 +3485,16 @@ def _evaluate_qc_from_s3(
         from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler, QC_RED_LINES
 
         domain_upper = workflow_domain.upper()
-        is_admet = any(k in domain_upper for k in ("ADMET", "PHARMACOL", "DRUG_DISC", "TOXICITY"))
+        is_admet = "ADMET" in domain_upper
         is_admet_files = any(
             (f.get("filename") or f.get("name") or "").endswith("toxicity_report.json") or
             "predict_admet_properties" in (f.get("filename") or f.get("name") or "")
             for f in s3_output_files
         )
         is_cryo = any(k in domain_upper for k in ("CRYO", "CRYOSPARC", "CRYOEM", "CRYO_EM"))
-        is_preproc = any(k in domain_upper for k in ("PREPROC", "CLEANING", "QC_CLEAN"))
-        is_preproc_files = any(
-            f.get("filename", "").endswith("qc_report.json") for f in s3_output_files
-        )
-        if (not (is_admet or is_admet_files) and not is_cryo
-                and not (is_preproc or is_preproc_files)):
-            return []  # S3 QC supported for ADMET, CryoEM, and preprocessing/cleaning domains
-
-        # ── Preprocessing / cleaning QC path (over-correction gate) ─────────
-        # The clean_and_verify subworkflow emits qc_report.json already in the
-        # {"_all_metrics":[{name,measured,unit,threshold,pass}, ...]} shape, so this branch
-        # just downloads + surfaces the failing metrics. Additive: returns [] if not preproc.
-        if ((is_preproc or is_preproc_files)
-                and not is_cryo and not (is_admet or is_admet_files)):
-            _qc_uri = ""
-            for _f in s3_output_files:
-                if _f.get("filename", "").endswith("qc_report.json"):
-                    _qc_uri = _f.get("s3_uri", "")
-                    break
-            if not _qc_uri.startswith("s3://"):
-                return []
-            try:
-                import boto3
-                _bucket, _key = _qc_uri[5:].split("/", 1)
-                _report = _json.loads(
-                    boto3.client("s3").get_object(Bucket=_bucket, Key=_key)["Body"].read()
-                )
-            except Exception as _e:  # noqa: BLE001 — safe-fail, gate is best-effort
-                log.warning("[QC Gate] preproc qc_report.json read failed for %s: %s", run_id, _e)
-                return []
-            _fails: List[Dict] = []
-            for _m in _report.get("_all_metrics", []):
-                if _m.get("pass", True):
-                    continue
-                _name = _m.get("name", "")
-                _fails.append({
-                    "name": _name,
-                    "measured": _m.get("measured"),
-                    "threshold": _m.get("threshold"),
-                    "unit": _m.get("unit", ""),
-                    # biology-erasure is a hard halt; batch/outlier issues are advisory
-                    "severity": "halt" if _name.lower().startswith("biology") else "advisory",
-                    "message": (
-                        "%s: measured %s vs threshold %s"
-                        % (_name, _m.get("measured"), _m.get("threshold"))
-                    ),
-                })
-            return _fails
+        if not (is_admet or is_admet_files or is_cryo):
+            return _reconstruct_qc_from_s3(run_id, s3_output_files, workflow_domain,
+                                          qc_overrides, retrospective, outdir)
 
         # ── CryoEM path ────────────────────────────────────────────────────
         if is_cryo and not (is_admet or is_admet_files):
@@ -3492,37 +3537,17 @@ def _evaluate_qc_from_s3(
                 })
             return gate_failures
 
-        # ── ADMET path ─────────────────────────────────────────────────────
-        # Real SSE callback — broadcasts to /internal/sse-inject so the
-        # AutoLoopPanel receives autoloop_gate_results / autoloop_update
-        # events. Previously this was a no-op which left the UI empty
-        # even when gates were correctly evaluated.
-        import urllib.request as _urllib
-
-        def _sse_emit(event_type: str, data: Dict[str, Any]) -> None:
-            _inject_url = f"{_resolve_frontend_url()}/internal/sse-inject"
-            try:
-                req = _urllib.Request(
-                    _inject_url,
-                    data=_json.dumps({
-                        "invocation_id": run_id,
-                        "event_type": event_type,
-                        "data": data,
-                    }).encode("utf-8"),
-                    headers={"Content-Type": "application/json"},
-                )
-                with _urllib.urlopen(req, timeout=5):
-                    pass
-            except Exception as exc:
-                log.debug("[autoloop SSE] inject failed for %s: %s", event_type, exc)
-
+        # ── ADMET completion assessment (no execution events) ─────────────
+        original = get_run_state_store().get_run(run_id) or {}
+        qc_overrides = original.get("qc_overrides", qc_overrides)
         handler = NextflowQCGateHandler(
             invocation_id=run_id,
             work_dir=Path("/tmp"),
-            sse_callback=_sse_emit,
+            sse_callback=lambda *args: None,
             app=None,
             workflow_domain=workflow_domain,
             qc_overrides=qc_overrides,
+            qc_profile=original.get("qc_profile"),
         )
 
         # Read ADMET safety metrics from S3. Prefer toxicity_report.json
@@ -3570,36 +3595,8 @@ def _evaluate_qc_from_s3(
         if not metrics:
             return []
 
-        # Fire the auto-loop bridge so the AutoLoopPanel receives the
-        # autoloop_gate_results (+ autoloop_update remediation) SSE events at
-        # run completion — the live trace-poll monitor is the primary firer,
-        # but a fast Batch process can complete entirely between two 5 s polls
-        # (or the trace hash format can differ), leaving the panel empty even
-        # though the gate failed. This completion-time emit is the safety net
-        # (idempotent on the frontend: same event shape, keyed by invocation_id).
-        try:
-            # `experiments` is a top-level package (repo backend/experiments →
-            # container /app/experiments). Ensure its root is importable — the
-            # deployed container has /app/experiments; local dev has backend/.
-            import sys as _sys, os as _os
-            for _root in ("/app", _os.path.abspath(_os.path.join(_os.path.dirname(__file__), *[".."] * 5))):
-                if _os.path.isdir(_os.path.join(_root, "experiments")) and _root not in _sys.path:
-                    _sys.path.insert(0, _root)
-                    break
-            from experiments.autoloop_bridge import evaluate_and_emit
-            evaluate_and_emit(
-                process_name="ADMET_PRED",
-                raw_metrics=metrics,
-                invocation_id=run_id,
-                sse_callback=_sse_emit,
-                qc_profile=(qc_overrides or {}).get("qc_profile"),
-                current_params=None,
-            )
-        except Exception as _al_exc:  # noqa: BLE001 — fail-open, never block QC
-            # WARNING not DEBUG: a missing module for a shipped feature must be visible
-            # (this exact silent DEBUG hid autoloop_bridge being absent from the deploy).
-            log.warning("[autoloop] completion-time emit failed for %s: %s "
-                        "(auto-loop remediation SSE will be absent — check experiments/ deploy)", run_id, _al_exc)
+        # Completion-time evaluation only records findings; it never dispatches
+        # auto-loop/remediation events for a finished or historical run.
 
         _, all_failures = handler._check_qc_thresholds(
             "PREDICT_ADMET_PROPERTIES", metrics
@@ -3673,6 +3670,11 @@ def _evaluate_qc_from_s3(
         try:
             _report = handler.get_qc_report()
             _report["source"] = "s3_sidecar"
+            _report["evaluation_context"] = "retrospective" if retrospective else "completion"
+            _report["evaluated_at"] = _ts_now
+            _report["criteria_basis"] = ("stored profile/overrides with evaluator defaults"
+                                         if "qc_overrides" in original or "qc_profile" in original
+                                         else "original criteria unavailable; evaluator defaults")
             # Replace the (empty, nested-shape) qc_event_log events with the flat
             # per-gate rows the after-run QcAuditTab renders directly, so a reopened
             # run shows the full measured-vs-threshold gate table (pass + fail).
@@ -3687,10 +3689,10 @@ def _evaluate_qc_from_s3(
             # old "parent dir of the first output file" derivation put the sidecar in
             # /run/ where Node never looks. The run's stored outdir is authoritative;
             # fall back to stripping the publish subdir from an output URI.
-            _outdir = ""
+            _outdir = (outdir or "").rstrip("/")
             try:
                 _snap = get_run_state_store().get_run(run_id) or {}
-                _outdir = (_snap.get("outdir") or "").rstrip("/")
+                _outdir = (_snap.get("outdir") or _outdir).rstrip("/")
             except Exception:
                 _outdir = ""
             if not _outdir.startswith("s3://"):
@@ -4699,6 +4701,7 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 s3_output_files=_s3_output_files,
                 workflow_domain=_wf_domain_for_qc,
                 qc_overrides=_qc_overrides_for_qc,
+                outdir=_outdir_for_s3,
             )
             if _qc_gates_s3:
                 log.info("[QC Gate] S3 evaluation for %s: %d gate(s)", run_id, len(_qc_gates_s3))
@@ -7144,6 +7147,20 @@ def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
             invocation_id = info.get("invocation_id")
             proc = info.get("process")
 
+    # A late QC event must not overwrite completion, and a pause needs a
+    # controller that can actually be stopped. Check before writing paused state.
+    previous = dict(info or {})
+    if soft and not previous:
+        previous = dict(get_run_state_store().get_run(run_id) or {})
+    previous_status = previous.get("status")
+    if soft and previous_status in {"completed", "succeeded", "failed", "cancelled"}:
+        return {"run_id": run_id, "ok": False, "status": previous_status, "note": "already-terminal"}
+    if soft and proc is not None and proc.poll() is not None:
+        return {"run_id": run_id, "ok": False, "status": previous_status, "note": "already-exited"}
+    pause_pids = _find_nextflow_pids_for_run(run_id) if soft and proc is None else None
+    if soft and proc is None and not pause_pids:
+        return {"run_id": run_id, "ok": False, "status": previous_status, "note": "no-process-found"}
+
     # Write the terminal status BEFORE signalling the process. The completion
     # thread (process.wait()) wakes the instant the SIGTERM lands and classifies
     # the run by returncode (<0 → interrupted/failed). If "paused"/"cancelled"
@@ -7153,6 +7170,8 @@ def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
     _terminal_status = "paused" if soft else "cancelled"
     _completed_at_now = time.time()
     with _runs_lock:
+        if soft and (_runs.get(run_id) or {}).get("status") in {"completed", "succeeded", "failed", "cancelled"}:
+            return {"run_id": run_id, "ok": False, "status": _runs[run_id]["status"], "note": "already-terminal"}
         if run_id in _runs:
             _runs[run_id]["status"] = _terminal_status
             _runs[run_id]["completed_at"] = _completed_at_now
@@ -7168,6 +7187,16 @@ def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
     if proc is not None:
         rc = proc.poll()
         if rc is not None:
+            if soft:
+                with _runs_lock:
+                    current_status = (_runs.get(run_id) or {}).get("status")
+                    restored_status = current_status if current_status not in (None, "paused") else previous_status
+                    if run_id in _runs:
+                        _runs[run_id]["status"] = restored_status
+                        _runs[run_id]["completed_at"] = previous.get("completed_at")
+                get_run_state_store().update_run(run_id, status=restored_status,
+                                                completed_at=previous.get("completed_at"))
+                return {"run_id": run_id, "ok": False, "status": restored_status, "note": "already-exited"}
             return {"run_id": run_id, "ok": True, "status": info.get("status") if info else None, "note": "already-exited"}
         try:
             proc.terminate()
@@ -7185,7 +7214,7 @@ def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
         # Multi-worker fallback: find the Nextflow Java PID by run_id match.
         import os as _os
         import signal as _signal
-        pids = _find_nextflow_pids_for_run(run_id)
+        pids = pause_pids if soft else _find_nextflow_pids_for_run(run_id)
         for pid in pids:
             try:
                 _os.kill(pid, _signal.SIGTERM)
@@ -7203,6 +7232,15 @@ def _terminate_run_process(run_id: str, soft: bool = False) -> Dict[str, Any]:
             note = "by-pgrep"
         else:
             note = "no-process-found"
+
+    if soft and not pids_terminated:
+        with _runs_lock:
+            if run_id in _runs:
+                _runs[run_id]["status"] = previous_status
+                _runs[run_id]["completed_at"] = previous.get("completed_at")
+        get_run_state_store().update_run(run_id, status=previous_status,
+                                        completed_at=previous.get("completed_at"))
+        return {"run_id": run_id, "ok": False, "status": previous_status, "note": note}
 
     _terminal_status = "paused" if soft else "cancelled"
     _completed_at_now = time.time()
@@ -7953,6 +7991,20 @@ def get_invocation_qc_events(
                 break
 
         if monitor is None or monitor.qc_handler is None:
+            # Read the recorded local assessment before reconstructing it using
+            # a newer evaluator. Only use the run's stored directory.
+            snapshot = get_run_state_store().get_run(invocation_id) or {}
+            stored_workdir = snapshot.get("work_dir") or ""
+            if stored_workdir and not stored_workdir.startswith("s3://"):
+                recorded = Path(stored_workdir) / "qc_events.json"
+                if recorded.is_file():
+                    try:
+                        import json as _record_json
+                        report = _record_json.loads(recorded.read_text())
+                        if isinstance(report, dict) and isinstance(report.get("events"), list):
+                            return {**report, "source": "recorded_local"}
+                    except (OSError, ValueError):
+                        pass
             # Attempt to locate a persisted JSONL audit log even if monitor is gone
             import json as _json
             jobs_dir = getattr(getattr(trans.app, 'config', None), 'root', None)
@@ -7998,6 +8050,9 @@ def get_invocation_qc_events(
             # output FILE signatures (toxicity_report.json, qc_report.json, ...).
             # Gate on a resolvable S3 outdir alone; non-QC domains return [] fast.
             if _od_outdir.startswith("s3://"):
+                cached_report = _read_qc_events_sidecar(_od_outdir)
+                if cached_report is not None:
+                    return {**cached_report, "source": "s3_sidecar"}
                 try:
                     import json as _json2
                     _od_overrides = {}
@@ -8017,6 +8072,8 @@ def get_invocation_qc_events(
                         s3_output_files=_od_files,
                         workflow_domain=_od_domain,
                         qc_overrides=_od_overrides,
+                        retrospective=True,
+                        outdir=_od_outdir,
                     )
                     # Read back the sidecar it just wrote (the full gate report).
                     _sc = _read_qc_events_sidecar(_od_outdir)
@@ -8665,19 +8722,20 @@ def _render_qc_report_html(report: Dict[str, Any]) -> str:
     active_overrides = report.get("active_overrides", {})
     gates_triggered = report.get("gates_triggered", 0)
     warnings_emitted = report.get("warnings_emitted", 0)
-    events = report.get("events", [])
+    from galaxy.ai.qc_records import normalize_qc_events
+    events = normalize_qc_events(report.get("events", []))
     methods_text = _html_escape(report.get("methods_text", ""))
     source = report.get("source", "unknown")
 
     generated_at = _dt.now(_tz.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
     # Summary counts
-    gate_events = [e for e in events if e.get("type") == "gate"]
-    warn_events = [e for e in events if e.get("type") == "warning"]
-    total_steps = len(set(e.get("process_name", "") for e in events))
-    failed_steps = len(set(e.get("process_name", "") for e in gate_events))
-    warning_steps = len(set(e.get("process_name", "") for e in warn_events))
-    passed_steps = total_steps - failed_steps
+    gate_events = [e for e in events if e.get("status") == "fail"]
+    warn_events = [e for e in events if e.get("status") == "advisory"]
+    total_steps = len(events)
+    failed_steps = len(gate_events)
+    warning_steps = len(warn_events)
+    passed_steps = sum(e.get("status") == "pass" for e in events)
 
     # Build overrides table rows
     overrides_rows = ""
@@ -8693,25 +8751,17 @@ def _render_qc_report_html(report: Dict[str, Any]) -> str:
     # Build per-step event rows
     step_rows = ""
     for event in events:
-        etype = event.get("type", "")
-        process_name = _html_escape(event.get("process_name", "unknown"))
-        timestamp = _html_escape(event.get("timestamp", ""))
+        status = event.get("status", "not_evaluated")
+        process_name = _html_escape(event.get("process_name") or event.get("gate") or "unknown")
+        timestamp = _html_escape(event.get("ts") or event.get("timestamp") or "")
         profile_used = _html_escape(event.get("active_profile") or "none")
-
-        if etype == "gate":
-            status_cell = '<td class="status-failed">FAILED</td>'
-            row_class = "row-failed"
-            failures = event.get("failures", [])
-            detail_cells = _render_failures_cells(failures)
-        elif etype == "warning":
-            status_cell = '<td class="status-warning">WARNING</td>'
-            row_class = "row-warning"
-            warnings_list = event.get("warnings", [])
-            detail_cells = _render_warnings_cells(warnings_list)
-        else:
-            status_cell = '<td class="status-passed">PASSED</td>'
-            row_class = "row-passed"
-            detail_cells = "<td>-</td><td>-</td><td>-</td><td>-</td>"
+        row_class = "row-passed" if status == "pass" else "row-failed" if status == "fail" else "row-warning"
+        status_cell = f'<td>{_html_escape(status.upper().replace("_", " "))}</td>'
+        detail_cells = _render_failures_cells([{
+            **event, "metric": event.get("gate") or event.get("metric") or "",
+            "value": event.get("measured") if event.get("measured") is not None else "—",
+            "threshold": event.get("threshold") if event.get("threshold") is not None else "—",
+        }])
 
         step_rows += (
             f'<tr class="{row_class}">'
@@ -8726,7 +8776,7 @@ def _render_qc_report_html(report: Dict[str, Any]) -> str:
     if not step_rows:
         step_rows = (
             '<tr><td colspan="8" class="none">'
-            "No QC events recorded — all processes passed automatically."
+            "No QC evaluations recorded. Check outcomes are unavailable."
             "</td></tr>"
         )
 
@@ -8929,7 +8979,7 @@ def _render_qc_report_html(report: Dict[str, Any]) -> str:
       <div class="label">Failed Steps</div>
     </div>
     <div class="summary-card card-warning">
-      <div class="number">{warning_steps + warnings_emitted}</div>
+      <div class="number">{warning_steps}</div>
       <div class="label">Advisory Warnings</div>
     </div>
   </div>
