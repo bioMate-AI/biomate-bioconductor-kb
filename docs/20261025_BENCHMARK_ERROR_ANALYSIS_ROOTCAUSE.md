@@ -48,11 +48,19 @@ production `UnifiedWorkflowSearch._browse_catalog_with_llm`. Several are wrong e
 - **`nf-core/mhcquant`** description omits "Comet / database search" → `prot_010` ("Comet DB search on
   eluted MHC peptides") routed to `epitopeprediction`.
 
-**Fix (next):** backfill/repair descriptions so the first 120 chars carry the discriminator —
-scnanoseq → lead with "NANOPORE long-read single-cell (10X libraries sequenced on ONT)"; scrnaseq → lead
-with "10X SHORT-READ single-cell (Cell Ranger / STARsolo / alevin-fry)"; mhcquant → add "Comet database
-search". Re-run routing to measure (expect the 3 scnanoseq misses + prot_010 to flip). Generalizable product
-improvement, not a benchmark edit.
+**Fix (DONE for 3 workflows):** `scripts/fix_routing_descriptions_20261025.py` (idempotent) front-loads the
+discriminator into the first 120 chars — scnanoseq now leads "OXFORD NANOPORE LONG-READ … for SHORT-READ 10X
+use nf-core/scrnaseq"; scrnaseq leads "10X SHORT-READ … Cell Ranger/STARsolo/alevin-fry"; mhcquant leads with
+"Comet database search". Apply to the canonical DB (dev/S3) via the normal DB-maintenance path.
+
+**Measured (A/B, old-DB vs new-DB menu, qwen-2.5-7b proxy for the on-prem 9B):** `sc_001` flips scnanoseq✗→
+scrnaseq✓ (scnanoseq's line now actively redirects); aggregate over all 200 items 0.665→0.675 (+1pp). So the
+targeted 3-description fix is correct and helps the specific confusions, but the **systemic** lever is bigger:
+the `[:120]` truncation cuts discriminators catalog-wide. The general fix is (a) a catalog-wide pass to
+front-load discriminators / add a short "use X not Y" disambiguator to near-duplicate pipelines, and/or
+(b) widen the menu truncation (e.g. 120→200 chars) in production `_browse_catalog_with_llm` and the eval.
+Definitive magnitude on the on-prem 9B requires re-running the routing eval with the patched DB (bounded spot
+run; the eval box pulls the DB from S3 so the patched DB must be uploaded first).
 
 ## 4. Benchmark gold errors (fix the benchmark, documented per policy)
 A minority of "misses" are the gold being wrong or under-specified (empty `acceptable_alts`):
