@@ -98,9 +98,9 @@ the Landry CC BY-NC-ND licence question; ADMIDAS/SyMBS metal identity; the hexa-
 
 **P0 — cheap, no GPU, unambiguous (next):**
 1. `reward.py`: delete the MM-GBSA fallback and "trustworthy arbiter" wording; `ddg_fep` weight 0 unless a certificate is attached; `_num` rejects bool/NaN/inf; gate dominance guaranteed (lexicographic). `score.py`: typed pending in `rank_key`;
-   target-specific rule policy so PD-L1/GRPR are not auto-failed (explicit `no_rule` state).
+   target-specific rule policy so PD-L1 is not auto-failed — **DONE (`7acb6b6e3`): a target with no defined rule is `rule_applicable=False`, ignored by the gate; a pass means FTO + developability only.** GRPR is out of scope for this work.
 2. `fep_production.py`: refuse to submit without a post-mode JSON bound to the topology/coordinate hashes of the run (the guard now lives only on the dead path).
-3. **v2 αvβ6 panel:** decide the conjugation strategy (restore a Lys handle, or document the intended site) before the panel is treated as radioligand-ready — all 8 fail H5.
+3. **v2 αvβ6 panel — DECIDED (default, 2026-10-25; the owner said "I don't know", so this is the chair's zero-regret default and is reversible):** **HOLD — do not order v2.** All 8 fail H5 (no Lys handle) and so cannot be conjugated to a chelator as designed. A v3 keeps exactly one Lys handle at a position away from the RGD/turn (the published scaffold uses position 9, NMeLys) and obtains FTO divergence at other free positions; FTO itself needs counsel (`patents_checked: false`). No v3 sequences are generated until the metal/physics gate (P1/P2) says whether FEP can rank anything.
 4. `target_kb/avb6_measured_sar.json`: the A1 grid + A2 scan + selectivity ratios with PMID, assay buffer (1 mM Ca/Mg/Mn, Kapp 2017), censoring flags; a noise-aware stratified-concordance benchmark with an exact permutation test (B's design) — and a 0-GPU baseline to beat.
 5. Dossier + claim-ledger skeleton: typed status per number, `predictions.json` written and hashed before any run, explicit abstention for binding, a `radioligand()` informational block (G).
 6. Unit tests for the things reviewers worried about and that are cheap: DPO teacher-forcing alignment, `rank_key` ordering with pending, `_num`.
