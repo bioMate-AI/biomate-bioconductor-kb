@@ -7,8 +7,8 @@ STATUS: Sections 0-1 (tasks, nulls, hyper-parameters) were written and committed
 | key | paper | access | how extracted |
 |---|---|---|---|
 | kapp2017 | Kapp TG et al., Sci Rep 2017;7:39805, PMID 28074920, PMC5225454 (CC BY) | Europe PMC fullTextXML | Tables 1 and 2 are JPEG images in the XML (`<graphic>` only, no `<tr>` cells). Images downloaded from the PMC CDN (kept in `src_raw/`), values transcribed BY HAND (visual read, two passes at 1.3x zoom) into `data/kapp2017_table{1,2}_transcribed.tsv`. This is the single largest parsing risk; there is no OCR cross-check (tesseract is not installed). |
-| quigley2023 | Quigley NG et al., RSC Med Chem 2023, PMID 38099056, PMC10718521, Table 1 (text table in XML) | Europe PMC XML | parsed from XML `<tr>` cells (`data/quigley2023_table1.tsv`) |
-| tomassi2021 | Tomassi S et al., J Med Chem 2021, PMID 33961417, PMC8279406, Table 1 (text table in XML) | Europe PMC XML | parsed from XML (`data/tomassi2021_table1.tsv`) |
+| quigley2023 | Quigley NG et al., RSC Med Chem 2023, PMID 38099056, PMC10718521, Table 1 (text table in XML) | Europe PMC XML | parsed from XML `<tr>` cells by build_matrix.py (src_raw/quigley2023_PMC10718521.xml) |
+| tomassi2021 | Tomassi S et al., J Med Chem 2021, PMID 33961417, PMC8279406, Table 1 (text table in XML) | Europe PMC XML | parsed from XML by build_matrix.py (src_raw/tomassi2021_PMC8279406.xml) |
 
 Verification of the series quoted in the brief (they all agree with the primary text):
 * Quigley Table 1 matches every value in the brief (FF/YF/FY/YY, avb6/avb8/avb3/a5b1). The printed FF a5b1 CI "(115-193)" does not contain the point estimate 226 (typo, as warned); CIs are not used anywhere.
@@ -125,4 +125,4 @@ Overall: the large same-assay matrix does NOT rescue a general avb6 selectivity 
 * LOLO N1 is evaluated with a leave-one-out mean, which is slightly pessimistic for RMSE (the true-mean RMSE would be a little lower); the same holds for the structure models' intercept.
 
 ## 7. Files
-`matrix.csv` (240 long-format cells, verbatim string in column `verbatim`), `ligands.csv` (46 ligand ids; SMILES provenance), `build_matrix.py`, `build_ligands.py`, `integrin_seq.py`, `analysis.py` (all tasks; ~3 min), `posthoc_cluster_out.py`, `tests/test_parser.py` (`python3 -m pytest -q tests`), `results.json`, `posthoc_cluster_out.json`, `data/` (transcriptions, parsed tables, PubChem responses), `src_raw/` (Europe PMC XML, the two table images (CC BY, Kapp 2017), UniProt FASTA).
+`matrix.csv` (240 long-format cells, verbatim string in column `verbatim`), `ligands.csv` (46 ligand ids; SMILES provenance), `build_matrix.py`, `build_ligands.py`, `integrin_seq.py`, `analysis.py` (all tasks; ~3 min), `posthoc_cluster_out.py`, `tests/test_parser.py` (`python3 -m pytest -q tests`), `results.json`, `posthoc_cluster_out.json`, `data/` (Kapp transcriptions, PubChem responses), `src_raw/` (Europe PMC XML, the two table images (CC BY, Kapp 2017), UniProt FASTA).
