@@ -6,6 +6,10 @@ This is the reward the design->score->redesign loop optimizes and the own-LLM wo
 import json, os
 from acceptance_gate import raw_tokens, _strip_mods, avb6_gate
 from fto_score import fto_score
+try:
+    from peptide_availability import predict_availability   # Landry-grounded availability flag (informational)
+except Exception:
+    predict_availability = None
 
 FP = {"W": 2.25, "F": 1.79, "I": 1.80, "L": 1.70, "M": 1.23, "V": 1.22, "C": 1.54, "Y": 0.96, "P": 0.72,
       "A": 0.31, "T": 0.26, "H": 0.13, "G": 0.0, "S": -0.04, "Q": -0.22, "N": -0.60, "E": -0.64, "D": -0.77,
@@ -45,6 +49,18 @@ def score(helm, target="avb6", binding_dG=None, selectivity_gap=None, groove=Non
     if "novelty" in f:
         rec["fto"]["novelty"] = f["novelty"]
     rec["developability"] = developability(helm)
+    # availability (Landry 2026): INFORMATIONAL only — does NOT gate. Peptide-intrinsic, cross-domain-robust
+    # (LODO Spearman ~0.40). For intracellular targets it flags functional-availability risk; for cell-surface
+    # αvβ6/PD-L1 it is a developability/solubility proxy. Never blocks (so it can't wrongly reject a surface binder).
+    if predict_availability is not None:
+        try:
+            a = predict_availability(helm)
+            rec["availability"] = {"score": a.score, "low_availability": a.low_availability,
+                                   "mean_hydrophobicity": a.mean_hydrophobicity, "note": a.note,
+                                   "context": ("functional_intracellular" if target in ("sh3", "pdz", "intracellular")
+                                               else "developability_proxy_surface_target")}
+        except Exception as e:
+            rec["availability"] = {"error": str(e)[:60]}
     # expensive tier: auto-dispatch admissible physics when tier='full' (explicit kwargs take precedence)
     if tier == "full":
         from physics_dispatch import physics_for
