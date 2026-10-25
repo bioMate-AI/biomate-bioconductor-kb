@@ -1,4 +1,6 @@
 import { normalizeQcEvents } from "../shared/qc-assessment";
+import { matchDescriptor } from "../shared/findings-descriptors";
+import { buildFindingsDocument } from "../shared/findings-extract";
 import { registerVoiceRoutes } from "./voice-routes";
 import { classifyChainRunStatus } from './chain-run-status';
 import { isOrphanInterrupt } from './nextflow-run-status';
@@ -14691,10 +14693,26 @@ Rules:
           // This gives the LLM focused, low-noise input and makes guardrail matching reliable.
           // ADMET returns deterministic findings directly — no LLM call needed.
           const preprocessed = preProcessForFindings(workflowName, outputSamples);
+
+          // Entity-aware findings document (findings framework, migration — ADDITIVE).
+          // The generic extractor builds a per-entity + shared-provenance FindingsDocument
+          // from the SAME output samples, attached as `findings_document` alongside the
+          // existing flat findings. The current UI ignores it; the new per-entity renderer
+          // consumes it. No change to the flat output below.
+          // See docs/20261025_FINDINGS_PROVENANCE_FRAMEWORK.md.
+          let _findingsDoc: ReturnType<typeof buildFindingsDocument> | null = null;
+          try {
+            const _m = matchDescriptor(workflowName, outputSamples);
+            if (_m) _findingsDoc = buildFindingsDocument(_m.descriptor, _m.file);
+          } catch (e) {
+            console.warn(`[Findings] entity-aware extractor skipped for "${workflowName}": ${(e as Error).message}`);
+          }
+
           if (preprocessed?.findings) {
             console.log(`[Findings] deterministic parse succeeded for "${workflowName}" — skipping LLM`);
-            _findingsCache.set(runId, preprocessed.findings);
-            void persistFindingsSidecar(preprocessed.findings);
+            const _det = _findingsDoc ? { ...preprocessed.findings, findings_document: _findingsDoc } : preprocessed.findings;
+            _findingsCache.set(runId, _det);
+            void persistFindingsSidecar(_det);
             return;
           }
 
@@ -14884,6 +14902,8 @@ Respond ONLY with valid JSON (no markdown wrapper):
               if (figs.length > 0) parsed.figures = figs;
             }
 
+            // Attach the entity-aware findings document (additive) when the extractor matched.
+            if (_findingsDoc) parsed.findings_document = _findingsDoc;
             _findingsCache.set(runId, parsed);
             void persistFindingsSidecar(parsed);
           } catch (parseErr: any) {
@@ -14906,6 +14926,7 @@ Respond ONLY with valid JSON (no markdown wrapper):
               const _clean = _rawClaude.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
               const _parsed = JSON.parse(_clean);
               console.log('[Findings] Claude fallback succeeded');
+              if (_findingsDoc) _parsed.findings_document = _findingsDoc;
               _findingsCache.set(runId, _parsed);
               void persistFindingsSidecar(_parsed);
             } catch (claudeErr: any) {
