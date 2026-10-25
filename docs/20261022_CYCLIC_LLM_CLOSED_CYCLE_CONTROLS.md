@@ -26,7 +26,11 @@ config (gate-OFF, pool 600 / pairs 400 / steps 80 / eval 300), 5 seeds each.
 | **real reward** | 0.155, 0.138, 0.131, 0.096, 0.103 | **+0.124** |
 | **shuffled (placebo)** | 0.028, 0.022, 0.009, −0.024, 0.038 | **+0.014** |
 
-**Mann-Whitney U = 25/25 (perfect separation), p(real > shuffle) = 0.004.** Diversity is held in both
+**Mann-Whitney U = 25/25 (perfect separation), one-sided p(real > shuffle) = 0.004.** (Caveat: with
+n = 5 per arm, 0.004 ≈ 1/C(10,5) is the *smallest attainable* one-sided p — any perfect separation yields
+it regardless of effect magnitude, so the p merely confirms clean separation; the real evidence is the
+**effect size**, mean +0.124 vs +0.014, a ~9× gap, with every real seed above every placebo seed.)
+Diversity is held in both
 arms (≈0.96 → 0.93–0.97), so the real-reward gain is not a diversity-collapse artifact. Result:
 `results/methodology_close_placebo_control.json`.
 

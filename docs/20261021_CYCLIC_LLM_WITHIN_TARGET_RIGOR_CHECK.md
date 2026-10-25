@@ -1,5 +1,12 @@
 # Cyclic-peptide LM — within-target "win" rigor check (PADI4)
 
+> **⚠ SUPERSEDED (2026-10-24).** This doc's conclusion that the within-target win is "real and
+> leakage-safe" was reached **before** the abundance/enrichment null was tested. It is **superseded by
+> `docs/20261021_CYCLIC_LLM_WITHIN_TARGET_SOTA_BENCHMARK.md`**, which shows a trivial enrichment sort scores
+> AUC ≈ 1.0 and the LM beats this null on **none** of four targets. The defensible claim is "beats
+> sequence-composition baselines on PADI4," **not** a null-beating within-target capability. Read the SOTA
+> benchmark doc for the current status; the leakage/composition controls below remain valid as far as they go.
+
 **Date:** 2026-10-21 · Adversarial check of `selector_AUC 0.959` (display-conditioned LM as a within-target
 binder selector). Question: real LM contribution over trivial baselines, or just amino-acid composition +
 random-split leakage? CPU-only. Data: `data/display/display_ngs_multitarget.csv.gz`; recipe:
