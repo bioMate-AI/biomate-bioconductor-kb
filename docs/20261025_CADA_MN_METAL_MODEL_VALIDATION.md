@@ -136,3 +136,22 @@ Only EC2 launches need you (the in-session agent cannot call `run-instances`); I
    `FEP_INPUTS_READY`. Any `MN_UNBOUND` means the frame assumption is wrong → stop. Any `MN_RESTR_GROMPP_FAIL` = restraint syntax/index
    problem → fix on CPU, no GPU spent.
 3. **Me (after your go, spot GPU):** `python3 cyclic_llm/fep_batch.py --equil --legs=complex --mn-restrain --run-id=avb6-fep-ctrl-build2 --submit`.
+
+## 8. Rebuild result (build2, 2026-10-25) — predictions confirmed; fix verified on the real artifact
+Run `avb6-fep-ctrl-build2` (spot c6i.2xlarge, launched by the user). `fepbuild_stdout.txt`, against the predictions written in §7:
+
+| prediction (written before) | observed |
+|---|---|
+| Mn1 OK, Mn2 OK, Mn3 CLASH(warn) 0.82 Å | `res=1 OK minO 2.10` · `res=2 OK minO 2.19` · `res=3 CLASH(warn) minO 0.82` |
+| `MN_RESTR_OK pairs=14` | `pairs=14 for 3 Mn (b0 window 0.205-0.240 nm, kb=2000)` |
+| restraint block parses | `complex_EM_RESTR_TPR_OK` |
+| sentinel + gate marker | `FEP_INPUTS_READY`, `in/complex/mn_site_gate.txt` staged |
+
+The pre-EM gate runs *before* `editconf -c`, so it cannot by itself show that centring moves the Mn with the receptor. That was checked
+on the **final** `in/complex/ionized.gro` (after centring, solvation, genion) with `fep/validate_mn_coordination.py --mode pre`:
+Mn1 6 O within 3 Å (min 2.10 Å), Mn2 6 O (2.19 Å), Mn3 4 O (**0.82 Å, ligand contact = True**, Asp1071 OD2 / Glu818 OE2 1.41 Å / Ser720 OG 2.27 Å);
+**0/3 failing** — versus 3/3 UNBOUND for build1. So the frame fix holds end-to-end. (System is 204,981 atoms vs 204,942 in build1: the box is
+now centred on receptor+peptide+Mn, so the water/ion count differs slightly.)
+
+Still true: `grompp` succeeding does **not** show EM converges from the 0.82 Å Mn3 clash. The restrained equilibration is the first
+step that tests that; the unrestrained run (`fep_batch.py --mn-validate`, built, not run) is the metal-model test. Neither has been submitted.
