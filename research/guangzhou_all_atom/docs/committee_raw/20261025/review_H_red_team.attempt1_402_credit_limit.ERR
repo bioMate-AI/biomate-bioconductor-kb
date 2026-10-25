@@ -1,0 +1,1 @@
+qwen/qwen3.8-max-0902 HTTP 402: {"error":{"message":"This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.","code":402,"metadata":{"reason":"in

@@ -91,11 +91,17 @@ def bundle():
     return "".join(parts)
 
 
+ARGS = dict(a.lstrip("-").split("=", 1) for a in sys.argv[1:] if "=" in a)   # --only=ID,ID --tokens=N --effort=low --workers=N
+
+
 def _post(model, rv, packet):
-    body = json.dumps({"model": model,
+    payload = {"model": model,
                        "messages": [{"role": "system", "content": COMMON + rv["mandate"] + "\n\n" + RUBRIC},
                                     {"role": "user", "content": "Review this work and answer in the required structure.\n\n" + packet}],
-                       "max_tokens": 12000, "temperature": 0.4}).encode()
+                       "max_tokens": int(ARGS.get("tokens", 12000)), "temperature": 0.4}
+    if ARGS.get("effort"):   # cap hidden reasoning so the visible answer is not starved (Kimi/GLM burned 11.5k of 12k on reasoning)
+        payload["reasoning"] = {"effort": ARGS["effort"]}
+    body = json.dumps(payload).encode()
     req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=body,
                                  headers={"Authorization": f"Bearer {KEY}", "Content-Type": "application/json",
                                           "HTTP-Referer": "https://biomate.ai", "X-Title": "Cyclic-Peptide Review Committee"})
@@ -113,7 +119,10 @@ def call(rv, packet):
                 if len(txt) < 400:
                     raise RuntimeError(f"suspiciously short answer ({len(txt)} chars)")
                 u = d.get("usage", {})
-                open(os.path.join(OUT, f"review_{rv['id']}.md"), "w").write(
+                fn = os.path.join(OUT, f"review_{rv['id']}.md")
+                if os.path.exists(fn):
+                    os.replace(fn, fn.replace(".md", ".attempt1_truncated.md"))
+                open(fn, "w").write(
                     f"# Reviewer {rv['id']} -- {model}\n_(elapsed {time.time()-t0:.0f}s; usage {u})_\n\n" + txt)
                 return rv["id"], True, f"{model} {time.time()-t0:.0f}s tokens={u.get('total_tokens')} chars={len(txt)}"
             except urllib.error.HTTPError as e:
@@ -134,7 +143,8 @@ if __name__ == "__main__":
     open(os.path.join(OUT, "PACKET_SENT.md"), "w").write(pk)
     if "--dry" in sys.argv:
         print("dry run: packet written, nothing sent"); sys.exit(0)
-    with ThreadPoolExecutor(max_workers=len(REVIEWERS)) as ex:
-        for rid, ok, info in ex.map(lambda rv: call(rv, pk), REVIEWERS):
+    todo = [r for r in REVIEWERS if not ARGS.get("only") or r["id"] in ARGS["only"].split(",")]
+    with ThreadPoolExecutor(max_workers=int(ARGS.get("workers", len(todo)))) as ex:
+        for rid, ok, info in ex.map(lambda rv: call(rv, pk), todo):
             print(("OK   " if ok else "FAIL ") + f"{rid}: {info}")
     print("reviews written to", OUT)

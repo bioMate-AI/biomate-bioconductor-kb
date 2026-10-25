@@ -49,11 +49,11 @@ exercise exists to stop over-claims reaching a manuscript.
 | MM-GBSA αvβ6 metal-aware (Li-Merz Mn) | Trivehexin −7.2 vs avebehexin **−122.2** (115 kcal/mol apart) | controls must converge | RULED INADMISSIBLE |
 | **FEP control edge (Y1F+Y7F)** | ΔΔG **−0.18 ± 0.15** | **measured −0.95** (found this session) | **MISS; metal-blind edge; "expected ≈0" was false** |
 | DPO permeability close (cluster-disjoint) | **+0.098** (6/6 seeds, p=0.031); placebo +0.124 vs +0.014 (p=0.004) | — | WORKS narrowly (ML oracle, not binding) |
-| Rule-constrained DPO arm | identical to unconstrained (+0.2513) | — | NULL for the gate (never bound) |
+| Rule-constrained DPO arm | identical to unconstrained (+0.2513) | — | **UNINFORMATIVE (corrected 2026-10-25): the gate never fired** — `methodology_close.to_helm()` emitted a string the gate parser read as ONE token, so `kb_admissible` accepted everything (permeability signal) / rejected everything (avb6 binding signal). Fixed + tested (`test_kb_gate_format.py`); the earlier 'NULL for the gate' reading was wrong. |
 | FTO novelty | 20/22 "novel"; `patents_checked:false` | — | similarity filter only; αvβ6 monomer FTO-BLOCKED (CA2998968) |
 | CRO panels | αvβ6 panelB **0/12 have RGD**; PD-L1 panelA 0/10 pass | our own gate | FAILED own gate; no wet-lab result exists |
 | Renal cross-target | LOTO ρ **−0.26** (p=0.11); fuller ρ +0.02 | generalize | NULL (prior +0.27 = charge artifact; +0.78 was αvβ3 n=8+αvβ6 n=4) |
-| **Availability model (THIS SESSION, shipped)** | in-sample ρ **0.72**; **LODO ρ 0.40** (robust 0.23–0.49) | — | **WORKS — transfers (peptide-intrinsic); shipped as a gate** |
+| **Availability model (THIS SESSION, shipped)** | in-sample ρ **0.72**; **LODO ρ 0.40** (robust 0.23–0.49) | — | **WORKS — transfers (peptide-intrinsic); shipped as an INFORMATIVE, NON-GATING score** (corrected 2026-10-25: earlier wording 'gate' was wrong; it never gates). Caveats found by committee review: anti-aligns with potency on the A1 grid (ρ = −0.40, n = 4); for surface targets it is a developability proxy only |
 | Binding + availability (3-fam) | random-CV 0.736 → **LODO 0.282** (< physics 0.316) | physics 0.316 | leakage-inflated; collapses out-of-domain |
 | Binding + availability (7-domain) | PWM 0.265 → +hydro 0.286 → +measured-avail 0.319 | PWM 0.265 | marginal/inconsistent — not SOTA |
 

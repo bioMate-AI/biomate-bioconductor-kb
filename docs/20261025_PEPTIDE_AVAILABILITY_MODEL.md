@@ -9,12 +9,13 @@ doesn't transfer. **But peptide *availability* — how much of the peptide is ac
 cell — is a peptide-*intrinsic* property, so it transfers where binding does not.** Lemieux … Landry
 (bioRxiv 2026, doi:10.64898/2026.09.21.752983; 6,500+ in-cell DHFR-PCA variants) showed availability is
 largely set by hydrophobicity/charge and **limits functional binding independently of affinity** — a factor
-standard design pipelines ignore and for which **no deployable predictor existed.** This fills that gap.
+standard design pipelines ignore; we found no deployable Landry-calibrated predictor **[UNVERIFIED — no systematic prior-art search; simple hydrophobicity/charge filters are old]**. This is a modest, honestly-scoped contribution.
 
 ## The model
 `availability_score = 0.3318 − 0.2541·meanKD_hydrophobicity − 0.1479·net_charge − 0.4793·frac_charged`
-(OLS on Landry PCA1 measured availability, 7 SH3 domains, ~3,000 variants). More hydrophobic / more charged
-→ less available.
+(OLS on Landry PCA1 measured availability, 7 SH3 domains, ~3,000 variants). **Direction (corrected 2026-10-25):** more hydrophobic → lower; higher
+fraction of charged residues → lower; **net charge enters with a negative coefficient, so net-POSITIVE peptides score lower and net-NEGATIVE (anionic)
+peptides score HIGHER** — the earlier phrase "more charged → less available" was wrong for anions.
 
 | metric | value |
 |---|---|
@@ -44,6 +45,19 @@ flag**, not a precise oracle.
    αvβ6/PD-L1 targets are cell-surface / extracellular**, so for *them* this score is a **developability /
    solubility-aggregation proxy** (hydrophobicity/charge-driven), not a functional-availability predictor —
    do not over-read the "pass" as functional validation for surface targets.
+
+## Defects and warnings added after the 2026-10-25 committee review (verified in code; fixed unless noted)
+- **Parser fixes:** `2Nal`-type ncAAs were silently dropped from the hydrophobicity mean; a bracketed `[Met]` would have parsed as `Me`+`t` (Thr);
+  N-methylation was erased; an unparsable peptide returned `low_availability=False` with a NaN score (read as "ok"). Now: conservative surrogate map,
+  N-methylation counted, unmapped residues counted, **abstain** (`low_availability=None`) above 25 % unmapped. Tests: `test_peptide_availability.py`.
+  The v2-panel screen quoted above is unchanged (no 2Nal in those peptides).
+- **It points the wrong way on the one tight SAR we own.** On the Quigley A1 grid the availability score is FF +0.100, YY +0.332, FY = YF +0.216 against
+  potency FF > YY > FY > YF: Spearman(potency, availability) = −0.40 (n = 4 — a warning, not a statistic). YY→FF lowers the score by 0.231 while binding
+  5× tighter. **Do not use availability as a design objective for αvβ6 radioligands**; it is a liability screen at most.
+- **Open, not fixed:** (i) no external validation on cyclic/ncAA data; (ii) "no deployable availability predictor existed" is **[UNVERIFIED]** — charge/grease
+  filters are old; the contribution is the Landry-calibrated cross-domain estimate; (iii) the Landry data are CC BY-NC-ND — whether four fitted coefficients
+  are a derivative work is **[UNVERIFIED]**; get a licence review before redistributing or commercialising; (iv) the 25th-percentile threshold is a
+  measured-label quantile applied to predictions, not a calibrated decision threshold.
 
 ## Provenance / open
 Data: `github.com/Landrylab/Lemieux_et_al2026` (CC BY-NC-ND; `data/PCA1/med_avail_score.csv`). Our model

@@ -1,0 +1,14 @@
+# Reviewer G_medchem_output -- z-ai/glm-5.3-prime
+_(elapsed 143s; usage {'prompt_tokens': 30809, 'completion_tokens': 12000, 'total_tokens': 42809, 'cost': 0.1918652, 'is_byok': False, 'prompt_tokens_details': {'cached_tokens': 0, 'cache_write_tokens': 0, 'audio_tokens': 0, 'video_tokens': 0}, 'cost_details': {'upstream_inference_cost': 0.1918652, 'upstream_inference_prompt_cost': 0.0862652, 'upstream_inference_completions_cost': 0.1056}, 'completion_tokens_details': {'reasoning_tokens': 11384, 'image_tokens': 0, 'audio_tokens': 0}})_
+
+## 1. VERDICT ON OUR FINDINGS
+
+**Right and genuinely good:** the audit discipline (Reveal §4), the retraction of the FEP "null recovered" claim, the metal-placement bug find (Metal doc), the honest scoping of the availability model, and the recognition that "LLM+rules+computation" alone is not novel (Brief §3.7). From a med-chem/translation seat, the following need correction:
+
+1. **Claim (Brief §2, Reveal §2): "a measured αvβ6 ground-truth exists."** → Problem: it is 4 points on ONE scaffold (A1) plus a scan on a *different* scaffold (A2, cyclic pentapeptide). Only one FEP edge within the A1 scaffold has been run — and it missed by 0.77 kcal. The 2×2 grid is actually an unused **closed thermodynamic cycle**: from the quoted IC50s, FF→YF ≈ −1.76, FF→FY ≈ −1.66, YF→YY ≈ −0.81, FY→YY ≈ −0.71 kcal (my arithmetic from their numbers; IC50-ratio approximation), and the two paths FF→YY agree to ~0.2 kcal — i.e., the *measured* data self-closes at ~0.2–0.3 kcal, which sets the noise floor. That is a 3-edge validation set + closure test, not n=1. → Evidence needed: run the remaining edges; report closure hysteresis vs the measured 0.2 kcal.
+
+2. **Claim (Reveal §4.5): control-species mismatch (trimer ~47 pM vs monomer 0.84 nM).** → Problem: the target product profile is ambiguous — a monomer imaging agent (~18-fold weaker than the trimer) or a trimeric therapeutic. Every downstream decision (affinity bar, selectivity bar, chelator) differs. → Evidence needed: a written TPP choosing one; the dossier must encode it.
+
+3. **Claim (score.py; reward.py): "pending" physics contributes 0 to reward; MM-GBSA is a "fallback" term.** → Problem: the loop therefore optimizes rules+FTO+developability only — i.e., **the current ranking contains zero predictive binding content**, and the reward.py MM-GBSA fallback (weight 0.45) would manufacture reward from a method your own audit ruled inadmissible (115 kcal divergence). → Evidence needed: delete the fallback; state "ranking = rule/FTO/dev only" on every output.
+
+4. **Claim (peptide_availability.py doc): "screened our v2 CRO panel — all 12 pass."** → Problem: panelB has no RGD (0/12, Reveal §4.7); screening non-binders
