@@ -84,6 +84,106 @@ def resolve_context_params(
         resolved[dest_param] = raw_val
     return resolved
 
+
+# ---------------------------------------------------------------------------
+# Scalar {{stepN.field}} handoff — resolve a scalar VALUE out of a prior step's
+# parsed JSON outputs into a next-step param. The file-based handoff
+# (_apply_connection_handoffs / _resolve_outputs_for_run) wires output FILES;
+# this wires a scalar (e.g. ADMET herg_ic50 → CiPA input). Curated chains like
+# admet_to_cipa_cardiac use this `{{step1.herg_ic50_nM}}` form.
+# ---------------------------------------------------------------------------
+_STEP_TEMPLATE_RE = re.compile(r"\{\{\s*step(\d+)\.([\w.]+)\s*\}\}")
+
+
+def _flatten_scalars(data, out, prefix: str = ""):
+    """Flatten scalar (str/int/float/bool) fields of a JSON value into ``out``,
+    keyed by BOTH the leaf name and the dotted path, so ``{{stepN.herg_ic50}}``
+    resolves whether the field is top-level or nested."""
+    if isinstance(data, dict):
+        for k, v in data.items():
+            path = f"{prefix}{k}"
+            if isinstance(v, (str, int, float, bool)):
+                out.setdefault(k, v)   # leaf name (first writer wins)
+                out[path] = v          # dotted path (unambiguous)
+            elif isinstance(v, (dict, list)):
+                _flatten_scalars(v, out, f"{path}.")
+    elif isinstance(data, list):
+        for i, v in enumerate(data):
+            _flatten_scalars(v, out, f"{prefix}{i}.")
+
+
+def substitute_step_templates(params, step_scalars):
+    """Resolve ``{{stepN.field}}`` scalar templates in ``params`` from
+    ``step_scalars`` (1-based step number -> flat {field: value}). A whole-value
+    template becomes the raw typed value (numbers stay numbers); an embedded
+    template is string-substituted. Pure. Returns (resolved_params, warnings)."""
+    out, warnings = {}, []
+    for key, val in params.items():
+        if not isinstance(val, str):
+            out[key] = val
+            continue
+        whole = _STEP_TEMPLATE_RE.fullmatch(val.strip())
+        if whole:
+            n, field = int(whole.group(1)), whole.group(2)
+            scalars = step_scalars.get(n, {})
+            if field in scalars:
+                out[key] = scalars[field]
+            else:
+                warnings.append(f"unresolved {{{{step{n}.{field}}}}}: not in step {n} outputs")
+                out[key] = val
+        elif _STEP_TEMPLATE_RE.search(val):
+            def _rep(m):
+                sm = step_scalars.get(int(m.group(1)), {})
+                return str(sm[m.group(2)]) if m.group(2) in sm else m.group(0)
+            new = _STEP_TEMPLATE_RE.sub(_rep, val)
+            if "{{step" in new:
+                warnings.append(f"unresolved template(s) in param '{key}'")
+            out[key] = new
+        else:
+            out[key] = val
+    return out, warnings
+
+
+def _read_output_text(f, max_bytes: int = 2_000_000):
+    """Read a run output file's text (local path or s3://), best-effort -> str|None."""
+    path = str(f.get("path") or f.get("filename") or "")
+    s3_uri = str(f.get("s3_uri") or (path if path.startswith("s3://") else ""))
+    try:
+        if s3_uri.startswith("s3://"):
+            import boto3  # noqa: PLC0415
+            bucket, _, key = s3_uri[5:].partition("/")
+            obj = boto3.client("s3").get_object(Bucket=bucket, Key=key)
+            return obj["Body"].read(max_bytes).decode("utf-8", "ignore")
+        p = Path(path)
+        if p.is_file():
+            return p.read_text(errors="ignore")[:max_bytes]
+    except Exception as exc:  # pragma: no cover - best-effort I/O
+        log.debug("workflow_chain: could not read output %s: %s", path or s3_uri, exc)
+    return None
+
+
+def _read_run_scalar_outputs(run_id: str):
+    """Flatten scalar fields of a prior run's JSON outputs into a flat {field: value}
+    map for {{stepN.field}} resolution. Best-effort; returns {} on any failure."""
+    scalars = {}
+    try:
+        files = _list_run_output_files(run_id)
+    except Exception:
+        return scalars
+    for f in files:
+        name = str(f.get("filename") or f.get("name") or f.get("path") or "")
+        if not name.endswith(".json"):
+            continue
+        text = _read_output_text(f)
+        if not text:
+            continue
+        try:
+            _flatten_scalars(json.loads(text), scalars)
+        except Exception:
+            continue
+    return scalars
+
+
 from fastapi import HTTPException
 from pydantic import BaseModel, StrictInt
 
@@ -588,6 +688,22 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
             current["steps"][idx]["input_types"] = next_in_types
             current["steps"][idx]["output_types"] = next_out_types
             _update_chain(current)
+
+        # Resolve {{stepN.field}} SCALAR templates from prior steps' parsed JSON
+        # outputs. The handoffs above only wire output FILES; this wires a scalar
+        # VALUE out of a prior JSON output (e.g. ADMET herg_ic50 -> CiPA input) —
+        # the form curated chains like admet_to_cipa_cardiac declare.
+        if idx > 0 and any(isinstance(v, str) and "{{step" in v for v in params.values()):
+            step_scalars = {}
+            for j in range(idx):  # 0-based prior steps -> 1-based template keys
+                pst = current["steps"][j]
+                if pst.get("status") == "succeeded" and pst.get("run_id"):
+                    step_scalars[j + 1] = _read_run_scalar_outputs(pst["run_id"])
+            params, tmpl_warnings = substitute_step_templates(params, step_scalars)
+            if tmpl_warnings:
+                current["steps"][idx].setdefault("handoff_warnings", []).extend(tmpl_warnings)
+                _update_chain(current)
+                log.warning("workflow_chain: step %d scalar-template warnings: %s", idx, tmpl_warnings)
 
         # Launch Nextflow via the existing executor
         try:
