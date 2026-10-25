@@ -55,7 +55,7 @@ def score(helm, target="avb6", binding_dG=None, selectivity_gap=None, groove=Non
     if predict_availability is not None:
         try:
             a = predict_availability(helm)
-            rec["availability"] = {"score": a.score, "low_availability": a.low_availability,
+            rec["availability"] = {"score": a.score, "low_availability": a.low_availability, "abstain": a.abstain,
                                    "mean_hydrophobicity": a.mean_hydrophobicity, "note": a.note,
                                    "context": ("functional_intracellular" if target in ("sh3", "pdz", "intracellular")
                                                else "developability_proxy_surface_target")}

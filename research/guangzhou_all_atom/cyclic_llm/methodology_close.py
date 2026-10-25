@@ -176,9 +176,15 @@ def load_display_binding(target_key):
 
 # ---------------------------------------------------------------- KB rule-constraint (experience_kb gate)
 def to_helm(monos):
-    """Monomer list -> HELM string the KB gate providers (acceptance_gate/score) parse."""
-    body = ".".join(m if (len(m) == 1 and m in CANON) else f"[{m}]" for m in monos)
-    return "PEPTIDE1{" + body + "}$PEPTIDE1,PEPTIDE1$$$"
+    """Monomer list -> the cyclo(...) string the KB gate providers (acceptance_gate/score) parse.
+
+    FIXED 2026-10-25: this previously emitted 'PEPTIDE1{A.R.[dP]}$PEPTIDE1,...$$$', which acceptance_gate.raw_tokens parses
+    as ONE token -> developability() saw no residues (Asn-Gly / free Cys / double Trp all 'passed'), and the avb6 RGD gate
+    rejected even a valid RGD peptide. So `kb_admissible` was a no-op for the permeability signal and rejected everything
+    for the binding signal; the earlier 'rule-constrained arm == unconstrained' result was therefore UNINFORMATIVE (the gate
+    never fired), not evidence that the gate does not bind. Regression test: test_kb_gate_format.py."""
+    body = "-".join(m if (len(m) == 1 and m in CANON) else f"[{m}]" for m in monos)
+    return "cyclo(" + body + ")"
 
 
 def kb_admissible(monos, target):
