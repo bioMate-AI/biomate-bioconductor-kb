@@ -156,7 +156,41 @@ params, (c) step 2 launches and completes. Record run ids, the handoff params, a
 it ran smoothly or exposed a bug. This is the first evidence that moves the UNPROVEN-E2E
 rows above to proven (or finds the defect).
 
-_(Results appended after the run.)_
+### 7.1 — Live run 2026-10-24: cheapest-chain handoff proof (admet_to_cipa_cardiac)
+
+Per the approved plan, the first live proof used the **cheapest** valid 2-step chain
+(ADMET → CiPA; tiny SMILES input, no alignment) rather than the heavy RNA-seq→DESeq2, to
+prove the step1→step2 mechanism at minimal Batch cost. Fixture login on
+`dev-public.biomate.ai`; `POST /api/workflows/chain` (body = 2 steps + a
+`herg_ic50_nM` connection).
+
+**Result — control plane PROVEN, handoff pending (defect found):**
+- Submit accepted → `chain_run_id=chain_1792887838_8c3e36`, status `running`, both steps
+  registered. [proven]
+- Step 1 (ADMET) **launched** on the real backend: `run_id=ae8dc627-…`, S3 `outdir`,
+  `started_at`/`completed_at` timestamps. [proven]
+- Step 1 **failed in ~11 s**; the chain then **halted with step 2 blocked-on-failure
+  (stayed `pending`)** — the sequential executor's launch → fail-detect →
+  blocked-on-failure flow works end-to-end. [proven]
+- **Handoff NOT exercised** — step 1 produced no output, so no step1→step2 param
+  resolution occurred. [still UNPROVEN]
+- **Defect surfaced:** the ADMET step failed at/near launch — `run_id` is absent from
+  `execution_runs` (`/api/workflows/runs/<id>` → "not found"), `outdir` domain segment is
+  `unknown`, `artifacts: {}`. The chain executor resolves `nextflow_path` relative to a
+  workflows root (`workflow_chain.py:431-437`: tries `backend/<path>` …); the DB
+  `filename` path `nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf`
+  likely does not resolve to the actual file (found earlier at
+  `backend/biomni_workflows/nextflow/subworkflows/pharmacology/predict_admet_properties.nf`).
+  Needs the dev backend error log for run `ae8dc627` (SSM) to confirm path-resolution vs.
+  `smiles_list` format.
+
+**Net:** the orchestration *control plane* is now evidenced end-to-end against real dev
+(submit → launch → blocked-on-failure), moving those rows from UNPROVEN toward proven;
+the *output→input handoff* remains unproven pending a step-1 success. Next: get the
+run-`ae8dc627` backend error (path resolution is the leading hypothesis), fix the step
+path, re-run the cheap chain to show the handoff, then the RNA-seq→DESeq2 UC-1.
+
+_(UC-1 RNA-seq→DESeq2 still pending — to run after the cheap-chain handoff is green.)_
 
 ---
 
