@@ -206,6 +206,8 @@ def main():
     ap.add_argument("--model", help="merged SFT model (phases pairs/train)")
     ap.add_argument("--prompts", help="jsonl {task,prompt,ground_truth} (phase pairs)")
     ap.add_argument("--pairs-out", default="dpo_pairs.jsonl")
+    ap.add_argument("--adapter", default=None, help="start-policy LoRA adapter (phase train); DPO improves over it")
+    ap.add_argument("--resume", default=None, help="checkpoint dir to resume from (phase train)")
     ap.add_argument("--out", default="dpo_out"); ap.add_argument("--k", type=int, default=6)
     ap.add_argument("--spec", default=DEF_SPEC, help="workflow_spec_candidates.jsonl (phase exec)")
     ap.add_argument("--pub", default=DEF_PUB, help="public_export dir for eval-leak guard (phase exec)")
