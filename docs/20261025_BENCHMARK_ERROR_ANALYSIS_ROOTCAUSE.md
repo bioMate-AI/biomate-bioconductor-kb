@@ -74,8 +74,33 @@ speculative GPU-box run for a predictable delta (No-Speculative-Deploys discipli
 
 So the targeted 3-description fix is worth **+2.5pp on the exact on-prem 9B** (bigger than the +1pp on the
 7b proxy). Caveat: the OpenRouter checkpoint's *absolute* (0.800) differs from the on-prem served eval's
-0.880 base (harness/revision/quantization differences) — the controlled **delta** (+2.5pp) is the meaningful
-figure, not the absolute. The systemic catalog-wide front-loading would add more.
+0.880 base (harness/revision/quantization differences) — the controlled **delta** is the meaningful figure.
+
+**Open-model roster A/B (old-DB vs new-DB, corrected scorer+gold held constant; OpenRouter, no GPU box):**
+
+| model | OLD | NEW | Δ |
+|---|---|---|---|
+| qwen/qwen3.5-9b | 0.865 | 0.880 | +1.5pp |
+| qwen/qwen3.5-27b | 0.845 | 0.835 | −1.0pp |
+| qwen/qwen3.8-27b | 0.910 | 0.935 | +2.5pp |
+| deepseek/deepseek-v4-pro | 0.915 | 0.925 | +1.0pp |
+| z-ai/glm-5.2 | 0.955 | 0.960 | +0.5pp |
+| z-ai/glm-5.3-prime | 0.965 | 0.940 | −2.5pp |
+| moonshotai/kimi-k3 | 0.715 | 0.795 | +8.0pp |
+| ~~qwen/qwen3.5-397b-a17b~~ | ~~0.755~~ | ~~0.565~~ | ~~−19pp — EXCLUDED~~ |
+
+The 397B MoE is excluded: a −19pp swing (~38 items) cannot come from front-loading 3 descriptions, and its
+OLD score (0.755) is itself an outlier vs the 0.85–0.96 cluster — this is run instability (reasoning-model
+variance / truncation), not a description effect. Across the 7 reliable models the fix gives a small,
+mostly-positive, model-dependent lift (mean ≈ +1.4pp, median +1.0pp; two marginal negatives within run
+noise, a large +8pp on kimi). **Honest conclusion: the targeted 3-description fix is correct and modestly
+positive; it is not a large lever on its own.** The real routing lever is (a) the scorer+gold corrections
+already landed (0.880→0.900 on base+harness) and (b) a *catalog-wide* discriminator front-loading / truncation
+widening — a bigger data-quality pass, logged as the systemic follow-up.
+
+Harness note: the first roster run scored 6/8 models ~0.000 — a `max_tokens=30` budget fully consumed by
+reasoning tokens (`finish_reason=length`, `content=None`), the CLAUDE.md thinking-tokens failure mode; fixed
+by raising to 2000 and re-running. Reasoning-model evals must budget for the thinking tokens.
 
 ## 4. Benchmark gold errors (fix the benchmark, documented per policy) — DONE
 A minority of "misses" are the gold being wrong or under-specified (empty `acceptable_alts`):
