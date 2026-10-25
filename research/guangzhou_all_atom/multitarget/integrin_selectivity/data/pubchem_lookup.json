@@ -1,0 +1,114 @@
+{
+ "Cilengitide": {
+  "query": "cilengitide",
+  "url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/cilengitide/property/SMILES,MolecularFormula,InChIKey/JSON",
+  "response": {
+   "PropertyTable": {
+    "Properties": [
+     {
+      "CID": 176873,
+      "MolecularFormula": "C27H40N8O7",
+      "SMILES": "CC(C)[C@H]1C(=O)N[C@H](C(=O)NCC(=O)N[C@H](C(=O)N[C@@H](C(=O)N1C)CC2=CC=CC=C2)CC(=O)O)CCCN=C(N)N",
+      "InChIKey": "AMLYAMJWYAIXIA-VWNVYAMZSA-N"
+     }
+    ]
+   }
+  }
+ },
+ "Eptifibatide": {
+  "query": "eptifibatide",
+  "url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/eptifibatide/property/SMILES,MolecularFormula,InChIKey/JSON",
+  "response": {
+   "PropertyTable": {
+    "Properties": [
+     {
+      "CID": 448812,
+      "MolecularFormula": "C35H49N11O9S2",
+      "SMILES": "C1C[C@H]2C(=O)N[C@@H](CSSCCC(=O)N[C@H](C(=O)NCC(=O)N[C@H](C(=O)N[C@H](C(=O)N2C1)CC3=CNC4=CC=CC=C43)CC(=O)O)CCCCN=C(N)N)C(=O)N",
+      "InChIKey": "CZKPOZZJODAYPZ-LROMGURASA-N"
+     }
+    ]
+   }
+  }
+ },
+ "Tirofiban": {
+  "query": "tirofiban",
+  "url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/tirofiban/property/SMILES,MolecularFormula,InChIKey/JSON",
+  "response": {
+   "PropertyTable": {
+    "Properties": [
+     {
+      "CID": 60947,
+      "MolecularFormula": "C22H36N2O5S",
+      "SMILES": "CCCCS(=O)(=O)N[C@@H](CC1=CC=C(C=C1)OCCCCC2CCNCC2)C(=O)O",
+      "InChIKey": "COKMIXFXJJXBQG-NRFANRHFSA-N"
+     }
+    ]
+   }
+  }
+ },
+ "ATN161": {
+  "query": "ATN161",
+  "url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/ATN161/property/SMILES,MolecularFormula,InChIKey/JSON",
+  "response": {
+   "PropertyTable": {
+    "Properties": [
+     {
+      "CID": 9960285,
+      "MolecularFormula": "C23H35N9O8S",
+      "SMILES": "CC(=O)N1CCC[C@H]1C(=O)N[C@@H](CC2=CN=CN2)C(=O)N[C@@H](CO)C(=O)N[C@@H](CS)C(=O)N[C@@H](CC(=O)N)C(=O)N",
+      "InChIKey": "MMHDBUJXLOFTLC-WOYTXXSLSA-N"
+     }
+    ]
+   }
+  }
+ },
+ "GR144053": {
+  "query": "GR144053",
+  "url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/GR144053/property/SMILES,MolecularFormula,InChIKey/JSON",
+  "response": {
+   "PropertyTable": {
+    "Properties": [
+     {
+      "CID": 173614,
+      "MolecularFormula": "C18H27N5O2",
+      "SMILES": "C1CN(CCC1N2CCN(CC2)C3=CC=C(C=C3)C(=N)N)CC(=O)O",
+      "InChIKey": "QGEGSJUSWLLZLH-UHFFFAOYSA-N"
+     }
+    ]
+   }
+  }
+ },
+ "c(RGDfK)": {
+  "query": "cyclo(RGDfK)",
+  "url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/cyclo%28RGDfK%29/property/SMILES,MolecularFormula,InChIKey/JSON",
+  "response": {
+   "PropertyTable": {
+    "Properties": [
+     {
+      "CID": 10196873,
+      "MolecularFormula": "C27H41N9O7",
+      "SMILES": "C1C(=O)N[C@H](C(=O)N[C@@H](C(=O)N[C@H](C(=O)N[C@H](C(=O)N1)CCCN=C(N)N)CCCCN)CC2=CC=CC=C2)CC(=O)O",
+      "InChIKey": "NVHPXYIRNJFKTE-HAGHYFMRSA-N"
+     }
+    ]
+   }
+  }
+ },
+ "c(RGDyK)": {
+  "query": "cyclo(Arg-Gly-Asp-D-Tyr-Lys)",
+  "url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/cyclo%28Arg-Gly-Asp-D-Tyr-Lys%29/property/SMILES,MolecularFormula,InChIKey/JSON",
+  "response": {
+   "PropertyTable": {
+    "Properties": [
+     {
+      "CID": 11157853,
+      "MolecularFormula": "C27H41N9O8",
+      "SMILES": "C1C(=O)N[C@H](C(=O)N[C@@H](C(=O)N[C@H](C(=O)N[C@H](C(=O)N1)CCCN=C(N)N)CCCCN)CC2=CC=C(C=C2)O)CC(=O)O",
+      "InChIKey": "LAROZEWEPNAWMD-HAGHYFMRSA-N"
+     }
+    ]
+   }
+  }
+ }
+}
