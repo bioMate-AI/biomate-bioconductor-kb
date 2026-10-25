@@ -64,6 +64,45 @@ A minority of "misses" are the gold being wrong or under-specified (empty `accep
 These are ~4–6 items; crediting them (with the scorer fix) puts base routing ≈0.92. Each must be justified in
 the data README, never silently baked in.
 
+## MEASURED: the production rule layer closes most of the gap (+18pp, no retraining)
+Confirmed with a capability audit (file:line): the deterministic rule layer **exists and is wired into the
+live path** — `_rule_based_param_inference()` (`backend/.../api/ai_assistant.py:1704`) runs *before* the LLM
+and overrides it; `_validate_extracted_params()` (`:1524`) applies canonical genome/strandedness aliases;
+production merges rule>LLM (`:2139`, `:2224-2232`). The public benchmark (`run_baseline.py`) bypasses all of
+it and sends the raw `user_query` to a raw LLM — and the leaderboard rows labeled **"BioMate 9B (base/SFT)"
+are that raw LLM with the rule layer OFF** (BioMate's own param cell is blank).
+
+I ran the **actual production functions** (AST-extracted, no Galaxy runtime) over the 170 param_prefill items,
+then merged with the committed on-prem-9B LLM predictions exactly as production does (rules win, LLM fills the
+residual). Scored with the corrected scorer:
+
+Reproducible script: `evaluation/local_trial/measure_production_param_rules.py` (reads the committed
+`results/base/param_prefill.jsonl`):
+
+| Configuration | param F1 | recall | precision | must_not_fill viol |
+|---|---|---|---|---|
+| raw on-prem 9B (what the leaderboard shows) | 0.703 | 0.636 | 0.785 | 53 |
+| rule layer ALONE (no LLM) | 0.470 | 0.311 | **0.960** | 4 |
+| **production: rule layer + 9B fallback** | **0.803** | **0.793** | 0.812 | 56 |
+
+So BioMate's real on-prem param_prefill is **≈0.80**, not 0.634 — **+17pp vs the originally-published strict
+number, +10pp vs the raw 9B on the committed preds, zero retraining** (the fresh depcond-eval base preds give
+0.813, consistent). The rules are high-precision/moderate-recall (the deterministic floor the raw LLM fumbled:
+human→GRCh38, dUTP→reverse, bool mapping); the LLM covers the tail. The headroom was in the shipping code all
+along; the benchmark measured the one configuration we never deploy. (Caveat: faithful offline approximation
+using the committed 9B LLM preds; the end-to-end `run_param_prefill.py` adapter against the live backend is
+the canonical measurement and should produce the official number.)
+
+**Concrete follow-up fix the merge surfaced:** must_not_fill violations are high (53→56) and come entirely
+from the LLM fallback over-filling forbidden params — the rule layer alone has only 4. `_validate_extracted_params`
+should take the workflow's `must_not_fill`/forbidden set and DROP those keys as a final guardrail (the rules
+already know restraint; the LLM doesn't). That turns ~56 violations into ~4 and is a real production
+robustness fix, not a benchmark edit.
+
+**Leaderboard action:** relabel the raw rows "on-prem 9B (raw LLM, no harness)" and add a
+"BioMate on-prem (rule layer + 9B)" row at F1≈0.81, or the public leaderboard keeps mis-stating BioMate's
+own capability downward.
+
 ## What this means for the SFT result
 The SFT regression verdict (`docs/20261025_DEPCOND_SFT_EVAL_VERDICT.md`) stands — SFT still hurt — but the
 diagnosis sharpens: the real headroom was **never in the model weights**. It was in (1) scoring correctly,
