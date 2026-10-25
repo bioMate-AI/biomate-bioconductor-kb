@@ -31,6 +31,26 @@ def _mpc(score, y, cls):
     return per
 
 
+def _aggregate_constructs(S, Y, CL, CA):
+    """FIX B (reviewer B): collapse the (construct, timepoint) observations to ONE value per construct
+    (median of score and of truth, within each class) BEFORE the within-class Spearman. The observation-
+    level estimand pseudo-replicates — a construct measured at 1h/4h/24h counts 3x — inflating n and
+    correlating repeated measurements of the same molecule. The construct-level estimand is the honest
+    'ranks DISTINCT constructs within a held-out target'. Returns aggregated (S, Y, CL, CA)."""
+    groups = {}
+    order = []
+    for s, y, c, a in zip(S, Y, CL, CA):
+        key = (c, a)                                   # one point per (class, construct)
+        if key not in groups:
+            groups[key] = ([], []); order.append(key)
+        groups[key][0].append(float(s)); groups[key][1].append(float(y))
+    S2, Y2, CL2, CA2 = [], [], [], []
+    for (c, a) in order:
+        ss, yy = groups[(c, a)]
+        S2.append(float(np.median(ss))); Y2.append(float(np.median(yy))); CL2.append(c); CA2.append(a)
+    return np.array(S2), np.array(Y2), CL2, CA2
+
+
 def _loto(obs, model, drop=()):
     classes = [c for c, n in collections.Counter(o["cls"] for o in obs).items()
                if sum(1 for o in obs if o["cls"] == c) >= 3]
@@ -52,9 +72,19 @@ def _loto(obs, model, drop=()):
     return np.array(S), np.array(Y), CL, CA
 
 
-def _cluster_boot_ci(S, Y, CL, CA, n_boot=2000):
-    """Mean-per-class Spearman, bootstrap over CONSTRUCT CLUSTERS (canon) within each class."""
-    rng = np.random.default_rng(0)
+BOOT_SEED = 0          # FIX C: pinned bootstrap seed  -> CIs reproducible run-to-run
+N_BOOT = 2000          # FIX C: pinned resample count   -> CIs reproducible run-to-run
+
+
+def _cluster_boot_ci(S, Y, CL, CA, n_boot=N_BOOT):
+    """Mean-per-class Spearman, bootstrap over CONSTRUCT CLUSTERS (canon) within each class.
+
+    FIX C (reviewer B): the CI was irreproducible across runs ([-0.01,0.51] vs [-0.012,0.527]) because the
+    resampled-cluster array was built as `list({...})` — a set whose iteration order varies with Python's
+    per-process hash randomization (PYTHONHASHSEED), so rng.choice drew from a differently-ordered array
+    each run despite the fixed rng seed. Sorting the canon list makes the resample order deterministic, so
+    (BOOT_SEED, N_BOOT) now fully pin the CI."""
+    rng = np.random.default_rng(BOOT_SEED)
     by_cls = {}
     for i, c in enumerate(CL):
         by_cls.setdefault(c, []).append(i)
@@ -62,7 +92,7 @@ def _cluster_boot_ci(S, Y, CL, CA, n_boot=2000):
     for _ in range(n_boot):
         rhos = []
         for c, idx in by_cls.items():
-            canons = list({CA[i] for i in idx})
+            canons = sorted({CA[i] for i in idx})   # FIX C: deterministic order (was list({...}))
             if len(canons) < 2:
                 continue
             pick = rng.choice(canons, len(canons), replace=True)
@@ -97,24 +127,50 @@ def _perm_p(S, Y, CL, n_perm=5000):
     return round(float(obs_mpc), 3), round((ge + 1) / (cnt + 1), 4)
 
 
-def cross_target():
-    obs = mm.build_observations()
+def _level_summary(cache, aggregate):
+    """Per-model {per_class, mean_per_class_common, ci95, perm_p} at one level.
+    aggregate=False -> observation-level (current estimand); True -> construct-level (FIX B, median per
+    construct before the within-class Spearman). 'common' = classes all 3 models can rank at this level."""
     out = {}
-    cache = {}
-    for model in ("mechanistic", "gbm", "net_charge"):
-        S, Y, CL, CA = _loto(obs, model); cache[model] = (S, Y, CL, CA)
+    agg_cache = {}
+    for model, (S, Y, CL, CA) in cache.items():
+        if aggregate:
+            S, Y, CL, CA = _aggregate_constructs(S, Y, CL, CA)
+        agg_cache[model] = (S, Y, CL, CA)
         per = _mpc(S, Y, CL)
         out[model] = {"per_class": {k: round(v, 3) for k, v in per.items()}}
-    common = set.intersection(*[set(out[m]["per_class"]) for m in out])
+    common = set.intersection(*[set(out[m]["per_class"]) for m in out]) if out else set()
     for model in out:
-        S, Y, CL, CA = cache[model]
-        # restrict to common classes for fair mean + CI + p
-        keep = np.array([c in common for c in CL])
-        Sc, Yc, CLc, CAc = S[keep], Y[keep], [c for c in CL if c in common], [CA[i] for i in range(len(CL)) if CL[i] in common]
-        mpc, p = _perm_p(Sc, Yc, CLc)
-        lo, hi = _cluster_boot_ci(Sc, Yc, CLc, CAc)
-        out[model].update({"mean_per_class_common": mpc, "ci95": [lo, hi], "perm_p": p})
-    return {"n_obs": len(obs), "common_classes": sorted(common), "results": out}
+        S, Y, CL, CA = agg_cache[model]
+        keep = np.array([c in common for c in CL]) if len(CL) else np.array([], dtype=bool)
+        Sc, Yc = S[keep], Y[keep]
+        CLc = [CL[i] for i in range(len(CL)) if CL[i] in common]
+        CAc = [CA[i] for i in range(len(CL)) if CL[i] in common]
+        if len(set(CLc)) >= 1 and len(Sc) >= 3:
+            mpc, p = _perm_p(Sc, Yc, CLc)
+            lo, hi = _cluster_boot_ci(Sc, Yc, CLc, CAc)
+        else:
+            mpc, p, lo, hi = float("nan"), float("nan"), float("nan"), float("nan")
+        out[model].update({"mean_per_class_common": mpc, "ci95": [lo, hi], "perm_p": p,
+                           "n_points": int(len(S))})
+    return {"common_classes": sorted(common), "results": out}
+
+
+def cross_target():
+    obs = mm.build_observations()
+    cache = {}
+    for model in ("mechanistic", "gbm", "net_charge"):
+        cache[model] = _loto(obs, model)
+    # n accounting
+    _, _, anyCL, anyCA = cache["gbm"]
+    n_constructs = len(set(anyCA))
+    n_classes = len(set(anyCL))
+    observation_level = _level_summary(cache, aggregate=False)   # current estimand (pseudo-replicated)
+    construct_level = _level_summary(cache, aggregate=True)      # FIX B: one value per construct (median)
+    return {"n_obs": len(obs), "n_constructs": n_constructs, "n_classes_in_loto": n_classes,
+            "observation_level": observation_level, "construct_level": construct_level,
+            # back-compat: top-level mirrors the OBSERVATION level (what the prior manuscript reported)
+            "common_classes": observation_level["common_classes"], "results": observation_level["results"]}
 
 
 def temporal(cutoff=2021):
@@ -209,14 +265,27 @@ def ablations():
     return rows
 
 
+def _fmt_pc(d):
+    return "{" + ", ".join(f"{k}:{v:+.3f}" for k, v in sorted(d.items())) + "}"
+
+
 if __name__ == "__main__":
     print("=== MANUSCRIPT RESULTS (reproducible, seeded) ===\n")
     ct = cross_target()
-    print(f"[Cross-target LOTO]  observations={ct['n_obs']}  common classes={ct['common_classes']}")
-    for m in ("mechanistic", "gbm", "net_charge"):
-        r = ct["results"][m]
-        print(f"  {m:12s} mean-per-class={r['mean_per_class_common']:+.3f}  95%CI[{r['ci95'][0]:+.2f},{r['ci95'][1]:+.2f}]  perm_p={r['perm_p']}")
-    print(f"  per-class (gbm): {ct['results']['gbm']['per_class']}")
+    print(f"[Cross-target LOTO]  observations={ct['n_obs']}  constructs={ct['n_constructs']}  "
+          f"classes_in_loto={ct['n_classes_in_loto']}")
+    for level_name, level_key in (("OBSERVATION-LEVEL (pseudo-replicated; prior estimand)", "observation_level"),
+                                  ("CONSTRUCT-LEVEL (median per construct; FIX B primary)", "construct_level")):
+        lv = ct[level_key]
+        print(f"\n  {level_name}  common classes={lv['common_classes']}")
+        for m in ("mechanistic", "gbm", "net_charge"):
+            r = lv["results"][m]
+            ci = r["ci95"]
+            print(f"    {m:12s} mean-per-class={r['mean_per_class_common']:+.3f}  "
+                  f"95%CI[{ci[0]:+.3f},{ci[1]:+.3f}]  perm_p={r['perm_p']}  n={r['n_points']}")
+        print(f"    per-class (gbm):        {_fmt_pc(lv['results']['gbm']['per_class'])}")
+        print(f"    per-class (net_charge): {_fmt_pc(lv['results']['net_charge']['per_class'])}")
+        print(f"    per-class (mechanistic):{_fmt_pc(lv['results']['mechanistic']['per_class'])}")
     print()
     for cut in (2018, 2021):
         t = temporal(cut)

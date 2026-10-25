@@ -29,11 +29,26 @@ CHELATOR_COMPLEX_CHARGE = {
 _MACROCYCLE_SMARTS = ["[#7]1[#6][#6][#7][#6][#6][#7][#6][#6][#7][#6][#6]1",   # cyclen (DOTA)
                       "[#7]1[#6][#6][#7][#6][#6][#7][#6][#6]1"]                # TACN (NOTA)
 _ARM_SMARTS = "[#7;R][CH2][CX3](=O)[OX2H1,OX1-]"   # ring-N-CH2-COOH acetate arm
-# (name, SMARTS, pKa, is_acid)
+# FIX 2 (reviewer C): acyclic chelators (DTPA, CHX-A''-DTPA, DFO, macropa, TRAP, HBED, DTPA-derivatives)
+# have NO macrocycle ring, so the macrocycle SMARTS above never fired and their donor arms were double-
+# counted — once as free ionizable groups AND again via the added complex charge. For acyclic chelators we
+# claim their open-chain donor atoms too (open-chain N-acetate arms, hydroxamates, phosphonate/phosphinate
+# arms), so ONLY the single metal-complex charge counts, matching the macrocyclic treatment.
+_ACYCLIC_CHELATORS = {"DTPA", "CHX-A-DTPA", "CHX-A''-DTPA", "DFO", "macropa", "TRAP", "HBED"}
+_ACYCLIC_ARM_SMARTS = [
+    "[#7;!R][CH2][CX3](=O)[OX2H1,OX1-]",                 # open-chain N-CH2-COOH arm (DTPA / CHX-A''-DTPA)
+    "[CX3](=O)[NX3][OX2H1,OX1-]",                        # hydroxamate donor (DFO)
+    "[#6][PX4](=O)([OX2H1,OX1-])[#6]",                   # phosphinate arm (TRAP)
+    "[#6][PX4](=O)([OX2H1,OX1-])[OX2H1,OX1-]",           # phosphonate arm
+]
+# (name, SMARTS, pKa, is_acid). NB: phosphonate is DIPROTIC and handled specially below (FIX 6): it has
+# pKa1 ~ 1-2 (always fully ionized, contributes -1) AND pKa2 ~ 6-7 (partially ionized at pH 7.4). A single
+# pKa 7.2 under-counted it by ~ -1. _PHOSPHONATE_PKA holds (pKa1, pKa2); the pKa field here is unused for it.
+_PHOSPHONATE_PKA = (1.5, 6.5)
 _GROUPS = [
     ("carboxylic_acid", "[CX3](=O)[OX2H1,OX1-]", 4.2, True),
     ("sulfonic_acid",   "[SX4](=O)(=O)[OX2H1,OX1-]", -1.0, True),
-    ("phosphonate",     "[PX4](=O)([OX2H1,OX1-])[OX2H1,OX1-]", 7.2, True),   # 2nd pKa ~7; 1st always ionized
+    ("phosphonate",     "[PX4](=O)([OX2H1,OX1-])[OX2H1,OX1-]", 6.5, True),   # diprotic; see FIX 6 below
     ("tetrazole",       "c1nnn[nH1]1", 4.9, True),
     ("phenol",          "[OX2H1][cX3]", 10.0, True),
     ("aliphatic_amine", "[NX3;H2,H1,H0;!$(NC=[O,S,N]);!$(N=*);!$([N+]);!$(Nc);!$(N[CX3](=[NX2,NX3]))]", 10.5, False),
@@ -83,6 +98,12 @@ def smiles_net_charge(smiles: str, chelator: Optional[str] = None) -> Optional[d
         arm = Chem.MolFromSmarts(_ARM_SMARTS)
         for match in (mol.GetSubstructMatches(arm, uniquify=True) if arm else []):
             claimed |= set(match)
+    # FIX 2: acyclic chelator -> no ring to match, so claim its open-chain donor arms by name.
+    if (chelator in _ACYCLIC_CHELATORS) and not chel_claimed:
+        for sma in _ACYCLIC_ARM_SMARTS:
+            patt = Chem.MolFromSmarts(sma)
+            for match in (mol.GetSubstructMatches(patt, uniquify=True) if patt else []):
+                claimed |= set(match); chel_claimed = True
     for name, sma, pKa, is_acid in _GROUPS:      # _GROUPS ordered specific-first (guanidine before amidine)
         patt = Chem.MolFromSmarts(sma)
         if patt is None:
@@ -96,7 +117,11 @@ def smiles_net_charge(smiles: str, chelator: Optional[str] = None) -> Optional[d
             n += 1
         if n:
             counts[name] = n
-            q += n * _hh(pKa, is_acid)
+            if name == "phosphonate":                 # FIX 6: diprotic — pKa1 (always -1) + pKa2 (HH)
+                pk1, pk2 = _PHOSPHONATE_PKA
+                q += n * (_hh(pk1, True) + _hh(pk2, True))
+            else:
+                q += n * _hh(pKa, is_acid)
     complex_q = CHELATOR_COMPLEX_CHARGE.get(chelator, 0.0)
     # q already EXCLUDES all chelator atoms (claimed above); add the metal-complex charge once.
     invivo = q + (complex_q if chel_claimed or chelator in CHELATOR_COMPLEX_CHARGE else 0.0)
