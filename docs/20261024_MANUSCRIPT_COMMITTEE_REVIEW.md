@@ -129,7 +129,12 @@ not integrity of the underlying computation.
 
 ### Consensus BLOCKERs (found by ≥2 reviewers)
 
-1. **The FEP control edge is over-claimed as "validated." [A, B, C, D — unanimous]** A double-Y→F edge
+1. **The FEP control edge is over-claimed as "validated." [A, B, C, D — unanimous]**
+   > **CORRECTION (2026-10-25):** the premise "expected ΔΔG ≈ 0" below is itself **wrong**. This edge is the
+   > Quigley 2023 YY→FF monomer edge with **measured ΔΔG = −0.95 kcal/mol** (PMID 38099056); the computed
+   > −0.18 is a **sign-correct ~5× miss**, not a recovered null. So the fix "recovered the expected null"
+   > wording is also superseded — the honest statement is "missed the measured −0.95 on a metal-blind edge."
+   A double-Y→F edge
    with expected ΔΔG ≈ 0 is a **null-bias sanity check, not an accuracy validation**: (a) it is a physical
    *prediction* of ≈0, not a machinery control (the canonical controls are thermodynamic-cycle closure /
    forward–backward hysteresis / a self-edge); (b) **±0.15 kcal/mol is the BAR analytical error only** —
@@ -238,7 +243,7 @@ not integrity of the underlying computation.
 - **P1** Clinical framing: %ID/g ≠ dose — retitle as preclinical-biodistribution or add human-Gy/GBq ranking; state tumour uptake (hence T:K) is not modelled; qualify the single-point 0.66-vs-0.42 comparison; complete the reference list (Abdollahi/Trachsel missing; truncated titles); add a Zenodo DOI + licence for "released."
 
 ### M2 — Cyclic-LLM (P0)
-- **P0-1** Temper all "FEP validated/admissible/A2-anchor" → "executed; recovered expected null on one short single-replica edge; accuracy/dynamic-range untested." (artifacts committed ✓).
+- **P0-1** Temper all "FEP validated/admissible/A2-anchor" → **(CORRECTED 2026-10-25)** "executed one metal-blind control edge that **missed** the measured ΔΔG (computed −0.18 vs Quigley measured −0.95 kcal/mol, PMID 38099056); accuracy/dynamic-range/metal-model not validated." (The earlier "recovered expected null" wording is wrong — the expected value is −0.95, not 0.) (artifacts committed ✓).
 - **P0-2** Retitle/reframe around the finding (abundance-circular display benchmark + cross-target null); drop "rigorous."
 - **P0-3** Downgrade cross-target to "preliminary/underpowered (smoke-scale)"; add a power statement; state the 2→1 probe.
 - **P0-4** Independent within-target replication (≥1 target) OR scope the positive claim to PADI4 with a CI; disclose 2-mer-beats-LM-on-2/4.

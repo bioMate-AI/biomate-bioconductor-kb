@@ -92,10 +92,23 @@ pmx build failed, and keep chain P unmerged for the real run) + the GPU producti
 GATED). So the binding-reward path is no longer blocked by topology validation — only by the pmx hybrid
 build and the (gated) GPU spend.
 
-## 6c. UPDATE (2026-10-24) — CONTROL EDGE RUN AND RECOVERED ≈ 0 (the A2 anchor is cleared)
+## 6c. UPDATE (2026-10-24, **CORRECTED 2026-10-25**) — control edge MISSES the measured value; NOT validated
 
-The relative-FEP **control edge has now run end-to-end on AWS Batch GPU-spot** and recovered the expected
-null. Both legs, 12 λ windows each, BAR estimator:
+> **CORRECTION (2026-10-25).** The original claim below ("recovered ≈ 0 / the A2 anchor is cleared /
+> execution-verified binding reward") is **WRONG on two counts** and is retracted:
+> 1. **The expected answer is NOT 0.** The control edge CTRL-TRIVEHEXIN→CTRL-AVEBEHEXIN is exactly the
+>    Quigley 2023 **YY→FF** monomer edge (c[YRGDLAYp(NMe)K] → c[FRGDLAFp(NMe)K]); measured IC50 0.84 nM → 0.17 nM,
+>    so the **measured ΔΔG_bind = −0.95 kcal/mol** (FF ~5× tighter), not ≈0. Replacing the two Tyr-OH with Phe
+>    *improves* β6 packing — a real ~1 kcal/mol effect, not a null. (Quigley RSC Med Chem 2023, PMID 38099056.)
+> 2. **Our FEP missed it.** The computed −0.18 ± 0.15 kcal/mol gets the **sign right** (FF favored) but
+>    under-predicts the magnitude ~5× — a **miss** against a ~1 kcal/mol bar, **not** a validation.
+> Consequently the pipeline is **NOT** execution-verified for binding. The edge is also **metal-blind** (it
+> perturbs Tyr, never the RGD-Asp/MIDAS-Mn), so it carries **no** information about whether the CaDA-Mn metal
+> model is correct — exactly the energetics αvβ6 binding depends on. No candidate ΔΔG ladder is admissible on it.
+> The honest prerequisite is: dynamically validate CaDA-Mn + run a metal-*perturbing* positive control (Asp→Ala),
+> then re-run this edge against the measured −0.95. See `docs/20261025_SESSION_REVEAL_WORKS_RESOURCES_PERF_ERRORS.md`.
+
+The relative-FEP control edge ran end-to-end on AWS Batch GPU-spot. Both legs, 12 λ windows each, BAR estimator:
 
 ```
 ΔG_solvent = 146.45 ± 0.28 kJ/mol
@@ -103,12 +116,13 @@ null. Both legs, 12 λ windows each, BAR estimator:
 ΔΔG_bind   = ΔG_complex − ΔG_solvent = −0.74 ± 0.63 kJ/mol  =  −0.18 ± 0.15 kcal/mol
 ```
 
-For the CTRL double-Y→F edge (both end states standard; ΔΔG_bind expected 0) this is **~1.2σ from zero and
-|ΔΔG| < 0.5 kcal/mol** — the control is **recovered**. The pmx hybrid + CaDA-Mn metal model + CHARMM36m +
-12-λ BAR pipeline therefore reproduces the known null, so a candidate ΔΔG ladder built on this edge is
-**admissible** (the A2 anchor). This updates the §3-reconciliation caveat "nothing that has run is
-physics-verified": the **FEP control edge is now execution-verified**. (The closed DPO loop still uses the
-permeability ML oracle — wiring the FEP binding reward into the loop is the next step, now unblocked.)
+**Interpretation (CORRECTED 2026-10-25):** the **measured** ΔΔG_bind for this YY→FF edge is **−0.95 kcal/mol**
+(Quigley 2023), not 0. Computed −0.18 ± 0.15 is the right sign but ~5× too small → a **miss** on a ~1 kcal/mol
+bar. So the pipeline reproduces alchemical bookkeeping but does **not** demonstrate it can predict the real
+binding change, and — because the edge is metal-blind — says nothing about the CaDA-Mn metal model. **No
+candidate ΔΔG ladder is admissible on this edge.** The §3-reconciliation caveat "nothing that has run is
+physics-verified for binding" therefore **still stands**. (The closed DPO loop still uses the permeability ML
+oracle; a trustworthy FEP binding reward is NOT yet available.)
 
 **Caveats (honest):** 0.5-ns/window, single replica, BAR *analytical* errors (not block/bootstrap), so the
 true uncertainty is somewhat larger than ±0.15 kcal/mol; the central value being ≈0 is the load-bearing
@@ -129,8 +143,8 @@ of spot, no on-demand. Driver: `research/guangzhou_all_atom/cyclic_llm/fep_produ
 
 Goal: replace the permeability oracle with an **execution-verified binding reward** by first recovering
 the αvβ6 relative-FEP **control edge** (CTRL-TRIVEHEXIN → CTRL-AVEBEHEXIN, a double Y→F double
-perturbation; both states standard, ΔΔG ≈ 0 expected — the A2 anchor that makes any candidate ladder
-admissible). Architecture: AWS Batch GROMACS-CUDA GPU-spot (`fep_batch.py`; queue
+perturbation = the Quigley YY→FF monomer edge; **measured ΔΔG = −0.95 kcal/mol, NOT ≈0** — see the §6c
+correction; recovering this measured value (not a null) is the real test). Architecture: AWS Batch GROMACS-CUDA GPU-spot (`fep_batch.py`; queue
 `biomate-gromacs-fep-gpu`, job-def `biomate-gromacs-cu12-gpu`).
 
 **Why it cannot run from this environment (verified 2026-10-22):**
