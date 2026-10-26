@@ -102,6 +102,25 @@ Harness note: the first roster run scored 6/8 models ~0.000 — a `max_tokens=30
 reasoning tokens (`finish_reason=length`, `content=None`), the CLAUDE.md thinking-tokens failure mode; fixed
 by raising to 2000 and re-running. Reasoning-model evals must budget for the thinking tokens.
 
+### Catalog-wide description audit — the lever is small and now exhausted
+Audited all 63 workflows in the routing menu (the gold label set) for missing/weak first-120-char
+discriminators and near-duplicate clusters:
+- **Only 2 menu targets lack a description**, and both are **absent from `galaxy_ai_tools.db`** — they are
+  anchor-only routing targets (`scrna_doublet_qc`, `scrnaseq_standard_endtoend`; the former has
+  `trigger_terms` in `backend/config/workflow_intent_anchors.yaml`, the latter is defined only in the
+  benchmark). They appear name-only in the catalog menu, a mild disadvantage for the 12 items that reference
+  them — but the model still routes to them by name (e.g. it picked `scrna_doublet_qc` on sc_007).
+- **The spatial cluster (6 members) is already well-discriminated** — each first-120 names its method
+  (spatialvi=Space Ranger, spatialxe=Xenium, rctd=deconvolution, liana=ligand-receptor, banksy=clustering,
+  multiomics=integration). The spatial routing misses are genuine fine-grained semantic calls, not
+  description defects.
+- **Conclusion:** the description lever is largely spent by the 3-workflow fix already landed. No catalog-wide
+  rewrite is warranted. The one remaining *generalizable* improvement is to have the routing-menu builder
+  (eval `run_baseline.py` + production `_browse_catalog_with_llm`) backfill a description for DB-absent menu
+  targets from their intent-anchor `trigger_terms`, so anchor-only workflows aren't name-only in the menu.
+  Logged as a bounded follow-up; the remaining routing headroom is genuine model-side semantic discrimination,
+  not metadata.
+
 ## 4. Benchmark gold errors (fix the benchmark, documented per policy) — DONE
 A minority of "misses" are the gold being wrong or under-specified (empty `acceptable_alts`):
 - `sc_007`: gold `nf-core/scrnaseq`, whose own description says *"NOT for filtering doublets"* — but the
