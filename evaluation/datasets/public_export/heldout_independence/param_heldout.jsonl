@@ -1,0 +1,20 @@
+{"id": "ph_01", "user_query": "RNA-seq of a patient lymphoblastoid cell line from a healthy donor", "expected_params": {"genome": "GRCh38"}, "must_not_fill": ["accession"], "probes": "rule:human-phrasing"}
+{"id": "ph_02", "user_query": "iPSC-derived cortical neurons, bulk RNA-seq", "expected_params": {"genome": "GRCh38"}, "must_not_fill": ["input"], "probes": "rule:human-phrasing"}
+{"id": "ph_03", "user_query": "ChIP-seq in BALB/c mouse splenocytes", "expected_params": {"genome": "GRCm39"}, "must_not_fill": ["input"], "probes": "rule:mouse-phrasing"}
+{"id": "ph_04", "user_query": "APP/PS1 transgenic mouse hippocampus RNA-seq", "expected_params": {"genome": "GRCm39"}, "must_not_fill": ["accession"], "probes": "rule:mouse-phrasing"}
+{"id": "ph_05", "user_query": "Sprague-Dawley rat liver RNA-seq", "expected_params": {"genome": "Rnor_6.0"}, "must_not_fill": ["input"], "probes": "rule:rat-phrasing"}
+{"id": "ph_06", "user_query": "Align these reads to hg19", "expected_params": {"genome": "GRCh37"}, "must_not_fill": [], "probes": "alias:hg19"}
+{"id": "ph_07", "user_query": "Map to the mm10 mouse assembly", "expected_params": {"genome": "GRCm38"}, "must_not_fill": [], "probes": "alias:mm10"}
+{"id": "ph_08", "user_query": "Use the hg38 human reference", "expected_params": {"genome": "GRCh38"}, "must_not_fill": [], "probes": "alias:hg38"}
+{"id": "ph_09", "user_query": "Library prepped with the TruSeq Stranded mRNA kit", "expected_params": {"strandedness": "reverse"}, "must_not_fill": [], "probes": "rule:kit-reverse"}
+{"id": "ph_10", "user_query": "NEBNext Ultra II Directional RNA library", "expected_params": {"strandedness": "reverse"}, "must_not_fill": [], "probes": "rule:kit-reverse"}
+{"id": "ph_11", "user_query": "SMART-seq2 full-length single-cell libraries", "expected_params": {"strandedness": "unstranded"}, "must_not_fill": [], "probes": "rule:kit-unstranded"}
+{"id": "ph_12", "user_query": "dUTP second-strand marking protocol", "expected_params": {"strandedness": "reverse"}, "must_not_fill": [], "probes": "rule:dutp"}
+{"id": "ph_13", "user_query": "single-end 75 bp reads", "expected_params": {"single_end": "true"}, "must_not_fill": [], "probes": "rule:single-end"}
+{"id": "ph_14", "user_query": "paired-end 150 bp sequencing", "expected_params": {"single_end": "false"}, "must_not_fill": [], "probes": "rule:paired-end"}
+{"id": "ph_15", "user_query": "run on CPU only, no GPU available", "expected_params": {"gpu_acceleration": "false"}, "must_not_fill": [], "probes": "rule:gpu-off"}
+{"id": "ph_16", "user_query": "ATAC-seq on frozen tumor tissue", "expected_params": {"genome": "GRCh38"}, "must_not_fill": ["input", "accession"], "probes": "guardrail:io-trap"}
+{"id": "ph_17", "user_query": "bisulfite WGBS, human blood", "expected_params": {"genome": "GRCh38"}, "must_not_fill": ["input"], "probes": "guardrail:io-trap"}
+{"id": "ph_18", "user_query": "DIA proteomics of a FFPE cohort", "expected_params": {}, "must_not_fill": ["input", "fasta"], "probes": "guardrail:io-trap"}
+{"id": "ph_19", "user_query": "Sscrofa pig liver RNA-seq", "expected_params": {"genome": "Sscrofa11.1"}, "must_not_fill": [], "probes": "boundary:uncovered-organism"}
+{"id": "ph_20", "user_query": "chicken embryo fibroblast RNA-seq", "expected_params": {"genome": "GRCg7b"}, "must_not_fill": [], "probes": "boundary:uncovered-organism"}

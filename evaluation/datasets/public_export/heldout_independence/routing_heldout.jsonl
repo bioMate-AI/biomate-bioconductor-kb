@@ -1,0 +1,15 @@
+{"id": "rh_01", "query": "Process Chromium 10x single-cell libraries with STARsolo", "correct_workflow": "nf-core/scrnaseq", "acceptable_alts": [], "probes": "desc:10x-shortread", "domain": "single_cell"}
+{"id": "rh_02", "query": "Oxford Nanopore long-read single-cell RNA-seq (R10.4)", "correct_workflow": "nf-core/scnanoseq", "acceptable_alts": [], "probes": "desc:nanopore", "domain": "single_cell"}
+{"id": "rh_03", "query": "10x 5-prime scRNA-seq quantified with alevin-fry", "correct_workflow": "nf-core/scrnaseq", "acceptable_alts": [], "probes": "desc:10x-shortread", "domain": "single_cell"}
+{"id": "rh_04", "query": "Data-independent acquisition proteomics, label-free", "correct_workflow": "nf-core/diaproteomics", "acceptable_alts": [], "probes": "desc:dia", "domain": "proteomics"}
+{"id": "rh_05", "query": "DDA label-free quantification of whole-cell lysate", "correct_workflow": "nf-core/proteomicslfq", "acceptable_alts": [], "probes": "desc:lfq", "domain": "proteomics"}
+{"id": "rh_06", "query": "Comet database search of eluted HLA class I peptides", "correct_workflow": "nf-core/mhcquant", "acceptable_alts": ["nf-core/epitopeprediction"], "probes": "desc:comet", "domain": "drug_discovery"}
+{"id": "rh_07", "query": "Doublet detection and empty-droplet filtering for scRNA-seq QC", "correct_workflow": "scrna_doublet_qc", "acceptable_alts": ["nf-core/scdownstream"], "probes": "scorer:underscore", "domain": "single_cell"}
+{"id": "rh_08", "query": "Spatial domain clustering of Visium with BANKSY", "correct_workflow": "spatial_visium_banksy", "acceptable_alts": [], "probes": "scorer:underscore", "domain": "spatial_omics"}
+{"id": "rh_09", "query": "Virtual screening of a 10k compound library by docking against a kinase", "correct_workflow": "Structure Prediction Docking", "acceptable_alts": [], "probes": "breadth:dd", "domain": "drug_discovery"}
+{"id": "rh_10", "query": "De novo generative design of lead-like molecules with an RL policy", "correct_workflow": "REINVENT4 Generative Lead Design", "acceptable_alts": [], "probes": "breadth:dd", "domain": "drug_discovery"}
+{"id": "rh_11", "query": "Germline short-variant calling from WGS with GATK HaplotypeCaller", "correct_workflow": "nf-core/sarek", "acceptable_alts": ["nf-core/raredisease"], "probes": "breadth:variant", "domain": "variant_calling"}
+{"id": "rh_12", "query": "Taxonomic profiling of shotgun metagenomes with Kraken2", "correct_workflow": "nf-core/taxprofiler", "acceptable_alts": ["nf-core/mag"], "probes": "breadth:meta", "domain": "metagenomics"}
+{"id": "rh_13", "query": "CUT&RUN for histone mark profiling", "correct_workflow": "nf-core/cutandrun", "acceptable_alts": [], "probes": "breadth:epi", "domain": "epigenomics"}
+{"id": "rh_14", "query": "Bulk RNA-seq differential expression, human", "correct_workflow": "nf-core/rnaseq", "acceptable_alts": ["nf-core/differentialabundance"], "probes": "breadth:rna", "domain": "transcriptomics"}
+{"id": "rh_15", "query": "AlphaFold-style protein structure prediction", "correct_workflow": "nf-core/proteinfold", "acceptable_alts": [], "probes": "breadth:struct", "domain": "structural"}
