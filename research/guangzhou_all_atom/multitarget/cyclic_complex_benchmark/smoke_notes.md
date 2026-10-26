@@ -14,3 +14,13 @@ smoke1b: Boltz-2 finished all 3 complexes (~3 min each for 25 samples at T4, so 
 Prediction for smoke2: job status SUCCEEDED with exit 0 *and* `ALL_DONE [[...,"ok"] x3]`; for each of 9CDT_2, 9B0A_2, 8R7S_2: 25 `sample_*.cif`, 25 `confidence_*.json`, `pae_if.json`, `run.json` (status ok) under
 s3://biomate-nextflow-work/cyclic_peptide/cofold_bench/samples/boltz/<id>/. Wall time ~12–15 min, cost < $0.30. Residual risk: 8R7S_2 (9 CCD modifications) could fail inside boltz itself (not the driver) → would appear
 as `status: fail` + non-zero exit, which is the correct behaviour now. If any complex fails the job must show FAILED, not SUCCEEDED.
+
+## Smoke 2 RESULT (matches the prediction)
+Job 54e96c18…: SUCCEEDED, `ALL_DONE [9CDT_2 ok, 9B0A_2 ok, 8R7S_2 ok]`, 25 samples + confidences + PAE + run.json each, 367 s for the slowest (8R7S_2, 213 receptor tokens).
+Scored locally (75 samples, DockQ default; 18 tests pass): 9CDT_2 median 0.92 (all 25 ≥ 0.23), 8R7S_2 median 0.90 (all 25 ≥ 0.23; 9 CCD modifications scored without error), 9B0A_2 median 0.07, max 0.27, 28 % ≥ 0.23.
+Caveat: all-0.9 complexes may be near-homolog memorisation — the reason the strict/looser tiers are reported separately.
+
+## PILOT — prediction written BEFORE submitting (40 complexes, ids in results/pilot_ids.txt, 25 samples each, Boltz-2, T4 spot)
+Cost ≈ 40 × ~5 min ≈ 3.5 GPU-h ≈ $1–4 (cap $120). Expect: ≥ 36/40 complexes `ok` (risks: OOM on >600-token receptors → driver retries with max_parallel_samples=1; a CCD residue Boltz rejects).
+Default (Boltz confidence_score) top-1 success (DockQ ≥ 0.23): 45–65 %. Oracle best-of-25: 60–80 %. P(oracle − default ≥ 10 pp) ≈ 65 % — the stop rule is a real gate, not a formality.
+ipTM-vs-DockQ AUROC across all samples: 0.6–0.8, within-complex (the selection-relevant quantity) near 0.5–0.65. Mean closed-ring fraction unknown; Boltz `cyclic: true` adds no bond, so < 100 % is expected.
