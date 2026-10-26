@@ -13,7 +13,7 @@ standard design pipelines ignore; we found no deployable Landry-calibrated predi
 
 ## The model
 `availability_score = 0.3318 − 0.2541·meanKD_hydrophobicity − 0.1479·net_charge − 0.4793·frac_charged`
-(OLS on Landry PCA1 measured availability, 7 SH3 domains, ~3,000 variants). **Direction (corrected 2026-10-25):** more hydrophobic → lower; higher
+(OLS on Landry PCA1 measured availability, 7 domains (4 SH3: SHO1, ARHGAP26, EPS8L1, SNX9; 3 PDZ: TJP1-PDZ3, TIAM1-PDZ1, PDLIM4-PDZ1), ~3,000 variants; domain identities per the PCA2 analysis, `multitarget/pca2_cross_domain/README.md`). **Direction (corrected 2026-10-25):** more hydrophobic → lower; higher
 fraction of charged residues → lower; **net charge enters with a negative coefficient, so net-POSITIVE peptides score lower and net-NEGATIVE (anionic)
 peptides score HIGHER** — the earlier phrase "more charged → less available" was wrong for anions.
 
@@ -39,7 +39,7 @@ flag**, not a precise oracle.
 
 ## Honest caveats (stated plainly)
 1. **Moderate accuracy** (cross-domain ρ ≈ 0.40): a *ranking/triage* tool, not a quantitative oracle.
-2. **Trained on canonical linear SH3 peptides.** For cyclic/ncAA macrocycles (our αvβ6 RGD cyclics,
+2. **Trained on canonical linear SH3/PDZ-binding peptides (4 SH3 + 3 PDZ domains).** For cyclic/ncAA macrocycles (our αvβ6 RGD cyclics,
    PD-L1 bicyclics) it is an **approximation** over the canonical residues; the module flags ncAA fraction.
 3. **"Availability" here is *intracellular*.** It is directly functional for intracellular targets. **Our
    αvβ6/PD-L1 targets are cell-surface / extracellular**, so for *them* this score is a **developability /

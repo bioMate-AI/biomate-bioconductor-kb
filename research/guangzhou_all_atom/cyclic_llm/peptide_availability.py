@@ -11,7 +11,7 @@ functionally dead in cells if it is unavailable. Standard design pipelines ignor
 
 WHAT THIS IS (and is NOT)
 -------------------------
-A sequence -> availability-risk model, fit on the Landry measured-availability data (PCA1, 7 SH3 domains).
+A sequence -> availability-risk model, fit on the Landry measured-availability data (PCA1, 7 domains: 4 SH3 + 3 PDZ).
 - It is a **ranking / liability-flag** tool: "is this peptide at risk of low cellular availability?"
 - It is **peptide-intrinsic**, so unlike binding/affinity it **transfers across domains** — validated by
   leave-one-domain-out: mean Spearman 0.40 (per-domain 0.23-0.49), i.e. a *moderate but robust* predictor.

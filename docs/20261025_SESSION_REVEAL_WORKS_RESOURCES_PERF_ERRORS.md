@@ -21,7 +21,7 @@ exercise exists to stop over-claims reaching a manuscript.
 ## 2. Resources collected (with provenance)
 
 - **Landry in-cell peptide dataset** — `github.com/Landrylab/Lemieux_et_al2026` (CC BY-NC-ND) + SRA `PRJNA1499819`.
-  Files pulled/used: `data/PCA1/med_ppi_score.csv` (in-cell PPI, 7 SH3 domains, 3043 variants), `med_avail_score.csv`
+  Files pulled/used: `data/PCA1/med_ppi_score.csv` (in-cell PPI, 7 domains = 4 SH3 + 3 PDZ [corrected 2026-10-25], 3043 variants), `med_avail_score.csv`
   (measured availability), `PWM_scores.csv` (phage/in-vitro proxy), `in_silico_prediction/results/04_analysis/all_ddg.csv`
   (FoldX + FlexDDG ΔΔG, 3240 rows, 3 domains). Paper: Lemieux…Landry, bioRxiv doi:10.64898/2026.09.21.752983.
 - **Gold-standard αvβ6 affinity series** (for FEP ground truth):
