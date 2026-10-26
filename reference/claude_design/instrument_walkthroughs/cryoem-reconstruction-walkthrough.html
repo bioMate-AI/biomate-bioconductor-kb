@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Thermo EPU / cryo-EM — movies to a 3-D map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 64px 48px; opacity:0; transform:translateY(14px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:74ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:74ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+/* figure placeholder — Claude Design: drop the real screenshot here (see data-capture note) */
+.ph{flex:1; min-height:0; border:1.5px dashed var(--line2); border-radius:8px; background:
+  repeating-linear-gradient(135deg,#fff,#fff 10px,var(--panel) 10px,var(--panel) 20px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; padding:28px}
+.ph .pht{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--blue)}
+.ph .phd{font-size:14px; color:var(--mut); max-width:46ch; line-height:1.5}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Instrument tutorial · Thermo EPU / cryo-EM — movies to a 3-D map</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">8</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="34">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Thermo EPU / cryo-EM &rarr; 3-D Map</b></div>
+    <div class="kicker">Movie frames — from noisy clips to a density map</div>
+    <h2>Turn thousands of noisy particle movies into one 3-D density map.</h2>
+    <p class="caption">Your Thermo microscope (Titan Krios, Talos Arctica, Glacios) running <b>EPU</b> writes thousands of noisy <b>movie frames</b> into a dated session folder. BioMate points the <code>cryosparc_standard_spa</code> pipeline at that folder and runs the full <b>single-particle analysis (SPA)</b> — motion correction &rarr; CTF &rarr; picking &rarr; classification &rarr; refinement &rarr; sharpening — returning a 3-D map, a resolution estimate, and an audit trail.</p>
+    <p class="caption sub">Each movie is almost pure noise; the structure lives in the <i>average</i> of tens of thousands of particle views combined at the right relative angles.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>EPU movie frames</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Completed session</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>cryosparc_standard_spa</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>3-D map &middot; resolution</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker">The problem</div>
+    <h2>A microscope hands you noise, not a picture of your protein.</h2>
+    <p class="caption">EPU records thousands of short movies of frozen particles scattered at random angles in thin ice. Done by hand, turning them into a sharp 3-D density map means running a dozen specialist tools in order — each with its own settings and quality checks — over many GPU-hours.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · NOISE, NOT A MAP</div><h4>The signal is in the average</h4><p>One movie is almost pure noise. The structure only emerges from tens of thousands of particle views combined at the correct relative angles.</p></div>
+            <div class="tile"><div class="n">2 · A DOZEN TOOLS IN ORDER</div><h4>A chain, not a tool</h4><p>Motion correction &rarr; CTF estimation &rarr; particle picking &rarr; 2-D classification &rarr; 3-D refinement &rarr; sharpening — each stage removes a different kind of error.</p></div>
+            <div class="tile"><div class="n">3 · HOURS OF GPU</div><h4>Heavy and error-prone by hand</h4><p>Each step has its own settings and QC, and the record of what produced the map is easily lost between tools.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">This is single-particle analysis (SPA) — the established, published route that cryo-EM facilities use. BioMate&rsquo;s job is to run it for you, consistently, with every step recorded.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Background — the problem in one line</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four ideas behind movies-to-a-map.</h2>
+    <p class="caption">From a finished EPU session to a readable 3-D map is a long but well-trodden chain. These four ideas cover what you need to trust it.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · MOVIE FRAMES</div><h4>The raw data</h4><p>Many <code>.mrc</code>, <code>.tif</code>, or <code>.eer</code> files — short clips of one field of frozen particles, often thousands per session.</p></div>
+            <div class="tile"><div class="n">2 · PIXEL SIZE &amp; VOLTAGE</div><h4>The microscope&rsquo;s ruler</h4><p>Pixel size (&aring;ngstr&ouml;ms per pixel) and voltage (e.g. <b>300 kV</b>). A wrong pixel size makes every downstream size and resolution wrong.</p></div>
+            <div class="tile"><div class="n">3 · THE SPA PIPELINE</div><h4>A tested chain</h4><p>Not one tool: <code>cryosparc_standard_spa</code>, a ~23-step CryoSPARC workflow — import &rarr; motion &rarr; CTF &rarr; pick &rarr; classify &rarr; refine &rarr; sharpen.</p></div>
+            <div class="tile"><div class="n">4 · RESOLUTION AT FSC = 0.143</div><h4>The detail measure</h4><p>The gold-standard criterion (Henderson et al. 2012). Lower is better: 3 &Aring; excellent, 8 &Aring; low.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">Residency is <b>on-prem</b> — the enormous movie datasets stay inside your facility network; only the analysis runs on cloud GPU.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Background — the vocabulary of single-particle cryo-EM</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — WHAT YOU PROVIDE -->
+  <section class="scene" data-seconds="36">
+    <div class="kicker"><span class="st">Step 1</span> · What you provide</div>
+    <h2>A completed session folder — and two numbers it already knows.</h2>
+    <p class="caption">Once the microscope is connected (see Tutorial 6), BioMate maps a finished EPU session to <code>cryosparc_standard_spa</code> and pre-fills its inputs from the session metadata — so you mostly confirm rather than type.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · THE SESSION FOLDER</div><h4>The movies_path</h4><p>Point BioMate at the EPU session folder (e.g. <code>Images-Disc1/GridSquare_*/Data/*.mrc</code>). This becomes <code>movies_path</code> — the key input.</p></div>
+            <div class="tile"><div class="n">2 · PIXEL SIZE &amp; VOLTAGE</div><h4>Read from the metadata</h4><p>BioMate reads <code>voltage</code> and <code>pixel_size</code> from the EPU <code>.xml</code> files. These two are critical — confirm they match your microscope.</p></div>
+            <div class="tile"><div class="n">3 · THE WATCHER&rsquo;S NOTICE</div><h4>Or start it yourself</h4><p>In most facilities a watcher spots the finished session (&ge;~50 movies, then quiet). If none is set up, point BioMate at the folder by hand.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">EPU versions store units differently (metres vs &aring;ngstr&ouml;ms) — sanity-check the pixel size the panel shows before running.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>A session folder plus a confirmed pixel size and voltage</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — HOW A RUN WORKS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 2</span> · How a run works</div>
+    <h2>Launch the New-data event — or just ask — then confirm.</h2>
+    <p class="caption">When a session completes it appears under <b>New data events</b> mapped to the SPA workflow. Press <b>Launch</b> and BioMate opens a pre-filled draft — or describe the goal plainly: <i>&ldquo;Run single-particle reconstruction on my cryo-EM session in folder X.&rdquo;</i></p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="margin-bottom:22px">
+            <span class="chip"><span class="i"></span>New-data event / plain request</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Maps to cryosparc_standard_spa</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Review &amp; confirm</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Runs on cloud GPU</span>
+          </div>
+          <ul class="points">
+            <li><span class="b"></span><span><b>The pipeline is a real, named workflow.</b> <code>cryosparc_standard_spa</code> — the standard CryoSPARC SPA pipeline — never &ldquo;undefined.&rdquo; The event card maps the session straight to it.</span></li>
+            <li><span class="b"></span><span><b>Check the auto-filled settings.</b> <code>movies_path</code>, <code>voltage</code>, and <code>pixel_size</code> are pre-filled from EPU metadata and editable. Confirm pixel size and voltage — a wrong pixel size wrecks every result.</span></li>
+            <li><span class="b"></span><span><b>Then confirm &amp; run.</b> It runs on cloud GPU and is compute-heavy — expect <b>hours</b>. Phases move <i>pending &rarr; running &rarr; completed</i> in real time. Nothing runs until you press Send.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Nothing runs until you confirm</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — RESULTS (figure placeholder + outputs) -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker"><span class="st">Step 3</span> · The result — a map and its numbers</div>
+    <h2>One After-run report: the 3-D map, the resolution, and the evidence.</h2>
+    <p class="caption">The run returns the same two-tab report as any BioMate workflow (see Tutorial 3), with the outputs grouped by phase — the headline map volume, the class averages, and the resolution report.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">After run · cryosparc_standard_spa reconstruction</span>
+        <div class="ph">
+          <div class="pht">Figure slot — Claude Design</div>
+          <div class="phd">Capture: the After-run <b>Outputs</b> section for a <code>cryosparc_standard_spa</code> run — the 3-D map <code>.mrc</code> volume, the 2-D class averages, and the resolution / FSC report, grouped by phase. (Also capture the cryo-EM New-data event card mapping an EPU session to the CryoSPARC SPA workflow, with Launch + Dismiss.)</div>
+        </div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>3-D density map:</b> an <code>.mrc</code> volume — the headline output. Download it and open it in a structure viewer (e.g. ChimeraX) to see and fit your molecule.</span></li>
+          <li><span class="b"></span><span><b>Resolution estimate:</b> reported at <b>FSC = 0.143</b> in &aring;ngstr&ouml;ms. Read it <i>with</i> the FSC curve, not alone.</span></li>
+          <li><span class="b"></span><span><b>2-D class averages:</b> picture-like views of the particle from many angles. Clean, detailed ones mean good, well-aligned data.</span></li>
+          <li><span class="b gr"></span><span><b>Results tab &amp; record:</b> a plain-language account built from the real output files, plus a downloadable reproducibility record.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>A map, a number, and the evidence behind both</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — READING / TRUSTING -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 4</span> · Reading and trusting it</div>
+    <h2>Read the FSC, judge the map against the data, keep the record.</h2>
+    <p class="caption">The pipeline is published and applied the same way each run. What makes <i>your</i> map defensible is the QC you read and the record you keep — the workflow reports honest numbers so you can.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <ul class="points">
+            <li><span class="b"></span><span><b>Read the resolution with the FSC.</b> At FSC = 0.143: below 3 &Aring; you often see side chains; 4&ndash;6 &Aring; shows secondary structure (helices as tubes); worse than ~8 &Aring; shows only an overall blob. Micrographs with poor CTF quality are discarded so they don&rsquo;t pollute the average.</span></li>
+            <li><span class="b am"></span><span><b>The map is only as good as the data.</b> Thin, well-distributed ice and enough good particles drive resolution — a low-resolution map usually means the sample or data, not the pipeline. A workflow cannot rescue a badly behaved sample.</span></li>
+            <li><span class="b am"></span><span><b>This is single-particle SPA only.</b> Cryo-electron <i>tomography</i> (tilt series of whole cells) is a separate pipeline — don&rsquo;t point this one at tomography data.</span></li>
+            <li><span class="b gr"></span><span><b>A record you can defend.</b> Every parameter, tool version, and output file is kept together — downloadable as one file for a paper&rsquo;s methods or a deposition record.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>A map you can defend</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — CLOSING -->
+  <section class="scene title" data-seconds="34">
+    <div class="kicker">The habit at a glance</div>
+    <h2 style="font-size:38px">Let the watcher notice the finished session &rarr; Launch the reviewed draft &rarr; confirm pixel size / voltage &rarr; run &rarr; read the map at FSC = 0.143.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">The value is simple: a pile of noisy movies becomes a 3-D density map with one request, through the standard CryoSPARC SPA pipeline, on cloud GPU, with a record you can defend in a paper or a deposition. Of every instrument in this series, this is the one BioMate has run end-to-end on real microscope data.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Connect the microscope; residency is on-prem</li>
+            <li><span class="k">2</span>Let the watcher notice the finished session (or point BioMate at the folder)</li>
+            <li><span class="k">3</span>Launch the reviewed <code>cryosparc_standard_spa</code> draft</li>
+            <li><span class="k">4</span>Confirm pixel size &amp; voltage, then Send</li>
+            <li><span class="k">5</span>Read the map at FSC = 0.143, judge it against the data; keep the record</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Input</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">A completed EPU session</span></td></tr>
+            <tr><td>Workflow</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">cryosparc_standard_spa — validated</span></td></tr>
+            <tr><td>Key params</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">movies_path · voltage · pixel_size</span></td></tr>
+            <tr><td>Result</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">3-D map + resolution at FSC 0.143</span></td></tr>
+            <tr><td>Scope</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Single-particle only — not tomography</span></td></tr>
+            <tr><td>Record</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Reproducibility record</span></td></tr>
+          </table>
+          <p class="footnote">Heavy cloud GPU runs — don&rsquo;t launch speculatively; confirm pixel size and voltage first. &ldquo;Validated&rdquo; means the pipeline runs and produces a map on real data; the quality of <i>your</i> map still depends on <i>your</i> sample.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>

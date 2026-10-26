@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Flow Cytometer — gating to cell populations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 64px 48px; opacity:0; transform:translateY(14px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:74ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:74ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+/* figure placeholder — Claude Design: drop the real screenshot here (see data-capture note) */
+.ph{flex:1; min-height:0; border:1.5px dashed var(--line2); border-radius:8px; background:
+  repeating-linear-gradient(135deg,#fff,#fff 10px,var(--panel) 10px,var(--panel) 20px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; padding:28px}
+.ph .pht{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--blue)}
+.ph .phd{font-size:14px; color:var(--mut); max-width:46ch; line-height:1.5}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Instrument tutorial · Flow cytometer — gating &amp; immunophenotyping</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">8</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="34">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Flow Cytometer &rarr; Immunophenotyping</b></div>
+    <div class="kicker">FCS events — from a table of dots to named populations</div>
+    <h2>Turn flow-cytometer events into cell populations and their percentages.</h2>
+    <p class="caption">Your cytometer records every cell as an <b>event</b> — scatter (FSC/SSC) plus a value in each fluorescence channel — and writes one sample to one <b>.fcs</b> file. BioMate runs the <b>gating</b> you would otherwise draw by hand: remove junk, pick lineages by their markers, and report each population as a percentage of its parent.</p>
+    <p class="caption sub">A raw <code>.fcs</code> is a giant table of dots, not an answer — the gating strategy and the compensation matrix are what turn it into biology.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>FCS events</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Gating strategy</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Immunophenotyping workflow</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Populations &middot; percentages</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker">The problem</div>
+    <h2>Raw <code>.fcs</code> is a table of dots — and gating defines every population.</h2>
+    <p class="caption">An <code>.fcs</code> file holds tens of thousands to millions of events and means nothing until you draw boundaries around meaningful groups of cells. And what &ldquo;a population&rdquo; is depends entirely on what you stained for — the wrong gating or no compensation gives a confident wrong answer.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · DOTS, NOT POPULATIONS</div><h4>Gating, not reading</h4><p>You must gate in sequence — remove debris and doublets, then pick lineages by marker thresholds — before a single percentage exists.</p></div>
+            <div class="tile"><div class="n">2 · THE PANEL DECIDES</div><h4>Same dots, different biology</h4><p>A surface panel &rarr; which populations and what %. CFSE &rarr; cell division. Annexin&nbsp;V/PI &rarr; apoptosis. What you stained picks the assay.</p></div>
+            <div class="tile"><div class="n">3 · SPILLOVER LEAKS</div><h4>Dyes bleed</h4><p>Without a compensation matrix, fluorescence overlaps between channels — a CD4 signal can masquerade as CD8 and look plausible.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The gating is the analysis. The goal is to write it down once, compensate correctly, and run it the same way every time.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Background — the problem in one line</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four ideas behind dots-to-populations.</h2>
+    <p class="caption">From a finished acquisition to a readable gating tree is a short, well-defined chain. These four ideas cover all of it.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · FCS &amp; EVENTS</div><h4>The cells</h4><p>Each <b>event</b> is one cell: <code>FSC</code> &asymp; size, <code>SSC</code> &asymp; granularity, plus a value per <b>marker</b> (CD3, CD4, CD8, CD19&hellip;).</p></div>
+            <div class="tile"><div class="n">2 · GATING</div><h4>The decision tree</h4><p>Remove junk &rarr; pick lineages &rarr; count. Each population is defined by a combination of marker thresholds.</p></div>
+            <div class="tile"><div class="n">3 · GATING STRATEGY</div><h4>Written down</h4><p>The tree as text — named populations with cut-offs, e.g. <code>["FSC-A","between",[50000,150000]]</code> — so it is reproducible.</p></div>
+            <div class="tile"><div class="n">4 · COMPENSATION</div><h4>The spillover matrix</h4><p><b>Required.</b> Corrects dyes bleeding across channels. You bring it from your single-stain controls.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The gating strategy is the hinge: it is how a &ldquo;population&rdquo; is actually defined, and what makes the result repeatable.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Background — the vocabulary of flow analysis</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — WHAT YOU PROVIDE -->
+  <section class="scene" data-seconds="36">
+    <div class="kicker"><span class="st">Step 1</span> · What you provide</div>
+    <h2>One <code>.fcs</code> file, your gating logic, and a compensation matrix.</h2>
+    <p class="caption">Once the cytometer is connected (see Tutorial 6) its watcher groups <code>.fcs</code> files by experiment folder and surfaces each run as a New data event; or bring a single file in by hand (Tutorial 4). The workflow is <b>Analyze Flow Cytometry Immunophenotyping</b> (<code>cell_biology</code>).</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · THE FCS FILE</div><h4><code>fcs_file_path</code></h4><p>The single <code>.fcs</code> file to analyse, from your instrument export. These workflows take <b>one file at a time</b>.</p></div>
+            <div class="tile"><div class="n">2 · THE GATING STRATEGY</div><h4><code>gating_strategy</code></h4><p>The decision tree as named populations with marker thresholds. Adapt the pre-filled example to your real channel names and cut-offs.</p></div>
+            <div class="tile"><div class="n">3 · THE COMPENSATION MATRIX</div><h4><code>compensation_matrix</code> <b>(required)</b></h4><p>The spillover matrix from your single-stain controls. BioMate does not compute it for you.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">Use your channel names exactly as the instrument wrote them (e.g. <code>FSC-A</code>, <code>SSC-A</code>, <code>FL1-A</code>, or marker names).</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>A file, a gating strategy, and a compensation matrix</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — HOW A RUN WORKS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 2</span> · How a run works</div>
+    <h2>Launch from the event — or just ask — then confirm.</h2>
+    <p class="caption">Click <b>Launch</b> on the cytometry data event, or describe the goal plainly — for example, <i>&ldquo;immunophenotype this FCS file; gate lymphocytes on FSC/SSC, then CD3+ T cells, then CD4 vs CD8; report population percentages.&rdquo;</i></p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="margin-bottom:22px">
+            <span class="chip"><span class="i"></span>Data event / plain request</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Assay routes the workflow</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Review &amp; confirm</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Runs on <code>biomni_local</code></span>
+          </div>
+          <ul class="points">
+            <li><span class="b"></span><span><b>The panel opens the named workflow.</b> It should show <b>Analyze Flow Cytometry Immunophenotyping</b>, never &ldquo;undefined.&rdquo; The connector's label is only a hint — if it guessed CFSE / cytokine / apoptosis wrong, say which assay it is in chat.</span></li>
+            <li><span class="b"></span><span><b>You review before anything runs.</b> Edit <code>gating_strategy</code> to match your panel, supply the required <code>compensation_matrix</code>, and attach the <code>.fcs</code> file if it is not already linked.</span></li>
+            <li><span class="b"></span><span><b>Then Confirm &amp; Run.</b> It runs on BioMate's <code>biomni_local</code> runtime (~16&nbsp;GB RAM); a sample is typically a couple of minutes.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Nothing runs until you confirm</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — RESULTS (figure placeholder + outputs) -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker"><span class="st">Step 3</span> · The result — a gating tree</div>
+    <h2>One After-run report: the populations and what fraction each is.</h2>
+    <p class="caption">The run returns a report you read as a gating tree, with the per-population tables and gating plots filed under the step that produced them.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">After run · Immunophenotyping — pre-run panel</span>
+        <div class="ph">
+          <div class="pht">Figure slot — Claude Design</div>
+          <div class="phd">Capture: the <b>Analyze Flow Cytometry Immunophenotyping</b> pre-run panel — the workflow name, the <code>gating_strategy</code> text field with a worked example, the required <code>compensation_matrix</code> field, and <b>Confirm &amp; Run</b>. (Also capture a flow-cytometry New-data event card: FCS file count, cytometer name, the experiment-type badge, and Launch.)</div>
+        </div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Summary:</b> populations found and <b>what fraction each is</b>, read as a tree — e.g. <i>lymphocytes 62% of singlets &rarr; CD3+ 71% &rarr; CD4+ 43% / CD8+ 29%</i>. Percentages are the headline number.</span></li>
+          <li><span class="b"></span><span><b>Outputs:</b> per-population counts and percentages as tables (<code>json</code>/<code>txt</code>/<code>csv</code>), plus any gating plots the workflow emits.</span></li>
+          <li><span class="b"></span><span><b>Reproducibility record:</b> the exact gating strategy, compensation matrix, and software version used.</span></li>
+          <li><span class="b gr"></span><span><b>Downloadable</b> tables and plots for your figures.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>One report, shaped by the assay</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — READING / TRUSTING -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 4</span> · Reading and trusting it</div>
+    <h2>Check the gates, mind compensation, and verify your first run.</h2>
+    <p class="caption">The workflow does threshold-based gating from the strategy you supply. What makes a result defensible is the QC you read, honest limits you respect, and the record you keep.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <ul class="points">
+            <li><span class="b"></span><span><b>Check the gates first.</b> A sensible result keeps most events in the singlet/lymphocyte gate (not 90% thrown away), and population percentages sum sanely within each parent.</span></li>
+            <li><span class="b am"></span><span><b>A tiny fraction can be noise.</b> A &ldquo;0.1% CD4+&rdquo; is easily a gating artefact; uncompensated spillover inflating a marker usually shows up as a smear rather than a clean cluster.</span></li>
+            <li><span class="b rd"></span><span><b>Compensation is on you.</b> The workflow <b>requires</b> a matrix and will not derive one — feed uncompensated data and populations can be wrong in ways that look plausible.</span></li>
+            <li><span class="b gr"></span><span><b>A record you can defend.</b> The gating strategy, compensation matrix, and software version are kept together — not a one-off hand-drawn set of gates no one can reproduce.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict partial"><span class="mk"></span>Available, not yet validated end-to-end — verify your first run</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — CLOSING -->
+  <section class="scene title" data-seconds="34">
+    <div class="kicker">The habit at a glance</div>
+    <h2 style="font-size:38px">Launch the cytometry event → confirm the right assay workflow → write the gating strategy + supply compensation → run → read the percentages.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">The value is simple: an <code>.fcs</code> table of dots becomes named cell populations with one request, through a real indexed workflow, with the gating documented in a record you can reproduce — while you verify the first run against your own manual analysis in FlowJo.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Connect the cytometer (T6) or upload one <code>.fcs</code> (T4)</li>
+            <li><span class="k">2</span>Launch the cytometry event (or ask)</li>
+            <li><span class="k">3</span>Confirm it opened Analyze Flow Cytometry Immunophenotyping</li>
+            <li><span class="k">4</span>Write the gating strategy, supply compensation, Confirm &amp; Run</li>
+            <li><span class="k">5</span>Read the population percentages, checking the singlet gate; keep the record</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Input</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">A single .fcs file</span></td></tr>
+            <tr><td>Method</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Immunophenotyping — indexed, not yet validated</span></td></tr>
+            <tr><td>Compensation</td><td><span class="verdict gap" style="margin:0;padding:3px 8px;font-size:11px">Required — you supply it</span></td></tr>
+            <tr><td>Other assays</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">CFSE · cytokine · apoptosis siblings</span></td></tr>
+            <tr><td>Result</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Populations + percentages</span></td></tr>
+            <tr><td>Record</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Reproducibility record</span></td></tr>
+          </table>
+          <p class="footnote">One <code>.fcs</code> at a time — no batch/concatenation or cross-file comparison. Threshold-based gating from your strategy, <b>not</b> FlowSOM / UMAP unsupervised clustering.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>
