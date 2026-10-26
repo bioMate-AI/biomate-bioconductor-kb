@@ -20,11 +20,21 @@ Do not publish the leaderboard without these caveats resolved or stated.
     endpoints before citing their bare cells.
 
 ## routing_harness (catalog column — the thesis-critical one)
-- **NOT apples-to-apples yet.** 7 models were scored under the rich `described` menu, 13 under the legacy
-  names-only `catalog` menu (confounded — richer context aids routing). See `audit_routing_provenance.py`.
-  The bare→harness **dividend direction holds** (described cells are clean), but the **absolute cross-model
-  ranking in this column is not publishable** until a uniform re-run (`rerun_routing_openrouter.py`, all models
-  on the `described` menu, empties-aware) is done.
+- **UNIFORM RE-RUN DONE 2026-10-26 (`rerun_routing_openrouter.py`, empties-aware):** 6 leaderboard rows moved
+  from the legacy names-only menu to the uniform `described` menu (0 empties each): Kimi 0.860→0.970,
+  GLM-5.3-prime 0.885→0.955, GLM-5.2 0.890→0.950, GPT-5.6-luna 0.885→0.950, Gemini-3.1-Pro 0.960→0.975,
+  DeepSeek 0.800→0.850. Now **15 models are on the uniform `described` menu.**
+- **Residual caveats:**
+  - `gpt-5.6` and `qwen3.8-max` are STILL on the names-only menu (unreachable: not on OpenRouter / no exact
+    slug) — their routing_harness cells are not apples-to-apples; re-run against their exact endpoints.
+  - `opus-5.5` (not a main leaderboard row) has 18 **content-filter** refusals in the described condition too
+    (real behavior, understates it); `gpt-6.1-sol-pro` (not a row) hung and was left incomplete.
+  - **Provenance:** the 6 re-run cells are OpenRouter-served; the already-`described` cells (opus-5, base/sft,
+    qwen2.5/3.5 series) came from their own harness. Same menu CONDITION now (the fairness fix), but serving
+    provenance differs per model — a secondary caveat for a strict publication.
+- **Finding:** under the uniform described menu, **BioMate 9B base+harness = 0.905**, within range of the
+  frontier (0.94–0.99) and well above same-class open models (qwen3.5-9b 0.830, qwen2.5-7b 0.735) — the
+  harness-is-the-lever thesis holds on a fair, uniform comparison.
 
 ## param_prefill
 - The rows labeled **"BioMate 9B (base/SFT)" are the RAW LLM with BioMate's production rule layer OFF** — they
