@@ -247,3 +247,22 @@ re-run** — every model under the SAME (described, production-faithful) menu, w
 reasoning-tokens and empties retried/flagged. Until then the routing_harness column is not citable as a fair
 cross-model comparison. The bare-vs-harness DIVIDEND direction still holds (described cells are clean), but
 the absolute cross-model ranking in that column is confounded.
+
+## Bare-routing empties — fixed where they were artifacts, diagnosed where they were real (2026-10-26)
+The bare routing column had empties for 4 models. Investigated each by cause (not blanket-"fixed"):
+- **kimi-k3 (21 empty) = TRUNCATION artifact → FIXED.** Re-ran only the empty items via `moonshotai/kimi-k3`
+  empties-aware (max_tokens=2000, retry=5): filled 21/21 with real answers, kept the original non-empty preds.
+  Bare routing **0.450 → 0.495, 0 empties**. (refill audit sidecar committed.)
+- **opus-5.5 (14 empty) = REAL content-filter refusal, NOT an artifact.** Diagnosed: `finish_reason=content_filter`
+  on bare drug-discovery queries (e.g. "generate novel drug-like molecules with RL"), persists at max_tokens=6000.
+  The model genuinely refuses to route these → a legitimate routing FAILURE for a bioinformatics router, so the
+  empties are correctly scored as wrong (0.610). Left as-is and documented — "fixing" it would hide a real
+  limitation. (A notable finding: an Anthropic model's safety filter blocks legitimate drug-discovery routing.)
+- **qwen3.8-max (89 empty, 44%) + gpt-5.6 (10 empty) = NOT cleanly re-runnable here.** gpt-5.6 is not on
+  OpenRouter; qwen3.8-max has no confident OpenRouter slug (only a 3.5-series MoE, not 3.8-Max) — filling 89
+  items with a wrong model would corrupt the benchmark, which is worse than leaving flagged. **qwen3.8-max's
+  bare cell (0.345, 44% empty) is NOT citable** until re-run against its exact endpoint; gpt-5.6's bare (5%) is
+  mildly understated. Both flagged for the uniform re-run against their real endpoints.
+
+Lesson: an empty is not automatically "contamination to delete" — diagnose the cause. Truncation → re-run to
+resolve; content-filter/refusal → a real result; wrong-model-substitution → never (corrupts the data).
