@@ -59,7 +59,12 @@ MODELS = [
     ("GPT-5.6", "gpt-5.6", {"pbpk_2fold": "openai_gpt-5.6/pbpk_benchmark.jsonl",
                             "boin_mtd": "openai_gpt-5.6/boin_benchmark.jsonl",
                             "dd_spearman": "openai_gpt-5.6/drug_discovery_e2e.jsonl"}),
-    ("Qwen3.8-Max", "qwen_qwen3.8-max", {}),
+    # GPT-5.6 is not on OpenRouter; gpt-6.1-sol-pro is the current-gen GPT representative, routing_harness
+    # from the 2026-10-26 uniform described + empties-aware re-run (0 empty, 0 hallucination).
+    ("GPT-6.1-sol-pro", "openai_gpt-6.1-sol-pro", {}),
+    # Qwen3.8-Max: routing_harness from the qwen3.8-max-prime flagship (uniform described, empties-aware
+    # re-run 2026-10-26); the model's other cells remain from the earlier qwen_qwen3.8-max runs.
+    ("Qwen3.8-Max", "qwen_qwen3.8-max", {"routing_harness": "qwen_qwen3.8-max-prime/cross_domain_routing_catalog_described.jsonl"}),
     ("GLM-5.2", "z-ai_glm-5.2", {}),
     # GLM-5.3-prime = latest GLM flagship (roster-verified). Only the 5 RealBio-native tasks are
     # committed; boin/pbpk/dd (DrugDev) left blank until the gated sweep runs them.

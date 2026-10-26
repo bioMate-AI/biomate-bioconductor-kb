@@ -24,11 +24,17 @@ Do not publish the leaderboard without these caveats resolved or stated.
   from the legacy names-only menu to the uniform `described` menu (0 empties each): Kimi 0.860→0.970,
   GLM-5.3-prime 0.885→0.955, GLM-5.2 0.890→0.950, GPT-5.6-luna 0.885→0.950, Gemini-3.1-Pro 0.960→0.975,
   DeepSeek 0.800→0.850. Now **15 models are on the uniform `described` menu.**
+- **Update 2026-10-26 (round 2):** `qwen3.8-max` and `gpt-6.1` ARE reachable (earlier claim was wrong — the
+  slugs are `qwen/qwen3.8-max-prime`/`-0902` and `openai/gpt-6.1-sol-pro`). Both re-run clean on the uniform
+  described menu (0 empties): **Qwen3.8-Max routing_harness now from `qwen3.8-max-prime` = 0.940**; added
+  **GPT-6.1-sol-pro = 0.985** as the current-gen GPT representative. (Correction: gpt-6.1-sol-pro did NOT
+  "hang" — it runs fine fresh; the earlier full-run incompletion was cumulative OpenRouter rate-limiting at
+  the tail of a 1,600-call run.) **17 models now on the uniform described menu.**
 - **Residual caveats:**
-  - `gpt-5.6` and `qwen3.8-max` are STILL on the names-only menu (unreachable: not on OpenRouter / no exact
-    slug) — their routing_harness cells are not apples-to-apples; re-run against their exact endpoints.
+  - `gpt-5.6` is not on OpenRouter — its routing_harness cell stays on the names-only menu (flagged);
+    GPT-6.1-sol-pro is the current-gen GPT representative in its place.
   - `opus-5.5` (not a main leaderboard row) has 18 **content-filter** refusals in the described condition too
-    (real behavior, understates it); `gpt-6.1-sol-pro` (not a row) hung and was left incomplete.
+    (real behavior, understates it).
   - **Provenance:** the 6 re-run cells are OpenRouter-served; the already-`described` cells (opus-5, base/sft,
     qwen2.5/3.5 series) came from their own harness. Same menu CONDITION now (the fairness fix), but serving
     provenance differs per model — a secondary caveat for a strict publication.
