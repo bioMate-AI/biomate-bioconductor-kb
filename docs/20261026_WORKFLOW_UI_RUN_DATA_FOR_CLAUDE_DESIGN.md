@@ -179,3 +179,50 @@ Aggregate routing accuracy (`…/leaderboard.csv`): BioMate engine-free C2 **0.9
 
 **Offer:** items 3, 7, 8 (and 4, 5) are cheap/local and I can fill them with real values on request;
 items 1, 2, 6 need an S3 fetch or a paid Batch run — confirm before I launch those.
+
+---
+
+## 4. Fresh run results (2026-10-26) — real AWS Batch runs
+
+### item 8 — Cross-domain routing: REAL top-3 with scores ✓
+Live BioMate workflow search, query *"Process 30 bulk RNA-seq samples from a clinical trial and
+produce a gene counts matrix"*:
+| rank | workflow | domain | score |
+|---|---|---|---|
+| 1 | `differentialregulation_bulk_rna_seq_pipeline` | transcriptomics | 56 |
+| 2 | `nf-core/rnaseq` | transcriptomics | 52 |
+| 3 | `decoupler_pathway_activity_bulk_rnaseq` | transcriptomics | 49 |
+(4th `nf-core/differentialabundance` 48, 5th `scshapes` 48.) Real live scores. Note the router edges
+differential-regulation above nf-core/rnaseq for this phrasing.
+
+### item 7 — BOIN: REAL run ✓ (run_id `c93845cd…`, clinical_trial_simulation, design=BOIN, 1000 sims)
+**Thresholds** (`BOIN_decision_table.json`): target DLT φ **0.25**, λ_escalate **0.225**, λ_deescalate
+**0.325**, rule "DLT/n ≤ 0.225 escalate · ≥ 0.325 de-escalate · else stay".
+**Dose-escalation table** (`dose_escalation_results.csv`, real):
+| level | dose mg | true DLT rate | Cmax nM (median) | P(selected) % | pred. efficacy |
+|---|---|---|---|---|---|
+| 1 | 10 | 0.138 | 297.4 | 64.6 | 0.233 |
+| 2 | 20 | 0.223 | 594.8 | 29.0 | 0.348 |
+| 3 | 40 | 0.362 | 1189.7 | 5.9 | 0.485 |
+| 4 | 80 | 0.510 | 2379.4 | 0.4 | 0.613 |
+| 5 | 150 | 0.644 | 4461.4 | 0.1 | 0.704 |
+| 6 | 300 | 0.753 | 8922.7 | 0.0 | 0.769 |
+| 7 | 400 | 0.788 | 11897.0 | 0.0 | 0.788 |
+**Operating characteristics** (`operating_characteristics.json`): P(correct MTD) **0.29**, P(underdose)
+**0.646**, P(overdose) **0.064**, **true MTD = 20 mg**, 1000 sims. **Recommended Phase-II dose = 40 mg QD**
+(RR 47.9%, P-success 1.0).
+**Design note for the deck:** this workflow emits **1000-simulation operating characteristics** (per-dose
+true-DLT + P-selected), **not** a single cohort-by-cohort DLT escalation trace. If the deck wants a
+"cohort 1 → 0/3 DLT → escalate" style trace, that's a per-trial realization the workflow doesn't export;
+use the OC table + thresholds above.
+
+### item 3 — Survival (KM/Cox): run FAILED — needs an input clinical CSV
+`survival` (data KM, run `7b89e0c5…`) **failed** and `survival_cox_proportional_hazards_regression`
+(`4347eeb5…`) hung — both because the **data** survival workflows require an uploaded clinical-data table
+(time/status/group[/covariates]); they do **not** auto-run on R's built-in `lung`. To produce the real
+median/log-rank/HR+CI/cox.zph, I need to upload a clinical survival CSV (e.g. the `lung` cohort as CSV)
+and re-run. Column mapping stays as in §S4 (`Surv(time,status)~sex`; `coxph ~ age+sex+ph.ecog`).
+
+### items 4, 5 — still pending
+qPCR geNorm stability M-value and the DESeq2 up/down split both need a data-bound run (upload the qPCR Ct
+matrix / recompute from a full DESeq2 result), not yet executed.
