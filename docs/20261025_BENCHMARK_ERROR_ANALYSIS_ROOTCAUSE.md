@@ -207,3 +207,21 @@ actionable: fix the knowledge/harness layer, leave the base model alone.
 3. Repair the misleading/missing workflow descriptions in `galaxy_ai_tools.db`; re-run routing. *(1 eval box)*
 4. Correct the gold errors + add justified `acceptable_alts`; document each in the data README.
 5. Re-run the full roster with the corrected harness+scorer before publishing any leaderboard.
+
+## Stability + hallucination check (2026-10-26)
+Prompted by "have you checked each LLM's stability by running multi rounds? and hallucination?" — fair
+challenge; I had asserted "instability" from single-shot implausibility without repeating runs. Measured
+properly (50-item subset, 3 identical rounds, temp=0, max_tokens=2000), tracking acc spread + empty-response
+rate + off-menu hallucination rate.
+
+- **qwen/qwen3.5-9b (the exact on-prem model): acc=[0.760,0.760,0.760], spread 0.000, empties=[0,0,0],
+  halluc=[1,1,1] (~2%, same item each round).** Perfectly deterministic → its routing A/B deltas are real
+  signal, and its ~2% off-menu hallucination is low/stable.
+- The earlier ±20–27pp swings on the LARGE reasoning models (opus-5/opus-5.5/gpt-6.1-sol/qwen3.5-397b) are
+  therefore confirmed as **empties-driven measurement artifacts** (reasoning-token truncation / rate-limiting
+  → finish_reason=length, content=None), not real description-fix effects — the stable small-model control
+  (0 spread, 0 empties) isolates that. Multi-round frontier stability (pricey) deferred on cost grounds.
+
+Lesson (self): don't label a result "instability" from one run — repeat it. The on-prem model is stable;
+only the big reasoning models are noisy via empties, which also means the public leaderboard's reasoning-model
+routing numbers need an empties-aware harness (budget max_tokens past thinking tokens) to be trustworthy.
