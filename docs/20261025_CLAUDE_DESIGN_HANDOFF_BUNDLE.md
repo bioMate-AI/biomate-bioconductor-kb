@@ -56,7 +56,7 @@ Also: **Research Agent UI** design — `reference/claude_design/research_agents/
 ## C. Instrument-data workflows — "workflows of their data"
 
 **HTML walkthroughs (NEW — the set to hand over):**
-`reference/claude_design/instrument_walkthroughs/*.html` — **14 instrument demo walkthroughs**
+`reference/claude_design/instrument_walkthroughs/*.html` — **11 instrument demo walkthroughs**
 in the same 8-scene format as the t/d/m/s series (title → problem → ideas → inputs → run →
 result → trust → closing), each built from its manual with real `.nf` workflow names, file
 formats, thresholds, and honest status verdict badges. Each result scene carries a
@@ -64,8 +64,14 @@ formats, thresholds, and honest status verdict badges. Each result scene carries
 screenshots slot. Files: `basespace-sequencing`, `somatic-tumor-sequencing`, `nanopore-minknow`,
 `lcms-proteomics-metabolomics`, `advanced-proteomics-mass-spec`, `flow-cytometry-gating`,
 `plate-reader-assays`, `cryoem-reconstruction`, `microscopy-pathology-imaging`,
-`opentrons-liquid-handling`, `benchling-eln-lims`, `sila2-devices`, `sample-qc-instruments`
-(+ the earlier `qpcr-ddcq` in `tutorials*/`). `basespace-sequencing` is the gold reference.
+`sample-qc-instruments` (+ the earlier `qpcr-ddcq` in `tutorials*/`). `basespace-sequencing`
+is the gold reference.
+
+**Intentionally excluded** — the non-analysis / control-only instruments **opentrons
+(liquid handling)**, **benchling (ELN/LIMS)**, and **sila2 (generic device control)**: they
+do not produce analyzable data, so they have no "workflow of their data" to demo. Their
+manuals remain under `docs/user-manual/tutorials/instruments/` for connection/protocol
+reference (Tutorial 6), but there is deliberately no walkthrough for them.
 
 **Source content (what the walkthroughs were built from):**
 
