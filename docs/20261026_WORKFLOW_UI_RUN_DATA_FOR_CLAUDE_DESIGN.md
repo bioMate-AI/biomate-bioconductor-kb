@@ -235,6 +235,14 @@ p-value or printed median — use the Cox **score/log-rank p = 0.1** for signifi
 for the medians. Swap the dataset for a public cohort (e.g. `lung`) before publishing if the ImmPort
 source isn't wanted on-screen.
 
-### items 4, 5 — still pending
-qPCR geNorm stability M-value and the DESeq2 up/down split both need a data-bound run (upload the qPCR Ct
-matrix / recompute from a full DESeq2 result), not yet executed.
+### item 5 — DESeq2 up/down split: PARTIAL (top-200 real; full-1242 needs GSE52778 counts)
+Of the on-disk **top-200** DESeq2 rows (`deseq_results_top200.csv`): **137 up (log2FC>0) / 63 down** —
+real. The full **up/down split of all 1,242** significant genes cannot be computed from disk (only the
+top-200 is saved) and the DESeq2 **validation workflow bundles a different dataset (GSE89408 synovial
+RA), not GSE52778**. To get the exact 1,242 split I'd re-run DESeq2 on the GSE52778/airway count matrix
+(not committed locally) — a data-fetch + run step.
+
+### item 4 — qPCR geNorm stability: BLOCKED on input (raw Ct matrix not on disk)
+Only the ddCq **outputs** (`qpcr_ddCq_*.csv`) are committed, not the raw per-gene/per-sample **Ct**
+matrix that NormqPCR's geNorm needs. Producing a numeric geNorm/NormFinder M-value requires sourcing or
+re-deriving the Ct input, then running the NormqPCR workflow.
