@@ -62,3 +62,34 @@ the eval, not the model.
 - Novel-target generalization test (the memorization control).
 - On-prem / open-model version of the lift (deployability + inverse-scaling story).
 - Extend from target-ID to the other downstream decision tasks on the same honest footing.
+
+## MEMORIZATION CONTROL (v4) — the claim is tempered, honestly
+Literature-prominence stratification of the clinical gold (pooled over 10 diseases), LLM = gpt-6.1:
+| Target subset | LLM-alone AUROC | OT-genetics AUROC |
+|---|---|---|
+| All clinical gold | 0.66 | 0.44 |
+| HIGH-literature (famous) | 0.757 | 0.465 |
+| LOW-literature (less-published) | 0.555 | 0.409 |
+
+**Verdict: the LLM's target-ID advantage is SUBSTANTIALLY memorization** of famous, well-published
+approved targets (0.76) — it falls to ~0.56 on less-published clinical targets. It does NOT pass the
+clean-reasoning bar (>0.6 and >OT+0.05 on low-lit). BUT it is not pure recall: on low-literature targets
+the LLM (0.555) still beats OT-genetics (0.409) by ~0.15 — a modest genuine residual beyond fame.
+(Disease-specificity is already controlled by construction: hard-negatives are other diseases' clinical
+targets, so the signal is disease-specific, not generic immune-gene fame.)
+
+## HONEST CONCLUSION (what is / isn't publishable)
+- **NOT** "the LLM discovers novel targets by reasoning over evidence" — the memorization control fails this.
+- **IS** a real, defensible contribution, framed honestly: *an LLM-reasoned evidence channel is a strong
+  recall of clinically-established targets that genetics-based channels lack, and lifts the fused target
+  ranking on 9/10 immune diseases; its advantage concentrates in well-characterized targets and does not
+  extend to novel/less-studied ones.* That is a product/resource contribution (recall + integration +
+  provenance), with the generalization limitation stated — not a discovery claim.
+- Product value stands (users want known good targets ranked high → recall is a feature); novel-discovery
+  value is limited. The two product fixes (LLM on by default; re-weight 0.5) remain justified by the lift.
+
+## Next for a clean submission
+- Report the lift AND the memorization decomposition together (honesty = the contribution's credibility).
+- On-prem/open-model version (deployability + inverse-scaling story) — does a small model get the same lift?
+- If a novel-discovery claim is wanted, it needs a true temporal holdout (post-training-cutoff approvals),
+  not this literature proxy.
