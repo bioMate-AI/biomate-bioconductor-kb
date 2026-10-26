@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · Illumina BaseSpace — sequencing to biology</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 64px 48px; opacity:0; transform:translateY(14px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:74ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:74ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+/* figure placeholder — Claude Design: drop the real screenshot here (see data-capture note) */
+.ph{flex:1; min-height:0; border:1.5px dashed var(--line2); border-radius:8px; background:
+  repeating-linear-gradient(135deg,#fff,#fff 10px,var(--panel) 10px,var(--panel) 20px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; padding:28px}
+.ph .pht{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--blue)}
+.ph .phd{font-size:14px; color:var(--mut); max-width:46ch; line-height:1.5}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Instrument tutorial · Illumina BaseSpace — sequencing to biology</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">8</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="34">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>Illumina BaseSpace &rarr; Biology</b></div>
+    <div class="kicker">Sequencing reads — from FASTQ to an answer</div>
+    <h2>Turn sequencer reads into expression, variants, or microbiomes.</h2>
+    <p class="caption">Your Illumina sequencer writes millions of reads as <b>FASTQ</b> files and uploads them to <b>BaseSpace</b>. BioMate reads the run's <b>experiment type</b> and routes it to the matching pipeline — differential expression, germline variant calling, or microbiome profiling — on cloud compute, with no FASTQs copied by hand.</p>
+    <p class="caption sub">What you do with reads depends entirely on what library you sequenced — and that is exactly what decides which pipeline runs.</p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>FASTQ reads</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Experiment type</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Matched pipeline</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Expression &middot; variants &middot; taxa</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker">The problem</div>
+    <h2>Raw reads are not an answer — and the library decides the analysis.</h2>
+    <p class="caption">A FASTQ of millions of reads means nothing until the reads are aligned, quantified, and interpreted. And &ldquo;interpreted&rdquo; means something different for RNA, for whole genomes, and for a 16S amplicon — run the wrong pipeline and you get a confident wrong answer.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · READS, NOT RESULTS</div><h4>A chain, not a tool</h4><p>Trimming, alignment, quantification, and QC must be chained correctly before a single count or variant exists.</p></div>
+            <div class="tile"><div class="n">2 · THE LIBRARY DECIDES</div><h4>Same reads, different biology</h4><p>RNA &rarr; which genes change. WGS &rarr; which variants. 16S &rarr; which microbes. The experiment type picks the path.</p></div>
+            <div class="tile"><div class="n">3 · FILES BY HAND</div><h4>Provenance leaks</h4><p>Copying FASTQs between tools loses the sample sheet, the genome build, and the record of what produced each number.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The pipelines are community-standard and well established. The goal is to route to the right one and run it consistently.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Background — the problem in one line</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four ideas behind reads-to-biology.</h2>
+    <p class="caption">From a finished sequencer run to a readable result is a short, well-trodden chain. These four ideas cover all of it.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · FASTQ</div><h4>The reads</h4><p>The A/C/G/T of each fragment with a <b>per-base quality (Phred)</b> score. Paired-end gives <code>R1</code> + <code>R2</code> — bring both.</p></div>
+            <div class="tile"><div class="n">2 · EXPERIMENT TYPE</div><h4>The hinge</h4><p>The library kind — RNA, WGS/WES, amplicon. This is what routes the run to a pipeline.</p></div>
+            <div class="tile"><div class="n">3 · THE PIPELINE</div><h4>A tested chain</h4><p>Not one tool: <code>nf-core/rnaseq</code>, <code>Wgs Germline Gatk</code>, or <code>nf-core/ampliseq</code> — trim &rarr; align &rarr; quantify/call &rarr; QC.</p></div>
+            <div class="tile"><div class="n">4 · CLOUD RESIDENCY</div><h4>Where the data lives</h4><p>BaseSpace is Illumina's <b>cloud</b> — data leaves your organisation. For restricted data, that is yours to account for.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">The experiment type is the hinge: RNA routes to expression, DNA to variants, amplicon to taxa.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Background — the vocabulary of sequencing analysis</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — WHAT YOU PROVIDE -->
+  <section class="scene" data-seconds="36">
+    <div class="kicker"><span class="st">Step 1</span> · What you provide</div>
+    <h2>A completed run, plus the one thing your analysis needs.</h2>
+    <p class="caption">Once BaseSpace is connected (see Tutorial 6), BioMate lists your <b>completed</b> runs with their experiment type, platform, and sample count — and pre-fills a workflow per run.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · A COMPLETED RUN</div><h4>Already in BaseSpace</h4><p>Pick the finished run from the list. Its experiment type is the routing hint; its FASTQs are linked for you.</p></div>
+            <div class="tile"><div class="n">2 · THE COMPARISON OR BUILD</div><h4>One analysis detail</h4><p><b>RNA-seq:</b> your sample / condition grouping. <b>WGS:</b> the genome build (<code>hg38</code>/<code>hg19</code>/<code>mm10</code>). <b>16S:</b> primers + region.</p></div>
+            <div class="tile"><div class="n">3 · WHAT THE LIBRARY IS</div><h4>If the type is blank</h4><p>If the experiment type is missing or mislabeled, state what you sequenced so it routes to the right pipeline.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">BioMate can supply standard reference and known-sites files for WGS; you confirm the build.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>A completed run plus one analysis detail</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — HOW A RUN WORKS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 2</span> · How a run works</div>
+    <h2>Launch from the run — or just ask — then confirm.</h2>
+    <p class="caption">Click <b>Launch</b> on a completed run, or describe the goal the way you would to a colleague — for example, <i>&ldquo;germline variant calling on this WGS run against hg38,&rdquo;</i> or <i>&ldquo;nf-core/rnaseq then differential expression, treated vs control.&rdquo;</i></p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="margin-bottom:22px">
+            <span class="chip"><span class="i"></span>Completed run / plain request</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Experiment type routes the pipeline</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Review &amp; confirm</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Runs on cloud compute</span>
+          </div>
+          <ul class="points">
+            <li><span class="b"></span><span><b>The pipeline is chosen from the run type.</b> RNA &rarr; <code>nf-core/rnaseq</code>, WGS &rarr; <code>Wgs Germline Gatk</code>, 16S &rarr; <code>nf-core/ampliseq</code> — a real named pipeline, never &ldquo;undefined.&rdquo;</span></li>
+            <li><span class="b"></span><span><b>You review before anything runs.</b> Inputs are shown, filled in and editable, with the FASTQs linked and the genome build or grouping set.</span></li>
+            <li><span class="b"></span><span><b>Then Confirm &amp; Run.</b> Expect a long cloud run — phases move <i>pending &rarr; running &rarr; completed</i>, and a mid-run <b>QC gate</b> pauses-and-reports; it never silently passes a failed check.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Nothing runs until you confirm</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — RESULTS (figure placeholder + per-library outputs) -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker"><span class="st">Step 3</span> · The result — matched to the library</div>
+    <h2>One After-run report, shaped by what you sequenced.</h2>
+    <p class="caption">The run returns a report matched to the library: expression for RNA, variants for DNA, taxa for 16S.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">After run · WGS germline pipeline mid-run</span>
+        <div class="ph">
+          <div class="pht">Figure slot — Claude Design</div>
+          <div class="phd">Capture: the <code>Wgs Germline Gatk</code> pipeline mid-run — the FastQC / Alignment / Variant-Calling phase cards with one phase in the <b>running</b> state and the overall <b>running</b> badge. (Also capture a BaseSpace completed-run event card with the experiment-type + cloud-residency badges, and the RNA-seq After-run Summary.)</div>
+        </div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>RNA-seq:</b> differentially expressed genes by <b>log2 fold-change</b> + <b>FDR</b>; a gene-count matrix and the MultiQC report.</span></li>
+          <li><span class="b"></span><span><b>WGS:</b> an annotated <b>VCF</b> (position, ref vs alt, SnpEff effect), a recalibrated BAM, and coverage / QC.</span></li>
+          <li><span class="b"></span><span><b>16S:</b> a taxonomy table (who&rsquo;s there) and diversity metrics (how varied).</span></li>
+          <li><span class="b gr"></span><span><b>Downloadable</b> tables and reports for your figures and supplement.</span></li>
+        </ul>
+        <div><span class="verdict ok"><span class="mk"></span>One report, shaped by the library</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — READING / TRUSTING -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 4</span> · Reading and trusting it</div>
+    <h2>Standard pipelines, QC you must read, and a record you can cite.</h2>
+    <p class="caption">The pipelines are community-standard and applied the same way each run. What makes a result defensible is the QC you read and the record you keep.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <ul class="points">
+            <li><span class="b"></span><span><b>Read the QC first.</b> RNA-seq: MultiQC per-base quality and a sensible alignment rate. WGS: <b>mean coverage</b> (the pipeline warns below 20&times;) and <b>alignment rate</b> (warns below 70%) — low values mean don&rsquo;t over-trust the calls.</span></li>
+            <li><span class="b am"></span><span><b>A flat result can be real or underpowered.</b> No significant genes may be a true null — or too few replicates. A single-sample variant with thin coverage is a hint, not a call.</span></li>
+            <li><span class="b"></span><span><b>Cloud residency is yours to own.</b> BaseSpace data sits in Illumina&rsquo;s cloud; confirm that is acceptable for restricted or patient data <b>before</b> connecting — the residency badge is shown for exactly this reason.</span></li>
+            <li><span class="b gr"></span><span><b>A record you can defend.</b> The genome build, parameters, tool versions, and output checksums are kept together as a reproducibility record.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>A result you can defend</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — CLOSING -->
+  <section class="scene title" data-seconds="34">
+    <div class="kicker">The habit at a glance</div>
+    <h2 style="font-size:38px">Launch a completed run → confirm it routed right → set build or grouping → run → read, checking QC.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">The value is simple: sequencer reads become biology with one request, through the community-standard pipeline for your library, on cloud compute, with a record you can defend in a paper or a submission.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Connect BaseSpace, mind the cloud residency</li>
+            <li><span class="k">2</span>Launch a completed run (or ask)</li>
+            <li><span class="k">3</span>Confirm it routed to rnaseq / WGS-GATK / ampliseq</li>
+            <li><span class="k">4</span>Set the build or grouping, then Confirm &amp; Run</li>
+            <li><span class="k">5</span>Read fold-change or the VCF, checking QC / coverage; keep the record</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Input</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">A completed BaseSpace run</span></td></tr>
+            <tr><td>Method (RNA)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">nf-core/rnaseq — validated</span></td></tr>
+            <tr><td>Method (WGS)</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Wgs Germline Gatk — validated</span></td></tr>
+            <tr><td>Method (16S)</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">nf-core/ampliseq — available</span></td></tr>
+            <tr><td>Result</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Expression / variants / taxa</span></td></tr>
+            <tr><td>Record</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Reproducibility record</span></td></tr>
+          </table>
+          <p class="footnote">Heavy cloud runs — don&rsquo;t launch speculatively; check inputs and build first. <code>Wgs Germline Gatk</code> is germline only; for tumour samples ask for <code>nf-core/sarek</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>
