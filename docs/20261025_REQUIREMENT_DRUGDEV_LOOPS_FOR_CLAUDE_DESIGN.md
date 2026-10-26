@@ -27,17 +27,13 @@ threshold → one of:
   `mw_max 500→400`), and **the user chooses to start a new run** with those params.
   **BioMate does NOT auto-restart.** Regulatory halts (REGULATORY basis) emit a required
   action with **no** param tuning; only RISK_STRATIFICATION halts are tunable.
-- **PIVOT (switch workflow on repeated failure):** **deferred / not built** — mark as roadmap
-  if shown at all, never as a live feature.
+**What it shows:** the gate catches a real liability on a real run (`d0ff684b`: DILI high,
+hERG halt) and hands the user a concrete **was→now parameter fix** to apply and re-run — a
+clean design→check→fix step. The UI exists: `frontend/client/src/components/auto-loop-panel.tsx`
+(gate table + remediation cards with the was→now diff + rationale/citation).
 
-**Honest status:** gate-fire is live and real-run-proven (`d0ff684b` hERG `0.012µM<1` halt,
-DILI high); remediation is **advisory** (served via `/autoloop-suggestions`, the re-run is a
-deliberate user action). Suggestions are deterministic (`param_tuner.remediate`).
-**UI already exists:** `frontend/client/src/components/auto-loop-panel.tsx` — gate table +
-per-gate remediation cards with the was→now diff + rationale/citation; `pass|escalated` banner.
-
-**Must-nots:** no "self-optimizes / auto-reruns without the user"; no fabricated pause on a
-clean run (safe control `46953d98` shows `qc_gates: []`).
+**Accuracy (so the demo doesn't overclaim):** depict the re-run as the user's one click, not a
+self-restart.
 
 ---
 
@@ -56,9 +52,8 @@ surrogate that proposes the next round. This is the real "continuous loop = camp
   virtual library → writes round N+1 → optional CRO order (`cro_order_export.py`).
 - **Lineage:** `round_number` accumulation + `wetlab_report_ingester.py` tags every field
   **measured-wetlab vs predicted-computational** (reference / species / study-type / confidence).
-- **Status:** complete + platform-native for **small molecules (SMILES)**. The one partial link
-  is close-back to the *generator* (the GP *surrogate* refits each round; a *generative*-policy
-  retrain is a capability — see B2 — not yet a demonstrated live round-to-round product loop).
+- **What it shows:** a real cross-round loop — each round's wet-lab assays refit the surrogate,
+  which proposes the next round's molecules, with lineage and measured-vs-predicted provenance.
 
 ### B2 — Peptide / cyclic-peptide DBTL loop (the differentiated program)
 Peptides are first-class. The loop (research program `research/guangzhou_all_atom/` +
@@ -81,8 +76,6 @@ self-driving lab `/Users/kky/sdl-macrocycle`):
   generator**. This is the real round-to-round generator close-back.
 - **Grounding programs:** αvβ6 (PDAC) + GRPR cyclic peptides, PD-L1 blockade (`pdl1_m2c_*`),
   multi-target pairs; ACT accelerator, SYSUCC / Soochow collaborations.
-- **Honest status:** design + structure + binding + gate + SDL software + Diffusion-DPO close-back
-  are **built**; strong **within-target**; **cross-target transfer is the open research front**.
 
 ---
 
@@ -95,14 +88,12 @@ self-driving lab `/Users/kky/sdl-macrocycle`):
 3. **The DBTL cycle explicit:** Design (generative, incl. our trained-from-scratch diffusion) →
    Make (SDL, human synthesis) → Test (assays) → Analyze (refit surrogate / Diffusion-DPO) →
    next round, with lineage across rounds and measured-vs-predicted provenance.
-4. **Honest autonomy:** Loop A remediation is user-confirmed; Loop B make-step is human synthesis
-   (never automated). No claim of a fully autonomous self-driving pipeline.
-5. **Honest maturity badges:** product-native (small-molecule campaign, QC gate) vs research-program
-   (peptide generator training, SDL) vs deferred (PIVOT branch). Use the ✅/🟡/🔧/🛑 convention.
-6. **No benchmark self-criticism in a user-facing demo** — present the capability; keep the honest
-   research caveats (cross-target) internal unless the audience is technical.
+4. **Show what we have, confidently.** The demo is a showcase of the working capability — **no
+   maturity/status badges, no roadmap or gap items, no internal research caveats.**
+5. **Stay accurate (don't overclaim):** depict the real flow — Loop A's re-run is one user
+   click (not a self-restart); Loop B's make-step is human synthesis. Don't invent capabilities.
 
 ## Fixed
-Advisory remediation (not auto-restart); never-automate-synthesis; the generator moat is our
-own trained diffusion/LLM (AF3/Boltz are structure predictors used as commodity); peptides
-first-class alongside small molecules.
+The generator moat is **our own trained diffusion/LLM** (AF3/Boltz are commodity structure
+predictors); peptides first-class alongside small molecules; the re-run is the user's click;
+synthesis is human.
