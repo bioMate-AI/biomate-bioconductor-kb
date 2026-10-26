@@ -106,3 +106,8 @@ Facts established since A1: (i) pilot (26 complexes ran): default top-1 80.8 %, 
 **Predictions (written now):** P(generation completes for ≥ 90 % of the 410 complexes) ≈ 75 % (risks: OOM near 600 tokens, further CCD surprises); P(S beats the default with CI excluding 0 on ALL test) ≈ 30 %; on the novel-receptor subset ≈ 15 %;
 most likely outcome = point-estimate gain of +2 to +8 pp, CI spanning 0. Default ≈ random is expected to replicate (P ≈ 65 %). Oracle − default on the full test set expected 10–20 pp.
 Cost estimate ≈ 41 GPU-h ≈ $15–25 (cap $120; spent so far < $10).
+
+## Amendment A3 (2026-10-26) — compute strategy only; claim rule, selection and predictions UNCHANGED
+The first Stage B submission (35 spot jobs x ~12 complexes) failed: AWS evicted the spot `g4dn.2xlarge` nodes (us-west-2c) within ~1 min of launch, 93 attempts were used, jobs exhausted their 3 retries, 10 new complexes finished (37/437 incl. pilot). No result was inspected.
+Change: job definition `cycbench-cofold` revision 2 (retry attempts 10, same container), and 12 longer jobs (4 test x 23 complexes first, 8 train x ~38) so fewer nodes are requested at once. The driver skips finished complexes, so retries lose at most one complex + the 8 GB cache restore.
+If the training set cannot be fully generated, the selector is fit on whatever fraction completed (reported), never on test data; the TEST set must be complete for the one-shot evaluation, else the claim is reported on the completed subset with that stated.
