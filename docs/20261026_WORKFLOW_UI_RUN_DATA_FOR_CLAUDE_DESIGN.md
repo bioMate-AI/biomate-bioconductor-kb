@@ -216,12 +216,24 @@ true-DLT + P-selected), **not** a single cohort-by-cohort DLT escalation trace. 
 "cohort 1 → 0/3 DLT → escalate" style trace, that's a per-trial realization the workflow doesn't export;
 use the OC table + thresholds above.
 
-### item 3 — Survival (KM/Cox): run FAILED — needs an input clinical CSV
-`survival` (data KM, run `7b89e0c5…`) **failed** and `survival_cox_proportional_hazards_regression`
-(`4347eeb5…`) hung — both because the **data** survival workflows require an uploaded clinical-data table
-(time/status/group[/covariates]); they do **not** auto-run on R's built-in `lung`. To produce the real
-median/log-rank/HR+CI/cox.zph, I need to upload a clinical survival CSV (e.g. the `lung` cohort as CSV)
-and re-run. Column mapping stays as in §S4 (`Surv(time,status)~sex`; `coxph ~ age+sex+ph.ecog`).
+### item 3 — Survival (KM/Cox): REAL run ✓ (runs `e8ecd88d` KM + `1724a679` Cox)
+**Data:** ImmPort **SDY2195 (ALE06)**, 102 patients, treatment arm **Withdrawal (52) vs Maintenance
+(50)**, 31 events; input `patient_clinical_data.csv` columns mapped `time=time_days, status=event,
+group=arm`. (The data KM/Cox workflows require an uploaded clinical table — they do NOT auto-run on R's
+`lung`; the input filename must be exactly `patient_clinical_data.csv`.)
+**Kaplan-Meier** (`survival_summary_table.csv`, real `survfit`): final survival **Maintenance 0.77**
+(@393 d), **Withdrawal 0.60** (@434 d) — withdrawal arm worse, as expected. **Median survival = Not
+Reached** in either arm (event rate 31/102 keeps both curves above 0.5).
+**Cox PH** (`cox_hazard_ratios.csv` / `.command.out`, real `coxph(Surv(time,status) ~ group)`):
+**HR Withdrawal vs Maintenance = 1.83 [95% CI 0.88–3.83]**, coef 0.607, z 1.62, p **0.106**; likelihood-
+ratio & **score (log-rank) test p = 0.1** → arm difference not significant at 0.05; concordance 0.57.
+**cox.zph** (`cox_zph_test.csv`): group χ² 0.569, df 1, **p = 0.45**; GLOBAL p 0.45 → **proportional-
+hazards assumption holds**. Outputs: `kaplan_meier_curves.pdf`, `survival_summary_table.csv`,
+`cox_hazard_ratios.csv`, `cox_coefficients.csv`, `cox_zph_test.csv`, `cox_zph_plots.pdf`.
+**Design note:** the KM workflow emits the `survfit` summary + curve PDF but **not** a separate log-rank
+p-value or printed median — use the Cox **score/log-rank p = 0.1** for significance and "Not Reached"
+for the medians. Swap the dataset for a public cohort (e.g. `lung`) before publishing if the ImmPort
+source isn't wanted on-screen.
 
 ### items 4, 5 — still pending
 qPCR geNorm stability M-value and the DESeq2 up/down split both need a data-bound run (upload the qPCR Ct
