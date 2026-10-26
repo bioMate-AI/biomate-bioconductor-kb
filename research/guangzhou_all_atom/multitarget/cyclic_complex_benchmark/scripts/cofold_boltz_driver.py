@@ -54,6 +54,22 @@ def interface_pae(pae_npz, n_rec_tokens):
                 pae_if_mean=float((pae[pep, rec].mean() + pae[rec, pep].mean()) / 2), pae_pep_pep=float(pae[pep, pep].mean()))
 
 
+def collect_msa(d):
+    """Copy Boltz's MSA artefacts next to the samples for reproducibility. FILES ONLY (boltz leaves a sub-directory
+    `msa/*_unpaired_tmp_env` that shutil.copy cannot read -> IsADirectoryError killed the first smoke job AFTER the
+    25 expensive samples were generated and BEFORE they were uploaded). Best-effort: must never lose the samples."""
+    names = []
+    for m in glob.glob(f"{d}/out/**/msa/*", recursive=True):
+        if not os.path.isfile(m):
+            continue
+        try:
+            shutil.copy(m, f"{d}/msa_{os.path.basename(m)}")
+            names.append(os.path.basename(m))
+        except OSError as e:
+            print("msa copy skipped:", m, e, flush=True)
+    return names
+
+
 def run_one(cid, have_cache):
     t0 = time.time()
     d = f"{W}/{cid}"
@@ -89,13 +105,11 @@ def run_one(cid, have_cache):
         if os.path.exists(pae):
             paes[i] = interface_pae(pae, n_rec_tokens)
     json.dump(paes, open(f"{d}/pae_if.json", "w"))
-    msa = glob.glob(f"{d}/out/**/msa/*", recursive=True)
+    msa_names = collect_msa(d)
     rec.update(status="ok", seconds=round(time.time() - t0, 1), n_cifs=len(cifs), max_parallel_samples=mps, n_rec_tokens=n_rec_tokens,
-               have_pae=len(paes), msa_files=[os.path.basename(m) for m in msa])
+               have_pae=len(paes), msa_files=msa_names)
     json.dump(rec, open(f"{d}/run.json", "w"))
-    # upload everything small; the MSA csv/a3m is kept for reproducibility
-    for m in msa:
-        shutil.copy(m, f"{d}/msa_{os.path.basename(m)}")
+    # upload the samples (the expensive part) — everything small; the MSA files are kept for reproducibility
     sh(f"aws s3 cp {d} {OUT_S3}/{cid}/ --recursive --exclude 'out/*' --only-show-errors")
     save_cache()
     return rec
@@ -116,3 +130,7 @@ if __name__ == "__main__":
             summary.append(dict(complex_id=cid, status="exception", error=str(e)[:300]))
         print("RESULT", json.dumps(summary[-1]), flush=True)
     print("ALL_DONE", json.dumps([(s["complex_id"], s["status"]) for s in summary]))
+    bad = [s["complex_id"] for s in summary if s.get("status") != "ok"]
+    if bad:                       # a Batch job that produced nothing must NOT report SUCCEEDED (smoke1b did: 3/3 exceptions, exit 0)
+        print("FAILED_COMPLEXES", bad, flush=True)
+        sys.exit(1)
