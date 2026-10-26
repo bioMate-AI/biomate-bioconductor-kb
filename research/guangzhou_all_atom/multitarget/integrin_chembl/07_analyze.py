@@ -65,15 +65,16 @@ for task, models, lb in [("T1", M1, True), ("T2", M2, True), ("T3", M2, False), 
     if c["verdict"] != "POSITIVE" and any(c.get(s, {}).get("verdict") == "BEATS_NULL" for s in ["S0", "S1"]): c["note"] = "beats null under S0/S1 (within-series interpolation) but not under both S2 and S3"
     claims[task] = c
 R["claims"] = claims
-# permutation check (labels permuted within document): real vs permuted spearman for best T1 model and T2 model under S2
+# permutation check (labels permuted across all rows (plus a within-document variant)): real vs permuted spearman for best T1 model and T2 model under S2
 rng = np.random.RandomState(7)
 if os.path.exists(f"{PD}/S2_t1.csv.gz"):
     t1 = pd.read_csv(f"{PD}/S2_t1.csv.gz"); t2 = pd.read_csv(f"{PD}/S2_t2.csv.gz"); pc = {}
     for nm, d, col, yc in [("T1", t1, claims["T1"]["best_model_selected_on_S2"], "y"), ("T2", t2, claims["T2"]["best_model_selected_on_S2"], "delta")]:
-        real = spearman(d[col], d[yc]); perm = []; rm_real = rmse(d[col], d[yc]); rm_perm = []
+        real = spearman(d[col], d[yc]); perm = []; rm_real = rmse(d[col], d[yc]); rm_perm = []; permw = []
         for _ in range(200):
-            y = d.groupby("doc")[yc].transform(lambda s: rng.permutation(s.values)); perm.append(spearman(d[col], y)); rm_perm.append(rmse(d[col], y))
-        pc[nm] = dict(model=col, spearman_real=real, spearman_permuted_mean=float(np.mean(perm)), spearman_permuted_p95=float(np.percentile(perm, 95)), rmse_real=rm_real, rmse_permuted_mean=float(np.mean(rm_perm)))
+            y = pd.Series(rng.permutation(d[yc].values)); perm.append(spearman(d[col], y)); rm_perm.append(rmse(d[col], y))
+            permw.append(spearman(d[col], d.groupby("doc")[yc].transform(lambda s: rng.permutation(s.values))))
+        pc[nm] = dict(model=col, spearman_real=real, spearman_permuted_mean=float(np.mean(perm)), spearman_within_doc_permuted_mean=float(np.mean(permw)), spearman_permuted_p95=float(np.percentile(perm, 95)), rmse_real=rm_real, rmse_permuted_mean=float(np.mean(rm_perm)))
     ys = np.where(rng.rand(len(t2) * 2) < 0.5, 1, 0); pc["T3_auroc_random_labels"] = auroc(rng.rand(len(ys)), ys)
     R["permutation_check_S2"] = pc
 json.dump(R, open("results.json", "w"), indent=1, default=float)
