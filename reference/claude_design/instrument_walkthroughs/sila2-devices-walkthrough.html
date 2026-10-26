@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BioMate · SiLA2 devices — a standard, not one machine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ff-ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --ff-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --ink:#101828; --ink2:#20293a; --mut:#5a6474; --line:#e3e7ee; --line2:#d5dae2;
+  --bg:#fbfcfd; --panel:#f7f8fa; --panel2:#f1f3f7;
+  --blue:#1a4a9c; --blue-bg:#e7f0ff; --green:#1c6b3a; --green-bg:#eaf6ee;
+  --amber:#8a5a12; --amber-bg:#fdf0e3; --red:#9c1a2e; --red-bg:#fdeaec;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ff-ui); color:var(--ink2); background:var(--bg);
+  width:100vw; height:100vh; overflow:hidden;
+}
+.rail{
+  position:fixed; top:0; left:0; right:0; height:62px; z-index:30;
+  display:flex; align-items:center; gap:18px; padding:0 40px;
+  background:rgba(251,252,253,.92); border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(4px);
+}
+.brand{font-family:var(--ff-mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500}
+.brand .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); margin-right:9px; vertical-align:1px}
+.rail .tag-t3{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:3px 8px; border:1px solid var(--line2); border-radius:3px}
+.rail .spacer{flex:1}
+.counter{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; color:var(--mut)}
+.counter b{color:var(--ink); font-weight:600}
+.progress-wrap{position:fixed; top:62px; left:0; right:0; height:3px; background:var(--line); z-index:30}
+.progress{height:100%; width:0; background:var(--blue); transition:width .25s linear}
+.stage{position:fixed; inset:65px 0 0 0; z-index:10}
+.scene{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  padding:42px 64px 48px; opacity:0; transform:translateY(14px);
+  transition:none; pointer-events:none;
+}
+.scene.active{opacity:1; transform:none; pointer-events:auto; transition:opacity .18s ease, transform .18s ease}
+.kicker{font-family:var(--ff-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--blue); font-weight:500; margin:0 0 10px}
+.kicker .st{color:var(--mut)}
+.scene h2{font-family:var(--ff-ui); font-size:34px; line-height:1.1; letter-spacing:-.02em; color:var(--ink); font-weight:650; margin:0 0 12px; max-width:24ch}
+.scene.title h2{font-size:52px; max-width:19ch; margin-bottom:20px}
+.caption{font-size:18px; line-height:1.5; color:var(--ink2); max-width:74ch; margin:0 0 6px}
+.caption.sub{font-size:16px; color:var(--mut); max-width:74ch}
+.scene-body{flex:1; display:flex; gap:40px; align-items:stretch; margin-top:22px; min-height:0}
+.verdict{display:inline-flex; align-items:center; gap:8px; font-family:var(--ff-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:4px; font-weight:500; margin-top:4px}
+.verdict.ok{background:var(--green-bg); color:var(--green)}
+.verdict.partial{background:var(--amber-bg); color:var(--amber)}
+.verdict.gap{background:var(--red-bg); color:var(--red)}
+.verdict.plain{background:var(--panel2); color:var(--mut)}
+.verdict .mk{width:9px; height:9px; border-radius:2px; background:currentColor; opacity:.85}
+.shotcol{flex:1.55; display:flex; flex-direction:column; min-height:0}
+.shotcol .frame{flex:1; min-height:0; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 6px 24px rgba(16,24,40,.08); display:flex}
+.shotcol img{width:100%; height:100%; object-fit:contain; object-position:center top; background:#fff}
+.shotcol .lbl{font-family:var(--ff-mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--blue); display:block; margin-bottom:8px}
+.teachcol{flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; justify-content:center}
+/* figure placeholder — Claude Design: drop the real screenshot here (see data-capture note) */
+.ph{flex:1; min-height:0; border:1.5px dashed var(--line2); border-radius:8px; background:
+  repeating-linear-gradient(135deg,#fff,#fff 10px,var(--panel) 10px,var(--panel) 20px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; padding:28px}
+.ph .pht{font-family:var(--ff-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--blue)}
+.ph .phd{font-size:14px; color:var(--mut); max-width:46ch; line-height:1.5}
+.concept{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:18px; min-height:0}
+.card{border:1px solid var(--line2); border-radius:10px; background:#fff; padding:20px 24px; box-shadow:0 4px 18px rgba(16,24,40,.05)}
+.card.big{flex:initial; display:flex; flex-direction:column; justify-content:center; padding:30px 32px}
+.row4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+.tile{border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:20px 22px}
+.tile .n{font-family:var(--ff-mono); font-size:11.5px; color:var(--mut); letter-spacing:.05em}
+.tile h4{font-family:var(--ff-ui); font-size:18px; margin:7px 0 7px; color:var(--ink); font-weight:600}
+.tile p{font-size:14.5px; line-height:1.5; color:var(--ink2); margin:0}
+.flowline{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:15px}
+.chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line2); background:var(--panel); border-radius:999px; padding:9px 16px; font-size:14.5px; color:var(--ink); font-weight:500}
+.chip .i{width:9px; height:9px; border-radius:50%; background:var(--blue)}
+.arrow{color:var(--mut); font-size:18px}
+.points{list-style:none; padding:0; margin:0}
+.points li{display:flex; align-items:baseline; gap:11px; padding:8px 0; border-bottom:1px solid var(--line); font-size:15px; line-height:1.45; color:var(--ink2)}
+.points li:last-child{border-bottom:none}
+.points li .b{width:7px; height:7px; border-radius:2px; background:var(--blue); flex:none; position:relative; top:6px}
+.points li b{color:var(--ink); font-weight:600}
+.points li .b.gr{background:var(--green)} .points li .b.am{background:var(--amber)} .points li .b.rd{background:var(--red)}
+.footnote{font-family:var(--ff-mono); font-size:11px; letter-spacing:.05em; color:var(--mut); margin-top:auto; padding-top:14px}
+.two-col{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; flex:1; min-height:0}
+.lead-col{display:flex; flex-direction:column; justify-content:center}
+.habit{list-style:none; padding:0; margin:14px 0 0}
+.habit li{display:flex; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink2)}
+.habit li:last-child{border-bottom:none}
+.habit li .k{font-family:var(--ff-mono); font-size:12px; color:var(--blue); min-width:30px}
+.summary-tbl{width:100%; border-collapse:collapse; font-size:13.5px}
+.summary-tbl td{padding:8px 10px 8px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.summary-tbl td:first-child{font-weight:600; color:var(--ink); white-space:nowrap}
+.summary-tbl tr:last-child td{border-bottom:none}
+code{font-family:var(--ff-mono); font-size:.92em; background:var(--panel2); padding:1px 5px; border-radius:3px; color:var(--ink)}
+.topic-eyebrow{font-family:var(--ff-mono);font-size:15px;letter-spacing:.05em;color:var(--blue);font-weight:500;margin:0 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.topic-eyebrow::before{content:"";width:24px;height:3px;border-radius:2px;background:var(--blue);display:inline-block}
+.topic-eyebrow b{font-weight:650;color:var(--ink)}
+.topic-eyebrow .series{color:var(--mut);font-weight:500}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <span class="brand"><span class="dot"></span>BioMate</span>
+  <span class="tag-t3">Instrument tutorial · SiLA2 devices — a standard, not one machine</span>
+  <span class="spacer"></span>
+  <span class="counter">Stage <b id="cur">0</b> / <span id="tot">8</span></span>
+</div>
+<div class="progress-wrap"><div class="progress" id="prog"></div></div>
+
+<div class="stage" id="stage">
+
+  <!-- 0 — TITLE -->
+  <section class="scene title" data-seconds="34">
+    <div class="topic-eyebrow"><span class="series">BioMate Tutorial</span> <b>SiLA2 devices &rarr; it depends</b></div>
+    <div class="kicker">A connection standard — not one instrument</div>
+    <h2>Reach any standardized lab device. What BioMate does depends on what it is.</h2>
+    <p class="caption"><b>SiLA2</b> is a communication standard (based on IEC&nbsp;62832, using <b>gRPC</b>) that many lab devices speak. Registering &ldquo;a SiLA2 device&rdquo; tells BioMate <i>how to talk to it</i>, not <i>what it is</i>. Control is always available; an analysis runs only if the device actually measures something.</p>
+    <p class="caption sub">So the useful question is never &ldquo;what does SiLA2 do?&rdquo; but <b>&ldquo;what kind of device is behind the SiLA2 port?&rdquo;</b></p>
+    <div class="scene-body" style="align-items:flex-end">
+      <div class="flowline">
+        <span class="chip"><span class="i"></span>SiLA2 port (gRPC)</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Read the device's features</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Control (prep) or measure (data)</span><span class="arrow">&rarr;</span>
+        <span class="chip"><span class="i"></span>Analyse only a measurement</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 — THE PROBLEM -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker">The problem</div>
+    <h2>&ldquo;SiLA2&rdquo; is a way to connect — not an answer about what to run.</h2>
+    <p class="caption">A SiLA2 liquid handler and a SiLA2 plate reader both speak SiLA2, yet one prepares samples (no data) and the other measures them (produces data). There is <b>no single analysis workflow</b> that &ldquo;a SiLA2 device&rdquo; drives — the right answer depends entirely on the device behind the standard.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · STANDARD, NOT INSTRUMENT</div><h4>SiLA2 &ne; one machine</h4><p>A communication standard based on IEC&nbsp;62832, using gRPC, that many device families speak. It says <i>how to connect</i>, not <i>what the device is</i>.</p></div>
+            <div class="tile"><div class="n">2 · GENERIC ADAPTER</div><h4>No fixed mapping</h4><p>The connector discovers a device, lists its <b>features</b>, runs <b>commands</b>, and reads <b>properties</b> — but has no fixed experiment-type &rarr; workflow mapping.</p></div>
+            <div class="tile"><div class="n">3 · THE TYPE DECIDES</div><h4>Same port, different biology</h4><p>A liquid handler prepares samples — no data. A plate reader measures them — data. What a SiLA2 device drives is whatever its <i>type</i> drives.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">In one sentence: SiLA2 is a universal way to reach a device; what BioMate does with it is decided by what the device actually is.</p>
+        </div>
+        <div><span class="verdict partial"><span class="mk"></span>Conditional by design — the device decides</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 — THE IDEAS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker">The ideas you need first</div>
+    <h2>Four ideas behind a SiLA2 device.</h2>
+    <p class="caption">A SiLA2 device exposes its abilities as named <b>features</b>, each with <b>commands</b> (actions) and <b>properties</b> (readable values). These four ideas cover how to read one.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row4">
+            <div class="tile"><div class="n">1 · FEATURE</div><h4>What it advertises</h4><p>A named capability, e.g. <code>LiquidHandlingService</code> or <code>AbsorbanceReaderService</code>. Reading the features tells you what the device is.</p></div>
+            <div class="tile"><div class="n">2 · COMMAND / PROPERTY</div><h4>The control surface</h4><p>A command is an action you run (<code>Aspirate</code>, <code>ReadAbsorbance</code>); a property is a value you read (an incubator's current temperature).</p></div>
+            <div class="tile"><div class="n">3 · CONTROL vs MEASURE</div><h4>The hinge</h4><p>A measuring device (plate reader) produces <b>data</b> to analyse. A control device (liquid handler, incubator) does <b>not</b>.</p></div>
+            <div class="tile"><div class="n">4 · CONDITIONAL MAPPING</div><h4>Why no single workflow</h4><p>The analysis is chosen by the <b>kind of measurement</b>, not by &ldquo;SiLA2&rdquo; — or there is no analysis at all.</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">Keeping control generic and letting the measurement type pick the analysis is the only honest design.</p>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Background — the vocabulary of SiLA2</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — WHAT YOU PROVIDE -->
+  <section class="scene" data-seconds="36">
+    <div class="kicker"><span class="st">Step 1</span> · What you provide</div>
+    <h2>A registered device, over gRPC, on your own network.</h2>
+    <p class="caption">Once SiLA2 is connected (see Tutorial&nbsp;6), BioMate can discover the device and list the features it advertises — and the features, not the label, tell you what you actually have.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="row3">
+            <div class="tile"><div class="n">1 · A REGISTERED DEVICE</div><h4>Host, port, gRPC</h4><p>Register under <b>Connectors &rarr; Instruments</b>, type <b>SiLA2 device</b>, with the device's host/IP and port (gRPC default <code>50051</code>). Residency is <b>on-prem</b>.</p></div>
+            <div class="tile"><div class="n">2 · THE sila2 LIBRARY</div><h4>For full control</h4><p>The connector needs <code>pip install sila2</code> where it runs. Without it BioMate can discover but not command — <b>discovery-only mode</b>. An admin detail.</p></div>
+            <div class="tile"><div class="n">3 · THE DEVICE'S FEATURES</div><h4>What it actually is</h4><p>After <b>Check</b>, read the advertised features. <code>LiquidHandlingService</code> means prep; <code>AbsorbanceReaderService</code> means a plate reader (data).</p></div>
+          </div>
+          <p class="footnote" style="margin-top:22px">Optional: SiLA2 devices can be auto-discovered on the network via mDNS if the <code>zeroconf</code> library is installed — again an admin detail.</p>
+        </div>
+        <div><span class="verdict partial"><span class="mk"></span>Full control needs the sila2 library (admin)</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — HOW A RUN WORKS -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 2</span> · How a run works</div>
+    <h2>Read what it is — then control it, or measure with it.</h2>
+    <p class="caption">After registering and pressing <b>Check</b>, look at the device's advertised features: this step decides everything that follows. From there you either run commands (prep) or take a measurement into an analysis.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <div class="flowline" style="margin-bottom:22px">
+            <span class="chip"><span class="i"></span>Register + Check</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Read the features</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Control (prep) or measure (data)</span><span class="arrow">&rarr;</span>
+            <span class="chip"><span class="i"></span>Confirm before it acts</span>
+          </div>
+          <ul class="points">
+            <li><span class="b"></span><span><b>The features tell you the type.</b> <code>LiquidHandlingService</code> means a liquid handler (prep); <code>AbsorbanceReaderService</code> means a plate reader (data). Identify first — it decides the rest.</span></li>
+            <li><span class="b"></span><span><b>A control / prep device</b> &rarr; run commands (dispense, set temperature) and read status. There is <i>no analysis</i>; its output is a prepared plate or a controlled condition that feeds a measuring instrument next.</span></li>
+            <li><span class="b"></span><span><b>A measuring device</b> &rarr; run the read command to produce the measurement, then take it into the matching BioMate analysis workflow — the normal run-and-read flow (Tutorial&nbsp;3), chosen by the measurement type.</span></li>
+            <li><span class="b"></span><span><b>Confirm before anything acts.</b> As everywhere in BioMate, a command or a run is shown to you first; nothing executes on the device until you confirm.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict ok"><span class="mk"></span>Nothing executes until you confirm</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — RESULTS (figure placeholder + per-type outputs) -->
+  <section class="scene" data-seconds="34">
+    <div class="kicker"><span class="st">Step 3</span> · The result — matched to the device</div>
+    <h2>A status confirmation, or a workflow report — never a single &ldquo;SiLA2 screen.&rdquo;</h2>
+    <p class="caption">Because the analysis depends on the measurement type, there is no single SiLA2 result screen. Match your reading to the device.</p>
+    <div class="scene-body">
+      <figure class="shotcol">
+        <span class="lbl">Add instrument · SiLA2 device registration</span>
+        <div class="ph">
+          <div class="pht">Figure slot — Claude Design</div>
+          <div class="phd">Capture: the <b>Add-instrument form</b> with type <b>SiLA2 device</b> selected — the <b>host / port</b> fields over gRPC (default <code>50051</code>) and the <b>on-prem residency</b> line. (route <code>/</code>, focus <code>sila2-form</code>.)</div>
+        </div>
+      </figure>
+      <div class="teachcol">
+        <ul class="points">
+          <li><span class="b"></span><span><b>Control / prep device:</b> the &ldquo;result&rdquo; is the device's <b>status</b> and a confirmation the command ran — the incubator reached temperature, the plate was dispensed. No analysis report, because no measurement.</span></li>
+          <li><span class="b"></span><span><b>Measuring device:</b> the measurement (e.g. a plate reader's absorbance values) feeds a BioMate analysis workflow. A plate &rarr; a <b>plate-based assay analysis</b> (e.g. dose&ndash;response).</span></li>
+          <li><span class="b"></span><span>The <b>analysis</b> — not the SiLA2 layer — is where the findings come from; you read <b>that</b> workflow's two-tab report (Results, Reproducibility record), as in Tutorial&nbsp;3.</span></li>
+          <li><span class="b gr"></span><span><b>Match the reading to the device:</b> a status confirmation for control devices, a workflow report for measuring devices.</span></li>
+        </ul>
+        <div><span class="verdict partial"><span class="mk"></span>No single SiLA2 result — match it to the device</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — READING / TRUSTING -->
+  <section class="scene" data-seconds="38">
+    <div class="kicker"><span class="st">Step 4</span> · Reading and trusting it</div>
+    <h2>Know what the device can produce before you trust a result.</h2>
+    <p class="caption">&ldquo;SiLA2&rdquo; alone does not pick a workflow. The analysis is decided by what the device measures, or there is no analysis at all. Treat it as &ldquo;it depends&rdquo; until you have confirmed the specific device's features.</p>
+    <div class="scene-body">
+      <div class="concept">
+        <div class="card big">
+          <ul class="points">
+            <li><span class="b"></span><span><b>&ldquo;SiLA2&rdquo; alone does not pick a workflow.</b> The connector has no fixed experiment-type &rarr; workflow mapping. Anyone promising &ldquo;connect any SiLA2 device and get an analysis&rdquo; is overstating it.</span></li>
+            <li><span class="b am"></span><span><b>Full control needs the <code>sila2</code> library.</b> Without it BioMate can discover a device but not command it — confirm an admin installed it where the connector runs before relying on device control.</span></li>
+            <li><span class="b am"></span><span><b>Feature names vary by vendor.</b> Two plate readers may expose slightly different feature names; the adapter ships profiles for common families, but check your device's advertised features rather than assuming.</span></li>
+            <li><span class="b gr"></span><span><b>Many SiLA2 devices are not data instruments.</b> Liquid handlers, incubators, and centrifuges prepare or condition samples — no analysis to drive. That is expected, not a gap.</span></li>
+          </ul>
+        </div>
+        <div><span class="verdict partial"><span class="mk"></span>Conditional and type-dependent — confirm the features first</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — CLOSING -->
+  <section class="scene title" data-seconds="34">
+    <div class="kicker">The habit at a glance</div>
+    <h2 style="font-size:38px">register → Check → read the features to learn what it is → control it (prep) or measure with it (data) → analyse the measurement only if there is one.</h2>
+    <div class="scene-body">
+      <div class="two-col">
+        <div class="lead-col">
+          <p class="caption" style="font-size:17px">The value is simple: a universal way to reach standardized lab devices on your own network, with honest limits — control is always available, an analysis runs only when the device actually measures something.</p>
+          <ol class="habit">
+            <li><span class="k">1</span>Register under Connectors &rarr; Instruments as a SiLA2 device (host/port, gRPC)</li>
+            <li><span class="k">2</span>Confirm the <code>sila2</code> library is installed for full control</li>
+            <li><span class="k">3</span>Press Check and read the advertised features</li>
+            <li><span class="k">4</span>Control it (prep) or run the read command (data)</li>
+            <li><span class="k">5</span>Analyse the measurement only if there is one; otherwise read the status</li>
+          </ol>
+        </div>
+        <div class="lead-col">
+          <table class="summary-tbl">
+            <tr><td>Connection</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">SiLA2 over gRPC (port 50051)</span></td></tr>
+            <tr><td>Control</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">Generic — connect, list, command, read</span></td></tr>
+            <tr><td>Full control</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Needs sila2 library (admin)</span></td></tr>
+            <tr><td>Analysis</td><td><span class="verdict partial" style="margin:0;padding:3px 8px;font-size:11px">Only if the device measures</span></td></tr>
+            <tr><td>Mapping</td><td><span class="verdict gap" style="margin:0;padding:3px 8px;font-size:11px">No fixed workflow mapping</span></td></tr>
+            <tr><td>Residency</td><td><span class="verdict ok" style="margin:0;padding:3px 8px;font-size:11px">On-prem</span></td></tr>
+          </table>
+          <p class="footnote">Honesty verdict: <i>conditional / mapping-unresolved by design.</i> Companions: Tutorial&nbsp;6 (connecting instruments); the Opentrons tutorial for the prep-then-measure pattern.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var scenes = Array.prototype.slice.call(document.querySelectorAll('.scene'));
+  var prog = document.getElementById('prog');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  totEl.textContent = scenes.length;
+  var override = (window.__sceneDurations && window.__sceneDurations.length === scenes.length)
+                 ? window.__sceneDurations : null;
+  var durations = scenes.map(function(s, i){
+    if (override) return Math.max(2, Number(override[i]) || 0);
+    return Math.max(2, parseFloat(s.getAttribute('data-seconds')) || 12);
+  });
+  var timeline = []; var acc = 0;
+  for (var i=0;i<durations.length;i++){ timeline.push(acc); acc += durations[i]; }
+  window.__timeline = timeline;
+  window.__totalSeconds = acc;
+  window.__done = false;
+  var idx = -1;
+  function show(i){
+    if (idx >= 0) scenes[idx].classList.remove('active');
+    idx = i;
+    scenes[i].classList.add('active');
+    curEl.textContent = (i+1);
+    prog.style.width = ((i+1)/scenes.length*100) + '%';
+  }
+  function run(i){
+    show(i);
+    if (i === scenes.length - 1){
+      setTimeout(function(){ window.__done = true; }, durations[i]*1000);
+      return;
+    }
+    setTimeout(function(){ run(i+1); }, durations[i]*1000);
+  }
+  function start(){ run(0); }
+  if (document.readyState === 'complete') setTimeout(start, 400);
+  else window.addEventListener('load', function(){ setTimeout(start, 400); });
+})();
+</script>
+</body>
+</html>
