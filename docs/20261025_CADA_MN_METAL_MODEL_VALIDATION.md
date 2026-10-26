@@ -190,3 +190,10 @@ spot restarts from scratch. ≈ 1.2 h, ≈ $2–4.
 - **Priors:** job completes cleanly ≈ 85 %; all three Mn keep ≥ 2 O in all 21 frames ≈ 70 %; Mn3 still contacts ligand Asp1071 (< 3.0 Å) in the last frame ≈ 60 %; Mn1/Mn2 stay 6-coordinate (≥ 5 O) ≈ 60 %; cage intact ≈ 90 %.
 - **If Mn3 loses the ligand Asp** (while keeping ≥ 2 O): informative, not a crash — the MIDAS–ligand contact is exactly what the binding free energy needs; would motivate 10 ns × 3 and a re-pose from 8TCG/4UM9/9XMM.
 - **If any Mn leaves (< 2 O) or the cage breaks:** the CaDA model does not hold this site without help; FEP stays masked.
+
+### 11a. First unrestrained submission failed on infrastructure, not physics (job 132f0831…) — fixed, resubmitted
+Three consecutive **spot reclaims** ("Host EC2 … terminated" ×3) exhausted the retry budget. Because the job had no resume path, each retry restarted from zero, and the last attempt's end-of-run upload hit
+a credentials timeout while the host was going down. Only one `val.cpt` reached S3 (no frames), so there is **no physics result** and the §11 predictions stand unchanged.
+Fix (`fep_batch._mn_validation_command`): on a retry (`AWS_BATCH_JOB_ATTEMPT>1`) pull `val.{cpt,xtc,edr,log}` from S3 and continue with `-cpi`; fall back to a clean run if the resume fails; stream those files to S3 every 5 min;
+frames every 50 ps (21 frames, so the stream is small); final upload retried 5×; success now requires mdrun rc 0 **and** ≥ 20 frames. Control flow tested with stub gmx/aws in five scenarios (fresh, stale-S3-on-attempt-1 ignored,
+resume OK, resume fails → fresh fallback, retry with no S3 state); real GROMACS append behaviour is not testable locally — the first real retry is the test, and the fallback bounds the damage to one extra clean run.

@@ -220,7 +220,9 @@ def _mn_validation_command(in_s3, restr_s3, out_s3, ns=1.0):
     -DPOSRES), bonded CaDA, dt = 0.5 fs, `ns` nanoseconds. Frames every 5 ps; the non-water subset is dumped as gro every
     50 ps for fep/validate_mn_coordination.py. The restrained run only proves the site can be assembled; THIS run decides
     whether the model keeps its Mn..O coordination on its own (docs/20261025_CADA_MN_METAL_MODEL_VALIDATION.md).
-    Spot reclaim => the whole job restarts from scratch (~1 h); no append-resume path (untestable here, easy to get wrong)."""
+    RESUMABLE (2026-10-25): the first run was killed by 3 consecutive spot reclaims with no resume path (all progress lost). A retry
+    (AWS_BATCH_JOB_ATTEMPT>1) now pulls val.{cpt,xtc,edr,log} from S3 and continues with -cpi; if the resume fails it falls back to a
+    clean run. val.cpt/xtc/edr/log stream to S3 every 5 min (xtc frames every 50 ps, so it is small). Attempt 1 ignores stale S3 state."""
     nsteps = int(round(ns * 1000 / 0.0005))
     wdir = out_s3.rstrip("/") + "/complex"
     return [(
@@ -233,12 +235,18 @@ def _mn_validation_command(in_s3, restr_s3, out_s3, ns=1.0):
         # set/replace an mdp key under both hyphen and underscore spellings (GROMACS treats them as the same key)
         "setmdp(){ sed -i -e \"/^$1 *=/d\" -e \"/^${1//-/_} *=/d\" npt.mdp; printf '%s = %s\\n' \"$1\" \"$2\" >> npt.mdp; }; "
         "sed -i '/^define/d' npt.mdp; "
-        f"setmdp dt 0.0005; setmdp nsteps {nsteps}; setmdp nstxout-compressed 10000; setmdp continuation yes; setmdp gen-vel no; "
+        f"setmdp dt 0.0005; setmdp nsteps {nsteps}; setmdp nstxout-compressed 100000; setmdp continuation yes; setmdp gen-vel no; "
         "grep -ciE '^define' npt.mdp | sed 's/^/NO_DEFINE_LINES=/'; "
         "gmx grompp -f npt.mdp -c npt.gro -t npt.cpt -p fep.top -o val.tpr -maxwarn 50 > val_grompp.log 2>&1; GR=$?; "
         "echo GROMPP_RC=$GR; [ $GR -ne 0 ] && tail -20 val_grompp.log; "
-        f"( while sleep 300; do [ -f val.cpt ] && aws s3 cp val.cpt {wdir}/val.cpt --region {REGION} >/dev/null 2>&1; done ) & CPW=$!; "
-        "[ $GR -eq 0 ] && gmx mdrun -deffnm val -ntmpi 1 -nb gpu -cpt 5 2>&1 | tee val_md.log; RC=${PIPESTATUS[0]}; kill $CPW 2>/dev/null; "
+        # resume ONLY on a spot-reclaim retry of THIS submission (attempt>1); never trust stale S3 state on a fresh attempt
+        f'if [ "${{AWS_BATCH_JOB_ATTEMPT:-1}}" != "1" ] && aws s3 cp {wdir}/ . --recursive --region {REGION} --exclude "*" --include "val.cpt" --include "val.xtc" --include "val.edr" --include "val.log" 2>/dev/null && [ -f val.cpt ]; '
+        "then CPI='-cpi val.cpt'; echo RESUMING_FROM_S3_CHECKPOINT; else CPI=''; rm -f val.cpt val.xtc val.edr val.log; fi; "
+        f"( while sleep 300; do for f in val.cpt val.xtc val.edr val.log; do [ -f $f ] && aws s3 cp $f {wdir}/$f --region {REGION} >/dev/null 2>&1; done; done ) & CPW=$!; "
+        "RUNMD(){ gmx mdrun -deffnm val -ntmpi 1 -nb gpu -cpt 5 $1 2>&1 | tee -a val_md.log; return ${PIPESTATUS[0]}; }; RC=1; "
+        "if [ $GR -eq 0 ]; then RUNMD \"$CPI\"; RC=$?; "
+        "  if [ $RC -ne 0 ] && [ -n \"$CPI\" ]; then echo RESUME_FAILED_FALLBACK_FRESH; rm -f val.cpt val.xtc val.edr val.log val_prev.cpt; RUNMD \"\"; RC=$?; fi; fi; "
+        "kill $CPW 2>/dev/null; "
         "grep -iE 'Performance|Fatal|error' val_md.log | tail -3; "
         # non-water trajectory + one gro every 50 ps for the coordination validator (waters dominate size and are not needed)
         "if [ -f val.xtc ]; then "
@@ -246,9 +254,9 @@ def _mn_validation_command(in_s3, restr_s3, out_s3, ns=1.0):
         "  printf 'non-Water\\n' | gmx trjconv -s val.tpr -f val.xtc -sep -dt 50 -o fr_.gro > trj2.log 2>&1; "
         "  echo FRAMES=$(ls fr_*.gro 2>/dev/null | wc -l); "
         "fi; "
-        f"aws s3 cp /work/complex {wdir}/ --recursive --region {REGION} --exclude '*.trr' --exclude 'val.xtc' "
-        "  --exclude 'charmm36m-mut.ff/*' --exclude '*.itp' --exclude 'ionized.gro' --exclude 'em.tpr' >/dev/null; "
-        "if [ $RC -eq 0 ] && ls fr_*.gro >/dev/null 2>&1; then echo MN_VALIDATION_RUN_OK; else echo MN_VALIDATION_RUN_FAIL; exit 1; fi"
+        f"for t in 1 2 3 4 5; do aws s3 cp /work/complex {wdir}/ --recursive --region {REGION} --exclude '*.trr' --exclude 'val.xtc' "
+        "  --exclude 'charmm36m-mut.ff/*' --exclude '*.itp' --exclude 'ionized.gro' --exclude 'em.tpr' >/dev/null && break; sleep 20; done; "
+        "NF=$(ls fr_*.gro 2>/dev/null | wc -l); echo FRAMES_FINAL=$NF; if [ $RC -eq 0 ] && [ $NF -ge 20 ]; then echo MN_VALIDATION_RUN_OK; else echo MN_VALIDATION_RUN_FAIL; exit 1; fi"
     )]
 
 
