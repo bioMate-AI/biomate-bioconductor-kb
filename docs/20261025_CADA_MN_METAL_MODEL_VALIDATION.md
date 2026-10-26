@@ -197,3 +197,17 @@ a credentials timeout while the host was going down. Only one `val.cpt` reached 
 Fix (`fep_batch._mn_validation_command`): on a retry (`AWS_BATCH_JOB_ATTEMPT>1`) pull `val.{cpt,xtc,edr,log}` from S3 and continue with `-cpi`; fall back to a clean run if the resume fails; stream those files to S3 every 5 min;
 frames every 50 ps (21 frames, so the stream is small); final upload retried 5×; success now requires mdrun rc 0 **and** ≥ 20 frames. Control flow tested with stub gmx/aws in five scenarios (fresh, stale-S3-on-attempt-1 ignored,
 resume OK, resume fails → fresh fallback, retry with no S3 state); real GROMACS append behaviour is not testable locally — the first real retry is the test, and the fallback bounds the damage to one extra clean run.
+
+## 12. GPU stage 2 RESULT — unrestrained 1 ns, build2 (job 1822ee10…, 3 attempts, 45+ min) — scored against §11
+Run integrity: `NO_DEFINE_LINES=0` (no `MN_RESTRAIN`/`POSRES`), `GROMPP_RC=0`, 0 LINCS warnings, 0 fatal errors, **`RESUMING_FROM_S3_CHECKPOINT` fired once and the resume worked** (no fallback), `FRAMES_FINAL=21`, `MN_VALIDATION_RUN_OK`.
+`validate_mn_coordination.py --mode post` on all 21 frames (every 50 ps): **PASS in every frame.**
+| | Mn1 (res 1079) | Mn2 (1080) | Mn3 (1081, ligand site) |
+|---|---|---|---|
+| protein/ligand O within 3.0 Å, min over run | 5 | 5 | 6 |
+| closest O over run | 2.02 Å | 2.04 Å | 2.06 Å |
+| contact with ligand Asp1071 | – | – | **21/21 frames** |
+CaDA cage Mn–dummy distance: 0.903 ± 0.013 Å throughout (no drift).
+Pre-registered (§11): job completes ≈85 % ✓; all Mn ≥ 2 O in all frames ≈70 % ✓; Mn3 keeps Asp1071 in the last frame ≈60 % ✓ (in all frames); Mn1/Mn2 stay ≥ 5-coordinate ≈60 % ✓ (minimum exactly 5); cage intact ≈90 % ✓.
+**This is "structural-stability screen passed", NOT "metal model validated".** Limits: one 1 ns trajectory, one start (from the restrained state), no replicas; counts are O within 3.0 Å (includes second-shell contacts);
+nothing here tests Mn–O energetics or whether FEP ΔΔG is correct; Mn-vs-Mg/Ca identity at ADMIDAS/SyMBS is unresolved (assay buffer had 1 mM each of Ca/Mg/Mn); Mn–O 2.0–2.2 Å vs ~2.25 Å in bulk water (§ committee verification) is plausible but unreferenced.
+**Next (pre-registered gate):** 10 ns × 3 replicas (committee: C, E) → then YY→FF with ≥3 replicas vs measured −0.95 → Asp→Ala + all four A1 edges. FEP stays masked from every reward until those pass.

@@ -5,7 +5,7 @@ set -Eeuo pipefail
 TAG=$1; IDS=$2; N=${3:-25}; SUB=${4:-boltz}
 B=s3://biomate-nextflow-work/cyclic_peptide/cofold_bench
 aws s3 cp "$(dirname "$0")/cofold_boltz_driver.py" $B/code/cofold_boltz_driver.py --only-show-errors
-CMD='which aws >/dev/null 2>&1 || pip install -q awscli; export B=s3://biomate-nextflow-work/cyclic_peptide/cofold_bench; aws s3 cp $B/code/cofold_boltz_driver.py /tmp/d.py --only-show-errors; python /tmp/d.py 2>&1 | tee /tmp/job.log; aws s3 cp /tmp/job.log $B/logs/$JOBTAG.log --only-show-errors'
+CMD='which aws >/dev/null 2>&1 || pip install -q awscli; export B=s3://biomate-nextflow-work/cyclic_peptide/cofold_bench; aws s3 cp $B/code/cofold_boltz_driver.py /tmp/d.py --only-show-errors; python /tmp/d.py 2>&1 | tee /tmp/job.log; RC=${PIPESTATUS[0]}; aws s3 cp /tmp/job.log $B/logs/$JOBTAG.log --only-show-errors; exit $RC'
 OVR=$(python3 - "$CMD" "$IDS" "$N" "$SUB" "$TAG" <<'PY'
 import json,sys
 cmd,ids,n,sub,tag=sys.argv[1:]

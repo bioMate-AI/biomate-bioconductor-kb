@@ -97,16 +97,19 @@ def build(row, cache, outdir):
     pep_seq = "".join(one_letter(c) for c in pep_comps)
     mods = [(i + 1, c) for i, c in enumerate(pep_comps) if c not in STD]
     # ---- Boltz YAML ----
+    # ALWAYS emit strings as JSON-quoted scalars (valid YAML). Unquoted, YAML types them: CCD '004' -> int 4 ("CCD component 4 not found",
+    # 14/40 pilot complexes failed this way, silently skipped by Boltz with rc 0), and NO/ON/Y/NULL-like tokens -> bool/None.
+    q = json.dumps
     y = ["version: 1", "sequences:"]
     for cid_, seq in rec_seq.items():
-        y += [f"  - protein:", f"      id: {cid_}", f"      sequence: {seq}"]
-    y += ["  - protein:", "      id: Z", f"      sequence: {pep_seq}", "      msa: empty"]
+        y += [f"  - protein:", f"      id: {q(str(cid_))}", f"      sequence: {q(seq)}"]
+    y += ["  - protein:", "      id: Z", f"      sequence: {q(pep_seq)}", "      msa: empty"]
     if h2t:
         y += ["      cyclic: true"]
     if mods:
         y += ["      modifications:"]
         for p, c in mods:
-            y += [f"        - position: {p}", f"          ccd: {c}"]
+            y += [f"        - position: {p}", f"          ccd: {q(str(c))}"]
     if other:
         y += ["constraints:"]
         for c in other:
