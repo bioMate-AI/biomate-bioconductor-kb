@@ -1,3 +1,5 @@
+> ⚠️ **Before citing any leaderboard number, read [LEADERBOARD_CAVEATS.md](LEADERBOARD_CAVEATS.md)** — known data-quality caveats (menu-condition split, empties by cause, raw-LLM-vs-production param rows, do-not-claim SFT wins).
+
 # RealBio Benchmark — run it & submit
 
 Real-world, objectively-scored benchmarks for bioinformatics AI agents. **660 items across 8 tasks**,

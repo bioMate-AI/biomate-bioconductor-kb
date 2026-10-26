@@ -1,3 +1,5 @@
+> ⚠️ **Before citing any leaderboard number, read [LEADERBOARD_CAVEATS.md](LEADERBOARD_CAVEATS.md)** — known data-quality caveats (menu-condition split, empties by cause, raw-LLM-vs-production param rows, do-not-claim SFT wins).
+
 ---
 license: cc-by-4.0
 task_categories:
