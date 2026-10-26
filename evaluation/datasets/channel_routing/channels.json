@@ -1,0 +1,30 @@
+{
+  "workflow": {
+    "maps_to": "needsWorkflowGeneration",
+    "def": "Run a multi-step analysis PIPELINE on data (nf-core or a custom BioMate workflow): ADMET screens, docking/virtual-screening, RBFE/FEP, PBPK simulation, QSAR training, RNA-seq, variant calling, scRNA-seq, proteomics, cryo-EM, etc."
+  },
+  "tool_search": {
+    "maps_to": "needsToolSearch",
+    "def": "Find, recommend, compare, or modify a specific TOOL/method to use (not run a full pipeline). e.g. 'what tool predicts hERG?', 'Vina vs Glide?', 'add an MM-GBSA rescoring step'."
+  },
+  "database_lookup": {
+    "maps_to": "needsResearchAgent (structured DB)",
+    "def": "Answer requires a LIVE query to a structured biological/chemical DATABASE: ChEMBL, DrugBank, Open Targets, PDB, UniProt, OMIM, ClinVar, Ensembl, GWAS Catalog, FAERS, mygene.info."
+  },
+  "literature_research": {
+    "maps_to": "needsResearchAgent (literature)",
+    "def": "Answer requires synthesizing published LITERATURE / evidence: state-of-the-art, mechanism, prior art, best-practice review, resistance mechanisms, method comparisons from papers."
+  },
+  "code_execution": {
+    "maps_to": "run_code / ad-hoc compute",
+    "def": "A short AD-HOC COMPUTATION on provided or small data, best done by running code directly (NOT a full pipeline): a similarity/property calc, a statistical test, a format conversion, a small fit, parsing a small file."
+  },
+  "knowledge_answer": {
+    "maps_to": "needsLLMReasoning only",
+    "def": "A direct FACTUAL/CONCEPTUAL answer from the model's own knowledge \u2014 a definition or explanation \u2014 needing NO tool, DB, literature, or data. e.g. 'what is Lipinski's rule of five?'."
+  },
+  "dataset_discovery": {
+    "maps_to": "needsDatasetAccess",
+    "def": "Find or FETCH an existing DATASET / accession: a public benchmark (PDBbind, TDC), a GEO/SRA/PRIDE accession, a reference dataset, or BioMate internal test data."
+  }
+}
