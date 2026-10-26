@@ -118,8 +118,12 @@ discriminators and near-duplicate clusters:
   rewrite is warranted. The one remaining *generalizable* improvement is to have the routing-menu builder
   (eval `run_baseline.py` + production `_browse_catalog_with_llm`) backfill a description for DB-absent menu
   targets from their intent-anchor `trigger_terms`, so anchor-only workflows aren't name-only in the menu.
-  Logged as a bounded follow-up; the remaining routing headroom is genuine model-side semantic discrimination,
-  not metadata.
+  **Tested and NOT warranted (2026-10-25):** measured on qwen3.5-9b whether surfacing `scrna_doublet_qc`'s
+  anchor `trigger_terms` in the menu helps — it does not. Without any description the model already routes to
+  the anchor-only targets correctly **by name** (sc_015/sc_021/sc2_003/sc2_009 → `scrna_doublet_qc` all
+  correct), so the backfill has no positive headroom; and since current production also shows them name-only,
+  adding it to the eval would make the eval *diverge* from production. Change reverted. The remaining routing
+  headroom is genuine model-side semantic discrimination, not metadata.
 
 ## 4. Benchmark gold errors (fix the benchmark, documented per policy) — DONE
 A minority of "misses" are the gold being wrong or under-specified (empty `acceptable_alts`):
