@@ -225,3 +225,25 @@ rate + off-menu hallucination rate.
 Lesson (self): don't label a result "instability" from one run — repeat it. The on-prem model is stable;
 only the big reasoning models are noisy via empties, which also means the public leaderboard's reasoning-model
 routing numbers need an empties-aware harness (budget max_tokens past thinking tokens) to be trustworthy.
+
+## Routing_harness column integrity audit (2026-10-26)
+A predictions-level audit (`evaluation/datasets/public_export/audit_routing_provenance.py`) of the
+thesis-critical routing_harness column found two issues the headline leaderboard must fix before publishing:
+
+1. **Not apples-to-apples (13/20 models).** The leaderboard scores each model's routing_harness from
+   `cross_domain_routing_catalog_described.jsonl` when present (the rich, production-faithful menu) else falls
+   back to the legacy NAMES-ONLY `cross_domain_routing_catalog.jsonl`. 7 models (opus-5, base, qwen2.5-72b/7b,
+   qwen3.5-27b/9b, qwen3.8-27b) are on the described menu; **13 (incl. opus-5.5, gpt-6.1-sol, gemini, kimi,
+   deepseek, glm, gpt-5.6-luna, sft) are on names-only** — a confounded comparison (richer context aids routing).
+2. **Empties understate 4 cells** (empty = no content = scored wrong, a harness/refusal artifact):
+   kimi-k3 0.865→0.956 (19 empty), opus-5.5 0.910→0.979 (14), qwen3.8-max 0.940→0.964 (5), biomni 0.950→0.974 (1).
+
+Also found: `qwen3.8-27b/cross_domain_routing_catalog.jsonl` is 100% empty (unused — that model has a clean
+described file; the empty file is a stale junk artifact to delete). `param_prefill` empties are NOT a bug —
+`{}` is often the correct restraint answer and the F1 scorer already counts a wrongful empty as a recall miss.
+
+**Implication:** the single most important publication prerequisite is a **uniform, empties-aware roster
+re-run** — every model under the SAME (described, production-faithful) menu, with max_tokens budgeted past
+reasoning-tokens and empties retried/flagged. Until then the routing_harness column is not citable as a fair
+cross-model comparison. The bare-vs-harness DIVIDEND direction still holds (described cells are clean), but
+the absolute cross-model ranking in that column is confounded.
