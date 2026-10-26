@@ -17,7 +17,7 @@ from common import RAW, OUT_TABLE, DOMAINS, HERE
 def wt_of(row):
     """Reconstruct the wild-type motif of a variant row from its (pos, max) annotations."""
     s = list(row.aa_seq)
-    for p, mx in ((row.pos1, row.max1), (row.pos2, row.max2), (row.pos, row.max)):
+    for p, mx in ((row["pos1"], row["max1"]), (row["pos2"], row["max2"]), (row["pos"], row["max"])):
         if pd.notna(p) and isinstance(mx, str) and 1 <= int(p) <= len(s):
             s[int(p) - 1] = mx
     return "".join(s)

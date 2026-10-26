@@ -1,0 +1,125 @@
+{
+ "null_b_additive_position": {
+  "gain_1_to_3": 0.007348986639616038,
+  "gain_3_to_6": 0.007556127913849314,
+  "gain_3_to_6_t_ci": [
+   -0.023043889219275172,
+   0.0381561450469738
+  ]
+ },
+ "null_d_physchem": {
+  "gain_1_to_3": -0.07497675272519526,
+  "gain_3_to_6": -0.07152661115549287,
+  "gain_3_to_6_t_ci": [
+   -0.1857670647973283,
+   0.04271384248634254
+  ]
+ },
+ "model_i_additive_offsets": {
+  "gain_1_to_3": 0.05368051840759626,
+  "gain_3_to_6": -0.0034418181206618804,
+  "gain_3_to_6_t_ci": [
+   -0.045209911896584534,
+   0.03832627565526077
+  ]
+ },
+ "model_ii_lowrank": {
+  "gain_1_to_3": 0.09117564179048451,
+  "gain_3_to_6": 0.011814660578778067,
+  "gain_3_to_6_t_ci": [
+   -0.009276667001899849,
+   0.03290598815945598
+  ]
+ },
+ "model_iii_gbm": {
+  "gain_1_to_3": 0.04758706679265958,
+  "gain_3_to_6": 0.05922780820215905,
+  "gain_3_to_6_t_ci": [
+   -0.02906441678818255,
+   0.14752003319250065
+  ]
+ },
+ "domains_needed_approx_50pct_power": {
+  "B1_pca1_train:model_i_additive_offsets": {
+   "best_null": "null_c_pwm",
+   "mean_diff": -0.04190905682097312,
+   "sd_diff_across_domains": 0.17765904058298104,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.03": 138,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.05": 51,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.1": 15,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.15": 8
+  },
+  "B1_pca1_train:model_ii_lowrank": {
+   "best_null": "null_c_pwm",
+   "mean_diff": 0.010844751024342745,
+   "sd_diff_across_domains": 0.22587639528075243,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.03": 221,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.05": 81,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.1": 23,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.15": 12
+  },
+  "B1_pca1_train:model_iii_gbm": {
+   "best_null": "null_c_pwm",
+   "mean_diff": -0.03621948769470675,
+   "sd_diff_across_domains": 0.19480459929651228,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.03": 165,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.05": 61,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.1": 18,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.15": 9
+  },
+  "B2_pca1_plus_pca2_train:model_i_additive_offsets": {
+   "best_null": "null_c_pwm",
+   "mean_diff": -0.04190905682097312,
+   "sd_diff_across_domains": 0.17765904058298104,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.03": 138,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.05": 51,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.1": 15,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.15": 8
+  },
+  "B2_pca1_plus_pca2_train:model_i_additive_offsets@B2": {
+   "best_null": "null_c_pwm",
+   "mean_diff": 0.03329391030754144,
+   "sd_diff_across_domains": 0.21768912054789738,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.03": 205,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.05": 76,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.1": 21,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.15": 11
+  },
+  "B2_pca1_plus_pca2_train:model_ii_lowrank": {
+   "best_null": "null_c_pwm",
+   "mean_diff": 0.010844751024342745,
+   "sd_diff_across_domains": 0.22587639528075243,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.03": 221,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.05": 81,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.1": 23,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.15": 12
+  },
+  "B2_pca1_plus_pca2_train:model_ii_lowrank@B2": {
+   "best_null": "null_c_pwm",
+   "mean_diff": 0.03360523773677702,
+   "sd_diff_across_domains": 0.2106827650983102,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.03": 192,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.05": 71,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.1": 20,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.15": 11
+  },
+  "B2_pca1_plus_pca2_train:model_iii_gbm": {
+   "best_null": "null_c_pwm",
+   "mean_diff": -0.03621948769470675,
+   "sd_diff_across_domains": 0.19480459929651228,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.03": 165,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.05": 61,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.1": 18,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.15": 9
+  },
+  "B2_pca1_plus_pca2_train:model_iii_gbm@B2": {
+   "best_null": "null_c_pwm",
+   "mean_diff": 0.031120715568362465,
+   "sd_diff_across_domains": 0.22625905060601212,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.03": 221,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.05": 82,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.1": 23,
+   "domains_for_ci_to_exclude_0_if_true_gain_0.15": 12
+  }
+ }
+}
