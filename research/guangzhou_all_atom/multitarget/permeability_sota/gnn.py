@@ -84,7 +84,7 @@ def graphs_for(df):
     if os.path.exists(path): return pickle.load(open(path, "rb"))
     gs = [mol_graph(s) for s in df.can]; pickle.dump(gs, open(path, "wb")); return gs
 
-def fit_predict(gs, y, a, tr, va, te, mode, seed, pre=None, epochs=30, bs=64, lr=1e-3, patience=6):
+def fit_predict(gs, y, a, tr, va, te, mode, seed, pre=None, epochs=20, bs=128, lr=2e-3, patience=5):
     torch.manual_seed(seed); np.random.seed(seed)
     mu, sd = y[tr].mean(), y[tr].std()
     net = Net(gs[0]["x"].shape[1], gs[0]["ef"].shape[1], mode).to(DEV)
@@ -113,7 +113,7 @@ def fit_predict(gs, y, a, tr, va, te, mode, seed, pre=None, epochs=30, bs=64, lr
     net.load_state_dict(bstate)
     return predict(te), best, ep + 1
 
-def run(mode, which, seeds, tag=None, epochs=30):
+def run(mode, which, seeds, tag=None, epochs=20):
     c, _ = cv.load(); gs = graphs_for(c); y = c.y.values.astype(float); a = np.array([ASSAY_ORDER.index(x) for x in c.assay])
     pre = torch.load(os.path.join(SCRATCH, "pretrained_enc.pt")) if mode == "G3" else None
     out = []
@@ -152,7 +152,7 @@ def pretrain(epochs=8, maxn=20000):
     json.dump({"n_pretrain_mols": n, "holdout_mse_std_units": hl, "targets": PRE_DESC, "epochs": epochs}, open(os.path.join(HERE, "results/pretrain_report.json"), "w"), indent=1)
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(); ap.add_argument("mode"); ap.add_argument("splits", nargs="?", default="S0,S1,S2,S3"); ap.add_argument("--seeds", type=int, default=3)
-    ap.add_argument("--epochs", type=int, default=30); ap.add_argument("--tag"); A = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument("mode"); ap.add_argument("splits", nargs="?", default="S0,S1,S2,S3"); ap.add_argument("--seeds", type=int, default=1)
+    ap.add_argument("--epochs", type=int, default=20); ap.add_argument("--tag"); A = ap.parse_args()
     if A.mode == "pretrain": pretrain()
     else: run(A.mode, A.splits.split(","), A.seeds, A.tag, A.epochs)
