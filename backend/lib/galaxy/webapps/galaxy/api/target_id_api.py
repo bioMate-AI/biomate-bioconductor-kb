@@ -30,7 +30,7 @@ class IdentifyTargetsRequest(BaseModel):
     disease: Optional[str] = None
     candidate_targets: Optional[List[str]] = None
     tables: Optional[List[Dict[str, Any]]] = None  # cached-evidence TableChannel kwargs (path, name, ...)
-    use_llm: bool = False
+    use_llm: bool = True                           # on by default (2026-10-25): LLM-reasoned is the strongest target-ID channel; falls back to None if no LLM configured
     top_k: int = 25
     z_thresh: float = 2.0
     max_concurrent: int = 8

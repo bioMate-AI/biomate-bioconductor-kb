@@ -63,14 +63,18 @@ class EvidenceGateArbiter(Arbiter):
 
 
 # Per-source reliability weights (general priors, NOT eval-tuned) — the Open Targets precedent of
-# down-weighting noisy sources (text-mining 0.2, etc.). Curated genetics/essentiality = 1.0; network/
-# pathway guilt-by-association = 0.5; LLM-reasoned / literature = 0.2; unknown (e.g. a frozen FM on
+# down-weighting noisy sources (raw text-mining 0.2, etc.). Curated genetics/essentiality = 1.0; network/
+# pathway guilt-by-association = 0.5; raw literature text-mining = 0.2; unknown (e.g. a frozen FM on
 # probation) = 0.7. Override per-call via channel_weights. See
 # benchmarks/evidence_ranking_refs/EVIDENCE_RANKING_SCHEMES.md.
+# llm_reasoned re-tiered 0.2 -> 0.5 (2026-10-25): a frontier-LLM structured target assessment is a real
+# evidence channel, not raw text-mining — it was the STRONGEST single channel (lifts the fusion 9/10
+# immune diseases) in docs/20261025_TARGETID_LLM_CHANNEL_CONTRIBUTION.md. Principled re-tiering to the
+# network/pathway tier, corroborated (not fit) by that benchmark; still below curated genetics (1.0).
 DEFAULT_RELIABILITY = {
     "genetics_ot": 1.0, "table": 1.0, "depmap": 1.0, "clin": 1.0,
     "ppi_string": 0.5, "pathway_comembership": 0.5,
-    "llm_reasoned": 0.2,
+    "llm_reasoned": 0.5,
 }
 _DEFAULT_UNKNOWN_WEIGHT = 0.7
 
