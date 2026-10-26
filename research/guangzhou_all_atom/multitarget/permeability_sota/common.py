@@ -4,7 +4,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RAW = os.path.join(HERE, "../../data/raw/CycPeptMPDB_Peptide_All.csv")
 CLEAN = os.path.join(HERE, "data/clean.csv")
 FOLDS = os.path.join(HERE, "data/folds.csv")
-SCRATCH = "/private/tmp/claude-501/-Users-kky-biomate-review/195b4da4-5c44-48ae-a4e1-005d493239c0/scratchpad/perm"
+SCRATCH = os.path.join(HERE, ".cache")   # gitignored; /tmp scratch was wiped by session restarts
 os.makedirs(SCRATCH, exist_ok=True)
 ASSAY_ORDER = ["PAMPA", "Caco2", "RRCK", "MDCK"]
 

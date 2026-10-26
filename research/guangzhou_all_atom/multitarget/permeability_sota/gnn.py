@@ -116,10 +116,13 @@ def fit_predict(gs, y, a, tr, va, te, mode, seed, pre=None, epochs=20, bs=128, l
 def run(mode, which, seeds, tag=None, epochs=20):
     c, _ = cv.load(); gs = graphs_for(c); y = c.y.values.astype(float); a = np.array([ASSAY_ORDER.index(x) for x in c.assay])
     pre = torch.load(os.path.join(SCRATCH, "pretrained_enc.pt")) if mode == "G3" else None
-    out = []
+    out = []; pth = os.path.join(HERE, f"results/preds/{tag or mode}.csv"); done = set()
+    if os.path.exists(pth):
+        prev = pd.read_csv(pth); out.append(prev); done = set(zip(prev.split, prev.fold))
     for s in cv.splits(which):
         ns = seeds if s["split"] == "S0" else 1
         for sd in range(ns):
+            if (s["split"], s["fold"] * 10 + sd if s["split"] == "S0" else s["fold"]) in done: continue
             t0 = time.time(); p, vb, ne = fit_predict(gs, y, a, s["tr"], s["va"], s["te"], mode, sd, pre, epochs)
             out.append(pd.DataFrame({"split": s["split"], "fold": s["fold"] * 10 + sd if s["split"] == "S0" else s["fold"], "row": s["te"], "pred": p}))
             print(mode, s["split"], s["fold"], "seed", sd, "test_r2=%.3f val_rmse=%.3f ep=%d %.0fs" % (r2(y[s["te"]], p), vb, ne, time.time() - t0), flush=True)

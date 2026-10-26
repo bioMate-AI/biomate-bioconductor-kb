@@ -49,14 +49,18 @@ def run(model, which, subset=None, tag=None):
         extra = cf.reindex(c.pid)[cols].values.astype(np.float32)
         subset = set(cf.index)
     X = design(model, c, Z, extra); out = []
+    pth = os.path.join(HERE, f"results/preds/{tag or model}.csv"); done = set()
+    if os.path.exists(pth):
+        prev = pd.read_csv(pth); out.append(prev); done = set(zip(prev.split, prev.fold))
     for s in cv.splits(which):
+        if (s["split"], s["fold"]) in done: continue
         if subset is not None:
             m = c.pid.isin(subset).values
             s = {k: (v[m[v]] if k in ("tr", "va", "te") else v) for k, v in s.items()}
         t0 = time.time(); p, cfg, vsc = fit_predict(model, X, y, s["tr"], s["va"], s["te"])
         out.append(pd.DataFrame({"split": s["split"], "fold": s["fold"], "row": s["te"], "pred": p}))
         print(model, s["split"], s["fold"], "test_r2=%.3f" % r2(y[s["te"]], p), cfg, "%.0fs" % (time.time() - t0), flush=True)
-    pd.concat(out).to_csv(os.path.join(HERE, f"results/preds/{tag or model}.csv"), index=False)
+        pd.concat(out).to_csv(pth, index=False)
 
 if __name__ == "__main__":
     which = sys.argv[2].split(",") if len(sys.argv) > 2 else ["S0", "S1", "S2", "S3"]
