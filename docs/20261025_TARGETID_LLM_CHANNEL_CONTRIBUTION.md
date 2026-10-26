@@ -93,3 +93,17 @@ targets, so the signal is disease-specific, not generic immune-gene fame.)
 - On-prem/open-model version (deployability + inverse-scaling story) — does a small model get the same lift?
 - If a novel-discovery claim is wanted, it needs a true temporal holdout (post-training-cutoff approvals),
   not this literature proxy.
+
+## NOVEL-DISCOVERY (TEMPORAL) HOLDOUT — attempted, NOT tractable with quick public data
+Goal: test whether the LLM lift survives on targets it could not have memorized as approved (a clean
+novel-discovery claim). Three tractable proxies were tried and all failed on OpenTargets data structure:
+- `disease.knownDrugs` (drug phase) — the field does not exist on the Disease type in OT v4 (HTTP 400).
+- `known_drug` datatype score, absolute threshold 0.5 — every clinical-gold target scores <0.5 → no split.
+- `known_drug` datatype score, per-disease median split — the score is sparse/zero for most clinical-gold
+  targets → both subsets empty (n_pos=0).
+**Conclusion:** a clean novel-discovery / temporal holdout CANNOT be established with quick OT queries.
+The v4 literature-stratification stands as the memorization control (recall-dominated: 0.76 famous vs 0.56
+less-published, modest residual 0.56>0.41). A rigorous novel-discovery claim requires a purpose-built
+**post-training-cutoff approval gold** (dated first-approvals after the model's cutoff) — a dedicated
+data-engineering task, deliberately NOT faked here. The paper therefore claims RECALL + integration, not
+discovery. (scripts: bench_targetid_llm_v4_generalization.py, bench_targetid_llm_v5_holdout.py)
