@@ -52,7 +52,7 @@ def build(rows_by_complex, thr=0.23, feats=FEATURES):
 class Selector:
     def __init__(self, C=0.3, feats=FEATURES):
         from sklearn.linear_model import LogisticRegression
-        self.feats = feats; self.m = LogisticRegression(C=C, penalty="l2", max_iter=2000)
+        self.feats = feats; self.m = LogisticRegression(C=C, max_iter=2000)  # L2 is the default
         self.trivial = None
 
     def fit(self, rows_by_complex, thr=0.23):
