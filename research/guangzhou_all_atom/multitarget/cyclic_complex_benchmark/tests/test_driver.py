@@ -21,6 +21,26 @@ def test_driver_exits_nonzero_when_any_complex_fails():
     src = open(os.path.join(here, "..", "scripts", "cofold_boltz_driver.py")).read()
     assert "sys.exit(1)" in src and "FAILED_COMPLEXES" in src
 
+
+
+def test_restore_streams_and_skips_affinity_ckpt():
+    import subprocess, tarfile, io
+    assert drv is not None
+    src = tempfile.mkdtemp(); out = tempfile.mkdtemp()
+    for name, data in (("boltz2_conf.ckpt", b"c"), ("boltz2_aff.ckpt", b"a" * 1000), ("mols/ALA.pkl", b"m")):
+        pth = os.path.join(src, name); os.makedirs(os.path.dirname(pth), exist_ok=True); open(pth, "wb").write(data)
+    tarp = os.path.join(tempfile.mkdtemp(), "c.tar")
+    with tarfile.open(tarp, "w") as t: t.add(src, arcname=".")
+    r = subprocess.run(["bash", "-c", drv.restore_cmd(f"cat {tarp}", out)], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    assert os.path.exists(os.path.join(out, "boltz2_conf.ckpt")) and os.path.exists(os.path.join(out, "mols", "ALA.pkl"))
+    assert not os.path.exists(os.path.join(out, "boltz2_aff.ckpt")), "affinity checkpoint must be skipped"
+
+def test_restore_failure_is_nonzero_so_driver_can_fall_back():
+    import subprocess
+    r = subprocess.run(["bash", "-c", drv.restore_cmd("false", tempfile.mkdtemp())], capture_output=True)
+    assert r.returncode != 0
+
 if __name__ == "__main__":
     n = 0
     for k, f in sorted(globals().items()):

@@ -31,10 +31,20 @@ def s3_exists(uri):
         bool(subprocess.run(["aws", "s3", "ls", uri], capture_output=True, text=True).stdout.strip())
 
 
+def restore_cmd(src_cmd, cache_dir):
+    """STREAM the cache tar straight into tar (no 8 GB temp file; the old download-then-extract needed ~16 GB per job and several jobs share one node's disk ->
+    'tar: Wrote only N of 10240 bytes', 4 Stage B jobs died instantly). The affinity checkpoint is never used by this study, so it is skipped."""
+    return (f"set -o pipefail; {src_cmd} | tar -xf - -C {cache_dir} --exclude='boltz2_aff.ckpt' --exclude='./boltz2_aff.ckpt'")
+
+
 def restore_cache():
     os.makedirs(CACHE, exist_ok=True)
     if s3_exists(CACHE_S3):
-        sh(f"aws s3 cp {CACHE_S3} /tmp/bc.tar --only-show-errors && tar -xf /tmp/bc.tar -C {CACHE} && rm /tmp/bc.tar")
+        r = subprocess.run(["bash", "-c", restore_cmd(f"aws s3 cp {CACHE_S3} - --only-show-errors", CACHE)])
+        if r.returncode != 0:     # disk full / truncated stream: do NOT crash the job — wipe the partial cache and let boltz download its weights itself
+            print("cache restore FAILED (rc=%d); falling back to boltz auto-download" % r.returncode, flush=True)
+            shutil.rmtree(CACHE, ignore_errors=True); os.makedirs(CACHE, exist_ok=True)
+            return False
         return True
     return False
 
