@@ -131,8 +131,22 @@ def fig6(path):
     f.savefig(f"{OUT}/fig6_retrospective_loop.png", dpi=220, bbox_inches="tight"); plt.close(f)
 
 
+def fig_loop():
+    f, ax = plt.subplots(figsize=(10, 4.2)); ax.set_xlim(-0.02, 1.02); ax.set_ylim(0, 1); ax.axis("off")
+    ax.text(-0.02, 0.99, "Retrospective closed loop on measured permeability", fontsize=12, fontweight="bold", va="top")
+    box(ax, 0.00, 0.45, 0.20, 0.30, "Pool of measured\ncyclic peptides\n(labels hidden)\n\nstart: 100 labelled", fc="#f2f1ee", fs=8.5)
+    box(ax, 0.27, 0.45, 0.20, 0.30, "Model\nensemble of 5\ngradient-boosted\nregressors on\nfingerprints", ec=BLUE, color=BLUE, bold=True, fs=8.5)
+    box(ax, 0.54, 0.45, 0.20, 0.30, "Policy picks 50\n\nrandom\ngreedy (mean)\nuncertainty-aware\n(mean + std)", fs=8.5)
+    box(ax, 0.81, 0.45, 0.19, 0.30, "Held-out label\nrevealed for the\n50 picks (the\n\"assay\")", ec=ORANGE, color=ORANGE, bold=True, fs=8.5)
+    arrow(ax, 0.20, 0.60, 0.27, 0.60); arrow(ax, 0.47, 0.60, 0.54, 0.60); arrow(ax, 0.74, 0.60, 0.81, 0.60)
+    ax.plot([0.905, 0.905, 0.37], [0.45, 0.30, 0.30], color=INK2, lw=1.3); arrow(ax, 0.37, 0.30, 0.37, 0.45)
+    ax.text(0.64, 0.255, "retrain on all revealed labels; repeat for 10 rounds", ha="center", fontsize=8.5, color=INK2)
+    box(ax, 0.00, 0.03, 1.0, 0.13, "Two starts: in-distribution (random 100) and scaffold-shifted (100 from two literature sources; pool excludes their scaffolds).\nOutcome: permeable peptides (top 10% of the pool) found in 500 picks; 30 seeds; paired bootstrap.", fs=8)
+    f.savefig(f"{OUT}/figL1_loop_design.png", dpi=220, bbox_inches="tight"); plt.close(f)
+
+
 if __name__ == "__main__":
-    os.makedirs(OUT, exist_ok=True); fig1(); fig2(); fig4(); fig5()
+    os.makedirs(OUT, exist_ok=True); fig1(); fig2(); fig4(); fig5(); fig_loop()
     if len(sys.argv) > 1 and os.path.exists(sys.argv[1]): fig3(sys.argv[1])
     if len(sys.argv) > 2 and os.path.exists(sys.argv[2]): fig6(sys.argv[2])
     print(os.listdir(OUT))
