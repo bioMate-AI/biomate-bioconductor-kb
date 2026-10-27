@@ -110,11 +110,16 @@ describe("ProjectDetailPage — Members & roles panel", () => {
 
 
 describe("Project instructions route", () => {
-  it("presents the existing persisted instruction editor in the main pane", async () => {
+  it("presents the rebuilt Instructions page (Rules · Formats · Skills · Memory) in the main pane", async () => {
     installFetch({ role: "owner", members: [OWNER_MEMBER] })
     render(<ProjectDetailPage projectId={PROJECT.id} initialTab="instructions" onBack={() => {}} />)
     expect(await screen.findByRole("heading", { name: /^Instructions$/ })).toBeInTheDocument()
     expect(screen.getByTestId("project-instructions-panel")).not.toHaveClass("w-72")
-    expect(screen.getByTestId("button-edit-instructions")).toBeInTheDocument()
+    // The rebuilt ProjectInstructionsPage renders the four structured sections
+    // (Rules replaces the old free-text standing-instructions + edit button).
+    expect(screen.getByTestId("instructions-rules")).toBeInTheDocument()
+    expect(screen.getByTestId("instructions-formats")).toBeInTheDocument()
+    expect(screen.getByTestId("instructions-skills")).toBeInTheDocument()
+    expect(screen.getByTestId("instructions-memory")).toBeInTheDocument()
   })
 })

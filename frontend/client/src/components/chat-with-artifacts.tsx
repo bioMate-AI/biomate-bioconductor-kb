@@ -163,6 +163,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const [panelOpen, setPanelOpen] = useState(false)
   const [panelWorkflowMessageId, setPanelWorkflowMessageId] = useState<string | null>(null)
   const [panelWorkflow, setPanelWorkflow] = useState<any | null>(null)
+  // Chat deep-link target after-run tab (set when a chat answer-block link opens the panel).
+  const [panelAfterRunTab, setPanelAfterRunTab] = useState<'summary' | 'outputs' | 'report' | undefined>(undefined)
 
   // Persist panel open state so refresh restores the panel.
   useEffect(() => {
@@ -1706,9 +1708,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   }
 
   // ── Right panel handlers ────────────────────────────────────────────────────
-  const handleOpenWorkflowInPanel = useCallback((messageId: string, workflow: any) => {
+  const handleOpenWorkflowInPanel = useCallback((messageId: string, workflow: any, tab?: 'summary' | 'outputs' | 'report') => {
     setPanelWorkflowMessageId(messageId)
     setPanelWorkflow(workflow)
+    setPanelAfterRunTab(tab)
     setPanelOpen(true)
     onWorkflowPanelOpenChange?.(true)
   }, [onWorkflowPanelOpenChange])
@@ -2446,6 +2449,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   return (
                     <NextflowWorkflowViewer
                       workflowDefinition={panelWorkflow}
+                      targetAfterRunTab={panelAfterRunTab}
                       onClose={handleClosePanelWorkflow}
                       onToggleExpand={() => setChatHidden(v => !v)}
                       expanded={chatHidden}

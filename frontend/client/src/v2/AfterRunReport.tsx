@@ -24,6 +24,7 @@ import { FindingsCard } from "@/components/findings-card";
 import { StepOutputPreview } from "@/components/step-output-preview";
 import { useInteractiveToolsAvailable } from "@/hooks/use-interactive-tools";
 import { TrajectoryView, type TrajectoryRow, type TrajectoryKind } from "@/components/trajectory-view";
+import ReactMarkdown from "react-markdown";
 
 // Strip raw Nextflow debug log lines down to a readable one-liner.
 // Input:  "Jul-22 07:56:33.018 [Task monitor] DEBUG ... name: STEP (DESeq2); ... exit: 1; error: Essential container...; workDir: s3://..."
@@ -77,6 +78,9 @@ interface AfterRunReportProps {
     totalAttempts?: number;
   };
   onContinueAnalysis?: (suggestion: string) => void;
+  /** C2 (cross-stream contract): deep-link target tab opened on mount — passed by
+   *  the workflow panel when chat "Open in Summary / Outputs / Report" is clicked. */
+  targetTab?: "summary" | "outputs" | "report";
 }
 
 // Merged surface: "Results" (findings summary banner on top + each output as an
@@ -85,7 +89,11 @@ interface AfterRunReportProps {
 // interpretation sits above the artifacts it was read from. Methods / resolved
 // parameters / software / citations / QC report / trajectory remain collapsible
 // sections nested INSIDE the Reproducibility record tab.
-type TabId = "results" | "record";
+// After-run = three tabs (user-decided): Summary · Outputs · Report. The former
+// "Reproducibility record" tab is removed — its content (Methods / Software /
+// Citations / QC) folds into the Report document; the step-by-step trajectory
+// moves into the per-step detail panel (StepDeep).
+type TabId = "summary" | "outputs" | "report";
 
 interface OutputFile {
   step: string;
@@ -114,13 +122,16 @@ export function AfterRunReport({
   autofix,
   onContinueAnalysis,
   projectId,
+  targetTab,
 }: AfterRunReportProps) {
   // nextflowOutputDir is forwarded by the parent for future Outputs-tab
   // directory toolbar work; intentionally unread in v0.
   void nextflowOutputDir;
   const isFailed = executionStatus === "failed" || executionStatus === "cancelled" || executionStatus === "error";
-  // Landing tab is the merged Results view.
-  const [tab, setTab] = useState<TabId>("results");
+  // Landing tab is Summary; a chat deep-link may target Outputs or Report (C2).
+  const [tab, setTab] = useState<TabId>(targetTab ?? "summary");
+  // Re-open the deep-linked tab when the panel is asked to (targetTab changes).
+  useEffect(() => { if (targetTab) setTab(targetTab); }, [targetTab]);
 
   // Outputs come from the parent's executionRun state (no /steps endpoint exists).
   const outputs = outputsProp ?? [];
@@ -136,6 +147,20 @@ export function AfterRunReport({
   // comprehensive download report can inline real findings prose (PM must-fix #2).
   const findings = useFetchFindings(runId);
 
+  // The in-panel Report document (§2.2) — the same comprehensive report the
+  // Download menu produces, rendered as a scrolling 8-section doc in the Report tab.
+  const reportMarkdown = useMemo(() => buildFullReportMarkdown({
+    runId,
+    workflowName,
+    parameters,
+    outputs,
+    methods: methods.text,
+    qcEvents,
+    findings,
+    software,
+    citations,
+  }), [runId, workflowName, parameters, outputs, methods.text, qcEvents, findings, software, citations]);
+
   // Lightweight download-UX state — keeps users from double-clicking and
   // gives a clear "started" signal (PM must-fix #4, client-side portion).
   const [downloadState, setDownloadState] = useState<'idle' | 'preparing'>('idle');
@@ -150,8 +175,9 @@ export function AfterRunReport({
   // report, Trajectory) is now a collapsible section inside the record tab —
   // still reachable, just re-nested (nothing is hidden or discarded).
   const visibleTabs: Array<[TabId, string]> = [
-    ["results", tOr('afterrun.tab.results', "Results")],
-    ["record", tOr('afterrun.tab.record', "Reproducibility record")],
+    ["summary", tOr('afterrun.tab.summary', "Summary")],
+    ["outputs", tOr('afterrun.tab.outputs', "Outputs")],
+    ["report", tOr('afterrun.tab.report', "Report")],
   ];
 
   const handleDownload = () => {
@@ -315,8 +341,7 @@ export function AfterRunReport({
             findings summary (marked as the immutable "run original") sits on top
             as a banner; below it, each output renders as an inline preview. A
             finding number links down to the output card it was read from. */}
-        {tab === "results" && (
-          <div data-testid="after-results-tab">
+        {tab === "summary" && (
             <div data-testid="after-summary-tab">
               <div style={styles.runOriginalRow}>
                 <span style={styles.runOriginalBadge} data-testid="after-run-original-badge">
@@ -367,32 +392,49 @@ export function AfterRunReport({
                 {tOr('afterrun.findings_manifest_note', 'Findings are generated directly from the run manifest. Numbers and figures in this section come from the workflow outputs.')}
               </div>
             </div>
-            {/* Divider + outputs gallery (inline previews). */}
-            <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid oklch(0.92 0.008 260)" }}>
-              <OutputsTab
-                outputs={outputs}
+        )}
+        {/* Outputs — files the run produced, grouped by producing step. */}
+        {tab === "outputs" && (
+          <div data-testid="after-outputs-tab">
+            <OutputsTab
+              outputs={outputs}
+              runId={runId}
+              invocationId={invocationId}
+              executionStatus={executionStatus}
+              projectId={projectId}
+            />
+          </div>
+        )}
+        {/* Report — the editable after-run document; the former reproducibility
+            record (Methods / Software / Citations / QC) folds in below. Scrolls. */}
+        {tab === "report" && (
+          <div data-testid="after-report-tab">
+            <div style={styles.runOriginalRow}>
+              <span style={styles.runOriginalBadge}>{tOr('afterrun.tab.report', 'Report')}</span>
+              <span style={styles.runOriginalHint}>
+                {tOr('afterrun.report_hint', 'Question · Answer · Data · Method · Results · Quality checks · Caveats · Citations. Edits save as a new version; the run original is never overwritten.')}
+              </span>
+            </div>
+            <div className="bmx-report-doc" data-testid="after-report-doc" style={{
+              border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg-elev, #fff)',
+              padding: '18px 20px', marginTop: 10, maxHeight: '58vh', overflow: 'auto',
+              fontSize: 13, lineHeight: 1.55, color: 'var(--text)',
+            }}>
+              <ReactMarkdown>{reportMarkdown}</ReactMarkdown>
+            </div>
+            <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+              <ReproducibilityRecordTab
                 runId={runId}
-                invocationId={invocationId}
-                executionStatus={executionStatus}
-                projectId={projectId}
+                methods={methods}
+                workflowName={workflowName}
+                parameters={parameters}
+                software={software}
+                citations={citations}
+                qcEvents={qcEvents}
+                trajectoryRows={trajectoryRows}
               />
             </div>
           </div>
-        )}
-        {/* Reproducibility record — the unified audit trail. Everything that
-            used to be a peer tab is folded here as an expandable section;
-            nothing is hidden or discarded. */}
-        {tab === "record" && (
-          <ReproducibilityRecordTab
-            runId={runId}
-            methods={methods}
-            workflowName={workflowName}
-            parameters={parameters}
-            software={software}
-            citations={citations}
-            qcEvents={qcEvents}
-            trajectoryRows={trajectoryRows}
-          />
         )}
       </div>
     </div>
@@ -1311,16 +1353,25 @@ function OutputsTab({
           {filtered.length !== totalCount && ` (${tOr('afterrun.filtered_from', 'filtered from {{t}}', { t: totalCount })})`}
         </span>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} data-testid="output-files-table">
-        {shown.map((f, i) => {
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} data-testid="output-files-table">
+        {[...shown].sort((a, b) => String(a.step || '~~').localeCompare(String(b.step || '~~'))).map((f, i, arr) => {
           const key = cardKey(f, i);
           const canPrev = canPreview(f.ext);
           const inline = shouldInlinePreview(f);
           const collapsed = collapsedCards.has(key);
           const sizeLabel = humanSize(f.size);
+          // §3.1 — group outputs under a per-producing-step header (sorted by step
+          // so same-step files are contiguous; header shown on each step change).
+          const showStepHeader = i === 0 || String(arr[i - 1].step || '') !== String(f.step || '');
           return (
+            <React.Fragment key={key}>
+              {showStepHeader && (
+                <div data-testid="output-step-group" style={{
+                  fontSize: 11, fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase',
+                  color: 'var(--text-muted)', margin: i === 0 ? '0 0 2px' : '12px 0 2px',
+                }}>{f.step || tOr('afterrun.other_outputs', 'Other outputs')}</div>
+              )}
             <div
-              key={key}
               data-testid="output-card"
               style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}
             >
@@ -1369,6 +1420,7 @@ function OutputsTab({
                 >{tOr('afterrun.show_preview', 'Show preview')}</button>
               )}
             </div>
+            </React.Fragment>
           );
         })}
         {filtered.length === 0 && (

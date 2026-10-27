@@ -65,7 +65,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { projectService } from "@/lib/projects"
-import { ProjectGuidanceCards, ProjectInheritanceCard } from "@/components/project-guidance-cards"
+import { ProjectGuidanceCards, ProjectInheritanceCard, ProjectInstructionsPage } from "@/components/project-guidance-cards"
 import { ProjectFileTree } from "@/components/project-file-tree"
 import { NextflowWorkflowViewer } from "@/components/nextflow-workflow-viewer"
 import { type RoleCapability } from "@/components/roles-verify"
@@ -937,8 +937,8 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
 
         {/* Right sidebar */}
         <div data-testid="project-instructions-panel" className={activeTab === "instructions" ? "flex-1 min-w-0 flex flex-col overflow-y-auto bg-background" : activeTab === "workflows" ? "hidden" : "w-72 border-l border-border bg-muted/20 shrink-0 flex flex-col overflow-hidden"}>
-          {activeTab === "instructions" && <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-6"><p className="text-xs text-muted-foreground mb-2">{project.name} / Instructions</p><h2 className="text-xl font-semibold">Instructions</h2><p className="text-sm text-muted-foreground mt-2">Standing instructions apply to every chat in this project. Notes record context for your team.</p></div>}
-          <div className={activeTab === "instructions" ? "p-4 sm:p-6 w-full max-w-4xl mx-auto space-y-4" : "p-4 flex-1 overflow-y-auto space-y-6"}>
+          {activeTab === "instructions" && <ProjectInstructionsPage projectId={projectId} projectName={project.name} canEdit={canEdit} instructions={project.instructions || ""} onInstructionsSaved={(t) => { setInstructionsValue(t); setProject(prev => prev ? { ...prev, instructions: t } : prev); }} />}
+          {activeTab !== "instructions" && <div className="p-4 flex-1 overflow-y-auto space-y-6">
             {/* Standing instructions — the agent-read directives (persist to researchGoal). */}
             <div data-testid="standing-instructions-card" className={activeTab === "instructions" ? "rounded-lg border border-border p-5" : undefined}>
               <div className="flex items-center justify-between mb-1">
@@ -1114,7 +1114,7 @@ export default function ProjectDetailPage({ projectId, onBack, initialTab }: Pro
                 </div>
               )}
             </div>}
-          </div>
+          </div>}
 
           {/* Members & roles — owner-only invite UI + member list visible to all.
               Rendered on every tab where the project panel is visible, INCLUDING

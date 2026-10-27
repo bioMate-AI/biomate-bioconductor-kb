@@ -84,22 +84,24 @@ describe("1. CitationPanel is wired into the live chat answer", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
-// 2. Merged Results view: FindingsCard (informational banner) sits in the same
-//    tab as the outputs gallery. Findings and Outputs were merged into one
-//    "Results" view; the findings banner no longer cross-navigates to a
-//    separate Outputs tab (the outputs are right below it, searchable).
+// 2. After-run = Summary · Outputs · Report (accepted design). FindingsCard
+//    (informational banner) sits in the Summary tab; the outputs gallery is its
+//    own Outputs tab. (The earlier merged "Results" tab was split per decision.)
 // ─────────────────────────────────────────────────────────────────────────
-describe("2. FindingsCard is mounted in the merged Results view (informational banner)", () => {
+describe("2. FindingsCard (Summary) and OutputsTab (Outputs) are mounted in the split after-run tabs", () => {
   const active = stripComments(AFTER_RUN);
 
   it("AfterRunReport imports FindingsCard", () => {
     expect(active).toMatch(/import\s*\{\s*FindingsCard\s*\}\s*from\s*["']@\/components\/findings-card["']/);
   });
 
-  it("the merged Results tab renders both the findings banner and the outputs gallery", () => {
-    // One merged tab ("results"), not separate Summary/Outputs tabs.
-    expect(active).toMatch(/data-testid="after-results-tab"/);
-    expect(active).toMatch(/\["results",\s*tOr\('afterrun\.tab\.results'/);
+  it("the Summary tab holds the findings banner and the Outputs tab holds the gallery", () => {
+    // Summary and Outputs are separate tabs (no merged "results" tab).
+    expect(active).toMatch(/data-testid="after-summary-tab"/);
+    expect(active).toMatch(/data-testid="after-outputs-tab"/);
+    expect(active).toMatch(/\["summary",\s*tOr\('afterrun\.tab\.summary'/);
+    expect(active).toMatch(/\["outputs",\s*tOr\('afterrun\.tab\.outputs'/);
+    expect(active).toMatch(/\["report",\s*tOr\('afterrun\.tab\.report'/);
     // FindingsCard (banner) and OutputsTab (gallery) are both mounted.
     expect(active).toMatch(/<FindingsCard\b/);
     expect(active).toMatch(/<OutputsTab\b/);

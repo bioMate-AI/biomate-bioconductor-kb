@@ -89,7 +89,7 @@ interface ChatInterfaceProps {
   focusedRunId?: string | null
   runAnchorRequestId?: number
   // Right panel
-  onOpenWorkflowInPanel?: (messageId: string, workflow: any) => void
+  onOpenWorkflowInPanel?: (messageId: string, workflow: any, tab?: 'summary' | 'outputs' | 'report') => void
   panelWorkflowMessageId?: string | null
   /** Whether the workflow panel is currently open. When true, all inline
    *  workflow cards (viewer, pipeline, chain) are suppressed in chat messages
@@ -2220,7 +2220,7 @@ export function ChatInterface({
                   isInPanel={isPanelOpen || !!(panelWorkflowMessageId && message.id === panelWorkflowMessageId)}
                   onOpenInPanel={
                     message.metadata?.type === 'workflow' && message.metadata?.workflow
-                      ? () => onOpenWorkflowInPanel?.(message.id, message.metadata!.workflow)
+                      ? (opts) => onOpenWorkflowInPanel?.(message.id, message.metadata!.workflow, opts?.tab)
                       : undefined
                   }
                 />

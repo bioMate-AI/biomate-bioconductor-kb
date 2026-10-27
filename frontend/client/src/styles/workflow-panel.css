@@ -313,12 +313,35 @@
   content: ''; position: absolute; left: -4px; top: 12px;
   width: 10px; height: 10px; border-radius: 999px;
   background: var(--bg-elev); border: 2px solid var(--border-strong);
+  /* §7 — animate the status colour change (pending → running → terminal) */
+  transition: background .35s ease, border-color .35s ease, box-shadow .35s ease;
 }
+.wf-panel .step.pending::after,
+.wf-panel .step[data-status=""]::after { background: var(--bg-elev); border-color: var(--border-strong); }
 .wf-panel .step.completed::after { background: var(--ok);     border-color: var(--ok); }
-.wf-panel .step.running::after   { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.wf-panel .step.running::after   { background: var(--run);    border-color: var(--run); box-shadow: 0 0 0 3px var(--run-soft); }
+.wf-panel .step.running::after   { animation: wf-step-pulse 1.4s ease-in-out infinite; }
 .wf-panel .step.failed::after    { background: var(--err);    border-color: var(--err); }
 .wf-panel .step.skipped          { opacity: 0.5; }
 .wf-panel .step:hover            { background: var(--surface); }
+@keyframes wf-step-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px var(--run-soft); }
+  50%      { box-shadow: 0 0 0 6px color-mix(in oklch, var(--run-soft) 55%, transparent); }
+}
+
+/* §7 — phase card also eases its status colour change */
+.wf-panel .phase { transition: border-color .35s ease, box-shadow .35s ease, background .35s ease; }
+.wf-panel .phase.pending { border-color: var(--border); }
+.wf-panel .phase-head .letter { transition: background .35s ease, color .35s ease; }
+.wf-panel .phase.pending .phase-head .letter { background: var(--neutral-badge); color: var(--text-muted); }
+
+/* §5.1 / §5.3 — full-width param rows: multi-value list editor + long fields.
+   The list/long editors used to be a 220px box crammed into the right column;
+   they now stack under their label and span the panel width. */
+.wf-panel .param-row--block { display: block; }
+.wf-panel .param-row--block > .k { display: block; }
+.wf-panel .param-list { width: 100%; }
+.wf-panel .param-list-row > input { min-width: 0; }
 
 .wf-panel .step-head {
   display: flex; align-items: center; gap: 8px;

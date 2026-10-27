@@ -51,6 +51,12 @@ interface NextflowWorkflowViewerProps {
   onParameterChange?: (id: string, value: any) => void;
   sessionId?: string;
   runId?: string;
+  /**
+   * C1 (chat → panel deep-link): when a chat answer links to a specific
+   * after-run tab, the host sets this; the panel switches to the After-run
+   * tab and forwards it to AfterRunReport (Stream 2 consumes `targetTab`).
+   */
+  targetAfterRunTab?: 'summary' | 'outputs' | 'report';
   autofix?: {
     state: "idle" | "analyzing" | "fixing" | "restarting" | "succeeded" | "failed";
     source?: "auto" | "manual" | "unknown";
@@ -521,6 +527,34 @@ function autoloopPhaseMatches(groupKey: string, autoloopPhase: string | undefine
   return norm === key || norm.startsWith(key + '_') || key.startsWith(norm + '_');
 }
 
+// ── Multi-value / same-type list params (e.g. a multi-compound smiles_list) ──
+// These were rendered as one raw-JSON <textarea> crammed into a 220px right
+// column. Detect them so the editor can show a named-entity list (one item per
+// row, add/remove) laid out full-width, and serialise back to the wire format
+// the param arrived in (a real array, or a JSON-array string).
+const LIST_NAME_RE = /(_list$|smiles|compounds?|molecules?|sequences?|inchi|accessions?)/i;
+function parseListParam(p: any): { items: string[]; fmt: 'array' | 'json' } | null {
+  const raw = p?.value ?? p?.defaultValue;
+  if (Array.isArray(raw)) return { items: raw.map((x: any) => String(x)), fmt: 'array' };
+  if (typeof raw === 'string') {
+    const t = raw.trim();
+    if (t.startsWith('[')) {
+      try { const a = JSON.parse(t); if (Array.isArray(a)) return { items: a.map((x: any) => String(x)), fmt: 'json' }; } catch { /* not JSON */ }
+    }
+  }
+  return null;
+}
+function isListParam(p: any): boolean {
+  if (!p || p.type === 'boolean' || p.type === 'number' || p.type === 'file' || p.options) return false;
+  if (parseListParam(p)) return true;
+  const raw = p.value ?? p.defaultValue;
+  const empty = raw == null || raw === '';
+  return (p.type === 'list' || p.type === 'array' || LIST_NAME_RE.test(String(p.name || ''))) && (empty || Array.isArray(raw));
+}
+function serializeListParam(items: string[], fmt: 'array' | 'json'): any {
+  return fmt === 'json' ? JSON.stringify(items) : items.slice();
+}
+
 function PhaseGroupSection({
   group,
   renderedParameters,
@@ -706,70 +740,110 @@ function PhaseGroupSection({
               {/* Full editable param list when expanded */}
               {phaseParamsOpen && (
                 <div style={{ padding: '6px 14px 8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {phaseRenderedParams.map(p => (
-                    <div key={p.id} className="param-row" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center' }}>
-                      <span className="k" style={{ fontSize: 11, color: p.required && (!p.value || p.value === '') ? 'var(--warn)' : 'var(--text-muted)' }}>
-                        {p.label}{p.required ? ' *' : ''}
-                      </span>
-                      {p.type === 'boolean' ? (
-                        <button
-                          type="button"
-                          className={`switch${(p.value === true || p.value === 'true') ? ' on' : ''}`}
-                          onClick={() => onParamChange(p.id, !(p.value === true || p.value === 'true'))}
-                          style={{ flexShrink: 0 }}
-                        />
-                      ) : p.options ? (
-                        <select
-                          className="v"
-                          value={String(p.value ?? p.defaultValue ?? '')}
-                          style={{ fontSize: 11, padding: '2px 4px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 3, color: 'var(--text)' }}
-                          onChange={e => onParamChange(p.id, e.target.value)}
-                        >
-                          {p.options.map((o: any) => {
-                            const val = o !== null && typeof o === 'object' ? String(o.value ?? '') : String(o);
-                            const lbl = o !== null && typeof o === 'object' ? String(o.label ?? o.value ?? '') : String(o);
-                            return <option key={val} value={val}>{lbl}</option>;
-                          })}
-                        </select>
-                      ) : (() => {
-                        const strVal = String(p.value ?? p.defaultValue ?? '');
-                        const trimmed = strVal.trimStart();
-                        // Long free-text and JSON arrays/objects (e.g. a SMILES
-                        // list) were truncated in the 140px single-line input —
-                        // give them a resizable multi-line field instead.
-                        const isLong = p.type !== 'number' && p.type !== 'file' &&
-                          (strVal.length > 32 || trimmed.startsWith('[') || trimmed.startsWith('{'));
-                        const borderCol = p.required && (!p.value || p.value === '') ? 'var(--warn)' : 'var(--border)';
-                        if (isLong) {
-                          return (
-                            <textarea
-                              className="v"
-                              value={strVal}
-                              placeholder={p.required ? tOr('panel.required', 'required') : ''}
-                              rows={Math.min(6, Math.max(2, Math.ceil(strVal.length / 36)))}
-                              spellCheck={false}
-                              style={{ fontSize: 11, padding: '3px 6px', width: 220, maxWidth: '100%', background: 'var(--surface)',
-                                border: `1px solid ${borderCol}`, borderRadius: 3, color: 'var(--text)',
-                                fontFamily: 'var(--font-mono)', resize: 'vertical', lineHeight: 1.4 }}
-                              onChange={e => onParamChange(p.id, e.target.value)}
-                            />
-                          );
-                        }
-                        return (
+                  {phaseRenderedParams.map(p => {
+                    const missing = p.required && (!p.value || p.value === '');
+                    const labelCol = missing ? 'var(--warn)' : 'var(--text-muted)';
+                    const borderCol = missing ? 'var(--warn)' : 'var(--border)';
+                    const label = <span className="k" style={{ fontSize: 11, color: labelCol }}>{p.label}{p.required ? ' *' : ''}</span>;
+
+                    // Multi-value input of the same type (e.g. a multi-compound
+                    // smiles_list) → a named-entity list editor, full-width: one
+                    // item per row (mono, individually editable) with Add/Remove.
+                    if (isListParam(p)) {
+                      const info = parseListParam(p);
+                      const items = info ? info.items : [];
+                      const fmt: 'array' | 'json' = info ? info.fmt : 'array';
+                      const commit = (next: string[]) => onParamChange(p.id, serializeListParam(next, fmt));
+                      return (
+                        <div key={p.id} className="param-row param-row--block" data-param={p.id} data-param-kind="list">
+                          <span className="k" style={{ fontSize: 11, color: labelCol }}>
+                            {p.label}{p.required ? ' *' : ''}
+                            <span className="hint" style={{ marginLeft: 6, fontSize: 10, color: 'var(--text-dim)' }}>
+                              {items.length} {items.length === 1 ? tOr('panel.item', 'item') : tOr('panel.items', 'items')}
+                            </span>
+                          </span>
+                          <div className="param-list" style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                            {items.map((it, i) => (
+                              <div key={i} className="param-list-row" style={{ display: 'grid', gridTemplateColumns: '20px 1fr auto', gap: 6, alignItems: 'center' }}>
+                                <span className="mono" style={{ fontSize: 10, color: 'var(--text-dim)', textAlign: 'right' }}>{i + 1}</span>
+                                <input
+                                  className="v mono"
+                                  value={it}
+                                  spellCheck={false}
+                                  placeholder={p.required ? tOr('panel.required', 'required') : ''}
+                                  style={{ width: '100%', fontSize: 11, padding: '3px 6px', background: 'var(--surface)', border: `1px solid ${borderCol}`, borderRadius: 4, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}
+                                  onChange={e => { const next = items.slice(); next[i] = e.target.value; commit(next); }}
+                                />
+                                <button type="button" className="btn ghost sm" title={tOr('panel.remove', 'Remove')} style={{ fontSize: 11, padding: '1px 7px', lineHeight: 1 }} onClick={() => commit(items.filter((_, j) => j !== i))}>✕</button>
+                              </div>
+                            ))}
+                            <button type="button" className="btn ghost sm" data-testid={`param-add-${p.id}`} style={{ alignSelf: 'flex-start', fontSize: 11, padding: '2px 8px' }} onClick={() => commit([...items, ''])}>
+                              + {tOr('panel.add_item', 'Add')}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Long single value → full-width stacked field (not a 220px
+                    // box crammed into the right column).
+                    const strVal = String(p.value ?? p.defaultValue ?? '');
+                    const isLong = p.type !== 'number' && p.type !== 'file' && p.type !== 'boolean' && !p.options &&
+                      (strVal.length > 40 || strVal.trimStart().startsWith('{'));
+                    if (isLong) {
+                      return (
+                        <div key={p.id} className="param-row param-row--block" data-param={p.id} data-param-kind="long">
+                          {label}
+                          <textarea
+                            className="v"
+                            value={strVal}
+                            placeholder={p.required ? tOr('panel.required', 'required') : ''}
+                            rows={Math.min(6, Math.max(2, Math.ceil(strVal.length / 60)))}
+                            spellCheck={false}
+                            style={{ marginTop: 4, width: '100%', fontSize: 11, padding: '4px 6px', background: 'var(--surface)', border: `1px solid ${borderCol}`, borderRadius: 4, color: 'var(--text)', fontFamily: 'var(--font-mono)', resize: 'vertical', lineHeight: 1.4 }}
+                            onChange={e => onParamChange(p.id, e.target.value)}
+                          />
+                        </div>
+                      );
+                    }
+
+                    // Default inline row: label · editor.
+                    return (
+                      <div key={p.id} className="param-row" data-param={p.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center' }}>
+                        {label}
+                        {p.type === 'boolean' ? (
+                          <button
+                            type="button"
+                            className={`switch${(p.value === true || p.value === 'true') ? ' on' : ''}`}
+                            onClick={() => onParamChange(p.id, !(p.value === true || p.value === 'true'))}
+                            style={{ flexShrink: 0 }}
+                          />
+                        ) : p.options ? (
+                          <select
+                            className="v"
+                            value={String(p.value ?? p.defaultValue ?? '')}
+                            style={{ fontSize: 11, padding: '2px 4px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 3, color: 'var(--text)' }}
+                            onChange={e => onParamChange(p.id, e.target.value)}
+                          >
+                            {p.options.map((o: any) => {
+                              const val = o !== null && typeof o === 'object' ? String(o.value ?? '') : String(o);
+                              const lbl = o !== null && typeof o === 'object' ? String(o.label ?? o.value ?? '') : String(o);
+                              return <option key={val} value={val}>{lbl}</option>;
+                            })}
+                          </select>
+                        ) : (
                           <input
                             type={p.type === 'number' ? 'number' : 'text'}
                             className="v"
                             value={strVal}
                             placeholder={p.required ? tOr('panel.required', 'required') : ''}
-                            style={{ fontSize: 11, padding: '2px 6px', width: 140, background: 'var(--surface)',
-                              border: `1px solid ${borderCol}`,
-                              borderRadius: 3, color: 'var(--text)', fontFamily: p.type === 'file' ? 'var(--font-mono)' : undefined }}
+                            style={{ fontSize: 11, padding: '2px 6px', width: 140, background: 'var(--surface)', border: `1px solid ${borderCol}`, borderRadius: 3, color: 'var(--text)', fontFamily: p.type === 'file' ? 'var(--font-mono)' : undefined }}
                             onChange={e => onParamChange(p.id, e.target.value)}
                           />
-                        );
-                      })()}
-                    </div>
-                  ))}
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1059,6 +1133,7 @@ export function NextflowWorkflowViewer({
   onParameterChange,
   sessionId,
   runId,
+  targetAfterRunTab,
   autofix,
   nextflowStatus,
   executionEngine,
@@ -1140,6 +1215,15 @@ export function NextflowWorkflowViewer({
   const [tabAutoDefault, setTabAutoDefault] = useState<boolean>(true);
   // Global parameters collapsible — collapsed by default (phases shown first per design spec)
   const [globalParamsOpen, setGlobalParamsOpen] = useState<boolean>(false);
+
+  // C1 — a chat answer deep-link ("Full table in Summary", "Files in Outputs")
+  // sets targetAfterRunTab; jump to the After-run tab (the sub-tab is selected
+  // inside AfterRunReport via its targetTab prop, below).
+  useEffect(() => {
+    if (!targetAfterRunTab) return;
+    setActiveTab('after-run');
+    setTabAutoDefault(false);
+  }, [targetAfterRunTab]);
 
   // Status-aware tab default — see the activeTab declaration above for the policy.
   // Only auto-switches while the user hasn't manually picked a tab (tabAutoDefault).
@@ -2836,6 +2920,9 @@ export function NextflowWorkflowViewer({
           <AfterRunReport
             runId={runId || invocationId || ''}
             invocationId={invocationId}
+            // C2: Stream 2 adds `targetTab?` to AfterRunReportProps; cast-spread
+            // keeps this file's tsc green until that lands.
+            {...((targetAfterRunTab ? { targetTab: targetAfterRunTab } : {}) as any)}
             workflowName={workflowDefinition?.name}
             projectId={projectId || undefined}
             parameters={params as Record<string, unknown>}

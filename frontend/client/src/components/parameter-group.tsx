@@ -7,10 +7,69 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { tOr } from "@/lib/i18n";
-import { Info, ExternalLink, Pencil, Check, X } from "lucide-react";
+import { Info, ExternalLink, Pencil, Check, X, Plus } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+// ── Multi-value (list) params ─────────────────────────────────────────────────
+// A multi-compound input (smiles_list, compounds, …) must be edited as named
+// entities — one item per full-width row with add/remove — not a raw JSON array
+// crammed into a textarea. CSV/FASTA/sequence *blobs* stay as a textarea (below).
+const LIST_SUFFIX_RE = /(_list$|smiles|compounds?|molecules?|actives|ligands?|inchi|accessions?)/i;
+const BLOB_SUFFIX_RE = /(_csv|_tsv|_fasta|_fa|_sequences|_library)$/i;
+function isDiscreteListParam(param: any): boolean {
+  if (Array.isArray(param?.value) || Array.isArray(param?.defaultValue)) return true;
+  if (param?.type === 'list') return true;
+  const id = String(param?.id || '').toLowerCase();
+  if (BLOB_SUFFIX_RE.test(id)) return false;
+  return LIST_SUFFIX_RE.test(id);
+}
+function parseListItems(v: any): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x));
+  const s = String(v ?? '').trim();
+  if (!s) return [];
+  if (s.startsWith('[')) { try { const a = JSON.parse(s); if (Array.isArray(a)) return a.map((x: any) => String(x)); } catch { /* not JSON */ } }
+  return s.split(/[\n,]+/).map((x) => x.trim()).filter(Boolean);
+}
+function serializeListItems(items: string[], original: any): any {
+  if (Array.isArray(original)) return items;
+  const s = String(original ?? '');
+  if (s.trim().startsWith('[')) return JSON.stringify(items);
+  if (s.includes('\n')) return items.join('\n');
+  if (s.includes(',')) return items.join(', ');
+  return items.join('\n');
+}
+function ListParamField({ param, onChange }: { param: any; onChange?: (id: string, v: any) => void }) {
+  const original = param.value ?? param.defaultValue;
+  const items = parseListItems(original);
+  const commit = (next: string[]) => onChange && onChange(param.id, serializeListItems(next, original));
+  return (
+    <div className="space-y-1.5 w-full" data-testid={`list-param-${param.id}`} data-param-kind="list">
+      {items.length === 0 && <p className="text-[11px] text-muted-foreground">No entries yet — add one below.</p>}
+      {items.map((it, i) => (
+        <div key={i} className="flex items-center gap-1.5">
+          <span className="text-[10px] text-muted-foreground w-5 text-right shrink-0 font-mono">{i + 1}</span>
+          <Input
+            value={it}
+            spellCheck={false}
+            aria-label={`${param.label || param.id} item ${i + 1}`}
+            onChange={(e) => { const next = items.slice(); next[i] = e.target.value; commit(next); }}
+            className="font-mono text-xs h-7 flex-1"
+          />
+          <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0"
+            aria-label={`Remove item ${i + 1}`} onClick={() => commit(items.filter((_, j) => j !== i))}>
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      ))}
+      <Button type="button" variant="outline" size="sm" className="h-7 text-xs"
+        data-testid={`list-param-add-${param.id}`} onClick={() => commit([...items, ''])}>
+        <Plus className="h-3 w-3 mr-1" /> Add
+      </Button>
+    </div>
+  );
+}
 
 export interface Parameter {
   id: string;
@@ -353,8 +412,21 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
         );
       }
       default: {
-        // Detect params that hold multi-line content (CSV, SMILES lists, FASTA, etc.)
-        const _MULTILINE_SUFFIXES = ['_csv', '_tsv', '_fasta', '_fa', '_sequences', '_actives', '_library', '_smiles'];
+        // Multi-value discrete list (multi-compound smiles_list, actives, …):
+        // edit as named entities — one full-width row each, add/remove — not a raw
+        // JSON array in a textarea.
+        if (isDiscreteListParam(param)) {
+          return (
+            <div className="space-y-1 w-full">
+              <div className="flex items-center gap-1 flex-wrap">
+                <LabelWithKnowledge />
+              </div>
+              <ListParamField param={param} onChange={onChange} />
+            </div>
+          );
+        }
+        // Detect params that hold multi-line *blob* content (CSV, FASTA, etc.)
+        const _MULTILINE_SUFFIXES = ['_csv', '_tsv', '_fasta', '_fa', '_sequences', '_library'];
         const isMultiline = _MULTILINE_SUFFIXES.some(s => param.id.toLowerCase().endsWith(s));
         if (isMultiline) {
           return (

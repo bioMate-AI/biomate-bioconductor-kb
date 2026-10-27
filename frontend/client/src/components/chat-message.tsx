@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { CodeExecutionBlock, type ToolBlock } from "./code-execution-block"
+import { FindingsCard } from "./findings-card"
 import { t } from "@/lib/i18n"
 
 /**
@@ -224,7 +225,10 @@ interface ChatMessageProps {
   isRunAnchorFocused?: boolean
   isRunAnchorHighlighted?: boolean
   isInPanel?: boolean
-  onOpenInPanel?: () => void
+  /** C1: open the run's right panel. An optional `tab` deep-links to a specific
+   *  after-run sub-tab (Summary/Outputs/Report). The handler in chat-interface.tsx
+   *  + the panel (Stream 1) consume `tab`; chat-message only needs to pass it. */
+  onOpenInPanel?: (opts?: { tab?: 'summary' | 'outputs' | 'report' }) => void
   /**
    * Re-send this answer's intent forced to the Cloud/validated-workflow lane
    * (spec 02 §2.2). Shown as an unobtrusive action on instant/compute-style
@@ -736,7 +740,7 @@ export function ChatMessage({
                     </span>}
                     {!isInPanel && onOpenInPanel && (
                       <button
-                        onClick={onOpenInPanel}
+                        onClick={() => onOpenInPanel()}
                         style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
                       >
                         Open
@@ -747,6 +751,36 @@ export function ChatMessage({
               );
             })()
           }
+
+          {/* §1.1–1.3 Chat answer block — the completed run's answer lives in chat
+              (full scrollable result + per-tab deep-links + status row), not only in
+              the right panel. Shown once the panel is/was open so it complements,
+              rather than duplicates, the inline card shown before the panel opens. */}
+          {isWorkflowMessage && message.metadata?.workflow && everInPanel &&
+            ['completed', 'succeeded', 'ok'].includes(currentExecutionRun?.execution?.status || '') && (
+            <div
+              data-v2-ui
+              data-testid="chat-answer-block"
+              style={{ marginTop: 10, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--bg-elev, #fff)', overflow: 'hidden' }}
+            >
+              {/* Full result — scrollable, never capped to N rows (design override). */}
+              <div style={{ maxHeight: 440, overflowY: 'auto' }}>
+                <FindingsCard
+                  runId={currentExecutionRun?.id}
+                  executionStatus={currentExecutionRun?.execution?.status}
+                  onOpenOutput={() => onOpenInPanel?.({ tab: 'outputs' })}
+                />
+              </div>
+              {/* Per-tab deep links. The run status + "Open run" already live on the
+                  wf-chip above, so the answer block does not repeat them (avoids a
+                  redundant second "Completed" hint). */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '8px 14px', borderTop: '1px solid var(--border)', fontSize: 12 }}>
+                <button type="button" data-testid="answer-link-summary" onClick={() => onOpenInPanel?.({ tab: 'summary' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px dotted var(--border-strong)' }}>Full table in Summary →</button>
+                <button type="button" data-testid="answer-link-outputs" onClick={() => onOpenInPanel?.({ tab: 'outputs' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px dotted var(--border-strong)' }}>Files in Outputs →</button>
+                <button type="button" data-testid="answer-link-report" onClick={() => onOpenInPanel?.({ tab: 'report' })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px dotted var(--border-strong)' }}>Full report →</button>
+              </div>
+            </div>
+          )}
 
           {/* Intent clarification (spec 06 §6.4, typed) — surfaces cross-intent
               ambiguity (e.g. tool_search vs workflow_generation) from the

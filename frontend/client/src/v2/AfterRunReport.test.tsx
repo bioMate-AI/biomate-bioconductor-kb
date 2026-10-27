@@ -66,11 +66,12 @@ const baseProps = {
 };
 
 async function openQcTab() {
-  // QC report is now a collapsible section inside the "Reproducibility record"
-  // top-level tab. Open that tab; jsdom renders <details> children into the DOM
-  // regardless of the open state, so the QC panel is queryable once mounted.
-  const recordTabBtn = await screen.findByTestId("after-tab-record", {}, { timeout: 5000 });
-  fireEvent.click(recordTabBtn);
+  // QC report is now a collapsible section folded inside the "Report" top-level
+  // tab (below the report document). Open that tab; jsdom renders <details>
+  // children into the DOM regardless of the open state, so the QC panel is
+  // queryable once mounted.
+  const reportTabBtn = await screen.findByTestId("after-tab-report", {}, { timeout: 5000 });
+  fireEvent.click(reportTabBtn);
   await screen.findByTestId("record-section-qc", {}, { timeout: 5000 });
 }
 
@@ -249,16 +250,16 @@ describe("v2/AfterRunReport — MethodsTab editable report (Spec 12 increment)",
   afterEach(() => { vi.clearAllMocks(); });
 
   async function openMethodsTab() {
-    // Methods is now a section inside the Reproducibility record tab.
-    const recordTab = await screen.findByTestId("after-tab-record", {}, { timeout: 5000 });
-    fireEvent.click(recordTab);
+    // Methods is now a section folded inside the Report tab.
+    const reportTab = await screen.findByTestId("after-tab-report", {}, { timeout: 5000 });
+    fireEvent.click(reportTab);
     await screen.findByTestId("record-section-methods", {}, { timeout: 5000 });
-    return recordTab;
+    return reportTab;
   }
 
   it("renders the Methods section inside the record tab once a non-stub report loads", async () => {
     render(<AfterRunReport {...baseProps} workflowName="nf-core/rnaseq" />);
-    fireEvent.click(await screen.findByTestId("after-tab-record", {}, { timeout: 5000 }));
+    fireEvent.click(await screen.findByTestId("after-tab-report", {}, { timeout: 5000 }));
     // The Methods section is always present; its body renders the report when
     // methods.hasRealContent is true.
     expect(await screen.findByTestId("record-section-methods", {}, { timeout: 5000 })).toBeInTheDocument();
@@ -521,7 +522,7 @@ describe("v2/AfterRunReport — Reproducibility tab (Phase 2)", () => {
     render(<AfterRunReport {...baseProps} runId="run-repro" />);
     // Reproducibility record is now the (default-open) first section inside the
     // "Reproducibility record" top-level tab.
-    fireEvent.click(await screen.findByTestId("after-tab-record", {}, { timeout: 5000 }));
+    fireEvent.click(await screen.findByTestId("after-tab-report", {}, { timeout: 5000 }));
     const tab = await screen.findByTestId("repro-tab", {}, { timeout: 5000 });
     expect(within(tab).getByText("bulk RNA-seq DE")).toBeTruthy();     // identity from record
     expect(within(tab).getByText("fdr")).toBeTruthy();                 // parameter key
@@ -537,7 +538,7 @@ describe("v2/AfterRunReport — Reproducibility tab (Phase 2)", () => {
     vi.spyOn(global, "fetch").mockImplementation(async () =>
       ({ ok: false, status: 404, json: async () => ({}), text: async () => "" } as Response));
     render(<AfterRunReport {...baseProps} runId="run-missing" />);
-    fireEvent.click(await screen.findByTestId("after-tab-record", {}, { timeout: 5000 }));
+    fireEvent.click(await screen.findByTestId("after-tab-report", {}, { timeout: 5000 }));
     expect(await screen.findByTestId("repro-error", {}, { timeout: 5000 })).toBeTruthy();
   });
 });
@@ -552,16 +553,21 @@ describe("v2/AfterRunReport — three-tab consolidation (accepted design)", () =
   });
   afterEach(() => { vi.clearAllMocks(); });
 
-  it("renders exactly two top-level tabs — Results, Reproducibility record", () => {
+  it("renders exactly three top-level tabs — Summary, Outputs, Report", () => {
     render(<AfterRunReport {...baseProps} />);
     const tablist = screen.getByRole("tablist");
     const tabs = within(tablist).getAllByRole("tab");
     expect(tabs.map(t => t.textContent)).toEqual([
-      "Results", "Reproducibility record",
+      "Summary", "Outputs", "Report",
     ]);
-    // The former peer tabs (incl. the now-merged Summary/Outputs) must NOT be top-level.
-    expect(screen.queryByTestId("after-tab-summary")).toBeNull();
-    expect(screen.queryByTestId("after-tab-outputs")).toBeNull();
+    // Summary / Outputs / Report are the three real top-level tabs.
+    expect(screen.getByTestId("after-tab-summary")).toBeInTheDocument();
+    expect(screen.getByTestId("after-tab-outputs")).toBeInTheDocument();
+    expect(screen.getByTestId("after-tab-report")).toBeInTheDocument();
+    // The former peer tabs (and the removed Results/Record tabs) fold into
+    // Report and must NOT be top-level.
+    expect(screen.queryByTestId("after-tab-results")).toBeNull();
+    expect(screen.queryByTestId("after-tab-record")).toBeNull();
     expect(screen.queryByTestId("after-tab-findings")).toBeNull();
     expect(screen.queryByTestId("after-tab-qc")).toBeNull();
     expect(screen.queryByTestId("after-tab-methods")).toBeNull();
@@ -569,25 +575,26 @@ describe("v2/AfterRunReport — three-tab consolidation (accepted design)", () =
     expect(screen.queryByTestId("after-tab-software")).toBeNull();
     expect(screen.queryByTestId("after-tab-citations")).toBeNull();
     expect(screen.queryByTestId("after-tab-trajectory")).toBeNull();
-    expect(screen.queryByTestId("after-tab-reproducibility")).toBeNull();
   });
 
-  it("opens on the merged Results tab and marks the run original", () => {
+  it("opens on the Summary tab and marks the run original", () => {
     render(<AfterRunReport {...baseProps} />);
-    // Results is selected by default.
-    expect(screen.getByTestId("after-tab-results")).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByTestId("after-tab-record")).toHaveAttribute("aria-selected", "false");
-    // Results tab body (findings banner, keeping after-summary-tab id) + "run
-    // original" badge are visible without any click.
-    expect(screen.getByTestId("after-results-tab")).toBeInTheDocument();
+    // Summary is selected by default.
+    expect(screen.getByTestId("after-tab-summary")).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId("after-tab-outputs")).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByTestId("after-tab-report")).toHaveAttribute("aria-selected", "false");
+    // Summary tab body (findings banner) + "run original" badge are visible
+    // without any click.
     expect(screen.getByTestId("after-summary-tab")).toBeInTheDocument();
     expect(screen.getByTestId("after-run-original-badge")).toHaveTextContent(/run original/i);
   });
 
-  it("folds Methods, Parameters, Software, Citations and QC report as sections inside the record tab", () => {
+  it("folds Methods, Parameters, Software, Citations and QC report as sections inside the Report tab", () => {
     render(<AfterRunReport {...baseProps} />);
-    fireEvent.click(screen.getByTestId("after-tab-record"));
-    const record = screen.getByTestId("after-record-tab");
+    fireEvent.click(screen.getByTestId("after-tab-report"));
+    const report = screen.getByTestId("after-report-tab");
+    // The reproducibility record folds in below the report document.
+    const record = within(report).getByTestId("after-record-tab");
     // Intro line ("nothing is hidden or discarded").
     expect(within(record).getByTestId("record-intro")).toHaveTextContent(/nothing is hidden or discarded/i);
     // All former peer tabs are present as expandable sections.
