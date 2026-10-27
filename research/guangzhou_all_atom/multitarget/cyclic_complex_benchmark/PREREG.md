@@ -111,3 +111,8 @@ Cost estimate ≈ 41 GPU-h ≈ $15–25 (cap $120; spent so far < $10).
 The first Stage B submission (35 spot jobs x ~12 complexes) failed: AWS evicted the spot `g4dn.2xlarge` nodes (us-west-2c) within ~1 min of launch, 93 attempts were used, jobs exhausted their 3 retries, 10 new complexes finished (37/437 incl. pilot). No result was inspected.
 Change: job definition `cycbench-cofold` revision 2 (retry attempts 10, same container), and 12 longer jobs (4 test x 23 complexes first, 8 train x ~38) so fewer nodes are requested at once. The driver skips finished complexes, so retries lose at most one complex + the 8 GB cache restore.
 If the training set cannot be fully generated, the selector is fit on whatever fraction completed (reported), never on test data; the TEST set must be complete for the one-shot evaluation, else the claim is reported on the completed subset with that stated.
+
+## Amendment A4 (2026-10-26) — compute cutoff on test size; made BEFORE any Stage B test result was scored or inspected
+Measured Spark timings: ~3.5 min (≈250 tokens), 18 min (621 tokens), 43 min (1,069 tokens); cost grows super-linearly, so the 4 largest test complexes (1,836 / 2,316 / 2,390 / 3,545 true tokens) would take hours each and block the rest.
+Change: TEST is restricted to complexes with ≤ 1,200 true tokens → 113 test complexes (4 excluded, listed in `results/stageB_selection.json: test_excluded_over_1200_tokens`). TRAIN is restricted to ≤ 600 true tokens (the 34 training complexes above 600 are dropped; the 16 GB AWS GPUs cannot run them).
+This is a compute limitation, stated as a limitation in any write-up; it is not outcome-dependent (no result has been scored). Claim rule, baselines, selector and predictions unchanged.
