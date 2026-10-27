@@ -1,0 +1,5 @@
+body{font-family:Georgia,"Times New Roman",serif;max-width:46rem;margin:2.5rem auto;padding:0 1rem;line-height:1.55;color:#0b0b0b;background:#fcfcfb}
+h1{font-size:1.6rem;line-height:1.25}h2{font-size:1.25rem;margin-top:2rem}h3{font-size:1.05rem}
+img{max-width:100%;height:auto}figcaption{font-size:.88rem;color:#52514e}
+table{border-collapse:collapse;width:100%;font-size:.9rem}td,th{border:1px solid #e4e3df;padding:.4rem .5rem;vertical-align:top}
+header p.author,header p.date{color:#52514e}
