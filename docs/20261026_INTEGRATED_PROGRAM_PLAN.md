@@ -25,12 +25,33 @@ A generator proposes cyclic-peptide candidates; a **ladder of verification tiers
 - **E5 end-to-end:** shortlist precision vs abstention for {confidence-only pipeline, + T1, + T1–T3, full ladder}. This is the headline figure.
 
 ## 4. What is NOT available, stated plainly
-No wet-lab data → the ceiling is a rigorous computational paper, not prospective validation. FEP is not calibrated. The integrated claim has had no prior-art search. If E2/E5 show no gain over the baseline pipeline, the honest outcome is a negative result and the program stops pretending.
+- No wet-lab data → the ceiling is a rigorous computational paper, not prospective validation.
+- The integrated claim's prior-art check was **abstract-level only** (five searches; UnibindMD full text unread). Gaps are UNVERIFIED.
+- FEP is not calibrated, and it is **expensive** (see W4).
+- If E1/E2/E5 show no gain over the confidence-only baseline, the honest outcome is a negative/benchmark result and the program says so.
 
-## 5. Work order (no more standalone studies)
-1. Finish E1 (Stage B): Spark GB10 + AWS spot generating in parallel (Spark: torch 2.14+cu130, Boltz 2.2.1, DockQ on 9CDT_2 identical to AWS T4; ~3.6 min / complex incl. one-time weights).
-2. Resume permeability to a verdict (its predictions M1–M5 exist, uncommitted by the dead agent — recover and evaluate).
-3. Metal/FEP: 10 ns × 3 replicas → YY→FF vs −0.95 → Asp→Ala → A1 grid; build the computed→measured calibration map (this is the only way FEP enters T3).
-4. Implement the ladder interface: typed evidence + abstention + calibration state per tier (`claim_ledger`, `calibrated_reward`) — committee A/D/E/F convergent design.
-5. Run E2–E5; write ONE manuscript around the result, whichever way it comes out.
-6. Prior-art search on the integrated claim before any novelty wording.
+## 5. Execution plan (supersedes the earlier "work order"; status as of 2026-10-26 ~21:00)
+Principle: every step feeds the single claim in section 1. No standalone studies. Each workstream has a pre-stated gate; a failed gate is reported, not rescued.
+
+| id | workstream | state now (measured) | next steps | gate / decision rule (fixed in advance) | dependency |
+|---|---|---|---|---|---|
+| **W1** | E1 structure tier: pose selector, Stage B one-shot | 79/437 complexes on S3 (test 14/93, train 39/317). Pilot: default 80.8 % ≈ random 80.3 % ≈ oracle 96.2 % (n=26). Evaluator + selector built, 8 tests pass on synthetic data; real test untouched | finish generation; score; fit on TRAIN only; evaluate TEST once | PREREG A2/A3: S "best" only if it beats the strongest of 6 baselines with a paired receptor-cluster CI excluding 0 on ALL test AND the novel-receptor subset. Pre-registered odds: ~30 % / ~15 % | generation (W1a) |
+| W1a | generation compute | AWS spot: 8 train + 4 test jobs running (retries 10; heavy evictions). **Spark GB10** (torch 2.14+cu130, Boltz 2.2.1): ~3.5 min for ~250-token complexes, 43 min for a 1,069-token one; DockQ on 9CDT_2 identical to AWS | Spark runs the 16 test complexes with >600 TRUE tokens (cannot run on 16 GB T4; 10 are >800, incl. αvβ6 `9XMM_3`) first, then small test from the other end, then training; `spark_sync.py` publishes to S3 every 10 min | test set must be complete for the one-shot; if training only partly completes, fit on what finished (reported) | spot capacity; Spark uptime |
+| **W2** | E2 affinity tier: ChEMBL αvβ6 potency model | 542 αvβ6 compounds / 35 documents (610 measurements). Kernel ridge beats the strongest null on unseen documents (RMSE −0.125, CI −0.185…−0.069); external Kapp panel (20 ligands) inconclusive; selectivity (T2/T3) NULL | add uncertainty + reliability diagram + coverage–precision (abstention) analysis on the existing S2 predictions | tier is "usable" only if calibration error is small and precision rises as coverage falls on held-out documents | none (CPU) |
+| **W3** | E3 developability tiers | availability LODO ρ≈0.40; permeability agent died with M1–M5 predictions uncommitted; noise ceiling (pooled R² 0.53; PAMPA 0.26; Caco-2 0.99); published-split audit says CycPeptMP used a Kennard–Stone 5 % test set and CPMP random 8:1:1 (page-summary level, **re-verify against PDFs**) | recover + evaluate M1–M5 on S1–S3 with cluster-bootstrap CIs; applicability-domain flag for cyclic/ncAA | permeability tier enters the ladder only if it beats the strongest reproduced baseline on S1–S3 (agent's claim rule) | none (CPU) |
+| **W4** | FEP calibration (MIDAS-Mn) | 1 ns unrestrained screen PASSED (3 Mn keep 5–7 O at 2.0–2.2 Å in 21/21 frames; ligand Asp in contact throughout). **Cost reality, derived from the measured 3.27 h/ns (205k atoms, 0.5 fs, one spot GPU):** 10 ns × 3 replicas ≈ 98 GPU-h; YY→FF with 12 windows × 1 ns × 3 replicas ≈ 118 GPU-h. At an assumed ~$0.4/GPU-h that is ~$40–50 each, wall-clock days with spot churn | DEFER until W1 test generation is done (do not compete for spot GPUs). Then: 10 ns × 3 replicas stability → YY→FF vs measured −0.95 → Asp→Ala → A1 grid. Consider the virtual-site CaDA variant (2 fs, ~4× cheaper) after fixing its LINCS failure | pre-registered: YY→FF negative AND within 0.5 kcal/mol of −0.95 AND replica SEM ≤ 0.3, else FEP stays out of the ladder | W1 compute |
+| **W5** | ladder interface: typed evidence, abstention, calibration state per tier | committee-converged design (A/D/E/F); `score.py` target-aware gate + `reward.py` fixes still open (MM-GBSA fallback, "trustworthy arbiter" weight 0.90, `_num` accepts bool/NaN) | implement `claim_ledger` / calibrated reward; mask unknown ≠ 0; delete inadmissible terms | tests: pending physics cannot raise a rank/reward; no MM-GBSA term reaches a binding reward | W1–W4 results define which tiers are admissible |
+| **W6** | E4/E5: loop and end-to-end | verified-reward DPO + placebo exists (permeability oracle only, +0.098, 6/6 seeds) | rerun with the integrated reward vs matched best-of-N and shuffled-reward placebo, scored by an independent oracle; E5 shortlist precision vs abstention for {confidence-only, +T1, +T1–T3, full ladder} | headline claim stands only if full ladder > confidence-only with CI excluding 0 on held-out documents/receptors | W5 |
+| **W7** | evidence gaps | prior art abstract-level only | read full texts: UnibindMD, cofold-guided cyclic design preprint, PepThink-R1, MF-LAL, LLMol; logged systematic search; integrin-FEP and cyclic co-folding-selector specifically | any "first" wording only after this closes | bioRxiv rate limits |
+
+## 6. What gets written, by outcome (decided now, not after seeing results)
+- **E1 positive AND E5 positive:** one method + evidence paper: "calibrated, abstaining verification for cyclic-peptide design" (structure tier + affinity tier + ladder), with the measured reliability maps as the core result.
+- **E1 negative, E2/E5 positive:** same paper without the selector claim; the finding that co-folding confidence ≈ random for cyclic complexes is reported as a measured limitation that motivates independent tiers.
+- **E5 not better than confidence-only:** no method paper. A short evidence report only if the reliability measurements are themselves new after W7; otherwise stop.
+- Never written: any αvβ6 binding/FEP claim before W4's gate; availability as a design objective; "best method" without the pre-registered rule.
+
+## 7. Compute and cost topology
+AWS Batch **spot only** (queue `biomate-gpu-spot-queue`, job-def `cycbench-cofold` rev 2, 10 retries; streaming cache restore; hard cap $120, estimated spend so far ≈ $10–15, prices ASSUMED). **Spark GB10** (on-prem, 121 GB unified, no cloud credentials; results move via ssh stream and are published from this machine). Known failure classes already fixed: YAML-typed component codes, swallowed Batch exit code, cache-restore disk exhaustion, directory-as-file MSA copy, manifest token under-count for multi-chain receptors, orphaned GPU processes.
+
+## 8. Change log (2026-10-26)
+Prior-art check done (architecture not novel → contribution is evidential); Spark brought online and cross-validated against AWS; true token counts computed (16 test complexes need Spark); FEP cost made explicit; permeability recovery and full-text prior-art reads scheduled.
