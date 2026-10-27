@@ -81,17 +81,20 @@ def fig3(path):
 
 
 def fig4():
-    t = ["Abeta42", "hIAPP", "hPCSK9"]
-    rand = [0.986, 0.698, 0.841]; fam = [0.957, 0.521, 0.653]; lm = [0.990, 0.689, 0.815]
-    f, ax = plt.subplots(figsize=(7, 3.9)); w = 0.26
+    t = ["Abeta42", "hIAPP", "hPCSK9", "PADI4", "FIKK13"]
+    rand = [0.986, 0.698, 0.841, 0.865, 0.924]; fam = [0.957, 0.521, 0.653, 0.864, 0.415]; lm = [0.990, 0.689, 0.815, 0.968, None]
+    f, ax = plt.subplots(figsize=(9, 4.2)); w = 0.26
     for j, (v, c, n) in enumerate(((rand, GRAY, "k-mer baseline, random split"), (fam, ORANGE, "k-mer baseline, family-disjoint split"), (lm, BLUE, "Language model, random split (as reported)"))):
-        xs = [i + (j - 1) * w for i in range(3)]; ax.bar(xs, v, w * 0.92, color=c, label=n)
-        for x, y in zip(xs, v): ax.text(x, y + 0.012, f"{y:.2f}", ha="center", fontsize=8)
-    ax.axhline(0.5, color=INK2, lw=0.8, ls=(0, (4, 3))); ax.text(2.62, 0.505, "chance", fontsize=7.5, color=INK2, ha="right", va="bottom")
-    ax.set_xticks(range(3)); ax.set_xticklabels(t); ax.set_ylim(0.4, 1.08); ax.set_ylabel("AUC (binder vs non-binder)")
-    ax.yaxis.grid(True, color=GRID); ax.set_axisbelow(True); ax.legend(frameon=False, fontsize=8, loc="upper right", bbox_to_anchor=(1.0, 1.16), ncol=1)
-    for s in ("top", "right"): ax.spines[s].set_visible(False)
-    f.text(0.01, -0.03, "hPCSK9 language-model value is from a model trained jointly on five targets (single-target model: AUC 0.36). Family = connected set of sequences differing by one substitution.", fontsize=7.2, color=INK2)
+        for i, y in enumerate(v):
+            if y is None: continue
+            x = i + (j - 1) * w; ax.bar(x, y, w * 0.92, color=c, label=n if i == 0 or (i == 1 and v[0] is None) else None)
+            ax.text(x, y + 0.012, f"{y + 1e-9:.2f}", ha="center", fontsize=8)
+    ax.axhline(0.5, color=INK2, lw=0.8, ls=(0, (4, 3))); ax.text(4.62, 0.505, "chance", fontsize=7.5, color=INK2, ha="right", va="bottom")
+    ax.text(4 + w, 0.08, "no LM\nresult", fontsize=7.5, color=INK2, ha="center", va="center")
+    ax.set_xticks(range(5)); ax.set_xticklabels(t); ax.set_ylim(0, 1.1); ax.set_ylabel("AUC (binder vs non-binder)")
+    ax.yaxis.grid(True, color=GRID); ax.set_axisbelow(True); ax.legend(frameon=False, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, 1.2), ncol=3)
+    for s_ in ("top", "right"): ax.spines[s_].set_visible(False)
+    f.text(0.01, -0.04, "Family = connected set of sequences differing by one substitution. FIKK13 random-split AUC rests on 8 test binders. hPCSK9 LM value is from a model trained jointly on five targets (single-target model: 0.36).", fontsize=7.2, color=INK2)
     f.savefig(f"{OUT}/fig4_reliability_audit.png", dpi=220, bbox_inches="tight"); plt.close(f)
 
 
