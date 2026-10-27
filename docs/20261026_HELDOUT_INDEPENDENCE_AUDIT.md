@@ -30,3 +30,21 @@ spend, held for approval (same pattern as the roster re-run).
 ## Status vs committee blocker #3
 Deterministic half (the sharper integrity concern — scorer + rule layer) is **closed, positive**. The
 LLM/description half is authored and ready; its eval is the billable next step.
+
+## Part 2 result — description/harness generalization (2026-10-26, corrected)
+Two runs (the first exposed a construction error in this audit, recorded for honesty):
+- **Mis-specified run (INCONCLUSIVE):** menu built from only the ~12 held-out golds → bare is an easy 12-way
+  pick; dividend flat/negative (qwen 0.867→0.600, gemini/opus flat). This does NOT match the main benchmark's
+  conditions and is not evidence either way — my error.
+- **Corrected run (matches main conditions: bare = NO list / +harness = full 63-workflow described catalog):**
+  the harness dividend **reproduces on held-out queries**, with the same inverse-scaling pattern:
+  | model | bare | +harness | dividend |
+  |---|---|---|---|
+  | qwen3.5-9b (on-prem) | 0.133 | 0.933 | **+0.800** |
+  | gemini-3.1-pro | 0.667 | 1.000 | +0.333 |
+  | opus-5 | 0.800 | 0.933 | +0.133 |
+
+**Conclusion (blocker #3 CLOSED, positive, both halves):** the deterministic fixes generalize (88%, 0
+hallucinations) AND the harness dividend generalizes to unseen queries (+0.80 on the on-prem 9B, down to +0.13
+for the frontier) — consistent with the main benchmark. The gains are not dev-set overfit. (Lesson: a held-out
+routing test must use the full-catalog menu, not just the held-out golds, or bare is trivially easy.)
