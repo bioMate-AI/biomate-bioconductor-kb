@@ -4,7 +4,7 @@
 
 ## 1. The claim (proposed — NOT yet validated)
 A generator proposes cyclic-peptide candidates; a **ladder of verification tiers** checks each one; every tier is **calibrated against measured data** and **abstains when out of its domain**; the loop learns only from **verified** rewards. Claim to test: *the ladder yields shortlists with higher, calibrated precision at a stated abstention rate than the standard confidence-only pipeline, on held-out documents and receptors.*
-Novelty is **UNVERIFIED** (no systematic prior-art search done on the integrated claim). Closest known pieces: sample selection/reranking for co-folding, AfCycDesign/CyclicBoltz1 (ring closure inside the model), multi-fidelity BO. "LLM + rules + computation" alone is not novel (SynCraft).
+**REVISED after the prior-art check (`docs/20261026_PRIOR_ART_INTEGRATED_CLAIM.md`): the architectural claim is NOT novel** — multi-fidelity oracles (MFBind, MF-LAL), verifiable-reward molecular generation (LLMol), LLM peptide agents (Pepti-Agent, PepThink-R1) and integrated cyclic-binder pipelines (UnibindMD, posted 2026-10-23) all exist. The contribution must be EVIDENTIAL: measured, held-out reliability of each tier for cyclic peptides (reliability diagrams, coverage–precision/abstention), plus the physics/data we uniquely have (MIDAS-metal integrin FEP, 542 αvβ6 compounds / 35 documents). Novelty of those pieces remains UNVERIFIED (abstract-level reading only). Closest known pieces: sample selection/reranking for co-folding, AfCycDesign/CyclicBoltz1 (ring closure inside the model), multi-fidelity BO. "LLM + rules + computation" alone is not novel (SynCraft).
 
 ## 2. Assets → tiers (status as measured, not as hoped)
 | tier | asset | measured status | gap before it can be used |
