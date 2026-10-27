@@ -44,9 +44,11 @@ Representative rows (full table in Release v1 §1): Opus-5 0.615→0.990, GPT-6.
 *(Honest framing: "lower-bare-score models show larger absolute gains on these bounded-accuracy tasks" — a
 ceiling/headroom pattern, not asserted as an inverse-scaling mechanism.)*
 
-### 3.2 Channel routing (n=84, on-prem 9B; full roster pending)
-Qwen3.5-9B: **bare 0.750 (dd 0.778) → +harness 0.964 (dd 0.982), dividend +21.4pp** — the harness dividend
-reproduced on a new capability. (Per-channel: 5/7 channels perfect +harness; residual tool-search↔literature.)
+### 3.2 Channel routing (n=84; 7-model roster, bare→+harness)
+The dividend holds across every model with the same inverse pattern (small on-prem model gains most):
+Qwen3.5-9B 0.750→0.964 (+0.214), GLM-5.2 0.821→1.000 (+0.179), DeepSeek 0.833→0.976 (+0.143), Kimi 0.845→0.988
+(+0.143), Gemini-3.1 0.893→0.988 (+0.095), Opus-5 0.905→1.000 (+0.095). On-prem 9B drug-dev subset 0.778→0.982.
+(Per-channel: 5/7 perfect +harness; residual tool-search↔literature.)
 
 ### 3.3 param-prefill (n=170) — raw LLM vs the shipping system
 The leaderboard column is the **raw** LLM (rule layer OFF). BioMate's production path (rule layer + 9B + IO
