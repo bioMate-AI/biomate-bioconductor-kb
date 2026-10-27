@@ -1,15 +1,15 @@
-{"id": "PK-001", "prediction": ""}
-{"id": "PK-002", "prediction": ""}
-{"id": "PK-003", "prediction": ""}
-{"id": "PK-004", "prediction": ""}
-{"id": "PK-005", "prediction": ""}
-{"id": "PK-006", "prediction": ""}
-{"id": "PK-007", "prediction": "0.35"}
-{"id": "PK-008", "prediction": ""}
-{"id": "PK-009", "prediction": "1.2"}
-{"id": "PK-010", "prediction": ""}
-{"id": "PK-011", "prediction": ""}
-{"id": "PK-012", "prediction": "6.6"}
-{"id": "PK-013", "prediction": ""}
-{"id": "PK-014", "prediction": "0.013"}
-{"id": "PK-015", "prediction": ""}
+{"id": "PK-001", "prediction": null, "ref_Cmax_uM": 0.54, "within2fold": false}
+{"id": "PK-002", "prediction": 41.2, "ref_Cmax_uM": 4.8, "within2fold": false}
+{"id": "PK-003", "prediction": 194.0, "ref_Cmax_uM": 37.4, "within2fold": false}
+{"id": "PK-004", "prediction": null, "ref_Cmax_uM": 1.8, "within2fold": false}
+{"id": "PK-005", "prediction": null, "ref_Cmax_uM": 0.42, "within2fold": false}
+{"id": "PK-006", "prediction": 0.14, "ref_Cmax_uM": 0.34, "within2fold": false}
+{"id": "PK-007", "prediction": null, "ref_Cmax_uM": 0.28, "within2fold": false}
+{"id": "PK-008", "prediction": null, "ref_Cmax_uM": 0.048, "within2fold": false}
+{"id": "PK-009", "prediction": 1.2, "ref_Cmax_uM": 0.49, "within2fold": false}
+{"id": "PK-010", "prediction": null, "ref_Cmax_uM": 0.19, "within2fold": false}
+{"id": "PK-011", "prediction": 1.1, "ref_Cmax_uM": 0.21, "within2fold": false}
+{"id": "PK-012", "prediction": null, "ref_Cmax_uM": 3.63, "within2fold": false}
+{"id": "PK-013", "prediction": 38.6, "ref_Cmax_uM": 8.3, "within2fold": false}
+{"id": "PK-014", "prediction": null, "ref_Cmax_uM": 0.019, "within2fold": false}
+{"id": "PK-015", "prediction": null, "ref_Cmax_uM": 1.18, "within2fold": false}
