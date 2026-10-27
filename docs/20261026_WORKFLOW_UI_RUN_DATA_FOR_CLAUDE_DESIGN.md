@@ -235,12 +235,20 @@ p-value or printed median — use the Cox **score/log-rank p = 0.1** for signifi
 for the medians. Swap the dataset for a public cohort (e.g. `lung`) before publishing if the ImmPort
 source isn't wanted on-screen.
 
-### item 5 — DESeq2 up/down split: PARTIAL (top-200 real; full-1242 needs GSE52778 counts)
-Of the on-disk **top-200** DESeq2 rows (`deseq_results_top200.csv`): **137 up (log2FC>0) / 63 down** —
-real. The full **up/down split of all 1,242** significant genes cannot be computed from disk (only the
-top-200 is saved) and the DESeq2 **validation workflow bundles a different dataset (GSE89408 synovial
-RA), not GSE52778**. To get the exact 1,242 split I'd re-run DESeq2 on the GSE52778/airway count matrix
-(not committed locally) — a data-fetch + run step.
+### item 5 — DESeq2 up/down split: PARTIAL — real top-200 split; full-1242 not reproducible as the displayed number
+**Delivered (real):** of the on-disk **top-200** DESeq2 rows (`deseq_results_top200.csv`), the split is
+**137 up (log2FC>0) / 63 down**.
+**Why not the full 1,242 split of the displayed headline:** only the top-200 is saved on disk, and the
+original full results (all 34,371 genes) aren't committed. I **did** attempt a fresh DESeq2 run on the
+committed airway/GSE52778 counts (`airway_counts.csv`, 63,677 genes × 8 SRR samples, re-labelled
+dex vs untrt): runs `7a8c013c` → `609a7f18` → `…`. Two things make this a weak substitute:
+(1) a fresh run yields **self-consistent but different totals** (its own N-tested / M-significant), so its
+split would **not** correspond to the "34,371 / 1,242" number Design currently shows; and
+(2) the runnable `validation_deseq2_raw_counts` requires **two separate declared inputs** (`cts` **and**
+`coldata`) whose keys/format only surface by crashing — the same params-vs-inputs friction documented in
+`docs/20261026_PARAMS_VS_INPUTS_GAP.md`. **Recommendation:** either keep 34,371/1,242 with the top-200
+split as the shown direction (mostly up), or re-run DESeq2 end-to-end on airway and show that run's own
+totals **and** split together (coherent, but new numbers). Say which and I'll finish the run.
 
 ### item 4 — qPCR geNorm stability: BLOCKED on input (raw Ct matrix not on disk)
 Only the ddCq **outputs** (`qpcr_ddCq_*.csv`) are committed, not the raw per-gene/per-sample **Ct**
