@@ -1,0 +1,15 @@
+{"id": "PK-001", "prediction": 18.5, "ref_Cmax_uM": 0.54, "within2fold": false}
+{"id": "PK-002", "prediction": 18.0, "ref_Cmax_uM": 4.8, "within2fold": false}
+{"id": "PK-003", "prediction": 145.0, "ref_Cmax_uM": 37.4, "within2fold": false}
+{"id": "PK-004", "prediction": 7.97, "ref_Cmax_uM": 1.8, "within2fold": false}
+{"id": "PK-005", "prediction": 3.4, "ref_Cmax_uM": 0.42, "within2fold": false}
+{"id": "PK-006", "prediction": 0.36, "ref_Cmax_uM": 0.34, "within2fold": true}
+{"id": "PK-007", "prediction": 0.3, "ref_Cmax_uM": 0.28, "within2fold": true}
+{"id": "PK-008", "prediction": 0.1, "ref_Cmax_uM": 0.048, "within2fold": false}
+{"id": "PK-009", "prediction": 0.93, "ref_Cmax_uM": 0.49, "within2fold": true}
+{"id": "PK-010", "prediction": 0.16, "ref_Cmax_uM": 0.19, "within2fold": true}
+{"id": "PK-011", "prediction": 0.7, "ref_Cmax_uM": 0.21, "within2fold": false}
+{"id": "PK-012", "prediction": 6.6, "ref_Cmax_uM": 3.63, "within2fold": true}
+{"id": "PK-013", "prediction": 28.4, "ref_Cmax_uM": 8.3, "within2fold": false}
+{"id": "PK-014", "prediction": null, "ref_Cmax_uM": 0.019, "within2fold": false}
+{"id": "PK-015", "prediction": null, "ref_Cmax_uM": 1.18, "within2fold": false}
