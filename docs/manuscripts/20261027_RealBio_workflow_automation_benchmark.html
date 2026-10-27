@@ -248,13 +248,44 @@ candidate-context layer — and attributes the difference to the knowledge
 layer.</p>
 <h2 id="related-work-and-how-realbio-differs">2. Related work and how
 RealBio differs</h2>
-<p>Agentic-biomedical benchmarks have advanced the field but commonly
-(a) rely on a language model as judge, (b) report on private or
-sub-sampled items, (c) conflate “the model reasoned well” with “the
-product added value,” and (d) are run only by the system’s own authors.
-Table 1 summarizes how RealBio relates to representative public
-efforts.</p>
-<p><strong>Table 1. RealBio versus representative agentic-biomedical
+<p>A strong line of agent benchmarks now scores a <strong>hidden,
+executed outcome</strong> rather than a described method.
+<strong>SWE-bench</strong> and its expert-curated <strong>SWE-bench
+Verified</strong> subset (Princeton, 2023; OpenAI, 2024) place an agent
+in a per-instance container and accept a code patch only if hidden tests
+that previously failed now pass <em>and</em> previously-passing tests
+still pass. <strong>MLE-bench</strong> (OpenAI, 2024) grades agents on
+real Kaggle competitions by each competition’s own metric on a held-out
+split, against human leaderboard baselines.
+<strong>ScienceAgentBench</strong> (ICLR 2025) requires a self-contained
+program drawn from peer-reviewed analyses and grades the program, its
+execution output, and cost — and reports a <em>with/without expert
+knowledge</em> contrast in the spirit of an ablation.
+<strong>CORE-Bench</strong> (Princeton, 2024) grades computational
+reproduction of published results with difficulty tiers set by how much
+reproduction information is given. <strong>PaperBench</strong> (OpenAI,
+2025) grades paper replication against author-co-developed rubrics with
+a <em>validated</em> model judge. In bioinformatics specifically,
+<strong>BixBench</strong> (FutureHouse, 2025) pairs real datasets and
+analysis notebooks with expert questions.</p>
+<p>RealBio is complementary and differs on two axes that none of the
+above combine. First, it uses <strong>one open, fully deterministic
+scorer with no model judge</strong> — shared with
+SWE-bench/MLE-bench/CORE-Bench, but unlike the rubric/LLM-judged
+PaperBench and the open-answer BixBench. Second, its headline is a
+<strong>matched direct-vs- knowledge-layer ablation on the same
+model</strong>, which isolates the product contribution rather than
+ranking raw models; we are not aware of an agent benchmark that makes
+this matched ablation its primary result. We are candid about where
+RealBio is <em>behind</em> this cohort: its current items score
+<strong>recognition and selection</strong>, not executed operation. We
+therefore adopt the field’s execution-grounded verification as RealBio’s
+stated <strong>v2</strong> direction (a failed workspace with the
+diagnosis withheld; the agent submits a configuration/code fix; a
+resumed run plus hidden output checks decide the score), and present the
+current release as the deterministic, matched-ablation foundation on
+which that execution layer is built.</p>
+<p><strong>Table 1. RealBio versus representative agent
 benchmarks.</strong></p>
 <table style="width:100%;">
 <colgroup>
@@ -269,59 +300,76 @@ benchmarks.</strong></p>
 <tr>
 <th>Benchmark</th>
 <th>Open items</th>
-<th>Open scorer</th>
+<th>Deterministic scorer (no model judge)</th>
 <th>Cross-system</th>
-<th>Objective scoring</th>
-<th>Matched ablation</th>
+<th>Execution-grounded</th>
+<th>Matched knowledge-layer ablation</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Notebook/analysis agent benchmarks</td>
-<td>partial</td>
-<td>partial</td>
+<td>SWE-bench Verified (2024)</td>
 <td>yes</td>
-<td>model-judge or rubric</td>
-<td>partial</td>
+<td>yes (hidden tests)</td>
+<td>yes</td>
+<td>yes</td>
+<td>no</td>
 </tr>
 <tr>
-<td>Multiple-choice literature/knowledge suites</td>
-<td>partial</td>
+<td>MLE-bench (2024)</td>
+<td>yes</td>
+<td>yes (competition metric)</td>
 <td>yes</td>
 <td>yes</td>
-<td>yes (MCQ)</td>
-<td>partial</td>
+<td>no</td>
 </tr>
 <tr>
-<td>Science-agent task suites</td>
-<td>gated</td>
+<td>ScienceAgentBench (2025)</td>
+<td>yes</td>
+<td>partial (program + execution)</td>
 <td>yes</td>
 <td>yes</td>
-<td>execution + visual judge</td>
-<td>yes</td>
+<td>partial (expert-knowledge contrast)</td>
 </tr>
 <tr>
-<td>Domain analysis-agent evaluations</td>
-<td>partial</td>
-<td>partial</td>
+<td>CORE-Bench (2024)</td>
 <td>yes</td>
-<td>model-judge</td>
-<td>partial</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>no (difficulty tiers)</td>
+</tr>
+<tr>
+<td>PaperBench (2025)</td>
+<td>yes</td>
+<td>no (validated LLM judge)</td>
+<td>yes</td>
+<td>yes</td>
+<td>no</td>
+</tr>
+<tr>
+<td>BixBench (2025)</td>
+<td>yes</td>
+<td>partial (open-answer)</td>
+<td>yes</td>
+<td>yes (notebook)</td>
+<td>no</td>
 </tr>
 <tr>
 <td><strong>RealBio (this work)</strong></td>
 <td><strong>yes</strong></td>
-<td><strong>yes (CC-BY-4.0)</strong></td>
+<td><strong>yes (CC-BY-4.0, no judge)</strong></td>
 <td><strong>yes</strong></td>
-<td><strong>yes (exact/semantic match)</strong></td>
-<td><strong>yes (matched direct-vs-layer)</strong></td>
+<td>recognition now; <strong>v2 planned</strong></td>
+<td><strong>yes (direct vs. knowledge layer)</strong></td>
 </tr>
 </tbody>
 </table>
-<p>We claim this <em>combination</em> only for the systems we could run
-under one identical, frozen-prompt protocol; several prior benchmarks
-match RealBio on individual axes, and we invite closed co-scientist
-systems to place their own results on the open items.</p>
+<p>We claim the <em>combination</em> of a no-judge deterministic scorer
+and a matched knowledge-layer ablation; several prior benchmarks match
+RealBio on individual axes and exceed it on execution grounding. We
+invite closed co-scientist systems to place their own results on the
+open items.</p>
 <h2 id="the-benchmark-five-workflow-automation-tasks">3. The benchmark:
 five workflow-automation tasks</h2>
 <table>
@@ -539,13 +587,24 @@ refutable.</p>
 matched-protocol runner are released under CC-BY-4.0. Any team can run
 its own system on the fixed items and reproduce every number in this
 paper.</p>
-<h2 id="references-indicative">References (indicative)</h2>
-<p>Representative public benchmarks and methods discussed above include
-notebook- and analysis-agent suites, multiple-choice
-biomedical-knowledge suites, science-agent task suites, and domain
-analysis agents; full citations accompany the released dataset. Clinical
-dose-finding methodology referenced by the companion drug-development
-benchmark follows Liu &amp; Yuan, <em>J. R. Stat. Soc. C</em>
-(2015).</p>
+<h2 id="references">References</h2>
+<ol type="1">
+<li>SWE-bench: Can Language Models Resolve Real-World GitHub Issues?
+ICLR 2024 (arXiv:2310.06770).</li>
+<li>Introducing SWE-bench Verified. OpenAI, 2024.</li>
+<li>MLE-bench: Evaluating Machine Learning Agents on Machine Learning
+Engineering. OpenAI, 2024 (arXiv:2410.07095).</li>
+<li>ScienceAgentBench: Toward Rigorous Assessment of Language Agents for
+Data-Driven Scientific Discovery. ICLR 2025 (arXiv:2410.05080).</li>
+<li>CORE-Bench: Fostering the Credibility of Published Research Through
+a Computational Reproducibility Agent Benchmark. 2024
+(arXiv:2409.11363).</li>
+<li>PaperBench: Evaluating AI’s Ability to Replicate AI Research.
+OpenAI, 2025 (arXiv:2504.01848).</li>
+<li>BixBench: A Comprehensive Benchmark for LLM-based Agents in
+Computational Biology. FutureHouse, 2025 (arXiv:2503.00096).</li>
+<li>Liu, S. &amp; Yuan, Y. Bayesian optimal interval designs for phase I
+clinical trials. <em>J. R. Stat. Soc. C</em> 64, 507–523 (2015).</li>
+</ol>
 </body>
 </html>

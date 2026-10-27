@@ -29,16 +29,46 @@ And no benchmark grades the property that most distinguishes an agent from a pre
 
 This version reports the **measured** decision tasks: Phase-I dose selection (20 scenarios) and pharmacokinetic exposure prediction (15 compounds). The single-stage prediction tracks (property, docking, binding free energy, structure–activity modeling, synthesis) exist in the benchmark to position against external work and are not the headline. The **cross-stage execution-grounded track is designed and piloted but not yet scored across a model roster**; we present it as the benchmark's roadmap and do not report it as a result. This scoping is deliberate: we would rather publish the mechanistically-anchored decision tasks we can defend than claim an execution-grounded capability we have not yet measured.
 
-## 3. Methods
+## 3. Related work and positioning
+
+**Single-stage prediction with leakage-aware design.** The drug-discovery benchmark landscape is rich but
+largely single-step. The **Therapeutics Data Commons** standardizes property/ADMET/toxicity datasets with
+scaffold and cold-start splits (while cautioning that scaffold splitting does not remove all leakage).
+**PLINDER** and **PINDER** (2024) provide *task-specific* leakage-aware splits for protein–ligand and
+protein–protein prediction, because what counts as leakage differs by task. **PoseBusters** (2024) scores
+*physical validity* (geometry, clashes) rather than a single accuracy number, and reports that classical,
+mechanistic docking still beats deep-learning methods on validity and generalization. **Polaris** (industry-led,
+2024–2025) runs rigorous blind challenges and meta-analyzes common pitfalls. We adopt from this line two
+commitments: **leakage-aware, task-specific splits** for any structure/affinity task, and a **mechanistic
+baseline** as a first-class reference — the PoseBusters finding that a mechanistic method beats a learned one is
+precisely our result in a new domain (dose selection), not an anomaly.
+
+**Clinical-trial datasets.** The nearest public anchor for the dose decision is **TrialBench** (2024), a
+collection of AI-ready clinical-trial datasets spanning eight prediction tasks *including drug dose-finding* —
+and dose-finding is explicitly one of its hardest tasks. TrialBench is *predictive-dataset* in form; our
+contribution is the complementary **decision-and-simulation** framing (choose and justify a dose under a
+mechanistic model), not a duplicate dataset.
+
+**Execution-grounded agent benchmarks.** The scoring form we adopt comes from the agent-benchmark line —
+**ScienceAgentBench** (ICLR 2025) grading a runnable program by its execution output and cost, and **MLE-bench**
+(OpenAI, 2024) grading on a held-out metric against a human baseline. DrugDev's measured tasks follow this
+spirit: the headline is a computed, reference-anchored outcome, not a recalled fact.
+
+**What is new here.** No open benchmark grades Phase-I dose selection or pharmacokinetic exposure as an
+execution-relevant *decision* with a mechanistic reference, and the cross-stage, execution-grounded track we
+design has no open counterpart. We make scoped-novelty claims only, and cite the benchmarks above as the
+baselines and design sources we build on.
+
+## 4. Methods
 
 Each task is graded by one deterministic scorer. Language models are reported directly and, where a knowledge layer applies, with it. For context, every task is anchored to a **non-model mechanistic reference** so that a model's score is read against the right instrument, not only against other models.
 
 - **Phase-I dose selection.** Each scenario provides pharmacokinetic and exposure–response inputs and a dose grid; the system must select the maximum tolerated dose. The grader holds the true per-dose toxicity curve, which the solver does not see. The **mechanistic reference** is the standard dose-selection rule (eliminate doses whose toxicity exceeds the target by more than the standard band; otherwise select the admissible dose whose rate is closest to target), applied to the true curve. This rule is the established methodology in the field (Liu & Yuan, 2015).
 - **Pharmacokinetic exposure.** Each compound provides molecular weight, lipophilicity, ionization, plasma binding, and clearance inputs; the system predicts peak plasma concentration in micromolar, scored as the fraction of compounds within two-fold of the reference.
 
-## 4. Results
+## 5. Results
 
-### 4.1 Phase-I dose selection: models versus the mechanistic rule
+### 5.1 Phase-I dose selection: models versus the mechanistic rule
 
 ![Figure 2. Dose-selection accuracy.](figures/drugdev_fig2_boin.png)
 
@@ -50,25 +80,36 @@ Three readings:
 2. **Frontier language models are weak here (0.11–0.50).** Dose selection from an exposure–response model is not something they do reliably.
 3. **A small on-premises model reaches 0.78** — above every frontier model on this task, though below the mechanistic rule. We flag this as notable but do not over-read it: the proper solution is the mechanistic exposure–response calculation, which the benchmark exists to motivate, not a language model's unaided guess.
 
-### 4.2 Pharmacokinetic exposure prediction
+### 5.2 Pharmacokinetic exposure prediction
 
 The originally reported near-zero scores came from a prompt that did not state **which** pharmacokinetic endpoint to predict (each compound has several reference values), so the grader matched the wrong one. With the endpoint specified unambiguously, capable models reach only **~0.40–0.47 within two-fold** (for example, a frontier model at 0.47). This is an honest construct-validity correction: the task is hard, but "near-useless" was partly a specification artifact; we do not claim a model wins, and no system reaches the two-fold bar reliably.
 
-### 4.3 A metric caveat we surface rather than hide
+### 5.3 A metric caveat we surface rather than hide
 
 An early ligand-ranking task reported a score that was nearly identical across every model. On inspection this was a **metric-resolution artifact**: the rankings had only three items, on which the rank-correlation metric can take just four values, and all models mis-ranked the same small subset. We report this transparently and demote that task to a low-resolution probe pending a rebuild with longer rankings; we do not fabricate longer reference rankings to inflate resolution.
 
-## 5. Limitations
+## 6. Limitations
 
 - **Statistical power.** The two measured tasks have 20 and 15 items; we report them as decision probes with the mechanistic anchor, not as high-precision model rankings, and we do not pool heterogeneous micro-tasks to manufacture power.
 - **No wet-lab ground truth.** Exposure and toxicity references are modeled; we are explicit that modeled references are not experimental validity.
 - **Cross-stage track unmeasured.** The execution-grounded cross-stage track is design and pilot only; its results are future work, and the abstract and title are scoped accordingly.
 - **Mechanistic reference as oracle.** The 0.85 dose-selection reference uses the true exposure–response curve, which the solver does not see; it is an upper bound on rule-based selection, not an end-to-end system score.
 
-## 6. Discussion
+## 7. Discussion
 
 DrugDev-Bench's contribution is to put two gate-keeping drug-development decisions — dose selection and pharmacokinetic exposure — into an open, deterministically-scored benchmark anchored to the established mechanistic methods, and to lay out an execution-grounded cross-stage track as the next milestone. The headline finding is sober and useful: on dose selection, language models trail the standard mechanistic rule by a wide margin, which is exactly the argument for routing such decisions through the mechanistic tool rather than a model's unaided judgment. We release the items, references, scorers, and the mechanistic baseline so every number here can be reproduced and contested.
 
-## 7. Data and code availability
+## 8. Data and code availability
 
 Items, references, the deterministic scorers, and the mechanistic dose-selection baseline are released under CC-BY-4.0. Dose-selection methodology follows Liu & Yuan, *Journal of the Royal Statistical Society: Series C* (2015).
+
+## References
+
+1. Liu, S. & Yuan, Y. Bayesian optimal interval designs for phase I clinical trials. *J. R. Stat. Soc. C* 64, 507–523 (2015).
+2. TrialBench: Multi-Modal AI-Ready Clinical Trial Datasets. 2024 (arXiv:2407.00631).
+3. Therapeutics Data Commons (PyTDC): AI-ready therapeutic datasets and benchmarks with scaffold/cold-start splits.
+4. PLINDER: The Protein–Ligand Interactions Dataset and Evaluation Resource. bioRxiv 2024.07.17.603955.
+5. PINDER: The Protein Interaction Dataset and Evaluation Resource. bioRxiv 2024.07.17.603980.
+6. PoseBusters: Are deep learning docking methods ready for production? *Chem. Sci.* 2024.
+7. Polaris: an industry-led benchmarking platform for ML-based drug discovery (Valence Labs, 2024–2025).
+8. ScienceAgentBench. ICLR 2025 (arXiv:2410.05080); MLE-bench. OpenAI, 2024 (arXiv:2410.07095).

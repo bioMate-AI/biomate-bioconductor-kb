@@ -22,7 +22,20 @@ We contribute: (1) an objectively-scored channel-routing benchmark whose labels 
 
 ## 2. Related work
 
-Agentic-science benchmarks grade end-to-end task completion or notebook analysis; tool-selection suites grade *which tool*, again downstream of the channel decision. General-purpose query-classification and retrieval-routing datasets exist in the natural-language-processing literature but not for a biomedical agent's resource taxonomy. To our knowledge this is the first open, objectively-scored test of the *which-resource* decision grounded in a deployed biomedical agent's action set. We state this as a scoped novelty claim, not a universal first, and we report a keyword baseline so readers can see how much of the task is lexical.
+The strongest agent benchmarks grade an executed outcome on a task **whose type is already fixed**:
+**SWE-bench Verified** (OpenAI, 2024) hands the agent a code issue, **MLE-bench** (OpenAI, 2024) a modeling
+competition, **ScienceAgentBench** (ICLR 2025) and **CORE-Bench** (Princeton, 2024) a data-analysis or
+reproduction task, and **BixBench** (FutureHouse, 2025) a bioinformatics notebook. In every case the *kind of
+work* — code, model, analysis — is given. Tool-selection suites grade *which tool* to use, but again only once
+the task is known to need a tool. General-purpose query-classification and retrieval-routing datasets exist in
+the natural-language-processing literature but not for a biomedical agent's resource taxonomy.
+
+The decision *upstream* of all of these — **which kind of resource a request belongs to at all** — is what we
+benchmark. To our knowledge it is the first open, objectively-scored test of the which-resource decision
+grounded in a deployed biomedical agent's action set. We state this as a scoped novelty claim, not a universal
+first, and we report a non-model keyword baseline so a reader can see exactly how much of the task is lexical.
+Consistent with the field (MLE-bench's human baseline, PoseBusters' classical-method baseline in structural
+drug discovery), we treat the non-model baseline as a required reference, not an afterthought.
 
 ## 3. The benchmark
 
@@ -71,3 +84,12 @@ Channel routing is the agent decision that most determines whether the rest of t
 ## 8. Data and code availability
 
 The items, ground truth, the deterministic scorer, the keyword baseline, and the matched-protocol runner are released under CC-BY-4.0.
+
+## References
+
+1. SWE-bench: Can Language Models Resolve Real-World GitHub Issues? ICLR 2024 (arXiv:2310.06770); SWE-bench Verified, OpenAI, 2024.
+2. MLE-bench: Evaluating Machine Learning Agents on Machine Learning Engineering. OpenAI, 2024 (arXiv:2410.07095).
+3. ScienceAgentBench: Toward Rigorous Assessment of Language Agents for Data-Driven Scientific Discovery. ICLR 2025 (arXiv:2410.05080).
+4. CORE-Bench: A Computational Reproducibility Agent Benchmark. 2024 (arXiv:2409.11363).
+5. BixBench: A Comprehensive Benchmark for LLM-based Agents in Computational Biology. FutureHouse, 2025 (arXiv:2503.00096).
+6. PoseBusters: Are deep learning docking methods ready for production? *Chem. Sci.* 2024.
