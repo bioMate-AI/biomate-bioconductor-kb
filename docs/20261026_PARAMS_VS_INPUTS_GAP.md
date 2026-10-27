@@ -67,6 +67,52 @@ param|channel|script_path, provenance_source, validation }`. Then:
 - Treat a missing required input as a **pre-run QC/verifiable-reward gate** (same machinery that gates
   QC thresholds), so "it will fail because input X is missing" is caught before spending a Batch run.
 
+## Implementation scope — the requirement-scanner (the fix, concretely)
+
+A read-only static scanner that derives each workflow's **true** requirement set from its own files, emits
+a normalized manifest, and backfills the schema. Phased so value lands before the risky parts.
+
+**What it parses** (per workflow: the `.nf` + any embedded R/Python heredoc):
+| Source pattern | Requirement it implies |
+|---|---|
+| `params.X = <default>` | scalar param `X`, optional, default `<default>` |
+| `path(v, stageAs: 'Y')` in `input:` | file input, **expected staged name `Y`** |
+| `read_input_file("K")` (biomate wrapper) | **declared input key `K`** (this is the real run_workflow param key — e.g. `cts`, `coldata`) |
+| `read.csv("F")` / `read.table(gzfile("F"))` / `read.taqman("F")` / `file("F")` | file input, **expected basename `F`**, required |
+| `colnames(x) <- tolower(...)` + `grep("time\|status\|…")` | column-mapping hints → surface expected columns |
+
+**Output — one manifest per workflow** (store in the DB alongside `params_schema`):
+```
+requirements: [
+  { key, kind: scalar|enum|file, required: bool, default?, allowed_values?,
+    staged_name?, expected_columns?, format_hint?, maps_to: param|channel|script|wrapper }
+]
+```
+
+**Phases:**
+- **P0 — scan + diff report (read-only, ship first).** Run across the catalog; for each workflow diff
+  *declared* (`required_params`/`input_types`) vs *scanned* requirements. Output the set of workflows whose
+  scripts need more than the schema declares (the invisible-input list) — this **quantifies the blast
+  radius** and is immediately useful (e.g. "N workflows will silently fail without undeclared input X").
+  Add a unit test asserting scanned ⊆ declared going forward.
+- **P1 — backfill + executor stage-name normalization.** Write the scanned file requirements into the
+  schema so `search_workflow`/`get_workflow_spec` report them. In the executor, when a requirement
+  declares a `staged_name`/basename, **stage the uploaded object as that name** (strip the `upload_file`
+  UUID prefix) — kills the filename-mismatch trap.
+- **P2 — wire the interaction.** Feed the manifest to (a) **pre-run gating**: block on any missing required
+  file with a helpful prompt ("attach `coldata` — columns `sample,condition`"); (b) the **chat assistant**:
+  prompt the user for missing inputs instead of launching a doomed run; (c) **prefill**: nothing to fill
+  for files, but surface them in the param strip as required with provenance.
+- **P3 — re-measure.** The `prereq` benchmark dimension should jump from ~0.33; add a regression test that
+  a known multi-input workflow (DESeq2: `cts`+`coldata`) is gated pre-run, not crashed.
+
+**Effort shape:** P0 is a self-contained script + report (small, no risk). P1–P2 touch the schema loader,
+executor staging, and the gating/assistant path; each is independently shippable. One scanner fixes the
+whole class instead of patching workflows one by one.
+
+**Guardrail:** the scanner is the source of truth derived from scripts, so it can't drift from what the
+code actually reads — the root cause of this entire class of silent failures.
+
 ## Scope
 Instances of undeclared/mis-declared requirements beyond `survival`: the Cox workflow
 (`survival_cox_proportional_hazards_regression`, same hardcoded `patient_clinical_data.csv`), and more
