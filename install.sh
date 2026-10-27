@@ -424,14 +424,28 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 # 4c. 多架构容器支持（ARM64 宿主机）
 # ─────────────────────────────────────────────────────────────────────────────
-# On non-amd64 hosts (ARM64 Graviton, Apple Silicon), some images in the stack
-# may ship only an amd64 variant. Docker can run them transparently via QEMU
-# user-mode emulation when binfmt_misc is registered. Install it proactively so
-# the stack starts even if the image hasn't been rebuilt for the host platform.
+# On ARM64 hosts (Graviton2/3, Apple Silicon):
+# 1. Set DOCKER_DEFAULT_PLATFORM=linux/arm64 so Nextflow-spawned Docker
+#    containers use native arm64 images (biomni-admet:arm64, biomni-tools:arm64).
+#    Without this, the default linux/amd64 causes Docker to look for x86 variants
+#    of locally-available arm64 images and fail with "pull access denied".
+# 2. Install QEMU binfmt for amd64 as a fallback for any workflow images that
+#    haven't yet been rebuilt for arm64.
 if [[ "$HOST_ARCH_NORM" != "amd64" ]]; then
-  info "ARM64 宿主机，启用多架构容器支持（QEMU binfmt）..."
+  info "ARM64 宿主机，配置 Docker 平台默认值和多架构支持..."
+  # Set DOCKER_DEFAULT_PLATFORM=linux/arm64 so galaxy's Nextflow executor uses
+  # native arm64 workflow images instead of trying to pull linux/amd64 variants.
+  if grep -q "^DOCKER_DEFAULT_PLATFORM=" "$ENV_FILE" 2>/dev/null; then
+    sed -i.bak "s|^DOCKER_DEFAULT_PLATFORM=.*|DOCKER_DEFAULT_PLATFORM=linux/arm64|" "$ENV_FILE"
+    rm -f "$ENV_FILE.bak"
+  else
+    echo "DOCKER_DEFAULT_PLATFORM=linux/arm64" >> "$ENV_FILE"
+  fi
+  ok "DOCKER_DEFAULT_PLATFORM 已设为 linux/arm64"
+
+  # Install QEMU binfmt for amd64 emulation (fallback for amd64-only workflow images).
   if docker run --rm --privileged tonistiigi/binfmt --install amd64 >/dev/null 2>&1; then
-    ok "多架构支持已启用 (amd64 on ${HOST_ARCH})"
+    ok "多架构支持已启用 (amd64 QEMU on ${HOST_ARCH})"
   else
     warn "多架构支持安装失败 — amd64 镜像可能无法在 ${HOST_ARCH} 上运行"
   fi
