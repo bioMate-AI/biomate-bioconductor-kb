@@ -11,6 +11,11 @@
   "n_test": 16645,
   "n_test_binders": 173
  },
+ "binder_families": 160,
+ "binders": 828,
+ "top1_family_share_of_binders": 0.806,
+ "top10_family_share_of_binders": 0.819,
+ "singleton_binder_families": 157,
  "n_families": 11618,
  "family_disjoint_kmer_baseline": {
   "auc": 0.521,
