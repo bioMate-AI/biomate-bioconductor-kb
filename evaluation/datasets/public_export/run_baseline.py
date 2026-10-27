@@ -62,8 +62,10 @@ GEN = {
         parse=_extract_json),
     "pbpk_benchmark": dict(
         inp=lambda r: f"Compound {r.get('name')} (SMILES {r.get('smiles')}), dose {r.get('dose_mg')} mg {r.get('route')}. "
-                      f"Task inputs: {r.get('inputs')}",
-        instr="Predict the requested pharmacokinetic value. Respond with a single number only (no units).",
+                      f"Task inputs: {r.get('inputs')}. "
+                      f"Predict: {r.get('target_endpoint','Cmax')} (peak plasma concentration) in {r.get('target_units','uM')}.",
+        instr="Predict the peak plasma concentration Cmax in µM for the compound and dose given, using the "
+              "provided PK inputs. Respond with a single number only (no units).",
         parse=lambda t: (re.search(r"[-+]?\d*\.?\d+", t or "") or type("x", (), {"group": lambda s: ""})()).group()),
     # LitQA2 bare baseline (C0): parametric MCQ, NO retrieval. Retrieval systems run via
     # litqa2/run_biomate.py and litqa2/run_paperqa2.py. score.py::score_litqa2 maps the

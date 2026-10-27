@@ -150,7 +150,13 @@ def score_pbpk(gt, preds):
     n = ok = 0
     for i, r in gt.items():
         try:
-            ref = float(re.search(r"[-+]?\d*\.?\d+", str(r["reference"])).group())
+            ref_blob = r["reference"]
+            ep = r.get("target_endpoint")   # explicit endpoint (post-2026-10-26 spec fix) — robust
+            if ep and isinstance(ref_blob, dict) and ep in ref_blob:
+                ref = float(ref_blob[ep])
+            else:
+                # legacy fallback: first number in the reference (implicitly Cmax by dict order)
+                ref = float(re.search(r"[-+]?\d*\.?\d+", str(ref_blob)).group())
         except Exception:
             continue  # no valid reference (null GT) — item is not scoreable, excluded from denominator
         n += 1  # a scoreable item: a missing OR unparseable prediction below counts as a failure, not a drop
