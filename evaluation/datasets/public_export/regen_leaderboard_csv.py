@@ -36,9 +36,9 @@ TASKS = {
     "param_prefill_F1": ("param_prefill",        S.score_param_prefill,"param_f1"),
     "workflow_gen":     ("workflow_generation",  S.score_workflow_gen, "accuracy"),
     "protocol_QC":      ("protocol_thresholds",  S.score_protocol,     "accuracy"),
-    "pbpk_2fold":       ("pbpk_benchmark",       S.score_pbpk,         "within_2fold"),
-    "boin_mtd":         ("boin_benchmark",       S.score_boin,         "accuracy"),
-    "dd_spearman":      ("drug_discovery_e2e",   S.score_drug_disc,    "mean_spearman_rank"),
+    # NOTE (2026-10-27): pbpk_2fold / boin_mtd / dd_spearman REMOVED from RealBio — drug-development
+    # decision/prediction tasks are a SEPARATE benchmark (DrugDev-Bench, `../drugdev_export/`). RealBio is
+    # the general bioinformatics-agent suite (routing / channel-routing / param / autofix / workflow-gen).
 }
 COLS = list(TASKS.keys())
 
@@ -99,8 +99,7 @@ def default_file(col, base):
         "routing_harness": "cross_domain_routing_catalog_described",
         "autofix": "autofix_benchmark",
         "param_prefill_F1": "param_prefill", "workflow_gen": "workflow_generation",
-        "protocol_QC": "protocol_thresholds", "pbpk_2fold": "pbpk_benchmark",
-        "boin_mtd": "boin_benchmark", "dd_spearman": "drug_discovery_e2e",
+        "protocol_QC": "protocol_thresholds",
     }[col]
     return f"{base}/{fbase}.jsonl"
 

@@ -19,22 +19,27 @@ withdrawn artifacts, and bound the claims: this is a per-task-suite measurement,
 biomedical automation is model-invariant.
 
 ## 1. Contributions
-1. **An open benchmark suite** (one deterministic `score.py`, fixed public items): workflow routing (n=200),
-   **channel routing** (the stage-1 "which resource" decision, n=84, 64% drug-development), param-prefill
-   (n=170), autofix, and DrugDev decision tasks (pbpk/boin/dd). No LLM-judge.
+1. **An open benchmark suite** (one deterministic `score.py`, fixed public items) for the general
+   bioinformatics-AGENT capabilities: workflow routing (n=200), **channel routing** (the stage-1 "which
+   resource" decision, n=84, 64% drug-development queries), param-prefill (n=170), autofix, and
+   workflow-generation. No LLM-judge. *(Drug-development decision/prediction tasks — PBPK, BOIN, docking,
+   ADMET, QSAR, FEP — are a SEPARATE sibling benchmark, DrugDev-Bench, not part of RealBio.)*
 2. **A matched bare-vs-harness protocol** that isolates the candidate-context contribution on the SAME model
    snapshot, empties-aware (budget tokens past reasoning; retry; flag empties) — reported as each benchmark's
    primary result.
-3. **Honest negatives + corrections**: a withdrawn PBPK artifact (100%→same-item 0.200), two regressed
-   fine-tuning attempts, a semantic-vs-string scorer correction, and a held-out independence audit of the
-   deterministic components.
+3. **Honest negatives + corrections**: two regressed fine-tuning attempts, a semantic-vs-string scorer
+   correction, and a held-out independence audit of the deterministic components.
 
 ## 2. The suite (what each benchmark measures)
 - **Workflow routing** — given a pipeline request, pick the correct workflow (63-label catalog, 13 domains).
 - **Channel routing** — the upstream decision: route to workflow / tool-search / database-lookup /
   literature / code-execution / knowledge-answer / dataset-discovery (7 channels ≡ production `ActionCategories`).
 - **param-prefill** — extract workflow parameters from a request (restraint-rewarded; `{}` can be correct).
-- **DrugDev** — pbpk-2fold, boin-MTD, drug-discovery ranking (3 adequately-powered tasks; 17 micro-tasks held).
+- **autofix** — map a failed-run error to the correct fix category.
+- **workflow-generation** — produce the right workflow category / key tools for a request.
+
+*(Drug-development decision tasks (PBPK, BOIN, docking, ADMET, QSAR, FEP) live in the separate sibling
+benchmark DrugDev-Bench (`../drugdev_export/`), a distinct workstream — not scored here.)*
 
 ## 3. Primary results — matched bare vs +harness (Release v1; scorer e281c1bdd)
 ### 3.1 Workflow routing (n=200, +harness = described candidate menu)
@@ -81,13 +86,14 @@ hallucinations**, and **abstain correctly** on uncovered organisms (pig/chicken)
 - Some cells are flagged non-citable (gpt-5.6 names-only menu; qwen3.8-max bare 44% empty; opus-5.5
   content-filter refusals); 17/20 routing_harness cells are uniform `described`.
 - "Selection" accuracy is high **conditional on retrieval**; end-to-end routing ≈ 0.80.
-- DrugDev's 17 micro-tasks (n=2–10) are not scored; PBPK/param/BOIN task specs need repair before capability
-  interpretation (§7).
+- param-prefill's "fill only if stated" vs the gold's organism→genome inference is a condition caveat (the
+  raw-LLM column is a floor; the production rule layer does the canonical inference).
 - Channel routing n=84 is a seed set, not evidence of production prevalence.
 
 ## 7. Open items before submission (gate)
 (1) make matched bare-vs-harness the primary table in all figures + wire the rule layer into the param eval;
-(2) fix PBPK (endpoint under-specified), param (fill-if-stated vs unstated-genome), and BOIN (algorithmic vs
-latent-MTD) specs + rerun; (3) complete the full-roster channel-routing + the held-out routing LLM eval; (4)
-the official `run_param_prefill.py` production figure; (5) build the claim registry's per-number manifest into
-the supplement. Re-convene the committee before declaring submit-ready (submit-review gate).
+(2) the official `run_param_prefill.py` production param figure (rule layer + 9B); (3) the full-roster
+channel-routing + the held-out routing LLM eval (both substantially done); (4) build the claim registry's
+per-number manifest into the supplement; (5) complete autofix/workflow_gen cells for the remaining models.
+Re-convene the committee before declaring submit-ready (submit-review gate). (DrugDev-Bench task-spec fixes —
+e.g. the PBPK endpoint — belong to that separate benchmark, not here.)

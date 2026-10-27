@@ -53,10 +53,11 @@ are therefore the raw on-prem LLM, **not** the shipping system. The PRODUCTION n
 On-prem 9B (`results/qwen_qwen3.5-9b/channel_routing_summary.json`): **bare 0.750 (dd 0.778) → +harness 0.964
 (dd 0.982), dividend +21.4pp** — the harness dividend reproduced on a new capability. (Full roster still to run.)
 
-## 4. DrugDev (3 adequate-n tasks; the 17 micro-tasks n=2–10 are NOT scored)
-`drugdev_export/leaderboard.csv`: pbpk_2fold (n=15), boin_mtd (n=20), dd_spearman (n=15). Notable: BioMate 9B
-base BOIN = 0.778 (best small/open). PBPK universally weak (0.0–0.2) — and PBPK prompt is endpoint-underspecified
-(committee: do not call models "near-useless at PBPK" — fix the spec + rerun).
+## 4. DrugDev — OUT OF SCOPE for RealBio (separate sibling benchmark)
+Drug-development decision/prediction tasks (pbpk, boin, dd, admet, docking, qsar, fep) are **DrugDev-Bench**
+(`evaluation/datasets/drugdev_export/`, a distinct workstream), NOT part of RealBio. As of 2026-10-27 the
+pbpk_2fold / boin_mtd / dd_spearman columns were **removed from the RealBio leaderboard**. Any PBPK/BOIN
+numbers or task-spec fixes belong to DrugDev-Bench and are not claimed here.
 
 ## 5. Number disambiguation — resolving the 0.880 / 0.885 / 0.905 / 0.915 / 0.92 the committee flagged
 One quantity ("BioMate on-prem base + harness routing"), one canonical value — the rest are an evolution or
@@ -70,8 +71,8 @@ stale:
 
 ## 6. Non-citable / flagged cells (carry these forward; see `LEADERBOARD_CAVEATS.md`)
 - `gpt-5.6` +harness = names-only menu (not on OpenRouter); `qwen3.8-max` **bare 0.345 = 44% empty = not
-  citable**; `opus-5.5` has 18 content-filter refusals (real behavior, not a row); DrugDev 17 micro-tasks
-  unscored (tiny-n). 17/20 routing_harness cells are uniform `described`; the rest flagged.
+  citable**; `opus-5.5` has 18 content-filter refusals (real behavior, not a row). 17/20 routing_harness cells
+  are uniform `described`; the rest flagged.
 
 ## 7. Still-open before submit (committee punch list, beyond this freeze)
 (a) matched bare-vs-harness must be the PRIMARY leaderboard + wire the rule layer into the param eval;
