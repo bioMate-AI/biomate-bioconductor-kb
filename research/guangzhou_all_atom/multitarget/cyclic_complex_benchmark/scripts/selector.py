@@ -50,12 +50,16 @@ def build(rows_by_complex, thr=0.23, feats=FEATURES):
 
 
 class Selector:
-    def __init__(self, C=0.3, feats=FEATURES):
+    def __init__(self, C=0.3, feats=FEATURES, mixed_only=False):
         from sklearn.linear_model import LogisticRegression
-        self.feats = feats; self.m = LogisticRegression(C=C, max_iter=2000)  # L2 is the default
+        self.feats = feats; self.mixed_only = mixed_only; self.m = LogisticRegression(C=C, max_iter=2000)  # L2 is the default
         self.trivial = None
 
     def fit(self, rows_by_complex, thr=0.23):
+        if self.mixed_only:      # amendment A6: a complex whose samples all succeed (or all fail) has no within-complex ranking information
+            rows_by_complex = {c: rs for c, rs in rows_by_complex.items() if 0 < sum(r["dockq"] >= thr for r in rs) < len(rs)}
+            if not rows_by_complex:
+                self.trivial = True; return self
         X, y, _ = build(rows_by_complex, thr, self.feats)
         if y.min() == y.max():                       # no signal to learn (all/none acceptable) -> behave like default ranking
             self.trivial = True; return self

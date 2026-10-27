@@ -120,3 +120,11 @@ This is a compute limitation, stated as a limitation in any write-up; it is not 
 ## Amendment A5 (2026-10-27) — evaluation trigger; made BEFORE any Stage B sample was scored
 To fix the timing of the one-shot evaluation (preprint v1 target date: 2026-10-27), the selector is fit and evaluated once, at the earlier of: (a) all 113 capped test complexes have finished generation, or (b) 6 h after this commit. TRAIN = every capped train complex (≤600 true tokens) finished at that moment; no further train complexes are awaited. Test complexes still missing at trigger (b) are excluded and listed by ID with reason "not generated in time" (reported, not silently dropped). Claim rule, baselines, selector and disclosure are unchanged.
 Disclosure: at commit time 98/113 test and 135/283 train complexes were generated and none was scored.
+
+## Amendment A6 (2026-10-27) — selector variant S1; made AFTER train-only diagnostics, BEFORE any test score was opened
+Scores for TEST complexes exist on disk but have not been read by any analysis (no evaluation, no feature screen, no summary). Everything below used TRAIN only.
+Train-only finding (135 complexes): 94 have every sample acceptable, 4 have none, only 37 are "mixed"; the original selector S0 fits all samples, so 98 complexes add label noise and no ranking information.
+Grouped (receptor-cluster) 5-fold CV on train with S0 gave top-1 success 82.2 % vs default 83.7 % vs random 83.7 % (oracle 97.0 %).
+Change: add variant S1 = same features and model, trained only on mixed complexes (fit option `mixed_only`).  S1's regularisation C is chosen by receptor-cluster 5-fold CV on TRAIN only, repeated over 5 fold seeds, from the fixed grid {0.01, 0.03, 0.1, 0.3, 1}: choose the C with the highest mean top-1 success at DockQ >= 0.23; ties -> smaller C.
+Reporting: BOTH S0 (as originally registered) and S1 are evaluated once on TEST. The primary claim rule (CI lower bound > 0 vs the strongest baseline, on all test complexes AND on novel receptors) is applied to S1; S0 is reported alongside as the originally registered selector. If S1 does not clear the rule the result is reported as not supported; no further selector variants will be tried on this test set.
+Multiplicity disclosure: two selectors are evaluated on the same test set; the claim is made for S1 only.

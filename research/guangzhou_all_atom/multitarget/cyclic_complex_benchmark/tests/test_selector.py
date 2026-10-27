@@ -36,6 +36,16 @@ def test_shuffled_labels_give_chance():
     base = 0.3                                                              # chance success = fraction acceptable
     assert abs(success(S.Selector().fit(tr), te) - base) < 0.2
 
+def test_mixed_only_ignores_complexes_with_identical_labels():
+    tr = synth(seed=0)
+    pad = {}
+    for k in range(60):                                                     # 60 complexes where EVERY sample succeeds: no ranking information
+        pad[f"p{k}"] = [{"confidence_score": float(i), "iptm": float(-i), "cons_nbr": float((i * 7) % 5), "dockq": 0.6} for i in range(25)]
+    a = S.Selector(mixed_only=True).fit({**tr, **pad}); b = S.Selector(mixed_only=True).fit(tr)
+    assert a.coef() == b.coef(), (a.coef(), b.coef())                      # padding must change nothing
+    c = S.Selector().fit({**tr, **pad})                                    # the original selector IS affected by the padding
+    assert c.coef() != b.coef()
+
 def test_rejects_ground_truth_features():
     try: S.assert_no_gt_columns(["iptm", "irmsd"]); assert False
     except AssertionError as e: assert "irmsd" in str(e)
