@@ -116,3 +116,7 @@ If the training set cannot be fully generated, the selector is fit on whatever f
 Measured Spark timings: ~3.5 min (≈250 tokens), 18 min (621 tokens), 43 min (1,069 tokens); cost grows super-linearly, so the 4 largest test complexes (1,836 / 2,316 / 2,390 / 3,545 true tokens) would take hours each and block the rest.
 Change: TEST is restricted to complexes with ≤ 1,200 true tokens → 113 test complexes (4 excluded, listed in `results/stageB_selection.json: test_excluded_over_1200_tokens`). TRAIN is restricted to ≤ 600 true tokens (the 34 training complexes above 600 are dropped; the 16 GB AWS GPUs cannot run them).
 This is a compute limitation, stated as a limitation in any write-up; it is not outcome-dependent (no result has been scored). Claim rule, baselines, selector and predictions unchanged.
+
+## Amendment A5 (2026-10-27) — evaluation trigger; made BEFORE any Stage B sample was scored
+To fix the timing of the one-shot evaluation (preprint v1 target date: 2026-10-27), the selector is fit and evaluated once, at the earlier of: (a) all 113 capped test complexes have finished generation, or (b) 6 h after this commit. TRAIN = every capped train complex (≤600 true tokens) finished at that moment; no further train complexes are awaited. Test complexes still missing at trigger (b) are excluded and listed by ID with reason "not generated in time" (reported, not silently dropped). Claim rule, baselines, selector and disclosure are unchanged.
+Disclosure: at commit time 98/113 test and 135/283 train complexes were generated and none was scored.
