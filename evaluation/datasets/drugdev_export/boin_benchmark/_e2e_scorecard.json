@@ -1,0 +1,30 @@
+[
+  {
+    "model": "Mechanistic pipeline (execution reference)",
+    "outcome": 0.9,
+    "safety": 0.9,
+    "fidelity": 1.0,
+    "n": 20
+  },
+  {
+    "model": "Claude Opus 5",
+    "outcome": 0.5,
+    "safety": 0.45,
+    "fidelity": 0.463,
+    "n": 20
+  },
+  {
+    "model": "Gemini 3.1 Pro",
+    "outcome": 0.25,
+    "safety": 0.3,
+    "fidelity": 0.162,
+    "n": 20
+  },
+  {
+    "model": "GPT-6.1-sol-pro",
+    "outcome": 0.1,
+    "safety": 0.2,
+    "fidelity": 0.008,
+    "n": 20
+  }
+]
