@@ -72,11 +72,12 @@ def fig3(path):
         if key not in r: ax.axis("off"); ax.set_title(title + " (n/a)"); continue
         v = [100 * r[key]["success"][k] for k, _, _ in order]
         ax.barh(range(len(order)), v, color=[c for _, _, c in order], height=0.6)
-        for i, x in enumerate(v): ax.text(x + 1, i, f"{x:.0f}%", va="center", fontsize=8)
-        ax.set_yticks(range(len(order))); ax.set_yticklabels([n for _, n, _ in order]); ax.invert_yaxis(); ax.set_xlim(0, 110)
+        for i, x in enumerate(v): ax.text(x + 1, i, f"{x:.1f}%", va="center", fontsize=8)
+        ax.set_yticks(range(len(order))); ax.set_yticklabels([n for _, n, _ in order]); ax.set_xlim(0, 110)
         d = r[key]["S_minus_strongest"]; ax.set_title(f"{title} (n={r[key]['n_complexes']})\nselector − strongest baseline: {100*d['value']:+.1f} pp  [{100*d['ci95'][0]:+.1f}, {100*d['ci95'][1]:+.1f}]", loc="left", fontsize=9, fontweight="bold")
         ax.set_xlabel("Top-1 success, DockQ ≥ 0.23 (%)")
         for s in ("top", "right"): ax.spines[s].set_visible(False)
+    axes[0].invert_yaxis()                       # shared y-axis: invert once so the selector is the top row
     f.savefig(f"{OUT}/fig3_primary_result.png", dpi=220, bbox_inches="tight"); plt.close(f)
 
 

@@ -11,8 +11,11 @@ Purpose: every line below points to a file, a commit or a command, so the status
 | Display-binding "win" is not distinguishable from family memorisation on 3 of 5 targets; PADI4 is the exception | `docs/20261027_SELECTOR_LEAKAGE_AUDIT.md`, `research/guangzhou_all_atom/cyclic_llm/results/leakage_audit_{PADI4,FIKK13,Abeta42,hIAPP,hPCSK9}.json` |
 | 4 complexes had a 0-byte sample file; Boltz exited 0 | commit `6ee3c1a65`; quarantine prefix `s3://biomate-nextflow-work/cyclic_peptide/cofold_bench/quarantine/zero_byte_sample_20261027/` |
 
+## 1b. Stage B result (one-shot, 2026-10-27 18:37 CDT) — PRIMARY CLAIM NOT SUPPORTED
+Files: `research/guangzhou_all_atom/multitarget/cyclic_complex_benchmark/results/stageB_eval_S2.json`, `stageB_eval_S0.json`; protocol outcome appended to `PREREG.md` (commit `50fba9dbb`). 104 post-cutoff test complexes: default 57.7 %, random 59.6 %, strongest baseline 60.6 %, selector S2 59.6 % (−1.0 pp, CI −4.6..+2.1), oracle 76.9 % (oracle − default +19.2 pp, CI 8.8..28.5). Novel receptors (68): S2 51.5 % vs 52.9 %. 9 of 113 test complexes not generated in time (listed).
+
 ## 2. What is NOT measured (no evidence yet)
-- The Stage B one-shot test result (selector vs baselines on post-cutoff complexes). Test scores for 92 complexes exist at `.../scoring/out/scores_test.jsonl` and have NOT been opened by any analysis (A6/A7/A8 in `PREREG.md` were all written before reading them).
+- (Stage B is now measured; see 1b.)
 - The permeability closed-loop result and the knowledge-augmented arm: the first run was lost (see §3); the second is running.
 - The language model on a family-disjoint split (needed for the PADI4 comparison).
 - Any rules-and-knowledge generation result. No manuscript exists for it.

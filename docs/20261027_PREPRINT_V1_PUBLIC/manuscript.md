@@ -1,12 +1,12 @@
 ---
-title: "Selecting the right pose from cyclic-peptide co-folding samples: a ground-truth-free selector evaluated post-cutoff across receptors, and an audit of how split design inflates binder prediction"
+title: "Co-folding confidence does not select the best cyclic-peptide pose: a pre-registered post-cutoff evaluation of feature-based selectors, and an audit of how split design inflates binder prediction"
 author: "[Author list to be added]"
 date: "Preprint, version 1 (computational study; experimental validation planned for version 2)"
 ---
 
 ## Abstract
 
-Co-folding models generate many candidate structures per complex, and users usually take the one the model ranks first. For cyclic peptides this choice is fragile: covalent ring closure is not enforced by the model (about 75% of sampled structures in our pilot had a valid ring), non-canonical residues enter as chemical modifications, and the best of 25 samples can be far better than the one the model prefers. In a 26-complex pilot, the model's own top pick succeeded (DockQ ≥ 0.23) in 80.8% of complexes, indistinguishable from a randomly chosen sample (80.3%), whereas the best of 25 samples succeeded in 96.2%. We developed a ground-truth-free selector that scores each sample from model confidences, ring-closure geometry, steric clashes and agreement among samples, and we evaluated it once, under a protocol fixed in advance, on experimental cyclic-peptide complexes deposited after the training cutoff, against six fixed baselines, with uncertainty estimated by bootstrapping over receptor clusters. **[Primary result: to be inserted from the final evaluation — selector vs strongest baseline on all test complexes and on receptors absent from training.]** Separately, applying the same evaluation discipline to a previously reported display-based binder predictor, we found that on three of five targets a bag-of-k-mers logistic regression matched the language model on random splits (AUC 0.986 vs 0.990 on Abeta42; 0.698 vs 0.689 on hIAPP) and fell sharply when whole mutant families were held out (hIAPP 0.52, hPCSK9 0.65, FIKK13 0.42); on PADI4, where binders are not clustered into families, the baseline held up (0.86) and the language model may add value. Reliability claims for peptide predictors therefore need split-appropriate evaluation against trivial baselines before they can be used to drive design decisions.
+Co-folding models generate many candidate structures per complex, and users usually take the one the model ranks first. For cyclic peptides this choice is fragile: covalent ring closure is not enforced by the model (about 75% of sampled structures in our pilot had a valid ring), non-canonical residues enter as chemical modifications, and the best of 25 samples can be far better than the one the model prefers. In a 26-complex pilot, the model's own top pick succeeded (DockQ ≥ 0.23) in 80.8% of complexes, indistinguishable from a randomly chosen sample (80.3%), whereas the best of 25 samples succeeded in 96.2%. We developed a ground-truth-free selector that scores each sample from model confidences, ring-closure geometry, steric clashes and agreement among samples, and we evaluated it once, under a protocol fixed in advance, on experimental cyclic-peptide complexes deposited after the training cutoff, against six fixed baselines, with uncertainty estimated by bootstrapping over receptor clusters. On 104 post-cutoff complexes (68 from receptors absent from training), the model's own pick succeeded in 57.7% and a random sample in 59.6%, whereas the best of 25 samples succeeded in 76.9% (oracle minus default 19.2 points, 95% CI 8.8 to 28.5). The selector did not outperform the strongest baseline (59.6% vs 60.6%; difference -1.0 points, 95% CI -4.6 to +2.1), so the pre-registered claim was not supported. Separately, applying the same evaluation discipline to a previously reported display-based binder predictor, we found that on three of five targets a bag-of-k-mers logistic regression matched the language model on random splits (AUC 0.986 vs 0.990 on Abeta42; 0.698 vs 0.689 on hIAPP) and fell sharply when whole mutant families were held out (hIAPP 0.52, hPCSK9 0.65, FIKK13 0.42); on PADI4, where binders are not clustered into families, the baseline held up (0.86) and the language model may add value. Reliability claims for peptide predictors therefore need split-appropriate evaluation against trivial baselines before they can be used to drive design decisions.
 
 ## 1. Introduction
 
@@ -34,7 +34,30 @@ Fourteen of 40 planned pilot complexes did not run (two input-typing errors, sin
 
 ### 2.3 Primary evaluation of the selector
 
-**[To be completed from the final evaluation: Table 1 (top-1 success at DockQ ≥ 0.23 and ≥ 0.49 for the selector, each baseline, random and oracle; paired bootstrap difference between the selector and the strongest baseline with 95% CI), Figure 3 (the same, all test complexes and receptors absent from training), the strict-canonical versus non-canonical tiers, selector coefficients, and a failure analysis of complexes where no sample succeeds and where the selector loses to the default.]**
+The test set contained 104 post-cutoff complexes from 52 receptor clusters; 68 of them came from 40 receptor clusters absent from the training set (155 complexes, 91 clusters). Nine of the 113 planned test complexes were not generated before the pre-specified evaluation time and are excluded and listed in the supplement. The selector was fit once on the training and validation complexes and evaluated once on the test set (Table 1, Figure 3).
+
+| Method | All test complexes, DockQ ≥ 0.23 (n=104) | Receptors absent from training, ≥ 0.23 (n=68) | All, DockQ ≥ 0.49 (n=104) |
+|---|---|---|---|
+| Model confidence (default) | 57.7 | 52.9 | 44.2 |
+| ipTM | 58.7 | 52.9 | 45.2 |
+| pTM | 56.7 | 50.0 | 46.2 |
+| Interface pLDDT | 60.6 | 52.9 | 43.3 |
+| Ring strain (low is better) | 60.6 | 51.5 | 43.3 |
+| Clash count (low is better) | 57.7 | 52.9 | 44.2 |
+| Random sample (expected) | 59.6 | 51.1 | 45.3 |
+| **Selector S2 (primary)** | 59.6 | 51.5 | 43.3 |
+| Selector S0 (original specification) | 61.5 | 52.9 | 44.2 |
+| Oracle, best of 25 (upper bound) | 76.9 | 67.6 | 57.7 |
+
+**Table 1. Top-1 success (%) on the post-cutoff test set.** Selector S2 is the pre-specified primary selector (logistic regression on three pLDDT features); S0 is the original specification (26 features, trained on all samples), reported alongside as registered.
+
+![**Figure 3. Primary result.** Top-1 success (DockQ ≥ 0.23) for each selector, baseline, the random expectation and the oracle, on all test complexes and on receptors absent from training. Titles give the difference between the selector and the strongest baseline with 95% intervals from a receptor-cluster bootstrap.](figures/fig3_primary_result.png)
+
+**The pre-registered claim was not supported.** The primary selector S2 succeeded in 59.6% of test complexes, against 60.6% for the strongest baseline (interface pLDDT); the difference was -1.0 percentage points (95% CI -4.6 to +2.1). On receptors absent from training the difference was -1.5 points (-8.7 to +4.4), and at DockQ ≥ 0.49 it was -2.9 points (-7.8 to +2.6). The original specification S0 was likewise indistinguishable from the best baseline (+1.0 points, −4.3 to +5.8).
+
+**There is substantial headroom that none of the signals captured.** The oracle succeeded in 76.9% of complexes, which is 19.2 points above the model's default pick (95% CI 8.8 to 28.5). The model's default pick (57.7%) was no better than a randomly chosen sample (59.6%), as in the pilot, but the base rate was much lower than in the pilot (80%) and in the older training complexes (84%).
+
+**What the training data say about why.** In the 155 training and validation complexes, 109 had every sample acceptable and only 42 had a mixture, so only a quarter of the complexes carry any selection signal. In the informative training complexes, failing samples were gross misses, not near-misses (median DockQ 0.03). Consensus among samples had an unstable sign: in complexes where fewer than half of the samples were correct, the correct pose was the minority and agreement with the other samples pointed the wrong way. Ring-closure validity did not predict pose correctness (valid-ring samples succeeded 50% of the time and invalid-ring samples 53%). Peptide and interface pLDDT had the most consistent sign but only modest within-complex discrimination (mean within-complex AUROC 0.66 and 0.61). These training-set analyses guided the selector's design (Supplementary Table S1) and are descriptive.
 
 ### 2.4 Split design determines how reliable a binder predictor appears
 
@@ -52,7 +75,7 @@ A display-conditioned language model had been reported to rank held-out binders 
 
 ## 3. Discussion
 
-The pilot indicates that the model's default confidence is a weak guide to the best sample for cyclic peptides, with ring closure not guaranteed, and it identifies where a selector could help (about 15 percentage points of headroom in a population with a high base rate). **[Interpretation of the primary evaluation to be written from the final result.]**
+The pilot indicates that the model's default confidence is a weak guide to the best sample for cyclic peptides, with ring closure not guaranteed, and it identifies where a selector could help (about 15 percentage points of headroom in a population with a high base rate). The primary evaluation shows that this headroom is real but not accessible with the signals we tested: neither model confidences, ring-closure geometry, clash counts, pose consensus nor a trained combination of them picked better samples than the model's own pick or than a random sample. The gap is a selection problem in which the correct pose is often the minority among samples, which limits consensus-based approaches exactly where they are needed. Signals independent of the co-folding model's own confidence (for example physics-based interface energies or a second, independent structure predictor) are the obvious next candidates and were not tested here.
 
 The binder-prediction audit makes a general point that applies beyond this study. A predictor's apparent reliability depends on how test examples relate to training examples. When the data come as families of near-duplicates, random splits measure memorisation. Because design decisions are made on new families and often on new targets, reliability should be measured under splits that match that question, and every learned model should be compared with a trivial baseline on the same split. The numbers in Figure 4 are a reminder that a high AUC on a random split can be reproduced without any learning beyond residue counts.
 
@@ -101,3 +124,6 @@ Complex lists, the amendment log, the evaluation outputs and the analysis code w
 | A3 | Compute strategy changed to use two hardware platforms | GPU memory and spot-capacity limits |
 | A4 | Evaluation set limited to complexes of ≤ 1,200 tokens; training set to ≤ 600 tokens (4 test and 34 training complexes excluded; listed) | Run time grows faster than linearly with size; not outcome-dependent |
 | A5 | Evaluation triggered when all evaluation complexes finished, or after a fixed 6-hour window; training uses all training complexes finished by then; missing evaluation complexes reported | Fix the timing of the one-shot evaluation |
+| A6 | Second selector variant S1 trained only on complexes with mixed outcomes; regularisation chosen by receptor-grouped cross-validation on training data | Complexes with all-equal labels carry no ranking information |
+| A7 | Four feature sets and a rule for adopting a new primary selector (cross-validation gain ≥ 1.5 points) | Training-set diagnostics: consensus features had an unstable sign; ring validity was uninformative |
+| A8 | Contrastive selector tested; validation set of later-finishing training complexes; primary selector chosen by tie-break (S2: three pLDDT features) | Validation set was uninformative (5 informative of 20), so the choice rests on cross-validation and parsimony |
