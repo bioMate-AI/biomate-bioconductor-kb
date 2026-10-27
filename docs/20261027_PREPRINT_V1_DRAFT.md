@@ -12,7 +12,8 @@ Co-folding models (Boltz-2, AlphaFold3-class) produce many samples per complex, 
 1. Cyclic peptides bind protein surfaces that small molecules cannot, and co-folding models now predict peptide–protein complexes. Practitioners pick one sample per complex, usually by the model's confidence score.
 2. For cyclic peptides this choice matters more than for linear ones: Boltz-2 `cyclic: true` does not enforce covalent closure, non-canonical residues enter as CCD modifications, and many complexes have a high random-sample success rate that hides selection error.
 3. Sample selection for co-folding has been studied for protein–protein and linear protein–peptide complexes (confidence metrics versus DockQ; see Related work). Cyclic-peptide–specific selection, with ring geometry as a feature and evaluation on receptors unseen by the selector, has not been reported to our knowledge (not claimed as "first"; the search was not systematic).
-4. Contribution: (i) a post-cutoff cyclic-peptide complex benchmark built from deposited covalent-link records (884 complexes in the manifest; capped evaluation subset reported below); (ii) a ground-truth-free selector; (iii) a pre-registered, one-shot evaluation with receptor-cluster bootstrap and a novel-receptor subset; (iv) an honest account of what the default pick does and does not get right.
+4. A second point follows from the same data discipline: when we applied it to a previously reported display-binding selector, a trivial k-mer baseline matched the model and the advantage disappeared under family-disjoint splits (Results 3.7). The paper therefore treats measured, split-appropriate reliability as the contribution, not any single predictor.
+5. Contribution: (i) a post-cutoff cyclic-peptide complex benchmark built from deposited covalent-link records (884 complexes in the manifest; capped evaluation subset reported below); (ii) a ground-truth-free selector; (iii) a pre-registered, one-shot evaluation with receptor-cluster bootstrap and a novel-receptor subset; (iv) an honest account of what the default pick does and does not get right; (v) a reliability audit showing which verification signals survive family-disjoint evaluation.
 
 ## 2. Methods
 ### 2.1 Data
@@ -40,6 +41,9 @@ Protocol committed before any structure was generated. Amendments, all made befo
 - 3.5 Selector coefficients (top features) — ⟨…⟩; ring-validity rate of selected vs default samples — ⟨…⟩.
 - 3.6 Failure analysis: complexes where no sample succeeds (oracle failures) and where S loses to default — ⟨…⟩.
 
+- 3.7 Reliability audit of the display-binding tier (measured 2026-10-27; `docs/20261027_SELECTOR_LEAKAGE_AUDIT.md`). A display-conditioned LM had been reported to rank held-out binders (AUC 0.69–0.99) on a random split of unique sequences. We re-examined that split without any LM. In Abeta42, 99.6% of test binders have a train binder within one substitution, and a bag-of-k-mers logistic regression reaches AUC 0.986 against the LM's 0.990. In hIAPP the baseline (0.698) matches the LM (0.689) and falls to 0.521 when mutant families are held out. In hPCSK9 the baseline gives 0.841 on the random split and 0.653 on a family-disjoint split. Conclusion: that tier's reported reliability was not distinguishable from family memorisation; only family-disjoint evaluation against a trivial baseline can establish it. ⟨PADI4, FIKK13 and the LM re-run on family-disjoint splits: pending EC2 job `cycloop-retro`.⟩ This is the evidential point of the paper: a tier's reliability must be measured under a split that matches the deployment question (new families, new receptors) before the ladder is allowed to act on it.
+- 3.8 Retrospective closed loop on real measured permeability (CycPeptMPDB; pre-registered `loop_retro/PREREG_LOOP.md`, commit 99836cc0b): greedy and UCB policies versus random in an IID and a scaffold-shift regime — ⟨pending `loop_result.json`⟩.
+
 ## 4. Limitations (known now)
 - Single co-folding model (Boltz-2); Chai-1 not run.
 - Compute caps (A4) bias the test set toward smaller complexes; the largest (≥1,200 tokens) are excluded and listed.
@@ -51,5 +55,15 @@ Protocol committed before any structure was generated. Amendments, all made befo
 ## 5. Related work (to cite; no novelty claims)
 MFBind, MF-LAL, LLMol, Pepti-Agent, PepThink-R1, UnibindMD, cofolding-guided cyclic design with ncAAs, AfCycDesign, RFpeptides, protein–peptide AF-Multimer/AF3 benchmarks. Links and one-line notes: `docs/20261026_PRIOR_ART_INTEGRATED_CLAIM.md` (abstract-level reads; add full-text reads before submission).
 
-## 6. Outputs needed to finish
+## 6. Evidence status (what is measured vs pending)
+| item | status |
+|---|---|
+| Pilot (n=26) | measured |
+| Display-binding leakage audit: hPCSK9, Abeta42, hIAPP | measured |
+| Display audit: PADI4, FIKK13; LM on family-disjoint splits | running (EC2) |
+| Permeability retrospective loop | running (EC2), pre-registered |
+| Stage B selector (113 test / train) | generation on Spark; scoring on EC2; one-shot eval pending |
+| Wet lab | v2 |
+
+## 7. Outputs needed to finish
 `results/stageB_eval.json`, scored train/test jsonl, test-exclusion list, figures (success bars with CIs, headroom/oracle plot, feature coefficients), supplementary pre-registration + amendment log (`PREREG.md`).
