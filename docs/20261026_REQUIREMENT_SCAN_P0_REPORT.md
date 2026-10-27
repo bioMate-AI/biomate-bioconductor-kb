@@ -1,5 +1,20 @@
 # P0 requirement-scan: measured blast radius of the inputs gap
 
+> **CORRECTION (2026-10-26, after reading the executor):** the headline "1,177 invisible" below
+> **overstated** the problem. The executor (`nextflow_executor.py`) already has a robust declared-input
+> system — it parses `// Input:` headers (`_BIOC_INPUT_DECL_RE`), resolves the exact read-filename
+> (`_resolve_read_filename`), stages uploads under the expected name, and pre-flight-checks format. Re-split
+> of the 1,177: **1,173 (99.7%) are executor-handled** (`// Input:` header or `read_input_file`); only
+> **4 are truly unhandled** (no declaration at all). So **staging is not the gap.** The real, narrower gap
+> is **discoverability**: the executor *knows* the declared input names (survival `patient_clinical_data.csv`,
+> DESeq2 `cts`/`coldata`), but they are **not surfaced** in `search_workflow` / `required_params` /
+> `input_types` — **35** executor-handled workflows declare nothing in `input_types`, and more list only
+> scalar params, so a caller/user can't learn what inputs to provide and discovers them by crashing (the
+> exact failures this session). **P1 is therefore the discoverability fix**, not a 1,177-row backfill:
+> surface the executor's already-derived declared inputs at search/spec time. The raw scan below is kept
+> for the record.
+
+
 **Date:** 2026-10-26. **What:** the P0 static scanner from `docs/20261026_PARAMS_VS_INPUTS_GAP.md`, run
 read-only over the whole workflow catalog (`backend/database/galaxy_ai_tools.db`, 4,223 workflows).
 Scanner: `scratchpad/req_scan.py`.
