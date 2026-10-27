@@ -1,0 +1,21 @@
+{
+ "target": "Abeta42",
+ "n_unique": 44099,
+ "n_train": 35280,
+ "n_test": 8819,
+ "test_binders_with_train_binder_within_hamming1": 0.996,
+ "test_binders_with_train_binder_within_hamming2": 1.0,
+ "random_split_kmer_baseline": {
+  "auc": 0.986,
+  "lift_top5": 17.6,
+  "n_test": 8819,
+  "n_test_binders": 237
+ },
+ "n_families": 26104,
+ "family_disjoint_kmer_baseline": {
+  "auc": 0.957,
+  "lift_top5": 13.4,
+  "n_test": 7898,
+  "n_test_binders": 15
+ }
+}

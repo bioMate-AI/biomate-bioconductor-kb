@@ -1,0 +1,21 @@
+{
+ "target": "hPCSK9",
+ "n_unique": 14135,
+ "n_train": 11308,
+ "n_test": 2827,
+ "test_binders_with_train_binder_within_hamming1": 0.099,
+ "test_binders_with_train_binder_within_hamming2": 0.145,
+ "random_split_kmer_baseline": {
+  "auc": 0.841,
+  "lift_top5": 4.4,
+  "n_test": 2827,
+  "n_test_binders": 152
+ },
+ "n_families": 5022,
+ "family_disjoint_kmer_baseline": {
+  "auc": 0.653,
+  "lift_top5": 2.1,
+  "n_test": 1212,
+  "n_test_binders": 154
+ }
+}
