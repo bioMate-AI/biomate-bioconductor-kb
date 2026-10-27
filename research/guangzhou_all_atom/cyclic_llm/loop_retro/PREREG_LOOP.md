@@ -16,3 +16,8 @@ Primary metric: cumulative hits found in the 500 loop picks (excluding the 100 s
 Claim rule: "the loop beats random" requires GREEDY or UCB minus RANDOM CI lower bound > 0 in BOTH regimes. A null or negative result in regime B is reported as such.
 No tuning of the hit threshold, model, batch size or ucb weight after seeing results. Changes only as dated amendments.
 Second experiment (display NGS, separate pre-registration to follow): same loop on PADI4 round-trajectory labels with Hamming-family-disjoint pool and the k-mer baseline as the bar.
+
+## Amendment L1 (2026-10-27) — knowledge arm; declared BEFORE the first loop result was read
+The fingerprint-only run (above) is still computing. We add ONE arm, run on the same seeds/regimes/outcome: "knowledge-augmented" = Morgan count fingerprint (2048) PLUS literature-derived permeability descriptors computed from the SMILES with RDKit: molecular weight, TPSA, H-bond donors, H-bond acceptors, Crippen logP, rotatable bonds, N-methylated amide count, ring size, heavy-atom count, fraction of sp3 carbons (the descriptors named in beyond-rule-of-5 / cyclic-peptide permeability literature).
+Policies unchanged (random, greedy, uncertainty-aware, oracle). Question: does adding rule/knowledge features raise hits found in 500 picks vs fingerprint-only (paired over seeds, 95% CI), in regime A and regime B.
+Claim rule: "knowledge helps" requires the CI of (knowledge-arm minus fingerprint-arm) for greedy or uncertainty-aware to exclude zero in BOTH regimes; otherwise reported as not supported. No other feature sets will be tried.
