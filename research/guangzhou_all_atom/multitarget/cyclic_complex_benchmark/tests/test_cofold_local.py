@@ -7,7 +7,7 @@ import cofold_local as L
 def fake(work, n=3, with_msa_dir=True):
     d = f"{work}/out/boltz_results_in/predictions/in"; os.makedirs(d)
     for i in range(n):
-        open(f"{d}/in_model_{i}.cif", "w").write("data_x\n"); json.dump({"iptm": 0.5 + i / 10}, open(f"{d}/confidence_in_model_{i}.json", "w"))
+        open(f"{d}/in_model_{i}.cif", "w").write("data_x\nloop_\n_atom_site.id\n1\n"); json.dump({"iptm": 0.5 + i / 10}, open(f"{d}/confidence_in_model_{i}.json", "w"))
         np.savez(f"{d}/pae_in_model_{i}.npz", pae=np.ones((10, 10)) * (i + 1))
     m = f"{work}/out/boltz_results_in/msa"; os.makedirs(m)
     open(f"{m}/in_0.csv", "w").write("a\n")
@@ -25,6 +25,13 @@ def test_wrong_count_is_reported_not_silently_accepted():
     w = fake(tempfile.mkdtemp(), n=2); dest = tempfile.mkdtemp() + "/c"
     n, npae, msa = L.collect(w, dest, 6, n_expected=3)
     assert n == 2 and npae == 0 and not os.path.exists(dest)
+
+def test_zero_byte_or_atomless_cif_is_a_failed_sample_not_a_success():
+    for bad in ("", "data_x\n"):
+        w = fake(tempfile.mkdtemp(), n=3); dest = tempfile.mkdtemp() + "/c"
+        open(f"{w}/out/boltz_results_in/predictions/in/in_model_1.cif", "w").write(bad)
+        n, npae, msa = L.collect(w, dest, 6, n_expected=3)
+        assert n == 2 and not os.path.exists(dest), (bad, n)
 
 if __name__ == "__main__":
     k = 0

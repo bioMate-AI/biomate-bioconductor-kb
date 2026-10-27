@@ -20,6 +20,8 @@ def one_pass():
         p2 = subprocess.run(["tar", "-xf", "-", "-C", tmp], stdin=p1.stdout, capture_output=True); p1.wait()
         d = f"{tmp}/{cid}"
         if p1.returncode or not os.path.exists(f"{d}/run.json") or len([f for f in os.listdir(d) if f.startswith("sample_")]) < 25: print("incomplete pull, skip", cid); continue
+        bad = [f for f in os.listdir(d) if f.startswith("sample_") and (os.path.getsize(f"{d}/{f}") == 0 or "_atom_site." not in open(f"{d}/{f}", errors="replace").read())]
+        if bad: print("CORRUPT samples, not publishing", cid, bad); sh(["rm", "-rf", tmp]); continue
         # upload samples first, run.json LAST (run.json is the 'done' marker the AWS driver and the scorer rely on)
         u = sh(["aws", "s3", "cp", d, f"{B}/{cid}/", "--recursive", "--exclude", "run.json", "--only-show-errors", "--region", "us-west-2"])
         if u.returncode == 0: u = sh(["aws", "s3", "cp", f"{d}/run.json", f"{B}/{cid}/run.json", "--only-show-errors", "--region", "us-west-2"])

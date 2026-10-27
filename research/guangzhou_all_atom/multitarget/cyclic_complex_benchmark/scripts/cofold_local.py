@@ -13,9 +13,18 @@ def interface_pae(pae_npz, n_rec_tokens):
                 pae_if_mean=float((pae[pep, rec].mean() + pae[rec, pep].mean()) / 2), pae_pep_pep=float(pae[pep, pep].mean()))
 
 
+def valid_cif(path):
+    """A sample counts only if it is non-empty and has atom records (Boltz has been seen to leave a 0-byte .cif for a sample and still exit 0)."""
+    try:
+        return os.path.getsize(path) > 0 and "_atom_site." in open(path, errors="replace").read()
+    except OSError:
+        return False
+
+
 def collect(work, dest, n_rec_tokens, n_expected):
     """Boltz output tree under work/out -> dest (same layout/names as the S3 driver). Returns (n_cifs, n_pae, msa_files). FILES ONLY for the MSA copy."""
     cifs = sorted(glob.glob(f"{work}/out/**/*_model_*.cif", recursive=True))
+    cifs = [c for c in cifs if valid_cif(c)]
     if len(cifs) != n_expected:
         return len(cifs), 0, []
     os.makedirs(dest, exist_ok=True); paes = {}

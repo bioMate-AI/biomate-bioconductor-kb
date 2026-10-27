@@ -54,6 +54,14 @@ def save_cache():
         sh(f"tar -cf /tmp/bc.tar -C {CACHE} . && aws s3 cp /tmp/bc.tar {CACHE_S3} --only-show-errors && rm /tmp/bc.tar", check=False)
 
 
+def valid_cif(path):
+    """A sample counts only if it is non-empty and has atom records (Boltz has been seen to leave a 0-byte .cif for a sample and still exit 0)."""
+    try:
+        return os.path.getsize(path) > 0 and "_atom_site." in open(path, errors="replace").read()
+    except OSError:
+        return False
+
+
 def interface_pae(pae_npz, n_rec_tokens):
     z = np.load(pae_npz)
     pae = z[z.files[0]]
@@ -94,7 +102,7 @@ def run_one(cid, have_cache):
                "--diffusion_samples", str(N), "--max_parallel_samples", str(mps), "--output_format", "mmcif", "--accelerator", "gpu",
                "--devices", "1", "--num_workers", "0", "--seed", str(SEED), "--no_kernels", "--write_full_pae", "--override"]
         r = sh(cmd, check=False)
-        cifs = sorted(glob.glob(f"{d}/out/**/*_model_*.cif", recursive=True))
+        cifs = [c for c in sorted(glob.glob(f"{d}/out/**/*_model_*.cif", recursive=True)) if valid_cif(c)]
         if r.returncode == 0 and len(cifs) == N:
             break
         rec["attempt_%d_rc" % attempt] = r.returncode
