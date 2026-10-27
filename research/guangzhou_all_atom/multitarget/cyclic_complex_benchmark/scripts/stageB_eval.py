@@ -63,15 +63,15 @@ def evaluate(per, thr, clusters, ids, B=4000, seed=7):
                 verdict_S_best=bool(q(diffs)[0] > 0))
 
 
-def run(train_path, test_path, manifest, out_path):
+def run(train_path, test_path, manifest, out_path, mixed_only=False, C=0.3):
     train, test = load(train_path), load(test_path)
     man = {r["complex_id"]: r for r in csv.DictReader(open(manifest))}
     clusters = {c: man[c]["receptor_cluster40"] for c in list(train) + list(test) if c in man}
     tr_cl = {clusters[c] for c in train if c in clusters}
-    sel = SEL.Selector().fit(train, thr=0.23)
+    sel = SEL.Selector(C=C, mixed_only=mixed_only).fit(train, thr=0.23)
     per = {c: picks(rs, sel) for c, rs in test.items()}
     ids_all = sorted(per); ids_novel = [c for c in ids_all if clusters.get(c) not in tr_cl]
-    res = dict(n_train_complexes=len(train), n_train_clusters=len(tr_cl), selector_coef_top=dict(list(sel.coef().items())[:8]), selector_trivial=sel.trivial)
+    res = dict(variant="S1" if mixed_only else "S0", C=C, n_train_complexes=len(train), n_train_clusters=len(tr_cl), selector_coef_top=dict(list(sel.coef().items())[:8]), selector_trivial=sel.trivial)
     for thr in (0.23, 0.49):
         res[f"all_thr{thr}"] = evaluate(per, thr, clusters, ids_all)
         if len(ids_novel) >= 5: res[f"novel_receptor_thr{thr}"] = evaluate(per, thr, clusters, ids_novel)
@@ -83,5 +83,7 @@ def run(train_path, test_path, manifest, out_path):
 
 
 if __name__ == "__main__":
-    r = run(*sys.argv[1:5])
+    a = sys.argv[1:]
+    # usage: stageB_eval.py train test manifest out [S0|S1 [C]]   (S1 = mixed_only, PREREG A6; C comes from results/stageB_cv_train.json, never from test)
+    r = run(*a[:4], mixed_only=(len(a) > 4 and a[4] == "S1"), C=float(a[5]) if len(a) > 5 else 0.3)
     print(json.dumps({k: v for k, v in r.items() if k.startswith(("CLAIM", "n_train", "all_thr0.23", "novel_receptor_thr0.23"))}, indent=1))
