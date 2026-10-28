@@ -72,12 +72,12 @@ def main():
             o["contrasts"][f"{name} [{field}]"] = summ(d, 0.5, 99.5) if "kphys" in name or "kn" in name else summ(d)
         for nm, x, y_ in (("loop - random_fb", "loop", "random_fb"), ("loop - frozen", "loop", "frozen"), ("loop - shuffled", "loop", "shuffled"), ("loop_sub - frozen_sub", "loop_sub", "frozen_sub"),
                           ("loop_sub - shuffled_sub", "loop_sub", "shuffled_sub"), ("loop_kphys_sub - loop_sub", "loop_kphys_sub", "loop_sub"), ("loop_kphys_contra_sub - loop_sub", "loop_kphys_contra_sub", "loop_sub"),
-                          ("loop_kshuf_sub - loop_sub", "loop_kshuf_sub", "loop_sub"), ("loop_kn_sub - loop_sub", "loop_kn_sub", "loop_sub"), ("noisy_sub - shuffled_sub", "noisy_sub", "shuffled_sub")):
+                          ("loop_kshuf_sub - loop_sub", "loop_kshuf_sub", "loop_sub"), ("loop_kphys_sub - loop_kshuf_sub", "loop_kphys_sub", "loop_kshuf_sub"), ("loop_kn_sub - loop_sub", "loop_kn_sub", "loop_sub"), ("noisy_sub - shuffled_sub", "noisy_sub", "shuffled_sub")):
             contrast(nm, x, y_)
-        for nm, x, y_ in (("loop - one_shot", "loop", "one_shot"), ("loop - random_fb", "loop", "random_fb"), ("loop_sub - shuffled_sub", "loop_sub", "shuffled_sub"), ("loop_kphys_sub - loop_sub", "loop_kphys_sub", "loop_sub")):
+        for nm, x, y_ in (("loop - one_shot", "loop", "one_shot"), ("loop - random_fb", "loop", "random_fb"), ("loop_sub - shuffled_sub", "loop_sub", "shuffled_sub"), ("loop_kphys_sub - loop_sub", "loop_kphys_sub", "loop_sub"), ("loop_kphys_sub - loop_kshuf_sub", "loop_kphys_sub", "loop_kshuf_sub")):
             contrast(nm, x, y_, "E_auroc_gain")
         # pre-registered controls: shuffled / frozen must not improve on E
-        for arm in ("shuffled", "shuffled_sub", "frozen", "frozen_sub", "loop_kshuf_sub"):
+        for arm in ("shuffled", "shuffled_sub", "frozen", "frozen_sub"):      # L7k: loop_kshuf_sub is a KNOWLEDGE control (judged by the paired contrast), not a shuffled-label arm
             if arm in o["E_auroc_gain"] and o["E_auroc_gain"][arm]["n"]:
                 g = o["E_auroc_gain"][arm]; o["controls"][arm] = dict(auroc_E_gain=g, passes=bool(g["ci"] is not None and g["ci"][0] <= 0.0))
         o["claim_C1_loop_beats_random_feedback_yield"] = o["contrasts"].get("loop - random_fb [yield]"); o["status"] = "inconclusive (power)" if len(seeds) < 8 else "n>=8"
