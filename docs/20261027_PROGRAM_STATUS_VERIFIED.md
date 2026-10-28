@@ -14,9 +14,11 @@ Purpose: every line below points to a file, a commit or a command, so the status
 ## 1b. Stage B result (one-shot, 2026-10-27 18:37 CDT) — PRIMARY CLAIM NOT SUPPORTED
 Files: `research/guangzhou_all_atom/multitarget/cyclic_complex_benchmark/results/stageB_eval_S2.json`, `stageB_eval_S0.json`; protocol outcome appended to `PREREG.md` (commit `50fba9dbb`). 104 post-cutoff test complexes: default 57.7 %, random 59.6 %, strongest baseline 60.6 %, selector S2 59.6 % (−1.0 pp, CI −4.6..+2.1), oracle 76.9 % (oracle − default +19.2 pp, CI 8.8..28.5). Novel receptors (68): S2 51.5 % vs 52.9 %. 9 of 113 test complexes not generated in time (listed).
 
+## 1c. Permeability loop result (2026-10-27) — primary claim SUPPORTED; knowledge arm NOT supported
+Files: `research/guangzhou_all_atom/cyclic_llm/loop_retro/results/loop_result.json`, `loop_res/` (120 per-task files), `rule_baseline.json` (exploratory); protocol outcome in `PREREG_LOOP.md` (commit `94aed12a5`). Hits in 500 picks (30 seeds): in-distribution random 49.9 vs greedy 396.7 (+346.8, CI 280..389); scaffold-shifted 106.6 vs 366.7 (+260.1, CI 125..318). Knowledge features: +21 [-11,63] / -40 [-211,113] (not supported). Exploratory: N-methyl-count rule alone finds 276 / 304 (70 % / 83 % of the loop's yield).
+
 ## 2. What is NOT measured (no evidence yet)
 - (Stage B is now measured; see 1b.)
-- The permeability closed-loop result and the knowledge-augmented arm: the first run was lost (see §3); the second is running.
 - The language model on a family-disjoint split (needed for the PADI4 comparison).
 - Any rules-and-knowledge generation result. No manuscript exists for it.
 - Any wet-lab result.
