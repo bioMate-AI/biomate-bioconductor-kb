@@ -107,8 +107,9 @@ class Net(nn.Module):
 
 
 class IHLM:
-    def __init__(self, backbone_cfg=None, tokenizer_cfg=None, modules=("M1", "M2", "M3", "M4", "M5"), knowledge=None, n0=100.0, k=5, slow_every=3, alpha=0.2, eta=1.0, seed=0, n_verif=1, train_cfg=None, _clone=None):
+    def __init__(self, backbone_cfg=None, tokenizer_cfg=None, modules=("M1", "M2", "M3", "M4", "M5"), knowledge=None, n0=100.0, k=5, slow_every=3, alpha=0.2, eta=1.0, seed=0, n_verif=1, train_cfg=None, reference_mode=None, _clone=None):
         self.backbone_cfg = dict(dict(d=64, layers=2, heads=4, max_len=192, kind="encoder"), **(backbone_cfg or {})); self.tokenizer_cfg = dict(tokenizer_cfg or {}); self.modules = tuple(modules)
+        self.reference_mode = reference_mode      # None | 'retrieval_only' | 'offset_only': no-LM reference variants through the same interface (no net is ever created or trained)
         self.knowledge, self.k, self.slow_every, self.alpha, self.eta, self.seed, self.n_verif = knowledge, int(k), int(slow_every), float(alpha), float(eta), seed, n_verif
         self.train_cfg = dict(dict(steps=150, lr=2e-3, bs=32, rank_w=0.3, verif_w=1.0), **(train_cfg or {}))
         layers = [x for x, m in (("K", "M1"), ("offset", "M2"), ("retrieval", "M3"), ("edit", "M4")) if m in self.modules]
@@ -167,14 +168,17 @@ class IHLM:
 
     def score(self, smiles, target_seq=None, sources=None, components=("net", "K", "retrieval")):
         """ranking score (higher better) = (1-w) z(net) + w z(K) + smax * z(symbolic retrieval); None when no component can score. w = n0/(n0+n) (M1)."""
+        if self.reference_mode == "retrieval_only": components = ("retrieval",)
+        elif self.reference_mode == "offset_only": components = ()
         t0 = time.time(); n = len(self.mem.rows); comp = np.zeros(len(smiles)); have = np.zeros(len(smiles), bool); w = self.mem.evidence_weight(n)
+        if self.reference_mode == "offset_only": have[:] = True      # ranks by lab offset only (all-equal within a source)
         z = lambda v: (np.asarray(v, float) - np.mean(v)) / (np.std(v) if np.std(v) > 0 else 1.0)
         npred = self.net_predict(smiles, target_seq) if "net" in components else None
         if npred is not None: comp[:] = (1 - w) * z(npred["y"]) if "K" in components and self.knowledge is not None and "M1" in self.modules else z(npred["y"]); have[:] = True
         if "K" in components and "M1" in self.modules and self.knowledge is not None:
             kv = self._K(smiles); ok = [i for i, v in enumerate(kv) if v is not None]
             if ok: kz = np.zeros(len(smiles)); kz[ok] = z([kv[i] for i in ok]); comp = comp + w * kz; have[ok] = True
-        if "retrieval" in components and "M3" in self.modules and self.mem.rows:
+        if "retrieval" in components and ("M3" in self.modules or self.reference_mode == "retrieval_only") and self.mem.rows:
             est = [self.mem.retrieval(s, target_seq) for s in smiles]; ok = [i for i, e in enumerate(est) if e[0] is not None]
             if ok: rz = np.zeros(len(smiles)); rz[ok] = z([est[i][0] for i in ok]); sm = np.zeros(len(smiles)); sm[ok] = [est[i][1] for i in ok]; comp = comp + sm * rz; have[ok] = True
         if "M2" in self.modules and sources is not None and self.mem.offsets:       # lab/assay offset in unit-free score space: b_s / sd of corrected revealed labels
@@ -235,6 +239,7 @@ class IHLM:
                 for row in new.mem.rows:
                     if row["smiles"] == iso(r["smiles"]) and row["source"] == r.get("source"): row["verifier"] = float(r["verifier"])
         new.fast_seconds += time.time() - t0; new.rounds_since_slow += 1
+        if new.reference_mode is not None: return new                  # reference variants: fast memory only, never a neural update
         if mode == "one_shot_matched" or new.rounds_since_slow >= new.slow_every: new._slow_fit(seed, rounds=kw.get("rounds", 1), mode=mode, steps=kw.get("steps")); new.rounds_since_slow = 0
         return new
 

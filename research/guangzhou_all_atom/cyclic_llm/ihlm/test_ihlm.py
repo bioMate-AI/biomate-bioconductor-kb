@@ -211,3 +211,11 @@ def test_score_sources_predict_std_steps_clone_and_rung_init():
     for x in w: x.tok.fit([r["smiles"] for r in rows]); x._ensure_net()
     sd0 = w[0].net.state_dict()
     assert all(all(torch.equal(sd0[k], x.net.state_dict()[k]) for k in sd0) for x in w[1:])
+
+
+def test_reference_modes_no_lm():
+    comps = world(); rows = rows_of(comps); smi = [c["smiles"] for c in comps[:8]]
+    r = M.IHLM(modules=("M2", "M3", "M4"), reference_mode="retrieval_only", slow_every=1).update(rows[:120], "finetune_ranking", seed=0); assert r.net is None and not r.net_trained
+    s = r.score(smi, TSEQ); assert any(x is not None for x in s) and r.predict_std(smi, TSEQ).shape == (8,)
+    o = M.IHLM(modules=("M2",), reference_mode="offset_only", slow_every=1).update(anchors(comps) + rows[:120], "finetune_ranking", seed=0)
+    a = o.score(smi, TSEQ, sources=["L3"] * 8); b = o.score(smi, TSEQ, sources=["L0"] * 8); assert o.net is None and all(x > y for x, y in zip(a, b)) and len(set(a)) == 1   # lab offset only, constant within a source
