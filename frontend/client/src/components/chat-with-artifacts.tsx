@@ -843,6 +843,13 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   // settles to the real summary + key results as they finish (report-in-process).
   // The message id keeps it idempotent across reload / re-poll (upsert, no dupes).
   useEffect(() => {
+    // Inline 'findings' chat message DISABLED 2026-10-28 (user request): it duplicated
+    // the findings already shown inline by the workflow viewer's FindingsCard (pre-panel)
+    // and by the structured chat-answer-block (post-panel) — two verdicts for one run. We
+    // keep a single findings rendering (the structured card/answer-block, preview in chat).
+    // Flag-gated (not deleted) so it can be restored by flipping INLINE_FINDINGS_MSG.
+    const INLINE_FINDINGS_MSG: boolean = false
+    if (!INLINE_FINDINGS_MSG) return
     const runId = currentRun?.id
     const status = currentRun?.execution?.status
     if (!runId || status !== 'completed') return
