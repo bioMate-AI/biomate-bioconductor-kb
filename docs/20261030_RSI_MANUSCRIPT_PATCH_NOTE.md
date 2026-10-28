@@ -24,3 +24,5 @@ The display-selector refutations (abundance null, family memorisation, hard-nega
 
 ## 4. Open items for the RSI owner
 Decide the single reconciled concentration number (P3); decide whether the loop evidence enters the RSI paper or only the companion loop paper (the topology decision belongs to the owner); no citation was added or changed by this note.
+
+**Terminology (from workstream 1, 87f4f6718).** K_phys_channel = the rule-mined sum of the knowledge-base audit; K_phys_textbook = the loop runner fixed linear combination (TPSA, HBD, logP, Veber). Each K_phys statement in this patch note must name which one it used once the regenerated L7 numbers arrive [PENDING].
