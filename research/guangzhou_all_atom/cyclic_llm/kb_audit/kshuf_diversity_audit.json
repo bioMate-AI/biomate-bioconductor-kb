@@ -1,0 +1,245 @@
+{
+ "res7f_gbm_aware|A": {
+  "loop_sub": 0.663,
+  "loop_kphys_sub": 0.666,
+  "loop_kshuf_sub": 0.667,
+  "n": 10,
+  "kphys-none": {
+   "mean": 0.003,
+   "ci99": [
+    -0.014,
+    0.019
+   ]
+  },
+  "kshuf-none": {
+   "mean": 0.004,
+   "ci99": [
+    -0.017,
+    0.026
+   ]
+  },
+  "kphys-kshuf": {
+   "mean": -0.001,
+   "ci99": [
+    -0.021,
+    0.021
+   ]
+  }
+ },
+ "res7f_gbm_aware|B": {
+  "loop_sub": 0.08,
+  "loop_kphys_sub": 0.09,
+  "loop_kshuf_sub": 0.083,
+  "n": 10,
+  "kphys-none": {
+   "mean": 0.011,
+   "ci99": [
+    -0.008,
+    0.027
+   ]
+  },
+  "kshuf-none": {
+   "mean": 0.004,
+   "ci99": [
+    -0.007,
+    0.015
+   ]
+  },
+  "kphys-kshuf": {
+   "mean": 0.007,
+   "ci99": [
+    -0.009,
+    0.022
+   ]
+  }
+ },
+ "res7f_gbm_aware|L": {
+  "loop_sub": 0.943,
+  "loop_kphys_sub": 0.935,
+  "loop_kshuf_sub": 0.935,
+  "n": 10,
+  "kphys-none": {
+   "mean": -0.007,
+   "ci99": [
+    -0.021,
+    0.002
+   ]
+  },
+  "kshuf-none": {
+   "mean": -0.008,
+   "ci99": [
+    -0.014,
+    -0.002
+   ]
+  },
+  "kphys-kshuf": {
+   "mean": 0.0,
+   "ci99": [
+    -0.011,
+    0.009
+   ]
+  }
+ },
+ "res7f_gbm_blind|A": {
+  "loop_sub": 0.652,
+  "loop_kphys_sub": 0.656,
+  "loop_kshuf_sub": 0.659,
+  "n": 10,
+  "kphys-none": {
+   "mean": 0.004,
+   "ci99": [
+    -0.006,
+    0.014
+   ]
+  },
+  "kshuf-none": {
+   "mean": 0.008,
+   "ci99": [
+    -0.01,
+    0.026
+   ]
+  },
+  "kphys-kshuf": {
+   "mean": -0.004,
+   "ci99": [
+    -0.027,
+    0.014
+   ]
+  }
+ },
+ "res7f_gbm_blind|B": {
+  "loop_sub": 0.081,
+  "loop_kphys_sub": 0.088,
+  "loop_kshuf_sub": 0.092,
+  "n": 10,
+  "kphys-none": {
+   "mean": 0.007,
+   "ci99": [
+    -0.01,
+    0.026
+   ]
+  },
+  "kshuf-none": {
+   "mean": 0.011,
+   "ci99": [
+    -0.005,
+    0.029
+   ]
+  },
+  "kphys-kshuf": {
+   "mean": -0.004,
+   "ci99": [
+    -0.013,
+    0.005
+   ]
+  }
+ },
+ "res7f_gbm_blind|L": {
+  "loop_sub": 0.933,
+  "loop_kphys_sub": 0.93,
+  "loop_kshuf_sub": 0.93,
+  "n": 10,
+  "kphys-none": {
+   "mean": -0.003,
+   "ci99": [
+    -0.012,
+    0.006
+   ]
+  },
+  "kshuf-none": {
+   "mean": -0.003,
+   "ci99": [
+    -0.01,
+    0.003
+   ]
+  },
+  "kphys-kshuf": {
+   "mean": 0.0,
+   "ci99": [
+    -0.009,
+    0.009
+   ]
+  }
+ },
+ "res7f_gbm_phys|A": {
+  "loop_sub": 0.642,
+  "loop_kphys_sub": 0.636,
+  "loop_kshuf_sub": 0.635,
+  "n": 10,
+  "kphys-none": {
+   "mean": -0.006,
+   "ci99": [
+    -0.05,
+    0.028
+   ]
+  },
+  "kshuf-none": {
+   "mean": -0.007,
+   "ci99": [
+    -0.031,
+    0.013
+   ]
+  },
+  "kphys-kshuf": {
+   "mean": 0.0,
+   "ci99": [
+    -0.031,
+    0.032
+   ]
+  }
+ },
+ "res7f_gbm_phys|B": {
+  "loop_sub": 0.107,
+  "loop_kphys_sub": 0.097,
+  "loop_kshuf_sub": 0.099,
+  "n": 10,
+  "kphys-none": {
+   "mean": -0.01,
+   "ci99": [
+    -0.021,
+    -0.001
+   ]
+  },
+  "kshuf-none": {
+   "mean": -0.008,
+   "ci99": [
+    -0.017,
+    0.001
+   ]
+  },
+  "kphys-kshuf": {
+   "mean": -0.003,
+   "ci99": [
+    -0.015,
+    0.007
+   ]
+  }
+ },
+ "res7f_gbm_phys|L": {
+  "loop_sub": 0.933,
+  "loop_kphys_sub": 0.929,
+  "loop_kshuf_sub": 0.929,
+  "n": 10,
+  "kphys-none": {
+   "mean": -0.004,
+   "ci99": [
+    -0.013,
+    0.003
+   ]
+  },
+  "kshuf-none": {
+   "mean": -0.005,
+   "ci99": [
+    -0.011,
+    0.003
+   ]
+  },
+  "kphys-kshuf": {
+   "mean": 0.001,
+   "ci99": [
+    -0.007,
+    0.008
+   ]
+  }
+ }
+}
