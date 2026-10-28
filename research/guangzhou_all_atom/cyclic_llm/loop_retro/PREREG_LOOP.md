@@ -28,3 +28,15 @@ Primary claim (greedy or uncertainty-aware beats random, CI lower bound > 0, in 
 Amendment L1 (knowledge arm = fingerprints + 10 literature permeability descriptors, minus fingerprint-only): NOT SUPPORTED. greedy: A +21.3 [-11, 63]; B -39.7 [-211, 113]; uncertainty-aware: A +16.1 [-17, 45]; B -24.3 [-177, 54].
 EXPLORATORY, not pre-registered (results/rule_baseline.json): zero-learning rules that rank the pool by one descriptor and take the top 500 find: N-methyl count A 276.3, B 304.0; low TPSA A 93.3, B 51.7; high logP A 29.6, B 42.6; low HBD A 33.7, B 5.4. A single classical rule (N-methylation) therefore recovers about 70 % (A) and 83 % (B) of the learned loop's yield.
 Files: results/loop_result.json, results/loop_res/ (120 per-task files), results/rule_baseline.json.
+
+## Amendment L2 (2026-10-27) — knowledge as PRIOR / FUSION in the loop; declared BEFORE any L2 run; motivated by a challenge to the L1 reading
+Why: L1 tested only descriptor columns appended to a 2,058-feature regressor (not supported). That does not test knowledge in the role it plays in practice (prior and gate steering early rounds). Observed facts that motivate L2 (disclosed): a one-line N-methyl rule alone recovered 70-83 % of the loop's yield; the fingerprint already encodes much of the same chemistry.
+Knowledge scores (computed from SMILES only, no labels; z-scored over the pool, an unsupervised statistic):
+ K_nme = N-methylated amide count (named after seeing the baseline result: EXPLORATORY choice, disclosed);
+ K_z   = z(N-methyl count) - z(H-bond donors) - z(TPSA), equal weights, chosen a priori from the cyclic-peptide permeability literature (no logP term).
+Integration modes (greedy policy only; model = same 5-member gradient-boosting ensemble on fingerprints):
+ resid_K: fit y = a*K + b by least squares on the labelled peptides each round, learn the ensemble on the residual, rank by a*K + b + ensemble residual prediction (knowledge as prior mean, data as correction).
+ fuse_K : rank by (1-w)*z(model prediction) + w*z(K) over the unlabelled pool, w = 100/(100 + n_labelled) (knowledge weight fades as labels accumulate).
+Arms: resid_nme, resid_z, fuse_nme, fuse_z, plus fp (fingerprint-only greedy re-run, same seeds, WITH per-round hits). Same regimes (A in-distribution, B scaffold-shifted), 30 seeds, same hit definition, same 10 rounds x 50 picks.
+Outcomes: PRIMARY = hits in 500 picks; SECONDARY (cold start) = hits in the first 200 picks. Paired differences vs fp over seeds. Because 4 knowledge arms are compared, intervals are 98.75 % percentile (1 - 0.05/4); a claim "knowledge as prior/fusion helps" requires at least one arm with interval lower bound > 0 in BOTH regimes at 500 picks. Also reported: all 4 arms, both regimes, both outcomes.
+No other knowledge scores or modes will be added after the first L2 result is read.
