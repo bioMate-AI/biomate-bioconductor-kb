@@ -329,7 +329,7 @@ def main():
                 E, pool = make_eval_slice(pool, seed, p["n_eval"]); Ef, Efg, Efs, pool = make_flat_slice(pool, d["flat"], seed, p["n_flat_groups"], d["y"]); Es, pool = make_source_slice(pool, d["srcs"], seed)
             allx = [set(E), set(Ef), set(Efs), set(Es)]; assert all(not a & b for k, a in enumerate(allx) for b in allx[k + 1:]) and all(not a & set(pool) and not a & set(init) for a in allx)
             Kshuf = d["Kphys"].copy(); rr = np.random.default_rng(seed + 7)
-            for s_ in set(d["srcs"]): ix = np.array([i for i, v in enumerate(d["srcs"]) if v == s_]); Kshuf[ix] = d["Kphys"][rr.permutation(ix)]      # permuted within source: same distribution, no information
+            for s_ in sorted(set(d["srcs"])): ix = np.array([i for i, v in enumerate(d["srcs"]) if v == s_]); Kshuf[ix] = d["Kphys"][rr.permutation(ix)]      # permuted within source: same distribution, no information
             ctx = Ctx(d["y"], d["thr"], d["thr_g"], d["srcs"], d["Kz"], d["B"], p, d["Kn"], Ef, Efg, Efs, Es, d["Kphys"], Kshuf)
             out = run_task(ctx, init, pool, E, seed); out.update(backend=alias, backend_spec=a.backend, regime=reg, params=p, cost_info=(d["B"].cost_info() if hasattr(d["B"], "cost_info") else None), E=[int(i) for i in E], Es=[int(i) for i in Es], Ef_groups=[[int(i) for i in g] for g in Efg], Ef_sib=[int(i) for i in Efs], init=[int(i) for i in init])
             for arm in ARMS:

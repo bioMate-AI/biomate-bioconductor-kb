@@ -84,8 +84,9 @@ def learner_key(dirpath, r):
       any other plain 'gbm' -> gbm_aware; every other backend keeps its own name (gbm_physchem, atom_lm, chemberta, ...)."""
     if r.get("learner"): return r["learner"]
     b = r["backend"]; name = os.path.basename(os.path.normpath(dirpath)).lower()
-    if b == "gbm_physchem" and "confirm" not in name and "res7m_" not in name: return b
+    if b == "gbm_physchem" and "confirm" not in name and "res7m_" not in name and "res7q_" not in name: return b
     suffix = "_confirm" if "confirm" in name else ("_srcmatch" if "res7m_" in name else "")
+    if "res7q_" in name: suffix = "_detK" + suffix                      # deterministic-K_shuf re-runs of the knowledge arms (2026-10-30); kept apart from the original runs, whose K_shuf depended on PYTHONHASHSEED
     if b in ("gbm",): return ("gbm_blind" if "blind" in name else "gbm_aware") + suffix
     return b + suffix
 

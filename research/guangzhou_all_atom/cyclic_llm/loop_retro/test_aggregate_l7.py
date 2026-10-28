@@ -88,3 +88,22 @@ def test_no_input_is_dropped_or_overwritten_and_aware_blind_stay_apart():
 if __name__ == "__main__":
     for n, f in list(globals().items()):
         if n.startswith("test_"): f(); print("PASS", n)
+
+
+def test_detk_reruns_get_their_own_learner_key_and_never_merge_with_originals():
+    # res7q_* = deterministic-K_shuf re-runs; they must not share a key with res7f_* (old K_shuf depended on PYTHONHASHSEED)
+    lk = G.learner_key
+    assert lk("res7f_gbm_aware", {"backend": "gbm"}) == "gbm_aware"
+    assert lk("res7q_gbm_aware", {"backend": "gbm"}) == "gbm_aware_detK"
+    assert lk("res7q_gbm_blind", {"backend": "gbm"}) == "gbm_blind_detK"
+    assert lk("res7f_gbm_phys", {"backend": "gbm_physchem"}) == "gbm_physchem"
+    assert lk("res7q_gbm_phys", {"backend": "gbm_physchem"}) == "gbm_physchem_detK"
+    assert lk("res7q_chemberta", {"backend": "chemberta"}) == "chemberta_detK"
+
+
+def test_kshuf_permutation_is_independent_of_hash_seed():
+    import subprocess, sys
+    code = ("import numpy as np;srcs=['b','a','c','a','b','c','a'];K=np.arange(7.);rr=np.random.RandomState(3);o=np.zeros(7)\n"
+            "for s in sorted(set(srcs)):\n ix=np.array([i for i,v in enumerate(srcs) if v==s]);o[ix]=K[rr.permutation(ix)]\nprint(o.tolist())")
+    outs = {subprocess.run([sys.executable, "-c", code], env={"PYTHONHASHSEED": h, "PATH": ""}, capture_output=True, text=True).stdout for h in ("1", "2", "3", "4")}
+    assert len(outs) == 1
