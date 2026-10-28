@@ -21,6 +21,19 @@ captured by the e2e run (in_vivo_cart_codesign completed run) + the Files panel.
    deliverable. **Fix:** don't auto-open the feedback dialog over the after-run panel; gate
    it / show unobtrusively after dismiss.
 
+### UPDATE 2026-10-28
+- **Finding 3 FIXED** (`9668f34a8`, `63734aaec`): opaque ids (hex/uuid/numeric) no longer
+  shown as the step label (both the s3_output_files prop path and the /output_files fetch
+  fallback); group header suppressed when there's no real step name.
+- **Finding 4 NOT A BUG** (audit-first): run outputs ARE already auto-saved to the project on
+  completion — `routes.ts autoSaveCompletedRunOutputs(run)` is called from 3 completion paths
+  (4685/11923/11984), idempotent, no-op for projectless runs. The "Save to Project" button
+  only appears for **Unfiled-chat** runs (no project to save to) — the screenshot's case. For
+  project runs the UI shows "Saved — open in Files" (savedProjectId = the run's projectId).
+  No change needed. (Open question if desired: should unfiled-chat runs auto-file to an
+  implicit project? — product decision, not a bug.)
+
+---
 3. **Outputs grouped/labelled by a raw step id (`76D11493`).** `AfterRunReport.tsx:1373`
    (group header) and `:1385` (`· {f.step}` per-file chip) render `f.step`, which is an
    opaque hash — "who knows the id?" All 11 files collapsed under one id-group (no real
