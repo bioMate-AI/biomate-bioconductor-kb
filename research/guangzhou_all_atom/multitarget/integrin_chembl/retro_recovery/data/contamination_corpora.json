@@ -1,0 +1,10 @@
+{
+ "corpus_exact_M_pos": 2972,
+ "M_pos": 5123,
+ "corpus_exact_I_pos": 2514,
+ "I_pos": 5581,
+ "corpus_exact_all": 6236,
+ "all_items": 13144,
+ "cycpeptmpdb_exact": 42,
+ "cycpeptmpdb_flat": 69
+}
