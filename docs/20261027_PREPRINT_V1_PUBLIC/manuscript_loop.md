@@ -69,13 +69,13 @@ Paired by seed, 99% bootstrap CI of the mean difference, cumulative hits in 500 
 
 Caveat (pooled labels): The top-decile outcome is dominated by one source (Figure not shown): 557 of 711 hits come from 878 peptides of a single laboratory, so the loop and the N-methyl rule largely locate that series (the N-methyl rule's top 500 selections were 89% from it in-distribution and 93% scaffold-shifted; 272 of 276 and 301 of 304 hits). The tables and figure below are retained for transparency and must not be read as within-laboratory permeability gains.
 
-**Selection with a model beat random selection by a wide margin from both starts (Figure L2, Table 1).** From the in-distribution start, the greedy loop found 396.7 top-decile peptides in 500 selections on average, against 49.9 for random selection (difference +346.8 (95% CI 280 to 389)). From the scaffold-shifted start it found 366.7 against 106.6 (difference +260.1 (95% CI 125 to 318)). The uncertainty-aware policy behaved similarly (+345.4 (95% CI 312 to 377) and +265.0 (95% CI 210 to 314)). The pre-specified claim, that a loop policy beats random with an interval excluding zero in both regimes, was met.
+**[SUPERSEDED pooled-label result; see S1 and 3.1] Selection with a model beat random selection by a wide margin from both starts (Figure L2, Table 1).** From the in-distribution start, the greedy loop found 396.7 top-decile peptides in 500 selections on average, against 49.9 for random selection (difference +346.8 (95% CI 280 to 389)). From the scaffold-shifted start it found 366.7 against 106.6 (difference +260.1 (95% CI 125 to 318)). The uncertainty-aware policy behaved similarly (+345.4 (95% CI 312 to 377) and +265.0 (95% CI 210 to 314)). The pre-specified claim, that a loop policy beats random with an interval excluding zero in both regimes, was met.
 
 | Policy | In-distribution start | Scaffold-shifted start |
 |---|---|---|
 | Random selection | 49.9 (34–71) | 106.6 (84–125) |
 | N-methyl-count rule, no learning (exploratory) | 276.3 (269–283) | 304.0 (304–304) |
-| Greedy loop, fingerprints | 396.7 (341–423) | 366.7 (234–415) |
+| Greedy loop, fingerprints (superseded pooled-label value) | 396.7 (341–423) | 366.7 (234–415) |
 | Uncertainty-aware loop, fingerprints | 395.4 (373–415) | 371.5 (318–411) |
 | Greedy loop, fingerprints + rule features | 418.0 (378–444) | 327.0 (146–417) |
 | Uncertainty-aware loop, fingerprints + rule features | 411.5 (368–436) | 347.2 (203–414) |
