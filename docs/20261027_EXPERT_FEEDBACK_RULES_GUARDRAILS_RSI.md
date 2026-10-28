@@ -72,6 +72,37 @@ crossed, a param equal to a canonical value, a QC metric, a file schema — most
 expert constraints in our domain *are* checkable, so most of them can be real
 gates, not just advice.
 
+### 1.1 The verifiable channel is not one thing — group it into gate families
+
+"Checkable" splits into a small number of **gate families**, each with a distinct
+verifier shape. Grouping them matters for two reasons: (i) an expert's rule maps
+cleanly to one family, so authoring/classification can be a dropdown, not free
+text; and (ii) it exposes exactly which families our composite-reward interpreter
+(`trl_trainer._composite_component`) already covers and which are gaps.
+
+| # | Gate family | What it checks | Bioinformatics / drug-dev examples | Verifier mechanism | Composite-reward coverage |
+|---|---|---|---|---|---|
+| G1 | **Threshold** | a measured value vs a cutoff with an operator | FDR < 0.05; hERG IC50 ≥ 10 µM; mapping rate ≥ 80%; coverage ≥ 30×; MW ≤ 500; TPSA ≤ 140; dup < 20% | numeric compare `{field, op, value}` | **GAP** — current `numeric` only tests *digit-presence*, not a comparison; needs a real `numeric_threshold` component |
+| G2 | **Canonical / enum value** | a param equals a value from a controlled vocab (after alias normalization) | genome = GRCh38; strandedness = reverse (dUTP); aligner ∈ {STAR, salmon}; organism alias → canonical | exact-match / set-membership on the **param** | partial — `contains_any` matches on text, but structured param-equality is a gap |
+| G3 | **Motif / substructure presence–absence** | a required pattern present, a banned one absent | keep RGD motif; no PAINS / toxicophore; valid SMILES; required cysteine pair for cyclization; no N-glyc sequon | `regex` / `contains_all` / `banned`; chemistry needs an RDKit-backed checker | **built** for text patterns; chemistry validity (SMILES/PAINS) is a **domain-verifier gap** |
+| G4 | **Schema / format validity** | output conforms to a structure | valid VCF / BAM / FASTQ; JSON valid; required report sections; units present | schema/format validator | `json_valid` **built**; file-schema validators are a **gap** |
+| G5 | **Set-membership / grounding** | a selection is one of the *provided* candidates | routed workflow exists in DB; gene symbol ∈ HGNC; accession resolves; off-catalog = reject | `grounded_pick` (already in `verification_layer.py`) | **built as a gate**, not yet wired as a reward term |
+| G6 | **Relational / cross-field consistency** | fields agree with each other | paired-end ⇒ 2 FASTQs; `single_end` flag matches file count; samplesheet rows match inputs; dose units match the value | multi-field predicate | **GAP** — no component |
+| G7 | **Procedural / ordering** | steps occur in a required order | QC before alignment; dedup before variant-call; normalize before DE | DAG/order check over the run plan | **GAP** — no component |
+| G8 | **Provenance / evidence** | every claim/number traces to a real source; inputs are real HDAs; no fabricated PMID | citation-integrity; hard-evidence invariant; "inputs are Galaxy HDAs" | provenance check | **built as an invariant**, not yet a reward term |
+
+Everything that does **not** land in G1–G8 is, by construction, the **soft /
+preference** channel (style, ordering of prose, tone, figure aesthetics) — judged
+by acceptance, not a verifier (§3b) — or the **fact** channel (§3c).
+
+**The payoff of grouping:** the composite reward today cleanly covers **G3 and G4**
+(regex / contains / banned / json_valid), partly **G2 and G5**, and is **missing the
+three highest-value bioinformatics families — G1 (threshold), G6 (relational),
+G7 (ordering)**. Those three are where most QC and protocol expertise actually
+lives. Extending the declarative interpreter with `numeric_threshold`, a
+cross-field predicate, and an order check — all safe, non-`eval` — is the concrete
+next step, and it is the same schema the §5 unification calls for.
+
 ---
 
 ## 2. Do they need to be translated into guardrails? — Only the hard ones
