@@ -1,0 +1,81 @@
+{
+ "topology": {
+  "CycPeptMPDB_rows": 8466,
+  "shape_counts": {
+   "Circle": 5530,
+   "Lariat": 2936
+  },
+  "frac_lariat": 0.347
+ },
+ "perm_split": {
+  "n_cycpept_len3_16": 8462,
+  "n_measured": 8462,
+  "n_val": 1269,
+  "n_train_perm": 7193,
+  "val_monomer_tuples_also_in_LM_train": 115,
+  "frac": 0.091,
+  "note": "regressor 'rf' (perm_delta oracle) is fit on val only; LM trained on cyc_tr_perm + unlabeled cycpept",
+  "val_collapsed_tuples_also_in_train": 879
+ },
+ "ncaa_definition": {
+  "other_ncAA": 0.276,
+  "Nmethyl_of_canonical": 0.217,
+  "canonical_L": 0.347,
+  "D_of_canonical": 0.16,
+  "frac_flagged_ncAA_by_v4_metric_in_training_data": 0.651,
+  "real_hi_perm_mean_ncaa_frac": 0.663,
+  "real_lo_perm_mean_ncaa_frac": 0.638
+ },
+ "perm_regressor": {
+  "n_fit": 1269,
+  "cv_R2_within_val": 0.069,
+  "regressor_pred_delta_real_hi_minus_lo_train": 0.527,
+  "true_measured_delta_real_hi_minus_lo": 1.466,
+  "v4_reported_perm_delta": 0.468,
+  "note": "if the regressor's delta on REAL hi/lo peptides is small, a generated delta of 0.47 is not interpretable as a permeability effect"
+ },
+ "display_split": {
+  "PADI4": {
+   "n_test": 3000,
+   "test_binder_frac": 0.131,
+   "train_binder_frac": 0.0,
+   "test_seq_also_in_train": 0,
+   "median_max_3mer_jaccard_test_binder_to_train_binders(sampled)": 0.0,
+   "frac_test_binders_jaccard_ge_0.5": 0.0
+  },
+  "hPCSK9": {
+   "n_test": 2827,
+   "test_binder_frac": 0.265,
+   "train_binder_frac": 0.0,
+   "test_seq_also_in_train": 0,
+   "median_max_3mer_jaccard_test_binder_to_train_binders(sampled)": 0.0,
+   "frac_test_binders_jaccard_ge_0.5": 0.0
+  },
+  "FIKK13": {
+   "n_test": 2582,
+   "test_binder_frac": 0.015,
+   "train_binder_frac": 0.0,
+   "test_seq_also_in_train": 0,
+   "median_max_3mer_jaccard_test_binder_to_train_binders(sampled)": 0.0,
+   "frac_test_binders_jaccard_ge_0.5": 0.0
+  },
+  "Abeta42": {
+   "n_test": 3000,
+   "test_binder_frac": 0.368,
+   "train_binder_frac": 0.0,
+   "test_seq_also_in_train": 0,
+   "median_max_3mer_jaccard_test_binder_to_train_binders(sampled)": 0.0,
+   "frac_test_binders_jaccard_ge_0.5": 0.0
+  },
+  "hIAPP": {
+   "n_test": 3000,
+   "test_binder_frac": 0.276,
+   "train_binder_frac": 0.0,
+   "test_seq_also_in_train": 0,
+   "median_max_3mer_jaccard_test_binder_to_train_binders(sampled)": 0.0,
+   "frac_test_binders_jaccard_ge_0.5": 0.0
+  }
+ },
+ "display_train_target_features_distinct_vectors": 5,
+ "note_target_conditioning": "target prefix = 24-d composition descriptor of the target protein; only 5 distinct values are ever seen in training"
+}
