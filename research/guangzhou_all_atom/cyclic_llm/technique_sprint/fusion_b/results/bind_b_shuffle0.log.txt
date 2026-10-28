@@ -1,0 +1,8 @@
+shuffled world 0 PT refit 61 s
+priors ready 63 s
+target 0 46 83
+target 10 46 218
+target 20 46 326
+target 30 46 437
+target 40 46 534
+wrote bind_b_shuffle_0_cells.csv 11658 587 s
