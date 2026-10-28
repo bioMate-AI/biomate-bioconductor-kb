@@ -1,0 +1,237 @@
+{
+ "version": "peptide_sar_kb v1",
+ "scope": "PAMPA permeability, cyclic peptides (CycPeptMPDB-type); within-source z units",
+ "train_sources": [
+  "2013_CHUGAI",
+  "2015_Ahlbach",
+  "2015_Wang",
+  "2016_Furukawa",
+  "2017_Pye",
+  "2018_Naylor",
+  "2020_Barlow",
+  "2020_Furukawa",
+  "2020_Townsend",
+  "2021_Comeau",
+  "2021_Golosov",
+  "2021_Kelly",
+  "2021_Wang",
+  "2022_Bhardwaj",
+  "2022_Taechalertpaisarn",
+  "2023_Ghosh",
+  "2023_Ohta",
+  "2024_Faris",
+  "2024_Koch",
+  "2024_Ly"
+ ],
+ "rules": {
+  "tpsa": {
+   "rule": "tpsa",
+   "kind": "physchem",
+   "status": "rule",
+   "weight": -0.28773984285662957,
+   "ci": [
+    -0.41025722371909745,
+    -0.20104123330675905
+   ],
+   "n_sources": 20,
+   "frac_sources_same_sign": 1.0,
+   "half_medians": [
+    -0.2899368499530695,
+    -0.23939585175912223
+   ],
+   "kb_claimed_sign": -1,
+   "agrees_with_kb": true,
+   "validity_score": 1.0,
+   "mined_from": [
+    "2013_CHUGAI",
+    "2015_Ahlbach",
+    "2015_Wang",
+    "2016_Furukawa",
+    "2017_Pye",
+    "2018_Naylor",
+    "2020_Barlow",
+    "2020_Furukawa",
+    "2020_Townsend",
+    "2021_Comeau",
+    "2021_Golosov",
+    "2021_Kelly",
+    "2021_Wang",
+    "2022_Bhardwaj",
+    "2022_Taechalertpaisarn",
+    "2023_Ghosh",
+    "2023_Ohta",
+    "2024_Faris",
+    "2024_Koch",
+    "2024_Ly"
+   ]
+  },
+  "hbd": {
+   "rule": "hbd",
+   "kind": "physchem",
+   "status": "rule",
+   "weight": -0.4076042230601869,
+   "ci": [
+    -0.52743282385953,
+    -0.08117467295474956
+   ],
+   "n_sources": 15,
+   "frac_sources_same_sign": 0.8666666666666667,
+   "half_medians": [
+    -0.4076042230601869,
+    -0.36016911843117605
+   ],
+   "kb_claimed_sign": -1,
+   "agrees_with_kb": true,
+   "validity_score": 0.7333333333333334,
+   "mined_from": [
+    "2013_CHUGAI",
+    "2015_Ahlbach",
+    "2015_Wang",
+    "2016_Furukawa",
+    "2018_Naylor",
+    "2020_Barlow",
+    "2020_Townsend",
+    "2021_Comeau",
+    "2021_Golosov",
+    "2021_Kelly",
+    "2021_Wang",
+    "2022_Bhardwaj",
+    "2023_Ghosh",
+    "2023_Ohta",
+    "2024_Ly"
+   ]
+  },
+  "logp": {
+   "rule": "logp",
+   "kind": "physchem",
+   "status": "no_consistent_direction",
+   "weight": 0.4674191798059218,
+   "ci": [
+    -0.022141395409215246,
+    0.6981042362321509
+   ],
+   "n_sources": 20,
+   "frac_sources_same_sign": 0.75,
+   "half_medians": [
+    0.4471370193497923,
+    0.4877013402620513
+   ],
+   "kb_claimed_sign": 1,
+   "agrees_with_kb": true,
+   "validity_score": 0.0,
+   "mined_from": [
+    "2013_CHUGAI",
+    "2015_Ahlbach",
+    "2015_Wang",
+    "2016_Furukawa",
+    "2017_Pye",
+    "2018_Naylor",
+    "2020_Barlow",
+    "2020_Furukawa",
+    "2020_Townsend",
+    "2021_Comeau",
+    "2021_Golosov",
+    "2021_Kelly",
+    "2021_Wang",
+    "2022_Bhardwaj",
+    "2022_Taechalertpaisarn",
+    "2023_Ghosh",
+    "2023_Ohta",
+    "2024_Faris",
+    "2024_Koch",
+    "2024_Ly"
+   ]
+  },
+  "veber_pass": {
+   "rule": "veber_pass",
+   "kind": "physchem",
+   "status": "rule",
+   "weight": 0.22495602585520552,
+   "ci": [
+    0.1375744173789486,
+    0.529979551972156
+   ],
+   "n_sources": 6,
+   "frac_sources_same_sign": 1.0,
+   "half_medians": [
+    0.2613712579382673,
+    0.22495602585520552
+   ],
+   "kb_claimed_sign": 1,
+   "agrees_with_kb": true,
+   "validity_score": 1.0,
+   "mined_from": [
+    "2015_Ahlbach",
+    "2016_Furukawa",
+    "2018_Naylor",
+    "2020_Barlow",
+    "2020_Townsend",
+    "2022_Bhardwaj"
+   ]
+  },
+  "N-Me added (with minus without)": {
+   "rule": "N-Me added (with minus without)",
+   "kind": "pair",
+   "status": "rule",
+   "effect_z": 0.49068394957510486,
+   "ci_z": [
+    0.2717077451609331,
+    0.7096601539892766
+   ],
+   "I2": 0.9346170992775067,
+   "effect_raw_mean": 0.3187091305400823,
+   "sd_z": 0.9522565339234127,
+   "cliff_frac": 0.3348657149770143,
+   "n_pairs": 4129,
+   "n_sources": 9,
+   "frac_sources_same_sign": 0.8888888888888888,
+   "half_effects": [
+    0.6101180664758011,
+    0.46527906743516473
+   ],
+   "validity_score": 0.7777777777777777,
+   "mined_from": [
+    "2013_CHUGAI",
+    "2015_Wang",
+    "2016_Furukawa",
+    "2020_Barlow",
+    "2020_Townsend",
+    "2021_Golosov",
+    "2021_Kelly",
+    "2022_Bhardwaj",
+    "2024_Ly"
+   ]
+  },
+  "D flip (D minus L)": {
+   "rule": "D flip (D minus L)",
+   "kind": "pair",
+   "status": "no_consistent_direction",
+   "effect_z": -0.013501097672472824,
+   "ci_z": [
+    -0.058098921698165135,
+    0.031096726353219487
+   ],
+   "I2": 0.4504959109044062,
+   "effect_raw_mean": -0.009410094331129394,
+   "sd_z": 0.8630937642069544,
+   "cliff_frac": 0.19145206956990696,
+   "n_pairs": 7411,
+   "n_sources": 7,
+   "frac_sources_same_sign": 0.42857142857142855,
+   "half_effects": [
+    -0.037704168905633335,
+    -0.0008327857822823741
+   ],
+   "validity_score": 0.0,
+   "mined_from": [
+    "2013_CHUGAI",
+    "2016_Furukawa",
+    "2020_Townsend",
+    "2021_Golosov",
+    "2021_Kelly",
+    "2022_Taechalertpaisarn",
+    "2024_Faris"
+   ]
+  }
+ }
+}

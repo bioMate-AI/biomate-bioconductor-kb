@@ -1,0 +1,40 @@
+{
+ "pooled_heldout_spearman": {
+  "K_phys": 0.39137086348782435,
+  "K_nme": 0.3244574232567898,
+  "K_total": 0.3882567302721396
+ },
+ "ci95_lab_bootstrap": {
+  "K_phys": [
+   0.07856791132950583,
+   0.48805558701326746
+  ],
+  "K_nme": [
+   -0.040365219366226675,
+   0.4612466657668867
+  ],
+  "K_total": [
+   0.011773137956246496,
+   0.5090080367081161
+  ]
+ },
+ "pooled_excluding_cross_lab_duplicate_structures": {
+  "K_phys": 0.3914519695457481,
+  "K_nme": 0.3247189369135199,
+  "K_total": 0.3883249752100981
+ },
+ "n_peptides": 6776,
+ "n_shared_structures": 5,
+ "single_feature_kbdirection_pooled_within_source": {
+  "tpsa": 0.41473332544745667,
+  "hbd": 0.36661602462390896,
+  "logp": 0.24476933165000742,
+  "veber_pass": 0.19152136530842548
+ },
+ "workstream4_reference_leave_labs_out_pooled": {
+  "fp_blind": 0.31,
+  "fp_chiral": 0.3,
+  "descriptor_gbm": 0.26,
+  "note": "from docs/20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md B2, different source set (45 sources vs 21 here), not strictly comparable"
+ }
+}
