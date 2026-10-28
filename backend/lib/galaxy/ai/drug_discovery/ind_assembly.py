@@ -944,8 +944,8 @@ def _build_rag_context(section_type: str, data: dict, region: str) -> str:
         try:
             from pathlib import Path as _Path
             from .org_rule_compiler import load_org_rule_block
-            _repo_root = _Path(__file__).resolve().parents[5]
-            _rules_path = _repo_root / "data" / "regulatory_training" / "org_rules" / f"{org_id}.yaml"
+            from ._data_root import data_root
+            _rules_path = data_root() / "regulatory_training" / "org_rules" / f"{org_id}.yaml"
             org_rules = load_org_rule_block(_rules_path, section_type)
             if org_rules:
                 lines.append(f"Org-specific rules (from {org_id} edit history):")
@@ -962,8 +962,8 @@ def _build_rag_context(section_type: str, data: dict, region: str) -> str:
         try:
             from pathlib import Path as _Path
             from .org_fewshot_index import load_fewshot_block
-            _repo_root = _Path(__file__).resolve().parents[5]
-            _idx_path = _repo_root / "data" / "regulatory_training" / "org_fewshot" / f"{org_id}.jsonl"
+            from ._data_root import data_root
+            _idx_path = data_root() / "regulatory_training" / "org_fewshot" / f"{org_id}.jsonl"
             _prompt = str((data or {}).get("user_prompt") or "")
             shots = load_fewshot_block(_idx_path, section_type, prompt_text=_prompt, k=2)
             if shots:

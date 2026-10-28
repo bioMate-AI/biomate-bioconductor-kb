@@ -11,7 +11,8 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any, Optional
 
-REPO = Path(__file__).resolve().parents[5]
+from ._data_root import data_root  # deploy-layout-independent writable data root
+REPO = data_root().parent
 DATA_DIR = REPO / "data" / "regulatory_training"
 JOBS_PATH = DATA_DIR / "training_jobs.jsonl"
 DPO_PAIRS_PATH = DATA_DIR / "dpo" / "customer_pairs.jsonl"

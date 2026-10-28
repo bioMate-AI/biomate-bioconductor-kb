@@ -34,7 +34,8 @@ log = logging.getLogger(__name__)
 SIMULATED_TRAIN_SECONDS = float(os.environ.get("REG_TRAIN_SIMULATED_SECONDS", "1.0"))
 POLL_SECONDS = float(os.environ.get("REG_TRAIN_POLL_SECONDS", "5.0"))
 
-REPO = Path(__file__).resolve().parents[5]
+from ._data_root import data_root  # deploy-layout-independent writable data root
+REPO = data_root().parent
 MODELS_ROOT = REPO / "models"
 ORG_RULES_DIR = REPO / "data" / "regulatory_training" / "org_rules"
 ORG_FEWSHOT_DIR = REPO / "data" / "regulatory_training" / "org_fewshot"
