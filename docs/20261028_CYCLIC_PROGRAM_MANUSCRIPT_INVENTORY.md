@@ -1,0 +1,32 @@
+# Cyclic-peptide program — inventory of existing work for the three manuscripts (2026-10-28)
+
+Purpose: one traceable map of what was already built, trained and measured before the 2026-10-27/28 session, so the manuscripts are written from it and not from new side experiments. Sources are the documents named; "read" = read in full or in its headline sections on 2026-10-28; "not yet read" = exists, not verified.
+
+## A. Trained models (checkpoints on disk, `research/guangzhou_all_atom/`)
+| model | file | what it is (per docs) |
+|---|---|---|
+| Display-conditioned char-LM v2/v3/v3.1 | `runs_v3/cyclic_llm_v3_{A,B}.pt`; `cyclic_llm/train_cyclic_llm_v{2,3,3_1}.py` | ~4.8 M-param nanoGPT over 20 aa, conditioned on display-NGS enrichment; used as binding selector (LLR) |
+| Monomer-vocabulary / HELM ncAA LM | `cyclic_llm/train_helm_monomer_llm.py` | 387 tokens (363 ncAA) over CycPeptMPDB; validity 1.0, 66 % ncAA, permeability conditioning Δ+0.40 (capstone §6) |
+| Unified cyclic LLM v4 (+DPO, +DPO_rc) | `runs_helm/unified_cyclic_llm_v4{,_dpo,_dpo_rc}.pt`; `cyclic_llm/unified_cyclic_llm.py` | one monomer-vocab model conditioned on {target, enrichment, permeability}; 68 % ncAA, perm Δ+0.47, multi-target binding AUC 0.70–0.98 (capstone §8) |
+| Rule-constrained / symbolic-neural generator | `cyclic_llm/rule_conditioned_generator.py`, `rule_induction.py`, `acceptance_gate.py`, `neural_generator.py` | SNG-style: induced rules condition the generator and reject violators (docs 20261015 DETAILED_DESIGN_SYMBOLIC_NEURAL_LEARNINGS, 20261021 RULE_CONSTRAINED_GENERATIVE_ARCHITECTURE) |
+| Atom-level SMILES LM (2026-10-27, this session) | S3 `cyclic_peptide/allatom/pretrain/` | 25 M params, ChEMBL-dominated corpus (1.7 % macrocycles); **evaluation not run; not the v4 model** |
+
+## B. Measured results already on record
+1. Within-target binding selector (LLR): PADI4 0.987, Abeta42 0.99, hIAPP 0.68, hPCSK9 0.82 after unification; 7–16× top-5 % lift (capstone §4,7; `20261006_BINDING_SELECTOR_WITHIN_TARGET_WIN.md`).
+2. **Corrections that qualify (1):** (a) a trivial read-count sort scores AUC ≈ 1.0 and the LM does not beat it on any of four targets (rescope note in `20261021_CYCLIC_LLM_PAPER_DRAFT.md`); (b) the leakage audit finds the display "win" indistinguishable from family memorisation on 3 of 5 targets, PADI4 the exception (`20261027_SELECTOR_LEAKAGE_AUDIT.md`).
+3. Cross-target (leave-one-target-out) generalisation: null, consistent with field-wide SOTA (~3–8 %) (`20261006_CYCLIC_LLM_V3_1_MULTITARGET_RESULTS.md`; `20261006_CROSS_TARGET_SOTA_COMPARISON.md`).
+4. Structure path: base BoltzGen beats the fine-tune on all 3 held-out targets; structure ceded to base (capstone §3).
+5. Trajectory denoising: 52.5 % of PADI4 "binders" are jackpot artefacts; clean re-evaluation lifts selector AUC 0.963 → 0.987 (capstone §5).
+6. Closed-loop physics components built; the central claim "the loop improves design against controls" is **not yet demonstrated** (`20261020_PREPRINT_STATUS_AND_GAP_ANALYSIS.md` §1). FEP control edge: computed −0.18 ± 0.15 vs measured −0.95 kcal/mol, a miss on a metal-blind edge (correction in paper draft header).
+7. Retrospective closed loop on CycPeptMPDB, within-source (this session, L3): loop beats random (in-distribution 226.7 vs 50.0, +176.7 [146, 209]; scaffold-shifted 62.5 vs 29.9, +32.6 [16, 52]); knowledge-arm result is from a mismatched-scale run and is being re-run as L4.
+8. Cofold selector (Stage B): selector null on 104 post-cutoff complexes; oracle headroom +19.2 pp. **Positive-control tests exist and pass (29 passed); input-side audit (independent DockQ recomputation) not yet done.**
+
+## C. Manuscript map
+| paper | honest claim the record supports | existing draft | missing before submission |
+|---|---|---|---|
+| 1. All-atom / ncAA-native cyclic LLM (v4) | an ncAA-native, multi-conditioned monomer LM generating valid ncAA macrocycles with conditioning effects; selector ranking within targets with the abundance-null and leakage caveats | `20261021_CYCLIC_LLM_PAPER_DRAFT.md` (3,481 words, rescoped to cautionary), `20261027_PREPRINT_V1_DRAFT.md` | v4 evaluation on the multi-target retrospective benchmark (prereg 20261028_AVB6_RETROSPECTIVE_RECOVERY_PREREG.md, A1) vs abundance and similarity baselines; v4 vs the 2026-10-27 atom LM |
+| 2. Closed loop with knowledge, rules, feedback | retrospective loop beats random within-source; symbolic-neural rule+generator architecture; DPO from graded runs | `docs/20261027_PREPRINT_V1_PUBLIC/manuscript_loop.md`, `20261021_RULE_CONSTRAINED_GENERATIVE_ARCHITECTURE.md` | L4 knowledge result; within-source rule baseline; evidence that rules/knowledge change generation (not only selection); prospective wet-lab round for v2 |
+| 3. Retrospective multi-target study | pre-registered; not run | `20261028_AVB6_RETROSPECTIVE_RECOVERY_PREREG.md` (+A1) | frozen positive/decoy lists, baselines, scorer runs |
+
+## D. Not yet read (exist per file lists; verify before citing)
+`20261006_CYCLIC_LLM_V2_DISPLAY_RESULTS.md`, `20261005_CYCLIC_LLM_MVP_RESULTS.md`, `20261021_CYCLIC_LLM_INNOVATION_THESIS.md`, `20261014_CYCLIC_PEPTIDE_PROGRAM_MASTER.md`, `20261015_GENERATION_SYSTEM_MASTER.md`, `20261019_FIRST_CLOSED_LOOP_ROUND_REVIEW.md`, `20261019_LOOP_BATCH_SYSTEM_LEVER.md`, `20261022_CYCLIC_LLM_CLOSED_CYCLE_CONTROLS.md`, `20261026_INTEGRATED_PROGRAM_PLAN.md`; other worktrees (`biomate`, `biomate-audit-fix`, `biomate-orch`) not searched for cyclic work.
