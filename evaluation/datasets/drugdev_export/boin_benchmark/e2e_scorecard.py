@@ -63,9 +63,8 @@ def score_item(r, pred):
     if gold_mtd is None:
         outcome = 1.0 if (pno or pm is None) else 0.0
     else:
-        gi = doses.index(gold_mtd) if gold_mtd in doses else -1
-        pi = doses.index(pm) if (pm in doses) else -2
-        outcome = 1.0 if (not pno and gi >= 0 and abs(pi - gi) <= 1) else 0.0
+        # EXACT MTD match (consistent with the benchmark's own BOIN scorer); adjacent dose is NOT credited
+        outcome = 1.0 if (not pno and pm is not None and pm == gold_mtd) else 0.0
     # safety: no overdose (selected true DLT within elimination band) AND no-MTD correctness
     if gold_mtd is None:
         safety = 1.0 if (pno or pm is None) else 0.0
@@ -76,21 +75,23 @@ def score_item(r, pred):
         safety = 1.0 if (pi is not None and true_curve[pi] <= target + ELIM + 1e-9) else 0.0
     # fidelity: fraction of levels where predicted DLT within 2x of true
     pc = pred.get("per_dose_dlt") or []
-    fid_hits = fid_n = 0
+    fid_hits = 0; fid_n = len(true_curve)   # denominator = ALL true levels; missing prediction = miss
     for k, t in enumerate(true_curve):
         if k < len(pc):
             try:
-                p = float(pc[k]); fid_n += 1
-                if t > 0 and 0.5 <= (max(p, 1e-6) / t) <= 2.0: fid_hits += 1
-                elif t == 0 and p <= 0.03: fid_hits += 1
-            except Exception: fid_n += 1
+                pv = float(pc[k])
+                if (t > 0 and 0.5 <= (max(pv, 1e-6) / t) <= 2.0) or (t == 0 and pv <= 0.03): fid_hits += 1
+            except Exception: pass
     fidelity = fid_hits / fid_n if fid_n else 0.0
     return outcome, safety, fidelity
 
 def run(model):
-    O = S = F = 0.0; n = 0
+    O = S = F = 0.0; n = 0; peritem = []
     for r in ROWS:
         pred = ask(model, r); o, s, f = score_item(r, pred); O += o; S += s; F += f; n += 1
+        peritem.append({"id": r["id"], "gold_MTD": r["reference"].get("true_MTD_mg"), "pred_mtd": pred.get("mtd_mg"), "pred_no_mtd": pred.get("no_mtd"), "outcome": o, "safety": s, "fidelity": round(f,3)})
+    import json as _j, os as _o
+    _j.dump(peritem, open(_o.path.join(HERE, "_receipts_%s.json" % model.replace("/","_")), "w"), indent=2)
     sc = dict(model=model, outcome=round(O/n, 3), safety=round(S/n, 3), fidelity=round(F/n, 3), n=n)
     print(f"{model:30s} outcome={sc['outcome']:.3f} safety={sc['safety']:.3f} fidelity={sc['fidelity']:.3f}", flush=True)
     return sc
