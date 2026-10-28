@@ -51,3 +51,4 @@ Central model is IH-LM (loop-native in-house hybrid); the 25.5 M atom LM is P0, 
 | New F13 | yes | `l5_aggregate.json` `PICK_SOURCE_MEANS` | pick provenance by source: loop vs random vs rules, regimes A, B, C |
 | New T10 | yes | `retro_recovery/results/h4b_baselines.json` | few-label AUROC by k for nearest-neighbour, fit-on-revealed, pretrained+revealed, zero-shot |
 | T6 small vs larger pretrained | no | — | central comparison not run; table stays an empty template until it is |
+| Figure scripts | yes | `research/guangzhou_all_atom/figures_paper/` and `docs/20261030_FIGURES_STATUS.md` (13 items rendered from committed artifacts; 284 assertions OK, deterministic) | reconcile with the draft's Appendix A before tagging; panels still marked PENDING there stay placeholders |
