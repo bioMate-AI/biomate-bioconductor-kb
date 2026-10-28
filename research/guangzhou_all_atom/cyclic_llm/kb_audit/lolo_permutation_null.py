@@ -19,15 +19,18 @@ for L in elig:
     K[L] = {k: ch[k].values.astype(float) for k in ("K_phys", "K_nme", "K_total")}; Y[L] = te.y.values.astype(float)
 def rho(a, b):
     ra, rb = rankdata(a), rankdata(b); ra = ra - ra.mean(); rb = rb - rb.mean(); den = np.sqrt((ra ** 2).sum() * (rb ** 2).sum()); return float((ra * rb).sum() / den) if den > 0 else np.nan
-out = {}
+out = {}; excluded = []
 for key in ("K_phys", "K_nme", "K_total"):
     labs = [L for L in elig if np.std(K[L][key]) > 0]; obs = np.array([rho(K[L][key], Y[L]) for L in labs])
     # N1: within-lab permutation of K (vectorised over B using rank arrays)
     nul1 = np.zeros((B, len(labs))); pl = []
     for j, L in enumerate(labs):
         rk = rankdata(K[L][key]) - (len(Y[L]) + 1) / 2; ry = rankdata(Y[L]) - (len(Y[L]) + 1) / 2; den = np.sqrt((rk ** 2).sum() * (ry ** 2).sum())
+        if not np.isfinite(den) or den <= 0:      # guard: constant K or constant labels -> undefined, excluded explicitly
+            nul1[:, j] = np.nan; pl.append(float("nan")); excluded.append((key, L)); continue
         idx = np.argsort(rng.random((B, len(rk))), axis=1); nul1[:, j] = (rk[idx] * ry).sum(1) / den
         pl.append(float((np.sum(np.abs(nul1[:, j]) >= abs(obs[j])) + 1) / (B + 1)))
+    keep = np.isfinite(nul1).all(axis=0); nul1 = nul1[:, keep]; obs = obs[keep]; labs = [L for L, k_ in zip(labs, keep) if k_]; pl = [p for p, k_ in zip(pl, keep) if k_]
     med_obs = float(np.median(obs)); med_null = np.median(nul1, axis=1); p_med = float((np.sum(med_null >= med_obs) + 1) / (B + 1))
     # pooled held-out rho (peptides of all labs together) and its within-lab-permutation null
     allk = np.concatenate([K[L][key] for L in labs]); ally = np.concatenate([Y[L] for L in labs]); pooled_obs = rho(allk, ally)
@@ -46,7 +49,7 @@ for key in ("K_phys", "K_nme", "K_total"):
                     null_median_mean=float(med_null.mean()), null_median_sd=float(med_null.std()), null_median_95=[float(np.percentile(med_null, 2.5)), float(np.percentile(med_null, 97.5))],
                     p_observed_median_vs_within_lab_null=p_med, pooled_observed=pooled_obs, pooled_null_mean=float(pooled_null.mean()), pooled_null_sd=float(pooled_null.std()),
                     p_pooled_vs_within_lab_null=p_pool, null_median_global_perm_mean=float(g.mean()), null_median_global_perm_sd=float(g.std()), p_median_vs_global_null=p_glob,
-                    sign_test_p=float(sign), n_positive=int((obs > 0).sum()))
+                    sign_test_p=float(sign), n_positive=int((obs > 0).sum()), excluded_labs=[L for (k_, L) in excluded if k_ == key])
 json.dump(out, open(os.path.join(HERE, "lolo_permutation_null.json"), "w"), indent=1)
 for k, o in out.items():
     print("%-8s labs %d | observed median %.3f | within-lab null median %.3f ± %.3f (95%% [%.3f, %.3f]) p=%.4g | global-perm null %.3f ± %.3f p=%.4g | pooled %.3f vs null %.3f ± %.3f p=%.4g | labs p<0.05: %d (expect %.1f) | sign test %d/%d p=%.3g" % (

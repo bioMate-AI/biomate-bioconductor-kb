@@ -65,7 +65,8 @@
   "null_median_global_perm_sd": 0.02370440317832383,
   "p_median_vs_global_null": 0.0004997501249375312,
   "sign_test_p": 0.000110626220703125,
-  "n_positive": 19
+  "n_positive": 19,
+  "excluded_labs": []
  },
  "K_nme": {
   "n_labs": 20,
@@ -131,7 +132,8 @@
   "null_median_global_perm_sd": 0.024005322512613312,
   "p_median_vs_global_null": 0.6166916541729135,
   "sign_test_p": 0.5880985260009766,
-  "n_positive": 10
+  "n_positive": 10,
+  "excluded_labs": []
  },
  "K_total": {
   "n_labs": 21,
@@ -199,6 +201,7 @@
   "null_median_global_perm_sd": 0.024833497346274127,
   "p_median_vs_global_null": 0.0004997501249375312,
   "sign_test_p": 0.013301849365234375,
-  "n_positive": 16
+  "n_positive": 16,
+  "excluded_labs": []
  }
 }

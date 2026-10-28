@@ -19,3 +19,13 @@ def test_per_lab_offsets_do_not_create_signal():
         n = 50; k = r.normal(size=n) + 5 * lab; y = r.normal(size=n) + 3 * lab        # between-lab offsets in both; within-lab independent
         kz = (k - k.mean()) / k.std(); yz = (y - y.mean()) / y.std(); rhos.append(N.perm_p(kz, yz, 200, r)[0])
     assert abs(np.median(rhos)) < 0.1
+
+def test_zero_denominator_returns_nan_not_a_number():
+    r = np.random.default_rng(5); y = r.normal(size=30)
+    for k, yy in ((np.ones(30), y), (r.normal(size=30), np.ones(30)), (np.ones(30), np.ones(30))):
+        o, p, null = N.perm_p(k, yy, 200)
+        assert np.isnan(o) and np.isnan(p) and null is None
+
+def test_guard_does_not_change_defined_results():
+    r = np.random.default_rng(6); k = r.normal(size=40); y = 0.4 * k + r.normal(size=40); o, p, null = N.perm_p(k, y, 300, np.random.default_rng(0))
+    assert np.isfinite(o) and np.isfinite(p) and null.shape == (300,)
