@@ -77,6 +77,8 @@ candidate improvements that passed naive checks and were artifacts. In a field w
 from under-powered, confound-rich loops are the norm, a demonstrated refutation machinery is the
 contribution, and it is the precondition for any later performance claim being believable.
 
+![Figure 1. The governed loop. A four-stage Design→Verify→Select→Learn cycle whose verifier ladder is cost-ordered (L0 free gates → L1 execution → L2 physics → L3 wet lab, v2) and whose promotion of any learned change is gated by a firewall that holds out target, scaffold and assay rather than instances.](figures_peptide_rsi/fig1_loop_ladder_firewall.png)
+
 ## 2. The loop
 
 A four-stage cycle (tooling in parentheses; full spec `docs/20260930_CYCLIC_PEPTIDE_END_TO_END_PROCESS.md`):
@@ -126,6 +128,8 @@ treacherous. §5 is what this firewall rejected.
 The evidential contribution. §5.1–5.3 are candidate improvements that passed a naive check and were
 refuted by a firewall control; §5.4 is a fourth whose pooled result is a confound and whose within-source
 verdict is still pending a pre-registered re-run. Provenance to the committed artifact in each case.
+
+![Figure 2. Three candidate improvements refuted by the firewall. (a) A k-mer logistic regression matches the LM selector on random splits (AUC Abeta42 0.986 vs 0.990; hIAPP 0.698 vs 0.689); under family-disjoint splits performance falls to 0.52 (hIAPP) and 0.42 (FIKK13). (b) Cross-target renal Spearman ρ with 95% CI before (0.27 [0.01, 0.51], p = 0.036) and after (−0.26 [−0.55, 0.09], p = 0.11) correcting the charge-feature bug. (c) YY→FF control edge, measured −0.95 vs computed −0.18 ± 0.15 kcal/mol, on a pocket whose Mn²⁺ ions were 30–37 Å away.](figures_peptide_rsi/fig2_three_refutations.png)
 
 ### 5.1 Selector gain that does not clear an abundance null
 The enrichment-trained LLM selector ranks held-out PADI4 binders at AUC 0.951 and **beats every
@@ -182,6 +186,8 @@ running. *Reported as a pooled confound with the within-source verdict pending.*
   confirmed hit). (`docs/20261006_CYCLIC_LLM_V3_CROSSTARGET_RESULTS.md`, `…V3_1_MULTITARGET_RESULTS.md`.)
 - **Closed loop: synthetic only** — DPO ran on simulated KD (`results/SIMULATED_closed_loop_20261003/`,
   `data_origin: simulated`, "no biological or generalization claim").
+
+![Figure 3. Measured bounds. (a) Binding-affinity random forest R²: random split 0.52 vs novel target (PD-L1 + αvβ6, n = 327) 0.26. (b) Permeability scaffold-split R² 0.23 against published values as recorded in the result artifact (CPMP 0.67, CycPeptMP 0.77); the published values use different splits and models and are not like-for-like. (c) Held-out-target smoke test (n = 4 designs per target, three targets): fine-tuned minus base iPTM is negative on every target (mean −0.16); full leave-one-target-out is pending.](figures_peptide_rsi/fig3_honest_bounds.png)
 
 ### 5.6 Additional firewall catches (pre-registered nulls and pipeline integrity)
 Four further catches from the companion program, each the firewall or an integrity check refusing a result
