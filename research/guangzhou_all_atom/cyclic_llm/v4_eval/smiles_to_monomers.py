@@ -17,6 +17,19 @@ def _canon_smi(m):
     return Chem.MolToSmiles(m, isomericSmiles=True)
 
 
+# tautomer drawings that differ only in H placement (stereo-preserving string alternates; RDKit's tautomer canonicaliser was tried and rejected: it strips stereo)
+_ALTS = [("N=C(N)N", "NC(N)=N"), ("N=C(N)N", "NC(=N)N"), ("c1c[nH]cn1", "c1cnc[nH]1"), ("c1cnc[nH]1", "c1c[nH]cn1"), ("c1nc[nH]c1", "c1ncc[nH]1")]
+
+
+def _add_tautomer_alternates(d):
+    for key, tok in list(d.items()):
+        for a, b in _ALTS:
+            if a in key:
+                m = Chem.MolFromSmiles(key.replace(a, b))
+                if m is not None: d.setdefault(_canon_smi(m), tok)
+    return d
+
+
 def _build_base():
     d = {}
     for aa in _CANON:
@@ -43,7 +56,7 @@ def _build_base():
     return d
 
 
-BASE = _build_base()
+BASE = _add_tautomer_alternates(_build_base())
 BACKBONE = Chem.MolFromSmarts("[NX3:1]-[CX4:2]-[CX3:3](=[O:4])")
 
 
@@ -55,7 +68,7 @@ def _units(m):
     return list(seen.values())
 
 
-def segment(smi, dictionary=None):
+def _segment(smi, dictionary=None):
     """-> dict(ok, tokens(list in backbone order or None), cyclic, unmapped(list of fragment SMILES), n_units, coverage)."""
     dictionary = dictionary if dictionary is not None else BASE
     m = Chem.MolFromSmiles(smi) if isinstance(smi, str) else None
@@ -69,11 +82,12 @@ def segment(smi, dictionary=None):
     if len(U) < 3: return dict(ok=False, why="few_units", n_units=len(U))
     Nof = {u[0]: i for i, u in enumerate(U)}; Cof = {u[2]: i for i, u in enumerate(U)}
     # peptide bonds: carbonyl C of unit i bonded to N of unit j
-    link = {}; cut = []
+    link = {}; cut = []   # note: cut may contain duplicates on branched topologies; deduplicated below
     for i, u in enumerate(U):
         for nb in m.GetAtomWithIdx(u[2]).GetNeighbors():
             if nb.GetIdx() in Nof and nb.GetIdx() != u[0]:
                 j = Nof[nb.GetIdx()]; link[i] = j; cut.append(m.GetBondBetweenAtoms(u[2], nb.GetIdx()).GetIdx())
+    cut = sorted(set(cut))
     if not cut: return dict(ok=False, why="no_peptide_bonds", n_units=len(U))
     fm = Chem.FragmentOnBonds(m, cut, addDummies=True)
     comps = Chem.GetMolFrags(fm, asMols=False, sanitizeFrags=False)
@@ -148,3 +162,32 @@ def learn_ncaa_dictionary(rows):
         if len(c) > 1: conflicts[frag] = dict(c)
         if n >= 2 and tok not in d.values(): d[frag] = tok
     return d, conflicts
+
+
+def learn_ncaa_dictionary_iter(rows, rounds=4, min_count=2):
+    """Iterative variant: after each round learned tokens turn 2-unmapped peptides into 1-unmapped ones, so more fragments can be named.
+    rows: iterable of (smiles, monomer_list) with ground-truth monomer lists (CycPeptMPDB). Returns (dictionary, per-round dictionary sizes)."""
+    from collections import Counter, defaultdict
+    rows = list(rows); d = dict(BASE); sizes = [len(d)]
+    for _ in range(rounds):
+        cand = defaultdict(Counter)
+        for smi, mons in rows:
+            r = segment(smi, d)
+            if not r.get("ok") or len(r.get("unmapped", [])) != 1: continue
+            mapped = Counter(t for t in r["tokens"] if t is not None)
+            diff = Counter(mons) - mapped
+            if sum(diff.values()) == 1 and not (mapped - Counter(mons)):
+                cand[r["unmapped"][0]][next(iter(diff))] += 1
+        new = 0
+        for frag, c in cand.items():
+            tok, n = c.most_common(1)[0]
+            if n >= min_count and frag not in d and tok not in d.values(): d[frag] = tok; new += 1
+        sizes.append(len(d))
+        if not new: break
+    return d, sizes
+
+
+def segment(smi, dictionary=None):
+    """Exception-safe wrapper: any RDKit failure (seen on branched/isopeptide topologies) -> ok=False, why='exception' (counted as unscored, never silently dropped)."""
+    try: return _segment(smi, dictionary)
+    except Exception as e: return dict(ok=False, why="exception:" + type(e).__name__)
