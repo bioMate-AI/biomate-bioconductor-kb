@@ -51,7 +51,11 @@ def build_prompt(examples, cands, smiles, kb=""):
     return head + f"Candidates (index: SMILES):\n{cd}\nSelect the {N_PICK} candidates most likely to have the HIGHEST label. Return ONLY JSON: {{\"ranking\": [indices, best first], \"rationale\": \"<=40 words\"}}"
 
 
-def call(prompt, model, cost, acc=None, tries=4, max_tokens=700):
+MAXTOK = [4000]          # set from --max-tokens (reasoning models need more headroom)
+
+
+def call(prompt, model, cost, acc=None, tries=4, max_tokens=None):      # reasoning models spend part of this budget on hidden reasoning before the JSON answer
+    max_tokens = max_tokens or MAXTOK[0]
     body = json.dumps({"model": model, "temperature": 0, "max_tokens": max_tokens, "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}]}).encode()
     t0 = time.time()
     for k in range(tries):
@@ -133,7 +137,7 @@ def stereo_call(arm, rec, ctx, init, Ef_groups, Ef_sib, smiles, a, cost, kb):
     body = "Each group below contains STEREOISOMERS of one constitution (identical atoms and connectivity, different stereochemistry). One isomer per group has a KNOWN label; rank the UNKNOWN isomers of the group from highest to lowest expected label.\n"
     for g, mem in enumerate(Ef_groups): body += f"Group {g}: known isomer {smiles[Ef_sib[g]]}\tlabel {y[Ef_sib[g]]:.1f}\n" + "".join(f"  {j}: {smiles[i]}\n" for j, i in enumerate(mem))
     body += "Return ONLY JSON: {\"0\": [unknown-isomer indices best first], \"1\": [...], ...}"
-    acc = new_acc(); txt = call(head + body, a.model, cost, acc, max_tokens=2500); rs = []; failed = 0
+    acc = new_acc(); txt = call(head + body, a.model, cost, acc, max_tokens=2 * MAXTOK[0]); rs = []; failed = 0
     try: obj = json.loads(re.search(r"\{.*\}", txt, re.S).group(0))
     except Exception: obj = {}
     for g, mem in enumerate(Ef_groups):
@@ -185,7 +189,7 @@ def memo_probe(a, cost, smiles, n=30, frac=0.6):
         sims = []
         for t in (s, d):
             cut = int(len(t) * frac); pre, suf = t[:cut], t[cut:]
-            txt = (call(f"Complete this peptide SMILES string. Output ONLY the remaining characters, nothing else.\n{pre}", a.model, cost, acc, max_tokens=400) or "").strip().replace("`", "")
+            txt = (call(f"Complete this peptide SMILES string. Output ONLY the remaining characters, nothing else.\n{pre}", a.model, cost, acc, max_tokens=1500) or "").strip().replace("`", "")
             txt = txt.split()[0] if txt.split() else ""
             sims.append(difflib.SequenceMatcher(None, txt[:len(suf) + 20], suf).ratio())
         real.append(sims[0]); dec.append(sims[1])
@@ -205,8 +209,8 @@ def run_curve(ctx, init, pool, seed, a, cost, smiles):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("csv"); ap.add_argument("out"); ap.add_argument("--model", required=True); ap.add_argument("--regimes", default="AB"); ap.add_argument("--seeds", default="0-3")
-    ap.add_argument("--cap-usd", type=float, default=0.75); ap.add_argument("--control", action="store_true"); ap.add_argument("--probe", action="store_true"); ap.add_argument("--workers", type=int, default=8)
-    a = ap.parse_args(); os.makedirs(a.out, exist_ok=True); cost = Cost(a.cap_usd); tag = a.model.replace("/", "__")
+    ap.add_argument("--cap-usd", type=float, default=0.75); ap.add_argument("--control", action="store_true"); ap.add_argument("--probe", action="store_true"); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--max-tokens", type=int, default=4000)
+    a = ap.parse_args(); MAXTOK[0] = a.max_tokens; os.makedirs(a.out, exist_ok=True); cost = Cost(a.cap_usd); tag = a.model.replace("/", "__")
     recs, d = L.build(a.csv, "gbm", "cpu"); smiles = [r["smiles"] for r in recs]; kb = kb_block(); gbm = d["B"]
     if a.control:
         r = planted_control(a, cost, smiles); json.dump(r, open(f"{a.out}/{tag}__control.json", "w"), indent=1); print(json.dumps(r)); print("USD %.3f" % cost.usd); return
