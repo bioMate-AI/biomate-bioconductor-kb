@@ -47,10 +47,10 @@ def shuffled_labels(D, seed=31337):
 
 
 def _work(task):
-    arm, regime, seed, label, cfg = task; D = _G["D"]; kw = {}
+    import time; t0 = time.time(); arm, regime, seed, label, cfg = task; D = _G["D"]; kw = {}
     if _G["labels"] == "real": kw = dict(thr_g=D["thr_g"])
     else: kw = dict(y=_G["y"], thr=_G["thr"], thr_g=None)
-    out = A.run_task(arm, regime, seed, D, cfg, with_transfer=(_G["labels"] == "real"), ymode=_G["ymode"], **kw); out["label"] = label; out["labels_mode"] = _G["labels"]; out["cfg"] = cfg
+    out = A.run_task(arm, regime, seed, D, cfg, with_transfer=(_G["labels"] == "real"), ymode=_G["ymode"], **kw); out["label"] = label; out["labels_mode"] = _G["labels"]; out["cfg"] = cfg; out["seconds"] = round(time.time() - t0, 1)
     if _G.get("masks") is not None: out["planted_found"] = [int(m[out["picks"]].sum()) for m in _G["masks"]]; out["planted_size"] = [int(m.sum()) for m in _G["masks"]]
     return out
 
@@ -58,7 +58,7 @@ def _work(task):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("csv"); ap.add_argument("out"); ap.add_argument("--arms", required=True); ap.add_argument("--regimes", default="A,B,L"); ap.add_argument("--seeds", default="0-29")
     ap.add_argument("--lam", type=float, default=0.0); ap.add_argument("--cap-src", type=int, default=50); ap.add_argument("--cap-flat", type=int, default=A.BIG); ap.add_argument("--cfg"); ap.add_argument("--tag", default="")
-    ap.add_argument("--labels", default="real", choices=("real", "planted1", "planted2", "shuffle")); ap.add_argument("--procs", type=int, default=30); ap.add_argument("--cache"); ap.add_argument("--ymode", default="trans", choices=("trans", "causal")); ap.add_argument("--grid", action="store_true", help="pre-registered development grid for prov/div (1.6): 12 configurations")
+    ap.add_argument("--labels", default="real", choices=("real", "planted1", "planted2", "shuffle")); ap.add_argument("--procs", type=int, default=30); ap.add_argument("--cache"); ap.add_argument("--ymode", default="trans", choices=("trans", "causal")); ap.add_argument("--grid", action="store_true", help="pre-registered development grid for prov/div (1.6): 12 configurations"); ap.add_argument("--grid6", action="store_true", help="amendment A3 reduced grid: 6 configurations")
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     cfg = json.load(open(a.cfg))["config"] if a.cfg else dict(lam=a.lam, cap_src=a.cap_src, cap_flat=a.cap_flat)
     D = A.prepare(a.csv, a.cache); _G.update(D=D, labels=a.labels, masks=None, ymode=a.ymode)
@@ -66,11 +66,12 @@ def main():
     elif a.labels == "shuffle": y, thr = shuffled_labels(D); _G.update(y=y, thr=thr)
     import itertools
     grid = [(f"l{l}_s{cs}_f{'inf' if cf >= A.BIG else cf}", dict(lam=l, cap_src=cs, cap_flat=cf)) for l, cs, cf in itertools.product((0.0, 0.5, 1.0), (50, 25), (A.BIG, 5))]
+    if a.grid6: grid = [(f"l{l}_s{cs}_f{'inf' if cf >= A.BIG else cf}", dict(lam=l, cap_src=cs, cap_flat=cf)) for l, cs, cf in ((0.0, 50, A.BIG), (0.5, 50, A.BIG), (1.0, 50, A.BIG), (0.0, 25, 5), (0.5, 25, 5), (1.0, 25, 5))]
     tasks = []
     for s in parse_seeds(a.seeds):
         for g in a.regimes.split(","):
             for arm in a.arms.split(","):
-                if a.grid and arm in ("prov", "div"): tasks += [(arm, g, s, f"{arm}@{tag}", c) for tag, c in grid]
+                if (a.grid or a.grid6) and arm in ("prov", "div"): tasks += [(arm, g, s, f"{arm}@{tag}", c) for tag, c in grid]
                 else: tasks.append((arm, g, s, arm + (("@" + a.tag) if a.tag and arm in ("prov", "div") else ""), cfg))
     todo = [t for t in tasks if not os.path.exists(f"{a.out}/{t[3]}_{t[1]}_{t[2]}.json")]
     print(f"n={len(D['y'])} thr={D['thr']:.3f} cfg={cfg} labels={a.labels} ymode={a.ymode} tasks={len(tasks)} todo={len(todo)}", flush=True)

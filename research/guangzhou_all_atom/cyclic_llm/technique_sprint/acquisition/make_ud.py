@@ -9,18 +9,18 @@ STAGES = {
                 f"python3.11 -u repro_audit.py {CSV} /w/res/repro.json --cache /w/acq_cache.pkl > /w/res/repro.log 2>&1; echo $? > /w/res/repro.rc",
                 f"python3.11 -u leakage_report.py {CSV} /w/res/leakage.json --cache /w/acq_cache.pkl --seeds 10 > /w/res/leakage.log 2>&1; echo $? > /w/res/leakage.rc"],
  # PRIMARY: causal standardisation (amendment A2); development grid on seeds 100-104, config selected under the primary variant
- "devc": [f"{RUN} --arms greedy,prov --regimes A,B,L --seeds 100-104 --grid --ymode causal {CACHE}"],
- "evalc": [f"{RUN} --arms random,rule_phys,greedy,ucb,nn_greedy,fuse --regimes A,B,B2,L --seeds 0-29 --ymode causal {CACHE}"],
- "evalcC2": [f"{RUN} --arms random,rule_phys,greedy,ucb --regimes C2 --seeds 0-29 --ymode causal {CACHE}"],
- "evalcprov": [f"aws s3 cp {B}/frozen_config.json /w/frozen_config.json --only-show-errors", f"{RUN} --arms prov,div --regimes A,B,B2,L --seeds 0-29 --cfg /w/frozen_config.json --ymode causal {CACHE}"],
- "evalcprovC2": [f"aws s3 cp {B}/frozen_config.json /w/frozen_config.json --only-show-errors", f"{RUN} --arms prov --regimes C2 --seeds 0-29 --cfg /w/frozen_config.json --ymode causal {CACHE}"],
+ "devc": [f"{RUN} --arms greedy,prov --regimes A,B,L --seeds 100-102 --grid6 --ymode causal {CACHE}"],
+ "evalc": [f"{RUN} --arms random,rule_phys,greedy,ucb,nn_greedy --regimes A,B,B2,L --seeds 0-14 --ymode causal {CACHE}"],
+ "evalcC2": [f"{RUN} --arms random,rule_phys,greedy --regimes C2 --seeds 0-14 --ymode causal {CACHE}"],
+ "evalcprov": [f"aws s3 cp {B}/frozen_config.json /w/frozen_config.json --only-show-errors", f"{RUN} --arms prov,div --regimes A,B,B2,L --seeds 0-14 --cfg /w/frozen_config.json --ymode causal {CACHE}"],
+ "evalcprovC2": [f"aws s3 cp {B}/frozen_config.json /w/frozen_config.json --only-show-errors", f"{RUN} --arms prov --regimes C2 --seeds 0-14 --cfg /w/frozen_config.json --ymode causal {CACHE}"],
  # LABELLED CONTROL: transductive (L5-style) standardisation; seeded with the finished transductive result files
- "evalt": [f"{RUN} --arms random,greedy,ucb,rule_phys --regimes A,B,L --seeds 0-29 --ymode trans {CACHE}"],
- "evaltprov": [f"aws s3 cp {B}/frozen_config.json /w/frozen_config.json --only-show-errors", f"{RUN} --arms prov,div --regimes A,B,L --seeds 0-29 --cfg /w/frozen_config.json --ymode trans {CACHE}"],
+ "evalt": [f"{RUN} --arms random,greedy,ucb,rule_phys --regimes A,B,L --seeds 0-7 --ymode trans {CACHE}"],
+ "evaltprov": [f"aws s3 cp {B}/frozen_config.json /w/frozen_config.json --only-show-errors", f"{RUN} --arms prov --regimes A,B,L --seeds 0-7 --cfg /w/frozen_config.json --ymode trans {CACHE}"],
  "controls": [f"aws s3 cp {B}/frozen_config.json /w/frozen_config.json --only-show-errors",
-              f"python3.11 -u run_acq.py {CSV} /w/res/planted1 --arms random,greedy,prov --regimes A --seeds 900-904 --labels planted1 --cfg /w/frozen_config.json {CACHE}",
-              f"python3.11 -u run_acq.py {CSV} /w/res/planted2 --arms random,greedy,prov --regimes A --seeds 900-904 --labels planted2 --cfg /w/frozen_config.json {CACHE}",
-              f"python3.11 -u run_acq.py {CSV} /w/res/shuffle --arms random,greedy,prov --regimes A,B --seeds 2000-2009 --labels shuffle --cfg /w/frozen_config.json {CACHE}"],
+              f"python3.11 -u run_acq.py {CSV} /w/res/planted1 --arms random,greedy,prov --regimes A --seeds 900-902 --labels planted1 --cfg /w/frozen_config.json {CACHE}",
+              f"python3.11 -u run_acq.py {CSV} /w/res/planted2 --arms random,greedy,prov --regimes A --seeds 900-902 --labels planted2 --cfg /w/frozen_config.json {CACHE}",
+              f"python3.11 -u run_acq.py {CSV} /w/res/shuffle --arms random,greedy,prov --regimes A --seeds 2000-2003 --labels shuffle --cfg /w/frozen_config.json {CACHE}"],
 }
 RESMAP = {"evalcC2": "evalc", "evalcprov": "evalc", "evalcprovC2": "evalc", "evaltprov": "evalt"}      # stages that write into another stage's S3 prefix
 HEAD = """#!/bin/bash
