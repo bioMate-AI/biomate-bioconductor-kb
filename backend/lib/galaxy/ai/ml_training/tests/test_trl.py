@@ -166,6 +166,29 @@ def test_composite_gatefamily_g7_order():
     assert r(["run QC then align", "align then QC", "neither step"]) == [1.0, -1.0, 0.0]
 
 
+def test_composite_gate_before_score():
+    """severity:'block' floors a non-compliant completion below any positive sum —
+    a polished-but-non-compliant answer cannot be rescued (SRVL 'gate before score')."""
+    from galaxy.ai.ml_training.trl_trainer import make_reward_fn, GATE_FLOOR
+    spec = [
+        {"kind": "banned", "terms": ["as an ai"], "severity": "block"},
+        {"kind": "contains_all", "terms": ["dose", "mg"], "weight": 5.0},  # big positive
+    ]
+    r = make_reward_fn("composite", reward_spec=spec)
+    scores = r(["As an AI: dose 50 mg", "dose 50 mg"])
+    assert scores[0] == GATE_FLOOR           # blocked despite the +5 content
+    assert scores[1] == pytest.approx(5.0)   # clean → weighted sum
+
+
+def test_composite_without_severity_is_unchanged():
+    """No severity key anywhere → no gating; pure weighted sum (backward compatible)."""
+    from galaxy.ai.ml_training.trl_trainer import make_reward_fn
+    spec = [{"kind": "banned", "terms": ["as an ai"], "weight": 2.0},
+            {"kind": "numeric", "weight": 0.5}]
+    r = make_reward_fn("composite", reward_spec=spec)
+    assert r(["As an AI, the answer is 7."]) == [pytest.approx(-1.5)]  # -2 + 0.5, not floored
+
+
 def test_composite_gatefamily_validation():
     with pytest.raises(ConfigError):
         LLMSpec(reward="composite", reward_spec=[{"kind": "numeric_threshold", "value": 1}]).validate()  # no op

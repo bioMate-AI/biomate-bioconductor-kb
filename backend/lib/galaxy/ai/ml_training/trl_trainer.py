@@ -30,6 +30,11 @@ from .chemprop_trainer import TrainingResult
 
 log = logging.getLogger(__name__)
 
+# Reward assigned to a completion that fails a severity:"block" gate component, below
+# any achievable weighted sum of in-[-1,1] components so a blocked completion always
+# ranks last within its GRPO group ("gate before score").
+GATE_FLOOR = -10.0
+
 
 # ---------------------------------------------------------------------------
 # GRPO reward functions — callable(completions, **kwargs) -> list[float]
@@ -139,12 +144,27 @@ def make_reward_fn(kind: str, keyword: str = "", reward_spec: Optional[list] = N
     if kind == "composite":
         # Weighted sum of declarative knowledge/rule components — the injectable
         # reward surface (parity with REINVENT4's multi-objective reward).
+        #
+        # "Gate before score" (SRVL Pillar C): a component may carry severity:"block".
+        # If any block-severity component fails, the completion is FLOORED to GATE_FLOOR
+        # and the weighted sum is NOT added — a polished-but-non-compliant answer can
+        # never be rescued by positive soft components. The gate is evaluated by the
+        # SAME declarative spec via rule_gates, so one authored rule drives both the
+        # inference gate and this training reward. Specs with no severity key are
+        # unchanged (gate_spec is empty → pure weighted sum), so this is backward-
+        # compatible.
+        from .rule_gates import evaluate_rule_gates
         scorers = [_composite_component(c) for c in (reward_spec or [])]
+        gate_spec = [c for c in (reward_spec or [])
+                     if isinstance(c, dict) and c.get("severity") == "block"]
 
         def _composite(completions, **_) -> list[float]:
             out = []
             for c in completions:
                 s = str(c)
+                if gate_spec and not evaluate_rule_gates(gate_spec, {"text": s}).passed:
+                    out.append(GATE_FLOOR)   # blocked: gate before score
+                    continue
                 out.append(float(sum(w * fn(s) for (w, fn) in scorers)))
             return out
         return _composite
