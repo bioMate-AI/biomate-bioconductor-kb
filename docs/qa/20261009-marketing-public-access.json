@@ -1,0 +1,1232 @@
+{
+  "capturedAt": "2026-10-10T03:22:14.809Z",
+  "scope": "Public HTTP responses, not webmaster indexing or verified crawler IPs",
+  "robots": {
+    "status": 200,
+    "text": "# BioMate AI — robots.txt\n# Last updated: 2026-06-05\n\nUser-agent: *\nAllow: /\nDisallow: /login.html\nDisallow: /register.html\nDisallow: /forgot-password.html\nDisallow: /reset-password.html\n\n# ── AI / LLM crawlers — explicitly welcome ──\nUser-agent: GPTBot\nAllow: /\n\nUser-agent: ChatGPT-User\nAllow: /\n\nUser-agent: OAI-SearchBot\nAllow: /\n\nUser-agent: anthropic-ai\nAllow: /\n\nUser-agent: ClaudeBot\nAllow: /\n\nUser-agent: PerplexityBot\nAllow: /\n\nUser-agent: YouBot\nAllow: /\n\nUser-agent: cohere-ai\nAllow: /\n\nUser-agent: meta-externalagent\nAllow: /\n\nUser-agent: Bytespider\nAllow: /\n\n# ── LLMs.txt ──\n# Full site index for AI assistants: https://biomate.ai/llms.txt\n# Extended index with full article text: https://biomate.ai/llms-full.txt\n\nSitemap: https://biomate.ai/sitemap.xml\n"
+  },
+  "sitemap": {
+    "status": 200,
+    "urls": 92
+  },
+  "variants": [
+    {
+      "url": "http://biomate.ai/",
+      "status": 301,
+      "location": "https://biomate.ai/",
+      "canonical": null
+    },
+    {
+      "url": "http://www.biomate.ai/",
+      "status": 301,
+      "location": "https://biomate.ai/",
+      "canonical": null
+    },
+    {
+      "url": "https://www.biomate.ai/",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/"
+    },
+    {
+      "url": "https://biomate.ai/",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/"
+    },
+    {
+      "url": "https://biomate.ai/index.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/"
+    }
+  ],
+  "syntheticAgents": [
+    {
+      "agent": "Googlebot",
+      "path": "/",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Googlebot",
+      "path": "/drug-discovery.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Googlebot",
+      "path": "/benchmarks.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Googlebot",
+      "path": "/robots.txt",
+      "status": 200,
+      "contentType": "text/plain",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "bingbot",
+      "path": "/",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "bingbot",
+      "path": "/drug-discovery.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "bingbot",
+      "path": "/benchmarks.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "bingbot",
+      "path": "/robots.txt",
+      "status": 200,
+      "contentType": "text/plain",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "OAI-SearchBot",
+      "path": "/",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "OAI-SearchBot",
+      "path": "/drug-discovery.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "OAI-SearchBot",
+      "path": "/benchmarks.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "OAI-SearchBot",
+      "path": "/robots.txt",
+      "status": 200,
+      "contentType": "text/plain",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "ChatGPT-User",
+      "path": "/",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "ChatGPT-User",
+      "path": "/drug-discovery.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "ChatGPT-User",
+      "path": "/benchmarks.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "ChatGPT-User",
+      "path": "/robots.txt",
+      "status": 200,
+      "contentType": "text/plain",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Claude-SearchBot",
+      "path": "/",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Claude-SearchBot",
+      "path": "/drug-discovery.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Claude-SearchBot",
+      "path": "/benchmarks.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Claude-SearchBot",
+      "path": "/robots.txt",
+      "status": 200,
+      "contentType": "text/plain",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Claude-User",
+      "path": "/",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Claude-User",
+      "path": "/drug-discovery.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Claude-User",
+      "path": "/benchmarks.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Claude-User",
+      "path": "/robots.txt",
+      "status": 200,
+      "contentType": "text/plain",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "PerplexityBot",
+      "path": "/",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "PerplexityBot",
+      "path": "/drug-discovery.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "PerplexityBot",
+      "path": "/benchmarks.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "PerplexityBot",
+      "path": "/robots.txt",
+      "status": 200,
+      "contentType": "text/plain",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Perplexity-User",
+      "path": "/",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Perplexity-User",
+      "path": "/drug-discovery.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Perplexity-User",
+      "path": "/benchmarks.html",
+      "status": 200,
+      "contentType": "text/html",
+      "xRobotsTag": null,
+      "challenge": false
+    },
+    {
+      "agent": "Perplexity-User",
+      "path": "/robots.txt",
+      "status": 200,
+      "contentType": "text/plain",
+      "xRobotsTag": null,
+      "challenge": false
+    }
+  ],
+  "pages": [
+    {
+      "url": "https://biomate.ai/",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "BioMate AI — Biomedical Research & Drug Discovery Workbench"
+    },
+    {
+      "url": "https://biomate.ai/about.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/about.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "About BioMate AI | AI Drug Discovery for Immune-Mediated Disorders"
+    },
+    {
+      "url": "https://biomate.ai/admet-prediction.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/admet-prediction.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "ADMET Prediction — In Silico Drug-Likeness Profiling | BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/alphafold.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/alphafold.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "AlphaFold Structure Prediction — Protein Structure from Sequence | BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/benchmarks-biology.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/benchmarks-biology.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Biomedical Knowledge & Quality Control — BioMate AI Benchmarks"
+    },
+    {
+      "url": "https://biomate.ai/benchmarks-drug.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/benchmarks-drug.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Drug Discovery & Pharmacokinetics Accuracy — BioMate AI Benchmarks"
+    },
+    {
+      "url": "https://biomate.ai/benchmarks-routing.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/benchmarks-routing.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "AI Routing, Agent Evaluation & Language Understanding — BioMate AI Benchmarks"
+    },
+    {
+      "url": "https://biomate.ai/benchmarks.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/benchmarks.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "BioMate AI vs ChatGPT, Gemini, Biomni & Other AI Systems — Benchmarks & Accuracy"
+    },
+    {
+      "url": "https://biomate.ai/blog-admet-guide.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-admet-guide.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Reading ADMET Results — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-admet-pbpk-ind-package.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-admet-pbpk-ind-package.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "ADMET to IND: Automating the Nonclinical Evidence Package — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-agent-skills-vs-biomate.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-agent-skills-vs-biomate.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Bioinformatics Agent Skills vs. BioMate: An Honest Comparison — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-auto-discovery.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-auto-discovery.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Automated Workflow Discovery — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-auto-qc-loop.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-auto-qc-loop.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Quality That Never Settles — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-base-edit.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-base-edit.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "In Vivo Base Editing — How BioMate Reconstructs VERVE-102 from \"Knock Out PCSK9 in the Liver\" — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-bioconductor.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-bioconductor.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Bioconductor Methods in BioMate — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-bispecific-triage.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-bispecific-triage.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Bispecific Format Triage — How BioMate Recovers Ivonescimab's Tetravalent Architecture — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-cd40l-indication-expansion.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-cd40l-indication-expansion.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "From MG to CIDP to GBS: Mapping CD40L Genetic Evidence Across Three Indications in One Run — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-cidp-macrophage-metabolic-profiling.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-cidp-macrophage-metabolic-profiling.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Stuck in Inflammation: Mapping Macrophage Metabolic States in CIDP Nerve Repair — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-complement-stratification.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-complement-stratification.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 2,
+      "title": "C3 or C5? Complement Pathway Stratification from Transcriptomics — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-connectors.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-connectors.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Wiring Every AI Client to BioMate: The MCP Connector Architecture — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-cro-submission.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-cro-submission.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Structured CRO Compound Packages — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-cryosparc-spa.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-cryosparc-spa.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "End-to-End Cryo-EM Processing — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-databases.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-databases.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "BioMate's Live Database Connections — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-drug-1-target.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-drug-1-target.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Computational Target Discovery — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-drug-2-hit.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-drug-2-hit.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Virtual Screening at Scale — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-drug-3-admet.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-drug-3-admet.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "ADMET Profiling and Lead Optimization — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-drug-4-preclinical.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-drug-4-preclinical.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Computational Preclinical Development — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-drug-5-clinical.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-drug-5-clinical.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Computational Support for Clinical Development — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-drug-6-postmarket.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-drug-6-postmarket.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Computational Pharmacovigilance — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-endpoint-recommender.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-endpoint-recommender.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Clinical Endpoint Recommender: 85% Accuracy Across 20 Autoimmune Drugs, Zero Hallucinated Endpoints — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-gatk-deepvariant.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-gatk-deepvariant.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "GATK4 vs. Deep Learning Variant Calling — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-glp1-modality.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-glp1-modality.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "GLP-1 Modality Bakeoff — Why \"The Next GLP-1\" Is an Indication Question — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-gwas-target-indication.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-gwas-target-indication.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Genetic to Transcriptomic: GWAS → scRNA-seq → eQTL Target Prioritization — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-immune-multiomics-data-landscape.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-immune-multiomics-data-landscape.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "The Public Multi-Omics Data Landscape for Immune Disease — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-immune-multiomics-integration-approaches.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-immune-multiomics-integration-approaches.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Three Ways to Integrate Multi-Omics, and When to Use Each — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-immune-multiomics-why.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-immune-multiomics-why.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Why Multi-Omics for Immune-Mediated Disorders — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-ind-evidence-package-chain.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-ind-evidence-package-chain.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "IND-Ready in One Session: ADMET → PBPK → §2.6 Narrative → Signed Audit Trail — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-invivo-cart.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-invivo-cart.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "In Vivo CAR-T Co-Design — Three Molecules, One Workflow, No Fratricide — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-llm-comparison.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-llm-comparison.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "BioMate vs GPT-5.5 vs Gemini 3.1 Pro vs Claude — Five Drug Design Queries, Head to Head — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-llm-core.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-llm-core.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Purpose-Built AI for Science — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-memory.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-memory.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Hierarchical Memory for Scientific Research — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-mg-immune-profiling-chain.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-mg-immune-profiling-chain.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "MG Immune Profiling in Three Steps: From Raw PBMCs to Complement Pathway in One Session — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-modality-triage.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-modality-triage.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Modality Triage from Atlas — Recovering 7-of-7 Q4 2024 FDA Approvals — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-multi-omics-integration.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-multi-omics-integration.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "When One Omic Isn't Enough: Integrating RNA-seq and Proteomics for Robust Biomarkers — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-multi-omics.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-multi-omics.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "No Universal Winner: Running Seven Multi-Omics Integrators Head-to-Head on BioMate — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/blog-multiomics-mofa2-responder.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-multiomics-mofa2-responder.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Cross-Modal Responder Stratification: RNA-seq + Olink Proteomics through MOFA2 in CIDP — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-patient-stratification.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-patient-stratification.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Who Actually Responds? Multi-Omics Patient Stratification on BioMate — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/blog-peripheral-nerve-pbpk.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-peripheral-nerve-pbpk.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Beyond the Liver: 10-Compartment PBPK for GalNAc-siRNA Distribution to Peripheral Nerve in CIDP — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-protein-conformation.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-protein-conformation.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Beyond a Single Structure: Conformational Ensembles and Cryo-EM Heterogeneity on BioMate — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/blog-qc-grading.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-qc-grading.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Scientific Quality Assessment Framework — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-ra-gwas-target.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-ra-gwas-target.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "From 932,549 Patients to Five Drug Targets: BioMate's Multi-Omic GWAS Prioritization for RA — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-ra-responder-signature.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-ra-responder-signature.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "16,261 DEGs: Building an RA Anti-TNF Responder Signature with BioMate — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-rare-disease-trial-design.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-rare-disease-trial-design.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "From Hypothesis to Protocol: AI-Assisted Rare Disease Trial Design — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-reinvent4.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-reinvent4.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "AI-Guided Generative Design — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-scrna-immune-profiling.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-scrna-immune-profiling.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "From PBMC Samples to Immune Cell Maps — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-structure-docking.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-structure-docking.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Structure Prediction and Molecular Docking — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-summit-2026-deep-dive.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-summit-2026-deep-dive.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Inside the Three Turns: The 30-Phase Pipeline From a Raw GEO Deposit to Drug Developability — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/blog-summit-2026.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-summit-2026.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "BioMate Live at the Autoimmune Neuromuscular & Nerve Disorders Drug Development Summit — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/blog-target-identification.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-target-identification.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Finding the Right Target: How BioMate Turns Human Genetics Into Drug Discovery — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/blog-tmc.html",
+      "status": 200,
+      "location": null,
+      "canonical": null,
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "BioMate and the Texas Medical Center — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-tocilizumab-ind-package.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-tocilizumab-ind-package.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Tocilizumab Full IND Package in One Session: PBPK + §2.6.1 Narrative Validation — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-tyk2-admet-validation.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-tyk2-admet-validation.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Rediscovering a $6B Drug: BioMate ADMET Validation Against Deucravacitinib — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-vanta-workstreet-compliance.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-vanta-workstreet-compliance.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "BioMate Partners with Vanta and Workstreet on SOC 2 & HIPAA Compliance — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/blog-virtual-cell.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-virtual-cell.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Virtual Cell Research: Building on Statistical and Mechanistic Models — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/blog-why-ai-bioconductor-doesnt-run.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-why-ai-bioconductor-doesnt-run.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Why AI Writes Bioconductor Code That Doesn't Run (and the Fix) — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog-workflow-routing.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog-workflow-routing.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Hybrid Workflow Search — BioMate AI Blog"
+    },
+    {
+      "url": "https://biomate.ai/blog.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/blog.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "BioMate AI Blog | Computational Biology & Drug Discovery Insights"
+    },
+    {
+      "url": "https://biomate.ai/compare.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/compare.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "BioMate AI vs. Claude Science vs. Biomni vs. Robin & Finch vs. GPT-5.5 | BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/connectors.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/connectors.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "BioMate Connectors — MCP Server for Claude Code, Cursor, Codex CLI & More"
+    },
+    {
+      "url": "https://biomate.ai/contact.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/contact.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Contact BioMate AI | Scientific Support & Partnerships"
+    },
+    {
+      "url": "https://biomate.ai/cryo-em.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/cryo-em.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Cryo-EM Analysis — Single-Particle Reconstruction with CryoSPARC | BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/drug-discovery.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/drug-discovery.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Drug Discovery Workbench — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/features.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/features.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "BioMate AI Features | 4,000+ Bioinformatics Workflows"
+    },
+    {
+      "url": "https://biomate.ai/glossary.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/glossary.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Computational Biology Glossary | BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/molecular-docking.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/molecular-docking.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Molecular Docking — Structure-Based Drug Design with AutoDock Vina | BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/pricing.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/pricing.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "BioMate AI Pricing | Subscription & Pay-as-you-go Plans"
+    },
+    {
+      "url": "https://biomate.ai/privacy.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/privacy.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Privacy Policy | BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/publications.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/publications.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Publications — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/realbio.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/realbio.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "RealBio — an open, objectively-scored benchmark for bioinformatics AI agents — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/research-engines.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/research-engines.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Research Engines — Virtual Cell LLM & Cyclic Peptides — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/rna-seq.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/rna-seq.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "RNA-seq Analysis — Differential Expression & Transcriptomics | BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/services.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/services.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "BioMate AI Services | Drug Discovery, Genomics & Structural Biology"
+    },
+    {
+      "url": "https://biomate.ai/single-cell-rna-seq.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/single-cell-rna-seq.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Single-Cell RNA-seq Analysis — scRNA-seq with Seurat and Scanpy | BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/survey-multi-omics.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/survey-multi-omics.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Multi-Omics Integration — Research Perspective — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/survey-patient-stratification.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/survey-patient-stratification.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Patient Stratification — Research Perspective — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/survey-protein-conformation.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/survey-protein-conformation.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Protein Conformation & Dynamics — Research Perspective — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/survey-target-identification.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/survey-target-identification.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Drug Target Identification — Research Perspective — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/survey-virtual-cell.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/survey-virtual-cell.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Virtual Cell Modeling — Research Perspective — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/surveys.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/surveys.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Research Perspectives — BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/terms.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/terms.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Terms of Service | BioMate AI"
+    },
+    {
+      "url": "https://biomate.ai/tutorials.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/tutorials.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "BioMate AI Tutorials | RNA-seq, Single-Cell, Drug Design & More"
+    },
+    {
+      "url": "https://biomate.ai/variant-calling.html",
+      "status": 200,
+      "location": null,
+      "canonical": "https://biomate.ai/variant-calling.html",
+      "robots": null,
+      "xRobotsTag": null,
+      "h1": 1,
+      "title": "Variant Calling — WGS Analysis with GATK4 & DeepVariant | BioMate AI"
+    }
+  ],
+  "summary": {
+    "pagesChecked": 92,
+    "non200": 0,
+    "noindex": 0,
+    "missingCanonical": 1,
+    "syntheticAgentRequests": 32,
+    "syntheticAgentBlocked": 0
+  }
+}

@@ -152,6 +152,128 @@ asserted.
 
 ---
 
+## UPDATE 2026-10-12 — AI landscape, patents/IP, funded projects, open-call channels, cyclic-peptide check, where we fit
+
+**Method:** three cited research passes + direct EN/ZH searches (2026-10-12). Tags: VERIFIED (primary) / WIDELY-STATED (secondary) / NOT VERIFIED. A deeper AI-drug-design re-check + blocked-PDF extraction is **STILL RUNNING** — append when it lands. SYSUCC kept distinct from **SYSU main campus (Computer School; School of Pharmaceutical Sciences / RCDD)**, **中山一院 (First Affiliated Hospital / Nansha)**, **中山眼科中心 (Zhongshan Ophthalmic)** — all attribution traps.
+
+### A. AI landscape — who already does AI with SYSUCC (ALL clinical/imaging; NONE in drug design)
+- **CUHK / HKUST** (Qi Dou 窦琪, Hao Chen 陈浩) — deep-learning NPC MRI auto-contouring (*Radiology* 2019). VERIFIED.
+- **Guangzhou Polorview (柏视医疗)** — commercialized the NPC radiotherapy auto-delineation ("数字解剖"), 130+ hospitals; "DeepSeek 智能放疗靶区勾画" promoted to 361 hospitals. VERIFIED/WIDELY-STATED.
+- **Yidu Tech (医渡科技, Beijing)** — oncology big-data platform since 2015; AI clinical middleware (YiduCore + DeepSeek). VERIFIED.
+- **DIRECT-OVERLAP VERDICT: NO AI-drug-design / generative-chemistry / peptide-design / virtual-screening partner found at SYSUCC → the design space is OPEN** (high confidence; deeper re-check pending). The one pharma tie (Simcere, 2009) is conventional non-AI.
+- **Attribution traps:** SYSU **Computer School (Yang Yuedong 杨跃东, "AI-Omics"/virtual screening)** and **School of Pharmaceutical Sciences / RCDD** DO generative drug design — but that is SYSU **main campus, NOT the cancer center**. 中山眼科's ChatZOC LLM is a different center.
+
+### B. Patents / IP (VERIFIED from provincial sci-tech award filings)
+Protected moats = **diagnostics + platforms + IO-combinations**; therapeutic-target/molecule IP is THIN.
+- **Liquid-biopsy / diagnostics** — ctDNA MRD (CRC, CN 113284554 B), NPC SNP panels, EBV methylation, circRNA, immune/TLS scores (w/ Haplox 海普洛斯).
+- **Patient-derived organoid drug-screening platform** incl. AI viability recognition (w/ 创芯国际 / Mou Yonggao 牟永告) — *this is the wet arm our dry→wet loop needs.*
+- **Checkpoint-resistance IP** — Xu Ruihua: **PD-1-antibody-insensitive drug combinations (CN 111714629 B)** + microbiome potentiators of checkpoint therapy.
+- Only clear target/molecule IP: **ABCB1 (P-gp) / ABCG2 (BCRP)** efflux-pump small molecules (Fu Liwu 符立梧 lab).
+- **EBV in NPC (LMP1-class)** — owned cohorts/diagnostics/trials but **NO target-based drug IP** → cyclic-peptide white space.
+
+### C. Funded projects (extremely well-funded, broad oncology)
+- **NSFC 2025: 121 funded** — incl. 2 创新研究群体 (Sun Ying 孙颖, Zheng Jian 郑健), 2 重点 (Kang Tiebang 康铁邦, Liu Qiang 刘强), 3 青年B. ([sohu](https://www.sohu.com/a/929163303_121118891))
+- **NSFC 2024: 118 funded, ¥55.63M direct** (1 杰青, 1 重点, 2 优青, 1 foreign-scholar, 53 面上, 60 青年).
+- **National Key R&D Program** + **National Sci-Tech Major Project** "cancer / CVD / respiratory / metabolic disease prevention" (leads ~4 projects, 2025).
+→ Deep, state-funded oncology research across NPC/radiation (Sun Ying), translational/targeted-immuno (Kang Tiebang), etc.
+
+### D. Open-call / collaboration channels (how to actually enter)
+- **State Key Lab 开放课题 (open-topic) calls — LIVE:** 2025 guide [node/9423](https://www.sysucc.org.cn/node/9423), 2024 [node/7783](https://www.sysucc.org.cn/node/7783). (Corrects the prior "site down" note — the main-site nodes are reachable.) The academic on-ramp (external PIs apply).
+- **National Anti-tumor New-Drug Clinical-Trial Center** — GCP / Phase-I; the drug-development entry.
+- **Co-development model = 君实生物 (Junshi) × SYSUCC strategic agreement (2022)** — the pharma-partnership template (toripalimab/NPC).
+- **Bay-Area New-Drug Institute + SYSUCC joint cancer innovation/incubation platform (2024).**
+- NOT the entry: patent licensing (diagnostics/platforms) or procurement tenders.
+
+### E. Cyclic peptide — have they done it? (preliminary: NO SYSUCC program)
+No SYSUCC cyclic-peptide / peptide-drug **design** program found. Peptide-drug work under "Sun Yat-sen" traces to the **School of Pharmaceutical Sciences** (e.g., Gao Yanfeng 高艳锋, peptide immunotherapy) / main campus / other institutions (a dedicated cyclic-peptide-therapeutics lab is at **Tongji**, not SYSU). → Cyclic peptides appear **novel to SYSUCC** — reinforces our differentiation. *(Preliminary/search-based; confirm in the pending re-check.)*
+
+### F. Strategic synthesis — where BioMate fits
+- **Design gap confirmed from their own IP + partnerships:** they measure / stratify / validate / run trials; they do not make novel drug molecules. Our cyclic-peptide AI design **complements, not competes**.
+- **Sharpest resonance:** our multi-target **αvβ6 + PD-L1** program is a *mechanistic answer to checkpoint resistance* — a documented SYSUCC IP/interest area (αvβ6→TGF-β→immune exclusion is a PD-1-resistance mechanism). **Pitch as checkpoint-resistance, not generic PD-L1.**
+- **Wet arm of the dry→wet loop already exists** inside SYSUCC (patented patient-derived organoid drug-screening). → Door-2 mechanic.
+- **Model-A wedge:** "we design drugs for your undruggable targets" — EBV/NPC targets are the concrete internal example (keep deck generic — don't recite their assets).
+- **Entry:** co-development (Junshi model) via the New-Drug Clinical-Trial Center / Bay-Area incubation platform; and/or a State Key Lab 开放课题 academic on-ramp.
+- **Differentiation vs SYSU's own campus AI-design groups:** SYSUCC partners with *external* drug developers, not its own campus units — our edge = integrated **dry→wet closed loop (their organoids) + cyclic-peptide/multi-target specialization + execution**, not a method paper.
+
+### G. Honest gaps / pending
+- Deeper AI-drug-design re-check + blocked official-PDF extraction + full State Key Lab detail = **still running** (append).
+- Target list beyond ABCB1/ABCG2 is **inferred** from award filings, not an official pipeline page.
+- Cyclic-peptide "none at SYSUCC" is **preliminary** (search-based).
+- Contact emails unverified; real entry = direct outreach to the State Key Lab office / New-Drug Clinical-Trial Center / incubation platform.
+
+### H. DEEP RE-CHECK (2026-10-12, blocked official PDFs opened) — corrections + major deals the earlier passes MISSED
+
+**AI-drug-design verdict — now FIRMLY confirmed NO.** Exhaustive named-company × 中文-modality sweep (XtalPi/Insilico/DP Tech/BioMap/Galixir/StoneWise/腾讯云深智药/华为云/ByteDance …) — **none** partner with SYSUCC. **Biggest trap: 徐峻 / 药物分子设计研究中心 / XMolGen (generative-AI drug design) = SYSU School of Pharmaceutical Sciences (MAIN CAMPUS), NOT the cancer center.** SYSUCC's AI = imaging/diagnostics (Polorview 柏视, 北明软件, 精点数据, in-house GRAIDS + DeepSeek) + genomics (Haplox); its drug deals = antibody/ADC/vaccine (below), never AI design or cyclic peptides.
+
+**MAJOR drug-development deals the earlier passes MISSED (VERIFIED):**
+- **宜联生物 / MediLink — YL201 (B7-H3 ADC):** SYSUCC **LED the pivotal Phase III TAISHAN-301** (r/m nasopharyngeal carcinoma, >60 centers); **first globally-positive Phase III for any B7-H3 ADC** (May 2026). **⚠ CORRECTION (2026-10-12): the "B7-H3 identified via SYSUCC proteomics" origin claim is NOT VERIFIED / likely conflated** — B7-H3/CD276 is a long-established ADC target and YL201 is **MediLink-originated**; SYSUCC's verified role is the **clinical-development engine** (first-in-human → Phase III NPC), not the proteomic discoverer of the target. MediLink **out-licensed YL201 to Roche for $570M upfront** + milestones/royalties (Jan 2026). ([pharmaceutical-technology](https://www.pharmaceutical-technology.com/news/medilink-roche-exclusive-licensing-agreement/))
+- **智飞生物 (Zhifei) — EBV nanoparticle prophylactic vaccine:** Oct 2023 tech-transfer (>100M RMB + royalties); SYSUCC/SYSU transfer EBV-vaccine patents to 智飞龙科马. PIs **Xu Ruihua, Zeng Musheng**. ([bydrug](https://bydrug.pharmcube.com/news/detail/24803727b8ae886e9d078f86df9673b4))
+- **Cell Research 2026 — AHCY–adenosine**, a "from-0-to-1" original anticancer target (methionine metabolism / m6A), Xu Ruihua team. ([PMC12848013](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12848013/))
+- (Prior: Junshi 2022, Simcere 2009.)
+
+**CORRECTION to earlier §B "thin target IP / we bring target-ID" — WRONG.** SYSUCC is **strong at experimental/proteomics target discovery that produces real drugs** (B7-H3→Roche ADC; AHCY; EBV→vaccine). **Do NOT pitch our target-ID to them.** The gap is a **MODALITY + DESIGN** gap, not a target gap.
+
+**SHARPENED POSITIONING (supersedes §F's generic "we design"):**
+- They find targets (proteomics) and partner with **antibody / ADC / vaccine** developers (MediLink/Roche, Zhifei, Junshi) to drug the **surface / ADC-able** ones (e.g. B7-H3).
+- The genuine gap = **the UNDRUGGABLE class their current modalities can't reach** — intracellular / flat-PPI targets (e.g. their own EBV LMP1-class biology) — which need **AI-designed cyclic peptides / macrocycles**, a modality **absent at SYSUCC and from all their drug partners.**
+- So the pitch is NOT "we design drugs" (they have ADC/antibody/vaccine partners) and NOT "we find targets" (they're strong). It is: **a modality + AI-design capability your current partners don't offer, for the targets ADCs and antibodies can't hit** + the dry→wet loop (their organoids).
+- **The bar is HIGH** (Roche-tier deals) → the pitch must be sharp, differentiated on modality/undruggable-targets, and honest about our pre-clinical stage (no confirmed binders).
+
+**State Key Lab:** director **Xu Ruihua**; **Zeng Musheng** leads Tumor-Virus & Biomarker + the Guangdong tumor-immunity/vaccine engineering center (behind the Zhifei deal). 开放课题 guidelines/industry roster still unrecovered (old domain unarchived; current pages login-gated).
+
+### I. CROSS-AFFILIATION CORRECTION (2026-10-12) — the SYSUCC-vs-pharma-school firewall was TOO RIGID (method error)
+Prior passes treated SYSUCC and the **SYSU School of Pharmaceutical Sciences** as cleanly separate and dismissed all SYSU AI-drug-design / peptide / medicinal-chemistry work as "not the cancer center." **That is a method error** — Chinese faculty routinely hold joint academic + clinical/hospital appointments and co-publish across university units.
+- **Evidence:** a co-authored paper spans the **Guangdong Key Lab of Chiral Molecule & Drug Discovery (pharma school)** AND **SYSUCC** ([PMC10405841](https://pmc.ncbi.nlm.nih.gov/articles/PMC10405841)); both sit under SYSU's single **Faculty of Health Sciences**. 徐峻 (药物分子设计研究中心 / XMolGen, AI drug design) and 杨跃东 (CS, AI-Omics/virtual screening) are the same university.
+- **Sobering implication:** viewed as the **SYSU ecosystem**, they have in-house access across the whole chain — target discovery (SYSUCC proteomics: B7-H3/AHCY/EBV) · **AI drug design (徐峻/XMolGen)** · **medicinal/chiral chemistry (Guangdong Key Lab)** · **AI-Omics/virtual screening (杨跃东)** · peptide research (pharma school) · trials + validation (SYSUCC). So **"the design space is open / no one designs for them" is WRONG at the university level**, and **"why not use your own pharma school?" is a strong objection.**
+- **Honest differentiation (now NARROW, must be argued, not assumed):** a focused **production cyclic-peptide / macrocycle design + closed-loop** operation (vs academic method centers that lean small-molecule/chiral) + **our own validated multi-target asset** (co-development) + execution speed + a **US co-development / international** structure.
+- **TO VERIFY before pitching:** (1) whether **cyclic-peptide / macrocycle generative design** is genuinely a gap even for their pharma school; (2) the specific **cross-affiliated faculty** (potential champions OR in-house competitors); (3) 徐峻 / pharma-school ↔ SYSUCC co-publications.
+- **Bottom line:** our value to SYSUCC is **narrower and harder** than §A–H implied. Do NOT pitch "we fill a design void." If we pitch, it is a specific **modality + asset + execution** story, argued honestly.
+
+### J. NEEDS & EXPECTATIONS (2026-10-12 demand-side pass) — this is what should shape the doors
+**What they SOLICIT (open-call guide, VERIFIED — [node 9423](https://www.sysucc.org.cn/node/9423) / [node 7783](https://www.sysucc.org.cn/node/7783)):** State Key Lab's 5 master directions include **novel anti-cancer drug creation & key tech**; open-topics invite external PIs into **tumor ecological-evolution / TME crosstalk**, **new liquid-biopsy targets**, **molecular-feature-guided precision therapy**, and **AI + big-data treatment strategy**. Terms: applicants **must co-apply with a State Key Lab PI** (they want collaborators who plug into existing projects), ¥50–100k, co-owned results; contact **pengmin@sysucc.org.cn** (彭老师).
+**Strategic ambition (WIDELY-STATED):** Xu Ruihua's headline = **原创靶点与药物"从0到1" (original target & drug "0→1" leap)** + a **"中国方案 / China solution"** in oncology that goes global (cited originals: CLDN18.2 regimen; gut-bacteria immune-sensitizer **RX-af01**, patented + transferred). Through-line: **own the full "original target → first-in-class drug → China protocol → global adoption" chain**, as the clinical/translational anchor; NPC is the flagship global franchise.
+**PARTNER-EXPECTATION PATTERN (the key — from their actual deals):** SYSUCC positions itself as the **clinical/translational HUB** and expects a partner to bring ONE of: (i) a **novel modality / original molecule**, (ii) a **global development + commercialization / out-licensing pathway (+ capital/milestones)**, (iii) **manufacturing/industrialization**, or (iv) **data/AI infrastructure**. In every deal SYSUCC contributes **targets, patients, pivotal trials, clinical validation**; the partner supplies what SYSUCC chooses not to self-build. (MediLink = novel ADC modality + Roche $570M global; Junshi = IO asset + global filings + their pivotal trials; Zhifei = commercialization/GMP; Yidu = data/AI.)
+**→ This RECONCILES §I's worry:** SYSUCC **routinely brings in external partners for novel modalities + global pathways even though the university could build pieces in-house** — it is their *strategy*, not a capability gap. So collaboration makes sense on their own established pattern; "why not your own pharma school" is answered by how they actually operate.
+**Mandates:** National Sci-Tech Major Project (cancer/CVD/respiratory/metabolic prevention) → top-down pressure for **原创新药 + 成果转化 (original drugs + translation)**; the **2024 Greater Bay Area new-drug innovation & incubation platform (政-医-企 consortium)** = a standing solicitation to drug developers to co-develop and bring assets into SYSUCC's clinical scenarios.
+**ENTRY CHANNELS (demand-side on-ramps):** (1) **GBA new-drug incubation platform**; (2) **State Key Lab open-topic co-application** (co-apply with an SKL PI; pengmin@sysucc.org.cn); (3) **co-development** (MediLink/Junshi model) via the National Anti-tumor New-Drug Clinical-Trial Center.
+**DOOR ALIGNMENT:** frame the collaboration around **their** ambition — a **novel cyclic-peptide modality toward first-in-class original drugs and a China-solution-to-global pathway**, built on their targets / patients / trials. That is their established partner shape exactly (novel modality + translation pathway), which is *why* a collaboration is coherent regardless of their in-house design capability.
+
+### K. SUPPLY-SIDE VERDICT — macrocycle-design gap + bridge faculty (2026-10-12)
+**Q1 VERDICT: AI/generative CYCLIC-PEPTIDE / MACROCYCLE design IS a genuine GAP in the SYSU ecosystem (confidence MEDIUM-HIGH).** The niche holds for an external partner:
+- **Guangdong Key Lab of Chiral Molecule & Drug Discovery (Hu Wenhao 胡文浩)** = **small-molecule / chiral** chemistry — not peptides/macrocycles.
+- **徐峻 / XMolGen** = generative **small-molecule** design (verified; no peptide/macrocycle generative capability).
+- **杨跃东 (CS)** = protein structure / virtual screening; no macrocycle design.
+- **Gao Yanfeng 高艳锋 (SPS Shenzhen)** = **peptide immunotherapy** (covalent peptides / Pep-TACs / neoantigen vaccines, Nat Commun 2025) — the closest in-house peptide group, but **wet-lab immunotherapy chemistry, NOT AI/generative macrocycle design** → adjacent, a relationship to be aware of, not a head-on competitor on our capability.
+- All AI-macrocycle SOTA traces to **non-SYSU** groups (KAUST/HELM-GPT, Zhejiang/HighPlay, Macao Polytechnic/HighFold, UW–Baker/RFpeptides, 分子之心). Caveat: SYSU sites were unreachable → not an exhaustive faculty scan (hence MEDIUM-HIGH).
+- **"Who makes their molecules?" = EXTERNAL partners**, not an in-house/SPS medicinal-chemistry pipeline (e.g. Xu Ruihua's targets → licensed molecules like **ARX788** from Ambrx/NovoCodex). **This is the white space.**
+**Bridge faculty / champions (Q2):**
+- **Xu Ruihua (徐瑞华)** — STRONG CHAMPION: generates targets (AHCY/B7-H3) + runs the clinic + partners externally for molecules → the ideal demand-side counterpart.
+- **Hongsheng Wang (王洪生, SPS + chiral lab)** + **Zhuojia Chen (陈卓佳, SYSUCC)** — the verified SPS↔SYSUCC co-pub bridge (PMC10405841, cancer biology) → a warm academic entry.
+- 徐峻 = small-molecule-AI competitor / macrocycle-neutral; Gao Yanfeng = peptide-adjacent (watch).
+**NET (reconciles §I):** both sides now support the thesis — generative macrocycle design is genuinely absent at SYSU **and** their partner pattern (§J) wants exactly a novel-modality + translation partner. Collaboration is coherent; champions + channels identified. (Deck framing: collegial, no "you lack X" — the gap is our internal rationale, not a claim made to them.)
+
+### L. THEIR TARGET-IDENTIFICATION APPROACH (2026-10-12 survey) — and how ours complements
+**How SYSUCC finds targets: experimental & mechanistic, PI-by-PI, anchored in NPC/EBV + GI — NOT computational.**
+- **AHCY** (Xu Ruihua / Ju Huaiqiang, *Cell Research* 2026, [PMC12848013](https://pmc.ncbi.nlm.nih.gov/articles/PMC12848013), DOI 10.1038/s41422-025-01213-5) — **metabolomics + protein biochemistry** → the cleanest "0→1" original-target case. *(De-conflict: a separate **A\*STAR Singapore** AHCY-CRC paper, Nat Metab 2023 PMC10447251, is NOT SYSUCC.)*
+- **EBV entry receptors** (Zeng Musheng lab) — EphA2 (Nat Microbiol 2018, via **RNAi/microarray screen**), NRP1 (Nat Commun 2015), **R9AP (Nature 2025 — newest, unifying)**: **functional genetic screens + receptor biochemistry/structure**. Note: these are **vaccine** targets, not small-molecule cancer targets.
+- **Single-cell/omics atlases** (Bei Jinxin, Nat Commun 2021) — hypothesis-generating; **ctDNA-methylation ML** (Xu Ruihua, INSPECTOR) — **diagnostic, not druggable-target**.
+- **Computational / AI target *nomination*: NONE found** (their AI = imaging/clinical/omics-ML). **No centralized target-discovery pipeline** — project-by-project, PI-driven under the State Key Lab (NPC/EBV + GI center of gravity).
+- **⚠ B7-H3 correction (see §H inline):** "B7-H3 identified via SYSUCC proteomics" is **NOT VERIFIED / conflated** — SYSUCC is the **clinical-development engine** for MediLink's B7-H3 ADC (YL201→Roche), not the proteomic discoverer.
+
+**WHERE OUR LLM + knowledge-base + traditional target-ID GENUINELY COMPLEMENTS (low overlap):**
+1. **Breadth** beyond their NPC/EBV + GI franchises — systematic cross-disease scan of novel/undrugged space (a fan-out to their deep-dive).
+2. **Omics triage / prioritization** — they *generate* rich omics but triage by expert judgement one project at a time; an AI layer that **ranks their omics into evidence-scored shortlists** is additive, not duplicative.
+3. **Druggability- / cyclic-peptide-tractability-aware selection** — **nothing in their stack scores targets for modality fit at nomination** (their wins are biology-first, chemistry-later) → a clean hand-off from their biology to our design.
+4. **Literature / knowledge-graph hypothesis acceleration** — second-order targets (pathway-neighbor, synthetic-lethal).
+
+**WHERE IT OVERLAPS (do NOT overclaim):** **validation** (theirs is best-in-class — ours feeds INTO it, not around it), **deep single-target mechanism** (theirs is ahead for franchise targets), **biomarker/diagnostic ML** (theirs is strong).
+
+**Positioning one-liner:** *nomination-and-triage breadth + druggability/cyclic-peptide-aware selection that turns SYSUCC's deep-but-franchise-bound experimental biology into a prioritized, modality-ready target queue — upstream of, and feeding, their validation/clinical engine, not competing with it.*
+
+**Deck implication:** the target-ID slide is fine as a *capability*, but it must read as **complementary** (breadth + triage + druggability-aware, feeding the design engine) — never "we find targets" (they're strong). The slide's "→ into the design engine" handoff is good; consider adding **druggability-aware** to the output box.
+
+---
+
 ## 1. Overview
 
 SYSUCC was founded **March 1964**, one of the four earliest dedicated tumor hospitals in China. It is a Level III Class A hospital (top tier) and the largest integrated cancer center in southern China for care, research, education, and prevention. ([Wikipedia](https://en.wikipedia.org/wiki/Sun_Yat-sen_University_Cancer_Center); [China Daily](https://govt.chinadaily.com.cn/s/201905/08/WS5cd29a03498e079e6801faeb/sun-yat-sen-university-cancer-center.html))

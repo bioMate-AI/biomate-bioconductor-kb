@@ -2,223 +2,125 @@
 marp: true
 theme: default
 paginate: true
-title: BioMate × SYSUCC — Multi-Site Cyclic-Peptide Immuno-Oncology Collaboration
+title: BioMate × SYSUCC — Introduction (AI drug development + cyclic-peptide IO)
 ---
 
 <!--
-Audience: SYSUCC leadership + international-collaboration office + GI/IO PIs.
-Purpose: introduce BioMate's AI cyclic-peptide IO platform, what we are working on, and the potential SYSUCC
-         multi-site connection.
-FRAMING (corrected 2026-10-11): the cyclic peptide IS the therapeutic (direct-acting macrocycle) —
-  αvβ6 ANTAGONIST (blocks integrin → latent-TGF-β activation → immunosuppressive PDAC TME) + PD-L1 checkpoint
-  inhibitor. It is NOT a radioligand/theranostic — NO Ga-68 / Lu-177 / nuclear medicine / radiochemistry.
-EXTERNAL MESSAGING RULES (founder directive 2026-10-11):
-  - DO NOT mention ACT / accelerator / CPRIT / RADIATE.
-  - DO NOT reveal our status with MD Anderson. MD Anderson appears ONLY as (a) SYSUCC's own public sister-
-    institution partner and (b) one of the Texas Medical Center institutions — never as "our site/partner."
-  - US site = generic "our planned US clinical/translational site within the Texas Medical Center."
-  - Capability framing: WHAT we deliver, not internal tools/methods/model/infra.
-  - Honesty: lead candidates are DESIGNED + in synthesis/characterization — NOT confirmed binders.
-Source of truth for facts: docs/20260930_HOSPITAL_SURVEY_SYSUCC_CYCLICPEPTIDE_COLLAB.md (UPDATE 2026-10-11).
+INTRODUCTION deck (10 slides) to OPEN A DOOR of collaboration with SYSUCC. Substantive + visual (the .pptx
+renders designed diagrams + a designed cover; this markdown is the content source of truth).
+Shows the BioMate PLATFORM (AI drug development + self-research), then two doors.
+Tuned to SYSUCC's verified strengths (see docs/ research 2026-10-12): world-leading IO clinical trials
+(NPC-centric + GI/liver), TME single-cell atlases, EBV immunology, and clinical/omics AI — but NO AI-drug-design
+arm → we COMPLEMENT (they validate, we design). PD-L1 / checkpoint-IO resonates; αvβ6-PDAC is OUR lead but a
+weaker SYSUCC fit, so the collaboration leans to PD-L1/IO + their tumor types.
+RULES: <=10 slides, diagrams (not walls of text). Cyclic peptide IS the drug (αvβ6 antagonist + PD-L1 +
+multi-target). NO radioligand/Ga-68/Lu-177. NO IP/legal. Exploratory (open a door). Do NOT recite SYSUCC's
+specific assets (generic "your targets / cohorts / tumor types"). No ACT; MD Anderson not mentioned.
+Capability framing only (no internal tool/model/infra names).
+Platform content adapted from docs/20260921_BIOMATE_PHARMA_GUANGZHOU_CLIENT_DECK.md.
 Render: scratchpad/build_sysucc_deck.py (python-pptx) → docs/20261011_SYSUCC_COLLABORATION_DECK_EN.pptx
 -->
 
-# BioMate AI
-### AI-designed cyclic-peptide therapeutics for immuno-oncology
+# BioMate AI  *(designed cover — wordmark + macrocycle/closed-loop ring motif)*
+### An AI drug-development platform — and our own immuno-oncology pipeline
 
-**Our platform · what we are working on · a potential multi-site collaboration**
-BioMate AI (Houston) · Sun Yat-sen University Cancer Center
-
-*Discussion deck · October 2026*
+Target identification · cyclic-peptide design · closed-loop iteration · An introduction, and an open door to collaborate
+BioMate AI · Houston, TX — Prepared for Sun Yat-sen University Cancer Center · October 2026
 
 ---
 
-## Who we are
+## What BioMate is
 
-**BioMate AI** — a Houston-based therapeutics company developing **AI-designed cyclic-peptide (macrocycle) drugs for immuno-oncology**.
+*An AI drug-development platform — and we run it on our own programs (self-research).*
+**Generate → verify → learn, on cloud — every run reproducible and auditable.**
 
-- We **design and computationally prioritize** candidate peptide drugs, assemble the supporting translational evidence, and work with **clinical and experimental partners for validation and development**.
-- Our focus is **tumor-selective immuno-oncology** — targets that antibodies and small molecules serve poorly.
-- We operate a **closed design → validate → learn loop**: each experimental result sharpens the next design cycle.
+Four pillars: **Knowledge & target ID** (which target, which patients) · **Generative design** (novel cyclic & macrocyclic drugs) · **Multi-objective verification** (affinity · selectivity · developability · safety) · **Closed-loop iteration** (learns from each experimental round).
 
-> We bring the **design and computational engine**; our partners bring **target biology, patient data, wet-lab validation, and the clinical path**.
-
----
-
-## The clinical white-space we address
-
-- **Tumor-selective targeting is hard.** Many validated oncology targets are cell-surface receptors or protein–protein interfaces; off-tumor activity drives toxicity, and the most important interfaces are often poorly served by existing modalities.
-- **Antibodies and small molecules each fall short here.** Antibodies are large and reach some compartments poorly; small molecules struggle to cover large, flat interaction surfaces.
-
-> Cyclic peptides occupy the gap between them — large enough to grip a flat interface with high selectivity, small enough to be developable. The bottleneck is **designing the right one**.
+> Not a single model and not just a chat — a platform that **runs and verifies** the science.
 
 ---
 
-## What we deliver — the platform (capability view)
+## The engine — generate, verify, learn
 
-1. **Target assessment** — structural and biological suitability for a cyclic-peptide approach.
-2. **Generative design** — novel cyclic/macrocyclic binders proposed against the target interface.
-3. **Multi-objective prioritization** — ranked for **affinity, selectivity, stability/developability, and safety** *in silico*.
-4. **A filtered candidate shortlist** — ready for synthesis and experimental testing.
-5. **Closed-loop learning** — experimental results feed back to improve the next design round.
+*(diagram)* Target → Generative design → **Verify & rank** (physics · developability · safety) → Shortlist → Synthesize & test (with partners) → **↻ closed loop**.
 
-*We describe what the platform delivers, not how it is built internally.*
+> Verify turns model output into **evidence** — a candidate advances only if it holds up.
 
 ---
 
-## What we are working on — our lead program
+## What we verify — all at once
 
-**Two direct-acting cyclic-peptide therapeutics — the peptide itself is the drug (not a delivery vehicle).**
+*(diagram: six axes converging on one candidate)* Affinity · Selectivity · Membrane permeability · Synthetic accessibility · Developability · Safety.
 
-- **αvβ6 integrin (lead, PDAC)** — a cyclic-peptide **antagonist** that blocks αvβ6. αvβ6 activates latent **TGF-β** and shapes the immunosuppressive pancreatic-cancer microenvironment; **blocking it is the therapeutic mechanism**. αvβ6 is highly and selectively expressed in PDAC and many epithelial carcinomas, sparing normal tissue.
-- **PD-L1 (checkpoint)** — a cyclic-peptide **checkpoint inhibitor** that blocks PD-L1 directly: a tumor-selective approach to the most validated IO axis.
-
-> **Honest status:** our lead candidates are **designed and now entering synthesis and binding characterization**. We do **not** yet have confirmed binders, and we present them as such.
+> Optimizing affinity alone is easy. Clearing **all of these together** is where most designs fail.
 
 ---
 
-## The US site — clinical & wet-lab validation
+## A full AI drug-development platform
 
-Our program is designed to run across **two sites**. The **US site** sits within the **Texas Medical Center** (Houston) — the largest medical complex in the world.
+*(diagram: pipeline grid)* Target ID · Disease biology · Target evaluation · Molecule design · ADMET/safety · DMPK/PK-PD · Omics & NGS pipelines · Biomarkers & reporting.
 
-- **Clinical & translational validation** — patient-derived organoid and in-vivo models.
-- **Experimental binder validation** — biophysical/display confirmation that designed peptides bind and block their target.
-- **Functional & IO readouts** — target-blockade and immune-microenvironment assays.
-- **A Phase-I clinical on-ramp** within a leading US cancer-center network.
+**Thousands of validated workflows across dozens of domains**, with molecule design and target identification at the core.
 
-> The US site provides the clinical and wet-lab foundation — and a second site makes the program multi-national from the start.
+> We can point the same platform at our own programs — **or at yours**.
 
 ---
 
-## Why a second site — and why SYSUCC
+## Why cyclic peptides
 
-- **Independent, multi-ethnic validation** of targets and candidates across two patient populations.
-- **A dual regulatory path** — FDA (US) and NMPA (China) — opening both markets from the start.
-- **Greater patient access and cohort depth** for selection and biomarker work.
-- **Complementary wet-lab and clinical capacity** across two world-class centers.
+*(diagram: modality spectrum)* Small molecules (struggle with large flat interfaces) — **Cyclic peptides** (selective + developable, our focus) — Antibodies (reach some targets poorly).
 
-> **SYSUCC** — the **#2 oncology center in China**, ~1,600 beds, the State Key Laboratory of Oncology in South China, and an NMPA-certified clinical-trial center — can anchor the program's second site.
+> Cyclic peptides occupy the space between — the challenge, and our focus, is **designing the right one**.
 
 ---
 
-## SYSUCC already partners with leading US cancer centers
+## Our self-research — a multi-target cyclic-peptide program
 
-- **SYSUCC and MD Anderson have been sister institutions since 2003**, with an active **Sister Institution Network Fund (SINF)** channel for collaborative oncology research.
-- In 2015, MD Anderson received a top Chinese science & technology award — **nominated by its sister institution, SYSUCC**.
-- SYSUCC also holds Western research ties with **Karolinska Institutet** (joint lab, 2004) and **Fred Hutchinson Cancer Center** (MoU, 2017).
+*The engine, proven on our own program — a multi-target immuno-oncology approach, not just a tool.*
 
-> A US–China translational program fits a model SYSUCC has run for two decades — building on, not starting, its international collaborations.
+*(diagram: one multi-target cyclic peptide → two targets)*
+- **Multi-target cyclic peptide — one program, two targets: αvβ6 + PD-L1.**
+- **αvβ6** — block αvβ6 → ↓ latent-TGF-β activation → relieve the immunosuppressive TME (over-expressed across epithelial carcinomas: **head & neck · GI · PDAC**).
+- **PD-L1** — release the T-cell checkpoint (the most validated IO axis).
+- **Two complementary IO mechanisms in one program** — de-repress the microenvironment (αvβ6 / TGF-β) and release the checkpoint (PD-L1).
 
----
-
-## SYSUCC strengths we would build on (verified)
-
-- **GI / pancreatic oncology** — Pancreaticobiliary/Gastric/Colorectal/Liver Surgery + Medical Oncology; **≥7 PDAC trials** (incl. a KRAS-G12V TCR-T Phase I); **Prof. Feng Wang**, Asst. President & Director of Medical Oncology — directly matched to the αvβ6 / PDAC lead.
-- **Checkpoint immuno-oncology** — pivotal anti-PD-1 (camrelizumab) trial leadership, with receptor-occupancy biomarker work — matched to the PD-L1 program.
-- **Patient-derived organoids** — a co-led **NPC organoid living biobank** (Ann Transl Med 2022) plus a broad multi-tumor organoid publication record (NPC/colorectal/gastric/lung/breast/liver) — the wet-lab engine that validates designed peptides.
-- **Data & biobank** — biobank (est. 2001) scaled to **~6 million samples**; large single-cell/spatial & multi-omics datasets.
-- **Clinical path** — NMPA national anticancer-drug clinical-trial center + GCP early-phase capability.
-
-<small>Honest note: SYSUCC's organoid use is verified in print; a **named catalog-scale organoid/PDX core** and **PDX-specific capacity** are to be confirmed directly.</small>
+> Current: first **multi-target** candidate macrocycles designed and in synthesis — **not yet confirmed binders**.
 
 ---
 
-## The αvβ6 program extends naturally to SYSUCC's tumors
+## What we add — the piece you don't run in-house
 
-- αvβ6 is expressed across **epithelial carcinomas** — pancreatic, head & neck, and others — so the same αvβ6 antagonist applies well beyond PDAC, into tumor types central to SYSUCC.
-- SYSUCC's **GI/pancreatic and head-&-neck patient volume and organoid platforms** make it an ideal site to validate the αvβ6 program across multiple indications.
-- One drug therefore creates value at **both sites' priority tumor types** — PDAC/GI in the US, and SYSUCC's high-volume epithelial tumors in China.
+- A leading cancer center has the **targets, the biology, the cohorts, the trials, and the validation.** What it usually **cannot do in-house is turn a hard target into a novel drug molecule.**
+- That is the piece we add: **AI-driven design** plus a **modality — cyclic peptides — that reaches targets small molecules and antibodies cannot** (flat protein–protein interfaces, surface receptors).
+- So the value is **first-in-class drugs from your own science** — not another trial or omics pipeline you already run. Our predictions are **computational estimates**, confirmed with you by experiment.
 
-> The lead target is chosen so the **same molecule creates value at both sites**, not two disconnected programs.
-
----
-
-## The multi-site design — US site × SYSUCC
-
-| Capability | US site (Texas Medical Center) | China site (SYSUCC) |
-|---|---|---|
-| **Design & prioritization** | BioMate (shared) | BioMate (shared) |
-| **Patient cohorts** | TMC PDAC & IO cohorts | GI/PDAC (≥7 trials) + checkpoint |
-| **Wet-lab validation** | Organoid / in-vivo models | Organoids (NPC biobank + multi-tumor) |
-| **IO / biomarker data** | TMC IO cohorts | anti-PD-1 + receptor-occupancy biomarker |
-| **Clinical path** | US Phase-I on-ramp | NMPA anticancer-drug Phase-I center |
-| **International context** | — | MD Anderson sister institution since 2003 |
-
-> One candidate set, designed once, validated and advanced independently at two world-class sites.
+> The missing piece is usually the molecule itself — that is what we design.
 
 ---
 
-## Proposed first joint project (Phase-0)
+## Two doors to collaborate
 
-1. **Target lock** — confirm αvβ6 (and/or PD-L1) suitability on a SYSUCC-relevant tumor type.
-2. **Prioritize** — use one cohort/stratification question from SYSUCC to focus the design.
-3. **Design** — BioMate generates and ranks a candidate panel.
-4. **Synthesize** — a third-party peptide CRO makes the panel (kept IP-clean).
-5. **Validate** — SYSUCC runs binding + functional (target-blockade / IO) readout on its organoid/PDX and primary samples.
-6. **Learn & co-author** — results refine the next design round; both sides publish.
+*Opening a conversation — the primary value is a capability you don't run in-house.*
 
-> One scoped round per site keeps a "no" cheap and a "yes" decisive.
+**Door 1 — for your targets** *(the piece you don't already have)*
+- Point the engine at a **target or disease area you care about — including targets today's drugs cannot reach**.
+- We **design and rank candidate cyclic-peptide drugs** against them — from biology to a **ranked, developable shortlist**.
+- The aim: **a first-in-class program from your own science.**
 
----
+**Door 2 — with our program**
+- Our **multi-target** cyclic-peptide IO program — **engaging αvβ6 and PD-L1** (both relevant to epithelial & GI cancers).
+- **Proof the engine builds real drugs** — open to **co-development** where it matches your interests.
+- A concrete way to see the engine end-to-end.
 
-## Data & IP governance (built in from the start)
-
-- **China Human Genetic Resources (HGRAC):** the collaboration is structured **domestically via our Chinese entity** — patient samples and raw data **stay in China**. Under the **2023 implementing rules, clinical/imaging/protein/metabolic data are outside the scope of "HGR data,"** easing AI/model collaboration; sample/raw-sequence work proceeds under a Sino-foreign cooperative-research approval.
-- **In-country validation** — wet-lab runs in SYSUCC's own laboratories; only **de-identified results** inform the design engine.
-- **Composition-of-matter IP** — the designed peptides are our composition; **co-generated data and publications are shared** on agreed terms.
-- **Governance & ethics** — deployment and data terms are decided **with** SYSUCC's IT, ethics, and international-collaboration offices.
-
-> We treat cross-border data governance as a **design requirement**, not an afterthought.
-
----
-
-## What we would ask of SYSUCC
-
-- **One tumor type and one cohort question** to focus the first design cycle.
-- **One validation assay** on a designed candidate panel (organoid/PDX + binding/blockade).
-- **A scientific advisor / co-PI** on the joint program.
-- **Interest in a future Phase-I path** on the China side, once candidates are validated.
-
-In return, SYSUCC gains **early access to a first-in-class cyclic-peptide IO modality**, **co-authorship**, a **US–China translational bridge building on SYSUCC's existing US ties**, and **platform access** for its own targets.
-
----
-
-## Honest scope — what is ready, what is in development
-
-- **Ready:** the **design and prioritization** engine and the **closed-loop** methodology.
-- **In development / planned:** the **lead candidates are designed and in synthesis/characterization** — **no confirmed binder yet**; the clinical steps are being established. A named organoid/PDX core's scale at SYSUCC is **to be confirmed**.
-- **Predictions are computational estimates**, confirmed only by experiment — which is exactly why multi-site wet-lab validation matters.
-- We do **not** bring an analysis platform to replace SYSUCC's world-class internal bioinformatics; we collaborate strictly on the **drug-design modality**.
-
-> We state plainly what is proven, what is planned, and what we would build together.
+> Both are exploratory — and Door 1 is the piece you don't already have.
 
 ---
 
 ## Proposed next step
 
-1. **A 30-minute introductory call** with SYSUCC's relevant PIs and the international-collaboration office (e.g., via Prof. Feng Wang / Prof. Xu Ruihua).
-2. **A jointly-scoped Phase-0** on one tumor type and one validation assay.
-3. **A collaboration framework** covering data governance, IP, and co-authorship.
+- A short **introductory conversation** to share more and hear your interests and priority targets.
+- If there is mutual interest, pick **one door and one concrete first step** to explore together.
 
-**Toward a US–China multi-site cyclic-peptide immuno-oncology program.**
+> Toward a possible US–China partnership in cyclic-peptide immuno-oncology.
 
 *Contact: Yaoyun Zhang — Founder & CEO, BioMate AI · yaoyun.zhang@biomate.ai · Houston, TX*
-
----
-
-## Appendix A — An optional SYSUCC-native track
-
-Beyond the αvβ6 / PD-L1 lead program, SYSUCC's own target biology offers a **second, parallel cyclic-peptide track** on targets SYSUCC uniquely owns:
-
-- **EBV-entry receptor peptides** — e.g. **R9AP ↔ gH/gL** (Zeng/Zhong, *Nature* 2025; a functional blocking peptide is already reported) and **EphA2 ↔ gH/gL** (structure-enabled, PDB 7CZE) — causal, extracellular, peptide-precedented, and central to nasopharyngeal carcinoma.
-
-This track is independent of the lead program and can run on SYSUCC's own timeline. *(Detail in the companion survey document.)*
-
----
-
-## Appendix B — Sources & honesty notes
-
-- SYSUCC facts are cited in the companion survey `docs/20260930_HOSPITAL_SURVEY_SYSUCC_CYCLICPEPTIDE_COLLAB.md` (UPDATE 2026-10-11): departments + GI/medical oncology (SYSUCC English site); PDAC trials (ClinicalTrials.gov); anti-PD-1 biomarker work (PMC9892498); NPC organoid living biobank (Ann Transl Med 2022, DOI 10.21037/atm-22-1076); sister-institution tie (MD Anderson newsroom); HGRAC 2023 rules (Ropes & Gray).
-- A named catalog-scale organoid/PDX core and PDX-specific capacity at SYSUCC remain **to be confirmed** (flagged, not asserted).
-- BioMate capability claims follow a ready / in-development labeling; lead candidates are **designed, not experimentally confirmed**.
-- The SYSUCC ↔ MD Anderson sister-institution tie cited here is a verified institutional relationship **between those two centers, independent of BioMate**.

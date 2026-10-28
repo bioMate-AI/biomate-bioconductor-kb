@@ -17,8 +17,15 @@ modules + `.gitignore` class bug, (2) modules pinned to Docker Hub `biocontainer
 `nf-core-modules/` paths so the host-mounted `aws` binary exited 127 before any tool ran.
 The science is verified: DecoyDatabase → CometAdapter (Comet) → PeptideIndexer yields
 **50 PSMs / 8 distinct BSA tryptic peptides** (DLGEEHFK×10, AQYEDIAQK, LVTDLTK, …),
-target/decoy annotated (52 target / 2 decoy). See §7. Final Batch spend on the
-production dispatch path is pending the coordinated re-sync (executor fix must deploy).
+target/decoy annotated (52 target / 2 decoy). See §7.
+
+**Outcome (2026-09-29 production-Batch pass): ✅ FULLY RESOLVED end-to-end on the real awsbatch path.**
+After the §8 libz-delivery gap was fixed (`58bf5723b`: move the host-libz mount to the Batch-effective
+`aws.batch.volumes` directive + extend the gate to `/nf-core-modules/`) and process_high auto-routing
+was added (`56320ea2b`), a single production run (`b9633609-8caf-4ea4-92cd-0272354635f0`) via
+`POST /api/nextflow/execute` on dev **SUCCEEDED** (3/3 processes) and produced the real indexed idXML
+in S3 with **50 PSMs / 8 BSA tryptic peptides / 52 target : 2 decoy** — matching the §7 proof.
+CometAdapter (process_high) auto-routed to `biomate-hpc-queue` with no queue override. See §9.
 
 ---
 
@@ -268,3 +275,121 @@ spend this session ≈ $0.00.**
 | `159338fa8` | align vendored modules to deployed dev bytes (+ meta.yml) |
 | `e65501ea5` | pull modules from quay.io, not Docker Hub |
 | `2f0d9a8ac` | executor: mount host libz for `nf-core-modules/` Batch tasks |
+
+---
+
+## 8. Production-Batch confirmation dispatch (2026-09-29) — ❌ FAILED on a NEW real bug: the libz `containerOptions` mount does not apply on the awsbatch executor
+
+After the consolidated sync deployed all §7 fixes to dev (verified live: the 3 OpenMS
+modules present under `/app/nf-core-modules/modules/nf-core/openms{,thirdparty}/`, all
+pulling from `quay.io`; the executor libz branch covering `/nf-core-modules/` present at
+`nextflow_executor.py:2877-2889`), one production run was dispatched via
+`POST /api/workflows/execute` on dev (e2e fixture `lifeifei163361@163.com`) against the
+already-staged real inputs, with `aws_batch_queue=biomate-hpc-queue` (DECOYDATABASE/
+CometAdapter are `process_high`, 72 GB).
+
+| Field | Value |
+|---|---|
+| BioMate run id | `ecb3ec44-f69e-4816-9549-d5aa95f55cf3` |
+| Nextflow run id | `1a4f3d74-cbed-460c-8909-3aa5ce1a5db9` |
+| Batch job id | `e303a7b3-277d-48ee-b86d-a36ea0bf2d25` (`OPENMS_DECOYDATABASE (searchdb)`) |
+| Batch queue | `biomate-hpc-queue` |
+| Image (module directive) | `quay.io/biocontainers/openms:3.4.1--h81ffffe_1` |
+| Terminal status | **FAILED** — `Essential container in task exited`, **exit 127** |
+| S3 outputs | **none** — task died at start; work dir holds only `.command.run`/`.command.sh` (no `.command.err`/`.exitcode` from any OpenMS tool) |
+
+**ROOT CAUSE (verbatim, task `.command.err` in S3 + `describe-jobs` exit 127):**
+```
+/opt/aws-cli/bin/aws: error while loading shared libraries:
+  libz.so.1: cannot open shared object file: No such file or directory
+```
+The compile + module-pull now work end-to-end (the quay `openms` image pulled fine; the
+DAG compiled — the three §7 bugs are truly fixed). The **new** blocker: the libz fix
+(`2f0d9a8ac`) mounts the host `libz.so.1` via Nextflow **`containerOptions = '-v
+/usr/lib64/libz.so.1:…'`** (`_generate_executor_config`). That is a **local-docker**
+mechanism. On the **awsbatch executor**, `nf-amazon` does **not** translate
+`containerOptions` bind-mounts into the ECS task/job-definition volume+mountPoint set,
+so the `-v` host mount is silently dropped — the container starts WITHOUT host libz, and
+the host-mounted `/opt/aws-cli/bin/aws` (which downloads `.command.run` at task start)
+exits 127 before any OpenMS binary runs. Inspecting the run's `.command.run` in S3
+confirms **no `-v libz` line is present** (containerOptions never reached the ECS
+runtime). The §7 "verified live 2026-09-28" note was validated by running the containers
+**directly on the dev EC2 docker host** (which has host libz on its docker `-v`), NOT on
+the awsbatch executor — so this Batch-path gap was never exercised until now.
+
+**Class + fix (separate task — capture-and-report only, per directive):** the host-libz
+mount must be delivered to Batch tasks by a mechanism nf-amazon honors — e.g. inject it
+via the **Batch job definition** `volumes`+`mountPoints` (the ECS-native path), or bake
+`libz`/a self-contained aws-cli into the biocontainer overlay, or (cleanest) finish the
+AMI fix in `docs/20260607_BATCH_AMI_AWSCLI_NOT_SELF_CONTAINED.md` (a self-contained
+`aws` binary with no external libz link). This is the same root class as every raw
+`quay.io/biocontainers/*` Bioc `.nf` on Batch (688 files flagged in
+`20260928_DOMAIN_VALIDATION_UNTESTED.md §Next steps`); `containerOptions -v` "fixes" it
+for local docker but NOT for awsbatch. **Science remains proven** (§7: 50 PSMs / 8 BSA
+tryptic peptides in the exact quay containers with the exact workflow params); only the
+production-Batch staging path is blocked by this libz-delivery gap. **Batch spend this
+run: ~$0** (exit 127 at task start; no OpenMS compute ran).
+
+---
+
+## 9. Production-Batch run (2026-09-29) — ✅ FULLY VALIDATED end-to-end on the real awsbatch path
+
+The §8 libz-delivery gap was fixed (commit `58bf5723b`): the host-libz mount was moved from the
+Nextflow `containerOptions '-v …'` mechanism (which nf-amazon silently drops on the awsbatch
+executor) to the **Batch-effective `aws.batch.volumes` directive**, and the gate that emits it was
+extended from `/nf-core-workflows/` only to also cover `/bioconductor/` **and `/nf-core-modules/`**
+(`nextflow_executor.py:3042-3043`). A companion fix (`56320ea2b`) routes `process_high` labels to
+`biomate-hpc-queue` (72 GB) instead of leaving them RUNNABLE on the 64 GB `biomate-nextflow-queue`.
+
+After the consolidated sync (`735421ab`, result=**healthy** — Galaxy healthy + smoke PASS; executor
+fix verified live in the running `biomate-galaxy-dev` container at `nextflow_executor.py:3043` +
+`:2961`), ONE run was dispatched via the production path `POST /api/nextflow/execute` on dev Galaxy
+(`nextflow_path=nfcore/proteomics_dda_search/main.nf`) against the already-staged real inputs,
+`container=quay.io/biocontainers/openms-thirdparty:3.4.1--h9ee0642_1`. **No `aws_batch_queue` was
+passed** — the auto-routing was left to prove itself.
+
+| Field | Value |
+|---|---|
+| BioMate run id | `b9633609-8caf-4ea4-92cd-0272354635f0` |
+| Invocation id | `c090251d-6078-49a0-8491-111c98fd9afb` |
+| Terminal status | **SUCCEEDED** (3/3 processes; duration ~509 s / 8.5 min) |
+| `OPENMS_DECOYDATABASE_searchdb` | **SUCCEEDED** on `biomate-nextflow-queue` (process_single) |
+| `OPENMSTHIRDPARTY_COMETADAPTER_BSA1_F1` | **SUCCEEDED** on **`biomate-hpc-queue`** (process_high → auto-routed by #3 fix; NOT passed) |
+| `OPENMS_PEPTIDEINDEXER_BSA1_F1` | **SUCCEEDED** on `biomate-nextflow-queue` (process_single) |
+| Real outputs (work dir) | `target_decoy.fasta` (3472 B, 3 target + 3 decoy), `BSA1_F1.idXML` (97042 B), **`BSA1_F1_indexed.idXML` (97115 B)** |
+
+**Science verified on the real Batch outputs** (downloaded the indexed idXML from S3 and parsed):
+
+| Metric | Value |
+|---|---|
+| PSMs (`<PeptideHit>`) | **50** |
+| Distinct BSA tryptic peptides | **8**: DLGEEHFK, AQYEDIAQK, LVTDLTK, YNIEDEK, LSSPATLNSR, DVDGAYMTK, DDSPDLPK, AWSVAR |
+| Target/decoy annotation | **52 target / 2 decoy** (clean, low-FDR) |
+
+This exactly matches the §7 direct-container science proof — now reproduced through BioMate's
+production executor on real AWS Batch, not on the dev docker host.
+
+### Both fixes proven on the real awsbatch path
+- **libz fix (`58bf5723b`)** WORKS: every OpenMS task pulled its quay biocontainer and the
+  host-mounted `aws` binary ran (previously exit 127 `libz.so.1: cannot open shared object file`).
+  The `aws.batch.volumes` mount reached the ECS task; no exit-127 anywhere.
+- **process_high auto-routing (`56320ea2b`)** WORKS: `CometAdapter` (`label 'process_high'`)
+  auto-landed on `biomate-hpc-queue` and scaled up a 72 GB-capable instance (RUNNABLE → STARTING →
+  SUCCEEDED) with no `aws_batch_queue` override — exactly the sit-RUNNABLE-forever failure the fix
+  targets. The hpc CE (`biomate-nextflow-hpc-v1`, max 256 vCPU, c5.9xlarge/r5.4xlarge) had capacity.
+
+### Note — publishDir / S3 outdir
+The run status reported `s3_output_files: []` and the `outdir`
+(`s3://biomate-nextflow-work/nextflow/outputs/1/e5d33a80`) was empty; the real deliverables landed
+in the **work dir** (`…/b9633609…/f2/98d49b8ccec3a566f86e24098785e3/BSA1_F1_indexed.idXML`). The
+workflow's own `main.nf` publishes to a relative `./results` (`params.outdir` default `'./results'`)
+rather than the executor-injected S3 `outdir`; wiring `params.outdir` through to the modules'
+`publishDir` is a cosmetic follow-up (outputs are present and correct in the work dir either way).
+Not a blocker — captured, not fixed here.
+
+### Batch spend
+Three small OpenMS tasks: DecoyDatabase (~seconds) + PeptideIndexer (~seconds) on the always-warm
+nextflow CE (~$0), CometAdapter search on a freshly-scaled hpc instance (~5–6 min incl. provisioning
++ idle-scaledown). **Total Batch spend this run ≈ $0.30–0.50.** Combined with the metabolomics run
+(one ~1-min task that failed fast) the whole session's Batch spend is **≈ $0.50**.
+

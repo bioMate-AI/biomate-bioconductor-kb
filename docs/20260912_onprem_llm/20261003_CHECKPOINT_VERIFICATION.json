@@ -154,5 +154,19 @@
     "complete": false,
     "error": "AttributeError(\"module 'hashlib' has no attribute 'file_digest'\")",
     "finished": 1791057327.3049624
+  },
+  "separate_9b_snapshot": {
+    "run": "full_today_20261003",
+    "instance": "i-0e80fb51b235fff89",
+    "model": "Qwen/Qwen3.5-9B",
+    "revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+    "log_uploaded_utc": "2026-10-03T19:59:07Z",
+    "latest_logged_step": 214,
+    "durable_checkpoint_step": 200,
+    "target_cpt_steps": 300,
+    "checkpoint_loss": 1.7355066,
+    "checkpoint_grad_norm": 0.236752,
+    "scope": "S3 log, object listing and trainer-state inspection only; tensor integrity and full restoration not checked",
+    "completed_cpt_or_sft_artifacts_found": false
   }
 }

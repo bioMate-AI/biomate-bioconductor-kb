@@ -1,0 +1,66 @@
+{
+  "scope": "User-selected follow-ups 2, 3 and 4: consumer AI search baseline, conversion journeys, crawler/indexing verification",
+  "date": "2026-10-09 America/Chicago; continuation 2026-10-10 UTC",
+  "consumerBaseline": {
+    "providers": ["ChatGPT", "Claude", "Gemini", "Grok", "Perplexity"],
+    "fixedPrompts": 24,
+    "plannedRepeats": 3,
+    "plannedCells": 360,
+    "completedArchivedAnswers": 3,
+    "observationFile":"docs/qa/ai-search/20261010-observations.jsonl",
+    "pilotFindings":"Recovered branded answers from ChatGPT and Gemini both mention BioMate and link to its official website. A separate ChatGPT prompt 5 (non-branded RNA-seq comparison) also includes BioMate and links to its website. Gemini prompt 5 ended in a service error. These observations are not an overall visibility score. ChatGPT's explicit search activity was not archived, so searchRan is conservatively unknown despite Web search being selected and source chips being present.",
+    "qualityFinding":"Gemini's branded answer says SOC 2 Type II compliant, whereas the cited features page says aligned to SOC 2 Type II. It also presents closed-loop peptide optimization without the research-stage qualification visible on the research-engines page. Do not treat brand inclusion as answer accuracy.",
+    "score": null,
+    "attempts": [
+      {"provider":"ChatGPT","promptId":1,"status":"completed","detail":"In-app browser recovered; rendered answer and explicit links archived. Chrome retry submission remains unknown and is not counted."},
+      {"provider":"Gemini","promptId":1,"status":"completed","detail":"In-app browser recovered; answer and explicit links archived. UI displayed Searching the web."},
+      {"provider":"ChatGPT","promptId":5,"status":"completed","detail":"Separate temporary chat, fixed non-branded question; answer and explicit source links archived."},
+      {"provider":"Gemini","promptId":5,"status":"error","detail":"Partial response was replaced by a service error; not scored."},
+      {"provider":"Perplexity","promptId":1,"status":"error","detail":"Recovered page says Sign up and repeat your request. No substantive answer."},
+      {"provider":"Claude","promptId":1,"status":"not_run","detail":"Signed-out login screen; no credentials entered."},
+      {"provider":"Grok","promptId":1,"status":"not_run","detail":"First message would accept terms; explicit confirmation requested and not received."}
+    ],
+    "blocker":"In-app browser recovered on continuation. Claude/Perplexity require account access; Grok requires explicit terms confirmation. Full 360-cell baseline remains incomplete. Missing cells are unmeasured, not zero visibility.",
+    "resume":"Use fixed prompts in scripts/ai_search_baseline.cjs, archive answer and citation URLs immediately, record actual model/mode/account context and whether search ran, then apply reviewer judgments. Temporary ChatGPT chat visibly said it can reference memory and custom instructions, so it is not necessarily a clean-account baseline."
+  },
+  "journeys": {
+    "liveObserved":[
+      {"path":"Homepage → platform → pricing → Register free","result":"PASS","evidence":"Live in-app browser reached dev-public registration with name/email/institution/role/password fields and Premium-trial copy. No account created."},
+      {"path":"Mobile homepage menu → Services → Drug discovery → Review evaluations → back → Discuss your program","result":"PASS","evidence":"Actual viewport innerWidth 390; homepage, discovery, drug benchmarks and contact document widths were 390; inquiry topic prefilled Drug discovery."},
+      {"path":"Homepage → Research Engines → Explore the scientific questions → Contact us","result":"PASS","evidence":"Reached Virtual Cell Modeling survey and contact topic General inquiry."},
+      {"path":"Keyboard Services ArrowDown → Escape","result":"PASS","evidence":"ArrowDown expanded submenu and focused Overview; Escape collapsed it and restored focus to Services."},
+      {"path":"Published contact empty submit","result":"PASS","evidence":"Name/email invalid; focus moved to cf-name; submit remained enabled; success/error hidden. No valid message supplied."}
+    ],
+    "automatedSourceChecks":[
+      "Homepage → platform → pricing → registration link",
+      "Homepage → drug discovery → drug evaluations / topic-prefilled contact link",
+      "Homepage → research engines → surveys",
+      "Homepage → walkthrough-prefilled contact link"
+    ],
+    "contactActualScriptTests":"JSDOM runs the real inline contact script with mocked fetch; no real messages sent. Tests cover plain-text URL prefill, invalid fields, pending state, duplicate submit guard, success only after OK response, HTTP rejection, network failure, timeout, input preservation and successful retry.",
+    "bugsReproducedBeforeFix":["Repeated submit events dispatched two requests while one was pending.","No timeout existed: an unresolved request could leave the submit button disabled indefinitely."],
+    "localFixes":["Ignore submit while pending; abort after 20 seconds; clear timer after completion.","Announce success/error accessibly; failure wording does not falsely establish that nothing was sent, and warns of possible duplicates on retry."],
+    "notVerified":["Real contact delivery to company inbox", "Account creation and post-registration onboarding", "Mobile platform-to-registration journey; mobile coverage focused on drug discovery", "Exhaustive keyboard/screen-reader behavior across every page"],
+    "limitations":"Connected static links and mocked fetch are not an end-to-end live delivery test. Prior mobile traversal results are not counted as new journey results.",
+    "copyFindings":["Contact privacy note says information is not shared with third parties, although the form uses Formspree as a processor. Requires privacy-policy review, not an invented legal claim.","Contact structured FAQ references Pro plans while pricing uses Starter/Premium/Team/Enterprise; reconcile the commercial facts before rewriting."]
+  },
+  "crawlerAndIndexing": {
+    "httpEvidence":"docs/qa/20261010-marketing-public-access.json",
+    "sitemapUrls":92,
+    "non200":0,
+    "noindex":0,
+    "syntheticAgentRequests":32,
+    "syntheticAgentBlocked":0,
+    "missingCanonicalLive":0,
+    "hostNormalization":"HTTP apex and www redirect to HTTPS apex; HTTPS www returns 200 with apex canonical rather than redirecting.",
+    "headingFinding":"blog-complement-stratification.html repeats its title in two H1 elements; lower priority editorial/heading review, not evidence of an indexing block.",
+    "serverEvidence":{"instance":"i-06696b0d91f4346e0","configuration":"/etc/nginx/sites-available/biomate-marketing","docroot":"/var/www/biomate-marketing","directive":"access_log off;","method":"Read-only SSM/SSH inspection; no configuration changed."},
+    "verifiedRealCrawlerVisits":null,
+    "webmasterIndexingStatus":null,
+    "webmasterAccess":{"google":"Signed-in personal account property chooser says No matching property. BioMate brand-account link returns 403 access denied. No property added or ownership verification attempted.","bing":"Sign-in required; no existing session found. Stopped before account creation or permission grants."},
+    "limitations":"Synthetic user agents establish only that these requests were served. They do not identify genuine provider crawlers or prove indexing, ranking or citation inclusion. Other nginx access logs cannot be attributed to this vhost because its logging is disabled. Existing verified webmaster property access is still required.",
+    "nextEvidenceNeeded":["Existing Search Console property: index coverage, sitemap status and representative URL inspection.","Existing Bing Webmaster property: sitemap and URL index status.","If approved, narrowly scoped marketing crawler logging with limited retention and no request bodies/query strings; verify genuine bot IPs against provider guidance before labeling visits."]
+  },
+  "verification":{"testCommand":"node --test reference/claude_design/webpage_design_v2/tests/*.test.cjs scripts/ai_search_baseline.test.cjs scripts/audit_marketing_access.test.cjs","testsPassed":55,"failed":0,"skipped":0,"contactRegressionFailedOnOldCode":true,"publicAssetHashes":{"checked":99,"matched":99},"screenshot":"/private/tmp/biomate-contact-live-20261010.jpg"},
+  "publication":{"status":"Published and verified","method":"bash scripts/deploy_marketing.sh","completedAt":"2026-10-10T04:02:17Z","backup":"/var/backups/biomate-marketing/pre-sync-9gxN1MVU.tar.gz","scope":"Dedicated marketing docroot only; two separately managed comparison articles preserved. No account creation, terms acceptance, valid contact submission, DNS mutation or server logging change."}
+}

@@ -1,0 +1,212 @@
+[
+  {
+    "label": "initial",
+    "viewport": 1440,
+    "elements": [
+      {
+        "id": "chat-workflow-split",
+        "width": 1180,
+        "scrollWidth": 1180,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "chat-messages",
+        "width": 700,
+        "scrollWidth": 700,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "chat-input",
+        "width": 592,
+        "scrollWidth": 592,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "workflow-right-panel",
+        "width": 480,
+        "scrollWidth": 479,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgb(251, 253, 254)"
+      }
+    ],
+    "bodyOverflow": false
+  },
+  {
+    "label": "expanded-panel",
+    "viewport": 1440,
+    "elements": [
+      {
+        "id": "chat-workflow-split",
+        "width": 1180,
+        "scrollWidth": 1180,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "chat-messages",
+        "width": 437,
+        "scrollWidth": 437,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "chat-input",
+        "width": 350.0625,
+        "scrollWidth": 350,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "workflow-right-panel",
+        "width": 743,
+        "scrollWidth": 742,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgb(251, 253, 254)"
+      }
+    ],
+    "bodyOverflow": false
+  },
+  {
+    "label": "viewport-1100",
+    "viewport": 1100,
+    "elements": [
+      {
+        "id": "chat-workflow-split",
+        "width": 840,
+        "scrollWidth": 840,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "chat-messages",
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "chat-input",
+        "width": 296,
+        "scrollWidth": 296,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "workflow-right-panel",
+        "width": 460,
+        "scrollWidth": 459,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgb(251, 253, 254)"
+      }
+    ],
+    "bodyOverflow": false
+  },
+  {
+    "label": "viewport-1000",
+    "viewport": 1000,
+    "elements": [
+      {
+        "id": "chat-workflow-split",
+        "width": 740,
+        "scrollWidth": 740,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "chat-messages",
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "chat-input",
+        "width": 296,
+        "scrollWidth": 296,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "workflow-right-panel",
+        "width": 360,
+        "scrollWidth": 359,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgb(251, 253, 254)"
+      }
+    ],
+    "bodyOverflow": false
+  },
+  {
+    "label": "viewport-900",
+    "viewport": 900,
+    "elements": [
+      {
+        "id": "chat-workflow-split",
+        "width": 640,
+        "scrollWidth": 640,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "chat-messages",
+        "width": 0,
+        "scrollWidth": 0,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "chat-input",
+        "width": 0,
+        "scrollWidth": 0,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "workflow-right-panel",
+        "width": 640,
+        "scrollWidth": 639,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgb(251, 253, 254)"
+      }
+    ],
+    "bodyOverflow": false
+  },
+  {
+    "label": "viewport-760",
+    "viewport": 760,
+    "elements": [
+      {
+        "id": "chat-workflow-split",
+        "width": 760,
+        "scrollWidth": 760,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "chat-messages",
+        "width": 0,
+        "scrollWidth": 0,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "chat-input",
+        "width": 0,
+        "scrollWidth": 0,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      {
+        "id": "workflow-right-panel",
+        "width": 760,
+        "scrollWidth": 759,
+        "font": "Inter, system-ui, -apple-system, sans-serif",
+        "background": "rgb(251, 253, 254)"
+      }
+    ],
+    "bodyOverflow": false
+  }
+]

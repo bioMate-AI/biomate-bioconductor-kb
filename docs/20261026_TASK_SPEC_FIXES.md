@@ -35,3 +35,10 @@ PBPK construct-validity fixed (explicit endpoint); its honest numbers are gated 
 clarification (covered by raw-vs-production). BOIN needs a one-line spec statement + possibly a decision
 variant. All flagged in `LEADERBOARD_CAVEATS.md` / Results Release v1 so no current PBPK/param/BOIN number is
 cited as a capability result prematurely.
+
+## PBPK rerun result (2026-10-26, fixed explicit-Cmax prompt, 4 models)
+Confirms the construct-validity fix: with the endpoint specified, PBPK within-2-fold jumps from the
+old-ambiguous-prompt ~0.0–0.2 to: Opus-5 0.467, Gemini-3.1-pro 0.467, GPT-5.6-luna 0.400, Kimi-K3 0.200.
+The "near-useless at PBPK" claim was a prompt artifact. (Rerun is partial — 4 models; deepseek/glm/
+qwen3.8-max-prime + the full consistent leaderboard rerun pending. Do NOT mix fixed- and old-prompt PBPK
+cells in one table; regenerate the PBPK column only after all models rerun on the fixed prompt.)

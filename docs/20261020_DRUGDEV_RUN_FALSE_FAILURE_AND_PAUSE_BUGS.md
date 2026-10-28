@@ -16,7 +16,23 @@ py3.9 compiles; only changes behaviour when the run was already deliberately
 paused (no risk of faking success / hiding failure). Needs a Batch run to verify
 the user pause→resume round-trips.
 
-## Bug B — ADMET false-failure on signal-kill with complete outputs (NOT yet fixed)
+## RESOLUTION (2026-10-20): Bug B WAS Bug A (fixed)
+Deeper tracing showed the ADMET false-failure is the same mechanism as Bug A, not
+a separate signal-kill-salvage problem. On a halt-severity QC gate the FRONTEND
+calls `/api/workflows/runs/:id/pause` (`nextflow-workflow-viewer.tsx:2220`, default
+`pauseAtQcFailures`), which soft-cancels the backend run: `_terminate_run_process`
+SIGTERMs the Nextflow process and marks `status="paused"`. The bug: it wrote that
+status AFTER the SIGTERM, and the completion thread (process.wait()) wakes the
+instant the signal lands and classifies `returncode<0` → interrupted/failed —
+racing ahead of the "paused" write and clobbering it → "RUN FAILED", Resume dead.
+**Fix:** `_terminate_run_process` now writes `status=paused/cancelled` (+ store)
+BEFORE signalling, and the `returncode<0` handler keeps a deliberate paused/
+cancelled status. So a gate-halted ADMET run shows **paused (resumable)**; a run
+that passes all gates completes cleanly. Needs a Batch run on dev to confirm
+paused→resume. (The output-completeness salvage below is no longer the blocker,
+but remains a sound defence-in-depth idea.)
+
+## Bug B (original hypothesis) — false-failure on signal-kill with complete outputs
 The actual ADMET blocker. Observed on every ADMET capture run:
 - The ADMET workflow **completes its compute** — 6 outputs published to S3
   (`toxicity_report.json`, `qc_metrics.json`, `pk_summary.json`, …), the

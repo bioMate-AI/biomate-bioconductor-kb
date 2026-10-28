@@ -46,25 +46,25 @@ validation planned for version 2)</p>
 retrain are widely proposed for cyclic peptides, but claims of benefit
 are rarely tested against measured outcomes. We evaluated a
 design–test–learn loop retrospectively on 6,960 cyclic peptides with
-measured membrane permeability (PAMPA), where each peptide’s measurement
-was revealed only after the loop selected it. Starting from 100 labelled
-peptides, a loop retrained a bootstrap ensemble of gradient-boosted
-regressors on molecular fingerprints for 10 rounds of 50 selections, and
-was compared with random selection, with greedy and uncertainty-aware
-policies, and with an oracle, from two starting conditions: an
-in-distribution start and a scaffold-shifted start in which the pool
-excludes the starting scaffolds. A model-guided loop found far more
-permeable peptides than random selection: 397 vs 50 top-decile peptides
-in 500 selections from the in-distribution start (difference +346.8 (95%
-CI 280 to 389)) and 367 vs 107 from the scaffold-shifted start
-(difference +260.1 (95% CI 125 to 318)). Adding ten literature
-permeability descriptors to the fingerprints did not improve the loop
-(all intervals include zero). In an exploratory comparison, ranking
-peptides by N-methylation count alone, with no learning, found 276 and
-304 top-decile peptides, so one classical rule recovers 70–83% of the
-loop’s yield; the loop’s clear gain over the rule is in-distribution.
-The design, hit definition, policies, seeds and claim rules were fixed
-before any run.</p>
+measured membrane permeability (PAMPA), revealing each peptide’s
+measurement only after the loop selected it. Starting from 100 labelled
+peptides, the loop retrained a bootstrap ensemble of gradient-boosted
+regressors on fingerprints for 10 rounds of 50 selections, from an
+in-distribution and a scaffold-shifted start. Using a pooled “top 10% of
+permeability” outcome, the loop found far more hits than random
+selection (397 vs 50 in 500 selections in-distribution; 367 vs 107
+scaffold-shifted), and a one-line N-methylation rule found 276 and 304.
+<strong>However, 78% of all top-decile peptides (557 of 711) come from a
+single literature source, and 98% of the N-methylation rule’s hits come
+from that source’s series</strong> (peptides averaging 5.7 N-methyl
+groups against 1.9 elsewhere). The pooled outcome therefore mostly
+measures finding one laboratory’s series, an assay-and-series effect
+that is not within-laboratory permeability. We report this as a result
+in itself and re-run the loop with permeability normalised within each
+source (protocol amended before the re-run); those results replace the
+pooled ones as the primary outcome. <strong>[Corrected within-source
+results to be inserted when the pre-specified re-run
+completes.]</strong></p>
 <h2 id="introduction">1. Introduction</h2>
 <p>Optimising permeability is a central difficulty for oral cyclic
 peptides, and experiments are expensive, so selecting which peptides to
@@ -119,6 +119,14 @@ minus random) to exclude zero in both regimes.</p>
 retrospective closed loop.</strong></figcaption>
 </figure>
 <h2 id="results">3. Results</h2>
+<p><strong>Caveat that applies to every pooled-label number in this
+section.</strong> The top-decile outcome is dominated by one source
+(Figure not shown): 557 of 711 hits come from 878 peptides of a single
+laboratory, so the loop and the N-methyl rule largely locate that series
+(the N-methyl rule’s top 500 selections were 89% from it in-distribution
+and 93% scaffold-shifted; 272 of 276 and 301 of 304 hits). The tables
+and figure below are retained for transparency and must not be read as
+within-laboratory permeability gains.</p>
 <p><strong>Selection with a model beat random selection by a wide margin
 from both starts (Figure L2, Table 1).</strong> From the in-distribution
 start, the greedy loop found 396.7 top-decile peptides in 500 selections
@@ -208,6 +216,13 @@ in-distribution setting). The learned loop’s advantage over the N-methyl
 rule is clear in-distribution (+120) but smaller and uncertain after the
 scaffold shift (+63, with seed-to-seed range 234–415).</p>
 <h2 id="discussion-and-limitations">4. Discussion and limitations</h2>
+<p>The most important result of this study is a warning about the
+outcome, not a loop gain: in pooled literature permeability data a
+single laboratory’s series accounts for most hits, so any loop, rule or
+model can appear to work by identifying that series. Evaluations must
+normalise within source (or hold out whole sources) before claiming
+gains. The statements below about the loop and the N-methyl rule refer
+to the pooled, confounded outcome.</p>
 <p>A model-guided loop is far better than random selection at finding
 permeable cyclic peptides in measured data, including when the starting
 peptides share no scaffold with the pool. The comparison that matters

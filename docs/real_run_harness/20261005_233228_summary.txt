@@ -1,0 +1,20 @@
+[2mtarget : https://dev-public.biomate.ai
+domains: admet rnaseq wgs
+log dir: /Users/kky/biomate-review/docs/real_run_harness[0m
+
+[33m── admet → e2e/realrun-admet.e2e.ts ──[0m
+  → FAIL(rc=1)  run_id=—
+
+[33m── rnaseq → e2e/project-real-run-capstone.e2e.ts ──[0m
+  → PASS  run_id=4dbcc0cf-ce6f-4ef0-9c1f-2b98b02343ea
+
+[33m── wgs → e2e/wgs-capstone.e2e.ts ──[0m
+  → PASS  run_id=—
+
+
+[33m════ SUMMARY ════[0m
+  [31madmet    FAIL(rc=1)  [0m run_id=—
+  [32mrnaseq   PASS        [0m run_id=4dbcc0cf-ce6f-4ef0-9c1f-2b98b02343ea
+  [32mwgs      PASS        [0m run_id=—
+
+[31m1 domain(s) failed[0m

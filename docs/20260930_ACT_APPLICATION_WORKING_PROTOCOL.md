@@ -375,30 +375,34 @@ Implications that now govern the plan:
   the lead asset rests on the nominator being real — so finishing the nominator's
   technical validation is the critical path, not optional.
 
-### 6.6 Critical through-line — RESOLVED 2026-09-30: validate-the-black-box returned PIVOT
-All three business models said the moat is the **pair-nominator**; the credibility
-floor was "validate the black box before pitching." **We ran that validation (the
-atlas-of-atlases product-gate experiment, `20260930_ATLAS_OF_ATLASES_PRODUCT_GATE_RESULT.md`).
-Result: the learned-FM nominator is NOT real for the clinical tasks.**
-- **Batch gate CLEARED** (atlas broke the annotation wall: cond_norm 0.381 @
-  annotF1 0.574) — the FM is a real *annotation* substrate.
-- **Product gate FAILED** — integrated-atlas z **loses to PCA(20) by 0.10–0.15
-  LCO** on three independent measurements; responder-stratification confound
-  **persists** (study-leaky-z content). Target-ID also fails the degree-null on all
-  3 axes. The ~28× batch leakage is the blocker; more atlases won't fix it; batch
-  defense has repeatedly failed.
+### 6.6 Critical through-line — RESOLVED 2026-09-30 (framing corrected per user)
+**Framing (do not revert):** the FM is a **feature EXTRACTOR** that contributes
+embedding features to a downstream nomination/scoring algorithm — it is NOT a
+standalone "nominator" to be benchmarked z-alone-vs-PCA (the substitution frame is
+wrong). The only valid question is **incremental contribution: Δ = [baseline
+features + FM embedding] − [baseline features]**, per task.
 
-**Consequence — do NOT pitch "our immune-LLM nominates pairs" as the moat.** The
-honest, null-beating capability set to build the pitch on:
-- **Measured virtual-KO target screen — AUROC 0.85** vs degree-null (the real
-  target-nomination capability: *measured perturbation*, not a learned FM head).
-- **Gene-set / PCA responder stratification — 0.734 LCO** (simple features, real).
-- **FM annotation +0.039** (the one clean FM win) + self-supervised biomarker.
-- **The closed-loop wet-lab flywheel + composite system** — which the committee
-  already named as the real moat, "not any single component."
+We ran the validation (atlas-of-atlases + the 10-variant contribution test;
+`20260930_ATLAS_OF_ATLASES_PRODUCT_GATE_RESULT.md`). Contribution-frame results:
+- **Annotation: FM embedding CONTRIBUTES (+0.039)** — the clean win; the atlas also
+  broke the annotation-collapse wall (cond_norm 0.381 @ annotF1 0.574), so the FM
+  is a genuine representation substrate. Self-supervised biomarker also contributes.
+- **Cross-cohort stratification: FM embedding is currently ANTI-INFORMATIVE.**
+  Adding it to PCA drops LCO 0.734→0.420 (Δ **−0.31**), persisting across every
+  regularization + aggregation variant — because its **content is batch-leaky
+  (~28×)**: a downstream scorer latches onto study identity and transfers worse.
+  This is a property of the current embedding's *content*, fixable only by the
+  batch fix (the atlas fixed annotation, not the cross-patient transfer signal).
 
-The validate-first floor paid off: it stopped a pitch built on a claim that
-doesn't hold, and redirected to capabilities with real null-beating numbers.
+**Consequence (correctly framed):** the **nomination/scoring algorithm combines
+every feature that contributes** — measured virtual-KO screen (AUROC 0.85,
+degree-null-beating), gene-set / PCA stratification (0.734 LCO), AND the FM
+embedding *for the tasks where it helps* (annotation now; stratification once the
+batch content is clean). Do NOT pitch "the FM nominates pairs" as a standalone
+moat, and do NOT "abandon the FM" — the FM is a component of the system that earns
+its place where its features contribute. The moat is the **composite system +
+closed-loop flywheel**, exactly as the business committee said. The batch-content
+fix is what lets the FM embedding join the stratification/nomination feature set.
 
 Raw model outputs: `scratchpad/committee_{GPT,Gemini}.md` + Claude review in the
 task transcript.
