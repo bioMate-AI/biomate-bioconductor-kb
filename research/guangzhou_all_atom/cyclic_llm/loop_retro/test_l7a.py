@@ -16,10 +16,11 @@ def planted(recs, n):
     y = (nm - nm.mean()) / (nm.std() + 1e-9) + 0.3 * rng.standard_normal(n); return idx, y
 
 def shuffled_ok(rhos):
-    """Null SE of a Spearman rho at n=100 is ~0.1, so one shuffle exceeds |0.2| ~5 % of the time by chance. Require the MEAN over independent shuffles within +-0.12 and no single shuffle beyond +-0.35."""
+    """Null SE of a Spearman rho at n=100 is ~0.1 per shuffle; with 8 independent shuffles the mean has SE ~0.035, so |mean| < 0.12 is a 3.4-sigma bar (false-fail ~0.1 % per check; with 3 shuffles it was ~5 %, which is why
+    the first chemberta pre-flight failed by chance at mean +0.147). No single shuffle may exceed +-0.35."""
     return abs(float(np.mean(rhos))) < 0.12 and max(abs(r) for r in rhos) < 0.35
 
-def adapter_control(make_backend, steps, name, n_shuf=3):
+def adapter_control(make_backend, steps, name, n_shuf=8):
     recs = R.load(CSV); idx, y = planted(recs, 360); sm = [recs[i]["smiles"] for i in idx]; B = make_backend(sm)
     tr, te = np.arange(0, 240), np.arange(240, 360); rng = np.random.default_rng(1)
     st0 = B.init_state(); r0 = spearmanr(B.predict(st0, te), y[te])[0]; r0 = 0.0 if r0 != r0 else r0   # zero-init head -> constant predictions -> nan = no information
@@ -180,7 +181,7 @@ def phys_adapter_control(make_backend, name):
     recs = R.load(CSV); idx, _ = planted(recs, 360); sm = [recs[i]["smiles"] for i in idx]; tp = np.array([rdMolDescriptors.CalcTPSA(Chem.MolFromSmiles(s)) for s in sm]); z = (tp - tp.mean()) / tp.std()
     rng = np.random.default_rng(2); y = -z + 0.3 * rng.standard_normal(360); desc = np.stack([z, rng.standard_normal(360)], 1).astype(np.float32)
     B = make_backend(sm, desc); tr, te = np.arange(0, 240), np.arange(240, 360); st = B.fit(B.init_state(), tr, y[tr], 150, 0); r = spearmanr(B.predict(st, te), y[te])[0]
-    r_sh = [spearmanr(B.predict(B.fit(B.init_state(), tr, rng.permutation(y[tr]), 150, k), te), y[te])[0] for k in range(3)]
+    r_sh = [spearmanr(B.predict(B.fit(B.init_state(), tr, rng.permutation(y[tr]), 150, k), te), y[te])[0] for k in range(8)]
     print(f"  {name}+phys: planted rho {r:+.3f} | shuffled {[round(float(v), 3) for v in r_sh]}"); assert r > 0.6 and shuffled_ok(r_sh), (r, r_sh)
 
 def test_atom_phys_adapter_planted_signal():
