@@ -7,7 +7,7 @@ Single deliverable: one manuscript (docs outline in `20261028_CYCLIC_PROGRAM_MAN
 |---|---|---|---|---|
 | WS2 | loop replay (L5 GBM controlled loop; L7 model comparison: GBM, atom LM, v4-subset, ChemBERTa, larger pretrained peptide/chemistry LMs fine-tuned (not NLP LLMs), 5 controls) | yield curves, controls, cost | adapters (exist: LoopModel/AtomLoopModel); frozen lists only for held-out recovery | L5 running on spot; L7 prereg done, not run — **critical path #1** |
 | WS3 | benchmark instrument (analysis I; M2→M3 typicality fix; run_s3 harness) | validity-gated held-out recovery | none | M2 invalid (typicality control 0.665); M3 in progress — critical for the recovery metric |
-| WS1 | v5 small model (corpus filter, trainer, staged training, stereo eval, cost meter) | upgraded small model | WS3 folds (done), corpus filter, trainer | not trained; **not on critical path** (atom LM serves as small model if v5 slips) |
+| WS1 | IH-LM own model (IHLM class + modules M1–M5, P1 pretraining plan and gates, corpus filter, stereo eval, cost meter) | in-house hybrid model | WS3 folds (done), corpus filter, trainer | not trained; **not on critical path** (atom LM serves as small model if v5 slips) |
 | WS4 | stratification and substructure-effect analysis | strata, matched-pair effects, feature families | none | running |
 | WS5 | knowledge-base audit and gap prototypes | KB verdicts, mined rules (leak-safe) | WS4 matched pairs (read-only) | running |
 | SV | literature survey and prior-art table | related work, novelty risk | none | running |
