@@ -14,13 +14,13 @@ SMOKE = os.environ.get("RETRO_SMOKE") == "1"          # smoke = tiny slice to te
 
 C = pd.read_csv(f"{DATA}/compounds.csv.gz").set_index("compound_id"); P = pd.read_csv(f"{DATA}/pair_labels.csv.gz"); T = pd.read_csv(f"{DATA}/targets.csv")
 fam = dict(zip(T.target_key, T.family)); genes = dict(zip(T.target_key, T.genes.fillna("")))
-IM = pd.read_csv(f"{DATA}/items_M.csv.gz"); II = pd.read_csv(f"{DATA}/items_I.csv.gz")
+IM = pd.read_csv(f"{DATA}/items_M.csv.gz"); II = pd.read_csv(f"{DATA}/items_I.csv.gz"); IM2 = pd.read_csv(f"{DATA}/items_M2.csv.gz")
 if SMOKE:
     keep = sorted(IM.target_key.unique())[:12]; IM = IM[IM.target_key.isin(keep)]; keep = sorted(II.target_key.unique())[:6]; II = II[II.target_key.isin(keep)]
 COMPONENTS = {}
 
 # ---------- features + fingerprints for every compound that can appear (items + reference sets)
-need = sorted(set(IM.compound_id) | set(II.compound_id) | set(P.compound_id))      # all labelled compounds (positives = B3 references, inactives = induction non-actives)
+need = sorted(set(IM.compound_id) | set(II.compound_id) | set(IM2.compound_id) | set(P.compound_id))      # all labelled compounds (positives = B3 references, inactives = induction non-actives)
 gen = AllChem.GetMorganGenerator(radius=2, fpSize=2048, includeChirality=True)
 fp = {}
 for c in need:
@@ -57,6 +57,34 @@ def baselines(items):
             out.append(pd.DataFrame(dict(arm=k, target_key=t, compound_id=cids, score=v)))
     return pd.concat(out, ignore_index=True)
 
+
+# ---------- real chemistry descriptors / predicates (V2 generalised arms)
+import pickle
+from rdkit.Chem import Descriptors, Crippen, rdMolDescriptors
+_DC = os.environ.get("RETRO_DESC_CACHE")
+def build_desc():
+    rows = {}
+    for c in need:
+        m = chem.parse(C.loc[c, "iso_smiles"]); cl = chem.classify(m)
+        rows[c] = dict(heavy=C.loc[c, "heavy"], ring=C.loc[c, "ring"], charge=C.loc[c, "charge"], n_arom=C.loc[c, "n_arom"], tpsa=rdMolDescriptors.CalcTPSA(m), logp=Crippen.MolLogP(m),
+                       hbd=rdMolDescriptors.CalcNumHBD(m), hba=rdMolDescriptors.CalcNumHBA(m), rotb=rdMolDescriptors.CalcNumRotatableBonds(m), fsp3=rdMolDescriptors.CalcFractionCSP3(m),
+                       halogen=sum(a.GetSymbol() in ("F", "Cl", "Br", "I") for a in m.GetAtoms()), sulfur=sum(a.GetSymbol() == "S" for a in m.GetAtoms()), n_nsub=cl["n_nsub"], n_d=cl["n_d"],
+                       n_alpha=cl["n_alpha"], rgd=float(C.loc[c, "rgd"]), ncaa=float(C.loc[c, "stratum"] == "ncaa_peptide"), nonpep=float(C.loc[c, "stratum"] == "non_peptide_macrocycle"))
+    return pd.DataFrame.from_dict(rows, orient="index")
+if _DC and os.path.exists(_DC): DESC = pickle.load(open(_DC, "rb"))
+else:
+    DESC = build_desc()
+    if _DC: pickle.dump(DESC, open(_DC, "wb"))
+DCOLS = list(DESC.columns)
+def real_predicates():
+    D = DESC; out = {}
+    for c in need:
+        r = D.loc[c]; p = {"has_rgd": bool(r.rgd), "has_d": r.n_d > 0, "has_nsub": r.n_nsub > 0, "ncaa": bool(r.ncaa), "nonpep": bool(r.nonpep), "halogen": r.halogen > 0, "sulfur": r.sulfur > 0}
+        for k, ths in (("heavy", (50, 70, 90, 110)), ("ring", (12, 15, 20, 25)), ("tpsa", (150, 250, 350)), ("logp", (0, 2, 4)), ("hbd", (3, 6, 10)), ("rotb", (15, 25, 40)), ("fsp3", (0.3, 0.45, 0.6)), ("n_arom", (1, 2, 3))):
+            for th in ths: p[f"{k}_ge{th}"] = bool(r[k] >= th)
+        p["charge_pos"] = r.charge >= 1; p["charge_ge2"] = r.charge >= 2; p["charge_nonpos"] = r.charge <= 0
+        out[c] = p
+    return out
 
 # ---------- knowledge arms
 KB_TARGETS = {"avb6": lambda g: "ITGB6" in g, "pdl1": lambda g: "CD274" in g, "a4b1": lambda g: "ITGA4" in g and "ITGB1" in g, "a4b7": lambda g: "ITGA4" in g and "ITGB7" in g,
@@ -135,15 +163,15 @@ def s1b_leaky(items):
     return pd.concat(out, ignore_index=True)
 
 
-def s1b_induction(items):
+def s1b_induction(items, arm="S1b_induction", preds=None):
     import rule_induction as RI
     COMPONENTS["rule_induction.induce"] = "imported; predicates() replaced by SMILES predicates (original is HELM/avb6-specific); induce() called unchanged"
-    pred = {}
-    for c in need:
+    pred = {} if preds is None else preds
+    for c in (need if preds is None else []):
         r = C.loc[c]; pred[c] = {"has_rgd": bool(r.rgd), "has_d": False, "has_nsub": False, "arom_ge1": r.n_arom >= 1, "arom_ge2": r.n_arom >= 2, "charge_pos": r.charge >= 1, "charge_nonpos": r.charge <= 0,
                                  "ring_ge15": r.ring >= 15, "heavy_ge80": r.heavy >= 80, "ncaa": r.stratum == "ncaa_peptide"}
     # D / N-substituted flags need the classifier (cheap to recompute for the needed compounds)
-    for c in need:
+    for c in (need if preds is None else []):
         cl = chem.classify(chem.parse(C.loc[c, "iso_smiles"])); pred[c]["has_d"] = cl["n_d"] > 0; pred[c]["has_nsub"] = cl["n_nsub"] > 0
     RI.predicates = lambda cid: pred[cid]
     rng = np.random.default_rng(SEED); out = []; rules_log = {}
@@ -156,22 +184,45 @@ def s1b_induction(items):
         rules_log[F] = collections.Counter(tuple(r) for r in draws).most_common(3)
         for t, g in tg.groupby("target_key", sort=True):
             sc = np.array([np.mean([all(pred[c][k] for k in r) for r in draws]) for c in g.compound_id])
-            out.append(pd.DataFrame(dict(arm="S1b_induction", target_key=t, compound_id=g.compound_id.values, score=sc)))
-    json.dump({k: [(list(r), n) for r, n in v] for k, v in rules_log.items()}, open(f"{RES}/induced_rules_I{'_smoke' if SMOKE else ''}.json", "w"), indent=1)
+            out.append(pd.DataFrame(dict(arm=arm, target_key=t, compound_id=g.compound_id.values, score=sc)))
+    json.dump({k: [(list(r), n) for r, n in v] for k, v in rules_log.items()}, open(f"{RES}/induced_rules_{arm}{'_smoke' if SMOKE else ''}.json", "w"), indent=1)
     return pd.concat(out, ignore_index=True)
+
+
+def s1d_profile(items):
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.preprocessing import StandardScaler
+    lab = P.assign(f=P.target_key.map(fam), y=(P.label == "pos").astype(int)); Z = DESC.loc[lab.compound_id.values].values.astype(float); out = []
+    for F, tg in items.assign(f=items.target_key.map(fam)).groupby("f"):
+        tr = (lab.f != F).values; sc = StandardScaler().fit(Z[tr]); w = np.where(lab.y.values[tr] == 1, 1.0, (lab.y.values[tr] == 1).sum() / max(1, (lab.y.values[tr] == 0).sum()))
+        lr = LogisticRegression(C=0.1, max_iter=500).fit(sc.transform(Z[tr]), lab.y.values[tr], sample_weight=np.where(lab.y.values[tr] == 1, 1.0, (lab.y.values[tr] == 1).sum() / (lab.y.values[tr] == 0).sum()))
+        for t, g in tg.groupby("target_key", sort=True):
+            out.append(pd.DataFrame(dict(arm="S1d_profile", target_key=t, compound_id=g.compound_id.values, score=lr.decision_function(sc.transform(DESC.loc[g.compound_id.values].values.astype(float))))))
+    COMPONENTS["S1d_profile"] = f"logistic regression ({len(DCOLS)} physchem/pharmacophore descriptors) fitted on other-family labelled pairs; fitted model, not KB knowledge"
+    return pd.concat(out, ignore_index=True)
+
+
+def coverage(items, armsd):
+    T_all = items.target_key.nunique(); cov = {}
+    for a, g in armsd.items():
+        m = items.merge(g[["target_key", "compound_id", "score"]], on=["target_key", "compound_id"], how="left")
+        nonconst = int((m.groupby("target_key").score.nunique() > 1).sum())
+        cov[a] = dict(targets_total=int(T_all), targets_nonconstant=nonconst, frac_targets_nonconstant=round(nonconst / T_all, 3), frac_items_scored=round(float(m.score.notna().mean()), 3))
+    return cov
 
 
 # ---------- run
 def run(which, items):
-    base = baselines(items); arms = [s1a(items), s1b_kb(items)]
-    if which == "M": arms.append(s1b_leaky(items))
-    if which == "I": arms.append(s1b_induction(items))
+    base = baselines(items); arms = [s1a(items), s1b_kb(items), s1d_profile(items)]
+    if which in ("M", "M2"): arms.append(s1b_leaky(items))
+    if which == "I": arms += [s1b_induction(items), s1b_induction(items, arm="S1c_induction", preds=real_predicates())]
     A = pd.concat(arms, ignore_index=True)
     if not SMOKE:
-        base.to_csv(f"{DATA}/baseline_scores_{which}.csv.gz", index=False, compression=dict(method="gzip", mtime=0)); A.to_csv(f"{DATA}/arm_scores_{which}.csv.gz", index=False, compression=dict(method="gzip", mtime=0))
+        base.to_csv(f"{DATA}/baseline_scores_{which}.csv.gz", index=False, compression=dict(method="gzip", mtime=0)); A.to_csv(f"{DATA}/arm_scores_{which}_V2.csv.gz", index=False, compression=dict(method="gzip", mtime=0))
     allsc = pd.concat([base, A]); names_b = sorted(base.arm.unique()); armsd = {a: g[["target_key", "compound_id", "score"]] for a, g in allsc.groupby("arm")}
     tfam = T[["target_key", "family", "genes"]]
     results = {}
+    results["coverage"] = coverage(items, armsd)
     # compound/pair sets for subsets
     ki_kd_pos = set(zip(P[(P.label == "pos") & P.assay_types.str.contains("Ki|Kd")].target_key, P[(P.label == "pos") & P.assay_types.str.contains("Ki|Kd")].compound_id))
     subsets = {"all": None, "integrin_targets": set(t for t in items.target_key.unique() if is_itg(t)), "avb6_targets": set(t for t in items.target_key.unique() if "ITGB6" in genes[t].upper()),
@@ -189,15 +240,16 @@ def run(which, items):
 
 if __name__ == "__main__":
     out = {}
-    for which, items in (("M", IM), ("I", II)):
+    for which, items in (("M", IM), ("I", II), ("M2", IM2)):
+        if SMOKE and which == "M2": items = IM2[IM2.target_key.isin(sorted(IM2.target_key.unique())[:6])]
         out[which] = run(which, items)
-        if not SMOKE: json.dump(out[which], open(f"{RES}/results_{which}.json", "w"), indent=1)
+        if not SMOKE: json.dump(out[which], open(f"{RES}/results_V2_{which}.json", "w"), indent=1)
     COMPONENTS["BioMate workflow DB / UnifiedWorkflowSearch"] = "audited (docking/QSAR/boltz/OpenFE workflows listed in PREREG 11.1); NOT run (need per-target receptor or per-target training data)"
     COMPONENTS["loop.py/loop_batch.py -> physics_batch (Boltz-2, MM-GBSA) -> execution_grader (S2)"] = "NOT run: cost estimate only (PREREG 11.4)"
     COMPONENTS["medchem_kb / medchem_kb_product / ingested KBs"] = "audited; not a binding scorer; no structures in ingested JSONs; not run"
     COMPONENTS["acceptance_gate / pharmacophore_knowledge / knowledge_liability_flags"] = "HELM-input; only RGD predicate re-implemented on SMILES (chem.has_rgd) for S1a; H2-H8 not applicable to SMILES table"
     COMPONENTS["S3 plug-in (v4 / atom-LM)"] = "harness.py ready; awaiting score files from workstream 1"
-    json.dump(COMPONENTS, open(f"{RES}/component_log{'_smoke' if SMOKE else ''}.json", "w"), indent=1)
+    json.dump(COMPONENTS, open(f"{RES}/component_log_V2{'_smoke' if SMOKE else ''}.json", "w"), indent=1)
     print(json.dumps(COMPONENTS, indent=1))
     for w in out:
         for sub in ("all",):
