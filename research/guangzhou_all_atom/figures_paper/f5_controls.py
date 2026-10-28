@@ -41,6 +41,6 @@ axs[0].legend(frameon=False, fontsize=6, loc="lower right")
 watermark(fig, "PARTIAL", alpha=0.10, size=60)
 fig.text(0.5, -0.02, "PENDING: atom LM, ChemBERTa, IH-LM rungs R0–R4, larger pretrained peptide/chemistry LMs (no entries in l7_aggregate.json yet)", ha="center", fontsize=7, color=C["vermilion"])
 fig.tight_layout()
-caption = ("F5 (PARTIAL). Loop controls for the GBM baselines only. Differences are paired by seed (10 seeds; regime B for 'gbm' has only 2 seeds and is drawn hollow/grey). "
+caption = ("F5 (PARTIAL). Loop controls for the GBM baselines only. Differences are paired by seed (10 seeds per regime in the current aggregate; any arm with fewer than 8 paired seeds is drawn hollow/grey; the plain-GBM rows are the chirality-blind learner pending the aggregate regeneration). "
            "The shuffled-label control must lose to the loop; a contradicted knowledge prior must not help. Other models are PENDING.")
 savefig(fig, "F5_controls_partial", "F5 controls (partial)", caption, sources_of(L7))

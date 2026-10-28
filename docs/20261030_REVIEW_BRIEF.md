@@ -83,8 +83,10 @@ Exploratory API arms (Tier A, cheap-tier models): about USD 4.2 including contro
 | T1 / T1b fusion results (tables re-derived by the claim auditor, including adjusted intervals and parity) | V; shuffled-label control values U | T1, T1b documents |
 | Stratified skill (0.67/0.71 grouped; 0.31/0.30 leave-labs-out), feature families, N-methyl ≥ 5 reversal | D | stratification analysis Part B |
 | Matched-pair effects (N-methyl +0.252; D↔L flip −0.013) | V | `mmp_effects_pampa.csv` |
-| IH-LM design and module status | D (commit messages) | IH-LM spec; commit d0eacfc14 (a descendant of the provenance floor 94efe092d) |
+| IH-LM design and module status | D (commit messages) | IH-LM spec; commit d0eacfc14 (a descendant of 94efe092d; the provenance floor is now 87f4f6718) |
 | Literature statements (CycPeptMPDB, PeptideCLM-2, HELM-BERT, Praski, DUD-E, LIT-PCBA, White, Bhardwaj) | fetch summaries (re-check before submission) | draft references |
 | Amirahmadi et al. scaffold and Table 3/6 statements | primary text read | converted PDF |
 | Graber, Jablonka, CycPeptMP, PeptideCLM 2024, Geylan, Liu, model-survey parameters and licences | **U** | draft Appendix B |
 | IH-LM vs larger models; K_phys confirmatory effect; T2; P1; S2 | **P** (no result) | Section 5.8 |
+
+**GPU comparator results (commit 457236439; ChemBERTa-class, regimes A and B, seeds 0-2, exploratory).** Not entered in either draft: pending workstream 2 confirmation that this file is unaffected by the aggregate key bug; if it is not confirmed, any such number is [REGEN].

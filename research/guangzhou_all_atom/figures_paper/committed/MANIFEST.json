@@ -1,0 +1,31 @@
+{
+ "note": "Figures independent of l7_aggregate.json, copied from figures_paper/out (gitignored) after run_all.py; run_all.py regenerates them deterministically (two runs byte-identical per FIGURES_STATUS). F5 and T6 are excluded pending the regenerated L7 aggregate.",
+ "sha256": {
+  "F1_study_design.pdf": "bb1610be48cec65e25f31097bdb9d33ea58af0cc757d73014de164a90037bfc8",
+  "F1_study_design.png": "caf8e46e8eb214a85ebedb84d5bed2b6cbf1d4f480fcf067b00bc26d859e547d",
+  "F2_dataset_structure.pdf": "4576d1811d15e2e0739c21fd8d5ababbd4b6866250bb8b07d06429529f3a6f9f",
+  "F2_dataset_structure.png": "6e85b3021f89d38d25a581e5f0ce38c21aadff6571ecf4bebbab64008aa302e2",
+  "F3_validity_gates.pdf": "9562b836d7d9685d345d5b46aff6acee159b4a7f9acfb14008107a6db187e08f",
+  "F3_validity_gates.png": "468e5ebd48f33fd771d705bc66bcd540c7953ca909a889d945aa469f12bfb035",
+  "FH4b_fewlabel_adaptation.pdf": "b36ca824b210d3b74ecbe326916353a674c1170168756ad461bcc2868839fa8b",
+  "FH4b_fewlabel_adaptation.png": "07785c88aa2f61a6bb6b305058a96ef8976217e49023ca7db062919dbd6ec7a1",
+  "F8_strata_heatmap.pdf": "0228c87fc1de2cd90ecaeb0275358a2e48b8510b7463086bf4c7624b2566677b",
+  "F8_strata_heatmap.png": "8fd93a996ac74a25e1969d6f59e4d585dc9960bb678270e3b0260b0f417ae98a",
+  "F9_mmp_forest.pdf": "df628efb5a19305dcafb83094628f45df280a26a73bb9529014aa26c932ebb9f",
+  "F9_mmp_forest.png": "16d09e2bb27bbabb86e057f74e295067ef886a340d88007a12fee5a3d7ddacd3",
+  "FCV_evaluation_schemes.pdf": "34a1f783ac9841f647c34dcfe901f64af7c798e495d6d041564b1e5270f3af3d",
+  "FCV_evaluation_schemes.png": "f3d292602af63bc2374e306f32fc6a65e5ba6e67da2d6fce2ca262b55a581c08",
+  "FK_knowledge_channel_lolo.pdf": "b2a895b700c389d2646341fb67fe78a2a240ca6218f45360a2487cc515c82427",
+  "FK_knowledge_channel_lolo.png": "a7c5b42240740d45aa434e6d953d43e2861e414903fe22f5c534f5cc08433b0f"
+ },
+ "sources": {
+  "F1_study_design": "`PREREG_LOOP.md`@5ff3e7ae8; `20261028_AVB6_RETROSPECTIVE_RECOVERY_PREREG.md`@4db5b709e",
+  "F2_dataset_structure": "`annotations.csv.gz`@2fe624487; `l5_label_audit.json`@d8d87601e",
+  "F3_validity_gates": "`validity_gate_I.json`@a6e07cd56; `results_V2_I.json`@b276573be; `validity_gate_M.json`@a6e07cd56; `results_V2_M.json`@b276573be; `validity_gate_M2.json`@a6e07cd56; `results_V2_M2.json`@b276573be; `validity_gate_M3.json`@a6e07cd56",
+  "FH4b_fewlabel_adaptation": "`h4b_baselines.json`@9c8bc8499; `validity_gate_h4b.json`@9c8bc8499",
+  "F8_strata_heatmap": "`strata_perf.csv`@59d654cbc",
+  "FCV_evaluation_schemes": "`cv_preds.csv.gz`@59d654cbc; `annotations.csv.gz`@2fe624487; `20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md`@f12486c23",
+  "F9_mmp_forest": "`mmp_effects_pampa.csv`@59d654cbc; `mmp_effects_caco2.csv`@59d654cbc; `mmp_effects_rrck.csv`@59d654cbc; `mmp_effects_mdck.csv`@59d654cbc",
+  "FK_knowledge_channel_lolo": "`lolo_per_lab.csv`@7f9670638; `lolo_summary.json`@7f9670638; `lolo_pooled.json`@7f9670638"
+ }
+}
