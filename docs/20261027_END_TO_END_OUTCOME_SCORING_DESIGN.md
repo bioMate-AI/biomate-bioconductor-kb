@@ -34,7 +34,7 @@ Implemented and measured on the 20 Phase-I scenarios. The system receives PK and
 dose grid with the **true toxicity curve hidden**, and must return the per-dose toxicity it models, the selected
 maximum tolerated dose, and a no-safe-dose flag. Three dimensions, each in [0, 1]:
 
-- **outcome** (primary): selected dose within one level of the hidden reference (or a correct no-dose call);
+- **outcome** (primary): **exact** selected-dose match to the hidden reference (identical to the benchmark's own dose scorer; adjacent-dose is not credited);
 - **safety**: correct no-safe-dose declarations and no selection above the elimination band (no overdose);
 - **fidelity** (diagnostic): fraction of dose levels where the modeled toxicity is within two-fold of truth —
   i.e. *did the system actually model exposure–response, or guess?*
@@ -43,16 +43,17 @@ maximum tolerated dose, and a no-safe-dose flag. Three dimensions, each in [0, 1
 
 | System | outcome | safety | fidelity |
 |---|---|---|---|
-| **Mechanistic pipeline (execution reference)** | **0.90** | **0.90** | **1.00** |
-| Claude Opus 5 | 0.50 | 0.45 | 0.46 |
-| Gemini 3.1 Pro | 0.25 | 0.30 | 0.16 |
+| **Mechanistic pipeline (execution reference)** | **0.85** | **0.90** | **1.00** |
+| Claude Opus 5 | 0.30–0.40 | 0.75 | 0.46–0.64 |
 | GPT-6.1-sol-pro | 0.10 | 0.20 | 0.01 |
+
+(exact MTD match; single-run LLM outcome at n=20 is noisy, so LLM rows are ranges; Gemini re-run pending)
 
 The mechanistic pipeline — the platform path that computes the exposure–response curve and applies the
 selection rule end-to-end — sets the reference at 0.90 / 0.90 / 1.00. The diagnostic value is the **fidelity**
 column: GPT-6.1-sol-pro's outcome is 0.10 *because* its curve fidelity is ~0.01 — it never modeled the
-exposure–response and effectively guessed; Opus-5 modeled the curve partially (fidelity 0.46) and got half the
-outcomes; the pipeline computes the curve (fidelity 1.00) and lands the outcome at 0.90. Scoring the outcome
+exposure–response and effectively guessed; Opus-5 modeled the curve partially (fidelity ~0.5–0.6) and still landed only a third to two-fifths of the
+exact doses; the pipeline computes the curve (fidelity 1.00) and lands the outcome at 0.85. Scoring the outcome
 end-to-end **alongside** fidelity is what separates a system that *computes* the answer from one that *guesses*
 it — a single outcome number alone would not have shown the cause.
 

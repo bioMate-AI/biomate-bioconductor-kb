@@ -93,30 +93,31 @@ An early ligand-ranking task reported a score that was nearly identical across e
 The dose decision is also scored **end-to-end and multi-dimensionally**, in the spirit of execution-grounded
 agent benchmarks that grade a program *and* its execution result. Here the system receives the inputs with the
 true toxicity curve **hidden**, and must return the toxicity it models at each dose, the selected dose, and a
-no-safe-dose flag. Three dimensions are scored (n = 20): **outcome** (selected dose within one level of the
-hidden reference — the primary, end-to-end score), **safety** (correct no-safe-dose calls and no selection
-above the elimination band), and **fidelity** (did the system actually model the exposure–response curve, or
-guess).
+no-safe-dose flag. Three dimensions are scored (n = 20): **outcome** (**exact** selected-dose match to the
+hidden reference — the primary, end-to-end score, identical to the benchmark's own dose scorer), **safety**
+(correct no-safe-dose calls and no selection above the elimination band), and **fidelity** (did the system
+actually model the exposure–response curve, or guess).
 
 ![Figure 3. End-to-end dose-decision scorecard.](figures/drugdev_fig3_e2e_scorecard.png)
 
-**Figure 3.** Outcome, safety, and exposure–response fidelity (20 scenarios). The mechanistic pipeline computes
-the curve and scores 0.90 / 0.90 / 1.00; language models trail on all three.
+**Figure 3.** Outcome (exact MTD match), safety, and exposure–response fidelity (20 scenarios). The mechanistic
+pipeline computes the curve and scores 0.85 / 0.90 / 1.00; language models trail on all three.
 
-| System | outcome | safety | fidelity |
+| System | outcome (exact MTD) | safety | fidelity |
 |---|---|---|---|
-| **Mechanistic pipeline (execution reference)** | **0.90** | **0.90** | **1.00** |
-| Claude Opus 5 | 0.50 | 0.45 | 0.46 |
-| Gemini 3.1 Pro | 0.25 | 0.30 | 0.16 |
+| **Mechanistic pipeline (execution reference)** | **0.85** | **0.90** | **1.00** |
+| Claude Opus 5 | 0.30–0.40 | 0.75 | 0.46–0.64 |
 | GPT-6.1-sol-pro | 0.10 | 0.20 | 0.01 |
 
-The **fidelity** dimension is what makes this diagnostic rather than a single opaque number: GPT-6.1-sol-pro's
+(Single-run LLM outcome at n = 20 is noisy — Opus-5 spans 0.30–0.40 and fidelity 0.46–0.64 across runs — so
+LLM rows are reported as ranges, not points; a Gemini-3.1-Pro re-run under the exact scorer is pending.) The
+**fidelity** dimension is what makes this diagnostic rather than a single opaque number: GPT-6.1-sol-pro's
 outcome is 0.10 *because* its curve fidelity is ~0.01 — it never modeled the exposure–response and effectively
-guessed; Opus-5 modeled the curve partially (0.46) and landed half the outcomes; the mechanistic pipeline
-computes the curve (1.00) and reaches 0.90. A low outcome with low fidelity ("never modeled it") and a low
-outcome with high fidelity ("modeled it, mis-selected") are different failures, and scoring the outcome
-end-to-end *alongside* the component dimensions is what separates a system that computes the answer from one
-that guesses it.
+guessed; Opus-5 modeled the curve partially and still landed only a third to two-fifths of the exact doses; the
+mechanistic pipeline computes the curve (fidelity 1.00) and reaches 0.85. A low outcome with low fidelity
+("never modeled it") and a low outcome with high fidelity ("modeled it, mis-selected") are different failures,
+and scoring the outcome end-to-end *alongside* the component dimensions is what separates a system that
+computes the answer from one that guesses it.
 
 ## 6. Limitations
 
