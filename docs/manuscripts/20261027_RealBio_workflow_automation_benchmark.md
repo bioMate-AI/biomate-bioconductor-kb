@@ -1,6 +1,12 @@
-# RealBio: An Open, Objectively-Scored Benchmark for Real-World Bioinformatics Workflow Automation — and What the Knowledge Layer Buys
+# RealBio: An Open, Deterministically-Scored Benchmark for Bioinformatics Workflow Selection, Parameterization, and Repair
 
-*Preprint — October 2026. Benchmark data and scorer released under CC-BY-4.0.*
+**Authors:** [Author names — to be completed]
+**Affiliations:** [Affiliations — to be completed]
+**Corresponding author:** [name, email — to be completed]
+
+*Preprint, 2026. Benchmark items, ground truth, deterministic scorer, and per-item model predictions released under CC-BY-4.0; repository and archival DOI: [to be added].*
+
+**Keywords:** benchmark; biomedical AI agents; bioinformatics workflows; language-model evaluation; retrieval-augmented selection; deterministic scoring; reproducibility.
 
 ---
 
@@ -105,9 +111,31 @@ The knowledge layer lifts every language model, and the absolute gain is largest
 
 **Figure 3.** The weaker the direct model, the larger the layer's gain. We report this as a headroom pattern, not as an asserted inverse-scaling mechanism.
 
-### 5.2 Parameter fill: the shipping system vs. the raw model
+**Table 2 | Complete per-model results.** Accuracy unless noted; routing n = 200, parameter-fill F1 n = 170, failure-category classification n = 100, protocol-threshold n = 100. "Direct" = query only; "+layer" = query plus the described candidate menu. Blank = not yet run. Parameter-fill is the **raw** model (the deterministic layer is evaluated separately, §5.2).
 
-The leaderboard's parameter column reports the **raw** model with no deterministic layer. The deployed system adds a rule layer (canonical unit, alias, and boolean normalization, plus a guardrail that drops hallucinated input values) and merges it with the model. Measured offline on the public items, this production configuration scores **F1 0.843** versus the raw model's 0.703 (Figure 4). The public benchmark therefore *under-measures* the deployed system because, by design, the direct condition bypasses the deterministic layer.
+| Model (version) | Routing, direct | Routing, +layer | Param-fill F1 (raw) | Failure-category | Protocol-threshold |
+|---|---|---|---|---|---|
+| Claude Opus 5 | 0.615 | 0.990 | 0.805 | 0.870 | 0.330 |
+| GPT-6.1-sol-pro | 0.590 | 0.985 | 0.718 | 0.870 | 0.450 |
+| Gemini 3.1 Pro | 0.580 | 0.975 | 0.757 | 0.880 | 0.630 |
+| Kimi K3 | 0.495 | 0.970 | 0.672 | 0.770 | 0.360 |
+| GLM-5.3-prime | 0.375 | 0.955 | 0.682 | 0.820 | 0.550 |
+| GLM-5.2 | 0.400 | 0.950 | 0.691 | 0.830 | 0.440 |
+| GPT-5.6-luna | 0.355 | 0.950 | 0.667 | 0.830 | 0.340 |
+| DeepSeek V4-pro | 0.415 | 0.850 | 0.691 | 0.800 | 0.420 |
+| Qwen3.5-27B | 0.240 | 0.935 | 0.719 | — | — |
+| **BioMate 9B (on-prem, base)** | **0.180** | **0.905** | 0.703 | 0.870 | 0.430 |
+| Qwen3.5-9B | 0.120 | 0.830 | 0.600 | — | — |
+| Qwen2.5-7B | 0.140 | 0.735 | 0.499 | — | — |
+| BioMate 9B (on-prem, fine-tuned) | 0.285 | 0.810 | 0.716 | 0.850 | 0.430 |
+| Biomni (A1 scaffold) | 0.950 | 0.950 | 0.746 | 0.950 | 0.500 |
+| BioMate retrieval system (no model) | 0.965 | — | — | — | — |
+
+Two cells are flagged non-citable and omitted above: GPT-5.6's +layer condition used a names-only menu (not the described menu), and Qwen3.8-Max's direct routing returned 44% empty responses. The agent scaffold (Biomni) receives the candidate catalog as a file in both conditions, so its two columns are not a matched direct/+layer contrast.
+
+### 5.2 Parameter fill: raw model versus the deterministic production layer
+
+The parameter column in Table 2 reports the **raw** model with no deterministic layer. The deployed configuration adds a rule layer (canonical unit, alias, and boolean normalization, plus a guardrail that removes input values not present in the request) and merges it with the model. Measured offline on the public items, this configuration scores **F1 0.843** versus the raw model's 0.703 (Figure 4). The two are distinct estimands: the raw-model column measures the language model alone, and the production column measures the model plus the deterministic layer. The direct condition bypasses the layer by design, so the raw column is a lower bound on the deployed system's parameter-fill performance, not an estimate of it.
 
 ![Figure 4. Parameter fill.](figures/realbio_fig4_param_bars.png)
 
@@ -127,7 +155,7 @@ Failure-repair category accuracy ranges from ~0.77 to ~0.95 across systems; prot
 
 ### 5.5 Synthesis
 
-Across routing, parameter fill, and channel selection, the knowledge layer is the **dominant measured lever** on these selection and extraction tasks; a small, privately-deployable model plus the layer *approaches* frontier routing results, while supervised fine-tuning of that small model did **not** help (it regressed on routing). The defensible statement is: *the knowledge/retrieval layer substantially improves the evaluated tasks and is a higher-leverage investment than model weights here* — not "model-invariant," "frontier parity," or "selection solved."
+Across routing and parameter fill, the candidate-context layer is the largest measured source of variance in accuracy on these selection and extraction tasks; a small, privately-deployable model with the layer approaches, but does not match, frontier routing results, while supervised fine-tuning of that small model reduced routing accuracy. These results support a bounded conclusion — that providing retrieved candidate context substantially increases accuracy on the evaluated selection and extraction tasks — and do not establish model-invariance, parity with frontier models, or that selection is solved.
 
 ## 6. Independence audit
 
@@ -149,11 +177,23 @@ The gains are therefore not an artifact of tuning on the evaluation items.
 
 ## 8. Discussion
 
-RealBio's value is the open, deterministic, matched-ablation protocol: a reader can see, per task and per model, exactly what the knowledge layer buys. The consistent finding is that for bioinformatics workflow *selection and extraction*, the retrieval/rule layer — not model scale — carries the performance, with a practical corollary: a small, privately-deployable model behind a good knowledge layer is a cost- and compliance-friendly path that *approaches* (does not match) frontier agents on these tasks. Whether this holds beyond selection and extraction is open. We release everything so the claim is refutable.
+RealBio contributes an open, deterministic, matched-comparison protocol that reports, per task and per model, the accuracy change attributable to the candidate-context layer. For bioinformatics workflow selection and extraction, the retrieved candidate context accounts for more of the measured accuracy than differences in model scale across the evaluated systems. A practical implication is that a small, privately-deployable model combined with such a context layer approaches — without matching — frontier agents on these specific tasks; whether this holds beyond selection and extraction is an open question. All items, ground truth, and the scorer are released so the result can be independently reproduced and contested.
 
 ## 9. Data and code availability
 
-The items, ground truth, the deterministic scorer, and the matched-protocol runner are released under CC-BY-4.0. Any team can run its own system on the fixed items and reproduce every number in this paper.
+The benchmark items, ground truth, the deterministic scorer, the matched-protocol runner, and the complete per-item model predictions are released under CC-BY-4.0 at [repository URL — to be added], with an archival snapshot at [DOI — to be added]. The release includes the exact prompt templates, the candidate-menu construction procedure, the model identifiers and inference settings, and reproduction commands for every number in this paper.
+
+## 10. Model versions evaluated
+
+All models were accessed between [dates — to be completed]. Frontier and open-weight models were served through a common provider where available; remaining serving-provenance differences are noted in Table 2 and §7. The on-premises model is an approximately 9-billion-parameter model served locally.
+
+## Ethics and intended use
+
+RealBio contains no human-subjects data or personally identifiable information; all items are synthetic analysis requests authored for this benchmark. It is intended for evaluating workflow-selection and extraction capability and is not a clinical decision tool.
+
+## Author contributions, funding, and competing interests
+
+Author contributions: [to be completed]. Funding: [to be completed]. Competing interests: the authors developed the benchmark, the scorer, and one evaluated system (the on-premises model and its retrieval layer); the scorer and items are released to enable independent audit. [Formal declaration to be completed.]
 
 ## References
 
@@ -164,4 +204,3 @@ The items, ground truth, the deterministic scorer, and the matched-protocol runn
 5. CORE-Bench: Fostering the Credibility of Published Research Through a Computational Reproducibility Agent Benchmark. 2024 (arXiv:2409.11363).
 6. PaperBench: Evaluating AI's Ability to Replicate AI Research. OpenAI, 2025 (arXiv:2504.01848).
 7. BixBench: A Comprehensive Benchmark for LLM-based Agents in Computational Biology. FutureHouse, 2025 (arXiv:2503.00096).
-8. Liu, S. & Yuan, Y. Bayesian optimal interval designs for phase I clinical trials. *J. R. Stat. Soc. C* 64, 507–523 (2015).

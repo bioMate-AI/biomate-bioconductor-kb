@@ -175,11 +175,29 @@ vertical-align: middle;
 <header id="title-block-header">
 <h1 class="title">BioMate Benchmark Preprint</h1>
 </header>
-<h1 id="which-resource-an-open-benchmark-for-stage-1-channel-routing-in-biomedical-ai-agents">Which
-Resource? An Open Benchmark for Stage-1 Channel Routing in Biomedical AI
-Agents</h1>
-<p><em>Preprint — October 2026. Benchmark data and scorer released under
-CC-BY-4.0.</em></p>
+<h1 id="which-resource-an-open-pilot-benchmark-for-stage-1-resource-channel-routing-in-biomedical-ai-agents">Which
+Resource? An Open Pilot Benchmark for Stage-1 Resource-Channel Routing
+in Biomedical AI Agents</h1>
+<p><strong>Authors:</strong> [Author names — to be completed]
+<strong>Affiliations:</strong> [Affiliations — to be completed]
+<strong>Corresponding author:</strong> [name, email — to be
+completed]</p>
+<p><em>Preprint, 2026. Benchmark items, ground truth, deterministic
+scorer, keyword baseline, and per-item predictions released under
+CC-BY-4.0; repository and archival DOI: [to be added].</em></p>
+<p><strong>Keywords:</strong> benchmark; biomedical AI agents; intent
+routing; resource selection; policy adherence; language-model
+evaluation.</p>
+<blockquote>
+<p><strong>Scope.</strong> This is a deliberately small
+<strong>pilot</strong> benchmark (84 items) that measures
+<strong>adherence to a specified seven-channel resource-routing
+policy</strong>, not the discovery of an intrinsically correct resource
+taxonomy. Its size supports a proof-of-concept and a matched ablation,
+not a definitive ranking; per-channel accuracy moves 8.3 points per
+item, so differences within the plus-definitions band are not
+individually significant.</p>
+</blockquote>
 <hr />
 <h2 id="abstract">Abstract</h2>
 <p>Before a biomedical AI agent can choose <em>which analysis
@@ -335,10 +353,15 @@ model direct (grey) and with channel definitions (blue); the dashed line
 is the non-model keyword baseline (0.80).</p>
 <p>Three findings:</p>
 <ol type="1">
-<li><strong>The task has strong lexical signal.</strong> The keyword
-baseline reaches <strong>0.80 overall</strong> (0.82 on the
-drug-development subset) — so the task is not adversarially hard, and
-raw models are not beating a keyword classifier.</li>
+<li><strong>The task has strong lexical signal.</strong> The non-model
+keyword baseline reaches <strong>0.80 overall</strong> (0.82 on the
+drug-development subset). Direct models span 0.75–0.91; the strongest
+frontier models exceed the keyword baseline, while weaker models sit at
+or below it. The task is therefore not adversarially hard, and
+direct-model accuracy is not dominated by a keyword classifier for every
+model — a distinction we do not establish as statistically significant
+at this sample size (84 items; one error ≈ 1.2 percentage points
+overall).</li>
 <li><strong>Direct models cluster with the keyword baseline</strong>
 (0.75–0.91), from the smallest open model to the strongest frontier
 model.</li>
@@ -371,20 +394,37 @@ general claim that a knowledge layer confers intelligence.</li>
 focus, not a claim about biomedical queries in general.</li>
 </ul>
 <h2 id="discussion">7. Discussion</h2>
-<p>Channel routing is the agent decision that most determines whether
-the rest of the pipeline is even pointed at the right subsystem, yet it
-has gone unmeasured. The honest reading of our results is specific: the
-task carries enough lexical signal that a keyword router and raw models
-reach ~0.80, and the move to near-perfect routing comes from
-<strong>giving the model the channel definitions</strong>, not from
-model scale. For drug-development agents in particular — where the same
-entity legitimately routes to a database lookup, a tool search, or a
-pipeline depending on the verb — getting stage-1 routing right is a
-prerequisite for every downstream capability.</p>
+<p>Resource-channel routing is an early decision that determines which
+subsystem a request is sent to, and it has not previously been measured
+in the open as a standalone task. Within this pilot, the result is
+specific and bounded: the task carries substantial lexical signal (a
+keyword router and direct models reach ~0.80), and the increase toward
+near-perfect accuracy is associated with <strong>providing the channel
+definitions</strong>, an explicit task-specification effect rather than
+a demonstration about model scale or retrieval. For drug-development
+agents, where the same entity can route to a database lookup, a tool
+search, or a pipeline depending on the request’s verb, we conjecture
+that correct stage-1 routing is a prerequisite for downstream task
+completion; the present data measure routing accuracy, not downstream
+completion, and do not establish that conjecture.</p>
 <h2 id="data-and-code-availability">8. Data and code availability</h2>
-<p>The items, ground truth, the deterministic scorer, the keyword
-baseline, and the matched-protocol runner are released under
-CC-BY-4.0.</p>
+<p>The 84 items, their gold channels and acceptable-alternative labels,
+the deterministic scorer, the non-model keyword baseline, the
+matched-protocol runner, the exact prompts, and the complete per-item
+predictions are released under CC-BY-4.0 at [repository URL — to be
+added], archived at [DOI — to be added].</p>
+<h2 id="ethics-and-intended-use">Ethics and intended use</h2>
+<p>The benchmark contains no human-subjects data; all items are
+synthetic requests authored for this benchmark. It measures adherence to
+a specified routing policy and is not a clinical or operational decision
+tool.</p>
+<h2 id="author-contributions-funding-and-competing-interests">Author
+contributions, funding, and competing interests</h2>
+<p>Author contributions: [to be completed]. Funding: [to be completed].
+Competing interests: the seven channels correspond to the action
+categories of a deployed agent developed by the authors; the items,
+labels, and scorer are released to enable independent adjudication.
+[Formal declaration to be completed.]</p>
 <h2 id="references">References</h2>
 <ol type="1">
 <li>SWE-bench: Can Language Models Resolve Real-World GitHub Issues?

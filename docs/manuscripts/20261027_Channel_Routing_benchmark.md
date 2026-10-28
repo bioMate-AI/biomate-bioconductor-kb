@@ -1,6 +1,14 @@
-# Which Resource? An Open Benchmark for Stage-1 Channel Routing in Biomedical AI Agents
+# Which Resource? An Open Pilot Benchmark for Stage-1 Resource-Channel Routing in Biomedical AI Agents
 
-*Preprint — October 2026. Benchmark data and scorer released under CC-BY-4.0.*
+**Authors:** [Author names — to be completed]
+**Affiliations:** [Affiliations — to be completed]
+**Corresponding author:** [name, email — to be completed]
+
+*Preprint, 2026. Benchmark items, ground truth, deterministic scorer, keyword baseline, and per-item predictions released under CC-BY-4.0; repository and archival DOI: [to be added].*
+
+**Keywords:** benchmark; biomedical AI agents; intent routing; resource selection; policy adherence; language-model evaluation.
+
+> **Scope.** This is a deliberately small **pilot** benchmark (84 items) that measures **adherence to a specified seven-channel resource-routing policy**, not the discovery of an intrinsically correct resource taxonomy. Its size supports a proof-of-concept and a matched ablation, not a definitive ranking; per-channel accuracy moves 8.3 points per item, so differences within the plus-definitions band are not individually significant.
 
 ---
 
@@ -65,7 +73,7 @@ One deterministic scorer grades an exact channel match (the gold channel or a li
 
 Three findings:
 
-1. **The task has strong lexical signal.** The keyword baseline reaches **0.80 overall** (0.82 on the drug-development subset) — so the task is not adversarially hard, and raw models are not beating a keyword classifier.
+1. **The task has strong lexical signal.** The non-model keyword baseline reaches **0.80 overall** (0.82 on the drug-development subset). Direct models span 0.75–0.91; the strongest frontier models exceed the keyword baseline, while weaker models sit at or below it. The task is therefore not adversarially hard, and direct-model accuracy is not dominated by a keyword classifier for every model — a distinction we do not establish as statistically significant at this sample size (84 items; one error ≈ 1.2 percentage points overall).
 2. **Direct models cluster with the keyword baseline** (0.75–0.91), from the smallest open model to the strongest frontier model.
 3. **The channel definitions drive the gain.** With definitions, every model moves into the **0.96–1.00** band; the gain is largest for the smallest model (0.75 → 0.96, +0.21) and smallest for the strongest frontier model (0.91 → 1.00, +0.10). The pattern is a headroom effect (weaker models have more room), not an asserted inverse-scaling mechanism. Per-channel, five of seven channels reach perfect routing with definitions; the residual confusion is "find a tool" versus "synthesize literature" (recommend a method vs. review the evidence).
 
@@ -79,11 +87,19 @@ Three findings:
 
 ## 7. Discussion
 
-Channel routing is the agent decision that most determines whether the rest of the pipeline is even pointed at the right subsystem, yet it has gone unmeasured. The honest reading of our results is specific: the task carries enough lexical signal that a keyword router and raw models reach ~0.80, and the move to near-perfect routing comes from **giving the model the channel definitions**, not from model scale. For drug-development agents in particular — where the same entity legitimately routes to a database lookup, a tool search, or a pipeline depending on the verb — getting stage-1 routing right is a prerequisite for every downstream capability.
+Resource-channel routing is an early decision that determines which subsystem a request is sent to, and it has not previously been measured in the open as a standalone task. Within this pilot, the result is specific and bounded: the task carries substantial lexical signal (a keyword router and direct models reach ~0.80), and the increase toward near-perfect accuracy is associated with **providing the channel definitions**, an explicit task-specification effect rather than a demonstration about model scale or retrieval. For drug-development agents, where the same entity can route to a database lookup, a tool search, or a pipeline depending on the request's verb, we conjecture that correct stage-1 routing is a prerequisite for downstream task completion; the present data measure routing accuracy, not downstream completion, and do not establish that conjecture.
 
 ## 8. Data and code availability
 
-The items, ground truth, the deterministic scorer, the keyword baseline, and the matched-protocol runner are released under CC-BY-4.0.
+The 84 items, their gold channels and acceptable-alternative labels, the deterministic scorer, the non-model keyword baseline, the matched-protocol runner, the exact prompts, and the complete per-item predictions are released under CC-BY-4.0 at [repository URL — to be added], archived at [DOI — to be added].
+
+## Ethics and intended use
+
+The benchmark contains no human-subjects data; all items are synthetic requests authored for this benchmark. It measures adherence to a specified routing policy and is not a clinical or operational decision tool.
+
+## Author contributions, funding, and competing interests
+
+Author contributions: [to be completed]. Funding: [to be completed]. Competing interests: the seven channels correspond to the action categories of a deployed agent developed by the authors; the items, labels, and scorer are released to enable independent adjudication. [Formal declaration to be completed.]
 
 ## References
 

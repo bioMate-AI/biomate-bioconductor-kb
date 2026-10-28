@@ -1,14 +1,22 @@
-# DrugDev-Bench: Execution-Grounded Drug-Development Decision Tasks for AI Agents
+# DrugDev-Bench: Open Decision Benchmarks for Phase-I Dose Selection and Pharmacokinetic Exposure, Anchored to a Mechanistic Reference
 
-### Version 1 — dose-finding and pharmacokinetics, with a cross-stage design
+### Version 1 — two measured decision tasks, with a designed cross-stage track
 
-*Preprint — October 2026. Benchmark data and scorers released under CC-BY-4.0.*
+**Authors:** [Author names — to be completed]
+**Affiliations:** [Affiliations — to be completed]
+**Corresponding author:** [name, email — to be completed]
+
+*Preprint, 2026. Benchmark items, references, deterministic scorers, the mechanistic baseline, and per-item predictions released under CC-BY-4.0; repository and archival DOI: [to be added].*
+
+**Keywords:** benchmark; drug development; Phase-I dose selection; pharmacokinetics; mechanistic modeling; language-model evaluation.
+
+> **Scope and terminology.** The mechanistic **reference** in this paper is an *oracle*: the standard dose-selection rule applied to the benchmark's hidden true toxicity curve. It is **not** an end-to-end pipeline that derives the curve from the solver-visible inputs, and it is **not** guaranteed to be an upper bound (a different rule could agree with the benchmark's labels more often). Where we report it, we mean the oracle rule, and we state this at each use.
 
 ---
 
 ## Abstract
 
-The public benchmark landscape for AI in drug development is dominated by **single-stage prediction** (property/ADMET, docking and binding affinity, molecule generation, retrosynthesis). Two decisions that gate real programs — **Phase-I dose selection** and **pharmacokinetic exposure prediction** — have essentially no open, graded agent benchmark, and no existing benchmark grades whether a system carries a decision *correctly across consecutive development stages*. We introduce **DrugDev-Bench**, whose measured version-1 contribution is a pair of execution-relevant decision tasks graded against a mechanistic reference, and whose design includes a cross-stage, execution-grounded track reported here as a roadmap with a pilot, not as a measured headline. We report baselines unedited. On Phase-I dose selection, language models are weak (frontier 0.11–0.50) while a small on-premises model reaches 0.78; critically, the **established dose-selection rule applied to the true exposure–response curve scores 0.85**, so the task is far from solved by any language model and the mechanistic tool is the right instrument. On pharmacokinetic prediction, once the target endpoint is specified unambiguously, capable models reach only ~0.40–0.47 within two-fold. We make no claim of a model capability win; the contribution is an open, mechanistically-anchored decision benchmark on development stages the field has left unmeasured — scored **end-to-end and multi-dimensionally** (the executed outcome alongside safety and exposure–response fidelity), so a wrong answer is localized to *where* the reasoning chain broke.
+The public benchmark landscape for AI in drug development is dominated by **single-stage prediction** (property/ADMET, docking and binding affinity, molecule generation, retrosynthesis). Two decisions that gate real programs — **Phase-I dose selection** and **pharmacokinetic exposure prediction** — have essentially no open, graded agent benchmark, and no existing benchmark grades whether a system carries a decision *correctly across consecutive development stages*. We introduce **DrugDev-Bench**, whose measured version-1 contribution is a pair of execution-relevant decision tasks graded against a mechanistic reference, and whose design includes a cross-stage, execution-grounded track reported here as a roadmap with a pilot, not as a measured headline. We report baselines unedited. On Phase-I dose selection, language models are weak (frontier 0.11–0.50) while a small on-premises model reaches 0.78; the **oracle reference — the standard selection rule applied to the hidden true toxicity curve — scores 0.85**, showing that the task is far from solved by any language model. The oracle's three misses of 20 reflect differences between the selection policy and the benchmark's author-defined answers (tie-handling and no-safe-dose criteria), which we discuss as a target-definition question rather than task difficulty. On pharmacokinetic prediction, once the target endpoint is specified unambiguously, capable models reach only ~0.40–0.47 within two-fold. We make no claim of a model capability win; the contribution is an open, mechanistically-anchored decision benchmark on development stages the field has left unmeasured — scored **end-to-end and multi-dimensionally** (the executed outcome alongside safety and exposure–response fidelity), so a wrong answer is localized to *where* the reasoning chain broke.
 
 ---
 
@@ -129,11 +137,19 @@ computes the answer from one that guesses it.
 
 ## 7. Discussion
 
-DrugDev-Bench's contribution is to put two gate-keeping drug-development decisions — dose selection and pharmacokinetic exposure — into an open, deterministically-scored benchmark anchored to the established mechanistic methods, and to lay out an execution-grounded cross-stage track as the next milestone. The headline finding is sober and useful: on dose selection, language models trail the standard mechanistic rule by a wide margin, which is exactly the argument for routing such decisions through the mechanistic tool rather than a model's unaided judgment. We release the items, references, scorers, and the mechanistic baseline so every number here can be reproduced and contested.
+DrugDev-Bench's contribution is to place two gate-keeping drug-development decisions — dose selection and pharmacokinetic exposure — into an open, deterministically-scored benchmark anchored to an oracle mechanistic reference, and to specify an execution-grounded cross-stage track as the next milestone. The measured finding is that on dose selection, language models trail the oracle selection rule by a wide margin; interpreting this requires first fixing the decision policy (target toxicity, tie-handling, no-safe-dose criteria), since the oracle itself disagrees with three of the author-defined answers. We release the items, references, scorers, and the mechanistic baseline so every number can be reproduced and contested, and we present the result as an initial methodological demonstration on 20 dose scenarios and 15 compounds, not a broad benchmark claim.
 
 ## 8. Data and code availability
 
-Items, references, the deterministic scorers, and the mechanistic dose-selection baseline are released under CC-BY-4.0. Dose-selection methodology follows Liu & Yuan, *Journal of the Royal Statistical Society: Series C* (2015).
+The dose scenarios and PK compounds, their references, the deterministic scorers, the mechanistic dose-selection baseline (with its exact selection algorithm), and the complete per-item predictions are released under CC-BY-4.0 at [repository URL — to be added], archived at [DOI — to be added]. The mechanistic reference implements the selection step of the Bayesian Optimal Interval design (ref. 1) applied to the hidden true toxicity curve; its relationship to the full sequential BOIN trial design is described in §4.
+
+## Ethics and intended use
+
+The benchmark uses modeled (not experimental) toxicity and exposure references and synthetic scenarios; it contains no patient data. It is a nonclinical methodological benchmark and must not be used for clinical dosing decisions.
+
+## Author contributions, funding, and competing interests
+
+Author contributions: [to be completed]. Funding: [to be completed]. Competing interests: the on-premises model and the mechanistic pipeline are developed by the authors; items, scorers, and the baseline are released for independent audit. [Formal declaration to be completed.]
 
 ## References
 
