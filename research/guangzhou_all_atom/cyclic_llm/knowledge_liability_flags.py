@@ -52,6 +52,12 @@ DIPEPTIDE_LIABILITIES = {
 }
 
 
+# Non-canonical residue -> nearest canonical parent (canonical-backbone approximation used by cofold / MM-GBSA / FTO identity). Same entries as fto_score._BB_MAP plus Orn/Cit.
+# Unknown tokens are NEVER dropped or coerced by first letter: they become 'X' and are listed in scaffold["unmapped"] (fixed 2026-10-27: the old first-letter rule dropped [2Nal] and turned [Phe4F]/[Phe4Cl] into Pro).
+NCAA_PARENT = {"2Nal": "F", "1Nal": "F", "Nal": "F", "Phe4F": "F", "Phe4Cl": "F", "hPhe": "F", "Bip": "F", "Nle": "L", "Aib": "A", "Abu": "A", "Sar": "G", "Orn": "K", "Cit": "R"}
+_CANON = set("ACDEFGHIKLMNPQRSTVWY")
+
+
 def parse_helm(helm: str):
     """Parse a cyclo(...)/disulfide HELM-ish string into ordered residues with modifications.
     Returns (residues, mods) where residues is a list of 1-letter AA, mods is a parallel list of dicts
@@ -65,7 +71,7 @@ def parse_helm(helm: str):
     else:
         inner = s.split(" (")[0]            # drop "(disulfide C1-C9)" annotation
     toks = [t for t in inner.split("-") if t]
-    residues, mods = [], []
+    residues, mods, unmapped = [], [], []
     for t in toks:
         t = t.strip()
         d_stereo = n_methyl = False
@@ -76,11 +82,12 @@ def parse_helm(helm: str):
             n_methyl = True; core = core[3:]
         elif core.startswith("d") and len(core) >= 2 and core[1].isupper():
             d_stereo = True; core = core[1:]
-        aa = core[:1].upper()
-        if aa.isalpha():
-            residues.append(aa)
-            mods.append({"d_stereo": d_stereo, "n_methyl": n_methyl})
-    return residues, mods, {"cyclic": cyclic, "disulfide": disulfide, "n_cys": residues.count("C")}
+        if core in _CANON: aa = core
+        elif core in NCAA_PARENT: aa = NCAA_PARENT[core]
+        else: aa = "X"; unmapped.append(core)
+        residues.append(aa)
+        mods.append({"d_stereo": d_stereo, "n_methyl": n_methyl})
+    return residues, mods, {"cyclic": cyclic, "disulfide": disulfide, "n_cys": residues.count("C"), "unmapped": unmapped}
 
 
 def _cyclic_dimers(residues, cyclic):
