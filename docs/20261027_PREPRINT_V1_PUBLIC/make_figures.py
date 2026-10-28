@@ -151,8 +151,26 @@ def fig_loop():
     f.savefig(f"{OUT}/figL1_loop_design.png", dpi=220, bbox_inches="tight"); plt.close(f)
 
 
+def fig7(kn_path):
+    r = json.load(open(kn_path)); lv = ["L0", "L1", "L2", "L3"]
+    names = ["Whole scaffold\nfixed (enumerator)", "Pharmacophore only\n(RGDL + one Lys handle)", "RGD motif only", "Unconstrained"]
+    f, ax = plt.subplots(figsize=(8.6, 4.0)); w = 0.36
+    for j, (key, col, lab) in enumerate((("mechanism_features", GRAY, "Mechanism features present (RGD, RGDL)"), ("usable_novel", BLUE, "Usable novel: features present, outside the claim genus, identity < 0.7 to known actives"))):
+        for i, l in enumerate(lv):
+            d = r[l][key]; x = i + (j - 0.5) * w; ax.bar(x, d["rate"] * 100, w * 0.92, color=col, label=lab if i == 0 else None)
+            ax.errorbar(x, d["rate"] * 100, yerr=[[max(0, d["rate"] * 100 - d["ci95"][0] * 100)], [max(0, d["ci95"][1] * 100 - d["rate"] * 100)]], fmt="none", ecolor=INK2, capsize=2, lw=1)
+            ax.text(x, d["rate"] * 100 + 3.5, f"{d['rate']*100:.1f}%", ha="center", fontsize=8)
+    ax.set_xticks(range(4)); ax.set_xticklabels(names, fontsize=8.5); ax.set_ylim(0, 118); ax.set_ylabel("Candidates (%)"); ax.yaxis.grid(True, color=GRID); ax.set_axisbelow(True)
+    ax.legend(frameon=False, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, 1.22), ncol=1)
+    for s_ in ("top", "right"): ax.spines[s_].set_visible(False)
+    f.text(0.01, -0.05, "2,000 unique candidates per level (180 for the fixed scaffold, its whole space). Bars: 95% Wilson intervals. Activity is not assessed.", fontsize=7.5, color=INK2)
+    f.savefig(f"{OUT}/fig7_knowledge_novelty_frontier.png", dpi=220, bbox_inches="tight"); plt.close(f)
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True); fig1(); fig2(); fig4(); fig5(); fig_loop()
     if len(sys.argv) > 1 and os.path.exists(sys.argv[1]): fig3(sys.argv[1])
     if len(sys.argv) > 3 and os.path.exists(sys.argv[2]) and os.path.exists(sys.argv[3]): fig6(sys.argv[2], sys.argv[3])
+    kn = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../research/guangzhou_all_atom/cyclic_llm/allatom/results_kn1.json')
+    if os.path.exists(kn): fig7(kn)
     print(os.listdir(OUT))
