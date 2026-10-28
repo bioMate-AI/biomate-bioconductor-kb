@@ -9,7 +9,9 @@ import argparse, json, os, sys
 import pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__)); DATA = f"{HERE}/data"; RES = f"{HERE}/results"; sys.path.insert(0, HERE)
 import harness as H
-ap = argparse.ArgumentParser(); ap.add_argument("--name", required=True); ap.add_argument("--scores", required=True); ap.add_argument("--round", type=int, default=None); a = ap.parse_args()
+ap = argparse.ArgumentParser(); ap.add_argument("--name", required=True); ap.add_argument("--scores", required=True); ap.add_argument("--round", type=int, default=None); ap.add_argument("--k", type=int, default=None, help="H4b: number of revealed labelled compounds of the target (score file must cover the REMAINING items; optional column `seed`)"); a = ap.parse_args()
+if a.k is not None:
+    import h4b_eval; h4b_eval.main(a); sys.exit(0)
 sc = pd.read_csv(a.scores); out = dict(name=a.name, round=a.round, scores_file=os.path.basename(a.scores)); cf = pd.read_csv(f"{DATA}/contamination_flags.csv.gz").set_index("compound_id")
 fold = pd.read_csv(f"{DATA}/folds_v1.csv").set_index("family").fold; T = pd.read_csv(f"{DATA}/targets.csv"); tf = dict(zip(T.target_key, T.family))
 for which in ("I", "M2"):

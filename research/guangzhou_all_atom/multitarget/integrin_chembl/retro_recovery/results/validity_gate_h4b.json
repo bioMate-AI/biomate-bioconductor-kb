@@ -1,0 +1,501 @@
+{
+ "5": {
+  "primary": {
+   "C1_atomlm_typicality": {
+    "point": 0.5121857419538708,
+    "lo": 0.46400810900971245,
+    "hi": 0.5616348937092979,
+    "n_families": 25,
+    "items_used_frac": 0.942
+   },
+   "C2_multiproxy_leave_fold_out": {
+    "point": 0.5636933745766058,
+    "lo": 0.504317489466392,
+    "hi": 0.6237775721043654,
+    "n_families": 25,
+    "folds_evaluated": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ]
+   },
+   "C3_morgan_fp_leave_fold_out": {
+    "point": 0.5869161328592921,
+    "lo": 0.5367263135878959,
+    "hi": 0.6385983344903752,
+    "n_families": 26
+   }
+  },
+  "secondary": {
+   "heavy": {
+    "point": 0.5090431065775104,
+    "lo": 0.40458739387834697,
+    "hi": 0.6138849558675351,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "charge": {
+    "point": 0.5330087983896756,
+    "lo": 0.46063320306391237,
+    "hi": 0.6185190427757586,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "n_frac": {
+    "point": 0.4575267217721055,
+    "lo": 0.3617498494351071,
+    "hi": 0.5583271118320624,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "o_frac": {
+    "point": 0.3960326185456339,
+    "lo": 0.31403112361592617,
+    "hi": 0.4727700886793643,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "has_s": {
+    "point": 0.5098668129751706,
+    "lo": 0.41904444489647485,
+    "hi": 0.6034187502977673,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "has_halogen": {
+    "point": 0.5319860733651246,
+    "lo": 0.4963682224321818,
+    "hi": 0.5748192193304891,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "ncaa_frac": {
+    "point": 0.4854307093665016,
+    "lo": 0.4086212249337815,
+    "hi": 0.549126953770082,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "n_arom": {
+    "point": 0.5715352729294816,
+    "lo": 0.4926311276042675,
+    "hi": 0.6411558090085194,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "tpsa": {
+    "point": 0.46540279900075376,
+    "lo": 0.36733742493937604,
+    "hi": 0.5687971649888431,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "logp": {
+    "point": 0.582107828237055,
+    "lo": 0.4760748553593153,
+    "hi": 0.680151273306606,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "hbd": {
+    "point": 0.4592122769529032,
+    "lo": 0.3547985019267364,
+    "hi": 0.569651066475597,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "hba": {
+    "point": 0.48611204010978254,
+    "lo": 0.3636337628834325,
+    "hi": 0.5957437850802801,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "rotb": {
+    "point": 0.4755413374521012,
+    "lo": 0.37931350462523483,
+    "hi": 0.5703165060329496,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "fsp3": {
+    "point": 0.45683856147199775,
+    "lo": 0.3693766559635612,
+    "hi": 0.5476077512914195,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "ring": {
+    "point": 0.45376202118477127,
+    "lo": 0.3531167526448912,
+    "hi": 0.5552316389143905,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "n_rings": {
+    "point": 0.5525697876382741,
+    "lo": 0.4461220997197391,
+    "hi": 0.6473254517266263,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "in_corpus": {
+    "point": 0.4683175418197347,
+    "lo": 0.3954044612358467,
+    "hi": 0.5313003466470262,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   },
+   "in_cycpeptmpdb": {
+    "point": 0.5001013115237254,
+    "lo": 0.5,
+    "hi": 0.5005065576186266,
+    "n_families": 26,
+    "items_used_frac": 1.0
+   }
+  },
+  "secondary_level": 0.9972222222222222,
+  "min_families_required": 8,
+  "failed_controls": [
+   "C2_multiproxy_leave_fold_out",
+   "C3_morgan_fp_leave_fold_out",
+   "secondary:o_frac"
+  ],
+  "VALID": false,
+  "note": "VALID means no control excludes chance; with few families the gate has low power -- see n_families and interval widths"
+ },
+ "10": {
+  "primary": {
+   "C1_atomlm_typicality": {
+    "point": 0.5181928157937267,
+    "lo": 0.46296919005210985,
+    "hi": 0.5759134908387725,
+    "n_families": 24,
+    "items_used_frac": 0.943
+   },
+   "C2_multiproxy_leave_fold_out": {
+    "point": 0.5638528596449132,
+    "lo": 0.49776109973814897,
+    "hi": 0.633622333138595,
+    "n_families": 24,
+    "folds_evaluated": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ]
+   },
+   "C3_morgan_fp_leave_fold_out": {
+    "point": 0.5670726759204124,
+    "lo": 0.5069633025243329,
+    "hi": 0.6294916522529285,
+    "n_families": 25
+   }
+  },
+  "secondary": {
+   "heavy": {
+    "point": 0.506160063046677,
+    "lo": 0.3906957556383784,
+    "hi": 0.6236304517468286,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "charge": {
+    "point": 0.5409272676310227,
+    "lo": 0.4580248910893193,
+    "hi": 0.641608979887982,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "n_frac": {
+    "point": 0.47232636858996346,
+    "lo": 0.358605424442434,
+    "hi": 0.5769201126718506,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "o_frac": {
+    "point": 0.38865170706802876,
+    "lo": 0.2923555335325594,
+    "hi": 0.4811198195907648,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "has_s": {
+    "point": 0.5093407679546371,
+    "lo": 0.4161099074463897,
+    "hi": 0.6077312898734015,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "has_halogen": {
+    "point": 0.5384924774545962,
+    "lo": 0.4965319140415041,
+    "hi": 0.5969331829273055,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "ncaa_frac": {
+    "point": 0.4965898804619838,
+    "lo": 0.4153074328248872,
+    "hi": 0.562732151800636,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "n_arom": {
+    "point": 0.5778808731200477,
+    "lo": 0.4841491868117314,
+    "hi": 0.6614255052801981,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "tpsa": {
+    "point": 0.4788992110613646,
+    "lo": 0.36886867788507827,
+    "hi": 0.5908995639599494,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "logp": {
+    "point": 0.5820062472972376,
+    "lo": 0.4749457386441517,
+    "hi": 0.6823580426634671,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "hbd": {
+    "point": 0.47579341229492367,
+    "lo": 0.3559250805519952,
+    "hi": 0.6008833858508291,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "hba": {
+    "point": 0.49882240485476886,
+    "lo": 0.3599259967945115,
+    "hi": 0.6379907378441821,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "rotb": {
+    "point": 0.4771085145436148,
+    "lo": 0.36605306453813985,
+    "hi": 0.5884312760716887,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "fsp3": {
+    "point": 0.44746638346376,
+    "lo": 0.34697063808731565,
+    "hi": 0.5505830259416471,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "ring": {
+    "point": 0.4481351210920508,
+    "lo": 0.3435649790755491,
+    "hi": 0.5601874646355105,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "n_rings": {
+    "point": 0.5465407134417646,
+    "lo": 0.43774155511912843,
+    "hi": 0.6499427844417744,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "in_corpus": {
+    "point": 0.4590357064754653,
+    "lo": 0.37425573505790005,
+    "hi": 0.5304669169027362,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   },
+   "in_cycpeptmpdb": {
+    "point": 0.5001054650047938,
+    "lo": 0.5,
+    "hi": 0.5005273250239692,
+    "n_families": 25,
+    "items_used_frac": 1.0
+   }
+  },
+  "secondary_level": 0.9972222222222222,
+  "min_families_required": 8,
+  "failed_controls": [
+   "C3_morgan_fp_leave_fold_out",
+   "secondary:o_frac"
+  ],
+  "VALID": false,
+  "note": "VALID means no control excludes chance; with few families the gate has low power -- see n_families and interval widths"
+ },
+ "25": {
+  "primary": {
+   "C1_atomlm_typicality": {
+    "point": 0.49935486518751987,
+    "lo": 0.44143915490808344,
+    "hi": 0.5615330653866384,
+    "n_families": 20,
+    "items_used_frac": 0.947
+   },
+   "C2_multiproxy_leave_fold_out": {
+    "point": 0.5271425754466523,
+    "lo": 0.4478790587904337,
+    "hi": 0.6043865223008802,
+    "n_families": 20,
+    "folds_evaluated": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ]
+   },
+   "C3_morgan_fp_leave_fold_out": {
+    "point": 0.5946351874477533,
+    "lo": 0.5499037115889001,
+    "hi": 0.6409721167865393,
+    "n_families": 21
+   }
+  },
+  "secondary": {
+   "heavy": {
+    "point": 0.5068757050477907,
+    "lo": 0.3906542381686517,
+    "hi": 0.633274405383747,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "charge": {
+    "point": 0.5499233399629245,
+    "lo": 0.4371713414138405,
+    "hi": 0.6700121636002951,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "n_frac": {
+    "point": 0.48915147512906026,
+    "lo": 0.36298170566515103,
+    "hi": 0.6231287400242687,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "o_frac": {
+    "point": 0.4039500987393836,
+    "lo": 0.302691699518195,
+    "hi": 0.49443544413393786,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "has_s": {
+    "point": 0.46504100419573424,
+    "lo": 0.3703413176550879,
+    "hi": 0.5471488849448045,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "has_halogen": {
+    "point": 0.5273449152111181,
+    "lo": 0.4796390652345681,
+    "hi": 0.5782075925871778,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "ncaa_frac": {
+    "point": 0.5271397034934859,
+    "lo": 0.46492498434989676,
+    "hi": 0.5913488182135667,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "n_arom": {
+    "point": 0.564281106204672,
+    "lo": 0.47731034682804485,
+    "hi": 0.6633001148955394,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "tpsa": {
+    "point": 0.4919130077499356,
+    "lo": 0.3666965571119251,
+    "hi": 0.6225725133085719,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "logp": {
+    "point": 0.5629939834006235,
+    "lo": 0.4257056215620505,
+    "hi": 0.6787653329420776,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "hbd": {
+    "point": 0.49593834637785184,
+    "lo": 0.3619981665901839,
+    "hi": 0.6368232086201189,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "hba": {
+    "point": 0.5121168958399289,
+    "lo": 0.38950268339732813,
+    "hi": 0.6368821710790933,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "rotb": {
+    "point": 0.48175620427470567,
+    "lo": 0.3501069099332608,
+    "hi": 0.6118771007447078,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "fsp3": {
+    "point": 0.4741297149847477,
+    "lo": 0.3516982897485502,
+    "hi": 0.5861244628794732,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "ring": {
+    "point": 0.45852001122674546,
+    "lo": 0.3488300847723482,
+    "hi": 0.573237927982488,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "n_rings": {
+    "point": 0.561891717194405,
+    "lo": 0.4484917392483579,
+    "hi": 0.676368927595933,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "in_corpus": {
+    "point": 0.4662606999116544,
+    "lo": 0.38110993304811,
+    "hi": 0.5403012541836675,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   },
+   "in_cycpeptmpdb": {
+    "point": 0.5001260369402813,
+    "lo": 0.5,
+    "hi": 0.500630184701407,
+    "n_families": 21,
+    "items_used_frac": 1.0
+   }
+  },
+  "secondary_level": 0.9972222222222222,
+  "min_families_required": 8,
+  "failed_controls": [
+   "C3_morgan_fp_leave_fold_out",
+   "secondary:o_frac"
+  ],
+  "VALID": false,
+  "note": "VALID means no control excludes chance; with few families the gate has low power -- see n_families and interval widths"
+ }
+}
