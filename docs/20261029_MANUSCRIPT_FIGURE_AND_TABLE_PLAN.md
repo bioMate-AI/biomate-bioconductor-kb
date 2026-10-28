@@ -36,3 +36,18 @@ S1 frozen-list hashes and fold file; S2 all pre-registration amendments with com
 
 ## Dependencies and order
 Can be produced immediately: F1, T1, T2, T4, T9 and the verified parts of T3. Blocked on WS2 L5/L7: F4–F7, F10, F12, T5, T6. Blocked on WS3: F3 (M3), T7. Blocked on WS4: F2 (final), F8, F9. Blocked on WS5: F11, T8. A figure is not drawn from partial results; placeholders stay as `[PENDING]` captions until the artifact exists.
+
+## Status update 2026-10-30 (draft v1)
+Central model is IH-LM (loop-native in-house hybrid); the 25.5 M atom LM is P0, a proof-of-pipeline baseline, and appears only as a labelled baseline/control in figures. Figure scripts are produced by the figures builder in `research/guangzhou_all_atom/figures_paper/` from committed JSON only; the number-trace table is Appendix A of the draft and must be reconciled with `docs/20261030_CLAIM_EVIDENCE_LEDGER.md` when both exist.
+| item | data now committed? | source | note |
+|---|---|---|---|
+| F3 benchmark gates | yes | `retro_recovery/results/validity_gate_{I,M2,M,M3,h4b}.json` | M and M2 invalid; I not clean; M3 not achievable |
+| F4, F5 learning curves and controls | GBM and physchem arms only | `loop_retro/results/l7_aggregate.json` | IH-LM and larger-pretrained arms not run; draw only existing arms, label the rest "not run" |
+| T5 controlled loop | yes | `loop_retro/results/l5_aggregate.json` | regimes A, B, C; claim false for B; both hit definitions shown |
+| F2 dataset structure | partly | stratification outputs; `l5_label_audit.json` | final panel needs stratification data |
+| F8, F9 strata, matched pairs | yes (document) | `docs/20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md` Part B and `cyclic_llm/stratification/data/` | use JSON from `data/`, not the document tables |
+| F11, T8 knowledge | yes | `docs/20261029_KB_AUDIT_AND_GAPS.md` §9 | add the failing knowledge-shuffled control |
+| F6, F7, F10 (cost), F12 | no | — | language-model stereo ranking, per-source curves, GPU-hour accounting and corpus-overlap table await runs; keep as placeholders |
+| New F13 | yes | `l5_aggregate.json` `PICK_SOURCE_MEANS` | pick provenance by source: loop vs random vs rules, regimes A, B, C |
+| New T10 | yes | `retro_recovery/results/h4b_baselines.json` | few-label AUROC by k for nearest-neighbour, fit-on-revealed, pretrained+revealed, zero-shot |
+| T6 small vs larger pretrained | no | — | central comparison not run; table stays an empty template until it is |
