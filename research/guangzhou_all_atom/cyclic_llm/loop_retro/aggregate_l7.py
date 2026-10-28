@@ -77,15 +77,35 @@ def cluster_contrast(tab_a, tab_b, min_seeds=3, B=B_BOOT, lo=2.5, hi=97.5):
                 interval_type="bootstrap CI of the mean over SOURCES (cluster); ci_seed_only = bootstrap over seeds, sources fixed, same statistic recomputed", ci_level_pct=round(hi - lo, 1))
 
 
-def load_small(dirs):
-    R = collections.defaultdict(dict)                                  # (backend, regime) -> seed -> result
+def learner_key(dirpath, r):
+    """Learner label for a result file. The `backend` field alone is NOT unique: the chirality-aware and stereo-blind GBM runs both write backend 'gbm' (found by the 2026-10-30 code review: the blind runs
+    silently overwrote the aware ones). The learner is therefore taken from the field `learner` when present (new runs), else derived from the DIRECTORY NAME:
+      *blind* -> <backend>_blind;  *confirm* -> <backend>_aware_confirm (confirmatory seeds, kept apart from the development seeds);  *res7m_* -> <backend>_aware_srcmatch (diagnostic re-runs of loop/random_fb);
+      any other plain 'gbm' -> gbm_aware; every other backend keeps its own name (gbm_physchem, atom_lm, chemberta, ...)."""
+    if r.get("learner"): return r["learner"]
+    b = r["backend"]; name = os.path.basename(os.path.normpath(dirpath)).lower()
+    if b == "gbm_physchem" and "confirm" not in name and "res7m_" not in name: return b
+    suffix = "_confirm" if "confirm" in name else ("_srcmatch" if "res7m_" in name else "")
+    if b in ("gbm",): return ("gbm_blind" if "blind" in name else "gbm_aware") + suffix
+    return b + suffix
+
+
+def load_small(dirs, manifest=None):
+    """{(learner, regime): {seed: result}}. Two files for the same (learner, regime, seed) are merged ONLY if their arm sets are disjoint (arm-filtered runs of one task); overlapping arms raise ValueError
+    (no silent overwrite). `manifest` (optional list) receives (file, key) for every file read, so a test can assert that every input is accounted for exactly once."""
+    R = collections.defaultdict(dict)
     for d in dirs:
-        for f in glob.glob(f"{d}/*.json"):
+        for f in sorted(glob.glob(f"{d}/*.json")):
             try: r = json.load(open(f))
             except Exception: continue
             if "backend" not in r: continue
-            tag = r["backend"]
-            R[(tag, r["regime"])].setdefault(r["seed"], {}).update(r)   # merge result files of the same task (arm-filtered runs)
+            key = (learner_key(d, r), r["regime"]); cur = R[key].get(r["seed"])
+            if cur is not None:
+                arms_new = {k for k, v in r.items() if isinstance(v, dict) and "hits" in v}; arms_old = {k for k, v in cur.items() if isinstance(v, dict) and "hits" in v}
+                if arms_new & arms_old: raise ValueError(f"result collision for {key} seed {r['seed']}: {f} repeats arms {sorted(arms_new & arms_old)[:3]} already loaded")
+                cur.update(r)
+            else: R[key][r["seed"]] = dict(r)
+            if manifest is not None: manifest.append((f, key))
     return R
 
 
@@ -110,7 +130,7 @@ def paired(R, key, a, b, fn):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("out"); ap.add_argument("--small", default=""); ap.add_argument("--llm", default=""); ap.add_argument("--rounds-llm", type=int, default=5); ap.add_argument("--csv", default="")
     a = ap.parse_args(); out = dict(version="L7 aggregate", note="paired by (regime, seed); percentile bootstrap over seeds; regimes never pooled; PAMPA permeability of cyclic peptides only", small={}, llm={}, controls={}, noninferiority={})
-    S = load_small([d for d in a.small.split(",") if d]); Lm = load_llm(a.llm) if a.llm else {}
+    manifest = []; S = load_small([d for d in a.small.split(",") if d], manifest); Lm = load_llm(a.llm) if a.llm else {}
     for (be, reg), seeds in sorted(S.items()):
         key = (be, reg); R = {key: seeds}; arms = sorted({k for r in seeds.values() for k, v in r.items() if isinstance(v, dict) and "hits" in v})
         o = dict(n_seeds=len(seeds), yield_total={}, yield_5rounds={}, E_auroc_gain={}, E_ef5_gain={}, stereo={}, contrasts={}, controls={})
@@ -176,7 +196,7 @@ def main():
                 non_inferior=bool(npair >= 8 and r["ci"] and r["ci"][0] > 0.90), superior=bool(npair >= 8 and d["ci"] and d["ci"][0] > 0), status="inconclusive (power)" if npair < 8 else "evaluable")
     import hashlib
     files = sorted([f for d in a.small.split(",") if d for f in glob.glob(f"{d}/*.json")] + (glob.glob(f"{a.llm}/*.json") if a.llm else []))
-    out["inputs"] = dict(n_files=len(files), sha256=hashlib.sha256("".join(f"{os.path.basename(f)}:{os.path.getsize(f)};" for f in sorted(files, key=os.path.basename)).encode()).hexdigest())
+    out["inputs"] = dict(n_files=len(files), n_small_files_loaded=len(manifest), n_small_keys=len({k for _, k in manifest}), files_per_key={f"{k[0]}|{k[1]}": sum(1 for _, kk in manifest if kk == k) for k in sorted({k for _, k in manifest})}, sha256=hashlib.sha256("".join(f"{os.path.basename(f)}:{os.path.getsize(f)};" for f in sorted(files, key=os.path.basename)).encode()).hexdigest())
     json.dump(out, open(a.out, "w"), indent=1, default=float); print("wrote", a.out, "| small groups", len(out["small"]), "| llm groups", len(out["llm"]), "| noninferiority pairs", len(out["noninferiority"]))
 
 

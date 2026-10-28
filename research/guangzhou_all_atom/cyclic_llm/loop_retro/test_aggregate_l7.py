@@ -64,6 +64,27 @@ def test_nan_guard_never_propagates():
     res2 = {k: {"E": v["E"], "A": {"E_scores_final": [float("nan")] + v["A"]["E_scores_final"][1:]}} for k, v in res.items()}
     tt = G.source_rho_table(res2, "A", y, srcs); assert all(np.isfinite(x) for d in tt.values() for x in d.values()), "a NaN score must make that (source, seed) missing, not a number"
 
+
+def test_no_input_is_dropped_or_overwritten_and_aware_blind_stay_apart():
+    """Regression test for the 2026-10-30 code-review finding C1: aware and blind GBM share backend 'gbm'. Every file must be loaded under exactly one key; overlapping arms must raise."""
+    import tempfile, json as J
+    root = tempfile.mkdtemp(); mk = lambda name, val, arms=("loop_sub",): None
+    def write(dirname, backend, regime, seed, arms, val):
+        d = os.path.join(root, dirname); os.makedirs(d, exist_ok=True); r = {"backend": backend, "regime": regime, "seed": seed}
+        for a in arms: r[a] = {"hits": [val], "E_scores_final": [0.0]}
+        J.dump(r, open(os.path.join(d, f"{backend}_{regime}_{seed}.json"), "w"))
+    write("res7f_gbm_aware", "gbm", "A", 0, ("loop_sub",), 86); write("res7f_gbm_blind", "gbm", "A", 0, ("loop_sub",), 87); write("res7f_gbm_phys", "gbm_physchem", "A", 0, ("loop_sub",), 90)
+    write("res7k_gbm_confirm", "gbm", "A", 10, ("loop_sub",), 80); write("res7m_gbm", "gbm", "A", 0, ("loop", "random_fb"), 70)
+    dirs = [os.path.join(root, x) for x in sorted(os.listdir(root))]; man = []; S = G.load_small(dirs, man)
+    assert len(man) == 5 and len({f for f, _ in man}) == 5, "every file must be read exactly once"
+    keys = sorted({k for _, k in man}); assert ("gbm_aware", "A") in keys and ("gbm_blind", "A") in keys and ("gbm_aware_confirm", "A") in keys and ("gbm_aware_srcmatch", "A") in keys and ("gbm_physchem", "A") in keys, keys
+    assert S[("gbm_aware", "A")][0]["loop_sub"]["hits"] == [86] and S[("gbm_blind", "A")][0]["loop_sub"]["hits"] == [87], "aware and blind must not overwrite each other"
+    assert sum(len(v) for v in S.values()) == 5, "total tasks loaded must equal files"
+    write("res7f_gbm_aware2", "gbm", "A", 0, ("loop_sub",), 99)                                                       # a second 'aware' directory repeating the same arm for the same task
+    dirs2 = [os.path.join(root, x) for x in sorted(os.listdir(root))]
+    try: G.load_small(dirs2); raise AssertionError("an overlapping-arm collision must raise, not overwrite")
+    except ValueError: pass
+
 if __name__ == "__main__":
     for n, f in list(globals().items()):
         if n.startswith("test_"): f(); print("PASS", n)
