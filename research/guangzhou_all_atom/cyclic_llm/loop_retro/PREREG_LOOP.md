@@ -226,3 +226,16 @@ Planted-world check of the fixed-hyperparameter GP: 1-σ coverage 0.99 (nominal 
 
 ### L7k addendum 3 (2026-10-30): sensitivity regime L9 is run now (requested by the external committee round 2), before any L9 result exists
 Runner code `M` = regime L9: identical to regime L except at most 9 held-out labs per seed (`setup_L(..., max_labs=9)`; every seed then keeps at least one eligible mid-size lab in training — tested). Learners: plain chirality-aware GBM and physchem-descriptor GBM; seeds 0–9; arms `loop`, `random_fb`, `loop_sub`, `frozen_sub`, `shuffled_sub`, `loop_kphys_sub`, `loop_kshuf_sub`, `loop_kphys_contra_sub` (CPU spot, per-task S3 checkpointing, no curve). Primary contrasts (as in L7j/L7k): yield — `loop_kphys_sub − loop_kshuf_sub`, `loop − random_fb`, `loop_sub − shuffled_sub`; E source-rho with the source-cluster bootstrap for the same contrasts. Reported beside regime L with typed intervals (CI of the mean over seeds; source-cluster bootstrap CI; per-seed spread never called a CI). Interpretation rule: L9 "agrees" with L if every primary contrast has the same sign and the same side of zero under the cluster interval; otherwise the regime-L conclusion is reported as design-dependent.
+
+## Amendment L7q (2026-10-30) — deterministic K_shuf re-run of the knowledge arms (registered BEFORE the run)
+
+**Defect.** In run_l7a.py the shuffled-knowledge channel K_shuf permuted K_phys within source by iterating over `set(d["srcs"])`. Set order depends on PYTHONHASHSEED, and the permutation generator is consumed sequentially across sources, so the K_shuf realisation (and hence loop_kshuf_sub) was not reproducible. Fixed in commit 018bc0a1d (`sorted(set(...))`). Only loop_kshuf_sub (and contrasts using it) is affected; loop_sub, frozen_sub, shuffled_sub, loop_kphys_sub, loop_kphys_contra_sub do not use K_shuf and each arm has its own per-seed generator.
+
+**Re-run.** Arms loop_sub, loop_kphys_sub, loop_kshuf_sub, in the same files and under the same seeds, so every paired K_phys − K_shuf contrast comes from one code version. Learners/seeds/regimes: gbm_aware, gbm_blind, gbm_physchem seeds 0–9 × regimes A,B,L (30 files each); gbm_aware confirmatory seeds 10–29 × A,B,L (60 files). Total 150 files. Output dirs res7q_gbm_{aware,blind,phys,confirm}; learner keys get the suffix `_detK` and never merge with res7f_*/res7k_*.
+
+**Checks (pass/fail fixed now).**
+1. Determinism: seeds 0–1, regime L, aware re-run under PYTHONHASHSEED=1 and =2 must be identical in every non-timing field (the job aborts otherwise).
+2. Reference: loop_sub in res7q_* must equal the res7f_*/res7k_* loop_sub values exactly (independent per-arm generators); any difference is reported and blocks use of the res7q values.
+3. loop_kshuf_sub, loop_kphys_sub contrasts are recomputed from res7q_* only.
+
+**Supersession.** res7q_* supersedes the old loop_kshuf_sub values and every K_phys − K_shuffled contrast. The old values stay in the aggregate under the label "depends on PYTHONHASHSEED" and are not quoted as results. No analysis rule, threshold or seed list changes.
