@@ -1,0 +1,206 @@
+{
+ "I": {
+  "strongest_baseline": "B3_nn_neg",
+  "contrasts": {
+   "S1a_rules - B3_nn_neg": {
+    "n_families": 26,
+    "sd_family_diff": 0.1524,
+    "MDE_80pct": 0.0837,
+    "families_needed_for_0p05": 73,
+    "ICC_target_within_family": 0.937,
+    "mean_targets_per_family": 1.77,
+    "design_effect": 1.721,
+    "effective_independent_targets": 26.7
+   },
+   "S1b_KB - B3_nn_neg": {
+    "n_families": 26,
+    "sd_family_diff": 0.1509,
+    "MDE_80pct": 0.0828,
+    "families_needed_for_0p05": 72,
+    "ICC_target_within_family": null,
+    "mean_targets_per_family": 1.77
+   },
+   "S1b_induction - B3_nn_neg": {
+    "n_families": 26,
+    "sd_family_diff": 0.2157,
+    "MDE_80pct": 0.1184,
+    "families_needed_for_0p05": 146,
+    "ICC_target_within_family": -0.169,
+    "mean_targets_per_family": 1.77,
+    "design_effect": 1.0,
+    "effective_independent_targets": 46.0
+   },
+   "S1c_induction - B3_nn_neg": {
+    "n_families": 26,
+    "sd_family_diff": 0.2488,
+    "MDE_80pct": 0.1366,
+    "families_needed_for_0p05": 195,
+    "ICC_target_within_family": 0.022,
+    "mean_targets_per_family": 1.77,
+    "design_effect": 1.017,
+    "effective_independent_targets": 45.2
+   },
+   "S1d_profile - B3_nn_neg": {
+    "n_families": 26,
+    "sd_family_diff": 0.2014,
+    "MDE_80pct": 0.1106,
+    "families_needed_for_0p05": 128,
+    "ICC_target_within_family": 0.229,
+    "mean_targets_per_family": 1.77,
+    "design_effect": 1.176,
+    "effective_independent_targets": 39.1
+   }
+  }
+ },
+ "M2": {
+  "strongest_baseline": "B3_nn_neg",
+  "contrasts": {
+   "S1a_rules - B3_nn_neg": {
+    "n_families": 14,
+    "sd_family_diff": 0.0472,
+    "MDE_80pct": 0.0353,
+    "families_needed_for_0p05": 7,
+    "ICC_target_within_family": 0.822,
+    "mean_targets_per_family": 1.43,
+    "design_effect": 1.352,
+    "effective_independent_targets": 14.8
+   },
+   "S1b_KB - B3_nn_neg": {
+    "n_families": 14,
+    "sd_family_diff": 0.024,
+    "MDE_80pct": 0.0179,
+    "families_needed_for_0p05": 2,
+    "ICC_target_within_family": null,
+    "mean_targets_per_family": 1.43
+   },
+   "S1b_leaky_KBactives - B3_nn_neg": {
+    "n_families": 14,
+    "sd_family_diff": 0.024,
+    "MDE_80pct": 0.0179,
+    "families_needed_for_0p05": 2,
+    "ICC_target_within_family": null,
+    "mean_targets_per_family": 1.43
+   },
+   "S1d_profile - B3_nn_neg": {
+    "n_families": 14,
+    "sd_family_diff": 0.2473,
+    "MDE_80pct": 0.1851,
+    "families_needed_for_0p05": 192,
+    "ICC_target_within_family": 0.756,
+    "mean_targets_per_family": 1.43,
+    "design_effect": 1.324,
+    "effective_independent_targets": 15.1
+   }
+  }
+ },
+ "H4b": {
+  "k=5: NN - PT(k=0)": {
+   "n_families": 26,
+   "sd_family_diff": 0.1622,
+   "MDE_80pct": 0.0891,
+   "families_needed_for_0p05": 83,
+   "ICC_target_within_family": 0.335,
+   "mean_targets_per_family": 1.73,
+   "design_effect": 1.245,
+   "effective_independent_targets": 36.1
+  },
+  "k=5: PT+k - PT(k=0)": {
+   "n_families": 26,
+   "sd_family_diff": 0.1068,
+   "MDE_80pct": 0.0586,
+   "families_needed_for_0p05": 36,
+   "ICC_target_within_family": 0.74,
+   "mean_targets_per_family": 1.73,
+   "design_effect": 1.541,
+   "effective_independent_targets": 29.2
+  },
+  "k=5: FP-k - PT(k=0)": {
+   "n_families": 26,
+   "sd_family_diff": 0.1615,
+   "MDE_80pct": 0.0887,
+   "families_needed_for_0p05": 82,
+   "ICC_target_within_family": 0.411,
+   "mean_targets_per_family": 1.73,
+   "design_effect": 1.3,
+   "effective_independent_targets": 34.6
+  },
+  "k=5: NN - FP-k": {
+   "n_families": 26,
+   "sd_family_diff": 0.0311,
+   "MDE_80pct": 0.0171,
+   "families_needed_for_0p05": 4
+  },
+  "k=10: NN - PT(k=0)": {
+   "n_families": 25,
+   "sd_family_diff": 0.1376,
+   "MDE_80pct": 0.0771,
+   "families_needed_for_0p05": 60,
+   "ICC_target_within_family": 0.551,
+   "mean_targets_per_family": 1.76,
+   "design_effect": 1.419,
+   "effective_independent_targets": 31.0
+  },
+  "k=10: PT+k - PT(k=0)": {
+   "n_families": 25,
+   "sd_family_diff": 0.1292,
+   "MDE_80pct": 0.0724,
+   "families_needed_for_0p05": 53,
+   "ICC_target_within_family": 0.693,
+   "mean_targets_per_family": 1.76,
+   "design_effect": 1.527,
+   "effective_independent_targets": 28.8
+  },
+  "k=10: FP-k - PT(k=0)": {
+   "n_families": 25,
+   "sd_family_diff": 0.1422,
+   "MDE_80pct": 0.0796,
+   "families_needed_for_0p05": 64,
+   "ICC_target_within_family": 0.735,
+   "mean_targets_per_family": 1.76,
+   "design_effect": 1.559,
+   "effective_independent_targets": 28.2
+  },
+  "k=10: NN - FP-k": {
+   "n_families": 25,
+   "sd_family_diff": 0.0405,
+   "MDE_80pct": 0.0227,
+   "families_needed_for_0p05": 6
+  },
+  "k=25: NN - PT(k=0)": {
+   "n_families": 21,
+   "sd_family_diff": 0.1365,
+   "MDE_80pct": 0.0834,
+   "families_needed_for_0p05": 59,
+   "ICC_target_within_family": 0.389,
+   "mean_targets_per_family": 1.86,
+   "design_effect": 1.334,
+   "effective_independent_targets": 29.2
+  },
+  "k=25: PT+k - PT(k=0)": {
+   "n_families": 21,
+   "sd_family_diff": 0.1481,
+   "MDE_80pct": 0.0905,
+   "families_needed_for_0p05": 69,
+   "ICC_target_within_family": 0.673,
+   "mean_targets_per_family": 1.86,
+   "design_effect": 1.577,
+   "effective_independent_targets": 24.7
+  },
+  "k=25: FP-k - PT(k=0)": {
+   "n_families": 21,
+   "sd_family_diff": 0.1368,
+   "MDE_80pct": 0.0836,
+   "families_needed_for_0p05": 59,
+   "ICC_target_within_family": 0.738,
+   "mean_targets_per_family": 1.86,
+   "design_effect": 1.632,
+   "effective_independent_targets": 23.9
+  },
+  "k=25: NN - FP-k": {
+   "n_families": 21,
+   "sd_family_diff": 0.0346,
+   "MDE_80pct": 0.0212,
+   "families_needed_for_0p05": 4
+  }
+ }
+}
