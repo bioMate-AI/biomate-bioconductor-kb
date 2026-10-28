@@ -75,7 +75,21 @@ Three findings:
 
 1. **The task has strong lexical signal.** The non-model keyword baseline reaches **0.80 overall** (0.82 on the drug-development subset). Direct models span 0.75–0.91; the strongest frontier models exceed the keyword baseline, while weaker models sit at or below it. The task is therefore not adversarially hard, and direct-model accuracy is not dominated by a keyword classifier for every model — a distinction we do not establish as statistically significant at this sample size (84 items; one error ≈ 1.2 percentage points overall).
 2. **Direct models cluster with the keyword baseline** (0.75–0.91), from the smallest open model to the strongest frontier model.
-3. **The channel definitions drive the gain.** With definitions, every model moves into the **0.96–1.00** band; the gain is largest for the smallest model (0.75 → 0.96, +0.21) and smallest for the strongest frontier model (0.91 → 1.00, +0.10). The pattern is a headroom effect (weaker models have more room), not an asserted inverse-scaling mechanism. Per-channel, five of seven channels reach perfect routing with definitions; the residual confusion is "find a tool" versus "synthesize literature" (recommend a method vs. review the evidence).
+3. **The channel definitions drive the gain.** With definitions, every model moves into the **0.96–1.00** band; the gain is largest for the smallest model (0.75 → 0.96, +0.21) and smallest for the strongest frontier model (0.91 → 1.00, +0.10). The pattern is a headroom effect (weaker models have more room), not an asserted inverse-scaling mechanism.
+
+**Table 2 | Per-channel accuracy and confusion, on-premises model with definitions (n = 12 per channel).** Rows are the gold channel; columns are the predicted channel. Five of seven channels are perfect; the residual error is "find a tool" misrouted to "synthesize literature," plus one "run a pipeline" misrouted to "execute a computation."
+
+| gold \ predicted | pipeline | tool | database | literature | code | knowledge | dataset | acc. |
+|---|---|---|---|---|---|---|---|---|
+| Run a pipeline | 11 | · | · | · | 1 | · | · | 11/12 |
+| Find a tool | · | 9 | · | 3 | · | · | · | 10/12† |
+| Query a database | · | · | 12 | · | · | · | · | 12/12 |
+| Synthesize literature | · | · | · | 12 | · | · | · | 12/12 |
+| Execute a computation | · | · | · | · | 12 | · | · | 12/12 |
+| Answer from knowledge | · | · | · | · | · | 12 | · | 12/12 |
+| Fetch a dataset | · | · | · | · | · | · | 12 | 12/12 |
+
+†One of the three "find a tool → synthesize literature" items is credited by an acceptable-alternative label (a request that is genuinely answerable either way), giving 10/12 scored. Overall: 81/84 = 0.964. Without the definitions, errors are more diffuse and concentrate on channel *vocabulary* (non-answers, and workflow↔code-execution confusion).
 
 ## 6. Limitations
 
