@@ -1110,7 +1110,10 @@ function OutputsTab({
                 "",
             ).toLowerCase();
             const parts = filePath.split("/").filter(Boolean);
-            const step = parts.length >= 2 ? parts[parts.length - 2] : "";
+            const rawStep = parts.length >= 2 ? parts[parts.length - 2] : "";
+            // Don't surface an opaque run/history id (76d11493) as the step label.
+            const isOpaqueId = /^[0-9a-f]{6,}$/i.test(rawStep) || /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(rawStep) || /^\d+$/.test(rawStep);
+            const step = isOpaqueId ? "" : rawStep;
             return { step, name, path: filePath, ext };
           }),
         );
