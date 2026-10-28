@@ -81,7 +81,7 @@ def l5(res5):
 
 
 def provenance():
-    base = "94efe092d"
+    base = "87f4f6718"
     anc = subprocess.run(["git", "merge-base", "--is-ancestor", base, "HEAD"], cwd=ROOT).returncode == 0
     out("PASS" if anc else "FAIL", f"HEAD contains {base} (IH-LM provenance floor)")
     for k in DOCS:
