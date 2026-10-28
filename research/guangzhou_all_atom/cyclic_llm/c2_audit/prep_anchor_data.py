@@ -24,12 +24,12 @@ for i, r in d.iterrows():
     try:
         srcs = ast.literal_eval(r.Same_Peptides_Source); perm = ast.literal_eval(r.Same_Peptides_Permeability); assay = ast.literal_eval(r.Same_Peptides_Assay)
     except Exception: continue
-    oth_src, oth_val = [], []
+    oth_src, oth_val, oth_map = [], [], {}
     for s, pv, av in zip(srcs, perm, assay):
         if s == r.Source: continue
         v = [float(x) for x, a in zip(pv, av) if a == "PAMPA" and float(x) > -9.99]
-        if v: oth_src.append(s); oth_val.append(float(np.mean(v)))
-    if oth_src: anchors.append(dict(row=int(i), source=r.Source, y_self=float(r.PAMPA), y_others=float(np.mean(oth_val)), other_sources=oth_src))
+        if v: oth_src.append(s); oth_val.append(float(np.mean(v))); oth_map[s] = float(np.mean(v))
+    if oth_src: anchors.append(dict(row=int(i), source=r.Source, y_self=float(r.PAMPA), y_others=float(np.mean(oth_val)), other_sources=oth_src, other_vals=oth_map))
 np.savez_compressed(sys.argv[2], fp=fp, y=d["PAMPA"].values.astype(np.float32), src=d["Source"].values.astype(str), rid=d["ID"].values.astype(int))
 json.dump(anchors, open(sys.argv[2].replace(".npz", "_anchors.json"), "w"))
 import collections

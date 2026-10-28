@@ -36,6 +36,17 @@ def estimate_offsets(k, seed, anchors_by_src, y_self=None, y_oth=None):
     return b, excl
 
 
+def restrict(ab, banned):
+    """P-B2: rebuild anchors with partners restricted to sources != banned (the held-out source); drop anchors left without a partner."""
+    out = collections.defaultdict(list)
+    for s_, lst in ab.items():
+        if s_ == banned: continue
+        for a in lst:
+            keep = {o: v for o, v in a["other_vals"].items() if o != banned}
+            if keep: out[s_].append(dict(a, y_others=float(np.mean(list(keep.values()))), other_sources=list(keep), other_vals=keep))
+    return out
+
+
 def world(name, seed=0):
     """Return (labels y, anchors_by_src, true offsets or None)."""
     if name == "real": return Y.copy(), by_src, None
@@ -49,11 +60,12 @@ def world(name, seed=0):
             rows = np.where(SRC == s)[0]
             for i in rng.choice(rows, min(8, len(rows)), replace=False):
                 oth = [x for x in rng.choice([q for q in srcs if q != s], 2, replace=False)]
-                ab[s].append(dict(row=int(i), source=s, y_self=float(y[i]), y_others=float(g[i] + np.mean([off[o] for o in oth]) + rng.normal(0, 0.1)), other_sources=oth))
+                ov = {o: float(g[i] + off[o] + rng.normal(0, 0.1)) for o in oth}
+                ab[s].append(dict(row=int(i), source=s, y_self=float(y[i]), y_others=float(np.mean(list(ov.values()))), other_sources=list(oth), other_vals=ov))
         return y, ab, off
     for a in ANCH:   # same anchor structure as the real data; synthetic labels for the anchor rows and the other-source mean
-        gi = g[a["row"]]; oth = np.mean([off.get(s, 0.0) for s in a["other_sources"]])
-        ab[a["source"]].append(dict(row=a["row"], source=a["source"], y_self=float(y[a["row"]]), y_others=float(gi + oth + rng.normal(0, 0.1)), other_sources=a["other_sources"]))
+        gi = g[a["row"]]; ov = {s: float(gi + off.get(s, 0.0) + rng.normal(0, 0.1)) for s in a["other_sources"]}
+        ab[a["source"]].append(dict(row=a["row"], source=a["source"], y_self=float(y[a["row"]]), y_others=float(np.mean(list(ov.values()))), other_sources=a["other_sources"], other_vals=ov))
     return y, ab, off
 
 
@@ -73,12 +85,13 @@ def task(args):
         if wname != "real" and k == 3: continue   # controls at k=5 only
         gains, pooled, rec = [], [], []
         for s in range(SEEDS):
-            b, excl = estimate_offsets(k, s, {s_: l for s_, l in ab.items() if s_ != h})
+            b, excl = estimate_offsets(k, s, restrict(ab, h))
             if not b: continue
             ycal = y.copy()
             for src_, bb in b.items(): ycal[SRC == src_] -= bb
             p_cal = fit_pred(ycal, tr, te); w = sp(p_cal); gains.append(w - res["variants"]["raw"]["within"])
-            bh, _ = estimate_offsets(k, s, {h: ab.get(h, [])}) if len(ab.get(h, [])) >= k else ({}, [h])
+            ab_h = {h: [dict(a, y_others=float(np.mean(list(kv.values()))), other_vals=kv) for a in ab.get(h, []) for kv in [{o: v for o, v in a["other_vals"].items() if o != h}] if kv]}
+            bh, _ = estimate_offsets(k, s, ab_h) if len(ab_h[h]) >= k else ({}, [h])
             if h in bh: pooled.append((p_cal + bh[h], p_raw))
             if off is not None: rec.append(float(np.corrcoef([b[s_] for s_ in b], [off[s_] for s_ in b])[0, 1]) if len(b) > 2 else float("nan"))
         res["variants"][f"cal_k{k}"] = dict(n_cal_sources=len(b) if gains else 0, gain_mean=float(np.nanmean(gains)) if gains else None, gains=gains,
