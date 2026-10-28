@@ -45,9 +45,10 @@ maximum tolerated dose, and a no-safe-dose flag. Three dimensions, each in [0, 1
 |---|---|---|---|
 | **Mechanistic pipeline (execution reference)** | **0.85** | **0.90** | **1.00** |
 | Claude Opus 5 | 0.30–0.40 | 0.75 | 0.46–0.64 |
+| Gemini 3.1 Pro | 0.25 | 0.80 | 0.16–0.62 |
 | GPT-6.1-sol-pro | 0.10 | 0.20 | 0.01 |
 
-(exact MTD match; single-run LLM outcome at n=20 is noisy, so LLM rows are ranges; Gemini re-run pending)
+(exact MTD match; single-run LLM outcome at n=20 is noisy, so LLM rows are ranges)
 
 The mechanistic pipeline — the platform path that computes the exposure–response curve and applies the
 selection rule end-to-end — sets the reference at 0.90 / 0.90 / 1.00. The diagnostic value is the **fidelity**

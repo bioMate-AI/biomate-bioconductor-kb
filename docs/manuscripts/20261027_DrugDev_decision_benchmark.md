@@ -107,10 +107,11 @@ pipeline computes the curve and scores 0.85 / 0.90 / 1.00; language models trail
 |---|---|---|---|
 | **Mechanistic pipeline (execution reference)** | **0.85** | **0.90** | **1.00** |
 | Claude Opus 5 | 0.30–0.40 | 0.75 | 0.46–0.64 |
+| Gemini 3.1 Pro | 0.25 | 0.80 | 0.16–0.62 |
 | GPT-6.1-sol-pro | 0.10 | 0.20 | 0.01 |
 
 (Single-run LLM outcome at n = 20 is noisy — Opus-5 spans 0.30–0.40 and fidelity 0.46–0.64 across runs — so
-LLM rows are reported as ranges, not points; a Gemini-3.1-Pro re-run under the exact scorer is pending.) The
+LLM rows are reported as ranges, not points; The
 **fidelity** dimension is what makes this diagnostic rather than a single opaque number: GPT-6.1-sol-pro's
 outcome is 0.10 *because* its curve fidelity is ~0.01 — it never modeled the exposure–response and effectively
 guessed; Opus-5 modeled the curve partially and still landed only a third to two-fifths of the exact doses; the
