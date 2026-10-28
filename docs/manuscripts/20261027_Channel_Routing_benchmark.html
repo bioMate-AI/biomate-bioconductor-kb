@@ -189,14 +189,16 @@ CC-BY-4.0; repository and archival DOI: [to be added].</em></p>
 routing; resource selection; policy adherence; language-model
 evaluation.</p>
 <blockquote>
-<p><strong>Scope.</strong> This is a deliberately small
-<strong>pilot</strong> benchmark (84 items) that measures
-<strong>adherence to a specified seven-channel resource-routing
-policy</strong>, not the discovery of an intrinsically correct resource
-taxonomy. Its size supports a proof-of-concept and a matched ablation,
-not a definitive ranking; per-channel accuracy moves 8.3 points per
-item, so differences within the plus-definitions band are not
-individually significant.</p>
+<p><strong>Scope.</strong> This benchmark measures <strong>adherence to
+a specified seven-channel resource-routing policy</strong>, not the
+discovery of an intrinsically correct resource taxonomy. It comprises a
+<strong>balanced 84-item core</strong> (12 per channel) and a
+separately-authored <strong>49-item held-out challenge tier</strong>
+(paraphrases, lexical confounders, and boundary cases) used to test
+whether the measured gain generalizes beyond surface vocabulary — 133
+items in total. Per-channel differences within the plus-definitions band
+are not individually significant at this size and are not interpreted as
+a model ranking.</p>
 </blockquote>
 <hr />
 <h2 id="abstract">Abstract</h2>
@@ -318,7 +320,7 @@ category of a deployed agent:</p>
 </tr>
 </tbody>
 </table>
-<p><strong>Composition.</strong> 84 items, 12 per channel (balanced),
+<p><strong>Core set.</strong> 84 items, 12 per channel (balanced),
 <strong>64% drug-development</strong> queries spanning every channel,
 the remainder cross-domain (transcriptomics, variant analysis,
 single-cell, proteomics, genomics, clinical, metagenomics, immunology)
@@ -329,6 +331,16 @@ request is legitimately policy-dependent (a factual question that could
 be answered from memory or verified against a database), the
 acceptable-alternatives mechanism records that, and independent
 adjudication of those items is planned.</p>
+<p><strong>Held-out challenge tier.</strong> A further 49 items (7 per
+channel), authored separately, deliberately stress generalization: 34
+are paraphrases that avoid the core items’ characteristic verbs, and 15
+are lexical confounders or boundary cases whose surface cues point to
+the wrong channel (for example, “What does the nf-core/rnaseq pipeline
+actually do, conceptually?” has pipeline vocabulary but is a knowledge
+question; “Count how many of these 300 compounds pass Lipinski’s rule of
+five” names a rule but requires a computation). This tier tests whether
+supplying the channel definitions improves <em>routing judgment</em>
+rather than keyword matching.</p>
 <h2 id="methods">4. Methods</h2>
 <p>One deterministic scorer grades an exact channel match (the gold
 channel or a listed acceptable alternative), reported overall, per
@@ -353,34 +365,159 @@ model direct (grey) and with channel definitions (blue); the dashed line
 is the non-model keyword baseline (0.80).</p>
 <p>Three findings:</p>
 <ol type="1">
-<li><strong>The task has strong lexical signal.</strong> The non-model
-keyword baseline reaches <strong>0.80 overall</strong> (0.82 on the
-drug-development subset). Direct models span 0.75–0.91; the strongest
-frontier models exceed the keyword baseline, while weaker models sit at
-or below it. The task is therefore not adversarially hard, and
-direct-model accuracy is not dominated by a keyword classifier for every
-model — a distinction we do not establish as statistically significant
-at this sample size (84 items; one error ≈ 1.2 percentage points
-overall).</li>
-<li><strong>Direct models cluster with the keyword baseline</strong>
+<li><p><strong>The task has strong lexical signal.</strong> The
+non-model keyword baseline reaches <strong>0.80 overall</strong> (0.82
+on the drug-development subset). Direct models span 0.75–0.91; the
+strongest frontier models exceed the keyword baseline, while weaker
+models sit at or below it. The task is therefore not adversarially hard,
+and direct-model accuracy is not dominated by a keyword classifier for
+every model — a distinction we do not establish as statistically
+significant at this sample size (84 items; one error ≈ 1.2 percentage
+points overall).</p></li>
+<li><p><strong>Direct models cluster with the keyword baseline</strong>
 (0.75–0.91), from the smallest open model to the strongest frontier
-model.</li>
-<li><strong>The channel definitions drive the gain.</strong> With
+model.</p></li>
+<li><p><strong>The channel definitions drive the gain.</strong> With
 definitions, every model moves into the <strong>0.96–1.00</strong> band;
 the gain is largest for the smallest model (0.75 → 0.96, +0.21) and
 smallest for the strongest frontier model (0.91 → 1.00, +0.10). The
 pattern is a headroom effect (weaker models have more room), not an
-asserted inverse-scaling mechanism. Per-channel, five of seven channels
-reach perfect routing with definitions; the residual confusion is “find
-a tool” versus “synthesize literature” (recommend a method vs. review
-the evidence).</li>
+asserted inverse-scaling mechanism.</p></li>
+<li><p><strong>The gain generalizes to the held-out challenge
+tier.</strong> On the 49 harder items, direct accuracy falls relative to
+the core set (reflecting the paraphrase and confounder design), and the
+channel definitions restore it to the top band: Claude Opus 5 moves
+0.939 → 1.000 and Gemini 3.1 Pro 0.878 → 1.000, with the dividend
+<em>preserved or larger</em> than on the core set (Gemini +0.122 on
+held-out vs. +0.095 on core). Because these items avoid the core’s
+characteristic verbs and include surface-cue traps, the improvement is
+not attributable to keyword matching alone.</p></li>
 </ol>
+<p><strong>Table 2 | Per-channel accuracy and confusion, on-premises
+model with definitions (n = 12 per channel).</strong> Rows are the gold
+channel; columns are the predicted channel. Five of seven channels are
+perfect; the residual error is “find a tool” misrouted to “synthesize
+literature,” plus one “run a pipeline” misrouted to “execute a
+computation.”</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 11%" />
+<col style="width: 11%" />
+<col style="width: 11%" />
+<col style="width: 11%" />
+<col style="width: 11%" />
+<col style="width: 11%" />
+<col style="width: 11%" />
+<col style="width: 11%" />
+</colgroup>
+<thead>
+<tr>
+<th>gold  predicted</th>
+<th>pipeline</th>
+<th>tool</th>
+<th>database</th>
+<th>literature</th>
+<th>code</th>
+<th>knowledge</th>
+<th>dataset</th>
+<th>acc.</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Run a pipeline</td>
+<td>11</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>1</td>
+<td>·</td>
+<td>·</td>
+<td>11/12</td>
+</tr>
+<tr>
+<td>Find a tool</td>
+<td>·</td>
+<td>9</td>
+<td>·</td>
+<td>3</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>10/12†</td>
+</tr>
+<tr>
+<td>Query a database</td>
+<td>·</td>
+<td>·</td>
+<td>12</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>12/12</td>
+</tr>
+<tr>
+<td>Synthesize literature</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>12</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>12/12</td>
+</tr>
+<tr>
+<td>Execute a computation</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>12</td>
+<td>·</td>
+<td>·</td>
+<td>12/12</td>
+</tr>
+<tr>
+<td>Answer from knowledge</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>12</td>
+<td>·</td>
+<td>12/12</td>
+</tr>
+<tr>
+<td>Fetch a dataset</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>·</td>
+<td>12</td>
+<td>12/12</td>
+</tr>
+</tbody>
+</table>
+<p>†One of the three “find a tool → synthesize literature” items is
+credited by an acceptable-alternative label (a request that is genuinely
+answerable either way), giving 10/12 scored. Overall: 81/84 = 0.964.
+Without the definitions, errors are more diffuse and concentrate on
+channel <em>vocabulary</em> (non-answers, and workflow↔︎code-execution
+confusion).</p>
 <h2 id="limitations">6. Limitations</h2>
 <ul>
-<li><strong>Seed scale.</strong> 84 items balanced across seven channels
-is a seed set, not evidence of production channel prevalence; the
-acceptable-alternatives labels are author-specified and would benefit
-from independent, blinded adjudication.</li>
+<li><strong>Scale and labeling.</strong> The core (84) plus held-out
+challenge tier (49) is 133 items — larger than a seed set and now with
+an explicit generalization test, but still modest and not evidence of
+production channel prevalence; the acceptable-alternatives labels are
+author-specified and would benefit from independent, blinded
+adjudication.</li>
 <li><strong>Policy, not universal truth.</strong> The benchmark measures
 adherence to a stated resource-routing policy; some items are
 legitimately policy-dependent, and we flag them rather than assert a
@@ -408,11 +545,12 @@ that correct stage-1 routing is a prerequisite for downstream task
 completion; the present data measure routing accuracy, not downstream
 completion, and do not establish that conjecture.</p>
 <h2 id="data-and-code-availability">8. Data and code availability</h2>
-<p>The 84 items, their gold channels and acceptable-alternative labels,
-the deterministic scorer, the non-model keyword baseline, the
-matched-protocol runner, the exact prompts, and the complete per-item
-predictions are released under CC-BY-4.0 at [repository URL — to be
-added], archived at [DOI — to be added].</p>
+<p>The 84 core items and 49 held-out challenge items, their gold
+channels and acceptable-alternative labels, the deterministic scorer,
+the non-model keyword baseline, the matched-protocol runner, the exact
+prompts, and the complete per-item predictions are released under
+CC-BY-4.0 at [repository URL — to be added], archived at [DOI — to be
+added].</p>
 <h2 id="ethics-and-intended-use">Ethics and intended use</h2>
 <p>The benchmark contains no human-subjects data; all items are
 synthetic requests authored for this benchmark. It measures adherence to

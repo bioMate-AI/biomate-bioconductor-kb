@@ -263,16 +263,30 @@ mechanistic reference. The cross-stage, execution-grounded track (bottom
 band) is designed and piloted, reported here as a roadmap.</p>
 <h2 id="scope-and-honesty-statement">2. Scope and honesty statement</h2>
 <p>This version reports the <strong>measured</strong> decision tasks:
-Phase-I dose selection (20 scenarios) and pharmacokinetic exposure
-prediction (15 compounds). The single-stage prediction tracks (property,
-docking, binding free energy, structure–activity modeling, synthesis)
-exist in the benchmark to position against external work and are not the
-headline. The <strong>cross-stage execution-grounded track is designed
-and piloted but not yet scored across a model roster</strong>; we
-present it as the benchmark’s roadmap and do not report it as a result.
-This scoping is deliberate: we would rather publish the
-mechanistically-anchored decision tasks we can defend than claim an
-execution-grounded capability we have not yet measured.</p>
+Phase-I dose selection (<strong>40 scenarios</strong>) and
+pharmacokinetic exposure prediction (<strong>30 compounds</strong>).
+Each task has two tiers. The <strong>hand-authored tier</strong> (20
+dose scenarios, 15 compounds) is the set used for the
+oracle-versus-model comparison in §5. The <strong>generated
+tier</strong> (20 dose scenarios, 15 compounds) is produced from
+explicit models so that the ground truth is internally consistent: each
+dose scenario draws pharmacokinetic and Emax exposure–response
+parameters, derives the per-dose toxicity curve from those inputs, and
+sets the gold maximum tolerated dose by the <em>same</em> selection rule
+used for scoring — so the generated scenarios are mechanistically
+coherent and, by construction, free of the target-definition mismatch
+present in three hand-authored items (§5.1). Each generated PK compound
+draws physicochemical and volume parameters and sets a one-compartment
+modeled reference concentration. The generated tier therefore expands
+the <strong>language-model</strong> evaluation (the oracle is trivially
+correct on it by construction) and removes label-definition ambiguity,
+while the hand-authored tier carries the oracle-versus-model contrast.
+The single-stage prediction tracks (property, docking, binding free
+energy, structure–activity modeling, synthesis) exist to position
+against external work and are not the headline. The <strong>cross-stage
+execution-grounded track is designed and piloted but not yet scored
+across a model roster</strong>; we present it as the benchmark’s
+roadmap, not a result.</p>
 <h2 id="related-work-and-positioning">3. Related work and
 positioning</h2>
 <p><strong>Single-stage prediction with leakage-aware design.</strong>
@@ -472,10 +486,13 @@ different failures, and scoring the outcome end-to-end
 that computes the answer from one that guesses it.</p>
 <h2 id="limitations">6. Limitations</h2>
 <ul>
-<li><strong>Statistical power.</strong> The two measured tasks have 20
-and 15 items; we report them as decision probes with the mechanistic
-anchor, not as high-precision model rankings, and we do not pool
-heterogeneous micro-tasks to manufacture power.</li>
+<li><strong>Statistical power.</strong> Each task now has 40 and 30
+items (a hand-authored tier and a generated tier); this is larger than a
+single-tier pilot but still modest, and we report the tasks as decision
+probes with the mechanistic anchor, not high-precision model rankings.
+The generated tier reduces label-definition ambiguity by construction
+but does not substitute for an independently-authored,
+externally-adjudicated test set.</li>
 <li><strong>No wet-lab ground truth.</strong> Exposure and toxicity
 references are modeled; we are explicit that modeled references are not
 experimental validity.</li>
@@ -498,10 +515,11 @@ selection, language models trail the oracle selection rule by a wide
 margin; interpreting this requires first fixing the decision policy
 (target toxicity, tie-handling, no-safe-dose criteria), since the oracle
 itself disagrees with three of the author-defined answers. We release
-the items, references, scorers, and the mechanistic baseline so every
-number can be reproduced and contested, and we present the result as an
-initial methodological demonstration on 20 dose scenarios and 15
-compounds, not a broad benchmark claim.</p>
+the items, references, scorers, generators, and the mechanistic baseline
+so every number can be reproduced and contested, and we present the
+result as an initial methodological demonstration on 40 dose scenarios
+and 30 compounds (a hand-authored and a generated tier each), not a
+broad benchmark claim.</p>
 <h2 id="data-and-code-availability">8. Data and code availability</h2>
 <p>The dose scenarios and PK compounds, their references, the
 deterministic scorers, the mechanistic dose-selection baseline (with its

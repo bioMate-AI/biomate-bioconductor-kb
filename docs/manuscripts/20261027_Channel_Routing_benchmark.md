@@ -8,7 +8,7 @@
 
 **Keywords:** benchmark; biomedical AI agents; intent routing; resource selection; policy adherence; language-model evaluation.
 
-> **Scope.** This is a deliberately small **pilot** benchmark (84 items) that measures **adherence to a specified seven-channel resource-routing policy**, not the discovery of an intrinsically correct resource taxonomy. Its size supports a proof-of-concept and a matched ablation, not a definitive ranking; per-channel accuracy moves 8.3 points per item, so differences within the plus-definitions band are not individually significant.
+> **Scope.** This benchmark measures **adherence to a specified seven-channel resource-routing policy**, not the discovery of an intrinsically correct resource taxonomy. It comprises a **balanced 84-item core** (12 per channel) and a separately-authored **49-item held-out challenge tier** (paraphrases, lexical confounders, and boundary cases) used to test whether the measured gain generalizes beyond surface vocabulary — 133 items in total. Per-channel differences within the plus-definitions band are not individually significant at this size and are not interpreted as a model ranking.
 
 ---
 
@@ -59,7 +59,9 @@ drug discovery), we treat the non-model baseline as a required reference, not an
 | Answer from knowledge | a direct factual/conceptual answer needing no tool |
 | Fetch a dataset | find or retrieve an existing dataset or accession |
 
-**Composition.** 84 items, 12 per channel (balanced), **64% drug-development** queries spanning every channel, the remainder cross-domain (transcriptomics, variant analysis, single-cell, proteomics, genomics, clinical, metagenomics, immunology) for breadth. Genuinely ambiguous items carry author-specified acceptable alternatives. The benchmark measures **adherence to a stated resource-routing policy** grounded in a deployed agent; where a request is legitimately policy-dependent (a factual question that could be answered from memory or verified against a database), the acceptable-alternatives mechanism records that, and independent adjudication of those items is planned.
+**Core set.** 84 items, 12 per channel (balanced), **64% drug-development** queries spanning every channel, the remainder cross-domain (transcriptomics, variant analysis, single-cell, proteomics, genomics, clinical, metagenomics, immunology) for breadth. Genuinely ambiguous items carry author-specified acceptable alternatives. The benchmark measures **adherence to a stated resource-routing policy** grounded in a deployed agent; where a request is legitimately policy-dependent (a factual question that could be answered from memory or verified against a database), the acceptable-alternatives mechanism records that, and independent adjudication of those items is planned.
+
+**Held-out challenge tier.** A further 49 items (7 per channel), authored separately, deliberately stress generalization: 34 are paraphrases that avoid the core items' characteristic verbs, and 15 are lexical confounders or boundary cases whose surface cues point to the wrong channel (for example, "What does the nf-core/rnaseq pipeline actually do, conceptually?" has pipeline vocabulary but is a knowledge question; "Count how many of these 300 compounds pass Lipinski's rule of five" names a rule but requires a computation). This tier tests whether supplying the channel definitions improves *routing judgment* rather than keyword matching.
 
 ## 4. Methods
 
@@ -77,6 +79,8 @@ Three findings:
 2. **Direct models cluster with the keyword baseline** (0.75–0.91), from the smallest open model to the strongest frontier model.
 3. **The channel definitions drive the gain.** With definitions, every model moves into the **0.96–1.00** band; the gain is largest for the smallest model (0.75 → 0.96, +0.21) and smallest for the strongest frontier model (0.91 → 1.00, +0.10). The pattern is a headroom effect (weaker models have more room), not an asserted inverse-scaling mechanism.
 
+4. **The gain generalizes to the held-out challenge tier.** On the 49 harder items, direct accuracy falls relative to the core set (reflecting the paraphrase and confounder design), and the channel definitions restore it to the top band: Claude Opus 5 moves 0.939 → 1.000 and Gemini 3.1 Pro 0.878 → 1.000, with the dividend *preserved or larger* than on the core set (Gemini +0.122 on held-out vs. +0.095 on core). Because these items avoid the core's characteristic verbs and include surface-cue traps, the improvement is not attributable to keyword matching alone.
+
 **Table 2 | Per-channel accuracy and confusion, on-premises model with definitions (n = 12 per channel).** Rows are the gold channel; columns are the predicted channel. Five of seven channels are perfect; the residual error is "find a tool" misrouted to "synthesize literature," plus one "run a pipeline" misrouted to "execute a computation."
 
 | gold \ predicted | pipeline | tool | database | literature | code | knowledge | dataset | acc. |
@@ -93,7 +97,7 @@ Three findings:
 
 ## 6. Limitations
 
-- **Seed scale.** 84 items balanced across seven channels is a seed set, not evidence of production channel prevalence; the acceptable-alternatives labels are author-specified and would benefit from independent, blinded adjudication.
+- **Scale and labeling.** The core (84) plus held-out challenge tier (49) is 133 items — larger than a seed set and now with an explicit generalization test, but still modest and not evidence of production channel prevalence; the acceptable-alternatives labels are author-specified and would benefit from independent, blinded adjudication.
 - **Policy, not universal truth.** The benchmark measures adherence to a stated resource-routing policy; some items are legitimately policy-dependent, and we flag them rather than assert a single correct destination.
 - **Single-intent.** Each item has one primary channel; genuinely multi-intent requests are a planned extension.
 - **Scope of the gain.** "Supplying definitions helps" is a result about explicit task specification; it should not be read as a general claim that a knowledge layer confers intelligence.
@@ -105,7 +109,7 @@ Resource-channel routing is an early decision that determines which subsystem a 
 
 ## 8. Data and code availability
 
-The 84 items, their gold channels and acceptable-alternative labels, the deterministic scorer, the non-model keyword baseline, the matched-protocol runner, the exact prompts, and the complete per-item predictions are released under CC-BY-4.0 at [repository URL — to be added], archived at [DOI — to be added].
+The 84 core items and 49 held-out challenge items, their gold channels and acceptable-alternative labels, the deterministic scorer, the non-model keyword baseline, the matched-protocol runner, the exact prompts, and the complete per-item predictions are released under CC-BY-4.0 at [repository URL — to be added], archived at [DOI — to be added].
 
 ## Ethics and intended use
 
