@@ -57,5 +57,49 @@ Scope: PAMPA permeability (CycPeptMPDB) and the analysis-I binding set only; no 
 **Consequence for the registered claims.** F2 is the PRIMARY fusion for the kill criteria of §5; F1 is reported as the pre-registered original and labelled "failed planted control (i)"; no result is selected by looking at real data. Hypothesis (a) is evaluated empirically on real data for F2 (and F1); it cannot hold in all worlds (see control (i)). All other registrations (data, n0 = 5, eligibility, arms, metrics, kill thresholds, shuffled-label control, audit steps) are unchanged.
 
 ---
-## RESULTS
-(appended after the pre-registration commit)
+## RESULTS (appended after pre-registration commit 855209794 and amendment A1 commit eab45dfa5; code and artefacts in `research/guangzhou_all_atom/cyclic_llm/technique_sprint/fusion/`)
+
+### R1 Controls and audit
+- **Planted-signal controls (synthetic, 20 seeds):** F1 FAILED registered control 6.1(i) (prior-only world, k=5: 0.571 vs threshold 0.573; k=10 0.428; k=25 0.181; prior alone 0.717) → amendment A1; F2 passes all three worlds; controls (ii), (iii) and the reliability functions (`reliability_perm`: informative 0.79 vs random 0.20; `reliability_nn`: 0.90 vs 0.21) pass.
+- **Independent brute-force audit (3 cells; pure-python loops + RDKit BulkTanimoto):** worst |difference| 5.6e-17 for K, A, F1, F2 and the reliability r (first attempts showed 1–4e-6; causes: float32 Tanimoto, and 1-ulp float noise breaking exact mathematical ties differently; fixed by float64 and rounding scores to 10 decimals before ranking in both implementations). Binding: my NN and PT arms reproduce the frozen `h4b_per_target.csv` AUROC and EF5 with max |diff| = 0.0 (640 and 686 cells).
+- **Shuffled-label control (permeability, 5 shuffles):** A, F1_5, F2_5 pass (all |mean| ≤ 0.03, CI contains 0 at every k; e.g. k=25: A +0.018, F1 +0.019, F2 +0.021). The prior K is non-constant in only 2–4 labs after shuffling (spurious rules rarely activate), so a dedicated control with 40 shuffles was run (`k_null_control.py`): K non-constant in 55/840 (shuffle, lab) rows (11 shuffles); pooled mean ρ = +0.015; mean of shuffle means −0.033, 95 % shuffle-bootstrap CI [−0.089, +0.019] (contains 0; the −0.033 narrowly exceeds the ±0.03 magnitude rule on this aggregation, the pooled mean does not). No evidence of leakage; low information.
+
+### R2 Testbed 1 — permeability leave-labs-out few-label (CycPeptMPDB; labs with ≥ 20 peptides; 5 seeds; sibling-excluded; n0 = 5)
+Mean within-lab Spearman across labs [95 % lab-bootstrap CI]; labs per k = 17 / 15 / 9.
+| k | K (prior) | A (analog) | F1 (as registered) | F2 (A1, primary) | F1 − best component | F2 − best component |
+|---|---|---|---|---|---|---|
+| 5 | 0.261 [0.129, 0.391] | 0.227 [0.139, 0.323] | 0.301 [0.208, 0.400] | 0.302 [0.187, 0.415] | +0.041 [−0.044, 0.142] (best = K) | +0.041 [−0.001, 0.091] |
+| 10 | 0.212 [0.080, 0.354] | 0.309 [0.204, 0.419] | 0.350 [0.242, 0.462] | 0.336 [0.226, 0.458] | +0.041 [−0.002, 0.084] (best = A) | +0.027 [−0.066, 0.115] |
+| 25 | 0.180 [0.028, 0.329] | 0.333 [0.267, 0.404] | 0.364 [0.288, 0.450] | 0.329 [0.217, 0.447] | **+0.031 [0.007, 0.055]** (best = A) | −0.004 [−0.105, 0.074] |
+- Sensitivity: sibling-inclusive (stereo/flat siblings of revealed items left in): F1 0.319 / 0.358 / 0.402 vs K 0.270 / 0.218 / 0.200 and A 0.243 / 0.319 / 0.372 (same ordering). n0 grid for F1 (k = 5/10/25): n0=1 0.265/0.329/0.338, 2 0.282/0.340/0.345, 5 0.301/0.350/0.364, 10 0.300/0.351/0.372, 25 0.287/0.305/0.355 (flat, no best-of-grid claim). Descriptive weight curve (F1 form): maximum at w ≈ 0.6 (k=5; 0.307), 0.4 (k=10; 0.353), 0.3–0.4 (k=25; 0.373) — i.e. an interior optimum above both components at every k in the point estimates.
+- Secondary nested-CV n0 (chosen 10 for 14 labs, 25 for 3): F1 − best = +0.036 [−0.022, 0.104] / +0.029 [−0.049, 0.106] / +0.008 [−0.060, 0.069]; F2 = +0.026 [−0.004, 0.060] / −0.008 / −0.052.
+- Multiplicity (3 k tested): F1 at k=25, Bonferroni 98.3 % CI [0.003, 0.061]; positive in 6/9 labs (Townsend +0.052, Kelly +0.078, Ohta +0.053, Taechalertpaisarn +0.093, Bhardwaj +0.022, CHUGAI +0.008; negative: Furukawa −0.007, Naylor −0.010, Faris −0.014). Lab-level heterogeneity is large at k=5 (−0.19 to +0.67).
+
+### R3 Testbed 2 — binding few-label H4b on analysis I (45 / 44 / 39 targets, 26 / 25 / 21 families at k = 5 / 10 / 25; 5 seeds)
+AUROC family-mean [95 % family bootstrap]; prior P_B = logistic regression on typicality-free proxies (zero-shot AUROC 0.595 [0.551, 0.635]; frozen PT 0.539 [0.478, 0.605]); gate controls C1/C2/C3 at k = 5: 0.512/0.564/0.587; k=10: 0.518/0.564/0.567; k=25: 0.499/0.527/0.595.
+| k | NN (strongest baseline) | F1(P_B, NN) | F2(P_B, NN) | F1 − NN | F2 − NN | F1(PT, NN) − NN |
+|---|---|---|---|---|---|---|
+| 5 | 0.753 [0.715, 0.789] | 0.744 [0.706, 0.780] | 0.697 [0.653, 0.739] | −0.009 [−0.029, 0.013] | −0.056 [−0.086, −0.025] | −0.049 [−0.076, −0.020] |
+| 10 | 0.822 [0.784, 0.856] | 0.818 [0.779, 0.853] | 0.779 [0.735, 0.819] | −0.003 [−0.017, 0.012] | −0.042 [−0.064, −0.021] | −0.024 [−0.036, −0.012] |
+| 25 | 0.869 [0.835, 0.899] | 0.875 [0.839, 0.906] | 0.866 [0.825, 0.900] | +0.005 [−0.000, 0.011] | −0.004 [−0.016, 0.007] | −0.002 [−0.008, 0.004] |
+- Gain over the arm's own k = 0 value is large (F1(P_B): +0.149 / +0.225 / +0.295) but equals the analog-lookup gain (NN itself). Contamination-controlled subset (official `run_s3.py --k`): F1(P_B) − NN = −0.035 [−0.095, 0.027] / −0.029 [−0.082, 0.020] / −0.038 [−0.110, 0.025]; F2(P_B) − NN = −0.076 [−0.149, 0.002] / −0.075 [−0.147, −0.007] / −0.045 [−0.112, 0.017]. The plug-in reproduces the all-items numbers exactly.
+- Validity: the gate is INVALID for analysis I at every k (C3 above chance); P_B is a compound-only learned prior, the same information class as control C2, so no arm here is described as validated.
+
+### R4 Registered outcomes
+| testbed / variant | (a) non-inferior at every k (point ≥ −0.03) | (b) better than best single component at some k (≥ +0.02 and CI lower bound > 0) | outcome |
+|---|---|---|---|
+| Permeability, **F2 (primary, A1)** | yes (+0.041, +0.027, −0.004) | **no** (k=5: lower bound −0.001; k=10: −0.066; k=25: −0.105) | **NULL (not detected)** |
+| Permeability, F1 (as registered; failed planted control (i)) | yes | yes at k=25 only (+0.031 [0.007, 0.055]) | SUPPORTED by the letter of the rule, but F1 is not primary; fragile (nested-n0 version +0.008 [−0.06, 0.07]; 9 labs; best component chosen on the evaluation labs) |
+| Binding, **F2(P_B, NN) (primary)** | **no** (k=5 −0.056, k=10 −0.042) | no | **FAILED** |
+| Binding, F1(P_B, NN) | yes (−0.009, −0.003, +0.005) | no (k=25 +0.005 < 0.02) | PARTIAL ((a) only) |
+
+### R5 What this supports and does not
+- In permeability the prior and the analog component are complementary in the point estimates at every k (fusion above both components by about 0.03–0.04 Spearman over a broad range of w), but with 9–17 labs the registered primary test (F2) does not detect it; F1 clears the rule at one of three k with a lower bound of 0.007. Treat as suggestive, not demonstrated.
+- In binding the analog lookup (NN) already carries the signal; a compound-only prior (zero-shot AUROC 0.595) adds nothing at any k, and the reliability weighting hurts because leave-one-out reliability from k ≤ 25 revealed items underestimates the analog component's reliability (r shrinks toward 0.5).
+- The planted-signal result is a property of the idea, not just the code: a k-only weight cannot know that the analog component is uninformative; any reliability estimate from a handful of revealed items is noisy.
+
+### R6 Errors found in my own work (all fixed or disclosed)
+(1) The registered formula F1 failed its own planted control (disclosed, A1). (2) Float32 Tanimoto and 1-ulp tie breaking caused 1–4e-6 audit differences (fixed). (3) Eligibility guard missing for labs smaller than k (crash; fixed before any result). (4) macOS `sed -i` misuse (no effect). (5) The first K shuffled-label summary rested on 2–4 labs; replaced by the dedicated 40-shuffle control. (6) First F2 controls were defined after the test runner and did not run until the runner was moved (no result affected).
+
+### R7 Gaps
+Pretrained-GBM baselines (RF on revealed, PT, PT+k) for the permeability testbed are computed in the full run (`perm_cells.csv`) and appended below if finished; independent audit covered 3 cells; the binding prior is not mined "knowledge"; no multiplicity rule was registered (Bonferroni view given as descriptive); F1/F2 choice and n0 = 5 were fixed before real data but F2's constants were tuned on synthetic worlds; permeability power is limited (9–17 labs, heavy lab heterogeneity).
