@@ -131,6 +131,12 @@ export function DatasetObject({
   const [versionsOpened, setVersionsOpened] = useState(false)
   const [previewView, setPreviewView] = useState<PreviewView>("table")
   const [tab, setTab] = useState<"preview" | "versions" | "wherefrom">("preview")
+  // Make the preview table manipulable (sort + filter) on the fetched sample — the
+  // feasible client-side slice of "data manipulable wherever feasible". Full-dataset
+  // sort/paging stays the table-viewer path.
+  const [sortCol, setSortCol] = useState<number | null>(null)
+  const [sortAsc, setSortAsc] = useState(true)
+  const [filterText, setFilterText] = useState("")
 
   // Preview is the default tab and needs the profile (columns + sample rows), so
   // profiling runs when the object opens.
@@ -316,26 +322,54 @@ export function DatasetObject({
 
             {previewView === "table" && (
               profile?.columns?.length && profile.sampleRows?.length ? (
+                (() => {
+                  const cols = profile.columns!
+                  const q = filterText.trim().toLowerCase()
+                  let rows = profile.sampleRows!.filter(
+                    (r) => !q || r.some((c) => String(c ?? "").toLowerCase().includes(q)),
+                  )
+                  if (sortCol !== null) {
+                    rows = rows.slice().sort((a, b) => {
+                      const av = a[sortCol] ?? "", bv = b[sortCol] ?? ""
+                      const an = Number(av), bn = Number(bv)
+                      const cmp =
+                        av !== "" && bv !== "" && Number.isFinite(an) && Number.isFinite(bn)
+                          ? an - bn
+                          : String(av).localeCompare(String(bv))
+                      return sortAsc ? cmp : -cmp
+                    })
+                  }
+                  return (
                 <div className="space-y-1" data-testid="dataset-preview-table">
+                  <input
+                    value={filterText}
+                    onChange={(e) => setFilterText(e.target.value)}
+                    placeholder="Filter rows…"
+                    data-testid="dataset-preview-filter"
+                    className="w-full rounded border bg-background px-2 py-1 text-xs mb-1"
+                  />
                   <div className="overflow-x-auto rounded border">
                     <table className="w-full border-collapse text-sm">
                       <thead>
                         <tr style={{ background: 'var(--bm-accent-soft)' }}>
-                          {profile.columns.map((c, i) => (
+                          {cols.map((c, i) => (
                             <th
                               key={i}
-                              className="whitespace-nowrap px-2 py-1 text-left font-semibold border-b"
+                              onClick={() => { if (sortCol === i) { setSortAsc((a) => !a) } else { setSortCol(i); setSortAsc(true) } }}
+                              data-testid={`dataset-col-sort-${i}`}
+                              title="Sort by this column"
+                              className="whitespace-nowrap px-2 py-1 text-left font-semibold border-b cursor-pointer select-none"
                               style={{ color: 'var(--bm-accent-ink)' }}
                             >
-                              {c}
+                              {c}{sortCol === i ? (sortAsc ? ' ▲' : ' ▼') : ''}
                             </th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {profile.sampleRows.map((r, ri) => (
+                        {rows.map((r, ri) => (
                           <tr key={ri} className="odd:bg-muted/20">
-                            {profile.columns!.map((_, ci) => (
+                            {cols.map((_, ci) => (
                               <td key={ci} className="whitespace-nowrap px-2 py-0.5 font-mono border-b">
                                 {r[ci] ?? ""}
                               </td>
@@ -347,11 +381,13 @@ export function DatasetObject({
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {t('dataset_obj.preview_rows', {
-                      shown: profile.sampleRows.length,
+                      shown: rows.length,
                       of: shapeRows ? t('dataset_obj.rows_of', { total: shapeRows.toLocaleString() }) : "",
                     })}
                   </p>
                 </div>
+                  )
+                })()
               ) : isLoading ? (
                 <div className="space-y-2" data-testid="dataset-preview-loading">
                   <Skeleton className="h-16 w-full" />
