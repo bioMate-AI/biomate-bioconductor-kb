@@ -77,6 +77,13 @@ def test_fused_attention_matches_reference_causal_attention():
         ref = x + blk.proj((att @ v).transpose(1, 2).reshape(2, 9, 32)); ref = ref + blk.mlp(blk.ln2(ref)); out = blk(x)
     assert torch.allclose(out, ref, atol=1e-5), (out - ref).abs().max()
 
+def test_eval_callback_receives_model_and_step_at_checkpoints():
+    v = A.Vocab.build(MOLS); enc = [v.encode(s) for s in MOLS]; seen = []; d = tempfile.mkdtemp()
+    m = A.GPT(len(v), d=32, layers=1, heads=2, max_len=64)
+    A.train(m, enc, v, steps=20, batch_size=4, lr=1e-3, ckpt=os.path.join(d, "c.pt"), ckpt_every=10, on_eval=lambda mod, st: seen.append((st, mod.training, type(mod).__name__)), device="cpu")
+    assert [s for s, _, _ in seen] == [10, 20] and all(name == "GPT" for _, _, name in seen)
+    assert m.training                                                              # training mode restored after the callback
+
 if __name__ == "__main__":
     k = 0
     for n, f in sorted(globals().items()):

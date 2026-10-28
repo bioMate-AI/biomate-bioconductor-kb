@@ -31,16 +31,21 @@ def main():
         if len(e) <= a.max_len: enc.append(np.array(e, np.int16)); keep.append(s)
     with mp.get_context("fork").Pool(a.procs) as p: macro = np.array(p.map(_macro, keep, chunksize=5000))
     print("encoded", len(enc), "macrocycles", int(macro.sum()), f"({time.time()-t0:.0f}s)", flush=True)
+    nval = 0 if a.bench else 5000; val = enc[-nval:] if nval else []; enc, macro = (enc[:-nval], macro[:-nval]) if nval else (enc, macro)         # fixed validation tail, never trained on
     w = A.sampling_weights(macro, a.upsample); json.dump(vocab.itos, open(f"{a.out}/vocab.json", "w"))
+    if a.s3 and not a.bench: subprocess.run(["aws", "s3", "cp", f"{a.out}/vocab.json", f"{a.s3}/vocab.json", "--only-show-errors"])
     model = A.GPT(len(vocab), d=a.d, layers=a.layers, heads=a.heads, max_len=a.max_len); npar = sum(p.numel() for p in model.parameters()); print("params", npar, "device", dev, flush=True)
     ck = f"{a.out}/ckpt.pt"
     if a.s3 and not a.bench: subprocess.run(["aws", "s3", "cp", f"{a.s3}/ckpt.pt", ck, "--only-show-errors"], capture_output=True)
     resume = os.path.exists(ck) and not a.bench
+    val_l = [e.astype(np.int64).tolist() for e in val]
+    def ev(mod, step):
+        if val_l: print(f"VAL step {step} loss {A.eval_loss(mod, val_l, vocab, dev):.4f}", flush=True)
     def up(path, step):
         if a.s3 and not a.bench: subprocess.run(["aws", "s3", "cp", path, f"{a.s3}/ckpt.pt", "--only-show-errors"]); print("uploaded ckpt step", step, flush=True)
     steps = 150 if a.bench else a.steps; enc_l = [e.astype(np.int64).tolist() for e in enc] if len(enc) <= 300000 else [e.tolist() for e in enc]
     torch.cuda.reset_peak_memory_stats() if dev == "cuda" else None; t1 = time.time()
-    A.train(model, enc_l, vocab, steps=steps, batch_size=a.batch, lr=a.lr, seed=0, ckpt=ck, ckpt_every=a.ckpt_every, resume=resume, device=dev, weights=w, log_every=25 if a.bench else 200, amp=True, on_ckpt=up, pool_mult=32)
+    A.train(model, enc_l, vocab, steps=steps, batch_size=a.batch, lr=a.lr, seed=0, ckpt=ck, ckpt_every=a.ckpt_every, resume=resume, device=dev, weights=w, log_every=25 if a.bench else 200, amp=True, on_ckpt=up, pool_mult=32, on_eval=ev)
     dt = time.time() - t1; mean_len = float(np.mean([len(e) for e in enc[:20000]])); tok = steps * a.batch * mean_len
     info = dict(params=npar, device=dev, steps=steps, seconds=round(dt, 1), sec_per_step=round(dt / steps, 4), approx_tokens_per_sec=round(tok / dt), mean_len=round(mean_len, 1), peak_mem_gb=round(torch.cuda.max_memory_allocated() / 1e9, 2) if dev == "cuda" else None,
                 n_molecules=len(enc), n_macrocycles=int(macro.sum()))
