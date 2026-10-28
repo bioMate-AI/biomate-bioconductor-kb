@@ -145,6 +145,10 @@ services:
   # 管理界面: http://<host>:9001  (MINIO_ROOT_USER / MINIO_ROOT_PASSWORD)
   minio:
     image: ${BIOMATE_MINIO_IMAGE:-ghcr.io/biomate-ai/minio:latest}
+    # Force linux/amd64: MinIO custom image may be x86-only. See note on
+    # galaxy-backend for why this is needed on ARM64 hosts when
+    # DOCKER_DEFAULT_PLATFORM=linux/arm64 is set in .env.
+    platform: linux/amd64
     container_name: biomate-minio
     command: server /data --console-address ":9001"
     environment:
@@ -213,6 +217,13 @@ services:
   # ── Galaxy AI Backend ───────────────────────────────────────────────────────
   galaxy-backend:
     image: ${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}
+    # Force linux/amd64 so compose uses the x86 image on ARM64 hosts regardless
+    # of DOCKER_DEFAULT_PLATFORM set in .env (which would otherwise be applied
+    # globally and break image resolution for x86-only ECR images).
+    # DOCKER_DEFAULT_PLATFORM=linux/arm64 is still passed as an ENV VAR inside
+    # the container (see environment block below) so that Nextflow task containers
+    # launched via Docker socket use native ARM64 images on Graviton2 hosts.
+    platform: linux/amd64
     container_name: biomate-galaxy
     # Use /bin/sh -c as entrypoint so the command runs as a shell string.
     # This lets us add a safety-net before gunicorn: if galaxy.yml is missing from
@@ -401,6 +412,9 @@ services:
   # ── 前端 (Node.js + React) ────────────────────────────────────────────────
   frontend:
     image: ${BIOMATE_FRONTEND_IMAGE:-ghcr.io/biomate-ai/biomate-frontend:latest}
+    # Force linux/amd64: the frontend ECR image is x86-only. See note on
+    # galaxy-backend above for why this override is needed on ARM64 hosts.
+    platform: linux/amd64
     container_name: biomate-frontend
     ports:
       - "${FRONTEND_PORT:-5000}:3000"
