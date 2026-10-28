@@ -39,7 +39,7 @@ def control_auc(items, tfam, values: pd.Series, level):
     r = _family_ci(pd.DataFrame(rows), tfam, level); r["items_used_frac"] = round(len(it) / max(n0, 1), 3); return r
 
 
-def multi_proxy_scores(items, tfam, prox, folds):
+def multi_proxy_scores(items, tfam, prox, folds, flat=None, excl=None):
     """Leave-fold-out logistic regression on all proxies; returns a score per (target_key, compound_id) as a DataFrame."""
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler
@@ -48,6 +48,7 @@ def multi_proxy_scores(items, tfam, prox, folds):
     out = []
     for f in sorted(it.fold.unique()):
         tr = it[it.fold != f]; te = it[it.fold == f]
+        if excl is not None: tr = tr[~tr.compound_id.map(flat).isin(excl[f])]               # A10 V-T: training rows must not share a structure with the held-out fold
         if tr.label.nunique() < 2 or len(tr) < 50: continue
         sc = StandardScaler().fit(X.loc[tr.compound_id].values)
         lr = LogisticRegression(C=0.1, max_iter=1000, class_weight="balanced").fit(sc.transform(X.loc[tr.compound_id].values), tr.label.values)
@@ -63,12 +64,13 @@ def fp_table(compound_ids):
     return pd.DataFrame({c: gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(C.loc[c, "iso_smiles"])).astype(np.float32) for c in sorted(set(compound_ids))}).T
 
 
-def fp_scores(items, tfam, FP, folds):
+def fp_scores(items, tfam, FP, folds, flat=None, excl=None):
     """C3: leave-fold-out logistic regression on Morgan count bits (chirality-free) -- NOT used for matching in M3, so it tests what matching did not balance."""
     from sklearn.linear_model import LogisticRegression
     it = items.copy(); it["fold"] = it.target_key.map(tfam.set_index("target_key").family).map(folds); out = []
     for f in sorted(it.fold.unique()):
         tr = it[it.fold != f]; te = it[it.fold == f]
+        if excl is not None: tr = tr[~tr.compound_id.map(flat).isin(excl[f])]
         if tr.label.nunique() < 2 or len(tr) < 50: continue
         Xtr = np.log1p(FP.loc[tr.compound_id].values); Xte = np.log1p(FP.loc[te.compound_id].values)
         lr = LogisticRegression(C=0.05, max_iter=1000, class_weight="balanced").fit(Xtr, tr.label.values)
@@ -76,11 +78,11 @@ def fp_scores(items, tfam, FP, folds):
     return pd.concat(out) if out else pd.DataFrame(columns=["target_key", "compound_id", "score"])
 
 
-def run_gate(items, tfam, prox, folds, B=10000, FP=None):
+def run_gate(items, tfam, prox, folds, B=10000, FP=None, flat=None, excl=None):
     res = {"primary": {}, "secondary": {}}
     n_sec = len(SECONDARY); adj = 1 - 0.05 / n_sec
     res["primary"]["C1_atomlm_typicality"] = control_auc(items, tfam, prox["typicality"], 0.95)
-    ms = multi_proxy_scores(items, tfam, prox, folds)
+    ms = multi_proxy_scores(items, tfam, prox, folds, flat=flat, excl=excl)
     if len(ms):
         rows = []                                                       # labels come from items for the same (target, compound)
         for t, g in ms.groupby("target_key"):
@@ -90,7 +92,7 @@ def run_gate(items, tfam, prox, folds, B=10000, FP=None):
     else:
         res["primary"]["C2_multiproxy_leave_fold_out"] = "not evaluable (too few training items)"
     if FP is None: FP = fp_table(items.compound_id)
-    fs = fp_scores(items, tfam, FP, folds)
+    fs = fp_scores(items, tfam, FP, folds, flat=flat, excl=excl)
     if len(fs):
         rows = []
         for t, g in fs.groupby("target_key"):
