@@ -120,11 +120,31 @@ induction loop we emphasize.
 (Schmidhuber, 2003) through scaffolding self-improvers — STOP (Zelikman et al.,
 2024), Promptbreeder (Fernando et al., 2024) — and weight-level self-rewarding
 language models (Yuan et al., 2024), to reflection/skill-library agents (Reflexion,
-Shinn et al., 2023; Voyager, Wang et al., 2023) and 2025 surveys of self-evolving
-agents, the recurring risk is reward inflation and drift when the improvement
-signal is not verifiable. Process-reward verification (Lightman et al., 2023) and
-RLVR are the antidotes. Our framework positions the verifiable guardrail as the
-substrate that makes the self-improvement loop safe to close (§7).
+Shinn et al., 2023; Voyager, Wang et al., 2023), a large recent open-source wave
+makes the loop concrete. The dominant 2025–2026 line replaces the Gödel machine's
+*provable* improvement with *empirically validated* improvement against a held-out
+benchmark: the **Darwin Gödel Machine** (Zhang et al., 2025; SWE-bench 20→50%,
+Polyglot 14→31%) evolves an archive of self-modified coding agents; the
+**Huxley-Gödel Machine** (2025) approximates the optimal self-improver; the
+**Self-Improving Coding Agent** (Robeyns et al., 2025) and **Gödel Agent** edit
+their own code. Workflow/harness-level self-evolution appears in **EvoAgentX**,
+**ADAS/Meta-Agent-Search** (Hu et al., 2024), **AFlow** (MCTS over workflow
+graphs), **OpenEvolve**, and the verifier-free **Harness2** (Google, 2026,
+Propose-Probe-Compose). **ScienceBuddy** (2026) is recursive-in-recursive (inner
+harness evolution, Val-gated; outer GRPO). Notably, the **Darwin–Gödel Drug
+Discovery Machine** (2025) ports this to our domain. The *universal* risk across
+all of them is reward inflation / benchmark leakage when the improvement signal is
+not verifiable or the evaluation is not firewalled; the empirical-validation and
+held-out-benchmark steps are precisely their safety mechanism. Process-reward
+verification (Lightman et al., 2023) and RLVR are the antidotes at the signal
+level. **Our contribution is complementary, not competitive:** these systems supply
+the self-improvement *engine* but, in coding, lean on ready-made verifiers
+(unit tests, SWE-bench); a scientific agent has no such off-the-shelf verifier, and
+the gate-family taxonomy (§4) is the **verifier substrate** such an engine needs in
+our domain. We previously dug and selectively adopted Harness2 and ScienceBuddy
+into a prototype self-improvement loop with an export-and-verify gate and a
+leakage-firewalled RSI scorer (§5); this paper supplies the missing domain verifier
+layer and the dual-use rule substrate that loop consumes.
 
 ## 3. Framework: three channels and the dual-use identity
 
@@ -386,6 +406,18 @@ is known it is included. To be completed to house style in the submission versio
 18. Ewels et al. **MultiQC: summarize analysis results for multiple tools and samples.** Bioinformatics, 2016.
 19. Ewels et al. **The nf-core framework for community-curated bioinformatics pipelines.** Nat. Biotechnol., 2020.
 20. Huang et al. **Therapeutics Data Commons (TDC).** 2021.
+21. Zhang, Hu, Lu, Lange, Clune. **Darwin Gödel Machine: Open-Ended Evolution of Self-Improving Agents.** 2025. arXiv:2505.22954.
+22. **Huxley-Gödel Machine: Human-Level Coding Agent Development by an Approximation of the Optimal Self-Improving Machine.** 2025. arXiv:2510.21614.
+23. Robeyns et al. **A Self-Improving Coding Agent (SICA).** 2025. arXiv:2504.15228. Code: github.com/MaximeRobeyns/self_improving_coding_agent.
+24. Hu et al. **Automated Design of Agentic Systems (ADAS / Meta-Agent-Search).** 2024.
+25. **AFlow: Automating Agentic Workflow Generation.** 2024.
+26. Wang et al. **EvoAgentX: Building a Self-Evolving Ecosystem of AI Agents.** 2025. arXiv:2507.03616. Code: github.com/EvoAgentX/EvoAgentX.
+27. **Harness2: verifier-free Propose-Probe-Compose harness self-improvement.** Google, 2026. arXiv:2610.14224 (Apache-2.0).
+28. **ScienceBuddy: recursive-in-recursive self-improvement.** 2026. arXiv:2609.17523 (MIT).
+29. **The Darwin–Gödel Drug Discovery Machine (DGDM): A Self-Improving AI Framework.** bioRxiv 2025.08.21.671415.
+
+*Prior internal RSI work this paper builds on (not for external version):*
+`docs/20261019_HARNESS2_DIG_AND_BIOMATE_FIT.md`, `docs/20261020_SCIENCEBUDDY_DIG_AND_BIOMATE_NECESSITY_AUDIT.md`, `docs/20261021_HARNESS2_SCIENCEBUDDY_RSI_HANDOFF.md`, `docs/20261022_MEMORY_RSI_ORCHESTRATION_AISCIENTIST_BENCHMARKS.md`; prototype loop in `grounded-prototype/research/`; the leakage-firewalled `evaluation/scorers/rsi_scorer.py`; the on-prem export-and-verify gate `evaluation/local_trial/verify_export.py`.
 
 ---
 
