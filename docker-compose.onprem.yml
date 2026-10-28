@@ -396,7 +396,10 @@ services:
       interval: 30s
       timeout: 15s
       retries: 5
-      start_period: 120s
+      # ARM64 hosts run this x86 image under QEMU; gunicorn --preload takes 15-20 min
+      # to load all Python modules before binding to port 8080.  900s (15 min) gives
+      # sufficient headroom so the container doesn't go unhealthy during normal startup.
+      start_period: 900s
     depends_on:
       redis:
         condition: service_healthy
@@ -506,7 +509,12 @@ services:
       postgres:
         condition: service_healthy
       galaxy-backend:
-        condition: service_healthy
+        # service_started (not service_healthy): galaxy takes 15-20 min under QEMU.
+        # The frontend /api/health endpoint returns "degraded" (not an error) when
+        # galaxy is unreachable, so it is safe to start the frontend before galaxy
+        # is fully ready.  Blocking on service_healthy would stall `docker compose up`
+        # for the entire QEMU cold-start window.
+        condition: service_started
       # sandbox-launcher:
       #   condition: service_started
     restart: unless-stopped
