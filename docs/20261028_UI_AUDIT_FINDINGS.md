@@ -5,6 +5,14 @@ Live design-conformance audit of the dev workflow UI against the design spec
 checking detailed content of each element + appearance. Evidence = real dev screenshots
 captured by the e2e run (in_vivo_cart_codesign completed run) + the Files panel.
 
+## STATUS (2026-10-28): findings 1–4 all resolved
+- **1a** chat full-table → preview+link: FindingsCard `preview` prop; chat usages collapsed, panel full (`eb57c6bd7`). (Refinement pending: the pre-panel inline-viewer FindingsCard at nextflow-workflow-viewer.tsx:3965 isn't preview-gated for the never-opened-panel case.)
+- **1b** duplicate inline 'findings' message: disabled via `INLINE_FINDINGS_MSG=false` (`a64d8d822`).
+- **2** feedback modal over results: auto-open commented out (`eb57c6bd7`).
+- **3** raw step-id label: opaque ids blanked, both paths (`9668f34a8`,`63734aaec`).
+- **4** Save-to-Project: not a bug — `autoSaveCompletedRunOutputs` already wired.
+- **5,6** chart primitives / Outputs-as-dataset-object: follow-ups (per-workflow comparison running).
+
 ## Open findings (to fix)
 
 1. **Chat findings = full table, duplicated.** The chat shows findings TWICE: the rich
