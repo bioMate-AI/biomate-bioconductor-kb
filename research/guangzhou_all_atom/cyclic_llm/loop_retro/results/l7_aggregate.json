@@ -1,0 +1,5933 @@
+{
+ "version": "L7 aggregate",
+ "note": "paired by (regime, seed); percentile bootstrap over seeds; regimes never pooled; PAMPA permeability of cyclic peptides only",
+ "small": {
+  "gbm|A": {
+   "n_seeds": 10,
+   "yield_total": {
+    "frozen_sub": {
+     "n": 10,
+     "mean": 78.9,
+     "ci": [
+      75.0,
+      82.5
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 79.7,
+     "ci": [
+      76.2,
+      83.5
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 89.8,
+     "ci": [
+      85.9,
+      93.8
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 84.0,
+     "ci": [
+      79.7,
+      88.8
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 87.4,
+     "ci": [
+      83.4,
+      91.1
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": 63.8,
+     "ci": [
+      60.7,
+      67.4
+     ]
+    }
+   },
+   "yield_5rounds": {
+    "frozen_sub": {
+     "n": 10,
+     "mean": 39.9,
+     "ci": [
+      36.5,
+      43.4
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 36.1,
+     "ci": [
+      33.4,
+      38.4
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 43.6,
+     "ci": [
+      40.1975,
+      47.0
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 40.2,
+     "ci": [
+      36.3,
+      44.2
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 42.5,
+     "ci": [
+      38.8,
+      45.9025
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": 34.8,
+     "ci": [
+      31.7,
+      37.8
+     ]
+    }
+   },
+   "E_auroc_gain": {
+    "frozen_sub": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 0.048,
+     "ci": [
+      0.0328,
+      0.0632
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 0.0509,
+     "ci": [
+      0.0317,
+      0.0684
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 0.0555,
+     "ci": [
+      0.0404,
+      0.0703
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 0.0525,
+     "ci": [
+      0.0351,
+      0.0677
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": -0.1535,
+     "ci": [
+      -0.1797,
+      -0.1247
+     ]
+    }
+   },
+   "E_ef5_gain": {
+    "frozen_sub": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 1.764,
+     "ci": [
+      1.1584,
+      2.4868
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 1.5827,
+     "ci": [
+      0.9477,
+      2.2815
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 1.6241,
+     "ci": [
+      0.8756,
+      2.4714
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 1.6016,
+     "ci": [
+      0.9037,
+      2.2422
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": -1.9672,
+     "ci": [
+      -2.7071,
+      -1.1835
+     ]
+    }
+   },
+   "stereo": {
+    "frozen_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 0,
+      "mean": null,
+      "ci": null
+     }
+    },
+    "loop_kphys_contra_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kphys_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kshuf_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "shuffled_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    }
+   },
+   "contrasts": {
+    "loop - random_fb [yield]": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "loop - frozen [yield]": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "loop - shuffled [yield]": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "loop_sub - frozen_sub [yield]": {
+     "n": 10,
+     "mean": 8.5,
+     "ci": [
+      5.9,
+      11.1
+     ]
+    },
+    "loop_sub - shuffled_sub [yield]": {
+     "n": 10,
+     "mean": 23.6,
+     "ci": [
+      20.2,
+      26.8
+     ]
+    },
+    "loop_kphys_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": 2.4,
+     "ci": [
+      -1.1,
+      5.4005
+     ]
+    },
+    "loop_kphys_contra_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": -7.7,
+     "ci": [
+      -12.5,
+      -2.7
+     ]
+    },
+    "loop_kshuf_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": -3.4,
+     "ci": [
+      -7.3,
+      0.5
+     ]
+    },
+    "loop_kn_sub - loop_sub [yield]": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "noisy_sub - shuffled_sub [yield]": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "loop - one_shot [E_auroc_gain]": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "loop - random_fb [E_auroc_gain]": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "loop_sub - shuffled_sub [E_auroc_gain]": {
+     "n": 10,
+     "mean": 0.206,
+     "ci": [
+      0.1744,
+      0.2391
+     ]
+    },
+    "loop_kphys_sub - loop_sub [E_auroc_gain]": {
+     "n": 10,
+     "mean": -0.0016,
+     "ci": [
+      -0.0132,
+      0.01
+     ]
+    }
+   },
+   "controls": {
+    "shuffled_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": -0.1535,
+      "ci": [
+       -0.1797,
+       -0.1247
+      ]
+     },
+     "passes": true
+    },
+    "frozen_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "passes": true
+    },
+    "loop_kshuf_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.0555,
+      "ci": [
+       0.0404,
+       0.0703
+      ]
+     },
+     "passes": false
+    }
+   },
+   "claim_C1_loop_beats_random_feedback_yield": {
+    "n": 0,
+    "mean": null,
+    "ci": null
+   },
+   "status": "n>=8"
+  },
+  "gbm|B": {
+   "n_seeds": 2,
+   "yield_total": {
+    "frozen_sub": {
+     "n": 2,
+     "mean": 29.0,
+     "ci": [
+      25.0,
+      33.0
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 2,
+     "mean": 21.5,
+     "ci": [
+      18.0,
+      25.0
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 2,
+     "mean": 32.0,
+     "ci": [
+      27.0,
+      37.0
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 2,
+     "mean": 30.5,
+     "ci": [
+      24.0,
+      37.0
+     ]
+    },
+    "loop_sub": {
+     "n": 2,
+     "mean": 33.0,
+     "ci": [
+      29.0,
+      37.0
+     ]
+    },
+    "shuffled_sub": {
+     "n": 2,
+     "mean": 27.0,
+     "ci": [
+      25.0,
+      29.0
+     ]
+    }
+   },
+   "yield_5rounds": {
+    "frozen_sub": {
+     "n": 2,
+     "mean": 17.0,
+     "ci": [
+      13.0,
+      21.0
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 2,
+     "mean": 11.0,
+     "ci": [
+      10.0,
+      12.0
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 2,
+     "mean": 19.5,
+     "ci": [
+      16.0,
+      23.0
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 2,
+     "mean": 18.0,
+     "ci": [
+      12.0,
+      24.0
+     ]
+    },
+    "loop_sub": {
+     "n": 2,
+     "mean": 19.5,
+     "ci": [
+      17.0,
+      22.0
+     ]
+    },
+    "shuffled_sub": {
+     "n": 2,
+     "mean": 16.5,
+     "ci": [
+      16.0,
+      17.0
+     ]
+    }
+   },
+   "E_auroc_gain": {
+    "frozen_sub": {
+     "n": 2,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 2,
+     "mean": 0.0485,
+     "ci": [
+      0.0372,
+      0.0599
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 2,
+     "mean": 0.1197,
+     "ci": [
+      0.1078,
+      0.1315
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 2,
+     "mean": 0.1101,
+     "ci": [
+      0.095,
+      0.1252
+     ]
+    },
+    "loop_sub": {
+     "n": 2,
+     "mean": 0.0832,
+     "ci": [
+      0.0565,
+      0.11
+     ]
+    },
+    "shuffled_sub": {
+     "n": 2,
+     "mean": -0.0,
+     "ci": [
+      -0.0065,
+      0.0065
+     ]
+    }
+   },
+   "E_ef5_gain": {
+    "frozen_sub": {
+     "n": 2,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 2,
+     "mean": 2.5641,
+     "ci": [
+      2.4615,
+      2.6667
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 2,
+     "mean": 3.6068,
+     "ci": [
+      2.7692,
+      4.4444
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 2,
+     "mean": 2.6325,
+     "ci": [
+      2.1538,
+      3.1111
+     ]
+    },
+    "loop_sub": {
+     "n": 2,
+     "mean": 1.9658,
+     "ci": [
+      1.7778,
+      2.1538
+     ]
+    },
+    "shuffled_sub": {
+     "n": 2,
+     "mean": 0.5983,
+     "ci": [
+      0.3077,
+      0.8889
+     ]
+    }
+   },
+   "stereo": {
+    "frozen_sub": {
+     "zero_sibling": {
+      "n": 2,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 0,
+      "mean": null,
+      "ci": null
+     }
+    },
+    "loop_kphys_contra_sub": {
+     "zero_sibling": {
+      "n": 2,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 2,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kphys_sub": {
+     "zero_sibling": {
+      "n": 2,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 2,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kshuf_sub": {
+     "zero_sibling": {
+      "n": 2,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 2,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_sub": {
+     "zero_sibling": {
+      "n": 2,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 2,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "shuffled_sub": {
+     "zero_sibling": {
+      "n": 2,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 2,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    }
+   },
+   "contrasts": {
+    "loop - random_fb [yield]": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "loop - frozen [yield]": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "loop - shuffled [yield]": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "loop_sub - frozen_sub [yield]": {
+     "n": 2,
+     "mean": 4.0,
+     "ci": [
+      4.0,
+      4.0
+     ]
+    },
+    "loop_sub - shuffled_sub [yield]": {
+     "n": 2,
+     "mean": 6.0,
+     "ci": [
+      0.0,
+      12.0
+     ]
+    },
+    "loop_kphys_sub - loop_sub [yield]": {
+     "n": 2,
+     "mean": -1.0,
+     "ci": [
+      -2.0,
+      0.0
+     ]
+    },
+    "loop_kphys_contra_sub - loop_sub [yield]": {
+     "n": 2,
+     "mean": -11.5,
+     "ci": [
+      -12.0,
+      -11.0
+     ]
+    },
+    "loop_kshuf_sub - loop_sub [yield]": {
+     "n": 2,
+     "mean": -2.5,
+     "ci": [
+      -5.0,
+      0.0
+     ]
+    },
+    "loop_kn_sub - loop_sub [yield]": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "noisy_sub - shuffled_sub [yield]": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "loop - one_shot [E_auroc_gain]": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "loop - random_fb [E_auroc_gain]": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "loop_sub - shuffled_sub [E_auroc_gain]": {
+     "n": 2,
+     "mean": 0.0832,
+     "ci": [
+      0.05,
+      0.1165
+     ]
+    },
+    "loop_kphys_sub - loop_sub [E_auroc_gain]": {
+     "n": 2,
+     "mean": 0.0364,
+     "ci": [
+      -0.0021,
+      0.075
+     ]
+    }
+   },
+   "controls": {
+    "shuffled_sub": {
+     "auroc_E_gain": {
+      "n": 2,
+      "mean": -0.0,
+      "ci": [
+       -0.0065,
+       0.0065
+      ]
+     },
+     "passes": true
+    },
+    "frozen_sub": {
+     "auroc_E_gain": {
+      "n": 2,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "passes": true
+    },
+    "loop_kshuf_sub": {
+     "auroc_E_gain": {
+      "n": 2,
+      "mean": 0.1101,
+      "ci": [
+       0.095,
+       0.1252
+      ]
+     },
+     "passes": false
+    }
+   },
+   "claim_C1_loop_beats_random_feedback_yield": {
+    "n": 0,
+    "mean": null,
+    "ci": null
+   },
+   "status": "inconclusive (power)"
+  },
+  "gbm|L": {
+   "n_seeds": 10,
+   "yield_total": {
+    "frozen": {
+     "n": 10,
+     "mean": 214.3,
+     "ci": [
+      209.1,
+      219.6
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 116.5,
+     "ci": [
+      111.0,
+      122.8
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 227.5,
+     "ci": [
+      221.2,
+      235.3
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 110.7,
+     "ci": [
+      105.4,
+      116.2
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 118.6,
+     "ci": [
+      114.3,
+      123.0
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 113.9,
+     "ci": [
+      108.8,
+      118.9
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 119.5,
+     "ci": [
+      114.1,
+      125.3
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 112.4,
+     "ci": [
+      108.9,
+      116.1025
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 119.6,
+     "ci": [
+      112.9,
+      126.5
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 116.3,
+     "ci": [
+      110.0,
+      122.6
+     ]
+    },
+    "one_shot": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 62.5,
+     "ci": [
+      56.5,
+      68.3
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": 148.0,
+     "ci": [
+      136.2,
+      159.2
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": 86.9,
+     "ci": [
+      82.0,
+      91.7025
+     ]
+    }
+   },
+   "yield_5rounds": {
+    "frozen": {
+     "n": 10,
+     "mean": 137.4,
+     "ci": [
+      131.5,
+      143.2
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 61.1,
+     "ci": [
+      56.8,
+      65.9
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 145.9,
+     "ci": [
+      136.3975,
+      154.4
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 53.6,
+     "ci": [
+      50.2,
+      56.7
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 60.3,
+     "ci": [
+      56.6,
+      63.4
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 56.5,
+     "ci": [
+      52.4,
+      61.0
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 61.5,
+     "ci": [
+      58.4,
+      64.5
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 56.0,
+     "ci": [
+      52.4,
+      59.6
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 61.5,
+     "ci": [
+      57.3,
+      66.1
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 60.6,
+     "ci": [
+      57.0,
+      64.2
+     ]
+    },
+    "one_shot": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 31.0,
+     "ci": [
+      28.2,
+      33.5
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": 105.0,
+     "ci": [
+      96.0,
+      115.0
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": 49.1,
+     "ci": [
+      45.4,
+      52.9
+     ]
+    }
+   },
+   "E_auroc_gain": {
+    "frozen": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 0.0354,
+     "ci": [
+      -0.02,
+      0.097
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 0.0687,
+     "ci": [
+      0.0121,
+      0.114
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 0.1142,
+     "ci": [
+      0.0729,
+      0.1517
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 0.07,
+     "ci": [
+      0.019,
+      0.1117
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 0.0915,
+     "ci": [
+      0.0474,
+      0.1324
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 0.0812,
+     "ci": [
+      0.0456,
+      0.1164
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 0.0754,
+     "ci": [
+      0.0236,
+      0.1224
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 0.095,
+     "ci": [
+      0.0551,
+      0.135
+     ]
+    },
+    "one_shot": {
+     "n": 10,
+     "mean": 0.0324,
+     "ci": [
+      0.0029,
+      0.0661
+     ]
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 0.107,
+     "ci": [
+      0.0622,
+      0.1467
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": 0.021,
+     "ci": [
+      -0.0185,
+      0.0613
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": -0.0037,
+     "ci": [
+      -0.0863,
+      0.0586
+     ]
+    }
+   },
+   "E_ef5_gain": {
+    "frozen": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 0.9544,
+     "ci": [
+      0.0894,
+      1.7297
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 0.5571,
+     "ci": [
+      -0.0032,
+      1.1843
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 0.3583,
+     "ci": [
+      -0.143,
+      0.8819
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 0.4204,
+     "ci": [
+      -0.2277,
+      1.0975
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 0.7405,
+     "ci": [
+      0.3048,
+      1.249
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 0.5455,
+     "ci": [
+      0.0121,
+      1.0467
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 0.4307,
+     "ci": [
+      -0.2478,
+      1.0613
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 0.435,
+     "ci": [
+      0.1258,
+      0.7252
+     ]
+    },
+    "one_shot": {
+     "n": 10,
+     "mean": 0.6102,
+     "ci": [
+      -0.1153,
+      1.3238
+     ]
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 0.2342,
+     "ci": [
+      -0.3943,
+      0.8141
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": 0.8247,
+     "ci": [
+      0.3519,
+      1.2884
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": -0.1357,
+     "ci": [
+      -0.8287,
+      0.5511
+     ]
+    }
+   },
+   "stereo": {
+    "frozen": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 0,
+      "mean": null,
+      "ci": null
+     }
+    },
+    "frozen_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 0,
+      "mean": null,
+      "ci": null
+     }
+    },
+    "loop": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kn_contra_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kn_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kphys_contra_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kphys_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kshuf_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "noisy_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "one_shot": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "random_fb": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "shuffled": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "shuffled_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    }
+   },
+   "contrasts": {
+    "loop - random_fb [yield]": {
+     "n": 10,
+     "mean": 165.0,
+     "ci": [
+      156.3,
+      175.6
+     ]
+    },
+    "loop - frozen [yield]": {
+     "n": 10,
+     "mean": 13.2,
+     "ci": [
+      2.6,
+      23.7025
+     ]
+    },
+    "loop - shuffled [yield]": {
+     "n": 10,
+     "mean": 79.5,
+     "ci": [
+      67.9,
+      93.4
+     ]
+    },
+    "loop_sub - frozen_sub [yield]": {
+     "n": 10,
+     "mean": 3.1,
+     "ci": [
+      -0.7025,
+      6.8
+     ]
+    },
+    "loop_sub - shuffled_sub [yield]": {
+     "n": 10,
+     "mean": 32.7,
+     "ci": [
+      29.0,
+      36.5
+     ]
+    },
+    "loop_kphys_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": -0.1,
+     "ci": [
+      -3.8,
+      4.8
+     ]
+    },
+    "loop_kphys_contra_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": -5.7,
+     "ci": [
+      -9.2,
+      -2.0
+     ]
+    },
+    "loop_kshuf_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": -7.2,
+     "ci": [
+      -11.8,
+      -2.2
+     ]
+    },
+    "loop_kn_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": -1.0,
+     "ci": [
+      -5.5,
+      4.1
+     ]
+    },
+    "noisy_sub - shuffled_sub [yield]": {
+     "n": 10,
+     "mean": 29.4,
+     "ci": [
+      26.6,
+      32.3
+     ]
+    },
+    "loop - one_shot [E_auroc_gain]": {
+     "n": 10,
+     "mean": 0.003,
+     "ci": [
+      -0.0342,
+      0.038
+     ]
+    },
+    "loop - random_fb [E_auroc_gain]": {
+     "n": 10,
+     "mean": -0.0716,
+     "ci": [
+      -0.1133,
+      -0.0143
+     ]
+    },
+    "loop_sub - shuffled_sub [E_auroc_gain]": {
+     "n": 10,
+     "mean": 0.0791,
+     "ci": [
+      0.0183,
+      0.1339
+     ]
+    },
+    "loop_kphys_sub - loop_sub [E_auroc_gain]": {
+     "n": 10,
+     "mean": 0.0161,
+     "ci": [
+      -0.0306,
+      0.0727
+     ]
+    }
+   },
+   "controls": {
+    "shuffled": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.021,
+      "ci": [
+       -0.0185,
+       0.0613
+      ]
+     },
+     "passes": true
+    },
+    "shuffled_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": -0.0037,
+      "ci": [
+       -0.0863,
+       0.0586
+      ]
+     },
+     "passes": true
+    },
+    "frozen": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "passes": true
+    },
+    "frozen_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "passes": true
+    },
+    "loop_kshuf_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.0812,
+      "ci": [
+       0.0456,
+       0.1164
+      ]
+     },
+     "passes": false
+    }
+   },
+   "claim_C1_loop_beats_random_feedback_yield": {
+    "n": 10,
+    "mean": 165.0,
+    "ci": [
+     156.3,
+     175.6
+    ]
+   },
+   "status": "n>=8"
+  },
+  "gbm_physchem|A": {
+   "n_seeds": 10,
+   "yield_total": {
+    "frozen": {
+     "n": 10,
+     "mean": 154.2,
+     "ci": [
+      143.3975,
+      164.6
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 87.6,
+     "ci": [
+      82.8,
+      92.6
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 169.2,
+     "ci": [
+      159.1,
+      178.1
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 80.1,
+     "ci": [
+      75.4,
+      85.3
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 89.4,
+     "ci": [
+      84.9,
+      94.0025
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 78.3,
+     "ci": [
+      73.1,
+      84.2
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 89.7,
+     "ci": [
+      84.9,
+      95.2
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 86.6,
+     "ci": [
+      83.4,
+      89.6
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 88.5,
+     "ci": [
+      84.9,
+      92.8
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 87.9,
+     "ci": [
+      84.2,
+      92.1
+     ]
+    },
+    "one_shot": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 45.4,
+     "ci": [
+      42.8,
+      47.9
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": 118.9,
+     "ci": [
+      107.8,
+      129.4
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": 68.4,
+     "ci": [
+      61.7,
+      74.6
+     ]
+    }
+   },
+   "yield_5rounds": {
+    "frozen": {
+     "n": 10,
+     "mean": 104.0,
+     "ci": [
+      94.1,
+      114.1
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 44.8,
+     "ci": [
+      41.6,
+      48.0025
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 110.3,
+     "ci": [
+      103.4,
+      117.0
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 37.1,
+     "ci": [
+      33.5,
+      40.8
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 44.6,
+     "ci": [
+      41.0,
+      47.9
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 37.2,
+     "ci": [
+      33.7,
+      41.2
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 45.7,
+     "ci": [
+      41.3,
+      50.3
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 42.3,
+     "ci": [
+      38.7,
+      45.3
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 44.1,
+     "ci": [
+      40.5,
+      48.3
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 44.9,
+     "ci": [
+      41.8,
+      48.3
+     ]
+    },
+    "one_shot": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 22.8,
+     "ci": [
+      20.9,
+      24.8
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": 84.5,
+     "ci": [
+      76.6,
+      92.5
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": 36.9,
+     "ci": [
+      33.0,
+      40.9
+     ]
+    }
+   },
+   "E_auroc_gain": {
+    "frozen": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 0.0052,
+     "ci": [
+      -0.0067,
+      0.0146
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 0.0195,
+     "ci": [
+      0.0072,
+      0.0329
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 0.0282,
+     "ci": [
+      0.0101,
+      0.0461
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 0.0211,
+     "ci": [
+      0.0058,
+      0.0351
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 0.0257,
+     "ci": [
+      0.0076,
+      0.0418
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 0.0217,
+     "ci": [
+      0.0002,
+      0.0403
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 0.0248,
+     "ci": [
+      0.0102,
+      0.0378
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 0.0104,
+     "ci": [
+      -0.0121,
+      0.0274
+     ]
+    },
+    "one_shot": {
+     "n": 10,
+     "mean": 0.0097,
+     "ci": [
+      0.0012,
+      0.019
+     ]
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 0.0336,
+     "ci": [
+      0.0198,
+      0.0478
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": -0.1081,
+     "ci": [
+      -0.1428,
+      -0.0828
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": -0.15,
+     "ci": [
+      -0.1864,
+      -0.1091
+     ]
+    }
+   },
+   "E_ef5_gain": {
+    "frozen": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 0.7848,
+     "ci": [
+      0.0411,
+      1.6305
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 0.8724,
+     "ci": [
+      0.1132,
+      1.5895
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 0.6824,
+     "ci": [
+      -0.0611,
+      1.4898
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 0.8243,
+     "ci": [
+      0.0419,
+      1.6197
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 0.8501,
+     "ci": [
+      0.0902,
+      1.6495
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 0.6489,
+     "ci": [
+      -0.0138,
+      1.3447
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 0.7074,
+     "ci": [
+      -0.0331,
+      1.4142
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 0.3494,
+     "ci": [
+      -0.2568,
+      0.9874
+     ]
+    },
+    "one_shot": {
+     "n": 10,
+     "mean": 0.9929,
+     "ci": [
+      0.3667,
+      1.7832
+     ]
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 0.6183,
+     "ci": [
+      0.0103,
+      1.328
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": -2.8202,
+     "ci": [
+      -3.485,
+      -2.1597
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": -2.5005,
+     "ci": [
+      -3.5252,
+      -1.4393
+     ]
+    }
+   },
+   "stereo": {
+    "frozen": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 0,
+      "mean": null,
+      "ci": null
+     }
+    },
+    "frozen_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 0,
+      "mean": null,
+      "ci": null
+     }
+    },
+    "loop": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kn_contra_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kn_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kphys_contra_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kphys_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kshuf_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "noisy_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "one_shot": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "random_fb": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "shuffled": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "shuffled_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    }
+   },
+   "contrasts": {
+    "loop - random_fb [yield]": {
+     "n": 10,
+     "mean": 123.8,
+     "ci": [
+      112.5,
+      133.5
+     ]
+    },
+    "loop - frozen [yield]": {
+     "n": 10,
+     "mean": 15.0,
+     "ci": [
+      1.7,
+      30.2
+     ]
+    },
+    "loop - shuffled [yield]": {
+     "n": 10,
+     "mean": 50.3,
+     "ci": [
+      33.7975,
+      62.2
+     ]
+    },
+    "loop_sub - frozen_sub [yield]": {
+     "n": 10,
+     "mean": 0.9,
+     "ci": [
+      -2.1,
+      4.0
+     ]
+    },
+    "loop_sub - shuffled_sub [yield]": {
+     "n": 10,
+     "mean": 20.1,
+     "ci": [
+      13.5,
+      26.5
+     ]
+    },
+    "loop_kphys_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": 1.2,
+     "ci": [
+      -2.9005,
+      5.1
+     ]
+    },
+    "loop_kphys_contra_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": -10.2,
+     "ci": [
+      -13.3,
+      -6.8
+     ]
+    },
+    "loop_kshuf_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": -1.9,
+     "ci": [
+      -4.9,
+      1.0
+     ]
+    },
+    "loop_kn_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": 0.9,
+     "ci": [
+      -3.3,
+      5.9
+     ]
+    },
+    "noisy_sub - shuffled_sub [yield]": {
+     "n": 10,
+     "mean": 19.5,
+     "ci": [
+      12.5,
+      26.0
+     ]
+    },
+    "loop - one_shot [E_auroc_gain]": {
+     "n": 10,
+     "mean": -0.0045,
+     "ci": [
+      -0.0144,
+      0.0051
+     ]
+    },
+    "loop - random_fb [E_auroc_gain]": {
+     "n": 10,
+     "mean": -0.0284,
+     "ci": [
+      -0.0467,
+      -0.0111
+     ]
+    },
+    "loop_sub - shuffled_sub [E_auroc_gain]": {
+     "n": 10,
+     "mean": 0.1748,
+     "ci": [
+      0.1366,
+      0.2143
+     ]
+    },
+    "loop_kphys_sub - loop_sub [E_auroc_gain]": {
+     "n": 10,
+     "mean": 0.0009,
+     "ci": [
+      -0.0098,
+      0.0134
+     ]
+    }
+   },
+   "controls": {
+    "shuffled": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": -0.1081,
+      "ci": [
+       -0.1428,
+       -0.0828
+      ]
+     },
+     "passes": true
+    },
+    "shuffled_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": -0.15,
+      "ci": [
+       -0.1864,
+       -0.1091
+      ]
+     },
+     "passes": true
+    },
+    "frozen": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "passes": true
+    },
+    "frozen_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "passes": true
+    },
+    "loop_kshuf_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.0217,
+      "ci": [
+       0.0002,
+       0.0403
+      ]
+     },
+     "passes": false
+    }
+   },
+   "claim_C1_loop_beats_random_feedback_yield": {
+    "n": 10,
+    "mean": 123.8,
+    "ci": [
+     112.5,
+     133.5
+    ]
+   },
+   "status": "n>=8"
+  },
+  "gbm_physchem|B": {
+   "n_seeds": 10,
+   "yield_total": {
+    "frozen": {
+     "n": 10,
+     "mean": 32.2,
+     "ci": [
+      29.9,
+      34.6
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 27.3,
+     "ci": [
+      24.4,
+      30.5
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 41.5,
+     "ci": [
+      38.8975,
+      44.4
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 30.6,
+     "ci": [
+      27.2,
+      34.0
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 30.2,
+     "ci": [
+      27.4975,
+      33.0
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 25.5,
+     "ci": [
+      23.0,
+      27.9
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 32.2,
+     "ci": [
+      29.1,
+      35.2
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 30.8,
+     "ci": [
+      27.6,
+      33.6
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 30.5,
+     "ci": [
+      27.9,
+      33.0
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 28.9,
+     "ci": [
+      27.0975,
+      30.6
+     ]
+    },
+    "one_shot": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 21.5,
+     "ci": [
+      18.6,
+      24.0
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": 32.0,
+     "ci": [
+      29.3,
+      34.9
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": 24.6,
+     "ci": [
+      21.8,
+      27.4
+     ]
+    }
+   },
+   "yield_5rounds": {
+    "frozen": {
+     "n": 10,
+     "mean": 20.4,
+     "ci": [
+      16.7,
+      23.4
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 14.6,
+     "ci": [
+      12.2,
+      17.1
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 27.1,
+     "ci": [
+      24.2,
+      30.9
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 14.6,
+     "ci": [
+      11.2,
+      18.1025
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 15.0,
+     "ci": [
+      12.7,
+      17.3
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 11.0,
+     "ci": [
+      9.3,
+      12.9
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 17.8,
+     "ci": [
+      15.0,
+      20.5
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 15.1,
+     "ci": [
+      12.7,
+      17.4025
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 15.7,
+     "ci": [
+      13.8,
+      17.9
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 15.0,
+     "ci": [
+      12.9,
+      17.4
+     ]
+    },
+    "one_shot": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 9.6,
+     "ci": [
+      8.0975,
+      10.9
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": 21.4,
+     "ci": [
+      19.0,
+      23.6
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": 13.6,
+     "ci": [
+      10.7,
+      16.7
+     ]
+    }
+   },
+   "E_auroc_gain": {
+    "frozen": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 0.0777,
+     "ci": [
+      0.0413,
+      0.1152
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 0.1396,
+     "ci": [
+      0.1104,
+      0.1714
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 0.1292,
+     "ci": [
+      0.1012,
+      0.1573
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 0.0933,
+     "ci": [
+      0.0612,
+      0.1249
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 0.1262,
+     "ci": [
+      0.0925,
+      0.1616
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 0.1265,
+     "ci": [
+      0.0895,
+      0.1645
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 0.1242,
+     "ci": [
+      0.0914,
+      0.1596
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 0.1224,
+     "ci": [
+      0.0791,
+      0.1652
+     ]
+    },
+    "one_shot": {
+     "n": 10,
+     "mean": 0.0787,
+     "ci": [
+      0.048,
+      0.1096
+     ]
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 0.1389,
+     "ci": [
+      0.1066,
+      0.1722
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": -0.041,
+     "ci": [
+      -0.0761,
+      -0.0053
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": -0.0592,
+     "ci": [
+      -0.1002,
+      -0.0234
+     ]
+    }
+   },
+   "E_ef5_gain": {
+    "frozen": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 1.8732,
+     "ci": [
+      1.2136,
+      2.5144
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 1.2174,
+     "ci": [
+      0.4096,
+      1.8837
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 1.1413,
+     "ci": [
+      0.2287,
+      1.7781
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 1.323,
+     "ci": [
+      0.4399,
+      2.1615
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 1.0858,
+     "ci": [
+      0.264,
+      1.7572
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 1.6481,
+     "ci": [
+      0.8667,
+      2.2913
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 1.6537,
+     "ci": [
+      0.4125,
+      2.6534
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 0.7338,
+     "ci": [
+      -0.4733,
+      1.8129
+     ]
+    },
+    "one_shot": {
+     "n": 10,
+     "mean": 1.6611,
+     "ci": [
+      0.8988,
+      2.3887
+     ]
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 0.9396,
+     "ci": [
+      0.2226,
+      1.7064
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": -1.006,
+     "ci": [
+      -1.8032,
+      0.0031
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": -1.2909,
+     "ci": [
+      -2.1593,
+      -0.4813
+     ]
+    }
+   },
+   "stereo": {
+    "frozen": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 0,
+      "mean": null,
+      "ci": null
+     }
+    },
+    "frozen_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 0,
+      "mean": null,
+      "ci": null
+     }
+    },
+    "loop": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kn_contra_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kn_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kphys_contra_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kphys_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kshuf_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "noisy_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "one_shot": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "random_fb": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "shuffled": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "shuffled_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    }
+   },
+   "contrasts": {
+    "loop - random_fb [yield]": {
+     "n": 10,
+     "mean": 20.0,
+     "ci": [
+      15.6,
+      24.6025
+     ]
+    },
+    "loop - frozen [yield]": {
+     "n": 10,
+     "mean": 9.3,
+     "ci": [
+      6.7,
+      11.9
+     ]
+    },
+    "loop - shuffled [yield]": {
+     "n": 10,
+     "mean": 9.5,
+     "ci": [
+      7.2,
+      11.7
+     ]
+    },
+    "loop_sub - frozen_sub [yield]": {
+     "n": 10,
+     "mean": 3.2,
+     "ci": [
+      1.5,
+      5.1
+     ]
+    },
+    "loop_sub - shuffled_sub [yield]": {
+     "n": 10,
+     "mean": 5.9,
+     "ci": [
+      3.7,
+      8.0
+     ]
+    },
+    "loop_kphys_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": 1.7,
+     "ci": [
+      -0.9,
+      4.1
+     ]
+    },
+    "loop_kphys_contra_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": -5.0,
+     "ci": [
+      -7.2,
+      -3.3995
+     ]
+    },
+    "loop_kshuf_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": 0.3,
+     "ci": [
+      -1.3,
+      2.3
+     ]
+    },
+    "loop_kn_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": -0.3,
+     "ci": [
+      -2.2,
+      1.5
+     ]
+    },
+    "noisy_sub - shuffled_sub [yield]": {
+     "n": 10,
+     "mean": 4.3,
+     "ci": [
+      2.3,
+      6.4
+     ]
+    },
+    "loop - one_shot [E_auroc_gain]": {
+     "n": 10,
+     "mean": -0.001,
+     "ci": [
+      -0.0158,
+      0.0148
+     ]
+    },
+    "loop - random_fb [E_auroc_gain]": {
+     "n": 10,
+     "mean": -0.0612,
+     "ci": [
+      -0.0906,
+      -0.0313
+     ]
+    },
+    "loop_sub - shuffled_sub [E_auroc_gain]": {
+     "n": 10,
+     "mean": 0.1834,
+     "ci": [
+      0.1381,
+      0.2355
+     ]
+    },
+    "loop_kphys_sub - loop_sub [E_auroc_gain]": {
+     "n": 10,
+     "mean": 0.002,
+     "ci": [
+      -0.02,
+      0.0224
+     ]
+    }
+   },
+   "controls": {
+    "shuffled": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": -0.041,
+      "ci": [
+       -0.0761,
+       -0.0053
+      ]
+     },
+     "passes": true
+    },
+    "shuffled_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": -0.0592,
+      "ci": [
+       -0.1002,
+       -0.0234
+      ]
+     },
+     "passes": true
+    },
+    "frozen": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "passes": true
+    },
+    "frozen_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "passes": true
+    },
+    "loop_kshuf_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.1265,
+      "ci": [
+       0.0895,
+       0.1645
+      ]
+     },
+     "passes": false
+    }
+   },
+   "claim_C1_loop_beats_random_feedback_yield": {
+    "n": 10,
+    "mean": 20.0,
+    "ci": [
+     15.6,
+     24.6025
+    ]
+   },
+   "status": "n>=8"
+  },
+  "gbm_physchem|L": {
+   "n_seeds": 10,
+   "yield_total": {
+    "frozen": {
+     "n": 10,
+     "mean": 210.8,
+     "ci": [
+      205.4975,
+      216.6
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 111.9,
+     "ci": [
+      106.2,
+      117.5
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 215.7,
+     "ci": [
+      204.9,
+      225.2
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 104.5,
+     "ci": [
+      100.6,
+      108.6
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 116.4,
+     "ci": [
+      111.6,
+      121.2
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 107.8,
+     "ci": [
+      101.5,
+      114.9025
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 114.2,
+     "ci": [
+      108.9975,
+      119.6
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 112.0,
+     "ci": [
+      106.7,
+      117.5
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 115.0,
+     "ci": [
+      108.6,
+      121.8025
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 113.3,
+     "ci": [
+      106.0,
+      121.0
+     ]
+    },
+    "one_shot": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 62.5,
+     "ci": [
+      56.5,
+      68.4
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": 152.6,
+     "ci": [
+      138.5,
+      167.6
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": 92.9,
+     "ci": [
+      86.7,
+      99.2
+     ]
+    }
+   },
+   "yield_5rounds": {
+    "frozen": {
+     "n": 10,
+     "mean": 133.1,
+     "ci": [
+      122.8975,
+      142.8
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 57.0,
+     "ci": [
+      52.7,
+      62.2
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 145.0,
+     "ci": [
+      137.8,
+      151.8
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 50.6,
+     "ci": [
+      47.2,
+      54.3
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 59.2,
+     "ci": [
+      55.4,
+      63.3
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 52.5,
+     "ci": [
+      47.4975,
+      58.1
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 57.7,
+     "ci": [
+      54.4,
+      61.5
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 54.1,
+     "ci": [
+      50.7,
+      58.4
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 57.6,
+     "ci": [
+      53.1,
+      63.3
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 57.7,
+     "ci": [
+      52.6,
+      63.8
+     ]
+    },
+    "one_shot": {
+     "n": 0,
+     "mean": null,
+     "ci": null
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 31.0,
+     "ci": [
+      28.2,
+      33.6
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": 104.2,
+     "ci": [
+      94.1,
+      114.6025
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": 48.9,
+     "ci": [
+      44.5,
+      54.7
+     ]
+    }
+   },
+   "E_auroc_gain": {
+    "frozen": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 0.0611,
+     "ci": [
+      0.0208,
+      0.0968
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 0.0522,
+     "ci": [
+      0.019,
+      0.087
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 0.1177,
+     "ci": [
+      0.0664,
+      0.1712
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 0.1059,
+     "ci": [
+      0.068,
+      0.1462
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 0.0759,
+     "ci": [
+      0.042,
+      0.1118
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 0.1062,
+     "ci": [
+      0.064,
+      0.1532
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 0.0796,
+     "ci": [
+      0.0326,
+      0.1303
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 0.0524,
+     "ci": [
+      -0.0043,
+      0.1132
+     ]
+    },
+    "one_shot": {
+     "n": 10,
+     "mean": 0.043,
+     "ci": [
+      0.0025,
+      0.084
+     ]
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": 0.0687,
+     "ci": [
+      0.0335,
+      0.108
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": -0.018,
+     "ci": [
+      -0.0445,
+      0.0085
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": -0.0279,
+     "ci": [
+      -0.098,
+      0.0343
+     ]
+    }
+   },
+   "E_ef5_gain": {
+    "frozen": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "frozen_sub": {
+     "n": 10,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "loop": {
+     "n": 10,
+     "mean": 0.6951,
+     "ci": [
+      0.0564,
+      1.6343
+     ]
+    },
+    "loop_kn_contra_sub": {
+     "n": 10,
+     "mean": 0.6443,
+     "ci": [
+      -0.019,
+      1.3063
+     ]
+    },
+    "loop_kn_sub": {
+     "n": 10,
+     "mean": 0.6195,
+     "ci": [
+      -0.0202,
+      1.3599
+     ]
+    },
+    "loop_kphys_contra_sub": {
+     "n": 10,
+     "mean": 0.3265,
+     "ci": [
+      -0.2537,
+      0.864
+     ]
+    },
+    "loop_kphys_sub": {
+     "n": 10,
+     "mean": 0.6275,
+     "ci": [
+      -0.1374,
+      1.5881
+     ]
+    },
+    "loop_kshuf_sub": {
+     "n": 10,
+     "mean": 1.0889,
+     "ci": [
+      0.2036,
+      2.038
+     ]
+    },
+    "loop_sub": {
+     "n": 10,
+     "mean": 0.7392,
+     "ci": [
+      -0.0795,
+      1.6311
+     ]
+    },
+    "noisy_sub": {
+     "n": 10,
+     "mean": 0.4858,
+     "ci": [
+      -0.3361,
+      1.4554
+     ]
+    },
+    "one_shot": {
+     "n": 10,
+     "mean": 0.2701,
+     "ci": [
+      -0.4486,
+      1.3227
+     ]
+    },
+    "random_fb": {
+     "n": 10,
+     "mean": -0.0196,
+     "ci": [
+      -0.9342,
+      0.819
+     ]
+    },
+    "shuffled": {
+     "n": 10,
+     "mean": -0.9842,
+     "ci": [
+      -1.6558,
+      -0.3661
+     ]
+    },
+    "shuffled_sub": {
+     "n": 10,
+     "mean": -0.9904,
+     "ci": [
+      -1.9708,
+      -0.1438
+     ]
+    }
+   },
+   "stereo": {
+    "frozen": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 0,
+      "mean": null,
+      "ci": null
+     }
+    },
+    "frozen_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 0,
+      "mean": null,
+      "ci": null
+     }
+    },
+    "loop": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kn_contra_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kn_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kphys_contra_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kphys_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_kshuf_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "loop_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "noisy_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "one_shot": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "random_fb": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "shuffled": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "shuffled_sub": {
+     "zero_sibling": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "sar": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     }
+    }
+   },
+   "contrasts": {
+    "loop - random_fb [yield]": {
+     "n": 10,
+     "mean": 153.2,
+     "ci": [
+      145.2,
+      161.1
+     ]
+    },
+    "loop - frozen [yield]": {
+     "n": 10,
+     "mean": 4.9,
+     "ci": [
+      -4.5,
+      13.6
+     ]
+    },
+    "loop - shuffled [yield]": {
+     "n": 10,
+     "mean": 63.1,
+     "ci": [
+      41.8,
+      82.5025
+     ]
+    },
+    "loop_sub - frozen_sub [yield]": {
+     "n": 10,
+     "mean": 3.1,
+     "ci": [
+      1.3,
+      5.2
+     ]
+    },
+    "loop_sub - shuffled_sub [yield]": {
+     "n": 10,
+     "mean": 22.1,
+     "ci": [
+      18.6,
+      26.7
+     ]
+    },
+    "loop_kphys_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": -0.8,
+     "ci": [
+      -4.4,
+      1.7
+     ]
+    },
+    "loop_kphys_contra_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": -7.2,
+     "ci": [
+      -11.2,
+      -3.8
+     ]
+    },
+    "loop_kshuf_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": -3.0,
+     "ci": [
+      -5.2,
+      -0.7
+     ]
+    },
+    "loop_kn_sub - loop_sub [yield]": {
+     "n": 10,
+     "mean": 1.4,
+     "ci": [
+      -2.3,
+      5.3005
+     ]
+    },
+    "noisy_sub - shuffled_sub [yield]": {
+     "n": 10,
+     "mean": 20.4,
+     "ci": [
+      14.6,
+      25.8
+     ]
+    },
+    "loop - one_shot [E_auroc_gain]": {
+     "n": 10,
+     "mean": 0.0181,
+     "ci": [
+      -0.0063,
+      0.0412
+     ]
+    },
+    "loop - random_fb [E_auroc_gain]": {
+     "n": 10,
+     "mean": -0.0076,
+     "ci": [
+      -0.0307,
+      0.0124
+     ]
+    },
+    "loop_sub - shuffled_sub [E_auroc_gain]": {
+     "n": 10,
+     "mean": 0.1075,
+     "ci": [
+      0.0378,
+      0.1779
+     ]
+    },
+    "loop_kphys_sub - loop_sub [E_auroc_gain]": {
+     "n": 10,
+     "mean": -0.0036,
+     "ci": [
+      -0.0474,
+      0.0363
+     ]
+    }
+   },
+   "controls": {
+    "shuffled": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": -0.018,
+      "ci": [
+       -0.0445,
+       0.0085
+      ]
+     },
+     "passes": true
+    },
+    "shuffled_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": -0.0279,
+      "ci": [
+       -0.098,
+       0.0343
+      ]
+     },
+     "passes": true
+    },
+    "frozen": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "passes": true
+    },
+    "frozen_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "passes": true
+    },
+    "loop_kshuf_sub": {
+     "auroc_E_gain": {
+      "n": 10,
+      "mean": 0.1062,
+      "ci": [
+       0.064,
+       0.1532
+      ]
+     },
+     "passes": false
+    }
+   },
+   "claim_C1_loop_beats_random_feedback_yield": {
+    "n": 10,
+    "mean": 153.2,
+    "ci": [
+     145.2,
+     161.1
+    ]
+   },
+   "status": "n>=8"
+  }
+ },
+ "llm": {
+  "anthropic/claude-haiku-5.5|A": {
+   "n_seeds": 4,
+   "yield_cum": {
+    "llm_frozen": {
+     "n": 4,
+     "mean": 28.5,
+     "ci": [
+      25.5,
+      31.5
+     ]
+    },
+    "llm_kb": {
+     "n": 4,
+     "mean": 29.75,
+     "ci": [
+      25.0,
+      34.5
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": 28.25,
+     "ci": [
+      24.5,
+      31.25
+     ]
+    },
+    "llm_shuffled": {
+     "n": 4,
+     "mean": 27.25,
+     "ci": [
+      24.0,
+      30.5
+     ]
+    },
+    "llm_zeroshot": {
+     "n": 4,
+     "mean": 26.75,
+     "ci": [
+      26.0,
+      27.5
+     ]
+    },
+    "subset_gbm": {
+     "n": 4,
+     "mean": 44.75,
+     "ci": [
+      40.5,
+      49.0
+     ]
+    },
+    "subset_random": {
+     "n": 4,
+     "mean": 19.75,
+     "ci": [
+      17.25,
+      22.0
+     ]
+    }
+   },
+   "contrasts": {
+    "llm_loop - llm_frozen": {
+     "n": 4,
+     "mean": -0.25,
+     "ci": [
+      -2.5,
+      2.5
+     ]
+    },
+    "llm_loop - llm_zeroshot": {
+     "n": 4,
+     "mean": 1.5,
+     "ci": [
+      -2.25,
+      4.75
+     ]
+    },
+    "llm_loop - llm_shuffled": {
+     "n": 4,
+     "mean": 1.0,
+     "ci": [
+      -1.0,
+      2.5
+     ]
+    },
+    "llm_kb - llm_loop": {
+     "n": 4,
+     "mean": 1.5,
+     "ci": [
+      -1.75,
+      4.75
+     ]
+    },
+    "llm_loop - subset_random": {
+     "n": 4,
+     "mean": 8.5,
+     "ci": [
+      2.5,
+      14.0
+     ]
+    },
+    "llm_loop - subset_gbm": {
+     "n": 4,
+     "mean": -16.5,
+     "ci": [
+      -19.75,
+      -13.25
+     ]
+    },
+    "llm_kb - subset_gbm": {
+     "n": 4,
+     "mean": -15.0,
+     "ci": [
+      -15.75,
+      -14.25
+     ]
+    }
+   },
+   "cost": {
+    "llm_frozen": {
+     "usd": 0.0769,
+     "tin": 575417,
+     "tout": 38696,
+     "calls": 20,
+     "wall_seconds": 196.4
+    },
+    "llm_kb": {
+     "usd": 0.0794,
+     "tin": 568652,
+     "tout": 45169,
+     "calls": 20,
+     "wall_seconds": 221.4
+    },
+    "llm_loop": {
+     "usd": 0.0744,
+     "tin": 563117,
+     "tout": 36135,
+     "calls": 20,
+     "wall_seconds": 183.6
+    },
+    "llm_shuffled": {
+     "usd": 0.0742,
+     "tin": 563859,
+     "tout": 35555,
+     "calls": 20,
+     "wall_seconds": 183.1
+    },
+    "llm_zeroshot": {
+     "usd": 0.0574,
+     "tin": 454657,
+     "tout": 23787,
+     "calls": 20,
+     "wall_seconds": 122.3
+    },
+    "subset_gbm": {
+     "usd": 0.0,
+     "tin": 0,
+     "tout": 0,
+     "calls": 0,
+     "wall_seconds": 20756.2
+    },
+    "subset_random": {
+     "usd": 0.0,
+     "tin": 0,
+     "tout": 0,
+     "calls": 0,
+     "wall_seconds": 0.0
+    }
+   },
+   "stereo": {
+    "llm_kb": {
+     "n": 4,
+     "mean": -0.0458,
+     "ci": [
+      -0.0904,
+      0.0074
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": 0.0016,
+     "ci": [
+      -0.0422,
+      0.0454
+     ]
+    }
+   },
+   "ef_sub": {
+    "llm_frozen": {
+     "n": 4,
+     "mean": 1.3361,
+     "ci": [
+      1.2619,
+      1.4641
+     ]
+    },
+    "llm_kb": {
+     "n": 4,
+     "mean": 1.417,
+     "ci": [
+      1.2912,
+      1.5381
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": 1.3285,
+     "ci": [
+      1.1802,
+      1.4768
+     ]
+    },
+    "llm_shuffled": {
+     "n": 4,
+     "mean": 1.2543,
+     "ci": [
+      1.1481,
+      1.3521
+     ]
+    },
+    "llm_zeroshot": {
+     "n": 4,
+     "mean": 1.2605,
+     "ci": [
+      1.1808,
+      1.3402
+     ]
+    },
+    "subset_gbm": {
+     "n": 4,
+     "mean": 2.1464,
+     "ci": [
+      2.0718,
+      2.2795
+     ]
+    },
+    "subset_random": {
+     "n": 4,
+     "mean": 0.922,
+     "ci": [
+      0.79,
+      1.0898
+     ]
+    }
+   },
+   "fills": {
+    "llm_frozen": 0,
+    "llm_kb": 0,
+    "llm_loop": 0,
+    "llm_shuffled": 0,
+    "llm_zeroshot": 0,
+    "subset_gbm": 0,
+    "subset_random": 0
+   },
+   "status": "inconclusive (power)"
+  },
+  "anthropic/claude-haiku-5.5|B": {
+   "n_seeds": 4,
+   "yield_cum": {
+    "llm_frozen": {
+     "n": 4,
+     "mean": 11.5,
+     "ci": [
+      10.0,
+      13.0
+     ]
+    },
+    "llm_kb": {
+     "n": 4,
+     "mean": 12.25,
+     "ci": [
+      8.75,
+      15.5
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": 13.25,
+     "ci": [
+      11.5,
+      15.0
+     ]
+    },
+    "llm_shuffled": {
+     "n": 4,
+     "mean": 9.75,
+     "ci": [
+      7.25,
+      12.0
+     ]
+    },
+    "llm_zeroshot": {
+     "n": 4,
+     "mean": 10.25,
+     "ci": [
+      7.5,
+      13.25
+     ]
+    },
+    "subset_gbm": {
+     "n": 4,
+     "mean": 16.5,
+     "ci": [
+      16.0,
+      17.0
+     ]
+    },
+    "subset_random": {
+     "n": 4,
+     "mean": 11.5,
+     "ci": [
+      8.0,
+      16.0
+     ]
+    }
+   },
+   "contrasts": {
+    "llm_loop - llm_frozen": {
+     "n": 4,
+     "mean": 1.75,
+     "ci": [
+      0.5,
+      3.25
+     ]
+    },
+    "llm_loop - llm_zeroshot": {
+     "n": 4,
+     "mean": 3.0,
+     "ci": [
+      0.25,
+      4.75
+     ]
+    },
+    "llm_loop - llm_shuffled": {
+     "n": 4,
+     "mean": 3.5,
+     "ci": [
+      2.0,
+      5.0
+     ]
+    },
+    "llm_kb - llm_loop": {
+     "n": 4,
+     "mean": -1.0,
+     "ci": [
+      -3.75,
+      0.75
+     ]
+    },
+    "llm_loop - subset_random": {
+     "n": 4,
+     "mean": 1.75,
+     "ci": [
+      -0.5,
+      4.0
+     ]
+    },
+    "llm_loop - subset_gbm": {
+     "n": 4,
+     "mean": -3.25,
+     "ci": [
+      -5.0,
+      -1.5
+     ]
+    },
+    "llm_kb - subset_gbm": {
+     "n": 4,
+     "mean": -4.25,
+     "ci": [
+      -8.0,
+      -1.0
+     ]
+    }
+   },
+   "cost": {
+    "llm_frozen": {
+     "usd": 0.0784,
+     "tin": 613175,
+     "tout": 34244,
+     "calls": 20,
+     "wall_seconds": 189.8
+    },
+    "llm_kb": {
+     "usd": 0.0853,
+     "tin": 596509,
+     "tout": 51271,
+     "calls": 20,
+     "wall_seconds": 5207.3
+    },
+    "llm_loop": {
+     "usd": 0.0772,
+     "tin": 585528,
+     "tout": 37343,
+     "calls": 20,
+     "wall_seconds": 191.6
+    },
+    "llm_shuffled": {
+     "usd": 0.0783,
+     "tin": 593442,
+     "tout": 37977,
+     "calls": 20,
+     "wall_seconds": 201.2
+    },
+    "llm_zeroshot": {
+     "usd": 0.0629,
+     "tin": 494545,
+     "tout": 26915,
+     "calls": 20,
+     "wall_seconds": 149.2
+    },
+    "subset_gbm": {
+     "usd": 0.0,
+     "tin": 0,
+     "tout": 0,
+     "calls": 0,
+     "wall_seconds": 450.2
+    },
+    "subset_random": {
+     "usd": 0.0,
+     "tin": 0,
+     "tout": 0,
+     "calls": 0,
+     "wall_seconds": 0.0
+    }
+   },
+   "stereo": {
+    "llm_kb": {
+     "n": 4,
+     "mean": 0.0506,
+     "ci": [
+      -0.0134,
+      0.1147
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": 0.0345,
+     "ci": [
+      -0.0139,
+      0.0844
+     ]
+    }
+   },
+   "ef_sub": {
+    "llm_frozen": {
+     "n": 4,
+     "mean": 0.9558,
+     "ci": [
+      0.87,
+      1.035
+     ]
+    },
+    "llm_kb": {
+     "n": 4,
+     "mean": 0.9709,
+     "ci": [
+      0.7687,
+      1.0774
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": 1.1646,
+     "ci": [
+      1.0191,
+      1.2924
+     ]
+    },
+    "llm_shuffled": {
+     "n": 4,
+     "mean": 0.8144,
+     "ci": [
+      0.6676,
+      0.9753
+     ]
+    },
+    "llm_zeroshot": {
+     "n": 4,
+     "mean": 0.8313,
+     "ci": [
+      0.705,
+      0.9863
+     ]
+    },
+    "subset_gbm": {
+     "n": 4,
+     "mean": 1.5174,
+     "ci": [
+      1.1262,
+      1.9085
+     ]
+    },
+    "subset_random": {
+     "n": 4,
+     "mean": 0.9474,
+     "ci": [
+      0.6828,
+      1.2119
+     ]
+    }
+   },
+   "fills": {
+    "llm_frozen": 0,
+    "llm_kb": 0,
+    "llm_loop": 0,
+    "llm_shuffled": 0,
+    "llm_zeroshot": 0,
+    "subset_gbm": 0,
+    "subset_random": 0
+   },
+   "status": "inconclusive (power)"
+  },
+  "google/gemini-3.1-flash-lite|A": {
+   "n_seeds": 4,
+   "yield_cum": {
+    "llm_frozen": {
+     "n": 4,
+     "mean": 18.5,
+     "ci": [
+      15.0,
+      21.5
+     ]
+    },
+    "llm_kb": {
+     "n": 4,
+     "mean": 21.0,
+     "ci": [
+      16.5,
+      24.0
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": 26.25,
+     "ci": [
+      24.0,
+      28.5
+     ]
+    },
+    "llm_shuffled": {
+     "n": 4,
+     "mean": 22.0,
+     "ci": [
+      18.75,
+      26.75
+     ]
+    },
+    "llm_zeroshot": {
+     "n": 4,
+     "mean": 23.75,
+     "ci": [
+      19.75,
+      30.0
+     ]
+    },
+    "subset_gbm": {
+     "n": 4,
+     "mean": 44.75,
+     "ci": [
+      40.5,
+      49.0
+     ]
+    },
+    "subset_random": {
+     "n": 4,
+     "mean": 19.75,
+     "ci": [
+      17.25,
+      22.0
+     ]
+    }
+   },
+   "contrasts": {
+    "llm_loop - llm_frozen": {
+     "n": 4,
+     "mean": 7.75,
+     "ci": [
+      5.5,
+      10.0
+     ]
+    },
+    "llm_loop - llm_zeroshot": {
+     "n": 4,
+     "mean": 2.5,
+     "ci": [
+      -2.25,
+      7.0
+     ]
+    },
+    "llm_loop - llm_shuffled": {
+     "n": 4,
+     "mean": 4.25,
+     "ci": [
+      0.5,
+      7.25
+     ]
+    },
+    "llm_kb - llm_loop": {
+     "n": 4,
+     "mean": -5.25,
+     "ci": [
+      -9.25,
+      -2.0
+     ]
+    },
+    "llm_loop - subset_random": {
+     "n": 4,
+     "mean": 6.5,
+     "ci": [
+      1.75,
+      11.25
+     ]
+    },
+    "llm_loop - subset_gbm": {
+     "n": 4,
+     "mean": -18.5,
+     "ci": [
+      -20.75,
+      -16.5
+     ]
+    },
+    "llm_kb - subset_gbm": {
+     "n": 4,
+     "mean": -23.75,
+     "ci": [
+      -26.5,
+      -20.0
+     ]
+    }
+   },
+   "cost": {
+    "llm_frozen": {
+     "usd": 0.0872,
+     "tin": 452814,
+     "tout": 5389,
+     "calls": 20,
+     "wall_seconds": 36.5
+    },
+    "llm_kb": {
+     "usd": 0.1204,
+     "tin": 449153,
+     "tout": 5408,
+     "calls": 20,
+     "wall_seconds": 42.6
+    },
+    "llm_loop": {
+     "usd": 0.0811,
+     "tin": 446861,
+     "tout": 5380,
+     "calls": 20,
+     "wall_seconds": 34.9
+    },
+    "llm_shuffled": {
+     "usd": 0.0993,
+     "tin": 444320,
+     "tout": 5306,
+     "calls": 20,
+     "wall_seconds": 36.9
+    },
+    "llm_zeroshot": {
+     "usd": 0.0859,
+     "tin": 357834,
+     "tout": 5313,
+     "calls": 20,
+     "wall_seconds": 35.3
+    },
+    "subset_gbm": {
+     "usd": 0.0,
+     "tin": 0,
+     "tout": 0,
+     "calls": 0,
+     "wall_seconds": 620.2
+    },
+    "subset_random": {
+     "usd": 0.0,
+     "tin": 0,
+     "tout": 0,
+     "calls": 0,
+     "wall_seconds": 0.0
+    }
+   },
+   "stereo": {
+    "llm_kb": {
+     "n": 4,
+     "mean": 0.0061,
+     "ci": [
+      -0.0899,
+      0.0935
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": 0.0015,
+     "ci": [
+      -0.0157,
+      0.0254
+     ]
+    }
+   },
+   "ef_sub": {
+    "llm_frozen": {
+     "n": 4,
+     "mean": 0.8443,
+     "ci": [
+      0.6839,
+      1.0048
+     ]
+    },
+    "llm_kb": {
+     "n": 4,
+     "mean": 0.9994,
+     "ci": [
+      0.8429,
+      1.1292
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": 1.2284,
+     "ci": [
+      1.1572,
+      1.3203
+     ]
+    },
+    "llm_shuffled": {
+     "n": 4,
+     "mean": 1.0342,
+     "ci": [
+      0.9508,
+      1.1564
+     ]
+    },
+    "llm_zeroshot": {
+     "n": 4,
+     "mean": 1.1056,
+     "ci": [
+      0.9549,
+      1.3059
+     ]
+    },
+    "subset_gbm": {
+     "n": 4,
+     "mean": 2.1464,
+     "ci": [
+      2.0718,
+      2.2795
+     ]
+    },
+    "subset_random": {
+     "n": 4,
+     "mean": 0.922,
+     "ci": [
+      0.79,
+      1.0898
+     ]
+    }
+   },
+   "fills": {
+    "llm_frozen": 7,
+    "llm_kb": 7,
+    "llm_loop": 1,
+    "llm_shuffled": 1,
+    "llm_zeroshot": 0,
+    "subset_gbm": 0,
+    "subset_random": 0
+   },
+   "status": "inconclusive (power)"
+  },
+  "google/gemini-3.1-flash-lite|B": {
+   "n_seeds": 4,
+   "yield_cum": {
+    "llm_frozen": {
+     "n": 4,
+     "mean": 8.0,
+     "ci": [
+      6.0,
+      10.5
+     ]
+    },
+    "llm_kb": {
+     "n": 4,
+     "mean": 10.25,
+     "ci": [
+      6.0,
+      14.5
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": 10.25,
+     "ci": [
+      8.5,
+      12.0
+     ]
+    },
+    "llm_shuffled": {
+     "n": 4,
+     "mean": 10.5,
+     "ci": [
+      7.0,
+      14.0
+     ]
+    },
+    "llm_zeroshot": {
+     "n": 4,
+     "mean": 8.25,
+     "ci": [
+      6.5,
+      10.0
+     ]
+    },
+    "subset_gbm": {
+     "n": 4,
+     "mean": 16.5,
+     "ci": [
+      16.0,
+      17.0
+     ]
+    },
+    "subset_random": {
+     "n": 4,
+     "mean": 11.5,
+     "ci": [
+      8.0,
+      16.0
+     ]
+    }
+   },
+   "contrasts": {
+    "llm_loop - llm_frozen": {
+     "n": 4,
+     "mean": 2.25,
+     "ci": [
+      0.0,
+      4.25
+     ]
+    },
+    "llm_loop - llm_zeroshot": {
+     "n": 4,
+     "mean": 2.0,
+     "ci": [
+      -0.5,
+      4.0
+     ]
+    },
+    "llm_loop - llm_shuffled": {
+     "n": 4,
+     "mean": -0.25,
+     "ci": [
+      -4.0,
+      3.5
+     ]
+    },
+    "llm_kb - llm_loop": {
+     "n": 4,
+     "mean": 0.0,
+     "ci": [
+      -2.5,
+      3.25
+     ]
+    },
+    "llm_loop - subset_random": {
+     "n": 4,
+     "mean": -1.25,
+     "ci": [
+      -5.0,
+      2.0
+     ]
+    },
+    "llm_loop - subset_gbm": {
+     "n": 4,
+     "mean": -6.25,
+     "ci": [
+      -8.0,
+      -4.25
+     ]
+    },
+    "llm_kb - subset_gbm": {
+     "n": 4,
+     "mean": -6.25,
+     "ci": [
+      -10.5,
+      -2.0
+     ]
+    }
+   },
+   "cost": {
+    "llm_frozen": {
+     "usd": 0.1118,
+     "tin": 476543,
+     "tout": 5256,
+     "calls": 20,
+     "wall_seconds": 35.5
+    },
+    "llm_kb": {
+     "usd": 0.123,
+     "tin": 460140,
+     "tout": 5308,
+     "calls": 20,
+     "wall_seconds": 35.6
+    },
+    "llm_loop": {
+     "usd": 0.1224,
+     "tin": 457926,
+     "tout": 5289,
+     "calls": 20,
+     "wall_seconds": 35.9
+    },
+    "llm_shuffled": {
+     "usd": 0.1025,
+     "tin": 459288,
+     "tout": 5287,
+     "calls": 20,
+     "wall_seconds": 38.1
+    },
+    "llm_zeroshot": {
+     "usd": 0.1035,
+     "tin": 382078,
+     "tout": 5320,
+     "calls": 20,
+     "wall_seconds": 35.0
+    },
+    "subset_gbm": {
+     "usd": 0.0,
+     "tin": 0,
+     "tout": 0,
+     "calls": 0,
+     "wall_seconds": 518.2
+    },
+    "subset_random": {
+     "usd": 0.0,
+     "tin": 0,
+     "tout": 0,
+     "calls": 0,
+     "wall_seconds": 0.0
+    }
+   },
+   "stereo": {
+    "llm_kb": {
+     "n": 4,
+     "mean": 0.0809,
+     "ci": [
+      0.0538,
+      0.1178
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": 0.0511,
+     "ci": [
+      -0.036,
+      0.1495
+     ]
+    }
+   },
+   "ef_sub": {
+    "llm_frozen": {
+     "n": 4,
+     "mean": 0.6825,
+     "ci": [
+      0.5888,
+      0.8087
+     ]
+    },
+    "llm_kb": {
+     "n": 4,
+     "mean": 0.8096,
+     "ci": [
+      0.5676,
+      1.0516
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": 0.904,
+     "ci": [
+      0.845,
+      0.963
+     ]
+    },
+    "llm_shuffled": {
+     "n": 4,
+     "mean": 0.8581,
+     "ci": [
+      0.55,
+      1.1661
+     ]
+    },
+    "llm_zeroshot": {
+     "n": 4,
+     "mean": 0.7312,
+     "ci": [
+      0.5125,
+      1.0362
+     ]
+    },
+    "subset_gbm": {
+     "n": 4,
+     "mean": 1.5174,
+     "ci": [
+      1.1262,
+      1.9085
+     ]
+    },
+    "subset_random": {
+     "n": 4,
+     "mean": 0.9474,
+     "ci": [
+      0.6828,
+      1.2119
+     ]
+    }
+   },
+   "fills": {
+    "llm_frozen": 0,
+    "llm_kb": 1,
+    "llm_loop": 0,
+    "llm_shuffled": 2,
+    "llm_zeroshot": 0,
+    "subset_gbm": 0,
+    "subset_random": 0
+   },
+   "status": "inconclusive (power)"
+  },
+  "google/gemini-3.1-flash-lite|L": {
+   "n_seeds": 4,
+   "yield_cum": {
+    "llm_frozen": {
+     "n": 4,
+     "mean": 34.0,
+     "ci": [
+      29.0,
+      39.0
+     ]
+    },
+    "llm_kb": {
+     "n": 4,
+     "mean": 33.75,
+     "ci": [
+      26.25,
+      39.5
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": 31.75,
+     "ci": [
+      30.5,
+      32.75
+     ]
+    },
+    "llm_shuffled": {
+     "n": 4,
+     "mean": 32.25,
+     "ci": [
+      28.0,
+      36.5
+     ]
+    },
+    "llm_zeroshot": {
+     "n": 4,
+     "mean": 30.5,
+     "ci": [
+      26.0,
+      34.5
+     ]
+    },
+    "subset_gbm": {
+     "n": 4,
+     "mean": 62.5,
+     "ci": [
+      59.25,
+      65.75
+     ]
+    },
+    "subset_random": {
+     "n": 4,
+     "mean": 34.5,
+     "ci": [
+      29.0,
+      40.25
+     ]
+    }
+   },
+   "contrasts": {
+    "llm_loop - llm_frozen": {
+     "n": 4,
+     "mean": -2.25,
+     "ci": [
+      -8.0,
+      3.5
+     ]
+    },
+    "llm_loop - llm_zeroshot": {
+     "n": 4,
+     "mean": 1.25,
+     "ci": [
+      -2.5,
+      5.5
+     ]
+    },
+    "llm_loop - llm_shuffled": {
+     "n": 4,
+     "mean": -0.5,
+     "ci": [
+      -5.0,
+      4.0
+     ]
+    },
+    "llm_kb - llm_loop": {
+     "n": 4,
+     "mean": 2.0,
+     "ci": [
+      -6.0,
+      9.0
+     ]
+    },
+    "llm_loop - subset_random": {
+     "n": 4,
+     "mean": -2.75,
+     "ci": [
+      -8.75,
+      2.0
+     ]
+    },
+    "llm_loop - subset_gbm": {
+     "n": 4,
+     "mean": -30.75,
+     "ci": [
+      -34.0,
+      -27.5
+     ]
+    },
+    "llm_kb - subset_gbm": {
+     "n": 4,
+     "mean": -28.75,
+     "ci": [
+      -33.5,
+      -24.0
+     ]
+    }
+   },
+   "cost": {
+    "llm_frozen": {
+     "usd": 0.1034,
+     "tin": 436798,
+     "tout": 5335,
+     "calls": 20,
+     "wall_seconds": 36.0
+    },
+    "llm_kb": {
+     "usd": 0.1164,
+     "tin": 433045,
+     "tout": 5404,
+     "calls": 20,
+     "wall_seconds": 34.9
+    },
+    "llm_loop": {
+     "usd": 0.1152,
+     "tin": 429234,
+     "tout": 5281,
+     "calls": 20,
+     "wall_seconds": 36.9
+    },
+    "llm_shuffled": {
+     "usd": 0.1065,
+     "tin": 430998,
+     "tout": 5304,
+     "calls": 20,
+     "wall_seconds": 35.4
+    },
+    "llm_zeroshot": {
+     "usd": 0.0939,
+     "tin": 343913,
+     "tout": 5314,
+     "calls": 20,
+     "wall_seconds": 33.3
+    },
+    "subset_gbm": {
+     "usd": 0.0,
+     "tin": 0,
+     "tout": 0,
+     "calls": 0,
+     "wall_seconds": 371.7
+    },
+    "subset_random": {
+     "usd": 0.0,
+     "tin": 0,
+     "tout": 0,
+     "calls": 0,
+     "wall_seconds": 0.0
+    }
+   },
+   "stereo": {
+    "llm_kb": {
+     "n": 4,
+     "mean": 0.0529,
+     "ci": [
+      -0.0217,
+      0.15
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": -0.0722,
+     "ci": [
+      -0.1875,
+      -0.0018
+     ]
+    }
+   },
+   "ef_sub": {
+    "llm_frozen": {
+     "n": 4,
+     "mean": 1.1165,
+     "ci": [
+      0.9924,
+      1.2759
+     ]
+    },
+    "llm_kb": {
+     "n": 4,
+     "mean": 1.0999,
+     "ci": [
+      0.9134,
+      1.2925
+     ]
+    },
+    "llm_loop": {
+     "n": 4,
+     "mean": 1.0717,
+     "ci": [
+      1.0034,
+      1.14
+     ]
+    },
+    "llm_shuffled": {
+     "n": 4,
+     "mean": 1.0328,
+     "ci": [
+      0.9034,
+      1.178
+     ]
+    },
+    "llm_zeroshot": {
+     "n": 4,
+     "mean": 0.9788,
+     "ci": [
+      0.8742,
+      1.0823
+     ]
+    },
+    "subset_gbm": {
+     "n": 4,
+     "mean": 2.142,
+     "ci": [
+      2.0826,
+      2.2216
+     ]
+    },
+    "subset_random": {
+     "n": 4,
+     "mean": 1.1276,
+     "ci": [
+      0.9897,
+      1.2693
+     ]
+    }
+   },
+   "fills": {
+    "llm_frozen": 1,
+    "llm_kb": 1,
+    "llm_loop": 2,
+    "llm_shuffled": 2,
+    "llm_zeroshot": 0,
+    "subset_gbm": 0,
+    "subset_random": 0
+   },
+   "status": "inconclusive (power)"
+  }
+ },
+ "controls": {},
+ "noninferiority": {
+  "gbm loop+K_phys (sub protocol) vs anthropic/claude-haiku-5.5 llm_kb | A": {
+   "n_pairs": 4,
+   "ratio": {
+    "n": 4,
+    "mean": 1.523,
+    "ci": [
+     1.405,
+     1.641
+    ]
+   },
+   "diff": {
+    "n": 4,
+    "mean": 15.0,
+    "ci": [
+     13.0,
+     16.0
+    ]
+   },
+   "rule": "non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
+   "non_inferior": false,
+   "superior": false,
+   "status": "inconclusive (power)"
+  },
+  "gbm loop+K_phys (sub protocol) vs google/gemini-3.1-flash-lite llm_kb | A": {
+   "n_pairs": 4,
+   "ratio": {
+    "n": 4,
+    "mean": 2.215,
+    "ci": [
+     1.8674,
+     2.7292
+    ]
+   },
+   "diff": {
+    "n": 4,
+    "mean": 23.75,
+    "ci": [
+     20.0,
+     27.5
+    ]
+   },
+   "rule": "non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
+   "non_inferior": false,
+   "superior": false,
+   "status": "inconclusive (power)"
+  },
+  "gbm loop+K_phys (sub protocol) vs anthropic/claude-haiku-5.5 llm_kb | B": {
+   "n_pairs": 1,
+   "ratio": {
+    "n": 1,
+    "mean": 1.3529,
+    "ci": [
+     1.3529411764705883,
+     1.3529411764705883
+    ]
+   },
+   "diff": {
+    "n": 1,
+    "mean": 6.0,
+    "ci": [
+     6.0,
+     6.0
+    ]
+   },
+   "rule": "non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
+   "non_inferior": false,
+   "superior": false,
+   "status": "inconclusive (power)"
+  },
+  "gbm loop+K_phys (sub protocol) vs google/gemini-3.1-flash-lite llm_kb | B": {
+   "n_pairs": 1,
+   "ratio": {
+    "n": 1,
+    "mean": 1.4375,
+    "ci": [
+     1.4375,
+     1.4375
+    ]
+   },
+   "diff": {
+    "n": 1,
+    "mean": 7.0,
+    "ci": [
+     7.0,
+     7.0
+    ]
+   },
+   "rule": "non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
+   "non_inferior": false,
+   "superior": false,
+   "status": "inconclusive (power)"
+  },
+  "gbm loop+K_phys (sub protocol) vs google/gemini-3.1-flash-lite llm_kb | L": {
+   "n_pairs": 4,
+   "ratio": {
+    "n": 4,
+    "mean": 1.8807,
+    "ci": [
+     1.565,
+     2.2754
+    ]
+   },
+   "diff": {
+    "n": 4,
+    "mean": 27.25,
+    "ci": [
+     21.5,
+     33.0
+    ]
+   },
+   "rule": "non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
+   "non_inferior": false,
+   "superior": false,
+   "status": "inconclusive (power)"
+  },
+  "gbm_physchem loop+K_phys (sub protocol) vs anthropic/claude-haiku-5.5 llm_kb | A": {
+   "n_pairs": 4,
+   "ratio": {
+    "n": 4,
+    "mean": 1.4963,
+    "ci": [
+     1.3916,
+     1.601
+    ]
+   },
+   "diff": {
+    "n": 4,
+    "mean": 14.25,
+    "ci": [
+     13.5,
+     15.0
+    ]
+   },
+   "rule": "non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
+   "non_inferior": false,
+   "superior": false,
+   "status": "inconclusive (power)"
+  },
+  "gbm_physchem loop+K_phys (sub protocol) vs google/gemini-3.1-flash-lite llm_kb | A": {
+   "n_pairs": 4,
+   "ratio": {
+    "n": 4,
+    "mean": 2.1753,
+    "ci": [
+     1.8295,
+     2.6964
+    ]
+   },
+   "diff": {
+    "n": 4,
+    "mean": 23.0,
+    "ci": [
+     18.75,
+     26.25
+    ]
+   },
+   "rule": "non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
+   "non_inferior": false,
+   "superior": false,
+   "status": "inconclusive (power)"
+  },
+  "gbm_physchem loop+K_phys (sub protocol) vs anthropic/claude-haiku-5.5 llm_kb | B": {
+   "n_pairs": 4,
+   "ratio": {
+    "n": 4,
+    "mean": 1.7733,
+    "ci": [
+     1.3193,
+     2.5882
+    ]
+   },
+   "diff": {
+    "n": 4,
+    "mean": 7.25,
+    "ci": [
+     4.5,
+     11.75
+    ]
+   },
+   "rule": "non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
+   "non_inferior": false,
+   "superior": false,
+   "status": "inconclusive (power)"
+  },
+  "gbm_physchem loop+K_phys (sub protocol) vs google/gemini-3.1-flash-lite llm_kb | B": {
+   "n_pairs": 4,
+   "ratio": {
+    "n": 4,
+    "mean": 2.2555,
+    "ci": [
+     1.4111,
+     3.1
+    ]
+   },
+   "diff": {
+    "n": 4,
+    "mean": 9.25,
+    "ci": [
+     6.0,
+     12.5
+    ]
+   },
+   "rule": "non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
+   "non_inferior": false,
+   "superior": false,
+   "status": "inconclusive (power)"
+  },
+  "gbm_physchem loop+K_phys (sub protocol) vs google/gemini-3.1-flash-lite llm_kb | L": {
+   "n_pairs": 4,
+   "ratio": {
+    "n": 4,
+    "mean": 1.8371,
+    "ci": [
+     1.5146,
+     2.1706
+    ]
+   },
+   "diff": {
+    "n": 4,
+    "mean": 26.0,
+    "ci": [
+     19.5,
+     32.5
+    ]
+   },
+   "rule": "non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
+   "non_inferior": false,
+   "superior": false,
+   "status": "inconclusive (power)"
+  }
+ }
+}
