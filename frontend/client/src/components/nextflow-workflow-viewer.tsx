@@ -2953,10 +2953,21 @@ export function NextflowWorkflowViewer({
                 const name = filePath.split('/').filter(Boolean).pop() || '';
                 const ext = (name.split('.').pop() || '').toLowerCase();
                 // Step label = the prefix segment that looks like a process
-                // name (e.g. INVIVO_CART_ATLAS_SAFETY/) — mirrors the
+                // NAME (e.g. INVIVO_CART_ATLAS_SAFETY/) — mirrors the
                 // chat-with-artifacts derivation so styling is consistent.
+                // But many S3 layouts put the file under an opaque run/history
+                // id (e.g. 76d11493/) rather than a process name; showing that id
+                // as the "step" is meaningless to the user ("who knows the id?").
+                // So accept the segment only when it reads like a process name,
+                // never when it is an opaque hash / uuid / numeric id — in which
+                // case we leave step blank (grouped under the neutral header).
                 const parts = filePath.split('/');
-                const step = parts.length >= 2 ? parts[parts.length - 2] : '';
+                const rawStep = parts.length >= 2 ? parts[parts.length - 2] : '';
+                const isOpaqueId =
+                  /^[0-9a-f]{6,}$/i.test(rawStep) ||            // hex hash (76d11493)
+                  /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(rawStep) || // uuid
+                  /^\d+$/.test(rawStep);                         // pure numeric id
+                const step = isOpaqueId ? '' : rawStep;
                 return { step, name, path: filePath, ext };
               });
             })()}

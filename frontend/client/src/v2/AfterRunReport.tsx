@@ -1366,11 +1366,11 @@ function OutputsTab({
           const showStepHeader = i === 0 || String(arr[i - 1].step || '') !== String(f.step || '');
           return (
             <React.Fragment key={key}>
-              {showStepHeader && (
+              {showStepHeader && f.step && (
                 <div data-testid="output-step-group" style={{
                   fontSize: 11, fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase',
                   color: 'var(--text-muted)', margin: i === 0 ? '0 0 2px' : '12px 0 2px',
-                }}>{f.step || tOr('afterrun.other_outputs', 'Other outputs')}</div>
+                }}>{f.step}</div>
               )}
             <div
               data-testid="output-card"
