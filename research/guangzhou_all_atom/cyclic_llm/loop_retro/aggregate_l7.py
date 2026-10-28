@@ -62,7 +62,9 @@ def main():
             o["yield_total"][arm] = summ([hits(r[arm]) for r in seeds.values() if arm in r]); o["yield_5rounds"][arm] = summ([hits(r[arm], 5) for r in seeds.values() if arm in r])
             g = [r[arm]["auroc_E"][-1] - r[arm]["auroc_E0"] for r in seeds.values() if arm in r and r[arm].get("auroc_E")]; o["E_auroc_gain"][arm] = summ(g)
             g2 = [r[arm]["ef5_E"][-1] - r[arm]["ef5_E0"] for r in seeds.values() if arm in r and r[arm].get("ef5_E")]; o["E_ef5_gain"][arm] = summ(g2)
-            st = [r[arm]["stereo_rho"][-1] for r in seeds.values() if arm in r and r[arm].get("stereo_rho")]; sar = [r[arm]["stereo_rho_sar"] for r in seeds.values() if arm in r and r[arm].get("stereo_rho_sar") is not None]
+            st = [r[arm]["stereo_rho"][-1] for r in seeds.values() if arm in r and r[arm].get("stereo_rho")]
+            # runs made before the 2026-10-29 fix (no `picked_final` key) fed mismatched label/index arrays into the SAR update of FROZEN arms: that single field is invalid there and excluded
+            sar = [r[arm]["stereo_rho_sar"] for r in seeds.values() if arm in r and r[arm].get("stereo_rho_sar") is not None and not (arm.startswith("frozen") and "picked_final" not in r[arm])]
             o["stereo"][arm] = dict(zero_sibling=summ(st), sar=summ(sar))
         def contrast(name, x, y_, field="yield"):
             if field == "yield": d = paired(R, key, x, y_, lambda p, q: hits(p) - hits(q))

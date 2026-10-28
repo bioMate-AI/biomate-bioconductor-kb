@@ -107,6 +107,7 @@ def _stereo_full(ctx, state):
 
 def _stereo_sar(ctx, state, labeled, ylab, seed):
     """SAR setting: ONE extra update (same steps as one loop round) on the final revealed set plus the revealed siblings' labels, then rank the targets."""
+    assert len(labeled) == len(ylab), f"SAR update needs one label per revealed index (got {len(labeled)} indices, {len(ylab)} labels)"
     sib = list(ctx.Ef_sib); st = ctx.B.fit(state, list(labeled) + sib, np.array(list(ylab) + [ctx.y[i] for i in sib]), ctx.p["steps_round"], seed * 1000 + 999)
     return _stereo_full(ctx, st)
 
@@ -132,10 +133,12 @@ def run_arm(ctx, arm, init, pool, E, seed, loop_revealed=None, state0=None):
         rec["fit_steps"], rec["seconds"] = p["steps_round"] * p["rounds"], round(time.time() - t0, 1); return rec
     base = arm[:-4] if arm.endswith("_sub") else arm; sub = arm.endswith("_sub")
     labeled = list(init); ylab = list(y[init]); unl = list(pool); state = state0; frozen_rank = None   # ylab = labels AS THE MODEL SEES THEM (permuted per round in shuffled)
+    revealed = list(init)                                                       # indices the MODEL has labels for (frozen arms: init only, their picks are never fed back); len(revealed) == len(ylab) always
+    picked_all = list(init)                                                     # indices excluded from later candidate subsets
     rec.update(picks=[], pick_scores=[], pick_std=[]); has_std = hasattr(B, "predict_std")
     if sub: rec.update(cands=[], cand_scores=[])
     for r in range(p["rounds"]):
-        if sub: U = np.array(subset(pool, seed, r, labeled, p["n_cand"]), dtype=int)     # `pool` is the ORIGINAL pool (never shrunk for sub arms)
+        if sub: U = np.array(subset(pool, seed, r, picked_all, p["n_cand"]), dtype=int)     # `pool` is the ORIGINAL pool (never shrunk for sub arms)
         else: U = np.array(unl)
         st_sel = state0 if base == "frozen" else state; s = None
         if base == "random_fb": pick = [int(i) for i in rng.choice(U, p["batch"], replace=False)]
@@ -145,7 +148,7 @@ def run_arm(ctx, arm, init, pool, E, seed, loop_revealed=None, state0=None):
         else:
             s = B.predict(st_sel, U)
             if base in ("loop_kn", "loop_kn_contra", "loop_kphys", "loop_kphys_contra", "loop_kshuf"):
-                w = 100.0 / (100.0 + len(labeled))                    # fusion weight (L2/L5): w = n0/(n0+n), n0 = 100
+                w = 100.0 / (100.0 + len(revealed))                    # fusion weight (L2/L5): w = n0/(n0+n), n0 = 100
                 ch = {"loop_kn": ctx.Kn, "loop_kn_contra": -ctx.Kn, "loop_kphys": ctx.Kphys, "loop_kphys_contra": -ctx.Kphys, "loop_kshuf": ctx.Kshuf}[base]   # K_phys = textbook physchem (leak-free); contra = sign-flipped; kshuf = within-source-permuted (no information)
                 s = (1 - w) * K.zs(s) + w * K.zs(ch[U])
             pick = [int(i) for i in U[np.argsort(-s, kind="stable")[:p["batch"]]]]
@@ -154,13 +157,14 @@ def run_arm(ctx, arm, init, pool, E, seed, loop_revealed=None, state0=None):
             pos = {int(i): k for k, i in enumerate(U)}; rec["pick_scores"].append([round(float(s[pos[i]]), 4) for i in pick])
             if has_std and base not in ("loop_kn", "loop_kn_contra", "loop_kphys", "loop_kphys_contra", "loop_kshuf"): sd = B.predict_std(st_sel, U); rec["pick_std"].append([round(float(sd[pos[i]]), 4) for i in pick])
         if sub: rec["cands"].append([int(i) for i in U]); rec["cand_scores"].append([round(float(v), 4) for v in s] if s is not None else None)
-        sp = set(pick); unl = [i for i in unl if i not in sp]; labeled += pick
+        sp = set(pick); unl = [i for i in unl if i not in sp]; picked_all += pick
         if base != "frozen":
+            revealed += pick
             new = y[pick].copy()
             if base == "shuffled": new = rng.choice(y[np.array(pool)], len(pick), replace=False)        # L7d: global draw from the pool's label vector (no item- or batch-level association)
             if base == "noisy" and len(new) >= 5:                    # 20 % label corruption: those labels are permuted among themselves
                 m = rng.choice(len(new), max(2, int(round(0.2 * len(new)))), replace=False); new[m] = rng.permutation(new[m])
-            ylab += list(new); state = B.fit(state, labeled, np.array(ylab), p["steps_round"], seed * 1000 + r); steps += p["steps_round"]
+            ylab += list(new); state = B.fit(state, revealed, np.array(ylab), p["steps_round"], seed * 1000 + r); steps += p["steps_round"]
         _record(ctx, pick, rec, E, state if base != "frozen" else state0)
         if arm in ("loop", "loop_sub"):
             rec.setdefault("E_scores", []).append([round(float(v), 4) for v in B.predict(state, E)])
@@ -168,8 +172,8 @@ def run_arm(ctx, arm, init, pool, E, seed, loop_revealed=None, state0=None):
     fin = state if base != "frozen" else state0
     rec.setdefault("E_scores_final", [round(float(v), 4) for v in B.predict(fin, E)])
     if ctx.Ef is not None:
-        rec["stereo_nonconst_frac"] = _stereo_full(ctx, fin)[1]; rec["stereo_rho_sar"], rec["stereo_sar_nonconst_frac"] = _stereo_sar(ctx, fin, labeled, ylab, seed)
-    rec["revealed_final"] = list(map(int, labeled)); rec["fit_steps"], rec["seconds"] = steps, round(time.time() - t0, 1); return rec
+        rec["stereo_nonconst_frac"] = _stereo_full(ctx, fin)[1]; rec["stereo_rho_sar"], rec["stereo_sar_nonconst_frac"] = _stereo_sar(ctx, fin, revealed, ylab, seed)
+    rec["revealed_final"] = list(map(int, revealed)); rec["picked_final"] = list(map(int, picked_all)); rec["fit_steps"], rec["seconds"] = steps, round(time.time() - t0, 1); return rec
 
 
 def learning_curve(ctx, init, pool, E, seed, ks=(0, 25, 50, 100)):

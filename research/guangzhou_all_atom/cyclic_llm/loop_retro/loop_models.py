@@ -14,6 +14,7 @@ class GBM:
     def fit(self, state, idx, y, steps, seed):
         import run_loop as R
         rng = np.random.default_rng(seed); idx = np.asarray(idx, dtype=int)
+        assert len(idx) == len(y), f"GBM.fit: {len(idx)} indices but {len(y)} labels"
         if len(idx) == 0: return []                      # k = 0 labels (learning-curve origin): untrained -> constant, uninformative scores
         return R.fit_ens(self.X[idx], np.asarray(y, float), rng)
     def predict(self, state, idx):
