@@ -61,3 +61,15 @@ def test_no_over_removal_when_no_neighbours():
     corpus, _, _ = make_world(); other = ["CC(C)(C)OC(=O)N[C@@H](CC(C)C)C(=O)N1CCCC1C(=O)NC(Cc1ccccc1)C(=O)NC(CCCCN)C(=O)NC(CO)C(=O)O"]
     c_flat, c_pc, c_fp = F.featurize_all(corpus, 1); a, b = F.removed_for(other, c_flat, c_pc, c_fp)
     assert not (a | b)
+
+
+def test_sharded_featurisation_resumes_and_matches(tmp_path=None):
+    import tempfile
+    corpus, held, planted = make_world()
+    with tempfile.TemporaryDirectory() as d:
+        a = F.featurize_sharded(corpus, 1, d, shard=700, log=lambda m: None); b = F.featurize_sharded(corpus, 1, d, shard=700, log=lambda m: None)        # second call reuses every shard
+        ref = F.featurize_all(corpus, 1)
+        assert all(np.array_equal(x, y) for x, y in zip(a, ref)) and all(np.array_equal(x, y) for x, y in zip(a, b))
+        import glob, os
+        os.remove(sorted(glob.glob(d + "/shard_*.npz"))[0]); c = F.featurize_sharded(corpus, 1, d, shard=700, log=lambda m: None)        # a lost shard is recomputed (spot reclaim)
+        assert all(np.array_equal(x, y) for x, y in zip(c, ref))

@@ -62,21 +62,41 @@ def removed_for(heldout_smiles, c_flat, c_pc, c_fp, tan=TAN):
     return set(by_flat.tolist()), by_tan
 
 
+def featurize_sharded(lines, procs, shard_dir, shard=100000, log=print):
+    """featurise in shards persisted as npz (resumable: existing shards are skipped), then concatenate. Logs progress per shard."""
+    os.makedirs(shard_dir, exist_ok=True); n = len(lines); parts = []
+    for si, s0 in enumerate(range(0, n, shard)):
+        f = f"{shard_dir}/shard_{si:05d}.npz"
+        if not os.path.exists(f):
+            fl, pc, fp = featurize_all(lines[s0:s0 + shard], procs); tmp = f + ".tmp.npz"; np.savez(tmp, flat=fl, pc=pc, fp=fp); os.replace(tmp, f); log(f"shard {si} featurised ({min(s0 + shard, n)}/{n})")
+        else: log(f"shard {si} reused")
+        z = np.load(f); parts.append((z["flat"], z["pc"], z["fp"]))
+    return np.concatenate([p[0] for p in parts]), np.concatenate([p[1] for p in parts]), np.concatenate([p[2] for p in parts])
+
+
 if __name__ == "__main__":
-    corpus, hdir, out = sys.argv[1], sys.argv[2], sys.argv[3]; procs = int(sys.argv[4]) if len(sys.argv) > 4 else 8
-    os.makedirs(out, exist_ok=True)
-    lines = [l.strip().split()[0] if l.strip() else "" for l in gzip.open(corpus, "rt")]
-    print("corpus lines", len(lines), flush=True)
-    c_flat, c_pc, c_fp = featurize_all(lines, procs); print("featurized; unparsable", int((c_pc == 0).sum()), flush=True)
-    rep = {"corpus_lines": len(lines), "corpus_unparsable": int((c_pc == 0).sum()), "tanimoto_threshold": TAN, "folds": {}}
+    import argparse, time, urllib.request
+    ap = argparse.ArgumentParser(); ap.add_argument("corpus"); ap.add_argument("heldout_dir"); ap.add_argument("out_dir"); ap.add_argument("--procs", type=int, default=8); ap.add_argument("--limit", type=int, default=0, help="canary: use only the first N corpus lines")
+    ap.add_argument("--shard", type=int, default=100000); ap.add_argument("--tanimoto", type=float, default=TAN); a = ap.parse_args(); os.makedirs(a.out_dir, exist_ok=True)
+    logf = open(f"{a.out_dir}/progress.log", "a")
+    def log(m): s = f"{time.strftime('%H:%M:%S')} {m}"; print(s, flush=True); logf.write(s + "\n"); logf.flush()
+    def imds(path):
+        try:
+            tok = urllib.request.urlopen(urllib.request.Request("http://169.254.169.254/latest/api/token", method="PUT", headers={"X-aws-ec2-metadata-token-ttl-seconds": "60"}), timeout=2).read().decode()
+            return urllib.request.urlopen(urllib.request.Request("http://169.254.169.254/latest/meta-data/" + path, headers={"X-aws-ec2-metadata-token": tok}), timeout=2).read().decode()
+        except Exception: return "unavailable"
+    log(f"host instance_type={imds('instance-type')} az={imds('placement/availability-zone')} lifecycle={imds('instance-life-cycle')}")
+    lines = [l.strip().split()[0] if l.strip() else "" for l in gzip.open(a.corpus, "rt")]
+    if a.limit: lines = lines[:a.limit]
+    log(f"corpus lines {len(lines)}")
+    c_flat, c_pc, c_fp = featurize_sharded(lines, a.procs, f"{a.out_dir}/shards", a.shard, log); log(f"featurised; unparsable {int((c_pc == 0).sum())}")
+    rep = {"corpus_lines": len(lines), "corpus_unparsable": int((c_pc == 0).sum()), "tanimoto_threshold": a.tanimoto, "folds": {}}; union = set()
     for f in range(5):
-        hp = f"{hdir}/fold{f}.smi"
+        hp = f"{a.heldout_dir}/fold{f}.smi"
         if not os.path.exists(hp): continue
-        held = [l.strip() for l in open(hp) if l.strip()]
-        by_flat, by_tan = removed_for(held, c_flat, c_pc, c_fp)
-        rem = np.array(sorted(by_flat | by_tan), dtype=np.int64); np.save(f"{out}/removed_fold{f}.npy", rem)
-        rep["folds"][f] = {"heldout_compounds": len(held), "removed_same_flat_structure": len(by_flat), "removed_tanimoto_ge_0.9_additional": len(by_tan),
-                           "removed_total": int(len(rem)), "removed_frac": round(len(rem) / len(lines), 6), "corpus_after": int(len(lines) - len(rem)),
-                           "removed_heavy_atom_free_note": "popcount window blocking is lossless (verified against brute force in test_filter_corpus.py)"}
-        print("fold", f, json.dumps(rep["folds"][f]), flush=True)
-    json.dump(rep, open(f"{out}/filter_report.json", "w"), indent=1)
+        held = [l.strip() for l in open(hp) if l.strip()]; by_flat, by_tan = removed_for(held, c_flat, c_pc, c_fp, a.tanimoto)
+        rem = np.array(sorted(by_flat | by_tan), dtype=np.int64); np.save(f"{a.out_dir}/removed_fold{f}.npy", rem); union |= set(rem.tolist())
+        rep["folds"][f] = {"heldout_compounds": len(held), "removed_same_flat_structure": len(by_flat), "removed_tanimoto_additional": len(by_tan), "removed_total": int(len(rem)), "removed_frac": round(len(rem) / len(lines), 6)}
+        log(f"fold {f} {json.dumps(rep['folds'][f])}")
+    u = np.array(sorted(union), dtype=np.int64); np.save(f"{a.out_dir}/removed_union.npy", u); rep["union"] = {"removed_total": int(len(u)), "removed_frac": round(len(u) / max(len(lines), 1), 6), "corpus_after": int(len(lines) - len(u))}
+    json.dump(rep, open(f"{a.out_dir}/filter_report.json", "w"), indent=1); log("DONE " + json.dumps(rep["union"]))

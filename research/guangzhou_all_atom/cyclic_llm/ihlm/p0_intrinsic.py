@@ -15,7 +15,7 @@ from symbolic import propose_edit_smiles
 from rdkit import Chem, RDLogger
 RDLogger.DisableLog("rdApp.*")
 ap = argparse.ArgumentParser(); ap.add_argument("ckpt"); ap.add_argument("vocab"); ap.add_argument("out"); ap.add_argument("--n-sample", type=int, default=1000); ap.add_argument("--n-eval", type=int, default=1500)
-ap.add_argument("--corpus", default=""); ap.add_argument("--max-len", type=int, default=256); ap.add_argument("--d", type=int, default=512); ap.add_argument("--layers", type=int, default=8); ap.add_argument("--heads", type=int, default=8); ap.add_argument("--seed", type=int, default=0)
+ap.add_argument("--corpus", default=""); ap.add_argument("--max-len", type=int, default=256); ap.add_argument("--sample-len", type=int, default=160); ap.add_argument("--d", type=int, default=512); ap.add_argument("--layers", type=int, default=8); ap.add_argument("--heads", type=int, default=8); ap.add_argument("--seed", type=int, default=0)
 a = ap.parse_args(); rng = random.Random(a.seed); torch.manual_seed(a.seed)
 itos = json.load(open(a.vocab)); vocab = A.Vocab(itos[4:]) if itos[:4] == ["<pad>", "<bos>", "<eos>", "<unk>"] else A.Vocab(itos)
 model = A.GPT(len(vocab), d=a.d, layers=a.layers, heads=a.heads, max_len=a.max_len); model.load_state_dict(torch.load(a.ckpt, map_location="cpu", weights_only=False)["model"]); model.eval()
@@ -59,6 +59,7 @@ def cluster_boot(vals, groups, B=2000, seed=0):
 # A: held-out perplexity
 s_true = nll([p[0] for p in pool]); ok = [i for i, v in enumerate(s_true) if v is not None]
 out["A_heldout_perplexity"] = {"coverage": round(len(ok) / len(pool), 3), "mean_token_nll": cluster_boot([-s_true[i] for i in ok], [pool[i][1] for i in ok]), "perplexity_of_mean_nll": round(float(np.exp(-np.mean([s_true[i] for i in ok]))), 3)}
+json.dump(out, open(a.out, "w"), indent=1); print("A done", flush=True)
 # B: stereo / N-Me sensitivity (paired)
 dflip_gap, nmeshift_gap, g1, g2 = [], [], [], []
 for i in ok[: min(len(ok), 600)]:
@@ -71,13 +72,16 @@ for i in ok[: min(len(ok), 600)]:
         if v: nmeshift_gap.append(s_true[i] - float(np.mean(v))); g2.append(src)
 out["B_stereo_sensitivity"] = {"dflip_gap_true_minus_variant": cluster_boot(dflip_gap, g1) if dflip_gap else None, "nme_edit_gap_true_minus_variant": cluster_boot(nmeshift_gap, g2) if nmeshift_gap else None,
                                "note": "gap > 0 (CI above 0): the model prefers the real isomer/N-Me pattern over a single-edit variant. NOTE: the variant is not a measured compound, so this tests plausibility not activity"}
+json.dump(out, open(a.out, "w"), indent=1); print("B done", flush=True)
 # C: sampling
 corpus = set()
 if a.corpus and os.path.exists(a.corpus):
     for l in gzip.open(a.corpus, "rt"):
         s = l.strip().split()[0] if l.strip() else ""
         if s: corpus.add(s)
-samples = A.sample(model, vocab, a.n_sample, max_len=a.max_len, temperature=1.0, seed=a.seed)
+samples = []
+for k in range(0, a.n_sample, 100):
+    samples += A.sample(model, vocab, min(100, a.n_sample - k), max_len=a.sample_len, temperature=1.0, seed=a.seed + k); print('sampled', len(samples), flush=True)
 can = []; valid = 0
 for s in samples:
     m = Chem.MolFromSmiles(s) if s else None
