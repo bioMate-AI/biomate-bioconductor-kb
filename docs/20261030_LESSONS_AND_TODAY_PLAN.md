@@ -33,3 +33,6 @@ Not submission-ready: pending experiments (GPU model runs, IH-LM ladder, P1 pret
 
 ## E. Schedule to the owner's midnight review (set 2026-10-28 15:14 CDT)
 Owner reviews at midnight CDT. New experiment launches allowed until 19:30 CDT only if they can finish by 21:00. **Experiment freeze 21:00 CDT**: anything without a finished, audited result moves to Planned/Limitations. 21:00–22:30: assemble results, rerun the claim-evidence ledger, regenerate figures from committed artifacts, citation pass (primary-source verified only). 22:30–23:30: final audit, tag the draft, write the REVIEW BRIEF for the owner (docs/20261030_REVIEW_BRIEF.md: verified claims, nulls, open issues, decisions needed, spend). GPU comparators: cumulative spot cost cap USD 40 for the L7 GPU runs, self-terminating, report spend rate. No paid LLM APIs. No release or submission without owner review.
+
+## F. Simplification (owner, 2026-10-28 ~15:30 CDT)
+No freeze time and no launch cutoffs. Work continuously until the owner's midnight review: add each result to the draft as it finishes AND passes its audit/controls; anything not finished by midnight stays "planned". Unchanged: verified-only claims, typed intervals, cost caps (USD 40 L7 GPU; no paid LLM APIs), review brief by ~23:30 (docs/20261030_REVIEW_BRIEF.md), final auditor pass before the brief.
