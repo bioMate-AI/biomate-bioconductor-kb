@@ -24,11 +24,13 @@ def load_proxies():
 
 
 def _family_ci(per_target, tfam, level, B=10000, seed=5):
+    if per_target.empty: return dict(point=float("nan"), lo=float("nan"), hi=float("nan"), lo90=float("nan"), hi90=float("nan"), lo95=float("nan"), hi95=float("nan"), n_families=0)     # nothing evaluable -> explicit NaN (A11: becomes UNVERIFIABLE)
     d = per_target.merge(tfam[["target_key", "family"]], on="target_key"); d = d[d.auc.notna()]
     fm = d.groupby("family").auc.mean().values
-    if len(fm) < 2: return dict(point=float(fm.mean()) if len(fm) else float("nan"), lo=float("nan"), hi=float("nan"), n_families=len(fm))
+    if len(fm) < 2: return dict(point=float(fm.mean()) if len(fm) else float("nan"), lo=float("nan"), hi=float("nan"), lo90=float("nan"), hi90=float("nan"), lo95=float("nan"), hi95=float("nan"), n_families=len(fm))
     rng = np.random.default_rng(seed); idx = rng.integers(0, len(fm), (B, len(fm))); m = fm[idx].mean(1); a = (1 - level) / 2 * 100
-    return dict(point=float(fm.mean()), lo=float(np.percentile(m, a)), hi=float(np.percentile(m, 100 - a)), n_families=len(fm))
+    return dict(point=float(fm.mean()), lo=float(np.percentile(m, a)), hi=float(np.percentile(m, 100 - a)), lo90=float(np.percentile(m, 5)), hi90=float(np.percentile(m, 95)), lo95=float(np.percentile(m, 2.5)), hi95=float(np.percentile(m, 97.5)), n_families=len(fm),
+                family_means=[round(float(x), 5) for x in fm])
 
 
 def control_auc(items, tfam, values: pd.Series, level):
@@ -78,16 +80,41 @@ def fp_scores(items, tfam, FP, folds, flat=None, excl=None):
     return pd.concat(out) if out else pd.DataFrame(columns=["target_key", "compound_id", "score"])
 
 
+DELTA_PRIMARY = 0.05     # equivalence margin around 0.5 for the primary controls (A11)
+PRIM_LEVEL = 1 - 0.05 / 3   # A11: biased-flag interval for the 3 primary controls (Bonferroni, family-wise 5 %); 95 % and 90 % intervals are also stored
+MIN_FAMILIES = 8
+
+
+def assign_status(res):
+    """A11: validity is a two-sided EQUIVALENCE claim, not 'the interval contains 0.5'.
+    VALID only if every control is evaluable AND no control excludes chance AND every PRIMARY control's 90 % family-cluster interval (TOST, alpha = 0.05 per side) lies inside [0.5-DELTA, 0.5+DELTA].
+    NaN / unevaluable / < MIN_FAMILIES controls make the benchmark NOT_VALID_UNVERIFIABLE (explicit, never skipped). Zero-variance (constant) secondary controls are listed as DEGENERATE."""
+    biased, unver, noteq, degenerate = [], [], [], []
+    for k, v in res["primary"].items():
+        if isinstance(v, str) or v["lo"] != v["lo"] or v["n_families"] < MIN_FAMILIES: unver.append(f"primary:{k}"); continue
+        if v["lo"] > 0.5 or v["hi"] < 0.5: biased.append(f"primary:{k}")
+        if not (v["lo90"] >= 0.5 - DELTA_PRIMARY and v["hi90"] <= 0.5 + DELTA_PRIMARY): noteq.append(f"primary:{k}")
+    for k, v in res["secondary"].items():
+        if not isinstance(v, dict) or v["lo"] != v["lo"] or v["n_families"] < MIN_FAMILIES:
+            unver.append(f"secondary:{k}")
+        elif v["lo"] == v["hi"]: degenerate.append(k)
+        elif v["lo"] > 0.5 or v["hi"] < 0.5: biased.append(f"secondary:{k}")
+    status = "NOT_VALID_BIASED" if biased else "NOT_VALID_UNVERIFIABLE" if unver else "NOT_VALID_NOT_EQUIVALENT" if noteq else "VALID"
+    res.update(status=status, VALID=status == "VALID", equivalence_margin_primary=DELTA_PRIMARY, biased_controls=biased, unverifiable_controls=unver, not_equivalent_controls=noteq, degenerate_controls=degenerate)
+    res["failed_controls"] = biased + [f"unverifiable:{x}" for x in unver] + [f"not_equivalent:{x}" for x in noteq]
+    return res
+
+
 def run_gate(items, tfam, prox, folds, B=10000, FP=None, flat=None, excl=None):
     res = {"primary": {}, "secondary": {}}
     n_sec = len(SECONDARY); adj = 1 - 0.05 / n_sec
-    res["primary"]["C1_atomlm_typicality"] = control_auc(items, tfam, prox["typicality"], 0.95)
+    res["primary"]["C1_atomlm_typicality"] = control_auc(items, tfam, prox["typicality"], PRIM_LEVEL)
     ms = multi_proxy_scores(items, tfam, prox, folds, flat=flat, excl=excl)
     if len(ms):
         rows = []                                                       # labels come from items for the same (target, compound)
         for t, g in ms.groupby("target_key"):
             m = items[items.target_key == t].merge(g, on=["target_key", "compound_id"]); rows.append(dict(target_key=t, auc=H.tie_aware_auc(m.label.values, m.score.values)))
-        res["primary"]["C2_multiproxy_leave_fold_out"] = _family_ci(pd.DataFrame(rows), tfam, 0.95)
+        res["primary"]["C2_multiproxy_leave_fold_out"] = _family_ci(pd.DataFrame(rows), tfam, PRIM_LEVEL)
         res["primary"]["C2_multiproxy_leave_fold_out"]["folds_evaluated"] = sorted(int(x) for x in items.target_key.map(tfam.set_index("target_key").family).map(folds).unique())
     else:
         res["primary"]["C2_multiproxy_leave_fold_out"] = "not evaluable (too few training items)"
@@ -97,17 +124,12 @@ def run_gate(items, tfam, prox, folds, B=10000, FP=None, flat=None, excl=None):
         rows = []
         for t, g in fs.groupby("target_key"):
             m = items[items.target_key == t].merge(g, on=["target_key", "compound_id"]); rows.append(dict(target_key=t, auc=H.tie_aware_auc(m.label.values, m.score.values)))
-        res["primary"]["C3_morgan_fp_leave_fold_out"] = _family_ci(pd.DataFrame(rows), tfam, 0.95)
+        res["primary"]["C3_morgan_fp_leave_fold_out"] = _family_ci(pd.DataFrame(rows), tfam, PRIM_LEVEL)
     else:
         res["primary"]["C3_morgan_fp_leave_fold_out"] = "not evaluable (too few training items)"
     for k in SECONDARY:
         res["secondary"][k] = control_auc(items, tfam, prox[k], adj)
     res["secondary_level"] = adj
-    fails = [k for k, v in res["primary"].items() if isinstance(v, dict) and (v["lo"] > 0.5 or v["hi"] < 0.5)] + [f"secondary:{k}" for k, v in res["secondary"].items() if isinstance(v, dict) and v["lo"] == v["lo"] and (v["lo"] > 0.5 or v["hi"] < 0.5)]
-    MIN_FAMILIES = 8
-    for k, v in res["primary"].items():                       # a control that cannot be evaluated, or has an undefined / too-few-family interval, cannot certify validity
-        if isinstance(v, str) or v["lo"] != v["lo"] or v["n_families"] < MIN_FAMILIES: fails.append(f"unverifiable:{k}")
-    res["min_families_required"] = MIN_FAMILIES
-    res["failed_controls"] = fails; res["VALID"] = len(fails) == 0
-    res["note"] = "VALID means no control excludes chance; with few families the gate has low power -- see n_families and interval widths"
+    res = assign_status(res)
+    res["note"] = "status: VALID requires two-sided equivalence within +-0.05 of chance for C1-C3 (90 % interval) and no biased/unverifiable control; see PREREG A11"
     return res
