@@ -15,32 +15,31 @@ def cboot(vals, fams, B=2000):
     return dict(mean_over_targets=float(np.mean(vals)), mean_over_families=float(fm.mean()), ci95_family=[float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))], n_targets=len(vals), n_families=n)
 
 out = {}
-# ---- A-repro: compare per-target lines with the logged stdout
-logged = {}
-for l in open(LOGGED):
-    m = re.match(r"\s+(\S+) n=\d+ hits=\d+ clust=\d+: learn raw([\d.]+)/nov([\d.]+) fixed raw([\d.]+)/nov([\d.]+) random raw([\d.]+)/nov([\d.]+)", l)
-    if m: logged[m.group(1)] = dict(learn=float(m.group(2)), fixed=float(m.group(4)), random=float(m.group(6)))
-rp = f"{RES}/A_repro10/c2_result.json"
+# ---- stdout parser (the committed script crashes at its summary step when C2_MODES omits ucb/thompson: KeyError 'ucb' -> no c2_result.json)
+LINE = re.compile(r"\s+(\S+) n=(\d+) hits=(\d+) clust=(\d+): learn raw([\d.]+)/nov([\d.]+) fixed raw([\d.]+)/nov([\d.]+) random raw([\d.]+)/nov([\d.]+)")
+def parse(path):
+    d = {}
+    for l in open(path):
+        m = LINE.search(l.split("]", 1)[-1] if "]" in l[:12] else l)
+        if m: d[m.group(1)] = dict(learn=float(m.group(5)), fixed=float(m.group(7)), random=float(m.group(9)), nov=dict(learn=float(m.group(6)), fixed=float(m.group(8)), random=float(m.group(10))))
+    return d
+logged = parse(LOGGED)
 try:
-    R = json.load(open(rp)); rows = []
-    for t, meta in R["per_target"].items():
-        if t in logged:
-            d = {m: abs(meta["raw_final"][m] - logged[t][m]) for m in ("learn", "fixed", "random")}; rows.append((t, d, meta["raw_final"], logged[t]))
-    agg = {m: float(np.mean([meta["raw_final"][m] for meta in R["per_target"].values()])) for m in ("learn", "fixed", "random")}
-    out["A_repro10"] = dict(aggregate_rerun=agg, aggregate_logged=dict(learn=0.299, fixed=0.249, random=0.118),
-        per_target_max_abs_diff={m: float(max(r[1][m] for r in rows)) for m in ("learn", "fixed", "random")}, n_targets=len(rows),
-        reproduces=bool(all(r[1][m] <= 0.02 for r in rows for m in r[1]) and all(abs(agg[m] - v) <= 0.01 for m, v in dict(learn=0.299, fixed=0.249, random=0.118).items())),
-        per_target=[dict(target=r[0], rerun=r[2], logged=r[3]) for r in rows])
+    rr = parse(f"{RES}/A_repro10/stdout.txt"); ts = [t for t in rr if t in logged]
+    diff = {m: float(max(abs(rr[t][m] - logged[t][m]) for t in ts)) for m in ("learn", "fixed", "random")}
+    agg = {m: float(np.mean([rr[t][m] for t in ts])) for m in ("learn", "fixed", "random")}
+    out["A_repro10"] = dict(aggregate_rerun=agg, aggregate_logged={m: float(np.mean([logged[t][m] for t in ts])) for m in ("learn", "fixed", "random")}, per_target_max_abs_diff=diff, n_targets=len(ts),
+        reproduces=bool(all(v <= 0.02 for v in diff.values()) and all(abs(agg[m] - float(np.mean([logged[t][m] for t in ts]))) <= 0.01 for m in agg)),
+        per_target=[dict(target=t, rerun={m: rr[t][m] for m in ("learn", "fixed", "random")}, logged={m: logged[t][m] for m in ("learn", "fixed", "random")}) for t in ts])
 except FileNotFoundError: out["A_repro10"] = "missing"
-# ---- A-full106 (launcher configuration)
-fp = f"{RES}/A_full106/c2_result.json"
 try:
-    R = json.load(open(fp)); T = list(R["per_target"]); fams = [FAM.get(t, "NA") for t in T]
-    d = {m: np.array([R["per_target"][t]["raw_final"][m] for t in T]) for m in ("learn", "fixed", "random")}
+    ff = parse(f"{RES}/A_full106/stdout.txt"); T = list(ff); fams = [FAM.get(t, "NA") for t in T]
+    d = {m: np.array([ff[t][m] for t in T]) for m in ("learn", "fixed", "random")}
     out["A_full106"] = {c: cboot(a - b, fams) for c, (a, b) in dict(learn_minus_random=(d["learn"], d["random"]), fixed_minus_random=(d["fixed"], d["random"]), learn_minus_fixed=(d["learn"], d["fixed"])).items()}
     out["A_full106"]["means"] = {m: float(v.mean()) for m, v in d.items()}; out["A_full106"]["n_targets"] = len(T)
     non = [i for i, t in enumerate(T) if FAM.get(t) != "F997e29c2"]
     out["A_full106"]["learn_minus_fixed_excluding_GPCR_family"] = cboot((d["learn"] - d["fixed"])[non], [fams[i] for i in non]) if non else None
+    out["A_full106"]["source"] = "per-target stdout lines (script crashes before writing c2_result.json)"
 except FileNotFoundError: out["A_full106"] = "missing"
 # ---- A-ext
 rows = [r for f in glob.glob(f"{RES}/A_ext/*.json") for r in json.load(open(f))]
