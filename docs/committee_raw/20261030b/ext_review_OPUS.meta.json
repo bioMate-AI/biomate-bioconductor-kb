@@ -1,0 +1,16 @@
+{
+ "id": "gen-1793219492-VDjQP1Z3W6nN2RTNG8pQ",
+ "model": "anthropic/claude-opus-5.5",
+ "provider": "Claude Platform on AWS",
+ "finish_reason": "content_filter",
+ "native_finish_reason": "refusal",
+ "usage": {},
+ "message_keys": [
+  "role",
+  "content",
+  "refusal",
+  "reasoning"
+ ],
+ "refusal": null,
+ "content_len": 0
+}
