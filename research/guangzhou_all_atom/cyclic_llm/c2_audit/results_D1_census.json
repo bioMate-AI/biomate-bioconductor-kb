@@ -1,0 +1,171 @@
+{
+ "lab_sizes_all": [
+  2881,
+  1519,
+  878,
+  680,
+  207,
+  133,
+  72,
+  54,
+  52,
+  52,
+  47,
+  42,
+  36,
+  36,
+  31,
+  26,
+  24,
+  23,
+  21,
+  21,
+  20,
+  18,
+  17,
+  15,
+  12,
+  11,
+  11,
+  11,
+  10,
+  10,
+  8,
+  8,
+  8,
+  7,
+  6,
+  5,
+  4,
+  3,
+  3,
+  2,
+  2,
+  1
+ ],
+ "n_labs": 42,
+ "n_labs_ge30": 15,
+ "within_lab_sd_median_ge30": 0.7399528386140104,
+ "within_lab_sd_iqr_ge30": [
+  0.6502929936424481,
+  0.8531167265412198
+ ],
+ "lab_means_sd_ge30": 0.5297638210658199,
+ "sigma_m": 0.6188638960881253,
+ "sigma_m_n_repeat_groups": 31,
+ "sigma_m_df": 31.0,
+ "tau_hat_registered": 0.6333014476492983,
+ "tau_hat_ci95": [
+  0.3220627922458059,
+  0.8449467352139893
+ ],
+ "tau_hat_alt_formula": 0.5370798880354267,
+ "anchor_d_mean": -1.5582077538598687e-17,
+ "anchor_d_sd": 0.9662234333718476,
+ "n_anchors": 57,
+ "mean_partners": 2.56140350877193,
+ "tau_note": "weakly identified (57 anchors in 8 sources); includes compound-class-dependent inter-lab differences, so it is an upper-leaning estimate of a constant lab shift",
+ "census_peptide_clusters": {
+  "pampa": {
+   ">=1_sources": 6960,
+   ">=2_sources": 21,
+   ">=3_sources": 5,
+   ">=4_sources": 3
+  },
+  "anyassay": {
+   ">=1_sources": 7991,
+   ">=2_sources": 393,
+   ">=3_sources": 16,
+   ">=4_sources": 3
+  }
+ },
+ "n_peptide_clusters": 7991,
+ "greedy_cover": {
+  "k3": {
+   "3": {
+    "P": 3,
+    "labs_covered": 1,
+    "labs_covered_eligible_ge30": 1,
+    "rows_share": 0.01024619325458944
+   },
+   "5": {
+    "P": 5,
+    "labs_covered": 3,
+    "labs_covered_eligible_ge30": 2,
+    "rows_share": 0.019353920592002277
+   },
+   "10": {
+    "P": 10,
+    "labs_covered": 5,
+    "labs_covered_eligible_ge30": 3,
+    "rows_share": 0.02604240785541483
+   },
+   "20": {
+    "P": 20,
+    "labs_covered": 8,
+    "labs_covered_eligible_ge30": 4,
+    "rows_share": 0.03415397751529813
+   },
+   "40": {
+    "P": 21,
+    "labs_covered": 8,
+    "labs_covered_eligible_ge30": 4,
+    "rows_share": 0.03415397751529813
+   },
+   "80": {
+    "P": 21,
+    "labs_covered": 8,
+    "labs_covered_eligible_ge30": 4,
+    "rows_share": 0.03415397751529813
+   }
+  },
+  "k5": {
+   "3": {
+    "P": 3,
+    "labs_covered": 0,
+    "labs_covered_eligible_ge30": 0,
+    "rows_share": 0.0
+   },
+   "5": {
+    "P": 5,
+    "labs_covered": 0,
+    "labs_covered_eligible_ge30": 0,
+    "rows_share": 0.0
+   },
+   "10": {
+    "P": 10,
+    "labs_covered": 2,
+    "labs_covered_eligible_ge30": 2,
+    "rows_share": 0.017930838195531523
+   },
+   "20": {
+    "P": 20,
+    "labs_covered": 6,
+    "labs_covered_eligible_ge30": 4,
+    "rows_share": 0.03045396328447417
+   },
+   "40": {
+    "P": 21,
+    "labs_covered": 6,
+    "labs_covered_eligible_ge30": 4,
+    "rows_share": 0.03045396328447417
+   },
+   "80": {
+    "P": 21,
+    "labs_covered": 6,
+    "labs_covered_eligible_ge30": 4,
+    "rows_share": 0.03045396328447417
+   }
+  }
+ },
+ "greedy_cover_covered_labs_P40_k3": [
+  "2006_Rezai_1",
+  "2015_Ahlbach",
+  "2015_Wang",
+  "2018_Naylor",
+  "2020_Hosono",
+  "2021_Lee",
+  "2022_Lee",
+  "2023_Ghosh"
+ ]
+}
