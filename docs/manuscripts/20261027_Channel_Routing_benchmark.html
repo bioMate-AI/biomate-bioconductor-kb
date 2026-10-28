@@ -384,14 +384,18 @@ smallest for the strongest frontier model (0.91 → 1.00, +0.10). The
 pattern is a headroom effect (weaker models have more room), not an
 asserted inverse-scaling mechanism.</p></li>
 <li><p><strong>The gain generalizes to the held-out challenge
-tier.</strong> On the 49 harder items, direct accuracy falls relative to
-the core set (reflecting the paraphrase and confounder design), and the
-channel definitions restore it to the top band: Claude Opus 5 moves
-0.939 → 1.000 and Gemini 3.1 Pro 0.878 → 1.000, with the dividend
-<em>preserved or larger</em> than on the core set (Gemini +0.122 on
-held-out vs. +0.095 on core). Because these items avoid the core’s
-characteristic verbs and include surface-cue traps, the improvement is
-not attributable to keyword matching alone.</p></li>
+tier.</strong> On the 49 items designed to defeat keyword matching,
+supplying the channel definitions drives both models to the top band —
+Claude Opus 5 0.939 → 1.000 and Gemini 3.1 Pro 0.878 → 1.000. The
+direct-condition dividend is mixed relative to the core set: +0.061 for
+Opus 5 (whose direct accuracy was in fact slightly <em>higher</em> on
+the held-out items than on the core, so the challenge design did not
+uniformly depress direct accuracy) and +0.122 for Gemini. We therefore
+do not claim the dividend grows; we claim only that the definitions
+close essentially all of the remaining gap on items that avoid the
+core’s characteristic verbs and include surface-cue traps, which is
+evidence that the near-perfect plus-definitions accuracy is not
+reducible to keyword matching.</p></li>
 </ol>
 <p><strong>Table 2 | Per-channel accuracy and confusion, on-premises
 model with definitions (n = 12 per channel).</strong> Rows are the gold
