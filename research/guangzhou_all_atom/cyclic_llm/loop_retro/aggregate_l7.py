@@ -28,6 +28,47 @@ def summ(v, lo=2.5, hi=97.5):
     return dict(n=len(v), mean=round(float(np.mean(v)), 4) if v else None, ci=ci(v, lo, hi), ci_level_pct=round(hi - lo, 1))
 
 
+# ------------------------------------------------------------------ source-cluster bootstrap (L7j (3)): the unit of resampling is the SOURCE (laboratory)
+def _rank(x):
+    from scipy.stats import rankdata
+    return rankdata(x)
+
+
+def _rho(a, b):
+    a, b = _rank(a), _rank(b); a = a - a.mean(); b = b - b.mean(); d = float(np.sqrt((a * a).sum() * (b * b).sum())); return float((a * b).sum() / d) if d > 0 else 0.0
+
+
+def source_rho_table(task_results, arm, y, srcs, min_n=15):
+    """{source: {seed: within-source Spearman(score, y) over that source's E peptides}} for one arm; E indices and final E scores are read from each task result."""
+    tab = {}
+    for seed, r in task_results.items():
+        rec = r.get(arm)
+        if not rec or "E_scores_final" not in rec or "E" not in r: continue
+        E = np.asarray(r["E"], int); sc = np.asarray(rec["E_scores_final"], float); s_of = np.asarray([srcs[i] for i in E])
+        for s in sorted(set(s_of.tolist())):
+            m = s_of == s
+            if m.sum() >= min_n and np.std(sc[m]) > 0 and np.std(y[E][m]) > 0: tab.setdefault(s, {})[seed] = _rho(sc[m], y[E][m])
+            elif m.sum() >= min_n: tab.setdefault(s, {})[seed] = 0.0                                            # constant score within a source counts as rho = 0 (ties)
+    return tab
+
+
+def cluster_contrast(tab_a, tab_b, min_seeds=3, B=B_BOOT, lo=2.5, hi=97.5):
+    """Paired contrast arm A minus arm B on the within-source rho; seeds are averaged WITHIN each source, then sources are resampled with replacement (cluster bootstrap).
+    Returns dict(n_sources, mean, ci_cluster, ci_seed_only, interval_type). `ci_seed_only` resamples seeds with the sources held fixed (the old, lab-blind interval) for comparison."""
+    per_src, by_seed = {}, {}
+    for s in sorted(set(tab_a) & set(tab_b)):                  # sorted: set iteration order of strings varies between processes (hash randomisation) and would change the resampling
+        common = sorted(set(tab_a[s]) & set(tab_b[s]))
+        if len(common) < min_seeds: continue
+        d = {k: tab_a[s][k] - tab_b[s][k] for k in common}; per_src[s] = float(np.mean(list(d.values())))
+        for k, v in d.items(): by_seed.setdefault(k, []).append(v)
+    if len(per_src) < 2: return dict(n_sources=len(per_src), mean=None, ci_cluster=None, ci_seed_only=None, interval_type="insufficient clusters")
+    v = np.asarray(list(per_src.values()), float); rng = np.random.default_rng(_seed(v, lo, hi)); bs = [float(rng.choice(v, len(v)).mean()) for _ in range(B)]
+    sv = np.asarray([np.mean(x) for x in by_seed.values()], float); rng2 = np.random.default_rng(_seed(sv, lo, hi) + 1); bs2 = [float(rng2.choice(sv, len(sv)).mean()) for _ in range(B)]
+    r4 = lambda x: round(float(x), 4)
+    return dict(n_sources=len(per_src), n_seeds=len(sv), mean=r4(v.mean()), ci_cluster=[r4(np.percentile(bs, lo)), r4(np.percentile(bs, hi))], ci_seed_only=[r4(np.percentile(bs2, lo)), r4(np.percentile(bs2, hi))],
+                interval_type="bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed", ci_level_pct=round(hi - lo, 1))
+
+
 def load_small(dirs):
     R = collections.defaultdict(dict)                                  # (backend, regime) -> seed -> result
     for d in dirs:
@@ -59,7 +100,7 @@ def paired(R, key, a, b, fn):
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("out"); ap.add_argument("--small", default=""); ap.add_argument("--llm", default=""); ap.add_argument("--rounds-llm", type=int, default=5)
+    ap = argparse.ArgumentParser(); ap.add_argument("out"); ap.add_argument("--small", default=""); ap.add_argument("--llm", default=""); ap.add_argument("--rounds-llm", type=int, default=5); ap.add_argument("--csv", default="")
     a = ap.parse_args(); out = dict(version="L7 aggregate", note="paired by (regime, seed); percentile bootstrap over seeds; regimes never pooled; PAMPA permeability of cyclic peptides only", small={}, llm={}, controls={}, noninferiority={})
     S = load_small([d for d in a.small.split(",") if d]); Lm = load_llm(a.llm) if a.llm else {}
     for (be, reg), seeds in sorted(S.items()):
@@ -89,6 +130,17 @@ def main():
                 g = o["E_auroc_gain"][arm]; o["controls"][arm] = dict(auroc_E_gain=g, passes=bool(g["ci"] is not None and g["ci"][0] <= 0.0))
         o["claim_C1_loop_beats_random_feedback_yield"] = o["contrasts"].get("loop - random_fb [yield]"); o["status"] = "inconclusive (power)" if len(seeds) < 8 else "n>=8"
         out["small"][f"{be}|{reg}"] = o
+    # source-cluster bootstrap of E-metric contrasts (needs the dataset for sources and labels)
+    if a.csv:
+        os.environ.setdefault("FP_CHIRAL", "1"); os.environ.setdefault("LABEL_COL", "PAMPA"); sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import run_l7a as L7; recs_, d_ = L7.build(a.csv, "knn", "cpu"); y_, srcs_ = d_["y"], d_["srcs"]
+        for (be, reg), seeds in sorted(S.items()):
+            cl = {}
+            for nm, x, y2 in (("loop - random_fb", "loop", "random_fb"), ("loop - one_shot", "loop", "one_shot"), ("loop_sub - shuffled_sub", "loop_sub", "shuffled_sub"), ("loop_sub - frozen_sub", "loop_sub", "frozen_sub"),
+                              ("loop_kphys_sub - loop_sub", "loop_kphys_sub", "loop_sub"), ("loop_kphys_sub - loop_kshuf_sub", "loop_kphys_sub", "loop_kshuf_sub")):
+                ta, tb = source_rho_table(seeds, x, y_, srcs_), source_rho_table(seeds, y2, y_, srcs_)
+                if ta and tb: cl[f"{nm} [E source-rho]"] = cluster_contrast(ta, tb)
+            if cl: out["small"][f"{be}|{reg}"]["contrasts_cluster"] = cl
     # large LLMs
     for (m, reg), seeds in sorted(Lm.items()):
         arms = sorted({k for r in seeds.values() for k, v in r.items() if isinstance(v, dict) and "hits" in v}); R = {(m, reg): seeds}; key = (m, reg); n = a.rounds_llm

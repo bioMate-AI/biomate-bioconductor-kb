@@ -504,7 +504,69 @@
     "ci": null,
     "ci_level_pct": 95.0
    },
-   "status": "n>=8"
+   "status": "n>=8",
+   "contrasts_cluster": {
+    "loop_sub - shuffled_sub [E source-rho]": {
+     "n_sources": 6,
+     "n_seeds": 10,
+     "mean": 0.278,
+     "ci_cluster": [
+      0.1886,
+      0.3669
+     ],
+     "ci_seed_only": [
+      0.2332,
+      0.3366
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - frozen_sub [E source-rho]": {
+     "n_sources": 6,
+     "n_seeds": 10,
+     "mean": 0.1344,
+     "ci_cluster": [
+      0.0627,
+      0.207
+     ],
+     "ci_seed_only": [
+      0.0906,
+      0.1844
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_sub [E source-rho]": {
+     "n_sources": 6,
+     "n_seeds": 10,
+     "mean": -0.0077,
+     "ci_cluster": [
+      -0.0214,
+      0.0055
+     ],
+     "ci_seed_only": [
+      -0.032,
+      0.0202
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_kshuf_sub [E source-rho]": {
+     "n_sources": 6,
+     "n_seeds": 10,
+     "mean": -0.0244,
+     "ci_cluster": [
+      -0.0531,
+      0.0003
+     ],
+     "ci_seed_only": [
+      -0.0554,
+      0.0123
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    }
+   }
   },
   "gbm|B": {
    "n_seeds": 10,
@@ -1008,7 +1070,69 @@
     "ci": null,
     "ci_level_pct": 95.0
    },
-   "status": "n>=8"
+   "status": "n>=8",
+   "contrasts_cluster": {
+    "loop_sub - shuffled_sub [E source-rho]": {
+     "n_sources": 9,
+     "n_seeds": 10,
+     "mean": 0.2545,
+     "ci_cluster": [
+      0.1438,
+      0.3725
+     ],
+     "ci_seed_only": [
+      0.2346,
+      0.2978
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - frozen_sub [E source-rho]": {
+     "n_sources": 9,
+     "n_seeds": 10,
+     "mean": 0.2348,
+     "ci_cluster": [
+      0.1502,
+      0.3236
+     ],
+     "ci_seed_only": [
+      0.2057,
+      0.2794
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_sub [E source-rho]": {
+     "n_sources": 9,
+     "n_seeds": 10,
+     "mean": -0.0058,
+     "ci_cluster": [
+      -0.0402,
+      0.0282
+     ],
+     "ci_seed_only": [
+      -0.0143,
+      0.0255
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_kshuf_sub [E source-rho]": {
+     "n_sources": 9,
+     "n_seeds": 10,
+     "mean": -0.0049,
+     "ci_cluster": [
+      -0.0372,
+      0.0322
+     ],
+     "ci_seed_only": [
+      -0.0483,
+      0.0289
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    }
+   }
   },
   "gbm|L": {
    "n_seeds": 10,
@@ -1999,7 +2123,84 @@
     ],
     "ci_level_pct": 95.0
    },
-   "status": "n>=8"
+   "status": "n>=8",
+   "contrasts_cluster": {
+    "loop - random_fb [E source-rho]": {
+     "n_sources": 11,
+     "n_seeds": 10,
+     "mean": -0.0322,
+     "ci_cluster": [
+      -0.0886,
+      0.0161
+     ],
+     "ci_seed_only": [
+      -0.0865,
+      0.0319
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - shuffled_sub [E source-rho]": {
+     "n_sources": 11,
+     "n_seeds": 10,
+     "mean": 0.0708,
+     "ci_cluster": [
+      -0.0794,
+      0.1812
+     ],
+     "ci_seed_only": [
+      0.072,
+      0.187
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - frozen_sub [E source-rho]": {
+     "n_sources": 11,
+     "n_seeds": 10,
+     "mean": 0.0111,
+     "ci_cluster": [
+      -0.0713,
+      0.0799
+     ],
+     "ci_seed_only": [
+      -0.0411,
+      0.0718
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_sub [E source-rho]": {
+     "n_sources": 11,
+     "n_seeds": 10,
+     "mean": -0.0017,
+     "ci_cluster": [
+      -0.0357,
+      0.0348
+     ],
+     "ci_seed_only": [
+      -0.0366,
+      0.0363
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_kshuf_sub [E source-rho]": {
+     "n_sources": 11,
+     "n_seeds": 10,
+     "mean": -0.0135,
+     "ci_cluster": [
+      -0.0408,
+      0.0181
+     ],
+     "ci_seed_only": [
+      -0.0371,
+      0.0345
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    }
+   }
   },
   "gbm_physchem|A": {
    "n_seeds": 10,
@@ -2990,7 +3191,84 @@
     ],
     "ci_level_pct": 95.0
    },
-   "status": "n>=8"
+   "status": "n>=8",
+   "contrasts_cluster": {
+    "loop - random_fb [E source-rho]": {
+     "n_sources": 6,
+     "n_seeds": 10,
+     "mean": -0.1201,
+     "ci_cluster": [
+      -0.2162,
+      -0.028
+     ],
+     "ci_seed_only": [
+      -0.1801,
+      -0.1009
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - shuffled_sub [E source-rho]": {
+     "n_sources": 6,
+     "n_seeds": 10,
+     "mean": 0.2667,
+     "ci_cluster": [
+      0.1895,
+      0.3575
+     ],
+     "ci_seed_only": [
+      0.2168,
+      0.3328
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - frozen_sub [E source-rho]": {
+     "n_sources": 6,
+     "n_seeds": 10,
+     "mean": 0.1422,
+     "ci_cluster": [
+      0.041,
+      0.2487
+     ],
+     "ci_seed_only": [
+      0.1081,
+      0.2145
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_sub [E source-rho]": {
+     "n_sources": 6,
+     "n_seeds": 10,
+     "mean": 0.0123,
+     "ci_cluster": [
+      -0.0013,
+      0.0276
+     ],
+     "ci_seed_only": [
+      -0.0107,
+      0.0277
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_kshuf_sub [E source-rho]": {
+     "n_sources": 6,
+     "n_seeds": 10,
+     "mean": 0.005,
+     "ci_cluster": [
+      -0.0154,
+      0.0265
+     ],
+     "ci_seed_only": [
+      -0.0225,
+      0.0252
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    }
+   }
   },
   "gbm_physchem|B": {
    "n_seeds": 10,
@@ -3981,7 +4259,84 @@
     ],
     "ci_level_pct": 95.0
    },
-   "status": "n>=8"
+   "status": "n>=8",
+   "contrasts_cluster": {
+    "loop - random_fb [E source-rho]": {
+     "n_sources": 9,
+     "n_seeds": 10,
+     "mean": -0.1317,
+     "ci_cluster": [
+      -0.2279,
+      -0.0431
+     ],
+     "ci_seed_only": [
+      -0.1624,
+      -0.08
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - shuffled_sub [E source-rho]": {
+     "n_sources": 9,
+     "n_seeds": 10,
+     "mean": 0.3885,
+     "ci_cluster": [
+      0.268,
+      0.5122
+     ],
+     "ci_seed_only": [
+      0.3383,
+      0.4732
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - frozen_sub [E source-rho]": {
+     "n_sources": 9,
+     "n_seeds": 10,
+     "mean": 0.2916,
+     "ci_cluster": [
+      0.1289,
+      0.4653
+     ],
+     "ci_seed_only": [
+      0.2772,
+      0.3629
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_sub [E source-rho]": {
+     "n_sources": 9,
+     "n_seeds": 10,
+     "mean": -0.0396,
+     "ci_cluster": [
+      -0.0908,
+      -0.0003
+     ],
+     "ci_seed_only": [
+      -0.0646,
+      0.0071
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_kshuf_sub [E source-rho]": {
+     "n_sources": 9,
+     "n_seeds": 10,
+     "mean": -0.0387,
+     "ci_cluster": [
+      -0.09,
+      -0.0012
+     ],
+     "ci_seed_only": [
+      -0.0615,
+      -0.0034
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    }
+   }
   },
   "gbm_physchem|L": {
    "n_seeds": 10,
@@ -4972,7 +5327,84 @@
     ],
     "ci_level_pct": 95.0
    },
-   "status": "n>=8"
+   "status": "n>=8",
+   "contrasts_cluster": {
+    "loop - random_fb [E source-rho]": {
+     "n_sources": 11,
+     "n_seeds": 10,
+     "mean": -0.0184,
+     "ci_cluster": [
+      -0.0836,
+      0.0499
+     ],
+     "ci_seed_only": [
+      -0.0831,
+      0.0285
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - shuffled_sub [E source-rho]": {
+     "n_sources": 11,
+     "n_seeds": 10,
+     "mean": 0.1546,
+     "ci_cluster": [
+      0.0708,
+      0.2409
+     ],
+     "ci_seed_only": [
+      0.1245,
+      0.2509
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - frozen_sub [E source-rho]": {
+     "n_sources": 11,
+     "n_seeds": 10,
+     "mean": 0.0773,
+     "ci_cluster": [
+      0.0284,
+      0.1318
+     ],
+     "ci_seed_only": [
+      0.02,
+      0.1497
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_sub [E source-rho]": {
+     "n_sources": 11,
+     "n_seeds": 10,
+     "mean": 0.0166,
+     "ci_cluster": [
+      -0.028,
+      0.0607
+     ],
+     "ci_seed_only": [
+      -0.0278,
+      0.0481
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_kshuf_sub [E source-rho]": {
+     "n_sources": 11,
+     "n_seeds": 10,
+     "mean": -0.0351,
+     "ci_cluster": [
+      -0.0686,
+      -0.0071
+     ],
+     "ci_seed_only": [
+      -0.0578,
+      -0.0077
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed",
+     "ci_level_pct": 95.0
+    }
+   }
   }
  },
  "llm": {
