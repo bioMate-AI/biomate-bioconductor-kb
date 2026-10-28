@@ -39,3 +39,85 @@ Verdict key: **AS-IS** reusable unchanged · **FIX** reusable after the stated f
 - **Verified blockers that any integrated design must respect:** no admissible αvβ6 ΔG (physics tier is read-only/voided); no measured assay data from our own campaigns; v4's binding signal is at chance against hard negatives and barely target-conditioned; monomer converter covers ≈ 4 % of the benchmark; two of three DPO streams empty; knowledge bases cover 12/793 targets.
 
 Steps 2 and 3 are not started; Step 2 will cross-check its design against every row above.
+
+## 2. Architecture (Step 2) — IH-LM v2, cross-checked against every inventory row
+
+### 2.1 Principle
+IH-LM v2 is **not a new model class**: it is the workstream-1 learner (`cyclic_llm/ihlm/`, row 19) with the earlier months of work attached behind existing interfaces. Where a verified asset exists it is wrapped, not rebuilt; where an asset is unverified or null it is not relied on. All new code is thin adapters in `cyclic_llm/ihlm_v2/`.
+
+### 2.2 Data flow
+```
+ PROPOSE                                                   (rows 7, 8, 14, 19)
+   P1 IHLM.propose_edits (M4: single edits of a measured parent, closed-form edit priors + UCB)
+   P2 v4 sampling under symbolic constraints (mapped monomer subset only; row 1) -> HELM tokens
+   P3 constrain-then-reject enumeration pattern (row 8, pattern only)
+        |
+ CONSTRAIN / REJECT  (symbolic layer)                      (rows 10, 11, 17, 18, 9)
+   acceptance_gate + pharmacophore (alphavbeta6 / PD-L1 only); liability flags; K_phys prior
+        |
+ SCORE  (IHLM.score)                                       (rows 19, 18, 2, 1)
+   (1-w)*net  +  w*K_phys   [w = n0/(n0+n)  (M1)]   +  sim_max * retrieval (M3)   +  b_source / sd (M2)
+   optional extra component: v4 LLR (row 1), defined only where the converter maps the compound
+   uncertainty (calibrated half-width) -> acquisition = UCB (M5)
+        |
+ VERIFY  (cost-ordered ladder)                             (rows 12, 13, 15, 16)
+   L0  score.py cheap tier: rule (applicable targets only) AND not-infringing AND developability
+   L1  (none exists: no cheap-physics tier is implemented)
+   L2  physics_dispatch: cofold / MM-GBSA / FEP results, admissible only if control-anchored + mechanism-compliant;
+       READ-ONLY today; no admissible alphavbeta6 DeltaG exists -> L2 returns "pending" (reward term 0), never a number
+   reward.reward(record) -> scalar + terms; real runs graded into graded_run_store (row 16)
+        |
+ UPDATE                                                    (rows 2, 14, 15, 19)
+   fast memory write (every call): measured labels under source=<lab>; verifier rewards under source="verifier:<tier>"
+        (NEVER pooled with laboratory data: they are not measurements)
+   preference pairs: reward.build_preference_pairs -> dpo_pairs.PairSet -> slow update via LoopModel modes / DPO trainer
+   round orchestration: loop.py harness; its `revise` stand-in is replaced by propose + update
+```
+
+### 2.3 Interfaces (all reuse the LoopModel contract of row 2)
+| component | interface | status in this step |
+|---|---|---|
+| `V4Adapter` | `coverage(smiles)`, `score(smiles, target_seq)` -> list[float|None] (None = unmapped; never imputed), `propose(n, target_seq, seed, temp)` -> token lists + HELM, `fingerprint()`; checkpoint opened read-only (sha256 checked unchanged) | built + tested |
+| `VerifierHook` | `grade_helm(helm, target, tier="cheap")` -> {reward, gated, terms, hard_gate_pass, rule_applicable, pending_physics} using `score.score` + `reward.reward`; refuses `tier="full"` unless explicitly allowed (reads precomputed results only) | built + tested |
+| `GradedMemoryBridge` | `ingest(graded, model)` -> new IHLM (fast memory written, source `verifier:<tier>`); `pairs(graded)` -> `PairSet` via `reward.build_preference_pairs` | built + tested |
+| round driver | `loop.py` orchestration | NOT rebuilt; smoke run only calls the three adapters |
+
+### 2.4 Cross-check against every inventory row
+| row | asset | how IH-LM v2 uses it | not relied on |
+|---|---|---|---|
+| 1 | v4 checkpoint/code | optional extra score component and sampler, on the mapped subset; also a comparator (`V4Adapter`) | not the backbone; no binding claim (chance vs hard negatives 4/5); target prefix not treated as informative; no topology |
+| 2 | LoopModel + converter | the contract all components implement; converter gives mapped/unmapped status | no claim for unmapped compounds (returns None); 4.1 % benchmark coverage stated |
+| 3 | v4_dpo | available as a comparator and as evidence the DPO machinery works on permeability | not used as binding evidence; not assumed to differ from v4 on binding |
+| 4 | v4_dpo_rc | excluded | uninformative (gate was a no-op) |
+| 5 | helm_monomer_llm | vocabulary only via the v5 dictionary | model not used |
+| 6 | display LMs/selector | LLR scoring pattern (already inside row 1) | no evidence from them (circular, memorisation) |
+| 7 | neural_generator | pattern for P2: neural proposal inside symbolic constraints, with explicit enumeration fallback labelled | its αvβ6-only palette/target-agnostic signal is not generalised |
+| 8 | rule_conditioned_generator | constrain-then-reject contract; (H, X) artifact | not treated as generative |
+| 9 | rule_induction | H-artifact format; predicates to be generalised later | no claim beyond 2 targets |
+| 10 | acceptance_gate/pharmacophore | hard constraint for αvβ6/PD-L1 targets only (via row 12) | not applied to other targets (rule_applicable=False is respected) |
+| 11 | liability flags | optional pre-filter; flagged as canonical-residue only | not claimed for ncAA/stereo |
+| 12 | score.py cheap tier | `VerifierHook` L0 | a pass is never binding evidence; HELM-only; availability informational |
+| 13 | physics_dispatch/scorer_config | L2 admissibility logic; returns pending when nothing admissible | no αvβ6 ΔG anywhere; physics terms are 0, stated in every record |
+| 14 | loop.py | round orchestration pattern; `revise` replaced by propose + update | its stand-in revise not used as a learned policy |
+| 15 | reward/dpo_pairs/trainer | reward scalar and pair emitter used unchanged by `VerifierHook`/`GradedMemoryBridge` | no gradient training here; 2 of 3 DPO streams empty |
+| 16 | graded_run_store/execution_grader | storage contract for real graded runs | holds only simulated data; none ingested |
+| 17 | experience_kb/medchem_kb/target_kb | target metadata (counter-targets, structures) feeding scorer_config | coverage 12/793 targets; no UniProt keys; dead product KB ignored |
+| 18 | K_phys channel | M1 prior | K_nme/K_dflip reference only |
+| 19 | ihlm modules | the learner | neural M3 and verifier head (xfail) not relied on; symbolic retrieval used |
+| 20 | atom LM P0 | baseline/typicality control only | no foundation-model claim |
+| 21 | UniMoMo/PepGLAD/BoltzGen, Stage B | excluded as models; Stage B manifest = topology ground truth for later | null/flat results not relied on |
+| 22 | earlier design docs | the SNG architecture pattern | capstone claims superseded by audits are not cited |
+
+### 2.5 What is new, reused, fixed
+- **Reused unchanged:** LoopModel contract and converter, gate layer, cheap verifier, reward/pair emitter, graded store, K_phys, symbolic IHLM modules.
+- **Fixed in this step (thin):** a read-only v4 adapter with explicit coverage reporting (rows 1/2); a verifier hook that makes "pending physics" explicit instead of silent; a bridge that keeps verifier rewards out of laboratory sources (the pooled-lab confound this study found).
+- **New (design, from workstream 1):** lab offsets with anchors, stereo-aware retrieval, edit-space effects, calibrated uncertainty, dual memory (rows 19).
+- **Not built:** the P1 atom-level backbone (planned, untrained); a cheap-physics tier L1; constrained decoding on a pretrained base; admissible αvβ6 physics.
+
+### 2.6 What this can honestly support (provenance)
+| class | components |
+|---|---|
+| standard (not claimed) | transformer encoder/decoder, AdamW, pairwise-ranking / DPO loss, split-conformal calibration, ridge/conjugate shrinkage |
+| our earlier assets (reused; claims limited to their audits) | v4 weights (mapped-subset scorer), gates, cheap verifier, reward/pair emitter, KBs, K_phys |
+| new modules (design; no measured advantage yet) | per-source offsets with anchors, stereo-aware retrieval, edit-space effects, uncertainty, fast/slow memory, verifier-ladder routing and the graded-memory bridge |
+**Supported today:** an integrated, tested implementation exists with explicit coverage and admissibility reporting. **Not supported:** any performance claim for the integrated model; any binding or αvβ6-physics claim; generation validity beyond token level; that verifier rewards equal measured activity.
