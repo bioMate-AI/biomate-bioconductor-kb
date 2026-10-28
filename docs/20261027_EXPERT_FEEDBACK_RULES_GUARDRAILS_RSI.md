@@ -87,8 +87,8 @@ text; and (ii) it exposes exactly which families our composite-reward interprete
 | G3 | **Motif / substructure presence–absence** | a required pattern present, a banned one absent | keep RGD motif; no PAINS / toxicophore; valid SMILES; required cysteine pair for cyclization; no N-glyc sequon | `regex` / `contains_all` / `banned`; chemistry needs an RDKit-backed checker | **built** for text patterns; chemistry validity (SMILES/PAINS) is a **domain-verifier gap** |
 | G4 | **Schema / format validity** | output conforms to a structure | valid VCF / BAM / FASTQ; JSON valid; required report sections; units present | schema/format validator | `json_valid` **built**; file-schema validators are a **gap** |
 | G5 | **Set-membership / grounding** | a selection is one of the *provided* candidates | routed workflow exists in DB; gene symbol ∈ HGNC; accession resolves; off-catalog = reject | `grounded_pick` (already in `verification_layer.py`) | **built as a gate**, not yet wired as a reward term |
-| G6 | **Relational / cross-field consistency** | fields agree with each other | paired-end ⇒ 2 FASTQs; `single_end` flag matches file count; samplesheet rows match inputs; dose units match the value | multi-field predicate | **built (text-level)** — `implies` component (commit a42a6224c); structured param-level predicate still at the gate layer |
-| G7 | **Procedural / ordering** | steps occur in a required order | QC before alignment; dedup before variant-call; normalize before DE | DAG/order check over the run plan | **built (text-level)** — `order` component (commit a42a6224c); full plan-DAG check still at the harness layer |
+| G6 | **Relational / cross-field consistency** | fields agree with each other | paired-end ⇒ 2 FASTQs; `single_end` flag matches file count; samplesheet rows match inputs; dose units match the value | multi-field predicate | **built** — `implies` (reward text, a42a6224c) + structured cross-field `implies` in `rule_gates.py` (gate, 2e90d628e) |
+| G7 | **Procedural / ordering** | steps occur in a required order | QC before alignment; dedup before variant-call; normalize before DE | DAG/order check over the run plan | **built** — `order` (reward text, a42a6224c) + plan-step `order` in `rule_gates.py` (gate, 2e90d628e) |
 | G8 | **Provenance / evidence** | every claim/number traces to a real source; inputs are real HDAs; no fabricated PMID | citation-integrity; hard-evidence invariant; "inputs are Galaxy HDAs" | provenance check | **built as an invariant**, not yet a reward term |
 
 Everything that does **not** land in G1–G8 is, by construction, the **soft /
@@ -101,10 +101,14 @@ gaps, since that is where most QC and protocol expertise lives. They are now **b
 (commit a42a6224c): the declarative interpreter gained `numeric_threshold` (G1,
 compare a parsed value to a cutoff with an operator), `implies` (G6, conditional
 cross-field consistency), and `order` (G7, A-before-B), all safe and non-`eval`, each
-unit-tested. These are the completion-text reward analogs; the fully structured
-param-level predicate (G6) and plan-DAG check (G7) still live at the gate/harness
-layer. The composite reward now covers G1/G3/G4/G6/G7 and partly G2/G5 — the same
-schema the §5 unification calls for.
+unit-tested. Those are the completion-text reward analogs; the fully **structured**
+versions — G1/G6/G7 enforced on a params dict, metrics dict and ordered step list —
+are now also built as the inference-time gate, `rule_gates.py` (commit 2e90d628e),
+consuming the *same* declarative vocabulary ("gate before score": blocks on severity
+`block`, reports advisories, skips missing data, and names the field/step to fix). One
+authored rule therefore drives both the training reward (text) and the inference gate
+(structured) — the dual-use rule unit of §5 and SRVL Pillar C. The composite reward now
+covers G1/G3/G4/G6/G7 and partly G2/G5.
 
 ---
 

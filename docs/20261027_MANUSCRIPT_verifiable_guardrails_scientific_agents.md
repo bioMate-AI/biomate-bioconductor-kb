@@ -248,10 +248,12 @@ G6, G7** — regex/contains/banned/json_valid, plus `numeric_threshold` (G1: com
 parsed value to a cutoff with an operator), `implies` (G6: conditional cross-field
 consistency), and `order` (G7: A-before-B), all safe and non-`eval` and unit-tested.
 Partial: **G2, G5** (text-level matching and grounded-pick exist; structured
-param-equality and reward-wired grounding remain). The G6/G7 components are the
-completion-text reward analogs; the fully structured param-level predicate and the
-plan-DAG order check live at the gate/harness layer. This closes the three
-highest-value families identified by the grouping of §4.
+param-equality and reward-wired grounding remain). The completion-text G1/G6/G7
+components have a **structured** counterpart — the same declarative rules enforced on a
+params dict, metrics dict and ordered step list as an inference-time "gate before score"
+(`rule_gates.py`) — so one authored rule drives both the training reward and the
+inference gate (the dual-use unit, SRVL Pillar C). This closes the three highest-value
+families identified by the grouping of §4.
 
 **Autonomous rule induction [proposed].** The one missing arc for full RSI (§7):
 the system proposing candidate rules from its own run outcomes, each quarantined
