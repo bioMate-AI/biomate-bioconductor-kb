@@ -9,12 +9,14 @@ recoverable-from-context, conflicting tool/data, ambiguous entity, almost-specif
 import json, os
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-# (id, scenario, slot_type, query, context, gold_action, gold_target, gold_value)
+# (id, scenario, slot_type, query, context, gold_action, gold_target, gold_value, accept_either)
+# accept_either = a competent agent may EITHER clarify OR correctly interpret/default — both score correct,
+# and the item is excluded from the over/under-clarify rates (it is not a one-right-action item).
 ITEMS = [
  ("hd_contrast", "experimental_contrast", "design",
   "Run DESeq2 differential expression on counts.tsv comparing treated and control.",
   "samples.tsv lists 3 treated and 3 control; no reference/baseline level is set.",
-  "clarify", "contrast", ""),
+  "clarify", "contrast", "", True),       # control-as-reference is a standard default; asking is also fine
  ("hd_prov_conflict", "conflicting_provenance", "param",
   "Call germline variants on GRCh38 from aligned.bam.",
   "aligned.bam sequence dictionary (@SQ) is GRCh37; the original FASTQs are also available.",
@@ -34,7 +36,7 @@ ITEMS = [
  ("hd_mouse_build", "ambiguous_entity", "param",
   "Align my mouse RNA-seq reads and quantify gene counts.",
   "",
-  "clarify", "genome_build", ""),
+  "clarify", "genome_build", "", True),    # a transparent current-default (mm39) is also acceptable
  ("hd_pdb_chain", "ambiguous_entity", "input",
   "Use PDB 4XYZ as the receptor and dock my ligand into the ATP site.",
   "4XYZ contains two distinct ATP-binding chains, A and B.",
@@ -46,7 +48,7 @@ ITEMS = [
  ("hd_paired_not_strand", "almost_specific", "param",
   "Align my paired-end FASTQ files for human and count reads per gene.",
   "",
-  "clarify", "strandedness", ""),          # paired-end does NOT determine strandedness
+  "clarify", "strandedness", "", True),    # paired-end != strandedness; asking OR auto-inferring is valid
  ("hd_followup_normal", "multi_slot_followup", "branch",
   "Earlier you asked which BAM is tumor vs normal. Reply: A.bam is tumor; B.bam is a second tumor biopsy "
   "from the same patient. Proceed with somatic calling.",
@@ -67,7 +69,7 @@ ITEMS = [
  ("hd_multi_matrix", "ambiguous_entity", "input",
   "Run differential expression analysis.",
   "the workspace has two files: raw_counts.tsv and normalized_tpm.tsv.",
-  "clarify", "matrix_select", ""),
+  "interpret", "matrix_select", "raw_counts", True),   # DESeq2/DE needs raw counts -> raw_counts is correct
  ("hd_recover_layout", "recoverable_from_context", "param",
   "Align my FASTQ files to GRCh38.",
   "the folder contains sample1_R1.fastq.gz and sample1_R2.fastq.gz per sample.",
@@ -76,10 +78,13 @@ ITEMS = [
 
 def main():
     out = []
-    for id_, sc, st, q, ctx, act, tgt, val in ITEMS:
+    for row in ITEMS:
+        id_, sc, st, q, ctx, act, tgt, val = row[:8]
+        ae = row[8] if len(row) > 8 else False
         it = dict(id=id_, tier="hard", scenario=sc, slot_type=st, query=q, gold_action=act, gold_target=tgt)
         if ctx: it["context"] = ctx
         if val: it["gold_value"] = val
+        if ae: it["accept_either"] = True
         out.append(it)
     with open(os.path.join(HERE, "data_hard.jsonl"), "w") as f:
         for it in out: f.write(json.dumps(it) + "\n")

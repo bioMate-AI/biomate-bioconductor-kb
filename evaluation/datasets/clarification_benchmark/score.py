@@ -78,6 +78,18 @@ def score(items, preds):
         n += 1
         act = norm(p.get("action"))
         gold = it["gold_action"]
+        if it.get("accept_either"):
+            # a competent agent may clarify OR correctly interpret/default; both correct, excluded from rates
+            if act == "clarify":
+                ok = clarify_ok(it["gold_target"], p.get("clarify_about") or p.get("value") or "")
+            elif act == "interpret":
+                ok = value_ok(it["gold_target"], it.get("gold_value"), p.get("value")) if it.get("gold_value") else bool(norm(p.get("value")))
+            else:
+                ok = False
+            dec += 1 if ok else 0
+            tgt += 1 if ok else 0
+            out += 1 if ok else 0
+            continue
         dec_ok = (act == gold)
         dec += dec_ok
         if gold == "interpret":
