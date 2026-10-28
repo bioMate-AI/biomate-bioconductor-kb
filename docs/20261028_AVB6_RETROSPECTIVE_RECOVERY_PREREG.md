@@ -1,0 +1,55 @@
+# αvβ6 retrospective recovery benchmark — pre-registration (DRAFT, 2026-10-28)
+
+Status: **not yet run.** No αvβ6 recovery result exists today. This document fixes the question, data, baselines and decision rules before any run. Deck gate G1 ("Engine recovers published αvβ6 binders", status "In progress") refers to this study.
+
+## 1. Question
+Given no αvβ6 training signal, does the engine's selector/generator place held-out, published αvβ6 binders above matched non-binders, by more than trivial baselines?
+
+## 2. What the data can and cannot support (measured 2026-10-28, `multitarget/integrin_chembl/data/long_all.csv.gz`)
+| quantity | value |
+|---|---|
+| αvβ6 compounds (ChEMBL-derived, assay-filtered) | 842 from 37 documents (2002–2025) |
+| of which macrocycles (largest ring ≥ 9 atoms) | 74 compounds, 8 documents; 51 from CHEMBL4411322 |
+| macrocycles with exact pACT ≥ 7 | 31 compounds, 4 documents |
+| macrocycles with exact pACT ≥ 8 | 5 compounds, 3 documents |
+| all compounds with exact pACT ≥ 7 | 203 (172 non-macrocyclic) |
+
+Consequences, stated in advance:
+1. The ChEMBL macrocycle positives are too few and too concentrated (one document = 69 % of macrocycles) for a field-level claim. A document-clustered bootstrap over 4–8 documents will have wide intervals; a null here is **inconclusive**, not negative.
+2. The ChEMBL set is dominated by small-molecule RGD mimetics, not cyclic peptides. The deck's target class (cyclic peptides / ncAA macrocycles) is under-represented in public data. This is itself the honest basis for "scarce in public data".
+3. Published cyclic-peptide binders not in ChEMBL (A20FMDV2 lineage, Kapp 2017 panel of 34 ligands, Trivehexin monomer, other literature ligands) form the **external set** (E). Structures for E must be transcribed from the papers with the provenance rule already used in `multitarget/integrin_selectivity/ligands.csv`; entries without an unambiguous structure are excluded and listed.
+
+## 3. Design
+- **Held-out unit:** the source document (leave-one-document-out, LODO). Compounds from one document never appear in both fit and test sides.
+- **Blind rule:** nothing trained or retrieved may contain αvβ6 compounds from the held-out document; for the external set E, from any ChEMBL αvβ6 document that reports the same compound. Retrieval indices and knowledge bases are rebuilt without them and the rebuild is logged.
+- **Positives:** primary P1 = macrocycles with exact pACT ≥ 7 (n = 31, 4 documents); secondary P2 = all macrocycles in the 8 documents; external E as above.
+- **Decoys:** property-matched macrocycles (heavy-atom count, ring size, ring count, charge, ±1 SD) drawn from CycPeptMPDB and from non-αvβ6 ChEMBL integrin macrocycles, 20 decoys per positive. A decoy set drawn only from non-RGD chemistry is forbidden (it would reward RGD detection); decoys must include RGD-bearing macrocycles active on other integrins.
+- **Arms:** S (selector/scorer ranking of positives vs decoys, no αvβ6 fitting); G (generator, trained without αvβ6 rows, motif/scaffold recovery in top-k of N samples). Arm G requires its interface to be frozen in an amendment before running; until then only arm S is pre-registered.
+
+## 4. Baselines (all must be computed)
+B0 random (enrichment factor 1); B1 RGD-motif presence (the trivial baseline that most of the signal could reduce to); B2 size/charge-only model; B3 degree/annotation-depth null (for knowledge-graph features). The engine must beat max(B0, B1, B2, B3).
+
+## 5. Metrics and decision rule
+- Primary: enrichment factor at top 5 % (EF5) on P1, LODO-pooled; 95 % document-cluster bootstrap (B = 2000).
+- Secondary: AUROC, top-1/top-10 recovery per held-out document, EF5 on E.
+- **Supported** only if the lower 95 % bound of (engine EF5 − strongest baseline EF5) > 0 on P1 **and** EF5 on E is above the strongest baseline's point estimate.
+- **Not supported:** upper bound ≤ 0. **Inconclusive:** otherwise (report as such; do not call it a null of the method).
+- No threshold, feature set, decoy ratio or model choice may change after the first test-fold score is seen. Deviations are logged as dated amendments.
+
+## 6. Risks and how they are reported
+- Power: see §2. The number of independent documents is the effective sample size and is reported beside every interval.
+- Literature leakage: the engine's language/knowledge components were trained on public text and structures that may include these binders. Contamination is checked by n-gram / Tanimoto ≥ 0.9 search of corpora against P1 and E and reported; contaminated items are reported separately.
+- Decoy bias: sensitivity analysis with a second decoy source.
+- This benchmark cannot show selectivity or tumour residence; those remain wet-lab gates G3 and the residence assay.
+
+## 7. Outputs
+`multitarget/integrin_chembl/retro_recovery/` : frozen positive/decoy lists with hashes, per-fold scores, `results.json`, and a result section appended here. Manuscript use: results section of the engine paper, with the §2 limitations stated.
+
+## 8. If the result is null or inconclusive: iterate, under these rules (added 2026-10-28 at the owner's direction)
+A null is a diagnosis task, not an endpoint. The engine is improved until it works, and the study is structured so that a later positive is credible:
+1. **Diagnose first.** Per-document error analysis (which documents/chemotypes fail, whether failures are RGD-motif, size, or decoy artefacts) before any change. No fix without an identified cause.
+2. **Version, don't overwrite.** Each engine change is a new version (v1, v2, …) with its own dated amendment; the v1 result stays in the record permanently.
+3. **Tune only on development data.** Model changes are developed on the 4 LODO documents (P1) and the ChEMBL non-macrocycle αvβ6 set. The external literature set E is a **final holdout**: scored once per frozen version, and a version that is changed after seeing its E score is a new version that needs fresh held-out data (new literature ligands, or the first wet-lab round).
+4. **Report the whole history**: every version tried, its P1 and E result, and the number of versions, so selection among versions is visible.
+5. **Real fixes only.** Improvements must come from the engine (selector, knowledge, training data, all-atom model), not from changing decoys, thresholds or positives to fit.
+6. **The decisive test is prospective.** Whatever the retrospective result, the wet-lab SPR/BLI round (gate G2/G3) is the final test of any version.
