@@ -97,7 +97,7 @@ write("T_loops_classification", pd.DataFrame(rows, columns=["loop", "classificat
 # ---------------- T6 model comparison (auto-fill; PENDING otherwise)
 L7 = "research/guangzhou_all_atom/cyclic_llm/loop_retro/results/l7_aggregate.json"
 l7 = json.load(open(src(L7)))
-planned = ["gbm", "gbm_physchem", "knn", "gp_tanimoto", "atom_lm_P0", "chemberta", "ihlm_R0", "ihlm_R1", "ihlm_R2", "ihlm_R3", "ihlm_R4",
+planned = ["gbm_aware", "gbm_blind", "gbm_physchem", "knn", "gp_tanimoto", "atom_lm_P0", "chemberta", "ihlm_R0", "ihlm_R1", "ihlm_R2", "ihlm_R3", "ihlm_R4",
            "peptideclm2_base", "peptideclm2_large", "chemfm_1b", "smi_ted", "esm2_650m"]
 def cell(entry, arm):
     try:

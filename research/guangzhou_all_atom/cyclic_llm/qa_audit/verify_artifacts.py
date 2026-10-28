@@ -20,12 +20,12 @@ alt=l5["SENSITIVITY_hit_within_group_top10"]; ka2=[k for k in alt if k.split("_"
 A("alt: one lower>0",[k for k in ka2 if alt[k]["d_total"]["lower_gt0"]]==["kn_B"])
 A("pick A",l5["PICK_SOURCE_MEANS"]["fp_A"]["townsend"]==346.1 and l5["PICK_SOURCE_MEANS"]["random_A"]["townsend"]==206.1)
 A("audit",au["max_group_share"]==0.528 and au["top_groups_hits"][0][0]=="2020_Townsend")
-g=l7["small"]["gbm|L"]["contrasts"]
+g=l7["small"]["gbm_blind|L"]["contrasts"]
 A("L loop-rand",g["loop - random_fb [yield]"]["mean"]==165.0 and g["loop - random_fb [yield]"]["ci"]==[156.0,175.7025])
 A("L loop-frozen",g["loop - frozen [yield]"]["mean"]==13.2); A("L loop-shuf",g["loop - shuffled [yield]"]["mean"]==79.5)
 A("L one-shot auroc",g["loop - one_shot [E_auroc_gain]"]["mean"]==0.003 and g["loop - random_fb [E_auroc_gain]"]["ci"]==[-0.114,-0.0129])
 A("L kphys",g["loop_kphys_sub - loop_sub [yield]"]["mean"]==-0.1)
-ga=l7["small"]["gbm|A"]["contrasts"]; A("A kphys",ga["loop_kphys_sub - loop_sub [yield]"]["mean"]==2.4 and ga["loop_kphys_contra_sub - loop_sub [yield]"]["mean"]==-7.7)
+ga=l7["small"]["gbm_blind|A"]["contrasts"]; A("A kphys",ga["loop_kphys_sub - loop_sub [yield]"]["mean"]==2.4 and ga["loop_kphys_contra_sub - loop_sub [yield]"]["mean"]==-7.7)
 pc=l7["small"]["gbm_physchem|A"]["contrasts"]; A("phys A",pc["loop - random_fb [yield]"]["mean"]==123.8)
 pb=l7["small"]["gbm_physchem|B"]["contrasts"]; A("phys B",pb["loop - random_fb [yield]"]["mean"]==20.0)
 hy=l7["llm"]["anthropic/claude-haiku-5.5|A"]["yield_cum"]; A("haiku A",hy["llm_loop"]["mean"]==28.25 and hy["subset_gbm"]["mean"]==44.75 and hy["llm_frozen"]["mean"]==28.5)
@@ -50,9 +50,9 @@ nm=0
 for arm,c in l7["small"].items():
     for k,v in c.get("contrasts_cluster",{}).items():
         cl=cell(v["mean"],*v["ci_cluster"])
-        if arm.startswith("gbm_physchem|") or arm in("gbm|A","gbm|B","gbm|L"):
+        if arm.startswith(("gbm_physchem|","gbm_aware|","gbm_blind|")):
             # random-feedback cell is absent for plain GBM A,B in the tables
-            if cb[k]=="rand" and arm in("gbm|A","gbm|B"): continue
+            if cb[k]=="rand" and arm.startswith(("gbm_aware|A","gbm_aware|B","gbm_blind|A","gbm_blind|B")): continue
             nm+=1; A(f"cluster cell {arm} {cb[k]} in main",cl in M)
             if cb[k]!="knone": A(f"cluster cell {arm} {cb[k]} in v2",cl in V)
 # 2. K_phys paired audit: 15/54 percentile-99, 9/54 paired-t 99, Holm
@@ -91,6 +91,18 @@ A("regime L 6-18 labs, all 18 in seeds 0,7,9",min(cnt)==6 and max(cnt)==18 and [
 # 7. gate sensitivity and denominators quoted in drafts
 cg=json.load(open("/Users/kky/biomate-review/docs/committee_raw/20261030b/ext_check_gate.json"))
 A("compound-disjoint C2/C3 quoted",abs(cg["compound_disjoint"]["C2"]["point"]-0.5658)<5e-5 and abs(cg["compound_disjoint"]["C3"]["point"]-0.5796)<5e-5 and "0.5658" in M and "0.5796" in M and "0.5658" in V)
+
+# ---- regenerated aggregate (ab35481bb): hash, learner keys, aware numbers quoted in the drafts ----
+import hashlib
+A("aggregate sha256 matches frozen file and drafts", hashlib.sha256(open(L+"l7_aggregate.json","rb").read()).hexdigest()=="e5da79e9ab27086a505ced08fd18845deafd98e6c949428b1bbe4f357c80ef13" and open(L+"l7_aggregate.sha256").read().split()[0]=="e5da79e9ab27086a505ced08fd18845deafd98e6c949428b1bbe4f357c80ef13" and "e5da79e9ab27086a505ced08fd18845deafd98e6c949428b1bbe4f357c80ef13" in M and "e5da79e9ab27086a505ced08fd18845deafd98e6c949428b1bbe4f357c80ef13" in V)
+A("learner keys", {"gbm_aware|A","gbm_aware|B","gbm_aware|L","gbm_blind|A","gbm_blind|B","gbm_blind|L","gbm_physchem|A","gbm_physchem|B","gbm_physchem|L","chemberta|A","chemberta|B"}<=set(l7["small"]) and not any(k.startswith("gbm|") for k in l7["small"]))
+ga=l7["small"]["gbm_aware|L"]["contrasts"]
+A("aware L yield contrasts",ga["loop - random_fb [yield]"]["mean"]==186.1 and ga["loop - random_fb [yield]"]["ci"]==[179.5,192.9] and ga["loop - frozen [yield]"]["mean"]==47.3 and ga["loop - shuffled [yield]"]["mean"]==117.7 and all(x in M for x in ("+186.1","(179.5 to 192.9)","+47.3","+117.7")))
+A("aware L one-shot/random E-AUROC",ga["loop - one_shot [E_auroc_gain]"]["mean"]==-0.0059 and ga["loop - random_fb [E_auroc_gain]"]["ci"]==[-0.0877,0.0171] and "\u22120.006" in M)
+A("aware K_phys-kshuf yield A/B/L",[l7["small"][f"gbm_aware|{r}"]["contrasts"]["loop_kphys_sub - loop_kshuf_sub [yield]"]["mean"] for r in "ABL"]==[5.9,2.3,1.8] and "+5.9, 2.9 to 8.8" in M)
+A("aware zero-sibling nonzero, blind zero",l7["small"]["gbm_aware|A"]["stereo"]["loop_sub"]["zero_sibling"]["mean"]==0.1808 and l7["small"]["gbm_blind|A"]["stereo"]["loop_sub"]["zero_sibling"]["mean"]==0.0)
+A("audit not affected: aware A K_phys-none yield equals aggregate",ka["res7f_gbm_aware|A"]["kphys - none [yield]"]["mean"]==l7["small"]["gbm_aware|A"]["contrasts"]["loop_kphys_sub - loop_sub [yield]"]["mean"]==4.7)
+A("chemberta exploratory n=3",l7["small"]["chemberta|A"]["n_seeds"]==3 and l7["small"]["chemberta|B"]["n_seeds"]==3)
 bad=[n for n,ok in chk if not ok]; print(len(chk),"checks; failed:",bad)
 def last(p): 
     return subprocess.run(["git","-C","/Users/kky/biomate-review","log","-1","--format=%h","--",p],capture_output=True,text=True).stdout.strip()

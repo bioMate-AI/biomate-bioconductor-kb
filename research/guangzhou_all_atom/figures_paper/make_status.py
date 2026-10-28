@@ -41,7 +41,7 @@ lines += ["", "Partial items: **F5** (controls; GBM variants only — hollow mar
           "- FCV: strata CSVs have no overall rows; overall Spearman is recomputed from `cv_preds.csv.gz` with a source-cluster bootstrap (B=2000, seed 0) and checked against the figures quoted in the analysis document (0.31/0.30/0.26 leave-labs-out).",
           "- F3: analysis M3 has validity-gate results only (arms not scored; the analysis is invalid). Analyses I, M, M2 and M3 all fail at least one primary control, so verdicts apply only under the control-adjusted rule.",
           "- FH4b: the control C3 (Morgan leave-fold-out) is drawn at every k; it exceeds 0.5 at every k.",
-          "- F5/T6: `gbm` regime B has only 2 paired seeds in the current `l7_aggregate.json` (status 'inconclusive (power)'); it is drawn hollow/grey and must not support a claim.",
+          "- F5/T6: drawn from the aggregate regenerated after the key-collision fix (keys `gbm_aware`, `gbm_blind`, `gbm_physchem`; 10 paired seeds in every regime shown); the earlier note that regime B had 2 seeds was a symptom of the collision and is obsolete. `chemberta` has 3 seeds in A and B (exploratory).",
           "- T1: binding-table, stability, conformational and renal profiles are PENDING (no machine-readable profile artifact).",
           "- Source commit hashes are the last commit touching each file; regenerate after any artifact changes (the manifest records them).", ""]
 (ROOT / "docs" / "20261030_FIGURES_STATUS.md").write_text("\n".join(lines))

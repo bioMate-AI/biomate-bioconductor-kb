@@ -13,9 +13,9 @@ l7 = json.load(open(src(L7)))
 contrasts = [("loop_sub - frozen_sub [yield]", "loop − frozen"), ("loop_sub - shuffled_sub [yield]", "loop − shuffled-label"),
              ("loop_kphys_sub - loop_sub [yield]", "K_phys prior − loop"), ("loop_kphys_contra_sub - loop_sub [yield]", "contradicted K_phys − loop"),
              ("loop_kshuf_sub - loop_sub [yield]", "shuffled K_phys − loop")]
-models = [m for m in ("gbm", "gbm_physchem") if any(f"{m}|{r}" in l7["small"] for r in "ABL")]
+models = [m for m in ("gbm_aware", "gbm_blind", "gbm_physchem") if any(f"{m}|{r}" in l7["small"] for r in "ABL")]
 regs = [("A", C["blue"]), ("B", C["orange"]), ("L", C["green"])]
-fig, axs = plt.subplots(1, len(models), figsize=(9.6, 3.6), sharey=True)
+fig, axs = plt.subplots(1, len(models), figsize=(12.0, 3.6), sharey=True)
 for ax, m in zip(axs, models):
     for ci, (cname, clabel) in enumerate(contrasts):
         for ri, (reg, col) in enumerate(regs):
@@ -41,6 +41,6 @@ axs[0].legend(frameon=False, fontsize=6, loc="lower right")
 watermark(fig, "PARTIAL", alpha=0.10, size=60)
 fig.text(0.5, -0.02, "PENDING: atom LM, ChemBERTa, IH-LM rungs R0–R4, larger pretrained peptide/chemistry LMs (no entries in l7_aggregate.json yet)", ha="center", fontsize=7, color=C["vermilion"])
 fig.tight_layout()
-caption = ("F5 (PARTIAL). Loop controls for the GBM baselines only. Differences are paired by seed (10 seeds per regime in the current aggregate; any arm with fewer than 8 paired seeds is drawn hollow/grey; the plain-GBM rows are the chirality-blind learner pending the aggregate regeneration). "
+caption = ("F5 (PARTIAL). Loop controls for the GBM baselines only. Differences are paired by seed (10 seeds per regime for the GBM learners in the aggregate regenerated after the key-collision fix; any arm with fewer than 8 paired seeds is drawn hollow/grey; chirality-aware, chirality-blind and physicochemical learners are shown separately and never pooled). "
            "The shuffled-label control must lose to the loop; a contradicted knowledge prior must not help. Other models are PENDING.")
 savefig(fig, "F5_controls_partial", "F5 controls (partial)", caption, sources_of(L7))
