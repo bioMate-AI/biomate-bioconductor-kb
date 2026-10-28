@@ -115,12 +115,22 @@ def step_loss(model, data, seed, step, bs=32, lm_w=1.0, aff_w=1.0, rank_w=1.0, l
     return loss, parts
 
 
-def train(model, data, steps, seed=0, lr=3e-4, ckpt=None, ckpt_every=0, resume=False, device="cpu", **kw):
+def train(model, data, steps, seed=0, lr=3e-4, ckpt=None, ckpt_every=0, resume=False, device="cpu", amp=False, log_every=0, log=print, **kw):
+    """amp: bf16 autocast where the GPU supports it, else fp16 + GradScaler (T4). Loss/optimiser in fp32. CPU runs ignore amp."""
+    import time
     model.to(device).train(); opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.0); start = 0
+    use_amp = bool(amp) and str(device).startswith("cuda"); bf16 = use_amp and torch.cuda.is_bf16_supported()
+    scaler = torch.amp.GradScaler("cuda") if (use_amp and not bf16) else None
     if resume and ckpt and os.path.exists(ckpt):
         st = torch.load(ckpt, map_location=device, weights_only=False); model.load_state_dict(st["model"]); opt.load_state_dict(st["opt"]); start = st["step"]
+    t0 = time.time()
     for s in range(start, steps):
-        loss, _ = step_loss(model, data, seed, s, device=device, **kw); opt.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.step()
+        with torch.autocast("cuda", dtype=torch.bfloat16 if bf16 else torch.float16, enabled=use_amp):
+            loss, parts = step_loss(model, data, seed, s, device=device, **kw)
+        opt.zero_grad()
+        if scaler: scaler.scale(loss).backward(); scaler.unscale_(opt); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); scaler.step(opt); scaler.update()
+        else: loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.step()
+        if log_every and (s + 1) % log_every == 0: log(f"step {s+1}/{steps} {parts} {(time.time()-t0)/(s+1-start):.4f}s/step")
         if ckpt and ckpt_every and (s + 1) % ckpt_every == 0:
             tmp = ckpt + ".tmp"; torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "step": s + 1}, tmp); os.replace(tmp, ckpt)
     model.eval(); return model
