@@ -57,3 +57,18 @@ def test_frozen_is_identity_and_dpo_runs():
     assert all(torch.equal(a, b) for a, b in zip(m0.model.state_dict().values(), fz.model.state_dict().values()))
     test = world(200, 4); md = m0.update_tokens(world(60, 1), "dpo", seed=0, steps=40, lr=1e-3)
     assert auc(md, test) > auc(m0, test) + 0.15
+
+
+def test_one_shot_matched_budget_and_signal():
+    """data-matched control: one update on all labels, total steps = steps*rounds; learns planted signal, not permuted labels; differs from frozen."""
+    m0 = fresh_model(); train = world(60, 1); test = world(300, 2)
+    m = m0.update_tokens(train, "one_shot_matched", seed=0, steps=15, lr=1e-3, rounds=3)      # 45 total steps
+    assert m.history[-1][0] == "one_shot_matched" and m.history[-1][3] == 3
+    perm = [dict(r) for r in train]; lab = [r["label"] for r in perm]; random.Random(5).shuffle(lab)
+    for r, l in zip(perm, lab): r["label"] = l
+    mp = m0.update_tokens(perm, "one_shot_matched", seed=0, steps=15, lr=1e-3, rounds=3)
+    assert auc(m, test) > 0.85 and auc(mp, test) < 0.70
+    assert m.fingerprint() != m0.fingerprint()
+    # budget equivalence: same total steps as a single finetune_ranking call with steps=45 and the same seed -> identical weights
+    ref = m0.update_tokens(train, "finetune_ranking", seed=0, steps=45, lr=1e-3)
+    assert all(torch.allclose(a, b) for a, b in zip(m.model.state_dict().values(), ref.model.state_dict().values()))

@@ -66,10 +66,15 @@ class LoopModel:
         for k, v in sorted(self.model.state_dict().items()): h.update(k.encode()); h.update(v.detach().cpu().numpy().tobytes())
         h.update(json.dumps(self.history).encode()); return h.hexdigest()[:16]
 
-    def update_tokens(self, labelled, mode="finetune_ranking", seed=0, steps=60, lr=3e-4, beta=1.0, pairs_per_step=32):
-        """labelled: [{tokens, target_seq, label}] (label higher = better, already within-target standardised). Returns a NEW LoopModel."""
+    def update_tokens(self, labelled, mode="finetune_ranking", seed=0, steps=60, lr=3e-4, beta=1.0, pairs_per_step=32, rounds=1):
+        """labelled: [{tokens, target_seq, label}] (label higher = better, already within-target standardised). Returns a NEW LoopModel.
+        one_shot_matched (data-matched control for the loop): ONE update on all labels the loop would have revealed over `rounds` rounds, with the same TOTAL
+        gradient budget (steps*rounds) as a loop that does `steps` per round - same data, same compute, no feedback timing. `steps` is per-round."""
         assert mode in MODES, mode
-        new = LoopModel(copy.deepcopy(self.model), self.toks, self.block, self.dev, self.dictionary, self.history + ((mode, len(labelled), seed),))
+        if mode == "one_shot_matched": steps = steps * max(1, int(rounds)); mode_eff = "finetune_ranking"
+        else: mode_eff = mode
+        new = LoopModel(copy.deepcopy(self.model), self.toks, self.block, self.dev, self.dictionary, self.history + ((mode, len(labelled), seed, rounds),))
+        mode = mode_eff
         if mode == "frozen" or len(labelled) < 2: return new
         rng = np.random.default_rng(seed); by = {}
         for r in labelled: by.setdefault(r["target_seq"], []).append(r)
