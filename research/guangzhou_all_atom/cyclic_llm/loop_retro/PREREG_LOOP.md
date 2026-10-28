@@ -239,3 +239,10 @@ Runner code `M` = regime L9: identical to regime L except at most 9 held-out lab
 3. loop_kshuf_sub, loop_kphys_sub contrasts are recomputed from res7q_* only.
 
 **Supersession.** res7q_* supersedes the old loop_kshuf_sub values and every K_phys − K_shuffled contrast. The old values stay in the aggregate under the label "depends on PYTHONHASHSEED" and are not quoted as results. No analysis rule, threshold or seed list changes.
+
+### Addendum 1 to L7q (2026-10-30; registered before any res7q result exists — the first res7q file had not reached S3)
+
+1. **Seed roles.** Seeds 0–9 (res7q_gbm_aware, _blind, _phys) are DEVELOPMENT: reported descriptively, nothing is called confirmed from them. Seeds 10–29 (res7q_gbm_confirm, aware only) are CONFIRMATORY. The two sets are never pooled in a test.
+2. **Confirmatory contrast (the only one).** Per regime A, B, L, on seeds 10–29: paired difference of final yield, loop_kphys_sub − loop_kshuf_sub, per seed. Interval: bootstrap CI of the mean over seeds (as in L7k), two-sided, Holm-adjusted over the 3 regimes at family level 0.05 (adjusted levels 98.33 / 97.5 / 95 % for ranks 1/2/3). A regime is "supported" only if the Holm-adjusted lower bound > 0. Secondary (reported, not tested): loop_kphys_sub − loop_sub, E-metric gains, and the cluster-level source-rho contrasts with BOTH percentile and t-based (df = clusters − 1) intervals.
+3. **Failure handling.** If det_check.txt does not say DETERMINISM_OK, the job aborts and no res7q value is used. If loop_sub in any res7q file differs from the res7f/res7k value for the same learner, regime and seed, res7q is not used for any contrast, the discrepancy is reported with the cells, and the cause is diagnosed before anything is re-run.
+4. **Code-version disclosure.** The staged run_l7a.py contains later additions (random_srcmatch arm, regime M, NaN-guarded aggregation). They are not used by the registered arms; the loop_sub reference check is the test of that claim, and any change to loop_sub is reported.
