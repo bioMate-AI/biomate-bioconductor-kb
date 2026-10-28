@@ -1,0 +1,120 @@
+{
+ "experience_kb": "imported; resolved entries for ['a4b1', 'a4b7', 'avb6', 'c5', 'fcrn', 'il23', 'pdl1', 'tnfa']; counts {avb6:16, pdl1:8, a4b1:13, a4b7:13, c5:8, fcrn:8, il23:8, tnfa:8}",
+ "experience_kb resolved entry ids": {
+  "avb6": [
+   "avb6:config",
+   "avb6:cofactor-config",
+   "avb6:metal",
+   "avb6:pharmacophore",
+   "liability:structural-alerts",
+   "physchem:bro5",
+   "physchem:chameleon-permeability",
+   "modality:cyclic_peptide:0",
+   "modality:cyclic_peptide:1",
+   "modality:cyclic_peptide:2",
+   "cmc:universal",
+   "avb6:sar-b6-selectivity",
+   "avb6:sar-lock",
+   "avb6:sar-renal-charge",
+   "avb6:metal-free-void",
+   "avb6:fto-genus"
+  ],
+  "pdl1": [
+   "pdl1:config",
+   "pdl1:pharmacophore",
+   "liability:structural-alerts",
+   "physchem:ro5",
+   "physchem:veber",
+   "physchem:external-admet-predictors",
+   "cmc:universal",
+   "pdl1:fto-genus"
+  ],
+  "a4b1": [
+   "a4b1:config",
+   "a4b1:cofactor-config",
+   "a4b1:metal",
+   "a4b1:pharmacophore",
+   "liability:structural-alerts",
+   "physchem:bro5",
+   "physchem:chameleon-permeability",
+   "modality:cyclic_peptide:0",
+   "modality:cyclic_peptide:1",
+   "modality:cyclic_peptide:2",
+   "cmc:universal",
+   "a4b1:metal-free-void",
+   "a4b1:fto-genus"
+  ],
+  "a4b7": [
+   "a4b7:config",
+   "a4b7:cofactor-config",
+   "a4b7:metal",
+   "a4b7:pharmacophore",
+   "liability:structural-alerts",
+   "physchem:bro5",
+   "physchem:chameleon-permeability",
+   "modality:cyclic_peptide:0",
+   "modality:cyclic_peptide:1",
+   "modality:cyclic_peptide:2",
+   "cmc:universal",
+   "a4b7:metal-free-void",
+   "a4b7:fto-genus"
+  ],
+  "c5": [
+   "c5:config",
+   "c5:pharmacophore",
+   "liability:structural-alerts",
+   "physchem:ro5",
+   "physchem:veber",
+   "physchem:external-admet-predictors",
+   "cmc:universal",
+   "c5:fto-genus"
+  ],
+  "fcrn": [
+   "fcrn:config",
+   "fcrn:pharmacophore",
+   "liability:structural-alerts",
+   "physchem:ro5",
+   "physchem:veber",
+   "physchem:external-admet-predictors",
+   "cmc:universal",
+   "fcrn:fto-genus"
+  ],
+  "il23": [
+   "il23:config",
+   "il23:pharmacophore",
+   "liability:structural-alerts",
+   "physchem:ro5",
+   "physchem:veber",
+   "physchem:external-admet-predictors",
+   "cmc:universal",
+   "il23:fto-genus"
+  ],
+  "tnfa": [
+   "tnfa:config",
+   "tnfa:pharmacophore",
+   "liability:structural-alerts",
+   "physchem:ro5",
+   "physchem:veber",
+   "physchem:external-admet-predictors",
+   "cmc:universal",
+   "tnfa:fto-genus"
+  ]
+ },
+ "kb_requires_RGD(resolved entries mention RGD)": {
+  "avb6": true,
+  "pdl1": false,
+  "a4b1": true,
+  "a4b7": true,
+  "c5": false,
+  "fcrn": false,
+  "il23": false,
+  "tnfa": false
+ },
+ "S1d_profile": "logistic regression (18 physchem/pharmacophore descriptors) fitted on other-family labelled pairs; fitted model, not KB knowledge",
+ "rule_induction.induce": "imported; predicates() replaced by SMILES predicates (original is HELM/avb6-specific); induce() called unchanged",
+ "BioMate workflow DB / UnifiedWorkflowSearch": "audited (docking/QSAR/boltz/OpenFE workflows listed in PREREG 11.1); NOT run (need per-target receptor or per-target training data)",
+ "loop.py/loop_batch.py -> physics_batch (Boltz-2, MM-GBSA) -> execution_grader (S2)": "NOT run: cost estimate only (PREREG 11.4)",
+ "medchem_kb / medchem_kb_product / ingested KBs": "audited; not a binding scorer; no structures in ingested JSONs; not run",
+ "acceptance_gate / pharmacophore_knowledge / knowledge_liability_flags": "HELM-input; only RGD predicate re-implemented on SMILES (chem.has_rgd) for S1a; H2-H8 not applicable to SMILES table",
+ "S3 plug-in (v4 / atom-LM)": "harness.py ready; awaiting score files from workstream 1"
+}
