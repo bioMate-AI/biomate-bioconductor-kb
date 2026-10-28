@@ -1,0 +1,92 @@
+[
+  {
+    "id": "hd_contrast",
+    "action": "interpret",
+    "value": "condition: treated vs control (contrast = c(\"condition\",\"treated\",\"control\")), with 'control' set as the reference/baseline level \u2014 log2 fold changes reported as treated relative to control",
+    "clarify_about": ""
+  },
+  {
+    "id": "hd_prov_conflict",
+    "action": "clarify",
+    "clarify_about": "The BAM's @SQ header shows it was aligned to GRCh37, not the requested GRCh38 \u2014 this is a real reference conflict that cannot be resolved by calling variants directly. Ask which path to take: (a) re-align the available original FASTQs to GRCh38 and call germline variants there (recommended; preserves correct coordinates and avoids liftover artifacts, but costs compute time), (b) call variants on the existing GRCh37 BAM and lift the resulting VCF over to GRCh38 with a chain file (faster, but loses variants in unmappable/rearranged regions and can misplace indels), or (c) call and report on GRCh37 as-is. Also confirm the exact GRCh38 build/analysis set to use if (a) or (b) \u2014 e.g. with vs. without ALT contigs, and whether chrN-style naming is expected downstream.",
+    "value": ""
+  },
+  {
+    "id": "hd_recover_strand",
+    "action": "interpret",
+    "value": "reverse (reverse-stranded, e.g. salmon ISR / featureCounts -s 2)",
+    "clarify_about": ""
+  },
+  {
+    "id": "hd_tool_bulk_seurat",
+    "action": "clarify",
+    "clarify_about": "The counts matrix contains 6 bulk RNA-seq samples (genes x 6 samples), not single cells, so Seurat's single-cell clustering (neighbor graph + Louvain/Leiden over thousands of cells) cannot be meaningfully run \u2014 with n=6 there is no cell-level structure to cluster, and QC steps like nFeature/percent.mt filtering and normalization assumptions do not apply. Do you want me to (a) run a bulk-appropriate analysis instead \u2014 variance-stabilized (DESeq2 vst/limma-voom) PCA, sample-sample correlation heatmap, and hierarchical clustering of the 6 samples, plus differential expression if you give me the group assignments; (b) proceed with Seurat anyway treating each bulk sample as one 'cell' (I'd produce it, but the clustering output would be statistically meaningless and I'd label it as such); or (c) point me to a different file if per-cell counts exist (e.g., a 10x matrix/barcodes/features set) that you intended to use?",
+    "value": ""
+  },
+  {
+    "id": "hd_tool_sniffles",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "Sniffles is designed for long-read data (PacBio/ONT) and will not work correctly on 150 bp paired-end Illumina reads \u2014 it relies on intra-read split/indel signatures absent in short reads. Confirm how to proceed: (a) switch to a short-read SV caller on this Illumina data (e.g., Manta, DELLY, GRIDSS, or Smoove/LUMPY, optionally ensemble-merged with SURVIVOR), (b) keep Sniffles because you also have long-read data for this sample that should be used instead \u2014 if so, point me to those BAM/FASTQ files, or (c) you intended a different Illumina-compatible tool and named Sniffles by mistake. Also confirm the reference build and whether you want germline or somatic/tumor-normal calling."
+  },
+  {
+    "id": "hd_mouse_build",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "Which mouse reference build/annotation to align against \u2014 the request specifies species (mouse) but no genome version, and no file headers, manifest, sample sheet, or prior turns are available to resolve it. Ask whether to use GRCm39/mm39 (current Ensembl/GENCODE reference) or GRCm38/mm10 (still common for comparability with existing datasets), plus the specific annotation release (e.g., GENCODE vM36 vs vM25) since gene IDs and counts must match any prior results they intend to compare with. Note a sensible default of GRCm39 + matching GENCODE release if they have no constraint."
+  },
+  {
+    "id": "hd_pdb_chain",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "Which chain's ATP site should be used as the receptor? PDB 4XYZ contains two distinct ATP-binding chains (A and B), and the request specifies only 'the ATP site' \u2014 please confirm chain A, chain B, or whether you want both docked separately (or a single pooled/dimer receptor)."
+  },
+  {
+    "id": "hd_10x_interp",
+    "action": "interpret",
+    "value": "forward (sense; R2 cDNA read matches the mRNA strand \u2014 e.g. STARsolo --soloStrand Forward / featureCounts -s 1)",
+    "clarify_about": ""
+  },
+  {
+    "id": "hd_paired_not_strand",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "Library strandedness for the gene-level counting step. Nothing in the request or available context (no kit name, sample sheet, manifest, or prior methods text) indicates the protocol, and the choice is not cosmetic: counting an unstranded library as reverse-stranded (or vice versa) can drop ~50% of reads and systematically distort counts for overlapping/antisense genes. Please confirm one of: (a) unstranded, (b) forward/FR-secondstrand (e.g., Ligation/NEBNext Ultra II Directional non-dUTP, SMARTer stranded), or (c) reverse/FR-firststrand (e.g., TruSeq Stranded mRNA, dUTP protocols \u2014 the most common for Illumina paired-end human RNA-seq). Alternatively, name the library prep kit and I will map it, or authorize me to empirically infer strandedness from a subsample of the reads (RSeQC infer_experiment.py or salmon -l A against the human annotation) and proceed with the detected setting, reporting the inferred proportions for your confirmation."
+  },
+  {
+    "id": "hd_followup_normal",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "The user's reply resolves sample identity (A.bam = tumor, B.bam = second tumor biopsy, same patient) but it removes the basis for a matched-normal workflow: no germline/normal sample exists in the provided data. Running matched_normal with B.bam as the 'normal' would treat shared germline variants plus B's somatic variants as the reference baseline, silently subtracting true somatic calls from A and inflating apparent tumor-specific variants in regions where B has copy-number or subclonal differences. Ask the user to choose explicitly: (1) provide a matched normal BAM (blood/adjacent normal) for this patient so matched_normal can proceed as configured; (2) switch to tumor-only somatic calling for A.bam (and/or B.bam) with a panel-of-normals plus population-AF germline filtering, accepting the higher germline false-positive rate; or (3) if the intent is to compare the two biopsies (e.g., shared vs. private mutations, clonal evolution between sites), run each sample in tumor-only mode and intersect, rather than designating either as the normal. Also confirm whether B.bam is a spatially distinct biopsy, a metastasis, or a different timepoint, since that affects interpretation of shared vs. private variants."
+  },
+  {
+    "id": "hd_recover_header",
+    "action": "interpret",
+    "value": "GRCh38 (hg38), UCSC-style 'chr'-prefixed primary assembly as declared in the sample.bam @SQ header)",
+    "clarify_about": ""
+  },
+  {
+    "id": "hd_reproduce_default",
+    "action": "interpret",
+    "value": "GRCh37 (hg19)",
+    "clarify_about": ""
+  },
+  {
+    "id": "hd_tpm_matrix",
+    "action": "clarify",
+    "value": "TPM-normalized expression matrix (non-integer decimals)",
+    "clarify_about": "The matrix type is identifiable from the file (TPM-normalized decimals), but that conflicts with DESeq2, which requires raw integer counts and its own internal size-factor normalization \u2014 running it on TPMs would violate its negative-binomial model and produce invalid dispersion estimates and p-values. Please confirm how to proceed: (a) point me to the raw count matrix (e.g., featureCounts/HTSeq/STAR ReadsPerGene or salmon/kallisto quant files, which I can import with tximport to generate DESeq2-ready counts with length offsets), (b) switch to a method appropriate for continuous normalized data (limma-trend or limma-voom on log2(TPM+1)), or (c) explicitly accept a non-standard, caveated run (e.g., rounded TPMs) for exploratory purposes only."
+  },
+  {
+    "id": "hd_multi_matrix",
+    "action": "interpret",
+    "value": "raw_counts.tsv",
+    "clarify_about": ""
+  },
+  {
+    "id": "hd_recover_layout",
+    "action": "interpret",
+    "value": "paired-end",
+    "clarify_about": ""
+  }
+]

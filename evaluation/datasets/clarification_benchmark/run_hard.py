@@ -28,6 +28,7 @@ def ask(model, it):
     return {}
 def run(model):
     preds = [{"id": it["id"], **ask(model, it)} for it in ITEMS]
+    json.dump(preds, open(os.path.join(HERE, "_receipts_%s.json" % model.replace("/","_")), "w"), indent=2)
     s = SC.score(ITEMS, preds)
     print(f"{model:28s} decision={s['decision_acc']} outcome={s['outcome']} over={s['over_clarify']} under={s['under_clarify']}", flush=True)
     return {"model": model, **s}
