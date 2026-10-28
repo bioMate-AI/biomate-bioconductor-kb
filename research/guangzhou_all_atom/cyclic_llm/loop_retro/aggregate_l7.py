@@ -6,19 +6,26 @@ n is always reported. Nothing is pooled across regimes. Claims follow the pre-re
 import sys, os, json, glob, re, collections, argparse
 import numpy as np
 
-B_BOOT, RNG = 5000, np.random.default_rng(0)
+B_BOOT = 5000
+
+
+def _seed(v, lo, hi):
+    import zlib
+    return zlib.crc32(repr((len(v), tuple(round(float(x), 6) for x in v), lo, hi)).encode())          # seed derived from the data and the level -> identical output on every regeneration, independent of call order
 
 
 def ci(v, lo=2.5, hi=97.5):
+    """Percentile bootstrap CI of the MEAN over seeds (not a spread); deterministic per (data, level)."""
     v = np.asarray([x for x in v if x == x], float)
     if len(v) == 0: return None
     if len(v) == 1: return [float(v[0]), float(v[0])]
-    bs = [float(np.mean(RNG.choice(v, len(v)))) for _ in range(B_BOOT)]; return [round(float(np.percentile(bs, lo)), 4), round(float(np.percentile(bs, hi)), 4)]
+    rng = np.random.default_rng(_seed(v, lo, hi)); bs = [float(np.mean(rng.choice(v, len(v)))) for _ in range(B_BOOT)]
+    return [round(float(np.percentile(bs, lo)), 4), round(float(np.percentile(bs, hi)), 4)]
 
 
 def summ(v, lo=2.5, hi=97.5):
     v = [x for x in v if x == x]
-    return dict(n=len(v), mean=round(float(np.mean(v)), 4) if v else None, ci=ci(v, lo, hi))
+    return dict(n=len(v), mean=round(float(np.mean(v)), 4) if v else None, ci=ci(v, lo, hi), ci_level_pct=round(hi - lo, 1))
 
 
 def load_small(dirs):
@@ -107,6 +114,9 @@ def main():
             r = summ(ratio); d = summ(diff); npair = len(pairs)
             out["noninferiority"][f"{be} loop+K_phys (sub protocol) vs {m} llm_kb | {reg}"] = dict(n_pairs=npair, ratio=r, diff=d, rule="non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
                 non_inferior=bool(npair >= 8 and r["ci"] and r["ci"][0] > 0.90), superior=bool(npair >= 8 and d["ci"] and d["ci"][0] > 0), status="inconclusive (power)" if npair < 8 else "evaluable")
+    import hashlib
+    files = sorted([f for d in a.small.split(",") if d for f in glob.glob(f"{d}/*.json")] + (glob.glob(f"{a.llm}/*.json") if a.llm else []))
+    out["inputs"] = dict(n_files=len(files), sha256=hashlib.sha256("".join(f"{os.path.basename(f)}:{os.path.getsize(f)};" for f in sorted(files, key=os.path.basename)).encode()).hexdigest())
     json.dump(out, open(a.out, "w"), indent=1, default=float); print("wrote", a.out, "| small groups", len(out["small"]), "| llm groups", len(out["llm"]), "| noninferiority pairs", len(out["noninferiority"]))
 
 
