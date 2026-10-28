@@ -89,3 +89,19 @@ AUROC; best comparator among {PT+k, PT, NN} is NN at every k; gate controls C1/C
 
 ### R6 Gaps
 Permeability: 9–17 labs, large lab heterogeneity (per-lab differences in `results/perm_b_summary.json`), registered shuffle control failed as defined, PT hyperparameters fixed at the reduced T1 setting (100 iterations, 31 bins; not tuned); binding: PT is the frozen logistic prior (zero-shot AUROC 0.54), analysis I gate INVALID, 2 shuffle worlds only; the analog component is plain nearest-neighbour similarity; no new labs or targets were used, so nothing here is a confirmation.
+
+
+---
+## RE-EVALUATION after independent code review (items M1, M8; 2026-10-30) — percentile and t intervals side by side; non-inferiority on the CI lower bound
+Same script and file as in the T1 document (`fusion_b/reeval_intervals.py`, `results/reeval_intervals.json`). **What the registration said:** (b) uses lower bound > 0 of a Bonferroni-adjusted (98.33 %) interval of the registered cluster bootstrap and point ≥ +0.02; (a) is the **point estimate ≥ −0.03** at every k, and formal non-inferiority (95 % lower bound > −0.05) was registered as *secondary*. Both readings are reported below.
+**(b) Gain vs the best comparator:** none of F1b / F2b shows a gain under percentile or t, nominal or Bonferroni, in either testbed. Permeability F2b at k = 25: +0.025, percentile 95 % [−0.057, 0.134], t 95 % [−0.095, 0.145], t adjusted [−0.132, 0.182] (9 labs; t p = 0.640). The outcome "NULL (not detected)" is unchanged and is now stated to hold under both interval types.
+**(a) Non-inferiority, permeability F2b (all k):** point ≥ −0.03: yes (−0.010 / +0.006 / +0.025). Lower 95 % bound: k = 5 −0.046 (pct) / −0.045 (t); k = 10 −0.020 / −0.022; k = 25 −0.057 / −0.095. Against margin 0.03: not established at any interval type (k = 5 fails, k = 25 fails); against the secondary formal margin 0.05: met at k = 5 and 10, **not at k = 25 under either interval type** (the t interval at k = 25, −0.095, is wider than the percentile one). **F2b is therefore "non-inferior by the registered point rule only"; non-inferiority by CI lower bound is not established.** F1b fails (a) even by point (k = 5: −0.041; lower bounds −0.072 pct / −0.074 t).
+**Binding (family-cluster):** F1b(PT, NN) and F2b(PT, NN) fail (a) at k = 5 and 10 under the point rule and under every CI reading (e.g. F1b k = 5 −0.049, pct [−0.077, −0.021], t [−0.079, −0.018]; F2b −0.127, t [−0.175, −0.079]). Unchanged: **FAILED**.
+**Updated outcome table (interval type labelled):**
+| testbed / arm | (a) registered (point) | (a) CI lower > −0.03 (pct / t) | (a) CI lower > −0.05, secondary (pct / t) | (b) gain (pct 95 % / pct adj. / t 95 % / t adj.) | outcome |
+|---|---|---|---|---|---|
+| Permeability F2b (primary; failed planted control (i); shuffle control failed as registered) | holds | no / no | no / no (k = 25) | no / no / no / no | NULL; NI by CI not established |
+| Permeability F1b | fails (k = 5) | no / no | no / no | no / no / no / no | FAILED |
+| Binding F1b(PT, NN) | fails (k = 5, 10) | no / no | no / no | no / no / no / no | FAILED |
+| Binding F2b(PT, NN) | fails | no / no | no / no | no / no / no / no | FAILED |
+Lab-/family-cluster tests rest on few clusters (9–17 labs; 21–26 families); t intervals assume approximate normality of the cluster-level differences, percentile bootstrap intervals are known to be too narrow with ~9 clusters, which is the reason the T1 k = 25 verdict changes.

@@ -98,7 +98,7 @@ AUROC family-mean [95 % family bootstrap]; prior P_B = logistic regression on ty
 | testbed / variant | (a) non-inferior at every k (point ≥ −0.03) | (b) better than best single component at some k (≥ +0.02 and CI lower bound > 0) | outcome |
 |---|---|---|---|
 | Permeability, **F2 (primary, A1)** | yes (+0.041, +0.027, −0.004) | **no** (k=5: lower bound −0.001; k=10: −0.066; k=25: −0.105) | **NULL (not detected)** |
-| Permeability, F1 (as registered; failed planted control (i)) | yes | yes at k=25 only (+0.031 [0.007, 0.055]) | SUPPORTED by the letter of the rule, but F1 is not primary; fragile (nested-n0 version +0.008 [−0.06, 0.07]; 9 labs; best component chosen on the evaluation labs) |
+| Permeability, F1 (as registered; failed planted control (i)) | yes | yes at k=25 only (+0.031 [0.007, 0.055]) | SUPPORTED by the letter of the rule **only under the percentile lab-bootstrap interval** (t interval over 9 labs: [−0.000, 0.061], p = 0.051 → NOT supported; see Re-evaluation below), but F1 is not primary; fragile (nested-n0 version +0.008 [−0.06, 0.07]; 9 labs; best component chosen on the evaluation labs) |
 | Binding, **F2(P_B, NN) (primary)** | **no** (k=5 −0.056, k=10 −0.042) | no | **FAILED** |
 | Binding, F1(P_B, NN) | yes (−0.009, −0.003, +0.005) | no (k=25 +0.005 < 0.02) | PARTIAL ((a) only) |
 
@@ -112,3 +112,24 @@ AUROC family-mean [95 % family bootstrap]; prior P_B = logistic regression on ty
 
 ### R7 Gaps
 Independent audit covered 3 cells (permeability) plus exact parity of the binding NN/PT arms; the pretrained baselines (PT, PT+k) use a reduced HistGB (100 iterations, 31 bins, 1024 count bits + 9 physchem descriptors; detail not fixed in the registration); the binding prior is not mined "knowledge"; no multiplicity rule was registered (Bonferroni view given as descriptive); F1/F2 choice and n0 = 5 were fixed before real data but F2's constants were tuned on synthetic worlds; permeability power is limited (9–17 labs, heavy lab heterogeneity).
+
+
+---
+## RE-EVALUATION after independent code review (items M1, M8; 2026-10-30) — percentile and t intervals side by side; non-inferiority on the CI lower bound
+Script `fusion_b/reeval_intervals.py` → `fusion_b/results/reeval_intervals.json` (no refitting; same stored cells; best comparator chosen on the evaluation clusters as registered; clusters = labs for permeability, families for binding; percentile = bootstrap B = 5000; t = Student t, df = n − 1; adjusted = Bonferroni over the 3 values of k, 98.33 %).
+**What the registration said.** T1 §5 registered (b) as "point ≥ +0.02 AND lower 95 % bound > 0" with lab-cluster / family-cluster *bootstrap* intervals, and registered (a) on the **point estimate** ("fails if at any k the point difference < −0.03"; no CI rule). Both readings of (a) are reported below; the review is right that a point-based non-inferiority claim is not a statistical non-inferiority claim.
+**(b) Gain over the best single component (F1, k = 25, 9 labs; mean +0.031):** percentile 95 % [0.007, 0.056] (supported); percentile Bonferroni [0.003, 0.062] (supported); **t 95 % [−0.000, 0.061], two-sided p = 0.051 (not supported); t Bonferroni [−0.010, 0.071] (not supported).** At k = 5 and 10 no interval type supports a gain (F1 +0.041 [t −0.062, 0.143] and +0.041 [t −0.006, 0.088]; F2 all k not supported under any type). **Revised outcome for permeability F1: "supported under percentile intervals only; not supported under t intervals"; F2 (primary after A1): NULL under every interval type.**
+**(a) Non-inferiority, permeability (all k required):**
+| arm | point ≥ −0.03 (registered) | 95 % lower > −0.03 (pct / t) | 95 % lower > −0.05 (pct / t) |
+|---|---|---|---|
+| F1 (K_phys, analog) | yes | no / no (k = 5: lower −0.043 pct, −0.062 t) | yes / no |
+| F2 | yes | no / no | no / no (k = 10, 25 lower bounds −0.062/−0.102 pct) |
+**Revised reading:** non-inferiority of the fusion to the best component is **not established** under any CI reading at margin 0.03; the registered point-based "(a) holds" is retained only as the registered (weaker) reading.
+**Binding (family-cluster, 26 / 25 / 21 families; vs NN):** no arm shows a gain under any interval type. Non-inferiority at all k: F1(P_B, NN) point yes (−0.009 / −0.003 / +0.005); CI lower > −0.03: percentile yes, t no (k = 5 t lower −0.032); lower > −0.05: yes under both. F2(P_B, NN) fails (−0.056 at k = 5, lower −0.086 pct / −0.090 t). F1/F2 with PT fail at k = 5 and 10 under all readings. **Revised binding outcome: F1(P_B, NN) PARTIAL by the registered point rule and "non-inferior by lower bound > −0.05 under both interval types; > −0.03 under percentile only"; others FAILED.**
+**Updated outcome table (interval type labelled):**
+| testbed / arm | (a) registered (point) | (a) by CI lower bound vs margin 0.03 (pct / t) | (b) gain, percentile (95 % / adj.) | (b) gain, t (95 % / adj.) | outcome |
+|---|---|---|---|---|---|
+| Permeability F2 (primary) | holds | no / no | no / no | no / no | NULL (all interval types) |
+| Permeability F1 | holds | no / no | yes (k = 25) / yes | no (p = 0.051) / no | percentile-supported only; not t-supported; failed planted control (i) |
+| Binding F1(P_B, NN) | holds | yes / no | no / no | no / no | PARTIAL (point); NI lower > −0.05 both |
+| Binding F2(P_B, NN) | fails | no / no | no | no | FAILED |
