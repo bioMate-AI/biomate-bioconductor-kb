@@ -141,7 +141,7 @@ forbids. SRVL is the thesis we build and measure toward.
 
 | Piece | State |
 |---|---|
-| Gate families G1–G8 + composite reward (L0, dual-use rule) | **built** (G3/G4; G1/G6/G7 interpreter extension pending) |
+| Gate families G1–G8 + composite reward (L0, dual-use rule) | **built** (G1/G3/G4/G6/G7 components; G2/G5 partial) |
 | Execution grader L1 (terminal + S3) | **built** |
 | In-silico L2 (docking/FEP) | **built** (GROMACS/Batch) |
 | Wet-lab L3 + SDL | **hybrid, in program** (αvβ6/GRPR) |

@@ -243,14 +243,15 @@ composer instructions.
 scorer designed for held-out, longitudinal, firewalled validation — the guard
 against a system inflating its own reward (§7).
 
-**Coverage of the taxonomy by the current interpreter.** Built cleanly: **G3, G4**
-(regex/contains/banned/json_valid). Partial: **G2, G5** (text-level matching and
-grounded-pick exist; structured param-equality and reward-wired grounding are
-gaps). **Not yet covered: G1, G6, G7** — the current `numeric` component only tests
-digit-presence, not a thresholded comparison; there is no cross-field predicate and
-no order check. Extending the declarative interpreter with `numeric_threshold`, a
-relational predicate, and an ordering check — all safe and non-`eval` — is the
-concrete engineering step, and it closes exactly the three highest-value families.
+**Coverage of the taxonomy by the current interpreter.** Built cleanly: **G1, G3, G4,
+G6, G7** — regex/contains/banned/json_valid, plus `numeric_threshold` (G1: compare a
+parsed value to a cutoff with an operator), `implies` (G6: conditional cross-field
+consistency), and `order` (G7: A-before-B), all safe and non-`eval` and unit-tested.
+Partial: **G2, G5** (text-level matching and grounded-pick exist; structured
+param-equality and reward-wired grounding remain). The G6/G7 components are the
+completion-text reward analogs; the fully structured param-level predicate and the
+plan-DAG order check live at the gate/harness layer. This closes the three
+highest-value families identified by the grouping of §4.
 
 **Autonomous rule induction [proposed].** The one missing arc for full RSI (§7):
 the system proposing candidate rules from its own run outcomes, each quarantined
