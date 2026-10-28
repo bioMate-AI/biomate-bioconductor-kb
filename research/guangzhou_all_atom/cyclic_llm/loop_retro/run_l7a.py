@@ -11,7 +11,7 @@ from scipy.stats import rankdata
 
 PARAMS = dict(n_init=100, rounds=10, batch=50, n_eval=800, steps0=100, steps_round=30, n_cand=150, n_flat_groups=60)
 V4_PARAMS = dict(n_init=50, rounds=5, batch=20, n_eval=150, steps0=60, steps_round=60, n_cand=60, n_flat_groups=15)
-ARMS = ("loop", "random_fb", "shuffled", "frozen", "rule_kphys_sub", "loop_sub", "loop_kn_sub", "frozen_sub", "shuffled_sub", "noisy_sub", "loop_kn_contra_sub", "loop_kphys_sub", "loop_kphys_contra_sub", "loop_kshuf_sub", "one_shot")   # L7b: K_z arm dropped; *_sub = same per-round 150-candidate subsets as the large-LLM arms
+ARMS = ("loop", "random_fb", "random_srcmatch", "shuffled", "frozen", "rule_kphys_sub", "loop_sub", "loop_kn_sub", "frozen_sub", "shuffled_sub", "noisy_sub", "loop_kn_contra_sub", "loop_kphys_sub", "loop_kphys_contra_sub", "loop_kshuf_sub", "one_shot")   # L7b: K_z arm dropped; *_sub = same per-round 150-candidate subsets as the large-LLM arms
 ACTIVE = list(ARMS)          # set from --arms
 NOCURVE = [False]
 TOP = ("2020_Townsend", "2021_Kelly")
@@ -152,6 +152,13 @@ def run_arm(ctx, arm, init, pool, E, seed, loop_revealed=None, state0=None):
         else: U = np.array(unl)
         st_sel = state0 if base == "frozen" else state; s = None
         if base == "random_fb": pick = [int(i) for i in rng.choice(U, p["batch"], replace=False)]
+        elif base == "random_srcmatch":                                         # L7m: random within source, with EXACTLY the loop's per-source counts of this round (shortfall filled at random)
+            want = ctx.match_rounds[r] if getattr(ctx, "match_rounds", None) and r < len(ctx.match_rounds) else {}; pick = []; Uset = set(map(int, U))
+            for s_, c_ in sorted(want.items()):
+                cand_ = [i for i in map(int, U) if ctx.srcs[i] == s_ and i not in set(pick)]
+                if cand_: pick += [int(i) for i in rng.choice(cand_, min(c_, len(cand_)), replace=False)]
+            if len(pick) < p["batch"]:
+                rest_ = [i for i in map(int, U) if i not in set(pick)]; pick += [int(i) for i in rng.choice(rest_, p["batch"] - len(pick), replace=False)]
         elif base == "frozen" and not sub:
             if frozen_rank is None: frozen_rank = U[np.argsort(-B.predict(state0, U), kind="stable")]
             avail = set(unl); pick = [int(i) for i in frozen_rank if i in avail][:p["batch"]]
@@ -202,6 +209,9 @@ def run_task(ctx, init, pool, E, seed):
     out = {"seed": seed, "n_pool": len(pool), "n_E": len(E), "E_hit_rate": float((y[E] >= ctx.thr).mean()), "n_Ef": 0 if ctx.Ef is None else len(ctx.Ef), "init_fit_seconds": round(time.time() - t0, 1)}
     for arm in ACTIVE:
         if arm == "one_shot": continue
+        if arm == "random_srcmatch":
+            if "loop" not in out: continue                                       # needs the loop's picks of the same task
+            ctx.match_rounds = [dict(collections.Counter(ctx.srcs[i] for i in rd)) for rd in out["loop"]["picks"]]
         out[arm] = run_arm(ctx, arm, init, pool, E, seed, state0=state0)
     if "one_shot" in ACTIVE and "loop" in out: out["one_shot"] = run_arm(ctx, "one_shot", init, pool, E, seed, loop_revealed=out["loop"]["revealed_final"], state0=state0)
     if not NOCURVE[0]: out["curve"] = learning_curve(ctx, init, pool, E, seed)                                    # L7c dimension 1: k = 0, 25, 50, 100 labels

@@ -269,8 +269,20 @@ def test_ln_peft_mode_trains_only_layernorm_and_head():
     changed = [n for n, q in st.named_parameters() if not torch.equal(before[n], q.detach())]; assert changed and set(changed) <= set(tr), "only LayerNorm/head parameters may change"
     print("  ln-peft: trainable fraction %.4f, changed %d params" % (frac, len(changed)))
 
+
+def test_random_srcmatch_reproduces_the_loops_source_mix_but_not_its_labels():
+    rng = np.random.default_rng(0); n = 2400; X = rng.random((n, 8)).astype(np.float32); srcs = [f"s{i % 6}" for i in range(n)]; off = {f"s{k}": k * 0.5 for k in range(6)}
+    y = np.array([X[i, 0] * 2 + off[srcs[i]] * 0 + 0.3 * rng.standard_normal() for i in range(n)]); thr = float(np.quantile(y, .9)); B = LM.GBM(X)
+    p = dict(n_init=60, rounds=4, batch=40, n_eval=200, steps0=0, steps_round=0, n_cand=100, n_flat_groups=10); init = list(range(60)); E, pool = L.make_eval_slice(list(range(60, n)), 0, 200)
+    ctx = L.Ctx(y, thr, np.full(n, thr), srcs, np.zeros(n), B, p, np.zeros(n), None, None, None, None); st0 = B.fit(B.init_state(), init, y[init], 0, 0)
+    lp = L.run_arm(ctx, "loop", init, pool, E, 0, state0=st0); ctx.match_rounds = [dict(__import__("collections").Counter(srcs[i] for i in rd)) for rd in lp["picks"]]
+    sm = L.run_arm(ctx, "random_srcmatch", init, pool, E, 0, state0=st0)
+    for r in range(4):
+        a = __import__("collections").Counter(srcs[i] for i in lp["picks"][r]); b = __import__("collections").Counter(srcs[i] for i in sm["picks"][r]); assert a == b, ("source mix must match exactly", r, a, b)
+    assert np.mean(y[[i for rd in lp["picks"] for i in rd]]) > np.mean(y[[i for rd in sm["picks"] for i in rd]]) + 0.3, "the matched draw must NOT reproduce the loop's high-label selection"
+
 if __name__ == "__main__":
     which = sys.argv[1] if len(sys.argv) > 1 else "core"
-    names = {"core": ["test_eval_slice_disjoint_and_paired", "test_arms_on_planted_world_with_gbm", "test_one_shot_budget_equals_loop_total_steps", "test_stereo_rho_planted_and_ties_are_zero", "test_flat_slice_split_properties", "test_stereo_blind_is_zero_and_stereo_aware_detected", "test_subset_identical_between_small_and_large_runners", "test_regime_L_leave_labs_out_properties", "test_kphys_channels_and_fusion_identities", "test_physchem_channel_planted", "test_frozen_arm_sar_uses_only_labels_the_model_has", "test_knn_baseline_planted_and_k0", "test_rule_kphys_arm_is_model_free_and_ranks_by_the_rule", "test_lora_wiring_on_tiny_encoder", "test_gp_baseline_planted_calibration_and_k0"],
+    names = {"core": ["test_eval_slice_disjoint_and_paired", "test_arms_on_planted_world_with_gbm", "test_one_shot_budget_equals_loop_total_steps", "test_stereo_rho_planted_and_ties_are_zero", "test_flat_slice_split_properties", "test_stereo_blind_is_zero_and_stereo_aware_detected", "test_subset_identical_between_small_and_large_runners", "test_regime_L_leave_labs_out_properties", "test_kphys_channels_and_fusion_identities", "test_physchem_channel_planted", "test_frozen_arm_sar_uses_only_labels_the_model_has", "test_knn_baseline_planted_and_k0", "test_rule_kphys_arm_is_model_free_and_ranks_by_the_rule", "test_lora_wiring_on_tiny_encoder", "test_gp_baseline_planted_calibration_and_k0", "test_random_srcmatch_reproduces_the_loops_source_mix_but_not_its_labels"],
              "atom": ["test_atom_heads_functional", "test_atom_adapter_planted_signal", "test_ln_peft_mode_trains_only_layernorm_and_head"], "chemberta": ["test_chemberta_adapter_planted_signal"], "atomphys": ["test_atom_phys_adapter_planted_signal"], "chembertaphys": ["test_chemberta_phys_adapter_planted_signal"], "v4": ["test_v4_adapter_planted_signal"]}[which]
     for n in names: globals()[n](); print("PASS", n)
