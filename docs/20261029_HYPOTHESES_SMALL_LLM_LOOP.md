@@ -3,8 +3,8 @@
 Status: **hypotheses only, written before the L7 replay or any v5 run; not yet registered as a formal amendment.** Each hypothesis states its prediction, the measurement that tests it, and what would falsify it. Registration (dated amendment in `PREREG_LOOP.md` and the v5 prereg) must precede any scored run. Companion: `20261029_MODEL_COMPARISON_ANALYSIS_SPEC.md` (13 measured dimensions).
 
 ## 0. Central claim (owner)
-A small LLM (≈25 M parameters, atom-level; v5) inside a closed loop with verified feedback and knowledge is **comparable to or better than large LLMs** given the same feedback and knowledge, and better than a fingerprint gradient-boosted baseline, on peptide property/binding ranking.
-- **Non-inferiority form:** small+loop yield ≥ 90 % of the strongest large+loop yield, lower 95 % CI bound above 90 %.
+A small LLM (≈25 M parameters, atom-level; v5) inside a closed loop with verified feedback and knowledge is **comparable to or better than larger pretrained cyclic-peptide / chemistry language models** (fine-tuned on the same revealed labels with the same loop and knowledge) — NOT general-purpose NLP LLMs (owner clarification 2026-10-30), and better than a fingerprint gradient-boosted baseline, on peptide property/binding ranking.
+- **Non-inferiority form:** small+loop yield ≥ 90 % of the strongest large peptide/chemistry LM + loop yield, lower 95 % CI bound above 90 %.
 - **Superiority form:** lower 95 % bound of (small+loop − large+loop) > 0.
 
 ## 1. Facts the hypotheses rest on (measured this session; sources in the audit logs)
@@ -26,11 +26,11 @@ A small LLM (≈25 M parameters, atom-level; v5) inside a closed loop with verif
 
 **H4b — Few-label new-target adaptation (cross-target with increasing evidence).** For a held-out target family, performance as a function of revealed labels k ∈ {0, 5, 10, 25} for that target. *Predictions (written before any scored run):* (i) at k=0 all arms are near chance (consistent with the zero-shot null; strongest baseline AUROC 0.62 on analysis I); (ii) all arms, including nearest-neighbour to the revealed compounds, improve with k, largely by matching analog series — so the gain over k=0 alone is not evidence for the LLM; (iii) the test is the gap: LLM minus the strongest baseline (nearest-neighbour to revealed; GBM fit on revealed only; pretrained GBM fine-tuned on revealed) at each k, expected steepest between k=0 and 5 and diminishing after 10; (iv) strong heterogeneity across families. Evidence types are separate conditions: binders only; binders plus measured inactives; knowledge (pharmacophore) only; combinations. *Measures:* gain over k=0, learning-curve slope, labels to reach a fixed AUROC, LLM-minus-baseline gap with family-cluster bootstrap CIs, target counts and power per k. *Falsified (for the LLM claim) if:* the gap's CI includes 0 at all k, or the typicality/no-target validity control exceeds chance. Limits: median target has ~5 cyclic compounds (138 targets ≥50), so only ~100–200 targets qualify; zero-shot expected null, as in the field (3–8 %).
 
-**H5 — Small ≈ large when information is equal.** With the same labels and knowledge, the cost-adjusted performance of the small fine-tuned model matches large in-context LLMs, because the task is narrow and the information is in the feedback, not in world knowledge. *Prediction:* non-inferiority rule satisfied at lower cost (parameters, USD, latency). *Falsified if:* a large LLM+loop exceeds the small model by more than the margin on the primary metric, or large LLMs' zero-shot already saturates the task (then the loop adds nothing for them; report).
+**H5 — Small ≈ large when information is equal.** With the same labels and knowledge, the cost-adjusted performance of the small cyclic-peptide LM in the loop matches larger pretrained peptide/chemistry LMs fine-tuned the same way, because the task is narrow and the information is in the feedback and knowledge, not in pretraining scale. *Prediction:* non-inferiority rule satisfied at lower cost (parameters, USD, latency). *Falsified if:* a larger pretrained peptide/chemistry LM + loop exceeds the small model by more than the margin on the primary metric, or its zero-shot/frozen score already saturates the task (then the loop adds nothing for it; report).
 
 ## 3. Competing and null hypotheses (must be reported if they win)
 - **N1:** the fingerprint GBM is as good as or better than any LLM at every n (a known outcome on small tabular chemistry data) → the paper's claim reduces to the evaluation design and the stereo-resolved result, if any.
-- **N2:** large LLMs dominate through prior chemical knowledge (including possible contamination) → report the contamination probe; the small-model claim fails on this task.
+- **N2:** larger pretrained peptide/chemistry LMs dominate through pretraining scale (including possible corpus contamination) → report the contamination check; the small-model claim fails on this task.
 - **N3:** apparent gains come from locating one laboratory's series (2020_Townsend holds 52.8 % of within-source hits) → report pick provenance; claims restricted to source-diverse subsets.
 - **N4:** feedback does not matter (data-matched one-shot equals the loop; shuffled-label feedback also "improves") → leak or no loop effect; either way the loop claim fails.
 
@@ -39,3 +39,7 @@ Supports: learning from graded feedback, better ranking/selection, sample effici
 
 ## 5. Controls and rules applying to every hypothesis
 Five loop controls (data-matched one-shot, random feedback, shuffled labels must not improve, frozen model, knowledge off); a planted-signal positive control per adapter before any null is believed; same seeds/pools across models; contamination-controlled reporting; family-disjoint folds; pre-registered decision rules; every null triggers an audit of our code first, then iteration only as a new registered version.
+
+
+## Note (2026-10-30)
+Earlier text and one exploratory run interpreted 'large LLM' as general-purpose NLP LLMs (Claude Haiku 5.5, Gemini 3.1 Flash-Lite via OpenRouter, in-context, ≈USD 4.3, 4 seeds). That was a misreading; those arms are exploratory side results only and are not part of the central comparison.

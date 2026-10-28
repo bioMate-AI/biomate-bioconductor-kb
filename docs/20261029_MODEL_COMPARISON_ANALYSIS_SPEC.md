@@ -1,6 +1,6 @@
 # In-depth comparison of baseline, small and large models in the loop — analysis specification (2026-10-29)
 
-Status: specification only; no result here. Models: baseline (fingerprint GBM, L5), small LLMs (atom LM 25 M; v5; v4 on the mapped subset), large LLMs (≥3 families, in-context, via OpenRouter), chemistry-LM baseline (ChemBERTa-class). All run through the same loop replay (L7) with identical seeds, pools, revealed labels and knowledge, and the five controls. Each dimension below is a pre-specified measurement; the paper reports pros AND cons per model from these, not from impression.
+Status: specification only; no result here. Models: baseline (fingerprint GBM, L5), small LLMs (atom LM 25 M; v5; v4 on the mapped subset), larger pretrained cyclic-peptide / chemistry LMs fine-tuned on the same revealed labels (list: docs/20261030_PEPTIDE_CHEM_LM_MODEL_SURVEY.md); general-purpose NLP LLMs (Haiku 5.5, Gemini 3.1 Flash-Lite) appear only as an exploratory side note, chemistry-LM baseline (ChemBERTa-class). All run through the same loop replay (L7) with identical seeds, pools, revealed labels and knowledge, and the five controls. Each dimension below is a pre-specified measurement; the paper reports pros AND cons per model from these, not from impression.
 
 ## Dimensions (what is measured, how, and the hypothesis it tests)
 | # | dimension | measurement | why |
@@ -13,9 +13,9 @@ Status: specification only; no result here. Models: baseline (fingerprint GBM, L
 | 6 | Robustness to bad feedback | shuffled labels (must not improve), 10–30 % label noise, label-scale shift between sources | leak/robustness check |
 | 7 | Exploration/diversity | scaffold and flat-structure diversity of picks, redundancy among picks, regret vs oracle | greedy models collapse onto one series |
 | 8 | Calibration | whether model uncertainty or confidence tracks error (reliability curve, UCB benefit) | selection under uncertainty |
-| 9 | Variance and stability | across seeds, prompt variants (large LLMs), temperature; deterministic reruns | large LLMs are non-deterministic and prompt-sensitive |
-| 10 | Contamination/memorisation | memorisation probe on public vs non-public compounds; performance on peptides absent from public sources | large LLMs may have seen CycPeptMPDB |
-| 11 | Cost and latency | params, FLOPs, tokens, USD, wall-clock per round and per run; cost per additional hit found | "small ≈ large" must include cost |
+| 9 | Variance and stability | across seeds, fine-tune seeds, data order, LoRA vs full fine-tune; deterministic reruns | larger models can be less stable under small data |
+| 10 | Contamination/memorisation | memorisation probe on public vs non-public compounds; performance on peptides absent from public sources | larger pretrained models' corpora may contain CycPeptMPDB/benchmark compounds (filter and report) |
+| 11 | Cost and latency | params, FLOPs, GPU-hours and USD at the real spot price, wall-clock per round and per run; cost per additional hit found | "small ≈ large" must include cost |
 | 12 | Failure taxonomy | error breakdown by source, N-methyl count, ring size, size, activity cliffs (identical-fingerprint pairs); case studies of confident wrong picks | where each model fails and why |
 | 13 | Interpretability | whether the model's stated rationale (large LLM) or attributions (small) agree with held-out SAR; checked against a rule-only predictor | trust and audit |
 
