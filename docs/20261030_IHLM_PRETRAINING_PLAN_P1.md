@@ -37,7 +37,18 @@ Spot only (Batch queue `biomate-gpu-spot-queue` / compute env `biomate-gpu-spot-
 **Corpus-filter job (CPU) redesign.** The first filter instance (`i-03be9ddea789b78a4`) produced no output and its spot record is purged, so the cause is **undetermined** (it logged only at the end and had a 120-minute self-shutdown). The rerun will: (i) run a **canary** on 100 k lines first; (ii) featurise in **100 k-line shards persisted to S3** (resume skips completed shards); (iii) stream the log to S3 every 30 s; (iv) log the instance type, AZ and price paid. Expected cost < USD 1.
 
 ## 6. P0 baseline (the intrinsic gates are measured against these; filled in before any P1 training)
-*(to be appended by `ihlm/p0_intrinsic.py` — held-out perplexity, stereo/N-Me sensitivity, sampling check)*
+Measured 2026-10-30 with `ihlm/p0_intrinsic.py` (result file `ihlm/p0_intrinsic_result.json`), P0 = 25,483,264 parameters, **before any P1 training; thresholds in §3 are unchanged by these numbers.** n_eval = 800 unique CycPeptMPDB peptides (39 Source clusters; P0's corpus excluded CycPeptMPDB-near molecules, so all of CycPeptMPDB is held out); sampling n = 500 at T = 1, max sampled length 160 tokens, novelty against the 2.88 M-molecule corpus. **This is a smaller run than the plan's gate protocol (n = 5,000 samples; all CycPeptMPDB; dev/test half split)** — it is the baseline, not a gate evaluation.
+| quantity | P0 | notes |
+|---|---|---|
+| **I1 held-out mean token NLL** (nats) [95 % cluster CI] | **0.506 [0.467, 0.564]** (perplexity of the mean NLL 1.66) | 800 peptides, 39 clusters. A P1 that passes I1 needs a ≥ 20 % perplexity reduction: perplexity ≤ 1.33, i.e. mean NLL ≤ ≈ 0.28 |
+| **I2a D-flip sensitivity** gap (true − variant, nats/token) | **+0.0075 [0.0027, 0.0203]** (600 peptides, 39 clusters) | CI above 0 but a tiny effect; the variant is a computed edit, not a measured compound |
+| **I2b N-methyl edit sensitivity** gap | **+0.0067 [0.0006, 0.0244]** (513 peptides, 30 clusters) | same caveat |
+| **I3 validity** (RDKit parses) | **0.664** | the sampling cap of 160 tokens truncates long peptides, so part of the invalidity is truncation, not model failure — not separated here |
+| I3 uniqueness of valid / novelty vs corpus | 1.000 / 0.976 | |
+| **I3 macrocycle fraction (ring ≥ 12)** | **0.102** vs 1.000 in real CycPeptMPDB | P0 mostly generates non-macrocycles |
+| I3 max-ring-size TV distance to real | 0.921 | |
+| I3 N-methyl-count TV distance to real; mean N-Me | 0.817; **0.078 sampled vs 2.67 real** | P0 almost never produces N-methylated peptides |
+Reading: **P0 would fail I3 on validity (0.66 < 0.90), macrocycle fraction and both distribution distances.** It is a pipeline proof, not a peptide generator, and these are the numbers a P1 must beat (I1, I2 point gaps ≥ P0's, I3 TV distances ≤ P0's). The stereo and N-Me gaps being positive but ≈ 0.007 nats/token shows P0 has almost no stereo/N-Me sensitivity, which fits its 1.7 % macrocycle corpus.
 
 ## 7. Order of work (nothing GPU until the timing probe is approved under §5)
 1. P0 intrinsic baseline (CPU). 2. Corpus build and filter canary (CPU, < USD 1), then the full filter. 3. Counts, real fraction and licence report; topology-token validation (I4) on the Stage B manifest. 4. Timing probe. 5. Ablation arms; arm choice on the development half; main run. 6. Gates on the test half; report whatever happens.
