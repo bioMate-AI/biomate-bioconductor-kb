@@ -228,13 +228,18 @@ def build(csv_path, backend, device, atom_ckpt=None, atom_vocab=None, v4_subset=
     descz = ((desc - desc.mean(0)) / np.where(desc.std(0) > 0, desc.std(0), 1.0)).astype(np.float32)             # z-scored over the data, no labels
     Kphys = (gz(-tpsa) + gz(-hbd) + gz(logp)) / 3.0                       # L7f: textbook physchem directions (Veber 2002; Over 2016; Rezai 2006), equal weights, source-standardised, NO label-mined parameter
     import loop_models as LM
-    base = backend.replace("_phys", "") if backend not in ("gbm_physchem",) else backend; phys = backend.endswith("_phys")
+    ln = backend.endswith("_ln"); backend_ = backend[:-3] if ln else backend
+    base = backend_.replace("_phys", "") if backend_ not in ("gbm_physchem",) else backend_; phys = backend_.endswith("_phys")
     if backend.startswith("hf:"):                      # hf:<model_id>[:lora][:phys]  e.g. hf:DeepChem/ChemBERTa-77M-MLM:lora
-        parts = backend.split(":"); mid = parts[1]; flags = set(parts[2:]); B = LM.HFReg(smiles, mid, device, descz if "phys" in flags else None, lora="lora" in flags, trust_remote_code="trc" in flags); base = "hf"
+        parts = backend.split(":"); mid = parts[1]; flags = set(parts[2:]); assert "trc" not in flags, "remote code is forbidden in this study (L7h)"; B = LM.HFReg(smiles, mid, device, descz if "phys" in flags else None, lora="lora" in flags, trust_remote_code=False); base = "hf"
+        if "ln" in flags: B.peft = "ln"
     elif base == "knn": B = LM.KNN(np.stack([r["x"] for r in recs]))
+    elif base == "gp": B = LM.GP(np.stack([r["x"] for r in recs]))
     elif base == "gbm": B = LM.GBM(np.stack([r["x"] for r in recs]))
     elif base == "gbm_physchem": B = LM.GBM(desc)
-    elif base == "atom_lm": B = LM.AtomLMReg(smiles, atom_ckpt, atom_vocab, device, descz if phys else None)
+    elif base == "atom_lm":
+        B = LM.AtomLMReg(smiles, atom_ckpt, atom_vocab, device, descz if phys else None)
+        if ln: B.peft = "ln"
     elif base == "chemberta": B = LM.ChemBERTaReg(smiles, device, descz if phys else None)
     elif base == "v4": B = V4Backend(smiles, device)
     else: raise SystemExit("unknown backend")

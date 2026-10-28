@@ -239,8 +239,38 @@ def test_lora_wiring_on_tiny_encoder():
     assert float(loss) < 0.5 * l0, (l0, float(loss)); after = enc.state_dict()
     assert all(torch.equal(base_state[k], after[k.replace("", "")]) for k in base_state if "lora_" not in k and k in after), "base weights must stay frozen and unchanged"
 
+
+def test_gp_baseline_planted_calibration_and_k0():
+    rng = np.random.default_rng(0); n = 900; X = (rng.random((n, 40)) < 0.3).astype(np.float32) * rng.integers(1, 4, (n, 40)); w = rng.standard_normal(40); y = X @ w; y = (y - y.mean()) / y.std() + 0.2 * rng.standard_normal(n)
+    B = LM.GP(X); assert (B.predict(B.fit(None, [], [], 0, 0), [1, 2]) == 0).all()
+    st = B.fit(None, list(range(500)), y[:500], 0, 0); te = list(range(500, 900)); mu, sd = B.predict(st, te), B.predict_std(st, te)
+    assert spearmanr(mu, y[500:])[0] > 0.7, "GP must learn a planted linear signal"
+    err = np.abs(y[500:] - mu); cov = float(np.mean(err / sd <= 1.0)); print(f"  gp (linear world): 1-sigma coverage {cov:.3f} (>0.68 = conservative; hyperparameters FIXED by pre-registration)"); assert cov > 0.5, "the posterior std must not be over-confident"
+    # clustered world: seen clusters (low error) vs unseen clusters (high error): the std must rank them
+    c = np.random.default_rng(1); nc = 30; cent = (c.random((nc, 60)) < 0.15).astype(np.float32) * 3; val = c.standard_normal(nc)
+    lab = np.repeat(np.arange(nc), 30); Xc = cent[lab] + (c.random((nc * 30, 60)) < 0.03) * 1.0; yc = val[lab] + 0.1 * c.standard_normal(nc * 30)
+    tr = np.where(lab < 20)[0][::2]; seen = np.where(lab < 20)[0][1::2]; unseen = np.where(lab >= 20)[0]; Bc = LM.GP(Xc); sc = Bc.fit(None, tr, yc[tr], 0, 0)
+    sd_seen, sd_un = Bc.predict_std(sc, seen), Bc.predict_std(sc, unseen); e_seen, e_un = np.abs(Bc.predict(sc, seen) - yc[seen]), np.abs(Bc.predict(sc, unseen) - yc[unseen])
+    print(f"  gp (clusters): mean sd seen {sd_seen.mean():.3f} vs unseen {sd_un.mean():.3f}; mean |err| seen {e_seen.mean():.3f} vs unseen {e_un.mean():.3f}")
+    assert sd_un.mean() > 1.5 * sd_seen.mean() and e_un.mean() > 1.5 * e_seen.mean(), "the posterior std must be larger where the model is wrong (unseen chemistry)"
+    far = np.ones((1, 40), np.float32) * 5; B2 = LM.GP(np.vstack([X, far])); st2 = B2.fit(None, list(range(500)), y[:500], 0, 0)
+    assert B2.predict_std(st2, [n])[0] > np.median(B2.predict_std(st2, te)), "an unlike candidate must be more uncertain than typical ones"
+    sh = B.fit(None, list(range(500)), rng.permutation(y[:500]), 0, 0); assert abs(spearmanr(B.predict(sh, te), y[500:])[0]) < 0.25, "shuffled labels must not give signal"
+
+def test_ln_peft_mode_trains_only_layernorm_and_head():
+    import torch
+    sys.path.insert(0, os.path.join(HERE, "..", "allatom")); import atom_lm as A
+    sd = torch.load(f"{SP}/atom_ckpt.pt", map_location="cpu", weights_only=False)["model"]; import json
+    recs = R.load(CSV)[:200]; sm = [r["smiles"] for r in recs]; idx, y = planted(recs, 200)
+    B = LM.AtomLMReg([recs[i]["smiles"] for i in idx], f"{SP}/atom_ckpt.pt", f"{SP}/atom_vocab.json", "cpu"); B.peft = "ln"; st0 = B.init_state()
+    tr = [n for n, q in st0.named_parameters() if q.requires_grad]; assert tr and all(n.startswith("head") or "ln" in n.split(".")[-2] or n.split(".")[-2] in ("ln", "ln1", "ln2") for n in tr), tr[:6]
+    frac = sum(q.numel() for q in st0.parameters() if q.requires_grad) / sum(q.numel() for q in st0.parameters()); assert frac < 0.01, frac
+    before = {n: q.detach().clone() for n, q in st0.named_parameters()}; st = B.fit(st0, np.arange(120), y[:120], 60, 0)
+    changed = [n for n, q in st.named_parameters() if not torch.equal(before[n], q.detach())]; assert changed and set(changed) <= set(tr), "only LayerNorm/head parameters may change"
+    print("  ln-peft: trainable fraction %.4f, changed %d params" % (frac, len(changed)))
+
 if __name__ == "__main__":
     which = sys.argv[1] if len(sys.argv) > 1 else "core"
-    names = {"core": ["test_eval_slice_disjoint_and_paired", "test_arms_on_planted_world_with_gbm", "test_one_shot_budget_equals_loop_total_steps", "test_stereo_rho_planted_and_ties_are_zero", "test_flat_slice_split_properties", "test_stereo_blind_is_zero_and_stereo_aware_detected", "test_subset_identical_between_small_and_large_runners", "test_regime_L_leave_labs_out_properties", "test_kphys_channels_and_fusion_identities", "test_physchem_channel_planted", "test_frozen_arm_sar_uses_only_labels_the_model_has", "test_knn_baseline_planted_and_k0", "test_rule_kphys_arm_is_model_free_and_ranks_by_the_rule", "test_lora_wiring_on_tiny_encoder"],
-             "atom": ["test_atom_heads_functional", "test_atom_adapter_planted_signal"], "chemberta": ["test_chemberta_adapter_planted_signal"], "atomphys": ["test_atom_phys_adapter_planted_signal"], "chembertaphys": ["test_chemberta_phys_adapter_planted_signal"], "v4": ["test_v4_adapter_planted_signal"]}[which]
+    names = {"core": ["test_eval_slice_disjoint_and_paired", "test_arms_on_planted_world_with_gbm", "test_one_shot_budget_equals_loop_total_steps", "test_stereo_rho_planted_and_ties_are_zero", "test_flat_slice_split_properties", "test_stereo_blind_is_zero_and_stereo_aware_detected", "test_subset_identical_between_small_and_large_runners", "test_regime_L_leave_labs_out_properties", "test_kphys_channels_and_fusion_identities", "test_physchem_channel_planted", "test_frozen_arm_sar_uses_only_labels_the_model_has", "test_knn_baseline_planted_and_k0", "test_rule_kphys_arm_is_model_free_and_ranks_by_the_rule", "test_lora_wiring_on_tiny_encoder", "test_gp_baseline_planted_calibration_and_k0"],
+             "atom": ["test_atom_heads_functional", "test_atom_adapter_planted_signal", "test_ln_peft_mode_trains_only_layernorm_and_head"], "chemberta": ["test_chemberta_adapter_planted_signal"], "atomphys": ["test_atom_phys_adapter_planted_signal"], "chembertaphys": ["test_chemberta_phys_adapter_planted_signal"], "v4": ["test_v4_adapter_planted_signal"]}[which]
     for n in names: globals()[n](); print("PASS", n)

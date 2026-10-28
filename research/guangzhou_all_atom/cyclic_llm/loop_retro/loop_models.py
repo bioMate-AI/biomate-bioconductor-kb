@@ -46,11 +46,22 @@ def add_lora(module, r=8, alpha=16, targets=LORA_TARGETS):
     return n
 
 
+def freeze_except_layernorm(module):
+    """PETA-style parameter-efficient mode (L7i): freeze everything except LayerNorm weights/biases (and the caller's head). Returns the number of trainable backbone parameters."""
+    import torch
+    for q in module.parameters(): q.requires_grad_(False)
+    n = 0
+    for m in module.modules():
+        if isinstance(m, torch.nn.LayerNorm):
+            for q in m.parameters(): q.requires_grad_(True); n += q.numel()
+    return n
+
+
 class _TorchReg:
     """Shared fine-tune/predict for an encoder returning a pooled vector; subclasses build `self.enc_factory`, `self.encode`, `self.collate`.
     Cost counters (L7g): padded tokens processed in fit / predict, parameters total / trainable."""
     lr_bb, lr_head, lr_lora, batch = 5e-5, 1e-3, 3e-4, 32
-    lora = False; tok_train = 0; tok_inf = 0
+    lora = False; peft = "full"; tok_train = 0; tok_inf = 0
     def __init__(self, device="cpu", desc=None):
         import torch; self.torch = torch; self.dev = device
         self.desc = None if desc is None else np.asarray(desc, np.float32)      # L7f physchem channel: label-free descriptors (z-scored over the data), concatenated to the pooled hidden state
@@ -64,6 +75,7 @@ class _TorchReg:
         hp = [p for n, p in new.named_parameters() if n.startswith("head") and p.requires_grad]
         lo = [p for n, p in new.named_parameters() if "lora_" in n and p.requires_grad]
         bb = [p for n, p in new.named_parameters() if not n.startswith("head") and "lora_" not in n and p.requires_grad]
+        if self.peft == "ln": lo, bb = lo + bb, []                              # LayerNorm-only mode: those parameters train at the adapter learning rate
         groups = [{"params": hp, "lr": self.lr_head}] + ([{"params": lo, "lr": self.lr_lora}] if lo else []) + ([{"params": bb, "lr": self.lr_bb}] if bb else [])
         opt = torch.optim.AdamW(groups, weight_decay=0.0)
         for _ in range(steps):
@@ -109,7 +121,11 @@ class AtomLMReg(_TorchReg):
                 for b in g.blocks: h = b(h)
                 h = g.ln(h); m = mask.unsqueeze(-1).to(h.dtype); v = (h * m).sum(1) / m.sum(1)
                 return s.head(v if dsc is None else torch.cat([v, dsc], -1))
-        return Reg(gpt)
+        reg = Reg(gpt)
+        if self.peft == "ln":
+            ntr = freeze_except_layernorm(reg.g)
+            for q in reg.head.parameters(): q.requires_grad_(True)
+        return reg
     def collate(self, idx):
         torch = self.torch; L = max(self.length[i] for i in idx); x = torch.full((len(idx), L), self.A.PAD, dtype=torch.long)
         for j, i in enumerate(idx): x[j, :self.length[i]] = torch.tensor(self.ids[i])
@@ -139,12 +155,40 @@ class HFReg(_TorchReg):
             def forward(s, x, mask, dsc=None):
                 h = s.enc(input_ids=x, attention_mask=mask.long()).last_hidden_state; m = mask.unsqueeze(-1).to(h.dtype); v = (h * m).sum(1) / m.sum(1)
                 return s.head(v if dsc is None else torch.cat([v, dsc], -1))
-        return Reg(enc)
+        reg = Reg(enc)
+        if self.peft == "ln":
+            freeze_except_layernorm(reg.enc)
+            for q in reg.head.parameters(): q.requires_grad_(True)
+        return reg
     def collate(self, idx):
         torch = self.torch; L = max(self.length[i] for i in idx); x = torch.full((len(idx), L), self.pad_id, dtype=torch.long)
         for j, i in enumerate(idx): x[j, :self.length[i]] = torch.tensor(self.ids[i])
         x = x.to(self.dev); out = (x, (x != self.pad_id))
         return out if self.desc is None else out + (torch.tensor(self.desc[np.asarray(idx)], device=self.dev),)
+
+
+class GP:
+    """Exact GP regression with the continuous Tanimoto kernel on chirality-aware Morgan COUNT vectors (L7i). Hyperparameters FIXED: amplitude a = Var(revealed y), noise = 0.3 * Var(revealed y); labels mean-centred.
+    predict -> posterior mean; predict_std -> posterior standard deviation. k = 0 labels -> constant 0 / prior std."""
+    name = "gp"
+    def __init__(self, X, noise_frac=0.3):
+        self.X = np.asarray(X, np.float64); self.sq = (self.X ** 2).sum(1); self.nf = noise_frac
+    def _K(self, ia, ib):
+        D = self.X[ia] @ self.X[ib].T; den = self.sq[ia][:, None] + self.sq[ib][None, :] - D; return D / np.where(den > 0, den, 1.0)
+    def init_state(self): return None
+    def fit(self, state, idx, y, steps, seed):
+        idx = np.asarray(idx, dtype=int); y = np.asarray(y, float); assert len(idx) == len(y), f"GP.fit: {len(idx)} indices but {len(y)} labels"
+        if len(idx) < 2: return None
+        mu = float(y.mean()); a = max(float(y.var()), 1e-6); s2 = self.nf * a; K = a * self._K(idx, idx) + s2 * np.eye(len(idx))
+        L = np.linalg.cholesky(K + 1e-8 * np.eye(len(idx))); alpha = np.linalg.solve(L.T, np.linalg.solve(L, y - mu)); return dict(idx=idx, mu=mu, a=a, L=L, alpha=alpha)
+    def predict(self, state, idx):
+        idx = np.asarray(idx, dtype=int)
+        if state is None: return np.zeros(len(idx))
+        return state["mu"] + state["a"] * self._K(idx, state["idx"]) @ state["alpha"]
+    def predict_std(self, state, idx):
+        idx = np.asarray(idx, dtype=int)
+        if state is None: return np.ones(len(idx))
+        Ks = state["a"] * self._K(idx, state["idx"]); v = np.linalg.solve(state["L"], Ks.T); var = state["a"] * 1.0 - (v ** 2).sum(0); return np.sqrt(np.clip(var, 1e-12, None))
 
 
 class KNN:
