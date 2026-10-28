@@ -1077,6 +1077,32 @@ def _classify_failure(
                 "fix_strategy": _STRATEGY.get(category, "not_fixable"),
                 "task_error_snippet": task_error_snippet}
 
+    # ── ARM64: workflow image has no arm64 variant → "pull access denied" or no manifest ──
+    # Triggered when DOCKER_DEFAULT_PLATFORM=linux/arm64 (信创/domestic deployment) and the
+    # workflow's container image was never built for arm64.  Docker finds no local match and
+    # can't pull from the registry → vague "pull access denied" / "unable to find image".
+    _is_arm64_host = os.environ.get("DOCKER_DEFAULT_PLATFORM", "").lower() == "linux/arm64"
+    _arm64_image_miss = (
+        "no matching manifest for linux/arm64" in low
+        or ("no matching manifest" in low and "arm64" in low)
+        or ("manifest unknown" in low and "arm64" in low)
+        or ("image operating system" in low and "does not match" in low and "arm64" in low)
+        or (_is_arm64_host and "pull access denied" in low
+            and ("unable to find image" in low or "repository does not exist" in low))
+        or (_is_arm64_host and "unable to find image" in low
+            and ("pull access denied" in low or "repository does not exist" in low
+                 or "does not exist" in low))
+    )
+    if _arm64_image_miss:
+        return verdict(
+            "arch_compat",
+            "此工作流所需的容器镜像暂无 ARM64（信创）版本，无法在当前 ARM64 部署上运行。"
+            " 请切换到 x86 稳定版部署，或联系管理员为该工作流添加 ARM64 镜像支持。"
+            " (Workflow container image has no ARM64 build."
+            " Switch to the x86 stable deployment or ask the administrator to add ARM64 image support.)",
+            False, "report",
+        )
+
     # ── architecture / emulation incompatibility (QEMU segfault, signal 11, etc.) ──
     # exit 139 = 128 + SIGSEGV(11). Common when running amd64 containers via QEMU on ARM64:
     # ML libraries (PyTorch, TensorFlow) use AVX2/AVX-512 SIMD that QEMU can't emulate.
