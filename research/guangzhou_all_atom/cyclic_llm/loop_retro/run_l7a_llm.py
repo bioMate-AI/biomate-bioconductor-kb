@@ -32,15 +32,17 @@ def new_acc(): return dict(usd=0.0, tin=0, tout=0, calls=0, seconds=0.0)
 
 
 def kb_block():
-    """Evidence-backed permeability statements from the in-repo KB (medchem_kb), with citations (T1, verified)."""
-    sys.path.insert(0, os.path.join(HERE, "..")); import medchem_kb as M
-    st = [e for e in M.physchem_for("cyclic_peptide") if "permeab" in e["statement"].lower()] + [e for e in M.modality_heuristics("cyclic_peptide") if "permeab" in e["statement"].lower()]
-    return "Established knowledge (literature-cited):\n" + "\n".join(f"- {e['statement']} [{e['source']}]" for e in st) + "\n\n"
+    """L7f: textbook physchem statements with their (real, citation-checked) sources; NO number mined from this dataset enters the prompt (leak-free). Same content as the K_phys channel of the small models."""
+    return ("Established knowledge (literature-cited):\n"
+            "- Lower topological polar surface area (TPSA) and fewer hydrogen-bond donors favour passive membrane permeability; polar surface area (<=140 A^2) and rotatable-bond count (<=10) are key determinants [Veber et al., J Med Chem 2002;45:2615].\n"
+            "- Higher lipophilicity (logP) favours passive permeability, within the physicochemical limits of beyond-rule-of-5 macrocycles [Over et al., Nat Chem Biol 2016;12:1065].\n"
+            "- Macrocycle permeability is also conformational: intramolecular hydrogen-bond shielding of polar surface in a membrane-like environment [Rezai et al., JACS 2006;128:14073].\n\n")
 
 
 def kb_contra_block():
-    """COUNTERFACTUAL knowledge for the dimension-5 probe: the N-methylation relation is stated in the wrong direction (no citation; the log marks the arm as counterfactual)."""
-    return "Established knowledge:\n- Backbone N-methylation LOWERS passive permeability of cyclic peptides (added steric bulk and lipophilic desolvation penalty); fewer N-methyl groups give higher permeability.\n\n"
+    """COUNTERFACTUAL knowledge for the dimension-5 probe: the physchem directions are stated in the WRONG direction (no citations; the log marks the arm as counterfactual)."""
+    return ("Established knowledge:\n- Higher topological polar surface area (TPSA) and more hydrogen-bond donors favour passive membrane permeability of cyclic peptides.\n"
+            "- Lower lipophilicity (logP) favours passive permeability of cyclic peptides.\n\n")
 
 
 def build_prompt(examples, cands, smiles, kb=""):
@@ -213,7 +215,7 @@ def run_curve(ctx, init, pool, seed, a, cost, smiles):
 
 def main():
     global ROUNDS, N_SHOW, LLM_ARMS, STEREO_ARMS
-    ap = argparse.ArgumentParser(); ap.add_argument("csv"); ap.add_argument("out"); ap.add_argument("--model", required=True); ap.add_argument("--regimes", default="AB"); ap.add_argument("--seeds", default="0-3")
+    ap = argparse.ArgumentParser(); ap.add_argument("csv"); ap.add_argument("out"); ap.add_argument("--model", required=True); ap.add_argument("--regimes", default="ABL"); ap.add_argument("--seeds", default="0-3")
     ap.add_argument("--cap-usd", type=float, default=0.75); ap.add_argument("--control", action="store_true"); ap.add_argument("--probe", action="store_true"); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--max-tokens", type=int, default=4000)
     ap.add_argument("--rounds", type=int, default=10); ap.add_argument("--nshow", type=int, default=80); ap.add_argument("--arms", default=",".join(LLM_ARMS)); ap.add_argument("--stereo-arms", default=",".join(STEREO_ARMS))
     ap.add_argument("--extras", default="oneshot,curve")
@@ -227,7 +229,11 @@ def main():
     def task(arg):
         reg, seed = arg; f = f"{a.out}/{tag}__{reg}_{seed}.json"
         if os.path.exists(f): return
-        init, pool = P.setup(reg, seed, d["srcs"], d["scaf"], N_INIT, d["flat"]); E, pool = L.make_eval_slice(pool, seed, N_EVAL); Ef, Efg, Efs, pool = L.make_flat_slice(pool, d["flat"], seed, N_FLAT, d["y"]); Es, pool = L.make_source_slice(pool, d["srcs"], seed)
+        if reg == "L":                                  # leave-labs-out (L7f): loop pool = training labs; E/E_s/E_f from held-out labs only
+            init, pool, test, held = L.setup_L(seed, d["srcs"], N_INIT); E, rest = L.make_eval_slice(test, seed, N_EVAL); Ef, Efg, Efs, rest = L.make_flat_slice(rest, d["flat"], seed, N_FLAT, d["y"]); Es, rest = L.make_source_slice(rest, d["srcs"], seed)
+            assert all(d["srcs"][i] not in set(held) for i in list(pool) + list(init)) and all(d["srcs"][i] in set(held) for i in E + Ef + Efs + Es)
+        else:
+            init, pool = P.setup(reg, seed, d["srcs"], d["scaf"], N_INIT, d["flat"]); E, pool = L.make_eval_slice(pool, seed, N_EVAL); Ef, Efg, Efs, pool = L.make_flat_slice(pool, d["flat"], seed, N_FLAT, d["y"]); Es, pool = L.make_source_slice(pool, d["srcs"], seed)
         out = {"seed": seed, "regime": reg, "model": a.model, "n_pool": len(pool), "n_Ef": len(Ef), "init": [int(i) for i in init], "E": [int(i) for i in E], "Es": [int(i) for i in Es]}
         for arm in LLM_ARMS: out[arm] = run_seq(arm, ctx, init, pool, seed, a, cost, smiles, kb, gbm, kb_contra=kb_contra_block())
         out["protocol"] = dict(rounds=ROUNDS, n_show=N_SHOW, arms=list(LLM_ARMS), stereo_arms=list(STEREO_ARMS), extras=sorted(extras), max_tokens=MAXTOK[0])
