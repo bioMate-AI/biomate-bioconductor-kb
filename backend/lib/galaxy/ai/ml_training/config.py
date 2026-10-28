@@ -54,7 +54,17 @@ COMPOSITE_COMPONENT_KINDS = (
     "length_target",   # target: int   → peaks at target word count, negative away
     "numeric",         #               → 1 if the completion contains a digit
     "json_valid",      #               → 1 if the completion parses as JSON
+    # Gate-family extensions (docs/20261027_EXPERT_FEEDBACK_RULES_GUARDRAILS_RSI.md):
+    "numeric_threshold",  # value,op[,near] → +1 if a parsed number satisfies the op vs value,
+                          #                   -1 if it violates, 0 if no number found     (G1 threshold)
+    "implies",            # if_terms,then_terms → if any if_term present then all then_terms
+                          #                   must be present (+1), else -1; 0 if untriggered (G6 relational)
+    "order",              # before,after  → +1 if `before` precedes `after`, -1 if reversed,
+                          #                   0 if either absent                            (G7 ordering)
 )
+
+# Comparison operators accepted by the numeric_threshold component.
+NUMERIC_THRESHOLD_OPS = ("<", "<=", ">", ">=", "==", "!=")
 
 
 class ConfigError(ValueError):
@@ -181,6 +191,21 @@ class LLMSpec:
                         raise ConfigError(f"reward_spec[{i}] ({kind}) requires a non-empty 'terms' list")
                 if kind == "regex" and not comp.get("pattern"):
                     raise ConfigError(f"reward_spec[{i}] (regex) requires a 'pattern'")
+                if kind == "numeric_threshold":
+                    if comp.get("op") not in NUMERIC_THRESHOLD_OPS:
+                        raise ConfigError(
+                            f"reward_spec[{i}] (numeric_threshold) requires 'op' in {NUMERIC_THRESHOLD_OPS}")
+                    try:
+                        float(comp.get("value"))
+                    except (TypeError, ValueError):
+                        raise ConfigError(f"reward_spec[{i}] (numeric_threshold) requires a numeric 'value'")
+                if kind == "implies":
+                    if not isinstance(comp.get("if_terms"), list) or not comp["if_terms"] \
+                       or not isinstance(comp.get("then_terms"), list) or not comp["then_terms"]:
+                        raise ConfigError(
+                            f"reward_spec[{i}] (implies) requires non-empty 'if_terms' and 'then_terms' lists")
+                if kind == "order" and (not comp.get("before") or not comp.get("after")):
+                    raise ConfigError(f"reward_spec[{i}] (order) requires 'before' and 'after'")
                 try:
                     float(comp.get("weight", 1.0))
                 except (TypeError, ValueError):

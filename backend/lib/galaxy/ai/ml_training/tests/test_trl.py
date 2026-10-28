@@ -62,7 +62,11 @@ def test_llmspec_rl_field_validation():
     with pytest.raises(ConfigError):
         LLMSpec(reward="not-a-reward").validate()
     for r in REWARD_KINDS:
-        LLMSpec(reward=r).validate()
+        # composite legitimately requires a reward_spec (see test_composite_reward_validation);
+        # give it a minimal valid one so this "every reward kind validates" loop reflects the
+        # real contract rather than contradicting it.
+        spec = [{"kind": "numeric"}] if r == "composite" else None
+        LLMSpec(reward=r, reward_spec=spec).validate()
 
 
 def test_ga_params_show_dpo_beta_and_grpo_reward():
@@ -134,6 +138,47 @@ def test_composite_reward_components():
     assert make_reward_fn("composite", reward_spec=[{"kind": "json_valid"}])(['{"a":1}', 'nope']) == [1.0, 0.0]
     assert make_reward_fn("composite", reward_spec=[{"kind": "regex", "pattern": r"\bIC50\b"}])(["IC50 = 5 nM", "x"]) == [1.0, 0.0]
     assert make_reward_fn("composite", reward_spec=[{"kind": "contains_any", "terms": ["a", "b"]}])(["has a", "none"]) == [1.0, 0.0]
+
+
+def test_composite_gatefamily_g1_numeric_threshold():
+    """G1 — a measured value vs a cutoff (e.g. MW <= 500)."""
+    from galaxy.ai.ml_training.trl_trainer import make_reward_fn
+    r = make_reward_fn("composite", reward_spec=[
+        {"kind": "numeric_threshold", "near": "mw", "op": "<=", "value": 500}])
+    # satisfied (480<=500) -> +1 ; violated (620) -> -1 ; no number -> 0
+    assert r(["MW 480 g/mol", "MW 620", "no molecular weight given"]) == [1.0, -1.0, 0.0]
+
+
+def test_composite_gatefamily_g6_implies():
+    """G6 — relational: if cyclized then the RGD motif must be kept."""
+    from galaxy.ai.ml_training.trl_trainer import make_reward_fn
+    r = make_reward_fn("composite", reward_spec=[
+        {"kind": "implies", "if_terms": ["cyclized", "macrocycle"], "then_terms": ["rgd"]}])
+    # triggered+satisfied, triggered+violated, untriggered (neutral)
+    assert r(["cyclized peptide with RGD", "a macrocycle, no motif", "linear peptide"]) == [1.0, -1.0, 0.0]
+
+
+def test_composite_gatefamily_g7_order():
+    """G7 — ordering: QC must precede alignment."""
+    from galaxy.ai.ml_training.trl_trainer import make_reward_fn
+    r = make_reward_fn("composite", reward_spec=[
+        {"kind": "order", "before": "qc", "after": "align"}])
+    assert r(["run QC then align", "align then QC", "neither step"]) == [1.0, -1.0, 0.0]
+
+
+def test_composite_gatefamily_validation():
+    with pytest.raises(ConfigError):
+        LLMSpec(reward="composite", reward_spec=[{"kind": "numeric_threshold", "value": 1}]).validate()  # no op
+    with pytest.raises(ConfigError):
+        LLMSpec(reward="composite", reward_spec=[{"kind": "numeric_threshold", "op": "<="}]).validate()  # no value
+    with pytest.raises(ConfigError):
+        LLMSpec(reward="composite", reward_spec=[{"kind": "implies", "if_terms": ["x"]}]).validate()  # no then_terms
+    with pytest.raises(ConfigError):
+        LLMSpec(reward="composite", reward_spec=[{"kind": "order", "before": "a"}]).validate()  # no after
+    # valid ones
+    LLMSpec(reward="composite", reward_spec=[{"kind": "numeric_threshold", "op": ">=", "value": 10}]).validate()
+    LLMSpec(reward="composite", reward_spec=[{"kind": "implies", "if_terms": ["a"], "then_terms": ["b"]}]).validate()
+    LLMSpec(reward="composite", reward_spec=[{"kind": "order", "before": "a", "after": "b"}]).validate()
 
 
 def test_composite_reward_validation():

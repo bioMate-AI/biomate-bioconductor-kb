@@ -65,6 +65,55 @@ def _composite_component(comp: dict) -> tuple[float, Callable[[str], float]]:
                 return 1.0
             except Exception:
                 return 0.0
+    elif kind == "numeric_threshold":
+        # G1: parse a number (the one after `near`, else the first) and compare to
+        # `value` with `op`. +1 satisfied, -1 violated, 0 if no number to judge.
+        op = str(comp.get("op", ""))
+        try:
+            thr = float(comp.get("value"))
+        except (TypeError, ValueError):
+            thr = None
+        near = str(comp.get("near", "")).lower()
+        _num = re.compile(r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?")
+
+        def fn(c: str) -> float:
+            if thr is None:
+                return 0.0
+            s = str(c)
+            m = None
+            if near:
+                idx = s.lower().find(near)
+                if idx >= 0:
+                    m = _num.search(s, idx + len(near))
+            if m is None:
+                m = _num.search(s)
+            if not m:
+                return 0.0
+            x = float(m.group())
+            ok = {"<": x < thr, "<=": x <= thr, ">": x > thr, ">=": x >= thr,
+                  "==": x == thr, "!=": x != thr}.get(op, False)
+            return 1.0 if ok else -1.0
+    elif kind == "implies":
+        # G6 (relational/conditional): if any if_term present, all then_terms must be.
+        if_terms = [str(t).lower() for t in comp.get("if_terms", [])]
+        then_terms = [str(t).lower() for t in comp.get("then_terms", [])]
+
+        def fn(c: str) -> float:
+            lc = c.lower()
+            if not any(t in lc for t in if_terms):
+                return 0.0  # rule not triggered
+            return 1.0 if all(t in lc for t in then_terms) else -1.0
+    elif kind == "order":
+        # G7 (ordering): `before` must appear before `after`.
+        before = str(comp.get("before", "")).lower()
+        after = str(comp.get("after", "")).lower()
+
+        def fn(c: str) -> float:
+            lc = c.lower()
+            i_b, i_a = lc.find(before), lc.find(after)
+            if i_b < 0 or i_a < 0:
+                return 0.0  # can't evaluate
+            return 1.0 if i_b < i_a else -1.0
     else:
         fn = lambda c: 0.0
     return weight, fn
