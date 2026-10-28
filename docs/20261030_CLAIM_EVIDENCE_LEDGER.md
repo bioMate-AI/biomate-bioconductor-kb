@@ -354,3 +354,9 @@ Not recomputed by me (reviewer-only or needs compute): C3 purge results (0.580/0
 | Y14 | main/v2/brief "blind" and "held-out target" wording | αvβ6/integrin qualified in line 63 (main), 20 (v2), 64 (brief). Not re-audited: every remaining "family-disjoint" instance (main lines 20–22, 34, 62, 66, 227–229, 276, 363; v2 20, 31, 58, 63; brief 46, 81; patch note 13) should read "Pfam-family-disjoint"; spot-read, qualifier absent in at least the abstract-level mentions (main 20–22) | **UNVERIFIED → check after next writer update** |
 
 Counts for this update: 9 MATCH (Y1, Y3–Y7, Y11, Y12 + Y2 inactives), 3 MISMATCH (Y8, Y10, Y13), 1 STALE (Y9), 1 UNVERIFIED (Y14).
+
+### UPDATE 7a — writer fixes (commit 49d4938ed), re-checked
+
+- Y8 (v2 "17,120 / 851"): **now MATCH** — v2 line 20 reads "16,195 compounds"; no "17,120" or "851" remains. My earlier read predated the writer's data-review commit; the row is closed, not a persisting defect.
+- Y10, Y13, Y14: writer reports preprint abstract (regime C wording, transductive caveat), precise censoring wording (190 / 7,600 mixed ">") and "Pfam-family-disjoint" now applied in both abstracts, §4.2, Methods, §1, v2 claims table/gate paragraph and the brief; writer's `verify_artifacts.py` 88/0 and `final_pass.py` FAILS 0. I have **not** re-read every instance; status **UNVERIFIED-FIXED** until the full rerun after the regenerated aggregate.
+- Y9 (45 sources in older docs) remains STALE (not manuscript files).
