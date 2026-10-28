@@ -160,7 +160,9 @@ export function StepDeep({ runId, step, projectId, onClose, onPrev, onNext, onRe
         </section>
       )}
 
-      {/* Per-step log / trajectory tail — trajectory lives HERE */}
+      {/* Trajectory section commented out 2026-10-28 (user request): the agent
+          trajectory has no real backend endpoint and duplicates the Record / per-step
+          log; re-enable when a real agent-trajectory endpoint ships. Original below.
       <section>
         <div style={sectionLabel}>{tOr("stepdeep.trajectory", "Trajectory")}</div>
         {step.trajectory && step.trajectory.length > 0 ? (
@@ -179,6 +181,7 @@ export function StepDeep({ runId, step, projectId, onClose, onPrev, onNext, onRe
           </div>
         )}
       </section>
+      */}
 
       {/* Resolved parameters — editable in place */}
       {params.length > 0 && (

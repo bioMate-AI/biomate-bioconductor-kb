@@ -139,8 +139,10 @@ export function AfterRunReport({
   const idForBackend = invocationId || runId;
   const methods = useFetchMethods(idForBackend);
   const qcEvents = useFetchQcEvents(idForBackend);
-  // Agent trajectory (§7.7) — the decision/tool-call/answer log for this run.
-  const trajectoryRows = useFetchTrajectory(runId);
+  // Agent trajectory commented out 2026-10-28 (user request): no real backend
+  // endpoint; the Full Step View's per-step log is the trajectory. Re-enable the
+  // fetch (useFetchTrajectory, below) when a real agent-trajectory endpoint ships.
+  // const trajectoryRows = useFetchTrajectory(runId);
   const software = useFetchSoftware(idForBackend);
   const citations = useFetchCitations(workflowName);
   // Findings fetched here too (alongside FindingsCard's own fetch) so the
@@ -431,7 +433,6 @@ export function AfterRunReport({
                 software={software}
                 citations={citations}
                 qcEvents={qcEvents}
-                trajectoryRows={trajectoryRows}
               />
             </div>
           </div>
@@ -1735,7 +1736,7 @@ function ReproducibilityRecordTab({
   software,
   citations,
   qcEvents,
-  trajectoryRows,
+  // trajectoryRows,  (commented out 2026-10-28 — trajectory lives in the Full Step View)
 }: {
   runId: string;
   methods: MethodsData;
@@ -1744,7 +1745,7 @@ function ReproducibilityRecordTab({
   software: Record<string, string>;
   citations: Citation[];
   qcEvents: QcEvent[];
-  trajectoryRows: TrajectoryRow[];
+  // trajectoryRows: TrajectoryRow[];  (commented out 2026-10-28)
 }) {
   return (
     <div style={styles.tabContent} data-testid="after-record-tab">
