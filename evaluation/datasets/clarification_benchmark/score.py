@@ -28,8 +28,21 @@ CLARIFY_KEYS = {
     "smiles": ["smiles", "structure", "molecule", "sdf", "compound"],
     "receptor_pdb": ["receptor", "protein", "pdb", "structure", "target"],
     "matrix": ["matrix", "counts", "fastq", "input", "data", "expression"],
+    # --- hard-tier targets (v2) ---
+    "contrast": ["contrast", "reference level", "baseline", "which.*control", "direction", "which condition", "treated vs"],
+    "genome_conflict": ["grch37", "grch38", "hg19", "hg38", "mismatch", "conflict", "header", "dictionary", "realign", "build", "disagree"],
+    "tool_data_conflict": ["bulk", "single-cell", "single cell", "long-read", "long read", "short-read", "short read",
+                           "not.*design", "intended for", "instead", "smart-seq", "cellranger", "sniffles", "seurat",
+                           "manta", "delly", "deseq", "raw count", "mismatch"],
+    "genome_build": ["mm10", "mm39", "grcm38", "grcm39", "build", "version", "which.*mouse", "assembly"],
+    "receptor_chain": ["chain", "chain a", "chain b", "subunit", "monomer", "which.*chain"],
+    "matched_normal": ["matched normal", "normal", "tumor-only", "tumor only", "panel of normals", "germline control"],
+    "matrix_type": ["raw count", "raw", "tpm", "normalized", "not.*count", "integer", "count matrix", "fpkm"],
+    "matrix_select": ["which matrix", "which file", "raw", "normalized", "two", "counts vs", "ambiguous"],
+    "read_layout": ["paired", "single-end", "single end", "layout", "r1", "r2"],
 }
-GENOME_ALIAS = {"grch38": {"grch38", "hg38"}, "r64-1-1": {"r64-1-1", "r64", "saccharomyces", "sacCer3", "saccer3"}}
+GENOME_ALIAS = {"grch38": {"grch38", "hg38"}, "grch37": {"grch37", "hg19"},
+                "r64-1-1": {"r64-1-1", "r64", "saccharomyces", "saccer3"}, "paired": {"paired", "paired-end"}}
 
 
 def norm(s): return re.sub(r"\s+", " ", str(s or "").strip().lower())
