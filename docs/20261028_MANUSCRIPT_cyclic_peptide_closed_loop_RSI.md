@@ -30,11 +30,15 @@ of any learned change is gated by a **biology-structured leakage firewall** (hel
 the loop is presently computational-only and cross-target generalization is unsolved. It is that
 **the governance did its job**: the firewall caught three improvements that looked real and were
 not — (i) a display-enrichment selector that beats sequence-composition baselines but **not an
-abundance null** (the label is abundance-circular); (ii) a renal-clearance cross-target signal
+abundance null** (the label is abundance-circular) and whose apparent signal is in part **family
+memorization** (a trivial k-mer logistic matches it on random splits and both collapse under
+family-disjoint splits); (ii) a renal-clearance cross-target signal
 (Spearman ρ = 0.27, p = 0.036) traced to a **charge-feature bug** and retracted to null-to-negative
 (ρ = −0.26, p = 0.11); and (iii) a metal-dependent **relative-FEP** result invalidated by a
 box-centering frame bug that left the catalytic Mn²⁺ ions 30–37 Å outside the pocket for the entire
-alchemical leg, plus a control edge that *missed* a measured −0.95 kcal/mol by ~5×. We argue the
+alchemical leg, plus a control edge that *missed* a measured −0.95 kcal/mol by ~5× — and it flagged
+a fourth, a permeability retro-loop, as a **pooled-source confound** (78 % of the top decile from one
+source) whose honest **within-source verdict is still pending** a pre-registered re-run. We argue the
 evidential contribution of a self-improvement system in a data-poor science is its **refutation
 machinery**, and we pre-register the single prospective closed-loop round — with completed
 leave-one-target-out and re-validated physics — that would constitute the first honest RSI datapoint
@@ -111,10 +115,11 @@ self-improvement holds out task instances; here "improved" must mean *generalize
 dimension that matters*, because our domain's correlations (charge, abundance, source, chemotype) are
 treacherous. §5 is what this firewall rejected.
 
-## 5. Results — the governance caught three artifacts
+## 5. Results — the governance caught three artifacts (and flagged a fourth as a pending confound)
 
-The evidential contribution. Each subsection is a candidate improvement that passed a naive check and was
-refuted by a firewall control; provenance to the committed artifact in each case.
+The evidential contribution. §5.1–5.3 are candidate improvements that passed a naive check and were
+refuted by a firewall control; §5.4 is a fourth whose pooled result is a confound and whose within-source
+verdict is still pending a pre-registered re-run. Provenance to the committed artifact in each case.
 
 ### 5.1 Selector gain that does not clear an abundance null
 The enrichment-trained LLM selector ranks held-out PADI4 binders at AUC 0.951 and **beats every
@@ -123,9 +128,12 @@ is not near-duplicate leakage (3-mer Jaccard < 0.5 inflation −0.011). But the 
 essentially a threshold on display enrichment, so a trivial read-count/enrichment sort scores **AUC ≈ 1.0
 on all four targets, and the LM beats it on none** (LM 0.266–0.997; below chance on hPCSK9). *Refuted as a
 deployable capability:* within-target "wins" are abundance-circular; a real claim needs a non-circular
-affinity label on novel sequences. (`docs/20261021_CYCLIC_LLM_PAPER_DRAFT.md`,
-`20261021_CYCLIC_LLM_WITHIN_TARGET_SOTA_BENCHMARK.md`; and the display-selector "win" is indistinguishable
-from family memorization on 3/5 targets, `20261027_SELECTOR_LEAKAGE_AUDIT.md`.)
+affinity label on novel sequences. **The apparent gain is also in part family memorization:** a trivial
+k-mer logistic regression matches the LM on random splits (Abeta42 0.986 vs 0.990; hIAPP 0.698 vs 0.689)
+and both collapse under family-disjoint splits (hIAPP 0.52, FIKK13 0.42); PADI4 is the exception
+(0.865/0.864 vs LM 0.968, and that comparison is not like-for-like). (`docs/20261021_CYCLIC_LLM_PAPER_DRAFT.md`,
+`20261021_CYCLIC_LLM_WITHIN_TARGET_SOTA_BENCHMARK.md`, `docs/20261027_SELECTOR_LEAKAGE_AUDIT.md`,
+`cyclic_llm/results/leakage_audit_*.json`.)
 
 ### 5.2 A renal cross-target signal that was a charge-feature bug
 An earlier cross-target renal-clearance transfer was **significantly positive: Spearman ρ = 0.27,
@@ -148,10 +156,15 @@ a coordination gate, `validate_mn_coordination.py`, fixed 2026-10-25) and a 10 n
 re-computed controls.* A 1 ns continuation passed a **structural-stability screen only** — explicitly "screen
 ≠ metal model validated." (`docs/20261025_CADA_MN_METAL_MODEL_VALIDATION.md`.)
 
-### 5.4 A permeability-loop gain that was a source confound
-A learned permeability retro-loop added +260–347 hits per 500 picks — but **78% of the top decile came from a
-single data source (2013_CHUGAI), and an N-methyl-count rule alone recovers 70–83% of the yield.** *Refuted as
-a learning result; it is a source/chemotype confound.* (`docs/20261027_PROGRAM_STATUS_VERIFIED.md`.)
+### 5.4 A permeability-loop gain whose pooled outcome is confounded (within-source verdict pending)
+A learned permeability retro-loop added +260–347 hits per 500 picks. The **pooled top-decile outcome is
+confounded**: 557 of 711 hits (78 %) come from a single source (2013_CHUGAI), and the N-methyl-count
+baseline that recovers 70–83 % of the yield draws **98.5 % of its own hits from that same source**. What is
+therefore established is a pooled-source confound, **not** a refutation of learning: whether the loop learns
+*within* a source is not yet known — the pre-registered within-source re-run (L3, 420 tasks) is still
+running. *Reported as a pooled confound with the within-source verdict pending.*
+(`research/guangzhou_all_atom/loop_retro/results/`, `loop_retro/PREREG_LOOP.md` L3,
+`docs/20261027_PROGRAM_STATUS_VERIFIED.md`.)
 
 ### 5.5 Honest measured bounds (what survives)
 - **Binding-affinity ML** (28,875 clean cyclic rows, ECFP4+physchem): random-split R² ≈ 0.52 / Spearman 0.71;
@@ -191,7 +204,7 @@ The structural data wall (low-hundreds of cyclic co-structures, "effectively unb
 cross-target generalization unsolved (field-wide and ours); the closed loop is synthetic-only; permeability is
 ranking-grade (R² 0.23); FEP is uncalibrated and masked; within-target "wins" are partly confounded; the RSI
 claim is a **design, not a measured result** (claiming otherwise would be the exact leakage inflation §4
-forbids — the §5.1–5.4 artifacts and the retracted decomposition_v2 0.73→0.016 are the cautionary tales);
+forbids — the §5.1–5.3 artifacts, the §5.4 pending confound, and the retracted decomposition_v2 0.73→0.016 are the cautionary tales);
 targets GRPR and PD-L1 are out-of-scope / de-risking anchors, αvβ6 is the lead.
 
 ## 9. Conclusion
