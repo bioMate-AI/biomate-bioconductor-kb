@@ -360,3 +360,60 @@ Counts for this update: 9 MATCH (Y1, Y3–Y7, Y11, Y12 + Y2 inactives), 3 MISMAT
 - Y8 (v2 "17,120 / 851"): **now MATCH** — v2 line 20 reads "16,195 compounds"; no "17,120" or "851" remains. My earlier read predated the writer's data-review commit; the row is closed, not a persisting defect.
 - Y10, Y13, Y14: writer reports preprint abstract (regime C wording, transductive caveat), precise censoring wording (190 / 7,600 mixed ">") and "Pfam-family-disjoint" now applied in both abstracts, §4.2, Methods, §1, v2 claims table/gate paragraph and the brief; writer's `verify_artifacts.py` 88/0 and `final_pass.py` FAILS 0. I have **not** re-read every instance; status **UNVERIFIED-FIXED** until the full rerun after the regenerated aggregate.
 - Y9 (45 sources in older docs) remains STALE (not manuscript files).
+
+---
+
+## UPDATE 8 — Regenerated aggregate (ab35481bb, sha e5da79e9…ef13) re-verified; IH-LM integration paragraph; brief §7 spend table and Cost Explorer
+
+### 8a. Aggregate integrity after the C1 fix (script `qa_audit/aggregate_integrity.py --strict`, `qa_audit/cluster_recompute.py`)
+- File sha256 of `results/l7_aggregate.json` = `e5da79e9ab27086a505ced08fd18845deafd98e6c949428b1bbe4f357c80ef13` = the announced value. **MATCH.**
+- 11 keys: chemberta A/B (3 files each), gbm_aware, gbm_blind, gbm_physchem × A/B/L (10 each) = **96 small files, each under exactly one key**; duplicates across directories by (learner, regime, seed): **0**; aggregate `n_seeds` equals raw file count for all 11 keys. `inputs.n_files` 116 = 96 small + 20 LLM files (`n_small_files_loaded`, `n_llm_files`, `files_per_key` recorded). This resolves my earlier "116 vs 96" flag: the 20 are the LLM-arm files, not phantom small files. **MATCH.** (The inputs `sha256` field is still 9706ce46… because it hashes the file name/size list, which did not change; it is not a content hash.)
+- 237 of 244 yield and E-AUROC cells recomputed from raw per-task files agree with the aggregate to 1e-3 (mean and n); the 7 flagged cells are the `one_shot` arm, whose `hits` list is empty (aggregate n = 0, raw sum 0): not a defect. Script patched to skip empty-hits arms.
+- Regression test `test_no_input_is_dropped_or_overwritten_and_aware_blind_stay_apart` (7/7 tests in `test_aggregate_l7.py` pass). I simulated the pre-fix keying on the real files: it retains **66 of 96** tasks, so the test's `total tasks == files` assertion (and the explicit aware/blind assertions) **would have failed on the old code**: it covers the failure. Limit: learner keys are assigned from the input directory name, so a new directory with a non-conforming name falls to a default key; the overlapping-arm check raises only on repeated arms for the same task.
+
+Independent recomputation vs WS2's reported values (own bootstrap; same point estimates, intervals within resampling noise):
+
+| quantity | aware | blind | WS2 report | status |
+|---|---|---|---|---|
+| regime L K_phys − K_shuf yield (99%) | +1.8 [−2.1, 6.0] | +7.1 [3.2, 11.1] | +1.8 [−2.5, 5.8] / +7.1 [3.3, 10.9] | MATCH (points exact) |
+| regime L cluster `loop_sub − frozen_sub` E source-rho, 11 labs | +0.075 [0.037, 0.116] | +0.011 [−0.072, 0.082] | +0.075 [0.037, 0.115] / +0.011 [−0.071, 0.080] | MATCH |
+| regime L cluster `loop_sub − shuffled_sub` | +0.033 [−0.061, 0.121] | +0.071 [−0.074, 0.182] | – | derived; blind equals the draft's P3 "+0.071 (−0.079 to 0.181)" |
+| regime L cluster K_phys − K_shuf | −0.010 [−0.055, 0.036] | −0.013 [−0.041, 0.019] | – | derived; both null |
+| regime A `loop_sub` / `loop_kphys_sub` yield | 86.0 / 90.7 | 87.4 / 89.8 | agg: same | MATCH (aggregate gbm_aware|A, gbm_blind|A) |
+| regime L loop − frozen / loop − shuffled yield | +47.3 / +117.7 | +13.2 / +79.5 | – | derived from raw; agrees with aggregate cells |
+| zero-sibling ρ `loop_sub`, regime A | 0.181 | 0.000 | WS2: loop aware in L = 0.103 (my 0.107 for `loop_sub` in L); 0.181 is regime A `loop_sub` | MATCH; WS2's note conflates regimes; no discrepancy |
+
+Consequence for the drafts: the blind-GBM numbers already quoted keep their values but must now be labelled `gbm_blind` (the aggregate no longer has a plain `gbm` key); the aware-GBM numbers are new. A key finding: the pooled-L cluster result "loop beats frozen" holds for aware (+0.075, CI excludes 0) and not for blind. Remaining for the full rerun after the writer's update: hash, [REGEN] marks, learner label for every L7 number, F5/T6 regeneration, 12-vs-11 configuration counts, 54-contrast counts (11 keys now), K_phys_channel vs K_phys_textbook assignments.
+
+### 8b. IH-LM integration paragraph (commit d7c31eb80) vs `docs/20261030_IHLM_V2_INTEGRATION.md` and `ihlm_v2/smoke_result.json`
+| claim | source value | status |
+|---|---|---|
+| 22-row inventory | doc table rows 1–22; my tally of first verdicts: 6 AS-IS, 7 FIX, 6 PATTERN, 3 NO (several rows carry compound verdicts, e.g. "NO (as evidence) / PATTERN"); **no verdict counts are quoted in the paragraph or the doc** | MATCH (22); counts not stated, none to verify |
+| 11 tests pass | doc §3.1 "11 passed"; 11 test functions; I ran `pytest -q test_ihlm_v2.py`: **11 passed in 81 s** | MATCH (rerun) |
+| v4 coverage ~15 % | `v4_coverage_in_random_300` = 0.1533 | MATCH |
+| Townsend 37/112, Kelly 0/79, CHUGAI 0/40 | JSON `v4_coverage_note`: same (also Furukawa 0/22, Faris 0/10, Bhardwaj 6/6, omitted by the paragraph) | MATCH |
+| smoke mean hits 9.0 vs 3.0, 2 seeds | JSON `mean_hits` ihlm 9.0, random 3.0; seeds 2; per-seed 12/4 and 6/2 | MATCH (and correctly labelled no-claim) |
+| checkpoint SHA unchanged | JSON `checkpoint_unmodified: true` (boolean; hash value not stored in the JSON, test asserts equality of sha before/after) | MATCH |
+| 25-minute full-size run not finished | doc §3.2; smoke run itself 365.8 s | MATCH (REPORTED) |
+| 34.7 % lariat, no topology token | doc row 1 and `20261027_V5_PREREG…`/`20261028_MANUSCRIPT_v4…` | MATCH (REPORTED) |
+| earlier paragraph (a): "about 800 lines (model 287, symbolic 170, tests 240, intrinsic 102); 3 of 14 tests expected-failure" | current files: model 287, **symbolic 195**, **test_ihlm.py 248**, p0_intrinsic 102 (total 832); **15** test functions, 3 xfail | **STALE** (files changed after 87f4f6718; update to 195/248/15 or "about 830 lines, 15 tests") |
+
+### 8c. Brief §7 spend table vs cost logs
+| row | claim | evidence | status |
+|---|---|---|---|
+| Tier A API | about 4.2 (relay 4.3); Haiku cap 1.6, cost 2× estimate | `20261029_L7_RESULTS_LOG.md` line 21: "≈ 4.2", Haiku 0.175 vs 0.088/seq, stopped at 1.6 cap | LOGGED, MATCH |
+| committee round 1 | 0.370 = 0.0906 + 0.2796, cap 6.00 | `committee_raw/20261030/cost_log.csv` (sum 0.3702); synthesis states 0.370 and cap 6.00; balance 4.339 → 3.961 (drop 0.378, billing lag) | LOGGED, MATCH |
+| committee round 2 | 0.772 counted = 0.2987 + 0.1128 + 0.3606 (0.2404 × 1.5), cap 2.00; Opus refused 0 | `ext_cost_log.csv` (sum 0.7721); balance 3.961 → 3.309 = **0.652 actually billed** (= reported 0.2987 + 0.1128 + 0.2404) | LOGGED, MATCH; the brief should add that the key was debited 0.652, not 0.772 (0.772 includes a 1.5× safety multiplier) |
+| key balance 3.96 before round 2 | csv `balance_before` 3.961 | LOGGED, MATCH |
+| GPU L7 comparators 3.58, 4.70/h, nine instances, cap 40 | L7 log line 42 | LOGGED, MATCH |
+| Tier B 93–116 / ~198 with Opus | L7 log line 29 | LOGGED (an estimate in the log), MATCH |
+| C2 under 3 (relay: under 1) | C2 doc line 71 "estimated < USD 3"; relay figure has no committed source | ESTIMATE, correctly flagged |
+| canary under 1 | P1 plan line 43 "< USD 1" | ESTIMATE, MATCH |
+| T2 6–7, hard cap 20 | T2 doc line 56 says cost "estimated from timed debug tasks … and recorded here" but records no figure | ESTIMATE without committed figure, correctly flagged |
+| S2 planned cap 80 ("needs your approval") | not checked in an S2 document | UNVERIFIED |
+
+### 8d. Cost Explorer command (read-only; nothing changed)
+- `aws ce get-cost-and-usage --time-period Start=2026-10-27,End=2026-10-29 --granularity DAILY --metrics UnblendedCost --filter '{"Tags":{"Key":"project","Values":["cyclic-selector"]}}' --group-by Type=DIMENSION,Key=SERVICE` **runs** (aws-cli 2.13.20, account 399683337364, root identity) but returns **USD 0 and no groups for both days**.
+- Cause: `aws ce list-cost-allocation-tags --tag-keys project` shows `project` **Status: Inactive** (LastUsedDate 2026-10-01). The brief's statement that the tag is "activated for cost allocation" is therefore **false**; no spend can be attributed by this filter until it is activated (activation is not retroactive for earlier days; I did not change it).
+- Untagged account-wide cost for the same window (not attributable to this paper; all account activity): 2026-10-27 EC2 compute 29.30, S3 11.43, VPC 2.86, EC2-other 2.49, ECR 1.54; 2026-10-28 (partial, estimated) EC2 compute 5.60, VPC 0.76, ECR 0.45, GuardDuty 0.23, RDS 0.21 (USD, top five groups by service).
+- Brief fix: say the tag is inactive and the filter returns 0; either activate the tag (owner action, not retroactive) or filter by service/instance type and date, stating that figures are account totals.
