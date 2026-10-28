@@ -12,7 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import run_loop as R, run_loop_par as P, run_loop_prior as K, run_l7a as L, loop_models as LM
 
 N_CAND, N_PICK, N_SHOW, ROUNDS, N_INIT, N_EVAL, N_FLAT = 150, 50, 80, 10, 100, 800, 60
-KEY = open(os.path.expanduser("~/.config/biomate/openrouter.key")).read().strip()
+_kf = os.path.expanduser("~/.config/biomate/openrouter.key"); KEY = open(_kf).read().strip() if os.path.exists(_kf) else ""      # absent on compute instances (they never call the API)
 SYSTEM = "You are an expert in cyclic-peptide medicinal chemistry and passive membrane permeability."
 LLM_ARMS = ("llm_loop", "llm_kb", "llm_kb_contra", "llm_frozen", "llm_zeroshot", "llm_shuffled", "subset_random", "subset_gbm")
 STEREO_ARMS = ("llm_loop", "llm_kb", "llm_frozen", "llm_zeroshot")
@@ -56,6 +56,9 @@ MAXTOK = [4000]          # set from --max-tokens (reasoning models need more hea
 
 def call(prompt, model, cost, acc=None, tries=4, max_tokens=None):      # reasoning models spend part of this budget on hidden reasoning before the JSON answer
     max_tokens = max_tokens or MAXTOK[0]
+    if os.environ.get("L7_MOCK"):                      # offline dry run: deterministic fake ranking, zero cost (pipeline/logging tests only; never used for results)
+        h = abs(hash(prompt)) % 1000; cost.add({"prompt_tokens": len(prompt) // 3, "completion_tokens": 50, "cost": 0.0}, acc)
+        return json.dumps({"ranking": [(h + 3 * j) % 100 for j in range(50)], "rationale": "mock", **{str(g): [3, 1, 0, 2, 4, 5] for g in range(80)}})
     body = json.dumps({"model": model, "temperature": 0, "max_tokens": max_tokens, "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}]}).encode()
     t0 = time.time()
     for k in range(tries):
@@ -84,7 +87,8 @@ def parse(txt, n_cand):
     return out
 
 
-def shown(labeled, ylab, n=N_SHOW):
+def shown(labeled, ylab, n=None):
+    n = n or N_SHOW                                  # module global so --nshow (Tier A: 40) takes effect
     o = np.argsort(ylab, kind="stable"); h = n // 2; sel = list(o[:h]) + list(o[-h:]) if len(o) > n else list(o)
     return [(labeled[i], float(ylab[i])) for i in sel]
 
@@ -208,9 +212,12 @@ def run_curve(ctx, init, pool, seed, a, cost, smiles):
 
 
 def main():
+    global ROUNDS, N_SHOW, LLM_ARMS, STEREO_ARMS
     ap = argparse.ArgumentParser(); ap.add_argument("csv"); ap.add_argument("out"); ap.add_argument("--model", required=True); ap.add_argument("--regimes", default="AB"); ap.add_argument("--seeds", default="0-3")
     ap.add_argument("--cap-usd", type=float, default=0.75); ap.add_argument("--control", action="store_true"); ap.add_argument("--probe", action="store_true"); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--max-tokens", type=int, default=4000)
-    a = ap.parse_args(); MAXTOK[0] = a.max_tokens; os.makedirs(a.out, exist_ok=True); cost = Cost(a.cap_usd); tag = a.model.replace("/", "__")
+    ap.add_argument("--rounds", type=int, default=10); ap.add_argument("--nshow", type=int, default=80); ap.add_argument("--arms", default=",".join(LLM_ARMS)); ap.add_argument("--stereo-arms", default=",".join(STEREO_ARMS))
+    ap.add_argument("--extras", default="oneshot,curve")
+    a = ap.parse_args(); MAXTOK[0] = a.max_tokens; ROUNDS, N_SHOW = a.rounds, a.nshow; LLM_ARMS = tuple(a.arms.split(",")); STEREO_ARMS = tuple(x for x in a.stereo_arms.split(",") if x); extras = set(a.extras.split(",")); os.makedirs(a.out, exist_ok=True); cost = Cost(a.cap_usd); tag = a.model.replace("/", "__")
     recs, d = L.build(a.csv, "gbm", "cpu"); smiles = [r["smiles"] for r in recs]; kb = kb_block(); gbm = d["B"]
     if a.control:
         r = planted_control(a, cost, smiles); json.dump(r, open(f"{a.out}/{tag}__control.json", "w"), indent=1); print(json.dumps(r)); print("USD %.3f" % cost.usd); return
@@ -223,10 +230,12 @@ def main():
         init, pool = P.setup(reg, seed, d["srcs"], d["scaf"], N_INIT, d["flat"]); E, pool = L.make_eval_slice(pool, seed, N_EVAL); Ef, Efg, Efs, pool = L.make_flat_slice(pool, d["flat"], seed, N_FLAT, d["y"]); Es, pool = L.make_source_slice(pool, d["srcs"], seed)
         out = {"seed": seed, "regime": reg, "model": a.model, "n_pool": len(pool), "n_Ef": len(Ef), "init": [int(i) for i in init], "E": [int(i) for i in E], "Es": [int(i) for i in Es]}
         for arm in LLM_ARMS: out[arm] = run_seq(arm, ctx, init, pool, seed, a, cost, smiles, kb, gbm, kb_contra=kb_contra_block())
-        out["llm_curve"] = run_curve(ctx, init, pool, seed, a, cost, smiles)
-        out["llm_oneshot"] = run_seq("llm_oneshot", ctx, init, pool, seed, a, cost, smiles, kb, loop_final=dict(labeled=out["llm_loop"]["_final"][0], ylab=out["llm_loop"]["_final"][1]))
+        out["protocol"] = dict(rounds=ROUNDS, n_show=N_SHOW, arms=list(LLM_ARMS), stereo_arms=list(STEREO_ARMS), extras=sorted(extras), max_tokens=MAXTOK[0])
+        if "curve" in extras: out["llm_curve"] = run_curve(ctx, init, pool, seed, a, cost, smiles)
+        if "oneshot" in extras: out["llm_oneshot"] = run_seq("llm_oneshot", ctx, init, pool, seed, a, cost, smiles, kb, loop_final=dict(labeled=out["llm_loop"]["_final"][0], ylab=out["llm_loop"]["_final"][1]))
         for arm in STEREO_ARMS: out[arm]["stereo"] = stereo_call(arm, out[arm], ctx, init, Efg, Efs, smiles, a, cost, kb)
-        for arm in LLM_ARMS + ("llm_oneshot",): out[arm].pop("_final", None)
+        for arm in LLM_ARMS + ("llm_oneshot",):
+            if arm in out: out[arm].pop("_final", None)
         json.dump(out, open(f + ".tmp", "w")); os.replace(f + ".tmp", f)
         print("done", reg, seed, {k: sum(out[k]["hits"]) for k in out if isinstance(out[k], dict) and "hits" in out[k]}, "USD %.3f" % cost.usd, flush=True)
     with ThreadPoolExecutor(a.workers) as ex: list(ex.map(task, [(g, s) for g in a.regimes for s in L.parse_seeds(a.seeds)]))
