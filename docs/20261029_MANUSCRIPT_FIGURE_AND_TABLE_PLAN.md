@@ -42,11 +42,11 @@ Central model is IH-LM (loop-native in-house hybrid); the 25.5 M atom LM is P0, 
 | item | data now committed? | source | note |
 |---|---|---|---|
 | F3 benchmark gates | yes | `retro_recovery/results/validity_gate_{I,M2,M,M3,h4b}.json` | M and M2 invalid; I not clean; M3 not achievable |
-| F4, F5 learning curves and controls | GBM and physchem arms only | `loop_retro/results/l7_aggregate.json` | IH-LM and larger-pretrained arms not run; draw only existing arms, label the rest "not run" |
+| F4, F5 learning curves and controls (headline regimes B and L; A labelled series interpolation) | GBM and physchem arms only | `loop_retro/results/l7_aggregate.json` | IH-LM and larger-pretrained arms not run; draw only existing arms, label the rest "not run" |
 | T5 controlled loop | yes | `loop_retro/results/l5_aggregate.json` | regimes A, B, C; claim false for B; both hit definitions shown |
 | F2 dataset structure | partly | stratification outputs; `l5_label_audit.json` | final panel needs stratification data |
 | F8, F9 strata, matched pairs | yes (document) | `docs/20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md` Part B and `cyclic_llm/stratification/data/` | use JSON from `data/`, not the document tables |
-| F11, T8 knowledge | yes | `docs/20261029_KB_AUDIT_AND_GAPS.md` §9 | add the failing knowledge-shuffled control |
+| F11, T8 knowledge | yes | `docs/20261029_KB_AUDIT_AND_GAPS.md` §9 | show paired contrasts (K_phys − shuffled, shuffled − off, K_phys − off) from `kb_audit/kshuf_paired_audit.json` once committed; the aggregator's own knowledge-shuffled AUROC flag is mis-specified and is not drawn |
 | F6, F7, F10 (cost), F12 | no | — | language-model stereo ranking, per-source curves, GPU-hour accounting and corpus-overlap table await runs; keep as placeholders |
 | New F13 | yes | `l5_aggregate.json` `PICK_SOURCE_MEANS` | pick provenance by source: loop vs random vs rules, regimes A, B, C |
 | New T10 | yes | `retro_recovery/results/h4b_baselines.json` | few-label AUROC by k for nearest-neighbour, fit-on-revealed, pretrained+revealed, zero-shot |
