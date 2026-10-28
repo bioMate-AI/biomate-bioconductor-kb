@@ -216,13 +216,23 @@ A single prospective round, pre-registered here, would convert the design into a
 Success/failure criteria, panels, and nulls are frozen before synthesis; no metric is chosen post hoc.
 
 ## 7. Related work
-Self-improving agents (DGM, SICA, Harness2, ScienceBuddy) supply the engine but validate on software
-benchmarks with iid held-out; the Darwin–Gödel Drug Discovery Machine (bioRxiv 2025) ports evolutionary
-self-improvement to drug discovery. Multi-fidelity molecular generation (MFBind), verifiable-reward molecular
-RL, and LLM peptide agents (PepThink-R1) overlap the components. **Novelty is UNVERIFIED** (abstract-level
-prior-art check only); the contribution we stand behind is evidential — the governed-loop protocol and the
-biology-structured firewall demonstrated by the three refutations of §5 — not architectural priority. A direct
-prior-art pass is required before submission.
+**Self-improving agents.** The Darwin Gödel Machine (Zhang, Hu, Lu, Lange and Clune; arXiv:2505.22954, ICLR 2026) and
+SICA (arXiv:2504.15228) improve an agent by modifying its own code and validating each change empirically, but on
+software benchmarks where held-out instances are exchangeable with training instances. A bioRxiv preprint
+(2025.08.21.671415) ports evolutionary self-improvement to drug discovery. Our setting differs in that the
+exchangeability assumption fails: held-out *instances* leak target, scaffold and assay identity, which is what the
+firewall of §4 is designed to block.
+**Multi-fidelity and verifier-driven generation.** MFBind (arXiv:2402.10387) combines docking, experimental data and
+absolute binding free energy in a multi-fidelity surrogate for small-molecule generation; our verifier ladder shares the
+cost-ordering principle but adds a leakage firewall on promotion and is applied to cyclic peptides.
+**Cyclic-peptide design.** RFpeptides (bioRxiv 10.1101/2024.11.18.622547) and BoltzGen (bioRxiv 10.1101/2025.11.20.689494)
+are pocket-conditioned generators of macrocyclic and peptide binders with experimental validation; they are generators
+that our loop wraps, not alternatives to it. PepThink-R1 (arXiv:2508.14765; NeurIPS 2025) uses chain-of-thought
+fine-tuning and reinforcement learning to optimise cyclic-peptide ADMET properties; it optimises property rewards and
+does not report leave-target-out or family-disjoint controls.
+**Position.** The contribution claimed here is evidential, not architectural: a documented protocol and the artifacts it
+caught. We make no claim of priority for the loop structure. The search above was targeted at the components named; it
+was not a systematic review.
 
 ## 8. Limitations
 The structural data wall (low-hundreds of cyclic co-structures, "effectively unbreakable by acquisition");
@@ -242,10 +252,16 @@ positive is specified; it is future (v2) work.
 
 ---
 
-### References (to complete to house style; author/title/year for verifiability)
-- Darwin–Gödel Drug Discovery Machine, bioRxiv 2025.08.21.671415; Zhang et al. Darwin Gödel Machine, arXiv:2505.22954; Robeyns et al. SICA, arXiv:2504.15228.
-- BoltzGen / BoltzProt-1; RFpeptides; Boltz-2; PepGLAD; CycPeptMPDB; MFBind; PepThink-R1 (direct citations required pre-submission — `docs/20261001_CYCLIC_PEPTIDE_SOTA_LANDSCAPE.md`).
-- Quigley et al. 2023 (YY→FF macrocycle, PMID 38099056).
+### References
+- Zhang J, Hu S, Lu C, Lange R, Clune J. Darwin Gödel Machine: open-ended evolution of self-improving agents. arXiv:2505.22954 (ICLR 2026).
+- Robeyns et al. A self-improving coding agent (SICA). arXiv:2504.15228.
+- Darwin–Gödel Drug Discovery Machine. bioRxiv 2025.08.21.671415.
+- MFBind: a multi-fidelity approach for evaluating drug compounds in practical generative modeling. arXiv:2402.10387.
+- PepThink-R1: LLM for interpretable cyclic peptide optimization with CoT SFT and reinforcement learning. arXiv:2508.14765 (NeurIPS 2025).
+- BoltzGen: toward universal binder design. bioRxiv 10.1101/2025.11.20.689494.
+- Accurate de novo design of high-affinity protein-binding macrocycles using deep learning (RFpeptides). bioRxiv 10.1101/2024.11.18.622547.
+- Quigley et al. 2023 (YY→FF macrocycle), PMID 38099056.
+- Still to cite with verified entries: Boltz-2, PepGLAD, CycPeptMPDB (author lists not yet confirmed; do not add from memory).
 
 ### Internal provenance (not for external version)
 Component drafts to MERGE: `docs/20261021_CYCLIC_LLM_PAPER_DRAFT.md`, `docs/20261022_RENAL_PREDICTOR_MANUSCRIPT.md`. Program plan: `docs/20261026_INTEGRATED_PROGRAM_PLAN.md`. RSI spine: `docs/20261027_BIOMATE_NATIVE_RSI_THESIS.md`. Ground-truth status: `docs/20261027_PROGRAM_STATUS_VERIFIED.md`. Physics: `docs/20261025_CADA_MN_METAL_MODEL_VALIDATION.md`. Results: `research/guangzhou_all_atom/results/{binding_model_metrics_cyclic,permeability_predictor_metrics,avb6_metal_mmgbsa_gate,boltzgen_loto_smoke_summary,speed_surrogate_loto}.json`, `SIMULATED_closed_loop_20261003/`. SDL: `/Users/kky/sdl-macrocycle/README.md`.
