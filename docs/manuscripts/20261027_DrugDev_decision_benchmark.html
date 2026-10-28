@@ -447,16 +447,15 @@ precise per-model values are noisy and should be pinned down by a larger
 evaluation.</p>
 <p><strong>Generated tier (explicit exposure–response
 parameters).</strong> When the Emax parameters are provided explicitly,
-both strong models reconstruct the curve and select correctly:
-<strong>Claude Opus 5 and GPT-6.1-sol each reach an outcome of 1.0 with
-fidelity 1.0 and zero empties</strong> (Opus is additionally stable
-across three runs: 0.95, 1.00, 1.00). This two-model result localizes
-the hand-authored failure precisely — language models fail to <em>infer
-the exposure–response relationship from implicit clinical inputs</em>,
-not to do the arithmetic once the relationship is specified.
-Gemini-3.1-Pro and the on-premises model are still being collected (the
-on-premises model requires its own serving endpoint and is reported
-separately).</p>
+every frontier model tested reconstructs the curve and selects
+correctly: <strong>Claude Opus 5, GPT-6.1-sol, and Gemini-3.1-Pro each
+reach an outcome of 1.0 with fidelity 1.0 and zero empties</strong>
+(Opus is additionally stable across three runs: 0.95, 1.00, 1.00). This
+consistent three-model result localizes the hand-authored failure
+precisely — language models fail to <em>infer the exposure–response
+relationship from implicit clinical inputs</em>, not to do the
+arithmetic once the relationship is specified. The on-premises model
+requires its own serving endpoint and is reported separately.</p>
 <p>The <strong>fidelity</strong> dimension is what makes this
 diagnostic: a low outcome with <em>low</em> fidelity means the system
 never reconstructed the curve, whereas a low outcome with <em>high</em>
