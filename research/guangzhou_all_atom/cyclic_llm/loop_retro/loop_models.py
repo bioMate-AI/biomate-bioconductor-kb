@@ -13,10 +13,17 @@ class GBM:
     def init_state(self): return None
     def fit(self, state, idx, y, steps, seed):
         import run_loop as R
-        rng = np.random.default_rng(seed); idx = np.asarray(idx)
+        rng = np.random.default_rng(seed); idx = np.asarray(idx, dtype=int)
+        if len(idx) == 0: return []                      # k = 0 labels (learning-curve origin): untrained -> constant, uninformative scores
         return R.fit_ens(self.X[idx], np.asarray(y, float), rng)
     def predict(self, state, idx):
-        idx = np.asarray(idx); return np.mean([m.predict(self.X[idx]) for m in state], 0)
+        idx = np.asarray(idx, dtype=int)
+        if not state: return np.zeros(len(idx))
+        return np.mean([m.predict(self.X[idx]) for m in state], 0)
+    def predict_std(self, state, idx):                  # ensemble standard deviation: the only native uncertainty among the backends (calibration analysis, dimension 8)
+        idx = np.asarray(idx, dtype=int)
+        if not state: return np.zeros(len(idx))
+        return np.std([m.predict(self.X[idx]) for m in state], 0)
 
 
 class _TorchReg:

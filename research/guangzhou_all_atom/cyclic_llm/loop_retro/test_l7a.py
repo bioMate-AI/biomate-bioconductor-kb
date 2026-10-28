@@ -45,11 +45,11 @@ def test_arms_on_planted_world_with_gbm():
     y = (sig - sig.mean()) / sig.std() + 0.5 * rng.standard_normal(n); thr = float(np.quantile(y, .9)); srcs = ["s"] * n; Kn = sig + 0.3 * rng.standard_normal(n)
     flat = [f"F{i // 5}" for i in range(n)]
     B = LM.GBM(X); p = dict(n_init=50, rounds=5, batch=40, n_eval=500, steps0=0, steps_round=0, n_cand=150, n_flat_groups=20)
-    arms = ("loop", "random_fb", "shuffled", "frozen", "loop_sub", "loop_kn_sub", "frozen_sub", "shuffled_sub"); d = {a: [] for a in arms}; gain = {a: [] for a in arms}
+    arms = ("loop", "random_fb", "shuffled", "frozen", "loop_sub", "loop_kn_sub", "frozen_sub", "shuffled_sub", "noisy_sub", "loop_kn_contra_sub"); d = {a: [] for a in arms}; gain = {a: [] for a in arms}
     for seed in range(4):
-        init = list(range(50)); E, pool = L.make_eval_slice(list(range(50, n)), seed, 500); Ef, Efg, pool = L.make_flat_slice(pool, flat, seed, 20)
-        assert not set(Ef) & set(pool) and not set(Ef) & set(E) and len(Efg) == 20 and all(len(g) >= 4 for g in Efg)
-        ctx = L.Ctx(y, thr, np.full(n, thr), srcs, np.zeros(n), B, p, Kn, Ef, Efg); out = L.run_task(ctx, init, pool, E, seed)
+        init = list(range(50)); E, pool = L.make_eval_slice(list(range(50, n)), seed, 500); Ef, Efg, Efs, pool = L.make_flat_slice(pool, flat, seed, 20, y)
+        assert not set(Ef) & set(pool) and not set(Ef) & set(E) and len(Efg) == 20 and all(len(g) >= 2 for g in Efg)
+        ctx = L.Ctx(y, thr, np.full(n, thr), srcs, np.zeros(n), B, p, Kn, Ef, Efg, Efs, None); out = L.run_task(ctx, init, pool, E, seed)
         for a in arms: d[a].append(sum(out[a]["hits"])); gain[a].append(out[a]["auroc_E"][-1] - out[a]["auroc_E0"])
         assert len(out["loop"]["stereo_rho"]) == 5 and "stereo_rho0" in out["loop"]
     m = {a: round(float(np.mean(v)), 3) for a, v in gain.items()}; h = {a: round(float(np.mean(v)), 1) for a, v in d.items()}; print("  planted world: mean hits", h, "| mean AUROC_E gain", m)
@@ -58,6 +58,11 @@ def test_arms_on_planted_world_with_gbm():
     assert abs(m["frozen"]) < 1e-9 and abs(m["frozen_sub"]) < 1e-9, "frozen cannot change"
     assert m["shuffled"] < m["loop"] and m["shuffled"] < 0.02 and m["shuffled_sub"] < m["loop_sub"], "shuffled labels must not improve the model"
     assert h["loop_sub"] > h["frozen_sub"] and h["loop_kn_sub"] >= h["loop_sub"] - 5, "subset loop must beat frozen; informative KB must not hurt"
+    assert h["loop_kn_contra_sub"] < h["loop_kn_sub"], "contradicted knowledge must not match correct knowledge (the counterfactual arm is real)"
+    assert h["noisy_sub"] > h["shuffled_sub"] and m["noisy_sub"] > m["shuffled_sub"], "20 % label noise must degrade gracefully, staying above fully shuffled labels"
+    c = out["curve"]; assert set(c) == {"0", "25", "50", "100"} and c["100"]["auroc_E"] > c["0"]["auroc_E"] - 1e-9, "learning curve must be recorded and not decrease from k=0 to k=100 on a planted world"
+    lp = out["loop_sub"]; assert len(lp["picks"]) == 5 and len(lp["cands"]) == 5 and len(lp["cand_scores"]) == 5 and all(len(x) == 40 for x in lp["picks"]), "per-round picks/candidates/scores must be logged"
+    assert len(out["loop"]["E_scores"]) == 5 and len(out["loop"]["E_scores"][0]) == 500 and len(out["loop"]["pick_std"]) == 5, "E scores per round and GBM uncertainty must be logged"
     assert len(out["one_shot"]["ef5_E"]) == 1
 
 def test_subset_identical_between_small_and_large_runners():
@@ -67,9 +72,32 @@ def test_subset_identical_between_small_and_large_runners():
         for r in (0, 4, 9): assert L.subset(pool0, seed, r, rv, 150) == LL.subset(pool0, seed, r, rv), "the large-LLM runner must use the same candidate subsets as the small-model *_sub arms"
     s = L.subset(pool0, 0, 2, rv, 150); assert not set(s) & set(rv) and len(s) <= 150
 
-def test_stereo_rho_planted():
+def test_stereo_rho_planted_and_ties_are_zero():
     rng = np.random.default_rng(0); groups = [list(range(k * 5, k * 5 + 5)) for k in range(40)]; y = rng.standard_normal(200)
-    assert L.stereo_rho(y.copy(), groups, y) > 0.99 and L.stereo_rho(-y, groups, y) < -0.99 and abs(L.stereo_rho(rng.standard_normal(200), groups, y)) < 0.2
+    assert L.stereo_rho(y.copy(), groups, y)[0] > 0.99 and L.stereo_rho(-y, groups, y)[0] < -0.99 and abs(L.stereo_rho(rng.standard_normal(200), groups, y)[0]) < 0.2
+    const = np.zeros(200); r, nc = L.stereo_rho(const, groups, y); assert r == 0.0 and nc == 0.0, "constant (stereo-blind) scores must give rho exactly 0 with non-constant fraction 0, not missing"
+
+def test_flat_slice_split_properties():
+    rng = np.random.default_rng(0); n = 1200; flat = [f"F{i // 4}" for i in range(n)]; y = rng.standard_normal(n); y[0:4] = 1.0     # group F0 has zero label variance
+    pool = list(range(n)); Ef, Efg, Efs, rest = L.make_flat_slice(pool, flat, 0, 30, y)
+    assert len(Efg) == 30 and len(Efs) == 30 and all(len(g) >= 2 for g in Efg)
+    for g, s in zip(Efg, Efs): assert s not in g and len({flat[i] for i in g + [s]}) == 1 and float(np.std(y[g + [s]])) > 0, "sibling is never a target; group has non-zero label variance"
+    assert not (set(Ef) | set(Efs)) & set(rest) and len(rest) == n - len(Ef) - len(Efs)
+    assert all(flat[s] != "F0" for s in Efs), "zero-variance groups must be excluded"
+    assert L.make_flat_slice(pool, flat, 0, 30, y)[2] == Efs, "deterministic given seed"
+
+def test_stereo_blind_is_zero_and_stereo_aware_detected():
+    """Isomers share identical features; a hidden stereo bit drives the label. A blind model must score exactly 0 on the redefined E_f (ties); a model that can see the bit must score > 0.3."""
+    rng = np.random.default_rng(0); groups, X, y, flat = 80, [], [], []
+    for g in range(groups):
+        base = rng.random(10); bits = [0, 1, 0, 1, 1, 0]
+        for k, b in enumerate(bits): X.append(np.concatenate([base, [0.0]])); y.append(b * 1.0 + 0.1 * rng.standard_normal() + 0.3 * base[0]); flat.append(f"G{g}")
+    X = np.array(X, np.float32); y = np.array(y); Xs = X.copy(); Xs[:, -1] = np.array([[0, 1, 0, 1, 1, 0]] * groups).ravel()
+    pool = list(range(len(y))); Ef, Efg, Efs, rest = L.make_flat_slice(pool, flat, 0, 30, y)
+    for name, XX, lo, hi in (("blind", X, 0.0, 0.0), ("aware", Xs, 0.3, 1.01)):
+        B = LM.GBM(XX); st = B.fit(None, rest[:600], y[rest[:600]], 0, 0); p = dict(n_init=0, rounds=1, batch=10, n_eval=10, steps0=0, steps_round=0, n_cand=50, n_flat_groups=30)
+        ctx = L.Ctx(y, 1.0, np.full(len(y), 1.0), ["s"] * len(y), np.zeros(len(y)), B, p, np.zeros(len(y)), Ef, Efg, Efs, None); r, nc = L._stereo_full(ctx, st)
+        print(f"  stereo {name}: rho {r:+.3f} nonconst {nc:.2f}"); assert lo <= r <= hi, (name, r)
 
 def test_one_shot_budget_equals_loop_total_steps():
     calls = []
@@ -114,6 +142,6 @@ def test_atom_heads_functional():
 
 if __name__ == "__main__":
     which = sys.argv[1] if len(sys.argv) > 1 else "core"
-    names = {"core": ["test_eval_slice_disjoint_and_paired", "test_arms_on_planted_world_with_gbm", "test_one_shot_budget_equals_loop_total_steps", "test_stereo_rho_planted", "test_subset_identical_between_small_and_large_runners"],
+    names = {"core": ["test_eval_slice_disjoint_and_paired", "test_arms_on_planted_world_with_gbm", "test_one_shot_budget_equals_loop_total_steps", "test_stereo_rho_planted_and_ties_are_zero", "test_flat_slice_split_properties", "test_stereo_blind_is_zero_and_stereo_aware_detected", "test_subset_identical_between_small_and_large_runners"],
              "atom": ["test_atom_heads_functional", "test_atom_adapter_planted_signal"], "chemberta": ["test_chemberta_adapter_planted_signal"], "v4": ["test_v4_adapter_planted_signal"]}[which]
     for n in names: globals()[n](); print("PASS", n)

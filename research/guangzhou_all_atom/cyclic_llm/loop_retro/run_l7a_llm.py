@@ -14,7 +14,7 @@ import run_loop as R, run_loop_par as P, run_loop_prior as K, run_l7a as L, loop
 N_CAND, N_PICK, N_SHOW, ROUNDS, N_INIT, N_EVAL, N_FLAT = 150, 50, 80, 10, 100, 800, 60
 KEY = open(os.path.expanduser("~/.config/biomate/openrouter.key")).read().strip()
 SYSTEM = "You are an expert in cyclic-peptide medicinal chemistry and passive membrane permeability."
-LLM_ARMS = ("llm_loop", "llm_kb", "llm_frozen", "llm_zeroshot", "llm_shuffled", "subset_random", "subset_gbm")
+LLM_ARMS = ("llm_loop", "llm_kb", "llm_kb_contra", "llm_frozen", "llm_zeroshot", "llm_shuffled", "subset_random", "subset_gbm")
 STEREO_ARMS = ("llm_loop", "llm_kb", "llm_frozen", "llm_zeroshot")
 
 
@@ -38,12 +38,17 @@ def kb_block():
     return "Established knowledge (literature-cited):\n" + "\n".join(f"- {e['statement']} [{e['source']}]" for e in st) + "\n\n"
 
 
+def kb_contra_block():
+    """COUNTERFACTUAL knowledge for the dimension-5 probe: the N-methylation relation is stated in the wrong direction (no citation; the log marks the arm as counterfactual)."""
+    return "Established knowledge:\n- Backbone N-methylation LOWERS passive permeability of cyclic peptides (added steric bulk and lipophilic desolvation penalty); fewer N-methyl groups give higher permeability.\n\n"
+
+
 def build_prompt(examples, cands, smiles, kb=""):
     ex = "".join(f"{smiles[i]}\t{l:.1f}\n" for i, l in examples)
     head = "Labels are within-literature-source z-scores of measured PAMPA log Papp (higher = more permeable).\n\n" + kb
     if examples: head += f"Measured examples (SMILES<TAB>label):\n{ex}\n"
     cd = "".join(f"{j}: {smiles[i]}\n" for j, i in enumerate(cands))
-    return head + f"Candidates (index: SMILES):\n{cd}\nSelect the {N_PICK} candidates most likely to have the HIGHEST label. Return ONLY JSON: {{\"ranking\": [indices, best first]}}"
+    return head + f"Candidates (index: SMILES):\n{cd}\nSelect the {N_PICK} candidates most likely to have the HIGHEST label. Return ONLY JSON: {{\"ranking\": [indices, best first], \"rationale\": \"<=40 words\"}}"
 
 
 def call(prompt, model, cost, acc=None, tries=4, max_tokens=700):
@@ -83,9 +88,9 @@ def shown(labeled, ylab, n=N_SHOW):
 def subset(pool0, seed, r, revealed): return L.subset(pool0, seed, r, revealed, N_CAND)
 
 
-def run_seq(arm, ctx, init, pool, seed, a, cost, smiles, kb, gbm=None, loop_final=None):
+def run_seq(arm, ctx, init, pool, seed, a, cost, smiles, kb, gbm=None, loop_final=None, kb_contra=""):
     y = ctx["y"]; rng = np.random.default_rng(seed); labeled = list(init); ylab = list(y[init]); pool0 = list(pool); acc = new_acc(); t0 = time.time()
-    rec = dict(hits=[], hits_g=[], src=[], fills=0, ef_sub=[]); rounds = 1 if arm == "llm_oneshot" else ROUNDS
+    rec = dict(hits=[], hits_g=[], src=[], fills=0, ef_sub=[], calls=[]); ypool = y[np.array(pool0)]; rounds = 1 if arm == "llm_oneshot" else ROUNDS
     for r in range(rounds):
         cands = subset(pool0, seed, (ROUNDS - 1) if arm == "llm_oneshot" else r, labeled if arm != "llm_oneshot" else init)
         if arm == "llm_oneshot": labeled, ylab = list(loop_final["labeled"]), list(loop_final["ylab"]); cands = [i for i in cands if i not in set(labeled)]
@@ -97,8 +102,10 @@ def run_seq(arm, ctx, init, pool, seed, a, cost, smiles, kb, gbm=None, loop_fina
             elif arm == "llm_frozen": ex = shown(list(init), np.array(list(y[init])))        # initial labels only, every round (no feedback)
             elif arm == "llm_oneshot": ex = [(labeled[i], float(ylab[i])) for i in range(len(labeled))]
             else: ex = shown(labeled, np.array(ylab))
-            if arm == "llm_shuffled": ex = [(i, l) for (i, _), l in zip(ex, rng.permutation([l for _, l in ex]))]
-            rk = parse(call(build_prompt(ex, cands, smiles, kb if arm == "llm_kb" else ""), a.model, cost, acc), len(cands))[:N_PICK]
+            prompt_kb = kb if arm == "llm_kb" else (kb_contra if arm == "llm_kb_contra" else "")
+            a0 = dict(acc); txt = call(build_prompt(ex, cands, smiles, prompt_kb), a.model, cost, acc); rk = parse(txt, len(cands))[:N_PICK]
+            rec["calls"].append(dict(round=r, n_cands=len(cands), cands=[int(i) for i in cands], examples=[[int(i), float(l)] for i, l in ex], response=txt, n_valid=len(rk), tin=acc["tin"] - a0["tin"], tout=acc["tout"] - a0["tout"],
+                                     usd=round(acc["usd"] - a0["usd"], 6), seconds=round(acc["seconds"] - a0["seconds"], 2)))
             if len(rk) < N_PICK:
                 rec["fills"] += N_PICK - len(rk); left = [j for j in range(len(cands)) if j not in set(rk)]; rk += [int(j) for j in rng.choice(left, N_PICK - len(rk), replace=False)]
             pick = [cands[j] for j in rk]
@@ -106,37 +113,39 @@ def run_seq(arm, ctx, init, pool, seed, a, cost, smiles, kb, gbm=None, loop_fina
         rec["hits"].append(int(sum(y[i] >= ctx["thr"] for i in pick))); rec["hits_g"].append(int(sum(y[i] >= ctx["thr_g"][i] for i in pick)))
         c = collections.Counter(ctx["srcs"][i] for i in pick); rec["src"].append({"2020_Townsend": c.get("2020_Townsend", 0), "2021_Kelly": c.get("2021_Kelly", 0), "other": len(pick) - c.get("2020_Townsend", 0) - c.get("2021_Kelly", 0)})
         rec["ef_sub"].append(float(np.mean([y[i] >= ctx["thr"] for i in pick]) / max(1e-9, np.mean([y[i] >= ctx["thr"] for i in cands]))))
+        rec.setdefault("picks", []).append(pick)
         if arm not in ("llm_oneshot", "llm_frozen", "llm_zeroshot"):
             labeled += pick; new = y[pick].copy()
-            if arm == "llm_shuffled": new = rng.permutation(new)
+            if arm == "llm_shuffled": new = rng.choice(ypool, len(pick), replace=False)          # L7d: global draw from the pool's label vector
             ylab += list(new)
     rec["cost"] = dict(acc, wall_seconds=round(time.time() - t0, 1))
     rec["_final"] = (list(labeled), [float(v) for v in ylab])          # examples this arm would show at the end (used for the stereo call; stripped before saving)
     return rec
 
 
-def stereo_call(arm, rec, ctx, init, Ef_groups, smiles, a, cost, kb):
-    """One call at the final round: rank the stereoisomer members inside each flat group, using THIS arm's own examples. Returns mean within-group Spearman."""
+def stereo_call(arm, rec, ctx, init, Ef_groups, Ef_sib, smiles, a, cost, kb):
+    """One call at the final round (L7d): per flat group the REVEALED sibling and its label are shown (SAR setting) and the TARGET stereoisomers are ranked, using THIS arm's own examples.
+    Returns mean within-group Spearman over groups (an unparsable or incomplete group counts as rho = 0 and is counted in n_failed)."""
     y = ctx["y"]; labeled, ylab = rec["_final"]
-    ex = [] if arm == "llm_zeroshot" else (shown(list(init), np.array(list(y[init]))) if arm == "llm_frozen" else shown(labeled, np.array(ylab)))
+    ex = [] if arm in ("llm_zeroshot",) else (shown(list(init), np.array(list(y[init]))) if arm == "llm_frozen" else shown(labeled, np.array(ylab)))
     head = "Labels are within-literature-source z-scores of measured PAMPA log Papp (higher = more permeable).\n\n" + (kb if arm == "llm_kb" else "")
     if ex: head += "Measured examples (SMILES<TAB>label):\n" + "".join(f"{smiles[i]}\t{l:.1f}\n" for i, l in ex) + "\n"
-    body = "Each group below contains STEREOISOMERS of the same constitution (identical atoms and connectivity, different stereochemistry). Within each group rank the members from highest to lowest expected label.\n"
-    for g, mem in enumerate(Ef_groups): body += f"Group {g}:\n" + "".join(f"  {j}: {smiles[i]}\n" for j, i in enumerate(mem))
-    body += "Return ONLY JSON: {\"0\": [member indices best first], \"1\": [...], ...}"
-    acc = new_acc(); txt = call(head + body, a.model, cost, acc, max_tokens=2500); rs = []
+    body = "Each group below contains STEREOISOMERS of one constitution (identical atoms and connectivity, different stereochemistry). One isomer per group has a KNOWN label; rank the UNKNOWN isomers of the group from highest to lowest expected label.\n"
+    for g, mem in enumerate(Ef_groups): body += f"Group {g}: known isomer {smiles[Ef_sib[g]]}\tlabel {y[Ef_sib[g]]:.1f}\n" + "".join(f"  {j}: {smiles[i]}\n" for j, i in enumerate(mem))
+    body += "Return ONLY JSON: {\"0\": [unknown-isomer indices best first], \"1\": [...], ...}"
+    acc = new_acc(); txt = call(head + body, a.model, cost, acc, max_tokens=2500); rs = []; failed = 0
     try: obj = json.loads(re.search(r"\{.*\}", txt, re.S).group(0))
     except Exception: obj = {}
     for g, mem in enumerate(Ef_groups):
-        try: order = [int(v) for v in obj[str(g)]]
-        except Exception: continue
-        order = [v for v in order if 0 <= v < len(mem)]
-        if len(set(order)) < len(mem): continue
+        lab = y[mem]
+        if np.std(lab) == 0: continue
+        try: order = [int(v) for v in obj[str(g)]]; order = [v for v in order if 0 <= v < len(mem)]
+        except Exception: order = []
+        if len(set(order)) < len(mem): rs.append(0.0); failed += 1; continue
         score = np.zeros(len(mem))
         for k, v in enumerate(order): score[v] = len(order) - k
-        lab = y[mem]
-        if np.std(lab) > 0: rs.append(L.spearman(score, lab))
-    return dict(mean_rho=float(np.mean(rs)) if rs else float("nan"), n_groups_parsed=len(rs), n_groups=len(Ef_groups), cost=acc)
+        rs.append(L.spearman(score, lab))
+    return dict(mean_rho=float(np.mean(rs)) if rs else float("nan"), n_groups=len(rs), n_failed=failed, response=txt, cost=acc)
 
 
 def planted_control(a, cost, smiles):
@@ -149,6 +158,9 @@ def planted_control(a, cost, smiles):
         ex = [(int(i), float(l)) for i, l in zip(ex_i, labs)] if use else []
         rk = parse(call(build_prompt(ex, [int(i) for i in cand_i], smiles), a.model, cost, acc), len(cand_i))[:N_PICK]
         res[name] = dict(mean_label_of_picks=float(np.mean(cl[rk])) if rk else float("nan"), n=len(rk))
+    ex = [(int(i), float(l)) for i, l in zip(ex_i, exl)]; pr = build_prompt(ex, [int(i) for i in cand_i], smiles)                  # determinism probe (dimension 9): the SAME prompt twice
+    ra = parse(call(pr, a.model, cost, acc), len(cand_i))[:N_PICK]; rb = parse(call(pr, a.model, cost, acc), len(cand_i))[:N_PICK]
+    res["determinism_top50_overlap"] = len(set(ra) & set(rb)) / float(N_PICK)
     res["effect_planted_minus_flipped"] = res["planted"]["mean_label_of_picks"] - res["flipped"]["mean_label_of_picks"]
     res["pass"] = bool(res["effect_planted_minus_flipped"] >= 0.4 and abs(res["shuffled"]["mean_label_of_picks"] - res["zeroshot"]["mean_label_of_picks"]) < 0.4)
     res["tokens_per_call_in"] = acc["tin"] / max(1, acc["calls"]); res["tokens_per_call_out"] = acc["tout"] / max(1, acc["calls"]); res["usd"] = acc["usd"]; res["model"] = a.model; return res
@@ -182,6 +194,15 @@ def memo_probe(a, cost, smiles, n=30, frac=0.6):
     return dict(model=a.model, n=len(diff), mean_real=float(np.mean(real)), mean_decoy=float(np.mean(dec)), mean_diff=float(diff.mean()), lower95=float(np.percentile(bs, 2.5)), flagged=bool(np.percentile(bs, 2.5) > 0.05), usd=acc["usd"])
 
 
+def run_curve(ctx, init, pool, seed, a, cost, smiles):
+    """L7c dimension 1: one call per k in {0, 25, 50, 100} initial labels on the round-0 candidate subset."""
+    y = ctx["y"]; cands = subset(list(pool), seed, 0, init); out = {}; acc = new_acc()
+    for k in (0, 25, 50, 100):
+        ex = shown(list(init[:k]), np.array(list(y[init[:k]]))) if k > 0 else []; txt = call(build_prompt(ex, cands, smiles), a.model, cost, acc); rk = parse(txt, len(cands))[:N_PICK]
+        pick = [cands[j] for j in rk]; out[str(k)] = dict(sub_hits=int(sum(y[i] >= ctx["thr"] for i in pick)), sub_hits_g=int(sum(y[i] >= ctx["thr_g"][i] for i in pick)), n_valid=len(rk), picks=[int(i) for i in pick])
+    out["cost"] = acc; return out
+
+
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("csv"); ap.add_argument("out"); ap.add_argument("--model", required=True); ap.add_argument("--regimes", default="AB"); ap.add_argument("--seeds", default="0-3")
     ap.add_argument("--cap-usd", type=float, default=0.75); ap.add_argument("--control", action="store_true"); ap.add_argument("--probe", action="store_true"); ap.add_argument("--workers", type=int, default=8)
@@ -195,11 +216,12 @@ def main():
     def task(arg):
         reg, seed = arg; f = f"{a.out}/{tag}__{reg}_{seed}.json"
         if os.path.exists(f): return
-        init, pool = P.setup(reg, seed, d["srcs"], d["scaf"], N_INIT, d["flat"]); E, pool = L.make_eval_slice(pool, seed, N_EVAL); Ef, Efg, pool = L.make_flat_slice(pool, d["flat"], seed, N_FLAT)
-        out = {"seed": seed, "regime": reg, "model": a.model, "n_pool": len(pool), "n_Ef": len(Ef)}
-        for arm in LLM_ARMS: out[arm] = run_seq(arm, ctx, init, pool, seed, a, cost, smiles, kb, gbm)
+        init, pool = P.setup(reg, seed, d["srcs"], d["scaf"], N_INIT, d["flat"]); E, pool = L.make_eval_slice(pool, seed, N_EVAL); Ef, Efg, Efs, pool = L.make_flat_slice(pool, d["flat"], seed, N_FLAT, d["y"]); Es, pool = L.make_source_slice(pool, d["srcs"], seed)
+        out = {"seed": seed, "regime": reg, "model": a.model, "n_pool": len(pool), "n_Ef": len(Ef), "init": [int(i) for i in init], "E": [int(i) for i in E], "Es": [int(i) for i in Es]}
+        for arm in LLM_ARMS: out[arm] = run_seq(arm, ctx, init, pool, seed, a, cost, smiles, kb, gbm, kb_contra=kb_contra_block())
+        out["llm_curve"] = run_curve(ctx, init, pool, seed, a, cost, smiles)
         out["llm_oneshot"] = run_seq("llm_oneshot", ctx, init, pool, seed, a, cost, smiles, kb, loop_final=dict(labeled=out["llm_loop"]["_final"][0], ylab=out["llm_loop"]["_final"][1]))
-        for arm in STEREO_ARMS: out[arm]["stereo"] = stereo_call(arm, out[arm], ctx, init, Efg, smiles, a, cost, kb)
+        for arm in STEREO_ARMS: out[arm]["stereo"] = stereo_call(arm, out[arm], ctx, init, Efg, Efs, smiles, a, cost, kb)
         for arm in LLM_ARMS + ("llm_oneshot",): out[arm].pop("_final", None)
         json.dump(out, open(f + ".tmp", "w")); os.replace(f + ".tmp", f)
         print("done", reg, seed, {k: sum(out[k]["hits"]) for k in out if isinstance(out[k], dict) and "hits" in out[k]}, "USD %.3f" % cost.usd, flush=True)
