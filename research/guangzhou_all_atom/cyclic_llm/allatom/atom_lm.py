@@ -64,12 +64,14 @@ def _loss(model, x):
 
 def train(model, enc, vocab, steps, batch_size, lr, seed=0, ckpt=None, ckpt_every=0, resume=False, device="cpu", weights=None, log_every=0, amp=False, on_ckpt=None):
     model.to(device).train(); opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01); start = 0
+    use_amp = bool(amp and str(device).startswith("cuda")); amp_dtype = torch.bfloat16 if (use_amp and torch.cuda.is_bf16_supported()) else torch.float16       # T4 has no bf16 -> fp16 + loss scaling
+    scaler = torch.amp.GradScaler("cuda", enabled=use_amp and amp_dtype == torch.float16)
     if resume and ckpt and os.path.exists(ckpt):
         s = torch.load(ckpt, map_location=device); model.load_state_dict(s["model"]); opt.load_state_dict(s["opt"]); start = s["step"]
     for step in range(start, steps):
         x = collate(enc, batch_indices(len(enc), batch_size, step, seed, weights), model.max_len, device)
-        with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=bool(amp and str(device).startswith("cuda"))): loss = _loss(model, x)
-        opt.zero_grad(set_to_none=True); loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.step()
+        with torch.autocast(device_type="cuda", dtype=amp_dtype, enabled=use_amp): loss = _loss(model, x)
+        opt.zero_grad(set_to_none=True); scaler.scale(loss).backward(); scaler.unscale_(opt); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); scaler.step(opt); scaler.update()
         if log_every and (step + 1) % log_every == 0: print(f"step {step+1} loss {loss.item():.4f}", flush=True)
         if ckpt and ckpt_every and (step + 1) % ckpt_every == 0:
             save(ckpt, model, opt, step + 1)
