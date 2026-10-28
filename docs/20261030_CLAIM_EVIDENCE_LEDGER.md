@@ -461,3 +461,16 @@ Propagation into the manuscript set (all cite the pre-A11 gate numbers):
 - Brief line 17 correctly says 0.315 is an artefact (0.461 flat-disjoint). **MATCH.**
 - Analysis-I gate numbers in the drafts (0.584 registered; 0.580 / 0.578 / 0.583 purged) come from the data/eval review and the earlier gate; A11 restates them (0.575–0.621 by variant, primary flag level 98.3 %, ±0.05 equivalence at 90 % intervals, so even unbiased benchmarks are NOT_VALID_NOT_EQUIVALENT at 14–26 families). The drafts do not yet cite A10/A11 or V5 (main draft cites RESULTS_V3). **STALE** pending the writer's update; also "26 families" for I appears in main (9×), v2 (3×) and brief (1×) while folds_v2 gives 23. The qualifier is that folds_v2 is a re-freeze after the results were seen: the 98.3 % level and the ±0.05 margin were chosen after seeing intervals (disclosed by the workstream in A11): the drafts must call these post hoc.
 - Position: the qualitative verdict ("no benchmark passes the gate") is unchanged in the workstream's statement; the numbers behind it moved.
+
+### UPDATE 10a — gate values re-derived from the stored family-level AUROC vectors (`results/gate_A11_*.json`)
+
+Method: mean of the stored `family_means` (points) and my own percentile cluster bootstrap over families (seed 1, B = 20,000, 98.3 % level). No classifier was rerun, so this checks the aggregation, not the model fits.
+
+| file | control | families | point (file = mean of family means) | my 98.3 % | file |
+|---|---|---|---|---|---|
+| I v1 | C1 / C2 / C3 | 25 / 25 / 26 | 0.503 / 0.559 / 0.584 | [0.447, 0.560] / [0.487, 0.636] / [0.522, 0.648] | same except C2 hi 0.631 |
+| I v2 (folds_v2) | C1 / C2 / C3 | 22 / 22 / 23 | 0.502 / 0.582 / 0.596 | [0.441, 0.563] / [0.515, 0.647] / [0.539, 0.653] | same within 0.002 |
+| M (item-scope) | C1 / C2 / C3 | 114 / 114 / 120 | 0.476 / 0.556 / **0.461** | [0.431, 0.521] / [0.502, 0.609] / [0.414, 0.507] | same within 0.001 |
+| M2 (flat-disjoint) | C1 / C2 / C3 | 14 / 14 / 14 | 0.665 / 0.743 / 0.739 | [0.526, 0.796] / [0.613, 0.850] / [0.595, 0.863] | same within 0.003 |
+
+Status: **MATCH** for all 12 points (and the M C3 0.4607 and M2 0.743 / 0.739 quoted by the benchmark workstream); intervals agree to resampling noise. The v2-fold I C3 is **0.596**, above the v1 0.584: the drafts' "robust, 0.575–0.583" statement is for compound/Tanimoto-purged training on v1 folds; on folds_v2 the control is slightly stronger. The gate verdict (control well above 0.5 on I and M2) is unchanged; note the benchmark workstream confirmed (V5 §5, commit 263b4c2e6) that the 98.3 % level and the ±0.05 margin are post hoc and loosen the bias flag relative to the 95 % rule.
