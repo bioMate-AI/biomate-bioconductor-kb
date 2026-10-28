@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Retrospective closed loop on real measured permeability. Implements PREREG_LOOP.md exactly. usage: run_loop.py CycPeptMPDB.csv out.json"""
-import csv, sys, json, random, collections
+import csv, os, sys, json, random, collections
 import numpy as np
 from rdkit import Chem, RDLogger
 from rdkit.Chem import AllChem
@@ -10,11 +10,24 @@ RDLogger.DisableLog("rdApp.*")
 N_INIT, ROUNDS, BATCH, SEEDS, ENS, UCB_W = 100, 10, 50, 30, 5, 1.0
 
 
-def load(path):
+def morgan_counts(m, chiral=False):
+    """2,048-bin Morgan count fingerprint, radius 2. chiral=True encodes stereochemistry (PREREG_LOOP L5)."""
+    fp = np.zeros(2048, np.float32)
+    for i, c in AllChem.GetMorganFingerprint(m, 2, useChirality=bool(chiral)).GetNonzeroElements().items(): fp[i % 2048] += c
+    return fp
+
+
+def flat_key(m):
+    return Chem.MolToSmiles(m, isomericSmiles=False)
+
+
+def load(path, label_col=None, chiral=None):
+    label_col = label_col or os.environ.get("LABEL_COL", "Permeability")           # L5: PAMPA
+    chiral = (os.environ.get("FP_CHIRAL") == "1") if chiral is None else chiral        # L5: True
     rows = list(csv.DictReader(open(path, encoding="utf-8-sig", errors="replace")))
     by = collections.defaultdict(list)
     for r in rows:
-        try: y = float(r["Permeability"])
+        try: y = float(r[label_col])
         except (ValueError, KeyError): continue
         if y <= -9.99 or not r.get("PAMPA", "").strip() or not r.get("SMILES"): continue
         by[r["Structurally_Unique_ID"]].append(r)
@@ -22,11 +35,10 @@ def load(path):
     for k, rs in by.items():
         m = Chem.MolFromSmiles(rs[0]["SMILES"])
         if m is None: continue
-        fp = np.zeros(2048, np.float32)
-        for i, c in AllChem.GetMorganFingerprint(m, 2).GetNonzeroElements().items(): fp[i % 2048] += c
+        fp = morgan_counts(m, chiral)
         try: scaf = MurckoScaffold.MurckoScaffoldSmiles(mol=m)
         except Exception: scaf = rs[0]["SMILES"]
-        recs.append(dict(y=float(np.mean([float(r["Permeability"]) for r in rs])), x=fp, source=rs[0]["Source"], scaf=scaf, smiles=rs[0]["SMILES"]))
+        recs.append(dict(y=float(np.mean([float(r[label_col]) for r in rs])), x=fp, source=rs[0]["Source"], scaf=scaf, smiles=rs[0]["SMILES"], flat=flat_key(m)))
     return recs
 
 

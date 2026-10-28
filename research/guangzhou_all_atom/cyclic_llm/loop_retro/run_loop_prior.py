@@ -6,8 +6,8 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_loop as R, run_loop_par as P
 
-SEEDS = 30
-ARMS = ("random", "fp", "kn", "resid_nme", "resid_z", "fuse_nme", "fuse_z")
+SEEDS = int(os.environ.get("SEEDS_N", 30))      # smoke tests only; production = 30
+ARMS = ("random", "fp", "kn", "resid_nme", "resid_z", "fuse_nme", "fuse_z", "rule_nme", "rule_z")
 _G = {}
 
 
@@ -39,6 +39,8 @@ def run_prior_policy(mode, X, y, K, init, pool, thr, seed):
             score = rng.random(len(U))
         elif mode == "fp":
             ms = R.fit_ens(X[L], y[L], rng); score = np.mean([m.predict(X[U]) for m in ms], 0)
+        elif mode == "rule":           # zero-learning rule: rank by the knowledge signal alone, ties broken at random with the task seed (PREREG_LOOP L5)
+            score = K[U] + 1e-6 * rng.random(len(U))
         elif mode == "resid":
             kk = K[L]; v = kk.var(); a = float(np.cov(kk, y[L])[0, 1] / v) if v > 0 else 0.0; b = float(y[L].mean() - a * kk.mean())
             ms = R.fit_ens(X[L], y[L] - (a * kk + b), rng); score = a * K[U] + b + np.mean([m.predict(X[U]) for m in ms], 0)
@@ -51,7 +53,7 @@ def run_prior_policy(mode, X, y, K, init, pool, thr, seed):
 
 
 def run_task(task, X, y, Ks, srcs, scaf, thr):
-    arm, regime, seed = task; init, pool = P.setup(regime, seed, srcs, scaf, R.N_INIT)
+    arm, regime, seed = task; init, pool = P.setup(regime, seed, srcs, scaf, R.N_INIT, _G.get("flat"))
     mode = arm if arm in ("random", "fp", "kn") else arm.split("_")[0]; K = Ks[arm.split("_")[1]] if "_" in arm else None
     Xa = _G["Xkn"] if arm == "kn" else X
     tot, per = run_prior_policy("fp" if mode == "kn" else mode, Xa, y, K if K is not None else np.zeros(len(y)), init, pool, thr, seed)
@@ -90,4 +92,7 @@ if __name__ == "__main__":
     if KSRC: desc = np.stack([source_normalize(desc[:, j], srcs_l) for j in range(desc.shape[1])], 1).astype(np.float32)
     _G["Xkn"] = np.hstack([X, desc])
     print("n", len(recs), "y_norm threshold", round(thr, 3), flush=True)
-    run_all([(a, g, s) for s in range(SEEDS) for g in ("A", "B") for a in ARMS], X, y, Ks, srcs, scaf, thr, outdir, procs)
+    _G["flat"] = [r["flat"] for r in recs]
+    regimes = os.environ.get("REGIMES", "AB")
+    arms = [a for a in ARMS if a in os.environ.get("ARMS_ONLY", ",".join(ARMS)).split(",")]
+    run_all([(a, g, s) for s in range(SEEDS) for g in regimes for a in arms], X, y, Ks, srcs, scaf, thr, outdir, procs)

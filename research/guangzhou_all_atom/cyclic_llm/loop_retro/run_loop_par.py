@@ -12,10 +12,14 @@ POLICIES = ("random", "greedy", "ucb", "oracle")
 _G = {}
 
 
-def setup(regime, seed, srcs, scaf, n_init):
+def setup(regime, seed, srcs, scaf, n_init, flat=None):
     rng = random.Random(seed); n = len(srcs)
     if regime == "A":
         ids = list(range(n)); rng.shuffle(ids); return ids[:n_init], ids[n_init:]
+    if regime == "C":                      # PREREG_LOOP L5: in-distribution start, pool excludes stereo-free duplicates of the initial set
+        assert flat is not None, "regime C needs the flat-structure keys"
+        ids = list(range(n)); rng.shuffle(ids); init = ids[:n_init]; fl = {flat[i] for i in init}
+        return init, [i for i in ids[n_init:] if flat[i] not in fl]
     top2 = {s for s, _ in collections.Counter(srcs).most_common(2)}
     cand = [i for i in range(n) if srcs[i] in top2]; rng.shuffle(cand); init = cand[:n_init]
     sc = {scaf[i] for i in init}; ini = set(init)
