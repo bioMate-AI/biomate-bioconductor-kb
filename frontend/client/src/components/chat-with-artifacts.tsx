@@ -821,8 +821,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         invocationId: currentRun?.execution?.galaxyInvocationId,
         actualTimeSec: currentRun?.execution?.nextflowStatus?.duration_s ?? undefined,
       })
-      // Delay survey 8s so users can see the completion state / download panel first
-      setTimeout(() => setShowPostRunSurvey(true), 8000)
+      // Auto-open commented out 2026-10-28 (user request): the survey popped over the
+      // after-run Summary and hid the results (incl. a $29/mo willingness-to-pay prompt).
+      // The context is still prepared above so the survey can be re-enabled as an
+      // unobtrusive toast / explicit "Rate this run" affordance that does NOT cover results.
+      // setTimeout(() => setShowPostRunSurvey(true), 8000)
     }
   }, [currentRun?.id, currentRun?.execution?.status, currentRun?.execution?.galaxyInvocationId])
 

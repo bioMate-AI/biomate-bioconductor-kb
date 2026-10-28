@@ -2242,6 +2242,7 @@ export function ChatInterface({
                     <FindingsCard
                       runId={currentExecutionRun.id}
                       onContinueAnalysis={(suggestion) => handleSendOrQueue(suggestion)}
+                      preview
                     />
                   </div>
                 )}

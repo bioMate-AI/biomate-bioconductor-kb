@@ -769,6 +769,7 @@ export function ChatMessage({
                   runId={currentExecutionRun?.id}
                   executionStatus={currentExecutionRun?.execution?.status}
                   onOpenOutput={() => onOpenInPanel?.({ tab: 'outputs' })}
+                  preview
                 />
               </div>
               {/* Per-tab deep links. The run status + "Open run" already live on the

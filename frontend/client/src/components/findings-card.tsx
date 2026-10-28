@@ -44,6 +44,14 @@ interface FindingsCardProps {
    * source_file path) the number was read from, so the parent can open it.
    */
   onOpenOutput?: (ref: string) => void
+  /**
+   * Chat vs panel. In `preview` mode (the chat stream) the card is a PREVIEW:
+   * verdict + headline chips + the deep-links to the full result in Outputs/Summary —
+   * the full Key Results table stays collapsed (the authoritative table lives in the
+   * panel). Default (panel) shows the full table expanded. (User: "preview in chat,
+   * link to full result in output".)
+   */
+  preview?: boolean
 }
 
 /**
@@ -93,12 +101,13 @@ export function linkifyFindings(
   })
 }
 
-export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpenOutput }: FindingsCardProps) {
+export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpenOutput, preview }: FindingsCardProps) {
   const [data, setData] = useState<FindingsData | null>(null)
   const [loading, setLoading] = useState(true)
-  // Preview the Key Results table by default (don't hide the content behind a
-  // click) — users can still collapse it. The headline chips remain a fast glance.
-  const [resultsExpanded, setResultsExpanded] = useState(true)
+  // In the panel, preview the Key Results table expanded (the authoritative result).
+  // In chat `preview` mode it starts COLLAPSED — chat shows verdict + chips + the
+  // "Full table in Summary / Files in Outputs" links, not the full table.
+  const [resultsExpanded, setResultsExpanded] = useState(!preview)
   const [citationsExpanded, setCitationsExpanded] = useState(false)
 
   const runFailed = executionStatus === 'failed' || executionStatus === 'error'
@@ -283,9 +292,9 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
             >
               {tOr('panel.findings.key_results', 'Key Results')}
               {multiEntity && <span className="opacity-70">{tOr('panel.findings.per_entity', '(per compound)')}</span>}
-              {(resultsExpanded || multiEntity) ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              {(resultsExpanded || (multiEntity && !preview)) ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
-            {(resultsExpanded || multiEntity) && (
+            {(resultsExpanded || (multiEntity && !preview)) && (
               <div className="overflow-x-auto">
                 <table className="text-xs w-full border-collapse">
                   <thead>
