@@ -20,7 +20,15 @@
   "FL5_loop_results.pdf": "35555d474aa5d7c907ff4e5cf3ae108c4f9da869600d92738c78a632f403dc2e",
   "FL5_loop_results.png": "3ae2720b83836869feb890fee7866934d8a8e567d984c5f1f4fcf94ea1604199",
   "F5_controls_partial.pdf": "303a3f3dba806be77ef01bbf28c2ba036c085c5a214bb3ed882c25c18feef56d",
-  "F5_controls_partial.png": "e5f7cd4683efe76c5bfdba43914a6e691fad632b4e46a3cda309b337d090cb28"
+  "F5_controls_partial.png": "e5f7cd4683efe76c5bfdba43914a6e691fad632b4e46a3cda309b337d090cb28",
+  "tables/T6_model_comparison.csv": "39c215d634f4766c45d2a6da7254d52c04b9edbcb6c6d8e73cd643b8c9a742cd",
+  "tables/T5_L5_loop.md": "356e644974a342436faf70d124ea549247206afade5e9f42737e8af3e9808832",
+  "tables/T_loops_classification.csv": "5c7c9009fb79e14fe1f1c2c0227d1c215762cb87d1864008d671d5208fdee9f2",
+  "tables/T7_benchmark_results.md": "8474fb1b66bed8857af90e7b99aca8655f0edf423890995148f77e567f7ea6cb",
+  "tables/T6_model_comparison.md": "515d3266c037c03508113739614d5b637546697e3c237ce444ca7e41c80f0f9f",
+  "tables/T_loops_classification.md": "f89d057e53d29388260fd5f72c65b59b6f7a9982ade78ab52bc15693896f09f0",
+  "tables/T7_benchmark_results.csv": "d80777cdb203ad3e4906cecd86c36b41c84e5f6a6886f46f2832af255b07f380",
+  "tables/T5_L5_loop.csv": "5df8dd1fba1129eea44d0a1842162801c952fe3a88c6fdb86c084d1e71b71a10"
  },
  "sources": {
   "F2_dataset_structure": "`annotations.csv.gz`@2fe624487 (HEAD version used; working tree differs); `l5_label_audit.json`@d8d87601e",

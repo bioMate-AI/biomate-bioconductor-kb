@@ -1,0 +1,59 @@
+**T6. Model comparison in the loop replay (yield over the sub protocol; mean [95% seed-bootstrap CI]; paired seeds)**
+
+| model             | regime   | loop yield (sub protocol)   | loop + K_phys               | frozen                      | shuffled-label control   | status               |
+|:------------------|:---------|:----------------------------|:----------------------------|:----------------------------|:-------------------------|:---------------------|
+| gbm_aware         | A        | 86.0 [81.9, 90.1] (n=10)    | 90.7 [87.1, 94.3] (n=10)    | 78.0 [73.4, 82.4] (n=10)    | 64.7 [59.4, 70.5] (n=10) | n>=8                 |
+| gbm_aware         | B        | 25.3 [22.8, 27.5] (n=10)    | 30.1 [27.7, 32.6] (n=10)    | 23.8 [21.3, 26.4] (n=10)    | 24.4 [22.2, 26.2] (n=10) | n>=8                 |
+| gbm_aware         | L        | 120.0 [113.1, 126.5] (n=10) | 118.6 [113.6, 124.1] (n=10) | 111.6 [105.3, 117.8] (n=10) | 90.7 [84.8, 97.1] (n=10) | n>=8                 |
+| gbm_blind         | A        | 87.4 [83.4, 91.0] (n=10)    | 89.8 [86.0, 93.8] (n=10)    | 78.9 [74.8, 82.6] (n=10)    | 63.8 [60.7, 67.6] (n=10) | n>=8                 |
+| gbm_blind         | B        | 27.7 [23.9, 31.4] (n=10)    | 32.6 [30.0, 35.1] (n=10)    | 26.3 [22.8, 29.9] (n=10)    | 26.3 [24.2, 28.5] (n=10) | n>=8                 |
+| gbm_blind         | L        | 119.6 [113.2, 126.4] (n=10) | 119.5 [114.0, 125.2] (n=10) | 116.5 [111.0, 122.8] (n=10) | 86.9 [82.0, 91.9] (n=10) | n>=8                 |
+| gbm_physchem      | A        | 88.5 [84.9, 92.8] (n=10)    | 89.7 [84.9, 95.2] (n=10)    | 87.6 [82.7, 92.3] (n=10)    | 68.4 [61.5, 74.5] (n=10) | n>=8                 |
+| gbm_physchem      | B        | 30.5 [27.9, 33.0] (n=10)    | 32.2 [29.1, 35.2] (n=10)    | 27.3 [24.4, 30.4] (n=10)    | 24.6 [21.8, 27.4] (n=10) | n>=8                 |
+| gbm_physchem      | L        | 115.0 [108.6, 121.7] (n=10) | 114.2 [108.9, 119.5] (n=10) | 111.9 [106.3, 117.4] (n=10) | 92.9 [86.7, 99.5] (n=10) | n>=8                 |
+| knn               | A        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| knn               | B        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| knn               | L        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| gp_tanimoto       | A        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| gp_tanimoto       | B        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| gp_tanimoto       | L        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| atom_lm_P0        | A        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| atom_lm_P0        | B        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| atom_lm_P0        | L        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| chemberta         | A        | 80.3 [77.0, 83.0] (n=3)     | 81.7 [75.0, 86.0] (n=3)     | 76.3 [71.0, 79.0] (n=3)     | 70.3 [58.0, 80.0] (n=3)  | inconclusive (power) |
+| chemberta         | B        | 29.7 [25.0, 34.0] (n=3)     | 30.7 [28.0, 33.0] (n=3)     | 24.3 [22.0, 27.0] (n=3)     | 24.0 [16.0, 32.0] (n=3)  | inconclusive (power) |
+| chemberta         | L        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R0           | A        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R0           | B        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R0           | L        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R1           | A        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R1           | B        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R1           | L        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R2           | A        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R2           | B        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R2           | L        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R3           | A        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R3           | B        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R3           | L        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R4           | A        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R4           | B        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| ihlm_R4           | L        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| peptideclm2_base  | A        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| peptideclm2_base  | B        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| peptideclm2_base  | L        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| peptideclm2_large | A        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| peptideclm2_large | B        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| peptideclm2_large | L        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| chemfm_1b         | A        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| chemfm_1b         | B        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| chemfm_1b         | L        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| smi_ted           | A        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| smi_ted           | B        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| smi_ted           | L        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| esm2_650m         | A        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| esm2_650m         | B        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+| esm2_650m         | L        | PENDING                     | PENDING                     | PENDING                     | PENDING                  | no result yet        |
+
+Only models with entries in l7_aggregate.json are filled; all others are PENDING. Regimes A in-distribution, B scaffold-shifted, L leave-labs-out. A result needs ≥ 8 paired seeds (n shown) before any claim. Exploratory general-purpose-LLM arms (Haiku 5.5, Gemini 3.1 Flash-Lite; cheap tier, 4 seeds) are in the supplement, not here.
+
+Sources: research/guangzhou_all_atom/cyclic_llm/loop_retro/results/l7_aggregate.json@ab35481bb
