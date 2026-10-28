@@ -2,6 +2,2154 @@
  "version": "L7 aggregate",
  "note": "paired by (regime, seed); percentile bootstrap over seeds; regimes never pooled; PAMPA permeability of cyclic peptides only",
  "small": {
+  "chemberta|A": {
+   "n_seeds": 3,
+   "yield_total": {
+    "frozen": {
+     "n": 3,
+     "mean": 159.3333,
+     "ci": [
+      144.0,
+      170.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "frozen_sub": {
+     "n": 3,
+     "mean": 76.3333,
+     "ci": [
+      71.0,
+      79.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop": {
+     "n": 3,
+     "mean": 177.0,
+     "ci": [
+      173.0,
+      184.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_contra_sub": {
+     "n": 3,
+     "mean": 72.6667,
+     "ci": [
+      69.0,
+      78.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_sub": {
+     "n": 3,
+     "mean": 83.6667,
+     "ci": [
+      79.0,
+      86.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_contra_sub": {
+     "n": 3,
+     "mean": 74.6667,
+     "ci": [
+      69.0,
+      80.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub": {
+     "n": 3,
+     "mean": 81.6667,
+     "ci": [
+      75.0,
+      86.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kshuf_sub": {
+     "n": 3,
+     "mean": 77.6667,
+     "ci": [
+      72.0,
+      81.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_sub": {
+     "n": 3,
+     "mean": 80.3333,
+     "ci": [
+      77.0,
+      83.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "noisy_sub": {
+     "n": 3,
+     "mean": 77.6667,
+     "ci": [
+      68.0,
+      83.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "one_shot": {
+     "n": 0,
+     "mean": null,
+     "ci": null,
+     "ci_level_pct": 95.0
+    },
+    "random_fb": {
+     "n": 3,
+     "mean": 43.6667,
+     "ci": [
+      39.0,
+      49.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled": {
+     "n": 3,
+     "mean": 113.6667,
+     "ci": [
+      91.0,
+      137.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled_sub": {
+     "n": 3,
+     "mean": 70.3333,
+     "ci": [
+      58.0,
+      80.0
+     ],
+     "ci_level_pct": 95.0
+    }
+   },
+   "yield_5rounds": {
+    "frozen": {
+     "n": 3,
+     "mean": 90.6667,
+     "ci": [
+      78.0,
+      111.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "frozen_sub": {
+     "n": 3,
+     "mean": 37.6667,
+     "ci": [
+      31.0,
+      45.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop": {
+     "n": 3,
+     "mean": 116.6667,
+     "ci": [
+      110.0,
+      128.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_contra_sub": {
+     "n": 3,
+     "mean": 32.6667,
+     "ci": [
+      30.0,
+      35.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_sub": {
+     "n": 3,
+     "mean": 41.3333,
+     "ci": [
+      37.0,
+      47.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_contra_sub": {
+     "n": 3,
+     "mean": 32.6667,
+     "ci": [
+      27.0,
+      39.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub": {
+     "n": 3,
+     "mean": 39.6667,
+     "ci": [
+      35.0,
+      45.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kshuf_sub": {
+     "n": 3,
+     "mean": 36.0,
+     "ci": [
+      28.0,
+      42.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_sub": {
+     "n": 3,
+     "mean": 38.3333,
+     "ci": [
+      31.0,
+      46.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "noisy_sub": {
+     "n": 3,
+     "mean": 38.0,
+     "ci": [
+      29.0,
+      45.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "one_shot": {
+     "n": 0,
+     "mean": null,
+     "ci": null,
+     "ci_level_pct": 95.0
+    },
+    "random_fb": {
+     "n": 3,
+     "mean": 22.3333,
+     "ci": [
+      21.0,
+      24.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled": {
+     "n": 3,
+     "mean": 83.0,
+     "ci": [
+      71.0,
+      105.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled_sub": {
+     "n": 3,
+     "mean": 36.3333,
+     "ci": [
+      29.0,
+      45.0
+     ],
+     "ci_level_pct": 95.0
+    }
+   },
+   "E_auroc_gain": {
+    "frozen": {
+     "n": 3,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "frozen_sub": {
+     "n": 3,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop": {
+     "n": 3,
+     "mean": 0.0291,
+     "ci": [
+      0.013,
+      0.0482
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_contra_sub": {
+     "n": 3,
+     "mean": 0.0313,
+     "ci": [
+      0.0268,
+      0.0339
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_sub": {
+     "n": 3,
+     "mean": 0.0324,
+     "ci": [
+      0.0274,
+      0.0359
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_contra_sub": {
+     "n": 3,
+     "mean": 0.0284,
+     "ci": [
+      0.022,
+      0.0383
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub": {
+     "n": 3,
+     "mean": 0.0348,
+     "ci": [
+      0.031,
+      0.0396
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kshuf_sub": {
+     "n": 3,
+     "mean": 0.0353,
+     "ci": [
+      0.0347,
+      0.036
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_sub": {
+     "n": 3,
+     "mean": 0.0363,
+     "ci": [
+      0.03,
+      0.0414
+     ],
+     "ci_level_pct": 95.0
+    },
+    "noisy_sub": {
+     "n": 3,
+     "mean": 0.0305,
+     "ci": [
+      0.0272,
+      0.0323
+     ],
+     "ci_level_pct": 95.0
+    },
+    "one_shot": {
+     "n": 3,
+     "mean": 0.0267,
+     "ci": [
+      0.0181,
+      0.0424
+     ],
+     "ci_level_pct": 95.0
+    },
+    "random_fb": {
+     "n": 3,
+     "mean": 0.0276,
+     "ci": [
+      0.0154,
+      0.0441
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled": {
+     "n": 3,
+     "mean": -0.1013,
+     "ci": [
+      -0.1199,
+      -0.0762
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled_sub": {
+     "n": 3,
+     "mean": -0.073,
+     "ci": [
+      -0.1546,
+      -0.0255
+     ],
+     "ci_level_pct": 95.0
+    }
+   },
+   "E_ef5_gain": {
+    "frozen": {
+     "n": 3,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "frozen_sub": {
+     "n": 3,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop": {
+     "n": 3,
+     "mean": 1.7198,
+     "ci": [
+      1.1236,
+      2.2857
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_contra_sub": {
+     "n": 3,
+     "mean": 1.9613,
+     "ci": [
+      1.3483,
+      2.2857
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_sub": {
+     "n": 3,
+     "mean": 1.2842,
+     "ci": [
+      0.6742,
+      1.75
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_contra_sub": {
+     "n": 3,
+     "mean": 1.9613,
+     "ci": [
+      1.3483,
+      2.2857
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub": {
+     "n": 3,
+     "mean": 1.126,
+     "ci": [
+      0.4494,
+      1.5
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kshuf_sub": {
+     "n": 3,
+     "mean": 1.2639,
+     "ci": [
+      0.8989,
+      1.75
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_sub": {
+     "n": 3,
+     "mean": 1.5581,
+     "ci": [
+      0.6742,
+      2.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "noisy_sub": {
+     "n": 3,
+     "mean": 0.5511,
+     "ci": [
+      -0.5714,
+      2.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "one_shot": {
+     "n": 3,
+     "mean": 1.3914,
+     "ci": [
+      0.6742,
+      2.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "random_fb": {
+     "n": 3,
+     "mean": 0.9524,
+     "ci": [
+      0.0,
+      2.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled": {
+     "n": 3,
+     "mean": -2.5452,
+     "ci": [
+      -3.0,
+      -1.7143
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled_sub": {
+     "n": 3,
+     "mean": -2.2337,
+     "ci": [
+      -3.4286,
+      -1.25
+     ],
+     "ci_level_pct": 95.0
+    }
+   },
+   "stereo": {
+    "frozen": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0158,
+      "ci": [
+       -0.0257,
+       0.0653
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0199,
+      "ci": [
+       -0.0128,
+       0.0691
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "frozen_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0158,
+      "ci": [
+       -0.0257,
+       0.0653
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.019,
+      "ci": [
+       -0.0128,
+       0.0691
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "loop": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.032,
+      "ci": [
+       0.01,
+       0.0543
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0265,
+      "ci": [
+       0.009,
+       0.0385
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "loop_kn_contra_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0119,
+      "ci": [
+       -0.0138,
+       0.0451
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": -0.0022,
+      "ci": [
+       -0.0142,
+       0.0147
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "loop_kn_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0306,
+      "ci": [
+       -0.0025,
+       0.0784
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0224,
+      "ci": [
+       -0.0161,
+       0.071
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "loop_kphys_contra_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0056,
+      "ci": [
+       -0.0245,
+       0.0379
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0222,
+      "ci": [
+       -0.004,
+       0.0533
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "loop_kphys_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0294,
+      "ci": [
+       0.0033,
+       0.0655
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0313,
+      "ci": [
+       0.0193,
+       0.0501
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "loop_kshuf_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0379,
+      "ci": [
+       0.0151,
+       0.0731
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0447,
+      "ci": [
+       0.0037,
+       0.0731
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "loop_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.029,
+      "ci": [
+       0.011,
+       0.0601
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0131,
+      "ci": [
+       -0.0035,
+       0.0426
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "noisy_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0388,
+      "ci": [
+       0.0076,
+       0.0552
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0432,
+      "ci": [
+       0.0036,
+       0.0733
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "one_shot": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0288,
+      "ci": [
+       0.0055,
+       0.0515
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0408,
+      "ci": [
+       0.0123,
+       0.069
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "random_fb": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0054,
+      "ci": [
+       -0.0265,
+       0.0419
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0031,
+      "ci": [
+       -0.0336,
+       0.0301
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "shuffled": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0275,
+      "ci": [
+       0.0166,
+       0.0336
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0173,
+      "ci": [
+       -0.0027,
+       0.0327
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "shuffled_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0181,
+      "ci": [
+       -0.0041,
+       0.0416
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.023,
+      "ci": [
+       0.0169,
+       0.0352
+      ],
+      "ci_level_pct": 95.0
+     }
+    }
+   },
+   "contrasts": {
+    "loop - random_fb [yield]": {
+     "n": 3,
+     "mean": 133.3333,
+     "ci": [
+      130.0,
+      135.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop - frozen [yield]": {
+     "n": 3,
+     "mean": 17.6667,
+     "ci": [
+      9.0,
+      30.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop - shuffled [yield]": {
+     "n": 3,
+     "mean": 63.3333,
+     "ci": [
+      47.0,
+      83.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - frozen_sub [yield]": {
+     "n": 3,
+     "mean": 4.0,
+     "ci": [
+      2.0,
+      6.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - shuffled_sub [yield]": {
+     "n": 3,
+     "mean": 10.0,
+     "ci": [
+      1.0,
+      19.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_sub [yield]": {
+     "n": 3,
+     "mean": 1.3333,
+     "ci": [
+      -2.0,
+      3.0
+     ],
+     "ci_level_pct": 99.0
+    },
+    "loop_kphys_contra_sub - loop_sub [yield]": {
+     "n": 3,
+     "mean": -5.6667,
+     "ci": [
+      -8.0,
+      -1.0
+     ],
+     "ci_level_pct": 99.0
+    },
+    "loop_kshuf_sub - loop_sub [yield]": {
+     "n": 3,
+     "mean": -2.6667,
+     "ci": [
+      -5.0,
+      -1.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_kshuf_sub [yield]": {
+     "n": 3,
+     "mean": 4.0,
+     "ci": [
+      3.0,
+      5.0
+     ],
+     "ci_level_pct": 99.0
+    },
+    "loop_kn_sub - loop_sub [yield]": {
+     "n": 3,
+     "mean": 3.3333,
+     "ci": [
+      2.0,
+      5.0
+     ],
+     "ci_level_pct": 99.0
+    },
+    "noisy_sub - shuffled_sub [yield]": {
+     "n": 3,
+     "mean": 7.3333,
+     "ci": [
+      3.0,
+      10.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop - one_shot [E_auroc_gain]": {
+     "n": 3,
+     "mean": 0.0023,
+     "ci": [
+      -0.0051,
+      0.0063
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop - random_fb [E_auroc_gain]": {
+     "n": 3,
+     "mean": 0.0014,
+     "ci": [
+      -0.0024,
+      0.0041
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - shuffled_sub [E_auroc_gain]": {
+     "n": 3,
+     "mean": 0.1093,
+     "ci": [
+      0.0629,
+      0.1959
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_sub [E_auroc_gain]": {
+     "n": 3,
+     "mean": -0.0014,
+     "ci": [
+      -0.0104,
+      0.0096
+     ],
+     "ci_level_pct": 99.0
+    },
+    "loop_kphys_sub - loop_kshuf_sub [E_auroc_gain]": {
+     "n": 3,
+     "mean": -0.0005,
+     "ci": [
+      -0.0037,
+      0.0043
+     ],
+     "ci_level_pct": 99.0
+    }
+   },
+   "controls": {
+    "shuffled": {
+     "auroc_E_gain": {
+      "n": 3,
+      "mean": -0.1013,
+      "ci": [
+       -0.1199,
+       -0.0762
+      ],
+      "ci_level_pct": 95.0
+     },
+     "passes": true
+    },
+    "shuffled_sub": {
+     "auroc_E_gain": {
+      "n": 3,
+      "mean": -0.073,
+      "ci": [
+       -0.1546,
+       -0.0255
+      ],
+      "ci_level_pct": 95.0
+     },
+     "passes": true
+    },
+    "frozen": {
+     "auroc_E_gain": {
+      "n": 3,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "ci_level_pct": 95.0
+     },
+     "passes": true
+    },
+    "frozen_sub": {
+     "auroc_E_gain": {
+      "n": 3,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "ci_level_pct": 95.0
+     },
+     "passes": true
+    }
+   },
+   "claim_C1_loop_beats_random_feedback_yield": {
+    "n": 3,
+    "mean": 133.3333,
+    "ci": [
+     130.0,
+     135.0
+    ],
+    "ci_level_pct": 95.0
+   },
+   "status": "inconclusive (power)",
+   "contrasts_cluster": {
+    "loop - random_fb [E source-rho]": {
+     "n_sources": 5,
+     "n_seeds": 3,
+     "mean": -0.1268,
+     "ci_cluster": [
+      -0.2403,
+      -0.0442
+     ],
+     "ci_seed_only": [
+      -0.3175,
+      0.0008
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster); ci_seed_only = bootstrap over seeds, sources fixed, same statistic recomputed",
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - shuffled_sub [E source-rho]": {
+     "n_sources": 5,
+     "n_seeds": 3,
+     "mean": 0.1478,
+     "ci_cluster": [
+      0.0843,
+      0.2162
+     ],
+     "ci_seed_only": [
+      0.1134,
+      0.1846
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster); ci_seed_only = bootstrap over seeds, sources fixed, same statistic recomputed",
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - frozen_sub [E source-rho]": {
+     "n_sources": 5,
+     "n_seeds": 3,
+     "mean": 0.0743,
+     "ci_cluster": [
+      0.0581,
+      0.0952
+     ],
+     "ci_seed_only": [
+      0.0586,
+      0.0911
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster); ci_seed_only = bootstrap over seeds, sources fixed, same statistic recomputed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_sub [E source-rho]": {
+     "n_sources": 5,
+     "n_seeds": 3,
+     "mean": 0.0255,
+     "ci_cluster": [
+      0.005,
+      0.0468
+     ],
+     "ci_seed_only": [
+      0.0039,
+      0.0514
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster); ci_seed_only = bootstrap over seeds, sources fixed, same statistic recomputed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_kshuf_sub [E source-rho]": {
+     "n_sources": 5,
+     "n_seeds": 3,
+     "mean": 0.0206,
+     "ci_cluster": [
+      -0.0006,
+      0.0412
+     ],
+     "ci_seed_only": [
+      0.005,
+      0.0303
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster); ci_seed_only = bootstrap over seeds, sources fixed, same statistic recomputed",
+     "ci_level_pct": 95.0
+    }
+   }
+  },
+  "chemberta|B": {
+   "n_seeds": 3,
+   "yield_total": {
+    "frozen": {
+     "n": 3,
+     "mean": 19.0,
+     "ci": [
+      16.0,
+      24.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "frozen_sub": {
+     "n": 3,
+     "mean": 24.3333,
+     "ci": [
+      22.0,
+      27.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop": {
+     "n": 3,
+     "mean": 29.3333,
+     "ci": [
+      28.0,
+      31.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_contra_sub": {
+     "n": 3,
+     "mean": 29.0,
+     "ci": [
+      26.0,
+      32.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_sub": {
+     "n": 3,
+     "mean": 29.0,
+     "ci": [
+      24.0,
+      32.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_contra_sub": {
+     "n": 3,
+     "mean": 23.0,
+     "ci": [
+      20.0,
+      26.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub": {
+     "n": 3,
+     "mean": 30.6667,
+     "ci": [
+      28.0,
+      33.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kshuf_sub": {
+     "n": 3,
+     "mean": 28.6667,
+     "ci": [
+      25.0,
+      31.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_sub": {
+     "n": 3,
+     "mean": 29.6667,
+     "ci": [
+      25.0,
+      34.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "noisy_sub": {
+     "n": 3,
+     "mean": 28.3333,
+     "ci": [
+      24.0,
+      31.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "one_shot": {
+     "n": 0,
+     "mean": null,
+     "ci": null,
+     "ci_level_pct": 95.0
+    },
+    "random_fb": {
+     "n": 3,
+     "mean": 22.6667,
+     "ci": [
+      22.0,
+      24.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled": {
+     "n": 3,
+     "mean": 27.0,
+     "ci": [
+      20.0,
+      37.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled_sub": {
+     "n": 3,
+     "mean": 24.0,
+     "ci": [
+      16.0,
+      32.0
+     ],
+     "ci_level_pct": 95.0
+    }
+   },
+   "yield_5rounds": {
+    "frozen": {
+     "n": 3,
+     "mean": 8.3333,
+     "ci": [
+      2.0,
+      12.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "frozen_sub": {
+     "n": 3,
+     "mean": 12.6667,
+     "ci": [
+      12.0,
+      14.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop": {
+     "n": 3,
+     "mean": 17.3333,
+     "ci": [
+      12.0,
+      23.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_contra_sub": {
+     "n": 3,
+     "mean": 16.0,
+     "ci": [
+      13.0,
+      18.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_sub": {
+     "n": 3,
+     "mean": 16.6667,
+     "ci": [
+      13.0,
+      19.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_contra_sub": {
+     "n": 3,
+     "mean": 10.0,
+     "ci": [
+      9.0,
+      11.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub": {
+     "n": 3,
+     "mean": 18.3333,
+     "ci": [
+      17.0,
+      21.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kshuf_sub": {
+     "n": 3,
+     "mean": 16.0,
+     "ci": [
+      13.0,
+      18.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_sub": {
+     "n": 3,
+     "mean": 15.6667,
+     "ci": [
+      13.0,
+      17.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "noisy_sub": {
+     "n": 3,
+     "mean": 15.6667,
+     "ci": [
+      14.0,
+      17.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "one_shot": {
+     "n": 0,
+     "mean": null,
+     "ci": null,
+     "ci_level_pct": 95.0
+    },
+    "random_fb": {
+     "n": 3,
+     "mean": 10.6667,
+     "ci": [
+      10.0,
+      12.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled": {
+     "n": 3,
+     "mean": 14.3333,
+     "ci": [
+      13.0,
+      15.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled_sub": {
+     "n": 3,
+     "mean": 14.6667,
+     "ci": [
+      11.0,
+      18.0
+     ],
+     "ci_level_pct": 95.0
+    }
+   },
+   "E_auroc_gain": {
+    "frozen": {
+     "n": 3,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "frozen_sub": {
+     "n": 3,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop": {
+     "n": 3,
+     "mean": 0.0682,
+     "ci": [
+      0.0272,
+      0.1025
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_contra_sub": {
+     "n": 3,
+     "mean": 0.0908,
+     "ci": [
+      0.0377,
+      0.1716
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_sub": {
+     "n": 3,
+     "mean": 0.0922,
+     "ci": [
+      0.068,
+      0.1344
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_contra_sub": {
+     "n": 3,
+     "mean": 0.0698,
+     "ci": [
+      0.0476,
+      0.1099
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub": {
+     "n": 3,
+     "mean": 0.0987,
+     "ci": [
+      0.0478,
+      0.1677
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kshuf_sub": {
+     "n": 3,
+     "mean": 0.0922,
+     "ci": [
+      0.0502,
+      0.1444
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_sub": {
+     "n": 3,
+     "mean": 0.0925,
+     "ci": [
+      0.0602,
+      0.1503
+     ],
+     "ci_level_pct": 95.0
+    },
+    "noisy_sub": {
+     "n": 3,
+     "mean": 0.083,
+     "ci": [
+      0.0575,
+      0.1042
+     ],
+     "ci_level_pct": 95.0
+    },
+    "one_shot": {
+     "n": 3,
+     "mean": 0.0596,
+     "ci": [
+      0.0395,
+      0.0773
+     ],
+     "ci_level_pct": 95.0
+    },
+    "random_fb": {
+     "n": 3,
+     "mean": 0.1524,
+     "ci": [
+      0.1427,
+      0.168
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled": {
+     "n": 3,
+     "mean": 0.0291,
+     "ci": [
+      -0.0239,
+      0.0894
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled_sub": {
+     "n": 3,
+     "mean": 0.0136,
+     "ci": [
+      -0.0248,
+      0.0338
+     ],
+     "ci_level_pct": 95.0
+    }
+   },
+   "E_ef5_gain": {
+    "frozen": {
+     "n": 3,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "frozen_sub": {
+     "n": 3,
+     "mean": 0.0,
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop": {
+     "n": 3,
+     "mean": 1.8334,
+     "ci": [
+      0.8889,
+      2.9091
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_contra_sub": {
+     "n": 3,
+     "mean": 1.476,
+     "ci": [
+      1.2766,
+      1.8182
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kn_sub": {
+     "n": 3,
+     "mean": 1.0585,
+     "ci": [
+      0.4444,
+      1.4545
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_contra_sub": {
+     "n": 3,
+     "mean": 0.7542,
+     "ci": [
+      0.0,
+      1.8182
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub": {
+     "n": 3,
+     "mean": 0.7479,
+     "ci": [
+      0.0,
+      1.8182
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kshuf_sub": {
+     "n": 3,
+     "mean": 0.7811,
+     "ci": [
+      0.0,
+      1.4545
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_sub": {
+     "n": 3,
+     "mean": 1.0711,
+     "ci": [
+      0.4255,
+      1.4545
+     ],
+     "ci_level_pct": 95.0
+    },
+    "noisy_sub": {
+     "n": 3,
+     "mean": 1.4348,
+     "ci": [
+      0.4255,
+      2.5455
+     ],
+     "ci_level_pct": 95.0
+    },
+    "one_shot": {
+     "n": 3,
+     "mean": 1.9878,
+     "ci": [
+      1.2766,
+      2.9091
+     ],
+     "ci_level_pct": 95.0
+    },
+    "random_fb": {
+     "n": 3,
+     "mean": 0.7811,
+     "ci": [
+      0.0,
+      1.4545
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled": {
+     "n": 3,
+     "mean": 0.5998,
+     "ci": [
+      -0.4444,
+      1.8182
+     ],
+     "ci_level_pct": 95.0
+    },
+    "shuffled_sub": {
+     "n": 3,
+     "mean": 0.7811,
+     "ci": [
+      0.0,
+      1.4545
+     ],
+     "ci_level_pct": 95.0
+    }
+   },
+   "stereo": {
+    "frozen": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0097,
+      "ci": [
+       -0.0167,
+       0.0303
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": -0.0099,
+      "ci": [
+       -0.0445,
+       0.0283
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "frozen_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0097,
+      "ci": [
+       -0.0167,
+       0.0303
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": -0.0099,
+      "ci": [
+       -0.0445,
+       0.0283
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "loop": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0314,
+      "ci": [
+       0.0165,
+       0.0548
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0268,
+      "ci": [
+       0.0014,
+       0.0627
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "loop_kn_contra_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0316,
+      "ci": [
+       -0.0167,
+       0.0801
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0294,
+      "ci": [
+       -0.0122,
+       0.0791
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "loop_kn_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0363,
+      "ci": [
+       0.0165,
+       0.0732
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0274,
+      "ci": [
+       0.0064,
+       0.0498
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "loop_kphys_contra_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0175,
+      "ci": [
+       -0.0172,
+       0.0732
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0212,
+      "ci": [
+       -0.0062,
+       0.0732
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "loop_kphys_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0476,
+      "ci": [
+       0.0177,
+       0.0752
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0421,
+      "ci": [
+       0.0015,
+       0.0752
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "loop_kshuf_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0322,
+      "ci": [
+       -0.0079,
+       0.0652
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0166,
+      "ci": [
+       -0.0358,
+       0.0752
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "loop_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0336,
+      "ci": [
+       0.0165,
+       0.0614
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0155,
+      "ci": [
+       -0.0124,
+       0.0683
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "noisy_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": -0.0021,
+      "ci": [
+       -0.0108,
+       0.0125
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": -0.0072,
+      "ci": [
+       -0.0397,
+       0.0254
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "one_shot": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0202,
+      "ci": [
+       -0.0188,
+       0.0627
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0073,
+      "ci": [
+       -0.0188,
+       0.0458
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "random_fb": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0112,
+      "ci": [
+       0.0008,
+       0.0184
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0056,
+      "ci": [
+       -0.0161,
+       0.0184
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "shuffled": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": 0.0102,
+      "ci": [
+       -0.0167,
+       0.0509
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": 0.0267,
+      "ci": [
+       -0.0042,
+       0.0577
+      ],
+      "ci_level_pct": 95.0
+     }
+    },
+    "shuffled_sub": {
+     "zero_sibling": {
+      "n": 3,
+      "mean": -0.0078,
+      "ci": [
+       -0.024,
+       0.0156
+      ],
+      "ci_level_pct": 95.0
+     },
+     "sar": {
+      "n": 3,
+      "mean": -0.0044,
+      "ci": [
+       -0.0197,
+       0.0215
+      ],
+      "ci_level_pct": 95.0
+     }
+    }
+   },
+   "contrasts": {
+    "loop - random_fb [yield]": {
+     "n": 3,
+     "mean": 6.6667,
+     "ci": [
+      4.0,
+      9.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop - frozen [yield]": {
+     "n": 3,
+     "mean": 10.3333,
+     "ci": [
+      4.0,
+      14.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop - shuffled [yield]": {
+     "n": 3,
+     "mean": 2.3333,
+     "ci": [
+      -9.0,
+      11.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - frozen_sub [yield]": {
+     "n": 3,
+     "mean": 5.3333,
+     "ci": [
+      1.0,
+      8.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - shuffled_sub [yield]": {
+     "n": 3,
+     "mean": 5.6667,
+     "ci": [
+      -2.0,
+      10.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_sub [yield]": {
+     "n": 3,
+     "mean": 1.0,
+     "ci": [
+      -3.0,
+      3.0
+     ],
+     "ci_level_pct": 99.0
+    },
+    "loop_kphys_contra_sub - loop_sub [yield]": {
+     "n": 3,
+     "mean": -6.6667,
+     "ci": [
+      -11.0,
+      -4.0
+     ],
+     "ci_level_pct": 99.0
+    },
+    "loop_kshuf_sub - loop_sub [yield]": {
+     "n": 3,
+     "mean": -1.0,
+     "ci": [
+      -3.0,
+      0.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_kshuf_sub [yield]": {
+     "n": 3,
+     "mean": 2.0,
+     "ci": [
+      0.0,
+      3.0
+     ],
+     "ci_level_pct": 99.0
+    },
+    "loop_kn_sub - loop_sub [yield]": {
+     "n": 3,
+     "mean": -0.6667,
+     "ci": [
+      -3.0,
+      2.0
+     ],
+     "ci_level_pct": 99.0
+    },
+    "noisy_sub - shuffled_sub [yield]": {
+     "n": 3,
+     "mean": 4.3333,
+     "ci": [
+      -2.0,
+      8.0
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop - one_shot [E_auroc_gain]": {
+     "n": 3,
+     "mean": 0.0086,
+     "ci": [
+      -0.0347,
+      0.0354
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop - random_fb [E_auroc_gain]": {
+     "n": 3,
+     "mean": -0.0842,
+     "ci": [
+      -0.1407,
+      -0.0402
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - shuffled_sub [E_auroc_gain]": {
+     "n": 3,
+     "mean": 0.0789,
+     "ci": [
+      0.0331,
+      0.1184
+     ],
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_sub [E_auroc_gain]": {
+     "n": 3,
+     "mean": 0.0063,
+     "ci": [
+      -0.0124,
+      0.0174
+     ],
+     "ci_level_pct": 99.0
+    },
+    "loop_kphys_sub - loop_kshuf_sub [E_auroc_gain]": {
+     "n": 3,
+     "mean": 0.0066,
+     "ci": [
+      -0.0341,
+      0.0305
+     ],
+     "ci_level_pct": 99.0
+    }
+   },
+   "controls": {
+    "shuffled": {
+     "auroc_E_gain": {
+      "n": 3,
+      "mean": 0.0291,
+      "ci": [
+       -0.0239,
+       0.0894
+      ],
+      "ci_level_pct": 95.0
+     },
+     "passes": true
+    },
+    "shuffled_sub": {
+     "auroc_E_gain": {
+      "n": 3,
+      "mean": 0.0136,
+      "ci": [
+       -0.0248,
+       0.0338
+      ],
+      "ci_level_pct": 95.0
+     },
+     "passes": true
+    },
+    "frozen": {
+     "auroc_E_gain": {
+      "n": 3,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "ci_level_pct": 95.0
+     },
+     "passes": true
+    },
+    "frozen_sub": {
+     "auroc_E_gain": {
+      "n": 3,
+      "mean": 0.0,
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "ci_level_pct": 95.0
+     },
+     "passes": true
+    }
+   },
+   "claim_C1_loop_beats_random_feedback_yield": {
+    "n": 3,
+    "mean": 6.6667,
+    "ci": [
+     4.0,
+     9.0
+    ],
+    "ci_level_pct": 95.0
+   },
+   "status": "inconclusive (power)",
+   "contrasts_cluster": {
+    "loop - random_fb [E source-rho]": {
+     "n_sources": 7,
+     "n_seeds": 3,
+     "mean": -0.1378,
+     "ci_cluster": [
+      -0.2222,
+      -0.0626
+     ],
+     "ci_seed_only": [
+      -0.1781,
+      -0.0772
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster); ci_seed_only = bootstrap over seeds, sources fixed, same statistic recomputed",
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - shuffled_sub [E source-rho]": {
+     "n_sources": 7,
+     "n_seeds": 3,
+     "mean": 0.1408,
+     "ci_cluster": [
+      0.0523,
+      0.2341
+     ],
+     "ci_seed_only": [
+      0.0737,
+      0.1924
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster); ci_seed_only = bootstrap over seeds, sources fixed, same statistic recomputed",
+     "ci_level_pct": 95.0
+    },
+    "loop_sub - frozen_sub [E source-rho]": {
+     "n_sources": 7,
+     "n_seeds": 3,
+     "mean": 0.111,
+     "ci_cluster": [
+      -0.0401,
+      0.2621
+     ],
+     "ci_seed_only": [
+      0.0917,
+      0.1368
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster); ci_seed_only = bootstrap over seeds, sources fixed, same statistic recomputed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_sub [E source-rho]": {
+     "n_sources": 7,
+     "n_seeds": 3,
+     "mean": 0.0297,
+     "ci_cluster": [
+      0.0089,
+      0.0514
+     ],
+     "ci_seed_only": [
+      -0.0006,
+      0.0514
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster); ci_seed_only = bootstrap over seeds, sources fixed, same statistic recomputed",
+     "ci_level_pct": 95.0
+    },
+    "loop_kphys_sub - loop_kshuf_sub [E source-rho]": {
+     "n_sources": 7,
+     "n_seeds": 3,
+     "mean": 0.0809,
+     "ci_cluster": [
+      0.0368,
+      0.1251
+     ],
+     "ci_seed_only": [
+      0.0395,
+      0.1217
+     ],
+     "interval_type": "bootstrap CI of the mean over SOURCES (cluster); ci_seed_only = bootstrap over seeds, sources fixed, same statistic recomputed",
+     "ci_level_pct": 95.0
+    }
+   }
+  },
   "gbm|A": {
    "n_seeds": 10,
    "yield_total": {
@@ -6806,6 +8954,106 @@
  },
  "controls": {},
  "noninferiority": {
+  "chemberta loop+K_phys (sub protocol) vs anthropic/claude-haiku-5.5 llm_kb | A": {
+   "n_pairs": 3,
+   "ratio": {
+    "n": 3,
+    "mean": 1.4316,
+    "ci": [
+     1.3235,
+     1.625
+    ],
+    "ci_level_pct": 95.0
+   },
+   "diff": {
+    "n": 3,
+    "mean": 11.6667,
+    "ci": [
+     9.0,
+     15.0
+    ],
+    "ci_level_pct": 95.0
+   },
+   "rule": "non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
+   "non_inferior": false,
+   "superior": false,
+   "status": "inconclusive (power)"
+  },
+  "chemberta loop+K_phys (sub protocol) vs google/gemini-3.1-flash-lite llm_kb | A": {
+   "n_pairs": 3,
+   "ratio": {
+    "n": 3,
+    "mean": 2.0492,
+    "ci": [
+     1.7727,
+     2.5
+    ],
+    "ci_level_pct": 95.0
+   },
+   "diff": {
+    "n": 3,
+    "mean": 19.6667,
+    "ci": [
+     17.0,
+     21.0
+    ],
+    "ci_level_pct": 95.0
+   },
+   "rule": "non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
+   "non_inferior": false,
+   "superior": false,
+   "status": "inconclusive (power)"
+  },
+  "chemberta loop+K_phys (sub protocol) vs anthropic/claude-haiku-5.5 llm_kb | B": {
+   "n_pairs": 3,
+   "ratio": {
+    "n": 3,
+    "mean": 1.3317,
+    "ci": [
+     1.2143,
+     1.5455
+    ],
+    "ci_level_pct": 95.0
+   },
+   "diff": {
+    "n": 3,
+    "mean": 4.3333,
+    "ci": [
+     3.0,
+     6.0
+    ],
+    "ci_level_pct": 95.0
+   },
+   "rule": "non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
+   "non_inferior": false,
+   "superior": false,
+   "status": "inconclusive (power)"
+  },
+  "chemberta loop+K_phys (sub protocol) vs google/gemini-3.1-flash-lite llm_kb | B": {
+   "n_pairs": 3,
+   "ratio": {
+    "n": 3,
+    "mean": 2.0067,
+    "ci": [
+     1.3077,
+     3.4
+    ],
+    "ci_level_pct": 95.0
+   },
+   "diff": {
+    "n": 3,
+    "mean": 7.0,
+    "ci": [
+     4.0,
+     12.0
+    ],
+    "ci_level_pct": 95.0
+   },
+   "rule": "non-inferior iff lower 95% bound of mean ratio > 0.90; superior iff lower bound of diff > 0; claims need >= 8 pairs per regime",
+   "non_inferior": false,
+   "superior": false,
+   "status": "inconclusive (power)"
+  },
   "gbm loop+K_phys (sub protocol) vs anthropic/claude-haiku-5.5 llm_kb | A": {
    "n_pairs": 4,
    "ratio": {
@@ -7058,7 +9306,7 @@
   }
  },
  "inputs": {
-  "n_files": 110,
-  "sha256": "8e5f4e0695d59d6b6e8f9eaf614858260bc26ce7ab5f52c36ae54e9519592529"
+  "n_files": 116,
+  "sha256": "9706ce465f84b55ab6444e908f14be8d8b87f48f5fd57549a55684224ae58e9f"
  }
 }
