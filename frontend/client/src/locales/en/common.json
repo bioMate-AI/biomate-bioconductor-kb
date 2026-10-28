@@ -291,6 +291,7 @@
     "view_plot": "Plot",
     "columns_future": "Per-column profiling (type, % missing, distinct) is coming. For now, open the file in Jupyter or ask in chat to inspect columns.",
     "plot_future": "No distributions to plot inline yet. Open the file in Jupyter/RStudio or ask in chat for a specific view.",
+    "plot_sample_caveat": "Distribution of {{col}} across the {{n}}-row sample — open in Jupyter/RStudio for the full dataset.",
     "stat_rows": "Rows",
     "stat_columns": "Columns",
     "stat_size": "Size",

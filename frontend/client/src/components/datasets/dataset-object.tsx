@@ -50,6 +50,7 @@ import {
   useDatasetVersions,
   downloadDatasetRoCrate,
 } from "./datasets-api"
+import { DatasetSamplePlot, hasNumericColumns } from "./dataset-sample-plot"
 
 // ── DatasetRef — the identity + provenance the caller already holds ──────────
 export interface DatasetRef {
@@ -379,17 +380,25 @@ export function DatasetObject({
             )}
 
             {previewView === "plot" && (
-              // Spec-sanctioned fallback (§4.3): "if nothing numeric is present the
+              // Leverage the SAMPLE rows already fetched for the Table view: chart
+              // numeric columns client-side (histogram) instead of the old "no plot
+              // data" stub. Non-numeric / too-small samples fall through to the
+              // spec-sanctioned fallback (§4.3): "if nothing numeric is present the
               // view says so and offers Jupyter or chat, rather than an empty axis."
-              // Real distributions/PCA are FUTURE (no plot data from the profiler).
-              <div className="rounded border bg-muted/20 p-3 text-sm text-muted-foreground space-y-2" data-testid="dataset-preview-plot-future">
-                <p>{t('dataset_obj.plot_future')}</p>
-                {onAnalyze && (
-                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAnalyze}>
-                    <Play className="h-3 w-3" />{t('dataset_obj.ask_in_chat')}
-                  </Button>
-                )}
-              </div>
+              // Full-dataset distributions/PCA remain a Jupyter/chat path.
+              profile?.columns?.length && profile.sampleRows?.length &&
+              hasNumericColumns(profile.columns, profile.sampleRows) ? (
+                <DatasetSamplePlot columns={profile.columns} sampleRows={profile.sampleRows} t={t} />
+              ) : (
+                <div className="rounded border bg-muted/20 p-3 text-sm text-muted-foreground space-y-2" data-testid="dataset-preview-plot-future">
+                  <p>{t('dataset_obj.plot_future')}</p>
+                  {onAnalyze && (
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAnalyze}>
+                      <Play className="h-3 w-3" />{t('dataset_obj.ask_in_chat')}
+                    </Button>
+                  )}
+                </div>
+              )
             )}
 
             {/* Stat grid (design §4.3): rows · columns · size · current version. */}

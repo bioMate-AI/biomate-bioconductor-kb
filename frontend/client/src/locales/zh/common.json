@@ -297,6 +297,7 @@
     "view_plot": "图表",
     "columns_future": "按列分析（类型、缺失率、去重计数）即将推出。目前可在 Jupyter 中打开文件，或在对话中查看各列。",
     "plot_future": "暂无可直接绘制的分布图。可在 Jupyter/RStudio 中打开文件，或在对话中请求特定视图。",
+    "plot_sample_caveat": "{{col}} 在 {{n}} 行样本中的分布 — 如需完整数据集请在 Jupyter/RStudio 中打开。",
     "stat_rows": "行数",
     "stat_columns": "列数",
     "stat_size": "大小",

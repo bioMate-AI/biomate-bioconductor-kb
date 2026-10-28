@@ -6,6 +6,20 @@ renderers (`findings-card.tsx`, `step-output-preview.tsx`, `AfterRunReport.tsx`,
 `v2/blocks/*`, `viewers/*`). Verdict per workflow: MATCH / DEVIATION / PLACEHOLDER(design) /
 MISSING(dev).
 
+## CORRECTION (2026-10-28) — the "chart gap" was over-framed
+The "DEVIATION" rows below (t3 volcano, plate 4PL, d7 stability, d1 scatter) are **not missing
+visualization**: the backend **produces the real plot** (`volcano_plot.png`, dose-curve `.svg`,
+etc.) and dev **shows it inline** via `InlineImageViewer` (`step-output-preview.tsx:818`). The
+user sees the plot — as a produced image, not a data-driven interactive chart. So the only real
+difference is **static image vs. interactive chart** (a fidelity nuance), NOT a capability gap.
+BioMate's file viz is strong (3D structures, density maps, VCF, sequences, PAE/pLDDT, FSC). We
+did **not** build redundant inline chart primitives.
+The ONE genuinely-unleveraged thing was the dataset-object **Plot** tab (`dataset-object.tsx`),
+a `*-future` stub claiming "no plot data from the profiler" — but `profile.sampleRows` WAS
+already fetched (the Table tab uses it). **Fixed:** `dataset-sample-plot.tsx` charts numeric
+columns from those existing sample rows (histogram, selectable), honestly labelled as the N-row
+sample, Jupyter/chat fallback for non-numeric. Frontend-only; leverages existing data.
+
 ## Bottom line
 - **~80% conform (MATCH).** The universal **per-entity findings table** (verdict + entity×metric
   table + provenance) is 1:1 between `findings.js` and `findings-card.tsx`, and covers d2, d3,
