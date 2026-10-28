@@ -25,3 +25,6 @@ Gain over zero-shot PT: NN +0.214 / +0.300 / +0.342 (all CIs exclude 0); top-10 
 Vacuous gate pass fixed + test; PT+k convergence concern checked directly (65 iterations; two runs differ by ≤ 2.2e-5; pretrained models converge at 79–124 iterations); first run kept in `results/superseded/`. M2/I/M gate tables were computed after M2's failing control was known (A7 discloses the order). Not verified: that typicality missingness (very large compounds) does not interact with the gate; family structure is Pfam-based; I has 26 families.
 ## 4. Remaining gaps
 LLM arms (WS1) and loop replay (WS2) not yet scored under H4b; GBM variants dropped for cost; S2 not executed; M3 not achievable → no clean zero-shot benchmark.
+
+## Correction notice (appended 2026-10-31, A10/A11) — see `docs/20261030_RETRO_RECOVERY_RESULTS_V5.md`
+Analysis I is family-disjoint but **not** compound-disjoint (1,093 of 9,432 rows, 11.6 %, share a compound with another fold). The M C3 value 0.315 above is a label-inversion artefact (corrected: 0.461 [0.423, 0.498] items scope; 0.515 [0.480, 0.549] any-pair scope). Validity is now an equivalence status, not "interval contains 0.5"; no benchmark is VALID. A censoring indicator alone separates I's classes (AUROC 0.206 [0.134, 0.280]). Benchmark counts: 16,195 compounds, 793 targets, 24,583 labelled pairs (not 17,120 / 851).
