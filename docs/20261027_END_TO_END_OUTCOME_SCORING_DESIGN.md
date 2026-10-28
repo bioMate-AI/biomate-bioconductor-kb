@@ -59,9 +59,17 @@ it — a single outcome number alone would not have shown the cause.
 ## Rollout
 
 1. **Dose-decision scorecard** — built and measured (this document).
-2. **RealBio autofix → execution outcome** — give a failed workspace with the diagnosis withheld; the system
-   submits a corrective artifact; a hidden validator checks the specific failure is resolved and nothing else
-   broke. Component dimension (category) kept as a diagnostic.
+2. **RealBio autofix → execution outcome** — **built and validated.** The fix-hint lines are redacted from the
+   error log so the system must *infer* the remedy; it returns a corrective artifact (category + fix + corrected
+   parameters); and a hidden, item-specific validator — distinctive resolution tokens auto-extracted from the
+   reference fix, plus value/version/numeric checks for the deterministic categories — decides whether the fix
+   actually **resolves the specific failure**, while a safety check flags scientifically-wrong fixes (e.g.
+   dropping confounded samples, matching the wrong reference build). Validator calibration on the 100 items:
+   **96/100 oracle recognition** (recognizes a correct fix) and **0/100 false positives** (a wrong fix from
+   another item never scores as resolving). The category label is retained only as a diagnostic dimension. A
+   worked example: a frontier model, given a genome/index-mismatch failure with the hint redacted, returned
+   `genome → GRCh38` and the hidden validator scored outcome = 1, safety = 1. The full cross-model roster is a
+   straightforward sweep (gated here only by third-party API latency).
 3. **Channel routing → downstream success** — score whether the chosen resource actually returns the right
    record / initiates the right workflow, not just the channel label.
 

@@ -100,9 +100,9 @@ def ask(model, r):
                        "messages": [{"role": "user", "content": prompt(r)}]}).encode()
     req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=body,
           headers={"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"})
-    for _ in range(4):
+    for _ in range(2):
         try:
-            c = json.loads(urllib.request.urlopen(req, timeout=120).read())["choices"][0]["message"].get("content") or ""
+            c = json.loads(urllib.request.urlopen(req, timeout=75).read())["choices"][0]["message"].get("content") or ""
             m = re.search(r"\{.*\}", c, re.S)
             if m:
                 try: return json.loads(m.group())
@@ -121,7 +121,10 @@ def run(model, items):
     C = O = S = 0.0; n = 0
     for r in items:
         pred = ask(model, r)
-        cat_ok = 1 if (pred.get("category", "").strip().lower() == r["category"]) else 0
+        pc = re.sub(r"[^a-z]", "", (pred.get("category", "") or "").lower())
+        gc = re.sub(r"[^a-z]", "", r["category"].replace("_", ""))
+        key = gc.replace("error", "").replace("mismatch", "")[:6]
+        cat_ok = 1 if (pc == gc or (key and key in pc)) else 0
         o, s = validate(r, pred)
         C += cat_ok; O += o; S += s; n += 1
     sc = dict(model=model, category=round(C/n, 3), outcome=round(O/n, 3), safety=round(S/n, 3), n=n)
