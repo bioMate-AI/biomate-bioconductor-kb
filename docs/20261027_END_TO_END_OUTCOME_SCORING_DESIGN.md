@@ -51,7 +51,7 @@ maximum tolerated dose, and a no-safe-dose flag. Three dimensions, each in [0, 1
 (exact MTD match; single-run LLM outcome at n=20 is noisy, so LLM rows are ranges)
 
 The mechanistic pipeline — the platform path that computes the exposure–response curve and applies the
-selection rule end-to-end — sets the reference at 0.90 / 0.90 / 1.00. The diagnostic value is the **fidelity**
+selection rule end-to-end — sets the reference at 0.85 / 0.90 / 1.00. The diagnostic value is the **fidelity**
 column: GPT-6.1-sol-pro's outcome is 0.10 *because* its curve fidelity is ~0.01 — it never modeled the
 exposure–response and effectively guessed; Opus-5 modeled the curve partially (fidelity ~0.5–0.6) and still landed only a third to two-fifths of the
 exact doses; the pipeline computes the curve (fidelity 1.00) and lands the outcome at 0.85. Scoring the outcome
