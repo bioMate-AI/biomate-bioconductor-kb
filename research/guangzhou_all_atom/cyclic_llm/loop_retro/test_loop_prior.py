@@ -38,6 +38,18 @@ def test_knowledge_scores_are_label_free_and_z_scored():
     nme = np.array([0, 1, 2, 3], float); hbd = np.array([4, 3, 2, 1], float); tpsa = np.array([300, 250, 200, 150], float)
     z = K.k_z(nme, hbd, tpsa); assert abs(z.mean()) < 1e-9 and z[3] > z[0]
 
+def test_source_normalize_removes_source_offsets_and_pools_small_sources():
+    srcs = ["big1"] * 40 + ["big2"] * 40 + ["tiny1"] * 5 + ["tiny2"] * 5; rng = np.random.RandomState(0)
+    y = np.concatenate([rng.randn(40) + 10, rng.randn(40) - 3, rng.randn(5) + 50, rng.randn(5) + 52]); z = K.source_normalize(y, srcs)
+    for s in ("big1", "big2"):
+        m = np.array(srcs) == s; assert abs(z[m].mean()) < 1e-9 and abs(z[m].std() - 1) < 1e-9
+    small = np.array([s.startswith("tiny") for s in srcs]); assert abs(z[small].mean()) < 1e-9          # tiny sources z-scored together
+    assert max(abs(z[:40].mean() - z[40:80].mean()), 0) < 1e-9                                           # the +13 offset between big sources is gone
+
+def test_random_arm_and_kn_arm_run():
+    setup_small(); X, y, k = world(); thr = float(np.quantile(y, .9)); init = list(range(30)); pool = list(range(30, 500))
+    t, per = K.run_prior_policy("random", X, y, k, init, pool, thr, 1); assert len(per) == 4
+
 if __name__ == "__main__":
     k = 0
     for n, f in sorted(globals().items()):
