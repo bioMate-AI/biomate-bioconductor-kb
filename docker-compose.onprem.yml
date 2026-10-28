@@ -396,10 +396,14 @@ services:
       interval: 30s
       timeout: 15s
       retries: 5
-      # ARM64 hosts run this x86 image under QEMU; gunicorn --preload takes 15-20 min
-      # to load all Python modules before binding to port 8080.  900s (15 min) gives
-      # sufficient headroom so the container doesn't go unhealthy during normal startup.
-      start_period: 900s
+      # ARM64 hosts run this x86 image under QEMU; gunicorn --preload takes 20-30 min
+      # to load all Python modules before binding to port 8080 (observed: ~25 min on
+      # Graviton2 c6g instance).  1800s (30 min) prevents premature unhealthy marking.
+      # Note: even if the container goes unhealthy, Docker continues running checks and
+      # transitions back to healthy once the port responds — there is no auto-restart.
+      # The frontend uses service_started (not service_healthy) so docker compose up
+      # doesn't block for the entire QEMU warm-up window.
+      start_period: 1800s
     depends_on:
       redis:
         condition: service_healthy
