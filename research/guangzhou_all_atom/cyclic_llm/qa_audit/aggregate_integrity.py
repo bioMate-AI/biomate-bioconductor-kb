@@ -6,7 +6,8 @@ import json, glob, os, sys, collections, numpy as np
 RO = os.path.join(os.path.dirname(__file__), "..", "loop_retro")
 SM = os.path.join(RO, "results", "l7_collect", "small"); AGG = os.path.join(RO, "results", "l7_aggregate.json")
 agg = json.load(open(AGG)) if os.path.exists(AGG) else {}
-LEARNER = {"res7f_gbm_aware": "gbm_aware", "res7f_gbm_blind": "gbm_blind", "res7f_gbm_phys": "gbm_physchem", "res7a_chemberta": "chemberta"}  # directory -> aggregate learner key (post-C1 fix)
+LEARNER = {"res7f_gbm_aware": "gbm_aware", "res7f_gbm_blind": "gbm_blind", "res7f_gbm_phys": "gbm_physchem", "res7a_chemberta": "chemberta",
+           "res7q_gbm_aware": "gbm_aware_detK", "res7q_gbm_blind": "gbm_blind_detK", "res7q_gbm_phys": "gbm_physchem_detK", "res7q_gbm_confirm": "gbm_aware_detK_confirm"}  # directory -> aggregate learner key (post-C1 fix)
 files = sorted(glob.glob(f"{SM}/*/*.json")); R = collections.defaultdict(dict); armsets = collections.defaultdict(set); cnt = collections.Counter(); owners = collections.defaultdict(list)
 for f in files:
     r = json.load(open(f)); d = os.path.basename(os.path.dirname(f))
@@ -55,4 +56,16 @@ for key, o in agg.get("small", {}).items():
         if len(v) != st["n"] or (v and abs(np.mean(v) - st["mean"]) > 1e-3): print("CELL DIFF auroc", key, arm, len(v), st); bad += 1
 exp = {k: sum(1 for _ in R_) for k, R_ in {(d, g): x for (d, b, g), x in R.items()}.items()}
 print(f"== aggregate-vs-raw: {ncell} yield/E-AUROC cells compared, {bad} problems; aggregate keys {len(agg.get('small', {}))} vs raw (dir,regime) groups {len(exp)}")
+# L7q reference check: loop_sub in each res7q_* file must equal the res7f_* value for the same (learner, regime, seed) exactly (pre-registered determinism/reference check)
+REF = {"res7q_gbm_aware": "res7f_gbm_aware", "res7q_gbm_blind": "res7f_gbm_blind", "res7q_gbm_phys": "res7f_gbm_phys"}; refbad = 0; refn = 0
+for q, f_ in REF.items():
+    for (d, b, g), x in R.items():
+        if d != q: continue
+        for sd, r in x.items():
+            o = R.get((f_, b, g), {}).get(sd)
+            if o is None or "loop_sub" not in r or "loop_sub" not in o: continue
+            refn += 1
+            if r["loop_sub"]["hits"] != o["loop_sub"]["hits"]: refbad += 1; print("REF DIFF loop_sub", q, g, sd)
+if refn: print(f"== L7q loop_sub reference: {refn} tasks compared, {refbad} differ")
+bad += refbad
 if "--strict" in sys.argv and (dup or bad or len(agg.get("small", {})) != len(exp)): sys.exit(1)
