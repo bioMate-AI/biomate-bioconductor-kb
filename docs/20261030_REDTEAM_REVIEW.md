@@ -41,3 +41,34 @@ Inventory §G still presents the C2 `0.299 / 0.118` log as pending reproduction;
 
 ## What a referee would likely accept as solid
 The family-disjoint frozen-list design with hashes (recomputed identical), the stereoisomer-group and flat-structure statistics (recomputed identical), the L5 table (identical to the artifact), the corrected shuffled-label and within-group protocols, the explicit gate failures, and the willingness to publish nulls. The paper is strongest as an evaluation-and-baselines contribution; its weakest point is the absence of the language-model arm its framing promises.
+
+---
+# Addendum 2 (re-run on the updated drafts; 2026-10-30)
+Re-derived from raw per-seed files (L5, 810 runs) and the regenerated `l7_aggregate.json`; see `20261030_CLAIM_EVIDENCE_LEDGER.md` UPDATE 2 (rows U1–U30).
+
+## Resolved since the first review
+R2 (gate failure now a finding, applied retrospectively), R4 (knowledge control restated as paired contrasts), R7 (CycPeptMPDB version stated), R8 (pooled analysis moved to Supplement S1; "far better than random" Discussion rewritten), R9 (stratification canonical), R12 (literature tags downgraded to summary/snippet level), R15 (satellite terminology) are fixed in the files I re-read. The interval-type problem (below) is fixed in the main draft §5.1/§4.9 and the loop preprint §3.1, and the claim that the loop beats random under scaffold shift is now reported as "not met by the letter of the rule; a post hoc mean-based CI excludes 0".
+
+## New or still open, ranked
+**N1 (high). A key result contradicts itself across documents: K_phys in regime B.** The regenerated aggregate shows, in regime B for the stereo-blind GBM (10 seeds, 99 % boot-mean): K_phys − none yield +4.9 [1.7, 7.8], K_phys − K_shuffled yield +3.2 [0.7, 6.1], held-out AUROC gain K_phys − none +0.0625 [0.024, 0.108], K_phys − K_shuffled +0.0326 [0.011, 0.055], and contradicted knowledge −5.4 [−9.9, −0.1]. These are in the generalisation-relevant regime and agree in direction with L5's descriptor arm (+23.8) and the K_phys arms in regime A. The main draft §5.2, appendix A14, the patch note P4 and KB audit §9a say "no attributable K_phys effect on held-out ranking or yield; 7 of 7 configurations include 0". The 7-configuration audit file has no regime-B plain-GBM entry. The preprint §3.3 reports the B numbers and withholds the claim. *Fix:* one statement everywhere: "positive in regime B on development seeds (stereo-blind GBM), absent in A, L and in the physchem-channel arms; confirmatory seeds 10–29 pending"; add the B arm to the paired audit file and recount (8 configurations).
+
+**N2 (high). "Seed-based interval ⇒ generalisation" is still possible by omission.** The coordinator's rule (no generalisation to new laboratories from seed-based intervals) is met in the Methods and Limitations, but regime L yield contrasts (e.g. loop − random feedback +165.0 [156.2, 175.4]) are seed-based over the same held-out laboratories; calling L "leave-laboratories-out" invites reading them as new-laboratory evidence. *Fix:* state in every L table caption that only the E-metrics use the source-cluster bootstrap and that yield contrasts in L are seed-based on a fixed set of laboratories; report the number of held-out sources next to each L figure.
+
+**N3 (medium). Interval level and reproducibility of the aggregator.** `aggregate_l7.py` uses 99 % intervals for arms with `kphys`/`kn` in their name and 95 % otherwise (line 72), so one bullet mixes levels; the draft labels them all 95 %. The bootstrap uses an unseeded-per-call global generator, so regenerating the aggregate changed published values by up to 0.2 (156.3 → 156.2; 175.6 → 175.4; 68.0 vs 67.9). *Fix:* seed per contrast, print the level in the artifact, regenerate once and freeze with a hash.
+
+**N4 (medium). Arithmetic claim not supported.** Preprint limitation: "about one in four hit labels would change (Jaccard 0.87)". The audit gives 99.7 flips of 6,960 labels (1.4 %) and Jaccard 0.867 on ≈697 hits, i.e. about 7 % of hits replaced (≈1 in 14). *Fix:* state the figures from `l5_label_audit.json` without the paraphrase.
+
+**N5 (medium). Preprint abstract still leads with superseded and withdrawn numbers** (397 vs 50, 367 vs 107, N-methyl rule 276/304, "98 %", "5.7 vs 1.9 N-methyl groups") while Supplement S1 withdraws the concentration figures. *Fix:* delete the pooled sentences from the abstract; keep one sentence that a pooled analysis was confounded and is in S1.
+
+**N6 (medium). Rule-baseline intervals unlabelled in the preprint** (spreads reported as bare ranges; "both intervals above zero" for regime C). *Fix:* add the spread/boot-mean labels as in the main draft.
+
+**N7 (medium). K_nme is described as "indistinguishable from the null" using the median alone.** The same permutation file shows pooled held-out ρ 0.325 (p = 5 × 10⁻⁴) and 7 of 20 laboratories individually significant (1 expected). The per-laboratory median is ≈ 0 while the pooled association is not; the sentence needs both and the reason (heterogeneity, dominance of two laboratories). The matched-pair N-methyl-addition effect (+0.252, I² 0.90) is the same phenomenon.
+
+**N8 (medium). Statements about published work rest on abstracts.** Re-opened: LLMNN, ACNet, PepBenchmark, Klamt et al. (abstract level). Not verifiable from the abstract: PepBenchmark's venue ("ICLR 2026"), Klamt's 0.802 → 0.678 and its CI, and the chair's "no laboratory-held-out splits"; PubMed 40877984 (Liu et al.) blocked. Klamt's abstract also reports few-shot retraining at k = 5 improving leave-one-target-out AUROC (0.668 → 0.705), which sits close to our H4b framing; the draft mentions it, and the novelty paragraph should say so explicitly.
+
+**N9 (low). T1 and anchor results are not yet in the manuscript.** Draft §5.7 lists T1 as "results section empty" and the anchor test as "no result"; §8 lists the lab-offset module as "to be tested". Both have results (fusion: permeability F2 null, F1 fragile at k = 25 only, binding F1 partial and F2 failed; anchors: kill criterion met, coverage-limited, method recovers planted offsets and gains +0.151 with full anchor coverage). They are negative or fragile results for two of the three candidate contributions and belong in §5/§8.
+
+**N10 (low). Committee cost accounting.** Balance 4.339 → 3.961 (0.378) matches the counted reviewer costs plus a 0.008 lag, but the cost log shows the 0.280 drop on the second Opus row; attributing it to the earlier GPT call is an inference. State it as such.
+
+## Contradictions still present between documents
+(See ledger UPDATE 2 for detail.) K_phys-in-loop (N1); "no knowledge variant improved the loop" (patch note P4) versus 5/15 mean-based positives (preprint, main draft); regime B seed count (draft 8e and figure plan: 2; aggregate: 10); lab-offset module "to be tested" (draft §8) versus the anchor-test result; T1 status (§5.7) versus its results section.
