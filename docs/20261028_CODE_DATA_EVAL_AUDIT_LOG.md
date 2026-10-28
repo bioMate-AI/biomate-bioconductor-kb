@@ -17,7 +17,8 @@ Consequence: L3 loop-vs-random stands as measured with the two caveats above; kn
 |---|---|---|
 | Stored DockQ labels | independent recomputation with the `DockQ` CLI (clean venv, numpy 1.26) on 12 samples (3 test complexes: 29QJ_2 failure case, 9GFC_2, 8R7S_2; samples 0–3) vs `scoring/out2/scores_test.jsonl` | **12/12 match** on DockQ, iRMSD, LRMSD, fnat (to 3 decimals); chain pairing A/Z correct; native.pdb ↔ sample pairing correct |
 | Selector / evaluator code | existing unit tests (planted signal detected, shuffled labels → chance, GT columns rejected, rescale-invariant) | 29 passed, 1 skipped |
-| Not yet checked | feature extraction from structures (pLDDT/ipTM/contact features), the 9 missing test complexes, whether features are computed on the same sample indices as labels (spot-check by recomputing features for the same 12 samples) | pending |
+| Structure-derived features | recomputed independently (Biopython mmCIF parser, brute-force pairwise distances; stored values use gemmi + cKDTree) for the same 12 samples: peptide pLDDT, contact pairs (5.0 Å), clashes (2.2 Å), min peptide–receptor distance; ipTM re-read from confidence JSON | **match**: pLDDT identical to 0.01, clashes 12/12, min distance ≤0.001 Å, ipTM exact; contact pairs 10/12 identical, 2/12 differ by 1 pair of ~300 (coordinate rounding at the 5.0 Å cutoff) — not a bug; features and labels come from the same sample index |
+| Still unchecked | the 9 missing test complexes; the 104 train/test split's cluster definition (receptor_cluster40); 123 other complexes not spot-checked (3 of 104 sampled) | pending |
 Note: complex 29QJ_2 is a stapled 22-mer helix (cyclic_flag false) — the benchmark mixes stapled and head-to-tail macrocycles; stratify before interpreting.
 
 ## To audit next (not yet done)
