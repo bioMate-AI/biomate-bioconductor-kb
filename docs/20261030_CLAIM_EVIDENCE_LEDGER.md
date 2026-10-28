@@ -322,3 +322,35 @@ Notes: (i) the review's cluster values (`loop_sub − frozen_sub` 0.236 [0.176, 
 
 - Every quoted number in the main draft, v2, preprint and brief that is a "GBM" L7 value is a **blind** number. They remain arithmetically correct as blind numbers, but (a) the drafts also describe K_phys contrasts as "chirality-aware GBM" in places — those would be the aware numbers, which are not what the aggregate holds → **MISMATCH of learner label vs source**; (b) regime-L headline "loop beats frozen/shuffled" magnitudes differ by learner (13.2 vs 47.3; 79.5 vs 117.7) and a pooled "GBM" statement must name the learner; (c) a claim "stereo-blind GBM has zero-sibling 0" is correct for blind only (aware 0.181).
 - Pending after regeneration (rerun scheduled): hash in every draft, the 54-contrast/9-configuration counts (now 12 configurations if aware is added: 4 learners × A,B,L, with chemberta only A,B → 11), 15/54 and 9/54 counts, Holm counts, cluster-boot table, F5/T6 (still built from l7_aggregate@5442beac3), F5 "2 seeds" caption, [REGEN] markers, chemberta first GPU results (in aggregate, not in drafts: exploratory, 3 seeds, A/B only), and `verify_artifacts.py` coverage of new numbers.
+
+---
+
+## UPDATE 7 — Independent data/evaluation review (`docs/committee_raw/20261030b/review_data_eval.md`): recomputation from raw frozen data and doc propagation
+
+Recomputed by me with pandas from `multitarget/integrin_chembl/retro_recovery/data/{pair_labels,items_I,compounds,targets,folds_v1}` and `data/raw/CycPeptMPDB_Peptide_All.csv` (not from the review's scratch scripts). Docs checked: main draft, v2, preprint `manuscript_loop.md`, brief, patch note, plus the older source docs that carry the profile numbers.
+
+| # | claim | review value | my recomputation | status |
+|---|---|---|---|---|
+| Y1 | frozen set size | 16,195 compounds / 793 targets / 24,583 pairs (20,562 pos, 4,021 inactive) | compounds.csv 16,195; targets 793; pair_labels 24,583 (pos 20,562, inactive 4,021); 14,492 compounds and 13,161 flat keys in labelled pairs | **MATCH** |
+| Y2 | I censoring | 63.6 % of inactives ">"; 0 % of positives | inactives with ">" in the relation string: 1,166 / 1,832 = **63.6 %** (pure ">" 1,143). Positives: pure ">" **0**, but **190 / 7,600 = 2.5 %** carry a ">" component in a multi-measurement string ("=;>", "<;>"; 182 + 8) | MATCH for inactives; **"0 % of positives" is true only for pure-censored positives (2.5 % have a mixed ">")** — drafts' "0 % of positives" needs "pure" or the 2.5 % |
+| Y3 | cross-fold compounds | 1,057 / 14,492 (7.3 %); 1,007 flat; I rows 11.6 % | 1,057 / 14,492 = 7.3 %; 1,007 / 13,161; I rows 11.6 % | **MATCH** |
+| Y4 | accession spread | 29 of 775 accessions in >1 family; 24 span >1 fold | 775 accessions; 29; 24 | **MATCH** |
+| Y5 | αvβ6 twin | P06756,P18564 (fold 3) and P18564 (fold 2): 77 pairs each, 70 shared compounds | folds 3 and 2; 77 and 77 pairs; 70 shared compounds (positives per target: 72 each in pair_labels; the review's "39" is the M subset, not recomputed) | **MATCH** |
+| Y6 | I composition | 9,432 items, 7,600 pos (80.6 %), 46 targets | 9,432 / 7,600 / 80.6 % / 46 | **MATCH** |
+| Y7 | CycPeptMPDB profile | 7,027 PAMPA rows → 6,960 unique; **41 sources**; 20 with ≥ 20 | 7,027 → 6,960; **41**; 20 | **MATCH** (so "45 sources" is wrong for this set) |
+
+Not recomputed by me (reviewer-only or needs compute): C3 purge results (0.580/0.578/0.583–0.588), regime-leakage table (F5), single-seed causal-standardisation experiment (F4), relation/assay AUROCs (0.186), near-duplicate rates by class. These stay at [REPORTED] level; the drafts cite them as the review's.
+
+### Propagation of the review's points
+
+| # | where | finding | status |
+|---|---|---|---|
+| Y8 | v2 draft §Benchmark for binders (line 20) | still says "**17,120 peptide macrocycles across 851 targets**" as the frozen benchmark; main draft §4.2 already corrects this (16,195/793/24,583; 17,120/851 labelled pre-freeze) | **MISMATCH** (v2 only) |
+| Y9 | `20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md:55`, `20261030_COMMITTEE2_PACKET.md:427` ("6,960 peptides, 45 sources"); `20261029_KB_AUDIT_AND_GAPS.md:81` ("a different set of 45 sources") | 41 sources for the 6,960 set; the KB-audit "45" may refer to a different set (leave-labs-out set) and was not recomputed | **STALE** (source docs; manuscripts use 41) |
+| Y10 | preprint `manuscript_loop.md` abstract (line 9) | "with near-duplicates removed (+163.4 …)" labels regime C as near-duplicate-free; review F5: C removes identical flat structures only (26.9 % still ≥ 0.9, 62.6 % ≥ 0.8). Abstract also gives no transductive-standardisation caveat for the +186.3 headline (review F4: about half of the A gain may disappear under causal standardisation, n = 1 seed). | **MISMATCH / over-claim** (public preprint; main draft line 168 and Appendix F carry the qualifications) |
+| Y11 | main draft §4.2 line 63, Appendix F; brief line 64 | folds described as "Pfam-family-disjoint, not protein-, compound- or analogue-disjoint"; 29/775, 6/46, 9/20 (44 %), 77/70 all as in the review (Y4, Y5 recomputed) | **MATCH** |
+| Y12 | main draft Appendix F table (regime leakage), "Loop standardisation" paragraph, P4 row | numbers equal the review's (21.7/60.9/42.2/69.3/0.873 etc.); 84.8 %/14.4 %; single-seed 251/151/64/47 labelled n = 1 | **MATCH to the review** (REPORTED, not mine) |
+| Y13 | main draft/v2/brief "0 % of positives" | see Y2 | **MISMATCH (precision)** |
+| Y14 | main/v2/brief "blind" and "held-out target" wording | αvβ6/integrin qualified in line 63 (main), 20 (v2), 64 (brief). Not re-audited: every remaining "family-disjoint" instance (main lines 20–22, 34, 62, 66, 227–229, 276, 363; v2 20, 31, 58, 63; brief 46, 81; patch note 13) should read "Pfam-family-disjoint"; spot-read, qualifier absent in at least the abstract-level mentions (main 20–22) | **UNVERIFIED → check after next writer update** |
+
+Counts for this update: 9 MATCH (Y1, Y3–Y7, Y11, Y12 + Y2 inactives), 3 MISMATCH (Y8, Y10, Y13), 1 STALE (Y9), 1 UNVERIFIED (Y14).

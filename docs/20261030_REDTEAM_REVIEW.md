@@ -99,3 +99,19 @@ v2 is a better paper than the original: smaller claims, abstract limited to what
 | M8 | H4b/T1 unmatched item sets, weak rules | Open | Compare on matched sets only |
 | m1,m4–m7,m9–m11 | K_shuf hash-seed nondeterminism; K_phys name collision; EDIT_PRIORS provenance; uncommitted kb_audit edits; permutation-null exchangeability | Open; m1 partly mitigated by sorted-set fix | Track in [REGEN] list |
 | new | `inputs.n_files` 116 vs 96 raw files on disk | Unexplained | Regenerated aggregate must record the exact list of files read |
+
+---
+
+## Addendum 6 — independent data/evaluation review
+
+Recomputed from raw frozen data (ledger UPDATE 7): the review's counts, fold leakage and censoring figures reproduce, with one precision correction (2.5 % of positives carry a mixed ">" component).
+
+| Review finding | Red-team status | Required manuscript behaviour |
+|---|---|---|
+| F1 folds not protein-disjoint (29/775 accessions; αvβ6 twin 77 pairs, 70 shared compounds) | Reproduced | "Pfam-family-disjoint" everywhere incl. abstracts; no "held-out target" for integrin/αvβ6; folds_v2 pending |
+| F2 compound/near-duplicate leakage; gate robust (0.578–0.588) | Fold leakage reproduced (7.3 %, 11.6 %); gate purges not recomputed | Report purged versions as primary; cite gate robustness as the review's |
+| F3 censoring confound (63.6 % inactives censored) | Reproduced; positives 0 % pure-censored but 2.5 % mixed | Say "pure"; gate lacks C4–C6; I cannot separate compound signal from measurement regime |
+| F4 transductive standardisation | Not rerun (n = 1 seed upstream); direction credible | Every A/C headline (+186.3, +163.4) must carry the caveat in abstract and preprint, not only in Appendix F; causal arm needed |
+| F5 regime leakage (C is not near-duplicate-free; B not lab-shifted) | Review's table only | Preprint abstract "near-duplicates removed" must go |
+| F6 profile numbers | 41 sources, 16,195/793/24,583 reproduced | v2 still says 17,120/851; older docs say 45 |
+Also still open from earlier addenda: M1–M8, t-intervals, Holm/BH, vacuous controls, aware/blind collision.
