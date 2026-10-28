@@ -205,8 +205,42 @@ def test_frozen_arm_sar_uses_only_labels_the_model_has():
     for arm in ("frozen", "frozen_sub", "loop_sub", "shuffled_sub", "random_fb"): out = L.run_arm(ctx, arm, init, pool, E, 0, state0=1); assert out["stereo_rho_sar"] == out["stereo_rho_sar"] or True
     assert seen, "fit was never called"
 
+
+def test_knn_baseline_planted_and_k0():
+    rng = np.random.default_rng(0); n = 800; X = rng.random((n, 30)).astype(np.float32); y = X[:, 0] * 3 + 0.2 * rng.standard_normal(n)
+    B = LM.KNN(X); assert (B.predict(B.fit(None, [], [], 0, 0), [1, 2, 3]) == 0).all(), "k = 0 labels -> constant 0"
+    st = B.fit(None, list(range(500)), y[:500], 0, 0); rho = spearmanr(B.predict(st, list(range(500, 800))), y[500:])[0]; assert rho > 0.4, rho
+    st2 = B.fit(None, list(range(500)), rng.permutation(y[:500]), 0, 0); assert abs(spearmanr(B.predict(st2, list(range(500, 800))), y[500:])[0]) < 0.2
+
+def test_rule_kphys_arm_is_model_free_and_ranks_by_the_rule():
+    n = 1500; rng = np.random.default_rng(0); sig = rng.standard_normal(n); y = sig + 0.5 * rng.standard_normal(n); thr = float(np.quantile(y, .9)); X = rng.random((n, 8)).astype(np.float32)
+    B = LM.GBM(X); p = dict(n_init=50, rounds=3, batch=30, n_eval=200, steps0=0, steps_round=0, n_cand=100, n_flat_groups=10); init = list(range(50)); E, pool = L.make_eval_slice(list(range(50, n)), 0, 200)
+    ctx = L.Ctx(y, thr, np.full(n, thr), ["s"] * n, np.zeros(n), B, p, np.zeros(n), None, None, None, None, sig, sig); st0 = B.fit(B.init_state(), init, y[init], 0, 0)
+    out = L.run_arm(ctx, "rule_kphys_sub", init, pool, E, 0, state0=st0)
+    assert ctx.B is B, "the rule arm must restore the real backend"
+    for r, pk in enumerate(out["picks"]):
+        cands = L.subset(pool, 0, r, list(init) + [i for q in out["picks"][:r] for i in q], 100); top = sorted(cands, key=lambda i: -sig[i])[:30]; assert set(pk) == set(top), "rule picks must be the top-K_phys of the candidate subset"
+    assert sum(out["hits"]) > 0.1 * 90 * 2, "an informative rule must beat the 10% base rate"
+
+def test_lora_wiring_on_tiny_encoder():
+    """LoRA: base weights frozen and unchanged, only adapters + head train; adapter B is zero-initialised (identical output before training); the planted signal is still learnable."""
+    import torch
+    from transformers import RobertaConfig, RobertaModel
+    torch.manual_seed(0); cfg = RobertaConfig(vocab_size=64, hidden_size=32, num_hidden_layers=2, num_attention_heads=2, intermediate_size=64, max_position_embeddings=40, pad_token_id=0)
+    enc = RobertaModel(cfg).eval(); x = torch.randint(1, 64, (8, 12)); m = torch.ones_like(x); ref = enc(input_ids=x, attention_mask=m).last_hidden_state.detach()
+    for q in enc.parameters(): q.requires_grad_(False)
+    base_state = {k: v.clone() for k, v in enc.state_dict().items()}; n = LM.add_lora(enc, r=4, alpha=8); assert n >= 8, n
+    assert torch.allclose(enc(input_ids=x, attention_mask=m).last_hidden_state, ref, atol=1e-5), "zero-init adapters must not change the output"
+    tr = [nme for nme, q in enc.named_parameters() if q.requires_grad]; assert tr and all("lora_" in nme for nme in tr), tr[:3]
+    head = torch.nn.Linear(32, 1); opt = torch.optim.AdamW([q for q in enc.parameters() if q.requires_grad] + list(head.parameters()), lr=3e-3); tgt = (x == 5).float().sum(1) - 1.0
+    l0 = None
+    for _ in range(120):
+        h = enc(input_ids=x, attention_mask=m).last_hidden_state.mean(1); loss = torch.nn.functional.mse_loss(head(h).squeeze(-1), tgt); l0 = l0 or float(loss); opt.zero_grad(); loss.backward(); opt.step()
+    assert float(loss) < 0.5 * l0, (l0, float(loss)); after = enc.state_dict()
+    assert all(torch.equal(base_state[k], after[k.replace("", "")]) for k in base_state if "lora_" not in k and k in after), "base weights must stay frozen and unchanged"
+
 if __name__ == "__main__":
     which = sys.argv[1] if len(sys.argv) > 1 else "core"
-    names = {"core": ["test_eval_slice_disjoint_and_paired", "test_arms_on_planted_world_with_gbm", "test_one_shot_budget_equals_loop_total_steps", "test_stereo_rho_planted_and_ties_are_zero", "test_flat_slice_split_properties", "test_stereo_blind_is_zero_and_stereo_aware_detected", "test_subset_identical_between_small_and_large_runners", "test_regime_L_leave_labs_out_properties", "test_kphys_channels_and_fusion_identities", "test_physchem_channel_planted", "test_frozen_arm_sar_uses_only_labels_the_model_has"],
+    names = {"core": ["test_eval_slice_disjoint_and_paired", "test_arms_on_planted_world_with_gbm", "test_one_shot_budget_equals_loop_total_steps", "test_stereo_rho_planted_and_ties_are_zero", "test_flat_slice_split_properties", "test_stereo_blind_is_zero_and_stereo_aware_detected", "test_subset_identical_between_small_and_large_runners", "test_regime_L_leave_labs_out_properties", "test_kphys_channels_and_fusion_identities", "test_physchem_channel_planted", "test_frozen_arm_sar_uses_only_labels_the_model_has", "test_knn_baseline_planted_and_k0", "test_rule_kphys_arm_is_model_free_and_ranks_by_the_rule", "test_lora_wiring_on_tiny_encoder"],
              "atom": ["test_atom_heads_functional", "test_atom_adapter_planted_signal"], "chemberta": ["test_chemberta_adapter_planted_signal"], "atomphys": ["test_atom_phys_adapter_planted_signal"], "chembertaphys": ["test_chemberta_phys_adapter_planted_signal"], "v4": ["test_v4_adapter_planted_signal"]}[which]
     for n in names: globals()[n](); print("PASS", n)

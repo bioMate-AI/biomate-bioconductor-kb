@@ -11,7 +11,7 @@ from scipy.stats import rankdata
 
 PARAMS = dict(n_init=100, rounds=10, batch=50, n_eval=800, steps0=100, steps_round=30, n_cand=150, n_flat_groups=60)
 V4_PARAMS = dict(n_init=50, rounds=5, batch=20, n_eval=150, steps0=60, steps_round=60, n_cand=60, n_flat_groups=15)
-ARMS = ("loop", "random_fb", "shuffled", "frozen", "loop_sub", "loop_kn_sub", "frozen_sub", "shuffled_sub", "noisy_sub", "loop_kn_contra_sub", "loop_kphys_sub", "loop_kphys_contra_sub", "loop_kshuf_sub", "one_shot")   # L7b: K_z arm dropped; *_sub = same per-round 150-candidate subsets as the large-LLM arms
+ARMS = ("loop", "random_fb", "shuffled", "frozen", "rule_kphys_sub", "loop_sub", "loop_kn_sub", "frozen_sub", "shuffled_sub", "noisy_sub", "loop_kn_contra_sub", "loop_kphys_sub", "loop_kphys_contra_sub", "loop_kshuf_sub", "one_shot")   # L7b: K_z arm dropped; *_sub = same per-round 150-candidate subsets as the large-LLM arms
 ACTIVE = list(ARMS)          # set from --arms
 NOCURVE = [False]
 TOP = ("2020_Townsend", "2021_Kelly")
@@ -131,7 +131,17 @@ def run_arm(ctx, arm, init, pool, E, seed, loop_revealed=None, state0=None):
         if ctx.Ef is not None:
             rec["stereo_rho"] = [_stereo(ctx, st)]; rec["stereo_rho_sar"], _ = _stereo_sar(ctx, st, loop_revealed, [y[i] for i in loop_revealed], seed)
         rec["fit_steps"], rec["seconds"] = p["steps_round"] * p["rounds"], round(time.time() - t0, 1); return rec
-    base = arm[:-4] if arm.endswith("_sub") else arm; sub = arm.endswith("_sub")
+    base = arm[:-4] if arm.endswith("_sub") else arm; sub = arm.endswith("_sub") or arm == "rule_kphys_sub_inner"
+    if base == "rule_kphys":                         # zero-learning rule: model-free; ctx.B is swapped for a scorer that returns K_phys so every metric (E, E_f, ...) is the RULE's ranking
+        class _Rule:
+            def __init__(s, K): s.K = K
+            def init_state(s): return None
+            def fit(s, st, idx, y, steps, seed): return None
+            def predict(s, st, idx): return s.K[np.asarray(idx, dtype=int)]
+        saved = ctx.B; ctx.B = _Rule(ctx.Kphys)
+        try: return run_arm(ctx, "rule_kphys_sub_inner", init, pool, E, seed, state0=None)
+        finally: ctx.B = saved
+    if base == "rule_kphys_sub_inner": base = "loop_rule"
     labeled = list(init); ylab = list(y[init]); unl = list(pool); state = state0; frozen_rank = None   # ylab = labels AS THE MODEL SEES THEM (permuted per round in shuffled)
     revealed = list(init)                                                       # indices the MODEL has labels for (frozen arms: init only, their picks are never fed back); len(revealed) == len(ylab) always
     picked_all = list(init)                                                     # indices excluded from later candidate subsets
@@ -158,14 +168,14 @@ def run_arm(ctx, arm, init, pool, E, seed, loop_revealed=None, state0=None):
             if has_std and base not in ("loop_kn", "loop_kn_contra", "loop_kphys", "loop_kphys_contra", "loop_kshuf"): sd = B.predict_std(st_sel, U); rec["pick_std"].append([round(float(sd[pos[i]]), 4) for i in pick])
         if sub: rec["cands"].append([int(i) for i in U]); rec["cand_scores"].append([round(float(v), 4) for v in s] if s is not None else None)
         sp = set(pick); unl = [i for i in unl if i not in sp]; picked_all += pick
-        if base != "frozen":
+        if base not in ("frozen", "loop_rule"):
             revealed += pick
             new = y[pick].copy()
             if base == "shuffled": new = rng.choice(y[np.array(pool)], len(pick), replace=False)        # L7d: global draw from the pool's label vector (no item- or batch-level association)
             if base == "noisy" and len(new) >= 5:                    # 20 % label corruption: those labels are permuted among themselves
                 m = rng.choice(len(new), max(2, int(round(0.2 * len(new)))), replace=False); new[m] = rng.permutation(new[m])
             ylab += list(new); state = B.fit(state, revealed, np.array(ylab), p["steps_round"], seed * 1000 + r); steps += p["steps_round"]
-        _record(ctx, pick, rec, E, state if base != "frozen" else state0)
+        _record(ctx, pick, rec, E, state if base not in ("frozen",) else state0)
         if arm in ("loop", "loop_sub"):
             rec.setdefault("E_scores", []).append([round(float(v), 4) for v in B.predict(state, E)])
             if ctx.Es is not None: rec.setdefault("Es_scores", []).append([round(float(v), 4) for v in B.predict(state, ctx.Es)])
@@ -219,7 +229,10 @@ def build(csv_path, backend, device, atom_ckpt=None, atom_vocab=None, v4_subset=
     Kphys = (gz(-tpsa) + gz(-hbd) + gz(logp)) / 3.0                       # L7f: textbook physchem directions (Veber 2002; Over 2016; Rezai 2006), equal weights, source-standardised, NO label-mined parameter
     import loop_models as LM
     base = backend.replace("_phys", "") if backend not in ("gbm_physchem",) else backend; phys = backend.endswith("_phys")
-    if base == "gbm": B = LM.GBM(np.stack([r["x"] for r in recs]))
+    if backend.startswith("hf:"):                      # hf:<model_id>[:lora][:phys]  e.g. hf:DeepChem/ChemBERTa-77M-MLM:lora
+        parts = backend.split(":"); mid = parts[1]; flags = set(parts[2:]); B = LM.HFReg(smiles, mid, device, descz if "phys" in flags else None, lora="lora" in flags, trust_remote_code="trc" in flags); base = "hf"
+    elif base == "knn": B = LM.KNN(np.stack([r["x"] for r in recs]))
+    elif base == "gbm": B = LM.GBM(np.stack([r["x"] for r in recs]))
     elif base == "gbm_physchem": B = LM.GBM(desc)
     elif base == "atom_lm": B = LM.AtomLMReg(smiles, atom_ckpt, atom_vocab, device, descz if phys else None)
     elif base == "chemberta": B = LM.ChemBERTaReg(smiles, device, descz if phys else None)
@@ -282,15 +295,16 @@ def parse_seeds(s):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("csv"); ap.add_argument("out"); ap.add_argument("--backend", required=True); ap.add_argument("--regimes", default="AB"); ap.add_argument("--seeds", default="0-9")
-    ap.add_argument("--device", default="cpu"); ap.add_argument("--atom-ckpt"); ap.add_argument("--atom-vocab"); ap.add_argument("--v4-subset"); ap.add_argument("--smoke", action="store_true"); ap.add_argument("--arms", default=",".join(ARMS)); ap.add_argument("--no-curve", action="store_true")
+    ap.add_argument("--device", default="cpu"); ap.add_argument("--atom-ckpt"); ap.add_argument("--atom-vocab"); ap.add_argument("--v4-subset"); ap.add_argument("--smoke", action="store_true"); ap.add_argument("--arms", default=",".join(ARMS)); ap.add_argument("--no-curve", action="store_true"); ap.add_argument("--alias", default=""); ap.add_argument("--n-init", type=int, default=0)
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True); global ACTIVE; ACTIVE = [x for x in ARMS if x in a.arms.split(",")]; NOCURVE[0] = a.no_curve
-    p = dict(V4_PARAMS if a.backend == "v4" else PARAMS)
+    p = dict(V4_PARAMS if a.backend == "v4" else PARAMS); alias = a.alias or a.backend.replace("/", "__").replace(":", "-")
+    if a.n_init: p["steps0"] = int(round(p["steps0"] * a.n_init / p["n_init"])); p["n_init"] = a.n_init          # H4b few-label: steps0 scales with the initial set
     if a.smoke: p.update(rounds=2, steps0=10, steps_round=5, n_eval=min(p["n_eval"], 100), n_init=min(p["n_init"], 40), batch=min(p["batch"], 20))
     recs, d = build(a.csv, a.backend, a.device, a.atom_ckpt, a.atom_vocab, a.v4_subset if a.backend == "v4" else None)
     print("backend", a.backend, "n", len(recs), "thr", round(d["thr"], 3), "params", p, flush=True)
     for reg in a.regimes:
         for seed in parse_seeds(a.seeds):
-            f = f"{a.out}/{a.backend}_{reg}_{seed}.json"
+            f = f"{a.out}/{alias}_{reg}_{seed}.json"
             if os.path.exists(f): continue
             if reg == "L":                                                    # leave-labs-out: loop pool = training labs; E/E_s/E_f from held-out labs only
                 init, pool, test, held = setup_L(seed, d["srcs"], p["n_init"]); E, rest = make_eval_slice(test, seed, p["n_eval"]); Ef, Efg, Efs, rest = make_flat_slice(rest, d["flat"], seed, p["n_flat_groups"], d["y"]); Es, rest = make_source_slice(rest, d["srcs"], seed)
@@ -302,7 +316,7 @@ def main():
             Kshuf = d["Kphys"].copy(); rr = np.random.default_rng(seed + 7)
             for s_ in set(d["srcs"]): ix = np.array([i for i, v in enumerate(d["srcs"]) if v == s_]); Kshuf[ix] = d["Kphys"][rr.permutation(ix)]      # permuted within source: same distribution, no information
             ctx = Ctx(d["y"], d["thr"], d["thr_g"], d["srcs"], d["Kz"], d["B"], p, d["Kn"], Ef, Efg, Efs, Es, d["Kphys"], Kshuf)
-            out = run_task(ctx, init, pool, E, seed); out.update(backend=a.backend, regime=reg, params=p, E=[int(i) for i in E], Es=[int(i) for i in Es], Ef_groups=[[int(i) for i in g] for g in Efg], Ef_sib=[int(i) for i in Efs], init=[int(i) for i in init])
+            out = run_task(ctx, init, pool, E, seed); out.update(backend=alias, backend_spec=a.backend, regime=reg, params=p, cost_info=(d["B"].cost_info() if hasattr(d["B"], "cost_info") else None), E=[int(i) for i in E], Es=[int(i) for i in Es], Ef_groups=[[int(i) for i in g] for g in Efg], Ef_sib=[int(i) for i in Efs], init=[int(i) for i in init])
             for arm in ARMS:
                 if arm in out and arm != "loop": out[arm].pop("revealed_final", None)
             tmp = f + ".tmp"; json.dump(out, open(tmp, "w")); os.replace(tmp, f)
