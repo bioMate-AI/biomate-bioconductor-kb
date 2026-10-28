@@ -43,6 +43,10 @@ Frozen reveal sets / eligibility (`h4b_reveals.csv.gz`, `h4b_eligible.csv`; k �
 ## 7. Claim limits
 Scope: PAMPA permeability (CycPeptMPDB) and analysis-I binding only; no generation, no wet lab. Positive results are exploratory (second look, §0) and would need fresh labs/targets for confirmation. The "analog" component is nearest-neighbour similarity, not target-aware.
 
+## AMENDMENT A1 (2026-10-30; committed BEFORE any real-data T1b score)
+**Planted control 6.1(i) failed marginally:** prior-informative world, F2b = 0.665 / 0.608 / 0.662 at k = 5 / 10 / 25 vs 0.85 × PT = 0.609 at every k: the k = 10 value misses by 0.001 (0.8484 × PT). (ii) analog-informative (F2b at k = 25 = 0.659 vs A 0.684), (iii) both-informative (F2b 0.501 / 0.575 / 0.659 vs max(PT, A) 0.441 / 0.440 / 0.487) and (iv) pass; PT+k recovers the planted cluster residual (0.687 / 0.670 / 0.653 vs PT 0.717 in the prior-only world — PT+k loses 0.03–0.06 there; 0.495 / 0.545 / 0.646 vs 0.441 in the both-informative world).
+**Decision (no threshold or formula change):** F2b with n0 = 5 stays primary exactly as registered and is **labelled "failed planted control (i), marginal (k = 10)"** wherever reported; this label limits what a positive (b) result can mean (it cannot be attributed to a formula proven to be safe when the prior is the only informative component). n0 = 10 (already in the registered secondary grid) is reported descriptively; moving n0 after seeing the control would be tuning the primary arm on a synthetic world I had already seen in T1 (identical F2 numbers: 0.665 / 0.608 / 0.662). All other registrations unchanged.
+
 ---
 ## RESULTS
 (appended after the pre-registration commit)
