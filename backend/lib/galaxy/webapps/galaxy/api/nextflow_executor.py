@@ -3138,6 +3138,18 @@ def _generate_executor_config(
         # task containers can resolve "minio" hostname for S3 file staging.
         # BIOMATE_DOCKER_NETWORK defaults to "biomate-network" (on-prem compose default).
         docker_network = os.environ.get("BIOMATE_DOCKER_NETWORK", "biomate-network")
+        # On ARM64 hosts the galaxy container runs under QEMU x86 emulation.  The
+        # x86 docker CLI binary inside the image crashes (Go unix-socket panic) when
+        # called from within QEMU.  Fix: use a statically-linked native ARM64 docker
+        # binary placed at /app/nf-work/docker-arm64-static by install.sh.  Static
+        # ARM64 binaries exec'd from inside an x86 QEMU container are handled by the
+        # ARM64 host kernel natively — no QEMU overhead, no unix-socket crash.
+        _is_arm64 = os.environ.get("DOCKER_DEFAULT_PLATFORM", "").lower() == "linux/arm64"
+        _arm64_docker = "/app/nf-work/docker-arm64-static"
+        docker_executable_line = (
+            f"  executable = '{_arm64_docker}'"
+            if _is_arm64 and os.path.exists(_arm64_docker) else ""
+        )
         # On-prem container override: bioc workflows hard-code a private ECR image.
         # BIOMATE_BIOC_CONTAINER lets operators substitute a public/pre-pulled image.
         # Example: BIOMATE_BIOC_CONTAINER=localhost:5050/biomate/bioc-domain-transcriptomics:3.20-slim
@@ -3167,6 +3179,7 @@ aws {{
 
 docker {{
   enabled = true
+{docker_executable_line}
   // --entrypoint "": override image ENTRYPOINT so Nextflow's /bin/bash invocation is used directly.
   // --user root: task containers need write access to the nf-work bind-mount.
   runOptions = '--entrypoint "" --user root --network {docker_network}'

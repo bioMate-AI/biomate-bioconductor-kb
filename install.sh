@@ -449,6 +449,36 @@ if [[ "$HOST_ARCH_NORM" != "amd64" ]]; then
   else
     warn "多架构支持安装失败 — amd64 镜像可能无法在 ${HOST_ARCH} 上运行"
   fi
+
+  # ── ARM64-specific: download static ARM64 docker CLI for Nextflow task launching ──
+  # The galaxy image is x86 and runs under QEMU on ARM64 hosts.  QEMU 6.x has a
+  # known Go unix-socket bug: the x86 docker CLI crashes (goroutine panic) when
+  # Nextflow calls it to launch task containers.  Fix: place a statically-linked
+  # native ARM64 docker binary at /app/nf-work/docker-arm64-static.  Static ARM64
+  # binaries exec'd from inside an x86 QEMU container are recognised as native by
+  # the ARM64 kernel and run without QEMU — no unix-socket crash.
+  # nextflow_executor.py sets docker.executable to this path automatically when
+  # DOCKER_DEFAULT_PLATFORM=linux/arm64 and the file exists.
+  _ARM64_DOCKER_PATH="${NF_WORK_DIR}/docker-arm64-static"
+  _ARM64_DOCKER_VERSION="27.5.1"
+  if [[ ! -x "$_ARM64_DOCKER_PATH" ]]; then
+    info "下载 ARM64 静态 Docker 二进制文件 (v${_ARM64_DOCKER_VERSION})..."
+    _tmpdir=$(mktemp -d)
+    if curl -fsSL \
+        "https://download.docker.com/linux/static/stable/aarch64/docker-${_ARM64_DOCKER_VERSION}.tgz" \
+        -o "$_tmpdir/docker-static.tgz" 2>&1; then
+      tar xzf "$_tmpdir/docker-static.tgz" --strip-components=1 -C "$_tmpdir" docker/docker
+      mv "$_tmpdir/docker" "$_ARM64_DOCKER_PATH"
+      chmod +x "$_ARM64_DOCKER_PATH"
+      rm -rf "$_tmpdir"
+      ok "ARM64 静态 Docker 已就绪: $_ARM64_DOCKER_PATH"
+    else
+      warn "ARM64 静态 Docker 下载失败 — Nextflow 任务容器可能启动失败"
+      rm -rf "$_tmpdir"
+    fi
+  else
+    ok "ARM64 静态 Docker 已存在: $_ARM64_DOCKER_PATH"
+  fi
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
