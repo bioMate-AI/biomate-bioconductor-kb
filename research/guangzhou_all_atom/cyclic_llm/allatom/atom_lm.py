@@ -28,15 +28,24 @@ class Vocab:
     def decode(self, ids): return "".join(self.itos[i] for i in ids if i > UNK)
 
 
+class Block(nn.Module):
+    """Pre-LN transformer block with fused causal scaled-dot-product attention (flash / memory-efficient kernels when available)."""
+    def __init__(self, d, heads):
+        super().__init__(); self.heads = heads; self.ln1 = nn.LayerNorm(d); self.qkv = nn.Linear(d, 3 * d); self.proj = nn.Linear(d, d)
+        self.ln2 = nn.LayerNorm(d); self.mlp = nn.Sequential(nn.Linear(d, 4 * d), nn.GELU(), nn.Linear(4 * d, d))
+    def forward(self, x):
+        B, T, D = x.shape; q, k, v = self.qkv(self.ln1(x)).view(B, T, 3, self.heads, D // self.heads).permute(2, 0, 3, 1, 4)
+        x = x + self.proj(F.scaled_dot_product_attention(q, k, v, is_causal=True).transpose(1, 2).reshape(B, T, D)); return x + self.mlp(self.ln2(x))
+
+
 class GPT(nn.Module):
     def __init__(self, vocab, d=256, layers=6, heads=8, max_len=256):
         super().__init__(); self.max_len = max_len; self.tok = nn.Embedding(vocab, d); self.pos = nn.Embedding(max_len, d)
-        layer = nn.TransformerEncoderLayer(d, heads, 4 * d, dropout=0.0, batch_first=True, norm_first=True, activation="gelu")
-        self.blocks = nn.TransformerEncoder(layer, layers, enable_nested_tensor=False); self.ln = nn.LayerNorm(d); self.head = nn.Linear(d, vocab, bias=False); self.head.weight = self.tok.weight
+        self.blocks = nn.ModuleList([Block(d, heads) for _ in range(layers)]); self.ln = nn.LayerNorm(d); self.head = nn.Linear(d, vocab, bias=False); self.head.weight = self.tok.weight
     def forward(self, x):
-        T = x.shape[1]; h = self.tok(x) + self.pos(torch.arange(T, device=x.device))[None]
-        mask = torch.triu(torch.ones(T, T, device=x.device, dtype=torch.bool), 1)
-        return self.head(self.ln(self.blocks(h, mask=mask, is_causal=True)))
+        h = self.tok(x) + self.pos(torch.arange(x.shape[1], device=x.device))[None]
+        for blk in self.blocks: h = blk(h)
+        return self.head(self.ln(h))
 
 
 def has_macrocycle(smi, min_ring=12):
@@ -52,6 +61,19 @@ def batch_indices(n, batch_size, step, seed, weights=None):
     rng = np.random.default_rng(seed * 1_000_003 + step); return rng.choice(n, batch_size, p=weights)
 
 
+_POOL = {}
+
+
+def bucketed_indices(lengths, batch_size, step, seed, weights=None, pool_mult=32):
+    """Length-bucketed batches that are still a pure function of (seed, step): draw a pool of pool_mult*batch_size indices for step//pool_mult, sort by length, split into pool_mult batches, return batch step % pool_mult. Cuts padding waste (random 128-batches of a skewed corpus waste ~3x)."""
+    g = step // pool_mult; key = (len(lengths), batch_size, seed, g, pool_mult, id(weights))
+    if key not in _POOL:
+        if len(_POOL) > 4: _POOL.clear()
+        rng = np.random.default_rng(seed * 1_000_003 + g); pool = rng.choice(len(lengths), pool_mult * batch_size, p=weights)
+        _POOL[key] = pool[np.argsort(lengths[pool], kind="stable")].reshape(pool_mult, batch_size)
+    return _POOL[key][step % pool_mult]
+
+
 def collate(enc, idx, max_len, device):
     seqs = [enc[i][:max_len] for i in idx]; L = max(len(s) for s in seqs); x = torch.full((len(seqs), L), PAD, dtype=torch.long)
     for j, s in enumerate(seqs): x[j, :len(s)] = torch.tensor(s)
@@ -62,14 +84,16 @@ def _loss(model, x):
     logits = model(x[:, :-1]); return F.cross_entropy(logits.reshape(-1, logits.shape[-1]), x[:, 1:].reshape(-1), ignore_index=PAD)
 
 
-def train(model, enc, vocab, steps, batch_size, lr, seed=0, ckpt=None, ckpt_every=0, resume=False, device="cpu", weights=None, log_every=0, amp=False, on_ckpt=None):
+def train(model, enc, vocab, steps, batch_size, lr, seed=0, ckpt=None, ckpt_every=0, resume=False, device="cpu", weights=None, log_every=0, amp=False, on_ckpt=None, pool_mult=0):
     model.to(device).train(); opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01); start = 0
     use_amp = bool(amp and str(device).startswith("cuda")); amp_dtype = torch.bfloat16 if (use_amp and torch.cuda.is_bf16_supported()) else torch.float16       # T4 has no bf16 -> fp16 + loss scaling
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp and amp_dtype == torch.float16)
     if resume and ckpt and os.path.exists(ckpt):
         s = torch.load(ckpt, map_location=device); model.load_state_dict(s["model"]); opt.load_state_dict(s["opt"]); start = s["step"]
+    lengths = np.array([len(e) for e in enc]) if pool_mult else None
     for step in range(start, steps):
-        x = collate(enc, batch_indices(len(enc), batch_size, step, seed, weights), model.max_len, device)
+        idx = bucketed_indices(lengths, batch_size, step, seed, weights, pool_mult) if pool_mult else batch_indices(len(enc), batch_size, step, seed, weights)
+        x = collate(enc, idx, model.max_len, device)
         with torch.autocast(device_type="cuda", dtype=amp_dtype, enabled=use_amp): loss = _loss(model, x)
         opt.zero_grad(set_to_none=True); scaler.scale(loss).backward(); scaler.unscale_(opt); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); scaler.step(opt); scaler.update()
         if log_every and (step + 1) % log_every == 0: print(f"step {step+1} loss {loss.item():.4f}", flush=True)

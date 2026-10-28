@@ -40,7 +40,7 @@ def main():
         if a.s3 and not a.bench: subprocess.run(["aws", "s3", "cp", path, f"{a.s3}/ckpt.pt", "--only-show-errors"]); print("uploaded ckpt step", step, flush=True)
     steps = 150 if a.bench else a.steps; enc_l = [e.astype(np.int64).tolist() for e in enc] if len(enc) <= 300000 else [e.tolist() for e in enc]
     torch.cuda.reset_peak_memory_stats() if dev == "cuda" else None; t1 = time.time()
-    A.train(model, enc_l, vocab, steps=steps, batch_size=a.batch, lr=a.lr, seed=0, ckpt=ck, ckpt_every=a.ckpt_every, resume=resume, device=dev, weights=w, log_every=25 if a.bench else 200, amp=True, on_ckpt=up)
+    A.train(model, enc_l, vocab, steps=steps, batch_size=a.batch, lr=a.lr, seed=0, ckpt=ck, ckpt_every=a.ckpt_every, resume=resume, device=dev, weights=w, log_every=25 if a.bench else 200, amp=True, on_ckpt=up, pool_mult=32)
     dt = time.time() - t1; mean_len = float(np.mean([len(e) for e in enc[:20000]])); tok = steps * a.batch * mean_len
     info = dict(params=npar, device=dev, steps=steps, seconds=round(dt, 1), sec_per_step=round(dt / steps, 4), approx_tokens_per_sec=round(tok / dt), mean_len=round(mean_len, 1), peak_mem_gb=round(torch.cuda.max_memory_allocated() / 1e9, 2) if dev == "cuda" else None,
                 n_molecules=len(enc), n_macrocycles=int(macro.sum()))
