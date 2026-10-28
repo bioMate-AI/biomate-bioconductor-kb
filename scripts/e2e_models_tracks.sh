@@ -202,9 +202,13 @@ ACTIVE_P="P1"
 note ""
 note "  A6 — retrain runId appears in the runs/dashboard list"
 if [ -n "$RUN_ID" ]; then
-  # Try the common execution-runs list endpoints; accept whichever the app serves.
-  RUNS="$(GET "/api/execution-runs?projectId=$PID" "$JWT")"
-  if [ "$(is_json "$RUNS")" != "json" ]; then RUNS="$(GET "/api/runs?projectId=$PID" "$JWT")"; fi
+  # The runs/dashboard list is served at /api/workflows/runs (the earlier
+  # /api/execution-runs & /api/runs guesses are 404 — benchmark design error,
+  # fixed 2026-10-28). Verified live on dev: the Adapt retrain registers a
+  # first-class run that appears here tagged workflow_type:"training"
+  # (workflowName "Adaptation retrain"). Project-scoped first, user-scoped fallback.
+  RUNS="$(GET "/api/workflows/runs?projectId=$PID" "$JWT")"
+  if [ "$(is_json "$RUNS")" != "json" ]; then RUNS="$(GET "/api/workflows/runs" "$JWT")"; fi
   expect "runs list contains the retrain runId" \
          "$(echo "$RUNS" | grep -c "$RUN_ID" || true)" "^[1-9]"
   expect "the run is tagged as training (not a faked Nextflow pipeline)" \
