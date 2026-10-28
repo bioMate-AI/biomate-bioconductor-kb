@@ -51,6 +51,19 @@ def test_point_estimate_lies_inside_its_seed_only_interval_with_unbalanced_sourc
         for k in seeds: ta.setdefault(f"lab{s}", {})[k] = 0.3 + 0.2 * rng.standard_normal(); tb.setdefault(f"lab{s}", {})[k] = 0.25 + 0.2 * rng.standard_normal()
     c = G.cluster_contrast(ta, tb); lo, hi = c["ci_seed_only"]; assert lo <= c["mean"] <= hi, c; lo, hi = c["ci_cluster"]; assert lo <= c["mean"] <= hi, c
 
+
+def test_nan_guard_never_propagates():
+    res, y, srcs = world(lab_sd=0.2)
+    ta = G.source_rho_table(res, "A", y, srcs); tb = G.source_rho_table(res, "B", y, srcs); clean = G.cluster_contrast(ta, tb)
+    ta2 = {s: dict(v) for s, v in ta.items()}; first = sorted(ta2)[0]; k0 = sorted(ta2[first])[0]; ta2[first][k0] = float("nan")          # one NaN per-seed value
+    c = G.cluster_contrast(ta2, tb); assert c["mean"] is not None and np.isfinite(c["mean"]) and all(np.isfinite(c["ci_cluster"])) and all(np.isfinite(c["ci_seed_only"])), c
+    ta3 = {s: dict(v) for s, v in ta.items()}
+    for k in list(ta3[first]): ta3[first][k] = float("nan")                                                                                   # a whole source NaN: dropped, other sources unaffected
+    c3 = G.cluster_contrast(ta3, tb); assert c3["n_sources"] == clean["n_sources"] - 1 and np.isfinite(c3["mean"]), c3
+    allnan = {s: {k: float("nan") for k in v} for s, v in ta.items()}; c4 = G.cluster_contrast(allnan, tb); assert c4["mean"] is None and c4["interval_type"] == "insufficient clusters", c4
+    res2 = {k: {"E": v["E"], "A": {"E_scores_final": [float("nan")] + v["A"]["E_scores_final"][1:]}} for k, v in res.items()}
+    tt = G.source_rho_table(res2, "A", y, srcs); assert all(np.isfinite(x) for d in tt.values() for x in d.values()), "a NaN score must make that (source, seed) missing, not a number"
+
 if __name__ == "__main__":
     for n, f in list(globals().items()):
         if n.startswith("test_"): f(); print("PASS", n)

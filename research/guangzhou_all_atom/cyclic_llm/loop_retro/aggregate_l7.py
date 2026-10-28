@@ -47,7 +47,8 @@ def source_rho_table(task_results, arm, y, srcs, min_n=15):
         E = np.asarray(r["E"], int); sc = np.asarray(rec["E_scores_final"], float); s_of = np.asarray([srcs[i] for i in E])
         for s in sorted(set(s_of.tolist())):
             m = s_of == s
-            if m.sum() >= min_n and np.std(sc[m]) > 0 and np.std(y[E][m]) > 0: tab.setdefault(s, {})[seed] = _rho(sc[m], y[E][m])
+            if m.sum() >= min_n and np.all(np.isfinite(sc[m])) and np.std(sc[m]) > 0 and np.std(y[E][m]) > 0: tab.setdefault(s, {})[seed] = _rho(sc[m], y[E][m])
+            elif m.sum() >= min_n and not np.all(np.isfinite(sc[m])): continue                                       # non-finite scores: this (source, seed) is missing, not 0
             elif m.sum() >= min_n: tab.setdefault(s, {})[seed] = 0.0                                            # constant score within a source counts as rho = 0 (ties)
     return tab
 
@@ -59,7 +60,8 @@ def cluster_contrast(tab_a, tab_b, min_seeds=3, B=B_BOOT, lo=2.5, hi=97.5):
     d = {}
     for s in sorted(set(tab_a) & set(tab_b)):                     # sorted: set iteration order of strings varies between processes (hash randomisation) and would change the resampling
         common = sorted(set(tab_a[s]) & set(tab_b[s]))
-        if len(common) >= min_seeds: d[s] = {k: tab_a[s][k] - tab_b[s][k] for k in common}
+        dd = {k: tab_a[s][k] - tab_b[s][k] for k in common}; dd = {k: v for k, v in dd.items() if np.isfinite(v)}        # NaN guard (committee 2): a non-finite per-seed value is dropped, never propagated into a mean or a bootstrap
+        if len(dd) >= min_seeds: d[s] = dd
     if len(d) < 2: return dict(n_sources=len(d), mean=None, ci_cluster=None, ci_seed_only=None, interval_type="insufficient clusters")
     per_src = np.asarray([np.mean(list(v.values())) for v in d.values()], float); srcs_sorted = sorted(d)
     rng = np.random.default_rng(_seed(per_src, lo, hi)); bs = [float(rng.choice(per_src, len(per_src)).mean()) for _ in range(B)]

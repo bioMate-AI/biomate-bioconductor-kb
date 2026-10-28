@@ -69,13 +69,13 @@ def spearman(a, b):
     ra, rb = rankdata(a), rankdata(b); ra -= ra.mean(); rb -= rb.mean(); d = np.sqrt((ra ** 2).sum() * (rb ** 2).sum()); return float((ra * rb).sum() / d) if d > 0 else 0.0
 
 
-def setup_L(seed, srcs, n_init, frac=0.25, min_n=20):
+def setup_L(seed, srcs, n_init, frac=0.25, min_n=20, max_labs=None):
     """Regime L (leave-labs-out, L7f): held-out labs = seeded labs with >= min_n peptides, never the two largest, drawn until ~frac of all peptides is held out. Returns (init, pool, heldout_peptides, heldout_sources);
     init and pool are TRAINING-source peptides only."""
     cnt = collections.Counter(srcs); giants = {s for s, _ in cnt.most_common(2)}; cand = sorted(s for s, c in cnt.items() if c >= min_n and s not in giants)
     rng = random.Random(500000 + seed); rng.shuffle(cand); held, tot = [], 0
     for s in cand:
-        if tot >= frac * len(srcs): break
+        if tot >= frac * len(srcs) or (max_labs is not None and len(held) >= max_labs): break          # L9 sensitivity regime: at most max_labs=9 held-out labs
         held.append(s); tot += cnt[s]
     hs = set(held); train = [i for i in range(len(srcs)) if srcs[i] not in hs]; test = [i for i in range(len(srcs)) if srcs[i] in hs]
     ids = list(train); random.Random(seed).shuffle(ids); return ids[:n_init], ids[n_init:], test, sorted(held)
@@ -321,8 +321,8 @@ def main():
         for seed in parse_seeds(a.seeds):
             f = f"{a.out}/{alias}_{reg}_{seed}.json"
             if os.path.exists(f): continue
-            if reg == "L":                                                    # leave-labs-out: loop pool = training labs; E/E_s/E_f from held-out labs only
-                init, pool, test, held = setup_L(seed, d["srcs"], p["n_init"]); E, rest = make_eval_slice(test, seed, p["n_eval"]); Ef, Efg, Efs, rest = make_flat_slice(rest, d["flat"], seed, p["n_flat_groups"], d["y"]); Es, rest = make_source_slice(rest, d["srcs"], seed)
+            if reg in ("L", "M"):                                             # leave-labs-out; M = L9 (L7k addendum 2): at most 9 held-out labs: loop pool = training labs; E/E_s/E_f from held-out labs only
+                init, pool, test, held = setup_L(seed, d["srcs"], p["n_init"], max_labs=(9 if reg == "M" else None)); E, rest = make_eval_slice(test, seed, p["n_eval"]); Ef, Efg, Efs, rest = make_flat_slice(rest, d["flat"], seed, p["n_flat_groups"], d["y"]); Es, rest = make_source_slice(rest, d["srcs"], seed)
                 assert all(d["srcs"][i] in set(held) for i in E + Ef + Efs + Es) and all(d["srcs"][i] not in set(held) for i in list(pool) + list(init)), "regime L leakage between training and held-out labs"
             else:
                 init, pool = P.setup(reg, seed, d["srcs"], d["scaf"], p["n_init"], d["flat"])

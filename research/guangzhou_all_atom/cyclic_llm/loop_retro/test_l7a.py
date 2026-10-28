@@ -281,8 +281,17 @@ def test_random_srcmatch_reproduces_the_loops_source_mix_but_not_its_labels():
         a = __import__("collections").Counter(srcs[i] for i in lp["picks"][r]); b = __import__("collections").Counter(srcs[i] for i in sm["picks"][r]); assert a == b, ("source mix must match exactly", r, a, b)
     assert np.mean(y[[i for rd in lp["picks"] for i in rd]]) > np.mean(y[[i for rd in sm["picks"] for i in rd]]) + 0.3, "the matched draw must NOT reproduce the loop's high-label selection"
 
+
+def test_regime_L9_caps_the_held_out_labs_and_keeps_a_mid_size_training_lab():
+    recs = R.load(CSV); srcs = [r["source"] for r in recs]; cnt = __import__("collections").Counter(srcs); elig = [s for s, c in cnt.items() if c >= 20 and s not in {s for s, _ in cnt.most_common(2)}]
+    for seed in range(10):
+        init, pool, test, held = L.setup_L(seed, srcs, 100, max_labs=9); assert len(held) <= 9 and set(held) <= set(elig)
+        assert any(srcs[i] in set(elig) - set(held) for i in pool), "every L9 seed must keep at least one eligible mid-size lab in training"
+        assert all(srcs[i] not in set(held) for i in init + pool) and all(srcs[i] in set(held) for i in test)
+    assert L.setup_L(0, srcs, 100)[3] == L.setup_L(0, srcs, 100, max_labs=None)[3], "default behaviour of regime L must be unchanged"
+
 if __name__ == "__main__":
     which = sys.argv[1] if len(sys.argv) > 1 else "core"
-    names = {"core": ["test_eval_slice_disjoint_and_paired", "test_arms_on_planted_world_with_gbm", "test_one_shot_budget_equals_loop_total_steps", "test_stereo_rho_planted_and_ties_are_zero", "test_flat_slice_split_properties", "test_stereo_blind_is_zero_and_stereo_aware_detected", "test_subset_identical_between_small_and_large_runners", "test_regime_L_leave_labs_out_properties", "test_kphys_channels_and_fusion_identities", "test_physchem_channel_planted", "test_frozen_arm_sar_uses_only_labels_the_model_has", "test_knn_baseline_planted_and_k0", "test_rule_kphys_arm_is_model_free_and_ranks_by_the_rule", "test_lora_wiring_on_tiny_encoder", "test_gp_baseline_planted_calibration_and_k0", "test_random_srcmatch_reproduces_the_loops_source_mix_but_not_its_labels"],
+    names = {"core": ["test_eval_slice_disjoint_and_paired", "test_arms_on_planted_world_with_gbm", "test_one_shot_budget_equals_loop_total_steps", "test_stereo_rho_planted_and_ties_are_zero", "test_flat_slice_split_properties", "test_stereo_blind_is_zero_and_stereo_aware_detected", "test_subset_identical_between_small_and_large_runners", "test_regime_L_leave_labs_out_properties", "test_kphys_channels_and_fusion_identities", "test_physchem_channel_planted", "test_frozen_arm_sar_uses_only_labels_the_model_has", "test_knn_baseline_planted_and_k0", "test_rule_kphys_arm_is_model_free_and_ranks_by_the_rule", "test_lora_wiring_on_tiny_encoder", "test_gp_baseline_planted_calibration_and_k0", "test_random_srcmatch_reproduces_the_loops_source_mix_but_not_its_labels", "test_regime_L9_caps_the_held_out_labs_and_keeps_a_mid_size_training_lab"],
              "atom": ["test_atom_heads_functional", "test_atom_adapter_planted_signal", "test_ln_peft_mode_trains_only_layernorm_and_head"], "chemberta": ["test_chemberta_adapter_planted_signal"], "atomphys": ["test_atom_phys_adapter_planted_signal"], "chembertaphys": ["test_chemberta_phys_adapter_planted_signal"], "v4": ["test_v4_adapter_planted_signal"]}[which]
     for n in names: globals()[n](); print("PASS", n)
