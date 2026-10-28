@@ -1,0 +1,84 @@
+{
+ "registered_gate": {
+  "C1_atomlm_typicality": {
+   "point": 0.5031,
+   "lo": 0.4578,
+   "hi": 0.5495,
+   "n_families": 25,
+   "items_used_frac": 0.941
+  },
+  "C2_multiproxy_leave_fold_out": {
+   "point": 0.5591,
+   "lo": 0.4994,
+   "hi": 0.6189,
+   "n_families": 25,
+   "folds_evaluated": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  "C3_morgan_fp_leave_fold_out": {
+   "point": 0.5837,
+   "lo": 0.5328,
+   "hi": 0.6362,
+   "n_families": 26
+  }
+ },
+ "train_test_compound_overlap_rows_per_fold": {
+  "0": 458,
+  "1": 0,
+  "2": 90,
+  "3": 219,
+  "4": 326
+ },
+ "rows_total": 9432,
+ "compound_disjoint": {
+  "C2": {
+   "point": 0.5658436420632595,
+   "lo": 0.5056213637811126,
+   "hi": 0.6252298277847247,
+   "n_families": 25
+  },
+  "C3": {
+   "point": 0.5795600960686822,
+   "lo": 0.5304349395421015,
+   "hi": 0.6302258619817271,
+   "n_families": 26
+  }
+ },
+ "label_permutation_null_5_runs": [
+  {
+   "C1_atomlm_typicality": 0.5221,
+   "C2_multiproxy_leave_fold_out": 0.4848,
+   "C3_morgan_fp_leave_fold_out": 0.5172
+  },
+  {
+   "C1_atomlm_typicality": 0.5046,
+   "C2_multiproxy_leave_fold_out": 0.4819,
+   "C3_morgan_fp_leave_fold_out": 0.49
+  },
+  {
+   "C1_atomlm_typicality": 0.4867,
+   "C2_multiproxy_leave_fold_out": 0.5003,
+   "C3_morgan_fp_leave_fold_out": 0.5181
+  },
+  {
+   "C1_atomlm_typicality": 0.5005,
+   "C2_multiproxy_leave_fold_out": 0.4806,
+   "C3_morgan_fp_leave_fold_out": 0.4996
+  },
+  {
+   "C1_atomlm_typicality": 0.5234,
+   "C2_multiproxy_leave_fold_out": 0.4957,
+   "C3_morgan_fp_leave_fold_out": 0.5013
+  }
+ ],
+ "label_permutation_null_mean": {
+  "C1_atomlm_typicality": 0.5075,
+  "C2_multiproxy_leave_fold_out": 0.4887,
+  "C3_morgan_fp_leave_fold_out": 0.5052
+ }
+}
