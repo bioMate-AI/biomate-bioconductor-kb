@@ -1,0 +1,12 @@
+# PRE-REGISTRATION KN-1: the knowledge–novelty frontier for αvβ6 cyclic peptides (committed 2026-10-27 BEFORE any sampling)
+
+Question. How much of the mechanism knowledge (pharmacophore constraint) can be relaxed to gain novelty (escape from the patented genus, distance from known actives) while retaining the mechanism features? A computational design-space characterisation using the repository's own rule predicates, FTO claim-genus mapper and nearest-patented-identity function. No binding prediction is used here (that is KN-2, a simulated metal-aware cofold assay, to be pre-registered separately).
+
+Strictness levels (each: 2,000 unique valid HELM candidates, seed 20261027, ring size 7–11, monomers from the 20 canonical residues plus the ncAA list of the existing enumerator {2Nal, Phe4F, Phe4Cl, Aib, Abu, dPro, NMeLys, NMeAla}):
+ L0 whole scaffold  : cyclo(p1-R-G-D-L-p6-p7-[dP]-[NMeK]) with p1,p7 in aromatics (canonical + ncAA), p6 in small residues (the current enumerator's space).
+ L1 pharmacophore   : ring 7–11 containing the contiguous motif R-G-D-L and exactly one Lys-type handle (K or NMeK); all other positions free.
+ L2 RGD only        : ring 7–11 containing R-G-D (any residue after D); other positions free; no handle constraint.
+ L3 unconstrained   : ring 7–11, no motif constraint.
+Measured per level: (a) mechanism-feature rate = fraction with has_rgd, has_rgdl (rule_induction.predicates); (b) FTO: fraction INSIDE the CA2998968 literal genus (fto_score.in_claim) and fraction literally outside; (c) novelty: distribution of nearest-patented/control identity (fto_score.nearest_patented_identity), fraction with identity < 0.7 to every control; (d) diversity: unique fraction and mean pairwise identity (sample of 500 pairs); (e) the joint rate "mechanism features present AND outside the genus AND identity < 0.7" = the usable-novel rate.
+Pre-stated expectations (so they can be wrong): L0 usable-novel rate ~ 0 (inside genus by construction, as the 2026-10-13 analysis says); L1 > L0; L3 usable-novel rate low because mechanism features are rare in random peptides (knowledge needed). The frontier claim "relaxing to L1 raises the usable-novel rate above L0 and L2/L3" is SUPPORTED only if L1's rate exceeds both L0's and L3's with non-overlapping 95 % binomial (Wilson) intervals.
+No other levels, motifs or thresholds will be added after sampling. Results are reported even if the expectation fails.
