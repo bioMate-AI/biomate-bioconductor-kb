@@ -119,16 +119,21 @@ def fig5():
     f.savefig(f"{OUT}/fig5_split_strategies.png", dpi=220, bbox_inches="tight"); plt.close(f)
 
 
-def fig6(path):
-    r = json.load(open(path)); f, axes = plt.subplots(1, 2, figsize=(9, 3.6))
-    for ax, key, title in zip(axes, ("regime_A_iid", "regime_B_shift"), ("In-distribution start", "Scaffold-shifted start")):
-        d = r[key]; names = [("random", "Random", GRAY), ("greedy", "Greedy", BLUE), ("ucb", "Uncertainty-aware", AQUA), ("oracle", "Oracle", ORANGE)]
-        m = [d[k]["mean"] for k, _, _ in names]; lo = [d[k]["ci95"][0] for k, _, _ in names]; hi = [d[k]["ci95"][1] for k, _, _ in names]
-        ax.bar(range(4), m, color=[c for *_, c in names], width=0.55)
-        ax.errorbar(range(4), m, yerr=[[a - b for a, b in zip(m, lo)], [b - a for a, b in zip(m, hi)]], fmt="none", ecolor=INK2, capsize=3, lw=1)
-        ax.set_xticks(range(4)); ax.set_xticklabels([n for _, n, _ in names], fontsize=8); ax.set_title(title, loc="left", fontsize=9.5, fontweight="bold")
-        ax.set_ylabel("Permeable peptides found (of 500 picks)"); ax.yaxis.grid(True, color=GRID); ax.set_axisbelow(True)
-        for s in ("top", "right"): ax.spines[s].set_visible(False)
+def fig6(path, rule_path):
+    r = json.load(open(path)); rb = json.load(open(rule_path)); f, axes = plt.subplots(1, 2, figsize=(9.5, 3.9), sharey=True)
+    for ax, reg, title in zip(axes, ("A", "B"), ("In-distribution start", "Scaffold-shifted start")):
+        bars = [("Random", r[f"fp_{reg}"]["random"]["mean"], r[f"fp_{reg}"]["random"]["ci95"], GRAY),
+                ("N-methyl rule\n(no learning)", rb[f"{reg}_many_N_methyl"]["mean"], rb[f"{reg}_many_N_methyl"]["ci95"], AQUA),
+                ("Greedy loop,\nfingerprints", r[f"fp_{reg}"]["greedy"]["mean"], r[f"fp_{reg}"]["greedy"]["ci95"], BLUE),
+                ("Greedy loop,\n+ rule features", r[f"kn_{reg}"]["greedy"]["mean"], r[f"kn_{reg}"]["greedy"]["ci95"], ORANGE)]
+        for i, (n, m, c, col) in enumerate(bars):
+            ax.bar(i, m, color=col, width=0.6); ax.errorbar(i, m, yerr=[[m - c[0]], [c[1] - m]], fmt="none", ecolor=INK2, capsize=3, lw=1)
+            ax.text(i, c[1] + 8, f"{m:.0f}", ha="center", fontsize=8.5)
+        ax.set_xticks(range(4)); ax.set_xticklabels([n for n, *_ in bars], fontsize=8); ax.set_title(title, loc="left", fontsize=9.5, fontweight="bold")
+        ax.set_ylim(0, 520); ax.yaxis.grid(True, color=GRID); ax.set_axisbelow(True)
+        for s_ in ("top", "right"): ax.spines[s_].set_visible(False)
+    axes[0].set_ylabel("Top-decile peptides found in 500 picks")
+    f.text(0.01, -0.04, "Mean over 30 seeds; bars show the 2.5-97.5% range across seeds. The oracle finds 500 by construction. The N-methyl rule was not pre-specified.", fontsize=7.5, color=INK2)
     f.savefig(f"{OUT}/fig6_retrospective_loop.png", dpi=220, bbox_inches="tight"); plt.close(f)
 
 
@@ -149,5 +154,5 @@ def fig_loop():
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True); fig1(); fig2(); fig4(); fig5(); fig_loop()
     if len(sys.argv) > 1 and os.path.exists(sys.argv[1]): fig3(sys.argv[1])
-    if len(sys.argv) > 2 and os.path.exists(sys.argv[2]): fig6(sys.argv[2])
+    if len(sys.argv) > 3 and os.path.exists(sys.argv[2]) and os.path.exists(sys.argv[3]): fig6(sys.argv[2], sys.argv[3])
     print(os.listdir(OUT))
