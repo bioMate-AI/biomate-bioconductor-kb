@@ -40,7 +40,7 @@ def prompt(r):
             f"PK/ER inputs: {json.dumps({k:v for k,v in i.items() if k not in ('dose_levels_json',)})}")
 
 def ask(model, r):
-    body = json.dumps({"model": model, "temperature": 0, "max_tokens": 4000,
+    body = json.dumps({"model": model, "temperature": 0, "max_tokens": 12000,
                        "messages": [{"role": "user", "content": prompt(r)}]}).encode()
     req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=body,
           headers={"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"})

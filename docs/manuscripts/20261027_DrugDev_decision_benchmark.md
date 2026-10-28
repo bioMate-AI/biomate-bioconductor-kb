@@ -106,27 +106,19 @@ hidden reference — the primary, end-to-end score, identical to the benchmark's
 (correct no-safe-dose calls and no selection above the elimination band), and **fidelity** (did the system
 actually model the exposure–response curve, or guess).
 
+The mechanistic oracle scores **0.85 / 0.90 / 1.00** on these three dimensions; language models trail it by a wide margin. We report the *gap to the oracle* and a qualitative decomposition rather than precise per-model scores, for two reasons given below.
+
+**A measured harness requirement (empties).** This task demands a long structured output — a per-dose toxicity curve plus the selected dose. Reasoning models that are not given a large token budget (we find ≥ ~12,000 tokens is required) exhaust the budget on internal reasoning and return *empty* content, which a naive scorer records as a zero. A flat zero across items is therefore a harness failure, not a capability result; we budget generously and track the empty-response rate per model, and we do not report a run with a nonzero empty rate as a capability measurement.
+
+**Hand-authored tier (implicit exposure–response).** Even with an adequate budget, language models trail the oracle and are noisy at n = 20: across runs Claude Opus 5 scores an outcome of 0.10–0.25 with partial curve fidelity (~0.55 — it reconstructs the curve in part), and GPT-6.1-sol-pro ~0.10 with near-zero fidelity (~0.01 — it emits a curve, but far from the truth). The robust finding is the large and consistent gap to the oracle; the precise per-model values are noisy and should be pinned down by a larger evaluation.
+
+**Generated tier (explicit exposure–response parameters).** When the Emax parameters are provided explicitly, a strong model reconstructs the curve and selects correctly: Opus 5 reaches an outcome of ~1.0 and fidelity 1.0, stable across three runs (0.95, 1.00, 1.00; zero empties). This localizes the hand-authored failure precisely — language models fail to *infer the exposure–response relationship from implicit clinical inputs*, not to do the arithmetic once the relationship is specified. The on-premises and additional frontier rows on both tiers are pending a clean, empties-verified re-run and are not reported here.
+
+The **fidelity** dimension is what makes this diagnostic: a low outcome with *low* fidelity means the system never reconstructed the curve, whereas a low outcome with *high* fidelity would mean it reconstructed the curve but mis-applied the selection rule — different failures that a single outcome number would hide.
+
 ![Figure 3. End-to-end dose-decision scorecard.](figures/drugdev_fig3_e2e_scorecard.png)
 
-**Figure 3.** Outcome (exact MTD match), safety, and exposure–response fidelity (20 scenarios). The mechanistic
-pipeline computes the curve and scores 0.85 / 0.90 / 1.00; language models trail on all three.
-
-| System | outcome (exact MTD) | safety | fidelity |
-|---|---|---|---|
-| **Mechanistic pipeline (execution reference)** | **0.85** | **0.90** | **1.00** |
-| Claude Opus 5 | 0.30–0.40 | 0.75 | 0.46–0.64 |
-| Gemini 3.1 Pro | 0.25 | 0.80 | 0.16–0.62 |
-| GPT-6.1-sol-pro | 0.10 | 0.20 | 0.01 |
-
-(Single-run LLM outcome at n = 20 is noisy — Opus-5 spans 0.30–0.40 and fidelity 0.46–0.64 across runs — so
-LLM rows are reported as ranges, not points; The
-**fidelity** dimension is what makes this diagnostic rather than a single opaque number: GPT-6.1-sol-pro's
-outcome is 0.10 *because* its curve fidelity is ~0.01 — it never modeled the exposure–response and effectively
-guessed; Opus-5 modeled the curve partially and still landed only a third to two-fifths of the exact doses; the
-mechanistic pipeline computes the curve (fidelity 1.00) and reaches 0.85. A low outcome with low fidelity
-("never modeled it") and a low outcome with high fidelity ("modeled it, mis-selected") are different failures,
-and scoring the outcome end-to-end *alongside* the component dimensions is what separates a system that
-computes the answer from one that guesses it.
+**Figure 3.** Illustrative single-run scorecard (mechanistic oracle vs. language models). The language-model bars are a single earlier run at a smaller token budget and are superseded by the budget-verified ranges in the text above; the figure is retained to show the three-dimensional structure (outcome, safety, fidelity), not the exact per-model values.
 
 ## 6. Limitations
 
