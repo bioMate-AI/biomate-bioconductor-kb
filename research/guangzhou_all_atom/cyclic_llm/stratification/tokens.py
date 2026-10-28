@@ -2,6 +2,7 @@
 Topology ground truth comes from the HELM connection string; token classes are rule-based and audited against SMILES (audit_annotation.py)."""
 import re
 
+STD_SET = set("ACDEFGHIKLMNPQRSTVWY") | {"Gly","Ala","Val","Leu","Ile","Pro","Phe","Tyr","Trp","Ser","Thr","Asn","Gln","Asp","Glu","Lys","Arg","His","Met","Cys"}
 CAP_N_RE = re.compile(r".+-$")          # ac-, glyco-, deca-, Mono21-, Mono22-, medl-
 CAP_C_RE = re.compile(r"^-.+")          # -pip, -pyrro, -nme2, -aze, -mor
 UNKNOWN_RE = re.compile(r"^Mono\d+$")
