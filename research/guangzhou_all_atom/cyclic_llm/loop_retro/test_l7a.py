@@ -119,13 +119,16 @@ def test_chemberta_adapter_planted_signal():
     adapter_control(lambda sm: LM.ChemBERTaReg(sm, "cpu"), 150, "chemberta")
 
 def test_v4_adapter_planted_signal():
+    """v4 was pretrained on CycPeptMPDB permeability bins, so its UNTRAINED score is informative about N-methyl count (the planted label): contamination, stated. The control is therefore relative to the prior:
+    planted-trained rho must exceed the untrained rho by >= 0.15 and be > 0.30, and shuffled-label fine-tuning must NOT improve on the untrained prior (mean shuffled rho <= prior + 0.12)."""
     import json
     ms = json.load(open(f"{SP}/v4_mapped_perm.json"))["mapped_smiles"]; rng = np.random.default_rng(0); sm = [ms[i] for i in rng.choice(len(ms), 300, replace=False)]
     NME = Chem.MolFromSmarts("[CX3](=O)[NX3]([CH3])"); nm = np.array([len(Chem.MolFromSmiles(s).GetSubstructMatches(NME)) for s in sm], float); y = (nm - nm.mean()) / (nm.std() + 1e-9) + 0.3 * rng.standard_normal(300)
-    B = L.V4Backend(sm, "cpu"); tr, te = np.arange(0, 200), np.arange(200, 300); st0 = B.init_state()
+    B = L.V4Backend(sm, "cpu"); tr, te = np.arange(0, 200), np.arange(200, 300); st0 = B.init_state(); r0 = spearmanr(B.predict(st0, te), y[te])[0]
     r1 = spearmanr(B.predict(B.fit(st0, tr, y[tr], 60, 0), te), y[te])[0]
     r2 = [spearmanr(B.predict(B.fit(st0, tr, rng.permutation(y[tr]), 60, k), te), y[te])[0] for k in range(3)]
-    print(f"  v4: planted-trained {r1:+.3f} | shuffled-trained {[round(float(r), 3) for r in r2]}"); assert r1 > 0.30 and shuffled_ok(r2), (r1, r2)
+    print(f"  v4: untrained prior rho {r0:+.3f} | planted-trained {r1:+.3f} | shuffled-trained {[round(float(r), 3) for r in r2]}")
+    assert r1 > 0.30 and r1 > r0 + 0.15, (r0, r1); assert float(np.mean(r2)) <= r0 + 0.12, ("shuffled labels improved on the prior", r0, r2)
 
 def test_atom_heads_functional():
     """heads (not recoverable from weights) = 8: pretrained LM loss on real peptides must be lowest there."""
