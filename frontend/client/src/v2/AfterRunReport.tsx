@@ -424,6 +424,10 @@ export function AfterRunReport({
             }}>
               <ReactMarkdown>{reportMarkdown}</ReactMarkdown>
             </div>
+            {/* Reproducibility record commented out 2026-10-28 (user request): the
+                Methods / Parameters / Software / Citations / QC accordion is removed
+                from the Report tab. The report document above already carries Method /
+                Results / Quality-checks / Citations sections. Re-enable by uncommenting.
             <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
               <ReproducibilityRecordTab
                 runId={runId}
@@ -435,6 +439,7 @@ export function AfterRunReport({
                 qcEvents={qcEvents}
               />
             </div>
+            */}
           </div>
         )}
       </div>
