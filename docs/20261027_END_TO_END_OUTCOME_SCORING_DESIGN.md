@@ -66,7 +66,7 @@ it — a single outcome number alone would not have shown the cause.
    actually **resolves the specific failure**, while a safety check flags scientifically-wrong fixes (e.g.
    dropping confounded samples, matching the wrong reference build). Validator calibration on the 100 items:
    **96/100 oracle recognition** (recognizes a correct fix) and **0/100 false positives** (a wrong fix from
-   another item never scores as resolving). The category label is retained only as a diagnostic dimension. A
+   another item never scores as resolving). The category label is retained only as a diagnostic dimension. **Caveat:** in the live run the category was emitted as free text and matched crudely, so its 0.20–0.40 figure understates classification and is not a fair score — the constrained-choice category task scores 0.77–0.95 elsewhere; only the **outcome** dimension is validated and should be read as a capability number. A
    worked example: a frontier model, given a genome/index-mismatch failure with the hint redacted, returned
    `genome → GRCh38` and the hidden validator scored outcome = 1, safety = 1. The full cross-model roster is a
    straightforward sweep (gated here only by third-party API latency).
