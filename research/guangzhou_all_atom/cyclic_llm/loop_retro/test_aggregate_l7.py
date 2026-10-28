@@ -41,6 +41,16 @@ def test_constant_scores_count_as_zero_not_missing():
     for k in res: res[k]["B"]["E_scores_final"] = [0.0] * len(res[k]["B"]["E_scores_final"])
     tb = G.source_rho_table(res, "B", y, srcs); assert tb and all(v == 0.0 for d in tb.values() for v in d.values())
 
+
+def test_point_estimate_lies_inside_its_seed_only_interval_with_unbalanced_sources():
+    """QA finding: with sources evaluated in only some seeds, the seed-only interval must be an interval for the SAME reported mean."""
+    rng = np.random.default_rng(3); ta, tb = {}, {}
+    for s in range(11):
+        seeds = [k for k in range(10) if rng.random() < 0.7] or [0, 1, 2, 3]
+        if len(seeds) < 3: seeds = [0, 1, 2, 3]
+        for k in seeds: ta.setdefault(f"lab{s}", {})[k] = 0.3 + 0.2 * rng.standard_normal(); tb.setdefault(f"lab{s}", {})[k] = 0.25 + 0.2 * rng.standard_normal()
+    c = G.cluster_contrast(ta, tb); lo, hi = c["ci_seed_only"]; assert lo <= c["mean"] <= hi, c; lo, hi = c["ci_cluster"]; assert lo <= c["mean"] <= hi, c
+
 if __name__ == "__main__":
     for n, f in list(globals().items()):
         if n.startswith("test_"): f(); print("PASS", n)

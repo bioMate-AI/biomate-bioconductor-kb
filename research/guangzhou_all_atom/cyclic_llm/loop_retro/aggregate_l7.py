@@ -53,20 +53,26 @@ def source_rho_table(task_results, arm, y, srcs, min_n=15):
 
 
 def cluster_contrast(tab_a, tab_b, min_seeds=3, B=B_BOOT, lo=2.5, hi=97.5):
-    """Paired contrast arm A minus arm B on the within-source rho; seeds are averaged WITHIN each source, then sources are resampled with replacement (cluster bootstrap).
-    Returns dict(n_sources, mean, ci_cluster, ci_seed_only, interval_type). `ci_seed_only` resamples seeds with the sources held fixed (the old, lab-blind interval) for comparison."""
-    per_src, by_seed = {}, {}
-    for s in sorted(set(tab_a) & set(tab_b)):                  # sorted: set iteration order of strings varies between processes (hash randomisation) and would change the resampling
+    """Paired contrast arm A minus arm B on the within-source rho. POINT ESTIMATE = mean over sources of the per-source mean (over the seeds in which that source was held out/evaluated).
+    ci_cluster: sources resampled with replacement (the interval to cite). ci_seed_only: seeds resampled with replacement, sources fixed, with the SAME statistic recomputed on each resample
+    (per-source mean over the resampled seeds in which the source appears, then mean over sources) -- an interval for the reported mean even when sources are present in only some seeds."""
+    d = {}
+    for s in sorted(set(tab_a) & set(tab_b)):                     # sorted: set iteration order of strings varies between processes (hash randomisation) and would change the resampling
         common = sorted(set(tab_a[s]) & set(tab_b[s]))
-        if len(common) < min_seeds: continue
-        d = {k: tab_a[s][k] - tab_b[s][k] for k in common}; per_src[s] = float(np.mean(list(d.values())))
-        for k, v in d.items(): by_seed.setdefault(k, []).append(v)
-    if len(per_src) < 2: return dict(n_sources=len(per_src), mean=None, ci_cluster=None, ci_seed_only=None, interval_type="insufficient clusters")
-    v = np.asarray(list(per_src.values()), float); rng = np.random.default_rng(_seed(v, lo, hi)); bs = [float(rng.choice(v, len(v)).mean()) for _ in range(B)]
-    sv = np.asarray([np.mean(x) for x in by_seed.values()], float); rng2 = np.random.default_rng(_seed(sv, lo, hi) + 1); bs2 = [float(rng2.choice(sv, len(sv)).mean()) for _ in range(B)]
+        if len(common) >= min_seeds: d[s] = {k: tab_a[s][k] - tab_b[s][k] for k in common}
+    if len(d) < 2: return dict(n_sources=len(d), mean=None, ci_cluster=None, ci_seed_only=None, interval_type="insufficient clusters")
+    per_src = np.asarray([np.mean(list(v.values())) for v in d.values()], float); srcs_sorted = sorted(d)
+    rng = np.random.default_rng(_seed(per_src, lo, hi)); bs = [float(rng.choice(per_src, len(per_src)).mean()) for _ in range(B)]
+    seeds_all = sorted({k for v in d.values() for k in v}); rng2 = np.random.default_rng(_seed(per_src, lo, hi) + 1); bs2 = []
+    for _ in range(B):
+        draw = rng2.choice(len(seeds_all), len(seeds_all)); cnt = np.bincount(draw, minlength=len(seeds_all)); w = dict(zip(seeds_all, cnt)); vals = []
+        for s in srcs_sorted:
+            den = sum(w[k] for k in d[s]); 
+            if den > 0: vals.append(sum(w[k] * x for k, x in d[s].items()) / den)
+        bs2.append(float(np.mean(vals)))
     r4 = lambda x: round(float(x), 4)
-    return dict(n_sources=len(per_src), n_seeds=len(sv), mean=r4(v.mean()), ci_cluster=[r4(np.percentile(bs, lo)), r4(np.percentile(bs, hi))], ci_seed_only=[r4(np.percentile(bs2, lo)), r4(np.percentile(bs2, hi))],
-                interval_type="bootstrap CI of the mean over SOURCES (cluster), seeds averaged within source; ci_seed_only = bootstrap over seeds with sources fixed", ci_level_pct=round(hi - lo, 1))
+    return dict(n_sources=len(d), n_seeds=len(seeds_all), mean=r4(per_src.mean()), ci_cluster=[r4(np.percentile(bs, lo)), r4(np.percentile(bs, hi))], ci_seed_only=[r4(np.percentile(bs2, lo)), r4(np.percentile(bs2, hi))],
+                interval_type="bootstrap CI of the mean over SOURCES (cluster); ci_seed_only = bootstrap over seeds, sources fixed, same statistic recomputed", ci_level_pct=round(hi - lo, 1))
 
 
 def load_small(dirs):
