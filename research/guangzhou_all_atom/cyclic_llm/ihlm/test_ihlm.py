@@ -126,14 +126,14 @@ def _heldout_new_families(tr, comps):
     seen = {r["smiles"] for r in tr}; return [c for c in comps if c["fam"] in FAMS[NSEEN:] and c["smiles"] not in seen]
 
 
-@pytest.mark.xfail(strict=False, reason="neural analog attention (M3) did not reach the planted-signal threshold on the 48-family world in the last full run (net-only rho 0.59 < 0.70); kernel sharpened (tau=0.04, gamma=25) and re-run pending")
+@pytest.mark.xfail(strict=False, reason="neural analog attention (M3) on the fixed code: net-only rho 0.525 vs 0.113 for the no-M3 ablation (gap 0.41 passes the 0.25 criterion) but below the pre-set absolute threshold 0.70; permuted-label control not reached; thresholds NOT loosened")
 def test_M3_analog_attention_planted_and_new_family_holdout(trained):
     ho = _heldout_new_families(trained["tr"], trained["comps"]); smi = [c["smiles"] for c in ho]; y = [c["y"] + OFFS[c["lab"]] for c in ho]
     on = spearmanr(trained["full"].score(smi, TSEQ, components=("net",)), y)[0]; off = spearmanr(trained["off"].score(smi, TSEQ, components=("net",)), y)[0]; pm = spearmanr(trained["perm"].score(smi, TSEQ, components=("net",)), y)[0]
     assert on > 0.7 and off < 0.5 and on - off > 0.25, (on, off); assert abs(pm) < 0.35, pm        # planted: analog memory carries new-family effects; ablation + permuted labels lose it
 
 
-@pytest.mark.xfail(strict=False, reason="neural M3 leave-lab-out below threshold in the last full run (rho 0.36 < 0.60); depends on the M3 fix above")
+@pytest.mark.xfail(strict=False, reason="neural M3 leave-lab-out on the fixed code: rho 0.444 < 0.60")
 def test_M3_leave_lab_out():
     """lab L3 never contributes (no rows, no anchors, no offset): its new-family compounds are scored from analogs of OTHER labs (offset-corrected); within-lab ranking must hold, and permuted labels must not."""
     comps = world(); m, _ = _train(("M1", "M2", "M3", "M4", "M5"), comps, exclude_lab="L3"); assert "L3" not in m.mem.offsets
@@ -142,7 +142,6 @@ def test_M3_leave_lab_out():
     mp, _ = _train(("M1", "M2", "M3", "M4", "M5"), comps, exclude_lab="L3", permute=True); assert abs(spearmanr(mp.score(smi, TSEQ, components=("net", "retrieval")), y)[0]) < 0.35
 
 
-@pytest.mark.xfail(strict=False, reason="coverage test RE-SPECIFIED after the last full run (old version asserted coverage under a new-family shift, where split-conformal has no guarantee); new version (exchangeable held-out rows asserted, shifted coverage reported) not yet run")
 def test_M5_uncertainty_coverage_and_width_vs_similarity(trained):
     """split-conformal needs exchangeability: coverage is tested on held-out rows of the SEEN families (never used in training or calibration); under a new-family shift coverage is reported, not asserted."""
     m = trained["full"]; assert m.cal is not None and m.cal["n_cal"] >= 6
@@ -154,7 +153,7 @@ def test_M5_uncertainty_coverage_and_width_vs_similarity(trained):
     hw = np.array([x["half_width"] for x in un]); sims = np.array([m.mem.retrieval(c["smiles"], TSEQ)[1] for c in ho]); assert np.corrcoef(hw, sims)[0, 1] < 0.0   # nearer analog -> narrower
 
 
-@pytest.mark.xfail(strict=False, reason="verifier head AUC 0.72 < 0.90 in the last full run on new families; stronger verifier training (verif_w=3) re-run pending")
+@pytest.mark.xfail(strict=False, reason="verifier head on the fixed code: AUC 0.529 on new families (< 0.90): the head is not learning the planted rule (pooled mean over tokens may dilute a single S token; under-trained at ~100 labelled rows); not claimed")
 def test_M5_verifier_reward_head_planted_and_shuffled(trained):
     from sklearn.metrics import roc_auc_score
     ho = _heldout_new_families(trained["tr"], trained["comps"]); smi = [c["smiles"] for c in ho]; pas = [1 - c["fail"] for c in ho]
