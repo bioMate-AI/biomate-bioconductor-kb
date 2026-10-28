@@ -26,27 +26,30 @@ for f, h in fz.items():
         assert hashlib.sha256(open(p, "rb").read()).hexdigest() == h, f"frozen file changed: {f}"
 T = pd.read_csv(f"{W3}/targets.csv"); C = pd.read_csv(f"{W3}/compounds.csv.gz"); P = pd.read_csv(f"{W3}/pair_labels.csv.gz")
 IM = pd.read_csv(f"{W3}/items_M.csv.gz"); II = pd.read_csv(f"{W3}/items_I.csv.gz")
-fam_of = dict(zip(T.target_key, T.family)); fold_of_fam = {f: int(hashlib.sha256(f.encode()).hexdigest(), 16) % K for f in T.family.unique()}
+FOLDS = f"{W3}/folds_v1.csv"
+assert hashlib.sha256(open(FOLDS, "rb").read()).hexdigest() == "a896c580ccaf49c709851132d60f3c485b6b7e76f0c2149eae974e67f6c5c409", "folds_v1.csv changed"
+fam_of = dict(zip(T.target_key, T.family)); _fd = pd.read_csv(FOLDS); fold_of_fam = dict(zip(_fd.family, _fd.fold.astype(int))); K = int(_fd.fold.max()) + 1
 T["fold"] = T.family.map(fold_of_fam); fold_of_t = dict(zip(T.target_key, T.fold))
 P["fold"] = P.target_key.map(fold_of_t); IM["fold"] = IM.target_key.map(fold_of_t); II["fold"] = II.target_key.map(fold_of_t)
 gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
 fps = {cid: gen.GetFingerprint(Chem.MolFromSmiles(s)) for cid, s in zip(C.compound_id, C.iso_smiles)}
 flat = dict(zip(C.compound_id, C.flat_key)); cid_list = list(C.compound_id); fp_list = [fps[c] for c in cid_list]
-rep = {"K": K, "fold_rule": "sha256(family_id) % K", "n_targets": int(len(T)), "n_families": int(T.family.nunique()),
+rep = {"K": K, "fold_rule": "WS3 folds_v1.csv (sha256 a896c580..., amendment A6): family-held-out rotation", "n_targets": int(len(T)), "n_families": int(T.family.nunique()),
        "families_per_fold": {int(k): int(v) for k, v in T.groupby("fold").family.nunique().items()},
        "targets_per_fold": {int(k): int(v) for k, v in T.groupby("fold").size().items()}, "folds": {}}
 for f in range(K):
-    held_items = pd.concat([IM[IM.fold == f], II[II.fold == f]]); held_c = set(held_items.compound_id)
+    # A6 rule: every compound labelled on ANY held-out-fold target (pair_labels), not only the benchmark items, is removed from this fold's training
+    held_c = set(P[P.fold == f].compound_id) | set(pd.concat([IM[IM.fold == f], II[II.fold == f]]).compound_id)
     held_flat = {flat[c] for c in held_c}; held_fps = [fps[c] for c in held_c]
     tr = P[P.fold != f]
-    cand = sorted(set(tr.compound_id)); drop_flat = {c for c in cand if flat[c] in held_flat}
+    cand = sorted(set(tr.compound_id)); drop_flat = {c for c in cand if c in held_c or flat[c] in held_flat}
     drop_sim = set()
     for c in cand:
         if c in drop_flat: continue
         if held_fps and max(DataStructs.BulkTanimotoSimilarity(fps[c], held_fps)) >= TAN: drop_sim.add(c)
     keep = tr[~tr.compound_id.isin(drop_flat | drop_sim)]
     rep["folds"][f] = {"held_out_targets": int((T.fold == f).sum()), "held_out_benchmark_compounds": len(held_c), "train_pair_rows_before": int(len(tr)), "train_compounds_before": len(cand),
-                       "dropped_same_flat_structure": len(drop_flat), "dropped_tanimoto_ge_0.9": len(drop_sim), "train_pair_rows_after": int(len(keep)),
+                       "dropped_same_compound_or_flat_structure": len(drop_flat), "dropped_tanimoto_ge_0.9": len(drop_sim), "train_pair_rows_after": int(len(keep)),
                        "train_compounds_after": int(keep.compound_id.nunique()), "train_targets": int(keep.target_key.nunique()), "train_families": int(keep.target_key.map(fam_of).nunique()),
                        "train_labels": {k: int(v) for k, v in keep.label.value_counts().items()}}
     keep[["compound_id", "target_key", "label", "value_nM", "relations", "stratum"]].to_csv(f"{out_dir}/c2_train_heldout_fold{f}.csv.gz", index=False)

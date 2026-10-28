@@ -72,3 +72,13 @@ def test_one_shot_matched_budget_and_signal():
     # budget equivalence: same total steps as a single finetune_ranking call with steps=45 and the same seed -> identical weights
     ref = m0.update_tokens(train, "finetune_ranking", seed=0, steps=45, lr=1e-3)
     assert all(torch.allclose(a, b) for a, b in zip(m.model.state_dict().values(), ref.model.state_dict().values()))
+
+
+def test_cost_meter_reports_params_flops_time():
+    m0 = fresh_model(); c0 = m0.cost()
+    assert c0["n_params"] == sum(p.numel() for p in m0.model.parameters()) and c0["flops"] == 0
+    m1 = m0.update_tokens(world(30, 1), "finetune_ranking", seed=0, steps=5, lr=1e-3)
+    _ = m1.score_tokens([r["tokens"] for r in world(20, 2)], TSEQ); c1 = m1.cost()
+    assert c1["updates"] == 1 and c1["train_tokens"] > 0 and c1["score_tokens"] > 0 and c1["flops"] > 0 and c1["update_seconds"] > 0
+    assert m0.cost()["updates"] == 0, "parent meter must not be mutated by a child update"
+    assert abs(c1["flops"] - (2 * c1["n_params"] * c1["score_tokens"] + 6 * c1["n_params"] * c1["train_tokens"])) < 1

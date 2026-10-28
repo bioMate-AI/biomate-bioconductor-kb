@@ -11,6 +11,19 @@ import smiles_to_monomers as S
 from train_cyclic_llm_v3 import make_model, TFEAT_DIM, target_feature
 
 MODES = ("finetune_ranking", "dpo", "frozen", "one_shot_matched")
+USD_PER_GPU_HOUR = 0.35     # declared assumption: spot g6.xlarge-class (L4); override with LoopModel.usd_per_hour. CPU runs report wall-clock only.
+
+
+class CostMeter:
+    """Accumulates parameters-independent usage; flops = 2*N*tokens (forward/scoring) and 6*N*tokens (training; fwd+bwd), N = parameter count (upper bound: counts embeddings)."""
+    def __init__(self, n_params): self.n_params = n_params; self.score_tokens = 0; self.train_tokens = 0; self.score_seconds = 0.0; self.update_seconds = 0.0; self.updates = 0
+    def flops(self): return 2.0 * self.n_params * self.score_tokens + 6.0 * self.n_params * self.train_tokens
+    def report(self, usd_per_hour=USD_PER_GPU_HOUR):
+        s = self.score_seconds + self.update_seconds
+        return dict(n_params=self.n_params, flops=self.flops(), score_tokens=self.score_tokens, train_tokens=self.train_tokens, updates=self.updates,
+                    wall_seconds=round(s, 3), update_seconds=round(self.update_seconds, 3), score_seconds=round(self.score_seconds, 3),
+                    est_usd_at_declared_rate=round(s / 3600.0 * usd_per_hour, 6), usd_per_hour_assumed=usd_per_hour,
+                    note="wall-clock measured on the host that ran it; USD = wall_seconds x declared rate (not a billed cost)")
 
 
 class LoopModel:
@@ -18,6 +31,7 @@ class LoopModel:
         self.model, self.toks, self.block, self.dev = model.to(device).eval(), toks, block, device
         self.stoi = {t: i for i, t in enumerate(toks)}; self.dictionary = dictionary if dictionary is not None else S.BASE
         self.history = tuple(history); self.pad = self.stoi[U.PAD]; self._tf = {}
+        self.meter = CostMeter(sum(p.numel() for p in self.model.parameters()))
 
     @classmethod
     def from_checkpoint(cls, path, device="cpu", dictionary=None):
@@ -44,10 +58,12 @@ class LoopModel:
         return outs[0] - outs[1]
 
     def score_tokens(self, token_lists, target_seq):
+        import time; t0 = time.time(); self.meter.score_tokens += 2 * sum(len(x) + 4 for x in token_lists)   # two forward passes (e_hi, e_lo)
         out = []
         tf = self._tf_vec(target_seq)
         for i in range(0, len(token_lists), 256):
             out += [float(x) for x in self._llr(token_lists[i:i + 256], tf)]
+        self.meter.score_seconds += time.time() - t0
         return out
 
     def score(self, smiles, target_seq):
@@ -85,6 +101,7 @@ class LoopModel:
                     if rs[i]["label"] > rs[j]["label"]: pairs.append((t, rs[i]["tokens"], rs[j]["tokens"]))
         if not pairs: return new
         ref = copy.deepcopy(self.model).eval() if mode == "dpo" else None
+        import time; t_upd = time.time(); new.meter = copy.deepcopy(self.meter); new.meter.n_params = self.meter.n_params
         torch.manual_seed(int(seed))   # dropout is active in train mode: updates must be deterministic given (model, data, seed)
         new.model.train(); opt = torch.optim.AdamW(new.model.parameters(), lr=lr, weight_decay=0.0)
         for _ in range(steps):
@@ -97,7 +114,8 @@ class LoopModel:
                     d = d - rd
                 loss = loss - torch.nn.functional.logsigmoid(beta * d)
             loss = loss / len(idx); opt.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(new.model.parameters(), 1.0); opt.step()
-        new.model.eval(); return new
+            new.meter.train_tokens += 2 * sum(len(pairs[k][1]) + len(pairs[k][2]) + 8 for k in idx) * (2 if mode == "dpo" else 1)   # 2 passes (e_hi,e_lo) per sequence; dpo adds the frozen reference
+        new.model.eval(); new.meter.update_seconds += time.time() - t_upd; new.meter.updates += 1; return new
 
     def update(self, labelled, mode="finetune_ranking", seed=0, **kw):
         rows = []
@@ -106,3 +124,6 @@ class LoopModel:
             if seg.get("ok") and seg["complete"] and all(t in self.stoi for t in seg["tokens"]) and len(seg["tokens"]) + 4 <= self.block:
                 rows.append(dict(tokens=seg["tokens"], target_seq=r["target_seq"], label=r["label"]))
         return self.update_tokens(rows, mode, seed, **kw)
+
+
+    def cost(self, usd_per_hour=USD_PER_GPU_HOUR): return self.meter.report(usd_per_hour)

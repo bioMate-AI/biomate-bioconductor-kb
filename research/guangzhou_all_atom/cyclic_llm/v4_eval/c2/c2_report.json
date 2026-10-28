@@ -1,101 +1,101 @@
 {
  "K": 5,
- "fold_rule": "sha256(family_id) % K",
+ "fold_rule": "WS3 folds_v1.csv (sha256 a896c580..., amendment A6): family-held-out rotation",
  "n_targets": 793,
  "n_families": 317,
  "families_per_fold": {
-  "0": 50,
+  "0": 1,
   "1": 67,
-  "2": 71,
-  "3": 55,
-  "4": 74
+  "2": 82,
+  "3": 84,
+  "4": 83
  },
  "targets_per_fold": {
-  "0": 127,
-  "1": 288,
-  "2": 117,
-  "3": 126,
-  "4": 135
+  "0": 130,
+  "1": 91,
+  "2": 170,
+  "3": 204,
+  "4": 198
  },
  "folds": {
   "0": {
-   "held_out_targets": 127,
-   "held_out_benchmark_compounds": 7515,
-   "train_pair_rows_before": 22607,
-   "train_compounds_before": 13450,
-   "dropped_same_flat_structure": 7111,
-   "dropped_tanimoto_ge_0.9": 1621,
-   "train_pair_rows_after": 7621,
-   "train_compounds_after": 4718,
-   "train_targets": 492,
-   "train_families": 208,
+   "held_out_targets": 130,
+   "held_out_benchmark_compounds": 11579,
+   "train_pair_rows_before": 14746,
+   "train_compounds_before": 10294,
+   "dropped_same_compound_or_flat_structure": 7486,
+   "dropped_tanimoto_ge_0.9": 760,
+   "train_pair_rows_after": 2901,
+   "train_compounds_after": 2048,
+   "train_targets": 384,
+   "train_families": 211,
    "train_labels": {
-    "pos": 5585,
-    "inactive": 2036
+    "inactive": 1508,
+    "pos": 1393
    }
   },
   "1": {
-   "held_out_targets": 288,
-   "held_out_benchmark_compounds": 11266,
-   "train_pair_rows_before": 12287,
-   "train_compounds_before": 9078,
-   "dropped_same_flat_structure": 7105,
-   "dropped_tanimoto_ge_0.9": 448,
-   "train_pair_rows_after": 1937,
-   "train_compounds_after": 1525,
-   "train_targets": 228,
-   "train_families": 150,
+   "held_out_targets": 91,
+   "held_out_benchmark_compounds": 7951,
+   "train_pair_rows_before": 21197,
+   "train_compounds_before": 11715,
+   "dropped_same_compound_or_flat_structure": 5432,
+   "dropped_tanimoto_ge_0.9": 1216,
+   "train_pair_rows_after": 8497,
+   "train_compounds_after": 5067,
+   "train_targets": 499,
+   "train_families": 197,
    "train_labels": {
-    "inactive": 1171,
-    "pos": 766
+    "pos": 6466,
+    "inactive": 2031
    }
   },
   "2": {
-   "held_out_targets": 117,
-   "held_out_benchmark_compounds": 9437,
-   "train_pair_rows_before": 22580,
-   "train_compounds_before": 13322,
-   "dropped_same_flat_structure": 8711,
-   "dropped_tanimoto_ge_0.9": 929,
-   "train_pair_rows_after": 5722,
-   "train_compounds_after": 3682,
-   "train_targets": 444,
-   "train_families": 177,
+   "held_out_targets": 170,
+   "held_out_benchmark_compounds": 10805,
+   "train_pair_rows_before": 20687,
+   "train_compounds_before": 12255,
+   "dropped_same_compound_or_flat_structure": 8797,
+   "dropped_tanimoto_ge_0.9": 999,
+   "train_pair_rows_after": 3750,
+   "train_compounds_after": 2459,
+   "train_targets": 340,
+   "train_families": 138,
    "train_labels": {
-    "pos": 4024,
-    "inactive": 1698
+    "pos": 2472,
+    "inactive": 1278
    }
   },
   "3": {
-   "held_out_targets": 126,
-   "held_out_benchmark_compounds": 9077,
-   "train_pair_rows_before": 21257,
-   "train_compounds_before": 12181,
-   "dropped_same_flat_structure": 7688,
-   "dropped_tanimoto_ge_0.9": 1660,
-   "train_pair_rows_after": 4249,
-   "train_compounds_after": 2833,
-   "train_targets": 423,
-   "train_families": 189,
+   "held_out_targets": 204,
+   "held_out_benchmark_compounds": 10984,
+   "train_pair_rows_before": 20806,
+   "train_compounds_before": 12370,
+   "dropped_same_compound_or_flat_structure": 9132,
+   "dropped_tanimoto_ge_0.9": 1189,
+   "train_pair_rows_after": 3007,
+   "train_compounds_after": 2049,
+   "train_targets": 334,
+   "train_families": 153,
    "train_labels": {
-    "pos": 2730,
-    "inactive": 1519
+    "pos": 1646,
+    "inactive": 1361
    }
   },
   "4": {
-   "held_out_targets": 135,
-   "held_out_benchmark_compounds": 9026,
-   "train_pair_rows_before": 19601,
-   "train_compounds_before": 11088,
-   "dropped_same_flat_structure": 6037,
-   "dropped_tanimoto_ge_0.9": 1497,
-   "train_pair_rows_after": 6207,
-   "train_compounds_after": 3554,
-   "train_targets": 452,
-   "train_families": 189,
+   "held_out_targets": 198,
+   "held_out_benchmark_compounds": 11585,
+   "train_pair_rows_before": 20896,
+   "train_compounds_before": 12391,
+   "dropped_same_compound_or_flat_structure": 9637,
+   "dropped_tanimoto_ge_0.9": 882,
+   "train_pair_rows_after": 2743,
+   "train_compounds_after": 1872,
+   "train_targets": 356,
+   "train_families": 142,
    "train_labels": {
-    "pos": 4488,
-    "inactive": 1719
+    "pos": 1425,
+    "inactive": 1318
    }
   }
  },
@@ -148,7 +148,7 @@
     "target_key": "Q8NBP7",
     "genes": "PCSK9",
     "family": "Ff90157a3",
-    "fold": 2
+    "fold": 4
    }
   ]
  },
