@@ -85,6 +85,7 @@ class LoopModel:
                     if rs[i]["label"] > rs[j]["label"]: pairs.append((t, rs[i]["tokens"], rs[j]["tokens"]))
         if not pairs: return new
         ref = copy.deepcopy(self.model).eval() if mode == "dpo" else None
+        torch.manual_seed(int(seed))   # dropout is active in train mode: updates must be deterministic given (model, data, seed)
         new.model.train(); opt = torch.optim.AdamW(new.model.parameters(), lr=lr, weight_decay=0.0)
         for _ in range(steps):
             idx = rng.choice(len(pairs), min(pairs_per_step, len(pairs)), replace=False); loss = 0.0
