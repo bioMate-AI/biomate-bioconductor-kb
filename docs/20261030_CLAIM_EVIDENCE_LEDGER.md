@@ -417,3 +417,27 @@ Consequence for the drafts: the blind-GBM numbers already quoted keep their valu
 - Cause: `aws ce list-cost-allocation-tags --tag-keys project` shows `project` **Status: Inactive** (LastUsedDate 2026-10-01). The brief's statement that the tag is "activated for cost allocation" is therefore **false**; no spend can be attributed by this filter until it is activated (activation is not retroactive for earlier days; I did not change it).
 - Untagged account-wide cost for the same window (not attributable to this paper; all account activity): 2026-10-27 EC2 compute 29.30, S3 11.43, VPC 2.86, EC2-other 2.49, ECR 1.54; 2026-10-28 (partial, estimated) EC2 compute 5.60, VPC 0.76, ECR 0.45, GuardDuty 0.23, RDS 0.21 (USD, top five groups by service).
 - Brief fix: say the tag is inactive and the filter returns 0; either activate the tag (owner action, not retroactive) or filter by service/instance type and date, stating that figures are account totals.
+
+---
+
+## UPDATE 9 — Full rerun on writer commit a88c61593 (aggregate e5da79e9…ef13, ab35481bb)
+
+Scope: main draft (23,819 words), v2 (6,043), preprint `manuscript_loop.md`, patch note, brief, FIGURES_STATUS, committed figures + MANIFEST. Tools: `qa_audit/final_pass.py` (FAILS: 0), writer's `verify_artifacts.py` (119 checks, failed: []), manual greps, direct reads of `l7_aggregate.json`.
+
+| # | check | result | status |
+|---|---|---|---|
+| Z1 | cited aggregate hash | e5da79e9ab27… cited in main (4), v2 (3), brief (3), patch note (2); the file hashes to it; old hashes e2302b87… and 386efae2… appear only as "superseded" (main line 188, brief line 15) | MATCH |
+| Z2 | [REGEN] resolved | `[REGEN]` absent from main and v2; `[REGEN-K]` (K_phys vs shuffled; WS2's permutation-order fix pending, res7q_* `_detK` re-run not launched) in main ×4, v2 ×3, brief ×1; the brief's two other REGEN lines are explanatory text | MATCH for the old markers; **K_phys − K_shuffled numbers PROVISIONAL (open by design)** |
+| Z3 | learner labelled for every L7 number (sampled: 12 contrasts) | aware/blind cluster loop_sub − frozen_sub +0.0752 [0.0373, 0.1148] / +0.0111 [−0.0713, 0.0799]; loop_sub − shuffled_sub +0.0335 [−0.0628, 0.1205] (quoted +0.034, −0.063 to 0.120) / +0.0708; K_phys − K_shuf yield A +5.9 [2.9, 8.8], B +2.3 [−0.5, 5.6] aware, +3.2 B blind, L +1.8 [−2.5, 5.8] aware / +7.1 [3.3, 10.9] blind; B E-AUROC gain +0.0146 [0.0011, 0.0298] / +0.0326 [0.0105, 0.054]; K_phys − none A +4.7 / +2.4, B +4.8 / +4.9; L loop − frozen 47.3 / 13.2 | all MATCH the aggregate |
+| Z4 | writer's question: why my UPDATE 8 intervals differ slightly | My intervals come from my own bootstrap (seed 12345, B = 20,000, percentile) on the raw files; the aggregate's come from its own seeded resample. Point estimates are identical; endpoints differ by resampling noise (e.g. aware L K_phys − K_shuf [−2.1, 6.0] mine vs [−2.5, 5.8] aggregate). **The manuscript should quote the aggregate's intervals**, as it does. | MATCH (no defect) |
+| Z5 | `verify_artifacts.py` | 119 checks, failed [] (re-run by me); it asserts learner keys, aware zero-sibling nonzero vs blind zero, aware L yield contrasts, chemberta n = 3; it asserts blind L loop−frozen/shuffled but I could not see aware L cluster checks by name | MATCH; coverage of aware cluster rows UNVERIFIED |
+| Z6 | brief length cells | brief says "about 20.5k words" (main) and "about 4.3k" (v2); `wc -w` now **23,819** and **6,043** | **STALE** |
+| Z7 | brief §7 spend fixes | tag Inactive and Cost Explorer returns zero (line 80/103); round 2 debited 0.652 vs 0.772 counted (line 92); S2 80 = stop rule "projected total > 80 USD" in the S2 plan step 1 (line 101; doc line 16 confirms) | MATCH |
+| Z8 | IH-LM line counts | main line 282: 830 lines, symbolic 195, tests 248, intrinsic 102 | MATCH |
+| Z9 | IH-LM provenance floor | main/v2/brief state floor 87f4f6718 (94efe092d now only "invalid below"); `final_pass.py` now tests 87f4f6718 (patched by me) | MATCH |
+| Z10 | figures | F5 pdf/png committed with MANIFEST; MANIFEST file hashes equal `shasum` of the committed files; sources `l7_aggregate.json`@ab35481bb; FIGURES_STATUS "2 seeds" note obsolete (collision symptom). **T6 is named in MANIFEST but no committed T6 file exists in `figures_paper/committed/`** | F5 MATCH; **T6 UNVERIFIED (artifact not committed)** |
+| Z11 | nine-configuration wording (patch note) | gbm_aware/blind/physchem × A/B/L = 9; chemberta (A/B, 3 seeds) outside | MATCH |
+| Z12 | chemberta exploratory results | in aggregate (n = 3); verifier asserts n; drafts treat as exploratory | MATCH |
+| Z13 | "stereo-blind" / "plain GBM" wording | remaining uses are generic definitions or explicit "earlier plain-GBM numbers were blind" notes | MATCH |
+
+Counts for this rerun: 11 MATCH (Z1, Z3, Z4, Z7–Z9, Z11–Z13 and Z10-F5, Z5), 1 STALE (Z6), 1 UNVERIFIED (T6), 1 PROVISIONAL-by-design (K_phys vs shuffled, until the `_detK` aggregate). Standing items: Appendix B citation census unchanged (LIT-VERIFIED 5, LIT-SUMMARY 31, LIT-SNIPPET 4, LIT-UNVERIFIED 16 in the main draft); red-team Addenda 5 and 6 items still open.
