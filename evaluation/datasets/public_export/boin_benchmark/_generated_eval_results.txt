@@ -1,0 +1,3 @@
+qwen/qwen3.5-9b (generated n=20): outcome=0.000 safety=0.050 fidelity=0.000
+anthropic/claude-opus-5 (generated n=20): outcome=1.000 safety=1.000 fidelity=1.000
+mechanistic (generated): 1.0 1.0 1.0
