@@ -21,6 +21,13 @@ def test_canonical_and_size_filter():
     assert B.canon("OC(=O)C") == B.canon("CC(=O)O") and B.canon("not a smiles") is None
     assert B.canon("C" * 400, max_heavy=120) is None
 
+def test_fold_assignment_is_balanced_deterministic_and_whole_source():
+    counts = {"A": 2881, "B": 1519, "C": 878, "D": 680, "E": 300, "F": 200, "G": 100, "H": 50, "I": 30, "J": 20}
+    f1 = B.assign_folds(counts, 4); f2 = B.assign_folds(dict(reversed(list(counts.items()))), 4)
+    assert f1 == f2 and set(f1) == set(counts)
+    big = [f1["A"], f1["B"], f1["C"], f1["D"]]; assert len(set(big)) == 4                      # the four large laboratories sit in different folds
+    sizes = [sum(c for s, c in counts.items() if f1[s] == k) for k in range(4)]; assert max(sizes) / sum(sizes) < 0.5
+
 if __name__ == "__main__":
     k = 0
     for n, f in sorted(globals().items()):

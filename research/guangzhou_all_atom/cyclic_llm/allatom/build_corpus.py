@@ -19,6 +19,14 @@ def split_sources(counts, frac=HELD_FRAC):
     return held
 
 
+def assign_folds(counts, k=4):
+    """Deterministic whole-source k-fold assignment (PREREG A1): largest sources first, each into the fold with the fewest peptides so far."""
+    tot = [0] * k; fold = {}
+    for s in sorted(counts, key=lambda s: (-counts[s], hashlib.sha1(s.encode()).hexdigest())):
+        j = min(range(k), key=lambda i: (tot[i], i)); fold[s] = j; tot[j] += counts[s]
+    return fold
+
+
 def canon(smi, max_heavy=120):
     m = Chem.MolFromSmiles(smi) if isinstance(smi, str) else None
     if m is None or m.GetNumHeavyAtoms() > max_heavy or m.GetNumHeavyAtoms() < 3: return None
@@ -52,7 +60,18 @@ def _chunk_worker(args):
     return filter_near_duplicates(cand, held)
 
 
-def main(cpp, outdir, chembl=None, procs=16):
+def source_normalize(y, srcs, min_n=20):
+    """Within-source z-scores; sources with < min_n peptides are z-scored together (same rule as the loop study, PREREG_LOOP L3)."""
+    import numpy as np
+    y = np.asarray(y, float); srcs = np.asarray(srcs); out = np.zeros(len(y)); cnt = {s: int((srcs == s).sum()) for s in set(srcs.tolist())}
+    grp = np.array([s if cnt[s] >= min_n else "__other__" for s in srcs.tolist()])
+    for g in set(grp.tolist()):
+        m = grp == g; sd = y[m].std(); out[m] = (y[m] - y[m].mean()) / (sd if sd > 0 else 1.0)
+    return out
+
+
+def main(cpp, outdir, chembl=None, procs=16, k=4):
+    import numpy as np
     os.makedirs(outdir, exist_ok=True)
     rows = [r for r in csv.DictReader(open(cpp, encoding="utf-8-sig", errors="replace"))]
     recs = []
@@ -62,25 +81,32 @@ def main(cpp, outdir, chembl=None, procs=16):
         if y <= -9.99 or not r.get("PAMPA", "").strip() or not r.get("SMILES"): continue
         c = canon(r["SMILES"])
         if c: recs.append(dict(smiles=c, y=y, source=r["Source"], id=r["ID"]))
+    yn = source_normalize([r["y"] for r in recs], [r["source"] for r in recs]); thr = float(np.quantile(yn, 0.9))
+    for r, z in zip(recs, yn): r["y_norm"] = round(float(z), 4); r["hit"] = int(z >= thr)
     counts = {}
     for r in recs: counts[r["source"]] = counts.get(r["source"], 0) + 1
-    held_src = split_sources(counts); held = [r for r in recs if r["source"] in held_src]; train = [r for r in recs if r["source"] not in held_src]
-    held_smiles = sorted({r["smiles"] for r in held})
-    train_f = filter_near_duplicates({i: r["smiles"] for i, r in enumerate(train)}, held_smiles, min_heavy=5)
-    train = [r for i, r in enumerate(train) if i in train_f]
-    json.dump(dict(held_out_sources=sorted(held_src), n_held_peptides=len(held), n_train_peptides_after_dedup=len(train), n_peptides_total=len(recs), threshold_top10=sorted(r["y"] for r in recs)[int(0.9 * len(recs))]), open(f"{outdir}/split.json", "w"), indent=1)
-    for name, rs in (("cyclic_heldout", held), ("cyclic_train", train)):
-        with open(f"{outdir}/{name}.csv", "w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=["id", "smiles", "y", "source"]); w.writeheader(); w.writerows(rs)
-    print("split:", len(held_src), "held-out sources;", len(held), "held-out peptides;", len(train), "train peptides after near-duplicate removal", flush=True)
+    fold = assign_folds(counts, k)
+    for r in recs: r["fold"] = fold[r["source"]]
+    summary = dict(y_norm_threshold=thr, n_peptides=len(recs), folds={})
+    all_smiles = sorted({r["smiles"] for r in recs})
+    for f in range(k):
+        held = [r for r in recs if r["fold"] == f]; train = [r for r in recs if r["fold"] != f]
+        held_sm = sorted({r["smiles"] for r in held}); keep = filter_near_duplicates({i: r["smiles"] for i, r in enumerate(train)}, held_sm, min_heavy=5)
+        train = [r for i, r in enumerate(train) if i in keep]
+        srcs_f = sorted({r["source"] for r in held}); summary["folds"][f] = dict(n_held=len(held), n_held_hits=sum(r["hit"] for r in held), n_train_after_dedup=len(train), n_sources=len(srcs_f),
+                                                                                      top_source_share_of_hits=round(max(sum(r["hit"] for r in held if r["source"] == s) for s in srcs_f) / max(1, sum(r["hit"] for r in held)), 3))
+        for name, rs in ((f"fold{f}_heldout", held), (f"fold{f}_train", train)):
+            with open(f"{outdir}/{name}.csv", "w", newline="") as fh:
+                w = csv.DictWriter(fh, fieldnames=["id", "smiles", "y", "y_norm", "hit", "source", "fold"]); w.writeheader(); w.writerows(rs)
+    json.dump(summary, open(f"{outdir}/folds.json", "w"), indent=1); print(json.dumps(summary, indent=1), flush=True)
     if chembl:
-        lines = gzip.open(chembl, "rt").readlines(); n = max(1, len(lines) // (procs * 8)); chunks = [(lines[i:i + n], held_smiles) for i in range(0, len(lines), n)]
+        lines = gzip.open(chembl, "rt").readlines(); n = max(1, len(lines) // (procs * 8)); chunks = [(lines[i:i + n], all_smiles) for i in range(0, len(lines), n)]
         seen, kept = set(), 0
         with mp.get_context("fork").Pool(procs) as p, gzip.open(f"{outdir}/pretrain_corpus.smi.gz", "wt") as out:
             for d in p.imap_unordered(_chunk_worker, chunks):
-                for k, s in d.items():
+                for kk, s in d.items():
                     if s not in seen: seen.add(s); out.write(s + "\n"); kept += 1
-        print("pretraining corpus:", kept, "unique canonical SMILES (near-duplicates of held-out peptides removed)", flush=True)
+        print("pretraining corpus:", kept, "unique canonical SMILES (near-duplicates of ALL CycPeptMPDB peptides removed)", flush=True)
         json.dump(dict(pretrain_unique=kept), open(f"{outdir}/corpus_stats.json", "w"))
 
 
