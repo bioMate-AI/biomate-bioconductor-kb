@@ -16,7 +16,7 @@ The paper today is an **evaluation-instrument and baselines paper with controls*
 | Needs to be true | Reader accepts a paper whose central model comparison has no result, labelled planned | Reader accepts a negative/conditional controls paper as publishable on its own |
 | Risks | Reviewers read it as a model paper without model evidence; long; more surface for errors | Smaller novelty (no model); depends on audit protocol being seen as a contribution; may undersell the IH-LM programme |
 | If IH-LM results land | Fits without restructuring | Becomes a sequel or a v3 merge |
-Owner chooses at midnight; both are kept in sync on numbers.
+The external committee round 2 (GPT-5.5, Gemini 3.1 pro; `20261030_COMMITTEE2_EXTERNAL_SYNTHESIS.md`) agrees that the package is publishable as an evaluation/audit paper with Aim A as pre-registered future work; both drafts now open their results with one primary-claims table, state that analysis I fails the gate and is not compound-disjoint, and demote the 54 K_phys contrasts to exploratory/appendix. Owner chooses at midnight; both are kept in sync on numbers.
 
 ## 2. Ranked headline findings (including nulls)
 | # | finding | level | where |
