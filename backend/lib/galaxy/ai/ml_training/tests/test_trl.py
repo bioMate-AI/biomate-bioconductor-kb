@@ -114,6 +114,38 @@ def test_reward_functions():
     assert scores[0] > scores[1]  # ~20 words scores higher than empty
 
 
+def test_composite_reward_scoring():
+    """A user-declared weighted reward injects knowledge (required content, numeric)
+    and rules (banned phrases) into the RL run — the GRPO parity with REINVENT4."""
+    from galaxy.ai.ml_training.trl_trainer import make_reward_fn
+    spec = [
+        {"kind": "contains_all", "terms": ["dose", "mg"], "weight": 1.0},
+        {"kind": "banned", "terms": ["as an ai"], "weight": 2.0},
+        {"kind": "numeric", "weight": 0.5},
+    ]
+    r = make_reward_fn("composite", reward_spec=spec)
+    scores = r(["Take a dose of 50 mg daily.", "As an AI, the answer is 7."])
+    assert scores[0] == pytest.approx(1.5)    # dose+mg (1) + no-banned (0) + digit (0.5)
+    assert scores[1] == pytest.approx(-1.5)   # no dose+mg (0) - banned (2) + digit (0.5)
+
+
+def test_composite_reward_components():
+    from galaxy.ai.ml_training.trl_trainer import make_reward_fn
+    assert make_reward_fn("composite", reward_spec=[{"kind": "json_valid"}])(['{"a":1}', 'nope']) == [1.0, 0.0]
+    assert make_reward_fn("composite", reward_spec=[{"kind": "regex", "pattern": r"\bIC50\b"}])(["IC50 = 5 nM", "x"]) == [1.0, 0.0]
+    assert make_reward_fn("composite", reward_spec=[{"kind": "contains_any", "terms": ["a", "b"]}])(["has a", "none"]) == [1.0, 0.0]
+
+
+def test_composite_reward_validation():
+    with pytest.raises(ConfigError):
+        LLMSpec(reward="composite").validate()                               # no spec
+    with pytest.raises(ConfigError):
+        LLMSpec(reward="composite", reward_spec=[{"kind": "bogus"}]).validate()
+    with pytest.raises(ConfigError):
+        LLMSpec(reward="composite", reward_spec=[{"kind": "banned"}]).validate()  # no terms
+    LLMSpec(reward="composite", reward_spec=[{"kind": "numeric", "weight": 1.0}]).validate()  # ok
+
+
 # --- routing --------------------------------------------------------------
 def test_routing_dpo_intent():
     cfg = extract_training_config("fine-tune an LLM with DPO on preference data")

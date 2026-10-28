@@ -22,7 +22,7 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from .config import TrainingConfig
 from .datasets import LoadedDataset
@@ -35,7 +35,42 @@ log = logging.getLogger(__name__)
 # GRPO reward functions — callable(completions, **kwargs) -> list[float]
 # (TRL passes `completions` as a list of strings and `prompts` via kwargs.)
 # ---------------------------------------------------------------------------
-def make_reward_fn(kind: str, keyword: str = "") -> Callable[..., list[float]]:
+def _composite_component(comp: dict) -> tuple[float, Callable[[str], float]]:
+    """Compile one declarative reward component into (weight, scorer(str)->float).
+
+    A fixed interpreter — no `eval`/arbitrary code — so a reward_spec is safe to
+    accept from a user or a project rule. Scores are in [-1, 1].
+    """
+    kind = comp.get("kind")
+    weight = float(comp.get("weight", 1.0))
+    terms = [str(t).lower() for t in comp.get("terms", [])]
+    if kind == "contains_any":
+        fn: Callable[[str], float] = lambda c: 1.0 if any(t in c.lower() for t in terms) else 0.0
+    elif kind == "contains_all":
+        fn = lambda c: 1.0 if terms and all(t in c.lower() for t in terms) else 0.0
+    elif kind == "banned":
+        fn = lambda c: -1.0 if any(t in c.lower() for t in terms) else 0.0
+    elif kind == "regex":
+        pat = re.compile(str(comp.get("pattern", "")), re.IGNORECASE)
+        fn = lambda c: 1.0 if pat.search(c) else 0.0
+    elif kind == "length_target":
+        target = max(int(comp.get("target", 20) or 20), 1)
+        fn = lambda c: float(-abs(len(c.split()) - target) / target)
+    elif kind == "numeric":
+        fn = lambda c: 1.0 if re.search(r"\d", c) else 0.0
+    elif kind == "json_valid":
+        def fn(c: str) -> float:
+            try:
+                json.loads(c.strip())
+                return 1.0
+            except Exception:
+                return 0.0
+    else:
+        fn = lambda c: 0.0
+    return weight, fn
+
+
+def make_reward_fn(kind: str, keyword: str = "", reward_spec: Optional[list] = None) -> Callable[..., list[float]]:
     kw = (keyword or "").strip().lower()
 
     def _length(completions, **_) -> list[float]:
@@ -51,6 +86,19 @@ def make_reward_fn(kind: str, keyword: str = "") -> Callable[..., list[float]]:
 
     def _numeric_answer(completions, **_) -> list[float]:
         return [1.0 if re.search(r"\d", str(c)) else 0.0 for c in completions]
+
+    if kind == "composite":
+        # Weighted sum of declarative knowledge/rule components — the injectable
+        # reward surface (parity with REINVENT4's multi-objective reward).
+        scorers = [_composite_component(c) for c in (reward_spec or [])]
+
+        def _composite(completions, **_) -> list[float]:
+            out = []
+            for c in completions:
+                s = str(c)
+                out.append(float(sum(w * fn(s) for (w, fn) in scorers)))
+            return out
+        return _composite
 
     return {"length": _length, "keyword": _keyword, "numeric_answer": _numeric_answer}[kind]
 
@@ -153,7 +201,7 @@ def _train_grpo(cfg: TrainingConfig, artifact_dir: str) -> TrainingResult:
     train_ds = Dataset.from_list(rows)
 
     tok, model, peft_config = _load_base(llm.base_model, llm.adapter, llm.max_sequence_length)
-    reward_fn = make_reward_fn(llm.reward, llm.reward_keyword)
+    reward_fn = make_reward_fn(llm.reward, llm.reward_keyword, llm.reward_spec)
     out_dir = str(Path(artifact_dir) / "trl_grpo_run")
     args = GRPOConfig(
         output_dir=out_dir,

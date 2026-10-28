@@ -37,7 +37,24 @@ TRL_MODEL_TYPES = ("trl_dpo", "trl_grpo")                 # run in trl-training 
 FEATURIZERS = ("rdkit_2d", "morgan", "none")
 ADAPTERS = ("lora", "qlora", "none")
 # Built-in reward functions for GRPO (a real reward fn or a named built-in).
-REWARD_KINDS = ("length", "keyword", "numeric_answer")
+# "composite" = a user-declared, weighted multi-component reward (reward_spec),
+# letting a domain expert inject knowledge/rules into the RL run without code —
+# the same lever REINVENT4's multi-objective reward provides for generative RL.
+REWARD_KINDS = ("length", "keyword", "numeric_answer", "composite")
+
+# Declarative scoring components for reward="composite". Each component scores a
+# completion in [-1, 1] and is combined as a weighted sum. These are evaluated
+# by a fixed interpreter (no arbitrary code) so a reward spec is safe to accept
+# from a user / project rule.
+COMPOSITE_COMPONENT_KINDS = (
+    "contains_any",    # terms: [..]   → 1 if any term present      (desired content)
+    "contains_all",    # terms: [..]   → 1 only if all present
+    "banned",          # terms: [..]   → -1 if any present          (rule / guardrail)
+    "regex",           # pattern: str  → 1 if regex matches (case-insensitive)
+    "length_target",   # target: int   → peaks at target word count, negative away
+    "numeric",         #               → 1 if the completion contains a digit
+    "json_valid",      #               → 1 if the completion parses as JSON
+)
 
 
 class ConfigError(ValueError):
@@ -125,8 +142,14 @@ class LLMSpec:
     # --- preference optimization (trl_dpo) / reinforcement learning (trl_grpo) ---
     beta: float = 0.1                           # DPO KL regularization strength
     num_generations: int = 4                    # GRPO: samples per prompt (group size)
-    reward: str = "length"                      # GRPO reward: length|keyword|numeric_answer
+    reward: str = "length"                      # GRPO reward: length|keyword|numeric_answer|composite
     reward_keyword: str = ""                    # for reward=keyword
+    # For reward="composite": a list of weighted scoring components that encode
+    # domain knowledge + rules, e.g.
+    #   [{"kind":"contains_all","terms":["dose","mg"],"weight":1.0},
+    #    {"kind":"banned","terms":["as an ai"],"weight":2.0},
+    #    {"kind":"numeric","weight":0.5}]
+    reward_spec: Optional[list] = None
 
     def validate(self) -> None:
         if not self.base_model or not self.base_model.strip():
@@ -143,6 +166,25 @@ class LLMSpec:
             raise ConfigError("llm.num_generations (GRPO) must be >= 2")
         if self.reward not in REWARD_KINDS:
             raise ConfigError(f"llm.reward must be one of {REWARD_KINDS}")
+        if self.reward == "composite":
+            spec = self.reward_spec
+            if not isinstance(spec, list) or not spec:
+                raise ConfigError("llm.reward='composite' requires a non-empty reward_spec list")
+            for i, comp in enumerate(spec):
+                if not isinstance(comp, dict):
+                    raise ConfigError(f"reward_spec[{i}] must be an object")
+                kind = comp.get("kind")
+                if kind not in COMPOSITE_COMPONENT_KINDS:
+                    raise ConfigError(f"reward_spec[{i}].kind must be one of {COMPOSITE_COMPONENT_KINDS}")
+                if kind in ("contains_any", "contains_all", "banned"):
+                    if not isinstance(comp.get("terms"), list) or not comp["terms"]:
+                        raise ConfigError(f"reward_spec[{i}] ({kind}) requires a non-empty 'terms' list")
+                if kind == "regex" and not comp.get("pattern"):
+                    raise ConfigError(f"reward_spec[{i}] (regex) requires a 'pattern'")
+                try:
+                    float(comp.get("weight", 1.0))
+                except (TypeError, ValueError):
+                    raise ConfigError(f"reward_spec[{i}].weight must be numeric")
 
 
 @dataclass
