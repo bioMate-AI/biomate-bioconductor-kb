@@ -2,10 +2,11 @@
 """Generate EC2 user-data scripts for T2 stages (spot-safe: per-task results synced to S3 every 45 s; resumable; self-terminating). usage: make_ud.py STAGE OUT.sh"""
 import sys
 B = "s3://biomate-nextflow-work/cyclic_peptide/technique_sprint/t2"
-CSV = "/w/data/CycPeptMPDB_Peptide_All.csv"; RUN = f"python3.11 -u run_acq.py {CSV} /w/res"; CACHE = "--cache /w/acq_cache.pkl --procs 30"
+CSV = "/w/data/CycPeptMPDB_Peptide_All.csv"; RUN = f"python3.11 -u run_acq.py {CSV} /w/res"; CACHE = "--cache /w/acq_cache.pkl --procs $(nproc)"
 STAGES = {
  "preflight": [f"python3.11 -u test_aggregate.py > /w/res/test_aggregate.log 2>&1; echo $? > /w/res/test_aggregate.rc", "python3.11 -u test_acq.py > /w/res/test_acq.log 2>&1; echo $? > /w/res/test_acq.rc",
                f"python3.11 -u repro_audit.py {CSV} /w/res/repro.json --cache /w/acq_cache.pkl > /w/res/repro.log 2>&1; echo $? > /w/res/repro.rc"],
+ "unittest": ["python3.11 -u test_acq.py > /w/res/test_acq.log 2>&1; echo $? > /w/res/test_acq.rc"],
  "dev": [f"{RUN} --arms greedy,prov --regimes A,B,L --seeds 100-104 --grid {CACHE}"],
  "evalbaseAB": [f"{RUN} --arms random,greedy,ucb,rule_phys,nn_greedy,fuse --regimes A,B --seeds 0-29 {CACHE}"],
  "evalbaseLC": [f"{RUN} --arms random,greedy,ucb,rule_phys,nn_greedy,fuse --regimes L --seeds 0-29 {CACHE}", f"{RUN} --arms random,greedy,ucb,rule_phys --regimes C --seeds 0-29 {CACHE}"],

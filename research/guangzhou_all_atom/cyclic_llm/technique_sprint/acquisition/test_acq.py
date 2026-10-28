@@ -8,14 +8,16 @@ import acq as A
 CFG_OFF = dict(lam=0.0, cap_src=50, cap_flat=A.BIG)
 
 
-def synth(n=1500, seed=0, planted_src=0, planted_bit=3, effect=3.0):
-    """Synthetic fixture with real-code structure: 5 sources, 64-bit count fingerprints, one planted series inside source `planted_src`."""
-    rng = np.random.default_rng(seed); sizes = [600, 400, 250, 150, 100]; srcs = []
+def synth(n=3000, seed=0, planted_src=0, planted_bit=3, effect=4.0, thr_abs=2.5):
+    """Synthetic fixture with real-code structure: 5 sources, 64-bit count fingerprints, one planted series inside source `planted_src`.
+    Hits are defined by an ABSOLUTE threshold on the noise scale (thr_abs) so the random hit rate equals the series prevalence (~5 %), not a fixed 10 %: a
+    10 % quantile threshold made the first version of this control invalid (greedy 99 vs random 52 hits; greedy cannot exceed ~3x random at 10 % base rate)."""
+    rng = np.random.default_rng(seed); sizes = [1200, 800, 500, 300, 200]; srcs = []
     for k, s in enumerate(sizes): srcs += [f"src{k}"] * s
     srcs = srcs[:n]; n = len(srcs)
     X = rng.poisson(0.25, size=(n, 64)).astype(np.float32); X[:, planted_bit] = 0
-    sid = np.array([int(s[3:]) for s in srcs]); mem = (sid == planted_src) & (rng.random(n) < 0.15); X[mem, planted_bit] = 1.0
-    y = rng.standard_normal(n) + effect * mem; thr = float(np.quantile(y, 0.9))
+    sid = np.array([int(s[3:]) for s in srcs]); mem = (sid == planted_src) & (rng.random(n) < 0.12); X[mem, planted_bit] = 1.0
+    y = rng.standard_normal(n) + effect * mem; thr = float(thr_abs)
     flat = [f"f{i // 3}" for i in range(n)]                        # groups of 3 stereo-siblings
     D = dict(srcs=srcs, scaf=[f"s{i}" for i in range(n)], flat=flat, y=y, thr=thr, thr_g=np.full(n, thr), Kphys=rng.standard_normal(n), X=X, smiles=["C"] * n)
     return A.prepare_derived(D), mem
