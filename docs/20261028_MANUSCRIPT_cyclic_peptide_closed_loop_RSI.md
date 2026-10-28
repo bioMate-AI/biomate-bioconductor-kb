@@ -4,14 +4,18 @@
 **Date:** 2026-10-28
 **Status:** `PREPRINT DRAFT — v1 (computational; no wet-lab validation — wet lab is v2). Awaiting author final review before submission. Not for external distribution.`
 
-> **MERGE NOTE (do not fork).** This is the **loop-/governance-level** manuscript. It is a
-> companion to, and must be consolidated with, the existing component drafts rather than
-> duplicating them: `docs/20261021_CYCLIC_LLM_PAPER_DRAFT.md` (the enrichment-trained cyclic
-> LLM selector — within-target vs cross-target benchmark) and `docs/20261026_INTEGRATED_PROGRAM_PLAN.md`
-> (the single-claim verification-ladder program plan + v1/v2 split). The RSI spine is
-> `docs/20261027_BIOMATE_NATIVE_RSI_THESIS.md` (SRVL). The receiving session should decide
-> whether this ships as one paper with the LLM benchmark as a section, or as a short companion
-> — see the handoff `docs/20261028_HANDOFF_cyclic_peptide_RSI_manuscript.md`.
+> **TOPOLOGY — DECIDED (two papers, cross-referenced; user approval 2026-10-28).** This is
+> **Paper B (evidence standard; companion)**: the governance contribution — the verifier
+> ladder + biology-structured leakage firewall and the catalogue of artifacts it caught
+> (§5, now incl. the §5.6 additions). **Paper A (method; lead)** is the own-method
+> contribution — knowledge-constrained, novelty-controlled closed-loop design (framework +
+> all-atom LM + KN-1/KN-2 + within-source loop), drafted at
+> `docs/20261027_PREPRINT_V1_PUBLIC/manuscript_knowledge_novelty.md` (owned by the method
+> session — not edited here). Shared artifacts are defined once in Paper A and cited here.
+> The RSI spine is `docs/20261027_BIOMATE_NATIVE_RSI_THESIS.md` (SRVL); component benchmarks
+> live in `docs/20261021_CYCLIC_LLM_PAPER_DRAFT.md`; the split rationale and reconciliation are
+> in `docs/20261028_RECONCILIATION_NOTE_peptide_manuscripts.md` §D. See the handoff
+> `docs/20261028_HANDOFF_cyclic_peptide_RSI_manuscript.md`.
 
 ---
 
@@ -42,7 +46,9 @@ source) whose honest **within-source verdict is still pending** a pre-registered
 evidential contribution of a self-improvement system in a data-poor science is its **refutation
 machinery**, and we pre-register the single prospective closed-loop round — with completed
 leave-one-target-out and re-validated physics — that would constitute the first honest RSI datapoint
-(v2). The protocol and verifiers are built; the measured RSI result is future work.
+(v2). The protocol and verifiers are built; the measured RSI result is future work. This paper is
+the evidence-standard **companion (Paper B)** to a method paper (**Paper A**: knowledge-constrained,
+novelty-controlled closed-loop design) with which it shares artifacts and cross-references.
 
 ---
 
@@ -176,6 +182,25 @@ running. *Reported as a pooled confound with the within-source verdict pending.*
   confirmed hit). (`docs/20261006_CYCLIC_LLM_V3_CROSSTARGET_RESULTS.md`, `…V3_1_MULTITARGET_RESULTS.md`.)
 - **Closed loop: synthetic only** — DPO ran on simulated KD (`results/SIMULATED_closed_loop_20261003/`,
   `data_origin: simulated`, "no biological or generalization claim").
+
+### 5.6 Additional firewall catches (pre-registered nulls and pipeline integrity)
+Four further catches from the companion program, each the firewall or an integrity check refusing a result
+rather than publishing it:
+- **Pose selector for co-folding — primary claim not supported.** A pre-registered one-shot test on 104
+  post-cutoff complexes: the learned selector scores **59.6 %**, which does **not** beat the strongest single
+  baseline (`if_plddt` / `ring_strain` at **60.6 %**), and leaves most of the oracle headroom uncaptured
+  (oracle **76.9 %**; +19.2 pp over the 57.7 % default unachieved).
+  (`multitarget/cyclic_complex_benchmark/PREREG.md`, `results/stageB_eval_S2.json`.)
+- **Pipeline integrity — non-canonical residue handling.** `parse_helm` silently dropped / mis-mapped
+  non-canonical residues; impact was bounded (no earlier verifier tier changed its verdict) but the bug would
+  have corrupted ncAA designs. (`docs/20261027_PARSE_HELM_NCAA_BUG.md`.)
+- **Pipeline integrity — empty outputs counted as successes.** The co-folding model wrote zero-byte / atom-less
+  sample CIFs while exiting 0; the driver counted files, not *valid* files. Now rejected at source so corrupt
+  complexes are never published. (commit `6ee3c1a65`.)
+- **KB-rule validation against measured permeability.** The N-methyl-count heuristic holds *within* a laboratory
+  in 7 of 8 datasets but with modest effect — a rule admitted as advisory, not as a hard gate.
+  (`docs/20261027_KB_RULE_VALIDATION.md`.)
+These are the §B additions that extend this companion paper beyond the three headline refutations.
 
 ## 6. Pre-registered prospective test (the first honest RSI datapoint — v2)
 
