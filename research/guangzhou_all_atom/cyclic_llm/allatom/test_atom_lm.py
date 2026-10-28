@@ -45,6 +45,11 @@ def test_learns_and_samples_valid_molecules():
     out = A.sample(m, v, n=60, max_len=150, temperature=0.8, seed=0, device="cpu"); ok = np.mean([A.valid(s) for s in out])
     assert ok > 0.5, ok
 
+def test_checkpoint_callback_fires_at_intervals_and_end():
+    v = A.Vocab.build(MOLS); enc = [v.encode(s) for s in MOLS]; seen = []; d = tempfile.mkdtemp()
+    m = A.GPT(len(v), d=32, layers=1, heads=2, max_len=64); A.train(m, enc, v, steps=25, batch_size=4, lr=1e-3, ckpt=os.path.join(d, "c.pt"), ckpt_every=10, on_ckpt=lambda p, s: seen.append(s), device="cpu")
+    assert seen == [10, 20, 25], seen
+
 if __name__ == "__main__":
     k = 0
     for n, f in sorted(globals().items()):

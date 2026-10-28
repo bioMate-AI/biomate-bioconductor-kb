@@ -62,16 +62,21 @@ def _loss(model, x):
     logits = model(x[:, :-1]); return F.cross_entropy(logits.reshape(-1, logits.shape[-1]), x[:, 1:].reshape(-1), ignore_index=PAD)
 
 
-def train(model, enc, vocab, steps, batch_size, lr, seed=0, ckpt=None, ckpt_every=0, resume=False, device="cpu", weights=None, log_every=0):
+def train(model, enc, vocab, steps, batch_size, lr, seed=0, ckpt=None, ckpt_every=0, resume=False, device="cpu", weights=None, log_every=0, amp=False, on_ckpt=None):
     model.to(device).train(); opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01); start = 0
     if resume and ckpt and os.path.exists(ckpt):
         s = torch.load(ckpt, map_location=device); model.load_state_dict(s["model"]); opt.load_state_dict(s["opt"]); start = s["step"]
     for step in range(start, steps):
         x = collate(enc, batch_indices(len(enc), batch_size, step, seed, weights), model.max_len, device)
-        loss = _loss(model, x); opt.zero_grad(set_to_none=True); loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.step()
+        with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=bool(amp and str(device).startswith("cuda"))): loss = _loss(model, x)
+        opt.zero_grad(set_to_none=True); loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.step()
         if log_every and (step + 1) % log_every == 0: print(f"step {step+1} loss {loss.item():.4f}", flush=True)
-        if ckpt and ckpt_every and (step + 1) % ckpt_every == 0: save(ckpt, model, opt, step + 1)
-    if ckpt: save(ckpt, model, opt, steps)
+        if ckpt and ckpt_every and (step + 1) % ckpt_every == 0:
+            save(ckpt, model, opt, step + 1)
+            if on_ckpt: on_ckpt(ckpt, step + 1)
+    if ckpt:
+        save(ckpt, model, opt, steps)
+        if on_ckpt: on_ckpt(ckpt, steps)
     return model
 
 
