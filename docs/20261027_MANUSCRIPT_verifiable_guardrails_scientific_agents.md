@@ -34,12 +34,17 @@ firewalled, longitudinal evaluation harness. We give a pre-registered evaluation
 protocol and a construction recipe for a domain benchmark built from *publicly
 codified rule sources* (FastQC/MultiQC thresholds, Lipinski/Veber/PAINS/Brenk
 filters, file-format specifications, reference vocabularies) and our own
-execution-verified run corpus. Finally, we frame the full loop — feedback →
-classify → compile → enforce/reward → evaluate → induce — as a *governed* form of
-recursive self-improvement (RSI), in which the verifiable guardrail is
-simultaneously the improvement target, the measurement, and the firewall against
-the reward-inflation and drift that sink ungoverned self-improvement. The
-framework is implemented; the large-scale learning results are future work.
+execution-verified run corpus. Finally, we introduce **SRVL (Substrate-Routed,
+Verifier-Laddered self-improvement)**, a platform-native recursive-self-improvement
+formulation that this substrate makes possible and that distinguishes our work from
+the open-source self-improvement engines (DGM, SICA, Harness2, ScienceBuddy): a loop
+that (A) *routes* repair to one of four substrates by failure class, (B) escalates up
+a cost-ordered verifier ladder topped by a physical, non-gameable wet-lab assay, (C)
+promotes *auditable rules* rather than opaque diffs, and (D) is governed by a
+biology-structured leakage firewall — with the verifiable guardrail serving at once as
+the improvement target, the measurement, and the firewall against the reward-inflation
+that sinks ungoverned self-improvement. The framework and engine pieces are
+implemented; SRVL's controller and the large-scale learning results are future work.
 
 ---
 
@@ -83,8 +88,10 @@ fraction of expert feedback into *real* gates. Our contributions:
    firewalled evaluation harness — with an honest built-vs-proposed accounting (§5).
 4. A **pre-registered evaluation protocol** and a **benchmark-construction recipe**
    from public rule sources plus our execution-verified run corpus (§6).
-5. The framing of the whole loop as **governed RSI**, with the guardrail as the
-   firewall (§7).
+5. **SRVL** — a platform-native recursive-self-improvement formulation (substrate-
+   routed repair, a physical verifier ladder, auditable rule units, a biology-
+   structured firewall) that contributions 1–4 make possible, and that *extends*
+   rather than adopts the open-source self-improvement engines (§7).
 
 ## 2. Related work
 
@@ -309,7 +316,7 @@ What we can report **today** is interpreter correctness (unit-level) and the
 existence of the labeled substrate; the large-scale gate precision/recall and any
 GRPO learning curve are **future work** (§9).
 
-## 7. Relation to governed recursive self-improvement
+## 7. SRVL: a platform-native self-improvement formulation
 
 The framework's loop is, structurally, recursive self-improvement:
 
@@ -322,18 +329,50 @@ The framework's loop is, structurally, recursive self-improvement:
          └──────────── induce new rules ◀─────────┘   ← the autonomous arc
 ```
 
-With a human supplying the top arrow, it is human-in-the-loop improvement. Replace
-that arrow with the system **inducing** candidate rules from its own run outcomes
-and it becomes autonomous RSI. The decisive design point is that **the verifiable
-guardrail is simultaneously the improvement target, the measurement instrument, and
-the firewall.** Ungoverned self-improvement inflates its own reward and drifts
-(the central failure mode across the self-evolving-agents literature); a
-verifiable gate cannot be gamed by the policy it scores, and a held-out firewall
-prevents an induced rule from being promoted on the data that suggested it. BioMate
-already has every layer except the induction arc (§5), and that arc is low-risk to
-add *because* the gates and firewall that contain it already exist. This is why a
-QC auto-loop being literally "verifiable rewards" is strategic, not incidental: it
-is the substrate on which safe RSI can run.
+With a human supplying the top arrow it is human-in-the-loop improvement; replace
+that arrow with the system **inducing** candidate rules from its own run outcomes and
+it is autonomous RSI. But a generic "close the loop" claim is not the contribution —
+the self-improvement *engine* is well covered by the open-source wave of §2 (DGM,
+SICA, Harness2, ScienceBuddy). Our contribution is a self-improvement formulation
+defined by four properties a lab-coupled, multi-tenant *execution* platform has and
+those systems do not. We call it **SRVL — Substrate-Routed, Verifier-Laddered
+self-improvement**; it is what the framework of §3–§4 is *for*.
+
+- **(A) Multi-substrate, gate-family-routed repair.** The surveyed engines improve one
+  substrate (code, harness, or weights) blindly. BioMate has four — catalog, rule-KB,
+  weights, harness — and the gate-family diagnosis (§4) *names which to repair*: an
+  off-catalog failure (G5) → grow the catalog; a false QC alarm (G1) → a profile rule;
+  an alias error (G2) → a normalization rule; a decomposition miss → train the composer.
+  Failure-class → repair-site routing is possible only because G1–G8 give a typed
+  diagnosis.
+- **(B) A verifier ladder with a physical top rung.** Code RSI has one cheap verifier.
+  We have L0 declarative gates (free) → L1 real execution (AWS Batch, terminal+S3) → L2
+  in-silico physics (docking/FEP) → **L3 wet-lab assay (physical, non-gameable)**.
+  SRVL escalates cost-aware (kill proposals cheaply; spend scarce physical budget
+  optimally) and *learns the L2→L3 calibration*. A physical verifier cannot be
+  reward-hacked by the policy it scores — a safety property self-play RSI lacks.
+- **(C) The improvement unit is an auditable rule.** DGM promotes an opaque code diff,
+  self-rewarding LMs a weight delta — unreviewable, a non-starter for regulated science
+  (IND/GMP/CRO). SRVL's unit is a declarative dual-use rule an expert can read and
+  approve *before* it governs or trains anything, upgrading inference and weights at
+  once.
+- **(D) A biology-structured firewall.** Code RSI holds out iid task instances; SRVL
+  holds out *biology* — target, scaffold/chemistry, assay, and org (federated), with a
+  degree/annotation null — so "improved" means generalization in the dimension that
+  matters, the only defense against our domain's circularity traps.
+
+**The decisive point** stays: the verifiable guardrail is simultaneously the
+improvement target, the measurement, and the firewall, so the loop cannot inflate its
+own reward (the central failure of ungoverned RSI). BioMate already has every engine
+piece — dormant and scattered; SRVL is the controller (A), the two learners (the
+cross-rung calibrator in B, the rule-induction arc) and the biology firewall (D) that
+fuse them into one governed loop. The peptide-design → wet-lab loop is the flagship
+SRVL instance and exercises all four pillars. Full specification, built-vs-proposed
+accounting, and the contrast table are in the companion thesis
+`docs/20261027_BIOMATE_NATIVE_RSI_THESIS.md`. **Honest status:** SRVL is a design
+instantiated against real components, not yet a measured RSI result — our closed loop
+is synthetic-only and the L2→L3 calibration is unproven; claiming a gain now would be
+the exact leakage inflation (D) forbids.
 
 ## 8. Discussion
 
