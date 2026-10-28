@@ -80,3 +80,22 @@ The cluster table, the nine-configuration recount, C2 Part A, T1b and L7m check 
 ---
 # Addendum 4 (v2 draft and updated brief; 2026-10-30)
 v2 is a better paper than the original: smaller claims, abstract limited to what ran, planned work separated. A skeptical reader would still raise: **(a)** the abstract's held-out sentence reports only the plain-GBM regime-L null while the body shows feedback effects on held-out ranking in A and B (both learners) and in L for the physicochemical learner; **(b)** the claim that the task "rewards compound-only features" rests on two overlapping intervals (0.539 vs 0.584) with no paired test; **(c)** a figure cited for GBM controls (F5) is drawn from a superseded aggregate and its caption contradicts the frozen data, and none of the cited figures is in version control; **(d)** the IH-LM status paragraph quotes planted-world test numbers without saying they are synthetic and draws an inference about which IH-LM part adds value from experiments that never ran IH-LM; **(e)** model-size terms mix parameter counts with pretraining-set sizes (ChemBERTa-77M); **(f)** licence statements for third-party weights should be per checkpoint and sourced from the model cards (PeptideCLM-2 and PeptideCLM-23M-all list MIT on Hugging Face); **(g)** the number verifier lives in a scratch directory and checks constants, so its pass count says little about the manuscripts. Requested fixes are in ledger UPDATE 5.
+
+
+---
+
+## Addendum 5 — independent code review points (T-QA re-check, after C1)
+
+| # | Review point | Re-check status | What the manuscript must do |
+|---|---|---|---|
+| C1 | aware/blind GBM key collision | **Confirmed from raw files** (30 duplicate keys; ledger UPDATE 6). Aware vs blind differ materially in regime L (loop−frozen +47.3 vs +13.2 yield) and in K_phys−`loop_sub` in A (+4.7 sig. vs +2.4 n.s.) | Report aware, blind, phys separately; no pooled "GBM"; regenerate F5/T6; rerun every GBM-derived count |
+| M1 | percentile bootstrap anti-conservative for 6–11 clusters | Open; flips specific contrasts (t99 vs percentile counts 15 vs 9 of 54; T1 k=25 gain percentile-only, t p=0.051) | Report t-interval (or BCa) beside percentile for every cluster table; claims only where both exclude 0 |
+| M2 | no Holm/BH; seeds 0–9 pooled; 99% widening by arm name; confirmatory seeds 10–29 absent | Open; all K_phys inference is development-only | Label every K_phys result "development, uncorrected"; state Holm counts; do not call any K_phys effect confirmed |
+| M3 | controls that cannot fail (frozen gain exactly 0 by construction; shuffled pass `ci[0]<=0` is vacuous with wide CIs) | Open | Drop frozen from the control count or describe it as an identity check; replace pass rule by an upper-bound/equivalence test |
+| M4 | gate folds family-disjoint, compounds cross folds | Open (M C3 0.315→0.461; I 0.584→0.579) | State compound-disjoint numbers as the gate result |
+| M5 | anchor-test leakage (61/828 pairs) | Fix under test by C2 workstream | No anchor claim until no-leak rerun is committed |
+| M6 | transductive z-score/threshold in regime L | Open | Disclose; rerun with training-fold statistics or mark as limitation |
+| M7 | zero-sibling not zero (6.7% of groups) | Open; aware stereo ρ 0.181 vs blind 0.000 shows the "stereo-blind" label is learner-specific | Rename, give fraction |
+| M8 | H4b/T1 unmatched item sets, weak rules | Open | Compare on matched sets only |
+| m1,m4–m7,m9–m11 | K_shuf hash-seed nondeterminism; K_phys name collision; EDIT_PRIORS provenance; uncommitted kb_audit edits; permutation-null exchangeability | Open; m1 partly mitigated by sorted-set fix | Track in [REGEN] list |
+| new | `inputs.n_files` 116 vs 96 raw files on disk | Unexplained | Regenerated aggregate must record the exact list of files read |

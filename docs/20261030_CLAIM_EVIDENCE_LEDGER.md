@@ -277,3 +277,48 @@ Files: `20261030_MANUSCRIPT_EVAL_CONTROLS_DRAFT_v2.md` (v2), `20261030_REVIEW_BR
 | X11 | PeptideCLM-2 description in the main draft (32 / 114 / 337 M; 405-token k-mer vocabulary; AUROC 0.836 ± 0.011, hybrid objective; June 2026 version) | re-opened PMC12803269: identical; "using splits from prior work" not visible in the fetched summary | MATCH (split statement unverified) |
 **Counts for UPDATE 5 (13 rows + 2 REVIEW): MATCH 6 (X2a, X3a, X4, X5, X6, X11) · MISMATCH 6 (X1, X3b, X7, X8, X9, X10a) plus two sub-items (X10b wording; X7 included) · STALE 1 (X2b).** Precisely: rows with status MATCH 6; MISMATCH 7 (X1, X3b, X7, X8, X9, X10a, X10b-wording); STALE 1; REVIEW 2 (figures not committed; verifier not committed).
 **Top defects (ranked):** (1) X7 abstract reports only the plain-GBM regime-L null; (2) X8 an overlapping-interval comparison drives a substantive inference; (3) X2b F5/T6 stale against the frozen aggregate, with a hard-coded two-seed caption, and no cited figure is committed; (4) X1 the brief's length claims (14k, one third) are wrong (18.9k, about one fifth); (5) X10a licence statement for PeptideCLM contradicts the Hugging Face model cards; (6) X3b IH-LM test numbers need "planted synthetic world" and the C2/L5/T1 inference about IH-LM parts should go; (7) X9 size range and ChemBERTa label; (8) X4 the number verifier is outside the repository and checks constants only.
+
+---
+
+## UPDATE 6 — Aggregate integrity (T-QA, raw-file recomputation; trigger: code review C1)
+
+Script: `research/guangzhou_all_atom/cyclic_llm/qa_audit/aggregate_integrity.py` (independent of `aggregate_l7.py`; own bootstrap, seed 12345, B=20000; `--strict` exits 1 on any duplicate key). Read-only on `results/l7_collect/small/`.
+
+**Why earlier passes missed it:** the ledger compared drafts with `l7_aggregate.json`, never the aggregate with the raw inputs. This pass does the latter.
+
+### I1. Input accounting (raw files on disk vs aggregate at 457236439, sha 386efae2…)
+
+| input dir | backend | regime | files | arms |
+|---|---|---|---|---|
+| res7a_chemberta | chemberta | A / B | 3 / 3 | 14 |
+| res7f_gbm_aware | gbm | A / B / L | 10 / 10 / 10 | 6 / 6 / 14 |
+| res7f_gbm_blind | gbm | A / B / L | 10 / 10 / 10 | 6 / 6 / 14 |
+| res7f_gbm_phys | gbm_physchem | A / B / L | 10 / 10 / 10 | 14 |
+
+- Raw files on disk: **96**. `inputs.n_files` in the aggregate: **116** (and sha 9706ce46… of the file list). The 20-file difference is unexplained by what is on disk, so the declared input hash cannot be reproduced from the repository. Status: **MISMATCH**.
+- **30 duplicate (backend, regime, seed) keys** across `res7f_gbm_aware` and `res7f_gbm_blind` (gbm A, B, L × seeds 0–9). `load_small` keys on `(backend, regime)` and `.update()`s, so the later directory (blind) overwrites the aware results. Aggregate keys `gbm|A/B/L` therefore hold **blind only**; the chirality-aware GBM appears nowhere in the aggregate. Status: **MISMATCH (C1 confirmed)**.
+- No other collisions; phys and chemberta are each counted once. Required acceptance for the regenerated aggregate: ≥ 4 GBM-family learner keys (blind, aware, phys, chemberta), n per key = raw files (A/B/L 10 each; chemberta 3), `inputs.n_files` = files actually read.
+
+### I2. Headline numbers recomputed from raw per-task files (own bootstrap; mean [95% boot-mean CI; 99% for kphys contrasts])
+
+| quantity | aware | blind (= committed `gbm`) | review's reimplementation | status |
+|---|---|---|---|---|
+| A: `loop_sub` mean yield | 86.0 | 87.4 | 86.0 / 87.4 | MATCH |
+| A: `loop_kphys_sub` mean yield | 90.7 | 89.8 | 90.7 / 89.8 | MATCH |
+| A: zero-sibling stereo ρ (`loop_sub`) | 0.181 | 0.000 | 0.181 / 0.0 | MATCH |
+| A: `loop_sub − frozen_sub` yield | +8.0 [3.5, 12.5] | +8.5 [5.9, 11.1] | – | derived |
+| A: K_phys − K_shuf yield | +5.9 [2.8, 8.7] | +5.8 [3.0, 8.3] | – | derived |
+| A: K_phys − `loop_sub` yield | +4.7 [2.3, 7.1] | +2.4 [−1.0, 5.4] | – | **learner-dependent: significant for aware only** |
+| B: K_phys − K_shuf E-AUROC gain | +0.0146 [0.0009, 0.0304] | +0.0326 [0.0109, 0.0545] | review: kphys−kshuf aware > 0, blind sign differs | derived (aware CI lower bound ≈ 0) |
+| L: `loop − frozen` yield | **+47.3** [34.1, 58.3] | **+13.2** [2.7, 23.8] | – | **learner-dependent by 3.6×** |
+| L: `loop − shuffled` yield | **+117.7** [105.1, 127.9] | **+79.5** [68.0, 93.5] | – | **learner-dependent** |
+| L: `loop − random_fb` yield | +186.1 [179.6, 192.8] | +165.0 [156.0, 175.7] | – | both large |
+| L: K_phys − K_shuf yield | +1.8 [−2.1, 6.0] | +7.1 [3.2, 11.1] | – | opposite pattern (blind significant) |
+| L: `loop − one_shot` E-AUROC gain | −0.006 [−0.034, 0.025] | +0.003 [−0.034, 0.038] | – | null both |
+
+Notes: (i) the review's cluster values (`loop_sub − frozen_sub` 0.236 [0.176, 0.296] aware vs 0.134 [0.063, 0.207] blind) were not recomputed here — they need `aggregate_l7.cluster_contrast` with the compound table; to be checked on the regenerated file. (ii) These are seed-based intervals (spread across 10 seeds, development seeds); they carry no new-lab claim (see red-team Addendum 5).
+
+### I3. Consequences for the drafts (still citing the pre-fix aggregate; hash e2302b87… deliberately)
+
+- Every quoted number in the main draft, v2, preprint and brief that is a "GBM" L7 value is a **blind** number. They remain arithmetically correct as blind numbers, but (a) the drafts also describe K_phys contrasts as "chirality-aware GBM" in places — those would be the aware numbers, which are not what the aggregate holds → **MISMATCH of learner label vs source**; (b) regime-L headline "loop beats frozen/shuffled" magnitudes differ by learner (13.2 vs 47.3; 79.5 vs 117.7) and a pooled "GBM" statement must name the learner; (c) a claim "stereo-blind GBM has zero-sibling 0" is correct for blind only (aware 0.181).
+- Pending after regeneration (rerun scheduled): hash in every draft, the 54-contrast/9-configuration counts (now 12 configurations if aware is added: 4 learners × A,B,L, with chemberta only A,B → 11), 15/54 and 9/54 counts, Holm counts, cluster-boot table, F5/T6 (still built from l7_aggregate@5442beac3), F5 "2 seeds" caption, [REGEN] markers, chemberta first GPU results (in aggregate, not in drafts: exploratory, 3 seeds, A/B only), and `verify_artifacts.py` coverage of new numbers.
