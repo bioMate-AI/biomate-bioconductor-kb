@@ -7,7 +7,7 @@ Status: specification only; no result here. Models: baseline (fingerprint GBM, L
 |---|---|---|---|
 | 1 | Sample efficiency | learning curve over revealed labels (0, 25, 50, 100, … 600); labels-to-reach-baseline-final; area under curve | H1 (prior reduces labels needed) |
 | 2 | Generalisation | held-out target families (retro_recovery run_s3.py), scaffold-shifted and in-distribution regimes, per fold | H4 |
-| 3 | Stereo resolution | within-flat-structure-group Spearman; SAR-setting variant (some isomers revealed) | H2; baseline chance by construction |
+| 3 | Stereo resolution | within-flat-structure-group Spearman with ONE seeded revealed/target split per group (never leave-one-out: LOO group-mean predictor = −1.0 artifact); report revealed-mean reference and a chirality-aware GBM as the fair baseline | H2; baseline chance by construction |
 | 4 | Shortcut reliance | pick provenance by source (single-lab concentration), similarity to revealed examples, correlation of score with source offset | loop may only find one lab's series |
 | 5 | Knowledge use | knowledge-on vs off gap vs n; whether predictions change when a rule is removed/contradicted (counterfactual probe) | H3; does the model use the rule or ignore it |
 | 6 | Robustness to bad feedback | shuffled labels (must not improve), 10–30 % label noise, label-scale shift between sources | leak/robustness check |
