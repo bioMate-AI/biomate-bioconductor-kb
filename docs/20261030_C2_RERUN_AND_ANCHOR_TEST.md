@@ -84,3 +84,17 @@ Status: simulation + data census, CPU only. It does not test anything prospectiv
 **D1-f Retrospective census (no simulation):** from the Same_Peptides tables: (1) number of peptides measured in ≥2, ≥3, ≥4 sources (PAMPA only, and any assay); (2) greedy set cover: the panel of size P (P = 3…40) maximising the number of labs with ≥ k panel members (k = 3, 5), and the resulting coverage of labs and of rows (share of the 7,027 rows in covered labs); (3) the largest such panel's coverage of the 15 held-out-eligible labs.
 **D1-g Recommendation rule:** one concrete protocol (panel size, replicate count, placement within plate/run, annotation of lab/assay metadata) chosen as the smallest design meeting power ≥ 0.80 for gain ≥ 0.03 at the external-assumption τ = 0.48 and L = 30, with the margin at τ = 0.75 and the failure region at τ = 0.25 stated.
 **D1-h Limits stated in advance:** simulation of a linear signal with Gaussian lab offsets on real chemistry features; real labs differ in assay protocol (PAMPA vs Caco-2/RRCK, membrane lipids), in dynamic range and in offsets that depend on compound class (not a constant shift): the simulation can show necessity (what is not enough) more safely than sufficiency; no prospective validation; τ is weakly identified from 57 anchors; the 0.68 log-unit scatter is an external literature value and is not re-verified here.
+
+## 10. Part B v2 result — after fix P-B2 (60/60 tasks; `c2_audit/results_B_v2_aggregate.json`; v1 in §5 is superseded as leaky)
+Run: one spot instance (m7i.8xlarge, 10 min, no reclaim), same 15 held-out sources, 5 anchor seeds, bootstrap over sources. Unit test for the fix passes (`test_anchor_no_leak.py`).
+| quantity | v1 (leaky) | **v2 (fixed)** |
+|---|---|---|
+| real, gain at k=5, median [mean] | +0.005 [+0.031] | **+0.005 [+0.004]** |
+| real, gain at k=5, 95 % CI | −0.015 to +0.129 | **−0.061 to +0.050** |
+| real, gain at k=3, median / CI | +0.004 / −0.103 to +0.122 | **−0.008 / −0.074 to +0.035** |
+| real, sources with positive gain (k=5) | 60 % | 53 % |
+| real, pooled practical metric (4 sources, n=193), k=5 | 0.327 vs 0.327 raw | **0.324 vs 0.327 raw** |
+| planted offsets, real coverage: gain / recovery r | −0.096 / 0.975 | **−0.058 [−0.194, +0.004] / 0.978** |
+| planted offsets, anchors in every source: gain / recovery r | +0.151 [0.032, 0.246] / 0.963 | **+0.100 [+0.031, +0.201] / 0.958** |
+| null (b_s = 0): gain | −0.001 [−0.008, 0.011] | **−0.004 [−0.014, +0.002]** |
+**Does the kill-criterion verdict change? No.** Median gain at k=5 = +0.005 < 0.03 → **met: anchor calibration is not supported on the public multi-source anchors**; with the leak removed the real-data evidence is, if anything, weaker (mean gain 0.031 → 0.004; upper CI bound 0.129 → 0.050). The leak had inflated every calibrated number, including the controls: the full-coverage planted gain fell from +0.151 to +0.100, which is now only borderline against the pre-registered "> 0.1" positive-control threshold (median 0.1002, mean 0.107, CI +0.031 to +0.201; recovery r 0.958 > 0.9 passes). The sparse-coverage planted world remains negative (−0.058), reproducing the real result, so the interpretation stands: the null is explained by anchor coverage, not by a defect of the estimator. The first run's planted-world controls were not trustworthy as quoted because they contained the same leak.
