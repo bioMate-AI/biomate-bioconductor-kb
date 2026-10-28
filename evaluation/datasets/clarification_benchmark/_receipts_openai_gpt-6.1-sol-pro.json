@@ -1,92 +1,50 @@
 [
   {
-    "id": "hd_contrast",
+    "id": "h2_sheet_conflict",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "Your request specifies human reads aligned to GRCh38, but the samplesheet specifies the mouse genome GRCm39. Should I use human GRCh38 and correct the samplesheet, or is mouse GRCm39 intended?"
+  },
+  {
+    "id": "h2_rnaseq_10x",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "nf-core/rnaseq is designed for bulk RNA-seq, not 10x single-cell FASTQs. Should I use nf-core/scrnaseq instead to process cell barcodes and UMIs?"
+  },
+  {
+    "id": "h2_dock_no_receptor",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "Please provide the kinase receptor structure as a PDB file, or specify the kinase and PDB ID to use."
+  },
+  {
+    "id": "h2_tpm_deseq",
+    "action": "clarify",
+    "value": "TPM-normalized",
+    "clarify_about": "expression.csv contains TPM-normalized values, which are not suitable input for DESeq2. Can you provide raw, unnormalized gene counts instead?"
+  },
+  {
+    "id": "h2_bam_hg19",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "sample.bam is aligned to hg19/GRCh37, which conflicts with the requested hg38 reference. Should variants be called against hg19, or should the reads be realigned to hg38 before variant calling?"
+  },
+  {
+    "id": "h2_fully_specified",
     "action": "interpret",
-    "value": "treated vs control (positive log2 fold change means higher expression in treated; control is the reference)",
+    "value": "germline SNVs and indels",
     "clarify_about": ""
   },
   {
-    "id": "hd_prov_conflict",
+    "id": "h2_no_groups",
     "action": "clarify",
     "value": "",
-    "clarify_about": "aligned.bam is aligned to GRCh37, not GRCh38. Should I realign the available original FASTQs to GRCh38 before calling germline variants, or call variants on GRCh37 using the existing BAM?"
+    "clarify_about": "Which condition or group does each sample (sample1\u2013sample6) belong to, and which condition should be compared against which reference condition?"
   },
   {
-    "id": "hd_recover_strand",
+    "id": "h2_truseq_strand",
     "action": "interpret",
-    "value": "reverse",
-    "clarify_about": ""
-  },
-  {
-    "id": "hd_tool_bulk_seurat",
-    "action": "clarify",
-    "value": "",
-    "clarify_about": "The counts matrix contains 6 bulk RNA-seq samples, not individual cells, so Seurat single-cell clustering is not appropriate. Would you like bulk RNA-seq sample clustering instead, or can you provide a per-cell counts matrix?"
-  },
-  {
-    "id": "hd_tool_sniffles",
-    "action": "clarify",
-    "value": "",
-    "clarify_about": "Sniffles is designed for long reads, but your data are 150 bp paired-end Illumina reads. May I use a short-read structural variant caller, such as Manta or DELLY, instead?"
-  },
-  {
-    "id": "hd_mouse_build",
-    "action": "clarify",
-    "value": "",
-    "clarify_about": "Which mouse genome build should I use, such as GRCm39/mm39 or GRCm38/mm10?"
-  },
-  {
-    "id": "hd_pdb_chain",
-    "action": "clarify",
-    "value": "",
-    "clarify_about": "4XYZ has ATP-binding sites in both chains A and B. Which chain should be used as the receptor?"
-  },
-  {
-    "id": "hd_10x_interp",
-    "action": "interpret",
-    "value": "forward-stranded (Read 2 is sense to the transcript)",
-    "clarify_about": ""
-  },
-  {
-    "id": "hd_paired_not_strand",
-    "action": "clarify",
-    "value": "",
-    "clarify_about": "Were the libraries prepared as unstranded, forward-stranded, or reverse-stranded? If unsure, what library preparation kit or protocol was used?"
-  },
-  {
-    "id": "hd_followup_normal",
-    "action": "clarify",
-    "value": "",
-    "clarify_about": "Both BAMs are tumor samples. Will you provide a matched normal, or should somatic calling proceed in tumor-only mode?"
-  },
-  {
-    "id": "hd_recover_header",
-    "action": "interpret",
-    "value": "GRCh38",
-    "clarify_about": ""
-  },
-  {
-    "id": "hd_reproduce_default",
-    "action": "interpret",
-    "value": "GRCh37",
-    "clarify_about": ""
-  },
-  {
-    "id": "hd_tpm_matrix",
-    "action": "clarify",
-    "value": "TPM-normalized values",
-    "clarify_about": "matrix.csv contains TPM values, but DESeq2 requires raw counts, not TPM. Can you provide the raw integer count matrix?"
-  },
-  {
-    "id": "hd_multi_matrix",
-    "action": "interpret",
-    "value": "raw_counts.tsv",
-    "clarify_about": ""
-  },
-  {
-    "id": "hd_recover_layout",
-    "action": "interpret",
-    "value": "paired-end",
+    "value": "reverse-stranded (first-strand)",
     "clarify_about": ""
   }
 ]

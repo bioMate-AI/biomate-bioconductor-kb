@@ -2,7 +2,7 @@
 """Run the HARD clarification tier (context-aware): the agent may inspect the available context."""
 import json, os, re, sys, urllib.request, time, concurrent.futures as cf, importlib.util
 HERE = os.path.dirname(os.path.abspath(__file__))
-ITEMS = [json.loads(l) for l in open(os.path.join(HERE, "data_hard.jsonl"))]
+ITEMS = [json.loads(l) for l in open(os.path.join(HERE, (sys.argv[2] if len(sys.argv)>2 else "data_hard.jsonl")))]
 KEY = os.environ.get("OPENROUTER_API_KEY", "")
 _sp = importlib.util.spec_from_file_location("sc", os.path.join(HERE, "score.py")); SC = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(SC)
 INSTR = ('Return ONLY JSON: {"action":"interpret"|"clarify","value":"<value if resolvable>","clarify_about":"<what to ask>"}. '

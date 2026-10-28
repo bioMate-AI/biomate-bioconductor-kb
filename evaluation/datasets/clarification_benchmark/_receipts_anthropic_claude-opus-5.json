@@ -1,92 +1,50 @@
 [
   {
-    "id": "hd_contrast",
-    "action": "interpret",
-    "value": "condition: treated vs control (contrast = c(\"condition\",\"treated\",\"control\")), with 'control' set as the reference/baseline level \u2014 log2 fold changes reported as treated relative to control",
-    "clarify_about": ""
-  },
-  {
-    "id": "hd_prov_conflict",
-    "action": "clarify",
-    "clarify_about": "The BAM's @SQ header shows it was aligned to GRCh37, not the requested GRCh38 \u2014 this is a real reference conflict that cannot be resolved by calling variants directly. Ask which path to take: (a) re-align the available original FASTQs to GRCh38 and call germline variants there (recommended; preserves correct coordinates and avoids liftover artifacts, but costs compute time), (b) call variants on the existing GRCh37 BAM and lift the resulting VCF over to GRCh38 with a chain file (faster, but loses variants in unmappable/rearranged regions and can misplace indels), or (c) call and report on GRCh37 as-is. Also confirm the exact GRCh38 build/analysis set to use if (a) or (b) \u2014 e.g. with vs. without ALT contigs, and whether chrN-style naming is expected downstream.",
-    "value": ""
-  },
-  {
-    "id": "hd_recover_strand",
-    "action": "interpret",
-    "value": "reverse (reverse-stranded, e.g. salmon ISR / featureCounts -s 2)",
-    "clarify_about": ""
-  },
-  {
-    "id": "hd_tool_bulk_seurat",
-    "action": "clarify",
-    "clarify_about": "The counts matrix contains 6 bulk RNA-seq samples (genes x 6 samples), not single cells, so Seurat's single-cell clustering (neighbor graph + Louvain/Leiden over thousands of cells) cannot be meaningfully run \u2014 with n=6 there is no cell-level structure to cluster, and QC steps like nFeature/percent.mt filtering and normalization assumptions do not apply. Do you want me to (a) run a bulk-appropriate analysis instead \u2014 variance-stabilized (DESeq2 vst/limma-voom) PCA, sample-sample correlation heatmap, and hierarchical clustering of the 6 samples, plus differential expression if you give me the group assignments; (b) proceed with Seurat anyway treating each bulk sample as one 'cell' (I'd produce it, but the clustering output would be statistically meaningless and I'd label it as such); or (c) point me to a different file if per-cell counts exist (e.g., a 10x matrix/barcodes/features set) that you intended to use?",
-    "value": ""
-  },
-  {
-    "id": "hd_tool_sniffles",
+    "id": "h2_sheet_conflict",
     "action": "clarify",
     "value": "",
-    "clarify_about": "Sniffles is designed for long-read data (PacBio/ONT) and will not work correctly on 150 bp paired-end Illumina reads \u2014 it relies on intra-read split/indel signatures absent in short reads. Confirm how to proceed: (a) switch to a short-read SV caller on this Illumina data (e.g., Manta, DELLY, GRIDSS, or Smoove/LUMPY, optionally ensemble-merged with SURVIVOR), (b) keep Sniffles because you also have long-read data for this sample that should be used instead \u2014 if so, point me to those BAM/FASTQ files, or (c) you intended a different Illumina-compatible tool and named Sniffles by mistake. Also confirm the reference build and whether you want germline or somatic/tumor-normal calling."
+    "clarify_about": "Species/genome conflict: your request specifies human reads aligned to GRCh38, but the samplesheet 'genome' column is set to GRCm39 (mouse). These are different species, so this cannot be resolved by inference \u2014 aligning human reads to a mouse reference (or vice versa) would silently produce very low mapping rates and invalid results. Please confirm which is correct: (a) the reads are human and the samplesheet should be corrected to GRCh38, (b) the reads are actually mouse and should be aligned to GRCm39, or (c) this is a mixed/xenograft dataset requiring a combined or sequential (e.g., Xenome/disambiguate) alignment strategy. Also let me know whether the samplesheet should be updated in place."
   },
   {
-    "id": "hd_mouse_build",
+    "id": "h2_rnaseq_10x",
     "action": "clarify",
     "value": "",
-    "clarify_about": "Which mouse reference build/annotation to align against \u2014 the request specifies species (mouse) but no genome version, and no file headers, manifest, sample sheet, or prior turns are available to resolve it. Ask whether to use GRCm39/mm39 (current Ensembl/GENCODE reference) or GRCm38/mm10 (still common for comparability with existing datasets), plus the specific annotation release (e.g., GENCODE vM36 vs vM25) since gene IDs and counts must match any prior results they intend to compare with. Note a sensible default of GRCm39 + matching GENCODE release if they have no constraint."
+    "clarify_about": "nf-core/rnaseq is a bulk RNA-seq pipeline and cannot process 10x single-cell FASTQs correctly \u2014 R1 holds the cell barcode + UMI (~28 bp) rather than cDNA, so barcodes would never be demultiplexed and per-cell counts would be impossible (R1 would also likely fail trimming/alignment QC). Please confirm how to proceed: (a) switch to a single-cell pipeline \u2014 nf-core/scrnaseq (or Cell Ranger) \u2014 and specify the chemistry/version (e.g., 3' v3, 5' v2), expected cell number, and reference transcriptome; (b) if you genuinely want pseudo-bulk gene-level quantification, confirm that we should run nf-core/rnaseq on the cDNA read (R2) only, treating it as single-end and discarding barcode/UMI information; or (c) if these are actually bulk libraries mislabeled as 10x, confirm the library prep so we can validate read structure first."
   },
   {
-    "id": "hd_pdb_chain",
+    "id": "h2_dock_no_receptor",
     "action": "clarify",
     "value": "",
-    "clarify_about": "Which chain's ATP site should be used as the receptor? PDB 4XYZ contains two distinct ATP-binding chains (A and B), and the request specifies only 'the ATP site' \u2014 please confirm chain A, chain B, or whether you want both docked separately (or a single pooled/dimer receptor)."
+    "clarify_about": "No receptor structure is available in the working context \u2014 only ligands.smi is present, and 'the kinase' is never named, so the target cannot be resolved from file headers, manifests, or prior turns. Please specify the receptor to dock against: (a) a path to a prepared receptor file (PDB/PDBQT/mmCIF), or (b) an RCSB PDB ID / UniProt accession for the kinase (plus which chain and, for multi-structure entries, which conformational state, e.g. DFG-in vs DFG-out), and (c) how the binding site should be defined \u2014 ligand-derived box from a co-crystallized inhibitor in that structure, explicit box center/size coordinates, or blind docking. Also note whether any co-crystallized ligands, waters, or cofactors (e.g. ATP-site Mg2+) should be retained during preparation, since this materially changes the affinity ranking of all 500 ligands."
   },
   {
-    "id": "hd_10x_interp",
+    "id": "h2_tpm_deseq",
+    "action": "clarify",
+    "value": "TPM-normalized (decimal) matrix \u2014 detected from context, but incompatible with DESeq2",
+    "clarify_about": "expression.csv holds TPM-normalized decimals, but DESeq2's negative binomial model requires raw integer counts (un-normalized), so it cannot be run as-is. Do you have the raw count matrix (e.g., HTSeq/featureCounts/RSEM expected_counts) to use instead? If raw counts are unavailable, should I switch to a method appropriate for normalized data (e.g., limma-voom/limma-trend on log2(TPM+1), or a non-parametric test), or do you want TPMs rounded to integers despite the known bias \u2014 which I'd not recommend and would flag in the methods?"
+  },
+  {
+    "id": "h2_bam_hg19",
+    "action": "clarify",
+    "value": "",
+    "clarify_about": "The BAM's @SQ header indicates it was aligned to hg19/GRCh37 (contig names/lengths match GRCh37), but you asked for variant calls against hg38. Calling hg19-aligned reads against an hg38 reference would produce invalid results, so I can't simply proceed. Which do you want: (a) call variants on the existing hg19 alignment and report hg19 coordinates, (b) call on hg19 and then lift the resulting VCF over to hg38 (CrossMap/Picard LiftoverVcf, with the caveat that some variants will fail to lift), or (c) realign \u2014 revert the BAM to FASTQ and re-map to hg38 (most accurate, most compute)? Also please confirm the exact hg38 reference build/analysis set to use (e.g., GRCh38 no-alt analysis set, with or without alt contigs) and whether chromosome naming should be 'chr'-prefixed."
+  },
+  {
+    "id": "h2_fully_specified",
     "action": "interpret",
-    "value": "forward (sense; R2 cDNA read matches the mRNA strand \u2014 e.g. STARsolo --soloStrand Forward / featureCounts -s 1)",
+    "value": "germline small variants (SNVs + indels) via DeepVariant WGS model",
     "clarify_about": ""
   },
   {
-    "id": "hd_paired_not_strand",
+    "id": "h2_no_groups",
     "action": "clarify",
     "value": "",
-    "clarify_about": "Library strandedness for the gene-level counting step. Nothing in the request or available context (no kit name, sample sheet, manifest, or prior methods text) indicates the protocol, and the choice is not cosmetic: counting an unstranded library as reverse-stranded (or vice versa) can drop ~50% of reads and systematically distort counts for overlapping/antisense genes. Please confirm one of: (a) unstranded, (b) forward/FR-secondstrand (e.g., Ligation/NEBNext Ultra II Directional non-dUTP, SMARTer stranded), or (c) reverse/FR-firststrand (e.g., TruSeq Stranded mRNA, dUTP protocols \u2014 the most common for Illumina paired-end human RNA-seq). Alternatively, name the library prep kit and I will map it, or authorize me to empirically infer strandedness from a subsample of the reads (RSeQC infer_experiment.py or salmon -l A against the human annotation) and proceed with the detected setting, reporting the inferred proportions for your confirmation."
+    "clarify_about": "Which samples belong to which experimental group, and the contrast to test. counts.tsv only has generic labels sample1\u2013sample6 with no condition/group metadata anywhere in the provided context, so the design formula and contrast cannot be determined. Assuming a split (e.g., sample1\u20133 = control vs sample4\u20136 = treatment) would fabricate the experimental design and could invert the sign of every log2 fold change. Please provide: (1) the group/condition for each of sample1\u2013sample6 (or a sample sheet), (2) the reference/baseline level, and (3) any batch or paired covariates to include in the design."
   },
   {
-    "id": "hd_followup_normal",
-    "action": "clarify",
-    "value": "",
-    "clarify_about": "The user's reply resolves sample identity (A.bam = tumor, B.bam = second tumor biopsy, same patient) but it removes the basis for a matched-normal workflow: no germline/normal sample exists in the provided data. Running matched_normal with B.bam as the 'normal' would treat shared germline variants plus B's somatic variants as the reference baseline, silently subtracting true somatic calls from A and inflating apparent tumor-specific variants in regions where B has copy-number or subclonal differences. Ask the user to choose explicitly: (1) provide a matched normal BAM (blood/adjacent normal) for this patient so matched_normal can proceed as configured; (2) switch to tumor-only somatic calling for A.bam (and/or B.bam) with a panel-of-normals plus population-AF germline filtering, accepting the higher germline false-positive rate; or (3) if the intent is to compare the two biopsies (e.g., shared vs. private mutations, clonal evolution between sites), run each sample in tumor-only mode and intersect, rather than designating either as the normal. Also confirm whether B.bam is a spatially distinct biopsy, a metastasis, or a different timepoint, since that affects interpretation of shared vs. private variants."
-  },
-  {
-    "id": "hd_recover_header",
+    "id": "h2_truseq_strand",
     "action": "interpret",
-    "value": "GRCh38 (hg38), UCSC-style 'chr'-prefixed primary assembly as declared in the sample.bam @SQ header)",
-    "clarify_about": ""
-  },
-  {
-    "id": "hd_reproduce_default",
-    "action": "interpret",
-    "value": "GRCh37 (hg19)",
-    "clarify_about": ""
-  },
-  {
-    "id": "hd_tpm_matrix",
-    "action": "clarify",
-    "value": "TPM-normalized expression matrix (non-integer decimals)",
-    "clarify_about": "The matrix type is identifiable from the file (TPM-normalized decimals), but that conflicts with DESeq2, which requires raw integer counts and its own internal size-factor normalization \u2014 running it on TPMs would violate its negative-binomial model and produce invalid dispersion estimates and p-values. Please confirm how to proceed: (a) point me to the raw count matrix (e.g., featureCounts/HTSeq/STAR ReadsPerGene or salmon/kallisto quant files, which I can import with tximport to generate DESeq2-ready counts with length offsets), (b) switch to a method appropriate for continuous normalized data (limma-trend or limma-voom on log2(TPM+1)), or (c) explicitly accept a non-standard, caveated run (e.g., rounded TPMs) for exploratory purposes only."
-  },
-  {
-    "id": "hd_multi_matrix",
-    "action": "interpret",
-    "value": "raw_counts.tsv",
-    "clarify_about": ""
-  },
-  {
-    "id": "hd_recover_layout",
-    "action": "interpret",
-    "value": "paired-end",
+    "value": "reverse (dUTP first-strand/antisense; e.g. featureCounts -s 2, HTSeq --stranded=reverse, Salmon ISR / kallisto --rf-stranded for paired-end)",
     "clarify_about": ""
   }
 ]
