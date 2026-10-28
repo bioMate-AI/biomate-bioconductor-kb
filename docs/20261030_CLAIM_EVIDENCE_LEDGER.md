@@ -441,3 +441,23 @@ Scope: main draft (23,819 words), v2 (6,043), preprint `manuscript_loop.md`, pat
 | Z13 | "stereo-blind" / "plain GBM" wording | remaining uses are generic definitions or explicit "earlier plain-GBM numbers were blind" notes | MATCH |
 
 Counts for this rerun: 11 MATCH (Z1, Z3, Z4, Z7–Z9, Z11–Z13 and Z10-F5, Z5), 1 STALE (Z6), 1 UNVERIFIED (T6), 1 PROVISIONAL-by-design (K_phys vs shuffled, until the `_detK` aggregate). Standing items: Appendix B citation census unchanged (LIT-VERIFIED 5, LIT-SUMMARY 31, LIT-SNIPPET 4, LIT-UNVERIFIED 16 in the main draft); red-team Addenda 5 and 6 items still open.
+
+---
+
+## UPDATE 10 — Retrospective-benchmark restatements (A10/A11, `20261030_RETRO_RECOVERY_RESULTS_V5.md`, 756a0f0aa)
+
+Recomputed by me from the frozen data (`retro_recovery/data/`, own pandas code, not the benchmark workstream's scripts):
+
+| claim (workstream message) | my recomputation | status |
+|---|---|---|
+| I: 6,619 distinct compounds; 1,731 in > 1 target; 364 in > 1 family; 1,093 rows (11.6 %) with the compound in another fold | 6,619 / 1,731 / 364 / 1,093 (11.6 %) | MATCH |
+| folds_v2: 317 → 298 families; I 26 → 23 families; accession/fold inconsistencies → 0 | `folds_v2.csv` 298 families (v1 317); I targets map to 23 families; accessions in > 1 family 0 and in > 1 fold 0 (v1: 29 and 24) | MATCH |
+| censoring: 63.6 % of inactives vs 3.1 % of positives | inactives 63.6 % with ">"; positives 2.5 % with ">" and **3.1 % with ">" or "<"**. The 3.1 % is the any-direction censoring; the ">"-only figure is 2.5 % (190 / 7,600), which the drafts use | MATCH (definitions differ: state "any censoring relation") |
+| `overlap_audit.json` figures | 6,619 / 1,731 / 364 / 1,093 / 0.1159 present in the file | MATCH |
+| gate numbers (I C3 0.575–0.621 by variant; M C3 0.461 / 0.515; M2 C2/C3 0.743 / 0.739; I_EX infeasible 1,473 positives vs 72 inactives; H4b NN 0.753/0.822/0.869) | read from result JSONs only for I v1/v2 and M items C1 (0.503, 0.502, 0.476); the C3 values are not recomputed by me (needs their pipeline) | REPORTED, not recomputed |
+
+Propagation into the manuscript set (all cite the pre-A11 gate numbers):
+- Main draft line 222 (Results table): "M … fingerprint control 0.315 (below chance)" is stated **without** the label-inversion qualification that the same document gives in Appendix line 463 ("registered C3 0.315 is a label-inversion artefact; corrected 0.461 (0.423, 0.498)"). Line 368 (artifact list) also quotes 0.315. **MISMATCH (internal contradiction; the table should carry 0.461 / 0.515 with the scope).**
+- Brief line 17 correctly says 0.315 is an artefact (0.461 flat-disjoint). **MATCH.**
+- Analysis-I gate numbers in the drafts (0.584 registered; 0.580 / 0.578 / 0.583 purged) come from the data/eval review and the earlier gate; A11 restates them (0.575–0.621 by variant, primary flag level 98.3 %, ±0.05 equivalence at 90 % intervals, so even unbiased benchmarks are NOT_VALID_NOT_EQUIVALENT at 14–26 families). The drafts do not yet cite A10/A11 or V5 (main draft cites RESULTS_V3). **STALE** pending the writer's update; also "26 families" for I appears in main (9×), v2 (3×) and brief (1×) while folds_v2 gives 23. The qualifier is that folds_v2 is a re-freeze after the results were seen: the 98.3 % level and the ±0.05 margin were chosen after seeing intervals (disclosed by the workstream in A11): the drafts must call these post hoc.
+- Position: the qualitative verdict ("no benchmark passes the gate") is unchanged in the workstream's statement; the numbers behind it moved.
