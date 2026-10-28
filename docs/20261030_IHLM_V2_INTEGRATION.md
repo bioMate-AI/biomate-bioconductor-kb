@@ -121,3 +121,37 @@ IH-LM v2 is **not a new model class**: it is the workstream-1 learner (`cyclic_l
 | our earlier assets (reused; claims limited to their audits) | v4 weights (mapped-subset scorer), gates, cheap verifier, reward/pair emitter, KBs, K_phys |
 | new modules (design; no measured advantage yet) | per-source offsets with anchors, stereo-aware retrieval, edit-space effects, uncertainty, fast/slow memory, verifier-ladder routing and the graded-memory bridge |
 **Supported today:** an integrated, tested implementation exists with explicit coverage and admissibility reporting. **Not supported:** any performance claim for the integrated model; any binding or αvβ6-physics claim; generation validity beyond token level; that verifier rewards equal measured activity.
+
+## 3. Wiring and tests (Step 3) — what is wired, what is tested, what does not work
+
+Code: `research/guangzhou_all_atom/cyclic_llm/ihlm_v2/` (`_paths.py`, `v4_adapter.py`, `verifier_hook.py`, `graded_bridge.py`, `test_ihlm_v2.py`, `smoke_replay.py`, `smoke_result.json`). CPU only; no network; no paid API; nothing launched.
+
+### 3.1 Tests (11 passed, `python3 -m pytest -q test_ihlm_v2.py`, ~90 s)
+| test | what it controls |
+|---|---|
+| checkpoint read-only | v4 loads (5,022,976 params, vocab 393, block 40); sha256 unchanged after loading, scoring and updating |
+| unmapped is None, deterministic | a non-peptide returns None (never imputed); repeated scoring identical; coverage on CycPeptMPDB partial (0 < fraction < 1) |
+| update does not mutate | original adapter fingerprint unchanged; the new one differs |
+| propose deterministic, in-vocabulary | same seed same samples, different seed different; tokens in vocab; topology reported as "unspecified" |
+| **gate-name map, planted equivalence** | v4 tokens `[F,R,G,D,L,A,F,dP,meK]` → gate HELM equals the reference peptide and gets the same gate verdict; **without the map the same peptide is rejected** (`meK` ≠ `NMeK`): the naming gap between v4 and the gate is real and the map fixes it; tokens with `-`/parentheses (e.g. `Phe(4-Cl)`) → ungradeable, not mis-parsed |
+| verifier cheap cases | gate-pass peptide has positive reward; literal-genus infringer and no-RGD peptide fail with the right reasons; physics fields listed as pending with zero reward terms; PD-L1 reports `rule_applicable=False` |
+| `tier="full"` refused | no accidental physics/network call |
+| bridge never writes rewards as labels | planted reward 9.99 never appears as a label; all rows stay under their laboratory source; input model not mutated; the planted gate flags reach memory (5 of 10 flagged) |
+| verifier flag leaves lab offsets unchanged | planted +0.5 lab offset estimated identically with and without the verifier annotation |
+| accounting | graded + duplicates + unmapped + unrepresentable + invalid = n (CycPeptMPDB repeats canonical SMILES; found by the first test run: the original counter reported 28 graded but 25 unique; fixed to count duplicates explicitly) |
+| pairs | gate-pass chosen over gate-fail |
+
+### 3.2 Smoke replay (plumbing only, **no claim**)
+200-peptide pool from CycPeptMPDB (sources with ≥ 20 peptides; within-source z labels), 30 initial, 3 rounds × 15 picks, 2 seeds; IH-LM fast memory only (offsets + symbolic retrieval + edit effects; no net, no knowledge channel) versus random; verifier hook and bridge run each round. Result file `smoke_result.json`: all components ran together; checkpoint unmodified. Mean hits 9.0 (IH-LM) vs 3.0 (random) over **two seeds** — not an evaluation; it is what analog retrieval does in an in-distribution pool and says nothing about generalisation. The first full-size run (500/40/4/20/5) did not finish in 25 minutes on the loaded laptop and was stopped; the size was reduced and the reduction stated in the script and result.
+
+### 3.3 What does not work / limits found while building
+1. **v4 coverage on CycPeptMPDB is ~15 % and lab-dependent**: random 300 of the pool → 15.3 % mapped; 2020_Townsend 37/112, 2021_Kelly 0/79, 2013_CHUGAI 0/40, 2016_Furukawa 0/22. Any v4 comparison on CycPeptMPDB therefore effectively covers only part of one lab. (The smoke script's first coverage field read 0.0 because it used the first 300 insertion-ordered rows, all from CHUGAI; found by audit and fixed; canonical vs raw SMILES map identically, 28/28 on the first 120.)
+2. **Naming gap between v4 tokens and the gate** (above): needs the map; tokens with `-`/parentheses are ungradeable (the gate dialect splits on `-`).
+3. **No admissible physics**: every graded record lists `ddg_fep`, `binding_dG`, `selectivity_gap`, `groove_occupancy`, `geometry` as pending; the reward is gate/FTO/developability only; a gate pass is not binding evidence.
+4. **Verifier rewards are not measurements**: they are never labels and never a laboratory source; graded-only candidates reach the model only as preference pairs (emitter only, no training run).
+5. **v4 has no topology token** (34.7 % Lariat); `propose` returns HELM with an assumed head-to-tail string and says so; token-level validity only.
+6. **No cheap-physics tier exists** (L1 in the ladder is empty); no constrained decoding on a pretrained base; neural M3/verifier head of workstream 1 remain xfail (unchanged, not touched).
+7. The round driver `loop.py` was not rebuilt; the smoke script is a minimal driver, not a replacement.
+
+### 3.4 Supported by this step
+An integrated implementation in which the earlier v4 asset, the cheap verifier and reward, and the new fast-memory modules run behind one contract, with coverage and admissibility reported per call, a tested v4↔gate naming map, and a guard against pooling verifier output with laboratory data. **No performance claim** for the integrated model.

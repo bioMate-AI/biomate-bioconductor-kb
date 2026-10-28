@@ -1,6 +1,6 @@
 """Smoke replay (PLUMBING ONLY, NO CLAIM): pool of CycPeptMPDB PAMPA peptides, within-source z labels, init set + rounds of batch selection.
 Arms: random vs IH-LM (fast memory only: M2 offsets + M3 symbolic retrieval + M4 edit effects; no neural net, no knowledge channel).
-Every round the verifier hook grades the picked compounds the converter maps, and the bridge attaches the gate flag to the revealed rows. 5 seeds, tiny pool, no intervals:
+Every round the verifier hook grades the picked compounds the converter maps, and the bridge attaches the gate flag to the revealed rows. 2 seeds, tiny pool, no intervals:
 this only shows the components run together on real data; it is not an evaluation (the real replays are loop_retro L5/L7)."""
 import os, sys, json, time, csv
 import numpy as np
@@ -11,7 +11,7 @@ from verifier_hook import VerifierHook
 from graded_bridge import GradedMemoryBridge, grade_smiles
 from symbolic import iso
 
-N_POOL, N_INIT, ROUNDS, BATCH, SEEDS = 500, 40, 4, 20, 5
+N_POOL, N_INIT, ROUNDS, BATCH, SEEDS = 200, 30, 3, 15, 2   # reduced from 500/40/4/20/5: the first full-size run did not finish in 25 min on a loaded laptop
 
 
 def load():
@@ -36,7 +36,7 @@ def load():
 
 def main():
     t0 = time.time(); recs = load(); ad = V4Adapter(); hook = VerifierHook("avb6"); M = load_ihlm()
-    out = dict(NOTICE="PLUMBING SMOKE ONLY — NO CLAIM. 5 seeds, tiny pool, no intervals; not an evaluation.", n_pool=N_POOL, n_init=N_INIT, rounds=ROUNDS, batch=BATCH, seeds=SEEDS, per_seed=[])
+    out = dict(NOTICE="PLUMBING SMOKE ONLY — NO CLAIM. 2 seeds, tiny pool, no intervals; not an evaluation.", n_pool=N_POOL, n_init=N_INIT, rounds=ROUNDS, batch=BATCH, seeds=SEEDS, per_seed=[])
     for seed in range(SEEDS):
         rng = np.random.default_rng(seed); idx = rng.choice(len(recs), N_POOL, replace=False); pool = [recs[i] for i in idx]
         thr = float(np.quantile([r["label"] for r in pool], 0.9)); init = pool[:N_INIT]; rest = pool[N_INIT:]
@@ -56,7 +56,7 @@ def main():
             arms[arm] = dict(hits=int(hits), graded=n_graded, annotated=n_ann, mem_rows=len(model.mem.rows), offsets_sources=len(model.offsets))
         out["per_seed"].append(dict(seed=seed, thr=round(thr, 3), **arms))
     out["mean_hits"] = {a: float(np.mean([s[a]["hits"] for s in out["per_seed"]])) for a in ("random", "ihlm")}
-    out["v4_coverage_in_pool_sample"] = ad.coverage([r["smiles"] for r in recs[:300]])["fraction"]; out["checkpoint_unmodified"] = ad.verify_unmodified(); out["seconds"] = round(time.time() - t0, 1)
+    samp = [recs[i] for i in np.random.default_rng(0).choice(len(recs), 300, replace=False)]; out["v4_coverage_in_random_300"] = ad.coverage([r["smiles"] for r in samp])["fraction"]; out["checkpoint_unmodified"] = ad.verify_unmodified(); out["seconds"] = round(time.time() - t0, 1)
     json.dump(out, open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "smoke_result.json"), "w"), indent=1); print(json.dumps({k: v for k, v in out.items() if k != "per_seed"}, indent=1)); print(out["per_seed"][0])
 
 
