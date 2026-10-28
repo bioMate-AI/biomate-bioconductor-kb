@@ -68,6 +68,32 @@ def test_F2_both_signals_world():
     assert any(r[k]["F2"] >= max(r[k]["K"], r[k]["A"]) + 0.02 for k in r), r
 
 
+def _tie_auc(y, s):                                          # minimal tie-aware AUROC (stand-in for the harness function)
+    y = np.asarray(y); s = np.asarray(s, float); pos = s[y == 1]; neg = s[y == 0]
+    return float(((pos[:, None] > neg[None, :]).sum() + 0.5 * (pos[:, None] == neg[None, :]).sum()) / (len(pos) * len(neg)))
+
+
+def test_reliability_nn_planted():
+    rng = np.random.default_rng(0); nb = 256; hi, lo = [], []
+    for s in range(40):
+        cent = {c: (rng.random(nb) < 0.25) for c in (0, 1)}; lab = np.array([0, 1] * 6)                    # 12 revealed items, 2 chemotype clusters = the 2 classes
+        X = np.stack([np.logical_xor(cent[l], rng.random(nb) < 0.05) for l in lab]).astype(np.float32)
+        hi.append(F.reliability_nn(F.tanimoto(X, X), lab, _tie_auc))                                      # informative analogs
+        X2 = (rng.random((12, nb)) < 0.25).astype(np.float32); lo.append(F.reliability_nn(F.tanimoto(X2, X2), lab, _tie_auc))   # unrelated random items
+    print("reliability_nn informative %.3f vs random %.3f" % (np.mean(hi), np.mean(lo)))
+    assert np.mean(hi) > 0.8 and np.mean(lo) < 0.65 and np.mean(hi) > np.mean(lo) + 0.2
+
+
+def test_reliability_perm_planted():
+    rng = np.random.default_rng(1); nb = 256; hi, lo = [], []
+    for s in range(40):
+        cid = np.repeat(np.arange(4), 3); cent = rng.random((4, nb)) < 0.25; X = np.stack([np.logical_xor(cent[c], rng.random(nb) < 0.05) for c in cid]).astype(np.float32)
+        off = rng.normal(size=4)[cid]; hi.append(F.reliability_perm(F.tanimoto(X, X), off * 2 + 0.1 * rng.normal(size=12)))   # labels follow clusters
+        lo.append(F.reliability_perm(F.tanimoto(X, X), rng.normal(size=12)))                                                  # labels unrelated to clusters
+    print("reliability_perm informative %.3f vs random %.3f" % (np.mean(hi), np.mean(lo)))
+    assert np.mean(hi) > np.mean(lo) + 0.15
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
