@@ -149,20 +149,72 @@ def _hv3d(pts):
     return vol
 
 
+def _hv_nd(P):
+    """exact dominated volume wrt origin (maximization) in any dimension, by slicing along the last objective. P: (n,m) > 0."""
+    if len(P) == 0:
+        return 0.0
+    m = P.shape[1]
+    if m == 1:
+        return float(P[:, 0].max())
+    if m == 2:
+        return _hv2d(P)
+    if m == 3:
+        return _hv3d(P)
+    order = np.argsort(-P[:, -1]); z = P[order, -1]; rest = P[order, :-1]; vol = 0.0
+    for k in range(len(order)):
+        h = z[k] - (z[k + 1] if k + 1 < len(order) else 0.0)
+        if h > 0:
+            vol += _hv_nd(rest[:k + 1]) * h
+    return vol
+
+
+OBJECTIVES = {"binding", "permeability", "synthesizability", "renal"}
+UNVALIDATED = {"renal": "kidney-retention grey-box model: Gate A (surrogate must beat net charge alone on >=50 held-out constructs) NOT passed; cross-target generalisation not supported (grey-box rho ~ +0.14, p = 0.40)"}
+
+
+def parse_objectives(spec, allow_unvalidated=False):
+    """Parse a comma list of objective names. Unvalidated objectives (renal) are refused unless explicitly allowed, so they can never enter a ranking silently."""
+    names = [x.strip() for x in spec.split(",") if x.strip()]
+    for n in names:
+        if n not in OBJECTIVES:
+            raise ValueError(f"unknown objective {n!r}; choose from {sorted(OBJECTIVES)}")
+        if n in UNVALIDATED and not allow_unvalidated:
+            raise ValueError(f"objective {n!r} is UNVALIDATED ({UNVALIDATED[n]}); pass --allow-unvalidated to include it")
+    return names
+
+
+def assemble_objectives(names, cols):
+    """Stack the named objective columns (all maximised) into Y (n x len(names)); NaN entries take their column minimum so they rank last."""
+    Y = np.vstack([np.asarray(cols[n], float) for n in names]).T.copy()
+    for c in range(Y.shape[1]):
+        col = Y[:, c]
+        if np.isnan(col).all():
+            raise ValueError(f"objective {names[c]!r} has no finite values")
+        col[np.isnan(col)] = np.nanmin(col); Y[:, c] = col
+    return Y
+
+
+_LABEL = {"binding": ("pAff", 1), "permeability": ("logPapp", 1), "synthesizability": ("SA", -1), "renal": ("kidney_log1p_pidg", -1)}
+
+
+def describe(i, names, Yraw):
+    """Raw (un-negated) objective values for candidate i, keyed by readable label; independent of which objectives were selected."""
+    out = {}
+    for c, n in enumerate(names):
+        lab, sign = _LABEL[n]; out[lab] = round(float(sign * Yraw[i, c]), 3 if lab != "SA" else 2)
+    return out
+
+
 def hv(Y, ref):
     """dominated hypervolume of maximization objectives Y (n x m) wrt ref (m,).
-    Objectives are pre-normalized to >=0 with ref=0; supports m in {2,3}."""
+    Objectives are pre-normalized to >=0 with ref=0; exact for any m."""
     Y = np.asarray(Y, dtype=np.float64)
     ref = np.asarray(ref, dtype=np.float64)
     P = Y - ref
     P = P[np.all(P > 0, axis=1)]  # points must dominate ref in all dims
     if len(P) == 0:
         return 0.0
-    if P.shape[1] == 2:
-        return _hv2d(P)
-    if P.shape[1] == 3:
-        return _hv3d(P)
-    raise ValueError("hv() supports 2 or 3 objectives")
+    return _hv_nd(P)
 
 
 def greedy_hv_select(Y, k, ref):
@@ -253,10 +305,16 @@ def process_pool(name, seqs, composite_order, perm_pred, bind_pred, k, args):
     synth = -np.array(sa)  # maximize (-SA)
 
     valid = ~np.isnan(binding)
-    Yraw = np.vstack([binding, perm, synth]).T
-    # replace nan binding with column min so they rank last
-    for c in range(Yraw.shape[1]):
-        col = Yraw[:, c]; col[np.isnan(col)] = np.nanmin(col); Yraw[:, c] = col
+    names = list(getattr(args, "objectives_list", None) or ["binding", "permeability", "synthesizability"])
+    cols = {"binding": binding, "permeability": perm, "synthesizability": synth}
+    renal_info = None
+    if "renal" in names:                                   # OPT-IN, UNVALIDATED (see UNVALIDATED / renal_objective.STATUS)
+        sys.path.insert(0, os.path.join(HERE, "renal")); import renal_objective as RO
+        kidney = RO.predict_kidney(seqs); sd, informative = RO.informative(kidney)
+        cols["renal"] = -kidney                           # lower predicted kidney retention is better
+        renal_info = {"status": RO.STATUS, "prediction_sd_log1p": round(sd, 4), "informative": informative,
+                      "warning": None if informative else "objective is FLAT across this pool (sd < 0.05 log1p units): including it changes no ranking"}
+    Yraw = assemble_objectives(names, cols)
     Ynorm, lo, span = normalize_obj(Yraw)
     ref = np.zeros(Yraw.shape[1])
 
@@ -274,7 +332,7 @@ def process_pool(name, seqs, composite_order, perm_pred, bind_pred, k, args):
     # persist objective arrays so the qNEHVI (torch) phase runs in a SEPARATE process
     # (torch's libomp + XGBoost's libomp cannot coexist in one process on macOS -> OMP Error #179)
     np.savez_compressed(os.path.join(RESULTS, f"pool_obj_{name}.npz"),
-                        Ynorm=Ynorm, Xdesc=Xdesc, Yraw=Yraw,
+                        Ynorm=Ynorm, Xdesc=Xdesc, Yraw=Yraw, names=np.array(names, dtype=object),
                         comp_topk=np.array(comp_topk), greedy_topk=np.array(greedy_topk),
                         seqs=np.array(seqs, dtype=object), modes=np.array(modes, dtype=object), k=k)
 
@@ -283,9 +341,7 @@ def process_pool(name, seqs, composite_order, perm_pred, bind_pred, k, args):
     hv_full = hv(Ynorm, ref)
 
     def summ(idxs):
-        return [{"rank": r + 1, "seq": seqs[i], "pAff": round(float(Yraw[i, 0]), 3),
-                 "logPapp": round(float(Yraw[i, 1]), 3), "SA": round(float(-Yraw[i, 2]), 2),
-                 "mode": modes[i]} for r, i in enumerate(idxs)]
+        return [{"rank": r + 1, "seq": seqs[i], **describe(i, names, Yraw), "mode": modes[i]} for r, i in enumerate(idxs)]
 
     overlap_g = len(set(comp_topk) & set(greedy_topk))
 
@@ -302,9 +358,8 @@ def process_pool(name, seqs, composite_order, perm_pred, bind_pred, k, args):
         "composite_topk": summ(comp_topk),
         "qnehvi_topk": None,
         "greedy_hv_topk": summ(greedy_topk),
-        "objective_ranges": {"pAff": [round(float(Yraw[:,0].min()),2), round(float(Yraw[:,0].max()),2)],
-                             "logPapp": [round(float(Yraw[:,1].min()),2), round(float(Yraw[:,1].max()),2)],
-                             "SA": [round(float((-Yraw[:,2]).min()),2), round(float((-Yraw[:,2]).max()),2)]},
+        "objectives": names, "unvalidated_objectives": ({"renal": renal_info} if renal_info else {}),
+        "objective_ranges": {_LABEL[n][0]: [round(float((_LABEL[n][1] * Yraw[:, c]).min()), 2), round(float((_LABEL[n][1] * Yraw[:, c]).max()), 2)] for c, n in enumerate(names)},
     }
 
 
@@ -317,6 +372,7 @@ def run_qnehvi_phase(report_path):
             print(f"  [no npz for {name}; skip]"); continue
         z = np.load(npz, allow_pickle=True)
         Ynorm = z["Ynorm"]; Xdesc = z["Xdesc"]; Yraw = z["Yraw"]
+        names = [str(x) for x in z["names"]] if "names" in z.files else ["binding", "permeability", "synthesizability"]
         seqs = list(z["seqs"]); modes = list(z["modes"]); k = int(z["k"])
         comp_topk = list(int(i) for i in z["comp_topk"])
         ref = np.zeros(Ynorm.shape[1])
@@ -330,9 +386,7 @@ def run_qnehvi_phase(report_path):
         pool["hypervolume"]["qnehvi_topk"] = round(hv_q, 5)
         pool["hypervolume"]["qnehvi_gain_vs_composite_pct"] = round(100 * (hv_q - hv_comp) / max(hv_comp, 1e-9), 1)
         pool["topk_overlap_with_composite"]["qnehvi"] = len(set(comp_topk) & set(qnehvi_topk))
-        pool["qnehvi_topk"] = [{"rank": r + 1, "seq": seqs[i], "pAff": round(float(Yraw[i, 0]), 3),
-                               "logPapp": round(float(Yraw[i, 1]), 3), "SA": round(float(-Yraw[i, 2]), 2),
-                               "mode": modes[i]} for r, i in enumerate(qnehvi_topk)]
+        pool["qnehvi_topk"] = [{"rank": r + 1, "seq": seqs[i], **describe(i, names, Yraw), "mode": modes[i]} for r, i in enumerate(qnehvi_topk)]
         h = pool["hypervolume"]
         print(f"  HV composite={h['composite_topk']} qNEHVI={h['qnehvi_topk']} greedy={h['greedy_hv_topk']} "
               f"(qNEHVI {h['qnehvi_gain_vs_composite_pct']:+}%)", flush=True)
@@ -349,7 +403,10 @@ def main():
     ap.add_argument("--phase", choices=["objectives", "qnehvi"], default="objectives",
                     help="objectives: compute objectives + composite/greedy-HV (no torch). "
                          "qnehvi: load saved objectives + run BoTorch qNEHVI (torch).")
+    ap.add_argument("--objectives", default="binding,permeability,synthesizability", help="comma list from " + ",".join(sorted(OBJECTIVES)))
+    ap.add_argument("--allow-unvalidated", action="store_true", help="permit unvalidated objectives (renal) in the ranking; they are labelled in the report")
     args = ap.parse_args()
+    args.objectives_list = parse_objectives(args.objectives, args.allow_unvalidated)
 
     out = os.path.join(RESULTS, "mo_qnehvi_rescore.json")
     if args.phase == "qnehvi":
@@ -362,8 +419,8 @@ def main():
     print("loading A1 binding model...", flush=True)
     bind_pred = load_binding()
 
-    report = {"objectives": ["binding=A1 pAffinity (real data)", "permeability=CycPeptMPDB logPapp",
-                             "synthesizability=-SA_score"],
+    report = {"objectives": args.objectives_list,
+              "objective_definitions": ["binding=A1 pAffinity (real data)", "permeability=CycPeptMPDB logPapp", "synthesizability=-SA_score", "renal=-predicted log1p kidney %ID/g (UNVALIDATED, opt-in)"],
               "selectivity": "omitted — not derivable from single-target pool data (documented gap)",
               "composite_baseline": "existing hand-tuned composite ordering that selected each panel",
               "perm_model_rows": n_perm, "pools": {}}
