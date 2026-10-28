@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Knowledge-as-prior arms of the retrospective loop (PREREG_LOOP.md amendment L2). Per-task, checkpointed, parallel; reuses run_loop / run_loop_par.
 usage: run_loop_prior.py CycPeptMPDB.csv OUTDIR [procs=30]   (OMP_NUM_THREADS=1)"""
-import os, sys, json, multiprocessing as mp
+import os, sys, json, collections, multiprocessing as mp
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_loop as R, run_loop_par as P
@@ -30,7 +30,7 @@ def k_z(nme, hbd, tpsa):
     return zs(zs(nme) - zs(hbd) - zs(tpsa))
 
 
-def run_prior_policy(mode, X, y, K, init, pool, thr, seed):
+def run_prior_policy(mode, X, y, K, init, pool, thr, seed, track=None):
     """Greedy loop with knowledge integration. mode: fp | resid | fuse. Returns (total hits, per-round hits)."""
     rng = np.random.default_rng(seed); labeled = list(init); unl = list(pool); per = []
     for _ in range(R.ROUNDS):
@@ -49,6 +49,9 @@ def run_prior_policy(mode, X, y, K, init, pool, thr, seed):
             score = (1 - w) * zs(pred) + w * zs(K[U])
         pick = [unl[j] for j in np.argsort(-score, kind="stable")[:R.BATCH]]
         s = set(pick); unl = [i for i in unl if i not in s]; labeled += pick; per.append(int(sum(y[i] >= thr for i in pick)))
+        if track is not None:                    # PREREG_LOOP L5: second hit definition (within-group top 10 %, vector threshold) and pick provenance; selection is unaffected
+            track.setdefault("picks", []).extend(int(i) for i in pick)
+            if track.get("thr_g") is not None: track.setdefault("per_g", []).append(int(sum(y[i] >= track["thr_g"][i] for i in pick)))
     return sum(per), per
 
 
@@ -56,8 +59,13 @@ def run_task(task, X, y, Ks, srcs, scaf, thr):
     arm, regime, seed = task; init, pool = P.setup(regime, seed, srcs, scaf, R.N_INIT, _G.get("flat"))
     mode = arm if arm in ("random", "fp", "kn") else arm.split("_")[0]; K = Ks[arm.split("_")[1]] if "_" in arm else None
     Xa = _G["Xkn"] if arm == "kn" else X
-    tot, per = run_prior_policy("fp" if mode == "kn" else mode, Xa, y, K if K is not None else np.zeros(len(y)), init, pool, thr, seed)
-    return {"arm": arm, "regime": regime, "seed": seed, "n_pool": len(pool), "greedy": tot, "rounds": per}
+    track = {"thr_g": _G.get("thr_g")}
+    tot, per = run_prior_policy("fp" if mode == "kn" else mode, Xa, y, K if K is not None else np.zeros(len(y)), init, pool, thr, seed, track)
+    pk = collections.Counter(srcs[i] for i in track["picks"]); top = ("2020_Townsend", "2021_Kelly")
+    pick_src = {s: int(pk.get(s, 0)) for s in top}; pick_src["other"] = int(sum(pk.values()) - sum(pick_src.values()))
+    out = {"arm": arm, "regime": regime, "seed": seed, "n_pool": len(pool), "greedy": tot, "rounds": per, "pick_src": pick_src}
+    if track.get("per_g"): out["greedy_g"] = int(sum(track["per_g"])); out["rounds_g"] = track["per_g"]
+    return out
 
 
 def _work(task): return run_task(task, _G["X"], _G["y"], _G["Ks"], _G["srcs"], _G["scaf"], _G["thr"])
@@ -93,6 +101,10 @@ if __name__ == "__main__":
     _G["Xkn"] = np.hstack([X, desc])
     print("n", len(recs), "y_norm threshold", round(thr, 3), flush=True)
     _G["flat"] = [r["flat"] for r in recs]
+    cnt_ = collections.Counter(srcs); grp_ = np.array([s if cnt_[s] >= 20 else "__other__" for s in srcs])      # same grouping as source_normalize
+    thr_g = np.zeros(len(y))
+    for g_ in set(grp_.tolist()): m_ = grp_ == g_; thr_g[m_] = float(np.quantile(y[m_], 0.90))
+    _G["thr_g"] = thr_g                       # hit_g: top 10 % WITHIN each group (each group contributes ~10 %); sensitivity definition
     regimes = os.environ.get("REGIMES", "AB")
     arms = [a for a in ARMS if a in os.environ.get("ARMS_ONLY", ",".join(ARMS)).split(",")]
     run_all([(a, g, s) for s in range(SEEDS) for g in regimes for a in arms], X, y, Ks, srcs, scaf, thr, outdir, procs)
