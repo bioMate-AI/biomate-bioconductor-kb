@@ -1,0 +1,72 @@
+{
+ "binding": {
+  "rows_peptide_like_exact": 22715,
+  "compounds": 12488,
+  "targets": 689,
+  "units_target_type": 977
+ },
+ "binding_stereo_flip": {
+  "n_pairs": 3443,
+  "n_targets": 210,
+  "mean_abs_delta_pAff": 0.5804512544763449,
+  "frac_gt_1": 0.20331106593087422,
+  "random_same_target_mean_abs_delta": 1.1535962444217531,
+  "random_frac_gt_1": 0.4363458806818182
+ },
+ "binding_N_methyl_added": {
+  "n_pairs": 934,
+  "n_targets": 66,
+  "mean_delta_pAff": -0.24501280721751986,
+  "meta": {
+   "pooled": -0.2381785103875175,
+   "se": 0.051469755232178414,
+   "lo": -0.3390592306425872,
+   "hi": -0.1372977901324478,
+   "tau2": 0.05300411168026934,
+   "I2": 0.901204430196657,
+   "k": 34
+  }
+ },
+ "stability": {
+  "n": 602,
+  "n_stable": 262,
+  "n_macrocyclic": 94,
+  "n_macrocyclic_stable": 50
+ },
+ "overlap_exact_canonical_smiles": {
+  "cycpeptmpdb_x_binding": 46,
+  "cycpeptmpdb_x_stability": 0,
+  "binding_x_stability": 9,
+  "sizes": {
+   "cpm": 7988,
+   "binding": 12488,
+   "stability": 602
+  }
+ },
+ "tradeoff_permeability_vs_binding_exact_overlap": {
+  "n_structure_target_pairs": 84,
+  "n_structures": 7,
+  "n_targets": 49,
+  "spearman_perm_z_vs_binding_z": 0.2731575080604009,
+  "note": "descriptive only; permeability z is within source, binding z within target x assay type; claimed only if n>=30 structures"
+ },
+ "renal": {
+  "n": 163,
+  "non_null_counts": {
+   "kidney_pid_g_1h": 45,
+   "kidney_pid_g_4h": 66,
+   "kidney_pid_g_24h": 35,
+   "tumour_pid_g": 2,
+   "tk_ratio": 7,
+   "kidney_gy_per_gbq": 36,
+   "net_charge_pH74": 0,
+   "logD_pH74": 0
+  }
+ },
+ "macroconf": {
+  "n": 69,
+  "natural": 8,
+  "unnatural": 29
+ },
+ "solubility": "no cyclic-peptide solubility data in the repo; not analysed"
+}
