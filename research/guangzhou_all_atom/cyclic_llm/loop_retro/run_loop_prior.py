@@ -78,12 +78,16 @@ if __name__ == "__main__":
     NME = Chem.MolFromSmarts("[CX3](=O)[NX3]([CH3])"); M = [Chem.MolFromSmiles(r["smiles"]) for r in recs]
     nme = np.array([len(m.GetSubstructMatches(NME)) for m in M], float); hbd = np.array([rdMolDescriptors.CalcNumHBD(m) for m in M], float)
     tpsa = np.array([rdMolDescriptors.CalcTPSA(m) for m in M], float)
-    Ks = {"nme": zs(nme), "z": k_z(nme, hbd, tpsa)}
+    KSRC = os.environ.get("KSRC") == "1"        # PREREG_LOOP L4: knowledge signals standardised within source, same grouping as the labels
+    srcs_l = [r["source"] for r in recs]
+    gz = (lambda v: source_normalize(v, srcs_l)) if KSRC else zs
+    Ks = {"nme": gz(nme), "z": (gz(gz(nme) - gz(hbd) - gz(tpsa)) if KSRC else k_z(nme, hbd, tpsa))}
     X = np.stack([r["x"] for r in recs]); y_raw = np.array([r["y"] for r in recs]); srcs = [r["source"] for r in recs]; scaf = [r["scaf"] for r in recs]
     y = source_normalize(y_raw, srcs); thr = float(np.quantile(y, 0.90))        # PREREG_LOOP L3: within-source labels
     from rdkit.Chem import Descriptors, Crippen
     desc = np.array([[Descriptors.MolWt(m), tpsa[i], hbd[i], rdMolDescriptors.CalcNumHBA(m), Crippen.MolLogP(m), rdMolDescriptors.CalcNumRotatableBonds(m), nme[i],
                       max((len(r_) for r_ in m.GetRingInfo().AtomRings()), default=0), m.GetNumHeavyAtoms(), rdMolDescriptors.CalcFractionCSP3(m)] for i, m in enumerate(M)], np.float32)
+    if KSRC: desc = np.stack([source_normalize(desc[:, j], srcs_l) for j in range(desc.shape[1])], 1).astype(np.float32)
     _G["Xkn"] = np.hstack([X, desc])
     print("n", len(recs), "y_norm threshold", round(thr, 3), flush=True)
     run_all([(a, g, s) for s in range(SEEDS) for g in ("A", "B") for a in ARMS], X, y, Ks, srcs, scaf, thr, outdir, procs)
