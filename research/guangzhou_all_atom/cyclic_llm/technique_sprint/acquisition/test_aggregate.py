@@ -8,7 +8,7 @@ import aggregate_acq as G
 
 def fake(scenario, n=30, seed=0):
     rng = np.random.default_rng(seed); R = {}
-    base = {"A": 230.0, "B": 60.0, "L": 55.0}
+    base = {"A": 230.0, "B": 60.0, "B2": 58.0, "L": 55.0}
     for g, b in base.items():
         common = rng.normal(0, 8, n)                                        # shared seed-level variation (paired design)
         def put(label, mean, ent, top):
@@ -17,14 +17,14 @@ def fake(scenario, n=30, seed=0):
                                         flat_entropy=4.0, n_flat=300, cfg={})
         put("random", b * 0.35, 2.5, 0.40)
         put("greedy", b, 0.8, 0.70); put("ucb", b * 1.01, 0.8, 0.70); put("rule_phys", b * 0.95, 1.0, 0.5); put("nn_greedy", b * 0.9, 0.9, 0.6); put("fuse", b * 1.0, .9, .65); put("div", b * 1.0, 1.9, .3)
-        gain = {"gain": 1.12 if g in ("B", "L") else 1.0, "null": 1.0, "A_degraded": 1.12 if g in ("B", "L") else 0.80, "no_entropy": 1.12 if g in ("B", "L") else 1.0}[scenario]
+        shift = g in ("B", "B2", "L"); gain = {"gain": 1.12 if shift else 1.0, "null": 1.0, "A_degraded": 1.12 if shift else 0.80, "no_entropy": 1.12 if shift else 1.0}[scenario]
         ent, top = (0.8, 0.70) if scenario == "no_entropy" else (1.9, 0.30)
         put("prov", b * gain, ent, top)
     return R
 
 
 def check(scenario, expect_prefix, s1):
-    out = G.decide(fake(scenario)); v = out["VERDICT"]; assert v.startswith(expect_prefix), (scenario, v); assert out["S1_any_of_B_L"] == s1, (scenario, out["S1_by_regime"]); print(f"PASS {scenario}: {v}")
+    out = G.decide(fake(scenario)); v = out["VERDICT"]; assert v.startswith(expect_prefix), (scenario, v); assert out["S1_any_of_B_B2_L"] == s1, (scenario, out["S1_by_regime"]); print(f"PASS {scenario}: {v}")
 
 
 def test_ci():

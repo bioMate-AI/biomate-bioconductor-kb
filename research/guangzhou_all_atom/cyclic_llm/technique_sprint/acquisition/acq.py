@@ -36,7 +36,7 @@ def prepare(csv_path, cache=None):
     gz = lambda v: K.source_normalize(v, srcs)
     Kphys = (gz(-tpsa) + gz(-hbd) + gz(logp)) / 3.0                       # identical to run_l7a.build (L7f): textbook directions, no label-mined parameter
     X = np.stack([r["x"] for r in recs]).astype(np.float32)
-    D = prepare_derived(dict(srcs=srcs, scaf=scaf, flat=flat, y=y, thr=thr, thr_g=thr_g, Kphys=Kphys, X=X, smiles=[r["smiles"] for r in recs]))
+    D = prepare_derived(dict(srcs=srcs, scaf=scaf, flat=flat, y=y, yraw=np.array([r["y"] for r in recs], float), thr=thr, thr_g=thr_g, Kphys=Kphys, X=X, smiles=[r["smiles"] for r in recs]))
     if cache:
         import pickle; pickle.dump(D, open(cache, "wb"))
     return D
@@ -75,11 +75,42 @@ def make_eval_slice(pool, seed, n_eval):
     return E, [i for i in pool if i not in es]
 
 
+def causal_z(D, idx, k=5):
+    """CAUSAL within-source standardisation (amendment A2): training targets for the revealed peptides `idx`, computed ONLY from the raw labels of the revealed peptides.
+    Per source s with n_s revealed labels: mean/variance shrunk to the global revealed mean/variance with prior weight k (=5): mu_s=(n_s*m_s+k*mu_g)/(n_s+k), var_s=(n_s*v_s+k*v_g)/(n_s+k);
+    a source with no revealed label uses the global statistics. Unrevealed labels are never read."""
+    idx = np.asarray(idx); yr = D["yraw"][idx]; sc = D["src_code"][idx]
+    mu_g, v_g = float(yr.mean()), float(max(yr.var(), 1e-12)); out = np.empty(len(idx))
+    for s in np.unique(sc):
+        m = sc == s; n = int(m.sum()); ms, vs = float(yr[m].mean()), float(yr[m].var())
+        mu = (n * ms + k * mu_g) / (n + k); var = (n * vs + k * v_g) / (n + k); out[m] = (yr[m] - mu) / np.sqrt(max(var, 1e-12))
+    return out
+
+
 def setup(regime, seed, D, n_init=N_INIT):
-    """-> init, pool, test (held-out-lab peptides, regime L only else None)."""
+    """-> init, pool, test (held-out-lab peptides, regime L only else None).
+    A, B, C, L as pre-registered. A2 additions: B2 = LAB-shifted (init from the two largest sources, pool = every peptide of the OTHER sources); C2 = A with a Tanimoto >= 0.8 purge
+    (binary fingerprint bits, chirality-aware) between pool and initial set."""
     if regime == "L":
         init, pool, test, _ = setup_L(seed, D["srcs"], n_init); return init, pool, test
+    if regime == "B2":
+        rng = random.Random(seed); top2 = {s for s, _ in collections.Counter(D["srcs"]).most_common(2)}
+        cand = [i for i in range(len(D["srcs"])) if D["srcs"][i] in top2]; rng.shuffle(cand); init = cand[:n_init]
+        return init, [i for i in range(len(D["srcs"])) if D["srcs"][i] not in top2], None
+    if regime == "C2":
+        rng = random.Random(seed); ids = list(range(len(D["srcs"]))); rng.shuffle(ids); init, rest = ids[:n_init], ids[n_init:]
+        inter = D["B"][rest] @ D["B"][init].T; union = D["Bn"][rest][:, None] + D["Bn"][init][None, :] - inter; nn = (inter / np.maximum(union, 1.0)).max(1)
+        return init, [i for i, v in zip(rest, nn) if v < 0.8], None
     init, pool = P.setup(regime, seed, D["srcs"], D["scaf"], n_init, D["flat"]); return init, pool, None
+
+
+def leakage_stats(regime, seed, D):
+    """Pool-vs-initial-set leakage for one (regime, seed): fraction of pool peptides whose nearest initial peptide has Tanimoto >= 0.9 / >= 0.8, median NN, same flat structure, same scaffold."""
+    init, pool, _ = setup(regime, seed, D); pool = np.array(pool); init = np.array(init)
+    inter = D["B"][pool] @ D["B"][init].T; union = D["Bn"][pool][:, None] + D["Bn"][init][None, :] - inter; nn = (inter / np.maximum(union, 1.0)).max(1)
+    fl = set(D["flat_code"][init].tolist()); sc = {D["scaf"][i] for i in init}
+    return dict(regime=regime, seed=seed, n_pool=len(pool), nn_ge_0p9=float((nn >= 0.9).mean()), nn_ge_0p8=float((nn >= 0.8).mean()), median_nn=float(np.median(nn)),
+                same_flat=float(np.mean([D["flat_code"][i] in fl for i in pool])), same_scaffold=float(np.mean([D["scaf"][i] in sc for i in pool])))
 
 
 # ------------------------------------------------------------------------------------------------------------------------ selection
@@ -101,21 +132,24 @@ def select_diverse(score, U, D, lam, cap_src, cap_flat, flat_count, batch=BATCH)
 def zs(v): return K.zs(v)
 
 
-def run_arm(arm, D, init, pool, seed, cfg, y=None, thr=None, thr_g=None):
+def run_arm(arm, D, init, pool, seed, cfg, y=None, thr=None, thr_g=None, ymode="trans"):
     """One closed-loop run. Returns dict(rounds, rounds_g, picks). rng consumption order matches L5 for random/greedy/ucb/fuse."""
+    override = y is not None
+    assert ymode in ("trans", "causal") and (ymode == "trans" or not override), "causal mode uses raw labels; label overrides (planted/shuffle) are transductive-mode only"
     y = D["y"] if y is None else y; thr = D["thr"] if thr is None else thr; X = D["X"]
     rng = np.random.default_rng(seed); labeled = list(init); unl = list(pool); per, per_g, picks = [], [], []; flat_count = collections.Counter()
     lam, cap_src, cap_flat = cfg["lam"], cfg["cap_src"], cfg["cap_flat"]
     for _ in range(ROUNDS):
         L = np.array(labeled); U = np.array(unl)
+        yL = y[L] if ymode == "trans" else causal_z(D, L)               # training targets: transductive (L5 / label override) or causal (A2: revealed raw labels only)
         if arm == "random": score = rng.random(len(U))
         elif arm == "rule_phys": score = D["Kphys"][U] + 1e-6 * rng.random(len(U))
         elif arm == "nn_greedy":
             inter = D["B"][U] @ D["B"][L].T; union = D["Bn"][U][:, None] + D["Bn"][L][None, :] - inter; S = inter / np.maximum(union, 1.0)
-            top = np.argsort(-S, axis=1, kind="stable")[:, :NN_K]; w = np.take_along_axis(S, top, 1); lab = y[L][top]
+            top = np.argsort(-S, axis=1, kind="stable")[:, :NN_K]; w = np.take_along_axis(S, top, 1); lab = yL[top]
             score = (w * lab).sum(1) / np.maximum(w.sum(1), 1e-9) + 1e-9 * rng.random(len(U))
         else:
-            ms = R.fit_ens(X[L], y[L], rng); Pm = np.stack([m.predict(X[U]) for m in ms]); mu = Pm.mean(0); sd = Pm.std(0)
+            ms = R.fit_ens(X[L], yL, rng); Pm = np.stack([m.predict(X[U]) for m in ms]); mu = Pm.mean(0); sd = Pm.std(0)
             w = N0 / (N0 + len(labeled))
             if arm == "greedy": score = mu
             elif arm == "ucb": score = mu + C_UCB * sd
@@ -146,24 +180,25 @@ def provenance(picks, D):
                 flat_entropy=entropy(fc.values()), n_flat=len(fc), max_flat=max(fc.values()))
 
 
-def transfer_metric(D, labeled, E, seed):
-    """Regime L descriptive metric: final ensemble on all revealed labels scored on E (held-out labs, never revealed)."""
+def transfer_metric(D, labeled, E, seed, ymode="trans"):
+    """Regime L descriptive metric: final ensemble on all revealed labels scored on E (held-out labs, never revealed). E labels are standardised with each held-out lab's OWN statistics
+    (transductive convention shared by every arm; within-source Spearman is invariant to it, the pooled Spearman is not)."""
     from scipy.stats import spearmanr
-    rng = np.random.default_rng(seed + 777); L = np.array(labeled); ms = R.fit_ens(D["X"][L], D["y"][L], rng)
+    rng = np.random.default_rng(seed + 777); L = np.array(labeled); yL = D["y"][L] if ymode == "trans" else causal_z(D, L); ms = R.fit_ens(D["X"][L], yL, rng)
     s = np.mean([m.predict(D["X"][E]) for m in ms], 0); yE = D["y"][E]; pooled = float(spearmanr(s, yE)[0])
     per = []
-    for g in set(D["src_code"][E].tolist()):
+    for g in sorted(set(D["src_code"][E].tolist())):
         ix = np.where(D["src_code"][E] == g)[0]
         if len(ix) >= 15 and np.std(yE[ix]) > 0 and np.std(s[ix]) > 0: per.append(float(spearmanr(s[ix], yE[ix])[0]))
     return dict(transfer_pooled=pooled, transfer_per_source=(float(np.mean(per)) if per else None), transfer_n_sources=len(per))
 
 
-def run_task(arm, regime, seed, D, cfg, y=None, thr=None, thr_g=None, n_eval=800, with_transfer=True):
+def run_task(arm, regime, seed, D, cfg, y=None, thr=None, thr_g=None, n_eval=800, with_transfer=True, ymode="trans"):
     init, pool, test = setup(regime, seed, D)
-    r = run_arm(arm, D, init, pool, seed, cfg, y=y, thr=thr, thr_g=thr_g)
-    out = dict(arm=arm, regime=regime, seed=seed, n_pool=len(pool), hits=int(sum(r["rounds"])), rounds=r["rounds"], picks=r["picks"])
+    r = run_arm(arm, D, init, pool, seed, cfg, y=y, thr=thr, thr_g=thr_g, ymode=ymode)
+    out = dict(arm=arm, regime=regime, seed=seed, ymode=ymode, n_pool=len(pool), hits=int(sum(r["rounds"])), rounds=r["rounds"], picks=r["picks"])
     if r["rounds_g"]: out["hits_g"] = int(sum(r["rounds_g"])); out["rounds_g"] = r["rounds_g"]
     out.update(provenance(r["picks"], D))
     if regime == "L" and with_transfer:
-        E, _ = make_eval_slice(test, seed, n_eval); out.update(transfer_metric(D, r["labeled"], np.array(E), seed))
+        E, _ = make_eval_slice(test, seed, n_eval); out.update(transfer_metric(D, r["labeled"], np.array(E), seed, ymode))
     return out
