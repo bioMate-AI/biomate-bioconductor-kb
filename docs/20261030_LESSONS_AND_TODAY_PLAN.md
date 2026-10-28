@@ -30,3 +30,6 @@ Not submission-ready: pending experiments (GPU model runs, IH-LM ladder, P1 pret
 
 ## D. Order of operations today
 1. Collect finished results continuously (commit aggregates). 2. QA auditor builds the claim-evidence ledger on the current draft now and re-runs after each fill. 3. Figures are generated from committed JSON only. 4. Freeze → consistency pass → tag `draft-v1`. 5. Owner review gate before anything is submitted or released.
+
+## E. Schedule to the owner's midnight review (set 2026-10-28 15:14 CDT)
+Owner reviews at midnight CDT. New experiment launches allowed until 19:30 CDT only if they can finish by 21:00. **Experiment freeze 21:00 CDT**: anything without a finished, audited result moves to Planned/Limitations. 21:00–22:30: assemble results, rerun the claim-evidence ledger, regenerate figures from committed artifacts, citation pass (primary-source verified only). 22:30–23:30: final audit, tag the draft, write the REVIEW BRIEF for the owner (docs/20261030_REVIEW_BRIEF.md: verified claims, nulls, open issues, decisions needed, spend). GPU comparators: cumulative spot cost cap USD 40 for the L7 GPU runs, self-terminating, report spend rate. No paid LLM APIs. No release or submission without owner review.
