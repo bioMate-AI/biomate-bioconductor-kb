@@ -1,0 +1,47 @@
+{
+ "atom_vocab_size": 258,
+ "topology_tokens_in_vocab": [],
+ "topology_vs_CycPeptMPDB_shape": {
+  "confusion": {
+   "Circle-><topo_h2t>": 3552,
+   "Lariat-><topo_lariat>": 2887,
+   "Circle-><topo_lariat>": 1978,
+   "Lariat-><topo_multi>": 36,
+   "Lariat-><topo_h2t>": 13
+  },
+  "circle_to_h2t": 0.642,
+  "lariat_to_lariat": 0.983,
+  "n": 8466
+ },
+ "benchmark_compounds": {
+  "n": 16195,
+  "tokenizer_round_trip_exact": 0.9972,
+  "with_stereo_marks": 0.988,
+  "frac_with_UNK_in_smiles_tokens": 0.0053,
+  "mean_UNK_per_seq": 0.006,
+  "length_median": 149,
+  "length_p90": 295,
+  "length_max": 839,
+  "frac_gt_256": 0.135,
+  "frac_gt_384": 0.071,
+  "frac_gt_512": 0.014,
+  "tokenizer_fail": 45,
+  "tokenizer_fail_examples": [
+   "CCCCCC(=O)N[C@@H](CCCCNC(=O)C[N]12->[Lu]34567<-[N](CC1)(CC[N]->3(CC[N@@]->4(CC2)",
+   "CCC[N]12->[Cu@@]3(<-[N](CCNCC(=O)NCCCC[C@H](NC(=O)CCCCCC(=O)N[C@@H](CCCNC(=N)N)C",
+   "CCC[N]12->[Lu]34567(<-[N](CC1)(CC[N]->3(CC[N]4CC(=O)[O]5)[C@H](CCC(=O)N[C@@H](CC"
+  ],
+  "topology_distribution": {
+   "<topo_lariat>": 7464,
+   "<topo_lariat>+<flag_ds>": 2684,
+   "<topo_h2t>": 1583,
+   "<topo_multi>+<flag_ds>": 1459,
+   "<topo_lariat>+<flag_stap>": 1340,
+   "<topo_multi>": 1253,
+   "<topo_h2t>+<flag_ds>": 184,
+   "<topo_multi>+<flag_stap>": 143,
+   "<topo_multi>+<flag_ds>+<flag_stap>": 35,
+   "<topo_lariat>+<flag_ds>+<flag_stap>": 5
+  }
+ }
+}

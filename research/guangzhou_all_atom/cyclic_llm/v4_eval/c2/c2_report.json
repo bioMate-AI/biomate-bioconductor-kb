@@ -1,0 +1,162 @@
+{
+ "K": 5,
+ "fold_rule": "sha256(family_id) % K",
+ "n_targets": 793,
+ "n_families": 317,
+ "families_per_fold": {
+  "0": 50,
+  "1": 67,
+  "2": 71,
+  "3": 55,
+  "4": 74
+ },
+ "targets_per_fold": {
+  "0": 127,
+  "1": 288,
+  "2": 117,
+  "3": 126,
+  "4": 135
+ },
+ "folds": {
+  "0": {
+   "held_out_targets": 127,
+   "held_out_benchmark_compounds": 7515,
+   "train_pair_rows_before": 22607,
+   "train_compounds_before": 13450,
+   "dropped_same_flat_structure": 7111,
+   "dropped_tanimoto_ge_0.9": 1621,
+   "train_pair_rows_after": 7621,
+   "train_compounds_after": 4718,
+   "train_targets": 492,
+   "train_families": 208,
+   "train_labels": {
+    "pos": 5585,
+    "inactive": 2036
+   }
+  },
+  "1": {
+   "held_out_targets": 288,
+   "held_out_benchmark_compounds": 11266,
+   "train_pair_rows_before": 12287,
+   "train_compounds_before": 9078,
+   "dropped_same_flat_structure": 7105,
+   "dropped_tanimoto_ge_0.9": 448,
+   "train_pair_rows_after": 1937,
+   "train_compounds_after": 1525,
+   "train_targets": 228,
+   "train_families": 150,
+   "train_labels": {
+    "inactive": 1171,
+    "pos": 766
+   }
+  },
+  "2": {
+   "held_out_targets": 117,
+   "held_out_benchmark_compounds": 9437,
+   "train_pair_rows_before": 22580,
+   "train_compounds_before": 13322,
+   "dropped_same_flat_structure": 8711,
+   "dropped_tanimoto_ge_0.9": 929,
+   "train_pair_rows_after": 5722,
+   "train_compounds_after": 3682,
+   "train_targets": 444,
+   "train_families": 177,
+   "train_labels": {
+    "pos": 4024,
+    "inactive": 1698
+   }
+  },
+  "3": {
+   "held_out_targets": 126,
+   "held_out_benchmark_compounds": 9077,
+   "train_pair_rows_before": 21257,
+   "train_compounds_before": 12181,
+   "dropped_same_flat_structure": 7688,
+   "dropped_tanimoto_ge_0.9": 1660,
+   "train_pair_rows_after": 4249,
+   "train_compounds_after": 2833,
+   "train_targets": 423,
+   "train_families": 189,
+   "train_labels": {
+    "pos": 2730,
+    "inactive": 1519
+   }
+  },
+  "4": {
+   "held_out_targets": 135,
+   "held_out_benchmark_compounds": 9026,
+   "train_pair_rows_before": 19601,
+   "train_compounds_before": 11088,
+   "dropped_same_flat_structure": 6037,
+   "dropped_tanimoto_ge_0.9": 1497,
+   "train_pair_rows_after": 6207,
+   "train_compounds_after": 3554,
+   "train_targets": 452,
+   "train_families": 189,
+   "train_labels": {
+    "pos": 4488,
+    "inactive": 1719
+   }
+  }
+ },
+ "cycpept_random_split_val_flat_in_train": {
+  "n_val": 1094,
+  "overlap": 754,
+  "frac": 0.689
+ },
+ "cycpept_source_grouped_folds_before_dedup": [
+  {
+   "fold": 0,
+   "n_heldout": 1001,
+   "flat_overlap_with_train_sources": 2,
+   "frac": 0.002
+  },
+  {
+   "fold": 1,
+   "n_heldout": 1666,
+   "flat_overlap_with_train_sources": 19,
+   "frac": 0.011
+  },
+  {
+   "fold": 2,
+   "n_heldout": 250,
+   "flat_overlap_with_train_sources": 9,
+   "frac": 0.036
+  },
+  {
+   "fold": 3,
+   "n_heldout": 4268,
+   "flat_overlap_with_train_sources": 20,
+   "frac": 0.005
+  },
+  {
+   "fold": 4,
+   "n_heldout": 113,
+   "flat_overlap_with_train_sources": 10,
+   "frac": 0.088
+  }
+ ],
+ "cycpept_source_grouped_note": "same peptide measured by several sources: after source-grouping the remaining overlap is removed from TRAINING by flat-structure dedup (train minus held-out flat set), reported as 0 by construction",
+ "cycpept_vs_benchmark": {
+  "cycpept_unique_flat": 2497,
+  "benchmark_unique_flat": 14599,
+  "shared_flat": 12
+ },
+ "display_target_families_in_benchmark": {
+  "targets_matching_display_genes": [
+   {
+    "target_key": "Q8NBP7",
+    "genes": "PCSK9",
+    "family": "Ff90157a3",
+    "fold": 2
+   }
+  ]
+ },
+ "bound_cyclic_v2": {
+  "entries": 784,
+  "status_ok": 776,
+  "with_X_placeholders": 222,
+  "median_len": 15.0
+ },
+ "composition_note": "C2 = affinity pairs (per-fold train files) + CycPeptMPDB (source-grouped) + display pools (in-family exclusion rule applies) + bound-cyclic PDB sequences; general SMILES <= 20 % of tokens; NOT trained until WS3 confirms the fold rule."
+}
