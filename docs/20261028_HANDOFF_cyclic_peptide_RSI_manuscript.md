@@ -8,6 +8,13 @@ this one is the cyclic-peptide instance.
 
 ---
 
+> **UPDATE 2026-10-28 (commit dc0c84d4d):** the three reconciliation-note corrections
+> (`docs/20261028_RECONCILIATION_NOTE_peptide_manuscripts.md` §A.1–3) are **already applied**
+> to the draft — §5.4 softened to "pooled confound, within-source pending", the three-vs-four
+> count reconciled, and the §5.1 family-memorization numbers added. Do **not** re-apply them.
+> Still open: the **topology decision** (Paper A/B split, §D of the reconciliation note — the
+> user's call), folding in the §B additional firewall catches, and plan items 2–7 below.
+
 ## 1. What this is
 Write/finish a manuscript framing the all-atom cyclic-peptide computational closed loop as
 **governed recursive self-improvement (RSI)**. Draft already written:
