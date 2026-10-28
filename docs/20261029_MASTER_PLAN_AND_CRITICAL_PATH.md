@@ -38,3 +38,7 @@ Methods and evaluation design complete; L5 and L7 aggregates with CIs and contro
 
 ## Correction (2026-10-30)
 'Large LLM' = large pretrained cyclic-peptide/chemistry LMs, not NLP LLMs. OpenRouter/in-context arms retired from the central comparison (≈USD 4.3 spent on exploratory runs; paid calls off). Model candidates: docs/20261030_PEPTIDE_CHEM_LM_MODEL_SURVEY.md (in progress).
+
+
+## Definition update (2026-10-30)
+The subject model is the in-house hybrid loop-native cyclic LLM (IH-LM), not 'small'. Comparators = external pretrained peptide/chemistry LMs fine-tuned plainly + baselines; required same-base ablation ladder (plain → +K_phys → +lab offset → +retrieval → +edit heads). See HYPOTHESES doc 'Definition update' and HYBRID proposal 'IH-LM definition'.
