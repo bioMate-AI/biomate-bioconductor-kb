@@ -80,7 +80,7 @@ class Net(nn.Module):
     def __init__(s, vocab, cfg, modules, n_verif=1):
         super().__init__(); s.modules_on = set(modules); d = cfg["d"]; s.bb = Backbone(vocab, d, cfg.get("layers", 4), cfg.get("heads", 4), cfg.get("max_len", 256), cfg.get("kind", "encoder"))
         s.score_head = nn.Linear(d, 1); s.logvar_head = nn.Linear(d, 1); s.verif_head = nn.Linear(d, n_verif)
-        s.label_proj = nn.Linear(1, d); s.wq = nn.Linear(d, d); s.wk = nn.Linear(d, d); s.gamma = nn.Parameter(torch.tensor(3.0)); s.gate = nn.Linear(2, 1)
+        s.label_proj = nn.Linear(1, d); s.wq = nn.Linear(d, d); s.wk = nn.Linear(d, d); s.gamma = nn.Parameter(torch.tensor(25.0))      # similarity sharpness (=1/tau); learnable; s.gate = nn.Linear(2, 1)
         s.edit_res = nn.Sequential(nn.Linear(d + len(EDITS), d), nn.GELU(), nn.Linear(d, 1)); nn.init.zeros_(s.edit_res[2].weight); nn.init.zeros_(s.edit_res[2].bias)
         s.d = d
 

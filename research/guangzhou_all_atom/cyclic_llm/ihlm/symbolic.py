@@ -77,8 +77,8 @@ def propose_edit_smiles(smiles, max_per_type=6):
 
 
 class FastMemory:
-    def __init__(self, n0=100.0, k=5, lam_offset=3.0, edit_priors=None, layers=("K", "offset", "retrieval", "edit"), lam_resid=1.0):
-        self.n0, self.k, self.lam, self.lam_resid = float(n0), int(k), float(lam_offset), float(lam_resid); self.offset_method = {}; self.edit_priors = dict(edit_priors or EDIT_PRIORS); self.layers = tuple(layers)
+    def __init__(self, n0=100.0, k=5, lam_offset=3.0, edit_priors=None, layers=("K", "offset", "retrieval", "edit"), lam_resid=1.0, tau=0.04):
+        self.n0, self.k, self.lam, self.lam_resid = float(n0), int(k), float(lam_offset), float(lam_resid); self.tau = float(tau); self.offset_method = {}; self.edit_priors = dict(edit_priors or EDIT_PRIORS); self.layers = tuple(layers)
         self.rows = []; self.offsets = {}; self.edit_eff = {t: v[0] for t, v in self.edit_priors.items()}; self.edit_n = {t: 0 for t in self.edit_priors}
 
     def clone(self): return copy.deepcopy(self)
@@ -163,7 +163,7 @@ class FastMemory:
         det, vals, ws = [], [], []
         for sim, r in nb:
             et, d = self.edit_delta(smiles, r["smiles"]) if (use_edit and "edit" in self.layers) else (None, 0.0)
-            det.append((sim, r, et, d)); vals.append(self.corrected(r) + d); ws.append(max(sim, 1e-6) ** 4)
+            det.append((sim, r, et, d)); vals.append(self.corrected(r) + d); ws.append(float(np.exp((sim - nb[0][0]) / self.tau)))     # softmax kernel on similarity; tau is a hyper-parameter (tuned on the synthetic world only)
         return float(np.average(vals, weights=ws)), float(nb[0][0]), det
 
     def digest(self):
