@@ -74,12 +74,13 @@ def test_M2_offsets_recovered_and_leave_lab_out():
 
 # ------------------------------------------------------------------ M4 edit effects: planted + leave-labs-out + zero prior for D-flip
 def test_M4_edit_effects_planted_and_labs_out():
-    comps = world(); fm0 = S.FastMemory(); assert fm0.edit_eff["nme_add"] == 0.25 and fm0.edit_eff["dflip_D"] == 0.0 and fm0.edit_eff["dflip_L"] == 0.0
-    fm = S.FastMemory(); fm.write([r for r, c in zip(rows_of(comps), comps) if c["fam"] in FAMS[:24]] + anchors(comps))
+    comps = world(); fm0 = S.FastMemory(); assert fm0.edit_eff["nme_add"] == 0.0 and fm0.edit_eff["dflip_D"] == 0.0 and fm0.edit_eff["dflip_L"] == 0.0     # default prior is neutral (no leak)
+    TEST_PRIORS = S.EDIT_PRIORS_LITERATURE_UNVERIFIED; fm0 = S.FastMemory(edit_priors=TEST_PRIORS); assert fm0.edit_eff["nme_add"] == 0.25      # a SYNTHETIC-world prior, mechanism test only
+    fm = S.FastMemory(edit_priors=TEST_PRIORS); fm.write([r for r, c in zip(rows_of(comps), comps) if c["fam"] in FAMS[:24]] + anchors(comps))
     assert fm.edit_n["nme_add"] > 40 and 0.55 < fm.edit_eff["nme_add"] < 0.95, (fm.edit_n, fm.edit_eff)
     assert abs(fm.edit_eff["dflip_D"]) < 0.12 and abs(fm.edit_eff["dflip_L"]) < 0.12, fm.edit_eff              # prior 0 and planted 0: stays ~0
     # leave-labs-out: effects learned from labs L0-L2 only order N-Me pairs in lab L3 correctly
-    tr = [r for r in rows_of(comps) if r["source"] != "L3"] + [r for r in anchors(comps) if r["source"] != "L3"]; fm2 = S.FastMemory(); fm2.write(tr)
+    tr = [r for r in rows_of(comps) if r["source"] != "L3"] + [r for r in anchors(comps) if r["source"] != "L3"]; fm2 = S.FastMemory(edit_priors=TEST_PRIORS); fm2.write(tr)
     assert fm2.edit_eff["nme_add"] > 0.5
     # a consistent planted D-flip effect is picked up from data (prior 0 does not block learning)
     cf = world(); 
@@ -214,8 +215,7 @@ def test_residual_offsets_without_replicate_anchors_planted():
 def test_score_sources_predict_std_steps_clone_and_rung_init():
     comps = world(); rows = rows_of(comps)[:80]; smi = [c["smiles"] for c in comps[:10]]
     base = M.IHLM(modules=("M2",), slow_every=99); m = base.update(anchors(comps) + rows, "finetune_ranking", seed=0)
-    lab = list(OFFS)[3]; s_hi = m.score(smi, TSEQ, sources=[lab] * 10, components=("retrieval",)); s_lo = m.score(smi, TSEQ, sources=["L0"] * 10, components=("retrieval",))
-    assert s_hi == s_lo or True
+    assert m.score(smi, TSEQ, sources=["L3"] * 10, components=("retrieval",)) == [None] * 10        # M2 alone has no component to score: must return None, not silently a number
     m2 = M.IHLM(modules=("M2", "M3"), slow_every=99).update(anchors(comps) + rows, "finetune_ranking", seed=0)
     a, b = m2.score(smi, TSEQ, sources=["L3"] * 10), m2.score(smi, TSEQ, sources=["L0"] * 10); ok = [(x, y) for x, y in zip(a, b) if x is not None]
     assert ok and all(x > y for x, y in ok), "a higher-offset source must score higher in unit-free score space"                       # offsets applied per source
@@ -238,3 +238,11 @@ def test_reference_modes_no_lm():
     s = r.score(smi, TSEQ); assert any(x is not None for x in s) and r.predict_std(smi, TSEQ).shape == (8,)
     o = M.IHLM(modules=("M2",), reference_mode="offset_only", slow_every=1).update(anchors(comps) + rows[:120], "finetune_ranking", seed=0)
     a = o.score(smi, TSEQ, sources=["L3"] * 8); b = o.score(smi, TSEQ, sources=["L0"] * 8); assert o.net is None and all(x > y for x, y in zip(a, b)) and len(set(a)) == 1   # lab offset only, constant within a source
+
+
+def test_edit_priors_leak_guard_and_loader():
+    import json
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "kb_audit", "peptide_sar_rules_v1.json"); d = json.load(open(path)); train = d["train_sources"]
+    p = S.edit_priors_from_rules(path, heldout_sources=["a source never used"]); assert p["nme_add"][0] > 0 and p["dflip_D"][0] == 0.0 and p["dflip_L"][0] == 0.0     # 'no_consistent_direction' -> 0
+    with pytest.raises(AssertionError): S.edit_priors_from_rules(path, heldout_sources=[train[0]])                                                                    # a held-out source that was mined must be refused
+    assert S.EDIT_PRIORS["nme_add"][0] == 0.0 and S.EDIT_PRIORS_LITERATURE_UNVERIFIED["nme_add"][0] == 0.25

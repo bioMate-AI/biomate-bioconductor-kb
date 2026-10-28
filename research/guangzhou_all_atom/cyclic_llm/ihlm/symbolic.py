@@ -8,7 +8,32 @@ from rdkit import Chem, DataStructs, RDLogger
 from rdkit.Chem import rdFingerprintGenerator
 RDLogger.DisableLog("rdApp.*")
 
-EDIT_PRIORS = {"nme_add": (0.25, 20.0), "nme_remove": (-0.25, 20.0), "dflip_D": (0.0, 20.0), "dflip_L": (0.0, 20.0), "dflip": (0.0, 20.0), "other": (0.0, 20.0)}  # (prior mean, pseudo-count); docs/20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md B4
+# Edit-effect priors (mean, pseudo-count). PROVENANCE (2026-10-30 review item m9):
+#  * EDIT_PRIORS_LITERATURE_UNVERIFIED: N-Me added +0.25 log Papp and D-flip 0 come from the B4 matched-pair analysis (docs/20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md),
+#    pooled over ALL CycPeptMPDB sources (N-Me: 4,156 pairs / 16 sources; D-flip: 7,451 pairs / 19 sources) with no held-out source. For any evaluation on CycPeptMPDB labs this prior
+#    contains the evaluation labs' pair labels (a small pooled share, but a leak) -> kept for reference only; results that used it are marked affected.
+#  * EDIT_PRIORS (default): NEUTRAL (0, 20) - no prior. Informative, leak-safe priors are opt-in via edit_priors_from_rules(), which reads kb_audit/peptide_sar_rules_v1.json (mined from its stated
+#    train_sources only, within-source z units) and refuses to run if a held-out source is among the sources the rule was mined from (assert_priors_clean).
+EDIT_PRIORS_LITERATURE_UNVERIFIED = {"nme_add": (0.25, 20.0), "nme_remove": (-0.25, 20.0), "dflip_D": (0.0, 20.0), "dflip_L": (0.0, 20.0), "dflip": (0.0, 20.0), "other": (0.0, 20.0)}
+EDIT_PRIORS = {k: (0.0, 20.0) for k in EDIT_PRIORS_LITERATURE_UNVERIFIED}
+
+
+def edit_priors_from_rules(path, heldout_sources=(), pseudo_count=20.0):
+    """leak-safe priors from the kb_audit rule file. Units: within-source z (the file's effect_z). Only rules with status 'rule' contribute; 'no_consistent_direction' -> 0."""
+    import json
+    d = json.load(open(path)); assert_priors_clean(d, heldout_sources); r = d["rules"]; nme = r.get("N-Me added (with minus without)", {}); dfl = r.get("D flip (D minus L)", {})
+    e = float(nme["effect_z"]) if nme.get("status") == "rule" else 0.0; f = float(dfl["effect_z"]) if dfl.get("status") == "rule" else 0.0
+    return {"nme_add": (e, pseudo_count), "nme_remove": (-e, pseudo_count), "dflip_D": (f, pseudo_count), "dflip_L": (-f, pseudo_count), "dflip": (0.0, pseudo_count), "other": (0.0, pseudo_count)}
+
+
+def assert_priors_clean(rules_json, heldout_sources):
+    """raises if any held-out source is in the file's train_sources or in any used rule's mined_from list."""
+    held = set(map(str, heldout_sources)); bad = held & set(map(str, rules_json.get("train_sources", [])))
+    for name, rule in rules_json.get("rules", {}).items(): bad |= held & set(map(str, rule.get("mined_from", [])))
+    assert not bad, f"held-out sources were used to mine the priors: {sorted(bad)}"
+    return True
+
+
 _GEN = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048, includeChirality=True)
 _GEN_BLIND = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048, includeChirality=False)
 NME = Chem.MolFromSmarts("[CX3](=O)[NX3;!H1]([CH3])")

@@ -1,7 +1,7 @@
 """IH-LM: in-house hybrid, loop-native cyclic-peptide language model.  IHLM(backbone_cfg, tokenizer_cfg, modules=[M1..M5]).
 All modelling code here is ours (standard transformer design, our implementation; no third-party modelling code). The SMILES atom regex is the public standard pattern (provenance: docs/20261030_IHLM_PROVENANCE.md).
 Modules (switchable; each has a planted-signal and a leave-labs-out test in test_ihlm.py):
-  M1 knowledge-prior channel, evidence-weighted fusion  w = n0/(n0+n)      (symbolic.FastMemory.evidence_weight; K callable e.g. kb_audit K_phys)
+  M1 knowledge-prior channel, evidence-weighted fusion  w = n0/(n0+n)      (symbolic.FastMemory.evidence_weight; K callable: K_phys_channel = kb_audit rule-mined, or K_phys_textbook = the loop runner's fixed linear combination -- two different things, never interchanged)
   M2 lab/assay offset module                            anchor-estimated hierarchical random effect b_s (closed form), labels are offset-corrected before every neural update
   M3 stereo-aware analog-retrieval cross-attention      k nearest revealed analogs (chirality-aware similarity) -> (a) cross-attention memory of analog tokens + label embedding, (b) similarity-biased analog attention read-out
   M4 edit-space head                                    edit(analog->query) in {nme_add, nme_remove, dflip, other}; closed-form conjugate-shrunk effect (literature prior) + learned residual; edit proposals
@@ -10,7 +10,7 @@ LoopModel-compatible: score / update(mode) / fingerprint / uncertainty / propose
 import os, re, sys, math, copy, time, json, hashlib
 import numpy as np, torch, torch.nn as nn, torch.nn.functional as F
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(HERE, "..", "v4_eval"))
-from symbolic import FastMemory, edit_type, propose_edit_smiles, iso, mol, EDIT_PRIORS
+from symbolic import FastMemory, edit_type, propose_edit_smiles, iso, mol, EDIT_PRIORS, edit_priors_from_rules, assert_priors_clean
 from loop_model import CostMeter
 from rdkit import Chem
 
@@ -107,7 +107,7 @@ class Net(nn.Module):
 
 
 class IHLM:
-    def __init__(self, backbone_cfg=None, tokenizer_cfg=None, modules=("M1", "M2", "M3", "M4", "M5"), knowledge=None, n0=100.0, k=5, slow_every=3, alpha=0.2, eta=1.0, seed=0, n_verif=1, train_cfg=None, reference_mode=None, _clone=None):
+    def __init__(self, backbone_cfg=None, tokenizer_cfg=None, modules=("M1", "M2", "M3", "M4", "M5"), knowledge=None, n0=100.0, k=5, slow_every=3, alpha=0.2, eta=1.0, seed=0, n_verif=1, train_cfg=None, reference_mode=None, edit_priors=None, _clone=None):
         self.backbone_cfg = dict(dict(d=64, layers=2, heads=4, max_len=192, kind="encoder"), **(backbone_cfg or {})); self.tokenizer_cfg = dict(tokenizer_cfg or {}); self.modules = tuple(modules)
         self.reference_mode = reference_mode      # None | 'retrieval_only' | 'offset_only': no-LM reference variants through the same interface (no net is ever created or trained)
         self.knowledge, self.k, self.slow_every, self.alpha, self.eta, self.seed, self.n_verif = knowledge, int(k), int(slow_every), float(alpha), float(eta), seed, n_verif
@@ -115,7 +115,7 @@ class IHLM:
         layers = [x for x, m in (("K", "M1"), ("offset", "M2"), ("retrieval", "M3"), ("edit", "M4")) if m in self.modules]
         if _clone is None:
             self.tok = Tokenizer(self.tokenizer_cfg); torch.manual_seed(seed); self.net = None; self.net_trained = False
-            self.mem = FastMemory(n0=n0, k=k, layers=layers); self.rounds_since_slow = 0; self.cal = None; self.meter = CostMeter(0); self.fast_seconds = 0.0; self.history = []
+            self.mem = FastMemory(n0=n0, k=k, layers=layers, edit_priors=edit_priors); self.rounds_since_slow = 0; self.cal = None; self.meter = CostMeter(0); self.fast_seconds = 0.0; self.history = []
             self.provenance = {"backbone_init": "scratch", "backbone_code": "ours (ihlm/model.py)", "weights": None}
         else: self.__dict__.update(_clone)
 
