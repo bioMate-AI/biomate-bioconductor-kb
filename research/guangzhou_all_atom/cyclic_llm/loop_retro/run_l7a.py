@@ -11,7 +11,9 @@ from scipy.stats import rankdata
 
 PARAMS = dict(n_init=100, rounds=10, batch=50, n_eval=800, steps0=100, steps_round=30, n_cand=150, n_flat_groups=60)
 V4_PARAMS = dict(n_init=50, rounds=5, batch=20, n_eval=150, steps0=60, steps_round=60, n_cand=60, n_flat_groups=15)
-ARMS = ("loop", "random_fb", "shuffled", "frozen", "loop_sub", "loop_kn_sub", "frozen_sub", "shuffled_sub", "noisy_sub", "loop_kn_contra_sub", "one_shot")   # L7b: K_z arm dropped; *_sub = same per-round 150-candidate subsets as the large-LLM arms
+ARMS = ("loop", "random_fb", "shuffled", "frozen", "loop_sub", "loop_kn_sub", "frozen_sub", "shuffled_sub", "noisy_sub", "loop_kn_contra_sub", "loop_kphys_sub", "loop_kphys_contra_sub", "loop_kshuf_sub", "one_shot")   # L7b: K_z arm dropped; *_sub = same per-round 150-candidate subsets as the large-LLM arms
+ACTIVE = list(ARMS)          # set from --arms
+NOCURVE = [False]
 TOP = ("2020_Townsend", "2021_Kelly")
 
 
@@ -67,6 +69,18 @@ def spearman(a, b):
     ra, rb = rankdata(a), rankdata(b); ra -= ra.mean(); rb -= rb.mean(); d = np.sqrt((ra ** 2).sum() * (rb ** 2).sum()); return float((ra * rb).sum() / d) if d > 0 else 0.0
 
 
+def setup_L(seed, srcs, n_init, frac=0.25, min_n=20):
+    """Regime L (leave-labs-out, L7f): held-out labs = seeded labs with >= min_n peptides, never the two largest, drawn until ~frac of all peptides is held out. Returns (init, pool, heldout_peptides, heldout_sources);
+    init and pool are TRAINING-source peptides only."""
+    cnt = collections.Counter(srcs); giants = {s for s, _ in cnt.most_common(2)}; cand = sorted(s for s, c in cnt.items() if c >= min_n and s not in giants)
+    rng = random.Random(500000 + seed); rng.shuffle(cand); held, tot = [], 0
+    for s in cand:
+        if tot >= frac * len(srcs): break
+        held.append(s); tot += cnt[s]
+    hs = set(held); train = [i for i in range(len(srcs)) if srcs[i] not in hs]; test = [i for i in range(len(srcs)) if srcs[i] in hs]
+    ids = list(train); random.Random(seed).shuffle(ids); return ids[:n_init], ids[n_init:], test, sorted(held)
+
+
 def make_eval_slice(pool, seed, n_eval):
     """E: seeded slice removed from the pool in ALL arms (paired). Returns (E list, pool without E)."""
     rng = random.Random(100000 + seed); E = sorted(rng.sample(list(pool), n_eval)); es = set(E)
@@ -75,9 +89,10 @@ def make_eval_slice(pool, seed, n_eval):
 
 class Ctx:
     """Everything an arm needs; built once per task."""
-    def __init__(self, y, thr, thr_g, srcs, Kz, backend, p, Kn=None, Ef=None, Ef_groups=None, Ef_sib=None, Es=None):
+    def __init__(self, y, thr, thr_g, srcs, Kz, backend, p, Kn=None, Ef=None, Ef_groups=None, Ef_sib=None, Es=None, Kphys=None, Kshuf=None):
         self.y, self.thr, self.thr_g, self.srcs, self.Kz, self.B, self.p = y, thr, thr_g, srcs, Kz, backend, p
-        self.Kn = Kn if Kn is not None else Kz; self.Ef, self.Ef_groups, self.Ef_sib, self.Es = Ef, Ef_groups, Ef_sib, Es   # Kn = KB-equal knowledge signal (source-standardised N-methyl count)
+        self.Kn = Kn if Kn is not None else Kz; self.Ef, self.Ef_groups, self.Ef_sib, self.Es = Ef, Ef_groups, Ef_sib, Es
+        self.Kphys = Kphys if Kphys is not None else self.Kn; self.Kshuf = Kshuf if Kshuf is not None else self.Kphys   # Kn = KB-equal knowledge signal (source-standardised N-methyl count)
 
 
 def _stereo(ctx, state):
@@ -129,14 +144,15 @@ def run_arm(ctx, arm, init, pool, E, seed, loop_revealed=None, state0=None):
             avail = set(unl); pick = [int(i) for i in frozen_rank if i in avail][:p["batch"]]
         else:
             s = B.predict(st_sel, U)
-            if base in ("loop_kn", "loop_kn_contra"):
-                w = 100.0 / (100.0 + len(labeled)); kn = ctx.Kn[U] * (-1.0 if base == "loop_kn_contra" else 1.0)   # KB-equal knowledge: source-standardised N-methyl count only (contra = sign-flipped counterfactual)
-                s = (1 - w) * K.zs(s) + w * K.zs(kn)
+            if base in ("loop_kn", "loop_kn_contra", "loop_kphys", "loop_kphys_contra", "loop_kshuf"):
+                w = 100.0 / (100.0 + len(labeled))                    # fusion weight (L2/L5): w = n0/(n0+n), n0 = 100
+                ch = {"loop_kn": ctx.Kn, "loop_kn_contra": -ctx.Kn, "loop_kphys": ctx.Kphys, "loop_kphys_contra": -ctx.Kphys, "loop_kshuf": ctx.Kshuf}[base]   # K_phys = textbook physchem (leak-free); contra = sign-flipped; kshuf = within-source-permuted (no information)
+                s = (1 - w) * K.zs(s) + w * K.zs(ch[U])
             pick = [int(i) for i in U[np.argsort(-s, kind="stable")[:p["batch"]]]]
         rec["picks"].append(pick)
         if s is not None:
             pos = {int(i): k for k, i in enumerate(U)}; rec["pick_scores"].append([round(float(s[pos[i]]), 4) for i in pick])
-            if has_std and base not in ("loop_kn", "loop_kn_contra"): sd = B.predict_std(st_sel, U); rec["pick_std"].append([round(float(sd[pos[i]]), 4) for i in pick])
+            if has_std and base not in ("loop_kn", "loop_kn_contra", "loop_kphys", "loop_kphys_contra", "loop_kshuf"): sd = B.predict_std(st_sel, U); rec["pick_std"].append([round(float(sd[pos[i]]), 4) for i in pick])
         if sub: rec["cands"].append([int(i) for i in U]); rec["cand_scores"].append([round(float(v), 4) for v in s] if s is not None else None)
         sp = set(pick); unl = [i for i in unl if i not in sp]; labeled += pick
         if base != "frozen":
@@ -170,11 +186,11 @@ def run_task(ctx, init, pool, E, seed):
     p, B, y = ctx.p, ctx.B, ctx.y; t0 = time.time()
     state0 = B.fit(B.init_state(), init, y[init], p["steps0"], seed)
     out = {"seed": seed, "n_pool": len(pool), "n_E": len(E), "E_hit_rate": float((y[E] >= ctx.thr).mean()), "n_Ef": 0 if ctx.Ef is None else len(ctx.Ef), "init_fit_seconds": round(time.time() - t0, 1)}
-    for arm in ARMS:
+    for arm in ACTIVE:
         if arm == "one_shot": continue
         out[arm] = run_arm(ctx, arm, init, pool, E, seed, state0=state0)
-    out["one_shot"] = run_arm(ctx, "one_shot", init, pool, E, seed, loop_revealed=out["loop"]["revealed_final"], state0=state0)
-    out["curve"] = learning_curve(ctx, init, pool, E, seed)                                    # L7c dimension 1: k = 0, 25, 50, 100 labels
+    if "one_shot" in ACTIVE and "loop" in out: out["one_shot"] = run_arm(ctx, "one_shot", init, pool, E, seed, loop_revealed=out["loop"]["revealed_final"], state0=state0)
+    if not NOCURVE[0]: out["curve"] = learning_curve(ctx, init, pool, E, seed)                                    # L7c dimension 1: k = 0, 25, 50, 100 labels
     out["seconds"] = round(time.time() - t0, 1); return out
 
 
@@ -191,13 +207,21 @@ def build(csv_path, backend, device, atom_ckpt=None, atom_vocab=None, v4_subset=
     M = [Chem.MolFromSmiles(s) for s in smiles]; NME = Chem.MolFromSmarts("[CX3](=O)[NX3]([CH3])")
     nme = np.array([len(m.GetSubstructMatches(NME)) for m in M], float); hbd = np.array([rdMolDescriptors.CalcNumHBD(m) for m in M], float); tpsa = np.array([rdMolDescriptors.CalcTPSA(m) for m in M], float)
     gz = lambda v: K.source_normalize(v, srcs); Kz = gz(gz(nme) - gz(hbd) - gz(tpsa)); Kn = gz(nme)
+    from rdkit.Chem import Descriptors, Crippen
+    logp = np.array([Crippen.MolLogP(m) for m in M], float); hba = np.array([rdMolDescriptors.CalcNumHBA(m) for m in M], float)
+    desc = np.stack([[Descriptors.MolWt(m), tpsa[i], hbd[i], hba[i], logp[i], rdMolDescriptors.CalcNumRotatableBonds(m), nme[i], max((len(r_) for r_ in m.GetRingInfo().AtomRings()), default=0),
+                      m.GetNumHeavyAtoms(), rdMolDescriptors.CalcFractionCSP3(m)] for i, m in enumerate(M)]).astype(np.float32)
+    descz = ((desc - desc.mean(0)) / np.where(desc.std(0) > 0, desc.std(0), 1.0)).astype(np.float32)             # z-scored over the data, no labels
+    Kphys = (gz(-tpsa) + gz(-hbd) + gz(logp)) / 3.0                       # L7f: textbook physchem directions (Veber 2002; Over 2016; Rezai 2006), equal weights, source-standardised, NO label-mined parameter
     import loop_models as LM
-    if backend == "gbm": B = LM.GBM(np.stack([r["x"] for r in recs]))
-    elif backend == "atom_lm": B = LM.AtomLMReg(smiles, atom_ckpt, atom_vocab, device)
-    elif backend == "chemberta": B = LM.ChemBERTaReg(smiles, device)
-    elif backend == "v4": B = V4Backend(smiles, device)
+    base = backend.replace("_phys", "") if backend not in ("gbm_physchem",) else backend; phys = backend.endswith("_phys")
+    if base == "gbm": B = LM.GBM(np.stack([r["x"] for r in recs]))
+    elif base == "gbm_physchem": B = LM.GBM(desc)
+    elif base == "atom_lm": B = LM.AtomLMReg(smiles, atom_ckpt, atom_vocab, device, descz if phys else None)
+    elif base == "chemberta": B = LM.ChemBERTaReg(smiles, device, descz if phys else None)
+    elif base == "v4": B = V4Backend(smiles, device)
     else: raise SystemExit("unknown backend")
-    return recs, dict(y=y, thr=thr, thr_g=thr_g, srcs=srcs, scaf=scaf, flat=flat, Kz=Kz, Kn=Kn, B=B)
+    return recs, dict(y=y, thr=thr, thr_g=thr_g, srcs=srcs, scaf=scaf, flat=flat, Kz=Kz, Kn=Kn, Kphys=Kphys, B=B, desc=desc)
 
 
 class V4Backend:
@@ -254,8 +278,8 @@ def parse_seeds(s):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("csv"); ap.add_argument("out"); ap.add_argument("--backend", required=True); ap.add_argument("--regimes", default="AB"); ap.add_argument("--seeds", default="0-9")
-    ap.add_argument("--device", default="cpu"); ap.add_argument("--atom-ckpt"); ap.add_argument("--atom-vocab"); ap.add_argument("--v4-subset"); ap.add_argument("--smoke", action="store_true")
-    a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
+    ap.add_argument("--device", default="cpu"); ap.add_argument("--atom-ckpt"); ap.add_argument("--atom-vocab"); ap.add_argument("--v4-subset"); ap.add_argument("--smoke", action="store_true"); ap.add_argument("--arms", default=",".join(ARMS)); ap.add_argument("--no-curve", action="store_true")
+    a = ap.parse_args(); os.makedirs(a.out, exist_ok=True); global ACTIVE; ACTIVE = [x for x in ARMS if x in a.arms.split(",")]; NOCURVE[0] = a.no_curve
     p = dict(V4_PARAMS if a.backend == "v4" else PARAMS)
     if a.smoke: p.update(rounds=2, steps0=10, steps_round=5, n_eval=min(p["n_eval"], 100), n_init=min(p["n_init"], 40), batch=min(p["batch"], 20))
     recs, d = build(a.csv, a.backend, a.device, a.atom_ckpt, a.atom_vocab, a.v4_subset if a.backend == "v4" else None)
@@ -264,16 +288,21 @@ def main():
         for seed in parse_seeds(a.seeds):
             f = f"{a.out}/{a.backend}_{reg}_{seed}.json"
             if os.path.exists(f): continue
-            init, pool = P.setup(reg, seed, d["srcs"], d["scaf"], p["n_init"], d["flat"])
-            E, pool = make_eval_slice(pool, seed, p["n_eval"]); Ef, Efg, Efs, pool = make_flat_slice(pool, d["flat"], seed, p["n_flat_groups"], d["y"]); Es, pool = make_source_slice(pool, d["srcs"], seed)
+            if reg == "L":                                                    # leave-labs-out: loop pool = training labs; E/E_s/E_f from held-out labs only
+                init, pool, test, held = setup_L(seed, d["srcs"], p["n_init"]); E, rest = make_eval_slice(test, seed, p["n_eval"]); Ef, Efg, Efs, rest = make_flat_slice(rest, d["flat"], seed, p["n_flat_groups"], d["y"]); Es, rest = make_source_slice(rest, d["srcs"], seed)
+                assert all(d["srcs"][i] in set(held) for i in E + Ef + Efs + Es) and all(d["srcs"][i] not in set(held) for i in list(pool) + list(init)), "regime L leakage between training and held-out labs"
+            else:
+                init, pool = P.setup(reg, seed, d["srcs"], d["scaf"], p["n_init"], d["flat"])
+                E, pool = make_eval_slice(pool, seed, p["n_eval"]); Ef, Efg, Efs, pool = make_flat_slice(pool, d["flat"], seed, p["n_flat_groups"], d["y"]); Es, pool = make_source_slice(pool, d["srcs"], seed)
             allx = [set(E), set(Ef), set(Efs), set(Es)]; assert all(not a & b for k, a in enumerate(allx) for b in allx[k + 1:]) and all(not a & set(pool) and not a & set(init) for a in allx)
-            ctx = Ctx(d["y"], d["thr"], d["thr_g"], d["srcs"], d["Kz"], d["B"], p, d["Kn"], Ef, Efg, Efs, Es)
+            Kshuf = d["Kphys"].copy(); rr = np.random.default_rng(seed + 7)
+            for s_ in set(d["srcs"]): ix = np.array([i for i, v in enumerate(d["srcs"]) if v == s_]); Kshuf[ix] = d["Kphys"][rr.permutation(ix)]      # permuted within source: same distribution, no information
+            ctx = Ctx(d["y"], d["thr"], d["thr_g"], d["srcs"], d["Kz"], d["B"], p, d["Kn"], Ef, Efg, Efs, Es, d["Kphys"], Kshuf)
             out = run_task(ctx, init, pool, E, seed); out.update(backend=a.backend, regime=reg, params=p, E=[int(i) for i in E], Es=[int(i) for i in Es], Ef_groups=[[int(i) for i in g] for g in Efg], Ef_sib=[int(i) for i in Efs], init=[int(i) for i in init])
             for arm in ARMS:
-                if arm != "loop": out[arm].pop("revealed_final", None)
+                if arm in out and arm != "loop": out[arm].pop("revealed_final", None)
             tmp = f + ".tmp"; json.dump(out, open(tmp, "w")); os.replace(tmp, f)
-            print("done", a.backend, reg, seed, {k: sum(out[k]["hits"]) for k in ARMS if out[k]["hits"]}, "AUROC_E final loop/rand/shuf/frozen/oneshot:",
-                  *[round(out[k]["auroc_E"][-1], 3) for k in ("loop", "random_fb", "shuffled", "frozen", "one_shot")], "s", out["seconds"], flush=True)
+            print("done", a.backend, reg, seed, {k: sum(out[k]["hits"]) for k in ACTIVE if k in out and out[k].get("hits")}, "s", out["seconds"], flush=True)
 
 
 if __name__ == "__main__":

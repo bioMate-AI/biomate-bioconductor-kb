@@ -29,8 +29,9 @@ class GBM:
 class _TorchReg:
     """Shared fine-tune/predict for an encoder returning a pooled vector; subclasses build `self.enc_factory`, `self.encode`, `self.collate`."""
     lr_bb, lr_head, batch = 5e-5, 1e-3, 32
-    def __init__(self, device="cpu"):
+    def __init__(self, device="cpu", desc=None):
         import torch; self.torch = torch; self.dev = device
+        self.desc = None if desc is None else np.asarray(desc, np.float32)      # L7f physchem channel: label-free descriptors (z-scored over the data), concatenated to the pooled hidden state
     def init_state(self):
         torch = self.torch; torch.manual_seed(0)
         m = self.build().to(self.dev); return m.eval()
@@ -57,8 +58,8 @@ class _TorchReg:
 
 class AtomLMReg(_TorchReg):
     name = "atom_lm"; heads = 8        # pretrain.py default (heads do not change parameter shapes; strict load cannot detect a wrong value, see test)
-    def __init__(self, smiles, ckpt, vocab_json, device="cpu"):
-        super().__init__(device)
+    def __init__(self, smiles, ckpt, vocab_json, device="cpu", desc=None):
+        super().__init__(device, desc)
         sys.path.insert(0, os.path.join(HERE, "..", "allatom")); import atom_lm as A; self.A = A
         toks = json.load(open(vocab_json)); self.voc = A.Vocab(toks[4:]); self.ckpt = ckpt
         self.ids = [self.voc.encode(s) for s in smiles]; self.length = [len(x) for x in self.ids]
@@ -68,42 +69,45 @@ class AtomLMReg(_TorchReg):
         sd = ck["model"] if isinstance(ck, dict) and "model" in ck else ck
         d = sd["tok.weight"].shape[1]; layers = len({k.split(".")[1] for k in sd if k.startswith("blocks.")}); max_len = sd["pos.weight"].shape[0]
         gpt = A.GPT(len(self.voc), d=d, layers=layers, heads=self.heads, max_len=max_len); gpt.load_state_dict(sd, strict=True)   # architecture read from the checkpoint, never assumed
+        nd = 0 if self.desc is None else self.desc.shape[1]
         class Reg(torch.nn.Module):
             def __init__(s, g):
-                super().__init__(); s.g = g; s.head = torch.nn.Linear(g.ln.normalized_shape[0], 1)
+                super().__init__(); s.g = g; s.head = torch.nn.Linear(g.ln.normalized_shape[0] + nd, 1)
                 torch.nn.init.zeros_(s.head.weight); torch.nn.init.zeros_(s.head.bias)
-            def forward(s, x, mask):
+            def forward(s, x, mask, dsc=None):
                 g = s.g; h = g.tok(x) + g.pos(torch.arange(x.shape[1], device=x.device))[None]
                 for b in g.blocks: h = b(h)
-                h = g.ln(h); m = mask.unsqueeze(-1).to(h.dtype)
-                return s.head((h * m).sum(1) / m.sum(1))
+                h = g.ln(h); m = mask.unsqueeze(-1).to(h.dtype); v = (h * m).sum(1) / m.sum(1)
+                return s.head(v if dsc is None else torch.cat([v, dsc], -1))
         return Reg(gpt)
     def collate(self, idx):
         torch = self.torch; L = max(self.length[i] for i in idx); x = torch.full((len(idx), L), self.A.PAD, dtype=torch.long)
         for j, i in enumerate(idx): x[j, :self.length[i]] = torch.tensor(self.ids[i])
-        x = x.to(self.dev); return x, (x != self.A.PAD)
+        x = x.to(self.dev); out = (x, (x != self.A.PAD))
+        return out if self.desc is None else out + (torch.tensor(self.desc[np.asarray(idx)], device=self.dev),)
 
 
 class ChemBERTaReg(_TorchReg):
     name = "chemberta"
     MODEL = "DeepChem/ChemBERTa-77M-MLM"
-    def __init__(self, smiles, device="cpu"):
-        super().__init__(device)
+    def __init__(self, smiles, device="cpu", desc=None):
+        super().__init__(device, desc)
         from transformers import AutoTokenizer; self.tk = AutoTokenizer.from_pretrained(self.MODEL)
         self.ids = [self.tk(s, truncation=True, max_length=512)["input_ids"] for s in smiles]; self.length = [len(x) for x in self.ids]
         self.n_truncated = int(sum(len(self.tk(s)["input_ids"]) > 512 for s in smiles))
     def build(self):
         torch = self.torch; from transformers import AutoModel
-        enc = AutoModel.from_pretrained(self.MODEL)
+        enc = AutoModel.from_pretrained(self.MODEL); nd = 0 if self.desc is None else self.desc.shape[1]
         class Reg(torch.nn.Module):
             def __init__(s, e):
-                super().__init__(); s.enc = e; s.head = torch.nn.Linear(e.config.hidden_size, 1)
+                super().__init__(); s.enc = e; s.head = torch.nn.Linear(e.config.hidden_size + nd, 1)
                 torch.nn.init.zeros_(s.head.weight); torch.nn.init.zeros_(s.head.bias)
-            def forward(s, x, mask):
-                h = s.enc(input_ids=x, attention_mask=mask.long()).last_hidden_state; m = mask.unsqueeze(-1).to(h.dtype)
-                return s.head((h * m).sum(1) / m.sum(1))
+            def forward(s, x, mask, dsc=None):
+                h = s.enc(input_ids=x, attention_mask=mask.long()).last_hidden_state; m = mask.unsqueeze(-1).to(h.dtype); v = (h * m).sum(1) / m.sum(1)
+                return s.head(v if dsc is None else torch.cat([v, dsc], -1))
         return Reg(enc)
     def collate(self, idx):
         torch = self.torch; L = max(self.length[i] for i in idx); pad = self.tk.pad_token_id; x = torch.full((len(idx), L), pad, dtype=torch.long)
         for j, i in enumerate(idx): x[j, :self.length[i]] = torch.tensor(self.ids[i])
-        x = x.to(self.dev); return x, (x != pad)
+        x = x.to(self.dev); out = (x, (x != pad))
+        return out if self.desc is None else out + (torch.tensor(self.desc[np.asarray(idx)], device=self.dev),)

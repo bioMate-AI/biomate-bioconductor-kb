@@ -140,8 +140,54 @@ def test_atom_heads_functional():
         with torch.no_grad(): lg = g(x[:, :-1]); losses[h] = F.cross_entropy(lg.reshape(-1, lg.shape[-1]), x[:, 1:].reshape(-1), ignore_index=A.PAD).item()
     print("  heads vs LM loss", {k: round(v, 3) for k, v in losses.items()}); assert losses[8] < losses[4] and losses[8] < losses[16]
 
+
+def test_regime_L_leave_labs_out_properties():
+    recs = R.load(CSV); srcs = [r["source"] for r in recs]; cnt = __import__("collections").Counter(srcs); giants = {s for s, _ in cnt.most_common(2)}
+    for seed in (0, 1, 5):
+        init, pool, test, held = L.setup_L(seed, srcs, 100)
+        assert not set(held) & giants, "the two largest labs are never held out"
+        assert all(srcs[i] not in set(held) for i in init + pool) and all(srcs[i] in set(held) for i in test), "training and held-out labs must be disjoint"
+        assert abs(len(test) / len(srcs) - 0.25) < 0.12, ("held-out fraction", len(test) / len(srcs))
+        assert len(init) == 100 and not set(init) & set(pool)
+    assert L.setup_L(0, srcs, 100)[3] == L.setup_L(0, srcs, 100)[3] and L.setup_L(0, srcs, 100)[3] != L.setup_L(1, srcs, 100)[3], "deterministic per seed, varying across seeds"
+
+def test_kphys_channels_and_fusion_identities():
+    """K_phys has the textbook directions and no labels; kshuf keeps the within-source distribution but breaks the association; fusion with a CONSTANT channel reproduces loop_sub exactly (zero-prior control)."""
+    rng = np.random.default_rng(0); n = 1500; X = rng.random((n, 12)).astype(np.float32); y = X[:, 0] + 0.5 * rng.standard_normal(n); thr = float(np.quantile(y, .9)); srcs = ["s"] * n
+    B = LM.GBM(X); p = dict(n_init=50, rounds=3, batch=30, n_eval=200, steps0=0, steps_round=0, n_cand=100, n_flat_groups=10); init = list(range(50)); E, pool = L.make_eval_slice(list(range(50, n)), 0, 200)
+    const = np.ones(n); sig = X[:, 0] + 0.2 * rng.standard_normal(n)
+    mk = lambda K_: L.Ctx(y, thr, np.full(n, thr), srcs, np.zeros(n), B, p, const, None, None, None, None, K_, K_)
+    st0 = B.fit(B.init_state(), init, y[init], 0, 0)
+    a = L.run_arm(mk(const), "loop_sub", init, pool, E, 0, state0=st0); b = L.run_arm(mk(const), "loop_kphys_sub", init, pool, E, 0, state0=st0)
+    assert a["picks"] == b["picks"], "fusion with a constant (zero-information) channel must reproduce the knowledge-off arm exactly"
+    good = L.run_arm(mk(sig), "loop_kphys_sub", init, pool, E, 0, state0=st0); bad = L.run_arm(mk(sig), "loop_kphys_contra_sub", init, pool, E, 0, state0=st0)
+    assert sum(good["hits"]) > sum(bad["hits"]), "contradicted knowledge must be worse than correct knowledge when the channel is informative"
+
+def test_physchem_channel_planted():
+    """GBM on descriptors recovers a planted TPSA label; torch-style descriptor concatenation is exercised in the adapter preflight (GPU job)."""
+    recs = R.load(CSV)[:900]; from rdkit.Chem import rdMolDescriptors
+    tp = np.array([rdMolDescriptors.CalcTPSA(Chem.MolFromSmiles(r["smiles"])) for r in recs]); y = -(tp - tp.mean()) / tp.std()
+    X = np.stack([[tp[i], tp[i] ** 0.5, 1.0] for i in range(len(recs))]).astype(np.float32); B = LM.GBM(X); st = B.fit(None, list(range(600)), y[:600], 0, 0)
+    assert spearmanr(B.predict(st, list(range(600, 900))), y[600:])[0] > 0.9
+
+
+def phys_adapter_control(make_backend, name):
+    """Descriptor channel plumbing: label = -TPSA (z) + noise, 2 descriptors (TPSA z, pure noise) concatenated to the pooled hidden state; with the channel the head must learn it in 150 steps."""
+    from rdkit.Chem import rdMolDescriptors
+    recs = R.load(CSV); idx, _ = planted(recs, 360); sm = [recs[i]["smiles"] for i in idx]; tp = np.array([rdMolDescriptors.CalcTPSA(Chem.MolFromSmiles(s)) for s in sm]); z = (tp - tp.mean()) / tp.std()
+    rng = np.random.default_rng(2); y = -z + 0.3 * rng.standard_normal(360); desc = np.stack([z, rng.standard_normal(360)], 1).astype(np.float32)
+    B = make_backend(sm, desc); tr, te = np.arange(0, 240), np.arange(240, 360); st = B.fit(B.init_state(), tr, y[tr], 150, 0); r = spearmanr(B.predict(st, te), y[te])[0]
+    r_sh = [spearmanr(B.predict(B.fit(B.init_state(), tr, rng.permutation(y[tr]), 150, k), te), y[te])[0] for k in range(3)]
+    print(f"  {name}+phys: planted rho {r:+.3f} | shuffled {[round(float(v), 3) for v in r_sh]}"); assert r > 0.6 and shuffled_ok(r_sh), (r, r_sh)
+
+def test_atom_phys_adapter_planted_signal():
+    ck, vj = f"{SP}/atom_ckpt.pt", f"{SP}/atom_vocab.json"; phys_adapter_control(lambda sm, d: LM.AtomLMReg(sm, ck, vj, "cpu", d), "atom_lm")
+
+def test_chemberta_phys_adapter_planted_signal():
+    phys_adapter_control(lambda sm, d: LM.ChemBERTaReg(sm, "cpu", d), "chemberta")
+
 if __name__ == "__main__":
     which = sys.argv[1] if len(sys.argv) > 1 else "core"
-    names = {"core": ["test_eval_slice_disjoint_and_paired", "test_arms_on_planted_world_with_gbm", "test_one_shot_budget_equals_loop_total_steps", "test_stereo_rho_planted_and_ties_are_zero", "test_flat_slice_split_properties", "test_stereo_blind_is_zero_and_stereo_aware_detected", "test_subset_identical_between_small_and_large_runners"],
-             "atom": ["test_atom_heads_functional", "test_atom_adapter_planted_signal"], "chemberta": ["test_chemberta_adapter_planted_signal"], "v4": ["test_v4_adapter_planted_signal"]}[which]
+    names = {"core": ["test_eval_slice_disjoint_and_paired", "test_arms_on_planted_world_with_gbm", "test_one_shot_budget_equals_loop_total_steps", "test_stereo_rho_planted_and_ties_are_zero", "test_flat_slice_split_properties", "test_stereo_blind_is_zero_and_stereo_aware_detected", "test_subset_identical_between_small_and_large_runners", "test_regime_L_leave_labs_out_properties", "test_kphys_channels_and_fusion_identities", "test_physchem_channel_planted"],
+             "atom": ["test_atom_heads_functional", "test_atom_adapter_planted_signal"], "chemberta": ["test_chemberta_adapter_planted_signal"], "atomphys": ["test_atom_phys_adapter_planted_signal"], "chembertaphys": ["test_chemberta_phys_adapter_planted_signal"], "v4": ["test_v4_adapter_planted_signal"]}[which]
     for n in names: globals()[n](); print("PASS", n)
