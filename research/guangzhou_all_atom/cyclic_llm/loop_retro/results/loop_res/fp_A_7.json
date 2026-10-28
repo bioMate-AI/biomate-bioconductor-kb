@@ -1,0 +1,1 @@
+{"arm": "fp", "regime": "A", "seed": 7, "n_pool": 6860, "random": 60, "greedy": 384, "ucb": 385, "oracle": 500}
