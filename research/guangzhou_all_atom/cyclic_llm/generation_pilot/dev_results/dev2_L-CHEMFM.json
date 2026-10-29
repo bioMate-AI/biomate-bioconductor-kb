@@ -1,0 +1,27 @@
+{
+ "gen": "L-CHEMFM",
+ "ext_grid": [
+  {
+   "cfg": {
+    "prefix": 0.85,
+    "temp": 1.0
+   },
+   "Y_mean": 298.889,
+   "Y": [
+    310.0,
+    296.667,
+    290.0
+   ]
+  }
+ ],
+ "best": {
+  "prefix": 0.85,
+  "temp": 1.0
+ },
+ "best_Y_mean": 298.889,
+ "orig_best": {
+  "prefix": 0.7,
+  "temp": 1.0
+ },
+ "n_dev": 300
+}
