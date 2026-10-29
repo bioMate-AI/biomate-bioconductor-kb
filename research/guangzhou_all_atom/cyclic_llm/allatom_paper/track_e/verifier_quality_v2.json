@@ -1,0 +1,209 @@
+{
+ "version": "v2",
+ "floors": {
+  "perm": 0.15,
+  "phys": 0.1,
+  "min_sources": 5
+ },
+ "loso": {
+  "A": {
+   "per_source": {
+    "2020_Townsend": {
+     "n": 2881,
+     "spearman": 0.339
+    },
+    "2021_Kelly": {
+     "n": 1518,
+     "spearman": 0.506
+    }
+   },
+   "mean": 0.4225,
+   "median": 0.4225,
+   "n_evaluable": 2,
+   "source_weighted_by_n": 0.3966
+  },
+  "S": {
+   "per_source": {
+    "2013_CHUGAI": {
+     "n": 878,
+     "spearman": 0.3994
+    },
+    "2015_Ahlbach": {
+     "n": 30,
+     "spearman": 0.7638
+    },
+    "2017_Pye": {
+     "n": 21,
+     "spearman": 0.23
+    },
+    "2018_Naylor": {
+     "n": 64,
+     "spearman": 0.224
+    },
+    "2020_Le Roux": {
+     "n": 47,
+     "spearman": 0.4135
+    },
+    "2021_Comeau": {
+     "n": 42,
+     "spearman": -0.2054
+    },
+    "2021_Golosov": {
+     "n": 23,
+     "spearman": 0.6399
+    },
+    "2022_Bhardwaj": {
+     "n": 133,
+     "spearman": 0.0985
+    },
+    "2023_Ghosh": {
+     "n": 31,
+     "spearman": 0.7062
+    }
+   },
+   "mean": 0.3633,
+   "median": 0.3994,
+   "n_evaluable": 9,
+   "source_weighted_by_n": 0.3572
+  },
+  "B": {
+   "per_source": {
+    "2015_Wang": {
+     "n": 49,
+     "spearman": 0.595
+    },
+    "2016_Furukawa": {
+     "n": 662,
+     "spearman": -0.1294
+    },
+    "2020_Barlow": {
+     "n": 26,
+     "spearman": 0.5763
+    },
+    "2020_Furukawa": {
+     "n": 36,
+     "spearman": 0.2582
+    },
+    "2021_Wang": {
+     "n": 24,
+     "spearman": 0.4072
+    },
+    "2022_Taechalertpaisarn": {
+     "n": 50,
+     "spearman": 0.4198
+    },
+    "2024_Faris": {
+     "n": 207,
+     "spearman": 0.024
+    },
+    "2024_Koch": {
+     "n": 42,
+     "spearman": -0.3053
+    },
+    "2024_Ly": {
+     "n": 20,
+     "spearman": 0.212
+    }
+   },
+   "mean": 0.2286,
+   "median": 0.2582,
+   "n_evaluable": 9,
+   "source_weighted_by_n": -0.0046
+  }
+ },
+ "cross": {
+  "train_A_on_S": {
+   "per_source": {
+    "2013_CHUGAI": {
+     "n": 878,
+     "spearman": 0.2833
+    },
+    "2015_Ahlbach": {
+     "n": 30,
+     "spearman": 0.1927
+    },
+    "2017_Pye": {
+     "n": 21,
+     "spearman": 0.2319
+    },
+    "2018_Naylor": {
+     "n": 64,
+     "spearman": 0.268
+    },
+    "2020_Le Roux": {
+     "n": 47,
+     "spearman": 0.4625
+    },
+    "2021_Comeau": {
+     "n": 42,
+     "spearman": -0.3652
+    },
+    "2021_Golosov": {
+     "n": 23,
+     "spearman": 0.7975
+    },
+    "2022_Bhardwaj": {
+     "n": 133,
+     "spearman": 0.1904
+    },
+    "2023_Ghosh": {
+     "n": 31,
+     "spearman": 0.6197
+    }
+   },
+   "mean": 0.2979
+  },
+  "train_A_on_B": {
+   "per_source": {
+    "2015_Wang": {
+     "n": 49,
+     "spearman": 0.5022
+    },
+    "2016_Furukawa": {
+     "n": 662,
+     "spearman": 0.031
+    },
+    "2020_Barlow": {
+     "n": 26,
+     "spearman": 0.6045
+    },
+    "2020_Furukawa": {
+     "n": 36,
+     "spearman": 0.1437
+    },
+    "2021_Wang": {
+     "n": 24,
+     "spearman": 0.3714
+    },
+    "2022_Taechalertpaisarn": {
+     "n": 50,
+     "spearman": 0.588
+    },
+    "2024_Faris": {
+     "n": 207,
+     "spearman": 0.2618
+    },
+    "2024_Koch": {
+     "n": 42,
+     "spearman": -0.107
+    },
+    "2024_Ly": {
+     "n": 20,
+     "spearman": 0.3214
+    }
+   },
+   "mean": 0.3019
+  }
+ },
+ "physics_heldout": {
+  "n": 120,
+  "n_requested": 120,
+  "spearman": -0.0083,
+  "wall_s": 32.0
+ },
+ "floor_met": {
+  "stop_S_perm": true,
+  "heldout_B_perm": true,
+  "heldout_physics": false
+ }
+}
