@@ -524,3 +524,13 @@ Method: regex sweep over main draft, v2, brief, patch note, preprint, FIGURES_ST
 - **FCV_evaluation_schemes (committed, a88c61593, 16:21 on 2026-10-28):** I opened the PNG. It still shows **"n = 6,960 peptides, 45 sources"** and leave-labs-out bars **0.31 / 0.30 / 0.26**; post-fix is 0.223 / 0.212 / 0.250 and 41 sources. The MANIFEST cites `cv_preds.csv.gz`@59d654cbc (pre-fix); the correction commit is 50c5deea6 (19:16). **STALE: not regenerated.**
 - Other figures whose MANIFEST sources predate the fix commit and whose inputs the fix changed: **F8_strata_heatmap** (`strata_perf.csv`@59d654cbc; changed in 50c5deea6, 488 lines), **F9_mmp_forest** (`mmp_effects_*`@59d654cbc, matched pairs 4,156 / 16 → 4,166 / 15), **F2_dataset_structure** and **FL5_loop_results** (`annotations.csv.gz`@2fe624487; the annotation file was corrected later, e2d1069bf). **STALE or UNVERIFIED until regenerated** (F2/FL5 only if the plotted quantities depend on Source; I did not open those PNGs).
 - `f_cv_schemes.py` asserts the figure's leave-labs-out values against the analysis document (tolerance 0.011); it would fail on the pre-fix figure against the post-fix document, so a regeneration run will show it. I did not run it, because it writes into the gitignored `out/` directory.
+
+### UPDATE 12a — figures regenerated (writer commit 0eb4949b8), re-checked
+
+- MANIFEST: 28 files hashed, **0 mismatches** against the committed files.
+- FCV (opened): "n = 6,960 peptides, 41 sources"; leave-labs-out 0.22 / 0.21 / 0.25, grouped by flat structure 0.67 / 0.71 / 0.67, random 0.71 / 0.76 / 0.73: **MATCH** my recomputation from `cv_preds.csv.gz` (0.223 / 0.212 / 0.250; 0.670 / 0.710 / 0.665; 0.711 / 0.760 / 0.732).
+- F9 (opened): PAMPA N-Me added n = 4,166 / 15 (effect about +0.24, CI about 0.14–0.33), D flip n = 7,467 / 18: **MATCH** the corrected pair counts. MANIFEST sources for F2/FL5/F9 now cite annotations / mmp files @e2d1069bf and F8 strata @50c5deea6 (post-fix). The F9 MDCK file's cited commit was not checked.
+- F1: file bytes unchanged in size; the manifest source commit for `PREREG_LOOP.md` moved (405ed42cc → 37a839a65), which explains the re-save; contents not diffed. F2, F8, FL5 not opened (whether Source enters their plotted values is unverified).
+- T6: still **no committed T6 file** in `figures_paper/committed/` (manifest names it as a source entry only): UNVERIFIED.
+- `verify_artifacts.py` was not rerun by the writer after regeneration; I did not rerun it either.
+- Status: FCV/F9 STALE → **MATCH**; F2/F8/FL5 provenance MATCH, plotted values UNVERIFIED; T6 open.
