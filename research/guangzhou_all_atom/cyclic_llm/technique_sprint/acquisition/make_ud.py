@@ -2,7 +2,7 @@
 """Generate EC2 user-data scripts for T2 stages (spot-safe: per-task results synced to S3 every 45 s; resumable; self-terminating). usage: make_ud.py STAGE OUT.sh"""
 import sys
 B = "s3://biomate-nextflow-work/cyclic_peptide/technique_sprint/t2"
-CSV = "/w/data/CycPeptMPDB_Peptide_All.csv"; RUN = f"python3.11 -u run_acq.py {CSV} /w/res"; CACHE = "--cache /w/acq_cache.pkl --procs $(nproc)"
+CSV = "/w/data/CycPeptMPDB_Peptide_All.csv"; RUN = f"python3.11 -u run_acq.py {CSV} /w/res"; CACHE = "--cache /w/acq_cache.pkl --procs $(nproc --all)"
 STAGES = {
  "preflight2": ["python3.11 -u test_aggregate.py > /w/res/test_aggregate.log 2>&1; echo $? > /w/res/test_aggregate.rc", "python3.11 -u test_a2.py > /w/res/test_a2.log 2>&1; echo $? > /w/res/test_a2.rc",
                 "python3.11 -u test_acq.py > /w/res/test_acq.log 2>&1; echo $? > /w/res/test_acq.rc",
@@ -48,7 +48,10 @@ kill $SYNCPID; shutdown -h now
 """
 if __name__ == "__main__":
     # usage: make_ud.py STAGE OUT.sh [SEEDS REGIMES TAG]   (optional overrides split a stage across instances; results go to the base stage's S3 prefix, flag/log use TAG)
-    st = sys.argv[1]; body = "\n".join(STAGES[st]); tag = st
+    st = sys.argv[1]; tag = st
+    # comma-joined stages run sequentially on one instance; they must share one S3 result prefix
+    parts = st.split(","); assert len({RESMAP.get(x, x) for x in parts}) == 1, "stages write to different S3 prefixes"
+    body = "\n".join(l for x in parts for l in STAGES[x]); st = parts[0]
     if len(sys.argv) >= 6:
         seeds, regs, tag = sys.argv[3], sys.argv[4], sys.argv[5]
         import re; body = re.sub(r"--seeds \S+", f"--seeds {seeds}", body); body = re.sub(r"--regimes \S+", f"--regimes {regs}", body)

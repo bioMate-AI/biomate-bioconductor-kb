@@ -1,0 +1,122 @@
+{
+ "config": {
+  "lam": 0.0,
+  "cap_src": 50,
+  "cap_flat": 1000000000
+ },
+ "selected_label": "prov@l0.0_s50_finf",
+ "constraint_rel_A_ge_0p90_met": true,
+ "rule": "pre-registration 1.6 (docs/20261030_TECHNIQUE_T2_ACQUISITION.md): maximise mean(rel_B, rel_L) s.t. rel_A >= 0.90; ties by mean source entropy. Applied by aggregate_acq.py --select-config, unchanged.",
+ "dev": {
+  "stage": "devc",
+  "ymode": "causal",
+  "regimes": [
+   "A",
+   "B",
+   "L"
+  ],
+  "seeds": [
+   100,
+   101,
+   102
+  ],
+  "n_configs": 6,
+  "n_files": 63,
+  "note": "3 dev seeds (amendment A3 shrunk 5 -> 3); rel_* are ratios of means over 3 seeds, unreplicated; selection is by pre-registered rule only",
+  "sha256_of_concatenated_sorted_result_files": "48a55760313410ccece9ce776f2a08685434dc60f4aed7fc299289958a7c5804"
+ },
+ "dev_table": [
+  {
+   "label": "prov@l0.0_s25_f5",
+   "cfg": {
+    "lam": 0.0,
+    "cap_src": 25,
+    "cap_flat": 5
+   },
+   "rel_A": 0.8642015237284135,
+   "entropy_A": 1.8489222071747216,
+   "n_seeds": 3,
+   "rel_B": 1.7510539215686274,
+   "entropy_B": 2.1698027815722054,
+   "rel_L": 0.79606340458815,
+   "entropy_L": 1.2536700182130753
+  },
+  {
+   "label": "prov@l0.0_s50_finf",
+   "cfg": {
+    "lam": 0.0,
+    "cap_src": 50,
+    "cap_flat": 1000000000
+   },
+   "rel_A": 1.0447880650531438,
+   "entropy_A": 1.7108774472885642,
+   "n_seeds": 3,
+   "rel_B": 1.7255065359477122,
+   "entropy_B": 2.1771451465294294,
+   "rel_L": 1.0028057032556204,
+   "entropy_L": 0.9722549631109486
+  },
+  {
+   "label": "prov@l0.5_s25_f5",
+   "cfg": {
+    "lam": 0.5,
+    "cap_src": 25,
+    "cap_flat": 5
+   },
+   "rel_A": 0.8621865487304577,
+   "entropy_A": 1.8123997068866489,
+   "n_seeds": 3,
+   "rel_B": 1.4347140522875819,
+   "entropy_B": 2.2005214160706945,
+   "rel_L": 0.7854336641336405,
+   "entropy_L": 1.3018174781997407
+  },
+  {
+   "label": "prov@l0.5_s50_finf",
+   "cfg": {
+    "lam": 0.5,
+    "cap_src": 50,
+    "cap_flat": 1000000000
+   },
+   "rel_A": 1.0467478828105352,
+   "entropy_A": 1.739449080228977,
+   "n_seeds": 3,
+   "rel_B": 1.5155964052287583,
+   "entropy_B": 2.1524308679061837,
+   "rel_L": 0.9759710531791992,
+   "entropy_L": 0.9461531616839034
+  },
+  {
+   "label": "prov@l1.0_s25_f5",
+   "cfg": {
+    "lam": 1.0,
+    "cap_src": 25,
+    "cap_flat": 5
+   },
+   "rel_A": 0.8517959660385684,
+   "entropy_A": 1.8979700083970599,
+   "n_seeds": 3,
+   "rel_B": 1.4443872549019607,
+   "entropy_B": 2.2691151488010104,
+   "rel_L": 0.7913199004011223,
+   "entropy_L": 1.410288768621555
+  },
+  {
+   "label": "prov@l1.0_s50_finf",
+   "cfg": {
+    "lam": 1.0,
+    "cap_src": 50,
+    "cap_flat": 1000000000
+   },
+   "rel_A": 1.010262139607219,
+   "entropy_A": 1.7414467854988196,
+   "n_seeds": 3,
+   "rel_B": 1.4751633986928105,
+   "entropy_B": 2.2042120369727525,
+   "rel_L": 1.024493215364634,
+   "entropy_L": 0.9990389546824732
+  }
+ ],
+ "aggregate_acq_py_git_head": "60d23d686",
+ "declared": "2026-10-28 CDT, before any evaluation seed (0-29) of any new arm was run"
+}
