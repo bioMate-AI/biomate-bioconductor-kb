@@ -13721,9 +13721,17 @@ Rules:
       } catch { /* non-fatal */ }
     }
     const inputFiles: string[] = ((run as any).inputDatasets ?? []).map((d: any) => d.name || d.filename || String(d)).filter(Boolean);
+    // A public accession the user named in the triggering message IS the origin
+    // of this data (it auto-fetched from GEO/SRA/ArrayExpress/PRIDE). Capture the
+    // id so the dataset object can show it plainly — same accession classes the
+    // backend recognises (_extract_sra_accession). An id is enough; no link.
+    const accession = userIntent
+      ? (userIntent.match(/\b([SED]RR\d{6,9}|GSE\d{4,9}|GSM\d{4,9}|E-MTAB-\d{4,9}|PXD\d{4,9})\b/i)?.[0]?.toUpperCase())
+      : undefined;
     const inputContext = {
       intent: userIntent,
       inputFiles: inputFiles.length ? inputFiles : undefined,
+      accession: accession || undefined,
     };
 
     const files = rawFiles.map((f: any) => {

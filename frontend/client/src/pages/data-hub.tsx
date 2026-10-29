@@ -49,6 +49,7 @@ function toDatasetRef(f: ProjectFile): DatasetRef {
     size: f.size,
     contentType: f.content_type || null,
     source: f.source,
+    accession: (f.input_context?.accession as string | undefined) ?? null,
     runId: f.run_id,
     workflowName: f.workflow_name,
     stepName: f.step_name,
