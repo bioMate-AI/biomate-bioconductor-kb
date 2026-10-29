@@ -2,7 +2,7 @@
 (a) loop minus random and loop minus zero-learning rule (K_z, K_nme), 95% seed-bootstrap CI;
 (b) knowledge arms minus fingerprint-only loop, 99% CI;
 (c) where the loop's 500 picks come from (mean picks by source) vs population share.
-Regimes: A in-distribution, B scaffold-shifted, C near-duplicate-aware in-distribution.
+Regimes: A in-distribution, B scaffold-shifted, C identical-structure-excluded in-distribution (analogues retained).
 Artifacts: loop_retro/results/l5_aggregate.json, stratification annotations (population shares).
 """
 import json
@@ -14,7 +14,7 @@ from common import C, check, plt, reread, savefig, sources_of, src
 L5 = "research/guangzhou_all_atom/cyclic_llm/loop_retro/results/l5_aggregate.json"
 ANN = "research/guangzhou_all_atom/cyclic_llm/stratification/data/annotations.csv.gz"
 d = json.load(open(src(L5)))
-regs = [("A", "A in-distribution"), ("B", "B scaffold-shifted"), ("C", "C near-dup-aware")]
+regs = [("A", "A in-distribution"), ("B", "B scaffold-shifted"), ("C", "C identical-structure-excluded")]
 
 fig = plt.figure(figsize=(10.4, 6.2))
 gs = fig.add_gridspec(2, 2, height_ratios=[1, 1], wspace=0.32, hspace=0.5)
@@ -44,7 +44,7 @@ for r, rl in regs:
     rows += [(f"{rl}: loop − random", (f"fp_minus_random_{r}",), C["blue"], "mean", "ci95"),
              (f"{rl}: loop − rule K_z", (f"fp_minus_rule_z_{r}",), C["green"], "mean", "ci95"),
              (f"{rl}: loop − rule K_nme", (f"fp_minus_rule_nme_{r}",), C["purple"], "mean", "ci95")]
-forest(ax, rows, "(a) Loop vs random and vs zero-learning rules", "difference in hits among 500 picks (95% CI, 30 seeds)")
+forest(ax, rows, "(a) Loop vs random and vs zero-learning rules", "difference in hits among 500 picks (post hoc 95% CI of the mean, 30 seeds; transductive standardisation: upper bound)")
 
 # (b)
 ax = fig.add_subplot(gs[0, 1])
@@ -80,7 +80,7 @@ for i, (lab, sh) in enumerate(bars):
         check(f"L5 pick mean {key} townsend", float(sh["townsend"] * 500), float(reread(L5, "PICK_SOURCE_MEANS", key, "townsend")), tol=1e-6)
 ax.set_yticks(range(len(bars)), [b[0] for b in reversed(bars)], fontsize=6.6)
 ax.set_xlabel("share of the 500 selections (mean over 30 seeds) / share of peptides"); ax.set_xlim(0, 1)
-ax.set_title("(c) Where the picks come from (within-source standardised hit labels)", loc="left")
+ax.set_title("(c) Where the picks come from (hit labels standardised within source using all labels of the source)", loc="left")
 ax.legend(frameon=False, ncol=3, fontsize=6.4, loc="upper center", bbox_to_anchor=(0.5, -0.18))
 check("population share Townsend (loader set)", round(float(share["townsend"]), 3), round(2881 / 6960, 3))
 caption = ("F-L5. Controlled retrospective loop (L5, pre-registered; 810/810 tasks). (a) Loop minus random and minus zero-learning physchem rules (K_z, K_nme; ties broken at random with the task seed), "

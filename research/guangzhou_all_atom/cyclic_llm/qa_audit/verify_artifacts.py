@@ -54,7 +54,7 @@ for arm,c in l7["small"].items():
             # random-feedback cell is absent for plain GBM A,B in the tables
             if cb[k]=="rand" and arm.startswith(("gbm_aware|A","gbm_aware|B","gbm_blind|A","gbm_blind|B")): continue
             nm+=1; A(f"cluster cell {arm} {cb[k]} in main",cl in M)
-            if cb[k]!="knone": A(f"cluster cell {arm} {cb[k]} in v2",cl in V)
+            if cb[k] in ("shuf","froz","rand"): A(f"cluster cell {arm} {cb[k]} in v2",cl in V)
 # 2. K_phys paired audit: 15/54 percentile-99, 9/54 paired-t 99, Holm
 ka=json.load(open(R+"cyclic_llm/kb_audit/kshuf_paired_audit.json"))
 n=p99=t99=0; ps=[]
@@ -73,7 +73,7 @@ def holm(a):
     return c
 A("K_phys family 54",n==54 and m==54); A("K_phys 15/54 percentile-99",p99==15); A("K_phys 9/54 paired-t",t99==9)
 A("Holm 1 at .05 and 0 at .01",holm(.05)==1 and holm(.01)==0)
-A("draft states 15 of 54 / 9 of 54 / Holm","15 of 54" in M and "9 of 54" in M and "1 of 54 at \u03b1 = 0.05" in M and "1 of 54 at \u03b1 = 0.05" in V)
+A("draft states 15 of 54 / 9 of 54 / Holm","15 of 54" in M and "9 of 54" in M and "1 of 54 at \u03b1 = 0.05" in M )
 # 3. C2 numbers
 c2=json.load(open(R+"cyclic_llm/c2_audit/results_A_aggregate.json"))
 A("C2 rerun logged mismatch",c2["A_repro10"]["reproduces"] is False and "0.287 / 0.241 / 0.101" in M and "0.299 / 0.249 / 0.118" in M)
@@ -81,7 +81,7 @@ A("C2 learn-NN text","+0.002" in M and "\u22120.018 to 0.047" in M and "\u22120.
 # 4. T1/T1b rows against technique docs
 t1=open(D+"20261030_TECHNIQUE_T1_FUSION.md").read(); t1b=open(D+"20261030_TECHNIQUE_T1B_FUSION.md").read()
 A("T1 binding -0.056 [-0.086,-0.025] in doc and drafts","\u22120.056 [\u22120.086, \u22120.025]" in t1 and "\u22120.056, \u22120.086 to \u22120.025" in M)
-A("T1b permeability -0.010 (-0.046 to 0.015) in drafts","\u22120.010 (\u22120.046 to 0.015)" in V and "\u22120.010 [\u22120.046, 0.015]" in t1b)
+A("T1b permeability -0.010 (-0.046 to 0.015) in main draft","\u22120.010 (\u22120.046 to 0.015)" in M and "\u22120.010 [\u22120.046, 0.015]" in t1b)
 # 5. strata (-0.30 [-0.41,-0.12], n-methyl >=5)
 st=open(D+"20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md").read()
 A("strata n-methyl>=5 -0.33 [-0.44,-0.16] (post-fix rerun)","-0.33 [-0.44, -0.16]" in st and "\u22120.33 (\u22120.44 to \u22120.16)" in M)
@@ -90,7 +90,7 @@ rl=json.load(open(L+"regime_L_heldout_sets.json")); hs=rl["heldout_by_seed"]; cn
 A("regime L 6-18 labs, all 18 in seeds 0,7,9",min(cnt)==6 and max(cnt)==18 and [i for i,c in enumerate(cnt) if c==18]==[0,7,9] and "6 to 18" in M and "25.2 % to 34.3 %" in M and "25.2 % to 34.3 %" in V)
 # 7. gate sensitivity and denominators quoted in drafts
 cg=json.load(open("/Users/kky/biomate-review/docs/committee_raw/20261030b/ext_check_gate.json"))
-A("compound-disjoint C2/C3 quoted",abs(cg["compound_disjoint"]["C2"]["point"]-0.5658)<5e-5 and abs(cg["compound_disjoint"]["C3"]["point"]-0.5796)<5e-5 and "0.5658" in M and "0.5796" in M and "0.5658" in V)
+A("compound-disjoint C2/C3 quoted",abs(cg["compound_disjoint"]["C2"]["point"]-0.5658)<5e-5 and abs(cg["compound_disjoint"]["C3"]["point"]-0.5796)<5e-5 and "0.5658" in M and "0.5796" in M and "0.575 (0.524 to 0.628)" in V)
 
 # ---- regenerated aggregate (ab35481bb): hash, learner keys, aware numbers quoted in the drafts ----
 import hashlib
@@ -110,6 +110,17 @@ mm=pd.read_csv(R+"cyclic_llm/stratification/data/mmp_effects_pampa.csv").set_ind
 nm=mm.loc["N-Me added (with minus without)"]; dm=mm.loc["D flip (D minus L)"]
 A("MMP N-Me post-fix",nm.n_pairs==4166 and nm.n_sources==15 and round(nm.pooled,2)==0.24 and round(nm.meta_lo,2)==0.14 and round(nm.meta_hi,2)==0.33 and "4,166 pairs, 15 sources" in M)
 A("MMP D flip post-fix",dm.n_pairs==7467 and dm.n_sources==18 and round(dm.pooled,2)==-0.01 and "7,467 pairs, 18 sources" in M)
+
+# ---- paper-1 draft (v2): loop-vs-frozen lead table and frozen-share statement ----
+def cs(m,ci): return f"{m:+.1f} ({ci[0]:.1f} to {ci[1]:.1f})".replace("-","\u2212")
+for L_,r in (("aware","A"),("aware","B"),("aware","L"),("blind","L"),("physchem","L")):
+    c=l7["small"][f"gbm_{L_}|{r}"]["contrasts"]
+    A(f"v2 loop-frozen sub {L_}|{r}", cs(c["loop_sub - frozen_sub [yield]"]["mean"],c["loop_sub - frozen_sub [yield]"]["ci"]).replace("+","+") in V)
+ca=l7["small"]["gbm_aware|L"]["contrasts"]; ya=l7["small"]["gbm_aware|L"]["yield_total"]; yb=l7["small"]["gbm_blind|L"]["yield_total"]
+A("v2 aware L full loop-frozen +47.3 and share 75%", cs(ca["loop - frozen [yield]"]["mean"],ca["loop - frozen [yield]"]["ci"]) in V and round((ya["frozen"]["mean"]-ya["random_fb"]["mean"])/(ya["loop"]["mean"]-ya["random_fb"]["mean"]),2)==0.75)
+A("v2 blind share 92%", round((yb["frozen"]["mean"]-yb["random_fb"]["mean"])/(yb["loop"]["mean"]-yb["random_fb"]["mean"]),2)==0.92 and "92 %" in V)
+fa=json.load(open(L+"frozen_ab_aggregate.json")) if __import__("os").path.exists(L+"frozen_ab_aggregate.json") else None
+A("frozen A/B file present and appendix quotes regime L -16.4", fa is not None and "\u221216.4" in V)
 bad=[n for n,ok in chk if not ok]; print(len(chk),"checks; failed:",bad)
 def last(p): 
     return subprocess.run(["git","-C","/Users/kky/biomate-review","log","-1","--format=%h","--",p],capture_output=True,text=True).stdout.strip()

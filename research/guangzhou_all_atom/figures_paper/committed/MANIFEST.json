@@ -17,18 +17,18 @@
   "FCV_evaluation_schemes.png": "85e47a4531b7c395305070a45cddb8521f12a3cefdf8ee5138f2a4cfc648b689",
   "FK_knowledge_channel_lolo.pdf": "b2a895b700c389d2646341fb67fe78a2a240ca6218f45360a2487cc515c82427",
   "FK_knowledge_channel_lolo.png": "a7c5b42240740d45aa434e6d953d43e2861e414903fe22f5c534f5cc08433b0f",
-  "FL5_loop_results.pdf": "2c40d40fa724be6da3cf8f0aaf4cfda72e5ca9bba827a9ec14acf7c33238db49",
-  "FL5_loop_results.png": "2d178f09d2308b89131ba0a94acabab4e01d14a2af0c3b0253844975e5564689",
+  "FL5_loop_results.pdf": "7ad047deff85e35ff0bba3f934f40b96d54f97ba4b7e1e744003da38240d87d5",
+  "FL5_loop_results.png": "6157a0ed3bb3cfb8b2df6ff2f91362c4d2c3e061f09e03b0b6134cbe775ed20b",
   "F5_controls_partial.pdf": "303a3f3dba806be77ef01bbf28c2ba036c085c5a214bb3ed882c25c18feef56d",
   "F5_controls_partial.png": "e5f7cd4683efe76c5bfdba43914a6e691fad632b4e46a3cda309b337d090cb28",
   "tables/T6_model_comparison.csv": "39c215d634f4766c45d2a6da7254d52c04b9edbcb6c6d8e73cd643b8c9a742cd",
-  "tables/T5_L5_loop.md": "356e644974a342436faf70d124ea549247206afade5e9f42737e8af3e9808832",
+  "tables/T5_L5_loop.md": "5632c91625ce292ce6bb2804ae7cba99b01afd65b3870f4285d897cc295f8708",
   "tables/T_loops_classification.csv": "5c7c9009fb79e14fe1f1c2c0227d1c215762cb87d1864008d671d5208fdee9f2",
   "tables/T7_benchmark_results.md": "8474fb1b66bed8857af90e7b99aca8655f0edf423890995148f77e567f7ea6cb",
   "tables/T6_model_comparison.md": "515d3266c037c03508113739614d5b637546697e3c237ce444ca7e41c80f0f9f",
   "tables/T_loops_classification.md": "f89d057e53d29388260fd5f72c65b59b6f7a9982ade78ab52bc15693896f09f0",
   "tables/T7_benchmark_results.csv": "d80777cdb203ad3e4906cecd86c36b41c84e5f6a6886f46f2832af255b07f380",
-  "tables/T5_L5_loop.csv": "5df8dd1fba1129eea44d0a1842162801c952fe3a88c6fdb86c084d1e71b71a10"
+  "tables/T5_L5_loop.csv": "0a0af470127056f14240414820e5f184a5d90b3e9cea58f9dbe8f1c247cf5ddd"
  },
  "sources": {
   "F2_dataset_structure": "`annotations.csv.gz`@e2d1069bf; `l5_label_audit.json`@d8d87601e",

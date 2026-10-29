@@ -45,7 +45,7 @@ write("T1_data_profile", pd.DataFrame(rows, columns=["quantity", "value"]), "T1.
 L5 = "research/guangzhou_all_atom/cyclic_llm/loop_retro/results/l5_aggregate.json"
 d = json.load(open(src(L5)))
 rows = []
-for r, name in (("A", "A in-distribution"), ("B", "B scaffold-shifted"), ("C", "C near-duplicate-aware")):
+for r, name in (("A", "A in-distribution"), ("B", "B scaffold-shifted"), ("C", "C identical-structure-excluded")):
     fp = d[f"fp_{r}"]; rnd = d[f"fp_minus_random_{r}"]
     rows.append((name, fp["n_seeds"], fp["total"], rnd["random"], f"{rnd['mean']:+.1f} [{rnd['ci95'][0]:+.1f}, {rnd['ci95'][1]:+.1f}]",
                  d[f"fp_minus_rule_z_{r}"]["rule_total"], f"{d[f'fp_minus_rule_z_{r}']['mean']:+.1f} [{d[f'fp_minus_rule_z_{r}']['ci95'][0]:+.1f}, {d[f'fp_minus_rule_z_{r}']['ci95'][1]:+.1f}]",
