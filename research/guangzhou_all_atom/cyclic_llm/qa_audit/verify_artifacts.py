@@ -97,7 +97,7 @@ A("compound-disjoint C2/C3 quoted",abs(cg["compound_disjoint"]["C2"]["point"]-0.
 
 # ---- regenerated aggregate (ab35481bb): hash, learner keys, aware numbers quoted in the drafts ----
 import hashlib
-A("aggregate sha256 matches frozen file and drafts", hashlib.sha256(open(L+"l7_aggregate.json","rb").read()).hexdigest()=="12940022caa89c364a44d2cabc7401948d7a28cd139199a2ca48cf6c1fbf4ec8" and open(L+"l7_aggregate.sha256").read().split()[0]=="12940022caa89c364a44d2cabc7401948d7a28cd139199a2ca48cf6c1fbf4ec8" and "12940022caa89c364a44d2cabc7401948d7a28cd139199a2ca48cf6c1fbf4ec8" in M and "12940022caa89c364a44d2cabc7401948d7a28cd139199a2ca48cf6c1fbf4ec8" in V)
+A("aggregate sha256 matches frozen file and drafts", hashlib.sha256(open(L+"l7_aggregate.json","rb").read()).hexdigest()=="ebc525090740249f50ec4e2d96cd809e6b6b802c0f42ad2f7815f2dbdb76387e" and open(L+"l7_aggregate.sha256").read().split()[0]=="ebc525090740249f50ec4e2d96cd809e6b6b802c0f42ad2f7815f2dbdb76387e" and "ebc525090740249f50ec4e2d96cd809e6b6b802c0f42ad2f7815f2dbdb76387e" in M and "ebc525090740249f50ec4e2d96cd809e6b6b802c0f42ad2f7815f2dbdb76387e" in V)
 A("learner keys", {"gbm_aware|A","gbm_aware|B","gbm_aware|L","gbm_blind|A","gbm_blind|B","gbm_blind|L","gbm_physchem|A","gbm_physchem|B","gbm_physchem|L","chemberta|A","chemberta|B"}<=set(l7["small"]) and not any(k.startswith("gbm|") for k in l7["small"]))
 ga=l7["small"]["gbm_aware|L"]["contrasts"]
 A("aware L yield contrasts",ga["loop - random_fb [yield]"]["mean"]==186.1 and ga["loop - random_fb [yield]"]["ci"]==[179.5,192.9] and ga["loop - frozen [yield]"]["mean"]==47.3 and ga["loop - shuffled [yield]"]["mean"]==117.7 and all(x in M for x in ("+186.1","(179.5 to 192.9)","+47.3","+117.7")))
