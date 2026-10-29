@@ -13,7 +13,7 @@ cd /w/allatom_paper
 python3.11 -m pytest -q -p no:cacheprovider feedback/test_preference_updater.py feedback/test_stop_monitor.py > /w/pytest.log 2>&1
 echo "pytest rc=$?" >> /w/pytest.log
 aws s3 cp /w/pytest.log $B/pytest.log --only-show-errors
-python3.11 -m feedback.sim_u2 validity /w/validity.json > /w/validity.log 2>&1
+python3.11 -m feedback.sim_dev /w/validity.json > /w/validity.log 2>&1
 echo "validity rc=$?" >> /w/validity.log
 aws s3 cp /w/validity.log $B/validity.log --only-show-errors
 aws s3 cp /w/validity.json $B/validity.json --only-show-errors

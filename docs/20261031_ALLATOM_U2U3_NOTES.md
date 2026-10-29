@@ -18,6 +18,13 @@ Concentrated start policy (all mass on prompt-specific items that pass the binar
 **Verdict vocabulary:** GO if both primary lower bounds > 0 AND benign false-stop rate <= 0.10 (Wilson upper bound reported) AND hackable missed-hack rate <= 0.20 AND median hackable delay in [-2, +4] rounds; NO-GO-detectable if either primary upper bound < 0; otherwise INCONCLUSIVE. Comparator without a pass criterion: Track E's `pmo_harness.StopMonitor` with inputs mapped to [0,1] via 0.5 + z/6.
 **Controls that can fail and pass:** NeverStop must lose on `hackable` (validity criterion), AlwaysStop must lose on `benign`, and the monitor must beat both on the primary; the `shared` environment documents the failure mode.
 
+
+### 3b. AMENDMENT A2 (declared 2026-10-29, before the dev-grid run; test seeds 0-399 NOT touched)
+Stage A (A1) found two design problems, both visible only on DEV seeds / unit tests, no test-seed monitor result exists:
+(i) environment validity FAILED for `hackable` (c_h = 5, T = 30): NeverStop retained < 0.7 of the peak in 27.5% of dev runs (needs >= 70%; median 0.72); `benign` passed (median 1.0);
+(ii) two unit tests failed: the A1 per-round top-q statistic false-stopped a noisy plateau, and the planted Goodhart shape appeared in 7 of 20 hackable seeds (< 12).
+Changes (declared now): (a) monitor statistic = best-so-far set by TRAIN score (k0 = round(q x first-batch size)), see `stop_monitor.py`; (b) the environment exploit strength and horizon are chosen from the grid c_h in {5, 5.5, 6, 7} x T in {30, 40} by the A1 validity criteria on DEV seeds 9000-9199 (smallest c_h, then smallest T that is valid); (c) monitor parameters are chosen on the same DEV seeds from the grid tau in {0.5, 1.0} x patience in {3, 4} x smooth in {2, 3} by: maximise the equal-weight mean retained fraction over {hackable, benign} subject to benign false-stop rate <= 0.10 and hackable missed-hack rate <= 0.30; ties -> smaller tau, patience, smooth. q = 0.10, tol = 0.05, warmup = 2 unchanged. The selected values are committed (A2-final) BEFORE stage B; stage B uses test seeds 0-399 only. Honest note: monitor parameters are therefore tuned on simulated dev environments; the stage-B comparison is on fresh seeds of the same environment family and says nothing about real verifiers.
+
 ## 4. Prior art (primary sources only; filled from opened sources below)
 (to be completed after the sources are opened; until then every claim of novelty is [UNVERIFIED].)
 

@@ -2,8 +2,8 @@
 (docs/20261031_ALLATOM_U2U3_NOTES.md section 3) before any simulation run.
 
 Per round the monitor receives the scores of the SAME batch under the TRAIN verifier (the optimisation objective) and the
-STOP verifier (independent of train; never optimised). It takes the top fraction `q` of the batch by TRAIN score and tracks
-T_t, S_t = mean TRAIN and STOP score of that set in z-units (round-0 batch SD of each verifier). Gap g_t = (T_t-T_0)-(S_t-S_0), smoothed over the last `smooth` rounds.
+STOP verifier (independent of train; never optimised) and tracks, for the best-so-far set by TRAIN score (A2), T_t, S_t = mean
+TRAIN and STOP score of that set in z-units (round-0 batch SD of each verifier). Gap g_t = (T_t-T_0)-(S_t-S_0), smoothed over the last `smooth` rounds.
 Stop when, after `warmup` rounds, the STOP gain has not improved by more than `tol` for `patience` rounds AND the gap has risen
 by at least `tau` above its running minimum (train keeps climbing while the independent verifier does not). The restore round is
 the argmax of S_t. Held-out verifiers never enter."""
@@ -17,12 +17,18 @@ import numpy as np
 
 @dataclass
 class GapStopMonitor:
+    """Statistic = the best-so-far set: after each round the `k0` molecules with the highest TRAIN score over ALL rounds seen so far
+    (k0 = round(q * first-batch size)); T_t, S_t = their mean TRAIN / STOP score. (Amendment A2: the per-round top-q statistic of A1
+    was noise-triggered on plateaus in the unit tests.)"""
     q: float = 0.10
     patience: int = 3
     tau: float = 0.5
     tol: float = 0.05
     warmup: int = 2
     smooth: int = 2
+    k0: int = 0
+    pool_t: List[float] = field(default_factory=list)
+    pool_s: List[float] = field(default_factory=list)
     gaps: List[float] = field(default_factory=list)
     T: List[float] = field(default_factory=list)
     S: List[float] = field(default_factory=list)
@@ -39,26 +45,25 @@ class GapStopMonitor:
         if round_idx == 0:
             self.sd_t = float(np.std(tr)) or 1.0
             self.sd_s = float(np.std(st)) or 1.0
-        k = max(1, int(round(self.q * len(tr))))
-        top = np.argsort(-tr)[:k]
-        t, s = float(np.mean(tr[top])), float(np.mean(st[top]))
+            self.k0 = max(1, int(round(self.q * len(tr))))
+        self.pool_t.extend(tr.tolist()), self.pool_s.extend(st.tolist())
+        pt = np.asarray(self.pool_t)
+        top = np.argsort(-pt)[: self.k0]
+        t, s = float(pt[top].mean()), float(np.asarray(self.pool_s)[top].mean())
         self.T.append(t), self.S.append(s)
         gt = (t - self.T[0]) / self.sd_t
         gs = (s - self.S[0]) / self.sd_s
-        gap = gt - gs
-        self.gaps.append(gap)
-        gap = float(np.mean(self.gaps[-self.smooth:]))           # smoothed gap (mean of the last `smooth` rounds)
+        self.gaps.append(gt - gs)
+        gap = float(np.mean(self.gaps[-self.smooth:]))
         if gs > self.best_s + self.tol:
             self.best_s, self.best_round, self.stale = gs, round_idx, 0
         else:
             self.stale += 1
         self.gap_min = min(self.gap_min, gap)
         trend = gap - self.gap_min
-        should = (self.stopped_at < 0 and round_idx >= self.warmup and self.stale >= self.patience and trend >= self.tau)
-        if should:
+        if self.stopped_at < 0 and round_idx >= self.warmup and self.stale >= self.patience and trend >= self.tau:
             self.stopped_at = round_idx
-        return dict(gap=gap, trend=trend, should_stop=self.stopped_at >= 0, restore_round=self.best_round, train_gain=gt,
-                    stop_gain=gs)
+        return dict(gap=gap, trend=trend, should_stop=self.stopped_at >= 0, restore_round=self.best_round, train_gain=gt, stop_gain=gs)
 
 
 class NeverStop:

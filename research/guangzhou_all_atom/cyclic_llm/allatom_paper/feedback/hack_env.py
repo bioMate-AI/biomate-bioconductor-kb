@@ -15,7 +15,7 @@ import numpy as np
 D = 10
 
 
-def make(kind: str, seed: int):
+def make(kind: str, seed: int, ch_hackable: float = 5.0):
     rng = np.random.default_rng(seed)
     xs = rng.normal(size=D)
     xs = 3.0 * xs / np.linalg.norm(xs)
@@ -27,11 +27,11 @@ def make(kind: str, seed: int):
     us -= (us @ uh) * uh
     us /= np.linalg.norm(us)
     if kind == "hackable":
-        ch, cs, u_stop = 5.0, 1.0, us
+        ch, cs, u_stop = ch_hackable, 1.0, us
     elif kind == "benign":
         ch, cs, u_stop = 0.0, 0.0, us
     elif kind == "shared":
-        ch, cs, u_stop = 5.0, 5.0, uh
+        ch, cs, u_stop = ch_hackable, ch_hackable, uh
     else:
         raise ValueError(kind)
     return dict(xs=xs, uh=uh, us=u_stop, ch=ch, cs=cs, kind=kind)
