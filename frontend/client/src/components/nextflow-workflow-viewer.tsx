@@ -1396,7 +1396,9 @@ export function NextflowWorkflowViewer({
     regulatoryActions: [],
     complete: null,
   });
-  // Per-phase auto-loop toggle: true = enabled (default), false = user suppressed
+  // Per-phase auto-loop toggle. An ABSENT key = follow the QC profile's own default
+  // (autoloop:true profiles close the loop by default); an explicit true/false is a
+  // user override that always wins. See profileAutoloopDefault below.
   const [autoloopMap, setAutoloopMap] = useState<Record<string, boolean>>({});
   // Ref mirrors state so SSE event handlers always read the latest value synchronously.
   // Updated inside the state setter (not in useEffect) to avoid async timing gaps.
@@ -1755,6 +1757,13 @@ export function NextflowWorkflowViewer({
     () => availableQcProfiles.find(p => p.id === qcProfile) ?? null,
     [availableQcProfiles, qcProfile]
   );
+  // A QC profile that DECLARES autoloop:true is opting into auto-remediation, so
+  // the closed loop runs by default for it (no hidden manual toggle). A ref mirrors
+  // it so the SSE gate handler reads the default synchronously. Non-autoloop
+  // profiles stay paused-for-human; an explicit user toggle always wins.
+  const profileAutoloopDefault = activeQcProfile?.autoloop === true;
+  const profileAutoloopDefaultRef = React.useRef(profileAutoloopDefault);
+  React.useEffect(() => { profileAutoloopDefaultRef.current = profileAutoloopDefault; }, [profileAutoloopDefault]);
   const displayedQcThresholds = React.useMemo(() => {
     const merged: Record<string, { bound: number; direction: string; rationale?: string; source: 'default' | 'profile' | 'user' }> = {};
     const wfDomain = (workflowDefinition?.domain || '').toLowerCase();
@@ -2334,7 +2343,10 @@ export function NextflowWorkflowViewer({
         // Auto-loop ON → apply suggestions automatically using Nextflow -resume, no card shown.
         // Auto-loop OFF → show confirmation card and let user decide.
         const phaseKey = data.phase_key ?? data.process_name ?? '';
-        const autoloopOn = autoloopMapRef.current[phaseKey] === true;
+        // No explicit user toggle → fall back to the profile's own autoloop
+        // declaration (autoloop:true profiles close the loop by default); an
+        // explicit true/false the user set always wins.
+        const autoloopOn = autoloopMapRef.current[phaseKey] ?? profileAutoloopDefaultRef.current;
 
         // SAFETY HALT: a qc_gate_triggered event only fires when a blocking
         // (halt-threshold) failure exists — advisory-only crossings come via
@@ -3623,15 +3635,18 @@ export function NextflowWorkflowViewer({
                         ? autoLoopPanel
                         : undefined
                     }
-                    autoloopEnabled={autoloopMap[group.key] === true}
+                    autoloopEnabled={autoloopMap[group.key] ?? profileAutoloopDefault}
                     autoloopLocked={activeQcProfile?.autoloop !== true}
                     onToggleAutoloop={() => {
                       // Workflow-conditioned: only autoloop-ready profiles (the few
                       // drug-dev workflows with a ready design→make→test loop) expose
-                      // this. Opt-in, default OFF. No-op for non-autoloop workflows.
+                      // this. For those, it DEFAULTS ON (the profile opted into the
+                      // closed loop); the user can still switch it off. No-op for
+                      // non-autoloop workflows.
                       if (activeQcProfile?.autoloop !== true) return;
                       setAutoloopMap(prev => {
-                        const next = { ...prev, [group.key]: !prev[group.key] };
+                        const cur = prev[group.key] ?? profileAutoloopDefault;
+                        const next = { ...prev, [group.key]: !cur };
                         autoloopMapRef.current = next;
                         return next;
                       });
