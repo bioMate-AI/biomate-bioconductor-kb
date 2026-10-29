@@ -73,3 +73,64 @@ Rationale: the exact-only design discards the 2,433 `>` rows (pure) and 289 `<` 
 | g_a1000_q6_l0.3 | 10 | nn_q3 | -0.123 | 0.240 | 26 | **0.161** |
 
 **Consequences fixed now.** (i) MDE80 is 0.13–0.19 at every budget, i.e. 4–6× the +0.03 margin, so under §4 any non-PASS is reported as **NOT DETECTED / UNDERPOWERED** (never "no gain"). (ii) On dev both candidates are *below* the best baseline in the hard stratum by 0.055–0.123 (−0.093/−0.091/−0.123 for g, −0.055/−0.069/−0.122 for f at k = 3/5/10): the test stage is expected to repeat that sign and the verdict will be read with the interval, not the point. (iii) (g) − (d) isolates what PeptideCLM-2 embeddings add over fingerprints: on dev the embedding variant is lower than the fingerprint variant at every budget. (iv) Secondary arm (A0), dev-only observation, **not a result**: the censor-aware prior-only score (h1) has overall Spearman ≈ 0.20 at every k against ≈ 0.07 for the exact-only prior (h0) and 0.06 for the HGB prior; this needs the pre-registered controls (C4 planted censoring, L1 flag-scramble) and may reflect the documented censoring shortcut (S3 diagnostic) — it is read on the test half only.
+
+## 11. Results (test half: 86 targets, 21 families; stage 2 run after A1; 2026-10-29 ~01:15 CDT)
+**Verdict (pre-registered rule §4): both candidates — (f) meta-learned target-conditioned predictor and (g) PeptideCLM-2-embedding retrieval — NOT DETECTED / UNDERPOWERED. No candidate passes at any of k = 3, 5, 10 (0 of 3 budgets), and 0 of 50 random family splits pass for either. Because MDE80 is 0.13–0.19 (4–6× the margin) this is not evidence of "no gain"; it is also not evidence of a gain. This is a go/no-go for compute only: NO-GO on fine-tuning compute for these two candidates in this scenario, since the dev and test point estimates are non-positive against the best baseline.** Controls C1 and C2 pass (below), so the pilot is valid as a pilot.
+**Gate (hard-stratum Spearman, family-equal, candidate − best-on-test baseline, family-cluster bootstrap 97.5 % CI; sensitivity columns: baseline chosen on dev; overall query set):**
+
+| candidate | k | best test baseline | diff hard [97.5 % CI] | MDE80 | dev-baseline diff | overall diff [CI] | pass |
+|---|---|---|---|---|---|---|---|
+| f0_1000 | 3 | d_q6_l0.3 | +0.008 [-0.079, +0.088] | 0.131 | +0.008 vs d_q6_l0.3 | -0.010 [-0.073, +0.051] | no |
+| f0_1000 | 5 | d_q6_l0.3 | +0.008 [-0.062, +0.077] | 0.185 | +0.043 vs nn_q3 | -0.027 [-0.084, +0.030] | no |
+| f0_1000 | 10 | gp | -0.033 [-0.143, +0.087] | 0.169 | -0.012 vs nn_q3 | -0.124 [-0.199, -0.049] | no |
+| g_a1000_q6_l0.3 | 3 | d_q6_l0.3 | -0.058 [-0.214, +0.120] | 0.178 | -0.058 vs d_q6_l0.3 | -0.000 [-0.125, +0.119] | no |
+| g_a1000_q6_l0.3 | 5 | d_q6_l0.3 | -0.073 [-0.228, +0.092] | 0.154 | -0.038 vs nn_q3 | +0.015 [-0.083, +0.119] | no |
+| g_a1000_q6_l0.3 | 10 | gp | -0.062 [-0.166, +0.049] | 0.161 | -0.041 vs nn_q3 | -0.038 [-0.093, +0.016] | no |
+
+**Repeated family splits (50 random halves of all 47 families; config chosen on each split's dev half):** pass fraction f = 0.00, g = 0.00; median paired hard-stratum difference f = -0.033/-0.037/-0.088, g = -0.081/-0.082/-0.086 at k = 3/5/10.
+
+**Learning curves (the main deliverable): family-equal mean Spearman, overall / hard stratum, test half.** (CIs in `results/test_summary.json`; k = 1 and the NDCG/recall tables are there too.)
+
+| method | k = 0 | k = 3 | k = 5 | k = 10 | k = 25 |
+|---|---|---|---|---|---|
+| NN (a) | – | 0.224 / 0.069 | 0.361 / 0.159 | 0.479 / 0.255 | 0.582 / 0.401 |
+| GP (b) | – | 0.229 / 0.065 | 0.351 / 0.145 | 0.491 / 0.275 | 0.628 / 0.458 |
+| RF (c) | – | 0.216 / 0.076 | 0.328 / 0.130 | 0.453 / 0.226 | 0.614 / 0.438 |
+| prior+correction (d) | – | 0.237 / 0.155 | 0.322 / 0.194 | 0.425 / 0.266 | 0.564 / 0.384 |
+| prior only (e) | 0.101 | 0.106 / 0.136 | 0.109 / 0.153 | 0.111 / 0.164 | 0.123 / 0.155 |
+| meta-learned (f) | 0.134 | 0.228 / 0.163 | 0.295 / 0.202 | 0.367 / 0.243 | 0.474 / 0.314 |
+| PeptideCLM-2 emb. (g) | – | 0.237 / 0.097 | 0.337 / 0.121 | 0.453 / 0.214 | 0.586 / 0.418 |
+| h0 exact-only prior | 0.063 | 0.065 / 0.107 | 0.065 / 0.135 | 0.067 / 0.154 | 0.093 / 0.182 |
+| h1 censor-aware prior | 0.073 | 0.075 / 0.139 | 0.076 / 0.148 | 0.078 / 0.143 | 0.133 / 0.218 |
+| d-h0 | – | 0.151 / 0.125 | 0.212 / 0.178 | 0.294 / 0.225 | 0.421 / 0.327 |
+| d-h1 | – | 0.153 / 0.151 | 0.207 / 0.184 | 0.287 / 0.203 | 0.422 / 0.335 |
+| f1 censor-aware (f) | 0.100 | 0.201 / 0.121 | 0.260 / 0.184 | 0.351 / 0.222 | 0.450 / 0.367 |
+
+What the curves show: (1) from k = 5 up the lookup methods (GP, NN) lead overall and the RF follows; GP is best at k = 10 (0.491) and k = 25 (0.628). (2) In the **hard stratum at k ≤ 5 the prior-based methods (d, f) are ahead of GP/NN** (k = 3 hard: f 0.163, d 0.155 vs GP 0.065, NN 0.069); the target-agnostic potency prior alone is 0.136–0.164 hard at k = 3–10 (hard − NN/GP at k = 3: d − GP +0.090 [-0.009, +0.196], not significant); the lookup methods catch up by k = 10 hard (GP 0.275, NN 0.255, d 0.266, f 0.243). (3) The meta-learned (f) never beats the plain prior-plus-correction (d) beyond noise; at k = 5 overall it is below NN by −0.065 [−0.126, −0.001]. (4) **PeptideCLM-2 embeddings vs fingerprints (g − d, pre-specified isolating contrast):** overall +0.015 [-0.070, +0.098] at k = 5 and +0.028 [-0.036, +0.091] at k = 10; hard -0.073 [-0.209, +0.066] at k = 5 — every interval includes 0: the LM embeddings neither help nor hurt detectably over fingerprints (cf. the literature survey: frozen pretrained embeddings rarely beat ECFP). Target-weighted pooling (secondary) is dominated by the 56-target family and ranks GP/NN above the candidates at k = 5 hard (NN 0.131, GP 0.129, g 0.090, d 0.085, f 0.065).
+
+**Iterative active-learning replay (not part of the gate; 86 test targets, 5 seeds, 3 + 5×5 labels; pools are small, random finds 0.51 of the top decile):** yield minus random, family-cluster 95 % CI: GP-UCB +0.258 [+0.187, +0.336]; d +0.239 [+0.158, +0.313]; f +0.215 [+0.126, +0.307]; g +0.211 [+0.132, +0.295]; NN +0.208 [+0.137, +0.281]. Every guided policy beats random by 0.21–0.26 of the top decile (an in-distribution "loop works" effect); the learned candidates are not distinguishable from NN/GP-UCB.
+
+**Controls.** C1 planted series (k = 10, family-equal Spearman): NN 0.548, GP 0.561 (≥ 0.4 required), prior only 0.038 (≤ 0.15 required) → **PASS**. C2 shuffled potencies (10 permutations; every method's family-cluster 95 % CI contains 0 and |mean| ≤ 0.05) → **PASS** (all cells within ±0.025). Prior-only reference (e): 0.101 overall.
+
+**Secondary arm A0 — censor-aware priors (cannot pass or fail the gate); paired differences, family-equal, 95 % family-cluster CI, overall | hard:**
+
+| contrast | overall | hard |
+|---|---|---|
+| prior h1-h0|k3 | +0.010 [-0.040, +0.062] | +0.031 [-0.019, +0.083] |
+| prior h1-h0|k5 | +0.010 [-0.039, +0.061] | +0.014 [-0.031, +0.061] |
+| prior h1-h0|k10 | +0.011 [-0.038, +0.066] | -0.011 [-0.076, +0.052] |
+| prior h1-h0|k25 | +0.040 [-0.019, +0.104] | +0.036 [-0.033, +0.106] |
+| correction dh1-dh0|k3 | +0.003 [-0.036, +0.046] | +0.026 [-0.022, +0.076] |
+| correction dh1-dh0|k5 | -0.005 [-0.038, +0.034] | +0.006 [-0.036, +0.048] |
+| correction dh1-dh0|k10 | -0.007 [-0.039, +0.028] | -0.022 [-0.067, +0.027] |
+| correction dh1-dh0|k25 | +0.001 [-0.033, +0.037] | +0.009 [-0.030, +0.050] |
+| meta f1-f0|k3 | -0.027 [-0.066, +0.013] | -0.042 [-0.111, +0.024] |
+| meta f1-f0|k5 | -0.035 [-0.068, -0.002] | -0.018 [-0.071, +0.032] |
+| meta f1-f0|k10 | -0.016 [-0.047, +0.016] | -0.021 [-0.080, +0.032] |
+| meta f1-f0|k25 | -0.024 [-0.067, +0.014] | +0.053 [-0.018, +0.127] |
+
+Reading: censor-aware training did **not** replicate the dev-half impression (h1 ≈ 0.20 vs h0 ≈ 0.07 on dev): on the test half h1 − h0 is +0.010 [-0.039, +0.061] at k = 5 (all intervals include 0); the censor-aware correction (d-h1 − d-h0) is ≈ 0; the censor-aware meta-learner is slightly worse than the exact-only one (−0.016 to −0.035; k = 5 CI excludes 0 at the upper end by 0.002). **C4 planted censoring control: PASS** (56 held-out planted targets; censor-aware prior Spearman 0.612 vs exact-only 0.548, gain +0.063 ≥ 0.03; the bottom-decile compounds are ranked at percentile 0.228 under h1 vs 0.277 under h0, i.e. the exact-only arm shows the survivorship bias). **L1 leakage checks:** scrambling the censoring flags (random `>`/`<`, bounds kept) removes the gain (0.536, below h1's 0.612); the exact-only prior is bit-identical when the censoring argument is permuted (`h0_identical_when_censor_arg_permuted` = true). The automated source-string check "feature matrix only" returned **false** because it searches for the string `X[idx]` while the code indexes `Xt[idx[ii]]`: that is a defect of the check, not a finding of leakage; by reading, `train_mlp_prior` uses only fingerprint rows as model input and the relation/bound enter only as loss targets (y, type). **S3 diagnostic (censoring-confounded):** AUROC separating held-out `>` rows from exact rows with pAct ≥ 7, 14 families: h1 0.570 [0.479, 0.660], h0 0.505, HGB 0.509: not distinguishable from 0.5 for any prior.
+
+**Caveats (in addition to §7).** (i) Dev and test halves differ strongly (e.g. the prior's hard-stratum value 0.466 on a pilot-1 dev half vs 0.233 on test in the permeability pilot; here f/g trail on dev by 0.055–0.123 and are within ±0.07 on test): 21 test families are few and one family holds 56 of 86 test targets; (ii) the one test-half target inspected during code testing (A1 disclosure) is part of the final numbers; (iii) cross-assay IC50/Ki/EC50 noise and analog-rich series favour lookup; (iv) PeptideCLM-2 pretraining overlap with these compounds unchecked; (v) iterative pools are small (31–1,000 compounds), so random baselines are high; (vi) MDE80 is computed from dev between-family SD and may be off by ±30 %; (vii) a gate verdict supports no claim in a paper.
+
+**Spend and artefacts.** Spot c6i.8xlarge ×3 short runs (train + dev eval ≈ 10 + 10 min, test + extras ≈ 25 min; embedding and smoke tests local, USD 0): estimated USD 0.3–0.5 (instance-hours × typical spot price; not read from a cost log). Local/S3 artefacts: `s3://biomate-nextflow-work/cyclic_peptide/ihlm_pilot4/` (fold models `fold*.pkl`, logs); committed: per-record evaluation CSVs, `test_summary.json`, `supp_contrasts.json`, AL/controls/C4/S3 outputs under `pilot4/results/`; embeddings sha256 70dfcb41…060e4.
