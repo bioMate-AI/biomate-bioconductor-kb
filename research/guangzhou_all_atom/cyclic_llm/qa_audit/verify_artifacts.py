@@ -130,6 +130,18 @@ dc=[l7["small"][f"gbm_aware_detK_confirm|{r}"]["contrasts"]["loop_kphys_sub - lo
 A("L7q confirmatory K_phys - K_shuf yield +4.95/+4.85/+4.90",dc==[4.95,4.85,4.9] and "+4.95 (2.95 to 6.9; Holm 0.0055)" in M and "+4.95, +4.85, +4.90" in V)
 A("L7q n_seeds confirmatory 20",all(l7["small"][f"gbm_aware_detK_confirm|{r}"]["n_seeds"]==20 for r in "ABL"))
 A("L7q physchem B cluster K_phys worse than detK shuffled",l7["small"]["gbm_physchem_detK|B"]["contrasts_cluster"]["loop_kphys_sub - loop_kshuf_sub [E source-rho]"]["ci_cluster"][1]<0 and "\u22120.049" in V)
+
+# ---- laboratory-cluster intervals (paper1_cluster.json) quoted in v2 ----
+pc=json.load(open(R+"cyclic_llm/paper1_cluster/results/paper1_cluster.json"))["rows"]
+def prow(**kw):
+    for r in pc:
+        if all(r.get(k)==v for k,v in kw.items()): return r
+r=prow(analysis="ladder",contrast="R3-R2",regime="L",seeds="conf 10-19",metric="yield (hits/500)")
+A("cluster M3 L conf yield [-4.0, 23.0], 49% Townsend",round(r["cluster_t"][0],1)==-4.0 and round(r["cluster_t"][1],1)==23.0 and r["top_lab"]=="2020_Townsend" and "\u22124.0 to 23.0" in V)
+r=[x for x in pc if x["analysis"]=="L7" and x["group"]=="gbm_aware" and x["regime"]=="L" and x["seeds"].startswith("seeds 0-9") and x["contrast"]=="loop-frozen" and x["metric"].startswith("yield")][0]
+A("cluster aware L loop-frozen -53.0..147.6, 89% Townsend",round(r["cluster_t"][0],1)==-53.0 and round(r["cluster_t"][1],1)==147.6 and r["top_share"]==0.887 and "\u221253.0 to 147.6" in V)
+r=prow(analysis="ladder",contrast="R3-R2",regime="L",seeds="conf 10-19",metric="E-AUROC per lab")
+A("cluster M3 L conf ranking +0.092 [0.002,0.182]",round(r["estimate"],3)==0.092 and round(r["cluster_t"][0],3)==0.002 and "0.002 to 0.182" in V)
 bad=[n for n,ok in chk if not ok]; print(len(chk),"checks; failed:",bad)
 def last(p): 
     return subprocess.run(["git","-C","/Users/kky/biomate-review","log","-1","--format=%h","--",p],capture_output=True,text=True).stdout.strip()
