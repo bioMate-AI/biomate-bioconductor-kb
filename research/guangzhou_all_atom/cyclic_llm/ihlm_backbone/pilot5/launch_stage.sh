@@ -21,7 +21,8 @@ aws s3 cp \$B/code/p4common.py \$R/cyclic_llm/ihlm_backbone/pilot4/ --only-show-
 aws s3 cp \$B/code2/ \$R/cyclic_llm/ihlm_backbone/pilot5/ --recursive --only-show-errors
 cd \$R/cyclic_llm/ihlm_backbone/pilot5; RES=\$PWD/results; NP=\$(nproc --all); export OMP_NUM_THREADS=1
 echo "boot ok \$(date -u) nproc=\$NP stage=\$STAGE"; aws s3 cp /w_boot.log \$B/run1/\$P/boot.log --only-show-errors
-( while true; do aws s3 sync /w/out \$B/run1/\$P/ --only-show-errors; aws s3 cp /w_boot.log \$B/run1/\$P/boot.log --only-show-errors; sleep 60; done ) &
+mkdir -p /w/out/configs /w/out/outer; aws s3 sync \$B/run1/\$P/configs/ \$RES/configs/ --only-show-errors; aws s3 sync \$B/run1/\$P/outer/ \$RES/ --only-show-errors   # resume after a spot reclaim: restore this stage's own earlier outputs
+( while true; do cp -u \$RES/configs/*.json /w/out/configs/ 2>/dev/null; cp -u \$RES/outer_\${STAGE}_r*_f*.csv.gz /w/out/outer/ 2>/dev/null; aws s3 sync /w/out \$B/run1/\$P/ --only-show-errors; aws s3 cp /w_boot.log \$B/run1/\$P/boot.log --only-show-errors; sleep 60; done ) &
 SYNC=\$!
 case \$STAGE in
  select)
