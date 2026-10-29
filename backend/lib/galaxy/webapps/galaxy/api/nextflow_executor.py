@@ -5749,6 +5749,49 @@ def _sanitize_numeric_overrides(params: dict, run_id: str = "") -> None:
                 params[_k] = _m.group(1)
 
 
+def _normalize_smiles_list_param(params: dict, run_id: str = "") -> None:
+    """Authoritative guard: `smiles_list` MUST reach the pipeline as a JSON-ARRAY
+    string — the form ADMET / drug-discovery workflows declare and parse
+    (`params.smiles_list = '["CC...","..."]'`).
+
+    A bare SMILES ("CC(C)(C)c1ccc...") or a comma/newline-separated list arrives as
+    non-JSON and aborts the Nextflow session at parse time ("Unable to determine the
+    current character ... 'C'", line 1 index 0) — observed 2026-10-29 on a
+    terfenadine ADMET run, run died in ~17s before any process. Scoped to the one
+    key: a value already a valid JSON array is canonicalized; a Python list, a bare
+    SMILES, or a comma/newline list is wrapped into a JSON array. Mutates in place.
+    SMILES never contain commas, so comma/newline splitting is safe.
+    """
+    import json as _slj
+    if "smiles_list" not in params:
+        return
+    v = params["smiles_list"]
+    items = None
+    if isinstance(v, list):
+        items = [str(x).strip() for x in v if str(x).strip()]
+    elif isinstance(v, str):
+        s = v.strip()
+        if not s:
+            return
+        if s.startswith("["):
+            try:
+                parsed = _slj.loads(s)
+                if isinstance(parsed, list):
+                    items = [str(x).strip() for x in parsed if str(x).strip()]
+            except Exception:
+                items = None  # looks like an array but isn't valid JSON → rebuild
+        if items is None:
+            items = [x.strip() for x in re.split(r"[,\n]+", s) if x.strip()]
+    else:
+        return
+    if items is None:
+        return
+    new_val = _slj.dumps(items)
+    if new_val != v:
+        log.info("[SmilesNorm run=%s] smiles_list %r -> %r", run_id, v, new_val)
+    params["smiles_list"] = new_val
+
+
 def _execute_nextflow_impl(
     request: NextflowExecuteRequest,
     _run_id: Optional[str] = None,
@@ -5773,6 +5816,9 @@ def _execute_nextflow_impl(
     # Authoritative sanitize of executable overrides before input validation /
     # --params-file / `nextflow run` (fixes e.g. WGS max_spots="500000)").
     _sanitize_numeric_overrides(params, run_id=_run_id or "")
+    # Authoritative: coerce smiles_list to a JSON-array string (a bare SMILES aborts
+    # the Nextflow session at JSON parse — terfenadine ADMET run, 2026-10-29).
+    _normalize_smiles_list_param(params, run_id=_run_id or "")
     # `profile` and `executor` are Nextflow CLI / compute options — not pipeline params.
     # Passing them as --profile in the param loop breaks nf-core (duplicate -profile vs --profile).
     _param_profile = params.pop("profile", None)
