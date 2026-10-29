@@ -2,6 +2,7 @@ import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workfl
 import { localOnly, localOffline, localMessagesClient, localConfig } from './local-llm.js';
 import { localIntentPrompt } from './local-intent-prompt.js';
 import { localResponsePrompt } from './local-response-prompt.js';
+import { scientificToolRequest, scientificToolResult } from './scientific-chat-tools';
 /**
  * Galaxy Assistant Service
  *
@@ -302,6 +303,64 @@ status is "registered".`,
         },
       },
       required: ['capability_description'],
+    },
+  },
+  {
+    name: 'identify_targets',
+    description: `Identify and rank candidate drug/biomarker TARGETS (genes) for a disease or
+biological question, with provenance. Use this when the user asks "what are the targets for X?",
+"nominate targets for <disease>", "rank these genes as targets", "what's the evidence for GENE in
+DISEASE?", or wants a fast evidence scan before committing to a target. Returns a ranked list of
+genes, each with a confidence TIER (corroborated / nominated / vetoed), a score, which evidence
+CHANNELS fired, per-channel scores and provenance — so the answer is auditable, not asserted.
+
+HONEST FRAMING: inspect the returned ranking metadata, actual channels, provenance and errors.
+When OpenTargets is available the default order follows its association scores; other channels
+provide corroboration/conflict. Without a disease ID or when OpenTargets fails, do NOT claim
+OpenTargets-primary ordering. LLM-only nomination is not retrieved literature evidence. No result
+establishes superiority over OpenTargets or clinical validity. Report every tier faithfully, including
+supporting/none/vetoed. Never describe harmonic-sum per_channel_z values as statistical z-scores.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'The target-identification question / disease / biology (e.g. "targets for cutaneous melanoma", "rank BRAF, CDKN2A, BAP1 as melanoma targets").',
+        },
+        disease_id: {
+          type: 'string',
+          description: 'Optional verified EFO/MONDO disease id — enables the OpenTargets disease-association channel. Omit if unknown; never guess the identifier.',
+        },
+        candidate_targets: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional explicit gene symbols to score/rank (e.g. ["BRAF","CDKN2A","BAP1"]). Omit to let the channels nominate.',
+        },
+        top_k: { type: 'integer', minimum: 1, maximum: 100, description: 'How many ranked targets to return (default 25).' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'write_review',
+    description: `Write a literature-backed OVERVIEW / SURVEY / mini-review on a scientific topic and
+return synthesized PROSE with real citations — not just a paper list. Use this when the user asks to
+"write an overview of X", "give me a survey/review of the field", "summarize the state of the art on
+Y", or wants a grounded narrative with references. This runs BioMate's research agent, which does its
+own literature retrieval + knowledge-base facts and synthesizes a written answer with a citation list,
+a confidence score, and follow-up questions. Prefer this over search_literature when the user wants
+WRITTEN synthesis; prefer search_literature when they just want the ranked papers. Cite only what the
+tool returns — never invent a DOI/PMID. (Composes well after identify_targets: rank targets, then
+write the overview of the top target's biology.)`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'The topic/question to write the overview on (e.g. "overview of KRAS G12C inhibitors in NSCLC", "survey of spatial transcriptomics deconvolution methods").',
+        },
+      },
+      required: ['query'],
     },
   },
 ];
@@ -3016,6 +3075,8 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
             case 'list_data_sources': output = await this._toolListDataSources(args); break;
             case 'search_workflows': output = await this._toolSearchWorkflows(args); break;
             case 'request_new_tool': output = await this._toolRequestNewTool(args, toolContext.context); break;
+            case 'identify_targets': output = await this._toolIdentifyTargets(args); break;
+            case 'write_review': output = await this._toolWriteReview(args); break;
             default:
               // External MCP tools (mcp__<server>__<tool>) → route to owning server.
               if (typeof name === 'string' && name.startsWith('mcp__')) {
@@ -8852,7 +8913,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       const userMcpTools = toolsEnabledThisTurn ? await this._fetchUserMcpTools(context) : [];
       const agentTools = toolsEnabledThisTurn
         ? [
-            ...BIOMATE_TOOLS.filter(tool => !localOffline() || !['search_literature', 'list_data_sources'].includes(tool.name)),
+            ...BIOMATE_TOOLS.filter(tool => !localOffline() || !['search_literature', 'list_data_sources', 'identify_targets', 'write_review'].includes(tool.name)),
             ...userMcpTools,
           ]
         : undefined;
@@ -9348,6 +9409,12 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             break;
           case 'request_new_tool':
             output = await this._toolRequestNewTool(block.input, context);
+            break;
+          case 'identify_targets':
+            output = await this._toolIdentifyTargets(block.input);
+            break;
+          case 'write_review':
+            output = await this._toolWriteReview(block.input);
             break;
           default:
             // External MCP tools are namespaced mcp__<server>__<tool>; route them
@@ -9895,6 +9962,28 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       });
     } catch (err: any) {
       return { status: 'error', message: err?.message ?? String(err) };
+    }
+  }
+
+  /** Thin, user-scoped proxy to the existing target-ID engine. */
+  private async _toolIdentifyTargets(input: unknown): Promise<unknown> {
+    try {
+      const payload = scientificToolRequest(input, 'targets');
+      const { data } = await this._api().client.post('/api/target-id/identify', payload, { timeout: 90000 });
+      return scientificToolResult(data, 'targets', payload.query);
+    } catch (err: any) {
+      return { error: err?.detail?.detail || err?.detail?.error || err?.message || String(err) };
+    }
+  }
+
+  /** Preserve the research agent's grounded prose, exact citations and limitations. */
+  private async _toolWriteReview(input: unknown): Promise<unknown> {
+    try {
+      const payload = scientificToolRequest(input, 'review');
+      const { data } = await this._api().client.post('/api/ai_assistant/research_query', payload, { timeout: 120000 });
+      return scientificToolResult(data, 'review', payload.query);
+    } catch (err: any) {
+      return { error: err?.detail?.detail || err?.detail?.error || err?.message || String(err) };
     }
   }
 

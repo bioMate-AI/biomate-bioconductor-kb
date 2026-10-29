@@ -119,7 +119,7 @@ const liveCount = (sql: string): number =>
 // ===========================================================================
 describe("doc<->code drift: catalog counts (live DB is the truth)", () => {
   it.skipIf(db === null)(
-    "live DB holds exactly 4,210 workflows / 42 domains / 69 chains",
+    "live DB holds exactly 4,223 workflows / 42 domains / 69 chains",
     () => {
       // If any of these change, the fix is: update these numbers AND every
       // user/agent-facing string that quotes the catalog size in the same PR.
@@ -129,7 +129,11 @@ describe("doc<->code drift: catalog counts (live DB is the truth)", () => {
       // 2026-10-05: search/DB index refresh brought the catalog to 4,210
       // workflows (ground truth per docs/20261004_CATALOG_COUNT_RECONCILIATION.md);
       // domains (42) and chains (69) unchanged. Verified against the live DB.
-      expect(liveCount("SELECT COUNT(*) AS c FROM workflows")).toBe(4210);
+      // 2026-10-29 reconciliation: the 2026-10-20 incremental indexing added
+      // the documented novelty/FTO and other real workflows (4211 -> 4223).
+      // See docs/20261020_QA_POLISH_NOVELTY_INDEXING_SESSION.md. This is a
+      // verified catalog change, not permission to relax the equality guard.
+      expect(liveCount("SELECT COUNT(*) AS c FROM workflows")).toBe(4223);
       expect(liveCount("SELECT COUNT(DISTINCT domain) AS c FROM workflows")).toBe(42);
       expect(liveCount("SELECT COUNT(*) AS c FROM workflow_chains")).toBe(69);
     },
@@ -204,8 +208,8 @@ describe("doc<->code drift: catalog counts (live DB is the truth)", () => {
       "CLAUDE.md regressed to the stale 2,455/34 catalog line",
     ).toBe(false);
     expect(
-      /4,2\d\d workflows/.test(txt),
-      "CLAUDE.md should record the live ~4,2xx workflow count",
+      txt.includes('4,223 workflows'),
+      "CLAUDE.md should record the exact current workflow count",
     ).toBe(true);
   });
 });

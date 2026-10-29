@@ -56,6 +56,8 @@ class OrchestratorResult:
     channel_errors: Dict[str, str] = field(default_factory=dict)
     arbiter: str = "evidence_gate"
     plan: Optional[Dict[str, Any]] = None
+    ranking: Dict[str, Any] = field(default_factory=dict)
+    channel_provenance: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
     def top(self, k: int = 20) -> List[TargetScore]:
         return self.targets[:k]
@@ -67,10 +69,13 @@ class OrchestratorResult:
             "channels_run": self.channels_run,
             "channel_errors": self.channel_errors,
             "plan": self.plan,
+            "ranking": self.ranking,
+            "channel_provenance": self.channel_provenance,
             "targets": [
                 {
                     "rank": t.rank, "target": t.target, "score": round(t.score, 4), "tier": t.tier,
                     "n_fired": t.evidence.n_fired, "fired_channels": t.evidence.fired_channels,
+                    "conflict": t.evidence.conflict, "note": t.evidence.note,
                     "per_channel_z": {k: round(v, 3) for k, v in t.evidence.per_channel_z.items()},
                 }
                 for t in self.targets

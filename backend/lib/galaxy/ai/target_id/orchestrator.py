@@ -77,10 +77,20 @@ class TargetIDOrchestrator:
     def identify(self, query: str, context: Optional[Dict[str, Any]] = None) -> OrchestratorResult:
         ctx = dict(context or {})
         ctx.setdefault("query", query)
+        # Explicit caller candidates constrain the returned ranking. Candidates
+        # merely proposed by the optional LLM planner are not a user restriction.
+        requested = {str(g).upper() for g in ctx.get("candidate_targets", [])} if ctx.get("candidate_targets") else set()
         plan = self._plan(query, ctx)
         results = _fanout(self.channels, ctx, self.max_concurrent)
         errors = {cr.channel: cr.error for cr in results if cr.error}
         ranked = self.arbiter.rank(results, ctx)
+        if requested:
+            ranked = [t for t in ranked if t.target.upper() in requested]
+            for rank, target in enumerate(ranked, 1):
+                target.rank = rank
+        primary = getattr(self.arbiter, "primary_channel", None)
+        primary_available = bool(primary and any(cr.channel == primary and cr.ok for cr in results))
+        harmonic = isinstance(self.arbiter, HarmonicSumArbiter)
         return OrchestratorResult(
             query=query,
             targets=ranked,
@@ -88,6 +98,15 @@ class TargetIDOrchestrator:
             channel_errors=errors,
             arbiter=getattr(self.arbiter, "name", "arbiter"),
             plan=plan,
+            ranking={
+                "mode": "primary_channel" if primary_available else ("weighted_harmonic_sum" if harmonic else "arbiter_specific"),
+                "primary_channel": primary if primary_available else None,
+                "requested_primary_channel": primary,
+                "evidence_value_type": "normalized_score" if harmonic else "arbiter_specific",
+                "requested_candidates": sorted(requested),
+                "unscored_candidates": sorted(requested - {t.target.upper() for t in ranked}),
+            },
+            channel_provenance={cr.channel: cr.provenance for cr in results if cr.ok},
         )
 
 

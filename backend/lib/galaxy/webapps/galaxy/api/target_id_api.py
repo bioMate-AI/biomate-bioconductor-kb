@@ -41,9 +41,7 @@ async def identify_targets(request: IdentifyTargetsRequest) -> Dict[str, Any]:
     if not request.query:
         raise HTTPException(status_code=400, detail="query required")
 
-    from galaxy.ai.target_id import (
-        HarmonicSumArbiter, TargetIDOrchestrator, default_channels,
-    )
+    from galaxy.ai.target_id import TargetIDOrchestrator, default_channels
 
     llm = None
     if request.use_llm:
@@ -68,7 +66,8 @@ async def identify_targets(request: IdentifyTargetsRequest) -> Dict[str, Any]:
 
     orch = TargetIDOrchestrator(
         channels,
-        arbiter=HarmonicSumArbiter(),  # adopted open-source scheme (OT harmonic sum + reliability weights)
+        # Use the orchestrator's audited default: OpenTargets-primary when that
+        # channel is available, with explicit fallback metadata when it fails.
         llm_client=llm,
         max_concurrent=request.max_concurrent,
     )
