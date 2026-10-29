@@ -53,7 +53,7 @@ python3.11 track_e/bw_eval.py /w/out/bw_psa.jsonl /w/out/bw_eval.json /w/out/Cyc
 SMOKE=0
 """
 TUNE2 = """mkdir -p /w/out/run
-aws s3 sync s3://biomate-nextflow-work/cyclic_peptide/allatom/E/r5/tune/out/run /w/out/run --only-show-errors
+aws s3 sync s3://biomate-nextflow-work/cyclic_peptide/allatom/E/__RESUME_FROM__/tune/out/run /w/out/run --only-show-errors
 rm -f /w/out/run/tune/F1/edit_ga#* /w/out/run/tune/F2/edit_ga#*            # produced under the buggy (non-terminating) edit_ga: redo under the fixed code
 echo "resumed tune files: $(find /w/out/run/tune -name '*.json' | wc -l)" > /w/out/resume.log
 python3.11 track_e/run_stage0.py tune /w/out/run --budget 1000 --seeds 100-102 > /w/out/tune.log 2>&1; echo "tune rc=$?" >> /w/out/tune.log
@@ -72,7 +72,7 @@ aws s3 cp /var/log/ud.log $P/boot.log --only-show-errors
 shutdown -h now
 """
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(); ap.add_argument("stage", choices=["prep", "main", "quality", "tune", "eval", "bw", "tune2"]); ap.add_argument("out"); ap.add_argument("--run", default="r1"); ap.add_argument("--cap-min", type=int, default=240); ap.add_argument("--groups", default="v2")
+    ap = argparse.ArgumentParser(); ap.add_argument("stage", choices=["prep", "main", "quality", "tune", "eval", "bw", "tune2"]); ap.add_argument("out"); ap.add_argument("--run", default="r1"); ap.add_argument("--cap-min", type=int, default=240); ap.add_argument("--groups", default="v2"); ap.add_argument("--resume-from", default="r8")
     a = ap.parse_args()
     if a.stage == "quality":
         head = HEAD.split("python3.11 -m pytest")[0]
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         s = HEAD + TUNE + TAIL
     elif a.stage == "tune2":
         head = HEAD.split("python3.11 -m pytest")[0]
-        s = head + TUNE2 + TAIL
+        s = head + TUNE2.replace("__RESUME_FROM__", a.resume_from) + TAIL
     elif a.stage == "bw":
         head = HEAD.split("python3.11 -m pytest")[0]
         s = head + BW + TAIL
