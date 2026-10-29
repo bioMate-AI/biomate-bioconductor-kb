@@ -215,11 +215,10 @@ a pair of execution-relevant decision tasks graded against a mechanistic
 reference, and whose design includes a cross-stage, execution-grounded
 track reported here as a roadmap with a pilot, not as a measured
 headline. We report baselines unedited. On Phase-I dose selection,
-language models are weak (frontier 0.11–0.50) while a small on-premises
-model reaches 0.78; the <strong>oracle reference — the standard
-selection rule applied to the hidden true toxicity curve — scores
-0.85</strong>, showing that the task is far from solved by any language
-model. The oracle’s three misses of 20 reflect differences between the
+language models are weak (frontier 0.11–0.50); the <strong>oracle
+reference — the standard selection rule applied to the hidden true
+toxicity curve — scores 0.85</strong>, showing that the task is far from
+solved by any language model. The oracle’s three misses of 20 reflect differences between the
 selection policy and the benchmark’s author-defined answers
 (tie-handling and no-safe-dose criteria), which we discuss as a
 target-definition question rather than task difficulty. On
@@ -361,10 +360,10 @@ Phase-I dose selection: models versus the mechanistic rule</h3>
 accuracy.</figcaption>
 </figure>
 <p><strong>Figure 2.</strong> Dose-selection (maximum-tolerated-dose)
-accuracy over 20 scenarios. Language models span 0.11–0.50 (frontier)
-with a small on-premises model at 0.78; the dashed line is the
-mechanistic rule applied to the true exposure–response curve (0.85).</p>
-<p>Three readings:</p>
+accuracy over 20 scenarios. Language models span 0.11–0.50 (frontier);
+the dashed line is the mechanistic rule applied to the true
+exposure–response curve (0.85).</p>
+<p>Two readings:</p>
 <ol type="1">
 <li><strong>The mechanistic rule, on the true curve, scores 0.85
 (17/20).</strong> Its three misses are not curve errors but
@@ -375,12 +374,9 @@ maximum tolerated dose” is itself a judgment call, a useful signal about
 the benchmark’s own hardest items.</li>
 <li><strong>Frontier language models are weak here (0.11–0.50).</strong>
 Dose selection from an exposure–response model is not something they do
-reliably.</li>
-<li><strong>A small on-premises model reaches 0.78</strong> — above
-every frontier model on this task, though below the mechanistic rule. We
-flag this as notable but do not over-read it: the proper solution is the
-mechanistic exposure–response calculation, which the benchmark exists to
-motivate, not a language model’s unaided guess.</li>
+reliably. The proper solution is the mechanistic exposure–response
+calculation, which the benchmark exists to motivate, not a language
+model’s unaided guess.</li>
 </ol>
 <h3 id="pharmacokinetic-exposure-prediction">5.2 Pharmacokinetic
 exposure prediction</h3>
@@ -454,8 +450,9 @@ reach an outcome of 1.0 with fidelity 1.0 and zero empties</strong>
 consistent three-model result localizes the hand-authored failure
 precisely — language models fail to <em>infer the exposure–response
 relationship from implicit clinical inputs</em>, not to do the
-arithmetic once the relationship is specified. The on-premises model
-requires its own serving endpoint and is reported separately.</p>
+arithmetic once the relationship is specified. (A locally-served small
+open model is a planned additional baseline; it is omitted here because
+no receipted per-item run on these items exists yet.)</p>
 <p>The <strong>fidelity</strong> dimension is what makes this
 diagnostic: a low outcome with <em>low</em> fidelity means the system
 never reconstructed the curve, whereas a low outcome with <em>high</em>
