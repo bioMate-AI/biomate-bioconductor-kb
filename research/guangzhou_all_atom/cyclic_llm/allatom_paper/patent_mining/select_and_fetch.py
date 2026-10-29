@@ -13,19 +13,21 @@ def log(msg, out):
     open(os.path.join(out, "stage.log"), "a").write(f"{time.strftime('%FT%TZ', time.gmtime())} {msg}\n")
 
 def _range_get(url, a, b):
-    for attempt in range(6):
+    last = None
+    for attempt in range(8):
         try:
             req = urllib.request.Request(url, headers={"Range": f"bytes={a}-{b}", "User-Agent": config.GP_UA})
-            with urllib.request.urlopen(req, timeout=180) as r:
+            with urllib.request.urlopen(req, timeout=240) as r:
                 data = r.read()
             if len(data) == b - a + 1:
                 return data
-        except Exception:
-            pass
-        time.sleep(3 * (attempt + 1))
-    raise RuntimeError(f"range {a}-{b} failed")
+            last = f"short read {len(data)}/{b - a + 1}"
+        except Exception as e:
+            last = repr(e)[:160]
+        time.sleep(5 * (attempt + 1))
+    raise RuntimeError(f"range {a}-{b} failed: {last}")
 
-def download_file(f, out, conns=16, chunk=16 * 1024 * 1024):
+def download_file(f, out, conns=8, chunk=8 * 1024 * 1024):
     """Parallel ranged download (per-connection speed from EBI is ~0.9 MB/s; it scales with connections)."""
     import concurrent.futures as cf
     url, path = f"{config.SURECHEMBL_BASE}/{f}", os.path.join(D, f)
