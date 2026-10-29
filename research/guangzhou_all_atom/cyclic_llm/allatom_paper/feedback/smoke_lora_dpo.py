@@ -105,7 +105,8 @@ def rel_weight_change():
     return math.sqrt(num / den) if den else 0.0
 
 
-upd = GradedPreferenceUpdater(group_size=N_PER, margin=0.02, max_pairs_per_group=2, beta=BETA)
+GROUP_MIN_VALID = 16          # design value (>= 16 valid members per prompt group); NOT tied to N_PER (smoke v1/v2 bug: group_size=N_PER required every sample to be valid)
+upd = GradedPreferenceUpdater(group_size=GROUP_MIN_VALID, margin=0.02, max_pairs_per_group=2, beta=BETA)
 gate = KLWeightGate(check_from=3)
 log = dict(rounds=[], steps=[], config=dict(N_PER=N_PER, ROUNDS=ROUNDS, STEPS=STEPS, LR=LR, BETA=BETA, PREFIX_FRAC=PREFIX_FRAC,
                                               MAXNEW=MAXNEW, TEMP=TEMP))
