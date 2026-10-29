@@ -4625,8 +4625,8 @@ Rules:
           tool_use_id: 'research_agent',
           name: 'research_query',
           message: paperContentResult
-            ? `Reading your paper and searching relevant literature…`
-            : `Searching relevant literature and databases…`,
+            ? `Reading your paper, then searching PubMed · Europe PMC · Semantic Scholar · OpenAlex in parallel…`
+            : `Searching PubMed · Europe PMC · Semantic Scholar · OpenAlex in parallel…`,
         });
       }
       try {
