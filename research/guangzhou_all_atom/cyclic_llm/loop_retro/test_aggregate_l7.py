@@ -107,3 +107,21 @@ def test_kshuf_permutation_is_independent_of_hash_seed():
             "for s in sorted(set(srcs)):\n ix=np.array([i for i,v in enumerate(srcs) if v==s]);o[ix]=K[rr.permutation(ix)]\nprint(o.tolist())")
     outs = {subprocess.run([sys.executable, "-c", code], env={"PYTHONHASHSEED": h, "PATH": ""}, capture_output=True, text=True).stdout for h in ("1", "2", "3", "4")}
     assert len(outs) == 1
+
+
+def test_collect_script_picks_up_every_small_model_prefix_and_skips_llm():
+    """2026-10-31 code review: collect_l7.sh matched only res7[af]_, so res7k/m/n/q (the confirmatory, source-matched, L9 and deterministic-K_shuf runs) were silently dropped, and res7a_llm matched by accident."""
+    import re, os
+    src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "collect_l7.sh")).read()
+    m = re.search(r"awk '(/PRE [^']*)\{print", src); assert m, "collect pattern not found"
+    pat = m.group(1)
+    # emulate awk: conditions joined by && ; '/re/' or '!/re/'
+    conds = [c.strip() for c in pat.split("&&")]
+    def accepts(line):
+        for c in conds:
+            neg = c.startswith("!"); c = c.lstrip("!"); r = c[1:-1]  # drop exactly one leading and one trailing awk delimiter
+            if bool(re.search(r, line)) == neg: return False
+        return True
+    keep = ["res7a_gbm_aware/", "res7f_gbm_blind/", "res7k_gbm_confirm/", "res7m_gbm/", "res7n_L9_phys/", "res7q_gbm_aware/", "res7q_gbm_confirm/", "res7f_chemberta_L_b/", "res7f_atom_L_a/"]
+    for k in keep: assert accepts("                           PRE " + k), k
+    assert not accepts("                           PRE res7a_llm/")
