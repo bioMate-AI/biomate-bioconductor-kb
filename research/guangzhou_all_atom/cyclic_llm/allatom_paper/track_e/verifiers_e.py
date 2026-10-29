@@ -109,9 +109,10 @@ def load_labelled(ann_path=ANN_DEFAULT, assay=ASSAY):
 def source_groups(d):
     """Deterministic size-balanced round-robin over sources (largest first): groups A=0 (train), S=1 (stop), B=2 (held-out).
     Uses only source sizes. Returns dict source -> group index."""
-    sizes = d.groupby("Source").size().sort_values(ascending=False)
+    sizes = d.groupby("Source").size()
+    ranked = sorted(sizes.items(), key=lambda kv: (-int(kv[1]), str(kv[0])))      # size desc, ties by source name
     order = [0, 1, 2, 2, 1, 0]
-    return {src: order[i % len(order)] for i, src in enumerate(sizes.index)}
+    return {src: order[i % len(order)] for i, (src, _) in enumerate(ranked)}
 
 
 def group_summary(d, groups):
