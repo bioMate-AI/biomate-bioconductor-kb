@@ -499,3 +499,28 @@ Output reproduced by me: 6,960 labelled structures; sources 45 (old rule) vs 41 
 - Ledger row S1 (first pass) compared the drafts to the pre-fix CV values (0.313 / 0.301 / 0.264) and is **STALE**. Recomputed now from `stratification/data/cv_preds.csv.gz` (pooled Spearman with y) — values in the next line.
 - Stale pre-fix copies remain in `20261030_COMMITTEE2_PACKET.md` (45 sources, 0.31/0.30 leave-labs-out, 4,156 / 16, 7,451 / 19) and `20261030_COMMITTEE_PACKET.md:281` ("29 of 50"; post-fix 34): committee artefacts not owned by the writer; footnote or refresh is the coordinator's call. Status **STALE (committee packets)**.
 Recomputed pooled Spearman (blind / chiral / descriptor): grouped by flat structure 0.670 / 0.710 / 0.665; **leave-labs-out (grouped by source) 0.223 / 0.212 / 0.250**; random 0.711 / 0.760 / 0.732; N-methyl rule 0.246 (0.25). These equal the stratification workstream's post-fix values: **MATCH**. Row S1's old values (0.313 / 0.301 / 0.264) are superseded; the pre-fix grouped values (0.666 / 0.708 / 0.666) were nearly unchanged, as reported.
+
+---
+
+## UPDATE 12 — Stale-value sweep after the stratification fix (coordinator request; committee packets exempt as historical)
+
+Method: regex sweep over main draft, v2, brief, patch note, preprint, FIGURES_STATUS, figure plan, `LESSONS_AND_TODAY_PLAN`, `20261029_KB_AUDIT_AND_GAPS`, `20261014_CYCLIC_PEPTIDE_PROGRAM_MASTER`, and `figures_paper/*.py`; patterns: leave-labs-out 0.30/0.31/0.26, "45 sources/papers", 17,120 / 851, +0.151, "plain GBM", 4,156 / 16, 7,451 / 19, 0.313 / 0.301 / 0.264, "29 of 50".
+
+| occurrence | label | status |
+|---|---|---|
+| main 30, v2 14: "7,334 peptides from 45 papers" | describes the published CycPeptMPDB (LIT-SUMMARY), not our 6,960 set; main line 444 states this | correct, CLOSED |
+| main 72, 462; brief 85: "17,120 / 851" | explicitly "earlier / pre-freeze profile, not the benchmark's count" | correctly labelled pre-fix |
+| main 114, v2 99, brief 15: "4,156 pairs / 16 sources; D-flip 7,451 / 19" | IH-LM edit-prior-leak history (old pooled analysis) | correctly labelled |
+| main 3, v2 3, brief 5, 7: "plain GBM" | "earlier 'plain GBM' L7 numbers were the blind learner" | correctly labelled |
+| main 372 (A21): "0.22 / 0.21 leave-labs-out (post-fix)" | post-fix | MATCH |
+| "+0.151" | none found in the files swept | CLOSED |
+| "about a third" phrasing | no occurrence found in drafts/brief | CLOSED (no statement to reconcile) |
+| `20261030_FIGURES_STATUS.md:48` and `figures_paper/make_status.py:41`: figures "checked against … (0.31/0.30/0.26 leave-labs-out)" | pre-fix values, not labelled | **STALE** |
+| `20261030_LESSONS_AND_TODAY_PLAN.md:11`: "0.67 vs 0.30 leave-labs-out" | plan doc, unlabelled; post-fix is 0.22 / 0.21 / 0.25 | **STALE** |
+| `20261029_KB_AUDIT_AND_GAPS.md:81`: "workstream 4's leave-labs-out fingerprint models (0.30–0.31, a different set of 45 sources …)" | pre-fix values and "45 sources"; the physchem channel comparison "ρ 0.39 vs 0.30–0.31" changes to 0.39 vs 0.21–0.22 | **STALE** (KB-audit owner) |
+| `20261014_CYCLIC_PEPTIDE_PROGRAM_MASTER.md` | no stale value found by the patterns | CLOSED |
+
+### Figures (committed copies and provenance)
+- **FCV_evaluation_schemes (committed, a88c61593, 16:21 on 2026-10-28):** I opened the PNG. It still shows **"n = 6,960 peptides, 45 sources"** and leave-labs-out bars **0.31 / 0.30 / 0.26**; post-fix is 0.223 / 0.212 / 0.250 and 41 sources. The MANIFEST cites `cv_preds.csv.gz`@59d654cbc (pre-fix); the correction commit is 50c5deea6 (19:16). **STALE: not regenerated.**
+- Other figures whose MANIFEST sources predate the fix commit and whose inputs the fix changed: **F8_strata_heatmap** (`strata_perf.csv`@59d654cbc; changed in 50c5deea6, 488 lines), **F9_mmp_forest** (`mmp_effects_*`@59d654cbc, matched pairs 4,156 / 16 → 4,166 / 15), **F2_dataset_structure** and **FL5_loop_results** (`annotations.csv.gz`@2fe624487; the annotation file was corrected later, e2d1069bf). **STALE or UNVERIFIED until regenerated** (F2/FL5 only if the plotted quantities depend on Source; I did not open those PNGs).
+- `f_cv_schemes.py` asserts the figure's leave-labs-out values against the analysis document (tolerance 0.011); it would fail on the pre-fix figure against the post-fix document, so a regeneration run will show it. I did not run it, because it writes into the gitignored `out/` directory.
