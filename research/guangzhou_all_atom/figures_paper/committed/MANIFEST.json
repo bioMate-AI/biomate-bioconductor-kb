@@ -1,5 +1,5 @@
 {
- "note": "Cited figures and tables copied from figures_paper/out (gitignored) after run_all.py; run_all.py regenerates them deterministically. F5 and T6 were regenerated from l7_aggregate.json SHA-256 e5da79e9ab27086a505ced08fd18845deafd98e6c949428b1bbe4f357c80ef13 (ab35481bb, keyed by learner); re-run after further aggregate changes.",
+ "note": "Cited figures and tables copied from figures_paper/out (gitignored) after run_all.py; run_all.py regenerates them deterministically. F5 and T6 were regenerated from l7_aggregate.json SHA-256 12940022caa89c364a44d2cabc7401948d7a28cd139199a2ca48cf6c1fbf4ec8 (ab35481bb, keyed by learner); re-run after further aggregate changes.",
  "sha256": {
   "F1_study_design.pdf": "ab5a57f2d1cd5f6f4767a07ad3922ff6b2d8f294c3c00593e230d359deff1182",
   "F1_study_design.png": "06d7160d3dc2058de58cdea53fa0a807226bdb4bdd4f0206037aac0e4b5e7601",

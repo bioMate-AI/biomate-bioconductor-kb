@@ -50,6 +50,8 @@ nm=0
 for arm,c in l7["small"].items():
     for k,v in c.get("contrasts_cluster",{}).items():
         if not arm.startswith(("gbm_physchem|","gbm_aware|","gbm_blind|")) or arm.split("|")[1] not in ("A","B","L"): continue      # regime M = L9 sensitivity (res7n, collected since 2026-10-31), not in the tables; only the three tabled learners; other groups (detK, confirm, chemberta, atom_lm) may have insufficient clusters (ci_cluster None)
+        if cb[k]=="kshuf" and arm.startswith(("gbm_aware|","gbm_blind|","gbm_physchem|")):
+            dk=l7["small"][arm.replace("|","_detK|")]["contrasts_cluster"][k]; v=dk
         cl=cell(v["mean"],*v["ci_cluster"])
         if arm.startswith(("gbm_physchem|","gbm_aware|","gbm_blind|")):
             # random-feedback cell is absent for plain GBM A,B in the tables
@@ -95,7 +97,7 @@ A("compound-disjoint C2/C3 quoted",abs(cg["compound_disjoint"]["C2"]["point"]-0.
 
 # ---- regenerated aggregate (ab35481bb): hash, learner keys, aware numbers quoted in the drafts ----
 import hashlib
-A("aggregate sha256 matches frozen file and drafts", hashlib.sha256(open(L+"l7_aggregate.json","rb").read()).hexdigest()=="e5da79e9ab27086a505ced08fd18845deafd98e6c949428b1bbe4f357c80ef13" and open(L+"l7_aggregate.sha256").read().split()[0]=="e5da79e9ab27086a505ced08fd18845deafd98e6c949428b1bbe4f357c80ef13" and "e5da79e9ab27086a505ced08fd18845deafd98e6c949428b1bbe4f357c80ef13" in M and "e5da79e9ab27086a505ced08fd18845deafd98e6c949428b1bbe4f357c80ef13" in V)
+A("aggregate sha256 matches frozen file and drafts", hashlib.sha256(open(L+"l7_aggregate.json","rb").read()).hexdigest()=="12940022caa89c364a44d2cabc7401948d7a28cd139199a2ca48cf6c1fbf4ec8" and open(L+"l7_aggregate.sha256").read().split()[0]=="12940022caa89c364a44d2cabc7401948d7a28cd139199a2ca48cf6c1fbf4ec8" and "12940022caa89c364a44d2cabc7401948d7a28cd139199a2ca48cf6c1fbf4ec8" in M and "12940022caa89c364a44d2cabc7401948d7a28cd139199a2ca48cf6c1fbf4ec8" in V)
 A("learner keys", {"gbm_aware|A","gbm_aware|B","gbm_aware|L","gbm_blind|A","gbm_blind|B","gbm_blind|L","gbm_physchem|A","gbm_physchem|B","gbm_physchem|L","chemberta|A","chemberta|B"}<=set(l7["small"]) and not any(k.startswith("gbm|") for k in l7["small"]))
 ga=l7["small"]["gbm_aware|L"]["contrasts"]
 A("aware L yield contrasts",ga["loop - random_fb [yield]"]["mean"]==186.1 and ga["loop - random_fb [yield]"]["ci"]==[179.5,192.9] and ga["loop - frozen [yield]"]["mean"]==47.3 and ga["loop - shuffled [yield]"]["mean"]==117.7 and all(x in M for x in ("+186.1","(179.5 to 192.9)","+47.3","+117.7")))
@@ -122,6 +124,12 @@ A("v2 aware L full loop-frozen +47.3 and share 75%", cs(ca["loop - frozen [yield
 A("v2 blind share 92%", round((yb["frozen"]["mean"]-yb["random_fb"]["mean"])/(yb["loop"]["mean"]-yb["random_fb"]["mean"]),2)==0.92 and "92 %" in V)
 fa=json.load(open(L+"frozen_ab_aggregate.json")) if __import__("os").path.exists(L+"frozen_ab_aggregate.json") else None
 A("frozen A/B file present and appendix quotes regime L -16.4", fa is not None and "\u221216.4" in V)
+
+# ---- L7q deterministic K_shuf (aggregate 9190e64c8) ----
+dc=[l7["small"][f"gbm_aware_detK_confirm|{r}"]["contrasts"]["loop_kphys_sub - loop_kshuf_sub [yield]"]["mean"] for r in "ABL"]
+A("L7q confirmatory K_phys - K_shuf yield +4.95/+4.85/+4.90",dc==[4.95,4.85,4.9] and "+4.95 (2.95 to 6.9; Holm 0.0055)" in M and "+4.95, +4.85, +4.90" in V)
+A("L7q n_seeds confirmatory 20",all(l7["small"][f"gbm_aware_detK_confirm|{r}"]["n_seeds"]==20 for r in "ABL"))
+A("L7q physchem B cluster K_phys worse than detK shuffled",l7["small"]["gbm_physchem_detK|B"]["contrasts_cluster"]["loop_kphys_sub - loop_kshuf_sub [E source-rho]"]["ci_cluster"][1]<0 and "\u22120.049" in V)
 bad=[n for n,ok in chk if not ok]; print(len(chk),"checks; failed:",bad)
 def last(p): 
     return subprocess.run(["git","-C","/Users/kky/biomate-review","log","-1","--format=%h","--",p],capture_output=True,text=True).stdout.strip()
