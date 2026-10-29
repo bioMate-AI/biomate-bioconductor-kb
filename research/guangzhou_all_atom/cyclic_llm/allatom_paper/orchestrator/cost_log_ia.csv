@@ -1,0 +1,3 @@
+utc_launch,instance_id,type,name,subnet,note
+2026-10-29T16:59:12Z,i-0afb828dc9e1336ea,c6i.large,allatom-ia,subnet-0254e4c3634b41bfc,spot
+2026-10-29T17:02:55Z,i-093132bdc144bfda4,c6i.large,allatom-ia,subnet-0b35a6e2c1cf02dc2,spot
