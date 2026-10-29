@@ -43,7 +43,7 @@ def audit_sample(rules, n=100, seed=20261031):
     rng = random.Random(seed)
     strata = defaultdict(list)
     for r in sorted(rules, key=lambda r: r["rule_id"]):
-        strata[(r["evidence_tier"], r["property"])].append(r)
+        strata[(r.get("topic", "sar_rule"), r["evidence_tier"])].append(r)
     keys = sorted(strata)
     picks, i = [], 0
     for k in keys:
@@ -75,9 +75,9 @@ def main():
     sample = audit_sample(rules)
     with open(a.out + "_audit_sample.csv", "w", newline="") as fh:
         w = csv.writer(fh)
-        w.writerow(["rule_id", "tier", "property", "direction", "statement", "quote", "pmcid", "judge_correct_0_1", "note"])
+        w.writerow(["rule_id", "topic", "tier", "property", "direction", "statement", "quote", "pmcid", "judge_correct_0_1", "note"])
         for r in sample:
-            w.writerow([r["rule_id"], r["evidence_tier"], r["property"], r["direction"], r["statement"], r["quote"],
+            w.writerow([r["rule_id"], r.get("topic", "sar_rule"), r["evidence_tier"], r["property"], r["direction"], r["statement"], r["quote"],
                         r["citation"]["pmcid"], "", ""])
     json.dump(res, open(a.out + "_measure.json", "w"), indent=1)
     print(json.dumps({k: v for k, v in res.items() if k != "recall"}, indent=1))

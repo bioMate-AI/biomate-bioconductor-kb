@@ -1,22 +1,30 @@
 """K2 stage B: passage extraction with an open-weight instruct model (vLLM), deterministic verification, proxy entailment.
 Resumable: processed passage ids are tracked in done_passages.txt; outputs are append-only JSONL."""
 import argparse, gzip, hashlib, json, os, re, sys, time
-from config import (MODEL, PASSAGE_WORDS, TOPIC_RE, PROPERTIES, SUBSTRUCTURES, DIRECTIONS)
+from config import (MODEL, PASSAGE_WORDS, TOPIC_RE, PROPERTIES, SUBSTRUCTURES, DIRECTIONS, TOPICS, LESSON_TYPES,
+                    STRUCT_FEATURES, TARGETS)
 from verify import norm, verify_rule, rule_id
 
-PROMPT_VERSION = "k2-prompt-v1"
-INSTR = f"""You extract design, structure-activity and property RULES about cyclic peptides, macrocycles and related peptides from ONE passage of a scientific paper.
-Output ONLY a JSON array (it may be empty). Each element is an object with exactly these keys:
-"statement": one concise sentence saying how a structural or physicochemical feature affects a property;
-"direction": one of {DIRECTIONS};
+PROMPT_VERSION = "k2-prompt-v2-a1"
+_COMMON = f"""Output ONLY a JSON array (it may be empty). Each element is an object with these keys:
+"statement": one concise sentence;
+"direction": one of {DIRECTIONS} (use "qualitative" or "conditional" when no single direction applies);
 "property": one of {PROPERTIES};
 "substructure_class": one of {SUBSTRUCTURES};
 "scope": the peptide class / series / target the statement applies to (short phrase);
 "effect_size": {{"value": number, "unit": string, "comparison": string}} or null;
 "assay": the assay or measurement named in the passage, or "";
 "quote": a sentence fragment copied VERBATIM and unchanged from the passage, 6 to 30 words long, that contains the evidence;
-"confidence": number between 0 and 1.
-Rules: use only information in the passage; never paraphrase the quote; if the passage reports no such rule output []; at most 6 rules."""
+"confidence": number between 0 and 1;"""
+_TAIL = """
+Rules: use only information in the passage; never paraphrase the quote; if the passage reports nothing of this kind output []; at most 6 items."""
+INSTR = {
+    "sar_rule": "You extract design, structure-activity and property RULES about cyclic peptides, macrocycles and related peptides from ONE passage of a scientific paper.\n" + _COMMON + '\n"topic": "sar_rule".' + _TAIL,
+    "structure_property": "You extract STRUCTURE-PROPERTY FUNDAMENTALS about cyclic peptides and macrocycles from ONE passage: mechanisms and physical explanations (permeability mechanism, desolvation, intramolecular hydrogen bonds and chameleonicity, 3D polar surface area, cis/trans amides and N-methylation conformations, ring strain and conformational ensembles, stereochemistry effects, proteolytic stability, solubility and aggregation).\n" + _COMMON + '\n"topic": "structure_property",\n"mechanism": short phrase naming the physical mechanism or explanation given.' + _TAIL,
+    "prior_work": f"You extract PRIOR-WORK KNOWLEDGE from ONE passage: what cyclic-peptide / macrocycle design or optimisation campaigns designed, which methods were used, hit rates and outcomes, failure modes and lessons.\n" + _COMMON + f'\n"topic": "prior_work",\n"lesson_type": one of {LESSON_TYPES},\n"designed_what": what was designed or optimised (short phrase),\n"method": the method or platform used (short phrase),\n"outcome": the reported outcome in a short phrase (put a hit rate or counts into effect_size when stated).' + _TAIL,
+    "target_structure": f"You extract TARGET-STRUCTURE statements from ONE passage about how cyclic peptides / macrocycles / peptide ligands bind their target: binding mode, key contacts, bound conformation, turn types, hot-spot residues.\n" + _COMMON + f'\n"topic": "target_structure",\n"target": one of {TARGETS} (the target the statement concerns, using the id that best matches; omit the item if none matches),\n"structure_feature": one of {STRUCT_FEATURES},\n"residues": list of residue/position names exactly as written in the passage (e.g. "Asp218"), possibly empty,\n"pdb": a PDB id exactly as written in the passage, or "".' + _TAIL,
+}
+EXTRA_KEYS = ["mechanism", "lesson_type", "designed_what", "method", "outcome", "target", "structure_feature", "residues", "pdb"]
 
 
 def passages(text: str, target_words=PASSAGE_WORDS):
@@ -67,9 +75,10 @@ def main():
     jobs = []
     for p in papers:
         for i, ps in passages(p["text"]):
-            pid = f"{p['pmcid']}:{i}"
-            if pid not in done:
-                jobs.append((pid, p, ps))
+            for topic in p.get("topics") or ["sar_rule"]:
+                pid = f"{p['pmcid']}:{i}:{topic}"
+                if pid not in done:
+                    jobs.append((pid, p, ps))
     print(f"papers={len(papers)} passages_todo={len(jobs)} already_done={len(done)}", flush=True)
     llm = LLM(model=MODEL, dtype="bfloat16", max_model_len=6144, gpu_memory_utilization=0.90, enable_prefix_caching=True)
     tok = llm.get_tokenizer()
@@ -88,7 +97,7 @@ def main():
     for c0 in range(0, len(jobs), a.chunk):
         chunk = jobs[c0:c0 + a.chunk]
         t0 = time.time()
-        outs = llm.generate([chat(INSTR + "\n\nPASSAGE:\n" + ps) for _, _, ps in chunk], sp_ext)
+        outs = llm.generate([chat(INSTR[pid.rsplit(":", 1)[1]] + "\n\nPASSAGE:\n" + ps) for pid, _, ps in chunk], sp_ext)
         ver, rej, ent_prompts, ent_idx = [], [], [], []
         for (pid, p, ps), o in zip(chunk, outs):
             txt = o.outputs[0].text
@@ -104,6 +113,8 @@ def main():
                 if not isinstance(r, dict):
                     continue
                 stats["raw_rules"] += 1
+                topic = pid.rsplit(":", 1)[1]
+                r["topic"] = topic
                 ok, why = verify_rule(r, ntext[p["pmcid"]], pn)
                 if not ok:
                     key = why.split(":")[0]
@@ -120,7 +131,10 @@ def main():
                                  "journal": p.get("journal"), "authors": p.get("authors"),
                                  "url": f"https://europepmc.org/article/PMC/{p['pmcid']}"},
                     "access_date": time.strftime("%Y-%m-%d"), "extracted_by": f"{MODEL}/{PROMPT_VERSION}",
-                    "source_text_sha256": p["text_sha256"], "passage_id": pid}
+                    "source_text_sha256": p["text_sha256"], "passage_id": pid, "topic": topic}
+                for k in EXTRA_KEYS:
+                    if r.get(k) not in (None, "", []):
+                        rule[k] = r[k]
                 ver.append(rule)
         for j, r in enumerate(ver):
             ent_prompts.append(chat(f"Quote: \"{r['quote']}\"\nStatement: {r['statement']}\nDirection: {r['direction']}\n"

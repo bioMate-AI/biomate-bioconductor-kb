@@ -54,3 +54,16 @@ def test_rule_id_deterministic_and_benchmark_overlap():
     assert rule_id("PMC1", "a b c", "s") == rule_id("PMC1", "a  b c", "s")
     assert benchmark_overlap("Townsend JA, Smith B.", "2020", ["2020_Townsend", "2013_CHUGAI"]) == ["2020_Townsend"]
     assert benchmark_overlap("Zzz A", "2020", ["2020_Townsend"]) == []
+
+
+def test_topic_fields_amendment_a1():
+    pw = dict(BASE, topic="prior_work", lesson_type="hit_rate", designed_what="macrocyclic binders")
+    assert verify_rule(pw, NT, NT)[0]
+    assert not verify_rule(dict(pw, lesson_type="miracle"), NT, NT)[0]
+    assert not verify_rule({k: v for k, v in pw.items() if k != "designed_what"}, NT, NT)[0]
+    ts = dict(BASE, topic="target_structure", target="avb6", structure_feature="key_contact", residues=["TPSA"], pdb="")
+    assert verify_rule(ts, NT, NT)[0]
+    assert not verify_rule(dict(ts, residues=["Asp218"]), NT, NT)[0]          # residue not in passage -> reject
+    assert not verify_rule(dict(ts, target="nope"), NT, NT)[0]
+    assert not verify_rule(dict(ts, pdb="9XMM"), NT, NT)[0]                   # pdb id not in passage -> reject
+    assert not verify_rule(dict(BASE, topic="folklore"), NT, NT)[0]

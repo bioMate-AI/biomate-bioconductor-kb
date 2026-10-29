@@ -29,3 +29,42 @@ QUOTE_MIN_WORDS, QUOTE_MAX_WORDS = 6, 30
 PASSAGE_WORDS, PASSAGE_OVERLAP = 800, 80
 TOPIC_RE = (r"(cyclic peptide|macrocycl|cyclic|permeab|N-methyl|methylat|bioavailab|chameleon|hydrogen bond|"
             r"TPSA|polar surface|D-amino|stereo|RGD|integrin|ring size|stapl|lactam|proteoly|stability)")
+
+# ---- Amendment A1 (coordinator request, before any run): three knowledge topics --------------------------------------
+TOPICS = ["sar_rule", "structure_property", "prior_work", "target_structure"]
+LESSON_TYPES = ["hit_rate", "failure_mode", "design_principle", "method_comparison", "optimisation_outcome"]
+STRUCT_FEATURES = ["binding_mode", "key_contact", "bound_conformation", "turn_type", "hotspot_residue"]
+TARGET_TERMS = {
+    "a4b1": '"VLA-4" OR "alpha4beta1" OR "α4β1"', "a4b7": '"alpha4beta7" OR "α4β7" OR "integrin a4b7"',
+    "avb6": '"alphavbeta6" OR "αvβ6" OR "avb6"', "baff": 'BAFF OR BLyS OR TNFSF13B', "c5": '"complement C5" OR "C5 inhibitor"',
+    "cd20": 'CD20 OR MS4A1', "cd40": 'CD40', "fcrn": 'FcRn OR FCGRT', "il17a": '"IL-17A"', "il17f": '"IL-17F"',
+    "il23": '"IL-23" OR IL23', "il2ra": '"IL-2Rα" OR CD25 OR "IL-2 receptor alpha"', "il6r": '"IL-6 receptor" OR "IL-6R"',
+    "lfa1": 'LFA-1 OR "alphaLbeta2" OR "αLβ2"', "pdl1": '"PD-L1" OR CD274', "tnfa": '"TNF-alpha" OR "TNF-α" OR TNFα'}
+TARGETS = list(TARGET_TERMS)
+QUERIES += [
+    ("fund_desolv", '("desolvation" OR "membrane permeation" OR "solubility-diffusion" OR "passive diffusion") AND (peptide OR macrocycle OR macrocyclic)' + OA),
+    ("fund_3dpsa", '("3D polar surface area" OR "solvent accessible polar surface" OR "conformational ensemble" OR "molecular dynamics") AND ("cyclic peptide" OR macrocycle) AND permeab*' + OA),
+    ("fund_amide", '("cis amide" OR "cis-trans isomerization" OR "peptide bond isomerization" OR "cis peptide bond") AND ("cyclic peptide" OR "N-methyl*")' + OA),
+    ("fund_strain", '("ring strain" OR "conformational strain" OR "conformational preference" OR NOE) AND ("cyclic peptide" OR macrocycle)' + OA),
+    ("fund_aggreg", '(aggregation OR "self-assembly" OR "solubility") AND ("cyclic peptide" OR macrocycle OR "macrocyclic peptide")' + OA),
+    ("camp_design", '("de novo design" OR "computational design" OR "design") AND ("macrocyclic peptide" OR "cyclic peptide") AND ("hit rate" OR "success rate" OR "experimentally validated" OR binders)' + OA),
+    ("camp_display", '("mRNA display" OR "phage display" OR RaPID OR "DNA-encoded") AND ("macrocyclic peptide" OR "cyclic peptide") AND (selection OR hits OR optimization)' + OA),
+    ("camp_opt", '("lead optimization" OR "optimization campaign" OR "structure-based optimization") AND ("cyclic peptide" OR "macrocyclic peptide")' + OA),
+    ("camp_fail", '(failed OR failure OR limitations OR "lessons learned" OR challenges) AND ("cyclic peptide design" OR "macrocycle design" OR "peptide macrocycle")' + OA),
+    ("camp_ml", '("machine learning" OR "deep learning" OR generative) AND ("cyclic peptide" OR "macrocyclic peptide") AND (design OR permeability)' + OA),
+]
+for _t, _terms in TARGET_TERMS.items():
+    QUERIES.append((f"tgt_{_t}", f'({_terms}) AND (peptide OR macrocycl* OR "cyclic") AND ("crystal structure" OR "binding mode" OR NMR OR docking OR "co-crystal")' + OA))
+_SP = {"chameleon", "bro5", "ring_size", "stability", "perm_cp", "oral_bio", "nmethyl", "dresidue", "macrocyc_chem"}
+QUERY_TOPICS = {}
+for _qid, _ in QUERIES:
+    if _qid.startswith("fund_"):
+        QUERY_TOPICS[_qid] = ["structure_property"]
+    elif _qid.startswith("camp_") or _qid == "drugs_cp":
+        QUERY_TOPICS[_qid] = ["prior_work"]
+    elif _qid.startswith("tgt_") or _qid in ("integrin", "pdl1_ppi", "grpr_gpcr"):
+        QUERY_TOPICS[_qid] = ["target_structure", "sar_rule"]
+    elif _qid in ("chameleon", "ring_size", "stability"):
+        QUERY_TOPICS[_qid] = ["structure_property", "sar_rule"]
+    else:
+        QUERY_TOPICS[_qid] = ["sar_rule"]

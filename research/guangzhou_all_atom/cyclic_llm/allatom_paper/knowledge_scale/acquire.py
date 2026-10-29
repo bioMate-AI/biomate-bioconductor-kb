@@ -1,7 +1,7 @@
 """K2 stage A: Europe PMC open-access acquisition -> deterministic plain text per paper (the text used for quote verification)."""
 import argparse, gzip, hashlib, json, random, sys, time, urllib.parse, urllib.request
 import xml.etree.ElementTree as ET
-from config import QUERIES, TIER_BY_PUBTYPE
+from config import QUERIES, TIER_BY_PUBTYPE, QUERY_TOPICS
 
 BASE = "https://www.ebi.ac.uk/europepmc/webservices/rest"
 SKIP_TAGS = {"ref-list", "back", "ack", "fn-group", "glossary", "app-group", "notes"}
@@ -123,6 +123,7 @@ def xml_to_text(xml_bytes: bytes) -> dict:
 def build_corpus(out_path, per_query, total, seed):
     rng = random.Random(seed)
     pool, seen = {}, set()
+    topics_by_pm, queries_by_pm = {}, {}
     for qid, q in QUERIES:
         try:
             res = search(q, per_query * 3)
@@ -133,6 +134,9 @@ def build_corpus(out_path, per_query, total, seed):
         n = 0
         for r in res:
             pm = r.get("pmcid")
+            if pm:
+                topics_by_pm.setdefault(pm, set()).update(QUERY_TOPICS.get(qid, ["sar_rule"]))
+                queries_by_pm.setdefault(pm, set()).add(qid)
             if not pm or pm in seen:
                 continue
             seen.add(pm)
@@ -162,7 +166,8 @@ def build_corpus(out_path, per_query, total, seed):
                 continue
             rec = {"pmcid": pm, "doi": r.get("doi"), "title": r.get("title") or d["title"], "authors": r.get("authorString"),
                    "year": r.get("pubYear"), "pub_type": r.get("pubType"), "tier": tier_from_pubtype(r.get("pubType")),
-                   "journal": r.get("journalTitle"), "query_id": r["_qid"], "text": text,
+                   "journal": r.get("journalTitle"), "query_id": r["_qid"], "query_ids": sorted(queries_by_pm.get(pm, [])),
+                   "topics": sorted(topics_by_pm.get(pm, ["sar_rule"])), "text": text,
                    "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(), "n_words": len(text.split())}
             fh.write(json.dumps(rec) + "\n")
             n_ok += 1
@@ -172,7 +177,7 @@ def build_corpus(out_path, per_query, total, seed):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
-    ap.add_argument("--per-query", type=int, default=25)
+    ap.add_argument("--per-query", type=int, default=8)
     ap.add_argument("--total", type=int, default=300)
     ap.add_argument("--seed", type=int, default=20261031)
     a = ap.parse_args()

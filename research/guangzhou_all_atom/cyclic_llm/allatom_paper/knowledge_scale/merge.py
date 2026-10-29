@@ -1,7 +1,7 @@
 """K2 merge: dedupe equivalent rules, evidence counts, contradiction flags, benchmark-overlap flag, coverage matrix before/after."""
 import argparse, csv, gzip, hashlib, json, os, re
 from collections import defaultdict
-from config import PROPERTIES, SUBSTRUCTURES
+from config import PROPERTIES, SUBSTRUCTURES, TOPICS, TARGETS, STRUCT_FEATURES, LESSON_TYPES
 from verify import benchmark_overlap
 
 STOP = set("the a an of in on to for and or with by is are was were be been that this these those as at from it its their than "
@@ -93,6 +93,25 @@ def coverage(rules_for_cells):
     return out
 
 
+def topic_coverage(rules):
+    """Amendment A1: per-topic counts, target x structure-feature matrix (FILLED = >= 2 rules from >= 2 papers), lesson types."""
+    by_topic = {}
+    for t in TOPICS:
+        rs = [r for r in rules if r.get("topic", "sar_rule") == t]
+        by_topic[t] = {"rules": len(rs), "papers": len({r["citation"]["pmcid"] for r in rs}),
+                       "tiers": {k: sum(1 for r in rs if r["evidence_tier"] == k) for k in ("T1", "T2", "T3")}}
+    tm = {}
+    for tg in TARGETS:
+        for f in STRUCT_FEATURES:
+            rs = [r for r in rules if r.get("topic") == "target_structure" and r.get("target") == tg and r.get("structure_feature") == f]
+            n_p = len({r["citation"]["pmcid"] for r in rs})
+            tm[f"{tg}|{f}"] = {"rules": len(rs), "papers": n_p, "filled": len(rs) >= 2 and n_p >= 2}
+    lessons = {lt: sum(1 for r in rules if r.get("topic") == "prior_work" and r.get("lesson_type") == lt) for lt in LESSON_TYPES}
+    return {"by_topic": by_topic, "target_x_feature": tm,
+            "target_x_feature_filled": sum(v["filled"] for v in tm.values()), "target_x_feature_cells": len(tm),
+            "targets_with_any_rule": sorted({k.split("|")[0] for k, v in tm.items() if v["rules"]}), "lesson_types": lessons}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rules", required=True)
@@ -135,7 +154,11 @@ def main():
             "n_possible_benchmark_source_rules": sum(1 for m in merged if m["possible_benchmark_source"]),
             "n_direction_conflict_cells": len(conflicts)}
     gap = [k for k, v in comb.items() if not v["filled"]]
-    json.dump({"summary": summ, "coverage_before": cov_before, "coverage_scaled": cov_after, "coverage_combined": comb,
+    topic_cov = topic_coverage(rules)
+    summ["topic_rules"] = {t: v["rules"] for t, v in topic_cov["by_topic"].items()}
+    summ["target_x_feature_filled"] = topic_cov["target_x_feature_filled"]
+    summ["targets_with_any_rule"] = len(topic_cov["targets_with_any_rule"])
+    json.dump({"summary": summ, "topic_coverage": topic_cov, "coverage_before": cov_before, "coverage_scaled": cov_after, "coverage_combined": comb,
                "conflicts": conflicts, "gap_cells": gap}, open(os.path.join(a.outdir, "coverage_and_merge.json"), "w"), indent=1)
     h256 = hashlib.sha256(open(kb_path, "rb").read()).hexdigest()
     json.dump({"file": "knowledge_kb_scaled_v1.jsonl", "sha256": h256, **summ}, open(os.path.join(a.outdir, "manifest.json"), "w"), indent=1)

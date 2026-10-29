@@ -43,7 +43,7 @@ def main(out):
                 continue
             seen.add(e.statement)
             p, s = classify(e.statement)
-            rows.append({"property": p, "substructure_class": s, "doi": (e.provenance or {}).get("ref") or e.id,
+            rows.append({"topic": "target_structure" if e.kind in ("pharmacophore", "metal") else "sar_rule", "property": p, "substructure_class": s, "doi": (e.provenance or {}).get("ref") or e.id,
                          "tier": (e.provenance or {}).get("evidence_tier", "T2"), "statement": e.statement[:200], "kind": e.kind})
     json.dump(rows, open(out, "w"), indent=1)
     print("before-KB statements:", len(rows))

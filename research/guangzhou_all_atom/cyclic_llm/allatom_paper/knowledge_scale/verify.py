@@ -1,6 +1,7 @@
 """K2 deterministic verification. A rule that fails any check is DISCARDED, never repaired."""
 import hashlib, re, unicodedata
-from config import DIRECTIONS, PROPERTIES, SUBSTRUCTURES, QUOTE_MIN_WORDS, QUOTE_MAX_WORDS
+from config import (DIRECTIONS, PROPERTIES, SUBSTRUCTURES, QUOTE_MIN_WORDS, QUOTE_MAX_WORDS, TOPICS, LESSON_TYPES,
+                    STRUCT_FEATURES, TARGETS)
 
 REQUIRED = ["statement", "direction", "property", "substructure_class", "scope", "quote", "confidence"]
 
@@ -65,6 +66,31 @@ def schema_errors(rule: dict) -> list:
     return errs
 
 
+def topic_errors(rule: dict, passage_norm: str) -> list:
+    """Amendment A1: topic-specific required fields and deterministic grounding of residues / PDB ids in the passage."""
+    errs, topic = [], rule.get("topic", "sar_rule")
+    if topic not in TOPICS:
+        return ["bad_topic"]
+    if topic == "prior_work":
+        if rule.get("lesson_type") not in LESSON_TYPES:
+            errs.append("bad_lesson_type")
+        if not norm(str(rule.get("designed_what") or "")):
+            errs.append("missing:designed_what")
+    if topic == "target_structure":
+        if rule.get("target") not in TARGETS:
+            errs.append("bad_target")
+        if rule.get("structure_feature") not in STRUCT_FEATURES:
+            errs.append("bad_structure_feature")
+        for res in (rule.get("residues") or []):
+            if not isinstance(res, str) or norm(res) not in passage_norm:
+                errs.append("residue_not_in_passage")
+                break
+        pdb = norm(str(rule.get("pdb") or ""))
+        if pdb and (not re.fullmatch(r"[0-9][A-Za-z0-9]{3}", pdb) or pdb not in passage_norm):
+            errs.append("pdb_not_in_passage")
+    return errs
+
+
 def verify_rule(rule: dict, paper_norm_text: str, passage_norm: str) -> tuple:
     """Return (ok, reason). Order: schema, quote length, exact quote match, number sanity."""
     errs = schema_errors(rule)
@@ -77,6 +103,9 @@ def verify_rule(rule: dict, paper_norm_text: str, passage_norm: str) -> tuple:
         return False, "quote_not_in_paper"
     if not number_ok(rule.get("effect_size"), rule["quote"], passage_norm):
         return False, "number_not_in_source"
+    te = topic_errors(rule, passage_norm)
+    if te:
+        return False, "topic:" + ",".join(te)
     return True, "ok"
 
 
