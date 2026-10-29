@@ -1,0 +1,56 @@
+import random
+from verify import norm, verify_rule, quote_in_text, number_ok, schema_errors, rule_id, benchmark_overlap
+
+TEXT = ("N-methylation of the backbone  amides in cyclic hexapeptides increased PAMPA permeability by 5-fold in this series.\n\n"
+        "The compound with three intramolecular hydrogen bonds showed a TPSA of 98 and logD of 3.2 and oral bioavailability of 28%.")
+NT = norm(TEXT)
+BASE = dict(statement="N-methylation increases permeability", direction="increases", property="permeability",
+            substructure_class="n_methylation", scope="cyclic hexapeptides", confidence=0.8,
+            effect_size={"value": 5, "unit": "fold"}, quote="increased PAMPA permeability by 5-fold in this series")
+
+
+def test_exact_quote_accepted_and_whitespace_only_diff_accepted():
+    ok, why = verify_rule(dict(BASE), NT, NT)
+    assert ok, why
+    q = dict(BASE, quote="N-methylation of the backbone amides in cyclic hexapeptides increased PAMPA")
+    assert verify_rule(q, NT, NT)[0]  # source has a double space; normalisation makes it match
+
+
+def test_altered_quotes_rejected():
+    for bad in ["increased PAMPA permeability by 6-fold in this series",     # changed number
+                "decreased PAMPA permeability by 5-fold in this series",      # changed word
+                "increased permeability by 5-fold in this series now",         # inserted/dropped words
+                "INCREASED PAMPA PERMEABILITY BY 5-FOLD IN THIS SERIES"]:      # case-sensitive
+        assert not verify_rule(dict(BASE, quote=bad), NT, NT)[0], bad
+
+
+def test_planted_fabricated_quotes_all_rejected():
+    rng = random.Random(1)
+    words = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau".split()
+    for _ in range(20):
+        q = " ".join(rng.choice(words) for _ in range(12))
+        assert not verify_rule(dict(BASE, quote=q), NT, NT)[0]
+
+
+def test_quote_length_limits():
+    assert not verify_rule(dict(BASE, quote="N-methylation of the backbone"), NT, NT)[0]  # 4 words
+    long_q = " ".join(NT.split()[:31])
+    assert not verify_rule(dict(BASE, quote=long_q), NT, NT)[0]
+
+
+def test_shuffled_source_fails():
+    other = norm("Totally unrelated paper about kinase inhibitors and crystal structures of lysozyme in buffer.")
+    assert not verify_rule(dict(BASE), other, other)[0]
+
+
+def test_number_sanity_and_schema():
+    assert number_ok({"value": 98}, "TPSA", NT)
+    assert not number_ok({"value": 77}, "TPSA", NT)
+    assert "bad_direction" in schema_errors(dict(BASE, direction="up"))
+    assert "missing:quote" in schema_errors({k: v for k, v in BASE.items() if k != "quote"})
+
+
+def test_rule_id_deterministic_and_benchmark_overlap():
+    assert rule_id("PMC1", "a b c", "s") == rule_id("PMC1", "a  b c", "s")
+    assert benchmark_overlap("Townsend JA, Smith B.", "2020", ["2020_Townsend", "2013_CHUGAI"]) == ["2020_Townsend"]
+    assert benchmark_overlap("Zzz A", "2020", ["2020_Townsend"]) == []

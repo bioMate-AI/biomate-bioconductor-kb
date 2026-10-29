@@ -1,0 +1,105 @@
+"""Launch the K2 pilot on ONE g5/g6 spot instance (ecsInstanceRole). The laptop only uploads code and calls run-instances.
+usage: launch_k2.py RUN_ID [--total 300] [--per-query 25]"""
+import argparse, io, json, os, subprocess, sys, tarfile, time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+B = "s3://biomate-nextflow-work/cyclic_peptide/allatom/k2"
+AMI = "ami-04f7da1c787a89267"  # DL Base OSS Nvidia GPU AMI (CUDA drivers + awscli), used by launch_cyclic_llm_v2.sh
+SG = "sg-0de9af2d4437a8c90"
+SUBNETS = ["subnet-0b35a6e2c1cf02dc2", "subnet-03b277a7a08d388c1", "subnet-09e4dce46682a6c60", "subnet-0254e4c3634b41bfc"]
+TYPES = ["g5.2xlarge", "g6.2xlarge", "g5.4xlarge"]
+
+UD = r'''#!/bin/bash
+P=__P__
+mkdir -p /w/out /w/code && cd /w
+shutdown -h +180
+exec > >(tee -a /w/out/boot.log) 2>&1
+echo "boot $(date -u +%FT%TZ) $(curl -s http://169.254.169.254/latest/meta-data/instance-id)"
+( while true; do aws s3 sync /w/out $P/ --only-show-errors; sleep 30; done ) &
+SYNC=$!
+aws s3 cp __CODE__ /w/code.tgz --only-show-errors && tar xzf /w/code.tgz -C /w/code
+cd /w/code
+nvidia-smi --query-gpu=name,memory.total --format=csv | tee /w/out/gpu.txt
+(python3 -m venv /w/venv || (apt-get update -qq && apt-get install -y -qq python3-venv && python3 -m venv /w/venv)) && . /w/venv/bin/activate
+pip install -q --upgrade pip >/w/out/pip0.log 2>&1
+pip install -q vllm pytest >/w/out/pip1.log 2>&1; echo "pip rc=$?" | tee -a /w/out/stage.log
+python -c "import vllm,torch;print('vllm',vllm.__version__,'torch',torch.__version__)" | tee -a /w/out/stage.log
+python -m pytest -q test_k2.py > /w/out/tests.log 2>&1; echo "tests rc=$?" | tee -a /w/out/stage.log
+if ! grep -q "passed" /w/out/tests.log || grep -q "failed" /w/out/tests.log; then echo "TESTS FAILED" | tee -a /w/out/stage.log; sleep 120; aws s3 sync /w/out $P/ --only-show-errors; shutdown -h now; exit 3; fi
+python acquire.py --out /w/out/corpus.jsonl.gz --per-query __PQ__ --total __TOTAL__ > /w/out/acquire.log 2>&1; echo "acquire rc=$?" | tee -a /w/out/stage.log
+python extract.py --corpus /w/out/corpus.jsonl.gz --outdir /w/out/extract > /w/out/extract.log 2>&1; echo "extract rc=$?" | tee -a /w/out/stage.log
+python - <<'PY'
+import gzip,json
+idx=[{"pmcid":p["pmcid"],"doi":p.get("doi"),"tier":p["tier"],"year":p.get("year"),"n_words":p["n_words"],"text_sha256":p["text_sha256"],"query_id":p["query_id"]} for p in (json.loads(l) for l in gzip.open("/w/out/corpus.jsonl.gz","rt"))]
+json.dump(idx,open("/w/out/corpus_index.json","w"))
+PY
+python kb_before.py /w/out/kb_before.json > /w/out/kb_before.log 2>&1; echo "kb_before rc=$?" | tee -a /w/out/stage.log
+[ -s /w/out/kb_before.json ] || echo "[]" > /w/out/kb_before.json
+python merge.py --rules /w/out/extract/rules_verified.jsonl --annotations /w/code/annotations.csv.gz --outdir /w/out/kb --before /w/out/kb_before.json > /w/out/merge.log 2>&1; echo "merge rc=$?" | tee -a /w/out/stage.log
+GOLD=""; [ -f /w/code/gold.jsonl ] && GOLD="--gold /w/code/gold.jsonl"
+python measure.py --rules /w/out/kb/knowledge_kb_scaled_v1.jsonl --corpus-index /w/out/corpus_index.json $GOLD --out /w/out/k2 > /w/out/measure.log 2>&1; echo "measure rc=$?" | tee -a /w/out/stage.log
+echo DONE > /w/out/done.flag; aws s3 sync /w/out $P/ --only-show-errors
+kill $SYNC; shutdown -h now
+'''
+
+
+def run(cmd, **kw):
+    return subprocess.run(cmd, check=True, capture_output=True, text=True, **kw)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("run_id")
+    ap.add_argument("--total", type=int, default=300)
+    ap.add_argument("--per-query", type=int, default=25)
+    ap.add_argument("--gold", help="optional K gold file to ship with the code as gold.jsonl")
+    a = ap.parse_args()
+    P = f"{B}/{a.run_id}"
+    codekey = f"{P}_code/code.tgz"
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        for f in sorted(os.listdir(HERE)):
+            if f.endswith(".py") or f.endswith(".json"):
+                tf.add(os.path.join(HERE, f), arcname=f)
+        # kb_before imports experience_kb from the cyclic_llm dir: ship the minimal module tree
+        cl = os.path.abspath(os.path.join(HERE, "..", ".."))
+        for f in ("experience_kb.py", "medchem_kb.py", "pharmacophore_knowledge.py", "knowledge_liability_flags.py",
+                  "kb_target_map.py"):
+            p = os.path.join(cl, f)
+            if os.path.exists(p):
+                tf.add(p, arcname=f"cyclic_llm_mod/{f}")
+        tdir = os.path.join(cl, "target_kb")
+        if os.path.isdir(tdir):
+            tf.add(tdir, arcname="cyclic_llm_mod/target_kb")
+        ann = os.path.join(cl, "stratification", "data", "annotations.csv.gz")
+        tf.add(ann, arcname="annotations.csv.gz")
+        if a.gold:
+            tf.add(a.gold, arcname="gold.jsonl")
+    tmp = f"/tmp/k2_code_{a.run_id}.tgz"
+    open(tmp, "wb").write(buf.getvalue())
+    run(["aws", "s3", "cp", tmp, codekey, "--only-show-errors"])
+    ud = UD.replace("__P__", P).replace("__CODE__", codekey).replace("__PQ__", str(a.per_query)).replace("__TOTAL__", str(a.total))
+    udpath = f"/tmp/k2_ud_{a.run_id}.sh"
+    open(udpath, "w").write(ud)
+    for t in TYPES:
+        for sub in SUBNETS:
+            r = subprocess.run(["aws", "ec2", "run-instances", "--image-id", AMI, "--instance-type", t, "--subnet-id", sub,
+                                "--security-group-ids", SG, "--iam-instance-profile", "Name=ecsInstanceRole",
+                                "--instance-market-options", '{"MarketType":"spot","SpotOptions":{"SpotInstanceType":"one-time","InstanceInterruptionBehavior":"terminate"}}',
+                                "--instance-initiated-shutdown-behavior", "terminate",
+                                "--block-device-mappings", '[{"DeviceName":"/dev/sda1","Ebs":{"VolumeSize":120,"VolumeType":"gp3"}}]',
+                                "--user-data", f"file://{udpath}",
+                                "--tag-specifications", f"ResourceType=instance,Tags=[{{Key=Name,Value=allatom-k2}},{{Key=project,Value=cyclic-selector}}]",
+                                "--query", "Instances[0].InstanceId", "--output", "text"], capture_output=True, text=True)
+            if r.returncode == 0 and r.stdout.strip():
+                iid = r.stdout.strip()
+                row = f"{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} {a.run_id} {iid} {t} {sub}\n"
+                open(os.path.join(HERE, "cost_log_k2.txt"), "a").write(row)
+                print("LAUNCHED", iid, t, sub, "prefix", P)
+                return
+    print("NO CAPACITY", file=sys.stderr)
+    sys.exit(2)
+
+
+if __name__ == "__main__":
+    main()
