@@ -79,8 +79,8 @@ class Target:
         return out
 
 
-def eval_target(tk, W, T, FM, ks=KS, seeds=SEEDS, p_override=None):
-    t = Target(tk, W, T, FM)
+def eval_target(tk, W, T, FM, ks=KS, seeds=SEEDS, p_override=None, t=None):
+    t = t or Target(tk, W, T, FM); p_old, g_old = t.p, t.gain
     if p_override is not None: t.p = p_override; t.gain = t.p - t.p.min()
     rec = []; zs = zlib.crc32(tk.encode())
     for seed in seeds:
@@ -101,6 +101,7 @@ def eval_target(tk, W, T, FM, ks=KS, seeds=SEEDS, p_override=None):
                 a = ranks_metrics(np.asarray(v, float), truth, gain)
                 b = ranks_metrics(np.asarray(v, float)[hard], truth[hard], gain[hard]) if hard is not None else (np.nan,) * 3
                 rec.append((tk, t.fam, nm, k, seed, a[0], a[1], a[2], b[0], b[1], b[2], len(qry)))
+    t.p, t.gain = p_old, g_old
     return rec
 
 

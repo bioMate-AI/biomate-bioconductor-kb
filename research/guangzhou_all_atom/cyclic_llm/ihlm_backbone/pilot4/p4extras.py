@@ -3,7 +3,8 @@ usage: python3 p4extras.py RESDIR   (reads RESDIR/frozen_config.json written at 
 import os, sys, json, math, zlib, time, pickle, numpy as np, pandas as pd, torch
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import p4common as P, p4models as M
-import __main__ as _mn; _mn.MLPPrior = M.MLPPrior; _mn.Meta = M.Meta        # fold pickles were written by `python p4models.py` (classes pickled under __main__), p4eval as E
+import __main__ as _mn; _mn.MLPPrior = M.MLPPrior; _mn.Meta = M.Meta        # fold pickles were written by `python p4models.py` (classes pickled under __main__)
+import p4eval as E
 from scipy.stats import rankdata
 RES = sys.argv[1] if len(sys.argv) > 1 else M.RES
 CFG = json.load(open(f"{RES}/frozen_config.json")) if os.path.exists(f"{RES}/frozen_config.json") else dict(nn_q=3, d=[3, 1.0], g=[100, 3, 1.0], f_ck=3000)
@@ -38,16 +39,20 @@ def planted(tk, seed=0):
     return 5 + 4 * t.S[:, cs].mean(1) + rng.normal(0, 0.3, t.n)
 
 
+def controls_one(tk, keep):
+    rows = []; FMf = FM(fmap[fam[tk]]); t = E.Target(tk, W, T, FMf)
+    rng = np.random.default_rng(zlib.crc32(tk.encode())); cs = rng.choice(t.n, 3, replace=False); pl = 5 + 4 * t.S[:, cs].mean(1) + rng.normal(0, 0.3, t.n)
+    rows += [("planted",) + r for r in E.eval_target(tk, W, T, FMf, ks=(10,), seeds=list(range(5)), p_override=pl, t=t) if r[2] in keep]
+    for rseed in range(10):
+        ps = np.random.default_rng(zlib.crc32(tk.encode()) + 31 * rseed + 5).permutation(T[tk]["p"])
+        rows += [("shuffled",) + r for r in E.eval_target(tk, W, T, FMf, ks=(3, 5, 10), seeds=[0], p_override=ps, t=t) if r[2] in keep]
+    return rows
+
+
 def controls():
-    rows = []; keep = {NAMES["nn"], "gp", "prior_hgb", NAMES["d"], NAMES["g"], NAMES["f"], "prior_h0", "prior_h1"}
-    for tk in test_t:
-        f = fmap[fam[tk]]; FMf = FM(f)
-        rec = E.eval_target(tk, W, T, FMf, ks=(10,), seeds=list(range(5)), p_override=planted(tk))
-        rows += [("planted",) + r for r in rec if r[2] in keep]
-        for rseed in range(10):
-            p0 = T[tk]["p"]; ps = np.random.default_rng(zlib.crc32(tk.encode()) + 31 * rseed + 5).permutation(p0)
-            rec = E.eval_target(tk, W, T, FMf, ks=(3, 5, 10), seeds=[0], p_override=ps)
-            rows += [("shuffled",) + r for r in rec if r[2] in keep]
+    from joblib import Parallel, delayed
+    keep = {NAMES["nn"], "gp", "prior_hgb", NAMES["d"], NAMES["g"], NAMES["f"], "prior_h0", "prior_h1"}
+    res = Parallel(n_jobs=int(os.environ.get("JOBS", "4")), prefer="threads")(delayed(controls_one)(tk, keep) for tk in test_t); rows = [r for x in res for r in x]
     return pd.DataFrame(rows, columns=["control", "target", "family", "method", "k", "seed", "sp", "ndcg", "rec", "sp_h", "ndcg_h", "rec_h", "nq"])
 
 
@@ -100,8 +105,9 @@ def s3_diag():
 
 if __name__ == "__main__":
     t0 = time.time(); print("config", NAMES, flush=True)
-    al = []
-    for tk in test_t: al += al_target(tk)
+    from joblib import Parallel, delayed
+    for f in range(6): FM(f)
+    al = [r for x in Parallel(n_jobs=int(os.environ.get("JOBS", "4")), prefer="threads")(delayed(al_target)(tk) for tk in test_t) for r in x]
     pd.DataFrame(al, columns=["target", "family", "method", "seed", "yield", "frac_labelled"]).to_csv(f"{RES}/al_test.csv.gz", index=False); print("AL done", round(time.time() - t0), "s", flush=True)
     controls().to_csv(f"{RES}/controls_test.csv.gz", index=False); print("controls done", round(time.time() - t0), "s", flush=True)
     json.dump(c4_leak(), open(f"{RES}/c4_leak.json", "w"), indent=1); print("c4 done", round(time.time() - t0), "s", flush=True)
