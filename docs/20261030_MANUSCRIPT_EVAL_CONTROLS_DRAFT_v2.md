@@ -107,6 +107,19 @@ This study does not evaluate language-model-based loops, generative loops or pro
 ## 7. Data and code availability
 Benchmark lists are hash-verified and the code that regenerates every table and figure, together with a script that checks the quoted numbers against the result files, accompanies the paper. Licences: the CycPeptMPDB data licence is not established at a primary source; BindingDB and ChEMBL are CC BY-SA 3.0; data under a no-derivatives licence are used as identifiers plus a rebuild recipe; PeptideCLM-2 checkpoint licences follow the model cards.
 
+## References
+1. Li J, Yanagisawa K, Sugita M, Fujie T, Ohue M, Akiyama Y. CycPeptMPDB: a comprehensive database of membrane permeability of cyclic peptides. J Chem Inf Model 2023, 63(7), 2240–2250. doi:10.1021/acs.jcim.2c01573.
+2. Amirahmadi A, Geylan G, De Maria L, Etminani F, Ohlsson M, Tibo A. A decoupled alignment kernel for peptide membrane permeability predictions. arXiv:2511.21566 (2025); J Cheminform 18, 108 (2026). doi:10.1186/s13321-026-01276-5.
+3. Praski M, Adamczyk J, Czech W. Benchmarking pretrained molecular embedding models for molecular representation learning. arXiv:2508.06199.
+4. van Tilborg D, Alenicheva A, Grisoni F. Exposing the limitations of molecular machine learning with activity cliffs. J Chem Inf Model 2022, 62, 5938–5951. doi:10.1021/acs.jcim.2c01073.
+5. Chen L, Cruz A, Ramsey S, Dickson CJ, Duca JS, Hornak V, Koes DR, Kurtzman T. Hidden bias in the DUD-E dataset leads to misleading performance of deep learning in structure-based virtual screening. PLoS ONE 2019, 14(8), e0220113. doi:10.1371/journal.pone.0220113.
+6. Huang A, Knight IS, Naprienko S. Data leakage and redundancy in the LIT-PCBA benchmark. arXiv:2507.21404.
+7. Sieg J, Flachsenberg F, Rarey M. In need of bias control: evaluating chemical data for machine learning in structure-based virtual screening. J Chem Inf Model 2019, 59(3), 947–961. doi:10.1021/acs.jcim.8b00712.
+8. Kalliokoski T, Kramer C, Vulpetti A, Gedeck P. Comparability of mixed IC50 data: a statistical analysis. PLoS ONE 2013, 8(4), e61007. doi:10.1371/journal.pone.0061007.
+9. Landrum GA, Riniker S. Combining IC50 or Ki values from different sources is a source of significant noise. J Chem Inf Model 2024, 64(5), 1560–1567. doi:10.1021/acs.jcim.4c00049.
+10. Zhang J, Wang R, Zhou K, Xiao T, Zhu L, Min Y, Wang Y. PepBenchmark: a standardized benchmark for peptide machine learning. arXiv:2604.10531 (ICLR 2026).
+11. Klamt T, Nejdl W, Tang M. Decomposing the generalization gap in PROTAC activity prediction: variance attribution and the inter-laboratory ceiling. arXiv:2605.11764 (preprint).
+
 ## Appendix A. Frozen initial-fit model, chirality-aware against blind (40 seeds)
 **One short finding: weak, laboratory-driven, the planted control did not meet its criterion in regime L, and not a chirality effect.** Mean frozen yield aware − blind: regime A −0.5 (95 % t-interval −2.4 to 1.3) and B −1.1 (−2.5 to 0.3), both within the registered ±10-hit margin (weak: the margin is 13 % and 45 % of the level of 78 and 22 hits and was set after a −13 was seen in seeds 0–9); regime L −16.4 (−23.9 to −8.9 on seeds, Holm p 0.0002; descriptive, because the source-cluster interval below includes 0 and the planted control did not meet its criterion). Source-cluster bootstrap in L: −16.4 (−64.8 to 17.4) over 20 sources, dominated by 2020_Townsend (−21.0), so the difference is driven by one laboratory and not supported when sources are the unit. The planted flat-world control in regime L did not meet its equivalence rule (−5.7, 90 % t-interval −21.5 to 10.1), so the regime-L test is not clean. The difference is therefore not attributed to chirality-aware features.
 
