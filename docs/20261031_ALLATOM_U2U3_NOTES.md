@@ -38,4 +38,4 @@ Stage-A' dev results (`results/stageA_dev_grid.json`): environment cell c_h = 5.
 **What is and is not new.** U2's mechanism (stop when an independent signal stops improving while the optimised signal keeps rising; restore the best checkpoint) is NOT new: EvalStop and the validation-signal tradition already do this for LLM RLHF. What this workstream adds is (i) the explicit three-way verifier split (train / stop / held-out) as a protocol for oracle-budgeted molecular optimisation, (ii) stated operating characteristics on planted environments (detection delay, false-stop and missed-hack rates), and (iii) the winner's-curse limitation of best-so-far statistics. Whether anything of this kind exists for molecular design is [UNVERIFIED] (not searched beyond the PMO abstract). U3 claims no algorithmic novelty: it is a diagnosis (binary reward + start policy consistent per prompt -> zero-variance groups) and a fix assembled from standard components, evaluated in our setting.
 
 ## 5. Results
-(not yet run.)
+(filled below as runs complete)

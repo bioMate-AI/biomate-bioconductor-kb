@@ -26,7 +26,7 @@ SEEDS = ["C[C@H]1NC(=O)[C@H](C)NC(=O)[C@H](C)NC(=O)[C@H](C)NC(=O)[C@H](C)NC1=O",
          "CC(C)C[C@H]1NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@@H](C)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](C)NC1=O",
          "C[C@H]1NC(=O)[C@@H](CC(C)C)N(C)C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](C)NC(=O)[C@H](CC(C)C)NC1=O",
          "O=C1[C@@H](Cc2ccccc2)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](C)NC(=O)[C@@H](CC(C)C)NC(=O)[C@H](C)N1"]
-N_PER, ROUNDS, STEPS, BS_PAIRS = 16, 3, 4, 8
+N_PER, ROUNDS, STEPS, BS_PAIRS = 32, 3, 4, 8       # smoke v2: 32 samples per prompt (smoke v1 with 16 left < 16 valid per group at validity ~0.67, so every group was dropped and no DPO step ran)
 PREFIX_FRAC, MAXNEW, TEMP, LR, BETA = 0.6, 80, 1.0, 1e-4, 0.1
 torch.manual_seed(0)
 np.random.seed(0)
