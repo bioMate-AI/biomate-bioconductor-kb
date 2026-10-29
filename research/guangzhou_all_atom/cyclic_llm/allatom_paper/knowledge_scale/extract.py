@@ -6,6 +6,7 @@ from config import (MODEL, PASSAGE_WORDS, TOPIC_RE, PROPERTIES, SUBSTRUCTURES, D
 from verify import norm, verify_rule, rule_id
 
 PROMPT_VERSION = "k2-prompt-v2-a1"
+MAX_PROMPT_TOKENS = 5200      # context 6144 minus the 1400-token output budget and chat-template overhead
 _COMMON = f"""Output ONLY a JSON array (it may be empty). Each element is an object with these keys:
 "statement": one concise sentence;
 "direction": one of {DIRECTIONS} (use "qualitative" or "conditional" when no single direction applies);
@@ -105,9 +106,33 @@ def main():
     for c0 in range(0, len(jobs), a.chunk):
         chunk = jobs[c0:c0 + a.chunk]
         t0 = time.time()
-        outs = llm.generate([chat(INSTR[pid.rsplit(":", 1)[1]] + "\n\nPASSAGE:\n" + ps) for pid, _, ps in chunk], sp_ext)
+        prompts, passage_used = [], []
+        for pid, _, ps in chunk:
+            ins = INSTR[pid.rsplit(":", 1)[1]]
+            cut = ps
+            while len(tok(chat(ins + "\n\nPASSAGE:\n" + cut), add_special_tokens=False)["input_ids"]) > MAX_PROMPT_TOKENS:
+                cut = " ".join(cut.split(" ")[: max(50, int(len(cut.split(" ")) * 0.85))])      # shrink by words until it fits
+                if len(cut.split(" ")) <= 50:
+                    break
+            if cut != ps:
+                stats["truncated_passages"] = stats.get("truncated_passages", 0) + 1
+            prompts.append(chat(ins + "\n\nPASSAGE:\n" + cut))
+            passage_used.append(cut)
+        try:
+            outs = llm.generate(prompts, sp_ext)
+        except Exception as ex:  # noqa: BLE001  one bad prompt must not lose the chunk: fall back to per-prompt calls and skip failures
+            print(f"chunk generate failed ({type(ex).__name__}); falling back to per-prompt", flush=True)
+            outs = []
+            for k, pr in enumerate(prompts):
+                try:
+                    outs.append(llm.generate([pr], sp_ext, use_tqdm=False)[0])
+                except Exception as ex2:  # noqa: BLE001
+                    stats["skipped_prompts"] = stats.get("skipped_prompts", 0) + 1
+                    outs.append(None)
         ver, rej, ent_prompts, ent_idx = [], [], [], []
-        for (pid, p, ps), o in zip(chunk, outs):
+        for (pid, p, _ps0), ps, o in zip(chunk, passage_used, outs):
+            if o is None:
+                continue
             txt = o.outputs[0].text
             stats["prompt_tokens"] += len(o.prompt_token_ids)
             stats["completion_tokens"] += len(o.outputs[0].token_ids)

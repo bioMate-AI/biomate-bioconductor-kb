@@ -30,7 +30,7 @@ python -c "import vllm,torch;print('vllm',vllm.__version__,'torch',torch.__versi
 python -m pytest -q --import-mode=importlib -p no:cacheprovider test_k2.py > /w/out/tests.log 2>&1; echo "tests rc=$?" | tee -a /w/out/stage.log
 if ! grep -q "passed" /w/out/tests.log || grep -q "failed" /w/out/tests.log; then echo "TESTS FAILED" | tee -a /w/out/stage.log; sleep 120; aws s3 sync /w/out $P/ --only-show-errors; shutdown -h now; exit 3; fi
 __ACQUIRE__
-python extract.py --corpus /w/out/corpus.jsonl.gz --outdir /w/out/extract > /w/out/extract.log 2>&1; echo "extract rc=$?" | tee -a /w/out/stage.log
+__RESUME__python extract.py --corpus /w/out/corpus.jsonl.gz --outdir /w/out/extract > /w/out/extract.log 2>&1; echo "extract rc=$?" | tee -a /w/out/stage.log
 python - <<'PY'
 import gzip,json
 idx=[{"pmcid":p["pmcid"],"doi":p.get("doi"),"tier":p["tier"],"year":p.get("year"),"n_words":p["n_words"],"text_sha256":p["text_sha256"],"query_id":p["query_id"]} for p in (json.loads(l) for l in gzip.open("/w/out/corpus.jsonl.gz","rt"))]
@@ -56,6 +56,7 @@ def main():
     ap.add_argument("--total", type=int, default=300)
     ap.add_argument("--per-query", type=int, default=25)
     ap.add_argument("--gold", help="optional K gold file to ship with the code as gold.jsonl")
+    ap.add_argument("--resume-from", help="s3 URI of an earlier run's extract/ directory to continue from (done_passages.txt, rules, stats)")
     ap.add_argument("--reuse-corpus", help="s3 URI of a corpus.jsonl.gz from an earlier run: skips acquisition")
     a = ap.parse_args()
     P = f"{B}/{a.run_id}"
@@ -86,7 +87,9 @@ def main():
         acq = f'aws s3 cp {a.reuse_corpus} /w/out/corpus.jsonl.gz --only-show-errors > /w/out/acquire.log 2>&1; echo "acquire(reused) rc=$?" | tee -a /w/out/stage.log'
     else:
         acq = 'python acquire.py --out /w/out/corpus.jsonl.gz --per-query __PQ__ --total __TOTAL__ > /w/out/acquire.log 2>&1; echo "acquire rc=$?" | tee -a /w/out/stage.log'
-    ud = UD.replace("__ACQUIRE__", acq).replace("__P__", P).replace("__CODE__", codekey).replace("__PQ__", str(a.per_query)).replace("__TOTAL__", str(a.total))
+    resume = (f"mkdir -p /w/out/extract && aws s3 sync {a.resume_from} /w/out/extract/ --only-show-errors; echo \"resumed from {a.resume_from}\" | tee -a /w/out/stage.log\n"
+              if a.resume_from else "")
+    ud = UD.replace("__RESUME__", resume).replace("__ACQUIRE__", acq).replace("__P__", P).replace("__CODE__", codekey).replace("__PQ__", str(a.per_query)).replace("__TOTAL__", str(a.total))
     udpath = f"/tmp/k2_ud_{a.run_id}.sh"
     for t in TYPES:
         qline = "" if t.startswith("g6e") else "export K2_QUANT=fp8   # 24 GB GPU fallback (recorded in extract_config.json)\n"
