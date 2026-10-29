@@ -142,6 +142,7 @@ r=[x for x in pc if x["analysis"]=="L7" and x["group"]=="gbm_aware" and x["regim
 A("cluster aware L loop-frozen -53.0..147.6, 89% Townsend",round(r["cluster_t"][0],1)==-53.0 and round(r["cluster_t"][1],1)==147.6 and r["top_share"]==0.887 and "\u221253.0 to 147.6" in V)
 r=prow(analysis="ladder",contrast="R3-R2",regime="L",seeds="conf 10-19",metric="E-AUROC per lab")
 A("cluster M3 L conf ranking +0.092 [0.002,0.182]",round(r["estimate"],3)==0.092 and round(r["cluster_t"][0],3)==0.002 and "0.002 to 0.182" in V)
+exec(open(__file__.replace("verify_artifacts","verify_v2_numbers")).read())
 bad=[n for n,ok in chk if not ok]; print(len(chk),"checks; failed:",bad)
 def last(p): 
     return subprocess.run(["git","-C","/Users/kky/biomate-review","log","-1","--format=%h","--",p],capture_output=True,text=True).stdout.strip()
