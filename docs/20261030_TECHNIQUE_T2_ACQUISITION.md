@@ -135,9 +135,9 @@ Changes versus A2.5: seeds 30 → 15 (primary) and 8 (control); `fuse` dropped (
 **S1 (yield: `prov` minus best baseline; hits per 500 picks; 15 seeds; conservative interval = union of percentile-bootstrap and t, level 0.997 Bonferroni over B, B2, L):**
 | regime | prov | best baseline (mean) | difference [conservative interval] | relative gain [interval] | sign-flip p | S1 |
 |---|---|---|---|---|---|---|
-| B (scaffold-shifted) | 63.3 | ucb 46.6 | **+16.7 [+7.0, +26.3]** | +35.8 % [+15.0, +56.5] | <1e-4 | **holds** |
-| B2 (lab-shifted B) | 61.3 | ucb 55.1 | +6.2 [−2.4, +14.8] | +11.2 % [−4.4, +26.5] | 0.024 | fails (interval includes 0) |
-| L (leave labs out) | 211.7 | greedy 224.7 | **−13.1 [−19.7, −6.4]** | −5.8 % | 1e-4 | fails (worse than greedy) |
+| B (scaffold-shifted) | 63.3 | ucb 46.6 | **+16.7 [+7.0, +26.3]** | +35.8 % [+15.0, +56.5] | 1.8e-4 | **holds** |
+| B2 (lab-shifted B) | 61.3 | ucb 55.1 | +6.2 [−2.4, +14.8] | +11.2 % [−4.4, +26.8] | 0.024 | fails (interval includes 0) |
+| L (leave labs out) | 211.7 | greedy 224.7 | **−13.1 [−19.7, −6.4]** | −5.8 % [−8.8, −2.9] | 1.2e-4 | fails (worse than greedy) |
 | A (in-distribution; level 0.99) | 164.1 | greedy 166.6 | −2.5 [−11.7, +6.8] | −1.5 % | 0.45 | S2 non-inferiority **holds** (lower bound −11.7 ≥ −0.10 × 166.6) |
 Reading: the prior-informed UCB beats plain UCB under scaffold shift (B) and not under lab shift (B2), and loses to plain greedy when whole labs are held out (L). The "any of B, B2, L" rule makes S1 true on B alone; I would not read this as a general benefit.
 
