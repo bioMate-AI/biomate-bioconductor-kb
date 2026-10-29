@@ -37,4 +37,8 @@ Before sync: finish exact-source Python 3.9 preflight, inspect the complete diff
 
 The dev frontend also has no `E2E_FIXTURE_PASSWORD` or `E2E_TEST_PASSWORD` configured. Fixture chat verification therefore requires the existing test credential; a new account is not an acceptable substitute.
 
+The live API journey is `node scripts/verify_scientific_chat_tools.cjs`. It requires `E2E_FIXTURE_PASSWORD`, logs in once, creates one disposable project, runs the target and review turns, and deletes that exact project afterward. It requires successful SSE completion plus real tool calls and non-error tool results. Three offline parser/assertion tests pass. Running without the password exits 2 before any network call, not a skipped/pass result. This harness checks chat API behavior; visual rendering and independent scientific assessment remain separate.
+
+Docking test review found a silent pass when the workflow file was absent. That condition now fails. A new test extracts and executes the real embedded `fetch_pdb` helper with only the external downloader substituted, checks the canonical RCSB URL, and checks the `receptor_pdb_file` environment binding. Eight docking tests pass. These are still not proof of a successful Batch docking run.
+
 Deployment and live results will be appended below after verification. The shared branch was already 607 commits ahead of upstream at takeover; this task does not authorize publishing those unrelated commits.

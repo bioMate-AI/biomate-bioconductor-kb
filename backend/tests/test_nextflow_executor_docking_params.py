@@ -57,10 +57,25 @@ def test_detection_skips_host_prefetch_for_batch_structure():
 def test_docking_nf_actually_self_fetches():
     # Functional check: the helper's signals must match the real docking workflow,
     # else the skip never fires and the receptor regresses to a dead host path on Batch.
-    if not DOCKING_NF.exists():
-        return  # workflow relocated — source asserts above still gate the fix
+    assert DOCKING_NF.is_file(), "docking workflow missing or relocated — update this test; never silently pass"
     assert re.search(_STRUCTURE_SIGNALS, DOCKING_NF.read_text(), re.IGNORECASE), \
         "docking .nf no longer matches structure self-fetch signals — update the helper regex"
+
+
+def test_embedded_fetch_uses_canonical_rcsb_url_and_real_receptor_param(monkeypatch):
+    """Exercise the real embedded helper; only the external RCSB download is replaced."""
+    import urllib.request
+    source = DOCKING_NF.read_text()
+    assert "export PARAM_RECEPTOR_PDB='${params.receptor_pdb_file}'" in source
+    embedded = source.split("python3 << 'PYEOF'", 1)[1].split("\nPYEOF", 1)[0]
+    tree = ast.parse(embedded)
+    helper = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'fetch_pdb')
+    calls = []
+    monkeypatch.setattr(urllib.request, 'urlretrieve', lambda url, dest: calls.append((url, dest)))
+    scope = {}
+    exec(compile(ast.Module(body=[helper], type_ignores=[]), '<docking fetch_pdb>', 'exec'), scope)
+    scope['fetch_pdb']('1iep', '/tmp/test-receptor.pdb')
+    assert calls == [('https://files.rcsb.org/download/1IEP.pdb', '/tmp/test-receptor.pdb')]
 
 
 # ── Fix 2: box vector coercion (logic) ────────────────────────────────────────
