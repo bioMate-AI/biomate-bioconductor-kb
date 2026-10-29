@@ -26,7 +26,7 @@ def main():
     tgz = os.path.join(tempfile.gettempdir(), rid + ".tgz")
     with tarfile.open(tgz, "w:gz") as tf:
         for p in a.paths.split(","):
-            tf.add(os.path.join(ROOT, p), arcname=p, filter=lambda ti: None if "__pycache__" in ti.name or ti.name.endswith(".pyc") else ti)
+            tf.add(os.path.join(ROOT, p), arcname=p, filter=lambda ti: None if ("__pycache__" in ti.name or ti.name.endswith(".pyc") or "/results" in ti.name or ti.size > 8_000_000) else ti)
     r = sh(f"aws s3 cp {tgz} {prefix}/code.tgz --only-show-errors"); assert r.returncode == 0, r.stderr
     ud = f"""#!/bin/bash
 P={prefix}
