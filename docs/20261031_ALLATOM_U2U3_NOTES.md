@@ -38,4 +38,28 @@ Stage-A' dev results (`results/stageA_dev_grid.json`): environment cell c_h = 5.
 **What is and is not new.** U2's mechanism (stop when an independent signal stops improving while the optimised signal keeps rising; restore the best checkpoint) is NOT new: EvalStop and the validation-signal tradition already do this for LLM RLHF. What this workstream adds is (i) the explicit three-way verifier split (train / stop / held-out) as a protocol for oracle-budgeted molecular optimisation, (ii) stated operating characteristics on planted environments (detection delay, false-stop and missed-hack rates), and (iii) the winner's-curse limitation of best-so-far statistics. Whether anything of this kind exists for molecular design is [UNVERIFIED] (not searched beyond the PMO abstract). U3 claims no algorithmic novelty: it is a diagnosis (binary reward + start policy consistent per prompt -> zero-variance groups) and a fix assembled from standard components, evaluated in our setting.
 
 ## 5. Results
-(filled below as runs complete)
+
+### 5.1 Stage B: monitor operating characteristics on planted environments (TEST seeds 0-399 per kind; `results/stageB_test.json`; run on EC2 spot i-0c531080acbeeb79f; simulations only)
+Parameters and rules exactly as frozen in A2-final. Outcomes use the held-out ground truth H only for scoring.
+| environment | monitor | retained fraction R, mean [95% bootstrap CI of the mean] | stopped | median delay (stop round - argmax H) | benign false-stop | hackable missed-hack (R < 0.75) |
+|---|---|---|---|---|---|---|
+| hackable | GapStop | 0.794 [0.776, 0.811] | 1.00 | -3 | - | 0.273 |
+| hackable | NeverStop | 0.560 [0.556, 0.563] | 0.00 | +22 | - | 1.000 |
+| hackable | AlwaysStop | 0.222 | 1.00 | -15 | - | 1.000 |
+| hackable | Track E harness StopMonitor (comparator) | 0.447 [0.429, 0.465] | 0.32 | +21 | - | 1.000 |
+| benign | GapStop | 0.999 [0.999, 1.000] | 0.00 | +2 | 0.000 (Wilson 95% upper bound 0.010) | - |
+| benign | NeverStop | 1.000 | 0.00 | +2 | 0.000 | - |
+| benign | AlwaysStop | 0.172 | 1.00 | -35 | 1.000 | - |
+| benign | Track E harness StopMonitor | 0.985 | 0.02 | +2 | 0.022 | - |
+| shared (expected failure) | GapStop | 0.560 | 0.00 | +22 | - | - |
+**Primary contrast** (equal-weight mean of R over hackable and benign; paired by seed; 95% bootstrap CI of the mean over 400 runs): GapStop - NeverStop = +0.117 [+0.108, +0.126]; GapStop - AlwaysStop = +0.700 [+0.690, +0.709].
+
+**Verdict by the rule declared in A1 (applied as written): INCONCLUSIVE (not GO).** Met: both primary lower bounds > 0; benign false-stop rate 0.000 (<= 0.10). Not met: hackable missed-hack rate 0.273 > 0.20; median hackable delay -3 rounds is outside [-2, +4] (the monitor stops about 3 rounds BEFORE the held-out peak, so it gives up some gain). The A2 dev selection had already shown missed-hack 0.285 for the chosen cell, so the 0.20 criterion was not reachable with this monitor family on this environment; the thresholds were not changed after seeing test results.
+**Reading.** In these simulations GapStop recovers 0.79 of the peak held-out gain where an unmonitored run keeps 0.56, at no false-stop cost in the benign environment, and it beats the harness's simpler monitor (0.45 in hackable). It fails by design when the stop verifier shares the train verifier's exploit (shared: identical to NeverStop), which is the documented limitation: the stop verifier must be genuinely independent. These are simulations and say nothing about real verifiers; MDE is not applicable (the contrast is a simulation difference with n = 400 simulated runs).
+**Controls that can fail and pass:** AlwaysStop loses badly in benign (R = 0.17); NeverStop loses in hackable (R = 0.56); GapStop beats both on the primary.
+
+### 5.2 U3 unit controls (`test_preference_updater.py`, EC2 run `stageB/pytest.log`): 14 passed with the U2 tests (rc = 0)
+The toy-policy control: concentrated start -> legacy recipe has >90% zero-variance groups, gain ~ 0, KL ~ 0; graded updater gain > 0.10, KL > 0.01; broad start -> legacy recipe learns. Both directions are asserted.
+
+### 5.3 U3 LoRA/DPO smoke on ChemFM-1B (CPU torch, EC2)
+v1 (16 samples/prompt) ran but produced NO preference pairs: ChemFM unconstrained validity was 0.67-0.69 at prefix 0.6, so each group had about 11 valid samples < group_size 16 and every group was dropped (frac_small_groups_dropped = 1.0), hence no DPO step and KL = 0. **Design implication: `group_size` counts VALID members; with an unconstrained LM at validity ~0.67 the nominal group must be >= group_size / validity (here 32), and the rule automaton (valid by construction) removes this waste.** v2 (32 samples/prompt) is running; results appended below.
