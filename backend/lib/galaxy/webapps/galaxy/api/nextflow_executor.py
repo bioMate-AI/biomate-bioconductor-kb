@@ -3144,11 +3144,16 @@ def _generate_executor_config(
         # binary placed at /app/nf-work/docker-arm64-static by install.sh.  Static
         # ARM64 binaries exec'd from inside an x86 QEMU container are handled by the
         # ARM64 host kernel natively — no QEMU overhead, no unix-socket crash.
-        _is_arm64 = os.environ.get("DOCKER_DEFAULT_PLATFORM", "").lower() == "linux/arm64"
+        # Detect ARM64 by file existence rather than DOCKER_DEFAULT_PLATFORM env var —
+        # the env var may be linux/amd64 inside the galaxy container even on ARM64 hosts
+        # (docker-compose platform: directive controls the container arch, not the env var).
+        # install.sh only places docker-arm64-static on ARM64 hosts, so its presence
+        # is a reliable ARM64 indicator.
         _arm64_docker = "/app/nf-work/docker-arm64-static"
+        _is_arm64 = os.path.exists(_arm64_docker)
         docker_executable_line = (
             f"  executable = '{_arm64_docker}'"
-            if _is_arm64 and os.path.exists(_arm64_docker) else ""
+            if _is_arm64 else ""
         )
         # On-prem container override: bioc workflows hard-code a private ECR image.
         # BIOMATE_BIOC_CONTAINER lets operators substitute a public/pre-pulled image.
@@ -3163,6 +3168,10 @@ process {{
   }}
 }}
 """
+        # On ARM64 hosts set DOCKER_DEFAULT_PLATFORM for task containers so Docker
+        # requests the arm64 variant of workflow images (the galaxy container may have
+        # DOCKER_DEFAULT_PLATFORM=linux/amd64 due to docker-compose platform: directive).
+        _arm64_env_block = 'env { DOCKER_DEFAULT_PLATFORM = "linux/arm64" }' if _is_arm64 else ""
         import multiprocessing as _mp
         host_cpus = _mp.cpu_count()
         minio_config = f"""
@@ -3184,6 +3193,7 @@ docker {{
   // --user root: task containers need write access to the nf-work bind-mount.
   runOptions = '--entrypoint "" --user root --network {docker_network}'
 }}
+{_arm64_env_block}
 
 // On-prem local executor: cap process resource requirements so tasks
 // are never rejected due to host CPU/memory constraints.
