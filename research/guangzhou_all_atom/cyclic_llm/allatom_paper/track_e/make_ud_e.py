@@ -47,6 +47,11 @@ python3.11 track_e/run_stage0.py eval /w/out/run --budget 1000 --seeds 0-9 --cfg
 python3.11 track_e/run_stage0.py controls /w/out/run --budget 1000 --seeds 0-4 --cfg track_e/tuned.json --groups __GROUPS__ > /w/out/controls.log 2>&1; echo "controls rc=$?" >> /w/out/controls.log
 SMOKE=0
 """
+BW = """python3.11 track_e/bw_psa.py /w/out/bw_psa.jsonl --deadline-min 95 --n-conf 60 > /w/out/bw_psa.log 2>&1; echo "bw rc=$?" >> /w/out/bw_psa.log
+curl -sL -o /w/out/CycPeptMPDB-4D.csv "https://zenodo.org/records/21274695/files/CycPeptMPDB-4D.csv?download=1"; md5sum /w/out/CycPeptMPDB-4D.csv > /w/out/4d_md5.txt
+python3.11 track_e/bw_eval.py /w/out/bw_psa.jsonl /w/out/bw_eval.json /w/out/CycPeptMPDB-4D.csv > /w/out/bw_eval.log 2>&1; echo "eval rc=$?" >> /w/out/bw_eval.log
+SMOKE=0
+"""
 TAIL = """echo DONE > /w/out/done.flag
 aws s3 sync /w/out $P/out --only-show-errors
 kill $SYNC $BOOT
@@ -54,13 +59,16 @@ aws s3 cp /var/log/ud.log $P/boot.log --only-show-errors
 shutdown -h now
 """
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(); ap.add_argument("stage", choices=["prep", "main", "quality", "tune", "eval"]); ap.add_argument("out"); ap.add_argument("--run", default="r1"); ap.add_argument("--cap-min", type=int, default=240); ap.add_argument("--groups", default="v2")
+    ap = argparse.ArgumentParser(); ap.add_argument("stage", choices=["prep", "main", "quality", "tune", "eval", "bw"]); ap.add_argument("out"); ap.add_argument("--run", default="r1"); ap.add_argument("--cap-min", type=int, default=240); ap.add_argument("--groups", default="v2")
     a = ap.parse_args()
     if a.stage == "quality":
         head = HEAD.split("python3.11 -m pytest")[0]
         s = head + QUAL + "SMOKE=0\n" + TAIL
     elif a.stage == "tune":
         s = HEAD + TUNE + TAIL
+    elif a.stage == "bw":
+        head = HEAD.split("python3.11 -m pytest")[0]
+        s = head + BW + TAIL
     elif a.stage == "eval":
         head = HEAD.split("python3.11 -m pytest")[0]
         s = head + EVAL.replace("__GROUPS__", a.groups) + TAIL

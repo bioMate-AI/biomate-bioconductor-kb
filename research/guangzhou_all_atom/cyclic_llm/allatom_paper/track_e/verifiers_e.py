@@ -95,7 +95,8 @@ def features(smiles_list, kind):
 def load_labelled(ann_path=ANN_DEFAULT, assay=ASSAY):
     import pandas as pd
     ann = pd.read_csv(ann_path, index_col=0)
-    d = ann[ann[assay].notna() & ann["SMILES"].notna()][["Source", "SMILES", assay]].copy()
+    ann["cid"] = ann.index
+    d = ann[ann[assay].notna() & ann["SMILES"].notna()][["Source", "SMILES", assay, "cid"]].copy()
     d["smiles"] = [canon(s) for s in d["SMILES"]]
     d = d[d["smiles"].notna()].drop_duplicates(["smiles", "Source"])
     d["y_raw"] = d[assay].astype(float)
