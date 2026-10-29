@@ -31,6 +31,24 @@ def status_at(rec, delta):
     return "VALID"
 
 
+def knife_edge(rec, eps=1e-3):
+    """True if shifting every stored control bound by +-eps could change the status at the registered margin (solver-noise sensitivity, amendment A2)."""
+    base = rec["status"]
+    for sgn in (-1, 1):
+        r2 = json.loads(json.dumps(rec)); b = []
+        for k, v in r2["primary"].items():
+            if v is None: continue
+            for x in ("lo", "hi", "lo90", "hi90"): v[x] = v[x] + sgn * eps
+            if v["lo"] > 0.5 or v["hi"] < 0.5: b.append(k)
+        for k, v in r2["secondary"].items():
+            if v is None or v.get("lo") is None: continue
+            v["lo"] += sgn * eps; v["hi"] += sgn * eps
+            if v["lo"] > 0.5 or v["hi"] < 0.5: b.append(k)
+        r2["biased"] = rec["biased"] if False else b
+        if status_at(r2, 0.05) != base: return True
+    return False
+
+
 def detected(rec, fam):
     if rec["status"] != "NOT_VALID_BIASED": return False
     b = set(rec["biased"])
@@ -51,6 +69,7 @@ def main(path):
     S = dict(n_records=len(recs), counts={k: len(v) for k, v in sorted(by.items())})
     # consistency: stored status must equal the recomputed status at the registered margin
     S["status_consistency_mismatches"] = sum(status_at(r, 0.05) != r["status"] for r in recs)
+    S["knife_edge_records_pm_1e-3"] = {k: prop(sum(knife_edge(r) for r in v), len(v)) for k, v in sorted(by.items())}
     # PASS-A (section 5)
     A = {}
     for k in ("VI", "VM2"):
