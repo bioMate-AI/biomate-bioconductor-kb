@@ -49,3 +49,27 @@ Rationale: the exact-only design discards the 2,433 `>` rows (pure) and 289 `<` 
 - **Control C4 (planted censoring that depends on the true potency, by construction):** in a synthetic world built from the planted potency series of §5 for the *training* targets, rows whose planted potency falls in the lowest 30 % of that target are replaced by a `>` row at that target's 30th-percentile value (exact-only training therefore sees only the upper 70 %); held-out targets are fully observed. **Pass:** the censor-aware prior (h1) beats the exact-only prior (h0) in Spearman on the fully observed planted held-out query sets by ≥ 0.03 (mean over targets, paired), and the exact-only arm shows the pre-registered bias (mean predicted rank of the true bottom-decile compounds higher than under h1, i.e. survivorship bias).
 - **Leakage check L1:** (i) unit test that the model input is the feature matrix only (no relation, censor, document or assay column can reach any arm; asserted on the function signatures); (ii) permuting the censoring flags among rows must leave (h0) predictions bit-identical, and under (h1) must degrade the planted-control gain (the gain must come from the correct flags).
 - Planned order unchanged (§6): h0/h1/f0/f1 hyper-settings are fixed above (no tuning), so Stage 1 only checks they train; the secondary comparison is read in Stage 2 together with the primary results.
+
+## 10. Addendum A1 (2026-10-29 ~00:50 CDT; committed BEFORE any test-half family is evaluated or read): frozen configurations, dev results, minimum detectable difference
+**Disclosure (staging deviation).** During code testing I ran `eval_target` on one test-half target (P21452; 3 seeds, k = 0/3/10; baselines and candidates, Spearman only) and printed the summary to check that the code runs on a real fold model. It informed no choice: all configuration selection below uses the 26 dev families only, and the test-half stage will recompute that target with everything else. Nothing else from the test half has been read. Dev evaluation: 55 targets, 26 families, 142,570 (target, method, k, seed) records (`results/eval_dev.csv.gz`; fold models trained on spot, all six folds, family-disjoint, `train_*.log`). Embedding file sha256 70dfcb41…060e4 (16,195 × 512, no truncation).
+**Frozen configuration (chosen on dev by mean overall Spearman over k = 3, 5, 10, family-equal):** NN q = 3; (d) correction q = 6, λ = 0.3 (d_q6_l0.3); (g) ridge α = 1000, q = 6, λ = 0.3; (f) checkpoint 1000 steps (f1 uses the same checkpoint); (d-h0, d-h1) q = 3, λ = 1 as fixed in A0. `results/frozen_config.json`, `results/dev_summary.json`.
+**Dev family-equal means (overall / hard-stratum Spearman):**
+
+| k | NN | GP | RF | d | prior (e) | f (cand.) | g (cand.) | h0 | h1 |
+|---|---|---|---|---|---|---|---|---|---|
+| 3 | 0.247 / 0.135 | 0.250 / 0.139 | 0.240 / 0.133 | 0.198 / 0.153 | 0.056 / 0.098 | 0.162 / 0.098 | 0.163 / 0.060 | 0.066 / 0.117 | 0.200 / 0.197 |
+| 5 | 0.319 / 0.196 | 0.321 / 0.194 | 0.308 / 0.179 | 0.255 / 0.155 | 0.057 / 0.073 | 0.209 / 0.127 | 0.217 / 0.105 | 0.067 / 0.111 | 0.199 / 0.185 |
+| 10 | 0.439 / 0.279 | 0.431 / 0.261 | 0.407 / 0.236 | 0.342 / 0.210 | 0.062 / 0.087 | 0.252 / 0.156 | 0.314 / 0.156 | 0.068 / 0.106 | 0.198 / 0.199 |
+
+**Minimum detectable difference for the gate** (MDE80 = 3.08 · SD_between-family(paired hard-stratum difference, dev) / √21 test families; 97.5 % two-sided, 80 % power):
+
+| candidate | k | best dev baseline | dev mean diff | SD between families | dev families | MDE80 (test) |
+|---|---|---|---|---|---|---|
+| f0_1000 | 3 | d_q6_l0.3 | -0.055 | 0.195 | 26 | **0.131** |
+| g_a1000_q6_l0.3 | 3 | d_q6_l0.3 | -0.093 | 0.265 | 26 | **0.178** |
+| f0_1000 | 5 | nn_q3 | -0.069 | 0.276 | 26 | **0.185** |
+| g_a1000_q6_l0.3 | 5 | nn_q3 | -0.091 | 0.229 | 26 | **0.154** |
+| f0_1000 | 10 | nn_q3 | -0.122 | 0.252 | 26 | **0.169** |
+| g_a1000_q6_l0.3 | 10 | nn_q3 | -0.123 | 0.240 | 26 | **0.161** |
+
+**Consequences fixed now.** (i) MDE80 is 0.13–0.19 at every budget, i.e. 4–6× the +0.03 margin, so under §4 any non-PASS is reported as **NOT DETECTED / UNDERPOWERED** (never "no gain"). (ii) On dev both candidates are *below* the best baseline in the hard stratum by 0.055–0.123 (−0.093/−0.091/−0.123 for g, −0.055/−0.069/−0.122 for f at k = 3/5/10): the test stage is expected to repeat that sign and the verdict will be read with the interval, not the point. (iii) (g) − (d) isolates what PeptideCLM-2 embeddings add over fingerprints: on dev the embedding variant is lower than the fingerprint variant at every budget. (iv) Secondary arm (A0), dev-only observation, **not a result**: the censor-aware prior-only score (h1) has overall Spearman ≈ 0.20 at every k against ≈ 0.07 for the exact-only prior (h0) and 0.06 for the HGB prior; this needs the pre-registered controls (C4 planted censoring, L1 flag-scramble) and may reflect the documented censoring shortcut (S3 diagnostic) — it is read on the test half only.
