@@ -18,7 +18,7 @@ def ci(v, lo=2.5, hi=97.5):
     """Percentile bootstrap CI of the MEAN over seeds (not a spread); deterministic per (data, level)."""
     v = np.asarray([x for x in v if x == x], float)
     if len(v) == 0: return None
-    if len(v) == 1: return [float(v[0]), float(v[0])]
+    if len(v) == 1: return [round(float(v[0]), 4), round(float(v[0]), 4)]          # same rounding as the mean in summ(): an unrounded n=1 interval put the (rounded) mean outside it (final_pass check, 2026-10-29)
     rng = np.random.default_rng(_seed(v, lo, hi)); bs = [float(np.mean(rng.choice(v, len(v)))) for _ in range(B_BOOT)]
     return [round(float(np.percentile(bs, lo)), 4), round(float(np.percentile(bs, hi)), 4)]
 

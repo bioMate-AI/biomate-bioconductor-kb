@@ -125,3 +125,10 @@ def test_collect_script_picks_up_every_small_model_prefix_and_skips_llm():
     keep = ["res7a_gbm_aware/", "res7f_gbm_blind/", "res7k_gbm_confirm/", "res7m_gbm/", "res7n_L9_phys/", "res7q_gbm_aware/", "res7q_gbm_confirm/", "res7f_chemberta_L_b/", "res7f_atom_L_a/"]
     for k in keep: assert accepts("                           PRE " + k), k
     assert not accepts("                           PRE res7a_llm/")
+
+
+def test_single_seed_mean_lies_inside_its_interval_after_rounding():
+    """n = 1 contrasts: summ() rounds the mean to 4 decimals, ci() used to return the unrounded value, so mean was outside [lo, hi] (found by qa_audit/final_pass.py on the confirmatory regime-L group)."""
+    import aggregate_l7 as A
+    for x in (-0.018918441059836755, 0.04527544138819428, 3.0, -5.00004):
+        s = A.summ([x]); assert s["ci"][0] <= s["mean"] <= s["ci"][1], (x, s)
