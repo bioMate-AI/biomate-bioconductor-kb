@@ -122,9 +122,9 @@ fa=_json.load(open(L+"frozen_ab_aggregate.json"))
 A("v2 Appendix A frozen A/B text matches the prereg results section (document text)",all(x in doc("20261031_FROZEN_AWARE_VS_BLIND_PREREG.md") for x in ("-16.375","[-23.9, -8.9]","[-64.8, 17.4]")) and "−16.4" in V)
 reg("−16.4","−64.8 to 17.4","−23.9 to −8.9")
 t1=doc("20261031_T1_T1B_RECOMPUTED_CORRECTED.md")
-A("v2 6 T1 corrected numbers (document text)",all(x in t1 for x in ("+0.058","[0.010, 0.108]","[0.002, 0.113]","[−0.240, −0.015]")) and "+0.058, percentile CI 0.010 to 0.108" in V); reg("+0.058, percentile CI 0.010 to 0.108","0.002 to 0.113","+0.0034")
+A("v2 6 T1 corrected numbers (document text)",all(x in t1 for x in ("+0.058","[0.010, 0.108]","[0.002, 0.113]","[−0.240, −0.015]")) and "+0.058, percentile CI 0.010 to 0.108" in PF); reg("+0.058, percentile CI 0.010 to 0.108","0.002 to 0.113","+0.0034")
 b2=_json.load(open(BASE+"c2_audit/results_B_v2_aggregate.json")) if _os.path.exists(BASE+"c2_audit/results_B_v2_aggregate.json") else None
-A("v2 6 anchor v2 results file present and +0.004 / +0.100 quoted",b2 is not None and "+0.004" in V and "+0.100" in V); reg("+0.004","+0.100","−0.061 to +0.050")
+A("v2 6 anchor v2 results file present and +0.004 / +0.100 quoted",b2 is not None and "+0.004" in PF and "+0.100" in PF); reg("+0.004","+0.100","−0.061 to +0.050")
 
 # ---- gate positive control (Appendix C) ----
 gp=_json.load(open(R+"multitarget/integrin_chembl/retro_recovery/gate_positive_control/results/gpc_summary.json"))
@@ -176,7 +176,7 @@ S_PLAN=[DOCS+"20261030_IHLM_LADDER_RESULTS.md",DOCS+"20261030_TECHNIQUE_T2_ACQUI
 S_C2=[BASE+"c2_audit/results_A_aggregate.json",BASE+"c2_audit/results_B_v2_aggregate.json"]
 srcmap=[("Closed design",S_AGG+S_REV+S_GATE+S_LIT),("Cyclic peptides are an active",S_LIT+[R+"data/raw/CycPeptMPDB_Peptide_All.csv"] if False else S_LIT+S_STRAT),("**Related work",S_LIT),("**Status banner",S_AGG),
  ("| C1 |",S_GATE+S_REV),("| C2 |",S_REV),("**Replay.**",S_AGG+S_REV),("**Regimes",S_AGG+S_REV+S_GATE),("**Binder benchmark",S_GATE+S_REV),("**Statistics",S_REV),("An independent methodology",S_REV),
- ("| P",S_AGG+S_GATE+S_REV+S_C2),("Yield (hits",S_AGG),("In regime L the frozen",S_AGG+S_REV),("Seed-based E-AUROC",S_AGG),("In regime L the effect",S_AGG+S_REV),("Analysis I is Pfam",S_GATE+S_REV),("On analysis I (relative",S_GATE),("C2 binding loop",S_C2+S_PLAN),("Within-source Spearman",S_STRAT+S_AGG),("Leave-laboratories-out tests",S_REV+S_AGG+S_PILOT),("| D-flip",S_PILOT),("An in-house loop-native",S_PLAN+S_AGG+S_C2),("Frozen lists",S_AGG),("**One short finding",S_PLAN),("The registered gate was run",[GPC]),("The registered margin",[GPC]),("| analysis-I type",[GPC]),("| M2 type",[GPC]),("Source: `docs/20261031_NEWTARGET",S_PILOT),("**Findings.**",S_PILOT),("### ",[])]
+ ("| P",S_AGG+S_GATE+S_REV+S_C2),("Yield (hits",S_AGG),("In regime L the frozen",S_AGG+S_REV),("Seed-based E-AUROC",S_AGG),("In regime L the effect",S_AGG+S_REV),("Analysis I is Pfam",S_GATE+S_REV),("On analysis I (relative",S_GATE),("C2 binding loop",S_C2+S_PLAN),("Within-source Spearman",S_STRAT+S_AGG),("Leave-laboratories-out tests",S_REV+S_AGG+S_PILOT),("| D-flip",S_PILOT),("An in-house loop-native",S_PLAN+S_AGG+S_C2),("Frozen lists",S_AGG),("**One short finding",S_PLAN),("The registered gate was run",[GPC]),("The registered margin",[GPC]),("| analysis-I type",[GPC]),("| M2 type",[GPC]),("Source: `docs/20261031_NEWTARGET",S_PILOT),("**No model gain is claimed",S_PILOT),("We apply a ten-point rulebook",S_REV),("**Findings.**",S_PILOT),("### ",[])]
 tier2=[]; left=[]
 cache={}
 for ln,l in enumerate(txt.split("\n"),1):

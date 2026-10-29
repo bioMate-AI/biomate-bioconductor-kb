@@ -39,6 +39,7 @@ import re, math
 from scipy import stats
 D="/Users/kky/biomate-review/docs/"
 M=open(D+"20261029_MANUSCRIPT_LOOP_SMALL_LLM_DRAFT.md").read(); V=open(D+"20261030_MANUSCRIPT_EVAL_CONTROLS_DRAFT_v2.md").read()
+PF=open(D+"20261031_PROGRESS_PAPER1.md").read()
 def f3(x,sign=False):
     t=f"{abs(x):.3f}".replace("-","")
     if x<0: return "\u2212"+t
@@ -97,7 +98,7 @@ A("compound-disjoint C2/C3 quoted",abs(cg["compound_disjoint"]["C2"]["point"]-0.
 
 # ---- regenerated aggregate (ab35481bb): hash, learner keys, aware numbers quoted in the drafts ----
 import hashlib
-A("aggregate sha256 matches frozen file and drafts", hashlib.sha256(open(L+"l7_aggregate.json","rb").read()).hexdigest()=="ebc525090740249f50ec4e2d96cd809e6b6b802c0f42ad2f7815f2dbdb76387e" and open(L+"l7_aggregate.sha256").read().split()[0]=="ebc525090740249f50ec4e2d96cd809e6b6b802c0f42ad2f7815f2dbdb76387e" and "ebc525090740249f50ec4e2d96cd809e6b6b802c0f42ad2f7815f2dbdb76387e" in M and "ebc525090740249f50ec4e2d96cd809e6b6b802c0f42ad2f7815f2dbdb76387e" in V)
+A("aggregate sha256 matches frozen file and drafts", hashlib.sha256(open(L+"l7_aggregate.json","rb").read()).hexdigest()=="ebc525090740249f50ec4e2d96cd809e6b6b802c0f42ad2f7815f2dbdb76387e" and open(L+"l7_aggregate.sha256").read().split()[0]=="ebc525090740249f50ec4e2d96cd809e6b6b802c0f42ad2f7815f2dbdb76387e" and "ebc525090740249f50ec4e2d96cd809e6b6b802c0f42ad2f7815f2dbdb76387e" in M and "ebc525090740249f50ec4e2d96cd809e6b6b802c0f42ad2f7815f2dbdb76387e" in PF)
 A("learner keys", {"gbm_aware|A","gbm_aware|B","gbm_aware|L","gbm_blind|A","gbm_blind|B","gbm_blind|L","gbm_physchem|A","gbm_physchem|B","gbm_physchem|L","chemberta|A","chemberta|B"}<=set(l7["small"]) and not any(k.startswith("gbm|") for k in l7["small"]))
 ga=l7["small"]["gbm_aware|L"]["contrasts"]
 A("aware L yield contrasts",ga["loop - random_fb [yield]"]["mean"]==186.1 and ga["loop - random_fb [yield]"]["ci"]==[179.5,192.9] and ga["loop - frozen [yield]"]["mean"]==47.3 and ga["loop - shuffled [yield]"]["mean"]==117.7 and all(x in M for x in ("+186.1","(179.5 to 192.9)","+47.3","+117.7")))
@@ -137,11 +138,11 @@ def prow(**kw):
     for r in pc:
         if all(r.get(k)==v for k,v in kw.items()): return r
 r=prow(analysis="ladder",contrast="R3-R2",regime="L",seeds="conf 10-19",metric="yield (hits/500)")
-A("cluster M3 L conf yield [-4.0, 23.0], 49% Townsend",round(r["cluster_t"][0],1)==-4.0 and round(r["cluster_t"][1],1)==23.0 and r["top_lab"]=="2020_Townsend" and "\u22124.0 to 23.0" in V)
+A("cluster M3 L conf yield [-4.0, 23.0], 49% Townsend",round(r["cluster_t"][0],1)==-4.0 and round(r["cluster_t"][1],1)==23.0 and r["top_lab"]=="2020_Townsend" and "\u22124.0 to 23.0" in PF)
 r=[x for x in pc if x["analysis"]=="L7" and x["group"]=="gbm_aware" and x["regime"]=="L" and x["seeds"].startswith("seeds 0-9") and x["contrast"]=="loop-frozen" and x["metric"].startswith("yield")][0]
 A("cluster aware L loop-frozen -53.0..147.6, 89% Townsend",round(r["cluster_t"][0],1)==-53.0 and round(r["cluster_t"][1],1)==147.6 and r["top_share"]==0.887 and "\u221253.0 to 147.6" in V)
 r=prow(analysis="ladder",contrast="R3-R2",regime="L",seeds="conf 10-19",metric="E-AUROC per lab")
-A("cluster M3 L conf ranking +0.092 [0.002,0.182]",round(r["estimate"],3)==0.092 and round(r["cluster_t"][0],3)==0.002 and "0.002 to 0.182" in V)
+A("cluster M3 L conf ranking +0.092 [0.002,0.182]",round(r["estimate"],3)==0.092 and round(r["cluster_t"][0],3)==0.002 and "0.002 to 0.182" in PF)
 exec(open(__file__.replace("verify_artifacts","verify_v2_numbers")).read())
 bad=[n for n,ok in chk if not ok]; print(len(chk),"checks; failed:",bad)
 def last(p): 
