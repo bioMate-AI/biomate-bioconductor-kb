@@ -21,11 +21,11 @@ class GapStopMonitor:
     (k0 = round(q * first-batch size)); T_t, S_t = their mean TRAIN / STOP score. (Amendment A2: the per-round top-q statistic of A1
     was noise-triggered on plateaus in the unit tests.)"""
     q: float = 0.10
-    patience: int = 3
-    tau: float = 0.5
+    patience: int = 4          # A2-final (selected on DEV seeds by the declared rule)
+    tau: float = 1.0           # A2-final
     tol: float = 0.05
     warmup: int = 2
-    smooth: int = 2
+    smooth: int = 3            # A2-final
     k0: int = 0
     pool_t: List[float] = field(default_factory=list)
     pool_s: List[float] = field(default_factory=list)

@@ -7,12 +7,13 @@ from .stop_monitor import AlwaysStop, GapStopMonitor, NeverStop
 
 
 def _batches(T_gain, S_gain, T=20, n=400, seed=0):
+    """Both verifiers see the same latent quality of each molecule (so selecting on train also selects on stop) plus small
+    independent noise; T_gain / S_gain are the population-level improvements seen by each verifier at round t."""
     rng = np.random.default_rng(seed)
     out = []
     for t in range(T):
-        tr = rng.normal(0, 1, n) + T_gain(t)
-        st = tr * 0.0 + rng.normal(0, 1, n) + S_gain(t) + 0.3 * (tr - tr.mean())      # stop score correlated with train within batch
-        out.append((tr, st))
+        lat = rng.normal(0, 1, n)
+        out.append((lat + T_gain(t) + 0.3 * rng.normal(size=n), lat + S_gain(t) + 0.3 * rng.normal(size=n)))
     return out
 
 
@@ -61,6 +62,6 @@ def test_envs_are_deterministic_and_hack_directions_orthogonal():
 def test_hackable_env_rises_then_falls_for_most_seeds():
     ups = 0
     for s in range(20):
-        Hs = H.run_es(H.make("hackable", s), s, T=30)["H"]
+        Hs = H.run_es(H.make("hackable", s), s, T=40)["H"]
         ups += int(max(Hs) > Hs[0] and Hs[-1] < max(Hs) - 0.3 * (max(Hs) - Hs[0]))
     assert ups >= 12                                                                   # planted Goodhart shape exists (validity is checked at scale in stage A)

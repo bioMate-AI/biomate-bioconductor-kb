@@ -12,7 +12,7 @@ import numpy as np
 from . import hack_env as H
 from .stop_monitor import AlwaysStop, GapStopMonitor, NeverStop
 
-T_ROUNDS = 30
+T_ROUNDS = 40       # A2-final: horizon selected on DEV seeds (c_h = 5.0)
 
 
 def retained(Hs, r):
