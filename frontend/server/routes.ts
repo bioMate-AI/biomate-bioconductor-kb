@@ -12361,6 +12361,37 @@ ${paramLines || '(none recorded)'}`;
     }
   });
 
+  // ── Gated on-demand tool discovery ───────────────────────────────────────
+  // Lets an authenticated user (or the chat `request_new_tool` tool) trigger the
+  // existing GitHub tool-ingest pipeline for a SINGLE named capability/repo,
+  // instead of waiting for the nightly cron. Hard-gated by the
+  // BIOMATE_TOOL_DISCOVERY_ENABLED env flag (default OFF) AND explicit
+  // confirm=true. The gate lives in server/tool-discovery.ts so this endpoint
+  // and the chat tool share one enforcement point. See
+  // docs/06-auto-update + auto_update/scripts/request_single_tool.py.
+  app.post('/api/tools/request-discovery', authenticateToken, express.json(), async (req, res) => {
+    try {
+      const { requestToolDiscovery } = await import('./tool-discovery');
+      const userId = (req as any).user?.id ?? (req as any).userId ?? null;
+      const { capability, repo, confirm } = req.body || {};
+      const result = await requestToolDiscovery({
+        capability: typeof capability === 'string' ? capability : undefined,
+        repo: typeof repo === 'string' ? repo : undefined,
+        confirm: confirm === true,
+        userId: userId ?? undefined,
+      });
+      // Map gate states to HTTP codes; the body always carries the detail.
+      const code =
+        result.status === 'disabled' ? 403 :
+        result.status === 'invalid_request' ? 400 :
+        result.status === 'confirmation_required' ? 409 :
+        result.status === 'error' ? 502 : 200;
+      res.status(code).json(result);
+    } catch (err: any) {
+      res.status(500).json({ status: 'error', message: String(err?.message ?? err) });
+    }
+  });
+
   // ── D4: Workflow error explanation — Node.js LLM layer ───────────────────
   // ANTHROPIC_API_KEY is guaranteed present here (same process as all other Anthropic calls).
   // The Galaxy backend's explain_error endpoint is NOT called; LLM call happens here.

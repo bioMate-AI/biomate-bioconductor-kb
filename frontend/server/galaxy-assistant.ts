@@ -266,6 +266,44 @@ instead of inventing a workflow name.`,
       required: ['query'],
     },
   },
+  {
+    name: 'request_new_tool',
+    description: `Request that BioMate fetch and register a NEW analysis tool that is NOT yet in its
+catalog, by driving its GitHub tool-ingest pipeline (search a repo -> fetch docs -> generate a
+Galaxy wrapper -> validate -> register as an auto_discovered, quality-gated tool).
+
+Use ONLY as a last resort, after search/compose has genuinely found no existing tool for the
+user's capability (i.e. you would otherwise have to say "no tool available"). Do NOT use this to
+run analyses, to find already-indexed tools, or for general questions.
+
+SAFETY — this reaches an external service (GitHub) and modifies the catalog, so it is gated:
+  * It may be disabled on this deployment (you will get status "disabled" — then just tell the
+    user the capability is not yet available; do not retry).
+  * It requires EXPLICIT user confirmation. First call it WITHOUT confirm (or confirm=false) to get
+    the confirmation prompt, relay that to the user, and only call again with confirm=true AFTER the
+    user clearly agrees. Never set confirm=true on the user's behalf.
+Returns a status: registered / already_exists / not_feasible / has_api / needs_review / not_found /
+confirmation_required / disabled. Report the status plainly; do not claim a tool is usable unless
+status is "registered".`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        capability_description: {
+          type: 'string',
+          description: 'What the needed tool should do, in plain terms (e.g. "nanopore methylation caller", "long-read structural variant genotyper").',
+        },
+        repo: {
+          type: 'string',
+          description: 'Optional exact GitHub repository as "owner/name", if the user named a specific tool/repo. Takes precedence over capability_description.',
+        },
+        confirm: {
+          type: 'boolean',
+          description: 'Set true ONLY after the user has explicitly confirmed the fetch+register. Omit or false otherwise.',
+        },
+      },
+      required: ['capability_description'],
+    },
+  },
 ];
 
 /**
@@ -2977,6 +3015,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
             case 'search_my_data': output = await this._toolSearchMyData(args, toolContext.context); break;
             case 'list_data_sources': output = await this._toolListDataSources(args); break;
             case 'search_workflows': output = await this._toolSearchWorkflows(args); break;
+            case 'request_new_tool': output = await this._toolRequestNewTool(args, toolContext.context); break;
             default:
               // External MCP tools (mcp__<server>__<tool>) → route to owning server.
               if (typeof name === 'string' && name.startsWith('mcp__')) {
@@ -9307,6 +9346,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           case 'search_workflows':
             output = await this._toolSearchWorkflows(block.input);
             break;
+          case 'request_new_tool':
+            output = await this._toolRequestNewTool(block.input, context);
+            break;
           default:
             // External MCP tools are namespaced mcp__<server>__<tool>; route them
             // to the owning remote server (ownership-checked backend-side).
@@ -9829,6 +9871,30 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       };
     } catch (err: any) {
       return { error: err?.message ?? String(err), query };
+    }
+  }
+
+  /** request_new_tool handler — GATED on-demand tool discovery. Delegates to the
+   *  single shared gate in server/tool-discovery.ts (env flag + confirm), which
+   *  invokes the targeted auto_update single-tool pipeline. Never fetches/registers
+   *  anything unless the deployment flag is on AND the user explicitly confirmed. */
+  private async _toolRequestNewTool(input: any, context: ChatContext): Promise<unknown> {
+    const capability = (input?.capability_description ?? '').toString().trim();
+    const repo = (input?.repo ?? '').toString().trim();
+    const confirm = input?.confirm === true;
+    if (!capability && !repo) {
+      return { status: 'invalid_request', message: 'capability_description (or repo) is required' };
+    }
+    try {
+      const { requestToolDiscovery } = await import('./tool-discovery');
+      return await requestToolDiscovery({
+        capability: capability || undefined,
+        repo: repo || undefined,
+        confirm,
+        userId: context?.userId ? String(context.userId) : undefined,
+      });
+    } catch (err: any) {
+      return { status: 'error', message: err?.message ?? String(err) };
     }
   }
 
