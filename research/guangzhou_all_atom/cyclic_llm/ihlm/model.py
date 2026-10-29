@@ -222,7 +222,7 @@ class IHLM:
 
     # ------------------------------------------------------------------ M5: dual-memory update
     def clone(self):
-        c = IHLM.__new__(IHLM); d = {k: v for k, v in self.__dict__.items()}
+        c = self.__class__.__new__(self.__class__); d = {k: v for k, v in self.__dict__.items()}      # preserve the subclass (ladder LadderIHLM overrides _ensure_net/_pack; a hard-coded IHLM silently re-enabled the neural M3/M4)
         d["mem"] = self.mem.clone(); d["meter"] = copy.deepcopy(self.meter); d["history"] = list(self.history); d["net"] = copy.deepcopy(self.net) if self.net is not None else None; d["cal"] = copy.deepcopy(self.cal); c.__dict__.update(d); return c
 
     def update(self, labelled, mode="finetune_ranking", seed=0, **kw):

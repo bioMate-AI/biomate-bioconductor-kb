@@ -3,9 +3,10 @@ Contract (same as loop_retro/loop_models.py): state = B.init_state(); state = B.
 Own code only. The neural analog attention (M3) and neural edit residual (M4) are DISABLED (xfail upstream): retrieval and edit effects enter through the symbolic memory only."""
 import os, sys, copy
 import numpy as np
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 IH = os.path.join(HERE, "..", "ihlm"); sys.path.insert(0, IH); sys.path.insert(0, os.path.join(HERE, "..", "v4_eval")); sys.path.insert(0, os.path.join(HERE, "..", "loop_retro"))
 import model as IM
+from ladder_core import causal_labels      # noqa: F401  (re-exported: adapter.causal_labels is the pre-registered name)
 
 RUNGS = {"R0": (), "R1": ("M1",), "R2": ("M1", "M2"), "R3": ("M1", "M2", "M3"), "R4": ("M1", "M2", "M3", "M4")}
 CFG = dict(backbone_cfg=dict(d=64, layers=2, heads=4, max_len=256, kind="encoder"), tokenizer_cfg=dict(max_len=256), n0=100.0, k=5, slow_every=1, alpha=0.2, eta=1.0)      # fixed in the pre-registration (section 3)
@@ -24,21 +25,6 @@ class LadderIHLM(IM.IHLM):
 class LState:
     """immutable-by-convention wrapper: the model plus the set of dataset indices already written to its memory."""
     def __init__(self, model, written): self.model, self.written = model, written
-
-
-def causal_labels(idx, y_seen, srcs, scheme="zc", m=5.0, y_transductive=None):
-    """Learner-visible labels computed from the REVEALED set only (pre-registration section 4).
-    zc: per-source shrunk z (mu_s, sigma_s shrunk toward the global revealed statistics with weight m); gc: global-centred (source offsets left in); zt: transductive control (labels passed in as is)."""
-    idx = np.asarray(idx, dtype=int); y = np.asarray(y_seen, float)
-    if scheme == "zt": return np.asarray(y_transductive, float)
-    muG = float(y.mean()) if len(y) else 0.0; sdG = float(y.std()) if len(y) > 1 and y.std() > 0 else 1.0
-    if scheme == "gc": return y - muG
-    out = np.zeros(len(y)); by = {}
-    for j, i in enumerate(idx): by.setdefault(srcs[i], []).append(j)
-    for s, js in by.items():
-        v = y[js]; n = len(v); mu = (n * v.mean() + m * muG) / (n + m); var = (n * (v.var() if n > 1 else 0.0) + m * sdG ** 2) / (n + m)
-        out[js] = (v - mu) / (np.sqrt(var) if var > 0 else 1.0)
-    return out
 
 
 class IHLMBackend:
