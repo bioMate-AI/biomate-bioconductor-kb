@@ -8,7 +8,7 @@ AMI = "ami-04f7da1c787a89267"  # DL Base OSS Nvidia GPU AMI (CUDA drivers + awsc
 SG = "sg-0de9af2d4437a8c90"
 # us-west-2d (subnet-0b35...) does not offer g5; use 2a/2b/2c
 SUBNETS = ["subnet-0254e4c3634b41bfc", "subnet-03b277a7a08d388c1", "subnet-09e4dce46682a6c60"]
-TYPES = ["g6.2xlarge", "g5.2xlarge", "g6e.2xlarge", "g6.4xlarge", "g5.4xlarge"]  # >= 32 GB RAM: 16 GB hosts load the 15 GB checkpoint at ~9 MB/s (IOPS-bound page faults)
+TYPES = ["g6e.xlarge", "g6e.2xlarge", "g6e.4xlarge", "g6.2xlarge", "g5.2xlarge"]  # g6e = L40S 48 GB (bf16 8B + large KV cache); 24 GB GPUs only as fp8 fallback; >= 32 GB RAM needed to load the 15 GB checkpoint
 
 UD = r'''#!/bin/bash
 P=__P__
@@ -88,8 +88,9 @@ def main():
         acq = 'python acquire.py --out /w/out/corpus.jsonl.gz --per-query __PQ__ --total __TOTAL__ > /w/out/acquire.log 2>&1; echo "acquire rc=$?" | tee -a /w/out/stage.log'
     ud = UD.replace("__ACQUIRE__", acq).replace("__P__", P).replace("__CODE__", codekey).replace("__PQ__", str(a.per_query)).replace("__TOTAL__", str(a.total))
     udpath = f"/tmp/k2_ud_{a.run_id}.sh"
-    open(udpath, "w").write(ud)
     for t in TYPES:
+        qline = "" if t.startswith("g6e") else "export K2_QUANT=fp8   # 24 GB GPU fallback (recorded in extract_config.json)\n"
+        open(udpath, "w").write(ud.replace("cd /w/k2src\n", "cd /w/k2src\n" + qline, 1))
         for sub in SUBNETS:
             r = subprocess.run(["aws", "ec2", "run-instances", "--image-id", AMI, "--instance-type", t, "--subnet-id", sub,
                                 "--security-group-ids", SG, "--iam-instance-profile", "Name=ecsInstanceRole",

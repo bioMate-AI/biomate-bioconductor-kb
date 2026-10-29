@@ -80,7 +80,15 @@ def main():
                 if pid not in done:
                     jobs.append((pid, p, ps))
     print(f"papers={len(papers)} passages_todo={len(jobs)} already_done={len(done)}", flush=True)
-    llm = LLM(model=MODEL, dtype="bfloat16", max_model_len=6144, gpu_memory_utilization=0.90, enable_prefix_caching=True)
+    quant = os.environ.get("K2_QUANT") or None          # None = bf16 weights (pre-registered); "fp8" only as a recorded fallback on 24 GB GPUs
+    max_seqs = int(os.environ.get("K2_MAX_SEQS", "64"))
+    kw = dict(model=MODEL, dtype="bfloat16", max_model_len=6144, gpu_memory_utilization=0.92, enable_prefix_caching=True, max_num_seqs=max_seqs)
+    if quant:
+        kw["quantization"] = quant
+    json.dump({"model": MODEL, "quantization": quant, "max_num_seqs": max_seqs, "prompt_version": PROMPT_VERSION,
+               "gpu": os.popen("nvidia-smi --query-gpu=name,memory.total --format=csv,noheader").read().strip()},
+              open(os.path.join(a.outdir, "extract_config.json"), "w"))
+    llm = LLM(**kw)
     tok = llm.get_tokenizer()
 
     def chat(user):
