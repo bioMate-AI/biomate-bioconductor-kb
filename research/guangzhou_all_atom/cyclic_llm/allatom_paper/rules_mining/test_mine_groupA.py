@@ -54,6 +54,11 @@ def test_control_new_rules_fail_for_group_A_itself():
         assert_priors_clean(rules, man["group_A_sources_used"][:1])
 
 
+def test_groups_come_from_the_committed_file_not_a_recomputation():
+    man = _load(MAN)
+    assert man["groups_from"]["file"].endswith("source_groups.json") and man["groups_from"]["sha256"], man["groups_from"]
+
+
 def test_manifest_hash_matches_output():
     import hashlib
     man = _load(MAN)

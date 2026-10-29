@@ -28,16 +28,29 @@ def sha256_file(path):
     return h.hexdigest()
 
 
-def main(out_dir=HERE):
+def main(out_dir=HERE, debug_recompute=False):
     import pandas as pd
     import common as C                     # stratification/common.py (same loader the all-lab mining used)
     import peptide_sar_kb as P             # kb_audit/peptide_sar_kb.py: the existing mining code
     import verifiers_e as E                # group definition (Track E)
 
-    groups = E.source_groups(E.load_labelled())
-    A = sorted(s for s, g in groups.items() if g == 0)
-    S = sorted(s for s, g in groups.items() if g == 1)
-    B = sorted(s for s, g in groups.items() if g == 2)
+    sg_path = os.path.join(CYC, "allatom_paper", "track_e", "source_groups.json")
+    if os.path.exists(sg_path) and not debug_recompute:
+        sg = json.load(open(sg_path))        # the COMMITTED membership (owner/coordinator rule: do not recompute groups)
+        mem = sg["membership"]
+        A = sorted(s for s, v in mem.items() if v["group"] == "A")
+        S = sorted(s for s, v in mem.items() if v["group"] == "S")
+        B = sorted(s for s, v in mem.items() if v["group"] == "B")
+        groups_from = dict(file="allatom_paper/track_e/source_groups.json", sha256=sha256_file(sg_path),
+                           annotation_sha256=sg.get("annotation_sha256"))
+    elif debug_recompute:
+        groups = E.source_groups(E.load_labelled())          # DEBUG ONLY: output must not be used in any comparison
+        A = sorted(s for s, g in groups.items() if g == 0)
+        S = sorted(s for s, g in groups.items() if g == 1)
+        B = sorted(s for s, g in groups.items() if g == 2)
+        groups_from = dict(file="RECOMPUTED (debug; not for use)", sha256=None)
+    else:
+        raise SystemExit("allatom_paper/track_e/source_groups.json is not in the repo yet: refusing to recompute groups")
 
     d = C.load_labelled()
     pairs_path = os.path.join(CYC, "stratification", "data", "mmp_pairs_pampa.csv.gz")
@@ -54,7 +67,8 @@ def main(out_dir=HERE):
     rs.to_json(out_json)
     manifest = dict(
         description="soft-rule weights re-mined on TRAIN source group A only",
-        group_rule="allatom_paper/track_e/verifiers_e.py source_groups (order [0,1,2,2,1,0], sources by descending size)",
+        group_rule="committed membership file allatom_paper/track_e/source_groups.json (pattern [0,1,2,2,1,0], sources by (-n, name))",
+        groups_from=groups_from,
         group_A_sources_used=trainA, group_A_all=A, group_S=S, group_B=B,
         eligible_sources_all=elig, min_src_n=P.MIN_SRC_N,
         n_peptides_used=int(d.Source.isin(trainA).sum()), n_pairs_used=int(pairs.source.isin(trainA).sum()),
@@ -69,4 +83,6 @@ def main(out_dir=HERE):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=HERE)
-    main(ap.parse_args().out)
+    ap.add_argument("--debug-recompute-groups", action="store_true", help="debug only; output not for use")
+    a = ap.parse_args()
+    main(a.out, a.debug_recompute_groups)
