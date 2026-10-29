@@ -265,35 +265,39 @@ jobs:
         # Push to GHCR on every branch build so on-prem ARM64 instances can pull
         # branch-tagged images without needing ECR credentials.
         # `:latest` is only updated on release-v* tags (production release gate).
+        # Uses `skopeo copy --multi-arch all` to cross-copy from ECR to GHCR
+        # without pulling layers locally — avoids the ~20 GB disk spike from
+        # docker pull + docker push on a fresh runner.
         run: |
-          # Re-push per-platform images to GHCR so imagetools can reference them
-          docker pull "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-amd64"
-          docker pull "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-arm64"
-          docker tag "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-amd64" \
-                     "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-amd64"
-          docker tag "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-arm64" \
-                     "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-arm64"
-          docker push "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-amd64"
-          docker push "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-arm64"
-          # Always push sha-tagged multi-arch manifest
-          docker buildx imagetools create \
-            --tag "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}" \
-            "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-amd64" \
-            "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-arm64"
-          # Push branch-scoped moving tag to GHCR when building from a branch
-          if [[ -n "${{ steps.tags.outputs.branch_tag }}" ]]; then
-            docker buildx imagetools create \
-              --tag "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.branch_tag }}" \
-              "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-amd64" \
-              "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-arm64"
+          # Install skopeo for disk-efficient cross-registry manifest copy
+          sudo apt-get install -y skopeo --no-install-recommends -qq
+
+          ECR="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}"
+          GHCR="${{ env.GHCR_IMAGE }}"
+          SHA="${{ steps.tags.outputs.sha_tag }}"
+          BRANCH="${{ steps.tags.outputs.branch_tag }}"
+          RELEASE="${{ steps.tags.outputs.release_tag }}"
+
+          # sha-tagged multi-arch manifest (always)
+          skopeo copy --multi-arch all \
+            "docker://${ECR}:${SHA}" \
+            "docker://${GHCR}:${SHA}"
+
+          # branch-scoped moving tag (branch builds)
+          if [[ -n "${BRANCH}" ]]; then
+            skopeo copy --multi-arch all \
+              "docker://${ECR}:${SHA}" \
+              "docker://${GHCR}:${BRANCH}"
           fi
-          # Only update :latest on release-v* tags (production gate)
+
+          # :latest + release tag (release-v* only)
           if [[ -n "${{ steps.tags.outputs.release_tag }}" ]]; then
-            docker buildx imagetools create \
-              --tag "${{ env.GHCR_IMAGE }}:latest" \
-              --tag "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.release_tag }}" \
-              "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-amd64" \
-              "${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.sha_tag }}-arm64"
+            skopeo copy --multi-arch all \
+              "docker://${ECR}:${SHA}" \
+              "docker://${GHCR}:latest"
+            skopeo copy --multi-arch all \
+              "docker://${ECR}:${SHA}" \
+              "docker://${GHCR}:${{ steps.tags.outputs.release_tag }}"
           fi
 
       - name: Summary
