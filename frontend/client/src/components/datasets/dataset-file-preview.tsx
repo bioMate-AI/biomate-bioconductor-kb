@@ -9,7 +9,7 @@ const DensityMapViewer = lazy(() =>
 )
 
 const LIMIT = 256 * 1024
-const TEXT = /\.(json|ya?ml|txt|md|csv|tsv|log|xml|html?|py|r|sh|nf|config|toml|ini|fa|fasta|pdb|smi|smiles|vcf)$/i
+const TEXT = /\.(json|ya?ml|txt|md|csv|tsv|log|xml|html?|py|r|sh|nf|config|toml|ini|fa|fasta|fastq|fq|pdb|smi|smiles|vcf|bed|gff|gtf|sam)$/i
 const IMAGE = /\.(png|jpe?g|gif|webp)$/i
 const DENSITY = /\.(mrc|mrcs|map|rec)$/i
 
