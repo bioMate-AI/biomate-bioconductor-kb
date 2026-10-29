@@ -2,7 +2,7 @@
 (ONE writer), starts a spot instance (ecsInstanceRole), runs --cmd from the gate_calibration directory, uploads /w/out, boot log and a DONE flag, shuts down.
 usage: gcal_ec2.py --name N --cmd 'shell' [--itype c5.9xlarge] [--cap-min 90]"""
 import argparse, os, subprocess, tarfile, tempfile, time
-BUCKET = "biomate-nextflow-work"; ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), *([".."] * 5)))
+BUCKET = "biomate-nextflow-work"; ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), *([".."] * 6)))
 RR = "research/guangzhou_all_atom/multitarget/integrin_chembl/retro_recovery"
 AMI, SG = "ami-0829b74b2a8c619b7", "sg-0de9af2d4437a8c90"
 SUBNETS = ["subnet-0b35a6e2c1cf02dc2", "subnet-03b277a7a08d388c1", "subnet-09e4dce46682a6c60", "subnet-0254e4c3634b41bfc"]
