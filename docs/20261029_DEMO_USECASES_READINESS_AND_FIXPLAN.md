@@ -181,3 +181,40 @@ confirm RUN_STATE_STORE=redis and that the executor emits a live qc_gate_trigger
 ### Autoloop-default-on fix (commit 3a7464d4) status
 Shipped + deployed; UNVERIFIED end-to-end because no live TUNABLE halt gate has yet
 fired on dev to trigger it. Verify via the docking loop once (a) is confirmed.
+
+## UPDATE 2026-10-29 (late) — chained-loop demos: dev-state blocker + peptide routing UNRESOLVED
+The "loop" use case = the LONG CHAINED multi-step DBTL demo (not the QC auto-loop).
+
+**Small-molecule chain (demo-01: ADMET→docking→ranking):** structurally works — ADMET runs
+COMPLETED earlier today (06:06–06:54 UTC, AWS Batch succeeded). But a full re-run now FAILS
+at workflow generation: the fixture user's per-user Galaxy API key is invalid/rotated on dev
+→ `POST /api/ai_assistant/generate_workflow` → `401001 "Provided API key is not valid"`
+(reproduced for ADMET AND RNA-seq → not query-specific; generate_workflow uses the user's
+Galaxy key with no admin fallback, routes.ts:7020). **This is a dev-state regression, not a
+code bug, and it blocks BOTH demos' chat/UI path.** OPS: re-provision the fixture
+(lifeifei163361@163.com) Galaxy api_keys row.
+
+**Peptide chain (cyclic_peptide_design):** the 5-phase design loop workflow exists + ranks #1
+(score 114) but the router selects the lower-scored cyclic_peptide_cofold (44) as PRIMARY.
+NOT YET FIXED. Two backend edits were made chasing it, NEITHER verified to affect the live path:
+ - `_find_nf_file` path-doubling (lib/galaxy/ai/ai_assistant.py): a GENUINE bug (a filename
+   stored WITH the biomate-ai-tools/ prefix doubled to .../modules/biomate-ai-tools/biomate-ai-tools/...
+   → None resolution). Worth keeping (fixes param-extraction/execution resolution for prefixed
+   biomate-ai-tools workflows) — but does NOT change primary selection.
+ - runnable-bypass in `search_nextflow_workflow` (webapps ai_assistant.py:2549): adds a
+   biomate-ai-tools/ runnable bypass. Correct in intent (these ARE Batch-runnable) BUT that
+   function is a DIFFERENT path than the live `generate_workflow_unified` (:3914) → the MCP/chat
+   route is unaffected. Likely dead for this symptom (harmless; keep or revert).
+Re-query via MCP search_workflow still selects cofold after both edits.
+
+**Real next step (needs a proper trace + repro, NOT more blind edits):** the live primary
+selection is `generate_workflow_unified` (:3914) → `UnifiedWorkflowSearch` (unified_workflow_search.py).
+Trace where IT picks the primary from candidates and why cyclic_peptide_design (biomate-ai-tools/,
+score 114) is dropped vs cyclic_peptide_cofold (nextflow_nfcore/subworkflows/, 44). Confirm the
+dev backend actually reloads Python changes (healthy-sync-can-leave-backend-stale caveat). Then
+fix at that path and re-verify. Also restore the fixture Galaxy key so the chat demo is testable.
+
+**Side issues (flag, not fixed):** (1) when generation 401s, the error narration CONFABULATES
+specific causes + emits contradictory "likely reasons" (routes.ts:6647) — should state the true
+single Galaxy 401. (2) A prior ADMET run reported "completed for 1 compound" on a 5-compound
+query — possible multi-compound handling bug; recheck once generation is restored.
