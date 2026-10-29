@@ -12,14 +12,14 @@ TYPES = ["g5.xlarge", "g6.xlarge", "g5.2xlarge", "g6.2xlarge", "g6e.xlarge", "g6
 
 UD = r'''#!/bin/bash
 P=__P__
-mkdir -p /w/out /w/code && cd /w
+mkdir -p /w/out /w/k2src && cd /w
 shutdown -h +180
 exec > >(tee -a /w/out/boot.log) 2>&1
 echo "boot $(date -u +%FT%TZ) $(curl -s http://169.254.169.254/latest/meta-data/instance-id)"
 ( while true; do aws s3 sync /w/out $P/ --only-show-errors; sleep 30; done ) &
 SYNC=$!
-aws s3 cp __CODE__ /w/code.tgz --only-show-errors && tar xzf /w/code.tgz -C /w/code
-cd /w/code
+aws s3 cp __CODE__ /w/code.tgz --only-show-errors && tar xzf /w/code.tgz -C /w/k2src
+cd /w/k2src
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv | tee /w/out/gpu.txt
 python3 -m pip install -q virtualenv >/w/out/pip00.log 2>&1; python3 -m virtualenv -q /w/venv >/w/out/venv.log 2>&1; echo "venv rc=$?" | tee -a /w/out/stage.log
 [ -x /w/venv/bin/python ] || { echo "NO VENV" | tee -a /w/out/stage.log; sleep 60; aws s3 sync /w/out $P/ --only-show-errors; shutdown -h now; exit 4; }
@@ -27,7 +27,7 @@ python3 -m pip install -q virtualenv >/w/out/pip00.log 2>&1; python3 -m virtuale
 pip install -q --upgrade pip >/w/out/pip0.log 2>&1
 pip install -q vllm pytest >/w/out/pip1.log 2>&1; echo "pip rc=$?" | tee -a /w/out/stage.log
 python -c "import vllm,torch;print('vllm',vllm.__version__,'torch',torch.__version__,'cuda',torch.cuda.is_available())" 2>&1 | tail -2 | tee -a /w/out/stage.log
-python -m pytest -q test_k2.py > /w/out/tests.log 2>&1; echo "tests rc=$?" | tee -a /w/out/stage.log
+python -m pytest -q --import-mode=importlib -p no:cacheprovider test_k2.py > /w/out/tests.log 2>&1; echo "tests rc=$?" | tee -a /w/out/stage.log
 if ! grep -q "passed" /w/out/tests.log || grep -q "failed" /w/out/tests.log; then echo "TESTS FAILED" | tee -a /w/out/stage.log; sleep 120; aws s3 sync /w/out $P/ --only-show-errors; shutdown -h now; exit 3; fi
 python acquire.py --out /w/out/corpus.jsonl.gz --per-query __PQ__ --total __TOTAL__ > /w/out/acquire.log 2>&1; echo "acquire rc=$?" | tee -a /w/out/stage.log
 python extract.py --corpus /w/out/corpus.jsonl.gz --outdir /w/out/extract > /w/out/extract.log 2>&1; echo "extract rc=$?" | tee -a /w/out/stage.log
@@ -38,8 +38,8 @@ json.dump(idx,open("/w/out/corpus_index.json","w"))
 PY
 python kb_before.py /w/out/kb_before.json > /w/out/kb_before.log 2>&1; echo "kb_before rc=$?" | tee -a /w/out/stage.log
 [ -s /w/out/kb_before.json ] || echo "[]" > /w/out/kb_before.json
-python merge.py --rules /w/out/extract/rules_verified.jsonl --annotations /w/code/annotations.csv.gz --outdir /w/out/kb --before /w/out/kb_before.json > /w/out/merge.log 2>&1; echo "merge rc=$?" | tee -a /w/out/stage.log
-GOLD=""; [ -f /w/code/gold.jsonl ] && GOLD="--gold /w/code/gold.jsonl"
+python merge.py --rules /w/out/extract/rules_verified.jsonl --annotations /w/k2src/annotations.csv.gz --outdir /w/out/kb --before /w/out/kb_before.json > /w/out/merge.log 2>&1; echo "merge rc=$?" | tee -a /w/out/stage.log
+GOLD=""; [ -f /w/k2src/gold.jsonl ] && GOLD="--gold /w/k2src/gold.jsonl"
 python measure.py --rules /w/out/kb/knowledge_kb_scaled_v1.jsonl --corpus-index /w/out/corpus_index.json $GOLD --out /w/out/k2 > /w/out/measure.log 2>&1; echo "measure rc=$?" | tee -a /w/out/stage.log
 echo DONE > /w/out/done.flag; aws s3 sync /w/out $P/ --only-show-errors
 kill $SYNC; shutdown -h now
