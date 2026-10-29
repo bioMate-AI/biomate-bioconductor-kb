@@ -1,5 +1,7 @@
 # Cyclic-peptide structural stratification, feature and substructure analysis (2026-10-29)
 
+> **CORRECTION NOTE (2026-10-30) — source count and source assignment.** An independent data review (`docs/committee_raw/20261030b/review_data_eval.md`, F6) found that this document said **45 sources** for the 6,960-peptide labelled set; the correct count is **41** (42 among all PAMPA rows, 42 among loader rows, 56 in the whole file; recounted from the raw CSV). Cause: the annotation took each structure's `Source` and `Year` from its first row of *any* assay rather than from its PAMPA (loader) row, as `loop_retro/run_loop.load` does; **177 of 6,960 peptides (2.5 %) had the wrong source** (150 were 2023_Ohta instead of 2013_CHUGAI, 9 2018_CHUGAI instead of 2013_CHUGAI, 18 others). 21 peptides have PAMPA rows from more than one source (label = mean, source = first loader row, as in the loop code). `build_annotations.py` is fixed (commit with this note). **Re-run on corrected annotation (numbers in this document updated):** matched pairs (B4 effect sizes), substructure enrichment and replication (B5), cross-assay agreement (B6), source concentration of strata (B2 caveat, concentration table). **NOT re-run (the re-run was stopped because the shared machine was overloaded): every cross-validation-based number — stratified performance (B2), leave-labs-out and leave-stratum-out, feature-family models, permutation importance, interaction grid, source-confound table (B3), and cliff rates and pair-ordering accuracy (B4).** Those tables are from the pre-fix run, where the label z-scores and the source-grouped folds used the wrong source for 2.5 % of peptides; the expected effect is small but unquantified. The `source_size` and `year` strata in those tables have the pre-fix membership; corrected sizes: source size <50 = 567, 50–299 = 454, ≥300 = 5,939; year ≤2013 = 899, 2014–2019 = 922, ≥2020 = 5,139 (previously 571 / 609 / 5,780 and 738 / 930 / 5,292). Pre-fix outputs are kept in `.../stratification/data_before_source_fix/`. **Numbers that changed in this document:** sources 45→41; between-source share of raw-label variance 27.7 %→27.3 %; `lariat_nterm_sc` 81 % CHUGAI (3 sources) → 100 % CHUGAI (1 source); year ≤2013 97.4 %→97.7 % CHUGAI; matched-pair, enrichment and cross-assay numbers as listed in B4–B6. Unchanged: 15 sources with ≥30 peptides, Townsend share 41.4 %, annotation audit, binding, stability, overlap, benchmark-strata results.
+
 Status: **Part A (registered method) committed BEFORE any stratified, importance, pair or enrichment result was computed.** Results (Part B) are appended below it. Code: `research/guangzhou_all_atom/cyclic_llm/stratification/`. What was looked at before registration (non-outcome only): the HELM connection strings, `Molecule_Shape`, the 385-token monomer vocabulary, label counts per assay column, and file inventories of the stability / conformational / renal data.
 
 # PART A — REGISTERED METHOD
@@ -49,16 +51,18 @@ Which tokens/features an LLM representation needs (topology tokens, positional N
 All code is in `research/guangzhou_all_atom/cyclic_llm/stratification/` (19 unit tests, all passing: annotation 6, statistics 5, matched pairs 5, importance/stratum controls 3). Result files are in `.../stratification/data/`. Tables below are generated from those files by `report_tables.py`.
 
 ## B0. Deviations from the registered method (stated first)
-(a) The mixed-model sensitivity analysis (A6) was not run. (b) Leave-stratum-out results have point estimates only (no bootstrap CI). (c) Permutation importance within strata was done for four stratifiers (topology, length, D bins, N-methyl bins), not all. (d) Ring-size change by one residue (A5f) was implemented for head-to-tail peptides only. (e) Cross-assay and binding SMARTS-panel results carry no multiplicity control (6 tests; exploratory). (f) The standalone importance and stratum-metric controls (`importance.py`, `test_controls.py`) test the same algorithms as the inlined code in `feat_analysis.py` / `strat_perf.py`; their equivalence is not machine-checked. (g) Length uses `n_monomers` (HELM monomers including caps). (h) The registered "8,466 entries" are rows; there are 7,991 unique structures and 6,960 with a PAMPA label (the loader set).
+(a) The mixed-model sensitivity analysis (A6) was not run. (b) Leave-stratum-out results have point estimates only (no bootstrap CI). (c) Permutation importance within strata was done for four stratifiers (topology, length, D bins, N-methyl bins), not all. (d) Ring-size change by one residue (A5f) was implemented for head-to-tail peptides only. (e) Cross-assay and binding SMARTS-panel results carry no multiplicity control (6 tests; exploratory). (f) The standalone importance and stratum-metric controls (`importance.py`, `test_controls.py`) test the same algorithms as the inlined code in `feat_analysis.py` / `strat_perf.py`; their equivalence is not machine-checked. (g) Length uses `n_monomers` (HELM monomers including caps). (i) Source-assignment error found 2026-10-30 (see correction note): CV-based results were not re-run after the fix. (j) The registered "8,466 entries" are rows; there are 7,991 unique structures and 6,960 with a PAMPA label (the loader set).
 
 ## B1. Annotation and its audit
-Unique structures: 7,991 (HELM topology: head-to-tail 5,369; side-chain-to-C-terminus lariat 1,524; N-terminus-to-side-chain lariat 1,098; **no disulfide, stapled or bicyclic peptides occur**, so those strata are empty). Labelled (PAMPA) set: 6,960 peptides, 45 sources (15 with ≥30 peptides), 2,460 flat structures, years 2006–2024; Townsend alone is 41.4 % of peptides. Raw log Papp has mean −5.75, SD 0.79; **27.7 % of its variance is between sources.**
+Unique structures: 7,991 (HELM topology: head-to-tail 5,369; side-chain-to-C-terminus lariat 1,524; N-terminus-to-side-chain lariat 1,098; **no disulfide, stapled or bicyclic peptides occur**, so those strata are empty). Labelled (PAMPA) set: 6,960 peptides, **41 sources** (15 with ≥30 peptides; corrected from 45), 2,460 flat structures, years 2006–2024; Townsend alone is 41.4 % of peptides. Raw log Papp has mean −5.75, SD 0.79; **27.3 % of its variance is between sources** (27.7 % before the source fix). 21 peptides have PAMPA rows from more than one source.
 Prevalence among the 6,960: peptoid (N-substituted glycine) 30.1 %; anonymous `MonoNN` monomer 16.2 % (3.0 % of residues); β/γ/ω extended backbone 15.5 %; N-terminal cap 21.8 %; C-terminal cap 11.2 %; D-Pro 56.6 %; side-chain-modified residue 6.8 %; N→O backbone modification 0.3 % (n = 24); α,α-disubstituted 0.1 % (n = 6). Token coverage of the composition classes: 96.5 % of residues (3.0 % unknown, 0.4 % unclassified).
 Audit (independent SMILES-derived quantities; `audit_annotation.json`): **D-residue count from tokens equals the CIP-derived count of R backbone α-carbons in 5,166 of 5,166 peptides (100 %)** (excluding peptides with extended-backbone, anonymous, backbone-modified or Cys-type residues). N-methyl count from tokens equals the SMARTS count in 6,404 of 6,684 peptides (95.8 %); among the 5,656 peptides with no anonymous monomer the agreement is 99.89 %, and 274 of the 280 mismatches contain an anonymous monomer — i.e. anonymous monomers hide N-methylation, so the SMILES-derived count (`n_nme_final`) is used as authoritative. HELM topology agrees with `Molecule_Shape` in 7,990 of 7,991 structures. **SMILES-only topology rule T2** (needed where HELM is absent, e.g. the benchmark): overall 95.4 %, head-to-tail recall 93.1 % (5,000/5,369), lariat recall 99.9 %; most of the 369 head-to-tail misses (321) carry side-chain-modified residues such as Asp-piperidide, where the ring is closed through the Asp side chain (examples inspected). The first version of the rule scored 93.7 % overall and 90.6 % head-to-tail recall because side-chain amides were counted as outside-ring backbone amides.
 
 ## B2. Stratified baseline performance
+*All cross-validation numbers in B2 and B3 are from the pre-fix run (see correction note); source-concentration figures are corrected.*
+
 Overall Spearman (within-source z labels): grouped CV by flat structure — fingerprint GBM blind 0.67, chirality-aware 0.71, descriptor GBM 0.67; random 5-fold 0.71 / 0.76 / 0.73; **leave-labs-out (grouped by source) 0.31 / 0.30 / 0.26**. Skill roughly halves when the test laboratory is unseen.
-**Source-concentration caveat (read before any stratum result).** Several strata are essentially one laboratory: `lariat_sc_cterm` is 99.8 % 2021_Kelly (3 sources); `lariat_nterm_sc` 81 % 2013_CHUGAI (3 sources); length 7 is 97.6 % 2020_Townsend; year ≤2013 is 97.4 % 2013_CHUGAI; `ext_backbone` 77 % and `peptoid` 69 % Townsend. Results for those strata are results for those laboratories' series.
+**Source-concentration caveat (read before any stratum result).** Several strata are essentially one laboratory: `lariat_sc_cterm` is 99.8 % 2021_Kelly (3 sources); `lariat_nterm_sc` is **100 % 2013_CHUGAI (1 source; was reported as 81 % and 3 sources)**; length 7 is 97.6 % 2020_Townsend; year ≤2013 is 97.7 % 2013_CHUGAI; `ext_backbone` 77 % and `peptoid` 69 % Townsend. Results for those strata are results for those laboratories' series.
 Readings (n and CIs in the tables; Spearman, grouped CV by flat structure unless stated):
 - Chirality-aware fingerprints are at least as good as blind ones in almost every stratum; the largest gains are source size 50–299 (0.38 [0.24, 0.54] → 0.64 [0.57, 0.69]), anonymous-monomer peptides (0.53 [0.41, 0.65] → 0.69 [0.64, 0.73]) and 3–4 N-methyl groups (0.50 [0.39, 0.61] → 0.62 [0.55, 0.70]).
 - Weakest strata for the chirality-aware model: length 8 (0.52 [0.34, 0.67], n = 102), length ≤5 (0.55 [0.40, 0.66], n = 193); backbone-modified (n = 24, flagged).
@@ -72,18 +76,18 @@ Interaction (N-methyl × D grid): with ≥3 D residues the mean within-source z 
 Source confound: 29 of 50 features are flagged (pooled and within-source correlations differ in sign or by >0.15). **TPSA has pooled ρ −0.03 but within-source ρ −0.31 (15 sources); HBA 0.03 vs −0.25; peptide length 0.08 vs −0.27**: pooling across laboratories hides the expected physical dependence. Topology class is almost a source identifier (η² ≈ 1.0 for the lariat_sc_cterm indicator).
 
 ## B4. Matched molecular pairs and activity cliffs (PAMPA, within source)
-33,398 within-source pairs across 28 transformation types (table). Direction is defined only for N-Me added, D flip (D minus L), D flip + N-Me swap, ring +1 residue and cross-class substitutions; for same-class substitutions, N-Me shift, decoration and cap/unknown changes only |Δ| is reported (the first version of this analysis reported signed means for those categories, which depend on arbitrary pair orientation; corrected before interpretation).
-- **N-methyl added: +0.25 log Papp [0.16, 0.34]** pooled (4,156 pairs, 16 sources; pair-mean +0.32 [0.28, 0.36]); SD 0.53; heterogeneity I² = 0.90.
-- **D↔L flip: mean −0.01 [−0.05, 0.02]** (7,451 pairs, 19 sources) but SD 0.52 and 19 % of pairs are within-source cliffs (|Δz| > 1): a single D flip has no consistent direction; the effect is context-dependent.
-- D flip + N-Me swap: −0.18 [−0.28, −0.08] pooled (3,905 pairs, 9 sources; pair-mean −0.32). N-Me shift (one N-Me moved): mean |Δ| 0.29 [0.12, 0.46]. Cap or anonymous-monomer changes: mean |Δ| 0.61 [0.34, 0.88], with 36 % of pairs differing by >1 log unit.
-- Ring +1 residue: pooled −0.14 [−0.49, 0.21] from only 5 sources (pair-mean −0.31 [−0.36, −0.26]); not interpretable as a direction. Aliphatic→polar substitution −1.01 [−1.45, −0.57] (31 pairs, 8 sources).
+33,457 within-source pairs across 28 transformation types (effect sizes re-run after the source fix; cliff rates and ordering accuracies below are pre-fix) (table). Direction is defined only for N-Me added, D flip (D minus L), D flip + N-Me swap, ring +1 residue and cross-class substitutions; for same-class substitutions, N-Me shift, decoration and cap/unknown changes only |Δ| is reported (the first version of this analysis reported signed means for those categories, which depend on arbitrary pair orientation; corrected before interpretation).
+- **N-methyl added: +0.24 log Papp [0.14, 0.33]** pooled (4,166 pairs, 15 sources; pair-mean +0.32 [0.28, 0.36]); SD 0.53; heterogeneity I² = 0.93.
+- **D↔L flip: mean −0.01 [−0.05, 0.02]** (7,467 pairs, 18 sources) but SD 0.52 and 19 % of pairs are within-source cliffs (|Δz| > 1): a single D flip has no consistent direction; the effect is context-dependent.
+- D flip + N-Me swap: −0.21 [−0.30, −0.12] pooled (3,908 pairs, 9 sources; pair-mean −0.32). N-Me shift (one N-Me moved): mean |Δ| 0.30 [0.10, 0.49]. Cap or anonymous-monomer changes: mean |Δ| 0.62 [0.36, 0.89], with 36 % of pairs differing by >1 log unit.
+- Ring +1 residue: pooled −0.14 [−0.49, 0.21] from only 5 sources (pair-mean −0.31 [−0.36, −0.26]); not interpretable as a direction. Aliphatic→polar substitution −1.01 [−1.45, −0.57] (32 pairs, 8 sources).
 - **Pair ordering (pairs whose members are both held out; ties 0.5):** blind fingerprints order D-flip pairs at exactly 0.50 (they cannot distinguish them — a consistency check), chirality-aware 0.62, descriptor 0.56; N-Me added 0.71–0.72 for all models; N-Me shift is the weakest at 0.58–0.60; cap/unknown 0.76–0.81; ring +1 0.79–0.81. Cliff rates (|Δz| > 1 within source) are 19–37 % across transformation types.
 
 ## B5. Substructure enrichment with source adjustment
-56 features were testable (≥10 peptides on each side, ≥3 sources with ≥5 per side). Five pass BH 10 %: Pr_Gly peptoid residue +0.34 [0.25, 0.42] (5 sources, I² 0.00); Bn_Gly −0.27 [−0.35, −0.20] (3 sources); ≥2 N-methyl groups +0.70 [0.34, 1.07] (8 sources, I² 0.93); ≥3 N-methyl +0.50 [0.24, 0.77]; alternating N-methyl motif +0.31 [0.09, 0.52] (12 sources). **None replicates under the leak-safe split:** mined on one source half, 0 of 11 testable features have a CI excluding 0 in the other half (sign agreement 7 of 11; median effect ratio −0.34 and +0.15), with only 3–7 sources per feature per half. Controls: permuting labels within source (5 repetitions) gave one repetition with one discovery (q = 0.024; expected under FDR 10 %); a planted shift of 0.4 on a random feature was recovered as 0.365 [0.282, 0.448]. **Conclusion: monomer- and substructure-level effects are source-specific in this dataset; the only direction shared by most sources is N-methyl count (75 % of sources positive), with large heterogeneity.** No substructure rule is supported as transferable.
+54 features were testable (≥10 peptides on each side, ≥3 sources with ≥5 per side; 56 before the source fix). Five pass BH 10 %: Pr_Gly peptoid residue +0.34 [0.25, 0.43] (5 sources, I² 0.00); Bn_Gly −0.27 [−0.35, −0.20] (3 sources); ≥2 N-methyl groups +0.67 [0.31, 1.04] (8 sources, I² 0.93); ≥3 N-methyl +0.48 [0.21, 0.76] (8 sources); alternating N-methyl motif +0.31 [0.08, 0.54] (11 sources). **None replicates under the leak-safe split:** mined on one source half, 0 of 8 testable features have a CI excluding 0 in the other half (sign agreement 5 of 8; median effect ratio −0.71 and +0.14), with only 3–7 sources per feature per half. Controls: permuting labels within source (5 repetitions) gave no discoveries; a planted shift of 0.4 on a random feature was recovered as 0.369 [0.287, 0.452]. **Conclusion: monomer- and substructure-level effects are source-specific in this dataset; the only direction shared by most sources is N-methyl count (75 % of sources positive for ≥2 N-methyl groups, 62 % for ≥3), with large heterogeneity.** No substructure rule is supported as transferable.
 
 ## B6. Cross-property and other data
-- **Permeability across assays:** PAMPA vs Caco-2: pooled ρ −0.16 (n = 558, 22 sources) but within source +0.56 (10 sources); vs RRCK 0.66 (n = 123; within source 0.79, 4 sources); vs MDCK 0.69 (n = 47; within source 0.73, 2 sources). The five directed transformations with data in both PAMPA and Caco-2 have the same sign (n_Caco-2 = 13–53 pairs each).
+- **Permeability across assays:** PAMPA vs Caco-2: pooled ρ −0.16 (n = 558, 17 sources) but within source +0.56 (9 sources); vs RRCK 0.66 (n = 123, 9 sources; within source 0.77, 5 sources); vs MDCK 0.69 (n = 47, 6 sources; within source 0.73, 2 sources). The five directed transformations with data in both PAMPA and Caco-2 have the same sign (n_Caco-2 = 14–63 pairs each).
 - **Binding (peptide-like macrocycles, exact relations):** 22,715 rows, 12,488 compounds, 689 targets, 977 target×assay-type units. Same-target stereoisomer pairs (3,443 pairs, 210 targets) differ by mean |ΔpAff| 0.58 vs 1.15 for random same-target pairs; 20 % vs 44 % differ by >1 log unit. **N-methyl added changes binding by −0.24 pAff [−0.34, −0.14]** (934 pairs, 66 targets, 34 with ≥3 pairs; I² 0.90) — the opposite sign to its permeability effect (+0.25). This is an association across different datasets and targets, not a controlled trade-off. SMARTS panel in binding: halogen +0.36 [0.14, 0.58] (78 units, 71 % positive, I² 0.94); the other five features have CIs including 0.
 - **Stability (PepMSND, n = 602 after removing label conflicts; 262 positive-class; only 94 macrocyclic, 50 positive-class):** odds ratios (cluster-robust) aromatic ring 0.46 [0.34, 0.63] (all) / 0.13 [0.04, 0.40] (macrocyclic); carboxylic acid 0.33 [0.20, 0.55] / 0.24 [0.08, 0.71]; basic amine 0.37 [0.18, 0.76] / 0.36 [0.08, 1.50]. **The polarity of the PepMSND label was not verified** (README read, no definition found), so the direction cannot be stated; exploratory only. N-methyl amide had <10 positives.
 - **Cross-table overlap by exact canonical SMILES:** CycPeptMPDB × binding 46; CycPeptMPDB × stability 0; binding × stability 9. Structures carrying both a permeability and a binding label: **7 structures (84 structure–target pairs, 49 targets)** — below the registered n ≥ 30, so **no permeability–binding trade-off is claimed** (descriptive Spearman 0.27).
@@ -103,6 +107,7 @@ Composition classes assigned by prefix (Nle/Nva→polar, Et_Phe→negative) — 
 Solubility (no data); PepMSND label polarity unverified; conformational data unused beyond profiling; binding-side substructure analysis restricted to SMARTS and two SMILES-computable transformations (no monomer tokens); leave-stratum-out has no CIs; no mixed-model sensitivity; strata dominated by single laboratories limit every topology, length-7 and year ≤2013 statement; benchmark topology split rests on a rule validated only on CycPeptMPDB; trade-off analyses limited by 7 overlapping structures.
 
 # Tables
+*Status of each table after the source fix: stratified CV, leave-labs-out, leave-stratum-out, feature-family, permutation-importance, interaction, source-confound and cliff-ordering tables are PRE-FIX (not re-run; source_size and year rows use the old strata membership). The matched-pair table's effect columns, the enrichment table, and the source-concentration table are corrected; the matched-pair table's `share |Δ|>1` column is recomputed on corrected pairs, but the cliff table is pre-fix.*
 
 **Grouped CV by flat structure (no stereoisomer sibling in training)** — Spearman [95 % cluster-bootstrap CI] per stratum; n = peptides, g = flat-structure groups. † n<30.
 
@@ -209,17 +214,17 @@ Solubility (no data); PepMSND label polarity unverified; conformational data unu
 
 | transformation | n pairs | sources | statistic | pooled [CI] | I² | pair mean [boot CI] | SD | share \|Δ\|>1 |
 |---|---|---|---|---|---|---|---|---|
-| D flip (D minus L) | 7451 | 19 | mean delta | -0.01 [-0.05, 0.02] | 0.60 | -0.01 [-0.02, 0.00] | 0.52 | 0.06 |
-| substitution with D/N-Me change | 5755 | 23 | mean |delta| | 0.53 [0.42, 0.63] | 0.93 | 0.41 [0.39, 0.43] | 0.37 | 0.06 |
-| N-Me added (with minus without) | 4156 | 16 | mean delta | 0.25 [0.16, 0.34] | 0.90 | 0.32 [0.28, 0.36] | 0.53 | 0.10 |
-| D flip + N-Me swap ((D,nonMe) minus (L,Me)) | 3905 | 9 | mean delta | -0.18 [-0.28, -0.08] | 0.93 | -0.32 [-0.35, -0.28] | 0.55 | 0.11 |
-| cap_or_unknown_change | 3621 | 17 | mean |delta| | 0.61 [0.34, 0.88] | 1.00 | 0.86 [0.83, 0.90] | 0.72 | 0.36 |
-| substitution: aliphatic->aromatic | 3019 | 13 | mean delta | 0.02 [-0.13, 0.16] | 0.94 | -0.10 [-0.16, -0.05] | 0.87 | 0.19 |
-| N-Me shift (one N-Me moved) | 2252 | 13 | mean |delta| | 0.29 [0.12, 0.46] | 0.99 | 0.45 [0.41, 0.47] | 0.40 | 0.08 |
+| D flip (D minus L) | 7467 | 18 | mean delta | -0.01 [-0.05, 0.02] | 0.62 | -0.01 [-0.02, 0.00] | 0.52 | 0.06 |
+| substitution with D/N-Me change | 5768 | 21 | mean |delta| | 0.54 [0.43, 0.66] | 0.94 | 0.41 [0.39, 0.43] | 0.37 | 0.06 |
+| N-Me added (with minus without) | 4166 | 15 | mean delta | 0.24 [0.14, 0.33] | 0.93 | 0.32 [0.28, 0.36] | 0.53 | 0.10 |
+| D flip + N-Me swap ((D,nonMe) minus (L,Me)) | 3908 | 9 | mean delta | -0.21 [-0.30, -0.12] | 0.90 | -0.32 [-0.36, -0.28] | 0.55 | 0.11 |
+| cap_or_unknown_change | 3625 | 17 | mean |delta| | 0.62 [0.36, 0.89] | 0.99 | 0.86 [0.83, 0.90] | 0.72 | 0.36 |
+| substitution: aliphatic->aromatic | 3019 | 12 | mean delta | 0.02 [-0.12, 0.16] | 0.94 | -0.10 [-0.16, -0.05] | 0.87 | 0.19 |
+| N-Me shift (one N-Me moved) | 2250 | 12 | mean |delta| | 0.30 [0.10, 0.49] | 0.99 | 0.45 [0.41, 0.47] | 0.40 | 0.08 |
 | ring +1 residue (any) | 1254 | 5 | mean delta | -0.14 [-0.49, 0.21] | 0.97 | -0.31 [-0.36, -0.26] | 0.47 | 0.07 |
-| substitution: aliphatic->aliphatic | 1177 | 21 | mean |delta| | 0.50 [0.40, 0.60] | 0.94 | 0.62 [0.58, 0.66] | 0.52 | 0.21 |
-| substitution: aromatic->aromatic | 604 | 12 | mean |delta| | 0.37 [0.22, 0.51] | 0.96 | 0.55 [0.50, 0.60] | 0.56 | 0.18 |
-| substitution: aliphatic->polar | 31 | 8 | mean delta | -1.01 [-1.45, -0.57] | 0.85 | -0.66 [-0.98, -0.19] | 0.84 | 0.45 |
+| substitution: aliphatic->aliphatic | 1186 | 20 | mean |delta| | 0.52 [0.41, 0.62] | 0.94 | 0.61 [0.58, 0.66] | 0.52 | 0.20 |
+| substitution: aromatic->aromatic | 605 | 11 | mean |delta| | 0.40 [0.23, 0.56] | 0.97 | 0.55 [0.49, 0.60] | 0.56 | 0.18 |
+| substitution: aliphatic->polar | 32 | 8 | mean delta | -1.01 [-1.45, -0.57] | 0.85 | -0.64 [-0.99, -0.21] | 0.84 | 0.44 |
 
 **Cliffs (|Δz|>1 SD within source) and pair-ordering accuracy** (same-fold pairs = neither partner label in training; ties 0.5).
 
@@ -305,61 +310,61 @@ Features flagged source-confounded: 29 of 50.
 
 | feature | n present | sources | effect [CI] | I² | sources with + effect | q |
 |---|---|---|---|---|---|---|
-| has_base:Pr_Gly | 601 | 5 | 0.34 [0.25, 0.42] | 0.00 | 0.80 | 0.000 |
+| has_base:Pr_Gly | 601 | 5 | 0.34 [0.25, 0.42] | 0.00 | 1.00 | 0.000 |
 | has_base:Bn_Gly | 1209 | 3 | -0.27 [-0.35, -0.20] | 0.00 | 0.00 | 0.000 |
-| n_Nme>=2 | 4293 | 8 | 0.70 [0.34, 1.07] | 0.93 | 0.75 | 0.003 |
-| n_Nme>=3 | 2694 | 9 | 0.50 [0.24, 0.77] | 0.89 | 0.67 | 0.003 |
-| motif_alternating_Nme | 2464 | 12 | 0.31 [0.09, 0.52] | 0.85 | 0.75 | 0.054 |
-| has_Nme_base:L | 5318 | 12 | 0.47 [0.10, 0.83] | 0.93 | 0.83 | 0.121 |
-| has_peptoid | 2093 | 8 | 0.31 [0.04, 0.58] | 0.89 | 0.75 | 0.144 |
-| has_nalkyl_nonmethyl | 2206 | 9 | 0.23 [0.02, 0.43] | 0.75 | 0.89 | 0.144 |
-| smarts:halogen | 140 | 3 | -0.57 [-1.07, -0.06] | 0.88 | 0.00 | 0.144 |
-| smarts:basic_aliphatic_amine | 165 | 3 | -0.51 [-0.97, -0.05] | 0.37 | 0.00 | 0.144 |
-| arom_fraction>=0.3 | 1173 | 11 | -0.42 [-0.80, -0.04] | 0.92 | 0.18 | 0.144 |
-| has_base:V | 629 | 5 | -0.27 [-0.51, -0.02] | 0.52 | 0.00 | 0.144 |
-| has_base:T | 2375 | 7 | -0.52 [-1.02, -0.03] | 0.69 | 0.14 | 0.163 |
-| has_D_base:L | 4295 | 12 | 0.28 [0.01, 0.55] | 0.89 | 0.67 | 0.166 |
+| n_Nme>=2 | 4293 | 8 | 0.67 [0.31, 1.03] | 0.93 | 0.75 | 0.005 |
+| n_Nme>=3 | 2694 | 8 | 0.48 [0.21, 0.76] | 0.90 | 0.62 | 0.009 |
+| motif_alternating_Nme | 2464 | 11 | 0.31 [0.08, 0.54] | 0.86 | 0.73 | 0.083 |
+| has_peptoid | 2093 | 8 | 0.32 [0.06, 0.59] | 0.89 | 0.88 | 0.133 |
+| has_D_base:L | 4295 | 13 | 0.31 [0.04, 0.58] | 0.89 | 0.69 | 0.133 |
+| has_Nme_base:L | 5318 | 11 | 0.44 [0.06, 0.82] | 0.94 | 0.82 | 0.133 |
+| arom_fraction>=0.3 | 1173 | 11 | -0.43 [-0.82, -0.05] | 0.93 | 0.18 | 0.133 |
+| has_D_and_Nme_same_residue | 3493 | 12 | 0.22 [0.02, 0.42] | 0.85 | 0.58 | 0.133 |
+| has_nalkyl_nonmethyl | 2206 | 8 | 0.23 [0.02, 0.43] | 0.78 | 0.88 | 0.133 |
+| motif_Nme_adjacent_D | 3811 | 12 | 0.27 [0.02, 0.51] | 0.89 | 0.67 | 0.133 |
+| smarts:halogen | 140 | 3 | -0.59 [-1.14, -0.05] | 0.90 | 0.00 | 0.133 |
+| has_base:iBu_Gly | 113 | 4 | 0.50 [0.01, 0.99] | 0.78 | 1.00 | 0.172 |
 
 
-**Source concentration of strata** (share of the stratum's peptides from its largest source; a stratum dominated by one laboratory cannot be separated from that laboratory's effect).
+**Source concentration of strata** (corrected; share of the stratum's peptides from its largest source).
 
 | stratifier | level | n | sources | largest source | share | top-2 share |
 |---|---|---|---|---|---|---|
-| topology | head_to_tail | 4660 | 44 | 2020_Townsend | 0.62 | 0.76 |
+| topology | head_to_tail | 4660 | 40 | 2020_Townsend | 0.62 | 0.76 |
 | topology | lariat_sc_cterm | 1521 | 3 | 2021_Kelly | 1.00 | 1.00 |
-| topology | lariat_nterm_sc | 779 | 3 | 2013_CHUGAI | 0.81 | 0.99 |
+| topology | lariat_nterm_sc | 779 | 1 | 2013_CHUGAI | 1.00 | 1.00 |
 | length | <=5 | 193 | 13 | 2020_Le Roux | 0.24 | 0.46 |
-| length | 6 | 1975 | 22 | 2020_Townsend | 0.52 | 0.85 |
+| length | 6 | 1975 | 20 | 2020_Townsend | 0.52 | 0.85 |
 | length | 7 | 1904 | 10 | 2020_Townsend | 0.98 | 0.98 |
 | length | 8 | 102 | 5 | 2013_CHUGAI | 0.48 | 0.77 |
-| length | >=9 | 2786 | 16 | 2021_Kelly | 0.55 | 0.79 |
-| n_methyl | 0 | 916 | 29 | 2020_Townsend | 0.49 | 0.65 |
-| n_methyl | 1-2 | 3350 | 25 | 2020_Townsend | 0.58 | 0.76 |
-| n_methyl | 3-4 | 1817 | 20 | 2021_Kelly | 0.42 | 0.68 |
-| n_methyl | >=5 | 877 | 13 | 2013_CHUGAI | 0.61 | 0.77 |
-| n_D | 0 | 965 | 25 | 2013_CHUGAI | 0.48 | 0.63 |
-| n_D | 1-2 | 3048 | 32 | 2020_Townsend | 0.48 | 0.67 |
-| n_D | >=3 | 2947 | 18 | 2021_Kelly | 0.44 | 0.87 |
-| peptoid | yes | 2093 | 10 | 2020_Townsend | 0.69 | 0.91 |
-| peptoid | no | 4867 | 45 | 2021_Kelly | 0.31 | 0.61 |
-| unknown_monomer | yes | 1129 | 22 | 2016_Furukawa | 0.45 | 0.63 |
-| unknown_monomer | no | 5831 | 38 | 2020_Townsend | 0.49 | 0.75 |
-| ext_backbone | yes | 1078 | 7 | 2020_Townsend | 0.77 | 0.93 |
-| ext_backbone | no | 5882 | 45 | 2020_Townsend | 0.35 | 0.61 |
+| length | >=9 | 2786 | 13 | 2021_Kelly | 0.55 | 0.84 |
+| n_methyl | 0 | 916 | 28 | 2020_Townsend | 0.49 | 0.65 |
+| n_methyl | 1-2 | 3350 | 24 | 2020_Townsend | 0.58 | 0.76 |
+| n_methyl | 3-4 | 1817 | 18 | 2021_Kelly | 0.42 | 0.68 |
+| n_methyl | >=5 | 877 | 11 | 2013_CHUGAI | 0.75 | 0.91 |
+| n_D | 0 | 965 | 23 | 2013_CHUGAI | 0.58 | 0.73 |
+| n_D | 1-2 | 3048 | 30 | 2020_Townsend | 0.48 | 0.67 |
+| n_D | >=3 | 2947 | 16 | 2021_Kelly | 0.44 | 0.87 |
+| peptoid | yes | 2093 | 9 | 2020_Townsend | 0.69 | 0.91 |
+| peptoid | no | 4867 | 41 | 2021_Kelly | 0.31 | 0.61 |
+| unknown_monomer | yes | 1129 | 20 | 2016_Furukawa | 0.45 | 0.63 |
+| unknown_monomer | no | 5831 | 33 | 2020_Townsend | 0.49 | 0.75 |
+| ext_backbone | yes | 1078 | 5 | 2020_Townsend | 0.77 | 0.97 |
+| ext_backbone | no | 5882 | 41 | 2020_Townsend | 0.35 | 0.61 |
 | backbone_mod | yes | 24 | 3 | 2015_Ahlbach | 0.50 | 0.79 |
-| backbone_mod | no | 6936 | 44 | 2020_Townsend | 0.41 | 0.63 |
+| backbone_mod | no | 6936 | 40 | 2020_Townsend | 0.41 | 0.63 |
 | ring_atoms | low(<=21) | 3487 | 29 | 2020_Townsend | 0.67 | 0.86 |
 | ring_atoms | mid | 1769 | 5 | 2021_Kelly | 0.69 | 0.96 |
-| ring_atoms | high(>22) | 1704 | 22 | 2013_CHUGAI | 0.39 | 0.57 |
-| stereo_group | 1 | 2048 | 40 | 2013_CHUGAI | 0.34 | 0.53 |
-| stereo_group | 2-7 | 724 | 24 | 2020_Townsend | 0.62 | 0.77 |
-| stereo_group | >=8 | 4188 | 11 | 2020_Townsend | 0.58 | 0.88 |
-| source_size | <50 | 571 | 36 | 2015_Wang | 0.08 | 0.17 |
-| source_size | 50-299 | 609 | 5 | 2024_Faris | 0.34 | 0.59 |
-| source_size | >=300 | 5780 | 4 | 2020_Townsend | 0.50 | 0.76 |
-| year | <=2013 | 738 | 3 | 2013_CHUGAI | 0.97 | 0.99 |
-| year | 2014-2019 | 930 | 20 | 2016_Furukawa | 0.71 | 0.79 |
-| year | >=2020 | 5292 | 22 | 2020_Townsend | 0.54 | 0.83 |
+| ring_atoms | high(>22) | 1704 | 19 | 2013_CHUGAI | 0.49 | 0.66 |
+| stereo_group | 1 | 2048 | 37 | 2013_CHUGAI | 0.42 | 0.60 |
+| stereo_group | 2-7 | 724 | 20 | 2020_Townsend | 0.62 | 0.77 |
+| stereo_group | >=8 | 4188 | 9 | 2020_Townsend | 0.58 | 0.88 |
+| source_size | <50 | 567 | 33 | 2015_Wang | 0.09 | 0.17 |
+| source_size | 50-299 | 454 | 4 | 2024_Faris | 0.46 | 0.75 |
+| source_size | >=300 | 5939 | 4 | 2020_Townsend | 0.48 | 0.74 |
+| year | <=2013 | 899 | 3 | 2013_CHUGAI | 0.98 | 0.99 |
+| year | 2014-2019 | 922 | 17 | 2016_Furukawa | 0.72 | 0.79 |
+| year | >=2020 | 5139 | 21 | 2020_Townsend | 0.56 | 0.86 |
 
 **Benchmark-domain strata** (frozen `items_I` positives, read-only; topology by the SMILES-only rule T2).
 

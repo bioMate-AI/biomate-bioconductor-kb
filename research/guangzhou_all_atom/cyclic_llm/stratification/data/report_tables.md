@@ -104,17 +104,17 @@
 
 | transformation | n pairs | sources | statistic | pooled [CI] | I² | pair mean [boot CI] | SD | share \|Δ\|>1 |
 |---|---|---|---|---|---|---|---|---|
-| D flip (D minus L) | 7451 | 19 | mean delta | -0.01 [-0.05, 0.02] | 0.60 | -0.01 [-0.02, 0.00] | 0.52 | 0.06 |
-| substitution with D/N-Me change | 5755 | 23 | mean |delta| | 0.53 [0.42, 0.63] | 0.93 | 0.41 [0.39, 0.43] | 0.37 | 0.06 |
-| N-Me added (with minus without) | 4156 | 16 | mean delta | 0.25 [0.16, 0.34] | 0.90 | 0.32 [0.28, 0.36] | 0.53 | 0.10 |
-| D flip + N-Me swap ((D,nonMe) minus (L,Me)) | 3905 | 9 | mean delta | -0.18 [-0.28, -0.08] | 0.93 | -0.32 [-0.35, -0.28] | 0.55 | 0.11 |
-| cap_or_unknown_change | 3621 | 17 | mean |delta| | 0.61 [0.34, 0.88] | 1.00 | 0.86 [0.83, 0.90] | 0.72 | 0.36 |
-| substitution: aliphatic->aromatic | 3019 | 13 | mean delta | 0.02 [-0.13, 0.16] | 0.94 | -0.10 [-0.16, -0.05] | 0.87 | 0.19 |
-| N-Me shift (one N-Me moved) | 2252 | 13 | mean |delta| | 0.29 [0.12, 0.46] | 0.99 | 0.45 [0.41, 0.47] | 0.40 | 0.08 |
+| D flip (D minus L) | 7467 | 18 | mean delta | -0.01 [-0.05, 0.02] | 0.62 | -0.01 [-0.02, 0.00] | 0.52 | 0.06 |
+| substitution with D/N-Me change | 5768 | 21 | mean |delta| | 0.54 [0.43, 0.66] | 0.94 | 0.41 [0.39, 0.43] | 0.37 | 0.06 |
+| N-Me added (with minus without) | 4166 | 15 | mean delta | 0.24 [0.14, 0.33] | 0.93 | 0.32 [0.28, 0.36] | 0.53 | 0.10 |
+| D flip + N-Me swap ((D,nonMe) minus (L,Me)) | 3908 | 9 | mean delta | -0.21 [-0.30, -0.12] | 0.90 | -0.32 [-0.36, -0.28] | 0.55 | 0.11 |
+| cap_or_unknown_change | 3625 | 17 | mean |delta| | 0.62 [0.36, 0.89] | 0.99 | 0.86 [0.83, 0.90] | 0.72 | 0.36 |
+| substitution: aliphatic->aromatic | 3019 | 12 | mean delta | 0.02 [-0.12, 0.16] | 0.94 | -0.10 [-0.16, -0.05] | 0.87 | 0.19 |
+| N-Me shift (one N-Me moved) | 2250 | 12 | mean |delta| | 0.30 [0.10, 0.49] | 0.99 | 0.45 [0.41, 0.47] | 0.40 | 0.08 |
 | ring +1 residue (any) | 1254 | 5 | mean delta | -0.14 [-0.49, 0.21] | 0.97 | -0.31 [-0.36, -0.26] | 0.47 | 0.07 |
-| substitution: aliphatic->aliphatic | 1177 | 21 | mean |delta| | 0.50 [0.40, 0.60] | 0.94 | 0.62 [0.58, 0.66] | 0.52 | 0.21 |
-| substitution: aromatic->aromatic | 604 | 12 | mean |delta| | 0.37 [0.22, 0.51] | 0.96 | 0.55 [0.50, 0.60] | 0.56 | 0.18 |
-| substitution: aliphatic->polar | 31 | 8 | mean delta | -1.01 [-1.45, -0.57] | 0.85 | -0.66 [-0.98, -0.19] | 0.84 | 0.45 |
+| substitution: aliphatic->aliphatic | 1186 | 20 | mean |delta| | 0.52 [0.41, 0.62] | 0.94 | 0.61 [0.58, 0.66] | 0.52 | 0.20 |
+| substitution: aromatic->aromatic | 605 | 11 | mean |delta| | 0.40 [0.23, 0.56] | 0.97 | 0.55 [0.49, 0.60] | 0.56 | 0.18 |
+| substitution: aliphatic->polar | 32 | 8 | mean delta | -1.01 [-1.45, -0.57] | 0.85 | -0.64 [-0.99, -0.21] | 0.84 | 0.44 |
 
 **Cliffs (|Δz|>1 SD within source) and pair-ordering accuracy** (same-fold pairs = neither partner label in training; ties 0.5).
 
@@ -200,17 +200,17 @@ Features flagged source-confounded: 29 of 50.
 
 | feature | n present | sources | effect [CI] | I² | sources with + effect | q |
 |---|---|---|---|---|---|---|
-| has_base:Pr_Gly | 601 | 5 | 0.34 [0.25, 0.42] | 0.00 | 0.80 | 0.000 |
+| has_base:Pr_Gly | 601 | 5 | 0.34 [0.25, 0.42] | 0.00 | 1.00 | 0.000 |
 | has_base:Bn_Gly | 1209 | 3 | -0.27 [-0.35, -0.20] | 0.00 | 0.00 | 0.000 |
-| n_Nme>=2 | 4293 | 8 | 0.70 [0.34, 1.07] | 0.93 | 0.75 | 0.003 |
-| n_Nme>=3 | 2694 | 9 | 0.50 [0.24, 0.77] | 0.89 | 0.67 | 0.003 |
-| motif_alternating_Nme | 2464 | 12 | 0.31 [0.09, 0.52] | 0.85 | 0.75 | 0.054 |
-| has_Nme_base:L | 5318 | 12 | 0.47 [0.10, 0.83] | 0.93 | 0.83 | 0.121 |
-| has_peptoid | 2093 | 8 | 0.31 [0.04, 0.58] | 0.89 | 0.75 | 0.144 |
-| has_nalkyl_nonmethyl | 2206 | 9 | 0.23 [0.02, 0.43] | 0.75 | 0.89 | 0.144 |
-| smarts:halogen | 140 | 3 | -0.57 [-1.07, -0.06] | 0.88 | 0.00 | 0.144 |
-| smarts:basic_aliphatic_amine | 165 | 3 | -0.51 [-0.97, -0.05] | 0.37 | 0.00 | 0.144 |
-| arom_fraction>=0.3 | 1173 | 11 | -0.42 [-0.80, -0.04] | 0.92 | 0.18 | 0.144 |
-| has_base:V | 629 | 5 | -0.27 [-0.51, -0.02] | 0.52 | 0.00 | 0.144 |
-| has_base:T | 2375 | 7 | -0.52 [-1.02, -0.03] | 0.69 | 0.14 | 0.163 |
-| has_D_base:L | 4295 | 12 | 0.28 [0.01, 0.55] | 0.89 | 0.67 | 0.166 |
+| n_Nme>=2 | 4293 | 8 | 0.67 [0.31, 1.03] | 0.93 | 0.75 | 0.005 |
+| n_Nme>=3 | 2694 | 8 | 0.48 [0.21, 0.76] | 0.90 | 0.62 | 0.009 |
+| motif_alternating_Nme | 2464 | 11 | 0.31 [0.08, 0.54] | 0.86 | 0.73 | 0.083 |
+| has_peptoid | 2093 | 8 | 0.32 [0.06, 0.59] | 0.89 | 0.88 | 0.133 |
+| has_D_base:L | 4295 | 13 | 0.31 [0.04, 0.58] | 0.89 | 0.69 | 0.133 |
+| has_Nme_base:L | 5318 | 11 | 0.44 [0.06, 0.82] | 0.94 | 0.82 | 0.133 |
+| arom_fraction>=0.3 | 1173 | 11 | -0.43 [-0.82, -0.05] | 0.93 | 0.18 | 0.133 |
+| has_D_and_Nme_same_residue | 3493 | 12 | 0.22 [0.02, 0.42] | 0.85 | 0.58 | 0.133 |
+| has_nalkyl_nonmethyl | 2206 | 8 | 0.23 [0.02, 0.43] | 0.78 | 0.88 | 0.133 |
+| motif_Nme_adjacent_D | 3811 | 12 | 0.27 [0.02, 0.51] | 0.89 | 0.67 | 0.133 |
+| smarts:halogen | 140 | 3 | -0.59 [-1.14, -0.05] | 0.90 | 0.00 | 0.133 |
+| has_base:iBu_Gly | 113 | 4 | 0.50 [0.01, 0.99] | 0.78 | 1.00 | 0.172 |

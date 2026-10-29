@@ -14,8 +14,15 @@ def build(csv):
     for col, name in (("PAMPA", "pampa"), ("Caco2", "caco2"), ("RRCK", "rrck"), ("MDCK", "mdck")):
         v = d[d[col].notna() & (d[col] > FLOOR)].groupby("Structurally_Unique_ID")[col].agg(["mean", "size"])
         lab[name] = v["mean"]; lab["n_" + name] = v["size"]
-    perm = d[(d["Permeability"] > FLOOR) & d["PAMPA"].notna()].groupby("Structurally_Unique_ID")["Permeability"].mean()
+    ld = d[(d["Permeability"] > FLOOR) & d["PAMPA"].notna()]
+    perm = ld.groupby("Structurally_Unique_ID")["Permeability"].mean()
     lab["y_loader"] = perm
+    # CORRECTION 2026-10-30: for labelled peptides, Source/Year must come from the PAMPA (loader) row(s), as in loop_retro/run_loop.load (first loader row per structure),
+    # not from the first row of any assay (which gave 177 peptides the wrong source, 150 of them Ohta instead of CHUGAI).
+    fl = ld.groupby("Structurally_Unique_ID")[["Source", "Year"]].first()
+    first.loc[fl.index, "Source"] = fl["Source"]; first.loc[fl.index, "Year"] = fl["Year"]
+    nsrc = ld.groupby("Structurally_Unique_ID")["Source"].nunique()
+    lab["n_pampa_sources"] = nsrc
     labdf = pd.DataFrame(lab)
     rows = []
     for sid, r in first.iterrows():
