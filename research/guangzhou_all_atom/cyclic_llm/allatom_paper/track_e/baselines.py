@@ -99,7 +99,9 @@ def lib_surrogate(cfg_lib, pool_n=6000, init=100, batch=100, explore=0.1, seed_p
 def edit_ga(cfg, seeds, n_init=100, n_parents=30, n_children=100, pop_cap=200, max_stall=20, k_max=6):
     """Edit-operator GA. Stall guard (fix, 2026-10-29, before any baseline number was read): if a full generation produces no NEW evaluated
     molecule (the single-edit neighbourhood of the parents is exhausted), the number of edits per child is escalated by one (up to k_max);
-    after `max_stall` consecutive stalled generations the optimiser stops (BudgetExhausted-like), so a run can never spin forever on duplicates."""
+    after `max_stall` consecutive stalled generations the optimiser stops (BudgetExhausted-like), so a run can never spin forever on duplicates.
+    Second fix (same day, still before any baseline number was read): a generation counts as 'stalled' when it yields fewer than 10% new molecules
+    (n_children // 10), not only zero, because trickle yields (about one new molecule per generation) kept k=1 runs alive for over an hour."""
     def opt(oracle, rng):
         pop, known = [], set()
         for s in rng.sample(seeds, min(n_init, len(seeds))):
@@ -123,11 +125,11 @@ def edit_ga(cfg, seeds, n_init=100, n_parents=30, n_children=100, pop_cap=200, m
                     known.add(c)
                     pop.append((sc, c))
                     new_eval += 1
-            if new_eval == 0:
+            if new_eval < max(1, n_children // 10):          # low yield (< 10% new molecules): the neighbourhood is nearly exhausted
                 stall += 1
                 k = min(k + 1, k_max)
                 if stall >= max_stall:
-                    raise BudgetExhausted("edit_ga stalled: no new molecules in %d generations" % max_stall)
+                    raise BudgetExhausted("edit_ga stalled: low yield in %d consecutive generations" % max_stall)
             else:
                 stall = 0
     return opt

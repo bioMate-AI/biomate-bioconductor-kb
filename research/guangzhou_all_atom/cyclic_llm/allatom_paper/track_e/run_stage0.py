@@ -79,7 +79,7 @@ def one_run(job):
         opt = H.copy_seed(G["seeds"])
     else:
         opt = G["reg"][method](cfg)
-    r = H.run_one(opt, train, budget, seed, k=10, canon=VE.canon, constraint=BL.constraint, heldout=held)
+    r = H.run_one(opt, train, budget, seed, k=10, canon=VE.canon, constraint=BL.constraint, heldout=held, max_seconds=1800)
     top = r["top_smiles"]
     r["stop_final"] = float(np.mean([stop.fn(s) for s in top])) if top else float("nan")
     r.update(dict(mode=mode, family=fam, method=job[2], cfg=cfg, wall_s=round(time.time() - t0, 1)))

@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import math
 import random
+import time
 from dataclasses import dataclass, field
 from typing import Callable, Dict, FrozenSet, List, Optional, Sequence
 
@@ -85,13 +86,14 @@ class BudgetedOracle:
     """Call-counting wrapper around ONE train verifier. Calling it with a proposal returns a score (float) or None."""
 
     def __init__(self, verifier: Verifier, budget: int, canon: Callable = default_canon,
-                 constraint: Optional[Callable[[str], bool]] = None, max_proposals: Optional[int] = None):
+                 constraint: Optional[Callable[[str], bool]] = None, max_proposals: Optional[int] = None, deadline: Optional[float] = None):
         if verifier.role != "train":
             raise HeldOutVerifierError(f"{verifier.name}: only 'train' verifiers can be optimisation oracles (role={verifier.role!r})")
         if budget < 1:
             raise ValueError("budget must be >= 1")
         self.verifier, self.budget, self.canon, self.constraint = verifier, int(budget), canon, constraint
         self.max_proposals = int(max_proposals) if max_proposals else 20 * int(budget)
+        self.deadline = deadline               # absolute time.time() after which the next call raises BudgetExhausted (uniform wall-clock cap, amendment A4)
         self.calls = 0
         self.cache: Dict[str, float] = {}
         self.log: List[tuple] = []           # (call_index, canonical_smiles, score)
@@ -102,6 +104,8 @@ class BudgetedOracle:
         return self.calls >= self.budget
 
     def __call__(self, smiles: str) -> Optional[float]:
+        if self.deadline is not None and time.time() > self.deadline:
+            raise BudgetExhausted("wall-clock cap reached")
         self.n_proposals += 1
         if self.n_proposals > self.max_proposals:
             raise BudgetExhausted("proposal cap reached")
@@ -159,11 +163,12 @@ def calls_to_threshold(curve: np.ndarray, thr: float) -> Optional[int]:
 
 def run_one(optimizer: Callable, verifier: Verifier, budget: int, seed: int, k: int = 10,
             canon: Callable = default_canon, constraint: Optional[Callable[[str], bool]] = None,
-            heldout: Sequence[Verifier] = (), max_proposals_factor: int = 20) -> dict:
+            heldout: Sequence[Verifier] = (), max_proposals_factor: int = 20, max_seconds: Optional[float] = None) -> dict:
     """optimizer(oracle, rng) -> None must stop on BudgetExhausted (it is caught here)."""
     if heldout:
         check_independent([verifier], heldout)
-    oracle = BudgetedOracle(verifier, budget, canon, constraint, max_proposals=max_proposals_factor * budget)
+    oracle = BudgetedOracle(verifier, budget, canon, constraint, max_proposals=max_proposals_factor * budget,
+                            deadline=None if max_seconds is None else time.time() + float(max_seconds))
     rng = random.Random(seed)
     try:
         optimizer(oracle, rng)

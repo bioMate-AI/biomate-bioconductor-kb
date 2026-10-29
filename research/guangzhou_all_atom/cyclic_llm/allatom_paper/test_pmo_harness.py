@@ -251,3 +251,15 @@ def test_gate_primary_requires_explicit_margin_and_accepts_per_family_margins():
         H.gate_primary({"a": c, "b": c})                                   # no default margin any more (A4)
     g = H.gate_primary({"a": c, "b": c}, margin={"a": 0.4, "b": 0.6}, min_pass=1)
     assert g["passed_families"] == ["a"]                                  # b's own margin 0.6 is not met
+
+
+def test_wall_clock_cap_stops_a_run_and_pads_the_curve():
+    counter = {"i": 0}
+
+    def sampler(rng):
+        counter["i"] += 1
+        return "C" * counter["i"]
+
+    v = H.Verifier("len", lambda s: len(s) / 100.0)
+    r = H.run_one(H.random_search(sampler), v, budget=50, seed=0, canon=IDENT, max_seconds=0.0)
+    assert r["calls"] == 0 and len(r["curve"]) == 50                       # stopped at once, curve padded to the budget length
