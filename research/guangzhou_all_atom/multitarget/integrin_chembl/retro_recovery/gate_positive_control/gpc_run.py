@@ -6,7 +6,7 @@ HERE = L.HERE; OUT = f"{HERE}/results"; os.makedirs(OUT, exist_ok=True)
 TOL = float(os.environ.get("GPC_TOL", "1e-9"))      # exact for C1, C2, C4, C5 (amendments A1/A2)
 TOL_C3 = float(os.environ.get("GPC_TOL_C3", "1e-9"))      # A2: C3 (L-BFGS logistic regression) differs across scipy/sklearn builds; 1e-3 on the Linux EC2 image
 def tol_for(name): return TOL_C3 if "C3" in name else TOL
-A_GRID = [0.55, 0.60, 0.65, 0.70]; F_GRID = [4, 6, 8, 10, 14, 26, 50, 100]
+A_GRID = [0.55, 0.60, 0.65, 0.70]; F_GRID = [4, 6, 8, 10, 14, 20, 26, 47, 50, 85, 100, 150]      # A3: 20, 47, 85, 150 added (run2); run1 used the pre-A3 grid
 
 
 def jobs():
@@ -17,7 +17,7 @@ def jobs():
         for ai, a in enumerate(A_GRID):
             J += [dict(id=f"{fam}|{a}-{s}", kind="S", family=fam, a=a, seed=b + 100 * ai + s) for s in range(1, n + 1)]
     for F in F_GRID:
-        n = 40 if F >= 50 else 60
+        n = 40 if F >= 47 else 60
         J += [dict(id=f"CURVE-F{F}-{s}", kind="CURVE", F=F, seed=7000 + 100 * F + s) for s in range(1, n + 1)]
     return J
 
@@ -51,11 +51,12 @@ def regress():
     return ok
 
 
-def run(workers, only):
+def run(workers, only, only_F=None):
     import multiprocessing as mp
     calib = json.load(open(f"{OUT}/calibration.json")); J = jobs()
     J = [j for j in J if j["kind"] != "S" or calib[f"{j['family']}|{j['a']}"]["feasible"]]      # prereg section 2: infeasible levels are reported as infeasible, not run
     if only: J = [j for j in J if j["kind"] in only]
+    if only_F: J = [j for j in J if j["kind"] == "CURVE" and j["F"] in only_F]
     path = f"{OUT}/gpc_results.jsonl"; done = set()
     if os.path.exists(path): done = {json.loads(l)["id"] for l in open(path)}
     J = [j for j in J if j["id"] not in done]; J.sort(key=lambda j: -(j.get("F") or 0))       # biggest first
@@ -69,8 +70,8 @@ def run(workers, only):
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(); ap.add_argument("cmd"); ap.add_argument("--workers", type=int, default=5); ap.add_argument("--only", default="")
+    ap = argparse.ArgumentParser(); ap.add_argument("cmd"); ap.add_argument("--workers", type=int, default=5); ap.add_argument("--only", default=""); ap.add_argument("--only-F", default="")
     a = ap.parse_args()
     if a.cmd == "calibrate": calibrate()
     elif a.cmd == "regress": sys.exit(0 if regress() else 1)
-    elif a.cmd == "run": run(a.workers, [x for x in a.only.split(",") if x])
+    elif a.cmd == "run": run(a.workers, [x for x in a.only.split(",") if x], [int(x) for x in a.only_F.split(",") if x])

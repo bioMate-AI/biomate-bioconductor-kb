@@ -32,3 +32,20 @@ def test_clopper_pearson_known_values():
 def test_knife_edge_flags_only_near_threshold_records():
     far = rec(lo90=0.47, hi90=0.53); near = rec(lo90=0.4503, hi90=0.53)           # lo90 within 3e-4 of the 0.45 equivalence edge
     assert not A.knife_edge(far) and A.knife_edge(near)
+
+
+def test_per_control_and_certifier_logic():
+    R = [rec(lo90=0.47, hi90=0.53) for _ in range(6)] + [rec(lo90=0.40, hi90=0.60) for _ in range(4)]
+    pc = A.per_control(R)["C1_atomlm_typicality"]
+    assert pc["P_equivalent"]["k"] == 6 and pc["P_width90_gt_0p10"]["k"] == 4 and pc["P_biased"]["k"] == 0
+    assert A.CERT_F == [14, 20, 26, 47, 85, 150] and 150 in A.F_GRID and 47 in A.F_GRID
+
+
+def test_main_merges_two_files_and_reports_certifier(tmp_path):
+    import json
+    def line(i, kind, **kw): r = rec(); r.update(id=i, kind=kind, family=kw.get("family"), a=kw.get("a"), F=kw.get("F"), seed=i); return json.dumps(r)
+    f1 = tmp_path / "a.jsonl"; f2 = tmp_path / "b.jsonl"
+    f1.write_text("\n".join(line(f"VI-{i}", "VI") for i in range(10)) + "\n"); f2.write_text("\n".join(line(f"CURVE-F26-{i}", "CURVE", F=26) for i in range(10)) + "\n")
+    A.OUT = str(tmp_path); A.main([str(f1), str(f2)])
+    S = json.load(open(tmp_path / "gpc_summary.json"))
+    assert S["n_records"] == 20 and S["PASS_C_certifier"]["26"]["certifier"] and S["PASS_C_at_real_F"]["VI (real F=26)"]
