@@ -19,17 +19,17 @@ add(id="LIT-TPSA-002", pmcid="PMC13531348", tier="T2", kind="fundamental", scope
     feat={"tpsa": -1}, direction="window", effect="TPSA > 140 A^2", window={"tpsa_soft_max": 140},
     quote="molecules with TPSA >140 Å2 do not favour membrane permeability though molecular chameleons are exceptions to this rule",
     confidence="medium", notes="review statement; use TPSA as a soft prior, not a hard filter, for chameleonic macrocycles")
-add(id="LIT-3DPSA-001", pmcid="PMC13492371", tier="T1", kind="fundamental", scope=["bRo5","3D polar surface area","radius of gyration"], outcome="permeability",
+add(id="LIT-3DPSA-001", pmcid="PMC13492371", tier="T2", kind="fundamental", scope=["bRo5","3D polar surface area","radius of gyration"], outcome="permeability",
     statement="For bRo5 compounds, solvent-accessible 3D polar surface area, 3D nonpolar surface area and radius of gyration are reported to correlate better with permeability than MW, 2D TPSA and cLogP.",
     feat=None, direction="context", effect=None,
     quote="reported to correlate better to permeability than MW, TPSA, and c log P",
     confidence="high", notes="motivates conformer-based descriptors; our own test (idea A) did not confirm a gain on public data")
-add(id="LIT-EPSA-001", pmcid="PMC13492371", tier="T1", kind="rule", scope=["macrocyclic peptide","EPSA"], outcome="permeability",
+add(id="LIT-EPSA-001", pmcid="PMC13492371", tier="T2", kind="rule", scope=["macrocyclic peptide","EPSA"], outcome="permeability",
     statement="An experimental polar surface area (EPSA) below about 90 A^2 has been reported as the limit below which macrocyclic peptides are expected to be membrane permeable (griselimycin EPSA 74 A^2).",
     feat={"epsa": -1}, direction="window", effect="EPSA < 90 A^2", window={"epsa_max": 90},
     quote="well below the 90 Å2 that has been reported as the limit below which macrocyclic peptides are expected to be cell membrane permeable",
     confidence="medium", notes="EPSA is a chromatographic measurement; not computable from SMILES; text/retrieval context only")
-add(id="LIT-CHAM-002", pmcid="PMC13492371", tier="T1", kind="fundamental", scope=["PROTAC","chameleonicity"], outcome="permeability",
+add(id="LIT-CHAM-002", pmcid="PMC13492371", tier="T2", kind="fundamental", scope=["PROTAC","chameleonicity"], outcome="permeability",
     statement="A PROTAC behaving as an inverse chameleon had 20-fold lower cellular permeability and nearly 1000-fold lower PAMPA permeability than its chameleonic analogue.",
     feat=None, direction="context", effect="20x (cell), ~1000x (PAMPA)",
     quote="had a substantially reduced permeability (20-fold in a cellular assay, close to 1000-fold in the PAMPA assay)",
@@ -64,7 +64,7 @@ add(id="LIT-DATA-002", pmcid="PMC11698989", tier="T1", kind="caution", scope=["m
     feat=None, direction="caution", effect="91% of 3,767 PAMPA records from one publication",
     quote="among which 91% of the datapoints (n = 3462) are from one publication",
     confidence="high", notes="same single-source dominance we found in CycPeptMPDB (two labs hold most hits)")
-add(id="LIT-PEP-001", pmcid="PMC11698989", tier="T2", kind="fundamental", scope=["cyclic peptides vs nonpeptidic macrocycles","descriptors"], outcome="chemical space",
+add(id="LIT-PEP-001", pmcid="PMC11698989", tier="T1", kind="fundamental", scope=["cyclic peptides vs nonpeptidic macrocycles","descriptors"], outcome="chemical space",
     statement="Cyclic peptides are typically larger, more polar (higher TPSA and HBD) and more flexible than nonpeptidic macrocycles, which are somewhat more lipophilic.",
     feat=None, direction="context", effect=None,
     quote="most cyclic peptides were larger, more polar (higher TPSA and HBD count) and more flexible (higher Kier index, Φ) than the nonpeptidic macrocycles",

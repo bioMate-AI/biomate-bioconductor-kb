@@ -1,6 +1,6 @@
 # All-atom hybrid LLM: literature-sourced knowledge layer (workstream K) — 2026-10-29
 
-Code and data: `research/guangzhou_all_atom/cyclic_llm/allatom_paper/knowledge/`. Verified set: `knowledge_kb_v1.json` (sha256 `b6c89885…42b7`, `knowledge_kb_v1.sha256`). Contract: plan section 2 (`Constraint.soft_logits`, retrieval-context text), design section 3-4.
+Code and data: `research/guangzhou_all_atom/cyclic_llm/allatom_paper/knowledge/`. Verified set: `knowledge_kb_v1.json` (sha256 `29368807…6951`, `knowledge_kb_v1.sha256`; tiers corrected 2026-10-29, see section 8; the earlier hash `b6c89885…42b7` is superseded). Contract: plan section 2 (`Constraint.soft_logits`, retrieval-context text), design section 3-4.
 
 ## 1. What this is
 A structured, provenance-tracked knowledge layer with four entry kinds: **rule** (directional or window statement), **fundamental** (mechanism or structure-property principle), **caution** (limits, data-bias and counter-evidence), **card** (campaign / benchmark ledger entry: what was designed, outcome, failure modes, lessons). Every entry carries a verbatim quote (<= 30 words) from a source that was opened, a DOI or file path, a tier, an access date and a confidence.
@@ -11,10 +11,10 @@ Integrity mechanism (the part that distinguishes it from notes recalled from mem
 | | count |
 |---|---|
 | entries | 107 (rule 44, fundamental 24, caution 11, card 28) |
-| tier | T1 primary study 65, T2 review / author background 31, T-internal 11 (T3 secondary: 0) |
+| tier (after the section-8 audit) | T1 own result / method of the source 60, T2 review summary / restatement / background 36, T-internal 11 (T3: 0) |
 | sources opened | 45 external (41 Europe PMC OA articles, 4 arXiv preprints) + 5 internal documents |
 | outcome class | permeability 55, stability 10, solubility 2, other 40 |
-| weight-eligible | 32 (28 permeability, 1 stability, 1 solubility, 2 other) |
+| weight-eligible | 32 (28 permeability, 1 stability, 1 solubility, 2 other); by tier T1 14, T2 18 |
 
 Topic coverage (an entry can count in several topics): cyclization / ring / bridging 34; size, bRo5 and oral guidelines 24; N-methylation 13; intramolecular H-bond / chameleonicity 12; lipophilicity / solubility / aggregation 12; stability (proteolysis, serum, deamidation) 12; stereochemistry / D-residues 10; campaign cards 28 (17 external, 11 internal).
 
@@ -56,8 +56,23 @@ Reading for the loop: N-methyl count, HBD, TPSA and cLogP are the stable, litera
 
 ## 7. Limitations and not done
 - Collection stopped at the coordinator's instruction after the existing-knowledge survey: **not collected** — target pharmacophore rules (RGD / alphavbeta6, PD-L1 macrocycle series, GRPR / bombesin; target-structure side belongs to K3), Wikipedia / Wikidata / database facts (no T3 entries), display-campaign hit rates (RaPID, mRNA and phage display), per-drug properties of approved cyclic peptides. Imports of CyclicPeptideDB-type collections belong to K2 and are referenced by id, not rebuilt.
-- 14 of the 107 entries are review or author-background statements (tier T2); their primary sources were not re-opened.
+- 36 of the 107 entries are T2 (18 are weight-eligible): review summaries, restatements of results the source cites to other papers, authors' background, one textbook rule and one project goal. The cited primary studies behind them were **not** opened by us (section 8). An earlier version of this line said '14'; that was wrong: 14 was the number of weight-eligible entries among the 31 T2 entries at that time, not the number of T2 entries.
 - Many 2026 sources: the Europe PMC records and DOIs were read from the fetched XML, but several articles are very recent and unreviewed by us.
 - Direction check: two sources only (Townsend dominates), peptide descriptors from the stratification annotation (Crippen logP, RDKit TPSA/HBD), cluster bootstrap by flat structure but not by lab; no multiplicity control; PAMPA only.
 - One rule (`LIT-CHAM-003`, grazoprevir) and the depsipeptide / macrobicycle series are not peptides in the strict sense; scope fields say so.
 - Weights are not tuned; no score has been used in a loop yet.
+
+## 8. Tier audit (2026-10-29, requested by the coordinator after the KB manuscript writer found the '14 vs 31' discrepancy)
+**Reconciliation.** The 14 in section 7 was an error of mine: at the time there were 31 T2 entries and 14 of them were weight-eligible; I had carried the second number into a sentence about the first.
+
+**Rule applied (written once in `tier_decisions.py` and applied to all 107 entries).** The tier follows the provenance of the quoted statement, not the article type. T1 = the quote reports a result or method obtained in the source's own experiment, simulation, benchmark or data analysis. T2 = a review's summary of other people's work, a restatement of a result the source cites to another paper, a textbook rule, authors' background or motivation, or a project goal. If the stored text does not let us establish that a number is the source's own result, the default is T2. Before the audit I had applied this rule inconsistently (the tier partly followed the article type).
+
+**Evidence.** `tier_audit_context.py` (run on EC2) extracted, for every entry, the source article type from the stored Europe PMC XML and the quote's surrounding text with citation markers and cue words; I then read the context of all 31 T2 entries and of the 32 T1 entries flagged by review-type source, citation marker or restatement cue words. Entries not flagged were not individually re-read for provenance (their quotes sit in Results/abstract sentences describing the source's own work); this is a limit of the audit.
+
+**Changes (13): nine T1 -> T2, four T2 -> T1.** T1 -> T2: `LIT-3DPSA-001`, `LIT-EPSA-001`, `LIT-NMEPOS-002`, `LIT-SIZE-001`, `LIT-NME-006`, `LIT-IMHB-004`, `LIT-NME-003` (quote restates a result cited to other work), `LIT-CHAM-002` (cannot establish from the text that the PROTAC comparison is the paper's own; default T2), `LIT-OB-001` (a design goal, not a result). T2 -> T1: `CARD-MACRODRUG-001`, `LIT-CLIN-002`, `LIT-CLIN-003`, `LIT-PEP-001` (the source, a review or data paper, analysed its own data set). The HighFold-MeD card kept T1 but now rests on two added verified quotes stating the paper's own method (its original quotes were background).
+
+**Counts after the audit.** T1 60 (was 65), T2 36 (was 31), T-internal 11; 107/107 quotes still verified; **weight eligibility unchanged: 32 entries, the identical set** (eligibility requires tier in {T1, T2} and does not distinguish them). New hash `29368807…6951`. The direction check is unaffected by tier (17 agree, 7 mixed, 0 disagree, 83 not testable).
+
+**The 36 T2 entries** (`tier_audit.json`, one row each with (a) source is a review, (b) underlying primary study opened by us, (c) character of the quote): source type review or commentary 18, research article or other 18; (b) is "no" for all 36 (the studies behind the quoted statements were not opened by us); (c) review's own wording 11, restates a cited primary result 16, authors' background 6, textbook rule 1, project goal 1, uncertain (default T2) 1. A test (`test_tier_audit_matches_kb`) asserts that the T2 table equals the T2 set in the KB and that every change is applied.
+
+**Consequence for users.** T2 weights are no less eligible than T1 in the potential. If a stricter policy is wanted (for example weights only from T1), 18 of the 32 eligible rules (the T2 ones) would drop out; the loader can filter by tier but the default is unchanged.

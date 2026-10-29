@@ -9,8 +9,8 @@
   },
   "by_tier": {
    "T-internal": 11,
-   "T1": 65,
-   "T2": 31
+   "T1": 60,
+   "T2": 36
   },
   "n": 107,
   "sources": [
@@ -543,7 +543,9 @@
    "quote_verified": true,
    "quote_words": 19,
    "quotes": [
-    "Rosetta simple_cycpep_predict (SCP) can predict their structures through energy-based calculations, but this approach is computationally intensive and time-consuming"
+    "Rosetta simple_cycpep_predict (SCP) can predict their structures through energy-based calculations, but this approach is computationally intensive and time-consuming",
+    "a deep learning-based framework that distills knowledge from Rosetta SCP by fine-tuning the AlphaFold model",
+    "a cyclic peptide structure dataset is constructed using Rosetta SCP by sampling massive conformations"
    ],
    "scope": [
     "design campaign"
@@ -614,7 +616,7 @@
    "statement": "FDA-approved macrocyclic drugs and clinical candidates mostly target difficult binding sites; 80-90% come from natural products, whereas ChEMBL macrocycles are simpler.",
    "status": "ok",
    "structure_ref": null,
-   "tier": "T2",
+   "tier": "T1",
    "weight": 0.0,
    "weight_eligible": false,
    "window": null
@@ -1583,7 +1585,7 @@
    "statement": "For bRo5 compounds, solvent-accessible 3D polar surface area, 3D nonpolar surface area and radius of gyration are reported to correlate better with permeability than MW, 2D TPSA and cLogP.",
    "status": "ok",
    "structure_ref": null,
-   "tier": "T1",
+   "tier": "T2",
    "weight": 0.0,
    "weight_eligible": false,
    "window": null
@@ -2105,7 +2107,7 @@
    "statement": "A PROTAC behaving as an inverse chameleon had 20-fold lower cellular permeability and nearly 1000-fold lower PAMPA permeability than its chameleonic analogue.",
    "status": "ok",
    "structure_ref": null,
-   "tier": "T1",
+   "tier": "T2",
    "weight": 0.0,
    "weight_eligible": false,
    "window": null
@@ -2244,7 +2246,7 @@
    "statement": "In approved/reported cyclic peptides, overall polarity is dictated mainly by peptide size and backbone composition rather than by the cyclization chemistry (PSA clusters at 500-1000 A^2).",
    "status": "ok",
    "structure_ref": null,
-   "tier": "T2",
+   "tier": "T1",
    "weight": 0.0,
    "weight_eligible": false,
    "window": null
@@ -2289,7 +2291,7 @@
    "statement": "Most reported cyclic peptides lie in the 1,000-2,500 Da range; older approved cyclic peptide drugs include extreme high-MW and high-PSA outliers.",
    "status": "ok",
    "structure_ref": null,
-   "tier": "T2",
+   "tier": "T1",
    "weight": 0.0,
    "weight_eligible": false,
    "window": null
@@ -2616,7 +2618,7 @@
    "statement": "An experimental polar surface area (EPSA) below about 90 A^2 has been reported as the limit below which macrocyclic peptides are expected to be membrane permeable (griselimycin EPSA 74 A^2).",
    "status": "ok",
    "structure_ref": null,
-   "tier": "T1",
+   "tier": "T2",
    "weight": 0.0,
    "weight_eligible": false,
    "window": {
@@ -2913,7 +2915,7 @@
    "statement": "The intramolecular hydrogen-bond donor contribution from accelerated MD correlates well with measured PAMPA permeability for peptidic macrocycles.",
    "status": "ok",
    "structure_ref": null,
-   "tier": "T1",
+   "tier": "T2",
    "weight": 0.05,
    "weight_eligible": true,
    "window": null
@@ -3501,7 +3503,7 @@
    "statement": "In one analysed macrocycle pair, methylation of a hydrogen-bond donor increased cell permeability about two-fold (PAMPA).",
    "status": "ok",
    "structure_ref": null,
-   "tier": "T1",
+   "tier": "T2",
    "weight": 0.05,
    "weight_eligible": true,
    "window": null
@@ -3647,7 +3649,7 @@
    "statement": "In a 30-member N-methylated cyclic peptide library, the best intestinal permeability (Caco-2 Papp 4e-6 cm/s) came from a triple N-methylated analogue, not the most heavily methylated one.",
    "status": "ok",
    "structure_ref": null,
-   "tier": "T1",
+   "tier": "T2",
    "weight": 0.0,
    "weight_eligible": false,
    "window": null
@@ -3798,7 +3800,7 @@
    "statement": "N-alkylation at a chameleonic position (an NH that forms an intramolecular H-bond) can lower cell permeability instead of raising it; seen in Cyclin A/B macrocycles and in sanguinamide analogues.",
    "status": "ok",
    "structure_ref": null,
-   "tier": "T1",
+   "tier": "T2",
    "weight": 0.0,
    "weight_eligible": false,
    "window": null
@@ -3895,7 +3897,7 @@
    "statement": "Medicinal-chemistry practice for orally bioavailable macrocyclic peptides: target F >= 20% by modulating TPSA, HBD count and LogD.",
    "status": "ok",
    "structure_ref": null,
-   "tier": "T1",
+   "tier": "T2",
    "weight": 0.05,
    "weight_eligible": true,
    "window": null
@@ -3940,7 +3942,7 @@
    "statement": "Cyclic peptides are typically larger, more polar (higher TPSA and HBD) and more flexible than nonpeptidic macrocycles, which are somewhat more lipophilic.",
    "status": "ok",
    "structure_ref": null,
-   "tier": "T2",
+   "tier": "T1",
    "weight": 0.0,
    "weight_eligible": false,
    "window": null
@@ -4394,7 +4396,7 @@
    "statement": "Purely lipophilic (fully N-methylated) peptides show a steep decrease in permeability with size.",
    "status": "ok",
    "structure_ref": null,
-   "tier": "T1",
+   "tier": "T2",
    "weight": 0.05,
    "weight_eligible": true,
    "window": null

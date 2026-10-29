@@ -8,7 +8,7 @@ add(id="LIT-NMEPOS-001", pmcid="PMC13138696", tier="T1", kind="rule", scope=["ma
     quote="di-N-methylation of both Nα-Lys and Nε-Lys resulted in the highly permeable 5 (MDCK P app = 14.9 × 10-6 cm/s)",
     quotes=["than did the N-methylation of the Nε-Lys (4, MDCK P app = 0.2 × 10-6 cm/s)"],
     confidence="medium", notes="one campaign, matched series; shows position matters more than count")
-add(id="LIT-NMEPOS-002", pmcid="PMC13138696", tier="T1", kind="caution", scope=["macrocyclic peptide","N-alkylation","chameleonic position"], outcome="cell permeability",
+add(id="LIT-NMEPOS-002", pmcid="PMC13138696", tier="T2", kind="caution", scope=["macrocyclic peptide","N-alkylation","chameleonic position"], outcome="cell permeability",
     statement="N-alkylation at a chameleonic position (an NH that forms an intramolecular H-bond) can lower cell permeability instead of raising it; seen in Cyclin A/B macrocycles and in sanguinamide analogues.",
     feat=None, direction="caution", effect=None,
     quote="N-alkylation at a chameleonic position led to a decrease in cell permeability was previously observed in N-methylated analogues of the cyclic peptide natural product sanguinamide",
@@ -18,7 +18,7 @@ add(id="LIT-DPRO-001", pmcid="PMC12990038", tier="T1", kind="caution", scope=["m
     feat=None, direction="caution", effect=None,
     quote="replacement of this position with D-proline counterintuitively reduced passive permeability as measured by MDCK, even though this side chain reduces the HBD count by one",
     confidence="medium", notes="HBD count alone is not a sufficient permeability predictor")
-add(id="LIT-OB-001", pmcid="PMC12990038", tier="T1", kind="fundamental", scope=["macrocyclic peptide","oral bioavailability","design practice"], outcome="oral bioavailability",
+add(id="LIT-OB-001", pmcid="PMC12990038", tier="T2", kind="fundamental", scope=["macrocyclic peptide","oral bioavailability","design practice"], outcome="oral bioavailability",
     statement="Medicinal-chemistry practice for orally bioavailable macrocyclic peptides: target F >= 20% by modulating TPSA, HBD count and LogD.",
     feat={"tpsa": -1, "hbd": -1}, direction="multi", effect="target F >= 20%",
     quote="improving oral bioavailability with a target of ≥20% by modulating compound properties such as TPSA, HBD count, and LogD",
@@ -63,7 +63,7 @@ add(id="LIT-CYC-002", pmcid="PMC8229464", tier="T2", kind="fundamental", scope=[
     feat={"is_cyclic": +1}, direction="+", effect=None,
     quote="Cyclization of a linear peptide may reduce the number of intermolecular hydrogen bonds, adjust the lipophilicity, and reduce the hydrodynamic size",
     confidence="medium", notes="mechanistic background statement from a review")
-add(id="LIT-NME-006", pmcid="PMC8229464", tier="T1", kind="rule", scope=["N-methylated cyclic peptide library","Caco-2"], outcome="intestinal permeability",
+add(id="LIT-NME-006", pmcid="PMC8229464", tier="T2", kind="rule", scope=["N-methylated cyclic peptide library","Caco-2"], outcome="intestinal permeability",
     statement="In a 30-member N-methylated cyclic peptide library, the best intestinal permeability (Caco-2 Papp 4e-6 cm/s) came from a triple N-methylated analogue, not the most heavily methylated one.",
     feat=None, direction="context", effect="Caco-2 Papp 4e-6 cm/s",
     quote="analog with triple-N-methylation on D-Trp8, Lys9, and Phe11 showed the highest intestinal permeability (Caco-2, Papp = 4 × 10-6 cm/s)",
@@ -84,12 +84,12 @@ add(id="LIT-CLIN-001", pmcid="PMC10150360", tier="T1", kind="caution", scope=["c
     feat=None, direction="caution", effect=None,
     quote="The cyclic peptides desmopressin and octreotide, which have very low oral bioavailability, constitute the only oral drugs that are misclassified",
     confidence="high", notes="'oral' labels in drug lists can mean low-bioavailability peptides")
-add(id="LIT-CLIN-002", pmcid="PMC13492385", tier="T2", kind="fundamental", scope=["cyclic peptide drugs","size","polar surface area"], outcome="polarity determinants",
+add(id="LIT-CLIN-002", pmcid="PMC13492385", tier="T1", kind="fundamental", scope=["cyclic peptide drugs","size","polar surface area"], outcome="polarity determinants",
     statement="In approved/reported cyclic peptides, overall polarity is dictated mainly by peptide size and backbone composition rather than by the cyclization chemistry (PSA clusters at 500-1000 A^2).",
     feat=None, direction="context", effect="PSA 500-1000 A^2 typical",
     quote="overall polarity is primarily dictated by peptide size and backbone composition rather than the specific cyclization chemistry",
     confidence="medium", notes="CAS Content Collection analysis")
-add(id="LIT-CLIN-003", pmcid="PMC13492385", tier="T2", kind="fundamental", scope=["cyclic peptide drugs","molecular weight"], outcome="chemical space",
+add(id="LIT-CLIN-003", pmcid="PMC13492385", tier="T1", kind="fundamental", scope=["cyclic peptide drugs","molecular weight"], outcome="chemical space",
     statement="Most reported cyclic peptides lie in the 1,000-2,500 Da range; older approved cyclic peptide drugs include extreme high-MW and high-PSA outliers.",
     feat=None, direction="context", effect="MW 1000-2500 Da",
     quote="Most reported cyclic peptides cluster in the 1,000-2500 Da range, with macrocyclic peptides constituting the dominant class",

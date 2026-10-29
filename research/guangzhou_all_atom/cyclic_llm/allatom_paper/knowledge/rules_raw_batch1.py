@@ -34,7 +34,7 @@ add(id="LIT-IMHB-003", pmcid="PMC9490236", tier="T1", scope=["macrocycle","intra
     feat=None, direction="context", effect=None,
     quote="hydrogen bond satisfaction appears necessary for permeability, it is not sufficient",
     confidence="high", notes="limits any NH-count rule")
-add(id="LIT-SIZE-001", pmcid="PMC9490236", tier="T1", scope=["peptide","N-methyl","size"], outcome="permeability",
+add(id="LIT-SIZE-001", pmcid="PMC9490236", tier="T2", scope=["peptide","N-methyl","size"], outcome="permeability",
     statement="Purely lipophilic (fully N-methylated) peptides show a steep decrease in permeability with size.",
     feat={"n_heavy_atoms": -1}, direction="-", effect=None,
     quote="purely lipophilic peptides show a steep decrease in permeability with size",
@@ -65,12 +65,12 @@ add(id="LIT-BRO5-005", pmcid="PMC10150360", tier="T2", scope=["bRo5","oral bioav
     feat={"ab_mps": -1}, direction="window", effect="cutoff 14", window={"ab_mps_max": 14},
     quote="An AB-MPS score of ≤14 was found to be a cutoff between acceptable (F > 27.3%) and low-moderate oral bioavailability in the bRo5 space",
     confidence="medium", notes="reported in a review from an earlier AbbVie study (ref 4 in the source); NAR and cLogD definitions need the original")
-add(id="LIT-IMHB-004", pmcid="PMC10685455", tier="T1", scope=["macrocycle","intramolecular hydrogen bond"], outcome="permeability",
+add(id="LIT-IMHB-004", pmcid="PMC10685455", tier="T2", scope=["macrocycle","intramolecular hydrogen bond"], outcome="permeability",
     statement="The intramolecular hydrogen-bond donor contribution from accelerated MD correlates well with measured PAMPA permeability for peptidic macrocycles.",
     feat={"exposed_nh": -1}, direction="-", effect=None,
     quote="Intramolecular hydrogen bond donor contribution from aMD correlates well with the PAMPA results",
     confidence="medium", notes="computational study on 47 macrocycles")
-add(id="LIT-NME-003", pmcid="PMC10685455", tier="T1", scope=["macrocycle","N-methyl"], outcome="permeability",
+add(id="LIT-NME-003", pmcid="PMC10685455", tier="T2", scope=["macrocycle","N-methyl"], outcome="permeability",
     statement="In one analysed macrocycle pair, methylation of a hydrogen-bond donor increased cell permeability about two-fold (PAMPA).",
     feat={"n_nme": +1}, direction="+", effect="~2x permeability for one added methyl",
     quote="methylation of D1 in macrocycle 28, which decreases the PAMPA-log Pe, that is, increases the cell permeability by a factor of 2",

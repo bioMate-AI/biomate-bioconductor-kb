@@ -96,6 +96,22 @@ class TestKB(unittest.TestCase):
         self.assertFalse(ids(perm) & ids(sol))
         self.assertIn("LIT-SOL-001", ids(sol))
 
+    def test_tier_audit_matches_kb(self):
+        ta_path = os.path.join(os.path.dirname(KB), "tier_audit.json")
+        if not os.path.exists(ta_path):
+            self.skipTest("tier_audit.json not present")
+        ta = json.load(open(ta_path))
+        t2 = sorted(e["id"] for e in self.rules if e["tier"] == "T2")
+        self.assertEqual(t2, sorted(r["id"] for r in ta["t2_table"]))
+        for r in ta["t2_table"]:
+            self.assertIn(r["c_quote_character"], ("review_own_wording", "restates_cited_primary_result", "author_background", "textbook_rule", "project_goal", "uncertain_default_T2"))
+            self.assertIn(r["b_underlying_primary_opened"], ("no", "not_applicable"))
+        for ch in ta["changes"]:
+            self.assertEqual(next(e for e in self.rules if e["id"] == ch["id"])["tier"], ch["tier_after"])
+        counts = {t: sum(1 for e in self.rules if e["tier"] == t) for t in ("T1", "T2", "T-internal")}
+        self.assertEqual(counts["T1"], ta["tier_counts"]["T1"])
+        self.assertEqual(counts["T2"], ta["tier_counts"]["T2"])
+
     def test_cards_have_payload_and_no_weight(self):
         cards = [e for e in self.rules if e["kind"] == "card"]
         self.assertGreaterEqual(len(cards), 10)
