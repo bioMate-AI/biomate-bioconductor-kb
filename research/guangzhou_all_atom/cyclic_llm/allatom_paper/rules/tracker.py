@@ -13,9 +13,11 @@ is illegal because C requires one fragment; wildcard '*', '~', '?', '>' and '$' 
 from rdkit import Chem
 
 _PT = Chem.GetPeriodicTable()
-ORG = {"B", "C", "N", "O", "P", "S", "F", "Cl", "Br", "I"}
-ARO = {"b", "c", "n", "o", "p", "s"}
-SINGLE = {"B", "C", "N", "O", "P", "S", "F", "I", "b", "c", "n", "o", "p", "s"}
+# LANGUAGE RESTRICTION (declared; dead-end analysis 2026-10-29): peptide chemistry only. CycPeptMPDB (8,466 structures) and the 131-entry monomer dictionary use C N O S F Cl Br and no isotopes;
+# P and I are kept as margin. Aromatic atoms: c n o s. No isotopes, no other elements. Strings outside this language are not generated (and cannot satisfy the intended use).
+ORG = {"C", "N", "O", "S", "P", "F", "Cl", "Br", "I"}
+ARO = {"c", "n", "o", "s"}
+SINGLE = {"C", "N", "O", "S", "P", "F", "I", "c", "n", "o", "s"}
 BOND = {"-": 1.0, "=": 2.0, "#": 3.0, ":": 1.5, "/": 1.0, "\\": 1.0}
 MAX_BRACKET_TOKENS = 12
 
@@ -54,14 +56,14 @@ class Tracker:
         return t
 
     # ------------------------------------------------------------------ atoms and bonds
-    def _add_atom(self, sym, arom, brk, hexp, chg):
+    def _add_atom(self, sym, arom, brk, hexp, chg, charged=False):
         i = len(self.sym)
         self.sym.append(sym); self.arom.append(arom); self.brk.append(brk); self.hexp.append(hexp); self.chg.append(chg); self.nbr.append([])
         if self.prev >= 0:
             order = self.pend if self.pend is not None else (1.5 if (arom and self.arom[self.prev]) else 1.0)
             self.nbr[self.prev].append((i, order)); self.nbr[i].append((self.prev, order))
         self.prev = i; self.pend = None; self.just_open = False
-        if sym != "H": self.mass += _weight(sym)
+        if sym != "H" and not charged: self.mass += _weight(sym)
         return True
 
     def _ring(self, label):
@@ -77,53 +79,55 @@ class Tracker:
         return True
 
     # ------------------------------------------------------------------ bracket atoms
+    # strict OpenSMILES bracket grammar:  [ isotope? element chirality? hcount? charge? ]   (atom classes ':' are not allowed). The element's mass is charged at the ELEMENT token
+    # (not at ']'), so the mass bound prunes before a bracket can get stuck (dead-end analysis 2026-10-29: junk brackets near the MW cap).
+    @staticmethod
+    def _parse_bracket(b):
+        """returns (stage, element_index) where stage in iso/post and post-state flags; None if the token list is not a valid prefix."""
+        i = 0                                          # isotopes are not part of the restricted language
+        if i == len(b): return ("iso", None, 0, 0, 0, 0)
+        el = b[i]
+        if not (el in ORG or el in ARO): return None
+        j = i + 1; chi = 0; hc = 0; hd = 0; chg = 0; chd = 0
+        while j < len(b):
+            x = b[j]
+            if x == "@" and chi < 2 and hc == 0 and chg == 0: chi += 1; j += 1
+            elif x == "H" and hc == 0 and chg == 0: hc = 1; j += 1
+            elif x.isdigit() and len(x) == 1 and hc == 1 and hd == 0 and chg == 0: hd = 1; j += 1
+            elif x in ("+", "-") and chg == 0: chg = 1; j += 1
+            elif x in ("+", "-") and chg == 1 and chd == 0 and b[j - 1] == x: chd = 1; j += 1
+            elif x.isdigit() and len(x) == 1 and chg == 1 and chd == 0 and b[j - 1] in ("+", "-"): chd = 1; j += 1
+            else: return None
+        return ("post", i, chi, hc, chg, chd)
+
     def _bracket(self, t):
         b = self.br
-        if t == "]":
-            return self._close_bracket()
+        if t == "]": return self._close_bracket()
         if len(b) >= MAX_BRACKET_TOKENS: return False
-        stage = self._bstage()
-        if t.isdigit() and len(t) == 1: pass
-        elif t in ("@", "+", "-", ":"): pass
-        elif t == "H" or _is_element(t): pass
-        else: return False
-        if stage == "iso":
-            if not (t.isdigit() or t == "H" or _is_element(t)): return False
-        elif stage == "post":
-            if _is_element(t) and t != "H": return False
+        nb = b + [t]
+        st = self._parse_bracket(nb)
+        if st is None: return False
+        # charge the element's mass the moment the element token is consumed
+        if st[0] == "post" and st[1] == len(nb) - 1: self.mass += _weight(nb[st[1]].capitalize() if nb[st[1]].islower() else nb[st[1]])
         b.append(t); return True
 
-    def _bstage(self):
-        for x in self.br:
-            if x == "H" or _is_element(x): return "post"
-        return "iso"
-
     def _close_bracket(self):
-        b = self.br; i = 0
-        while i < len(b) and b[i].isdigit(): i += 1
-        if i >= len(b): return False
-        el = b[i]; i += 1
-        if not (el == "H" or _is_element(el)): return False
-        arom = el.islower(); sym = el.capitalize() if arom else el
-        hexp = 0; chg = 0; seen_at = 0
-        while i < len(b):
-            x = b[i]
-            if x == "@": seen_at += 1; i += 1
-            elif x == "H":
-                i += 1; hexp = 1
-                if i < len(b) and b[i].isdigit(): hexp = int(b[i]); i += 1
-            elif x in ("+", "-"):
-                sgn = 1 if x == "+" else -1; i += 1; mag = 1
-                if i < len(b) and b[i].isdigit(): mag = int(b[i]); i += 1
-                elif i < len(b) and b[i] == x: mag = 2; i += 1
-                chg = sgn * mag
-            elif x == ":":
-                i += 1
-                while i < len(b) and b[i].isdigit(): i += 1
-            else: return False
-        if seen_at > 2: return False
+        b = self.br; st = self._parse_bracket(b)
+        if st is None or st[0] != "post": return False
+        el = b[st[1]]; arom = el.islower(); sym = el.capitalize() if arom else el
+        hexp = 0; chg = 0
+        for k in range(st[1] + 1, len(b)):
+            if b[k] == "H":
+                hexp = 1
+                if k + 1 < len(b) and b[k + 1].isdigit() and b[k - 1] != "+" and b[k - 1] != "-": hexp = int(b[k + 1])
+        for k in range(st[1] + 1, len(b)):
+            if b[k] in ("+", "-"):
+                sgn = 1 if b[k] == "+" else -1; mag = 1
+                if k + 1 < len(b) and b[k + 1].isdigit(): mag = int(b[k + 1])
+                elif k + 1 < len(b) and b[k + 1] == b[k]: mag = 2
+                chg = sgn * mag; break
         self.br = None
-        return self._add_atom(sym, arom, True, hexp, chg)
+        return self._add_atom(sym, arom, True, hexp, chg, charged=True)
 
     # ------------------------------------------------------------------ public
     def advance(self, t):

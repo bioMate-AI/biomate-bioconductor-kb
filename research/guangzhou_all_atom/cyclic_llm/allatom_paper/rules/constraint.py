@@ -67,7 +67,7 @@ class ChemFMConstraint:
         return st2.feasible(MW_HI, NME_HI, self.max_len - st2.n)
 
     def _candidates(self, st):
-        if st.br is not None: return self.bracket_ids + [self.rbr]
+        if st.br is not None: return self.bracket_ids + [self.rbr]       # strict grammar + mass filter in Tracker.advance/_tok_ok
         if st.pct is not None: return self.digit_ids
         c = self.atom_ids + [self.lbr]
         if st.prev >= 0:
@@ -102,6 +102,11 @@ class ChemFMConstraint:
     def mask(self, st):
         """fast path: one representative per semantic class; per-token mass check for atoms. Equal to mask_ref (tested)."""
         m = np.zeros(self.V, dtype=bool); cache = {}; id2 = self.vocab.id2tok; rem_after = lambda s2: self.max_len - s2.n
+        if st.br is not None:                       # inside a bracket atom every token is checked individually (element mass, grammar stage)
+            for tid in self._candidates(st):
+                if self._tok_ok(st, tid): m[tid] = True
+            m[self.eos] = self.eos_ok(st)
+            return m
         for tid in self._candidates(st):
             tok = id2[int(tid)]; key = self._class_key(st, tok)
             if key not in cache:

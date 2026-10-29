@@ -234,3 +234,40 @@ def test_contract_adapter(voc, rows):
         assert not ra.is_complete(st)
     with pytest.raises(ValueError): ra.advance(ra.init_state(), ")")
     assert len(ra.soft_logits(ra.init_state(), vocab_list)) == len(vocab_list)
+
+
+def test_bracket_grammar_strict(voc):
+    """junk bracket contents seen in the dead-end dump are now illegal; ordinary peptide brackets are legal."""
+    for good in ["[C@H]", "[C@@H]", "[nH]", "[NH3+]", "[O-]", "[N+]", "[C@@H]", "[Cl-]", "[S@]"]:
+        st = T.Tracker(); ok = all(st.advance(voc.id2tok[i]) for i in voc.encode("C" + good)); assert ok and st.br is None, good
+    for bad in ["[C@HH", "[C@@@", "[C@H2H", "[N++-", "[P+@", "[C@H+@", "[CH@", "[NH3+-", "[13C", "[Na", "[Li", "[h", "[he", "[Si", "[131Li", "[H"]:
+        st = T.Tracker(); r = True
+        for i in voc.encode("C" + bad):
+            r = st.advance(voc.id2tok[i])
+            if not r: break
+        assert not r, bad
+
+
+def test_bracket_mass_charged_at_element(voc):
+    c = ChemFMConstraint(voc, max_len=MAXLEN)
+    st = c.init_state(voc.encode("C[")); m0 = st.mass
+    assert c.advance(st, voc.tok2id["Cl"]) and st.mass > m0 + 30          # Cl charged at the element token, before ']'
+    st2 = T.Tracker(); [st2.advance(voc.id2tok[i]) for i in voc.encode("C" * 115)]    # mass ~ 1381
+    st2.advance("["); assert not c.mask(st2)[voc.tok2id["Cl"]] or st2.mass + 35.5 <= 1400
+
+
+def test_language_restriction_loses_no_real_peptide(voc, rows):
+    """every satisfying golden string AND every CycPeptMPDB structure parsed locally uses only the allowed language (no false-prune is possible from the restriction)."""
+    import csv
+    allowed = {"C", "N", "O", "S", "P", "F", "Cl", "Br", "I"}
+    for r in rows:
+        if r["kind"] == "invalid": continue
+        m = Chem.MolFromSmiles(r["smiles"]); assert {a.GetSymbol() for a in m.GetAtoms()} <= allowed and not any(a.GetIsotope() for a in m.GetAtoms())
+    p = os.environ.get("CPM_CSV")
+    if p and os.path.exists(p):
+        bad = 0; n = 0
+        for row in csv.DictReader(open(p, newline="")):
+            m = Chem.MolFromSmiles(row.get("SMILES") or "")
+            if m is None: continue
+            n += 1; bad += (not {a.GetSymbol() for a in m.GetAtoms()} <= allowed) or any(a.GetIsotope() for a in m.GetAtoms())
+        print(f"CycPeptMPDB structures outside the restricted language: {bad}/{n}"); assert bad == 0
