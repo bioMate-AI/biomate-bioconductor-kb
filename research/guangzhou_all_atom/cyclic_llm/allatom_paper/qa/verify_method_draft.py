@@ -241,6 +241,44 @@ rb = rd(os.path.join(AP, "retrieval", "README.md"))
 chk("text", "mining result in retrieval README: pooled N-Me +0.554 [0.373, 0.735], I2 = 0.95", all(s_ in rb for s_ in ("+0.554 [0.373, 0.735]", "0.95")), "pooled +0.554 [0.373, 0.735], I² = 0.95")
 chk("text", "mining criteria: at least three sources", "need >= 3 sources" in rb or ">= 3 sources" in rb, "at least three sources")
 
+# ---------------------------------------------------------------- structure-derived knowledge (committed results)
+SK = os.path.join(AP, "structure_knowledge", "results")
+lib = jl(os.path.join(SK, "library_summary.json"))
+chk("value", "structure library: 888 complexes over 451 targets, 802 non-antibody, 28,789 parsed",
+    lib["n_library"] == 888 and lib["n_targets"] == 451 and lib["n_library_primary_non_antibody"] == 802 and lib["n_rows_ok"] == 28789, "888 cyclic-peptide complexes over 451 targets", "28,789 parse", "802 of them with non-antibody receptors")
+bc, bm = lib["by_primary_cyclisation"], lib["by_method"]
+chk("value", "structure library: closure classes and methods",
+    (bc["disulfide"], bc["head_to_tail"], bc["amide_like"], bc["c_c_link"], bc["thioether"], bc["ester_like"]) == (366, 187, 140, 78, 69, 48) and (bm["X-RAY DIFFRACTION"], bm["ELECTRON MICROSCOPY"], bm["SOLUTION NMR"]) == (765, 110, 13),
+    "366 disulfide, 187 head-to-tail, 140 amide-like, 78 carbon-carbon link, 69 thioether, 48 ester-like", "765 X-ray, 110 cryo-EM and 13 NMR")
+chk("value", "structure library: median resolution, composition", lib["median_resolution"] == 2.2 and (lib["n_with_ncaa"], lib["n_with_D"], lib["n_with_nme"], lib["n_with_cis_amide"]) == (527, 226, 118, 134) and lib["n_with_affinity"] == 0,
+    "median resolution 2.2 Å", "527 with non-standard residues, 226 with at least one D residue, 118 with at least one N-methyl and 134 with a cis amide")
+skdoc = rd(os.path.join(DOCS, "20261031_ALLATOM_STRUCTURE_KNOWLEDGE.md"))
+chk("text", "structure: 30,773 candidates; 90% of parsed rows linear; 0 of 818 entries with affinity; Propedia/PepBDB not imported; no paper opened",
+    all(x_ in skdoc for x_ in ("30,773 candidates", "90% of parsed", "0 of 818", "Propedia v2.3 and PepBDB were not imported", "`paper_opened` is false on every card")),
+    "30,773 candidate complexes", "90% are linear peptides", "0 of 818 distinct entries", "Propedia and PepBDB were not imported", "no paper was opened for any card")
+pri = jl(os.path.join(SK, "priors_v1.json"))
+chk("value", "priors: primary set 802 complexes, 378 targets, set hash 419f8bf3d8dc7334", pri["n_complexes"] == 802 and pri["n_targets"] == 378 and pri["targets_sha256"] == "419f8bf3d8dc7334", "378 targets", "`419f8bf3d8dc…`")
+snip = [json.loads(l_) for l_ in open(os.path.join(SK, "retrieval_snippets_v1.jsonl")) if l_.strip()]
+sn = {x_["id"]: x_["text"] for x_ in snip}
+want_ring = {"disulfide": ("8-13", "10", "301"), "head_to_tail": ("7-11", "8", "174"), "amide_like": ("5-10", "7", "137"), "thioether": ("9-12", "12", "67")}
+okr = all(f"ring spans {a_} residues (IQR), median {b_} (n={c_} complexes)" in sn["STR-RING-" + k_] for k_, (a_, b_, c_) in want_ring.items())
+chk("value", "priors: ring spans by closure type (snippets)", okr, "median 10 residues, interquartile range 8 to 13, n = 301", "8, 7 to 11, n = 174", "7, 5 to 10, n = 137", "12, 9 to 12, n = 67")
+alltxt = " ".join(sn.values())
+chk("text", "priors: turn frequencies, N-methyl contact rate, NH fate, unstable enrichment exported with weight 0 (structure document)",
+    all(x_ in skdoc for x_ in ("56.5% contain a type I beta turn", "I' 9.0%, II 6.3%, II' 7.3%", "4.7% vs 2.2%", "5.3% vs 6.9%", "47% intramolecularly H-bonded, 10% H-bonded to the receptor only, 43% free", "max deviation 0.50 log2", "weight 0")),
+    "56.5%", "type I′ 9.0%, II 6.3%, II′ 7.3%", "4.7% at positions in contact with the target against 2.2% elsewhere", "5.3% against 6.9%", "47% intramolecularly hydrogen-bonded, 10% bonded to the receptor only, 43% free", "maximum deviation 0.50 in log2 units")
+chk("text", "priors: LOTO thresholds (>= 20 targets, median <= 0.05, max <= 0.25) and default potential weight 0.5 not tuned", ">= 20 targets, median dev <= 0.05, max dev <= 0.25" in skdoc and "default weight 0.5" in skdoc, "at least 20 targets, median deviation at most 0.05, maximum at most 0.25", "default weight 0.5")
+cards = jl(os.path.join(SK, "cards_v1.json"))
+cc = {c_["target"]: c_["n_cyclic_complexes"] for c_ in cards}
+with_c = sorted(k_ for k_, v_ in cc.items() if v_ > 0 and k_ != "cd20")
+none_c = sorted(k_ for k_, v_ in cc.items() if v_ == 0)
+chk("value", "cards: 17 cards; five targets with complexes (baff 5, fcrn 5, il17a 1, pdl1 9, tnfa 1); cd20 antibody-epitope; 11 without", len(cards) == 17 and with_c == ["baff", "fcrn", "il17a", "pdl1", "tnfa"] and (cc["baff"], cc["fcrn"], cc["il17a"], cc["pdl1"], cc["tnfa"]) == (5, 5, 1, 9, 1)
+    and cc["cd20"] == 1 and none_c == sorted(["a4b1", "a4b7", "avb6", "c5", "cd40", "il17f", "il23", "il2ra", "il6r", "lfa1", "grpr"]),
+    "17 targets", "BAFF 5, FcRn 5, IL-17A 1, PD-L1 9, TNF-α 1", "α4β1, α4β7, αvβ6, C5, CD40, IL-17F, IL-23, IL-2Rα, IL-6R, LFA-1 or GRPR", detail=str(none_c))
+chk("text", "armG exclusion example removes avb6/PD-L1 accessions P06756, P18564, Q9NZQ7 and the avb3 targets sharing the alphaV accession", all(x_ in skdoc for x_ in ("P06756, P18564, Q9NZQ7", "alphavbeta3 targets that share the alphaV accession")), "which also removes the αvβ3 targets that share the αV accession")
+sp = jl(os.path.join(SK, "soft_potentials_v1.json"))
+chk("value", "soft potentials: ring-size tables per closure class exist", any(x_["feature"] == "ring_residues" for x_ in sp), "ring-size soft potentials")
+
 # ---------------------------------------------------------------- rule set constants
 spec = rd(os.path.join(AP, "rules", "spec.py"))
 consts = dict(re.findall(r"^(RING_MIN|TPSA_HI)\s*=\s*([0-9.]+)", spec, re.M))

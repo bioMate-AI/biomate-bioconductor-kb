@@ -60,6 +60,17 @@ PASS  [value] direction check rho n_dres Townsend/Kelly  (('−0.04', '+0.02'))
 PASS  [value] mining descriptive within-source values (TPSA, HBD, logP Spearman; N-Me mean z-effect)
 PASS  [text] mining result in retrieval README: pooled N-Me +0.554 [0.373, 0.735], I2 = 0.95
 PASS  [text] mining criteria: at least three sources
+PASS  [value] structure library: 888 complexes over 451 targets, 802 non-antibody, 28,789 parsed
+PASS  [value] structure library: closure classes and methods
+PASS  [value] structure library: median resolution, composition
+PASS  [text] structure: 30,773 candidates; 90% of parsed rows linear; 0 of 818 entries with affinity; Propedia/PepBDB not imported; no paper opened
+PASS  [value] priors: primary set 802 complexes, 378 targets, set hash 419f8bf3d8dc7334
+PASS  [value] priors: ring spans by closure type (snippets)
+PASS  [text] priors: turn frequencies, N-methyl contact rate, NH fate, unstable enrichment exported with weight 0 (structure document)
+PASS  [text] priors: LOTO thresholds (>= 20 targets, median <= 0.05, max <= 0.25) and default potential weight 0.5 not tuned
+PASS  [value] cards: 17 cards; five targets with complexes (baff 5, fcrn 5, il17a 1, pdl1 9, tnfa 1); cd20 antibody-epitope; 11 without  (['a4b1', 'a4b7', 'avb6', 'c5', 'cd40', 'grpr', 'il17f', 'il23', 'il2ra', 'il6r', 'lfa1'])
+PASS  [text] armG exclusion example removes avb6/PD-L1 accessions P06756, P18564, Q9NZQ7 and the avb3 targets sharing the alphaV accession
+PASS  [value] soft potentials: ring-size tables per closure class exist
 PASS  [value] rule set C constants (ring 12, N-Me 2-6, MW 600-1400, TPSA 300)  ({'RING_MIN': '12', 'TPSA_HI': '300.0', 'MW_LO': '600.0', 'MW_HI': '1400.0'})
 PASS  [text] SMARTS for N-methyl amide in draft equals spec
 PASS  [text] backbone: 22 layers, d 2048, vocab 320, 512 positions (pilot doc)
@@ -103,12 +114,12 @@ PASS  [struct] hygiene: no TODO/TBD  (0 hit(s))
 PASS  [struct] hygiene: no pending narration  (0 hit(s))
 PASS  [struct] hygiene: no old scale or margin  (0 hit(s))
 PASS  [struct] hygiene: no priority claim  (0 hit(s))
-PASS  [struct] cross-references resolve (37 section references)  ([])
+PASS  [struct] cross-references resolve (41 section references)  ([])
 PASS  [struct] every referenced table is defined  (referenced ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'] defined ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'])
 PASS  [struct] every defined table is referenced in the text  (unreferenced [])
 PASS  [struct] Figure 1 defined and referenced
-PASS  [struct] unmeasured results are shown as — in tables, not narrated  (147 empty cells)
+PASS  [struct] unmeasured results are shown as — in tables, not narrated  (150 empty cells)
 PASS  [struct] section numbering sequential 1..8  (['1', '2', '3', '4', '5', '6', '7', '8'])
 
-111 checks; failed: 0; value checks 57, text checks 34, struct checks 20
-numeric tokens in Sections 3-5 not covered by any check: 184  ({'design constant, hyperparameter or document-derived number': 93, 'small count or ordinal in prose': 67, 'value from a document or design constant (not machine-readable)': 24})
+122 checks; failed: 0; value checks 64, text checks 38, struct checks 20
+numeric tokens in Sections 3-5 not covered by any check: 192  ({'design constant, hyperparameter or document-derived number': 97, 'small count or ordinal in prose': 71, 'value from a document or design constant (not machine-readable)': 24})

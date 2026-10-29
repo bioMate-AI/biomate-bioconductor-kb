@@ -19,7 +19,7 @@ Empty cells in the manuscript are shown as "—". Owner names are workstreams (E
 | R9 | Table 10 (arm G) | arm-G results document | M6 |
 | R10 | Table 11 (audits) | audit results document | M7 |
 | R11 | Table 12 (robustness on group version 1) | robustness table | E |
-| R12 | Section 3.3.3 counts: imports (parse and join rates), scaled-extraction precision and recall, coverage matrix | `docs/20261031_ALLATOM_KNOWLEDGE_*`, KB-paper | K2, K3 |
+| R12 | Section 3.3.3 counts: imports (parse and join rates), scaled-extraction precision and recall, coverage matrix (structure counts are filled: K3 commit `4c92f7131`) | `docs/20261031_ALLATOM_KNOWLEDGE_*`, KB-paper | K2 |
 | R13 | Patent stage counts (Section 3.3.3(d)) | `docs/20261031_ALLATOM_PATENT_KNOWLEDGE.md` (does not exist yet; no counts in the manuscript until it does) | K4 |
 | R14 | Gold-set counts: manuscript quotes the committed version (107 entries at `7ecf14af2`: T1 60, T2 36, internal 11; SHA-256 `29368807…6951`); update if the set is extended | `knowledge/knowledge_kb_v1.json`, `direction_check_results.json` | K |
 | R15 | Table 13 (calibrated gate acceptance values) | gate calibration results | gate-calibration fork |
@@ -71,3 +71,4 @@ Generation pilot about USD 6.8 against a USD 4 cap (idle-instance overrun about 
 - Decision to confirm with the evaluation owner: in Section 4.6 the pass-probability table is stated for true gains of one and two margins (delta = m_f and 2 m_f), because the earlier delta values 0.03 and 0.05 were in percentile units; if the baseline amendment (A5) fixes different delta values, change Section 4.6 and the Table 7 header.
 - Table 7 now has columns for the margin m_f and for the paired SD; Table 5/6/8 unchanged. The controls table keeps the planted-optimum control on its own [0, 1] score; the shuffled-reward control is judged in SD-AUC.
 - Verification script: 111 checks (57 value, 34 text, 20 structure), 0 failed; 184 numeric tokens in Sections 3 to 5 not covered.
+- K3 structure knowledge (commit `4c92f7131`): manuscript Sections 3.3.1, 3.3.3(e), 3.3.4, 3.3.5, new 3.3.6, Table 9 (new row: structure-derived ring-size potentials) and Section 7 updated with the committed numbers (888 complexes over 451 targets; priors on 802 complexes / 378 targets with leave-one-target-out stability; 17 target cards; arm-G exclusion by accession). Decision to confirm: the structure potentials are an extra ablation row, not part of the three-way prior factor. Open: the structure potentials default weight 0.5 is untuned; downstream tuning on the train group only is possible but not planned. Verification script now 122 checks (64 value, 38 text, 20 structure), 0 failed. Manuscript length about 10,900 words (target was about 10,500).
