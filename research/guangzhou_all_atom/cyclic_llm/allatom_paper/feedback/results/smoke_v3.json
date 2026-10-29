@@ -1,0 +1,188 @@
+{
+ "rounds": [
+  {
+   "round": 0,
+   "valid_frac": 0.6953125,
+   "mean_score": 0.4739296935917412,
+   "n_samples": 128,
+   "n_invalid_excluded": 39,
+   "n_groups": 4,
+   "frac_small_groups_dropped": 0.0,
+   "frac_zero_variance_groups": 0.0,
+   "frac_groups_retained": 1.0,
+   "n_pairs": 8,
+   "mean_gap": 0.6538109358246834,
+   "mean_margin": 0.6538109358246834,
+   "n_groups_kept": 4,
+   "t_sample_s": 76.95886468887329,
+   "kl_est_per_token": 0.0009536559227854013,
+   "rel_weight_change": 0.0014956575642301963,
+   "gate": "continue"
+  },
+  {
+   "round": 1,
+   "valid_frac": 0.75,
+   "mean_score": 0.490380291928791,
+   "n_samples": 128,
+   "n_invalid_excluded": 32,
+   "n_groups": 4,
+   "frac_small_groups_dropped": 0.0,
+   "frac_zero_variance_groups": 0.0,
+   "frac_groups_retained": 1.0,
+   "n_pairs": 8,
+   "mean_gap": 0.7804056534429222,
+   "mean_margin": 0.7804056534429222,
+   "n_groups_kept": 4,
+   "t_sample_s": 200.28040671348572,
+   "kl_est_per_token": 0.0005542124854400754,
+   "rel_weight_change": 0.002379453443340145,
+   "gate": "continue"
+  },
+  {
+   "round": 2,
+   "valid_frac": 0.6953125,
+   "mean_score": 0.4503770590666844,
+   "n_samples": 128,
+   "n_invalid_excluded": 39,
+   "n_groups": 4,
+   "frac_small_groups_dropped": 0.0,
+   "frac_zero_variance_groups": 0.0,
+   "frac_groups_retained": 1.0,
+   "n_pairs": 8,
+   "mean_gap": 0.7074718514173243,
+   "mean_margin": 0.7074718514173243,
+   "n_groups_kept": 4,
+   "t_sample_s": 316.8723735809326,
+   "kl_est_per_token": 0.0020203841850161552,
+   "rel_weight_change": 0.0030895370222539394,
+   "gate": "continue"
+  }
+ ],
+ "steps": [
+  {
+   "step": 0,
+   "round": 0,
+   "loss": 0.6931471228599548,
+   "reward_margin": 1.9073485191256623e-06,
+   "finite": true,
+   "rel_weight_change": 0.0003779443233670199,
+   "t_s": 82.35513401031494
+  },
+  {
+   "step": 1,
+   "round": 0,
+   "loss": 0.68166583776474,
+   "reward_margin": 0.23166464269161224,
+   "finite": true,
+   "rel_weight_change": 0.0007536261341933396,
+   "t_s": 87.72743082046509
+  },
+  {
+   "step": 2,
+   "round": 0,
+   "loss": 0.6694973707199097,
+   "reward_margin": 0.48179200291633606,
+   "finite": true,
+   "rel_weight_change": 0.0011260953676993039,
+   "t_s": 92.97439479827881
+  },
+  {
+   "step": 3,
+   "round": 0,
+   "loss": 0.6565285325050354,
+   "reward_margin": 0.7538743019104004,
+   "finite": true,
+   "rel_weight_change": 0.0014956575642301963,
+   "t_s": 98.22139239311218
+  },
+  {
+   "step": 4,
+   "round": 1,
+   "loss": 0.6853067874908447,
+   "reward_margin": 0.15771903097629547,
+   "finite": true,
+   "rel_weight_change": 0.0017423967976756326,
+   "t_s": 205.48785638809204
+  },
+  {
+   "step": 5,
+   "round": 1,
+   "loss": 0.6775344610214233,
+   "reward_margin": 0.3152254819869995,
+   "finite": true,
+   "rel_weight_change": 0.001960302875010281,
+   "t_s": 210.77151894569397
+  },
+  {
+   "step": 6,
+   "round": 1,
+   "loss": 0.6668803095817566,
+   "reward_margin": 0.5335382223129272,
+   "finite": true,
+   "rel_weight_change": 0.002169421491094252,
+   "t_s": 216.05396103858948
+  },
+  {
+   "step": 7,
+   "round": 1,
+   "loss": 0.6540879607200623,
+   "reward_margin": 0.7995924949645996,
+   "finite": true,
+   "rel_weight_change": 0.002379453443340145,
+   "t_s": 221.3400604724884
+  },
+  {
+   "step": 8,
+   "round": 2,
+   "loss": 0.6763313412666321,
+   "reward_margin": 0.34066903591156006,
+   "finite": true,
+   "rel_weight_change": 0.0025674533338176054,
+   "t_s": 321.8745095729828
+  },
+  {
+   "step": 9,
+   "round": 2,
+   "loss": 0.6702849864959717,
+   "reward_margin": 0.46469491720199585,
+   "finite": true,
+   "rel_weight_change": 0.0027448915262814244,
+   "t_s": 326.8140347003937
+  },
+  {
+   "step": 10,
+   "round": 2,
+   "loss": 0.6619737148284912,
+   "reward_margin": 0.6364497542381287,
+   "finite": true,
+   "rel_weight_change": 0.002917468702046113,
+   "t_s": 331.8059051036835
+  },
+  {
+   "step": 11,
+   "round": 2,
+   "loss": 0.6517553329467773,
+   "reward_margin": 0.8499104976654053,
+   "finite": true,
+   "rel_weight_change": 0.0030895370222539394,
+   "t_s": 336.83648324012756
+  }
+ ],
+ "config": {
+  "N_PER": 32,
+  "ROUNDS": 3,
+  "STEPS": 4,
+  "LR": 0.0001,
+  "BETA": 0.1,
+  "PREFIX_FRAC": 0.6,
+  "MAXNEW": 80,
+  "TEMP": 1.0
+ },
+ "checks": {
+  "step0_loss_is_ln2": true,
+  "all_finite": true,
+  "weight_change_positive": true,
+  "n_steps": 12,
+  "total_s": 356.31904888153076
+ }
+}
