@@ -123,3 +123,30 @@ once the flag is confirmed on dev. So do the safe hygiene fix (#7) now; defer th
   default-on fix (gap #1) remains UNVERIFIED e2e until the ADMET run can launch — re-run
   PART B (terfenadine) after this backend deploy. run_id of the failed attempt:
   60a3e843-0d44-4bb8-8445-e8fe44ec7aef.
+
+## Loop autoloop-trigger root cause (2026-10-29, after launch fix)
+Re-run under the launch fix: terfenadine ADMET now COMPLETES (run 486bb38d, 159s, 2
+processes) — but produced `qc_gates: []` / `qc_report: null`, so no HALT gate → the
+autoloop had no trigger (autoloop-default-on fix still unexercised, not disproven).
+
+Root cause chain (code-confirmed, read-only):
+- `qc_evidence.yaml:123` — **admet_standard HALTS at hERG IC50 ≤ 10 µM**. Terfenadine
+  IC50 ≈ 0.01 µM → should HALT.
+- `qc_trace_monitor.py:1090 infer_qc_profile()` auto-binds **admet_standard** for any
+  path containing "admet" (line 1107-1108), and the comment there explicitly notes
+  admet_standard is "the ONLY profile carrying the cardiotox (hERG) gate".
+- BUT the verify run explicitly requested a **"cipa/hERG" profile**, which overrode the
+  inference and produced no halt (loop-audit gap #7: "a request for admet_standard ran
+  under a different profile"). → the halt the config promises never fired.
+
+Decisive experiment (in flight): re-run terfenadine under **admet_standard** (no "cipa"
+override). Expected: hERG HALT fires → autoloop (admet_standard is autoloop:true) auto-
+remediates without a manual toggle → the autoloop-default-on fix is finally exercised.
+If admet_standard STILL yields `qc_gates: []`, the gate evaluation isn't wired for this
+ADMET execution path (deeper) — trace qc_trace_monitor wiring in the Node→Galaxy execute.
+
+### Demo-path recommendation
+- **ADMET loop**: works once the demo binds **admet_standard** (do NOT request "cipa").
+- **Docking loop (erlotinib/EGFR, demo-05)**: the loop audit called this "the tightest
+  gate→remediate→rerun story" with a clear HALT (−5.2 vs −7.0) — likely the cleaner demo
+  path; verify it binds its halt gate too. Pick one as the canonical loop demo.
