@@ -125,6 +125,15 @@ t1=doc("20261031_T1_T1B_RECOMPUTED_CORRECTED.md")
 A("v2 6 T1 corrected numbers (document text)",all(x in t1 for x in ("+0.058","[0.010, 0.108]","[0.002, 0.113]","[−0.240, −0.015]")) and "+0.058, percentile CI 0.010 to 0.108" in V); reg("+0.058, percentile CI 0.010 to 0.108","0.002 to 0.113","+0.0034")
 b2=_json.load(open(BASE+"c2_audit/results_B_v2_aggregate.json")) if _os.path.exists(BASE+"c2_audit/results_B_v2_aggregate.json") else None
 A("v2 6 anchor v2 results file present and +0.004 / +0.100 quoted",b2 is not None and "+0.004" in V and "+0.100" in V); reg("+0.004","+0.100","−0.061 to +0.050")
+
+# ---- gate positive control (Appendix C) ----
+gp=_json.load(open(R+"multitarget/integrin_chembl/retro_recovery/gate_positive_control/results/gpc_summary.json"))
+pa=gp["PASS_A"]; ms=gp["margin_sensitivity_P_VALID"]
+A("v2 Appendix C false alarms 24.5 % / 32.5 %, P(VALID) 0.61 / 0.025, PASS-A not met",abs(pa["VI"]["p"]-0.245)<5e-4 and abs(pa["VM2"]["p"]-0.325)<5e-4 and abs(pa["VI"]["status_distribution"]["VALID"]["p"]-0.61)<5e-4 and abs(pa["VM2"]["status_distribution"]["VALID"]["p"]-0.025)<5e-4 and not gp["PASS_A_overall"] and "24.5 % (18.7 % to 31.1 %)" in V and "32.5 % (26.1 % to 39.5 %)" in V)
+A("v2 Appendix C margin sensitivity 0.03 / 0.10 and smallest F 47",ms["0.03"]["VI"]["p"]==0.035 and ms["0.03"]["VM2"]["p"]==0.0 and ms["0.1"]["VI"]["p"]==0.755 and ms["0.1"]["VM2"]["p"]==0.63 and gp["smallest_F_P_VALID_ge_0.8"]==47 and "0.755 and 0.63" in V and "47 families" in V)
+dt=gp["detection"]
+A("v2 Appendix C detection 0.69/0.81/0.94/0.95 at 0.55 and 1.00 at 0.60-0.65",[round(dt[k]["0.55"]["detection"]["p"],2) for k in ("S-tpsa","S-typ","S-cens","S-diffuse")]==[0.69,0.81,0.94,0.95] and all(dt[k][a]["detection"]["p"]==1.0 for k in ("S-tpsa","S-typ","S-cens","S-diffuse") for a in ("0.6","0.65")))
+reg("24.5 % (18.7 % to 31.1 %)","32.5 % (26.1 % to 39.5 %)","61 % (54 % to 68 %)","2.5 % (0.8 % to 5.7 %)","0.755 and 0.63","0.035 (26 families) and 0.000 (14)","47 families","0.69 (TPSA), 0.81 (typicality), 0.94 (censoring) and 0.95 (diffuse)","24.5 % (26 families) to 32.5 % (14 families)","0.61 at 26 families","0.025 at 14 families","24.5 % and 32.5 %","0.61 and 0.025")
 txt=V
 for s_ in sorted(set(covered),key=len,reverse=True): txt=txt.replace(s_," ")
 # ---- unchecked list, tier 2: membership in the declared source for each v2 line (a weaker check: the number occurs in the source, not that it is the same quantity) ----
@@ -145,6 +154,7 @@ def _jnums(o,acc):
         for d_ in range(0,6): acc.add(f"{xx:.{d_}f}".rstrip("0").rstrip(".") if "." in f"{xx:.{d_}f}" and d_>0 else f"{xx:.{d_}f}")
         for d_ in range(1,6): acc.add(f"{xx:.{d_}f}")
         if float(o).is_integer(): acc.add(str(int(xx)))
+        if xx<=1.0: acc.add(f"{xx*100:.1f}")
 def _src(files):
     acc=set()
     for p_ in files:
@@ -157,7 +167,8 @@ def _src(files):
 RR=R+"multitarget/integrin_chembl/retro_recovery/results/"
 S_AGG=[L+"l7_aggregate.json",L+"l5_aggregate.json",BASE+"paper1_cluster/results/paper1_cluster.json",L+"frozen_ab_aggregate.json"]
 S_REV=[DOCS+"20261030_COMMITTEE3_SYNTHESIS.md",DOCS+"20261030_CLAIM_EVIDENCE_LEDGER.md"]+_glob.glob(DOCS+"committee_raw/20261030c/*.md")
-S_GATE=[DOCS+"20261030_RETRO_RECOVERY_RESULTS_V5.md"]+_glob.glob(RR+"*.json")+_glob.glob(RR+"*.md")
+GPC=R+"multitarget/integrin_chembl/retro_recovery/gate_positive_control/results/gpc_summary.json"
+S_GATE=[GPC,DOCS+"20261030_RETRO_RECOVERY_RESULTS_V5.md"]+_glob.glob(RR+"*.json")+_glob.glob(RR+"*.md")
 S_LIT=[DOCS+"20261031_PAPER1_CITATION_VERIFICATION.md",DOCS+"20261030_PRIOR_ART_PEPBENCHMARK_PROTAC_CEILING.md"]
 S_STRAT=[DOCS+"20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md",DOCS+"20261031_L7Q_AGGREGATE_NOTE.md",R+"data/raw/../../../../docs/20261030_KB_AUDIT_AND_GAPS.md" if False else DOCS+"20261029_KB_AUDIT_AND_GAPS.md"]
 S_PILOT=[DOCS+"20261031_NEWTARGET_FEWSHOT_PILOT4_PREREG.md",DOCS+"20261031_IHLM_HYPOTHESIS_V2_PILOT_GATE.md",DOCS+"20261031_EDIT_EFFECT_PILOT_PREREG.md",DOCS+"20261031_ENSEMBLE_FEATURES_PREREG.md",BASE+"ihlm_backbone/pilot4/results/test_summary.json"]
@@ -165,7 +176,7 @@ S_PLAN=[DOCS+"20261030_IHLM_LADDER_RESULTS.md",DOCS+"20261030_TECHNIQUE_T2_ACQUI
 S_C2=[BASE+"c2_audit/results_A_aggregate.json",BASE+"c2_audit/results_B_v2_aggregate.json"]
 srcmap=[("Closed design",S_AGG+S_REV+S_GATE+S_LIT),("Cyclic peptides are an active",S_LIT+[R+"data/raw/CycPeptMPDB_Peptide_All.csv"] if False else S_LIT+S_STRAT),("**Related work",S_LIT),("**Status banner",S_AGG),
  ("| C1 |",S_GATE+S_REV),("| C2 |",S_REV),("**Replay.**",S_AGG+S_REV),("**Regimes",S_AGG+S_REV+S_GATE),("**Binder benchmark",S_GATE+S_REV),("**Statistics",S_REV),("An independent methodology",S_REV),
- ("| P",S_AGG+S_GATE+S_REV+S_C2),("Yield (hits",S_AGG),("In regime L the frozen",S_AGG+S_REV),("Seed-based E-AUROC",S_AGG),("In regime L the effect",S_AGG+S_REV),("Analysis I is Pfam",S_GATE+S_REV),("On analysis I (relative",S_GATE),("C2 binding loop",S_C2+S_PLAN),("Within-source Spearman",S_STRAT+S_AGG),("Leave-laboratories-out tests",S_REV+S_AGG+S_PILOT),("| D-flip",S_PILOT),("An in-house loop-native",S_PLAN+S_AGG+S_C2),("Frozen lists",S_AGG),("**One short finding",S_PLAN),("Source: `docs/20261031_NEWTARGET",S_PILOT),("**Findings.**",S_PILOT),("### ",[])]
+ ("| P",S_AGG+S_GATE+S_REV+S_C2),("Yield (hits",S_AGG),("In regime L the frozen",S_AGG+S_REV),("Seed-based E-AUROC",S_AGG),("In regime L the effect",S_AGG+S_REV),("Analysis I is Pfam",S_GATE+S_REV),("On analysis I (relative",S_GATE),("C2 binding loop",S_C2+S_PLAN),("Within-source Spearman",S_STRAT+S_AGG),("Leave-laboratories-out tests",S_REV+S_AGG+S_PILOT),("| D-flip",S_PILOT),("An in-house loop-native",S_PLAN+S_AGG+S_C2),("Frozen lists",S_AGG),("**One short finding",S_PLAN),("The registered gate was run",[GPC]),("The registered margin",[GPC]),("| analysis-I type",[GPC]),("| M2 type",[GPC]),("Source: `docs/20261031_NEWTARGET",S_PILOT),("**Findings.**",S_PILOT),("### ",[])]
 tier2=[]; left=[]
 cache={}
 for ln,l in enumerate(txt.split("\n"),1):

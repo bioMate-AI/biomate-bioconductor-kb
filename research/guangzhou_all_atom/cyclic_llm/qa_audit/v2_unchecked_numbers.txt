@@ -31,6 +31,8 @@ v2 numeric tokens (line, token) in two tiers. TIER 2 = the token occurs among th
 11	3.1
 11	99.7
 11	0.794
+11	0.794
+11	0.584
 11	0.753
 11	0.869
 14	7334
@@ -61,6 +63,8 @@ v2 numeric tokens (line, token) in two tiers. TIER 2 = the token occurs among th
 21	0.05
 21	98.3
 21	0.794
+21	24.5
+21	32.5
 22	1.0
 26	100
 26	3.1
@@ -257,3 +261,11 @@ v2 numeric tokens (line, token) in two tiers. TIER 2 = the token occurs among th
 125	0.199
 125	0.049
 125	0.03
+128	1.00
+128	0.60
+128	0.65
+128	0.55
+133	0.05
+133	0.03
+133	0.10
+133	0.8
