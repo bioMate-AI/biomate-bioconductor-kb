@@ -1,0 +1,270 @@
+{
+ "gen": "S-LIB",
+ "cfg": {
+  "len": [
+   5,
+   8
+  ],
+  "p_nme": 0.55,
+  "p_d": 0.0
+ },
+ "runs": [
+  {
+   "n": 1000,
+   "validity": 1.0,
+   "uniqueness_of_valid": 1.0,
+   "novelty_of_unique": 1.0,
+   "macro_fraction": 1.0,
+   "ring_TV": 0.2431,
+   "nme_TV": 0.303,
+   "mean_nme": 3.526,
+   "n_constraint_satisfying": 717,
+   "Y": 717.0,
+   "Y_cluster": 714.0,
+   "internal_diversity": 0.7152,
+   "seconds": 1.4
+  },
+  {
+   "n": 1000,
+   "validity": 1.0,
+   "uniqueness_of_valid": 1.0,
+   "novelty_of_unique": 1.0,
+   "macro_fraction": 1.0,
+   "ring_TV": 0.2391,
+   "nme_TV": 0.314,
+   "mean_nme": 3.539,
+   "n_constraint_satisfying": 696,
+   "Y": 696.0,
+   "Y_cluster": 692.0,
+   "internal_diversity": 0.7194,
+   "seconds": 1.0
+  },
+  {
+   "n": 1000,
+   "validity": 1.0,
+   "uniqueness_of_valid": 1.0,
+   "novelty_of_unique": 1.0,
+   "macro_fraction": 1.0,
+   "ring_TV": 0.2381,
+   "nme_TV": 0.3097,
+   "mean_nme": 3.532,
+   "n_constraint_satisfying": 695,
+   "Y": 695.0,
+   "Y_cluster": 688.0,
+   "internal_diversity": 0.7193,
+   "seconds": 0.7
+  },
+  {
+   "n": 1000,
+   "validity": 1.0,
+   "uniqueness_of_valid": 1.0,
+   "novelty_of_unique": 1.0,
+   "macro_fraction": 1.0,
+   "ring_TV": 0.244,
+   "nme_TV": 0.321,
+   "mean_nme": 3.541,
+   "n_constraint_satisfying": 685,
+   "Y": 685.0,
+   "Y_cluster": 683.0,
+   "internal_diversity": 0.7174,
+   "seconds": 0.8
+  },
+  {
+   "n": 1000,
+   "validity": 1.0,
+   "uniqueness_of_valid": 1.0,
+   "novelty_of_unique": 1.0,
+   "macro_fraction": 1.0,
+   "ring_TV": 0.2521,
+   "nme_TV": 0.3173,
+   "mean_nme": 3.525,
+   "n_constraint_satisfying": 730,
+   "Y": 730.0,
+   "Y_cluster": 725.0,
+   "internal_diversity": 0.7172,
+   "seconds": 1.1
+  }
+ ],
+ "summary": {
+  "validity": {
+   "mean": 1.0,
+   "t_interval": [
+    1.0,
+    1.0
+   ],
+   "percentile_bootstrap": [
+    1.0,
+    1.0
+   ],
+   "per_seed": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "uniqueness_of_valid": {
+   "mean": 1.0,
+   "t_interval": [
+    1.0,
+    1.0
+   ],
+   "percentile_bootstrap": [
+    1.0,
+    1.0
+   ],
+   "per_seed": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "novelty_of_unique": {
+   "mean": 1.0,
+   "t_interval": [
+    1.0,
+    1.0
+   ],
+   "percentile_bootstrap": [
+    1.0,
+    1.0
+   ],
+   "per_seed": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "macro_fraction": {
+   "mean": 1.0,
+   "t_interval": [
+    1.0,
+    1.0
+   ],
+   "percentile_bootstrap": [
+    1.0,
+    1.0
+   ],
+   "per_seed": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "ring_TV": {
+   "mean": 0.2433,
+   "t_interval": [
+    0.236,
+    0.25
+   ],
+   "percentile_bootstrap": [
+    0.239,
+    0.248
+   ],
+   "per_seed": [
+    0.2431,
+    0.2391,
+    0.2381,
+    0.244,
+    0.2521
+   ]
+  },
+  "nme_TV": {
+   "mean": 0.313,
+   "t_interval": [
+    0.304,
+    0.322
+   ],
+   "percentile_bootstrap": [
+    0.307,
+    0.318
+   ],
+   "per_seed": [
+    0.303,
+    0.314,
+    0.3097,
+    0.321,
+    0.3173
+   ]
+  },
+  "mean_nme": {
+   "mean": 3.5326,
+   "t_interval": [
+    3.524,
+    3.542
+   ],
+   "percentile_bootstrap": [
+    3.527,
+    3.538
+   ],
+   "per_seed": [
+    3.526,
+    3.539,
+    3.532,
+    3.541,
+    3.525
+   ]
+  },
+  "Y": {
+   "mean": 704.6,
+   "t_interval": [
+    681.796,
+    727.404
+   ],
+   "percentile_bootstrap": [
+    691.2,
+    720.4
+   ],
+   "per_seed": [
+    717.0,
+    696.0,
+    695.0,
+    685.0,
+    730.0
+   ]
+  },
+  "Y_cluster": {
+   "mean": 700.4,
+   "t_interval": [
+    677.868,
+    722.932
+   ],
+   "percentile_bootstrap": [
+    686.8,
+    715.42
+   ],
+   "per_seed": [
+    714.0,
+    692.0,
+    688.0,
+    683.0,
+    725.0
+   ]
+  },
+  "internal_diversity": {
+   "mean": 0.7177,
+   "t_interval": [
+    0.716,
+    0.72
+   ],
+   "percentile_bootstrap": [
+    0.716,
+    0.719
+   ],
+   "per_seed": [
+    0.7152,
+    0.7194,
+    0.7193,
+    0.7174,
+    0.7172
+   ]
+  }
+ }
+}

@@ -1,0 +1,267 @@
+{
+ "gen": "L-PCLM2",
+ "cfg": {
+  "mask": 0.3,
+  "rounds": 3,
+  "temp": 1.0
+ },
+ "runs": [
+  {
+   "n": 1000,
+   "validity": 0.843,
+   "uniqueness_of_valid": 0.9727,
+   "novelty_of_unique": 0.8451,
+   "macro_fraction": 0.9866,
+   "ring_TV": 0.0257,
+   "nme_TV": 0.243,
+   "mean_nme": 2.273,
+   "n_constraint_satisfying": 232,
+   "Y": 232.0,
+   "Y_cluster": 141.0,
+   "internal_diversity": 0.5804,
+   "seconds": 207.0
+  },
+  {
+   "n": 1000,
+   "validity": 0.84,
+   "uniqueness_of_valid": 0.9762,
+   "novelty_of_unique": 0.8427,
+   "macro_fraction": 0.9768,
+   "ring_TV": 0.0608,
+   "nme_TV": 0.254,
+   "mean_nme": 2.429,
+   "n_constraint_satisfying": 229,
+   "Y": 229.0,
+   "Y_cluster": 143.0,
+   "internal_diversity": 0.5833,
+   "seconds": 174.4
+  },
+  {
+   "n": 1000,
+   "validity": 0.858,
+   "uniqueness_of_valid": 0.9709,
+   "novelty_of_unique": 0.8559,
+   "macro_fraction": 0.976,
+   "ring_TV": 0.0378,
+   "nme_TV": 0.2742,
+   "mean_nme": 2.281,
+   "n_constraint_satisfying": 248,
+   "Y": 248.0,
+   "Y_cluster": 162.0,
+   "internal_diversity": 0.5876,
+   "seconds": 238.4
+  },
+  {
+   "n": 1000,
+   "validity": 0.839,
+   "uniqueness_of_valid": 0.9785,
+   "novelty_of_unique": 0.8672,
+   "macro_fraction": 0.9817,
+   "ring_TV": 0.0603,
+   "nme_TV": 0.2703,
+   "mean_nme": 2.446,
+   "n_constraint_satisfying": 244,
+   "Y": 244.0,
+   "Y_cluster": 161.0,
+   "internal_diversity": 0.5935,
+   "seconds": 211.5
+  },
+  {
+   "n": 1000,
+   "validity": 0.853,
+   "uniqueness_of_valid": 0.9766,
+   "novelty_of_unique": 0.8655,
+   "macro_fraction": 0.9796,
+   "ring_TV": 0.0819,
+   "nme_TV": 0.2658,
+   "mean_nme": 2.54,
+   "n_constraint_satisfying": 233,
+   "Y": 233.0,
+   "Y_cluster": 146.0,
+   "internal_diversity": 0.5884,
+   "seconds": 267.6
+  }
+ ],
+ "summary": {
+  "validity": {
+   "mean": 0.8466,
+   "t_interval": [
+    0.836,
+    0.857
+   ],
+   "percentile_bootstrap": [
+    0.84,
+    0.853
+   ],
+   "per_seed": [
+    0.843,
+    0.84,
+    0.858,
+    0.839,
+    0.853
+   ]
+  },
+  "uniqueness_of_valid": {
+   "mean": 0.975,
+   "t_interval": [
+    0.971,
+    0.979
+   ],
+   "percentile_bootstrap": [
+    0.972,
+    0.977
+   ],
+   "per_seed": [
+    0.9727,
+    0.9762,
+    0.9709,
+    0.9785,
+    0.9766
+   ]
+  },
+  "novelty_of_unique": {
+   "mean": 0.8553,
+   "t_interval": [
+    0.841,
+    0.869
+   ],
+   "percentile_bootstrap": [
+    0.846,
+    0.864
+   ],
+   "per_seed": [
+    0.8451,
+    0.8427,
+    0.8559,
+    0.8672,
+    0.8655
+   ]
+  },
+  "macro_fraction": {
+   "mean": 0.9801,
+   "t_interval": [
+    0.975,
+    0.985
+   ],
+   "percentile_bootstrap": [
+    0.977,
+    0.984
+   ],
+   "per_seed": [
+    0.9866,
+    0.9768,
+    0.976,
+    0.9817,
+    0.9796
+   ]
+  },
+  "ring_TV": {
+   "mean": 0.0533,
+   "t_interval": [
+    0.026,
+    0.081
+   ],
+   "percentile_bootstrap": [
+    0.037,
+    0.069
+   ],
+   "per_seed": [
+    0.0257,
+    0.0608,
+    0.0378,
+    0.0603,
+    0.0819
+   ]
+  },
+  "nme_TV": {
+   "mean": 0.2615,
+   "t_interval": [
+    0.246,
+    0.277
+   ],
+   "percentile_bootstrap": [
+    0.251,
+    0.271
+   ],
+   "per_seed": [
+    0.243,
+    0.254,
+    0.2742,
+    0.2703,
+    0.2658
+   ]
+  },
+  "mean_nme": {
+   "mean": 2.3938,
+   "t_interval": [
+    2.251,
+    2.536
+   ],
+   "percentile_bootstrap": [
+    2.307,
+    2.48
+   ],
+   "per_seed": [
+    2.273,
+    2.429,
+    2.281,
+    2.446,
+    2.54
+   ]
+  },
+  "Y": {
+   "mean": 237.2,
+   "t_interval": [
+    226.908,
+    247.492
+   ],
+   "percentile_bootstrap": [
+    231.0,
+    244.0
+   ],
+   "per_seed": [
+    232.0,
+    229.0,
+    248.0,
+    244.0,
+    233.0
+   ]
+  },
+  "Y_cluster": {
+   "mean": 150.6,
+   "t_interval": [
+    138.041,
+    163.159
+   ],
+   "percentile_bootstrap": [
+    142.8,
+    158.4
+   ],
+   "per_seed": [
+    141.0,
+    143.0,
+    162.0,
+    161.0,
+    146.0
+   ]
+  },
+  "internal_diversity": {
+   "mean": 0.5866,
+   "t_interval": [
+    0.58,
+    0.593
+   ],
+   "percentile_bootstrap": [
+    0.583,
+    0.59
+   ],
+   "per_seed": [
+    0.5804,
+    0.5833,
+    0.5876,
+    0.5935,
+    0.5884
+   ]
+  }
+ }
+}

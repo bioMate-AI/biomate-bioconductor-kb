@@ -1,0 +1,352 @@
+{
+ "generators": {
+  "C-COPY": {
+   "cfg": {},
+   "validity": 1.0,
+   "uniqueness_of_valid": 0.289,
+   "novelty_of_unique": 0.0,
+   "macro_fraction": 1.0,
+   "ring_TV": 0.0694,
+   "nme_TV": 0.2932,
+   "mean_nme": 2.8632,
+   "Y": 0.0,
+   "Y_cluster": 0.0,
+   "G1_validity>=0.90": true,
+   "G2_macro_within_50pct_rel": true,
+   "G3_nmeTV<=P0_and<=best_simple": false,
+   "Y_t_interval": [
+    0.0,
+    0.0
+   ],
+   "Y_boot_interval": [
+    0.0,
+    0.0
+   ]
+  },
+  "C-RANDINIT-P0": {
+   "cfg": {
+    "prefix": 0.7,
+    "temp": 1.0
+   },
+   "validity": 0.0,
+   "uniqueness_of_valid": 0.0,
+   "novelty_of_unique": 0.0,
+   "macro_fraction": 0.0,
+   "Y": 0.0,
+   "Y_cluster": 0.0,
+   "G1_validity>=0.90": false,
+   "G2_macro_within_50pct_rel": false,
+   "G3_nmeTV<=P0_and<=best_simple": false,
+   "Y_t_interval": [
+    0.0,
+    0.0
+   ],
+   "Y_boot_interval": [
+    0.0,
+    0.0
+   ]
+  },
+  "C-RANDINIT-PCLM2": {
+   "cfg": {
+    "mask": 0.3,
+    "rounds": 3,
+    "temp": 1.0
+   },
+   "validity": 0.0,
+   "uniqueness_of_valid": 0.0,
+   "novelty_of_unique": 0.0,
+   "macro_fraction": 0.0,
+   "Y": 0.0,
+   "Y_cluster": 0.0,
+   "G1_validity>=0.90": false,
+   "G2_macro_within_50pct_rel": false,
+   "G3_nmeTV<=P0_and<=best_simple": false,
+   "Y_t_interval": [
+    0.0,
+    0.0
+   ],
+   "Y_boot_interval": [
+    0.0,
+    0.0
+   ]
+  },
+  "C-SHUF-PCLM2": {
+   "cfg": {
+    "mask": 0.3,
+    "rounds": 3,
+    "temp": 1.0
+   },
+   "validity": 0.0004,
+   "uniqueness_of_valid": 0.4,
+   "novelty_of_unique": 0.4,
+   "macro_fraction": 0.2,
+   "ring_TV": 0.8724,
+   "nme_TV": 0.7871,
+   "mean_nme": 1.5,
+   "Y": 0.2,
+   "Y_cluster": 0.2,
+   "G1_validity>=0.90": false,
+   "G2_macro_within_50pct_rel": false,
+   "G3_nmeTV<=P0_and<=best_simple": false,
+   "Y_t_interval": [
+    -0.355,
+    0.755
+   ],
+   "Y_boot_interval": [
+    0.0,
+    0.6
+   ]
+  },
+  "L-CHEMFM": {
+   "cfg": {
+    "prefix": 0.85,
+    "temp": 1.0
+   },
+   "validity": 0.9797,
+   "uniqueness_of_valid": 0.9415,
+   "novelty_of_unique": 0.9895,
+   "macro_fraction": 1.0,
+   "ring_TV": 0.3921,
+   "nme_TV": 0.3368,
+   "mean_nme": 3.005,
+   "Y": 294.3333,
+   "Y_cluster": 166.0,
+   "internal_diversity": 0.6065,
+   "G1_validity>=0.90": true,
+   "G2_macro_within_50pct_rel": true,
+   "G3_nmeTV<=P0_and<=best_simple": false,
+   "Y_t_interval": [
+    281.83,
+    306.837
+   ],
+   "Y_boot_interval": [
+    289.0,
+    299.0
+   ]
+  },
+  "L-P0": {
+   "cfg": {
+    "prefix": 0.7,
+    "temp": 1.0
+   },
+   "validity": 0.7747,
+   "uniqueness_of_valid": 0.9393,
+   "novelty_of_unique": 0.9964,
+   "macro_fraction": 1.0,
+   "ring_TV": 0.3683,
+   "nme_TV": 0.2857,
+   "mean_nme": 2.6483,
+   "Y": 284.0,
+   "Y_cluster": 161.6667,
+   "internal_diversity": 0.6247,
+   "G1_validity>=0.90": false,
+   "G2_macro_within_50pct_rel": true,
+   "G3_nmeTV<=P0_and<=best_simple": false,
+   "Y_t_interval": [
+    232.668,
+    335.332
+   ],
+   "Y_boot_interval": [
+    261.0,
+    301.0
+   ]
+  },
+  "L-PCLM2": {
+   "cfg": {
+    "mask": 0.3,
+    "rounds": 3,
+    "temp": 1.0
+   },
+   "validity": 0.8466,
+   "uniqueness_of_valid": 0.975,
+   "novelty_of_unique": 0.8553,
+   "macro_fraction": 0.9801,
+   "ring_TV": 0.0533,
+   "nme_TV": 0.2615,
+   "mean_nme": 2.3938,
+   "Y": 237.2,
+   "Y_cluster": 150.6,
+   "internal_diversity": 0.5866,
+   "G1_validity>=0.90": false,
+   "G2_macro_within_50pct_rel": true,
+   "G3_nmeTV<=P0_and<=best_simple": false,
+   "Y_t_interval": [
+    226.908,
+    247.492
+   ],
+   "Y_boot_interval": [
+    231.0,
+    244.0
+   ]
+  },
+  "S-BRICS": {
+   "cfg": {
+    "nf": 4
+   },
+   "validity": 0.5532,
+   "uniqueness_of_valid": 0.2534,
+   "novelty_of_unique": 1.0,
+   "macro_fraction": 0.5498,
+   "ring_TV": 0.4502,
+   "nme_TV": 0.448,
+   "mean_nme": 0.862,
+   "Y": 35.2,
+   "Y_cluster": 24.6,
+   "internal_diversity": 0.5741,
+   "G1_validity>=0.90": false,
+   "G2_macro_within_50pct_rel": true,
+   "G3_nmeTV<=P0_and<=best_simple": false,
+   "Y_t_interval": [
+    32.979,
+    37.421
+   ],
+   "Y_boot_interval": [
+    33.8,
+    36.8
+   ]
+  },
+  "S-EDIT": {
+   "cfg": {
+    "k": 5
+   },
+   "validity": 1.0,
+   "uniqueness_of_valid": 0.9826,
+   "novelty_of_unique": 0.8536,
+   "macro_fraction": 1.0,
+   "ring_TV": 0.0772,
+   "nme_TV": 0.2435,
+   "mean_nme": 3.203,
+   "Y": 414.2,
+   "Y_cluster": 117.0,
+   "internal_diversity": 0.5344,
+   "G1_validity>=0.90": true,
+   "G2_macro_within_50pct_rel": true,
+   "G3_nmeTV<=P0_and<=best_simple": true,
+   "Y_t_interval": [
+    396.37,
+    432.03
+   ],
+   "Y_boot_interval": [
+    404.0,
+    425.6
+   ]
+  },
+  "S-LIB": {
+   "cfg": {
+    "len": [
+     5,
+     8
+    ],
+    "p_nme": 0.55,
+    "p_d": 0.0
+   },
+   "validity": 1.0,
+   "uniqueness_of_valid": 1.0,
+   "novelty_of_unique": 1.0,
+   "macro_fraction": 1.0,
+   "ring_TV": 0.2433,
+   "nme_TV": 0.313,
+   "mean_nme": 3.5326,
+   "Y": 704.6,
+   "Y_cluster": 700.4,
+   "internal_diversity": 0.7177,
+   "G1_validity>=0.90": true,
+   "G2_macro_within_50pct_rel": true,
+   "G3_nmeTV<=P0_and<=best_simple": false,
+   "Y_t_interval": [
+    681.796,
+    727.404
+   ],
+   "Y_boot_interval": [
+    691.2,
+    720.4
+   ]
+  }
+ },
+ "n_seeds": {
+  "C-COPY": 5,
+  "C-RANDINIT-P0": 3,
+  "C-RANDINIT-PCLM2": 5,
+  "C-SHUF-PCLM2": 5,
+  "L-CHEMFM": 3,
+  "L-P0": 3,
+  "L-PCLM2": 5,
+  "S-BRICS": 5,
+  "S-EDIT": 5,
+  "S-LIB": 5
+ },
+ "best_simple": {
+  "gen": "S-LIB",
+  "Y": 704.6
+ },
+ "llm_vs_best_simple": {
+  "L-P0": {
+   "n_seeds": 3,
+   "diff_mean": -418.667,
+   "t_interval": [
+    -500.354,
+    -336.979
+   ],
+   "percentile_bootstrap": [
+    -456.0,
+    -394.0
+   ],
+   "wins": false,
+   "mode_collapse_flag": false,
+   "underpowered": false
+  },
+  "L-CHEMFM": {
+   "n_seeds": 3,
+   "diff_mean": -408.333,
+   "t_interval": [
+    -451.096,
+    -365.571
+   ],
+   "percentile_bootstrap": [
+    -428.0,
+    -396.0
+   ],
+   "wins": false,
+   "mode_collapse_flag": false,
+   "underpowered": false
+  },
+  "L-PCLM2": {
+   "n_seeds": 5,
+   "diff_mean": -467.4,
+   "t_interval": [
+    -497.169,
+    -437.631
+   ],
+   "percentile_bootstrap": [
+    -486.2,
+    -448.6
+   ],
+   "wins": false,
+   "mode_collapse_flag": false,
+   "underpowered": false
+  }
+ },
+ "verdict": "SIMPLE GENERATOR WINS or no detectable LLM advantage at this width",
+ "controls": {
+  "C-COPY": {
+   "validity": 1.0,
+   "novelty_of_unique": 0.0,
+   "Y": 0.0
+  },
+  "C-RANDINIT-P0": {
+   "validity": 0.0,
+   "novelty_of_unique": 0.0,
+   "Y": 0.0
+  },
+  "C-RANDINIT-PCLM2": {
+   "validity": 0.0,
+   "novelty_of_unique": 0.0,
+   "Y": 0.0
+  },
+  "C-SHUF-PCLM2": {
+   "validity": 0.0004,
+   "novelty_of_unique": 0.4,
+   "Y": 0.2
+  }
+ }
+}

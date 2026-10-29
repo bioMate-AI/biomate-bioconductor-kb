@@ -412,6 +412,32 @@ def cmd_test(a):
         json.dump(dict(gen=name, cfg=cfg, runs=runs, summary=summ), open(fn, "w"), indent=1)
 
 
+def cmd_seeds(a):
+    """generate ONLY the listed run seeds (raw samples saved); summary is built later by `assemble`. Same per-seed rng as `test`, so seed k is identical either way."""
+    ctx = context(); cfgs = json.load(open(a.cfg)); os.makedirs(a.out, exist_ok=True); name = a.gens
+    for rs in [int(x) for x in a.seed_list.split(",")]:
+        rp = os.path.join(a.out, f"raw_{name}_{rs}.smi.gz")
+        if os.path.exists(rp): continue
+        met, raw, cons = run_one(ctx, name, cfgs[name], a.n_test, rs); print(name, rs, met, flush=True)
+        with gzip.open(rp, "wt") as fh: fh.write("\n".join(raw))
+
+
+def cmd_assemble(a):
+    """build test_<gen>.json from the saved raw samples for run seeds 0..n-1 (metrics recomputed from the raw files; identical code path to `test`)."""
+    ctx = context(); cfgs = json.load(open(a.cfg))
+    for name in a.gens.split(","):
+        runs = []
+        for rs in range(a.seeds):
+            rp = os.path.join(a.out, f"raw_{name}_{rs}.smi.gz")
+            if not os.path.exists(rp): raise SystemExit(f"missing raw sample file {rp}")
+            raw = gzip.open(rp, "rt").read().split("\n"); met, _ = evaluate(raw, ctx["seeds_set"], ctx["cpm_set"], ctx["ref_ring"], ctx["ref_nme"], random.Random(rs)); met["seconds"] = None; runs.append(met)
+        summ = {}
+        for k in ("validity", "uniqueness_of_valid", "novelty_of_unique", "macro_fraction", "ring_TV", "nme_TV", "mean_nme", "Y", "Y_cluster", "internal_diversity"):
+            v = [r[k] for r in runs if r.get(k) is not None]
+            if v: summ[k] = dict(mean=round(float(np.mean(v)), 4), t_interval=ci_t(v), percentile_bootstrap=ci_boot(v), per_seed=v)
+        json.dump(dict(gen=name, cfg=cfgs[name], runs=runs, summary=summ, assembled_from_raw=True), open(os.path.join(a.out, f"test_{name}.json"), "w"), indent=1); print("assembled", name, a.seeds)
+
+
 def selftest():
     ctx = context(); print("seeds", len(ctx["S"]), "ref", len(ctx["ref_ring"]), flush=True); rng = random.Random(0)
     for name, cfg in (("C-COPY", {}), ("S-EDIT", dict(k=2)), ("S-LIB", dict(len=(6, 10), p_nme=0.25, p_d=0.15)), ("S-BRICS", dict(nf=6))):
@@ -426,5 +452,5 @@ def selftest():
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(); ap.add_argument("mode"); ap.add_argument("out", nargs="?"); ap.add_argument("--gens", default=""); ap.add_argument("--cfg", default=""); ap.add_argument("--n-dev", type=int, default=300)
-    ap.add_argument("--n-test", type=int, default=1000); ap.add_argument("--seeds", type=int, default=5); a = ap.parse_args()
-    {"selftest": lambda: selftest(), "dev": lambda: cmd_dev(a), "dev2": lambda: cmd_dev2(a), "test": lambda: cmd_test(a)}[a.mode]()
+    ap.add_argument("--n-test", type=int, default=1000); ap.add_argument("--seeds", type=int, default=5); ap.add_argument("--seed-list", default=""); a = ap.parse_args()
+    {"selftest": lambda: selftest(), "dev": lambda: cmd_dev(a), "dev2": lambda: cmd_dev2(a), "test": lambda: cmd_test(a), "seeds": lambda: cmd_seeds(a), "assemble": lambda: cmd_assemble(a)}[a.mode]()
