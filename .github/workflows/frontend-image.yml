@@ -165,6 +165,9 @@ jobs:
       name: ${{ startsWith(github.ref, 'refs/tags/release-v') && 'production' || startsWith(github.ref, 'refs/tags/beta-v') && 'staging' || 'development' }}
 
     steps:
+      - name: Checkout (needed for GHCR VITE_ONPREM rebuild)
+        uses: actions/checkout@v4
+
       - name: Compute tags
         id: tags
         run: |
