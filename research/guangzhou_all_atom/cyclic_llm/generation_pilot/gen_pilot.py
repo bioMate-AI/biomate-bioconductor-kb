@@ -362,6 +362,29 @@ def cmd_dev(a):
         best = max(rows, key=lambda r: r["Y_mean"]); json.dump(dict(gen=name, grid=rows, best=best["cfg"], n_dev=a.n_dev), open(fn, "w"), indent=1)
 
 
+# amendment A1 (docs/20261031_GENERATION_PILOT3_PREREG.md section 9): one outward step per boundary parameter, other params at their best, DEV only
+EXT = {"S-LIB": {"len": [(4, 6)], "p_nme": [0.55]}, "S-EDIT": {"k": [4, 5]}, "S-BRICS": {"nf": [2, 3]}, "L-P0": {"prefix": [0.85]}, "L-PCLM2": {"mask": [0.45], "rounds": [5], "temp": [1.2]}, "L-CHEMFM": {"prefix": [0.85]}}
+
+
+def cmd_dev2(a):
+    ctx = context(); os.makedirs(a.out, exist_ok=True)
+    for name in a.gens.split(","):
+        fn = os.path.join(a.out, f"dev2_{name}.json"); d1 = json.load(open(os.path.join(a.out, f"dev_{name}.json")))
+        if os.path.exists(fn): continue
+        best = d1["best"]; cells = []
+        for par, vals in EXT[name].items():
+            for v in vals:
+                c = dict(best); c[par] = v; cells.append(c)
+        rows = []
+        for cfg in cells:
+            ys = []
+            for rs in (100, 101, 102):
+                met, _, _ = run_one(ctx, name, cfg, a.n_dev, rs); ys.append(met["Y"]); print(name, cfg, rs, met, flush=True)
+            rows.append(dict(cfg=cfg, Y_mean=round(float(np.mean(ys)), 3), Y=ys))
+        allrows = d1["grid"] + rows; bestc = max(allrows, key=lambda r: r["Y_mean"])
+        json.dump(dict(gen=name, ext_grid=rows, best=bestc["cfg"], best_Y_mean=bestc["Y_mean"], orig_best=best, n_dev=a.n_dev), open(fn, "w"), indent=1)
+
+
 def ci_t(v):
     v = np.asarray(v, float); n = len(v)
     if n < 2: return None
@@ -404,4 +427,4 @@ def selftest():
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(); ap.add_argument("mode"); ap.add_argument("out", nargs="?"); ap.add_argument("--gens", default=""); ap.add_argument("--cfg", default=""); ap.add_argument("--n-dev", type=int, default=300)
     ap.add_argument("--n-test", type=int, default=1000); ap.add_argument("--seeds", type=int, default=5); a = ap.parse_args()
-    {"selftest": lambda: selftest(), "dev": lambda: cmd_dev(a), "test": lambda: cmd_test(a)}[a.mode]()
+    {"selftest": lambda: selftest(), "dev": lambda: cmd_dev(a), "dev2": lambda: cmd_dev2(a), "test": lambda: cmd_test(a)}[a.mode]()
