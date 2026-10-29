@@ -25,13 +25,14 @@ for k, lab in LAB.items():
     rep[k]["edited_has_feature_frac"] = float(np.mean([tag in x for x in fe])); rep[k]["parent_has_feature_frac"] = float(np.mean([tag in x for x in fp]))
     d["smi_parent"] = d.parent.map(smi_of); d["smi_edit"] = d.edited.map(smi_of); d["flat_parent"] = d.parent.map(flat_of); d["flat_edit"] = d.edited.map(flat_of)
     d["half"] = d.source.map(half)
+    d["y_par"] = np.where(d.sign == 1, d.y_a, d.y_b); d["y_edit"] = np.where(d.sign == 1, d.y_b, d.y_a); d["dy_raw"] = d.y_edit - d.y_par
     rep[k]["rdkit_missing_smiles"] = int(d.smi_parent.isna().sum() + d.smi_edit.isna().sum())
     rep[k]["sources_per_half"] = {int(h): int(d[d.half == h].source.nunique()) for h in (0, 1)}
     rep[k]["pairs_per_half"] = {int(h): int((d.half == h).sum()) for h in (0, 1)}
     rep[k]["per_source_n"] = d.groupby("source").size().to_dict()
     # same-flat parent/edit (D flip should be same flat structure; N-Me should differ)
     rep[k]["same_flat_parent_edit_frac"] = float((d.flat_parent == d.flat_edit).mean())
-    d[["source", "half", "parent", "edited", "smi_parent", "smi_edit", "flat_parent", "flat_edit", "exact_a", "exact_b", "sign", "z_par", "z_edit", "dz"]].to_csv(os.path.join(HERE, "data", f"pairs_{k}.csv"), index=False)
+    d[["source", "half", "parent", "edited", "smi_parent", "smi_edit", "flat_parent", "flat_edit", "exact_a", "exact_b", "sign", "z_par", "z_edit", "dz", "y_par", "y_edit", "dy_raw"]].to_csv(os.path.join(HERE, "data", f"pairs_{k}.csv"), index=False)
 # label scale: within-source standardisation on ALL labelled peptides (not pairs)
 L = A[A.pampa.notna()]
 import importlib; sys.path.insert(0, os.path.join(HERE, "..", "stratification")); import common as C

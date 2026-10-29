@@ -1,0 +1,976 @@
+{
+ "edit": "dflip",
+ "n_pairs": 7433,
+ "n_excluded_small_label_sources": 34,
+ "qualifying_sources": [
+  "2013_CHUGAI",
+  "2016_Furukawa",
+  "2020_Le Roux",
+  "2020_Townsend",
+  "2021_Kelly",
+  "2022_Taechalertpaisarn",
+  "2024_Faris"
+ ],
+ "tiny_sources": [
+  "2015_Wang",
+  "2021_Comeau",
+  "2021_Golosov",
+  "2022_Bhardwaj"
+ ],
+ "B_loso_primary": {
+  "n_pairs": 7425,
+  "sources": [
+   "2013_CHUGAI",
+   "2016_Furukawa",
+   "2020_Le Roux",
+   "2020_Townsend",
+   "2021_Kelly",
+   "2022_Taechalertpaisarn",
+   "2024_Faris"
+  ],
+  "n_sources": 7,
+  "point": {
+   "const": {
+    "spearman": 0.0,
+    "rmse": 0.8633,
+    "sign_acc": 0.4742
+   },
+   "pair_nn": {
+    "spearman": 0.0155,
+    "rmse": 0.9244,
+    "sign_acc": 0.4962
+   },
+   "gbm_fp": {
+    "spearman": 0.0428,
+    "rmse": 0.8771,
+    "sign_acc": 0.5133
+   },
+   "ridge_emb": {
+    "spearman": 0.0029,
+    "rmse": 3.7638,
+    "sign_acc": 0.5048
+   },
+   "gbm_emb": {
+    "spearman": 0.0211,
+    "rmse": 0.8895,
+    "sign_acc": 0.5049
+   },
+   "ours_mlp": {
+    "spearman": 0.0149,
+    "rmse": 1.2556,
+    "sign_acc": 0.492
+   },
+   "baseline": {
+    "spearman": 0.0135,
+    "rmse": 3.6228,
+    "sign_acc": 0.5083
+   }
+  },
+  "diff_spearman_point": 0.0014,
+  "diff_spearman_ci": [
+   -0.0791,
+   0.0257
+  ],
+  "ours_spearman_ci": [
+   -0.0465,
+   0.019
+  ],
+  "baseline_spearman_ci": [
+   -0.0466,
+   0.0579
+  ],
+  "mse_ours_minus_const_ci": [
+   0.0749,
+   1.2733
+  ],
+  "boot_sd_diff": 0.032,
+  "MDE_80pct_power": 0.0895,
+  "per_source_spearman(n>=30)": {
+   "2016_Furukawa": {
+    "ours_mlp": 0.004,
+    "baseline": 0.073,
+    "n": 429
+   },
+   "2020_Townsend": {
+    "ours_mlp": 0.017,
+    "baseline": -0.008,
+    "n": 4390
+   },
+   "2021_Kelly": {
+    "ours_mlp": -0.052,
+    "baseline": 0.033,
+    "n": 2220
+   },
+   "2024_Faris": {
+    "ours_mlp": -0.066,
+    "baseline": -0.106,
+    "n": 350
+   }
+  },
+  "baseline_chosen_per_fold": {
+   "2013_CHUGAI": "gbm_fp",
+   "2016_Furukawa": "gbm_fp",
+   "2020_Le Roux": "gbm_fp",
+   "2020_Townsend": "ridge_emb",
+   "2021_Kelly": "gbm_fp",
+   "2022_Taechalertpaisarn": "gbm_fp",
+   "2024_Faris": "gbm_fp"
+  },
+  "train_sizes": {
+   "2013_CHUGAI": 7421,
+   "2016_Furukawa": 7004,
+   "2020_Le Roux": 7421,
+   "2020_Townsend": 3043,
+   "2021_Kelly": 5213,
+   "2022_Taechalertpaisarn": 7421,
+   "2024_Faris": 7083
+  },
+  "criteria": {
+   "c1_spearman_margin_and_ci": false,
+   "c2_rmse_beats_constant": false,
+   "c4_at_least_5_qualifying": true,
+   "mde_le_margin": false,
+   "c3_controls_ok": true
+  }
+ },
+ "B_controls": {
+  "planted_context": {
+   "n_pairs": 7425,
+   "sources": [
+    "2013_CHUGAI",
+    "2016_Furukawa",
+    "2020_Le Roux",
+    "2020_Townsend",
+    "2021_Kelly",
+    "2022_Taechalertpaisarn",
+    "2024_Faris"
+   ],
+   "n_sources": 7,
+   "point": {
+    "const": {
+     "spearman": 0.0,
+     "rmse": 1.4298,
+     "sign_acc": 0.2681
+    },
+    "pair_nn": {
+     "spearman": 0.6004,
+     "rmse": 0.721,
+     "sign_acc": 0.8719
+    },
+    "gbm_fp": {
+     "spearman": 0.1852,
+     "rmse": 1.2613,
+     "sign_acc": 0.5147
+    },
+    "ridge_emb": {
+     "spearman": 0.5456,
+     "rmse": 1.9921,
+     "sign_acc": 0.7925
+    },
+    "gbm_emb": {
+     "spearman": 0.6514,
+     "rmse": 0.7125,
+     "sign_acc": 0.8242
+    },
+    "ours_mlp": {
+     "spearman": 0.6298,
+     "rmse": 1.3154,
+     "sign_acc": 0.8362
+    },
+    "baseline": {
+     "spearman": 0.3984,
+     "rmse": 1.9234,
+     "sign_acc": 0.544
+    }
+   },
+   "diff_spearman_point": 0.2314,
+   "diff_spearman_ci": [
+    -0.1864,
+    0.2859
+   ],
+   "ours_spearman_ci": [
+    -0.0136,
+    0.6468
+   ],
+   "baseline_spearman_ci": [
+    0.016,
+    0.5464
+   ],
+   "mse_ours_minus_const_ci": [
+    -0.8789,
+    0.7377
+   ],
+   "boot_sd_diff": 0.1213,
+   "MDE_80pct_power": 0.3397,
+   "per_source_spearman(n>=30)": {
+    "2016_Furukawa": {
+     "ours_mlp": 0.745,
+     "baseline": 0.58,
+     "n": 429
+    },
+    "2020_Townsend": {
+     "ours_mlp": 0.433,
+     "baseline": 0.319,
+     "n": 4390
+    },
+    "2021_Kelly": {
+     "ours_mlp": -0.038,
+     "baseline": 0.041,
+     "n": 2220
+    },
+    "2024_Faris": {
+     "ours_mlp": -0.042,
+     "baseline": 0.091,
+     "n": 350
+    }
+   }
+  },
+  "null_edit": {
+   "n_pairs": 7425,
+   "sources": [
+    "2013_CHUGAI",
+    "2016_Furukawa",
+    "2020_Le Roux",
+    "2020_Townsend",
+    "2021_Kelly",
+    "2022_Taechalertpaisarn",
+    "2024_Faris"
+   ],
+   "n_sources": 7,
+   "point": {
+    "const": {
+     "spearman": 0.0,
+     "rmse": 0.9896,
+     "sign_acc": 0.4848
+    },
+    "pair_nn": {
+     "spearman": -0.0257,
+     "rmse": 1.0688,
+     "sign_acc": 0.4861
+    },
+    "gbm_fp": {
+     "spearman": -0.005,
+     "rmse": 1.0029,
+     "sign_acc": 0.5028
+    },
+    "ridge_emb": {
+     "spearman": -0.0032,
+     "rmse": 6.9641,
+     "sign_acc": 0.4963
+    },
+    "gbm_emb": {
+     "spearman": -0.008,
+     "rmse": 1.0124,
+     "sign_acc": 0.4929
+    },
+    "ours_mlp": {
+     "spearman": -0.005,
+     "rmse": 1.686,
+     "sign_acc": 0.4983
+    },
+    "baseline": {
+     "spearman": -0.0167,
+     "rmse": 6.9288,
+     "sign_acc": 0.4904
+    }
+   },
+   "diff_spearman_point": 0.0117,
+   "diff_spearman_ci": [
+    -0.0133,
+    0.0192
+   ],
+   "ours_spearman_ci": [
+    -0.0491,
+    0.0024
+   ],
+   "baseline_spearman_ci": [
+    -0.0639,
+    0.0031
+   ],
+   "mse_ours_minus_const_ci": [
+    0.0167,
+    3.0308
+   ],
+   "boot_sd_diff": 0.0169,
+   "MDE_80pct_power": 0.0472,
+   "per_source_spearman(n>=30)": {
+    "2016_Furukawa": {
+     "ours_mlp": -0.041,
+     "baseline": -0.035,
+     "n": 429
+    },
+    "2020_Townsend": {
+     "ours_mlp": 0.0,
+     "baseline": -0.011,
+     "n": 4390
+    },
+    "2021_Kelly": {
+     "ours_mlp": -0.01,
+     "baseline": -0.006,
+     "n": 2220
+    },
+    "2024_Faris": {
+     "ours_mlp": -0.005,
+     "baseline": 0.097,
+     "n": 350
+    }
+   }
+  },
+  "shuffled_within_source": {
+   "n_pairs": 7425,
+   "sources": [
+    "2013_CHUGAI",
+    "2016_Furukawa",
+    "2020_Le Roux",
+    "2020_Townsend",
+    "2021_Kelly",
+    "2022_Taechalertpaisarn",
+    "2024_Faris"
+   ],
+   "n_sources": 7,
+   "point": {
+    "const": {
+     "spearman": 0.0,
+     "rmse": 0.8633,
+     "sign_acc": 0.4742
+    },
+    "pair_nn": {
+     "spearman": 0.0037,
+     "rmse": 0.8984,
+     "sign_acc": 0.4948
+    },
+    "gbm_fp": {
+     "spearman": -0.0238,
+     "rmse": 0.8715,
+     "sign_acc": 0.4991
+    },
+    "ridge_emb": {
+     "spearman": 0.0171,
+     "rmse": 5.0653,
+     "sign_acc": 0.5011
+    },
+    "gbm_emb": {
+     "spearman": -0.0169,
+     "rmse": 0.9038,
+     "sign_acc": 0.5009
+    },
+    "ours_mlp": {
+     "spearman": 0.0033,
+     "rmse": 0.9211,
+     "sign_acc": 0.5065
+    },
+    "baseline": {
+     "spearman": 0.0096,
+     "rmse": 4.9931,
+     "sign_acc": 0.499
+    }
+   },
+   "diff_spearman_point": -0.0063,
+   "diff_spearman_ci": [
+    -0.0298,
+    0.0225
+   ],
+   "ours_spearman_ci": [
+    -0.0304,
+    0.0305
+   ],
+   "baseline_spearman_ci": [
+    -0.0298,
+    0.0219
+   ],
+   "mse_ours_minus_const_ci": [
+    0.0475,
+    0.1304
+   ],
+   "boot_sd_diff": 0.0247,
+   "MDE_80pct_power": 0.0692,
+   "per_source_spearman(n>=30)": {
+    "2016_Furukawa": {
+     "ours_mlp": -0.064,
+     "baseline": -0.004,
+     "n": 429
+    },
+    "2020_Townsend": {
+     "ours_mlp": 0.016,
+     "baseline": 0.017,
+     "n": 4390
+    },
+    "2021_Kelly": {
+     "ours_mlp": 0.01,
+     "baseline": -0.013,
+     "n": 2220
+    },
+    "2024_Faris": {
+     "ours_mlp": 0.071,
+     "baseline": 0.029,
+     "n": 350
+    }
+   }
+  }
+ },
+ "C_repeated_halves": {
+  "n_splits": 30,
+  "splits": [
+   {
+    "split": 0,
+    "test_side": [
+     "2013_CHUGAI",
+     "2016_Furukawa",
+     "2020_Le Roux",
+     "2020_Townsend"
+    ],
+    "n_test": 4843,
+    "baseline": "ridge_emb",
+    "ours": 0.0152,
+    "base": -0.001,
+    "diff": 0.0162,
+    "rmse_skill_vs_const": -3.1053,
+    "passes": false
+   },
+   {
+    "split": 1,
+    "test_side": [
+     "2013_CHUGAI",
+     "2016_Furukawa",
+     "2020_Le Roux",
+     "2020_Townsend",
+     "2022_Taechalertpaisarn"
+    ],
+    "n_test": 4855,
+    "baseline": "gbm_emb",
+    "ours": 0.0115,
+    "base": 0.0099,
+    "diff": 0.0016,
+    "rmse_skill_vs_const": -4.7378,
+    "passes": false
+   },
+   {
+    "split": 2,
+    "test_side": [
+     "2013_CHUGAI",
+     "2016_Furukawa",
+     "2020_Le Roux",
+     "2020_Townsend",
+     "2024_Faris"
+    ],
+    "n_test": 5193,
+    "baseline": "gbm_emb",
+    "ours": -0.016,
+    "base": -0.0267,
+    "diff": 0.0108,
+    "rmse_skill_vs_const": -28.6219,
+    "passes": false
+   },
+   {
+    "split": 3,
+    "test_side": [
+     "2013_CHUGAI",
+     "2016_Furukawa",
+     "2020_Townsend",
+     "2021_Kelly"
+    ],
+    "n_test": 7051,
+    "baseline": "pair_nn",
+    "ours": -0.0244,
+    "base": 0.0198,
+    "diff": -0.0442,
+    "rmse_skill_vs_const": -21.5565,
+    "passes": false
+   },
+   {
+    "split": 4,
+    "test_side": [
+     "2013_CHUGAI",
+     "2016_Furukawa",
+     "2020_Townsend",
+     "2021_Kelly",
+     "2022_Taechalertpaisarn"
+    ],
+    "n_test": 7063,
+    "baseline": "pair_nn",
+    "ours": -0.028,
+    "base": 0.0084,
+    "diff": -0.0364,
+    "rmse_skill_vs_const": -41.5446,
+    "passes": false
+   },
+   {
+    "split": 5,
+    "test_side": [
+     "2013_CHUGAI",
+     "2016_Furukawa",
+     "2024_Faris"
+    ],
+    "n_test": 791,
+    "baseline": "gbm_fp",
+    "ours": -0.0151,
+    "base": -0.0481,
+    "diff": 0.033,
+    "rmse_skill_vs_const": -0.3823,
+    "passes": false
+   },
+   {
+    "split": 6,
+    "test_side": [
+     "2013_CHUGAI",
+     "2020_Le Roux",
+     "2020_Townsend",
+     "2021_Kelly",
+     "2022_Taechalertpaisarn"
+    ],
+    "n_test": 6646,
+    "baseline": "gbm_fp",
+    "ours": -0.0152,
+    "base": 0.0019,
+    "diff": -0.0171,
+    "rmse_skill_vs_const": -21.2724,
+    "passes": false
+   },
+   {
+    "split": 7,
+    "test_side": [
+     "2013_CHUGAI",
+     "2020_Le Roux",
+     "2020_Townsend",
+     "2024_Faris"
+    ],
+    "n_test": 4764,
+    "baseline": "gbm_emb",
+    "ours": 0.0141,
+    "base": 0.0026,
+    "diff": 0.0115,
+    "rmse_skill_vs_const": -24.9278,
+    "passes": false
+   },
+   {
+    "split": 8,
+    "test_side": [
+     "2013_CHUGAI",
+     "2020_Le Roux",
+     "2022_Taechalertpaisarn",
+     "2024_Faris"
+    ],
+    "n_test": 386,
+    "baseline": "gbm_fp",
+    "ours": -0.0506,
+    "base": -0.1054,
+    "diff": 0.0548,
+    "rmse_skill_vs_const": -0.3174,
+    "passes": false
+   },
+   {
+    "split": 9,
+    "test_side": [
+     "2013_CHUGAI",
+     "2020_Townsend",
+     "2021_Kelly"
+    ],
+    "n_test": 6622,
+    "baseline": "gbm_fp",
+    "ours": -0.0222,
+    "base": 0.0093,
+    "diff": -0.0315,
+    "rmse_skill_vs_const": -11.0786,
+    "passes": false
+   },
+   {
+    "split": 10,
+    "test_side": [
+     "2013_CHUGAI",
+     "2020_Townsend",
+     "2021_Kelly",
+     "2022_Taechalertpaisarn",
+     "2024_Faris"
+    ],
+    "n_test": 6984,
+    "baseline": "gbm_fp",
+    "ours": 0.0243,
+    "base": -0.0076,
+    "diff": 0.0318,
+    "rmse_skill_vs_const": -0.5288,
+    "passes": false
+   },
+   {
+    "split": 11,
+    "test_side": [
+     "2013_CHUGAI",
+     "2021_Kelly",
+     "2022_Taechalertpaisarn"
+    ],
+    "n_test": 2244,
+    "baseline": "gbm_fp",
+    "ours": -0.0948,
+    "base": 0.0202,
+    "diff": -0.115,
+    "rmse_skill_vs_const": -0.1324,
+    "passes": false
+   },
+   {
+    "split": 12,
+    "test_side": [
+     "2013_CHUGAI",
+     "2021_Kelly",
+     "2024_Faris"
+    ],
+    "n_test": 2582,
+    "baseline": "gbm_fp",
+    "ours": 0.0109,
+    "base": 0.0352,
+    "diff": -0.0243,
+    "rmse_skill_vs_const": -0.1429,
+    "passes": false
+   },
+   {
+    "split": 13,
+    "test_side": [
+     "2013_CHUGAI",
+     "2022_Taechalertpaisarn"
+    ],
+    "n_test": 24,
+    "baseline": "gbm_fp",
+    "ours": 0.2052,
+    "base": 0.1661,
+    "diff": 0.0391,
+    "rmse_skill_vs_const": -0.1837,
+    "passes": false
+   },
+   {
+    "split": 14,
+    "test_side": [
+     "2016_Furukawa",
+     "2020_Le Roux",
+     "2020_Townsend"
+    ],
+    "n_test": 4831,
+    "baseline": "gbm_emb",
+    "ours": 0.015,
+    "base": 0.0192,
+    "diff": -0.0042,
+    "rmse_skill_vs_const": -4.1924,
+    "passes": false
+   },
+   {
+    "split": 15,
+    "test_side": [
+     "2016_Furukawa",
+     "2020_Le Roux",
+     "2020_Townsend",
+     "2021_Kelly"
+    ],
+    "n_test": 7051,
+    "baseline": "pair_nn",
+    "ours": -0.0155,
+    "base": 0.0174,
+    "diff": -0.0329,
+    "rmse_skill_vs_const": -25.899,
+    "passes": false
+   },
+   {
+    "split": 16,
+    "test_side": [
+     "2016_Furukawa",
+     "2020_Le Roux",
+     "2020_Townsend",
+     "2021_Kelly",
+     "2022_Taechalertpaisarn"
+    ],
+    "n_test": 7063,
+    "baseline": "pair_nn",
+    "ours": -0.0211,
+    "base": 0.0114,
+    "diff": -0.0325,
+    "rmse_skill_vs_const": -51.775,
+    "passes": false
+   },
+   {
+    "split": 17,
+    "test_side": [
+     "2016_Furukawa",
+     "2020_Le Roux",
+     "2021_Kelly",
+     "2022_Taechalertpaisarn"
+    ],
+    "n_test": 2673,
+    "baseline": "gbm_fp",
+    "ours": -0.041,
+    "base": 0.06,
+    "diff": -0.101,
+    "rmse_skill_vs_const": -0.3205,
+    "passes": false
+   },
+   {
+    "split": 18,
+    "test_side": [
+     "2016_Furukawa",
+     "2020_Le Roux",
+     "2024_Faris"
+    ],
+    "n_test": 791,
+    "baseline": "gbm_fp",
+    "ours": -0.0132,
+    "base": 0.0159,
+    "diff": -0.0291,
+    "rmse_skill_vs_const": -0.407,
+    "passes": false
+   },
+   {
+    "split": 19,
+    "test_side": [
+     "2016_Furukawa",
+     "2020_Townsend"
+    ],
+    "n_test": 4819,
+    "baseline": "gbm_emb",
+    "ours": 0.0135,
+    "base": 0.0087,
+    "diff": 0.0048,
+    "rmse_skill_vs_const": -2.7586,
+    "passes": false
+   },
+   {
+    "split": 20,
+    "test_side": [
+     "2016_Furukawa",
+     "2020_Townsend",
+     "2021_Kelly"
+    ],
+    "n_test": 7039,
+    "baseline": "pair_nn",
+    "ours": -0.0118,
+    "base": 0.0135,
+    "diff": -0.0253,
+    "rmse_skill_vs_const": -11.7369,
+    "passes": false
+   },
+   {
+    "split": 21,
+    "test_side": [
+     "2016_Furukawa",
+     "2020_Townsend",
+     "2022_Taechalertpaisarn"
+    ],
+    "n_test": 4831,
+    "baseline": "gbm_emb",
+    "ours": -0.0107,
+    "base": 0.0205,
+    "diff": -0.0312,
+    "rmse_skill_vs_const": -5.487,
+    "passes": false
+   },
+   {
+    "split": 22,
+    "test_side": [
+     "2016_Furukawa",
+     "2021_Kelly",
+     "2024_Faris"
+    ],
+    "n_test": 2999,
+    "baseline": "gbm_fp",
+    "ours": 0.0414,
+    "base": 0.0372,
+    "diff": 0.0042,
+    "rmse_skill_vs_const": -0.3279,
+    "passes": false
+   },
+   {
+    "split": 23,
+    "test_side": [
+     "2016_Furukawa",
+     "2022_Taechalertpaisarn"
+    ],
+    "n_test": 441,
+    "baseline": "gbm_fp",
+    "ours": 0.0092,
+    "base": 0.1087,
+    "diff": -0.0995,
+    "rmse_skill_vs_const": -0.3674,
+    "passes": false
+   },
+   {
+    "split": 24,
+    "test_side": [
+     "2020_Le Roux",
+     "2020_Townsend"
+    ],
+    "n_test": 4402,
+    "baseline": "ridge_emb",
+    "ours": 0.0313,
+    "base": -0.0091,
+    "diff": 0.0404,
+    "rmse_skill_vs_const": -1.8222,
+    "passes": false
+   },
+   {
+    "split": 25,
+    "test_side": [
+     "2020_Le Roux",
+     "2020_Townsend",
+     "2021_Kelly",
+     "2024_Faris"
+    ],
+    "n_test": 6972,
+    "baseline": "gbm_fp",
+    "ours": 0.0264,
+    "base": 0.0196,
+    "diff": 0.0067,
+    "rmse_skill_vs_const": -0.5954,
+    "passes": false
+   },
+   {
+    "split": 26,
+    "test_side": [
+     "2020_Le Roux",
+     "2020_Townsend",
+     "2022_Taechalertpaisarn",
+     "2024_Faris"
+    ],
+    "n_test": 4764,
+    "baseline": "gbm_emb",
+    "ours": 0.0053,
+    "base": 0.0067,
+    "diff": -0.0014,
+    "rmse_skill_vs_const": -48.1756,
+    "passes": false
+   },
+   {
+    "split": 27,
+    "test_side": [
+     "2020_Townsend",
+     "2021_Kelly",
+     "2022_Taechalertpaisarn"
+    ],
+    "n_test": 6622,
+    "baseline": "gbm_fp",
+    "ours": -0.0151,
+    "base": 0.0145,
+    "diff": -0.0295,
+    "rmse_skill_vs_const": -20.5475,
+    "passes": false
+   },
+   {
+    "split": 28,
+    "test_side": [
+     "2021_Kelly",
+     "2022_Taechalertpaisarn",
+     "2024_Faris"
+    ],
+    "n_test": 2582,
+    "baseline": "gbm_fp",
+    "ours": 0.0437,
+    "base": 0.003,
+    "diff": 0.0408,
+    "rmse_skill_vs_const": -0.1343,
+    "passes": false
+   },
+   {
+    "split": 29,
+    "test_side": [
+     "2022_Taechalertpaisarn",
+     "2024_Faris"
+    ],
+    "n_test": 362,
+    "baseline": "gbm_fp",
+    "ours": -0.0534,
+    "base": -0.0846,
+    "diff": 0.0312,
+    "rmse_skill_vs_const": -0.6305,
+    "passes": false
+   }
+  ],
+  "frac_pass": 0.0,
+  "diff_quantiles": {
+   "5": -0.1003,
+   "25": -0.0314,
+   "50": -0.0028,
+   "75": 0.015,
+   "95": 0.0406
+  },
+  "rmse_skill_median": -2.932
+ },
+ "A_single_split": {
+  "n_pairs": 3011,
+  "sources": [
+   "2016_Furukawa",
+   "2021_Kelly",
+   "2022_Taechalertpaisarn",
+   "2024_Faris"
+  ],
+  "n_sources": 4,
+  "point": {
+   "const": {
+    "spearman": 0.0,
+    "rmse": 0.7986,
+    "sign_acc": 0.4902
+   },
+   "pair_nn": {
+    "spearman": -0.0365,
+    "rmse": 0.8688,
+    "sign_acc": 0.4802
+   },
+   "gbm_fp": {
+    "spearman": 0.0257,
+    "rmse": 0.83,
+    "sign_acc": 0.5101
+   },
+   "ridge_emb": {
+    "spearman": -0.0245,
+    "rmse": 2.7486,
+    "sign_acc": 0.4965
+   },
+   "gbm_emb": {
+    "spearman": 0.0604,
+    "rmse": 0.8118,
+    "sign_acc": 0.5188
+   },
+   "ours_mlp": {
+    "spearman": -0.0394,
+    "rmse": 0.8648,
+    "sign_acc": 0.4992
+   },
+   "baseline": {
+    "spearman": 0.0257,
+    "rmse": 0.83,
+    "sign_acc": 0.5101
+   }
+  },
+  "diff_spearman_point": -0.0651,
+  "diff_spearman_ci": [
+   -0.1111,
+   0.039
+  ],
+  "ours_spearman_ci": [
+   -0.0774,
+   0.0221
+  ],
+  "baseline_spearman_ci": [
+   -0.0899,
+   0.0872
+  ],
+  "mse_ours_minus_const_ci": [
+   0.0437,
+   0.5576
+  ],
+  "boot_sd_diff": 0.0506,
+  "MDE_80pct_power": 0.1418,
+  "per_source_spearman(n>=30)": {
+   "2016_Furukawa": {
+    "ours_mlp": 0.015,
+    "baseline": 0.073,
+    "n": 429
+   },
+   "2021_Kelly": {
+    "ours_mlp": -0.078,
+    "baseline": 0.033,
+    "n": 2220
+   },
+   "2024_Faris": {
+    "ours_mlp": -0.056,
+    "baseline": -0.106,
+    "n": 350
+   }
+  },
+  "note": "original registered split (dev half tuning); tiny test sources not scored here"
+ },
+ "verdict_A1": "UNDERPOWERED",
+ "verdict_wording": "no gain detectable above MDE=0.089"
+}

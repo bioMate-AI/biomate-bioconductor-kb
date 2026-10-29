@@ -1,0 +1,27 @@
+{
+ "n_pairs": 73,
+ "n_peptides": 21,
+ "sigma_cross": 0.7558,
+ "nme": {
+  "var_observed_effect_raw": 0.2841,
+  "noise_var_effect": 1.1424,
+  "reliability": 0.0,
+  "ceiling_corr": 0.0,
+  "ceiling_ci": [
+   0.0,
+   0.0
+  ],
+  "note": "conservative: sigma_cross includes lab offsets; applies to raw log-Papp effects, used as an approximate ceiling for rank correlation"
+ },
+ "dflip": {
+  "var_observed_effect_raw": 0.2672,
+  "noise_var_effect": 1.1424,
+  "reliability": 0.0,
+  "ceiling_corr": 0.0,
+  "ceiling_ci": [
+   0.0,
+   0.0
+  ],
+  "note": "conservative: sigma_cross includes lab offsets; applies to raw log-Papp effects, used as an approximate ceiling for rank correlation"
+ }
+}
