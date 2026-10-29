@@ -484,7 +484,10 @@ export function ResearchResponseDisplay({
   onCheckAgainstData,
   className,
 }: ResearchResponseDisplayProps) {
-  const [showCitations, setShowCitations] = useState(false);
+  // Evidence-forward: the sources/retrieval panel is the trustworthy surface for a
+  // research answer (the chat prose is re-synthesised and can drift), so surface it
+  // expanded by default on a research turn rather than hiding it behind a click.
+  const [showCitations, setShowCitations] = useState(true);
   const activeProjectId = useActiveProjectIdSafe();
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
