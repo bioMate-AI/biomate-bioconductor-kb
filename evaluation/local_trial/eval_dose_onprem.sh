@@ -10,7 +10,7 @@ aws s3 cp "$S3/dose_eval/hand.jsonl" hand.jsonl --quiet
 aws s3 cp "$S3/dose_eval/generated.jsonl" generated.jsonl --quiet
 echo "[dose] starting vLLM (Qwen/Qwen3.5-9B)"
 python3 -m vllm.entrypoints.openai.api_server --model Qwen/Qwen3.5-9B --served-model-name qwen \
-  --max-model-len 24576 --gpu-memory-utilization 0.9 --port 8000 --enforce-eager > vllm.log 2>&1 &
+  --max-model-len 12288 --gpu-memory-utilization 0.92 --port 8000 --enforce-eager > vllm.log 2>&1 &
 for i in $(seq 1 120); do curl -s -m3 http://localhost:8000/health >/dev/null 2>&1 && break; sleep 10; done
 if ! curl -s -m5 http://localhost:8000/health >/dev/null 2>&1; then
   echo "[dose] VLLM_FAILED"; tail -40 vllm.log; aws s3 cp vllm.log "$S3/eval/dose_onprem_vllm.log" --quiet; exit 1
@@ -49,7 +49,7 @@ def score_item(r, pred):
     return outcome, safety, (hit / n if n else 0.0)
 def ask(text):
     body = json.dumps({"model": "qwen", "messages": [{"role": "user", "content": text}],
-                       "max_tokens": 20000, "temperature": 0}).encode()
+                       "max_tokens": 10000, "temperature": 0}).encode()
     req = urllib.request.Request("http://localhost:8000/v1/chat/completions", body, {"Content-Type": "application/json"})
     for _ in range(3):
         try:
