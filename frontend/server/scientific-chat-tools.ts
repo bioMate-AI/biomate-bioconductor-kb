@@ -35,17 +35,26 @@ export function scientificToolResult(data: unknown, kind: 'targets' | 'review', 
     }
     const ranking = object(data.ranking) ? data.ranking : null;
     const primary = ranking?.mode === 'primary_channel' && ranking?.primary_channel === 'genetics_ot';
+    const provenance = object(data.channel_provenance) ? {...data.channel_provenance} : data.channel_provenance;
+    if (object(provenance?.genetics_ot)) {
+      const {n, ...source} = provenance.genetics_ot;
+      provenance.genetics_ot = {...source, ...(n == null ? {} : {n_targets_retrieved:n})};
+    }
     return {
       query, status: data.targets.length ? 'ok' : 'no_evidence',
       arbiter: data.arbiter, ranking, channels_run: data.channels_run,
-      channel_errors: data.channel_errors, channel_provenance: data.channel_provenance,
+      channel_errors: data.channel_errors, channel_provenance: provenance,
       n_targets_total: data.n_targets_total ?? data.targets.length,
       targets: data.targets,
       note: (primary
         ? 'Order follows OpenTargets association scores; other channels provide corroboration/conflict, not improved ranking. '
         : 'OpenTargets-primary ordering was NOT established for this result. Report the returned ranking mode and available channels; do not imply OpenTargets evidence when unavailable. ') +
         'No superiority over OpenTargets is established. Scores are not clinical probabilities. ' +
-        'Report tiers, failed channels and conflicts faithfully. Legacy per_channel_z values are normalized scores for harmonic_sum, not z-scores. LLM-reasoned evidence is not a retrieved publication.',
+        'Report tiers, failed channels and conflicts faithfully. Legacy per_channel_z values are normalized scores for harmonic_sum, not z-scores. ' +
+        'genetics_ot is a legacy name for aggregated OpenTargets disease-association evidence, not genetics-only evidence. ' +
+        'n_targets_retrieved counts target records, NOT patients or cohort size. ' +
+        'LLM-reasoned output is neither a retrieved publication nor independent experimental/literature corroboration; the corroborated tier means channel agreement only. ' +
+        'Do not add biological prevalence, mechanistic explanations or clinical claims unless separately supported by retrieved sources. Use literature retrieval if that support is needed.',
     };
   }
   if (data.success !== true || typeof data.answer !== 'string' || !data.answer.trim() || !Array.isArray(data.citations) || data.citations.some((c: unknown) => !object(c) || typeof c.title !== 'string' || !c.title.trim())) {

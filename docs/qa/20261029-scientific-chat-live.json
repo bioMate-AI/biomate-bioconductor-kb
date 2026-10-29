@@ -1,0 +1,9 @@
+{
+  "startedAt": "2026-10-29T22:49:55.883Z",
+  "base": "https://dev-public.biomate.ai",
+  "kind": "live API chat journey, not UI or scientific efficacy validation",
+  "turns": [],
+  "status": "failed",
+  "error": "project id missing",
+  "finishedAt": "2026-10-29T22:49:56.905Z"
+}

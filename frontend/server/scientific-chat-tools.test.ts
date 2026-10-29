@@ -56,6 +56,15 @@ describe('scientific chat boundary (pure contracts, no API mocks)', () => {
     expect(result.note).toContain('Order follows OpenTargets');
     expect(result.note).toContain('not z-scores');
   });
+  it('does not present target record counts as patients or LLM agreement as independent evidence', () => {
+    const input={targets:[],channel_provenance:{genetics_ot:{source:'OpenTargets',n:200}}};
+    const result=scientificToolResult(input,'targets','q');
+    expect(result.channel_provenance.genetics_ot).toEqual({source:'OpenTargets',n_targets_retrieved:200});
+    expect(input.channel_provenance.genetics_ot.n).toBe(200);
+    expect(result.note).toContain('NOT patients');
+    expect(result.note).toContain('channel agreement only');
+    expect(result.note).toContain('not genetics-only');
+  });
   it('wires both model loops through the user-scoped API and does not expose new online tools offline', () => {
     const source = readFileSync('server/galaxy-assistant.ts','utf8');
     for (const name of ['identify_targets','write_review']) {
@@ -65,5 +74,13 @@ describe('scientific chat boundary (pure contracts, no API mocks)', () => {
     expect(handlers.match(/this\._api\(\)\.client\.post/g)).toHaveLength(2);
     expect(handlers).not.toContain('fetch(');
     expect(source).toContain("['search_literature', 'list_data_sources', 'identify_targets', 'write_review'].includes(tool.name)");
+  });
+  it('every advertised built-in tool has a dispatch case in both provider loops', () => {
+    const source = readFileSync('server/galaxy-assistant.ts','utf8');
+    const start = source.indexOf('const BIOMATE_TOOLS:');
+    const definitions = source.slice(start,source.indexOf('\n];', start));
+    const names = [...definitions.matchAll(/^    name: '([^']+)'/gm)].map(m=>m[1]);
+    expect(names.length).toBeGreaterThan(0);
+    for (const name of names) expect(source.match(new RegExp(`case '${name}':`, 'g')),`${name} provider dispatch drift`).toHaveLength(2);
   });
 });

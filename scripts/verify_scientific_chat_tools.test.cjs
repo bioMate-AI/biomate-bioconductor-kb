@@ -1,6 +1,19 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {parseEvents,toolResult}=require('./verify_scientific_chat_tools.cjs');
+const {parseEvents,toolResult,createdProjectId,reviewResult}=require('./verify_scientific_chat_tools.cjs');
+test('automatic research needs a real successful cited artifact, not just fluent final prose',()=>{
+  const end={event:'done',data:{ok:true}};
+  assert.throws(()=>reviewResult([{event:'final',data:{message:'A convincing overview'}},end]),/no successful/);
+  const result=reviewResult([{event:'final',data:{researchResponse:{success:true,source:'research_agent',answer:'Evidence [1]',citations:[{title:'Paper'}]}}},end]);
+  assert.equal(result.executionPath,'automatic_research_agent');
+});
+test('a failed explicit review tool is never hidden behind a successful automatic artifact',()=>{
+  assert.throws(()=>reviewResult([{event:'tool_event',data:{name:'write_review',type:'tool_call'}},{event:'tool_event',data:{name:'write_review',type:'tool_result',output:'{"error":"failed"}'}},{event:'done',data:{ok:true}}]),/returned an error/);
+});
+test('project setup uses the real wrapped API contract and refuses a guessed root id',()=>{
+  assert.equal(createdProjectId({project:{id:'qa-project'}}),'qa-project');
+  assert.throws(()=>createdProjectId({id:'qa-project'}),/project wrapper/);
+});
 test('SSE parser handles CRLF and multiline data, not just matching tool names in prose',()=>{
   const events=parseEvents('event: tool_event\r\ndata: {"name":"write_review",\r\ndata: "type":"tool_call"}\r\n\r\nevent: done\r\ndata: {"ok":true}\r\n\r\n');
   assert.equal(events[0].data.name,'write_review');

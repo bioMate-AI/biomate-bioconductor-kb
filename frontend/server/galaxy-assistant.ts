@@ -3,6 +3,7 @@ import { localOnly, localOffline, localMessagesClient, localConfig } from './loc
 import { localIntentPrompt } from './local-intent-prompt.js';
 import { localResponsePrompt } from './local-response-prompt.js';
 import { scientificToolRequest, scientificToolResult } from './scientific-chat-tools';
+import { groundedResearchReply, researchEvidenceContext } from './grounded-research-reply';
 /**
  * Galaxy Assistant Service
  *
@@ -3069,6 +3070,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
           switch (name) {
             case 'run_code':    output = await this._toolRunCode(args); break;
             case 'read_file':   output = await this._toolReadFile(args, toolContext.context); break;
+            case 'query_domain_knowledge': output = await this._toolQueryKnowledge(args); break;
             case 'list_history': output = await this._toolListHistory(args, toolContext.context); break;
             case 'search_literature': output = await this._toolSearchLiterature(args); break;
             case 'search_my_data': output = await this._toolSearchMyData(args, toolContext.context); break;
@@ -4805,6 +4807,25 @@ Rules:
     // Step 6: Generate natural language response
     onProgress?.('plan');
     log('Step 6: Generating response');
+    // Research synthesis already owns its numbered source list. Buffer chat's
+    // rewrite so invented references are never streamed before validation.
+    let citedResearch = researchResponse?.success && Array.isArray(researchResponse?.citations) && researchResponse.citations.length
+      ? researchResponse : null;
+    const researchAwareDelta = onResponseDelta ? (chunk: string) => {
+      if (!citedResearch) onResponseDelta(chunk);
+    } : undefined;
+    const researchAwareToolEvent = onToolEvent ? (event: AgentToolEvent) => {
+      if (event.type === 'tool_result' && event.name === 'write_review') {
+        try {
+          const value: any = typeof event.output === 'string' ? JSON.parse(event.output) : event.output;
+          if (value?.status === 'ok' && value.answer && Array.isArray(value.citations)) {
+            citedResearch = {success:true,...value};
+            researchResponse = citedResearch;
+          }
+        } catch { /* malformed tool output remains an error, not evidence */ }
+      }
+      onToolEvent(event);
+    } : undefined;
     const response = await this.generateResponse(
       message,
       intent,
@@ -4815,12 +4836,18 @@ Rules:
       context,
       researchResponse,
       benchmarkEvidence,
-      onResponseDelta,
+      researchAwareDelta,
       domainProfileContext,
       sessionMemoryBlock,
       decomposition.preferredDomains ?? [],
-      onToolEvent
+      researchAwareToolEvent
     );
+    if (citedResearch) {
+      const guarded = groundedResearchReply(response.message, citedResearch);
+      response.message = guarded.message;
+      onResponseDelta?.(guarded.message);
+      if (guarded.usedBackendAnswer) log('Research citation boundary: retained grounded backend answer');
+    }
     log('Step 6 complete');
 
     // Step 6b: LLM reselection — confirm or override FTS workflow choice.
@@ -8745,16 +8772,7 @@ ${(generatedWorkflow as any)?.license_notice ? `- LICENSE REROUTING ACTIVE: ${(g
     const researchSection = researchResponse
       ? (() => {
           const rr = researchResponse as any;
-          const parts: string[] = [];
-          if (rr.answer) {
-            parts.push(`Research Agent Answer:\n${rr.answer.slice(0, 4000)}`);
-          }
-          if (rr.citations && Array.isArray(rr.citations) && rr.citations.length > 0) {
-            const citLines = (rr.citations as any[]).slice(0, 8).map((c: any, i: number) =>
-              `[${i+1}] ${c.title || ''} (${c.year || ''}) ${c.journal || ''} ${c.doi ? 'doi:'+c.doi : ''} ${c.pmid ? 'PMID:'+c.pmid : ''}`.trim()
-            );
-            parts.push(`\nCitations:\n${citLines.join('\n')}`);
-          }
+          const parts: string[] = [researchEvidenceContext(rr)];
           if (rr.benchmark_evidence) {
             parts.push(`\nBenchmark evidence: ${JSON.stringify(rr.benchmark_evidence).slice(0, 500)}`);
           }
