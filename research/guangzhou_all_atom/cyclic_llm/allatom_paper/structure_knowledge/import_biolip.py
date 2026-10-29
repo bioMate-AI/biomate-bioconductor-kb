@@ -100,6 +100,7 @@ def fetch_flat(outdir: str, log) -> str | None:
 def parse(path: str, outdir: str):
     n = n_pdb = n_cols = n_uniprot = 0
     kinds = collections.Counter()
+    aff_nb = collections.defaultdict(collections.Counter)
     groups = collections.defaultdict(lambda: {"rec": set(), "rows": []})
     for line in open(path):
         f = line.rstrip("\n").split("\t")
@@ -113,7 +114,11 @@ def parse(path: str, outdir: str):
         up = f[17] if len(f) > 17 else ""
         n_uniprot += bool(UNIPROT_RE.match(up.strip()))
         lig = f[4].strip()
-        kinds[lig if lig in ("peptide", "dna", "rna") else "small_molecule"] += 1
+        kd = lig if lig in ("peptide", "dna", "rna") else "small_molecule"
+        kinds[kd] += 1
+        for ci in (13, 14, 15, 16):
+            if len(f) > ci and f[ci].strip() and f[ci].strip().lower() not in ("n/a", "na", "-"):
+                aff_nb[kd][BIOLIP_COLS[ci]] += 1
         if lig.lower() != "peptide":
             continue
         g = groups[(f[0].upper(), f[5].strip())]
@@ -121,7 +126,7 @@ def parse(path: str, outdir: str):
         g["rows"].append({BIOLIP_COLS[i]: (f[i] if i < len(f) else "") for i in (2, 4, 13, 14, 15, 16, 17, 18)})
     chk = {"n_lines": n, "frac_ge17_cols": n_cols / max(n, 1), "frac_pdb_id_valid": n_pdb / max(n_cols, 1),
            "frac_uniprot_pattern_valid(col17)": n_uniprot / max(n_pdb, 1), "ligand_kind_counts": dict(kinds),
-           "n_peptide_ligand_groups": len(groups)}
+           "n_peptide_ligand_groups": len(groups), "affinity_nonblank_lines_by_ligand_kind": {k: dict(v) for k, v in aff_nb.items()}}
     json.dump(chk, open(os.path.join(outdir, "biolip_parse_check.json"), "w"), indent=1)
     out = []
     for (pdb, lch), g in sorted(groups.items()):

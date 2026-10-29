@@ -10,6 +10,7 @@ recomputed with a given target set excluded (arm G / held-out targets): build_pr
 from __future__ import annotations
 
 import argparse
+import re
 import collections
 import hashlib
 import json
@@ -25,6 +26,7 @@ sys.path.insert(0, HERE)
 import rcsb_meta as M  # noqa: E402
 
 STD1 = "ACDEFGHIKLMNPQRSTVWY"
+AB_RE = re.compile(r"(\bfab\b|antibod|nanobod|\bscfv|\bvhh|\bfv\b|immunoglobulin (heavy|light|gamma|kappa|lambda)|\big[ghkl][a-z0-9 ]*(chain|heavy|light))", re.I)
 # pre-registered stability thresholds for a prior to be exported with a non-zero default weight
 STABLE = {"min_targets": 20, "median_tvd": 0.05, "max_tvd": 0.25}
 
@@ -42,6 +44,10 @@ def load(features_path: str, meta_path: str) -> List[Dict]:
         cu = M.chain_uniprot(m) if m else {}
         accs = sorted({a for ch in d.get("rec_chains", []) for a in cu.get(ch, [])})
         d["receptor_uniprot"] = accs
+        cd = M.chain_desc(m) if m else {}
+        d["receptor_desc"] = sorted({cd.get(ch, "") for ch in d.get("rec_chains", [])} - {""})
+        d["receptor_antibody_like"] = bool(d["receptor_desc"]) and (sum(bool(AB_RE.search(x)) for x in d["receptor_desc"]) / len(d["receptor_desc"])) >= 0.5
+        d["method"] = d.get("method") or (((m.get("exptl") or [{}])[0]).get("method") if m else None)
         d["target_key"] = "+".join(accs) if accs else f"NOUNIPROT:{d['pdb_id']}"
         cit = (m.get("rcsb_primary_citation") or {})
         d["doi"] = cit.get("pdbx_database_id_DOI"); d["pubmed"] = cit.get("pdbx_database_id_PubMed")
@@ -281,22 +287,28 @@ def main() -> None:
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     rows_all = load(a.features, a.meta)
-    lib = library(rows_all)
+    lib_all = library(rows_all)
+    lib = [r for r in lib_all if not r["receptor_antibody_like"]]      # primary: peptides bound to non-antibody receptors
     toks = {l.strip() for l in open(a.exclude_targets) if l.strip()} if a.exclude_targets else set()
     # a token excludes every target whose key equals it or whose accession set contains it (e.g. a UniProt accession of a held-out arm-G target)
     ex = frozenset(k for k in {r["target_key"] for r in lib} if k in toks or (set(k.split("+")) & toks))
     pri = build_priors(lib, ex)
     if ex:
         json.dump(sorted(ex), open(os.path.join(a.out, "priors_excluded_targets.json"), "w"))
-    json.dump(summary(rows_all, lib), open(os.path.join(a.out, "library_summary.json"), "w"), indent=1)
+    sm = summary(rows_all, lib_all)
+    sm["n_library_antibody_like_receptor"] = len(lib_all) - len(lib)
+    sm["n_library_primary_non_antibody"] = len(lib)
+    json.dump(sm, open(os.path.join(a.out, "library_summary.json"), "w"), indent=1)
     json.dump(pri, open(os.path.join(a.out, "priors_v1.json"), "w"), indent=1)
+    json.dump(build_priors(lib_all, ex, do_loto=False), open(os.path.join(a.out, "priors_incl_antibody_like_v1.json"), "w"), indent=1)
     with open(os.path.join(a.out, "library_v1.jsonl"), "w") as f:
-        for r in lib:
+        for r in lib_all:
             slim = {k: r[k] for k in ("pdb_id", "pep_chain", "rec_chains", "seq", "target_key", "receptor_uniprot", "primary_cyclisation", "ring_residues",
                                       "resolution_rcsb", "method", "doi", "pubmed", "title", "cit_year", "n_d", "n_nme", "n_cis_amide", "nonstd_resnames",
                                       "n_iface_res", "contacts_total", "hbond_rec_total", "salt_total", "hydrophobic_total", "metal_contacts",
                                       "buried_sasa_total", "buried_sasa_polar", "buried_sasa_apolar", "n_backbone_nh", "n_nh_intra_hbond",
-                                      "n_nh_receptor_hbond", "n_nh_free", "hotspots", "affinity", "qc")}
+                                      "n_nh_receptor_hbond", "n_nh_free", "hotspots", "affinity", "qc", "receptor_desc", "receptor_antibody_like")}
+            slim["source"] = r.get("source")
             slim["beta_turns"] = [t["type"] + ":" + t["res"] for t in r["beta_turns"]]
             f.write(json.dumps(slim) + "\n")
     with open(os.path.join(a.out, "retrieval_snippets_v1.jsonl"), "w") as f:
@@ -304,7 +316,7 @@ def main() -> None:
             f.write(json.dumps(s) + "\n")
     json.dump(potentials(pri), open(os.path.join(a.out, "soft_potentials_v1.json"), "w"), indent=1)
     json.dump(sorted({r["target_key"] for r in lib}), open(os.path.join(a.out, "priors_targets.json"), "w"))
-    print(json.dumps(summary(rows_all, lib)))
+    print(json.dumps(sm))
 
 
 if __name__ == "__main__":

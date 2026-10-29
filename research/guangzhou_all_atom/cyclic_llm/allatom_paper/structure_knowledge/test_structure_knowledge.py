@@ -145,3 +145,55 @@ def test_ref_pdb_token_parser():
     assert C.ref_pdb("5O45 chain A (PD-L1 IgV + bound macrocycle)") == "5O45"
     assert C.ref_pdb("4IRZ — needs prep") == "4IRZ"
     assert C.ref_pdb("avb6_ourstructure_v1.cif (9XMM-derived, metal-complete)") == "9XMM"
+
+
+def test_antibody_like_regex():
+    assert A.AB_RE.search("Fab fragment heavy chain") and A.AB_RE.search("Rituximab Fab light chain") and A.AB_RE.search("Nanobody")
+    assert not A.AB_RE.search("Programmed cell death 1 ligand 1") and not A.AB_RE.search("Tumor necrosis factor")
+    assert not A.AB_RE.search("DES-GLA FACTOR VIIA (HEAVY CHAIN)")      # regression: protease heavy chain is not an antibody
+    assert A.AB_RE.search("the Fab fragment of chimeric 2H7, heavy chain") and A.AB_RE.search("PROTEIN (IGG1 FAB 58.2 ANTIBODY (HEAVY CHAIN))")
+    assert not A.AB_RE.search("IgG receptor FcRn large subunit p51") and not A.AB_RE.search("Beta-2-microglobulin")   # regression: FcRn was flagged antibody-like
+
+
+def _lib_row(ab):
+    return dict(pdb_id="9ZZZ", pep_chain="B", seq="CAAAAC", primary_cyclisation="disulfide", ring_residues=6, resolution_rcsb=2.0, method="X-RAY",
+                contacts_total=100, hbond_rec_total=5, salt_total=1, hydrophobic_total=20, metal_contacts=0, buried_sasa_total=500.0,
+                buried_sasa_polar=200.0, buried_sasa_apolar=300.0, n_d=0, n_nme=0, beta_turns=[], hotspots=[], doi="10.1/x", pubmed="1", title="t",
+                affinity=[], receptor_uniprot=["P1"], receptor_desc=["Fab" if ab else "Target"], receptor_antibody_like=ab)
+
+
+def test_card_distinguishes_antibody_epitope_complexes():
+    c = C.card_for("t", "T", None, [_lib_row(True)], None, accs_override=["P1"])
+    assert c["n_cyclic_complexes"] == 1 and c["n_non_antibody_receptor"] == 0 and "ONLY antibody-epitope" in c["structure_status"]
+    c2 = C.card_for("t", "T", None, [_lib_row(True), _lib_row(False)], None, accs_override=["P1"])
+    assert c2["n_non_antibody_receptor"] == 1 and c2["structure_status"] == "cyclic-peptide complexes available"
+    assert c2["templates"][0]["receptor_antibody_like"] is False      # non-antibody templates sort first
+
+
+def test_aggregate_main_end_to_end_on_synthetic_rows(tmp_path):
+    """The command-line path must run (regression: lib_all was undefined once and only the small tests passed)."""
+    import subprocess, sys
+    feats = tmp_path / "f.jsonl"; meta = tmp_path / "m.jsonl"
+    rows = []
+    for i in range(6):
+        r = dict(ok=True, pdb_id=f"9A{i}Z", pep_chain="B", rec_chains=["A"], source="biolip2", n_res=8, seq="CAFAAGWC", nonstd_resnames=[], is_d=[False] * 8, is_nme=[False] * 8,
+                 closures=[], closure_kinds=["disulfide"], primary_cyclisation="disulfide", ring_residues=8, n_disulfide=1, n_cis_amide=0, rama={}, beta_turns=[],
+                 gamma_turns=[], n_contacts=[1] * 8, n_hbond_rec=[0] * 8, n_salt=[0] * 8, n_hydrophobic=[0] * 8, buried_frac=[0.1] * 8, iface_res=[1, 2, 3],
+                 n_iface_res=3, contacts_total=30, hbond_rec_total=2, salt_total=0, hydrophobic_total=4, metal_contacts=0, buried_sasa_total=400.0,
+                 buried_sasa_polar=100.0, buried_sasa_apolar=300.0, sasa_isolated=900.0, n_backbone_nh=6, n_nh_intra_hbond=2, n_nh_receptor_hbond=1, n_nh_free=3,
+                 n_pocket_res=5, pocket=[], hotspots=[], rg_ca=5.0, d_sign_ref_found=True, n_covalent_to_receptor=0, n_d=0, n_nme=0, method=None,
+                 resolution=None, cyclization_type=None, receptor_name=None)
+        rows.append(r)
+    feats.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    meta.write_text("\n".join(json.dumps({"rcsb_id": r["pdb_id"], "struct": {"title": "t"}, "exptl": [{"method": "X-RAY DIFFRACTION"}],
+                                           "rcsb_entry_info": {"resolution_combined": [2.0]},
+                                           "rcsb_primary_citation": {"pdbx_database_id_DOI": "10.1/x", "pdbx_database_id_PubMed": 1, "title": "t", "year": 2020},
+                                           "polymer_entities": [{"rcsb_polymer_entity": {"pdbx_description": "Target protein"},
+                                                                 "rcsb_polymer_entity_container_identifiers": {"auth_asym_ids": ["A"], "reference_sequence_identifiers": [{"database_name": "UniProt", "database_accession": f"P{i}"}]}}]})
+                              for i, r in enumerate(rows)) + "\n")
+    out = tmp_path / "agg"
+    p = subprocess.run([sys.executable, os.path.join(HERE, "aggregate.py"), "--features", str(feats), "--meta", str(meta), "--out", str(out)], capture_output=True, text=True)
+    assert p.returncode == 0, p.stderr[-800:]
+    summ = json.load(open(out / "library_summary.json"))
+    assert summ["n_library"] == 6 and summ["by_method"].get("X-RAY DIFFRACTION") == 6      # method filled from RCSB metadata when the row has none
+    assert (out / "priors_v1.json").exists() and (out / "retrieval_snippets_v1.jsonl").exists() and (out / "soft_potentials_v1.json").exists()

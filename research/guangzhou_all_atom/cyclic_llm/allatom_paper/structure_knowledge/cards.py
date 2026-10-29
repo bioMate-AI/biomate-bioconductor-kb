@@ -103,15 +103,22 @@ def card_for(name: str, label: str, ref_id: str | None, lib: list, ref_meta: dic
     # a library complex matches when its receptor carries ALL of the target's selected accessions (heterodimers: both subunits)
     matches = [r for r in lib if (accs and set(accs) <= set(r["receptor_uniprot"])) or r["pdb_id"].upper() in ids]
     card["n_cyclic_complexes"] = len(matches)
-    card["structure_status"] = "cyclic-peptide complexes available" if matches else "NO cyclic-peptide complex in the library for this target"
+    card["n_non_antibody_receptor"] = sum(1 for r in matches if not r.get("receptor_antibody_like"))
+    if not matches:
+        card["structure_status"] = "NO cyclic-peptide complex in the library for this target"
+    elif card["n_non_antibody_receptor"] == 0:
+        card["structure_status"] = "ONLY antibody-epitope complexes (the 'receptor' chains are antibody-like): not a cyclic-peptide binder of the target"
+    else:
+        card["structure_status"] = "cyclic-peptide complexes available"
     if not matches:
         card["flag"] = "no structure available: binding mode unknown from experiment; any prior for this target is transferred from other targets"
         return card
-    matches.sort(key=lambda r: (r["resolution_rcsb"] if r["resolution_rcsb"] is not None else 99.0, -r["contacts_total"]))
+    matches.sort(key=lambda r: (bool(r.get("receptor_antibody_like")), r["resolution_rcsb"] if r["resolution_rcsb"] is not None else 99.0, -r["contacts_total"]))
     card["templates"] = [{"pdb_id": r["pdb_id"], "pep_chain": r["pep_chain"], "seq": r["seq"], "closure": r["primary_cyclisation"], "ring_residues": r["ring_residues"],
                           "resolution": r["resolution_rcsb"], "method": r["method"], "contacts": r["contacts_total"], "hbonds": r["hbond_rec_total"],
                           "salt_bridges": r["salt_total"], "hydrophobic": r["hydrophobic_total"], "metal_contacts": r["metal_contacts"],
                           "buried_sasa": r["buried_sasa_total"], "n_d": r["n_d"], "n_nme": r["n_nme"], "beta_turns": r["beta_turns"],
+                          "receptor_desc": r.get("receptor_desc"), "receptor_antibody_like": r.get("receptor_antibody_like"),
                           "hotspots_entry_numbering": r["hotspots"], "doi": r["doi"], "pubmed": r["pubmed"], "title": r["title"],
                           "affinity": r["affinity"][:3], "paper_opened": False} for r in matches[:10]]
     card["binding_mode_summary"] = {

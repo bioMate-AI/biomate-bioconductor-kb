@@ -15,6 +15,7 @@ import urllib.request
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from concurrent.futures.process import BrokenProcessPool
 import subprocess
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -35,7 +36,9 @@ def download(pdb_id: str, cache: str) -> str:
     for k in range(3):
         try:
             data = urllib.request.urlopen(f"https://files.rcsb.org/download/{pdb_id.lower()}.cif", timeout=60).read()
-            open(p, "wb").write(data)
+            tmp = f"{p}.{os.getpid()}.tmp"
+            open(tmp, "wb").write(data)
+            os.replace(tmp, p)                       # atomic: a reader never sees a partial file
             return p
         except Exception as e:  # noqa: BLE001
             last = e
@@ -43,7 +46,7 @@ def download(pdb_id: str, cache: str) -> str:
     raise RuntimeError(f"download failed {pdb_id}: {last}")
 
 
-def one(row: dict, cache: str) -> dict:
+def one(row: dict, cache: str, keep: bool = False) -> dict:
     t0 = time.time()
     base = {k: row.get(k) for k in ("pdb_id", "pep_chain", "rec_chains", "peptide_seq", "seq_len", "cyclization_type",
                                     "cyclization_evidence", "resolution", "method", "receptor_name", "conformer_provenance")}
@@ -62,7 +65,7 @@ def one(row: dict, cache: str) -> dict:
     for k in ("source", "biolip_uniprot", "biolip_pubmed", "biolip_affinity", "biolip_resolution"):
         if k in row:
             base[k] = row[k]
-    if not KEEP_CIF:
+    if not (KEEP_CIF or keep):
         try:
             os.remove(path)
         except OSError:
@@ -72,6 +75,16 @@ def one(row: dict, cache: str) -> dict:
         base["agree_cyclisation"] = bool(want & set(f["closure_kinds"]))
     base["seconds"] = round(time.time() - t0, 2)
     return base
+
+
+def one_group(rows: list, cache: str) -> list:
+    """All peptide chains of ONE PDB entry in one worker: the CIF is downloaded once and never shared across concurrent workers."""
+    out = [one(r, cache, keep=True) for r in rows]
+    try:
+        os.remove(os.path.join(cache, rows[0]["pdb_id"].lower() + ".cif"))
+    except OSError:
+        pass
+    return out
 
 
 def main() -> None:
@@ -121,7 +134,8 @@ def main() -> None:
     def isolated(row):
         """One task in its own interpreter with a timeout: a native crash or hang is recorded, never fatal."""
         try:
-            r = subprocess.run([sys.executable, os.path.abspath(__file__), "--manifest", "x", "--one-json", json.dumps(row), "--out", a.out],
+            iso = tempfile.mkdtemp(prefix="iso_", dir=a.out)
+            r = subprocess.run([sys.executable, os.path.abspath(__file__), "--manifest", "x", "--one-json", json.dumps(row), "--out", iso],
                                capture_output=True, text=True, timeout=240)
             if r.returncode == 0 and r.stdout.strip():
                 return json.loads(r.stdout.strip().splitlines()[-1])
@@ -130,14 +144,18 @@ def main() -> None:
             err = "worker timeout 240s"
         return {**{k: row.get(k) for k in ("pdb_id", "pep_chain", "rec_chains", "source")}, "ok": False, "error": err, "crashed": True}
 
-    CH = 256
+    CH = 192
+    by_pdb = {}
+    for r in todo:
+        by_pdb.setdefault(r["pdb_id"].upper(), []).append(r)
+    groups = list(by_pdb.values())
 
     def run_chunk(chunk):
-        """Pool run; results completed before a worker death are kept; only the unfinished tasks are re-run in isolation (in parallel)."""
-        got, pending = {}, []
+        """Pool run over groups; groups finished before a worker death are kept; only unfinished groups are re-run in isolation (parallel)."""
+        got = {}
         try:
             with ProcessPoolExecutor(a.workers) as ex:
-                futs = {ex.submit(one, r, cache): i for i, r in enumerate(chunk)}
+                futs = {ex.submit(one_group, g, cache): i for i, g in enumerate(chunk)}
                 for fu in as_completed(futs):
                     i = futs[fu]
                     try:
@@ -145,20 +163,20 @@ def main() -> None:
                     except BrokenProcessPool:
                         pass
                     except Exception as e:  # noqa: BLE001
-                        got[i] = {**{k: chunk[i].get(k) for k in ("pdb_id", "pep_chain", "rec_chains", "source")}, "ok": False,
-                                  "error": f"{type(e).__name__}: {str(e)[:120]}"}
+                        got[i] = [{**{k: r.get(k) for k in ("pdb_id", "pep_chain", "rec_chains", "source")}, "ok": False,
+                                   "error": f"{type(e).__name__}: {str(e)[:120]}"} for r in chunk[i]]
         except BrokenProcessPool:
             pass
         pending = [i for i in range(len(chunk)) if i not in got]
         if pending:
             with ThreadPoolExecutor(a.workers) as tex:
-                for i, res in zip(pending, tex.map(isolated, [chunk[i] for i in pending])):
+                for i, res in zip(pending, tex.map(lambda i: [isolated(r) for r in chunk[i]], pending)):
                     got[i] = res
-        return [got[i] for i in range(len(chunk))]
+        return [x for i in range(len(chunk)) for x in got[i]]
 
     with open(fp, "a") as f:
-        for i in range(0, len(todo), CH):
-            results = run_chunk(todo[i:i + CH])
+        for i in range(0, len(groups), CH):
+            results = run_chunk(groups[i:i + CH])
             for res in results:
                 f.write(json.dumps(res) + "\n")
                 if res.get("ok"):

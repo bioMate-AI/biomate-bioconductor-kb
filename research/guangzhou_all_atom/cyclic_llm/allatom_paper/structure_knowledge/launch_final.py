@@ -27,24 +27,7 @@ def main() -> None:
     for i, s in enumerate(shards):
         get.append(f"(aws s3 cp {B}/{s}/out/lib/features.jsonl /w/in/f{i}.jsonl --only-show-errors || aws s3 cp {B}/{s}/out_live/features.jsonl /w/in/f{i}.jsonl --only-show-errors)")
         get.append(f"(aws s3 cp {B}/{s}/out/lib/meta.jsonl /w/in/m{i}.jsonl --only-show-errors || aws s3 cp {B}/{s}/out_live/meta.jsonl /w/in/m{i}.jsonl --only-show-errors)")
-    merge = ("python3.11 - <<'PY'\nimport glob, json\n"
-             "seen=set(); out=open('/w/out/lib/features.jsonl','w')\n"
-             "for f in sorted(glob.glob('/w/in/f*.jsonl')):\n"
-             "    for l in open(f):\n"
-             "        try: d=json.loads(l)\n"
-             "        except Exception: continue\n"
-             "        k=(d.get('pdb_id'),d.get('pep_chain'))\n"
-             "        if k in seen: continue\n"
-             "        seen.add(k); out.write(l if l.endswith('\\n') else l+'\\n')\n"
-             "out.close(); seen=set(); out=open('/w/out/lib/meta.jsonl','w')\n"
-             "for f in sorted(glob.glob('/w/in/m*.jsonl')):\n"
-             "    for l in open(f):\n"
-             "        try: d=json.loads(l)\n"
-             "        except Exception: continue\n"
-             "        k=d.get('rcsb_id')\n"
-             "        if k in seen: continue\n"
-             "        seen.add(k); out.write(l if l.endswith('\\n') else l+'\\n')\n"
-             "out.close()\nPY")
+    merge = "python3.11 structure_knowledge/merge_shards.py /w/in /w/out/lib"
     cmd = " ; ".join([
         "python3.11 -m pip install -q gemmi",
         "mkdir -p /w/in /w/out/lib /w/out/agg /w/out/agg_excl_armG",
@@ -52,6 +35,7 @@ def main() -> None:
         f"aws s3 cp $P/in/target_kb /w/target_kb --recursive --only-show-errors",
         f"aws s3 cp $P/in/import /w/out/import --recursive --only-show-errors",
         *get, merge,
+        "python3.11 structure_knowledge/import_biolip.py --manifest /w/manifest.jsonl --out /w/out/import_diag",
         "wc -l /w/out/lib/features.jsonl /w/out/lib/meta.jsonl",
         "python3.11 structure_knowledge/aggregate.py --features /w/out/lib/features.jsonl --meta /w/out/lib/meta.jsonl --out /w/out/agg",
         "printf 'P06756\\nP18564\\nQ9NZQ7\\n' > /w/out/exclude_armG_example.txt",
