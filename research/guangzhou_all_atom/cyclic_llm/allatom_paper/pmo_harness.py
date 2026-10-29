@@ -3,7 +3,7 @@
 What it enforces (the point of the harness is to make the comparison impossible to game):
   * every optimiser gets the SAME budget of calls to a TRAIN verifier (an `oracle`); duplicates (by canonical SMILES) and
     invalid / constraint-failing proposals are free but counted and capped (a proposal cap stops infinite loops);
-  * the sample-efficiency metric is AUC of the top-k mean score vs number of oracle calls, normalised by the budget
+  * the sample-efficiency metric is AUC of the top-k mean score vs number of oracle calls, normalised by the budget (scale-free; Track E A4: use z-scores against the generation space as verifier outputs, NOT percentiles against natural peptides, which saturate)
     (the formulation of Gao et al. 2022, 'Sample Efficiency Matters', arXiv 2206.12411; the exact implementation details
     of the original code are [UNVERIFIED] here: this file defines its own metric precisely, see `topk_curve` / `auc_topk`);
   * HELD-OUT verifiers can never be called during optimisation (role guard) and must be independent of the train
@@ -258,13 +258,18 @@ def mde_paired(sd_diff: float, n: int, alpha: float = 0.05, power: float = 0.80)
     return float((z(1 - alpha / 2) + z(power)) * sd_diff / math.sqrt(n))
 
 
-def gate_primary(contrasts: Dict[str, dict], margin: float = 0.03, min_pass: int = 2) -> dict:
+def gate_primary(contrasts: Dict[str, dict], margin=None, min_pass: int = 2) -> dict:
     """Pre-registered rule: the candidate beats the BEST baseline by >= margin with the interval's lower bound > 0 in at
-    least `min_pass` objective families. contrasts[family] = paired_contrast(candidate, best_baseline) output."""
+    least `min_pass` objective families. contrasts[family] = paired_contrast(candidate, best_baseline) output.
+    `margin` is REQUIRED (Track E amendment A4 withdrew the old default +0.03 on the saturating percentile scale): pass a float, or a dict
+    family -> margin for the per-family relative margins of A4/A5 (in SD-AUC units, see track_e/verifiers_e.build_ladder(gen_ref=...))."""
+    if margin is None:
+        raise ValueError("gate_primary: margin is required (the +0.03 normalised-AUC default was withdrawn in Track E amendment A4)")
     passed = []
     for fam, c in contrasts.items():
         lo = c["ci_wide"][0] if c.get("ci_wide") else float("nan")
-        if c.get("mean", float("nan")) >= margin and lo > 0:
+        m = margin[fam] if isinstance(margin, dict) else margin
+        if c.get("mean", float("nan")) >= m and lo > 0:
             passed.append(fam)
     return {"passed_families": sorted(passed), "n_pass": len(passed), "min_pass": min_pass,
             "verdict": "PASS" if len(passed) >= min_pass else "FAIL"}

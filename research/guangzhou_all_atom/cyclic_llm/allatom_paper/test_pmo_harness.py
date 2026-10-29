@@ -242,3 +242,12 @@ def test_stop_monitor_does_not_fire_when_train_stalls_too():
     m = H.StopMonitor(patience=2, min_gain=0.005)
     for t, s in [(0.4, 0.4), (0.5, 0.5), (0.5, 0.5), (0.5, 0.5), (0.5, 0.5)]:  # plateau, no divergence
         assert not m.update([t], [s])
+
+
+def test_gate_primary_requires_explicit_margin_and_accepts_per_family_margins():
+    c = H.paired_contrast([0.5] * 8, [0.0] * 8)
+    import pytest
+    with pytest.raises(ValueError):
+        H.gate_primary({"a": c, "b": c})                                   # no default margin any more (A4)
+    g = H.gate_primary({"a": c, "b": c}, margin={"a": 0.4, "b": 0.6}, min_pass=1)
+    assert g["passed_families"] == ["a"]                                  # b's own margin 0.6 is not met
