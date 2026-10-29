@@ -121,12 +121,16 @@ test("capture data-hub drill-in (I.5)", async ({ page }) => {
       await fileName.click({ timeout: 8_000 });
       await page.waitForTimeout(3500);
       await shot("i05-2-dataset-header.png"); // dataset object header (quality/version)
-      const qTab = page.getByTestId("dataset-tab-quality");
-      if ((await qTab.count()) > 0) {
-        await qTab.click({ timeout: 8_000 });
+      // "Where it came from" holds Origin (source/accession — storage-ref
+      // intentionally removed) + the quality-at-ingest perception card. The
+      // old standalone "quality" tab no longer exists (3-tab consolidation), so
+      // capture the wherefrom tab, which is where that content now lives.
+      const wfTab = page.getByTestId("dataset-tab-wherefrom");
+      if ((await wfTab.count()) > 0) {
+        await wfTab.click({ timeout: 8_000 });
         await page.waitForTimeout(3000);
-        await shot("i05-3-quality-tab.png"); // perception quality panel
-      } else { log.push("SKIP i05-3 (no quality tab)"); }
+        await shot("i05-3-quality-tab.png"); // Origin + perception quality panel
+      } else { log.push("SKIP i05-3 (no 'where it came from' tab)"); }
     } else { log.push("SKIP i05-2/3 (no file rows in this project)"); }
   } catch (e: any) {
     log.push(`FAIL drill-in — ${e?.message?.split("\n")[0] ?? e}`);
