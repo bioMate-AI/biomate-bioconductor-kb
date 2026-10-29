@@ -110,3 +110,16 @@ once the flag is confirmed on dev. So do the safe hygiene fix (#7) now; defer th
 - [ ] `RUN_STATE_STORE=redis` confirmed on biomate-galaxy-dev — unblocks autoloop SSE.
 - [ ] ECR `ml-training:latest` + `trl-training:latest` pushed (`aws ecr describe-images`).
 - [ ] Run the demos on dev-public.biomate.ai (not localhost) so SSE delivers.
+
+
+## Verification results (live dev, 2026-10-29)
+- **Multi-agent search: ✅ VERIFIED PASS** on dev — parallel-source status line, cited
+  answer with [N], citations panel expanded by default (G2), real DOI + evidence boundary,
+  no workflow card. First answer ~54s.
+- **DBTL loop: blocked by a separate bug, now FIXED.** The ADMET terfenadine run died at
+  Nextflow launch (~17s) — `smiles_list` reached the pipeline as a bare SMILES, not a
+  JSON-array string, aborting the session at JSON parse. NOT redis/SSE. Fixed:
+  `_normalize_smiles_list_param` at the pre-launch chokepoint (commit). The autoloop
+  default-on fix (gap #1) remains UNVERIFIED e2e until the ADMET run can launch — re-run
+  PART B (terfenadine) after this backend deploy. run_id of the failed attempt:
+  60a3e843-0d44-4bb8-8445-e8fe44ec7aef.
