@@ -70,10 +70,12 @@ PASS  [text] BoltzGen fine-tune lost 3/3; DockQ 0.506 vs 0.759
 PASS  [text] cofold ipTM vs physics rho -0.04
 PASS  [text] PeptideCLM-2 31.7M and 114M; strict load
 PASS  [text] budgets, proposal cap, seeds
-PASS  [text] reference library 3,000 (60 for physics), 4 conformers
+PASS  [text] A4 scale: z-score against 1,500 random rule-satisfying draws, no clipping, SD-AUC; 4 conformers
+PASS  [text] A4 saturation numbers: tuned baselines 0.979-0.986, random library 0.886-0.944 at B = 1,000
+PASS  [text] A4 margin: 0.10 x (SD-AUC best baseline - SD-AUC random_lib) per family from evaluation seeds 0-9; +0.03 withdrawn; re-tuned under the new scale
 PASS  [text] F1 formula coefficients
 PASS  [text] control pass rules (floor interval; 0.9 of optimum)
-PASS  [text] margin +0.03; GO/NO-GO/INCONCLUSIVE definitions; effective margin ~0.7 x MDE
+PASS  [text] GO/NO-GO-detectable/INCONCLUSIVE definitions and effective margin ~0.7 x MDE (Track E section 3)
 PASS  [text] lambda_H values 0.229, 0.10, 0 (A3.4)
 PASS  [text] floors 0.15 / +0.10; groups; train 60-68%
 PASS  [text] snake draft and 18 remaining sources
@@ -99,13 +101,14 @@ PASS  [struct] hygiene: no LIT tag  (0 hit(s))
 PASS  [struct] hygiene: no registry  (0 hit(s))
 PASS  [struct] hygiene: no TODO/TBD  (0 hit(s))
 PASS  [struct] hygiene: no pending narration  (0 hit(s))
+PASS  [struct] hygiene: no old scale or margin  (0 hit(s))
 PASS  [struct] hygiene: no priority claim  (0 hit(s))
-PASS  [struct] cross-references resolve (36 section references)  ([])
+PASS  [struct] cross-references resolve (37 section references)  ([])
 PASS  [struct] every referenced table is defined  (referenced ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'] defined ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'])
 PASS  [struct] every defined table is referenced in the text  (unreferenced [])
 PASS  [struct] Figure 1 defined and referenced
-PASS  [struct] unmeasured results are shown as — in tables, not narrated  (145 empty cells)
+PASS  [struct] unmeasured results are shown as — in tables, not narrated  (147 empty cells)
 PASS  [struct] section numbering sequential 1..8  (['1', '2', '3', '4', '5', '6', '7', '8'])
 
-108 checks; failed: 0; value checks 57, text checks 32, struct checks 19
-numeric tokens in Sections 3-5 not covered by any check: 192  ({'design constant, hyperparameter or document-derived number': 98, 'small count or ordinal in prose': 65, 'value from a document or design constant (not machine-readable)': 29})
+111 checks; failed: 0; value checks 57, text checks 34, struct checks 20
+numeric tokens in Sections 3-5 not covered by any check: 184  ({'design constant, hyperparameter or document-derived number': 93, 'small count or ordinal in prose': 67, 'value from a document or design constant (not machine-readable)': 24})

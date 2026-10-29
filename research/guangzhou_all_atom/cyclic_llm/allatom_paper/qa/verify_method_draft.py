@@ -266,10 +266,12 @@ chk("text", "PeptideCLM-2 31.7M and 114M; strict load", "31.7M" in gm and "114M"
 # ---------------------------------------------------------------- evaluation protocol constants (Track E pre-registration text)
 te = rd(os.path.join(DOCS, "20261031_ALLATOM_TRACK_E_PREREG.md"))
 chk("text", "budgets, proposal cap, seeds", all(s in te for s in ("B = 1,000", "20 x B", "300 rule-satisfying", "seeds 100-102", "seeds 0-9", "kappa 1")), "B = 1,000", "20 × B", "seeds 100 to 102", "seeds 0 to 9", "(kappa 1)")
-chk("text", "reference library 3,000 (60 for physics), 4 conformers", "3,000 randomly chosen" in te and "(60 for the physics verifier)" in te and "4 conformers" in te, "3,000 labelled peptides; 60 for the physics verifier", "four ETKDG and MMFF conformers")
+chk("text", "A4 scale: z-score against 1,500 random rule-satisfying draws, no clipping, SD-AUC; 4 conformers", all(x_ in te for x_ in ("1,500 random rule-satisfying draws", "No clipping", "SD-AUC", "4 conformers")), "1,500 random rule-satisfying draws", "four ETKDG and MMFF conformers", "SD-AUC")
+chk("text", "A4 saturation numbers: tuned baselines 0.979-0.986, random library 0.886-0.944 at B = 1,000", "0.979-0.986" in te and "0.886" in te and "0.944" in te, "0.979 to 0.986", "0.886 to 0.944")
+chk("text", "A4 margin: 0.10 x (SD-AUC best baseline - SD-AUC random_lib) per family from evaluation seeds 0-9; +0.03 withdrawn; re-tuned under the new scale", "0.10 x (SD-AUC of the best baseline - SD-AUC of random_lib)" in te and "The earlier +0.03 is withdrawn" in te and "all baselines are re-tuned" in te, "m_f = 0.10 × (SD-AUC of the best baseline − SD-AUC of random library sampling)", "a tenth of the gap that the best baseline closes over random search")
 chk("text", "F1 formula coefficients", "-0.01 TPSA - 0.15 HBD + 0.20 logP - 0.10 max(0, RotB-10)" in te, "−0.01·TPSA − 0.15·HBD + 0.20·logP − 0.10·max(0, rotatable bonds − 10)")
 chk("text", "control pass rules (floor interval; 0.9 of optimum)", "inside the random_lib floor interval" in te and "0.9 of the optimum" in te, "0.9 of the optimum top-10 mean within B")
-chk("text", "margin +0.03; GO/NO-GO/INCONCLUSIVE definitions; effective margin ~0.7 x MDE", "+0.03" in te and "NO-GO-detectable" in te and "0.7 x MDE" in te.replace("0.7 x the MDE", "0.7 x MDE") or "about 0.7 x MDE" in te, "+0.03", "GO", "NO-GO-detectable", "INCONCLUSIVE")
+chk("text", "GO/NO-GO-detectable/INCONCLUSIVE definitions and effective margin ~0.7 x MDE (Track E section 3)", "NO-GO-detectable" in te and ("0.7 x MDE" in te or "about 0.7 x" in te), "GO", "NO-GO-detectable", "INCONCLUSIVE")
 chk("text", "lambda_H values 0.229, 0.10, 0 (A3.4)", "{0.229, 0.10, 0.0}" in te, "{0.229, 0.10, 0}")
 chk("text", "floors 0.15 / +0.10; groups; train 60-68%", "0.15" in te and "+0.10" in te and "60-68%" in te, "0.15", "+0.10")
 chk("text", "snake draft and 18 remaining sources", "18 sources" in te or "remaining 18 sources" in te, "remaining 18 sources")
@@ -304,7 +306,7 @@ chk("text", "40 queries over four topics", "40 queries" in kbsec, "40 queries ov
 # ---------------------------------------------------------------- hygiene: no project-management content
 bad = {"[PENDING": r"\[PENDING", "workstream": r"workstream", "working name": r"working name", "USD": r"\bUSD\b", "docs/ path": r"docs/", "allatom_paper path": r"allatom_paper",
        "commit-hash-like token": r"`[0-9a-f]{9,40}`", "instance id": r"\bi-[0-9a-f]{8,}", "LIT tag": r"\[LIT-", "registry": r"[Rr]esults registry", "TODO/TBD": r"\bTODO\b|\bTBD\b",
-       "pending narration": r"\b(once|until) the (pilot|patent|stream|workstream)", "priority claim": r"to our knowledge|\bfirst (to|time)\b|\bnovel to\b"}
+       "pending narration": r"\b(once|until) the (pilot|patent|stream|workstream)", "old scale or margin": r"normalised AUC|\+0\.03\b|3,000 labelled", "priority claim": r"to our knowledge|\bfirst (to|time)\b|\bnovel to\b"}
 for name, pat in bad.items():
     hit = re.findall(pat, text)
     chk("struct", f"hygiene: no {name}", not hit, detail=f"{len(hit)} hit(s)")
