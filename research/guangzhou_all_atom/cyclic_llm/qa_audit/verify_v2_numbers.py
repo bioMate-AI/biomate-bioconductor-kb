@@ -15,14 +15,14 @@ def fmt(x,d=1,sign=False):
 def cs(m,ci,d=1): return f"{fmt(m,d,True)} ({fmt(ci[0],d)} to {fmt(ci[1],d)})"
 def doc(n): return open(DOCS+n).read()
 # ---- 3.1 table (parsed row by row against the aggregate) ----
-rows31=[l for l in V.split("\n") if l.startswith("| chirality-aware GBM | ") or l.startswith("| chirality-blind GBM | A / B / L") or l.startswith("| physicochemical GBM | A / B / L")]
+rows31=[l for l in V.split("\n") if l.startswith("| chirality-aware GBM | ") or l.startswith("| chirality-blind GBM | A / B / L") or l.startswith("| descriptor GBM | A / B / L")]
 cellre=_re.compile(r"([+−]\d+\.\d)(?: \(([−\d.]+) to ([−\d.]+)\))?")
 def val(x): return float(x.replace("−","-"))
 ok31=True; n31=0
 colname=["loop_sub - frozen_sub [yield]","loop_sub - shuffled_sub [yield]","loop - frozen [yield]","loop - random_fb [yield]"]
 for l in rows31:
     c=[x.strip() for x in l.strip().strip("|").split("|")]
-    learner={"chirality-aware GBM":"gbm_aware","chirality-blind GBM":"gbm_blind","physicochemical GBM":"gbm_physchem"}[c[0]]
+    learner={"chirality-aware GBM":"gbm_aware","chirality-blind GBM":"gbm_blind","descriptor GBM":"gbm_physchem"}[c[0]]
     regs=[c[1]] if len(c[1])==1 else ["A","B","L"]
     for ci_,cn in enumerate(colname):
         cell=c[2+ci_]
@@ -40,7 +40,7 @@ A(f"v2 3.1 table: all {n31} cells match the aggregate",ok31 and n31>=25)
 # ---- 3.2 table: cluster cells vs aggregate contrasts_cluster (percentile bootstrap over sources) ----
 # (existing loop in verify_artifacts checks cl in V for shuf/froz/rand; register the table rows)
 for l in V.split("\n"):
-    if l.startswith(("| chirality-aware | ","| chirality-blind | ","| physicochemical | ")) and "▲" in l or (l.startswith(("| chirality-aware | ","| chirality-blind | ","| physicochemical | ")) and "(" in l): covered.append(l)
+    if l.startswith(("| chirality-aware | ","| chirality-blind | ","| descriptor | ")) and "▲" in l or (l.startswith(("| chirality-aware | ","| chirality-blind | ","| descriptor | ")) and "(" in l): covered.append(l)
 # ---- lab-cluster t intervals and seed-level t (paper1_cluster.json) ----
 pcl=_json.load(open(BASE+"paper1_cluster/results/paper1_cluster.json"))["rows"]
 def P(**kw):
@@ -152,6 +152,14 @@ A("v2 3.3 calibrated real verdicts: I z 0.12/1.93/2.84 vs q 3.14, M2 2.82/2.62/1
 import math as _m
 A("v2 2 calibrated gate constants q 3.145/3.052 and delta(F)",abs(rI["q"]-3.145)<5e-4 and abs(rM["q"]-3.052)<5e-4 and abs(0.5*2.8*0.2014/_m.sqrt(14)-0.0754)<5e-4 and abs(0.5*2.8*0.2014/_m.sqrt(26)-0.0553)<5e-4 and all(x in V for x in ("q = 3.145","3.052","0.0754","0.0553")))
 reg("0.090 (0.054 to 0.139)","0.170 (0.121 to 0.229)","(registered: 0.015)","0.12, 1.93 and 2.84 against q = 3.14","2.82, 2.62 and 1.98 against 3.05","q = 3.145","3.052","0.0754","0.0553","3.0 % to 8.3 %","0.17")
+
+# ---- CycPeptMPDB counts (Introduction) from the local file ----
+import pandas as _pd
+_d=_pd.read_csv(R+"data/raw/CycPeptMPDB_Peptide_All.csv",low_memory=False)
+_p=_d[_d["PAMPA"].notna() & (_d["PAMPA"]>-9.99)].drop_duplicates("Structurally_Unique_ID")
+_vc=_p["Source"].value_counts()
+A("v2 Introduction CycPeptMPDB counts: 8,466 rows, 7,991 unique ids, 6,960 peptides, 41 sources, 20 with >= 20 (6,784), 176 pooled",len(_d)==8466 and _d["Structurally_Unique_ID"].nunique()==7991 and len(_p)==6960 and len(_vc)==41 and int((_vc>=20).sum())==20 and int(_vc[_vc>=20].sum())==6784 and int(_vc[_vc<20].sum())==176 and all(x in V for x in ("8,466 rows","7,991 unique structure identifiers","6,960 peptides","41 literature sources","6,784 peptides","176 peptides")))
+reg("8,466 rows, 7,991 unique structure identifiers, 7,298 PAMPA values","6,960 peptides","41 literature sources","6,784 peptides","176 peptides","21 sources","21 laboratories")
 txt=V
 for s_ in sorted(set(covered),key=len,reverse=True): txt=txt.replace(s_," ")
 # ---- unchecked list, tier 2: membership in the declared source for each v2 line (a weaker check: the number occurs in the source, not that it is the same quantity) ----
@@ -196,7 +204,7 @@ S_PLAN=[DOCS+"20261030_IHLM_LADDER_RESULTS.md",DOCS+"20261030_TECHNIQUE_T2_ACQUI
 S_C2=[BASE+"c2_audit/results_A_aggregate.json",BASE+"c2_audit/results_B_v2_aggregate.json"]
 srcmap=[("Closed design",S_AGG+S_REV+S_GATE+S_LIT),("Cyclic peptides are an active",S_LIT+[R+"data/raw/CycPeptMPDB_Peptide_All.csv"] if False else S_LIT+S_STRAT),("**Related work",S_LIT),("**Status banner",S_AGG),
  ("| C1 |",S_GATE+S_REV),("| C2 |",S_REV),("**Replay.**",S_AGG+S_REV),("**Regimes",S_AGG+S_REV+S_GATE),("**Binder benchmark",S_GATE+S_REV),("**Statistics",S_REV),("An independent methodology",S_REV),
- ("| P",S_AGG+S_GATE+S_REV+S_C2),("Yield (hits",S_AGG),("In regime L the frozen",S_AGG+S_REV),("Seed-based E-AUROC",S_AGG),("In regime L the effect",S_AGG+S_REV),("Analysis I is Pfam",S_GATE+S_REV),("On analysis I (relative",S_GATE),("C2 binding loop",S_C2+S_PLAN),("Within-source Spearman",S_STRAT+S_AGG),("Leave-laboratories-out tests",S_REV+S_AGG+S_PILOT),("| D-flip",S_PILOT),("An in-house loop-native",S_PLAN+S_AGG+S_C2),("Frozen lists",S_AGG),("**One short finding",S_PLAN),("The registered gate was run",[GPC]),("**Design.** The constants",[GCAL]+GCALD),("Detection of planted shortcuts",[GCAL]+GCALD),("**Protocol record",[GCAL]+GCALD),("**Limits.**",GCALD),("**Design.**",GCALD),("| validation cell",[GCAL]),("| analysis-I permutations",[GCAL]),("| synthetic,",[GCAL]),("**Calibrated gate.**",[GCAL]+GCALD),("Under the calibrated gate",[GCAL]+GCALD),("The registered margin",[GPC]),("| analysis-I type",[GPC]),("| M2 type",[GPC]),("Source: `docs/20261031_NEWTARGET",S_PILOT),("**No model gain is claimed",S_PILOT),("We apply a ten-point rulebook",S_REV),("**Findings.**",S_PILOT),("### ",[])]
+ ("| 1 |",S_AGG+S_GATE+S_REV+S_C2),("| 2 |",S_GATE+S_REV+S_AGG),("Yield (hits",S_AGG),("In regime L the frozen",S_AGG+S_REV),("Seed-based held-out AUROC",S_AGG),("Held-out ranking is scored",S_AGG),("In regime L the effect",S_AGG+S_REV),("Analysis I is Pfam",S_GATE+S_REV),("On analysis I (relative",S_GATE),("An earlier retrospective binding loop",S_C2+S_PLAN),("Within-source Spearman",S_STRAT+S_AGG),("Leave-laboratories-out tests",S_REV+S_AGG+S_PILOT),("| D-flip",S_PILOT),("An in-house loop-native",S_PLAN+S_AGG+S_C2),("Frozen lists",S_AGG),("**One short finding",S_PLAN),("The registered gate was run",[GPC]),("**Design.** The constants",[GCAL]+GCALD),("Detection of planted shortcuts",[GCAL]+GCALD),("**Protocol record",[GCAL]+GCALD),("**Limits.**",GCALD),("**Design.**",GCALD),("| validation cell",[GCAL]),("| analysis-I permutations",[GCAL]),("| synthetic,",[GCAL]),("**Calibrated gate.**",[GCAL]+GCALD),("Under the calibrated gate",[GCAL]+GCALD),("The registered margin",[GPC]),("| analysis-I type",[GPC]),("| M2 type",[GPC]),("Source: `docs/20261031_NEWTARGET",S_PILOT),("**No model gain is claimed",S_PILOT),("We apply a ten-point rulebook",S_REV),("**Findings.**",S_PILOT),("### ",[])]
 tier2=[]; left=[]
 cache={}
 for ln,l in enumerate(txt.split("\n"),1):
