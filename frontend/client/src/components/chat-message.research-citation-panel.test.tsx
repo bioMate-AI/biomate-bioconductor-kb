@@ -40,9 +40,13 @@ const baseResponse = {
 }
 
 function expandCitations() {
-  // The rich panel is collapsed by default; expand it to reveal the
-  // transparency + conflict sections that live in the collapsible content.
-  fireEvent.click(screen.getByText("Citations"))
+  // The rich panel now defaults to EXPANDED on a research turn (evidence-forward),
+  // so only click to open it when it is actually collapsed — i.e. the source rows
+  // are not yet in the DOM. Idempotent + robust to the default either way.
+  if (!screen.queryByTestId("source-open-0")) {
+    const toggle = screen.queryByText("Citations")
+    if (toggle) fireEvent.click(toggle)
+  }
 }
 
 describe("live research answer → rich CitationPanel (retrieval + conflicts)", () => {
