@@ -49,6 +49,7 @@ cb={"loop - random_fb [E source-rho]":"rand","loop_sub - shuffled_sub [E source-
 nm=0
 for arm,c in l7["small"].items():
     for k,v in c.get("contrasts_cluster",{}).items():
+        if not arm.startswith(("gbm_physchem|","gbm_aware|","gbm_blind|")) or arm.split("|")[1] not in ("A","B","L"): continue      # regime M = L9 sensitivity (res7n, collected since 2026-10-31), not in the tables; only the three tabled learners; other groups (detK, confirm, chemberta, atom_lm) may have insufficient clusters (ci_cluster None)
         cl=cell(v["mean"],*v["ci_cluster"])
         if arm.startswith(("gbm_physchem|","gbm_aware|","gbm_blind|")):
             # random-feedback cell is absent for plain GBM A,B in the tables
