@@ -79,3 +79,17 @@ def test_strict_filter_a5():
     assert not strict_ok(dict(good, property="other"))
     assert not strict_ok(dict(good, direction="no_effect"))
     assert strict_ok(dict(good, topic="prior_work", property="other", direction="qualitative"))     # direction/property rule applies to sar_rule only
+
+
+def test_strict_filter_a51_property_term_required():
+    from verify import strict_ok
+    good = dict(BASE, proxy_entailment="YES", confidence=0.8, topic="sar_rule", quote="N-methylation of cyclic peptides increased permeability here")
+    # the off-topic chunk-0 example: a 'macrocycle' word but nothing about the rule's property -> rejected under A5.1
+    assert not strict_ok(dict(good, quote="the macrocycles stack one into another by shape complementarity", statement="Macrocycles stack by shape"))
+    # same words, property that matches -> accepted
+    assert strict_ok(dict(good, property="conformation_chameleonicity", quote="the macrocycles adopt a closed conformation by intramolecular hydrogen bonds",
+                          statement="Macrocycles adopt closed conformations"))
+    # a property label that does not match the text is rejected
+    assert not strict_ok(dict(good, property="solubility"))
+    # a non-SAR topic with property 'other' needs only the cyclic term
+    assert strict_ok(dict(good, topic="prior_work", property="other", direction="qualitative"))

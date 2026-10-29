@@ -8,7 +8,7 @@ AMI = "ami-04f7da1c787a89267"  # DL Base OSS Nvidia GPU AMI (CUDA drivers + awsc
 SG = "sg-0de9af2d4437a8c90"
 # us-west-2d (subnet-0b35...) does not offer g5; use 2a/2b/2c
 SUBNETS = ["subnet-0254e4c3634b41bfc", "subnet-03b277a7a08d388c1", "subnet-09e4dce46682a6c60"]
-TYPES = ["g6e.xlarge", "g6e.2xlarge", "g6e.4xlarge", "g6.2xlarge", "g5.2xlarge"]  # g6e = L40S 48 GB (bf16 8B + large KV cache); 24 GB GPUs only as fp8 fallback; >= 32 GB RAM needed to load the 15 GB checkpoint
+TYPES = ["g5.2xlarge", "g6e.xlarge", "g6e.2xlarge", "g6.2xlarge", "g5.4xlarge"]  # g5.2xlarge first (A10G, 32 GB RAM, ~USD 0.5/h); g6e = L40S 48 GB (bf16 8B + large KV cache); 24 GB GPUs only as fp8 fallback; >= 32 GB RAM needed to load the 15 GB checkpoint
 
 UD = r'''#!/bin/bash
 P=__P__

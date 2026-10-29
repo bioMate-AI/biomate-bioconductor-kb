@@ -140,13 +140,28 @@ def benchmark_overlap(author_string: str, year, source_names) -> list:
     return hits
 
 
-STRICT_RELEVANCE_RE = re.compile(r"(cyclic|macrocycl|cyclo|cyclis|cyclis|lariat|stapl|disulfid|lactam|head-to-tail|peptid|RGD|N-methyl)", re.I)
+STRICT_RELEVANCE_RE = re.compile(r"(cyclic|macrocycl|cyclo|cyclis|cycliz|lariat|stapl|disulfid|lactam|head-to-tail|peptid|RGD|N-methyl)", re.I)
+# Amendment A5.1: the cyclic/peptide term alone does not establish relevance (a quote about macrocycle crystal packing contains "macrocycl").
+# The text must ALSO contain a term that matches the rule's own `property` label. Property "other" (non-SAR topics only) needs the cyclic term only.
+STRICT_PROPERTY_RE = {
+    "permeability": r"permeab|PAMPA|Caco|MDCK|RRCK|membrane|passive diffusion|polar surface|TPSA|logD|lipophil",
+    "oral_bioavailability": r"bioavailab|\boral|absorption|exposure",
+    "binding_affinity": r"affinity|potency|IC50|EC50|\bKd\b|\bKi\b|\bbind|inhibit|selectiv|agonist|antagonist|activity",
+    "selectivity": r"selectiv|affinity|\bbind|IC50|\bKd\b",
+    "solubility": r"solub|aggregat|precipitat",
+    "metabolic_stability": r"metabol|microsom|clearance|half-life|stability",
+    "proteolytic_stability": r"proteol|protease|stability|degrad|half-life|serum",
+    "conformation_chameleonicity": r"conform|hydrogen bond|chameleon|\bNOE\b|ensemble|rigid|flexib|\bfold|\bturn\b|\bring\b",
+    "renal_pk": r"renal|kidney|clearance|pharmacokinetic|\bPK\b|half-life",
+    "toxicity_liability": r"toxic|hemoly|liabilit|cytotox|immunogen",
+    "synthesis_macrocyclization": r"cycliz|cyclis|synthes|yield|coupling|ring-closing|macrolactam|stapl",
+}
 
 
 def strict_ok(rule: dict) -> bool:
-    """Amendment A5 (frozen before any precision judgement): STRICT arm = RAW verified AND all of:
-    proxy_entailment == YES; confidence >= 0.7; relevance: quote+statement mentions a cyclic/peptide term;
-    sar_rule must have a non-'other' property and direction in {increases, decreases, conditional}."""
+    """STRICT arm (A5, tightened by A5.1; frozen before any precision judgement or STRICT-arm count): RAW verified AND all of:
+    proxy_entailment == YES; confidence >= 0.7; text (quote+statement) has a cyclic/peptide term AND a term matching the rule's property
+    (property 'other' needs only the cyclic term); sar_rule must have a non-'other' property and direction in {increases, decreases, conditional}."""
     if rule.get("proxy_entailment") != "YES":
         return False
     try:
@@ -154,7 +169,11 @@ def strict_ok(rule: dict) -> bool:
             return False
     except (TypeError, ValueError):
         return False
-    if not STRICT_RELEVANCE_RE.search(norm(rule.get("quote", "")) + " " + norm(rule.get("statement", ""))):
+    text = norm(rule.get("quote", "")) + " " + norm(rule.get("statement", ""))
+    if not STRICT_RELEVANCE_RE.search(text):
+        return False
+    prx = STRICT_PROPERTY_RE.get(rule.get("property"))
+    if prx and not re.search(prx, text, re.I):
         return False
     if rule.get("topic", "sar_rule") == "sar_rule":
         if rule.get("property") == "other" or rule.get("direction") not in ("increases", "decreases", "conditional"):
