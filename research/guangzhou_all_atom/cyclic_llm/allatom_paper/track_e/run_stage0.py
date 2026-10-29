@@ -35,11 +35,12 @@ def parse_seeds(s):
 
 def setup(a):
     t0 = time.time()
-    L = VE.build_ladder(a.ann)
+    L = VE.build_ladder(a.ann, version=a.groups)
     G.update(L)
     G["seeds"] = BL.build_seeds(L["d"], L["groups"])
     G["reg"] = BL.registry(G["seeds"])
     ph, nref = VE.physics_heldout_verifier(L["ref"], n_ref=a.n_ref)
+    ph = ph
     G["physics"] = ph
     json.dump(dict(group_summary=L["group_summary"], n_seeds=len(G["seeds"]), n_phys_ref=nref, setup_s=round(time.time() - t0, 1)),
               open(os.path.join(a.out, "setup.json"), "w"), indent=1, default=str)
@@ -180,6 +181,7 @@ if __name__ == "__main__":
     ap.add_argument("--ann", default=VE.ANN_DEFAULT)
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2)))
     ap.add_argument("--n-ref", type=int, default=60)
+    ap.add_argument("--groups", default="v2", choices=["v1", "v2"])
     a = ap.parse_args()
     a.cfg = a.cfg or os.path.join(a.out, "tuned.json")
     os.makedirs(a.out, exist_ok=True)

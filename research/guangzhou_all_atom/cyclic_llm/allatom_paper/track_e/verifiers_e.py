@@ -106,13 +106,35 @@ def load_labelled(ann_path=ANN_DEFAULT, assay=ASSAY):
     return d.reset_index(drop=True)
 
 
-def source_groups(d):
-    """Deterministic size-balanced round-robin over sources (largest first): groups A=0 (train), S=1 (stop), B=2 (held-out).
-    Uses only source sizes. Returns dict source -> group index."""
+LARGEST_LABS = ("2020_Townsend", "2021_Kelly")
+
+
+def source_groups(d, version="v2"):
+    """version 'v1' (amendment A1): size-balanced round-robin [0,1,2,2,1,0] over sources sorted by (-n, name).
+    version 'v2' (amendment A2): the two largest labs (2020_Townsend, 2021_Kelly) are ALWAYS train (group 0) and never used for the stop or
+    held-out verifiers; the remaining sources (>= MIN_SRC labelled peptides) are dealt to S (1) and B (2) by a snake draft on size
+    (pattern S,B,B,S repeated, sources sorted by (-n, name)). Sources with < MIN_SRC peptides are excluded (within-source z is unreliable below 20).
+    Uses source sizes only, never a score. Returns dict source -> group index (0=A train, 1=S stop, 2=B held-out)."""
     sizes = d.groupby("Source").size()
-    ranked = sorted(sizes.items(), key=lambda kv: (-int(kv[1]), str(kv[0])))      # size desc, ties by source name
-    order = [0, 1, 2, 2, 1, 0]
-    return {src: order[i % len(order)] for i, (src, _) in enumerate(ranked)}
+    ranked = sorted(sizes.items(), key=lambda kv: (-int(kv[1]), str(kv[0])))
+    if version == "v1":
+        order = [0, 1, 2, 2, 1, 0]
+        return {src: order[i % len(order)] for i, (src, _) in enumerate(ranked)}
+    if version != "v2":
+        raise ValueError(version)
+    groups, rest = {}, []
+    for src, n in ranked:
+        if src in LARGEST_LABS:
+            groups[src] = 0
+        else:
+            rest.append(src)
+    pat = [1, 2, 2, 1]
+    for i, src in enumerate(rest):
+        groups[src] = pat[i % 4]
+    ns = {g: sum(1 for v in groups.values() if v == g) for g in (1, 2)}
+    if min(ns.values()) < 5:
+        raise ValueError(f"groups v2: S/B need >= 5 sources each, got {ns}")
+    return groups
 
 
 def group_summary(d, groups):
@@ -148,11 +170,11 @@ def _pct(ref_sorted):
     return lambda raw: float(np.searchsorted(ref_sorted, raw, side="right")) / len(ref_sorted)
 
 
-def build_ladder(ann_path=ANN_DEFAULT, seed=0, ref_cap=3000):
+def build_ladder(ann_path=ANN_DEFAULT, seed=0, ref_cap=3000, version="v2"):
     """Fits every verifier (EC2/Spark only). Returns dict with verifiers per family, groups, and reference sets."""
     from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
     d = load_labelled(ann_path)
-    groups = source_groups(d)
+    groups = source_groups(d, version)
     d["g"] = d["Source"].map(groups)
     srcs = {g: frozenset(d[d.g == g]["Source"].unique()) for g in (0, 1, 2)}
     XA = features(d[d.g == 0]["smiles"].tolist(), "A"); yA = d[d.g == 0]["z"].values
@@ -189,7 +211,7 @@ def build_ladder(ann_path=ANN_DEFAULT, seed=0, ref_cap=3000):
 
 
 # ---------------------------------------------------------------------------------------------- physics held-out (F1)
-def polar_sasa_min(smiles, n_conf=6, seed=7, max_iters=200):
+def polar_sasa_min(smiles, n_conf=4, seed=7, max_iters=200):
     """Minimum over ETKDG+MMFF conformers of the polar (N,O and their H) solvent-accessible surface area; None on failure."""
     from rdkit import Chem
     from rdkit.Chem import AllChem, rdFreeSASA
