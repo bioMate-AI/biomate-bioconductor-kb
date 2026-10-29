@@ -37,3 +37,12 @@ Open-weight model `Qwen/Qwen3-8B` via vLLM on a spot GPU (no paid external APIs)
 
 ## 6. Limits stated in advance
 PDF/table layout loss in HTML text; chemical-name-to-structure mapping fails for IUPAC names (not attempted); claims vs examples differ in reliability (examples with measured data are tagged `example`, claim text `claim`); US-centric and English-centric selection through SureChEMBL/Google Patents; the model may miss multi-page tables; selection by macrocyclic-peptide compound density favours patents with large compound libraries.
+
+## Amendment A1 (2026-10-29 12:50 CDT; BEFORE any selection or extraction run; probe results read: schemas only)
+Probe findings (probe2 on EC2, `probe.json`): SureChEMBL `patents.parquet` (44.5 M rows) carries `cpc`, `ipc`, `asignee`, `title`, `publication_date`, `family_id`, `country`; `compounds.parquet` (30.9 M rows) has `smiles`, `inchi_key`, `mol_weight`; `patent_compound_map.parquet` (1.53 billion rows) has `patent_id`, `compound_id`, `field_id` (fields: `desc`, `clms`, `abst`, ...). Google Patents pages parse with all fields present on 3/3 test patents (descriptions 93k-651k characters). BindingDB patent TSV downloads directly (171.6 MB) and has `Patent Number`, SMILES, InChIKey, Ki/IC50/Kd/EC50 columns.
+Changes to section 2 (selection), nothing else:
+1. Pool restriction: country in {US, WO, EP} (English-language full text on Google Patents), publication year >= 2000, one patent per family (earliest member with a non-empty description).
+2. Two strata, 100 patents each, seed 20261031: **D (density)**: patents with >= 5 distinct peptide-macrocycle compounds in SureChEMBL; 60 top-ranked + 40 random from the next 2,000. **C (CPC)**: patents carrying >= 1 verified cyclic-peptide CPC code (C07K 7/50-7/66) and >= 1 peptide-macrocycle compound, not already in D; 100 random. Spare candidates (20 per stratum, same rule) replace pages that fail to retrieve.
+3. Clarification of the compound filter: the >= 3 amide bonds must lie WITHIN the >= 12-membered ring (C and N both ring members), stricter than "in or attached".
+4. The share of D-stratum patents carrying a verified CPC code is reported (describes how well compound density finds cyclic-peptide patents).
+Acceptance criteria in section 5 are unchanged.

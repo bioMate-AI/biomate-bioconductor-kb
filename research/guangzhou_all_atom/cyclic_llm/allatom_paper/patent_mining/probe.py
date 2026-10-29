@@ -12,43 +12,67 @@ def http(url, binary=False, headers=None, timeout=60):
         b = r.read()
         return b if binary else b.decode("utf-8", "replace")
 
-# 1) SureChEMBL parquet schemas via duckdb over HTTPS
+# 1) SureChEMBL parquet schemas: read ONLY the parquet footer over HTTPS (fsspec range reads); sample rows only from small row groups
+def save():
+    json.dump(res, open(os.path.join(OUT, "probe.json"), "w"), indent=1, default=str)
+
 try:
-    import duckdb
-    con = duckdb.connect()
-    con.execute("INSTALL httpfs; LOAD httpfs;")
+    import fsspec, pyarrow.parquet as pq
+    fs = fsspec.filesystem("https", headers={"User-Agent": config.GP_UA})
     res["surechembl"] = {}
     for f in config.SURECHEMBL_FILES:
         url = f"{config.SURECHEMBL_BASE}/{f}"
         try:
-            d = con.execute(f"DESCRIBE SELECT * FROM read_parquet('{url}')").fetchall()
-            n = con.execute(f"SELECT count(*) FROM read_parquet('{url}')").fetchone()[0]
-            s = con.execute(f"SELECT * FROM read_parquet('{url}') LIMIT 3").fetchall()
-            res["surechembl"][f] = {"columns": [(x[0], x[1]) for x in d], "rows": n, "sample": [[str(c)[:120] for c in r] for r in s]}
+            with fs.open(url, "rb", block_size=8 * 1024 * 1024) as fh:
+                pf = pq.ParquetFile(fh)
+                md = pf.metadata
+                rgs = [md.row_group(i).total_byte_size for i in range(min(md.num_row_groups, 50))]
+                info = {"rows": md.num_rows, "row_groups": md.num_row_groups, "rg0_bytes": rgs[0] if rgs else None,
+                        "rg_bytes_max_first50": max(rgs) if rgs else None,
+                        "columns": [(pf.schema_arrow.field(i).name, str(pf.schema_arrow.field(i).type)) for i in range(len(pf.schema_arrow))]}
+                res["surechembl"][f] = info
+                save()
+                if rgs and rgs[0] < 400 * 1024 * 1024:
+                    try:
+                        tb = pf.read_row_group(0).slice(0, 3)
+                        info["sample"] = [[str(tb.column(c)[r])[:140] for c in range(tb.num_columns)] for r in range(tb.num_rows)]
+                    except Exception as e:
+                        info["sample_error"] = repr(e)[:200]
+                else:
+                    info["sample_skipped"] = "row group too large"
         except Exception as e:
             res["surechembl"][f] = {"error": repr(e)[:300]}
+        save()
 except Exception as e:
     res["surechembl_error"] = repr(e)[:300]
+    save()
 
-# 2) BindingDB patent TSV
+# 2) BindingDB patent TSV (streamed to disk; head only)
 try:
     t0 = time.time()
-    b = http(config.BINDINGDB_PATENT_TSV, binary=True, timeout=600)
-    res["bindingdb"] = {"bytes": len(b), "seconds": round(time.time() - t0, 1), "head": b[:4].hex()}
-    z = zipfile.ZipFile(io.BytesIO(b))
+    path = os.path.join(OUT, "bindingdb_patents.tsv.zip")
+    req = urllib.request.Request(config.BINDINGDB_PATENT_TSV, headers={"User-Agent": config.GP_UA})
+    with urllib.request.urlopen(req, timeout=600) as r, open(path, "wb") as fo:
+        while True:
+            chunk = r.read(1 << 20)
+            if not chunk:
+                break
+            fo.write(chunk)
+    res["bindingdb"] = {"bytes": os.path.getsize(path), "seconds": round(time.time() - t0, 1)}
+    z = zipfile.ZipFile(path)
     name = z.namelist()[0]
     res["bindingdb"]["file"] = name
     import pandas as pd
-    df = pd.read_csv(z.open(name), sep="\t", low_memory=False, on_bad_lines="skip", nrows=200000)
-    res["bindingdb"]["columns"] = list(df.columns)[:60]
+    df = pd.read_csv(z.open(name), sep="\t", low_memory=False, on_bad_lines="skip", nrows=60000)
+    res["bindingdb"]["columns"] = list(df.columns)[:70]
     res["bindingdb"]["n_columns"] = len(df.columns)
     pc = [c for c in df.columns if "atent" in c]
     res["bindingdb"]["patent_columns"] = pc
     if pc:
         res["bindingdb"]["sample_patents"] = [str(x) for x in df[pc[0]].dropna().unique()[:5]]
-    open(os.path.join(OUT, "bindingdb_patents.tsv.zip"), "wb").write(b)
 except Exception as e:
     res["bindingdb_error"] = repr(e)[:300]
+save()
 
 # 3) Google Patents fetch + parse test (polite delay)
 tests = ["US10590171B2"]

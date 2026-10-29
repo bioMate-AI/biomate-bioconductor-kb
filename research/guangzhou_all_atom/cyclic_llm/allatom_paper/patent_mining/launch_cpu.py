@@ -16,7 +16,7 @@ SYNC=$!
 dnf install -y python3.11 python3.11-pip python3.11-devel gcc >/w/out/dnf.log 2>&1
 aws s3 cp __CODE__ /w/code.tgz --only-show-errors && tar xzf /w/code.tgz -C /w/code
 cd /w/code
-python3.11 -m pip install -q numpy pandas pyarrow duckdb rdkit pytest requests >/w/out/pip.log 2>&1; echo "pip rc=$?" | tee -a /w/out/stage.log
+python3.11 -m pip install -q numpy pandas pyarrow duckdb rdkit pytest requests fsspec aiohttp >/w/out/pip.log 2>&1; echo "pip rc=$?" | tee -a /w/out/stage.log
 ( __CMD__ ) > /w/out/job.log 2>&1; echo "job rc=$?" | tee -a /w/out/stage.log
 echo DONE > /w/out/done.flag; sleep 5; aws s3 sync /w/out $P/ --only-show-errors
 kill $SYNC; shutdown -h now
