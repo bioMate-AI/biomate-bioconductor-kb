@@ -8,7 +8,7 @@ AMI = "ami-04f7da1c787a89267"  # DL Base OSS Nvidia GPU AMI (CUDA drivers + awsc
 SG = "sg-0de9af2d4437a8c90"
 # us-west-2d (subnet-0b35...) does not offer g5; use 2a/2b/2c
 SUBNETS = ["subnet-0254e4c3634b41bfc", "subnet-03b277a7a08d388c1", "subnet-09e4dce46682a6c60"]
-TYPES = ["g5.xlarge", "g6.xlarge", "g5.2xlarge", "g6.2xlarge", "g6e.xlarge", "g6e.2xlarge", "g5.4xlarge", "g6.4xlarge"]
+TYPES = ["g6.2xlarge", "g5.2xlarge", "g6e.2xlarge", "g6.4xlarge", "g5.4xlarge"]  # >= 32 GB RAM: 16 GB hosts load the 15 GB checkpoint at ~9 MB/s (IOPS-bound page faults)
 
 UD = r'''#!/bin/bash
 P=__P__
@@ -29,7 +29,7 @@ pip install -q vllm pytest >/w/out/pip1.log 2>&1; echo "pip rc=$?" | tee -a /w/o
 python -c "import vllm,torch;print('vllm',vllm.__version__,'torch',torch.__version__,'cuda',torch.cuda.is_available())" 2>&1 | tail -2 | tee -a /w/out/stage.log
 python -m pytest -q --import-mode=importlib -p no:cacheprovider test_k2.py > /w/out/tests.log 2>&1; echo "tests rc=$?" | tee -a /w/out/stage.log
 if ! grep -q "passed" /w/out/tests.log || grep -q "failed" /w/out/tests.log; then echo "TESTS FAILED" | tee -a /w/out/stage.log; sleep 120; aws s3 sync /w/out $P/ --only-show-errors; shutdown -h now; exit 3; fi
-python acquire.py --out /w/out/corpus.jsonl.gz --per-query __PQ__ --total __TOTAL__ > /w/out/acquire.log 2>&1; echo "acquire rc=$?" | tee -a /w/out/stage.log
+__ACQUIRE__
 python extract.py --corpus /w/out/corpus.jsonl.gz --outdir /w/out/extract > /w/out/extract.log 2>&1; echo "extract rc=$?" | tee -a /w/out/stage.log
 python - <<'PY'
 import gzip,json
@@ -56,6 +56,7 @@ def main():
     ap.add_argument("--total", type=int, default=300)
     ap.add_argument("--per-query", type=int, default=25)
     ap.add_argument("--gold", help="optional K gold file to ship with the code as gold.jsonl")
+    ap.add_argument("--reuse-corpus", help="s3 URI of a corpus.jsonl.gz from an earlier run: skips acquisition")
     a = ap.parse_args()
     P = f"{B}/{a.run_id}"
     codekey = f"{P}_code/code.tgz"
@@ -81,7 +82,11 @@ def main():
     tmp = f"/tmp/k2_code_{a.run_id}.tgz"
     open(tmp, "wb").write(buf.getvalue())
     run(["aws", "s3", "cp", tmp, codekey, "--only-show-errors"])
-    ud = UD.replace("__P__", P).replace("__CODE__", codekey).replace("__PQ__", str(a.per_query)).replace("__TOTAL__", str(a.total))
+    if a.reuse_corpus:
+        acq = f'aws s3 cp {a.reuse_corpus} /w/out/corpus.jsonl.gz --only-show-errors > /w/out/acquire.log 2>&1; echo "acquire(reused) rc=$?" | tee -a /w/out/stage.log'
+    else:
+        acq = 'python acquire.py --out /w/out/corpus.jsonl.gz --per-query __PQ__ --total __TOTAL__ > /w/out/acquire.log 2>&1; echo "acquire rc=$?" | tee -a /w/out/stage.log'
+    ud = UD.replace("__ACQUIRE__", acq).replace("__P__", P).replace("__CODE__", codekey).replace("__PQ__", str(a.per_query)).replace("__TOTAL__", str(a.total))
     udpath = f"/tmp/k2_ud_{a.run_id}.sh"
     open(udpath, "w").write(ud)
     for t in TYPES:
