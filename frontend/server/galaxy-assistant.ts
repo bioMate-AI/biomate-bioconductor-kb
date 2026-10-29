@@ -240,6 +240,32 @@ a summary count. Sources marked status "planned" are not yet wired (do not claim
       required: [],
     },
   },
+  {
+    name: 'search_workflows',
+    description: `Search BioMate's OWN catalog of 4,200+ indexed Nextflow/nf-core workflows (across
+42 biological domains) by natural-language intent, on ANY turn. Use this — do NOT answer from the
+static capability counts in the system prompt — whenever the user asks what BioMate can run, e.g.
+"do you have a sarek variant-calling workflow?", "is there an RNA-seq pipeline?", "what CryoEM
+workflows exist?", or when deciding whether a matching pipeline already exists before suggesting one.
+Returns the top ranked real catalog entries (name, domain, one-line description, source, and relevance
+score) from the live index. If nothing relevant comes back, the catalog has no close match — say so
+instead of inventing a workflow name.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Natural-language description of the pipeline/task (e.g. "somatic variant calling WGS", "bulk RNA-seq differential expression", "single-particle cryo-EM refinement").',
+        },
+        domain: {
+          type: 'string',
+          description: 'Optional domain bias, e.g. "variant_calling", "transcriptomics", "drug_discovery", "cryo_em". Narrows ranking toward that domain; omit to search all domains.',
+        },
+        limit: { type: 'number', description: 'Max results to return (default 10, cap 25).' },
+      },
+      required: ['query'],
+    },
+  },
 ];
 
 /**
@@ -2950,6 +2976,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
             case 'search_literature': output = await this._toolSearchLiterature(args); break;
             case 'search_my_data': output = await this._toolSearchMyData(args, toolContext.context); break;
             case 'list_data_sources': output = await this._toolListDataSources(args); break;
+            case 'search_workflows': output = await this._toolSearchWorkflows(args); break;
             default:
               // External MCP tools (mcp__<server>__<tool>) → route to owning server.
               if (typeof name === 'string' && name.startsWith('mcp__')) {
@@ -8436,20 +8463,20 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
 PROACTIVE-WORK RULE (highest priority):
 - Do everything you can with the information already on the table BEFORE asking the user a clarifying question.
 - NEVER produce any of these refusal patterns: "I don't have internet access", "I can't query databases", "I can't execute under the current environment", "I lack live access to X", "I can't run this in this environment". They are FALSE — BioMate has live DB integrations on the backend, indexed DB-API tool-functions reachable via workflow steps, and pre-resolved results injected into the prompt. Only report a failure when a tool actually returned an error in this turn.
-- If the user gave a SMILES, gene symbol, accession, or any other identifier, ASSUME BioMate has resolved it — look for the resolved record in <compound_lookup_results>, <pre_satisfied_parameters>, or prior tool messages. Use those before claiming anything is missing.
+- If the user gave a SMILES, gene symbol, accession, or any other identifier, ASSUME BioMate can resolve it — look in <pre_satisfied_parameters> or prior tool messages, or resolve it yourself via the data-plane tools (search_literature, list_data_sources, run_code). Use those before claiming anything is missing.
 
 BioMate's real capability surface (verified, do not extrapolate):
 - **4,200+ indexed Nextflow workflows** across 36 biological domains: transcriptomics (1,695), genomics (756), epigenomics (265), drug_discovery (200), proteomics (186), variant_calling (181), single_cell (100), cryo_em (19), and more.
 - **12,312 indexed tool-functions** (individual command/wrapper entries) in the AI tool DB, ~4,141 with curated tool_knowledge metadata. Includes ~179 DB-API tool-functions (PubChem Download, UniProt Sparql, PubMed query, ChEMBL fetchers, etc.) that workflow steps can invoke.
 - **Verified live DB integrations** called directly from the Galaxy backend Python (research_agent + knowledge modules):
-  - PubChem (compounds; SMILES results auto-injected via <compound_lookup_results>)
+  - PubChem (compounds; resolve SMILES/CIDs on demand via the backend DB integrations)
   - PubMed / NCBI E-utilities (literature, gene lookups)
   - UniProt REST (proteins)
   - EBI (api.ebi.ac.uk — covers ChEMBL, Ensembl, AlphaFold)
   - OpenTargets platform API (drug-target evidence)
   - UCSC genome browser API
   Other DBs (KEGG, Reactome, OMIM, HPO, GTEx, ENCODE, DepMap, …) are reachable indirectly: route to an indexed DB-API tool-function as a workflow step rather than disclaiming. Say "I can pull this via the <tool-name> workflow step" — don't tell the user we lack the source.
-- **Auto-injected pre-results** appear in <compound_lookup_results>, <pre_satisfied_parameters>, and similar tags. Read those before answering.
+- **Auto-injected pre-results** appear in <pre_satisfied_parameters> and similar tags. Read those before answering.
 - **run_code tool** — Python/R/bash in an ephemeral biomate-biotools sandbox. R + Bioconductor (DESeq2, clusterProfiler, edgeR, limma, GSVA, fgsea, ReactomePA), numpy/scipy/pandas/statsmodels, biopython, pysam, cyvcf2, samtools/bcftools/bwa/mafft/iqtree pre-installed. **Sandboxed with --network=none — run_code cannot reach external APIs.** Use it for offline compute on data already in the prompt or attached as a file. If you need data from a DB, route to a workflow step that pulls it.
 - **Workflow execution** on AWS Batch via Nextflow — heavy-compute production path. All real workflows run on AWS; there is no local-vs-AWS switch. The two paths overlap in what statistical / R+Bioconductor work they CAN do — pick by scale and whether the task matches an indexed pipeline.
 - **Reusing prior-run outputs as next-workflow inputs.** Any workflow file parameter accepts the URI \`run:<fullRunId>:outputs/<filename>\`, which the backend automatically resolves to the underlying S3 path. To use this: call \`list_history\` to find the prior run's full id, then \`list_run_outputs\` to get its output file names. The \`param_uri\` field in that tool's response is the exact string to pass as the file param value — do not transform it. Example: a previous variant-calling run \`abcdef1234567890\` produced \`variants.vcf\`; for a variant-annotation workflow, set \`vcf_input = "run:abcdef1234567890:outputs/variants.vcf"\`.
@@ -8513,12 +8540,12 @@ For trivial arithmetic, answer directly without invoking run_code.`
 PROACTIVE-WORK RULE (highest priority):
 - Do everything you can with what's on the table BEFORE asking the user a clarifying question. Use literature defaults (typical human dose/route, standard population, well-characterized PK values for known drugs) and STATE assumptions explicitly.
 - NEVER produce refusal patterns like "I don't have internet access", "I can't query databases", "I can't execute under the current environment". They are FALSE. Only report a failure when a tool returned an actual error in this turn.
-- Check <compound_lookup_results>, <pre_satisfied_parameters>, and prior tool messages before claiming an identifier is unresolved.
+- Check <pre_satisfied_parameters> and prior tool messages before claiming an identifier is unresolved.
 
 BioMate's real capability surface:
 - **4,200+ indexed Nextflow workflows** across 36 domains (transcriptomics 1,695, genomics 756, epigenomics 265, drug_discovery 200, proteomics 186, variant_calling 181, single_cell 100, cryo_em 19, …)
 - **12,312 indexed tool-functions** in the AI tool DB, ~4,141 with curated metadata. Includes ~179 DB-API tool-functions (PubChem, UniProt, ChEMBL, PubMed, etc. wrappers) that workflow steps invoke.
-- **Verified live DB integrations** in the Galaxy backend: PubChem, NCBI E-utilities / PubMed, UniProt, EBI (ChEMBL / Ensembl / AlphaFold), OpenTargets, UCSC. Pre-resolved results injected via <compound_lookup_results> when relevant.
+- **Verified live DB integrations** in the Galaxy backend: PubChem, NCBI E-utilities / PubMed, UniProt, EBI (ChEMBL / Ensembl / AlphaFold), OpenTargets, UCSC. Resolve identifiers against these on demand rather than disclaiming.
 - **run_code tool** — Python/R/bash in the biomate-biotools sandbox (R + Bioconductor, numpy/scipy/pandas, samtools/mafft/bwa/iqtree, biopython/pysam pre-installed). **--network=none — cannot reach external APIs.** Light-compute path for ad-hoc / format conversion / small statistical work on data already in the prompt.
 - **Workflow execution** on AWS Batch via Nextflow — heavy-compute production path; the path with network. ALL real workflows run on AWS; there is no local-vs-AWS switch. Pick run_code or Nextflow by scale + whether the task matches an indexed pipeline.
 - If the user needs to supply project-specific data, ask straightforwardly: "Please upload [format] / provide [value]." Do not phrase it as an environment limitation.
@@ -9277,6 +9304,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           case 'list_data_sources':
             output = await this._toolListDataSources(block.input);
             break;
+          case 'search_workflows':
+            output = await this._toolSearchWorkflows(block.input);
+            break;
           default:
             // External MCP tools are namespaced mcp__<server>__<tool>; route them
             // to the owning remote server (ownership-checked backend-side).
@@ -9745,6 +9775,60 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       const status = err?.response?.status;
       const detail = err?.response?.data?.detail || err?.response?.data?.error || err?.message;
       return { error: `MCP tool ${name} failed${status ? ` (HTTP ${status})` : ''}: ${detail}` };
+    }
+  }
+
+  /** search_workflows tool handler — searches BioMate's OWN workflow/tool catalog
+   *  (the #1 world-model gap: previously the catalog was only reachable inside the
+   *  workflow_generation intent, so on research/knowledge/comparison turns the model
+   *  could only parrot the static counts in the prompt). Reuses the EXISTING backend
+   *  ranked search (/api/ai_assistant/search_ranked → UnifiedWorkflowSearch) — no new
+   *  search engine. Returns a compact ranked list so the model can answer "do you have
+   *  a sarek WGS workflow?" from the real index instead of hallucinating. */
+  private async _toolSearchWorkflows(input: any): Promise<unknown> {
+    const query = (input?.query ?? '').toString().trim();
+    if (!query) return { error: 'query is required' };
+    const domain = (input?.domain ?? '').toString().trim();
+    let limit = Number(input?.limit);
+    if (!Number.isFinite(limit) || limit < 1) limit = 10;
+    if (limit > 25) limit = 25;
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    try {
+      const r = await fetch(`${galaxyUrl}/api/ai_assistant/search_ranked`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query,
+          limit,
+          preferred_domains: domain ? [domain] : null,
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+      if (!r.ok) return { error: `workflow search HTTP ${r.status}`, query };
+      const data: any = await r.json();
+      const items: any[] = Array.isArray(data?.results) ? data.results : [];
+      const results = items.slice(0, limit).map((w: any) => ({
+        rank: w.rank,
+        name: w.display_name || w.name,
+        id: w.name,
+        domain: w.domain ?? undefined,
+        description: w.description ? String(w.description).slice(0, 200) : undefined,
+        source: w.source ?? undefined,
+        format: w.format ?? undefined,
+        type: w.type ?? 'workflow',
+        score: w.score ?? null,
+      }));
+      return {
+        query,
+        domain: domain || undefined,
+        total: results.length,
+        results,
+        note: results.length
+          ? 'These are BioMate\'s REAL indexed workflows. Refer to one by its name; do NOT invent a workflow that is not in this list. type "chain" = a multi-workflow pipeline. To run one, start a workflow-generation turn with the matching intent.'
+          : 'No close match in the catalog for this query. Say the catalog has no matching pipeline rather than inventing a name; BioMate can still generate a new workflow on a workflow-generation turn.',
+      };
+    } catch (err: any) {
+      return { error: err?.message ?? String(err), query };
     }
   }
 

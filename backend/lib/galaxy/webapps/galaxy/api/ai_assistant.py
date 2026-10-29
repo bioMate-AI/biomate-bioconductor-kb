@@ -2306,6 +2306,7 @@ def search_ranked(
                 "name": r.name,
                 "display_name": getattr(r, "display_name", None) or r.name,
                 "description": (getattr(r, "description", None) or "")[:200],
+                "domain": getattr(r, "domain", None) or "",
                 "source": getattr(r, "source", ""),
                 "format": getattr(r, "format", ""),
                 "score": round(r.score, 3),
@@ -2326,6 +2327,7 @@ def search_ranked(
                 "name": c.name,
                 "display_name": c.display_name or c.name,
                 "description": (c.description or "")[:200],
+                "domain": getattr(c, "domain", None) or "",
                 "source": "chain",
                 "format": "chain",
                 "score": None,  # chains use cosine similarity, not raw score
