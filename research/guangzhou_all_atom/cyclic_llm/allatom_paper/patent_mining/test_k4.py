@@ -68,3 +68,12 @@ def test_converter_n_methyl_and_d_residue_change_the_molecule():
     b = s2s.to_smiles("Ala-D-Phe-Gly-Leu")[0]
     c = s2s.to_smiles("Ala-N-Me-Phe-Gly-Leu")[0]
     assert len({a, b, c}) == 3
+
+
+def test_passages_cut_a_long_single_paragraph_into_bounded_windows():
+    import extract_patents as ep
+    body = "Example 1 the compound cyclo(Cys-Pro-Ala) had an IC50 of 5 nM and Table 1 shows N-methyl permeability. " * 400
+    text = "Title\n\nAbstract\n\nCLAIMS: x\n\n" + body
+    out = ep.passages(text, words=450, cap=30)
+    assert 1 <= len(out) <= 30
+    assert all(len(ps.split()) <= 450 for _, ps in out)

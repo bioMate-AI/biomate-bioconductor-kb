@@ -19,17 +19,20 @@ Rules: use only information in the passage; never paraphrase the quote or the st
 
 SCORE_RX = re.compile(r"(Example|Table|IC50|EC50|Kd\b|Ki\b|nM\b|µM|uM\b|permeab|PAMPA|Caco|N-methyl|NMe|D-amino|cyclo|macrocycl|SEQ ID|ring size|stability|half-life)", re.I)
 
-def passages(text, words=700, min_words=100, cap=40):
-    paras = [p for p in re.split(r"\n\s*\n|(?<=\.)\s{2,}", text) if p.strip()]
-    if len(paras) < 3:  # description arrives as one long line: split by sentences into word windows
-        toks = text.split()
-        paras = [" ".join(toks[i:i + words]) for i in range(0, len(toks), words)]
-    cur, n, out = [], 0, []
-    for p in paras:
-        w = len(p.split())
-        if cur and n + w > words:
+def passages(text, words=450, min_words=100, cap=30):
+    """Split into <= `words`-word windows (long paragraphs are cut: the Google Patents description arrives as ONE paragraph), keep windows with
+    >= 3 example/table/SAR pattern hits, at most `cap` per patent (highest hit count first, returned in document order)."""
+    toks = []
+    for para in [p for p in re.split(r"\n\s*\n", text) if p.strip()]:
+        toks.extend(para.split())
+        toks.append("\n")            # paragraph marker keeps boundaries between title / abstract / claims / description
+    out, cur, n = [], [], 0
+    for t in toks:
+        if t == "\n":
+            continue
+        cur.append(t); n += 1
+        if n >= words:
             out.append(" ".join(cur)); cur, n = [], 0
-        cur.append(p); n += w
     if cur:
         out.append(" ".join(cur))
     scored = []
@@ -56,7 +59,7 @@ def parse_json_array(s):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--corpus", required=True); ap.add_argument("--outdir", required=True)
-    ap.add_argument("--chunk", type=int, default=128); ap.add_argument("--cap", type=int, default=40); ap.add_argument("--max-patents", type=int, default=0)
+    ap.add_argument("--chunk", type=int, default=128); ap.add_argument("--cap", type=int, default=30); ap.add_argument("--max-patents", type=int, default=0)
     a = ap.parse_args(); os.makedirs(a.outdir, exist_ok=True)
     from vllm import LLM, SamplingParams
     pats = [json.loads(l) for l in gzip.open(a.corpus, "rt", encoding="utf-8")]
@@ -74,6 +77,7 @@ def main():
     print(f"patents={len(pats)} passages_todo={len(jobs)} done={len(done)}", flush=True)
     llm = LLM(model=config.MODEL, dtype="bfloat16", max_model_len=6144, gpu_memory_utilization=0.90, enable_prefix_caching=True)
     tok = llm.get_tokenizer()
+    MAXIN = 6144 - 1600 - 64
     chat = lambda u: tok.apply_chat_template([{"role": "user", "content": u}], tokenize=False, add_generation_prompt=True, enable_thinking=False)
     sp = SamplingParams(temperature=0.0, max_tokens=1600)
     stats_path = os.path.join(a.outdir, "stats.json")
@@ -82,6 +86,15 @@ def main():
     t_all = time.time()
     for c0 in range(0, len(jobs), a.chunk):
         chunk = jobs[c0:c0 + a.chunk]; t0 = time.time()
+        fit = [len(tok(INSTR + "\n\nPASSAGE:\n" + ps)["input_ids"]) <= MAXIN for _, _, ps in chunk]
+        stats["skipped_too_long"] = stats.get("skipped_too_long", 0) + fit.count(False)
+        skipped = [j for j, f in zip(chunk, fit) if not f]
+        chunk = [j for j, f in zip(chunk, fit) if f]
+        if skipped:
+            with open(done_path, "a") as fh:
+                fh.write("\n".join(pid for pid, _, _ in skipped) + "\n")
+        if not chunk:
+            continue
         outs = llm.generate([chat(INSTR + "\n\nPASSAGE:\n" + ps) for _, _, ps in chunk], sp)
         kept, rej = [], []
         for (pid, p, ps), o in zip(chunk, outs):
