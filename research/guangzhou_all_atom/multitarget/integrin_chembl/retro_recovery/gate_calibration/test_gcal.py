@@ -47,7 +47,7 @@ def test_inflated_intervals_are_corrected():
 
 def test_cp_ci_known_values():
     lo, hi = L.cp_ci(0, 400); assert lo == 0 and abs(hi - 0.00916) < 2e-4
-    lo, hi = L.cp_ci(20, 400); assert 0.031 < lo < 0.033 and 0.076 < hi < 0.078
+    lo, hi = L.cp_ci(20, 400); assert 0.0305 < lo < 0.0312 and 0.0760 < hi < 0.0770
 
 def test_item_type_detected():
     assert L.rec_type(mk(item=True, seed=3)) == "I" and L.rec_type(mk(seed=3)) == "M"
