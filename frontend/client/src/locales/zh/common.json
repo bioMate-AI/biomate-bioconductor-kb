@@ -285,6 +285,7 @@
     "consumers_note": "一旦记录了哪些运行使用过该数据集，替换它时就能清楚看到会影响哪些分析，而不会在运行中的分析下被悄悄改动。",
     "origin": "来源",
     "source": "源",
+    "accession": "检索号",
     "storage_ref": "存储引用",
     "added": "添加于",
     "current": "当前",

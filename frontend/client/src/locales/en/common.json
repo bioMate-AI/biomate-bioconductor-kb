@@ -279,6 +279,7 @@
     "consumers_note": "When consumers are recorded, replacing a dataset becomes a decision with a visible blast radius rather than a silent change under a running analysis.",
     "origin": "Origin",
     "source": "Source",
+    "accession": "Accession",
     "storage_ref": "Storage ref",
     "added": "Added",
     "current": "current",

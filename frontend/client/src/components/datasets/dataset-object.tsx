@@ -66,6 +66,10 @@ export interface DatasetRef {
   contentType?: string | null
   /** "upload" | "run_output" | string. */
   source?: string | null
+  /** Public accession the user supplied that triggered an auto-fetch (GSE/SRR/
+   *  GSM/E-MTAB/PXD…). When present it IS the origin for a public pull — shown
+   *  as a plain id, no constructed link. */
+  accession?: string | null
   /** The run that produced this dataset (run_output only). */
   runId?: string | null
   /** The workflow that produced it. */
@@ -528,7 +532,13 @@ export function DatasetObject({
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {t('dataset_obj.origin')}
               </p>
-              <Row k={t('dataset_obj.source')} v={fmt(dataset.source)} />
+              {/* For a public pull, the accession the user supplied IS the
+                  origin — show the id plainly. Otherwise the source type. */}
+              <Row
+                k={dataset.accession ? t('dataset_obj.accession') : t('dataset_obj.source')}
+                v={dataset.accession ? dataset.accession : fmt(dataset.source)}
+                mono={Boolean(dataset.accession)}
+              />
               {isRunOutput ? (
                 lineageQ.isLoading ? (
                   <Skeleton className="h-4 w-40" />
@@ -551,14 +561,15 @@ export function DatasetObject({
                   </>
                 )
               ) : null}
-              <Row k={t('dataset_obj.storage_ref')} v={fmt(dataset.ref)} mono />
               <Row
                 k={t('dataset_obj.added')}
                 v={dataset.createdAt ? new Date(dataset.createdAt).toLocaleString() : "—"}
                 last
               />
-              {/* FUTURE: content hash + dedup note, and a this-project / whole-account
-                  visibility control — neither is exposed by the backend yet. */}
+              {/* The internal storage ref (S3 key) is plumbing, not provenance —
+                  intentionally not surfaced. FUTURE: content hash + dedup note and
+                  a this-project / whole-account visibility control, once the
+                  backend exposes them. */}
             </div>
 
             {/* Quality, at ingest (design §4.5.2) — the perception profile lives here. */}
