@@ -1,1 +1,2 @@
 {"run_id": "mine-groupA-1793292975", "prefix": "s3://biomate-nextflow-work/cyclic_peptide/allatom/ib/mine-groupA-1793292975", "instance": "i-0d30d831bcbdf7cde", "itype": "c6i.large", "launched": "2026-10-29T11:56:37-0500", "cap_min": 45}
+{"run_id": "mine-groupA-debug-1793293087", "prefix": "s3://biomate-nextflow-work/cyclic_peptide/allatom/ib/mine-groupA-debug-1793293087", "instance": "i-035a552ba30bbf975", "itype": "c6i.large", "launched": "2026-10-29T11:58:30-0500", "cap_min": 30}
