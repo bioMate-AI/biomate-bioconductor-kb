@@ -65,13 +65,29 @@ def main(out_dir=HERE, debug_recompute=False):
     rs = P.fit(pairs, d, trainA)           # mines ONLY from trainA (fit filters rules by train_sources)
     out_json = os.path.join(out_dir, "peptide_sar_rules_v1_groupA.json")
     rs.to_json(out_json)
+    # sensitivity (coordinator request): same mining without the dominant source 2020_Townsend
+    trainA_nt = [s for s in trainA if s != "2020_Townsend"]
+    rs_nt = P.fit(pairs, d, trainA_nt)
+    out_nt = os.path.join(out_dir, "peptide_sar_rules_v1_groupA_noTownsend.json")
+    rs_nt.to_json(out_nt)
+    sens = {}
+    for name in sorted(set(rs.rules) | set(rs_nt.rules)):
+        a, b = rs.rules.get(name), rs_nt.rules.get(name)
+        pick = lambda r: None if r is None else {k: (float(r[k]) if isinstance(r.get(k), (int, float)) else r.get(k))
+                                                 for k in ("status", "weight", "ci", "effect_z", "ci_z") if k in r}
+        wa = a.get("weight") if a else None
+        wb = b.get("weight") if b else None
+        sens[name] = dict(with_townsend=pick(a), without_townsend=pick(b),
+                          same_sign=(None if not isinstance(wa, (int, float)) or not isinstance(wb, (int, float)) else bool(wa * wb > 0)))
+    with open(os.path.join(out_dir, "groupA_sensitivity_townsend.json"), "w") as fh:
+        json.dump(dict(sources_with=trainA, sources_without=trainA_nt, rules=sens), fh, indent=1, default=str)
     manifest = dict(
         description="soft-rule weights re-mined on TRAIN source group A only",
         group_rule="committed membership file allatom_paper/track_e/source_groups.json (pattern [0,1,2,2,1,0], sources by (-n, name))",
         groups_from=groups_from,
         group_A_sources_used=trainA, group_A_all=A, group_S=S, group_B=B,
         eligible_sources_all=elig, min_src_n=P.MIN_SRC_N,
-        n_peptides_used=int(d.Source.isin(trainA).sum()), n_pairs_used=int(pairs.source.isin(trainA).sum()),
+        n_peptides_used=int(d.Source.isin(trainA).sum()), n_pairs_used=int(pairs.source.isin(trainA).sum()), sensitivity_file='groupA_sensitivity_townsend.json', output_sha256_noTownsend=sha256_file(out_nt),
         input_sha256=dict(mmp_pairs=sha256_file(pairs_path)), output_sha256=sha256_file(out_json),
         mining_code="kb_audit/peptide_sar_kb.py fit(pairs, d, train_sources) (unmodified)")
     with open(os.path.join(out_dir, "groupA_manifest.json"), "w") as fh:
