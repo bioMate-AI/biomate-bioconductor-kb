@@ -61,7 +61,12 @@ def test_control_new_rules_fail_for_group_A_itself():
 
 def test_groups_come_from_the_committed_file_not_a_recomputation():
     man = _load(MAN)
-    assert man["groups_from"]["file"].endswith("source_groups.json") and man["groups_from"]["sha256"], man["groups_from"]
+    f = man["groups_from"]["file"]
+    assert os.path.basename(f).startswith("source_groups") and f.endswith(".json") and man["groups_from"]["sha256"], man["groups_from"]
+    path = os.path.join(CYC, "allatom_paper", "track_e", os.path.basename(f))
+    if os.path.exists(path):                    # the recorded hash must be the hash of the committed file
+        import hashlib
+        assert hashlib.sha256(open(path, "rb").read()).hexdigest() == man["groups_from"]["sha256"]
 
 
 def test_manifest_hash_matches_output():
@@ -81,3 +86,20 @@ def test_sensitivity_file_support_counts_and_drop_one_rules_clean():
         nt = _load(nt_path)
         assert "2020_Townsend" not in nt["train_sources"] and set(nt["train_sources"]) < set(man["group_A_sources_used"])
         assert assert_priors_clean(nt, man["group_S"]) and assert_priors_clean(nt, man["group_B"])
+
+
+def test_validated_rule_count_is_reported_and_honest():
+    man = _load(MAN)
+    st = man["rule_status"]
+    assert man["n_validated_rules"] == sum(1 for v in st.values() if v == "rule")
+    rules = _load(OUT)["rules"]
+    assert {k: v["status"] for k, v in rules.items()} == st          # manifest agrees with the rules file
+    # support is the number of sources that actually entered each rule (n_sources), not len(mined_from)
+    for k, n in man["rule_support_n_sources"].items():
+        assert n == int(rules[k].get("n_sources", len(rules[k].get("mined_from", []))))
+
+
+def test_per_source_descriptive_table_covers_every_group_A_source():
+    man = _load(MAN)
+    ps = _load(os.path.join(HERE, "groupA_sensitivity.json"))["per_source_descriptive"]
+    assert set(ps) == set(man["group_A_sources_used"])

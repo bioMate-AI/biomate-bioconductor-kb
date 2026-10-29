@@ -71,7 +71,23 @@ def main(out_dir=HERE, debug_recompute=False, groups_file=None):
     def pick(r):
         return None if r is None else {k: (float(r[k]) if isinstance(r.get(k), (int, float)) else r.get(k))
                                        for k in ("status", "weight", "ci", "effect_z", "ci_z") if k in r}
-    support = {name: len(r.get("mined_from", [])) for name, r in rs.rules.items()}
+    support = {name: int(r.get("n_sources", len(r.get("mined_from", [])))) for name, r in rs.rules.items()}
+    status = {name: r.get("status") for name, r in rs.rules.items()}
+    # per-source DESCRIPTIVE evidence (not rules): within-source Spearman per physchem feature; mean paired within-source z effect for pair rules
+    from scipy.stats import spearmanr
+    per_source = {}
+    dd = d.copy(); dd["veber_pass"] = ((dd.tpsa <= 140) & (dd.rotb <= 10)).astype(float)
+    for src in trainA:
+        g = dd[dd.Source == src]; row = {"n_peptides": int(len(g))}
+        for f in P.PHYS:
+            ok = len(g) >= P.MIN_SRC_N and g[f].std() > 0 and g.y_raw.std() > 0
+            row[f] = dict(spearman_with_y=(float(spearmanr(g[f], g.y_raw)[0]) if ok else None), kb_claimed_sign=P.KB_CLAIM.get(f))
+        for lab in (P.NME_LABEL, P.DFLIP_LABEL):
+            sub = pairs[(pairs.label == lab) & (pairs.source == src)]
+            dz = (sub.sign * (sub.z_b - sub.z_a)) if len(sub) else sub.sign
+            row[lab] = dict(n_pairs=int(len(sub)), mean_dz=(float(dz.mean()) if len(sub) else None),
+                            sd_dz=(float(dz.std()) if len(sub) > 1 else None))
+        per_source[src] = row
     sens = {"all_A": {name: pick(r) for name, r in rs.rules.items()}}
     nt_json = None
     for src in trainA:
@@ -96,14 +112,16 @@ def main(out_dir=HERE, debug_recompute=False, groups_file=None):
                 if isinstance(r, dict) and isinstance(wa, (int, float)) and isinstance(wb, (int, float)):
                     r["same_sign_as_all_A"] = bool(wa * wb > 0)
     with open(os.path.join(out_dir, "groupA_sensitivity.json"), "w") as fh:
-        json.dump(dict(sources_all_A=trainA, rule_support_n_sources=support, sensitivity=sens), fh, indent=1, default=str)
+        json.dump(dict(sources_all_A=trainA, rule_support_n_sources=support, rule_status=status, per_source_descriptive=per_source,
+                       note="single-source rows are descriptive only; the unmodified mining code needs >= 3 sources for physchem rules and for rule status", sensitivity=sens), fh, indent=1, default=str)
     manifest = dict(
         description="soft-rule weights re-mined on TRAIN source group A only",
         group_rule="committed membership file allatom_paper/track_e/source_groups.json (pattern [0,1,2,2,1,0], sources by (-n, name))",
         groups_from=groups_from,
         group_A_sources_used=trainA, group_A_all=A, group_S=S, group_B=B,
         eligible_sources_all=elig, min_src_n=P.MIN_SRC_N,
-        n_peptides_used=int(d.Source.isin(trainA).sum()), n_pairs_used=int(pairs.source.isin(trainA).sum()), sensitivity_file='groupA_sensitivity.json', rule_support_n_sources=support,
+        n_peptides_used=int(d.Source.isin(trainA).sum()), n_pairs_used=int(pairs.source.isin(trainA).sum()), sensitivity_file='groupA_sensitivity.json', rule_support_n_sources=support, rule_status=status,
+        n_validated_rules=sum(1 for v in status.values() if v == 'rule'),
         output_sha256_noTownsend=(sha256_file(nt_json) if nt_json else None),
         input_sha256=dict(mmp_pairs=sha256_file(pairs_path)), output_sha256=sha256_file(out_json),
         mining_code="kb_audit/peptide_sar_kb.py fit(pairs, d, train_sources) (unmodified)")
