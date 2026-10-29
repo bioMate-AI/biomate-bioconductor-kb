@@ -21,7 +21,7 @@ Empty cells in the manuscript are shown as "—". Owner names are workstreams (E
 | R11 | Table 12 (robustness on group version 1) | robustness table | E |
 | R12 | Section 3.3.3 counts: imports (parse and join rates), scaled-extraction precision and recall, coverage matrix | `docs/20261031_ALLATOM_KNOWLEDGE_*`, KB-paper | K2, K3 |
 | R13 | Patent stage counts (Section 3.3.3(d)) | `docs/20261031_ALLATOM_PATENT_KNOWLEDGE.md` (does not exist yet; no counts in the manuscript until it does) | K4 |
-| R14 | Gold-set counts: manuscript quotes the committed version (107 entries at `21680221b`, SHA-256 `b6c8988545bc…`); update if the set is extended | `knowledge/knowledge_kb_v1.json`, `direction_check_results.json` | K |
+| R14 | Gold-set counts: manuscript quotes the committed version (107 entries at `7ecf14af2`: T1 60, T2 36, internal 11; SHA-256 `29368807…6951`); update if the set is extended | `knowledge/knowledge_kb_v1.json`, `direction_check_results.json` | K |
 | R15 | Table 13 (calibrated gate acceptance values) | gate calibration results | gate-calibration fork |
 | R16 | Cost statement (if wanted in a methods note) | cost logs | all |
 | R17 | Reference checks: ChemFM paper (arXiv:2410.21422; only the model card was opened), Boltz-2, BoltzGen, UniMoMo, CycPeptMPDB, REINVENT 4, retrieval-augmented generation, DeepDelta | primary sources | writer |
@@ -56,3 +56,9 @@ Design `19ab71692`; evaluation protocol A1, A2 `09dc0eb84`, A3 `d33594b6f` and `
 ## 7. Spend (estimates reconstructed from timestamps where no cost log exists)
 
 Generation pilot about USD 6.8 against a USD 4 cap (idle-instance overrun about USD 6.0 from instances waiting for an uncommitted configuration; ChemFM stages about USD 0.83); orchestrator tests about USD 0.01; retrieval stream about USD 0.20; other streams to be added from their cost logs.
+
+## 8. Correction history of the knowledge-layer counts (moved from the manuscript)
+
+1. Commit `9fbac3e71`: 48 entries (38 T1, 10 T2; 19 sources; 21 weight-eligible).
+2. Commit `21680221b`: 107 entries (65 T1, 31 T2, 11 internal; SHA-256 `b6c8988545bc…`); an earlier manuscript revision quoted 65 and 31.
+3. Commit `7ecf14af2` (tier audit): 13 tier changes by one provenance rule, giving T1 60, T2 36, internal 11; total 107, all quotations verified, weight-eligible unchanged at 32 (14 T1, 18 T2); SHA-256 `29368807246824222aa8ea860ff69adce1393ef9976a5c8fbb6091c5d0fe6951`; direction check unchanged (17 agree, 7 mixed, 0 disagree, 83 not testable). Tier rule: T1 = the quoted statement reports a result or method from the source's own experiment, simulation or data analysis; T2 = a review's summary of others' work, a restatement of a result cited to another paper, a textbook rule, authors' background or a project goal; default T2 when the stored text cannot show that the number is the source's own.

@@ -41,7 +41,9 @@ PASS  [value] gold set counts (committed version)
 PASS  [value] gold set tiers
 PASS  [value] gold set sources: 41 PMC + 4 arXiv external, 5 internal  ((41, 4, 5))
 PASS  [value] gold set verified and weight-eligible by outcome class  ({'permeability': 28, 'other': 2, 'solubility': 1, 'stability': 1})
-PASS  [value] gold set file sha256 prefix  (b6c8988545bc1ae9)
+PASS  [value] gold set file sha256 (prefix in text, full in availability statement)  (2936880724682422)
+PASS  [value] weight-eligible tiers 14 T1 and 18 T2  ({'T1': 14, 'T2': 18})
+PASS  [text] tier definition: T1 = own experiment/simulation/analysis; T2 = review summary, restated result, textbook rule, background, project goal; default T2
 PASS  [value] INFO working-tree gold file equals the committed version  (same)
 PASS  [value] direction check: 17 agree, 7 mixed, 0 disagree, 83 not testable
 PASS  [value] literature-prior arm = 15 weight-eligible rules that agreed  (15)
@@ -101,5 +103,5 @@ PASS  [struct] Figure 1 defined and referenced
 PASS  [struct] unmeasured results are shown as — in tables, not narrated  (143 empty cells)
 PASS  [struct] section numbering sequential 1..8  (['1', '2', '3', '4', '5', '6', '7', '8'])
 
-102 checks; failed: 0; value checks 54, text checks 29, struct checks 19
+104 checks; failed: 0; value checks 55, text checks 30, struct checks 19
 numeric tokens in Sections 3-5 not covered by any check: 181  ({'design constant, hyperparameter or document-derived number': 95, 'small count or ordinal in prose': 58, 'value from a document or design constant (not machine-readable)': 28})

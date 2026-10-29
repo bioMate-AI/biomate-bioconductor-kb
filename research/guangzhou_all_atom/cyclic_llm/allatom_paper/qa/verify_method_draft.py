@@ -160,7 +160,7 @@ chk("text", "retrieval: wide store 21,575 rows over 724 targets, no document ids
 
 # ---------------------------------------------------------------- knowledge layer (committed version)
 KB_REL = "research/guangzhou_all_atom/cyclic_llm/allatom_paper/knowledge/knowledge_kb_v1.json"
-KB_COMMIT = "21680221b"
+KB_COMMIT = "7ecf14af2"
 kb_text = git_show(KB_COMMIT, KB_REL)
 kb = json.loads(kb_text)
 kc = kb["counts"]
@@ -173,11 +173,17 @@ kb_sha = hashlib.sha256(kb_text.encode("utf-8")).hexdigest()
 elig = [r for r in kb["rules"] if r.get("weight_eligible")]
 oc = Counter(r.get("outcome_class") for r in elig)
 chk("value", "gold set counts (committed version)", kc["n"] == 107 and kc["by_kind"] == {"card": 28, "caution": 11, "fundamental": 24, "rule": 44}, "107 entries (44 rules, 24 fundamentals, 11 cautions, 28 cards)")
-chk("value", "gold set tiers", kc["by_tier"] == {"T-internal": 11, "T1": 65, "T2": 31}, "T1 (65), T2 (31) and T-internal (11)", "31 of its entries are review")
+chk("value", "gold set tiers", kc["by_tier"] == {"T-internal": 11, "T1": 60, "T2": 36}, "T1 (60), T2 (36) and T-internal (11)", "its 36 tier-T2 entries")
 chk("value", "gold set sources: 41 PMC + 4 arXiv external, 5 internal", (n_pmc, n_arx, n_int) == (41, 4, 5), "45 external sources (41 open-access articles and 4 preprints) and 5 internal documents", detail=str((n_pmc, n_arx, n_int)))
 chk("value", "gold set verified and weight-eligible by outcome class", kc["verified"] == 107 and kc["weight_eligible"] == 32 and (oc["permeability"], oc["stability"], oc["solubility"], oc["other"]) == (28, 1, 1, 2),
-    "all 107 quotations are machine-verified", "32 entries are weight-eligible (28 permeability, 1 stability, 1 solubility, 2 other)", detail=str(dict(oc)))
-chk("value", "gold set file sha256 prefix", kb_sha.startswith("b6c8988545bc"), "b6c8988545bc…", detail=kb_sha[:16])
+    "all 107 quotations are machine-verified", "32 entries are weight-eligible (14 T1 and 18 T2; 28 permeability, 1 stability, 1 solubility, 2 other)", detail=str(dict(oc)))
+chk("value", "gold set file sha256 (prefix in text, full in availability statement)", kb_sha == "29368807246824222aa8ea860ff69adce1393ef9976a5c8fbb6091c5d0fe6951", "293688072468…", kb_sha, detail=kb_sha[:16])
+elig_t = Counter(r["tier"] for r in elig)
+chk("value", "weight-eligible tiers 14 T1 and 18 T2", (elig_t["T1"], elig_t["T2"]) == (14, 18), detail=str(dict(elig_t)))
+td = rd(os.path.join(AP, "knowledge", "tier_decisions.py"))
+chk("text", "tier definition: T1 = own experiment/simulation/analysis; T2 = review summary, restated result, textbook rule, background, project goal; default T2", 
+    "own experiment, simulation" in td and "T2" in td and "default" in td.lower(),
+    "the quoted statement reports a result or method from the source's own experiment, simulation or data analysis", "default when the stored text cannot show that the number is the source's own")
 wt_now = os.path.join(AP, "knowledge", "knowledge_kb_v1.json")
 chk("value", "INFO working-tree gold file equals the committed version", rd(wt_now) == kb_text, detail="differs: the draft quotes the committed version" if rd(wt_now) != kb_text else "same")
 dc = jl(os.path.join(AP, "knowledge", "direction_check_results.json"))
