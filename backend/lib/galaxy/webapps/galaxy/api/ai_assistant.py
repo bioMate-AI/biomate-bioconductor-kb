@@ -2598,6 +2598,16 @@ def search_nextflow_workflow(
             # whitelisted bioconductor workflow. Exclude bioconductor (still gated below).
             if filename.startswith("nextflow_nfcore/subworkflows/") and "/bioconductor/" not in filename:
                 return True
+            # BioMate AI-native tool workflows (biomate-ai-tools/<name>/main.nf, or stored
+            # as nf-core-workflows/modules/biomate-ai-tools/<name>/main.nf) are standalone
+            # Batch-runnable entry points — same as the nextflow_nfcore/subworkflows tools
+            # above. Without this bypass they fall to the runnable_keys whitelist, aren't in
+            # it, and are judged not-runnable → a correctly-ranked #1 match is dropped and the
+            # selector falls to a lower-scored sibling (observed 2026-10-29: cyclic_peptide_design
+            # score 111 dropped → cyclic_peptide_cofold 41 chosen). Mirrors the documented fix
+            # above for the subworkflow-layout biomate tools.
+            if "biomate-ai-tools/" in filename and "/bioconductor/" not in filename:
+                return True
             key = _nextflow_workflow_key(filename)
             return bool(key and key in runnable_keys)
 
