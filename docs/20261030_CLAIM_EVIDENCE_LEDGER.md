@@ -581,3 +581,7 @@ Scope: `docs/20261030_MANUSCRIPT_EVAL_CONTROLS_DRAFT_v2.md` (122 lines, 5,052 wo
 
 ### 13.4 Counts for this audit
 WRONG 7 (items 1–7), MISLEADING 6 (items 8–13), DOCUMENT-ONLY 5 groups, UNVERIFIED 4 groups, VERIFIED about 350 individual numbers across 15 files (all of §3.1, §3.2, §3.3 intervals, §3.4, Appendix A, Appendix B, plus the L5, C2, anchor, T2, T1 and K_phys figures).
+
+### UPDATE 13a — writer's fixes (commit d41c3c6d2) re-checked
+
+Re-read in v2 at HEAD and against the files: items 1 (Appendix B −0.124 wording), 2 (censoring AUROC: family-mean over 26 families, 95 % 0.159 to 0.253, registered 99.7 % 0.134 to 0.280: both match `gate_A11_I_v1.json`), 3 (30 of 30 / 10 of 10 seed denominators), 4 (±0.04 to ±0.09), 5 (banner item 3 and "pending re-aggregation" clause removed: 0 occurrences), 6 (blind K_phys: development seeds only; Holm 0.0176 / 0.0684 / 0.1641 for A / B / L re-read from `kphys_multiplicity_l7q.json`: MATCH), 7 (C2 family means +0.014, +0.149, NN − GBM 0.057), 8 (sub-protocol and full-pool labels present), 9 (ranking gain +0.13 to +0.29), 11 (percentile Bonferroni lower bound +0.0034 stated): **CLOSED / MATCH**. `verify_artifacts.py`: 123 checks, failed []. Items 10, 12 and 13 (K_phys interval source, brief §0 superseded block, morning package counts) are text changes I did not re-read line by line: **UNVERIFIED-FIXED**. Open from the writer's own note: the long draft still has one "per-target" censoring mention and the old C2 estimator wording and seed denominators (v2 was the audited document; the long draft is an archive).
