@@ -119,7 +119,7 @@ BASE = ["A", "NN1", "PT", "PTk", "GP_fp"]
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("mode"); ap.add_argument("--emb"); ap.add_argument("--size", default="small"); ap.add_argument("--label", default="real"); ap.add_argument("--ann", default=None); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument("mode"); ap.add_argument("--emb"); ap.add_argument("--size", default="small"); ap.add_argument("--label", default="real"); ap.add_argument("--ann", default=None); ap.add_argument("--assay", default="pampa"); ap.add_argument("--labs", default="test"); a = ap.parse_args()
     if a.mode == "regress":
         dfull = C.load_labelled(a.ann); vc = dfull.Source.value_counts(); labs = sorted(vc[vc >= 20].index)
         dummy = np.zeros((len(dfull), 2)); cells = run_labs(labs, dfull, dummy, "regress", baselines_only=True)
@@ -137,7 +137,11 @@ def main():
                 lv = lab_values(cells, labs, k, arm, False); agg[f"{arm}_k{k}"] = (round(float(np.mean(list(lv.values()))), 4), len(lv))
         out = dict(cells_compared=n, mismatches=mism, max_abs_diff=mx, lab_first_means=agg, n_cells_new=len(cells), n_cells_old=int(old.groupby(["lab", "k", "seed"]).ngroups))
         json.dump(dict(out, annotations=(a.ann or "current (post source fix)")), open(f"{RES}/regression{'_prefix' if a.ann else ''}.json", "w"), indent=1); print(json.dumps(out, indent=1)); return
-    dfull, Eall = load(a.label, a.emb); vc = dfull.Source.value_counts(); elig = sorted(vc[vc >= 20].index)
+    if a.assay != "pampa":
+        ann = pd.read_csv(os.path.join(C.HERE, "data", "annotations.csv.gz"), index_col=0); dfull = ann[ann[a.assay].notna()].copy(); dfull["y_raw"] = dfull[a.assay]; dfull["y"] = C.K.source_normalize(dfull["y_raw"].values, dfull["Source"].values)
+        E_ = np.load(a.emb); assert (E_["index"] == dfull.index.values).all(); Eall = E_["E"].astype(np.float64); a.label = a.assay
+    else: dfull, Eall = load(a.label, a.emb)
+    vc = dfull.Source.value_counts(); elig = sorted(vc[vc >= 20].index)
     if a.mode == "dev":
         labs = [l for l in elig if half(l) == 0]; cells = run_labs(labs, dfull, Eall, "dev"); pickle.dump(cells, open(f"{RES}/dev_cells_{a.size}.pkl", "wb"))
         cand = sorted({arm for c in cells for arm in c["scores"] if arm not in BASE}); tab = {}
@@ -153,7 +157,7 @@ def main():
     sel = json.load(open(f"{RES}/selection_{a.size}.json"))["selected"] if os.path.exists(f"{RES}/selection_{a.size}.json") else None
     if sel is None: sys.exit("refusing: selection file missing (dev must run first and be committed)")
     if a.mode == "test":
-        labs = [l for l in elig if half(l) == 1]; cells = run_labs(labs, dfull, Eall, "test"); pickle.dump(cells, open(f"{RES}/test_cells_{a.size}.pkl", "wb"))
+        labs = [l for l in elig if (a.labs == "all" or half(l) == 1)]; cells = run_labs(labs, dfull, Eall, "test"); pickle.dump(cells, open(f"{RES}/test_cells_{a.size}{'_' + a.assay if a.assay != 'pampa' else ''}.pkl", "wb"))
         res = dict(size=a.size, selected=sel, test_labs=labs, budgets={})
         for k in KS:
             th = theta_of(cells, labs, k); arms = BASE + [sel, "GP_fpemb"]; hv = {arm: lab_values(cells, labs, k, arm, True, th) for arm in arms}; av = {arm: lab_values(cells, labs, k, arm, False) for arm in arms}
@@ -165,7 +169,7 @@ def main():
             res["budgets"][str(k)] = row
         npass = sum(res["budgets"][str(k)][f"hard_{sel}_minus_{res['budgets'][str(k)]['best_baseline_hard']}"]["passes"] for k in KS)
         res["gate_selected"] = "PASS" if npass >= 2 else ("UNDERPOWERED" if sum(res["budgets"][str(k)][f"hard_{sel}_minus_{res['budgets'][str(k)]['best_baseline_hard']}"]["underpowered"] for k in KS) >= 2 else "FAIL")
-        json.dump(res, open(f"{RES}/test_{a.size}_{a.label}.json", "w"), indent=1); print(json.dumps(res, indent=1)); return
+        json.dump(res, open(f"{RES}/test_{a.size}_{a.label}{'_all' if a.labs == 'all' else ''}.json", "w"), indent=1); print(json.dumps(res, indent=1)); return
     if a.mode == "control":
         labs = elig; cells = run_labs(labs, dfull, Eall, "control"); res = dict(size=a.size, label=a.label, selected=sel, budgets={})
         for k in KS:
