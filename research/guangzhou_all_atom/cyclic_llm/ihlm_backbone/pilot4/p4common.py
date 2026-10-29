@@ -1,5 +1,5 @@
 """Pilot 4 shared data layer (new-target few-shot learning curve, exact potencies). All label-free except the declared eligibility rule (n_exact >= 30, SD(pActivity) >= 0.5)."""
-import os, hashlib, numpy as np, pandas as pd
+import os, json, hashlib, numpy as np, pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__))
 RR = os.path.abspath(f"{HERE}/../../../multitarget/integrin_chembl/retro_recovery/data")
 NB = 2048
@@ -19,12 +19,26 @@ def load():
     return ex, c, elig, fam
 
 
+FOLD_MAP = os.path.join(HERE, "fold_map.json"); FOLD_MAP_SHA256 = open(os.path.join(HERE, "fold_map.sha256")).read().split()[0] if os.path.exists(os.path.join(HERE, "fold_map.sha256")) else None
+
+
 def folds(elig, fam, K=6):
-    """greedy balance of eligible families into K groups by number of eligible targets (largest family first, into the lightest group); all other families go to fold -1 (training only)."""
-    cnt = fam.loc[elig].value_counts().sort_values(ascending=False)
-    load = [0] * K; out = {}
-    for f, n in cnt.items():
-        k = int(np.argmin(load)); out[f] = k; load[k] += int(n)
+    """Family -> fold map ACTUALLY USED by pilot 4 (the six fold pickles were trained under it), read from the committed `fold_map.json` (sha256 in `fold_map.sha256`).
+    Errata 2: the original implementation (value_counts().sort_values(ascending=False), greedy argmin) had an UNSTABLE tie order among the 33 single-target families, so it gave a platform-dependent assignment (32 of 47 families differ between the training machine and a local rebuild). The map was recovered from the pickles (see docs/20261031_NEWTARGET_FEWSHOT_PILOT4_PREREG.md §13) and frozen; `folds_rebuild` below is a deterministic alternative and is NOT the map used."""
+    raw = open(FOLD_MAP, "rb").read()
+    if FOLD_MAP_SHA256 is not None: assert hashlib.sha256(raw).hexdigest() == FOLD_MAP_SHA256, "fold_map.json does not match fold_map.sha256"
+    fm = json.loads(raw)["fold_map"]; fams = set(fam.loc[list(elig)].unique())
+    assert fams == set(fm), f"fold map families differ from eligible families ({len(fams ^ set(fm))} mismatches)"
+    cnt = fam.loc[list(elig)].value_counts(); load = [0] * K
+    for f_, k in fm.items(): load[k] += int(cnt[f_])
+    return {f_: int(k) for f_, k in fm.items()}, load
+
+
+def folds_rebuild(elig, fam, K=6):
+    """Deterministic greedy balance (count descending, family id ascending as explicit tiebreak, stable). A valid balanced partition, but a DIFFERENT assignment from the one used in pilot 4."""
+    cnt = fam.loc[list(elig)].value_counts(); order = sorted(cnt.index, key=lambda k: (-int(cnt[k]), str(k))); load = [0] * K; out = {}
+    for f_ in order:
+        k = int(np.argmin(load)); out[f_] = k; load[k] += int(cnt[f_])
     return out, load
 
 
