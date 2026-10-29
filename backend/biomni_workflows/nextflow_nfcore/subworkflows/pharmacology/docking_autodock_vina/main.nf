@@ -83,14 +83,31 @@ def auto_convert(val):
 # ── Read parameters ─────────────────────────────────────────────────────────
 smiles_list   = auto_convert(os.environ.get('PARAM_SMILES_LIST', '["c1ccccc1"]'))
 receptor_pdb  = os.environ.get('PARAM_RECEPTOR_PDB', '').strip()
-# Stage non-local receptor paths (e.g. s3 on AWS Batch) before trim/obabel.
+# Materialize the receptor before trim/obabel. The param may arrive as: a local
+# file, an s3:// path, an http(s) URL, or a bare 4-char PDB ID (e.g. "1IEP") that
+# the query named. Self-fetch the id from RCSB here — the same pattern as SRA/GEO
+# workflows fetching from an accession (fasterq-dump) — because the in-process
+# runtime can't call the app-side PDB fetch. Without this, a PDB-id receptor was
+# never fetched → "no receptor → minimal ALA" → docking failure.
 if receptor_pdb and not os.path.isfile(receptor_pdb):
-    import subprocess
+    import subprocess, re as _re_r, urllib.request
     _staged = os.path.join(os.getcwd(), 'receptor_staged.pdb')
-    _cp = subprocess.run(['aws', 's3', 'cp', receptor_pdb, _staged], capture_output=True, text=True)
-    if _cp.returncode == 0:
-        receptor_pdb = _staged
-        os.environ['PARAM_RECEPTOR_PDB'] = _staged
+    try:
+        if receptor_pdb.startswith('s3://'):
+            _cp = subprocess.run(['aws', 's3', 'cp', receptor_pdb, _staged], capture_output=True, text=True)
+            if _cp.returncode == 0 and os.path.isfile(_staged):
+                receptor_pdb = _staged; os.environ['PARAM_RECEPTOR_PDB'] = _staged
+        elif receptor_pdb.startswith(('http://', 'https://')):
+            urllib.request.urlretrieve(receptor_pdb, _staged)
+            if os.path.getsize(_staged) > 0:
+                receptor_pdb = _staged; os.environ['PARAM_RECEPTOR_PDB'] = _staged
+        elif _re_r.fullmatch(r'[0-9A-Za-z]{4}', receptor_pdb):
+            # Bare RCSB PDB ID → download the canonical structure.
+            urllib.request.urlretrieve(f'https://files.rcsb.org/download/{receptor_pdb.upper()}.pdb', _staged)
+            if os.path.getsize(_staged) > 0:
+                receptor_pdb = _staged; os.environ['PARAM_RECEPTOR_PDB'] = _staged
+    except Exception:
+        pass  # leave receptor_pdb as-is → downstream no-receptor fallback still applies
 box_center    = auto_convert(os.environ.get('PARAM_BOX_CENTER', '[0,0,0]'))
 box_size      = auto_convert(os.environ.get('PARAM_BOX_SIZE', '[20,20,20]'))
 ncpu          = int(auto_convert(os.environ.get('PARAM_NCPU', '4')) or 4)
