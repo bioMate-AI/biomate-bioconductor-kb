@@ -160,7 +160,7 @@ jobs:
   merge-manifest:
     needs: build-and-push
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     environment:
       name: ${{ startsWith(github.ref, 'refs/tags/release-v') && 'production' || startsWith(github.ref, 'refs/tags/beta-v') && 'staging' || 'development' }}
 
