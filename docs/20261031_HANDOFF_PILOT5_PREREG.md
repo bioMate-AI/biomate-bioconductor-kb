@@ -49,3 +49,28 @@ Source: coordinator's audit input (docs/committee_raw/20261030c/audit_gates_data
 5. **Controls.** C1/C2/C3 thresholds are unchanged. For C2 the aggregation reports an approximate **P(pass | true null)** from each cell's own CI width (independence assumed); P(fail | planted fault) is **not computed** (stated, not estimated). A C2 'fail' is read in light of P(pass | true null).
 6. **Compute** as Amendment A1 (EC2 only).
 
+## 11. Results (2026-10-29 12:27 CDT; stages 3-7 on EC2; exploratory re-analysis of pilot-4 families; screening analysis, not paper evidence)
+Stage log (each committed before the next): configs frozen (200 = 20 repeats x 10 folds; manifest sha256 7cf5b5dbc281bf3e) -> baseline-only pass and `mde.json` (committed before any H5 score) -> H5/H5NN pass, controls, gate. Files: `pilot5/results/{configs/, configs_manifest.sha256, mde.json, gate_summary.json, controls_summary.json}`; per-fold outer score files are on S3 only (`run1/stage_A/outer/`, `run1/stage_B/outer/`).
+
+**Verdict (frozen vocabulary): H5 = INCONCLUSIVE, H5NN = INCONCLUSIVE.** Registered rule passes at 0 of 3 k for both. The +0.03 margin is excluded from above (cluster-t upper bound < +0.03) only at k = 10 for H5 (1 of 3 k; the NO-GO-detectable bar needs 2 of 3). Any compute decision taken from this screen is a judgement call.
+
+Paired family-level differences, hard stratum (47 families, family-equal; primary interval = cluster t, 46 df; percentile bootstrap secondary):
+| candidate | k | best baseline | diff | cluster-t 95% (primary) | percentile 95% (secondary) | overall-stratum diff, cluster-t |
+|---|---|---|---|---|---|---|
+| H5 | 3 | d | +0.0167 | [-0.0042, +0.0376] | [-0.0053, +0.0364] | +0.035 [0.012, 0.057] |
+| H5 | 5 | d | +0.0247 | [-0.0175, +0.0669] | [-0.0160, +0.0635] | +0.052 [0.018, 0.087] |
+| H5 | 10 | GP | +0.0122 | [+0.0010, +0.0235] | [+0.0011, +0.0233] | +0.003 [-0.001, 0.008] |
+| H5NN | 3 | d | +0.0151 | [-0.0139, +0.0441] | [-0.0124, +0.0429] | +0.024 [0.003, 0.044] |
+| H5NN | 5 | d | +0.0240 | [-0.0184, +0.0663] | [-0.0176, +0.0633] | +0.041 [0.014, 0.068] |
+| H5NN | 10 | GP | +0.0053 | [-0.0197, +0.0303] | [-0.0182, +0.0288] | -0.015 [-0.032, 0.002] |
+The repeat-to-repeat spread of the mean H5 difference (fold-assignment spread, not a CI) is 0.002-0.030 (k3), 0.003-0.044 (k5), 0.003-0.018 (k10).
+Hard-stratum learning curves (family-equal Spearman; k = 3/5/10/25): prior 0.107/0.106/0.105/0.103; NN 0.109/0.175/0.266/0.386; GP 0.107/0.173/0.273/0.427; d 0.152/0.180/0.234/0.305; RF (pilot 4) 0.108/0.157/0.231/0.429; **H5 0.169/0.205/0.285/0.428**; H5NN 0.167/0.204/0.278/0.385.
+
+**Power (committed before any H5 score, `mde.json`).** Registered MDE80 = 0.087 (k3), 0.096 (k5), 0.023 (k10). The effective margin of the rule (max(+0.03, t_crit x SE), about 0.72 x MDE80) is 0.062-0.080 (k3), 0.068-0.093 (k5), 0.030-0.094 (k10, depending on the SE proxy); P(pass | true gain +0.03) is 0.10-0.15, 0.09-0.13, 0.09-0.50, and P(pass | +0.05) is 0.22-0.35, 0.18-0.30, 0.17-0.99. The registered k10 MDE80 is small only because GP and NN are almost identical there; the conservative proxy gives SE 0.047. So the registered rule could not reliably detect a +0.03 gain at any k; the sign and size of the point estimates (+0.005 to +0.025, never negative, all within the t-intervals' reach of zero at k3/k5) are the information here, not a pass/fail.
+
+**Controls.** C1 planted series: PASS (NN 0.507, GP 0.525, prior 0.007, H5 0.499, H5NN 0.453). C2 shuffled potencies: **FAILS the registered rule** (5 of 18 cells have a CI excluding 0: GP k10, H5 k3, H5 k10, H5NN k10, NN k10, all negative, means -0.011 to -0.015; every |mean| is below the 0.05 bound). Approximate P(pass | true null) for this C2 rule is 0.40 (18 cells, independence assumed), so a C2 'fail' is weak evidence of a fault, but a small negative bias of about -0.01 under shuffled potencies is present and is of the same order as the H5 differences at k = 3-10 (+0.005 to +0.025): the hard-stratum differences should not be read as a gain without that caveat. P(fail | planted fault) is not computed. C3 no-target control: prior-only hard Spearman 0.081 at k = 1 and 0.103-0.107 at k >= 3 (a compound-only potency prior carries signal, as in pilot 4).
+
+**Disclosures.** (a) H5 was formed after pilot 4; this is not an independent confirmation (section 1). (b) Edge-of-grid selection: NN q = 1 (196/200), GP noise 0.64 (197/200), d lambda = 0.3 (199/200), H5 n0 in {0.5, 1} (184/200); the pre-registered grids were not extended, so the baselines (and H5's prior weight n0/(n0+k) = 0.14 at k = 3) may be under-tuned at the grid edge. (c) H5's selected gain is concentrated where the prior matters (k = 3-5); at k = 10 H5 ~ GP + 0.012. (d) RF baseline taken from pilot 4's saved results (different fold map). (e) The giant 56-target family is always alone in its fold; the 20 repeats mostly vary the packing of the other 46 families.
+
+**Compute and spend (estimate, not a cost log).** Stage 2: `i-091e1bddffef07af6` (c6i.8xlarge, 15:36Z to spot reclaim before 16:23Z, <= 0.8 h) and `i-0329fc4eee55fc3f5` (c5.9xlarge, 16:23Z to about 16:52Z, 0.5 h). Stage 3: `i-0898dcf46bdc64056` (reclaimed 16:53:44Z; waited for fits, about 0.25 h of mostly idle time) and `i-03c68ca0f8944ce0e` (17:07-17:19Z). Stage 4 `i-069d87fc0564cf158` (17:20-17:23Z). Stage 5-7 `i-0fa7cca4696624447` (17:24-17:27Z). At about USD 0.5-0.65/h spot: **about USD 1.1 total**, within the USD 2 cap. All instances terminated (checked). No compute ran on the owner's laptop after Amendment A1 (the earlier local selection outputs were discarded).
+
