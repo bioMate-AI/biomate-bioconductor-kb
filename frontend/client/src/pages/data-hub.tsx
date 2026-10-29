@@ -46,7 +46,10 @@ function toDatasetRef(f: ProjectFile): DatasetRef {
     id: f.id,
     name: f.name,
     ref: f.s3_key || null,
-    size: f.size,
+    // project_files.size is BIGINT → node-postgres returns it as a STRING, so
+    // coerce to a real number here (the DatasetRef.size type expects one, and a
+    // string silently failed the header size-badge's typeof guard).
+    size: f.size == null ? null : Number(f.size),
     contentType: f.content_type || null,
     source: f.source,
     accession: (f.input_context?.accession as string | undefined) ?? null,

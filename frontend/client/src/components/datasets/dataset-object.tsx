@@ -219,9 +219,9 @@ export function DatasetObject({
               {dataset.contentType}
             </Badge>
           )}
-          {typeof dataset.size === 'number' && dataset.size > 0 && (
+          {dataset.size != null && Number(dataset.size) > 0 && (
             <Badge variant="secondary" className="text-xs" data-testid="dataset-header-size">
-              {formatBytes(dataset.size)}
+              {formatBytes(Number(dataset.size))}
             </Badge>
           )}
           <Badge variant="secondary" className="text-xs" data-testid="dataset-header-version">
