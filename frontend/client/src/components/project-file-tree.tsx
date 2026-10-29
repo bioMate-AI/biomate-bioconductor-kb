@@ -25,6 +25,7 @@ import {
   ChevronDown,
   Copy,
   Check,
+  Plus,
   Image,
   Database,
   Code2,
@@ -566,7 +567,7 @@ export function ProjectFileTree({ projectId, onPickFile, onFilesChanged, onOpenD
             {uploading ? (
               <RefreshCw className="h-3 w-3 animate-spin" />
             ) : (
-              <Upload className="h-3 w-3" />
+              <Plus className="h-3 w-3" />
             )}
             {t('file_tree.add')}
           </Button>

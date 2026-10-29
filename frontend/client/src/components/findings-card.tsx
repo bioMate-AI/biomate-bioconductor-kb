@@ -101,6 +101,42 @@ export function linkifyFindings(
   })
 }
 
+/**
+ * Per-entity results identify their entity either in `r.entity` or as a leading
+ * "(identity) …" prefix in the interpretation prose. When the identity is a raw
+ * SMILES (or any long token) it must NOT be shown verbatim — the design renders a
+ * short ordinal "(Compound N)" and keeps the full identity on hover. These helpers
+ * assign the ordinals and reshape each row's interpretation for display.
+ */
+const ENTITY_PREFIX = /^\s*\(([^)]{3,})\)\s*/
+const SHORT_ENTITY = /^(compound|entity|sample|ligand|mol(?:ecule)?)\s*\d+$/i
+
+function entityOrdinals(rows: KeyResult[]): Map<string, string> {
+  const order: string[] = []
+  const seen = new Set<string>()
+  const push = (id?: string) => {
+    const t = id?.trim()
+    if (t && !seen.has(t)) { seen.add(t); order.push(t) }
+  }
+  for (const r of rows) {
+    if (r.entity) push(r.entity)
+    else { const m = (r.interpretation || '').match(ENTITY_PREFIX); if (m) push(m[1]) }
+  }
+  const map = new Map<string, string>()
+  order.forEach((id, i) => map.set(id, SHORT_ENTITY.test(id) ? id : `Compound ${i + 1}`))
+  return map
+}
+
+function displayInterp(r: KeyResult, ord: Map<string, string>): { label?: string; text: string; title?: string } {
+  const m = (r.interpretation || '').match(ENTITY_PREFIX)
+  const identity = (r.entity?.trim()) || (m ? m[1].trim() : undefined)
+  const text = m ? (r.interpretation || '').replace(ENTITY_PREFIX, '') : (r.interpretation || '')
+  if (!identity) return { text }
+  const label = ord.get(identity) || identity
+  const shortened = label !== identity // we replaced a long identity with an ordinal
+  return { label, text, title: shortened ? identity : undefined }
+}
+
 export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpenOutput, preview }: FindingsCardProps) {
   const [data, setData] = useState<FindingsData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -239,7 +275,8 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
   // which reads as if those numbers are "the" result. In that case we drop the
   // chips and surface the full, per-entity Key Results table (which carries the
   // tags) instead, so it's always clear which entity a number belongs to.
-  const multiEntity = (kr || []).some(r => Boolean(r.entity) || /\((?:Compound|Entity|Sample) \d+\)/i.test(r.interpretation || ''))
+  const entityOrd = entityOrdinals(kr || [])
+  const multiEntity = entityOrd.size > 1 || (kr || []).some(r => Boolean(r.entity) || /\((?:Compound|Entity|Sample) \d+\)/i.test(r.interpretation || ''))
 
   return (
     <Card data-testid="findings-card" className="mt-3 border-blue-200 bg-blue-50/30 dark:border-blue-900/40 dark:bg-blue-950/10">
@@ -308,9 +345,21 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
                   <tbody>
                     {kr.map((r, i) => (
                       <tr key={i} className="border-b border-border/30">
-                        <td className="py-1 pr-3 font-medium">{r.metric}</td>
+                        <td className="py-1 pr-3 font-medium whitespace-nowrap">{r.metric}</td>
                         <td className="py-1 pr-3 font-mono">{r.value}</td>
-                        <td className="py-1 pr-3 text-muted-foreground">{r.interpretation}</td>
+                        <td className="py-1 pr-3 text-muted-foreground">
+                          {(() => {
+                            const { label, text, title } = displayInterp(r, entityOrd)
+                            return (
+                              <>
+                                {label && (
+                                  <span className="font-medium text-foreground" title={title}>({label}) </span>
+                                )}
+                                {text}
+                              </>
+                            )
+                          })()}
+                        </td>
                         <td className="py-1 text-muted-foreground font-mono">
                           {r.source_file
                             ? <span title={`Read from ${r.source_file}`}>{r.source_file}</span>

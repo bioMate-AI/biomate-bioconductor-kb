@@ -210,6 +210,16 @@ export function DatasetObject({
           <CardTitle className="text-lg font-mono font-semibold truncate" data-testid="dataset-object-name">
             {dataset.name}
           </CardTitle>
+          {dataset.contentType && (
+            <Badge variant="secondary" className="text-xs font-mono" data-testid="dataset-header-type">
+              {dataset.contentType}
+            </Badge>
+          )}
+          {typeof dataset.size === 'number' && dataset.size > 0 && (
+            <Badge variant="secondary" className="text-xs" data-testid="dataset-header-size">
+              {formatBytes(dataset.size)}
+            </Badge>
+          )}
           <Badge variant="secondary" className="text-xs" data-testid="dataset-header-version">
             {currentVersionLabel}
           </Badge>
@@ -235,12 +245,12 @@ export function DatasetObject({
             {onAnalyze && (
               <Button
                 size="sm"
-                className="h-7 text-xs gap-1"
+                className="h-8 text-sm px-3 gap-1.5"
                 onClick={onAnalyze}
                 data-testid="dataset-object-analyze"
                 title={t('file_tree.attach_to_chat')}
               >
-                <Play className="h-3 w-3" />
+                <Play className="h-3.5 w-3.5" />
                 {t('dataset_obj.ask_in_chat')}
               </Button>
             )}
@@ -248,11 +258,11 @@ export function DatasetObject({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 text-xs gap-1"
+                className="h-8 text-sm px-3 gap-1.5"
                 onClick={onDownload}
                 data-testid="dataset-object-download"
               >
-                <Download className="h-3 w-3" />
+                <Download className="h-3.5 w-3.5" />
                 {t('actions.download')}
               </Button>
             )}
@@ -261,8 +271,9 @@ export function DatasetObject({
       </CardHeader>
 
       <CardContent>
-        {/* Underlined text tabs (design §4.2.1 .tab2 style) — not boxed. */}
-        <div className="flex items-center gap-4 border-b mb-3" role="tablist">
+        {/* Segmented pill tabs (design i05-2 / t10-1): a gray track with the
+            selected tab as a raised white box, not an underline. */}
+        <div className="inline-flex items-center gap-0.5 rounded-lg bg-muted p-0.5 mb-3" role="tablist">
           {([
             ["preview", Eye, t('file_tree.preview')],
             ["versions", History, t('dataset_obj.versions')],
@@ -280,10 +291,10 @@ export function DatasetObject({
                 else if (key === "versions") setVersionsOpened(true)
               }}
               className={
-                "inline-flex items-center gap-1 -mb-px border-b-2 pb-2 pt-1 text-sm transition-colors " +
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors " +
                 (tab === key
-                  ? "border-primary text-foreground font-medium"
-                  : "border-transparent text-muted-foreground hover:text-foreground")
+                  ? "bg-background border border-border shadow-sm text-foreground font-medium"
+                  : "border border-transparent text-muted-foreground hover:text-foreground")
               }
             >
               <Icon className="h-3.5 w-3.5" />{label}

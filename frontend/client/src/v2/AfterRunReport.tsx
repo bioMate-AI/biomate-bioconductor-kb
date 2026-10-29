@@ -17,8 +17,8 @@ import { normalizeQcEvents, qcActionTaken, qcResultLabel, type QcAssessment } fr
  * Hides empty tabs entirely rather than showing placeholders — per audit,
  * placeholders read as "this product is unfinished".
  */
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDownToLine } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDownToLine, FileJson, FileText, FileCode, FileSpreadsheet, Image as ImageIcon, Dna, Database, File as FileIcon } from "lucide-react";
 import { tOr } from "@/lib/i18n";
 import { FindingsCard } from "@/components/findings-card";
 import { StepOutputPreview } from "@/components/step-output-preview";
@@ -132,6 +132,22 @@ export function AfterRunReport({
   const [tab, setTab] = useState<TabId>(targetTab ?? "summary");
   // Re-open the deep-linked tab when the panel is asked to (targetTab changes).
   useEffect(() => { if (targetTab) setTab(targetTab); }, [targetTab]);
+
+  // §7.8 — a findings number links to the output it was read from: jump to the
+  // Outputs tab and scroll that file's card into view (best-effort DOM match on
+  // the file path/name; if unmatched the user still lands on the file list).
+  const handleOpenOutput = useCallback((ref: string) => {
+    setTab("outputs");
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      try {
+        const esc = (window as any).CSS?.escape ? (window as any).CSS.escape(ref) : ref.replace(/["\\]/g, '\\$&');
+        const el = document.querySelector(`[data-output-ref-card="${esc}"]`)
+          || Array.from(document.querySelectorAll('[data-output-ref-card]'))
+               .find(n => (n.getAttribute('data-output-ref-card') || '').endsWith(ref));
+        (el as HTMLElement | undefined)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch { /* landing on the Outputs tab is enough */ }
+    }));
+  }, []);
 
   // Outputs come from the parent's executionRun state (no /steps endpoint exists).
   const outputs = outputsProp ?? [];
@@ -362,6 +378,7 @@ export function AfterRunReport({
                 runId={runId}
                 onContinueAnalysis={onContinueAnalysis}
                 executionStatus={executionStatus}
+                onOpenOutput={handleOpenOutput}
               />
               {qcEvents.some(e => e.status === 'fail' || e.status === 'advisory') && (
                 <section data-testid="completed-qc-findings" style={{ marginTop: 12 }}>
@@ -1212,15 +1229,19 @@ function OutputsTab({
   const fileUrl = (f: OutputFile, download = false) =>
     `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(f.path || f.name)}${download ? '&download=1' : ''}`;
 
+  // Monochrome lucide glyphs at --text-muted (design spec 14 uses restrained
+  // neutral line icons, not color emoji — emoji clash with the palette and
+  // render per-OS). One icon component per file family.
   const iconForExt = (ext: string) => {
-    if (['png','jpg','jpeg','gif','svg','webp','tiff'].includes(ext)) return '🖼';
-    if (['csv','tsv','xlsx'].includes(ext)) return '📊';
-    if (['html','htm'].includes(ext)) return '🌐';
-    if (['pdf'].includes(ext)) return '📄';
-    if (['json','yaml','yml'].includes(ext)) return '{}';
-    if (['fastq','fq','fa','fasta'].includes(ext)) return '🧬';
-    if (['bam','vcf','bed','gtf','gff'].includes(ext)) return '🗂';
-    return '📁';
+    const common = { size: 14, style: { color: 'var(--text-muted)', flexShrink: 0 } as React.CSSProperties };
+    if (['png','jpg','jpeg','gif','svg','webp','tiff'].includes(ext)) return <ImageIcon {...common} />;
+    if (['csv','tsv','xlsx'].includes(ext)) return <FileSpreadsheet {...common} />;
+    if (['html','htm'].includes(ext)) return <FileCode {...common} />;
+    if (['pdf'].includes(ext)) return <FileText {...common} />;
+    if (['json','yaml','yml'].includes(ext)) return <FileJson {...common} />;
+    if (['fastq','fq','fa','fasta'].includes(ext)) return <Dna {...common} />;
+    if (['bam','vcf','bed','gtf','gff'].includes(ext)) return <Database {...common} />;
+    return <FileIcon {...common} />;
   };
 
   // Mirrors the file types StepOutputPreview can render a viewer for: images,
@@ -1382,11 +1403,12 @@ function OutputsTab({
               )}
             <div
               data-testid="output-card"
+              data-output-ref-card={f.path || f.name}
               style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 10 }}
             >
               {/* Card header */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                <span style={{ fontSize: 14 }}>{iconForExt(f.ext)}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center' }}>{iconForExt(f.ext)}</span>
                 <span style={{ fontFamily: 'ui-monospace, monospace', fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }} title={f.name}>{f.name}</span>
                 <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: 10 }}>{f.ext || '—'}</span>
                 {f.step && (
@@ -1406,8 +1428,8 @@ function OutputsTab({
                   download
                   title={tOr('afterrun.download', 'Download')}
                   aria-label={tOr('afterrun.download', 'Download')}
-                  style={{ color: 'var(--accent, oklch(0.55 0.18 260))', display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
-                ><ArrowDownToLine size={14} /></a>
+                  style={{ color: 'var(--accent, oklch(0.55 0.18 260))', display: 'inline-flex', alignItems: 'center', gap: 3, textDecoration: 'none', fontSize: 11 }}
+                ><ArrowDownToLine size={12} />{tOr('afterrun.dl', 'dl')}</a>
               </div>
 
               {/* Inline preview (lazy-mounted) ONLY for light previewable files.
