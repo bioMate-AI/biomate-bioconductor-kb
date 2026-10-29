@@ -108,30 +108,53 @@ export function linkifyFindings(
  * short ordinal "(Compound N)" and keeps the full identity on hover. These helpers
  * assign the ordinals and reshape each row's interpretation for display.
  */
-const ENTITY_PREFIX = /^\s*\(([^)]{3,})\)\s*/
 const SHORT_ENTITY = /^(compound|entity|sample|ligand|mol(?:ecule)?)\s*\d+$/i
 
-function entityOrdinals(rows: KeyResult[]): Map<string, string> {
+/**
+ * Strip a leading balanced "(…)" group. A SMILES contains nested parentheses
+ * (e.g. "CC(=O)O…"), so a regex that stops at the first ")" chops a fragment —
+ * we must match parens by depth. Returns the inner content and the remaining
+ * prose, or inner=null when there is no leading balanced group.
+ */
+function stripLeadingParen(raw: string): { inner: string | null; rest: string } {
+  const s = raw.replace(/^\s+/, '')
+  if (s[0] !== '(') return { inner: null, rest: raw }
+  let depth = 0
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === '(') depth++
+    else if (s[i] === ')') {
+      depth--
+      if (depth === 0) return { inner: s.slice(1, i), rest: s.slice(i + 1).replace(/^\s+/, '') }
+    }
+  }
+  return { inner: null, rest: raw } // unbalanced — leave as-is
+}
+
+function rowIdentity(r: KeyResult): string | undefined {
+  if (r.entity?.trim()) return r.entity.trim()
+  const { inner } = stripLeadingParen(r.interpretation || '')
+  return inner?.trim() || undefined
+}
+
+export function entityOrdinals(rows: KeyResult[]): Map<string, string> {
   const order: string[] = []
   const seen = new Set<string>()
-  const push = (id?: string) => {
-    const t = id?.trim()
-    if (t && !seen.has(t)) { seen.add(t); order.push(t) }
-  }
   for (const r of rows) {
-    if (r.entity) push(r.entity)
-    else { const m = (r.interpretation || '').match(ENTITY_PREFIX); if (m) push(m[1]) }
+    const id = rowIdentity(r)
+    if (id && !seen.has(id)) { seen.add(id); order.push(id) }
   }
   const map = new Map<string, string>()
   order.forEach((id, i) => map.set(id, SHORT_ENTITY.test(id) ? id : `Compound ${i + 1}`))
   return map
 }
 
-function displayInterp(r: KeyResult, ord: Map<string, string>): { label?: string; text: string; title?: string } {
-  const m = (r.interpretation || '').match(ENTITY_PREFIX)
-  const identity = (r.entity?.trim()) || (m ? m[1].trim() : undefined)
-  const text = m ? (r.interpretation || '').replace(ENTITY_PREFIX, '') : (r.interpretation || '')
-  if (!identity) return { text }
+export function displayInterp(r: KeyResult, ord: Map<string, string>): { label?: string; text: string; title?: string } {
+  const identity = rowIdentity(r)
+  if (!identity) return { text: r.interpretation || '' }
+  // Drop the leading "(identity)" tag from the prose (balanced, so a SMILES with
+  // nested parens is removed whole) — the ordinal label carries the attribution.
+  const { inner, rest } = stripLeadingParen(r.interpretation || '')
+  const text = inner != null ? rest : (r.interpretation || '')
   const label = ord.get(identity) || identity
   const shortened = label !== identity // we replaced a long identity with an ordinal
   return { label, text, title: shortened ? identity : undefined }
