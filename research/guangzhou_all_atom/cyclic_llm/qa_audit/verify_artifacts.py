@@ -103,6 +103,13 @@ A("aware K_phys-kshuf yield A/B/L",[l7["small"][f"gbm_aware|{r}"]["contrasts"]["
 A("aware zero-sibling nonzero, blind zero",l7["small"]["gbm_aware|A"]["stereo"]["loop_sub"]["zero_sibling"]["mean"]==0.1808 and l7["small"]["gbm_blind|A"]["stereo"]["loop_sub"]["zero_sibling"]["mean"]==0.0)
 A("audit not affected: aware A K_phys-none yield equals aggregate",ka["res7f_gbm_aware|A"]["kphys - none [yield]"]["mean"]==l7["small"]["gbm_aware|A"]["contrasts"]["loop_kphys_sub - loop_sub [yield]"]["mean"]==4.7)
 A("chemberta exploratory n=3",l7["small"]["chemberta|A"]["n_seeds"]==3 and l7["small"]["chemberta|B"]["n_seeds"]==3)
+
+# ---- matched-pair effects (post-fix CSV) ----
+import pandas as pd
+mm=pd.read_csv(R+"cyclic_llm/stratification/data/mmp_effects_pampa.csv").set_index("transformation")
+nm=mm.loc["N-Me added (with minus without)"]; dm=mm.loc["D flip (D minus L)"]
+A("MMP N-Me post-fix",nm.n_pairs==4166 and nm.n_sources==15 and round(nm.pooled,2)==0.24 and round(nm.meta_lo,2)==0.14 and round(nm.meta_hi,2)==0.33 and "4,166 pairs, 15 sources" in M)
+A("MMP D flip post-fix",dm.n_pairs==7467 and dm.n_sources==18 and round(dm.pooled,2)==-0.01 and "7,467 pairs, 18 sources" in M)
 bad=[n for n,ok in chk if not ok]; print(len(chk),"checks; failed:",bad)
 def last(p): 
     return subprocess.run(["git","-C","/Users/kky/biomate-review","log","-1","--format=%h","--",p],capture_output=True,text=True).stdout.strip()

@@ -122,7 +122,7 @@ Tags: **[LOGGED]** = a figure in a committed cost log or results document that i
 | Anchor test after the leak fix: kill criterion met (median +0.005; mean +0.004, CI −0.061 to +0.050); planted full coverage +0.100 (0.031 to 0.201); census: 21 peptides measured by PAMPA in ≥ 2 laboratories (57 per-laboratory anchor observations in 8 laboratories); only v2 numbers are quoted (v1 leaked) | D (v2 write-up; JSON not re-read) | `docs/20261030_C2_RERUN_AND_ANCHOR_TEST.md` v2, `results_B_v2_aggregate.json` (894152cac) |
 | T1 / T1b fusion results (tables re-derived by the claim auditor, including adjusted intervals and parity) | V; shuffled-label control values U | T1, T1b documents |
 | Stratified skill (0.67/0.71 grouped; 0.22/0.21 leave-labs-out, post-fix rerun), feature families, N-methyl ≥ 5 reversal | D | stratification analysis Part B |
-| Matched-pair effects (N-methyl +0.24, 0.14 to 0.33; D↔L flip −0.01, −0.05 to 0.02; after the stratification correction note) | D (CSV not re-read) | `docs/20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md` |
+| Matched-pair effects (N-methyl +0.24, 0.14 to 0.33; D↔L flip −0.01, −0.05 to 0.02; post-fix) | V (CSV read by script) | `docs/20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md` |
 | IH-LM design and module status | D (commit messages) | IH-LM spec; commit d0eacfc14 (a descendant of 94efe092d; the provenance floor is now 87f4f6718) |
 | Literature statements (CycPeptMPDB, PeptideCLM-2, HELM-BERT, Praski, DUD-E, LIT-PCBA, White, Bhardwaj) | fetch summaries (re-check before submission) | draft references |
 | Amirahmadi et al. scaffold and Table 3/6 statements | primary text read | converted PDF |
