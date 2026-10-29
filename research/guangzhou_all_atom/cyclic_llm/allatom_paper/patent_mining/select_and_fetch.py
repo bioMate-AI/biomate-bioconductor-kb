@@ -12,18 +12,57 @@ def log(msg, out):
     print(msg, flush=True)
     open(os.path.join(out, "stage.log"), "a").write(f"{time.strftime('%FT%TZ', time.gmtime())} {msg}\n")
 
+def _range_get(url, a, b):
+    for attempt in range(6):
+        try:
+            req = urllib.request.Request(url, headers={"Range": f"bytes={a}-{b}", "User-Agent": config.GP_UA})
+            with urllib.request.urlopen(req, timeout=180) as r:
+                data = r.read()
+            if len(data) == b - a + 1:
+                return data
+        except Exception:
+            pass
+        time.sleep(3 * (attempt + 1))
+    raise RuntimeError(f"range {a}-{b} failed")
+
+def download_file(f, out, conns=16, chunk=16 * 1024 * 1024):
+    """Parallel ranged download (per-connection speed from EBI is ~0.9 MB/s; it scales with connections)."""
+    import concurrent.futures as cf
+    url, path = f"{config.SURECHEMBL_BASE}/{f}", os.path.join(D, f)
+    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": config.GP_UA})
+    size = int(urllib.request.urlopen(req, timeout=60).headers["Content-Length"])
+    with open(path, "wb") as fh:
+        fh.truncate(size)
+    spans = [(a, min(a + chunk, size) - 1) for a in range(0, size, chunk)]
+    def work(sp):
+        data = _range_get(url, *sp)
+        with open(path, "r+b") as fh:
+            fh.seek(sp[0]); fh.write(data)
+        return len(data)
+    done = 0
+    with cf.ThreadPoolExecutor(conns) as ex:
+        for k, n in enumerate(ex.map(work, spans)):
+            done += n
+            if k % 100 == 0:
+                log(f"download {f}: {done / 1e9:.2f}/{size / 1e9:.2f} GB", out)
+    if os.path.getsize(path) != size:
+        raise RuntimeError(f"size mismatch {f}")
+    open(path + ".ok", "w").write("ok")
+    log(f"downloaded {f} {size / 1e9:.2f} GB", out)
+
 def download(out):
-    procs = []
-    for f in ("compounds.parquet", "patent_compound_map.parquet", "patents.parquet"):
-        p = os.path.join(D, f)
-        if not os.path.exists(p + ".ok"):
-            procs.append((f, subprocess.Popen(["curl", "-s", "-L", "--retry", "5", "--retry-delay", "5", "-o", p, f"{config.SURECHEMBL_BASE}/{f}"])))
-    for f, pr in procs:
-        rc = pr.wait()
-        if rc != 0:
-            raise RuntimeError(f"download failed {f} rc={rc}")
-        open(os.path.join(D, f + ".ok"), "w").write("ok")
-        log(f"downloaded {f} {os.path.getsize(os.path.join(D, f)) / 1e9:.2f} GB", out)
+    import threading
+    errs = []
+    def run(f):
+        try:
+            if not os.path.exists(os.path.join(D, f + ".ok")):
+                download_file(f, out)
+        except Exception as e:
+            errs.append((f, repr(e)))
+    ts = [threading.Thread(target=run, args=(f,)) for f in ("compounds.parquet", "patent_compound_map.parquet", "patents.parquet")]
+    [t.start() for t in ts]; [t.join() for t in ts]
+    if errs:
+        raise RuntimeError(f"download errors {errs}")
 
 def classify_compounds(out):
     cache = os.path.join(out, "mp_compound_ids.npy")
