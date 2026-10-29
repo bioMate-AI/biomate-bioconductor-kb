@@ -96,7 +96,10 @@ def lib_surrogate(cfg_lib, pool_n=6000, init=100, batch=100, explore=0.1, seed_p
 
 
 # ------------------------------------------------------------------------------------------------ edit_ga
-def edit_ga(cfg, seeds, n_init=100, n_parents=30, n_children=100, pop_cap=200):
+def edit_ga(cfg, seeds, n_init=100, n_parents=30, n_children=100, pop_cap=200, max_stall=20, k_max=6):
+    """Edit-operator GA. Stall guard (fix, 2026-10-29, before any baseline number was read): if a full generation produces no NEW evaluated
+    molecule (the single-edit neighbourhood of the parents is exhausted), the number of edits per child is escalated by one (up to k_max);
+    after `max_stall` consecutive stalled generations the optimiser stops (BudgetExhausted-like), so a run can never spin forever on duplicates."""
     def opt(oracle, rng):
         pop, known = [], set()
         for s in rng.sample(seeds, min(n_init, len(seeds))):
@@ -105,11 +108,13 @@ def edit_ga(cfg, seeds, n_init=100, n_parents=30, n_children=100, pop_cap=200):
             if sc is not None and c not in known:
                 known.add(c)
                 pop.append((sc, c))
+        k, stall = cfg["k"], 0
         while True:
             pop.sort(key=lambda t: -t[0])
             pop = pop[:pop_cap]
             parents = [s for _, s in pop[:n_parents]] or seeds
-            for ch in GP.gen_edit(parents, n_children, rng, dict(k=cfg["k"])):
+            new_eval = 0
+            for ch in GP.gen_edit(parents, n_children, rng, dict(k=k)):
                 c = _canon(ch)
                 if not c or c in known:
                     continue
@@ -117,6 +122,14 @@ def edit_ga(cfg, seeds, n_init=100, n_parents=30, n_children=100, pop_cap=200):
                 if sc is not None:
                     known.add(c)
                     pop.append((sc, c))
+                    new_eval += 1
+            if new_eval == 0:
+                stall += 1
+                k = min(k + 1, k_max)
+                if stall >= max_stall:
+                    raise BudgetExhausted("edit_ga stalled: no new molecules in %d generations" % max_stall)
+            else:
+                stall = 0
     return opt
 
 
@@ -145,6 +158,7 @@ def selfies_ga(cfg, seeds, n_init=100, n_parents=30, n_children=100, pop_cap=200
             if sc is not None and c not in known:
                 known.add(c)
                 pop.append((sc, c))
+        stall = 0
         while True:
             pop.sort(key=lambda t: -t[0])
             pop = pop[:pop_cap]
@@ -182,6 +196,9 @@ def selfies_ga(cfg, seeds, n_init=100, n_parents=30, n_children=100, pop_cap=200
                 if sc is not None:
                     known.add(c)
                     pop.append((sc, c))
+            stall = stall + 1 if made == 0 else 0
+            if stall >= 20:
+                raise BudgetExhausted("selfies_ga stalled: no new molecules in 20 generations")
     return opt
 
 
