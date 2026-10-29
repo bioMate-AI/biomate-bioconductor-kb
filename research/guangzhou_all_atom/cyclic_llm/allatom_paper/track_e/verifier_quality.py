@@ -44,18 +44,26 @@ for g in (1, 2):
             r = spearmanr(mA.predict(X["A"][te]), y[te]).correlation; per[s] = dict(n=int(len(te)), spearman=None if r != r else round(float(r), 4))
     vals = [v["spearman"] for v in per.values() if v["spearman"] is not None]
     res["cross"]["train_A_on_" + "ASB"[g]] = dict(per_source=per, mean=round(float(np.mean(vals)), 4) if vals else None)
-# physics held-out on a fixed B sample
+json.dump(res, open(out_path, "w"), indent=1)          # partial result (LOSO + cross) saved BEFORE the slow physics step
+# physics held-out on a fixed B sample (parallel over all cores; per-molecule failures are skipped, counted)
 rng = np.random.default_rng(2026); idxB = np.where(d["g"].values == 2)[0]; pick = rng.choice(idxB, size=min(120, len(idxB)), replace=False)
-t0 = time.time(); ph, vv = [], []
-for i in pick:
+smi_pick = [d.iloc[i]["smiles"] for i in pick]
+
+
+def _ps(smi):
     try:
-        v = VE.polar_sasa_min(d.iloc[i]["smiles"], n_conf=4)
+        return VE.polar_sasa_min(smi, n_conf=4)
     except Exception:
-        v = None
-    if v is not None:
-        ph.append(-v); vv.append(i)
+        return None
+
+
+t0 = time.time()
+from multiprocessing import get_context
+with get_context("fork").Pool(max(1, os.cpu_count() or 2)) as pool:
+    vals = pool.map(_ps, smi_pick, chunksize=1)
+ph = [-v for v in vals if v is not None]; vv = [pick[j] for j, v in enumerate(vals) if v is not None]
 r = spearmanr(ph, y[vv]).correlation if len(ph) > 10 else float("nan")
-res["physics_heldout"] = dict(n=len(ph), spearman=None if r != r else round(float(r), 4), wall_s=round(time.time() - t0, 1))
+res["physics_heldout"] = dict(n=len(ph), n_requested=len(smi_pick), spearman=None if r != r else round(float(r), 4), wall_s=round(time.time() - t0, 1))
 # floors
 f = {}
 f["stop_S_perm"] = (res["loso"]["S"]["mean"] or -9) >= FLOOR_PERM and res["loso"]["S"]["n_evaluable"] >= MIN_SRC_EVAL
