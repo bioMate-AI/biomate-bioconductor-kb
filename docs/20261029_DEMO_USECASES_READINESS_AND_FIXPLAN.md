@@ -218,3 +218,39 @@ fix at that path and re-verify. Also restore the fixture Galaxy key so the chat 
 specific causes + emits contradictory "likely reasons" (routes.ts:6647) — should state the true
 single Galaxy 401. (2) A prior ADMET run reported "completed for 1 compound" on a 5-compound
 query — possible multi-compound handling bug; recheck once generation is restored.
+
+## VERIFIED on dev via a FRESH user (2026-10-29) — 401 sidestepped
+Registered demo-verify-<ts>@example.com → galaxyUserId:22, valid Galaxy key, NO 401.
+Provisioning is healthy for new users; the 401 was only the old fixture's rotated key.
+
+- **PEPTIDE routing: VERIFIED CORRECT ✅** — chat path (generate_workflow_unified) routes the
+  IL-17A peptide-design query to **cyclic_peptide_design** (5-phase chained design loop,
+  confidence 146), NOT cofold. The chat path (the demo path) was always selecting the top
+  candidate; the cofold misroute was specific to the MCP search_workflow ranked-search path.
+  My routing edits are verified live on the chat path for a fresh user. (5-phase run not
+  executed — routing was the deliverable.)
+- **SMALL-MOLECULE chain (demo-01):**
+  - Turn 1 ADMET: correct card + **COMPLETED (exit 0)**; smiles_list launch fix CONFIRMED (all
+    5 SMILES populated). run 7580ee98. Minor gap: registeredOutputCount=0 despite S3 outputs
+    (meetsContract=false) — a run-manager OUTPUTS-REGISTRATION bug (not launch/compute).
+  - Turn 2 Docking: correct card (docking_autodock_vina) + launched + reached process, but
+    **process FAILED** — receptor_pdb_file was the placeholder 'mock_receptor.pdb' and box
+    defaulted to [0,0,0]. PDB 1IEP in the query is never fetched into a real receptor. run d055fb64.
+  - Turn 3 ranking: mild misroute back to predict_admet_properties (should be a ranking/no-wf
+    analysis).
+
+## Remaining real bugs (ranked) — small-molecule chain
+1. **Docking receptor provisioning (FEATURE-sized)** — a PDB ID ("1IEP") in the query is not
+   materialized into receptor_pdb_file. docking .nf defaults it to '' → "no receptor" → fail.
+   Pieces exist but unwired: RCSB fetch (ai_assistant.py:6128), .pdb→receptor_pdb mapping (:3243).
+   Fix = extract PDB id → fetch from RCSB → stage to S3 → set receptor_pdb_file. Needed for the
+   docking step of the SM-chain demo (or the demo supplies a receptor file / uses a pre-staged one).
+2. **ADMET outputs-registration gap** — registeredOutputCount=0 / meetsContract=false though S3
+   outputs exist + downloadable. Findings/outputs may not surface. Run-manager registration path.
+3. **Turn-3 ranking misroute** — synthesis/ranking turn routes to predict_admet_properties.
+
+## Net demo status
+- Peptide chained loop: routing ✅ verified (chat path). Full 5-phase run = next (heavy).
+- Small-molecule chain: ADMET ✅; docking blocked on receptor provisioning (#1); ranking misroute (#3).
+- Multi-agent search ✅; dataset panel ✅; fine-tuning ops-blocked (ML_TRAINING_ROUTING).
+- Fresh-user strategy is the way to run demos until the fixture key is restored.
