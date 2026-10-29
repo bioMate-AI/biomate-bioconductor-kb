@@ -37,9 +37,11 @@ def load_kb(path: str) -> dict:
 
 class KnowledgePotential:
     def __init__(self, kb_path_or_doc, lam: float = 1.0, stats: Optional[Dict[str, tuple]] = None,
-                 rule_ids: Optional[Iterable[str]] = None):
+                 rule_ids: Optional[Iterable[str]] = None, outcome_class: Optional[str] = "permeability"):
         doc = load_kb(kb_path_or_doc) if isinstance(kb_path_or_doc, str) else kb_path_or_doc
         self.rules = [e for e in doc["rules"] if e["weight_eligible"] and e["quote_verified"]]
+        if outcome_class is not None:        # never sum permeability, stability and solubility rules into one potential
+            self.rules = [e for e in self.rules if e.get("outcome_class") == outcome_class]
         if rule_ids is not None:
             keep = set(rule_ids)
             self.rules = [e for e in self.rules if e["id"] in keep]

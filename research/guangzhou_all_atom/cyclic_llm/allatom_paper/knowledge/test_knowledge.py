@@ -29,7 +29,10 @@ class TestKB(unittest.TestCase):
     def test_provenance_complete(self):
         for e in self.rules:
             s = e["source"]
-            self.assertTrue(s["doi"] and s["pmcid"] and s["url"] and s["title"], e["id"])
+            if e["tier"] == "T-internal":
+                self.assertTrue(s["path"] and s["text_sha256"], e["id"])
+            else:
+                self.assertTrue(s["doi"] and s["pmcid"] and s["url"] and s["title"], e["id"])
             self.assertTrue(e["access_date"] and e["extracted_by"], e["id"])
             self.assertLessEqual(len(e["quote"].split()), 30, e["id"])
             self.assertTrue(e["source"]["text_sha256"], e["id"])
@@ -61,7 +64,7 @@ class TestKB(unittest.TestCase):
                 self.assertFalse(e["weight_eligible"], e["id"])
 
     def test_minimum_content(self):
-        self.assertGreaterEqual(len(self.rules), 40)
+        self.assertGreaterEqual(len(self.rules), 60)
         t12 = sum(1 for e in self.rules if e["tier"] in ("T1", "T2"))
         self.assertGreaterEqual(t12, 30)
 
@@ -81,6 +84,30 @@ class TestKB(unittest.TestCase):
         # either-or: violating only one of the alternatives (MW) is not penalised when cLogP > 2.5 holds
         self.assertEqual(kp.log_potential({**inside, "mw": 1500.0}), 0.0)
         self.assertLess(kp.log_potential({**inside, "mw": 1500.0, "clogp": 1.0}), 0.0)
+
+    def test_outcome_classes_not_mixed(self):
+        perm = KnowledgePotential(self.doc, stats=STATS)                      # default class: permeability
+        self.assertTrue(perm.rules)
+        self.assertTrue(all(e["outcome_class"] == "permeability" for e in perm.rules))
+        stab = KnowledgePotential(self.doc, stats=STATS, outcome_class="stability")
+        sol = KnowledgePotential(self.doc, stats=STATS, outcome_class="solubility")
+        ids = lambda kp: {e["id"] for e in kp.rules}
+        self.assertFalse(ids(perm) & ids(stab))
+        self.assertFalse(ids(perm) & ids(sol))
+        self.assertIn("LIT-SOL-001", ids(sol))
+
+    def test_cards_have_payload_and_no_weight(self):
+        cards = [e for e in self.rules if e["kind"] == "card"]
+        self.assertGreaterEqual(len(cards), 10)
+        for e in cards:
+            self.assertFalse(e["weight_eligible"])
+            self.assertEqual(e["weight"], 0)
+            self.assertTrue(all(e["card"][k] for k in ("method", "modality", "outcome", "failure_modes", "lessons")), e["id"])
+
+    def test_extra_quotes_verified(self):
+        for e in self.rules:
+            for q in e.get("quotes", []):
+                self.assertLessEqual(len(q.split()), 30, e["id"])
 
     def test_loader_rejects_unverified_with_weight(self):
         bad = copy.deepcopy(self.doc)
@@ -102,8 +129,10 @@ class TestKB(unittest.TestCase):
         if not FETCH:
             self.skipTest("FETCH_DIR not set")
         from fetch_fulltext import norm
+        from build_kb import load_fetch
+        _, text_of = load_fetch(FETCH)
         e = self.rules[0]
-        full = open(os.path.join(FETCH, "fulltext", e["source"]["pmcid"] + ".txt")).read()
+        full = text_of(e["source"]["pmcid"])
         self.assertTrue(norm(e["quote"]) in full)
         self.assertFalse(norm("this sentence is not in the paper at all 12345") in full)
 

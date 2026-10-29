@@ -10,7 +10,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 RID="k_${NAME}_$(date +%Y%m%d_%H%M%S)"
 P="s3://biomate-nextflow-work/cyclic_peptide/allatom/k/${RID}"
 STAGE="${TMPDIR:-/tmp}/${RID}_stage"; mkdir -p "$STAGE"
-cp "$HERE"/*.py "$HERE"/*.txt "$STAGE"/ 2>/dev/null; cp "$HERE"/*.json "$STAGE"/ 2>/dev/null
+cp "$HERE"/*.py "$HERE"/*.txt "$HERE"/run_*.sh "$STAGE"/ 2>/dev/null; cp "$HERE"/*.json "$STAGE"/ 2>/dev/null
 # the directory above (allatom_paper/) is needed by the loader tests: stage contracts and harness too
 cp "$HERE"/../contracts.py "$HERE"/../pmo_harness.py "$STAGE"/ 2>/dev/null
 [ -f "$HERE"/../track_e/source_groups.json ] && cp "$HERE"/../track_e/source_groups.json "$STAGE"/

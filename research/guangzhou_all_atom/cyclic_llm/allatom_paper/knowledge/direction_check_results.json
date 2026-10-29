@@ -1,0 +1,2159 @@
+{
+ "meta": {
+  "groups_file": "source_groups_v2.json",
+  "groups_sha256": "d17ccdfae6af85cb83d5733863d88349fd9205baea2fa3df8d6a2ecedeabf2e9",
+  "groups_version": "v2",
+  "group_A_sources": [
+   "2020_Townsend",
+   "2021_Kelly"
+  ],
+  "annotation_sha256": "8b59c16e78b7df304301cb79deb3608c4e7a27463ef54517b3ee85e1ef5ae521",
+  "kb_sha256": "b6c8988545bc1ae9dcda73521a03a2ec5bd735504bfca7d300a6e1f9261d42b7",
+  "n_by_source": {
+   "2020_Townsend": 2881,
+   "2021_Kelly": 1518
+  },
+  "bootstrap": "cluster bootstrap over flat_smiles, B=300, seed 0",
+  "label": "raw PAMPA; within-source Spearman (rank-based, equals z-scored)"
+ },
+ "rules": {
+  "CARD-AFCYC-001": {
+   "id": "CARD-AFCYC-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-BINDCRAFT-001": {
+   "id": "CARD-BINDCRAFT-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-BINDCRAFT-002": {
+   "id": "CARD-BINDCRAFT-002",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-CPCOMP-001": {
+   "id": "CARD-CPCOMP-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-CYCDIFF-001": {
+   "id": "CARD-CYCDIFF-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-CYCLINAB-001": {
+   "id": "CARD-CYCLINAB-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-CYCLINAB-002": {
+   "id": "CARD-CYCLINAB-002",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-CYCLOSEL-001": {
+   "id": "CARD-CYCLOSEL-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-HIGHFOLD-001": {
+   "id": "CARD-HIGHFOLD-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-MACRODRUG-001": {
+   "id": "CARD-MACRODRUG-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-PEPGLAD-001": {
+   "id": "CARD-PEPGLAD-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-PEPINVENT-001": {
+   "id": "CARD-PEPINVENT-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-PEPMLM-001": {
+   "id": "CARD-PEPMLM-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-PEPTUNE-001": {
+   "id": "CARD-PEPTUNE-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-RANDLIB-001": {
+   "id": "CARD-RANDLIB-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-RFPEP-001": {
+   "id": "CARD-RFPEP-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "CARD-ROMI-001": {
+   "id": "CARD-ROMI-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "INT-AFFINITY-001": {
+   "id": "INT-AFFINITY-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "INT-AVB6GOLD-001": {
+   "id": "INT-AVB6GOLD-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "INT-AVB6METAL-001": {
+   "id": "INT-AVB6METAL-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "INT-GENDOCKQ-001": {
+   "id": "INT-GENDOCKQ-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "INT-LOOP-001": {
+   "id": "INT-LOOP-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "INT-MULTIOBJ-001": {
+   "id": "INT-MULTIOBJ-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "INT-NEURO-001": {
+   "id": "INT-NEURO-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "INT-PDL1-001": {
+   "id": "INT-PDL1-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "INT-PERM-001": {
+   "id": "INT-PERM-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "INT-RFPEP-001": {
+   "id": "INT-RFPEP-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "INT-SNAT2-001": {
+   "id": "INT-SNAT2-001",
+   "kind": "card",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-3DPSA-001": {
+   "id": "LIT-3DPSA-001",
+   "kind": "fundamental",
+   "direction": "context",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-AGG-001": {
+   "id": "LIT-AGG-001",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-BASE-001": {
+   "id": "LIT-BASE-001",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-BRO5-001": {
+   "id": "LIT-BRO5-001",
+   "kind": "rule",
+   "direction": "window",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "window_contrast": {
+    "2020_Townsend": {
+     "status": "not_testable",
+     "n_inside": 2881,
+     "n_outside": 0
+    },
+    "2021_Kelly": {
+     "status": "tested",
+     "n_inside": 1172,
+     "n_outside": 346,
+     "median_diff_inside_minus_outside": 0.4299999999999997,
+     "lo": 0.08737499999999991,
+     "hi": 0.6299999999999999,
+     "class": "agree",
+     "expected": "inside window = higher permeability"
+    }
+   },
+   "rule_status": "agree",
+   "n_agree_cells": 1,
+   "n_cells": 1
+  },
+  "LIT-BRO5-002": {
+   "id": "LIT-BRO5-002",
+   "kind": "rule",
+   "direction": "window",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "window_contrast": {
+    "2020_Townsend": {
+     "status": "not_testable",
+     "n_inside": 2881,
+     "n_outside": 0
+    },
+    "2021_Kelly": {
+     "status": "not_testable",
+     "n_inside": 1518,
+     "n_outside": 0
+    }
+   },
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-BRO5-003": {
+   "id": "LIT-BRO5-003",
+   "kind": "rule",
+   "direction": "multi",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "clogp": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": 0.28720588047234735,
+       "lo": 0.17918739672881975,
+       "hi": 0.37870978676746303,
+       "class": "agree",
+       "expected_sign": 1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.4877013402620513,
+       "lo": 0.2923106501736511,
+       "hi": 0.6208376189078848,
+       "class": "agree",
+       "expected_sign": 1
+      }
+     }
+    },
+    "hba": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.2554813144259083,
+       "lo": -0.3683990373540222,
+       "hi": -0.130934231089168,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": -0.06807154026658287,
+       "lo": -0.132866603101458,
+       "hi": -0.010295374872386237,
+       "class": "agree",
+       "expected_sign": -1
+      }
+     }
+    },
+    "hbd": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.43877146630944336,
+       "lo": -0.513667019516984,
+       "hi": -0.3625826287892438,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": -0.52743282385953,
+       "lo": -0.6619013034023495,
+       "hi": -0.35345474666961574,
+       "class": "agree",
+       "expected_sign": -1
+      }
+     }
+    },
+    "mw": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.11760976480393,
+       "lo": -0.2360499556537589,
+       "hi": -0.01639578803871426,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.4847296655013997,
+       "lo": 0.29601459839965044,
+       "hi": 0.6119284398371139,
+       "class": "disagree",
+       "expected_sign": -1
+      }
+     }
+    },
+    "nrotb": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": 0.15769510967385453,
+       "lo": 0.06004347298703918,
+       "hi": 0.2665434638309323,
+       "class": "disagree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": -0.10329206968123517,
+       "lo": -0.276886155710337,
+       "hi": 0.07888693724021312,
+       "class": "weak_agree",
+       "expected_sign": -1
+      }
+     }
+    },
+    "tpsa": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.4704763245564915,
+       "lo": -0.5464818865235359,
+       "hi": -0.3742261860064372,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": -0.48512316377161685,
+       "lo": -0.614814547933638,
+       "hi": -0.28122206943586797,
+       "class": "agree",
+       "expected_sign": -1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "mixed",
+   "n_agree_cells": 10,
+   "n_cells": 12
+  },
+  "LIT-BRO5-004": {
+   "id": "LIT-BRO5-004",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-BRO5-005": {
+   "id": "LIT-BRO5-005",
+   "kind": "rule",
+   "direction": "window",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "window_contrast": {
+    "2020_Townsend": {
+     "status": "not_testable",
+     "n_inside": 2881,
+     "n_outside": 0
+    },
+    "2021_Kelly": {
+     "status": "not_testable",
+     "n_inside": 1518,
+     "n_outside": 0
+    }
+   },
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-BRO5-006": {
+   "id": "LIT-BRO5-006",
+   "kind": "rule",
+   "direction": "window",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-CHAM-001": {
+   "id": "LIT-CHAM-001",
+   "kind": "rule",
+   "direction": "+",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-CHAM-002": {
+   "id": "LIT-CHAM-002",
+   "kind": "fundamental",
+   "direction": "context",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-CHAM-003": {
+   "id": "LIT-CHAM-003",
+   "kind": "fundamental",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-CLIN-001": {
+   "id": "LIT-CLIN-001",
+   "kind": "caution",
+   "direction": "caution",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-CLIN-002": {
+   "id": "LIT-CLIN-002",
+   "kind": "fundamental",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-CLIN-003": {
+   "id": "LIT-CLIN-003",
+   "kind": "fundamental",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-CYC-001": {
+   "id": "LIT-CYC-001",
+   "kind": "fundamental",
+   "direction": "+",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "is_cyclic": {
+     "status": "not_testable",
+     "reason": "no 2D column or non-directional"
+    }
+   },
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-CYC-002": {
+   "id": "LIT-CYC-002",
+   "kind": "fundamental",
+   "direction": "+",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "is_cyclic": {
+     "status": "not_testable",
+     "reason": "no 2D column or non-directional"
+    }
+   },
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-DATA-001": {
+   "id": "LIT-DATA-001",
+   "kind": "caution",
+   "direction": "caution",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-DATA-002": {
+   "id": "LIT-DATA-002",
+   "kind": "caution",
+   "direction": "caution",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-DEPS-001": {
+   "id": "LIT-DEPS-001",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-DPRO-001": {
+   "id": "LIT-DPRO-001",
+   "kind": "caution",
+   "direction": "caution",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-EPSA-001": {
+   "id": "LIT-EPSA-001",
+   "kind": "rule",
+   "direction": "window",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "window_contrast": {
+    "2020_Townsend": {
+     "status": "not_testable",
+     "n_inside": 2881,
+     "n_outside": 0
+    },
+    "2021_Kelly": {
+     "status": "not_testable",
+     "n_inside": 1518,
+     "n_outside": 0
+    }
+   },
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-HBD-001": {
+   "id": "LIT-HBD-001",
+   "kind": "rule",
+   "direction": "-",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "hbd": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.43877146630944336,
+       "lo": -0.5179735692675209,
+       "hi": -0.34450376373044844,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": -0.52743282385953,
+       "lo": -0.6533322328214239,
+       "hi": -0.33137220357022845,
+       "class": "agree",
+       "expected_sign": -1
+      }
+     }
+    },
+    "n_heavy_atoms": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.12523501233159398,
+       "lo": -0.22423141165931135,
+       "hi": -0.018668689707647547,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.47434236727503365,
+       "lo": 0.2773580782160641,
+       "hi": 0.6194478266536338,
+       "class": "disagree",
+       "expected_sign": -1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "mixed",
+   "n_agree_cells": 3,
+   "n_cells": 4
+  },
+  "LIT-HBD-002": {
+   "id": "LIT-HBD-002",
+   "kind": "rule",
+   "direction": "-",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "hbd": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.43877146630944336,
+       "lo": -0.5274180631893487,
+       "hi": -0.3514410012963716,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": -0.52743282385953,
+       "lo": -0.6501632868119603,
+       "hi": -0.33845773275725016,
+       "class": "agree",
+       "expected_sign": -1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "agree",
+   "n_agree_cells": 2,
+   "n_cells": 2
+  },
+  "LIT-IMHB-001": {
+   "id": "LIT-IMHB-001",
+   "kind": "rule",
+   "direction": "-",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "hbd": {
+     "status": "tested",
+     "proxy": true,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.43877146630944336,
+       "lo": -0.5028496820007875,
+       "hi": -0.35096914651541816,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": -0.52743282385953,
+       "lo": -0.6333741089444074,
+       "hi": -0.35275942687665884,
+       "class": "agree",
+       "expected_sign": -1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "agree",
+   "n_agree_cells": 2,
+   "n_cells": 2
+  },
+  "LIT-IMHB-002": {
+   "id": "LIT-IMHB-002",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-IMHB-003": {
+   "id": "LIT-IMHB-003",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-IMHB-004": {
+   "id": "LIT-IMHB-004",
+   "kind": "rule",
+   "direction": "-",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "hbd": {
+     "status": "tested",
+     "proxy": true,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.43877146630944336,
+       "lo": -0.5101687621764606,
+       "hi": -0.34142031227378994,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": -0.52743282385953,
+       "lo": -0.6441035962889051,
+       "hi": -0.3411061381121137,
+       "class": "agree",
+       "expected_sign": -1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "agree",
+   "n_agree_cells": 2,
+   "n_cells": 2
+  },
+  "LIT-IMHB-005": {
+   "id": "LIT-IMHB-005",
+   "kind": "rule",
+   "direction": "-",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "hbd": {
+     "status": "tested",
+     "proxy": true,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.43877146630944336,
+       "lo": -0.5055630859035928,
+       "hi": -0.35078788718939097,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": -0.52743282385953,
+       "lo": -0.6469825351646263,
+       "hi": -0.3595500702770076,
+       "class": "agree",
+       "expected_sign": -1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "agree",
+   "n_agree_cells": 2,
+   "n_cells": 2
+  },
+  "LIT-IMHB-006": {
+   "id": "LIT-IMHB-006",
+   "kind": "rule",
+   "direction": "-",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "hbd": {
+     "status": "tested",
+     "proxy": true,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.43877146630944336,
+       "lo": -0.5107153979471699,
+       "hi": -0.35650551247547163,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": -0.52743282385953,
+       "lo": -0.6561550861393851,
+       "hi": -0.34092116301442044,
+       "class": "agree",
+       "expected_sign": -1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "agree",
+   "n_agree_cells": 2,
+   "n_cells": 2
+  },
+  "LIT-LIAB-001": {
+   "id": "LIT-LIAB-001",
+   "kind": "fundamental",
+   "direction": "context",
+   "outcome_class": "stability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-LIAB-002": {
+   "id": "LIT-LIAB-002",
+   "kind": "caution",
+   "direction": "caution",
+   "outcome_class": "stability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-LIP-001": {
+   "id": "LIT-LIP-001",
+   "kind": "rule",
+   "direction": "window",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "peak_test": {
+    "2020_Townsend": {
+     "status": "tested",
+     "n": 2881,
+     "quad_coef": -0.1126290904839191,
+     "lo": -0.14365213692655332,
+     "hi": -0.08460322200636307,
+     "class": "agree",
+     "expected": "negative quadratic (peak)"
+    },
+    "2021_Kelly": {
+     "status": "tested",
+     "n": 1518,
+     "quad_coef": -0.11969675555159155,
+     "lo": -0.1673629591560126,
+     "hi": -0.06301538320082893,
+     "class": "agree",
+     "expected": "negative quadratic (peak)"
+    }
+   },
+   "rule_status": "agree",
+   "n_agree_cells": 2,
+   "n_cells": 2
+  },
+  "LIT-LIP-002": {
+   "id": "LIT-LIP-002",
+   "kind": "rule",
+   "direction": "window",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "peak_test": {
+    "2020_Townsend": {
+     "status": "tested",
+     "n": 2881,
+     "quad_coef": -0.1126290904839191,
+     "lo": -0.13992020839967778,
+     "hi": -0.08057061119381491,
+     "class": "agree",
+     "expected": "negative quadratic (peak)"
+    },
+    "2021_Kelly": {
+     "status": "tested",
+     "n": 1518,
+     "quad_coef": -0.11969675555159155,
+     "lo": -0.17375518373926976,
+     "hi": -0.06477389675703307,
+     "class": "agree",
+     "expected": "negative quadratic (peak)"
+    }
+   },
+   "rule_status": "agree",
+   "n_agree_cells": 2,
+   "n_cells": 2
+  },
+  "LIT-NCAA-001": {
+   "id": "LIT-NCAA-001",
+   "kind": "fundamental",
+   "direction": "+",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "n_dres": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.038505020228250045,
+       "lo": -0.0882954051182406,
+       "hi": 0.01284003753310268,
+       "class": "weak_disagree",
+       "expected_sign": 1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.01838927062781216,
+       "lo": -0.0492205357706977,
+       "hi": 0.0836272675151804,
+       "class": "weak_agree",
+       "expected_sign": 1
+      }
+     }
+    },
+    "n_nme": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": 0.5028873025593027,
+       "lo": 0.4309659585088041,
+       "hi": 0.5728356475936807,
+       "class": "agree",
+       "expected_sign": 1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.52743282385953,
+       "lo": 0.3319845894431986,
+       "hi": 0.655253720014842,
+       "class": "agree",
+       "expected_sign": 1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "mixed",
+   "n_agree_cells": 3,
+   "n_cells": 4
+  },
+  "LIT-NH-001": {
+   "id": "LIT-NH-001",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-NH-002": {
+   "id": "LIT-NH-002",
+   "kind": "fundamental",
+   "direction": "-",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "hbd": {
+     "status": "tested",
+     "proxy": true,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.43877146630944336,
+       "lo": -0.5150940606287834,
+       "hi": -0.35015880000480337,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": -0.52743282385953,
+       "lo": -0.6559764331549061,
+       "hi": -0.3411563245908094,
+       "class": "agree",
+       "expected_sign": -1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "agree",
+   "n_agree_cells": 2,
+   "n_cells": 2
+  },
+  "LIT-NME-001": {
+   "id": "LIT-NME-001",
+   "kind": "rule",
+   "direction": "+",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "n_nme": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": 0.5028873025593027,
+       "lo": 0.4263272481436432,
+       "hi": 0.5702979093488251,
+       "class": "agree",
+       "expected_sign": 1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.52743282385953,
+       "lo": 0.344925067626192,
+       "hi": 0.6481978049405481,
+       "class": "agree",
+       "expected_sign": 1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "agree",
+   "n_agree_cells": 2,
+   "n_cells": 2
+  },
+  "LIT-NME-002": {
+   "id": "LIT-NME-002",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-NME-003": {
+   "id": "LIT-NME-003",
+   "kind": "rule",
+   "direction": "+",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "n_nme": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": 0.5028873025593027,
+       "lo": 0.4119373665047843,
+       "hi": 0.5724665436117653,
+       "class": "agree",
+       "expected_sign": 1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.52743282385953,
+       "lo": 0.349595464213153,
+       "hi": 0.6588861075668905,
+       "class": "agree",
+       "expected_sign": 1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "agree",
+   "n_agree_cells": 2,
+   "n_cells": 2
+  },
+  "LIT-NME-004": {
+   "id": "LIT-NME-004",
+   "kind": "rule",
+   "direction": "+",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "n_nme": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": 0.5028873025593027,
+       "lo": 0.4107503876544043,
+       "hi": 0.5719365546784908,
+       "class": "agree",
+       "expected_sign": 1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.52743282385953,
+       "lo": 0.31224337070917574,
+       "hi": 0.6556589424845807,
+       "class": "agree",
+       "expected_sign": 1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "agree",
+   "n_agree_cells": 2,
+   "n_cells": 2
+  },
+  "LIT-NME-005": {
+   "id": "LIT-NME-005",
+   "kind": "rule",
+   "direction": "multi",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "hbd": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.43877146630944336,
+       "lo": -0.5137266103824681,
+       "hi": -0.3372000119643142,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": -0.52743282385953,
+       "lo": -0.6409049882304145,
+       "hi": -0.33415791142129636,
+       "class": "agree",
+       "expected_sign": -1
+      }
+     }
+    },
+    "n_nme": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": 0.5028873025593027,
+       "lo": 0.40685436593886826,
+       "hi": 0.5763064920738368,
+       "class": "agree",
+       "expected_sign": 1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.52743282385953,
+       "lo": 0.3676634657290955,
+       "hi": 0.6466549597812623,
+       "class": "agree",
+       "expected_sign": 1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "agree",
+   "n_agree_cells": 4,
+   "n_cells": 4
+  },
+  "LIT-NME-006": {
+   "id": "LIT-NME-006",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-NME-007": {
+   "id": "LIT-NME-007",
+   "kind": "fundamental",
+   "direction": "+",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "is_cyclic": {
+     "status": "not_testable",
+     "reason": "no 2D column or non-directional"
+    },
+    "n_nme": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": 0.5028873025593027,
+       "lo": 0.4163791266136056,
+       "hi": 0.5771656671362075,
+       "class": "agree",
+       "expected_sign": 1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.52743282385953,
+       "lo": 0.3449861950968084,
+       "hi": 0.6704206030368431,
+       "class": "agree",
+       "expected_sign": 1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "agree",
+   "n_agree_cells": 2,
+   "n_cells": 2
+  },
+  "LIT-NMEPOS-001": {
+   "id": "LIT-NMEPOS-001",
+   "kind": "rule",
+   "direction": "+",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "n_nme": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": 0.5028873025593027,
+       "lo": 0.4214848198154546,
+       "hi": 0.571781279824921,
+       "class": "agree",
+       "expected_sign": 1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.52743282385953,
+       "lo": 0.3420864915304466,
+       "hi": 0.6609598496958572,
+       "class": "agree",
+       "expected_sign": 1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "agree",
+   "n_agree_cells": 2,
+   "n_cells": 2
+  },
+  "LIT-NMEPOS-002": {
+   "id": "LIT-NMEPOS-002",
+   "kind": "caution",
+   "direction": "caution",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-NMEPOS-003": {
+   "id": "LIT-NMEPOS-003",
+   "kind": "caution",
+   "direction": "caution",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-OB-001": {
+   "id": "LIT-OB-001",
+   "kind": "fundamental",
+   "direction": "multi",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "hbd": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.43877146630944336,
+       "lo": -0.5033292526127893,
+       "hi": -0.3482102753052889,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": -0.52743282385953,
+       "lo": -0.6665085251028386,
+       "hi": -0.3373765714648561,
+       "class": "agree",
+       "expected_sign": -1
+      }
+     }
+    },
+    "tpsa": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.4704763245564915,
+       "lo": -0.5562178064999866,
+       "hi": -0.38454571537982957,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": -0.48512316377161685,
+       "lo": -0.6321476095805775,
+       "hi": -0.28298465510805204,
+       "class": "agree",
+       "expected_sign": -1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "agree",
+   "n_agree_cells": 4,
+   "n_cells": 4
+  },
+  "LIT-PEP-001": {
+   "id": "LIT-PEP-001",
+   "kind": "fundamental",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-POL-001": {
+   "id": "LIT-POL-001",
+   "kind": "rule",
+   "direction": "conflict",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-POL-002": {
+   "id": "LIT-POL-002",
+   "kind": "rule",
+   "direction": "window",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "window_contrast": {
+    "2020_Townsend": {
+     "status": "tested",
+     "n_inside": 2557,
+     "n_outside": 324,
+     "median_diff_inside_minus_outside": -0.1200000000000001,
+     "lo": -0.24262500000000015,
+     "hi": 0.035249999999999906,
+     "class": "weak_disagree",
+     "expected": "inside window = higher permeability"
+    },
+    "2021_Kelly": {
+     "status": "not_testable",
+     "n_inside": 1509,
+     "n_outside": 9
+    }
+   },
+   "rule_status": "mixed",
+   "n_agree_cells": 0,
+   "n_cells": 1
+  },
+  "LIT-RING-001": {
+   "id": "LIT-RING-001",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-RO5-001": {
+   "id": "LIT-RO5-001",
+   "kind": "rule",
+   "direction": "window",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "window_contrast": {
+    "2020_Townsend": {
+     "status": "not_testable",
+     "n_inside": 2878,
+     "n_outside": 3
+    },
+    "2021_Kelly": {
+     "status": "not_testable",
+     "n_inside": 0,
+     "n_outside": 1518
+    }
+   },
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-RO5-002": {
+   "id": "LIT-RO5-002",
+   "kind": "rule",
+   "direction": "window",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "window_contrast": {
+    "2020_Townsend": {
+     "status": "not_testable",
+     "n_inside": 0,
+     "n_outside": 2881
+    },
+    "2021_Kelly": {
+     "status": "not_testable",
+     "n_inside": 0,
+     "n_outside": 1518
+    }
+   },
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-SD-001": {
+   "id": "LIT-SD-001",
+   "kind": "fundamental",
+   "direction": "+",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "clogp": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": 0.28720588047234735,
+       "lo": 0.17742336509105658,
+       "hi": 0.3792848714964478,
+       "class": "agree",
+       "expected_sign": 1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.4877013402620513,
+       "lo": 0.30613402321289057,
+       "hi": 0.6263354135524334,
+       "class": "agree",
+       "expected_sign": 1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "agree",
+   "n_agree_cells": 2,
+   "n_cells": 2
+  },
+  "LIT-SD-002": {
+   "id": "LIT-SD-002",
+   "kind": "caution",
+   "direction": "caution",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-SEQ-001": {
+   "id": "LIT-SEQ-001",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-SIZE-001": {
+   "id": "LIT-SIZE-001",
+   "kind": "rule",
+   "direction": "-",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "n_heavy_atoms": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.12523501233159398,
+       "lo": -0.24201664089579578,
+       "hi": -0.011657675739021663,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.47434236727503365,
+       "lo": 0.26091977168371755,
+       "hi": 0.6177423458378631,
+       "class": "disagree",
+       "expected_sign": -1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "mixed",
+   "n_agree_cells": 1,
+   "n_cells": 2
+  },
+  "LIT-SIZE-002": {
+   "id": "LIT-SIZE-002",
+   "kind": "rule",
+   "direction": "multi",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "is_cyclic": {
+     "status": "not_testable",
+     "reason": "no 2D column or non-directional"
+    },
+    "mw": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.11760976480393,
+       "lo": -0.23573789725438746,
+       "hi": -0.0056044427396850505,
+       "class": "agree",
+       "expected_sign": -1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.4847296655013997,
+       "lo": 0.3067215174494623,
+       "hi": 0.619116207210068,
+       "class": "disagree",
+       "expected_sign": -1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "mixed",
+   "n_agree_cells": 1,
+   "n_cells": 2
+  },
+  "LIT-SIZE-003": {
+   "id": "LIT-SIZE-003",
+   "kind": "fundamental",
+   "direction": "context",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-SOL-001": {
+   "id": "LIT-SOL-001",
+   "kind": "rule",
+   "direction": "-",
+   "outcome_class": "solubility",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-STAB-001": {
+   "id": "LIT-STAB-001",
+   "kind": "rule",
+   "direction": "+",
+   "outcome_class": "stability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-STAB-002": {
+   "id": "LIT-STAB-002",
+   "kind": "fundamental",
+   "direction": "+",
+   "outcome_class": "permeability",
+   "per_feature": {
+    "n_dres": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": -0.038505020228250045,
+       "lo": -0.08864536848835046,
+       "hi": 0.01047217491356572,
+       "class": "weak_disagree",
+       "expected_sign": 1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.01838927062781216,
+       "lo": -0.04392477469513663,
+       "hi": 0.08351137508397694,
+       "class": "weak_agree",
+       "expected_sign": 1
+      }
+     }
+    },
+    "n_nme": {
+     "status": "tested",
+     "proxy": false,
+     "per_source": {
+      "2020_Townsend": {
+       "n": 2881,
+       "n_clusters": 254,
+       "rho": 0.5028873025593027,
+       "lo": 0.42632260210138895,
+       "hi": 0.5734076032284867,
+       "class": "agree",
+       "expected_sign": 1
+      },
+      "2021_Kelly": {
+       "n": 1518,
+       "n_clusters": 181,
+       "rho": 0.52743282385953,
+       "lo": 0.34927929606026914,
+       "hi": 0.6674158307745716,
+       "class": "agree",
+       "expected_sign": 1
+      }
+     }
+    }
+   },
+   "per_source": {},
+   "rule_status": "mixed",
+   "n_agree_cells": 3,
+   "n_cells": 4
+  },
+  "LIT-STAB-003": {
+   "id": "LIT-STAB-003",
+   "kind": "caution",
+   "direction": "caution",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-STAB-004": {
+   "id": "LIT-STAB-004",
+   "kind": "fundamental",
+   "direction": "+",
+   "outcome_class": "stability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-STAB-005": {
+   "id": "LIT-STAB-005",
+   "kind": "fundamental",
+   "direction": "+",
+   "outcome_class": "stability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-STAB-006": {
+   "id": "LIT-STAB-006",
+   "kind": "caution",
+   "direction": "caution",
+   "outcome_class": "stability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-STAB-007": {
+   "id": "LIT-STAB-007",
+   "kind": "fundamental",
+   "direction": "multi",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-STAB-008": {
+   "id": "LIT-STAB-008",
+   "kind": "fundamental",
+   "direction": "+",
+   "outcome_class": "stability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-STAB-009": {
+   "id": "LIT-STAB-009",
+   "kind": "fundamental",
+   "direction": "context",
+   "outcome_class": "stability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-STAB-010": {
+   "id": "LIT-STAB-010",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "stability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-STAB-011": {
+   "id": "LIT-STAB-011",
+   "kind": "fundamental",
+   "direction": "context",
+   "outcome_class": "stability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-STER-001": {
+   "id": "LIT-STER-001",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-STER-002": {
+   "id": "LIT-STER-002",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "solubility",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-STER-003": {
+   "id": "LIT-STER-003",
+   "kind": "rule",
+   "direction": "context",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-TPSA-001": {
+   "id": "LIT-TPSA-001",
+   "kind": "rule",
+   "direction": "caution",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-TPSA-002": {
+   "id": "LIT-TPSA-002",
+   "kind": "fundamental",
+   "direction": "window",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "window_contrast": {
+    "2020_Townsend": {
+     "status": "not_testable",
+     "n_inside": 2881,
+     "n_outside": 0
+    },
+    "2021_Kelly": {
+     "status": "not_testable",
+     "n_inside": 1518,
+     "n_outside": 0
+    }
+   },
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-TPSA-003": {
+   "id": "LIT-TPSA-003",
+   "kind": "caution",
+   "direction": "caution",
+   "outcome_class": "other",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "reason": "rule outcome is not permeability: the PAMPA label cannot test it",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  },
+  "LIT-TRADE-001": {
+   "id": "LIT-TRADE-001",
+   "kind": "fundamental",
+   "direction": "context",
+   "outcome_class": "permeability",
+   "per_feature": {},
+   "per_source": {},
+   "rule_status": "not_testable",
+   "n_agree_cells": 0,
+   "n_cells": 0
+  }
+ },
+ "summary": {
+  "not_testable": 83,
+  "agree": 17,
+  "mixed": 7
+ }
+}

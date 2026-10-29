@@ -25,6 +25,7 @@ TOPICS = {
     "rgd": r"\bRGD|RGDL|integrin|A20FMDV2|MIDAS|selectiv",
     "pdl1": r"PD-L1|PD-1",
     "grpr": r"GRPR|bombesin|gastrin-releasing|RM2|RM26|antagonist",
+    "camp": r"hit rate|success rate|binders? (were|was|with|showing)|designs? (were |was )?(tested|characteri[sz]ed|synthesi[sz]ed|experimentally)|picomolar|nanomolar|\bK[Dd]\b|IC50|failed|did not (bind|express|fold)|negative result|X-ray|crystal structure|validated",
 }
 QUANT = re.compile(r"(\d+(\.\d+)?\s*(%|-fold|fold|nM|µM|μM|mM|Å|Da|kDa|cm/s|h\b|min\b|log))|10\s?[-−–]\s?\d|p\s?[<=]|n\s?=|[≥≤<>]\s?\d|\b(higher|lower|greater|less|increase[sd]?|decrease[sd]?|improv\w+|reduc\w+|enhanc\w+|correlat\w+)\b")
 

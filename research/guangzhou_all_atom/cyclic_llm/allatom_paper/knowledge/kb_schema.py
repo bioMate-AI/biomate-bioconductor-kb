@@ -21,6 +21,18 @@ REQUIRED = ("id", "kind", "statement", "direction", "scope", "outcome", "tier", 
 ID_RE = re.compile(r"^(LIT|CARD|INT)-[A-Z0-9]+-\d{3}$")
 
 
+def outcome_class(outcome: str) -> str:
+    """permeability | stability | solubility | other  (weights from different classes must not be summed into one potential)."""
+    o = (outcome or "").lower()
+    if any(k in o for k in ("permeab", "absorption", "oral", "mdck", "caco", "cp50")):
+        return "permeability"
+    if any(k in o for k in ("stab", "protease", "half-life", "proteoly")):
+        return "stability"
+    if "solub" in o:
+        return "solubility"
+    return "other"
+
+
 def quote_words(q: str) -> int:
     return len(q.split())
 
@@ -53,6 +65,14 @@ def validate(entry: dict) -> list:
             p.append("source_missing:path")
     if not entry["quote"] or quote_words(entry["quote"]) > 30:
         p.append("quote_empty_or_over_30_words")
+    for q in entry.get("quotes", []) or []:
+        if not q or quote_words(q) > 30:
+            p.append("extra_quote_empty_or_over_30_words")
+    if entry["kind"] == "card":
+        c = entry.get("card") or {}
+        for k in ("method", "modality", "outcome", "failure_modes", "lessons"):
+            if not c.get(k):
+                p.append(f"card_missing:{k}")
     if entry["weight_eligible"]:
         if entry["tier"] not in ("T1", "T2") or entry["kind"] not in ("rule", "fundamental"):
             p.append("eligible_tier_or_kind")
