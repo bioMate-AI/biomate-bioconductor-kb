@@ -5,12 +5,24 @@ from merge import toks, jacc
 from verify import norm
 
 
+GOLD_KIND_TOPIC = {"rule": "sar_rule", "fundamental": "structure_property", "card": "prior_work", "caution": "sar_rule"}
+
+
+def load_gold(path):
+    """K's gold: allatom_paper/knowledge/knowledge_kb_v1.json (dict with 'rules') or a jsonl of rules. Entries from non-PMC sources
+    (arXiv, internal docs) have no PMCID/DOI in the pilot's Europe PMC corpus and are counted as not-in-corpus."""
+    txt = open(path).read().strip()
+    d = json.loads(txt) if txt.startswith(("{", "[")) else [json.loads(l) for l in txt.splitlines() if l.strip()]
+    return d["rules"] if isinstance(d, dict) and "rules" in d else d
+
+
 def _gold_fields(g):
-    stmt = g.get("statement") or g.get("rule") or ""
-    c = g.get("citation") or {}
-    ident = (g.get("doi") or c.get("doi") or g.get("pmcid") or c.get("pmcid") or "").lower()
-    pm = (g.get("pmcid") or c.get("pmcid") or "").upper()
-    return stmt, norm(g.get("quote") or ""), ident, pm
+    stmt = g.get("statement") or ""
+    quotes = [norm(q) for q in ([g.get("quote")] + list(g.get("quotes") or [])) if q]
+    src = g.get("source") or {}
+    ident = (src.get("doi") or g.get("doi") or "").lower()
+    pm = (src.get("pmcid") or g.get("pmcid") or "").upper()
+    return stmt, quotes, ident, pm, GOLD_KIND_TOPIC.get(g.get("kind"), "sar_rule")
 
 
 def recall_vs_gold(gold, rules, corpus_pmcids, corpus_dois):
@@ -19,24 +31,28 @@ def recall_vs_gold(gold, rules, corpus_pmcids, corpus_dois):
         c = r["citation"]
         by_paper[(c.get("doi") or "").lower()].append(r)
         by_paper[c["pmcid"].upper()].append(r)
-    in_corpus, found, rows = 0, 0, []
+    per_topic = defaultdict(lambda: {"gold": 0, "in_corpus": 0, "found": 0})
+    rows = []
     for g in gold:
-        stmt, quote, ident, pm = _gold_fields(g)
+        stmt, quotes, ident, pm, topic = _gold_fields(g)
+        per_topic[topic]["gold"] += 1
         if not ((pm and pm in corpus_pmcids) or (ident and ident in corpus_dois)):
             continue
-        in_corpus += 1
+        per_topic[topic]["in_corpus"] += 1
         cand = by_paper.get(ident, []) + by_paper.get(pm, [])
         ok = False
         for r in cand:
             sj = jacc(toks(stmt), toks(r["statement"]))
-            qj = jacc(set(quote.lower().split()), set(r["quote"].lower().split())) if quote else 0.0
+            qj = max([jacc(set(q.lower().split()), set(r["quote"].lower().split())) for q in quotes] or [0.0])
             if sj >= 0.3 or qj >= 0.5:
                 ok = True
                 break
-        found += ok
-        rows.append({"gold": g.get("rule_id") or stmt[:60], "paper": ident or pm, "found": ok})
-    return {"gold_total": len(gold), "gold_in_corpus": in_corpus, "found": found,
-            "recall_of_in_corpus": (found / in_corpus if in_corpus else None), "rows": rows}
+        per_topic[topic]["found"] += ok
+        rows.append({"gold": g.get("id") or stmt[:60], "topic": topic, "paper": ident or pm, "found": ok, "k2_rules_from_paper": len(cand)})
+    tot_in = sum(v["in_corpus"] for v in per_topic.values())
+    tot_found = sum(v["found"] for v in per_topic.values())
+    return {"gold_total": len(gold), "gold_in_corpus": tot_in, "found": tot_found,
+            "recall_of_in_corpus": (tot_found / tot_in if tot_in else None), "per_topic": dict(per_topic), "rows": rows}
 
 
 def audit_sample(rules, n=100, seed=20261031):
@@ -69,9 +85,16 @@ def main():
     dois = {(x.get("doi") or "").lower() for x in idx if x.get("doi")}
     res = {"n_rules": len(rules)}
     if a.gold:
-        txt = open(a.gold).read().strip()
-        gold = json.loads(txt) if txt.startswith("[") else [json.loads(l) for l in txt.splitlines() if l.strip()]
+        gold = load_gold(a.gold)
         res["recall"] = recall_vs_gold(gold, rules, pm, dois)
+    by_topic = defaultdict(lambda: {"rules": 0, "entail_yes": 0, "papers": set()})
+    for r in rules:
+        t = by_topic[r.get("topic", "sar_rule")]
+        t["rules"] += 1
+        t["entail_yes"] += r.get("proxy_entailment") == "YES"
+        t["papers"].add(r["citation"]["pmcid"])
+    res["yield_by_topic"] = {k: {"rules": v["rules"], "papers": len(v["papers"]), "entail_yes_rate": v["entail_yes"] / max(1, v["rules"])}
+                             for k, v in by_topic.items()}
     sample = audit_sample(rules)
     with open(a.out + "_audit_sample.csv", "w", newline="") as fh:
         w = csv.writer(fh)
