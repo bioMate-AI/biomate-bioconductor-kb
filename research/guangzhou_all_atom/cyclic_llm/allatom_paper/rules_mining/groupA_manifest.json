@@ -1,0 +1,88 @@
+{
+ "description": "soft-rule weights re-mined on TRAIN source group A only",
+ "group_rule": "committed membership file allatom_paper/track_e/source_groups.json (pattern [0,1,2,2,1,0], sources by (-n, name))",
+ "groups_from": {
+  "file": "allatom_paper/track_e/source_groups_v2.json",
+  "sha256": "d17ccdfae6af85cb83d5733863d88349fd9205baea2fa3df8d6a2ecedeabf2e9",
+  "annotation_sha256": "8b59c16e78b7df304301cb79deb3608c4e7a27463ef54517b3ee85e1ef5ae521"
+ },
+ "group_A_sources_used": [
+  "2020_Townsend",
+  "2021_Kelly"
+ ],
+ "group_A_all": [
+  "2020_Townsend",
+  "2021_Kelly"
+ ],
+ "group_S": [
+  "2013_CHUGAI",
+  "2015_Ahlbach",
+  "2017_Pye",
+  "2018_Naylor",
+  "2020_Le Roux",
+  "2021_Comeau",
+  "2021_Golosov",
+  "2022_Bhardwaj",
+  "2023_Ghosh"
+ ],
+ "group_B": [
+  "2015_Wang",
+  "2016_Furukawa",
+  "2020_Barlow",
+  "2020_Furukawa",
+  "2021_Wang",
+  "2022_Taechalertpaisarn",
+  "2024_Faris",
+  "2024_Koch",
+  "2024_Ly"
+ ],
+ "eligible_sources_all": [
+  "2013_CHUGAI",
+  "2015_Ahlbach",
+  "2015_Wang",
+  "2016_Furukawa",
+  "2017_Pye",
+  "2018_Naylor",
+  "2020_Barlow",
+  "2020_Furukawa",
+  "2020_Le Roux",
+  "2020_Townsend",
+  "2021_Comeau",
+  "2021_Golosov",
+  "2021_Kelly",
+  "2021_Wang",
+  "2022_Bhardwaj",
+  "2022_Taechalertpaisarn",
+  "2023_Ghosh",
+  "2024_Faris",
+  "2024_Koch",
+  "2024_Ly"
+ ],
+ "min_src_n": 20,
+ "n_peptides_used": 4399,
+ "n_pairs_used": 25688,
+ "sensitivity_file": "groupA_sensitivity.json",
+ "rule_support_n_sources": {
+  "tpsa": 2,
+  "hbd": 2,
+  "logp": 2,
+  "veber_pass": 1,
+  "N-Me added (with minus without)": 2,
+  "D flip (D minus L)": 2
+ },
+ "rule_status": {
+  "tpsa": "inconclusive",
+  "hbd": "inconclusive",
+  "logp": "inconclusive",
+  "veber_pass": "inconclusive",
+  "N-Me added (with minus without)": "inconclusive",
+  "D flip (D minus L)": "no_consistent_direction"
+ },
+ "n_validated_rules": 0,
+ "output_sha256_noTownsend": "ff454e0c1436cd7c43b805d46674fa1041f2b5f75160da42a762d56def7dde8a",
+ "input_sha256": {
+  "mmp_pairs": "0874c880f72502fd94d00cb394bfd199cfa47cfda9cd845007f9c1c136b283fe"
+ },
+ "output_sha256": "ddec5b75764d2ddcef40536efa6ec6f498092d2a26d425753e548072c3f63658",
+ "mining_code": "kb_audit/peptide_sar_kb.py fit(pairs, d, train_sources) (unmodified)"
+}

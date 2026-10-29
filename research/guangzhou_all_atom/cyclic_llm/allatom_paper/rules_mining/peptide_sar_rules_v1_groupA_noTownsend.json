@@ -1,0 +1,83 @@
+{
+ "version": "peptide_sar_kb v1",
+ "scope": "PAMPA permeability, cyclic peptides (CycPeptMPDB-type); within-source z units",
+ "train_sources": [
+  "2021_Kelly"
+ ],
+ "rules": {
+  "tpsa": {
+   "rule": "tpsa",
+   "kind": "physchem",
+   "status": "inconclusive",
+   "n_sources": 1
+  },
+  "hbd": {
+   "rule": "hbd",
+   "kind": "physchem",
+   "status": "inconclusive",
+   "n_sources": 1
+  },
+  "logp": {
+   "rule": "logp",
+   "kind": "physchem",
+   "status": "inconclusive",
+   "n_sources": 1
+  },
+  "veber_pass": {
+   "rule": "veber_pass",
+   "kind": "physchem",
+   "status": "inconclusive",
+   "n_sources": 0
+  },
+  "N-Me added (with minus without)": {
+   "rule": "N-Me added (with minus without)",
+   "kind": "pair",
+   "status": "inconclusive",
+   "effect_z": 0.4829756750429274,
+   "ci_z": [
+    NaN,
+    NaN
+   ],
+   "I2": NaN,
+   "effect_raw_mean": 0.3252032520325203,
+   "sd_z": 0.8377269098373327,
+   "cliff_frac": 0.26287262872628725,
+   "n_pairs": 1107,
+   "n_sources": 1,
+   "frac_sources_same_sign": NaN,
+   "half_effects": [
+    NaN,
+    NaN
+   ],
+   "validity_score": 0.0,
+   "mined_from": [
+    "2021_Kelly"
+   ]
+  },
+  "D flip (D minus L)": {
+   "rule": "D flip (D minus L)",
+   "kind": "pair",
+   "status": "inconclusive",
+   "effect_z": 0.02037064126713994,
+   "ci_z": [
+    NaN,
+    NaN
+   ],
+   "I2": NaN,
+   "effect_raw_mean": 0.013716216216216213,
+   "sd_z": 0.7854584899106056,
+   "cliff_frac": 0.15495495495495495,
+   "n_pairs": 2220,
+   "n_sources": 1,
+   "frac_sources_same_sign": NaN,
+   "half_effects": [
+    NaN,
+    NaN
+   ],
+   "validity_score": 0.0,
+   "mined_from": [
+    "2021_Kelly"
+   ]
+  }
+ }
+}
