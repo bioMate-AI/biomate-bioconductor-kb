@@ -55,8 +55,8 @@
   --bm-shadow-lg: 0 4px 12px rgba(15,23,42,0.08), 0 16px 40px rgba(15,23,42,0.06);
 
   /* Typography */
-  --bm-font-ui:   'Inter', system-ui, -apple-system, sans-serif;
-  --bm-font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  --bm-font-ui:   'IBM Plex Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --bm-font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
 }
 
 /* ── Dark mode overrides ───────────────────────────────────── */

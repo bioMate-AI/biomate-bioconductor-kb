@@ -2195,7 +2195,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   style={{
                     fontSize: 11, padding: '2px 6px 2px 8px', borderRadius: 999,
                     background: 'oklch(0.94 0.06 70)', color: 'oklch(0.40 0.12 60)',
-                    fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+                    fontFamily: 'var(--bm-font-mono, ui-monospace, monospace)',
                     display: 'inline-flex', alignItems: 'center', gap: 4,
                   }}
                 >
@@ -2236,7 +2236,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   style={{
                     fontSize: 11, padding: '2px 8px', borderRadius: 999,
                     background: 'oklch(0.95 0.03 145)', color: 'oklch(0.40 0.10 145)',
-                    fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+                    fontFamily: 'var(--bm-font-mono, ui-monospace, monospace)',
                     display: 'inline-flex', alignItems: 'center', gap: 4,
                   }}
                 >

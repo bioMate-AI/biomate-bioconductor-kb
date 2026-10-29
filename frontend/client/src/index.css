@@ -90,9 +90,9 @@
   --bio-orange: 38 69% 50%;
   --bio-blue: 202 100% 37%;
 
-  --font-sans: Inter, sans-serif;
+  --font-sans: 'IBM Plex Sans', Inter, sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: JetBrains Mono, monospace;
+  --font-mono: 'IBM Plex Mono', JetBrains Mono, monospace;
   --font-display: 'DM Serif Display', Georgia, serif;
   --radius: .5rem; /* 8px */
   --shadow-2xs: 0px 2px 0px 0px hsl(220 10% 45% / 0.02);
@@ -542,7 +542,7 @@
   box-shadow: 0 16px 40px rgba(10,14,28,0.32), 0 2px 6px rgba(10,14,28,0.14);
   z-index: 9001;
   font-size: 13px;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
 }
 .cro-tour-callout.center { width: 420px; }
 
