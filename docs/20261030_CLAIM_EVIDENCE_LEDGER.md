@@ -474,3 +474,17 @@ Method: mean of the stored `family_means` (points) and my own percentile cluster
 | M2 (flat-disjoint) | C1 / C2 / C3 | 14 / 14 / 14 | 0.665 / 0.743 / 0.739 | [0.526, 0.796] / [0.613, 0.850] / [0.595, 0.863] | same within 0.003 |
 
 Status: **MATCH** for all 12 points (and the M C3 0.4607 and M2 0.743 / 0.739 quoted by the benchmark workstream); intervals agree to resampling noise. The v2-fold I C3 is **0.596**, above the v1 0.584: the drafts' "robust, 0.575–0.583" statement is for compound/Tanimoto-purged training on v1 folds; on folds_v2 the control is slightly stronger. The gate verdict (control well above 0.5 on I and M2) is unchanged; note the benchmark workstream confirmed (V5 §5, commit 263b4c2e6) that the 98.3 % level and the ±0.05 margin are post hoc and loosen the bias flag relative to the 95 % rule.
+
+---
+
+## UPDATE 11 — Stratification source-annotation defect (report from the stratification workstream; dated correction note in `20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md`)
+
+Reported defect: Source/Year in `build_annotations.py` were taken from the first row of any assay instead of the PAMPA (loader) row; 177 of 6,960 peptides (2.5 %) wrongly sourced (150 "Ohta" that should be CHUGAI, 9 2018_CHUGAI, 18 others); 45 sources reported, 41 correct. Rerun changes: matched pairs 4,156 / 16 sources → 4,166 / 15; D-flip 7,451 / 19 → 7,467 / 18; features tested 56 → 54; replication 0/11 → 0/8; leave-labs-out Spearman 0.313 / 0.301 / 0.264 → 0.223 / 0.212 / 0.250 (blind / chiral / descriptor); confound flags 29 → 34 of 50; LSO for ≥ 3 D residues 0.40 / 0.33 → 0.26 / 0.16; structure-grouped and random CV essentially unchanged (0.666 → 0.670).
+
+My recomputation from `CycPeptMPDB_Peptide_All.csv` (de-duplicated on Structurally_Unique_ID): the PAMPA-row source gives **41 sources**, the first-row source gives **45**: the 45 → 41 correction reproduces. The count of wrongly sourced peptides under my keying is 21 (0.3 %), not 177 (2.5 %): the workstream's annotation table is keyed differently (it carries "Ohta" labels my keying never produces), so **177 is not reproduced** [UNVERIFIED; the other counts above are REPORTED, not recomputed].
+
+Propagation:
+- `20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md:55`, `20261030_COMMITTEE2_PACKET.md:427`: carry "45 sources" (the first has a correction note at the top, the second does not) — STALE.
+- `20261029_KB_AUDIT_AND_GAPS.md:81` "a different set of 45 sources": same defect candidate, not verified.
+- Main draft (1× "4,156", 3× "7,451", "16 sources"), v2 (1/1/1) and brief (1/1/1) still cite matched pairs 4,156 pairs / 16 sources and D-flip 7,451: **STALE** after the correction (4,166 / 15 and 7,467 / 18). The N-methyl matched-pair effect (+0.252, CI 0.164–0.341) comes from the same pairs and must be re-read from the rerun; the KB-audit rules and the K_phys channel mined from "21 laboratories, 6,776 peptides" use their own loader and are not shown to be affected; this needs confirmation from the KB-audit owner.
+- The leave-labs-out values reported in the correction (0.223 / 0.212 / 0.250) are the ones the drafts should use if they cite the stratification LSO at all; I found no draft quoting 0.313 / 0.301 / 0.264.
