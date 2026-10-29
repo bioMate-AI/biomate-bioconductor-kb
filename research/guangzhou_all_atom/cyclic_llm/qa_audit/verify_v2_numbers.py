@@ -134,6 +134,24 @@ A("v2 Appendix C margin sensitivity 0.03 / 0.10 and smallest F 47",ms["0.03"]["V
 dt=gp["detection"]
 A("v2 Appendix C detection 0.69/0.81/0.94/0.95 at 0.55 and 1.00 at 0.60-0.65",[round(dt[k]["0.55"]["detection"]["p"],2) for k in ("S-tpsa","S-typ","S-cens","S-diffuse")]==[0.69,0.81,0.94,0.95] and all(dt[k][a]["detection"]["p"]==1.0 for k in ("S-tpsa","S-typ","S-cens","S-diffuse") for a in ("0.6","0.65")))
 reg("24.5 % (18.7 % to 31.1 %)","32.5 % (26.1 % to 39.5 %)","61 % (54 % to 68 %)","2.5 % (0.8 % to 5.7 %)","0.755 and 0.63","0.035 (26 families) and 0.000 (14)","47 families","0.69 (TPSA), 0.81 (typicality), 0.94 (censoring) and 0.95 (diffuse)","24.5 % (26 families) to 32.5 % (14 families)","0.61 at 26 families","0.025 at 14 families","24.5 % and 32.5 %","0.61 and 0.025")
+
+# ---- calibrated gate (Appendix D) vs gcal_eval.json ----
+gc=_json.load(open(R+"multitarget/integrin_chembl/retro_recovery/gate_calibration/results/gcal_eval.json"))
+pA=gc["passA"]
+okD=gc["outcome"]=="SUCCESS"
+for nm_,k_ in (("VI|25|None|None","VI"),("V3|20|None|None","V3-20"),("V3|26|None|None","V3-26"),("V3|47|None|None","V3-47")):
+    c_=pA[nm_]
+    row=f"{c_['rate']:.3f} ({c_['ci'][0]:.3f} to {c_['ci'][1]:.3f}) | {c_['reg_rate']:.3f} | {c_['valid_rate']:.3f} | {c_['reg_valid_rate']:.3f} |"
+    okD&=row in V and c_["passed"]
+A("v2 Appendix D false-alarm table matches gcal_eval.json (4 cells) and outcome SUCCESS",okD)
+A("v2 Appendix D detection 1.00 at 0.65/0.70 and P(VALID|shortcut)=0",all(v_["detect"]==1.0 for v_ in gc["passB"].values()) and all(v_["p_valid"]==0.0 for v_ in gc["passC"].values()) and "1.00 at AUROC 0.65 and 0.70" in V)
+vm=gc["cells"]["VM2|14|None|None"]
+A("v2 Appendix D M2 application set (0.090 / 0.170 / registered 0.015)",abs(vm["cal_biased"]["p"]-0.09)<5e-4 and abs(vm["cal_valid"]["p"]-0.17)<5e-4 and abs(vm["reg_valid"]["p"]-0.015)<5e-4 and "0.090 (0.054 to 0.139)" in V and "0.170 (0.121 to 0.229)" in V and "(registered: 0.015)" in V)
+rI=gc["real"]["I"]["calibrated"]; rM=gc["real"]["M2"]["calibrated"]
+A("v2 3.3 calibrated real verdicts: I z 0.12/1.93/2.84 vs q 3.14, M2 2.82/2.62/1.98 vs 3.05, perm p 0.0025/0.005",[round(rI["z_std"][k_],2) for k_ in ("C1_atomlm_typicality","C2_multiproxy_leave_fold_out","C3_morgan_fp_leave_fold_out")]==[0.12,1.93,2.84] and round(rI["q"],2)==3.14 and [round(rM["z_std"][k_],2) for k_ in ("C1_atomlm_typicality","C2_multiproxy_leave_fold_out","C3_morgan_fp_leave_fold_out")]==[2.82,2.62,1.98] and round(rM["q"],2)==3.05 and abs(gc["real"]["I"]["perm_p"]-0.0025)<1e-4 and abs(gc["real"]["M2"]["perm_p"]-0.005)<1e-4 and "0.12, 1.93 and 2.84 against q = 3.14" in V and "2.82, 2.62 and 1.98 against 3.05" in V and rI["status"]=="BIASED" and rM["status"]=="BIASED")
+import math as _m
+A("v2 2 calibrated gate constants q 3.145/3.052 and delta(F)",abs(rI["q"]-3.145)<5e-4 and abs(rM["q"]-3.052)<5e-4 and abs(0.5*2.8*0.2014/_m.sqrt(14)-0.0754)<5e-4 and abs(0.5*2.8*0.2014/_m.sqrt(26)-0.0553)<5e-4 and all(x in V for x in ("q = 3.145","3.052","0.0754","0.0553")))
+reg("0.090 (0.054 to 0.139)","0.170 (0.121 to 0.229)","(registered: 0.015)","0.12, 1.93 and 2.84 against q = 3.14","2.82, 2.62 and 1.98 against 3.05","q = 3.145","3.052","0.0754","0.0553","3.0 % to 8.3 %","0.17")
 txt=V
 for s_ in sorted(set(covered),key=len,reverse=True): txt=txt.replace(s_," ")
 # ---- unchecked list, tier 2: membership in the declared source for each v2 line (a weaker check: the number occurs in the source, not that it is the same quantity) ----
@@ -167,6 +185,8 @@ def _src(files):
 RR=R+"multitarget/integrin_chembl/retro_recovery/results/"
 S_AGG=[L+"l7_aggregate.json",L+"l5_aggregate.json",BASE+"paper1_cluster/results/paper1_cluster.json",L+"frozen_ab_aggregate.json"]
 S_REV=[DOCS+"20261030_COMMITTEE3_SYNTHESIS.md",DOCS+"20261030_CLAIM_EVIDENCE_LEDGER.md"]+_glob.glob(DOCS+"committee_raw/20261030c/*.md")
+GCALD=[DOCS+"20261031_GATE_CALIBRATION_PREREG.md",DOCS+"20261030_RETRO_RECOVERY_RESULTS_V5.md"]
+GCAL=R+"multitarget/integrin_chembl/retro_recovery/gate_calibration/results/gcal_eval.json"
 GPC=R+"multitarget/integrin_chembl/retro_recovery/gate_positive_control/results/gpc_summary.json"
 S_GATE=[GPC,DOCS+"20261030_RETRO_RECOVERY_RESULTS_V5.md"]+_glob.glob(RR+"*.json")+_glob.glob(RR+"*.md")
 S_LIT=[DOCS+"20261031_PAPER1_CITATION_VERIFICATION.md",DOCS+"20261030_PRIOR_ART_PEPBENCHMARK_PROTAC_CEILING.md"]
@@ -176,7 +196,7 @@ S_PLAN=[DOCS+"20261030_IHLM_LADDER_RESULTS.md",DOCS+"20261030_TECHNIQUE_T2_ACQUI
 S_C2=[BASE+"c2_audit/results_A_aggregate.json",BASE+"c2_audit/results_B_v2_aggregate.json"]
 srcmap=[("Closed design",S_AGG+S_REV+S_GATE+S_LIT),("Cyclic peptides are an active",S_LIT+[R+"data/raw/CycPeptMPDB_Peptide_All.csv"] if False else S_LIT+S_STRAT),("**Related work",S_LIT),("**Status banner",S_AGG),
  ("| C1 |",S_GATE+S_REV),("| C2 |",S_REV),("**Replay.**",S_AGG+S_REV),("**Regimes",S_AGG+S_REV+S_GATE),("**Binder benchmark",S_GATE+S_REV),("**Statistics",S_REV),("An independent methodology",S_REV),
- ("| P",S_AGG+S_GATE+S_REV+S_C2),("Yield (hits",S_AGG),("In regime L the frozen",S_AGG+S_REV),("Seed-based E-AUROC",S_AGG),("In regime L the effect",S_AGG+S_REV),("Analysis I is Pfam",S_GATE+S_REV),("On analysis I (relative",S_GATE),("C2 binding loop",S_C2+S_PLAN),("Within-source Spearman",S_STRAT+S_AGG),("Leave-laboratories-out tests",S_REV+S_AGG+S_PILOT),("| D-flip",S_PILOT),("An in-house loop-native",S_PLAN+S_AGG+S_C2),("Frozen lists",S_AGG),("**One short finding",S_PLAN),("The registered gate was run",[GPC]),("The registered margin",[GPC]),("| analysis-I type",[GPC]),("| M2 type",[GPC]),("Source: `docs/20261031_NEWTARGET",S_PILOT),("**No model gain is claimed",S_PILOT),("We apply a ten-point rulebook",S_REV),("**Findings.**",S_PILOT),("### ",[])]
+ ("| P",S_AGG+S_GATE+S_REV+S_C2),("Yield (hits",S_AGG),("In regime L the frozen",S_AGG+S_REV),("Seed-based E-AUROC",S_AGG),("In regime L the effect",S_AGG+S_REV),("Analysis I is Pfam",S_GATE+S_REV),("On analysis I (relative",S_GATE),("C2 binding loop",S_C2+S_PLAN),("Within-source Spearman",S_STRAT+S_AGG),("Leave-laboratories-out tests",S_REV+S_AGG+S_PILOT),("| D-flip",S_PILOT),("An in-house loop-native",S_PLAN+S_AGG+S_C2),("Frozen lists",S_AGG),("**One short finding",S_PLAN),("The registered gate was run",[GPC]),("**Design.** The constants",[GCAL]+GCALD),("Detection of planted shortcuts",[GCAL]+GCALD),("**Protocol record",[GCAL]+GCALD),("**Limits.**",GCALD),("**Design.**",GCALD),("| validation cell",[GCAL]),("| analysis-I permutations",[GCAL]),("| synthetic,",[GCAL]),("**Calibrated gate.**",[GCAL]+GCALD),("Under the calibrated gate",[GCAL]+GCALD),("The registered margin",[GPC]),("| analysis-I type",[GPC]),("| M2 type",[GPC]),("Source: `docs/20261031_NEWTARGET",S_PILOT),("**No model gain is claimed",S_PILOT),("We apply a ten-point rulebook",S_REV),("**Findings.**",S_PILOT),("### ",[])]
 tier2=[]; left=[]
 cache={}
 for ln,l in enumerate(txt.split("\n"),1):
