@@ -2400,6 +2400,18 @@ Respond with a single JSON object — no other text:
             # modality_triage / etc, forcing the frontend's schema-grounded
             # extractor to fall back to the legacy WORKFLOW_PARAM_ALIASES table.
             backend_root / "nf-core-workflows" / "modules" / "biomate-ai-tools" / filename,
+            # Some biomate-ai-tools workflows store their DB filename WITH the
+            # "biomate-ai-tools/" prefix already (e.g. cyclic_peptide_design →
+            # "biomate-ai-tools/cyclic_peptide_design/main.nf"), others without it.
+            # The candidate above only handles the without-prefix form; for the
+            # with-prefix form it doubles to .../modules/biomate-ai-tools/biomate-ai-tools/...
+            # (absent) → _find_nf_file returns None → the workflow is wrongly
+            # excluded from PRIMARY by _is_executable_nextflow_match and the router
+            # falls through to a lower-scored sibling (observed 2026-10-29: a cyclic
+            # peptide DESIGN query routed to cyclic_peptide_cofold instead). This
+            # candidate resolves the with-prefix form; first-existing-wins, so it is
+            # purely additive and never changes a path that already resolves.
+            backend_root / "nf-core-workflows" / "modules" / filename,
         ]
         # Add nf-core-workflows/ candidates when it looks like an nf-core workflow
         if _nfcore_suffix:
