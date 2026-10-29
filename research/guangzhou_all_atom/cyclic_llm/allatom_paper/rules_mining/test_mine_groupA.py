@@ -8,8 +8,13 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CYC = os.path.abspath(os.path.join(HERE, "..", ".."))
-sys.path.insert(0, CYC)
-from ihlm.symbolic import assert_priors_clean  # noqa: E402
+import importlib.util  # noqa: E402
+
+# torch-free: load ihlm/symbolic.py directly (ihlm/__init__.py imports torch via model.py)
+_spec = importlib.util.spec_from_file_location("ihlm_symbolic", os.path.join(CYC, "ihlm", "symbolic.py"))
+_sym = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_sym)
+assert_priors_clean = _sym.assert_priors_clean
 
 OUT = os.path.join(HERE, "peptide_sar_rules_v1_groupA.json")
 MAN = os.path.join(HERE, "groupA_manifest.json")
