@@ -35,14 +35,22 @@ def parse_seeds(s):
 
 def setup(a):
     t0 = time.time()
-    L = VE.build_ladder(a.ann, version=a.groups)
+    import random as _r
+    rr = _r.Random(20261029); gen_ref = []
+    while len(gen_ref) < a.gen_ref_n:      # A4 scale reference: rule-satisfying random draws from the library sampler (the generation space)
+        for s in BL.GP.gen_lib([], 200, rr, rr.choice(BL.LIB_CFGS)):
+            c = VE.canon(s)
+            if c and BL.constraint(c):
+                gen_ref.append(c)
+    gen_ref = gen_ref[: a.gen_ref_n]
+    L = VE.build_ladder(a.ann, version=a.groups, gen_ref=gen_ref if a.scale == "z_gen" else None)
     G.update(L)
     G["seeds"] = BL.build_seeds(L["d"], L["groups"])
     G["reg"] = BL.registry(G["seeds"])
     ph, nref = VE.physics_heldout_verifier(L["ref"], n_ref=a.n_ref)
     ph = ph
     G["physics"] = ph
-    json.dump(dict(group_summary=L["group_summary"], n_seeds=len(G["seeds"]), n_phys_ref=nref, setup_s=round(time.time() - t0, 1)),
+    json.dump(dict(scale=L["scale"], group_summary=L["group_summary"], n_seeds=len(G["seeds"]), n_phys_ref=nref, setup_s=round(time.time() - t0, 1)),
               open(os.path.join(a.out, "setup.json"), "w"), indent=1, default=str)
     print("setup done", round(time.time() - t0), "s; seeds", len(G["seeds"]), "physics ref", nref, flush=True)
 
@@ -184,6 +192,8 @@ if __name__ == "__main__":
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2)))
     ap.add_argument("--n-ref", type=int, default=60)
     ap.add_argument("--groups", default="v2", choices=["v1", "v2"])
+    ap.add_argument("--scale", default="z_gen", choices=["z_gen", "percentile"])
+    ap.add_argument("--gen-ref-n", type=int, default=1500)
     a = ap.parse_args()
     a.cfg = a.cfg or os.path.join(a.out, "tuned.json")
     os.makedirs(a.out, exist_ok=True)

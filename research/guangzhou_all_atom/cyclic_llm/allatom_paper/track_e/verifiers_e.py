@@ -171,7 +171,7 @@ def _pct(ref_sorted):
     return lambda raw: float(np.searchsorted(ref_sorted, raw, side="right")) / len(ref_sorted)
 
 
-def build_ladder(ann_path=ANN_DEFAULT, seed=0, ref_cap=3000, version="v2"):
+def build_ladder(ann_path=ANN_DEFAULT, seed=0, ref_cap=3000, version="v2", gen_ref=None):
     """Fits every verifier (EC2/Spark only). Returns dict with verifiers per family, groups, and reference sets."""
     from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
     d = load_labelled(ann_path)
@@ -199,8 +199,12 @@ def build_ladder(ann_path=ANN_DEFAULT, seed=0, ref_cap=3000, version="v2"):
         return lambda s: float(model.predict(features([s], kind))[0])
 
     raws = {"phys_potential": raw_t1, "perm_A_hgb": raw_perm(mA, "A"), "perm_S_rf": raw_perm(mS, "S"), "perm_B_krr": raw_perm(mB, "bits2048")}
-    refsort = {k: np.sort(np.array([f(s) for s in ref], float)) for k, f in raws.items()}
-    pct = {k: _pct(refsort[k]) for k in raws}
+    if gen_ref is None:                    # amendment A1 scale: percentile against natural peptides (SATURATES; kept for the record)
+        refsort = {k: np.sort(np.array([f(s) for s in ref], float)) for k, f in raws.items()}
+        pct = {k: _pct(refsort[k]) for k in raws}
+    else:                                  # amendment A4 scale: z-score against the GENERATION SPACE (random draws that satisfy the hard rules)
+        mom = {k: (lambda v: (float(np.mean(v)), float(np.std(v)) + 1e-9))([f(s) for s in gen_ref]) for k, f in raws.items()}
+        pct = {k: (lambda raw, _m=mom[k]: (raw - _m[0]) / _m[1]) for k in raws}
     mk = lambda name, role, trained_on, cost: Verifier(name=name, fn=(lambda s, _k=name: pct[_k](raws[_k](s))), role=role, cost=cost, trained_on=frozenset(trained_on))
     ladder = {
         "F1": dict(train=mk("phys_potential", "train", [], 0.005), stop=mk("perm_S_rf", "stop", srcs[1], 0.05)),
@@ -208,7 +212,7 @@ def build_ladder(ann_path=ANN_DEFAULT, seed=0, ref_cap=3000, version="v2"):
     }
     # the F2 stop verifier is the same fitted RF under a different name so that names stay unique across families
     pct["perm_S_rf_f2"], raws["perm_S_rf_f2"] = pct["perm_S_rf"], raws["perm_S_rf"]
-    return dict(d=d, groups=groups, group_summary=group_summary(d, groups), ladder=ladder, ref=ref, srcs=srcs, pct=pct, raws=raws)
+    return dict(d=d, groups=groups, group_summary=group_summary(d, groups), ladder=ladder, ref=ref, srcs=srcs, pct=pct, raws=raws, scale="z_gen" if gen_ref is not None else "percentile_natural")
 
 
 # ---------------------------------------------------------------------------------------------- physics held-out (F1)
