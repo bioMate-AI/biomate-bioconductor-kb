@@ -12,7 +12,9 @@ import os
 import sys
 import time
 import urllib.request
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures.process import BrokenProcessPool
+import subprocess
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -78,11 +80,15 @@ def main() -> None:
     ap.add_argument("--out", required=True)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--one-json", default=None, help="internal: process a single manifest row and print the result as JSON")
     ap.add_argument("--shard", default="0/1", help="k/n: process rows with index %% n == k (deterministic order of the manifest file)")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     cache = os.path.join(a.out, "cif")
     os.makedirs(cache, exist_ok=True)
+    if a.one_json:
+        print(json.dumps(one(json.loads(a.one_json), cache)))
+        return
     rows = [json.loads(l) for l in open(a.manifest) if l.strip()]
     rows = [r for r in rows if r.get("status") == "ok"]
     if a.limit:
@@ -110,16 +116,59 @@ def main() -> None:
                 pass
     todo = [r for r in rows if (r["pdb_id"], r["pep_chain"]) not in done]
     t0 = time.time()
-    n_ok = n_fail = 0
-    with ProcessPoolExecutor(a.workers) as ex, open(fp, "a") as f:
-        for res in ex.map(one, todo, [cache] * len(todo), chunksize=8):
-            f.write(json.dumps(res) + "\n"); f.flush()
-            if res.get("ok"):
-                n_ok += 1
-            else:
-                n_fail += 1
+    n_ok = n_fail = n_crash = 0
+
+    def isolated(row):
+        """One task in its own interpreter with a timeout: a native crash or hang is recorded, never fatal."""
+        try:
+            r = subprocess.run([sys.executable, os.path.abspath(__file__), "--manifest", "x", "--one-json", json.dumps(row), "--out", a.out],
+                               capture_output=True, text=True, timeout=240)
+            if r.returncode == 0 and r.stdout.strip():
+                return json.loads(r.stdout.strip().splitlines()[-1])
+            err = f"worker crashed rc={r.returncode}"
+        except subprocess.TimeoutExpired:
+            err = "worker timeout 240s"
+        return {**{k: row.get(k) for k in ("pdb_id", "pep_chain", "rec_chains", "source")}, "ok": False, "error": err, "crashed": True}
+
+    CH = 256
+
+    def run_chunk(chunk):
+        """Pool run; results completed before a worker death are kept; only the unfinished tasks are re-run in isolation (in parallel)."""
+        got, pending = {}, []
+        try:
+            with ProcessPoolExecutor(a.workers) as ex:
+                futs = {ex.submit(one, r, cache): i for i, r in enumerate(chunk)}
+                for fu in as_completed(futs):
+                    i = futs[fu]
+                    try:
+                        got[i] = fu.result()
+                    except BrokenProcessPool:
+                        pass
+                    except Exception as e:  # noqa: BLE001
+                        got[i] = {**{k: chunk[i].get(k) for k in ("pdb_id", "pep_chain", "rec_chains", "source")}, "ok": False,
+                                  "error": f"{type(e).__name__}: {str(e)[:120]}"}
+        except BrokenProcessPool:
+            pass
+        pending = [i for i in range(len(chunk)) if i not in got]
+        if pending:
+            with ThreadPoolExecutor(a.workers) as tex:
+                for i, res in zip(pending, tex.map(isolated, [chunk[i] for i in pending])):
+                    got[i] = res
+        return [got[i] for i in range(len(chunk))]
+
+    with open(fp, "a") as f:
+        for i in range(0, len(todo), CH):
+            results = run_chunk(todo[i:i + CH])
+            for res in results:
+                f.write(json.dumps(res) + "\n")
+                if res.get("ok"):
+                    n_ok += 1
+                else:
+                    n_fail += 1
+                    n_crash += bool(res.get("crashed"))
+            f.flush()
     summ = {"manifest": os.path.basename(a.manifest), "n_manifest_rows_ok": len(rows), "n_done_before": len(done), "n_new_ok": n_ok,
-            "n_new_fail": n_fail, "seconds": round(time.time() - t0, 1), "utc": time.strftime("%FT%TZ", time.gmtime())}
+            "n_new_fail": n_fail, "n_crashed": n_crash, "seconds": round(time.time() - t0, 1), "utc": time.strftime("%FT%TZ", time.gmtime())}
     json.dump(summ, open(os.path.join(a.out, "run_summary.json"), "w"), indent=1)
     print(json.dumps(summ))
 
