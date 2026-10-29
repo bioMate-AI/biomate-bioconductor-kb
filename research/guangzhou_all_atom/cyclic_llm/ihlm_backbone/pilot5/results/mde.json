@@ -1,0 +1,169 @@
+{
+ "k3": {
+  "best": "d",
+  "second": "nn",
+  "family_means": {
+   "prior": 0.10703718660635306,
+   "nn": 0.10900663190124803,
+   "gp": 0.10687684755287187,
+   "d": 0.15224680811820818,
+   "rf": 0.10764678447944548
+  },
+  "sd_between_family_best_minus_second": 0.2122365498915346,
+  "n_families": 47,
+  "MDE80": 0.08668207112731927,
+  "pairwise_sd": {
+   "prior-nn": 0.2666688785128904,
+   "prior-gp": 0.27304989250181233,
+   "prior-d": 0.10955974457300408,
+   "prior-rf": 0.2605476150131816,
+   "nn-gp": 0.0320877919074056,
+   "nn-d": 0.2122365498915346,
+   "nn-rf": 0.07336004065162866,
+   "gp-d": 0.21783082769331424,
+   "gp-rf": 0.0726154729581769,
+   "d-rf": 0.20991996221397485
+  },
+  "power_of_registered_rule": {
+   "primary_best_minus_second": {
+    "se": 0.030957882545471167,
+    "t_crit": 2.012895598919429,
+    "effective_margin": 0.06231498552764352,
+    "eff_margin_over_MDE80": 0.7188912853283675,
+    "P_pass_if_true_gain_0p03": 0.1482803878680259,
+    "P_pass_if_true_gain_0p05": 0.3453895247853873,
+    "true_gain_for_80pct_power": 0.08836913947791206
+   },
+   "conservative_max_pairwise": {
+    "se": 0.03982842024827788,
+    "t_crit": 2.012895598919429,
+    "effective_margin": 0.08017045182967202,
+    "eff_margin_over_MDE80": 0.7188912853283675,
+    "P_pass_if_true_gain_0p03": 0.10389518690912714,
+    "P_pass_if_true_gain_0p05": 0.22437199904306526,
+    "true_gain_for_80pct_power": 0.11369005031062268
+   },
+   "median_pairwise": {
+    "se": 0.030788928024525476,
+    "t_crit": 2.012895598919429,
+    "effective_margin": 0.0619748977160144,
+    "eff_margin_over_MDE80": 0.7188912853283675,
+    "P_pass_if_true_gain_0p03": 0.14951416423481056,
+    "P_pass_if_true_gain_0p05": 0.3486620431404248,
+    "true_gain_for_80pct_power": 0.08788685954145505
+   }
+  }
+ },
+ "k5": {
+  "best": "d",
+  "second": "nn",
+  "family_means": {
+   "prior": 0.10605246997627214,
+   "nn": 0.1746124683994388,
+   "gp": 0.17308441625924245,
+   "d": 0.18021651276447237,
+   "rf": 0.15737542014270345
+  },
+  "sd_between_family_best_minus_second": 0.2339980020537833,
+  "n_families": 47,
+  "MDE80": 0.09556992642427835,
+  "pairwise_sd": {
+   "prior-nn": 0.3134582910273487,
+   "prior-gp": 0.3062933255344409,
+   "prior-d": 0.14171452455182892,
+   "prior-rf": 0.31552691193529353,
+   "nn-gp": 0.03535620614625009,
+   "nn-d": 0.2339980020537833,
+   "nn-rf": 0.0695045008265841,
+   "gp-d": 0.2263473037553136,
+   "gp-rf": 0.06300694297339712,
+   "d-rf": 0.23840658854177607
+  },
+  "power_of_registered_rule": {
+   "primary_best_minus_second": {
+    "se": 0.03413211658009942,
+    "t_crit": 2.012895598919429,
+    "effective_margin": 0.06870438724588698,
+    "eff_margin_over_MDE80": 0.7188912853283674,
+    "P_pass_if_true_gain_0p03": 0.12840607938628357,
+    "P_pass_if_true_gain_0p05": 0.29184607855788425,
+    "true_gain_for_80pct_power": 0.09742997655969865
+   },
+   "conservative_max_pairwise": {
+    "se": 0.046024330326798514,
+    "t_crit": 2.012895598919429,
+    "effective_margin": 0.09264217195802674,
+    "eff_margin_over_MDE80": 0.7188912853283675,
+    "P_pass_if_true_gain_0p03": 0.08674634523094393,
+    "P_pass_if_true_gain_0p05": 0.17708954388776543,
+    "true_gain_for_80pct_power": 0.13137624836106038
+   },
+   "median_pairwise": {
+    "se": 0.033574132058969794,
+    "t_crit": 2.012895598919429,
+    "effective_margin": 0.06758122265904001,
+    "eff_margin_over_MDE80": 0.7188912853283677,
+    "P_pass_if_true_gain_0p03": 0.1314953124759768,
+    "P_pass_if_true_gain_0p05": 0.3002596687643564,
+    "true_gain_for_80pct_power": 0.09583721219986899
+   }
+  }
+ },
+ "k10": {
+  "best": "gp",
+  "second": "nn",
+  "family_means": {
+   "prior": 0.10456426179116032,
+   "nn": 0.2656400809351887,
+   "gp": 0.27284728501586114,
+   "d": 0.2343415309669097,
+   "rf": 0.2314735921948513
+  },
+  "sd_between_family_best_minus_second": 0.05740391193225084,
+  "n_families": 47,
+  "MDE80": 0.02344501915264224,
+  "pairwise_sd": {
+   "prior-nn": 0.3195057963577806,
+   "prior-gp": 0.3033501023303539,
+   "prior-d": 0.18909437372598886,
+   "prior-rf": 0.3032923029133689,
+   "nn-gp": 0.05740391193225084,
+   "nn-d": 0.20901906407796858,
+   "nn-rf": 0.09475856421593544,
+   "gp-d": 0.19398211842254606,
+   "gp-rf": 0.08232966337415024,
+   "d-rf": 0.20048188409115314
+  },
+  "power_of_registered_rule": {
+   "primary_best_minus_second": {
+    "se": 0.008373221125943657,
+    "t_crit": 2.012895598919429,
+    "effective_margin": 0.03,
+    "eff_margin_over_MDE80": 1.2795894857104018,
+    "P_pass_if_true_gain_0p03": 0.5,
+    "P_pass_if_true_gain_0p05": 0.9915428889538852,
+    "true_gain_for_80pct_power": 0.037046902899594183
+   },
+   "conservative_max_pairwise": {
+    "se": 0.046604710269255695,
+    "t_crit": 2.012895598919429,
+    "effective_margin": 0.09381041618989991,
+    "eff_margin_over_MDE80": 0.7188912853283675,
+    "P_pass_if_true_gain_0p03": 0.08547090798474377,
+    "P_pass_if_true_gain_0p05": 0.1735978374022471,
+    "true_gain_for_80pct_power": 0.1330329403525055
+   },
+   "median_pairwise": {
+    "se": 0.028769244186443093,
+    "t_crit": 2.012895598919429,
+    "effective_margin": 0.05790948500712967,
+    "eff_margin_over_MDE80": 0.7188912853283675,
+    "P_pass_if_true_gain_0p03": 0.16599450260600257,
+    "P_pass_if_true_gain_0p05": 0.391685587267927,
+    "true_gain_for_80pct_power": 0.08212168091444018
+   }
+  }
+ },
+ "n_repeats_in_pass_A": 20,
+ "rule": "MDE80 = 2.8 * SD_between-family(best baseline - second-best baseline, hard Spearman) / sqrt(n_families); computed from pass A only, before any H5 score exists. Amendment A2 adds power_of_registered_rule: effective margin max(0.03, t_crit*SE) and P(pass) at true gains +0.03/+0.05 under normal approximation, SE from three baseline-only proxies (the registered best-minus-second SD is likely an UNDERESTIMATE of the candidate-vs-best SD because baselines are correlated; the conservative proxy uses the largest pairwise SD)"
+}
