@@ -38,7 +38,7 @@ lines += ["", "Partial items: **F5** (controls; GBM variants only — hollow mar
           "## Observations made while building (for the manuscript owner)",
           "- F2(b): the median within-group label range is 0.855 log units; the analysis documents state 0.86 (rounding). The figure prints 0.855; the assertion allows a 0.006 tolerance to the documented 0.86.",
           "- F8: the label-free N-methyl rule appears only in the grouped-by-flat-structure panel (the artifact has no leave-labs-out row for it); no stratum is flagged `small` in the artifact, so no cell is hatched.",
-          "- FCV: strata CSVs have no overall rows; overall Spearman is recomputed from `cv_preds.csv.gz` with a source-cluster bootstrap (B=2000, seed 0) and checked against the figures quoted in the analysis document (0.31/0.30/0.26 leave-labs-out).",
+          "- FCV: strata CSVs have no overall rows; overall Spearman is recomputed from `cv_preds.csv.gz` with a source-cluster bootstrap (B=2000, seed 0) and checked against the figures quoted in the analysis document (0.223/0.212/0.250 leave-labs-out, post-fix).",
           "- F3: analysis M3 has validity-gate results only (arms not scored; the analysis is invalid). Analyses I, M, M2 and M3 all fail at least one primary control, so verdicts apply only under the control-adjusted rule.",
           "- FH4b: the control C3 (Morgan leave-fold-out) is drawn at every k; it exceeds 0.5 at every k.",
           "- F5/T6: drawn from the aggregate regenerated after the key-collision fix (keys `gbm_aware`, `gbm_blind`, `gbm_physchem`; 10 paired seeds in every regime shown); the earlier note that regime B had 2 seeds was a symptom of the collision and is obsolete. `chemberta` has 3 seeds in A and B (exploratory).",
