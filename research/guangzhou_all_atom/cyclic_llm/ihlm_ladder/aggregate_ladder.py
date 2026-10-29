@@ -189,8 +189,10 @@ def to_markdown(res):
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("dir"); ap.add_argument("--json"); ap.add_argument("--md"); ap.add_argument("--planted", default=None); a = ap.parse_args()
-    rows = load_dir(a.dir); res = run(rows, None if a.planted is None else set(a.planted.split(","))); md = to_markdown(res)
+    ap = argparse.ArgumentParser(); ap.add_argument("dir"); ap.add_argument("--json"); ap.add_argument("--md"); ap.add_argument("--planted", default=None); ap.add_argument("--seeds", default=None, help="a-b: keep only these seeds (development 0-9 and confirmatory 10-19 are analysed separately, never pooled)"); a = ap.parse_args()
+    rows = load_dir(a.dir)
+    if a.seeds: lo, hi = [int(x) for x in a.seeds.split("-")]; rows = [r for r in rows if lo <= r["seed"] <= hi]
+    res = run(rows, None if a.planted is None else set(a.planted.split(","))); md = to_markdown(res)
     if a.json: json.dump(res, open(a.json, "w"), indent=1, default=float)
     if a.md: open(a.md, "w").write(md + "\n")
     print(md)
