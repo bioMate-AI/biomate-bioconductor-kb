@@ -23,6 +23,9 @@ python3.11 -m pytest -q -p no:cacheprovider test_pmo_harness.py > /w/out/pytest.
 python3.11 track_e/make_groups.py > /w/out/groups.log 2>&1; echo "groups rc=$?" >> /w/out/groups.log; cp track_e/source_groups.json /w/out/ 2>/dev/null
 python3.11 track_e/run_stage0.py smoke /w/out/smoke_run --workers 8 --n-ref 5 > /w/out/smoke.log 2>&1; SMOKE=$?; echo "smoke rc=$SMOKE" >> /w/out/smoke.log
 """
+QUAL = """python3.11 track_e/make_groups.py v2 > /w/out/groups_v2.log 2>&1; echo "groups_v2 rc=$?" >> /w/out/groups_v2.log; cp track_e/source_groups_v2.json /w/out/ 2>/dev/null
+python3.11 track_e/verifier_quality.py /w/out/verifier_quality_v2.json v2 > /w/out/vq_v2.log 2>&1; echo "vq rc=$?" >> /w/out/vq_v2.log
+"""
 MAIN = """if [ $SMOKE -eq 0 ]; then
   python3.11 track_e/run_stage0.py tune /w/out/run --budget 1000 --seeds 100-102 > /w/out/tune.log 2>&1; echo "tune rc=$?" >> /w/out/tune.log
   python3.11 track_e/run_stage0.py eval /w/out/run --budget 1000 --seeds 0-9 > /w/out/eval.log 2>&1; echo "eval rc=$?" >> /w/out/eval.log
@@ -36,8 +39,12 @@ aws s3 cp /var/log/ud.log $P/boot.log --only-show-errors
 shutdown -h now
 """
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(); ap.add_argument("stage", choices=["prep", "main"]); ap.add_argument("out"); ap.add_argument("--run", default="r1"); ap.add_argument("--cap-min", type=int, default=240)
+    ap = argparse.ArgumentParser(); ap.add_argument("stage", choices=["prep", "main", "quality"]); ap.add_argument("out"); ap.add_argument("--run", default="r1"); ap.add_argument("--cap-min", type=int, default=240)
     a = ap.parse_args()
-    s = HEAD + (MAIN if a.stage == "main" else "") + TAIL
+    if a.stage == "quality":
+        head = HEAD.split("python3.11 -m pytest")[0]
+        s = head + QUAL + "SMOKE=0\n" + TAIL
+    else:
+        s = HEAD + (MAIN if a.stage == "main" else "") + TAIL
     s = s.replace("__B__", B).replace("__RUN__", a.run).replace("__STAGE__", a.stage).replace("__CAP__", str(a.cap_min))
     open(a.out, "w").write(s); print("wrote", a.out)
