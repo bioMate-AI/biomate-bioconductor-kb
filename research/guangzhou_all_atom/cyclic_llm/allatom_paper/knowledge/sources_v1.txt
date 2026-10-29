@@ -1,0 +1,61 @@
+# Candidate open-access sources (Europe PMC search results, 2026-10-29). PMCIDs are VERIFIED again on EC2 (title/year/DOI/licence read from the XML).
+# topic tags are search-time hints only; rule extraction uses the fetched text.
+PMC3210067  permeability N-methylation
+PMC9490236  permeability design
+PMC10150360 macrocycle review
+PMC10424176 chameleonicity
+PMC10685455 conformations polar-apolar
+PMC11995216 backbone cyclization size
+PMC11348715 backbone constitution permeability
+PMC12670408 backbone alterations permeability
+PMC12843137 side chains lipophilicity solubility permeability
+PMC13370866 macrocycle vs linear matched pairs
+PMC13173399 heptapeptide permeability aggregation
+PMC10885153 saddle conformation permeability
+PMC11411612 oral drugs physchem
+PMC11698989 macrocycle permeability database
+PMC12606850 C2PO
+PMC12604167 HighFold-MeD
+PMC12990040 PEGASUS polarity
+PMC13074632 DPO macrocycles
+PMC13492385 cyclic peptides drug discovery review
+PMC13661285 membrane-permeable cyclic peptides PPI
+PMC13531348 chameleons review
+PMC13492371 griselimycin chameleonicity
+PMC12392647 benchmarking permeability
+PMC11037548 GaMD permeability
+PMC12794141 knowledge distillation permeability
+PMC13270568 ML permeability review
+PMC12002334 PepINVENT
+PMC12095755 AlphaFold2 cyclic peptides
+PMC8514148 lariat peptides permeability
+PMC12990038 oral cyclin A/B macrocycles
+PMC13138696 cyclin A/B macrocycles
+PMC5225454 RGD integrin selectivity
+PMC12071049 Trivehexin status
+PMC11604418 Trivehexin pancreatic
+PMC11327152 Trivehexin production
+PMC12667533 Trivehexin NSCLC
+PMC9316855 A20FMDV2 PEG stability
+PMC10480133 integrin peptide binding structures
+PMC9603893 avb6 cancer
+PMC7584369 PD-L1 small molecules
+PMC13403227 PD-L1 one face
+PMC12989864 PD-L1 multicyclic peptide
+PMC12843834 PD-L1 peptide PIT
+PMC13283806 GRPR review
+PMC13275974 RM26 dosimetry
+PMC12929764 GRPR stable peptides
+PMC12332157 RM26 linkers
+PMC12030706 Thz14 bombesin
+PMC11859184 diF-Pro14 bombesin
+PMC12797171 177Lu GRPR antagonist
+PMC12801052 deamidation isoAsp peptides
+PMC13604283 Asn-Gly succinimide
+PMC13001092 aspartimide RiPP
+PMC13406010 protease-resistant ncAA peptides
+PMC13361338 chemical modifications of peptides
+PMC13073778 stapled linker permeability
+PMC8708026 protease-resistant peptides
+PMC11141402 cyclic beta-amino acids serum stability
+PMC11040643 bicyclic peptide stability
