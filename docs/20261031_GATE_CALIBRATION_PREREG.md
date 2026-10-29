@@ -45,3 +45,34 @@ Calibration nulls are label permutations of real benchmark structure; real bench
 
 ## 8. Compute and cost
 EC2 spot only (ecsInstanceRole, SG sg-0de9af2d4437a8c90, tags project=cyclic-selector, Name=gate-calib, terminate on shutdown, wall-clock cap, one writer per S3 prefix `s3://biomate-nextflow-work/cyclic_peptide/gate_calib/<run-id>/`, boot log to S3, resumable). About 2,900 gate runs of ~25 CPU-seconds each on one 36-vCPU instance (about 35 minutes); estimated cost under USD 1 (cap USD 2); cost reconstructed from instance ids and times.
+
+## Results (2026-10-29; numbers from `gate_calibration/results/gcal_eval.json`, produced on EC2 by `gcal_eval.py` over `gcal_validation.jsonl` (2,900 fresh records, sha256 in the file), frozen constants `calibration_frozen.json` sha256 `7c218ddd06710fdeecba6d9ff9c15c4ea4595a8658db474a9e7758f42fd25c75`)
+**Outcome under the pre-registered criteria: SUCCESS (PASS-A, PASS-B, PASS-C hold in every cell).** The first (as-run) evaluator printout read FAILURE; see deviation 1.
+
+**Protocol record (all disclosed; none changes data, constants or thresholds).**
+1. *Evaluator lookup defect (my error).* The as-run evaluator looked up the V-I-fresh cell under 26 families; the records carry 25 evaluable families (n_families of C1), so the cell was `None` and the roll-up read FAILURE (`gcal_eval_as_run.json` kept). The lookup was patched to find the V-I cell by kind and the evaluation recomputed from the same records and the same frozen constants.
+2. *Ordering gap of about 23 s.* The validation instance was launched at about 12:28:40, the frozen constants were committed at 12:29:03 (`39ce9502b`; the first commit attempt failed on a gitignored log). The instance was installing packages and no validation record existed; the constants file was produced by stage 1 from the pre-existing null records only.
+3. *Stage-1 test error (my error).* The first stage-1 run stopped on a wrong expected Clopper-Pearson bound in my own test (0.031 where scipy gives 0.0308); fixed before any fit.
+4. *Cell label.* The pre-registered "V-I-fresh (F = 26)" is the analysis-I permutation set with 25 evaluable families; V3 cells are exactly 20, 26, 47.
+5. Fit on null records only: 200 VI (type I), 580 VM2/CURVE (type M). Critical values q = 3.145 (type I) and 3.052 (type M); dispersion kappa 1.0-1.35 (C2/C3 on type M: 1.31/1.35).
+
+**PASS-A (false alarms; calibrated gate, exact 95 % CI; registered gate on the same records in brackets).**
+| cell | n | P(BIASED) | CI | P(VALID) | registered P(BIASED) | registered P(VALID) |
+|---|---|---|---|---|---|---|
+| V-I-fresh (25 families) | 400 | 0.033 | [0.017, 0.055] | 0.835 | 0.223 | 0.603 |
+| V3, F = 20 | 400 | 0.083 | [0.057, 0.114] | 0.917 | 0.338 | 0.662 |
+| V3, F = 26 | 400 | 0.043 | [0.025, 0.067] | 0.958 | 0.223 | 0.777 |
+| V3, F = 47 | 400 | 0.030 | [0.016, 0.052] | 0.970 | 0.172 | 0.828 |
+Criterion (point <= 0.10 and CI upper <= 0.15): met in all four; F = 20 is the tightest (0.083, upper 0.114). Application-only set V-M2 (14 families, 200 permutations, not judged): P(BIASED) 0.090 [0.054, 0.139], **P(VALID) 0.170 [0.121, 0.229]: the calibrated gate cannot certify at 14 families** (registered 0.015).
+
+**PASS-B (detection of planted shortcuts) and PASS-C (no VALID on a shortcut).** Detection (P(BIASED)) was 1.00 in every shortcut cell at AUROC 0.65 and 0.70 (S-tpsa, S-typ, S-diffuse at 25, 20 and 47 families; S-cens at 25 families, 0.65 only; 60 records per cell, exact lower 95 % bound about 0.94); P(VALID | shortcut at 0.65) = 0.00 in every cell. Detection at weaker shortcuts (AUROC 0.55-0.60) was not pre-registered and was not tested for the calibrated gate (the registered gate's curve is in the positive-control results).
+
+**Application to the real benchmarks (calibrated gate; verdicts compared with the registered gate).**
+| benchmark | calibrated T vs q | controls beyond q | within-target permutation p (fresh null, N) | registered verdict | calibrated verdict |
+|---|---|---|---|---|---|
+| analysis I (26 families) | 10.82 vs 3.14 | C4 censored label (std z -10.8), C5 Ki-or-Kd (3.2), o_frac | 0.0025 (400; the smallest attainable) | NOT_VALID_BIASED | BIASED (unchanged) |
+| M2 (14 families) | 5.06 vs 3.05 | fsp3, has_halogen (secondary) | 0.0050 (200; the smallest attainable) | NOT_VALID_BIASED | BIASED (unchanged) |
+Reading. The verdict does not change for either benchmark, but its basis does. On analysis I the three primary compound-only controls are inside the calibrated null (standardised values 0.12, 1.93, 2.84 against q = 3.14); the BIASED verdict is carried by the censoring and assay-type controls (C4 point estimate 0.206 family-mean AUROC, 95 % interval [0.134, 0.280]: an inverted AUROC of 0.794), which do not depend on the calibration. The primary-control evidence the registered gate used for analysis I (for example C3 = 0.584) is therefore not by itself outside what exchangeable benchmarks produce at this size. On M2 no primary control is beyond q individually (2.82, 2.62, 1.98 against 3.05), and the verdict rests on the secondary controls fsp3 and halogen content plus the permutation test (p = 0.005). Equivalence is not reached for the primary controls on either benchmark (analysis I: C2, C3 outside delta = 0.056; M2: all three outside delta = 0.075).
+The exact-potency benchmark of pilot 4 is a ranking task without decoy classes; the gate (AUC of control scores for positives against decoys) is not applicable and was not run.
+
+**Limits.** Calibration nulls are label permutations of real benchmark structure and synthetic family structures that share the real compound pool; real benchmarks can be biased in ways no permutation reproduces. kappa and q are pooled over F within type (the validation cells at F = 20, 26, 47 and the 25-family real structure support that pooling; the 14-family M2 set is only an application). Planted shortcuts are single known properties (S-diffuse is a mixture) at AUROC >= 0.65. Detection of 1.00 at 0.65-0.70 does not establish sensitivity below 0.65. Percentile-bootstrap SEs are approximated from stored interval widths; the max statistic is dominated by secondary controls when they are many. Spend: stage 1 (three short c5.9xlarge spot instances) and the validation run (c5.9xlarge, about 35 min) estimated under USD 0.6 from instance times at the spot price (no cost log; instances terminated).

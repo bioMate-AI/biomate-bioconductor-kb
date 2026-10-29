@@ -24,7 +24,11 @@ def main(cal_p, val_p, real_p, out_p):
     table = {}
     for k, v in sorted(cells.items(), key=lambda kv: str(kv[0])):
         table["|".join(str(x) for x in k)] = {m: L.rate(vals) for m, vals in v.items()}
-    A_cells = [("VI", 26, None, None), ("V3", 20, None, None), ("V3", 26, None, None), ("V3", 47, None, None)]
+    # DEVIATION (recorded in the results section): the as-run evaluator looked up the V-I cell as ("VI", 26) but the records carry 25 evaluable
+    # families (n_families of C1), so the cell was reported as None and the as-run outcome printed FAILURE. The lookup now finds the V-I cell by kind.
+    vi_key = next((k for k in table if k.startswith("VI|")), None)
+    A_cells = [tuple([vi_key.split("|")[0], int(vi_key.split("|")[1]), None, None])] if vi_key else []
+    A_cells += [("V3", 20, None, None), ("V3", 26, None, None), ("V3", 47, None, None)]
     passA = {}
     for k in A_cells:
         t = table.get("|".join(str(x) for x in k)); 
