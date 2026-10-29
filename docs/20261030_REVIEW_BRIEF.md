@@ -122,7 +122,7 @@ Tags: **[LOGGED]** = a figure in a committed cost log or results document that i
 | Anchor test: kill criterion met; planted full coverage +0.151 | V (medians, verdicts) / D (CIs); U (anchor row counts 57 and 8/6/0 sources; planted-control widths) | `results_B_aggregate.json` |
 | T1 / T1b fusion results (tables re-derived by the claim auditor, including adjusted intervals and parity) | V; shuffled-label control values U | T1, T1b documents |
 | Stratified skill (0.67/0.71 grouped; 0.31/0.30 leave-labs-out), feature families, N-methyl ≥ 5 reversal | D | stratification analysis Part B |
-| Matched-pair effects (N-methyl +0.252; D↔L flip −0.013) | V | `mmp_effects_pampa.csv` |
+| Matched-pair effects (N-methyl +0.24, 0.14 to 0.33; D↔L flip −0.01, −0.05 to 0.02; after the stratification correction note) | D (CSV not re-read) | `docs/20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md` |
 | IH-LM design and module status | D (commit messages) | IH-LM spec; commit d0eacfc14 (a descendant of 94efe092d; the provenance floor is now 87f4f6718) |
 | Literature statements (CycPeptMPDB, PeptideCLM-2, HELM-BERT, Praski, DUD-E, LIT-PCBA, White, Bhardwaj) | fetch summaries (re-check before submission) | draft references |
 | Amirahmadi et al. scaffold and Table 3/6 statements | primary text read | converted PDF |
