@@ -1,0 +1,108 @@
+"""Aggregator for the validity-gate positive control (docs/20261031_GATE_POSITIVE_CONTROL_PREREG.md, sections 2, 3, 5, 6).
+usage: python3 gpc_agg.py [results/gpc_results.jsonl]  ->  results/gpc_summary.json and results/gpc_summary.md
+Pure post-processing of the stored per-construction records; no gate is re-run. All proportions carry exact Clopper-Pearson 95 % intervals."""
+import os, sys, json, collections
+import numpy as np
+from scipy.stats import beta
+
+HERE = os.path.dirname(os.path.abspath(__file__)); OUT = f"{HERE}/results"
+DELTAS = [0.03, 0.05, 0.10]
+# mirrors gpc_lib.DETECTORS (prereg section 2); S-diffuse: C2 or any secondary
+DETECTORS = {"S-tpsa": ["secondary:tpsa", "primary:C2_multiproxy_leave_fold_out"], "S-typ": ["primary:C1_atomlm_typicality", "primary:C2_multiproxy_leave_fold_out"],
+             "S-cens": ["secondary:C4_censored_label"], "S-diffuse": ["primary:C2_multiproxy_leave_fold_out"]}
+FAMS = ["S-tpsa", "S-typ", "S-cens", "S-diffuse"]; A_GRID = [0.55, 0.60, 0.65, 0.70]; F_GRID = [4, 6, 8, 10, 14, 26, 50, 100]
+
+
+def cp(k, n, alpha=0.05):
+    if n == 0: return (float("nan"), float("nan"))
+    lo = 0.0 if k == 0 else float(beta.ppf(alpha / 2, k, n - k + 1)); hi = 1.0 if k == n else float(beta.ppf(1 - alpha / 2, k + 1, n - k)); return (round(lo, 4), round(hi, 4))
+
+
+def prop(k, n): return dict(k=int(k), n=int(n), p=round(k / n, 4) if n else None, ci=cp(k, n))
+
+
+def status_at(rec, delta):
+    """Same logic as validity_gate.assign_status, with the equivalence margin as a parameter (biased flags do not depend on delta)."""
+    if rec["biased"]: return "NOT_VALID_BIASED"
+    if rec["unverifiable"]: return "NOT_VALID_UNVERIFIABLE"
+    for k, v in rec["primary"].items():
+        if v is None or v["lo90"] is None or v["hi90"] is None: return "NOT_VALID_UNVERIFIABLE"
+        if not (v["lo90"] >= 0.5 - delta and v["hi90"] <= 0.5 + delta): return "NOT_VALID_NOT_EQUIVALENT"
+    return "VALID"
+
+
+def detected(rec, fam):
+    if rec["status"] != "NOT_VALID_BIASED": return False
+    b = set(rec["biased"])
+    if fam == "S-diffuse": return bool(b & set(DETECTORS[fam])) or any(x.startswith("secondary:") for x in b)
+    return bool(b & set(DETECTORS[fam]))
+
+
+def dist(recs, delta=0.05):
+    c = collections.Counter(status_at(r, delta) for r in recs); n = len(recs)
+    return {s: prop(c.get(s, 0), n) for s in ("VALID", "NOT_VALID_BIASED", "NOT_VALID_NOT_EQUIVALENT", "NOT_VALID_UNVERIFIABLE")}
+
+
+def main(path):
+    recs = [json.loads(l) for l in open(path)]; by = collections.defaultdict(list)
+    for r in recs:
+        key = r["kind"] if r["kind"] in ("VI", "VM2") else (f"{r['family']}|{r['a']}" if r["kind"] == "S" else f"CURVE|{r['F']}"); by[key].append(r)
+    cal = json.load(open(f"{OUT}/calibration.json")) if os.path.exists(f"{OUT}/calibration.json") else {}
+    S = dict(n_records=len(recs), counts={k: len(v) for k, v in sorted(by.items())})
+    # consistency: stored status must equal the recomputed status at the registered margin
+    S["status_consistency_mismatches"] = sum(status_at(r, 0.05) != r["status"] for r in recs)
+    # PASS-A (section 5)
+    A = {}
+    for k in ("VI", "VM2"):
+        R = by.get(k, []); nb = sum(r["status"] == "NOT_VALID_BIASED" for r in R); d = prop(nb, len(R)); d["point_pass"] = bool(d["p"] is not None and d["p"] <= 0.10)
+        d["label"] = ("PASS" if d["ci"][1] <= 0.10 else "point-pass only") if d["point_pass"] else "FAIL"; d["status_distribution"] = dist(R); A[k] = d
+    S["PASS_A"] = A; S["PASS_A_overall"] = all(A[k]["point_pass"] for k in A)
+    # PASS-B and power curve
+    B = {}
+    for fam in FAMS:
+        B[fam] = {}
+        for a in A_GRID:
+            R = by.get(f"{fam}|{a}", []); feas = cal.get(f"{fam}|{a}", {}).get("feasible", True)
+            if not R: B[fam][str(a)] = dict(feasible=bool(feas), n=0); continue
+            nd = sum(detected(r, fam) for r in R); nbias = sum(r["status"] == "NOT_VALID_BIASED" for r in R); nv = sum(r["status"] == "VALID" for r in R)
+            B[fam][str(a)] = dict(feasible=True, detection=prop(nd, len(R)), P_biased=prop(nbias, len(R)), P_not_valid=prop(len(R) - nv, len(R)))
+        ok = [a for a in A_GRID if B[fam][str(a)].get("detection") and B[fam][str(a)]["detection"]["p"] >= 0.8]; B[fam]["smallest_a_detection_ge_0.8"] = ok[0] if ok else None
+    S["detection"] = B
+    S["PASS_B"] = {fam: (B[fam]["0.65"].get("detection", {}).get("p") is not None and B[fam]["0.65"]["detection"]["p"] >= 0.90) for fam in ("S-tpsa", "S-typ", "S-cens")}
+    S["PASS_B_overall"] = all(S["PASS_B"].values()); S["CONTROL_PASSES"] = bool(S["PASS_A_overall"] and S["PASS_B_overall"])
+    # margin sensitivity (section 6)
+    M = {}
+    for dlt in DELTAS:
+        M[str(dlt)] = {"VI": dist(by.get("VI", []), dlt)["VALID"], "VM2": dist(by.get("VM2", []), dlt)["VALID"]}
+        for fam in FAMS:
+            for a in A_GRID:
+                R = by.get(f"{fam}|{a}", [])
+                if R: M[str(dlt)][f"{fam}|{a}"] = prop(sum(status_at(r, dlt) == "VALID" for r in R), len(R))
+    S["margin_sensitivity_P_VALID"] = M
+    # minimum-families curve (section 3)
+    C = {}; first = None
+    for F in F_GRID:
+        R = by.get(f"CURVE|{F}", [])
+        if not R: continue
+        d = dist(R); fails = collections.Counter(c for r in R for c in r["not_equivalent"]); C[str(F)] = dict(n=len(R), dist=d, primary_fails_equivalence=dict(fails.most_common()))
+        if first is None and d["VALID"]["p"] is not None and d["VALID"]["p"] >= 0.8: first = F
+    S["curve"] = C; S["smallest_F_P_VALID_ge_0.8"] = first if first is not None else ">100"
+    # generator agreement (reported either way): synthetic F=26 / 14 vs real-derived V-I (26 fam) / V-M2 (14 fam)
+    def overlap(a, b): return not (a["ci"][1] < b["ci"][0] or b["ci"][1] < a["ci"][0])
+    S["generator_check"] = {}
+    for F, real in ((26, "VI"), (14, "VM2")):
+        if str(F) in C and real in A:
+            for st in ("VALID", "NOT_VALID_BIASED", "NOT_VALID_NOT_EQUIVALENT"):
+                S["generator_check"][f"F{F}_vs_{real}_{st}"] = dict(synthetic=C[str(F)]["dist"][st], real=A[real]["status_distribution"][st], ci_overlap=overlap(C[str(F)]["dist"][st], A[real]["status_distribution"][st]))
+    for real, F in (("VI", 26), ("VM2", 14)):
+        if real in A: S[f"P_VALID_planted_valid_{real}"] = A[real]["status_distribution"]["VALID"]
+    json.dump(S, open(f"{OUT}/gpc_summary.json", "w"), indent=1)
+    L = ["# Gate positive control: summary (auto-generated by gpc_agg.py)", "", f"Records: {S['n_records']}; stored-vs-recomputed status mismatches: {S['status_consistency_mismatches']}", "",
+         f"PASS-A (P(NOT_VALID_BIASED) <= 0.10 on planted-valid): VI {A.get('VI',{}).get('p')} {A.get('VI',{}).get('ci')} [{A.get('VI',{}).get('label')}], VM2 {A.get('VM2',{}).get('p')} {A.get('VM2',{}).get('ci')} [{A.get('VM2',{}).get('label')}] -> {S['PASS_A_overall']}",
+         f"PASS-B (detection >= 0.90 at a=0.65): {S['PASS_B']} -> {S['PASS_B_overall']}", f"CONTROL PASSES: {S['CONTROL_PASSES']}", "",
+         "P(VALID | planted-valid): " + json.dumps({k: S.get(f'P_VALID_planted_valid_{k}') for k in ('VI', 'VM2')}), "", "Smallest F with P(VALID) >= 0.8: " + str(S["smallest_F_P_VALID_ge_0.8"])]
+    open(f"{OUT}/gpc_summary.md", "w").write("\n".join(L) + "\n"); print("\n".join(L))
+
+
+if __name__ == "__main__":
+    main(sys.argv[1] if len(sys.argv) > 1 else f"{OUT}/gpc_results.jsonl")
