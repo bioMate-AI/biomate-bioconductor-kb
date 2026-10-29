@@ -1,0 +1,24 @@
+I_v1 status NOT_VALID_BIASED ref NOT_VALID_BIASED
+  C1_atomlm_typicality.point diff 0.00e+00
+  C1_atomlm_typicality.lo diff 0.00e+00
+  C1_atomlm_typicality.hi diff 0.00e+00
+  C1_atomlm_typicality.lo90 diff 0.00e+00
+  C1_atomlm_typicality.hi90 diff 0.00e+00
+  C2_multiproxy_leave_fold_out.point diff 0.00e+00
+  C2_multiproxy_leave_fold_out.lo diff 0.00e+00
+  C2_multiproxy_leave_fold_out.hi diff 0.00e+00
+  C2_multiproxy_leave_fold_out.lo90 diff 0.00e+00
+  C2_multiproxy_leave_fold_out.hi90 diff 0.00e+00
+  C3_morgan_fp_leave_fold_out.point diff 1.03e-04
+  C3_morgan_fp_leave_fold_out.lo diff 3.30e-04
+  C3_morgan_fp_leave_fold_out.hi diff 9.22e-07
+  C3_morgan_fp_leave_fold_out.lo90 diff 1.14e-04
+  C3_morgan_fp_leave_fold_out.hi90 diff 6.43e-05
+  C4_censored_label diff 0.00e+00
+  C5_assay_IC50_only diff 0.00e+00
+  C5_assay_has_Ki_or_Kd diff 0.00e+00
+  C5_assay_has_EC50 diff 0.00e+00
+  M2 C1_atomlm_typicality.point diff 0.00e+00 (old logic: points only)
+  M2 C2_multiproxy_leave_fold_out.point diff 0.00e+00 (old logic: points only)
+  M2 C3_morgan_fp_leave_fold_out.point diff 2.58e-04 (old logic: points only)
+REGRESSION PASS tol 1e-09 tol_C3 0.001

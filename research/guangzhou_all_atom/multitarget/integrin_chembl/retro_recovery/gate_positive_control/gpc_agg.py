@@ -1,7 +1,7 @@
 """Aggregator for the validity-gate positive control (docs/20261031_GATE_POSITIVE_CONTROL_PREREG.md, sections 2, 3, 5, 6).
 usage: python3 gpc_agg.py [results/gpc_results.jsonl]  ->  results/gpc_summary.json and results/gpc_summary.md
 Pure post-processing of the stored per-construction records; no gate is re-run. All proportions carry exact Clopper-Pearson 95 % intervals."""
-import os, sys, json, collections
+import os, sys, json, gzip, collections
 import numpy as np
 from scipy.stats import beta
 
@@ -49,6 +49,23 @@ def knife_edge(rec, eps=1e-3):
     return False
 
 
+def c3_range(R, eps=1e-3):
+    """POST HOC (A3-era addition, not pre-registered): only C3 (L-BFGS logistic regression) is platform-sensitive (regression: C1, C2, C4, C5 exact). Shift ONLY C3 primary bounds by +-eps and report the range of
+    P(NOT_VALID_BIASED) and P(VALID) over (no shift, all shifted down, all shifted up). If the PASS-A conclusion holds at both extremes it does not depend on C3 solver noise."""
+    def st(rec, sgn):
+        r2 = json.loads(json.dumps(rec)); c3 = [k for k in r2["primary"] if "C3" in k]; b = [x for x in r2["biased"] if "C3" not in x]
+        for k in c3:
+            v = r2["primary"][k]
+            if v is None: continue
+            for x in ("lo", "hi", "lo90", "hi90"): v[x] = v[x] + sgn * eps
+            if v["lo"] > 0.5 or v["hi"] < 0.5: b.append("primary:" + k)
+        r2["biased"] = b; return status_at(r2, 0.05)
+    out = {}
+    for name, sgn in (("none", 0), ("c3_down", -1), ("c3_up", 1)):
+        c = collections.Counter(st(r, sgn) for r in R); out[name] = dict(P_biased=prop(c["NOT_VALID_BIASED"], len(R)), P_valid=prop(c["VALID"], len(R)))
+    return out
+
+
 def detected(rec, fam):
     if rec["status"] != "NOT_VALID_BIASED": return False
     b = set(rec["biased"])
@@ -74,7 +91,7 @@ def per_control(R):
 
 
 def main(paths):
-    recs = [json.loads(l) for p in paths for l in open(p)]; by = collections.defaultdict(list)
+    recs = [json.loads(l) for p in paths for l in (gzip.open(p, "rt") if p.endswith(".gz") else open(p))]; by = collections.defaultdict(list)
     for r in recs:
         key = r["kind"] if r["kind"] in ("VI", "VM2") else (f"{r['family']}|{r['a']}" if r["kind"] == "S" else f"CURVE|{r['F']}"); by[key].append(r)
     cal = json.load(open(f"{OUT}/calibration.json")) if os.path.exists(f"{OUT}/calibration.json") else {}
@@ -110,6 +127,7 @@ def main(paths):
                 R = by.get(f"{fam}|{a}", [])
                 if R: M[str(dlt)][f"{fam}|{a}"] = prop(sum(status_at(r, dlt) == "VALID" for r in R), len(R))
     S["margin_sensitivity_P_VALID"] = M
+    S["posthoc_C3_only_shift_pm_1e-3"] = {k: c3_range(by[k]) for k in ("VI", "VM2") if k in by}
     # minimum-families curve (section 3)
     C = {}; first = None
     for F in F_GRID:

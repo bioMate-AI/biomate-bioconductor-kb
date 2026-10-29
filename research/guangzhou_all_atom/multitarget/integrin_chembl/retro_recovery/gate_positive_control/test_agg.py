@@ -49,3 +49,11 @@ def test_main_merges_two_files_and_reports_certifier(tmp_path):
     A.OUT = str(tmp_path); A.main([str(f1), str(f2)])
     S = json.load(open(tmp_path / "gpc_summary.json"))
     assert S["n_records"] == 20 and S["PASS_C_certifier"]["26"]["certifier"] and S["PASS_C_at_real_F"]["VI (real F=26)"]
+
+
+def test_c3_range_shifts_only_c3():
+    near = rec(); near["primary"]["C3_morgan_fp_leave_fold_out"] = dict(point=0.5, lo=0.4995, hi=0.6, lo90=0.47, hi90=0.53, n_families=26)   # lo within 5e-4 of 0.5
+    out = A.c3_range([near])
+    assert out["none"]["P_biased"]["k"] == 0 and out["c3_up"]["P_biased"]["k"] == 1 and out["c3_down"]["P_biased"]["k"] == 0
+    other = rec(); other["primary"]["C1_atomlm_typicality"] = dict(point=0.5, lo=0.4995, hi=0.6, lo90=0.47, hi90=0.53, n_families=26)         # same geometry on C1: must NOT be shifted
+    assert A.c3_range([other])["c3_up"]["P_biased"]["k"] == 0
