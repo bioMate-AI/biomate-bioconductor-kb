@@ -36,3 +36,18 @@ Labels: PAMPA log Papp; training labels z-scored within training sources (`sourc
 
 ## 8. Caveats stated up front
 Simulated ensembles come from a fixed force field and solvents, not from the assays; labels are noisy (between-report spread 0.867 ± 0.631 log units vs 0.206 ± 0.191 within, per the survey; unverified extract); 4D coverage is biased (5,160 of 8,466; 56 % Townsend); one pooled-lab group dominates training when other labs are held out; MD descriptors may encode size and polarity already in D (the planted control addresses recoverability, not novelty).
+
+## 9. Results (run 2026-10-28 night, local CPU, spend USD 0; code `research/guangzhou_all_atom/cyclic_llm/ensemble_features/run_ideaA.py`, outputs `results/ideaA_controls.json`, `results/ideaA_results.json`)
+**Controls (run first, all passed):** shuffled labels, mean held-out Spearman over labs D -0.003, E +0.015, D+E +0.023 (all within ±0.05); planted dPSA label: E 0.814, D+E 0.814, D 0.122 (recovered, signal lives in E); decoy (E columns row-permuted): D+E 0.411 vs D 0.409 (within ±0.02).
+**Real contrast, leave-one-lab-out, 4,918 joined peptides (HistGBM fixed settings), held-out Spearman on raw PAMPA within the held-out lab:**
+| held-out lab (n) | D | F | E | D+E | F+E | D+E minus best 2D [flat-cluster 95 % CI] |
+|---|---|---|---|---|---|---|
+| Townsend (2,761) | 0.327 | 0.354 | 0.055 | 0.340 | 0.351 | -0.013 [-0.089, 0.062] (vs F) |
+| Kelly (1,396) | 0.285 | 0.464 | 0.149 | 0.350 | 0.324 | -0.113 [-0.240, 0.018] (vs F) |
+| Furukawa-2016 (662) | 0.398 | -0.009 | 0.078 | 0.326 | 0.036 | -0.072 [-0.128, -0.018] (vs D) |
+| Naylor (50) | 0.243 | 0.272 | 0.250 | 0.206 | 0.361 | -0.066 [-0.287, 0.149] (vs F) |
+| Wang (49) | 0.792 | 0.452 | 0.761 | 0.763 | 0.548 | -0.029 [-0.131, 0.064] (vs D) |
+| mean over labs | 0.409 | 0.307 | 0.259 | 0.397 | 0.324 | -0.059 |
+**Verdict (pre-registered rule): NOT SUPPORTED** (0 of 5 labs with a difference >= +0.03; mean paired difference -0.059). Formal gate: **UNDERPOWERED** (5 labs, 2 of them n ~ 50), so a miss means "no gain detectable", not "no gain".
+Descriptive notes (not part of the rule): (i) the "best 2D arm" is chosen per lab after seeing the held-out score, which is conservative against E; against D alone the differences are Townsend +0.013, Kelly +0.065, Furukawa -0.072, Naylor -0.037, Wang -0.029, i.e. mixed in sign; (ii) E alone is weak (mean 0.259; Wang 0.761 on 49 peptides is the exception); (iii) pooled flat-grouped 5-fold (reference only, not lab-shifted): D 0.650, F 0.714, E 0.457, D+E 0.645, F+E 0.688; (iv) the lab-shifted Spearman for every arm is far below the grouped one, consistent with the earlier leave-labs-out finding.
+**Decision:** no-go on further compute for ensemble features as a lab-independent signal on this data. Not computed: the 11.6 GB CREMP-CycPeptMPDB ensembles (would add the same two large labs only), AnewDPSA features, per-conformer physics. Not evidence for the paper.
