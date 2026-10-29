@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 from pmo_harness import Verifier  # noqa: E402
 
 ANN_DEFAULT = os.environ.get("ANN_CSV", os.path.join(HERE, "..", "..", "stratification", "data", "annotations.csv.gz"))
-ASSAY = "PAMPA"
+ASSAY = "pampa"
 MIN_SRC = 20
 
 
