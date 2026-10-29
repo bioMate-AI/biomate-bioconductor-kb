@@ -42,3 +42,6 @@ Spot CPU instances tagged `project=cyclic-selector`, per-task S3 checkpointing, 
 
 ## 10. Limits stated now
 One data collection (CycPeptMPDB permeability), one task, small symbolic modules + a tiny untrained-at-scale net; results say nothing about larger backbones, generation, or other properties. Regime A has near-duplicate leakage by design (reported with the leakage table from the review); regime B shifts scaffold not laboratory; only regime L's held-out-lab E metrics are clean across the lab boundary.
+
+## 11. Amendment A1 (2026-10-28, before any scored run)
+Measured token lengths (chirality- and topology-aware tokenizer, 6,960 CycPeptMPDB PAMPA records): median 109, p95 186, max 241; **3.7% exceed 192 tokens**, 0% exceed 256. The IHLM default backbone `max_len=192` (positional table) would fail or truncate for those. Amended before any scored run: backbone `max_len = 256` and tokenizer `max_len = 256` (no truncation). No score had been seen; all other §3 settings unchanged.
