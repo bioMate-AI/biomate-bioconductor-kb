@@ -172,7 +172,7 @@ def main():
     for g in "ABL":
         ss, d = contrast(R[("aware", g)], R[("blind", g)], OTHER[g], seeds)
         res["descriptive_other_arm"][g] = dict(arm=OTHER[g], n_seeds=len(ss), mean=round(float(d.mean()), 3) if len(d) else None, t_mean_95=t_interval(d) if len(d) > 1 else None)
-        ss, d = contrast(R[("aware", g)], R[("blind", g)], None, seeds, key=lambda r: r.get("auroc_E0"))
+        ss, d = contrast(R[("aware", g)], R[("blind", g)], None, seeds, key=lambda r, _a=ENDPOINT[g]: r[_a]["auroc_E0"] if _a in r else None)
         res["descriptive_other_arm"][g]["E_auroc0_aware_minus_blind"] = dict(n_seeds=len(ss), mean=round(float(d.mean()), 4) if len(d) else None, t_mean_95=t_interval(d) if len(d) > 1 else None)
     res["level"] = {f"{l}|{g}": dict(arm=ENDPOINT[g], n=len(R[(l, g)]), mean=round(float(np.mean([hits(r, ENDPOINT[g]) for r in R[(l, g)].values() if hits(r, ENDPOINT[g]) is not None])), 2)) for l in PREFIX for g in "ABL"}
     if not a.no_extras:
@@ -189,7 +189,7 @@ def main():
             t95, t90 = t_interval(d, .95), t_interval(d, .90)
             ok = (t95[0] > 0) if kind == "chiral" else (-MARGIN < t90[0] and t90[1] < MARGIN)
             ctl[f"{kind}|{g}"] = dict(n_seeds=len(d), mean=round(float(d.mean()), 2), t_mean_95=t95, t_mean_90=t90, rule=("aware-blind lower 95% bound > 0" if kind == "chiral" else "90% t-interval inside +-10 hits"), passes=bool(ok),
-                                      E_auroc0_aware_minus_blind=round(float(np.mean([A_[s]["auroc_E0"] - B_[s]["auroc_E0"] for s in ss])), 4))
+                                      E_auroc0_aware_minus_blind=round(float(np.mean([A_[s][ENDPOINT[g]]["auroc_E0"] - B_[s][ENDPOINT[g]]["auroc_E0"] for s in ss])), 4))
     res["planted_controls"] = ctl; res["controls_valid"] = bool(ctl) and all(v.get("passes") for v in ctl.values())
     json.dump(res, open(a.out, "w"), indent=1, default=str); print(json.dumps({k: res[k] for k in ("regression_ok", "pairing_violations", "controls_valid")}), flush=True)
 
