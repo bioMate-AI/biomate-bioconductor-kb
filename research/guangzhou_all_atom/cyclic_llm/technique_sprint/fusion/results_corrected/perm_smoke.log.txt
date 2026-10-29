@@ -1,0 +1,6 @@
+shuffle None labs 2 peptides 6784
+PT 2013_CHUGAI 68
+PT 2015_Ahlbach 107
+done 2013_CHUGAI 450 112
+done 2015_Ahlbach 300 115
+wrote perm_cells_smoke.csv 750

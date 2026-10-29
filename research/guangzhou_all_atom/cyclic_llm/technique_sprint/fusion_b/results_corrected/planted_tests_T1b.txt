@@ -1,0 +1,17 @@
+F...                                                                     [100%]
+=================================== FAILURES ===================================
+_________________________ test_prior_informative_world _________________________
+
+    def test_prior_informative_world():
+        r = run(1.0, 0.0); show("prior-informative", r)
+>       for k in r: assert r[k]["F2b"] >= 0.85 * r[k]["PT"], (k, r[k])
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: (10, {'PT': 0.7167060421678795, 'A': 0.002869507562635064, 'PTk': 0.6698416567751673, 'F1b': 0.42821968687398443, ...})
+E       assert 0.6083605566617288 >= (0.85 * 0.7167060421678795)
+
+test_fusion_b.py:33: AssertionError
+----------------------------- Captured stdout call -----------------------------
+prior-informative {5: {'PT': 0.717, 'A': 0.001, 'PTk': 0.687, 'F1b': 0.571, 'F2b': 0.665}, 10: {'PT': 0.717, 'A': 0.003, 'PTk': 0.67, 'F1b': 0.428, 'F2b': 0.608}, 25: {'PT': 0.716, 'A': -0.014, 'PTk': 0.653, 'F1b': 0.181, 'F2b': 0.662}}
+=========================== short test summary info ============================
+FAILED test_fusion_b.py::test_prior_informative_world - AssertionError: (10, ...
+1 failed, 3 passed in 3.16s
