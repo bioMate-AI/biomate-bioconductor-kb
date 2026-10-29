@@ -6442,6 +6442,16 @@ def _execute_nextflow_impl(
                 # SMILES → 0 valid molecules → admet-ai crash). json.dumps yields
                 # valid JSON that json.loads round-trips. Fixes ~272 workflows.
                 _params_for_json[key] = _ml_json.dumps(value)
+            elif isinstance(value, str) and (key.endswith("_list") or key.endswith("List")):
+                # Workflow expects a JSON array string (e.g. smiles_list). If Galaxy AI
+                # extracted a single value as a bare string, wrap it so JsonSlurper
+                # in the .nf doesn't throw JsonException on a non-JSON scalar.
+                _stripped = value.strip()
+                try:
+                    _pl = _ml_json.loads(_stripped)
+                    _params_for_json[key] = _ml_json.dumps(_pl if isinstance(_pl, list) else [_pl])
+                except (ValueError, TypeError):
+                    _params_for_json[key] = _ml_json.dumps([_stripped] if _stripped else [])
             else:
                 _params_for_json[key] = str(value)
         if "outdir" not in _params_for_json and not _nf_path_str.startswith("/tmp/biomate_user_nf/"):
@@ -6476,6 +6486,15 @@ def _execute_nextflow_impl(
                 # can't parse, so a list param was consumed as one string value.
                 import json as _cli_json
                 cmd += [f"--{key}", _cli_json.dumps(value)]
+            elif isinstance(value, str) and (key.endswith("_list") or key.endswith("List")):
+                # Same *_list wrapping for CLI flag path (single-SMILES bare string case).
+                import json as _cli_json
+                _stripped = value.strip()
+                try:
+                    _pl = _cli_json.loads(_stripped)
+                    cmd += [f"--{key}", _cli_json.dumps(_pl if isinstance(_pl, list) else [_pl])]
+                except (ValueError, TypeError):
+                    cmd += [f"--{key}", _cli_json.dumps([_stripped] if _stripped else [])]
             else:
                 cmd += [f"--{key}", str(value)]
 
