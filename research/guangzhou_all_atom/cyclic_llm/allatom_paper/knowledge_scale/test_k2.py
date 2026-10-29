@@ -67,3 +67,15 @@ def test_topic_fields_amendment_a1():
     assert not verify_rule(dict(ts, target="nope"), NT, NT)[0]
     assert not verify_rule(dict(ts, pdb="9XMM"), NT, NT)[0]                   # pdb id not in passage -> reject
     assert not verify_rule(dict(BASE, topic="folklore"), NT, NT)[0]
+
+
+def test_strict_filter_a5():
+    from verify import strict_ok
+    good = dict(BASE, proxy_entailment="YES", confidence=0.8, topic="sar_rule", quote="N-methylation of cyclic peptides increased permeability here")
+    assert strict_ok(good)
+    assert not strict_ok(dict(good, proxy_entailment="NO"))
+    assert not strict_ok(dict(good, confidence=0.5))
+    assert not strict_ok(dict(good, quote="Macrocycles stack one into another by shape here", statement="Stacking happens"))   # off-topic: no peptide/cyclic term
+    assert not strict_ok(dict(good, property="other"))
+    assert not strict_ok(dict(good, direction="no_effect"))
+    assert strict_ok(dict(good, topic="prior_work", property="other", direction="qualitative"))     # direction/property rule applies to sar_rule only

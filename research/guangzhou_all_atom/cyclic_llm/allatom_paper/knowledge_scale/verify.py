@@ -138,3 +138,25 @@ def benchmark_overlap(author_string: str, year, source_names) -> list:
         if digits and int(digits[0]) in (y, y + 1) and sn in low:
             hits.append(s)
     return hits
+
+
+STRICT_RELEVANCE_RE = re.compile(r"(cyclic|macrocycl|cyclo|cyclis|cyclis|lariat|stapl|disulfid|lactam|head-to-tail|peptid|RGD|N-methyl)", re.I)
+
+
+def strict_ok(rule: dict) -> bool:
+    """Amendment A5 (frozen before any precision judgement): STRICT arm = RAW verified AND all of:
+    proxy_entailment == YES; confidence >= 0.7; relevance: quote+statement mentions a cyclic/peptide term;
+    sar_rule must have a non-'other' property and direction in {increases, decreases, conditional}."""
+    if rule.get("proxy_entailment") != "YES":
+        return False
+    try:
+        if float(rule.get("confidence", 0)) < 0.7:
+            return False
+    except (TypeError, ValueError):
+        return False
+    if not STRICT_RELEVANCE_RE.search(norm(rule.get("quote", "")) + " " + norm(rule.get("statement", ""))):
+        return False
+    if rule.get("topic", "sar_rule") == "sar_rule":
+        if rule.get("property") == "other" or rule.get("direction") not in ("increases", "decreases", "conditional"):
+            return False
+    return True

@@ -2,7 +2,7 @@
 import argparse, csv, json, random, re
 from collections import defaultdict
 from merge import toks, jacc
-from verify import norm
+from verify import norm, strict_ok
 
 
 GOLD_KIND_TOPIC = {"rule": "sar_rule", "fundamental": "structure_property", "card": "prior_work", "caution": "sar_rule"}
@@ -95,6 +95,17 @@ def main():
         t["papers"].add(r["citation"]["pmcid"])
     res["yield_by_topic"] = {k: {"rules": v["rules"], "papers": len(v["papers"]), "entail_yes_rate": v["entail_yes"] / max(1, v["rules"])}
                              for k, v in by_topic.items()}
+    strict = [r for r in rules if strict_ok(r)]
+    res["strict"] = {"n": len(strict), "share_of_verified": len(strict) / max(1, len(rules)),
+                     "by_topic": {t: sum(1 for r in strict if r.get("topic", "sar_rule") == t) for t in ("sar_rule", "structure_property", "prior_work", "target_structure")}}
+    for arm, pool in (("raw", rules), ("strict", strict)):
+        smp = audit_sample(pool)
+        with open(f"{a.out}_audit_sample_{arm}.csv", "w", newline="") as fh:
+            w = csv.writer(fh)
+            w.writerow(["rule_id", "topic", "tier", "property", "direction", "statement", "quote", "pmcid", "judge_correct_0_1", "note"])
+            for r in smp:
+                w.writerow([r["rule_id"], r.get("topic", "sar_rule"), r["evidence_tier"], r["property"], r["direction"], r["statement"], r["quote"],
+                            r["citation"]["pmcid"], "", ""])
     sample = audit_sample(rules)
     with open(a.out + "_audit_sample.csv", "w", newline="") as fh:
         w = csv.writer(fh)
