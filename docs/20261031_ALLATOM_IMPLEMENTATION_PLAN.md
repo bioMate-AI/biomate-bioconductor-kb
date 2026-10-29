@@ -50,7 +50,7 @@ Written to `research/guangzhou_all_atom/cyclic_llm/allatom_paper/contracts.py` b
 - **Wave 1 (parallel, ~2-4 h wall clock):** I-A, I-B, U1, U2+U3, E run concurrently on separate EC2 instances/prefixes; no shared writers; each commits tests + code under `allatom_paper/<stream>/`.
 - **M1 integration smoke (coordinator, ~1 h):** toy generator + automaton + retriever + preference updater + harness; planted-optimum oracle found; all controls behave (shuffled reward = random; copy-seed plateau). Gate: M1 must pass before any GPU hybrid run.
 - **M2 baselines done (E):** curves + MDE + P(pass) committed.
-- **M3 stage-1 hybrid pilot (one integration fork, ~3-5 h):** ChemFM-1B + LoRA with U1 mask, I-B retrieval, U3 updates, U2 monitor; B = 1,000, >= 5 seeds; ablations no-rules, no-feedback first. **Stop rule: if the hybrid's AUC-top-10 point estimate (train and held-out) is not above the best baseline at the pilot budget, stop, report GO / NO-GO-detectable / INCONCLUSIVE per interval vs margin.**
+- **M3 stage-1 hybrid pilot (one integration fork, ~3-5 h):** ChemFM-1B + LoRA with U1 mask, I-B retrieval, U3 updates, U2 monitor; B = 1,000, >= 5 seeds; ablations no-rules, no-feedback first. **Stop rule: if the hybrid's SD-AUC-top-10 point estimate (train and held-out; z-scores against the generation space, amendment A4 of the Track E pre-registration; the margin is the relative margin of A4/A5, not +0.03) is not above the best baseline at the pilot budget, stop, report GO / NO-GO-detectable / INCONCLUSIVE per interval vs margin.**
 - **M4 ablations and U4/U5 (only if M3 passes), M5 stage 2 (needs owner go-ahead and the cost estimate), M6 arm G and audits, M7 manuscript.**
 
 ## 5. Budget (stages 0-1 hard cap USD 14, estimates)
