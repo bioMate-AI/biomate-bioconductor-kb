@@ -101,8 +101,9 @@
     }
   },
   "chat": {
-    "placeholder": "请让 BioMate 运行工作流或分析您的数据...",
+    "placeholder": "您想分析什么？",
     "send": "发送",
+    "in_panel": "已在面板中",
     "new_chat": "新对话",
     "chat_history": "对话历史",
     "no_history": "暂无历史对话",
@@ -119,10 +120,12 @@
     }
   },
   "composer": {
+    "data": "数据",
     "attach_file": "附加数据文件",
     "attach_folder": "附加文件夹",
     "browse_datasets": "浏览 BioMate 数据集",
     "instructions": "指令",
+    "instructions_count": "{{count}} 条指令",
     "instructions_placeholder": "此处的常设指令 — 例如：报告 FDR<0.05、使用 GRCh38、优先采用保守阈值。将应用于这里的每一次请求。",
     "instructions_open_panel": "本项目的常设指令 — 打开“指令”面板进行编辑",
     "stop_reply": "停止回复",

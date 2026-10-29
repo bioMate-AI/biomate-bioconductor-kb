@@ -738,6 +738,12 @@ export function ChatMessage({
                       <span className="dot" />
                       {chipLabel}
                     </span>}
+                    {isInPanel && (
+                      <span className="chip-ok" data-testid="wf-chip-in-panel">
+                        <span className="dot" />
+                        {t('chat.in_panel')}
+                      </span>
+                    )}
                     {!isInPanel && onOpenInPanel && (
                       <button
                         onClick={() => onOpenInPanel()}

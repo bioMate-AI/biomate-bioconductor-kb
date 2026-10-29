@@ -760,14 +760,15 @@ export function ChatInput({
             data-testid="chat-attach-data-button"
             onClick={() => setShowDatasetBrowser(true)}
             style={{
-              width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
+              height: 28, padding: '0 8px', gap: 5, borderRadius: 'var(--bm-r-sm, 6px)',
               border: 'none', background: 'transparent',
               color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
+              flexShrink: 0, fontSize: 12,
             }}
           >
             <Paperclip className="w-4 h-4" />
+            <span>{t('composer.data')}</span>
           </button>
 
           {/* Attached-count indicator. Hidden at 0 (no noise pre-attach);
@@ -945,13 +946,24 @@ export function ChatInput({
               <Square className="w-3.5 h-3.5 fill-current" />
             </button>
           ) : (
+            <>
+            {/* ⏎ hint, per spec 06 §6.1 send group ([ Enter ] [ > ]). */}
+            <kbd
+              aria-hidden
+              style={{
+                marginLeft: 'auto',
+                fontSize: 10, lineHeight: 1, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
+                border: '1px solid var(--bm-border, oklch(0.88 0.004 240))',
+                borderRadius: 4, padding: '2px 5px',
+                fontFamily: 'var(--bm-font-ui)', background: 'var(--bm-surface, transparent)',
+              }}
+            >⏎</kbd>
             <button
               data-testid="chat-send-button"
               onClick={handleSend}
               title={t('chat.send')}
               disabled={disabled || linkingDataset || projectSettingsLoading || !!projectSettingsError || (!message.trim() && attachedFiles.length === 0)}
               style={{
-                marginLeft: 'auto',
                 width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
                 background: (!message.trim() && attachedFiles.length === 0 && selectedDatasets.length === 0)
                   ? 'var(--bm-surface-3, oklch(0.945 0.005 240))'
@@ -965,6 +977,7 @@ export function ChatInput({
             >
               <Send className="w-3.5 h-3.5" />
             </button>
+            </>
           )}
         </div>
       </div>

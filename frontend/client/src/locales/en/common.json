@@ -101,8 +101,9 @@
     }
   },
   "chat": {
-    "placeholder": "Ask BioMate to run a workflow or analyze your data...",
+    "placeholder": "What would you like to analyze?",
     "send": "Send",
+    "in_panel": "In panel",
     "new_chat": "New Chat",
     "chat_history": "Chat History",
     "no_history": "No previous conversations",
@@ -113,10 +114,12 @@
     "attach_file": "Attach file"
   },
   "composer": {
+    "data": "data",
     "attach_file": "Attach data file",
     "attach_folder": "Attach a folder",
     "browse_datasets": "Browse BioMate datasets",
     "instructions": "Instructions",
+    "instructions_count": "{{count}} instructions",
     "instructions_placeholder": "Standing instructions for this composer — e.g. report FDR<0.05, use GRCh38, prefer conservative thresholds. Applied to every request here.",
     "instructions_open_panel": "Standing instructions for this project — open the Instructions panel to edit",
     "stop_reply": "Stop reply",
