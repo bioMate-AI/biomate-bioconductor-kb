@@ -32,4 +32,15 @@ if __name__ == "__main__":
     c1 = {a: out.get(f"planted|{a}|k10", {}).get("mean") for a in ("nn", "gp", "prior", "h5", "h5nn")}
     out["C1_values"] = c1; out["C1_pass"] = bool(c1["nn"] >= 0.4 and c1["gp"] >= 0.4 and c1["prior"] <= 0.15 and c1["h5"] >= 0.8 * c1["gp"] and c1["h5"] >= c1["prior"] + 0.2)
     sh = [(k, v) for k, v in out.items() if k.startswith("shuffled|")]; bad = [k for k, v in sh if not (v["ci95"][0] <= 0 <= v["ci95"][1] and abs(v["mean"]) <= 0.05)]; out["C2_pass"] = len(bad) == 0; out["C2_fail_cells"] = bad
+    # amendment A2: ability of the shuffled control to pass under a TRUE null (normal approximation from each cell's own bootstrap CI half-width; independence across cells assumed, so this is an approximate LOWER-leaning figure because cells are positively correlated)
+    from scipy.stats import norm
+    pn = 1.0; ncell = 0
+    for k, v in sh:
+        se = (v["ci95"][1] - v["ci95"][0]) / 3.92
+        if se <= 0: continue
+        lim = min(0.05, 1.96 * se); pn *= (norm.cdf(lim / se) - norm.cdf(-lim / se)); ncell += 1
+    out["C2_P_pass_under_true_null_approx"] = float(pn); out["C2_n_cells_in_rule"] = ncell
+    out["C1_P_fail_under_planted_fault"] = "not computed (needs a planted-fault simulation; stated per amendment A2)"
+    out["C2_P_fail_under_planted_fault"] = "not computed"
+    out["reading"] = "C2 as registered requires every cell |mean|<=0.05 AND 95% CI covering 0; with many cells the probability of passing under a true null can be far below the 0.8 the rulebook asks of a control; a C2 'fail' is then weak evidence of a fault."
     json.dump(out, open(f"{C.RES}/controls_summary.json", "w"), indent=1, default=float); print("C1", out["C1_pass"], c1, "| C2", out["C2_pass"], bad)
