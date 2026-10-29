@@ -150,3 +150,34 @@ ADMET execution path (deeper) — trace qc_trace_monitor wiring in the Node→Ga
 - **Docking loop (erlotinib/EGFR, demo-05)**: the loop audit called this "the tightest
   gate→remediate→rerun story" with a clear HALT (−5.2 vs −7.0) — likely the cleaner demo
   path; verify it binds its halt gate too. Pick one as the canonical loop demo.
+
+## DEFINITIVE loop finding (2026-10-29, admet_standard run 82c1245a)
+Re-run under **admet_standard** (no "cipa"): produced **qc_gates=2 blocking** — hERG
+IC50 0.01<1.0 µM FAIL + DILI high FAIL (GOLD rationale). So:
+- The QC gate EVALUATION is correctly wired; the earlier `qc_gates:[]` was caused by the
+  demo goal forcing the **"cipa" profile**, which overrode inference. FIX FOR DEMO: don't
+  name cipa — let inference bind admet_standard (or pick it in the panel).
+- **Autoloop still does NOT engage**, two independent downstream causes:
+  (a) **Delivery**: the blocking gate lands in the completed run record, NOT as a live
+      mid-run `qc_gate_triggered` halt SSE event — ADMET is single-phase and finishes in
+      the same step, so the client-side autoloop (which only triggers on a live event)
+      never fires. Levers: confirm RUN_STATE_STORE=redis on dev AND/OR make the ADMET
+      executor emit a mid-run halt event (not only at completion).
+  (b) **Actionability**: terfenadine hERG/DILI are REGULATORY, non-tunable failures →
+      they route to the regulatory-action card ("structural optimisation required"), NOT
+      the was→now tunable-param auto-remediate+rerun path. A tunable gate is required to
+      demo auto-rerun.
+
+### FINAL demo-path recommendation for the loop
+Use the **DOCKING loop (erlotinib/EGFR, demo-05)**: its halt is a TUNABLE param
+(exhaustiveness 4→16, box 20→25 Å) → the was→now remediation + auto-rerun path the
+autoloop-default-on fix targets. ADMET is the wrong vehicle for the *auto-remediation*
+loop (its safety gates are non-tunable regulatory halts) — though it's an excellent
+"gate fires, blocks progression" safety story on its own.
+Open item before the docking loop demo: verify docking ALSO surfaces its halt as a LIVE
+mid-run event (the delivery gap (a) may be general to single-phase workflows) — i.e.
+confirm RUN_STATE_STORE=redis and that the executor emits a live qc_gate_triggered.
+
+### Autoloop-default-on fix (commit 3a7464d4) status
+Shipped + deployed; UNVERIFIED end-to-end because no live TUNABLE halt gate has yet
+fired on dev to trigger it. Verify via the docking loop once (a) is confirmed.
