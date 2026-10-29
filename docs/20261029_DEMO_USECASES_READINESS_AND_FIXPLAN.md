@@ -254,3 +254,42 @@ Provisioning is healthy for new users; the 401 was only the old fixture's rotate
 - Small-molecule chain: ADMET ✅; docking blocked on receptor provisioning (#1); ranking misroute (#3).
 - Multi-agent search ✅; dataset panel ✅; fine-tuning ops-blocked (ML_TRAINING_ROUTING).
 - Fresh-user strategy is the way to run demos until the fixture key is restored.
+
+## 2026-10-29 PM — three fixes INTEGRATED + synced + verified on dev
+
+Central integration of three worktree-isolated commits (cherry-picked onto the branch,
+all additive conflicts resolved by combining both sides — never dropping concurrent-session
+work). Single pre-sync gate: `tsc` 0 errors, `vitest` 1951 passed / 0 failed, py_compile OK,
+`test_nextflow_executor_docking_params.py` 7/7. One `sync_to_dev.sh` (result=healthy, built-in
+smoke passed). Deploy landed confirmed via SSM grep of the running containers.
+
+1. **Docking param-provisioning class CLOSED** (`229f745d2`). Bug #1 above is FIXED at the
+   root: a single executor chokepoint `_normalize_docking_params(params)` (runs for every launch,
+   no-op off-docking) does — box_center/box_size → JSON numeric vectors (scalar box_size → cube),
+   smiles_list compound NAMES → SMILES via the shared PubChem resolver (hard 422 if unresolvable,
+   so docking never runs on garbage). Receptor PDB id now flows end-to-end: the accession chain
+   SKIPS host-prefetch on Batch for a structure-native workflow (`_workflow_fetches_structure_natively`,
+   already in HEAD) → the bare id "1IEP" reaches the docking `.nf`, which self-fetches it from
+   `files.rcsb.org`. Guarded by a hard test (7 cases). Verified DEPLOYED (SSM grep of
+   `/app/lib/galaxy/webapps/galaxy/api/nextflow_executor.py` in `biomate-galaxy-dev`). NOT launched
+   on Batch — that would be a ~$1.50/35-min speculative run; logic is unit-proven + code-landed.
+   (Supersedes "Remaining real bug #1".)
+2. **`search_workflows` chat tool** (`a238f66d3`) — the catalog is now reachable on ANY turn, not
+   only inside workflow_generation. VERIFIED LIVE on dev (fixture login): asked "does your catalog
+   include a Sarek somatic variant-calling pipeline?" → model called `search_workflows`
+   {query:"Sarek somatic variant calling", domain:"variant_calling"} → got 10 REAL ranked entries,
+   #1 `nf-core/sarek`; state stayed `chat_only` (no spurious generation). Also removed the DEAD
+   `<compound_lookup_results>` prompt channel (was referenced 4× but never populated → hallucination
+   risk). Closes the "capability awareness = COUNTS ONLY" world-model gap.
+3. **`request_new_tool` — gated on-demand GitHub tool discovery** (`4817c235b`). Wires the existing
+   `auto_update/` ingest pipeline (`auto_update/scripts/request_single_tool.py`) to chat via a
+   single gate `server/tool-discovery.ts`. Default OFF (`BIOMATE_TOOL_DISCOVERY_ENABLED`) + explicit
+   user confirm required. VERIFIED LIVE: asked to fetch `nanoporetech/readfish` → model called
+   `request_new_tool`(confirm:false) → returned `{"status":"disabled", "...No external tool was
+   fetched..."}`, duration_ms:0 (no GitHub call). Operator can enable on dev by setting the env flag
+   + co-locating `auto_update/` next to the Node server.
+
+**Ops still outstanding (unchanged):** restore fixture Galaxy key (401 on generate_workflow →
+use a fresh registered user meanwhile); `ML_TRAINING_ROUTING=1` for fine-tuning; confirm
+`RUN_STATE_STORE=redis`; `BIOMATE_TOOL_DISCOVERY_ENABLED=true` only if the tool-discovery demo is
+wanted.
