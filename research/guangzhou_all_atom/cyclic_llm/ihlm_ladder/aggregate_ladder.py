@@ -133,6 +133,14 @@ def run(rows, planted=None, seed=20261030):
     for a, b in (("R4", "R3"), ("R4", "R0"), ("R4", "gbm_aware"), ("R4", "knn")):
         r = lab_cluster_auroc(rows, a, b, rng)
         if r: out["cluster"].append(dict(contrast=f"{a}-{b}", regime="L", metric="AUROC", type="d: held-out-lab cluster bootstrap", **r))
+    out["r4_vs_r3_identical"] = []
+    for reg in "ABL":
+        use = [r for r in rows if r["regime"] == reg and r["scheme"] == "zc" and r["k_anchor"] == 5 and "R3" in r["arms"] and "R4" in r["arms"]]
+        if use: out["r4_vs_r3_identical"].append(dict(regime=reg, tasks=len(use), identical_picks=int(sum(("picks" in r["arms"]["R3"]) and r["arms"]["R3"]["picks"] == r["arms"]["R4"].get("picks") for r in use)), identical_hits=int(sum(r["arms"]["R3"]["hits"] == r["arms"]["R4"]["hits"] for r in use))))
+    for reg in ("B", "L", "A"):
+        for lab, a_, b_ in (("R4_shuf-rule_kphys (POST-HOC diagnostic: shuffled-label arm vs the label-free K rule)", "R4_shuf", "rule_kphys"), ("R4_shuf-R1_kshuf (POST-HOC diagnostic)", "R4_shuf", "R1_kshuf")):
+            seeds, dd = paired(T, (reg, "zc", 5), a_, b_, "Y")
+            if len(dd) >= 3: iv = intervals(dd, rng); out["controls"].append(dict(control=lab, regime=reg, metric="Y", margin=MARGIN_Y, wide_ci=iv["wide_ci"], mean=iv["mean"], n=iv["n"], within_margin=bool(iv["wide_ci"][0] >= -MARGIN_Y and iv["wide_ci"][1] <= MARGIN_Y), mdd=iv["mdd"], gate=False))
     ctrl_ok = {reg: all(c["within_margin"] for c in out["controls"] if c["regime"] == reg and c["metric"] == "Y" and c["gate"]) for reg in ("B", "L") if any(c["regime"] == reg and c["gate"] for c in out["controls"])}
     have_zt = {k[0] for k in T if k[1] == "zt"}
     for new, old, name in MODS:
@@ -171,6 +179,9 @@ def to_markdown(res):
     L_ += ["", "### Exploratory contrasts (BH q within the zc/k=5 set; not confirmatory)", "", "| contrast | regime | metric | scheme / k | n | mean [wider CI] | BH q |", "|---|---|---|---|---|---|---|"]
     for e in res["exploratory"]:
         sk = e.get("scheme", "zc") + (f"/k{e['k_anchor']}" if "k_anchor" in e else "/k5"); L_.append(f"| {e['contrast']} | {e['regime']} | {e['metric']} | {sk} | {e['n']} | {fmt_iv(e)} | {e.get('bh_q', float('nan')):.3f} |")
+    if res.get("r4_vs_r3_identical"):
+        L_ += ["", "### How often is R4 exactly R3 on the real data? (zc, k = 5; identical = every round's 50 picks identical)", "", "| regime | tasks | identical picks | identical hit counts |", "|---|---|---|---|"]
+        for x in res["r4_vs_r3_identical"]: L_.append(f"| {x['regime']} | {x['tasks']} | {x['identical_picks']} | {x['identical_hits']} |")
     if res["cluster"]:
         L_ += ["", "### (d) regime L, E-AUROC, held-out-lab cluster bootstrap (per seed resample of held-out labs; 1,000 resamples)", "", "| contrast | seeds | labs per seed | mean | 95% percentile CI |", "|---|---|---|---|---|"]
         for c in res["cluster"]: L_.append(f"| {c['contrast']} | {c['n_seeds']} | {min(c['n_labs'])}-{max(c['n_labs'])} | {c['mean']:+.3f} | [{c['ci'][0]:+.3f}, {c['ci'][1]:+.3f}] |")
