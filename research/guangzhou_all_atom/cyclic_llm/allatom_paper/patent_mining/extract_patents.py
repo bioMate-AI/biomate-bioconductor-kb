@@ -46,6 +46,15 @@ def passages(text, words=450, min_words=100, cap=30):
     keep = sorted(scored[:cap], key=lambda x: x[1])
     return [(i, ps) for _, i, ps in keep]
 
+def split_to_fit(pid, ps, count_tokens, maxin):
+    """Recursively halve a passage (by words) until its prompt fits; never drops dense text unless a half is < 40 words."""
+    if count_tokens(ps) <= maxin:
+        return [(pid, ps)]
+    w = ps.split(); h = len(w) // 2
+    if h < 40:
+        return []
+    return split_to_fit(pid + "a", " ".join(w[:h]), count_tokens, maxin) + split_to_fit(pid + "b", " ".join(w[h:]), count_tokens, maxin)
+
 def parse_json_array(s):
     a, b = s.find("["), s.rfind("]")
     if a < 0 or b < a:
@@ -59,7 +68,7 @@ def parse_json_array(s):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--corpus", required=True); ap.add_argument("--outdir", required=True)
-    ap.add_argument("--chunk", type=int, default=128); ap.add_argument("--cap", type=int, default=30); ap.add_argument("--max-patents", type=int, default=0)
+    ap.add_argument("--chunk", type=int, default=1024); ap.add_argument("--cap", type=int, default=30); ap.add_argument("--max-patents", type=int, default=0)
     a = ap.parse_args(); os.makedirs(a.outdir, exist_ok=True)
     from vllm import LLM, SamplingParams
     pats = [json.loads(l) for l in gzip.open(a.corpus, "rt", encoding="utf-8")]
@@ -86,14 +95,13 @@ def main():
     t_all = time.time()
     for c0 in range(0, len(jobs), a.chunk):
         chunk = jobs[c0:c0 + a.chunk]; t0 = time.time()
-        fit = [len(tok(INSTR + "\n\nPASSAGE:\n" + ps)["input_ids"]) <= MAXIN for _, _, ps in chunk]
-        stats["skipped_too_long"] = stats.get("skipped_too_long", 0) + fit.count(False)
-        skipped = [j for j, f in zip(chunk, fit) if not f]
-        chunk = [j for j, f in zip(chunk, fit) if f]
-        if skipped:
-            with open(done_path, "a") as fh:
-                fh.write("\n".join(pid for pid, _, _ in skipped) + "\n")
+        orig = list(chunk)
+        count = lambda ps: len(tok(INSTR + "\n\nPASSAGE:\n" + ps)["input_ids"])
+        chunk = [(pid2, p, ps2) for pid, p, ps in orig for pid2, ps2 in split_to_fit(pid, ps, count, MAXIN)]
+        stats["split_passages"] = stats.get("split_passages", 0) + max(0, len(chunk) - len(orig))
         if not chunk:
+            with open(done_path, "a") as fh:
+                fh.write("\n".join(pid for pid, _, _ in orig) + "\n")
             continue
         outs = llm.generate([chat(INSTR + "\n\nPASSAGE:\n" + ps) for _, _, ps in chunk], sp)
         kept, rej = [], []
@@ -129,7 +137,7 @@ def main():
             for r in rej:
                 fh.write(json.dumps(r) + "\n")
         with open(done_path, "a") as fh:
-            fh.write("\n".join(pid for pid, _, _ in chunk) + "\n")
+            fh.write("\n".join(pid for pid, _, _ in orig) + "\n")
         json.dump(stats, open(stats_path, "w"))
         print(f"chunk {c0 // a.chunk} verified={len(kept)} rejected={len(rej)} sec={time.time() - t0:.0f}", flush=True)
     stats["wall_seconds_this_run"] = time.time() - t_all

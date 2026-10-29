@@ -77,3 +77,13 @@ def test_passages_cut_a_long_single_paragraph_into_bounded_windows():
     out = ep.passages(text, words=450, cap=30)
     assert 1 <= len(out) <= 30
     assert all(len(ps.split()) <= 450 for _, ps in out)
+
+
+def test_split_to_fit_halves_long_passages_and_keeps_all_words():
+    import extract_patents as ep
+    count = lambda ps: 10 * len(ps.split())          # 10 tokens per word
+    ps = " ".join(f"w{i}" for i in range(600))
+    parts = ep.split_to_fit("P:1", ps, count, maxin=2000)
+    assert len(parts) >= 3 and all(count(x) <= 2000 for _, x in parts)
+    assert " ".join(x for _, x in parts).split() == ps.split()
+    assert ep.split_to_fit("P:2", "short passage here", count, 2000) == [("P:2", "short passage here")]
