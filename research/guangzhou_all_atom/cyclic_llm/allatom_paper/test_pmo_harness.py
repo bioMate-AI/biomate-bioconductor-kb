@@ -263,3 +263,23 @@ def test_wall_clock_cap_stops_a_run_and_pads_the_curve():
     v = H.Verifier("len", lambda s: len(s) / 100.0)
     r = H.run_one(H.random_search(sampler), v, budget=50, seed=0, canon=IDENT, max_seconds=0.0)
     assert r["calls"] == 0 and len(r["curve"]) == 50                       # stopped at once, curve padded to the budget length
+
+
+def test_stop_reason_is_recorded_for_budget_wallclock_and_stall():
+    v = H.Verifier("len", lambda s: len(s) / 100.0)
+    c = {"i": 0}
+
+    def sampler(rng):
+        c["i"] += 1
+        return "C" * c["i"]
+
+    r1 = H.run_one(H.random_search(sampler), v, budget=20, seed=0, canon=IDENT)
+    assert r1["stop_reason"] == "budget_spent" and r1["budget_fraction_used"] == 1.0
+    c["i"] = 0
+    r2 = H.run_one(H.random_search(sampler), v, budget=20, seed=0, canon=IDENT, max_seconds=0.0)
+    assert r2["stop_reason"] == "wallclock" and r2["budget_fraction_used"] == 0.0
+
+    def stalls(oracle, rng):
+        oracle("C"); raise H.BudgetExhausted("edit_ga stalled: low yield")
+    r3 = H.run_one(stalls, v, budget=20, seed=0, canon=IDENT)
+    assert r3["stop_reason"] == "optimizer_stalled" and r3["calls"] == 1

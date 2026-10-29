@@ -170,15 +170,21 @@ def run_one(optimizer: Callable, verifier: Verifier, budget: int, seed: int, k: 
     oracle = BudgetedOracle(verifier, budget, canon, constraint, max_proposals=max_proposals_factor * budget,
                             deadline=None if max_seconds is None else time.time() + float(max_seconds))
     rng = random.Random(seed)
+    t_start = time.time()
+    stop_reason = "optimizer_returned"
     try:
         optimizer(oracle, rng)
-    except BudgetExhausted:
-        pass
+    except BudgetExhausted as e:
+        msg = str(e)
+        stop_reason = ("wallclock" if "wall-clock" in msg else "budget_spent" if "budget spent" in msg else
+                       "proposal_cap" if "proposal cap" in msg else "optimizer_stalled" if "stalled" in msg else "other:" + msg[:60])
     curve = oracle.topk_curve(k)
     top = oracle.top_smiles(k)
     out = {"seed": seed, "calls": oracle.calls, "auc_topk": auc_topk(curve), "final_topk": float(curve[-1]),
            "curve": curve, "top_smiles": top, "n_proposals": oracle.n_proposals, "n_invalid": oracle.n_invalid,
-           "n_dup": oracle.n_dup, "n_constraint_fail": oracle.n_constraint_fail, "heldout": {}}
+           "n_dup": oracle.n_dup, "n_constraint_fail": oracle.n_constraint_fail, "heldout": {},
+           "stop_reason": stop_reason, "budget": int(budget), "budget_fraction_used": oracle.calls / float(budget),
+           "optimizer_wall_s": round(time.time() - t_start, 2)}
     for h in heldout:  # applied ONLY to the final top-k of the run
         vals = [float(h.fn(s)) for s in top]
         out["heldout"][h.name] = float(np.mean(vals)) if vals else float("nan")

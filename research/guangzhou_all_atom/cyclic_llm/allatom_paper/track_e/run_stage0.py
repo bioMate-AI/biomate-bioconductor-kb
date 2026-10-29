@@ -34,6 +34,7 @@ def parse_seeds(s):
 
 
 def setup(a):
+    G["max_seconds"] = a.max_seconds
     t0 = time.time()
     import random as _r
     rr = _r.Random(20261029); gen_ref = []
@@ -79,7 +80,7 @@ def one_run(job):
         opt = H.copy_seed(G["seeds"])
     else:
         opt = G["reg"][method](cfg)
-    r = H.run_one(opt, train, budget, seed, k=10, canon=VE.canon, constraint=BL.constraint, heldout=held, max_seconds=1800)
+    r = H.run_one(opt, train, budget, seed, k=10, canon=VE.canon, constraint=BL.constraint, heldout=held, max_seconds=G["max_seconds"])
     top = r["top_smiles"]
     r["stop_final"] = float(np.mean([stop.fn(s) for s in top])) if top else float("nan")
     r.update(dict(mode=mode, family=fam, method=job[2], cfg=cfg, wall_s=round(time.time() - t0, 1)))
@@ -191,6 +192,7 @@ if __name__ == "__main__":
     ap.add_argument("--ann", default=VE.ANN_DEFAULT)
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2)))
     ap.add_argument("--n-ref", type=int, default=60)
+    ap.add_argument("--max-seconds", type=float, default=1800)
     ap.add_argument("--groups", default="v2", choices=["v1", "v2"])
     ap.add_argument("--scale", default="z_gen", choices=["z_gen", "percentile"])
     ap.add_argument("--gen-ref-n", type=int, default=1500)

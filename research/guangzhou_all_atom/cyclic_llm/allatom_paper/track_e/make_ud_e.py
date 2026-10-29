@@ -43,8 +43,8 @@ PY
 else echo SMOKE_FAILED > /w/out/SMOKE_FAILED; fi
 """
 EVAL = """cp track_e/tuned.json /w/out/tuned_used.json
-python3.11 track_e/run_stage0.py eval /w/out/run --budget 1000 --seeds 0-9 --cfg track_e/tuned.json --groups __GROUPS__ --n-ref 20 > /w/out/eval.log 2>&1; echo "eval rc=$?" >> /w/out/eval.log
-python3.11 track_e/run_stage0.py controls /w/out/run --budget 1000 --seeds 0-4 --cfg track_e/tuned.json --groups __GROUPS__ --n-ref 20 > /w/out/controls.log 2>&1; echo "controls rc=$?" >> /w/out/controls.log
+python3.11 track_e/run_stage0.py eval /w/out/run --budget 1000 --seeds 0-9 --cfg track_e/tuned.json --groups __GROUPS__ --n-ref 20 --max-seconds 14400 > /w/out/eval.log 2>&1; echo "eval rc=$?" >> /w/out/eval.log
+python3.11 track_e/run_stage0.py controls /w/out/run --budget 1000 --seeds 0-4 --cfg track_e/tuned.json --groups __GROUPS__ --n-ref 20 --max-seconds 14400 > /w/out/controls.log 2>&1; echo "controls rc=$?" >> /w/out/controls.log
 SMOKE=0
 """
 BW = """python3.11 track_e/bw_psa.py /w/out/bw_psa.jsonl --deadline-min 95 --n-conf 60 > /w/out/bw_psa.log 2>&1; echo "bw rc=$?" >> /w/out/bw_psa.log
