@@ -36,9 +36,11 @@ import {
   tip,
   exploreTutorial,
 } from './demo-helpers.js';
+import { FIXTURE_EMAIL, FIXTURE_PASSWORD } from './_fixture-login.js';
 
 const DEMO = 'demo-01-drug-discovery';
-const EMAIL = 'demo_drug_discovery@biomate.test';
+// Canonical shared fixture (CLAUDE.md) — never a made-up @biomate.test address.
+const EMAIL = FIXTURE_EMAIL;
 
 const ADMET_QUERY = `Run ADMET toxicity screening on these 5 BCR-ABL1 kinase inhibitors and predict hERG cardiac risk (IC50), DILI probability, and Ames mutagenicity for each:
 
@@ -63,7 +65,7 @@ test('Demo 1 — BCR-ABL1 inhibitor campaign: ADMET → docking → lead ranking
   test.setTimeout(1_800_000);
 
   // ── Setup ──────────────────────────────────────────────────────────────────
-  await setupDemoUser(page, EMAIL, 'DemoPass123!', 'Drug Discovery');
+  await setupDemoUser(page, EMAIL, FIXTURE_PASSWORD, 'Drug Discovery');
   await pause(page, 1_000);
   await shot(page, DEMO, '00_start');
 

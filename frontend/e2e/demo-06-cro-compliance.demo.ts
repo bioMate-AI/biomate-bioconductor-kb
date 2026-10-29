@@ -25,9 +25,11 @@ import {
   tip,
   BASE_URL,
 } from './demo-helpers.js';
+import { FIXTURE_EMAIL, FIXTURE_PASSWORD } from './_fixture-login.js';
 
 const DEMO = 'demo-06-cro-compliance';
-const EMAIL = 'demo_cro_compliance@biomate.test';
+// Canonical shared fixture (CLAUDE.md) — never a made-up @biomate.test address.
+const EMAIL = FIXTURE_EMAIL;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -75,7 +77,7 @@ test('Demo 6 — CRO Compliance: Campaign → Validation → Audit → IND → e
   // We navigate to /drug-discovery-cro immediately after auth so the entire
   // recording is on the CRO compliance surfaces.
   console.log('[Demo6] Step 0: Login + navigate directly to CRO page');
-  await setupDemoUser(page, EMAIL, 'DemoPass123!', 'Drug Discovery');
+  await setupDemoUser(page, EMAIL, FIXTURE_PASSWORD, 'Drug Discovery');
   await page.goto(`${BASE_URL}/drug-discovery-cro`);
   await page.waitForLoadState('load');
   await pause(page, 3_000); // let campaign creation + UI settle
