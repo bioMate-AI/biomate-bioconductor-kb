@@ -224,21 +224,37 @@ jobs:
             "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-amd64" \
             "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-arm64"
 
-      # ── GHCR multi-arch (on-prem, release only) ─────────────────────────────
+      # ── GHCR multi-arch (on-prem, branch + release) ──────────────────────────
       # On-prem uses VITE_ONPREM=true baked at build time → must rebuild, not retag.
       # We build both platforms in a single buildx invocation using QEMU here
       # since this is a separate flag-only rebuild (fast — only the Vite layer differs).
-      - name: Build and push GHCR on-prem multi-arch (VITE_ONPREM=true, release only)
-        if: steps.tags.outputs.release_tag != ''
+      # Branch builds push a branch-scoped GHCR tag so ARM64 on-prem instances
+      # can pull without needing ECR credentials. :latest updated on release only.
+      - name: Compute GHCR tags
+        id: ghcr_tags
+        run: |
+          GHCR="${{ env.GHCR_IMAGE }}"
+          SHA="${{ steps.tags.outputs.sha_tag }}"
+          BRANCH="${{ steps.tags.outputs.branch_tag }}"
+          RELEASE="${{ steps.tags.outputs.release_tag }}"
+          TAGS="${GHCR}:${SHA}"
+          [[ -n "$BRANCH" ]]  && TAGS="${TAGS}
+          ${GHCR}:${BRANCH}"
+          [[ -n "$RELEASE" ]] && TAGS="${TAGS}
+          ${GHCR}:latest
+          ${GHCR}:${RELEASE}"
+          echo "tags<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$TAGS" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push GHCR on-prem multi-arch (VITE_ONPREM=true)
         uses: docker/build-push-action@v6
         with:
           context: frontend
           file: frontend/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ${{ env.GHCR_IMAGE }}:latest
-            ${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.release_tag }}
+          tags: ${{ steps.ghcr_tags.outputs.tags }}
           build-args: |
             GIT_SHA=${{ github.sha }}
             VITE_ONPREM=true
@@ -250,6 +266,7 @@ jobs:
             echo "## Frontend image build (multi-arch: amd64 + arm64)"
             echo "- sha tag: \`${{ steps.tags.outputs.sha_tag }}\`"
             [[ -n "${{ steps.tags.outputs.branch_tag }}" ]]  && echo "- branch tag: \`${{ steps.tags.outputs.branch_tag }}\`" || true
+            [[ -n "${{ steps.tags.outputs.branch_tag }}" ]]  && echo "- GHCR branch: \`${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.branch_tag }}\`" || true
             [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- release tag: \`${{ steps.tags.outputs.release_tag }}\`" || true
             echo "- ECR: \`${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}\`"
             [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- GHCR: \`${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.release_tag }}\`" || true
