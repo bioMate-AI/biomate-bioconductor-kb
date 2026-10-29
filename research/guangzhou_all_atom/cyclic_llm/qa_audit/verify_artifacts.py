@@ -84,7 +84,7 @@ A("T1 binding -0.056 [-0.086,-0.025] in doc and drafts","\u22120.056 [\u22120.08
 A("T1b permeability -0.010 (-0.046 to 0.015) in drafts","\u22120.010 (\u22120.046 to 0.015)" in V and "\u22120.010 [\u22120.046, 0.015]" in t1b)
 # 5. strata (-0.30 [-0.41,-0.12], n-methyl >=5)
 st=open(D+"20261029_CYCLIC_PEPTIDE_STRATIFICATION_ANALYSIS.md").read()
-A("strata n-methyl>=5 -0.30 [-0.41,-0.12]","-0.30 [-0.41, -0.12]" in st and "\u22120.30 (\u22120.41 to \u22120.12)" in M)
+A("strata n-methyl>=5 -0.33 [-0.44,-0.16] (post-fix rerun)","-0.33 [-0.44, -0.16]" in st and "\u22120.33 (\u22120.44 to \u22120.16)" in M)
 # 6. regime L set sizes
 rl=json.load(open(L+"regime_L_heldout_sets.json")); hs=rl["heldout_by_seed"]; cnt=[len(hs[str(i)]) for i in range(10)]
 A("regime L 6-18 labs, all 18 in seeds 0,7,9",min(cnt)==6 and max(cnt)==18 and [i for i,c in enumerate(cnt) if c==18]==[0,7,9] and "6 to 18" in M and "25.2 % to 34.3 %" in M and "25.2 % to 34.3 %" in V)
