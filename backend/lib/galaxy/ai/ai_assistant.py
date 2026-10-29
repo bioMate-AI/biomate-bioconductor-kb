@@ -2058,6 +2058,21 @@ class AIAssistant:
         keys = self._load_runnable_nextflow_keys()
         if not keys:
             return True
+        filename = (getattr(match, "filename", "") or "").lower()
+        # BioMate AI-native tool workflows (biomate-ai-tools/<name>/main.nf, or stored as
+        # nf-core-workflows/modules/biomate-ai-tools/<name>/main.nf) and nextflow_nfcore/
+        # subworkflows biomate tools are standalone AWS-Batch-runnable entry points — the
+        # runnable_keys whitelist is meant only for bioconductor subworkflows + biomni
+        # custom workflows. Without these bypasses a correctly-ranked #1 biomate-ai-tools
+        # match (e.g. cyclic_peptide_design, score 114) fails the preferred executable+runnable
+        # loop in _pick_best_executable_nextflow_match and the router falls to a lower-scored
+        # sibling (cyclic_peptide_cofold, 44). Mirrors the webapps search copy's bypass.
+        if "/bioconductor/" not in filename and (
+            "biomate-ai-tools/" in filename
+            or (filename.startswith("nextflow_nfcore/subworkflows/"))
+            or (filename.startswith("nfcore/") and "/main.nf" in filename)
+        ):
+            return True
         key = self._nextflow_workflow_key(getattr(match, "filename", "") or "")
         return bool(key and key in keys)
 
