@@ -100,6 +100,33 @@ PASS  [text] patent filter MW [500, 2600], ring >= 12, >= 3 amide bonds, 2.5 s d
 PASS  [text] extraction thresholds: precision 0.80, 100-entry audit, 60% coverage, >=3 rules from >=3 papers
 PASS  [text] extraction model size and quote length
 PASS  [text] 40 queries over four topics
+PASS  [text] Table 5: golden set 900/700/600; false-prune 0 of 900 over 126,195 positions; 40 strings every 5th position; 383 of 600 invalid cut; mask 0.43 vs 3.1 ms; LoRA smoke 6 steps 1,701 peptides 102 held out NLL 0.8933 to 0.8075
+PASS  [value] Table 7 tuning-seed SD-AUC per method, gap G and margin at f = 0.10 (both tuning objectives)
+PASS  [value] Table 7 note: 6 of 9 edit-operator GA tuning runs on the F1 objective stopped by the low-yield guard; no run at the wall-clock cap
+PASS  [text] tuning: seeds 100-102, 33 configurations and 198 runs per family (99 per objective)
+PASS  [value] Table 13: calibrated and registered P(BIASED), P(VALID) per validation cell; detection 1.00 (lower 0.94, n = 60); P(VALID | shortcut) 0.00 (upper 0.060); outcome SUCCESS
+PASS  [text] Table 13 application set M2 (14 families): P(BIASED) 0.090 (0.054 to 0.139), P(VALID) 0.170 (0.121 to 0.229)
+PASS  [text] Amirahmadi wording (5,826 samples = 5,758 + 68; AttentiveFP 86.2 to 66.1 baseline values from the adopted protocol; GP Tanimoto highest on both splits 89.7 / 80.4 tied with kernel mixture; Tables 3 and 6, arXiv v1)
+PASS  [struct] references: numbered list of 47 entries, every entry cited and every citation resolves  (cited 47)
+PASS  [struct] references: CycPeptMPDB has a full entry
+PASS  [struct] references: CREMP has a full entry
+PASS  [struct] references: CyclicPepedia has a full entry
+PASS  [struct] references: Macrocycle-DB has a full entry
+PASS  [struct] references: SweMacrocycleDB has a full entry
+PASS  [struct] references: PepBDB has a full entry
+PASS  [struct] references: Propedia has a full entry
+PASS  [struct] references: BioLiP2 has a full entry
+PASS  [struct] references: NPAtlas has a full entry
+PASS  [struct] references: COCONUT has a full entry
+PASS  [struct] references: SureChEMBL has a full entry
+PASS  [struct] references: Boltz-2 has a full entry
+PASS  [struct] references: BoltzGen has a full entry
+PASS  [struct] references: UniMoMo has a full entry
+PASS  [struct] references: REINVENT 4 has a full entry
+PASS  [struct] references: ChemFM has a full entry
+PASS  [struct] references: PeptideCLM-2 has a full entry
+PASS  [struct] title names the two contributions and omits the stopping monitor
+PASS  [struct] abstract: F1 gate ceiling stated, Table 3 cited, no stopping-monitor headline
 PASS  [struct] hygiene: no [PENDING  (0 hit(s))
 PASS  [struct] hygiene: no workstream  (0 hit(s))
 PASS  [struct] hygiene: no working name  (0 hit(s))
@@ -114,12 +141,14 @@ PASS  [struct] hygiene: no TODO/TBD  (0 hit(s))
 PASS  [struct] hygiene: no pending narration  (0 hit(s))
 PASS  [struct] hygiene: no old scale or margin  (0 hit(s))
 PASS  [struct] hygiene: no priority claim  (0 hit(s))
-PASS  [struct] cross-references resolve (41 section references)  ([])
+PASS  [struct] hygiene: no deviation or conditional-plan language  (0 hit(s))
+PASS  [struct] hygiene: no registered-report language  (0 hit(s))
+PASS  [struct] cross-references resolve (40 section references)  ([])
 PASS  [struct] every referenced table is defined  (referenced ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'] defined ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'])
 PASS  [struct] every defined table is referenced in the text  (unreferenced [])
 PASS  [struct] Figure 1 defined and referenced
-PASS  [struct] unmeasured results are shown as — in tables, not narrated  (150 empty cells)
+PASS  [struct] unmeasured results are shown as — in tables, not narrated  (160 empty cells)
 PASS  [struct] section numbering sequential 1..8  (['1', '2', '3', '4', '5', '6', '7', '8'])
 
-122 checks; failed: 0; value checks 64, text checks 38, struct checks 20
-numeric tokens in Sections 3-5 not covered by any check: 192  ({'design constant, hyperparameter or document-derived number': 97, 'small count or ordinal in prose': 71, 'value from a document or design constant (not machine-readable)': 24})
+151 checks; failed: 0; value checks 67, text checks 42, struct checks 42
+numeric tokens in Sections 3-5 not covered by any check: 218  ({'design constant, hyperparameter or document-derived number': 115, 'small count or ordinal in prose': 77, 'value from a document or design constant (not machine-readable)': 26})

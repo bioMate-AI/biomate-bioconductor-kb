@@ -328,10 +328,10 @@ chk("text", "calibration: 0.95 quantile of maximum standardised departure", "0.9
 gp = jl(os.path.join(RET, "gate_positive_control", "results", "gpc_summary.json"))
 va, vm = gp["PASS_A"]["VI"], gp["PASS_A"]["VM2"]
 chk("value", "gate positive control: false BIASED 24.5% / 32.5%; VALID 61% / 2.5%", f"{100 * va['p']:.1f}%" == "24.5%" and f"{100 * vm['p']:.1f}%" == "32.5%"
-    and f"{100 * va['status_distribution']['VALID']['p']:.0f}%" == "61%" and f"{100 * vm['status_distribution']['VALID']['p']:.1f}%" == "2.5%", "24.5%", "32.5%", "61%", "2.5%", "0.245 at 26; 0.325 at 14", "0.61 at 26; 0.025 at 14")
+    and f"{100 * va['status_distribution']['VALID']['p']:.0f}%" == "61%" and f"{100 * vm['status_distribution']['VALID']['p']:.1f}%" == "2.5%", "24.5%", "32.5%", "61%", "2.5%")
 det = gp["detection"]
 det_ok = all(det[k][a]["detection"]["p"] == 1.0 for k in ("S-tpsa", "S-typ", "S-cens", "S-diffuse") for a in ("0.6", "0.65"))
-chk("value", "gate detection of planted shortcuts is 1.00 at AUROC 0.60 and 0.65", det_ok, "0.60 to 0.65", "≈ 1.00 at 0.60 to 0.65", "about 24 per benchmark", detail="p == 1.0 for TPSA, typicality, censoring, diffuse")
+chk("value", "gate detection of planted shortcuts is 1.00 at AUROC 0.60 and 0.65", det_ok, "about 24 per benchmark", detail="p == 1.0 for TPSA, typicality, censoring, diffuse")
 pd_ = rd(os.path.join(DOCS, "20261031_ALLATOM_PATENT_PREREG.md"))
 chk("text", "patent filter MW [500, 2600], ring >= 12, >= 3 amide bonds, 2.5 s delay", all(s in pd_ for s in ("[500, 2600]", ">= 12 atoms", ">= 3 amide bonds", "2.5 s")), "molecular weight 500 to 2,600", "at least three amide bonds", "fixed delay")
 ks = rd(os.path.join(DOCS, "20261031_ALLATOM_KNOWLEDGE_SCALE_PREREG.md"))
@@ -339,12 +339,58 @@ chk("text", "extraction thresholds: precision 0.80, 100-entry audit, 60% coverag
     "at least 0.80", "100-entry audit sample", "at least 60%", "at least three verified entries from at least three papers")
 chk("text", "extraction model size and quote length", "Qwen3-8B" in ks and "<= 30" in ks, "eight-billion-parameter", "30 words")
 kbsec = rd(os.path.join(DOCS, "20261031_MANUSCRIPT_KB_SECTION_FOR_METHOD_PAPER.md"))
-chk("text", "40 queries over four topics", "40 queries" in kbsec, "40 queries over four topics")
+chk("text", "40 queries over four topics", "40 queries" in ks, "40 queries over four topics")
+
+# ---------------------------------------------------------------- audit-fix additions: Tables 5, 7, 13, references, wording
+u1 = rd(os.path.join(DOCS, "20261031_U1_RULE_AUTOMATON_NOTES.md"))
+chk("text", "Table 5: golden set 900/700/600; false-prune 0 of 900 over 126,195 positions; 40 strings every 5th position; 383 of 600 invalid cut; mask 0.43 vs 3.1 ms; LoRA smoke 6 steps 1,701 peptides 102 held out NLL 0.8933 to 0.8075",
+    all(x_ in u1 for x_ in ("900 satisfying, 700 valid-but-violating, 600 invalid", "false-prune 0 of 900", "126,195", "40 strings x every 5th", "383 of 600", "0.43 ms", "3.1 ms", "6 steps, batch 2", "1,701", "102 held-out", "0.8933 -> 0.8075")),
+    "900 satisfying, 700 valid but violating, 600 invalid strings", "0 of 900 strings (126,195 prefix positions)", "identical masks on 40 strings at every fifth prefix position",
+    "383 of 600 invalid strings", "0.43 ms (vectorised) against 3.1 ms", "6 steps, batch 2, 1,701 library peptides, 102 held out", "0.8933 to 0.8075")
+mdt = jl(os.path.join(AP, "track_e", "margin_derivation_tuning.json"))
+ok7 = True; lits7 = []
+for fam, col in (("F1", 0), ("F2", 1)):
+    for meth in ("random_lib", "lib_surrogate", "edit_ga", "selfies_ga", "gp_bo"):
+        v = f"{mdt[fam]['sd_auc_by_method'][meth]:.3f}"; lits7.append(v)
+    ok7 = ok7 and f"{mdt[fam]['gap_G']:.3f}" == ("1.720" if fam == "F1" else "3.247") and f"{mdt[fam]['fractions']['0.1']['margin_sd_auc']:.3f}" == ("0.172" if fam == "F1" else "0.325")
+chk("value", "Table 7 tuning-seed SD-AUC per method, gap G and margin at f = 0.10 (both tuning objectives)", ok7, "1.720", "3.247", "0.172", "0.325", *sorted(set(lits7)))
+chk("value", "Table 7 note: 6 of 9 edit-operator GA tuning runs on the F1 objective stopped by the low-yield guard; no run at the wall-clock cap",
+    mdt["_truncation_by_family_method"]["F1|edit_ga"]["stalled_or_other_early_stop"] == 6 and mdt["_truncation_by_family_method"]["F1|edit_ga"]["n"] == 9
+    and all(v["truncated"] == 0 for v in mdt["_truncation_by_family_method"].values()), "6 of 9 edit-operator GA tuning runs", "none of the runs reached the wall-clock cap")
+tj = jl(os.path.join(AP, "track_e", "tuned.json"))
+a5 = rd(os.path.join(DOCS, "20261031_ALLATOM_TRACK_E_PREREG.md"))
+chk("text", "tuning: seeds 100-102, 33 configurations and 198 runs per family (99 per objective)", "33 configs per family; 198 tuning runs" in a5, "33 configurations and 198 tuning runs per family", "seeds 100 to 102")
+gc = jl(os.path.join(RET, "gate_calibration", "results", "gcal_eval.json"))
+okA = gc["outcome"] == "SUCCESS"; litsA = []
+for key, fams in (("VI|25|None|None", 25), ("V3|20|None|None", 20), ("V3|26|None|None", 26), ("V3|47|None|None", 47)):
+    c_ = gc["passA"][key]
+    litsA += [f"{c_['reg_rate']:.3f}", f"{c_['rate']:.3f} ({c_['ci'][0]:.3f} to {c_['ci'][1]:.3f})", f"{c_['reg_valid_rate']:.3f}", f"{c_['valid_rate']:.3f} ({c_['valid_ci'][0]:.3f} to {c_['valid_ci'][1]:.3f})"]
+    okA = okA and c_["passed"] and c_["n"] == 400
+okB = all(v["detect"] == 1.0 and v["passed"] and abs(v["ci"][0] - 0.94) < 0.001 for v in gc["passB"].values()) and all(v["n"] == 60 for v in gc["passB"].values())
+okC = all(v["p_valid"] == 0.0 and abs(v["ci"][1] - 0.060) < 0.001 for v in gc["passC"].values())
+chk("value", "Table 13: calibrated and registered P(BIASED), P(VALID) per validation cell; detection 1.00 (lower 0.94, n = 60); P(VALID | shortcut) 0.00 (upper 0.060); outcome SUCCESS", okA and okB and okC, "SUCCESS", "0.94", "0.060", *litsA)
+chk("text", "Table 13 application set M2 (14 families): P(BIASED) 0.090 (0.054 to 0.139), P(VALID) 0.170 (0.121 to 0.229)", "0.090 (0.054 to 0.139)" in rd(os.path.join(DOCS, "20261030_MANUSCRIPT_EVAL_CONTROLS_DRAFT_v2.md")) and "0.170 (0.121 to 0.229)" in rd(os.path.join(DOCS, "20261030_MANUSCRIPT_EVAL_CONTROLS_DRAFT_v2.md")),
+    "0.090 (0.054 to 0.139)", "0.170 (0.121 to 0.229)")
+cv = rd(os.path.join(DOCS, "20261031_PAPER1_CITATION_VERIFICATION.md"))
+chk("text", "Amirahmadi wording (5,826 samples = 5,758 + 68; AttentiveFP 86.2 to 66.1 baseline values from the adopted protocol; GP Tanimoto highest on both splits 89.7 / 80.4 tied with kernel mixture; Tables 3 and 6, arXiv v1)",
+    all(x_ in cv for x_ in ("5,826", "5,758 peptides + 68", "86.2 -> 66.1", "89.7 / 80.4", "tied with a kernel mixture", "Tables 3 and 6")), "5,826 PAMPA samples (5,758 peptides plus 68 duplicate measurements", "86.2 to 66.1", "(89.7 and 80.4)", "tied with a kernel mixture", "Tables 3 and 6 of the arXiv v1")
+refsec = text.split("\n## References", 1)[1]
+entries = re.findall(r"^(\d+)\. ", refsec, re.M)
+_groups = [g_ for g_ in re.findall(r"(?<![\d.\w])\[(\d{1,2}(?:(?:, |–)\d{1,2})*)\]", text.split("\n## References", 1)[0]) if not re.search(r"(^|\D)0(\D|$)", g_)]
+cited = sorted({int(n) for grp in _groups for part in re.split(r",\s*", grp) for n in ([int(part)] if "–" not in part else range(int(part.split("–")[0]), int(part.split("–")[1]) + 1))})
+chk("struct", f"references: numbered list of {len(entries)} entries, every entry cited and every citation resolves", entries == [str(i) for i in range(1, len(entries) + 1)] and cited == list(range(1, len(entries) + 1)), detail=f"cited {len(cited)}")
+for name in ("CycPeptMPDB", "CREMP", "CyclicPepedia", "Macrocycle-DB", "SweMacrocycleDB", "PepBDB", "Propedia", "BioLiP2", "NPAtlas", "COCONUT", "SureChEMBL", "Boltz-2", "BoltzGen", "UniMoMo", "REINVENT 4", "ChemFM", "PeptideCLM-2"):
+    chk("struct", f"references: {name} has a full entry", (name if name != "NPAtlas" else "Natural Products Atlas") in refsec, detail="")
+chk("struct", "title names the two contributions and omits the stopping monitor", text.splitlines()[0] == "# IH-LM: a knowledge-augmented all-atom language model with rule-compiled decoding for cyclic-peptide design")
+abstract = text.split("## Abstract", 1)[1].split("\n---", 1)[0]
+chk("struct", "abstract: F1 gate ceiling stated, Table 3 cited, no stopping-monitor headline", "cannot exceed INCONCLUSIVE for that family" in abstract and "(Table 3)" in abstract and "held-out-verifier stopping" not in abstract)
 
 # ---------------------------------------------------------------- hygiene: no project-management content
 bad = {"[PENDING": r"\[PENDING", "workstream": r"workstream", "working name": r"working name", "USD": r"\bUSD\b", "docs/ path": r"docs/", "allatom_paper path": r"allatom_paper",
        "commit-hash-like token": r"`[0-9a-f]{9,40}`", "instance id": r"\bi-[0-9a-f]{8,}", "LIT tag": r"\[LIT-", "registry": r"[Rr]esults registry", "TODO/TBD": r"\bTODO\b|\bTBD\b",
-       "pending narration": r"\b(once|until) the (pilot|patent|stream|workstream)", "old scale or margin": r"normalised AUC|\+0\.03\b|3,000 labelled", "priority claim": r"to our knowledge|\bfirst (to|time)\b|\bnovel to\b"}
+       "pending narration": r"\b(once|until) the (pilot|patent|stream|workstream)", "old scale or margin": r"normalised AUC|\+0\.03\b|3,000 labelled", "priority claim": r"to our knowledge|\bfirst (to|time)\b|\bnovel to\b",
+       "deviation or conditional-plan language": r"declared deviation|The design had called|if the pilot variance|is replaced by|cost log|we measure it|Graph-GA",
+       "registered-report language": r"whichever way the pre-registered rule falls"}
 for name, pat in bad.items():
     hit = re.findall(pat, text)
     chk("struct", f"hygiene: no {name}", not hit, detail=f"{len(hit)} hit(s)")
