@@ -1,0 +1,25 @@
+# U2 + U3 notes: Goodhart-gap early stopping and graded preference tuning (all-atom hybrid LLM, workstreams U2/U3)
+Contract: `20261031_ALLATOM_IMPLEMENTATION_PLAN.md` (section 3), `20261031_ALLATOM_LLM_PAPER_DESIGN.md` (sections 2B, 4, 7). Code: `research/guangzhou_all_atom/cyclic_llm/allatom_paper/feedback/`. All runs on EC2 spot (owner rule). Nothing here is a result until section 5 is filled from committed result files.
+
+## 1. What was built
+- `preference_updater.py` (U3): rank-based group advantage (ties averaged, no division by std); `GradedPreferenceUpdater.make_pairs` (groups need >= `group_size` valid members and non-trivial spread, dropped groups are counted; DPO-style pairs i-th best vs i-th worst with a score margin; returns `contracts.PreferencePair` plus diagnostics `frac_zero_variance_groups`, `frac_small_groups_dropped`, `n_pairs`, `mean_margin`, `n_groups_kept`); `dpo_loss_and_grad_coef`; `KLWeightGate` (from round 3: KL < 0.01 or relative weight change < 0.005 -> raise lr/rank once, then stop); `LegacyBinaryGRPO` (the previous recipe, kept as a control).
+- `stop_monitor.py` (U2): `GapStopMonitor` (train / stop verifiers only; held-out never in the signature) plus `NeverStop` and `AlwaysStop` controls.
+- `toy_policy.py`: tabular softmax-policy environment where the old binary recipe stalls (zero-variance groups) and the graded recipe learns; `hack_env.py` + `sim_u2.py`: planted hackable-proxy environments and the monitor's operating characteristics.
+
+## 2. U3 control (unit tests, `test_preference_updater.py`)
+Concentrated start policy (all mass on prompt-specific items that pass the binary threshold): expected >90% zero-variance groups, legacy gain ~0 and KL ~0; graded updater gain > 0.10 and KL > 0.01. Broad start: the legacy updater must learn (gain > 0.01), which shows the stall comes from the variance structure and not from a broken legacy code path. Both directions of the control can fail.
+
+## 3. Pre-registration AMENDMENT A1 for U2 (committed BEFORE any simulation run; 2026-10-29)
+**Monitor parameters (fixed):** q = 0.10 (top fraction by TRAIN score), patience = 3, tau = 0.5 (round-0 SD units; smoothed gap above its running minimum), tol = 0.05, warmup = 2, smooth = 2. Restore round = argmax of the stop-gain S_t.
+**Environments (fixed):** `hack_env.py` kinds `hackable` (c_h = 5, c_s = 1), `benign` (c_h = 0, c_s = 0), `shared` (stop verifier shares the train exploit; the monitor is EXPECTED to fail there; reported as a limitation, no claim). ES: d = 10, n = 64, sigma = 0.3, lr = 0.5, 30 rounds, observation noise 0.3. Ground truth H = -||x - x*||^2 is used ONLY to score outcomes.
+**Stage A (environment validity, DEV seeds 9000-9199, NO monitor evaluated):** valid iff (hackable) NeverStop retains < 0.7 of the peak held-out gain in >= 70% of runs and (benign) NeverStop median retained >= 0.90. If invalid, the environment parameters may be amended once (new commit, before stage B); no monitor result exists at that point.
+**Stage B (monitor evaluation, TEST seeds 0-399 per kind):** outcomes on held-out truth only: retained fraction R = (H_restore - H_0)/(H_max - H_0); detection delay = stop round - argmax H; false-stop rate in `benign` = P(stopped and R < 0.9); missed-hack rate in `hackable` = P(R < 0.75).
+**Primary contrast:** equal-weight mean of R over {hackable, benign}; GapStop minus NeverStop and GapStop minus AlwaysStop, paired by seed, 95% bootstrap CI of the mean over 400 runs. Unit of inference: the simulated run (these are simulations; they say nothing about real verifiers).
+**Verdict vocabulary:** GO if both primary lower bounds > 0 AND benign false-stop rate <= 0.10 (Wilson upper bound reported) AND hackable missed-hack rate <= 0.20 AND median hackable delay in [-2, +4] rounds; NO-GO-detectable if either primary upper bound < 0; otherwise INCONCLUSIVE. Comparator without a pass criterion: Track E's `pmo_harness.StopMonitor` with inputs mapped to [0,1] via 0.5 + z/6.
+**Controls that can fail and pass:** NeverStop must lose on `hackable` (validity criterion), AlwaysStop must lose on `benign`, and the monitor must beat both on the primary; the `shared` environment documents the failure mode.
+
+## 4. Prior art (primary sources only; filled from opened sources below)
+(to be completed after the sources are opened; until then every claim of novelty is [UNVERIFIED].)
+
+## 5. Results
+(not yet run.)
