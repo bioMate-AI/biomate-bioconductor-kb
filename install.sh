@@ -424,60 +424,23 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 # 4c. 多架构容器支持（ARM64 宿主机）
 # ─────────────────────────────────────────────────────────────────────────────
-# On ARM64 hosts (Graviton2/3, Apple Silicon):
-# 1. Set DOCKER_DEFAULT_PLATFORM=linux/arm64 so Nextflow-spawned Docker
-#    containers use native arm64 images (biomni-admet:arm64, biomni-tools:arm64).
-#    Without this, the default linux/amd64 causes Docker to look for x86 variants
-#    of locally-available arm64 images and fail with "pull access denied".
-# 2. Install QEMU binfmt for amd64 as a fallback for any workflow images that
-#    haven't yet been rebuilt for arm64.
+# All BioMate service images (galaxy-backend, frontend, minio) publish multi-arch
+# manifests (amd64 + arm64) to GHCR. Docker auto-selects the ARM64 variant on
+# Graviton2/3 hosts — no QEMU and no platform override are needed.
+#
+# Workflow task images (biomni-admet, biomni-tools, etc.) also publish ARM64
+# variants. The Nextflow executor runs natively on ARM64 with the host JDK,
+# giving normal startup times instead of the 40-60 min QEMU overhead.
 if [[ "$HOST_ARCH_NORM" != "amd64" ]]; then
-  info "ARM64 宿主机，配置 Docker 平台默认值和多架构支持..."
-  # Set DOCKER_DEFAULT_PLATFORM=linux/arm64 so galaxy's Nextflow executor uses
-  # native arm64 workflow images instead of trying to pull linux/amd64 variants.
-  if grep -q "^DOCKER_DEFAULT_PLATFORM=" "$ENV_FILE" 2>/dev/null; then
-    sed -i.bak "s|^DOCKER_DEFAULT_PLATFORM=.*|DOCKER_DEFAULT_PLATFORM=linux/arm64|" "$ENV_FILE"
-    rm -f "$ENV_FILE.bak"
-  else
-    echo "DOCKER_DEFAULT_PLATFORM=linux/arm64" >> "$ENV_FILE"
-  fi
-  ok "DOCKER_DEFAULT_PLATFORM 已设为 linux/arm64"
+  info "ARM64 宿主机 (${HOST_ARCH}) — 使用原生 ARM64 镜像，无需 QEMU"
+  ok "docker-compose.onprem.yml 已移除 platform: linux/amd64 限制，Docker 自动选择 ARM64"
 
-  # Install QEMU binfmt for amd64 emulation (fallback for amd64-only workflow images).
+  # Optional: install QEMU binfmt as fallback for any amd64-only workflow images
+  # that have not yet been rebuilt for arm64 (e.g. niche tools). Safe to skip.
   if docker run --rm --privileged tonistiigi/binfmt --install amd64 >/dev/null 2>&1; then
-    ok "多架构支持已启用 (amd64 QEMU on ${HOST_ARCH})"
+    ok "amd64 QEMU binfmt 已安装 (兼容性备用，非必需)"
   else
-    warn "多架构支持安装失败 — amd64 镜像可能无法在 ${HOST_ARCH} 上运行"
-  fi
-
-  # ── ARM64-specific: download static ARM64 docker CLI for Nextflow task launching ──
-  # The galaxy image is x86 and runs under QEMU on ARM64 hosts.  QEMU 6.x has a
-  # known Go unix-socket bug: the x86 docker CLI crashes (goroutine panic) when
-  # Nextflow calls it to launch task containers.  Fix: place a statically-linked
-  # native ARM64 docker binary at /app/nf-work/docker-arm64-static.  Static ARM64
-  # binaries exec'd from inside an x86 QEMU container are recognised as native by
-  # the ARM64 kernel and run without QEMU — no unix-socket crash.
-  # nextflow_executor.py sets docker.executable to this path automatically when
-  # DOCKER_DEFAULT_PLATFORM=linux/arm64 and the file exists.
-  _ARM64_DOCKER_PATH="${NF_WORK_DIR}/docker-arm64-static"
-  _ARM64_DOCKER_VERSION="27.5.1"
-  if [[ ! -x "$_ARM64_DOCKER_PATH" ]]; then
-    info "下载 ARM64 静态 Docker 二进制文件 (v${_ARM64_DOCKER_VERSION})..."
-    _tmpdir=$(mktemp -d)
-    if curl -fsSL \
-        "https://download.docker.com/linux/static/stable/aarch64/docker-${_ARM64_DOCKER_VERSION}.tgz" \
-        -o "$_tmpdir/docker-static.tgz" 2>&1; then
-      tar xzf "$_tmpdir/docker-static.tgz" --strip-components=1 -C "$_tmpdir" docker/docker
-      mv "$_tmpdir/docker" "$_ARM64_DOCKER_PATH"
-      chmod +x "$_ARM64_DOCKER_PATH"
-      rm -rf "$_tmpdir"
-      ok "ARM64 静态 Docker 已就绪: $_ARM64_DOCKER_PATH"
-    else
-      warn "ARM64 静态 Docker 下载失败 — Nextflow 任务容器可能启动失败"
-      rm -rf "$_tmpdir"
-    fi
-  else
-    ok "ARM64 静态 Docker 已存在: $_ARM64_DOCKER_PATH"
+    info "amd64 QEMU binfmt 安装跳过 — 所有常用镜像已有 ARM64 版本"
   fi
 fi
 

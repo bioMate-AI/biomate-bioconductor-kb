@@ -3138,23 +3138,14 @@ def _generate_executor_config(
         # task containers can resolve "minio" hostname for S3 file staging.
         # BIOMATE_DOCKER_NETWORK defaults to "biomate-network" (on-prem compose default).
         docker_network = os.environ.get("BIOMATE_DOCKER_NETWORK", "biomate-network")
-        # On ARM64 hosts the galaxy container runs under QEMU x86 emulation.  The
-        # x86 docker CLI binary inside the image crashes (Go unix-socket panic) when
-        # called from within QEMU.  Fix: use a statically-linked native ARM64 docker
-        # binary placed at /app/nf-work/docker-arm64-static by install.sh.  Static
-        # ARM64 binaries exec'd from inside an x86 QEMU container are handled by the
-        # ARM64 host kernel natively — no QEMU overhead, no unix-socket crash.
-        # Detect ARM64 by file existence rather than DOCKER_DEFAULT_PLATFORM env var —
-        # the env var may be linux/amd64 inside the galaxy container even on ARM64 hosts
-        # (docker-compose platform: directive controls the container arch, not the env var).
-        # install.sh only places docker-arm64-static on ARM64 hosts, so its presence
-        # is a reliable ARM64 indicator.
-        _arm64_docker = "/app/nf-work/docker-arm64-static"
-        _is_arm64 = os.path.exists(_arm64_docker)
-        docker_executable_line = (
-            f"  executable = '{_arm64_docker}'"
-            if _is_arm64 else ""
-        )
+        # Detect native ARM64 host via platform.machine() — works whether galaxy
+        # runs natively (Plan B multi-arch images) or under QEMU emulation (legacy).
+        # On native ARM64, Docker auto-selects arm64 task images; the explicit
+        # DOCKER_DEFAULT_PLATFORM env block is redundant but harmless and makes the
+        # intent clear for operators reading the generated config.
+        import platform as _nf_platform
+        _is_arm64 = _nf_platform.machine().lower() in ("aarch64", "arm64")
+        docker_executable_line = ""
         # On-prem container override: bioc workflows hard-code a private ECR image.
         # BIOMATE_BIOC_CONTAINER lets operators substitute a public/pre-pulled image.
         # Example: BIOMATE_BIOC_CONTAINER=localhost:5050/biomate/bioc-domain-transcriptomics:3.20-slim
@@ -3168,9 +3159,9 @@ process {{
   }}
 }}
 """
-        # On ARM64 hosts set DOCKER_DEFAULT_PLATFORM for task containers so Docker
-        # requests the arm64 variant of workflow images (the galaxy container may have
-        # DOCKER_DEFAULT_PLATFORM=linux/amd64 due to docker-compose platform: directive).
+        # On ARM64 hosts explicitly set DOCKER_DEFAULT_PLATFORM for Nextflow task
+        # containers. With native ARM64 images Docker auto-detects this anyway, but
+        # the explicit setting is a safety net for any mixed-arch deployments.
         _arm64_env_block = 'env { DOCKER_DEFAULT_PLATFORM = "linux/arm64" }' if _is_arm64 else ""
         import multiprocessing as _mp
         host_cpus = _mp.cpu_count()
