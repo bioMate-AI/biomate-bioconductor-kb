@@ -186,8 +186,10 @@ for ln,l in enumerate(txt.split("\n"),1):
         if ("." in t) or (t.isdigit() and int(t)>=100 and not 1900<=int(t)<=2100): toks.append(t)
     if not toks or l.startswith("#"): continue
     files=[]
+    _ref=_re.match(r'^\d+\. [A-Za-z]',l)
     for key,fl in srcmap:
         if l.startswith(key) or (key in l[:40] and key!="### "): files=fl; break
+    if _ref: files=S_LIT
     k=tuple(files)
     if k not in cache: cache[k]=_src(files)
     for t in toks:
