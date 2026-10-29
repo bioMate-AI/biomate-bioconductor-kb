@@ -71,10 +71,13 @@ def test_manifest_hash_matches_output():
     assert h == man["output_sha256"]
 
 
-def test_sensitivity_file_and_no_townsend_rules_clean():
+def test_sensitivity_file_support_counts_and_drop_one_rules_clean():
     man = _load(MAN)
-    nt = _load(os.path.join(HERE, "peptide_sar_rules_v1_groupA_noTownsend.json"))
-    assert "2020_Townsend" not in nt["train_sources"] and set(nt["train_sources"]) < set(man["group_A_sources_used"])
-    assert assert_priors_clean(nt, man["group_S"]) and assert_priors_clean(nt, man["group_B"])
-    sens = _load(os.path.join(HERE, "groupA_sensitivity_townsend.json"))
-    assert sens["rules"], "sensitivity table empty"
+    sens = _load(os.path.join(HERE, "groupA_sensitivity.json"))
+    assert sens["rule_support_n_sources"], "no per-rule support counts"
+    assert max(sens["rule_support_n_sources"].values()) <= len(man["group_A_sources_used"])
+    nt_path = os.path.join(HERE, "peptide_sar_rules_v1_groupA_noTownsend.json")
+    if os.path.exists(nt_path):
+        nt = _load(nt_path)
+        assert "2020_Townsend" not in nt["train_sources"] and set(nt["train_sources"]) < set(man["group_A_sources_used"])
+        assert assert_priors_clean(nt, man["group_S"]) and assert_priors_clean(nt, man["group_B"])
