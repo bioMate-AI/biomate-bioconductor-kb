@@ -201,3 +201,44 @@ def test_gate_requires_margin_and_positive_lower_bound():
     c_noisy = H.paired_contrast([0.2, -0.1, 0.25, -0.1, 0.2, -0.1, 0.2, -0.1], [0.0] * 8)  # mean ok, lower bound <= 0
     g = H.gate_primary({"a": c_small, "b": c_noisy}, margin=0.03, min_pass=1)
     assert g["verdict"] == "FAIL"
+
+
+# ---------------------------------------------------------------- amendment A1: three-way split + Goodhart-gap monitor
+def _v(name, role, srcs=()):
+    return H.Verifier(name=name, fn=lambda s: 0.5, role=role, trained_on=frozenset(srcs))
+
+
+def test_three_way_ok_and_violations():
+    tr, st, ho = [_v("t", "train", {"A"})], [_v("s", "stop", {"S"})], [_v("h", "heldout", {"B"})]
+    assert H.check_three_way(tr, st, ho)
+    import pytest
+    with pytest.raises(H.HeldOutVerifierError):
+        H.check_three_way(tr, [_v("s2", "stop", {"A"})], ho)            # stop shares a source with train
+    with pytest.raises(H.HeldOutVerifierError):
+        H.check_three_way(tr, st, [_v("h2", "heldout", {"S"})])         # held-out shares a source with stop
+    with pytest.raises(H.HeldOutVerifierError):
+        H.check_three_way(tr, [_v("t", "stop", {"S"})], ho)             # same name as a train verifier
+    with pytest.raises(H.HeldOutVerifierError):
+        H.check_three_way(tr, [_v("s3", "train", {"S"})], ho)           # wrong role
+
+
+def test_stop_role_is_not_an_oracle():
+    import pytest
+    with pytest.raises(H.HeldOutVerifierError):
+        H.BudgetedOracle(_v("s", "stop", {"S"}), 10)
+
+
+def test_stop_monitor_fires_only_on_divergence():
+    m = H.StopMonitor(patience=2, min_gain=0.005)
+    for t, s in [(0.4, 0.4), (0.5, 0.5), (0.6, 0.6)]:                    # both improve: no stop
+        assert not m.update([t], [s])
+    m2 = H.StopMonitor(patience=2, min_gain=0.005)
+    fired = [m2.update([t], [s]) for t, s in [(0.4, 0.4), (0.5, 0.5), (0.6, 0.49), (0.7, 0.48), (0.8, 0.47)]]
+    assert fired == [False, False, False, True, True] and m2.stopped_at == 4
+    assert m2.gap_curve[-1] > m2.gap_curve[0]
+
+
+def test_stop_monitor_does_not_fire_when_train_stalls_too():
+    m = H.StopMonitor(patience=2, min_gain=0.005)
+    for t, s in [(0.4, 0.4), (0.5, 0.5), (0.5, 0.5), (0.5, 0.5), (0.5, 0.5)]:  # plateau, no divergence
+        assert not m.update([t], [s])

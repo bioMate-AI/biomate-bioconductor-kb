@@ -268,3 +268,58 @@ def gate_primary(contrasts: Dict[str, dict], margin: float = 0.03, min_pass: int
             passed.append(fam)
     return {"passed_families": sorted(passed), "n_pass": len(passed), "min_pass": min_pass,
             "verdict": "PASS" if len(passed) >= min_pass else "FAIL"}
+
+
+# ---------------------------------------------------------------- three-way verifier split (train / stop / heldout)
+def check_three_way(train: Sequence[Verifier], stop: Sequence[Verifier], heldout: Sequence[Verifier]) -> bool:
+    """Amendment A1: the 'stop' verifiers (used only to decide early stopping, never as an optimisation oracle) must
+    differ from the train AND the held-out verifiers by name and share no fitting sources with either."""
+    for v in stop:
+        if v.role != "stop":
+            raise HeldOutVerifierError(f"{v.name}: role {v.role!r} is not 'stop'")
+    groups = [("train", list(train)), ("stop", list(stop)), ("heldout", list(heldout))]
+    for i in range(len(groups)):
+        for j in range(i + 1, len(groups)):
+            (na, ga), (nb, gb) = groups[i], groups[j]
+            for a in ga:
+                for b in gb:
+                    if a.name == b.name:
+                        raise HeldOutVerifierError(f"verifier {a.name!r} appears in both {na} and {nb}")
+                    shared = set(a.trained_on) & set(b.trained_on)
+                    if shared:
+                        raise HeldOutVerifierError(f"{na}:{a.name} and {nb}:{b.name} share fitting sources: {sorted(shared)}")
+    for h in heldout:
+        if h.role != "heldout":
+            raise HeldOutVerifierError(f"{h.name}: role {h.role!r} is not 'heldout'")
+    return True
+
+
+class StopMonitor:
+    """Goodhart-gap early stopping. After each feedback round call `update(train_scores, stop_scores)` with the train-verifier
+    and stop-verifier scores of the SAME top-k molecules found so far. Both are assumed on the same normalised [0,1] scale.
+    The monitor stops when the stop-verifier top-k mean has not improved by >= `min_gain` for `patience` consecutive rounds
+    while the train-verifier mean kept improving (the gap between them is opening). It never sees held-out verifiers."""
+
+    def __init__(self, patience: int = 2, min_gain: float = 0.005):
+        self.patience, self.min_gain = int(patience), float(min_gain)
+        self.hist: List[tuple] = []
+        self.best_stop = -float("inf")
+        self.stale = 0
+        self.stopped_at: Optional[int] = None
+
+    def update(self, train_scores: Sequence[float], stop_scores: Sequence[float]) -> bool:
+        tm = float(np.mean(train_scores)) if len(train_scores) else float("nan")
+        sm = float(np.mean(stop_scores)) if len(stop_scores) else float("nan")
+        prev_t = self.hist[-1][0] if self.hist else -float("inf")
+        self.hist.append((tm, sm, tm - sm))
+        if sm >= self.best_stop + self.min_gain:
+            self.best_stop, self.stale = sm, 0
+        elif tm > prev_t:
+            self.stale += 1            # train kept improving, stop-verifier did not
+        if self.stale >= self.patience and self.stopped_at is None:
+            self.stopped_at = len(self.hist)
+        return self.stopped_at is not None
+
+    @property
+    def gap_curve(self) -> List[float]:
+        return [g for _, _, g in self.hist]
