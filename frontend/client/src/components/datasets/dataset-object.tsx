@@ -542,24 +542,31 @@ export function DatasetObject({
               {isRunOutput ? (
                 lineageQ.isLoading ? (
                   <Skeleton className="h-4 w-40" />
-                ) : (
-                  <>
-                    <Row
-                      k={t('dataset_obj.produced_by')}
-                      v={fmt(lineageQ.data?.producedBy?.workflow ?? dataset.workflowName ?? dataset.runId)}
-                      mono
-                      onClick={
-                        onOpenRun && (lineageQ.data?.producedBy?.runId || dataset.runId)
-                          ? () => onOpenRun((lineageQ.data?.producedBy?.runId || dataset.runId)!)
-                          : undefined
-                      }
-                      testid="lineage-open-run"
-                    />
-                    {lineageQ.data?.producedBy?.status && (
-                      <Row k={t('dataset_obj.status')} v={fmt(lineageQ.data.producedBy.status)} />
-                    )}
-                  </>
-                )
+                ) : (() => {
+                  // Show the human workflow NAME, never a raw run id. When only
+                  // the opaque id is known, show the action ("Open the run that
+                  // produced it →") — the id is the link target, not the label.
+                  const wf = lineageQ.data?.producedBy?.workflow ?? dataset.workflowName
+                  const rid = lineageQ.data?.producedBy?.runId || dataset.runId
+                  const step = dataset.stepName?.trim()
+                  const canOpen = Boolean(onOpenRun && rid)
+                  if (!wf && !rid) return null
+                  // Pin provenance to the exact step when known: "<workflow> · <step>".
+                  const wfLabel = wf ? (step ? `${fmt(wf)} · ${step}` : fmt(wf)) : t('dataset_obj.open_run')
+                  return (
+                    <>
+                      <Row
+                        k={t('dataset_obj.produced_by')}
+                        v={wfLabel}
+                        onClick={canOpen ? () => onOpenRun!(rid!) : undefined}
+                        testid="lineage-open-run"
+                      />
+                      {lineageQ.data?.producedBy?.status && (
+                        <Row k={t('dataset_obj.status')} v={fmt(lineageQ.data.producedBy.status)} />
+                      )}
+                    </>
+                  )
+                })()
               ) : null}
               <Row
                 k={t('dataset_obj.added')}
@@ -651,7 +658,7 @@ export function DatasetObject({
                     data-testid={`dataset-consumer-${c.runId}`}
                   >
                     <Badge variant="outline" className="text-xs">{t('dataset_obj.reads')}</Badge>
-                    <span className="font-mono truncate">{c.workflow ?? c.runId}</span>
+                    <span className="truncate">{c.workflow ?? t('dataset_obj.open_run')}</span>
                     {c.status && <Badge variant="outline" className="text-xs ml-auto">{c.status}</Badge>}
                   </div>
                 ))

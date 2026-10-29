@@ -166,7 +166,7 @@ export function ModelObject({
               <ShieldCheck className="h-3 w-3 mr-1" />Evidence
             </TabsTrigger>
             <TabsTrigger value="lineage" className="text-xs" data-testid="model-tab-lineage">
-              <GitBranch className="h-3 w-3 mr-1" />Lineage
+              <GitBranch className="h-3 w-3 mr-1" />Built from
             </TabsTrigger>
             <TabsTrigger value="used" className="text-xs" data-testid="model-tab-used">
               <Boxes className="h-3 w-3 mr-1" />Used by
