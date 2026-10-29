@@ -32,6 +32,21 @@ MAIN = """if [ $SMOKE -eq 0 ]; then
   python3.11 track_e/run_stage0.py controls /w/out/run --budget 1000 --seeds 0-4 > /w/out/controls.log 2>&1; echo "controls rc=$?" >> /w/out/controls.log
 else echo SMOKE_FAILED > /w/out/SMOKE_FAILED; fi
 """
+TUNE = """if [ $SMOKE -eq 0 ]; then
+  python3.11 track_e/run_stage0.py tune /w/out/run --budget 1000 --seeds 100-102 > /w/out/tune.log 2>&1; echo "tune rc=$?" >> /w/out/tune.log
+  python3.11 - <<'PY' > /w/out/tuned_write.log 2>&1
+import json, sys
+sys.path.insert(0, 'track_e'); sys.argv = ['x', 'tune', '/w/out/run']
+import run_stage0 as R
+t = R.best_cfgs('/w/out/run'); json.dump(t, open('/w/out/tuned.json', 'w'), indent=1); print('tuned written', {f: len(v) for f, v in t.items()})
+PY
+else echo SMOKE_FAILED > /w/out/SMOKE_FAILED; fi
+"""
+EVAL = """cp track_e/tuned.json /w/out/tuned_used.json
+python3.11 track_e/run_stage0.py eval /w/out/run --budget 1000 --seeds 0-9 --cfg track_e/tuned.json --groups __GROUPS__ > /w/out/eval.log 2>&1; echo "eval rc=$?" >> /w/out/eval.log
+python3.11 track_e/run_stage0.py controls /w/out/run --budget 1000 --seeds 0-4 --cfg track_e/tuned.json --groups __GROUPS__ > /w/out/controls.log 2>&1; echo "controls rc=$?" >> /w/out/controls.log
+SMOKE=0
+"""
 TAIL = """echo DONE > /w/out/done.flag
 aws s3 sync /w/out $P/out --only-show-errors
 kill $SYNC $BOOT
@@ -39,11 +54,16 @@ aws s3 cp /var/log/ud.log $P/boot.log --only-show-errors
 shutdown -h now
 """
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(); ap.add_argument("stage", choices=["prep", "main", "quality"]); ap.add_argument("out"); ap.add_argument("--run", default="r1"); ap.add_argument("--cap-min", type=int, default=240)
+    ap = argparse.ArgumentParser(); ap.add_argument("stage", choices=["prep", "main", "quality", "tune", "eval"]); ap.add_argument("out"); ap.add_argument("--run", default="r1"); ap.add_argument("--cap-min", type=int, default=240); ap.add_argument("--groups", default="v2")
     a = ap.parse_args()
     if a.stage == "quality":
         head = HEAD.split("python3.11 -m pytest")[0]
         s = head + QUAL + "SMOKE=0\n" + TAIL
+    elif a.stage == "tune":
+        s = HEAD + TUNE + TAIL
+    elif a.stage == "eval":
+        head = HEAD.split("python3.11 -m pytest")[0]
+        s = head + EVAL.replace("__GROUPS__", a.groups) + TAIL
     else:
         s = HEAD + (MAIN if a.stage == "main" else "") + TAIL
     s = s.replace("__B__", B).replace("__RUN__", a.run).replace("__STAGE__", a.stage).replace("__CAP__", str(a.cap_min))

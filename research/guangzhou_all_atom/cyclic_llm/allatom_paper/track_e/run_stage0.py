@@ -61,6 +61,8 @@ def one_run(job):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     t0 = time.time()
     train, stop, held = family_objs(fam)
+    if mode == "tune":
+        held = []                      # tuning never touches held-out verifiers (no peeking, no wasted physics calls)
     if mode == "controls":
         train = G["controls"][method.split("@")[1]]
         method = method.split("@")[0]
