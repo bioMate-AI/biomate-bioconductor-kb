@@ -4,6 +4,10 @@
 set -uo pipefail
 SCRATCH=${SCRATCH:-/opt/dlami/nvme}
 S3=s3://biomate-models-399683337364/biomate-core-local-trial/20260912
+export S3EVAL="$S3/eval"
+# tier.txt is packed into the tarball (extraction cwd) so each instance runs one tier; default both
+export TIER="$(cat tier.txt 2>/dev/null || echo both)"
+echo "[dose] TIER=$TIER"
 cd "$SCRATCH"
 echo "[dose] fetching dose data"
 aws s3 cp "$S3/dose_eval/hand.jsonl" hand.jsonl --quiet
@@ -13,11 +17,12 @@ python3 -m vllm.entrypoints.openai.api_server --model Qwen/Qwen3.5-9B --served-m
   --quantization fp8 --max-model-len 12288 --gpu-memory-utilization 0.95 --port 8000 --enforce-eager > vllm.log 2>&1 &
 for i in $(seq 1 120); do curl -s -m3 http://localhost:8000/health >/dev/null 2>&1 && break; sleep 10; done
 if ! curl -s -m5 http://localhost:8000/health >/dev/null 2>&1; then
-  echo "[dose] VLLM_FAILED"; tail -40 vllm.log; aws s3 cp vllm.log "$S3/eval/dose_onprem_vllm.log" --quiet; exit 1
+  echo "[dose] VLLM_FAILED"; tail -40 vllm.log; aws s3 cp vllm.log "$S3/eval/dose_onprem_${TIER}_vllm.log" --quiet; exit 1
 fi
 echo "[dose] vLLM ready; running eval"
 python3 - <<'PY'
-import json, re, urllib.request
+import json, re, urllib.request, os
+S3 = os.environ["S3EVAL"]; TIER_SEL = os.environ.get("TIER", "both")
 INSTR = ("You are selecting the maximum tolerated dose (MTD) for a Phase-I trial. You are given PK and "
  "exposure-response (Emax) inputs and a dose grid. Model the probability of dose-limiting toxicity (DLT) at "
  "EACH dose level from the inputs, then select the MTD as the dose whose modeled DLT probability is closest to "
@@ -60,17 +65,20 @@ def ask(text):
                 except Exception: pass
         except Exception: pass
     return {}
-out = {}
-for tier, fn in [("hand", "hand.jsonl"), ("generated", "generated.jsonl")]:
+ALL = [("hand", "hand.jsonl"), ("generated", "generated.jsonl")]
+TIERS = ALL if TIER_SEL == "both" else [t for t in ALL if t[0] == TIER_SEL]
+for tier, fn in TIERS:
     rows = [json.loads(l) for l in open(fn)]; O = S = F = 0; n = 0; emp = 0; rec = []
     for r in rows:
         p = ask(prompt(r)); o, s, f = score_item(r, p); O += o; S += s; F += f; n += 1
         if not p.get("per_dose_dlt"): emp += 1
         rec.append({"id": r["id"], "outcome": o, "fidelity": round(f, 2), "empty": not bool(p.get("per_dose_dlt"))})
-    out[tier] = {"model": "Qwen/Qwen3.5-9B (local vLLM, fp8 on 24GB L4)", "n": n, "outcome": round(O/n, 3),
-                 "safety": round(S/n, 3), "fidelity": round(F/n, 3), "empties": emp, "per_item": rec}
-    print(tier, "outcome", out[tier]["outcome"], "fidelity", out[tier]["fidelity"], "empties", emp, flush=True)
-json.dump(out, open("dose_onprem_result.json", "w"), indent=2)
+    res = {"model": "Qwen/Qwen3.5-9B (local vLLM, fp8 on 24GB L4)", "n": n, "outcome": round(O/n, 3),
+           "safety": round(S/n, 3), "fidelity": round(F/n, 3), "empties": emp, "per_item": rec}
+    # checkpoint this tier to S3 immediately so a worker-cap kill never loses a finished tier
+    fp = f"dose_onprem_{tier}.json"; json.dump(res, open(fp, "w"), indent=2)
+    os.system(f'aws s3 cp {fp} {S3}/{fp} --quiet')
+    print(tier, "outcome", res["outcome"], "fidelity", res["fidelity"], "empties", emp, "UPLOADED", flush=True)
 PY
-aws s3 cp dose_onprem_result.json "$S3/eval/dose_onprem_result.json" --quiet && echo "DOSE_ONPREM_DONE"
-aws s3 cp vllm.log "$S3/eval/dose_onprem_vllm.log" --quiet
+aws s3 cp vllm.log "$S3/eval/dose_onprem_${TIER}_vllm.log" --quiet
+echo "DOSE_ONPREM_DONE"
