@@ -9,7 +9,7 @@ Empty cells in the manuscript are shown as "—". Owner names are workstreams (E
 | id | manuscript item | fills from | owner |
 |---|---|---|---|
 | R1 | Table 7 (baselines, MDE, pass probability) | `track_e/results/` (tuned.json, eval files) and the baseline amendment in `docs/20261031_ALLATOM_TRACK_E_PREREG.md` | E |
-| R2 | Section 5.1 per-source verifier values; physics held-out replacement outcome | `track_e/verifier_quality_v2.json`, result of the post hoc replacement test (A3, `track_e/bw_eval.py`) | E |
+| R2 | Section 5.2 per-source verifier values (replacement outcome is filled: VOID) | `track_e/verifier_quality_v2.json`, `track_e/bw_eval_v2B.json` | E |
 | R3 | Table 5 (golden set, agreement, overhead, masked sampling, 200-step fine-tune) and backbone content (N-methyl, D, macrocycle) | `allatom_paper/rules/` results | U1 |
 | R4 | Table 6 (fine-tuning corpus composition and counts) | corpus decision document | U1 |
 | R5 | Section 3.4.3 smoke on the 1-billion-parameter model | `allatom_paper/feedback/results/smoke_v3.json` | U2/U3 |
@@ -33,7 +33,7 @@ EvalStop (arXiv:2606.04145; abstract-level extract only) removed; the PeptideCLM
 ## 3. Open items
 
 1. Patent stage (K4): pilot not run; counts omitted. The abstract and Section 3.3 describe the stage as part of the construction pipeline.
-2. Physics held-out verifier: below its floor (-0.0083). A time-boxed replacement test was specified (A3). If it fails, family F1 has no admissible held-out verifier and the stage-1 gate is INCONCLUSIVE by design (Section 4.7 states the rule).
+2. Physics held-out verifier: below its floor (-0.0083). The one registered replacement test (Boltzmann-weighted polar SASA, A3) was VOID (528 of 1,116 B peptides, 5 of 9 sources; result file `track_e/bw_eval_v2B.json`, commit `8776ef02f`), so family F1 has no admissible held-out verifier and the stage-1 gate is INCONCLUSIVE by design; manuscript Sections 4.2, 4.7, 5.2 (Table 4) and 7 state this. No further replacement is allowed by the registration.
 3. Held-out permeability verifier ranks its largest laboratory essentially not at all (n-weighted -0.0046); the pass-probability table includes lambda_H in {0.229, 0.10, 0}.
 4. REINVENT-style RL and language-model-as-operator baselines need the generator interface.
 5. Gold-set statements were written by an AI assistant from opened sources and have not been independently judged against their quotations.
@@ -62,3 +62,8 @@ Generation pilot about USD 6.8 against a USD 4 cap (idle-instance overrun about 
 1. Commit `9fbac3e71`: 48 entries (38 T1, 10 T2; 19 sources; 21 weight-eligible).
 2. Commit `21680221b`: 107 entries (65 T1, 31 T2, 11 internal; SHA-256 `b6c8988545bc…`); an earlier manuscript revision quoted 65 and 31.
 3. Commit `7ecf14af2` (tier audit): 13 tier changes by one provenance rule, giving T1 60, T2 36, internal 11; total 107, all quotations verified, weight-eligible unchanged at 32 (14 T1, 18 T2); SHA-256 `29368807246824222aa8ea860ff69adce1393ef9976a5c8fbb6091c5d0fe6951`; direction check unchanged (17 agree, 7 mixed, 0 disagree, 83 not testable). Tier rule: T1 = the quoted statement reports a result or method from the source's own experiment, simulation or data analysis; T2 = a review's summary of others' work, a restatement of a result cited to another paper, a textbook rule, authors' background or a project goal; default T2 when the stored text cannot show that the number is the source's own.
+
+## 9. Log of manuscript updates
+
+- Replacement test for the physics held-out verifier recorded as VOID (528 of 1,116 peptides, 5 of 9 sources; descriptive Spearman 0.2245, cluster interval 0.163 to 0.418, selection-biased, not a pass); consequences stated in Sections 4.2, 4.7, 5.2 and 7. The 4D-descriptor reference values (0.200, 0.211, 0.016 on 440 peptides) are in the amendment text and were not added to the manuscript.
+- Baseline tuning bug: buggy tuning files were deleted before any baseline number was read, and the edit-operator and SELFIES genetic algorithms have a stall guard; this does not affect any result, so nothing was added to the baselines paragraph.

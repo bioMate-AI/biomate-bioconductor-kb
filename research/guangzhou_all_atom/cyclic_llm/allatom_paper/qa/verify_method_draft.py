@@ -98,6 +98,15 @@ chk("value", "train verifier on S and B sources", f(vq["cross"]["train_A_on_B"][
 fm = vq["floor_met"]
 chk("value", "floor verdicts (stop yes, F2 held-out yes, physics no)", fm["stop_S_perm"] is True and fm["heldout_B_perm"] is True and fm["heldout_physics"] is False, "yes (mean-based)")
 
+bw = jl(os.path.join(AP, "track_e", "bw_eval_v2B.json"))
+te_ = rd(os.path.join(DOCS, "20261031_ALLATOM_TRACK_E_PREREG.md"))
+chk("value", "replacement test: 528 of 1,116 completed, 5 sources, 588 failed, VOID", bw["n_ok"] == 528 and bw["n_written"] == 1116 and bw["n_failed"] == 588 and bw["n_sources"] == 5 and bw["verdict"] == "VOID" and bw["evaluable"] is False,
+    "528 of the 1,116 group-B peptides", "588 failed", "5 of the 9 sources", "VOID")
+chk("value", "replacement test descriptive Spearman 0.225 and cluster interval 0.163 to 0.418", f(bw["spearman_bw"]) == "0.225" and [f(x) for x in bw["ci95_cluster_boot"]] == ["0.163", "0.418"], "0.225 (95% source-cluster bootstrap 0.163 to 0.418)", "0.225")
+chk("text", "replacement test rule: >= 600 peptides, >= 7 of 9 sources, pass >= +0.10 with lower bound > 0, 60 conformers, 298.15 K, 120 s", all(x_ in te_ for x_ in (">= 600 peptides covering >= 7 of the 9", "PASS = point estimate >= +0.10", "60 ETKDGv3 conformers", "298.15 K", "120 s")),
+    "at least 600 peptides covering at least 7 of the 9 sources", "60 ETKDG conformers", "298.15 K", "120 s", "at least +0.10")
+chk("text", "failures systematic: median 67 heavy atoms vs 51; no peptide completed for four sources; consequence INCONCLUSIVE by design", all(x_ in te_ for x_ in ("median 67 heavy atoms vs 51", "2024_Faris 0/207", "INCONCLUSIVE-by-design")), "median 67 heavy atoms against 51", "no peptide completed for four sources", "INCONCLUSIVE by design")
+
 # ---------------------------------------------------------------- pilot (generation) aggregate
 ag = jl(os.path.join(CL, "generation_pilot", "results_test", "aggregate_pilot3.json"))
 rows = {"S-LIB": ("704.6", "681.8", "727.4", "1.000", 5), "S-EDIT": ("414.2", "396.4", "432.0", "1.000", 5), "L-CHEMFM": ("294.3", "281.8", "306.8", "0.980", 3),

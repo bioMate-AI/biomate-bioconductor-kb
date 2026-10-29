@@ -11,6 +11,10 @@ PASS  [value] held-out F2 LOSO mean and n-weighted
 PASS  [value] physics held-out Spearman and n
 PASS  [value] train verifier on S and B sources
 PASS  [value] floor verdicts (stop yes, F2 held-out yes, physics no)
+PASS  [value] replacement test: 528 of 1,116 completed, 5 sources, 588 failed, VOID
+PASS  [value] replacement test descriptive Spearman 0.225 and cluster interval 0.163 to 0.418
+PASS  [text] replacement test rule: >= 600 peptides, >= 7 of 9 sources, pass >= +0.10 with lower bound > 0, 60 conformers, 298.15 K, 120 s
+PASS  [text] failures systematic: median 67 heavy atoms vs 51; no peptide completed for four sources; consequence INCONCLUSIVE by design
 PASS  [value] pilot S-LIB: Y, t-interval, validity, seeds
 PASS  [value] pilot S-EDIT: Y, t-interval, validity, seeds
 PASS  [value] pilot L-CHEMFM: Y, t-interval, validity, seeds
@@ -96,12 +100,12 @@ PASS  [struct] hygiene: no registry  (0 hit(s))
 PASS  [struct] hygiene: no TODO/TBD  (0 hit(s))
 PASS  [struct] hygiene: no pending narration  (0 hit(s))
 PASS  [struct] hygiene: no priority claim  (0 hit(s))
-PASS  [struct] cross-references resolve (34 section references)  ([])
+PASS  [struct] cross-references resolve (36 section references)  ([])
 PASS  [struct] every referenced table is defined  (referenced ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'] defined ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'])
 PASS  [struct] every defined table is referenced in the text  (unreferenced [])
 PASS  [struct] Figure 1 defined and referenced
-PASS  [struct] unmeasured results are shown as — in tables, not narrated  (143 empty cells)
+PASS  [struct] unmeasured results are shown as — in tables, not narrated  (145 empty cells)
 PASS  [struct] section numbering sequential 1..8  (['1', '2', '3', '4', '5', '6', '7', '8'])
 
-104 checks; failed: 0; value checks 55, text checks 30, struct checks 19
-numeric tokens in Sections 3-5 not covered by any check: 181  ({'design constant, hyperparameter or document-derived number': 95, 'small count or ordinal in prose': 58, 'value from a document or design constant (not machine-readable)': 28})
+108 checks; failed: 0; value checks 57, text checks 32, struct checks 19
+numeric tokens in Sections 3-5 not covered by any check: 192  ({'design constant, hyperparameter or document-derived number': 98, 'small count or ordinal in prose': 65, 'value from a document or design constant (not machine-readable)': 29})
