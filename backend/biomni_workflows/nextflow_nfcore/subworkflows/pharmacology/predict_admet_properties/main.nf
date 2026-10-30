@@ -31,7 +31,7 @@ process ADMET_INFER_SHARD {
     tag "$meta.id"
     label 'process_medium'
 
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest'
+    container (System.getenv('NEXTFLOW_USE_AWS') == 'true' || System.getenv('S3_ENDPOINT_URL')) ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest'
 
     input:
     tuple val(meta), val(smiles_json)
@@ -95,7 +95,8 @@ process PREDICT_ADMET_PROPERTIES {
 
     // biomni-admet: dedicated ADMET container (admet-ai/Chemprop, mordred, PyTDC)
     // Starts from biomate-nextflow-base directly — lean, not biomni-tools
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest'
+    // On-prem (S3_ENDPOINT_URL set = MinIO) and AWS both use ECR image; pure local dev uses Docker Hub.
+    container (System.getenv('NEXTFLOW_USE_AWS') == 'true' || System.getenv('S3_ENDPOINT_URL')) ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest'
 
     input:
     path shard_admets
