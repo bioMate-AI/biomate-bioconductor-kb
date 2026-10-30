@@ -18,3 +18,4 @@ jobs:
       image_repo: biomate/biomni-tools
       dockerfile: backend/docker/biomni-tools/Dockerfile
       smoke_script: backend/docker/biomni-tools/smoke.py
+      build_arm64: true

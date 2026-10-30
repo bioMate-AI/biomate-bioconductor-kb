@@ -26,7 +26,10 @@
 
 # All BioMate Nextflow/Batch containers MUST start from this base so that
 # nxf_s3_upload / nxf_s3_download shell functions have 'aws' on PATH.
-FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+ARG BASE_TAG=latest
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:${BASE_TAG}
+
+ARG TARGETARCH=amd64
 
 LABEL maintainer="BioMate Team"
 LABEL description="biomni-tools: ViennaRNA, AutoDock Vina, RDKit, Biopython, openbabel + pharmacology (statsmodels, scikit-image, DeepPurpose)"
@@ -47,6 +50,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     swig \
     && rm -rf /var/lib/apt/lists/*
+
+# arm64: vina 1.2.7 has no aarch64 PyPI wheel and builds from source;
+# its setup.py requires Boost headers and a C++ compiler (g++).
+# amd64 pulls a pre-built vina wheel so neither is needed there.
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        libboost-all-dev \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 # ── Layer 2: Domain-specific Python packages ───────────────────────────────
 # numpy/scipy/pandas/biopython/rdkit are already in biomate-nextflow-base.

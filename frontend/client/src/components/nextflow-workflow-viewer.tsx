@@ -1118,7 +1118,8 @@ export function NextflowWorkflowViewer({
   });
   // Layer-2 AI diagnosis (emitted when no auto-reroute alternative is available)
   const [aiDiagnosis, setAiDiagnosis] = useState<{
-    category: string; user_message: string; suggested_action: string; fix_strategy: string; is_transient: boolean;
+    category: string; user_message: string; suggested_action: string; fix_strategy: string;
+    is_transient: boolean; task_error_snippet?: string;
   } | null>(null);
   // Per-phase auto-loop toggle: true = enabled (default), false = user suppressed
   const [autoloopMap, setAutoloopMap] = useState<Record<string, boolean>>({});
@@ -1578,7 +1579,8 @@ export function NextflowWorkflowViewer({
   // agnostic (reconstructs -w <prev_work_dir> from the run id), so a failed
   // run reuses its cached completed steps and only re-runs the failed one.
   const _failure = (nextflowStatus as any)?.failure as
-    { user_message?: string; is_transient?: boolean; suggested_action?: string } | undefined;
+    { user_message?: string; is_transient?: boolean; suggested_action?: string;
+      category?: string; task_error_snippet?: string } | undefined;
   // Allow resume whenever status=failed + there's a runId to resume from.
   // We don't gate on _failure being present: Galaxy may not have classified the
   // failure yet (e.g. on older containers), but the user should still be able to retry.
@@ -2211,6 +2213,7 @@ export function NextflowWorkflowViewer({
           suggested_action: data.suggested_action ?? "resume",
           fix_strategy: data.fix_strategy ?? "not_fixable",
           is_transient: data.is_transient ?? false,
+          task_error_snippet: data.task_error_snippet ?? "",
         });
       } catch (err) {
         console.error("[ai_diagnosis] parse error:", err);
@@ -2639,44 +2642,67 @@ export function NextflowWorkflowViewer({
       {/* ── After-run tab content (v2 AfterRunReport, embedded inline) ──────── */}
       {activeTab === 'after-run' && (
         <div className="panel-body" data-testid="panel-after-run">
-          {/* AI diagnosis card — derives from nextflowStatus.failure (API-backed, survives refresh) */}
-          {_failure?.user_message && status === 'failed' && (
-            <div style={{
-              margin: '12px 16px 0',
-              padding: '12px 14px',
-              background: 'oklch(0.97 0.01 40)',
-              border: '1px solid oklch(0.88 0.04 40)',
-              borderRadius: 8,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 16 }}>🔍</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'oklch(0.38 0.02 40)' }}>
-                  AI Diagnosis
-                </span>
+          {/* AI diagnosis card — merges real-time SSE (aiDiagnosis) with API-backed failure (survives refresh) */}
+          {(() => {
+            // Prefer SSE-pushed diagnosis (has task_error_snippet); fall back to API-polled failure.
+            const diag = aiDiagnosis ?? (_failure?.user_message ? _failure : null);
+            const snippet = (aiDiagnosis?.task_error_snippet ?? _failure?.task_error_snippet ?? "").trim();
+            if (!diag?.user_message || status !== 'failed') return null;
+            const isArchCompat = (diag as any).category === 'arch_compat' || _failure?.category === 'arch_compat';
+            return (
+              <div style={{
+                margin: '12px 16px 0',
+                padding: '12px 14px',
+                background: isArchCompat ? 'oklch(0.97 0.01 280)' : 'oklch(0.97 0.01 40)',
+                border: `1px solid ${isArchCompat ? 'oklch(0.82 0.06 280)' : 'oklch(0.88 0.04 40)'}`,
+                borderRadius: 8,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 16 }}>{isArchCompat ? '⚙️' : '🔍'}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'oklch(0.38 0.02 40)' }}>
+                    AI Diagnosis
+                  </span>
+                </div>
+                <p style={{ fontSize: 13, color: 'oklch(0.42 0.015 260)', margin: 0, lineHeight: 1.5 }}>
+                  {diag.user_message}
+                </p>
+                {diag.suggested_action === 'resume' && (
+                  <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
+                    💡 This failure looks transient — use <strong>Resume from last step</strong> below.
+                  </p>
+                )}
+                {diag.suggested_action === 'fix_and_resume' && (
+                  <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
+                    💡 Adjust your parameters or input files, then use <strong>Run again with edits</strong>.
+                  </p>
+                )}
+                {diag.suggested_action === 'check_input' && (
+                  <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
+                    💡 Check your input files for format issues, then retry.
+                  </p>
+                )}
+                {snippet && (
+                  <details style={{ marginTop: 4 }}>
+                    <summary style={{ fontSize: 12, color: 'oklch(0.5 0.01 260)', cursor: 'pointer', userSelect: 'none' }}>
+                      Error details
+                    </summary>
+                    <pre style={{
+                      marginTop: 6, padding: '8px 10px',
+                      background: 'oklch(0.13 0.01 260)', color: 'oklch(0.85 0.01 260)',
+                      borderRadius: 6, fontSize: 11, lineHeight: 1.5,
+                      overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                      maxHeight: 200, overflowY: 'auto',
+                    }}>
+                      {snippet}
+                    </pre>
+                  </details>
+                )}
               </div>
-              <p style={{ fontSize: 13, color: 'oklch(0.42 0.015 260)', margin: 0, lineHeight: 1.5 }}>
-                {_failure.user_message}
-              </p>
-              {_failure.suggested_action === 'resume' && (
-                <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
-                  💡 This failure looks transient — use <strong>Resume from last step</strong> below.
-                </p>
-              )}
-              {_failure.suggested_action === 'fix_and_resume' && (
-                <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
-                  💡 Adjust your parameters or input files, then use <strong>Run again with edits</strong>.
-                </p>
-              )}
-              {_failure.suggested_action === 'check_input' && (
-                <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
-                  💡 Check your input files for format issues, then retry.
-                </p>
-              )}
-            </div>
-          )}
+            );
+          })()}
           <AfterRunReport
             runId={runId || invocationId || ''}
             invocationId={invocationId}

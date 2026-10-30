@@ -805,8 +805,11 @@ workflow PREDICT_ADMET_PROPERTIES_WORKFLOW {
     // Shard the compound list; the expensive ADMET-AI inference fans out across
     // parallel Batch jobs (one per shard). N <= admet_shard_size => one shard =>
     // identical to the previous single-job behavior.
+    def _smilesRaw = (params.smiles_list ?: '[]').toString().trim()
     def parsed = (params.smiles_list instanceof List) ? params.smiles_list
-        : new groovy.json.JsonSlurper().parseText((params.smiles_list ?: '[]').toString())
+        : (_smilesRaw.startsWith('[')
+            ? new groovy.json.JsonSlurper().parseText(_smilesRaw)
+            : _smilesRaw.tokenize(',').collect { it.trim() }.findAll { it })
     def shard_size = (params.admet_shard_size ?: 25) as int
     def shard_tuples = []
     parsed.collate(shard_size).eachWithIndex { chunk, i ->

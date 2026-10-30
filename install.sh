@@ -422,6 +422,29 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 4c. 多架构容器支持（ARM64 宿主机）
+# ─────────────────────────────────────────────────────────────────────────────
+# All BioMate service images (galaxy-backend, frontend, minio) publish multi-arch
+# manifests (amd64 + arm64) to GHCR. Docker auto-selects the ARM64 variant on
+# Graviton2/3 hosts — no QEMU and no platform override are needed.
+#
+# Workflow task images (biomni-admet, biomni-tools, etc.) also publish ARM64
+# variants. The Nextflow executor runs natively on ARM64 with the host JDK,
+# giving normal startup times instead of the 40-60 min QEMU overhead.
+if [[ "$HOST_ARCH_NORM" != "amd64" ]]; then
+  info "ARM64 宿主机 (${HOST_ARCH}) — 使用原生 ARM64 镜像，无需 QEMU"
+  ok "docker-compose.onprem.yml 已移除 platform: linux/amd64 限制，Docker 自动选择 ARM64"
+
+  # Optional: install QEMU binfmt as fallback for any amd64-only workflow images
+  # that have not yet been rebuilt for arm64 (e.g. niche tools). Safe to skip.
+  if docker run --rm --privileged tonistiigi/binfmt --install amd64 >/dev/null 2>&1; then
+    ok "amd64 QEMU binfmt 已安装 (兼容性备用，非必需)"
+  else
+    info "amd64 QEMU binfmt 安装跳过 — 所有常用镜像已有 ARM64 版本"
+  fi
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 5. 启动服务
 # ─────────────────────────────────────────────────────────────────────────────
 step "启动服务 / Starting services"

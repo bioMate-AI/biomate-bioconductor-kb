@@ -2258,6 +2258,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             onOpenWorkflowInPanel={handleOpenWorkflowInPanel}
             panelWorkflowMessageId={panelWorkflowMessageId}
             isPanelOpen={panelOpen}
+            currentPanelWorkflow={panelWorkflow}
             onSubmitWithFiles={() => { pendingPanelFromFiles.current = true }}
             onStreamingChange={(streaming) => {
               setPanelGenerating(streaming)

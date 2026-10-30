@@ -11,7 +11,7 @@
 #     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/virtual-patient-cohort-nf:1.0 \
 #     --push -f backend/docker/virtual-patient-cohort-nf/Dockerfile .
 
-FROM --platform=linux/amd64 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+FROM --platform=linux/amd64 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:latest
 
 LABEL maintainer="BioMate Team"
 LABEL description="virtual-patient-cohort-nf: virtual patient PK/PD cohort generator (Monte Carlo + statsmodels)"

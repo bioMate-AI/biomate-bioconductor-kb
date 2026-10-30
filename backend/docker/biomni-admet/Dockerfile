@@ -18,16 +18,24 @@
 # NOT included (those live in biomni-tools):
 #   ViennaRNA, AutoDock Vina, Meeko, openbabel, codon-tools, seaborn, plotly
 #
-# Build (x86 for AWS Batch):
-#   docker buildx build --platform linux/amd64 \
+# Build (amd64 for AWS Batch):
+#   docker build --platform linux/amd64 \
 #     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86 \
-#     --push -f backend/docker/biomni-admet/Dockerfile .
+#     -f backend/docker/biomni-admet/Dockerfile .
 #
-# Local:
-#   docker build -t biomate/biomni-admet:latest \
+# Build (arm64 for Graviton on-prem — requires biomate/nextflow-base:arm64 in ECR):
+#   docker build --platform linux/arm64 \
+#     --build-arg TARGETARCH=arm64 --build-arg BASE_TAG=arm64 \
+#     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:arm64 \
 #     -f backend/docker/biomni-admet/Dockerfile .
 
-FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+# BASE_TAG selects the arch-specific nextflow-base image.
+# amd64 builds use :latest (= :x86); arm64 CI passes BASE_TAG=arm64.
+ARG BASE_TAG=latest
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:${BASE_TAG}
+
+# TARGETARCH controls arch-specific install paths (e.g. torch wheel index).
+ARG TARGETARCH=amd64
 
 LABEL maintainer="BioMate Team"
 LABEL version="1.0.0"
@@ -39,10 +47,13 @@ ENV PYTHONUNBUFFERED=1
 # ── System deps needed by admet-ai / mordred ───────────────────────────────
 # libgomp1: OpenMP required by Chemprop's C extensions
 # libxrender1 + libxext6: RDKit 2D rendering (already in base but be explicit)
+# git: needed by PyTDC/mordred setup.py when building from source on arm64
+#      (no pre-built arm64 wheel for some pinned versions)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     libxrender1 \
     libxext6 \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Reproducible dependency lock ───────────────────────────────────────────
@@ -57,24 +68,50 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # (ADMETModel.predict) gate the change; then regenerate the lock from the new freeze.
 COPY backend/docker/biomni-admet/requirements.lock /tmp/biomni-admet.lock
 
-# CPU-only PyTorch (CPU wheel ~250 MB vs CUDA ~2 GB; ADMET is small-batch inference).
-# torch==2.3.1+cpu comes from the lock; the CPU index supplies the +cpu build.
-RUN pip install --no-cache-dir -c /tmp/biomni-admet.lock \
-    torch --index-url https://download.pytorch.org/whl/cpu
+# On arm64: strip the "+cpu" local-version suffix from the torch constraint line.
+# That suffix only exists in the amd64-specific download.pytorch.org/whl/cpu index;
+# standard PyPI carries plain torch==2.3.1 wheels for aarch64.  Leaving +cpu in the
+# constraint causes a ResolutionImpossible when pip resolves PyTDC→accelerate→torch
+# and finds the installed plain 2.3.1 doesn't satisfy the ==2.3.1+cpu pin.
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      sed -i 's/torch==\([0-9.]*\)+cpu/torch==\1/' /tmp/biomni-admet.lock; \
+    fi
+
+# CPU-only PyTorch (~250 MB vs CUDA ~2 GB; ADMET is small-batch inference).
+# amd64: the +cpu wheel index carries torch==2.3.1+cpu (matches the lock pin).
+# arm64: standard PyPI has aarch64 CPU wheels as plain torch==2.3.1 (no +cpu suffix).
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      pip install --no-cache-dir -c /tmp/biomni-admet.lock torch; \
+    else \
+      pip install --no-cache-dir -c /tmp/biomni-admet.lock \
+        torch --index-url https://download.pytorch.org/whl/cpu; \
+    fi
 
 # Everything else — versions come from the lock (numpy 1.26.4, chemprop 1.6.1,
 # descriptastorus 2.8.0, admet-ai 1.3.1, mordred, PyTDC, sklearn, matplotlib,
 # chembl client + all transitive deps).
-RUN pip install --no-cache-dir -c /tmp/biomni-admet.lock \
-    numpy scikit-learn matplotlib mordred PyTDC chembl_webresource_client descriptastorus
+#
+# PyTDC arm64 note: PyTDC>=1.0 pulls in tiledbsoma→tiledb (a C++ extension with no
+# arm64 pre-built wheel on PyPI; source-building it fails).  tiledb is only used by
+# PyTDC's single-cell data path, which BioMate doesn't use — ADMET predictions come
+# from admet-ai, not TDC.  On arm64 install PyTDC --no-deps and add only the deps
+# that BioMate's ADMET path actually needs (omitting tiledb/tiledbsoma/anndata).
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      pip install --no-cache-dir -c /tmp/biomni-admet.lock \
+        numpy scikit-learn matplotlib mordred chembl_webresource_client descriptastorus && \
+      pip install --no-cache-dir --no-deps -c /tmp/biomni-admet.lock PyTDC; \
+    else \
+      pip install --no-cache-dir -c /tmp/biomni-admet.lock \
+        numpy scikit-learn matplotlib mordred PyTDC chembl_webresource_client descriptastorus; \
+    fi
 
 RUN pip install --no-cache-dir -c /tmp/biomni-admet.lock \
     chemprop admet-ai
 
-# ── Package verification (pip show only — no import/execution) ───────────────
-# C extensions (RDKit, mordred, PyTorch/Chemprop) segfault under QEMU x86_64
-# emulation used by buildx cross-compilation. Verify via pip metadata only;
-# all imports and inference are tested when the container runs on real hardware.
+# ── Package verification ──────────────────────────────────────────────────────
+# CI builds use native runners (amd64 on ubuntu-latest, arm64 on ubuntu-24.04-arm),
+# so the full smoke test (ADMETModel.predict) runs natively inside the built image.
+# No QEMU, no C-extension segfaults during build or smoke.
 RUN pip show admet-ai mordred PyTDC chembl_webresource_client scikit-learn | \
     grep -E "^Name:|^Version:" && \
     aws --version && \
