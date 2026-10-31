@@ -285,3 +285,22 @@ hash-verified versions on the same holdout:
   - Study-report upload keeps species and GLP status as stated, and prediction-only text is rejected.
   - Run `python3 scripts/test_sysucc_usecases.py --live` against the exact
     deployed build.
+
+## Dev deployment and live verification (2026-10-30 evening)
+
+- Committed as `400aeffb7` with only the files listed above, plus the SYSUCC docs and use-case runner.
+- Unrelated uncommitted work was set aside for the sync and restored afterwards, unchanged. That work is the private-skills access change: `routes.ts`, `auth-middleware.ts`, `galaxy-assistant.ts`, `scientific-chat-tools*.ts`, `skill-access*.ts`, `optional-auth-mfa-boundary.test.ts`, `skill_manager.py`, `skill_loader.py` and `ai_assistant.py`, plus three untracked `target_id/bench_*.py` scripts. None of it was deployed.
+- Pre-sync checks on the exact deploy state passed. `tsc` was clean, and `vitest` passed 1,986 tests with 0 failures. An AST scan of the changed Python files found no Python 3.9-incompatible annotations.
+- `scripts/sync_to_dev.sh` deployed `b6ca37fc → 400aeffb`:
+  - The frontend container was rebuilt, and the public build was verified as `400aeffb7`.
+  - The backend Python was hot-patched, gunicorn restarted, and Galaxy came back healthy.
+  - The database was already identical on dev, so it was not transferred.
+  - Post-sync smoke tests (workflow generation, DB-search routing, connector contract) passed. Result: healthy.
+- Live use-case suite against dev: **31 passed, 1 failed**, up from 19 passed and 13 failed on 2026-10-29. Report: `/tmp/sysucc_live_after_sync.json`.
+  - `live_comparison_artifact` now **passes**: `candidate_comparison.csv` is written (93 bytes, correct rows, B selected).
+  - `live_r_pknca_numerical_result` is still failing as expected. PKNCA is not installed in the generic R code-runner. The indexed PKNCA workflow runs in its own container and remains untested on dev.
+- Not yet verified on dev:
+  - the authenticated model-versioning journey (train v1 and v2, restart the container, confirm the exact active artifact reloads with hash verification, then compare, promote and roll back);
+  - the campaign retrain through the public API.
+
+  Both need the shared fixture credential (`E2E_FIXTURE_PASSWORD`), which is unset.
