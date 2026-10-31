@@ -3,6 +3,48 @@
 Date: 2026-10-30
 Scope: Benchling's official integration options, checked against Benchling's developer documentation on 2026-10-30, and a code review of BioMate's existing Benchling connectors. No Benchling tenant was available, so nothing was tested against a live Benchling API.
 
+## Update: MCP is the fastest path (added after checking Benchling's AI Connector docs)
+
+Benchling AI (Chat and Deep Research) accepts **external MCP servers as "AI Connectors"**. BioMate already runs a compatible remote MCP server, so customers can connect to us **without any new integration code**.
+
+**How a Benchling customer connects to BioMate today (custom AI Connector):**
+1. Prerequisites: the tenant has Benchling **Chat or Deep Research** enabled. No additional Benchling licence is required.
+2. The tenant admin goes to **Tenant Admin Console → Settings → AI Connectors → Add AI Connector**:
+   - Name: `BioMate`
+   - Server: `https://<biomate-host>/mcp` (dev: `https://dev-public.biomate.ai/mcp`)
+   - Type: **HTTP** (Streamable HTTP; the default)
+   - OAuth: dynamic discovery / dynamic client registration. Manual OAuth registration with client ID and secret is the fallback.
+   - Then choose which BioMate tools users may use.
+3. Each user goes to **AI → Settings → AI Connectors → Connect BioMate**, signs in to BioMate (OAuth), and picks tools.
+4. Benchling Chat and Deep Research then call BioMate tools when a prompt needs them. Examples: search workflows, run a workflow, watch a run, analyze results, search literature, query databases, export a report.
+
+**Our server already provides what Benchling needs** (verified live on dev, 2026-10-30):
+- `POST /mcp` returns `401` with `WWW-Authenticate: Bearer resource_metadata=".../.well-known/oauth-protected-resource"`.
+- RFC 9728 protected-resource metadata and RFC 8414 authorization-server metadata are both served.
+- **Dynamic client registration** at `/oauth/register`; authorization code + PKCE (S256); refresh tokens; scopes `workflows:search`, `runs:read/write`, `files:upload`, `reports:export`, `memory:read/write`, `billing:read`.
+- 24 tools (`biomate-connector/mcp/tools_manifest.json`), the same server used by the claude.ai, Claude Desktop, Cursor and ChatGPT connectors.
+
+**To verify with a real Benchling tenant** (untested; we have no tenant):
+- **Client authentication:** our metadata advertises `token_endpoint_auth_methods_supported: ["none"]` (public client + PKCE). If Benchling registers as a *confidential* client (`client_secret_basic` or `client_secret_post`), the registration or token request may fail. Support confidential clients if needed.
+- **Redirect URI:** Benchling's callback is `https://<tenant>.benchling.com/1/api/llm/mcp/oauth/callback`. Our dynamic registration accepts any https redirect URI, so it should work; confirm it isn't blocked by an allowlist in production.
+- **`resource` parameter:** Benchling may send RFC 8707 `resource` (it offers a "Suppress resource parameter" override). Confirm our authorize and token endpoints accept or ignore it.
+- **Tool descriptions:** Benchling's agent picks tools from their descriptions. Check that the descriptions route scientific prompts well, and decide which tools to enable by default; for example, keep `run_instrument_protocol` off.
+- **Data flow:** Benchling's cloud calls our server, so the customer's prompts and any data passed to tools reach BioMate's cloud. This needs the customer's agreement and a data-processing agreement. It does **not** suit on-premises or air-gapped BioMate deployments, such as SYSUCC, because Benchling must reach a public HTTPS endpoint.
+
+**Getting listed in Benchling's built-in MCP Directory** (one-click install for every customer) requires Benchling's partnership team. Contact integrations@benchling.com or use https://www.benchling.com/partnerships. Directory entries currently include Notion, Snowflake, GitHub, SharePoint and PubMed.
+
+**The other direction: BioMate reading Benchling via Benchling's own MCP server.**
+- URL: `https://<tenant>.mcp.benchling.com/mcp`.
+- Auth: OAuth 2.1 with delegated authentication. Dynamic client registration is officially supported; API keys are not.
+- Redirect URI: `https://<tenant>.benchling.com/1/api/llm/mcp/oauth/callback` is Benchling's callback when *Benchling* is the client. As a client, BioMate registers its own redirect URI.
+- Requirements: the tenant has Benchling Chat and Benchling MCP enabled (Admin → Settings → AI Settings), plus V3 APIs. It is not available on Benchling for Academics; Validated Cloud needs Benchling's help.
+
+This suits **conversational** access ("summarize the hERG results for series X"). It does **not** replace a structured REST or warehouse sync for training labels, which needs complete, typed, reviewed data with provenance (sections 1–4 below).
+
+**Documentation MCP:** `https://docs.benchling.com/mcp` (public, no credentials) lets developer tools search Benchling's docs.
+
+Sources: https://help.benchling.com/hc/en-us/articles/42715696739341 (AI Connectors, updated 2026-07-25), https://help.benchling.com/hc/en-us/articles/40342713479437 (Benchling MCP server), https://www.benchling.com/ai/connectors, https://docs.benchling.com/docs-mcp.md, https://docs.benchling.com/docs/agents-api.md (`sources: [{"type":"mcp_server","serverId":"mcpconf_…"}]`).
+
 ## Summary
 
 - **The recommended path** is a **Benchling App**: OAuth 2.0 client credentials plus the REST API v2, installed into the customer's tenant. Benchling documents personal API keys as "generally discouraged".
