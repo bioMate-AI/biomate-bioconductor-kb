@@ -1,0 +1,4 @@
+compound_id,smiles,assay_type,value,unit,assay_date,operator
+A,CCO,IC50,1,nM,2026-10-01,=
+B,CCN,IC50,10,nM,2026-10-01,=
+C,CCC,IC50,100,nM,2026-10-01,=

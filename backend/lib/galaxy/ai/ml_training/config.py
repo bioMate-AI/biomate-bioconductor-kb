@@ -18,6 +18,7 @@ card with a parameter form — no new frontend code.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field, asdict
 from typing import Any, Optional
 
@@ -174,12 +175,23 @@ class TrainingConfig:
             raise ConfigError(f"featurizer must be one of {FEATURIZERS}")
         self.dataset.validate()
         self.hyperparams.validate()
+        if self.gate_threshold is not None:
+            try:
+                thr = float(self.gate_threshold)
+            except (TypeError, ValueError):
+                raise ConfigError(f"gate_threshold must be numeric, got {self.gate_threshold!r}")
+            if not math.isfinite(thr):
+                raise ConfigError(f"gate_threshold must be finite, got {self.gate_threshold!r}")
         if self.model_type in LLM_MODEL_TYPES:
             if self.llm is None:
                 raise ConfigError(f"model_type={self.model_type} requires an `llm` spec")
             self.llm.validate()
             if self.task_type != "text_generation":
                 raise ConfigError(f"{self.model_type} requires task_type=text_generation")
+            if self.dataset.split == "scaffold":
+                raise ConfigError(
+                    f"{self.model_type} trains on text; a Bemis-Murcko scaffold split "
+                    "cannot be applied. Use split='random'.")
         return self
 
     # -- (de)serialization ----------------------------------------------------

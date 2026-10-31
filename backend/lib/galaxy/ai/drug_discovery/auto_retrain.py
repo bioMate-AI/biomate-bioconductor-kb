@@ -21,12 +21,18 @@ Campaign DB tables added:
   virtual_library_cache  (campaign_id, smiles_json, n_propose, diversity_weight, saved_at)
   auto_proposals         (id, campaign_id, round_number, proposed_smiles_json,
                           scores_json, ci_json, ad_statuses_json, triggered_by,
-                          created_at)
+                          created_at, training_report_json)
+
+Round numbers are allocated by BayesianOptimizer.save_proposal from the
+bo_proposals ledger; each auto proposal is written in the same transaction as
+its bo_proposals row, so both tables always agree on the round.
 """
 
 import json
 import logging
+import math
 import os
+import sqlite3
 import threading
 import time
 from datetime import datetime, timezone
@@ -34,6 +40,16 @@ from pathlib import Path
 from typing import Optional
 
 log = logging.getLogger(__name__)
+
+from .assay_ingestion import COVERAGE_COMPLETE, COVERAGE_STATUS_KEY, RANKED_SCORE_KEY
+
+# Surrogate objective name under which that observed score is modelled; this is
+# the key of RoundProposal.scores / AutoProposal.scores.
+CAMPAIGN_OBJECTIVE = "composite_score"
+
+
+class CampaignDataError(ValueError):
+    """Campaign assay data cannot be turned into a valid training set."""
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -53,6 +69,83 @@ class AutoProposal:
     ad_statuses: list[str]
     triggered_by: str          # "auto_retrain" | "manual"
     created_at: str
+    # {score_field, objective, n_ranked, n_used, skipped: [{compound_id, reason}], warnings}
+    training_report: dict = field(default_factory=dict)
+
+
+@dataclass
+class CampaignTrainingRows:
+    compound_ids: list[str]
+    smiles: list[str]
+    labels: list[float]
+    skipped: list[dict]
+    warnings: list[str]
+
+    def report(self, n_ranked: int) -> dict:
+        return {
+            "score_field": RANKED_SCORE_KEY,
+            "objective": CAMPAIGN_OBJECTIVE,
+            "n_ranked": n_ranked,
+            "n_used": len(self.labels),
+            "skipped": self.skipped,
+            "warnings": self.warnings,
+        }
+
+
+def build_training_rows(ranked: list[dict]) -> CampaignTrainingRows:
+    """Map ranked campaign compounds to aligned (id, smiles, observed label) rows.
+
+    Rows that are not fully evaluated (their score covers only some campaign
+    objectives), or lack a SMILES or a finite observed score, are skipped and
+    reported — never given a default or partial label. Raises CampaignDataError
+    when fewer than two usable rows remain (a surrogate cannot be fitted).
+    """
+    ids: list[str] = []
+    smiles: list[str] = []
+    labels: list[float] = []
+    skipped: list[dict] = []
+    for i, r in enumerate(ranked):
+        cid = r.get("compound_id") or f"c{i}"
+        smi = r.get("smiles")
+        coverage = r.get(COVERAGE_STATUS_KEY)
+        if coverage != COVERAGE_COMPLETE:
+            entry = {"compound_id": cid,
+                     "reason": f"{COVERAGE_STATUS_KEY}_{coverage or 'missing'}"}
+            if r.get("missing_objectives"):
+                entry["missing_objectives"] = list(r["missing_objectives"])
+            skipped.append(entry)
+            continue
+        if not smi:
+            skipped.append({"compound_id": cid, "reason": "missing_smiles"})
+            continue
+        if r.get(RANKED_SCORE_KEY) is None:
+            skipped.append({"compound_id": cid, "reason": f"missing_{RANKED_SCORE_KEY}"})
+            continue
+        try:
+            value = float(r[RANKED_SCORE_KEY])
+        except (TypeError, ValueError):
+            skipped.append({"compound_id": cid, "reason": f"non_numeric_{RANKED_SCORE_KEY}"})
+            continue
+        if not math.isfinite(value):
+            skipped.append({"compound_id": cid, "reason": f"non_finite_{RANKED_SCORE_KEY}"})
+            continue
+        ids.append(cid)
+        smiles.append(smi)
+        labels.append(value)
+
+    if len(labels) < 2:
+        raise CampaignDataError(
+            f"need at least 2 fully evaluated compounds with SMILES and a finite {RANKED_SCORE_KEY} "
+            f"to fit the surrogate; {len(labels)} usable of {len(ranked)} "
+            f"(skipped: {skipped})"
+        )
+    warnings: list[str] = []
+    if skipped:
+        warnings.append(f"{len(skipped)} of {len(ranked)} ranked compounds excluded from training")
+    if len(set(labels)) == 1:
+        warnings.append("constant_labels: all observed scores are identical; "
+                        "surrogate predictions carry no ranking information")
+    return CampaignTrainingRows(ids, smiles, labels, skipped, warnings)
 
 
 # ---------------------------------------------------------------------------
@@ -78,7 +171,8 @@ def _schema_sql() -> str:
             ci_json          TEXT NOT NULL DEFAULT '{}',
             ad_statuses_json TEXT NOT NULL DEFAULT '[]',
             triggered_by     TEXT NOT NULL DEFAULT 'auto_retrain',
-            created_at       TEXT NOT NULL
+            created_at       TEXT NOT NULL,
+            training_report_json TEXT NOT NULL DEFAULT '{}'
         );
 
         CREATE INDEX IF NOT EXISTS idx_auto_proposals_campaign
@@ -87,13 +181,15 @@ def _schema_sql() -> str:
 
 
 def _init_tables(db_path: str) -> None:
-    import sqlite3
     with sqlite3.connect(db_path) as conn:
         conn.executescript(_schema_sql())
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(auto_proposals)")}
+        if "training_report_json" not in cols:
+            conn.execute("ALTER TABLE auto_proposals "
+                         "ADD COLUMN training_report_json TEXT NOT NULL DEFAULT '{}'")
 
 
 def _connect(db_path: str):
-    import sqlite3
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
@@ -156,38 +252,31 @@ def load_virtual_library(db_path: str, campaign_id: str) -> Optional[dict]:
 # Auto-proposal persistence
 # ---------------------------------------------------------------------------
 
-def save_auto_proposal(
-    db_path: str,
-    campaign_id: str,
-    proposal,               # RoundProposal from BayesianOptimizer
-    triggered_by: str = "auto_retrain",
-) -> AutoProposal:
-    """Save a BayesianOptimizer proposal to the auto_proposals table."""
-    _init_tables(db_path)
+def _insert_auto_proposal(conn, campaign_id: str, proposal, triggered_by: str,
+                          training_report: Optional[dict]) -> AutoProposal:
     ts = datetime.now(timezone.utc).isoformat()
-    with _connect(db_path) as conn:
-        cur = conn.execute(
-            """
-            INSERT INTO auto_proposals
-              (campaign_id, round_number, proposed_smiles_json, scores_json,
-               ci_json, ad_statuses_json, triggered_by, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                campaign_id,
-                proposal.round_number,
-                json.dumps(proposal.proposed_compounds),
-                json.dumps(proposal.scores),
-                json.dumps(proposal.confidence_intervals),
-                json.dumps(proposal.ad_statuses),
-                triggered_by,
-                ts,
-            ),
-        )
-        row_id = cur.lastrowid
-
+    report = training_report or {}
+    cur = conn.execute(
+        """
+        INSERT INTO auto_proposals
+          (campaign_id, round_number, proposed_smiles_json, scores_json,
+           ci_json, ad_statuses_json, triggered_by, created_at, training_report_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            campaign_id,
+            proposal.round_number,
+            json.dumps(proposal.proposed_compounds),
+            json.dumps(proposal.scores),
+            json.dumps(proposal.confidence_intervals),
+            json.dumps(proposal.ad_statuses),
+            triggered_by,
+            ts,
+            json.dumps(report),
+        ),
+    )
     return AutoProposal(
-        id=row_id,
+        id=cur.lastrowid,
         campaign_id=campaign_id,
         round_number=proposal.round_number,
         proposed_smiles=proposal.proposed_compounds,
@@ -196,6 +285,92 @@ def save_auto_proposal(
         ad_statuses=proposal.ad_statuses,
         triggered_by=triggered_by,
         created_at=ts,
+        training_report=report,
+    )
+
+
+def save_auto_proposal(
+    db_path: str,
+    campaign_id: str,
+    proposal,               # RoundProposal from BayesianOptimizer
+    triggered_by: str = "auto_retrain",
+    training_report: Optional[dict] = None,
+) -> AutoProposal:
+    """Write one auto_proposals row with the proposal's existing round number.
+
+    Low-level: does not allocate a round. Campaign rounds must go through
+    persist_round(), which allocates the round in the bo_proposals ledger.
+    """
+    _init_tables(db_path)
+    with _connect(db_path) as conn:
+        return _insert_auto_proposal(conn, campaign_id, proposal, triggered_by, training_report)
+
+
+def _backfill_legacy_rounds(conn, campaign_id: str) -> None:
+    """Record auto_proposals rounds written before they were mirrored into
+    bo_proposals, so the ledger's MAX(round_number) never falls below a round
+    already shown to users. Historic rows are not renumbered."""
+    conn.execute(
+        """
+        INSERT INTO bo_proposals
+          (campaign_id, round_number, proposed_smiles, scores_json,
+           acquisition_values_json, pareto_front_smiles_json, diversity_score, timestamp)
+        SELECT a.campaign_id, a.round_number, a.proposed_smiles_json, a.scores_json,
+               '[]', '[]', 0.0, MIN(a.created_at)
+        FROM auto_proposals a
+        WHERE a.campaign_id = ?
+          AND NOT EXISTS (SELECT 1 FROM bo_proposals b
+                          WHERE b.campaign_id = a.campaign_id
+                            AND b.round_number = a.round_number)
+        GROUP BY a.campaign_id, a.round_number
+        """,
+        (campaign_id,),
+    )
+
+
+def persist_round(
+    db_path: str,
+    optimizer,              # BayesianOptimizer that produced `proposal`
+    proposal,               # RoundProposal
+    triggered_by: str,
+    training_report: Optional[dict] = None,
+) -> AutoProposal:
+    """Persist a campaign round atomically to bo_proposals and auto_proposals.
+
+    The round number is allocated by the optimizer's ledger inside the same
+    write-locked transaction as the auto_proposals insert, so rounds are
+    strictly increasing per campaign and identical in both tables.
+    """
+    _init_tables(db_path)
+    conn = sqlite3.connect(db_path, isolation_level=None)
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            _backfill_legacy_rounds(conn, proposal.campaign_id)
+            optimizer.save_proposal(proposal, conn=conn)
+            auto_p = _insert_auto_proposal(conn, proposal.campaign_id, proposal,
+                                           triggered_by, training_report)
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+        conn.execute("COMMIT")
+        return auto_p
+    finally:
+        conn.close()
+
+
+def _row_to_auto_proposal(r) -> AutoProposal:
+    return AutoProposal(
+        id=r["id"],
+        campaign_id=r["campaign_id"],
+        round_number=r["round_number"],
+        proposed_smiles=json.loads(r["proposed_smiles_json"]),
+        scores=json.loads(r["scores_json"]),
+        confidence_intervals=json.loads(r["ci_json"]),
+        ad_statuses=json.loads(r["ad_statuses_json"]),
+        triggered_by=r["triggered_by"],
+        created_at=r["created_at"],
+        training_report=json.loads(r["training_report_json"] or "{}"),
     )
 
 
@@ -213,17 +388,7 @@ def get_latest_auto_proposal(db_path: str, campaign_id: str) -> Optional[AutoPro
         ).fetchone()
     if row is None:
         return None
-    return AutoProposal(
-        id=row["id"],
-        campaign_id=row["campaign_id"],
-        round_number=row["round_number"],
-        proposed_smiles=json.loads(row["proposed_smiles_json"]),
-        scores=json.loads(row["scores_json"]),
-        confidence_intervals=json.loads(row["ci_json"]),
-        ad_statuses=json.loads(row["ad_statuses_json"]),
-        triggered_by=row["triggered_by"],
-        created_at=row["created_at"],
-    )
+    return _row_to_auto_proposal(row)
 
 
 def list_auto_proposals(db_path: str, campaign_id: str, limit: int = 20) -> list[AutoProposal]:
@@ -238,25 +403,31 @@ def list_auto_proposals(db_path: str, campaign_id: str, limit: int = 20) -> list
             """,
             (campaign_id, limit),
         ).fetchall()
-    return [
-        AutoProposal(
-            id=r["id"],
-            campaign_id=r["campaign_id"],
-            round_number=r["round_number"],
-            proposed_smiles=json.loads(r["proposed_smiles_json"]),
-            scores=json.loads(r["scores_json"]),
-            confidence_intervals=json.loads(r["ci_json"]),
-            ad_statuses=json.loads(r["ad_statuses_json"]),
-            triggered_by=r["triggered_by"],
-            created_at=r["created_at"],
-        )
-        for r in rows
-    ]
+    return [_row_to_auto_proposal(r) for r in rows]
 
 
 # ---------------------------------------------------------------------------
 # Core refit logic (synchronous — called by background thread or directly)
 # ---------------------------------------------------------------------------
+
+def fit_campaign_optimizer(db_path: str, campaign_id: str, rows: CampaignTrainingRows,
+                           n_initial: Optional[int] = None):
+    """Fit a BayesianOptimizer on observed campaign labels (CAMPAIGN_OBJECTIVE)."""
+    import numpy as np
+    from .bayesian_optimizer import BayesianOptimizer, CampaignDataset
+
+    kwargs = {} if n_initial is None else {"n_initial": n_initial}
+    opt = BayesianOptimizer(campaign_id=campaign_id, db_path=db_path, **kwargs)
+    dataset = CampaignDataset(
+        compound_ids=rows.compound_ids,
+        smiles_list=rows.smiles,
+        features=opt._featurise(rows.smiles),
+        objectives={CAMPAIGN_OBJECTIVE: np.array(rows.labels, dtype=float)},
+        objective_directions={CAMPAIGN_OBJECTIVE: "maximize"},
+    )
+    opt.fit(dataset)
+    return opt
+
 
 def refit_and_propose(
     db_path: str,
@@ -269,6 +440,10 @@ def refit_and_propose(
 
     Returns the new AutoProposal, or None if prerequisites are not met
     (no assay data, no cached virtual library, or optimizer import fails).
+
+    Raises CampaignDataError when assay data exists but fewer than two ranked
+    compounds carry a SMILES and a finite observed score. Compounds skipped
+    for that reason are listed in AutoProposal.training_report.
     """
     try:
         from .assay_ingestion import AssayIngestionService
@@ -295,28 +470,16 @@ def refit_and_propose(
         log.info("auto_retrain[%s]: no virtual library cached — skipping", campaign_id)
         return None
 
-    # Refit GP
+    rows = build_training_rows(ranked)
+    report = rows.report(len(ranked))
+    for w in rows.warnings:
+        log.warning("auto_retrain[%s]: %s", campaign_id, w)
+
+    # Refit GP. n_initial matches the usable training-set size so the
+    # optimizer can run on any non-trivial dataset (≥2 compounds).
     try:
-        import numpy as np
-        from .bayesian_optimizer import CampaignDataset
-
-        smiles_list = [r["smiles"] for r in ranked if r.get("smiles")]
-        scores_list = [min(1.0, max(0.0, r.get("composite_score", 0.5))) for r in ranked]
-        compound_ids = [r.get("compound_id", f"c{i}") for i, r in enumerate(ranked)]
-
-        # n_initial: lower threshold to match actual training set size so the
-        # optimizer can run on any non-trivial dataset (≥2 compounds).
-        opt = BayesianOptimizer(campaign_id=campaign_id, db_path=db_path,
-                                n_initial=max(2, len(smiles_list)))
-        features = opt._featurise(smiles_list)
-        dataset = CampaignDataset(
-            compound_ids=compound_ids,
-            smiles_list=smiles_list,
-            features=features,
-            objectives={"composite_score": np.array(scores_list)},
-            objective_directions={"composite_score": "maximize"},
-        )
-        opt.fit(dataset)
+        opt = fit_campaign_optimizer(db_path, campaign_id, rows,
+                                     n_initial=max(2, len(rows.labels)))
         proposal = opt.propose_next_round(
             virtual_library_smiles=vl["smiles_list"],
             n_propose=vl["n_propose"],
@@ -327,7 +490,7 @@ def refit_and_propose(
         return None
 
     # Persist and audit
-    auto_p = save_auto_proposal(db_path, campaign_id, proposal, triggered_by)
+    auto_p = persist_round(db_path, opt, proposal, triggered_by, report)
 
     try:
         from ..compliance.audit_store import AuditStore, AuditAction, AuditEvent, hash_payload

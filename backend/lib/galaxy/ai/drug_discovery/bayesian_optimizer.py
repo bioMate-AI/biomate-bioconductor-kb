@@ -304,9 +304,8 @@ class BayesianOptimizer:
             gp.fit(X, y_scaled)
             self._gp_models[obj_name] = gp
 
-        # Sync round counter with persisted proposals
-        existing = self.load_proposals(self.campaign_id)
-        self._round_number = len(existing)
+        # Sync round counter with the persisted round ledger (bo_proposals).
+        self._round_number = self.latest_round()
 
         log.info(
             "BayesianOptimizer.fit: campaign=%s n_compounds=%d objectives=%s round=%d",
@@ -490,26 +489,71 @@ class BayesianOptimizer:
     # Persistence
     # ------------------------------------------------------------------
 
-    def save_proposal(self, proposal: RoundProposal):
-        """Persist a RoundProposal to the bo_proposals SQLite table."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("""
-                INSERT INTO bo_proposals
-                (campaign_id, round_number, proposed_smiles, scores_json,
-                 acquisition_values_json, pareto_front_smiles_json,
-                 diversity_score, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                proposal.campaign_id,
-                proposal.round_number,
-                json.dumps(proposal.proposed_compounds),
-                json.dumps(proposal.scores),
-                json.dumps(proposal.acquisition_values),
-                json.dumps(proposal.pareto_front_smiles),
-                proposal.diversity_score,
-                proposal.timestamp,
-            ))
-            conn.commit()
+    def latest_round(self, conn: Optional[sqlite3.Connection] = None) -> int:
+        """Highest persisted round for this campaign (0 if none).
+
+        bo_proposals is the single source of truth for round numbers; every
+        persisted proposal (including auto-retrain rounds) is recorded here.
+        """
+        sql = "SELECT COALESCE(MAX(round_number), 0) FROM bo_proposals WHERE campaign_id = ?"
+        if conn is not None:
+            return int(conn.execute(sql, (self.campaign_id,)).fetchone()[0])
+        with sqlite3.connect(self.db_path) as own:
+            return int(own.execute(sql, (self.campaign_id,)).fetchone()[0])
+
+    def save_proposal(self, proposal: RoundProposal,
+                      conn: Optional[sqlite3.Connection] = None) -> int:
+        """Persist a RoundProposal to bo_proposals and return its round number.
+
+        The round is allocated at commit time as MAX(round_number) + 1 inside a
+        write-locked transaction, so concurrent writers (background retrain loop
+        vs. a manual trigger) can never persist the same round twice.
+        ``proposal.round_number`` is updated in place to the allocated value.
+
+        When ``conn`` is given the caller owns the transaction (it must already
+        hold a write lock, e.g. via ``BEGIN IMMEDIATE``) and commits it.
+        """
+        if proposal.campaign_id != self.campaign_id:
+            raise ValueError(
+                f"proposal campaign {proposal.campaign_id!r} does not match "
+                f"optimizer campaign {self.campaign_id!r}"
+            )
+        if conn is not None:
+            return self._insert_proposal(conn, proposal)
+        own = sqlite3.connect(self.db_path, isolation_level=None)
+        try:
+            own.execute("BEGIN IMMEDIATE")
+            try:
+                round_number = self._insert_proposal(own, proposal)
+            except Exception:
+                own.execute("ROLLBACK")
+                raise
+            own.execute("COMMIT")
+            return round_number
+        finally:
+            own.close()
+
+    def _insert_proposal(self, conn: sqlite3.Connection, proposal: RoundProposal) -> int:
+        round_number = self.latest_round(conn) + 1
+        conn.execute("""
+            INSERT INTO bo_proposals
+            (campaign_id, round_number, proposed_smiles, scores_json,
+             acquisition_values_json, pareto_front_smiles_json,
+             diversity_score, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            proposal.campaign_id,
+            round_number,
+            json.dumps(proposal.proposed_compounds),
+            json.dumps(proposal.scores),
+            json.dumps(proposal.acquisition_values),
+            json.dumps(proposal.pareto_front_smiles),
+            proposal.diversity_score,
+            proposal.timestamp,
+        ))
+        proposal.round_number = round_number
+        self._round_number = max(self._round_number, round_number)
+        return round_number
 
     def load_proposals(self, campaign_id: str) -> list[RoundProposal]:
         """Load all proposals for a campaign ordered by round number."""

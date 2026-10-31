@@ -66,8 +66,9 @@ def _cfg(csv, gate, campaign="camp1"):
 
 
 @pytest.fixture(autouse=True)
-def _noop_mlflow(monkeypatch):
+def _noop_mlflow(monkeypatch, tmp_path):
     monkeypatch.setenv("BIOMATE_MLFLOW_DISABLED", "1")
+    monkeypatch.setenv("ML_TRAINING_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
 
 
 def test_train_gate_register_predict(herg_like_csv, tmp_path):

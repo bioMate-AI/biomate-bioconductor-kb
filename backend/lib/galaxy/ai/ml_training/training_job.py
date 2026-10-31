@@ -14,8 +14,11 @@ The QC gate result is shaped to match the existing `qc_gate_results` SSE event
 from __future__ import annotations
 
 import logging
+import math
 import os
+import uuid
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional
 
@@ -58,18 +61,28 @@ class GateResult:
     threshold: Optional[float]
     passed: bool
     direction: str            # "higher_is_better" | "lower_is_better"
+    reason: str = ""
 
     def to_sse_payload(self) -> dict[str, Any]:
         """Shape compatible with the frontend qc_gate_results SSE event."""
+        measured = self.value if self.value is not None and math.isfinite(self.value) else None
         return {
             "gates": [{
                 "name": self.metric,
-                "measured": self.value,
+                "measured": measured,
                 "threshold": self.threshold,
                 "status": "pass" if self.passed else "halt",
                 "direction": self.direction,
+                "reason": self.reason,
             }]
         }
+
+    def to_record(self) -> dict[str, Any]:
+        """JSON-safe gate result persisted with a model version."""
+        finite = self.value is not None and math.isfinite(self.value)
+        return {"metric": self.metric, "value": self.value if finite else None,
+                "threshold": self.threshold, "passed": self.passed,
+                "direction": self.direction, "reason": self.reason}
 
 
 @dataclass
@@ -83,10 +96,14 @@ class JobResult:
     artifact_dir: str
     dataset_source: str = ""
     error: Optional[str] = None
+    model_version: Optional[int] = None
+    model_status: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.config.name,
+            "model_version": self.model_version,
+            "model_status": self.model_status,
             "metrics": self.training.metrics if self.training else {},
             "gate": self.gate.to_sse_payload() if self.gate else None,
             "mlflow_run_id": self.mlflow_run_id,
@@ -103,16 +120,38 @@ def _metric_direction(metric: str) -> str:
 
 
 def _evaluate_gate(cfg: TrainingConfig, result: TrainingResult) -> GateResult:
-    value = result.primary_metric(cfg.metric)
+    """Apply the configured QC gate. Fails closed: when a threshold is
+    configured, a missing, non-numeric, NaN or infinite metric fails."""
+    raw = result.primary_metric(cfg.metric)
     direction = _metric_direction(cfg.metric)
     thr = cfg.gate_threshold
-    if thr is None or value is None:
-        passed = True  # no gate configured, or metric unavailable → don't block
-    elif direction == "higher_is_better":
+    try:
+        value = None if raw is None else float(raw)
+    except (TypeError, ValueError):
+        value = None
+    if thr is None:
+        return GateResult(cfg.metric, value, thr, True, direction, reason="no_gate_configured")
+    if not math.isfinite(thr):
+        return GateResult(cfg.metric, value, thr, False, direction,
+                          reason=f"gate threshold {thr!r} is not finite")
+    if raw is None:
+        return GateResult(cfg.metric, None, thr, False, direction,
+                          reason=f"metric '{cfg.metric}' missing from training metrics "
+                                 f"{sorted(result.metrics)}")
+    if value is None:
+        return GateResult(cfg.metric, None, thr, False, direction,
+                          reason=f"metric '{cfg.metric}' is not numeric: {raw!r}")
+    if not math.isfinite(value):
+        return GateResult(cfg.metric, value, thr, False, direction,
+                          reason=f"metric '{cfg.metric}' is not finite: {value!r}")
+    if direction == "higher_is_better":
         passed = value >= thr
+        op = ">=" if passed else "<"
     else:
         passed = value <= thr
-    return GateResult(cfg.metric, value, thr, passed, direction)
+        op = "<=" if passed else ">"
+    return GateResult(cfg.metric, value, thr, passed, direction,
+                      reason=f"{cfg.metric}={value:.4g} {op} threshold {thr:.4g}")
 
 
 def run_training_job(
@@ -124,8 +163,10 @@ def run_training_job(
     train_fn: Optional[Callable[..., TrainingResult]] = None,
     tracker: Optional[MLflowTracker] = None,
 ) -> JobResult:
-    """Run the full training loop. Returns a JobResult; never raises for the
-    expected failure modes (bad config surfaces as JobResult.error).
+    """Run the full training loop and return a JobResult.
+
+    Config errors and training failures raise; a version reserved for the run
+    is then recorded as rejected with the failure reason.
 
     load_fn/train_fn resolve at call time (default None → module defaults) so
     they stay monkeypatchable via `training_job._default_load/_default_train`.
@@ -133,9 +174,27 @@ def run_training_job(
     load_fn = load_fn or _default_load
     train_fn = train_fn or _default_train
     cfg.validate()
-    artifact_dir = artifact_dir or str(_default_artifact_root() / cfg.campaign_id / _slug(cfg.name))
+    # With a registry, the next version is reserved up front and its artifact
+    # directory is keyed by that version; without one, each run gets a fresh
+    # directory. Either way a run never overwrites an earlier artifact.
+    version: Optional[int] = None
+    if registry is not None and artifact_dir is None:
+        version, artifact_dir = registry.reserve_version(
+            cfg.campaign_id, cfg.name, str(_default_artifact_root()))
+    elif artifact_dir is None:
+        run_id = f"run-{datetime.now(timezone.utc):%Y%m%dT%H%M%S}-{uuid.uuid4().hex[:8]}"
+        artifact_dir = str(_default_artifact_root() / cfg.campaign_id / _slug(cfg.name) / run_id)
     Path(artifact_dir).mkdir(parents=True, exist_ok=True)
+    try:
+        return _run(cfg, artifact_dir, registry, version, load_fn, train_fn, tracker)
+    except Exception as exc:
+        if version is not None:
+            registry.fail_version(cfg.campaign_id, cfg.name, version,
+                                  f"{type(exc).__name__}: {exc}")
+        raise
 
+
+def _run(cfg, artifact_dir, registry, version, load_fn, train_fn, tracker) -> JobResult:
     # 1. Load data. LLM fine-tuning uses instruction/response text, not the
     # molecular (smiles,label) loader — the LLM trainer loads its own rows from
     # cfg.dataset, so pass a placeholder here.
@@ -158,27 +217,37 @@ def run_training_job(
         t.log_metrics({"gate_passed": 1.0 if gate.passed else 0.0})
         model_uri = t.register_model(artifact_dir, registered_name=cfg.name)
 
-    # 5. Register into the existing per-campaign model registry (only if the
-    #    QC gate passed — a failed model must not silently become scorable).
+    # 5. Record an immutable version in the per-campaign registry. A passed
+    #    gate yields a `candidate` that a reviewer may promote; a failed gate
+    #    yields a `rejected` version that can never be served.
     registered = False
-    if registry is not None and gate.passed:
-        from .chemprop_wrapper import ChempropModelWrapper
-        wrapper = ChempropModelWrapper(
-            name=cfg.name, campaign_id=cfg.campaign_id, artifact_dir=artifact_dir,
-            higher_is_better=cfg.higher_is_better,
+    model_version = model_status = None
+    if registry is not None:
+        mv = registry.register_trained_version(
+            cfg.campaign_id, cfg.name, artifact_dir, version=version,
+            metrics=result.metrics, gate=gate.to_record(), task_type=cfg.task_type,
+            higher_is_better=cfg.higher_is_better, dataset_rows=dataset.rows or None,
+            split=result.extra.get("split"),
+            extra_spec={"model_type": result.model_type,
+                        "framework_version": result.framework_version,
+                        "dataset_source": dataset.source, "mlflow_model_uri": model_uri,
+                        "config": cfg.to_dict()},
         )
-        registry.register(wrapper, config={"source": "ml_training", "model_uri": model_uri})
-        registered = True
-        log.info("[ml_training] registered '%s' into campaign %s", cfg.name, cfg.campaign_id)
-    elif registry is not None and not gate.passed:
-        log.warning("[ml_training] '%s' failed QC gate (%s=%s vs %s) — NOT registered",
-                    cfg.name, cfg.metric, gate.value, gate.threshold)
+        model_version, model_status = mv.version, mv.status
+        registered = mv.status == "candidate"
+        if registered:
+            log.info("[ml_training] '%s' v%d recorded as candidate in campaign %s",
+                     cfg.name, mv.version, cfg.campaign_id)
+        else:
+            log.warning("[ml_training] '%s' v%d failed QC gate (%s) — rejected",
+                        cfg.name, mv.version, gate.reason)
 
     return JobResult(
         config=cfg, training=result, gate=gate,
         mlflow_run_id=t.run_id, mlflow_model_uri=model_uri,
         registered=registered, artifact_dir=artifact_dir,
         dataset_source=dataset.source,
+        model_version=model_version, model_status=model_status,
     )
 
 

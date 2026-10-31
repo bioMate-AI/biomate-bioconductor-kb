@@ -14,7 +14,6 @@ def fast_worker_and_isolate(tmp_path, monkeypatch):
     monkeypatch.setattr(rw, "ORG_RULES_DIR", tmp_path / "org_rules")
     monkeypatch.setattr(rw, "ORG_FEWSHOT_DIR", tmp_path / "org_fewshot")
     monkeypatch.setattr(rw, "HARNESS_WITNESS", tmp_path / "witness.json")
-    monkeypatch.setattr(rw, "SIMULATED_TRAIN_SECONDS", 0.0)
     yield
 
 
@@ -58,7 +57,10 @@ def test_post_train_lora_refused_without_harness_witness():
     assert "harness_witness_missing" in done[0].message
 
 
-def test_post_train_lora_runs_when_witness_present_and_pairs_present(tmp_path):
+def test_post_train_lora_fails_not_implemented_when_gates_pass(tmp_path):
+    """With witness and pairs present the gates pass, but no GPU training
+    loop exists: the job must fail explicitly and publish no adapter path
+    (the serving resolver would otherwise pick it up as a trained model)."""
     rw.HARNESS_WITNESS.write_text(json.dumps({
         "local_macro": 0.62,
         "frontier_macro": 0.53,
@@ -70,8 +72,10 @@ def test_post_train_lora_runs_when_witness_present_and_pairs_present(tmp_path):
     )
     j = rj.submit(user_id="u1", org_id="acme", adaptation_mode="post_train_lora")
     done = rw.tick(max_jobs=1)
-    assert done[0].status == "succeeded"
-    assert "regulatory_llm_v7_acme" in done[0].adapter_path
+    assert done[0].status == "failed"
+    assert "not_implemented" in done[0].message
+    assert not done[0].adapter_path
+    assert rj.get(j.job_id).status == "failed"
 
 
 def test_post_train_lora_witness_present_but_no_pairs_fails():
