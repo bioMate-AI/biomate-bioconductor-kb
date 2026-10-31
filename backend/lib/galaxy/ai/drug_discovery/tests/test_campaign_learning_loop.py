@@ -217,3 +217,79 @@ def test_format_proposal_reads_objective_keyed_scores():
     assert [i["score"] for i in shaped["items"]] == [0.8, 0.3]
     assert [(i["ci_lo"], i["ci_hi"]) for i in shaped["items"]] == [(0.6, 0.9), (0.1, 0.5)]
     assert shaped["round"] == 3 and shaped["training_report"] == {"n_used": 3}
+
+
+# --- surrogate discrimination evidence is persisted with the round ----------
+
+def test_refit_persists_discrimination_flag_and_stds(tmp_path):
+    """Three compounds cannot rank the library: the persisted round must say
+    so and keep per-compound posterior stds, also after reload."""
+    pytest.importorskip("rdkit")
+    db = str(tmp_path / "c.db")
+    _ingest(db, tmp_path, "p.csv", POTENCY)
+    _ingest(db, tmp_path, "s.csv", SAFETY)
+    save_virtual_library(db, "camp", LIBRARY, n_propose=2)
+    p = refit_and_propose(db, "camp", triggered_by="manual")
+    assert p.can_discriminate is False
+    assert p.surrogate_report["can_discriminate"] is False
+    assert p.surrogate_report["n_train"] == 3
+    stds = p.gp_stds[CAMPAIGN_OBJECTIVE]
+    assert len(stds) == len(p.proposed_smiles) == 2 and all(s > 0 for s in stds)
+    assert len(set(p.scores[CAMPAIGN_OBJECTIVE])) == 2, "scores must not collapse to one value"
+
+    reloaded = list_auto_proposals(db, "camp")[0]
+    assert reloaded.can_discriminate is False
+    assert reloaded.gp_stds == p.gp_stds
+    assert reloaded.surrogate_report == p.surrogate_report
+
+
+def test_fewer_usable_candidates_than_requested_is_reported(tmp_path):
+    pytest.importorskip("rdkit")
+    db = str(tmp_path / "c.db")
+    _ingest(db, tmp_path, "p.csv", POTENCY)
+    # CCO is already measured and OCCC duplicates CCCO: one usable candidate.
+    save_virtual_library(db, "camp", ["CCCO", "OCCC", "CCO"], n_propose=3)
+    p = refit_and_propose(db, "camp", triggered_by="manual")
+    rep = p.surrogate_report
+    assert p.proposed_smiles == ["CCCO"]
+    assert (rep["n_requested"], rep["n_proposed"]) == (3, 1)
+    assert any(w.startswith("fewer_than_requested") for w in rep["warnings"])
+    assert {e["reason"] for e in rep["excluded_candidates"]} == {"duplicate_structure",
+                                                                 "already_measured"}
+
+
+def test_legacy_auto_proposals_table_is_migrated(tmp_path):
+    db = str(tmp_path / "legacy.db")
+    with sqlite3.connect(db) as conn:
+        conn.execute("""CREATE TABLE auto_proposals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, campaign_id TEXT NOT NULL,
+            round_number INTEGER NOT NULL, proposed_smiles_json TEXT NOT NULL,
+            scores_json TEXT NOT NULL, ci_json TEXT NOT NULL DEFAULT '{}',
+            ad_statuses_json TEXT NOT NULL DEFAULT '[]',
+            triggered_by TEXT NOT NULL DEFAULT 'auto_retrain', created_at TEXT NOT NULL)""")
+        conn.execute("INSERT INTO auto_proposals (campaign_id, round_number, proposed_smiles_json, "
+                     "scores_json, created_at) VALUES ('camp', 1, '[\"CCCC\"]', '{}', 't')")
+    old = list_auto_proposals(db, "camp")[0]
+    assert (old.gp_stds, old.surrogate_report, old.can_discriminate) == ({}, {}, None)
+    assert old.training_report == {}
+
+
+def test_format_proposal_exposes_std_and_ranking_flag():
+    pytest.importorskip("fastapi")
+    from galaxy.ai.drug_discovery.api_router import _format_proposal
+    rep = {"can_discriminate": False, "n_train": 3}
+    p = ar.AutoProposal(id=1, campaign_id="camp", round_number=2,
+                        proposed_smiles=["CCCN", "CCCl"],
+                        scores={CAMPAIGN_OBJECTIVE: [0.498, 0.331]},
+                        confidence_intervals={CAMPAIGN_OBJECTIVE: [[-0.29, 1.28], [-0.48, 1.15]]},
+                        ad_statuses=["in_domain", "in_domain"], triggered_by="manual",
+                        created_at="t", gp_stds={CAMPAIGN_OBJECTIVE: [0.40, 0.42]},
+                        surrogate_report=rep, can_discriminate=False)
+    shaped = _format_proposal(p)
+    assert shaped["can_discriminate"] is False and shaped["surrogate_report"] == rep
+    assert [i["std"] for i in shaped["items"]] == [0.40, 0.42]
+    legacy = ar.AutoProposal(id=2, campaign_id="camp", round_number=1, proposed_smiles=["CCCC"],
+                             scores={CAMPAIGN_OBJECTIVE: [0.5]}, confidence_intervals={},
+                             ad_statuses=[], triggered_by="manual", created_at="t")
+    shaped = _format_proposal(legacy)
+    assert shaped["can_discriminate"] is None and shaped["items"][0]["std"] is None

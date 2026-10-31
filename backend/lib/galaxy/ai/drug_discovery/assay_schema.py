@@ -1,18 +1,31 @@
 """
-CSV schema definition and validator for BioMate assay data ingestion.
+Assay row schema and validator for BioMate assay data ingestion.
 
 Every assay_type has an EndpointRule describing the units it accepts and the
 physically possible range of its normalised value; rows outside that range
-are rejected with an explanation. Compound identity is checked by canonical
-structure: one compound_id may not map to two different structures within a
-campaign (see find_identity_conflicts).
+are rejected with an explanation.
+
+Validation is row-level (AssayCSVValidator.validate_rows), so CSV uploads and
+LIMS connectors share one contract; validate()/validate_csv() wrap it for CSV.
+
+Censored values: operator '<' or '>' marks the value as a bound, not a
+measurement. The operator is kept and the normalised row carries
+``censored: True``; ranking and training treat such rows as bounds (see
+assay_ingestion and auto_retrain.build_training_rows).
+
+Compound identity is compared on the *parent* structure (structure_identity):
+listed counterions are stripped and the remainder neutralised, so a salt and
+its free base under one compound_id are one compound (reported as a note),
+while different parents under one ID are a conflict. A structure with several
+distinct non-counterion components (co-drug, mixture, unlisted counterion)
+keeps every component in its parent key and is flagged, never collapsed.
 """
 import csv
 import logging
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import Iterable, Optional
 
 log = logging.getLogger(__name__)
 
@@ -20,6 +33,8 @@ REQUIRED_COLUMNS = {"compound_id", "assay_type", "value", "unit", "assay_date"}
 OPTIONAL_COLUMNS = {"smiles", "operator", "operator_note"}
 
 VALID_OPERATORS = {"<", ">", "=", "~"}
+# Operators that make the value a bound rather than a measurement.
+CENSORING_OPERATORS = {"<", ">"}
 
 # Concentration units → factor to µM.
 UNIT_NORMALIZATION = {
@@ -110,55 +125,163 @@ SUPPORTED_ASSAY_TYPES = set(ENDPOINT_RULES)
 # ── Structure identity ──────────────────────────────────────────────────────
 
 try:
-    from rdkit import Chem, RDLogger
+    from rdkit import Chem, RDLogger, rdBase
+    from rdkit.Chem.MolStandardize import rdMolStandardize
+    from rdkit.Chem.SaltRemover import SaltRemover
     RDLogger.DisableLog("rdApp.*")
     _RDKIT_AVAILABLE = True
 except ImportError:  # pragma: no cover - RDKit is a backend dependency
     Chem = None
     _RDKIT_AVAILABLE = False
     log.warning("RDKit unavailable: compound identity falls back to exact SMILES text, "
-                "so equivalent spellings of one structure are reported as conflicts.")
+                "so equivalent spellings or salt forms of one structure are reported as conflicts.")
+
+# Pharmaceutical counterions not in RDKit's default Salts.txt. Like RDKit's
+# list, a pattern only strips a fragment it matches entirely, and the list
+# takes priority over fragment size (oxalate is stripped from ethylamine
+# oxalate although it is the larger fragment).
+_EXTRA_COUNTERION_SMARTS = (
+    "OC(=O)CC(O)(CC(=O)O)C(=O)O",      # citrate
+    "OC(=O)CCC(=O)O",                  # succinate
+    "OC(=O)CC(O)C(=O)O",               # malate
+    "CC(O)C(=O)O",                     # lactate
+    "[CH](=O)O",                       # formate
+    "c1ccccc1S(=O)(=O)O",              # besylate
+    "CCS(=O)(=O)O",                    # esylate
+    "[Zn,Al]",                         # metal cations beyond the default Li/Na/K/Ca/Mg
+)
+
+_SALT_REMOVER = None
 
 
-def canonical_structure(smiles: str) -> tuple[Optional[str], Optional[str]]:
-    """Return (canonical isomeric SMILES, error). Empty input → (None, None)."""
+def _salt_remover():
+    global _SALT_REMOVER
+    if _SALT_REMOVER is None:
+        remover = SaltRemover()
+        for smarts in _EXTRA_COUNTERION_SMARTS:
+            pattern = Chem.MolFromSmarts(smarts)
+            if pattern is not None:
+                remover.salts.append(pattern)
+        _SALT_REMOVER = remover
+    return _SALT_REMOVER
+
+
+# Structure flags carried on rows and stored with them.
+FLAG_SALT_STRIPPED = "salt_stripped"
+FLAG_NEUTRALISED = "charge_neutralised"
+FLAG_MULTI_COMPONENT = "multi_component"
+FLAG_REPEATED_COMPONENT = "repeated_component"
+FLAG_ALL_COUNTERIONS = "all_fragments_listed_counterions"
+
+
+@dataclass(frozen=True)
+class StructureIdentity:
+    """As-submitted structure and the parent used for identity comparison."""
+    submitted: str                  # canonical isomeric SMILES of the whole input
+    parent: str                     # canonical parent: counterions removed, neutralised
+    stripped: tuple = ()            # canonical SMILES of removed counterion fragments
+    flags: tuple = ()
+
+    @property
+    def is_multi_component(self) -> bool:
+        return FLAG_MULTI_COMPONENT in self.flags
+
+
+def structure_identity(smiles: str) -> "tuple[Optional[StructureIdentity], Optional[str]]":
+    """Return (StructureIdentity, error). Empty input → (None, None)."""
     smiles = (smiles or "").strip()
     if not smiles:
         return None, None
     if not _RDKIT_AVAILABLE:
-        return smiles, None
+        return StructureIdentity(submitted=smiles, parent=smiles), None
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return None, f"SMILES '{smiles}' could not be parsed as a chemical structure"
-    return Chem.MolToSmiles(mol, isomericSmiles=True), None
+    blocker = rdBase.BlockLogs() if hasattr(rdBase, "BlockLogs") else None  # standardizer INFO spam
+    try:
+        return _identity_of(mol), None
+    finally:
+        del blocker
 
 
-def find_identity_conflicts(
-    rows: list[dict],
-    known_structures: Optional[dict[str, set[str]]] = None,
-) -> tuple[list[dict], list[str]]:
-    """Reject rows whose compound_id maps to more than one structure.
+def _identity_of(mol) -> StructureIdentity:
+    submitted = Chem.MolToSmiles(mol, isomericSmiles=True)
+    flags: list = []
+    try:
+        cleaned = rdMolStandardize.Cleanup(mol)   # disconnects metals, normalises groups
+    except Exception:  # pragma: no cover - RDKit sanitisation edge cases
+        cleaned = mol
+    fragments = Chem.GetMolFrags(cleaned, asMols=True)
+    remover = _salt_remover()
+    kept, stripped = [], []
+    for frag in fragments:
+        if len(fragments) > 1 and remover.StripMol(frag, dontRemoveEverything=False).GetNumAtoms() == 0:
+            stripped.append(Chem.MolToSmiles(frag, isomericSmiles=True))
+        else:
+            kept.append(frag)
+    if not kept:
+        # Every fragment is a listed counterion (e.g. sodium acetate): the
+        # carbon-containing fragments are the compound; with none, keep all.
+        organic = [f for f in fragments if any(a.GetSymbol() == "C" for a in f.GetAtoms())]
+        kept = organic or list(fragments)
+        stripped = [Chem.MolToSmiles(f, isomericSmiles=True) for f in fragments
+                    if not any(f is k for k in kept)]
+        flags.append(FLAG_ALL_COUNTERIONS)
+    if stripped:
+        flags.append(FLAG_SALT_STRIPPED)
+    uncharger = rdMolStandardize.Uncharger()
+    parents = []
+    for frag in kept:
+        before = Chem.MolToSmiles(frag, isomericSmiles=True)
+        after = Chem.MolToSmiles(uncharger.uncharge(frag), isomericSmiles=True)
+        if after != before and FLAG_NEUTRALISED not in flags:
+            flags.append(FLAG_NEUTRALISED)
+        parents.append(after)
+    unique = sorted(set(parents))
+    if len(unique) < len(parents):
+        flags.append(FLAG_REPEATED_COMPONENT)
+    if len(unique) > 1:
+        flags.append(FLAG_MULTI_COMPONENT)
+    return StructureIdentity(submitted=submitted, parent=".".join(unique),
+                             stripped=tuple(sorted(stripped)), flags=tuple(flags))
 
-    ``rows`` carry ``compound_id``, ``smiles``, ``structure_key`` and
-    ``source_row``. ``known_structures`` maps compound_id → canonical
-    structures already stored for the campaign.
 
-    - If the campaign already holds exactly one structure for the ID, rows
-      with a different structure are rejected; matching rows are kept.
-    - If the campaign already holds several structures for the ID, or this
-      batch alone gives it several (with none stored), the identity is
-      ambiguous and every row for that ID in the batch is rejected.
+def canonical_structure(smiles: str) -> "tuple[Optional[str], Optional[str]]":
+    """Return (identity key, error): the canonical parent structure. Empty → (None, None)."""
+    ident, err = structure_identity(smiles)
+    return (ident.parent if ident else None), err
+
+
+def check_identity(
+    rows: "list[dict]",
+    known_structures: "Optional[dict[str, set[str]]]" = None,
+    known_forms: "Optional[dict[str, set[str]]]" = None,
+) -> "tuple[list[dict], list[str], list[str]]":
+    """Reject rows whose compound_id maps to more than one parent structure.
+
+    ``rows`` carry ``compound_id``, ``smiles``, ``structure_key`` (the parent
+    key), ``submitted_structure`` and ``source_row``. ``known_structures`` maps
+    compound_id → parent keys already stored for the campaign;
+    ``known_forms`` maps compound_id → stored as-submitted canonical forms.
+
+    - If the campaign already holds exactly one parent for the ID, rows with
+      a different parent are rejected; matching rows are kept.
+    - If the campaign already holds several parents for the ID, or this batch
+      alone gives it several (with none stored), the identity is ambiguous
+      and every row for that ID in the batch is rejected.
     Rows without SMILES carry no identity claim and are only rejected when
-    the ID is ambiguous.
+    the ID is ambiguous. Returns (accepted, errors, notes); notes report salt
+    forms recognised as one parent and multi-component structures.
     """
     known = known_structures or {}
-    batch: dict[str, dict[str, str]] = {}
+    forms_known = known_forms or {}
+    batch: "dict[str, dict[str, str]]" = {}
     for r in rows:
         if r.get("structure_key"):
             batch.setdefault(r["compound_id"], {}).setdefault(r["structure_key"], r["smiles"])
 
-    accepted: list[dict] = []
-    errors: list[str] = []
+    accepted: "list[dict]" = []
+    errors: "list[str]" = []
     for r in rows:
         cid = r["compound_id"]
         stored = known.get(cid, set())
@@ -166,12 +289,12 @@ def find_identity_conflicts(
         key = r.get("structure_key")
         prefix = f"Row {r.get('source_row', '?')}: compound_id '{cid}'"
         if len(stored) > 1:
-            errors.append(f"{prefix} already maps to several structures in this campaign "
+            errors.append(f"{prefix} already maps to several parent structures in this campaign "
                           f"({', '.join(sorted(stored))}); resolve that identity conflict "
                           "before adding data. Row rejected.")
         elif len(stored) == 1:
             if key and key not in stored:
-                errors.append(f"{prefix} has SMILES '{r['smiles']}' (canonical {key}), but this "
+                errors.append(f"{prefix} has SMILES '{r['smiles']}' (parent {key}), but this "
                               f"campaign already records it as {next(iter(stored))}. Row rejected.")
             else:
                 accepted.append(r)
@@ -181,70 +304,148 @@ def find_identity_conflicts(
                           "so its identity is ambiguous. Row rejected.")
         else:
             accepted.append(r)
+
+    notes: "list[str]" = []
+    by_cid: "dict[str, list[dict]]" = {}
+    for r in accepted:
+        if r.get("structure_key"):
+            by_cid.setdefault(r["compound_id"], []).append(r)
+    for cid in sorted(by_cid):
+        rs = by_cid[cid]
+        parent = rs[0]["structure_key"]
+        forms = {r.get("submitted_structure") or r["smiles"] for r in rs} | forms_known.get(cid, set())
+        if len(forms) > 1:
+            notes.append(f"compound_id '{cid}': submitted forms {', '.join(sorted(forms))} share the "
+                         f"parent structure {parent} (salt/free-base or charge state); "
+                         "treated as one compound, as-submitted SMILES kept per row.")
+        if any(FLAG_MULTI_COMPONENT in r.get("structure_flags", ()) for r in rs):
+            notes.append(f"compound_id '{cid}': structure has several distinct non-counterion "
+                         f"components ({parent}); kept as a multi-component parent, not collapsed. "
+                         "Confirm whether it is a co-drug, a mixture or an unlisted counterion.")
+    return accepted, errors, notes
+
+
+def find_identity_conflicts(
+    rows: "list[dict]",
+    known_structures: "Optional[dict[str, set[str]]]" = None,
+) -> "tuple[list[dict], list[str]]":
+    """check_identity without notes (kept for existing callers)."""
+    accepted, errors, _notes = check_identity(rows, known_structures)
     return accepted, errors
 
 
+# ── Row-level validation ────────────────────────────────────────────────────
+
+@dataclass
+class AssayValidationResult:
+    rows: "list[dict]" = field(default_factory=list)
+    errors: "list[str]" = field(default_factory=list)
+    notes: "list[str]" = field(default_factory=list)
+
+
+def read_assay_csv(csv_path: str) -> "tuple[list[dict], list[str], bool]":
+    """Parse a CSV into raw rows. Returns (rows, errors, fatal).
+
+    Each row carries ``source_row`` (its line number). ``fatal`` is True when
+    the file cannot be used at all (missing, empty, missing columns).
+    """
+    rows: "list[dict]" = []
+    try:
+        with open(csv_path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            if reader.fieldnames is None:
+                return rows, ["CSV file is empty or has no header row."], True
+            headers = {h.strip() for h in reader.fieldnames if h}
+            missing = REQUIRED_COLUMNS - headers
+            if missing:
+                return rows, [f"Missing required columns: {', '.join(sorted(missing))}"], True
+            for row_num, raw_row in enumerate(reader, start=2):
+                row = {k.strip(): (v.strip() if v else "") for k, v in raw_row.items() if k}
+                row["source_row"] = row_num
+                rows.append(row)
+    except FileNotFoundError:
+        return [], [f"File not found: {csv_path}"], True
+    except Exception as exc:
+        return rows, [f"Unexpected error reading CSV: {exc}"], True
+    return rows, [], False
+
+
+def _clean(value):
+    if value is None:
+        return ""
+    return value.strip() if isinstance(value, str) else value
+
+
 class AssayCSVValidator:
-    """Validate and normalise assay CSV files."""
+    """Validate and normalise assay rows (from CSV files or LIMS connectors)."""
+
+    def validate_rows(
+        self,
+        raw_rows: "Iterable[dict]",
+        known_structures: "Optional[dict[str, set[str]]]" = None,
+        known_forms: "Optional[dict[str, set[str]]]" = None,
+    ) -> AssayValidationResult:
+        """Validate rows given as dicts with the CSV column names.
+
+        Values may be strings or numbers. ``source_row`` labels error messages
+        (a CSV line number or a LIMS record label). ``source_system``,
+        ``source_record_id`` and ``provenance`` pass through unchanged.
+        ``known_structures`` (compound_id → parent keys already in the
+        campaign) extends the identity check beyond this batch.
+        """
+        result = AssayValidationResult()
+        valid: "list[dict]" = []
+        for index, raw in enumerate(raw_rows, start=1):
+            row = {k: _clean(v) for k, v in raw.items() if k}
+            label = row.get("source_row", index)
+            row_errors = self._validate_row(row, label)
+            ident, structure_error = structure_identity(str(row.get("smiles", "") or ""))
+            if structure_error:
+                row_errors.append(f"Row {label}: {structure_error}.")
+            if row_errors:
+                result.errors.extend(row_errors)
+                continue
+            normalised = self._normalise_row(row)
+            normalised["structure_key"] = ident.parent if ident else None
+            normalised["submitted_structure"] = ident.submitted if ident else None
+            normalised["parent_smiles"] = ident.parent if ident else ""
+            normalised["structure_flags"] = list(ident.flags) if ident else []
+            normalised["source_row"] = label
+            valid.append(normalised)
+        result.rows, identity_errors, result.notes = check_identity(valid, known_structures, known_forms)
+        result.errors.extend(identity_errors)
+        return result
+
+    def validate_csv(
+        self,
+        csv_path: str,
+        known_structures: "Optional[dict[str, set[str]]]" = None,
+        known_forms: "Optional[dict[str, set[str]]]" = None,
+    ) -> AssayValidationResult:
+        raw_rows, errors, fatal = read_assay_csv(csv_path)
+        if fatal:
+            return AssayValidationResult(errors=errors)
+        result = self.validate_rows(raw_rows, known_structures, known_forms)
+        result.errors = errors + result.errors
+        return result
 
     def validate(
         self,
         csv_path: str,
-        known_structures: Optional[dict[str, set[str]]] = None,
-    ) -> tuple[list[dict], list[str]]:
-        """Parse and validate a CSV file.
+        known_structures: "Optional[dict[str, set[str]]]" = None,
+    ) -> "tuple[list[dict], list[str]]":
+        """Parse and validate a CSV file → (valid_rows, error_messages).
 
-        ``known_structures`` (compound_id → canonical structures already in
-        the campaign) extends the identity check beyond this file.
-
-        Returns:
-            (valid_rows, error_messages) where valid_rows are dicts with
-            normalised fields including `value_uM` (the value in the
-            endpoint's `unit_normalized`).
+        valid_rows are normalised dicts including ``value_uM`` (the value in
+        the endpoint's ``unit_normalized``) and ``censored``.
         """
-        valid_rows: list[dict] = []
-        errors: list[str] = []
+        result = self.validate_csv(csv_path, known_structures)
+        return result.rows, result.errors
 
-        try:
-            with open(csv_path, newline="", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                if reader.fieldnames is None:
-                    errors.append("CSV file is empty or has no header row.")
-                    return valid_rows, errors
+    def _validate_row(self, row: dict, row_num) -> "list[str]":
+        errs: "list[str]" = []
 
-                headers = {h.strip() for h in reader.fieldnames if h}
-                missing = REQUIRED_COLUMNS - headers
-                if missing:
-                    errors.append(f"Missing required columns: {', '.join(sorted(missing))}")
-                    return valid_rows, errors
-
-                for row_num, raw_row in enumerate(reader, start=2):
-                    row = {k.strip(): (v.strip() if v else "") for k, v in raw_row.items() if k}
-                    row_errors = self._validate_row(row, row_num)
-                    structure_key, structure_error = canonical_structure(row.get("smiles", ""))
-                    if structure_error:
-                        row_errors.append(f"Row {row_num}: {structure_error}.")
-                    if row_errors:
-                        errors.extend(row_errors)
-                        continue
-                    normalised = self._normalise_row(row)
-                    normalised["structure_key"] = structure_key
-                    normalised["source_row"] = row_num
-                    valid_rows.append(normalised)
-
-        except FileNotFoundError:
-            errors.append(f"File not found: {csv_path}")
-        except Exception as exc:
-            errors.append(f"Unexpected error reading CSV: {exc}")
-
-        valid_rows, identity_errors = find_identity_conflicts(valid_rows, known_structures)
-        errors.extend(identity_errors)
-        return valid_rows, errors
-
-    def _validate_row(self, row: dict, row_num: int) -> list[str]:
-        errs: list[str] = []
-
-        compound_id = row.get("compound_id", "")
+        compound_id = str(row.get("compound_id", "") or "")
         if not compound_id:
             errs.append(f"Row {row_num}: compound_id is required.")
 
@@ -266,6 +467,8 @@ class AssayCSVValidator:
 
         raw_value = row.get("value", "")
         try:
+            if isinstance(raw_value, bool):
+                raise TypeError("boolean is not a measurement")
             value = float(raw_value)
             if not math.isfinite(value):
                 errs.append(f"Row {row_num}: value must be finite.")
@@ -280,7 +483,7 @@ class AssayCSVValidator:
         except (ValueError, TypeError):
             errs.append(f"Row {row_num}: value '{raw_value}' is not a valid number.")
 
-        assay_date = row.get("assay_date", "")
+        assay_date = str(row.get("assay_date", "") or "")
         try:
             datetime.strptime(assay_date, "%Y-%m-%d")
         except ValueError:
@@ -292,6 +495,11 @@ class AssayCSVValidator:
                 f"Row {row_num}: operator '{operator}' must be one of "
                 f"{', '.join(sorted(VALID_OPERATORS))} or empty."
             )
+        elif operator in CENSORING_OPERATORS and rule is not None and rule.allowed_values is not None:
+            errs.append(
+                f"Row {row_num}: operator '{operator}' is not meaningful for {assay_type}, "
+                "a categorical flag; give the observed flag value with '=' or no operator."
+            )
 
         return errs
 
@@ -299,16 +507,22 @@ class AssayCSVValidator:
         unit = row["unit"]
         rule = ENDPOINT_RULES[row["assay_type"]]
         raw_value = float(row["value"])
+        operator = row.get("operator", "") or ""
 
-        return {
-            "compound_id": row["compound_id"],
-            "smiles": row.get("smiles", ""),
+        normalised = {
+            "compound_id": str(row["compound_id"]),
+            "smiles": str(row.get("smiles", "") or ""),
             "assay_type": row["assay_type"],
             "value": raw_value,
             "value_uM": raw_value * rule.units[unit],
             "unit": unit,
             "unit_normalized": rule.normalized_unit,
-            "operator": row.get("operator", ""),
-            "operator_note": row.get("operator_note", ""),
+            "operator": operator,
+            "censored": operator in CENSORING_OPERATORS,
+            "operator_note": str(row.get("operator_note", "") or ""),
             "assay_date": row["assay_date"],
         }
+        for key in ("source_system", "source_record_id", "provenance"):
+            if row.get(key) not in (None, ""):
+                normalised[key] = row[key]
+        return normalised

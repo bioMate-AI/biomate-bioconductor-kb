@@ -2,12 +2,17 @@
 Self-contained test suite for BayesianOptimizer.
 
 Run with:
-    cd /app && python backend/lib/galaxy/ai/drug_discovery/test_bo.py
+    python backend/lib/galaxy/ai/drug_discovery/test_bo.py
+    # or
+    pytest backend/lib/galaxy/ai/drug_discovery/test_bo.py
 """
+import json
 import os
 import sys
 import tempfile
 import traceback
+
+import pytest
 
 # Make the package importable when run directly from the repo root
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
@@ -60,10 +65,12 @@ OBJ_DIRECTIONS = {
 }
 
 
-def _make_dataset(smiles: list[str], rng: np.random.RandomState) -> CampaignDataset:
-    """Build a CampaignDataset with random Morgan-like features (256-bit)."""
+def _make_dataset(opt: BayesianOptimizer, smiles: list[str],
+                  rng: np.random.RandomState) -> CampaignDataset:
+    """Build a CampaignDataset featurised by the optimizer that will fit it,
+    so training and virtual-library compounds share one fingerprint space."""
     n = len(smiles)
-    features = rng.rand(n, 256)
+    features = opt.featurise(smiles)
     objectives = {
         "potency":      rng.uniform(0.1, 10.0, n),
         "selectivity":  rng.uniform(0.0, 1.0, n),
@@ -106,9 +113,8 @@ def test_fit_and_propose(db_path: str):
     print("\n--- Test 1: fit() and propose_next_round() ---")
     try:
         rng = np.random.RandomState(0)
-        dataset = _make_dataset(TRAIN_SMILES, rng)
-
         opt = BayesianOptimizer(campaign_id=CAMPAIGN_ID, db_path=db_path, n_initial=16)
+        dataset = _make_dataset(opt, TRAIN_SMILES, rng)
         opt.fit(dataset)
 
         proposal = opt.propose_next_round(VIRTUAL_SMILES, n_propose=5, diversity_weight=0.2)
@@ -143,6 +149,30 @@ def test_fit_and_propose(db_path: str):
             f"got {proposal.diversity_score:.4f}",
         )
         _report("pareto_front_smiles non-empty", len(proposal.pareto_front_smiles) > 0)
+        _report(
+            "per-candidate uncertainty for every objective",
+            all(len(v) == 5 and all(s > 0 for s in v) for v in proposal.gp_stds.values()),
+        )
+        # Random labels carry no structure-activity signal: the proposal must
+        # say it cannot rank, not present the score differences as real.
+        _report(
+            "random labels flagged as non-discriminating",
+            proposal.can_discriminate is False
+            and proposal.surrogate_report.get("can_discriminate") is False,
+            str(proposal.surrogate_report.get("objectives")),
+        )
+
+        foreign = CampaignDataset(
+            compound_ids=dataset.compound_ids, smiles_list=dataset.smiles_list,
+            features=rng.rand(len(dataset.smiles_list), 256),
+            objectives=dataset.objectives, objective_directions=dataset.objective_directions,
+        )
+        try:
+            BayesianOptimizer(campaign_id="foreign", db_path=db_path).fit(foreign)
+            _report("fit rejects features not built by featurise()", False, "no exception")
+        except ValueError as exc:
+            _report("fit rejects features not built by featurise()",
+                    "feature space" in str(exc), str(exc)[:80])
 
         print("\n  Proposed compounds:")
         for i, smi in enumerate(proposal.proposed_compounds):
@@ -169,11 +199,10 @@ def test_insufficient_data(db_path: str):
     print("\n--- Test 2: insufficient data guard ---")
     try:
         rng = np.random.RandomState(1)
-        small_dataset = _make_dataset(TRAIN_SMILES[:10], rng)  # only 10 < 16
-
         opt = BayesianOptimizer(
             campaign_id="small_campaign", db_path=db_path, n_initial=16
         )
+        small_dataset = _make_dataset(opt, TRAIN_SMILES[:10], rng)  # only 10 < 16
         opt.fit(small_dataset)
 
         raised = False
@@ -234,6 +263,9 @@ def test_save_load_roundtrip(db_path: str, proposal: RoundProposal):
             f"{p.diversity_score:.6f} vs {proposal.diversity_score:.6f}",
         )
         _report("timestamp preserved", p.timestamp == proposal.timestamp)
+        _report("can_discriminate preserved", p.can_discriminate == proposal.can_discriminate)
+        _report("surrogate_report preserved",
+                p.surrogate_report == json.loads(json.dumps(proposal.surrogate_report)))
 
     except Exception:
         traceback.print_exc()
@@ -290,11 +322,10 @@ def test_multiple_proposals(db_path: str):
     print("\n--- Test 5: successive proposals increment round_number ---")
     try:
         rng = np.random.RandomState(99)
-        dataset = _make_dataset(TRAIN_SMILES, rng)
-
         opt = BayesianOptimizer(
             campaign_id="multi_round_campaign", db_path=db_path, n_initial=16
         )
+        dataset = _make_dataset(opt, TRAIN_SMILES, rng)
         opt.fit(dataset)
 
         p1 = opt.propose_next_round(VIRTUAL_SMILES, n_propose=3)
@@ -306,6 +337,11 @@ def test_multiple_proposals(db_path: str):
     except Exception:
         traceback.print_exc()
         _report("test_multiple_proposals", False, "exception raised")
+
+
+@pytest.fixture
+def db_path(tmp_path):
+    return str(tmp_path / "test_bo.db")
 
 
 # ---------------------------------------------------------------------------

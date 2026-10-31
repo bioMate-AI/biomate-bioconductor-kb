@@ -1,10 +1,13 @@
 """
 Multi-objective Bayesian optimisation for BioMate drug discovery campaigns.
 
-Fits a Gaussian-process surrogate per objective, then proposes the next
-synthesis batch via expected hypervolume improvement + diversity penalty,
-closing the DMTA (Design–Make–Test–Analyse) loop.
+Fits a Gaussian-process surrogate per objective (Tanimoto kernel on Morgan
+fingerprints, see fingerprint_surrogate.py), then proposes the next synthesis
+batch via expected (hypervolume) improvement + diversity penalty, closing the
+DMTA (Design–Make–Test–Analyse) loop. Every proposal states whether the
+surrogate can actually discriminate between the candidates.
 """
+import hashlib
 import json
 import logging
 import sqlite3
@@ -22,18 +25,19 @@ except ImportError:
     np = None  # type: ignore[assignment]
 
 try:
-    from sklearn.gaussian_process import GaussianProcessRegressor
-    from sklearn.gaussian_process.kernels import Matern
-    from sklearn.preprocessing import MinMaxScaler
+    from .fingerprint_surrogate import (
+        SMALL_TRAINING_SET,
+        MorganFeaturizer,
+        TanimotoGP,
+        _RDKIT_AVAILABLE,
+        assess_discrimination,
+        expected_hypervolume_improvement,
+        expected_improvement,
+        tanimoto_similarity,
+    )
     _SKLEARN_AVAILABLE = True
 except ImportError:
     _SKLEARN_AVAILABLE = False
-
-try:
-    from rdkit import Chem
-    from rdkit.Chem import AllChem, DataStructs
-    _RDKIT_AVAILABLE = True
-except ImportError:
     _RDKIT_AVAILABLE = False
 
 
@@ -67,6 +71,12 @@ class RoundProposal:
     # Applicability domain status per proposed compound
     ad_statuses: list[str] = field(default_factory=list)
     gp_stds: dict[str, list[float]] = field(default_factory=dict)
+    # False when the posterior cannot confidently order any candidate pair:
+    # the scores then carry no ranking information beyond their uncertainty.
+    can_discriminate: Optional[bool] = None
+    # Kernel, featuriser, fitted noise, discrimination evidence, excluded
+    # candidates and warnings for this round.
+    surrogate_report: dict = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -78,8 +88,13 @@ class BayesianOptimizer:
     Multi-objective Bayesian optimizer for drug discovery campaigns.
 
     Maintains one GP surrogate per objective.  All objectives are internally
-    normalised to [0, 1] with 'higher = better' polarity so that HVI and
-    Pareto logic are consistent regardless of the original direction.
+    normalised to [0, 1] over the observed range with 'higher = better'
+    polarity so that HVI and Pareto logic are consistent regardless of the
+    original direction.  Predicted scores are on that normalised scale and may
+    fall outside [0, 1] for candidates predicted beyond the observed range.
+
+    Features must come from ``featurise`` (one shared featuriser for fit and
+    predict); ``fit`` rejects datasets whose features were built otherwise.
     """
 
     def __init__(
@@ -95,24 +110,26 @@ class BayesianOptimizer:
             )
         if not _SKLEARN_AVAILABLE:
             raise ImportError(
-                "scikit-learn is required for BayesianOptimizer. "
-                "Install it with: pip install scikit-learn"
+                "scikit-learn and scipy are required for BayesianOptimizer. "
+                "Install them with: pip install scikit-learn scipy"
             )
+        self._featurizer = MorganFeaturizer()
 
         self.campaign_id = campaign_id
         self.db_path = db_path
         self.n_initial = n_initial
 
-        # Reproducible RNG seeded from the campaign id
-        seed = abs(hash(campaign_id)) % (2 ** 31)
-        self._rng = np.random.RandomState(seed)
+        # Reproducible across processes (str hash() is salted per process).
+        self._seed = int.from_bytes(
+            hashlib.sha256(campaign_id.encode("utf-8")).digest()[:4], "big") % (2 ** 31)
+        self._rng = np.random.RandomState(self._seed)
 
-        self._gp_models: dict[str, "GaussianProcessRegressor"] = {}
-        self._scalers: dict[str, "MinMaxScaler"] = {}
+        self._gp_models: dict[str, TanimotoGP] = {}
+        self._observed_scaled: dict[str, "np.ndarray"] = {}
         self._objective_directions: dict[str, str] = {}
         self._dataset: Optional[CampaignDataset] = None
         self._round_number: int = 0
-        self._n_features: int = 2048  # updated after first fit()
+        self._n_features: int = self._featurizer.n_bits
 
         self._ensure_schema()
 
@@ -133,40 +150,28 @@ class BayesianOptimizer:
                     acquisition_values_json  TEXT NOT NULL,
                     pareto_front_smiles_json TEXT NOT NULL,
                     diversity_score          REAL NOT NULL,
-                    timestamp                TEXT NOT NULL
+                    timestamp                TEXT NOT NULL,
+                    surrogate_report_json    TEXT NOT NULL DEFAULT '{}'
                 )
             """)
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(bo_proposals)")}
+            if "surrogate_report_json" not in cols:
+                conn.execute("ALTER TABLE bo_proposals "
+                             "ADD COLUMN surrogate_report_json TEXT NOT NULL DEFAULT '{}'")
             conn.commit()
 
     # ------------------------------------------------------------------
     # Featurisation
     # ------------------------------------------------------------------
 
-    def _featurise(self, smiles_list: list[str]) -> "np.ndarray":
-        """
-        Convert SMILES to Morgan fingerprints (radius=2, nBits=2048).
+    def featurise(self, smiles_list: list[str]) -> "np.ndarray":
+        """Morgan fingerprints (radius 2, 2048 bits) — the only feature space
+        the surrogate is fitted and queried in. Unparsable SMILES give
+        all-zero rows; ``fit`` rejects them and proposals exclude them."""
+        X, _invalid = self._featurizer.featurise(smiles_list)
+        return X
 
-        Falls back to seeded random vectors if RDKit is not available so that
-        the rest of the pipeline remains functional for unit tests.
-        """
-        n = len(smiles_list)
-        if _RDKIT_AVAILABLE:
-            fps: list[np.ndarray] = []
-            for smi in smiles_list:
-                mol = Chem.MolFromSmiles(smi)
-                if mol is None:
-                    fps.append(np.zeros(2048, dtype=np.float64))
-                    continue
-                fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048)
-                arr = np.zeros(2048, dtype=np.float32)
-                DataStructs.ConvertToNumpyArray(fp, arr)
-                fps.append(arr.astype(np.float64))
-            return np.array(fps, dtype=np.float64)
-
-        log.warning("RDKit not available; using seeded random vectors for featurisation.")
-        seed = abs(hash(tuple(smiles_list[:5]))) % (2 ** 31)
-        rng = np.random.RandomState(seed)
-        return rng.rand(n, self._n_features)
+    _featurise = featurise
 
     # ------------------------------------------------------------------
     # Pareto front
@@ -201,123 +206,99 @@ class BayesianOptimizer:
         return is_pareto
 
     # ------------------------------------------------------------------
-    # Hypervolume improvement (Monte Carlo)
-    # ------------------------------------------------------------------
-
-    def _hypervolume_improvement(
-        self,
-        candidate_scores: "np.ndarray",
-        pareto_front: "np.ndarray",
-        reference_point: "np.ndarray",
-    ) -> "np.ndarray":
-        """
-        Approximate hypervolume improvement (HVI) for each candidate via MC.
-
-        Samples 1 000 random points uniformly between reference_point and
-        np.ones(n_obj) and estimates the fraction newly dominated after
-        adding each candidate to the current Pareto front.
-
-        Args:
-            candidate_scores: N_cand × M array of candidate objective scores.
-            pareto_front:     N_pareto × M array of current Pareto-front scores.
-            reference_point:  M-dimensional nadir / reference point.
-
-        Returns:
-            N_cand array of approximate HVI values in [0, 1].
-        """
-        n_samples = 1000
-        n_obj = candidate_scores.shape[1]
-
-        # Guard: if reference_point == 1 everywhere, no volume to gain
-        upper = np.ones(n_obj)
-        if np.all(reference_point >= upper):
-            return np.zeros(len(candidate_scores))
-
-        mc_samples = self._rng.uniform(
-            low=reference_point, high=upper, size=(n_samples, n_obj)
-        )
-
-        # Which MC samples are already dominated by the current Pareto front?
-        dominated_by_front = np.zeros(n_samples, dtype=bool)
-        for pf_point in pareto_front:
-            dominated_by_front |= np.all(mc_samples <= pf_point, axis=1)
-
-        hvi = np.zeros(len(candidate_scores))
-        for i, cand in enumerate(candidate_scores):
-            dominated_by_cand = np.all(mc_samples <= cand, axis=1)
-            hvi[i] = (dominated_by_cand & ~dominated_by_front).sum() / n_samples
-
-        return hvi
-
-    # ------------------------------------------------------------------
-    # Diversity helper
-    # ------------------------------------------------------------------
-
-    def _tanimoto_distance(self, fp_a: "np.ndarray", fp_b: "np.ndarray") -> float:
-        """Binary Tanimoto distance between two binary fingerprint vectors."""
-        a = fp_a.astype(bool)
-        b = fp_b.astype(bool)
-        intersection = np.logical_and(a, b).sum()
-        union = np.logical_or(a, b).sum()
-        if union == 0:
-            return 0.0
-        return 1.0 - float(intersection) / float(union)
-
-    # ------------------------------------------------------------------
     # Fitting
     # ------------------------------------------------------------------
 
     def fit(self, dataset: CampaignDataset):
         """
-        Fit one GP surrogate per objective using a Matérn-5/2 kernel.
+        Fit one Tanimoto-kernel GP surrogate per objective.
 
-        Each objective is normalised to [0, 1].  Objectives with direction
-        'minimize' are additionally flipped so that higher GP output always
-        corresponds to a better compound.
+        Each objective is min-max normalised to [0, 1] over the observed
+        values; 'minimize' objectives are flipped so that higher is better.
 
-        Args:
-            dataset: Observed campaign data with feature matrix and objectives.
+        Raises:
+            ValueError: if a training SMILES cannot be parsed, or if
+                ``dataset.features`` are not this optimizer's fingerprints of
+                ``dataset.smiles_list`` (fit and predict must share features).
         """
-        X = dataset.features  # N×F
+        n = len(dataset.smiles_list)
+        X, invalid = self._featurizer.featurise(dataset.smiles_list)
+        if invalid:
+            bad = [dataset.smiles_list[i] for i in invalid]
+            raise ValueError(f"cannot featurise training SMILES {bad!r}")
+        given = np.asarray(dataset.features, dtype=np.float64)
+        if given.shape != X.shape or not np.array_equal(given, X):
+            raise ValueError(
+                f"dataset.features (shape {given.shape}) are not the optimizer's "
+                f"{self._featurizer.signature} fingerprints of dataset.smiles_list "
+                f"(shape {X.shape}); build them with BayesianOptimizer.featurise() so "
+                "training and candidate compounds share one feature space"
+            )
+        for obj_name, y_raw in dataset.objectives.items():
+            if len(y_raw) != n:
+                raise ValueError(f"objective {obj_name!r} has {len(y_raw)} values for {n} compounds")
+
         self._dataset = dataset
         self._objective_directions = dict(dataset.objective_directions)
         self._n_features = X.shape[1]
+        self._gp_models = {}
+        self._observed_scaled = {}
 
         for obj_name, y_raw in dataset.objectives.items():
             direction = dataset.objective_directions.get(obj_name, "maximize")
-
-            scaler = MinMaxScaler()
-            y_scaled = scaler.fit_transform(y_raw.reshape(-1, 1)).ravel()
-
+            y = np.asarray(y_raw, dtype=np.float64)
+            lo, hi = float(y.min()), float(y.max())
+            y_scaled = (y - lo) / (hi - lo) if hi > lo else np.zeros_like(y)
             if direction == "minimize":
                 y_scaled = 1.0 - y_scaled
+            self._observed_scaled[obj_name] = y_scaled
 
-            self._scalers[obj_name] = scaler
-
-            kernel = Matern(nu=2.5)
-            gp = GaussianProcessRegressor(
-                kernel=kernel,
-                n_restarts_optimizer=3,
-                random_state=self._rng.randint(0, 2 ** 31),
-                normalize_y=True,
-            )
+            gp = TanimotoGP(random_state=self._rng.randint(0, 2 ** 31 - 1))
             gp.fit(X, y_scaled)
+            for msg in gp.fit_warnings:
+                log.warning("BayesianOptimizer.fit[%s/%s]: %s", self.campaign_id, obj_name, msg)
             self._gp_models[obj_name] = gp
 
         # Sync round counter with the persisted round ledger (bo_proposals).
         self._round_number = self.latest_round()
 
         log.info(
-            "BayesianOptimizer.fit: campaign=%s n_compounds=%d objectives=%s round=%d",
+            "BayesianOptimizer.fit: campaign=%s n_compounds=%d objectives=%s round=%d "
+            "noise=%s",
             self.campaign_id,
-            len(dataset.compound_ids),
+            n,
             list(dataset.objectives.keys()),
             self._round_number,
+            {k: round(m.noise_level, 4) for k, m in self._gp_models.items()},
         )
 
     # ------------------------------------------------------------------
     # Proposal generation
     # ------------------------------------------------------------------
+
+    def _screen_candidates(self, smiles_list: list[str]) -> "tuple[list[int], list[dict]]":
+        """Indices of usable candidates, plus the excluded ones with reasons.
+
+        Excludes unparsable SMILES, repeats of an earlier candidate (same
+        canonical structure) and compounds already measured in training.
+        """
+        measured = {self._featurizer.canonical(s) for s in self._dataset.smiles_list}
+        seen: dict[str, int] = {}
+        keep: list[int] = []
+        excluded: list[dict] = []
+        for i, smi in enumerate(smiles_list):
+            can = self._featurizer.canonical(smi)
+            if can is None:
+                excluded.append({"smiles": smi, "reason": "invalid_smiles"})
+            elif can in measured:
+                excluded.append({"smiles": smi, "reason": "already_measured"})
+            elif can in seen:
+                excluded.append({"smiles": smi, "reason": "duplicate_structure",
+                                 "duplicate_of": smiles_list[seen[can]]})
+            else:
+                seen[can] = i
+                keep.append(i)
+        return keep, excluded
 
     def propose_next_round(
         self,
@@ -327,22 +308,22 @@ class BayesianOptimizer:
     ) -> RoundProposal:
         """
         Score the virtual library under the surrogate and select the best
-        n_propose compounds using HVI acquisition + Tanimoto diversity penalty.
+        n_propose compounds by acquisition + Tanimoto diversity.
 
-        Selection is greedy: at each step the compound maximising
+        Acquisition uses posterior mean and uncertainty: analytic expected
+        improvement over the best observed compound for one objective, Monte
+        Carlo expected hypervolume improvement over the observed Pareto front
+        for several. Selection is greedy: at each step the compound maximising
 
-            (1 - diversity_weight) * HVI
+            (1 - diversity_weight) * acquisition / max(acquisition)
             + diversity_weight * min_tanimoto_dist_from_selected
 
         is chosen and added to the batch.
 
-        Args:
-            virtual_library_smiles: SMILES strings of candidate compounds.
-            n_propose:              How many compounds to propose.
-            diversity_weight:       Weight [0, 1] given to diversity term.
-
-        Returns:
-            RoundProposal with selected compounds and metadata.
+        ``can_discriminate`` / ``surrogate_report`` state whether the
+        posterior can confidently order any candidate pair; when it cannot,
+        predicted score differences are within uncertainty and the batch is
+        exploratory.
 
         Raises:
             ValueError: If fewer than n_initial training observations exist.
@@ -362,66 +343,62 @@ class BayesianOptimizer:
         obj_names = list(self._gp_models.keys())
         n_obj = len(obj_names)
 
-        # Featurise virtual library
-        X_lib = self._featurise(virtual_library_smiles)
+        keep, excluded = self._screen_candidates(virtual_library_smiles)
+        cand_smiles = [virtual_library_smiles[i] for i in keep]
+        X_lib = self.featurise(cand_smiles)
+        n_cand = len(cand_smiles)
 
-        # GP mean predictions + posterior std (for confidence intervals) over the virtual library
-        pred_scores = np.zeros((len(virtual_library_smiles), n_obj))
-        pred_stds   = np.zeros((len(virtual_library_smiles), n_obj))
+        pred_scores = np.zeros((n_cand, n_obj))
+        pred_stds = np.zeros((n_cand, n_obj))
         for j, obj_name in enumerate(obj_names):
-            mu, sigma = self._gp_models[obj_name].predict(X_lib, return_std=True)
-            pred_scores[:, j] = mu
-            pred_stds[:, j]   = sigma
-        pred_scores = np.clip(pred_scores, 0.0, 1.0)
+            if n_cand:
+                mu, sigma = self._gp_models[obj_name].predict(X_lib, return_std=True)
+                pred_scores[:, j] = mu
+                pred_stds[:, j] = sigma
 
-        # Current Pareto front from training observations
-        train_preds = np.column_stack([
-            np.clip(self._gp_models[obj_name].predict(self._dataset.features), 0.0, 1.0)
-            for obj_name in obj_names
-        ])
-        pareto_mask_train = self._compute_pareto_front(train_preds)
-        pareto_front_scores = train_preds[pareto_mask_train]
+        observed = np.column_stack([self._observed_scaled[o] for o in obj_names])
+        pareto_mask_train = self._compute_pareto_front(observed)
 
-        reference_point = np.zeros(n_obj)
-        hvi = self._hypervolume_improvement(pred_scores, pareto_front_scores, reference_point)
+        if n_cand == 0:
+            acquisition = np.zeros(0)
+            acquisition_kind = "none"
+        elif n_obj == 1:
+            acquisition = expected_improvement(pred_scores[:, 0], pred_stds[:, 0],
+                                               float(observed[:, 0].max()))
+            acquisition_kind = "expected_improvement"
+        else:
+            acquisition = expected_hypervolume_improvement(
+                pred_scores, pred_stds, observed[pareto_mask_train],
+                reference_point=np.zeros(n_obj), rng=self._rng,
+            )
+            acquisition_kind = "expected_hypervolume_improvement"
+        acq_max = float(acquisition.max()) if n_cand else 0.0
+        acq_norm = acquisition / acq_max if acq_max > 0 else np.zeros(n_cand)
 
         # Greedy batch construction with diversity bonus
         selected_indices: list[int] = []
-        selected_fps: list[np.ndarray] = []
-        acq_values: list[float] = []
-        remaining = list(range(len(virtual_library_smiles)))
+        selection_scores: list[float] = []
+        remaining = list(range(n_cand))
+        for _ in range(min(n_propose, n_cand)):
+            if selected_indices:
+                sim = tanimoto_similarity(X_lib[remaining], X_lib[selected_indices])
+                diversity = 1.0 - sim.max(axis=1)
+            else:
+                diversity = np.ones(len(remaining))
+            combined = ((1.0 - diversity_weight) * acq_norm[remaining]
+                        + diversity_weight * diversity)
+            k = int(np.argmax(combined))
+            selected_indices.append(remaining.pop(k))
+            selection_scores.append(round(float(combined[k]), 6))
 
-        for _ in range(min(n_propose, len(virtual_library_smiles))):
-            if not remaining:
-                break
-
-            best_idx: Optional[int] = None
-            best_score = -np.inf
-
-            for idx in remaining:
-                diversity = (
-                    min(self._tanimoto_distance(X_lib[idx], sfp) for sfp in selected_fps)
-                    if selected_fps
-                    else 1.0
-                )
-                combined = (1.0 - diversity_weight) * hvi[idx] + diversity_weight * diversity
-                if combined > best_score:
-                    best_score = combined
-                    best_idx = idx
-
-            selected_indices.append(best_idx)
-            selected_fps.append(X_lib[best_idx])
-            acq_values.append(float(best_score))
-            remaining.remove(best_idx)
-
-        proposed_smiles = [virtual_library_smiles[i] for i in selected_indices]
+        proposed_smiles = [cand_smiles[i] for i in selected_indices]
 
         scores_dict: dict[str, list[float]] = {
             obj_name: [float(pred_scores[i, j]) for i in selected_indices]
             for j, obj_name in enumerate(obj_names)
         }
 
-        # 95% confidence intervals: mean ± 1.96 × posterior_std
+        # 95% intervals of the predicted (latent) score: mean ± 1.96 × posterior std.
         ci_dict: dict[str, list[tuple[float, float]]] = {}
         std_dict: dict[str, list[float]] = {}
         for j, obj_name in enumerate(obj_names):
@@ -429,9 +406,9 @@ class BayesianOptimizer:
             stds = []
             for i in selected_indices:
                 mu_i = float(pred_scores[i, j])
-                s_i  = float(pred_stds[i, j])
+                s_i = float(pred_stds[i, j])
                 half = 1.96 * s_i
-                cis.append((round(max(0.0, mu_i - half), 4), round(min(1.0, mu_i + half), 4)))
+                cis.append((round(mu_i - half, 4), round(mu_i + half, 4)))
                 stds.append(round(s_i, 6))
             ci_dict[obj_name] = cis
             std_dict[obj_name] = stds
@@ -441,9 +418,9 @@ class BayesianOptimizer:
         try:
             from .applicability_domain import ApplicabilityDomainChecker
             ad_checker = ApplicabilityDomainChecker(self._dataset.features)
-            for i in selected_indices:
+            for k, i in enumerate(selected_indices):
                 result = ad_checker.check(
-                    proposed_smiles[len(ad_statuses)],
+                    proposed_smiles[k],
                     X_lib[i],
                     gp_mean=float(pred_scores[i, 0]),
                     gp_std=float(pred_stds[i, 0]),
@@ -459,15 +436,15 @@ class BayesianOptimizer:
             if flag
         ]
 
-        if len(selected_fps) >= 2:
-            pairwise = [
-                self._tanimoto_distance(selected_fps[a], selected_fps[b])
-                for a in range(len(selected_fps))
-                for b in range(a + 1, len(selected_fps))
-            ]
-            diversity_score = float(np.mean(pairwise))
+        if len(selected_indices) >= 2:
+            sim = tanimoto_similarity(X_lib[selected_indices], X_lib[selected_indices])
+            iu = np.triu_indices(len(selected_indices), k=1)
+            diversity_score = float(np.mean(1.0 - sim[iu]))
         else:
             diversity_score = 1.0
+
+        report = self._surrogate_report(X_lib, obj_names, excluded, acquisition_kind,
+                                        selection_scores, n_requested=n_propose)
 
         self._round_number += 1
 
@@ -476,14 +453,65 @@ class BayesianOptimizer:
             round_number=self._round_number,
             proposed_compounds=proposed_smiles,
             scores=scores_dict,
-            acquisition_values=acq_values,
+            acquisition_values=[float(acquisition[i]) for i in selected_indices],
             pareto_front_smiles=pareto_smiles,
             diversity_score=diversity_score,
             timestamp=datetime.now(timezone.utc).isoformat(),
             confidence_intervals=ci_dict,
             ad_statuses=ad_statuses,
             gp_stds=std_dict,
+            can_discriminate=report["can_discriminate"],
+            surrogate_report=report,
         )
+
+    def _surrogate_report(self, X_lib: "np.ndarray", obj_names: list[str],
+                          excluded: list[dict], acquisition_kind: str,
+                          selection_scores: list[float], n_requested: int) -> dict:
+        n_train = len(self._dataset.compound_ids)
+        warnings: list[str] = []
+        objectives: dict[str, dict] = {}
+        for obj_name in obj_names:
+            gp = self._gp_models[obj_name]
+            disc = assess_discrimination(gp, X_lib)
+            objectives[obj_name] = {
+                "noise_level": round(gp.noise_level, 6),
+                "log_marginal_likelihood": round(gp.log_marginal_likelihood_value_, 6),
+                "discrimination": disc,
+            }
+            if gp.constant_labels:
+                warnings.append(f"{obj_name}: constant_labels — all observed values are identical")
+            if gp.noise_at_upper_bound:
+                warnings.append(f"{obj_name}: noise_at_upper_bound — fingerprint similarity "
+                                "explains none of the label variance")
+            warnings.extend(f"{obj_name}: {m}" for m in gp.fit_warnings)
+            if not disc["can_discriminate"]:
+                warnings.append(f"{obj_name}: cannot_discriminate — {disc['reason']}")
+        if n_train < SMALL_TRAINING_SET:
+            warnings.append(f"small_training_set: {n_train} compounds (< {SMALL_TRAINING_SET}); "
+                            "the fitted noise level and all uncertainties are rough")
+        if excluded:
+            warnings.append(f"{len(excluded)} virtual-library entries excluded")
+        n_proposed = len(selection_scores)
+        if n_proposed < n_requested:
+            warnings.append(f"fewer_than_requested: {n_proposed} of {n_requested} proposed; "
+                            f"only {X_lib.shape[0]} usable virtual-library entries")
+        can = any(o["discrimination"]["can_discriminate"] for o in objectives.values())
+        return {
+            "model": "gaussian_process",
+            "kernel": "1.0 * Tanimoto + White(noise)",
+            "featurizer": self._featurizer.signature,
+            "score_scale": "observed range min-max normalised, higher = better",
+            "acquisition": acquisition_kind,
+            "selection_scores": selection_scores,
+            "n_train": n_train,
+            "n_requested": int(n_requested),
+            "n_proposed": n_proposed,
+            "n_candidates_scored": int(X_lib.shape[0]),
+            "can_discriminate": bool(can),
+            "objectives": objectives,
+            "excluded_candidates": excluded,
+            "warnings": warnings,
+        }
 
     # ------------------------------------------------------------------
     # Persistence
@@ -539,8 +567,8 @@ class BayesianOptimizer:
             INSERT INTO bo_proposals
             (campaign_id, round_number, proposed_smiles, scores_json,
              acquisition_values_json, pareto_front_smiles_json,
-             diversity_score, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             diversity_score, timestamp, surrogate_report_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             proposal.campaign_id,
             round_number,
@@ -550,6 +578,7 @@ class BayesianOptimizer:
             json.dumps(proposal.pareto_front_smiles),
             proposal.diversity_score,
             proposal.timestamp,
+            json.dumps(proposal.surrogate_report),
         ))
         proposal.round_number = round_number
         self._round_number = max(self._round_number, round_number)
@@ -576,8 +605,11 @@ class BayesianOptimizer:
                 pareto_front_smiles=json.loads(row["pareto_front_smiles_json"]),
                 diversity_score=row["diversity_score"],
                 timestamp=row["timestamp"],
+                can_discriminate=report.get("can_discriminate"),
+                surrogate_report=report,
             )
             for row in rows
+            for report in [json.loads(row["surrogate_report_json"] or "{}")]
         ]
 
     # ------------------------------------------------------------------
