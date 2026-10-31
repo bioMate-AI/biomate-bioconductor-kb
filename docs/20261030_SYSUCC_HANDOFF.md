@@ -139,7 +139,7 @@ Later commits are documentation only:
    - Partial diagnostics: `/tmp/bo_diag/` (temporary).
    - **Expected outcome:** either discriminating scores (e.g. a Tanimoto kernel, consistent features) or an explicit "cannot discriminate" flag with uncertainty. Never fake differences.
 3. **Assay data contract gaps.** No code change yet; design notes from the stopped task:
-   - **Benchling:** `benchling_connector.py` emits `assay_name/assay_value/created_at`, but the validator expects `assay_type/value/assay_date`.
+   - **Benchling:** see `docs/20261030_BENCHLING_INTEGRATION_ASSESSMENT.md` for the connection options and a full defect list. In short, the polling connector uses the wrong auth scheme and API host, lacks the required `schemaId`, and treats compound links as SMILES. Also, `benchling_connector.py` emits `assay_name/assay_value/created_at`, but the validator expects `assay_type/value/assay_date`.
      - Plan: split the validator into row-level `validate_rows`, and give `AssayIngestionService` a shared `ingest_rows` used by both CSV and LIMS.
      - Map at the connector boundary. Benchling entity-link fields reference registry IDs, not SMILES, so the mapping must be configurable.
      - Make any missing-API-key mock fallback explicit.
