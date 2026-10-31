@@ -168,3 +168,22 @@ A third piece, the connection check in `frontend/server/routes.ts` (~line 16918)
 - Sharing apps across tenants: https://docs.benchling.com/docs/managing-and-sharing-benchling-apps
 - Partner program: https://www.benchling.com/partnerships
 - Hosting and security (US primary, EU on request, AWS): https://help.benchling.com/hc/en-us/articles/39953690790669 ; Benchling Data Processing Addendum (Oct 2023)
+
+## Appendix: draft outreach email to Benchling
+
+To: integrations@benchling.com (or the "Become a partner" form at https://www.benchling.com/partnerships)
+
+> **Subject:** Technology partnership: BioMate AI research platform as a Benchling AI Connector (MCP)
+>
+> Hello Benchling Integrations team,
+>
+> BioMate (Houston, TX) builds an AI research platform for drug discovery and biomedical research. It runs validated analysis workflows (omics, ADMET/PK, structure) and learns from experimental assay results through versioned predictive models and next-experiment proposals.
+>
+> We already operate a remote MCP server (Streamable HTTP, OAuth 2.1 with PKCE and Dynamic Client Registration, RFC 9728/8414 metadata), which customers use from Claude, ChatGPT and Cursor. We'd like to make BioMate available to Benchling customers as an AI Connector for Chat and Deep Research, and later explore a structured integration (a Benchling App reading reviewed assay results and registered molecules, and writing BioMate predictions back as a clearly labelled computational result schema).
+>
+> Could you share next steps for:
+> 1. joining the Technology Partner program and being considered for the AI Connector (MCP) Directory;
+> 2. getting access to a partner/test tenant with Chat/Deep Research, AI Connectors and the Developer Platform enabled, so we can validate the OAuth flow end to end?
+>
+> Best regards,
+> [Name, title], BioMate AI, [email / phone]

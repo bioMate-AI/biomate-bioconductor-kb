@@ -109,10 +109,12 @@ Tests: new suites under `drug_discovery/tests/` and `ml_training/tests/`. The lo
 
 **Live check on dev after the sync:** `scripts/test_sysucc_usecases.py --live` gives **31 passed, 1 failed**, up from 19 passed and 13 failed. Artifact saving now works. The remaining failure is expected: PKNCA is not installed in the generic R code-runner; the indexed PKNCA workflow runs in its own container.
 
-Later commits are documentation only:
+Later commits are documentation and analysis only:
 - `38dd6f468`: dev verification note; Chinese document made self-contained.
-- `6146c12a6`: open-LLM comparison.
+- `6146c12a6`: open-LLM comparison harness and results.
 - `03f45f659` and `b100e38db`: BD research sections.
+- `71df3bb43`: this handoff.
+- `d73489b58` and `5c895a82c`: Benchling integration assessment, including the MCP path.
 
 ## 4. Open-LLM comparison (internal only; not for the hospital)
 
@@ -160,6 +162,51 @@ Later commits are documentation only:
    - the Ludwig scaffold split is untested against real Ludwig;
    - the ADMET follow-up after a retrain is not automated;
    - `GET /retrain` still triggers a retrain (kept for backward compatibility).
+
+## 5b. Benchling integration (added late on 2026-10-30)
+
+Full write-up: `docs/20261030_BENCHLING_INTEGRATION_ASSESSMENT.md`. Benchling does not apply to SYSUCC: it is hosted in the US/EU, with no documented China region, and needs a public endpoint. It matters for US/EU biotech and CRO customers.
+
+**Fastest path: MCP AI Connector, with no new code.**
+- Benchling AI (Chat and Deep Research) accepts external MCP servers as "AI Connectors". The admin path is Tenant Admin Console → Settings → AI Connectors → Add AI Connector:
+  - Server: `https://<biomate-host>/mcp`;
+  - Type: HTTP;
+  - OAuth: dynamic discovery / dynamic client registration.
+- Each user then connects under AI → Settings → AI Connectors and signs in to BioMate.
+- BioMate's existing remote MCP server (repo `/Users/kky/biomate-connector`, `remote_mcp/`, deployed behind `https://dev-public.biomate.ai/mcp`) already provides:
+  - a Streamable HTTP endpoint;
+  - a 401 response with an RFC 9728 `resource_metadata` challenge;
+  - RFC 8414 authorization-server metadata;
+  - dynamic client registration at `/oauth/register`;
+  - PKCE S256 and refresh tokens;
+  - 24 tools.
+
+  The metadata endpoints were verified live on dev on 2026-10-30.
+- **Not yet tested; needs a Benchling tenant:**
+  - **Client authentication:** our metadata advertises `token_endpoint_auth_methods_supported: ["none"]`. If Benchling registers as a confidential client (`client_secret_basic` or `client_secret_post`), add support for that.
+  - **Callback:** confirm the redirect URI `https://<tenant>.benchling.com/1/api/llm/mcp/oauth/callback` is accepted.
+  - **Resource parameter:** confirm we handle RFC 8707 `resource`.
+  - **Default tool set:** decide which tools are on by default; keep `run_instrument_protocol` off.
+  - **Data processing:** the customer's prompts and tool inputs reach BioMate's cloud, so a data-processing agreement is needed.
+- **Benchling MCP Directory listing** (one-click install for all customers): through Benchling partnerships, integrations@benchling.com or https://www.benchling.com/partnerships. A draft outreach email is in the appendix of the Benchling assessment.
+
+**Reverse direction:** Benchling's own MCP server, `https://<tenant>.mcp.benchling.com/mcp`.
+- OAuth 2.1 delegated auth with dynamic client registration; no API keys.
+- The tenant needs Benchling Chat, Benchling MCP and V3 APIs enabled.
+- Good for conversational access. It does **not** replace a structured REST or warehouse sync for training labels.
+
+**Structured sync (REST): the existing connector is broken.** `backend/lib/galaxy/ai/drug_discovery/benchling_connector.py`:
+- sends API keys as Bearer, but Benchling needs Basic, or OAuth for an app;
+- uses the wrong host `api.benchling.com`; it must be the tenant URL;
+- treats `schemaId` as optional, but it is required;
+- reads `molecule_link` IDs as SMILES;
+- takes the "first numeric field" as the assay value;
+- outputs keys that don't match the validator;
+- falls back to mock mode silently;
+- accepts the API key in a query string;
+- ignores review and archive status.
+
+`backend/lib/integrations/benchling_connector.py` uses Basic auth correctly and is the better base. A 9-step rebuild plan is in the assessment, section 4. Do this only when a Benchling customer is in the pipeline, and test against a real tenant.
 
 ## 6. Working-tree cautions
 
