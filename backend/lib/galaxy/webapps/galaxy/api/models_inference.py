@@ -130,9 +130,8 @@ _CUSTOM_PREFIX = "custom:"
 # ─────────────────────────────────────────────────────────────────────────────
 # The registry is per-campaign. For the catalog we read the shared registration
 # table directly (read-only) across all campaigns so the Models UI can list
-# every registered custom model. Dispatch of a custom model still goes through
-# the registry's in-process wrapper (a model must be re-registered in-process to
-# actually run — the registry documents this).
+# every registered custom model. Dispatch goes through the registry, which runs
+# the model's active version (see custom_model_registry).
 def _campaign_db_dir() -> str:
     import os
     from pathlib import Path
@@ -1194,10 +1193,10 @@ def _bionemo_genomic(client, fn_name: str, inputs: Dict[str, Any]) -> Dict[str, 
 # ─────────────────────────────────────────────────────────────────────────────
 def _dispatch_custom(model_id: str, inputs: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Dispatch a registered custom scoring model over a SMILES list. Returns a
-    chemical-shaped result. A custom model must be re-registered in-process to
-    actually run (CustomModelRegistry keeps wrappers in memory) — if it is not
-    loaded, we return a labelled stub of the correct shape.
+    Dispatch the active version of a registered custom scoring model over a
+    SMILES list. Returns a chemical-shaped result. Persisted versions (trained
+    artifacts, REST, Docker) load from the campaign DB; if the model cannot be
+    run, we return a labelled stub of the correct shape.
     """
     parsed = _parse_custom_id(model_id)
     if parsed is None:
@@ -1211,16 +1210,16 @@ def _dispatch_custom(model_id: str, inputs: Dict[str, Any]) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail="chemical inference requires 'smiles'")
 
     try:
-        from galaxy.ai.drug_discovery.custom_model_registry import CustomModelRegistry
+        from galaxy.ai.drug_discovery.custom_model_registry import get_registry
 
-        registry = CustomModelRegistry(_campaign_db(campaign_id))
+        registry = get_registry(_campaign_db(campaign_id))
         scores, _record = registry.run_named_model(campaign_id, model_name, smiles_list)
     except KeyError as exc:
-        # Model registered in DB but not loaded in this process — expected;
-        # return a labelled stub of the right shape.
+        # Unknown model, no active version, or an in-process python function
+        # from another process — return a labelled stub of the right shape.
         return _stub_result(
             CHEMICAL,
-            reason=f"custom model not loaded in-process: {exc}",
+            reason=f"custom model not runnable: {exc}",
             smiles_list=smiles_list,
         )
     except HTTPException:

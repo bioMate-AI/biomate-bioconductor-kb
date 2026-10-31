@@ -1,0 +1,12 @@
+SYNTHETIC SOFTWARE TEST FIXTURE. Not a real compound or GLP study.
+Study ID: QA-RAT-001
+Single-dose intravenous pharmacokinetics in rat.
+Measured terminal half-life = 8 h.
+Cmax = 250 ng/mL.
+AUCinf = 1500 ng.h/mL.
+Plasma protein binding = 96.5%.
+hERG IC50 = 5000 nM.
+NOAEL = 25 mg/kg/day in rat.
+Ames test: negative.
+Chromosomal aberration: negative.
+Micronucleus: negative.

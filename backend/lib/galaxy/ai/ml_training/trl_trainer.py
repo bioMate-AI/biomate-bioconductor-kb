@@ -330,7 +330,10 @@ def _finish(cfg: TrainingConfig, artifact_dir: str, model_type: str,
         model_type=model_type, artifact_dir=artifact_dir, metrics=metrics,
         n_train=n_train, n_val=0, n_test=0, framework_version=fw,
         extra={"model_dir": model_dir, "base_model": cfg.llm.base_model,
-               "adapter": cfg.llm.adapter, "task": "text_generation", **extra},
+               "adapter": cfg.llm.adapter, "task": "text_generation",
+               # TRL trains on every row; val_frac/test_frac are not applied.
+               "split": {"requested": cfg.dataset.split, "method": "none_all_rows_train"},
+               **extra},
     )
     (Path(artifact_dir) / "manifest.json").write_text(json.dumps({
         "name": cfg.name, "model_type": result.model_type, "task_type": cfg.task_type,

@@ -1290,21 +1290,11 @@ class INDSectionAssembler:
             from .wetlab_report_ingester import WetLabReportIngester
             ingester = WetLabReportIngester()
 
-            # Accept either raw dict (WetLabStudyData.to_dict()) or structured input
-            if "fu_plasma" in wetlab_data and isinstance(wetlab_data.get("fu_plasma"), (int, float)):
-                # Already flattened — use ingest_structured
-                wl = ingester.ingest_structured(wetlab_data,
-                                                drug_name=wetlab_data.get("drug_name", ""),
-                                                source_reference=wetlab_data.get("source_document", "wetlab"))
-            elif "value" in str(wetlab_data.get("fu_plasma", "")):
-                # MeasuredValue dicts from to_dict()
-                wl = ingester.ingest_structured(
-                    {k: v["value"] if isinstance(v, dict) and "value" in v else v
-                     for k, v in wetlab_data.items()},
-                    source_reference=wetlab_data.get("source_document", "wetlab")
-                )
-            else:
-                wl = ingester.ingest_structured(wetlab_data)
+            # ingest_structured accepts flat values and WetLabStudyData.to_dict()
+            # MeasuredValue dicts; dicts keep their species/source provenance.
+            wl = ingester.ingest_structured(wetlab_data,
+                                            drug_name=wetlab_data.get("drug_name", ""),
+                                            source_reference=wetlab_data.get("source_document", "wetlab"))
 
             pk_override = wl.to_pk_summary_override()
 
@@ -1420,8 +1410,10 @@ class INDSectionAssembler:
                     lead_assays = compounds.get(lead_cid, {}).get("assays", {})
                     if "hERG" in lead_assays:
                         lead_herg = f"{lead_assays['hERG']:.2f}"
-                    lead_ames_result = "positive" if lead_assays.get("Ames", 0) >= 1.0 else "negative"
-                    lead_dili_result = "positive" if lead_assays.get("DILI", 0) >= 1.0 else "negative"
+                    if "Ames" in lead_assays:
+                        lead_ames_result = "positive" if lead_assays["Ames"] >= 1.0 else "negative"
+                    if "DILI" in lead_assays:
+                        lead_dili_result = "positive" if lead_assays["DILI"] >= 1.0 else "negative"
             except Exception:
                 pass
 
@@ -2451,17 +2443,20 @@ reactive metabolite burden per EMA/CHMP/HMPC/700003/2012 §4.2.
         region = ctx.get("region", "FDA")
 
         if single:
-            species = single.get("species", "rat and mouse")
-            route = single.get("route", "oral")
+            species = single.get("species") or "a species not stated in the report"
+            route = single.get("route") or "an unstated route of"
             ld50 = single.get("ld50")
             ld50_unit = single.get("ld50_unit", "mg/kg")
             noael = single.get("noael")
             noael_unit = single.get("noael_unit", "mg/kg")
             findings = single.get("key_findings", "No unexpected findings were observed.")
-            glp = "GLP-compliant" if single.get("glp", True) else "non-GLP"
+            glp_flag = single.get("glp")
+            glp = ("under GLP-compliant conditions" if glp_flag is True
+                   else "under non-GLP conditions" if glp_flag is False
+                   else "(GLP status not stated in the report)")
             narrative = (
                 f"Single-dose toxicity studies of {drug} were conducted in {species} by {route} "
-                f"administration under {glp} conditions. "
+                f"administration {glp}. "
                 f"{'The approximate lethal dose (LD50) was ' + str(ld50) + ' ' + ld50_unit + '. ' if ld50 else ''}"
                 f"{'The NOAEL was ' + str(noael) + ' ' + noael_unit + '. ' if noael else ''}"
                 f"{findings}"

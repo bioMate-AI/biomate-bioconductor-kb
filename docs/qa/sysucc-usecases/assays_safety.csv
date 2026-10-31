@@ -1,0 +1,4 @@
+compound_id,smiles,assay_type,value,unit,assay_date,operator
+A,CCO,hERG,1,uM,2026-10-02,=
+B,CCN,hERG,50,uM,2026-10-02,=
+C,CCC,hERG,25,uM,2026-10-02,=

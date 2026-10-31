@@ -2,22 +2,55 @@
 Core ingestion logic for BioMate assay data.
 
 Handles CSV parsing, validation, SQLite persistence, and compound ranking.
+
+Ranking contract (get_ranked_compounds / ingest()["updated_ranks"]):
+  - Each assay type belongs to an objective (potency, safety, developability;
+    other types are their own objective). A campaign's objectives are those
+    measured for any of its compounds.
+  - Every ranked compound carries ``coverage_status`` ("complete" when it has
+    a measurement for every campaign objective, else "incomplete"),
+    ``measured_objectives`` and ``missing_objectives``.
+  - Complete compounds always rank ahead of incomplete ones; only a complete
+    compound can be presented as an overall lead.
+  - ``combined_score`` is computed from the compound's measured objectives
+    only. For an incomplete compound it is a partial score and is not
+    comparable with the scores of complete compounds.
+  - ingest() returns ``warnings`` naming every incomplete compound.
 """
 import sqlite3
 from datetime import datetime, timezone
 from statistics import mean
 from typing import Optional
 
-from .assay_schema import AssayCSVValidator, SUPPORTED_ASSAY_TYPES
+from .assay_schema import AssayCSVValidator, SUPPORTED_ASSAY_TYPES, canonical_structure
+
+# Exported ranking contract: the key of each ranked compound's observed score
+# (also the campaign_compound_ranks column name) and its coverage fields.
+RANKED_SCORE_KEY = "combined_score"
+COVERAGE_STATUS_KEY = "coverage_status"
+COVERAGE_COMPLETE = "complete"
+COVERAGE_INCOMPLETE = "incomplete"
 
 # Assay types where a lower measured value = better therapeutic potency.
 _LOWER_IS_BETTER = {"IC50", "Ki", "Kd", "EC50"}
 
-# Assay types where a HIGHER measured value = better safety profile.
+# Assay types where a HIGHER measured value = better.
 # hERG IC50: higher IC50 means the drug is less cardiotoxic.
 # solubility: higher is better for bioavailability.
 # permeability: higher Caco-2/PAMPA is better for absorption.
-_HIGHER_IS_BETTER = {"hERG", "solubility", "permeability"}
+# pIC50 / percent_inhibition: higher means more potent.
+_HIGHER_IS_BETTER = {"hERG", "solubility", "permeability", "pIC50", "percent_inhibition"}
+
+# Objective each assay type provides evidence for; unlisted types are their own objective.
+_OBJECTIVE_OF_ASSAY = {
+    **{at: "potency" for at in ("IC50", "Ki", "Kd", "EC50", "pIC50", "percent_inhibition")},
+    **{at: "safety" for at in ("hERG", "DILI", "Ames", "ClinTox")},
+    **{at: "developability" for at in ("solubility", "permeability")},
+}
+
+
+def _objective(assay_type: str) -> str:
+    return _OBJECTIVE_OF_ASSAY.get(assay_type, assay_type)
 
 # hERG safety gate: IC50 below this threshold (µM) triggers a safety penalty.
 # ICH S7B guideline: safety concern if hERG IC50 < 30× therapeutic Cmax;
@@ -80,9 +113,14 @@ class AssayIngestionService:
         """Parse, validate, and persist assay rows; recompute ranks.
 
         Returns a summary dict with keys:
-            ingested, errors, updated_ranks, newly_failed, newly_passed
+            ingested, errors, warnings, updated_ranks, newly_failed, newly_passed
+
+        Rows whose compound_id conflicts with a structure already stored for
+        the campaign (or with another row of the file) are rejected in
+        ``errors``.
         """
-        rows, errors = self._validator.validate(csv_path)
+        rows, errors = self._validator.validate(
+            csv_path, known_structures=self._known_structures(campaign_id))
         ingested = 0
         now = datetime.now(timezone.utc).isoformat()
 
@@ -128,13 +166,51 @@ class AssayIngestionService:
             elif old_rank > mid and new_rank <= mid:
                 newly_passed.append(cid)
 
+        warnings = [
+            f"Compound {r['compound_id']} is incompletely evaluated: missing "
+            f"{', '.join(r['missing_objectives'])} (measured: {', '.join(r['measured_objectives'])}). "
+            "It is ranked after fully evaluated compounds and its combined_score covers "
+            "measured objectives only, so it is not an overall lead candidate."
+            for r in updated_ranks if r[COVERAGE_STATUS_KEY] != COVERAGE_COMPLETE
+        ]
+
         return {
             "ingested": ingested,
             "errors": errors,
+            "warnings": warnings,
             "updated_ranks": updated_ranks,
             "newly_failed": newly_failed,
             "newly_passed": newly_passed,
         }
+
+    def _known_structures(self, campaign_id: str) -> dict[str, set[str]]:
+        """compound_id → canonical structures already stored for the campaign."""
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute("""
+                SELECT DISTINCT compound_id, smiles FROM campaign_assay_results
+                WHERE campaign_id = ? AND smiles IS NOT NULL AND smiles != ''
+            """, (campaign_id,))
+            stored = cur.fetchall()
+        known: dict[str, set[str]] = {}
+        for cid, smiles in stored:
+            key, _ = canonical_structure(smiles)
+            # An unparseable stored SMILES still identifies the compound by its text.
+            known.setdefault(cid, set()).add(key or smiles.strip())
+        return known
+
+    @staticmethod
+    def _coverage(by_compound: dict[str, list[dict]]) -> dict[str, dict]:
+        objectives = {_objective(r["assay_type"]) for rows in by_compound.values() for r in rows}
+        coverage = {}
+        for cid, rows in by_compound.items():
+            measured = {_objective(r["assay_type"]) for r in rows}
+            missing = sorted(objectives - measured)
+            coverage[cid] = {
+                COVERAGE_STATUS_KEY: COVERAGE_INCOMPLETE if missing else COVERAGE_COMPLETE,
+                "measured_objectives": sorted(measured),
+                "missing_objectives": missing,
+            }
+        return coverage
 
     # ------------------------------------------------------------------
     # Rank computation
@@ -203,7 +279,11 @@ class AssayIngestionService:
             base = mean(component_scores) if component_scores else 0.0
             scores[cid] = max(0.0, base - safety_penalty)
 
-        ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        coverage = self._coverage(by_compound)
+        ranked = sorted(
+            scores.items(),
+            key=lambda x: (coverage[x[0]][COVERAGE_STATUS_KEY] != COVERAGE_COMPLETE, -x[1], x[0]),
+        )
         now = datetime.now(timezone.utc).isoformat()
 
         with sqlite3.connect(self.db_path) as conn:
@@ -216,7 +296,7 @@ class AssayIngestionService:
             conn.commit()
 
         return [
-            {"compound_id": cid, "combined_score": score, "rank": rank}
+            {"compound_id": cid, RANKED_SCORE_KEY: score, "rank": rank, **coverage[cid]}
             for rank, (cid, score) in enumerate(ranked, start=1)
         ]
 
@@ -236,7 +316,14 @@ class AssayIngestionService:
             return [dict(row) for row in cur.fetchall()]
 
     def get_ranked_compounds(self, campaign_id: str) -> list[dict]:
-        """Compounds ranked by combined_score descending, with SMILES if available."""
+        """Ranked compounds with SMILES and coverage (see the module ranking contract)."""
+        by_compound: dict[str, list[dict]] = {}
+        for r in self.get_campaign_results(campaign_id):
+            by_compound.setdefault(r["compound_id"], []).append(r)
+        coverage = self._coverage(by_compound)
+        unmeasured = {COVERAGE_STATUS_KEY: COVERAGE_INCOMPLETE, "measured_objectives": [],
+                      "missing_objectives": sorted({o for c in coverage.values()
+                                                    for o in c["measured_objectives"]})}
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cur = conn.execute("""
@@ -251,4 +338,5 @@ class AssayIngestionService:
                 GROUP BY r.compound_id, r.combined_score, r.rank
                 ORDER BY r.rank
             """, (campaign_id,))
-            return [dict(row) for row in cur.fetchall()]
+            return [{**dict(row), **coverage.get(row["compound_id"], unmeasured)}
+                    for row in cur.fetchall()]

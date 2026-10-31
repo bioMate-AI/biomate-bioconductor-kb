@@ -58,11 +58,48 @@ def to_ludwig_config(cfg: TrainingConfig, target_col: str = "y") -> dict[str, An
             "learning_rate": hp.learning_rate,
             "early_stop": 5,
         },
-        "preprocessing": {"split": {"type": "random",
-                                    "probabilities": [
-                                        1 - cfg.dataset.val_frac - cfg.dataset.test_frac,
-                                        cfg.dataset.val_frac, cfg.dataset.test_frac]}},
+        "preprocessing": {"split": _split_config(cfg)},
     }
+
+
+# Column holding precomputed partition ids for Ludwig's `fixed` split
+# (0 = train, 1 = validation, 2 = test).
+SPLIT_COLUMN = "split"
+
+
+def _split_config(cfg: TrainingConfig) -> dict[str, Any]:
+    if cfg.dataset.split == "scaffold":
+        # Ludwig has no scaffold splitter; the trainer computes Bemis–Murcko
+        # partitions (splits.scaffold_split) into SPLIT_COLUMN.
+        return {"type": "fixed", "column": SPLIT_COLUMN}
+    if cfg.dataset.split == "random":
+        return {"type": "random",
+                "probabilities": [1 - cfg.dataset.val_frac - cfg.dataset.test_frac,
+                                  cfg.dataset.val_frac, cfg.dataset.test_frac]}
+    raise ValueError(f"unsupported split '{cfg.dataset.split}'")
+
+
+def add_split_column(df, cfg: TrainingConfig) -> dict[str, Any]:
+    """Write SPLIT_COLUMN for a scaffold split; return the split metadata.
+
+    For split='random' Ludwig performs the split itself, so only the method
+    and requested fractions are recorded.
+    """
+    spec = cfg.dataset
+    if spec.split == "random":
+        return {"requested": "random", "method": "ludwig_random",
+                "seed": cfg.hyperparams.seed, "fractions":
+                [1 - spec.val_frac - spec.test_frac, spec.val_frac, spec.test_frac]}
+    from .splits import scaffold_split
+    result = scaffold_split(list(df["_smiles"]), spec.val_frac, spec.test_frac,
+                            cfg.hyperparams.seed)
+    part = [0] * len(df)
+    for i in result.val:
+        part[i] = 1
+    for i in result.test:
+        part[i] = 2
+    df[SPLIT_COLUMN] = part
+    return result.metadata()
 
 
 def to_ludwig_llm_config(cfg: TrainingConfig) -> dict[str, Any]:
@@ -91,7 +128,8 @@ def to_ludwig_llm_config(cfg: TrainingConfig) -> dict[str, Any]:
             "batch_size": hp.batch_size,
             "learning_rate": hp.learning_rate,
         },
-        "preprocessing": {"global_max_sequence_length": llm.max_sequence_length},
+        "preprocessing": {"global_max_sequence_length": llm.max_sequence_length,
+                          "split": _split_config(cfg)},
     }
     if llm.adapter in ("lora", "qlora"):
         config["adapter"] = {"type": "lora"}
