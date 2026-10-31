@@ -208,6 +208,35 @@ From public reports and procurement notices. Some links are inferred from matchi
 - **Integrate, don't replace.** BioMate can call the hospital's local DeepSeek and run on its own cluster, and could potentially be exposed as a tool inside the existing agent platform.
 - **Everything runs on-premises.** Patient and genomic data are processed inside the hospital. A start on public or de-identified data is possible.
 
+### 2.9 Existing research platforms and providers: where they are mature, where the gaps are
+
+The hospital is strong at *producing* data: sequencing, imaging, pathology and clinical data. In some areas it already has mature platforms and providers, and BioMate adds little there. The clearest gap is **analysis capacity**: 2026 procurement shows research groups still buying "sequencing + all data analysis until publication + training" bundles from outside companies. This is based on public information, and some platform pages may be outdated; verify in the meeting. Sources: [core facilities](research/20261030_SYSUCC_CORE_FACILITIES_RESEARCH.md), [drug-research ecosystem](research/20261030_SYSUCC_DRUG_RESEARCH_ECOSYSTEM_RESEARCH.md).
+
+| Area | Current state | Maturity | Meaning for BioMate |
+| --- | --- | --- | --- |
+| Sequencing data generation | In-house platform (Illumina, 10x single-cell, genotyping) offering paid sequencing and analysis; large projects outsourced through the hospital's research-services portal (e.g. 1,700-sample cfDNA WGS, single-cell projects, MRD panels) | Mature | We don't do sequencing |
+| Bioinformatics analysis | A bioinformatics service platform with no public service menu found; strong computational PIs (e.g. Ren Jian, Zuo Zhixiang, already using Nextflow); a bioinformatics cluster awarded September 2026; a molecular-diagnostics analysis platform being planned | Partial; demand exceeds supply | **Main entry point:** a workflow and AI analysis layer on the new cluster, serving groups without bioinformaticians |
+| Single-cell and spatial | 10x in-house; spatial (Visium, Stereo-seq) appears in papers, no in-house spatial instrument found | Partial | Cross-platform single-cell and spatial analysis |
+| Mass-spec proteomics and metabolomics | Limited in-house instruments; high-end mass spec at the SYSU Analysis & Test Center | Partial, likely a gap | Downstream mass-spec analysis |
+| Flow cytometry | Sorter and analyzers, new purchases under way; no CyTOF found | Mature | High-parameter flow analysis |
+| Imaging and pathology | Super-resolution, confocal, light-sheet and high-content imaging; 5 slide scanners, in-house pathology AI models and an outside partner | Mature | **Little added value**; not a focus |
+| Cryo-EM | None at the hospital; SYSU's university-level cryo-EM facility opened December 2025 | Covered by the university | Structure processing and analysis as a complement |
+| Organoids, PDX, screening | Organoids run by individual PIs; no central organoid core or compound-screening facility found | Partial | Organoid drug-response analysis and the learning loop |
+| Clinical data and cohorts | Research big-data platform, data deposit, central randomization, EDC; but about 2 statisticians support 1,400+ IITs | Platform mature, statistics thin | **Little value** in the data platform itself; **real value** in IIT statistics and biomarker analysis |
+| Molecular-diagnostics sequencing | mNGS and MRD tests on vendor kits and leased instruments; a data-integration compute platform being planned | Partial, growing | Molecular-diagnostics analysis pipelines |
+| Drug design and computational chemistry | Small medicinal-chemistry synthesis and antibody/protein platforms; no AI drug design, computational chemistry or ADMET team or partner found | Gap | Room for design and ADMET, but the in-house user base may be small |
+
+**Notes for BD:**
+
+- **Little added value:** clinical AI and data platforms, pathology AI, sequencing itself, and basic pipelines the computational PIs already have. Mention these briefly and listen for dissatisfaction.
+- **Most likely fit:**
+  - analysis for groups without bioinformaticians, who currently outsource;
+  - a workflow and AI analysis layer on the new bioinformatics cluster;
+  - IIT statistics and biomarker analysis;
+  - organoid and drug-response analysis;
+  - downstream analysis of mass-spec and high-parameter flow data.
+- **Drug design:** in-house demand may sit with a few chemistry and antibody groups, plus closely linked companies and the SYSU School of Pharmaceutical Sciences. Ask them to suggest the right teams.
+
 ---
 
 ## 3. BioMate in brief
@@ -299,6 +328,8 @@ The BioMate home page asks *"What are you trying to do?"* and offers four module
 ## 6. Research support across instruments and data types
 
 Beyond drug development, BioMate supports the everyday research of faculty teams. It has validated workflows for the data produced by common laboratory instruments and platforms. A research group brings the files its instrument produces; BioMate runs the appropriate analysis, quality control and statistics, and produces figures and a methods description.
+
+**BD note:** the hospital already has mature platforms and providers in some areas, such as pathology AI, imaging and sequencing itself (section 2.9). Introduce this section briefly and focus on hearing which analysis needs are not yet met.
 
 | Instrument / platform | Data | What BioMate does | Example research use at a cancer hospital |
 | --- | --- | --- | --- |
@@ -485,7 +516,7 @@ We are running a side-by-side comparison on precisely scored research tasks with
 1. Which departments and research teams would benefit most from a research platform? Which disease areas are priorities, for example NPC, colorectal cancer or immunotherapy?
 2. What do they expect from a platform like this? What has their current AI platform not yet solved for researchers?
 3. Which kinds of research data are most common across the hospital: sequencing, single-cell, proteomics, cytometry, imaging, pathology, clinical cohorts?
-4. How do research teams analyze data today: core facilities, in-house bioinformaticians, outsourced services or their own scripts?
+4. How do research teams analyze data today: core facilities, in-house bioinformaticians, outsourced services or their own scripts? Are groups satisfied with the cost, turnaround and reproducibility of outsourced analysis? How many staff does the bioinformatics service platform have, and how many groups can it support?
 5. Is there drug-research activity with **measured lab results**, such as organoid or cell drug-response assays, including failures? *This is the most valuable input for experimental learning.*
 6. How does the hospital measure success for AI projects: publications, research throughput, platform adoption or grant support?
 
@@ -596,6 +627,8 @@ Precise wording earns trust with a technical IT audience.
 **Who we meet:** Director Li Chaofeng, senior engineer, research-literate and AI-literate. The clinical AI middle platform (full DeepSeek-R1, about 170 agents) was built mainly by Yidu Tech. The bioinformatics HPC and GPU compute is being built now, with no analysis-pipeline layer on top yet.
 
 **Position:** a complement to their AI platform. BioMate is the research execution and learning layer; it is model-agnostic and works with open models. It doesn't compete with the AI middle platform; it adds analysis and drug-development capability on top of the research compute.
+
+**Most likely gaps:** groups outsource data analysis; the new bioinformatics cluster has no workflow layer; IIT statistics are thin; organoid and drug-response analysis; no AI drug design or ADMET capability. **Already mature:** clinical AI, pathology AI, imaging, sequencing itself.
 
 **Four modules:** Search & evidence · Data analysis · Molecule design & generate · Models.
 
