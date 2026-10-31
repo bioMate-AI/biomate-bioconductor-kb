@@ -21,7 +21,7 @@ from typing import Any
 from .config import TrainingConfig
 from .datasets import LoadedDataset
 from .chemprop_trainer import TrainingResult
-from .ludwig_adapter import to_ludwig_llm_config
+from .ludwig_adapter import add_split_column, to_ludwig_llm_config
 
 log = logging.getLogger(__name__)
 
@@ -67,7 +67,8 @@ def train_ludwig_llm(cfg: TrainingConfig, ds: LoadedDataset, artifact_dir: str) 
         n_train=len(df), n_val=0, n_test=0,
         framework_version=f"ludwig=={getattr(getattr(_lud,'globals',None),'LUDWIG_VERSION', getattr(_lud,'__version__','?'))}",
         extra={"model_dir": model_dir, "base_model": llm.base_model,
-               "adapter": llm.adapter, "task": "text_generation"},
+               "adapter": llm.adapter, "task": "text_generation",
+               "split": add_split_column(df, cfg)},
     )
     _write_manifest(artifact_dir, cfg, result)
     return result

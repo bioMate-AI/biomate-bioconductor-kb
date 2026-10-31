@@ -1,6 +1,9 @@
 """Unit tests for the TrainingConfig → Ludwig config adapter (no ludwig needed)."""
+import pytest
+
 from galaxy.ai.ml_training.config import TrainingConfig, DatasetSpec, Hyperparams
-from galaxy.ai.ml_training.ludwig_adapter import to_ludwig_config, FEATURE_COLUMNS
+from galaxy.ai.ml_training.ludwig_adapter import (to_ludwig_config, add_split_column,
+                                                  FEATURE_COLUMNS, SPLIT_COLUMN)
 
 
 def _cfg(**over):
@@ -41,12 +44,37 @@ def test_hyperparams_flow_into_trainer_and_encoder():
 
 
 def test_split_probabilities_reflect_dataset_fracs():
-    cfg = _cfg(dataset=DatasetSpec(name="tdc:hERG", target_col="Y",
+    cfg = _cfg(dataset=DatasetSpec(name="tdc:hERG", target_col="Y", split="random",
                                    val_frac=0.15, test_frac=0.15))
     lc = to_ludwig_config(cfg, target_col="Y")
+    assert lc["preprocessing"]["split"]["type"] == "random"
     probs = lc["preprocessing"]["split"]["probabilities"]
     assert abs(sum(probs) - 1.0) < 1e-9
     assert probs == [0.7, 0.15, 0.15]
+
+
+def test_scaffold_split_uses_fixed_partition_column():
+    """Ludwig has no scaffold splitter: a scaffold request must map to a fixed
+    split over precomputed partitions, never to Ludwig's random split."""
+    lc = to_ludwig_config(_cfg(), target_col="Y")   # DatasetSpec default split=scaffold
+    assert lc["preprocessing"]["split"] == {"type": "fixed", "column": SPLIT_COLUMN}
+
+
+def test_add_split_column_writes_scaffold_partitions():
+    pytest.importorskip("rdkit")
+    pd = pytest.importorskip("pandas")
+    smiles = ["c1ccccc1C", "c1ccccc1CC", "c1ccccc1O", "C1CCCCC1C", "C1CCCCC1N",
+              "c1ccncc1C", "c1ccncc1N", "CCO", "CCN", "CCCC"]
+    df = pd.DataFrame({"_smiles": smiles})
+    meta = add_split_column(df, _cfg(dataset=DatasetSpec(name="tdc:hERG", target_col="Y",
+                                                         val_frac=0.2, test_frac=0.2)))
+    assert meta["method"] == "bemis_murcko_scaffold"
+    assert set(df[SPLIT_COLUMN]) <= {0, 1, 2}
+    from galaxy.ai.ml_training.splits import bemis_murcko_scaffold
+    by_scaffold = {}
+    for smi, part in zip(df["_smiles"], df[SPLIT_COLUMN]):
+        by_scaffold.setdefault(bemis_murcko_scaffold(smi), set()).add(part)
+    assert all(len(parts) == 1 for parts in by_scaffold.values())
 
 
 def test_ludwig_tabular_is_a_valid_model_type():

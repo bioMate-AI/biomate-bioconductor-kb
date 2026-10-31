@@ -16,8 +16,12 @@ Extracted fields per study:
   key_findings     str   plain-text summary of main findings
   ames_result      bool  True=positive/mutagenic, False=negative; None=not an Ames study
   herg_ic50_um     float hERG IC50 in µM; None if not an hERG study
-  glp              bool  True if GLP-compliant
+  glp              bool  True if the report states GLP compliance, False if it
+                         states non-GLP, None if it says neither
   study_id         str   study report identifier from the document
+
+Documents that declare themselves computational predictions only are rejected:
+this extractor stores its output as measured wet-lab data.
 """
 from __future__ import annotations
 
@@ -25,6 +29,13 @@ import logging
 import re
 from pathlib import Path
 from typing import Optional
+
+from .evidence_provenance import (
+    SPECIES_PATTERN as _SPECIES_PATTERN,
+    detect_glp_status,
+    is_prediction_only,
+    normalise_species as _normalise_species,
+)
 
 log = logging.getLogger(__name__)
 
@@ -46,11 +57,6 @@ _STUDY_TYPE_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"\bsafety pharmacology\b|\bfob\b|\bfunctional observational\b", re.I), "safety_pharmacology"),
 ]
 
-_SPECIES_PATTERN = re.compile(
-    r"\b(sprague.?dawley|wistar|fischer|cd.?1|balb/c|c57|beagle|cynomolgus|"
-    r"rat|mouse|mice|dog|monkey|rabbit|hamster|guinea pig|minipig|pig)\b",
-    re.I,
-)
 _ROUTE_PATTERN = re.compile(
     # Abbreviations like i.v./s.c./i.m. end with '.' — no trailing \b (non-word boundary)
     r"\b(oral(?:ly)?|gavage|intravenous(?:ly)?|i\.v\.|subcutaneous(?:ly)?|"
@@ -86,8 +92,6 @@ _DURATION_PATTERN = re.compile(
     r"\b(\d+(?:\.\d+)?)\s*(day|week|month|year)s?\b",
     re.I,
 )
-_GLP_PATTERN = re.compile(r"\bGLP.?compliant\b|\bconducted.{0,20}GLP\b|"
-                           r"\bGood Laboratory Practice\b", re.I)
 _STUDY_ID_PATTERN = re.compile(
     r"(?:study\s+(?:no|number|id|report)[.\s:]+|report\s+no[.\s:]+)"
     r"([A-Z0-9][A-Z0-9/_\-]{2,30})",
@@ -172,6 +176,12 @@ def extract_from_pdf(pdf_bytes: bytes) -> dict:
             "(Ames test, repeat-dose, single-dose, etc.) for structured extraction."
         )}
 
+    if is_prediction_only(full_text):
+        return {"error": (
+            "This document states that it contains computational predictions only, "
+            "not measured study results. It cannot be stored as wet-lab study data."
+        )}
+
     # Classification from full text
     study_type = _classify_study_type(full_text)
 
@@ -251,8 +261,8 @@ def extract_from_pdf(pdf_bytes: bytes) -> dict:
                 pass
             ld50_unit = ld50_m.group(2)
 
-    # GLP compliance
-    glp = bool(_GLP_PATTERN.search(full_text[:3000]))
+    # GLP compliance: tri-state; an explicit non-GLP statement is never read as GLP
+    glp = detect_glp_status(full_text[:3000])
 
     # Study ID
     study_id = None
@@ -282,22 +292,6 @@ def extract_from_pdf(pdf_bytes: bytes) -> dict:
         "study_id": study_id,
         "text_length": len(full_text),
     }
-
-
-def _normalise_species(raw: str) -> str:
-    raw = raw.lower()
-    mapping = {
-        "sprague": "rat", "wistar": "rat", "fischer": "rat", "rat": "rat",
-        "mouse": "mouse", "mice": "mouse", "balb": "mouse", "c57": "mouse", "cd-1": "mouse",
-        "beagle": "dog", "dog": "dog",
-        "cynomolgus": "monkey", "monkey": "monkey",
-        "rabbit": "rabbit", "hamster": "hamster",
-        "guinea": "guinea pig", "minipig": "minipig", "pig": "pig",
-    }
-    for key, norm in mapping.items():
-        if key in raw:
-            return norm
-    return raw.strip()
 
 
 def _normalise_route(raw: str) -> str:

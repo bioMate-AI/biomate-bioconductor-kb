@@ -16,7 +16,8 @@ from typing import Any
 from .config import TrainingConfig
 from .datasets import LoadedDataset
 from .chemprop_trainer import TrainingResult
-from .ludwig_adapter import to_ludwig_config, featurize_smiles_df, FEATURE_COLUMNS
+from .ludwig_adapter import (to_ludwig_config, featurize_smiles_df, add_split_column,
+                             FEATURE_COLUMNS)
 
 log = logging.getLogger(__name__)
 
@@ -36,10 +37,13 @@ def train_ludwig(cfg: TrainingConfig, ds: LoadedDataset, artifact_dir: str) -> T
         raise ValueError(f"too few valid molecules to train ({len(df)})")
 
     config = to_ludwig_config(cfg, target_col=target)
-    log.info("[ludwig] training %s: %d mols, %d epochs", cfg.name, len(df), cfg.hyperparams.epochs)
+    split_meta = add_split_column(df, cfg)
+    log.info("[ludwig] training %s: %d mols, %d epochs, split=%s",
+             cfg.name, len(df), cfg.hyperparams.epochs, split_meta["method"])
 
     model = LudwigModel(config, logging_level=logging.ERROR)
-    # Ludwig does its own train/val/test split (from config.preprocessing).
+    # Split per config.preprocessing: Ludwig's own random split, or the fixed
+    # scaffold partitions written by add_split_column.
     train_stats, _, _ = model.train(
         dataset=df.drop(columns=["_smiles"]),
         output_directory=str(Path(artifact_dir) / "ludwig_run"),
@@ -52,12 +56,14 @@ def train_ludwig(cfg: TrainingConfig, ds: LoadedDataset, artifact_dir: str) -> T
     model.save(model_dir)
 
     import ludwig as _lud
+    counts = split_meta if "n_train" in split_meta else {}
     result = TrainingResult(
         model_type="ludwig_tabular", artifact_dir=artifact_dir, metrics=metrics,
-        n_train=len(df), n_val=0, n_test=0,
+        n_train=counts.get("n_train", len(df)), n_val=counts.get("n_val", 0),
+        n_test=counts.get("n_test", 0),
         framework_version=f"ludwig=={_lud.globals.LUDWIG_VERSION if hasattr(_lud,'globals') else getattr(_lud,'__version__','?')}",
         extra={"model_dir": model_dir, "feature_columns": FEATURE_COLUMNS,
-               "target_col": target},
+               "target_col": target, "split": split_meta},
     )
     _write_manifest(artifact_dir, cfg, result)
     return result

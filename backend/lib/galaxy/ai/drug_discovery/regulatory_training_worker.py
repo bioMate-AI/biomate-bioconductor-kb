@@ -14,11 +14,12 @@ Picks up `queued` jobs and dispatches on adaptation_mode:
                    time. Stub: writes a placeholder so the lifecycle
                    exercise works.
 
-  post_train_lora → full GPU SFT/DPO LoRA on the open base. Gated by
-                   harness witness: refuses to run unless
-                   models/regulatory_llm_eval_witness.json shows local >
-                   frontier with non-overlap-CI on the org's task mix.
-                   Without that witness, GPU spend is forbidden per
+  post_train_lora → full GPU SFT/DPO LoRA on the open base. NOT IMPLEMENTED:
+                   jobs end `failed` with a not_implemented message and no
+                   adapter_path. Gated first by harness witness: refuses
+                   unless models/regulatory_llm_eval_witness.json shows
+                   local > frontier with non-overlap-CI on the org's task
+                   mix. Without that witness, GPU spend is forbidden per
                    CLAUDE.md "Review Code Before Testing — No
                    Speculative Deploys".
 """
@@ -31,7 +32,6 @@ from galaxy.ai.drug_discovery import regulatory_training_jobs as rj
 
 log = logging.getLogger(__name__)
 
-SIMULATED_TRAIN_SECONDS = float(os.environ.get("REG_TRAIN_SIMULATED_SECONDS", "1.0"))
 POLL_SECONDS = float(os.environ.get("REG_TRAIN_POLL_SECONDS", "5.0"))
 
 REPO = Path(__file__).resolve().parents[5]
@@ -39,12 +39,6 @@ MODELS_ROOT = REPO / "models"
 ORG_RULES_DIR = REPO / "data" / "regulatory_training" / "org_rules"
 ORG_FEWSHOT_DIR = REPO / "data" / "regulatory_training" / "org_fewshot"
 HARNESS_WITNESS = MODELS_ROOT / "regulatory_llm_eval_witness.json"
-
-
-def _adapter_path_for(org_id: str, version: str = "v7") -> str:
-    """Match _resolve_adapter_path in ind_assembly so a succeeded job
-    creates a record the live serving path will find next time."""
-    return str(MODELS_ROOT / f"regulatory_llm_{version}_{org_id}" / "lora_adapter")
 
 
 # ─── per-mode handlers ─────────────────────────────────────────────────────
@@ -117,15 +111,17 @@ def _do_post_train_lora(job: rj.TrainingJob) -> rj.TrainingJob:
             "failed",
             message="no_edit_pairs_available — collect customer DPO pairs first",
         )
-    # Real GPU loop goes here. The stub simulates training, then registers
-    # the adapter path the serving resolver will pick up.
-    time.sleep(SIMULATED_TRAIN_SECONDS)
-    adapter = _adapter_path_for(job.org_id)
+    # No GPU SFT/DPO loop exists yet. Never report success or an adapter path:
+    # ind_assembly._resolve_adapter_path serves whatever adapter a succeeded
+    # job points at.
     return rj.mark_status(
         job.job_id,
-        "succeeded",
-        message=f"post_train_lora stub_completed on {job.edit_pair_count} pairs",
-        adapter_path=adapter,
+        "failed",
+        message=(
+            "not_implemented — post_train_lora GPU training is not implemented; "
+            f"no adapter was trained from {job.edit_pair_count} pairs. "
+            "Use adaptation_mode=prompt_rules or few_shot_index."
+        ),
     )
 
 

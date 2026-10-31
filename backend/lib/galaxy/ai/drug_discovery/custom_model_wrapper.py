@@ -96,16 +96,17 @@ class DockerModelWrapper(BaseModelWrapper):
                  input_format: str = 'smiles_one_per_line',
                  output_format: str = 'json_smiles_to_score',
                  weight: float = 1.0, higher_is_better: bool = True,
-                 extra_args: list[str] = None):
+                 extra_args: list[str] = None, command: list[str] = None):
         super().__init__(name, campaign_id, weight, higher_is_better)
         self.image = image
         self.input_format = input_format
         self.output_format = output_format
         self.extra_args = extra_args or []
+        self.command = command or []
 
     def score(self, smiles_list: list[str]) -> dict[str, float]:
         stdin_data = '\n'.join(smiles_list).encode()
-        cmd = ['docker', 'run', '--rm', '-i'] + self.extra_args + [self.image]
+        cmd = ['docker', 'run', '--rm', '-i'] + self.extra_args + [self.image] + self.command
         proc = subprocess.run(cmd, input=stdin_data, capture_output=True, timeout=300)
         if proc.returncode != 0:
             raise RuntimeError(
