@@ -1,0 +1,50 @@
+[
+  {
+    "id": "AVB6-K-01",
+    "seq": "FRGDLSWPA",
+    "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](CO)NC1=O",
+    "status": "ok_cyclic"
+  },
+  {
+    "id": "AVB6-K-02",
+    "seq": "WRGDLTFPV",
+    "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](C(C)C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H]([C@@H](C)O)NC1=O",
+    "status": "ok_cyclic"
+  },
+  {
+    "id": "AVB6-K-03",
+    "seq": "YRGDLGHPL",
+    "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](CC(C)C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2c[nH]cn2)NC(=O)CNC1=O",
+    "status": "ok_cyclic"
+  },
+  {
+    "id": "AVB6-K-05",
+    "seq": "FRGDLIFPA",
+    "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC1=O",
+    "status": "ok_cyclic"
+  },
+  {
+    "id": "AVB6-K-06",
+    "seq": "RGDLQFPSG",
+    "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)CNC(=O)[C@H](CO)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CCC(N)=O)NC1=O",
+    "status": "ok_cyclic"
+  },
+  {
+    "id": "AVB6-K-07",
+    "seq": "LRGDLSFPT",
+    "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](CC(C)C)NC(=O)[C@H]([C@@H](C)O)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CO)NC1=O",
+    "status": "ok_cyclic"
+  },
+  {
+    "id": "AVB6-K-08",
+    "seq": "YRGDLIWPA",
+    "smiles": "CC[C@H](C)[C@@H]1NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@H](C)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2c[nH]c3ccccc23)NC1=O",
+    "status": "ok_cyclic"
+  },
+  {
+    "id": "CTRL-avebehexin",
+    "seq": "FRGDLAFPK",
+    "smiles": "CC(C)C[C@@H]1NC(=O)[C@H](CC(=O)O)NC(=O)CNC(=O)[C@H](CCCNC(=N)N)NC(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](CCCCN)NC(=O)[C@@H]2CCCN2C(=O)[C@H](Cc2ccccc2)NC(=O)[C@H](C)NC1=O",
+    "status": "ok_cyclic"
+  }
+]

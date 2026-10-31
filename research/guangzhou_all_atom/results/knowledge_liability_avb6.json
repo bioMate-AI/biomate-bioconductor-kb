@@ -1,0 +1,130 @@
+{
+  "target": "avb6",
+  "n": 10,
+  "flags": [
+    {
+      "id": "AVB6-K-05",
+      "helm": "cyclo(F-R-G-D-L-I-F-[dP]-[NMeA])",
+      "seq": "FRGDLIFPA",
+      "net_charge": 0,
+      "n_hard": 0,
+      "n_soft": 0,
+      "flags": [
+        {
+          "severity": "note",
+          "code": "sar:extended-affinity",
+          "detail": "carries RGDL-[L/I] extended high-affinity motif (A20FMDV2 class) \u2014 affinity BONUS beyond the Trivehexin/avebehexin baseline"
+        }
+      ],
+      "tier": "PASS"
+    },
+    {
+      "id": "AVB6-K-08",
+      "helm": "cyclo(Y-R-G-D-L-I-W-[dP]-[NMeA])",
+      "seq": "YRGDLIWPA",
+      "net_charge": 0,
+      "n_hard": 0,
+      "n_soft": 0,
+      "flags": [
+        {
+          "severity": "note",
+          "code": "sar:extended-affinity",
+          "detail": "carries RGDL-[L/I] extended high-affinity motif (A20FMDV2 class) \u2014 affinity BONUS beyond the Trivehexin/avebehexin baseline"
+        }
+      ],
+      "tier": "PASS"
+    },
+    {
+      "id": "AVB6-K-01",
+      "helm": "cyclo(F-R-G-D-L-S-W-[dP]-[NMeA])",
+      "seq": "FRGDLSWPA",
+      "net_charge": 0,
+      "n_hard": 0,
+      "n_soft": 0,
+      "flags": [],
+      "tier": "PASS"
+    },
+    {
+      "id": "AVB6-K-02",
+      "helm": "cyclo(W-R-G-D-L-T-F-[dP]-[NMeV])",
+      "seq": "WRGDLTFPV",
+      "net_charge": 0,
+      "n_hard": 0,
+      "n_soft": 0,
+      "flags": [],
+      "tier": "PASS"
+    },
+    {
+      "id": "AVB6-K-03",
+      "helm": "cyclo(Y-R-G-D-L-G-H-[dP]-[NMeL])",
+      "seq": "YRGDLGHPL",
+      "net_charge": 0,
+      "n_hard": 0,
+      "n_soft": 0,
+      "flags": [],
+      "tier": "PASS"
+    },
+    {
+      "id": "AVB6-K-06",
+      "helm": "cyclo(R-G-D-L-Q-F-[dP]-[NMeS]-G)",
+      "seq": "RGDLQFPSG",
+      "net_charge": 0,
+      "n_hard": 0,
+      "n_soft": 0,
+      "flags": [],
+      "tier": "PASS"
+    },
+    {
+      "id": "AVB6-K-07",
+      "helm": "cyclo([dL]-R-G-D-L-S-F-[dP]-[NMeT])",
+      "seq": "LRGDLSFPT",
+      "net_charge": 0,
+      "n_hard": 0,
+      "n_soft": 0,
+      "flags": [],
+      "tier": "PASS"
+    },
+    {
+      "id": "AVB6-K-09",
+      "helm": "cyclo(F-R-G-D-L-A-F-[dP]-[NMeE])",
+      "seq": "FRGDLAFPE",
+      "net_charge": -1,
+      "n_hard": 0,
+      "n_soft": 0,
+      "flags": [],
+      "tier": "PASS"
+    },
+    {
+      "id": "AVB6-K-04",
+      "helm": "cyclo(H-R-G-D-L-A-W-[dP]-[NMeK])",
+      "seq": "HRGDLAWPK",
+      "net_charge": 1,
+      "n_hard": 0,
+      "n_soft": 1,
+      "flags": [
+        {
+          "severity": "soft",
+          "code": "sar:renal-charge",
+          "detail": "net peptide charge +1 (extra cationic=1); cationic peptides are reabsorbed in the proximal tubule -> HIGHER kidney dose (dose-limiting organ). Added Lys/Arg worsens, not 'tunes', renal clearance."
+        }
+      ],
+      "tier": "WATCH"
+    },
+    {
+      "id": "AVB6-K-10",
+      "helm": "cyclo(W-R-G-D-L-K-Y-[dP]-[NMeA])",
+      "seq": "WRGDLKYPA",
+      "net_charge": 1,
+      "n_hard": 0,
+      "n_soft": 1,
+      "flags": [
+        {
+          "severity": "soft",
+          "code": "sar:renal-charge",
+          "detail": "net peptide charge +1 (extra cationic=1); cationic peptides are reabsorbed in the proximal tubule -> HIGHER kidney dose (dose-limiting organ). Added Lys/Arg worsens, not 'tunes', renal clearance."
+        }
+      ],
+      "tier": "WATCH"
+    }
+  ]
+}

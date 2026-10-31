@@ -95,8 +95,12 @@ RUN pip install --no-cache-dir \
     pandas-flavor || \
     echo "WARNING: descriptastorus install failed — DeepPurpose will be degraded"
 
-RUN pip install --no-cache-dir DeepPurpose || \
-    echo "WARNING: DeepPurpose install failed — ADMET will use RDKit fallback"
+# DeepPurpose needs a (CPU) torch — install it explicitly so the resolve is deterministic.
+# The old `|| echo` swallowed build failures and shipped an image whose affinity/ADMET tools
+# no-op at runtime (a fake-success stub). Fail the build loudly, and prove importability below.
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir DeepPurpose
+RUN python3 -c "from DeepPurpose import DTI, utils; print('DeepPurpose OK')"
 
 # ── Layer 8: BioMate Python SDK (biomni) ──────────────────────────────────
 # biomni is BioMate's Python tool library used by all biomni_* Nextflow
