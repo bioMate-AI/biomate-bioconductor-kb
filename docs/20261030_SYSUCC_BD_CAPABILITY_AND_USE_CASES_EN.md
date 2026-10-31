@@ -148,7 +148,13 @@ SYSUCC is primarily **the place where new cancer drugs are tested and proven in 
 
 ### 2.6 The person: Director of the Information Center
 
-The Director is an IT and data-infrastructure leader, not a laboratory scientist or drug-development expert. SYSUCC is **already experienced with AI**. In 2025 the information center publicly sought an AI platform foundation, and a university report describes an existing DeepSeek-based oncology assistant and model development on internal data.
+- **Director:** Li Chaofeng (李超峰, public information), senior engineer.
+- **Other roles:** adjunct professor at the SYSU School of Software Engineering, and chair of the medical informatics branch of the Guangdong Medical Device Management Society.
+- **Research record:** papers in *Lancet Oncology* and *JNCI*, NSFC grants, and deep-learning work on nasopharyngeal carcinoma. He is not a drug-development expert, but he is **research-literate and AI-literate** and will care about technical substance and research value.
+- **Team:** deputy directors Ren Zhongmin (任忠敏) and He Zhonglian (何仲廉). A 2020 profile listed about 22 staff, including a 2-person AI lab; the current size may differ.
+- **Public stance** (March 2025): "every scenario is worth redoing with large models."
+
+SYSUCC is **already experienced with AI**; see section 2.7.
 
 What they are likely to care about:
 
@@ -159,6 +165,48 @@ What they are likely to care about:
 5. **Visible research value:** reproducible, publishable results; more research output per team.
 
 **Positioning:** BioMate **complements** their AI platform. It adds a **research execution and learning layer** for faculty: it runs real scientific analyses and computations on the hospital's data, with drug development as its deepest capability. It is not a clinical chatbot and does not replace their DeepSeek assistant. BioMate can use the open models they already run.
+
+### 2.7 Existing IT and AI platforms
+
+From public reports and procurement notices. Some links are inferred from matching procurement scope; confirm in the meeting. Sources: [IT/AI vendor research](research/20261030_SYSUCC_IT_AI_PLATFORM_AND_VENDORS_RESEARCH.md).
+
+**Clinical and data AI platform: built mainly by Yidu Tech (医渡科技)**
+
+- **Start:** in February 2025, Yidu privately deployed its AI middle platform inside the hospital, running full DeepSeek-R1 (671B) plus Yidu's own models. This is the "DeepSeek-based oncology assistant" in the public reports.
+- **Data foundation:** the oncology big-data platform Yidu has co-built with the hospital since 2015, covering 2M+ patients and 43 disease-specific databases, and supporting 5,000+ studies.
+- **Usage:** doctors have built about 170 AI agents on it.
+- **Follow-on purchase:** in June 2025 the information center surveyed the market for an "AI middle-platform foundation". In February 2026 a related project was awarded to a Yidu subsidiary for about RMB 9.08M, covering a unified model library, specialty small-model fine-tuning and AI agents exposed via APIs.
+- **In-house model:** "Tianshu" (天枢), a colorectal-cancer decision model, launched in December 2025, with plans to extend it to gastric and lung cancer and to imaging and pathology.
+- **Other vendors:**
+  - Huawei: a multi-campus AI data lake, about 10 PB of new data a year;
+  - Neusoft: the clinical data repository;
+  - Tencent: beds and appointments;
+  - DingTalk: back-office systems.
+
+**Research computing: being built now**
+
+- An HPC cluster bought in 2020 (about RMB 2.96M, Lenovo).
+- A "bioinformatics HPC service platform" awarded in September 2026 for about RMB 1.40M. It is mostly hardware: large-memory nodes, a GPU node and storage.
+- A GPU AI compute platform and a molecular-diagnostics data-analysis platform are at the market-survey stage, with no award found yet.
+- **No public sign of an analysis-pipeline or workflow software layer on top of this compute.** This is BioMate's most natural entry point.
+
+**AI drug-discovery partnerships:** none found with XtalPi, Insilico, DP Technology, BioMap or the large cloud vendors.
+
+**IT maturity:**
+- EMR rating: level 5 since 2021, working toward higher levels.
+- Cybersecurity classification (等保): core systems certified in 2017.
+- Internet hospital: running since 2018.
+
+### 2.8 Positioning implications
+
+- **Don't compete with the clinical AI.** The clinical assistant, AI middle platform and agent tooling are Yidu's ground and the information center's flagship. Acknowledge them positively; don't compare or criticize.
+- **Enter where nothing is covered yet:**
+  - analysis pipelines and workflows on top of the bioinformatics HPC and GPU compute being built;
+  - multi-omics analysis, including molecular-diagnostics data;
+  - research analytics on data exported from the research data platform;
+  - drug-development computation: ADMET, PK modelling and trial-design support.
+- **Integrate, don't replace.** BioMate can call the hospital's local DeepSeek and run on its own cluster, and could potentially be exposed as a tool inside the existing agent platform.
+- **Everything runs on-premises.** Patient and genomic data are processed inside the hospital. A start on public or de-identified data is possible.
 
 ---
 
@@ -450,7 +498,8 @@ We are running a side-by-side comparison on precisely scored research tasks with
 
 **Infrastructure, security and compliance**
 
-11. What does the current AI platform look like (DeepSeek deployment, GPU/HPC), and how should a new capability connect to it?
+11. The AI middle platform and DeepSeek deployment are already mature. How should a research-analysis capability connect to them: as a tool inside the existing agent platform, or as a separate research platform that calls the local models?
+    - Once the bioinformatics HPC and GPU compute are in place, how do they plan to provide analysis software, pipelines and support to research teams? Who will maintain them?
 12. What are the hospital's data-security and compliance requirements for an on-premises research platform, for example network zones, security classification, account and audit rules, and rules on genomic data?
 
 **External network and database access.** Ask about this explicitly; it affects what the platform can do on day one.
@@ -483,6 +532,7 @@ Why it matters, so BD can explain it simply: BioMate's own workflows, tools, bui
 | "Can it discover a new drug?" | "It accelerates and documents the research cycle: target choice, candidate design, evaluation and learning from experiments. Laboratory and clinical validation remain essential; BioMate makes each cycle faster and better informed." |
 | "Can doctors use it for treatment decisions?" | "No. BioMate is a research platform, not a clinical decision system." |
 | "How is this different from a generic AI platform?" | Section 10: validated scientific workflows, real computation, data validation, learning from experiments and provenance. |
+| "We already have an AI middle platform (Yidu). Why do we need you?" | "Your AI middle platform and disease-specific data platform are already leading on the clinical and data side. BioMate focuses on a different layer: running omics, instrument-data analysis and drug-development computation on your compute. It can call your local DeepSeek, and we could explore exposing it as a tool inside your agent platform. The two are complementary." |
 | "What would you need from us?" | "To begin, an understanding of your research priorities and requirements, and an introduction to one or two research teams. Data access comes later, starting from a data catalogue and sample schema rather than a bulk export." |
 
 ### 11.3 Next steps to aim for
@@ -526,7 +576,9 @@ Precise wording earns trust with a technical IT audience.
 | "The model will definitely improve with your data." | "We measure improvement on your untouched data, and updates that don't improve are not adopted." |
 | "We fine-tune the AI with your documents." | "Your SOPs become a knowledge base." Use "we train a new model version" only for real model training on assay data. |
 | "Our designed candidates are validated drugs." | "Research-stage candidates; binding and efficacy are confirmed experimentally." |
-| "We beat GPT, Claude and DeepSeek." | "On these specific tested tasks, BioMate produced these results," quoting the comparison report. |
+| "We beat GPT, Claude and DeepSeek." | "BioMate uses these models as its engine and adds real execution, data validation and a traceable research process on top." |
+| Judging or comparing the hospital's AI middle platform, Yidu, or in-house work such as Tianshu. | Acknowledge their work first, then explain that BioMate adds the research-analysis and drug-development layer. |
+| Mentioning specific amounts or awards we learned from procurement notices. | Ask open questions about their plans, e.g. "Once the research compute is built, how will you provide analysis software?" |
 | "Clinical decision support" or "treatment recommendations." | "Research use." |
 | "We will help you discover first-in-class drugs." | "We support your clinical and translational research, and help turn your own discoveries into development-ready evidence." |
 | Naming SYSUCC datasets as if we already have them. | "Published work suggests your teams work on X. Is that an area where they need analysis support?" |
@@ -541,7 +593,9 @@ Precise wording earns trust with a technical IT audience.
 
 **Message:** 院内数据驱动、可持续学习的肿瘤科研与药物研发平台. An AI research platform for faculty: the hospital's own data become research results and capabilities that keep improving, with full traceability.
 
-**Position:** a complement to their AI platform. BioMate is the research execution and learning layer; it is model-agnostic and works with open models.
+**Who we meet:** Director Li Chaofeng, senior engineer, research-literate and AI-literate. The clinical AI middle platform (full DeepSeek-R1, about 170 agents) was built mainly by Yidu Tech. The bioinformatics HPC and GPU compute is being built now, with no analysis-pipeline layer on top yet.
+
+**Position:** a complement to their AI platform. BioMate is the research execution and learning layer; it is model-agnostic and works with open models. It doesn't compete with the AI middle platform; it adds analysis and drug-development capability on top of the research compute.
 
 **Four modules:** Search & evidence · Data analysis · Molecule design & generate · Models.
 
