@@ -348,6 +348,13 @@ services:
       # 503 for ALL internal endpoints, breaking new user provisioning.
       BILLING_INTERNAL_KEY: ${BILLING_INTERNAL_KEY:-onprem-billing-disabled}
 
+      # Disable involucro auto-installation. Galaxy tries to install involucro
+      # (a tool for building Mulled Docker containers from conda envs) on every
+      # startup and acquires a file lock at /app/database/dependencies/involucro.lock.
+      # If the lock is stale from a previous crash, Galaxy hangs for 300s then
+      # crashes cleanly (exit 0) → restart loop. BioMate does not use involucro.
+      GALAXY_CONFIG_OVERRIDE_INVOLUCRO_AUTO_INIT: "false"
+
     # Add the host Docker socket group so the galaxy user (uid=1000) can call
     # `docker run` without root. The GID varies by distro (121 on Ubuntu 22.04,
     # 999 on Debian/RHEL). Set DOCKER_GID in .env: DOCKER_GID=$(stat -c %g /var/run/docker.sock)

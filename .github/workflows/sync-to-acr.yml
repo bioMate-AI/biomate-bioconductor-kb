@@ -78,6 +78,25 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get install -y sshpass
 
+      - name: Remove stale involucro.lock from database volume
+        # Galaxy acquires /app/database/dependencies/involucro.lock on startup.
+        # If the lock is left over from a crash, every restart times out after
+        # 300 s and exits cleanly (ExitCode=0) → endless restart loop.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'VOLPATH=$(docker volume inspect biomate-onprem_biomate-backend-db --format "{{.Mountpoint}}" 2>/dev/null) && \
+             if [ -n "$VOLPATH" ]; then
+               rm -f "$VOLPATH/dependencies/involucro.lock" && \
+               echo "Removed stale lock (if any) from $VOLPATH/dependencies/" && \
+               ls "$VOLPATH/dependencies/" 2>/dev/null || echo "(dependencies dir empty or absent)"
+             else
+               echo "Volume not found yet — will be created on first compose up"
+             fi'
+
       - name: Fix backend/config dir ownership so galaxy user (uid=1000) can write
         # The compose bind-mount ./backend/config:/app/config points to a host dir
         # that Docker auto-creates as root-owned when absent.  uid=1000 (galaxy)
