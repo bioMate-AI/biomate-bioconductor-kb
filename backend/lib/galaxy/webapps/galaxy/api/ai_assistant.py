@@ -2685,9 +2685,36 @@ def search_nextflow_workflow(
             "hardware_requirements": hardware_requirements,
             "datasets_assigned": False,
             "generated_parameters": _req_params + _opt_params,
-            "validation": {"is_valid": True, "issues": [], "warnings": [], "suggestions": []},
-            "tool_installation": {"success": True, "message": "Nextflow workflow", "failed_tools": []}
         }
+        # Detect file/path params with no filled value — workflow will fail at runtime without them.
+        # Covers optional params that are functionally required (e.g. samplesheet, matrix in
+        # nf-core/differentialabundance which are schema-optional but have no sensible default).
+        _missing_file_inputs = [
+            p for p in (_req_params + _opt_params)
+            if p.get('type') in ('file', 'path', 'directory')
+            and not p.get('value')
+            and not p.get('default')
+            and not p.get('autoFilled')
+        ]
+        _return_dict.update({
+            "missing_file_inputs": [p["name"] for p in _missing_file_inputs],
+            "validation": {
+                "is_valid": len(_missing_file_inputs) == 0,
+                "issues": [
+                    {
+                        "severity": "blocking",
+                        "type": "missing_file_input",
+                        "param": p["name"],
+                        "label": p.get("label", p["name"]),
+                        "message": f"Required input '{p.get('label', p['name'])}' is not provided.",
+                    }
+                    for p in _missing_file_inputs
+                ],
+                "warnings": [],
+                "suggestions": [],
+            },
+            "tool_installation": {"success": True, "message": "Nextflow workflow", "failed_tools": []}
+        })
         if _prereq_validation:
             _return_dict["prerequisitesValidation"] = _prereq_validation
         return _return_dict
