@@ -7,6 +7,11 @@ on:
     paths:
       - '.github/workflows/sync-to-acr.yml'
   workflow_dispatch:
+    inputs:
+      skip_assets:
+        description: 'Skip asset transfer (DB + nfcore already in volumes)'
+        type: boolean
+        default: true
 
 env:
   TAG: fix-arm64-minio-healthcheck-and-qemu-latest
@@ -15,14 +20,13 @@ env:
   NFCORE_URL: https://biomate-onprem-assets.s3.us-west-2.amazonaws.com/onprem/nextflow_nfcore_subworkflows.tar.gz
 
 jobs:
-  # Images already on ECS — skip re-transfer unless needed.
-  # Run transfer-assets only (DB + nfcore files) since images are done.
-
   transfer-assets:
     # Download galaxy_ai_tools.db (~280 MB) and nfcore tar (~60 MB) from S3
     # on the GHA runner (fast US connection), then SSH-pipe to ECS and drop
     # them into the Docker volumes so db-init / nfcore-init skip their
     # slow China→S3 downloads.
+    # Skip when assets are already in the volumes (workflow_dispatch default).
+    if: ${{ github.event_name == 'push' || !inputs.skip_assets }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -63,12 +67,29 @@ jobs:
 
   restart-stack:
     runs-on: ubuntu-latest
+    # Run even if transfer-assets was skipped (needs treats skipped as success).
     needs: [transfer-assets]
+    if: always()
     steps:
       - name: Install sshpass
         run: sudo apt-get install -y sshpass
 
-      - name: Restart stack so db-init / nfcore-init see pre-populated volumes
+      - name: Fix backend/config dir ownership so galaxy user (uid=1000) can write
+        # The compose bind-mount ./backend/config:/app/config points to a host dir
+        # that Docker auto-creates as root-owned when absent.  uid=1000 (galaxy)
+        # cannot write to it and the startup script fails with Permission denied.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'mkdir -p /app/biomate/backend/config && \
+             chown -R 1000:1000 /app/biomate/backend/config && \
+             chmod 755 /app/biomate/backend/config && \
+             echo "backend/config perms: $(ls -la /app/biomate/backend/ | grep config)"'
+
+      - name: Restart stack
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
@@ -78,5 +99,31 @@ jobs:
             'cd /app/biomate && \
              docker compose -f docker-compose.onprem.yml down --remove-orphans 2>&1 | tail -5 && \
              docker compose -f docker-compose.onprem.yml --env-file .env up -d 2>&1 | tail -20 && \
-             sleep 10 && \
+             sleep 15 && \
              docker compose -f docker-compose.onprem.yml ps'
+
+      - name: Wait for galaxy-backend to start (up to 3 min)
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'for i in $(seq 1 18); do
+               STATUS=$(docker inspect biomate-galaxy --format "{{.State.Status}}" 2>/dev/null || echo "missing")
+               echo "[$i/18] galaxy: $STATUS"
+               if [ "$STATUS" = "running" ]; then
+                 LOGS=$(docker logs biomate-galaxy --tail 20 2>&1)
+                 echo "--- last 20 log lines ---"
+                 echo "$LOGS"
+                 if echo "$LOGS" | grep -q "listening on"; then
+                   echo "Galaxy backend UP"
+                   break
+                 fi
+               fi
+               sleep 10
+             done
+             echo "=== Final container status ==="
+             docker compose -f /app/biomate/docker-compose.onprem.yml ps
+             echo "=== galaxy-backend last 30 lines ==="
+             docker logs biomate-galaxy --tail 30 2>&1 || true'
