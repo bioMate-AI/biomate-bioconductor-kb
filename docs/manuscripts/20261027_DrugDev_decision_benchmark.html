@@ -450,9 +450,23 @@ reach an outcome of 1.0 with fidelity 1.0 and zero empties</strong>
 consistent three-model result localizes the hand-authored failure
 precisely — language models fail to <em>infer the exposure–response
 relationship from implicit clinical inputs</em>, not to do the
-arithmetic once the relationship is specified. (A locally-served small
-open model is a planned additional baseline; it is omitted here because
-no receipted per-item run on these items exists yet.)</p>
+arithmetic once the relationship is specified.</p>
+<p><strong>A locally-served small open model (production configuration).</strong>
+We also ran a small open model locally under its deployed on-premises
+configuration (reasoning disabled for latency), with per-item receipts and
+zero empty responses on both tiers. A continued-pretrained 9-billion-parameter
+model reached a hand-tier outcome of <strong>0.50</strong> with curve fidelity
+0.74 — above the stock 9B (0.30, fidelity 0.58) and the lower end of the
+frontier band, and below the mechanistic oracle (0.85). On the explicit
+generated tier, however, it collapsed to <strong>0.05</strong> (fidelity 0.19),
+as did the stock model (0.30) and a supervised-fine-tuned variant (0.10) — far
+below the frontier models' 1.0. The small model therefore sharpens the main
+finding rather than overturning it: a 9B without reasoning does not reliably
+reconstruct the exposure–response curve or execute the multi-step arithmetic
+even when the parameters are given explicitly, which is precisely the step
+where the mechanistic reference and model scale matter. (These results use the
+deployed reasoning-disabled configuration; a reasoning-enabled run is reported
+separately when available.)</p>
 <p>The <strong>fidelity</strong> dimension is what makes this
 diagnostic: a low outcome with <em>low</em> fidelity means the system
 never reconstructed the curve, whereas a low outcome with <em>high</em>
