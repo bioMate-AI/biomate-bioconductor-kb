@@ -2121,7 +2121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set HTTP-only cookie
       res.cookie('biomate_token', result.token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
         sameSite: 'lax',
         maxAge: result.expiresIn * 1000, // Convert to milliseconds
       });
@@ -2183,14 +2183,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (result.rememberMe) {
         res.cookie('biomate_token', result.token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
           sameSite: 'lax',
           maxAge: result.expiresIn * 1000, // 30 days in ms
         });
       } else {
         res.cookie('biomate_token', result.token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
           sameSite: 'lax',
           // No maxAge → session cookie; dropped when browser closes
         });
@@ -2372,7 +2372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sessionToken = authService.generateToken(user as any, false); // 24h
       res.cookie('biomate_token', sessionToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
         sameSite: 'lax',
         maxAge: 24 * 60 * 60 * 1000,
       });
@@ -2715,7 +2715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Set cookie
         res.cookie('biomate_token', token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
           sameSite: 'lax',
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
@@ -2751,7 +2751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Set cookie
         res.cookie('biomate_token', token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
           sameSite: 'lax',
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
@@ -6556,6 +6556,33 @@ ${paramLines || '(none recorded)'}`;
         : (prerequisitesValidation && !(prerequisitesValidation as any).canRun) ? "needs_input"
         : "chat_only";
 
+      // When the response is chat_only but the user has a workflow open in the
+      // panel, try to extract parameter values from their message so the panel
+      // auto-fills without requiring the user to repeat data explicitly.
+      let _panelWorkflowEdits: any[] | undefined;
+      if (responseState === "chat_only" && enrichedContext.currentWorkflow && safeMessage) {
+        try {
+          const _galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+          const _editsRes = await fetch(`${_galaxyUrl}/api/ai_assistant/extract_workflow_edits`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Cookie': req.headers.cookie || '' },
+            body: JSON.stringify({
+              workflow: enrichedContext.currentWorkflow,
+              message: safeMessage,
+            }),
+            signal: AbortSignal.timeout(8000),
+          });
+          if (_editsRes.ok) {
+            const _editsData = await _editsRes.json() as any;
+            if (Array.isArray(_editsData?.edits) && _editsData.edits.length > 0) {
+              _panelWorkflowEdits = _editsData.edits;
+            }
+          }
+        } catch (_e) {
+          // non-fatal — param fill is best-effort
+        }
+      }
+
       const responsePayload = {
         response: assistantMessage,
         state: responseState,
@@ -6573,6 +6600,9 @@ ${paramLines || '(none recorded)'}`;
           sources: assistantResponse.sources,
           memoryUsed: false,
           workflowGenerationDiagnostics,
+          // Auto-fill: param edits extracted from user message for the open panel workflow.
+          // Consumed by Layer C in chat-with-artifacts.tsx → applyWorkflowEdits().
+          ...(_panelWorkflowEdits && { workflowEdits: _panelWorkflowEdits }),
           // Cost/token metadata — consumed by eval harness and billing dashboard
           llm_usage: (() => {
             const model = galaxyAssistant?.getModelConfig().responseModel || 'claude-sonnet-4-6';

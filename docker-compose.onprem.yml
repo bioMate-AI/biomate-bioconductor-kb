@@ -145,6 +145,8 @@ services:
   # 管理界面: http://<host>:9001  (MINIO_ROOT_USER / MINIO_ROOT_PASSWORD)
   minio:
     image: ${BIOMATE_MINIO_IMAGE:-ghcr.io/biomate-ai/minio:latest}
+    # ghcr.io/biomate-ai/minio:latest is a multi-arch manifest (amd64 + arm64).
+    # No platform override needed — Docker auto-selects the host architecture.
     container_name: biomate-minio
     command: server /data --console-address ":9001"
     environment:
@@ -213,6 +215,8 @@ services:
   # ── Galaxy AI Backend ───────────────────────────────────────────────────────
   galaxy-backend:
     image: ${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}
+    # ghcr.io/biomate-ai/biomate-backend:latest is a multi-arch manifest (amd64 + arm64).
+    # Docker auto-selects the host architecture — no platform override needed.
     container_name: biomate-galaxy
     # Use /bin/sh -c as entrypoint so the command runs as a shell string.
     # This lets us add a safety-net before gunicorn: if galaxy.yml is missing from
@@ -263,6 +267,13 @@ services:
       # Explicit disable — prevents the frontend default (executor="awsbatch")
       # from overriding local mode. Set to "true" only when using AWS Batch.
       NEXTFLOW_USE_AWS: ${NEXTFLOW_USE_AWS:-false}
+      # Controls which platform Docker requests when Nextflow spawns task containers.
+      # amd64 hosts: leave as linux/amd64 (default).
+      # arm64 hosts (Graviton2/3, Apple Silicon): install.sh automatically sets
+      #   DOCKER_DEFAULT_PLATFORM=linux/arm64 in .env so that locally-available
+      #   native arm64 workflow images (biomni-admet:arm64, biomni-tools:arm64)
+      #   are used. amd64-only images fall back to QEMU (binfmt installed by install.sh).
+      DOCKER_DEFAULT_PLATFORM: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
       # local: 用本机 Docker 跑 Nextflow（需要挂载 docker.sock，见下方 volumes）
       # Nextflow 工作目录（容器内路径，对应下方 volume 挂载）
       NEXTFLOW_WORK_DIR: ${NEXTFLOW_WORK_DIR:-/app/nf-work}
@@ -378,7 +389,14 @@ services:
       interval: 30s
       timeout: 15s
       retries: 5
-      start_period: 120s
+      # ARM64 hosts run this x86 image under QEMU; gunicorn --preload takes 20-30 min
+      # to load all Python modules before binding to port 8080 (observed: ~25 min on
+      # Graviton2 c6g instance).  1800s (30 min) prevents premature unhealthy marking.
+      # Note: even if the container goes unhealthy, Docker continues running checks and
+      # transitions back to healthy once the port responds — there is no auto-restart.
+      # The frontend uses service_started (not service_healthy) so docker compose up
+      # doesn't block for the entire QEMU warm-up window.
+      start_period: 1800s
     depends_on:
       redis:
         condition: service_healthy
@@ -394,6 +412,8 @@ services:
   # ── 前端 (Node.js + React) ────────────────────────────────────────────────
   frontend:
     image: ${BIOMATE_FRONTEND_IMAGE:-ghcr.io/biomate-ai/biomate-frontend:latest}
+    # ghcr.io/biomate-ai/biomate-frontend:latest is a multi-arch manifest (amd64 + arm64).
+    # Docker auto-selects the host architecture — no platform override needed.
     container_name: biomate-frontend
     ports:
       - "${FRONTEND_PORT:-5000}:3000"
@@ -485,7 +505,12 @@ services:
       postgres:
         condition: service_healthy
       galaxy-backend:
-        condition: service_healthy
+        # service_started (not service_healthy): galaxy takes 15-20 min under QEMU.
+        # The frontend /api/health endpoint returns "degraded" (not an error) when
+        # galaxy is unreachable, so it is safe to start the frontend before galaxy
+        # is fully ready.  Blocking on service_healthy would stall `docker compose up`
+        # for the entire QEMU cold-start window.
+        condition: service_started
       # sandbox-launcher:
       #   condition: service_started
     restart: unless-stopped

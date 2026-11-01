@@ -5673,9 +5673,11 @@ def extract_workflow_edits(
     if not isinstance(workflow, dict):
         return {"edits": []}
 
-    # Compact the workflow shape for the prompt. We only feed step ids,
-    # workflow_path, and current params — the LLM doesn't need the full
-    # parameter schema for the simplest cases.
+    # Build a compact schema for the prompt. Include:
+    # 1. Pipeline/chain step ids + their declared param names (for multi-step workflows)
+    # 2. required_params + optional_params from workflow_ga (the DB schema) — this is
+    #    the critical addition: without it the LLM can't map "GRCh38" → genome,
+    #    "paired-end" → single_end=false, etc. for single-step Nextflow workflows.
     steps = workflow.get("pipeline_steps") or workflow.get("chain_steps") or []
     step_summary = []
     for s in steps[:32]:  # cap to keep the prompt small
@@ -5688,25 +5690,65 @@ def extract_workflow_edits(
             "params": list((s.get("params") or s.get("parameters") or {}).keys())[:24],
         })
 
-    prompt = f"""You translate the user's natural-language request into structured workflow-edit ops.
+    # Extract the parameter schema from workflow_ga (populated by generate_workflow).
+    wf_ga = workflow.get("workflow_ga") or {}
+    required_params = wf_ga.get("required_params") or workflow.get("required_params") or []
+    optional_params = wf_ga.get("optional_params") or workflow.get("optional_params") or []
 
-Workflow steps (id, workflow_path, declared param names):
-{step_summary if step_summary else "(single-workflow artifact, no chain)"}
+    def _fmt_params(params: list) -> str:
+        out = []
+        for p in params[:40]:
+            if not isinstance(p, dict):
+                continue
+            name = p.get("name") or p.get("param_name") or ""
+            ptype = p.get("type") or p.get("param_type") or "string"
+            desc = p.get("description") or p.get("desc") or ""
+            allowed = p.get("allowed_values") or p.get("choices") or []
+            line = f"  {name} ({ptype})"
+            if allowed:
+                line += f" — allowed: {allowed[:8]}"
+            elif desc:
+                line += f" — {desc[:80]}"
+            out.append(line)
+        return "\n".join(out) if out else "  (none)"
 
-Top-level inline_parameters (if any): {list((workflow.get("inline_parameters") or {}).keys())[:24]}
+    schema_block = ""
+    if required_params or optional_params:
+        schema_block = f"""
+Workflow parameter schema (use param names EXACTLY as listed):
+Required params:
+{_fmt_params(required_params)}
+Optional params:
+{_fmt_params(optional_params)}
+"""
+
+    current_values_keys = list((workflow.get("inline_parameters") or {}).keys())[:24]
+
+    prompt = f"""You translate the user's natural-language message into structured workflow-edit ops for the currently open workflow panel.
+
+Workflow: {workflow.get("name") or workflow.get("workflow_name") or "(unnamed)"}
+{schema_block}
+Pipeline steps (if multi-step chain):
+{step_summary if step_summary else "(single Nextflow workflow, no chain)"}
+
+Currently filled params: {current_values_keys if current_values_keys else "(empty)"}
 
 User message: {message!r}
 
-Return a JSON object with a single key "edits", whose value is a list of ops. Each op MUST match one of these exact shapes (TypeScript-style):
-  {{ "op": "set_param", "stepId": "<step id>", "paramName": "<param>", "value": <number|string|boolean> }}
+Your task: identify any parameter values the user is providing (explicitly or implicitly) and emit set_param ops using the EXACT param names from the schema above.
+
+Return a JSON object with a single key "edits", whose value is a list of ops. Each op MUST match one of these exact shapes:
+  {{ "op": "set_param", "stepId": "root", "paramName": "<exact param name from schema>", "value": <number|string|boolean> }}
   {{ "op": "add_step", "afterStepId": "<step id>" | null, "workflowPath": "<path>", "params": {{...}} }}
   {{ "op": "remove_step", "stepId": "<step id>" }}
   {{ "op": "reorder", "stepId": "<step id>", "beforeStepId": "<step id>" }}
 
 Rules:
-- Only emit ops the user clearly asked for. When in doubt, return [].
-- For set_param, the stepId MUST be one of the listed ids unless there is no chain (then use any string).
-- For add_step, the workflowPath should be a known workflow path; if uncertain, return [].
+- For single Nextflow workflows (no chain), always use stepId "root".
+- For chain steps, use the step id from the pipeline steps list.
+- Only emit ops the user clearly provided data for. When ambiguous, return [].
+- Map natural language to param values: e.g. "human" → genome="GRCh38", "paired-end" → single_end=false, "stranded dUTP" → strandedness="reverse".
+- S3 paths, SRA accessions, file names → map to the matching file/reads param.
 - Return ONLY the JSON object, no prose, no markdown.
 """
 

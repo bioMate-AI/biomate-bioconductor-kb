@@ -11,7 +11,7 @@
 #     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/transcriptomic-moa-lincs-nf:1.0 \
 #     --push -f backend/docker/transcriptomic-moa-lincs-nf/Dockerfile .
 
-FROM --platform=linux/amd64 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+FROM --platform=linux/amd64 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:latest
 
 LABEL maintainer="BioMate Team"
 LABEL description="transcriptomic-moa-lincs-nf: LINCS L1000 MOA signature scoring (REST + pandas)"

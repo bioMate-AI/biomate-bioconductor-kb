@@ -883,6 +883,39 @@ def _read_run_timing_json(run_id: str) -> Dict[str, Any]:
         return {}
 
 
+def _collect_failed_task_errors(work_dir: Path, max_tasks: int = 3, max_chars: int = 2000) -> str:
+    """Read .command.err from the most recently modified task work directories.
+
+    Nextflow's own log only shows exit codes; the actual error (e.g. Python
+    tracebacks, QEMU segfaults, R errors) lives in .command.err inside each
+    task's work subdirectory.  This function surfaces that content so failure
+    classification and the user-facing diagnosis have the real error to work from.
+    """
+    work_subdir = work_dir / "work"
+    if not work_subdir.is_dir():
+        return ""
+    try:
+        err_files = sorted(
+            work_subdir.rglob(".command.err"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except Exception:
+        return ""
+    snippets: list[str] = []
+    for ef in err_files[:max_tasks]:
+        try:
+            content = ef.read_text(errors="replace").strip()
+            if not content:
+                continue
+            # Keep only the last max_chars characters of each file to avoid
+            # flooding the classifier with MB-scale core dumps.
+            snippets.append(content[-max_chars:])
+        except Exception:
+            continue
+    return "\n---\n".join(snippets)
+
+
 def _read_run_nextflow_log_text(log_dir: Path) -> tuple[str, list[str]]:
     """Merge launcher and work-dir Nextflow logs (AWS Batch runs often only complete in work/.nextflow.log).
 
@@ -993,20 +1026,37 @@ def _classify_failure(
     log_tail: Optional[Union[list, str]] = None,
     returncode: Optional[int] = None,
     duration_s: Optional[int] = None,
+    task_stderr: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Classify a failed run into a user-safe verdict. Reads the RAW log for pattern
-    matching but returns NONE of it. `suggested_action` in
-    {resume, resume_more_resources, fix_and_resume, check_input, report,
-    restart_last_resort}. `is_transient=True` means a plain resume can succeed
-    unchanged; False means the cause is deterministic and something must change
-    before resuming. `fix_strategy` is the language-neutral tier the UI renders —
-    {auto_fixable, user_action_required, not_fixable} — mirroring
-    autofix.user_guidance.FixStrategy (docs/20260823_FAILURE_COMMUNICATION_STRATIFICATION.md)."""
+    """Classify a failed run into a user-safe verdict.
+
+    Searches BOTH the Nextflow orchestrator log (log_tail) AND the actual task
+    stderr (.command.err content via task_stderr) so that errors buried inside
+    task containers — Python tracebacks, R errors, QEMU segfaults — are visible
+    to classification and surfaced to the user.
+
+    `suggested_action` ∈ {resume, resume_more_resources, fix_and_resume,
+    check_input, report, restart_last_resort}.
+    `is_transient=True` → plain resume can succeed unchanged.
+    `fix_strategy` ∈ {auto_fixable, user_action_required, not_fixable}.
+    `task_error_snippet` → sanitized excerpt of the actual task stderr, shown
+    in the UI and passed to the auto-fix LLM so it has real context.
+    """
     if str(status).lower() not in ("failed", "error", "cancelled"):
         return None
     raw = "\n".join(str(x) for x in log_tail) if isinstance(log_tail, list) else str(log_tail or "")
-    low = raw.lower()
+    task_err_raw = str(task_stderr or "")
+    # Classify against BOTH sources combined so task-level errors are detected.
+    combined = raw + "\n" + task_err_raw
+    low = combined.lower()
     rc = returncode
+
+    # Build a sanitized snippet of the task error for the user-facing diagnosis.
+    # Use the task stderr in preference to the orchestrator log — it has the real cause.
+    _snippet_source = task_err_raw if task_err_raw.strip() else raw
+    _snippet_lines = [l for l in _snippet_source.splitlines() if l.strip()][-20:]
+    _raw_snippet = "\n".join(_snippet_lines)
+    task_error_snippet = _redact_internal(_raw_snippet)[:1500]
 
     # category → fix_strategy tier (T1 auto-fix / T2 needs-you / T3-T4 not-user-fixable).
     _STRATEGY = {
@@ -1016,6 +1066,7 @@ def _classify_failure(
         "config_param": "user_action_required",
         "input_data": "user_action_required",
         "tool_error": "user_action_required",
+        "arch_compat": "not_fixable",     # T4: architecture mismatch (e.g. ARM64 + amd64 image)
         "workflow_code": "not_fixable",   # T4: BioMate's defect, not the user's
         "unknown": "not_fixable",
     }
@@ -1023,7 +1074,51 @@ def _classify_failure(
     def verdict(category: str, msg: str, transient: bool, action: str) -> Dict[str, Any]:
         return {"category": category, "user_message": msg,
                 "is_transient": transient, "suggested_action": action,
-                "fix_strategy": _STRATEGY.get(category, "not_fixable")}
+                "fix_strategy": _STRATEGY.get(category, "not_fixable"),
+                "task_error_snippet": task_error_snippet}
+
+    # ── ARM64: workflow image has no arm64 variant → "pull access denied" or no manifest ──
+    # Triggered when DOCKER_DEFAULT_PLATFORM=linux/arm64 (信创/domestic deployment) and the
+    # workflow's container image was never built for arm64.  Docker finds no local match and
+    # can't pull from the registry → vague "pull access denied" / "unable to find image".
+    _is_arm64_host = os.environ.get("DOCKER_DEFAULT_PLATFORM", "").lower() == "linux/arm64"
+    _arm64_image_miss = (
+        "no matching manifest for linux/arm64" in low
+        or ("no matching manifest" in low and "arm64" in low)
+        or ("manifest unknown" in low and "arm64" in low)
+        or ("image operating system" in low and "does not match" in low and "arm64" in low)
+        or (_is_arm64_host and "pull access denied" in low
+            and ("unable to find image" in low or "repository does not exist" in low))
+        or (_is_arm64_host and "unable to find image" in low
+            and ("pull access denied" in low or "repository does not exist" in low
+                 or "does not exist" in low))
+    )
+    if _arm64_image_miss:
+        return verdict(
+            "arch_compat",
+            "此工作流所需的容器镜像暂无 ARM64（信创）版本，无法在当前 ARM64 部署上运行。"
+            " 请切换到 x86 稳定版部署，或联系管理员为该工作流添加 ARM64 镜像支持。"
+            " (Workflow container image has no ARM64 build."
+            " Switch to the x86 stable deployment or ask the administrator to add ARM64 image support.)",
+            False, "report",
+        )
+
+    # ── architecture / emulation incompatibility (QEMU segfault, signal 11, etc.) ──
+    # exit 139 = 128 + SIGSEGV(11). Common when running amd64 containers via QEMU on ARM64:
+    # ML libraries (PyTorch, TensorFlow) use AVX2/AVX-512 SIMD that QEMU can't emulate.
+    if (rc == 139
+            or any(k in low for k in ("segmentation fault", "signal 11", "sigsegv",
+                                     "qemu: uncaught target signal",
+                                     "illegal instruction", "signal 4",
+                                     "bus error", "signal 7"))):
+        return verdict("arch_compat",
+                       "A workflow step crashed with a low-level CPU signal (likely a "
+                       "segmentation fault or illegal instruction). This typically happens "
+                       "when running x86/amd64 container images via QEMU emulation on an "
+                       "ARM64 host — some libraries use CPU instructions (AVX2/SIMD) that "
+                       "QEMU cannot emulate correctly. A native ARM64 image is required to "
+                       "run this workflow on ARM64 hardware.",
+                       False, "report")
 
     # ── transient infrastructure (a plain resume can succeed) ──
     if any(k in low for k in ("spot", "reclaim", "instance was terminated", "host ec2",
@@ -1178,16 +1273,24 @@ def _trigger_auto_reroute_on_failure(
                 Path(failed_path).stem if failed_path else ""
             )
 
-        # Read the last ~60 lines of the Nextflow log for classification.
+        # Read Nextflow orchestrator log + actual task .command.err for classification.
+        # The orchestrator log only has exit codes; the real error (tracebacks, QEMU
+        # segfaults, R errors) is in the task work directory's .command.err files.
         log_tail: list = []
+        task_stderr: str = ""
         work_dir = run_meta.get("work_dir") or run_meta.get("workdir") or ""
         if work_dir and not str(work_dir).startswith("s3://"):
+            work_path = Path(work_dir)
             try:
-                _full, log_tail = _read_run_nextflow_log_text(Path(work_dir))
+                _full, log_tail = _read_run_nextflow_log_text(work_path)
+            except Exception:
+                pass
+            try:
+                task_stderr = _collect_failed_task_errors(work_path)
             except Exception:
                 pass
 
-        failure_verdict = _classify_failure("failed", log_tail, returncode)
+        failure_verdict = _classify_failure("failed", log_tail, returncode, task_stderr=task_stderr)
         if not failure_verdict:
             return
 
@@ -1281,12 +1384,15 @@ def _trigger_auto_reroute_on_failure(
         # ── Layer 2: AI diagnosis card ────────────────────────────────────
         # Emit a structured diagnosis so the frontend can surface it as a
         # helpful, actionable card instead of a raw "FAILED" state.
+        # task_error_snippet is the sanitized actual task stderr — the real
+        # error that auto-fix and the user need to understand what went wrong.
         _post_sse_direct(inv_id, "ai_diagnosis", {
             "category": category,
             "user_message": user_message,
             "suggested_action": suggested_action,
             "fix_strategy": fix_strategy,
             "is_transient": failure_verdict.get("is_transient", False),
+            "task_error_snippet": failure_verdict.get("task_error_snippet", ""),
             "run_id": run_id,
         })
         log.debug("[auto_reroute] Layer-2 diagnosis emitted for run=%s category=%s", run_id, category)
@@ -1298,14 +1404,27 @@ def _trigger_auto_reroute_on_failure(
 def _sanitize_status_payload(resp: Dict[str, Any]) -> Dict[str, Any]:
     """Single chokepoint before a status payload leaves for the browser: attach a
     classified `failure` verdict on failed runs and redact backend internals from
-    log_tail + error string fields. Never ships raw Nextflow logs to the client."""
+    log_tail + error string fields.
+
+    Task stderr (.command.err) is collected from the work directory and included
+    in classification + the failure.task_error_snippet field so the browser and
+    auto-fix LLM have the real error, not just an exit code.
+    """
     if not isinstance(resp, dict):
         return resp
     status = str(resp.get("status", "")).lower()
     raw_tail = resp.get("log_tail")
     if status in ("failed", "error", "cancelled"):
+        task_stderr = ""
+        work_dir = resp.get("work_dir") or resp.get("workdir") or ""
+        if work_dir and not str(work_dir).startswith("s3://"):
+            try:
+                task_stderr = _collect_failed_task_errors(Path(work_dir))
+            except Exception:
+                pass
         resp["failure"] = _classify_failure(
-            status, raw_tail, resp.get("returncode"), resp.get("duration_s"))
+            status, raw_tail, resp.get("returncode"), resp.get("duration_s"),
+            task_stderr=task_stderr)
     if "log_tail" in resp:
         resp["log_tail"] = _sanitize_log_tail(raw_tail)
     for _k in ("error", "errorMessage", "error_message", "message"):
@@ -3019,6 +3138,14 @@ def _generate_executor_config(
         # task containers can resolve "minio" hostname for S3 file staging.
         # BIOMATE_DOCKER_NETWORK defaults to "biomate-network" (on-prem compose default).
         docker_network = os.environ.get("BIOMATE_DOCKER_NETWORK", "biomate-network")
+        # Detect native ARM64 host via platform.machine() — works whether galaxy
+        # runs natively (Plan B multi-arch images) or under QEMU emulation (legacy).
+        # On native ARM64, Docker auto-selects arm64 task images; the explicit
+        # DOCKER_DEFAULT_PLATFORM env block is redundant but harmless and makes the
+        # intent clear for operators reading the generated config.
+        import platform as _nf_platform
+        _is_arm64 = _nf_platform.machine().lower() in ("aarch64", "arm64")
+        docker_executable_line = ""
         # On-prem container override: bioc workflows hard-code a private ECR image.
         # BIOMATE_BIOC_CONTAINER lets operators substitute a public/pre-pulled image.
         # Example: BIOMATE_BIOC_CONTAINER=localhost:5050/biomate/bioc-domain-transcriptomics:3.20-slim
@@ -3032,6 +3159,10 @@ process {{
   }}
 }}
 """
+        # On ARM64 hosts explicitly set DOCKER_DEFAULT_PLATFORM for Nextflow task
+        # containers. With native ARM64 images Docker auto-detects this anyway, but
+        # the explicit setting is a safety net for any mixed-arch deployments.
+        _arm64_env_block = 'env { DOCKER_DEFAULT_PLATFORM = "linux/arm64" }' if _is_arm64 else ""
         import multiprocessing as _mp
         host_cpus = _mp.cpu_count()
         minio_config = f"""
@@ -3048,10 +3179,12 @@ aws {{
 
 docker {{
   enabled = true
+{docker_executable_line}
   // --entrypoint "": override image ENTRYPOINT so Nextflow's /bin/bash invocation is used directly.
   // --user root: task containers need write access to the nf-work bind-mount.
   runOptions = '--entrypoint "" --user root --network {docker_network}'
 }}
+{_arm64_env_block}
 
 // On-prem local executor: cap process resource requirements so tasks
 // are never rejected due to host CPU/memory constraints.
@@ -6310,6 +6443,16 @@ def _execute_nextflow_impl(
                 # SMILES → 0 valid molecules → admet-ai crash). json.dumps yields
                 # valid JSON that json.loads round-trips. Fixes ~272 workflows.
                 _params_for_json[key] = _ml_json.dumps(value)
+            elif isinstance(value, str) and (key.endswith("_list") or key.endswith("List")):
+                # Workflow expects a JSON array string (e.g. smiles_list). If Galaxy AI
+                # extracted a single value as a bare string, wrap it so JsonSlurper
+                # in the .nf doesn't throw JsonException on a non-JSON scalar.
+                _stripped = value.strip()
+                try:
+                    _pl = _ml_json.loads(_stripped)
+                    _params_for_json[key] = _ml_json.dumps(_pl if isinstance(_pl, list) else [_pl])
+                except (ValueError, TypeError):
+                    _params_for_json[key] = _ml_json.dumps([_stripped] if _stripped else [])
             else:
                 _params_for_json[key] = str(value)
         if "outdir" not in _params_for_json and not _nf_path_str.startswith("/tmp/biomate_user_nf/"):
@@ -6344,6 +6487,15 @@ def _execute_nextflow_impl(
                 # can't parse, so a list param was consumed as one string value.
                 import json as _cli_json
                 cmd += [f"--{key}", _cli_json.dumps(value)]
+            elif isinstance(value, str) and (key.endswith("_list") or key.endswith("List")):
+                # Same *_list wrapping for CLI flag path (single-SMILES bare string case).
+                import json as _cli_json
+                _stripped = value.strip()
+                try:
+                    _pl = _cli_json.loads(_stripped)
+                    cmd += [f"--{key}", _cli_json.dumps(_pl if isinstance(_pl, list) else [_pl])]
+                except (ValueError, TypeError):
+                    cmd += [f"--{key}", _cli_json.dumps([_stripped] if _stripped else [])]
             else:
                 cmd += [f"--{key}", str(value)]
 

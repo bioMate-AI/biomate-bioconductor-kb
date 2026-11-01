@@ -17,7 +17,7 @@ ECR="399683337364.dkr.ecr.us-west-2.amazonaws.com"
 
 build_biomni_admet() {
     echo "=== Building biomni-admet:x86 ==="
-    # From biomate-nextflow-base (NOT biomni-tools) — lean ADMET-specific image
+    # From biomate/nextflow-base (NOT biomni-tools) — lean ADMET-specific image
     docker buildx build \
         --platform linux/amd64 \
         --progress=plain \

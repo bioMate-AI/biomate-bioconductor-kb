@@ -31,7 +31,7 @@ process ADMET_INFER_SHARD {
     tag "$meta.id"
     label 'process_medium'
 
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest'
+    container (System.getenv('NEXTFLOW_USE_AWS') == 'true' || System.getenv('S3_ENDPOINT_URL')) ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest'
 
     input:
     tuple val(meta), val(smiles_json)
@@ -95,7 +95,8 @@ process PREDICT_ADMET_PROPERTIES {
 
     // biomni-admet: dedicated ADMET container (admet-ai/Chemprop, mordred, PyTDC)
     // Starts from biomate-nextflow-base directly — lean, not biomni-tools
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest'
+    // On-prem (S3_ENDPOINT_URL set = MinIO) and AWS both use ECR image; pure local dev uses Docker Hub.
+    container (System.getenv('NEXTFLOW_USE_AWS') == 'true' || System.getenv('S3_ENDPOINT_URL')) ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest'
 
     input:
     path shard_admets
@@ -805,8 +806,11 @@ workflow PREDICT_ADMET_PROPERTIES_WORKFLOW {
     // Shard the compound list; the expensive ADMET-AI inference fans out across
     // parallel Batch jobs (one per shard). N <= admet_shard_size => one shard =>
     // identical to the previous single-job behavior.
+    def _smilesRaw = (params.smiles_list ?: '[]').toString().trim()
     def parsed = (params.smiles_list instanceof List) ? params.smiles_list
-        : new groovy.json.JsonSlurper().parseText((params.smiles_list ?: '[]').toString())
+        : (_smilesRaw.startsWith('[')
+            ? new groovy.json.JsonSlurper().parseText(_smilesRaw)
+            : _smilesRaw.tokenize(',').collect { it.trim() }.findAll { it })
     def shard_size = (params.admet_shard_size ?: 25) as int
     def shard_tuples = []
     parsed.collate(shard_size).eachWithIndex { chunk, i ->
