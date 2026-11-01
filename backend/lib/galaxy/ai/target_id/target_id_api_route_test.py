@@ -108,6 +108,27 @@ class RouteTests(unittest.TestCase):
         self.assertIn("validation_plan", out)           # a plan, or a clear error when the catalogue search is unavailable here
         self.assertEqual(out["targets"][0]["target"], "BRAF")
 
+    def test_run_outputs_are_read_only_from_the_configured_folder(self):
+        import tempfile
+        os.environ.pop("TARGET_ID_RUN_OUTPUT_ROOT", None)
+        with self.assertRaises(self.HTTPException) as cm:
+            run(self.m.identify_targets(self.req(run_outputs=[{"path": "x.csv"}])))
+        self.assertIn("disabled", cm.exception.detail)
+        with tempfile.TemporaryDirectory() as root:
+            with open(os.path.join(root, "deseq.csv"), "w") as fh:
+                fh.write(",baseMean,log2FoldChange,padj\nBRAF,9,4,1e-20\nTP53,9,1,1e-3\n")
+            os.environ["TARGET_ID_RUN_OUTPUT_ROOT"] = root
+            try:
+                self.assertTrue(run(self.m.target_id_status())["run_outputs_enabled"])
+                out = run(self.m.identify_targets(self.req(run_outputs=[{"path": "deseq.csv", "label": "NPC DE", "source_run_id": "r1"}])))
+                self.assertEqual(out["targets"][0]["target"], "BRAF")
+                self.assertIn("NPC DE", out["targets"][0]["evidence_links"]["client_deseq"]["label"])
+                with self.assertRaises(self.HTTPException) as cm:
+                    run(self.m.identify_targets(self.req(run_outputs=[{"path": "../x.csv"}])))
+                self.assertIn("outside the allowed folder", cm.exception.detail)
+            finally:
+                os.environ.pop("TARGET_ID_RUN_OUTPUT_ROOT", None)
+
     def test_the_audited_default_is_not_overridden(self):
         src = API.read_text()
         self.assertNotIn("arbiter=HarmonicSumArbiter()", src)

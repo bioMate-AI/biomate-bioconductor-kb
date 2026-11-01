@@ -31,6 +31,7 @@ class IdentifyTargetsRequest(BaseModel):
     candidate_targets: Optional[List[str]] = None
     tables: Optional[List[Dict[str, Any]]] = None  # server-side evidence tables; only paths inside TARGET_ID_TABLE_ROOT are accepted
     client_tables: Optional[List[Dict[str, Any]]] = None  # the hospital's own analysis results, rows sent inline (see client_data.ADAPTERS)
+    run_outputs: Optional[List[Dict[str, Any]]] = None    # completed analysis outputs to read from TARGET_ID_RUN_OUTPUT_ROOT: {path, name?, label?, source_run_id?, kind?, columns?}
     use_llm: bool = True                           # on by default (2026-10-25): LLM-reasoned is the strongest target-ID channel; falls back to None if no LLM configured
     include_network: bool = True                   # STRING (and pathway, if configured) channels, seeded from the Open Targets top genes
     ranking_mode: str = "auto"                     # "auto": Open Targets-primary when available; "integrated": all channels incl. client data weighted
@@ -49,7 +50,7 @@ async def target_id_status() -> Dict[str, Any]:
     """Configuration only (no network calls): what a deployment must allow-list, and what works offline."""
     from galaxy.ai.target_id.client_data import ADAPTERS
     from galaxy.ai.target_id.data_channels import list_snapshots, offline_mode, snapshot_dir
-    from galaxy.ai.target_id.table_policy import table_root
+    from galaxy.ai.target_id.table_policy import run_output_root, table_root
 
     off = offline_mode()
     hosts = [] if off else [
@@ -61,6 +62,7 @@ async def target_id_status() -> Dict[str, Any]:
         "snapshot_dir_configured": bool(snapshot_dir()),
         "snapshots": list_snapshots(snapshot_dir()),
         "server_tables_enabled": bool(table_root()),
+        "run_outputs_enabled": bool(run_output_root()),
         "client_table_kinds": sorted(ADAPTERS),
         "external_hosts": hosts,
         "language_model": "uses the configured LLM provider; its endpoint is whatever the deployment sets (a local endpoint in on-premises mode)",
@@ -76,6 +78,7 @@ async def identify_targets(request: IdentifyTargetsRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail="ranking_mode must be one of %s" % ", ".join(_RANKING_MODES))
 
     from galaxy.ai.target_id import HarmonicSumArbiter, TargetIDOrchestrator, default_channels
+    from galaxy.ai.target_id.analysis_outputs import specs_from_run_outputs
     from galaxy.ai.target_id.table_policy import safe_table_specs
 
     llm = None
@@ -90,8 +93,9 @@ async def identify_targets(request: IdentifyTargetsRequest) -> Dict[str, Any]:
 
     try:
         tables = safe_table_specs(request.tables)
+        client_tables = list(request.client_tables or []) + specs_from_run_outputs(request.run_outputs)
         channels = default_channels(disease_id=request.disease_id, tables=tables, llm_client=llm,
-                                    client_tables=request.client_tables, include_network=request.include_network)
+                                    client_tables=client_tables, include_network=request.include_network)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     if not channels:

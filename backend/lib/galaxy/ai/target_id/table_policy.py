@@ -14,6 +14,20 @@ def table_root() -> Optional[str]:
     return os.path.realpath(r) if r else None
 
 
+def confine(path: str, root: str) -> str:
+    """Resolve ``path`` (relative to ``root`` unless absolute) and return it only if it lies inside ``root``."""
+    root = os.path.realpath(root)
+    p = os.path.realpath(path if os.path.isabs(path) else os.path.join(root, path))
+    if os.path.commonpath([root, p]) != root:
+        raise ValueError("path is outside the allowed folder")
+    return p
+
+
+def run_output_root() -> Optional[str]:
+    r = os.environ.get("TARGET_ID_RUN_OUTPUT_ROOT")
+    return os.path.realpath(r) if r else None
+
+
 def safe_table_specs(tables: Optional[List[Dict[str, Any]]], root: Optional[str] = None) -> List[Dict[str, Any]]:
     """Return sanitised TableChannel kwargs, or raise ValueError describing what was refused."""
     out: List[Dict[str, Any]] = []
