@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="960" viewBox="0 0 1400 960" role="img" aria-label="Figure 2 | Knowledge utility and generative performance"><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#526477" /></marker></defs><rect width="1400" height="960" fill="white" /><style>text{font-family:Arial,Helvetica,sans-serif;fill:#162b40} .title{font-size:32px;font-weight:700} .sub{font-size:20px;fill:#526477} .head{font-size:22px;font-weight:700} .body{font-size:20px} .small{font-size:18px;fill:#526477}</style><text x="50" y="57" class="title">Figure 2 | Knowledge utility and generative performance</text><text x="50" y="94" class="sub">Matched knowledge conditions distinguish evidence utility from complete-system performance.</text>
+<rect x="50" y="135" width="635" height="175" rx="12" fill="#edf4fa" stroke="#b6c6d4" />
+<text x="70" y="171" class="head">a  Fixed-pool decision experiment</text>
+<text x="70" y="208" class="body">Identical eligible molecules and hidden measurements</text>
+<text x="70" y="237" class="body">Select candidates in rounds; reveal selected outcomes</text>
+<text x="70" y="266" class="body">Primary contrast: knowledge on minus knowledge off</text>
+<rect x="715" y="135" width="635" height="175" rx="12" fill="#edf4fa" stroke="#b6c6d4" />
+<text x="735" y="171" class="head">b  Generative system experiment</text>
+<text x="735" y="208" class="body">Shared starting set, rules and oracle-call budget</text>
+<text x="735" y="237" class="body">Different generators and knowledge interfaces</text>
+<text x="735" y="266" class="body">Primary contrast: full system versus strong baselines</text>
+<rect x="50" y="385" width="420" height="155" rx="12" fill="#edf4fa" stroke="#b6c6d4" />
+<text x="70" y="421" class="head">Knowledge off</text>
+<text x="70" y="458" class="body">Chemical context retained</text>
+<text x="70" y="487" class="body">No mined-evidence intervention</text>
+<rect x="490" y="385" width="420" height="155" rx="12" fill="#e8f3ef" stroke="#b6c6d4" />
+<text x="510" y="421" class="head">Applicable knowledge</text>
+<text x="510" y="458" class="body">Reviewed scope matches task</text>
+<text x="510" y="487" class="body">Same underlying evidence</text>
+<rect x="930" y="385" width="420" height="155" rx="12" fill="#fff2e5" stroke="#b6c6d4" />
+<text x="950" y="421" class="head">Inapplicable evidence</text>
+<text x="950" y="458" class="body">Matched topic and packet size</text>
+<text x="950" y="487" class="body">Scope mismatch is explicit</text>
+<text x="50" y="355" class="small">c  Apply all three conditions within IH-LM, Claude, GPT and Gemini</text>
+<rect x="50" y="610" width="635" height="190" rx="12" fill="#edf4fa" stroke="#b6c6d4" />
+<text x="70" y="646" class="head">d  Evaluate learning and transfer</text>
+<text x="70" y="683" class="body">Fixed pool: measured yield and selection efficiency</text>
+<text x="70" y="712" class="body">Generation: train-score AUC versus oracle calls</text>
+<text x="70" y="741" class="body">Separate endpoint: final top-10 held-out score</text>
+<text x="70" y="770" class="body">Within-system paired effects and uncertainty</text>
+<rect x="715" y="610" width="635" height="190" rx="12" fill="#edf4fa" stroke="#b6c6d4" />
+<text x="735" y="646" class="head">e  Evaluate knowledge use and efficiency</text>
+<text x="735" y="683" class="body">Scope rejection and evidence-to-proposal trace</text>
+<text x="735" y="712" class="body">Validity, uniqueness and structural diversity</text>
+<text x="735" y="741" class="body">Failures, latency, tokens and monetary cost</text>
+<text x="735" y="770" class="body">Seeds repeat runs; tasks/sources define transfer</text>
+<text x="320" y="580" class="small">All three conditions are assessed on both outcome groups below</text>
+<text x="50" y="855" class="small">Interpretation: better optimisation scores do not establish better biological activity or permeability.</text>
+<text x="50" y="887" class="small">Final held-out scores and train-objective AUC are separate endpoints, with task-specific effect margins.</text>
+<text x="50" y="919" class="small">Cross-system contrasts compare complete systems; within-system contrasts isolate the knowledge intervention.</text></svg>

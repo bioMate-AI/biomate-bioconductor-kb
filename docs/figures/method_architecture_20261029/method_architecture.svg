@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1540" viewBox="0 0 1800 1540">
+<rect width="1800" height="1540" fill="white"/>
+<text x="45" y="53" font-family="Arial, sans-serif" font-size="35" font-weight="700" fill="#183146">IH-LM: computational knowledge conditioning and constrained adaptation</text>
+<text x="45" y="91" font-family="Arial, sans-serif" font-size="24" font-weight="400" fill="#536a7b">Architecture and information flow. Symbols denote model components; experimental values are specified separately.</text>
+<rect x="30" y="120" width="1740" height="270" rx="12" fill="#fafcfd" stroke="#8495a2" stroke-width="2"/>
+<text x="55" y="156" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#183146">a  Fixed evidence memory and shared chemical input</text>
+<rect x="55" y="180" width="410" height="170" rx="12" fill="#f2edfa" stroke="#8495a2" stroke-width="2"/>
+<text x="75" y="216" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#183146">Reviewed evidence catalogue K</text>
+<text x="75" y="249" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Source lineage + quotation + scope</text>
+<text x="75" y="279" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Explicit learned-conditioning approval</text>
+<text x="75" y="309" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Frozen molecular + typed features</text>
+<rect x="525" y="180" width="550" height="170" rx="12" fill="#f2edfa" stroke="#8495a2" stroke-width="2"/>
+<text x="545" y="216" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#183146">Scope masks and learned projection</text>
+<text x="545" y="249" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Match task, assay, scaffold, closure and solvent</text>
+<text x="545" y="279" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Fixed raw memory K; learned projection Z = P(K)</text>
+<text x="545" y="309" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Null slot + evidence slots; padding is masked</text>
+<rect x="1135" y="180" width="610" height="170" rx="12" fill="#edf4fa" stroke="#8495a2" stroke-width="2"/>
+<text x="1155" y="216" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#183146">Chemical parent → token prefix c</text>
+<text x="1155" y="249" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Reviewed parent map; selection is a separate factor</text>
+<text x="1155" y="279" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Tokenise SMILES; retain a parent prefix</text>
+<text x="1155" y="309" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Preference candidates share prefix and memory</text>
+<polyline points="465,265 525,265" fill="none" stroke="#536a7b" stroke-width="3"/>
+<polygon points="525,265 514.0,260.0 514.0,270.0" fill="#536a7b"/>
+<rect x="30" y="420" width="1740" height="650" rx="12" fill="#fafcfd" stroke="#8495a2" stroke-width="2"/>
+<text x="55" y="458" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#183146">b  Autoregressive decoder and symbolic constraint interface</text>
+<polyline points="800,350 800,405 575,405 575,500" fill="none" stroke="#536a7b" stroke-width="3"/>
+<polygon points="575,500 580.0,489.0 570.0,489.0" fill="#536a7b"/>
+<polyline points="1440,350 1440,395 170,395 170,500" fill="none" stroke="#536a7b" stroke-width="3"/>
+<polygon points="170,500 175.0,489.0 165.0,489.0" fill="#536a7b"/>
+<rect x="55" y="500" width="245" height="130" rx="12" fill="#edf4fa" stroke="#8495a2" stroke-width="2"/>
+<text x="75" y="535" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#183146">Tokens c, y&lt;t</text>
+<text x="75" y="570" font-family="Arial, sans-serif" font-size="23" font-weight="400" fill="#183146">Embedding E</text>
+<text x="75" y="600" font-family="Arial, sans-serif" font-size="23" font-weight="400" fill="#183146">Hidden state h⁰</text>
+<rect x="360" y="500" width="430" height="130" rx="12" fill="#edf4fa" stroke="#8495a2" stroke-width="2"/>
+<text x="380" y="535" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#183146">L causal decoder blocks</text>
+<text x="380" y="570" font-family="Arial, sans-serif" font-size="23" font-weight="400" fill="#183146">Self-attention → evidence bridge</text>
+<text x="380" y="600" font-family="Arial, sans-serif" font-size="23" font-weight="400" fill="#183146">Pre-norm gated MLP + residual</text>
+<rect x="850" y="500" width="330" height="130" rx="12" fill="#edf4fa" stroke="#8495a2" stroke-width="2"/>
+<text x="870" y="535" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#183146">Final RMSNorm</text>
+<text x="870" y="570" font-family="Arial, sans-serif" font-size="23" font-weight="400" fill="#183146">Language-model head</text>
+<text x="870" y="600" font-family="Arial, sans-serif" font-size="23" font-weight="400" fill="#183146">Token logits zθ ∈ R^|V|</text>
+<rect x="1240" y="500" width="505" height="130" rx="12" fill="#fff4df" stroke="#8495a2" stroke-width="2"/>
+<text x="1260" y="535" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#183146">Masked categorical distribution</text>
+<text x="1260" y="570" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Softmax over admitted tokens only</text>
+<text x="1260" y="600" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Sample y[t]; update prefix and rule state</text>
+<polyline points="300,565 360,565" fill="none" stroke="#536a7b" stroke-width="3"/>
+<polygon points="360,565 349.0,560.0 349.0,570.0" fill="#536a7b"/>
+<polyline points="790,565 850,565" fill="none" stroke="#536a7b" stroke-width="3"/>
+<polygon points="850,565 839.0,560.0 839.0,570.0" fill="#536a7b"/>
+<polyline points="1180,565 1240,565" fill="none" stroke="#536a7b" stroke-width="3"/>
+<polygon points="1240,565 1229.0,560.0 1229.0,570.0" fill="#536a7b"/>
+<rect x="55" y="685" width="535" height="300" rx="12" fill="#edf4fa" stroke="#8495a2" stroke-width="2"/>
+<text x="75" y="722" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#183146">At each selected bridge layer</text>
+<text x="75" y="760" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">h′ = h + causal self-attention(RMSNorm(h))</text>
+<text x="75" y="790" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Qe = LN(h′) WQe;  Ke = Z WKe;  Ve = Z WVe</text>
+<text x="75" y="820" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">a = softmax(Qe Ke^T / √dh + Me) Ve</text>
+<text x="75" y="850" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">h″ = h′ + a WOe</text>
+<text x="75" y="880" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">hnext = h″ + MLP(RMSNorm(h″))</text>
+<text x="75" y="910" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">WOe starts at zero; Me masks padded slots</text>
+<text x="75" y="940" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Evidence is fixed across the candidate group</text>
+<rect x="625" y="685" width="555" height="300" rx="12" fill="#eaf6ed" stroke="#8495a2" stroke-width="2"/>
+<text x="645" y="722" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#183146">Policy and frozen reference branches</text>
+<text x="645" y="763" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">WQ,V = W⁰Q,V + (α/r) AB</text>
+<text x="645" y="798" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Train: LoRA A, B + projector + evidence bridge</text>
+<text x="645" y="833" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Freeze: backbone, embeddings and LM head</text>
+<text x="645" y="868" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Reference: LoRA off + initial frozen bridge</text>
+<text x="645" y="903" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Reference projector is independently frozen</text>
+<text x="645" y="938" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Both branches consume identical raw memory</text>
+<rect x="1240" y="685" width="505" height="300" rx="12" fill="#fff4df" stroke="#8495a2" stroke-width="2"/>
+<text x="1260" y="722" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#183146">Prefix-state rule automaton</text>
+<text x="1260" y="760" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">s[t] = update(s[t−1], y[t−1])</text>
+<text x="1260" y="793" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Prefix-admissibility mask m[t](v) ∈ {0,1}</text>
+<text x="1260" y="826" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Optional admitted soft potential b[t](v)</text>
+<text x="1260" y="859" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">ℓ[t](v) = zθ[t](v)/τ + b[t](v)</text>
+<text x="1260" y="892" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">pθ,C(v) ∝ m[t](v) exp[ℓ[t](v)]</text>
+<text x="1260" y="925" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">EOS requires an exact molecular-rule check</text>
+<polyline points="1490,685 1490,630" fill="none" stroke="#536a7b" stroke-width="3"/>
+<polygon points="1490,630 1485.0,641.0 1495.0,641.0" fill="#536a7b"/>
+<text x="60" y="1024" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#183146">The same mask, temperature and admitted soft potential define sampling and training likelihoods.</text>
+<text x="60" y="1052" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#536a7b">Completion tokens include EOS; prefix tokens condition the policy but are not preference-loss targets.</text>
+<rect x="30" y="1100" width="1740" height="395" rx="12" fill="#fafcfd" stroke="#8495a2" stroke-width="2"/>
+<text x="55" y="1138" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#183146">c  Preference adaptation and separated evaluation channels</text>
+<rect x="55" y="1165" width="390" height="195" rx="12" fill="#edf4fa" stroke="#8495a2" stroke-width="2"/>
+<text x="75" y="1202" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#183146">Completed molecules</text>
+<text x="75" y="1238" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Chemical validation and deduplication</text>
+<text x="75" y="1270" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Training oracle → ranked candidates</text>
+<text x="75" y="1302" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Pair (y⁺, y⁻): same prefix and memory</text>
+<text x="75" y="1334" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">No successful completion: no pair</text>
+<rect x="505" y="1165" width="720" height="195" rx="12" fill="#eaf6ed" stroke="#8495a2" stroke-width="2"/>
+<text x="525" y="1202" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#183146">Masked sequence likelihood and DPO</text>
+<text x="525" y="1238" font-family="Arial, sans-serif" font-size="24" font-weight="400" fill="#183146">log πθ,C(y|c,K) = Σ_t log pθ,C(y[t]|c,K,y&lt;t)</text>
+<text x="525" y="1270" font-family="Arial, sans-serif" font-size="24" font-weight="400" fill="#183146">Δθ = log πθ,C(y⁺|c,K) − log πθ,C(y⁻|c,K)</text>
+<text x="525" y="1302" font-family="Arial, sans-serif" font-size="24" font-weight="400" fill="#183146">LDPO = −log σ[β(Δθ − Δref)]</text>
+<text x="525" y="1334" font-family="Arial, sans-serif" font-size="24" font-weight="400" fill="#183146">Backpropagate to LoRA + projector + bridge</text>
+<polyline points="445,1260 505,1260" fill="none" stroke="#536a7b" stroke-width="3"/>
+<polygon points="505,1260 494.0,1255.0 494.0,1265.0" fill="#536a7b"/>
+<rect x="1285" y="1165" width="460" height="195" rx="12" fill="#f2f4f6" stroke="#8495a2" stroke-width="2"/>
+<text x="1305" y="1202" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#183146">Evaluation has separate access</text>
+<text x="1305" y="1238" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Stop verifier: stopping decision only</text>
+<text x="1305" y="1270" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Final held-out: final selected molecules</text>
+<text x="1305" y="1302" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">Neither supplies preference labels</text>
+<text x="1305" y="1334" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#183146">No held-out gradient or parent update</text>
+<text x="55" y="1402" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#183146">Feedback loop: generated candidates → training-oracle scores → preference pairs → policy update.</text>
+<text x="55" y="1440" font-family="Arial, sans-serif" font-size="23" font-weight="400" fill="#183146">Matched comparisons: bridge off / null memory / qualified evidence. Parent selection is an independent factor.</text>
+<text x="55" y="1472" font-family="Arial, sans-serif" font-size="23" font-weight="400" fill="#183146">The diagram describes the implemented architecture; scientific gains and full-checkpoint acceptance remain unmeasured.</text>
+</svg>
