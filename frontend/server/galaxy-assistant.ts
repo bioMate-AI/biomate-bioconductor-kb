@@ -2,7 +2,7 @@ import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workfl
 import { localOnly, localOffline, localMessagesClient, localConfig } from './local-llm.js';
 import { localIntentPrompt } from './local-intent-prompt.js';
 import { localResponsePrompt } from './local-response-prompt.js';
-import { scientificToolRequest, scientificToolResult } from './scientific-chat-tools';
+import { scientificToolRequest, scientificToolResult, targetEvidenceReply } from './scientific-chat-tools';
 import { groundedResearchReply, researchEvidenceContext } from './grounded-research-reply';
 /**
  * Galaxy Assistant Service
@@ -338,6 +338,9 @@ supporting/none/vetoed. Never describe harmonic-sum per_channel_z values as stat
           description: 'Optional explicit gene symbols to score/rank (e.g. ["BRAF","CDKN2A","BAP1"]). Omit to let the channels nominate.',
         },
         top_k: { type: 'integer', minimum: 1, maximum: 100, description: 'How many ranked targets to return (default 25).' },
+        ranking_mode: { type: 'string', enum: ['auto', 'integrated'], description: "'auto' (default) follows Open Targets when available; 'integrated' weights all channels together." },
+        validate: { type: 'boolean', description: 'Also return, for the top targets, the BioMate workflows that could test them.' },
+        suggest_modality: { type: 'boolean', description: 'Also return a guidance-only drug-type suggestion (small molecule / biologic / ...) for the top targets. Not validated; say so.' },
       },
       required: ['query'],
     },
@@ -528,6 +531,8 @@ export interface ChatContext {
    * generation returns "currently unavailable".
    */
   galaxyAPIOverride?: any;
+  /** Set by the authenticated server route, never inferred from proxy fallback. */
+  skillPrivateAccess?: boolean;
   /** Explicitly selected expert skill IDs (from SkillSelector UI). Auto-detected when absent. */
   activeSkillIds?: string[];
   /** Composer name for explicit project/question selections, including none. */
@@ -1489,59 +1494,46 @@ const GALAXY_URL = process.env.GALAXY_URL || 'http://localhost:8081';
  * Fetch active skills from the Galaxy backend and build a system-prompt block.
  * Auto-detects from message + preferred domains unless the session has explicitly
  * set skill_ids via context.activeSkillIds.
- * Returns empty string on any error (non-blocking).
+ * Auto-detection is best-effort; explicit activation fails visibly when unavailable.
  */
 export async function buildSkillBlock(
   message: string,
   preferredDomains: string[],
-  context: { activeSkillIds?: string[]; skillPackIds?: string[] }
+  context: { activeSkillIds?: string[]; skillPackIds?: string[]; skillPrivateAccess?: boolean; galaxyAPIOverride?: GalaxyAPIProxy }
 ): Promise<string> {
   const selected = context.skillPackIds ?? context.activeSkillIds;
   const explicit = Array.isArray(selected);
   if (explicit && selected.length === 0) return "";
   try {
-    let url: string;
-    let body: object;
-
-    if (explicit) {
-      // Explicit skill selection
-      url = `${GALAXY_URL}/api/skills/block`;
-      body = { skill_ids: selected };
-    } else {
-      // Auto-detect from message
-      url = `${GALAXY_URL}/api/skills/detect`;
-      body = { query: message, preferred_domains: preferredDomains };
-    }
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(3000),
-    });
-
-    if (!res.ok) return '';
-    const data = await res.json() as any;
-
-    if (explicit) {
-      return (data.block as string) || '';
-    } else {
-      // Build block from detected skills inline
-      const detected: Array<{ id: string; title: string }> = data.detected || [];
-      if (!detected.length) return '';
-      // Fetch the full block for detected skill ids
-      const blockRes = await fetch(`${GALAXY_URL}/api/skills/block`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ skill_ids: detected.map((s: any) => s.id) }),
-        signal: AbortSignal.timeout(3000),
+    const privateAccess = context.skillPrivateAccess === true;
+    const post = async (path: string, body: object): Promise<any> => {
+      const payload = { ...body, include_private: privateAccess };
+      if (privateAccess) {
+        if (!context.galaxyAPIOverride) throw new Error('Personal skill access is unavailable');
+        const response = await context.galaxyAPIOverride.client.post(path, payload, { timeout: 3000 });
+        if (response.data?.success !== true) throw new Error('Skill service unavailable');
+        return response.data;
+      }
+      // Catalogue-only requests cannot see a shared account's private packs.
+      const response = await fetch(`${GALAXY_URL}${path}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload), signal: AbortSignal.timeout(3000),
       });
-      if (!blockRes.ok) return '';
-      const blockData = await blockRes.json() as any;
-      return (blockData.block as string) || '';
-    }
+      if (!response.ok) throw new Error('Skill service unavailable');
+      const data = await response.json() as any;
+      if (data.success !== true) throw new Error('Skill service unavailable');
+      return data;
+    };
+    const ids = explicit ? selected : (await post('/api/skills/detect', {
+      query: message, preferred_domains: preferredDomains,
+    })).detected?.map((s: { id: string }) => s.id);
+    if (!ids?.length) return '';
+    const data = await post('/api/skills/block', { skill_ids: ids });
+    if (typeof data.block !== 'string' || !data.block.trim()) throw new Error('Skill instructions unavailable');
+    return data.block;
   } catch {
-    return '';  // skills are best-effort, never block the response
+    if (explicit) throw new Error('The selected expert skills could not be loaded. Please reselect the skills or try again.');
+    return '';
   }
 }
 
@@ -4811,21 +4803,34 @@ Rules:
     // rewrite so invented references are never streamed before validation.
     let citedResearch = researchResponse?.success && Array.isArray(researchResponse?.citations) && researchResponse.citations.length
       ? researchResponse : null;
+    let executedTargets: any = null;
+    let targetToolStarted = false;
+    let reviewToolCompleted = false;
     const researchAwareDelta = onResponseDelta ? (chunk: string) => {
-      if (!citedResearch) onResponseDelta(chunk);
+      if (!citedResearch && !targetToolStarted) onResponseDelta(chunk);
     } : undefined;
-    const researchAwareToolEvent = onToolEvent ? (event: AgentToolEvent) => {
+    const researchAwareToolEvent = (event: AgentToolEvent) => {
+      if (event.name === 'identify_targets') {
+        targetToolStarted = true;
+        if (event.type === 'tool_result') {
+          try {
+            const value = typeof event.output === 'string' ? JSON.parse(event.output) : event.output;
+            if (!event.error && value?.status === 'ok') executedTargets = value;
+          } catch { /* malformed output is not successful execution evidence */ }
+        }
+      }
       if (event.type === 'tool_result' && event.name === 'write_review') {
         try {
           const value: any = typeof event.output === 'string' ? JSON.parse(event.output) : event.output;
           if (value?.status === 'ok' && value.answer && Array.isArray(value.citations)) {
             citedResearch = {success:true,...value};
             researchResponse = citedResearch;
+            reviewToolCompleted = true;
           }
         } catch { /* malformed tool output remains an error, not evidence */ }
       }
-      onToolEvent(event);
-    } : undefined;
+      onToolEvent?.(event);
+    };
     const response = await this.generateResponse(
       message,
       intent,
@@ -4842,11 +4847,18 @@ Rules:
       decomposition.preferredDomains ?? [],
       researchAwareToolEvent
     );
-    if (citedResearch) {
+    if (executedTargets && !reviewToolCompleted) {
+      // Present the actual ranking, not an earlier survey that never saw the
+      // completed tool result. Source ownership is per artifact, not per turn.
+      response.message = targetEvidenceReply(executedTargets);
+      onResponseDelta?.(response.message);
+    } else if (citedResearch) {
       const guarded = groundedResearchReply(response.message, citedResearch);
-      response.message = guarded.message;
-      onResponseDelta?.(guarded.message);
+      response.message = executedTargets ? `${targetEvidenceReply(executedTargets)}\n\n${guarded.message}` : guarded.message;
+      onResponseDelta?.(response.message);
       if (guarded.usedBackendAnswer) log('Research citation boundary: retained grounded backend answer');
+    } else if (targetToolStarted) {
+      onResponseDelta?.(response.message);
     }
     log('Step 6 complete');
 

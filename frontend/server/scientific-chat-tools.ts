@@ -23,7 +23,18 @@ export function scientificToolRequest(input: unknown, kind: 'targets' | 'review'
     throw new Error('candidate_targets must contain non-empty gene symbols');
   }
   const candidates = input.candidate_targets == null ? null : [...new Set(input.candidate_targets.map((v: string) => v.trim().toUpperCase()))];
-  return {query, disease_id: input.disease_id?.trim() || null, candidate_targets: candidates?.length ? candidates : null, top_k: topK};
+  if (input.ranking_mode != null && !['auto', 'integrated'].includes(input.ranking_mode)) {
+    throw new Error("ranking_mode must be 'auto' or 'integrated'");
+  }
+  for (const flag of ['validate', 'suggest_modality'] as const) {
+    if (input[flag] != null && typeof input[flag] !== 'boolean') throw new Error(`${flag} must be a boolean`);
+  }
+  return {
+    query, disease_id: input.disease_id?.trim() || null, candidate_targets: candidates?.length ? candidates : null, top_k: topK,
+    ...(input.ranking_mode ? {ranking_mode: input.ranking_mode} : {}),
+    ...(input.validate === true ? {validate: true} : {}),
+    ...(input.suggest_modality === true ? {suggest_modality: true} : {}),
+  };
 }
 
 export function scientificToolResult(data: unknown, kind: 'targets' | 'review', query: string): RecordValue {
@@ -46,6 +57,11 @@ export function scientificToolResult(data: unknown, kind: 'targets' | 'review', 
       channel_errors: data.channel_errors, channel_provenance: provenance,
       n_targets_total: data.n_targets_total ?? data.targets.length,
       targets: data.targets,
+      ...(data.validation_plan ? {validation_plan: data.validation_plan} : {}),
+      ...(data.modality_suggestions ? {
+        modality_suggestions: data.modality_suggestions,
+        modality_note: 'Drug-type suggestions are guidance only and NOT validated: on approved-drug precedent the rule barely beats always answering small molecule, and misses most biologics. State this when presenting them.',
+      } : {}),
       note: (primary
         ? 'Order follows OpenTargets association scores; other channels provide corroboration/conflict, not improved ranking. '
         : 'OpenTargets-primary ordering was NOT established for this result. Report the returned ranking mode and available channels; do not imply OpenTargets evidence when unavailable. ') +
@@ -73,4 +89,16 @@ export function scientificToolResult(data: unknown, kind: 'targets' | 'review', 
       ? 'Preserve the answer/reference numbering and source disagreements. Cite only returned references; do not invent DOI/PMID. Low confidence and retrieval limitations must be stated.'
       : 'No literature citations were returned. This is not a literature-backed review; disclose the source/fallback and do not invent references.',
   };
+}
+/** A completed ranking is authoritative; a prefetched survey cannot deny its execution. */
+export function targetEvidenceReply(result: any): string {
+  if (result?.status !== 'ok' || !Array.isArray(result.targets) || !result.targets.length) {
+    throw new Error('No successful target evidence to present');
+  }
+  const text = (v: unknown) => String(v ?? '').replace(/[|\r\n]/g, ' ');
+  const rows = result.targets.map((t: any) => `| ${text(t.rank)} | ${text(t.target)} | ${text(t.score)} | ${text(t.tier)} | ${t.conflict ? 'Yes' : 'No'} |`);
+  const primary = result.ranking?.mode === 'primary_channel' ? result.ranking.primary_channel : null;
+  const errors = Object.keys(result.channel_errors || {});
+  const channel = (value: string) => ({genetics_ot:'Open Targets disease-association evidence',llm_reasoned:'AI-generated reasoning'}[value] || text(value));
+  return `Target identification completed successfully.\n\n| Rank | Target | Score | Evidence tier | Channel conflict |\n| --- | --- | --- | --- | --- |\n${rows.join('\n')}\n\nRanking: ${primary ? `ordered by ${channel(primary)}` : 'combined available channels; Open Targets-primary ordering was not established'}. Successful channels: ${(result.channels_run || []).map(channel).join(', ') || 'none reported'}. Failed channels: ${errors.map(channel).join(', ') || 'none reported'}.\n\nScores are associations, not clinical probabilities. Evidence tiers describe channel agreement, not independent experimental validation; AI-generated reasoning is not a retrieved publication. A conflict means the channels disagree. No improvement over Open Targets alone has been established.`;
 }

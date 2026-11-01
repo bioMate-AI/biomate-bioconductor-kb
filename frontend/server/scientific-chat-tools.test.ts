@@ -1,6 +1,19 @@
 import {describe, it, expect} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {scientificToolRequest, scientificToolResult} from './scientific-chat-tools';
+import {scientificToolRequest, scientificToolResult, targetEvidenceReply} from './scientific-chat-tools';
+
+it('presents completed target evidence without stale literature fallback or patient-count inference', () => {
+  const result = {status:'ok', targets:[{rank:1,target:'BRAF',score:0.8533,tier:'nominated',conflict:true}],
+    ranking:{mode:'primary_channel',primary_channel:'genetics_ot'},channels_run:['genetics_ot'],
+    channel_errors:{llm_reasoned:'unavailable'},note:'Scores are associations, not clinical probabilities.'};
+  const reply = targetEvidenceReply(result);
+  expect(reply).toContain('completed successfully');
+  expect(reply).toContain('| 1 | BRAF | 0.8533 | nominated | Yes |');
+  expect(reply).toContain('Failed channels: AI-generated reasoning');
+  expect(reply).toContain('not clinical probabilities');
+  expect(reply).not.toMatch(/patient|not executed|could not be run|genetics_ot|llm_reasoned/);
+  expect(() => targetEvidenceReply({...result,status:'error'})).toThrow();
+});
 
 describe('scientific chat boundary (pure contracts, no API mocks)', () => {
   it('rejects missing, blank, coerced and structured queries', () => {
@@ -18,6 +31,19 @@ describe('scientific chat boundary (pure contracts, no API mocks)', () => {
     for (const candidate_targets of ['BRAF', [null], [5], ['']]) expect(() => scientificToolRequest({query:'q',candidate_targets}, 'targets')).toThrow(/candidate_targets/);
     expect(() => scientificToolRequest({query:'q',disease_id:'melanoma'}, 'targets')).toThrow(/disease_id/);
   });
+  it('passes the optional ranking, validation and modality options and keeps modality unvalidated', () => {
+    expect(scientificToolRequest({query: 'q'}, 'targets')).not.toHaveProperty('ranking_mode');
+    const req = scientificToolRequest({query: 'q', ranking_mode: 'integrated', validate: true, suggest_modality: true}, 'targets');
+    expect(req).toMatchObject({ranking_mode: 'integrated', validate: true, suggest_modality: true});
+    expect(() => scientificToolRequest({query: 'q', ranking_mode: 'x'}, 'targets')).toThrow();
+    expect(() => scientificToolRequest({query: 'q', validate: 'yes'}, 'targets')).toThrow();
+    const out = scientificToolResult({targets: [{target: 'BRAF', score: 1, rank: 1, tier: 'nominated'}],
+      modality_suggestions: [{target: 'BRAF', validated: false}], validation_plan: {n: 1}}, 'targets', 'q');
+    expect(out.modality_suggestions).toEqual([{target: 'BRAF', validated: false}]);
+    expect(String(out.modality_note)).toMatch(/NOT validated/);
+    expect(out.validation_plan).toEqual({n: 1});
+  });
+
   it('requires positive research success, prose and valid citations, including HTTP-200 failures', () => {
     for (const data of [null, {success:false,error:'agent unavailable'}, {}, {success:true,answer:'',citations:[]}, {success:true,answer:'x'}, {success:true,answer:'x',citations:[null]}]) {
       expect(scientificToolResult(data,'review','q')).toHaveProperty('error');
