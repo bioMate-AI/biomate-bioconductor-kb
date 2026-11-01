@@ -9,7 +9,9 @@ ROOT=$HOME/biomate-onprem-train
 VLLM=$HOME/vllm_venv/bin/vllm
 HERE=$(cd "$(dirname "$0")" && pwd)
 DATA=$HERE/dose_data
-OUT=$HERE/dose_results; mkdir -p "$OUT"
+OUT=$HERE/${OUTDIR:-dose_results}; mkdir -p "$OUT"
+export THINK=${THINK:-0} MAXTOK=${MAXTOK:-}
+echo "[cfg] OUT=$OUT THINK=$THINK MAXTOK=${MAXTOK:-default}"
 CKPT=$ROOT/out/med/fuller_20261005
 BASE_ORIG=$ROOT/models/base_med
 BASE_DOM=$CKPT/base_domain

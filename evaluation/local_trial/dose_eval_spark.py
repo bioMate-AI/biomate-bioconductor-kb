@@ -9,7 +9,7 @@ served model. Metrics match the DrugDev manuscript:
 Thinking is disabled (chat_template_kwargs.enable_thinking=False) for speed; empties tracked.
 Writes per-item receipts so the aggregate is auditable.
 """
-import argparse, json, re, urllib.request
+import argparse, json, re, urllib.request, os
 
 INSTR = ("You are selecting the maximum tolerated dose (MTD) for a Phase-I trial. You are given PK and "
  "exposure-response (Emax) inputs and a dose grid. Model the probability of dose-limiting toxicity (DLT) at "
@@ -61,16 +61,22 @@ def score_item(r, pred):
     return outcome, safety, (hit / n if n else 0.0)
 
 
+THINK = os.environ.get("THINK", "0") == "1"   # enable reasoning (for arithmetic-heavy items)
+MAXTOK = int(os.environ.get("MAXTOK") or ("4000" if THINK else "800"))
+
+
 def ask(url, model, text):
     def call(with_nothink):
         payload = {"model": model, "messages": [{"role": "user", "content": text}],
-                   "max_tokens": 800, "temperature": 0}
-        if with_nothink:
+                   "max_tokens": MAXTOK, "temperature": 0}
+        # with_nothink=True means we explicitly DISABLE thinking; when THINK is on we skip that.
+        if with_nothink and not THINK:
             payload["chat_template_kwargs"] = {"enable_thinking": False}
         req = urllib.request.Request(url, json.dumps(payload).encode(), {"Content-Type": "application/json"})
-        c = json.loads(urllib.request.urlopen(req, timeout=180).read())["choices"][0]["message"].get("content") or ""
-        m = re.search(r"\{.*\}", c, re.S)
-        return json.loads(m.group()) if m else {}
+        c = json.loads(urllib.request.urlopen(req, timeout=300).read())["choices"][0]["message"].get("content") or ""
+        c = re.sub(r"<think>.*?</think>", "", c, flags=re.S)   # strip reasoning block if present
+        ms = re.findall(r"\{[^{}]*\}", c, re.S)                # take the LAST flat JSON object
+        return json.loads(ms[-1]) if ms else {}
     for with_nothink in (True, False):   # fall back if the chat template rejects enable_thinking
         for _ in range(2):
             try:
