@@ -1,0 +1,191 @@
+{
+  "model": "ours_cpt",
+  "tier": "hand",
+  "n": 20,
+  "outcome": 0.5,
+  "safety": 0.75,
+  "fidelity": 0.735,
+  "empties": 0,
+  "per_item": [
+    {
+      "id": "CT-001",
+      "pred_mtd": 150,
+      "gold_mtd": 150,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 1.0,
+      "empty": false
+    },
+    {
+      "id": "CT-002",
+      "pred_mtd": 80,
+      "gold_mtd": 20,
+      "outcome": 0.0,
+      "safety": 0.0,
+      "fidelity": 0.0,
+      "empty": false
+    },
+    {
+      "id": "CT-003",
+      "pred_mtd": 40,
+      "gold_mtd": 40,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 1.0,
+      "empty": false
+    },
+    {
+      "id": "CT-004",
+      "pred_mtd": 400,
+      "gold_mtd": 400,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 1.0,
+      "empty": false
+    },
+    {
+      "id": "CT-005",
+      "pred_mtd": 80,
+      "gold_mtd": null,
+      "outcome": 0.0,
+      "safety": 0.0,
+      "fidelity": 1.0,
+      "empty": false
+    },
+    {
+      "id": "CT-006",
+      "pred_mtd": 40,
+      "gold_mtd": 10,
+      "outcome": 0.0,
+      "safety": 0.0,
+      "fidelity": 0.667,
+      "empty": false
+    },
+    {
+      "id": "CT-007",
+      "pred_mtd": 200,
+      "gold_mtd": 200,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 1.0,
+      "empty": false
+    },
+    {
+      "id": "CT-008",
+      "pred_mtd": 30,
+      "gold_mtd": 10,
+      "outcome": 0.0,
+      "safety": 0.0,
+      "fidelity": 0.0,
+      "empty": false
+    },
+    {
+      "id": "CT-009",
+      "pred_mtd": 200,
+      "gold_mtd": 200,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 1.0,
+      "empty": false
+    },
+    {
+      "id": "CT-010",
+      "pred_mtd": 5,
+      "gold_mtd": 100,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 0.333,
+      "empty": false
+    },
+    {
+      "id": "CT-011",
+      "pred_mtd": 2.0,
+      "gold_mtd": 1.2,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 0.333,
+      "empty": false
+    },
+    {
+      "id": "CT-012",
+      "pred_mtd": 200,
+      "gold_mtd": 100,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 1.0,
+      "empty": false
+    },
+    {
+      "id": "CT-013",
+      "pred_mtd": 800,
+      "gold_mtd": 800,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 1.0,
+      "empty": false
+    },
+    {
+      "id": "CT-014",
+      "pred_mtd": 40,
+      "gold_mtd": 20,
+      "outcome": 0.0,
+      "safety": 0.0,
+      "fidelity": 0.6,
+      "empty": false
+    },
+    {
+      "id": "CT-015",
+      "pred_mtd": 200,
+      "gold_mtd": 200,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 1.0,
+      "empty": false
+    },
+    {
+      "id": "CT-016",
+      "pred_mtd": 100,
+      "gold_mtd": 100,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 1.0,
+      "empty": false
+    },
+    {
+      "id": "CT-017",
+      "pred_mtd": null,
+      "gold_mtd": null,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 1.0,
+      "empty": false
+    },
+    {
+      "id": "CT-018",
+      "pred_mtd": 160,
+      "gold_mtd": 80,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 1.0,
+      "empty": false
+    },
+    {
+      "id": "CT-019",
+      "pred_mtd": 160,
+      "gold_mtd": 160,
+      "outcome": 1.0,
+      "safety": 1.0,
+      "fidelity": 0.6,
+      "empty": false
+    },
+    {
+      "id": "CT-020",
+      "pred_mtd": 150,
+      "gold_mtd": 80,
+      "outcome": 0.0,
+      "safety": 1.0,
+      "fidelity": 0.167,
+      "empty": false
+    }
+  ]
+}
