@@ -94,7 +94,7 @@ ENTITY_SOURCES: Dict[str, List[str]] = {
     "pathway":    ["kegg", "reactome", "go", "pubmed"],
     "structure":  ["pdb", "alphafold", "interpro"],
     "disease":    ["hpo", "clinvar", "pubmed", "europepmc", "semantic_scholar"],
-    "literature": ["corpus_fs", "pubmed", "europepmc", "semantic_scholar", "openalex", "crossref"],
+    "literature": ["corpus_fs", "paperclip", "pubmed", "europepmc", "semantic_scholar", "openalex", "crossref"],
 }
 
 # ── Redis cache ────────────────────────────────────────────────────────────────
@@ -595,9 +595,17 @@ def _fetch_crossref(query: str) -> Dict:
         })
     return {"source": "crossref", "results": results}
 
+def _fetch_paperclip(query: str) -> Dict:
+    """Paperclip (8M+ papers/preprints/FDA/ClinicalTrials.gov as a searchable filesystem). Hosted third-party service:
+    returns an empty, labelled result unless PAPERCLIP_API_KEY is set and the deployment is not offline."""
+    from galaxy.ai.paperclip_client import fetch_for_federation
+    return fetch_for_federation(query)
+
+
 # ── Source dispatch table ──────────────────────────────────────────────────────
 
 _FETCHERS = {
+    "paperclip":        _fetch_paperclip,
     "ncbi_gene":        _fetch_ncbi_gene,
     "uniprot":          _fetch_uniprot,
     "pdb":              _fetch_pdb,

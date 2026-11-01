@@ -115,6 +115,10 @@ _REST: List[DataSource] = [
                [], status="planned", note="Gene-disease target evidence. Keyless GraphQL."),
     DataSource("geo", "NCBI GEO", "dataset", ["dataset"],
                [], status="planned", note="Reusable expression dataset discovery."),
+    DataSource("paperclip", "Paperclip (8M+ papers, preprints, FDA, ClinicalTrials.gov)", "literature", ["literature", "gene", "disease"],
+               [SURFACE_FEDERATION], status="key_required",
+               note="Hosted service (paperclip.gxl.ai); needs PAPERCLIP_API_KEY; disabled in offline/on-prem mode. "
+                    "Client: galaxy/ai/paperclip_client.py (MCP over HTTP)."),
     DataSource("omim", "OMIM", "disease", ["disease"],
                [], status="key_required",
                note="MCP enum advertised omim with NO handler — removed 2026-07-28. "
