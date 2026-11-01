@@ -1,0 +1,45 @@
+name: Sync Images to Alibaba ACR
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Source image tag from GHCR'
+        required: true
+        default: 'fix-arm64-minio-healthcheck-and-qemu-latest'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Alibaba ACR
+        uses: docker/login-action@v3
+        with:
+          registry: registry.cn-beijing.aliyuncs.com
+          username: ${{ secrets.ALIYUN_AK }}
+          password: ${{ secrets.ALIYUN_SK }}
+
+      - name: Copy backend image
+        run: |
+          SRC="ghcr.io/biomate-ai/biomate-backend:${{ inputs.tag }}"
+          DST="registry.cn-beijing.aliyuncs.com/biomate_demo/biomate-backend:latest"
+          docker pull $SRC
+          docker tag $SRC $DST
+          docker push $DST
+          echo "Backend pushed: $DST"
+
+      - name: Copy frontend image
+        run: |
+          SRC="ghcr.io/biomate-ai/biomate-frontend:${{ inputs.tag }}"
+          DST="registry.cn-beijing.aliyuncs.com/biomate_demo/biomate-frontend:latest"
+          docker pull $SRC
+          docker tag $SRC $DST
+          docker push $DST
+          echo "Frontend pushed: $DST"
