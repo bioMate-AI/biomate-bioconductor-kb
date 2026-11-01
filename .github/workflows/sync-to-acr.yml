@@ -43,8 +43,9 @@ jobs:
     # Separate job = fresh runner disk.
     # Remove pre-installed tools (~13 GB) first so docker pull of the 4.6 GB
     # compressed backend image (9-14 GB uncompressed) has room to land.
+    # timeout-minutes=360: cross-Pacific SSH pipe at ~10 Mbps needs ~120-150 min.
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 360
     steps:
       - name: Free disk space (remove Android SDK + .NET + Haskell)
         run: |
@@ -75,11 +76,11 @@ jobs:
           docker pull ghcr.io/biomate-ai/biomate-backend:${{ env.TAG }}
           echo "Disk after pull:"
           df -h /
-          echo "Streaming backend to ECS..."
+          echo "Streaming backend to ECS (gzip -6 for better compression over slow link)..."
           docker save ghcr.io/biomate-ai/biomate-backend:${{ env.TAG }} | \
-            gzip -1 | \
+            gzip -6 | \
             sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
-              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=120 \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=720 \
               root@${{ env.ECS_IP }} \
               'docker load && echo "Backend loaded!"'
 
