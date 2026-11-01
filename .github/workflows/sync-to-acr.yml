@@ -13,9 +13,9 @@ env:
   ECS_IP: 101.201.107.126
 
 jobs:
-  sync:
+  transfer-frontend:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 30
     steps:
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -31,30 +31,51 @@ jobs:
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
-          echo "Pulling frontend (266 MB compressed)..."
+          echo "Disk before pull:"
+          df -h /
           docker pull ghcr.io/biomate-ai/biomate-frontend:${{ env.TAG }}
-          echo "Streaming frontend to ECS..."
+          echo "Streaming frontend (266 MB compressed) to ECS..."
           docker save ghcr.io/biomate-ai/biomate-frontend:${{ env.TAG }} | \
-            gzip | \
+            gzip -1 | \
             sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
-              -o ConnectTimeout=30 \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
               root@${{ env.ECS_IP }} \
-              'docker load && echo "Frontend loaded!"'
+              'gunzip | docker load && echo "Frontend loaded!"'
 
-      - name: Transfer backend image via SSH pipe
+  transfer-backend:
+    # Separate job = fresh runner = full ~14 GB disk, no sharing with frontend.
+    # skopeo streams docker-archive to stdout WITHOUT materialising the full
+    # uncompressed image on disk (~12-15 GB would fill the runner).
+    # skopeo is pre-installed on ubuntu-latest.
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Stream backend image via skopeo → SSH pipe
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Pulling backend (4.6 GB compressed)..."
-          docker pull ghcr.io/biomate-ai/biomate-backend:${{ env.TAG }}
-          echo "Streaming backend to ECS (may take 20-40 min)..."
-          docker save ghcr.io/biomate-ai/biomate-backend:${{ env.TAG }} | \
-            gzip | \
+          echo "Disk before transfer:"
+          df -h /
+          echo "Streaming backend (4.6 GB compressed) via skopeo directly to ECS..."
+          skopeo copy \
+            --src-creds "${{ github.actor }}:$GHCR_TOKEN" \
+            docker://ghcr.io/biomate-ai/biomate-backend:${{ env.TAG }} \
+            docker-archive:/dev/stdout | \
             sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
-              -o ConnectTimeout=30 \
-              -o ServerAliveInterval=60 \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=120 \
               root@${{ env.ECS_IP }} \
               'docker load && echo "Backend loaded!"'
+
+  verify-and-start:
+    runs-on: ubuntu-latest
+    needs: [transfer-frontend, transfer-backend]
+    steps:
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
 
       - name: Verify images on ECS
         env:
@@ -62,3 +83,20 @@ jobs:
         run: |
           sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no root@${{ env.ECS_IP }} \
             'docker images | grep biomate'
+
+      - name: Retag backend to expected name
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          # skopeo docker-archive output may tag image with GHCR path; ensure docker-compose image ref matches
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no root@${{ env.ECS_IP }} \
+            'docker images --format "{{.Repository}}:{{.Tag}}" | grep biomate'
+
+      - name: Start BioMate stack
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'cd /app/biomate && docker compose -f docker-compose.onprem.yml --env-file .env up -d 2>&1 | tail -30 && echo "--- container status ---" && docker compose -f docker-compose.onprem.yml ps'
