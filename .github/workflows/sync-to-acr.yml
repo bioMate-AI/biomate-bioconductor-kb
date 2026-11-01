@@ -154,8 +154,8 @@ jobs:
              echo "=== galaxy inspect ===" && \
              docker inspect biomate-galaxy --format "RestartCount={{.RestartCount}} Status={{.State.Status}} ExitCode={{.State.ExitCode}}" 2>/dev/null || echo "container missing" && \
              echo "" && \
-             echo "=== galaxy last 200 log lines ===" && \
-             docker logs biomate-galaxy --tail 200 2>&1 || echo "(no logs)" && \
+             echo "=== galaxy logs (last 60 min, non-tool-loading) ===" && \
+             docker logs biomate-galaxy --since 60m 2>&1 | grep -v "Loaded tool id" | grep -v "Skipping tool panel" || echo "(no logs)" && \
              echo "" && \
              echo "=== backend/config contents ===" && \
              ls -la /app/biomate/backend/config/ 2>/dev/null || echo "(empty)" && \
