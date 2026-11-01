@@ -733,7 +733,10 @@ this without any inverse-scaling mechanism.</li>
 <li><strong>Serving provenance.</strong> A subset of the plus-layer
 cells were re-run through a common serving provider while others came
 from each system’s own harness — a uniform <em>condition</em> with
-differing serving provenance.</li>
+differing serving provenance. The on-premises small-model cells were
+produced by a local inference path whose per-call token counts were not
+logged; the predictions themselves are substantive (varied, non-empty)
+and scored by the same released scorer.</li>
 </ul>
 <h2 id="discussion">8. Discussion</h2>
 <p>RealBio contributes an open, deterministic, matched-comparison
