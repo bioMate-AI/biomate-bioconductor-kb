@@ -173,7 +173,7 @@ The gains are therefore not an artifact of tuning on the evaluation items.
 - **Not parity.** The on-premises model *approaches* some frontier results with the layer; 0.91 versus 0.94–0.99 is not evidence of parity.
 - **Headroom framing.** Weaker direct models show larger absolute gains on bounded-accuracy tasks; a ceiling effect can produce this without any inverse-scaling mechanism.
 - **Selection is conditional.** Routing accuracy is high *conditional on correct retrieval*; the end-to-end figure is ≈0.80.
-- **Serving provenance.** A subset of the plus-layer cells were re-run through a common serving provider while others came from each system's own harness — a uniform *condition* with differing serving provenance.
+- **Serving provenance.** A subset of the plus-layer cells were re-run through a common serving provider while others came from each system's own harness — a uniform *condition* with differing serving provenance. The on-premises small-model cells were produced by a local inference path whose per-call token counts were not logged; the predictions themselves are substantive (varied, non-empty) and scored by the same released scorer.
 
 ## 8. Discussion
 
