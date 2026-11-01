@@ -1,4 +1,4 @@
-name: Sync Images to Alibaba ACR
+name: Sync Images to Alibaba ECS
 
 on:
   push:
@@ -7,18 +7,15 @@ on:
     paths:
       - '.github/workflows/sync-to-acr.yml'
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Source image tag from GHCR'
-        required: true
-        default: 'fix-arm64-minio-healthcheck-and-qemu-latest'
 
 env:
   TAG: fix-arm64-minio-healthcheck-and-qemu-latest
+  ECS_IP: 101.201.107.126
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -27,28 +24,41 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Login to Alibaba ACR
-        uses: aliyun/acr-login@v1
-        with:
-          login-server: registry.cn-beijing.aliyuncs.com
-          region-id: cn-beijing
-          access-key-id: ${{ secrets.ALIYUN_AK }}
-          access-key-secret: ${{ secrets.ALIYUN_SK }}
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
 
-      - name: Copy backend image
+      - name: Transfer frontend image via SSH pipe
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
-          SRC="ghcr.io/biomate-ai/biomate-backend:${{ inputs.tag || env.TAG }}"
-          DST="registry.cn-beijing.aliyuncs.com/biomate-demo/biomate-backend:latest"
-          docker pull $SRC
-          docker tag $SRC $DST
-          docker push $DST
-          echo "Backend pushed: $DST"
+          echo "Pulling frontend (266 MB compressed)..."
+          docker pull ghcr.io/biomate-ai/biomate-frontend:${{ env.TAG }}
+          echo "Streaming frontend to ECS..."
+          docker save ghcr.io/biomate-ai/biomate-frontend:${{ env.TAG }} | \
+            gzip | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 \
+              root@${{ env.ECS_IP }} \
+              'docker load && echo "Frontend loaded!"'
 
-      - name: Copy frontend image
+      - name: Transfer backend image via SSH pipe
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
-          SRC="ghcr.io/biomate-ai/biomate-frontend:${{ inputs.tag || env.TAG }}"
-          DST="registry.cn-beijing.aliyuncs.com/biomate-demo/biomate-frontend:latest"
-          docker pull $SRC
-          docker tag $SRC $DST
-          docker push $DST
-          echo "Frontend pushed: $DST"
+          echo "Pulling backend (4.6 GB compressed)..."
+          docker pull ghcr.io/biomate-ai/biomate-backend:${{ env.TAG }}
+          echo "Streaming backend to ECS (may take 20-40 min)..."
+          docker save ghcr.io/biomate-ai/biomate-backend:${{ env.TAG }} | \
+            gzip | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 \
+              -o ServerAliveInterval=60 \
+              root@${{ env.ECS_IP }} \
+              'docker load && echo "Backend loaded!"'
+
+      - name: Verify images on ECS
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no root@${{ env.ECS_IP }} \
+            'docker images | grep biomate'
