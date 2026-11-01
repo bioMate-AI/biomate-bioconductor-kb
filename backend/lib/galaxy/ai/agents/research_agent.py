@@ -1215,6 +1215,11 @@ class ResearchResponse:
     # sources that materially disagree on the same point. Empty when none were
     # reported — we never invent a disagreement. Shape: [{topic, positions:[{claim, source}]}].
     conflicts: List[Dict[str, Any]] = field(default_factory=list)
+    # Citation existence check (gap T8, citation_check.py). evidence_status is one of
+    # grounded / partially_grounded / insufficient (None = check not run). The rows
+    # list each citation's PMID/DOI verdict, including ones dropped as non-existent.
+    evidence_status: Optional[str] = None
+    citation_verification: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class ResearchAgent:
@@ -2269,6 +2274,22 @@ class ResearchAgent:
                             ))
 
             confidence = parsed.get('confidence', 0.8)
+            # Existence check + explicit refusal when nothing is grounded (gap T8).
+            # Fail-soft: any error here leaves the answer unchanged.
+            ev_status, ev_rows = None, []
+            try:
+                from galaxy.ai.agents.citation_check import check_answer_citations
+                _n_lit = len(lit_pool)
+                _cites = [{'pmid': c.pmid, 'doi': c.doi,
+                           'title': (c.title if i < _n_lit else '')}
+                          for i, c in enumerate(citations)]
+                answer_text, _kept, ev_status, ev_rows = await asyncio.get_event_loop().run_in_executor(
+                    None, lambda: check_answer_citations(
+                        answer_text, _cites, n_numbered=_n_lit))
+                citations = [c for c, r in zip(citations, ev_rows)
+                             if r['status'] not in ('not_found', 'title_mismatch')]
+            except Exception as _e:
+                log.warning(f"citation existence check skipped: {_e}")
             # Evidence-boundary guarantee (Spec 01 §1.2): every answer states what
             # the evidence does / does not establish. If the model didn't write a
             # caveat, append an honest one derived from the grounding.
@@ -2283,6 +2304,8 @@ class ResearchAgent:
                 benchmark_evidence=evidence.get('benchmark_results'),
                 retrieval=retrieval_stats,
                 conflicts=conflicts,
+                evidence_status=ev_status,
+                citation_verification=ev_rows,
             )
 
         except Exception as e:
