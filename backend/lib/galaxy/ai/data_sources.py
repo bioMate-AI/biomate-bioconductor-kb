@@ -1,6 +1,7 @@
 """Canonical BioMate data-source registry — the single source of truth.
 
-BioMate integrates 60+ external data sources, historically spread across four
+BioMate integrates external data sources (the counts are generated, see ``summary()`` and
+``scripts/source_registry_report.py``; do not quote a hand-typed number), historically spread across four
 disconnected lists that drifted apart:
 
   1. ``federated_query._FETCHERS``            — the parallel fan-out (chat / research agent)
