@@ -1,0 +1,6323 @@
+{
+ "built": "2026-11-01",
+ "sources": [
+  "https://www.ebi.ac.uk/chembl/api/data/mechanism.json (approved-drug mechanisms)",
+  "https://www.ebi.ac.uk/chembl/api/data/molecule.json?molecule_chembl_id__in=... (molecule_type of molecules whose mechanism rows have max_phase=4)",
+  "https://www.ebi.ac.uk/chembl/api/data/target.json (SINGLE PROTEIN targets, UniProt accession)"
+ ],
+ "rules": {
+  "approved": "ChEMBL max_phase=4",
+  "min_drugs": 2,
+  "predominant_share": 0.75,
+  "type_class": {
+   "Small molecule": "small_molecule",
+   "Antibody": "biologic",
+   "Protein": "biologic",
+   "Enzyme": "biologic",
+   "Oligonucleotide": "other",
+   "Oligosaccharide": "other"
+  },
+  "split": "sha1(accession) parity: even=dev (tuning allowed), odd=test (frozen)"
+ },
+ "n_mechanisms": 7561,
+ "n_approved_molecules": 3025,
+ "n_targets_with_drugs": 796,
+ "excluded": {
+  "not_single_protein": 274
+ },
+ "targets": [
+  {
+   "target_chembl_id": "CHEMBL1075094",
+   "accession": "Q16236",
+   "symbol": "NFE2L2",
+   "name": "Nuclear factor erythroid 2-related factor 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1075126",
+   "accession": "P30613",
+   "symbol": "PKLR",
+   "name": "Pyruvate kinase PKLR",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1075159",
+   "accession": "Q8RLA6",
+   "symbol": "blaOXA-33",
+   "name": "Beta-lactamase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1075319",
+   "accession": "Q7Z2W7",
+   "symbol": "TRPM8",
+   "name": "Transient receptor potential cation channel subfamily M member 8",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1169598",
+   "accession": "P03433",
+   "symbol": "PA",
+   "name": "Polymerase acidic protein",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1169600",
+   "accession": "P05113",
+   "symbol": "IL5",
+   "name": "Interleukin-5",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1250417",
+   "accession": "Q9Y3Q4",
+   "symbol": "HCN4",
+   "name": "Potassium/sodium hyperpolarization-activated cyclic nucleotide-gated channel 4",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1287608",
+   "accession": "P16788",
+   "symbol": "UL97",
+   "name": "Serine/threonine protein kinase UL97",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1293266",
+   "accession": "Q9HC29",
+   "symbol": "NOD2",
+   "name": "Nucleotide-binding oligomerization domain-containing protein 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1615381",
+   "accession": "O00255",
+   "symbol": "MEN1",
+   "name": "Menin",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1628478",
+   "accession": "P51788",
+   "symbol": "CLCN2",
+   "name": "Chloride channel protein 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1641347",
+   "accession": "Q4U2R8",
+   "symbol": "SLC22A6",
+   "name": "Solute carrier family 22 member 6",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1641348",
+   "accession": "Q8TCC7",
+   "symbol": "SLC22A8",
+   "name": "Organic anion transporter 3",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1697671",
+   "accession": "P49763",
+   "symbol": "PGF",
+   "name": "Placenta growth factor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1744522",
+   "accession": "Q99814",
+   "symbol": "EPAS1",
+   "name": "Endothelial PAS domain-containing protein 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1777",
+   "accession": "Q02768",
+   "symbol": "MT-CYB",
+   "name": "Cytochrome b",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1780",
+   "accession": "P10613",
+   "symbol": "ERG11",
+   "name": "Lanosterol 14-alpha demethylase",
+   "n_approved_drugs": 16,
+   "counts": {
+    "small_molecule": 16
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1781",
+   "accession": "P11387",
+   "symbol": "TOP1",
+   "name": "DNA topoisomerase 1",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1782",
+   "accession": "P14324",
+   "symbol": "FDPS",
+   "name": "Farnesyl pyrophosphate synthase",
+   "n_approved_drugs": 6,
+   "counts": {
+    "small_molecule": 6
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1783",
+   "accession": "P15692",
+   "symbol": "VEGFA",
+   "name": "Vascular endothelial growth factor A, long form",
+   "n_approved_drugs": 7,
+   "counts": {
+    "small_molecule": 1,
+    "biologic": 6
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1784",
+   "accession": "P43220",
+   "symbol": "GLP1R",
+   "name": "Glucagon-like peptide 1 receptor",
+   "n_approved_drugs": 7,
+   "counts": {
+    "biologic": 7
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1786",
+   "accession": "P29218",
+   "symbol": "IMPA1",
+   "name": "Inositol monophosphatase 1",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1790",
+   "accession": "P30518",
+   "symbol": "AVPR2",
+   "name": "Vasopressin V2 receptor",
+   "n_approved_drugs": 5,
+   "counts": {
+    "biologic": 2,
+    "small_molecule": 3
+   },
+   "label": "mixed",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1792",
+   "accession": "P35346",
+   "symbol": "SSTR5",
+   "name": "Somatostatin receptor type 5",
+   "n_approved_drugs": 3,
+   "counts": {
+    "biologic": 3
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1793",
+   "accession": "Q03431",
+   "symbol": "PTH1R",
+   "name": "Parathyroid hormone/parathyroid hormone-related peptide receptor",
+   "n_approved_drugs": 5,
+   "counts": {
+    "biologic": 5
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1795",
+   "accession": "P20594",
+   "symbol": "NPR2",
+   "name": "Atrial natriuretic peptide receptor 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1795108",
+   "accession": "P13639",
+   "symbol": "EEF2",
+   "name": "Elongation factor 2",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1795122",
+   "accession": "Q05639",
+   "symbol": "EEF1A2",
+   "name": "Elongation factor 1-alpha 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1795129",
+   "accession": "P05231",
+   "symbol": "IL6",
+   "name": "Interleukin-6",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1795197",
+   "accession": "P25092",
+   "symbol": "GUCY2C",
+   "name": "Guanylyl cyclase C",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1796",
+   "accession": "P07098",
+   "symbol": "LIPF",
+   "name": "Gastric triacylglycerol lipase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1798",
+   "accession": "Q9Y271",
+   "symbol": "CYSLTR1",
+   "name": "Cysteinyl leukotriene receptor 1",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1800",
+   "accession": "P34998",
+   "symbol": "CRHR1",
+   "name": "Corticotropin-releasing factor receptor 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1801",
+   "accession": "P00747",
+   "symbol": "PLG",
+   "name": "Plasminogen",
+   "n_approved_drugs": 5,
+   "counts": {
+    "biologic": 2,
+    "small_molecule": 2,
+    "other": 1
+   },
+   "label": "mixed",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1804",
+   "accession": "P30874",
+   "symbol": "SSTR2",
+   "name": "Somatostatin receptor type 2",
+   "n_approved_drugs": 3,
+   "counts": {
+    "biologic": 3
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1805",
+   "accession": "P30939",
+   "symbol": "HTR1F",
+   "name": "5-hydroxytryptamine receptor 1F",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1806",
+   "accession": "P11388",
+   "symbol": "TOP2A",
+   "name": "DNA topoisomerase 2-alpha",
+   "n_approved_drugs": 8,
+   "counts": {
+    "small_molecule": 8
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1808",
+   "accession": "P12821",
+   "symbol": "ACE",
+   "name": "Angiotensin-converting enzyme",
+   "n_approved_drugs": 15,
+   "counts": {
+    "small_molecule": 15
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1810",
+   "accession": "P34981",
+   "symbol": "TRHR",
+   "name": "Thyrotropin-releasing hormone receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1811",
+   "accession": "P34995",
+   "symbol": "PTGER1",
+   "name": "Prostaglandin E2 receptor EP1 subtype",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1812",
+   "accession": "P16233",
+   "symbol": "PNLIP",
+   "name": "Pancreatic triacylglycerol lipase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1817",
+   "accession": "P19235",
+   "symbol": "EPOR",
+   "name": "Erythropoietin receptor",
+   "n_approved_drugs": 9,
+   "counts": {
+    "biologic": 9
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1821",
+   "accession": "P08173",
+   "symbol": "CHRM4",
+   "name": "Muscarinic acetylcholine receptor M4",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1822",
+   "accession": "P20839",
+   "symbol": "IMPDH1",
+   "name": "Inosine-5'-monophosphate dehydrogenase 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1824",
+   "accession": "P04626",
+   "symbol": "ERBB2",
+   "name": "Receptor tyrosine-protein kinase erbB-2",
+   "n_approved_drugs": 12,
+   "counts": {
+    "biologic": 4,
+    "small_molecule": 8
+   },
+   "label": "mixed",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1825",
+   "accession": "P01375",
+   "symbol": "TNF",
+   "name": "Tumor necrosis factor",
+   "n_approved_drugs": 5,
+   "counts": {
+    "biologic": 5
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1827",
+   "accession": "O76074",
+   "symbol": "PDE5A",
+   "name": "cGMP-specific 3',5'-cyclic phosphodiesterase",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1829",
+   "accession": "O15379",
+   "symbol": "HDAC3",
+   "name": "Histone deacetylase 3",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1832",
+   "accession": "P30988",
+   "symbol": "CALCR",
+   "name": "Calcitonin receptor",
+   "n_approved_drugs": 3,
+   "counts": {
+    "biologic": 3
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1833",
+   "accession": "P41595",
+   "symbol": "HTR2B",
+   "name": "5-hydroxytryptamine receptor 2B",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1834",
+   "accession": "P01854",
+   "symbol": "IGHE",
+   "name": "Immunoglobulin heavy constant epsilon",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1835",
+   "accession": "P24557",
+   "symbol": "TBXAS1",
+   "name": "Thromboxane-A synthase",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1839",
+   "accession": "P07202",
+   "symbol": "TPO",
+   "name": "Thyroid peroxidase",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1843",
+   "accession": "P20711",
+   "symbol": "DDC",
+   "name": "Aromatic-L-amino-acid decarboxylase",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1844",
+   "accession": "P07333",
+   "symbol": "CSF1R",
+   "name": "Macrophage colony-stimulating factor 1 receptor",
+   "n_approved_drugs": 7,
+   "counts": {
+    "small_molecule": 6,
+    "biologic": 1
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1846",
+   "accession": "P21817",
+   "symbol": "RYR1",
+   "name": "Ryanodine receptor 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1849",
+   "accession": "P9WGR1",
+   "symbol": "inhA",
+   "name": "Enoyl-[acyl-carrier-protein] reductase [NADH]",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1854",
+   "accession": "P22888",
+   "symbol": "LHCGR",
+   "name": "Lutropin-choriogonadotropic hormone receptor",
+   "n_approved_drugs": 5,
+   "counts": {
+    "biologic": 5
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1855",
+   "accession": "P30968",
+   "symbol": "GNRHR",
+   "name": "Gonadotropin-releasing hormone receptor",
+   "n_approved_drugs": 19,
+   "counts": {
+    "biologic": 14,
+    "small_molecule": 5
+   },
+   "label": "mixed",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1856",
+   "accession": "P31213",
+   "symbol": "SRD5A2",
+   "name": "3-oxo-5-alpha-steroid 4-dehydrogenase 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1861",
+   "accession": "P32754",
+   "symbol": "HPD",
+   "name": "4-hydroxyphenylpyruvate dioxygenase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1862",
+   "accession": "P00519",
+   "symbol": "ABL1",
+   "name": "Tyrosine-protein kinase ABL1",
+   "n_approved_drugs": 7,
+   "counts": {
+    "small_molecule": 7
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1864",
+   "accession": "P40238",
+   "symbol": "MPL",
+   "name": "Thrombopoietin receptor",
+   "n_approved_drugs": 6,
+   "counts": {
+    "biologic": 1,
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1865",
+   "accession": "Q9UBN7",
+   "symbol": "HDAC6",
+   "name": "Protein deacetylase HDAC6",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1868",
+   "accession": "P17948",
+   "symbol": "FLT1",
+   "name": "Vascular endothelial growth factor receptor 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1869",
+   "accession": "P11926",
+   "symbol": "ODC1",
+   "name": "Ornithine decarboxylase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1871",
+   "accession": "P10275",
+   "symbol": "AR",
+   "name": "Androgen receptor",
+   "n_approved_drugs": 24,
+   "counts": {
+    "small_molecule": 24
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1872",
+   "accession": "P04293",
+   "symbol": "",
+   "name": "DNA polymerase catalytic subunit",
+   "n_approved_drugs": 12,
+   "counts": {
+    "small_molecule": 12
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1873",
+   "accession": "P00750",
+   "symbol": "PLAT",
+   "name": "Tissue-type plasminogen activator",
+   "n_approved_drugs": 4,
+   "counts": {
+    "biologic": 3,
+    "small_molecule": 1
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1874",
+   "accession": "Q13621",
+   "symbol": "SLC12A1",
+   "name": "Solute carrier family 12 member 1",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1875",
+   "accession": "Q13639",
+   "symbol": "HTR4",
+   "name": "5-hydroxytryptamine receptor 4",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1876",
+   "accession": "P55017",
+   "symbol": "SLC12A3",
+   "name": "Solute carrier family 12 member 3",
+   "n_approved_drugs": 14,
+   "counts": {
+    "small_molecule": 14
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1877",
+   "accession": "P9WNL9",
+   "symbol": "embA",
+   "name": "Probable arabinosyltransferase A",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1878",
+   "accession": "P41180",
+   "symbol": "CASR",
+   "name": "Extracellular calcium-sensing receptor",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 1,
+    "biologic": 2
+   },
+   "label": "mixed",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1881",
+   "accession": "P43116",
+   "symbol": "PTGER2",
+   "name": "Prostaglandin E2 receptor EP2 subtype",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1884",
+   "accession": "O96760",
+   "symbol": "",
+   "name": "Nicotinic acetylcholine receptor alpha subunit",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1886",
+   "accession": "Q14654",
+   "symbol": "KCNJ11",
+   "name": "ATP-sensitive inward rectifier potassium channel 11",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1887",
+   "accession": "P17181",
+   "symbol": "IFNAR1",
+   "name": "Interferon alpha/beta receptor 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1889",
+   "accession": "P37288",
+   "symbol": "AVPR1A",
+   "name": "Vasopressin V1a receptor",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 1,
+    "small_molecule": 1
+   },
+   "label": "mixed",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1892",
+   "accession": "Q04609",
+   "symbol": "FOLH1",
+   "name": "Glutamate carboxypeptidase 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1893",
+   "accession": "Q05940",
+   "symbol": "SLC18A2",
+   "name": "Synaptic vesicular amine transporter",
+   "n_approved_drugs": 13,
+   "counts": {
+    "small_molecule": 13
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1898",
+   "accession": "P28222",
+   "symbol": "HTR1B",
+   "name": "5-hydroxytryptamine receptor 1B",
+   "n_approved_drugs": 8,
+   "counts": {
+    "small_molecule": 8
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1899",
+   "accession": "P46098",
+   "symbol": "HTR3A",
+   "name": "5-hydroxytryptamine receptor 3A",
+   "n_approved_drugs": 9,
+   "counts": {
+    "small_molecule": 9
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1900",
+   "accession": "P15121",
+   "symbol": "AKR1B1",
+   "name": "Aldo-keto reductase family 1 member B1",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1901",
+   "accession": "P32238",
+   "symbol": "CCKAR",
+   "name": "Cholecystokinin receptor type A",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1902",
+   "accession": "P62942",
+   "symbol": "FKBP1A",
+   "name": "Peptidyl-prolyl cis-trans isomerase FKBP1A",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1903",
+   "accession": "P30531",
+   "symbol": "SLC6A1",
+   "name": "Sodium- and chloride-dependent GABA transporter 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1906",
+   "accession": "P04049",
+   "symbol": "RAF1",
+   "name": "RAF proto-oncogene serine/threonine-protein kinase",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1908",
+   "accession": "P15538",
+   "symbol": "CYP11B1",
+   "name": "Cytochrome P450 11B1, mitochondrial",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1909490",
+   "accession": "P01584",
+   "symbol": "IL1B",
+   "name": "Interleukin-1 beta",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1910",
+   "accession": "P00813",
+   "symbol": "ADA",
+   "name": "Adenosine deaminase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1911",
+   "accession": "P51649",
+   "symbol": "ALDH5A1",
+   "name": "Succinate-semialdehyde dehydrogenase, mitochondrial",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1912",
+   "accession": "P31358",
+   "symbol": "CD52",
+   "name": "CAMPATH-1 antigen",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1913",
+   "accession": "P09619",
+   "symbol": "PDGFRB",
+   "name": "Platelet-derived growth factor receptor beta",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1914",
+   "accession": "P06276",
+   "symbol": "BCHE",
+   "name": "Cholinesterase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1914276",
+   "accession": "P63252",
+   "symbol": "KCNJ2",
+   "name": "Inward rectifier potassium channel 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1917",
+   "accession": "P30872",
+   "symbol": "SSTR1",
+   "name": "Somatostatin receptor type 1",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1921",
+   "accession": "P47901",
+   "symbol": "AVPR1B",
+   "name": "Vasopressin V1b receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1925",
+   "accession": "P47872",
+   "symbol": "SCTR",
+   "name": "Secretin receptor",
+   "n_approved_drugs": 3,
+   "counts": {
+    "biologic": 3
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1926",
+   "accession": "P16184",
+   "symbol": "",
+   "name": "Dihydrofolate reductase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1927",
+   "accession": "Q16881",
+   "symbol": "TXNRD1",
+   "name": "Thioredoxin reductase 1, cytoplasmic",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1929",
+   "accession": "P47989",
+   "symbol": "XDH",
+   "name": "Xanthine dehydrogenase/oxidase",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1930",
+   "accession": "Q9BQB6",
+   "symbol": "VKORC1",
+   "name": "Vitamin K epoxide reductase complex subunit 1",
+   "n_approved_drugs": 6,
+   "counts": {
+    "small_molecule": 6
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1932894",
+   "accession": "P06821",
+   "symbol": "M",
+   "name": "Matrix protein 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1935",
+   "accession": "P05091",
+   "symbol": "ALDH2",
+   "name": "Aldehyde dehydrogenase, mitochondrial",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1936",
+   "accession": "P10721",
+   "symbol": "KIT",
+   "name": "Mast/stem cell growth factor receptor Kit",
+   "n_approved_drugs": 14,
+   "counts": {
+    "small_molecule": 14
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1937",
+   "accession": "Q92769",
+   "symbol": "HDAC2",
+   "name": "Histone deacetylase 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1939",
+   "accession": "P13922",
+   "symbol": "",
+   "name": "Bifunctional dihydrofolate reductase-thymidylate synthase",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1941",
+   "accession": "P25021",
+   "symbol": "HRH2",
+   "name": "Histamine H2 receptor",
+   "n_approved_drugs": 11,
+   "counts": {
+    "small_molecule": 11
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1944",
+   "accession": "P08473",
+   "symbol": "MME",
+   "name": "Neprilysin",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1947",
+   "accession": "P10828",
+   "symbol": "THRB",
+   "name": "Thyroid hormone receptor beta",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1949",
+   "accession": "P62937",
+   "symbol": "PPIA",
+   "name": "Peptidyl-prolyl cis-trans isomerase A",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1950",
+   "accession": "P01008",
+   "symbol": "SERPINC1",
+   "name": "Antithrombin-III",
+   "n_approved_drugs": 9,
+   "counts": {
+    "other": 9
+   },
+   "label": "other",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1951",
+   "accession": "P21397",
+   "symbol": "MAOA",
+   "name": "Amine oxidase [flavin-containing] A",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1952",
+   "accession": "P04818",
+   "symbol": "TYMS",
+   "name": "Thymidylate synthase",
+   "n_approved_drugs": 8,
+   "counts": {
+    "small_molecule": 8
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1955",
+   "accession": "P35916",
+   "symbol": "FLT4",
+   "name": "Vascular endothelial growth factor receptor 3",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1957",
+   "accession": "P08069",
+   "symbol": "IGF1R",
+   "name": "Insulin-like growth factor 1 receptor",
+   "n_approved_drugs": 4,
+   "counts": {
+    "biologic": 3,
+    "small_molecule": 1
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1959",
+   "accession": "P14778",
+   "symbol": "IL1R1",
+   "name": "Interleukin-1 receptor type 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1963",
+   "accession": "P16473",
+   "symbol": "TSHR",
+   "name": "Thyrotropin receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1964",
+   "accession": "Q9UK17",
+   "symbol": "KCND3",
+   "name": "A-type voltage-gated potassium channel KCND3",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1965",
+   "accession": "Q01718",
+   "symbol": "MC2R",
+   "name": "Adrenocorticotropic hormone receptor",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1966",
+   "accession": "Q02127",
+   "symbol": "DHODH",
+   "name": "Dihydroorotate dehydrogenase (quinone), mitochondrial",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1969",
+   "accession": "P07101",
+   "symbol": "TH",
+   "name": "Tyrosine 3-monooxygenase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1972",
+   "accession": "Q12879",
+   "symbol": "GRIN2A",
+   "name": "Glutamate receptor ionotropic, NMDA 2A",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1973",
+   "accession": "P14679",
+   "symbol": "TYR",
+   "name": "Tyrosinase",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1974",
+   "accession": "P36888",
+   "symbol": "FLT3",
+   "name": "Receptor-type tyrosine-protein kinase FLT3",
+   "n_approved_drugs": 14,
+   "counts": {
+    "small_molecule": 14
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1975",
+   "accession": "P07766",
+   "symbol": "CD3E",
+   "name": "T-cell surface glycoprotein CD3 epsilon chain",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1976",
+   "accession": "P10912",
+   "symbol": "GHR",
+   "name": "Growth hormone receptor",
+   "n_approved_drugs": 6,
+   "counts": {
+    "biologic": 5,
+    "small_molecule": 1
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1977",
+   "accession": "P11473",
+   "symbol": "VDR",
+   "name": "Vitamin D3 receptor",
+   "n_approved_drugs": 9,
+   "counts": {
+    "small_molecule": 9
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1978",
+   "accession": "P11511",
+   "symbol": "CYP19A1",
+   "name": "Aromatase",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1980",
+   "accession": "Q14524",
+   "symbol": "SCN5A",
+   "name": "Sodium channel protein type 5 subunit alpha",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1981",
+   "accession": "P06213",
+   "symbol": "INSR",
+   "name": "Insulin receptor",
+   "n_approved_drugs": 21,
+   "counts": {
+    "biologic": 21
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1982",
+   "accession": "P41972",
+   "symbol": "ileS",
+   "name": "Isoleucine--tRNA ligase",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1983",
+   "accession": "P28221",
+   "symbol": "HTR1D",
+   "name": "5-hydroxytryptamine receptor 1D",
+   "n_approved_drugs": 11,
+   "counts": {
+    "small_molecule": 11
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1984",
+   "accession": "P0A749",
+   "symbol": "murA",
+   "name": "UDP-N-acetylglucosamine 1-carboxyvinyltransferase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1985",
+   "accession": "P47871",
+   "symbol": "GCGR",
+   "name": "Glucagon receptor",
+   "n_approved_drugs": 3,
+   "counts": {
+    "biologic": 3
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1987",
+   "accession": "P43088",
+   "symbol": "PTGFR",
+   "name": "Prostaglandin F2-alpha receptor",
+   "n_approved_drugs": 7,
+   "counts": {
+    "small_molecule": 7
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1988",
+   "accession": "P16066",
+   "symbol": "NPR1",
+   "name": "Atrial natriuretic peptide receptor 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1989",
+   "accession": "P16444",
+   "symbol": "DPEP1",
+   "name": "Dipeptidase 1",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1992",
+   "accession": "Q9Y6K1",
+   "symbol": "DNMT3A",
+   "name": "DNA (cytosine-5)-methyltransferase 3A",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1993",
+   "accession": "P26358",
+   "symbol": "DNMT1",
+   "name": "DNA (cytosine-5)-methyltransferase 1",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1994",
+   "accession": "P08235",
+   "symbol": "NR3C2",
+   "name": "Mineralocorticoid receptor",
+   "n_approved_drugs": 11,
+   "counts": {
+    "small_molecule": 11
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1995",
+   "accession": "P43119",
+   "symbol": "PTGIR",
+   "name": "Prostacyclin receptor",
+   "n_approved_drugs": 7,
+   "counts": {
+    "small_molecule": 7
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL1996",
+   "accession": "Q99062",
+   "symbol": "CSF3R",
+   "name": "Granulocyte colony-stimulating factor receptor",
+   "n_approved_drugs": 6,
+   "counts": {
+    "biologic": 6
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1997",
+   "accession": "Q99808",
+   "symbol": "SLC29A1",
+   "name": "Equilibrative nucleoside transporter 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL1998",
+   "accession": "Q7L0J3",
+   "symbol": "SV2A",
+   "name": "Synaptic vesicle glycoprotein 2A",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2000",
+   "accession": "P03952",
+   "symbol": "KLKB1",
+   "name": "Plasma kallikrein",
+   "n_approved_drugs": 4,
+   "counts": {
+    "biologic": 3,
+    "small_molecule": 1
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2001",
+   "accession": "Q9H244",
+   "symbol": "P2RY12",
+   "name": "P2Y purinoceptor 12",
+   "n_approved_drugs": 10,
+   "counts": {
+    "small_molecule": 10
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2003",
+   "accession": "P13631",
+   "symbol": "RARG",
+   "name": "Retinoic acid receptor gamma",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2007",
+   "accession": "P16234",
+   "symbol": "PDGFRA",
+   "name": "Platelet-derived growth factor receptor alpha",
+   "n_approved_drugs": 4,
+   "counts": {
+    "biologic": 1,
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2007625",
+   "accession": "O75874",
+   "symbol": "IDH1",
+   "name": "Isocitrate dehydrogenase [NADP] cytoplasmic",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2008",
+   "accession": "P10826",
+   "symbol": "RARB",
+   "name": "Retinoic acid receptor beta",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2011",
+   "accession": "P95029",
+   "symbol": "fas",
+   "name": "Fatty acid synthase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2012",
+   "accession": "P38435",
+   "symbol": "GGCX",
+   "name": "Vitamin K-dependent gamma-carboxylase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2013",
+   "accession": "Q25704",
+   "symbol": "PPPK-DHPS",
+   "name": "Dihydropteroate synthetase",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2016",
+   "accession": "P00740",
+   "symbol": "F9",
+   "name": "Coagulation factor IX",
+   "n_approved_drugs": 4,
+   "counts": {
+    "biologic": 4
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2019",
+   "accession": "P49895",
+   "symbol": "DIO1",
+   "name": "Type I iodothyronine deiodinase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL202",
+   "accession": "P00374",
+   "symbol": "DHFR",
+   "name": "Dihydrofolate reductase",
+   "n_approved_drugs": 8,
+   "counts": {
+    "small_molecule": 8
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2021748",
+   "accession": "P04275",
+   "symbol": "VWF",
+   "name": "von Willebrand factor",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2023",
+   "accession": "P21964",
+   "symbol": "COMT",
+   "name": "Catechol O-methyltransferase",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2024",
+   "accession": "P23945",
+   "symbol": "FSHR",
+   "name": "Follicle-stimulating hormone receptor",
+   "n_approved_drugs": 5,
+   "counts": {
+    "biologic": 5
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2027",
+   "accession": "Q9UHC9",
+   "symbol": "NPC1L1",
+   "name": "NPC1-like intracellular cholesterol transporter 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2028",
+   "accession": "P32745",
+   "symbol": "SSTR3",
+   "name": "Somatostatin receptor type 3",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2028641",
+   "accession": "Q9QLI9",
+   "symbol": "PA",
+   "name": "Polymerase acidic protein",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL203",
+   "accession": "P00533",
+   "symbol": "EGFR",
+   "name": "Epidermal growth factor receptor",
+   "n_approved_drugs": 20,
+   "counts": {
+    "biologic": 4,
+    "small_molecule": 16
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2030",
+   "accession": "P9WP31",
+   "symbol": "ddl",
+   "name": "D-alanine--D-alanine ligase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2031",
+   "accession": "P9WQA9",
+   "symbol": "alr",
+   "name": "Alanine racemase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2032",
+   "accession": "Q02643",
+   "symbol": "GHRHR",
+   "name": "Growth hormone-releasing hormone receptor",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2033",
+   "accession": "P05108",
+   "symbol": "CYP11A1",
+   "name": "Cholesterol side-chain cleavage enzyme, mitochondrial",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2034",
+   "accession": "P04150",
+   "symbol": "NR3C1",
+   "name": "Glucocorticoid receptor",
+   "n_approved_drugs": 65,
+   "counts": {
+    "small_molecule": 65
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2039",
+   "accession": "P27338",
+   "symbol": "MAOB",
+   "name": "Amine oxidase [flavin-containing] B",
+   "n_approved_drugs": 6,
+   "counts": {
+    "small_molecule": 6
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL204",
+   "accession": "P00734",
+   "symbol": "F2",
+   "name": "Prothrombin",
+   "n_approved_drugs": 8,
+   "counts": {
+    "biologic": 5,
+    "small_molecule": 3
+   },
+   "label": "mixed",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2040",
+   "accession": "P06729",
+   "symbol": "CD2",
+   "name": "T-cell surface antigen CD2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2041",
+   "accession": "P07949",
+   "symbol": "RET",
+   "name": "Proto-oncogene tyrosine-protein kinase receptor Ret",
+   "n_approved_drugs": 9,
+   "counts": {
+    "small_molecule": 9
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2044",
+   "accession": "P80404",
+   "symbol": "ABAT",
+   "name": "4-aminobutyrate aminotransferase, mitochondrial",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2045",
+   "accession": "P04746",
+   "symbol": "AMY2A",
+   "name": "Pancreatic alpha-amylase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "other": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2046267",
+   "accession": "Q5XXA6",
+   "symbol": "ANO1",
+   "name": "Anoctamin-1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2047",
+   "accession": "Q96RI1",
+   "symbol": "NR1H4",
+   "name": "Bile acid receptor",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2049",
+   "accession": "P30559",
+   "symbol": "OXTR",
+   "name": "Oxytocin receptor",
+   "n_approved_drugs": 4,
+   "counts": {
+    "biologic": 4
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL205",
+   "accession": "P00918",
+   "symbol": "CA2",
+   "name": "Carbonic anhydrase 2",
+   "n_approved_drugs": 7,
+   "counts": {
+    "small_molecule": 7
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2050",
+   "accession": "Q14626",
+   "symbol": "IL11RA",
+   "name": "Interleukin-11 receptor subunit alpha",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2051",
+   "accession": "P03468",
+   "symbol": "NA",
+   "name": "Neuraminidase",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2052",
+   "accession": "P0DOF8",
+   "symbol": "M",
+   "name": "Matrix protein 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2055",
+   "accession": "P10276",
+   "symbol": "RARA",
+   "name": "Retinoic acid receptor alpha",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2056",
+   "accession": "P21728",
+   "symbol": "DRD1",
+   "name": "D(1A) dopamine receptor",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2058",
+   "accession": "P11836",
+   "symbol": "MS4A1",
+   "name": "B-lymphocyte antigen CD20",
+   "n_approved_drugs": 10,
+   "counts": {
+    "biologic": 10
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL206",
+   "accession": "P03372",
+   "symbol": "ESR1",
+   "name": "Estrogen receptor",
+   "n_approved_drugs": 17,
+   "counts": {
+    "small_molecule": 17
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2061",
+   "accession": "P19793",
+   "symbol": "RXRA",
+   "name": "Retinoic acid receptor RXR-alpha",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2062",
+   "accession": "Q15413",
+   "symbol": "RYR3",
+   "name": "Ryanodine receptor 3",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2063",
+   "accession": "Q16739",
+   "symbol": "UGCG",
+   "name": "Ceramide glucosyltransferase",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2068",
+   "accession": "P29317",
+   "symbol": "EPHA2",
+   "name": "Ephrin type-A receptor 2",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2069",
+   "accession": "P21731",
+   "symbol": "TBXA2R",
+   "name": "Thromboxane A2 receptor",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2069156",
+   "accession": "Q14145",
+   "symbol": "KEAP1",
+   "name": "Kelch-like ECH-associated protein 1",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2072",
+   "accession": "P35499",
+   "symbol": "SCN4A",
+   "name": "Sodium channel protein type 4 subunit alpha",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2073677",
+   "accession": "Q9NSA0",
+   "symbol": "SLC22A11",
+   "name": "Solute carrier family 22 member 11",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2074",
+   "accession": "O43451",
+   "symbol": "MGAM",
+   "name": "Maltase-glucoamylase",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 1,
+    "other": 1
+   },
+   "label": "mixed",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL208",
+   "accession": "P06401",
+   "symbol": "PGR",
+   "name": "Progesterone receptor",
+   "n_approved_drugs": 24,
+   "counts": {
+    "small_molecule": 24
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL210",
+   "accession": "P07550",
+   "symbol": "ADRB2",
+   "name": "Beta-2 adrenergic receptor",
+   "n_approved_drugs": 36,
+   "counts": {
+    "small_molecule": 36
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2107",
+   "accession": "P61073",
+   "symbol": "CXCR4",
+   "name": "C-X-C chemokine receptor type 4",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL211",
+   "accession": "P08172",
+   "symbol": "CHRM2",
+   "name": "Muscarinic acetylcholine receptor M2",
+   "n_approved_drugs": 11,
+   "counts": {
+    "small_molecule": 11
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2118",
+   "accession": "P19801",
+   "symbol": "AOC1",
+   "name": "Diamine oxidase [copper-containing]",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2123",
+   "accession": "P51582",
+   "symbol": "P2RY4",
+   "name": "P2Y purinoceptor 4",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL213",
+   "accession": "P08588",
+   "symbol": "ADRB1",
+   "name": "Beta-1 adrenergic receptor",
+   "n_approved_drugs": 29,
+   "counts": {
+    "small_molecule": 29
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL214",
+   "accession": "P08908",
+   "symbol": "HTR1A",
+   "name": "5-hydroxytryptamine receptor 1A",
+   "n_approved_drugs": 9,
+   "counts": {
+    "small_molecule": 9
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2148",
+   "accession": "P52333",
+   "symbol": "JAK3",
+   "name": "Tyrosine-protein kinase JAK3",
+   "n_approved_drugs": 6,
+   "counts": {
+    "small_molecule": 6
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL215",
+   "accession": "P09917",
+   "symbol": "ALOX5",
+   "name": "Polyunsaturated fatty acid 5-lipoxygenase",
+   "n_approved_drugs": 6,
+   "counts": {
+    "small_molecule": 6
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL216",
+   "accession": "P11229",
+   "symbol": "CHRM1",
+   "name": "Muscarinic acetylcholine receptor M1",
+   "n_approved_drugs": 33,
+   "counts": {
+    "small_molecule": 33
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL217",
+   "accession": "P14416",
+   "symbol": "DRD2",
+   "name": "D(2) dopamine receptor",
+   "n_approved_drugs": 49,
+   "counts": {
+    "small_molecule": 49
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2176771",
+   "accession": "P00746",
+   "symbol": "CFD",
+   "name": "Complement factor D",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL218",
+   "accession": "P21554",
+   "symbol": "CNR1",
+   "name": "Cannabinoid receptor 1",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2189110",
+   "accession": "Q15910",
+   "symbol": "EZH2",
+   "name": "Histone-lysine N-methyltransferase EZH2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2189121",
+   "accession": "P01116",
+   "symbol": "KRAS",
+   "name": "GTPase KRas",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL220",
+   "accession": "P22303",
+   "symbol": "ACHE",
+   "name": "Acetylcholinesterase",
+   "n_approved_drugs": 18,
+   "counts": {
+    "small_molecule": 18
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL221",
+   "accession": "P23219",
+   "symbol": "PTGS1",
+   "name": "Prostaglandin G/H synthase 1",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2216739",
+   "accession": "Q92523",
+   "symbol": "CPT1B",
+   "name": "Carnitine O-palmitoyltransferase 1, muscle isoform",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL222",
+   "accession": "P23975",
+   "symbol": "SLC6A2",
+   "name": "Sodium-dependent noradrenaline transporter",
+   "n_approved_drugs": 59,
+   "counts": {
+    "small_molecule": 59
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL223",
+   "accession": "P25100",
+   "symbol": "ADRA1D",
+   "name": "Alpha-1D adrenergic receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL224",
+   "accession": "P28223",
+   "symbol": "HTR2A",
+   "name": "5-hydroxytryptamine receptor 2A",
+   "n_approved_drugs": 43,
+   "counts": {
+    "small_molecule": 43
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2243",
+   "accession": "O00519",
+   "symbol": "FAAH",
+   "name": "Fatty-acid amide hydrolase 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL225",
+   "accession": "P28335",
+   "symbol": "HTR2C",
+   "name": "5-hydroxytryptamine receptor 2C",
+   "n_approved_drugs": 24,
+   "counts": {
+    "small_molecule": 24
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL227",
+   "accession": "P30556",
+   "symbol": "AGTR1",
+   "name": "Type-1 angiotensin II receptor",
+   "n_approved_drugs": 12,
+   "counts": {
+    "small_molecule": 10,
+    "biologic": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2274",
+   "accession": "Q9H228",
+   "symbol": "S1PR5",
+   "name": "Sphingosine 1-phosphate receptor 5",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL228",
+   "accession": "P31645",
+   "symbol": "SLC6A4",
+   "name": "Sodium-dependent serotonin transporter",
+   "n_approved_drugs": 29,
+   "counts": {
+    "small_molecule": 29
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL229",
+   "accession": "P35348",
+   "symbol": "ADRA1A",
+   "name": "Alpha-1A adrenergic receptor",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL230",
+   "accession": "P35354",
+   "symbol": "PTGS2",
+   "name": "Prostaglandin G/H synthase 2",
+   "n_approved_drugs": 11,
+   "counts": {
+    "small_molecule": 11
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL231",
+   "accession": "P35367",
+   "symbol": "HRH1",
+   "name": "Histamine H1 receptor",
+   "n_approved_drugs": 64,
+   "counts": {
+    "small_molecule": 64
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2321613",
+   "accession": "O14649",
+   "symbol": "KCNK3",
+   "name": "Potassium channel subfamily K member 3",
+   "n_approved_drugs": 6,
+   "counts": {
+    "small_molecule": 6
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2321614",
+   "accession": "Q9NPC2",
+   "symbol": "KCNK9",
+   "name": "Potassium channel subfamily K member 9",
+   "n_approved_drugs": 6,
+   "counts": {
+    "small_molecule": 6
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2321615",
+   "accession": "O95069",
+   "symbol": "KCNK2",
+   "name": "Potassium channel subfamily K member 2",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2326",
+   "accession": "P43166",
+   "symbol": "CA7",
+   "name": "Carbonic anhydrase 7",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL233",
+   "accession": "P35372",
+   "symbol": "OPRM1",
+   "name": "Mu-type opioid receptor",
+   "n_approved_drugs": 42,
+   "counts": {
+    "small_molecule": 42
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2331041",
+   "accession": "P57789",
+   "symbol": "KCNK10",
+   "name": "Potassium channel subfamily K member 10",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2331042",
+   "accession": "Q7Z418",
+   "symbol": "KCNK18",
+   "name": "Potassium channel subfamily K member 18",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2331059",
+   "accession": "Q15392",
+   "symbol": "DHCR24",
+   "name": "Delta(24)-sterol reductase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL234",
+   "accession": "P35462",
+   "symbol": "DRD3",
+   "name": "D(3) dopamine receptor",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2346492",
+   "accession": "Q76LX8",
+   "symbol": "ADAMTS13",
+   "name": "A disintegrin and metalloproteinase with thrombospondin motifs 13",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL235",
+   "accession": "P37231",
+   "symbol": "PPARG",
+   "name": "Peroxisome proliferator-activated receptor gamma",
+   "n_approved_drugs": 7,
+   "counts": {
+    "small_molecule": 7
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2354313",
+   "accession": "P0AD65",
+   "symbol": "mrdA",
+   "name": "Peptidoglycan D,D-transpeptidase MrdA",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL236",
+   "accession": "P41143",
+   "symbol": "OPRD1",
+   "name": "Delta-type opioid receptor",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2362985",
+   "accession": "Q2VKV6",
+   "symbol": "vssc",
+   "name": "Voltage-sensitive sodium channel",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2362986",
+   "accession": "O95477",
+   "symbol": "ABCA1",
+   "name": "Phospholipid-transporting ATPase ABCA1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2362987",
+   "accession": "O40239",
+   "symbol": "env",
+   "name": "Transmembrane glycoprotein gp41",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2362988",
+   "accession": "A2PZ98",
+   "symbol": "Ace1",
+   "name": "Acetylcholinesterase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2362990",
+   "accession": "P31327",
+   "symbol": "CPS1",
+   "name": "Carbamoyl-phosphate synthase [ammonia], mitochondrial",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2362992",
+   "accession": "Q06203",
+   "symbol": "PPAT",
+   "name": "Amidophosphoribosyltransferase",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2362993",
+   "accession": "P0C0X1",
+   "symbol": "folP1",
+   "name": "Dihydropteroate synthase",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2362994",
+   "accession": "Q9IF40",
+   "symbol": "P",
+   "name": "DNA polymerase/reverse transcriptase",
+   "n_approved_drugs": 6,
+   "counts": {
+    "small_molecule": 6
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2363079",
+   "accession": "Q95US7",
+   "symbol": "",
+   "name": "Voltage-activated calcium channel beta 1 subunit",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2363080",
+   "accession": "Q962H3",
+   "symbol": "",
+   "name": "Voltage-activated calcium channel beta 2 subunit",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364026",
+   "accession": "Q968X7",
+   "symbol": "PFOR",
+   "name": "Pyruvate dehydrogenase [NADP(+)]",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364027",
+   "accession": "Q24982",
+   "symbol": "",
+   "name": "Pyruvate:ferredoxin oxidoreductase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364155",
+   "accession": "P08887",
+   "symbol": "IL6R",
+   "name": "Interleukin-6 receptor subunit alpha",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364156",
+   "accession": "P42081",
+   "symbol": "CD86",
+   "name": "T-lymphocyte activation antigen CD86",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364157",
+   "accession": "P33681",
+   "symbol": "CD80",
+   "name": "T-lymphocyte activation antigen CD80",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364158",
+   "accession": "Q9Y275",
+   "symbol": "TNFSF13B",
+   "name": "Tumor necrosis factor ligand superfamily member 13B",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364159",
+   "accession": "P60880",
+   "symbol": "SNAP25",
+   "name": "Synaptosomal-associated protein 25",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364160",
+   "accession": "P63027",
+   "symbol": "VAMP2",
+   "name": "Vesicle-associated membrane protein 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364162",
+   "accession": "O14788",
+   "symbol": "TNFSF11",
+   "name": "Tumor necrosis factor ligand superfamily member 11",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364163",
+   "accession": "P01031",
+   "symbol": "C5",
+   "name": "Complement C5",
+   "n_approved_drugs": 5,
+   "counts": {
+    "biologic": 5
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364164",
+   "accession": "P16410",
+   "symbol": "CTLA4",
+   "name": "Cytotoxic T-lymphocyte protein 4",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364165",
+   "accession": "Q89535",
+   "symbol": "F",
+   "name": "Fusion glycoprotein F0",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364668",
+   "accession": "P0AC13",
+   "symbol": "folP",
+   "name": "Dihydropteroate synthase",
+   "n_approved_drugs": 22,
+   "counts": {
+    "small_molecule": 22
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364669",
+   "accession": "P0ABQ4",
+   "symbol": "folA",
+   "name": "Dihydrofolate reductase",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364670",
+   "accession": "P62593",
+   "symbol": "bla",
+   "name": "Beta-lactamase TEM",
+   "n_approved_drugs": 6,
+   "counts": {
+    "small_molecule": 6
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364671",
+   "accession": "Q99YW3",
+   "symbol": "ileS",
+   "name": "Isoleucine--tRNA ligase",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364673",
+   "accession": "O13428",
+   "symbol": "GSC1",
+   "name": "1,3-beta-glucan synthase",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364674",
+   "accession": "Q4WLT4",
+   "symbol": "",
+   "name": "1,3-beta-glucan synthase",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364678",
+   "accession": "P0AEK4",
+   "symbol": "fabI",
+   "name": "Enoyl-[acyl-carrier-protein] reductase [NADH] FabI",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364679",
+   "accession": "Q4JEY0",
+   "symbol": "",
+   "name": "Squalene monooxygenase",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2364680",
+   "accession": "P12461",
+   "symbol": "TMP1",
+   "name": "Thymidylate synthase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2366504",
+   "accession": "Q76129",
+   "symbol": "gag",
+   "name": "Structural capsid protein",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL237",
+   "accession": "P41145",
+   "symbol": "OPRK1",
+   "name": "Kappa-type opioid receptor",
+   "n_approved_drugs": 12,
+   "counts": {
+    "small_molecule": 10,
+    "biologic": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2373",
+   "accession": "P21730",
+   "symbol": "C5AR1",
+   "name": "C5a anaphylatoxin chemotactic receptor 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL238",
+   "accession": "Q01959",
+   "symbol": "SLC6A3",
+   "name": "Sodium-dependent dopamine transporter",
+   "n_approved_drugs": 21,
+   "counts": {
+    "small_molecule": 21
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL239",
+   "accession": "Q07869",
+   "symbol": "PPARA",
+   "name": "Peroxisome proliferator-activated receptor alpha",
+   "n_approved_drugs": 8,
+   "counts": {
+    "small_molecule": 8
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL240",
+   "accession": "Q12809",
+   "symbol": "KCNH2",
+   "name": "Voltage-gated inwardly rectifying potassium channel KCNH2",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL241",
+   "accession": "Q14432",
+   "symbol": "PDE3A",
+   "name": "cGMP-inhibited 3',5'-cyclic phosphodiesterase 3A",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2414",
+   "accession": "P51679",
+   "symbol": "CCR4",
+   "name": "C-C chemokine receptor type 4",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL242",
+   "accession": "Q92731",
+   "symbol": "ESR2",
+   "name": "Estrogen receptor beta",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL243",
+   "accession": "Q72874",
+   "symbol": "pol",
+   "name": "Human immunodeficiency virus type 1 protease",
+   "n_approved_drugs": 12,
+   "counts": {
+    "small_molecule": 12
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL244",
+   "accession": "P00742",
+   "symbol": "F10",
+   "name": "Coagulation factor X",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 4,
+    "biologic": 1
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL245",
+   "accession": "P20309",
+   "symbol": "CHRM3",
+   "name": "Muscarinic acetylcholine receptor M3",
+   "n_approved_drugs": 36,
+   "counts": {
+    "small_molecule": 36
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL246",
+   "accession": "P13945",
+   "symbol": "ADRB3",
+   "name": "Beta-3 adrenergic receptor",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL247",
+   "accession": "Q72547",
+   "symbol": "pol",
+   "name": "Human immunodeficiency virus type 1 reverse transcriptase",
+   "n_approved_drugs": 19,
+   "counts": {
+    "small_molecule": 19
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL248",
+   "accession": "P08246",
+   "symbol": "ELANE",
+   "name": "Neutrophil elastase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2487",
+   "accession": "P05067",
+   "symbol": "APP",
+   "name": "Amyloid-beta precursor protein",
+   "n_approved_drugs": 3,
+   "counts": {
+    "biologic": 3
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL249",
+   "accession": "P25103",
+   "symbol": "TACR1",
+   "name": "Substance-P receptor",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL250",
+   "accession": "P25105",
+   "symbol": "PTAFR",
+   "name": "Platelet-activating factor receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2508",
+   "accession": "Q00534",
+   "symbol": "CDK6",
+   "name": "Cyclin-dependent kinase 6",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL251",
+   "accession": "P29274",
+   "symbol": "ADORA2A",
+   "name": "Adenosine receptor A2a",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL252",
+   "accession": "P25101",
+   "symbol": "EDNRA",
+   "name": "Endothelin-1 receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2524",
+   "accession": "P06280",
+   "symbol": "GLA",
+   "name": "Alpha-galactosidase A",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2549",
+   "accession": "P72355",
+   "symbol": "pbp4",
+   "name": "Penicillin-binding protein 4",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2555",
+   "accession": "P0A884",
+   "symbol": "thyA",
+   "name": "Thymidylate synthase",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL258",
+   "accession": "P06239",
+   "symbol": "LCK",
+   "name": "Tyrosine-protein kinase Lck",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL259",
+   "accession": "P32245",
+   "symbol": "MC4R",
+   "name": "Melanocortin receptor 4",
+   "n_approved_drugs": 4,
+   "counts": {
+    "biologic": 4
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2599",
+   "accession": "P43405",
+   "symbol": "SYK",
+   "name": "Tyrosine-protein kinase SYK",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2608",
+   "accession": "P10253",
+   "symbol": "GAA",
+   "name": "Lysosomal alpha-glucosidase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL261",
+   "accession": "P00915",
+   "symbol": "CA1",
+   "name": "Carbonic anhydrase 1",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL264",
+   "accession": "Q9Y5N1",
+   "symbol": "HRH3",
+   "name": "Histamine H3 receptor",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL267",
+   "accession": "P12931",
+   "symbol": "SRC",
+   "name": "Proto-oncogene tyrosine-protein kinase Src",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2689",
+   "accession": "Q04912",
+   "symbol": "MST1R",
+   "name": "Macrophage-stimulating protein receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2722",
+   "accession": "P19099",
+   "symbol": "CYP11B2",
+   "name": "Cytochrome P450 11B2, mitochondrial",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2725",
+   "accession": "P05364",
+   "symbol": "ampC",
+   "name": "Beta-lactamase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL274",
+   "accession": "P51681",
+   "symbol": "CCR5",
+   "name": "C-C chemokine receptor type 5",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2742",
+   "accession": "P22607",
+   "symbol": "FGFR3",
+   "name": "Fibroblast growth factor receptor 3",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2754",
+   "accession": "P01730",
+   "symbol": "CD4",
+   "name": "T-cell surface glycoprotein CD4",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2755",
+   "accession": "P00390",
+   "symbol": "GSR",
+   "name": "Glutathione reductase, mitochondrial",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2778",
+   "accession": "Q12908",
+   "symbol": "SLC10A2",
+   "name": "Ileal sodium/bile acid cotransporter",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2782",
+   "accession": "P35610",
+   "symbol": "SOAT1",
+   "name": "Sterol O-acyltransferase 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL279",
+   "accession": "P35968",
+   "symbol": "KDR",
+   "name": "Vascular endothelial growth factor receptor 2",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 3,
+    "biologic": 1
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL280",
+   "accession": "P45452",
+   "symbol": "MMP13",
+   "name": "Collagenase 3",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2815",
+   "accession": "P04629",
+   "symbol": "NTRK1",
+   "name": "High affinity nerve growth factor receptor",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2820",
+   "accession": "P03951",
+   "symbol": "F11",
+   "name": "Coagulation factor XI",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2821",
+   "accession": "P00748",
+   "symbol": "F12",
+   "name": "Coagulation factor XII",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 1,
+    "biologic": 1
+   },
+   "label": "mixed",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2835",
+   "accession": "P23458",
+   "symbol": "JAK1",
+   "name": "Tyrosine-protein kinase JAK1",
+   "n_approved_drugs": 9,
+   "counts": {
+    "small_molecule": 9
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL284",
+   "accession": "P27487",
+   "symbol": "DPP4",
+   "name": "Dipeptidyl peptidase 4",
+   "n_approved_drugs": 13,
+   "counts": {
+    "small_molecule": 13
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2842",
+   "accession": "P42345",
+   "symbol": "MTOR",
+   "name": "Serine/threonine-protein kinase mTOR",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL286",
+   "accession": "P00797",
+   "symbol": "REN",
+   "name": "Renin",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL287",
+   "accession": "Q99720",
+   "symbol": "SIGMAR1",
+   "name": "Sigma non-opioid intracellular receptor 1",
+   "n_approved_drugs": 6,
+   "counts": {
+    "small_molecule": 6
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2929",
+   "accession": "Q8NBP7",
+   "symbol": "PCSK9",
+   "name": "Proprotein convertase subtilisin/kexin type 9",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2959",
+   "accession": "Q08881",
+   "symbol": "ITK",
+   "name": "Tyrosine-protein kinase ITK/TSK",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2964",
+   "accession": "P36507",
+   "symbol": "MAP2K2",
+   "name": "Dual specificity mitogen-activated protein kinase kinase 2",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2971",
+   "accession": "O60674",
+   "symbol": "JAK2",
+   "name": "Tyrosine-protein kinase JAK2",
+   "n_approved_drugs": 12,
+   "counts": {
+    "small_molecule": 12
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL2973",
+   "accession": "O75116",
+   "symbol": "ROCK2",
+   "name": "Rho-associated protein kinase 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL2998",
+   "accession": "P56373",
+   "symbol": "P2RX3",
+   "name": "P2X purinoceptor 3",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3009",
+   "accession": "Q15303",
+   "symbol": "ERBB4",
+   "name": "Receptor tyrosine-protein kinase erbB-4",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3028",
+   "accession": "Q96KS0",
+   "symbol": "EGLN2",
+   "name": "Prolyl hydroxylase EGLN2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3076",
+   "accession": "P00439",
+   "symbol": "PAH",
+   "name": "Phenylalanine-4-hydroxylase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3105",
+   "accession": "P09874",
+   "symbol": "PARP1",
+   "name": "Poly [ADP-ribose] polymerase 1",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3106",
+   "accession": "P19971",
+   "symbol": "TYMP",
+   "name": "Thymidine phosphorylase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3119",
+   "accession": "Q9HBA0",
+   "symbol": "TRPV4",
+   "name": "Transient receptor potential cation channel subfamily V member 4",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3130",
+   "accession": "O00329",
+   "symbol": "PIK3CD",
+   "name": "Phosphatidylinositol 4,5-bisphosphate 3-kinase catalytic subunit delta isoform",
+   "n_approved_drugs": 7,
+   "counts": {
+    "small_molecule": 7
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3143",
+   "accession": "P00451",
+   "symbol": "F8",
+   "name": "Coagulation factor VIII",
+   "n_approved_drugs": 11,
+   "counts": {
+    "biologic": 11
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3157",
+   "accession": "P30411",
+   "symbol": "BDKRB2",
+   "name": "B2 bradykinin receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3194",
+   "accession": "P02766",
+   "symbol": "TTR",
+   "name": "Transthyretin",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3201",
+   "accession": "P35869",
+   "symbol": "AHR",
+   "name": "Aryl hydrocarbon receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3230",
+   "accession": "O95977",
+   "symbol": "S1PR4",
+   "name": "Sphingosine 1-phosphate receptor 4",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3234",
+   "accession": "P08631",
+   "symbol": "HCK",
+   "name": "Tyrosine-protein kinase HCK",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3238",
+   "accession": "P23786",
+   "symbol": "CPT2",
+   "name": "Carnitine O-palmitoyltransferase 2, mitochondrial",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3242",
+   "accession": "O43570",
+   "symbol": "CA12",
+   "name": "Carbonic anhydrase 12",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL325",
+   "accession": "Q13547",
+   "symbol": "HDAC1",
+   "name": "Histone deacetylase 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3267",
+   "accession": "P48736",
+   "symbol": "PIK3CG",
+   "name": "Phosphatidylinositol 4,5-bisphosphate 3-kinase catalytic subunit gamma isoform",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3273",
+   "accession": "P48764",
+   "symbol": "SLC9A3",
+   "name": "Sodium/hydrogen exchanger 3",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3286",
+   "accession": "P00749",
+   "symbol": "PLAU",
+   "name": "Urokinase-type plasminogen activator",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3286073",
+   "accession": "P01579",
+   "symbol": "IFNG",
+   "name": "Interferon gamma",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3307221",
+   "accession": "F2SHH3",
+   "symbol": "",
+   "name": "Lanosterol 14-alpha demethylase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3307222",
+   "accession": "F2SF18",
+   "symbol": "",
+   "name": "Leucine-tRNA ligase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3307223",
+   "accession": "Q15116",
+   "symbol": "PDCD1",
+   "name": "Programmed cell death protein 1",
+   "n_approved_drugs": 7,
+   "counts": {
+    "biologic": 7
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3307224",
+   "accession": "Q5L478",
+   "symbol": "NS5A",
+   "name": "Nonstructural protein 5A",
+   "n_approved_drugs": 6,
+   "counts": {
+    "small_molecule": 6
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3309036",
+   "accession": "Q2TL65",
+   "symbol": "pbpA",
+   "name": "Cell shape peptidoglycan synthetase penicillin-binding protein 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL331",
+   "accession": "P11802",
+   "symbol": "CDK4",
+   "name": "Cyclin-dependent kinase 4",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL332",
+   "accession": "P03956",
+   "symbol": "MMP1",
+   "name": "Interstitial collagenase",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3357",
+   "accession": "P51617",
+   "symbol": "IRAK1",
+   "name": "Interleukin-1 receptor-associated kinase 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3377",
+   "accession": "P03474",
+   "symbol": "NA",
+   "name": "Neuraminidase",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3390821",
+   "accession": "P15391",
+   "symbol": "CD19",
+   "name": "B-lymphocyte antigen CD19",
+   "n_approved_drugs": 3,
+   "counts": {
+    "biologic": 3
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3390822",
+   "accession": "Q16552",
+   "symbol": "IL17A",
+   "name": "Interleukin-17A",
+   "n_approved_drugs": 3,
+   "counts": {
+    "biologic": 3
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3390825",
+   "accession": "A0A0A1P6P0",
+   "symbol": "",
+   "name": "Lanosterol 14-alpha demethylase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3391681",
+   "accession": "P43304",
+   "symbol": "GPD2",
+   "name": "Glycerol-3-phosphate dehydrogenase, mitochondrial",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3430865",
+   "accession": "P41222",
+   "symbol": "PTGDS",
+   "name": "Prostaglandin-H2 D-isomerase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3471",
+   "accession": "Q7ZJM1",
+   "symbol": "pol",
+   "name": "Human immunodeficiency virus type 1 integrase",
+   "n_approved_drugs": 7,
+   "counts": {
+    "small_molecule": 7
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3512",
+   "accession": "Q53707",
+   "symbol": "mecA",
+   "name": "Penicillin-binding protein 2a",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3520",
+   "accession": "P04578",
+   "symbol": "env",
+   "name": "Envelope glycoprotein gp160",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3522",
+   "accession": "P05093",
+   "symbol": "CYP17A1",
+   "name": "Steroid 17-alpha-hydroxylase/17,20 lyase",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3553",
+   "accession": "P29597",
+   "symbol": "TYK2",
+   "name": "Non-receptor tyrosine-protein kinase TYK2",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3559386",
+   "accession": "Q9NQ25",
+   "symbol": "SLAMF7",
+   "name": "SLAM family member 7",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3562180",
+   "accession": "Q848S6",
+   "symbol": "bla",
+   "name": "Carbapenem-hydrolyzing beta-lactamase KPC",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3580482",
+   "accession": "Q8WXI7",
+   "symbol": "MUC16",
+   "name": "Mucin-16",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3580483",
+   "accession": "Q01344",
+   "symbol": "IL5RA",
+   "name": "Interleukin-5 receptor subunit alpha",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3580485",
+   "accession": "Q96F46",
+   "symbol": "IL17RA",
+   "name": "Interleukin-17 receptor A",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3580486",
+   "accession": "P35225",
+   "symbol": "IL13",
+   "name": "Interleukin-13",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3580487",
+   "accession": "Q9BQB4",
+   "symbol": "SOST",
+   "name": "Sclerostin",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3580489",
+   "accession": "O15123",
+   "symbol": "ANGPT2",
+   "name": "Angiopoietin-2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3580490",
+   "accession": "P24394",
+   "symbol": "IL4R",
+   "name": "Interleukin-4 receptor subunit alpha",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3580493",
+   "accession": "P16422",
+   "symbol": "EPCAM",
+   "name": "Epithelial cell adhesion molecule",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3580505",
+   "accession": "P18177",
+   "symbol": "tcdB",
+   "name": "Toxin B",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3580522",
+   "accession": "Q9NZQ7",
+   "symbol": "CD274",
+   "name": "Programmed cell death 1 ligand 1",
+   "n_approved_drugs": 5,
+   "counts": {
+    "biologic": 5
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3587",
+   "accession": "Q02750",
+   "symbol": "MAP2K1",
+   "name": "Dual specificity mitogen-activated protein kinase kinase 1",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3588735",
+   "accession": "P08476",
+   "symbol": "INHBA",
+   "name": "Inhibin beta A chain",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3618",
+   "accession": "P12259",
+   "symbol": "F5",
+   "name": "Coagulation factor V",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3632452",
+   "accession": "Q9UDY8",
+   "symbol": "MALT1",
+   "name": "Mucosa-associated lymphoid tissue lymphoma translocation protein 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3650",
+   "accession": "P11362",
+   "symbol": "FGFR1",
+   "name": "Fibroblast growth factor receptor 1",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3670",
+   "accession": "P26439",
+   "symbol": "HSD3B2",
+   "name": "3 beta-hydroxysteroid dehydrogenase/Delta 5-->4-isomerase type 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3687",
+   "accession": "P18054",
+   "symbol": "ALOX12",
+   "name": "Polyunsaturated fatty acid lipoxygenase ALOX12",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3710",
+   "accession": "P43115",
+   "symbol": "PTGER3",
+   "name": "Prostaglandin E2 receptor EP3 subtype",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3710485",
+   "accession": "Q9Y5C1",
+   "symbol": "ANGPTL3",
+   "name": "Angiopoietin-related protein 3",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3712859",
+   "accession": "P56856",
+   "symbol": "CLDN18",
+   "name": "Claudin-18",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3712881",
+   "accession": "P06731",
+   "symbol": "CEACAM5",
+   "name": "Cell adhesion molecule CEACAM5",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3712931",
+   "accession": "Q969D9",
+   "symbol": "TSLP",
+   "name": "Thymic stromal lymphopoietin",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3712987",
+   "accession": "P26951",
+   "symbol": "IL3RA",
+   "name": "Interleukin-3 receptor subunit alpha",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3712988",
+   "accession": "P40967",
+   "symbol": "PMEL",
+   "name": "Melanocyte protein PMEL",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3713062",
+   "accession": "P10646",
+   "symbol": "TFPI",
+   "name": "Tissue factor pathway inhibitor",
+   "n_approved_drugs": 3,
+   "counts": {
+    "biologic": 3
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3713913",
+   "accession": "Q9GZV9",
+   "symbol": "FGF23",
+   "name": "Fibroblast growth factor 23",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3717",
+   "accession": "P08581",
+   "symbol": "MET",
+   "name": "Hepatocyte growth factor receptor",
+   "n_approved_drugs": 7,
+   "counts": {
+    "small_molecule": 6,
+    "biologic": 1
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3720",
+   "accession": "P53396",
+   "symbol": "ACLY",
+   "name": "ATP-citrate synthase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3729",
+   "accession": "P22748",
+   "symbol": "CA4",
+   "name": "Carbonic anhydrase 4",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3795",
+   "accession": "Q01726",
+   "symbol": "MC1R",
+   "name": "Melanocyte-stimulating hormone receptor",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3798",
+   "accession": "Q16602",
+   "symbol": "CALCRL",
+   "name": "Calcitonin gene-related peptide type 1 receptor",
+   "n_approved_drugs": 6,
+   "counts": {
+    "small_molecule": 5,
+    "biologic": 1
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3810",
+   "accession": "P02751",
+   "symbol": "FN1",
+   "name": "Fibronectin",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3825",
+   "accession": "Q53729",
+   "symbol": "pbp2",
+   "name": "Penicillin-binding protein 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3833483",
+   "accession": "P0C731",
+   "symbol": "",
+   "name": "Serine/threonine-protein kinase BGLF4",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3884",
+   "accession": "P31639",
+   "symbol": "SLC5A2",
+   "name": "Sodium/glucose cotransporter 2",
+   "n_approved_drugs": 10,
+   "counts": {
+    "small_molecule": 10
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3905",
+   "accession": "P07948",
+   "symbol": "LYN",
+   "name": "Tyrosine-protein kinase Lyn",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3913",
+   "accession": "P09871",
+   "symbol": "C1S",
+   "name": "Complement C1s subcomponent",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3923",
+   "accession": "Q9Y2I1",
+   "symbol": "NISCH",
+   "name": "Nischarin",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3927",
+   "accession": "P0C6U8",
+   "symbol": "",
+   "name": "Replicase polyprotein 1a",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3961",
+   "accession": "Q15759",
+   "symbol": "MAPK11",
+   "name": "Mitogen-activated protein kinase 11",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3972",
+   "accession": "P22102",
+   "symbol": "GART",
+   "name": "Trifunctional purine biosynthetic protein adenosine-3",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3974",
+   "accession": "P25116",
+   "symbol": "F2R",
+   "name": "Proteinase-activated receptor 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3979",
+   "accession": "Q03181",
+   "symbol": "PPARD",
+   "name": "Peroxisome proliferator-activated receptor delta",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL3988586",
+   "accession": "P06856",
+   "symbol": "OPG071",
+   "name": "DNA polymerase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3991",
+   "accession": "P08709",
+   "symbol": "F7",
+   "name": "Coagulation factor VII",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL3991501",
+   "accession": "P48735",
+   "symbol": "IDH2",
+   "name": "Isocitrate dehydrogenase [NADP], mitochondrial",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4005",
+   "accession": "P42336",
+   "symbol": "PIK3CA",
+   "name": "Phosphatidylinositol 4,5-bisphosphate 3-kinase catalytic subunit alpha isoform",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL402",
+   "accession": "P04035",
+   "symbol": "HMGCR",
+   "name": "3-hydroxy-3-methylglutaryl-coenzyme A reductase",
+   "n_approved_drugs": 10,
+   "counts": {
+    "small_molecule": 10
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4051",
+   "accession": "P13569",
+   "symbol": "CFTR",
+   "name": "Cystic fibrosis transmembrane conductance regulator",
+   "n_approved_drugs": 7,
+   "counts": {
+    "small_molecule": 7
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4073",
+   "accession": "P09237",
+   "symbol": "MMP7",
+   "name": "Matrilysin",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4105829",
+   "accession": "Q05320",
+   "symbol": "GP",
+   "name": "Envelope glycoprotein",
+   "n_approved_drugs": 4,
+   "counts": {
+    "biologic": 4
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4128",
+   "accession": "Q02763",
+   "symbol": "TEK",
+   "name": "Angiopoietin-1 receptor",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4142",
+   "accession": "P21802",
+   "symbol": "FGFR2",
+   "name": "Fibroblast growth factor receptor 2",
+   "n_approved_drugs": 4,
+   "counts": {
+    "biologic": 2,
+    "small_molecule": 2
+   },
+   "label": "mixed",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4223",
+   "accession": "P42685",
+   "symbol": "FRK",
+   "name": "Tyrosine-protein kinase FRK",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4247",
+   "accession": "Q9UM73",
+   "symbol": "ALK",
+   "name": "ALK tyrosine kinase receptor",
+   "n_approved_drugs": 7,
+   "counts": {
+    "small_molecule": 7
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4268",
+   "accession": "Q53725",
+   "symbol": "pbpA",
+   "name": "Penicillin-binding protein 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4269",
+   "accession": "Q5D1F0",
+   "symbol": "",
+   "name": "Penicillin-binding protein 3",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4295690",
+   "accession": "P01023",
+   "symbol": "A2M",
+   "name": "Alpha-2-macroglobulin",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4295840",
+   "accession": "Q3S340",
+   "symbol": "NA",
+   "name": "Neuraminidase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4296320",
+   "accession": "O39930",
+   "symbol": "NS5b",
+   "name": "RNA-directed RNA polymerase",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4303062",
+   "accession": "Q05318",
+   "symbol": "L",
+   "name": "RNA-directed RNA polymerase L",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4305",
+   "accession": "O15554",
+   "symbol": "KCNN4",
+   "name": "Intermediate conductance calcium-activated potassium channel protein 4",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4306",
+   "accession": "P22460",
+   "symbol": "KCNA5",
+   "name": "Potassium voltage-gated channel subfamily A member 5",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4315",
+   "accession": "P47900",
+   "symbol": "P2RY1",
+   "name": "P2Y purinoceptor 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4333",
+   "accession": "P21453",
+   "symbol": "S1PR1",
+   "name": "Sphingosine 1-phosphate receptor 1",
+   "n_approved_drugs": 6,
+   "counts": {
+    "small_molecule": 6
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4338",
+   "accession": "P00491",
+   "symbol": "PNP",
+   "name": "Purine nucleoside phosphorylase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4383",
+   "accession": "P48546",
+   "symbol": "GIPR",
+   "name": "Gastric inhibitory polypeptide receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4398",
+   "accession": "P41231",
+   "symbol": "P2RY2",
+   "name": "P2Y purinoceptor 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4409",
+   "accession": "Q9Y233",
+   "symbol": "PDE10A",
+   "name": "cAMP and cAMP-inhibited cGMP 3',5'-cyclic phosphodiesterase 10A",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4427",
+   "accession": "Q13258",
+   "symbol": "PTGDR",
+   "name": "Prostaglandin D2 receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4429",
+   "accession": "P29371",
+   "symbol": "TACR3",
+   "name": "Neuromedin-K receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4445",
+   "accession": "Q08209",
+   "symbol": "PPP3CA",
+   "name": "Protein phosphatase 3 catalytic subunit alpha",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4478",
+   "accession": "Q00975",
+   "symbol": "CACNA1B",
+   "name": "Voltage-dependent N-type calcium channel subunit alpha-1B",
+   "n_approved_drugs": 3,
+   "counts": {
+    "biologic": 2,
+    "small_molecule": 1
+   },
+   "label": "mixed",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4502",
+   "accession": "P32320",
+   "symbol": "CDA",
+   "name": "Cytidine deaminase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4523582",
+   "accession": "P0DTD1",
+   "symbol": "rep",
+   "name": "Replicase polyprotein 1ab",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4523587",
+   "accession": "Q02223",
+   "symbol": "TNFRSF17",
+   "name": "Tumor necrosis factor receptor superfamily member 17",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4523925",
+   "accession": "Q9NZD1",
+   "symbol": "GPRC5D",
+   "name": "G-protein coupled receptor family C group 5 member D",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4530",
+   "accession": "P00488",
+   "symbol": "F13A1",
+   "name": "Coagulation factor XIII A chain",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4588",
+   "accession": "P22894",
+   "symbol": "MMP8",
+   "name": "Neutrophil collagenase",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4601",
+   "accession": "Q13882",
+   "symbol": "PTK6",
+   "name": "Protein-tyrosine kinase 6",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4616",
+   "accession": "Q92847",
+   "symbol": "GHSR",
+   "name": "Growth hormone secretagogue receptor type 1",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4630880",
+   "accession": "Q96PD4",
+   "symbol": "IL17F",
+   "name": "Interleukin-17F",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4630881",
+   "accession": "P18627",
+   "symbol": "LAG3",
+   "name": "Lymphocyte activation gene 3 protein",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4630888",
+   "accession": "Q9NYJ7",
+   "symbol": "DLL3",
+   "name": "Delta-like protein 3",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4630894",
+   "accession": "Q8NI17",
+   "symbol": "IL31RA",
+   "name": "Interleukin-31 receptor subunit alpha",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4660",
+   "accession": "P28907",
+   "symbol": "CD38",
+   "name": "ADP-ribosyl cyclase/cyclic ADP-ribose hydrolase 1",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4662933",
+   "accession": "P10613",
+   "symbol": "ERG11",
+   "name": "Lanosterol 14-alpha demethylase",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4662936",
+   "accession": "P0DTC2",
+   "symbol": "S",
+   "name": "Spike glycoprotein",
+   "n_approved_drugs": 4,
+   "counts": {
+    "biologic": 3,
+    "other": 1
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4665",
+   "accession": "P0CS13",
+   "symbol": "TMP1",
+   "name": "Thymidylate synthase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4665583",
+   "accession": "P68790",
+   "symbol": "fusA",
+   "name": "Elongation factor G",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4714",
+   "accession": "Q15077",
+   "symbol": "P2RY6",
+   "name": "P2Y purinoceptor 6",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4770",
+   "accession": "Q15842",
+   "symbol": "KCNJ8",
+   "name": "ATP-sensitive inward rectifier potassium channel 8",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4792",
+   "accession": "O43614",
+   "symbol": "HCRTR2",
+   "name": "Orexin receptor type 2",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4794",
+   "accession": "Q8NER1",
+   "symbol": "TRPV1",
+   "name": "Transient receptor potential cation channel subfamily V member 1",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4804261",
+   "accession": "Q10283",
+   "symbol": "hmg1",
+   "name": "3-hydroxy-3-methylglutaryl-coenzyme A reductase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4859",
+   "accession": "P09252",
+   "symbol": "",
+   "name": "DNA polymerase catalytic subunit",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4860",
+   "accession": "P10415",
+   "symbol": "BCL2",
+   "name": "Apoptosis regulator Bcl-2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4895",
+   "accession": "P30530",
+   "symbol": "AXL",
+   "name": "Tyrosine-protein kinase receptor UFO",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4898",
+   "accession": "Q16620",
+   "symbol": "NTRK2",
+   "name": "BDNF/NT-3 growth factors receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4917",
+   "accession": "P01024",
+   "symbol": "C3",
+   "name": "Complement C3",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL4937",
+   "accession": "P49674",
+   "symbol": "CSNK1E",
+   "name": "Casein kinase I isoform epsilon",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4956",
+   "accession": "P47869",
+   "symbol": "GABRA2",
+   "name": "Gamma-aminobutyric acid receptor subunit alpha-2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL4979",
+   "accession": "P13866",
+   "symbol": "SLC5A1",
+   "name": "Sodium/glucose cotransporter 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5031",
+   "accession": "P24735",
+   "symbol": "ampC",
+   "name": "Beta-lactamase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5071",
+   "accession": "Q9Y5Y4",
+   "symbol": "PTGDR2",
+   "name": "Prostaglandin D2 receptor 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5094",
+   "accession": "P0AD64",
+   "symbol": "bla",
+   "name": "Beta-lactamase SHV-1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5113",
+   "accession": "O43613",
+   "symbol": "HCRTR1",
+   "name": "Orexin/Hypocretin receptor type 1",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5122",
+   "accession": "Q16832",
+   "symbol": "DDR2",
+   "name": "Discoidin domain-containing receptor 2",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5145",
+   "accession": "P15056",
+   "symbol": "BRAF",
+   "name": "Serine/threonine-protein kinase B-raf",
+   "n_approved_drugs": 5,
+   "counts": {
+    "small_molecule": 5
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5216",
+   "accession": "P11172",
+   "symbol": "UMPS",
+   "name": "Uridine 5'-monophosphate synthase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5223041",
+   "accession": "B5U1R8",
+   "symbol": "blaOXA-58",
+   "name": "Beta-lactamase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5223042",
+   "accession": "D3JXP9",
+   "symbol": "blaOXA-58",
+   "name": "Beta-lactamase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5223043",
+   "accession": "C7ETQ3",
+   "symbol": "blaIMP-1",
+   "name": "Beta-lactamase",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5251",
+   "accession": "Q06187",
+   "symbol": "BTK",
+   "name": "Tyrosine-protein kinase BTK",
+   "n_approved_drugs": 6,
+   "counts": {
+    "small_molecule": 6
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5275",
+   "accession": "P36894",
+   "symbol": "BMPR1A",
+   "name": "Bone morphogenetic protein receptor type-1A",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5287",
+   "accession": "Q14973",
+   "symbol": "SLC10A1",
+   "name": "Hepatic sodium/bile acid cotransporter",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5305024",
+   "accession": "P05155",
+   "symbol": "SERPING1",
+   "name": "Plasma protease C1 inhibitor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5308522",
+   "accession": "P33815",
+   "symbol": "OPG057",
+   "name": "Envelope phospholipase OPG057",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5308523",
+   "accession": "A0A7H0DN30",
+   "symbol": "OPG057",
+   "name": "Envelope phospholipase OPG057",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5308524",
+   "accession": "G0XSE7",
+   "symbol": "",
+   "name": "Envelope phospholipase OPG057",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5325",
+   "accession": "Q0PXQ5",
+   "symbol": "ureB",
+   "name": "Urease",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5352",
+   "accession": "P13423",
+   "symbol": "pagA",
+   "name": "Protective antigen",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5366",
+   "accession": "Q9UGN5",
+   "symbol": "PARP2",
+   "name": "Poly [ADP-ribose] polymerase 2",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5378",
+   "accession": "P16109",
+   "symbol": "SELP",
+   "name": "P-selectin",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5451",
+   "accession": "Q9Y5Y9",
+   "symbol": "SCN10A",
+   "name": "Sodium channel protein type 10 subunit alpha",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5466",
+   "accession": "Q13705",
+   "symbol": "ACVR2B",
+   "name": "Activin receptor type-2B",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5467",
+   "accession": "Q13873",
+   "symbol": "BMPR2",
+   "name": "Bone morphogenetic protein receptor type-2",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5476",
+   "accession": "O00238",
+   "symbol": "BMPR1B",
+   "name": "Bone morphogenetic protein receptor type-1B",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5498501",
+   "accession": "P07225",
+   "symbol": "PROS1",
+   "name": "Vitamin K-dependent protein S",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5500282",
+   "accession": "C3TQQ7",
+   "symbol": "ftsI",
+   "name": "Peptidoglycan D,D-transpeptidase FtsI",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5568",
+   "accession": "P08922",
+   "symbol": "ROS1",
+   "name": "Proto-oncogene tyrosine-protein kinase ROS",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5608",
+   "accession": "Q16288",
+   "symbol": "NTRK3",
+   "name": "NT-3 growth factor receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5616",
+   "accession": "P27037",
+   "symbol": "ACVR2A",
+   "name": "Activin receptor type-2A",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5661",
+   "accession": "O14980",
+   "symbol": "XPO1",
+   "name": "Exportin-1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5697",
+   "accession": "Q9GZT9",
+   "symbol": "EGLN1",
+   "name": "Egl nine homolog 1",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5705",
+   "accession": "Q9H6Z9",
+   "symbol": "EGLN3",
+   "name": "Prolyl hydroxylase EGLN3",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5731",
+   "accession": "P00751",
+   "symbol": "CFB",
+   "name": "Complement factor B",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5742",
+   "accession": "P30536",
+   "symbol": "TSPO",
+   "name": "Translocator protein",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5804",
+   "accession": "Q9NR96",
+   "symbol": "TLR9",
+   "name": "Toll-like receptor 9",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5844",
+   "accession": "O95838",
+   "symbol": "GLP2R",
+   "name": "Glucagon-like peptide 2 receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5903",
+   "accession": "Q04771",
+   "symbol": "ACVR1",
+   "name": "Activin receptor type-1",
+   "n_approved_drugs": 4,
+   "counts": {
+    "biologic": 2,
+    "small_molecule": 2
+   },
+   "label": "mixed",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5913",
+   "accession": "P48357",
+   "symbol": "LEPR",
+   "name": "Leptin receptor",
+   "n_approved_drugs": 1,
+   "counts": {
+    "biologic": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5936",
+   "accession": "Q9NYK1",
+   "symbol": "TLR7",
+   "name": "Toll-like receptor 7",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL5944",
+   "accession": "P04292",
+   "symbol": "",
+   "name": "DNA polymerase catalytic subunit",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5966",
+   "accession": "P55899",
+   "symbol": "FCGRT",
+   "name": "IgG receptor FcRn large subunit p51",
+   "n_approved_drugs": 2,
+   "counts": {
+    "biologic": 2
+   },
+   "label": "biologic",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL5971",
+   "accession": "Q99835",
+   "symbol": "SMO",
+   "name": "Protein smoothened",
+   "n_approved_drugs": 4,
+   "counts": {
+    "small_molecule": 4
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL6007",
+   "accession": "O75762",
+   "symbol": "TRPA1",
+   "name": "Transient receptor potential cation channel subfamily A member 1",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL6065",
+   "accession": "P9WNX1",
+   "symbol": "folA",
+   "name": "Dihydrofolate reductase",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL6093",
+   "accession": "P0DP23",
+   "symbol": "CALM1",
+   "name": "Calmodulin-1",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL6120",
+   "accession": "Q96S37",
+   "symbol": "SLC22A12",
+   "name": "Solute carrier family 22 member 12",
+   "n_approved_drugs": 3,
+   "counts": {
+    "small_molecule": 3
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL6131",
+   "accession": "Q9EXV5",
+   "symbol": "blaUOE-1",
+   "name": "Beta-lactamase CTX-M",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL6132",
+   "accession": "Q9F663",
+   "symbol": "KPC-2",
+   "name": "Carbapenem-hydrolyzing beta-lactamase KPC",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL6135",
+   "accession": "B4URF0",
+   "symbol": "NA",
+   "name": "Neuraminidase",
+   "n_approved_drugs": 2,
+   "counts": {
+    "small_molecule": 2
+   },
+   "label": "small_molecule",
+   "split": "test"
+  },
+  {
+   "target_chembl_id": "CHEMBL6187",
+   "accession": "Q7DHH4",
+   "symbol": "mecA",
+   "name": "MecA",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  },
+  {
+   "target_chembl_id": "CHEMBL6188",
+   "accession": "P14677",
+   "symbol": "pbpX",
+   "name": "Penicillin-binding protein 2x",
+   "n_approved_drugs": 1,
+   "counts": {
+    "small_molecule": 1
+   },
+   "label": "single_drug",
+   "split": "dev"
+  }
+ ]
+}
