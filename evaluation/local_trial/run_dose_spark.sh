@@ -19,8 +19,11 @@ serve_and_eval () {
   local served="$1" model_path="$2" eval_models="$4"; local lora_args="$3"
   echo "[serve] $served <- $model_path ${lora_args}"
   # shellcheck disable=SC2086
+  # low gpu-memory-utilization: the GB10 is shared; default 0.92 (112GiB) exceeds free memory.
+  # enforce-eager skips cudagraph capture (less memory, faster start; fine for a small eval).
+  # shellcheck disable=SC2086
   "$VLLM" serve "$model_path" --served-model-name "$served" $lora_args \
-    --max-model-len 4096 --port 8000 > "$OUT/vllm_$served.log" 2>&1 &
+    --max-model-len 4096 --gpu-memory-utilization 0.40 --enforce-eager --port 8000 > "$OUT/vllm_$served.log" 2>&1 &
   local VP=$!
   local ok=0
   for i in $(seq 1 180); do curl -s -m3 http://127.0.0.1:8000/health >/dev/null 2>&1 && { ok=1; break; }; sleep 5; done
