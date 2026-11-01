@@ -108,6 +108,23 @@ class RouteTests(unittest.TestCase):
         self.assertIn("validation_plan", out)           # a plan, or a clear error when the catalogue search is unavailable here
         self.assertEqual(out["targets"][0]["target"], "BRAF")
 
+    def test_modality_suggestions_are_opt_in_guidance_and_never_break_the_ranking(self):
+        from galaxy.ai.target_id import modality
+        ct = [{"name": "tumour de", "kind": "differential_expression_up", "rows": self.rows}]
+        off = run(self.m.identify_targets(self.req(client_tables=ct)))
+        self.assertNotIn("modality_suggestions", off)
+        orig = modality.fetch_features_for_symbol
+        modality.fetch_features_for_symbol = lambda *a, **k: None   # UniProt unreachable -> soft per-target error
+        try:
+            out = run(self.m.identify_targets(self.req(client_tables=ct, suggest_modality=True, modality_top_n=1)))
+        finally:
+            modality.fetch_features_for_symbol = orig
+        self.assertEqual(out["targets"][0]["target"], "BRAF")
+        sug = out["modality_suggestions"]
+        self.assertEqual(len(sug), 1)
+        self.assertIs(sug[0]["validated"], False)
+        self.assertIn("error", sug[0])
+
     def test_run_outputs_are_read_only_from_the_configured_folder(self):
         import tempfile
         os.environ.pop("TARGET_ID_RUN_OUTPUT_ROOT", None)

@@ -37,6 +37,8 @@ class IdentifyTargetsRequest(BaseModel):
     ranking_mode: str = "auto"                     # "auto": Open Targets-primary when available; "integrated": all channels incl. client data weighted
     validate: bool = False                         # also return, for the top targets, the BioMate workflows that would test them
     validate_top_n: int = 5
+    suggest_modality: bool = False                 # also return a guidance-only drug-type suggestion (small molecule / biologic / ...) for the top targets; NOT validated (see docs/20261101_TARGETID_MODALITY_SELECTOR.md)
+    modality_top_n: int = 5
     top_k: int = 25
     z_thresh: float = 2.0
     max_concurrent: int = 8
@@ -139,4 +141,13 @@ async def identify_targets(request: IdentifyTargetsRequest) -> Dict[str, Any]:
         except Exception as exc:  # the ranking is still valid without the plan
             log.warning("target-id: validation plan unavailable: %s", exc)
             out["validation_plan"] = {"error": "%s: %s" % (type(exc).__name__, exc)}
+    if request.suggest_modality:
+        try:
+            from galaxy.ai.target_id.modality import suggest_modality
+            symbols = [t.get("symbol") or t.get("target") for t in out["targets"][: max(1, min(int(request.modality_top_n), 10))]]
+            out["modality_suggestions"] = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: [suggest_modality(sym) for sym in symbols if sym])
+        except Exception as exc:  # the ranking is still valid without the suggestions
+            log.warning("target-id: modality suggestions unavailable: %s", exc)
+            out["modality_suggestions"] = {"error": "%s: %s" % (type(exc).__name__, exc)}
     return out
