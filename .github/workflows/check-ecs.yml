@@ -1,0 +1,37 @@
+name: Check ECS Galaxy Status
+
+on:
+  workflow_dispatch:
+
+env:
+  ECS_IP: 101.201.107.126
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Check galaxy-backend status and logs
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 \
+            root@${{ env.ECS_IP }} \
+            'echo "=== Container status ===" && \
+             docker compose -f /app/biomate/docker-compose.onprem.yml ps && \
+             echo "" && \
+             echo "=== galaxy restart count ===" && \
+             docker inspect biomate-galaxy --format "RestartCount={{.RestartCount}} Status={{.State.Status}} ExitCode={{.State.ExitCode}}" && \
+             echo "" && \
+             echo "=== galaxy last 60 log lines ===" && \
+             docker logs biomate-galaxy --tail 60 2>&1 && \
+             echo "" && \
+             echo "=== port 8080 listening? ===" && \
+             docker exec biomate-galaxy ss -tlnp 2>/dev/null | grep 8080 || echo "port 8080 NOT listening" && \
+             echo "" && \
+             echo "=== backend/config contents ===" && \
+             ls -la /app/biomate/backend/config/ 2>/dev/null || echo "(empty or missing)"'
