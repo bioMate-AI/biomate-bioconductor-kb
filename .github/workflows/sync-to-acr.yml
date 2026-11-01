@@ -1,12 +1,20 @@
 name: Sync Images to Alibaba ACR
 
 on:
+  push:
+    branches:
+      - feat/aliyun-demo-deploy
+    paths:
+      - '.github/workflows/sync-to-acr.yml'
   workflow_dispatch:
     inputs:
       tag:
         description: 'Source image tag from GHCR'
         required: true
         default: 'fix-arm64-minio-healthcheck-and-qemu-latest'
+
+env:
+  TAG: fix-arm64-minio-healthcheck-and-qemu-latest
 
 jobs:
   sync:
@@ -28,8 +36,8 @@ jobs:
 
       - name: Copy backend image
         run: |
-          SRC="ghcr.io/biomate-ai/biomate-backend:${{ inputs.tag }}"
-          DST="registry.cn-beijing.aliyuncs.com/biomate_demo/biomate-backend:latest"
+          SRC="ghcr.io/biomate-ai/biomate-backend:${{ inputs.tag || env.TAG }}"
+          DST="registry.cn-beijing.aliyuncs.com/biomate-demo/biomate-backend:latest"
           docker pull $SRC
           docker tag $SRC $DST
           docker push $DST
@@ -37,8 +45,8 @@ jobs:
 
       - name: Copy frontend image
         run: |
-          SRC="ghcr.io/biomate-ai/biomate-frontend:${{ inputs.tag }}"
-          DST="registry.cn-beijing.aliyuncs.com/biomate_demo/biomate-frontend:latest"
+          SRC="ghcr.io/biomate-ai/biomate-frontend:${{ inputs.tag || env.TAG }}"
+          DST="registry.cn-beijing.aliyuncs.com/biomate-demo/biomate-frontend:latest"
           docker pull $SRC
           docker tag $SRC $DST
           docker push $DST
