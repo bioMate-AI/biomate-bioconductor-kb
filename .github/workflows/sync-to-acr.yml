@@ -11,98 +11,72 @@ on:
 env:
   TAG: fix-arm64-minio-healthcheck-and-qemu-latest
   ECS_IP: 101.201.107.126
+  DB_URL: https://biomate-onprem-assets.s3.us-west-2.amazonaws.com/onprem/galaxy_ai_tools.db
+  NFCORE_URL: https://biomate-onprem-assets.s3.us-west-2.amazonaws.com/onprem/nextflow_nfcore_subworkflows.tar.gz
 
 jobs:
-  transfer-frontend:
+  # Images already on ECS — skip re-transfer unless needed.
+  # Run transfer-assets only (DB + nfcore files) since images are done.
+
+  transfer-assets:
+    # Download galaxy_ai_tools.db (~280 MB) and nfcore tar (~60 MB) from S3
+    # on the GHA runner (fast US connection), then SSH-pipe to ECS and drop
+    # them into the Docker volumes so db-init / nfcore-init skip their
+    # slow China→S3 downloads.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Install sshpass
         run: sudo apt-get install -y sshpass
 
-      - name: Transfer frontend image via SSH pipe
+      - name: Download workflow DB from S3 and pipe to ECS volume
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
-          docker pull ghcr.io/biomate-ai/biomate-frontend:${{ env.TAG }}
-          docker save ghcr.io/biomate-ai/biomate-frontend:${{ env.TAG }} | \
-            gzip -1 | \
+          echo "Downloading galaxy_ai_tools.db (~280 MB) from S3..."
+          curl -fL --retry 3 --progress-bar "${{ env.DB_URL }}" | \
             sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
               -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
               root@${{ env.ECS_IP }} \
-              'docker load && echo "Frontend loaded!"'
+              'cat > /tmp/galaxy_ai_tools.db && \
+               VOLPATH=$(docker volume inspect biomate-onprem_biomate-backend-db --format "{{.Mountpoint}}") && \
+               mkdir -p "$VOLPATH" && \
+               mv /tmp/galaxy_ai_tools.db "$VOLPATH/galaxy_ai_tools.db" && \
+               ls -lh "$VOLPATH/galaxy_ai_tools.db" && \
+               echo "DB installed to volume"'
 
-  transfer-backend:
-    # Separate job = fresh runner disk.
-    # Remove pre-installed tools (~13 GB) first so docker pull of the 4.6 GB
-    # compressed backend image (9-14 GB uncompressed) has room to land.
-    # timeout-minutes=360: cross-Pacific SSH pipe at ~10 Mbps needs ~120-150 min.
-    runs-on: ubuntu-latest
-    timeout-minutes: 360
-    steps:
-      - name: Free disk space (remove Android SDK + .NET + Haskell)
-        run: |
-          echo "=== Before cleanup ==="
-          df -h /
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
-          echo "=== After cleanup ==="
-          df -h /
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install sshpass
-        run: sudo apt-get install -y sshpass
-
-      - name: Transfer backend image via SSH pipe
+      - name: Download nfcore workflows and pipe to ECS volume
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
-          echo "Pulling backend (4.6 GB compressed, ~14 GB on disk)..."
-          docker pull ghcr.io/biomate-ai/biomate-backend:${{ env.TAG }}
-          echo "Disk after pull:"
-          df -h /
-          echo "Streaming backend to ECS (gzip -6 for better compression over slow link)..."
-          docker save ghcr.io/biomate-ai/biomate-backend:${{ env.TAG }} | \
-            gzip -6 | \
+          echo "Downloading nfcore workflows (~60 MB) from S3..."
+          curl -fL --retry 3 --progress-bar "${{ env.NFCORE_URL }}" | \
             sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
-              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=720 \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
               root@${{ env.ECS_IP }} \
-              'docker load && echo "Backend loaded!"'
+              'VOLPATH=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}") && \
+               mkdir -p "$VOLPATH" && \
+               tar -xzf - -C "$VOLPATH" && \
+               touch "$VOLPATH/.initialized" && \
+               echo "nfcore workflows extracted to $VOLPATH" && \
+               ls "$VOLPATH" | head -5'
 
-  verify-and-start:
+  restart-stack:
     runs-on: ubuntu-latest
-    needs: [transfer-frontend, transfer-backend]
+    needs: [transfer-assets]
     steps:
       - name: Install sshpass
         run: sudo apt-get install -y sshpass
 
-      - name: Verify images on ECS
-        env:
-          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
-        run: |
-          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no root@${{ env.ECS_IP }} \
-            'docker images | grep biomate'
-
-      - name: Start BioMate stack
+      - name: Restart stack so db-init / nfcore-init see pre-populated volumes
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
           sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
             -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
             root@${{ env.ECS_IP }} \
-            'cd /app/biomate && docker compose -f docker-compose.onprem.yml --env-file .env up -d 2>&1 | tail -30 && echo "--- container status ---" && docker compose -f docker-compose.onprem.yml ps'
+            'cd /app/biomate && \
+             docker compose -f docker-compose.onprem.yml down --remove-orphans 2>&1 | tail -5 && \
+             docker compose -f docker-compose.onprem.yml --env-file .env up -d 2>&1 | tail -20 && \
+             sleep 10 && \
+             docker compose -f docker-compose.onprem.yml ps'
