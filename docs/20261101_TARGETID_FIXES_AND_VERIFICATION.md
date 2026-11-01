@@ -29,14 +29,25 @@ changed file compiles under 3.9. Run: `PYTHONPATH=backend/lib python -m galaxy.a
 `TARGET_ID_TABLE_ROOT` (enable server tables, confined to that folder), `TARGET_ID_OFFLINE=1`, `TARGET_ID_SNAPSHOT_DIR`,
 `TARGET_ID_GMT_PATH` (pathway channel). `GET /api/target-id/status` reports what is configured.
 
-## Still open (not done here)
+## Added later on 2026-11-01
 
-- **Chat and UI wiring:** the chat tool must pass `client_tables`, `ranking_mode` and `validate` (the chat files have
-  another session's uncommitted edits, so they were not touched); the interface needs an evidence-links table.
-- **T1, automatic conversion:** the adapters take a table; reading a completed analysis run's output file and building the
-  table is the remaining step, and it needs the run store and the chat or interface side.
-- **T7, measurement:** the language-model channel has still not been measured with a hospital-class open model
-  (needs an endpoint). **T5** drug-type selector, **T8** literature refusal and reference-existence check, **T9** time-split
-  gold for novel targets, **T10** connector manifest and chat reply contract, **T11** source-count script.
+| Item | Commit | State | Detail |
+|---|---|---|---|
+| Automatic conversion of a completed run's output (DESeq2, edgeR, limma, Cox, recurrence, dependency) | `4441e0649` | Tested | Route option `run_outputs`; reads only inside `TARGET_ID_RUN_OUTPUT_ROOT`. |
+| T8 citation existence check and refusal | `25de7ce8a` | Tested, live 20/20 | PMID/DOI against NCBI and Crossref; nothing grounded gives an explicit refusal. Existence is not support. `20261101_CITATION_EXISTENCE_CHECK.md`. |
+| T11 source counts | `773aabc5c` | Done | `scripts/source_registry_report.py`: 58 sources, 54 live, 21 reachable from chat. `20261101_DATA_SOURCE_COUNTS.md`. |
+| T5 drug-type selector | `0d282fba2`, `f6a0f724a` | Partial, guidance only | Held-out accuracy 0.858 against 0.803 for always-small-molecule (intervals overlap); biologic recall 0.375. Route option `suggest_modality`, always `validated=false`. `20261101_TARGETID_MODALITY_SELECTOR.md`. |
+| T9 time-split gold | `37d9e4dc0`, `0ca4dd97f` | Built, too small | 11 novel pairs (7 targets, one disease with two or more) at 2023-06-30, 1 at 2024-06-30, 0 at 2025-01-01. No novel-target claim can be tested or made. Built and smoke-tested on the dev host in `/tmp`, since removed. `20261101_TARGETID_TEMPORAL_GOLD.md`. |
+| Chat tool | `4e51b9315` | Tested (12 vitest) | `identify_targets` passes `ranking_mode`, `validate`, `suggest_modality`; returns `validation_plan` and `modality_suggestions` with a note that they are not validated. |
+| LLM-channel benchmark scripts v1-v6 | `de5b8d285` | Committed as found | Earlier untracked work from 2026-10-25. |
+
+Not deployed: none of the above has been synced to dev. Deploying needs the pre-sync checklist and `sync_to_dev.sh`.
+
+## Still open
+
+- **Interface:** an evidence-links table component; the connector manifest (`connectors/chatgpt/openapi.json`) does not list the new `identify_targets` options.
+- **T7, measurement:** the language-model channel has not been measured with a hospital-class open model (needs an endpoint).
+- **T9:** a usable novel-target test needs more cut-offs, a pooled design across many diseases, or prospective tracking.
+- **Radiology image analysis:** code exists but is uncommitted and unverified; it is not a verified capability.
 - STRING has no offline snapshot (the full network file is large); offline deployments get the Open Targets evidence and
   any client or table channels.
