@@ -1,0 +1,70 @@
+{
+  "n_ok": 2,
+  "model": "deepseek/deepseek-v4-pro",
+  "rows": [
+    {
+      "disease": "Alopecia, Male Pattern",
+      "efo": "MONDO_0010631",
+      "n_pos": 30,
+      "n_universe": 216,
+      "llm_ok": false,
+      "llm_err": "unparseable: ''",
+      "n_llm": 0,
+      "ot_alone": 0.4395,
+      "string_alone": 0.525,
+      "system_noLLM": 0.2767,
+      "system_withLLM": 0.2767,
+      "llm_alone": null,
+      "null_bar": 0.582
+    },
+    {
+      "disease": "AMYOTROPHIC LATERAL SCLEROSIS 1, AUTOSOMAL RECESSIVE",
+      "error": "no EFO"
+    },
+    {
+      "disease": "AMYOTROPHIC LATERAL SCLEROSIS 2, JUVENILE (disorder)",
+      "error": "no EFO"
+    },
+    {
+      "disease": "Amyotrophic Lateral Sclerosis, Guam Form",
+      "error": "no EFO"
+    },
+    {
+      "disease": "Amyotrophic Lateral Sclerosis, Sporadic",
+      "error": "no EFO"
+    },
+    {
+      "disease": "Anemia, Sickle Cell",
+      "efo": "MONDO_0011382",
+      "n_pos": 225,
+      "n_universe": 250,
+      "llm_ok": false,
+      "llm_err": "unparseable: '{\\n  \"ABO\": 0.1,\\n  \"ACKR1\": 0.3,\\n  \"ADA\": 0.1,\\n  \"ADCY6\": 0.1,\\n  \"ADORA2B\": 0.2,\\n'",
+      "n_llm": 0,
+      "ot_alone": 0.2689,
+      "string_alone": 0.6222,
+      "system_noLLM": 0.2826,
+      "system_withLLM": 0.2826,
+      "llm_alone": null,
+      "null_bar": 0.54
+    },
+    {
+      "disease": "Arthritis, Adjuvant-Induced",
+      "error": "no EFO"
+    },
+    {
+      "disease": "Arthritis, Collagen-Induced",
+      "error": "no EFO"
+    }
+  ],
+  "mean_ot_alone": 0.3542,
+  "mean_system_noLLM": 0.2797,
+  "mean_system_withLLM": 0.2797,
+  "mean_llm_alone": null,
+  "mean_null_bar": 0.561,
+  "llm_ok_count": "0/2",
+  "withLLM_beats_noLLM": "0/2",
+  "withLLM_beats_OTalone": "1/2",
+  "llm_alone_beats_OTalone": "0/2",
+  "llm_alone_beats_null": "0/2"
+}
