@@ -51,6 +51,12 @@ def _run():
     chans = default_channels(disease_id="MONDO_0005105",
                              tables=[{"path": "mem://t", "name": "depmap", "reader": lambda p: rows,
                                       "filter_col": "disease", "context_filter_key": "disease"}])
+    # With a disease id the default set now includes the STRING network channel (it expands from the Open Targets
+    # top genes in the orchestrator's second stage); include_network=False restores the Open Targets + tables set.
+    assert [c.name for c in chans] == ["genetics_ot", "ppi_string", "depmap"], [c.name for c in chans]
+    chans = default_channels(disease_id="MONDO_0005105", include_network=False,
+                             tables=[{"path": "mem://t", "name": "depmap", "reader": lambda p: rows,
+                                      "filter_col": "disease", "context_filter_key": "disease"}])
     assert [c.name for c in chans] == ["genetics_ot", "depmap"], [c.name for c in chans]
 
     # --- integration: OT + Table -> BRAF corroborated (fires in both), ranks top ---

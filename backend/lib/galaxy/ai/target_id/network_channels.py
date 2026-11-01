@@ -33,12 +33,19 @@ class StringPpiChannel(Channel):
 
     context: 'seed_genes' (List[str], required). agg="max" (strongest edge to any seed; less
     degree-biased) or "sum" (total connectivity). ``http`` injectable: http(endpoint, params)->rows.
+
+    include_seed_edges (default False = candidate EXPANSION: seeds are kept out of the candidate set). When True
+    (used by the live route, where the seeds ARE the Open Targets top genes being ranked) a seed is scored by its
+    strongest edge to ANOTHER seed, so the top genes themselves get network corroboration rather than none.
     """
 
     name = "ppi_string"
+    needs_seeds = True              # expands from a seed gene set supplied by the orchestrator's second stage
 
     def __init__(self, species: int = 9606, agg: str = "max", limit: int = 50,
-                 http: Optional[Callable[..., Any]] = None, name: str = "ppi_string"):
+                 http: Optional[Callable[..., Any]] = None, name: str = "ppi_string",
+                 include_seed_edges: bool = False):
+        self.include_seed_edges = include_seed_edges
         self.species = species
         self.agg = agg
         self.limit = limit
@@ -62,8 +69,11 @@ class StringPpiChannel(Channel):
         scores: Dict[str, float] = {}
         for row in rows:
             partner = str((row or {}).get("preferredName_B", "")).upper()
-            if not partner or partner in seed_set:  # keep seeds out of the candidate set
+            anchor = str((row or {}).get("preferredName_A", "")).upper()
+            if not partner:
                 continue
+            if partner in seed_set and not (self.include_seed_edges and anchor in seed_set and anchor != partner):
+                continue                             # keep seeds out of the candidate set (unless scoring seed-to-seed edges)
             try:
                 sc = float(row.get("score"))
             except Exception:
@@ -74,9 +84,12 @@ class StringPpiChannel(Channel):
                 scores[partner] = max(scores.get(partner, 0.0), sc)
         if not scores:
             return ChannelResult(channel=self.name, error="STRING: no partners for seeds")
-        return ChannelResult(channel=self.name, scores=scores,
+        # the cgi/network form resolves for every client (the /network/<id> form returns 403 to non-browsers; checked 2026-11-01)
+        links = {g: {"url": "https://string-db.org/cgi/network?identifiers=%s&species=%d" % (urllib.parse.quote(g), self.species),
+                     "label": "STRING network: %s" % g} for g in scores}
+        return ChannelResult(channel=self.name, scores=scores, links=links,
                              provenance={"source": "STRING interaction_partners", "agg": self.agg,
-                                         "seeds": seeds, "n": len(scores)})
+                                         "seeds": seeds, "n": len(scores), "seed_to_seed_edges": self.include_seed_edges})
 
 
 def _load_gmt(path: str) -> Dict[str, set]:
@@ -96,6 +109,7 @@ class PathwayCoMembershipChannel(Channel):
     """
 
     name = "pathway_comembership"
+    needs_seeds = True
 
     def __init__(self, gene_sets: Optional[Dict[str, Any]] = None, gmt_path: Optional[str] = None,
                  name: str = "pathway_comembership"):

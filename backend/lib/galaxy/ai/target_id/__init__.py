@@ -17,7 +17,8 @@ fallback), LLM via galaxy.ai.llm_client.LLMClient, workflows via UnifiedWorkflow
 """
 from .arbiter import Arbiter, EvidenceGateArbiter, HarmonicSumArbiter, TabularArbiter
 from .channels import CallableChannel, Channel, LLMReasonedChannel, MockChannel
-from .data_channels import OpenTargetsGeneticsChannel, TableChannel, default_channels, frozen_fm_channel
+from .client_data import ADAPTERS as CLIENT_ADAPTERS, ClientTableChannel, build_client_channels
+from .data_channels import OpenTargetsGeneticsChannel, TableChannel, default_channels, frozen_fm_channel, write_ot_snapshot
 from .clinical_arm import cyt_score, run_clinical_demonstration
 from .demonstration import run_clinical_arm, run_demonstration
 from .network_channels import PathwayCoMembershipChannel, StringPpiChannel
@@ -28,7 +29,8 @@ from .types import ChannelResult, OrchestratorResult, TargetEvidence, TargetScor
 __all__ = [
     "Arbiter", "EvidenceGateArbiter", "HarmonicSumArbiter", "TabularArbiter",
     "Channel", "MockChannel", "LLMReasonedChannel", "CallableChannel",
-    "OpenTargetsGeneticsChannel", "TableChannel", "default_channels", "frozen_fm_channel",
+    "OpenTargetsGeneticsChannel", "TableChannel", "default_channels", "frozen_fm_channel", "write_ot_snapshot",
+    "ClientTableChannel", "build_client_channels", "CLIENT_ADAPTERS",
     "StringPpiChannel", "PathwayCoMembershipChannel",
     "run_demonstration", "run_clinical_arm", "run_clinical_demonstration", "cyt_score",
     "TargetIDOrchestrator", "create_target_id_orchestrator",

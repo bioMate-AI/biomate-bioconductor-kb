@@ -19,6 +19,11 @@ class ChannelResult:
     scores: Dict[str, float] = field(default_factory=dict)
     provenance: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
+    # Where the evidence comes from, so every row of the output can show it:
+    #   links: {target: {"url": ..., "label": ...}} for channels that have a resolvable page per target
+    #   evidence_kind: "public_source" | "client_data" | "model_judgment" | "table"
+    links: Dict[str, Dict[str, str]] = field(default_factory=dict)
+    evidence_kind: str = "public_source"
 
     @property
     def ok(self) -> bool:
@@ -37,6 +42,8 @@ class TargetEvidence:
     mean_fired_z: float = 0.0
     conflict: bool = False        # channels disagree (one strong, others present-but-weak)
     note: str = ""                # human-readable conflict/veto note
+    # channel -> {"kind": ..., "url": ... or None, "label": ...}: the source behind each channel's score
+    links: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
 
 @dataclass
@@ -77,6 +84,7 @@ class OrchestratorResult:
                     "n_fired": t.evidence.n_fired, "fired_channels": t.evidence.fired_channels,
                     "conflict": t.evidence.conflict, "note": t.evidence.note,
                     "per_channel_z": {k: round(v, 3) for k, v in t.evidence.per_channel_z.items()},
+                    "evidence_links": t.evidence.links,
                 }
                 for t in self.targets
             ],

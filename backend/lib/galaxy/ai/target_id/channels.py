@@ -19,6 +19,8 @@ from .types import ChannelResult
 
 class Channel(ABC):
     name = "channel"
+    needs_seeds = False            # True for channels that expand from a seed gene set (STRING, pathway)
+    evidence_kind = "public_source"
 
     @abstractmethod
     def run(self, context: Dict[str, Any]) -> ChannelResult:
@@ -38,17 +40,58 @@ class MockChannel(Channel):
         return ChannelResult(channel=self.name, scores=dict(self._scores), provenance=dict(self._prov))
 
 
+def _strip_reasoning(text: str) -> str:
+    """Remove reasoning-model scaffolding that precedes or wraps the JSON answer."""
+    text = re.sub(r"<think>[\s\S]*?</think>", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"^```[a-zA-Z]*\s*|```\s*$", "", text.strip(), flags=re.MULTILINE)
+    return text
+
+
+def _balanced_objects(text: str):
+    """Yield every top-level {...} substring that is brace-balanced (strings and escapes respected)."""
+    i, n = 0, len(text)
+    while i < n:
+        if text[i] != "{":
+            i += 1
+            continue
+        depth, j, in_str, esc = 0, i, False, False
+        while j < n:
+            ch = text[j]
+            if in_str:
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+            elif ch == '"':
+                in_str = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    yield text[i:j + 1]
+                    break
+            j += 1
+        i = j + 1 if depth == 0 else i + 1
+
+
 def _parse_json_obj(text: str) -> Optional[dict]:
-    """Extract the first JSON object from an LLM response (handles prose/markdown fences)."""
+    """Extract the first JSON object from an LLM response.
+
+    Handles prose, markdown fences, reasoning-model <think> blocks and trailing commentary. Returns the
+    first brace-balanced object that parses to a dict, or None."""
     if not text:
         return None
-    m = re.search(r"\{[\s\S]*\}", text)
-    if not m:
-        return None
-    try:
-        return json.loads(m.group(0))
-    except Exception:
-        return None
+    for cand in _balanced_objects(_strip_reasoning(text)):
+        try:
+            obj = json.loads(cand)
+        except Exception:
+            continue
+        if isinstance(obj, dict):
+            return obj
+    return None
 
 
 class LLMReasonedChannel(Channel):
@@ -63,13 +106,18 @@ class LLMReasonedChannel(Channel):
     """
 
     name = "llm_reasoned"
+    evidence_kind = "model_judgment"
 
     def __init__(self, llm_client: Any, name: str = "llm_reasoned", max_targets: int = 50,
-                 generate_kwargs: Optional[Dict] = None):
+                 generate_kwargs: Optional[Dict] = None, retries: int = 1, max_tokens_cap: int = 6000):
         self.llm = llm_client
         self.name = name
         self.max_targets = max_targets
         self.generate_kwargs = generate_kwargs or {"max_tokens": 1500, "temperature": 0.0}
+        # Reasoning models can spend the whole token budget thinking and return no JSON; on a parse failure
+        # we retry up to ``retries`` times with a doubled budget (capped) before reporting a channel error.
+        self.retries = retries
+        self.max_tokens_cap = max_tokens_cap
 
     def _prompt(self, query: str, candidates: Optional[List[str]]) -> str:
         if candidates:
@@ -93,13 +141,22 @@ class LLMReasonedChannel(Channel):
         if not query:
             return ChannelResult(channel=self.name, error="no query in context")
         candidates = context.get("candidate_targets")
-        try:
-            raw = self.llm.generate(self._prompt(query, candidates), **self.generate_kwargs)
-        except Exception as e:  # fail soft
-            return ChannelResult(channel=self.name, error="llm error: %s: %s" % (type(e).__name__, e))
-        obj = _parse_json_obj(raw)
+        kwargs = dict(self.generate_kwargs)
+        obj, last_err = None, None
+        for attempt in range(self.retries + 1):
+            try:
+                raw = self.llm.generate(self._prompt(query, candidates), **kwargs)
+            except Exception as e:  # fail soft
+                return ChannelResult(channel=self.name, evidence_kind=self.evidence_kind,
+                                     error="llm error: %s: %s" % (type(e).__name__, e))
+            obj = _parse_json_obj(raw)
+            if isinstance(obj, dict):
+                break
+            last_err = "llm returned no parseable JSON object"
+            if "max_tokens" in kwargs:       # give a reasoning model room to finish thinking AND answer
+                kwargs["max_tokens"] = min(int(kwargs["max_tokens"]) * 2, self.max_tokens_cap)
         if not isinstance(obj, dict):
-            return ChannelResult(channel=self.name, error="llm returned no parseable JSON object")
+            return ChannelResult(channel=self.name, evidence_kind=self.evidence_kind, error=last_err)
         scores = {}
         for k, v in obj.items():
             try:
@@ -107,9 +164,10 @@ class LLMReasonedChannel(Channel):
             except Exception:
                 continue
         if not scores:
-            return ChannelResult(channel=self.name, error="no numeric scores parsed")
-        return ChannelResult(channel=self.name, scores=scores,
-                             provenance={"source": "llm_reasoned", "model": getattr(self.llm, "model", "?")})
+            return ChannelResult(channel=self.name, evidence_kind=self.evidence_kind, error="no numeric scores parsed")
+        return ChannelResult(channel=self.name, scores=scores, evidence_kind=self.evidence_kind,
+                             provenance={"source": "llm_reasoned", "model": getattr(self.llm, "model", "?"),
+                                         "note": "model judgment; no per-target citation"})
 
 
 class CallableChannel(Channel):

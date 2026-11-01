@@ -137,3 +137,16 @@ a hospital-class model endpoint (the Spark box or a rented GPU); T5 and R10 need
   work. R2 must be coordinated with that session; plain commits, explicit paths, no amend.
 - The audit was read-only; items marked reported-by-audit were not re-run here. The catalogue numbers in
   section A (W1, W2) were recomputed from the database on 2026-11-01.
+
+---
+
+## E. Progress log
+
+**2026-11-01, target identification (see `docs/20261101_TARGETID_FIXES_AND_VERIFICATION.md`).**
+- T3 per-target source links: backend and route done and verified live; interface renderer open.
+- T2 network channels in the live route: done and verified live (two-stage seeding).
+- T1 hospital data channel: adapters, inline rows, path-confinement, weight and integrated mode done and tested; chat and
+  interface wiring and automatic conversion from a completed run open.
+- T6: Open Targets snapshots, offline mode and the status endpoint done and verified; STRING has no offline source.
+- T7: language-model parsing and retry done; measurement with a hospital-class open model open (needs an endpoint).
+- T4: route option done; chat and interface open. T5, T8, T9, T10, T11: open.

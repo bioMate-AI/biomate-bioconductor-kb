@@ -40,8 +40,9 @@ def _fanout(channels: List[Channel], context: Dict[str, Any], max_concurrent: in
 
 class TargetIDOrchestrator:
     def __init__(self, channels: List[Channel], arbiter: Optional[Arbiter] = None,
-                 llm_client: Any = None, max_concurrent: int = 8):
+                 llm_client: Any = None, max_concurrent: int = 8, seed_top_n: int = 20):
         self.channels = list(channels)
+        self.seed_top_n = seed_top_n
         # HONEST DEFAULT (benchmark_multidisease.py): the fusion does not beat OpenTargets-alone, so when an
         # OpenTargets channel is present we rank BY IT and use the other channels as corroboration/provenance
         # only (never a silent fusion that ranks worse than OT). Callers can pass an explicit arbiter to override.
@@ -74,6 +75,36 @@ class TargetIDOrchestrator:
             return plan
         return None
 
+    def _seeds_from(self, results: List[ChannelResult], primary: Optional[str]):
+        """Top genes of the primary (else the Open Targets) channel, used to seed the network channels."""
+        for name in [n for n in (primary, "genetics_ot") if n]:
+            for cr in results:
+                if cr.channel == name and cr.ok:
+                    top = sorted(cr.scores.items(), key=lambda kv: -kv[1])[: self.seed_top_n]
+                    return [g for g, _ in top], name
+        return [], None
+
+    @staticmethod
+    def _link_info(cr: ChannelResult, target: str) -> Dict[str, Any]:
+        kind = cr.evidence_kind
+        if kind == "model_judgment":
+            return {"kind": kind, "url": None, "label": "model judgment, no citation"}
+        if kind == "client_data":
+            return {"kind": kind, "url": None,
+                    "label": "hospital data: %s" % (cr.provenance.get("label") or cr.provenance.get("kind") or cr.channel)}
+        link = cr.links.get(target)
+        if link:
+            return {"kind": kind, "url": link.get("url"), "label": link.get("label")}
+        return {"kind": kind, "url": None, "label": str(cr.provenance.get("source") or cr.channel)}
+
+    def _attach_links(self, ranked: List[Any], results: List[ChannelResult]) -> None:
+        """Record, for every ranked target, which source stands behind each channel's score."""
+        ok = {cr.channel: cr for cr in results if cr.ok}
+        for ts in ranked:
+            for ch, cr in ok.items():
+                if ts.target in cr.scores:
+                    ts.evidence.links[ch] = self._link_info(cr, ts.target)
+
     def identify(self, query: str, context: Optional[Dict[str, Any]] = None) -> OrchestratorResult:
         ctx = dict(context or {})
         ctx.setdefault("query", query)
@@ -81,13 +112,30 @@ class TargetIDOrchestrator:
         # merely proposed by the optional LLM planner are not a user restriction.
         requested = {str(g).upper() for g in ctx.get("candidate_targets", [])} if ctx.get("candidate_targets") else set()
         plan = self._plan(query, ctx)
-        results = _fanout(self.channels, ctx, self.max_concurrent)
+        # Stage 1: channels that need no seeds, in parallel. Stage 2: channels that expand from a seed gene set
+        # (STRING, pathway) run once stage 1 has produced the seeds (the primary channel's top genes), also in parallel.
+        stage1 = [c for c in self.channels if not getattr(c, "needs_seeds", False)]
+        stage2 = [c for c in self.channels if getattr(c, "needs_seeds", False)]
+        results = _fanout(stage1, ctx, self.max_concurrent)
+        seed_source: Optional[str] = None
+        n_seeds = 0
+        if stage2:
+            ctx2 = dict(ctx)
+            if ctx2.get("seed_genes"):
+                seed_source = "request"
+            else:
+                seeds, seed_source = self._seeds_from(results, getattr(self.arbiter, "primary_channel", None))
+                if seeds:
+                    ctx2["seed_genes"] = seeds
+            n_seeds = len(ctx2.get("seed_genes") or [])
+            results = results + _fanout(stage2, ctx2, self.max_concurrent)
         errors = {cr.channel: cr.error for cr in results if cr.error}
         ranked = self.arbiter.rank(results, ctx)
         if requested:
             ranked = [t for t in ranked if t.target.upper() in requested]
             for rank, target in enumerate(ranked, 1):
                 target.rank = rank
+        self._attach_links(ranked, results)
         primary = getattr(self.arbiter, "primary_channel", None)
         primary_available = bool(primary and any(cr.channel == primary and cr.ok for cr in results))
         harmonic = isinstance(self.arbiter, HarmonicSumArbiter)
@@ -105,6 +153,8 @@ class TargetIDOrchestrator:
                 "evidence_value_type": "normalized_score" if harmonic else "arbiter_specific",
                 "requested_candidates": sorted(requested),
                 "unscored_candidates": sorted(requested - {t.target.upper() for t in ranked}),
+                "seed_source": seed_source,
+                "n_seed_genes": n_seeds,
             },
             channel_provenance={cr.channel: cr.provenance for cr in results if cr.ok},
         )

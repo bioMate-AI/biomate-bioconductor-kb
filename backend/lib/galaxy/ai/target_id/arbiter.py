@@ -75,6 +75,9 @@ DEFAULT_RELIABILITY = {
     "genetics_ot": 1.0, "table": 1.0, "depmap": 1.0, "clin": 1.0,
     "ppi_string": 0.5, "pathway_comembership": 0.5,
     "llm_reasoned": 0.5,
+    # The hospital's own analysis results: patient-level and specific to this population, but associational
+    # rather than causal. A prior, not eval-tuned; override with channel_weights={"client_*": ...}.
+    "client_*": 0.8,
 }
 _DEFAULT_UNKNOWN_WEIGHT = 0.7
 
@@ -129,7 +132,11 @@ class HarmonicSumArbiter(Arbiter):
         self.primary_channel = primary_channel
 
     def _weight(self, channel: str) -> float:
-        return float(self.channel_weights.get(channel, _DEFAULT_UNKNOWN_WEIGHT))
+        if channel in self.channel_weights:
+            return float(self.channel_weights[channel])
+        if channel.startswith("client_"):
+            return float(self.channel_weights.get("client_*", _DEFAULT_UNKNOWN_WEIGHT))
+        return _DEFAULT_UNKNOWN_WEIGHT
 
     def rank(self, channel_results: List[ChannelResult], context: Dict[str, Any]) -> List[TargetScore]:
         from .types import TargetEvidence
