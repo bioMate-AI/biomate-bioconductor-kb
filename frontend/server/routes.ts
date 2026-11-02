@@ -10932,12 +10932,70 @@ ${paramLines || '(none recorded)'}`;
             ].join('  ');
             const accMatch = haystack.match(ACCESSION_RE);
             if (accMatch) {
-              console.warn(`[execute-gate] DE workflow "${wfName}" has no count matrix but accession ${accMatch[0]} is present — blocking (named-but-unbound accession); redirecting to GEO ingest.`);
+              const acc = accMatch[0];
+              const isGeo = /^(GSE|GSM|GDS)\d+$/i.test(acc);
+              // GEO accession → AUTO-CHAIN: fetch it with geo_data_connector (which
+              // emits a count_matrix + sample_metadata) and wire those onto this DE
+              // workflow's matrix/samplesheet, then run DE. Uses the existing chain
+              // engine (/api/workflows/chain) — connections are 1-based (workflow_chain.py:363).
+              // See docs/20261102_ACCESSION_LAUNCH_INFO_FLOW_ISSUE_AND_FIX.md #2.
+              if (isGeo) {
+                const dePath = request.workflowDefinition?.nextflow_path || request.workflowDefinition?.nextflowPath;
+                const deName = request.workflowDefinition?.name || 'differentialabundance';
+                if (dePath) {
+                  // Carry the user's DE params (study_type, normalisation_method, …); drop
+                  // the empty count inputs — the connections fill matrix + samplesheet.
+                  const deParams: Record<string, any> = {};
+                  for (const [k, v] of Object.entries(providedParams)) {
+                    if (!countKeys.includes(k) && k !== 'outdir' && !isEmptyVal(v)) deParams[k] = v;
+                  }
+                  const chainBody = {
+                    chain_name: `${acc} → ${deName}`,
+                    chat_session_id: request.chatSessionId || request.chat_session_id,
+                    start_from_step: 0,
+                    max_parallel: 2,
+                    steps: [
+                      { nextflow_path: 'nextflow_nfcore/subworkflows/genomics/geo_data_connector/main.nf', workflow_name: 'geo_data_connector', params: { accession: acc } },
+                      { nextflow_path: dePath, workflow_name: deName, params: deParams },
+                    ],
+                    connections: [
+                      { from_step: 1, from_output: 'count_matrix', to_step: 2, to_input: 'matrix' },
+                      { from_step: 1, from_output: 'sample_metadata', to_step: 2, to_input: 'samplesheet' },
+                    ],
+                  };
+                  try {
+                    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+                    const chainResp = await fetch(`${galaxyUrl}/api/workflows/chain`, {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(chainBody), signal: AbortSignal.timeout(30000),
+                    });
+                    const chainData: any = await chainResp.json().catch(() => ({}));
+                    if (chainResp.ok && chainData?.chain_run_id) {
+                      console.warn(`[execute-gate] DE workflow "${wfName}" on GEO accession ${acc} → auto-chained via geo_data_connector (chain_run_id=${chainData.chain_run_id}).`);
+                      return res.status(200).json({
+                        chained: true,
+                        chain_run_id: chainData.chain_run_id,
+                        runId: chainData.chain_run_id,
+                        chain_name: chainBody.chain_name,
+                        accession: acc,
+                        steps: ['geo_data_connector', deName],
+                        message: `Fetching ${acc} with the GEO ingest, then running ${deName} on its count matrix. Track it in the Run Manager.`,
+                      });
+                    }
+                    console.warn(`[execute-gate] auto-chain for ${acc} did not start (HTTP ${chainResp.status}): ${JSON.stringify(chainData).slice(0, 200)} — falling back to redirect.`);
+                  } catch (e: any) {
+                    console.warn(`[execute-gate] auto-chain for ${acc} errored: ${e?.message || e} — falling back to redirect.`);
+                  }
+                }
+              }
+              // Non-GEO accession (SRA/ENA/… → FASTQ, not a count matrix), or the
+              // auto-chain could not start: fail loud with an actionable redirect.
+              console.warn(`[execute-gate] DE workflow "${wfName}" has no count matrix but accession ${acc} is present — blocking (named-but-unbound accession); redirecting to GEO ingest.`);
               return res.status(400).json({
                 error: 'accession_needs_fetch',
-                message: `"${request.workflowDefinition?.name || 'This differential-expression workflow'}" reads a count matrix and samplesheet — it cannot read the accession ${accMatch[0]} directly. No compute was launched.`,
-                guidance: `Fetch ${accMatch[0]} first with the GEO ingest (geo_data_connector) to produce a count matrix + sample metadata, then run this workflow on those outputs.`,
-                accession: accMatch[0],
+                message: `"${request.workflowDefinition?.name || 'This differential-expression workflow'}" reads a count matrix and samplesheet — it cannot read the accession ${acc} directly. No compute was launched.`,
+                guidance: `Fetch ${acc} first with the GEO ingest (geo_data_connector) to produce a count matrix + sample metadata, then run this workflow on those outputs.`,
+                accession: acc,
               });
             }
             console.warn(`[execute-gate] DE workflow "${wfName}" launched with no count matrix / samplesheet — blocking empty launch.`);
