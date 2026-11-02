@@ -1860,8 +1860,15 @@ export function NextflowWorkflowViewer({
   // run reuses its cached completed steps and only re-runs the failed one.
   const _failure = (nextflowStatus as any)?.failure as
     { user_message?: string; is_transient?: boolean; suggested_action?: string } | undefined;
+  // Resume only makes sense when at least one step actually completed — the resume
+  // path reconstructs -w <prev_work_dir> and reuses cached completed steps. A LAUNCH
+  // failure (bad work dir, invalid config, missing inputs — 0 steps ran) has nothing
+  // to resume from, and reusing the same work dir would just fail again. In that case
+  // the footer shows "Restart", not "Resume from last step".
+  const anyStepCompleted = updatedPhases.some((p: any) => String(p?.status).toLowerCase() === 'completed');
   const canResumeFailed = status === 'failed' && !!activeRunId && !!_failure
-    && ['resume', 'resume_more_resources', 'fix_and_resume'].includes(_failure.suggested_action || '');
+    && ['resume', 'resume_more_resources', 'fix_and_resume'].includes(_failure.suggested_action || '')
+    && anyStepCompleted;
   const handleResumeFromFailed = async () => {
     if (!activeRunId) { onExecute?.(params); return; }
     try {

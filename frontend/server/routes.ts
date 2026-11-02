@@ -12553,10 +12553,10 @@ ${paramLines || '(none recorded)'}`;
   // The Galaxy backend's explain_error endpoint is NOT called; LLM call happens here.
   // Falls back to extended 8-type regex when key is absent or LLM fails.
 
-  const ERROR_ANALYSIS_SYSTEM_PROMPT = `You are a bioinformatics workflow debugging assistant.
+  const ERROR_ANALYSIS_SYSTEM_PROMPT = `You are a bioinformatics workflow debugging assistant for BioMate, a managed web platform.
 A Nextflow workflow has failed. Analyze the error log and respond ONLY with valid JSON:
 {
-  "error_type": "<one of: missing_parameter, missing_file, docker_pull, resource_limit, data_format, permission_denied, nextflow_syntax, tool_not_found, unknown>",
+  "error_type": "<one of: missing_parameter, missing_file, docker_pull, resource_limit, data_format, permission_denied, nextflow_syntax, tool_not_found, platform_config, unknown>",
   "human_summary": "<1-2 sentences: what went wrong in plain language a scientist can understand>",
   "suggested_fix": "<1-2 sentences: the specific action to fix this>",
   "chat_prompt": "<the exact message a user should paste in the chat to get help fixing this>"
@@ -12564,8 +12564,12 @@ A Nextflow workflow has failed. Analyze the error log and respond ONLY with vali
 Rules:
 - human_summary must avoid technical jargon. Write for a biologist, not a developer.
 - suggested_fix must be concrete and actionable (not "review the logs").
+- CRITICAL — the user operates BioMate entirely through a web UI; they NEVER run Nextflow or any command line. NEVER suggest command-line flags (e.g. -w, -resume, -c, -profile), editing config/YAML files, shell commands, or installing software. Those are not things the user can do.
+- BioMate manages all infrastructure: the work/scratch directory, storage buckets, container registry, scheduler and compute. If the failure is an infrastructure or platform-configuration problem — e.g. the work directory / storage bucket could not be resolved, a container registry was unreachable, the scheduler rejected the job — classify it as "platform_config", say plainly that it is a platform-side issue (not something the user did wrong), and set suggested_fix to retry the run, and if it recurs, report it to BioMate support. Do NOT ask the user to supply a path, bucket, or CLI option.
+- Only suggest actions a BioMate user can take in the product: correct or provide an input dataset, fix a parameter value, provide a missing required input, or retry the run.
 - chat_prompt must be a complete, paste-ready sentence starting with context.
 - If the error is in a specific step, name the step in human_summary.
+- Proofread: no doubled words (e.g. "the the"), no placeholder text.
 - Respond with ONLY the JSON object, no markdown, no explanation.`;
 
   function regexFallbackError(log: string): Record<string, unknown> {
@@ -12586,6 +12590,8 @@ Rules:
       return { error_type: 'nextflow_syntax', human_summary: 'There is a syntax error in the workflow script.', suggested_fix: 'Review the workflow script for syntax errors and ensure all parameters are valid.', chat_prompt: 'My workflow failed with a Nextflow syntax error. Can you help me fix the script?', llm_used: false };
     if (/command not found|executable not found|no such.*executable/.test(l))
       return { error_type: 'tool_not_found', human_summary: 'A required tool or command was not found in the container.', suggested_fix: 'Ensure the correct container image is specified and all tools are installed.', chat_prompt: 'My workflow failed because a command was not found. What container or tool is missing?', llm_used: false };
+    if (/work directory|work dir|workdir|scratch dir|storage bucket|could not be recognized as a valid file system|not a valid.*(path|bucket)|failed to launch/.test(l))
+      return { error_type: 'platform_config', human_summary: 'The run could not launch because of a platform configuration issue on BioMate’s side (the managed work directory / storage could not be resolved) — this is not something you did wrong.', suggested_fix: 'Retry the run. If it keeps failing to launch, report it to BioMate support — the work directory and storage are managed by the platform, not set by you.', chat_prompt: 'My workflow failed to launch with a work-directory / storage error. Is this a platform issue, and can you retry it?', llm_used: false };
     return { error_type: 'unknown', human_summary: 'An unexpected error occurred during workflow execution.', suggested_fix: 'Review the error log below for details.', chat_prompt: 'My workflow failed. Can you help me understand this error log?', llm_used: false };
   }
 
