@@ -221,6 +221,31 @@ jobs:
              sleep 15 && \
              docker compose -f docker-compose.onprem.yml ps'
 
+      - name: Patch nextflow_executor.py — add --pull never so DaoCloud mirror cannot block pre-loaded images
+        # DaoCloud registry mirror (daemon.json on Alibaba ECS) intercepts ALL docker pull calls,
+        # even for images already loaded locally via docker load. Adding --pull never to Docker
+        # runOptions makes Nextflow use local images directly without any registry check.
+        # This file is baked into the container image, so we patch it via docker exec + reload gunicorn.
+        # Idempotent: grep check prevents double-patching.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'FILE=$(docker exec biomate-galaxy find /app -name "nextflow_executor.py" 2>/dev/null | head -1) && \
+             if [ -z "$FILE" ]; then echo "ERROR: nextflow_executor.py not found in container"; exit 1; fi && \
+             echo "Found: $FILE" && \
+             if docker exec biomate-galaxy grep -q -- "--pull never" "$FILE"; then
+               echo "Already patched — skipping"
+             else
+               docker exec biomate-galaxy sed -i "s/--user root --network/--user root --pull never --network/g" "$FILE" && \
+               echo "Patched --pull never into $FILE" && \
+               GPID=$(docker exec biomate-galaxy pgrep -f "gunicorn" | head -1) && \
+               docker exec biomate-galaxy kill -HUP "$GPID" && \
+               echo "Gunicorn HUP sent (pid=$GPID) — workers will reload"
+             fi'
+
       - name: Patch index.html — remove Google CDN links (blocked in China)
         # Google Fonts and Google Tag Manager are inaccessible from mainland China.
         # Browsers hang waiting for these resources, causing a white blank page.
