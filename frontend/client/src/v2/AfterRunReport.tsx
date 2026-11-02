@@ -561,14 +561,9 @@ function FailedRunSection({
         >
           {cancelled ? tOr('afterrun.run_cancelled', 'Run cancelled') : tOr('afterrun.run_failed', 'Run failed')}
         </span>
-        <button
-          type="button"
-          onClick={handleRunAgain}
-          style={styles.runAgainBtn}
-          data-testid="afterrun-run-again-failed"
-        >
-          ↻ {tOr('afterrun.run_again_edits', 'Run again with edits')}
-        </button>
+        {/* Rerun button removed from the after-run panel (per user request): the
+            report/after-run panel is a read-only output. Re-running lives on the
+            workflow panel footer, not inside the report. */}
       </div>
 
       {/* Autofix narrative — most informative signal first. Distinguishes
