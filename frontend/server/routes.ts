@@ -10895,6 +10895,62 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // ── Guard: differential-expression workflow with no count input ──────────
+      // A DE pipeline (differentialabundance / DESeq2 / edgeR / limma) reads a
+      // count matrix + samplesheet — it CANNOT read a GEO accession directly. The
+      // nfcore stub historically marked these inputs optional (required:[]), so an
+      // empty run could launch and die with an opaque work-directory error (the
+      // GSE12345 case). Block it here with an actionable message, and if a bare
+      // accession was named, redirect to the GEO ingest that actually fetches it.
+      // Also emits the previously-missing "named-but-unbound accession" log.
+      // See docs/20261102_ACCESSION_LAUNCH_INFO_FLOW_ISSUE_AND_FIX.md.
+      {
+        const isEmptyVal = (v: any) =>
+          v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+        const wfName = String(request.workflowDefinition?.name || '').toLowerCase();
+        const isDEWorkflow = /differential.?abundance|deseq2|\bedger\b|\blimma\b|differential.?expression/.test(wfName);
+        if (isDEWorkflow) {
+          const providedParams = request.params && typeof request.params === 'object' ? request.params : {};
+          const declaredParams = [
+            ...(Array.isArray(request.workflowDefinition?.required_params) ? request.workflowDefinition.required_params : []),
+            ...(Array.isArray(request.workflowDefinition?.optional_params) ? request.workflowDefinition.optional_params : []),
+          ];
+          const countKeys = ['matrix', 'counts', 'count_matrix', 'countmatrix', 'samplesheet', 'input', 'abundance', 'quants'];
+          const hasCountInput = countKeys.some(k =>
+            !isEmptyVal(providedParams[k]) ||
+            declaredParams.some((p: any) => p?.name === k && (!isEmptyVal(p.value) || !isEmptyVal(p.default))),
+          );
+          if (!hasCountInput) {
+            const ACCESSION_RE = /\b(GSE\d{3,}|GSM\d{3,}|SRR\d{5,}|SRP\d{5,}|SRX\d{5,}|PRJNA\d{4,}|PRJEB\d{4,}|E-\w+-\d+|PXD\d{5,})\b/i;
+            const inlineParams = request.workflowDefinition?.inline_parameters;
+            const haystack = [
+              ...Object.values(providedParams).map((v: any) => String(v ?? '')),
+              ...(request.inputs && typeof request.inputs === 'object' ? Object.values(request.inputs).map((v: any) => String(v ?? '')) : []),
+              String(request.workflowDefinition?.name ?? ''),
+              String(request.workflowDefinition?.description ?? ''),
+              ...(inlineParams && typeof inlineParams === 'object' ? Object.values(inlineParams).map((v: any) => String(v ?? '')) : []),
+            ].join('  ');
+            const accMatch = haystack.match(ACCESSION_RE);
+            if (accMatch) {
+              console.warn(`[execute-gate] DE workflow "${wfName}" has no count matrix but accession ${accMatch[0]} is present — blocking (named-but-unbound accession); redirecting to GEO ingest.`);
+              return res.status(400).json({
+                error: 'accession_needs_fetch',
+                message: `"${request.workflowDefinition?.name || 'This differential-expression workflow'}" reads a count matrix and samplesheet — it cannot read the accession ${accMatch[0]} directly. No compute was launched.`,
+                guidance: `Fetch ${accMatch[0]} first with the GEO ingest (geo_data_connector) to produce a count matrix + sample metadata, then run this workflow on those outputs.`,
+                accession: accMatch[0],
+              });
+            }
+            console.warn(`[execute-gate] DE workflow "${wfName}" launched with no count matrix / samplesheet — blocking empty launch.`);
+            return res.status(400).json({
+              error: 'missing_required_params',
+              message: `"${request.workflowDefinition?.name || 'This differential-expression workflow'}" needs a count matrix and a samplesheet before it can run. No compute was launched.`,
+              missing: [{ name: 'matrix', label: 'Count matrix', description: 'A genes × samples count matrix (or a samplesheet of per-sample inputs).', type: 'file' }],
+              guidance: 'Provide a count matrix + samplesheet (fill them in the params panel or attach a dataset), then retry.',
+            });
+          }
+        }
+      }
+
       // Scientific + technical confidence gate.
       // Technical confidence: required inputs are present and generation didn't report tool-install blockers.
       // Scientific confidence: generation stage must not require user feedback/domain correction.
