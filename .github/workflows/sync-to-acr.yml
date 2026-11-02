@@ -16,6 +16,14 @@ on:
         description: 'Only check ECS status — skip transfer and restart'
         type: boolean
         default: false
+      pull_biomni_tools:
+        description: 'Pull biomate/biomni-tools image from GHCR and transfer to ECS (~800MB, run once)'
+        type: boolean
+        default: false
+
+permissions:
+  packages: read
+  contents: read
 
 env:
   TAG: fix-arm64-minio-healthcheck-and-qemu-latest
@@ -125,6 +133,62 @@ jobs:
              chmod 755 /app/biomate/backend/config && \
              echo "backend/config perms: $(ls -la /app/biomate/backend/ | grep config)"'
 
+      - name: Fix Galaxy DB — switch from SQLite to PostgreSQL
+        # galaxy.yml.template defaults to SQLite (database_connection: sqlite:///.../universe.sqlite).
+        # With multiple gunicorn workers, concurrent SQLite writes cause "database is locked" errors
+        # that abort running workflows. Override to the PostgreSQL instance already in the stack.
+        # Galaxy auto-creates its schema on first PostgreSQL startup (no manual migration needed).
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'ENV_FILE=/app/biomate/.env && \
+             PG_USER=$(grep "^POSTGRES_USER=" "$ENV_FILE" | cut -d= -f2- | tr -d "\"" | xargs || echo "biomate") && \
+             PG_DB=$(grep "^POSTGRES_DB=" "$ENV_FILE" | cut -d= -f2- | tr -d "\"" | xargs || echo "biomate") && \
+             PG_PASS=$(grep "^POSTGRES_PASSWORD=" "$ENV_FILE" | cut -d= -f2- | tr -d "\"") && \
+             DB_CONN="postgresql+psycopg2://${PG_USER}:${PG_PASS}@postgres:5432/${PG_DB}?client_encoding=utf8" && \
+             grep -q "^GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION=" "$ENV_FILE" && \
+               sed -i "s|^GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION=.*|GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION=${DB_CONN}|" "$ENV_FILE" || \
+               echo "GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION=${DB_CONN}" >> "$ENV_FILE" && \
+             echo "Galaxy DB set to PostgreSQL" && \
+             grep "^GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION=" "$ENV_FILE" | sed "s/:.*@/:***@/"'
+
+      - name: Pull biomni-tools image from GHCR and transfer to ECS
+        # biomate/biomni-tools:latest is the image Nextflow uses for ADMET and other
+        # pharmacology workflows. It lives on GHCR (ghcr.io/biomate-ai/biomni-tools:latest)
+        # and must be pulled once and retagged on ECS. Without it every workflow run
+        # fails with "image not found" (exit 1). Run this step once; image is then cached.
+        if: ${{ inputs.pull_biomni_tools == true }}
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Checking if biomate/biomni-tools:latest already exists on ECS..."
+          EXISTS=$(sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no root@${{ env.ECS_IP }} \
+            'docker image inspect biomate/biomni-tools:latest >/dev/null 2>&1 && echo yes || echo no')
+          if [ "$EXISTS" = "yes" ]; then
+            echo "Image already present on ECS — skipping transfer"
+            exit 0
+          fi
+
+          echo "Logging in to GHCR on GHA runner..."
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+          echo "Pulling ghcr.io/biomate-ai/biomni-tools:latest..."
+          docker pull ghcr.io/biomate-ai/biomni-tools:latest
+
+          echo "Saving + piping to ECS (expect 3–8 min for ~800MB)..."
+          docker save ghcr.io/biomate-ai/biomni-tools:latest | gzip | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=120 \
+              root@${{ env.ECS_IP }} \
+              'gunzip | docker load && \
+               docker tag ghcr.io/biomate-ai/biomni-tools:latest biomate/biomni-tools:latest && \
+               echo "=== biomate/biomni-tools:latest installed on ECS ===" && \
+               docker image inspect biomate/biomni-tools:latest --format "ID={{.Id}}"'
+
       - name: Restart stack
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
@@ -204,8 +268,14 @@ jobs:
              echo "=== galaxy inspect ===" && \
              docker inspect biomate-galaxy --format "RestartCount={{.RestartCount}} Status={{.State.Status}} ExitCode={{.State.ExitCode}}" 2>/dev/null || echo "container missing" && \
              echo "" && \
+             echo "=== biomni-tools image ===" && \
+             docker image inspect biomate/biomni-tools:latest --format "ID={{.Id}} Size={{.Size}}" 2>/dev/null || echo "biomate/biomni-tools:latest NOT found — workflows will fail" && \
+             echo "" && \
              echo "=== galaxy logs (last 60 min, non-tool-loading) ===" && \
-             docker logs biomate-galaxy --since 60m 2>&1 | grep -v "Loaded tool id" | grep -v "Skipping tool panel" || echo "(no logs)" && \
+             docker logs biomate-galaxy --since 60m 2>&1 | grep -v "Loaded tool id" | grep -v "Skipping tool panel" | tail -80 || echo "(no logs)" && \
+             echo "" && \
+             echo "=== last Nextflow workflow errors (nf-work) ===" && \
+             find /app/nf-work -name ".command.err" -newer /app/nf-work -printf "%T@ %p\n" 2>/dev/null | sort -rn | head -3 | awk "{print \$2}" | while read f; do echo "--- $f ---"; tail -20 "$f" 2>/dev/null; done && \
              echo "" && \
              echo "=== backend/config contents ===" && \
              ls -la /app/biomate/backend/config/ 2>/dev/null || echo "(empty)" && \
