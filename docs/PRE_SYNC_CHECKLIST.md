@@ -73,6 +73,13 @@ This is the step that catches PEP 604 / missing-import bugs **before** they take
 - But gunicorn's worker class can eagerly evaluate them via FastAPI route registration paths
 - A direct `python3.9 -c "import …"` reproduces the same eager-eval behaviour
 
+### 3b. Workflow chain lint (any change to chains, workflows, or `galaxy_ai_tools.db`)
+```bash
+python3 scripts/lint_workflow_chains.py   # exit 0 = required chains clean; exit 1 = fix before sync
+```
+**Checks:** for each required-clean chain, every step resolves to an executable workflow and every connection's `to_input` is a parameter the downstream workflow declares (`params.X` in `main.nf` or `nextflow_schema.json`). Undeterminable connections are listed as WARN only. Other chains get a one-line count (`--all` for details).
+**Why:** the executor injects the upstream artifact as `params[to_input]`; an undeclared name launches a doomed Batch job at step 2 or 3. See `docs/20261101_WORKFLOW_CHAIN_AUDIT.md`. Offline unit test: `python3 -m unittest scripts.test_lint_workflow_chains`.
+
 ### 4. Domain-specific integration test
 If your change touches a documented surface, run its integration test:
 
