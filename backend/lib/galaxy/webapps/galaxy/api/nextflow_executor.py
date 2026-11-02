@@ -3197,7 +3197,9 @@ docker {{
 {docker_executable_line}
   // --entrypoint "": override image ENTRYPOINT so Nextflow's /bin/bash invocation is used directly.
   // --user root: task containers need write access to the nf-work bind-mount.
-  runOptions = '--entrypoint "" --user root --network {docker_network}'
+  // --pull never: use locally-loaded images only; skip registry check so Docker registry
+  //   mirrors (e.g. DaoCloud on Alibaba Cloud ECS) don't block pre-loaded on-prem images.
+  runOptions = '--entrypoint "" --user root --network {docker_network} --pull never'
 }}
 {_arm64_env_block}
 
