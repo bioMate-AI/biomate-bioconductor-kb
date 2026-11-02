@@ -109,6 +109,10 @@ _REST: List[DataSource] = [
     DataSource("openalex", "OpenAlex", "literature", ["literature"],
                [SURFACE_FEDERATION, SURFACE_SINGLE]),
     # ── Known gaps — declared as planned so they are visible, not forgotten ──
+    DataSource("clinicaltrials", "ClinicalTrials.gov", "clinical", ["disease", "compound"],
+               [SURFACE_FEDERATION],
+               note="Official API v2 (keyless). Registry records: status, phase, sponsor, stated stop reason; not trial results or outcomes. "
+                    "A full local mirror (609,551 studies) also exists in S3 for analysis."),
     DataSource("biorxiv", "bioRxiv / medRxiv", "literature", ["literature"],
                [SURFACE_FEDERATION],
                note="Preprints (not peer reviewed), keyword-searched through Europe PMC with a publisher filter; "

@@ -51,5 +51,36 @@ class DedicatedSurfaceTests(unittest.TestCase):
         self.assertEqual(ds.summary()["by_surface"][ds.SURFACE_DEDICATED], 2)
 
 
+
+class ClinicalTrialsTests(unittest.TestCase):
+    REPLY = {"studies": [
+        {"protocolSection": {"identificationModule": {"nctId": "NCT00000001", "briefTitle": "Drug X in lupus"},
+                             "statusModule": {"overallStatus": "TERMINATED", "whyStopped": "Lack of efficacy", "startDateStruct": {"date": "2018-03"}},
+                             "sponsorCollaboratorsModule": {"leadSponsor": {"name": "Acme"}}, "conditionsModule": {"conditions": ["Lupus"]},
+                             "designModule": {"phases": ["PHASE2"]}, "armsInterventionsModule": {"interventions": [{"name": "Drug X"}]}},
+         "hasResults": True},
+        {"protocolSection": {"identificationModule": {}}},
+    ]}
+
+    def test_rows_carry_registry_fields_and_skip_records_without_an_id(self):
+        with mock.patch.object(fq, "_get", return_value=self.REPLY) as g:
+            out = fq._fetch_clinicaltrials("lupus Drug X")
+        self.assertIn("clinicaltrials.gov/api/v2/studies", g.call_args[0][0])
+        self.assertEqual(len(out["results"]), 1)
+        r = out["results"][0]
+        self.assertEqual((r["nct_id"], r["status"], r["why_stopped"], r["phases"], r["has_results"]),
+                         ("NCT00000001", "TERMINATED", "Lack of efficacy", ["PHASE2"], True))
+        self.assertEqual(r["url"], "https://clinicaltrials.gov/study/NCT00000001")
+        self.assertEqual(r["evidence_kind"], "registry_record")
+
+    def test_failure_gives_empty_and_registration(self):
+        with mock.patch.object(fq, "_get", return_value=None):
+            self.assertEqual(fq._fetch_clinicaltrials("x"), {"source": "clinicaltrials", "results": []})
+        self.assertIn("clinicaltrials", fq._FETCHERS)
+        self.assertIn("clinicaltrials", fq.ENTITY_SOURCES["disease"])
+        src = {x.id: x for x in ds.SOURCES}["clinicaltrials"]
+        self.assertEqual((src.status, src.category), ("live", "clinical"))
+
+
 if __name__ == "__main__":
     unittest.main()

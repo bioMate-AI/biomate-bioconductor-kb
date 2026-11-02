@@ -89,11 +89,11 @@ ENTITY_SOURCES: Dict[str, List[str]] = {
                    "go", "gnomad", "pubmed", "semantic_scholar"],
     "protein":    ["uniprot", "pdb", "alphafold", "interpro", "string",
                    "go", "chembl", "pubmed", "semantic_scholar"],
-    "compound":   ["chembl", "pubchem", "chebi", "kegg", "pubmed", "semantic_scholar"],
+    "compound":   ["chembl", "pubchem", "chebi", "kegg", "clinicaltrials", "pubmed", "semantic_scholar"],
     "variant":    ["dbsnp", "clinvar", "gnomad", "pubmed", "semantic_scholar"],
     "pathway":    ["kegg", "reactome", "go", "pubmed"],
     "structure":  ["pdb", "alphafold", "interpro"],
-    "disease":    ["hpo", "clinvar", "pubmed", "europepmc", "semantic_scholar"],
+    "disease":    ["hpo", "clinvar", "clinicaltrials", "pubmed", "europepmc", "semantic_scholar"],
     "literature": ["corpus_fs", "paperclip", "pubmed", "europepmc", "biorxiv", "semantic_scholar", "openalex", "crossref"],
 }
 
@@ -483,6 +483,37 @@ def _fetch_biorxiv(query: str) -> Dict:
     return {"source": "biorxiv", "results": results}
 
 
+def _fetch_clinicaltrials(query: str) -> Dict:
+    """ClinicalTrials.gov (official API v2, keyless): registered trials matching a disease, drug, target or free-text
+    query. Registry records, not results: status, phase, sponsor and (when stopped) the stated reason."""
+    q = urllib.parse.quote(query)
+    fields = ("NCTId,BriefTitle,OverallStatus,Phase,Condition,InterventionName,LeadSponsorName,"
+              "StartDate,WhyStopped,HasResults")
+    data = _get(f"https://clinicaltrials.gov/api/v2/studies?query.term={q}&pageSize=8&format=json&fields={fields}")
+    results = []
+    for st in (data or {}).get("studies", [])[:8]:
+        ps = st.get("protocolSection") or {}
+        nct = (ps.get("identificationModule") or {}).get("nctId")
+        if not nct:
+            continue
+        status = ps.get("statusModule") or {}
+        results.append({
+            "nct_id": nct,
+            "title": (ps.get("identificationModule") or {}).get("briefTitle"),
+            "status": status.get("overallStatus"),
+            "why_stopped": status.get("whyStopped"),
+            "start": (status.get("startDateStruct") or {}).get("date"),
+            "phases": (ps.get("designModule") or {}).get("phases"),
+            "conditions": ((ps.get("conditionsModule") or {}).get("conditions") or [])[:6],
+            "interventions": [i.get("name") for i in ((ps.get("armsInterventionsModule") or {}).get("interventions") or [])[:6]],
+            "sponsor": ((ps.get("sponsorCollaboratorsModule") or {}).get("leadSponsor") or {}).get("name"),
+            "has_results": bool(st.get("hasResults")),
+            "url": f"https://clinicaltrials.gov/study/{nct}",
+            "evidence_kind": "registry_record",
+        })
+    return {"source": "clinicaltrials", "results": results}
+
+
 def _fetch_semantic_scholar(query: str) -> Dict:
     """Semantic Scholar — citation graph, influential papers, open-access PDFs."""
     q = urllib.parse.quote(query)
@@ -636,6 +667,7 @@ def _fetch_paperclip(query: str) -> Dict:
 _FETCHERS = {
     "paperclip":        _fetch_paperclip,
     "biorxiv":          _fetch_biorxiv,
+    "clinicaltrials":   _fetch_clinicaltrials,
     "ncbi_gene":        _fetch_ncbi_gene,
     "uniprot":          _fetch_uniprot,
     "pdb":              _fetch_pdb,
@@ -787,7 +819,7 @@ def _merge_results(results: Dict[str, Dict], entity_type: str) -> List[Dict]:
             # Dedup key: prefer explicit id fields, fall back to name/title
             dedup_key = (
                 item.get("accession") or item.get("gene_id") or item.get("pdb_id") or
-                item.get("pmid") or item.get("chembl_id") or item.get("paper_id") or
+                item.get("pmid") or item.get("chembl_id") or item.get("paper_id") or item.get("nct_id") or
                 (item.get("title") or item.get("name") or "").lower()[:60]
             )
             if not dedup_key or dedup_key in seen_names:
