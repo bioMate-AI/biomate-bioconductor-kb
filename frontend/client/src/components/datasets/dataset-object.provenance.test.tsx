@@ -68,12 +68,15 @@ function renderObj() {
 describe("DatasetObject — Provenance tab (plain labels, step pin, no raw ids)", () => {
   beforeEach(() => { routeFetch() })
 
-  it("header shows content-type + size badges (size coerced from a number)", () => {
+  it("shows content-type + size in the stat grid, not duplicated in the header (design de-dup)", () => {
     renderObj()
-    expect(screen.getByTestId("dataset-header-type").textContent).toContain("text/tab-separated-values")
-    const size = screen.getByTestId("dataset-header-size")
-    expect(size).toBeInTheDocument()
-    expect(size.textContent).toMatch(/MB|KB/) // a real size, not blank/NaN
+    // Type + size badges were removed from the header (2026-11-01) and now live
+    // once, in the stat grid, per the design.
+    expect(screen.queryByTestId("dataset-header-type")).toBeNull()
+    expect(screen.queryByTestId("dataset-header-size")).toBeNull()
+    const grid = screen.getByTestId("dataset-stat-grid")
+    expect(grid.textContent).toContain("text/tab-separated-values")
+    expect(grid.textContent).toMatch(/MB|KB/) // a real size, not blank/NaN
   })
 
   it("pins the producing run to its exact step: '<workflow> · <step>'", async () => {

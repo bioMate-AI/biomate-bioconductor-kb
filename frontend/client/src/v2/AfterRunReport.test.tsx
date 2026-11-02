@@ -132,17 +132,13 @@ describe("v2/AfterRunReport — FindingsFiguresPanel (data-driven figures)", () 
     expect(hl).toHaveTextContent(/apoptotic process/);
   });
 
-  it("renders the manifest contract note at the Summary-tab footer (post-A1 hoist)", async () => {
-    // 2026-06-11 audit A1: the note was hoisted out of FindingsFiguresPanel
-    // so it always renders on the Summary tab, even when figures are absent.
+  it("does NOT render the manifest contract note (removed 2026-11-01 to match the design)", async () => {
+    // The italic "findings generated from the run manifest" meta-sentence was
+    // removed — the design's after-run strip goes straight to the findings card,
+    // whose header already conveys provenance.
     render(<AfterRunReport {...baseProps} />);
-    // Wait for the figures panel to mount so we know findings finished loading
     await screen.findByTestId("findings-figures-panel", {}, { timeout: 5000 });
-    const note = screen.getByTestId("findings-manifest-note");
-    expect(note).toHaveTextContent(/Findings are generated directly from the run manifest/i);
-    expect(note).toHaveTextContent(/Numbers and figures in this section come from the workflow outputs/i);
-    // The note must NOT contain the old defensive wording.
-    expect(note).not.toHaveTextContent(/not from the LLM/i);
+    expect(screen.queryByTestId("findings-manifest-note")).toBeNull();
   });
 
   it("hides the figures panel entirely when findings.figures is undefined (hide-when-empty)", async () => {
@@ -583,10 +579,11 @@ describe("v2/AfterRunReport — three-tab consolidation (accepted design)", () =
     expect(screen.getByTestId("after-tab-summary")).toHaveAttribute("aria-selected", "true");
     expect(screen.getByTestId("after-tab-outputs")).toHaveAttribute("aria-selected", "false");
     expect(screen.getByTestId("after-tab-report")).toHaveAttribute("aria-selected", "false");
-    // Summary tab body (findings banner) + "run original" badge are visible
-    // without any click.
+    // Summary tab body (findings banner) is visible without any click. The
+    // "RUN ORIGINAL" badge was removed 2026-11-01 to match the design's clean
+    // after-run strip, so it is intentionally no longer asserted / present.
     expect(screen.getByTestId("after-summary-tab")).toBeInTheDocument();
-    expect(screen.getByTestId("after-run-original-badge")).toHaveTextContent(/run original/i);
+    expect(screen.queryByTestId("after-run-original-badge")).toBeNull();
   });
 
   it.skip("folds Methods, Parameters, Software, Citations and QC report as sections inside the Report tab (record commented out 2026-10-28; QC relocating to data panel)", () => {
