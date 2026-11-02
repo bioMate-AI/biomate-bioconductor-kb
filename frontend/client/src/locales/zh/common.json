@@ -420,7 +420,7 @@
       "llm_provider": "LLM 提供方",
       "llm_desc": "选择驱动您 BioMate 对话的 AI 模型。默认使用 BioMate 共享的 Claude 配额，并支持完整的工作流执行。OpenRouter 允许您使用自己的密钥调用经济型模型（DeepSeek、Qwen、Llama）— 密钥以加密方式存储，绝不会返回到浏览器。",
       "provider_default_label": "BioMate 默认",
-      "provider_default_desc": "Claude Sonnet — 支持工作流执行，无需密钥",
+      "provider_default_desc": "托管 Gemini 3 + Claude 兜底 — 支持完整工作流执行，无需密钥",
       "provider_openrouter_desc": "200+ 模型，含 DeepSeek、Qwen、Llama · 使用您自己的密钥",
       "provider_anthropic_label": "Anthropic（自带密钥）",
       "provider_anthropic_desc": "使用您自己的 Anthropic 密钥与配额",

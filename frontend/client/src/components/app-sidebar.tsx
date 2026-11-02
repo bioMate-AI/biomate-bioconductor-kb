@@ -285,6 +285,15 @@ export function AppSidebar({
           </span>
         </button>
 
+        {/* Connectors — top-level Workspace entry (design App.jsx NAV has it here,
+            not buried under Settings). Opens the workspace connections page. */}
+        <button className="side-link" data-testid="button-connectors-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/settings/connections')}>
+          <Cable className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <span>{t('nav.connectors')}</span>
+          </span>
+        </button>
+
         {/* IND Report hidden from sidebar for now (per request 2026-09-22). Route still exists. */}
         {/* <button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
           <FileText className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
@@ -411,8 +420,10 @@ export function AppSidebar({
           </div>
         )}
 
-        <details className="text-xs text-muted-foreground px-2 py-2"><summary className="cursor-pointer">{t('nav.more_tools')}</summary><div className="flex flex-col items-start gap-2 pt-3"><button onClick={() => setLocation('/files')}>{t('nav.data')}</button><button onClick={() => setLocation('/design')}>{t('nav.design_generate')}</button><button onClick={() => setShowRecentToolsDialog(true)}>{t('nav.recent_tools')}</button></div></details>
-        {/* Settings entry — visible in sidebar nav as well as the footer gear icon */}
+        <details className="text-xs text-muted-foreground px-2 py-2"><summary className="cursor-pointer">{t('nav.more_tools')}</summary><div className="flex flex-col items-start gap-2 pt-3"><button onClick={() => setLocation('/files')}>{t('nav.data')}</button><button onClick={() => setLocation('/design')}>{t('nav.design_generate')}</button><button onClick={() => setShowRecentToolsDialog(true)}>{t('nav.recent_tools')}</button><button data-testid="button-import-workflow-settings" onClick={() => { setHistoryInitialTab('upload'); setShowHistoryDialog(true); }}>{t('nav.import_workflow')}</button></div></details>
+        {/* Settings — a single click opens the tabbed Settings panel (API Keys is a
+            tab inside it). Connectors moved up to the Workspace nav; Import workflow
+            moved into "more tools" — so Settings is one clean entry, no sub-items. */}
         <div style={{ marginTop: 12, borderTop: '1px solid var(--bm-border)', paddingTop: 8 }}>
           <button
             style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
@@ -420,15 +431,7 @@ export function AppSidebar({
             data-testid="button-settings-sidebar"
           >
             <Settings className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
-            <span>{t('settings.title')} &amp; {t('settings.api_keys')}</span>
-          </button>
-          <button className="side-link" data-testid="button-import-workflow-settings" onClick={() => { setHistoryInitialTab('upload'); setShowHistoryDialog(true); }} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px 5px 33px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, width: '100%', textAlign: 'left' }}>
-            <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
-            <span>{t('nav.import_workflow')}</span>
-          </button>
-          <button className="side-link" data-testid="button-workspace-connections" onClick={() => setLocation("/settings/connections")} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px 5px 33px', borderRadius: 6, fontSize: 12.5, color: 'var(--bm-text-muted)', width: '100%', textAlign: 'left' }}>
-            <Cable className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
-            <span>{t('nav.connectors')}</span>
+            <span>{t('settings.title')}</span>
           </button>
         </div>
       </div>

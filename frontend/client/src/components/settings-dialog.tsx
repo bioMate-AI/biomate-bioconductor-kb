@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { userSettingsService } from "@/lib/user-settings"
-import { t, setLanguagePreference } from "@/lib/i18n"
+import { t, tOr, setLanguagePreference } from "@/lib/i18n"
 import type { UserSettings } from "@shared/schema"
 import {
   User,
@@ -412,32 +412,28 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] p-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="flex items-center gap-2">
-            <Key className="w-5 h-5" />
-            {t('settings.api_keys')}
+            <Settings className="w-5 h-5" />
+            {t('settings.title')}
           </DialogTitle>
         </DialogHeader>
 
-        {/* Only the API Keys section is shown — other settings tabs are commented out until needed */}
+        {/* Settings panel — tabbed. API Keys is one tab inside Settings (not a
+            standalone modal). Only genuinely-functional tabs are enabled; the
+            stale stub tabs stay gated (enabling them would ship broken forms). */}
         <div className="flex flex-1 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-1" orientation="vertical">
-            {/* Settings Navigation — hidden on mobile since only API Keys tab exists */}
             <div className="hidden sm:block w-48 border-r bg-muted/50 p-4">
               <TabsList className="grid w-full grid-cols-1 h-auto gap-1 bg-transparent">
-                {/* Other settings tabs commented out — only API Keys needed for now
-                <TabsTrigger value="profile" ...>Profile</TabsTrigger>
-                <TabsTrigger value="general" ...>General</TabsTrigger>
-                <TabsTrigger value="appearance" ...>Appearance</TabsTrigger>
-                <TabsTrigger value="chat" ...>Chat</TabsTrigger>
-                <TabsTrigger value="data" ...>Data</TabsTrigger>
-                <TabsTrigger value="notifications" ...>Notifications</TabsTrigger>
-                <TabsTrigger value="privacy" ...>Privacy</TabsTrigger>
-                <TabsTrigger value="security" ...>Security</TabsTrigger>
-                <TabsTrigger value="advanced" ...>Advanced</TabsTrigger>
-                */}
                 <TabsTrigger value="api-keys" className="justify-start gap-2 p-3" data-testid="tab-api-keys">
                   <Key className="w-4 h-4" />
                   {t('settings.api_keys')}
                 </TabsTrigger>
+                <TabsTrigger value="appearance" className="justify-start gap-2 p-3" data-testid="tab-appearance">
+                  <Palette className="w-4 h-4" />
+                  {tOr('settings.appearance', 'Appearance')}
+                </TabsTrigger>
+                {/* Stale stub tabs (profile/general/chat/data/notifications/privacy/
+                    security/advanced) remain gated below until rebuilt. */}
               </TabsList>
 
               {/* Quick Actions and Help sections commented out — not needed for API keys only view */}
@@ -552,36 +548,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 </div>
               </TabsContent>
 
-              {/* Appearance Tab */}
-              <TabsContent value="appearance" className="space-y-6 m-0">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Appearance</h3>
-                  
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{t('settings.theme')}</CardTitle>
-                      <CardDescription>
-                        Choose your preferred appearance
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <Label htmlFor="theme">{t('settings.theme')}</Label>
-                        <Select value={settings.theme} onValueChange={(value: any) => updateSetting('theme', value)}>
-                          <SelectTrigger data-testid="select-theme">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="system">{t('settings.system')}</SelectItem>
-                            <SelectItem value="light">{t('settings.light')}</SelectItem>
-                            <SelectItem value="dark">{t('settings.dark')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
+              {/* Appearance tab moved OUT of this gated block (it's functional) —
+                  see the active TabsContent after the gate closes. */}
 
               {/* Chat Tab */}
               <TabsContent value="chat" className="space-y-6 m-0">
@@ -902,6 +870,35 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </TabsContent>
               </>)}{/* end commented-out non-api-keys tabs */}
 
+              {/* Appearance Tab (active) — theme selector; makes Settings a real
+                  tabbed panel alongside API Keys without enabling the stub tabs. */}
+              <TabsContent value="appearance" className="space-y-6 m-0" data-testid="tab-content-appearance">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">{tOr('settings.appearance', 'Appearance')}</h3>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t('settings.theme')}</CardTitle>
+                      <CardDescription>{tOr('settings.theme_desc', 'Choose your preferred appearance')}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <Label htmlFor="theme">{t('settings.theme')}</Label>
+                        <Select value={settings.theme} onValueChange={(value: any) => updateSetting('theme', value)}>
+                          <SelectTrigger data-testid="select-theme">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="system">{t('settings.system')}</SelectItem>
+                            <SelectItem value="light">{t('settings.light')}</SelectItem>
+                            <SelectItem value="dark">{t('settings.dark')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
               {/* API Keys Tab */}
               <TabsContent value="api-keys" className="space-y-6 m-0" data-testid="tab-content-api-keys">
                 <div>
@@ -1070,6 +1067,29 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                             onChange={e => llmKeys.setSelectedModel(e.target.value)}
                             data-testid="input-llm-model"
                           />
+                          {/* Quick-pick the models BioMate has been tested against,
+                              so the panel reflects the backend's supported set instead
+                              of an opaque free-text box. Click to fill; still editable. */}
+                          <div className="flex flex-wrap gap-1.5 pt-0.5" data-testid="llm-model-quickpick">
+                            {[
+                              'deepseek/deepseek-chat',
+                              'deepseek/deepseek-r1',
+                              'qwen/qwen-2.5-72b-instruct',
+                              'meta-llama/llama-3.3-70b-instruct',
+                              'z-ai/glm-4.6',
+                              'openai/gpt-4o',
+                              'google/gemini-2.5-pro',
+                            ].map(slug => (
+                              <button
+                                key={slug}
+                                type="button"
+                                onClick={() => llmKeys.setSelectedModel(slug)}
+                                className={`font-mono text-[10.5px] rounded-full border px-2 py-0.5 transition-colors ${llmKeys.selectedModel === slug ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}
+                              >
+                                {slug.split('/').pop()}
+                              </button>
+                            ))}
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             {t('settings.api.browse_pre')} <span className="font-mono">openrouter.ai/models</span> {t('settings.api.browse_post')}
                           </p>
