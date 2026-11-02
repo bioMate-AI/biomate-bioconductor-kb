@@ -148,8 +148,8 @@ jobs:
             root@${{ env.ECS_IP }} \
             'ENV_FILE=/app/biomate/.env && \
              grep -q "^BIOMATE_ADMET_CONTAINER=" "$ENV_FILE" && \
-               sed -i "s|^BIOMATE_ADMET_CONTAINER=.*|BIOMATE_ADMET_CONTAINER=ghcr.io/biomate-ai/biomni-tools:latest|" "$ENV_FILE" || \
-               echo "BIOMATE_ADMET_CONTAINER=ghcr.io/biomate-ai/biomni-tools:latest" >> "$ENV_FILE" && \
+               sed -i "s|^BIOMATE_ADMET_CONTAINER=.*|BIOMATE_ADMET_CONTAINER=biomate/biomni-tools:latest|" "$ENV_FILE" || \
+               echo "BIOMATE_ADMET_CONTAINER=biomate/biomni-tools:latest" >> "$ENV_FILE" && \
              echo "BIOMATE_ADMET_CONTAINER set to biomni-tools fallback"'
 
       - name: Fix Galaxy DB — switch from SQLite to PostgreSQL
