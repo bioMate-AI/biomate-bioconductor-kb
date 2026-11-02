@@ -42,25 +42,141 @@
       }
     },
     "drug_discovery_admet_gated_screening": {
-      "connections": [],
-      "steps": [],
-      "unresolved": [
-        "step3 structure_prediction_docking: the only matching workflow row (id 10644, nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/main.nf) is retired (executable=0, description 'Retired workflow. No longer functional'), so it is not pinned. docking_autodock_vina (ids 12824, 14570) is NOT a substitute: it takes smiles_list (inline JSON) + receptor_pdb_file, whereas the retired step took fasta_input + ligand_sdf (AlphaFold3 then DiffDock/Vina); different input kind. NEEDS A NEW WORKFLOW (or a redesign of step 3 around docking_autodock_vina with a receptor)."
+      "_note": "Re-pointed 2026-11-01 (workstream B2, docs/20261101_VINA_SCREENING_CHAIN_BENCH_SCENARIO.md). User decision: docking uses docking_autodock_vina; structure_prediction_docking (id 10644, executable=0) is retired. Paths below are under backend/biomni_workflows/nextflow_nfcore/subworkflows/.",
+      "steps": [
+        {
+          "order": 3,
+          "workflow_id": 12824,
+          "workflow_name": "structure_prediction_docking",
+          "new_workflow_name": "docking_autodock_vina",
+          "new_params_template": {},
+          "evidence": "workflows id 12824 = pharmacology/docking_autodock_vina/main.nf (executable=1). The old params_template key docking_engine is not declared by docking_autodock_vina (declared: smiles_list, receptor_pdb_file, box_center, box_size, ncpu, exhaustiveness, n_poses, reference_ligand_smiles, main.nf:8-15) and is dropped."
+        }
       ],
+      "replace_connections": {
+        "expect_old": [
+          {
+            "from_step": 1,
+            "from_output": "filtered_smiles",
+            "to_step": 2,
+            "to_input": "smiles"
+          },
+          {
+            "from_step": 2,
+            "from_output": "passed_compounds",
+            "to_step": 3,
+            "to_input": "ligand_sdf"
+          }
+        ],
+        "new": [
+          {
+            "from_step": 1,
+            "from_output": "filtered_compounds.smi",
+            "to_step": 2,
+            "to_input": "smiles_list",
+            "transform": {
+              "name": "smiles_file_to_json_list",
+              "args": {}
+            }
+          },
+          {
+            "from_step": 1,
+            "from_output": "filtered_compounds.smi",
+            "to_step": 3,
+            "to_input": "smiles_list",
+            "transform": {
+              "name": "smiles_file_to_json_list",
+              "args": {}
+            }
+          }
+        ],
+        "evidence": [
+          "step1 filtered_smiles -> step2 smiles  =>  step1 filtered_compounds.smi -> step2 smiles_list [smiles_file_to_json_list]. upstream drug_discovery/pharmacophore_filtering/main.nf publishes filtered_compounds.smi (emit filtered_smiles, main.nf:388; written main.nf:407-409 as '<smiles>  <compound_id>' per line). Downstream predict_admet_properties declares smiles_list as an INLINE JSON array (pharmacology/predict_admet_properties/main.nf:21,844-845 (JsonSlurper) and PARAM_SMILES_LIST json.loads :48). The executor would inject a file path, so the connection carries the registered transform smiles_file_to_json_list (first whitespace token of each line).",
+          "step2 passed_compounds -> step3 ligand_sdf  =>  REMOVED and replaced by step1 filtered_compounds.smi -> step3 smiles_list [smiles_file_to_json_list]. predict_admet_properties publishes only predict_admet_properties_results.json, predict_admet_properties_output.txt, toxicity_report.json, pk_summary.json, qc_metrics.json (main.nf:108-112): no compound list and no SDF named passed_compounds. docking_autodock_vina declares no ligand_sdf; its ligand input is smiles_list (inline JSON array, pharmacology/docking_autodock_vina/main.nf:8,41,84). The only established source of the compound list is the pharmacophore step. upstream drug_discovery/pharmacophore_filtering/main.nf publishes filtered_compounds.smi (emit filtered_smiles, main.nf:388; written main.nf:407-409 as '<smiles>  <compound_id>' per line). Downstream docking_autodock_vina declares smiles_list as an INLINE JSON array (pharmacology/docking_autodock_vina/main.nf:8). The executor would inject a file path, so the connection carries the registered transform smiles_file_to_json_list (first whitespace token of each line)."
+        ]
+      },
+      "unresolved": [],
       "needs_human_decision": [
         {
-          "connection": "step1 filtered_smiles -> step2 smiles",
-          "candidate": "smiles_list",
-          "evidence": "Same as andv_inhibitor_track_v1 step2->3: predict_admet_properties.smiles_list must be an inline JSON array; pharmacophore_filtering publishes filtered_compounds.smi (file). Needs adapter."
+          "item": "ADMET does not gate docking",
+          "evidence": "The chain description says only ADMET-passing compounds advance to docking. predict_admet_properties publishes per-compound results/toxicity JSON but no filtered list (main.nf:108-112), so docking receives the PHARMACOPHORE-filtered list, not an ADMET-filtered one. Making ADMET a real gate needs a new transform (ADMET results JSON + thresholds -> SMILES list); not invented here."
         },
         {
-          "connection": "step2 passed_compounds -> step3 ligand_sdf",
-          "candidate": null,
-          "evidence": "Step 3 is unresolved (see above); predict_admet_properties publishes no passed_compounds / SDF artifact."
+          "item": "chain description/example_queries still claim ADMET-first gating",
+          "evidence": "workflow_chains.description is not touched by the repair script."
         }
       ],
       "missing_required_params": {
-        "step1 pharmacophore_filtering": ["reference_actives", "compound_library"]
+        "step1 pharmacophore_filtering": [
+          "reference_actives (drug_discovery/pharmacophore_filtering/main.nf:55,533)",
+          "compound_library (drug_discovery/pharmacophore_filtering/main.nf:56,536)"
+        ],
+        "step3 docking_autodock_vina": [
+          "receptor_pdb_file (default '' -> status not_computed; a bare 4-char PDB ID is fetched from RCSB, pharmacology/docking_autodock_vina/main.nf:105-108)",
+          "box_center and box_size (defaults [0,0,0] / [20,20,20] are not a binding site; no pocket-detection step in this chain, so the user must supply them)"
+        ]
+      }
+    },
+    "drug_discovery_screening": {
+      "_note": "Re-pointed 2026-11-01 (workstream B2). Step 2 pinned to docking_autodock_vina (id 12824). Paths under backend/biomni_workflows/nextflow_nfcore/subworkflows/.",
+      "steps": [
+        {
+          "order": 2,
+          "workflow_id": 12824,
+          "workflow_name": "structure_prediction_docking",
+          "new_workflow_name": "docking_autodock_vina",
+          "evidence": "workflows id 12824 = pharmacology/docking_autodock_vina/main.nf (executable=1); params_template was {} so nothing to drop."
+        }
+      ],
+      "replace_connections": {
+        "expect_old": [
+          {
+            "from_step": 1,
+            "from_output": "filtered_compounds",
+            "to_step": 2,
+            "to_input": "compounds"
+          },
+          {
+            "from_step": 2,
+            "from_output": "docked_poses",
+            "to_step": 3,
+            "to_input": "complexes"
+          }
+        ],
+        "new": [],
+        "evidence": [
+          "step1 filtered_compounds -> step2 compounds  =>  REMOVED. Step 1 is predict_admet_properties, which publishes no 'filtered_compounds' (outputs: predict_admet_properties_results.json, _output.txt, toxicity_report.json, pk_summary.json, qc_metrics.json, pharmacology/predict_admet_properties/main.nf:108-112). docking_autodock_vina declares no 'compounds' param; its ligands come from smiles_list (inline JSON array). No upstream file can feed it, so the user supplies the same smiles_list to both steps.",
+          "step2 docked_poses -> step3 complexes  =>  REMOVED. predict_binding_affinity_protein_1d_sequence declares only smiles_list, amino_acid_sequence, affinity_model_type, outdir (pharmacology/predict_binding_affinity_protein_1d_sequence/main.nf:12-16); no param accepts a complex/pose file. docking publishes docking_poses/*.pdbqt (emit poses, pharmacology/docking_autodock_vina/main.nf:35), docking_autodock_vina_results.json (:32)."
+        ]
+      },
+      "unresolved": [],
+      "needs_human_decision": [
+        {
+          "item": "step 3 binding_affinity handoff",
+          "evidence": "predict_binding_affinity_protein_1d_sequence needs smiles_list + amino_acid_sequence. Candidate: docking_autodock_vina_results.json (results[].smiles with best_affinity_kcal_mol, pharmacology/docking_autodock_vina/main.nf:368-372) -> smiles_list would need a new transform (docking results JSON -> top-N SMILES list); not registered, so left out. amino_acid_sequence (target sequence) must be supplied by the user."
+        },
+        {
+          "item": "connection-less chain",
+          "evidence": "With no connections the executor falls back to the extension heuristic (_EXT_TO_PARAM, connection-less chains only), which can only fill params named in the downstream workflow's declared inputs; for docking none of its heuristic names (compounds/ligand_sdf/input) are declared, so nothing is injected. Decide whether the chain should stay as a 3-step parameter-sharing bundle or be redefined."
+        },
+        {
+          "item": "step 1 -> step 2 intent",
+          "evidence": "ADMET (step 1) and docking (step 2) both need the same smiles_list; there is no established artifact between them."
+        }
+      ],
+      "missing_required_params": {
+        "step1 predict_admet_properties": [
+          "smiles_list (inline JSON array)"
+        ],
+        "step2 docking_autodock_vina": [
+          "smiles_list",
+          "receptor_pdb_file",
+          "box_center / box_size"
+        ],
+        "step3 predict_binding_affinity_protein_1d_sequence": [
+          "smiles_list",
+          "amino_acid_sequence"
+        ]
       }
     },
     "bulk_rnaseq_de_analysis": {
