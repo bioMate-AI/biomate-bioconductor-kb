@@ -374,7 +374,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [transfer-assets, restart-stack]
     if: always()
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Install sshpass
         run: sudo apt-get install -y sshpass
@@ -478,25 +478,42 @@ jobs:
           fi
           echo "Run ID: $RUN_ID"
 
+          NF_RUN_ID=$(echo "$EXEC" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('nextflowRunId',''))" 2>/dev/null || echo "")
+          echo "Nextflow Run ID: $NF_RUN_ID"
+
           echo ""
-          echo "Polling for completion (up to 8 min)..."
+          echo "Polling /api/workflows/runs/:id/status (reconciles with Galaxy) up to 15 min..."
           FINAL_STATUS="timeout"
-          for i in $(seq 1 48); do
+          for i in $(seq 1 90); do
             sleep 10
-            META=$(curl -sf --max-time 15 "$BASE/api/runs/$RUN_ID/meta" -H "Authorization: Bearer $TOKEN" 2>/dev/null || echo '{}')
-            STATUS=$(echo "$META" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null || echo "poll-error")
-            printf "[%02d/48] %s status=%s\n" "$i" "$(date +%H:%M:%S)" "$STATUS"
-            if [ "$STATUS" = "completed" ] || [ "$STATUS" = "failed" ] || [ "$STATUS" = "error" ]; then
+            # Use /status (not /meta) — this endpoint actively reconciles with Galaxy's
+            # Nextflow state and updates the DB, so stuck-running runs get promoted.
+            STATUS_RESP=$(curl -sf --max-time 15 "$BASE/api/workflows/runs/$RUN_ID/status" -H "Authorization: Bearer $TOKEN" 2>/dev/null || echo '{}')
+            STATUS=$(echo "$STATUS_RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',d.get('execution',{}).get('status','unknown')))" 2>/dev/null || echo "poll-error")
+            printf "[%02d/90] %s status=%s\n" "$i" "$(date +%H:%M:%S)" "$STATUS"
+            if [ "$STATUS" = "completed" ] || [ "$STATUS" = "succeeded" ] || [ "$STATUS" = "failed" ] || [ "$STATUS" = "error" ]; then
               FINAL_STATUS="$STATUS"
               break
             fi
           done
 
           echo ""
-          if [ "$FINAL_STATUS" = "completed" ]; then
+          echo "=== Post-poll diagnostics ==="
+          echo "Galaxy logs (last 5 min):"
+          docker logs biomate-galaxy --since 5m 2>&1 | grep -v "Loaded tool\|Skipping tool" | tail -20 || true
+          if [ -n "$NF_RUN_ID" ]; then
+            NF_WORK="/app/nf-work/$NF_RUN_ID"
+            echo "Nextflow work dir: $NF_WORK"
+            ls "$NF_WORK" 2>/dev/null || echo "(not found)"
+            echo "Exit codes:"
+            find "$NF_WORK/work" -name ".exitcode" -exec sh -c 'echo "$1: $(cat $1)"' _ {} \; 2>/dev/null | head -10
+          fi
+
+          echo ""
+          if [ "$FINAL_STATUS" = "completed" ] || [ "$FINAL_STATUS" = "succeeded" ]; then
             echo "ADMET workflow COMPLETED successfully"
           else
-            echo "ADMET workflow FAILED: $FINAL_STATUS"
+            echo "ADMET workflow FAILED or timed out: $FINAL_STATUS"
             echo "=== Recent nf-work errors ==="
             find /app/nf-work -name ".command.err" -printf "%T@ %p\n" 2>/dev/null | sort -rn | head -3 | awk '{print $2}' | while read f; do echo "--- $f ---"; tail -20 "$f" 2>/dev/null; done
             exit 1
