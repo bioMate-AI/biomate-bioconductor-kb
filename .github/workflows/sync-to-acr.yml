@@ -374,7 +374,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [transfer-assets, restart-stack]
     if: always()
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - name: Install sshpass
         run: sudo apt-get install -y sshpass
@@ -420,3 +420,85 @@ jobs:
                -d '"'"'{"request_text":"ADMET prediction aspirin CC(=O)Oc1ccccc1C(=O)O"}'"'"' \
                | python3 -c "import sys,json; d=json.load(sys.stdin); print('"'"'name:'"'"', d.get('"'"'workflow_ga'"'"',{}).get('"'"'name'"'"','"'"'none'"'"')); print('"'"'domain:'"'"', d.get('"'"'workflow_ga'"'"',{}).get('"'"'domain'"'"','"'"'none'"'"'))" 2>/dev/null \
                || echo "AI assistant returned non-JSON or error"'
+
+      - name: Verify ADMET main.nf patch and run end-to-end workflow test
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=30 \
+            root@${{ env.ECS_IP }} << 'ENDSSH'
+          BASE=http://localhost:5000
+          EMAIL=demo@biomate-demo.com
+          PASS='BioMate2026!'
+
+          echo "=== ADMET main.nf patch verification ==="
+          VOLPATH=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}" 2>/dev/null)
+          NF_FILE="$VOLPATH/subworkflows/pharmacology/predict_admet_properties/main.nf"
+          echo "Lines: $(wc -l < "$NF_FILE" 2>/dev/null || echo MISSING)"
+          echo "Container lines (should show biomni-tools:latest):"
+          grep -n "container" "$NF_FILE" 2>/dev/null | head -5
+          echo ""
+          echo "Python except ImportError block:"
+          grep -n -A 4 "except ImportError" "$NF_FILE" 2>/dev/null | head -12
+
+          echo ""
+          echo "=== ADMET end-to-end API test ==="
+          LOGIN=$(curl -sf --max-time 15 -X POST "$BASE/api/auth/login" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}" 2>/dev/null)
+          TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])" 2>/dev/null)
+          if [ -z "$TOKEN" ]; then
+            echo "ERROR: Login failed — response: $LOGIN" | head -c 300
+            exit 1
+          fi
+          echo "Login OK"
+
+          SEARCH=$(curl -sf --max-time 20 -X POST "$BASE/api/workflows/search" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $TOKEN" \
+            -d '{"query":"ADMET prediction pharmacology","limit":1}' 2>/dev/null)
+          WF_NAME=$(echo "$SEARCH" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('workflow_ga',{}).get('name','NOT_FOUND'))" 2>/dev/null || echo "parse-error")
+          echo "Workflow found: $WF_NAME"
+          if [ "$WF_NAME" = "NOT_FOUND" ] || [ "$WF_NAME" = "parse-error" ]; then
+            echo "ERROR: Workflow search failed. Response: $(echo "$SEARCH" | head -c 300)"
+            exit 1
+          fi
+
+          WF_DEF=$(echo "$SEARCH" | python3 -c "import sys,json; d=json.load(sys.stdin); wf=d.get('workflow_ga',{}); wf.setdefault('parameters',{}); wf['parameters']['smiles_list']='[\"CC(=O)Oc1ccccc1C(=O)O\"]'; print(json.dumps({'workflowDefinition':wf}))" 2>/dev/null)
+          EXEC=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $TOKEN" \
+            -d "$WF_DEF" 2>/dev/null)
+          RUN_ID=$(echo "$EXEC" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('runId',''))" 2>/dev/null || echo "")
+          echo "Execute response: $(echo "$EXEC" | head -c 300)"
+          if [ -z "$RUN_ID" ]; then
+            echo "ERROR: No runId returned from execute"
+            exit 1
+          fi
+          echo "Run ID: $RUN_ID"
+
+          echo ""
+          echo "Polling for completion (up to 8 min)..."
+          FINAL_STATUS="timeout"
+          for i in $(seq 1 48); do
+            sleep 10
+            META=$(curl -sf --max-time 15 "$BASE/api/runs/$RUN_ID/meta" -H "Authorization: Bearer $TOKEN" 2>/dev/null || echo '{}')
+            STATUS=$(echo "$META" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null || echo "poll-error")
+            printf "[%02d/48] %s status=%s\n" "$i" "$(date +%H:%M:%S)" "$STATUS"
+            if [ "$STATUS" = "completed" ] || [ "$STATUS" = "failed" ] || [ "$STATUS" = "error" ]; then
+              FINAL_STATUS="$STATUS"
+              break
+            fi
+          done
+
+          echo ""
+          if [ "$FINAL_STATUS" = "completed" ]; then
+            echo "ADMET workflow COMPLETED successfully"
+          else
+            echo "ADMET workflow FAILED: $FINAL_STATUS"
+            echo "=== Recent nf-work errors ==="
+            find /app/nf-work -name ".command.err" -printf "%T@ %p\n" 2>/dev/null | sort -rn | head -3 | awk '{print $2}' | while read f; do echo "--- $f ---"; tail -20 "$f" 2>/dev/null; done
+            exit 1
+          fi
+          ENDSSH
