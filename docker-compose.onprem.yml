@@ -329,6 +329,14 @@ services:
       # Leave empty to use the default ECR image (requires Docker login to ECR).
       BIOMATE_BIOC_CONTAINER: ${BIOMATE_BIOC_CONTAINER:-}
 
+      # ── ADMET container override ───────────────────────────────────────────
+      # biomni-admet (the ML ADMET image) lives only on private AWS ECR and is
+      # not accessible from China or air-gapped hosts. Set to a locally-available
+      # image with the biomni package (RDKit-based ADMET fallback):
+      #   BIOMATE_ADMET_CONTAINER=biomate/biomni-tools:latest
+      # nextflow_executor.py generates a withName: ~/.*ADMET.*/ process override.
+      BIOMATE_ADMET_CONTAINER: ${BIOMATE_ADMET_CONTAINER:-}
+
       # ── On-premises license ────────────────────────────────────────────────
       # BIOMATE_LICENSE_KEY:   由 BioMate 团队签发，格式 BMOP-XXXX-XXXX-XXXX-XXXX
       # BIOMATE_LICENSE_SECRET: 由 BioMate 团队随部署包一并提供，勿自行修改

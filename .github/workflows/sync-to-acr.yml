@@ -221,12 +221,17 @@ jobs:
              sleep 15 && \
              docker compose -f docker-compose.onprem.yml ps'
 
-      - name: Patch nextflow_executor.py — add --pull never so DaoCloud mirror cannot block pre-loaded images
-        # DaoCloud registry mirror (daemon.json on Alibaba ECS) intercepts ALL docker pull calls,
-        # even for images already loaded locally via docker load. Adding --pull never to Docker
-        # runOptions makes Nextflow use local images directly without any registry check.
-        # This file is baked into the container image, so we patch it via docker exec + reload gunicorn.
-        # Idempotent: grep check prevents double-patching.
+      - name: Patch nextflow_executor.py + ADMET .nf — fix DaoCloud image blocking
+        # Two problems fixed here:
+        # 1. DaoCloud registry mirror intercepts ALL docker pull calls (even locally-loaded images).
+        #    Fix: add --pull never to Docker runOptions in nextflow_executor.py.
+        # 2. ADMET .nf file references biomni-admet (ECR-only, not available from China).
+        #    Fix: sed-replace container declarations to use biomni-tools (pre-loaded locally).
+        #
+        # IMPORTANT: gunicorn runs with --preload. kill -HUP does NOT reload Python code in
+        # preloaded workers (they inherit from the master's in-memory state). We must do a full
+        # `docker restart` so gunicorn re-preloads from the sed-patched file on disk.
+        # The "Wait for galaxy-backend" step below handles the ~30s restart warmup.
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
@@ -236,14 +241,33 @@ jobs:
             'FILE=$(docker exec biomate-galaxy find /app -name "nextflow_executor.py" 2>/dev/null | head -1) && \
              if [ -z "$FILE" ]; then echo "ERROR: nextflow_executor.py not found in container"; exit 1; fi && \
              echo "Found: $FILE" && \
+             NEEDS_RESTART=false && \
              if docker exec biomate-galaxy grep -q -- "--pull never" "$FILE"; then
-               echo "Already patched — skipping"
+               echo "--pull never already patched in nextflow_executor.py — skipping"
              else
                docker exec biomate-galaxy sed -i "s/--user root --network/--user root --pull never --network/g" "$FILE" && \
                echo "Patched --pull never into $FILE" && \
-               GPID=$(docker exec biomate-galaxy pgrep -f "gunicorn" | head -1) && \
-               docker exec biomate-galaxy kill -HUP "$GPID" && \
-               echo "Gunicorn HUP sent (pid=$GPID) — workers will reload"
+               NEEDS_RESTART=true
+             fi && \
+             NF_FILE=/app/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf && \
+             if docker exec biomate-galaxy test -f "$NF_FILE"; then
+               if docker exec biomate-galaxy grep -q "biomni-tools" "$NF_FILE"; then
+                 echo "ADMET .nf already patched to biomni-tools — skipping"
+               else
+                 docker exec biomate-galaxy sed -i "s|container (System.*$|container '"'"'biomate/biomni-tools:latest'"'"'|g" "$NF_FILE" && \
+                 echo "Patched ADMET .nf container to biomni-tools:latest" && \
+                 docker exec biomate-galaxy grep "container" "$NF_FILE" | head -3 && \
+                 NEEDS_RESTART=true
+               fi
+             else
+               echo "WARNING: ADMET .nf not found at $NF_FILE"
+             fi && \
+             if [ "$NEEDS_RESTART" = "true" ]; then
+               echo "Restarting galaxy container to reload patched Python (docker restart, not HUP)..." && \
+               docker restart --time 30 biomate-galaxy && \
+               echo "Galaxy container restarted — gunicorn will re-preload patched nextflow_executor.py"
+             else
+               echo "No changes — skipping container restart"
              fi'
 
       - name: Patch index.html — remove Google CDN links (blocked in China)
