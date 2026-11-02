@@ -78,6 +78,19 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get install -y sshpass
 
+      - name: Add CORS_ORIGINS to .env so IP-based access works (not just biomate.ai)
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'ENV_FILE=/app/biomate/.env && \
+             grep -q "^CORS_ORIGINS=" "$ENV_FILE" && \
+               sed -i "s|^CORS_ORIGINS=.*|CORS_ORIGINS=http://101.201.107.126:5000|" "$ENV_FILE" || \
+               echo "CORS_ORIGINS=http://101.201.107.126:5000" >> "$ENV_FILE" && \
+             echo "CORS_ORIGINS in .env:" && grep CORS_ORIGINS "$ENV_FILE"'
+
       - name: Remove stale involucro.lock from database volume
         # Galaxy acquires /app/database/dependencies/involucro.lock on startup.
         # If the lock is left over from a crash, every restart times out after
