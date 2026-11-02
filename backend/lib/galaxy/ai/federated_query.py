@@ -460,7 +460,7 @@ def _fetch_biorxiv(query: str) -> Dict:
     scoped = f'({query}) AND SRC:PPR AND (PUBLISHER:"bioRxiv" OR PUBLISHER:"medRxiv")'
     q = urllib.parse.quote(scoped)
     data = _get(f"https://www.ebi.ac.uk/europepmc/webservices/rest/search"
-                f"?query={q}&format=json&pageSize=5&resultType=core&sort=P_PDATE_D%20desc")
+                f"?query={q}&format=json&pageSize=5&resultType=core")
     results = []
     for p in (data or {}).get("resultList", {}).get("result", [])[:5]:
         doi = p.get("doi")
