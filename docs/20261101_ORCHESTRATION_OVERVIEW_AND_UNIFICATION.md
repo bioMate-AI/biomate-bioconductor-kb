@@ -30,6 +30,8 @@ The pieces are separate because search, target-ID and the campaign are not steps
 
 **Shared primitives (reuse, no new ones):** `map_reduce` is the only fan-out; `RunStateStore` holds state; every claim carries provenance and is checked against stored text (`corpus_fs/llm_map.verify_evidence`, `citation_check`, target-ID `evidence_links`); a claim without verified evidence is returned `unsupported`, never as an answer.
 
+**Target-ID is not a separate engine.** It is a plan template: parallel channel steps (Open Targets, STRING, pathway, hospital tables, LLM-reasoned; later a trial-corpus reader, the switch-like prior, Paperclip) -> the arbiter as the *reduce* node -> optional `validation_plan` chain. Each channel already has the `Channel.run` contract, so migration = register channels as capability steps and replace its private fan-out with `map_reduce`. The arbiter (harmonic sum, tiers, honest-framing rules) stays as target-ID's domain reduce function. Results feed any later step (e.g. screening, then a campaign).
+
 **Out of scope for this layer:** the run-level auto-loop (not offered in the product now); the dormant `agent_orchestrator` (legacy; its specialist advice becomes context profiles).
 
 ## 3. Build order (each slice flag-gated and testable)
