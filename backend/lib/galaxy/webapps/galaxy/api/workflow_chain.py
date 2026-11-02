@@ -570,6 +570,16 @@ def _compute_chain_meta(
         return None
 
 
+def _check_bindings(steps, connections):
+    """(problems, undeterminable) from galaxy.chain.binding_check; never raises."""
+    try:
+        from galaxy.chain.binding_check import check_connections  # noqa: PLC0415
+        return check_connections(steps, connections)
+    except Exception as exc:  # pragma: no cover - defensive; check must not break chains
+        log.warning("workflow_chain: binding check unavailable: %s", exc)
+        return [], []
+
+
 def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
     """Execute a legacy sequential chain or an explicit dependency plan."""
     state = _get_chain(chain_run_id)
@@ -613,6 +623,25 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
             current["status"] = "failed"
             _update_chain(current)
             return
+
+        # Fail loudly BEFORE launch if a connection names a parameter the downstream
+        # workflow does not declare (it would be injected and silently ignored).
+        if connections:
+            bind_problems, bind_undet = _check_bindings(
+                current["steps"],
+                [c for c in connections if int(c.get("to_step", -1)) == idx + 1],
+            )
+            if bind_undet:
+                log.info("workflow_chain: step %d binding undeterminable: %s", idx, bind_undet)
+            if bind_problems:
+                msg = "; ".join(p["message"] for p in bind_problems)
+                log.error("workflow_chain: step %d not launched: %s", idx, msg)
+                current["steps"][idx]["status"] = "failed"
+                current["steps"][idx]["error"] = msg
+                current["steps"][idx]["binding_problems"] = bind_problems
+                current["status"] = "failed"
+                _update_chain(current)
+                return
 
         # Auto-wire outputs → inputs via chain connections (Phase 2) or extension heuristics
         if connections:
@@ -819,6 +848,20 @@ def _run_dag_chain(state: Dict[str, Any]) -> None:
     def save(current):
         _update_chain(current)
         _write_pipeline_manifest(current)
+
+    if state.get("connections"):
+        bind_problems, bind_undet = _check_bindings(state["steps"], state["connections"])
+        if bind_undet:
+            log.info("workflow_chain: DAG binding undeterminable: %s", bind_undet)
+        if bind_problems:
+            msg = "; ".join(p["message"] for p in bind_problems)
+            log.error("workflow_chain: DAG plan not launched: %s", msg)
+            for p in bind_problems:
+                st = state["steps"][p["to_step"] - 1]
+                st["status"], st["error"] = "failed", p["message"]
+            state.update(status="failed", error=msg)
+            _update_chain(state)
+            return
 
     try:
         run_plan(state, submit, poll, save,
@@ -1500,11 +1543,17 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
     )
     t.start()
 
+    binding_problems, binding_undeterminable = _check_bindings(
+        steps_state, (request.connections or []) if request.connections is not None
+        else (_get_chain(chain_run_id) or {}).get("connections") or [],
+    )
     return {
         "chain_run_id": chain_run_id,
         "status": "running",
         "steps": steps_state,
         "resumed_from_step": start_from if resume else None,
+        "binding_problems": binding_problems,
+        "binding_undeterminable": binding_undeterminable,
     }
 
 
