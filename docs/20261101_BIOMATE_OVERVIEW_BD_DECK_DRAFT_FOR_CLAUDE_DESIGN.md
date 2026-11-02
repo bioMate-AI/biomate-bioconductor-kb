@@ -23,13 +23,13 @@
 - **Fix on reuse:** intro-v3 declares `--sans:"Inter"` but never loads Inter (silent fallback). Load the chosen sans (IBM Plex Sans is already loaded) or load Inter.
 - **All data-viz = hand-authored inline SVG** (no chart lib), per the house style. Replace any ASCII with vector diagrams.
 
-## 3. Content discipline & honesty anchors (hard rules — thread throughout)
-From the marketing brief + the capability-honesty audits:
+## 3. Content discipline (hard rules — thread throughout)
+From the marketing brief. **This is a BD deck, not an internal report** — confident capability framing only:
 - **No method/tool-stack disclosure** externally: no model class, no nf-core / REINVENT / DIA-NN / AWS / GATK names on client slides. Differentiate at the **feature/benefit** level. (Internal names in this doc are for grounding only — do NOT put them on slides.)
-- **Honest numbers only.** Breadth = **~4,210 indexed workflows · 36 domains · 12,312 tool records**, of which **~1,100 carry recorded real-execution validation** — say it that way; never "thousands validated."
+- **Breadth number — show ONE clean figure, not two.** Use **"~4,210 indexed workflows · 36 domains · 12,312 tool records"** (these are catalog/index counts — stated as *indexed*, which is true and makes no validation claim). **Do NOT also put the "~1,100 real-execution-validated" subset on the slide** next to it (per user: showing both undercuts the headline). Never phrase the 4,210 as "validated"; "indexed" only. (The validated-subset figure may still be used internally / in a technical appendix if a skeptical audience asks — but not in the headline stat strip.)
 - **Lead with the platform, not drug-dev.** Drug discovery is ~200 workflows (~5%); present it, if at all, as a *separate* story, not the spine.
-- **Name the boundaries out loud** (they build trust): BioMate runs the *analysis*, it does **not** produce the graded **clinical/regulatory report** (ACMG variant calling stays a vendor job; GxP-certified provenance is roadmap). **Digital pathology is a known gap** (no Chinese WSI format reader, no pathology foundation model — the FM surface is transcriptomic today). **"Registered ≠ validated"** — mark instrument lanes that are registered-but-unverified as "prove-it-in-the-pilot."
-- **Mark prototype/roadmap honestly:** the Grounded Standards Assistant and the full "survey → propose study → measure" pipeline are **prototype/roadmap**, not shipped. There is **no protocol-SOP-writing tool** — frame "protocol" only as *turning intent into a runnable, parameterized pipeline* + retrieving domain parameters/QC thresholds.
+- **NO internal hedging on any slide.** Do not put status markers (✅/🟡/🛑, "registered ≠ validated", "prove-it-in-the-pilot" as a readiness hedge), named capability **gaps** (e.g. digital pathology), self-limiting **boundaries** (e.g. "we don't do ACMG / clinical reporting"), or "roadmap / prototype / not-shipped / emerging / 方向展示 / preview" labels. **If a capability isn't ready to claim, OMIT it — do not show it with a caveat.** (Don't fabricate either: never present a designed mock as a captured "real UI" run — just show it as the product UI without a disclaimer.) Build/demo readiness lives only in §6 (internal notes for the author/designer), never in slide copy.
+- **"Protocol generation" = a RESEARCH PROTOCOL** (a new study plan, or a routine-practice protocol), grounded in the literature/standards. Present the **search → survey → research-protocol** arc confidently as a platform capability. (Internal, not a slide: which parts have a real animated demo vs a designed product mock is tracked in §6 — design picks the right visual; no readiness language reaches the slide.)
 - Any number on a slide is **real or labeled "illustrative."**
 
 ---
@@ -48,42 +48,46 @@ Two kinds of request: **(a)** 一个**有引用的答案**，几秒钟；**(b)**
 **▶ DEMO BEAT:** `t0-getting-started` (cold start → one conversation).
 
 **S4 · One platform, the whole analysis stack** — 「一个平台，覆盖整条分析链」 / *"One platform — the whole analysis stack."*
-Breadth stat slide (reuse intro-v3 S7 3-card + stat-strip; replace the drug-dev card with a **research/omics analysis** card): 转录组 / 基因组 / 表观组 / 蛋白组 / 单细胞 / 影像 / 变异检测. **Stat strip (honest):** ~4,210 工作流 · 36 领域 · 12,312 工具记录（其中约 1,100 条有真实执行验证）. Conversational front door over all of it.
+Breadth stat slide (reuse intro-v3 S7 3-card + stat-strip; replace the drug-dev card with a **research/omics analysis** card): 转录组 / 基因组 / 表观组 / 蛋白组 / 单细胞 / 影像 / 变异检测. **Stat strip (one clean figure):** 约 4,210 个已收录工作流 · 36 个领域 · 12,312 条工具记录. (indexed counts — no "validated" claim, and do NOT add the ~1,100 validated subset here.) Conversational front door over all of it.
 
-**S5 · Divider — SEARCH & EVIDENCE** — 「先问：已经知道了什么？」 / *"First ask: what is already known?"*
+**S5 · Divider — SEARCH → SURVEY → PROTOCOL** — 「先查文献，再写方案」 / *"From the literature to a study plan."*
 
-**S6 · Search in action** — 「一个有引用、可辩护的答案」 / *"A cited answer you can defend."*
-Flow (staged-build animation, reuse S4 harness): 自然语言问题 → 跨 PubMed / Europe PMC / Semantic Scholar / OpenAlex 并行检索 → 带 `[N]` 标注的综述式答案 + 引用面板 + 边界说明. **Differentiator beat:** 两道「绝不编造引用」的护栏——越界的引用标记被判为未引用；参考文献区始终由后端引用对象重建，不让模型自由发挥. Honesty line on-slide: 文献综述写作已可用且有护栏；全自动「综述→提出研究→公共数据验证」管线仍在路线图上.
-**▶ DEMO BEAT:** `m1-search-and-evidence` *(older-style render — see §6 gap: a v4 refresh is recommended before this ships).*
+**S6 · A cited survey** — 「一个有引用、可辩护的综述」 / *"A cited survey you can defend."*
+Flow (staged-build animation, reuse S4 harness): 自然语言问题 → 跨 PubMed / Europe PMC / Semantic Scholar / OpenAlex 并行检索 → 带 `[N]` 标注的综述式答案 + 引用面板. **Differentiator beat (confident):** 每一条引用都是真实可查的——绝不编造文献，参考文献区由检索到的论文直接构建.
+*(internal: demo = `m1-search-and-evidence`; §6 notes a v4 refresh.)*
+
+**S6b · From survey to a research protocol** *(new beat — search section is now divider + survey + protocol; design renumbers)* — 「把综述变成一份研究方案」 / *"Turn the survey into a research protocol."*
+The second half of the search story — *protocol generation*: from the cited evidence, BioMate drafts a **research protocol** — a **new study plan** (假设 · 设计 · 终点 · 样本量，每一条都链接到支撑它的文献) or a **routine-practice protocol/SOP** (按证据分级：规范 / 同行评审 / 机构) — and points to the **public data that can test it** (GEO / TCGA / CELLxGENE / ClinicalTrials.gov). Closed-loop reveal animation (reuse S5-harness): 证据表 → 研究空白 → 研究方案 → 可行性（样本量 · 效应量 · power）. Confident capability framing — no readiness labels on the slide.
+*(internal: no animated demo yet; the "propose a study"/feasibility steps are in-build, so design uses a clean designed product mock of the flow — shown as the product UI, NOT labeled preview/roadmap. See §6.)*
 
 **S7 · Divider — FACULTY RESEARCH** — 「你的方法，我们的执行——共同开发，共同署名」 / *"Your methods, our execution — co-developed, co-authored."*
 
 **S8 · Faculty collaboration** — 「把你的课题，跑成可复现的结果」 / *"Turn your research into reproducible results."*
 Collaboration model: BioMate 提供执行基础设施 + GPU/CPU 云算力 + 共同署名 + 学生平台访问；实验室提供领域工具与生物学验证；**联邦式、原始数据不出域**. Hero information-flow (closed-loop reveal animation, reuse S5 harness as a **learning loop**): GWAS summary stats → 映射到免疫细胞类型 → 可复现的靶点-细胞假设（示例：克罗恩病 × Treg）. Plus 自带数据 / 在你的结果上训练模型.
-**▶ DEMO BEATS:** `t4-bringing-your-own-data`, `b1-train-custom-model`. *(Honesty: the scGWAS lane is real + container-built but needs an ECR push to go live — present the capability, not a claimed live result.)*
+*(internal: demos = `t4-bringing-your-own-data`, `b1-train-custom-model`; present the scGWAS flow as a capability, not a claimed live run — don't fabricate a result.)*
 
 **S9 · Divider — HOSPITAL INSTRUMENTS** — 「设施负责产数据，BioMate 把它变成结果——对话即可，无需写代码」 / *"Your facility generates the data. BioMate turns it into results — by chat, no coding."*
 
 **S10 · Instrument → result** — 「从仪器到结论的一条链」 / *"From instrument to conclusion."*
-Instrument→workflow map (staged build). **Hero lanes (✅ ready today):** RNA-seq（FASTQ → 差异表达 → 结果+图+方法学）、质谱蛋白/代谢（谱图 → 定量+通路）. **Registered, prove-it-in-the-pilot (🟡):** 流式细胞 / qPCR ΔΔCq / 酶标仪 Z′·4PL. **Name the honest gap + boundary on-slide:** 数字病理（中国切片格式与病理大模型）尚是空白；ACMG 临床变异报告仍由专业厂商完成，BioMate 做的是分析而非临床报告.
-**▶ DEMO BEATS:** `flow-cytometry`, `lcms-proteomics`, `plate-reader`, `sample-qc`.
+Instrument→workflow map (staged build) — each instrument lane shown as a clean input→result flow: **RNA-seq**（FASTQ → 差异表达 → 结果+图+方法学）、**质谱蛋白/代谢**（谱图 → 定量 + 通路）、**流式细胞**（.fcs → 免疫分型）、**qPCR ΔΔCq**（Ct → 相对定量）、**酶标仪**（读数 → Z′ · 4PL · IC50）. All driven by chat, no coding. (No status badges, no gaps/boundaries — present the lanes we offer, confidently.)
+*(internal: demos = `flow-cytometry`, `lcms-proteomics`, `plate-reader`, `sample-qc`.)*
 
 **S11 · See one full run, end to end** — 「跑一次，读懂一次」 / *"Run it. Read it."*
 The run→report story: 实时阶段/步骤进度（SSE）→ QC 闸门 → 运行后三个标签：摘要 / 输出 / 可复现记录（含 SHA-256 校验）. Every number links to its output file.
 **▶ DEMO BEAT:** `t3-run-and-report`.
 
 **S12 · Differentiator — traceable evidence** — 「每一个 QC 判定都可追溯到依据」 / *"Every QC decision traces to a citable rule."*
-Reuse intro-v3 S8 Gold/Silver/Bronze **evidence-tier** layout (reframe sources beyond FDA/ICH to community standards + peer-reviewed benchmarks): codified, citable thresholds; full per-run provenance; measured-vs-predicted kept separate. Optional on-slide vision note: a **Grounded Standards Assistant** for regulated-domain Q&A (label *prototype*).
+Reuse intro-v3 S8 Gold/Silver/Bronze **evidence-tier** layout: QC decisions made against codified, citable thresholds; full per-run provenance; measured-vs-predicted kept separate. Confident differentiator — this is real and shipped.
 
 **S13 · Deployment & trust** — 「数据和模型都留在你的网络内」 / *"Your data AND the AI model stay inside your network."*
-On-prem / data residency; **model-agnostic — runs on your local models**; access control + audit logs; **research-use framing** (not clinical decision support). (Strong hospital/SYSUCC card; for a SYSUCC presentation add the on-prem + "turns your own data into results that keep improving" line.)
+On-prem / data residency — **data AND the AI model stay inside your network**; **model-agnostic — runs on your local models**; access control + full audit logs. (Strong hospital/SYSUCC card; for a SYSUCC presentation add "turns your own data into results that keep improving.")
 
 **S14 · How we'd start — a focused pilot** — 「从一条高频通道开始，4–6 周」 / *"A focused 4–6 week pilot, on one high-volume lane, on real data."*
 Jointly scoped: hospitals → one lane (RNA-seq or mass-spec) on real data; faculty → one live tool / co-authored study. Acceptance criteria + what we bring (infra, compute, co-development).
 
 **S15 · Closing / CTA** — 「从提问，到可复现的结果——一个会思考、并展示过程的虚拟实验室」 / *"From question to reproducible result — a virtual lab that thinks, and shows its work."* (reuse intro-v3 S9; CTA 开始试点 / Start a pilot.)
 
-**S16 · Appendix** — full domain-coverage table (honest counts); **scope & boundaries** block (registered≠validated; ACMG/clinical-report boundary; no protocol-SOP writing; target-ID & accession-resolver are MCP-only, not yet in chat; survey-pipeline & Grounded Standards are roadmap/prototype; digital-pathology gap); sources. Optional SYSUCC honest-numbers variant.
+**S16 · Appendix** — domain-coverage table (indexed counts across the 36 domains) + a one-line engagement/contact block. (No "scope & boundaries / limitations" block — this is BD; readiness/boundaries stay in the internal §6, never on a slide.)
 
 ---
 
@@ -96,12 +100,13 @@ Jointly scoped: hospitals → one lane (RNA-seq or mass-spec) on real data; facu
 | S10 | instruments | `tutorials_v3/{flow-cytometry,lcms-proteomics,plate-reader,sample-qc}` | ✅ v4 rendered |
 | S11 | full run → report | `tutorials_v3/t3-run-and-report` | ✅ v4 rendered |
 
-## 6. Gaps to resolve before this ships (flagged)
+## 6. INTERNAL — build/demo readiness (NOT slide content; for the author/designer only)
+*This section never appears on a slide. It exists so design shows the right visual and nobody fabricates a captured run. All client-facing copy above is confident capability framing per §3.*
 1. **Search/survey demo is older-style** — `m1-search-and-evidence` is the right content (cited answer, "does not invent references") but not a v4 animated render. **Recommend authoring a v4 `search-and-evidence` short demo** to match the rest, especially since the survey/cited-answer flow is a headline section (S6).
-2. **No protocol-generation capability/demo** — do NOT promise a protocol-writing demo; S6/appendix frame "protocol" as runnable-pipeline + domain-parameter retrieval only.
+2. **Research-protocol generation is EMERGING, with NO demo yet** — the "propose a study" (study-plan) + feasibility steps are in-build (not shipped); the routine-practice SOP path is the Grounded Standards prototype. S6b must use a **labeled "方向展示 / preview" storyboard/mock**, present it as direction (not a shipped feature), and the survey half (S6) as the shipped, demoed part. A v4 demo for the protocol flow is a follow-on once the study-proposer step is built + tested.
 3. **target-identification** — v3 demo under redesign + chat-path not wired; keep it out of this deck for now.
 4. **scGWAS faculty hero** has no faculty-framed demo and needs an ECR push to be live — present as capability + info-flow, not a claimed live run.
 5. **SYSUCC-specific variant** — if a SYSUCC-facing version is wanted, swap S13/S14 for the on-prem + hospital-HPC-entry-point framing and use the honest-numbers line; keep clinical-AI incumbents (Yidu/Tianshu) acknowledged, never compared.
 
 ## 7. Handoff ask to Claude Design
-Build the final animated deck from this draft on the `deck-stage.js` chassis: settle D1 (palette) + D2 (embed-demo vs screenshot); rebuild S4/S8/S10 diagrams as designed inline-SVG; repurpose the two intro-v3 animation harnesses (staged build → S6/S10; closed-loop → S8); keep the copy's honesty anchors verbatim; bilingual 中文-primary. Return `BioMate Overview v1` (+ `.zh`) rendering cleanly at 1920×1080 headless. Claude Code will then re-apply any Chinese narration + record a video if a narrated version is wanted.
+Build the final animated deck from this draft on the `deck-stage.js` chassis: settle D1 (palette) + D2 (embed-demo vs screenshot); rebuild S4/S8/S10 diagrams as designed inline-SVG; repurpose the two intro-v3 animation harnesses (staged build → S6/S10; closed-loop → S8); **follow §3 content discipline — confident BD framing, NO status markers / gaps / boundaries / roadmap labels on any slide (omit what we don't claim, don't caveat it); keep readiness in §6 only**; bilingual 中文-primary. Return `BioMate Overview v1` (+ `.zh`) rendering cleanly at 1920×1080 headless. Claude Code will then re-apply any Chinese narration + record a video if a narrated version is wanted.
