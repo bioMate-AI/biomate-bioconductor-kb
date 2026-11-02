@@ -251,12 +251,12 @@ jobs:
              fi && \
              NF_FILE=/app/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf && \
              if docker exec biomate-galaxy test -f "$NF_FILE"; then
-               if docker exec biomate-galaxy grep -q "container '"'"'biomate/biomni-tools:latest'"'"'" "$NF_FILE"; then
+               if docker exec --user root biomate-galaxy grep -q "container '"'"'biomate/biomni-tools:latest'"'"'" "$NF_FILE"; then
                  echo "ADMET .nf already patched to biomni-tools:latest — skipping"
                else
-                 docker exec biomate-galaxy sed -i "s|container (System.*$|container '"'"'biomate/biomni-tools:latest'"'"'|g" "$NF_FILE" && \
+                 docker exec --user root biomate-galaxy sed -i "s|container (System.*$|container '"'"'biomate/biomni-tools:latest'"'"'|g" "$NF_FILE" && \
                  echo "Patched ADMET .nf container to biomni-tools:latest" && \
-                 docker exec biomate-galaxy grep "container" "$NF_FILE" | head -5 && \
+                 docker exec --user root biomate-galaxy grep "container" "$NF_FILE" | head -5 && \
                  NEEDS_RESTART=true
                fi
              else
