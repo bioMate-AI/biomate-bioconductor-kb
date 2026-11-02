@@ -19,6 +19,10 @@ proteomics, rare_disease, structural_biology. Length is 1 to 7 workflows. Each s
   `cyp450_ddi_chain`, `admet_to_cipa_cardiac`, `pbpk_to_tumor_tgi`, `target_discovery_full`, `rnaseq_to_lincs_moa`.
 - Multi-modal: `rare_disease_multimodal_workup` (sarek -> VEP; rnaseq -> DROP; both feed case_report_aggregation), `multi_omics_mofa_chain`, `single_cell_multimodal_analysis`.
 - Routine analysis: `bulk_rnaseq_de_analysis`, `bioc_bulk_rnaseq_de_v2`, `scrna_pseudobulk_de_bioc` (7 steps), `methylation_450k_array_analysis`.
+Audit (`docs/20261101_WORKFLOW_CHAIN_AUDIT.md`, static): recorded runs across all 69 chains = 0; 17 chains have at least one step that resolves to no executable workflow
+(including `target_to_lead_full`, `drug_discovery_screening`, `drug_discovery_admet_gated_screening`: `structure_prediction_docking`); of 137 connections only 5 name a parameter the
+downstream workflow declares, 85 do not, 47 cannot be determined. The chain executor passes an upstream artifact as `params[to_input]`, so a long chain is expected to stall at its second
+or third step until the names are fixed. Design the primitives for chains as they should behave; do not demo a chain from the table that has not been run end to end.
 Facts that matter for design: (1) the chain definition has **no gate or approval field**: today's approvals live in the executor and the workflow panel, not in the chain; (2) steps can only
 be workflows, not capability steps; (3) **no tutorial names any of these chains** (0 of 69 chain identifiers appear in the tutorial files; T11 and M3 show similar pipelines, not by chain id).
 
@@ -41,7 +45,7 @@ primitives used well; they are not templates. The existing design reference, wor
 ## 3. Four exemplars to design and to demo (data, not templates)
 1. **Survey, propose, measure** (plan in `20261101_USE_CASE_SURVEY_PROPOSE_MEASURE_PLAN.md`): gates H1-H7. Key moments: reviewing the evidence table (H2), choosing a gap (H3),
    accepting assumptions in the proposal (H4), approving data and cost (H5), go / revise / stop on a weak pilot (H6).
-2. **`target_to_lead_full`** (real chain, 6 steps with fan-in at docking) with a blocked QC gate at the ADMET triage: approve the target and compound set, review the blocked gate, approve the shortlist before lead design.
+2. **`target_to_lead_full`** (real chain, 6 steps with fan-in at docking; as defined it cannot run, see the audit - use it as the shape, and run a repaired version for the demo) with a blocked QC gate at the ADMET triage: approve the target and compound set, review the blocked gate, approve the shortlist before lead design.
 3. **`rare_disease_multimodal_workup`** (real chain, two parallel branches that join in case_report_aggregation): the plan view for a DAG with fan-in, a failed branch, and sign-off of the report.
 4. **Campaign round** (DMTA): approve the proposed batch, the CRO order handoff (irreversible), wait for assay data, review outliers, approve continue / stop.
 
