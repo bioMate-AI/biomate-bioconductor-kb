@@ -83,6 +83,8 @@ jobs:
     needs: [transfer-assets]
     if: ${{ always() && !inputs.check_only }}
     steps:
+      - uses: actions/checkout@v4
+
       - name: Install sshpass
         run: sudo apt-get install -y sshpass
 
@@ -221,6 +223,31 @@ jobs:
              sleep 15 && \
              docker compose -f docker-compose.onprem.yml ps'
 
+      - name: Upload correct ADMET main.nf from repo to ECS nfcore volume
+        # The ECS nfcore volume was initialized from an S3 tarball that may be older than the
+        # current repo. The old Python code inside PREDICT_ADMET_PROPERTIES has a SyntaxError
+        # ("Perhaps you forgot a comma?") that crashes the step. Upload the current repo version
+        # which has the correct Python code.
+        # Writes directly to the Docker volume mountpoint as root on ECS — does not require
+        # the galaxy container to be running. Docker volume changes are visible inside the
+        # running container immediately (no restart needed for the file itself; the Patch
+        # nextflow_executor.py step below still restarts galaxy for the --pull-never fix).
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          NF_LOCAL=backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf
+          echo "Uploading $NF_LOCAL ($(wc -l < "$NF_LOCAL") lines) to ECS nfcore volume ..."
+          cat "$NF_LOCAL" | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
+              root@${{ env.ECS_IP }} \
+              'VOLPATH=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}" 2>/dev/null) && \
+               if [ -z "$VOLPATH" ]; then echo "ERROR: Volume biomate-onprem_biomate-nfcore-workflows not found"; exit 1; fi && \
+               NF_DEST="$VOLPATH/subworkflows/pharmacology/predict_admet_properties/main.nf" && \
+               mkdir -p "$(dirname "$NF_DEST")" && \
+               cat > "$NF_DEST" && \
+               echo "Upload done: $(wc -l < $NF_DEST) lines written to $NF_DEST"'
+
       - name: Patch nextflow_executor.py + ADMET .nf — fix DaoCloud image blocking
         # Two problems fixed here:
         # 1. DaoCloud registry mirror intercepts ALL docker pull calls (even locally-loaded images).
@@ -349,4 +376,7 @@ jobs:
              ls -la /app/biomate/backend/config/ 2>/dev/null || echo "(empty)" && \
              echo "" && \
              echo "=== frontend health ===" && \
-             curl -sf --max-time 5 http://localhost:5000/api/health 2>/dev/null || echo "frontend unreachable"'
+             curl -sf --max-time 5 http://localhost:5000/api/health 2>/dev/null || echo "frontend unreachable" && \
+             echo "" && \
+             echo "=== LLM env vars in galaxy container (keys only) ===" && \
+             docker exec biomate-galaxy env 2>/dev/null | grep -E "GALAXY_AI_LLM|LLM_API_URL|LLM_MODEL|LLM_API_KEY|DASHSCOPE|ANTHROPIC_API|OPENAI_API|GOOGLE_API" | sed "s/=.*/=<SET>/" || echo "(none — LLM not configured)"'
