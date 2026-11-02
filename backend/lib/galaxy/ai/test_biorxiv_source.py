@@ -82,5 +82,52 @@ class ClinicalTrialsTests(unittest.TestCase):
         self.assertEqual((src.status, src.category), ("live", "clinical"))
 
 
+
+class FailureVisibilityTests(unittest.TestCase):
+    """A swallowed HTTP failure must surface as an error, never as "ok, 0 results"."""
+
+    def _http_error(self, code):
+        import urllib.error
+        return urllib.error.HTTPError("https://api.semanticscholar.org/x", code, "Too Many Requests", {}, None)
+
+    def test_rate_limited_source_is_reported_as_an_error_with_the_status_code(self):
+        with mock.patch.object(fq.urllib.request, "urlopen", side_effect=self._http_error(429)):
+            res = fq._run_fetcher(fq._fetch_semantic_scholar, "kras")
+        self.assertEqual(res["status"], "error")
+        self.assertIn("HTTP 429", res["error"]); self.assertIn("semanticscholar", res["error"])
+        self.assertEqual(res["results"], [])
+
+    def test_failure_with_some_results_is_kept_as_a_warning_not_an_error(self):
+        def fetcher(q):
+            fq._note_failure("https://x.org/a", self._http_error(500))
+            return {"source": "x", "results": [{"title": "t"}]}
+        res = fq._run_fetcher(fetcher, "q")
+        self.assertNotIn("error", res); self.assertIn("HTTP 500 from x.org", res["warnings"][0])
+
+    def test_error_state_does_not_leak_between_fetchers_on_one_thread(self):
+        fq._note_failure("https://x.org/a", self._http_error(503))
+        res = fq._run_fetcher(lambda q: {"source": "ok", "results": []}, "q")
+        self.assertNotIn("error", res)
+
+    def test_fan_out_lists_the_failed_source_and_skips_the_cache(self):
+        boom = lambda q: (fq._note_failure("https://api.semanticscholar.org/x", self._http_error(429)) or {"source": "semantic_scholar", "results": []})
+        fine = lambda q: {"source": "pubmed", "results": [{"title": "paper", "pmid": "1"}]}
+        stored = []
+        with mock.patch.dict(fq._FETCHERS, {"semantic_scholar": boom, "pubmed": fine}), \
+             mock.patch.object(fq, "_cache_get", return_value=None), mock.patch.object(fq, "_cache_set", side_effect=lambda *a: stored.append(a)):
+            out = fq.federated_query("kras g12c", entity_type="literature", sources=["semantic_scholar", "pubmed"])
+        self.assertEqual(out["sources_failed"], ["semantic_scholar"]); self.assertEqual(out["sources_succeeded"], ["pubmed"])
+        self.assertIn("HTTP 429", out["results"]["semantic_scholar"]["error"])
+        self.assertEqual(stored, [])
+
+    def test_semantic_scholar_sends_the_api_key_only_when_configured(self):
+        with mock.patch.object(fq, "_get", return_value={"data": []}) as g, mock.patch.dict(fq.os.environ, {"SEMANTIC_SCHOLAR_API_KEY": "k123"}):
+            fq._fetch_semantic_scholar("x")
+        self.assertEqual(g.call_args.kwargs.get("headers"), {"x-api-key": "k123"})
+        with mock.patch.object(fq, "_get", return_value={"data": []}) as g, mock.patch.dict(fq.os.environ, {"SEMANTIC_SCHOLAR_API_KEY": ""}):
+            fq._fetch_semantic_scholar("x")
+        self.assertIsNone(g.call_args.kwargs.get("headers"))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -108,6 +108,13 @@ _REST: List[DataSource] = [
                [SURFACE_FEDERATION, SURFACE_SINGLE]),
     DataSource("openalex", "OpenAlex", "literature", ["literature"],
                [SURFACE_FEDERATION, SURFACE_SINGLE]),
+    DataSource("crossref", "Crossref", "literature", ["literature"],
+               [SURFACE_FEDERATION],
+               note="Publisher metadata for ~150M works; also used to check that a cited DOI exists. Declared 2026-11-02: the fetcher was already wired."),
+    DataSource("corpus_fs", "Local corpus index (corpus_fs)", "literature", ["literature"],
+               [SURFACE_FEDERATION],
+               note="Grounded SQLite FTS5 index over documents ingested into this deployment. Returns nothing until a corpus is ingested "
+                    "(none is loaded by default). Declared 2026-11-02: the fetcher was already wired."),
     # ── Known gaps — declared as planned so they are visible, not forgotten ──
     DataSource("clinicaltrials", "ClinicalTrials.gov", "clinical", ["disease", "compound"],
                [SURFACE_FEDERATION],

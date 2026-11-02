@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import re
+import threading
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -137,6 +138,29 @@ def _cache_set(key: str, value: Dict, ttl: int) -> None:
 
 # ── HTTP helper ────────────────────────────────────────────────────────────────
 
+_tls = threading.local()   # last HTTP failure seen by the current fetcher thread (so a failure is not reported as "no results")
+
+
+def _note_failure(url: str, exc: Exception) -> None:
+    code = getattr(exc, "code", None)
+    host = urllib.parse.urlparse(url).netloc
+    _tls.last_error = ("HTTP %s from %s" % (code, host)) if code else ("%s from %s: %s" % (type(exc).__name__, host, str(exc)[:120]))
+
+
+def _run_fetcher(fn, query: str) -> Dict:
+    """Run one fetcher and surface HTTP failures. A fetcher that swallowed an error and found nothing is an ERROR
+    (rate limit, timeout, outage), never "ok, 0 results". If it found something, the failure is kept as a warning."""
+    _tls.last_error = None
+    res = fn(query)
+    err = getattr(_tls, "last_error", None)
+    if err and isinstance(res, dict):
+        if res.get("results"):
+            res = {**res, "warnings": (res.get("warnings") or []) + [err]}
+        else:
+            res = {**res, "error": err, "status": "error"}
+    return res
+
+
 def _get(url: str, headers: Optional[Dict] = None) -> Optional[Any]:
     if _OFFLINE:
         return _offline_lookup(url)
@@ -149,6 +173,7 @@ def _get(url: str, headers: Optional[Dict] = None) -> Optional[Any]:
             return json.loads(resp.read().decode())
     except Exception as e:
         log.debug("[federated_query] GET %s → %s", url, e)
+        _note_failure(url, e)
         return None
 
 def _post_json(url: str, payload: Dict) -> Optional[Any]:
@@ -165,6 +190,7 @@ def _post_json(url: str, payload: Dict) -> Optional[Any]:
             return json.loads(resp.read().decode())
     except Exception as e:
         log.debug("[federated_query] POST %s → %s", url, e)
+        _note_failure(url, e)
         return None
 
 # ── Entity type detection ──────────────────────────────────────────────────────
@@ -518,8 +544,9 @@ def _fetch_semantic_scholar(query: str) -> Dict:
     """Semantic Scholar — citation graph, influential papers, open-access PDFs."""
     q = urllib.parse.quote(query)
     fields = "title,authors,year,citationCount,openAccessPdf,abstract"
+    key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY", "").strip()   # without a key the shared limit often returns HTTP 429
     data = _get(f"https://api.semanticscholar.org/graph/v1/paper/search"
-                f"?query={q}&limit=5&fields={fields}")
+                f"?query={q}&limit=5&fields={fields}", headers=({"x-api-key": key} if key else None))
     results = []
     for p in (data or {}).get("data", [])[:5]:
         results.append({
@@ -746,7 +773,7 @@ def federated_query(
 
     with ThreadPoolExecutor(max_workers=_POOL_SIZE) as pool:
         future_to_source = {
-            pool.submit(_FETCHERS[src], query): src
+            pool.submit(_run_fetcher, _FETCHERS[src], query): src
             for src in target_sources
         }
         try:
@@ -758,7 +785,10 @@ def federated_query(
                     if "results" in result and isinstance(result["results"], list):
                         result["results"] = result["results"][:max_results_per_source]
                     results[src] = result
-                    succeeded.append(src)
+                    if isinstance(result, dict) and result.get("error") and not result.get("results"):
+                        failed.append(src)
+                    else:
+                        succeeded.append(src)
                 except Exception as e:
                     log.warning("[federated_query] %s failed: %s", src, e)
                     failed.append(src)
@@ -783,7 +813,8 @@ def federated_query(
     }
 
     ttl = _CACHE_TTL_LITERATURE if detected == "literature" else _CACHE_TTL_STABLE
-    _cache_set(cache_key, out, ttl)
+    if not failed:   # never cache a partial answer: a rate limit would persist for the whole TTL
+        _cache_set(cache_key, out, ttl)
     return out
 
 # ── Result merging ─────────────────────────────────────────────────────────────
