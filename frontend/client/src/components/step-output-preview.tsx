@@ -42,7 +42,7 @@ import { SingleCellSummaryPanel } from "./viewers/single-cell-summary";
 
 export interface StepOutputPreviewProps {
   runId: string;
-  file: { name: string; path: string; extension: string };
+  file: { name: string; path: string; extension: string; size?: number };
   onClose: () => void;
   /**
    * Optional project ID threaded through from callers with project context.
@@ -346,7 +346,7 @@ function RObjectPreview({ runId, file, onClose, projectId }: StepOutputPreviewPr
   const [sidecarTried, setSidecarTried] = useState(false);
   const { data: itAvail } = useInteractiveToolsAvailable();
   const rstudioAvailable = !itAvail || itAvail.tools.rstudio; // optimistic until known
-  const output = { id: file.path, name: file.name, size: 0, type: file.extension };
+  const output = { id: file.path, name: file.name, size: file.size ?? 0, type: file.extension };
 
   // Try to fetch the sidecar produced alongside the .rds (best-effort, graceful).
   useEffect(() => {
@@ -447,7 +447,7 @@ function SingleCellPreview({ runId, file, onClose }: StepOutputPreviewProps) {
   const cellxgeneAvailable = !itAvail || itAvail.tools.cellxgene;
   const jupyterAvailable = !itAvail || itAvail.tools.jupyter;
   const anyAvailable = cellxgeneAvailable || jupyterAvailable;
-  const output = { id: file.path, name: file.name, size: 0, type: file.extension };
+  const output = { id: file.path, name: file.name, size: file.size ?? 0, type: file.extension };
 
   const openWith = (tool: 'cellxgene' | 'jupyter') => {
     setLauncherTool(tool);

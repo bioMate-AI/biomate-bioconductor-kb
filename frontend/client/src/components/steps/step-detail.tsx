@@ -37,6 +37,8 @@ export interface StepDetailOutput {
   name: string;
   path: string;
   extension: string;
+  /** Real byte size, when the backend output record carries it. */
+  size?: number;
 }
 
 /** Origin of a resolved parameter value. */
@@ -426,7 +428,7 @@ export function StepDetail({
                     // Remount when the selected output changes so the viewer refetches.
                     key={selected.id}
                     runId={runId}
-                    file={{ name: selected.name, path: selected.path, extension: selected.extension }}
+                    file={{ name: selected.name, path: selected.path, extension: selected.extension, size: selected.size }}
                     onClose={() => { /* the detail surface owns closing */ }}
                     projectId={projectId}
                   />

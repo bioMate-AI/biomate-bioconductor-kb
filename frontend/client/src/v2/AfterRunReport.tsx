@@ -1149,7 +1149,10 @@ function OutputsTab({
             // Don't surface an opaque run/history id (76d11493) as the step label.
             const isOpaqueId = /^[0-9a-f]{6,}$/i.test(rawStep) || /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(rawStep) || /^\d+$/.test(rawStep);
             const step = isOpaqueId ? "" : rawStep;
-            return { step, name, path: filePath, ext };
+            // Real byte size is in the fetched output_files payload — thread it
+            // so the card shows the actual size (humanSize) instead of nothing.
+            const size = typeof (f as any).size === "number" ? (f as any).size : undefined;
+            return { step, name, path: filePath, ext, size };
           }),
         );
       } catch { /* silent — empty state still useful */ }

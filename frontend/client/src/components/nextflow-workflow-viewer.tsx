@@ -253,6 +253,9 @@ export function buildStepDetailStep(step: any): StepDetailStep {
           name: String(f.name),
           path: String(f.path),
           extension: String(f.extension ?? f.name?.split(".").pop() ?? ""),
+          // Thread the real byte size through so the Full Step View / preview
+          // shows actual sizes instead of 0 B (it's in step.outputFiles).
+          size: typeof f.size === "number" ? f.size : undefined,
         }))
     : [];
   return {
@@ -2990,7 +2993,10 @@ export function NextflowWorkflowViewer({
                   /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(rawStep) || // uuid
                   /^\d+$/.test(rawStep);                         // pure numeric id
                 const step = isOpaqueId ? '' : rawStep;
-                return { step, name, path: filePath, ext };
+                // Thread the real byte size through (it's in the s3_output_files
+                // payload) so the Outputs tab shows actual sizes, not 0 B.
+                const size = (typeof f === 'object' && typeof f.size === 'number') ? f.size : undefined;
+                return { step, name, path: filePath, ext, size };
               });
             })()}
           />
