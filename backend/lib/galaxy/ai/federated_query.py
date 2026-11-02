@@ -94,7 +94,7 @@ ENTITY_SOURCES: Dict[str, List[str]] = {
     "pathway":    ["kegg", "reactome", "go", "pubmed"],
     "structure":  ["pdb", "alphafold", "interpro"],
     "disease":    ["hpo", "clinvar", "pubmed", "europepmc", "semantic_scholar"],
-    "literature": ["corpus_fs", "paperclip", "pubmed", "europepmc", "semantic_scholar", "openalex", "crossref"],
+    "literature": ["corpus_fs", "paperclip", "pubmed", "europepmc", "biorxiv", "semantic_scholar", "openalex", "crossref"],
 }
 
 # ── Redis cache ────────────────────────────────────────────────────────────────
@@ -454,6 +454,35 @@ def _fetch_europepmc(query: str) -> Dict:
         })
     return {"source": "europepmc", "results": results}
 
+def _fetch_biorxiv(query: str) -> Dict:
+    """bioRxiv + medRxiv preprints, searched through Europe PMC (which indexes every bioRxiv/medRxiv preprint and,
+    unlike the bioRxiv API, supports keyword search). Preprints are NOT peer reviewed; each row says so."""
+    scoped = f'({query}) AND SRC:PPR AND (PUBLISHER:"bioRxiv" OR PUBLISHER:"medRxiv")'
+    q = urllib.parse.quote(scoped)
+    data = _get(f"https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+                f"?query={q}&format=json&pageSize=5&resultType=core&sort=P_PDATE_D%20desc")
+    results = []
+    for p in (data or {}).get("resultList", {}).get("result", [])[:5]:
+        doi = p.get("doi")
+        server = ((p.get("bookOrReportDetails") or {}).get("publisher") or "bioRxiv/medRxiv")
+        if not doi or not p.get("title"):
+            continue
+        results.append({
+            "doi": doi,
+            "title": p.get("title"),
+            "authors": p.get("authorString"),
+            "year": (p.get("firstPublicationDate") or "")[:4] or p.get("pubYear"),
+            "published": p.get("firstPublicationDate"),
+            "server": server,
+            "url": f"https://doi.org/{doi}",
+            "abstract": (p.get("abstractText") or "")[:500],
+            "evidence_kind": "preprint_abstract",
+            "peer_reviewed": False,
+            "europepmc_id": p.get("id"),
+        })
+    return {"source": "biorxiv", "results": results}
+
+
 def _fetch_semantic_scholar(query: str) -> Dict:
     """Semantic Scholar — citation graph, influential papers, open-access PDFs."""
     q = urllib.parse.quote(query)
@@ -606,6 +635,7 @@ def _fetch_paperclip(query: str) -> Dict:
 
 _FETCHERS = {
     "paperclip":        _fetch_paperclip,
+    "biorxiv":          _fetch_biorxiv,
     "ncbi_gene":        _fetch_ncbi_gene,
     "uniprot":          _fetch_uniprot,
     "pdb":              _fetch_pdb,
