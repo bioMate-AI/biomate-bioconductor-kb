@@ -32,6 +32,22 @@ The pieces are separate because search, target-ID and the campaign are not steps
 
 **Target-ID is not a separate engine.** It is a plan template: parallel channel steps (Open Targets, STRING, pathway, hospital tables, LLM-reasoned; later a trial-corpus reader, the switch-like prior, Paperclip) -> the arbiter as the *reduce* node -> optional `validation_plan` chain. Each channel already has the `Channel.run` contract, so migration = register channels as capability steps and replace its private fan-out with `map_reduce`. The arbiter (harmonic sum, tiers, honest-framing rules) stays as target-ID's domain reduce function. Results feed any later step (e.g. screening, then a campaign).
 
+## Human gates (a property of the step, for every chain and loop)
+Each step declares `gate`: `none`, `review` (does not block; edits feed the next step) or `approve` (blocks until the person decides). Defaults by step class:
+
+| Step class | Default | Examples |
+|---|---|---|
+| Mechanical, reversible, cheap | none | search, read, standard analysis, QC checks |
+| Scientific choice | approve | which target, gap or design; accepting assumptions |
+| Spend or compute above a threshold | approve, estimate shown first | long Batch runs, large LLM fan-outs |
+| Outward-facing or irreversible | approve, always | CRO orders, lab synthesis, sending results to a partner |
+| Result that changes the plan | approve | failed QC gate, weak pilot, a model that cannot discriminate |
+| Output that leaves as the person's work | review | reports, IND sections, regulatory text |
+
+Every gate shows its evidence (citations, counts, claim status). Loops declare a stopping rule and an approval cadence (e.g. approve every round early, only on a failed gate later).
+Drug-development applications: screening chain (ADMET -> docking -> binding): approve target and compound set at the start, review a blocked QC gate, approve the shortlist before it enters a campaign. Campaign round: approve the proposed batch before the CRO order export; approve before anything is synthesized; review returned assay data (outliers) before retraining; approve continue / stop / change objective at round end.
+Exists today: chain approve-each-step mode, "Confirm & Run" / "Fix now" parameter gates, QC gates, the campaign's natural handoffs (CRO order, assay ingest, LIMS poll). Missing: one declared `gate` field, the defaults above, review screens, the cost estimate before approval. The `gate` field is added to the step interface in slice S3.
+
 **Out of scope for this layer:** the run-level auto-loop (not offered in the product now); the dormant `agent_orchestrator` (legacy; its specialist advice becomes context profiles).
 
 ## 3. Build order (each slice flag-gated and testable)

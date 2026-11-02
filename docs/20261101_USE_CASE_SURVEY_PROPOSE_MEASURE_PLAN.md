@@ -35,7 +35,7 @@ Failures in automatic steps surface as `unsupported` / `unverified`, not as ques
 ## 3. Build slices (each flag-gated, testable; none starts until the previous passes)
 - **S1 Tests for the corpus pieces.** Offline tests for `ingest_ctgov`, `llm_map` (fake LLM: quote verification, unsupported answers, reviewer reject, synthesis unknown-id removal). Acceptance: all pass on python3.9.
 - **S2 Command interface** (`ls/cat/grep/find/map`) over a corpus index, plus the ClinicalTrials.gov index built on EC2 spot from the S3 mirror. Acceptance: grep a condition returns real NCT ids; index row count equals 609,551.
-- **S3 Step interface and registry.** Register the existing capabilities (no behaviour change). Acceptance: a capability and a workflow are interchangeable nodes in `validate_plan`.
+- **S3 Step interface and registry**, including the declared `gate` field (`none` / `review` / `approve`) with the class defaults from the overview doc. Register the existing capabilities (no behaviour change). Acceptance: a capability and a workflow are interchangeable nodes in `validate_plan`.
 - **S4 Capability steps in chain DAGs** (plan format, executor, `max_parallel`); `map` node + `reduce` node; reviewer node. Acceptance: a fan-out of N fake items runs, a failed item is isolated.
 - **S5 New steps:** structured paper extraction schema, gap finder, study proposer, dataset feasibility. Acceptance: each returns an envelope with provenance and honest status.
 - **S6 Gates and review screens** (H1-H7), reusing approve-each-step. Acceptance: the run halts at H3 and H6 and resumes with the person's choice.
