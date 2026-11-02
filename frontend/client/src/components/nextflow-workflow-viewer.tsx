@@ -46,6 +46,13 @@ interface NextflowWorkflowViewerProps {
   onResume?: () => void;
   onCancel?: () => void;
   status?: 'idle' | 'running' | 'paused' | 'completed' | 'failed' | 'pending_review';
+  /**
+   * A user-cancelled run is terminal like 'failed' (after-run tab, terminal
+   * footer) but is NOT a failure — render it neutrally ("Cancelled", gray, no
+   * red "FAILED"/"Restart"). We keep `status==='failed'` for the terminal-state
+   * machinery and use this flag only to override the user-visible presentation.
+   */
+  wasCancelled?: boolean;
   errorMessage?: string;
   progress?: number;
   onParameterChange?: (id: string, value: any) => void;
@@ -1128,6 +1135,7 @@ export function NextflowWorkflowViewer({
   onResume,
   onCancel,
   status = 'idle',
+  wasCancelled = false,
   errorMessage,
   progress = 0,
   onParameterChange,
@@ -2808,11 +2816,13 @@ export function NextflowWorkflowViewer({
                 {/* Only show chip for non-idle states */}
                 {status !== 'idle' && (
                   <span
-                    className={`chip${status === 'running' ? ' run' : status === 'completed' ? ' ok' : status === 'failed' ? ' err' : ''}`}
+                    className={`chip${wasCancelled ? '' : status === 'running' ? ' run' : status === 'completed' ? ' ok' : status === 'failed' ? ' err' : ''}`}
                     data-testid="workflow-overall-status-badge"
-                    data-status={status}
+                    data-status={wasCancelled ? 'cancelled' : status}
                   >
-                    {(['running', 'completed', 'failed', 'queued', 'cancelled', 'pending'].includes(status)
+                    {wasCancelled
+                      ? tStatus('cancelled')
+                      : (['running', 'completed', 'failed', 'queued', 'cancelled', 'pending'].includes(status)
                       ? tStatus(status)
                       : status.toUpperCase())}
                   </span>
@@ -2903,7 +2913,7 @@ export function NextflowWorkflowViewer({
             width: 6,
             height: 6,
             borderRadius: 999,
-            background: status === 'failed' ? 'oklch(0.62 0.18 25)' : 'oklch(0.65 0.15 145)',
+            background: wasCancelled ? 'oklch(0.62 0.01 260)' : status === 'failed' ? 'oklch(0.62 0.18 25)' : 'oklch(0.65 0.15 145)',
           }} />
         );
         return (
@@ -3582,7 +3592,9 @@ export function NextflowWorkflowViewer({
             {/* ── No steps found after fetch completed ─────────────────────── */}
             {groupedPhases.length === 0 && !lazyStepsFetching && lazySteps !== null && (workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (
               <div style={{ minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 18px', color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}>
-                {status === 'failed'
+                {wasCancelled
+                  ? tOr('panel.run_cancelled_no_phases', 'Run was cancelled before any phases completed.')
+                  : status === 'failed'
                   ? tOr('panel.run_failed_no_phases', 'Run failed before any phases started. Check the error details above.')
                   : tOr('panel.phases_appear', 'Execution phases will appear here once the workflow starts.')}
               </div>
@@ -4211,7 +4223,9 @@ export function NextflowWorkflowViewer({
                   : undefined
               }
             >
-              {status === 'failed' ? (
+              {wasCancelled ? (
+                t('panel.footer.run_again')
+              ) : status === 'failed' ? (
                 canResumeFailed
                   ? (_failure?.suggested_action === 'fix_and_resume' ? t('panel.footer.fix_and_resume') : t('panel.footer.resume_from_last'))
                   : t('panel.footer.restart')

@@ -2487,6 +2487,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                       autofix={runMatchesPanel ? currentRun?.execution?.nextflowStatus?.autofix : undefined}
                       nextflowStatus={runMatchesPanel ? currentRun?.execution?.nextflowStatus : undefined}
                       status={runMatchesPanel && currentRun ? viewerStatus : (panelWorkflow?.workflowViewerStatus || viewerStatus)}
+                      wasCancelled={runMatchesPanel && currentRun ? execStatusStr === 'cancelled' : false}
                       errorMessage={runMatchesPanel ? currentRun?.execution?.errorMessage : undefined}
                       progress={workflowProgress}
                       onExecute={(params) => {
