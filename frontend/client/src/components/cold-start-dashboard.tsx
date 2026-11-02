@@ -996,17 +996,27 @@ export function ColdStartDashboard({ onSeed }: ColdStartDashboardProps) {
         width: "100%",
         maxWidth: 792,
         margin: "0 auto",
-        padding: "32px 0 8px",
+        padding: "24px 0 8px",
+        // Rebalance (2026-11-01): center the cold-start content in the available
+        // canvas instead of pinning it to the top with a large empty void below.
+        minHeight: "52vh",
+        justifyContent: "center",
       }}
     >
-      {/* Single launcher: the pinned bottom composer (it already carries the
-          lane/routing preview via LanePreview). A second centred input here was
-          the "double composer" (audit C1#2); removed. The module cards + example
-          rows below seed that one composer. Heading only. */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <span style={{ fontSize: 18, textAlign: "center", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
+      {/* Cold-start hero: heading + a prominent "describe the goal" input,
+          re-mounted 2026-11-01 (per request). The cold-start view fills the empty
+          canvas with a clear primary action instead of relying solely on the
+          pinned bottom composer. It seeds the same composer the module cards +
+          example rows use, and the cold-start is replaced the moment the first
+          message is sent, so it does not persist alongside the bottom composer
+          during a conversation (which was the original "double composer" concern). */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center" }}>
+        <span style={{ fontSize: 20, textAlign: "center", fontWeight: 600, letterSpacing: "-0.02em", color: "var(--bm-text, oklch(0.22 0.01 260))" }}>
           {t('cold_start.heading')}
         </span>
+        <div style={{ width: "100%", maxWidth: 640 }}>
+          <IntentBar onSeed={onSeed} />
+        </div>
       </div>
       <div
         style={{
