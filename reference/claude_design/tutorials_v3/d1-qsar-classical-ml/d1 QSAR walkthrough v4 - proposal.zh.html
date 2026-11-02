@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate · D1 QSAR — walkthrough v4 (proposal)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../_ui/bm-ui.css"/>
+<link rel="stylesheet" href="../_v4.css"/>
+<link rel="stylesheet" href="../_lens.css"/>
+<style>
+.fit svg{width:100%;height:auto}
+.hero-band{position:absolute;left:110px;top:470px;width:1700px;display:grid;grid-template-columns:1fr 70px 1.25fr 70px 1fr;align-items:stretch}
+.hero-band .box{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--sh);padding:24px 28px;display:flex;flex-direction:column;gap:14px;min-height:270px}
+.hero-band .box .k{font:600 14px/1 var(--ff-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.hero-band .arr{display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--hot)}
+.smiles{font:500 26px/1.45 var(--ff-mono);color:var(--ink);word-break:break-all;min-height:76px}
+.smiles::after{content:"";display:inline-block;width:3px;height:28px;background:var(--hot);vertical-align:-4px;margin-left:2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.big{font:700 120px/1 var(--ff-mono);letter-spacing:-.05em;color:var(--ink)}
+.big small{font:600 24px/1 var(--ff-ui);letter-spacing:0;color:var(--mut);margin-left:10px}
+.simbar{height:12px;border-radius:99px;background:var(--bm-surface-3);overflow:hidden}
+.simbar i{display:block;height:100%;width:0;background:var(--hot);border-radius:99px;transition:width 1.2s cubic-bezier(.2,1,.3,1)}
+.nb{display:grid;grid-template-columns:1fr 120px;gap:8px 18px;align-items:center}
+.nb .smi{font:500 22px/1.3 var(--ff-mono);color:var(--ink)}
+.nb .pv{font:600 34px/1 var(--ff-mono);color:var(--ink);text-align:right}
+.cmp th,.cmp td{padding:16px 18px;font-size:22px}
+.cmp thead th{font:600 19px/1.3 var(--ff-ui);color:var(--ink)}
+.cmp thead th em{display:block;font:500 15px/1.3 var(--ff-mono);font-style:normal;color:var(--mut);letter-spacing:.06em;text-transform:uppercase}
+.cmp tbody th{color:var(--mut);font-size:20px}
+.cmp .rf{background:color-mix(in oklch,var(--hot-soft) 0%,transparent);transition:background .5s}
+.cmp.hlon .rf{background:var(--hot-soft)}
+.cmp.hlon thead .rf{color:var(--hot)}
+.foot{display:flex;align-items:center;gap:14px;padding:16px 24px;border-top:1px solid var(--line)}
+.foot .note{font-size:16px;color:var(--mut);margin-right:auto}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:10px 18px;font-size:17px;align-items:center}
+.kv dt{font-family:var(--ff-mono);font-size:15px;color:var(--mut)}
+.kv dd{margin:0;font-family:var(--ff-mono);color:var(--ink);font-size:15px;justify-self:start}
+.qm{position:absolute;display:flex;align-items:center;gap:10px;font:600 15px/1 var(--ff-mono);white-space:nowrap}
+.qm i{width:24px;height:24px;border-radius:50%;border:4px solid #fff;box-shadow:0 0 0 3px currentColor,0 4px 10px rgba(0,0,0,.2);background:currentColor}
+.qm.q1{color:var(--ok)}.qm.q2{color:var(--warn)}
+.qm.q2 i{border-radius:6px}
+.tabs{display:flex;gap:26px;padding:0 24px;border-bottom:1px solid var(--line);font-size:21px;color:var(--mut)}
+.tabs span{padding:14px 0}.tabs .on1{color:var(--ink);font-weight:600;box-shadow:inset 0 -3px var(--ink)}
+.ans{font-size:24px;line-height:1.4;color:var(--ink);font-weight:600;margin:0}
+.doc{padding:30px 44px;display:flex;flex-direction:column;gap:18px}
+.doc h3{margin:0;font-size:32px;letter-spacing:-.02em;color:var(--ink)}
+.doc h4{margin:0 0 6px;font:600 13px/1 var(--ff-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--acc)}
+.doc p{margin:0;font-size:18px;line-height:1.55;color:var(--ink2)}
+.doc .res{display:grid;grid-template-columns:280px 1fr;gap:28px;align-items:start}
+.doc .fig{border:1px solid var(--line);border-radius:12px;padding:10px}
+.doc .fig .cap{font-size:13px;color:var(--mut);margin-top:4px}
+.ends{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.ends span{font:600 21px/1 var(--ff-ui);color:#fff;background:var(--hot);padding:14px 18px;border-radius:12px;align-self:flex-start;box-shadow:0 10px 24px color-mix(in oklch,var(--hot) 35%,transparent)}
+.edit-caret{display:inline-block;width:2px;height:22px;background:var(--hot);vertical-align:-4px;animation:blink 1s steps(1) infinite}
+</style>
+</head>
+<body data-deck="d1v4zh">
+<header class="rail">
+<span class="brand"><img src="../assets/biomate-logo.png" alt=""/>BioMate</span>
+<span class="ep">D1 · 经典机器学习 QSAR</span>
+<nav class="journey" aria-label="Episode journey"><span data-j="1"><i>1</i>数据</span><span class="sep"></span><span data-j="2"><i>2</i>工作流</span><span class="sep"></span><span data-j="3"><i>3</i>结果</span><span class="sep"></span><span data-j="4"><i>4</i>报告</span></nav>
+<div class="ctl"><button class="pv" aria-label="Previous">‹</button><button class="pp" aria-label="Play or pause">❚❚</button><button class="nx" aria-label="Next">›</button><span class="n">1 / 8</span><button class="ovb" aria-label="Overview" title="Overview (O)">▦</button></div>
+</header>
+<div class="prog"></div>
+<section class="scene" data-seconds="30" data-journey="0" data-label="01 · 问题" >
+<div class="s-text hero" style="width:1700px;top:46%;transform:translateY(-50%)">
+<div class="kick in" data-at="0.2">问题 <em>· 第 D1 集 · QSAR</em></div>
+<h1 class="in" data-at="0.5" style="font-size:76px">你设计了一批新分子，<br/>哪些值得先合成？</h1>
+<p class="lead in" data-at="1.2" style="max-width:1100px">QSAR 从分子结构出发回答：先从已测化合物中学习构效关系，再预测新设计分子的活性。</p>
+</div>
+
+<div class="in" data-at="13" style="position:absolute;left:110px;top:820px;width:1700px;display:grid;grid-template-columns:1fr 70px 1fr;align-items:center;gap:0">
+<div style="display:flex;align-items:center;gap:18px;font-size:24px;color:var(--ink2)"><span class="grp">你有</span><span class="att" style="margin:0"><span class="fic">CSV</span><span><b>actives.csv</b> · 42 个实测化合物</span></span></div>
+<div class="arr" style="font-size:36px;color:var(--hot);text-align:center">→</div>
+<div style="display:flex;align-items:center;gap:18px;font-size:24px;color:var(--ink)"><span class="grp">你想要</span><b>一份按优先级排序、可供下一轮合成的类似物清单</b></div>
+</div>
+<i data-jat="15" data-j="1"></i><i data-jat="16.5" data-j="2"></i><i data-jat="18" data-j="3"></i><i data-jat="19.5" data-j="4"></i><i data-jat="22" data-j="0"></i>
+</section>
+
+<section class="scene" data-seconds="36" data-journey="0" data-label="02 · 为什么可行 · 选哪种模型" >
+<div class="s-text">
+<div class="kick in" data-at="0.2">概念 <em>· QSAR 为什么可行</em></div>
+<h2 class="in" data-at="0.4">结构相似的分子，活性往往也相似。</h2>
+<p class="lead in" data-at="0.8">因此，从已测分子中学到的模型可以预测新分子的活性。</p>
+<ol class="beats">
+<li data-at="8.5" data-off="12"><b>从实测数据学习</b><span>SMILES 与对应的 pIC50。</span></li>
+<li data-at="12" data-off="21"><b>为新设计的分子打分</b><span>几分钟内评估数千个分子，只合成最有希望的。</span></li>
+<li data-at="21"><b>以随机森林为例</b><span>BioMate 也提供其他模型，可根据数据规模与任务选择。</span></li>
+</ol>
+</div>
+<div class="stage">
+<div class="crop concept pad in r" data-at="1.5" style="left:0;top:40px;width:1040px">
+<div class="ct">· 两个近邻</div>
+<div class="nb">
+<span class="smi">Cc1ccc(Nc2nccc(-c3cccnc3)n2)cc1</span><span class="pv">7.1</span>
+<span class="smi">Cc1ccc(Nc2nccc(-c3ccncc3)n2)cc1</span><span class="pv">7.3</span>
+</div>
+<div style="display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;margin-top:18px;font-size:21px;color:var(--mut)"><span>Tanimoto 相似度</span><div class="simbar"><i data-at="4" data-w="86%"></i></div><b class="mono" style="font-size:20px"><span data-at="4" data-to="0.86" data-dec="2">0.00</span></b></div>
+</div>
+<div class="crop concept in r" data-at="13" style="left:0;top:330px;width:1040px">
+<div class="ct">· 选哪种模型</div>
+<table class="t cmp" data-hl="21-36"><thead><tr><th></th><th class="rf">随机森林<em>本集示例</em></th><th>图神经网络<em>适用于大规模数据</em></th></tr></thead>
+<tbody>
+<tr><th>有标注的化合物</th><td class="rf">几十到几千个</td><td>数千乃至更多</td></tr>
+<tr><th>输入</th><td class="rf">指纹、描述符</td><td>分子图</td></tr>
+<tr><th>可解释性</th><td class="rf">自带特征重要性</td><td>需要额外工具</td></tr>
+<tr><th>算力</th><td class="rf">CPU 上几分钟，固定随机种子</td><td>GPU，运行更久</td></tr>
+</tbody></table>
+</div>
+</div>
+</section>
+
+<section class="scene" data-seconds="40" data-journey="1" data-label="03 · 带入数据" >
+<div class="s-text">
+<div class="kick in" data-at="0.2">在 BioMate 中 <em>· 1 数据</em></div>
+<h2 class="in" data-at="0.4">带上实测数据，以及你设计的分子。</h2>
+<ol class="beats">
+<li data-at="2" data-off="10"><b>在对话中附上两个文件</b><span>用自然语言提出问题。</span></li>
+<li data-at="10" data-off="16"><b>BioMate 自动识别列</b><span><code>smiles</code> 为结构列，<code>pIC50</code> 为目标列，无需手动映射。</span></li>
+<li data-at="16" data-off="22"><b>预览读取结果</b><span>运行前先查看数据行与分布。</span></li>
+<li data-at="22"><b>先做输入检查</b><span>42 个化合物足以训练；但少于 50 个属于小数据集，因此记录一条提示。</span></li>
+</ol>
+</div>
+<div class="stage">
+<div class="lens in" data-at="0.6" data-run="d1zh" data-screen="settings" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:chat-user@1.9|6:in-1@1.5|16:in-1-fig@1.9|22:in-1-checks@2L" data-rings="11-16:in-1-roles|27-40:in-1-chk-4" data-anim="17:in-1-fig"></div>
+</div>
+</section>
+<section class="scene" data-seconds="44" data-journey="2" data-label="04 · 工作流，逐步讲解" >
+<div class="s-text">
+<div class="kick in" data-at="0.2">在 BioMate 中 <em>· 2 工作流</em></div>
+<h2 class="in" data-at="0.4">三个阶段，每个参数都标明来源。</h2>
+<ol class="beats">
+<li data-at="4" data-off="14"><b>特征化：以 Morgan 指纹为例</b><span>半径 2、1024 位，每一位记录一个局部子结构。</span></li>
+<li data-at="14" data-off="25"><b>训练：以随机森林为例</b><span>在重采样数据上训练 200 棵决策树，取其平均值作为预测。</span></li>
+<li data-at="25" data-off="33"><b>先验证，再放行</b><span>五折交叉验证；只有 CV R² ≥ 0.5，阶段 B 才会开始。</span></li>
+
+</ol>
+</div>
+<div class="stage">
+<div class="lens in l" data-at="1" data-run="d1zh" data-screen="phases" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:phase-A@1.5|4:step-2@1.9|14:step-3@1.9|25:qc-A@1.8" data-rings="4-14:step-2|14-25:step-3|25-33:qc-A-1" data-size="5:540"></div>
+<div class="crop concept pad in" data-at="5" style="left:0;top:640px;width:330px;height:250px">
+<div class="ct">· 指纹</div>
+<div class="chart fit" data-chart="bits" data-at="5.6"></div>
+<p style="margin:12px 0 0;font-size:21px;color:var(--mut)">1024 位中只有几十位被点亮，每一位标记某个原子周围的一个子结构。</p>
+</div>
+<div class="crop concept pad in" data-at="15" style="left:355px;top:640px;width:330px;height:250px">
+<div class="ct">· 多棵树，一个答案</div>
+<div class="chart fit" data-chart="trees" data-w="290" data-at="16"></div>
+<p style="margin:10px 0 0;font-size:21px;color:var(--mut)">各棵树的预测略有差异，但平均值很稳定。</p>
+</div>
+<div class="crop concept pad in" data-at="26" style="left:710px;top:640px;width:330px;height:250px">
+<div class="ct">· 门控</div>
+<div style="font-size:21px;line-height:1.45;color:var(--ink2)">如果 CV R² &lt; 0.5，<b>阶段 B 会被暂停</b>：不会用未达标的模型为任何类似物打分；通过后才开始打分。</div>
+</div>
+</div>
+</section>
+<section class="scene" data-seconds="34" data-journey="2" data-label="05 · 运行、验证、放行" >
+<div class="s-text">
+<div class="kick in" data-at="0.2">在 BioMate 中 <em>· 2 工作流 · 运行中</em></div>
+<h2 class="in" data-at="0.4">看它运行，并看懂这个分数为什么可信。</h2>
+<ol class="beats">
+<li data-at="2" data-off="10"><b>步骤依次完成</b><span>在托管算力上运行，无需本地安装。</span></li>
+<li data-at="10" data-off="21"><b>每一折留出五分之一</b><span>五分之四用于训练，剩下五分之一用于测试，轮换五次。</span></li>
+<li data-at="21"><b>关卡通过，才进入阶段 B</b><span>CV R² 0.72 达到 ≥ 0.5 的判据，开始打分。</span></li>
+</ol>
+</div>
+<div class="stage">
+<div class="lens in l" data-at="0.6" data-run="d1zh" data-screen="running" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:phase-A@1.5|21:qc-A@1.8|26:phase-B@1.6" data-rings="10-21:step-4|21-27:qc-A-1" data-progress="0:1|2:2|4:3|7:4|22:5|25:6|27:7|30:8" data-size="10:500"></div>
+<div class="crop concept pad in" data-at="10.5" style="left:0;top:600px;width:1040px;display:grid;grid-template-columns:1fr 1fr;gap:4px 40px;align-items:center">
+<div class="ct">· 五折交叉验证</div>
+<div style="grid-column:1/-1;display:flex;gap:16px;font-size:16px;color:var(--mut);margin-bottom:6px"><span><i style="display:inline-block;width:14px;height:14px;border-radius:4px;background:var(--hot);vertical-align:-2px;margin-right:6px"></i>留出</span><span><i style="display:inline-block;width:14px;height:14px;border-radius:4px;background:var(--acc-soft);vertical-align:-2px;margin-right:6px"></i>用于训练</span></div>
+<div class="fold in" data-at="11"><span class="fl">第 1 折</span><div class="sg"><i class="h"></i><i></i><i></i><i></i><i></i></div><span class="fv">0.69</span></div>
+<div class="fold in" data-at="13"><span class="fl">第 2 折</span><div class="sg"><i></i><i class="h"></i><i></i><i></i><i></i></div><span class="fv">0.75</span></div>
+<div class="fold in" data-at="15"><span class="fl">第 3 折</span><div class="sg"><i></i><i></i><i class="h"></i><i></i><i></i></div><span class="fv">0.71</span></div>
+<div class="fold in" data-at="17"><span class="fl">第 4 折</span><div class="sg"><i></i><i></i><i></i><i class="h"></i><i></i></div><span class="fv">0.74</span></div>
+<div class="fold in" data-at="19"><span class="fl">第 5 折</span><div class="sg"><i></i><i></i><i></i><i></i><i class="h"></i></div><span class="fv">0.70</span></div>
+<div class="in pop" data-at="21" style="display:flex;align-items:baseline;justify-content:space-between"><span class="grp">平均 · CV R²</span><span class="mono" style="font-size:60px;font-weight:700;color:var(--hot);letter-spacing:-.04em" data-at="21" data-to="0.72" data-dec="2">0.00</span></div>
+</div>
+</div>
+</section>
+<section class="scene" data-seconds="40" data-journey="3" data-label="06 · 结论" >
+<div class="s-text">
+<div class="kick in" data-at="0.2">在 BioMate 中 <em>· 3 结果 · 结论</em></div>
+<h2 class="in" data-at="0.4">直接回答你提出的问题。</h2>
+<ol class="beats">
+<li data-at="2" data-off="12"><b>结论先在对话中给出</b><span>哪些类似物值得合成，为什么。</span></li>
+<li data-at="12" data-off="20"><b>打开运行查看证据</b><span>面板中是完整的排序结果。</span></li>
+<li data-at="20" data-off="30"><b>按预测 pIC50 排序</b><span>每个类似物都标明编号、结构和适用域检查结果。</span></li>
+<li data-at="30"><b>超出适用域的会被标记，不参与排序</b><span>A-30 与训练集中的任何分子都不相似。</span></li>
+</ol>
+</div>
+<div class="stage">
+<div class="lens in" data-at="0.6" data-run="d1zh" data-screen="summary" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:chat-reply@2.2L" data-cursor="9:chat-runref" data-off="12"></div>
+<div class="lens in" data-at="12" data-run="d1zh" data-screen="summary" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:fd-answer@1.7L|20:fd-m-t@1.6L" data-rings="22-30:fd-m-A-07|31-40:fd-m-A-30"></div>
+</div>
+</section>
+<section class="scene" data-seconds="44" data-journey="3" data-label="07 · 结果可信吗？" >
+<div class="s-text">
+<div class="kick in" data-at="0.2">正确解读 <em>· 合成之前</em></div>
+<h2 class="in" data-at="0.4">结果可信吗？证据就在结论下方。</h2>
+<ol class="beats">
+<li data-at="2" data-off="10"><b>模型通过判据</b><span>CV R² 0.72，判据为 ≥ 0.5。</span></li>
+<li data-at="10" data-off="20"><b>在留出数据上同样成立</b><span>在模型未见过的折上比较预测值与实测值。</span></li>
+<li data-at="20" data-off="28"><b>入选者都在适用域内</b><span>适用域之外的点都属于外推。</span></li>
+<li data-at="28" data-off="34"><b>记录了一条提示</b><span>只有 42 个化合物，交叉验证可能偏乐观。</span></li>
+<li data-at="34"><b>检查特征化方式</b><span>应为 <code>morgan_fp_r2_1024</code>，而不是模拟的后备特征。</span></li>
+</ol>
+</div>
+<div class="stage">
+<div class="lens in" data-at="0.6" data-run="d1zh" data-screen="summary" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:fd-global@1.7|10:fig-cv@1.9|20:fig-ad@1.9|28:fd-global@1.7" data-rings="2-10:tiles-1|29-34:tiles-3" data-anim="10:fig-cv|20:fig-ad" data-size="34:560"></div>
+<div class="lens in" data-at="34" data-run="d1zh" data-screen="outputs:qsar_results.json" style="left:0px;top:630px;width:1040px;height:260px" data-focus="0:kv@1.8L" data-rings="35-44:kv-featurizer"></div>
+</div>
+</section>
+<section class="scene" data-seconds="40" data-journey="4" data-label="08 · 报告与收尾" >
+<div class="s-text">
+<div class="kick in" data-at="0.2">在 BioMate 中 <em>· 4 报告</em></div>
+<h2 class="in" data-at="0.4">每次运行都生成一份报告。</h2>
+<ol class="beats">
+<li data-at="2" data-off="18"><b>问题、结论、数据、方法</b><span>章节固定、顺序固定，每次运行都一样。</span></li>
+<li data-at="18" data-off="30"><b>结果、质量检查、注意事项</b><span>与面板中的内容块相同，无需重新录入。</span></li>
+<li data-at="30"><b>编辑、版本、下载</b><span>你的修改保存为 v2，运行保留原始的 v1。</span></li>
+</ol>
+</div>
+<div class="stage">
+<div class="lens in" data-at="0.6" data-run="d1zh" data-screen="report" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:doc-title@1.6L|4:doc-question@1.6L|8:doc-answer@1.6L|12:doc-data@1.6L|15:doc-method@1.6L|18:doc-results@1.25|25:doc-qc@1.6L|28:doc-caveats@1.6L|30:doc-edit@2" data-rings="18-25:doc-results|30-38:doc-edit"></div>
+</div>
+</section>
+<div class="ovw"></div>
+<script>window.BMUI={runs:{},lang:"zh",logo:"../assets/biomate-logo.png"};</script>
+<script src="../_ui/bm-ui.js"></script>
+<script src="../_ui/findings.js"></script>
+<script src="../_ui/runs.js"></script>
+<script src="../_ui/runs-d1zh.js"></script>
+<script src="../_lens.js"></script>
+<script src="../_v4.js"></script>
+</body>
+</html>

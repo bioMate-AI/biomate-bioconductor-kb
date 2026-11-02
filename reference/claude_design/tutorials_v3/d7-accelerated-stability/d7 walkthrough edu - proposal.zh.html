@@ -1,0 +1,90 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"/><title>BioMate · D7 stability — walkthrough edu (proposal)</title><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet"/><link rel="stylesheet" href="../_ui/bm-ui.css"/><link rel="stylesheet" href="../_v4.css"/><link rel="stylesheet" href="../_lens.css"/><link rel="stylesheet" href="../_deck.css"/>
+<style>
+/* edu additions: compact teaching SVG stage + 2-col compare card, all within v4 tokens */
+.csvg{width:100%;height:auto;display:block;overflow:visible}
+.cnote{font-size:19px;line-height:1.5;color:var(--ink2)}
+.cnote b{color:var(--ink)}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.vs .col{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:var(--bm-surface)}
+.vs .col.deep{border-color:var(--ok);background:var(--ok-soft)}
+.vs .col .k{font:600 13px/1 var(--ff-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin-bottom:6px}
+.vs .col.deep .k{color:var(--ok)}
+.vs .col h4{margin:0 0 10px;font:600 21px/1.2 var(--ff-ui);color:var(--ink)}
+.vs .col p{margin:0;font-size:17px;line-height:1.5;color:var(--ink2)}
+.vs .col .pro{color:var(--ok)}.vs .col .con{color:var(--mut)}
+</style>
+</head><body data-deck="d7zh"><header class="rail"><span class="brand"><img src="../assets/biomate-logo.png" alt=""/>BioMate</span><span class="ep">D7 · 加速稳定性 · 教程版</span><nav class="journey" aria-label="Journey"><span data-j="1"><i>1</i>数据</span><span class="sep"></span><span data-j="2"><i>2</i>工作流</span><span class="sep"></span><span data-j="3"><i>3</i>结果</span><span class="sep"></span><span data-j="4"><i>4</i>报告</span></nav><div class="ctl"><button class="pv" aria-label="Previous">‹</button><button class="pp" aria-label="Play or pause">❚❚</button><button class="nx" aria-label="Next">›</button><span class="n">1 / 12</span><button class="ovb" aria-label="Overview" title="Overview (O)">▦</button></div></header><div class="prog"></div>
+<section class="scene" data-seconds="30" data-journey="0" data-label="01 · 问题"><div class="s-text hero" style="width:1700px;top:46%;transform:translateY(-50%)"><div class="kick in" data-at="0.2">问题 <em>· 第 7 集 · 稳定性</em></div><h1 class="in" data-at="0.5" style="font-size:76px">哪个配方在六个月后<br/>含量仍然达标？</h1><p class="lead in" data-at="1.2" style="max-width:1100px">短时间的高温研究可以提前预示长时间常温下的结果。</p></div></section>
+<section class="scene" data-seconds="36" data-journey="0" data-label="02 · 为什么高温研究能预测常温"><div class="s-text"><div class="kick in" data-at="0.2">概念 <em>· 为什么高温研究能预测常温</em></div><h2 class="in" data-at="0.4">高温加快化学变化，让你更早看到结果。</h2><ol class="beats"><li data-at="3" data-off="12"><b>高温加快降解</b><span>Arrhenius 方程把高温下测得的速率换算成 25 °C 下的速率。</span></li><li data-at="12" data-off="22"><b>湿度有自己的影响</b><span>用一个经验因子修正水分的作用。</span></li><li data-at="22"><b>外推给配方排序</b><span>为每个配方给出含量与降解物随时间的变化。</span></li></ol></div><div class="stage"><div class="crop concept pad in r" data-at="1.5" style="left:0px;top:40px;width:1040px;"><div class="ct">· ICH 条件</div><table class="t" style="font-size:20px"><thead><tr><th>条件</th><th>温度 / 湿度</th><th>用途</th></tr></thead><tbody><tr><td><b>长期</b></td><td class="n">25 °C / 60 % RH</td><td>真实货架期的参照</td></tr><tr><td><b>加速</b></td><td class="n">40 °C / 75 % RH</td><td>本次筛选所用</td></tr><tr><td><b>强化</b></td><td class="n">50 °C / 90 % RH</td><td>找出薄弱环节</td></tr></tbody></table></div>
+<div class="crop concept pad in r" data-at="24" style="left:0px;top:400px;width:1040px;"><div class="ct">· 仅作示例</div><div style="font-size:20px;line-height:1.5;color:var(--ink2)">这里以 <b>带湿度因子的 Arrhenius 方程</b> 为例。它假设存在一条主要的温度激活降解途径，因此用于<b>初筛和研究设计</b>，之后仍需用实时的 ICH 试验箱研究确认。</div></div></div></section>
+<!-- EDU A — the waiting problem / why it matters -->
+<section class="scene" data-seconds="32" data-journey="0" data-label="概念 · 等待问题"><div class="s-text"><div class="kick in" data-at="0.2">概念 <em>· 等待问题</em></div><h2 class="in" data-at="0.4">货架期是个"等待"问题——你等不起每个处方两年。</h2><ol class="beats"><li data-at="2" data-off="12"><b>多个候选处方</b><span>同一个原料药，几套辅料体系在竞争。</span></li><li data-at="12" data-off="22"><b>实时研究很慢</b><span>确凿的货架期要跑完产品宣称的整个有效期。</span></li><li data-at="22"><b>需要以物理为根基的早判</b><span>把稳健的处方往下推进，脆弱的降级。</span></li></ol></div><div class="stage"><div class="crop concept pad in r" data-at="1" style="left:0px;top:110px;width:1040px;"><div class="ct">· 等待问题</div><svg class="csvg" viewBox="0 0 980 300" preserveAspectRatio="xMidYMid meet">
+<text x="30" y="34" fill="var(--acc)" font-family="JetBrains Mono" font-size="17" font-weight="600">同一个原料药，多套辅料处方</text>
+<text x="30" y="92" fill="var(--mut)" font-family="JetBrains Mono" font-size="15">实时 · 25 °C</text>
+<rect x="150" y="70" width="740" height="34" rx="9" fill="var(--warn-soft)" stroke="var(--line2)"/>
+<text x="168" y="92" fill="var(--warn)" font-family="Inter" font-size="18" font-weight="600">跑完整个货架期 ≈ 两年</text>
+<circle cx="890" cy="87" r="7" fill="var(--warn)"/><text x="890" y="128" fill="var(--mut)" font-family="JetBrains Mono" font-size="14" text-anchor="middle">确凿答案</text>
+<text x="30" y="192" fill="var(--mut)" font-family="JetBrains Mono" font-size="15">加速 · 40 °C</text>
+<rect x="150" y="170" width="180" height="34" rx="9" fill="var(--acc-soft)" stroke="var(--acc)" stroke-width="1.6"/>
+<text x="168" y="192" fill="var(--acc)" font-family="Inter" font-size="18" font-weight="600">数周–数月</text>
+<path d="M332 187 L878 187" stroke="var(--ok)" stroke-width="2.4" stroke-dasharray="7 6"/><polygon points="890,187 875,180 875,194" fill="var(--ok)"/>
+<text x="470" y="160" fill="var(--ok)" font-family="JetBrains Mono" font-size="15" font-weight="600">外推预示长期结果</text>
+<rect x="30" y="245" width="920" height="40" rx="12" fill="var(--hot-soft)" stroke="var(--hot)"/>
+<text x="52" y="271" fill="var(--hot)" font-family="Inter" font-size="19" font-weight="600">早期就要分流——不能先对每个处方都等上两年。</text>
+</svg></div></div></section>
+
+<!-- EDU B — degradation kinetics -->
+<section class="scene" data-seconds="34" data-journey="0" data-label="概念 · 降解动力学"><div class="s-text"><div class="kick in" data-at="0.2">概念 <em>· 降解动力学</em></div><h2 class="in" data-at="0.4">降解是一条曲线：含量往下，降解物往上。</h2><ol class="beats"><li data-at="2" data-off="12"><b>含量下降，降解物累积</b><span>原料药随时间分解，降解物随之增多。</span></li><li data-at="12" data-off="22"><b>货架期是达标的那段时间</b><span>含量保持在标准线之上、降解物在限度内。</span></li><li data-at="22"><b>速率取决于温度</b><span>越热，曲线越陡——这正是可利用的捷径。</span></li></ol></div><div class="stage"><div class="crop concept pad in r" data-at="1" style="left:0px;top:90px;width:1040px;"><div class="ct">· 降解曲线</div><svg class="csvg" viewBox="0 0 980 320" preserveAspectRatio="xMidYMid meet">
+<line x1="120" y1="50" x2="120" y2="265" stroke="var(--line2)" stroke-width="1.6"/>
+<line x1="120" y1="265" x2="910" y2="265" stroke="var(--line2)" stroke-width="1.6"/>
+<text x="30" y="60" fill="var(--mut)" font-family="JetBrains Mono" font-size="14">含量 %</text>
+<text x="820" y="290" fill="var(--mut)" font-family="JetBrains Mono" font-size="14">时间 →</text>
+<line x1="120" y1="123" x2="910" y2="123" stroke="var(--hot)" stroke-width="1.8" stroke-dasharray="7 5"/>
+<text x="690" y="116" fill="var(--hot)" font-family="JetBrains Mono" font-size="14">95 % 标准下限</text>
+<path d="M120 60 Q520 92 900 150" fill="none" stroke="var(--ok)" stroke-width="3"/>
+<text x="800" y="172" fill="var(--ok)" font-family="JetBrains Mono" font-size="15" font-weight="600">25 °C</text>
+<path d="M120 60 Q330 118 520 215" fill="none" stroke="var(--warn)" stroke-width="3"/>
+<text x="430" y="150" fill="var(--warn)" font-family="JetBrains Mono" font-size="15" font-weight="600">40 °C</text>
+<circle cx="395" cy="123" r="6" fill="var(--warn)"/>
+<circle cx="790" cy="123" r="6" fill="var(--ok)"/>
+<path d="M120 258 Q450 242 900 208" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-dasharray="5 5"/>
+<text x="150" y="250" fill="var(--acc)" font-family="JetBrains Mono" font-size="14">降解物 ↑</text>
+<text x="300" y="306" fill="var(--ink2)" font-family="Inter" font-size="16">圈处是跌破标准线的时点——越热来得越早。</text>
+</svg></div></div></section>
+
+<!-- EDU C — the Arrhenius extrapolation -->
+<section class="scene" data-seconds="36" data-journey="0" data-label="概念 · Arrhenius 外推"><div class="s-text"><div class="kick in" data-at="0.2">概念 <em>· Arrhenius 外推</em></div><h2 class="in" data-at="0.4">在高温测速率，沿 Arrhenius 直线外推回 25 °C。</h2><ol class="beats"><li data-at="2" data-off="12"><b>升温加快反应</b><span>温度激活的反应快一个可预测的倍数。</span></li><li data-at="12" data-off="22"><b>沿直线外推回 25 °C</b><span>在 40 / 50 °C 测速率，换算成常温下的速率。</span></li><li data-at="22"><b>湿度因子并肩校正</b><span>再按各条件的相对湿度修正水分。</span></li></ol></div><div class="stage"><div class="crop concept pad in r" data-at="1" style="left:0px;top:70px;width:1040px;"><div class="ct">· Arrhenius 外推</div><svg class="csvg" viewBox="0 0 980 300" preserveAspectRatio="xMidYMid meet">
+<line x1="140" y1="45" x2="140" y2="255" stroke="var(--line2)" stroke-width="1.6"/>
+<line x1="140" y1="255" x2="905" y2="255" stroke="var(--line2)" stroke-width="1.6"/>
+<text x="34" y="55" fill="var(--mut)" font-family="JetBrains Mono" font-size="14">ln(速率)</text>
+<text x="660" y="282" fill="var(--mut)" font-family="JetBrains Mono" font-size="14">1 / T （越右越冷）</text>
+<line x1="205" y1="88" x2="470" y2="158" stroke="var(--hot)" stroke-width="3"/>
+<line x1="470" y1="158" x2="815" y2="245" stroke="var(--ok)" stroke-width="3" stroke-dasharray="8 6"/>
+<circle cx="205" cy="88" r="7" fill="var(--hot)"/><text x="195" y="75" fill="var(--hot)" font-family="JetBrains Mono" font-size="14">50 °C</text>
+<circle cx="470" cy="158" r="7" fill="var(--hot)"/><text x="486" y="154" fill="var(--hot)" font-family="JetBrains Mono" font-size="14">40 °C（实测）</text>
+<circle cx="815" cy="245" r="8" fill="none" stroke="var(--ok)" stroke-width="2.4"/><text x="675" y="235" fill="var(--ok)" font-family="JetBrains Mono" font-size="15" font-weight="600">25 °C（外推）</text>
+<text x="300" y="120" fill="var(--mut)" font-family="JetBrains Mono" font-size="13">斜率 ∝ 活化能</text>
+</svg><div class="cnote" style="margin-top:14px">BioMate 用<b>带湿度因子的 Arrhenius 方程</b>：温度定主速率，再按各条件的相对湿度用一个经验因子校正水分——遵循 ICH Q1A 的逻辑。</div></div></div></section>
+
+<!-- EDU D — assumptions / how to read -->
+<section class="scene" data-seconds="30" data-journey="0" data-label="概念 · 如何解读"><div class="s-text"><div class="kick in" data-at="0.2">概念 <em>· 如何解读</em></div><h2 class="in" data-at="0.4">这是分流的估计，不是货架期的证明。</h2><ol class="beats"><li data-at="2" data-off="12"><b>用来排序和设计研究</b><span>把稳健的处方往下推进，并规划正式研究。</span></li><li data-at="12"><b>最终由试验箱定论</b><span>货架期仍要在实时 ICH 研究中确认。</span></li></ol></div><div class="stage"><div class="crop concept pad in r" data-at="1" style="left:0px;top:170px;width:1040px;"><div class="ct">· 读法与边界</div><div class="vs"><div class="col"><div class="k">假设 · 何时成立</div><h4>单一主导降解途径</h4><p><span class="con">−</span> 相变、非 Arrhenius 动力学，或湿度项之外的水分机理，都会让外推失效<br/><span class="con">−</span> 湿度因子是经验模型，不是第一性原理</p></div><div class="col deep"><div class="k">读法 · 怎么用</div><h4>用于排序与设计，而非认证</h4><p><span class="pro">+</span> 为处方排序、分流，把稳健的往下推进<br/><span class="pro">+</span> 设计正式研究的条件与取样点<br/>货架期仍由实时 ICH 研究确认</p></div></div></div></div></section>
+
+<section class="scene" data-seconds="36" data-journey="1" data-label="03 · 导入配方"><div class="s-text"><div class="kick in" data-at="0.2">在 BioMate 中 <em>· 1 数据</em></div><h2 class="in" data-at="0.4">给出配方和条件。</h2><ol class="beats"><li data-at="2" data-off="10"><b>描述配方</b><span>在对话中以 JSON 给出名称、原料药、浓度和辅料。</span></li><li data-at="10" data-off="18"><b>BioMate 补全 ICH 条件组</b><span>条件和时间点按 ICH Q1A 预填。</span></li><li data-at="18" data-off="28"><b>每个参数都标明来源</b><span>条件、时间点和模型都标注为默认值。</span></li></ol></div><div class="stage"><div class="lens in" data-at="0.6" data-run="d7zh" data-screen="settings" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:chat-user@1.9|8:in-1@1.6|17:p-params@1.5" data-rings="17-27:p-params"></div></div></section>
+<section class="scene" data-seconds="44" data-journey="2" data-label="04 · 工作流，逐步讲解"><div class="s-text"><div class="kick in" data-at="0.2">在 BioMate 中 <em>· 2 工作流</em></div><h2 class="in" data-at="0.4">每个配方三个步骤。</h2><ol class="beats"><li data-at="4" data-off="16"><b>加速</b><span>Arrhenius 方程把高温速率换算成 25 °C 速率。</span></li><li data-at="16" data-off="26"><b>湿度修正</b><span>用经验因子修正水分的影响。</span></li><li data-at="26" data-off="34"><b>外推</b><span>把含量与降解物外推到每个时间点。</span></li></ol></div><div class="stage"><div class="lens in l" data-at="1" data-run="d7zh" data-screen="phases" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:phase-A@1.5|4:step-1@1.9|16:step-3@1.9|26:qc-A@1.8" data-rings="4-16:step-1|16-26:step-3|26-34:qc-A-1" data-size="5:540"></div><div class="crop concept pad in" data-at="5" style="left:0px;top:640px;width:330px;"><div class="ct">· Arrhenius</div><div style="font-size:20px;line-height:1.5;color:var(--ink2)">反应速率随温度升高而增大。高温下的速率可换算为 25 °C 下的速率。</div></div>
+<div class="crop concept pad in" data-at="17" style="left:355px;top:640px;width:330px;"><div class="ct">· 湿度</div><div style="font-size:20px;line-height:1.5;color:var(--ink2)">用一个因子，按各条件的相对湿度修正速率。</div></div>
+<div class="crop concept pad in" data-at="27" style="left:710px;top:640px;width:330px;"><div class="ct">· 外推</div><div style="font-size:20px;line-height:1.5;color:var(--ink2)">曲线覆盖 0、30、60、90、180 和 365 天。</div></div></div></section>
+<section class="scene" data-seconds="34" data-journey="2" data-label="05 · 运行外推"><div class="s-text"><div class="kick in" data-at="0.2">在 BioMate 中 <em>· 2 工作流 · 运行中</em></div><h2 class="in" data-at="0.4">看它运行，看哪些配方未达标。</h2><ol class="beats"><li data-at="2" data-off="12"><b>步骤依次完成</b><span>加速、修正、外推。</span></li><li data-at="12" data-off="22"><b>依次外推每个配方</b><span>得到每个时间点的含量与降解物。</span></li><li data-at="22"><b>两个配方低于 95 %</b><span>配方 B 和 C 到 180 天时含量损失超过 5 %。</span></li></ol></div><div class="stage"><div class="lens in l" data-at="1" data-run="d7zh" data-screen="running" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:phase-A@1.5|10:step-2@1.8|22:qc-A@1.8" data-rings="10-22:step-2|22-34:qc-A-1" data-progress="0:1|6:2|14:3|24:4"></div></div></section>
+<section class="scene" data-seconds="40" data-journey="3" data-label="06 · 结论"><div class="s-text"><div class="kick in" data-at="0.2">在 BioMate 中 <em>· 3 结果</em></div><h2 class="in" data-at="0.4">排序结果，以及背后的曲线。</h2><ol class="beats"><li data-at="2" data-off="12"><b>结论先在对话中给出</b><span>哪个配方最稳健。</span></li><li data-at="12" data-off="18"><b>打开运行查看证据</b><span>面板中是数值和曲线。</span></li><li data-at="18" data-off="28"><b>每个配方都有排名</b><span>180 天的含量与降解物并排显示。</span></li><li data-at="28"><b>曲线展示趋势</b><span>B 和 C 跌破 95 % 线，A 没有。</span></li></ol></div><div class="stage"><div class="lens in" data-at="0.6" data-run="d7zh" data-screen="summary" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:chat-reply@2.2L" data-cursor="9:chat-runref" data-off="12"></div>
+<div class="lens in" data-at="12" data-run="d7zh" data-screen="summary" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:fd-answer@1.7L|18:fd-m-t@1.5L|28:fig-stab@1.7L" data-rings="19-28:fd-m-fa|29-38:fig-stab"></div></div></section>
+<section class="scene" data-seconds="40" data-journey="3" data-label="07 · 正确解读"><div class="s-text"><div class="kick in" data-at="0.2">正确解读 <em>· 规划研究之前</em></div><h2 class="in" data-at="0.4">外推用于给配方排序，不能取代试验箱研究。</h2><ol class="beats"><li data-at="2" data-off="12"><b>用来排序，而不是认证</b><span>货架期要在实时研究中确认。</span></li><li data-at="12" data-off="24"><b>假设已写明</b><span>存在一条主要的温度激活降解途径。</span></li><li data-at="24" data-off="34"><b>可复现记录列出了设置</b><span>条件、时间点和模型，每一项都标明来源。</span></li><li data-at="34"><b>据此设计正式研究</b><span>选出值得占用试验箱的条件和配方。</span></li></ol></div><div class="stage"><div class="lens in" data-at="0.6" data-run="d7zh" data-screen="outputs:stability_projection.csv" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:o-list@1.7L|4:pv-t@1.6L|14:pv-t@1.9L" data-off="24"></div>
+<div class="lens in" data-at="24" data-run="d7zh" data-screen="record" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:r-orig@1.8L|26:r-params@1.6L|34:r-software@1.8L"></div></div></section>
+<section class="scene" data-seconds="38" data-journey="4" data-label="08 · 报告与收尾"><div class="s-text"><div class="kick in" data-at="0.2">在 BioMate 中 <em>· 4 报告</em></div><h2 class="in" data-at="0.4">报告：问题、结论、数据、方法。</h2><ol class="beats"><li data-at="2" data-off="18"><b>问题、结论、数据、方法</b><span>每次运行的报告章节相同、顺序相同。</span></li><li data-at="18" data-off="30"><b>结果与质量检查</b><span>与面板中的内容块相同，无需重新录入。</span></li><li data-at="30"><b>编辑、版本、下载</b><span>你的修改保存为 v2，运行保留原始的 v1。</span></li></ol></div><div class="stage"><div class="lens in" data-at="0.6" data-run="d7zh" data-screen="report" style="left:0px;top:40px;width:1040px;height:850px" data-focus="0:doc-title@1.6L|4:doc-question@1.6L|8:doc-answer@1.6L|12:doc-data@1.6L|15:doc-method@1.6L|18:doc-results@1.25|25:doc-qc@1.6L|28:doc-caveats@1.6L|30:doc-edit@2" data-rings="18-25:doc-results|30-38:doc-edit"></div></div></section>
+<div class="ovw"></div><script>window.BMUI={runs:{},lang:"zh",logo:"../assets/biomate-logo.png"};</script>
+<script src="../_ui/bm-ui.js"></script>
+<script src="../_ui/findings.js"></script>
+<script src="../_ui/runs.js"></script>
+<script src="../_ui/fixture-admet3.js"></script>
+<script src="../_ui/runs-more.js"></script>
+<script src="../_ui/runs-zh-more.js"></script>
+<script src="../_ui/viewer3d.js"></script>
+<script src="../_lens.js"></script><script src="../_v4.js"></script></body></html>
