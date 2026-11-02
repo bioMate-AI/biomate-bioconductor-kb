@@ -6,6 +6,7 @@ import {
   type Residency, type Scope, type DeclaredFacts,
 } from './connector-residency';
 import { PrivateDbConnectionForm } from './private-db-connection-form';
+import { AddConnectorFlow } from './add-connector-flow';
 import { SettingsDialog } from './settings-dialog';
 import { normalizeSkillPack, type SkillPack } from './skills-selector';
 import { InstrumentsSection } from './instruments-section';
@@ -524,7 +525,17 @@ export function ConnectorsDialog({ open, onOpenChange, embedded = false }: Conne
           ))}
         </div>
 
-        {adding && <div className="p-5 border-b border-border flex flex-wrap gap-3"><button className="text-sm border border-border rounded-md px-3 py-2" onClick={() => { setActiveTab('databases'); setSourceView('private'); setAdding(false); }}>Private database</button><button className="text-sm border border-border rounded-md px-3 py-2" onClick={() => { setActiveTab('mcp'); setAdding(false); }}>MCP server</button><button className="text-sm border border-border rounded-md px-3 py-2" onClick={() => { setActiveTab('databases'); setSourceView('instruments'); setAdding(false); }}>Instrument</button><button className="text-sm border border-border rounded-md px-3 py-2" onClick={() => { setSettingsOpen(true); setAdding(false); }}>Model provider</button></div>}
+        {adding && (
+          <div className="p-5 border-b border-border">
+            <AddConnectorFlow
+              onPickDatabase={() => { setActiveTab('databases'); setSourceView('private'); setAdding(false); }}
+              onPickMcp={() => { setActiveTab('mcp'); setAdding(false); }}
+              onPickModel={() => { setSettingsOpen(true); setAdding(false); }}
+              onPickSkill={() => { setActiveTab('skills'); setAdding(false); }}
+              onPickInstrument={() => { setActiveTab('databases'); setSourceView('instruments'); setAdding(false); }}
+            />
+          </div>
+        )}
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', display: 'flex', flexDirection: 'column' }}>
           {activeTab === 'databases' && <><div className="flex flex-wrap gap-2 px-5 py-3 border-b border-border">{(['public', 'private', 'instruments'] as const).map(view => <button key={view} className={sourceView === view ? 'text-xs rounded-md px-3 py-1.5 bg-muted font-semibold' : 'text-xs rounded-md px-3 py-1.5 text-muted-foreground'} onClick={() => setSourceView(view)}>{view === 'public' ? 'Public databases' : view === 'private' ? 'Private databases' : 'Instruments'}</button>)}</div>{sourceView === 'public' ? <DatabasesTab compact={embedded} selected={selectedDbs} onToggle={toggleDb} scopes={scopes} onScopeChange={setScope} /> : sourceView === 'private' ? <div className="p-5"><PrivateDbConnectionForm /></div> : <InstrumentsSection />}</>}
           {activeTab === 'ai' && <><div className="p-4"><button className="text-sm underline" onClick={() => setSettingsOpen(true)}>Configure model providers and API keys</button></div><ConnectorTable compact={embedded} rows={AI} scopes={scopes} onScopeChange={setScope} /></>}

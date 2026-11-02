@@ -3706,6 +3706,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── Connector: directory scan-preview (guided "Add a connector" → A directory) ──
+  // Scans a directory and reports file types + counts + "what each will become" so
+  // the user sees the result BEFORE anything is attached. SECURE BY DEFAULT: only a
+  // path that resolves (realpath) INSIDE a configured allow-root may be scanned.
+  //   BIOMATE_CONNECTOR_SCAN_ROOTS = colon-separated absolute roots (on-prem shares).
+  //   Empty (the cloud default) ⇒ every path is refused — user shares aren't on the
+  //   server there, and scanning arbitrary server paths must never be possible.
+  // Modelled on Galaxy library_datasets.py path-safety: realpath + allowed-roots
+  // prefix check, and symlinks are never followed during the walk (no escape).
+  const connectorScanRoots = (): string[] =>
+    (process.env.BIOMATE_CONNECTOR_SCAN_ROOTS || "")
+      .split(":").map(s => s.trim()).filter(Boolean);
+
+  const resolveScanDir = async (p: unknown): Promise<{ dir?: string; error?: string }> => {
+    const roots = connectorScanRoots();
+    if (roots.length === 0) {
+      return { error: "Directory scanning is not enabled on this deployment. It is an on-prem feature — set BIOMATE_CONNECTOR_SCAN_ROOTS to the shares you want to allow." };
+    }
+    if (!p || typeof p !== "string" || !p.startsWith("/")) {
+      return { error: "Provide an absolute directory path (e.g. /mnt/share/run_2026)." };
+    }
+    let real: string;
+    try { real = await fs.realpath(p); } catch { return { error: "Path does not exist or is not readable." }; }
+    let st; try { st = await fs.stat(real); } catch { return { error: "Path is not readable." }; }
+    if (!st.isDirectory()) return { error: "That path is a file, not a directory." };
+    for (const root of roots) {
+      let rr: string; try { rr = await fs.realpath(root); } catch { continue; }
+      if (real === rr || real.startsWith(rr + path.sep)) return { dir: real };
+    }
+    return { error: "That path is outside the directories this deployment allows scanning." };
+  };
+
+  // extension → { label, becomes } so the preview says what each file turns into.
+  const EXT_KIND: Record<string, { label: string; becomes: string }> = {
+    fastq: { label: "FASTQ", becomes: "sequencing reads" }, "fastq.gz": { label: "FASTQ (gz)", becomes: "sequencing reads" },
+    fq: { label: "FASTQ", becomes: "sequencing reads" }, "fq.gz": { label: "FASTQ (gz)", becomes: "sequencing reads" },
+    bam: { label: "BAM", becomes: "aligned reads" }, sam: { label: "SAM", becomes: "aligned reads" }, cram: { label: "CRAM", becomes: "aligned reads" },
+    vcf: { label: "VCF", becomes: "variants" }, "vcf.gz": { label: "VCF (gz)", becomes: "variants" },
+    bed: { label: "BED", becomes: "genomic intervals" }, gff: { label: "GFF", becomes: "annotations" }, gtf: { label: "GTF", becomes: "annotations" },
+    fa: { label: "FASTA", becomes: "sequences" }, fasta: { label: "FASTA", becomes: "sequences" }, fna: { label: "FASTA", becomes: "sequences" },
+    tsv: { label: "TSV", becomes: "a table" }, csv: { label: "CSV", becomes: "a table" }, txt: { label: "Text", becomes: "a text table" },
+    mrc: { label: "MRC", becomes: "cryo-EM movie/map" }, mrcs: { label: "MRCS", becomes: "cryo-EM stack" }, tif: { label: "TIFF", becomes: "an image" }, tiff: { label: "TIFF", becomes: "an image" },
+    mzml: { label: "mzML", becomes: "mass-spec data" }, mzxml: { label: "mzXML", becomes: "mass-spec data" }, raw: { label: "RAW", becomes: "mass-spec data" },
+    pdb: { label: "PDB", becomes: "a structure" }, cif: { label: "mmCIF", becomes: "a structure" }, sdf: { label: "SDF", becomes: "molecules" }, mol2: { label: "MOL2", becomes: "molecules" },
+    h5: { label: "HDF5", becomes: "an array dataset" }, h5ad: { label: "AnnData", becomes: "single-cell data" }, loom: { label: "Loom", becomes: "single-cell data" },
+    json: { label: "JSON", becomes: "structured data" }, yaml: { label: "YAML", becomes: "config" }, yml: { label: "YAML", becomes: "config" },
+    png: { label: "PNG", becomes: "an image" }, jpg: { label: "JPEG", becomes: "an image" }, jpeg: { label: "JPEG", becomes: "an image" }, pdf: { label: "PDF", becomes: "a report" },
+  };
+  const classifyExt = (name: string): { ext: string; label: string; becomes: string } => {
+    const lower = name.toLowerCase();
+    // Prefer a known compound extension (fastq.gz, vcf.gz, …) over the bare suffix.
+    const compound = lower.match(/\.([a-z0-9]+\.gz)$/)?.[1] || "";
+    const simple = lower.includes(".") ? lower.slice(lower.lastIndexOf(".") + 1) : "";
+    const key = compound && EXT_KIND[compound] ? compound : simple;
+    const k = EXT_KIND[key];
+    return { ext: key || "(no ext)", label: k?.label || (key ? key.toUpperCase() : "Other"), becomes: k?.becomes || "a file" };
+  };
+
+  app.post("/api/connectors/directory/scan", optionalAuth, express.json(), async (req, res) => {
+    const { dir, error } = await resolveScanDir(req.body?.path);
+    if (error || !dir) return res.json({ ok: false, message: error });
+    try {
+      const MAX_FILES = 20000, MAX_DEPTH = 8;
+      const byExt = new Map<string, { label: string; becomes: string; count: number; bytes: number }>();
+      let totalFiles = 0, totalBytes = 0, truncated = false, skippedLinks = 0;
+      const walk = async (d: string, depth: number): Promise<void> => {
+        if (depth > MAX_DEPTH || totalFiles >= MAX_FILES) return;
+        let entries;
+        try { entries = await fs.readdir(d, { withFileTypes: true }); } catch { return; }
+        for (const e of entries) {
+          if (totalFiles >= MAX_FILES) { truncated = true; break; }
+          if (e.isSymbolicLink()) { skippedLinks++; continue; } // never follow symlinks (no escape)
+          const full = path.join(d, e.name);
+          if (e.isDirectory()) { await walk(full, depth + 1); continue; }
+          if (!e.isFile()) continue;
+          let size = 0; try { size = (await fs.stat(full)).size; } catch { /* unreadable; count anyway */ }
+          const { ext, label, becomes } = classifyExt(e.name);
+          const cur = byExt.get(ext) || { label, becomes, count: 0, bytes: 0 };
+          cur.count++; cur.bytes += size; byExt.set(ext, cur);
+          totalFiles++; totalBytes += size;
+        }
+      };
+      await walk(dir, 0);
+      const mapping = Array.from(byExt.entries())
+        .map(([ext, v]) => ({ ext, label: v.label, becomes: v.becomes, count: v.count, bytes: v.bytes }))
+        .sort((a, b) => b.count - a.count);
+      const warnings: string[] = [];
+      if (truncated) warnings.push(`Only the first ${MAX_FILES.toLocaleString()} files were counted — the directory is larger.`);
+      if (skippedLinks > 0) warnings.push(`${skippedLinks} symbolic link(s) were skipped (links are never followed).`);
+      return res.json({ ok: true, summary: { totalFiles, totalBytes, root: dir }, mapping, warnings });
+    } catch (e: any) {
+      console.error("[ConnectorScan] Error:", e);
+      return res.json({ ok: false, message: e?.message || "Scan failed" });
+    }
+  });
+
+  app.post("/api/connectors/directory/attach", optionalAuth, express.json(), async (req, res) => {
+    const { dir, error } = await resolveScanDir(req.body?.path);
+    if (error || !dir) return res.json({ ok: false, message: error });
+    const mode = req.body?.mode === "copy" ? "copy" : "index";
+    try {
+      // Index-in-place: register the directory as ONE path dataset object (residency
+      // "mount" — nothing copied). Copy-in isn't a server-side bulk copy here; it
+      // still registers the path and records the intent (a true copy belongs to a
+      // background job). Reuses the same session-ref shape as /register-path.
+      const displayName = dir.split("/").filter(Boolean).pop() || dir;
+      const datasetId = `dir-${Date.now()}`;
+      if (req.session) {
+        if (!(req.session as any).uploadedDatasets) (req.session as any).uploadedDatasets = [];
+        ((req.session as any).uploadedDatasets as any[]).push({
+          dataset_id: datasetId,
+          galaxy_dataset_id: null,
+          name: displayName,
+          description: `Connected directory (${mode === "index" ? "indexed in place" : "copy-in requested"}) — residency: mount`,
+          file_type: "path",
+          file_size: 0,
+          file_path: dir,
+          param_name: null,
+        });
+        (req.session as any).uploadedDatasets = capDatasetReferences((req.session as any).uploadedDatasets as any[]);
+      }
+      return res.json({ ok: true, created: 1, message: `Connected ${displayName} — indexed in place as a dataset object (nothing copied).` });
+    } catch (e: any) {
+      console.error("[ConnectorAttach] Error:", e);
+      return res.json({ ok: false, message: e?.message || "Attach failed" });
+    }
+  });
+
   // URL Import API - Galaxy fetches file from URL (no size limit, faster for large files)
   // Leverages Galaxy's built-in URL fetching capabilities (HTTP, FTP, S3)
   app.post("/api/datasets/import-url", authenticateToken, checkBillingQuota('URL import'), async (req, res) => {
