@@ -23,7 +23,7 @@ Facts that matter for design: (1) the chain definition has **no gate or approval
 be workflows, not capability steps; (3) **no tutorial names any of these chains** (0 of 69 chain identifiers appear in the tutorial files; T11 and M3 show similar pipelines, not by chain id).
 
 ## 1. Governing principle (unchanged): no custom UI per use case
-Design the finite set of **primitives and patterns**; the harness and model compose a response from them for each run. The three exemplars in §3 show
+Design the finite set of **primitives and patterns**; the harness and model compose a response from them for each run. The four exemplars in §3 show
 primitives used well; they are not templates. The existing design reference, workflow panel and tokens remain the style source.
 
 ## 2. Primitives requested (the finite part)
