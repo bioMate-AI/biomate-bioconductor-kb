@@ -307,6 +307,7 @@
     "stat_columns": "列数",
     "stat_size": "大小",
     "stat_version": "版本",
+    "stat_type": "类型",
     "why_versions_title": "版本为何重要",
     "why_versions_body": "每次运行都会记录其读取的确切版本，因此编辑文件不会改变已完成运行的含义；若结果异常，也可据此判断输入是否发生了变动。",
     "one_version_only": "该文件目前只有一个版本。编辑它，或由运行写入，都会生成下一个版本。",

@@ -214,16 +214,9 @@ export function DatasetObject({
           <CardTitle className="text-lg font-mono font-semibold truncate" data-testid="dataset-object-name">
             {dataset.name}
           </CardTitle>
-          {dataset.contentType && (
-            <Badge variant="secondary" className="text-xs font-mono" data-testid="dataset-header-type">
-              {dataset.contentType}
-            </Badge>
-          )}
-          {dataset.size != null && Number(dataset.size) > 0 && (
-            <Badge variant="secondary" className="text-xs" data-testid="dataset-header-size">
-              {formatBytes(Number(dataset.size))}
-            </Badge>
-          )}
+          {/* Type + size badges removed from the header (item 6 H6): they
+              duplicated the stat grid below. The header keeps only identity —
+              the v{N} version chip + quality pill — per the design spec. */}
           <Badge variant="secondary" className="text-xs" data-testid="dataset-header-version">
             {currentVersionLabel}
           </Badge>
@@ -457,7 +450,7 @@ export function DatasetObject({
               <StatCard k={t('dataset_obj.stat_rows')} v={shapeRows != null ? shapeRows.toLocaleString() : "—"} />
               <StatCard k={t('dataset_obj.stat_columns')} v={shapeCols != null ? String(shapeCols) : "—"} />
               <StatCard k={t('dataset_obj.stat_size')} v={formatBytes(dataset.size)} />
-              <StatCard k={t('dataset_obj.stat_version')} v={currentVersionLabel} />
+              <StatCard k={t('dataset_obj.stat_type')} v={dataset.contentType || "—"} />
             </div>
 
             {/* FUTURE: "Ask BioMate to edit this" — a conversational edit that writes

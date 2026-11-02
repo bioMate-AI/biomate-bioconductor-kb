@@ -301,6 +301,7 @@
     "stat_columns": "Columns",
     "stat_size": "Size",
     "stat_version": "Version",
+    "stat_type": "Type",
     "why_versions_title": "Why versions matter here",
     "why_versions_body": "A run records the exact version it consumed, so editing a file cannot change what a finished run means — and if a result looks wrong, you can see whether the input moved under it.",
     "one_version_only": "Only one version of this file exists. Editing it, or a run writing to it, creates the next one.",
