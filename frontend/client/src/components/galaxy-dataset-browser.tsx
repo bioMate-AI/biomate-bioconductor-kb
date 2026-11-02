@@ -600,7 +600,7 @@ export function GalaxyDatasetBrowser({
   };
 
   const tabs = [
-    { id: 'session' as const, label: `This session${allSessionDatasets.length > 0 ? ` (${allSessionDatasets.length})` : ''}` },
+    { id: 'session' as const, label: 'This session' },
     ...(projectId ? [{ id: 'project' as const, label: 'Project files', icon: <Folder className="h-3 w-3 mr-1" /> }] : []),
     { id: 'history' as const, label: 'BioMate history' },
     { id: 'url' as const, label: 'From URL', icon: <Link2 className="h-3 w-3 mr-1" /> },
