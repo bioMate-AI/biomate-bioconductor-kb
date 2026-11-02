@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
-import { ChevronDown, ChevronUp, Download, MessageSquare, BookOpen } from 'lucide-react'
+import { ChevronDown, ChevronUp, Download, MessageSquare, BookOpen, Sparkles } from 'lucide-react'
 import { tOr } from '@/lib/i18n'
 import type { LegacyKeyResult } from '@shared/findings'
 
@@ -302,11 +302,11 @@ export function FindingsCard({ runId, onContinueAnalysis, executionStatus, onOpe
   const multiEntity = entityOrd.size > 1 || (kr || []).some(r => Boolean(r.entity) || /\((?:Compound|Entity|Sample) \d+\)/i.test(r.interpretation || ''))
 
   return (
-    <Card data-testid="findings-card" className="mt-3 border-blue-200 bg-blue-50/30 dark:border-blue-900/40 dark:bg-blue-950/10">
+    <Card data-testid="findings-card" className="mt-3" style={{ border: '1px solid var(--border)', background: 'var(--bm-bg-elev, var(--bg-elev, #fff))' }}>
       <CardHeader className="pb-2 pt-3 px-3">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <BookOpen className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
-          {tOr('panel.findings.summary_title', 'Findings Summary')}
+        <CardTitle className="text-sm flex items-center gap-2" style={{ fontWeight: 600 }}>
+          <Sparkles className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--bm-text-dim, var(--text-dim))' }} />
+          {tOr('panel.findings.summary_title', 'AI Findings · generated from outputs')}
         </CardTitle>
       </CardHeader>
       <CardContent className="px-3 pb-3 space-y-3">

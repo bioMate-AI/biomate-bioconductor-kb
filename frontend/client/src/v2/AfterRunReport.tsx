@@ -361,14 +361,8 @@ export function AfterRunReport({
             finding number links down to the output card it was read from. */}
         {tab === "summary" && (
             <div data-testid="after-summary-tab">
-              <div style={styles.runOriginalRow}>
-                <span style={styles.runOriginalBadge} data-testid="after-run-original-badge">
-                  {tOr('afterrun.run_original', 'Run original')}
-                </span>
-                <span style={styles.runOriginalHint}>
-                  {tOr('afterrun.run_original_hint', 'The unedited record of what this run produced. Reports you edit are saved alongside it; this original is never overwritten.')}
-                </span>
-              </div>
+              {/* RUN ORIGINAL badge + hint removed to match the design's clean
+                  after-run strip — the report goes straight to the findings card. */}
               {/* Findings banner. Fixed 2026-10-20 (item 15): for multi-compound
                   runs the card now drops the un-attributed headline chips and
                   shows the full per-compound Key Results table, so it's always
@@ -397,19 +391,9 @@ export function AfterRunReport({
               {findings?.figures && findings.figures.length > 0 && (
                 <FindingsFiguresPanel figures={findings.figures} />
               )}
-              <div
-                data-testid="findings-manifest-note"
-                style={{
-                  fontSize: 10.5,
-                  color: "oklch(0.48 0.012 260)",
-                  fontStyle: "italic",
-                  marginTop: 12,
-                  paddingTop: 10,
-                  borderTop: "1px solid oklch(0.94 0.008 260)",
-                }}
-              >
-                {tOr('afterrun.findings_manifest_note', 'Findings are generated directly from the run manifest. Numbers and figures in this section come from the workflow outputs.')}
-              </div>
+              {/* Italic "findings generated from the run manifest" meta-sentence
+                  removed — it's not in the design and read as clutter. The findings
+                  card's own "generated from outputs" header already conveys it. */}
             </div>
         )}
         {/* Outputs — files the run produced, grouped by producing step. */}
