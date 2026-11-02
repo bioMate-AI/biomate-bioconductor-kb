@@ -1058,6 +1058,19 @@ function humanSize(bytes?: number): string {
   return `${v.toFixed(v >= 10 ? 0 : 1)} ${units[i]}`;
 }
 
+// A producing-step label is only meaningful when it's a real step name. Opaque
+// ids — a hex hash, a uuid, or a bare dataset number — must never be surfaced
+// as a step header/chip (UI audit finding 3). The fetch path guards inline;
+// this shared helper applies the same guard on the prop render path.
+function stepLabel(step: unknown): string {
+  const v = String(step ?? "");
+  const opaque =
+    /^[0-9a-f]{6,}$/i.test(v) ||
+    /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(v) ||
+    /^\d+$/.test(v);
+  return opaque ? "" : v;
+}
+
 /**
  * Mount children only once scrolled near the viewport — so a long outputs
  * gallery doesn't fire N step-file fetches on mount. Falls back to mounting
@@ -1384,22 +1397,23 @@ function OutputsTab({
         </span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} data-testid="output-files-table">
-        {[...shown].sort((a, b) => String(a.step || '~~').localeCompare(String(b.step || '~~'))).map((f, i, arr) => {
+        {[...shown].sort((a, b) => String(stepLabel(a.step) || '~~').localeCompare(String(stepLabel(b.step) || '~~'))).map((f, i, arr) => {
           const key = cardKey(f, i);
           const canPrev = canPreview(f.ext);
           const inline = shouldInlinePreview(f);
           const collapsed = collapsedCards.has(key);
           const sizeLabel = humanSize(f.size);
+          const fStepLabel = stepLabel(f.step);
           // §3.1 — group outputs under a per-producing-step header (sorted by step
           // so same-step files are contiguous; header shown on each step change).
-          const showStepHeader = i === 0 || String(arr[i - 1].step || '') !== String(f.step || '');
+          const showStepHeader = i === 0 || String(stepLabel(arr[i - 1].step) || '') !== String(fStepLabel || '');
           return (
             <React.Fragment key={key}>
-              {showStepHeader && f.step && (
+              {showStepHeader && fStepLabel && (
                 <div data-testid="output-step-group" style={{
                   fontSize: 11, fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase',
                   color: 'var(--text-muted)', margin: i === 0 ? '0 0 2px' : '12px 0 2px',
-                }}>{f.step}</div>
+                }}>{fStepLabel}</div>
               )}
             <div
               data-testid="output-card"
@@ -1411,8 +1425,8 @@ function OutputsTab({
                 <span style={{ display: 'inline-flex', alignItems: 'center' }}>{iconForExt(f.ext)}</span>
                 <span style={{ fontFamily: 'ui-monospace, monospace', fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }} title={f.name}>{f.name}</span>
                 <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: 10 }}>{f.ext || '—'}</span>
-                {f.step && (
-                  <span style={{ color: 'var(--text-muted)', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }} title={f.step}>· {f.step}</span>
+                {fStepLabel && (
+                  <span style={{ color: 'var(--text-muted)', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }} title={fStepLabel}>· {fStepLabel}</span>
                 )}
                 <span style={{ flex: 1 }} />
                 {sizeLabel && <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{sizeLabel}</span>}
@@ -1483,8 +1497,8 @@ function OutputsTab({
             onClick={e => e.stopPropagation()}
             style={{ background: 'var(--bg, #fff)', padding: 20, width: 'min(1080px, 96vw)', maxWidth: 'none', height: 'auto', maxHeight: '100vh', overflow: 'auto', borderLeft: '1px solid var(--border, #e5e7eb)', boxShadow: '-8px 0 32px rgba(0,0,0,0.18)' }}
           >
-            {previewFile.step && (
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>{previewFile.step}</div>
+            {stepLabel(previewFile.step) && (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>{stepLabel(previewFile.step)}</div>
             )}
             {/* Rich evidence viewer — StepOutputPreview resolves the right viewer
                 by file type (image/pdf/html/text plus structure pLDDT·PAE,
