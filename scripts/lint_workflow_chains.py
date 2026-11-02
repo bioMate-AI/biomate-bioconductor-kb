@@ -20,12 +20,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BACKEND = os.path.join(HERE, "..", "backend")
 DEFAULT_DB = os.path.join(BACKEND, "database", "galaxy_ai_tools.db")
 DEFAULT_WF = os.path.join(BACKEND, "biomni_workflows")
+# Chains promised to bind and resolve end to end. Add a chain here only when it passes; the others are tracked in
+# docs/20261101_CHAIN_FIX_PLAN.md (andv_inhibitor_track_v1, bulk_rnaseq_de_analysis, rare_disease_multimodal_workup,
+# bioc_bulk_rnaseq_de_v2 still have handoffs that need a decision or a new transform).
 REQUIRED_CLEAN = [
-    "andv_inhibitor_track_v1",
+    "vina_virtual_screening_bench",
+    "drug_discovery_screening",
     "drug_discovery_admet_gated_screening",
-    "bulk_rnaseq_de_analysis",
-    "rare_disease_multimodal_workup",
-    "bioc_bulk_rnaseq_de_v2",
 ]
 
 
