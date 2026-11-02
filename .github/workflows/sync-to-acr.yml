@@ -310,7 +310,7 @@ jobs:
                if docker exec --user root biomate-galaxy grep -q "container '"'"'biomate/biomni-tools:latest'"'"'" "$NF_FILE"; then
                  echo "ADMET .nf already patched to biomni-tools:latest — skipping"
                else
-                 docker exec --user root biomate-galaxy sed -i "s|.*biomni-admet.*|    container '"'"'biomate/biomni-tools:latest'"'"'|" "$NF_FILE" && \
+                 docker exec --user root biomate-galaxy sed -i "s|^    container .*biomni-admet.*|    container '"'"'biomate/biomni-tools:latest'"'"'|g" "$NF_FILE" && \
                  echo "Patched ADMET .nf container to biomni-tools:latest" && \
                  docker exec --user root biomate-galaxy grep "container" "$NF_FILE" | head -5 && \
                  NEEDS_RESTART=true
