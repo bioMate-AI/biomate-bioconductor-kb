@@ -3159,6 +3159,21 @@ process {{
   }}
 }}
 """
+        # On-prem container override for ADMET workflows: biomni-admet is a private
+        # ECR image (not accessible without AWS credentials). BIOMATE_ADMET_CONTAINER
+        # lets operators substitute a pre-pulled image, e.g. biomni-tools which has
+        # the biomni package with RDKit-based ADMET fallback when admet_ai is absent.
+        # Example: BIOMATE_ADMET_CONTAINER=ghcr.io/biomate-ai/biomni-tools:latest
+        admet_container = os.environ.get("BIOMATE_ADMET_CONTAINER", "")
+        admet_container_override = ""
+        if admet_container:
+            admet_container_override = f"""
+process {{
+  withName: ~/.*ADMET.*/ {{
+    container = '{admet_container}'
+  }}
+}}
+"""
         # On ARM64 hosts explicitly set DOCKER_DEFAULT_PLATFORM for Nextflow task
         # containers. With native ARM64 images Docker auto-detects this anyway, but
         # the explicit setting is a safety net for any mixed-arch deployments.
@@ -3198,7 +3213,8 @@ process {{
   cpus   = 1
   memory = '4 GB'
 }}
-{container_override}"""
+{container_override}
+{admet_container_override}"""
         config_path = config_dir / "biomate_executor_override.config"
         config_path.write_text(minio_config)
         return config_path

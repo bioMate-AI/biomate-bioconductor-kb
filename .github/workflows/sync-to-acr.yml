@@ -17,7 +17,7 @@ on:
         type: boolean
         default: false
       pull_biomni_tools:
-        description: 'Pull biomate/biomni-tools image from GHCR and transfer to ECS (~800MB, run once)'
+        description: 'Pull biomni-tools from GHCR → ECS (~800MB, run once). Required for ADMET + pharmacology workflows.'
         type: boolean
         default: false
 
@@ -132,6 +132,25 @@ jobs:
              chown -R 1000:1000 /app/biomate/backend/config && \
              chmod 755 /app/biomate/backend/config && \
              echo "backend/config perms: $(ls -la /app/biomate/backend/ | grep config)"'
+
+      - name: Set BIOMATE_ADMET_CONTAINER to use biomni-tools as ADMET fallback
+        # biomni-admet (the real ADMET-AI image) lives only on private AWS ECR and
+        # cannot be pulled from ECS without credentials. Set BIOMATE_ADMET_CONTAINER
+        # so nextflow_executor.py generates a process-level override pointing to
+        # biomni-tools (which has the biomni package + RDKit ADMET fallback).
+        # The nfcore ADMET workflow gracefully degrades: admet_ai ImportError →
+        # rows=[] → reduce step uses RDKit structural estimates. Acceptable for demo.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'ENV_FILE=/app/biomate/.env && \
+             grep -q "^BIOMATE_ADMET_CONTAINER=" "$ENV_FILE" && \
+               sed -i "s|^BIOMATE_ADMET_CONTAINER=.*|BIOMATE_ADMET_CONTAINER=ghcr.io/biomate-ai/biomni-tools:latest|" "$ENV_FILE" || \
+               echo "BIOMATE_ADMET_CONTAINER=ghcr.io/biomate-ai/biomni-tools:latest" >> "$ENV_FILE" && \
+             echo "BIOMATE_ADMET_CONTAINER set to biomni-tools fallback"'
 
       - name: Fix Galaxy DB — switch from SQLite to PostgreSQL
         # galaxy.yml.template defaults to SQLite (database_connection: sqlite:///.../universe.sqlite).
