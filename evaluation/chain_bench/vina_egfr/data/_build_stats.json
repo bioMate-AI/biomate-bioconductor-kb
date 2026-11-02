@@ -1,0 +1,41 @@
+{
+ "query_date": "2026-11-01",
+ "seed": 20261101,
+ "n_actives_total": 55,
+ "n_reference": 5,
+ "n_test_actives": 50,
+ "n_decoys": 246,
+ "tolerances": {
+  "mw": 25.0,
+  "logp": 0.7,
+  "hbd": 1,
+  "hba": 1,
+  "rotb": 2
+ },
+ "max_tanimoto_decoy_to_any_known_active": 0.35,
+ "decoys_per_active_cap": 5,
+ "ic50_records_le_100nM": 14359,
+ "unique_candidate_actives": 3396,
+ "approved_present": [
+  "afatinib",
+  "erlotinib",
+  "gefitinib",
+  "lapatinib",
+  "osimertinib"
+ ],
+ "approved_ids": {
+  "gefitinib": "BDBM5447",
+  "erlotinib": "BDBM5446",
+  "afatinib": "BDBM50322823",
+  "osimertinib": "BDBM50029668",
+  "lapatinib": "BDBM5445"
+ },
+ "reference_ids": [
+  "BDBM152775",
+  "BDBM50074742",
+  "BDBM50232320",
+  "BDBM50614289",
+  "BDBM759882"
+ ],
+ "decoy_candidates": 90000
+}
