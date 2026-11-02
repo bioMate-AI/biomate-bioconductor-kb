@@ -1,0 +1,151 @@
+{
+  "_doc": "Repair spec for the workflow_chains table (backend/database/galaxy_ai_tools.db). Applied by backend/scripts/repair_workflow_chains.py. Plan: docs/20261101_CHAIN_FIX_PLAN.md (W2). A connection is only changed when the downstream workflow's own code declares the target parameter AND consumes the kind of artifact the upstream step publishes. Everything else is listed under needs_human_decision / unresolved with evidence, and is NOT patched. Keys other than connections/steps are informational and ignored by the script.",
+  "version": 1,
+  "chains": {
+    "andv_inhibitor_track_v1": {
+      "connections": [],
+      "steps": [],
+      "unresolved": [],
+      "needs_human_decision": [
+        {
+          "connection": "step2 filtered_smiles -> step3 smiles",
+          "candidate": "smiles_list",
+          "evidence": "predict_admet_properties/main.nf declares params.smiles_list, but it must be an inline JSON array (workflow body: JsonSlurper().parseText(params.smiles_list) / PARAM_SMILES_LIST json.loads). The chain executor injects a FILE path/URI (artifact_value) and pharmacophore_filtering publishes filtered_compounds.smi. Renaming to smiles_list would pass a name check but crash at JsonSlurper. Needs a file->JSON-array adapter or a file-accepting param."
+        },
+        {
+          "connection": "step3 passed_compounds -> step4 ligand_sdf",
+          "candidate": null,
+          "evidence": "docking_autodock_vina/main.nf declares no ligand-file parameter (ligand input is params.smiles_list, inline JSON array, plus reference_ligand_smiles). predict_admet_properties publishes predict_admet_properties_results.json / toxicity_report.json / pk_summary.json / qc_metrics.json, no compound list or SDF named passed_compounds."
+        },
+        {
+          "connection": "step1 pocket_json -> step4 pocket_coords",
+          "candidate": "box_center",
+          "evidence": "docking_autodock_vina declares params.box_center (and box_size) as inline JSON '[x,y,z]' (auto_convert json.loads). pocket_detection_druggability publishes <id>_pockets.json (a pockets report), <id>_top_pocket.pdb and a druggability TSV; the file path cannot be parsed as '[x,y,z]'. Needs an adapter that extracts the top-pocket centre."
+        },
+        {
+          "connection": "step4 vina_poses -> step5 docked_poses",
+          "candidate": "ligand",
+          "evidence": "gromacs_protein_md/main.nf declares params.ligand = 'ligand.sdf or ligand.mol2' (LIGAND_PREP accepts smi/sdf/sd/mol2/mol only; else 'unsupported ligand format'). docking_autodock_vina publishes docking_poses/*.pdbqt. Format mismatch (pdbqt not accepted); gromacs also needs params.receptor."
+        },
+        {
+          "connection": "step5 mmgbsa_scores -> step6 seed_smiles",
+          "candidate": "seed_smiles",
+          "evidence": "reinvent4_lead_design declares params.seed_smiles, a SMILES string (default coumarin SMILES, used as .replace(\"'\", ...) text). gromacs_protein_md publishes mmgbsa/mmgbsa_results.csv and binding_summary.json (energies, no structures); a scores file is not a seed SMILES. Needs a decision on which compounds seed the design (e.g. top-ranked ligand SMILES)."
+        }
+      ],
+      "missing_required_params": {
+        "step1 pocket_detection_druggability": ["pdb_input"],
+        "step2 pharmacophore_filtering": ["reference_actives", "compound_library"],
+        "step4 docking_autodock_vina": ["receptor_pdb_file (default '' -> status not_computed)", "box_center / box_size (defaults [0,0,0] / [20,20,20])"],
+        "step5 gromacs_protein_md": ["receptor", "ligand"],
+        "step6 reinvent4_lead_design": ["receptor only if scoring_function=docking_gnina"]
+      }
+    },
+    "drug_discovery_admet_gated_screening": {
+      "connections": [],
+      "steps": [],
+      "unresolved": [
+        "step3 structure_prediction_docking: the only matching workflow row (id 10644, nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/main.nf) is retired (executable=0, description 'Retired workflow. No longer functional'), so it is not pinned. docking_autodock_vina (ids 12824, 14570) is NOT a substitute: it takes smiles_list (inline JSON) + receptor_pdb_file, whereas the retired step took fasta_input + ligand_sdf (AlphaFold3 then DiffDock/Vina); different input kind. NEEDS A NEW WORKFLOW (or a redesign of step 3 around docking_autodock_vina with a receptor)."
+      ],
+      "needs_human_decision": [
+        {
+          "connection": "step1 filtered_smiles -> step2 smiles",
+          "candidate": "smiles_list",
+          "evidence": "Same as andv_inhibitor_track_v1 step2->3: predict_admet_properties.smiles_list must be an inline JSON array; pharmacophore_filtering publishes filtered_compounds.smi (file). Needs adapter."
+        },
+        {
+          "connection": "step2 passed_compounds -> step3 ligand_sdf",
+          "candidate": null,
+          "evidence": "Step 3 is unresolved (see above); predict_admet_properties publishes no passed_compounds / SDF artifact."
+        }
+      ],
+      "missing_required_params": {
+        "step1 pharmacophore_filtering": ["reference_actives", "compound_library"]
+      }
+    },
+    "bulk_rnaseq_de_analysis": {
+      "connections": [
+        {
+          "from_step": 1, "from_output": "counts_matrix", "to_step": 2,
+          "old_to_input": "counts", "new_to_input": "matrix",
+          "evidence": "downstream nfcore/differentialabundance/main.nf declares params.matrix ('Count matrix CSV (genes x samples)', read into count_mat in DESEQ2_DIFFERENTIAL_ANALYSIS); it declares no 'counts'. upstream nfcore/rnaseq/main.nf SALMON_QUANT emits path counts_matrix.tsv. CAVEAT: differentialabundance selects the matrix with list.files(pattern='.csv') + read.csv, so a .tsv counts_matrix.tsv will not be picked up unless converted; parameter choice is right, file format is a separate defect."
+        }
+      ],
+      "steps": [],
+      "unresolved": [],
+      "needs_human_decision": [
+        {
+          "connection": "step2 results -> step3 input",
+          "candidate": "genes",
+          "evidence": "gene_set_enrichment_analysis/main.nf declares genes (inline JSON list of symbols, auto_convert json.loads), background_list, database, top_k, plot; no 'input'. differentialabundance publishes *_DESeq2_results.csv tables; a results table is not a gene-symbol list. Needs an adapter (significant genes -> JSON list). Also note params_template key 'databases' is not declared (workflow declares 'database')."
+        }
+      ],
+      "missing_required_params": {
+        "step1 nf-core/rnaseq": ["input (samplesheet)", "genome"],
+        "step2 nf-core/differentialabundance": ["input/samplesheet (sample metadata CSV)", "contrasts"],
+        "step3 gene_set_enrichment_analysis": ["genes"]
+      }
+    },
+    "rare_disease_multimodal_workup": {
+      "connections": [
+        {
+          "from_step": 1, "from_output": "vcf", "to_step": 2,
+          "old_to_input": "vcf", "new_to_input": "input",
+          "evidence": "downstream vep_annotation/main.nf declares params.input ('VCF or VCF.GZ file to annotate', used by Channel.fromPath(params.input)); it declares no 'vcf'. upstream nfcore/sarek publishes VCFs (germline calling)."
+        },
+        {
+          "from_step": 2, "from_output": "annotated_vcf", "to_step": 5,
+          "old_to_input": "variant_evidence", "new_to_input": "vcf",
+          "evidence": "downstream rare_disease/case_report_aggregation/main.nf declares params.vcf ('Annotated VCF from VEP step', Channel.fromPath(params.vcf)); upstream vep_annotation publishes <id>.vep.vcf.gz (emit vcf)."
+        },
+        {
+          "from_step": 4, "from_output": "outrider_results", "to_step": 5,
+          "old_to_input": "expression_evidence", "new_to_input": "drop_results",
+          "evidence": "downstream case_report_aggregation declares params.drop_results ('DROP results directory or TSV', Channel.fromPath); upstream nfcore/drop runs OUTRIDER (aberrant expression). NOTE: DROP's stub main.nf declares no publishDir/emit, so the published filenames are unverified."
+        },
+        {
+          "from_step": 4, "from_output": "fraser_results", "to_step": 5,
+          "old_to_input": "splicing_evidence", "new_to_input": "drop_results",
+          "evidence": "same param as above: case_report_aggregation has a single DROP input (drop_results); FRASER output is part of the same DROP results. NOTE: both connections target drop_results; _apply_connection_handoffs wires only the first (later ones skipped when key already set), so one DROP results artifact is passed."
+        }
+      ],
+      "steps": [],
+      "unresolved": [],
+      "needs_human_decision": [
+        {
+          "connection": "step3 bam -> step4 bam",
+          "candidate": "input",
+          "evidence": "nfcore/drop/main.nf declares params.input = 'Sample annotation TSV with sample, RNA_BAM_FILE, DROP_GROUP'; no BAM param exists. A BAM path is not a sample annotation table; needs an adapter that builds the annotation TSV from the rnaseq BAMs."
+        }
+      ],
+      "missing_required_params": {
+        "step1 nf-core/sarek": ["input (samplesheet)"],
+        "step3 nf-core/rnaseq": ["input (samplesheet)"],
+        "step4 nf-core/drop": ["input (annotation TSV, see above)"],
+        "step5 case_report_aggregation": ["sample_id (default PATIENT)", "hpo_terms / pedigree optional"],
+        "note": "case_report_aggregation also declares rnaseq_counts (optional) that nf-core/rnaseq could feed; the chain has no such connection and none is added here."
+      }
+    },
+    "bioc_bulk_rnaseq_de_v2": {
+      "connections": [],
+      "steps": [],
+      "unresolved": [],
+      "needs_human_decision": [
+        {
+          "connection": "step1 results -> step2 de_results",
+          "candidate": "gene_list",
+          "evidence": "bioconductor/clusterprofiler/main.nf declares params.gene_list = 'path to gene_list.txt (one gene per line)' and reads only *.txt (readLines). bioconductor/deseq2/main.nf publishes condition_treated_results.csv, *.rds, qc_metrics.json (and has no standalone entry workflow or input params: only take: ch_input). A DE results CSV is not a gene list; needs an adapter (significant genes -> .txt)."
+        },
+        {
+          "connection": "step2 enrichment -> step3 enrichment_obj",
+          "candidate": null,
+          "evidence": "bioconductor/enrichplot/main.nf declares only params.outdir and has no standalone entry workflow (only take: ch_input; reads staged input.csv). No parameter can receive an artifact. clusterprofiler publishes enrichGO_results_*.csv and ego_object.rds. NEEDS A NEW WORKFLOW (or an entry workflow with an input param) for step 3; step 1 (deseq2) also lacks a standalone entry."
+        }
+      ],
+      "missing_required_params": {
+        "step1 BIOC_DESEQ2": ["count matrix + coldata (staged input files; no params declared)"],
+        "step2 BIOC_CLUSTERPROFILER": ["gene_list"]
+      }
+    }
+  }
+}
