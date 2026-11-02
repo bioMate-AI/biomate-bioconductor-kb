@@ -1779,6 +1779,21 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     const msgs = currentChatSession?.messages ?? []
     const wf = msgs.find(m => m.id === lastWorkflowMsgId)
     if (!wf?.metadata?.workflow) return
+    // A disambiguation / confirmation question is NOT a runnable workflow — it
+    // asks the user "which workflow did you mean?" and carries candidates, not
+    // steps. Do NOT pop the right panel for it, and close the panel if it was
+    // already open (user request 2026-11-01: hide the workflow panel while a
+    // confirmation question is pending, instead of showing a guessed workflow).
+    const wfType = (wf.metadata.workflow as any)?.workflow_type
+    if (wfType === 'disambiguation') {
+      const disambigSig = `${lastWorkflowMsgId}|disambiguation`
+      if (disambigSig !== autoOpenedWorkflowSignatureRef.current) {
+        autoOpenedWorkflowSignatureRef.current = disambigSig
+        setPanelOpen(false)
+        onWorkflowPanelOpenChange?.(false)
+      }
+      return
+    }
     // Build a signature: msgId + sorted inlineParameter keys. The signature
     // grows monotonically as the chat-stream emits more metadata for the
     // same message, so we re-run the panel-open/merge logic until all keys

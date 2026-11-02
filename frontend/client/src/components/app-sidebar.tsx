@@ -224,8 +224,26 @@ export function AppSidebar({
             alt="BioMate"
             style={{ height: 26, width: 'auto', display: 'block', flexShrink: 0 }}
           />
-          {/* BETA tag removed 2026-10-20 (UI refinement item 1c) — the design
-              wordmark is clean. */}
+          {/* BETA tag restored 2026-11-01 (per user request — re-add it back).
+              Reverts the 2026-10-20 "refinement 1c" removal. */}
+          <span
+            title="Early-access beta — features may change"
+            style={{
+              flexShrink: 0,
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--bm-accent, hsl(var(--primary)))',
+              background: 'var(--bm-accent-soft, hsl(var(--primary) / 0.1))',
+              border: '1px solid var(--bm-accent, hsl(var(--primary) / 0.3))',
+              borderRadius: 4,
+              padding: '1px 5px',
+              lineHeight: 1.4,
+            }}
+          >
+            BETA
+          </span>
         </div>
         <button
           onClick={onToggleSidebar}
