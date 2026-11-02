@@ -354,6 +354,8 @@ def _apply_connection_handoffs(
     wired: Dict[str, Any] = {}
     warnings: List[str] = []
     target_step = step_index + 1  # catalog connections are 1-based
+    if 0 <= step_index < len(steps):
+        steps[step_index].pop("transform_error", None)  # stale from an earlier attempt
 
     for conn in connections:
         if int(conn.get("to_step", -1)) != target_step:
@@ -394,6 +396,37 @@ def _apply_connection_handoffs(
                 warnings.append(f"No artifact '{from_output}' found from step {from_step + 1}")
                 continue
         value = artifact_value(picked)
+        if value and conn.get("transform"):
+            # Transform rule: the transform reads the LOCAL file (picked["path"]).
+            # A str result is wired to to_input. A dict result wires result[to_input]
+            # to to_input, plus every other key that the downstream workflow declares
+            # (e.g. box_size alongside box_center); undeclared keys are metadata and
+            # ignored. list/dict values are JSON-serialised (params are env strings).
+            try:
+                from galaxy.chain import transforms as _tf  # noqa: PLC0415
+                from galaxy.chain.binding_check import declared_params  # noqa: PLC0415
+                spec = conn["transform"]
+                tname = spec.get("name") if isinstance(spec, dict) else str(spec)
+                targs = spec.get("args") if isinstance(spec, dict) else None
+                result = _tf.apply(tname, picked.get("path") or "", targs)
+                if isinstance(result, dict):
+                    if to_input not in result:
+                        raise _tf.TransformError(
+                            f"transform '{tname}' result has no key '{to_input}' (keys: {sorted(result)})")
+                    declared = declared_params(
+                        (steps[step_index].get("nextflow_path") or "")) or set()
+                    out = {k: v for k, v in result.items() if k == to_input or k in declared}
+                else:
+                    out = {to_input: result}
+                value = ""  # handled below, not as a raw file path
+                for k, v in out.items():
+                    if k not in params and k not in wired:
+                        wired[k] = v if isinstance(v, str) else json.dumps(v)
+            except _tf.TransformError as exc:
+                msg = f"transform failed for {from_output}→{to_input}: {exc}"
+                warnings.append(msg)
+                steps[step_index]["transform_error"] = msg
+                continue
         if value and to_input not in params:
             wired[to_input] = value
             log.info(
@@ -649,6 +682,14 @@ def _run_chain(chain_run_id: str, start_from_step: int = 0) -> None:
             if conn_warnings:
                 current["steps"][idx]["handoff_warnings"] = conn_warnings
                 _update_chain(current)
+            if current["steps"][idx].get("transform_error"):
+                msg = current["steps"][idx]["transform_error"]
+                log.error("workflow_chain: step %d not launched: %s", idx, msg)
+                current["steps"][idx]["status"] = "failed"
+                current["steps"][idx]["error"] = msg
+                current["status"] = "failed"
+                _update_chain(current)
+                return
             # Propagate context params from the previous step's run params
             # (e.g. genome → organism transform for DESeq2 / clusterProfiler).
             # This runs whenever connections are defined, regardless of whether

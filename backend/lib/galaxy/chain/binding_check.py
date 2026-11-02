@@ -129,6 +129,20 @@ def declared_params(nextflow_path: str, roots: Optional[Iterable[Path]] = None) 
     return found
 
 
+def _transform_registry() -> Dict[str, Any]:
+    from galaxy.chain.transforms import REGISTRY  # noqa: PLC0415
+    return REGISTRY
+
+
+def _transform_name(conn: Dict[str, Any]) -> Optional[str]:
+    t = conn.get("transform")
+    if not t:
+        return None
+    if isinstance(t, dict):
+        return str(t.get("name") or "")
+    return str(t)
+
+
 def check_connections(
     steps: List[Dict[str, Any]],
     connections: List[Dict[str, Any]],
@@ -154,6 +168,18 @@ def check_connections(
         if to_step < 1 or to_step > len(steps):
             continue
         step = steps[to_step - 1]
+        tname = _transform_name(conn)
+        if tname is not None and tname not in _transform_registry():
+            problems.append(dict(
+                from_step=from_step, to_step=to_step, to_input=to_input,
+                workflow=step.get("workflow_name") or step.get("nextflow_path") or "",
+                transform=tname, declared=[],
+                message=(
+                    "Connection step %s -> step %s uses unknown transform '%s' (known: %s). "
+                    "Refusing to launch." % (from_step, to_step, tname,
+                                             ", ".join(sorted(_transform_registry())))),
+            ))
+            continue
         nf_path = step.get("nextflow_path") or ""
         if nf_path not in cache:
             cache[nf_path] = declared_params(nf_path, roots)
