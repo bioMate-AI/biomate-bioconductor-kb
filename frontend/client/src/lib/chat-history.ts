@@ -182,16 +182,45 @@ class ChatHistoryService {
       status: "active"
     };
 
+    // Anti-pile-up (UI refinement 1d): the sidebar used to accumulate a stack of
+    // untouched "New Chat" rows because every new-chat action unshifted a fresh
+    // empty session and nothing ever reused or removed them. An untouched empty
+    // chat (default title, no messages/workflows/datasets) carries no data, so:
+    //   (1) reuse an existing one in the SAME scope instead of creating another, and
+    //   (2) auto-remove any other untouched empties (local + backend).
+    // Real conversations get a generated title after their first message, so the
+    // title==="New Chat" guard keeps metadata-only pulled sessions safe.
+    const isEmptyUntouched = (s: ChatSession): boolean =>
+      s.title === "New Chat" &&
+      (s.messages?.length ?? 0) === 0 &&
+      (s.workflows?.length ?? 0) === 0 &&
+      (s.datasets?.length ?? 0) === 0;
+    const scopeOf = (s: ChatSession): string | null => ((s as any).projectId ?? null);
+    const targetScope = resolvedProjectId ?? null;
+
     const sessions = this.getAllSessions();
-    sessions.unshift(newSession); // Add to beginning
-    this.saveSessions(sessions);
+    const reusable = sessions.find(s => isEmptyUntouched(s) && scopeOf(s) === targetScope);
+    const target = reusable ?? newSession;
 
-    // Sync to backend
-    this.pushToBackend(newSession.id).catch(err => {
-      console.error('[ChatHistory] Failed to sync new session:', err);
-    });
+    if (reusable) {
+      // Surface the existing empty chat at the top instead of stacking a new one.
+      this.saveSessions([reusable, ...sessions.filter(s => s.id !== reusable.id)]);
+    } else {
+      sessions.unshift(newSession); // Add to beginning
+      this.saveSessions(sessions);
+      // Sync new session to backend
+      this.pushToBackend(newSession.id).catch(err => {
+        console.error('[ChatHistory] Failed to sync new session:', err);
+      });
+    }
 
-    return newSession;
+    // Prune every OTHER untouched-empty chat (any scope) so they don't pile up;
+    // deleteSession removes it locally and from the backend (safe: no content).
+    this.getAllSessions()
+      .filter(s => s.id !== target.id && isEmptyUntouched(s))
+      .forEach(s => { void this.deleteSession(s.id); });
+
+    return target;
   }
   
   // Update an existing session
