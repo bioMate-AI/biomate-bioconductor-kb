@@ -2,7 +2,7 @@ import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workfl
 import { localOnly, localOffline, localMessagesClient, localConfig } from './local-llm.js';
 import { localIntentPrompt } from './local-intent-prompt.js';
 import { localResponsePrompt } from './local-response-prompt.js';
-import { scientificToolRequest, scientificToolResult, targetEvidenceReply } from './scientific-chat-tools';
+import { scientificToolRequest, scientificToolResult, targetEvidenceReply, databaseQueryRequest, databaseQueryResult } from './scientific-chat-tools';
 import { groundedResearchReply, researchEvidenceContext } from './grounded-research-reply';
 /**
  * Galaxy Assistant Service
@@ -183,8 +183,8 @@ Note: this surfaces RUNS (workflow executions), not raw uploaded files — separ
   },
   {
     name: 'search_literature',
-    description: `Search scientific literature across PubMed, Europe PMC, Semantic Scholar, and OpenAlex in
-parallel, with an iterative broaden-on-gap loop. Use this to ground a claim in real papers, find prior
+    description: `Search scientific literature across PubMed, Europe PMC, Semantic Scholar, OpenAlex and bioRxiv/medRxiv
+preprints (not peer reviewed; rows carry peer_reviewed=false) in parallel, with an iterative broaden-on-gap loop. Use this to ground a claim in real papers, find prior
 art / mechanism evidence, or build an evidence review — instead of answering from memory. Returns ranked
 papers with title, authors, year, PMID/DOI, and abstract snippet. Cite what you use; never invent a DOI
 or PMID. Prefer this over guessing when the user asks "what evidence supports…", "find papers on…", or
@@ -198,6 +198,29 @@ or PMID. Prefer this over guessing when the user asks "what evidence supports…
         },
         min_results: { type: 'number', description: 'Broaden until at least this many papers are found (default 12).' },
         max_depth: { type: 'number', description: 'Max broaden-on-gap iterations, 1–4 (default 3).' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'query_database',
+    description: `Look up or search BioMate's public biological databases. Choose \`operation\` from the user's intent (never from the
+shape of the query): "lookup" (default) fetches by accession, symbol or name; "text" is a keyword search; "similarity" searches
+the WHOLE database by structure or sequence — ChEMBL and PubChem take a SMILES (Tanimoto), PDB takes a protein sequence (homolog
+search over every PDB entry). Name a \`database\` for a single source, or leave it as "federated" to look the term up in the relevant
+sources in parallel (optionally restrict with \`sources\`, entity_type auto-detected). Databases: uniprot, pdb, pdbe, alphafold,
+interpro, string, ncbi_gene, ensembl, dbsnp, clinvar, gnomad, kegg, reactome, go, hpo, chebi, chembl, pubchem, bindingdb, pharos,
+clinicaltrials (registered trials: status, phase, sponsor, stop reason; registry records, not results), biorxiv (preprints, not
+peer reviewed). For papers use search_literature; for target ranking use identify_targets. Cite the record id and the source;
+a source that errored was not searched.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'Accession, gene symbol, compound/disease name, SMILES (similarity on chembl/pubchem) or protein sequence (similarity on pdb).' },
+        database: { type: 'string', enum: ['federated', 'uniprot', 'pdb', 'pdbe', 'alphafold', 'interpro', 'string', 'ncbi_gene', 'ensembl', 'dbsnp', 'clinvar', 'gnomad', 'kegg', 'reactome', 'go', 'hpo', 'chebi', 'chembl', 'pubchem', 'bindingdb', 'pharos', 'clinicaltrials', 'biorxiv'], description: 'Default "federated".' },
+        operation: { type: 'string', enum: ['lookup', 'text', 'similarity'], description: 'Search mode chosen from the user\'s intent. similarity needs database chembl, pubchem or pdb.' },
+        entity_type: { type: 'string', enum: ['gene', 'protein', 'compound', 'variant', 'pathway', 'structure', 'disease', 'literature'], description: 'Federated only; auto-detected when omitted.' },
+        sources: { type: 'array', items: { type: 'string' }, description: 'Federated only: restrict to these source ids, e.g. ["clinicaltrials"].' },
       },
       required: ['query'],
     },
@@ -3065,6 +3088,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
             case 'query_domain_knowledge': output = await this._toolQueryKnowledge(args); break;
             case 'list_history': output = await this._toolListHistory(args, toolContext.context); break;
             case 'search_literature': output = await this._toolSearchLiterature(args); break;
+            case 'query_database': output = await this._toolQueryDatabase(args); break;
             case 'search_my_data': output = await this._toolSearchMyData(args, toolContext.context); break;
             case 'list_data_sources': output = await this._toolListDataSources(args); break;
             case 'search_workflows': output = await this._toolSearchWorkflows(args); break;
@@ -8943,7 +8967,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       const userMcpTools = toolsEnabledThisTurn ? await this._fetchUserMcpTools(context) : [];
       const agentTools = toolsEnabledThisTurn
         ? [
-            ...BIOMATE_TOOLS.filter(tool => !localOffline() || !['search_literature', 'list_data_sources', 'identify_targets', 'write_review'].includes(tool.name)),
+            ...BIOMATE_TOOLS.filter(tool => !localOffline() || !['search_literature', 'query_database', 'list_data_sources', 'identify_targets', 'write_review'].includes(tool.name)),
             ...userMcpTools,
           ]
         : undefined;
@@ -9428,6 +9452,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           case 'search_literature':
             output = await this._toolSearchLiterature(block.input);
             break;
+          case 'query_database':
+            output = await this._toolQueryDatabase(block.input);
+            break;
           case 'search_my_data':
             output = await this._toolSearchMyData(block.input, context);
             break;
@@ -9732,6 +9759,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         doi: p.doi ?? null,
         source: p._source ?? p.source,
         abstract: p.abstract ? String(p.abstract).slice(0, 300) : undefined,
+        ...(p.peer_reviewed === false ? { peer_reviewed: false, server: p.server } : {}),
       })).filter((p: any) => p.title);
       return {
         query,
@@ -10001,6 +10029,17 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       const payload = scientificToolRequest(input, 'targets');
       const { data } = await this._api().client.post('/api/target-id/identify', payload, { timeout: 90000 });
       return scientificToolResult(data, 'targets', payload.query);
+    } catch (err: any) {
+      return { error: err?.detail?.detail || err?.detail?.error || err?.message || String(err) };
+    }
+  }
+
+  /** Thin, user-scoped proxy to the federated database fan-out (same endpoint the external connector uses). */
+  private async _toolQueryDatabase(input: unknown): Promise<unknown> {
+    try {
+      const payload = databaseQueryRequest(input);
+      const { data } = await this._api().client.post('/api/databases/query', payload, { timeout: 30000 });
+      return databaseQueryResult(data, payload.query);
     } catch (err: any) {
       return { error: err?.detail?.detail || err?.detail?.error || err?.message || String(err) };
     }

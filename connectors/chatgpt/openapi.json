@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "BioMate Connector API",
-    "description": "Run bioinformatics, drug-discovery, and clinical workflows on BioMate's AWS Batch infrastructure. Search 2,455 indexed workflows, execute on real compute, stream live progress, and retrieve structured findings + reports. Schema is generated from backend/lib/mcp/tools_manifest.py.",
+    "description": "Run bioinformatics, drug-discovery, and clinical workflows on BioMate's AWS Batch infrastructure. Search 4,200+ indexed workflows, execute on real compute, stream live progress, and retrieve structured findings + reports. Schema is generated from backend/lib/mcp/tools_manifest.py.",
     "version": "2.0.0",
     "contact": {
       "name": "BioMate Support",
@@ -96,8 +96,8 @@
     "/tools/search_workflow": {
       "post": {
         "operationId": "search_workflow",
-        "summary": "Search the BioMate workflow catalog (2,455 indexed workflows across 34 domains) by natural language.",
-        "description": "Search the BioMate workflow catalog (2,455 indexed workflows across 34 domains) by natural language. Returns ranked workflow cards with id, name, domain, and a one-line description. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
+        "summary": "Search the BioMate workflow catalog (4,200+ indexed workflows across 36 domains) by natural language.",
+        "description": "Search the BioMate workflow catalog (4,200+ indexed workflows across 36 domains) by natural language. Returns ranked workflow cards with id, name, domain, and a one-line description. Use this when the user wants to pick a workflow explicitly; otherwise prefer biomate_session.",
         "x-streaming": false,
         "requestBody": {
           "required": true,
@@ -838,7 +838,7 @@
       "post": {
         "operationId": "query_database",
         "summary": "Query a biological/chemical database by accession or name.",
-        "description": "Query a biological/chemical database by accession or name. Supported: uniprot, pdb, alphafold, ncbi_gene, dbsnp, clinvar, gnomad, kegg, reactome, chebi, pubchem, hpo, omim, string.",
+        "description": "Query a biological/chemical database by accession or name. Supported: uniprot, pdb, pdbe, alphafold, interpro, string, ncbi_gene, ensembl, dbsnp, clinvar, gnomad, kegg, reactome, go, hpo, chebi, chembl, pubchem, bindingdb, pharos, clinicaltrials (registered trials: status, phase, sponsor, stop reason), biorxiv (bioRxiv/medRxiv preprints, not peer reviewed).",
         "x-streaming": false,
         "requestBody": {
           "required": true,
@@ -870,7 +870,9 @@
                       "chembl",
                       "pubchem",
                       "bindingdb",
-                      "pharos"
+                      "pharos",
+                      "clinicaltrials",
+                      "biorxiv"
                     ]
                   },
                   "query": {

@@ -3271,6 +3271,9 @@ class DatabaseQueryRequest(BaseModel):
     )
 
 
+_FEDERATED_ONLY_SOURCES = frozenset({"clinicaltrials", "biorxiv"})
+
+
 @router.post(
     "/api/databases/query",
     summary="Query biological databases — single source or federated fan-out"
@@ -3285,7 +3288,8 @@ def query_biological_database(
     Pass a specific database name for single-source queries.
     Supported single sources: ncbi_gene, uniprot, pdb, alphafold, kegg, reactome,
     go, hpo, chebi, chembl, pubchem, bindingdb, pharos, pdbe, interpro, string,
-    ensembl, gnomad, dbsnp, clinvar, pubmed, europepmc, semantic_scholar, openalex.
+    ensembl, gnomad, dbsnp, clinvar, pubmed, europepmc, semantic_scholar, openalex,
+    clinicaltrials, biorxiv (the last two are served through the federated fan-out restricted to that source).
     """
     db = request.database.lower().strip()
 
@@ -3317,6 +3321,16 @@ def query_biological_database(
             }
         except Exception as e:
             log.warning(f"[databases/query] federated({request.query}): {e}")
+            return {"success": False, "error": str(e)}
+
+    # Sources that exist only as federated fetchers (no per-source handler in ai.query_database):
+    # route a named request through the fan-out restricted to that one source.
+    if db in _FEDERATED_ONLY_SOURCES:
+        try:
+            from galaxy.ai.federated_query import federated_query
+            return {"success": True, **federated_query(request.query, entity_type=request.entity_type, sources=[db])}
+        except Exception as e:
+            log.warning(f"[databases/query] {db}({request.query}): {e}")
             return {"success": False, "error": str(e)}
 
     ai = get_ai_assistant(trans)

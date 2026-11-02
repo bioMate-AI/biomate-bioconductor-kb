@@ -102,3 +102,81 @@ export function targetEvidenceReply(result: any): string {
   const channel = (value: string) => ({genetics_ot:'Open Targets disease-association evidence',llm_reasoned:'AI-generated reasoning'}[value] || text(value));
   return `Target identification completed successfully.\n\n| Rank | Target | Score | Evidence tier | Channel conflict |\n| --- | --- | --- | --- | --- |\n${rows.join('\n')}\n\nRanking: ${primary ? `ordered by ${channel(primary)}` : 'combined available channels; Open Targets-primary ordering was not established'}. Successful channels: ${(result.channels_run || []).map(channel).join(', ') || 'none reported'}. Failed channels: ${errors.map(channel).join(', ') || 'none reported'}.\n\nScores are associations, not clinical probabilities. Evidence tiers describe channel agreement, not independent experimental validation; AI-generated reasoning is not a retrieved publication. A conflict means the channels disagree. No improvement over Open Targets alone has been established.`;
 }
+
+const DB_ENTITY_TYPES = ['gene', 'protein', 'compound', 'variant', 'pathway', 'structure', 'disease', 'literature'];
+/** Named databases = the connector manifest enum (backend/lib/mcp/tools_manifest.py) plus the two federated-only sources. */
+export const DB_NAMES = ['uniprot', 'pdb', 'pdbe', 'alphafold', 'interpro', 'string', 'ncbi_gene', 'ensembl', 'dbsnp', 'clinvar', 'gnomad',
+  'kegg', 'reactome', 'go', 'hpo', 'chebi', 'chembl', 'pubchem', 'bindingdb', 'pharos', 'clinicaltrials', 'biorxiv'];
+/** Search modes the backend implements per database (ai_assistant._query_*): similarity over ALL of ChEMBL / PubChem (SMILES) and the whole PDB (sequence). */
+const SIMILARITY_DBS = ['chembl', 'pubchem', 'pdb'];
+
+/** Chat `query_database` -> POST /api/databases/query, the same intent-driven route the connector uses.
+ *  `operation` is chosen by the model from the user's intent, never inferred from the query text. Pure validation, no network. */
+export function databaseQueryRequest(input: unknown): RecordValue {
+  if (!object(input) || typeof input.query !== 'string' || !input.query.trim()) {
+    throw new Error('query must be a non-empty string');
+  }
+  const query = input.query.trim();
+  const database = input.database == null ? 'federated' : String(input.database).trim().toLowerCase();
+  const operation = input.operation == null ? 'lookup' : String(input.operation).trim().toLowerCase();
+  if (database !== 'federated' && !DB_NAMES.includes(database)) {
+    throw new Error(`database must be 'federated' or one of: ${DB_NAMES.join(', ')}`);
+  }
+  if (!['lookup', 'similarity', 'text'].includes(operation)) throw new Error("operation must be 'lookup', 'similarity' or 'text'");
+  if (operation === 'similarity') {
+    if (!SIMILARITY_DBS.includes(database)) {
+      throw new Error(`similarity search is implemented for ${SIMILARITY_DBS.join(', ')} only (chembl and pubchem take a SMILES, pdb takes a protein sequence); name one of them as database`);
+    }
+  } else if (query.length > 300) {
+    throw new Error('query must be at most 300 characters for lookup or text search');
+  }
+  if (operation !== 'lookup' && database === 'federated') {
+    throw new Error("operation 'text' or 'similarity' needs a named database; the federated fan-out only does lookups");
+  }
+  if (query.length > 5000) throw new Error('query must be at most 5000 characters');
+  if (input.entity_type != null && !DB_ENTITY_TYPES.includes(input.entity_type)) {
+    throw new Error(`entity_type must be one of: ${DB_ENTITY_TYPES.join(', ')}`);
+  }
+  let sources: string[] | null = null;
+  if (input.sources != null) {
+    if (database !== 'federated') throw new Error('sources only applies to the federated fan-out (omit it when naming a database)');
+    if (!Array.isArray(input.sources) || input.sources.length === 0 || input.sources.length > 8 ||
+        input.sources.some((v: unknown) => typeof v !== 'string' || !/^[a-z0-9_]{2,32}$/.test(v))) {
+      throw new Error('sources must be 1 to 8 source ids (lowercase letters, digits, underscore)');
+    }
+    sources = [...new Set<string>(input.sources)];
+  }
+  return {database, query, operation,
+    ...(database === 'federated' && input.entity_type ? {entity_type: input.entity_type} : {}), ...(sources ? {sources} : {})};
+}
+
+const TRIM = 25;
+const DB_NOTE = 'Records are returned as the public source gave them: cite the record id and the source. A source with status error, disabled or offline was NOT searched, so zero results from it is not evidence of absence. ' +
+  'ClinicalTrials.gov rows are registry records (status, phase, sponsor, stated stop reason), not trial results or outcomes. bioRxiv/medRxiv rows are preprints that have not been peer reviewed (peer_reviewed=false). ' +
+  'Similarity scores are structural/sequence similarity, not activity or function.';
+
+/** Compact either shape: the federated fan-out ({results: per source, merged}) or a single-source answer ({source, search, ...}). Failures stay visible. */
+export function databaseQueryResult(data: unknown, query: string): RecordValue {
+  if (!object(data)) return {error: 'Database backend returned an invalid response', query};
+  if (data.success === false || data.error) return {error: data.error || 'Database backend reported failure', query};
+  if (Array.isArray(data.merged) || (object(data.results) && !Array.isArray(data.results))) {
+    const bySource = object(data.results) ? data.results : {};
+    const per_source = Object.entries(bySource).map(([name, r]: [string, any]) => ({
+      source: name,
+      n_results: Array.isArray(r?.results) ? r.results.length : 0,
+      status: r?.error ? 'error' : (r?.status ?? 'ok'),
+      ...(r?.error || r?.detail ? {detail: String(r.error || r.detail).slice(0, 200)} : {}),
+    }));
+    const merged = Array.isArray(data.merged) ? data.merged : [];
+    return {query, mode: 'federated', entity_type: data.entity_type, sources_queried: data.sources_queried, per_source,
+      n_records: merged.length, records: merged.slice(0, TRIM), note: DB_NOTE};
+  }
+  // single named database: keep its tags (source, search) and trim any long list
+  const out: RecordValue = {query, mode: 'single_source'};
+  for (const [k, v] of Object.entries(data)) {
+    if (k === 'traceback') continue;
+    out[k] = Array.isArray(v) && v.length > TRIM ? [...v.slice(0, TRIM), {truncated: v.length - TRIM}] : v;
+  }
+  out.note = DB_NOTE;
+  return out;
+}

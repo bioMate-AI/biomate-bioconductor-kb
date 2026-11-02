@@ -1,6 +1,6 @@
 import {describe, it, expect} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {scientificToolRequest, scientificToolResult, targetEvidenceReply} from './scientific-chat-tools';
+import {scientificToolRequest, scientificToolResult, targetEvidenceReply, databaseQueryRequest, databaseQueryResult } from './scientific-chat-tools';
 
 it('presents completed target evidence without stale literature fallback or patient-count inference', () => {
   const result = {status:'ok', targets:[{rank:1,target:'BRAF',score:0.8533,tier:'nominated',conflict:true}],
@@ -93,13 +93,13 @@ describe('scientific chat boundary (pure contracts, no API mocks)', () => {
   });
   it('wires both model loops through the user-scoped API and does not expose new online tools offline', () => {
     const source = readFileSync('server/galaxy-assistant.ts','utf8');
-    for (const name of ['identify_targets','write_review']) {
+    for (const name of ['identify_targets','write_review','query_database']) {
       expect(source.match(new RegExp(`case '${name}':`, 'g'))).toHaveLength(2);
     }
     const handlers = source.slice(source.indexOf('  /** Thin, user-scoped proxy'),source.indexOf('  // ── Galaxy History context'));
-    expect(handlers.match(/this\._api\(\)\.client\.post/g)).toHaveLength(2);
+    expect(handlers.match(/this\._api\(\)\.client\.post/g)).toHaveLength(3);
     expect(handlers).not.toContain('fetch(');
-    expect(source).toContain("['search_literature', 'list_data_sources', 'identify_targets', 'write_review'].includes(tool.name)");
+    expect(source).toContain("['search_literature', 'query_database', 'list_data_sources', 'identify_targets', 'write_review'].includes(tool.name)");
   });
   it('every advertised built-in tool has a dispatch case in both provider loops', () => {
     const source = readFileSync('server/galaxy-assistant.ts','utf8');
@@ -108,5 +108,62 @@ describe('scientific chat boundary (pure contracts, no API mocks)', () => {
     const names = [...definitions.matchAll(/^    name: '([^']+)'/gm)].map(m=>m[1]);
     expect(names.length).toBeGreaterThan(0);
     for (const name of names) expect(source.match(new RegExp(`case '${name}':`, 'g')),`${name} provider dispatch drift`).toHaveLength(2);
+  });
+});
+
+describe('query_database chat boundary', () => {
+  it('defaults to a federated lookup and validates database, operation, entity type and sources', () => {
+    expect(databaseQueryRequest({query: ' TP53 '})).toEqual({database: 'federated', query: 'TP53', operation: 'lookup'});
+    expect(databaseQueryRequest({query: 'lupus', entity_type: 'disease', sources: ['clinicaltrials', 'clinicaltrials', 'hpo']}))
+      .toEqual({database: 'federated', query: 'lupus', operation: 'lookup', entity_type: 'disease', sources: ['clinicaltrials', 'hpo']});
+    expect(() => databaseQueryRequest({query: ''})).toThrow();
+    expect(() => databaseQueryRequest({query: 'x'.repeat(301)})).toThrow(/300/);
+    expect(() => databaseQueryRequest({query: 'x', entity_type: 'planet'})).toThrow();
+    expect(() => databaseQueryRequest({query: 'x', sources: ['Bad Name']})).toThrow();
+    expect(() => databaseQueryRequest({query: 'x', database: 'nope'})).toThrow();
+    expect(() => databaseQueryRequest({query: 'x', database: 'uniprot', sources: ['chembl']})).toThrow(/sources only applies/);
+  });
+
+  it('passes the intent-driven operation through for the databases that implement it, and refuses it elsewhere', () => {
+    const smiles = 'CC(=O)Oc1ccccc1C(=O)O';
+    expect(databaseQueryRequest({query: smiles, database: 'chembl', operation: 'similarity'}))
+      .toEqual({database: 'chembl', query: smiles, operation: 'similarity'});
+    const seq = 'MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG'.repeat(3);
+    expect(databaseQueryRequest({query: seq, database: 'pdb', operation: 'similarity'}).operation).toBe('similarity');
+    expect(databaseQueryRequest({query: 'insulin receptor kinase', database: 'pdb', operation: 'text'}).operation).toBe('text');
+    expect(() => databaseQueryRequest({query: smiles, database: 'uniprot', operation: 'similarity'})).toThrow(/chembl, pubchem, pdb/);
+    expect(() => databaseQueryRequest({query: smiles, operation: 'similarity'})).toThrow(/name one of them as database/);
+    expect(() => databaseQueryRequest({query: 'x', database: 'chembl', operation: 'fuzzy'})).toThrow(/operation/);
+  });
+
+  it('keeps a failed or disabled source visible and says zero results is not evidence of absence', () => {
+    const out = databaseQueryResult({
+      success: true, entity_type: 'disease', sources_queried: ['clinicaltrials', 'paperclip'],
+      results: {clinicaltrials: {results: [{nct_id: 'NCT1'}]}, paperclip: {results: [], status: 'disabled', detail: 'no key'}, hpo: {results: [], error: 'timeout'}},
+      merged: [{_source: 'clinicaltrials', nct_id: 'NCT1'}],
+    }, 'lupus');
+    expect(out.mode).toBe('federated');
+    expect(out.per_source).toEqual([
+      {source: 'clinicaltrials', n_results: 1, status: 'ok'},
+      {source: 'paperclip', n_results: 0, status: 'disabled', detail: 'no key'},
+      {source: 'hpo', n_results: 0, status: 'error', detail: 'timeout'},
+    ]);
+    expect(out.records).toHaveLength(1);
+    expect(String(out.note)).toMatch(/NOT searched/);
+    expect(String(out.note)).toMatch(/not been peer reviewed/);
+  });
+
+  it('keeps the source and search tags of a single-database answer and trims long lists', () => {
+    const rows = Array.from({length: 40}, (_, i) => ({chembl_id: `CHEMBL${i}`, similarity: 90 - i}));
+    const out = databaseQueryResult({success: true, source: 'chembl', search: 'tanimoto_similarity', results: rows, traceback: 'secret'}, 'CC(=O)O');
+    expect(out).toMatchObject({mode: 'single_source', source: 'chembl', search: 'tanimoto_similarity'});
+    expect((out.results as unknown[])).toHaveLength(26);
+    expect((out.results as any[])[25]).toEqual({truncated: 15});
+    expect(out).not.toHaveProperty('traceback');
+  });
+
+  it('turns backend failures and malformed bodies into errors', () => {
+    expect(databaseQueryResult({success: false, error: 'boom'}, 'q')).toEqual({error: 'boom', query: 'q'});
+    expect(databaseQueryResult(null, 'q')).toHaveProperty('error');
   });
 });

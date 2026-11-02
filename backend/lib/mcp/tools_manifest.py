@@ -346,8 +346,9 @@ TOOL_SCHEMAS: List[ToolSchema] = [
         tier="analysis",
         description=(
             "Query a biological/chemical database by accession or name. Supported: "
-            "uniprot, pdb, alphafold, ncbi_gene, dbsnp, clinvar, gnomad, kegg, reactome, "
-            "chebi, pubchem, hpo, omim, string."
+            "uniprot, pdb, pdbe, alphafold, interpro, string, ncbi_gene, ensembl, dbsnp, clinvar, gnomad, "
+            "kegg, reactome, go, hpo, chebi, chembl, pubchem, bindingdb, pharos, clinicaltrials "
+            "(registered trials: status, phase, sponsor, stop reason), biorxiv (bioRxiv/medRxiv preprints, not peer reviewed)."
         ),
         input_schema={
             "type": "object",
@@ -364,6 +365,7 @@ TOOL_SCHEMAS: List[ToolSchema] = [
                         "kegg", "reactome", "go",
                         "hpo",
                         "chebi", "chembl", "pubchem", "bindingdb", "pharos",
+                        "clinicaltrials", "biorxiv",
                     ],
                 },
                 "query": {"type": "string", "description": "Accession, gene symbol, or compound name."},
