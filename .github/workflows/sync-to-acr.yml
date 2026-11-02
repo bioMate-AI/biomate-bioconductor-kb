@@ -379,4 +379,15 @@ jobs:
              curl -sf --max-time 5 http://localhost:5000/api/health 2>/dev/null || echo "frontend unreachable" && \
              echo "" && \
              echo "=== LLM env vars in galaxy container (keys only) ===" && \
-             docker exec biomate-galaxy env 2>/dev/null | grep -E "GALAXY_AI_LLM|LLM_API_URL|LLM_MODEL|LLM_API_KEY|DASHSCOPE|ANTHROPIC_API|OPENAI_API|GOOGLE_API" | sed "s/=.*/=<SET>/" || echo "(none — LLM not configured)"'
+             docker exec biomate-galaxy env 2>/dev/null | grep -E "GALAXY_AI_LLM|LLM_API_URL|LLM_MODEL|LLM_API_KEY|DASHSCOPE|ANTHROPIC_API|OPENAI_API|GOOGLE_API" | sed "s/=.*/=<SET>/" || echo "(none — LLM not configured)" && \
+             echo "" && \
+             echo "=== galaxy_ai_tools.db size (should be ~280 MB) ===" && \
+             VOLPATH=$(docker volume inspect biomate-onprem_biomate-backend-db --format "{{.Mountpoint}}" 2>/dev/null) && \
+             ls -lh "$VOLPATH/galaxy_ai_tools.db" 2>/dev/null || echo "DB not found in volume at $VOLPATH" && \
+             echo "" && \
+             echo "=== AI assistant smoke test (generate_workflow for ADMET) ===" && \
+             curl -sf --max-time 15 http://localhost:8081/api/ai_assistant/generate_workflow \
+               -H "Content-Type: application/json" \
+               -d '"'"'{"request_text":"ADMET prediction aspirin CC(=O)Oc1ccccc1C(=O)O"}'"'"' \
+               | python3 -c "import sys,json; d=json.load(sys.stdin); print('"'"'name:'"'"', d.get('"'"'workflow_ga'"'"',{}).get('"'"'name'"'"','"'"'none'"'"')); print('"'"'domain:'"'"', d.get('"'"'workflow_ga'"'"',{}).get('"'"'domain'"'"','"'"'none'"'"'))" 2>/dev/null \
+               || echo "AI assistant returned non-JSON or error"'
