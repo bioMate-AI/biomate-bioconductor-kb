@@ -6573,6 +6573,24 @@ async def paperqa_synthesize(
 
 # ── Skills API ────────────────────────────────────────────────────────────────
 
+def _private_skill_root(trans):
+    import os
+    from pathlib import Path
+    configured = os.environ.get("BIOMATE_USER_SKILLS_DIR")
+    files = getattr(trans.app.config, "file_path", None)
+    if not configured and not files:
+        raise HTTPException(status_code=503, detail="Persistent skill storage is not configured")
+    return Path(configured) if configured else Path(files) / ".biomate-skills"
+
+
+def _skills_for_request(trans, include_private=False):
+    from galaxy.ai.skill_manager import scoped_skill_manager
+    if not include_private:
+        return scoped_skill_manager()
+    if not trans.user:
+        raise HTTPException(status_code=401, detail="Sign in to access private skills")
+    return scoped_skill_manager(trans.user.id, _private_skill_root(trans))
+
 @router.get(
     "/api/skills",
     summary="List all available skills (expert + Bioconductor)"
@@ -6580,13 +6598,13 @@ async def paperqa_synthesize(
 def list_skills(
     source: Optional[str] = Query(default=None, description="Filter by source: 'expert' or 'bioconductor'"),
     domain: Optional[str] = Query(default=None, description="Filter Bioconductor skills by domain"),
+    include_private: bool = Query(default=False),
     trans: ProvidesUserContext = DependsOnTrans
 ) -> Dict[str, Any]:
     """Return metadata for all available Skills. Use ?source=expert for expert roles only,
     ?source=bioconductor&domain=transcriptomics for Bioconductor skills by domain."""
     try:
-        from galaxy.ai.skill_manager import get_skill_manager
-        mgr = get_skill_manager()
+        mgr = _skills_for_request(trans, include_private)
         if source == "expert":
             skills = mgr.list_expert_skills()
         elif source == "bioconductor":
@@ -6599,6 +6617,8 @@ def list_skills(
             "bioc_domains": mgr.list_bioc_domains(),
             "total": len(skills),
         }
+    except HTTPException:
+        raise
     except Exception as e:
         log.warning("[skills] list failed: %s", e)
         return {"success": False, "error": str(e), "skills": [], "bioc_domains": []}
@@ -6607,6 +6627,7 @@ def list_skills(
 class SkillDetectRequest(BaseModel):
     query: str = Field(..., description="User message to auto-detect skills from")
     preferred_domains: Optional[List[str]] = Field(default=None)
+    include_private: bool = False
 
 
 @router.post(
@@ -6619,13 +6640,14 @@ def detect_skills(
 ) -> Dict[str, Any]:
     """Returns up to 3 skills auto-detected from the query text and domain signals."""
     try:
-        from galaxy.ai.skill_manager import get_skill_manager
-        mgr = get_skill_manager()
+        mgr = _skills_for_request(trans, request.include_private)
         detected = mgr.detect_skills(request.query, request.preferred_domains)
         return {
             "success": True,
             "detected": [s.to_dict() for s in detected],
         }
+    except HTTPException:
+        raise
     except Exception as e:
         log.warning("[skills] detect failed: %s", e)
         return {"success": False, "error": str(e), "detected": []}
@@ -6644,24 +6666,17 @@ def upload_skill(
     request: SkillUploadRequest,
     trans: ProvidesUserContext = DependsOnTrans
 ) -> Dict[str, Any]:
-    """Validate a user-supplied .md skill (must have `name` + `triggers` in frontmatter),
-    write it to the skills dir, and hot-reload the manager so /api/skills reflects it."""
-    import re as _re
+    """Import instruction-only Markdown into the authenticated owner's namespace."""
+    if not trans.user:
+        raise HTTPException(status_code=401, detail="Sign in to import a private skill")
     try:
-        from galaxy.ai.skill_manager import _parse_frontmatter, SKILLS_DIR, reload_skill_manager
-        meta, _body = _parse_frontmatter(request.content or "")
-        if not meta.get("name") or not meta.get("triggers"):
-            raise HTTPException(
-                status_code=400,
-                detail="Skill .md must have YAML frontmatter with `name` and `triggers`.",
-            )
-        # slug from name (safe filename)
-        slug = _re.sub(r"[^a-z0-9_-]+", "-", str(meta["name"]).strip().lower()).strip("-") or "skill"
-        SKILLS_DIR.mkdir(parents=True, exist_ok=True)
-        dest = SKILLS_DIR / f"{slug}.md"
-        dest.write_text(request.content, encoding="utf-8")
-        mgr = reload_skill_manager()
-        return {"success": True, "skill_id": slug, "total": len(mgr.list_expert_skills())}
+        from galaxy.ai.skill_manager import store_private_skill
+        result = store_private_skill(_private_skill_root(trans), trans.user.id, request.content)
+        return {"success": True, **result}
+    except FileExistsError:
+        raise HTTPException(status_code=409, detail="Skill already exists; existing content was not changed")
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     except HTTPException:
         raise
     except Exception as e:
@@ -6671,6 +6686,19 @@ def upload_skill(
 
 class SkillBlockRequest(BaseModel):
     skill_ids: List[str] = Field(..., description="Skill IDs to build system block for")
+    include_private: bool = False
+
+
+@router.delete("/api/skills/{skill_id}", summary="Delete an owned custom instruction skill")
+def delete_skill(skill_id: str, trans: ProvidesUserContext = DependsOnTrans) -> Dict[str, Any]:
+    if not trans.user:
+        raise HTTPException(status_code=401, detail="Sign in to delete a private skill")
+    try:
+        from galaxy.ai.skill_manager import delete_private_skill
+        delete_private_skill(_private_skill_root(trans), trans.user.id, skill_id)
+        return {"success": True}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Private skill not found")
 
 
 @router.get(
@@ -6757,10 +6785,14 @@ def build_skill_block(
 ) -> Dict[str, Any]:
     """Returns the <active_skills> XML block ready for injection into a system prompt."""
     try:
-        from galaxy.ai.skill_manager import get_skill_manager
-        mgr = get_skill_manager()
+        mgr = _skills_for_request(trans, request.include_private)
+        missing = [sid for sid in request.skill_ids if mgr.get_skill(sid) is None]
+        if missing:
+            raise HTTPException(status_code=404, detail="Selected skills are unavailable")
         block = mgr.build_system_block_by_ids(request.skill_ids)
         return {"success": True, "block": block, "skill_ids": request.skill_ids}
+    except HTTPException:
+        raise
     except Exception as e:
         log.warning("[skills] block failed: %s", e)
         return {"success": False, "error": str(e), "block": ""}

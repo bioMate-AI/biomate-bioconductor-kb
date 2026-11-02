@@ -80,6 +80,7 @@ import { oauthService } from "./oauth-service";
 import { stripeService } from "./stripe-service";
 import { auditService, auditMiddleware } from "./audit-service";
 import { decryptField, encryptField } from "./field-encrypt";
+import { hasPersonalSkillAccess } from './skill-access';
 import { checkSafety, hashMessage } from "./safety-guardrails";
 import { conversationStateManager, createEmptyState, type ConversationState } from "./conversation-state";
 import {
@@ -6585,6 +6586,8 @@ ${paramLines || '(none recorded)'}`;
         // generate_workflow doesn't fall back to the shared admin key, which
         // returns 401 from Galaxy whenever its api_keys row is missing/rotated.
         galaxyAPIOverride: req.user ? userProxy(req) : undefined,
+        // Never expose the shared admin's private skill namespace via proxy fallback.
+        skillPrivateAccess: hasPersonalSkillAccess(req.user as any),
       };
 
       // Use memory-enhanced processing when available: loads user preferences + past corrections,
@@ -8899,13 +8902,30 @@ ${paramLines || '(none recorded)'}`;
   // POST /api/skills/detect   — auto-detect from query
   // POST /api/skills/block    — build system prompt block for skill IDs
 
-  app.get("/api/skills", optionalAuth, async (_req, res) => {
+  app.get("/api/skills", optionalAuth, async (req, res) => {
     try {
-      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-      const upstream = await fetch(`${galaxyUrl}/api/skills`);
-      res.status(upstream.status).json(await upstream.json());
+      const privateAccess = hasPersonalSkillAccess(req.user as any);
+      const upstream = await (privateAccess ? userProxy(req) : galaxyAPIBackend).client.get('/api/skills', {
+        params: { include_private: privateAccess, source: req.query.source, domain: req.query.domain },
+      });
+      res.status(upstream.status).json(upstream.data);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/skills/upload", authenticateToken, express.json({ limit: '300kb' }), async (req, res) => {
+    // A missing personal key must not turn this into a shared-admin upload.
+    if (!hasPersonalSkillAccess(req.user as any)) {
+      return res.status(409).json({ error: 'Personal Galaxy access is required to import private skills.' });
+    }
+    try {
+      const upstream = await userProxy(req).client.post('/api/skills/upload', {
+        content: req.body?.content, filename: req.body?.filename,
+      });
+      res.status(upstream.status).json(upstream.data);
+    } catch (err: any) {
+      res.status(err.status_code || 502).json({ error: err.detail?.detail || err.message });
     }
   });
 
@@ -8913,15 +8933,25 @@ ${paramLines || '(none recorded)'}`;
     try {
       const { query, preferred_domains } = req.body || {};
       if (!query) return res.status(400).json({ error: "query required" });
-      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-      const upstream = await fetch(`${galaxyUrl}/api/skills/detect`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, preferred_domains }),
+      const privateAccess = hasPersonalSkillAccess(req.user as any);
+      const upstream = await (privateAccess ? userProxy(req) : galaxyAPIBackend).client.post('/api/skills/detect', {
+        query, preferred_domains, include_private: privateAccess,
       });
-      res.status(upstream.status).json(await upstream.json());
+      res.status(upstream.status).json(upstream.data);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/skills/:skillId", authenticateToken, async (req, res) => {
+    if (!hasPersonalSkillAccess(req.user as any)) {
+      return res.status(409).json({ error: 'Personal Galaxy access is required to manage private skills.' });
+    }
+    try {
+      const upstream = await userProxy(req).client.delete(`/api/skills/${encodeURIComponent(req.params.skillId)}`);
+      res.status(upstream.status).json(upstream.data);
+    } catch (err: any) {
+      res.status(err.status_code || 502).json({ error: err.detail?.detail || err.message });
     }
   });
 
@@ -8929,15 +8959,13 @@ ${paramLines || '(none recorded)'}`;
     try {
       const { skill_ids } = req.body || {};
       if (!skill_ids?.length) return res.status(400).json({ error: "skill_ids required" });
-      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-      const upstream = await fetch(`${galaxyUrl}/api/skills/block`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ skill_ids }),
+      const privateAccess = hasPersonalSkillAccess(req.user as any);
+      const upstream = await (privateAccess ? userProxy(req) : galaxyAPIBackend).client.post('/api/skills/block', {
+        skill_ids, include_private: privateAccess,
       });
-      res.status(upstream.status).json(await upstream.json());
+      res.status(upstream.status).json(upstream.data);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      res.status(err.status_code || 502).json({ error: err.detail?.detail || err.message });
     }
   });
 

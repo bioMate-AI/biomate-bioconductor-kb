@@ -21,7 +21,8 @@ Campaign DB tables added:
   virtual_library_cache  (campaign_id, smiles_json, n_propose, diversity_weight, saved_at)
   auto_proposals         (id, campaign_id, round_number, proposed_smiles_json,
                           scores_json, ci_json, ad_statuses_json, triggered_by,
-                          created_at, training_report_json)
+                          created_at, training_report_json, gp_stds_json,
+                          surrogate_report_json)
 
 Round numbers are allocated by BayesianOptimizer.save_proposal from the
 bo_proposals ledger; each auto proposal is written in the same transaction as
@@ -71,6 +72,12 @@ class AutoProposal:
     created_at: str
     # {score_field, objective, n_ranked, n_used, skipped: [{compound_id, reason}], warnings}
     training_report: dict = field(default_factory=dict)
+    # {objective: [posterior std per proposed compound]}
+    gp_stds: dict = field(default_factory=dict)
+    # RoundProposal.surrogate_report; can_discriminate mirrors its flag and is
+    # None for rounds persisted before it was recorded.
+    surrogate_report: dict = field(default_factory=dict)
+    can_discriminate: Optional[bool] = None
 
 
 @dataclass
@@ -97,8 +104,14 @@ def build_training_rows(ranked: list[dict]) -> CampaignTrainingRows:
 
     Rows that are not fully evaluated (their score covers only some campaign
     objectives), or lack a SMILES or a finite observed score, are skipped and
-    reported — never given a default or partial label. Raises CampaignDataError
-    when fewer than two usable rows remain (a surrogate cannot be fitted).
+    reported — never given a default or partial label. Rows whose score rests
+    on a censored value ('<'/'>' bound; ``censored_objectives``) are skipped
+    with reason ``censored_value``: their score is a bound, not a regression
+    label. The structure used is the parent (counterions removed) when the
+    ranking provides ``parent_smiles``; a multi-component parent (co-drug or
+    mixture) has no single structure to featurise and is skipped with reason
+    ``multi_component_structure``. Raises CampaignDataError when fewer than
+    two usable rows remain (a surrogate cannot be fitted).
     """
     ids: list[str] = []
     smiles: list[str] = []
@@ -114,6 +127,15 @@ def build_training_rows(ranked: list[dict]) -> CampaignTrainingRows:
             if r.get("missing_objectives"):
                 entry["missing_objectives"] = list(r["missing_objectives"])
             skipped.append(entry)
+            continue
+        if r.get("censored_objectives"):
+            skipped.append({"compound_id": cid, "reason": "censored_value",
+                            "censored_objectives": list(r["censored_objectives"])})
+            continue
+        smi = r.get("parent_smiles") or smi
+        if smi and "." in smi:
+            skipped.append({"compound_id": cid, "reason": "multi_component_structure",
+                            "parent_smiles": smi})
             continue
         if not smi:
             skipped.append({"compound_id": cid, "reason": "missing_smiles"})
@@ -172,7 +194,9 @@ def _schema_sql() -> str:
             ad_statuses_json TEXT NOT NULL DEFAULT '[]',
             triggered_by     TEXT NOT NULL DEFAULT 'auto_retrain',
             created_at       TEXT NOT NULL,
-            training_report_json TEXT NOT NULL DEFAULT '{}'
+            training_report_json TEXT NOT NULL DEFAULT '{}',
+            gp_stds_json     TEXT NOT NULL DEFAULT '{}',
+            surrogate_report_json TEXT NOT NULL DEFAULT '{}'
         );
 
         CREATE INDEX IF NOT EXISTS idx_auto_proposals_campaign
@@ -184,9 +208,10 @@ def _init_tables(db_path: str) -> None:
     with sqlite3.connect(db_path) as conn:
         conn.executescript(_schema_sql())
         cols = {r[1] for r in conn.execute("PRAGMA table_info(auto_proposals)")}
-        if "training_report_json" not in cols:
-            conn.execute("ALTER TABLE auto_proposals "
-                         "ADD COLUMN training_report_json TEXT NOT NULL DEFAULT '{}'")
+        for col in ("training_report_json", "gp_stds_json", "surrogate_report_json"):
+            if col not in cols:
+                conn.execute(f"ALTER TABLE auto_proposals "
+                             f"ADD COLUMN {col} TEXT NOT NULL DEFAULT '{{}}'")
 
 
 def _connect(db_path: str):
@@ -256,12 +281,15 @@ def _insert_auto_proposal(conn, campaign_id: str, proposal, triggered_by: str,
                           training_report: Optional[dict]) -> AutoProposal:
     ts = datetime.now(timezone.utc).isoformat()
     report = training_report or {}
+    gp_stds = getattr(proposal, "gp_stds", None) or {}
+    surrogate = getattr(proposal, "surrogate_report", None) or {}
     cur = conn.execute(
         """
         INSERT INTO auto_proposals
           (campaign_id, round_number, proposed_smiles_json, scores_json,
-           ci_json, ad_statuses_json, triggered_by, created_at, training_report_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ci_json, ad_statuses_json, triggered_by, created_at, training_report_json,
+           gp_stds_json, surrogate_report_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             campaign_id,
@@ -273,6 +301,8 @@ def _insert_auto_proposal(conn, campaign_id: str, proposal, triggered_by: str,
             triggered_by,
             ts,
             json.dumps(report),
+            json.dumps(gp_stds),
+            json.dumps(surrogate),
         ),
     )
     return AutoProposal(
@@ -286,6 +316,9 @@ def _insert_auto_proposal(conn, campaign_id: str, proposal, triggered_by: str,
         triggered_by=triggered_by,
         created_at=ts,
         training_report=report,
+        gp_stds=gp_stds,
+        surrogate_report=surrogate,
+        can_discriminate=surrogate.get("can_discriminate"),
     )
 
 
@@ -360,6 +393,7 @@ def persist_round(
 
 
 def _row_to_auto_proposal(r) -> AutoProposal:
+    surrogate = json.loads(r["surrogate_report_json"] or "{}")
     return AutoProposal(
         id=r["id"],
         campaign_id=r["campaign_id"],
@@ -371,6 +405,9 @@ def _row_to_auto_proposal(r) -> AutoProposal:
         triggered_by=r["triggered_by"],
         created_at=r["created_at"],
         training_report=json.loads(r["training_report_json"] or "{}"),
+        gp_stds=json.loads(r["gp_stds_json"] or "{}"),
+        surrogate_report=surrogate,
+        can_discriminate=surrogate.get("can_discriminate"),
     )
 
 

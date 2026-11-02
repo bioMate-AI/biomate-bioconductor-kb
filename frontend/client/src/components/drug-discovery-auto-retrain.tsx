@@ -58,9 +58,18 @@ interface ProposalItem {
   rank: number
   smiles: string
   score: number
+  /** Posterior std of the predicted score; null for rounds stored before it was recorded. */
+  std?: number | null
   ci_lo: number
   ci_hi: number
   ad: "in_domain" | "out_of_domain"
+}
+
+export interface SurrogateDiscrimination {
+  can_discriminate: boolean
+  max_pairwise_order_probability: number | null
+  threshold: number
+  reason: string
 }
 
 interface Proposal {
@@ -68,6 +77,12 @@ interface Proposal {
   generated_at: string
   trigger: "manual" | "auto_retrain"
   items: ProposalItem[]
+  /** false: score differences are within model uncertainty, so items are not a ranking. */
+  can_discriminate?: boolean | null
+  surrogate_report?: {
+    n_train?: number
+    objectives?: Record<string, { discrimination?: SurrogateDiscrimination }>
+  }
 }
 
 interface ProposalHistoryEntry {
@@ -109,6 +124,38 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 // ---------------------------------------------------------------------------
+// Ranking notice
+// ---------------------------------------------------------------------------
+
+export function ProposalRankingNotice({
+  canDiscriminate,
+  nTrain,
+  discrimination,
+}: {
+  canDiscriminate?: boolean | null
+  nTrain?: number
+  discrimination?: SurrogateDiscrimination
+}) {
+  if (canDiscriminate !== false) return null
+  const p = discrimination?.max_pairwise_order_probability
+  return (
+    <div
+      data-testid="proposal-cannot-rank"
+      className="rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/30 p-3 flex items-start gap-2 text-amber-800 dark:text-amber-300 text-xs"
+    >
+      <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+      <span>
+        <span className="font-medium">Too few data to rank.</span>{" "}
+        Predicted score differences are within model uncertainty
+        {typeof p === "number" ? ` (best pairwise confidence ${Math.round(p * 100)}%)` : ""}
+        {typeof nTrain === "number" ? `; trained on ${nTrain} measured compounds` : ""}. Treat
+        this batch as exploratory, not as an ordered shortlist.
+      </span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Proposal row
 // ---------------------------------------------------------------------------
 
@@ -135,7 +182,10 @@ function ProposalRow({ item }: { item: ProposalItem }) {
           {expanded ? item.smiles : item.smiles.slice(0, 28) + (item.smiles.length > 28 ? "…" : "")}
         </span>
       </td>
-      <td className="py-1.5 px-2 w-40">
+      <td
+        className="py-1.5 px-2 w-40"
+        title={typeof item.std === "number" ? `± ${item.std.toFixed(3)} (posterior std)` : undefined}
+      >
         <ScoreBar score={item.score} />
       </td>
       <td
@@ -544,6 +594,14 @@ export function DrugDiscoveryAutoRetrain({ campaignId, className }: AutoRetrainP
               </Badge>
             </span>
           </div>
+
+          <ProposalRankingNotice
+            canDiscriminate={proposal.can_discriminate}
+            nTrain={proposal.surrogate_report?.n_train}
+            discrimination={
+              Object.values(proposal.surrogate_report?.objectives ?? {})[0]?.discrimination
+            }
+          />
 
           <div className="rounded-md border border-border overflow-x-auto">
             <table className="w-full text-xs">
