@@ -88,6 +88,35 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get install -y sshpass
 
+      - name: Repair galaxy_ai_tools.db if missing or incomplete (direct ECS download)
+        # The GHA→ECS SSH pipe is throttled (~50-100 KB/s US→China) and hits the 30-min
+        # job timeout for the 303 MB DB. The fix: have ECS download from S3 DIRECTLY so
+        # only control traffic flows over SSH (no data through the pipe).
+        # Downloads to a .new temp file first, then atomically renames to avoid corruption
+        # if the download is interrupted.
+        # Expected size: 318631936 bytes (~303 MB). Threshold: 250 MB.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          DB_URL="${{ env.DB_URL }}"
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
+            root@${{ env.ECS_IP }} \
+            "VOLPATH=\$(docker volume inspect biomate-onprem_biomate-backend-db --format '{{.Mountpoint}}' 2>/dev/null) && \
+             CURRENT=\$(stat -c %s \"\$VOLPATH/galaxy_ai_tools.db\" 2>/dev/null || echo 0) && \
+             echo \"Current DB size: \${CURRENT} bytes (threshold: 250 MB = 262144000)\" && \
+             if [ \"\$CURRENT\" -lt 262144000 ]; then \
+               echo \"DB missing or incomplete — downloading from S3 directly on ECS (~303 MB)...\" && \
+               curl -fL --progress-bar -o \"\$VOLPATH/galaxy_ai_tools.db.new\" '$DB_URL' && \
+               mv \"\$VOLPATH/galaxy_ai_tools.db.new\" \"\$VOLPATH/galaxy_ai_tools.db\" && \
+               ls -lh \"\$VOLPATH/galaxy_ai_tools.db\" && \
+               echo 'DB installed — restarting galaxy to reload AI assistant' && \
+               docker restart --timeout 30 biomate-galaxy && \
+               echo 'Galaxy restarted with fresh DB'; \
+             else \
+               echo \"DB already complete (\${CURRENT} bytes) — skipping download\"; \
+             fi"
+
       - name: Add CORS_ORIGINS to .env so IP-based access works (not just biomate.ai)
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
