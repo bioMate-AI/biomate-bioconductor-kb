@@ -379,40 +379,36 @@ jobs:
                  echo \"Upload done: \$(wc -l < \$NF_DEST) lines → \$NF_DEST\""
           done
 
-      - name: Patch nextflow_executor.py + ADMET main.nf for ECS
-        # Two patches applied here:
+      - name: Deploy nextflow_executor.py + patch ADMET main.nf for ECS
+        # Deploy nextflow_executor.py directly from the repo checkout into the
+        # running Galaxy container.  The repo copy already contains all ECS patches
+        # (--pull never in runOptions, ternary-container extraction fix, etc.), so
+        # targeted sed patching is no longer needed — the canonical source wins.
         #
-        # 1. --pull never in nextflow_executor.py:
-        #    DaoCloud registry mirror (daemon.json) intercepts ALL docker pull calls,
-        #    even for images already loaded locally. --pull never tells the Nextflow
-        #    Docker executor to use only the local cache.
-        #    IMPORTANT: gunicorn --preload means kill -HUP does NOT reload Python code.
-        #    We must docker restart so gunicorn re-preloads from the patched file.
+        # gunicorn --preload means kill -HUP does NOT reload Python code; we must
+        # docker restart so the master re-preloads from the deployed file.
         #
-        # 2. ADMET container hard-coded from BIOMATE_ADMET_CONTAINER in .env:
-        #    The repo's main.nf uses System.getenv('BIOMATE_ADMET_CONTAINER') (Elvis
-        #    operator) for flexibility, but docker-compose.onprem.yml does NOT have
-        #    env_file: [".env"], so .env vars don't inject into the Galaxy container's
-        #    environment. We resolve this by sed-patching the uploaded volume file to
-        #    hard-code the container image (read from .env directly on the host).
-        #    This means the repo file stays clean; the deployed copy is ECS-specific.
+        # ADMET main.nf: .env vars don't reach the Galaxy container because
+        # docker-compose.onprem.yml has no env_file.  Resolve BIOMATE_ADMET_CONTAINER
+        # on the ECS host directly and hard-code it in the nfcore volume copy.
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
+          # Step 1: pipe repo file to ECS temp location
+          cat backend/lib/galaxy/webapps/galaxy/api/nextflow_executor.py | \
+            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+              root@${{ env.ECS_IP }} \
+              'cat > /tmp/nextflow_executor_deploy.py'
+          # Step 2: docker cp into container + ADMET volume patch + restart
           sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
-            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
             root@${{ env.ECS_IP }} \
             'FILE=$(docker exec biomate-galaxy find /app -name "nextflow_executor.py" 2>/dev/null | head -1) && \
              if [ -z "$FILE" ]; then echo "ERROR: nextflow_executor.py not found in container"; exit 1; fi && \
-             echo "Found: $FILE" && \
-             NEEDS_RESTART=false && \
-             if docker exec biomate-galaxy grep -q -- "--pull never" "$FILE"; then
-               echo "--pull never already patched"
-             else
-               docker exec biomate-galaxy sed -i "s/--user root --network/--user root --pull never --network/g" "$FILE" && \
-               echo "Patched --pull never into $FILE" && \
-               NEEDS_RESTART=true
-             fi && \
+             echo "Deploying repo nextflow_executor.py → container:$FILE" && \
+             docker cp /tmp/nextflow_executor_deploy.py biomate-galaxy:"$FILE" && \
+             echo "Deployed repo nextflow_executor.py." && \
              ADMET_IMG=$(grep "^BIOMATE_ADMET_CONTAINER=" /app/biomate/.env 2>/dev/null | cut -d= -f2- | tr -d "\"") && \
              if [ -z "$ADMET_IMG" ]; then ADMET_IMG="biomate/biomni-tools:latest"; fi && \
              VOLPATH=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}" 2>/dev/null) && \
@@ -424,13 +420,9 @@ jobs:
              else
                echo "WARNING: ADMET main.nf not found at $NF_FILE"
              fi && \
-             if [ "$NEEDS_RESTART" = "true" ]; then
-               echo "Restarting galaxy container (gunicorn --preload requires docker restart, not HUP)..." && \
-               docker restart --time 30 biomate-galaxy && \
-               echo "Galaxy restarted"
-             else
-               echo "No Python changes — skipping restart"
-             fi'
+             echo "Restarting galaxy container (gunicorn --preload requires docker restart)..." && \
+             docker restart --time 30 biomate-galaxy && \
+             echo "Galaxy restarted with latest nextflow_executor.py"'
 
       - name: Patch index.html — remove Google CDN links (blocked in China)
         # Google Fonts and Google Tag Manager are inaccessible from mainland China.
