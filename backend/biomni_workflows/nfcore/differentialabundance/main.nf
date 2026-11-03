@@ -16,6 +16,13 @@ params.samplesheet      = null          // Sample metadata / samplesheet CSV (S3
 params.input            = null          // Alias for samplesheet (nf-core convention)
 params.matrix           = null          // Count matrix CSV (genes × samples)
 params.contrasts        = null          // Contrasts CSV (id, variable, reference, target)
+// User-specified contrast (overrides auto-inference). Either name the metadata column
+// (contrast_variable) or just give the two group VALUES (contrast_target vs contrast_reference)
+// and the column containing them is found automatically — so a user can say "tumor vs normal"
+// without knowing the exact GEO pData column name.
+params.contrast_variable  = null         // metadata column to contrast on (optional)
+params.contrast_target    = null         // the "treatment"/numerator group value (optional)
+params.contrast_reference = null         // the "control"/denominator group value (optional)
 params.genome           = null          // Reference genome (for annotation, optional)
 params.gtf              = null          // GTF annotation file (optional)
 params.study_type       = 'rnaseq'      // Assay type: rnaseq | maxquant | affy | metab
@@ -147,9 +154,43 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
       }
       best
     }
+    # User-specified contrast overrides (params). Match a value to the column that contains it
+    # (case-insensitive substring) so the caller can say "tumor" vs "normal" without the exact
+    # GEO column name. Returns c(column, matched_target_value, matched_reference_value) or NULL.
+    .uvar <- "${params.contrast_variable ?: ''}"; .utgt <- "${params.contrast_target ?: ''}"; .uref <- "${params.contrast_reference ?: ''}"
+    resolve_user_contrast <- function(md, scol) {
+      if (.uvar == "" && .utgt == "" && .uref == "") return(NULL)
+      find_val <- function(col, val) { # exact first, then case-insensitive substring
+        u <- unique(as.character(md[[col]]))
+        hit <- u[u == val]; if (length(hit)) return(hit[1])
+        hit <- u[grepl(val, u, ignore.case=TRUE, fixed=FALSE)]; if (length(hit)) return(hit[1])
+        NA_character_
+      }
+      cols <- if (.uvar != "" && .uvar %in% names(md)) .uvar else setdiff(names(md), scol)
+      for (cc in cols) {
+        tg <- if (.utgt != "") find_val(cc, .utgt) else NA_character_
+        rf <- if (.uref != "") find_val(cc, .uref) else NA_character_
+        # need at least the target resolved; reference defaults to the other largest group
+        if (.utgt != "" && is.na(tg)) next
+        if (.uref != "" && is.na(rf)) next
+        if (is.na(tg) && .uvar == "") next
+        lv <- names(sort(table(md[[cc]]), decreasing=TRUE))
+        if (.uvar != "" && .utgt == "") { tg <- lv[1]; rf <- lv[2] }
+        if (is.na(rf)) rf <- setdiff(lv, tg)[1]
+        if (is.na(tg) || is.na(rf) || tg == rf) next
+        return(c(cc, tg, rf))
+      }
+      NULL
+    }
+    user_ct <- resolve_user_contrast(metadata, sample_col)
     cond_col <- pick_condition_column(metadata, sample_col)
     if (!is.na(con_file)) {
       contrasts_df <- read.csv(con_file, stringsAsFactors=FALSE)
+    } else if (!is.null(user_ct)) {
+      message("[differentialabundance] user contrast on '", user_ct[1], "': ", user_ct[2], " vs ", user_ct[3])
+      contrasts_df <- data.frame(id=paste0(make.names(user_ct[2]),"_vs_",make.names(user_ct[3])),
+                                 variable=user_ct[1], reference=user_ct[3], target=user_ct[2],
+                                 stringsAsFactors=FALSE)
     } else if (!is.na(cond_col)) {
       tb <- sort(table(metadata[[cond_col]]), decreasing=TRUE)
       lvls <- names(tb)[1:2]   # two largest groups
@@ -159,7 +200,7 @@ process DESEQ2_DIFFERENTIAL_ANALYSIS {
                                  stringsAsFactors=FALSE)
     } else {
       stop(paste("Could not infer a grouping variable (>=2 groups, each >=2 samples) from the sample",
-                 "metadata, and no contrasts CSV was provided. Columns seen:",
+                 "metadata, and no contrasts CSV or contrast params were provided. Columns seen:",
                  paste(names(metadata), collapse=", ")))
     }
 

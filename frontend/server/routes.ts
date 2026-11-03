@@ -11023,6 +11023,26 @@ ${paramLines || '(none recorded)'}`;
                     if (!countKeys.includes(k) && k !== 'outdir' && !isEmptyVal(v)) deParams[k] = v;
                   }
 
+                  // User-specified contrast: explicit params win; otherwise parse a free-text
+                  // "<target> vs/versus <reference>" from the request params/description so the
+                  // caller can say e.g. "tumor vs normal" and the stub resolves it to the right
+                  // metadata column (see differentialabundance params.contrast_*). Only the group
+                  // VALUES are passed; the stub matches them to the column.
+                  if (isEmptyVal(deParams.contrast_target)) {
+                    const contrastText = String(
+                      providedParams.contrast ?? providedParams.comparison ?? request.workflowDefinition?.description ?? ''
+                    );
+                    // Single-word tokens around vs/versus (the stub substring-matches them to the
+                    // metadata column, so "cancer"/"normal" resolves "lung cancer" vs "paired normal
+                    // adjacent"). Single words also avoid swallowing the accession into the phrase.
+                    const m = contrastText.match(/([A-Za-z][\w.+/-]*)\s+(?:vs\.?|versus)\s+([A-Za-z][\w.+/-]*)/i);
+                    if (m) {
+                      deParams.contrast_target = m[1].trim();
+                      deParams.contrast_reference = m[2].trim();
+                      console.warn(`[execute-gate] parsed contrast "${m[1].trim()}" vs "${m[2].trim()}" for ${acc}.`);
+                    }
+                  }
+
                   const chainBody = {
                     chain_name: `${acc} → ${deName}`,
                     chat_session_id: request.chatSessionId || request.chat_session_id,
