@@ -397,7 +397,7 @@ def _apply_connection_handoffs(
                 continue
         value = artifact_value(picked)
         if value and conn.get("transform"):
-            # Transform rule: the transform reads the LOCAL file (picked["path"]).
+            # Transform rule: the transform reads the artifact's file (local path, or S3/MinIO object downloaded first).
             # A str result is wired to to_input. A dict result wires result[to_input]
             # to to_input, plus every other key that the downstream workflow declares
             # (e.g. box_size alongside box_center); undeclared keys are metadata and
@@ -408,7 +408,7 @@ def _apply_connection_handoffs(
                 spec = conn["transform"]
                 tname = spec.get("name") if isinstance(spec, dict) else str(spec)
                 targs = spec.get("args") if isinstance(spec, dict) else None
-                result = _tf.apply(tname, picked.get("path") or "", targs)
+                result = _tf.apply_to_artifact(tname, picked, targs)   # local file, or S3 artifact downloaded first
                 if isinstance(result, dict):
                     if to_input not in result:
                         raise _tf.TransformError(

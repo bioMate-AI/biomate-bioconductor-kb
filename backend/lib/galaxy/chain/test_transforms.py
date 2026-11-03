@@ -1,3 +1,4 @@
+import os
 """Offline tests for galaxy.chain.transforms, binding_check transform support,
 and the transform handoff / pre-launch failure in workflow_chain."""
 import json
@@ -215,6 +216,52 @@ class HandoffTest(_TmpCase):
         self.assertEqual(state["steps"][1]["error"], "bad smiles file")
         self.assertEqual(state["status"], "failed")
 
+
+
+class ApplyToArtifactTests(unittest.TestCase):
+    """Batch/MinIO artifacts are S3 objects, not local files (found on dev, chain_1793724364_568208)."""
+
+    def _fetch_writing(self, text, seen):
+        def fetch(uri, dest):
+            seen.append(uri)
+            with open(dest, "w") as fh:
+                fh.write(text)
+        return fetch
+
+    def test_s3_artifact_is_downloaded_then_transformed_and_the_temp_file_removed(self):
+        seen, tmps = [], []
+        real_apply = tf.apply
+        def spy(name, path, args=None):
+            tmps.append(path); return real_apply(name, path, args)
+        with mock.patch.object(tf, "apply", side_effect=spy):
+            out = tf.apply_to_artifact("smiles_file_to_json_list",
+                {"s3_uri": "s3://bucket/run/03_report/filtered_compounds.smi", "filename": "filtered_compounds.smi"},
+                fetch=self._fetch_writing("CCO\nc1ccccc1\n", seen))
+        self.assertEqual(json.loads(out), ["CCO", "c1ccccc1"])
+        self.assertEqual(seen, ["s3://bucket/run/03_report/filtered_compounds.smi"])
+        self.assertFalse(os.path.exists(tmps[0]))
+
+    def test_path_that_is_an_s3_uri_is_treated_as_s3(self):
+        seen = []
+        tf.apply_to_artifact("smiles_file_to_json_list", {"path": "s3://b/k.smi"}, fetch=self._fetch_writing("CCO\n", seen))
+        self.assertEqual(seen, ["s3://b/k.smi"])
+
+    def test_local_file_is_read_in_place_without_fetching(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".smi", delete=False) as fh:
+            fh.write("CCN\n"); local = fh.name
+        try:
+            def boom(uri, dest): raise AssertionError("must not fetch")
+            self.assertEqual(json.loads(tf.apply_to_artifact("smiles_file_to_json_list", {"path": local}, fetch=boom)), ["CCN"])
+        finally:
+            os.unlink(local)
+
+    def test_download_failure_and_missing_location_become_transform_errors(self):
+        def fail(uri, dest): raise OSError("403 Forbidden")
+        with self.assertRaises(tf.TransformError) as ctx:
+            tf.apply_to_artifact("smiles_file_to_json_list", {"s3_uri": "s3://b/k.smi"}, fetch=fail)
+        self.assertIn("403 Forbidden", str(ctx.exception))
+        with self.assertRaises(tf.TransformError):
+            tf.apply_to_artifact("smiles_file_to_json_list", {"filename": "x.smi"})
 
 if __name__ == "__main__":
     unittest.main()
