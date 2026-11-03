@@ -329,6 +329,14 @@ services:
       # Leave empty to use the default ECR image (requires Docker login to ECR).
       BIOMATE_BIOC_CONTAINER: ${BIOMATE_BIOC_CONTAINER:-}
 
+      # ── ADMET container override ───────────────────────────────────────────
+      # biomni-admet (the ML ADMET image) lives only on private AWS ECR and is
+      # not accessible from China or air-gapped hosts. Set to a locally-available
+      # image with the biomni package (RDKit-based ADMET fallback):
+      #   BIOMATE_ADMET_CONTAINER=biomate/biomni-tools:latest
+      # nextflow_executor.py generates a withName: ~/.*ADMET.*/ process override.
+      BIOMATE_ADMET_CONTAINER: ${BIOMATE_ADMET_CONTAINER:-}
+
       # ── On-premises license ────────────────────────────────────────────────
       # BIOMATE_LICENSE_KEY:   由 BioMate 团队签发，格式 BMOP-XXXX-XXXX-XXXX-XXXX
       # BIOMATE_LICENSE_SECRET: 由 BioMate 团队随部署包一并提供，勿自行修改
@@ -347,6 +355,13 @@ services:
       # and /internal/sse-inject. Without it, require_internal_key() returns HTTP
       # 503 for ALL internal endpoints, breaking new user provisioning.
       BILLING_INTERNAL_KEY: ${BILLING_INTERNAL_KEY:-onprem-billing-disabled}
+
+      # Disable involucro auto-installation. Galaxy tries to install involucro
+      # (a tool for building Mulled Docker containers from conda envs) on every
+      # startup and acquires a file lock at /app/database/dependencies/involucro.lock.
+      # If the lock is stale from a previous crash, Galaxy hangs for 300s then
+      # crashes cleanly (exit 0) → restart loop. BioMate does not use involucro.
+      GALAXY_CONFIG_OVERRIDE_INVOLUCRO_AUTO_INIT: "false"
 
     # Add the host Docker socket group so the galaxy user (uid=1000) can call
     # `docker run` without root. The GID varies by distro (121 on Ubuntu 22.04,
@@ -454,6 +469,11 @@ services:
       STRIPE_SECRET_KEY:     ${STRIPE_SECRET_KEY:-}
       BILLING_LAGO_ENABLED:  "false"
       BILLING_INTERNAL_KEY:  ${BILLING_INTERNAL_KEY:-onprem-billing-disabled}
+
+      # ── Nextflow 执行模式 ─────────────────────────────────────────────────
+      # On-prem 使用 docker profile (biomate/biomni-tools 容器本地运行).
+      # false → routes.ts 选择 'docker' profile; true → 'aws' (Batch).
+      NEXTFLOW_USE_AWS: ${NEXTFLOW_USE_AWS:-false}
 
       # ── 网络 ──────────────────────────────────────────────────────────────
       FORCE_HTTPS:   ${FORCE_HTTPS:-0}

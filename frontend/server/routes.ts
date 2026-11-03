@@ -10908,16 +10908,18 @@ ${paramLines || '(none recorded)'}`;
               ...(personalFileContent ? { file_content: personalFileContent } : {}),
               parameters: stagedParamsClean,
               ...(__outputLocation ? { output_location: __outputLocation } : {}),
-              // ⚠️ DO NOT REVERT to `docker`. Third re-application of 2885eb960 / 140502f23.
-              // biomate-ai-tools workflows define an `aws` profile, NOT `docker`. nf-core
-              // on Batch accepts `aws` too since both delegate to the awsbatch executor.
-              // Hardcoded `docker` triggers "Unknown configuration profile: 'docker'" on
-              // every tier 0 dispatch (verified 2026-05-22, 2026-05-28, 2026-05-29) and
-              // kills the workflow in ~3 seconds before any phase starts.
+              // Profile selection:
+              //   aws     — NEXTFLOW_USE_AWS=true  (SaaS AWS Batch; biomate-ai-tools use `aws` not `docker`)
+              //   docker  — NEXTFLOW_USE_AWS=false (on-prem; docker-compose.onprem.yml sets this)
+              //   standard— NEXTFLOW_USE_AWS unset (SaaS dev; mock/local execution)
+              // ⚠️ Do NOT use `docker` on SaaS/AWS paths — biomate-ai-tools only define `aws` profile,
+              //    and `docker` causes "Unknown configuration profile" errors on Batch dispatch.
               profile:
                 paramProfile ||
                 request.executionConfig?.nextflow_profile ||
-                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'aws' : 'standard'),
+                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'aws' :
+                 process.env.NEXTFLOW_USE_AWS === 'false' ? 'docker' :
+                 'standard'),
               compute_config:
                 Object.keys(nextflowComputeConfig).length > 0
                   ? nextflowComputeConfig
