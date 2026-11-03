@@ -20,18 +20,83 @@ on:
         description: 'Pull biomni-tools from GHCR → ECS (~800MB, run once). Required for ADMET + pharmacology workflows.'
         type: boolean
         default: false
+      mirror_admet_to_acr:
+        description: 'Mirror biomni-admet:x86 from AWS ECR → Alibaba ACR (run once; ~4GB, ~15 min). Requires ACR_USERNAME + ACR_PASSWORD secrets.'
+        type: boolean
+        default: false
 
 permissions:
   packages: read
   contents: read
+  id-token: write   # required for OIDC ECR auth in mirror-admet-image job
 
 env:
   TAG: fix-arm64-minio-healthcheck-and-qemu-latest
   ECS_IP: 101.201.107.126
   DB_URL: https://biomate-onprem-assets.s3.us-west-2.amazonaws.com/onprem/galaxy_ai_tools.db
   NFCORE_URL: https://biomate-onprem-assets.s3.us-west-2.amazonaws.com/onprem/nextflow_nfcore_subworkflows.tar.gz
+  ECR_REGISTRY: 399683337364.dkr.ecr.us-west-2.amazonaws.com
+  ACR_REGISTRY: registry.cn-beijing.aliyuncs.com
+  ACR_NAMESPACE: biomate
 
 jobs:
+  # ─── One-time step: mirror biomni-admet:x86 from AWS ECR → Alibaba ACR ─────
+  # Run manually with inputs.mirror_admet_to_acr=true.  Once done the image
+  # lives in ACR forever; every subsequent deploy pulls it from there for free.
+  # Prerequisites: ACR_USERNAME and ACR_PASSWORD must be set as GHA repo secrets.
+  # ACR namespace biomate must exist in registry.cn-beijing.aliyuncs.com.
+  mirror-admet-image:
+    if: ${{ inputs.mirror_admet_to_acr == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Configure AWS credentials (OIDC — for ECR pull)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::399683337364:role/GitHubActionsECRPush
+          aws-region: us-west-2
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Login to Alibaba Cloud ACR
+        env:
+          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+        run: |
+          if [ -z "$ACR_USERNAME" ] || [ -z "$ACR_PASSWORD" ]; then
+            echo "ERROR: ACR_USERNAME and ACR_PASSWORD secrets must be set"
+            echo "Set them in Settings → Secrets → Actions on this repo"
+            exit 1
+          fi
+          echo "$ACR_PASSWORD" | docker login "${{ env.ACR_REGISTRY }}" \
+            -u "$ACR_USERNAME" --password-stdin
+          echo "Logged in to ${{ env.ACR_REGISTRY }}"
+
+      - name: Mirror biomni-admet:x86 ECR → ACR
+        run: |
+          ECR_IMG="${{ env.ECR_REGISTRY }}/biomate/biomni-admet:x86"
+          ACR_IMG="${{ env.ACR_REGISTRY }}/${{ env.ACR_NAMESPACE }}/biomni-admet:x86"
+
+          echo "Source: $ECR_IMG"
+          echo "Target: $ACR_IMG"
+
+          # Check if already in ACR (pull manifest without downloading layers)
+          if docker manifest inspect "$ACR_IMG" >/dev/null 2>&1; then
+            echo "Image already in ACR — skipping push (use re-pull to overwrite)"
+            exit 0
+          fi
+
+          echo "Pulling from ECR (this may take ~10 min for ~4 GB)..."
+          docker pull "$ECR_IMG"
+          docker tag "$ECR_IMG" "$ACR_IMG"
+
+          echo "Pushing to ACR (Beijing, same-region pull is free for ECS)..."
+          docker push "$ACR_IMG"
+
+          echo "Mirror complete: $ACR_IMG"
+          docker image inspect "$ACR_IMG" --format "Digest={{.RepoDigests}}"
+
   transfer-assets:
     # Download galaxy_ai_tools.db (~280 MB) and nfcore tar (~60 MB) from S3
     # on the GHA runner (fast US connection), then SSH-pipe to ECS and drop
@@ -79,8 +144,8 @@ jobs:
 
   restart-stack:
     runs-on: ubuntu-latest
-    # Run even if transfer-assets was skipped (needs treats skipped as success).
-    needs: [transfer-assets]
+    # Run even if transfer-assets or mirror-admet-image was skipped.
+    needs: [transfer-assets, mirror-admet-image]
     if: ${{ always() && !inputs.check_only }}
     steps:
       - uses: actions/checkout@v4
@@ -164,24 +229,59 @@ jobs:
              chmod 755 /app/biomate/backend/config && \
              echo "backend/config perms: $(ls -la /app/biomate/backend/ | grep config)"'
 
-      - name: Set BIOMATE_ADMET_CONTAINER to use biomni-tools as ADMET fallback
-        # biomni-admet (the real ADMET-AI image) lives only on private AWS ECR and
-        # cannot be pulled from ECS without credentials. Set BIOMATE_ADMET_CONTAINER
-        # so nextflow_executor.py generates a process-level override pointing to
-        # biomni-tools (which has the biomni package + RDKit ADMET fallback).
-        # The nfcore ADMET workflow gracefully degrades: admet_ai ImportError →
-        # rows=[] → reduce step uses RDKit structural estimates. Acceptable for demo.
+      - name: Set BIOMATE_ADMET_CONTAINER — ACR image if available, biomni-tools fallback
+        # Priority:
+        #   1. ACR image (registry.cn-beijing.aliyuncs.com/biomate/biomni-admet:x86):
+        #      real ADMET-AI + Chemprop, full predictions. Used when image is already
+        #      cached on ECS (from a previous mirror run) or ACR credentials let us pull.
+        #   2. biomni-tools:latest fallback: has RDKit structural estimates only.
+        #      Used when ACR image is not available.
+        # main.nf respects BIOMATE_ADMET_CONTAINER via Elvis operator — no sed patching needed.
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
         run: |
+          ACR_IMG="${{ env.ACR_REGISTRY }}/${{ env.ACR_NAMESPACE }}/biomni-admet:x86"
+          ACR_USER="${ACR_USERNAME}"
+          ACR_PASS="${ACR_PASSWORD}"
+
           sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
             -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
             root@${{ env.ECS_IP }} \
-            'ENV_FILE=/app/biomate/.env && \
-             grep -q "^BIOMATE_ADMET_CONTAINER=" "$ENV_FILE" && \
-               sed -i "s|^BIOMATE_ADMET_CONTAINER=.*|BIOMATE_ADMET_CONTAINER=biomate/biomni-tools:latest|" "$ENV_FILE" || \
-               echo "BIOMATE_ADMET_CONTAINER=biomate/biomni-tools:latest" >> "$ENV_FILE" && \
-             echo "BIOMATE_ADMET_CONTAINER set to biomni-tools fallback"'
+            bash -s << ENDSSH
+          set -e
+          ACR_IMG="${ACR_IMG}"
+          ACR_USER="${ACR_USER}"
+          ACR_PASS="${ACR_PASS}"
+          ENV_FILE=/app/biomate/.env
+
+          # Check if image is already cached on ECS
+          if docker image inspect "\$ACR_IMG" >/dev/null 2>&1; then
+            echo "biomni-admet:x86 already cached on ECS — using ACR URL"
+            ADMET_CONTAINER="\$ACR_IMG"
+          elif [ -n "\$ACR_USER" ] && [ -n "\$ACR_PASS" ]; then
+            echo "Pulling biomni-admet:x86 from ACR (Beijing internal traffic)..."
+            if docker login ${{ env.ACR_REGISTRY }} -u "\$ACR_USER" -p "\$ACR_PASS" >/dev/null 2>&1 && \
+               docker pull "\$ACR_IMG" 2>&1; then
+              echo "Pull from ACR successful"
+              ADMET_CONTAINER="\$ACR_IMG"
+            else
+              echo "WARNING: ACR pull failed — falling back to biomni-tools (RDKit estimates only)"
+              ADMET_CONTAINER="biomate/biomni-tools:latest"
+            fi
+          else
+            echo "No ACR credentials configured — using biomni-tools fallback"
+            echo "  → To enable real ADMET-AI: set ACR_USERNAME + ACR_PASSWORD secrets,"
+            echo "    then run with mirror_admet_to_acr=true once to push image to ACR"
+            ADMET_CONTAINER="biomate/biomni-tools:latest"
+          fi
+
+          grep -q "^BIOMATE_ADMET_CONTAINER=" "\$ENV_FILE" && \
+            sed -i "s|^BIOMATE_ADMET_CONTAINER=.*|BIOMATE_ADMET_CONTAINER=\$ADMET_CONTAINER|" "\$ENV_FILE" || \
+            echo "BIOMATE_ADMET_CONTAINER=\$ADMET_CONTAINER" >> "\$ENV_FILE"
+          echo "BIOMATE_ADMET_CONTAINER=\$ADMET_CONTAINER"
+          ENDSSH
 
       - name: Fix Galaxy DB — switch from SQLite to PostgreSQL
         # galaxy.yml.template defaults to SQLite (database_connection: sqlite:///.../universe.sqlite).
@@ -277,17 +377,16 @@ jobs:
                cat > "$NF_DEST" && \
                echo "Upload done: $(wc -l < $NF_DEST) lines written to $NF_DEST"'
 
-      - name: Patch nextflow_executor.py + ADMET .nf — fix DaoCloud image blocking
-        # Two problems fixed here:
-        # 1. DaoCloud registry mirror intercepts ALL docker pull calls (even locally-loaded images).
-        #    Fix: add --pull never to Docker runOptions in nextflow_executor.py.
-        # 2. ADMET .nf file references biomni-admet (ECR-only, not available from China).
-        #    Fix: sed-replace container declarations to use biomni-tools (pre-loaded locally).
+      - name: Patch nextflow_executor.py — fix DaoCloud registry mirror blocking
+        # DaoCloud registry mirror (daemon.json) intercepts ALL docker pull calls,
+        # even for images already loaded locally (docker load). The fix: inject
+        # --pull never into Docker runOptions so Nextflow never tries to pull.
         #
-        # IMPORTANT: gunicorn runs with --preload. kill -HUP does NOT reload Python code in
-        # preloaded workers (they inherit from the master's in-memory state). We must do a full
-        # `docker restart` so gunicorn re-preloads from the sed-patched file on disk.
-        # The "Wait for galaxy-backend" step below handles the ~30s restart warmup.
+        # NOTE: The ADMET .nf container is now controlled by BIOMATE_ADMET_CONTAINER
+        # env var (Elvis operator in Groovy), so no sed patching of main.nf is needed.
+        #
+        # IMPORTANT: gunicorn --preload means kill -HUP does NOT reload Python code.
+        # We must docker restart so gunicorn re-preloads from the patched file on disk.
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
@@ -297,33 +396,14 @@ jobs:
             'FILE=$(docker exec biomate-galaxy find /app -name "nextflow_executor.py" 2>/dev/null | head -1) && \
              if [ -z "$FILE" ]; then echo "ERROR: nextflow_executor.py not found in container"; exit 1; fi && \
              echo "Found: $FILE" && \
-             NEEDS_RESTART=false && \
              if docker exec biomate-galaxy grep -q -- "--pull never" "$FILE"; then
-               echo "--pull never already patched in nextflow_executor.py — skipping"
+               echo "--pull never already patched — no restart needed"
              else
                docker exec biomate-galaxy sed -i "s/--user root --network/--user root --pull never --network/g" "$FILE" && \
                echo "Patched --pull never into $FILE" && \
-               NEEDS_RESTART=true
-             fi && \
-             NF_FILE=/app/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf && \
-             if docker exec biomate-galaxy test -f "$NF_FILE"; then
-               if docker exec --user root biomate-galaxy grep -q "container '"'"'biomate/biomni-tools:latest'"'"'" "$NF_FILE"; then
-                 echo "ADMET .nf already patched to biomni-tools:latest — skipping"
-               else
-                 docker exec --user root biomate-galaxy sed -i "s|^    container .*biomni-admet.*|    container '"'"'biomate/biomni-tools:latest'"'"'|g" "$NF_FILE" && \
-                 echo "Patched ADMET .nf container to biomni-tools:latest" && \
-                 docker exec --user root biomate-galaxy grep "container" "$NF_FILE" | head -5 && \
-                 NEEDS_RESTART=true
-               fi
-             else
-               echo "WARNING: ADMET .nf not found at $NF_FILE"
-             fi && \
-             if [ "$NEEDS_RESTART" = "true" ]; then
-               echo "Restarting galaxy container to reload patched Python (docker restart, not HUP)..." && \
+               echo "Restarting galaxy container (gunicorn --preload requires docker restart, not HUP)..." && \
                docker restart --time 30 biomate-galaxy && \
-               echo "Galaxy container restarted — gunicorn will re-preload patched nextflow_executor.py"
-             else
-               echo "No changes — skipping container restart"
+               echo "Galaxy restarted — gunicorn will re-preload patched nextflow_executor.py"
              fi'
 
       - name: Patch index.html — remove Google CDN links (blocked in China)
@@ -372,7 +452,7 @@ jobs:
 
   check-status:
     runs-on: ubuntu-latest
-    needs: [transfer-assets, restart-stack]
+    needs: [transfer-assets, mirror-admet-image, restart-stack]
     if: always()
     timeout-minutes: 25
     steps:
