@@ -105,6 +105,18 @@ before chaining). Real fixture (lifeifei163361@163.com), live dev, no mocks.
      - `unknown` → bulk default (deseq2) + a warning surfaced in the response.
   3. **Intent/context:** intent (DE) is implied by the DE workflow the user is executing; context —
      user-supplied `study_type`/`normalisation_method` WIN over the modality defaults.
+  4. **Execution-engine fix (2026-11-03, follow-up):** routing alone wasn't enough — the deployed
+     `nfcore/differentialabundance/main.nf` was a **DESeq2-only stub** that declared the
+     `normalisation_method`/`study_type` enums but never branched on them, so `limma` was ignored and
+     microarray intensities were still `round()`-ed to zero. Fixed the stub to actually honour the
+     param: a **limma branch** (no integer coercion; log2 if the matrix looks linear; `lmFit`/`eBayes`/
+     `topTable`; DESeq2-compatible output columns) for `normalisation_method=limma`/`study_type=affy`,
+     DESeq2 otherwise. Also added **robust contrast inference** (skip the sample-id column, constant
+     columns, and all-unique ID-like columns; prefer a 2-group condition-like column with ≥2 members
+     each — replaces the old first-column heuristic that produced GSM-vs-GSM single-sample contrasts)
+     and a **safe design-variable name** (GEO columns like `disease state:ch1` are invalid in an R
+     formula). Both DE branches subset to the two contrast groups. Validated on GSE19804 (microarray,
+     tissue: lung cancer vs paired normal adjacent).
 - **Steps 2–5 (other public IDs) — not started.** SRA→fetchngs→(rnaseq|sarek|chipseq|atacseq);
   PDB/EMDB→docking; UniProt/ChEMBL cross-workflow; PXD/MassIVE needs an ingest built first.
 - Landscape evidence + line refs: the 2026-11-02 landscape audit (ID-type table, self-fetching list,
