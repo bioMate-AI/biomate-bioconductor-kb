@@ -1779,16 +1779,20 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     const msgs = currentChatSession?.messages ?? []
     const wf = msgs.find(m => m.id === lastWorkflowMsgId)
     if (!wf?.metadata?.workflow) return
-    // A disambiguation / confirmation question is NOT a runnable workflow — it
-    // asks the user "which workflow did you mean?" and carries candidates, not
-    // steps. Do NOT pop the right panel for it, and close the panel if it was
-    // already open (user request 2026-11-01: hide the workflow panel while a
-    // confirmation question is pending, instead of showing a guessed workflow).
+    // A question the assistant is asking the user — a disambiguation ("which
+    // workflow did you mean?") or a confirmation/low-confidence prompt
+    // (needsUserFeedback: "review and confirm before execution") — is NOT a
+    // runnable workflow yet. The assistant is waiting on the user's answer, so
+    // the right panel must NOT present a workflow and the question must stay in
+    // the chat (not leak into the panel's progress/status). Suppress the auto-open
+    // (and close an open panel) until the user answers; a later message without
+    // the question flag opens the panel normally. (User reports 2026-11-01/02.)
     const wfType = (wf.metadata.workflow as any)?.workflow_type
-    if (wfType === 'disambiguation') {
-      const disambigSig = `${lastWorkflowMsgId}|disambiguation`
-      if (disambigSig !== autoOpenedWorkflowSignatureRef.current) {
-        autoOpenedWorkflowSignatureRef.current = disambigSig
+    const awaitingUser = wfType === 'disambiguation' || !!(wf.metadata as any)?.needsUserFeedback
+    if (awaitingUser) {
+      const sig = `${lastWorkflowMsgId}|awaiting-user`
+      if (sig !== autoOpenedWorkflowSignatureRef.current) {
+        autoOpenedWorkflowSignatureRef.current = sig
         setPanelOpen(false)
         onWorkflowPanelOpenChange?.(false)
       }
