@@ -1402,6 +1402,30 @@ def _workflow_fetches_structure_natively(nf_path: str) -> bool:
     ))
 
 
+def _workflow_fetches_geo_natively(nf_path: str) -> bool:
+    """True if the workflow self-fetches a GEO series/sample itself via getGEO /
+    GEOquery (e.g. geo_data_connector, geo_scrna_pseudobulk).
+
+    Why this matters (root cause of the GSE22055 geo_data_connector chain-step
+    failure, 2026-11-02): the GEO registry entry classifies GSE/GSM as
+    handler="sequencing", so without this check the accession chain runs
+    nf-core/fetchngs on the GEO id as a pre-step. That FAILS outright for a
+    microarray series (there are no SRA runs to prefetch) and is the wrong fetcher
+    for array/bulk data the getGEO workflow already downloads (count matrix /
+    series matrix). A workflow that already knows how to fetch the GEO accession
+    must receive it raw so its own getGEO fires — mirrors the SRA-native /
+    structure-native skips above.
+    """
+    try:
+        text = Path(nf_path).read_text(errors="ignore")
+    except Exception:
+        return False
+    return bool(re.search(
+        r"getGEO\b|GEOquery|getGEOSuppFiles|geo_data_connector|geo_scrna_pseudobulk|series_matrix",
+        text, re.IGNORECASE,
+    ))
+
+
 # ---------------------------------------------------------------------------
 # Request / response models
 # ---------------------------------------------------------------------------
@@ -6840,6 +6864,23 @@ def _execute_nextflow_impl(
                 log.info(
                     f"[Nextflow run {run_id}] --{key}={info['accession']}: workflow handles "
                     f"SRA natively → passing raw accession (skipping fetchngs prefetch)"
+                )
+                continue
+            # Skip the fetchngs prefetch for GEO accessions (GSE/GSM) when the target
+            # workflow self-fetches GEO via getGEO (geo_data_connector / geo_scrna_pseudobulk).
+            # The GEO registry entry maps GSE→handler="sequencing", so otherwise the chain
+            # runs nf-core/fetchngs on the GEO id — which FAILS outright for a microarray
+            # series (no SRA runs) and is the wrong fetcher for array/bulk data getGEO already
+            # downloads. Pass the raw accession through so the workflow's own getGEO fires.
+            # (root cause of the GSE22055 geo_data_connector chain-step failure, 2026-11-02)
+            if (
+                info["handler"] == "sequencing"
+                and "GEO" in info.get("label", "")
+                and _workflow_fetches_geo_natively(str(nf_path))
+            ):
+                log.info(
+                    f"[Nextflow run {run_id}] --{key}={info['accession']}: workflow self-fetches "
+                    f"GEO (getGEO) → passing raw accession (skipping fetchngs prefetch)"
                 )
                 continue
             # Skip the HOST prefetch for STRUCTURE accessions (PDB/EMDB) on AWS Batch
