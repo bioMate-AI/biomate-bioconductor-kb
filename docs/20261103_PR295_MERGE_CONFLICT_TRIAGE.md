@@ -75,3 +75,23 @@ The in-progress merge is kept (not committed, not pushed) at `/Users/kky/biomate
 Verified: `py_compile` under python 3.9 for every resolved file, 16 backend tests. Not verified: the merged tree as a whole (the frontend and four more backend files are unresolved, so nothing can be imported or built yet); the billing helper against a real PostgreSQL.
 
 **Still unmerged (17):** `Dockerfile`, `ai_assistant.py`, `api_router.py`, `qc_trace_monitor.py`, `Dockerfile`, `app-sidebar.tsx`, `chat-input.tsx`, `chat-interface.tsx`, `chat-message.tsx`, `chat-with-artifacts.tsx`, `nextflow-workflow-viewer.tsx`, `i18n.ts`, `project-detail.tsx`, `AfterRunReport.tsx`, `galaxy-assistant.ts`, `routes.ts`, `s3-client.ts`
+
+## Update: every backend conflict resolved and tested (2026-11-03)
+Besides the four files above, the last four backend conflicts are resolved in the kept worktree `/Users/kky/biomate-merge-295`:
+| File | Resolution |
+|---|---|
+| `ai/ai_assistant.py` | Two different new methods inserted at the same spot (`_return_geo_bulk_connector` from the branch, `_try_fast_path_protein_structure` from the base): both kept. |
+| `jobs/qc_trace_monitor.py` | Shared `make_s3_client()` (MinIO-aware, base side) called with this branch's region default `us-west-2` (the helper defaults to `us-east-1`), and this branch's report-name list. Taking either side whole would have broken it: the base side removed the `boto3` alias the branch's inline client needs. |
+| `ai/drug_discovery/api_router.py` | Three response-field additions from the branch (`n_requested`, `can_discriminate`, `surrogate_report`); the base side has nothing there. |
+| `docker/biomni-tools/Dockerfile` | Base side's block (descriptastorus from GitHub because the PyPI package is stale, plus the biomni SDK layer) with the descriptastorus `|| echo` fallback removed so the build fails loudly. The biomni layer still carries the base side's `|| echo WARNING` fallback. **Not built; Docker was not run.** |
+
+**Test comparison (each backend test file run separately; the full suite crashes pytest during collection in this environment):**
+| | passed | failed | collection errors |
+|---|---|---|---|
+| branch | 1,014 | 45 | 18 |
+| merged | 1,003 | 45 | 18 |
+The 11 fewer passes are exact: `test_skill_compatibility.py` (17 tests) was deleted by the base side's bulk-cleanup commit `a7a0a1cc7`, and 6 new resolution tests were added. No other file differs.
+Two things the comparison exposed, both fixed in the merged tree: `test_nextflow_false_success.py` and `test_qc_trace_monitor_s3_pagination.py` failed identically on the base side itself (their tests stub `boto3` but not the new `galaxy.ai.s3_utils` helper the base side's code imports); the stubs now provide it. **Reproducing:** a fresh worktree has no `backend/database/galaxy_ai_tools.db` (git-ignored), which makes unrelated tests fail; link it in (`ln -s <main checkout>/backend/database/galaxy_ai_tools.db backend/database/`) before comparing.
+
+**Remaining unmerged (13, all frontend):** `frontend/Dockerfile`, `frontend/client/src/components/app-sidebar.tsx`, `frontend/client/src/components/chat-input.tsx`, `frontend/client/src/components/chat-interface.tsx`, `frontend/client/src/components/chat-message.tsx`, `frontend/client/src/components/chat-with-artifacts.tsx`, `frontend/client/src/components/nextflow-workflow-viewer.tsx`, `frontend/client/src/lib/i18n.ts`, `frontend/client/src/pages/project-detail.tsx`, `frontend/client/src/v2/AfterRunReport.tsx`, `frontend/server/galaxy-assistant.ts`, `frontend/server/routes.ts`, `frontend/server/s3-client.ts`
+Frontend verification (`tsc`, vitest) cannot start until those are resolved. The 45 failing and 18 non-collecting backend tests exist on the branch already and are unchanged by the merge.
