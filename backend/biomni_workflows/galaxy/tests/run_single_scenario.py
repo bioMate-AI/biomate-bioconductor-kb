@@ -10,7 +10,7 @@ from anthropic import Anthropic
 from playwright.sync_api import sync_playwright
 
 BASE_URL = "http://localhost:5000"
-SCREENSHOT_DIR = "/home/yzhang/biomate/Biomni/biomni_galaxy/tests/screenshots"
+SCREENSHOT_DIR = "/app/biomni_workflows/galaxy/tests/screenshots"
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 anthropic = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))

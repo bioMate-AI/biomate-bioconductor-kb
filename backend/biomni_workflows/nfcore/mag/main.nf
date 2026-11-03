@@ -14,7 +14,7 @@ params.outdir                   = null          // Output directory for results
 params.single_end               = false         // Single-end short reads
 params.assembly_type            = 'metagenome'  // Assembly mode: metagenome | isolate
 params.assembler                = 'megahit'     // Short-read assembler: megahit | spades | spadeshybrid
-params.spades_options           = null          // Extra options passed to SPAdes
+params.spades_options           = ''            // Extra options passed to SPAdes
 params.bowtie2_mode             = '--very-sensitive-local' // Bowtie2 host-decontamination mode
 params.host_genome              = null          // Host genome FASTA or Bowtie2 index for decontamination
 params.skip_adapter_trimming    = false         // Skip Trim Galore adapter trimming
@@ -24,9 +24,9 @@ params.binning_map_mode         = 'group'       // Binning read-mapping strategy
 params.refine_bins_dastool      = false         // Refine bins with DAS Tool
 params.postbinning_input        = 'raw_bins_dir' // Input to QC/taxonomy: raw_bins_dir | refined_bins_dir | both
 params.run_gunc                 = false         // Run GUNC to detect chimeric bins
-params.busco_reference          = null          // BUSCO lineage dataset (auto-detected if null)
+params.busco_reference          = ''            // BUSCO lineage dataset (auto-detected if null)
 params.checkm_db                = null          // CheckM database path (auto-downloaded if null)
-params.cat_db                   = null          // CAT taxonomy database directory
+params.cat_db                   = ''            // CAT taxonomy database directory
 params.gtdb_db                  = null          // GTDB-Tk reference database path
 params.skip_prodigal            = false         // Skip Prodigal ORF prediction
 params.skip_prokka              = true          // Skip Prokka gene annotation
@@ -43,6 +43,8 @@ params.max_time                 = '240.h'
 
 // [QC]
 process FASTP {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     tuple val(meta), path("*.fastq.gz"),  emit: reads
     path "*.html",                        emit: html
@@ -62,6 +64,8 @@ process FASTP {
 
 // [Host Removal]
 process BOWTIE2_HOST_REMOVAL {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     tuple val(meta), path("*.fastq.gz"),  emit: reads
     path "*.bowtie2.log",                 emit: log
@@ -77,6 +81,8 @@ process BOWTIE2_HOST_REMOVAL {
 
 // [Assembly]
 process MEGAHIT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "*.contigs.fa.gz",  emit: contigs
     path "*.log",            emit: log
@@ -92,6 +98,8 @@ process MEGAHIT {
 
 // [Binning]
 process METABAT2 {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "bins/*.fa.gz",             emit: bins
     path "unbinned/*.fa.gz",         emit: unbinned
@@ -108,6 +116,8 @@ process METABAT2 {
 
 // [QC]
 process CHECKM_LINEAGEWF {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "*_qa.txt",          emit: checkm
     path "checkm_summary.tsv", emit: summary
@@ -121,6 +131,8 @@ process CHECKM_LINEAGEWF {
 
 // [Taxonomy]
 process GTDBTK_CLASSIFY {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "*.bac120.summary.tsv",   emit: taxonomy_bac
     path "*.ar122.summary.tsv",    emit: taxonomy_arc
@@ -136,6 +148,8 @@ process GTDBTK_CLASSIFY {
 
 // [Report]
 process MULTIQC {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "multiqc_report.html",  emit: report
     path "multiqc_data/",        emit: data

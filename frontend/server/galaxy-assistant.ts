@@ -589,6 +589,12 @@ export interface ChatContext {
    */
   selectedModel?: string;
   /**
+   * Custom OpenAI-compatible base URL (e.g. DashScope / local vLLM).
+   * When set alongside openrouterKey, overrides the default openrouter.ai base URL.
+   * Enables on-prem deployments with Qianwen, DeepSeek, or local models.
+   */
+  openaiBaseUrl?: string;
+  /**
    * Forces the result of intent classification to this type, bypassing the LLM.
    * Gated by routes.ts behind the E2E bypass token — only valid in test mode.
    * When set AND the query has design-verb+modality patterns, _detectCrossIntentAmbiguity
@@ -1014,7 +1020,7 @@ const DOMAIN_ROUTING_RULES: Record<string, string> = {
   molecular_biology: `- "ASO", "antisense oligonucleotide", "gapmer", "MOE gapmer", "LNA gapmer", "RNase H ASO", "knockdown ASO", "GalNAc-ASO", "design ASO", "design gapmer", "nusinersen-like", "inclisiran-like", "givosiran-like", "phosphorothioate oligonucleotide", or "PS backbone ASO": use the aso_gapmer_design workflow (ASO gapmer design for RNase H knockdown — MOE 5+10+5 / LNA 3+10+3 / MOE mixmer chemistries. Tm scoring with MOE/LNA correction, GC content (40-60%), G-quadruplex/GGGG rejection (hepatotoxicity), CpG flagging, palindrome check. Delivery recommendation: GalNAc-SC for liver, intrathecal for CNS, PMO/PPMO for muscle. Required: target_mrna + target_tissue. Optional: chemistry, n_top.)
 - "siRNA design", "siRNA generation", "design siRNA", "siRNA candidates", "Ui-Tei criteria", "Reynolds criteria", "siRNA from mRNA", or "small interfering RNA design": use the sirna_design_full workflow (siRNA candidate generation from mRNA — sliding window 19-21mer → GC filter → Ui-Tei + Reynolds + thermodynamic asymmetry scoring → ranked candidates. Chains to sirna_offtarget_analysis for off-target screening.)`,
 
-  transcriptomics: `- GEO accession + differential expression request (GSE followed by digits, e.g. GSE12345, but NOT GSE227835): first determine the assay type. For known scRNA-seq accession use geo_scrna_pseudobulk; it fetches and pseudobulk-aggregates the data before DESeq2. For bulk RNA-seq or microarray accession use geo_data_connector first to retrieve the series matrix and phenotype metadata. Do NOT claim that a generic GEO series can be run through DESeq2 automatically: GEO series can contain normalized microarray values, non-count RNA-seq measures, or no usable comparison labels. After retrieval, show the data type and available group columns and ask the researcher to confirm the contrast/method. EXCEPTION: GSE227835 is already pre-staged — use nf-core/differentialabundance directly with the pre-staged S3 paths (see GEO routing rules below).
+  transcriptomics: `- GEO accession + differential expression request (GSE followed by digits, e.g. GSE12345${process.env.S3_ENDPOINT_URL ? '' : ', but NOT GSE227835'}): first determine the assay type. For known scRNA-seq accession use geo_scrna_pseudobulk; it fetches and pseudobulk-aggregates the data before DESeq2. For bulk RNA-seq or microarray accession use geo_data_connector first to retrieve the series matrix and phenotype metadata. Do NOT claim that a generic GEO series can be run through DESeq2 automatically: GEO series can contain normalized microarray values, non-count RNA-seq measures, or no usable comparison labels. After retrieval, show the data type and available group columns and ask the researcher to confirm the contrast/method.${process.env.S3_ENDPOINT_URL ? '' : ' EXCEPTION: GSE227835 is already pre-staged — use nf-core/differentialabundance directly with the pre-staged S3 paths (see GEO routing rules below).'}
 - Differential expression with uploaded CSVs (counts matrix + samplesheet + contrasts already provided as uploads or S3 URIs): use nf-core/differentialabundance directly. Map uploaded files: 'samplesheet', 'metadata', 'sample_metadata', 'design' files → samplesheet param; 'count', 'matrix', 'expression' files → matrix param; 'contrast', 'comparison' files → contrasts param.`,
 
   proteomics: `- "DIA", "DIA-NN", "data-independent acquisition", "DIA quantification", "DIA proteomics", "DIA mass spec", "DIA mzML", "OpenSWATH", "PyProphet", "Spectronaut DIA", "iRT alignment", "spectral library DIA", or "label-free DIA": use the nf-core/diaproteomics workflow (FIRST CHOICE for DIA proteomics — data-independent acquisition analysis using OpenSWATH + PyProphet FDR + DIA-NN + iRT alignment. Input: mzML files. Outputs: peptide/protein quantification matrices + QC report. Never use msstatsconvert or MSstats tools as the primary pipeline for raw DIA data — those are format converters for pre-quantified data, not pipelines.)
@@ -2595,37 +2601,70 @@ Rules:
 - Return the extracted value exactly as it appears in the message
 - Return ONLY valid JSON, no markdown, no explanation`;
 
+  // Helper: parse and normalize LLM JSON response
+  const _parseInlineJson = (raw: string): InlineDataMap | null => {
+    try {
+      const cleaned = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+      const parsed = JSON.parse(cleaned);
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        const result: InlineDataMap = {};
+        for (const [k, v] of Object.entries(parsed)) {
+          if (typeof v === 'string' && v.trim()) {
+            result[k] = v.trim();
+          } else if (Array.isArray(v) && v.length > 0) {
+            const strings = v.filter((item): item is string => typeof item === 'string' && item.trim() !== '');
+            if (strings.length > 0) result[k] = JSON.stringify(strings);
+          }
+        }
+        return result;
+      }
+    } catch { /* fall through */ }
+    return null;
+  };
+
+  // Try Gemini first (cloud), then OpenAI-compatible (on-prem Qianwen/vLLM)
+  let llmResult: InlineDataMap | null = null;
   try {
     const raw = await callGeminiFlash({
       messages: [{ role: 'user', content: message.slice(0, 1200) }],
       system: SYSTEM,
       maxTokens: 1024,
       jsonMode: true,
-      signal: AbortSignal.timeout(15_000), // 15s hard cap — prevents SSE stream stall
+      signal: AbortSignal.timeout(15_000),
     });
-    const cleaned = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-    const parsed = JSON.parse(cleaned);
-    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-      // Normalize: string values kept as-is; arrays serialized to JSON so multi-SMILES
-      // and multi-value extractions are preserved rather than silently dropped.
-      const result: InlineDataMap = {};
-      for (const [k, v] of Object.entries(parsed)) {
-        if (typeof v === 'string' && v.trim()) {
-          result[k] = v.trim();
-        } else if (Array.isArray(v) && v.length > 0) {
-          const strings = v.filter((item): item is string => typeof item === 'string' && item.trim() !== '');
-          if (strings.length > 0) result[k] = JSON.stringify(strings);
-        }
+    llmResult = _parseInlineJson(raw);
+  } catch (geminiErr: any) {
+    // Gemini unavailable (e.g. on-prem without GEMINI_API_KEY) — try OpenAI-compatible
+    const oacClient = _openrouterClientStorage.getStore();
+    if (oacClient) {
+      try {
+        const model = process.env.LLM_MODEL || 'qwen-max';
+        const resp = await oacClient.chat.completions.create({
+          model,
+          messages: [
+            { role: 'system', content: SYSTEM },
+            { role: 'user', content: message.slice(0, 1200) },
+          ],
+          max_tokens: 1024,
+          response_format: { type: 'json_object' },
+          // @ts-ignore AbortSignal not in all type defs
+          signal: AbortSignal.timeout(15_000),
+        });
+        const raw = resp.choices[0]?.message?.content || '{}';
+        llmResult = _parseInlineJson(raw);
+      } catch (oacErr: any) {
+        console.warn('[extractInlineData] OpenAI-compatible extraction failed:', oacErr.message);
       }
-      _inlineDataCache.set(cacheKey, result);
-      // Log structured extraction result so E2E tests can verify array preservation.
-      // Format: [extractInlineData] result keys=<k1,k2,...> arrayKeys=<k1,...> map=<JSON>
-      const arrayKeys = Object.keys(result).filter(k => result[k].startsWith('['));
-      console.log(`[extractInlineData] result keys=${Object.keys(result).join(',') || 'none'} arrayKeys=${arrayKeys.join(',') || 'none'} map=${JSON.stringify(result)}`);
-      return result;
+    } else {
+      console.warn('[extractInlineData] LLM extraction failed, using regex fallback:', geminiErr.message);
     }
-  } catch (err: any) {
-    console.warn('[extractInlineData] LLM extraction failed, using regex fallback:', err.message);
+  }
+
+  if (llmResult) {
+    _inlineDataCache.set(cacheKey, llmResult);
+    const arrayKeys = Object.keys(llmResult).filter(k => llmResult![k].startsWith('['));
+    console.log(`[extractInlineData] result keys=${Object.keys(llmResult).join(',') || 'none'} arrayKeys=${arrayKeys.join(',') || 'none'} map=${JSON.stringify(llmResult)}`);
+    return llmResult;
   }
 
   // Regex fallback — high-confidence patterns only (accessions, file paths, tabular data)
@@ -2893,7 +2932,7 @@ export class GalaxyAssistant {
 
     const systemPrompt = `${ltmBlock}${projectBlock}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge across genomics, transcriptomics, proteomics, drug discovery, cryo-EM, and clinical research.
 
-Provide accurate, evidence-based answers. Be concise and direct. When you don't know something, say so. For computational analyses that require running code or workflows on biological data, let the user know they can switch to the BioMate default model which supports live workflow execution on AWS Batch.`;
+Provide accurate, evidence-based answers. Be concise and direct. When you don't know something, say so. For computational analyses that require running code or workflows on biological data, let the user know they can switch to the BioMate default model which supports live workflow execution ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on AWS Batch' : 'via local Docker'}.`;
 
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
       ...(context.previousMessages ?? []).map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
@@ -3245,6 +3284,146 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
       }
     }
     return rawResponse;
+  }
+
+  /** Convert Anthropic.Tool[] → OpenAI ChatCompletionTool[] (function-calling format). */
+  private static _anthropicToolsToOpenAI(tools: Anthropic.Tool[]): OpenAI.ChatCompletionTool[] {
+    return tools.map(t => ({
+      type: 'function' as const,
+      function: {
+        name: t.name,
+        description: t.description ?? '',
+        parameters: t.input_schema as Record<string, unknown>,
+      },
+    }));
+  }
+
+  /**
+   * Agentic tool loop for any OpenAI-compatible provider
+   * (Qianwen/DashScope, DeepSeek, vLLM, GPT-4, local LLMs, …).
+   *
+   * Mirrors _generateWithGemini's structure but uses OpenAI function-calling
+   * format.  Tool execution is delegated to the existing _executeTools() so
+   * all BioMate tools (run_code, search_literature, list_data_sources, …)
+   * work identically regardless of which model is driving the conversation.
+   *
+   * Falls back to tool-less streaming if the provider rejects the tool schema
+   * (HTTP 400/422) — allows less-capable models to still generate text.
+   */
+  private async _generateWithOpenAICompatible(
+    client: OpenAI,
+    model: string,
+    systemPrompt: string,
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    onResponseDelta?: (text: string) => void,
+    maxTokens = 4096,
+    toolContext?: { tools: Anthropic.Tool[]; context: ChatContext; onToolEvent?: (e: AgentToolEvent) => void },
+  ): Promise<string> {
+    let openaiTools: OpenAI.ChatCompletionTool[] | undefined = toolContext
+      ? GalaxyAssistant._anthropicToolsToOpenAI(toolContext.tools)
+      : undefined;
+
+    const chatMessages: OpenAI.ChatCompletionMessageParam[] = [
+      { role: 'system', content: systemPrompt },
+      ...messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+    ];
+
+    const MAX_TURNS = 8;
+    let fullText = '';
+
+    for (let turn = 0; turn < MAX_TURNS; turn++) {
+      // Accumulate streaming tool_call deltas indexed by their array position.
+      const pending: Record<number, { id: string; name: string; argsRaw: string }> = {};
+      let turnText = '';
+
+      let stream: AsyncIterable<OpenAI.ChatCompletionChunk>;
+      try {
+        stream = await client.chat.completions.create({
+          model,
+          messages: chatMessages,
+          stream: true,
+          max_tokens: maxTokens,
+          temperature: 0,
+          ...(openaiTools ? { tools: openaiTools, tool_choice: 'auto' } : {}),
+        } as OpenAI.ChatCompletionCreateParamsStreaming);
+      } catch (err: any) {
+        // Provider rejected tool schemas — fall back to tool-less for the remainder
+        if (openaiTools && (err?.status === 400 || err?.status === 422)) {
+          console.warn('[GalaxyAssistant] OpenAI-compat provider rejected tool schemas, falling back to tool-less');
+          openaiTools = undefined;
+          stream = await client.chat.completions.create({
+            model, messages: chatMessages, stream: true, max_tokens: maxTokens, temperature: 0,
+          } as OpenAI.ChatCompletionCreateParamsStreaming);
+        } else {
+          throw err;
+        }
+      }
+
+      for await (const chunk of stream) {
+        const choice = chunk.choices[0];
+        if (!choice) continue;
+
+        // Text delta
+        const textDelta = choice.delta?.content ?? '';
+        if (textDelta) {
+          turnText += textDelta;
+          fullText += textDelta;
+          onResponseDelta?.(textDelta);
+        }
+
+        // Tool-call deltas — accumulate by index (id + name in first chunk only,
+        // arguments fragments stream across multiple chunks)
+        const tcDeltas = (choice.delta as any)?.tool_calls as any[] | undefined;
+        if (tcDeltas) {
+          for (const tc of tcDeltas) {
+            const idx: number = tc.index ?? 0;
+            if (!pending[idx]) pending[idx] = { id: '', name: '', argsRaw: '' };
+            if (tc.id) pending[idx].id = tc.id;
+            if (tc.function?.name) pending[idx].name = (pending[idx].name || '') + tc.function.name;
+            if (tc.function?.arguments) pending[idx].argsRaw += tc.function.arguments;
+          }
+        }
+      }
+
+      const toolCalls = Object.values(pending).filter(tc => tc.id && tc.name);
+
+      // No tool calls or tools disabled → generation complete for this turn
+      if (!toolCalls.length || !openaiTools || !toolContext) break;
+
+      // Append the assistant turn (with tool_calls) to the conversation
+      chatMessages.push({
+        role: 'assistant',
+        content: turnText || null,
+        tool_calls: toolCalls.map(tc => ({
+          id: tc.id,
+          type: 'function' as const,
+          function: { name: tc.name, arguments: tc.argsRaw },
+        })),
+      } as OpenAI.ChatCompletionMessageParam);
+
+      // Execute tools in parallel via the shared _executeTools implementation
+      const toolBlocks = toolCalls.map(tc => {
+        let input: Record<string, unknown> = {};
+        try { input = JSON.parse(tc.argsRaw || '{}'); } catch { /* ignore */ }
+        return { id: tc.id, name: tc.name, input };
+      });
+      const results = await this._executeTools(toolBlocks, toolContext.context, toolContext.onToolEvent);
+
+      // Append tool results as tool-role messages
+      for (const result of results) {
+        const contentStr = typeof result.content === 'string'
+          ? result.content
+          : JSON.stringify(result.content);
+        chatMessages.push({
+          role: 'tool',
+          tool_call_id: result.tool_use_id,
+          content: contentStr,
+        } as OpenAI.ChatCompletionMessageParam);
+      }
+      // Next turn: model reads tool results and decides whether to call more tools or stop
+    }
+
+    return fullText;
   }
 
   /**
@@ -4016,22 +4195,6 @@ Rules:
     const userAnthropicKey = context.userAnthropicApiKey;
     const openrouterKey = context.openrouterKey;
 
-    // OpenRouter path: bypass the Anthropic pipeline entirely and stream directly
-    // through OpenRouter's OpenAI-compatible API. Tool use / workflow generation
-    // is not available on this path — users can switch back to default for that.
-    if (openrouterKey && !localOnly()) {
-      const orClient = new OpenAI({
-        baseURL: 'https://openrouter.ai/api/v1',
-        apiKey: openrouterKey,
-        defaultHeaders: {
-          'HTTP-Referer': 'https://biomate.ai',
-          'X-Title': 'BioMate',
-        },
-      });
-      return _openrouterClientStorage.run(orClient, () =>
-        this._generateChatWithOpenRouter(message, context, onResponseDelta));
-    }
-
     const runInner = () => {
       if (overrideProxy) {
         return _galaxyAPIRequestStorage.run(overrideProxy, () =>
@@ -4039,6 +4202,28 @@ Rules:
       }
       return this._processMessageInner(message, context, onResponseDelta, onToolEvent, onProgress);
     };
+
+    // OpenRouter / OpenAI-compatible path.
+    // Real OpenRouter keys → lightweight chat (no workflow support, user's choice of model).
+    // Custom OpenAI-compatible providers (DashScope/Qianwen, vLLM, local LLM…) → full
+    // BioMate pipeline: the client is stored in AsyncLocalStorage and picked up by the
+    // provider chain in _processMessageInner so workflow generation works normally.
+    if (openrouterKey && !localOnly()) {
+      const baseURL = context.openaiBaseUrl || 'https://openrouter.ai/api/v1';
+      const isOpenRouter = baseURL.includes('openrouter.ai');
+      const orClient = new OpenAI({
+        baseURL,
+        apiKey: openrouterKey,
+        ...(isOpenRouter ? { defaultHeaders: { 'HTTP-Referer': 'https://biomate.ai', 'X-Title': 'BioMate' } } : {}),
+      });
+      if (isOpenRouter) {
+        // Real OpenRouter: lightweight chat path (no tool/workflow support)
+        return _openrouterClientStorage.run(orClient, () =>
+          this._generateChatWithOpenRouter(message, context, onResponseDelta));
+      }
+      // Custom provider (Qianwen, vLLM, etc.): inject client and run full pipeline
+      return _openrouterClientStorage.run(orClient, () => runInner());
+    }
 
     if (userAnthropicKey && !localOnly()) {
       const userClaude = new Anthropic({ apiKey: userAnthropicKey });
@@ -6151,7 +6336,7 @@ Describe the user's information need with a descriptive label. You may use these
 **workflow_generation** — Execute a computational pipeline or run code on user data. Covers: (a) Nextflow pipelines processing files/accessions (set needsWorkflowGeneration: true), and (b) direct code execution via run_code for ad-hoc computations on provided inputs such as a pasted sequence, numeric parameters, or a small dataset (set needsWorkflowGeneration: false, needsLLMReasoning: true). Both are execution tasks — the distinction is whether BioMate needs to launch a full Nextflow workflow or can compute directly.
 
 **R/Bioconductor execution priority** — When a task requires R or Bioconductor tools (DESeq2, edgeR, limma, clusterProfiler, Seurat, etc.), follow this order:
-1. Search BioMate's indexed Bioconductor workflows first (1,000+ available). If a matching workflow exists, use it (needsWorkflowGeneration: true, runs on AWS Batch with full R + Bioconductor).
+1. Search BioMate's indexed Bioconductor workflows first (1,000+ available). If a matching workflow exists, use it (needsWorkflowGeneration: true, runs ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on AWS Batch' : 'via local Docker'} with full R + Bioconductor).
 2. If no indexed workflow matches, generate a new Nextflow/R workflow and add it to BioMate's DB.
 3. If the task is ad-hoc or too small for a full pipeline (single statistical test, small inline dataset), execute R directly via run_code (needsWorkflowGeneration: false).
 **CRITICAL — inline data is ALWAYS workflow_generation, never tool_search:** If the user pastes data directly in the message (CSV rows, gene counts, a count matrix, SMILES strings, sequences, numeric arrays) AND uses an analysis verb (run, analyse, compute, test, compare, identify, find), classify as **workflow_generation**. The inline data IS their input — BioMate will execute the analysis. Never classify this as tool_search or research_question.
@@ -7389,30 +7574,57 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           });
         }
       } else {
-        // Anthropic path (default)
-        // Note: temperature is deprecated for Claude 4.x models
-        const completion = await this._withAnthropicRetry(
-          () => this._getClaude().messages.create({
-            model: this.modelConfig.intentModel,
-            max_tokens: 4096,
-            system: [
-              {
-                type: 'text',
-                text: systemPrompt,
-                cache_control: { type: 'ephemeral' },
-              },
+        // Anthropic path (default). When ANTHROPIC_API_KEY is absent but a custom
+        // OpenAI-compatible client is available (e.g. Qianwen on-prem), use that
+        // instead so intent classification works without Claude.
+        const compatClient = _openrouterClientStorage.getStore();
+        if (!process.env.ANTHROPIC_API_KEY && compatClient) {
+          const compatModel = process.env.LLM_MODEL || 'qwen-max';
+          console.log('[GalaxyAssistant] Intent classification via OpenAI-compatible provider:', compatModel);
+          const stream = await compatClient.chat.completions.create({
+            model: compatModel,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: messageForUQU },
             ],
-            messages: [{ role: 'user', content: messageForUQU }],
-          }),
-          'intent-classification',
-        );
-        console.log('[GalaxyAssistant] Intent API response:', {
-          model: this.modelConfig.intentModel,
-          time_ms: Date.now() - intentStartTime,
-          usage: completion.usage,
-        });
-        const content = completion.content[0];
-        resultText = content.type === 'text' ? content.text : '{}';
+            stream: true,
+            max_tokens: 4096,
+            temperature: 0,
+          });
+          let text = '';
+          for await (const chunk of stream) {
+            text += chunk.choices[0]?.delta?.content ?? '';
+          }
+          resultText = text;
+          console.log('[GalaxyAssistant] Intent API response (OpenAI-compatible):', {
+            model: compatModel,
+            time_ms: Date.now() - intentStartTime,
+          });
+        } else {
+          // Note: temperature is deprecated for Claude 4.x models
+          const completion = await this._withAnthropicRetry(
+            () => this._getClaude().messages.create({
+              model: this.modelConfig.intentModel,
+              max_tokens: 4096,
+              system: [
+                {
+                  type: 'text',
+                  text: systemPrompt,
+                  cache_control: { type: 'ephemeral' },
+                },
+              ],
+              messages: [{ role: 'user', content: messageForUQU }],
+            }),
+            'intent-classification',
+          );
+          console.log('[GalaxyAssistant] Intent API response:', {
+            model: this.modelConfig.intentModel,
+            time_ms: Date.now() - intentStartTime,
+            usage: completion.usage,
+          });
+          const content = completion.content[0];
+          resultText = content.type === 'text' ? content.text : '{}';
+        }
       }
 
       // Strip markdown code blocks if present
@@ -8078,7 +8290,7 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const resp = await fetch(
         `${galaxyUrl}/api/ai_assistant/workflow_by_name?name=${encodeURIComponent(name)}`,
-        { headers: { 'x-api-key': process.env.GALAXY_MASTER_API_KEY || '' } }
+        { headers: { 'x-api-key': process.env.GALAXY_MASTER_API_KEY || process.env.GALAXY_API_KEY || '' } }
       );
       if (!resp.ok) return null;
       return await resp.json();
@@ -8641,7 +8853,7 @@ BioMate's real capability surface (verified, do not extrapolate):
   Other DBs (KEGG, Reactome, OMIM, HPO, GTEx, ENCODE, DepMap, …) are reachable indirectly: route to an indexed DB-API tool-function as a workflow step rather than disclaiming. Say "I can pull this via the <tool-name> workflow step" — don't tell the user we lack the source.
 - **Auto-injected pre-results** appear in <pre_satisfied_parameters> and similar tags. Read those before answering.
 - **run_code tool** — Python/R/bash in an ephemeral biomate-biotools sandbox. R + Bioconductor (DESeq2, clusterProfiler, edgeR, limma, GSVA, fgsea, ReactomePA), numpy/scipy/pandas/statsmodels, biopython, pysam, cyvcf2, samtools/bcftools/bwa/mafft/iqtree pre-installed. **Sandboxed with --network=none — run_code cannot reach external APIs.** Use it for offline compute on data already in the prompt or attached as a file. If you need data from a DB, route to a workflow step that pulls it.
-- **Workflow execution** on AWS Batch via Nextflow — heavy-compute production path. All real workflows run on AWS; there is no local-vs-AWS switch. The two paths overlap in what statistical / R+Bioconductor work they CAN do — pick by scale and whether the task matches an indexed pipeline.
+- **Workflow execution** ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on AWS Batch via Nextflow — heavy-compute production path. All real workflows run on AWS; there is no local-vs-AWS switch.' : 'via local Docker+Nextflow — heavy-compute production path. Workflows run on this on-prem server using local Docker containers; no AWS Batch involved.'} The two paths overlap in what statistical / R+Bioconductor work they CAN do — pick by scale and whether the task matches an indexed pipeline.
 - **Reusing prior-run outputs as next-workflow inputs.** Any workflow file parameter accepts the URI \`run:<fullRunId>:outputs/<filename>\`, which the backend automatically resolves to the underlying S3 path. To use this: call \`list_history\` to find the prior run's full id, then \`list_run_outputs\` to get its output file names. The \`param_uri\` field in that tool's response is the exact string to pass as the file param value — do not transform it. Example: a previous variant-calling run \`abcdef1234567890\` produced \`variants.vcf\`; for a variant-annotation workflow, set \`vcf_input = "run:abcdef1234567890:outputs/variants.vcf"\`.
 
 How to behave:
@@ -8662,7 +8874,7 @@ COMPUTATION RULE:
 Two execution surfaces. Pick by scale + whether the task matches an indexed pipeline — NOT by tool name. Bioconductor packages exist on BOTH (the indexed workflow set includes DESeq2 / clusterProfiler / edgeR / limma / Seurat / ReactomePA, AND run_code has the same packages pre-installed). No default direction.
 
 - **run_code** (light path): ad-hoc compute, single statistical test, inline dataset, format conversion, small analyses that finish in seconds-to-minutes. Full scientific stack: R + Bioconductor, numpy/scipy/pandas, samtools/mafft/bwa, biopython. **--network=none — cannot reach external APIs.** Only works on data already in the prompt or attached.
-- **Nextflow workflow on AWS Batch** (heavy path): production pipelines, multi-step orchestration, large datasets, GPU work, anything that needs network access (e.g. a DB-API tool-function step) or per-step containerization.
+- **Nextflow workflow ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on AWS Batch' : '(local Docker)'}** (heavy path): production pipelines, multi-step orchestration, large datasets, GPU work, anything that needs network access (e.g. a DB-API tool-function step) or per-step containerization.
 
 If the user explicitly says "use run_code" or "do not launch a Nextflow workflow", honor that. Otherwise pick based on what fits.
 
@@ -8710,7 +8922,7 @@ BioMate's real capability surface:
 - **12,312 indexed tool-functions** in the AI tool DB, ~4,141 with curated metadata. Includes ~179 DB-API tool-functions (PubChem, UniProt, ChEMBL, PubMed, etc. wrappers) that workflow steps invoke.
 - **Verified live DB integrations** in the Galaxy backend: PubChem, NCBI E-utilities / PubMed, UniProt, EBI (ChEMBL / Ensembl / AlphaFold), OpenTargets, UCSC. Resolve identifiers against these on demand rather than disclaiming.
 - **run_code tool** — Python/R/bash in the biomate-biotools sandbox (R + Bioconductor, numpy/scipy/pandas, samtools/mafft/bwa/iqtree, biopython/pysam pre-installed). **--network=none — cannot reach external APIs.** Light-compute path for ad-hoc / format conversion / small statistical work on data already in the prompt.
-- **Workflow execution** on AWS Batch via Nextflow — heavy-compute production path; the path with network. ALL real workflows run on AWS; there is no local-vs-AWS switch. Pick run_code or Nextflow by scale + whether the task matches an indexed pipeline.
+- **Workflow execution** ${process.env.NEXTFLOW_USE_AWS === 'true' ? 'on AWS Batch via Nextflow — heavy-compute production path; the path with network. ALL real workflows run on AWS; there is no local-vs-AWS switch.' : 'via local Docker+Nextflow — heavy-compute production path. Workflows run on this on-prem server using local Docker containers; no AWS Batch involved.'} Pick run_code or Nextflow by scale + whether the task matches an indexed pipeline.
 - If the user needs to supply project-specific data, ask straightforwardly: "Please upload [format] / provide [value]." Do not phrase it as an environment limitation.
 
 (Inline data — if any — is listed in <pre_satisfied_parameters> above. Never ask for those parameters again.)
@@ -8760,11 +8972,11 @@ ONE-QUESTION RULE:
 - Ask at most ONE clarification question per conversation. Once the user has replied with any data OR answered a question (even if no data was provided), generate the workflow immediately using the information gathered and sensible default parameter values. Do NOT ask multiple rounds of clarifying questions — parameters can be adjusted in the workflow parameter panel after generation.
 - If the conversation history shows that the assistant already asked a question in the previous turn (e.g., asked for data or asked germline/somatic clarification), and the user's current message replies to that question (even if no data accession was given), generate the workflow immediately. Do not ask for data again. Use placeholder values for missing required params — the user can fill them in the parameter panel. This applies in particular when the user's reply is a confirmation-style answer such as "yes", "yes run with defaults", "go ahead", "run it", "proceed", "ok", "sure", "use the demo data", "fine, use defaults". Treat all of these as instructions to generate the workflow now. Never ask for data twice in the same conversation — if you asked once and the user did not provide data on reply, generate with defaults/synthetic-data fallback.
 - META-RULE on phrasing: never echo the name of an internal instruction in your reply. Forbidden surface phrases include (but are not limited to): "SECOND-TURN OVERRIDE", "OVERRIDE applies", "ONE-QUESTION RULE", "rule applies", "applying rule X", "META-RULE", "system prompt says", "according to my instructions". Internal scaffolding must stay internal. Just produce the answer the rule prescribes — do not narrate the rule.
-- When the message contains an "[Uploaded datasets: ...]" block, parse it. Format: "filename: dataset_id=<ID>" or "filename: dataset_id=<ID>, galaxy_dataset_id=<GALAXY_ID>, s3_uri=<S3URI>". For run_code: use galaxy_dataset_id (or dataset_id) and access via $DATA_DIR/<id>/<filename>. For Nextflow workflow parameters (matrix_file, sample_file, input, reads, etc.): use s3_uri when present (AWS Batch workers read directly from S3); if s3_uri is absent, use the dataset_id as the param value — BioMate stages the local file to S3 at execute time. NEVER leave a file param empty or skip a Nextflow workflow because s3_uri is absent.
+- When the message contains an "[Uploaded datasets: ...]" block, parse it. Format: "filename: dataset_id=<ID>" or "filename: dataset_id=<ID>, galaxy_dataset_id=<GALAXY_ID>, s3_uri=<S3URI>". For run_code: use galaxy_dataset_id (or dataset_id) and access via $DATA_DIR/<id>/<filename>. For Nextflow workflow parameters (matrix_file, sample_file, input, reads, etc.): use s3_uri when present (Nextflow workers access files directly via the s3_uri); if s3_uri is absent, use the dataset_id as the param value — BioMate stages the file at execute time. NEVER leave a file param empty or skip a Nextflow workflow because s3_uri is absent.
 - Differential-expression file mapping rule: When multiple CSV files are uploaded for a DE workflow (differentialabundance, DESeq2, edgeR, limma), map them as follows based on filename keywords: files containing "sample", "metadata", "samplesheet", "coldata", "design" → use as the 'samplesheet' param (or 'input' if the workflow only declares 'input'). Files containing "count", "matrix", "expression", "counts" → use as the 'matrix' param. Files containing "contrast", "comparison" → use as the 'contrasts' param. NEVER create a generic 'dataset' param. Every uploaded file must map to a named workflow param.
 - When the message contains an "[Attached files: ...]" block without a corresponding "[Uploaded datasets: ...]" block, the upload failed. Tell the user which files failed and ask them to try again.
 - GEO accession routing rules:
-  GSE227835 (AChR+ myasthenia gravis scRNA-seq, pseudobulk-aggregated, ALWAYS ready):
+${process.env.S3_ENDPOINT_URL ? '' : `  GSE227835 (AChR+ myasthenia gravis scRNA-seq, pseudobulk-aggregated, ALWAYS ready):
     Route to nf-core/differentialabundance. Do NOT route to geo_scrna_pseudobulk.
     ALWAYS set these THREE SEPARATE parameters — never leave them empty, never concatenate:
     samplesheet: s3://biomate-nextflow-work/demo/mg_demo/sample_metadata.csv
@@ -8772,13 +8984,14 @@ ONE-QUESTION RULE:
     contrasts: s3://biomate-nextflow-work/demo/mg_demo/contrasts.csv
     If the message contains uploaded file URIs (s3://biomate-nextflow-outputs/...) for these params, use those instead.
     Tell the user you are using pre-processed pseudobulk counts for GSE227835 (MG vs healthy controls).
-  Other GEO accessions (any GSE ID that is NOT GSE227835):
+`}  Other GEO accessions (any GSE ID that is NOT GSE227835):
     Route to geo_scrna_pseudobulk only when it is a single-cell DE/pseudobulk request. For bulk RNA-seq or microarray, route to geo_data_connector with accession pre-filled. Say that it will retrieve the GEO series matrix and sample metadata for review; do not promise automatic DESeq2 or automatic contrast selection.
-  * GSE227835 enrichGO follow-up (complement pathway enrichment after DESeq2 on GSE227835 MG data):
+${process.env.S3_ENDPOINT_URL ? '' : `  * GSE227835 enrichGO follow-up (complement pathway enrichment after DESeq2 on GSE227835 MG data):
     When the conversation includes a prior DESeq2/differentialabundance run on GSE227835 AND the user requests pathway enrichment or clusterProfiler/enrichGO:
     ALWAYS set gene_list: s3://biomate-nextflow-work/demo/mg_demo/de_genes.txt
     If the message contains an uploaded gene list file URI, use that instead.
     Route to clusterprofiler. Do NOT ask the user to upload a gene list.
+`}
 - Differential-expression method selection (data-type rule): When the input is **microarray** data — signals include (a) the word "microarray", (b) a log-transformed continuous expression matrix (non-integer values, often 4–14 range), (c) a GEO accession known to be microarray (e.g. GSE22055, GSE10072 — Affymetrix/Illumina BeadChip series) — **prefer limma** (linear-model + empirical Bayes) and NOT DESeq2/edgeR. DESeq2 and edgeR assume raw integer counts (RNA-seq) and produce invalid results on continuous microarray intensities. For RNA-seq raw counts use DESeq2 (most common) or edgeR. For RNA-seq with low-count genes or covariate-heavy designs, limma-voom is also valid. If the data type is ambiguous, ask once which platform produced the data, then route accordingly — do not default to DESeq2 silently.
 ${isDrugDevelopmentQuery ? `- For drug-development requests, provide decision-grade guidance: list concrete workflow phases, critical safety/quality gates, required inputs, and explicit next actions` : ''}
 ${isDrugDevelopmentQuery ? `- For drug-development WORKFLOW GENERATION FAILURES ONLY (when the system returns an error or cannot find a matching workflow): include at least TWO distinct blocker categories (e.g., tool gap, input gap, domain mismatch) and ask at least TWO targeted follow-up questions. IMPORTANT: This rule does NOT apply when the user has already provided input data (SMILES, sequence, files) — in that case generate the workflow immediately.` : ''}
@@ -8797,6 +9010,11 @@ Current context:
 ${tools.length > 0 ? `- Found ${tools.length} relevant tools` : ''}
 ${datasets.length > 0 ? `- Found ${datasets.length} relevant datasets` : ''}
 ${runnableWorkflow ? '- Runnable workflow generated successfully — use "Workflow generated" format' : ''}
+${(() => {
+  const _mfi: string[] = (generatedWorkflow as any)?.missing_file_inputs ?? [];
+  if (!_mfi.length) return '';
+  return `- MISSING INPUT FILES: The workflow was found but cannot run without these input files: ${_mfi.join(', ')}. The Run button in the panel is blocked until they are provided. Do NOT describe workflow steps. Instead: (1) confirm you found the workflow by name, (2) list each missing file with its expected format (e.g. CSV samplesheet, count matrix CSV), (3) ask the user to upload via the upload button or paste an S3/local path. Use plain language — no "DATA-FIRST RULE" phrasing.`;
+})()}
 ${workflowGenerationFailed && hasInlineData ? '- Workflow generation failed (inline data was present) — use "Technical failure" format, do NOT ask for data the user already provided' : ''}
 ${workflowGenerationFailed && !hasInlineData ? '- Workflow generation failed (no inline data) — use "Clarification needed" format' : ''}
 ${(generatedWorkflow as any)?.license_notice ? `- LICENSE REROUTING ACTIVE: ${(generatedWorkflow as any).license_notice} The response MUST explicitly tell the user that the originally requested tool is not available under their current license configuration and explain that the fallback alternative was automatically selected instead. Include the phrase "not available" or "requires a license" in the explanation.` : ''}`;
@@ -9039,7 +9257,31 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         ];
 
         // Provider chain: try each in order, stop on first success
+        const _openaiCompatClient = _openrouterClientStorage.getStore();
         const providers: Array<{ name: string; fn: () => Promise<string>; available: boolean }> = [
+          {
+            // Custom OpenAI-compatible provider (Qianwen/DashScope, DeepSeek, vLLM, etc.)
+            // injected via AsyncLocalStorage when LLM_API_KEY + LLM_API_URL are set.
+            // Uses the full agentic tool loop so all BioMate tools work (run_code,
+            // search_literature, list_data_sources, …) — same capability as Claude/Gemini.
+            name: 'OpenAI-compatible',
+            fn: () => {
+              if (!_openaiCompatClient) throw new Error('No OpenAI-compatible client');
+              const model = context.selectedModel || process.env.LLM_MODEL || 'qwen-max';
+              return this._generateWithOpenAICompatible(
+                _openaiCompatClient,
+                model,
+                systemPrompt,
+                plainMessages,
+                onResponseDelta,
+                4096,
+                (!useThinking && onToolEvent && !hasRunnableWorkflow)
+                  ? { tools: BIOMATE_TOOLS, context, onToolEvent }
+                  : undefined,
+              );
+            },
+            available: !!_openaiCompatClient,
+          },
           {
             name: 'Gemini',
             // Activate the agentic tool loop on the PRIMARY Gemini backbone — same
@@ -9074,8 +9316,25 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             available: !!process.env.ANTHROPIC_API_KEY,
           },
           {
+            // System-level OpenAI key (OPENAI_API_KEY env var) — also gets the full
+            // agentic tool loop via _generateWithOpenAICompatible.
             name: 'OpenAI',
-            fn: () => this._generateWithOpenAI(systemPrompt, plainMessages, onResponseDelta),
+            fn: () => {
+              const openaiKey = process.env.OPENAI_API_KEY!;
+              const openaiModel = process.env.OPENAI_MODEL ?? 'gpt-4o';
+              const openaiClient = new OpenAI({ apiKey: openaiKey });
+              return this._generateWithOpenAICompatible(
+                openaiClient,
+                openaiModel,
+                systemPrompt,
+                plainMessages,
+                onResponseDelta,
+                4096,
+                (!useThinking && onToolEvent && !hasRunnableWorkflow)
+                  ? { tools: BIOMATE_TOOLS, context, onToolEvent }
+                  : undefined,
+              );
+            },
             available: !!process.env.OPENAI_API_KEY,
           },
           {
@@ -9089,6 +9348,12 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           try {
             rawResponse = await provider.fn();
             console.log(`[GalaxyAssistant] Response generated by ${provider.name}`);
+            // Sync responseModel so llm_usage.model reflects the actual provider used
+            if (provider.name === 'OpenAI-compatible') {
+              this.modelConfig.responseModel = context.selectedModel || process.env.LLM_MODEL || 'qwen-max';
+            } else if (provider.name === 'OpenAI') {
+              this.modelConfig.responseModel = process.env.OPENAI_MODEL ?? 'gpt-4o';
+            }
             break;
           } catch (err: any) {
             console.warn(`[GalaxyAssistant] ${provider.name} response failed — trying next:`, err.message);

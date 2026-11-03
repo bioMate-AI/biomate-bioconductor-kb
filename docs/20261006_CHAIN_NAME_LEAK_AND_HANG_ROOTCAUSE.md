@@ -65,3 +65,22 @@ Both `py_compile` clean (py3.9). The name-binding rule verified against the bug 
 The backend fixes stop the mislabel and the status-404, but a chain can still **hang** on a worker recycle until
 the poller/rehydration (#2) exists. A re-run now could still get stuck. Land #2 (and ideally #1) before the
 next real chain execution.
+
+---
+
+## UPDATE 2026-10-06 — deferred #2 (chain poller/rehydration) now IMPLEMENTED
+The hang fix is in (commit on `fix/chain-name-leak-and-status-20261006`): a per-worker
+**chain reconciler** in `workflow_chain.py` — the chain analogue of CompletionPoller/orphan_finalizer.
+- **Heartbeat** on each phase start + every 5s poll (`last_heartbeat`).
+- **Sweep** every 60s: a chain is orphaned iff `status=running` AND no live local chain-thread AND
+  heartbeat stale > 150s.
+- **Cross-worker claim** via the existing SETNX lock (`acquire_completion_lock("chainrehydrate:<id>")`);
+  fail-safe (no lock → no drive). Requires `RUN_STATE_STORE=redis` for cross-worker safety.
+- **Reattach-not-relaunch:** re-drives by polling the current phase's existing run_id to terminal, then
+  continues to later phases — never relaunches a running Batch job.
+- Started per worker on first chain submit; tunables `BIOMATE_CHAIN_RECONCILE_STALE_S` / `_INTERVAL_S`.
+
+Still deferred: the frontend `chain_hint` guard (#1), HALT→terminal policy (#3), and confirming
+`RUN_STATE_STORE=redis` on dev (#4). With the reconciler in, a worker recycle no longer strands a chain,
+so a controlled re-run is now reasonable **once this branch is deployed and `RUN_STATE_STORE=redis` is
+confirmed on dev**.

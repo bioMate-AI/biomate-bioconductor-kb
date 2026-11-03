@@ -623,7 +623,7 @@ def get_retriever(db_path: str | None = None) -> CryoEMKnowledgeRetriever:
             import os
             db_path = os.environ.get(
                 "GALAXY_AI_DB_PATH",
-                "/home/yzhang/biomate/backend/galaxy_ai_tools.db"
+                "/app/database/galaxy_ai_tools.db"
             )
         _instance = CryoEMKnowledgeRetriever(db_path)
     return _instance

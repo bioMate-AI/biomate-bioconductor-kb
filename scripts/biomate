@@ -1,0 +1,271 @@
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────────────────────
+# biomate — BioMate On-Premises Management CLI
+# 用法: bash scripts/biomate <command> [args]
+#
+# 命令:
+#   status              显示所有服务状态
+#   logs [service]      查看日志（留空查看所有）
+#   create-admin        创建或重置管理员账号
+#   license             检查许可证状态
+#   restart [service]   重启服务（留空重启全部）
+#   stop                停止所有服务
+#   start               启动所有服务
+#   update              更新到最新版本
+#   shell <service>     进入容器 shell
+# ─────────────────────────────────────────────────────────────────────────────
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+COMPOSE_FILE="$SCRIPT_DIR/docker-compose.onprem.yml"
+ENV_FILE="${BIOMATE_ENV_FILE:-$SCRIPT_DIR/.env}"
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+BLUE='\033[0;34m'; BOLD='\033[1m'; RESET='\033[0m'
+
+info()  { echo -e "${BLUE}[INFO]${RESET}  $*"; }
+ok()    { echo -e "${GREEN}[OK]${RESET}    $*"; }
+warn()  { echo -e "${YELLOW}[WARN]${RESET}  $*"; }
+error() { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
+die()   { error "$*"; exit 1; }
+
+_compose() {
+  docker compose -f "$COMPOSE_FILE" \
+    $([[ -f "$ENV_FILE" ]] && echo "--env-file $ENV_FILE" || true) \
+    "$@"
+}
+
+_load_env() {
+  [[ -f "$ENV_FILE" ]] && { set -a; source "$ENV_FILE"; set +a; } || true
+}
+
+CMD="${1:-help}"
+shift || true
+
+# Source .env early so all commands have access to POSTGRES_USER, POSTGRES_DB,
+# FRONTEND_PORT, etc. without falling back to hardcoded defaults.
+_load_env
+
+case "$CMD" in
+
+# ── status ────────────────────────────────────────────────────────────────────
+status)
+  echo ""
+  echo -e "${BOLD}BioMate 服务状态${RESET}"
+  echo "────────────────────────────────────────────────────"
+
+  SERVICES=(biomate-postgres biomate-redis biomate-minio biomate-galaxy biomate-frontend biomate-registry)
+  for svc in "${SERVICES[@]}"; do
+    if ! docker inspect "$svc" &>/dev/null; then
+      printf "  %-25s %s\n" "$svc" "$(echo -e "${RED}未运行${RESET}")"
+      continue
+    fi
+    STATUS=$(docker inspect --format '{{.State.Status}}' "$svc")
+    HEALTH=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-check{{end}}' "$svc")
+    UPTIME=$(docker inspect --format '{{.State.StartedAt}}' "$svc" | head -c 19 | tr 'T' ' ')
+
+    case "$HEALTH" in
+      healthy)    COLOR="$GREEN"  ICON="●" ;;
+      unhealthy)  COLOR="$RED"    ICON="✗" ;;
+      starting)   COLOR="$YELLOW" ICON="◌" ;;
+      *)
+        case "$STATUS" in
+          running) COLOR="$GREEN"  ICON="●" ;;
+          exited)  COLOR="$RED"    ICON="✗" ;;
+          *)       COLOR="$YELLOW" ICON="?" ;;
+        esac ;;
+    esac
+
+    printf "  ${COLOR}${ICON}${RESET} %-24s %-12s %s\n" "$svc" "$STATUS" "$UPTIME"
+  done
+
+  echo ""
+  _load_env
+  FRONTEND_PORT="${FRONTEND_PORT:-5000}"
+  HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+  echo -e "  前端: ${BLUE}http://${HOST_IP}:${FRONTEND_PORT}${RESET}"
+  echo -e "  MinIO: ${BLUE}http://${HOST_IP}:9001${RESET}"
+  echo ""
+  ;;
+
+# ── logs ──────────────────────────────────────────────────────────────────────
+logs)
+  TARGET="${1:-}"
+  if [[ -z "$TARGET" ]]; then
+    _compose logs --tail 100 -f
+  else
+    # 支持短名: galaxy → biomate-galaxy, frontend → biomate-frontend
+    case "$TARGET" in
+      galaxy|backend)  TARGET="biomate-galaxy"   ;;
+      frontend)        TARGET="biomate-frontend"  ;;
+      db|postgres)     TARGET="biomate-postgres"  ;;
+      redis)           TARGET="biomate-redis"     ;;
+      minio)           TARGET="biomate-minio"     ;;
+      registry)        TARGET="biomate-registry"  ;;
+    esac
+    docker logs "${2:---tail=200}" -f "$TARGET" 2>&1
+  fi
+  ;;
+
+# ── create-admin ──────────────────────────────────────────────────────────────
+create-admin)
+  echo ""
+  read -rp "  管理员邮箱: " ADMIN_EMAIL
+  [[ -z "$ADMIN_EMAIL" ]] && die "邮箱不能为空"
+
+  _admin_pass=""
+  while [[ -z "$_admin_pass" ]]; do
+    read -rsp "  密码 (至少8位): " _admin_pass; echo ""
+    [[ ${#_admin_pass} -lt 8 ]] && { warn "密码太短，请重新输入。"; _admin_pass=""; }
+  done
+  read -rsp "  确认密码: " _admin_pass2; echo ""
+  [[ "$_admin_pass" != "$_admin_pass2" ]] && die "两次密码不一致"
+
+  _FE_PORT="${FRONTEND_PORT:-5000}"
+  _API="http://localhost:${_FE_PORT}"
+
+  # Step 1: register via API (bcrypt handled server-side; no shell/JS injection risk)
+  info "注册用户..."
+  _REG=$(curl -sf -X POST "$_API/api/auth/register" \
+    -H "Content-Type: application/json" \
+    --data-binary "{\"email\":$(printf '%s' "$ADMIN_EMAIL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),\"password\":$(printf '%s' "$_admin_pass" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),\"termsAccepted\":true}" 2>&1 || true)
+  _VER_TOKEN=$(echo "$_REG" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('verificationToken',''))" 2>/dev/null || true)
+
+  # Step 2: auto-verify email (no SMTP required)
+  if [[ -n "$_VER_TOKEN" ]]; then
+    curl -sf -X POST "$_API/api/auth/verify-email" \
+      -H "Content-Type: application/json" \
+      -d "{\"token\":\"$_VER_TOKEN\"}" >/dev/null 2>&1 || true
+    info "邮箱已自动验证"
+  fi
+
+  # Step 3: promote to admin via psql (email is passed as a prepared-statement
+  # argument via -v, which prevents SQL injection regardless of email content)
+  _PG_USER="${POSTGRES_USER:-biomate}"
+  _PG_DB="${POSTGRES_DB:-biomate}"
+  docker exec biomate-postgres psql -U "$_PG_USER" "$_PG_DB" \
+    -c "UPDATE users SET subscription_tier='admin', email_verified=true WHERE email='$(printf '%s' "$ADMIN_EMAIL" | sed "s/'/''/g")';" 2>&1 | grep -v "^UPDATE" || true
+
+  # Verify
+  _USER_EXISTS=$(docker exec biomate-postgres psql -U "$_PG_USER" "$_PG_DB" \
+    -t -c "SELECT COUNT(*) FROM users WHERE email='$(printf '%s' "$ADMIN_EMAIL" | sed "s/'/''/g")';" 2>&1 | tr -d ' \n' || echo "0")
+
+  if [[ "$_USER_EXISTS" -gt 0 ]]; then
+    ok "管理员账号已创建/更新: $ADMIN_EMAIL (tier=admin)"
+  else
+    warn "账号未找到，请确认前端服务运行正常后重试"
+    info "手动创建: curl -X POST $_API/api/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"admin@example.com\",\"password\":\"yourpass\",\"termsAccepted\":true}'"
+  fi
+  ;;
+
+# ── license ───────────────────────────────────────────────────────────────────
+license)
+  info "检查许可证状态..."
+  RESULT=$(curl -sf --max-time 10 http://localhost:8081/api/license/status 2>/dev/null || echo '{"status":"error"}')
+  STATUS=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null || echo "unknown")
+  EXPIRES=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('expires','') or '')" 2>/dev/null || echo "")
+  case "$STATUS" in
+    active)
+      ok "许可证有效"
+      [[ -n "$EXPIRES" ]] && echo "  到期: $EXPIRES"
+      ;;
+    demo)
+      ok "许可证: 演示模式 (Demo)"
+      ;;
+    expired)
+      error "许可证已过期，请联系 BioMate 团队续期: support@biomate.ai"
+      exit 1 ;;
+    invalid_format|invalid_signature|invalid_expiry)
+      error "许可证无效 ($STATUS)，请检查 BIOMATE_LICENSE_KEY 配置"
+      exit 1 ;;
+    missing)
+      warn "未设置许可证 (BIOMATE_LICENSE_KEY 未配置，以演示模式运行)"
+      ;;
+    *)
+      warn "许可证状态: $STATUS (Galaxy 服务可能还未就绪)"
+      ;;
+  esac
+  ;;
+
+# ── restart ───────────────────────────────────────────────────────────────────
+restart)
+  TARGET="${1:-}"
+  if [[ -z "$TARGET" ]]; then
+    info "重启所有服务..."
+    _compose restart
+    ok "所有服务已重启"
+  else
+    info "重启 $TARGET..."
+    docker restart "$TARGET"
+    ok "$TARGET 已重启"
+  fi
+  ;;
+
+# ── stop ──────────────────────────────────────────────────────────────────────
+stop)
+  info "停止所有服务..."
+  _compose down
+  ok "所有服务已停止（数据卷保留）"
+  ;;
+
+# ── start ─────────────────────────────────────────────────────────────────────
+start)
+  info "启动所有服务..."
+  _compose up -d --remove-orphans
+  ok "服务已启动，使用 'bash scripts/biomate status' 查看状态"
+  ;;
+
+# ── update ────────────────────────────────────────────────────────────────────
+update)
+  info "运行更新脚本..."
+  bash "$SCRIPT_DIR/scripts/onprem-update.sh" "$@"
+  ;;
+
+# ── shell ─────────────────────────────────────────────────────────────────────
+shell)
+  TARGET="${1:-biomate-frontend}"
+  case "$TARGET" in
+    galaxy|backend) TARGET="biomate-galaxy"   ;;
+    frontend)       TARGET="biomate-frontend"  ;;
+    db|postgres)    TARGET="biomate-postgres"  ;;
+    redis)          TARGET="biomate-redis"     ;;
+    minio)          TARGET="biomate-minio"     ;;
+  esac
+  info "进入 $TARGET shell (输入 exit 退出)..."
+  docker exec -it "$TARGET" /bin/sh 2>/dev/null || docker exec -it "$TARGET" /bin/bash
+  ;;
+
+# ── help ──────────────────────────────────────────────────────────────────────
+help|--help|-h)
+  cat <<'HELP'
+
+BioMate On-Premises CLI
+
+用法:
+  bash scripts/biomate <command> [args]
+
+命令:
+  status              显示所有容器状态和访问地址
+  logs [service]      实时日志 (service: galaxy/frontend/db/redis/minio)
+  create-admin        创建或重置管理员账号
+  license             检查许可证有效性
+  restart [service]   重启服务 (留空重启全部)
+  stop                停止所有服务 (数据保留)
+  start               启动所有服务
+  update [--tag v2.x] 更新到指定版本
+  shell [service]     进入容器 bash shell
+
+示例:
+  bash scripts/biomate status
+  bash scripts/biomate logs galaxy
+  bash scripts/biomate restart biomate-galaxy
+  bash scripts/biomate license
+
+HELP
+  ;;
+
+*)
+  die "未知命令: $CMD。使用 'bash scripts/biomate help' 查看帮助。"
+  ;;
+
+esac

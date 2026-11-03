@@ -88,14 +88,23 @@ biomni_workflows/**/tests/
 experiments/
 **/experiments/
 
-# Large workflow libraries not needed in container (indexed separately)
+# Large workflow libraries — excluded from image to keep build size manageable.
+# These dirs are pre-seeded on each host from the repo and stay on the
+# host bind-mount (/opt/biomate/data/nextflow_nfcore). All other subdirs
+# (structural_biology, cryo_em, transcriptomics, etc.) ARE included so
+# deploy.sh can extract them into the bind-mount on every deploy, ensuring
+# the running container always matches the deployed git commit.
 biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/
 biomni_workflows/nextflow_nfcore/subworkflows/genomics/
-biomni_workflows/nextflow_nfcore/
-# …but DO ship the ml_training wrapper (.nf must resolve at execute time).
-# BuildKit honours this re-include even though the parent dir is excluded above.
-!biomni_workflows/nextflow_nfcore/ml_training/
-!biomni_workflows/nextflow_nfcore/ml_training/**
+biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/
+biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/
+# Nextflow runtime artifacts accidentally committed — not needed in image.
+biomni_workflows/nextflow_nfcore/**/.nextflow/
+biomni_workflows/nextflow_nfcore/**/.nextflow.log*
+biomni_workflows/nextflow_nfcore/**/work/
+biomni_workflows/nextflow_nfcore/**/results/
+biomni_workflows/nextflow_nfcore/**/test_results/
+biomni_workflows/nextflow_nfcore/**/test_data/
 
 # Docs and notes
 *.md

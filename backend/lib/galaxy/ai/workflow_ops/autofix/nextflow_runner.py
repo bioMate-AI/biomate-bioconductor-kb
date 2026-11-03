@@ -144,7 +144,7 @@ def run_nextflow_autofix(
     if db_path is None:
         for cand in (
             Path(__file__).parents[5] / "database" / "galaxy_ai_tools.db",
-            Path("/home/yzhang/biomate/backend/database/galaxy_ai_tools.db"),
+            Path("/app/database/galaxy_ai_tools.db"),
             Path("/app/database/galaxy_ai_tools.db"),
         ):
             if cand.exists():

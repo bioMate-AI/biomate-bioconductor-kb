@@ -11,7 +11,7 @@ from datetime import datetime
 from playwright.sync_api import sync_playwright, Page
 
 BASE_URL = "http://localhost:5000"
-DEMO_DIR = "/home/yzhang/biomate/backend/tests/demo_recordings"
+DEMO_DIR = "/app/tests/demo_recordings"
 os.makedirs(DEMO_DIR, exist_ok=True)
 
 # Demo scenario - Simple database query (no file upload needed)

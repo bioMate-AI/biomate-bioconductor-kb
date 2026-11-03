@@ -1,0 +1,75 @@
+name: Retag ECR → GHCR (on-prem distribution)
+
+# One-off workflow: pull current ECR images and push to GHCR as :latest
+# so on-prem customers can docker pull without AWS credentials.
+# Trigger manually via workflow_dispatch only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ecr_tag:
+        description: 'ECR source tag to retag'
+        required: true
+        default: 'integration-next-phase-latest'
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+  packages: write
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: 399683337364.dkr.ecr.us-west-2.amazonaws.com
+  ROLE_ARN: arn:aws:iam::399683337364:role/GitHubActionsECRPush
+
+jobs:
+  retag:
+    name: ECR → GHCR retag
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull backend from ECR
+        run: |
+          docker pull ${{ env.ECR_REGISTRY }}/biomate/dev-backend:${{ inputs.ecr_tag }}
+
+      - name: Push backend to GHCR as latest
+        run: |
+          docker tag \
+            ${{ env.ECR_REGISTRY }}/biomate/dev-backend:${{ inputs.ecr_tag }} \
+            ghcr.io/biomate-ai/biomate-backend:latest
+          docker push ghcr.io/biomate-ai/biomate-backend:latest
+
+      - name: Pull frontend from ECR
+        run: |
+          docker pull ${{ env.ECR_REGISTRY }}/biomate/dev-frontend:${{ inputs.ecr_tag }}
+
+      - name: Push frontend to GHCR as latest
+        run: |
+          docker tag \
+            ${{ env.ECR_REGISTRY }}/biomate/dev-frontend:${{ inputs.ecr_tag }} \
+            ghcr.io/biomate-ai/biomate-frontend:latest
+          docker push ghcr.io/biomate-ai/biomate-frontend:latest
+
+      - name: Summary
+        run: |
+          echo "## GHCR retag complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Source: ECR \`${{ inputs.ecr_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Backend: \`ghcr.io/biomate-ai/biomate-backend:latest\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Frontend: \`ghcr.io/biomate-ai/biomate-frontend:latest\`" >> "$GITHUB_STEP_SUMMARY"

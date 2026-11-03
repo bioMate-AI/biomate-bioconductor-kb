@@ -220,7 +220,7 @@ Keyword Hint (low confidence): {keyword_hint}
 Respond ONLY with valid JSON (no markdown, no explanation):
 {{"primary_domain": "domain_name", "secondary_domains": ["domain1", "domain2"], "confidence": 0.85, "complexity": "standard", "reasoning": "brief explanation"}}"""
 
-    DEFAULT_DB_PATH = "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db"
+    DEFAULT_DB_PATH = "/app/database/galaxy_ai_tools.db"
 
     def __init__(
         self,

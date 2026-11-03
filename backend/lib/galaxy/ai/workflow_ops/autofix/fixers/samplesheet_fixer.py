@@ -381,16 +381,16 @@ class SamplesheetFixer(BaseAutoFixer):
     # ========== Helper Methods ==========
 
     def _download_samplesheet(self, path: str, context: FixContext) -> Optional[str]:
-        """Download samplesheet from S3 or local path"""
+        """Download samplesheet from S3/MinIO or local path"""
         try:
             if path.startswith('s3://'):
-                # S3 download
-                import boto3
+                # S3/MinIO download — uses make_s3_client() to support on-prem MinIO
+                from galaxy.ai.s3_utils import make_s3_client
                 parsed = urlparse(path)
                 bucket = parsed.netloc
                 key = parsed.path.lstrip('/')
 
-                s3 = boto3.client('s3')
+                s3 = make_s3_client()
                 response = s3.get_object(Bucket=bucket, Key=key)
                 content = response['Body'].read().decode('utf-8')
                 return content
@@ -406,16 +406,16 @@ class SamplesheetFixer(BaseAutoFixer):
         return None
 
     def _upload_samplesheet(self, path: str, content: str, context: FixContext) -> bool:
-        """Upload fixed samplesheet to S3 or local path"""
+        """Upload fixed samplesheet to S3/MinIO or local path"""
         try:
             if path.startswith('s3://'):
-                # S3 upload
-                import boto3
+                # S3/MinIO upload — uses make_s3_client() to support on-prem MinIO
+                from galaxy.ai.s3_utils import make_s3_client
                 parsed = urlparse(path)
                 bucket = parsed.netloc
                 key = parsed.path.lstrip('/')
 
-                s3 = boto3.client('s3')
+                s3 = make_s3_client()
                 tag_str = f"user_id={context.user_id}&workflow_id={context.workflow_id}"
                 s3.put_object(Bucket=bucket, Key=key, Body=content.encode('utf-8'), Tagging=tag_str)
                 log.info(f"✅ Uploaded to S3: s3://{bucket}/{key}")

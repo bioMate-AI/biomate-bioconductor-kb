@@ -21,10 +21,15 @@ def _make_stub(name: str) -> types.ModuleType:
 for _sname in [
     "galaxy", "galaxy.managers", "galaxy.managers.context",
     "galaxy.webapps", "galaxy.webapps.galaxy",
-    "galaxy.ai", "galaxy.ai.runs", "galaxy.ai.runs.bootstrap",
+    "galaxy.ai", "galaxy.ai.runs", "galaxy.ai.runs.bootstrap", "galaxy.ai.s3_utils",
     "a2wsgi", "a2wsgi.wsgi", "dotenv",
 ]:
     sys.modules.setdefault(_sname, _make_stub(_sname))
+
+# nextflow_executor imports make_s3_client from galaxy.ai.s3_utils (MinIO-aware S3 clients, added on integration/next-phase).
+_s3_utils_stub = sys.modules["galaxy.ai.s3_utils"]
+if not hasattr(_s3_utils_stub, "make_s3_client"):
+    _s3_utils_stub.make_s3_client = MagicMock()
 
 _ctx_stub = sys.modules["galaxy.managers.context"]
 if not hasattr(_ctx_stub, "ProvidesUserContext"):

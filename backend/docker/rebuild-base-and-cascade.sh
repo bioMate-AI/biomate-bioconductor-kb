@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# rebuild-base-and-cascade.sh — rebuild biomate-nextflow-base + every image
+# rebuild-base-and-cascade.sh — rebuild biomate/nextflow-base + every image
 # that FROM it, in topological order, to ship the numpy<2 pin across the
 # cheminformatics tool chain.
 #
@@ -11,7 +11,7 @@
 #   rebuilt and pushed to ECR with the new numpy pin.
 #
 # Topology (depth-first rebuild):
-#   biomate-nextflow-base               (level 0, root)
+#   biomate/nextflow-base               (level 0, root)
 #   ├── biomni-tools                    (level 1)
 #   │   └── biomni-pharma               (level 2)
 #   ├── biomni-admet                    (level 1, BASE_IMAGE param)
@@ -69,20 +69,20 @@ if ! $DRY_RUN; then
     | docker login --username AWS --password-stdin "$ECR" >/dev/null
 fi
 
-# ── Level 0: biomate-nextflow-base ─────────────────────────────────────────
-log "=== [0/8] biomate-nextflow-base (root) ==="
-track "biomate-nextflow-base" docker buildx build --platform "$PLATFORM" \
+# ── Level 0: biomate/nextflow-base ─────────────────────────────────────────
+log "=== [0/8] biomate/nextflow-base (root) ==="
+track "biomate/nextflow-base" docker buildx build --platform "$PLATFORM" \
   -f aws_infrastructure/configs/Dockerfile.nextflow-base \
-  -t "$ECR/biomate-nextflow-base:latest" \
+  -t "$ECR/biomate/nextflow-base:latest" \
   --push aws_infrastructure/configs/
 
 # Base failed? Halt — all downstream rebuilds would re-pull the broken base.
-if [[ " ${FAILED_IMAGES[*]:-} " =~ " biomate-nextflow-base " ]]; then
+if [[ " ${FAILED_IMAGES[*]:-} " =~ " biomate/nextflow-base " ]]; then
   log "FATAL: base image rebuild failed — cannot proceed with cascade"
   exit 2
 fi
 
-# ── Level 1: direct children of biomate-nextflow-base ──────────────────────
+# ── Level 1: direct children of biomate/nextflow-base ──────────────────────
 build_l1() {
   local name="$1"
   log "=== biomni image: $name ==="
@@ -110,7 +110,7 @@ build_l1 sra-tools
 # ── Level 1b: biomni-admet (uses BASE_IMAGE arg, defaults to nextflow-base) ─
 log "=== [6/8] biomni-admet ==="
 track "biomni-admet" docker buildx build --platform "$PLATFORM" \
-  --build-arg "BASE_IMAGE=$ECR/biomate-nextflow-base:latest" \
+  --build-arg "BASE_IMAGE=$ECR/biomate/nextflow-base:latest" \
   -f backend/docker/biomni-admet/Dockerfile \
   -t "$ECR/biomate/biomni-admet:x86" \
   --push backend/docker/biomni-admet/

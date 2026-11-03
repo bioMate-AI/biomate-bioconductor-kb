@@ -817,6 +817,12 @@ class UnifiedWorkflowSearch:
             f"the same analysis. Subworkflows are implementation details inside larger pipelines; they "
             f"are not standalone tools a user would run directly.\n"
             f"- If an nf-core pipeline and a subworkflow both match the query, always prefer the pipeline.\n"
+            f"- PROTEIN STRUCTURE PREDICTION: When the query involves predicting the 3D structure "
+            f"of a single protein sequence (e.g. user pastes an amino-acid string, or asks to predict "
+            f"structure/folding), prefer nf-core/proteinfold over chai1_structure_prediction. "
+            f"nf-core/proteinfold is a comprehensive 4-phase pipeline (input validation → ESMFold/AlphaFold2 "
+            f"→ quality assessment → report). Use chai1_structure_prediction only when the query explicitly "
+            f"asks for Chai1 or when the task involves protein complexes with small-molecule ligands.\n"
             f"- EXPLICIT TOOL REQUEST: If the query says 'using <Tool>', 'run <Tool>', or 'with <Tool>' "
             f"as the primary method, rank that tool's workflow #1. "
             f"  POSITIVE: 'run DiffDock on my protein' → DiffDock workflow should be #1. "
@@ -855,6 +861,32 @@ class UnifiedWorkflowSearch:
         except Exception as _exc:
             log.debug("[Pass-0] LLM catalog browse failed: %s", _exc)
             return []
+
+    def _apply_scope_filter(self, results):
+        """On-prem deployment-scope filter: drop out-of-scope workflows from results.
+
+        No-op on SaaS (enforcement OFF unless BIOMATE_SCOPE_MANIFEST is set).
+        Matches each WorkflowMatch by its .filename (nextflow_path) and .name.
+        See galaxy.ai.scope_guard / docs/20261005_ONPREM_SCOPE_LAYER_PLAN.md (slice 2).
+        """
+        try:
+            from galaxy.ai import scope_guard as _scope_guard
+            if not _scope_guard.enforcement_enabled():
+                return results
+            kept = [
+                m for m in results
+                if _scope_guard.is_workflow_in_scope(
+                    nextflow_path=getattr(m, "filename", "") or "",
+                    name=getattr(m, "name", "") or "",
+                )
+            ]
+            if len(kept) != len(results):
+                log.info("[scope_guard] search filtered %d → %d in-scope results",
+                         len(results), len(kept))
+            return kept
+        except Exception as _e:  # never break search on the guard
+            log.debug("[scope_guard] search filter skipped: %s", _e)
+            return results
 
     def search(self,
                query: str,
@@ -1104,7 +1136,7 @@ class UnifiedWorkflowSearch:
                 if filtered:
                     results = filtered
 
-            return results[:limit]
+            return self._apply_scope_filter(results)[:limit]
 
         except sqlite3.OperationalError as e:
             log.warning(f"FTS search failed: {e}, falling back to LIKE search")
@@ -1984,7 +2016,7 @@ class UnifiedWorkflowSearch:
                 results.append(match)
 
             results.sort(key=lambda x: x.score, reverse=True)
-            return results
+            return self._apply_scope_filter(results)
 
         finally:
             conn.close()

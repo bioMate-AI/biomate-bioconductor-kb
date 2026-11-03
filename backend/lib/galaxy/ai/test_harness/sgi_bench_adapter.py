@@ -10,6 +10,7 @@ Provides:
 """
 
 import logging
+import os
 import json
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
@@ -19,7 +20,7 @@ from enum import Enum
 log = logging.getLogger(__name__)
 
 # Default path to SGI-Bench datasets
-DEFAULT_SGI_BENCH_PATH = "/home/yzhang/biomate/research/benchmark_evaluation/sgi_bench_datasets"
+DEFAULT_SGI_BENCH_PATH = os.environ.get('SGI_BENCH_PATH', '/app/research/sgi_bench_datasets')
 
 
 class SGIDiscipline(str, Enum):

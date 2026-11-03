@@ -11,7 +11,7 @@
 #     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/sra-tools:3.1.1 \
 #     --push -f backend/docker/sra-tools/Dockerfile .
 
-FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:latest
 
 LABEL maintainer="BioMate Team"
 LABEL description="NCBI SRA Toolkit 3.1.1 + AWS CLI for Nextflow Batch workflows"

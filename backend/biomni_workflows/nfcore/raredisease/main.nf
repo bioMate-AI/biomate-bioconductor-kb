@@ -28,6 +28,8 @@ params.max_time         = '240.h'
 
 // [Input Validation]
 process VALIDATE_INPUT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     check_samplesheet.py --input ${params.input} \
         --genome ${params.genome} \
@@ -37,6 +39,8 @@ process VALIDATE_INPUT {
 
 // [Preprocessing]
 process FASTQC_TRIMGALORE {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     trim_galore \
         --outdir ${params.outdir}
@@ -47,6 +51,8 @@ process FASTQC_TRIMGALORE {
 
 // [Alignment]
 process BWAMEM2_BQSR {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     bwa-mem2 mem ${params.genome} \
         --outdir ${params.outdir}
@@ -59,6 +65,8 @@ process BWAMEM2_BQSR {
 
 // [Variant Calling]
 process VARIANT_CALLING {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     gatk HaplotypeCaller \
         --reference ${params.genome} \
@@ -73,6 +81,8 @@ process VARIANT_CALLING {
 
 // [Annotation]
 process VEP_ANNOTATE {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     vep \
         --genome ${params.genome} \
@@ -86,6 +96,8 @@ process VEP_ANNOTATE {
 
 // [Report]
 process MULTIQC {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     multiqc --outdir ${params.outdir} \
         ${params.email ? "--email ${params.email}" : ''}

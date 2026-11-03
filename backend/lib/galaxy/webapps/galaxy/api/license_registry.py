@@ -291,10 +291,11 @@ def scan_nf_for_tool_ids(nf_path: str) -> List[str]:
     matched: List[str] = []
     path_lower = nf_path.lower()
 
-    # Path-name based detection (e.g. cryosparc in the workflow path)
+    # Path-name based detection (e.g. cryosparc in the workflow path).
+    # Use word-boundary matching (\b) to avoid "structura" matching "structural_biology".
     for tool_id, info in LICENSE_REGISTRY.items():
         for pattern in info.get("container_patterns", []):
-            if pattern.lower() in path_lower:
+            if re.search(rf"\b{re.escape(pattern.lower())}\b", path_lower):
                 if tool_id not in matched:
                     matched.append(tool_id)
                 break

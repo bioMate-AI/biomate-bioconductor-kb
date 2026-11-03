@@ -196,10 +196,11 @@ export class WorkflowSSEManager {
         console.warn('[SSE] Failed to update completion status:', e);
       }
 
-      // Close all clients after completion
+      // Close all clients after completion — keep open 15s so post-failure
+      // background threads (ai_diagnosis, auto_reroute) can still inject events.
       setTimeout(() => {
         this.closeClientsForInvocation(data.invocation_id);
-      }, 1000);
+      }, 15000);
     });
 
     // Polling errors

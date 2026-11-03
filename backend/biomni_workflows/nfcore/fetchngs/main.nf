@@ -25,6 +25,8 @@ params.max_time          = '48.h'
 
 // [Input Validation]
 process VALIDATE_ACCESSIONS {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     check_accessions.py --input ${params.input} \
         --download_method ${params.download_method}
@@ -33,6 +35,8 @@ process VALIDATE_ACCESSIONS {
 
 // [Metadata Fetch]
 process FETCH_METADATA {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     sra_fetch_metadata.py \
         --input ${params.input} \
@@ -45,6 +49,8 @@ process FETCH_METADATA {
 
 // [FASTQ Download]
 process DOWNLOAD_FASTQ {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     download_fastq.sh \
         --method ${params.download_method} \
@@ -58,6 +64,8 @@ process DOWNLOAD_FASTQ {
 
 // [Samplesheet Generation]
 process GENERATE_SAMPLESHEET {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     generate_samplesheet.py \
         ${params.nf_core_pipeline ? "--pipeline ${params.nf_core_pipeline}" : ''} \
@@ -68,6 +76,8 @@ process GENERATE_SAMPLESHEET {
 
 // [Report]
 process MULTIQC {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     multiqc --outdir ${params.outdir} \
         ${params.email ? "--email ${params.email}" : ''}

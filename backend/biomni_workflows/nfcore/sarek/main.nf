@@ -15,7 +15,7 @@ params.analysis_type    = 'germline'    // Analysis type: germline | somatic | t
 params.step             = 'mapping'     // Pipeline step: mapping | markduplicates | prepare_recalibration | recalibrate | variant_calling | annotate
 params.wes              = false         // Whole exome sequencing mode (uses intervals)
 params.intervals        = null          // BED file with target regions for WES
-params.genome_coverage  = null          // Target sequencing coverage in X (e.g. 30 | 50 | 100)
+params.genome_coverage  = ''            // Target sequencing coverage in X (e.g. 30 | 50 | 100)
 params.target_coverage  = null          // Target amplicon/panel coverage depth
 params.nucleotides_per_second = 200000  // Genome size estimate for interval splitting
 params.no_intervals     = false         // Disable interval splitting (use full genome)
@@ -29,6 +29,8 @@ params.max_time         = '240.h'
 
 // [Preprocessing]
 process FASTQC {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "*.html",  emit: html
     path "*.zip",   emit: zip
@@ -40,6 +42,8 @@ process FASTQC {
 
 // [Preprocessing]
 process MARKDUPLICATES {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     tuple val(meta), path("*.bam"),                 emit: bam
     tuple val(meta), path("*.bai"),                 emit: bai
@@ -54,6 +58,8 @@ process MARKDUPLICATES {
 
 // [Alignment]
 process BWAMEM2_MEM {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     tuple val(meta), path("*.bam"),   emit: bam
     tuple val(meta), path("*.bai"),   emit: bai
@@ -72,6 +78,8 @@ process BWAMEM2_MEM {
 
 // [Alignment]
 process GATK_BQSR {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     tuple val(meta), path("*.bam"),           emit: bam_bqsr
     path "*.recal_data.table",                emit: recal_table
@@ -87,6 +95,8 @@ process GATK_BQSR {
 
 // [Variant Calling]
 process GATK_HAPLOTYPECALLER {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     tuple val(meta), path("*.vcf.gz"),        emit: vcf
     tuple val(meta), path("*.vcf.gz.tbi"),    emit: tbi
@@ -105,6 +115,8 @@ process GATK_HAPLOTYPECALLER {
 
 // [Annotation]
 process VEP {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     tuple val(meta), path("*.vcf.gz"),        emit: vcf_annotated
     path "*.html",                            emit: html_report
@@ -122,6 +134,8 @@ process VEP {
 
 // [Report]
 process MULTIQC {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "multiqc_report.html",  emit: report
     path "multiqc_data/",        emit: data

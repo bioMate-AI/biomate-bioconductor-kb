@@ -146,5 +146,5 @@ def apply_migration(db_path: str) -> bool:
 
 if __name__ == "__main__":
     import sys
-    db = sys.argv[1] if len(sys.argv) > 1 else "/home/yzhang/biomate/backend/galaxy_ai_tools.db"
+    db = sys.argv[1] if len(sys.argv) > 1 else "/app/database/galaxy_ai_tools.db"
     apply_migration(db)

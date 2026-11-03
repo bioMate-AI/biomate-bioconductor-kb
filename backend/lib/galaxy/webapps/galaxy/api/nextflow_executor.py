@@ -70,7 +70,8 @@ _runs: Dict[str, Dict[str, Any]] = {}
 # reentrancy is safe. Incident 2026-06-30 (connector hERG, 5 consecutive fails).
 _runs_lock = threading.RLock()
 
-from galaxy.ai.runs import get_run_state_store  # noqa: E402
+from galaxy.ai.runs import get_run_state_store
+from galaxy.ai.s3_utils import make_s3_client  # noqa: E402
 
 # Start the orphan-completion poller on every gunicorn worker at module load,
 # not just when a run is submitted. Without this, workers that restart while
@@ -359,7 +360,7 @@ def _parse_deseq2_results_from_s3(s3_output_files: list) -> tuple:
         return 0, []
     try:
         import boto3
-        _s3 = boto3.client("s3")
+        _s3 = make_s3_client()
         _bucket, _key = results_file.replace("s3://", "").split("/", 1)
         _obj = _s3.get_object(Bucket=_bucket, Key=_key)
         content = _obj["Body"].read().decode("utf-8")
@@ -397,7 +398,7 @@ def _parse_enrichgo_results_from_s3(s3_output_files: list) -> tuple:
         return "", "", 0
     try:
         import boto3
-        _s3 = boto3.client("s3")
+        _s3 = make_s3_client()
         _bucket, _key = results_file.replace("s3://", "").split("/", 1)
         _obj = _s3.get_object(Bucket=_bucket, Key=_key)
         content = _obj["Body"].read().decode("utf-8")
@@ -914,6 +915,39 @@ def _read_run_timing_json(run_id: str) -> Dict[str, Any]:
         return {}
 
 
+def _collect_failed_task_errors(work_dir: Path, max_tasks: int = 3, max_chars: int = 2000) -> str:
+    """Read .command.err from the most recently modified task work directories.
+
+    Nextflow's own log only shows exit codes; the actual error (e.g. Python
+    tracebacks, QEMU segfaults, R errors) lives in .command.err inside each
+    task's work subdirectory.  This function surfaces that content so failure
+    classification and the user-facing diagnosis have the real error to work from.
+    """
+    work_subdir = work_dir / "work"
+    if not work_subdir.is_dir():
+        return ""
+    try:
+        err_files = sorted(
+            work_subdir.rglob(".command.err"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except Exception:
+        return ""
+    snippets: list[str] = []
+    for ef in err_files[:max_tasks]:
+        try:
+            content = ef.read_text(errors="replace").strip()
+            if not content:
+                continue
+            # Keep only the last max_chars characters of each file to avoid
+            # flooding the classifier with MB-scale core dumps.
+            snippets.append(content[-max_chars:])
+        except Exception:
+            continue
+    return "\n---\n".join(snippets)
+
+
 def _read_run_nextflow_log_text(log_dir: Path) -> tuple[str, list[str]]:
     """Merge launcher and work-dir Nextflow logs (AWS Batch runs often only complete in work/.nextflow.log).
 
@@ -1024,20 +1058,37 @@ def _classify_failure(
     log_tail: Optional[Union[list, str]] = None,
     returncode: Optional[int] = None,
     duration_s: Optional[int] = None,
+    task_stderr: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Classify a failed run into a user-safe verdict. Reads the RAW log for pattern
-    matching but returns NONE of it. `suggested_action` in
-    {resume, resume_more_resources, fix_and_resume, check_input, report,
-    restart_last_resort}. `is_transient=True` means a plain resume can succeed
-    unchanged; False means the cause is deterministic and something must change
-    before resuming. `fix_strategy` is the language-neutral tier the UI renders —
-    {auto_fixable, user_action_required, not_fixable} — mirroring
-    autofix.user_guidance.FixStrategy (docs/20260823_FAILURE_COMMUNICATION_STRATIFICATION.md)."""
+    """Classify a failed run into a user-safe verdict.
+
+    Searches BOTH the Nextflow orchestrator log (log_tail) AND the actual task
+    stderr (.command.err content via task_stderr) so that errors buried inside
+    task containers — Python tracebacks, R errors, QEMU segfaults — are visible
+    to classification and surfaced to the user.
+
+    `suggested_action` ∈ {resume, resume_more_resources, fix_and_resume,
+    check_input, report, restart_last_resort}.
+    `is_transient=True` → plain resume can succeed unchanged.
+    `fix_strategy` ∈ {auto_fixable, user_action_required, not_fixable}.
+    `task_error_snippet` → sanitized excerpt of the actual task stderr, shown
+    in the UI and passed to the auto-fix LLM so it has real context.
+    """
     if str(status).lower() not in ("failed", "error", "cancelled"):
         return None
     raw = "\n".join(str(x) for x in log_tail) if isinstance(log_tail, list) else str(log_tail or "")
-    low = raw.lower()
+    task_err_raw = str(task_stderr or "")
+    # Classify against BOTH sources combined so task-level errors are detected.
+    combined = raw + "\n" + task_err_raw
+    low = combined.lower()
     rc = returncode
+
+    # Build a sanitized snippet of the task error for the user-facing diagnosis.
+    # Use the task stderr in preference to the orchestrator log — it has the real cause.
+    _snippet_source = task_err_raw if task_err_raw.strip() else raw
+    _snippet_lines = [l for l in _snippet_source.splitlines() if l.strip()][-20:]
+    _raw_snippet = "\n".join(_snippet_lines)
+    task_error_snippet = _redact_internal(_raw_snippet)[:1500]
 
     # category → fix_strategy tier (T1 auto-fix / T2 needs-you / T3-T4 not-user-fixable).
     _STRATEGY = {
@@ -1047,6 +1098,7 @@ def _classify_failure(
         "config_param": "user_action_required",
         "input_data": "user_action_required",
         "tool_error": "user_action_required",
+        "arch_compat": "not_fixable",     # T4: architecture mismatch (e.g. ARM64 + amd64 image)
         "workflow_code": "not_fixable",   # T4: BioMate's defect, not the user's
         "unknown": "not_fixable",
     }
@@ -1054,7 +1106,51 @@ def _classify_failure(
     def verdict(category: str, msg: str, transient: bool, action: str) -> Dict[str, Any]:
         return {"category": category, "user_message": msg,
                 "is_transient": transient, "suggested_action": action,
-                "fix_strategy": _STRATEGY.get(category, "not_fixable")}
+                "fix_strategy": _STRATEGY.get(category, "not_fixable"),
+                "task_error_snippet": task_error_snippet}
+
+    # ── ARM64: workflow image has no arm64 variant → "pull access denied" or no manifest ──
+    # Triggered when DOCKER_DEFAULT_PLATFORM=linux/arm64 (信创/domestic deployment) and the
+    # workflow's container image was never built for arm64.  Docker finds no local match and
+    # can't pull from the registry → vague "pull access denied" / "unable to find image".
+    _is_arm64_host = os.environ.get("DOCKER_DEFAULT_PLATFORM", "").lower() == "linux/arm64"
+    _arm64_image_miss = (
+        "no matching manifest for linux/arm64" in low
+        or ("no matching manifest" in low and "arm64" in low)
+        or ("manifest unknown" in low and "arm64" in low)
+        or ("image operating system" in low and "does not match" in low and "arm64" in low)
+        or (_is_arm64_host and "pull access denied" in low
+            and ("unable to find image" in low or "repository does not exist" in low))
+        or (_is_arm64_host and "unable to find image" in low
+            and ("pull access denied" in low or "repository does not exist" in low
+                 or "does not exist" in low))
+    )
+    if _arm64_image_miss:
+        return verdict(
+            "arch_compat",
+            "此工作流所需的容器镜像暂无 ARM64（信创）版本，无法在当前 ARM64 部署上运行。"
+            " 请切换到 x86 稳定版部署，或联系管理员为该工作流添加 ARM64 镜像支持。"
+            " (Workflow container image has no ARM64 build."
+            " Switch to the x86 stable deployment or ask the administrator to add ARM64 image support.)",
+            False, "report",
+        )
+
+    # ── architecture / emulation incompatibility (QEMU segfault, signal 11, etc.) ──
+    # exit 139 = 128 + SIGSEGV(11). Common when running amd64 containers via QEMU on ARM64:
+    # ML libraries (PyTorch, TensorFlow) use AVX2/AVX-512 SIMD that QEMU can't emulate.
+    if (rc == 139
+            or any(k in low for k in ("segmentation fault", "signal 11", "sigsegv",
+                                     "qemu: uncaught target signal",
+                                     "illegal instruction", "signal 4",
+                                     "bus error", "signal 7"))):
+        return verdict("arch_compat",
+                       "A workflow step crashed with a low-level CPU signal (likely a "
+                       "segmentation fault or illegal instruction). This typically happens "
+                       "when running x86/amd64 container images via QEMU emulation on an "
+                       "ARM64 host — some libraries use CPU instructions (AVX2/SIMD) that "
+                       "QEMU cannot emulate correctly. A native ARM64 image is required to "
+                       "run this workflow on ARM64 hardware.",
+                       False, "report")
 
     # ── transient infrastructure (a plain resume can succeed) ──
     if any(k in low for k in ("spot", "reclaim", "instance was terminated", "host ec2",
@@ -1105,6 +1201,19 @@ def _classify_failure(
                        "failed to run, not your input. A plain re-run would hit the same "
                        "error, so we've flagged it for the BioMate team to fix.",
                        False, "report")
+    # ── missing / bad input sequence or file path ──
+    # Channel.fromPath() throws "Missing 'fromPath' parameter" on empty string;
+    # "Path or pattern does not exist" / "No files match" when value is raw sequence text.
+    if any(k in low for k in ("missing 'frompath' parameter", "missing frompath",
+                              "path or pattern does not exist",
+                              "no files match pattern",
+                              "path does not exist")):
+        return verdict("input_data",
+                       "The workflow needs an input file (e.g. a FASTA file path) but "
+                       "none was provided, or the value given isn't a valid path. "
+                       "If you have a raw sequence, type it into the 'sequence' field "
+                       "in the parameter panel and try again.",
+                       False, "check_input")
     # ── configuration / parameter / syntax (deterministic: needs a fix) ──
     if any(k in low for k in ("unexpected token", "syntax error", "no such variable",
                               "missingpropertyexception", "cannot find", "not specified")):
@@ -1134,17 +1243,231 @@ def _classify_failure(
                    "You can resume from the last completed step.", False, "resume")
 
 
+def _find_alternative_workflow(failed_path: str, domain: Optional[str]) -> Optional[Dict[str, Any]]:
+    """Query the workflow DB for an alternative to a failed workflow.
+
+    Strategy:
+    1. Look up same-domain workflows in galaxy_ai_tools.db.
+    2. For each candidate, verify the .nf file is actually resolvable on disk
+       (uses the same _resolve_nextflow_path logic as execute).
+    3. Return the first resolvable match, or None when nothing is available.
+
+    Returns {name, nextflow_path, domain} or None.
+    """
+    import sqlite3 as _sql
+    db_path = Path(__file__).resolve().parents[5] / "database" / "galaxy_ai_tools.db"
+    if not db_path.exists():
+        log.debug("[auto_reroute] DB not found at %s", db_path)
+        return None
+    if not domain:
+        return None
+    try:
+        with _sql.connect(str(db_path)) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT name, nextflow_path, domain FROM workflows "
+                "WHERE domain=? AND nextflow_path != ? "
+                "AND nextflow_path IS NOT NULL AND nextflow_path != '' "
+                "ORDER BY RANDOM() LIMIT 30",
+                (domain, failed_path),
+            )
+            rows = cur.fetchall()
+    except Exception as e:
+        log.debug("[auto_reroute] DB lookup failed: %s", e)
+        return None
+
+    for name, nf_path, dom in rows:
+        if not nf_path:
+            continue
+        try:
+            _resolve_nextflow_path(nf_path)
+            return {"name": name, "nextflow_path": nf_path, "domain": dom}
+        except FileNotFoundError:
+            continue
+    return None
+
+
+def _trigger_auto_reroute_on_failure(
+    run_id: str,
+    inv_id: str,
+    run_meta: Dict[str, Any],
+    returncode: int,
+) -> None:
+    """After a run failure, decide between Layer-1 (silent auto-reroute) and
+    Layer-2 (AI diagnosis chat card). Runs in a daemon thread — never raises.
+
+    Layer 1 (silent): When the failure is a tool/infrastructure error AND a
+    same-domain alternative exists on disk, auto-submit it and emit
+    ``auto_reroute`` SSE so the frontend loads the new run transparently.
+
+    Layer 2 (interactive): When no auto-fix is possible, emit ``ai_diagnosis``
+    SSE so the frontend injects a plain-language diagnosis card.
+    """
+    try:
+        # Don't reroute an already-rerouted run (prevents infinite loops).
+        if run_meta.get("is_auto_reroute"):
+            log.debug("[auto_reroute] skipping — run %s is already a rerouted run", run_id)
+            return
+
+        failed_path = run_meta.get("nextflow_path", "")
+        domain = run_meta.get("workflow_domain")
+        if not domain:
+            domain = _lookup_workflow_domain_from_db(
+                Path(failed_path).stem if failed_path else ""
+            )
+
+        # Read Nextflow orchestrator log + actual task .command.err for classification.
+        # The orchestrator log only has exit codes; the real error (tracebacks, QEMU
+        # segfaults, R errors) is in the task work directory's .command.err files.
+        log_tail: list = []
+        task_stderr: str = ""
+        work_dir = run_meta.get("work_dir") or run_meta.get("workdir") or ""
+        if work_dir and not str(work_dir).startswith("s3://"):
+            work_path = Path(work_dir)
+            try:
+                _full, log_tail = _read_run_nextflow_log_text(work_path)
+            except Exception:
+                pass
+            try:
+                task_stderr = _collect_failed_task_errors(work_path)
+            except Exception:
+                pass
+
+        failure_verdict = _classify_failure("failed", log_tail, returncode, task_stderr=task_stderr)
+        if not failure_verdict:
+            return
+
+        category = failure_verdict.get("category", "unknown")
+        fix_strategy = failure_verdict.get("fix_strategy", "not_fixable")
+        user_message = failure_verdict.get("user_message", "")
+        suggested_action = failure_verdict.get("suggested_action", "resume")
+
+        # ── Layer 1: silent auto-reroute ──────────────────────────────────
+        # Attempt when the failure is a tool error or transient infra issue
+        # and an executable alternative exists in the same domain.
+        if category in ("tool_error", "infra_transient") and domain:
+            alternative = _find_alternative_workflow(failed_path, domain)
+            if alternative:
+                new_run_id = str(uuid.uuid4())
+                new_inv_id = str(uuid.uuid4())
+                log.info(
+                    "[auto_reroute] Layer-1 reroute run=%s → %s (alt=%s)",
+                    run_id, new_run_id, alternative["nextflow_path"],
+                )
+                # Register pre-record so status polls return "configuring"
+                # while the background launch is starting.
+                _pre = {
+                    "run_id": new_run_id,
+                    "invocation_id": new_inv_id,
+                    "status": "configuring",
+                    "returncode": None,
+                    "nextflow_path": alternative["nextflow_path"],
+                    "user_id": run_meta.get("user_id", "anonymous"),
+                    "is_pilot": run_meta.get("is_pilot", False),
+                    "is_auto_reroute": True,
+                    "rerouted_from": run_id,
+                    "started_at": time.time(),
+                    "workflow_domain": alternative["domain"],
+                }
+                with _runs_lock:
+                    _runs[new_run_id] = dict(_pre)
+                try:
+                    get_run_state_store().set_run(new_run_id, _pre)
+                except Exception:
+                    pass
+
+                _post_sse_direct(inv_id, "auto_reroute", {
+                    "from_workflow": failed_path,
+                    "from_workflow_name": Path(failed_path).parts[-2] if "/" in failed_path else failed_path,
+                    "to_workflow": alternative["nextflow_path"],
+                    "to_workflow_name": alternative["name"],
+                    "reason": (
+                        f"'{Path(failed_path).parts[-2] if '/' in failed_path else failed_path}' "
+                        f"is not available in this environment. "
+                        f"Automatically switching to '{alternative['name']}' for this analysis."
+                    ),
+                    "new_run_id": new_run_id,
+                    "new_invocation_id": new_inv_id,
+                })
+
+                # Launch in a fresh daemon thread.
+                def _reroute_bg(req_path: str, req_user: str, req_params: dict,
+                                req_domain: str, rrid: str, riid: str) -> None:
+                    try:
+                        alt_req = NextflowExecuteRequest(
+                            nextflow_path=req_path,
+                            parameters=req_params,
+                            user_id=req_user,
+                            is_pilot=run_meta.get("is_pilot", False),
+                            workflow_domain=req_domain,
+                            compute_config=run_meta.get("compute_config"),
+                            qc_profile=run_meta.get("qc_profile"),
+                        )
+                        _execute_nextflow_impl(alt_req, _run_id=rrid, _invocation_id=riid)
+                    except Exception as exc:
+                        log.warning("[auto_reroute] alternative launch failed run=%s: %s", rrid, exc)
+                        _fail_run(rrid, f"auto-reroute launch failed: {exc}")
+                        _narrate_launch_failure(riid, rrid, f"auto-reroute: {exc}")
+
+                threading.Thread(
+                    target=_reroute_bg,
+                    args=(
+                        alternative["nextflow_path"],
+                        run_meta.get("user_id", "anonymous"),
+                        dict(run_meta.get("parameters") or {}),
+                        alternative["domain"],
+                        new_run_id,
+                        new_inv_id,
+                    ),
+                    daemon=True,
+                    name=f"nf-reroute-{new_run_id[:8]}",
+                ).start()
+                return  # Layer-1 handled; skip Layer-2.
+
+        # ── Layer 2: AI diagnosis card ────────────────────────────────────
+        # Emit a structured diagnosis so the frontend can surface it as a
+        # helpful, actionable card instead of a raw "FAILED" state.
+        # task_error_snippet is the sanitized actual task stderr — the real
+        # error that auto-fix and the user need to understand what went wrong.
+        _post_sse_direct(inv_id, "ai_diagnosis", {
+            "category": category,
+            "user_message": user_message,
+            "suggested_action": suggested_action,
+            "fix_strategy": fix_strategy,
+            "is_transient": failure_verdict.get("is_transient", False),
+            "task_error_snippet": failure_verdict.get("task_error_snippet", ""),
+            "run_id": run_id,
+        })
+        log.debug("[auto_reroute] Layer-2 diagnosis emitted for run=%s category=%s", run_id, category)
+
+    except Exception as exc:
+        log.warning("[auto_reroute] trigger failed for run %s: %s", run_id, exc)
+
+
 def _sanitize_status_payload(resp: Dict[str, Any]) -> Dict[str, Any]:
     """Single chokepoint before a status payload leaves for the browser: attach a
     classified `failure` verdict on failed runs and redact backend internals from
-    log_tail + error string fields. Never ships raw Nextflow logs to the client."""
+    log_tail + error string fields.
+
+    Task stderr (.command.err) is collected from the work directory and included
+    in classification + the failure.task_error_snippet field so the browser and
+    auto-fix LLM have the real error, not just an exit code.
+    """
     if not isinstance(resp, dict):
         return resp
     status = str(resp.get("status", "")).lower()
     raw_tail = resp.get("log_tail")
     if status in ("failed", "error", "cancelled"):
+        task_stderr = ""
+        work_dir = resp.get("work_dir") or resp.get("workdir") or ""
+        if work_dir and not str(work_dir).startswith("s3://"):
+            try:
+                task_stderr = _collect_failed_task_errors(Path(work_dir))
+            except Exception:
+                pass
         resp["failure"] = _classify_failure(
-            status, raw_tail, resp.get("returncode"), resp.get("duration_s"))
+            status, raw_tail, resp.get("returncode"), resp.get("duration_s"),
+            task_stderr=task_stderr)
     if "log_tail" in resp:
         resp["log_tail"] = _sanitize_log_tail(raw_tail)
     for _k in ("error", "errorMessage", "error_message", "message"):
@@ -1263,6 +1586,7 @@ def _looks_like_false_success(
     total_steps: int = 0,
     duration_s: Optional[int] = None,
     s3_output_files: Optional[list] = None,
+    local_output_files: Optional[list] = None,
     workflow_domain: str = "",
     nextflow_path: str = "",
 ) -> bool:
@@ -1270,6 +1594,11 @@ def _looks_like_false_success(
     if _log_indicates_nextflow_failure(log_full_text, log_tail):
         return True
     has_outputs = bool(_non_pipeline_info_s3_outputs(s3_output_files))
+    # On-prem local mode: outputs go to the local filesystem, not S3.
+    # If the caller provided a list of local output files, treat any non-empty
+    # list as "has outputs" so the S3 requirement check doesn't fire.
+    if not has_outputs and local_output_files:
+        has_outputs = True
     if (
         total_steps == 0
         and duration_s is not None
@@ -1562,6 +1891,15 @@ def _candidate_bases() -> list[Path]:
         backend_root / "biomni_workflows" / "nextflow_nfcore",
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows",
         backend_root / "biomni_workflows" / "nextflow_nfcore" / "workflows",
+        # biomni_workflows/nextflow/ — primary home of flat .nf workflow files in the
+        # backend image (e.g. predict_admet_properties.nf, not predict_admet_properties/main.nf).
+        # Must be searched so on-prem Docker-image deployments find these files without
+        # requiring NEXTFLOW_SEARCH_ROOTS to be set explicitly.
+        backend_root / "biomni_workflows" / "nextflow",
+        backend_root / "biomni_workflows" / "nextflow" / "subworkflows",
+        backend_root / "biomni_workflows" / "nextflow" / "workflows",
+        backend_root / "biomni_workflows" / "nextflow_generated",
+        backend_root / "biomni_workflows" / "nextflow_generated" / "subworkflows",
         # REAL downloaded nf-core pipelines (their own per-process biocontainers + bin/
         # scripts) MUST be searched BEFORE the display-only stubs in biomni_workflows/nfcore/.
         # The stubs declare no container and call tools absent from the base image, so they
@@ -1643,6 +1981,10 @@ def _resolve_nextflow_path(raw_path: str) -> Path:
         if candidate.suffix != ".nf":
             expanded_candidates.append(candidate.with_suffix(".nf"))
             expanded_candidates.append(candidate / "main.nf")
+        elif candidate.name == "main.nf" and candidate.parent.suffix != ".nf":
+            # DB path like predict_admet_properties/main.nf — also try the flat file
+            # predict_admet_properties.nf used in biomni_workflows/nextflow/.
+            expanded_candidates.append(candidate.parent.with_suffix(".nf"))
 
     # Search all candidates under configured roots.
     for root in _candidate_bases():
@@ -1749,10 +2091,10 @@ def _stage_declared_input(src: str, dest: Path) -> None:
         # "must be addressed using the specified endpoint".
         import boto3
         _bucket, _key = src[len("s3://"):].split("/", 1)
-        _s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
+        _s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
         try:
             _loc = _s3.get_bucket_location(Bucket=_bucket).get("LocationConstraint") or "us-east-1"
-            _s3 = boto3.client("s3", region_name=_loc)
+            _s3 = make_s3_client(region_name=_loc)
         except Exception:
             pass
         _s3.download_file(_bucket, _key, str(dest))
@@ -2509,8 +2851,8 @@ def _validate_input_paths(params: dict) -> None:
     large_items: list[str] = []
 
     for key, value in params.items():
-        if key == "outdir":
-            continue  # output, not input — validated elsewhere
+        if key == "outdir" or key.lower().startswith("output"):
+            continue  # output param — not a pre-existing input path, skip
         if isinstance(value, str) and value.startswith("s3://"):
             # Pre-flight: validate S3 input is accessible before job starts.
             _validate_s3_url(value, check_object=True)
@@ -2976,7 +3318,7 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
         # Trust known-good public buckets; validate object existence below if needed.
         pass
     else:
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
         try:
             s3.head_bucket(Bucket=bucket)
         except NoCredentialsError:
@@ -3083,8 +3425,84 @@ def _generate_executor_config(
     Returns path to generated config file, or None for local execution.
     """
     executor = compute.get("executor", "local")
-    if executor not in ("awsbatch", "slurm"):
-        return None
+    s3_endpoint = os.environ.get("S3_ENDPOINT_URL", "")
+
+    # For local executor with MinIO: generate a minimal config so Nextflow can
+    # stage s3:// input files from MinIO rather than AWS S3.
+    if executor not in ("awsbatch", "slurm", "k8s"):
+        if not s3_endpoint:
+            return None
+        # MinIO config for local executor
+        minio_key    = os.environ.get("AWS_ACCESS_KEY_ID",     os.environ.get("MINIO_ROOT_USER", "biomate"))
+        minio_secret = os.environ.get("AWS_SECRET_ACCESS_KEY", os.environ.get("MINIO_ROOT_PASSWORD", ""))
+        # Docker network for task containers: must match the compose network so
+        # task containers can resolve "minio" hostname for S3 file staging.
+        # BIOMATE_DOCKER_NETWORK defaults to "biomate-network" (on-prem compose default).
+        docker_network = os.environ.get("BIOMATE_DOCKER_NETWORK", "biomate-network")
+        # Detect native ARM64 host via platform.machine() — works whether galaxy
+        # runs natively (Plan B multi-arch images) or under QEMU emulation (legacy).
+        # On native ARM64, Docker auto-selects arm64 task images; the explicit
+        # DOCKER_DEFAULT_PLATFORM env block is redundant but harmless and makes the
+        # intent clear for operators reading the generated config.
+        import platform as _nf_platform
+        _is_arm64 = _nf_platform.machine().lower() in ("aarch64", "arm64")
+        docker_executable_line = ""
+        # On-prem container override: bioc workflows hard-code a private ECR image.
+        # BIOMATE_BIOC_CONTAINER lets operators substitute a public/pre-pulled image.
+        # Example: BIOMATE_BIOC_CONTAINER=localhost:5050/biomate/bioc-domain-transcriptomics:3.20-slim
+        bioc_container = os.environ.get("BIOMATE_BIOC_CONTAINER", "")
+        container_override = ""
+        if bioc_container:
+            container_override = f"""
+process {{
+  withName: '/BIOC_.*/' {{
+    container = '{bioc_container}'
+  }}
+}}
+"""
+        # On ARM64 hosts explicitly set DOCKER_DEFAULT_PLATFORM for Nextflow task
+        # containers. With native ARM64 images Docker auto-detects this anyway, but
+        # the explicit setting is a safety net for any mixed-arch deployments.
+        _arm64_env_block = 'env { DOCKER_DEFAULT_PLATFORM = "linux/arm64" }' if _is_arm64 else ""
+        import multiprocessing as _mp
+        host_cpus = _mp.cpu_count()
+        minio_config = f"""
+aws {{
+  client {{
+    endpoint = '{s3_endpoint}'
+    s3PathStyleAccess = true
+    connectionTimeout = 60000
+    maxConnections    = 4
+  }}
+  accessKey = '{minio_key}'
+  secretKey = '{minio_secret}'
+}}
+
+docker {{
+  enabled = true
+{docker_executable_line}
+  // --entrypoint "": override image ENTRYPOINT so Nextflow's /bin/bash invocation is used directly.
+  // --user root: task containers need write access to the nf-work bind-mount.
+  runOptions = '--entrypoint "" --user root --network {docker_network}'
+}}
+{_arm64_env_block}
+
+// On-prem local executor: cap process resource requirements so tasks
+// are never rejected due to host CPU/memory constraints.
+executor {{
+  name   = 'local'
+  cpus   = {max(host_cpus, 4)}
+  memory = '16 GB'
+}}
+
+process {{
+  cpus   = 1
+  memory = '4 GB'
+}}
+{container_override}"""
+        config_path = config_dir / "biomate_executor_override.config"
+        config_path.write_text(minio_config)
+        return config_path
 
     config_path = config_dir / "biomate_executor_override.config"
 
@@ -3559,22 +3977,124 @@ def _generate_executor_config(
             )
 
     elif executor == "slurm":
-        partition = compute.get("slurm_partition") or "compute"
-        qos = compute.get("slurm_qos") or ""
+        partition = compute.get("slurm_partition") or os.environ.get("SLURM_PARTITION", "compute")
+        qos = compute.get("slurm_qos") or os.environ.get("SLURM_QOS", "")
+        account = compute.get("slurm_account") or os.environ.get("SLURM_ACCOUNT", "")
         cluster_opts = f"--partition={partition}"
         if qos:
             cluster_opts += f" --qos={qos}"
+        if account:
+            cluster_opts += f" --account={account}"
 
         lines = [
             "process {",
             "    executor = 'slurm'",
             f"    clusterOptions = '{cluster_opts}'",
+            # Memory/CPU resource labels → Slurm resource requests
+            "    withLabel: 'process_gpu'    { clusterOptions = '--partition=gpu --gres=gpu:1 " + cluster_opts.split("--partition=")[1].split()[0] + "' }",
+            "    withLabel: 'process_high'   { cpus = 32; memory = '200 GB' }",
+            "    withLabel: 'process_medium' { cpus = 16; memory = '72 GB'  }",
+            "    withLabel: 'process_low'    { cpus = 4;  memory = '12 GB'  }",
+            "}",
+        ]
+
+    elif executor == "k8s":
+        namespace     = compute.get("k8s_namespace")     or os.environ.get("NXF_K8S_NAMESPACE",       "biomate-jobs")
+        storage_claim = compute.get("k8s_storage_claim") or os.environ.get("NXF_K8S_STORAGE_CLAIM",   "biomate-work-pvc")
+        storage_mount = compute.get("k8s_storage_mount") or os.environ.get("NXF_K8S_STORAGE_MOUNT",   "/nf-work")
+        pull_policy   = compute.get("k8s_pull_policy")   or os.environ.get("NXF_K8S_PULL_POLICY",     "IfNotPresent")
+        service_acct  = compute.get("k8s_service_account") or os.environ.get("NXF_K8S_SERVICE_ACCOUNT", "nextflow")
+        gpu_resource  = os.environ.get("NXF_K8S_GPU_RESOURCE", "nvidia.com/gpu")
+
+        lines = [
+            # k8s scope — tells Nextflow how to submit pods
+            "k8s {",
+            f"    namespace        = '{namespace}'",
+            f"    storageClaimName = '{storage_claim}'",
+            f"    storageMountPath = '{storage_mount}'",
+            f"    pullPolicy       = '{pull_policy}'",
+            f"    serviceAccount   = '{service_acct}'",
+            "    debug { yaml = false }",
+            "}",
+            "",
+            "process {",
+            "    executor = 'k8s'",
+            # Resource label → K8s resource requests/limits
+            "    withLabel: 'process_gpu' {",
+            f"        resourceLabels = ['{gpu_resource}': '1']",
+            "        cpus   = 8",
+            "        memory = '48 GB'",
+            "    }",
+            "    withLabel: 'process_high'   { cpus = 32; memory = '200 GB' }",
+            "    withLabel: 'process_medium' { cpus = 16; memory = '72 GB'  }",
+            "    withLabel: 'process_low'    { cpus = 4;  memory = '12 GB'  }",
+            "}",
+            "",
+            # Nextflow k8s plugin
+            "plugins {",
+            "    id 'nf-k8s@0.3.0'",
             "}",
         ]
 
     config_path.write_text("\n".join(lines) + "\n")
     log.info(f"[Nextflow] Generated executor config: {config_path}")
     return config_path
+
+
+def _extract_nf_process_containers(nf_path: Path) -> list[str]:
+    """
+    Extract container image references declared in process { container '...' } blocks.
+
+    These images are used by Nextflow directly for each process.  When a workflow
+    already declares its own container, the Python-module check in
+    _choose_container_strategy must NOT require those modules on the host — they live
+    inside the declared container.
+    """
+    try:
+        text = nf_path.read_text(errors="replace")
+    except OSError:
+        return []
+    images: list[str] = []
+    # Match   container 'image:tag'   or   container "image:tag"
+    # Also handles ternary expressions: container cond ? 'img1' : 'img2'
+    for m in re.findall(r"container\s+[^{}\n]*?['\"]([^'\"]+)['\"]", text):
+        if m and m not in images:
+            images.append(m)
+    return images
+
+
+def _resolve_local_image_alias(image: str) -> Optional[str]:
+    """
+    Given a short image name (e.g. 'biomate/biomni-tools:latest'), return the
+    locally-available tag that satisfies it.
+
+    On on-prem deployments the same image may be present under its full ECR path
+    (399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:latest).
+    We match by the image name+tag ignoring the registry prefix.
+    """
+    if _is_local_docker_image(image):
+        return image
+    # Extract just the name:tag portion (everything after the last '/')
+    name_tag = image.split("/")[-1]
+    repo_tag = "/".join(image.split("/")[-2:]) if "/" in image else image
+    try:
+        result = subprocess.run(
+            ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=10,
+        )
+        if result.returncode != 0:
+            return None
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            local_name_tag = line.split("/")[-1]
+            local_repo_tag = "/".join(line.split("/")[-2:]) if "/" in line else line
+            if local_name_tag == name_tag or local_repo_tag == repo_tag:
+                return line
+    except Exception:
+        pass
+    return None
 
 
 def _choose_container_strategy(nf_path: Path, raw_nextflow_path: str) -> Dict[str, Any]:
@@ -3585,6 +4105,30 @@ def _choose_container_strategy(nf_path: Path, raw_nextflow_path: str) -> Dict[st
     """
     required_modules = _extract_python_imports(nf_path)
     documented_images = _extract_documented_images()
+
+    # If the .nf file declares its own per-process container(s), prefer those first.
+    # Python imports inside `script:` blocks run INSIDE the declared container, so
+    # module availability on the host is irrelevant for those workflows.  Resolving
+    # the declared container also handles on-prem where images are stored under their
+    # full ECR path rather than the short `biomate/...` alias.
+    nf_declared_containers = _extract_nf_process_containers(nf_path)
+    for declared_img in nf_declared_containers:
+        resolved = _resolve_local_image_alias(declared_img)
+        if resolved:
+            log.info(
+                f"[Nextflow container] Using per-process container declared in .nf file: "
+                f"{declared_img!r} → local image {resolved!r}"
+            )
+            return {
+                "mode": "docker",
+                "image": resolved,
+                "docker_opts": '-u $(id -u):$(id -g) --entrypoint ""',
+                "required_modules": required_modules,
+                "missing_modules": [],
+                "host_arch": _host_arch(),
+                "image_arch": _image_runtime_arch(resolved),
+                "cross_arch_allowed": os.environ.get("NEXTFLOW_ALLOW_CROSS_ARCH_DOCKER", "false"),
+            }
 
     # Domain-aware preference order
     image_preferences: list[str] = []
@@ -3889,6 +4433,53 @@ def _evaluate_qc_from_s3(
             for f in s3_output_files
         )
         is_cryo = any(k in domain_upper for k in ("CRYO", "CRYOSPARC", "CRYOEM", "CRYO_EM"))
+        is_preproc = any(k in domain_upper for k in ("PREPROC", "CLEANING", "QC_CLEAN"))
+        is_preproc_files = any(
+            f.get("filename", "").endswith("qc_report.json") for f in s3_output_files
+        )
+
+        # ── Preprocessing / cleaning QC path (over-correction gate) ─────────
+        # The clean_and_verify subworkflow emits qc_report.json already in the
+        # {"_all_metrics":[{name,measured,unit,threshold,pass}, ...]} shape, so this branch
+        # just downloads + surfaces the failing metrics. Additive: returns [] if not preproc.
+        if ((is_preproc or is_preproc_files)
+                and not is_cryo and not (is_admet or is_admet_files)):
+            _qc_uri = ""
+            for _f in s3_output_files:
+                if _f.get("filename", "").endswith("qc_report.json"):
+                    _qc_uri = _f.get("s3_uri", "")
+                    break
+            if not _qc_uri.startswith("s3://"):
+                return []
+            try:
+                import boto3
+                _bucket, _key = _qc_uri[5:].split("/", 1)
+                _report = _json.loads(
+                    make_s3_client().get_object(Bucket=_bucket, Key=_key)["Body"].read()
+                )
+            except Exception as _e:  # noqa: BLE001 — safe-fail, gate is best-effort
+                log.warning("[QC Gate] preproc qc_report.json read failed for %s: %s", run_id, _e)
+                return []
+            _fails: List[Dict] = []
+            for _m in _report.get("_all_metrics", []):
+                if _m.get("pass", True):
+                    continue
+                _name = _m.get("name", "")
+                _fails.append({
+                    "name": _name,
+                    "measured": _m.get("measured"),
+                    "threshold": _m.get("threshold"),
+                    "unit": _m.get("unit", ""),
+                    # biology-erasure is a hard halt; batch/outlier issues are advisory
+                    "severity": "halt" if _name.lower().startswith("biology") else "advisory",
+                    "message": (
+                        "%s: measured %s vs threshold %s"
+                        % (_name, _m.get("measured"), _m.get("threshold"))
+                    ),
+                })
+            return _fails
+
+        # Everything else (not ADMET, CryoEM or preprocessing): generic S3 reconstruction.
         if not (is_admet or is_admet_files or is_cryo):
             return _reconstruct_qc_from_s3(run_id, s3_output_files, workflow_domain,
                                           qc_overrides, retrospective, outdir)
@@ -4409,7 +5000,7 @@ def _list_s3_output_files(s3_uri: str) -> list:
         parts = s3_uri[len("s3://"):].split("/", 1)
         bucket = parts[0]
         prefix = (parts[1] if len(parts) > 1 else "").rstrip("/") + "/"
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
         paginator = s3.get_paginator("list_objects_v2")
         skip_prefixes = ("/work/", "/.nextflow/", "/trace.", "/timeline.", "/dag.", "/report.")
         results = []
@@ -4472,7 +5063,7 @@ def _list_s3_work_output_files(work_s3_uri: str) -> list:
         parts = work_s3_uri[len("s3://"):].split("/", 1)
         bucket = parts[0]
         prefix = (parts[1] if len(parts) > 1 else "").rstrip("/") + "/"
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
         paginator = s3.get_paginator("list_objects_v2")
         results = []
         for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
@@ -4623,7 +5214,7 @@ def _build_qc_report_from_s3_files(s3_files: List[Dict], outdir: str) -> Optiona
     try:
         import boto3 as _boto3
         import json as _json
-        s3_client = _boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3_client = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
     except ImportError:
         return None
 
@@ -4829,7 +5420,7 @@ def _tag_s3_outputs(run_meta: Dict[str, Any]) -> None:
         bucket = parts[0]
         prefix = parts[1] if len(parts) > 1 else ""
 
-        s3 = boto3.client("s3")
+        s3 = make_s3_client()
         paginator = s3.get_paginator("list_objects_v2")
         tag_set = [
             {"Key": "user_id", "Value": user_id},
@@ -4916,11 +5507,29 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 pass
         _nf_path_for_check = str(_run_snap.get("nextflow_path", ""))
         _is_personal_nf_run = _nf_path_for_check.startswith("/tmp/biomate_user_nf/")
+        # On-prem local mode: scan the local output directory for real output files
+        # so the S3-output-requirement check doesn't falsely mark successful local
+        # runs as failed (Bug #68 — on-prem false-success).
+        _use_aws_now = os.environ.get("NEXTFLOW_USE_AWS", "").lower() in ("1", "true", "yes")
+        _local_output_files: list = []
+        if not _use_aws_now:
+            _local_outdir = _run_snap.get("outdir", "")
+            if _local_outdir:
+                try:
+                    _local_outdir_path = Path(_local_outdir)
+                    if _local_outdir_path.is_dir():
+                        _local_output_files = [
+                            str(f) for f in _local_outdir_path.rglob("*")
+                            if f.is_file() and "pipeline_info" not in f.parts
+                        ]
+                except Exception:
+                    pass
         if returncode == 0 and not _is_personal_nf_run and _looks_like_false_success(
             log_full_text=_log_text,
             total_steps=_total_steps,
             duration_s=_duration_s,
             s3_output_files=[],
+            local_output_files=_local_output_files,
             workflow_domain=_run_snap.get("workflow_domain", ""),
             nextflow_path=_nf_path_for_check,
         ):
@@ -5044,6 +5653,15 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 _narrate_chat(_inv_id, "workflow.completed", {"run_id": run_id, "returncode": returncode})
             elif final_status == "failed":
                 _narrate_chat(_inv_id, "workflow.failed", {"run_id": run_id, "returncode": returncode, "reason": f"exit {returncode}"})
+                # Snapshot run_meta before releasing the lock path to the reroute thread.
+                with _runs_lock:
+                    _reroute_meta = dict(_runs.get(run_id, {}))
+                threading.Thread(
+                    target=_trigger_auto_reroute_on_failure,
+                    args=(run_id, _inv_id, _reroute_meta, returncode),
+                    daemon=True,
+                    name=f"nf-reroute-trigger-{run_id[:8]}",
+                ).start()
             elif final_status == "interrupted":
                 _narrate_chat(_inv_id, "workflow.failed", {"run_id": run_id, "reason": "workflow was interrupted"})
 
@@ -5990,6 +6608,20 @@ def execute_nextflow(
     Returning the run_id up front and launching in the background removes that
     whole class of false-fail; status flows configuring → running → completed.
     """
+    # Deployment-scope gate (on-prem scoped installs): refuse out-of-scope
+    # workflows with a clear 409 BEFORE any dispatch/temp-file write. No-op on
+    # SaaS — fail-safe OFF unless BIOMATE_SCOPE_MANIFEST is set. Covers both the
+    # catalog path (nextflow_path) and raw uploads (file_content). See
+    # galaxy.ai.scope_guard / docs/20261005_ONPREM_SCOPE_LAYER_PLAN.md.
+    from galaxy.ai import scope_guard as _scope_guard
+    try:
+        _scope_guard.assert_in_scope_or_raise(
+            nextflow_path=request.nextflow_path,
+            file_content=request.file_content,
+        )
+    except _scope_guard.ScopeError as _se:
+        raise HTTPException(status_code=_se.status_code, detail=_se.payload)
+
     # If file_content is provided, write it to a temp path and override
     # nextflow_path so _resolve_nextflow_path() finds an actual file.
     if request.file_content:
@@ -6224,15 +6856,45 @@ def _execute_nextflow_impl(
     if _param_executor and not compute.get("executor"):
         compute["executor"] = str(_param_executor)
 
+    # On-premises deployments: NEXTFLOW_EXECUTOR=local overrides everything —
+    # NEXTFLOW_USE_AWS, the frontend's default executor="awsbatch", and any
+    # compute_config from the request.  Strip S3 output dirs too since the
+    # local Docker executor cannot read/write s3://.
+    _onprem_local = os.environ.get("NEXTFLOW_EXECUTOR", "").lower() == "local"
+    if _onprem_local:
+        compute["executor"] = "local"
+        if str(params.get("outdir", "")).startswith("s3://"):
+            params.pop("outdir", None)
+        log.info("[Nextflow] On-premises mode (NEXTFLOW_EXECUTOR=local) — forced local executor")
+
     # Default to AWS Batch when NEXTFLOW_USE_AWS=true and no explicit executor is set.
     # This is the platform default: all workflows run on Batch unless explicitly overridden.
     _use_aws_env = os.environ.get("NEXTFLOW_USE_AWS", "false").lower() in ("true", "1", "yes")
     # Normalise user_id early for path construction (before run_id is generated)
     _uid_for_path = (request.user_id or "unknown").replace("/", "_").replace("..", "_")
+
+    # On-prem: NEXTFLOW_EXECUTOR env var sets the cluster-level default executor.
+    # Values: local (default) | slurm | k8s | awsbatch
+    # Per-job compute_config.executor always wins over this env var.
+    _executor_env = os.environ.get("NEXTFLOW_EXECUTOR", "local").lower()
+    if not compute.get("executor") and _executor_env in ("slurm", "k8s"):
+        compute["executor"] = _executor_env
+        if _executor_env == "slurm" and not compute.get("slurm_partition"):
+            compute["slurm_partition"] = os.environ.get("SLURM_PARTITION", "compute")
+        if _executor_env == "k8s":
+            if not compute.get("k8s_namespace"):
+                compute["k8s_namespace"] = os.environ.get("NXF_K8S_NAMESPACE", "biomate-jobs")
+            if not compute.get("k8s_storage_claim"):
+                compute["k8s_storage_claim"] = os.environ.get(
+                    "NXF_K8S_STORAGE_CLAIM", "biomate-work-pvc"
+                )
+        log.info("[Nextflow] On-prem executor from NEXTFLOW_EXECUTOR env: %s", _executor_env)
+
     # Route to AWS Batch when NEXTFLOW_USE_AWS=true OR when executor is already "awsbatch"
     # (the frontend sends executor="awsbatch" by default as the platform standard).
+    # Skip this block entirely in on-prem local mode.
     _executor_requested = compute.get("executor", "")
-    if _use_aws_env or _executor_requested == "awsbatch":
+    if not _onprem_local and (_use_aws_env or _executor_requested == "awsbatch"):
         s3_bucket_default = os.environ.get("AWS_S3_BUCKET", "biomate-nextflow-work")
         # Use _pre_outdir from the fast-path if available — ensures the S3 path the
         # frontend stored at run-creation time matches where Nextflow actually writes.
@@ -6250,6 +6912,20 @@ def _execute_nextflow_impl(
         compute["executor"] = "awsbatch"
         if not compute.get("s3_bucket"):
             compute["s3_bucket"] = s3_bucket_default
+
+    # k8s executor: auto-set outdir to shared PVC mount path (no S3 needed).
+    if compute.get("executor") == "k8s" and not params.get("outdir"):
+        _k8s_mount = os.environ.get("NXF_K8S_STORAGE_MOUNT", "/nf-work")
+        _k8s_outdir = f"{_k8s_mount}/outputs/{_uid_for_path}/{run_id[:8]}"
+        params["outdir"] = _k8s_outdir
+        log.info("[Nextflow] k8s executor — auto-setting outdir=%s", _k8s_outdir)
+
+    # Slurm executor: shared NFS/Lustre outdir from env.
+    if compute.get("executor") == "slurm" and not params.get("outdir"):
+        _slurm_work = os.environ.get("SLURM_WORK_DIR", "/scratch/biomate")
+        _slurm_outdir = f"{_slurm_work}/outputs/{_uid_for_path}/{run_id[:8]}"
+        params["outdir"] = _slurm_outdir
+        log.info("[Nextflow] Slurm executor — auto-setting outdir=%s", _slurm_outdir)
 
     # Personal workflows (written to /tmp/biomate_user_nf/ from file_content at
     # request time) must run locally — they are ad-hoc user scripts that don't
@@ -6273,12 +6949,18 @@ def _execute_nextflow_impl(
     # Auto-detect S3 outdir → route to AWS Batch automatically.
     # If the caller passes outdir=s3://..., we treat that as an implicit request
     # for cloud execution — no separate compute_config.executor needed.
+    # Skip in on-prem local mode (S3 was already stripped above).
     effective_outdir = params.get("outdir", "")
     is_s3 = str(effective_outdir).startswith("s3://")
 
-    if is_s3:
-        # Validate the bucket is reachable before launching anything.
-        _validate_s3_url(effective_outdir)
+    if is_s3 and not _onprem_local:
+        # In AWS Batch mode, skip the pre-flight HeadBucket check.
+        # Batch job containers use their own IAM job role for S3 access —
+        # the Galaxy backend role (BioMateEc2DeployRole) may lack HeadBucket
+        # permission even though Batch containers can write to the bucket.
+        # Validating with the wrong credential chain gives false 403s.
+        if not _use_aws_env:
+            _validate_s3_url(effective_outdir)
 
         # Auto-upgrade to AWS Batch unless an explicit executor was already given.
         if not compute.get("executor"):
@@ -6295,11 +6977,12 @@ def _execute_nextflow_impl(
     # Auto-detect S3 inputs → also route to AWS Batch.
     # Nextflow stages S3 inputs natively on awsbatch; local executor cannot
     # reliably access S3 paths without the nf-amazon plugin + S3 workDir.
+    # Skip in on-prem local mode — MinIO paths start with s3:// but stay local.
     s3_inputs = [
         v for k, v in params.items()
         if k != "outdir" and isinstance(v, str) and v.startswith("s3://")
     ]
-    if s3_inputs:
+    if s3_inputs and not _onprem_local:
         if not compute.get("executor"):
             compute["executor"] = "awsbatch"
             log.info(
@@ -6620,6 +7303,16 @@ def _execute_nextflow_impl(
                 # SMILES → 0 valid molecules → admet-ai crash). json.dumps yields
                 # valid JSON that json.loads round-trips. Fixes ~272 workflows.
                 _params_for_json[key] = _ml_json.dumps(value)
+            elif isinstance(value, str) and (key.endswith("_list") or key.endswith("List")):
+                # Workflow expects a JSON array string (e.g. smiles_list). If Galaxy AI
+                # extracted a single value as a bare string, wrap it so JsonSlurper
+                # in the .nf doesn't throw JsonException on a non-JSON scalar.
+                _stripped = value.strip()
+                try:
+                    _pl = _ml_json.loads(_stripped)
+                    _params_for_json[key] = _ml_json.dumps(_pl if isinstance(_pl, list) else [_pl])
+                except (ValueError, TypeError):
+                    _params_for_json[key] = _ml_json.dumps([_stripped] if _stripped else [])
             else:
                 _params_for_json[key] = str(value)
         if "outdir" not in _params_for_json and not _nf_path_str.startswith("/tmp/biomate_user_nf/"):
@@ -6654,6 +7347,15 @@ def _execute_nextflow_impl(
                 # can't parse, so a list param was consumed as one string value.
                 import json as _cli_json
                 cmd += [f"--{key}", _cli_json.dumps(value)]
+            elif isinstance(value, str) and (key.endswith("_list") or key.endswith("List")):
+                # Same *_list wrapping for CLI flag path (single-SMILES bare string case).
+                import json as _cli_json
+                _stripped = value.strip()
+                try:
+                    _pl = _cli_json.loads(_stripped)
+                    cmd += [f"--{key}", _cli_json.dumps(_pl if isinstance(_pl, list) else [_pl])]
+                except (ValueError, TypeError):
+                    cmd += [f"--{key}", _cli_json.dumps([_stripped] if _stripped else [])]
             else:
                 cmd += [f"--{key}", str(value)]
 
@@ -8193,12 +8895,27 @@ def _get_nextflow_status_impl(
 
     _nf_path_for_status = info.get("nextflow_path", "")
     _is_personal_nf_status = str(_nf_path_for_status).startswith("/tmp/biomate_user_nf/")
+    # Bug 68 (status-poll path): on-prem local mode — scan local outdir to avoid
+    # false-success downgrade when S3 output list is empty.
+    _use_aws_status = os.environ.get("NEXTFLOW_USE_AWS", "").lower() in ("1", "true", "yes")
+    _local_out_status: list = []
+    if not _use_aws_status and outdir and not str(outdir).startswith("s3://"):
+        try:
+            _lodp = Path(outdir)
+            if _lodp.is_dir():
+                _local_out_status = [
+                    str(f) for f in _lodp.rglob("*")
+                    if f.is_file() and "pipeline_info" not in f.parts
+                ]
+        except Exception:
+            pass
     if _info_status in ("succeeded", "completed") and not _is_personal_nf_status and _looks_like_false_success(
         log_full_text=log_full_text,
         log_tail=log_tail,
         total_steps=progress.get("totalTasks", progress.get("totalSteps", 0)),
         duration_s=duration_s,
         s3_output_files=s3_files,
+        local_output_files=_local_out_status,
         workflow_domain=workflow_domain,
         nextflow_path=_nf_path_for_status,
     ):
@@ -8256,6 +8973,92 @@ def _get_nextflow_status_impl(
         "duration_s": duration_s,
         **progress,
     }
+
+
+def _list_local_output_files(outdir: str, run_id: str) -> list:
+    """List output files from a local filesystem directory.
+
+    Returns the same shape as _list_s3_output_files:
+      [{name, size, extension, download_url}]
+    where download_url points to /api/nextflow/outputs/local-download.
+    """
+    skip_names = {
+        ".command.run", ".command.sh", ".command.out", ".command.err",
+        ".command.log", ".command.begin", ".exitcode",
+        "trace.txt", "timeline.html", "dag.svg", "dag.html", "report.html",
+        "execution_report.html", "execution_timeline.html", "execution_trace.txt",
+    }
+    skip_dirs = {".nextflow", "work", "pipeline_info"}
+    out_path = Path(outdir)
+    if not out_path.exists():
+        return []
+    results = []
+    for f in sorted(out_path.rglob("*")):
+        if not f.is_file():
+            continue
+        # Skip Nextflow internals
+        if f.name in skip_names or f.name.startswith("."):
+            continue
+        if any(part in skip_dirs for part in f.parts):
+            continue
+        rel = f.relative_to(out_path)
+        ext = f.name.rsplit(".", 1)[-1].lower() if "." in f.name else ""
+        try:
+            size = f.stat().st_size
+        except OSError:
+            continue
+        import urllib.parse as _urlparse
+        dl_url = (
+            f"/api/nextflow/outputs/local-download"
+            f"?run_id={_urlparse.quote(run_id)}"
+            f"&rel_path={_urlparse.quote(str(rel))}"
+        )
+        results.append({
+            "name": f.name,
+            "rel_path": str(rel),
+            "local_path": str(f),
+            "size": size,
+            "extension": ext,
+            "download_url": dl_url,
+        })
+    log.info("[Nextflow] Listed %d local output files from %s", len(results), outdir)
+    return results
+
+
+@router.get("/api/nextflow/outputs/local-download", summary="Download a local on-prem output file")
+def download_local_output(run_id: str, rel_path: str) -> Any:
+    """Stream a local filesystem output file for on-prem deployments.
+
+    Security: `rel_path` is resolved relative to the run's recorded outdir;
+    any path that escapes the outdir is rejected.
+    """
+    from starlette.responses import FileResponse
+
+    info = _run_lookup(run_id)
+    if info is None:
+        work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+        output_dir = work_base / run_id / "output"
+        if not output_dir.exists():
+            raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+        outdir = str(output_dir)
+    else:
+        outdir = str(info.get("outdir", ""))
+
+    if outdir.startswith("s3://"):
+        raise HTTPException(status_code=400, detail="Use /api/nextflow/outputs/download for S3 runs.")
+
+    base = Path(outdir).resolve()
+    try:
+        target = (base / rel_path).resolve()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid path.")
+
+    if not str(target).startswith(str(base)):
+        raise HTTPException(status_code=403, detail="Path escapes run output directory.")
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail=f"File not found: {rel_path}")
+
+    return FileResponse(str(target), filename=target.name)
 
 
 @router.get("/api/nextflow/outputs/download", summary="Generate presigned download URL for S3 output")
@@ -8319,7 +9122,7 @@ def download_s3_output(
         return FileResponse(requested, filename=requested.name)
 
     if not outdir.startswith("s3://"):
-        raise HTTPException(status_code=400, detail="This run does not have S3 outputs.")
+        raise HTTPException(status_code=400, detail="This run does not have S3 outputs. Use /api/nextflow/outputs/local-download for local runs.")
 
     # Auth guard: requested key must be within this run's outdir.
     if not s3_uri.startswith(outdir.rstrip("/") + "/"):
@@ -8332,7 +9135,27 @@ def download_s3_output(
         import boto3
         parts = s3_uri[len("s3://"):].split("/", 1)
         bucket, key = parts[0], parts[1]
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+
+        # On-prem (MinIO): presigned URL contains the internal Docker hostname
+        # (e.g. http://minio:9000/…) which is unreachable from the user's browser.
+        # Stream the file through Galaxy instead of issuing a redirect.
+        _s3_endpoint = os.environ.get("S3_ENDPOINT_URL", "")
+        if _s3_endpoint:
+            from starlette.responses import StreamingResponse
+            import mimetypes as _mimetypes
+            try:
+                obj = s3.get_object(Bucket=bucket, Key=key)
+            except Exception as exc:
+                raise HTTPException(status_code=404, detail=f"File not found in storage: {exc}")
+            filename = key.split("/")[-1]
+            content_type = obj.get("ContentType") or _mimetypes.guess_type(filename)[0] or "application/octet-stream"
+            return StreamingResponse(
+                obj["Body"].iter_chunks(),
+                media_type=content_type,
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            )
+
         url = s3.generate_presigned_url(
             "get_object",
             Params={"Bucket": bucket, "Key": key},
@@ -8341,6 +9164,8 @@ def download_s3_output(
         if presigned_only:
             return {"url": url}
         return RedirectResponse(url, status_code=302)
+    except HTTPException:
+        raise
     except ImportError:
         raise HTTPException(status_code=503, detail="boto3 not installed — S3 downloads unavailable.")
     except Exception as exc:
@@ -8367,6 +9192,9 @@ def list_run_output_files(run_id: str) -> Any:
                 files.append({
                     "name": name,
                     "s3_uri": None,
+                    # rel_path / local_path: read by the on-prem frontend path (routes.ts, /outputs/local-download)
+                    "rel_path": str(f.relative_to(output_dir)),
+                    "local_path": str(f),
                     "size": f.stat().st_size,
                     "extension": ext,
                     "download_url": (
@@ -8399,10 +9227,26 @@ def list_run_output_files(run_id: str) -> Any:
     if not raw_files:
         return {"run_id": run_id, "files": []}
 
-    # Generate presigned URLs for each file
+    # Generate download URLs for each file.
+    # On-prem (MinIO): presigned URLs point to the internal Docker hostname
+    # (minio:9000) which is unreachable from the browser. Use the Galaxy proxy
+    # endpoint /api/nextflow/outputs/download instead, which streams the file.
+    _s3_endpoint = os.environ.get("S3_ENDPOINT_URL", "")
+    if _s3_endpoint:
+        # Proxy through Galaxy — no boto3 presigning needed.
+        enriched = []
+        for f in raw_files:
+            s3_uri = f.get("s3_uri", "")
+            proxy_url = (
+                f"/api/nextflow/outputs/download?s3_uri={s3_uri}&run_id={run_id}"
+                if s3_uri else None
+            )
+            enriched.append({**f, "download_url": proxy_url})
+        return {"run_id": run_id, "files": enriched}
+
     try:
         import boto3
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
     except ImportError:
         return {"run_id": run_id, "files": raw_files, "note": "boto3 not available — no download URLs"}
 
@@ -10391,6 +11235,336 @@ def get_index_health() -> Dict[str, Any]:
     }
 
 
+@router.get("/api/admin/process-health", summary="Process and runtime health")
+def get_process_health() -> Dict[str, Any]:
+    """Returns gunicorn worker count, active runs, Redis ping, and memory usage."""
+    import os as _os
+    import time as _time
+    from datetime import datetime as _dt2
+
+    checks: Dict[str, Any] = {}
+    overall = "ok"
+
+    # ── Active runs ────────────────────────────────────────────────────────────
+    try:
+        store = get_run_state_store()
+        active = store.list_active_runs()
+        checks["active_runs"] = {"count": len(active)}
+    except Exception as exc:
+        checks["active_runs"] = {"count": 0, "error": str(exc)[:120]}
+
+    # ── Redis ──────────────────────────────────────────────────────────────────
+    redis_url = _os.environ.get("REDIS_URL") or _os.environ.get("REDISCLOUD_URL")
+    if redis_url:
+        try:
+            import redis as _redis  # type: ignore
+            _t0 = _time.monotonic()
+            _r = _redis.from_url(redis_url, socket_timeout=2, socket_connect_timeout=2,
+                                  decode_responses=True)
+            _r.ping()
+            latency_ms = round((_time.monotonic() - _t0) * 1000, 1)
+            checks["redis"] = {"status": "ok", "latency_ms": latency_ms}
+        except Exception as exc:
+            checks["redis"] = {"status": "error", "error": str(exc)[:120]}
+            overall = "degraded"
+    else:
+        checks["redis"] = {"status": "not_configured"}
+
+    # ── Gunicorn workers ───────────────────────────────────────────────────────
+    try:
+        import psutil as _psutil  # type: ignore
+        workers = [
+            p for p in _psutil.process_iter(["name", "cmdline"])
+            if "gunicorn" in (p.info.get("name") or "")
+            or any("gunicorn" in str(c) for c in (p.info.get("cmdline") or []))
+        ]
+        checks["workers"] = {"count": len(workers)}
+    except Exception:
+        checks["workers"] = {"count": -1, "note": "psutil unavailable"}
+
+    # ── Memory ────────────────────────────────────────────────────────────────
+    try:
+        import psutil as _psutil  # type: ignore  # noqa: F811
+        vm = _psutil.virtual_memory()
+        checks["memory"] = {
+            "used_mb": vm.used // (1024 * 1024),
+            "total_mb": vm.total // (1024 * 1024),
+            "percent": round(vm.percent, 1),
+        }
+        if vm.percent > 90:
+            overall = "degraded"
+    except Exception:
+        pass
+
+    return {
+        "status": overall,
+        "checks": checks,
+        "checked_at": _dt2.utcnow().isoformat() + "Z",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Admin log ring buffer — captures last 500 log records in memory
+# ---------------------------------------------------------------------------
+
+import logging as _logging_mod
+import collections as _deque_mod
+
+
+class _RingBufferHandler(_logging_mod.Handler):
+    """Captures recent log records for the admin log viewer."""
+
+    def __init__(self, maxlen: int = 500) -> None:
+        super().__init__()
+        self._buf: _deque_mod.deque = _deque_mod.deque(maxlen=maxlen)
+        self.setFormatter(_logging_mod.Formatter("%(asctime)s"))
+
+    def emit(self, record: _logging_mod.LogRecord) -> None:
+        try:
+            self._buf.append({
+                "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+                "level": record.levelname,
+                "logger": record.name.split(".")[-1][:20],
+                "msg": record.getMessage()[:400],
+            })
+        except Exception:
+            pass
+
+    def tail(self, n: int) -> list:
+        return list(self._buf)[-n:]
+
+    def __len__(self) -> int:
+        return len(self._buf)
+
+
+# Singleton — created once at module import time, survives across requests
+# within the same worker process.
+_LOG_RING: _RingBufferHandler = _RingBufferHandler(maxlen=500)
+_logging_mod.getLogger().addHandler(_LOG_RING)
+
+
+@router.get("/api/admin/logs", summary="Recent log lines (ring buffer)")
+def get_admin_logs(lines: int = 100) -> Dict[str, Any]:
+    """Returns the last N log lines captured since worker startup."""
+    n = min(max(1, lines), 200)
+    return {
+        "lines": _LOG_RING.tail(n),
+        "buffered": len(_LOG_RING),
+        "requested": n,
+    }
+
+
+def _parse_batch_job_ids_from_log(nf_log_path: Path) -> list:
+    """Return list of AWS Batch job IDs found in a Nextflow log file."""
+    import re as _re2
+    pattern = _re2.compile(r"job=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})")
+    ids: list = []
+    seen: set = set()
+    try:
+        with open(nf_log_path) as fh:
+            for line in fh:
+                for m in pattern.finditer(line):
+                    jid = m.group(1)
+                    if jid not in seen:
+                        seen.add(jid)
+                        ids.append(jid)
+    except Exception:
+        pass
+    return ids
+
+
+def _get_run_record_by_id(run_id: str) -> Optional[Dict[str, Any]]:
+    """Look up run record from in-memory dict or Redis store."""
+    with _runs_lock:
+        rec = _runs.get(run_id)
+    if rec:
+        return dict(rec)
+    try:
+        return get_run_state_store().get_run(run_id)
+    except Exception:
+        return None
+
+
+@router.post("/api/admin/kill-run", summary="Force-terminate a run (admin)")
+def admin_kill_run(body: Dict[str, Any]) -> Dict[str, Any]:
+    """Kill a running workflow: terminates the local Nextflow subprocess and
+    cancels any submitted AWS Batch jobs, then marks the run as interrupted."""
+    import signal as _signal
+    import time as _time
+
+    run_id = (body.get("run_id") or "").strip()
+    if not run_id:
+        raise HTTPException(status_code=400, detail="run_id required")
+
+    rec = _get_run_record_by_id(run_id)
+    if not rec:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found in state store")
+
+    actions: list = []
+
+    # 1. Terminate local Nextflow HEAD subprocess
+    proc = rec.get("process")
+    if proc is not None:
+        try:
+            proc.send_signal(_signal.SIGTERM)
+            actions.append("sigterm_sent")
+        except Exception as _e:
+            actions.append(f"sigterm_failed:{_e}")
+
+    # 2. Cancel AWS Batch jobs found in the Nextflow log
+    work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+    batch_job_ids: list = []
+    for nf_log_rel in ("nextflow.log", "work/.nextflow.log"):
+        nf_log_path = work_base / run_id / nf_log_rel
+        if nf_log_path.exists():
+            batch_job_ids = _parse_batch_job_ids_from_log(nf_log_path)
+            if batch_job_ids:
+                break
+
+    batch_cancelled = []
+    batch_errors = []
+    if batch_job_ids:
+        try:
+            import boto3 as _boto3
+            _bc = _boto3.client("batch", region_name=os.environ.get("AWS_REGION", "us-west-2"))
+            for jid in batch_job_ids:
+                try:
+                    _bc.terminate_job(jobId=jid, reason="Admin force-terminated via dashboard")
+                    batch_cancelled.append(jid)
+                except Exception as _be:
+                    batch_errors.append(f"{jid[:8]}…:{_be}")
+        except Exception as _boto_err:
+            batch_errors.append(f"boto3_init:{_boto_err}")
+    actions.append(f"batch_cancelled:{len(batch_cancelled)}")
+    if batch_errors:
+        actions.append(f"batch_errors:{batch_errors}")
+
+    # 3. Mark run as interrupted in state store + frontend Postgres
+    completed_at = _time.time()
+    with _runs_lock:
+        if run_id in _runs:
+            _runs[run_id]["status"] = "interrupted"
+            _runs[run_id]["completed_at"] = completed_at
+    try:
+        get_run_state_store().update_run(run_id, status="interrupted", completed_at=completed_at)
+    except Exception:
+        pass
+
+    invocation_id = rec.get("invocation_id")
+    if invocation_id:
+        try:
+            from galaxy.ai.runs.orphan_finalizer import _post_frontend_status
+            _post_frontend_status(invocation_id, "failed", -1, completed_at, "admin_kill")
+            actions.append("frontend_status_updated")
+        except Exception as _fe:
+            actions.append(f"frontend_update_failed:{_fe}")
+
+    log.info("[admin_kill_run] %s terminated by admin: %s", run_id, actions)
+    return {
+        "run_id": run_id,
+        "status": "interrupted",
+        "batch_jobs_found": len(batch_job_ids),
+        "batch_cancelled": len(batch_cancelled),
+        "actions": actions,
+    }
+
+
+@router.get("/api/admin/run-logs", summary="Fetch execution logs for a run (admin)")
+def admin_run_logs(run_id: str, lines: int = 150) -> Dict[str, Any]:
+    """Return Nextflow execution log lines for a specific run.
+    Reads the local .nextflow.log file and (for Batch runs) the
+    last N lines from CloudWatch per submitted job."""
+    n = min(max(10, lines), 500)
+    run_id = run_id.strip()
+    if not run_id:
+        raise HTTPException(status_code=400, detail="run_id required")
+
+    rec = _get_run_record_by_id(run_id)
+    work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+    result: Dict[str, Any] = {
+        "run_id": run_id,
+        "status": rec.get("status") if rec else "unknown",
+        "is_batch": rec.get("is_batch", False) if rec else False,
+        "nf_log": [],
+        "batch_jobs": [],
+        "cloudwatch_logs": [],
+    }
+
+    # Read local Nextflow log
+    for nf_log_rel in ("nextflow.log", "work/.nextflow.log"):
+        nf_log_path = work_base / run_id / nf_log_rel
+        if nf_log_path.exists():
+            try:
+                with open(nf_log_path) as fh:
+                    all_lines = fh.readlines()
+                result["nf_log"] = [l.rstrip("\n") for l in all_lines[-n:]]
+                result["nf_log_path"] = str(nf_log_path)
+                result["nf_log_total_lines"] = len(all_lines)
+            except Exception as _e:
+                result["nf_log_error"] = str(_e)
+            break
+
+    # Parse Batch job IDs and fetch CloudWatch logs
+    batch_job_ids: list = []
+    for nf_log_rel in ("nextflow.log", "work/.nextflow.log"):
+        nf_log_path = work_base / run_id / nf_log_rel
+        if nf_log_path.exists():
+            batch_job_ids = _parse_batch_job_ids_from_log(nf_log_path)
+            break
+
+    result["batch_jobs"] = batch_job_ids
+
+    if batch_job_ids:
+        try:
+            import boto3 as _boto3
+            _bc = _boto3.client("batch", region_name=os.environ.get("AWS_REGION", "us-west-2"))
+            _cw = _boto3.client("logs", region_name=os.environ.get("AWS_REGION", "us-west-2"))
+            cw_lines: list = []
+            for jid in batch_job_ids[:5]:  # cap at 5 jobs to avoid slow responses
+                try:
+                    job_resp = _bc.describe_jobs(jobs=[jid])
+                    jobs = job_resp.get("jobs", [])
+                    if not jobs:
+                        continue
+                    job = jobs[0]
+                    log_stream = job.get("container", {}).get("logStreamName")
+                    job_status = job.get("status", "UNKNOWN")
+                    if log_stream:
+                        try:
+                            cw_resp = _cw.get_log_events(
+                                logGroupName="/aws/batch/job",
+                                logStreamName=log_stream,
+                                limit=min(n, 200),
+                                startFromHead=False,
+                            )
+                            for ev in cw_resp.get("events", []):
+                                cw_lines.append({
+                                    "job_id": jid[:8] + "…",
+                                    "status": job_status,
+                                    "ts": ev.get("timestamp", 0),
+                                    "msg": ev.get("message", "")[:500],
+                                })
+                        except Exception as _cw_e:
+                            cw_lines.append({
+                                "job_id": jid[:8] + "…",
+                                "status": job_status,
+                                "msg": f"[CloudWatch fetch failed: {_cw_e}]",
+                            })
+                    else:
+                        cw_lines.append({
+                            "job_id": jid[:8] + "…",
+                            "status": job_status,
+                            "msg": "[No log stream yet — job may still be starting]",
+                        })
+                except Exception as _je:
+                    cw_lines.append({"job_id": jid[:8] + "…", "msg": f"[describe_jobs failed: {_je}]"})
+            result["cloudwatch_logs"] = cw_lines[-n:]
+        except Exception as _boto_err:
+            result["cloudwatch_error"] = str(_boto_err)
+
+    return result
+
+
 # ---------------------------------------------------------------------------
 # C1 — Preflight with pilot_analysis detection
 # ---------------------------------------------------------------------------
@@ -11387,20 +12561,23 @@ async def fetch_public_data(body: FetchPublicDataRequest):
     filename = Path(parsed.path).name or "data.bin"
     dest_key = body.destination_key or f"public-data/{filename}"
 
-    # Default to the standard work bucket like the rest of nextflow_executor
-    # (lines ~2091/4389) instead of hard-failing — fetch_public_data otherwise
-    # 503'd on envs that never set NEXTFLOW_S3_BUCKET explicitly.
-    s3_bucket = (
-        os.environ.get("NEXTFLOW_S3_BUCKET")
-        or os.environ.get("AWS_S3_BUCKET")
-        or "biomate-nextflow-work"
-    )
+    # On-prem MinIO: only the S3_BUCKET_NAME bucket is created by docker-compose
+    # init — biomate-nextflow-work doesn't exist in MinIO. Use S3_BUCKET_NAME.
+    # SaaS: use NEXTFLOW_S3_BUCKET or AWS_S3_BUCKET as before.
+    if os.environ.get("S3_ENDPOINT_URL"):
+        s3_bucket = os.environ.get("S3_BUCKET_NAME") or "biomate-data"
+    else:
+        s3_bucket = (
+            os.environ.get("NEXTFLOW_S3_BUCKET")
+            or os.environ.get("AWS_S3_BUCKET")
+            or "biomate-nextflow-work"
+        )
 
     log.info("[fetch_public_data] Downloading %s → s3://%s/%s", download_url, s3_bucket, dest_key)
 
     try:
         import boto3
-        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
+        s3 = make_s3_client(region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as tmp:
             tmp_path = tmp.name
@@ -11413,15 +12590,21 @@ async def fetch_public_data(body: FetchPublicDataRequest):
         finally:
             Path(tmp_path).unlink(missing_ok=True)
 
-        # Generate presigned URL (valid 24h)
-        presigned = s3.generate_presigned_url(
-            "get_object",
-            Params={"Bucket": s3_bucket, "Key": dest_key},
-            ExpiresIn=86400,
-        )
+        # Generate download URL.
+        # On-prem MinIO: presigned URLs embed the internal minio:9000 hostname
+        # which browsers cannot reach — return a Galaxy streaming proxy URL instead.
+        s3_uri_str = f"s3://{s3_bucket}/{dest_key}"
+        if os.environ.get("S3_ENDPOINT_URL"):
+            presigned = f"/api/nextflow/outputs/download?s3_uri={s3_uri_str}&run_id=direct"
+        else:
+            presigned = s3.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": s3_bucket, "Key": dest_key},
+                ExpiresIn=86400,
+            )
 
         return {
-            "s3_uri": f"s3://{s3_bucket}/{dest_key}",
+            "s3_uri": s3_uri_str,
             "s3_key": dest_key,
             "presigned_url": presigned,
             "filename": filename,
@@ -11471,7 +12654,11 @@ async def browse_s3(
         bucket = user_cred.get("s3_bucket")
 
     if not bucket:
-        bucket = os.environ.get("NEXTFLOW_S3_BUCKET") or os.environ.get("AWS_S3_BUCKET")
+        # On-prem MinIO: only S3_BUCKET_NAME bucket is created; NEXTFLOW_S3_BUCKET not set.
+        if os.environ.get("S3_ENDPOINT_URL"):
+            bucket = os.environ.get("S3_BUCKET_NAME") or "biomate-data"
+        else:
+            bucket = os.environ.get("NEXTFLOW_S3_BUCKET") or os.environ.get("AWS_S3_BUCKET")
         if not boto_kwargs:
             # Fall back to instance role / env-var creds
             region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
@@ -11482,7 +12669,7 @@ async def browse_s3(
 
     try:
         import boto3
-        s3 = boto3.client("s3", **boto_kwargs)
+        s3 = make_s3_client(**boto_kwargs)
 
         paginator = s3.get_paginator("list_objects_v2")
         page_iter = paginator.paginate(

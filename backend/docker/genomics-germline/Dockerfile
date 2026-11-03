@@ -20,7 +20,7 @@
 #     399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/genomics-germline:x86 \
 #     bash -c "bwa-mem2 version && gatk --version && samtools --version | head -1 && mosdepth --version"
 
-FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:latest
 
 LABEL maintainer="BioMate Team"
 LABEL description="Germline variant calling tools: bwa-mem2, GATK4, samtools, mosdepth, fastp, fastqc, multiqc, snpEff"

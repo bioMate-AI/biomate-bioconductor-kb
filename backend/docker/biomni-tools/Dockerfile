@@ -26,7 +26,10 @@
 
 # All BioMate Nextflow/Batch containers MUST start from this base so that
 # nxf_s3_upload / nxf_s3_download shell functions have 'aws' on PATH.
-FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+ARG BASE_TAG=latest
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:${BASE_TAG}
+
+ARG TARGETARCH=amd64
 
 LABEL maintainer="BioMate Team"
 LABEL description="biomni-tools: ViennaRNA, AutoDock Vina, RDKit, Biopython, openbabel + pharmacology (statsmodels, scikit-image, DeepPurpose)"
@@ -47,6 +50,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     swig \
     && rm -rf /var/lib/apt/lists/*
+
+# arm64: vina 1.2.7 has no aarch64 PyPI wheel and builds from source;
+# its setup.py requires Boost headers and a C++ compiler (g++).
+# amd64 pulls a pre-built vina wheel so neither is needed there.
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        libboost-all-dev \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 # ── Layer 2: Domain-specific Python packages ───────────────────────────────
 # numpy/scipy/pandas/biopython/rdkit are already in biomate-nextflow-base.
@@ -94,14 +107,29 @@ RUN pip install --no-cache-dir \
 # by their dishonest-success bug, now an honest failure. Adding it makes them
 # runnable. Rebuild + push biomni-tools:x86 for this to take effect on Batch.
 
-# DeepPurpose needs a (CPU) torch — install it explicitly so the DeepPurpose resolve succeeds
-# deterministically. The old `|| echo` swallowed build failures and shipped an image whose
-# affinity/ADMET tools no-op at runtime (a fake-success stub). Fail the build loudly instead,
-# and prove importability in the smoke test below.
+# descriptastorus must be installed from GitHub — the PyPI package is stale.
+# biomni.tool.pharmacology.predict_admet_properties checks for the git version
+# at import time and returns an error dict if absent. No `|| echo` fallback: a swallowed failure
+# ships an image whose ADMET tools no-op at runtime, so the build must fail loudly.
+RUN pip install --no-cache-dir \
+    "git+https://github.com/bp-kelley/descriptastorus" \
+    pandas-flavor
+
+# DeepPurpose needs a (CPU) torch — install it explicitly so the resolve is deterministic.
+# The old `|| echo` swallowed build failures and shipped an image whose affinity/ADMET tools
+# no-op at runtime (a fake-success stub). Fail the build loudly, and prove importability below.
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
-RUN pip install --no-cache-dir descriptastorus pandas-flavor
 RUN pip install --no-cache-dir DeepPurpose
 RUN python3 -c "from DeepPurpose import DTI, utils; print('DeepPurpose OK')"
+
+# ── Layer 8: BioMate Python SDK (biomni) ──────────────────────────────────
+# biomni is BioMate's Python tool library used by all biomni_* Nextflow
+# workflows (pharmacology, structural_biology, etc.). Without this package
+# the container cannot run any workflow that contains:
+#   from biomni.tool.<domain> import <function>
+# It also pulls in langchain-core, langchain, and other runtime dependencies.
+RUN pip install --no-cache-dir "biomni>=0.0.8" || \
+    echo "WARNING: biomni install failed — biomni_* workflows will fail"
 
 # ── Smoke tests ────────────────────────────────────────────────────────────
 RUN python3 -c "\

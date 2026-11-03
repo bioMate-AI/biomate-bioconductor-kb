@@ -73,6 +73,83 @@ export function readStoredLanguage(): string | null {
 }
 
 /**
+ * English-phrase keys (`t('Run Manager')`), used by components that were written against the on-prem build's
+ * phrase dictionary. Consulted only when the active locale is Chinese and the dot-path bundles have no entry.
+ */
+const ZH_PHRASES: Record<string, string> = {
+  // ── Sidebar navigation ───────────────────────────────────────────────────
+  'Workspace': '工作区',
+  'New Chat': '新建对话',
+  'Start a fresh AI conversation': '开始新的 AI 对话',
+  'Workflows': '工作流',
+  'Run history, browse & import pipelines': '运行历史 · 浏览并导入流程',
+  'Connectors': '连接器',
+  'Databases, LLMs & platform integrations': '数据库、大模型及平台集成',
+  'IND Report': 'IND 报告',
+  'Generate regulatory submission documents': '生成法规申报文档',
+  'Projects': '项目',
+  'Recent': '最近',
+  'New project': '新建项目',
+  'No chats yet': '暂无对话',
+  'Settings & API Keys': '设置与 API 密钥',
+  'System Admin': '系统管理',
+  // ── Chat input ───────────────────────────────────────────────────────────
+  'Message BioMate AI...': '向 BioMate AI 发送消息…',
+  'Send message': '发送',
+  'Stop generating': '停止生成',
+  // ── Workflow panel ───────────────────────────────────────────────────────
+  'Confirm & Run': '确认并运行',
+  'Running...': '运行中…',
+  'Run again': '再次运行',
+  'Restart': '重启',
+  'Completed': '已完成',
+  'Failed': '失败',
+  'Parameters': '参数',
+  'Outputs': '输出',
+  'Findings': '分析结果',
+  'Download report': '下载报告',
+  // ── Common UI ────────────────────────────────────────────────────────────
+  'Cancel': '取消',
+  'Save': '保存',
+  'Close': '关闭',
+  'Delete': '删除',
+  'Edit': '编辑',
+  'Back': '返回',
+  'Loading...': '加载中…',
+  'Error': '错误',
+  'Success': '成功',
+  'Copy': '复制',
+  'Copied!': '已复制！',
+  // ── Auth ─────────────────────────────────────────────────────────────────
+  'Sign in': '登录',
+  'Sign out': '退出登录',
+  'Email': '邮箱',
+  'Password': '密码',
+  'Remember me': '记住我',
+  'Forgot password?': '忘记密码？',
+  // ── Chat main area ───────────────────────────────────────────────────────
+  'New thread': '新对话',
+  'New chat': '新对话',
+  'Run Manager': '运行管理器',
+  'What would you like to analyze?': '您想分析什么？',
+  'Select your research areas — BioMate will prioritise relevant workflows.': '选择您的研究方向 — BioMate 将优先推荐相关工作流。',
+  'Input your use case here': '在此输入您的使用场景',
+  'MG patient stratification → ADMET': 'MG 患者分层 → ADMET',
+  'ADMET screen from SMILES': '基于 SMILES 的 ADMET 筛选',
+  'RNA-seq differential expression': 'RNA-seq 差异表达分析',
+  'Variant calling on WGS sample': 'WGS 样本变异检测',
+  // ── Admin panel ──────────────────────────────────────────────────────────
+  'System Dashboard': '系统管理面板',
+  'Health': '服务状态',
+  'LLM Configuration': '大模型配置',
+};
+
+/** Build flag: on-prem deployments default to a Chinese UI when the browser reports no language. */
+export const onPrem: boolean = typeof import.meta !== 'undefined'
+  ? (import.meta as any).env?.VITE_ONPREM === 'true'
+  : false;
+
+/**
  * Resolve the active locale from the browser environment.
  * Stored preference wins over navigator language; both fall back to 'en'.
  */
@@ -89,7 +166,7 @@ export function detectLocale(): SupportedLocale {
     const nav = normaliseLocale(navigator.language);
     return RESOURCES[nav] ? nav : 'en';
   }
-  return 'en';
+  return onPrem && RESOURCES.zh ? 'zh' : 'en';
 }
 
 /** The locale resolved for this page load. Stable for the session. */
@@ -120,11 +197,12 @@ function interpolate(text: string, vars?: Vars): string {
 
 /**
  * Translate a dot-path key (e.g. "nav.dashboard", "workflow.status.running").
- * Falls back to the English value, then to the key itself. `{{name}}`
+ * Falls back to the English value, then (Chinese only) to the English-phrase dictionary, then to the key itself. `{{name}}`
  * placeholders are filled from `vars`.
  */
 export function t(key: string, vars?: Vars): string {
-  return interpolate(lookup(activeBundle, key) ?? lookup(enBundle, key) ?? key, vars);
+  const phrase = locale === 'zh' ? ZH_PHRASES[key] : undefined;
+  return interpolate(lookup(activeBundle, key) ?? lookup(enBundle, key) ?? phrase ?? key, vars);
 }
 
 /** Like `t`, but for data-driven keys (e.g. a workflow domain) that may have no bundle entry. */

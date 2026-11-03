@@ -85,9 +85,14 @@ export class S3Service {
       throw new Error('S3 bucket name not configured');
     }
 
+    // S3_ENDPOINT_URL is set on-prem to point to MinIO (e.g. http://minio:9000).
+    // When set: use path-style addressing (MinIO requirement) and skip the
+    // region-redirect feature (not applicable to MinIO). When absent: use the
+    // default AWS S3 endpoint with region redirect for cross-region buckets.
+    const endpointUrl = process.env.S3_ENDPOINT_URL;
     this.s3Client = this.createClient(region, accessKeyId && secretAccessKey
       ? { accessKeyId, secretAccessKey }
-      : null);
+      : null, endpointUrl);
     this.configuredRegion = region;
     this.configuredCredentials = accessKeyId && secretAccessKey
       ? { accessKeyId, secretAccessKey }
@@ -101,17 +106,24 @@ export class S3Service {
   private createClient(
     region: string,
     credentials: { accessKeyId: string; secretAccessKey: string } | null,
+    endpointUrl?: string,
   ): S3Client {
     return new S3Client({
       region,
       ...(credentials ? { credentials } : {}),
-      // For non-presigned SDK calls, if the bucket is actually in another
-      // region the SDK follows the 307 redirect transparently. Presigned
-      // URLs are signed for THIS client's region — see ensureBucketRegion()
-      // which rebuilds the client against the bucket's real region.
-      followRegionRedirects: true,
+      // On-prem MinIO: fixed endpoint, path-style addressing, no region redirect.
+      // AWS: if the bucket is actually in another region the SDK follows the 307
+      // redirect for non-presigned calls; presigned URLs are signed for THIS
+      // client's region, so ensureBucketRegion() rebuilds the client against the
+      // bucket's real region.
+      ...(endpointUrl
+        ? { endpoint: endpointUrl, forcePathStyle: true }
+        : { followRegionRedirects: true }),
     });
   }
+
+  // Preserved from constructor so ensureBucketRegion can restore it when rebuilding.
+  private configuredEndpoint: string | undefined = process.env.S3_ENDPOINT_URL;
 
   /**
    * Detect the bucket's real region (one GetBucketLocation, cached) and
@@ -120,9 +132,16 @@ export class S3Service {
    * and the browser PUT fails signature validation after the 307 redirect.
    *
    * Called lazily by every method that issues a presigned URL.
+   * Skipped for MinIO (S3_ENDPOINT_URL set) — MinIO always returns us-east-1,
+   * and region redirect is not applicable to MinIO anyway.
    */
   private async ensureBucketRegion(): Promise<void> {
     if (this.bucketRegionEnsured || !this.bucket) return;
+    // Skip region detection for on-prem MinIO — the endpoint is fixed.
+    if (this.configuredEndpoint) {
+      this.bucketRegionEnsured = true;
+      return;
+    }
     try {
       const loc = await this.s3Client.send(
         new GetBucketLocationCommand({ Bucket: this.bucket })

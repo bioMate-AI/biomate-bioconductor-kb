@@ -1159,7 +1159,7 @@ def ensure_chain_reconciler_started() -> None:
 
 # Resolve to the canonical database path: $GALAXY_AI_DB env > app-relative default.
 # Uses the same logic as unified_workflow_search.py so all code that opens this DB
-# resolves to the same file. The hardcoded /home/yzhang/ fallback only worked on one
+# resolves to the same file. The hardcoded developer path fallback only worked on one
 # developer's laptop — it never worked in Docker.
 _DB_PATH = Path(os.environ.get(
     "GALAXY_AI_DB",
@@ -1531,6 +1531,8 @@ async def submit_chain(request: ChainSubmitRequest) -> Dict[str, Any]:
         _step_names = [n for n in _step_names if n]
         _req_name = (request.chain_name or "").strip()
         if len(resolved_steps) == 1 and _step_names:
+            # A single-workflow chain can only legitimately be named after its one
+            # workflow. Drop any multi-phase/mismatched name trusted from the request.
             if (not _req_name) or ("->" in _req_name) or ("→" in _req_name) or (_req_name != _step_names[0]):
                 if _req_name and _req_name != _step_names[0]:
                     log.warning(

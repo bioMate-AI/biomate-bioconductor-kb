@@ -1,0 +1,113 @@
+name: Mirror MinIO to GHCR
+
+# Builds a minimal minio server image from Alpine's package repo and pushes
+# a multi-arch manifest to GHCR. Only the server image is needed:
+# - Healthcheck uses curl (not mc)
+# - Bucket creation (minio-init) uses amazon/aws-cli via S3-compatible API
+#
+# Result:
+#   ghcr.io/biomate-ai/minio:latest  → amd64 + arm64 manifest
+#
+# Triggered: weekly (keeps image fresh) + manual dispatch.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 3 * * 1'   # Every Monday 03:00 UTC
+
+permissions:
+  packages: write
+  contents: read
+
+env:
+  MINIO_DST: ghcr.io/biomate-ai/minio
+
+jobs:
+  build-amd64:
+    name: Build minio amd64
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push minio amd64
+        run: |
+          cat > /tmp/Dockerfile.minio << 'DEOF'
+          FROM alpine:3.20
+          # Alpine community repo ships the minio binary (server only).
+          # curl is added for the healthcheck: curl -sf http://localhost:9000/minio/health/live
+          RUN apk add --no-cache minio curl ca-certificates
+          EXPOSE 9000 9001
+          ENTRYPOINT ["/usr/bin/minio"]
+          CMD ["server", "/data", "--console-address", ":9001"]
+          DEOF
+          docker build --platform linux/amd64 \
+            -t "$MINIO_DST:latest-amd64" \
+            -f /tmp/Dockerfile.minio \
+            /tmp
+          docker push "$MINIO_DST:latest-amd64"
+
+  build-arm64:
+    name: Build minio arm64
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push minio arm64
+        run: |
+          cat > /tmp/Dockerfile.minio << 'DEOF'
+          FROM alpine:3.20
+          # Alpine community repo ships the minio binary (server only).
+          # curl is added for the healthcheck: curl -sf http://localhost:9000/minio/health/live
+          RUN apk add --no-cache minio curl ca-certificates
+          EXPOSE 9000 9001
+          ENTRYPOINT ["/usr/bin/minio"]
+          CMD ["server", "/data", "--console-address", ":9001"]
+          DEOF
+          docker build --platform linux/arm64 \
+            -t "$MINIO_DST:latest-arm64" \
+            -f /tmp/Dockerfile.minio \
+            /tmp
+          docker push "$MINIO_DST:latest-arm64"
+
+  merge-manifest:
+    name: Merge multi-arch manifest
+    runs-on: ubuntu-latest
+    needs: [build-amd64, build-arm64]
+    timeout-minutes: 15
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-arch manifest
+        run: |
+          docker buildx imagetools create \
+            --tag "$MINIO_DST:latest" \
+            "$MINIO_DST:latest-amd64" \
+            "$MINIO_DST:latest-arm64"
+          echo "=== Multi-arch manifest ==="
+          docker buildx imagetools inspect "$MINIO_DST:latest"
+
+      - name: Summary
+        run: |
+          echo "## MinIO GHCR Build" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`$MINIO_DST:latest\` (amd64 + arm64, from Alpine apk)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- minio-init uses amazon/aws-cli — no separate mc image needed" >> "$GITHUB_STEP_SUMMARY"

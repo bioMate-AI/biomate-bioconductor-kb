@@ -17,6 +17,8 @@ params.max_time         = '240.h'
 
 // [Input Validation]
 process VALIDATE_INPUT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     check_samplesheet.py --input ${params.input} --protocol ${params.protocol}
     """
@@ -24,6 +26,8 @@ process VALIDATE_INPUT {
 
 // [Preprocessing]
 process FASTQC {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     fastqc --input ${params.input} \
         ${params.barcode_whitelist ? "--whitelist ${params.barcode_whitelist}" : ''} \
@@ -33,6 +37,8 @@ process FASTQC {
 
 // [Alignment & Counting]
 process CELLRANGER_COUNT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     cellranger count \
         --genome ${params.genome} \
@@ -46,6 +52,8 @@ process CELLRANGER_COUNT {
 
 // [Cell QC]
 process EMPTYDROPS_FILTER {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     emptydrops_filter.R \
         ${params.skip_emptydrops ? '--skip' : ''} \
@@ -57,6 +65,8 @@ process EMPTYDROPS_FILTER {
 
 // [Report]
 process MULTIQC {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     multiqc --outdir ${params.outdir} \
         ${params.email ? "--email ${params.email}" : ''}

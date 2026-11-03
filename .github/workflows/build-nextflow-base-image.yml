@@ -1,0 +1,147 @@
+name: Build nextflow-base image
+
+# Builds biomate/nextflow-base — the shared base for all biomni-* Batch containers.
+#
+# Strategy: two independent native-runner jobs, no manifest merge.
+#   amd64 → ubuntu-latest  → tag :x86   (stable production path for AWS Batch)
+#   arm64 → ubuntu-24.04-arm → tag :arm64 (on-prem Graviton path)
+#
+# Keeping tags separate prevents any arm64 instability from touching the
+# amd64/AWS-Batch production path. Merge into a multi-arch :latest can be
+# done later once arm64 is proven stable.
+#
+# FROM python:3.11-slim is a public Docker Hub image → no ECR auth needed for
+# the pull; only the push to ECR requires credentials (OIDC + ecr-login).
+#
+# Downstream images that FROM this base:
+#   biomate/biomni-admet, biomate/biomni-tools, biomate/biomni-pharma,
+#   biomate/biomni-structure-to-drug, biomate/genomics-germline,
+#   biomate/openfe-rbfe, biomate/sra-tools
+# All must be rebuilt after this image changes.
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - aws_infrastructure/configs/Dockerfile.nextflow-base
+      - .github/workflows/build-nextflow-base-image.yml
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: build-nextflow-base-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: 399683337364.dkr.ecr.us-west-2.amazonaws.com
+  ECR_REPO: biomate/nextflow-base
+  ROLE_ARN: arn:aws:iam::399683337364:role/GitHubActionsECRPush
+
+jobs:
+  # ── amd64 (stable production path) ────────────────────────────────────────────
+  build-amd64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Compute tag
+        id: tags
+        run: echo "sha_tag=${GITHUB_SHA::12}-amd64" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push :x86 + :latest (amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: aws_infrastructure/configs
+          file: aws_infrastructure/configs/Dockerfile.nextflow-base
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:x86
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}
+          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache-amd64
+          cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache-amd64,mode=max
+
+      - name: Smoke — aws + python imports (amd64)
+        run: |
+          docker run --rm \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            aws --version
+          docker run --rm \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            python3 -c "import numpy, scipy, pandas, Bio, rdkit; print('imports OK')"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### nextflow-base (amd64)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`${{ env.ECR_REPO }}:x86\` (+ \`${{ steps.tags.outputs.sha_tag }}\`)" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── arm64 (on-prem Graviton path) ─────────────────────────────────────────────
+  build-arm64:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Compute tag
+        id: tags
+        run: echo "sha_tag=${GITHUB_SHA::12}-arm64" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push :arm64
+        uses: docker/build-push-action@v6
+        with:
+          context: aws_infrastructure/configs
+          file: aws_infrastructure/configs/Dockerfile.nextflow-base
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:arm64
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}
+          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache-arm64
+          cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache-arm64,mode=max
+
+      - name: Smoke — aws + python imports (arm64)
+        run: |
+          docker run --rm \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            aws --version
+          docker run --rm \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            python3 -c "import numpy, scipy, pandas, Bio, rdkit; print('imports OK')"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### nextflow-base (arm64)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`${{ env.ECR_REPO }}:arm64\` (+ \`${{ steps.tags.outputs.sha_tag }}\`)" >> "$GITHUB_STEP_SUMMARY"

@@ -681,6 +681,20 @@ class ProvisionGalaxyUserPayload(BaseModel):
     email: str
 
 
+def _existing_active_key_query(galaxy_user_id, master_key):
+    """SQL + params to find a user's newest ACTIVE api key, never Galaxy's master key.
+
+    `deleted` is bound as a Python bool (PostgreSQL boolean columns reject the integer 0), and the master-key
+    exclusion is added only when a master key is configured, so no untyped NULL parameter is sent (server-side
+    binding drivers cannot infer the type of `NULL IS NULL`). Works on SQLite and PostgreSQL."""
+    sql = 'SELECT "key" FROM api_keys WHERE user_id = :uid AND deleted = :deleted'
+    params = {"uid": galaxy_user_id, "deleted": False}
+    if master_key:
+        sql += ' AND "key" != :mk'
+        params["mk"] = master_key
+    return sql + ' ORDER BY id DESC LIMIT 1', params
+
+
 @router.post("/internal/users/provision", dependencies=[Depends(require_internal_key)])
 def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
     """
@@ -721,37 +735,41 @@ def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
     encoded_password = b64encode(hashed_bytes).decode("utf-8")
     galaxy_password_hash = f"PBKDF2${HASH_FUNCTION}${COST_FACTOR}${salt.decode('utf-8')}${encoded_password}"
 
-    # Locate Galaxy's SQLite database.
+    # Locate Galaxy's database.
     # Priority:
     #   1. GALAXY_DB_PATH env var (explicit override)
     #   2. GALAXY_CONFIG_DATABASE_CONNECTION env var (set by start_backend.sh)
-    #   3. Relative to this file: backend/database/universe.sqlite
+    #   3. GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION (set by docker-compose; may be PostgreSQL)
+    #   4. Relative to this file: backend/database/universe.sqlite
     _db_url = (
         os.environ.get("GALAXY_DB_PATH")
         or os.environ.get("GALAXY_CONFIG_DATABASE_CONNECTION")
+        or os.environ.get("GALAXY_CONFIG_OVERRIDE_DATABASE_CONNECTION")
     )
-    if _db_url:
-        # Strip sqlite:/// or sqlite://// prefix if present to get bare path
-        _db_path = _db_url.replace("sqlite:////", "/").replace("sqlite:///", "")
-        if not _db_path.startswith("/"):
-            # Relative path — resolve from backend root
-            _this_dir = os.path.dirname(os.path.abspath(__file__))
-            _galaxy_root = os.path.normpath(os.path.join(_this_dir, "..", "..", "..", "..", ".."))
-            _db_path = os.path.join(_galaxy_root, _db_path)
-    else:
-        _this_dir = os.path.dirname(os.path.abspath(__file__))
-        # billing/api/ → billing/ → ai/ → galaxy/ → lib/ → backend/
-        _galaxy_root = os.path.normpath(os.path.join(_this_dir, "..", "..", "..", "..", ".."))
-        _db_path = os.path.join(_galaxy_root, "database", "universe.sqlite")
-
     try:
         import sqlalchemy as _sa
-        engine = _sa.create_engine(
-            f"sqlite:///{_db_path}",
-            connect_args={"check_same_thread": False, "timeout": 10},
-        )
+        if _db_url and (_db_url.startswith("postgresql://") or _db_url.startswith("postgres://")):
+            # PostgreSQL URL — pass directly to SQLAlchemy (no sqlite wrapper)
+            engine = _sa.create_engine(_db_url, connect_args={"connect_timeout": 10})
+        else:
+            # SQLite path: strip sqlite:/// prefix if present, then resolve to absolute
+            if _db_url:
+                _db_path = _db_url.replace("sqlite:////", "/").replace("sqlite:///", "")
+                if not _db_path.startswith("/"):
+                    _this_dir = os.path.dirname(os.path.abspath(__file__))
+                    _galaxy_root = os.path.normpath(os.path.join(_this_dir, "..", "..", "..", "..", ".."))
+                    _db_path = os.path.join(_galaxy_root, _db_path)
+            else:
+                _this_dir = os.path.dirname(os.path.abspath(__file__))
+                # billing/api/ → billing/ → ai/ → galaxy/ → lib/ → backend/
+                _galaxy_root = os.path.normpath(os.path.join(_this_dir, "..", "..", "..", "..", ".."))
+                _db_path = os.path.join(_galaxy_root, "database", "universe.sqlite")
+            engine = _sa.create_engine(
+                f"sqlite:///{_db_path}",
+                connect_args={"check_same_thread": False, "timeout": 10},
+            )
     except Exception as exc:
-        log.error("provision_galaxy_user: cannot connect to Galaxy DB at %s: %s", _db_path, exc)
+        log.error("provision_galaxy_user: cannot connect to Galaxy DB: %s", exc)
         raise HTTPException(status_code=500, detail=f"Galaxy DB unavailable: {exc}")
 
     now = datetime.now(timezone.utc)
@@ -780,7 +798,8 @@ def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
                          external, deleted, purged, active, disk_usage)
                     VALUES
                         (:create_time, :update_time, :email, :username, :password,
-                         0, 0, 0, 1, 0)
+                         :external, :deleted, :purged, :active, :disk_usage)
+                    RETURNING id
                     """
                 ),
                 {
@@ -789,10 +808,16 @@ def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
                     "email": galaxy_email,
                     "username": galaxy_username,
                     "password": galaxy_password_hash,
+                    "external": False,
+                    "deleted": False,
+                    "purged": False,
+                    "active": True,
+                    "disk_usage": 0,
                 },
             )
             conn.commit()
-            galaxy_user_id = result.lastrowid
+            row = result.fetchone()
+            galaxy_user_id = row[0] if row else None
             log.info(
                 "provision_galaxy_user: created user id=%s username=%s email=%s",
                 galaxy_user_id, galaxy_username, galaxy_email,
@@ -828,12 +853,12 @@ def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
 
         # Generate API key (32-char hex token)
         # Reuse an existing active key (newest first) — but never the master key.
+        _existing_key_sql, _existing_key_params = _existing_active_key_query(galaxy_user_id, _master_key)
         existing_key = conn.execute(
             _sa.text(
-                'SELECT "key" FROM api_keys WHERE user_id = :uid AND deleted = 0 '
-                'AND (:mk IS NULL OR "key" != :mk) ORDER BY id DESC LIMIT 1'
+                _existing_key_sql,
             ),
-            {"uid": galaxy_user_id, "mk": _master_key},
+            _existing_key_params,
         ).fetchone()
 
         if existing_key:
@@ -845,13 +870,14 @@ def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
                 _sa.text(
                     """
                     INSERT INTO api_keys (create_time, user_id, "key", deleted)
-                    VALUES (:create_time, :user_id, :key, 0)
+                    VALUES (:create_time, :user_id, :key, :deleted)
                     """
                 ),
                 {
                     "create_time": now.isoformat(),
                     "user_id": galaxy_user_id,
                     "key": galaxy_api_key,
+                    "deleted": False,
                 },
             )
             conn.commit()
