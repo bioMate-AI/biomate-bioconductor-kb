@@ -4014,6 +4014,40 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             uploaded_datasets=uploaded_datasets,
         )
 
+    # The request's TASK is to make new molecules or improve existing ones (not to predict
+    # properties of given ones). Property/ADMET terms in such a request are design constraints.
+    _GENERATIVE_TASK_PATTERNS = (
+        r'\b(generate|design|propose|create|enumerate|grow|decorate)\b[^.\n]{0,60}?'
+        r'\b(candidates?|molecules?|compounds?|analogu?es?|leads?|ligands?|binders?|series|scaffolds?|peptides?|macrocycles?)\b',
+        r'\b(de novo|generative|candidate generation|molecule generation|lead (?:generation|optimi[sz]ation)|scaffold[- ]hop\w*)\b',
+        r'\b(optimi[sz]e|improve|fix|reduce|lower|increase|raise)\b[^.\n]{0,60}?'
+        r'\b(series|scaffold|leads?|compounds?|potency|solubility|druglikeness|drug-likeness|liabilit\w*|'
+        r'selectivity|permeability|stability|affinity|half-life|clearance)\b',
+        r'\b(adapt|fine-?tune|retrain)\b[^.\n]{0,40}?\b(generative|generator|reinvent)\b',
+    )
+
+    @classmethod
+    def _admet_is_generation_constraint(cls, user_intent: str) -> bool:
+        """True when ADMET/SMILES terms appear in a request whose task is GENERATING or
+        OPTIMISING molecules ("Generate candidates ... with ADMET filtering", "Optimise this
+        series for potency ... keep hERG above 30 uM").
+
+        Measured 2026-11-03 on the cold-start examples: such requests reached the ADMET fast
+        path (it fires on any "admet" — here supplied by the classifier's subQuery or the
+        demo context's ADMET cut-offs) and were answered with Predict ADMET, a property
+        predictor that generates nothing. Only the user's own text is considered
+        ([Memory context] / [Inline parameters] suffixes are excluded).
+        """
+        import re as _re_gen
+
+        text = _re_gen.split(r'\n\s*\[(?:Memory context|Inline parameters:)', user_intent or '')[0]
+        low = text.lower()
+        mentions_admet = bool(_re_gen.search(r'\badmet\b', low)) or bool(_re_gen.search(
+            r'\bSMILES\s*[=:]\s*[A-Za-z0-9@\[\]\(\)\+\-=#\/\\\.%:]{8,}', text, _re_gen.IGNORECASE))
+        if not mentions_admet:
+            return False
+        return any(_re_gen.search(p, low) for p in cls._GENERATIVE_TASK_PATTERNS)
+
     def _try_fast_path_admet_workflow(  # noqa: deploy-trigger
         self,
         user_intent: str,
@@ -4631,8 +4665,11 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             if _fast_cryo:
                 return _fast_cryo
 
+            # ADMET named as a constraint of a generation/optimisation request is not an
+            # ADMET-prediction request: skip the ADMET fast path and steer search (hint below).
+            _admet_as_constraint = self._admet_is_generation_constraint(user_intent)
             try:
-                _fast_admet = self._try_fast_path_admet_workflow(
+                _fast_admet = None if _admet_as_constraint else self._try_fast_path_admet_workflow(
                     user_intent, uploaded_datasets=uploaded_datasets
                 )
             except Exception as _fa_exc:
@@ -4813,6 +4850,21 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 )
                 user_intent = user_intent + _hint
                 log.info("[UnifiedWorkflowGeneration] AutoDock Vina pattern detected — injected docking_autodock_vina routing hint")
+
+            if _admet_as_constraint:
+                _req_low = user_intent.lower()
+                if re.search(r'\b(peptides?|macrocycl\w*|cyclic)\b', _req_low):
+                    _gen_wf = "cyclic_peptide_design"
+                elif re.search(r'\b(antibod\w*|nanobod\w*|vhh|scfv|bispecific)\b', _req_low):
+                    _gen_wf = "an antibody design workflow"
+                else:
+                    _gen_wf = "reinvent4_lead_design (REINVENT4 generative / multi-objective lead design)"
+                user_intent = user_intent + (
+                    "\n[Routing hint: the task is to GENERATE or OPTIMISE molecules; ADMET/property "
+                    f"criteria here are design constraints, not the task. Prefer {_gen_wf}, "
+                    "NOT ADMET/property-prediction-only workflows.]"
+                )
+                log.info("[UnifiedWorkflowGeneration] ADMET as generation constraint — skipped ADMET fast path, injected generative-design hint")
 
             # Step 1: Iterative search trials until confidence is high.
             log.info("[UnifiedWorkflowGeneration] Step 1: Searching workflows iteratively...")
