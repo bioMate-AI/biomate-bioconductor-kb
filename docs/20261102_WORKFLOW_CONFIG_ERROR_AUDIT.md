@@ -109,3 +109,29 @@ fails the sync if any workflow config contains:
 
 This is the "fix BioMate, not the instance" response: the same validator would have caught L3, L4,
 and every Part-2 finding at commit time instead of in a paid Batch run.
+
+---
+
+## Part 5 — GEO chain re-test result (2026-11-02, GSE22055)
+
+After L1–L4b, the full chain (`chain_1793683908_a08b87`) was re-run on real AWS Batch:
+
+- **Step 0 `geo_data_connector` → SUCCEEDED** (run `2a2728ae`), emitting `count_matrix` +
+  `sample_metadata`. **This validates L1–L4b end-to-end** — the GEO ingest fetches and produces
+  artifacts; the container pulls, the queue resolves, the region is right.
+- **Step 1 `nf-core/differentialabundance` (DESeq2) → FAILED** (run `7f7e06e2`), verbatim from
+  `/tmp/nextflow_runs/7f7e06e2-.../nextflow.log`:
+  > `DESeq2 setup failed for contrast 'GSM449831_vs_GSM449832': all samples have 0 counts for all
+  > genes. check the counting script.`
+
+**Root cause of the step-1 failure (NOT a geo bug):** GSE22055 is a **microarray** series — its matrix
+is log2 **intensities** (e.g. 6.3, 8.1), not integer counts. The DESeq2 process coerces with
+`storage.mode(count_mat) <- "integer"`, truncating sub-1 / non-integer intensities to 0 → all-zero
+matrix → DESeq2 aborts. A secondary signal: the auto-picked contrast was two **individual samples**
+(`GSM449831_vs_GSM449832`), not groups — a context/contrast-selection gap.
+
+Both are exactly the failure modes that motivate the **intent-and-context-aware routing** work
+(`docs/20261102_UNIFIED_PUBLIC_ID_ROUTING_DESIGN.md`): microarray + DE must route to **limma**
+(not DESeq2), and the contrast must come from context (e.g. tumor-vs-normal groups), not the first
+two samples. A clean DESeq2 green needs a **bulk RNA-seq** GSE (e.g. GSE52778). The ingest layer
+(this session's deliverable) is done and verified; data-type routing is the next step.
