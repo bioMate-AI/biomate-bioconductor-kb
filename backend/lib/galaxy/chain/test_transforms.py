@@ -263,5 +263,30 @@ class ApplyToArtifactTests(unittest.TestCase):
         with self.assertRaises(tf.TransformError):
             tf.apply_to_artifact("smiles_file_to_json_list", {"filename": "x.smi"})
 
+
+class ReferenceSiteBoxTests(unittest.TestCase):
+    def _write(self, payload):
+        fh = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False); json.dump(payload, fh); fh.close(); return fh.name
+
+    def test_reference_site_overrides_the_top_ranked_pocket(self):
+        p = self._write({"pockets": [{"pocket_id": 1, "druggability_score": 0.9, "volume_A3": 500, "center_x": 39.5, "center_y": -2.6, "center_z": 62.0}],
+                         "reference_site": {"ligand": "AQ4", "n_atoms": 29, "center_x": 22.014, "center_y": 0.253, "center_z": 52.794, "extent_A": [15.71, 4.68, 7.1]}})
+        try:
+            out = tf.pocket_json_to_box_center(p, {})
+        finally:
+            os.unlink(p)
+        self.assertEqual(out["box_center"], [22.014, 0.253, 52.794])
+        self.assertEqual(out["box_size"], [25.7, 20.0, 20.0])   # extent + 10 A pad, clamped to 20..40
+        self.assertIn("AQ4", out["selection"])
+
+    def test_missing_reference_ligand_fails_loudly_instead_of_falling_back(self):
+        p = self._write({"pockets": [{"pocket_id": 1, "druggability_score": 0.9, "volume_A3": 500, "center_x": 1, "center_y": 2, "center_z": 3}],
+                         "reference_site_error": "no HETATM residue named AQ4 in the input structure"})
+        try:
+            with self.assertRaises(tf.TransformError):
+                tf.pocket_json_to_box_center(p, {})
+        finally:
+            os.unlink(p)
+
 if __name__ == "__main__":
     unittest.main()
