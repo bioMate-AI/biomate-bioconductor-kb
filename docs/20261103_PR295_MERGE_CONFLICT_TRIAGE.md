@@ -61,3 +61,17 @@ The others are large frontend files edited heavily on both sides (`routes.ts` 94
 2. Resolve the 21 manual files with their owners (backend: billing, LLM client, executor, QC monitor, Dockerfiles; frontend: chat components, sidebar, viewer, routes). Do not resolve by "take one side" for the three design differences above.
 3. Run the pre-sync checklist (`tsc`, vitest, python3.9 compile, chain lint) on the merge result before pushing; then update #295.
 4. A conflict-free merge does not make a 14,000-file PR reviewable; consider landing it in slices (for example the drug-discovery and chain/target-ID backend first, then UI).
+
+## Progress (2026-11-03): four manual files resolved, merge kept in a worktree
+The in-progress merge is kept (not committed, not pushed) at `/Users/kky/biomate-merge-295` on local branch `merge-295-wip`. State there: the 10 mechanical files plus four manual files are resolved and staged; 17 files remain.
+
+| File | Resolution | Pinned by |
+|---|---|---|
+| `billing_router.py` | Combined both fixes: keep the branch's master-key exclusion and newest-first order, use the base side's PostgreSQL-safe boolean `deleted`. The query is built in a helper `_existing_active_key_query` and the master-key clause is added only when a key is configured, so no untyped NULL parameter is sent. | real SQLite checks in `backend/tests/test_merge295_resolutions.py` |
+| `llm_client.py` | `generate_async` order: `local_only()` (branch) first, then the on-prem direct providers (base), then the fallback chain. | source-order test |
+| `nextflow_executor.py` (5 hunks) | Docking normalization block and its call kept (branch only). QC gate: the base side's preprocessing path first, then the branch's generic S3 reconstruction instead of the base side's bare `return []`, then CryoEM. Local output listing: both sides had fixed "local output links go through an S3-only endpoint" differently; kept the branch's link scheme (pinned by `test_nextflow_local_output_downloads.py`) and added the `rel_path` / `local_path` fields the base side's frontend reads. The base side's `/outputs/local-download` endpoint and lister stay in the file, unused by the listing: two mechanisms for one job; retire one once the owners agree. | tests plus the two existing executor test files (16 pass) |
+| `workflow_chain.py` | Four independent additions: stricter rescue comment, DAG dispatch and execution-mode fields (branch), single-workflow chain naming comment (base). The binding check and transform wiring survived (6 and 1 references, same as before the merge). | compile; reference counts |
+
+Verified: `py_compile` under python 3.9 for every resolved file, 16 backend tests. Not verified: the merged tree as a whole (the frontend and four more backend files are unresolved, so nothing can be imported or built yet); the billing helper against a real PostgreSQL.
+
+**Still unmerged (17):** `Dockerfile`, `ai_assistant.py`, `api_router.py`, `qc_trace_monitor.py`, `Dockerfile`, `app-sidebar.tsx`, `chat-input.tsx`, `chat-interface.tsx`, `chat-message.tsx`, `chat-with-artifacts.tsx`, `nextflow-workflow-viewer.tsx`, `i18n.ts`, `project-detail.tsx`, `AfterRunReport.tsx`, `galaxy-assistant.ts`, `routes.ts`, `s3-client.ts`
