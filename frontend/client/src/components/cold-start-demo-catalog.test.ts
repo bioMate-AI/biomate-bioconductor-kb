@@ -23,6 +23,19 @@ describe('every cold-start path has prepared inputs', () => {
       expect(readFileSync(file).subarray(0, 100).toString().toLowerCase(), name).not.toContain('<html');
     }
   });
+  it('ships every prepared-example (/demo/mg_demo) asset, not an SPA fallback', () => {
+    // Guards the PREPARED_EXAMPLES `files:` assets in the SERVED publicDir
+    // (frontend/client/public). Regression guard for the P6 Cox-PH break where
+    // patient_clinical_data.csv lived only in frontend/public (unserved) and the
+    // fetch returned the SPA index.html. Assets must exist here and not be HTML.
+    const root = resolve(__dirname, '../../public/demo/mg_demo');
+    const files = new Set(PREPARED_EXAMPLES.flatMap(example => ('files' in example ? example.files : [])));
+    for (const name of files) {
+      const file = resolve(root, name);
+      expect(statSync(file).size, name).toBeGreaterThan(0);
+      expect(readFileSync(file).subarray(0, 100).toString().toLowerCase(), name).not.toContain('<html');
+    }
+  });
   it('does not silently attach a default dataset to a custom goal', () => {
     expect(coldDemoFor('Analyze my own experiment')).toBeUndefined();
   });
