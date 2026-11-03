@@ -470,6 +470,11 @@ services:
       BILLING_LAGO_ENABLED:  "false"
       BILLING_INTERNAL_KEY:  ${BILLING_INTERNAL_KEY:-onprem-billing-disabled}
 
+      # ── Nextflow 执行模式 ─────────────────────────────────────────────────
+      # On-prem 使用 docker profile (biomate/biomni-tools 容器本地运行).
+      # false → routes.ts 选择 'docker' profile; true → 'aws' (Batch).
+      NEXTFLOW_USE_AWS: ${NEXTFLOW_USE_AWS:-false}
+
       # ── 网络 ──────────────────────────────────────────────────────────────
       FORCE_HTTPS:   ${FORCE_HTTPS:-0}
       ENABLE_HSTS:   ${ENABLE_HSTS:-0}

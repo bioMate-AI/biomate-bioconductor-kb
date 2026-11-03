@@ -352,30 +352,32 @@ jobs:
              sleep 15 && \
              docker compose -f docker-compose.onprem.yml ps'
 
-      - name: Upload correct ADMET main.nf from repo to ECS nfcore volume
-        # The ECS nfcore volume was initialized from an S3 tarball that may be older than the
-        # current repo. The old Python code inside PREDICT_ADMET_PROPERTIES has a SyntaxError
-        # ("Perhaps you forgot a comma?") that crashes the step. Upload the current repo version
-        # which has the correct Python code.
-        # Writes directly to the Docker volume mountpoint as root on ECS — does not require
-        # the galaxy container to be running. Docker volume changes are visible inside the
-        # running container immediately (no restart needed for the file itself; the Patch
-        # nextflow_executor.py step below still restarts galaxy for the --pull-never fix).
+      - name: Upload correct workflow .nf files from repo to ECS nfcore volume
+        # The ECS nfcore volume is initialized from an S3 tarball that may be older than
+        # the current repo. Upload the latest versions of all tested workflows so the e2e
+        # tests run against known-good code rather than stale S3 content.
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
-          NF_LOCAL=backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf
-          echo "Uploading $NF_LOCAL ($(wc -l < "$NF_LOCAL") lines) to ECS nfcore volume ..."
-          cat "$NF_LOCAL" | \
-            sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
-              -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
-              root@${{ env.ECS_IP }} \
-              'VOLPATH=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}" 2>/dev/null) && \
-               if [ -z "$VOLPATH" ]; then echo "ERROR: Volume biomate-onprem_biomate-nfcore-workflows not found"; exit 1; fi && \
-               NF_DEST="$VOLPATH/subworkflows/pharmacology/predict_admet_properties/main.nf" && \
-               mkdir -p "$(dirname "$NF_DEST")" && \
-               cat > "$NF_DEST" && \
-               echo "Upload done: $(wc -l < $NF_DEST) lines written to $NF_DEST"'
+          for NF_LOCAL in \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/pbpk_simulation/main.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/herg_cardiac_safety_qsar/main.nf; do
+            # Compute relative subpath under the nfcore volume root:
+            # e.g. backend/biomni_workflows/nextflow_nfcore/subworkflows/X/main.nf → subworkflows/X/main.nf
+            REL=$(echo "$NF_LOCAL" | sed 's|backend/biomni_workflows/nextflow_nfcore/||')
+            echo "Uploading $NF_LOCAL ($REL) …"
+            cat "$NF_LOCAL" | \
+              sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+                -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
+                root@${{ env.ECS_IP }} \
+                "VOLPATH=\$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format '{{.Mountpoint}}' 2>/dev/null) && \
+                 if [ -z \"\$VOLPATH\" ]; then echo 'ERROR: nfcore volume not found'; exit 1; fi && \
+                 NF_DEST=\"\$VOLPATH/$REL\" && \
+                 mkdir -p \"\$(dirname \$NF_DEST)\" && \
+                 cat > \"\$NF_DEST\" && \
+                 echo \"Upload done: \$(wc -l < \$NF_DEST) lines → \$NF_DEST\""
+          done
 
       - name: Patch nextflow_executor.py + ADMET main.nf for ECS
         # Two patches applied here:
@@ -584,7 +586,8 @@ jobs:
           E1=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
             -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D1" 2>/dev/null)
           RUN1=$(echo "$E1" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
-          echo "runId=$RUN1  exec=$(echo "$E1" | head -c 200)"
+          NF1=$(echo "$E1"  | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextflowRunId',''))" 2>/dev/null)
+          echo "runId=$RUN1 nextflowRunId=$NF1  exec=$(echo "$E1" | head -c 300)"
           if [ -z "$RUN1" ]; then echo "[ADMET] no runId — FAIL"; FAIL=1; R1="no-runid"
           else R1=$(poll_run ADMET "$RUN1"); fi
           echo "[ADMET] final=$R1"
@@ -598,7 +601,8 @@ jobs:
           E2=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
             -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D2" 2>/dev/null)
           RUN2=$(echo "$E2" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
-          echo "runId=$RUN2  exec=$(echo "$E2" | head -c 200)"
+          NF2=$(echo "$E2"  | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextflowRunId',''))" 2>/dev/null)
+          echo "runId=$RUN2 nextflowRunId=$NF2  exec=$(echo "$E2" | head -c 300)"
           if [ -z "$RUN2" ]; then echo "[PBPK] no runId — FAIL"; FAIL=1; R2="no-runid"
           else R2=$(poll_run PBPK "$RUN2"); fi
           echo "[PBPK] final=$R2"
@@ -612,7 +616,8 @@ jobs:
           E3=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
             -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D3" 2>/dev/null)
           RUN3=$(echo "$E3" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
-          echo "runId=$RUN3  exec=$(echo "$E3" | head -c 200)"
+          NF3=$(echo "$E3"  | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextflowRunId',''))" 2>/dev/null)
+          echo "runId=$RUN3 nextflowRunId=$NF3  exec=$(echo "$E3" | head -c 300)"
           if [ -z "$RUN3" ]; then echo "[hERG] no runId — FAIL"; FAIL=1; R3="no-runid"
           else R3=$(poll_run hERG "$RUN3"); fi
           echo "[hERG] final=$R3"
@@ -630,31 +635,53 @@ jobs:
           docker exec biomate-galaxy env 2>/dev/null | grep -E "NEXTFLOW|NF_PROFILE|BIOMATE_NF|MOCK|mock_mode" | sort || true
 
           echo ""
-          echo "=== nf-work base dir listing ==="
-          ls -la /app/nf-work/ 2>/dev/null || echo "/app/nf-work not found or empty"
+          echo "=== nf-work recent dirs (last 30 min) ==="
+          find /app/nf-work -maxdepth 1 -type d -newer /app/nf-work -printf "%T@ %f\n" 2>/dev/null | sort -rn | head -10 || \
+            ls -lt /app/nf-work/ 2>/dev/null | head -10 || echo "/app/nf-work not found or empty"
 
           echo ""
-          echo "=== Galaxy logs (last 5 min, executor lines) ==="
-          docker logs biomate-galaxy --since 5m 2>&1 | \
+          echo "=== Galaxy logs (last 10 min, executor lines) ==="
+          docker logs biomate-galaxy --since 10m 2>&1 | \
             grep -v "embed_server\|VectorSearch\|WorkflowEmbed\|wf-search-warmup" | \
-            grep -E "Nextflow|nextflow|mock_mode|nf-launch|profile|work_base|FAIL|ERROR|${RUN1:0:8}|${RUN2:0:8}|${RUN3:0:8}" | \
-            tail -40 || true
+            grep -E "Nextflow|nextflow|mock_mode|nf-launch|profile|work_base|FAIL|ERROR|${NF1:0:8}|${NF2:0:8}|${NF3:0:8}|${RUN1:0:8}|${RUN2:0:8}|${RUN3:0:8}" | \
+            tail -60 || true
 
           echo ""
-          echo "nf-work dirs for this run:"
-          for RID in "$RUN1" "$RUN2" "$RUN3"; do
-            [ -z "$RID" ] && continue
-            WD="/app/nf-work/$RID"
+          echo "=== nf-work errors (by nextflowRunId) ==="
+          for PAIR in "ADMET:$NF1" "PBPK:$NF2" "hERG:$NF3"; do
+            LABEL=$(echo "$PAIR" | cut -d: -f1)
+            NF_ID=$(echo "$PAIR" | cut -d: -f2)
+            [ -z "$NF_ID" ] && echo "$LABEL: no nextflowRunId captured" && continue
+            WD="/app/nf-work/$NF_ID"
             if [ -d "$WD" ]; then
-              echo "=== $RID ==="
-              find "$WD" -name ".command.err" | while read f; do
-                echo "--- $f ---"; cat "$f" 2>/dev/null | tail -20; done
-              find "$WD" -name ".exitcode" | while read f; do
-                echo "exit: $(cat $f) in $(dirname $f | xargs basename)"; done
+              echo "=== $LABEL nf-work ($NF_ID) ==="
+              find "$WD" -name ".command.err" 2>/dev/null | while read f; do
+                echo "--- $(dirname $f | xargs basename) .command.err ---"
+                tail -30 "$f" 2>/dev/null
+              done
+              find "$WD" -name ".exitcode" 2>/dev/null | while read f; do
+                echo "exit=$(cat $f 2>/dev/null) in $(dirname $f | xargs basename)"
+              done
+              find "$WD" -name ".command.log" 2>/dev/null | while read f; do
+                echo "--- $(dirname $f | xargs basename) .command.log (last 20) ---"
+                tail -20 "$f" 2>/dev/null
+              done
             else
-              echo "=== $RID: no nf-work directory found ==="
+              echo "=== $LABEL: nf-work dir $WD not found — scanning by prefix ==="
+              find /app/nf-work -maxdepth 1 -type d -name "${NF_ID:0:8}*" 2>/dev/null | while read d; do
+                echo "Found: $d"
+                find "$d" -name ".command.err" | while read f; do
+                  echo "--- $f ---"; tail -20 "$f"; done
+              done
             fi
           done
+
+          echo ""
+          echo "=== hERG Galaxy log lines (last 5 min) ==="
+          docker logs biomate-galaxy --since 5m 2>&1 | \
+            grep -v "embed_server\|VectorSearch\|WorkflowEmbed\|wf-search-warmup" | \
+            grep -iE "herg|cardiac|pharmacology|${NF3:0:8}|error|fail|docker|container|pull|image" | \
+            tail -30 || true
 
           [ "$FAIL" -eq 0 ] || { echo "One or more workflow tests FAILED"; exit 1; }
           echo "All 3 workflow tests COMPLETED"
