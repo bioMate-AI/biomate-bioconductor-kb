@@ -3707,11 +3707,18 @@ def _extract_nf_process_containers(nf_path: Path) -> list[str]:
     except OSError:
         return []
     images: list[str] = []
-    # Match   container 'image:tag'   or   container "image:tag"
-    # Also handles ternary expressions: container cond ? 'img1' : 'img2'
-    for m in re.findall(r"container\s+[^{}\n]*?['\"]([^'\"]+)['\"]", text):
-        if m and m not in images:
-            images.append(m)
+    # Scan each line that starts with (optional whitespace +) "container ".
+    # Extract ALL quoted strings from that line, then keep only ones that look
+    # like Docker image refs (contain "/" or ":").  This correctly handles
+    # ternary expressions such as:
+    #   container env('NEXTFLOW_USE_AWS')=='true' ? 'ecr.../img:x86' : 'biomate/img:latest'
+    # where the naive single-capture regex only found the env-var name.
+    for line in text.splitlines():
+        if not re.match(r"\s*container\s+", line):
+            continue
+        for m in re.findall(r"['\"]([^'\"]+)['\"]", line):
+            if m and ("/" in m or ":" in m) and m not in images:
+                images.append(m)
     return images
 
 
