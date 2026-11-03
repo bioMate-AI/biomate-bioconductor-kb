@@ -23,17 +23,31 @@ data-type problem applies to every other public ID. This doc is the one-source-o
 - **Every other public ID has the same shape** (see the landscape audit): the right workflow depends on
   the ID's data type, and most downstream workflows can't self-fetch.
 
-## 2. The solution — one resolver
+## 2. The solution — one resolver (data_type × intent × context)
 
-A single **`resolve_id_to_plan(id, intent)`** function (in Python, where `_detect_geo_platform` + the
-fast-path already live) that returns a data-type-aware **execution plan**:
+The routing decision is **not data-type-only**. The right ingest + downstream + parameters depend on
+**three axes together**:
+- **data_type** — microarray / bulk RNA-seq / scRNA / (per ID: SRA library strategy, structure, etc.)
+- **intent** — what the user is trying to DO: differential expression vs clustering/trajectory/cell-typing
+  vs enrichment/GSEA vs variant calling vs docking… The SAME data routes differently by intent (scRNA + DE
+  → pseudobulk→DE; scRNA + clustering → Scanpy/Seurat, NOT pseudobulk — pseudobulk destroys per-cell
+  resolution; bulk + DE → DESeq2; microarray + DE → limma; bulk + GSEA → enrichment pipeline).
+- **context** — the project's prior data, the conversation, the stated comparison. Context fills the
+  parameters/contrast (e.g. "tumor vs normal"), not just the workflow choice.
+
+A single **`resolve_id_to_plan(id, intent, context)`** returns the full plan:
 ```
-{ id_type, data_type, ingest_workflow, downstream_workflow (or 'review'),
-  chain_connections, residency, warnings }
+{ id_type, data_type, intent, ingest_workflow, downstream_workflow (or 'review'),
+  method (e.g. limma|deseq2|edger), contrast/params from context, chain_connections, residency, warnings }
 ```
-Reused by **all three surfaces** — the chat generation path, the Node execute-gate (my #2 guard calls
-it instead of hard-coding), and the chain builder. This fixes GEO data-type-awareness, removes the
-dual-classifier conflict (one classifier), and generalizes to every ID with one code path.
+**Crucially, this logic ALREADY EXISTS in the chat path** — `generate_workflow_unified` + the GeoFastPath
+already combine `_detect_geo_platform` (data_type) with the user's intent (DE vs single-cell clustering,
+guarded at ai_assistant.py:4204) and context (method + contrast extraction; the dev log
+`Run DEG on the gse22055 microarray with limma, tumor vs normal` shows all three). So the resolver is
+**not new code to invent — it's the existing intent/context/data-type routing, lifted into one function
+and reused** by all three surfaces (chat, execute-gate, chain). The execute-gate must DELEGATE to it, not
+reimplement a shallow data-type map. This fixes GEO correctness, removes the dual-classifier conflict,
+and generalizes to every ID with one code path — while respecting intent and context, not just the type.
 
 ## 3. Per-ID-type routing (what the resolver returns)
 
@@ -53,8 +67,13 @@ dual-classifier conflict (one classifier), and generalizes to every ID with one 
    self-fetching GEO ingest owns (fix/verify the `_workflow_fetches_*_natively` skip for
    geo_data_connector/geo_scrna_pseudobulk on the chain-launch path). This is what's failing the live
    `geo_data_connector` step — fix + re-run the GSE22055 chain to green first.
-1. **GEO data-type-aware chain.** execute-gate guard calls `resolve_id_to_plan` → scRNA→pseudobulk,
-   bulk→differentialabundance, microarray→limma, unknown→review. Replaces the hard-coded chain.
+1. **GEO intent-and-context-aware chain.** The execute-gate guard **delegates to the existing
+   intent/context/data-type routing** (`resolve_id_to_plan` = the lifted GeoFastPath +
+   `generate_workflow_unified` logic) rather than a shallow data-type map. It combines data_type
+   (micro/bulk/scRNA) × **intent** (DE vs clustering/trajectory vs GSEA) × **context** (method +
+   contrast, e.g. limma + tumor-vs-normal): scRNA+DE→pseudobulk→DE; scRNA+clustering→Scanpy/Seurat
+   (NOT pseudobulk); bulk+DE→DESeq2; microarray+DE→**limma**; unknown→review. Replaces the
+   hard-coded `geo_data_connector → differentialabundance` chain.
 2. **SRA → fetchngs → (rnaseq|sarek|chipseq|atacseq)** by library strategy, as explicit chains.
 3. **PDB/EMDB → docking** (receptor-path workflows) via a structure-fetch pre-step chain to S3.
 4. **UniProt/ChEMBL cross-workflow chains** (seq→structure→dock; chem→ADMET).
