@@ -40,6 +40,7 @@ import { WorkflowSSEManager } from "./workflow-sse";
 import { createWorkflowNotificationService, type WorkflowNotificationService } from "./workflow-notification-service";
 import { assessOutputCompletion } from "./output-completion-contract";
 import { GalaxyAssistant, type ModelConfig, stripNarratedToolCalls, StreamToolCallFilter } from "./galaxy-assistant";
+import { humanizeWorkflowName } from "./workflow-display-name";
 import { isRunnableWorkflow } from "./workflow-runnable";
 import { parameterRepository } from "./parameter-repository";
 import { workflowRepository } from "./workflow-repository";
@@ -176,31 +177,6 @@ function getFileType(extension: string): string {
   return 'binary';
 }
 
-const WORKFLOW_DISPLAY_NAMES: Record<string, string> = {
-  allometric_scaling:         "Allometric Scaling / FIH Dose Prediction",
-  clinical_trial_simulation:  "Clinical Trial Simulation",
-  pbpk_pediatric:             "Pediatric PBPK Simulation",
-  cyclic_peptide_design:      "Cyclic Peptide Design",
-  magma_gene_analysis:        "MAGMA Gene-Set Analysis",
-  clusterprofiler:            "ClusterProfiler Enrichment Analysis",
-  deseq2:                     "DESeq2 Differential Expression",
-  fcrn_antibody_pk:           "FcRn Antibody PK Simulation",
-  lnp_formulation_optimization: "LNP Formulation Optimization",
-  ich_s5_reproductive_tox:    "ICH S5 Reproductive Toxicology",
-  ich_s7a_safety_pharmacology:"ICH S7A Safety Pharmacology",
-  adaptive_trial_design:      "Adaptive Trial Design",
-};
-
-function humanizeWorkflowName(name: string): string {
-  if (!name) return name;
-  const mapped = WORKFLOW_DISPLAY_NAMES[name.toLowerCase()];
-  if (mapped) return mapped;
-  // If the name is all-lowercase with underscores (slug), title-case it
-  if (/^[a-z0-9_/-]+$/.test(name) && name.includes('_')) {
-    return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-  }
-  return name;
-}
 
 // Correct domain labels that are wrong in the Galaxy DB record.
 // Keyed by lowercase workflow name substring; value is the canonical domain.

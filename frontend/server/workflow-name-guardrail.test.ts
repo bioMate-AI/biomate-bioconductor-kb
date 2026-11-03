@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { textWorkflowName, workflowSlug } from './galaxy-assistant';
+import { cardWorkflowName } from './workflow-display-name';
+
+// The chat response is told this exact name, and the card shows it (routes.ts workflow_ready).
+describe('cardWorkflowName — the title the workflow card shows', () => {
+  it('follows the card resolution order and humanizes slugs the same way', () => {
+    expect(cardWorkflowName({ workflow_ga: { name: 'hts_plate_qc_hit_calling' }, workflow_name: 'x' })).toBe('Hts Plate Qc Hit Calling');
+    expect(cardWorkflowName({ workflow_ga: {}, workflow_name: 'Qsar Rf Model' })).toBe('Qsar Rf Model');
+    expect(cardWorkflowName({ chain_display_name: 'GEO → limma' })).toBe('GEO → limma');
+    expect(cardWorkflowName({ workflow_ga: { name: 'cyclic_peptide_design' } })).toBe('Cyclic Peptide Design');
+    expect(cardWorkflowName({})).toBe('');
+    expect(cardWorkflowName(null)).toBe('');
+  });
+});
 
 // Response headers captured from dev on 2026-11-03 (cold-start routing baseline). Step 6c-2
 // reads the workflow a response presents from its header and moves the card to it, so the

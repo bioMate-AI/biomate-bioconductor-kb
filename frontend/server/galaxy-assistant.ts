@@ -1,5 +1,6 @@
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
 import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient } from './local-llm.js';
+import { cardWorkflowName } from './workflow-display-name';
 import { localIntentPrompt } from './local-intent-prompt.js';
 import { localResponsePrompt } from './local-response-prompt.js';
 import { scientificToolRequest, scientificToolResult, targetEvidenceReply, databaseQueryRequest, databaseQueryResult } from './scientific-chat-tools';
@@ -8918,7 +8919,10 @@ ${workflowGenerationFailed && !hasInlineData ? `\nWorkflow generation diagnostic
 Use the RESPONSE FORMAT from the system prompt. Specifically:
 ${runnableWorkflow
   ? `FORMAT: Workflow generated successfully.
-     - Start with "**[workflow name]** — [one sentence]"
+     - ${cardWorkflowName(generatedWorkflow)
+        ? `The workflow panel shows "${cardWorkflowName(generatedWorkflow)}". Start with "**${cardWorkflowName(generatedWorkflow)}** — [one sentence]", using exactly that name. Never lead with a descriptive title of your own.
+     - Only if a different catalog workflow is clearly the right one for this request, lead with that workflow's exact catalog id in bold instead (e.g. "**reinvent4_lead_design** — ...") — the panel switches to the workflow you lead with. Never invent a workflow name.`
+        : `Start with "**[workflow name]** — [one sentence]"`}
      - Bullet: Input used (the actual value from the message)
      - Bullet: Key steps (2–3, tool → output)
      - Bullet: Expected output (file types / results)
