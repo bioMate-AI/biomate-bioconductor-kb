@@ -46,7 +46,7 @@ process GEO_FETCH {
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}/geo_fetch" }, mode: 'copy'
 
-    container 'quay.io/biocontainers/bioconductor-geoquery:2.72.0--r44_0'
+    container 'quay.io/biocontainers/bioconductor-geoquery:2.74.0--r44hdfd78af_0'
 
     input:
     val(meta)   // meta map; meta.accession holds the GSE/GSM ID
@@ -183,7 +183,7 @@ process GEO_LOAD_LOCAL {
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}/geo_fetch" }, mode: 'copy'
 
-    container 'quay.io/biocontainers/bioconductor-geoquery:2.72.0--r44_0'
+    container 'quay.io/biocontainers/bioconductor-geoquery:2.74.0--r44hdfd78af_0'
 
     input:
     tuple val(meta), path(local_series_matrix)
@@ -300,7 +300,7 @@ process GEO_COUNT_MATRIX {
     label 'process_medium'
     publishDir { "${params.outdir}/${meta.id}/count_matrix" }, mode: 'copy'
 
-    container 'quay.io/biocontainers/bioconductor-geoquery:2.72.0--r44_0'
+    container 'quay.io/biocontainers/bioconductor-geoquery:2.74.0--r44hdfd78af_0'
 
     input:
     tuple val(meta), path(series_matrix_rds)
@@ -389,7 +389,7 @@ process GEO_CLINICAL_METADATA {
     label 'process_low'
     publishDir { "${params.outdir}/${meta.id}/clinical_metadata" }, mode: 'copy'
 
-    container 'quay.io/biocontainers/bioconductor-geoquery:2.72.0--r44_0'
+    container 'quay.io/biocontainers/bioconductor-geoquery:2.74.0--r44hdfd78af_0'
 
     input:
     tuple val(meta), path(sample_metadata_csv)
