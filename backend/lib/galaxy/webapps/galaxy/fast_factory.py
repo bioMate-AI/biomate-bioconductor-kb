@@ -80,7 +80,10 @@ def _seed_api_key_from_env(gx_app) -> None:
     key = _os.environ.get("GALAXY_API_KEY", "").strip()
     if not key or len(key) != 32:
         return
-    master = (getattr(gx_app.config, "master_api_key", None) or "").strip()
+    # `master_api_key` in galaxy.yml is a deprecated alias of bootstrap_admin_api_key
+    # (config_schema.yml) — the config object exposes the canonical name.
+    master = (getattr(gx_app.config, "bootstrap_admin_api_key", None)
+              or getattr(gx_app.config, "master_api_key", None) or "").strip()
     if master and key == master:
         _log.info("[boot-seed] GALAXY_API_KEY is the master_api_key — authenticated as the bootstrap admin; "
                   "nothing to seed, no user's keys touched")

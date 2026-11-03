@@ -40,7 +40,8 @@ def galaxy(monkeypatch):
     monkeypatch.setenv("GALAXY_API_KEY", ENV_KEY)
 
     def app(master=MASTER, admins=("admin@galaxy.org",)):
-        return SimpleNamespace(model=model, config=SimpleNamespace(master_api_key=master, admin_users_list=list(admins)))
+        # the attribute Galaxy's config object really exposes (`master_api_key` is only its yml alias)
+        return SimpleNamespace(model=model, config=SimpleNamespace(bootstrap_admin_api_key=master, admin_users_list=list(admins)))
 
     return model, app
 
