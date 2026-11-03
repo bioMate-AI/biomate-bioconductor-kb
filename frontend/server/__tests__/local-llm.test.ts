@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { localCompletion, localMessages, localMessagesClient, validateToolInput, jsonObjectText } from '../local-llm';
+import { localCompletion, localMessages, localMessagesClient, validateToolInput, jsonObjectText, openaiCompatMessagesClient } from '../local-llm';
 import { llmGenerate } from '../llm-client';
 const original = { ...process.env };
 beforeEach(() => {
@@ -87,4 +87,55 @@ it('passes the configured local reasoning mode without changing existing callers
   const fetch = vi.fn().mockResolvedValue(reply({ content: 'ok' })); vi.stubGlobal('fetch', fetch);
   await localCompletion({ messages: [{ role: 'user', content: 'test' }] });
   expect(JSON.parse(fetch.mock.calls[0][1].body).reasoning_effort).toBe('none');
+});
+
+// The config-parameterized shim that gives OpenRouter (and any OpenAI-compatible
+// provider) the SAME agentic tool loop as on-prem. It takes an explicit cfg from a
+// TRUSTED caller instead of the BIOMATE_LOCAL_* env + origin allowlist, so these
+// tests delete that env to prove the two paths are independent.
+describe('OpenAI-compatible agentic shim (OpenRouter / any base_url)', () => {
+  beforeEach(() => {
+    delete process.env.BIOMATE_LOCAL_ONLY;
+    delete process.env.BIOMATE_LOCAL_LLM_URL;
+    delete process.env.BIOMATE_LOCAL_LLM_ORIGIN;
+    delete process.env.BIOMATE_LOCAL_LLM_MODEL;
+  });
+  it('targets the configured endpoint with bearer auth + model, no redirects, no env/origin allowlist', async () => {
+    const fetch = vi.fn().mockResolvedValue(reply({ content: 'hi' })); vi.stubGlobal('fetch', fetch);
+    const client = openaiCompatMessagesClient({ url: 'https://openrouter.ai/api/v1', model: 'z-ai/glm-5.3-prime', key: 'sk-or-test' });
+    const res: any = await client.messages.create({ messages: [{ role: 'user', content: 'hello' }] });
+    expect(res.content[0].text).toBe('hi');
+    expect(res.model).toBe('z-ai/glm-5.3-prime');
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const [url, opts] = fetch.mock.calls[0];
+    expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
+    expect(opts.headers.Authorization).toBe('Bearer sk-or-test');
+    expect(opts.redirect).toBe('error');
+    const body = JSON.parse(opts.body);
+    expect(body.model).toBe('z-ai/glm-5.3-prime');
+    expect(body.stream).toBe(false);
+  });
+  it('gives OpenRouter models the same validated tool loop (tool_use + ID + unknown-tool reject)', async () => {
+    const fetch = vi.fn().mockImplementation(() => Promise.resolve(reply({ tool_calls: [{ id: 'call-9', type: 'function',
+      function: { name: 'search_literature', arguments: '{"query":"PCSK9"}' } }] }, 'tool_calls')));
+    vi.stubGlobal('fetch', fetch);
+    const cfg = { url: 'https://openrouter.ai/api/v1/', model: 'moonshotai/kimi-k3', key: 'k' };
+    const client = openaiCompatMessagesClient(cfg);
+    const tools = [{ name: 'search_literature', input_schema: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } }];
+    const first: any = await client.messages.create({ messages: [{ role: 'user', content: 'lit search PCSK9' }], tools });
+    expect(first.stop_reason).toBe('tool_use');
+    expect(first.content.find((b: any) => b.type === 'tool_use')).toMatchObject({ id: 'call-9', name: 'search_literature', input: { query: 'PCSK9' } });
+    // trailing-slash in url is normalized (no double slash)
+    expect(fetch.mock.calls[0][0]).toBe('https://openrouter.ai/api/v1/chat/completions');
+    // same unknown-tool guard as the local path
+    await expect(client.messages.create({ messages: [{ role: 'user', content: 'x' }], tools: [] })).rejects.toThrow('tool call');
+  });
+  it('rejects a tool call whose arguments violate the schema (guardrail parity)', async () => {
+    const fetch = vi.fn().mockResolvedValue(reply({ tool_calls: [{ id: 'c', type: 'function',
+      function: { name: 'run_code', arguments: '{"language":"ruby","code":"1"}' } }] }, 'tool_calls')); vi.stubGlobal('fetch', fetch);
+    const client = openaiCompatMessagesClient({ url: 'https://openrouter.ai/api/v1', model: 'm' });
+    const tools = [{ name: 'run_code', input_schema: { type: 'object', required: ['language', 'code'],
+      properties: { language: { type: 'string', enum: ['python', 'r'] }, code: { type: 'string' } } } }];
+    await expect(client.messages.create({ messages: [{ role: 'user', content: 'run' }], tools })).rejects.toThrow('enum');
+  });
 });

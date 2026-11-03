@@ -1,5 +1,5 @@
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
-import { localOnly, localOffline, localMessagesClient, localConfig } from './local-llm.js';
+import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient } from './local-llm.js';
 import { localIntentPrompt } from './local-intent-prompt.js';
 import { localResponsePrompt } from './local-response-prompt.js';
 import { scientificToolRequest, scientificToolResult, targetEvidenceReply, databaseQueryRequest, databaseQueryResult } from './scientific-chat-tools';
@@ -45,6 +45,11 @@ const _anthropicOverride = new AsyncLocalStorage<Anthropic>();
 // Per-request OpenRouter client. Set in processMessage() when the user has
 // configured an OpenRouter key; _getOpenRouterClient() returns it or null.
 const _openrouterClientStorage = new AsyncLocalStorage<OpenAI>();
+// Set true for a turn whose LLM backbone is an OpenRouter-selected model routed
+// through the agentic shim (openaiCompatMessagesClient, stored in _anthropicOverride).
+// Flips isClaudeBackbone so the response path takes the agentic tool loop — the same
+// structural decision localOnly makes — instead of the text-only provider chain.
+const _openrouterAgentic = new AsyncLocalStorage<boolean>();
 import { conversationStateManager } from './conversation-state';
 import { shouldInjectDatasets } from './dataset-injection-gate';
 import { userPatternsService, type UserContext } from './user-patterns-service';
@@ -4016,22 +4021,6 @@ Rules:
     const userAnthropicKey = context.userAnthropicApiKey;
     const openrouterKey = context.openrouterKey;
 
-    // OpenRouter path: bypass the Anthropic pipeline entirely and stream directly
-    // through OpenRouter's OpenAI-compatible API. Tool use / workflow generation
-    // is not available on this path — users can switch back to default for that.
-    if (openrouterKey && !localOnly()) {
-      const orClient = new OpenAI({
-        baseURL: 'https://openrouter.ai/api/v1',
-        apiKey: openrouterKey,
-        defaultHeaders: {
-          'HTTP-Referer': 'https://biomate.ai',
-          'X-Title': 'BioMate',
-        },
-      });
-      return _openrouterClientStorage.run(orClient, () =>
-        this._generateChatWithOpenRouter(message, context, onResponseDelta));
-    }
-
     const runInner = () => {
       if (overrideProxy) {
         return _galaxyAPIRequestStorage.run(overrideProxy, () =>
@@ -4039,6 +4028,27 @@ Rules:
       }
       return this._processMessageInner(message, context, onResponseDelta, onToolEvent, onProgress);
     };
+
+    // OpenRouter path: route the user's selected OpenRouter model through the FULL
+    // agentic pipeline (intent → workflow generation → tool loop → run_code) — NOT a
+    // chat-only stream. openaiCompatMessagesClient is the same Anthropic↔OpenAI
+    // function-calling shim proven on the on-prem path (local-llm.ts): we override
+    // _getClaude() to the shim (via _anthropicOverride) and flip the backbone flag
+    // (_openrouterAgentic) so the response path takes the agentic loop. Tool-capable
+    // models (GLM-5.3, Kimi-K3, DeepSeek-V4) get full tools+workflows; a model that
+    // cannot do function-calling surfaces a real error (honest) rather than a silently
+    // degraded chat-only answer. This branch only fires when a user supplies an
+    // OpenRouter key AND selects a model, so it cannot regress the default (Gemini) path.
+    // _generateChatWithOpenRouter is retained for an explicit future route for models
+    // known to lack tool support.
+    if (openrouterKey && !localOnly()) {
+      const orShim = openaiCompatMessagesClient({
+        url: 'https://openrouter.ai/api/v1',
+        model: context.selectedModel || 'z-ai/glm-5.3-prime',
+        key: openrouterKey,
+      }) as unknown as Anthropic;
+      return _anthropicOverride.run(orShim, () => _openrouterAgentic.run(true, runInner));
+    }
 
     if (userAnthropicKey && !localOnly()) {
       const userClaude = new Anthropic({ apiKey: userAnthropicKey });
@@ -9012,7 +9022,10 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // provides the full agentic tool loop; this chain handles non-Claude primaries
       // and serves as the fallback when Claude is unavailable.
       const responseModel = this.modelConfig.responseModel;
-      const isClaudeBackbone = localOnly() || responseModel.startsWith('claude-');
+      // OpenRouter-selected models run the agentic loop via the shim in _anthropicOverride
+      // (see processMessage); treat them as a Claude-shaped backbone here so the agentic
+      // tool loop fires (and the model isn't force-overridden to Haiku below).
+      const isClaudeBackbone = localOnly() || responseModel.startsWith('claude-') || !!_openrouterAgentic.getStore();
 
       // Tool-eligible turns need a REAL tool loop. The non-Claude provider chain
       // below is text-only (no tool loop) → the 60+ data-plane DBs, literature

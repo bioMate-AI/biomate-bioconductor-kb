@@ -170,3 +170,72 @@ export function localMessagesClient() {
     return params.stream ? events(message) : message;
   } } };
 }
+
+/** Config-parameterized OpenAI-compatible completion. Same transport discipline as
+ *  localCompletion (no redirects, explicit timeout, strict finish_reason, strict JSON),
+ *  but the endpoint/model/key are supplied by a TRUSTED caller (e.g. the fixed OpenRouter
+ *  origin) rather than read from the BIOMATE_LOCAL_* env + origin allowlist. Reuses
+ *  jsonObjectText. Used to give OpenRouter the same agentic transport as on-prem. */
+export async function openaiCompatCompletion(
+  cfg: { url: string; model: string; key?: string; timeout?: number },
+  body: Record<string, any>,
+) {
+  const timeout = cfg.timeout ?? 120000;
+  const dispatcher = new Agent({ headersTimeout: timeout, bodyTimeout: timeout });
+  try {
+    const options: RequestInit & { dispatcher: Agent } = {
+      dispatcher, method: 'POST', redirect: 'error', signal: AbortSignal.timeout(timeout),
+      headers: { 'Content-Type': 'application/json', ...(cfg.key ? { Authorization: `Bearer ${cfg.key}` } : {}) },
+      body: JSON.stringify({ ...body, model: cfg.model, stream: false }),
+    };
+    const response = await fetch(`${cfg.url.replace(/\/$/, '')}/chat/completions`, options);
+    if (!response.ok) throw new Error(`Inference HTTP ${response.status}`);
+    const result = await response.json();
+    const choice = result.choices?.[0];
+    if (!choice?.message || !['stop', 'length', 'tool_calls'].includes(choice.finish_reason)) {
+      throw new Error('Invalid or unsupported completion');
+    }
+    if (body.response_format?.type === 'json_object') {
+      if (choice.finish_reason !== 'stop') throw new Error('Inference did not produce a complete JSON object');
+      choice.message.content = jsonObjectText(choice.message.content);
+    }
+    return result;
+  } finally {
+    await dispatcher.destroy();
+  }
+}
+
+/** Config-parameterized Anthropic-Messages shim over any OpenAI-compatible endpoint.
+ *  Generalizes localMessagesClient so OpenRouter (and any OpenAI-compatible provider)
+ *  gets the SAME agentic tool loop as on-prem: BIOMATE_TOOLS → OpenAI functions,
+ *  tool_calls → validated tool_use, Anthropic-shaped message/stream. */
+export function openaiCompatMessagesClient(cfg: { url: string; model: string; key?: string; timeout?: number }) {
+  return { messages: { create: async (params: any) => {
+    const tools = params.tools?.map((t: any) => {
+      if (!t.input_schema || !t.name) throw new Error('Unsupported tool definition');
+      return { type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } };
+    });
+    const result = await openaiCompatCompletion(cfg, { messages: localMessages(params),
+      max_tokens: params.max_tokens ?? 4096, temperature: params.temperature ?? 0,
+      ...(params.stop_sequences ? { stop: params.stop_sequences } : {}),
+      ...(tools?.length ? { tools, tool_choice: 'auto' } : {}) });
+    const choice = result.choices[0];
+    const calls = choice.message.tool_calls || [];
+    if (calls.length && choice.finish_reason !== 'tool_calls') throw new Error('Incomplete tool call');
+    const seen = new Set();
+    const blocks = calls.map((call: any) => {
+      if (!call.id || seen.has(call.id) || call.type !== 'function'
+          || !tools?.some((t: any) => t.function.name === call.function?.name)) throw new Error('Invalid tool call');
+      seen.add(call.id);
+      const input = JSON.parse(call.function.arguments);
+      if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Invalid tool arguments');
+      validateToolInput(input, tools.find((t: any) => t.function.name === call.function.name).function.parameters);
+      return { type: 'tool_use', id: call.id, name: call.function.name, input };
+    });
+    const message = { id: result.id, type: 'message', role: 'assistant', model: cfg.model,
+      content: [...(choice.message.content ? [{ type: 'text', text: choice.message.content }] : []), ...blocks],
+      stop_reason: choice.finish_reason === 'tool_calls' ? 'tool_use' : choice.finish_reason === 'length' ? 'max_tokens' : 'end_turn',
+      usage: { input_tokens: result.usage?.prompt_tokens ?? 0, output_tokens: result.usage?.completion_tokens ?? 0 } };
+    return params.stream ? events(message) : message;
+  } } };
+}

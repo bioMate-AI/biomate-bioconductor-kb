@@ -140,7 +140,7 @@ function useApiKeys(open: boolean) {
 function useLlmApiKeys(open: boolean) {
   const [hasAnthropicKey, setHasAnthropicKey] = useState(false);
   const [hasOpenrouterKey, setHasOpenrouterKey] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('deepseek/deepseek-chat-v3-5');
+  const [selectedModel, setSelectedModel] = useState('z-ai/glm-5.3-prime');
 
   const [provider, setProvider] = useState<'default' | 'anthropic' | 'openrouter'>('default');
   const [anthropicInput, setAnthropicInput] = useState('');
@@ -1069,16 +1069,21 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                           />
                           {/* Quick-pick the models BioMate has been tested against,
                               so the panel reflects the backend's supported set instead
-                              of an opaque free-text box. Click to fill; still editable. */}
+                              of an opaque free-text box. Click to fill; still editable.
+                              Slugs verified against OpenRouter's live /models list and
+                              BioMate's routing benchmark (evaluation/.../models.yaml,
+                              _wfgenB_summary.json). Open flagships first — glm-5.3-prime
+                              is the recommended open default (best routing recall + lowest
+                              cost); all are function-calling capable so they get the full
+                              agentic pipeline (tools + workflows + run_code). */}
                           <div className="flex flex-wrap gap-1.5 pt-0.5" data-testid="llm-model-quickpick">
                             {[
-                              'deepseek/deepseek-chat',
-                              'deepseek/deepseek-r1',
-                              'qwen/qwen-2.5-72b-instruct',
-                              'meta-llama/llama-3.3-70b-instruct',
-                              'z-ai/glm-4.6',
-                              'openai/gpt-4o',
-                              'google/gemini-2.5-pro',
+                              'z-ai/glm-5.3-prime',
+                              'moonshotai/kimi-k3',
+                              'deepseek/deepseek-v4-pro',
+                              'anthropic/claude-opus-5.5',
+                              'openai/gpt-6.1-sol-pro',
+                              'google/gemini-3.1-pro-preview',
                             ].map(slug => (
                               <button
                                 key={slug}
