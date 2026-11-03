@@ -377,16 +377,23 @@ jobs:
                cat > "$NF_DEST" && \
                echo "Upload done: $(wc -l < $NF_DEST) lines written to $NF_DEST"'
 
-      - name: Patch nextflow_executor.py — fix DaoCloud registry mirror blocking
-        # DaoCloud registry mirror (daemon.json) intercepts ALL docker pull calls,
-        # even for images already loaded locally (docker load). The fix: inject
-        # --pull never into Docker runOptions so Nextflow never tries to pull.
+      - name: Patch nextflow_executor.py + ADMET main.nf for ECS
+        # Two patches applied here:
         #
-        # NOTE: The ADMET .nf container is now controlled by BIOMATE_ADMET_CONTAINER
-        # env var (Elvis operator in Groovy), so no sed patching of main.nf is needed.
+        # 1. --pull never in nextflow_executor.py:
+        #    DaoCloud registry mirror (daemon.json) intercepts ALL docker pull calls,
+        #    even for images already loaded locally. --pull never tells the Nextflow
+        #    Docker executor to use only the local cache.
+        #    IMPORTANT: gunicorn --preload means kill -HUP does NOT reload Python code.
+        #    We must docker restart so gunicorn re-preloads from the patched file.
         #
-        # IMPORTANT: gunicorn --preload means kill -HUP does NOT reload Python code.
-        # We must docker restart so gunicorn re-preloads from the patched file on disk.
+        # 2. ADMET container hard-coded from BIOMATE_ADMET_CONTAINER in .env:
+        #    The repo's main.nf uses System.getenv('BIOMATE_ADMET_CONTAINER') (Elvis
+        #    operator) for flexibility, but docker-compose.onprem.yml does NOT have
+        #    env_file: [".env"], so .env vars don't inject into the Galaxy container's
+        #    environment. We resolve this by sed-patching the uploaded volume file to
+        #    hard-code the container image (read from .env directly on the host).
+        #    This means the repo file stays clean; the deployed copy is ECS-specific.
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
@@ -396,14 +403,31 @@ jobs:
             'FILE=$(docker exec biomate-galaxy find /app -name "nextflow_executor.py" 2>/dev/null | head -1) && \
              if [ -z "$FILE" ]; then echo "ERROR: nextflow_executor.py not found in container"; exit 1; fi && \
              echo "Found: $FILE" && \
+             NEEDS_RESTART=false && \
              if docker exec biomate-galaxy grep -q -- "--pull never" "$FILE"; then
-               echo "--pull never already patched — no restart needed"
+               echo "--pull never already patched"
              else
                docker exec biomate-galaxy sed -i "s/--user root --network/--user root --pull never --network/g" "$FILE" && \
                echo "Patched --pull never into $FILE" && \
+               NEEDS_RESTART=true
+             fi && \
+             ADMET_IMG=$(grep "^BIOMATE_ADMET_CONTAINER=" /app/biomate/.env 2>/dev/null | cut -d= -f2- | tr -d "\"") && \
+             if [ -z "$ADMET_IMG" ]; then ADMET_IMG="biomate/biomni-tools:latest"; fi && \
+             VOLPATH=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}" 2>/dev/null) && \
+             NF_FILE="$VOLPATH/subworkflows/pharmacology/predict_admet_properties/main.nf" && \
+             if [ -f "$NF_FILE" ]; then
+               sed -i "s|^    container System.getenv(.BIOMATE_ADMET_CONTAINER.).*|    container '"'"'$ADMET_IMG'"'"'|g" "$NF_FILE" && \
+               echo "Patched ADMET main.nf container to: $ADMET_IMG" && \
+               grep -n "container" "$NF_FILE" | head -5
+             else
+               echo "WARNING: ADMET main.nf not found at $NF_FILE"
+             fi && \
+             if [ "$NEEDS_RESTART" = "true" ]; then
                echo "Restarting galaxy container (gunicorn --preload requires docker restart, not HUP)..." && \
                docker restart --time 30 biomate-galaxy && \
-               echo "Galaxy restarted — gunicorn will re-preload patched nextflow_executor.py"
+               echo "Galaxy restarted"
+             else
+               echo "No Python changes — skipping restart"
              fi'
 
       - name: Patch index.html — remove Google CDN links (blocked in China)
