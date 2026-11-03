@@ -6785,6 +6785,14 @@ def workflow_by_name(
             finally:
                 conn2.close()
         if not row:
+            # Identifier forms the exact-name lookup misses: a snake_case slug
+            # ("perform_chipseq_peak_calling_with_macs2" for "Perform Chipseq Peak Calling
+            # With Macs2"), a directory slug or a file stem.
+            m = _engine.resolve_named_workflow(name)
+            if m:
+                row = (m.id, m.name, m.description, m.domain, m.source, m.format,
+                       m.step_count, ",".join(m.tools or []), ",".join(m.tags or []), m.filename)
+        if not row:
             return {"success": False, "error": f"workflow_not_found: {name}"}
         wf_id, wf_name, wf_desc, wf_domain, wf_source, wf_format, wf_steps, wf_tools, wf_tags, wf_filename = row
         return {

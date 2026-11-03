@@ -2134,6 +2134,27 @@ print(json.dumps({'text': text or '', 'page_count': page_count}))
  * Operates on COMPLETE text (post-stream / final message). For the live token
  * stream use StreamToolCallFilter, which handles fragmented tags.
  */
+/** Canonical workflow identifier form (mirrors UnifiedWorkflowSearch._workflow_slug):
+ *  "Perform Chipseq Peak Calling With Macs2" and "perform_chipseq_peak_calling_with_macs2"
+ *  are the same workflow. */
+export function workflowSlug(name: string): string {
+  return (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+/** The catalog workflow a response presents in its header — the first bold span, minus a
+ *  trailing " — description". Only identifier-shaped spans count (a snake_case id or a
+ *  short Title-Case name); bold prose is not a workflow name. nf-core/<slug> is left to the
+ *  dedicated nf-core guardrail. */
+export function textWorkflowName(text: string): string | null {
+  const m = /\*\*([^*\n]{3,120}?)\*\*/.exec(text || '');
+  if (!m) return null;
+  const name = m[1].split(/\s+[—–-]\s+/)[0].replace(/[:.]+$/, '').trim();
+  if (/^nf-core\//i.test(name)) return null;
+  if (/^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/.test(name)) return name;
+  if (/^[A-Z0-9][\w+-]*(?:\s+\(?[A-Z0-9][\w+-]*\)?){1,7}$/.test(name)) return name;
+  return null;
+}
+
 export function stripNarratedToolCalls(text: string): string {
   if (!text) return text;
   if (!/<\/?(?:antml:)?(?:function_calls|invoke|parameter)\b/i.test(text)) {
@@ -4681,6 +4702,11 @@ Rules:
 
     // Workflow generation — intent flags already determined by analyzeIntent; no further gate needed
     const needsGeneration = actions.needsWorkflowGeneration || actions.needsWorkflowModification;
+    // Re-runs Step 4's generateWorkflow call with a different intent text (same datasets,
+    // inline params, domain hints, session files). A card swapped in after the response text
+    // is written (Steps 6b/6c) must be built this way — complete, with its OWN parameters
+    // and file bindings — not from a stripped name lookup carrying the old card's params.
+    let regenerateWorkflowFor: ((intentText: string) => Promise<any>) | null = null;
     if (needsGeneration) {
       try {
         onProgress?.('search');
@@ -4707,8 +4733,8 @@ Rules:
           log(`Step 4: Injecting uploaded file params: ${JSON.stringify(_uploadedFileParams)}`);
         }
 
-        generatedWorkflow = await this.generateWorkflow(
-          workflowUserIntent,
+        regenerateWorkflowFor = (intentText: string) => this.generateWorkflow(
+          intentText,
           recommendedDatasets.map(d => d.dataset),
           _mergedInline,
           context,
@@ -4717,6 +4743,7 @@ Rules:
           context.sessionDatasets?.length ? context.sessionDatasets : undefined,
           decomposition.penalizedDomains
         );
+        generatedWorkflow = await regenerateWorkflowFor(workflowUserIntent);
         workflowGenerated = !!(
           generatedWorkflow?.success &&
           !generatedWorkflow?.error &&
@@ -4911,20 +4938,15 @@ Rules:
         );
         if (reselectedName && reselectedName !== generatedWorkflow.workflow_name) {
           log(`Step 6b: LLM reselected workflow "${reselectedName}" (was "${generatedWorkflow.workflow_name}")`);
-          const reselected = await this._lookupWorkflowByName(reselectedName);
-          if (reselected?.success) {
-            // Preserve param extraction from original search; only swap identity fields
-            generatedWorkflow = {
-              ...generatedWorkflow,
-              ...reselected,
-              // Keep params from FTS result — they were extracted from the user message
-              required_params: generatedWorkflow.required_params,
-              optional_params: generatedWorkflow.optional_params,
-              param_prefill_deferred: generatedWorkflow.param_prefill_deferred,
-              source: 'llm_reselection',
-            };
-            workflowGenerated = !!(generatedWorkflow.workflow_ga || generatedWorkflow.nextflow_path);
+          // The reselected workflow's own card (its parameters, prefilled from this request),
+          // not the previous card's parameters under a new name.
+          const reselected = await this._cardForNamedWorkflow(reselectedName, message, regenerateWorkflowFor);
+          if (reselected) {
+            generatedWorkflow = { ...reselected, source: 'llm_reselection' };
+            workflowGenerated = true;
             log(`Step 6b: reselection applied — panel will show "${reselectedName}"`);
+          } else {
+            log(`Step 6b: no complete card for "${reselectedName}" — keeping "${generatedWorkflow.workflow_name}"`);
           }
         } else {
           log(`Step 6b: LLM confirmed "${generatedWorkflow.workflow_name}" — no change`);
@@ -4988,6 +5010,40 @@ Rules:
         }
       } catch (err: any) {
         log(`Step 6c: text guardrail failed (${err.message}) — keeping FTS result`);
+      }
+    }
+
+    // Step 6c-2: Text-vs-card consistency for every catalog workflow, not only nf-core.
+    // The response header names the workflow it describes ("**hts_plate_qc_hit_calling** —",
+    // "**REINVENT4 Generative Lead Design** —"). Measured 2026-11-03 on the cold-start
+    // examples: half of the workflow cards disagreed with their own chat text, and where the
+    // text named a real catalog workflow it was the right one (plate reshape, DE + GO,
+    // generative design) while the card was a lexical near-miss. The nf-core branch above
+    // could not see these names. Same exception as above for the pathway-enrichment override.
+    if (
+      generatedWorkflow?.success &&
+      generatedWorkflow?.workflow_ga &&
+      !generatedWorkflow?.workflow_type?.includes('chain') &&
+      generatedWorkflow?.source !== 'text_guardrail' &&
+      response.message &&
+      !_isPathwayEnrichmentQuery
+    ) {
+      try {
+        const _named = textWorkflowName(response.message);
+        const _card = generatedWorkflow.workflow_ga?.name || generatedWorkflow.workflow_name || '';
+        if (_named && workflowSlug(_named) !== workflowSlug(_card)) {
+          log(`Step 6c-2: text presents "${_named}" but card shows "${_card}"`);
+          const corrected = await this._cardForNamedWorkflow(_named, message, regenerateWorkflowFor);
+          if (corrected) {
+            generatedWorkflow = { ...corrected, source: 'text_guardrail' };
+            workflowGenerated = true;
+            log(`Step 6c-2: card corrected to "${_named}"`);
+          } else {
+            log(`Step 6c-2: "${_named}" is not a catalog workflow or could not be built — keeping "${_card}"`);
+          }
+        }
+      } catch (err: any) {
+        log(`Step 6c-2: guardrail failed (${err.message}) — keeping current card`);
       }
     }
 
@@ -8083,6 +8139,26 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
   /**
    * Direct workflow lookup by name — used after LLM reselection.
    */
+  /** Build the card for catalog workflow `name` after the response text was written.
+   *  Identity is checked first with the cheap name lookup (so a header that is not a catalog
+   *  workflow costs no regeneration); the card is then regenerated through Step 4's call with
+   *  the name made explicit, which the backend's named-workflow fast path resolves to the
+   *  complete card (own parameters, session-file bindings, runnable path). Returns null —
+   *  keep the current card — unless the regenerated card IS that workflow. */
+  private async _cardForNamedWorkflow(
+    name: string,
+    message: string,
+    regenerate: ((intentText: string) => Promise<any>) | null,
+  ): Promise<any | null> {
+    if (!regenerate) return null;
+    const ident = await this._lookupWorkflowByName(name);
+    if (!ident?.success || !ident.workflow_name) return null;
+    const target = workflowSlug(ident.workflow_name);
+    const card = await regenerate(`${message}\n\nRun the ${target} workflow.`);
+    const built = workflowSlug(card?.workflow_ga?.name || card?.workflow_name || '');
+    return card?.success && !card?.error && built === target ? card : null;
+  }
+
   private async _lookupWorkflowByName(name: string): Promise<any> {
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';

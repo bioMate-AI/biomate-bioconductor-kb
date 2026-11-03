@@ -3712,6 +3712,74 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             **({'citations': citations} if citations else {}),
         }
 
+    @staticmethod
+    def _named_workflow_tokens(user_intent: str) -> List[str]:
+        """Candidate workflow identifiers explicitly written in a request.
+
+        snake_case tokens (``perform_chipseq_peak_calling_with_macs2``) and
+        "the <name> workflow" phrases. File names (``counts_matrix.csv``), parameter
+        keys (``min_fold_change=2``) and path fragments (``s3://bucket/raw_reads/``)
+        are not identifiers and are skipped.
+        """
+        import re as _re_named
+
+        low = (user_intent or '').lower()
+        tokens: List[str] = []
+        for m in _re_named.finditer(r'(?<![\w./-])([a-z][a-z0-9]*(?:_[a-z0-9]+)+)(?![\w/-])', low):
+            following = low[m.end():m.end() + 8]
+            if _re_named.match(r'\.[a-z0-9]{1,5}\b', following) or _re_named.match(r'\s*[=:]', following):
+                continue
+            tokens.append(m.group(1))
+        tokens += _re_named.findall(r'\bthe\s+([a-z][a-z0-9_]{5,})\s+workflow\b', low)
+        return list(dict.fromkeys(tokens))
+
+    def _try_fast_path_named_catalog_workflow(
+        self,
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Route a request that explicitly names ONE catalog workflow to exactly that workflow.
+
+        "Run perform_chipseq_peak_calling_with_macs2 using its built-in ... demo files" and
+        "Run the metaboanalystr workflow ..." name the workflow outright. An explicit name is
+        the strongest routing signal there is, so this runs before every keyword fast path
+        and retrieval — which otherwise sent the ChIP-seq demo to nf-core/chipseq (needs real
+        reads) and the metaboanalystr demo to a sibling workflow. Exactly one resolved
+        workflow is required: none -> normal routing; two or more -> a multi-workflow
+        request, left to chain/multi-intent routing. Explicit ``nf-core/<slug>`` mentions
+        are left to _try_fast_path_nfcore_pipeline.
+        """
+        import re as _re_named
+
+        # Only what the user wrote names a workflow. generate_workflow_unified appends
+        # "[Memory context]" (workflow names from PAST corrections) and the API layer appends
+        # "[Inline parameters: ...]"; neither may steer this request to a named workflow.
+        request_text = _re_named.split(r'\n\s*\[(?:Memory context|Inline parameters:)', user_intent or '')[0]
+        if _re_named.search(r'\bnf-core/[a-z]', request_text, _re_named.IGNORECASE):
+            return None
+        resolved: Dict[int, Any] = {}
+        for token in self._named_workflow_tokens(request_text):
+            match = self.workflow_search.resolve_named_workflow(token)
+            if match:
+                resolved.setdefault(match.id, match)
+        if len(resolved) != 1:
+            return None
+        top = next(iter(resolved.values()))
+        log.info(
+            "[UnifiedWorkflowGeneration] Named-workflow fast path → %s (id=%d)", top.name, top.id
+        )
+        return self._return_nextflow_match(
+            match=top,
+            score=top.score,
+            user_intent=user_intent,
+            source='template_reuse',
+            needs_user_feedback=False,
+            search_results=[top],
+            selected_trial='',
+            trials=[],
+            uploaded_datasets=uploaded_datasets,
+        )
+
     def _try_fast_path_explicit_codon_workflow(
         self,
         user_intent: str,
@@ -4519,6 +4587,13 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             # Initialise variables that may be set only in specific code paths
             # so the final return dict can always reference them safely.
             dataset_match_result: Dict[str, Any] = {}
+
+            # An explicitly named workflow outranks every keyword heuristic below.
+            _fast_named = self._try_fast_path_named_catalog_workflow(
+                user_intent, uploaded_datasets=uploaded_datasets
+            )
+            if _fast_named:
+                return _fast_named
 
             _fast_codon = self._try_fast_path_explicit_codon_workflow(
                 user_intent, uploaded_datasets=uploaded_datasets

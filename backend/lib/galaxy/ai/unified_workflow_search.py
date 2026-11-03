@@ -135,6 +135,13 @@ SOURCE_PRIORITY = {
 }
 
 
+_GENERIC_PATH_SEGMENTS = frozenset({
+    "main", "workflow", "workflows", "subworkflow", "subworkflows", "module", "modules",
+    "local", "nf_core", "nfcore", "nextflow", "nextflow_nfcore", "bin", "lib", "conf",
+    "assets", "templates", "tests", "test",
+})
+
+
 def _is_component_subworkflow(filename: str, source: str = "") -> bool:
     """True only for a GENUINE pipeline COMPONENT — a helper step meant to be
     composed, not run directly. Retrieval deprioritizes/excludes these, but they
@@ -1988,6 +1995,55 @@ class UnifiedWorkflowSearch:
 
         finally:
             conn.close()
+
+    @staticmethod
+    def _workflow_slug(text: str) -> str:
+        """Canonical identifier form: lowercase, runs of non-alphanumerics -> '_'."""
+        return re.sub(r'[^a-z0-9]+', '_', (text or '').lower()).strip('_')
+
+    def resolve_named_workflow(self, identifier: str) -> Optional[WorkflowMatch]:
+        """Resolve an explicit workflow identifier to ONE catalog row, or None.
+
+        Matches exactly (no fuzzy search) on any of the forms a workflow is named by:
+        its directory slug (``.../<slug>/main.nf``), its file stem (``.../<slug>.nf``),
+        or its display name in slug form ("Perform Chipseq Peak Calling With Macs2" ==
+        ``perform_chipseq_peak_calling_with_macs2``). The same workflow is often indexed
+        twice (e.g. a ``nextflow`` and a ``biomni_nextflow`` row), so ties are broken
+        deterministically: SOURCE_PRIORITY, then real-execution evidence, then lowest id.
+        """
+        slug = self._workflow_slug(identifier)
+        # Path segments shared by many workflows ("main" is every main.nf's stem) identify none.
+        if len(slug) < 3 or slug in _GENERIC_PATH_SEGMENTS:
+            return None
+        conn = self._get_connection()
+        try:
+            # instr() rather than LIKE: '_' is a LIKE wildcard and slugs are full of them.
+            rows = conn.execute("""
+                SELECT id, name, description, domain, source, format,
+                       step_count, tools_used, tags, filename, workflow_json,
+                       0.0 as fts_score, input_types, output_types,
+                       real_exec_status, workflow_correctness_verdict, real_exec_provisional
+                FROM workflows
+                WHERE instr(lower(filename), ?) > 0 OR instr(lower(name), ?) > 0
+                   OR instr(lower(name), ?) > 0
+            """, (slug, slug, slug.replace('_', ' '))).fetchall()
+        finally:
+            conn.close()
+
+        def _exact(row) -> bool:
+            name, filename = row[1] or '', (row[9] or '').lower()
+            parts = filename.split('/')
+            return (self._workflow_slug(name) == slug
+                    or (len(parts) >= 2 and parts[-1] == 'main.nf' and parts[-2] == slug)
+                    or parts[-1] == f'{slug}.nf')
+
+        hits = [r for r in rows if _exact(r)]
+        if not hits:
+            return None
+        hits.sort(key=lambda r: (-SOURCE_PRIORITY.get(r[4] or 'unknown', 0),
+                                 0 if (r[14] if len(r) > 14 else None) in ('ok', 'ok_warnings') else 1,
+                                 r[0]))
+        return self._create_match(hits[0], "", True)
 
     def get_workflow(self, workflow_id: int) -> Optional[WorkflowMatch]:
         """Get a specific workflow by ID."""
