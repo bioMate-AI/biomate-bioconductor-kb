@@ -84,6 +84,65 @@ except ImportError as e:
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# GEO data-modality detection — the DATA-FIRST routing signal, lifted to module
+# scope so BOTH the chat path (AIAssistant._detect_geo_platform) and the
+# execute-gate (via the /api/ai_assistant/geo_platform endpoint) share ONE
+# implementation. See docs/20261102_UNIFIED_PUBLIC_ID_ROUTING_DESIGN.md.
+# ---------------------------------------------------------------------------
+_GEO_PLATFORM_CACHE: Dict[str, Optional[str]] = {}
+
+
+def detect_geo_platform(gse_id: str, cache: Optional[Dict[str, Optional[str]]] = None) -> Optional[str]:
+    """Read GEO's own Series metadata to determine data modality.
+
+    Returns 'microarray' | 'scrna' | 'bulk_rnaseq' | None (unknown / lookup failed).
+    One HTTP GET to GEO's SOFT text endpoint; `!Series_type` is authoritative for
+    array-vs-sequencing, and title/summary/design disambiguate scRNA from bulk.
+    Any failure returns None so the caller can fall back — never raises into routing.
+    Results are cached per accession for the process lifetime (shared module cache
+    when `cache` is omitted).
+    """
+    if cache is None:
+        cache = _GEO_PLATFORM_CACHE
+    if gse_id in cache:
+        return cache[gse_id]
+    result: Optional[str] = None
+    try:
+        import urllib.request as _u
+        url = (f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={gse_id}"
+               "&targ=self&form=text&view=quick")
+        with _u.urlopen(url, timeout=4) as _r:
+            text = _r.read().decode('utf-8', 'replace')
+        types, meta = [], []
+        for ln in text.splitlines():
+            low = ln.lower()
+            if low.startswith('!series_type'):
+                types.append(low.split('=', 1)[-1].strip())
+            elif (low.startswith('!series_title') or low.startswith('!series_summary')
+                  or low.startswith('!series_overall_design')):
+                meta.append(low.split('=', 1)[-1].strip())
+        blob = ' '.join(meta)
+        has_array = any('array' in t for t in types)
+        has_seq = any('sequencing' in t for t in types)
+        sc = any(k in blob for k in [
+            'single cell', 'single-cell', 'scrna', 'sc-rna', '10x', 'droplet',
+            'drop-seq', 'chromium', 'single nucleus', 'single-nucleus', 'snrna',
+        ])
+        if has_array and not has_seq:
+            result = 'microarray'
+        elif has_seq and not has_array:
+            result = 'scrna' if sc else 'bulk_rnaseq'
+        else:
+            result = None  # mixed / no type line → unknown, let caller fall back
+        log.info("[GeoFastPath] GEO %s metadata: types=%s → platform=%s", gse_id, types, result)
+    except Exception as _e:
+        log.info("[GeoFastPath] GEO platform lookup for %s failed (%s) — caller falls back", gse_id, _e)
+        result = None
+    cache[gse_id] = result
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Module-level bounded cache for multi-task LLM classification results.
 # Keyed by MD5 of the lowercased query; evicts oldest entry when full.
 # ---------------------------------------------------------------------------
@@ -4085,42 +4144,10 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         cache = getattr(self, '_geo_platform_cache', None)
         if cache is None:
             cache = self._geo_platform_cache = {}
-        if gse_id in cache:
-            return cache[gse_id]
-        result: Optional[str] = None
-        try:
-            import urllib.request as _u
-            url = (f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={gse_id}"
-                   "&targ=self&form=text&view=quick")
-            with _u.urlopen(url, timeout=4) as _r:
-                text = _r.read().decode('utf-8', 'replace')
-            types, meta = [], []
-            for ln in text.splitlines():
-                low = ln.lower()
-                if low.startswith('!series_type'):
-                    types.append(low.split('=', 1)[-1].strip())
-                elif (low.startswith('!series_title') or low.startswith('!series_summary')
-                      or low.startswith('!series_overall_design')):
-                    meta.append(low.split('=', 1)[-1].strip())
-            blob = ' '.join(meta)
-            has_array = any('array' in t for t in types)
-            has_seq = any('sequencing' in t for t in types)
-            sc = any(k in blob for k in [
-                'single cell', 'single-cell', 'scrna', 'sc-rna', '10x', 'droplet',
-                'drop-seq', 'chromium', 'single nucleus', 'single-nucleus', 'snrna',
-            ])
-            if has_array and not has_seq:
-                result = 'microarray'
-            elif has_seq and not has_array:
-                result = 'scrna' if sc else 'bulk_rnaseq'
-            else:
-                result = None  # mixed / no type line → unknown, let caller fall back
-            log.info("[GeoFastPath] GEO %s metadata: types=%s → platform=%s", gse_id, types, result)
-        except Exception as _e:
-            log.info("[GeoFastPath] GEO platform lookup for %s failed (%s) — caller falls back", gse_id, _e)
-            result = None
-        cache[gse_id] = result
-        return result
+        # Delegate to the shared module-level implementation (also used by the
+        # execute-gate via /api/ai_assistant/geo_platform) so there is ONE source
+        # of truth for data-modality routing.
+        return detect_geo_platform(gse_id, cache=cache)
 
     def _try_fast_path_geo_scrna_pseudobulk(  # noqa: deploy-trigger
         self,

@@ -3688,6 +3688,38 @@ def get_ai_status(
 
 
 @router.get(
+    "/api/ai_assistant/geo_platform",
+    summary="Data-first GEO modality detection (microarray | scrna | bulk_rnaseq | unknown)."
+)
+def geo_platform(
+    accession: str,
+    trans: ProvidesUserContext = DependsOnTrans,
+) -> Dict[str, Any]:
+    """Return the GEO series data modality so callers can route data-type-awarely.
+
+    This is the DATA-FIRST signal (read from GEO's own Series metadata) used by the
+    execute-gate to pick the correct ingest + DE method for a bare GEO accession:
+      - microarray → geo_data_connector → differentialabundance(study_type=affy, limma)
+      - bulk_rnaseq → geo_data_connector → differentialabundance(deseq2)
+      - scrna      → geo_scrna_pseudobulk → differentialabundance(deseq2)
+      - unknown    → fall back to bulk default with a warning
+    Shares one implementation with the chat path (AIAssistant._detect_geo_platform).
+    See docs/20261102_UNIFIED_PUBLIC_ID_ROUTING_DESIGN.md.
+    """
+    acc = (accession or "").strip().upper()
+    import re as _re
+    if not _re.match(r'^(GSE|GSM|GDS)\d+$', acc):
+        return {"accession": acc, "platform": None, "error": "not a GEO accession"}
+    try:
+        from galaxy.ai.ai_assistant import detect_geo_platform as _dgp
+        platform = _dgp(acc)
+    except Exception as e:  # never raise into routing — caller falls back to bulk default
+        log.info("[geo_platform] lookup for %s failed (%s) — returning unknown", acc, e)
+        platform = None
+    return {"accession": acc, "platform": platform or "unknown"}
+
+
+@router.get(
     "/api/ai_assistant/workflow_catalog",
     summary="Catalog statistics: workflow counts by source + chain count."
 )

@@ -10943,43 +10943,112 @@ ${paramLines || '(none recorded)'}`;
                 const dePath = request.workflowDefinition?.nextflow_path || request.workflowDefinition?.nextflowPath;
                 const deName = request.workflowDefinition?.name || 'differentialabundance';
                 if (dePath) {
-                  // Carry the user's DE params (study_type, normalisation_method, …); drop
-                  // the empty count inputs — the connections fill matrix + samplesheet.
-                  const deParams: Record<string, any> = {};
+                  const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+
+                  // ── DATA-TYPE × INTENT aware routing ────────────────────────────────
+                  // A bare GEO accession is not a count matrix, and the right ingest +
+                  // DE method depend on the series' MODALITY. Delegate the data-first
+                  // detection to the backend (one source of truth with the chat path:
+                  // /api/ai_assistant/geo_platform → _detect_geo_platform). Then:
+                  //   microarray  → geo_data_connector → differentialabundance(affy, limma)
+                  //   bulk_rnaseq → geo_data_connector → differentialabundance(rnaseq, deseq2)
+                  //   scrna       → geo_scrna_pseudobulk → differentialabundance(rnaseq, deseq2)
+                  //   unknown     → bulk default (deseq2) + warning
+                  // This replaces the former hard-coded geo_data_connector→DESeq2 chain,
+                  // which silently coerced microarray log-intensities to integer → all-zero
+                  // counts → DESeq2 abort (GSE22055, 2026-11-02).
+                  // See docs/20261102_UNIFIED_PUBLIC_ID_ROUTING_DESIGN.md step 1.
+                  let platform: string = 'unknown';
+                  try {
+                    const pResp = await fetch(`${galaxyUrl}/api/ai_assistant/geo_platform?accession=${encodeURIComponent(acc)}`, {
+                      signal: AbortSignal.timeout(8000),
+                    });
+                    if (pResp.ok) {
+                      const pData: any = await pResp.json().catch(() => ({}));
+                      if (pData?.platform) platform = String(pData.platform);
+                    }
+                  } catch (e: any) {
+                    console.warn(`[execute-gate] geo_platform lookup for ${acc} failed (${e?.message || e}) — defaulting to bulk/deseq2.`);
+                  }
+
+                  // Build the plan from the modality.
+                  const GEO_CONNECTOR = 'nextflow_nfcore/subworkflows/genomics/geo_data_connector/main.nf';
+                  const GEO_SCRNA_PSEUDOBULK = 'nfcore/geo_scrna_pseudobulk/main.nf';
+                  let ingestName: string;
+                  let ingestStep: { nextflow_path: string; workflow_name: string; params: Record<string, any> };
+                  let connections: Array<{ from_step: number; from_output: string; to_step: number; to_input: string }>;
+                  const methodParams: Record<string, any> = {};
+                  let planNote: string;
+
+                  if (platform === 'scrna') {
+                    ingestName = 'geo_scrna_pseudobulk';
+                    ingestStep = { nextflow_path: GEO_SCRNA_PSEUDOBULK, workflow_name: ingestName, params: { geo_accession: acc } };
+                    // geo_scrna_pseudobulk emits: matrix | metadata | contrasts (see its main.nf).
+                    connections = [
+                      { from_step: 1, from_output: 'matrix', to_step: 2, to_input: 'matrix' },
+                      { from_step: 1, from_output: 'metadata', to_step: 2, to_input: 'samplesheet' },
+                      { from_step: 1, from_output: 'contrasts', to_step: 2, to_input: 'contrasts' },
+                    ];
+                    methodParams.study_type = 'rnaseq';
+                    methodParams.normalisation_method = 'deseq2';
+                    planNote = `${acc} is single-cell RNA-seq — pseudobulk-aggregating per sample, then DESeq2 differential expression.`;
+                  } else {
+                    // microarray | bulk_rnaseq | unknown → geo_data_connector (emits count_matrix | sample_metadata)
+                    ingestName = 'geo_data_connector';
+                    ingestStep = { nextflow_path: GEO_CONNECTOR, workflow_name: ingestName, params: { accession: acc } };
+                    connections = [
+                      { from_step: 1, from_output: 'count_matrix', to_step: 2, to_input: 'matrix' },
+                      { from_step: 1, from_output: 'sample_metadata', to_step: 2, to_input: 'samplesheet' },
+                    ];
+                    if (platform === 'microarray') {
+                      // Microarray is log-intensities (Gaussian), NOT counts — DESeq2's integer
+                      // coercion zeros it out. differentialabundance runs limma for affy arrays.
+                      methodParams.study_type = 'affy';
+                      methodParams.normalisation_method = 'limma';
+                      planNote = `${acc} is a microarray series (log-intensities) — running limma differential expression (affy mode), not DESeq2.`;
+                    } else {
+                      methodParams.study_type = 'rnaseq';
+                      methodParams.normalisation_method = 'deseq2';
+                      planNote = platform === 'bulk_rnaseq'
+                        ? `${acc} is bulk RNA-seq — running DESeq2 differential expression on its count matrix.`
+                        : `${acc} modality could not be confirmed from GEO metadata — defaulting to bulk RNA-seq (DESeq2). Review the series matrix if results look off.`;
+                    }
+                  }
+
+                  // Carry the user's DE params; drop the empty count inputs (connections fill
+                  // matrix/samplesheet). User-supplied study_type / normalisation_method WIN
+                  // over the modality defaults (explicit intent beats inference).
+                  const deParams: Record<string, any> = { ...methodParams };
                   for (const [k, v] of Object.entries(providedParams)) {
                     if (!countKeys.includes(k) && k !== 'outdir' && !isEmptyVal(v)) deParams[k] = v;
                   }
+
                   const chainBody = {
                     chain_name: `${acc} → ${deName}`,
                     chat_session_id: request.chatSessionId || request.chat_session_id,
                     start_from_step: 0,
                     max_parallel: 2,
-                    steps: [
-                      { nextflow_path: 'nextflow_nfcore/subworkflows/genomics/geo_data_connector/main.nf', workflow_name: 'geo_data_connector', params: { accession: acc } },
-                      { nextflow_path: dePath, workflow_name: deName, params: deParams },
-                    ],
-                    connections: [
-                      { from_step: 1, from_output: 'count_matrix', to_step: 2, to_input: 'matrix' },
-                      { from_step: 1, from_output: 'sample_metadata', to_step: 2, to_input: 'samplesheet' },
-                    ],
+                    steps: [ingestStep, { nextflow_path: dePath, workflow_name: deName, params: deParams }],
+                    connections,
                   };
                   try {
-                    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
                     const chainResp = await fetch(`${galaxyUrl}/api/workflows/chain`, {
                       method: 'POST', headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify(chainBody), signal: AbortSignal.timeout(30000),
                     });
                     const chainData: any = await chainResp.json().catch(() => ({}));
                     if (chainResp.ok && chainData?.chain_run_id) {
-                      console.warn(`[execute-gate] DE workflow "${wfName}" on GEO accession ${acc} → auto-chained via geo_data_connector (chain_run_id=${chainData.chain_run_id}).`);
+                      console.warn(`[execute-gate] DE workflow "${wfName}" on GEO ${acc} (platform=${platform}) → auto-chained via ${ingestName} (method=${deParams.normalisation_method}, chain_run_id=${chainData.chain_run_id}).`);
                       return res.status(200).json({
                         chained: true,
                         chain_run_id: chainData.chain_run_id,
                         runId: chainData.chain_run_id,
                         chain_name: chainBody.chain_name,
                         accession: acc,
-                        steps: ['geo_data_connector', deName],
-                        message: `Fetching ${acc} with the GEO ingest, then running ${deName} on its count matrix. Track it in the Run Manager.`,
+                        platform,
+                        method: deParams.normalisation_method,
+                        steps: [ingestName, deName],
+                        message: `${planNote} Track it in the Run Manager.`,
                       });
                     }
                     console.warn(`[execute-gate] auto-chain for ${acc} did not start (HTTP ${chainResp.status}): ${JSON.stringify(chainData).slice(0, 200)} — falling back to redirect.`);

@@ -83,8 +83,30 @@ and generalizes to every ID with one code path — while respecting intent and c
 then ONE real Batch run per ID type (predict the outcome first; the fetcher must be green standalone
 before chaining). Real fixture (lifeifei163361@163.com), live dev, no mocks.
 
-## 5. Status now
-- #2 GEO auto-chain: wiring verified live, but **blunt (ignores data-type) + blocked by step-0 failure
-  (dual-classifier)**. Should be reworked per step 0–1 above, not shipped as-is for non-bulk GEO.
+## 5. Status
+
+- **Step 0 (dual-classifier) — DONE + verified live.** `_workflow_fetches_geo_natively` skip
+  (executor commit `a94dffaec`); GSE22055 chain re-run shows `geo_data_connector` SUCCEEDED
+  (count_matrix + sample_metadata).
+- **Step 1 (GEO intent-and-context-aware chain) — IMPLEMENTED 2026-11-03.** The execute-gate no longer
+  hard-codes `geo_data_connector → differentialabundance(DESeq2)`. It now:
+  1. **Delegates** data-modality detection to the backend — new `GET /api/ai_assistant/geo_platform`
+     (`webapps/.../ai_assistant.py`) reusing the module-level `detect_geo_platform()` lifted from
+     `AIAssistant._detect_geo_platform` (ONE source of truth with the chat path,
+     `lib/galaxy/ai/ai_assistant.py`).
+  2. **Builds the plan by modality** (`frontend/server/routes.ts` execute-gate):
+     - `microarray` → geo_data_connector → `differentialabundance(study_type=affy, normalisation_method=limma)`
+       (differentialabundance supports affy/limma natively — `nextflow_schema.json` enums; avoids the
+       DESeq2 integer-coercion that zeroed GSE22055).
+     - `bulk_rnaseq` → geo_data_connector → `differentialabundance(rnaseq, deseq2)`.
+     - `scrna` → **geo_scrna_pseudobulk** (not geo_data_connector) → `differentialabundance(rnaseq, deseq2)`;
+       connections use that workflow's emit names (`matrix|metadata|contrasts`, vs the connector's
+       `count_matrix|sample_metadata`).
+     - `unknown` → bulk default (deseq2) + a warning surfaced in the response.
+  3. **Intent/context:** intent (DE) is implied by the DE workflow the user is executing; context —
+     user-supplied `study_type`/`normalisation_method` WIN over the modality defaults.
+- **Steps 2–5 (other public IDs) — not started.** SRA→fetchngs→(rnaseq|sarek|chipseq|atacseq);
+  PDB/EMDB→docking; UniProt/ChEMBL cross-workflow; PXD/MassIVE needs an ingest built first.
 - Landscape evidence + line refs: the 2026-11-02 landscape audit (ID-type table, self-fetching list,
-  coverage matrix); `docs/20261102_ACCESSION_LAUNCH_INFO_FLOW_ISSUE_AND_FIX.md`.
+  coverage matrix); `docs/20261102_ACCESSION_LAUNCH_INFO_FLOW_ISSUE_AND_FIX.md`;
+  config-bug audit `docs/20261102_WORKFLOW_CONFIG_ERROR_AUDIT.md`.
