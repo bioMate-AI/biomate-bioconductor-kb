@@ -127,3 +127,11 @@ Branch **`merge/next-phase-into-dev-20261103`** (commit `b753455b1`, two parents
 
 **Verification on the merged tree**
 `tsc` 0 errors. Frontend vitest 1,993 passed (branch baseline 2,004 includes 12 untracked tests; the base side added 1). Backend per-file tests equal the branch (1,003 vs 1,014 passed; 45 failed and 18 non-collecting on both). Python 3.9 compile clean for all touched files. Chain lint PASS. Not verified: Docker builds, a running dev instance of the merged code, browser behaviour of the UI merges.
+
+## Post-merge verification on dev (2026-11-03)
+Merge candidate `b753455b1` deployed to dev (sync healthy; the script's smoke tests pass) and checked:
+- **CI on PR #316:** backend full suite, frontend full suite, security scan, amd64 and arm64 image builds all pass. (The 45 failing and 18 non-collecting backend tests seen locally are specific to this machine's lightweight environment; CI passes.)
+- **API checks on dev:** build identity equals `b753455b1`; `POST /api/workflows/execute` without credentials returns 401; ClinicalTrials.gov and bioRxiv/medRxiv lookups, ChEMBL similarity search and the federated literature fan-out answer (Semantic Scholar shows its HTTP 429 as a failed source); 70 chains present; the merged executor, billing and chain modules load in the container under Python 3.9.
+- **Browser check (existing logged-in session, read-only):** the merged frontend loads with no console errors, including after a reload; the sidebar, project tree, composer and Run Manager render; the Connectors page renders and lists 64 data sources.
+- **Finding:** the Connectors page shows every one of the 64 listed databases as available (a count with a check mark per category), while 18 of them have no backend integration (`20261101_DATABASE_LIST_UI_VS_BACKEND.md`). The UI should show real status per source.
+- **Not verified:** any run that needs a login for automation (the fixture password is not available, and the dev test header does not authenticate as a user), so the first end-to-end chain run, findings generation and the workflow panel with a live run are still untested. The `biomni-tools` Dockerfile change is untested: its image workflow is dispatch-only and pushes to the registry when its smoke test passes, and a local install test of the GitHub-sourced package was blocked by the session's permission check.
