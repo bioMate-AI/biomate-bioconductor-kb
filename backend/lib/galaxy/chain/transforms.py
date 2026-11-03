@@ -122,7 +122,8 @@ def pocket_json_to_box_center(path: str, args: Dict[str, Any]) -> Dict[str, Any]
     ``{"target","tool","version","num_pockets","pockets":[{"pocket_id",
     "volume_A3","druggability_score","hydrophobicity","polarity",
     "center_x","center_y","center_z"}],"timestamp"}``.
-    Top pocket = highest druggability_score, ties by volume_A3. The detector
+    If the file carries a ``reference_site`` (a named co-crystallised ligand), the box is built around it.
+    Otherwise: top pocket = highest druggability_score, ties by volume_A3. The detector
     reports no box extent, so box_size is derived from the volume as a sphere
     (diameter + 10 A padding, clamped to 20..40 A per axis).
     """
@@ -131,6 +132,21 @@ def pocket_json_to_box_center(path: str, args: Dict[str, Any]) -> Dict[str, Any]
         data = json.loads(text)
     except ValueError as exc:
         raise TransformError("pocket file %s is not valid JSON: %s" % (path, exc))
+    ref = data.get("reference_site") if isinstance(data, dict) else None
+    if isinstance(ref, dict) and all(k in ref for k in ("center_x", "center_y", "center_z")):
+        # A known co-crystallised ligand defines the site (standard practice when a holo structure exists):
+        # box = ligand centroid, side = ligand extent + padding, clamped like the pocket-derived box.
+        extent = ref.get("extent_A") or [0.0, 0.0, 0.0]
+        side = [round(min(_BOX_MAX, max(_BOX_MIN, float(e) + _BOX_PAD)), 1) for e in extent]
+        return {
+            "box_center": [round(float(ref["center_" + a]), 3) for a in "xyz"],
+            "box_size": side,
+            "pocket_rank": None,
+            "n_pockets": len(data.get("pockets") or []),
+            "selection": "reference site: co-crystallised ligand %s (%s atoms)" % (ref.get("ligand"), ref.get("n_atoms")),
+        }
+    if isinstance(data, dict) and data.get("reference_site_error"):
+        raise TransformError("reference site requested but not found: %s" % data["reference_site_error"])
     pockets = data.get("pockets") if isinstance(data, dict) else None
     if not isinstance(pockets, list) or not pockets:
         raise TransformError("no pockets found in %s" % path)

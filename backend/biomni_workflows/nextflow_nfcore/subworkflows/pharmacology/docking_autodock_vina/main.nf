@@ -13,6 +13,7 @@ params.ncpu                     = '4'
 params.exhaustiveness           = '8'
 params.n_poses                  = '9'
 params.reference_ligand_smiles  = ''
+params.site_ligand             = ''      // residue name of a co-crystallised ligand to REMOVE from the receptor before docking (e.g. 'AQ4' in 1M17); waters are always removed
 
 process DOCKING_AUTODOCK_VINA {
     tag 'run'
@@ -46,6 +47,7 @@ process DOCKING_AUTODOCK_VINA {
     export PARAM_EXHAUSTIVENESS='${params.exhaustiveness}'
     export PARAM_N_POSES='${params.n_poses}'
     export PARAM_REF_SMILES='${params.reference_ligand_smiles}'
+    export PARAM_SITE_LIGAND='${params.site_ligand}'
 
     mkdir -p docking_poses
 
@@ -184,6 +186,25 @@ def receptor_pdb_to_pdbqt(pdb_path, pdbqt_path):
 # Whole-virus or deposited assemblies often exceed ~10k ATOM records; Open Babel
 # may exit 0 but emit an empty PDBQT. Keeping atoms inside the docking box (+pad)
 # matches what Vina evaluates with compute_vina_maps and stays within tool limits.
+# Remove waters and the named co-crystallised ligand from the receptor. Docking into a site that still
+# holds the crystal ligand scores every pose against a clash. Other HETATM records (metals, cofactors) stay.
+WATER_RESNAMES = ('HOH', 'WAT', 'DOD')
+def strip_receptor_hetero(pdb_path, out_path, site_ligand):
+    drop = set(WATER_RESNAMES)
+    if site_ligand:
+        drop.add(site_ligand.strip().upper())
+    kept, removed = [], {}
+    with open(pdb_path) as fh:
+        for line in fh:
+            rn = line[17:20].strip().upper() if line.startswith(('ATOM', 'HETATM')) else ''
+            if line.startswith('HETATM') and rn in drop:
+                removed[rn] = removed.get(rn, 0) + 1
+                continue
+            kept.append(line)
+    with open(out_path, 'w') as out:
+        out.writelines(kept)
+    return removed
+
 def trim_pdb_to_search_box(pdb_path, out_path, cx, cy, cz, sx, sy, sz, pad=8.0):
     hx = sx / 2.0 + pad
     hy = sy / 2.0 + pad
@@ -294,6 +315,14 @@ try:
     else:
         rec_pdb = receptor_pdb
 
+    site_ligand = os.environ.get('PARAM_SITE_LIGAND', '').strip()
+    if os.path.isfile(rec_pdb):
+        stripped = os.path.join(tmpdir, 'receptor_no_hetero.pdb')
+        removed = strip_receptor_hetero(rec_pdb, stripped, site_ligand)
+        rec_pdb = stripped
+        log.append('  Receptor cleaned: removed ' + (', '.join(k + ' x' + str(v) for k, v in sorted(removed.items())) or 'nothing'))
+        if site_ligand and site_ligand.strip().upper() not in removed:
+            log.append('  WARNING: site_ligand ' + site_ligand + ' not found in the receptor; nothing removed for it')
     rec_for_prep = rec_pdb
     if receptor_pdb and os.path.isfile(rec_pdb):
         trim_out = os.path.join(tmpdir, 'receptor_trimmed.pdb')
