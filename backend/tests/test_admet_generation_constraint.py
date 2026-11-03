@@ -53,3 +53,40 @@ def test_past_corrections_do_not_count():
     intent = ("Generate candidates for this target.\n\n[Memory context] This user previously corrected:\n"
               "- Suggested: predict_admet_properties → User chose: reinvent4_lead_design (ADMET)")
     assert constraint(intent) is False
+
+
+# ── task = first paragraph (supporting context after a blank line is not the task) ──
+DEMO_CONTEXT = ("\n\nPrepared demo context:\nThese are prepared public tutorial inputs, not new experimental "
+                "results. Use the 500 existing BACE compounds in candidate_library.csv as an explicitly labeled "
+                "test library. Target for this design exercise is ABL1 ATP pocket, 1IEP.pdb; generate and score "
+                "only within this exercise. ADMET gates: hERG > 30 uM, MW < 500.")
+
+generative = AIAssistant._is_generative_task
+
+
+@pytest.mark.parametrize("goal", [
+    "Generate candidates for this target with drug-like properties.",
+    "Grow this fragment into a lead-like molecule.",
+    "Optimise this series for potency without losing solubility.",
+    "Fix the metabolic liability on this scaffold and re-score.",
+    "Design cyclic peptides against this binding site.",
+    "Adapt the generative model to our chemical series.",
+])
+def test_generative_goals_with_demo_context(goal):
+    assert generative(goal + DEMO_CONTEXT) is True
+
+
+@pytest.mark.parametrize("goal", [
+    # measured false positives when the whole text was matched — the context says "design exercise"/"generate"
+    "Predict binding affinity for these candidates against my target.",
+    "Dock the top 50 and check the poses are plausible.",
+    "Rank these candidates for developability and show me the top 20.",
+    "Which candidates pass every safety gate?",
+    "Triage this library into synthesise-now and park.",
+])
+def test_predict_dock_rank_goals_are_not_generative_despite_context(goal):
+    assert generative(goal + DEMO_CONTEXT) is False
+
+
+def test_admet_in_context_of_a_ranking_request_keeps_the_admet_fast_path():
+    assert constraint("Rank these candidates for developability." + DEMO_CONTEXT) is False
