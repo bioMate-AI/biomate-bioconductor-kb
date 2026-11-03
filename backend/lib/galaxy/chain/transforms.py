@@ -12,6 +12,8 @@ from __future__ import annotations
 import csv
 import json
 import math
+import os
+import tempfile
 from typing import Any, Callable, Dict, List, Optional
 
 
@@ -161,3 +163,52 @@ def apply(name: str, artifact_path: str, args: Optional[Dict[str, Any]] = None) 
     if fn is None:
         raise TransformError("unknown transform %r (known: %s)" % (name, ", ".join(sorted(REGISTRY))))
     return fn(artifact_path, dict(args or {}))
+
+
+# Largest upstream artifact a transform will read (SMILES lists and pocket JSON are small; refuse anything else).
+MAX_ARTIFACT_BYTES = 50 * 1024 * 1024
+
+
+def _default_s3_fetch(uri: str, dest: str) -> None:
+    from galaxy.ai.s3_utils import make_s3_client  # lazy: MinIO-aware, only needed on the Batch path
+    bucket, _, key = uri[len("s3://"):].partition("/")
+    if not bucket or not key:
+        raise TransformError("malformed S3 URI %r" % uri)
+    client = make_s3_client()
+    size = client.head_object(Bucket=bucket, Key=key).get("ContentLength") or 0
+    if size > MAX_ARTIFACT_BYTES:
+        raise TransformError("artifact %s is %d bytes, above the %d-byte limit for transforms" % (uri, size, MAX_ARTIFACT_BYTES))
+    client.download_file(bucket, key, dest)
+
+
+def apply_to_artifact(name: str, artifact: Optional[Dict[str, Any]], args: Optional[Dict[str, Any]] = None,
+                      fetch: Optional[Callable[[str, str], None]] = None) -> Any:
+    """Apply a transform to an upstream artifact wherever it lives.
+
+    A local file (`path`) is read in place. An artifact published to S3 (AWS Batch, or MinIO on-prem: `s3_uri`, or a
+    `path` that is itself an s3:// URI) is downloaded to a temporary file first and removed afterwards. Failures are
+    TransformError, so the chain step fails before the next job launches."""
+    artifact = artifact or {}
+    local = artifact.get("path") or ""
+    if local and not local.startswith("s3://") and os.path.isfile(local):
+        return apply(name, local, args)
+    uri = artifact.get("s3_uri") or (local if local.startswith("s3://") else "")
+    if not uri:
+        raise TransformError("no local file or S3 URI for artifact %r" % (artifact.get("filename") or "?"))
+    suffix = os.path.splitext(uri)[1] or ".dat"
+    fd, tmp = tempfile.mkstemp(prefix="chain_transform_", suffix=suffix)
+    os.close(fd)
+    try:
+        try:
+            (fetch or _default_s3_fetch)(uri, tmp)
+        except TransformError:
+            raise
+        except Exception as exc:  # network, permission, missing key
+            raise TransformError("could not download %s: %s: %s" % (uri, type(exc).__name__, exc))
+        return apply(name, tmp, args)
+    finally:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+
