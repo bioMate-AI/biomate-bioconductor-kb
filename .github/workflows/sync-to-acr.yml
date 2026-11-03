@@ -626,10 +626,18 @@ jobs:
           done
 
           echo ""
-          echo "Galaxy logs (last 5 min, filtered for run IDs):"
+          echo "=== Galaxy executor env (NEXTFLOW / NF_PROFILE) ==="
+          docker exec biomate-galaxy env 2>/dev/null | grep -E "NEXTFLOW|NF_PROFILE|BIOMATE_NF|MOCK|mock_mode" | sort || true
+
+          echo ""
+          echo "=== nf-work base dir listing ==="
+          ls -la /app/nf-work/ 2>/dev/null || echo "/app/nf-work not found or empty"
+
+          echo ""
+          echo "=== Galaxy logs (last 5 min, executor lines) ==="
           docker logs biomate-galaxy --since 5m 2>&1 | \
-            grep -v "Loaded tool\|Skipping tool\|embed_server\|VectorSearch\|WorkflowEmbed" | \
-            grep -E "ERROR|WARNING|nextflow|runId|invocation|failed|container_pull|${RUN1:0:8}|${RUN2:0:8}|${RUN3:0:8}" | \
+            grep -v "embed_server\|VectorSearch\|WorkflowEmbed\|wf-search-warmup" | \
+            grep -E "Nextflow|nextflow|mock_mode|nf-launch|profile|work_base|FAIL|ERROR|${RUN1:0:8}|${RUN2:0:8}|${RUN3:0:8}" | \
             tail -40 || true
 
           echo ""
