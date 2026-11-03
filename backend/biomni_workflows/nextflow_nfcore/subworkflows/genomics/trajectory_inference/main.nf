@@ -37,8 +37,8 @@ process MONOCLE3_TRAJECTORY {
 
     // Bioconductor monocle3 container (R 4.4); falls back to docker tag
     container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bioconductor-monocle3:1.3.4--r44_0' :
-        'quay.io/biocontainers/bioconductor-monocle3:1.3.4--r44_0'}"
+        'https://depot.galaxyproject.org/singularity/r-monocle3:1.3.1--r44h9948957_1' :
+        'quay.io/biocontainers/r-monocle3:1.3.1--r44h9948957_1'}"
 
     input:
     tuple val(meta), path(adata_h5ad)
