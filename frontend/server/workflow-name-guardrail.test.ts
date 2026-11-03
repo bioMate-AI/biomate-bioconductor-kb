@@ -1,5 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { textWorkflowName, workflowSlug } from './galaxy-assistant';
+import { alternativeWorkflowNames, textWorkflowName, workflowSlug } from './galaxy-assistant';
+
+// The only alternatives the response may lead with (and Step 6c-2 may follow): the search's
+// other candidates, without the card itself or the catalog's duplicate rows of one workflow.
+describe('alternativeWorkflowNames', () => {
+  it('excludes the card and same-workflow duplicates, keeps search order, caps at 4', () => {
+    expect(alternativeWorkflowNames({
+      workflow_ga: { name: 'Assay Ingestion And Ranking' },
+      candidate_workflows: [
+        { name: 'Assay Ingestion And Ranking' }, { name: 'hts_plate_qc_hit_calling' },
+        { name: 'Hts Plate Qc Hit Calling' }, { name: 'REINVENT4 Generative Lead Design' },
+        { name: 'Predict ADMET Properties (AI)' }, { name: 'Qsar Rf Model' }, { name: 'drugclip' },
+      ],
+    })).toEqual(['hts_plate_qc_hit_calling', 'REINVENT4 Generative Lead Design', 'Predict ADMET Properties (AI)', 'Qsar Rf Model']);
+    expect(alternativeWorkflowNames({ workflow_ga: { name: 'x' } })).toEqual([]);
+    expect(alternativeWorkflowNames(null)).toEqual([]);
+  });
+});
 import { cardWorkflowName } from './workflow-display-name';
 
 // The chat response is told this exact name, and the card shows it (routes.ts workflow_ready).

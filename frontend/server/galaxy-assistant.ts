@@ -2156,6 +2156,17 @@ export function textWorkflowName(text: string): string | null {
   return null;
 }
 
+/** The other workflows the search retrieved for this request (not the card's own), as
+ *  catalog names — the only alternatives the response may lead with (Step 6c-2). */
+export function alternativeWorkflowNames(payload: any): string[] {
+  const card = workflowSlug(payload?.workflow_ga?.name || payload?.workflow_name || '');
+  const seen = new Set<string>([card]);
+  return (payload?.candidate_workflows || [])
+    .map((c: any) => String(c?.name || ''))
+    .filter((n: string) => { const s = workflowSlug(n); if (!n || seen.has(s)) return false; seen.add(s); return true; })
+    .slice(0, 4);
+}
+
 export function stripNarratedToolCalls(text: string): string {
   if (!text) return text;
   if (!/<\/?(?:antml:)?(?:function_calls|invoke|parameter)\b/i.test(text)) {
@@ -4708,6 +4719,10 @@ Rules:
     // is written (Steps 6b/6c) must be built this way — complete, with its OWN parameters
     // and file bindings — not from a stripped name lookup carrying the old card's params.
     let regenerateWorkflowFor: ((intentText: string) => Promise<any>) | null = null;
+    // Names the workflow search retrieved for this request (Step 4). The response text may
+    // lead with one of these instead of the card, and Step 6c-2 only follows the text to one
+    // of these: the response model re-ranks retrieved candidates, it does not retrieve.
+    let searchCandidateNames: string[] = [];
     if (needsGeneration) {
       try {
         onProgress?.('search');
@@ -4745,6 +4760,9 @@ Rules:
           decomposition.penalizedDomains
         );
         generatedWorkflow = await regenerateWorkflowFor(workflowUserIntent);
+        searchCandidateNames = (generatedWorkflow?.candidate_workflows || [])
+          .map((c: any) => String(c?.name || ''))
+          .filter(Boolean);
         workflowGenerated = !!(
           generatedWorkflow?.success &&
           !generatedWorkflow?.error &&
@@ -5033,14 +5051,23 @@ Rules:
         const _named = textWorkflowName(response.message);
         const _card = generatedWorkflow.workflow_ga?.name || generatedWorkflow.workflow_name || '';
         if (_named && workflowSlug(_named) !== workflowSlug(_card)) {
-          log(`Step 6c-2: text presents "${_named}" but card shows "${_card}"`);
-          const corrected = await this._cardForNamedWorkflow(_named, message, regenerateWorkflowFor);
-          if (corrected) {
-            generatedWorkflow = { ...corrected, source: 'text_guardrail' };
-            workflowGenerated = true;
-            log(`Step 6c-2: card corrected to "${_named}"`);
+          // Follow the text only to a workflow the search retrieved for this request. Measured
+          // 2026-11-03: unconstrained, the response model also "retrieved" on its own and moved
+          // correct cards to wrong ones (dock-the-top-50 -> pocket detection; safety-gate
+          // triage -> pharmacophore filtering).
+          const _candidate = searchCandidateNames.find(c => workflowSlug(c) === workflowSlug(_named));
+          if (!_candidate) {
+            log(`Step 6c-2: text presents "${_named}", not a search candidate for this request — keeping "${_card}"`);
           } else {
-            log(`Step 6c-2: "${_named}" is not a catalog workflow or could not be built — keeping "${_card}"`);
+            log(`Step 6c-2: text presents candidate "${_candidate}" but card shows "${_card}"`);
+            const corrected = await this._cardForNamedWorkflow(_candidate, message, regenerateWorkflowFor);
+            if (corrected) {
+              generatedWorkflow = { ...corrected, source: 'text_guardrail' };
+              workflowGenerated = true;
+              log(`Step 6c-2: card corrected to "${_candidate}"`);
+            } else {
+              log(`Step 6c-2: could not build a card for "${_candidate}" — keeping "${_card}"`);
+            }
           }
         }
       } catch (err: any) {
@@ -8920,8 +8947,10 @@ Use the RESPONSE FORMAT from the system prompt. Specifically:
 ${runnableWorkflow
   ? `FORMAT: Workflow generated successfully.
      - ${cardWorkflowName(generatedWorkflow)
-        ? `The workflow panel shows "${cardWorkflowName(generatedWorkflow)}". Start with "**${cardWorkflowName(generatedWorkflow)}** — [one sentence]", using exactly that name. Never lead with a descriptive title of your own.
-     - Only if a different catalog workflow is clearly the right one for this request, lead with that workflow's exact catalog id in bold instead (e.g. "**reinvent4_lead_design** — ...") — the panel switches to the workflow you lead with. Never invent a workflow name.`
+        ? `The workflow panel shows "${cardWorkflowName(generatedWorkflow)}". Start with "**${cardWorkflowName(generatedWorkflow)}** — [one sentence]", using exactly that name. Never lead with a descriptive title or any other name of your own.${alternativeWorkflowNames(generatedWorkflow).length
+          ? `
+     - The workflow search also found: ${alternativeWorkflowNames(generatedWorkflow).map(n => `"${n}"`).join(', ')}. Only if one of these is clearly the right workflow for this request and the panel's is not, lead with that one's exact name in bold instead — the panel switches to the workflow you lead with.`
+          : ''}`
         : `Start with "**[workflow name]** — [one sentence]"`}
      - Bullet: Input used (the actual value from the message)
      - Bullet: Key steps (2–3, tool → output)
