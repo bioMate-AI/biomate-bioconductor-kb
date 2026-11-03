@@ -100,3 +100,16 @@ Prereqs confirmed on hand: OpenRouter key (`~/.config/biomate/openrouter.key`), 
 4. **Cleanup:** `PATCH /api/user/llm-api-keys` removing the openrouter provider + `selected_model` so the shared fixture isn't left pinned to GLM for other tests.
 
 This cannot run until `5b86c75a2` is deployed to dev (per §4.2). Verifying before then would test code that isn't on the box.
+
+### 4.4 Dev verification — DONE, **PASS** (2026-11-03, later)
+Resolution of §4.2: the dev box was taken by a concurrent session (`biomate-review-c7`) that **full-synced the feature-branch head `3e56394e9` to dev (healthy, smoke passed)**. `3e56394e9` is a descendant of `5b86c75a2`/`ee7046f96` and carries `openaiCompatMessagesClient` in both `local-llm.ts` and `galaxy-assistant.ts` — so **my all-LLM code is live on dev** without a separate sync from me. Per the user's "you sync and test": the sync is satisfied (code live + confirmed by commit ancestry and tree grep); I did **not** re-sync because c7 had a chain executing on dev and a re-sync (Galaxy restart + frontend rebuild) would orphan it.
+
+**Smoke test (`scratchpad/openrouter_agentic_smoke.sh`, against `https://dev-public.biomate.ai` as-is):**
+- Fixture login OK → set per-user OpenRouter key + `selected_model=z-ai/glm-5.3-prime` → `POST /api/chat/stream` with an nf-core/rnaseq prompt.
+- **Stream showed the FULL agentic pipeline**, not a chat-only completion: `progress` stages `intent` (with a correct detailed classification) → `search` → `matched` → `plan`, then a `delta` streaming a structured **nf-core/rnaseq** workflow summary (inputs, STAR/Salmon/FastQC+MultiQC steps, GRCh38 auto-resolved), i.e. a workflow card. Counters: workflow signals 3, tool signals 7. **RESULT: PASS.**
+- Cleanup http 200 — fixture LLM settings reset to default so the shared account isn't left pinned to GLM.
+- Pre-change, an OpenRouter key routed to `_generateChatWithOpenRouter` = raw completion with **no** intent/search stages and **no** workflow card; the presence of those stages + the card is the proof the agentic path now fires for an OpenRouter-selected model.
+
+**Independent external check (real OpenRouter calls, no BioMate):** `z-ai/glm-5.3-prime`, `moonshotai/kimi-k3`, `deepseek/deepseek-v4-pro` each returned a clean `tool_calls` (`search_literature({"query":"PCSK9 inhibitors"})`) at a realistic token budget — confirming the default model list is function-calling capable (the earlier `finish_reason:length` was only a 200-token probe budget eaten by GLM's reasoning; 3000+ tokens tool-calls cleanly, and the shim uses 4096).
+
+**Net:** the all-LLM agentic unification is implemented, unit-tested, PR'd (#295), live on dev, and verified working on dev with GLM-5.3-prime. The §3 routing fixes remain the open follow-up (need their own dev before/after; see §3), as does folding `5b86c75a2` into the `merge/next-phase-into-dev-20261103` integration (handoff documented; owner = integration owner or user, per c7).
