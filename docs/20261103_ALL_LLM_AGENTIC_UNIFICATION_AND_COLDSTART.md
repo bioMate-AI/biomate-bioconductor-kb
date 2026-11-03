@@ -113,3 +113,57 @@ Resolution of §4.2: the dev box was taken by a concurrent session (`biomate-rev
 **Independent external check (real OpenRouter calls, no BioMate):** `z-ai/glm-5.3-prime`, `moonshotai/kimi-k3`, `deepseek/deepseek-v4-pro` each returned a clean `tool_calls` (`search_literature({"query":"PCSK9 inhibitors"})`) at a realistic token budget — confirming the default model list is function-calling capable (the earlier `finish_reason:length` was only a 200-token probe budget eaten by GLM's reasoning; 3000+ tokens tool-calls cleanly, and the shim uses 4096).
 
 **Net:** the all-LLM agentic unification is implemented, unit-tested, PR'd (#295), live on dev, and verified working on dev with GLM-5.3-prime. The §3 routing fixes remain the open follow-up (need their own dev before/after; see §3), as does folding `5b86c75a2` into the `merge/next-phase-into-dev-20261103` integration (handoff documented; owner = integration owner or user, per c7).
+
+---
+
+## 5. Routing + chat/card naming fixes (2026-11-03, afternoon)
+
+### 5.1 Method — measure with what the UI actually sends
+- **Payloads:** all 106 cold-start examples (every module/track/modality + domain shapes) dumped from the UI's own `prepareColdStartExample()` (temporary vitest, `fetch` stubbed), so prompts carry the exact goal rewrite + "Prepared demo context" text. Demo *files* are not uploaded by the probe (text-only) — examples whose answer depends on the uploaded file content ([10], [22]) are probe artifacts, not bugs.
+- **Harness:** fixture login once (no `/api/auth/register`), 3 lanes, chat-only (no Batch). Per prompt: final state, `workflow_ready.workflow_name`, tools, response head. Attribution of card swaps from dev frontend logs (Step 6b / 6c-2 lines).
+- **Metric:** does the chat text name the *same catalog workflow* as the card — both resolved through `resolve_named_workflow` on the real catalog (display names, snake ids and directory ids of one workflow count as the same).
+
+### 5.2 Baseline findings (before, dev @ 7da46c8b2 lineage)
+- 106/106 HTTP 200; 94 workflow cards, 12 chat-only.
+- **Text and card named the same workflow in only 10/94 cards.** 51 responses led with no workflow name; 26 with an *invented* name (e.g. "REINVENT4 Scaffold Decoration + ADMET Gate"); 7 with a *different real* workflow.
+- **Named "Try sample data" examples misrouted:** [23] "Run perform_chipseq_peak_calling_with_macs2 … built-in demo files" → **nf-core/chipseq** (needs real reads); [18] metaboanalystr → a sibling (`Metaboanalystr Meta`).
+- Root causes (code-read + verified): (a) no exact name resolution — only `nf-core/<slug>` had one; (b) post-text card swaps (Steps 6b/6c) built **stripped** cards from `workflow_by_name` and carried the *previous* card's parameters; (c) the response prompt said `Start with "**[workflow name]** —"` but never gave the card's name; (d) the text guardrail (6c) only understood `nf-core/<slug>`.
+- **Not changed on purpose:** `parseActions`' `mustGenerateWorkflow` forcing (blocks the documented run_code route for ad-hoc compute, but `aadd82091` added it to stop a real empty-response bug — removing it would regress that).
+
+### 5.3 Fixes (PR #295)
+| Commit | Change |
+|---|---|
+| `190866304` | Backend `resolve_named_workflow` (exact: dir slug / file stem / display-name slug; generic path segments never resolve; duplicate rows break by SOURCE_PRIORITY → real-exec → id). Named-workflow fast path **first** in `generate_workflow_unified` (user's own text only — `[Memory context]` / `[Inline parameters]` excluded; files/param keys/paths skipped; 2+ names → chain routing). `workflow_by_name` resolver fallback. Node: Step 4 call captured (`regenerateWorkflowFor`) so swapped cards are rebuilt complete (own params + session-file bindings) via `_cardForNamedWorkflow`; Step 6b uses it; new Step 6c-2 (text-vs-card for every catalog workflow). Dry run over the 106 prompts: fast path claims exactly the 9 named sample-data examples, 0 false positives. |
+| `0639bb7d` | `workflow-display-name.ts` (one name function for the card *and* the prompt); response told the card's exact name. |
+| `2d4acaf26` | Measured regression fix: the response may lead only with the **search's other candidates** (listed by exact name), and 6c-2 follows the text only to one of them — the response model re-ranks, it does not retrieve. |
+
+Tests: backend 19 (`backend/tests/test_named_workflow_routing.py`), frontend `server/workflow-name-guardrail.test.ts` (real dev response headers). Gate each commit: tsc 0, vitest 0 failed, py3.9 compile for every backend `.py` in the deploy.
+
+### 5.4 After `0639bb7d` (dev, valid pass)
+| | before | after |
+|---|---|---|
+| text and card = same workflow | 10/94 | **61/95** |
+| text names a different real workflow | 7 | 2 |
+| text names a non-catalog workflow | 26 | 5 |
+| text names no workflow | 51 | 27 |
+| named sample-data examples on the named workflow | 8/10 | **10/10** |
+
+Residual: [15]/[88] DE+GO → GEO Data Connector card (the pathway-enrichment override deliberately disables the text guardrails — 2026-07-20 fix — and its own pick is off; pre-existing); 5 non-catalog names = real capability gaps (nanobody humanisation, peptide aggregation, Rosetta design — §3).
+**Regression found by attribution (dev logs):** unconstrained 6c-2 moved 5 correct cards to wrong ones (dock top-50 → pocket detection; safety-gate/triage → pharmacophore filtering ×4) and regenerated identical cards when the text used the directory id. Fixed in `2d4acaf26`; re-measurement in §5.6.
+
+### 5.5 Separate pre-existing bug found: per-user Galaxy key rejected for a whole session
+The first after-sync pass was **invalid**: from ~18:34–19:00 UTC every workflow request for the fixture got Galaxy `401 {"err_msg":"Provided API key is not valid.","err_code":401001}` (frontend log `[GalaxyAPIProxy] Workflow generation failed`). Timeline (dev logs): 18:31:14 login found the key stale (HTTP 401 after the sync) and **re-provisioned successfully**; 18:32:58–18:33:10 three fixture logins (post-sync E2E + the harness) found Galaxy unresponsive, re-provisioning failed (`fetch failed`); from 18:34 Galaxy rejected the key that had been valid at 18:31, despite no Galaxy container restart (up since Oct 20) and an idempotent provision endpoint (reuses the newest active key). **Established:** the stored key is validated/re-provisioned **only at login** (`auth-service.ts:441-522`); the chat request path has no recovery for a rejected key, so a logged-in user stays broken until they log in again — and the "fall back to shared admin key" log line did not happen on the request path. **Not established:** what invalidated the key on the Galaxy side between 18:31 and 18:34. Proposed (not implemented — security-sensitive, trigger not pinned): on Galaxy `401001` in the per-user proxy, single-flight re-provision per user and retry once; and find the invalidation trigger (sync DB layer vs concurrent logins) before shipping.
+
+### 5.6 Final state on dev (`2d4acaf2`, complete 106-prompt pass)
+| chat text vs card | before | after `0639bb7d` | **after `2d4acaf2`** |
+|---|---|---|---|
+| same catalog workflow | 10/94 | 61/95 | **54/95** |
+| a different real workflow | 7 | 2 | **1** |
+| a non-catalog (invented) name | 26 | 5 | **3** |
+| no workflow name in the text | 51 | 27 | 37 |
+| named sample-data examples on the named workflow | 8/10 | 10/10 | **10/10** |
+| known wrong swaps (dock→pocket, gate/triage→pharmacophore) | – | 5/5 | **0/5** |
+
+`0639bb7d` had more matches because the text could pull in any catalog workflow — including 5 wrong ones; `2d4acaf2` keeps the text a re-ranker over retrieved candidates (0 hallucinated swaps). Three rows ([83]-[85]) hit a client↔EC2 connection drop (`http -1` together at ~90 s) and succeeded on re-run; merged.
+
+**Open (retrieval, §3 — not naming):** [27] "generate candidates … drug-like properties" and [81] "adapt the generative model" retrieve ADMET prediction (lexical "properties"/"model"), so REINVENT is not a candidate to re-rank to; [12] an IC50-correlation request produced an `nf-core/demo` card; [15]/[88] DE+GO → GEO Data Connector (pathway-enrichment override); 37 responses still lead with no workflow name (e.g. a clarifying question shown next to a card — a separate response-format issue). Next step for these is a rule-first generation-intent hint in retrieval (generate/design/propose + molecules/candidates → generative workflows), measured with this same harness (`scratchpad/route_baseline.py` + `ui_payloads.json`).
