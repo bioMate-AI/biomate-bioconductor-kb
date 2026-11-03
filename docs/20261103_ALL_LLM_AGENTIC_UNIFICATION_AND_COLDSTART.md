@@ -74,7 +74,29 @@ Each routes to a real but wrong/suboptimal workflow; fix with routing rules + re
 
 Sequencing: the all-LLM/GLM work (better routing recall) may resolve several; then add targeted routing rules for the residual, each with a dev before/after check.
 
+**Status: DEFERRED to a next session (not done).** Each §3 fix is a routing-behavior change in the intent/search path that this plan *requires* be verified on dev before→after. Dev is currently the PR #295 integration candidate (§4.2) and I won't sync to it, so there is no honest before/after to measure against tonight — and these fixes touch `galaxy-assistant.ts`, a MANUAL conflict file in the in-flight merge, so committing unverified routing churn now would worsen that merge for no testable gain. The LLM-switch half of the user's "GLM-5.3 switch, fix routing" request shipped (§2.5); the routing half is held until dev is available for the before/after the plan mandates. First candidate to also re-check once GLM is the backbone: whether the stronger routing recall already fixes CLIN2 / Design-Optimise / Models-Train before any hand-written rule is added.
+
 ---
 
 ## 4. Deploy discipline for this session
 Per the 2026-11-01 flow: commit → push → **open PR (before sync)** → checks → `scripts/sync_to_dev.sh` → test on dev. Pre-sync gate: `tsc --noEmit` + `vitest run` + `py_compile` for any backend `.py`. Verify on dev via a freshly-registered user (fixture Galaxy key 401s). This doc is the living record; results appended as they land.
+
+### 4.1 What shipped (2026-11-03)
+- **Commit `5b86c75a2`** — the all-LLM agentic unification (§2.5). Pushed to the feature branch `cursor/tutorial-live-recording-and-report-editing-4ea7`, which is **PR #295's head** (the PR is already OPEN). "PR before sync" satisfied: the change is reviewable on #295.
+- Pre-sync gate **green** on the commit: `tsc` 0, `vitest` 2008 passed / 42 skipped / **0 failed**, no backend `.py` touched (steps 3–4 of the checklist N/A).
+
+### 4.2 Dev sync — DEFERRED (not stomped), with a required handoff
+`scripts/sync_to_dev.sh` from this worktree **refused the lock**: a concurrent session (worktree `/Users/kky/biomate-merge-295`, pid 3819) was actively syncing and finished **healthy at 00:26:44** deploying commit **`b753455b`** = branch `merge/next-phase-into-dev-20261103` — the PR #295 → `integration/next-phase` **merge candidate** (237 integration commits, 31 conflicts resolved; see `docs/20261103_PR295_MERGE_CONFLICT_TRIAGE.md`).
+
+**Why I did NOT sync my branch:** `b753455b` does **not** contain `5b86c75a2` (the candidate was built before my push), and my feature branch does **not** contain the 237-commit integration merge. Syncing my branch to dev would therefore (a) **regress** the dev-lineage deployment by dropping the integration merge, and (b) **stomp** the concurrent integration mid-flight. Building a *parallel* integration (cherry-pick `5b86c75a2` onto the merge branch + re-sync) would **race** the merge-295 session on the same dev box and its branch. Both violate CLAUDE.md's #1 rule (no workarounds / resolve root cause) and the shared-worktree caution. So dev verification is deferred to the proper lineage rather than forced tonight.
+
+**Required follow-up (handoff sent to `biomate-review-c7`, the likely merge-295 owner):** include `5b86c75a2` when the integration is finalized/re-merged, *before* the next dev sync of `merge/next-phase-into-dev-20261103`. The change is a small, isolated diff (adds `_openrouterAgentic` AsyncLocalStorage OR'd into `isClaudeBackbone`; swaps the `processMessage` OpenRouter branch to `openaiCompatMessagesClient` via `_anthropicOverride`, placed after `runInner`; additive `local-llm.ts` functions + tests; `settings-dialog.tsx` catalog) and should apply cleanly on top of the candidate's `galaxy-assistant.ts` resolution.
+
+### 4.3 Dev smoke test — READY to run once `5b86c75a2` is live on dev
+Prereqs confirmed on hand: OpenRouter key (`~/.config/biomate/openrouter.key`), fixture `lifeifei163361@163.com`, dev at `https://dev-public.biomate.ai`. Procedure (opt-in path — dev server has no `OPENROUTER_API_KEY`, confirmed behaviorally since workflows route by default = Gemini backbone):
+1. `POST /api/auth/login` (fixture) → JWT.
+2. `PATCH /api/user/llm-api-keys` `{provider:'openrouter', key:<OR key>, selected_model:'z-ai/glm-5.3-prime'}` (auth'd) — stores per-user key on the fixture row.
+3. `POST /api/chat/stream` (auth'd) with a workflow-eliciting prompt (e.g. nf-core/rnaseq DE). **Pass:** SSE emits a `workflow_ready` / workflow card and/or a `tool_event` (proves the agentic loop fired on GLM — chat-only would emit neither). **Fail:** only text deltas.
+4. **Cleanup:** `PATCH /api/user/llm-api-keys` removing the openrouter provider + `selected_model` so the shared fixture isn't left pinned to GLM for other tests.
+
+This cannot run until `5b86c75a2` is deployed to dev (per §4.2). Verifying before then would test code that isn't on the box.
