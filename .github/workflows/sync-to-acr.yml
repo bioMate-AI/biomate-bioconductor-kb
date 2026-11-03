@@ -626,14 +626,27 @@ jobs:
           done
 
           echo ""
-          echo "Galaxy logs (last 5 min):"
-          docker logs biomate-galaxy --since 5m 2>&1 | grep -v "Loaded tool\|Skipping tool" | tail -20 || true
+          echo "Galaxy logs (last 5 min, filtered for run IDs):"
+          docker logs biomate-galaxy --since 5m 2>&1 | \
+            grep -v "Loaded tool\|Skipping tool\|embed_server\|VectorSearch\|WorkflowEmbed" | \
+            grep -E "ERROR|WARNING|nextflow|runId|invocation|failed|container_pull|${RUN1:0:8}|${RUN2:0:8}|${RUN3:0:8}" | \
+            tail -40 || true
 
           echo ""
-          echo "Recent nf-work errors:"
-          find /app/nf-work -name ".command.err" -printf "%T@ %p\n" 2>/dev/null | \
-            sort -rn | head -3 | awk '{print $2}' | \
-            while read f; do echo "--- $f ---"; tail -15 "$f" 2>/dev/null; done
+          echo "nf-work dirs for this run:"
+          for RID in "$RUN1" "$RUN2" "$RUN3"; do
+            [ -z "$RID" ] && continue
+            WD="/app/nf-work/$RID"
+            if [ -d "$WD" ]; then
+              echo "=== $RID ==="
+              find "$WD" -name ".command.err" | while read f; do
+                echo "--- $f ---"; cat "$f" 2>/dev/null | tail -20; done
+              find "$WD" -name ".exitcode" | while read f; do
+                echo "exit: $(cat $f) in $(dirname $f | xargs basename)"; done
+            else
+              echo "=== $RID: no nf-work directory found ==="
+            fi
+          done
 
           [ "$FAIL" -eq 0 ] || { echo "One or more workflow tests FAILED"; exit 1; }
           echo "All 3 workflow tests COMPLETED"
