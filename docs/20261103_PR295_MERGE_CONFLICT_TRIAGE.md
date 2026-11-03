@@ -95,3 +95,35 @@ Two things the comparison exposed, both fixed in the merged tree: `test_nextflow
 
 **Remaining unmerged (13, all frontend):** `frontend/Dockerfile`, `frontend/client/src/components/app-sidebar.tsx`, `frontend/client/src/components/chat-input.tsx`, `frontend/client/src/components/chat-interface.tsx`, `frontend/client/src/components/chat-message.tsx`, `frontend/client/src/components/chat-with-artifacts.tsx`, `frontend/client/src/components/nextflow-workflow-viewer.tsx`, `frontend/client/src/lib/i18n.ts`, `frontend/client/src/pages/project-detail.tsx`, `frontend/client/src/v2/AfterRunReport.tsx`, `frontend/server/galaxy-assistant.ts`, `frontend/server/routes.ts`, `frontend/server/s3-client.ts`
 Frontend verification (`tsc`, vitest) cannot start until those are resolved. The 45 failing and 18 non-collecting backend tests exist on the branch already and are unchanged by the merge.
+
+## Result (2026-11-03): all 31 conflicts resolved; merge pushed to a new branch
+Branch **`merge/next-phase-into-dev-20261103`** (commit `b753455b1`, two parents: the dev-lineage tip and `origin/integration/next-phase`). It is a ready merge candidate; it was deliberately **not** pushed onto the shared feature branch, because other sessions commit to that branch continuously and a merge commit would make their pushes fail until they pull. To update PR #295 itself, someone fast-forwards the feature branch to this commit at a quiet moment (or opens a PR from this branch into `integration/next-phase`).
+
+**Frontend resolutions (13 files)**
+| File | Resolution |
+|---|---|
+| `lib/i18n.ts` | Two different i18n designs. Kept this branch's JSON-bundle module (4 locales, dotted keys) and added the base side's English-phrase dictionary as a Chinese-only fallback plus its `onPrem` export (on-prem defaults to Chinese when the browser reports no language). Both key styles now work. |
+| `app-sidebar.tsx` | This branch's navigation (dotted keys, no subtitles, IND Report hidden, simplified recents) plus the `Server` icon the base side's System Admin button needs. |
+| `chat-input.tsx` | This branch's single "Data" entry point (its own comment records that the separate file and folder buttons were removed on purpose). |
+| `chat-message.tsx` | This branch's `responseContent` (a superset of the base side's inline markdown block). |
+| `chat-interface.tsx` | Real server error text kept, widened to read `message`, `error` or `detail`; structured error guidance kept; the base side's `EXAMPLE_QUERIES` block dropped (the constant no longer exists here). |
+| `chat-with-artifacts.tsx` | This branch's error notice component (the error is an object now); wording "New chat" through `t()` with a Chinese entry added. |
+| `nextflow-workflow-viewer.tsx` | This branch's auto-loop and resume semantics, plus the base side's `aiDiagnosis` state and widened failure type that its own code uses. |
+| `AfterRunReport.tsx` | Both additions kept (deck export; "run not started" placeholder). Checked that every hook is declared before the early return. |
+| `galaxy-assistant.ts` | GEO prompt: this branch's retrieval-first routing wrapped in the base side's on-prem conditionals; provider code: the base side's custom OpenAI-compatible path with this branch's `!localOnly()` guards; session-dataset prompt: this branch's stricter text. |
+| `routes.ts` (9 hunks) | MinIO multipart proxy added; system-level OpenAI-compatible key fallback and this branch's dataset resolution both kept; **`/api/workflows/execute` uses `authenticateToken`** (see below); findings synthesis: provider-agnostic selection with this branch's 90 s bound and Claude auto-recovery; findings S3 client supports the MinIO endpoint. |
+| `s3-client.ts` | This branch's region-aware client with the base side's `S3_ENDPOINT_URL` (MinIO, path-style, no region redirect) support. |
+| `frontend/Dockerfile`, `project-detail.tsx` | Both build args kept; this branch's role update kept. |
+
+**Decisions for owners (made conservatively, easy to reverse)**
+1. **Execute route authentication.** The base side's `77e0de074` ("require auth + ownership on cancel/rerun/execute", 2026-09-26) changed `/api/workflows/execute` to `authenticateToken`; this branch still had `optionalAuth` from February. I took `authenticateToken` because the alternative silently reverts a security fix. Consequence: anonymous sandbox execution, if it was still wanted, stops working.
+2. **Auto-loop default in the workflow viewer.** This branch defaults the toggle ON for profiles that opt in; the base side keeps it opt-in and OFF. I kept this branch's behaviour. If auto-loop is not being offered, the base side's default is the safer one.
+3. **Two mechanisms for local output downloads** remain in the executor (see above); retire one.
+4. **Docker images were not built** (descriptastorus install changed; biomni layer still has a swallowed-failure fallback).
+
+**Defects found on the branch itself while merging**
+- `routes.ts` has imported `./skill-access` since `1db223db8`, but `skill-access.ts` was never committed (a clean checkout could not build). Committed in `a96560257`.
+- Still untracked in the main checkout: `frontend/server/optional-auth-mfa-boundary.test.ts` (10 tests) and `frontend/client/src/components/drug-discovery-auto-retrain.test.tsx` (2 tests). Not part of the branch.
+
+**Verification on the merged tree**
+`tsc` 0 errors. Frontend vitest 1,993 passed (branch baseline 2,004 includes 12 untracked tests; the base side added 1). Backend per-file tests equal the branch (1,003 vs 1,014 passed; 45 failed and 18 non-collecting on both). Python 3.9 compile clean for all touched files. Chain lint PASS. Not verified: Docker builds, a running dev instance of the merged code, browser behaviour of the UI merges.
