@@ -368,7 +368,18 @@ TOOL_SCHEMAS: List[ToolSchema] = [
                         "clinicaltrials", "biorxiv",
                     ],
                 },
-                "query": {"type": "string", "description": "Accession, gene symbol, or compound name."},
+                "query": {"type": "string", "description": "Accession, gene symbol, compound/disease name, SMILES (similarity on chembl/pubchem) or protein sequence (similarity on pdb)."},
+                "operation": {
+                    "type": "string",
+                    "enum": ["lookup", "text", "similarity"],
+                    "description": (
+                        "Search mode, chosen from the user's INTENT (never from the shape of the query). "
+                        "lookup (default): fetch by accession, symbol or name. text: keyword search. "
+                        "similarity: search the WHOLE database by structure or sequence - chembl and pubchem take a SMILES "
+                        "(Tanimoto), pdb takes a protein sequence (homolog search over every PDB entry). "
+                        "Only chembl, pubchem and pdb implement similarity."
+                    ),
+                },
             },
             "required": ["database", "query"],
         },
