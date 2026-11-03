@@ -842,8 +842,8 @@ deploy_databases() {
       echo \"[db] galaxy_ai_tools.db written to host volume (size=\${dev_size}B md5=\${dev_md5})\"
       # Also update the live container's in-process copy so Galaxy picks it up
       # without a restart (the volume mount will serve it on next restart anyway).
-      GC=\$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
-      GC="\${GC:-biomate-galaxy-dev}"
+      GC=\$(docker ps --filter \"name=biomate-galaxy\" --format \"{{.Names}}\" | grep -Ev \"rollback|chatgpt\" | head -1)
+      GC=\"\${GC:-biomate-galaxy-dev}\"
       docker exec -u root \"\$GC\" cp $GALAXY_DB_HOST_PATH/galaxy_ai_tools.db \
         /app/database/galaxy_ai_tools.db 2>/dev/null \
         && docker exec -u root \"\$GC\" chown galaxy:galaxy \
@@ -2013,7 +2013,15 @@ if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
   # Record commit so next sync diffs only changed code layers.
   # Note: DB md5 is no longer cached locally — we fetch it from dev each run
   # to correctly detect dev-side corruption. See the DB layer detection comment above.
-  echo "$CURRENT_COMMIT" > "$_PREV_COMMIT_FILE"
+  # The marker means "last commit shipped to ALL code layers". A frontend-only run
+  # (BIOMATE_ONLY_FRONTEND=1) leaves backend/workflows/db commits unshipped, so it must
+  # NOT advance it; otherwise the next full sync diffs from here and silently skips them
+  # (happened twice on 2026-11-02, see docs/20261102_SEARCH_FAILURE_VISIBILITY_AND_SYNC_MARKER.md).
+  if [[ "${BIOMATE_ONLY_FRONTEND:-}" == "1" ]]; then
+    log "[marker] frontend-only run: last-synced marker NOT advanced (stays at ${_PREV_COMMIT:0:8})"
+  else
+    echo "$CURRENT_COMMIT" > "$_PREV_COMMIT_FILE"
+  fi
   log "=== Sync OK at ${CURRENT_COMMIT:0:8} ==="
   # Ensure all AWS Batch CEs are pinned to the latest Launch Template version.
   # The aws-cli libz regression (2026-04 → 2026-06) was caused by CEs being
