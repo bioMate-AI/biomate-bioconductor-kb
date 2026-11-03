@@ -288,3 +288,43 @@ describe('AuthService', () => {
     });
   });
 });
+
+// Dev 2026-11-03: the provisioner returns Galaxy's RAW user id ("1") but the login drift
+// check compares against /api/users/current, which reports the ENCODED id. Every login on
+// dev logged "id drift: stored=1 galaxy=f2db41e1fa331b3e" and re-provisioned. Provisioning
+// now stores the id Galaxy reports for the key, so the check matches from then on.
+describe('Galaxy user id stored in the form the drift check compares', () => {
+  const ENCODED = 'f2db41e1fa331b3e';
+  let authService: AuthService;
+  const galaxyIdWrites = () => dbUpdateSet.mock.calls.map(c => c[0]).filter((v: any) => 'galaxyUserId' in v);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    authService = new AuthService();
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ id: ENCODED, email: 'test@example.com' }), text: async () => '',
+    }) as any;
+  });
+
+  it('a legacy raw id re-provisions once and stores the Galaxy-reported (encoded) id', async () => {
+    const hash = await bcrypt.hash('correct-horse', 12);
+    dbUsers = [makeUserRow({ password: hash, galaxyUserId: '1' })];
+    await authService.login({ email: 'test@example.com', password: 'correct-horse' });
+    expect(galaxyIdWrites()).toEqual([expect.objectContaining({ galaxyUserId: ENCODED })]);
+  });
+
+  it('a stored encoded id matches, so login does not re-provision', async () => {
+    const hash = await bcrypt.hash('correct-horse', 12);
+    dbUsers = [makeUserRow({ password: hash, galaxyUserId: ENCODED })];
+    await authService.login({ email: 'test@example.com', password: 'correct-horse' });
+    expect(galaxyIdWrites()).toEqual([]);
+  });
+
+  it('falls back to the provisioner id when Galaxy cannot report one', async () => {
+    const hash = await bcrypt.hash('correct-horse', 12);
+    dbUsers = [makeUserRow({ password: hash, galaxyUserId: null, galaxyApiKey: null })];
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503, json: async () => ({}), text: async () => '' }) as any;
+    await authService.login({ email: 'test@example.com', password: 'correct-horse' });
+    expect(galaxyIdWrites()).toEqual([expect.objectContaining({ galaxyUserId: 'gx-1' })]);
+  });
+});

@@ -227,11 +227,31 @@ export class AuthService {
    *   is now persisted to PG), false if it threw and we fell back to
    *   fire-and-forget retries.
    */
+  /** The user id in the form Galaxy itself reports for `apiKey` (/api/users/current returns
+   *  the ENCODED id, e.g. "f2db41e1fa331b3e"); null if Galaxy can't be asked. The login drift
+   *  check compares against exactly this value, so it is what must be stored — the
+   *  provisioner returns the raw database id ("1"), which made every login on dev report
+   *  "id drift: stored=1 galaxy=f2db41e1fa331b3e" and re-provision needlessly. */
+  private async galaxyReportedUserId(apiKey: string): Promise<string | null> {
+    try {
+      const resp = await fetch(`${GALAXY_URL}/api/users/current`, {
+        headers: { 'X-API-Key': apiKey },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!resp.ok) return null;
+      const id = String((await resp.json())?.id ?? '');
+      return id || null;
+    } catch {
+      return null;
+    }
+  }
+
   private async provisionGalaxyUser(biomateUserId: string, email: string): Promise<boolean> {
     const adminProxy = new GalaxyAPIProxy();
     try {
-      const { galaxyUserId, galaxyApiKey, galaxyUsername } =
-        await adminProxy.provisionGalaxyUser(biomateUserId, email);
+      const provisioned = await adminProxy.provisionGalaxyUser(biomateUserId, email);
+      const { galaxyApiKey, galaxyUsername } = provisioned;
+      const galaxyUserId = (galaxyApiKey && await this.galaxyReportedUserId(galaxyApiKey)) || provisioned.galaxyUserId;
       const encryptedApiKey = galaxyApiKey ? encryptField(galaxyApiKey) : galaxyApiKey;
       await db
         .update(users)
@@ -250,8 +270,9 @@ export class AuthService {
       // catches up on a subsequent login.
       const retry = async (attemptsLeft: number, delayMs: number): Promise<void> => {
         try {
-          const { galaxyUserId, galaxyApiKey, galaxyUsername } =
-            await adminProxy.provisionGalaxyUser(biomateUserId, email);
+          const provisioned = await adminProxy.provisionGalaxyUser(biomateUserId, email);
+          const { galaxyApiKey, galaxyUsername } = provisioned;
+          const galaxyUserId = (galaxyApiKey && await this.galaxyReportedUserId(galaxyApiKey)) || provisioned.galaxyUserId;
           const encryptedApiKey = galaxyApiKey ? encryptField(galaxyApiKey) : galaxyApiKey;
           await db
             .update(users)
