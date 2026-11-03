@@ -130,7 +130,7 @@ export const COLD_DOMAINS: ColdDomain[] = [
     shapes: [
       { t: "Process a cryo-EM set to a density map", needs: "sample provided — micrographs", time: "~6 h", seed: "Process this cryo-EM dataset to a density map and report the resolution." },
       { t: "Predict and assess a structure for a sequence", needs: "sample provided — or your own sequence", time: "~30 min", seed: "Predict the structure for this protein sequence and tell me where to trust it: MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEK", sampleDataset: { label: "example sequence", ref: "inline" } },
-      { t: "Compare a model against an experimental map", needs: "sample provided — a model + map", time: "~20 min", seed: "Compare this model against my experimental map and list the discrepancies." },
+      { t: "Sharpen and post-process a cryo-EM map", needs: "sample provided — a density map", time: "~20 min", seed: "Sharpen and post-process this cryo-EM density map, then re-estimate the local resolution." },
     ],
   },
   {
