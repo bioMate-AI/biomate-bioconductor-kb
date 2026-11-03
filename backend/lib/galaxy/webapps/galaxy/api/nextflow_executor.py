@@ -3749,6 +3749,83 @@ def _resolve_local_image_alias(image: str) -> Optional[str]:
     return None
 
 
+# Short Docker Hub image → canonical pull source for on-prem deployments.
+# Images listed here can be pulled on-prem (GHCR/public).  ECR images are
+# excluded — they require AWS credentials unavailable on bare metal / China ECS.
+_ONPREM_PULLABLE_IMAGES: Dict[str, str] = {
+    "biomate/biomni-tools:latest": "ghcr.io/biomate-ai/biomni-tools:latest",
+}
+
+
+def _ensure_containers_pulled(nf_path: Path, invocation_id: str) -> None:
+    """
+    On-prem local mode: check each container declared in the .nf file.
+    Pull any that are missing locally, emitting SSE progress so the frontend
+    can show 'Preparing environment...' instead of a silent hang.
+
+    Skips ECR images (require AWS credentials, inaccessible from on-prem/China).
+    Controlled by NEXTFLOW_PULL_MISSING env var (default true).
+    """
+    if os.environ.get("NEXTFLOW_PULL_MISSING", "true").lower() not in ("true", "1", "yes"):
+        return
+
+    images = list(_extract_nf_process_containers(nf_path))
+
+    # Also check the ADMET container override in case it differs from what the .nf declares
+    admet_override = os.environ.get("BIOMATE_ADMET_CONTAINER", "")
+    if admet_override and admet_override not in images:
+        images.append(admet_override)
+
+    for image in images:
+        if "ecr.amazonaws.com" in image:
+            continue  # ECR: needs AWS creds — skip silently
+
+        if _is_local_docker_image(image) or _resolve_local_image_alias(image):
+            log.debug("[container_pull] %s already local", image)
+            continue
+
+        pull_src = _ONPREM_PULLABLE_IMAGES.get(image, image)
+        log.info("[container_pull] %s not local — pulling from %s", image, pull_src)
+
+        _post_sse_direct(invocation_id, "container_pull_progress", {
+            "image": image,
+            "status": "pulling",
+            "message": f"首次运行：正在下载 {image}，请稍候（约5-10分钟）…",
+        })
+
+        try:
+            proc = subprocess.run(
+                ["docker", "pull", pull_src],
+                capture_output=True, text=True, timeout=600,
+            )
+            if proc.returncode == 0:
+                if pull_src != image:
+                    subprocess.run(["docker", "tag", pull_src, image],
+                                   check=True, timeout=30)
+                log.info("[container_pull] %s ready", image)
+                _post_sse_direct(invocation_id, "container_pull_progress", {
+                    "image": image,
+                    "status": "ready",
+                    "message": f"{image} 已就绪",
+                })
+            else:
+                log.warning("[container_pull] pull failed %s: %s", image, proc.stderr[:300])
+                _post_sse_direct(invocation_id, "container_pull_progress", {
+                    "image": image,
+                    "status": "failed",
+                    "message": f"无法下载 {image}，如工作流需要此镜像可能会失败。",
+                })
+        except subprocess.TimeoutExpired:
+            log.warning("[container_pull] timeout pulling %s", image)
+            _post_sse_direct(invocation_id, "container_pull_progress", {
+                "image": image,
+                "status": "failed",
+                "message": f"{image} 下载超时（10分钟），请检查网络后重试。",
+            })
+        except Exception as exc:
+            log.warning("[container_pull] error %s: %s", image, exc)
+
+
 def _choose_container_strategy(nf_path: Path, raw_nextflow_path: str) -> Dict[str, Any]:
     """
     Choose execution strategy:
@@ -6276,6 +6353,15 @@ def _execute_nextflow_impl(
     _has_multiline = any(
         isinstance(v, str) and "\n" in v for v in params.values()
     )
+
+    # On-prem local mode: pre-pull any containers missing from the local Docker cache.
+    # Must run BEFORE _choose_container_strategy (which calls _is_local_docker_image).
+    # Skipped on awsbatch — Batch workers pull containers themselves.
+    if _onprem_local:
+        try:
+            _ensure_containers_pulled(nf_path, invocation_id)
+        except Exception as _pull_exc:
+            log.warning("[container_pull] pre-pull step failed: %s", _pull_exc)
 
     # Build nextflow command
     try:

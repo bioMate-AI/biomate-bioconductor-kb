@@ -525,13 +525,17 @@ jobs:
                | python3 -c "import sys,json; d=json.load(sys.stdin); print('"'"'name:'"'"', d.get('"'"'workflow_ga'"'"',{}).get('"'"'name'"'"','"'"'none'"'"')); print('"'"'domain:'"'"', d.get('"'"'workflow_ga'"'"',{}).get('"'"'domain'"'"','"'"'none'"'"'))" 2>/dev/null \
                || echo "AI assistant returned non-JSON or error"'
 
-      - name: Verify ADMET main.nf patch and run end-to-end workflow test
+      - name: Run end-to-end workflow tests (ADMET + PBPK + hERG)
+        # Tests 3 pharmacology workflows that all use biomni-tools:latest (no ECR images needed).
+        # Login once, reuse token across all 3 cases.  Each case is fired and polled
+        # independently; results collected at the end.
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
         run: |
           sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=30 \
+            -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
             root@${{ env.ECS_IP }} << 'ENDSSH'
+          set -e
           BASE=http://localhost:5000
           EMAIL=demo@biomate-demo.com
           PASS='BioMate2026!'
@@ -540,86 +544,98 @@ jobs:
           VOLPATH=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}" 2>/dev/null)
           NF_FILE="$VOLPATH/subworkflows/pharmacology/predict_admet_properties/main.nf"
           echo "Lines: $(wc -l < "$NF_FILE" 2>/dev/null || echo MISSING)"
-          echo "Container lines (should show biomni-tools:latest):"
           grep -n "container" "$NF_FILE" 2>/dev/null | head -5
-          echo ""
-          echo "Python except ImportError block:"
-          grep -n -A 4 "except ImportError" "$NF_FILE" 2>/dev/null | head -12
 
           echo ""
-          echo "=== ADMET end-to-end API test ==="
+          echo "=== Login (shared for all 3 tests) ==="
           LOGIN=$(curl -sf --max-time 15 -X POST "$BASE/api/auth/login" \
             -H "Content-Type: application/json" \
             -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}" 2>/dev/null)
           TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])" 2>/dev/null)
           if [ -z "$TOKEN" ]; then
-            echo "ERROR: Login failed — response: $LOGIN" | head -c 300
+            echo "ERROR: Login failed — $LOGIN" | head -c 300
             exit 1
           fi
           echo "Login OK"
 
-          SEARCH=$(curl -sf --max-time 20 -X POST "$BASE/api/workflows/search" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $TOKEN" \
-            -d '{"query":"ADMET prediction pharmacology","limit":1}' 2>/dev/null)
-          WF_NAME=$(echo "$SEARCH" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('workflow_ga',{}).get('name','NOT_FOUND'))" 2>/dev/null || echo "parse-error")
-          echo "Workflow found: $WF_NAME"
-          if [ "$WF_NAME" = "NOT_FOUND" ] || [ "$WF_NAME" = "parse-error" ]; then
-            echo "ERROR: Workflow search failed. Response: $(echo "$SEARCH" | head -c 300)"
-            exit 1
-          fi
+          poll_run() {
+            local CASE="$1" RUN_ID="$2"
+            for i in $(seq 1 90); do
+              sleep 10
+              SR=$(curl -sf --max-time 15 "$BASE/api/workflows/runs/$RUN_ID/status" \
+                -H "Authorization: Bearer $TOKEN" 2>/dev/null || echo '{}')
+              S=$(echo "$SR" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',d.get('execution',{}).get('status','unknown')))" 2>/dev/null || echo "err")
+              printf "  [%02d/90] %s %s status=%s\n" "$i" "$CASE" "$(date +%H:%M:%S)" "$S"
+              case "$S" in completed|succeeded|failed|error) echo "$S"; return ;; esac
+            done
+            echo "timeout"
+          }
 
-          WF_DEF=$(echo "$SEARCH" | python3 -c "import sys,json; d=json.load(sys.stdin); wf=d.get('workflow_ga',{}); wf.setdefault('parameters',{}); wf['parameters']['smiles_list']='[\"CC(=O)Oc1ccccc1C(=O)O\"]'; print(json.dumps({'workflowDefinition':wf}))" 2>/dev/null)
-          EXEC=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $TOKEN" \
-            -d "$WF_DEF" 2>/dev/null)
-          RUN_ID=$(echo "$EXEC" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('runId',''))" 2>/dev/null || echo "")
-          echo "Execute response: $(echo "$EXEC" | head -c 300)"
-          if [ -z "$RUN_ID" ]; then
-            echo "ERROR: No runId returned from execute"
-            exit 1
-          fi
-          echo "Run ID: $RUN_ID"
+          FAIL=0
 
-          NF_RUN_ID=$(echo "$EXEC" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('nextflowRunId',''))" 2>/dev/null || echo "")
-          echo "Nextflow Run ID: $NF_RUN_ID"
-
+          # ── Case 1: ADMET ───────────────────────────────────────────────────────
           echo ""
-          echo "Polling /api/workflows/runs/:id/status (reconciles with Galaxy) up to 15 min..."
-          FINAL_STATUS="timeout"
-          for i in $(seq 1 90); do
-            sleep 10
-            # Use /status (not /meta) — this endpoint actively reconciles with Galaxy's
-            # Nextflow state and updates the DB, so stuck-running runs get promoted.
-            STATUS_RESP=$(curl -sf --max-time 15 "$BASE/api/workflows/runs/$RUN_ID/status" -H "Authorization: Bearer $TOKEN" 2>/dev/null || echo '{}')
-            STATUS=$(echo "$STATUS_RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',d.get('execution',{}).get('status','unknown')))" 2>/dev/null || echo "poll-error")
-            printf "[%02d/90] %s status=%s\n" "$i" "$(date +%H:%M:%S)" "$STATUS"
-            if [ "$STATUS" = "completed" ] || [ "$STATUS" = "succeeded" ] || [ "$STATUS" = "failed" ] || [ "$STATUS" = "error" ]; then
-              FINAL_STATUS="$STATUS"
-              break
-            fi
+          echo "=== [ADMET] search + execute ==="
+          S1=$(curl -sf --max-time 20 -X POST "$BASE/api/workflows/search" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+            -d '{"query":"ADMET prediction pharmacology drug safety screening","limit":1}' 2>/dev/null)
+          echo "Workflow: $(echo "$S1" | python3 -c "import sys,json; print(json.load(sys.stdin).get('workflow_ga',{}).get('name','?'))" 2>/dev/null)"
+          D1=$(echo "$S1" | python3 -c "import sys,json; d=json.load(sys.stdin); wf=d.get('workflow_ga',{}); wf.setdefault('parameters',{})['smiles_list']='[\"CC(=O)Oc1ccccc1C(=O)O\"]'; print(json.dumps({'workflowDefinition':wf}))" 2>/dev/null)
+          E1=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D1" 2>/dev/null)
+          RUN1=$(echo "$E1" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
+          echo "runId=$RUN1  exec=$(echo "$E1" | head -c 120)"
+          if [ -z "$RUN1" ]; then echo "[ADMET] no runId"; FAIL=1; R1="no-runid"; else R1=$(poll_run ADMET "$RUN1"); fi
+          echo "[ADMET] final=$R1"
+
+          # ── Case 2: PBPK disease-state ─────────────────────────────────────────
+          echo ""
+          echo "=== [PBPK] search + execute ==="
+          S2=$(curl -sf --max-time 20 -X POST "$BASE/api/workflows/search" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+            -d '{"query":"PBPK disease state renal hepatic impairment dose adjustment IND","limit":1}' 2>/dev/null)
+          echo "Workflow: $(echo "$S2" | python3 -c "import sys,json; print(json.load(sys.stdin).get('workflow_ga',{}).get('name','?'))" 2>/dev/null)"
+          D2=$(echo "$S2" | python3 -c "import sys,json; d=json.load(sys.stdin); wf=d.get('workflow_ga',{}); p=wf.setdefault('parameters',{}); p['drug_name']='Aspirin'; p['cl_renal_fraction']='0.1'; p['cl_hepatic_fraction']='0.8'; p['fu_plasma']='0.01'; p['vd_lkg']='0.15'; p['logP']='1.2'; print(json.dumps({'workflowDefinition':wf}))" 2>/dev/null)
+          E2=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D2" 2>/dev/null)
+          RUN2=$(echo "$E2" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
+          echo "runId=$RUN2  exec=$(echo "$E2" | head -c 120)"
+          if [ -z "$RUN2" ]; then echo "[PBPK] no runId"; FAIL=1; R2="no-runid"; else R2=$(poll_run PBPK "$RUN2"); fi
+          echo "[PBPK] final=$R2"
+
+          # ── Case 3: hERG cardiac safety ─────────────────────────────────────────
+          echo ""
+          echo "=== [hERG] search + execute ==="
+          S3=$(curl -sf --max-time 20 -X POST "$BASE/api/workflows/search" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+            -d '{"query":"hERG cardiac safety QSAR ICH E14 S7B QTc prolongation risk","limit":1}' 2>/dev/null)
+          echo "Workflow: $(echo "$S3" | python3 -c "import sys,json; print(json.load(sys.stdin).get('workflow_ga',{}).get('name','?'))" 2>/dev/null)"
+          D3=$(echo "$S3" | python3 -c "import sys,json; d=json.load(sys.stdin); wf=d.get('workflow_ga',{}); p=wf.setdefault('parameters',{}); p['smiles_list']='[\"CC(=O)Oc1ccccc1C(=O)O\"]'; p['dose_mg']='500'; p['dose_route']='oral'; print(json.dumps({'workflowDefinition':wf}))" 2>/dev/null)
+          E3=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D3" 2>/dev/null)
+          RUN3=$(echo "$E3" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
+          echo "runId=$RUN3  exec=$(echo "$E3" | head -c 120)"
+          if [ -z "$RUN3" ]; then echo "[hERG] no runId"; FAIL=1; R3="no-runid"; else R3=$(poll_run hERG "$RUN3"); fi
+          echo "[hERG] final=$R3"
+
+          # ── summary + diagnostics ───────────────────────────────────────────────
+          echo ""
+          echo "=== E2E summary ==="
+          for PAIR in "ADMET:$R1" "PBPK:$R2" "hERG:$R3"; do
+            N=$(echo "$PAIR" | cut -d: -f1); V=$(echo "$PAIR" | cut -d: -f2)
+            case "$V" in completed|succeeded) echo "  PASS $N: $V" ;; *) echo "  FAIL $N: $V"; FAIL=1 ;; esac
           done
 
           echo ""
-          echo "=== Post-poll diagnostics ==="
           echo "Galaxy logs (last 5 min):"
           docker logs biomate-galaxy --since 5m 2>&1 | grep -v "Loaded tool\|Skipping tool" | tail -20 || true
-          if [ -n "$NF_RUN_ID" ]; then
-            NF_WORK="/app/nf-work/$NF_RUN_ID"
-            echo "Nextflow work dir: $NF_WORK"
-            ls "$NF_WORK" 2>/dev/null || echo "(not found)"
-            echo "Exit codes:"
-            find "$NF_WORK/work" -name ".exitcode" -exec sh -c 'echo "$1: $(cat $1)"' _ {} \; 2>/dev/null | head -10
-          fi
 
           echo ""
-          if [ "$FINAL_STATUS" = "completed" ] || [ "$FINAL_STATUS" = "succeeded" ]; then
-            echo "ADMET workflow COMPLETED successfully"
-          else
-            echo "ADMET workflow FAILED or timed out: $FINAL_STATUS"
-            echo "=== Recent nf-work errors ==="
-            find /app/nf-work -name ".command.err" -printf "%T@ %p\n" 2>/dev/null | sort -rn | head -3 | awk '{print $2}' | while read f; do echo "--- $f ---"; tail -20 "$f" 2>/dev/null; done
-            exit 1
-          fi
+          echo "Recent nf-work errors:"
+          find /app/nf-work -name ".command.err" -printf "%T@ %p\n" 2>/dev/null | \
+            sort -rn | head -3 | awk '{print $2}' | \
+            while read f; do echo "--- $f ---"; tail -15 "$f" 2>/dev/null; done
+
+          [ "$FAIL" -eq 0 ] || { echo "One or more workflow tests FAILED"; exit 1; }
+          echo "All 3 workflow tests COMPLETED"
           ENDSSH

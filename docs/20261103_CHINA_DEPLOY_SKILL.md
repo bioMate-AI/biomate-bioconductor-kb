@@ -207,6 +207,37 @@ rm -f $VOLPATH/dependencies/involucro.lock
 
 ---
 
+## E2E test coverage
+
+Every deploy runs 3 workflow tests automatically (login once, fire sequentially):
+
+| Case | Workflow | Container | Input |
+|---|---|---|---|
+| ADMET | `predict_admet_properties` | biomni-tools | aspirin SMILES |
+| PBPK | `pbpk_disease_state` | biomni-tools | renal/hepatic impairment params |
+| hERG | `herg_cardiac_safety_qsar` | biomni-tools | aspirin SMILES, 500mg oral |
+
+All 3 use `biomni-tools:latest` (pre-loaded on ECS) — no ECR access required.
+
+**Coverage map — what the harness intentionally skips:**
+- RNA-seq / WGS / CryoEM: ECR-only images not yet mirrored to ACR (see Phase 2 below)
+- Cross-user isolation: enforced by Postgres row-level checks, not needed in e2e
+- Registration flow: tested in server-side unit tests, not here (registration is rate-limited)
+
+### Phase 2: broader case support (when needed)
+
+To add RNA-seq (DESeq2), WGS (myvariant), CryoEM:
+1. Mirror domain images ECR → ACR (one-time, ~2 GB each):
+   - `bioc-domain-transcriptomics:3.20-slim`
+   - `bioc-domain-variant_calling:3.20-slim`
+   - `cryosparc-nf:latest`
+2. Add a `mirror_domain_images` GHA input (same pattern as `mirror_admet_to_acr`)
+3. In deploy step: global sed on nfcore volume — replace ECR prefix with ACR prefix
+4. Pre-pull images on ECS (with `--pull never` active, images must be local)
+5. Add corresponding e2e cases
+
+---
+
 ## Workflow inputs reference
 
 | Input | Default | Description |
