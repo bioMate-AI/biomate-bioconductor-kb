@@ -246,3 +246,15 @@ Committed in `scripts/routing_eval/` (`aae875b05`) after the scratch copy was wi
 Remaining calls beyond one per answer are deliberate steps (inspect → compute → save), not retries. Raw output: `evaluation/routing_eval/runs/adhoc_answers_after_*.txt`.
 
 **Still open:** the INTERNAL "MG demo project" examples were not re-measured with project files.
+
+---
+
+## 9. Real nf-core pipelines were missing from dev's Galaxy container (2026-11-04)
+
+**Trigger:** an external user's "integrate bulk RNA-seq and proteomics" session (`chat-1793740002652-uci2ce46i`, 2026-11-03/04): 6 runs of `nf-core/diaproteomics`, all `failed` with 0 steps; `execution_json.error` = `Could not resolve Nextflow script 'nfcore/diaproteomics/main.nf'` (the run's `error_message` column was empty).
+
+**Cause:** `backend/nf-core-workflows/` (the downloaded pipelines) and `backend/nf-core-modules/` (the nf-core library) are git-ignored apart from BioMate's own files, belong to no layer of `scripts/sync_to_dev.sh`, and the running Galaxy image is a `docker commit` chain (2026-10-01 → 10-14) of containers that did not contain them. They existed only on the dev host in `/opt/biomate/galaxy_build/` (137 pipelines downloaded 2025-10-30; 93 subworkflows; 1,651 module files). In the container: 0 real pipelines (15 display-only stubs), 0 subworkflows.
+
+**Fix:** restored into the running container (additive) and verified: **all 230 catalog `nf-core/*` entries resolve** (137 pipelines + 93 subworkflows). `ensure_nfcore_pipelines` (`e57f19269`, `46430217b`) now restores any missing ones from the host copy on every sync (~5 s no-op when complete). Backup: `s3://biomate-nextflow-work/nf-core-library/nf-core-library-20261104.tar.gz` (the dev deploy role cannot write to that bucket; uploaded from the workstation).
+
+**Still open for that user:** `nf-core/diaproteomics` processes raw DIA spectra (mzML); the user has processed tables (counts/CPM + DIA-NN `report.pg_matrix.tsv` + DIA-Analyst designs), so it was the wrong pipeline even when resolvable. The catalog has building blocks (`mixomics_spls_regression` ok, `omicade4` ok, `multigsea` unvalidated, `mofa2` fixture_failed) but no end-to-end processed-table RNA + proteomics integration workflow. Failed-run reasons are not copied to `execution_runs.error_message`.
