@@ -13,6 +13,7 @@
 #       Use scripts/deploy_marketing.sh instead.
 #
 # Usage: bash scripts/sync_to_dev.sh
+#        BIOMATE_SYNC_FORCE=frontend,backend bash scripts/sync_to_dev.sh   (re-deploy layers with no change)
 #
 # As of 2026-05-15 this script is MANUAL-ONLY.
 #   - The 10-minute auto-poll loop has been removed (caused orphan-process conflicts).
@@ -241,9 +242,12 @@ deploy_frontend() {
     sudo rm -rf /opt/biomate/frontend_sync 2>/dev/null || rm -rf /opt/biomate/frontend_sync
     mkdir -p /opt/biomate/frontend_sync
     tar -xzf /tmp/frontend_sync.tar.gz -C /opt/biomate/frontend_sync
-    # Prune dangling images + build cache to prevent disk-full build failures
+    # Prune dangling images, and cap (not wipe) the build cache, to prevent disk-full build failures.
+    # A full `docker builder prune -f` here threw away the npm ci + apt layers before every build:
+    # ~234 s of a ~6.7 min frontend deploy re-installed unchanged dependencies (sync of 2026-11-04).
+    # With the cache capped at 6 GB those layers are reused while package-lock.json is unchanged.
     docker image prune -f > /dev/null 2>&1 || true
-    docker builder prune -f > /dev/null 2>&1 || true
+    docker builder prune -f --max-used-space 6gb > /dev/null 2>&1 || docker builder prune -f > /dev/null 2>&1 || true
 
     # ── Atomic swap pattern (no downtime) ────────────────────────────────
     # OLD pattern (caused dev-public outages 2026-05-18):
@@ -589,6 +593,11 @@ deploy_backend_python() {
     # ! -name "._*" excludes any Apple Double resource-fork files that macOS tar may
     # have bundled; copying them into the alembic versions_gxy/ dir causes a
     # null-byte ValueError that crash-loops gunicorn (sync 8 root cause, 2026-07-03).
+    # Lay the files out as the container sees them, then copy the tree in with ONE docker cp
+    # (merges into /app; existing files elsewhere are untouched). The per-file loop it replaces ran
+    # docker exec mkdir + docker cp for every file: ~2m47s for 632 files (sync of 2026-11-04).
+    LAYOUT=/tmp/backend_py_layout
+    rm -rf "$LAYOUT" && mkdir -p "$LAYOUT/app"
     find /tmp/backend_py_extract/backend -name "*.py" ! -name "._*" | while read src; do
       rel="${src#/tmp/backend_py_extract/backend/}"
       # experiments/ is a top-level package at /app/experiments (importable as `experiments`);
@@ -597,11 +606,13 @@ deploy_backend_python() {
         experiments/*) dest="/app/$rel" ;;
         *)             dest="/app/lib/galaxy/${rel#lib/galaxy/}" ;;
       esac
-      dir=$(dirname "$dest")
-      # Create directory in container if needed
-      docker exec "$GC" mkdir -p "$dir" 2>/dev/null || true
-      docker cp "$src" "$GC:$dest" 2>/dev/null && echo "  cp: $dest" || echo "  SKIP: $dest"
+      mkdir -p "$LAYOUT$(dirname "$dest")"
+      cp "$src" "$LAYOUT$dest"
     done
+    staged=$(find "$LAYOUT/app" -name "*.py" | wc -l)
+    # set -e: a failed copy aborts the sync instead of leaving a half-updated container.
+    docker cp "$LAYOUT/app/." "$GC:/app/"
+    echo "[backend] copied $staged python files into $GC:/app in one docker cp"
 
     # Also sync the biomni_workflows .nf files
     echo "[backend] Done Python sync"
@@ -1741,6 +1752,11 @@ do_sync() {
   echo "$changed_paths" | grep -q "^backend/lib/" && do_backend=true
   echo "$changed_paths" | grep -qE "^backend/biomni_workflows/|^backend/nf-core-workflows/modules/biomate-ai-tools/|^backend/nf-core-modules/" && do_workflows=true
   echo "$changed_paths" | grep -q "^backend/database/" && do_db=true
+  # BIOMATE_SYNC_FORCE=frontend,backend,workflows re-deploys those layers even with no matching
+  # change, e.g. to exercise a change to this script itself.
+  [[ ",${BIOMATE_SYNC_FORCE:-}," == *",frontend,"* ]] && do_frontend=true
+  [[ ",${BIOMATE_SYNC_FORCE:-}," == *",backend,"* ]] && do_backend=true
+  [[ ",${BIOMATE_SYNC_FORCE:-}," == *",workflows,"* ]] && do_workflows=true
 
   # Always sync logo
   sync_logo 2>/dev/null || true
