@@ -34,7 +34,7 @@ import { appendComposerInstructions } from "./chat-context";
 import { validateWorkflowInputs, detectGenerationFailure, findUnresolvedInputs } from "./workflow-input-gate";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
-import { GalaxyAPIProxy } from "./galaxy-api-proxy";
+import { GalaxyAPIProxy, fetchGalaxyWithKeyRecovery } from "./galaxy-api-proxy";
 import { createPoller } from "./galaxy-state-poller";
 import { WorkflowSSEManager } from "./workflow-sse";
 import { createWorkflowNotificationService, type WorkflowNotificationService } from "./workflow-notification-service";
@@ -161,6 +161,20 @@ function userProxy(req: express.Request): GalaxyAPIProxy {
     ? () => authService.recoverGalaxyKey(String(user.id), String(user.email))
     : undefined;
   return galaxyAPIBackend.forUser(userApiKey, recover);
+}
+
+/**
+ * fetch() to Galaxy as the signed-in user, for routes that call Galaxy directly instead of
+ * through userProxy(): same key choice as before (user key, else shared admin key) plus the
+ * same mid-session recovery (see fetchGalaxyWithKeyRecovery / userProxy).
+ */
+function fetchGalaxyAsUser(req: express.Request, url: string, init: RequestInit = {}): Promise<Response> {
+  const user = req.user as any;
+  const raw = user?.galaxyApiKey as string | undefined;
+  const recover = user?.id && user?.email
+    ? () => authService.recoverGalaxyKey(String(user.id), String(user.email))
+    : undefined;
+  return fetchGalaxyWithKeyRecovery(url, init, raw ? decryptField(raw) : null, process.env.GALAXY_API_KEY || '', recover);
 }
 
 // Initialize state poller and SSE manager
@@ -4873,11 +4887,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fullPath = `${targetPath}${queryStr}`;
 
       // Forward with user's Galaxy API key if available
-      const _rawKey3636 = (req as any).user?.galaxyApiKey as string | undefined;
-      const apiKey = (_rawKey3636 ? decryptField(_rawKey3636) : null) || process.env.GALAXY_API_KEY || '';
       const headers: Record<string, string> = {
         'Content-Type': req.headers['content-type'] || 'application/json',
-        'X-API-Key': apiKey,
       };
 
       const fetchOpts: RequestInit = {
@@ -4910,7 +4921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
+      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
 
       // Stream response back
       const contentType = resp.headers.get('content-type') || 'application/json';
@@ -4951,8 +4962,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: any, res: any) => {
       try {
         const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-        const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
-        const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
         if (!req.file) {
           return res.status(400).json({ error: 'no file in multipart upload' });
         }
@@ -4961,11 +4970,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: req.file.mimetype || 'application/octet-stream',
         });
         fd.append('file', blob, req.file.originalname || 'upload');
-        const resp = await fetch(
+        const resp = await fetchGalaxyAsUser(req,
           `${galaxyUrl}/api/ind-report/projects/${encodeURIComponent(req.params.projectId)}/attachments`,
           {
             method: 'POST',
-            headers: { 'X-API-Key': apiKey },
+            headers: {},
             body: fd,
             signal: AbortSignal.timeout(120000),
           },
@@ -4993,11 +5002,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
       const fullPath = `${req.path}${queryStr}`;
-      const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
-      const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
       const headers: Record<string, string> = {
         'Content-Type': req.headers['content-type'] || 'application/json',
-        'X-API-Key': apiKey,
       };
       const fetchOpts: RequestInit = {
         method: req.method.toUpperCase(),
@@ -5007,7 +5013,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
         fetchOpts.body = JSON.stringify(req.body);
       }
-      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
+      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
       const contentType = resp.headers.get('content-type') || 'application/json';
       res.setHeader('Content-Type', contentType);
       const cd = resp.headers.get('content-disposition');
@@ -5037,11 +5043,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
       const fullPath = `${req.path}${queryStr}`;
-      const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
-      const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
       const headers: Record<string, string> = {
         'Content-Type': req.headers['content-type'] || 'application/json',
-        'X-API-Key': apiKey,
       };
       const fetchOpts: RequestInit = {
         method: req.method.toUpperCase(),
@@ -5051,7 +5054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
         fetchOpts.body = JSON.stringify(req.body);
       }
-      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
+      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
       const contentType = resp.headers.get('content-type') || 'application/json';
       res.setHeader('Content-Type', contentType);
       const cd = resp.headers.get('content-disposition');
@@ -5079,11 +5082,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
       const fullPath = `${req.path}${queryStr}`;
-      const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
-      const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
       const headers: Record<string, string> = {
         'Content-Type': req.headers['content-type'] || 'application/json',
-        'X-API-Key': apiKey,
       };
       const fetchOpts: RequestInit = {
         method: req.method.toUpperCase(),
@@ -5093,7 +5093,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
         fetchOpts.body = JSON.stringify(req.body);
       }
-      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
+      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
       const contentType = resp.headers.get('content-type') || 'application/json';
       res.setHeader('Content-Type', contentType);
       res.status(resp.status);
@@ -5131,11 +5131,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
       const fullPath = `${req.path}${queryStr}`;
-      const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
-      const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
       const headers: Record<string, string> = {
         'Content-Type': req.headers['content-type'] || 'application/json',
-        'X-API-Key': apiKey,
       };
       const fetchOpts: RequestInit = {
         method: req.method.toUpperCase(),
@@ -5145,7 +5142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
         fetchOpts.body = JSON.stringify(req.body);
       }
-      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
+      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
       const contentType = resp.headers.get('content-type') || 'application/json';
       res.setHeader('Content-Type', contentType);
       const cd = resp.headers.get('content-disposition');
@@ -5177,11 +5174,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
       const fullPath = `${req.path}${queryStr}`;
-      const _rawKey = (req as any).user?.galaxyApiKey as string | undefined;
-      const apiKey = (_rawKey ? decryptField(_rawKey) : null) || process.env.GALAXY_API_KEY || '';
-      const resp = await fetch(`${galaxyUrl}${fullPath}`, {
+      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body || {}),
         signal: AbortSignal.timeout(120000),
       });

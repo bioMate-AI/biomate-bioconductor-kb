@@ -36,6 +36,31 @@ export function isRejectedGalaxyKey(error: any): boolean {
   return data.err_code === 401001 || /API key (is not valid|has expired)/i.test(String(data.err_msg || ''));
 }
 
+/** fetch() to Galaxy with mid-session key recovery — the raw-fetch counterpart of
+ *  forUser(key, onKeyRejected). Sends with `userKey`, else `adminKey` (unchanged key choice).
+ *  On Galaxy's rejected-key 401 (401001) for the USER's key, `recover` is asked once for a new
+ *  key and the request is retried with it; every other response is returned untouched (the
+ *  401 body is read from a clone, so the returned Response is still readable). `init.body`
+ *  must be re-sendable (string / Buffer / FormData — not a stream). */
+export async function fetchGalaxyWithKeyRecovery(
+  url: string,
+  init: RequestInit,
+  userKey: string | null | undefined,
+  adminKey: string,
+  recover?: () => Promise<string | null>,
+): Promise<Response> {
+  const send = (key: string) =>
+    fetch(url, { ...init, headers: { ...((init.headers as Record<string, string>) || {}), 'X-API-Key': key } });
+  const resp = await send(userKey || adminKey);
+  if (resp.status !== 401 || !userKey || !recover) return resp;
+  const body = await resp.clone().json().catch(() => null);
+  if (!isRejectedGalaxyKey({ response: { status: 401, data: body } })) return resp;
+  const fresh = await recover().catch(() => null);
+  if (!fresh || fresh === userKey) return resp;
+  console.warn('[galaxy] per-user Galaxy key was rejected mid-session (direct fetch) — re-provisioned, retrying once');
+  return send(fresh);
+}
+
 export class GalaxyAPIProxy {
   public client: AxiosInstance;
   private galaxyUrl: string;
