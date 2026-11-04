@@ -2,7 +2,8 @@
 # sync_to_dev.sh — MANUAL one-shot sync of ALL layers to dev-public.biomate.ai:
 #   1. Frontend (React/Express) — Docker rebuild + restart
 #   2. Backend Python files    — docker cp into running Galaxy container + restart
-#   3. Galaxy databases        — galaxy_ai_tools.db (workflow search), universe.sqlite
+#   3. Galaxy databases        — galaxy_ai_tools.db (workflow search); universe.sqlite (dev's live
+#                                Galaxy DB) only with BIOMATE_REPLACE_GALAXY_DB=1, backed up first
 #   4. Nextflow workflow files — .nf files in biomni_workflows/ + nf-core-workflows/modules/biomate-ai-tools/
 #
 # NOTE: Marketing website (webpage_design_v2/) is NOT synced here.
@@ -906,7 +907,26 @@ sys.exit(0 if ok else 1)
   # backend/lib/galaxy/model/migrations/alembic/versions_gxy/.
   local universe_db="$REPO_ROOT/backend/database/universe.sqlite"
   local LATEST_GXY_HEAD="204367c6a604"  # merge_gxy_heads_autofix_sample_sheets
-  if [[ -f "$universe_db" && $(stat -c %s "$universe_db" 2>/dev/null || stat -f %z "$universe_db" 2>/dev/null || echo 0) -gt 0 ]]; then
+  # universe.sqlite IS dev's live Galaxy database (users, API keys, histories, workflows).
+  # Replacing it with a workstation copy resets all of that to the copy's state — e.g. a sync
+  # from a checkout holding a months-old universe.sqlite rolls dev's Galaxy users and every
+  # per-user API key back to that date. So it is replaced ONLY on explicit opt-in
+  # (BIOMATE_REPLACE_GALAXY_DB=1), and dev's current file is backed up first (2026-11-04).
+  if [[ -f "$universe_db" && "${BIOMATE_REPLACE_GALAXY_DB:-}" != "1" ]]; then
+    log "[db] universe.sqlite present locally but NOT replacing dev's live Galaxy DB (set BIOMATE_REPLACE_GALAXY_DB=1 to replace; dev's copy is backed up first)"
+  fi
+  if [[ "${BIOMATE_REPLACE_GALAXY_DB:-}" == "1" && -f "$universe_db" && $(stat -c %s "$universe_db" 2>/dev/null || stat -f %z "$universe_db" 2>/dev/null || echo 0) -gt 0 ]]; then
+    log "[db] universe.sqlite — BIOMATE_REPLACE_GALAXY_DB=1: backing up dev's live Galaxy DB, then replacing..."
+    ec2_ssh '
+      SRC=/opt/biomate/galaxy_db/universe.sqlite
+      if [[ -f "$SRC" ]]; then
+        TS=$(date +%Y%m%d_%H%M%S)
+        cp "$SRC" "${SRC}.bak_${TS}" && echo "[db] pre-replace backup: ${SRC}.bak_${TS} ($(stat -c %s ${SRC}.bak_${TS}) bytes)"
+        ls -t /opt/biomate/galaxy_db/universe.sqlite.bak_* 2>/dev/null | tail -n +4 | xargs rm -f
+      else
+        echo "[db] WARNING: $SRC not found on host — no backup taken"
+      fi
+    ' || { log "[db] backup of dev's Galaxy DB failed — NOT replacing it"; return 1; }
     log "[db] universe.sqlite — scp to EC2 (bypass S3)..."
     ec2_scp "$universe_db" "${EC2_USER}@${EC2_HOST}:/tmp/universe_sync.sqlite" \
       || { log "[db] scp failed — aborting universe.sqlite sync"; return 1; }
