@@ -108,7 +108,16 @@ Re-ranked program (business-weighted):
 2. **Multi-omics integration, with EVERY basic layer first-class** — activate the engine AND bring
    the routing/param/QC generalization to the weak layers (spatial, **proteomics, metabolomics**),
    so "integrate genomic+transcriptomic+proteomic+metabolomic+clinical → subtype" is really general.
-3. **Spatial omics** composed pipeline (SYSUCC NPC atlas).
+3. **Spatial omics** composed pipeline (SYSUCC NPC atlas). **Deeper finding (2026-11-04):** the
+   atomic spatial subworkflows cannot simply be chained — they are **vignette-bound stubs with
+   incompatible contracts**, not a shared interface: `spatialexperiment` emits a SpatialExperiment
+   `.rds`, but `spatialde` takes `[meta, [Rep11_MOB_0, MOB_sample_info]]` (a specific vignette
+   dataset), `spotlight` takes `[sce, spe]`, `spatialdecon` takes `[nsclc]` (a GeoMx vignette set).
+   So the real work is **(a) standardize each spatial subworkflow to a shared SpatialExperiment
+   take/emit contract, (b) then compose** `visiumio/spatialexperiment → QC → spatialde → spotlight`
+   into `workflows/bioconductor_spatial/`, and (c) validate on a dev Visium run. Authoring the
+   composition blind would ship a broken DAG — do (a) first. (Also no slide-image segmentation:
+   add cellpose/stardist or drop that step from the illustration.)
 4. **Immunology / immune deconvolution** (their PD-1/immunotherapy trial strength; currently generic).
 5. **Target-ID (arbiter) generalization** — EBV / immunotherapy own-drug direction.
 
