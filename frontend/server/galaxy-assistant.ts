@@ -97,6 +97,9 @@ const BIOMATE_TOOLS: Anthropic.Tool[] = [
 Use this for: filtering/subsetting data, format conversion, statistics, generating plots,
 exploring file contents, counting rows/records, parsing ZIP/archive files, or any ad-hoc computation.
 
+Each call is a FRESH process: variables, imports and loaded data do NOT persist between calls.
+Every call must load what it uses (from INPUT_FILES) and do its whole computation in one script.
+
 File access: Input datasets are staged at $DATA_DIR/<dataset_id>/<original_filename>, and a
 preamble predefines INPUT_FILES (a map from original filename -> absolute path) and INPUT_PATHS
 (the list of those paths) for every dataset you list in input_datasets. USE THESE DIRECTLY — e.g.
