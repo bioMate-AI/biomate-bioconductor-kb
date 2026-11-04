@@ -118,6 +118,11 @@ Re-ranked program (business-weighted):
    into `workflows/bioconductor_spatial/`, and (c) validate on a dev Visium run. Authoring the
    composition blind would ship a broken DAG — do (a) first. (Also no slide-image segmentation:
    add cellpose/stardist or drop that step from the illustration.)
+   **Scope check (reassuring):** a catalog-wide scan found only **~10 / 1,837** bioconductor
+   subworkflows bound to a hardcoded example dataset (incl. `spatialde`, `spatialdecon`,
+   `mosaics`, `dominosignal`, `nebulosa`, …) — vignette-binding is **NOT a catalog-wide problem**;
+   the other ~1,827 have generic file/object contracts. So the spatial blocker is these specific
+   ~2 spatial subworkflows needing parameterization, not a systemic "catalog is demo-stubs" issue.
 4. **Immunology / immune deconvolution** (their PD-1/immunotherapy trial strength; currently generic).
 5. **Target-ID (arbiter) generalization** — EBV / immunotherapy own-drug direction.
 
