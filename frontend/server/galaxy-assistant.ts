@@ -1,6 +1,7 @@
 import { additionalIntentWorkflows, workflowIntent } from './multi-intent-workflows';
 import { localOnly, localOffline, localMessagesClient, localConfig, openaiCompatMessagesClient } from './local-llm.js';
 import { cardWorkflowName } from './workflow-display-name';
+import { stagedInputPath } from './code-runner';
 import { localIntentPrompt } from './local-intent-prompt.js';
 import { localResponsePrompt } from './local-response-prompt.js';
 import { scientificToolRequest, scientificToolResult, targetEvidenceReply, databaseQueryRequest, databaseQueryResult } from './scientific-chat-tools';
@@ -2201,6 +2202,22 @@ export function attachedDatasetsFromMessage(message: string): Array<{ name: stri
     const galaxyId = /\bgalaxy_dataset_id=([^,\s]+)/.exec(entry)?.[1];
     return { name, datasetId: datasetId && datasetId !== 'n/a' ? datasetId : undefined, galaxyId };
   }).filter(d => d.name && (d.datasetId || d.galaxyId));
+}
+
+/** The id run_code stages an attached dataset under: its Galaxy id (durable), else BioMate's dataset id. */
+export function stagingIdFor(a: { datasetId?: string; galaxyId?: string }): string {
+  return (a.galaxyId || a.datasetId)!;
+}
+
+/** Prompt line giving the model the exact sandbox paths of this turn's attached files, so its first
+ *  run_code call reads INPUT_FILES instead of guessing (dev 2026-11-04: every ad-hoc answer's first
+ *  call read a guessed path such as /tmp/<name> and failed; the second used staged_inputs). Empty
+ *  when nothing is attached. */
+export function runCodeInputsNote(message: string): string {
+  const attached = attachedDatasetsFromMessage(message);
+  if (!attached.length) return '';
+  const files = Object.fromEntries(attached.map(a => [a.name, stagedInputPath(stagingIdFor(a), a.name)]));
+  return `[run_code inputs — the attached files are already staged; open them via INPUT_FILES (Python: INPUT_FILES["name"], R: INPUT_FILES[["name"]]) at exactly these paths, never a guessed path: ${JSON.stringify(files)}]`;
 }
 
 export function stripNarratedToolCalls(text: string): string {
@@ -8971,7 +8988,7 @@ ${(generatedWorkflow as any)?.license_notice ? `- LICENSE REROUTING ACTIVE: ${(g
       : '';
 
     const userPrompt = `User: ${message}
-
+${!runnableWorkflow && runCodeInputsNote(message) ? `\n${runCodeInputsNote(message)}\n` : ''}
 ${tools.length > 0 ? `\nRelevant tools:\n${tools.map((t, i) => `${i + 1}. ${t.tool.name} - ${t.reasoning}`).join('\n')}` : ''}
 
 ${datasets.length > 0 ? `\nRelevant datasets:\n${datasets.map((d, i) => `${i + 1}. ${d.dataset.name} - ${d.reasoning}`).join('\n')}` : ''}
@@ -9718,7 +9735,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     const autoStaged = rawIds.length === 0 && attached.length > 0;
     const datasetRefs = autoStaged
       // The names come with the attachment; the Galaxy id is preferred (durable), the local id is the fallback.
-      ? attached.map(a => ({ id: a.galaxyId || a.datasetId!, filename: a.name }))
+      ? attached.map(a => ({ id: stagingIdFor(a), filename: a.name }))
       // Resolve filenames: check local registry first, then Galaxy metadata
       : await Promise.all(rawIds.map(async (id: string) => {
         // Local registry always has the original filename

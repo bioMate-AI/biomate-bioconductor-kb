@@ -45,6 +45,13 @@ export interface OutputFile {
   preview: string; // first 10 lines if text-like
 }
 
+/** Where run_code stages input datasets inside the sandbox: SANDBOX_INPUT_DIR/<dataset id>/<filename>.
+ *  Exported so the chat prompt can tell the model the exact INPUT_FILES paths before its first call. */
+export const SANDBOX_INPUT_DIR = '/work/input';
+export function stagedInputPath(datasetId: string, filename: string): string {
+  return `${SANDBOX_INPUT_DIR}/${datasetId}/${filename}`;
+}
+
 export interface CodeRunResult {
   stdout: string;
   stderr: string;
@@ -209,7 +216,7 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
 
     // Inside the sandbox container the host baseDir is bind-mounted at /work.
     // All script env vars must reference container paths, not host paths.
-    const containerData = '/work/input';
+    const containerData = SANDBOX_INPUT_DIR;
     const containerOutput = '/work/output';
     let scriptName: string;
 
@@ -414,7 +421,7 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
       exit_code: result.exitCode,
       output_files,
       duration_ms,
-      staged_inputs: Object.fromEntries(stagedFiles.map(f => [f.filename, `${containerData}/${f.id}/${f.filename}`])),
+      staged_inputs: Object.fromEntries(stagedFiles.map(f => [f.filename, stagedInputPath(f.id, f.filename)])),
     };
   } finally {
     // Async cleanup — don't block the response

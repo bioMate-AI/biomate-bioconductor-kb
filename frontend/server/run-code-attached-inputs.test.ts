@@ -4,12 +4,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 // path, and gave up — INPUT_FILES was empty every try (dev, 2026-11-04). run_code now stages the
 // datasets attached to this turn when the model lists none, and reads Galaxy with the user's key.
 const runCode = vi.fn(async (req: any) => ({ stdout: '', stderr: '', exit_code: 0, output_files: [], duration_ms: 1, staged_inputs: {} }));
-vi.mock('./code-runner', () => ({ runCode: (req: any) => runCode(req) }));
+vi.mock('./code-runner', async () => ({
+  ...(await vi.importActual<typeof import('./code-runner')>('./code-runner')),
+  runCode: (req: any) => runCode(req),
+}));
 vi.mock('./routes', () => ({
   getUploadedFile: (id: string) => (id === 'uuid-1' ? { name: 'predicted_measured.csv', filePath: '/tmp/never-read' } : undefined),
 }));
 
-import { GalaxyAssistant, attachedDatasetsFromMessage } from './galaxy-assistant';
+import { GalaxyAssistant, attachedDatasetsFromMessage, runCodeInputsNote } from './galaxy-assistant';
+import { stagedInputPath } from './code-runner';
 
 const MESSAGE = 'Correlate predicted and measured IC50 for these compounds.\n\n[Attached files: predicted_measured.csv, notes.md]\n'
   + '[Uploaded datasets: predicted_measured.csv: dataset_id=uuid-1, galaxy_dataset_id=gx1, s3_uri=s3://b/u/predicted_measured.csv; '
@@ -56,5 +60,24 @@ describe('run_code inputs', () => {
     expect(fetchSpy.mock.calls[0][0]).toContain('/api/datasets/gx1/display');
     expect(fetchSpy.mock.calls[0][1].headers).toEqual({ 'x-api-key': 'user-key' });
     await expect(downloadDataset('gx-unknown')).rejects.toThrow(/not accessible/);
+  });
+});
+
+describe('runCodeInputsNote — exact paths before the first run_code call', () => {
+  it('names each attached file at the path run_code stages it (prompt and runner agree)', async () => {
+    const note = runCodeInputsNote(MESSAGE);
+    const paths = JSON.parse(note.slice(note.indexOf('{'), note.lastIndexOf('}') + 1));
+    expect(paths).toEqual({
+      'predicted_measured.csv': '/work/input/gx1/predicted_measured.csv',
+      'notes.md': '/work/input/gx2/notes.md',
+    });
+    // the same ids/filenames _toolRunCode stages -> the same container paths the runner reports
+    await assistant()._toolRunCode({ language: 'python', code: 'x' }, { turnMessage: MESSAGE });
+    const staged = runCode.mock.calls[0][0].input_datasets.map((r: any) => stagedInputPath(r.id, r.filename));
+    expect(staged).toEqual(Object.values(paths));
+  });
+
+  it('is empty when nothing is attached', () => {
+    expect(runCodeInputsNote('Correlate predicted and measured IC50.')).toBe('');
   });
 });
