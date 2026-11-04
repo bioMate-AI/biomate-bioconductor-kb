@@ -2811,6 +2811,41 @@ export function NextflowWorkflowViewer({
       <div className="panel-body" data-tour="panel-body" data-testid={activeTab === 'settings' ? 'panel-settings' : 'panel-phases'}>
           {/* ── Phases-tab-only runtime section ─────────────────────────────── */}
           <div style={{ display: activeTab === 'phases' ? 'contents' : 'none' }}>
+          {/* Container pull progress banner — shown on phases tab while backend downloads a missing image.
+              This runs BEFORE Nextflow starts, so no phase cards exist yet; the banner is the only feedback. */}
+          {containerPullStatus && (status === 'running' || containerPullStatus.status === 'pulling') && (
+            <div style={{
+              margin: '12px 16px 4px',
+              padding: '10px 14px',
+              background: containerPullStatus.status === 'failed'
+                ? 'oklch(0.97 0.01 40)' : 'oklch(0.95 0.025 250)',
+              border: `1px solid ${containerPullStatus.status === 'failed'
+                ? 'oklch(0.88 0.04 40)' : 'oklch(0.80 0.08 250)'}`,
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+            }}>
+              {containerPullStatus.status === 'pulling' && (
+                <Loader2 style={{ width: 16, height: 16, flexShrink: 0 }} className="animate-spin" />
+              )}
+              {containerPullStatus.status === 'ready' && (
+                <span style={{ fontSize: 16 }}>✓</span>
+              )}
+              {containerPullStatus.status === 'failed' && (
+                <span style={{ fontSize: 16 }}>⚠</span>
+              )}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+                  {containerPullStatus.status === 'pulling' ? '准备运行环境（首次运行）' :
+                   containerPullStatus.status === 'ready' ? '环境就绪，正在启动…' : '镜像下载失败'}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                  {containerPullStatus.message}
+                </div>
+              </div>
+            </div>
+          )}
           {/* Step-wise controls hint — only when real phase groups exist */}
           {status === 'idle' && groupedPhases.some((g: any) => g.key !== 'all') && (
             <div

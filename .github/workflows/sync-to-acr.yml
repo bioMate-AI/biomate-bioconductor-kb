@@ -339,6 +339,29 @@ jobs:
                echo "=== biomate/biomni-tools:latest installed on ECS ===" && \
                docker image inspect biomate/biomni-tools:latest --format "ID={{.Id}}"'
 
+      - name: Configure Docker registry mirror (DaoCloud — China-accessible)
+        # DaoCloud mirror allows pulling Docker Hub images from Alibaba Cloud ECS.
+        # Required for workflows that use standard images (condaforge/miniforge3,
+        # python:3.x-slim, etc.) which are inaccessible from Docker Hub directly in China.
+        # Idempotent: skips daemon reload if mirror already present.
+        env:
+          ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
+        run: |
+          sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            root@${{ env.ECS_IP }} \
+            'if grep -q "daocloud.io" /etc/docker/daemon.json 2>/dev/null; then
+               echo "DaoCloud mirror already configured — skipping"
+             else
+               EXISTING=$(cat /etc/docker/daemon.json 2>/dev/null || echo "{}")
+               MIRRORS=$(echo "$EXISTING" | python3 -c "import json,sys; d=json.load(sys.stdin); m=d.get(\"registry-mirrors\",[]); m=[\"https://docker.m.daocloud.io\"]+[x for x in m if \"daocloud\" not in x]; d[\"registry-mirrors\"]=m; print(json.dumps(d,indent=2))")
+               echo "$MIRRORS" > /etc/docker/daemon.json
+               systemctl reload docker 2>/dev/null || systemctl restart docker 2>/dev/null || true
+               sleep 3
+               echo "Docker daemon reloaded with DaoCloud mirror"
+               docker info 2>/dev/null | grep -A3 "Registry Mirrors" || echo "(mirror info not shown)"
+             fi'
+
       - name: Restart stack
         env:
           ECS_PASS: ${{ secrets.ECS_ROOT_PASS }}
@@ -397,7 +420,10 @@ jobs:
           for NF_LOCAL in \
             backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf \
             backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/pbpk_simulation/main.nf \
-            backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/herg_cardiac_safety_qsar/main.nf; do
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/herg_cardiac_safety_qsar/main.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/calculate_physicochemical_properties/main.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/cns_penetration_prediction/main.nf \
+            backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/cyp_ddi_panel/main.nf; do
             REL=$(echo "$NF_LOCAL" | sed 's|backend/biomni_workflows/nextflow_nfcore/||')
             echo "Uploading $NF_LOCAL ($REL) …"
             cat "$NF_LOCAL" | \
@@ -618,10 +644,71 @@ jobs:
           else R3=$(poll_run hERG "$RUN3"); fi
           echo "[hERG] final=$R3"
 
+          # ── Case 4: physicochemical properties (cached image — fast path) ─────
+          # Uses biomate/biomni-tools:latest (already on ECS). Demonstrates that
+          # pre-cached workflows start immediately with no pull wait.
+          echo ""
+          echo "=== [PhysChem] direct execute (calculate_physicochemical_properties) ==="
+          D4='{"workflowDefinition":{"name":"Physicochemical Properties","domain":"pharmacology","nextflow_path":"biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/calculate_physicochemical_properties/main.nf","parameters":{"smiles_string":"CC(=O)Oc1ccccc1C(=O)O"}}}'
+          E4=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D4" 2>/dev/null)
+          RUN4=$(echo "$E4" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
+          NF4=$(echo "$E4"  | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextflowRunId',''))" 2>/dev/null)
+          echo "runId=$RUN4 nextflowRunId=$NF4  exec=$(echo "$E4" | head -c 300)"
+          if [ -z "$RUN4" ]; then echo "[PhysChem] no runId — FAIL"; FAIL=1; R4="no-runid"
+          else R4=$(poll_run PhysChem "$RUN4"); fi
+          echo "[PhysChem] final=$R4"
+
+          # ── Case 5: CNS penetration (cached image — fast path) ─────────────────
+          # Uses biomate/biomni-tools:latest. Tests BBB permeability prediction.
+          echo ""
+          echo "=== [CNS] direct execute (cns_penetration_prediction) ==="
+          D5='{"workflowDefinition":{"name":"CNS Penetration Prediction","domain":"pharmacology","nextflow_path":"biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/cns_penetration_prediction/main.nf","parameters":{"smiles_list":"[\"CCc1nn(C)c2cc(-c3ccc(S(=O)(=O)N4CCN(C)CC4)cc3)cnc12\"]"}}}'
+          E5=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D5" 2>/dev/null)
+          RUN5=$(echo "$E5" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
+          NF5=$(echo "$E5"  | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextflowRunId',''))" 2>/dev/null)
+          echo "runId=$RUN5 nextflowRunId=$NF5  exec=$(echo "$E5" | head -c 300)"
+          if [ -z "$RUN5" ]; then echo "[CNS] no runId — FAIL"; FAIL=1; R5="no-runid"
+          else R5=$(poll_run CNS "$RUN5"); fi
+          echo "[CNS] final=$R5"
+
+          # ── Case 6: CYP DDI panel (pull-on-demand — condaforge/miniforge3) ─────
+          # Uses condaforge/miniforge3:latest via DaoCloud mirror.  First run
+          # triggers a docker pull (5-10 min); frontend shows "准备运行环境" banner.
+          # Subsequent runs use the cached image and start in seconds.
+          # Poll timeout extended to 25 min to allow for image pull + execution.
+          echo ""
+          echo "=== [CYP-DDI] direct execute (cyp_ddi_panel — pull-on-demand) ==="
+          D6='{"workflowDefinition":{"name":"CYP DDI Panel","domain":"drug_discovery","nextflow_path":"biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/cyp_ddi_panel/main.nf","parameters":{"smiles":"CC(=O)Oc1ccccc1C(=O)O","compound_name":"aspirin","dose_route":"oral"}}}'
+          E6=$(curl -sf --max-time 30 -X POST "$BASE/api/workflows/execute" \
+            -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d "$D6" 2>/dev/null)
+          RUN6=$(echo "$E6" | python3 -c "import sys,json; print(json.load(sys.stdin).get('runId',''))" 2>/dev/null)
+          NF6=$(echo "$E6"  | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextflowRunId',''))" 2>/dev/null)
+          echo "runId=$RUN6 nextflowRunId=$NF6  exec=$(echo "$E6" | head -c 300)"
+          if [ -z "$RUN6" ]; then echo "[CYP-DDI] no runId — FAIL"; FAIL=1; R6="no-runid"
+          else
+            # Extended poll: 150 iterations × 10s = 25 min (covers first-time pull)
+            poll_run_long() {
+              local LABEL=$1 RID=$2
+              for i in $(seq 1 150); do
+                STATUS=$(curl -sf --max-time 15 "$BASE/api/workflows/status/$RID" \
+                  -H "Authorization: Bearer $TOKEN" 2>/dev/null | \
+                  python3 -c "import sys,json; print(json.load(sys.stdin).get('status','unknown'))" 2>/dev/null)
+                echo "[$LABEL] poll $i/150 → $STATUS"
+                case "$STATUS" in completed|succeeded|failed|error) echo "$STATUS"; return ;; esac
+                sleep 10
+              done
+              echo "timeout"
+            }
+            R6=$(poll_run_long CYP-DDI "$RUN6")
+          fi
+          echo "[CYP-DDI] final=$R6"
+
           # ── summary + diagnostics ───────────────────────────────────────────────
           echo ""
           echo "=== E2E summary ==="
-          for PAIR in "ADMET:$R1" "PBPK:$R2" "hERG:$R3"; do
+          for PAIR in "ADMET:$R1" "PBPK:$R2" "hERG:$R3" "PhysChem:$R4" "CNS:$R5" "CYP-DDI:$R6"; do
             N=$(echo "$PAIR" | cut -d: -f1); V=$(echo "$PAIR" | cut -d: -f2)
             case "$V" in completed|succeeded) echo "  PASS $N: $V" ;; *) echo "  FAIL $N: $V"; FAIL=1 ;; esac
           done
@@ -636,15 +723,15 @@ jobs:
             ls -lt /app/nf-work/ 2>/dev/null | head -10 || echo "/app/nf-work not found or empty"
 
           echo ""
-          echo "=== Galaxy logs (last 10 min, executor lines) ==="
-          docker logs biomate-galaxy --since 10m 2>&1 | \
+          echo "=== Galaxy logs (last 15 min, executor lines) ==="
+          docker logs biomate-galaxy --since 15m 2>&1 | \
             grep -v "embed_server\|VectorSearch\|WorkflowEmbed\|wf-search-warmup" | \
-            grep -E "Nextflow|nextflow|mock_mode|nf-launch|profile|work_base|FAIL|ERROR|${NF1:0:8}|${NF2:0:8}|${NF3:0:8}|${RUN1:0:8}|${RUN2:0:8}|${RUN3:0:8}" | \
-            tail -60 || true
+            grep -E "Nextflow|nextflow|mock_mode|nf-launch|profile|work_base|FAIL|ERROR|container_pull|pull|${NF1:0:8}|${NF2:0:8}|${NF3:0:8}|${NF4:0:8}|${NF5:0:8}|${NF6:0:8}" | \
+            tail -80 || true
 
           echo ""
           echo "=== nf-work errors (by nextflowRunId) ==="
-          for PAIR in "ADMET:$NF1" "PBPK:$NF2" "hERG:$NF3"; do
+          for PAIR in "ADMET:$NF1" "PBPK:$NF2" "hERG:$NF3" "PhysChem:$NF4" "CNS:$NF5" "CYP-DDI:$NF6"; do
             LABEL=$(echo "$PAIR" | cut -d: -f1)
             NF_ID=$(echo "$PAIR" | cut -d: -f2)
             [ -z "$NF_ID" ] && echo "$LABEL: no nextflowRunId captured" && continue
@@ -653,32 +740,20 @@ jobs:
               echo "=== $LABEL nf-work ($NF_ID) ==="
               find "$WD" -name ".command.err" 2>/dev/null | while read f; do
                 echo "--- $(dirname $f | xargs basename) .command.err ---"
-                tail -30 "$f" 2>/dev/null
+                tail -20 "$f" 2>/dev/null
               done
               find "$WD" -name ".exitcode" 2>/dev/null | while read f; do
                 echo "exit=$(cat $f 2>/dev/null) in $(dirname $f | xargs basename)"
               done
-              find "$WD" -name ".command.log" 2>/dev/null | while read f; do
-                echo "--- $(dirname $f | xargs basename) .command.log (last 20) ---"
-                tail -20 "$f" 2>/dev/null
-              done
             else
-              echo "=== $LABEL: nf-work dir $WD not found — scanning by prefix ==="
+              echo "=== $LABEL: nf-work dir $WD not found ==="
               find /app/nf-work -maxdepth 1 -type d -name "${NF_ID:0:8}*" 2>/dev/null | while read d; do
                 echo "Found: $d"
-                find "$d" -name ".command.err" | while read f; do
-                  echo "--- $f ---"; tail -20 "$f"; done
+                find "$d" -name ".command.err" | while read f; do echo "--- $f ---"; tail -15 "$f"; done
               done
             fi
           done
 
-          echo ""
-          echo "=== hERG Galaxy log lines (last 5 min) ==="
-          docker logs biomate-galaxy --since 5m 2>&1 | \
-            grep -v "embed_server\|VectorSearch\|WorkflowEmbed\|wf-search-warmup" | \
-            grep -iE "herg|cardiac|pharmacology|${NF3:0:8}|error|fail|docker|container|pull|image" | \
-            tail -30 || true
-
           [ "$FAIL" -eq 0 ] || { echo "One or more workflow tests FAILED"; exit 1; }
-          echo "All 3 workflow tests COMPLETED"
+          echo "All 6 workflow tests COMPLETED"
           ENDSSH
