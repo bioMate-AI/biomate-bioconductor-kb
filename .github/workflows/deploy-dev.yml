@@ -1,0 +1,87 @@
+name: Deploy to dev (ECR pull + restart)
+
+# One-off workflow: pull latest ECR images on dev EC2 and restart containers.
+# Used when SSH-based sync_to_dev.sh is unavailable.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ecr_tag:
+        description: 'ECR image tag to deploy'
+        required: true
+        default: 'integration-next-phase-latest'
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: 399683337364.dkr.ecr.us-west-2.amazonaws.com
+  DEV_INSTANCE_ID: i-06696b0d91f4346e0
+
+jobs:
+  deploy-dev:
+    name: Deploy to dev via SSM
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment:
+      name: test
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::399683337364:role/GitHubActionsDeploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy via SSM
+        run: |
+          TAG="${{ inputs.ecr_tag }}"
+          CMD_ID=$(aws ssm send-command \
+            --instance-ids "${{ env.DEV_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters "commands=[
+              \"set -e\",
+              \"echo === Logging in to ECR ===\",
+              \"aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}\",
+              \"echo === Pulling backend ===\",
+              \"docker pull ${{ env.ECR_REGISTRY }}/biomate/dev-backend:$TAG\",
+              \"echo === Pulling frontend ===\",
+              \"docker pull ${{ env.ECR_REGISTRY }}/biomate/dev-frontend:$TAG\",
+              \"echo === Stopping old containers ===\",
+              \"docker stop biomate-dev-frontend biomate-galaxy-dev 2>/dev/null || true\",
+              \"docker rm biomate-dev-frontend biomate-galaxy-dev 2>/dev/null || true\",
+              \"echo === Starting new containers ===\",
+              \"cd /opt/biomate && docker compose -f docker-compose.dev.yml up -d --force-recreate 2>/dev/null || docker compose up -d --force-recreate\",
+              \"sleep 20\",
+              \"echo === Health check ===\",
+              \"curl -sf http://localhost:3000/api/health && echo FRONTEND_OK || echo FRONTEND_FAIL\",
+              \"curl -sf http://localhost:8081/api/version && echo GALAXY_OK || echo GALAXY_FAIL\"
+            ]" \
+            --output text --query "Command.CommandId")
+          echo "Command ID: $CMD_ID"
+
+          for i in $(seq 1 80); do
+            sleep 15
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$CMD_ID" \
+              --instance-id "${{ env.DEV_INSTANCE_ID }}" \
+              --query "Status" --output text 2>/dev/null || echo "Pending")
+            echo "[$i] $STATUS"
+            if [[ "$STATUS" == "Success" || "$STATUS" == "Failed" || "$STATUS" == "TimedOut" || "$STATUS" == "Cancelled" ]]; then
+              echo "=== Output ==="
+              aws ssm get-command-invocation \
+                --command-id "$CMD_ID" \
+                --instance-id "${{ env.DEV_INSTANCE_ID }}" \
+                --query "StandardOutputContent" --output text
+              echo "=== Errors ==="
+              aws ssm get-command-invocation \
+                --command-id "$CMD_ID" \
+                --instance-id "${{ env.DEV_INSTANCE_ID }}" \
+                --query "StandardErrorContent" --output text
+              [[ "$STATUS" == "Success" ]] && exit 0 || exit 1
+            fi
+          done
+          echo "Timed out waiting for SSM command"
+          exit 1

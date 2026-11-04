@@ -918,22 +918,30 @@ describe('WorkflowSSEManager', () => {
     });
 
     it('TC-POLL-INT-003: should close clients on workflow completion', async () => {
-      const manager = new WorkflowSSEManager(mockPoller as any);
+      vi.useFakeTimers();
+      try {
+        const manager = new WorkflowSSEManager(mockPoller as any);
 
-      await manager.handleConnection(mockRequest, mockResponse);
-      expect(manager.getClientCount('inv-456')).toBe(1);
+        await manager.handleConnection(mockRequest, mockResponse);
+        expect(manager.getClientCount('inv-456')).toBe(1);
 
-      // Emit completion event
-      mockPoller.emit('workflow_completed', {
-        invocation_id: 'inv-456',
-        state: 'ok',
-      });
+        // Emit completion event
+        mockPoller.emit('workflow_completed', {
+          invocation_id: 'inv-456',
+          state: 'ok',
+        });
 
-      // Wait for timeout to close clients
-      await new Promise(resolve => setTimeout(resolve, 1100));
+        // Flush any pending microtasks (storage.updateInvocation is async)
+        await Promise.resolve();
 
-      // Clients should be closed
-      expect(mockResponse.end).toHaveBeenCalled();
+        // Advance past the 15-second post-completion close delay
+        await vi.advanceTimersByTimeAsync(16000);
+
+        // Clients should be closed
+        expect(mockResponse.end).toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('TC-POLL-INT-004: should broadcast job_log events', async () => {

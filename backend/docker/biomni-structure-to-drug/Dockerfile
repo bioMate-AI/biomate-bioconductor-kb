@@ -13,7 +13,7 @@
 #     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86 \
 #     --push -f backend/docker/biomni-structure-to-drug/Dockerfile .
 
-FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:latest
 
 LABEL maintainer="BioMate Team"
 LABEL description="biomni-structure-to-drug: fpocket, AutoDock Vina, pharmacophore, structure-based drug design"

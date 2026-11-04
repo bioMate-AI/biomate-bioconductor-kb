@@ -113,8 +113,11 @@ class RealtimeCostService:
         output_usd: float,
         input_tokens: int,
         output_tokens: int,
+        month: Optional[str] = None,
     ) -> str:
-        month = _month_key()
+        # month override is used only by the dead-letter reconciler to credit the
+        # ORIGINAL billing period; all live callers pass None → current month.
+        month = month or _month_key()
         key   = f"cost:{user_id}:month:{month}:llm"
         try:
             pipe  = self._r.pipeline()
@@ -146,8 +149,9 @@ class RealtimeCostService:
         gpu_usd: float,
         mem_usd: float,
         duration_seconds: float,
+        month: Optional[str] = None,
     ) -> str:
-        month = _month_key()
+        month = month or _month_key()  # override only by the reconciler (see record_llm_cost)
         key   = f"cost:{user_id}:month:{month}:compute"
         try:
             pipe  = self._r.pipeline()
@@ -184,8 +188,9 @@ class RealtimeCostService:
         storage_usd: float,
         request_usd: float,
         object_key: str = "",
+        month: Optional[str] = None,
     ) -> str:
-        month = _month_key()
+        month = month or _month_key()  # override only by the reconciler (see record_llm_cost)
         key   = f"cost:{user_id}:month:{month}:storage"
         pipe  = self._r.pipeline()
         pipe.hincrbyfloat(key, "storage_usd", storage_usd)

@@ -23,7 +23,7 @@
 #     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/openfe-rbfe:1.0 \
 #     --push -f backend/docker/openfe-rbfe/Dockerfile .
 
-FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:latest
 
 LABEL maintainer="BioMate Team"
 LABEL version="1.0"

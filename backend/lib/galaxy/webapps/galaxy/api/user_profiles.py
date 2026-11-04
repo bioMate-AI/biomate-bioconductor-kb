@@ -57,7 +57,7 @@ class FastAPIUserProfiles:
         try:
             import sqlite3
 
-            db_path = "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db"
+            db_path = "/app/database/galaxy_ai_tools.db"
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
 
@@ -173,7 +173,7 @@ class FastAPIUserProfiles:
         try:
             import sqlite3
 
-            db_path = "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db"
+            db_path = "/app/database/galaxy_ai_tools.db"
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
 
@@ -235,7 +235,7 @@ class FastAPIUserProfiles:
         try:
             import sqlite3
 
-            db_path = "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db"
+            db_path = "/app/database/galaxy_ai_tools.db"
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
 
@@ -309,7 +309,7 @@ class FastAPIUserProfiles:
         try:
             import sqlite3
 
-            db_path = "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db"
+            db_path = "/app/database/galaxy_ai_tools.db"
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
 
@@ -368,7 +368,7 @@ class FastAPIUserProfiles:
         try:
             import sqlite3
 
-            db_path = "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db"
+            db_path = "/app/database/galaxy_ai_tools.db"
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
 

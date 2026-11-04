@@ -1,0 +1,121 @@
+# BioMate Tools Container — On-Premises Edition
+#
+# Uses a PUBLIC base image (python:3.10-slim) so on-prem customers can pull
+# without AWS ECR credentials.  The SaaS Dockerfile uses the private ECR base
+# biomate-nextflow-base:latest; that base is NOT available to on-prem customers.
+#
+# Key differences from the SaaS Dockerfile:
+#   - Base: python:3.10-slim  (public DockerHub)
+#   - NO ENTRYPOINT — Nextflow's local executor runs tasks as:
+#       docker run ... /bin/bash .command.run
+#     If an ENTRYPOINT is set (e.g. ["/bin/sh"]), that becomes:
+#       /bin/sh /bin/bash .command.run  → "Unterminated quoted string" from ELF bytes
+#     Clearing the ENTRYPOINT in runOptions (--entrypoint "") avoids this, but
+#     it's cleaner to just not set one in the on-prem image.
+#   - AWS CLI is NOT included — not required for local Nextflow executor since
+#     Nextflow's built-in Java S3 client handles MinIO staging.
+#
+# Build (once per on-prem release):
+#   docker buildx build --platform linux/amd64 \
+#     -t ghcr.io/biomate-ai/biomni-tools:latest \
+#     --push -f backend/docker/biomni-tools/Dockerfile.onprem .
+#
+# After pushing, on-prem install.sh retags it as biomate/biomni-tools:latest
+# so the Nextflow .nf files (which reference that local name) find it.
+
+FROM python:3.10-slim
+
+LABEL maintainer="BioMate Team"
+LABEL description="biomni-tools (on-prem): ViennaRNA, AutoDock Vina, RDKit, Biopython, openbabel + pharmacology"
+LABEL version="2.1.0-onprem"
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# ── Layer 1: System dependencies ───────────────────────────────────────────
+# bash + procps: required by Nextflow task execution (.command.run, .command.trace)
+# curl:          used in some workflow helper scripts
+# libgomp1:      OpenMP (needed by Vina, RDKit)
+# libgfortran5:  Fortran runtime (scipy)
+# libxrender1 + libxext6: X11 stubs for RDKit 2D rendering
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    procps \
+    curl \
+    libgomp1 \
+    libgfortran5 \
+    libxrender1 \
+    libxext6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Layer 2: Core scientific Python stack ──────────────────────────────────
+# The SaaS base image (biomate-nextflow-base) ships these; we install them here.
+RUN pip install --no-cache-dir \
+    numpy \
+    scipy \
+    pandas \
+    biopython \
+    "rdkit>=2023.3" \
+    gget \
+    scikit-learn \
+    matplotlib \
+    requests \
+    pubchempy
+
+# ── Layer 3: ViennaRNA (RNA secondary structure) ───────────────────────────
+RUN pip install --no-cache-dir ViennaRNA
+
+# ── Layer 4: AutoDock Vina + Meeko (real molecular docking) ───────────────
+RUN pip install --no-cache-dir \
+    gemmi \
+    vina \
+    meeko \
+    openbabel-wheel
+
+# ── Layer 5: Codon optimisation tools ─────────────────────────────────────
+RUN pip install --no-cache-dir \
+    codon-tools \
+    python-codon-tables
+
+# ── Layer 6: Visualisation + enrichment ───────────────────────────────────
+RUN pip install --no-cache-dir \
+    adjustText \
+    seaborn \
+    plotly
+
+# ── Layer 7: Pharmacology-specific packages ────────────────────────────────
+RUN pip install --no-cache-dir \
+    statsmodels \
+    scikit-image
+
+RUN pip install --no-cache-dir \
+    "git+https://github.com/bp-kelley/descriptastorus" \
+    pandas-flavor || \
+    echo "WARNING: descriptastorus install failed — DeepPurpose will be degraded"
+
+RUN pip install --no-cache-dir DeepPurpose || \
+    echo "WARNING: DeepPurpose install failed — ADMET will use RDKit fallback"
+
+# ── Layer 8: BioMate Python SDK (biomni) ──────────────────────────────────
+RUN pip install --no-cache-dir "biomni>=0.0.8" || \
+    echo "WARNING: biomni install failed — biomni_* workflows will fail"
+
+# ── Smoke tests ────────────────────────────────────────────────────────────
+RUN python3 -c "\
+import RNA; seq='GGCAUAUGCUUAGUGCAUAUGC'; (struct, mfe) = RNA.fold(seq); \
+print('ViennaRNA OK  mfe={:.2f} struct={}'.format(mfe, struct))" && \
+    python3 -c "\
+from vina import Vina; print('AutoDock Vina OK')" && \
+    python3 -c "\
+from rdkit import Chem; m=Chem.MolFromSmiles('c1ccccc1'); \
+print('RDKit OK  atoms={}'.format(m.GetNumAtoms()))" && \
+    python3 -c "\
+import Bio; print('Biopython OK  version={}'.format(Bio.__version__))" && \
+    python3 -c "\
+import meeko; print('Meeko OK')" && \
+    python3 -c "import statsmodels; print('statsmodels OK')" && \
+    python3 -c "import skimage; print('scikit-image OK')" && \
+    echo "All biomni-tools (on-prem) checks passed."
+
+WORKDIR /data
+# No CMD and no ENTRYPOINT — Nextflow manages container execution directly.

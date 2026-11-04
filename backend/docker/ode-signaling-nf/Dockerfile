@@ -12,7 +12,7 @@
 #     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ode-signaling-nf:1.0 \
 #     --push -f backend/docker/ode-signaling-nf/Dockerfile .
 
-FROM --platform=linux/amd64 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+FROM --platform=linux/amd64 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/nextflow-base:latest
 
 LABEL maintainer="BioMate Team"
 LABEL description="ode-signaling-nf: ODE signaling pathway simulator (numpy/scipy + matplotlib)"

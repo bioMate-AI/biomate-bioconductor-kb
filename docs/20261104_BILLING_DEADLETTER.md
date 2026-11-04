@@ -177,3 +177,40 @@ This is the money path. **No live verification was done.** Before trusting:
 5. Build and implement the reconciliation consumer (above) before relying on the
    dead-letter for billing accuracy — until then, dead-lettered events are durable
    but **not yet re-applied** to the ledger.
+
+---
+
+## Reconciliation consumer — IMPLEMENTED (2026-11-04)
+
+`backend/lib/galaxy/ai/billing/core/reconcile.py` now implements the plan above.
+
+- Entry: `reconcile_deadletter(service=None, dry_run=False)` or CLI
+  `python -m galaxy.ai.billing.core.reconcile [--dry-run]`.
+- **Idempotency (no double-count):** before replaying an event it atomically claims
+  a durable Redis marker `billing:recon:done:<txn_id>` via `SET ... NX EX 90d`. Only
+  the claimer replays; a re-run or crash-retry sees the marker and skips. The
+  deterministic `txn_id` makes the marker stable across runs. Trade-off: a crash in
+  the tiny window between claim and the Redis increment UNDER-counts that one event
+  (prefers under-count to over-charging).
+- **Month-targeted:** replays via `record_*(..., month=<captured month>)` — the three
+  `record_*` methods gained an optional `month` kwarg (default `None` → current
+  month; only the reconciler passes it). Credits the ORIGINAL billing period.
+- **Redis down** (the reconciler should only run when Redis is up): the marker claim
+  raises → the run aborts cleanly, keeps all lines, applies nothing, retry later.
+- **Compaction:** after a pass the dead-letter is rewritten keeping only
+  unreconciled lines, after an atomic timestamped `.bak` backup.
+
+**Verified (local, fake redis + fake service — no remote writes):** month-targeted
+replay, NX-marker idempotency (re-run applies nothing), redis-down abort, compaction
++ backup, dry-run no-op. See the session's local test.
+
+**Still owed before trusting in production (money path):**
+1. An end-to-end replay against a REAL Redis (throwaway user) — the local test fakes
+   `record_*`; the real month-targeting path (1-line change, compiles) is unexercised
+   against live Redis. Blocked here only because writing modified source into the dev
+   container / writing dev Redis is restricted; run it on the dev/CI image.
+2. **Wire a trigger** — this module does NOT schedule itself. Add a cron (e.g. every
+   5 min) or an on-Redis-recovery hook that runs the CLI. Pick a cadence; it is safe
+   to run concurrently-serialised (it takes the cost-log write lock) and repeatedly.
+3. Ensure `BIOMATE_COST_LOG_DIR` is a persistent volume (same prerequisite as the
+   dead-letter writer) so the file survives restarts for the reconciler to drain.

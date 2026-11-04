@@ -28,6 +28,9 @@ FROM python:3.9-slim-bookworm
 ARG NF_VERSION=25.10.5
 ARG GIT_SHA=unknown
 ARG BUILD_DATE=unknown
+# TARGETARCH is set automatically by `docker buildx build --platform linux/<arch>`.
+# Falls back to `uname -m` when building with plain `docker build` (no --platform).
+ARG TARGETARCH
 
 # CRITICAL: pin Nextflow version EVERYWHERE that can pin it.
 # We've had NXF_VER stripped from nextflow_executor.py 5+ times by parallel
@@ -63,6 +66,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-17-jre-headless \
     procps ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Docker CLI — required by the local Nextflow executor (NEXTFLOW_EXECUTOR=local)
+# so that workflow process scripts can run `docker run` against the host daemon
+# (mounted via /var/run/docker.sock in docker-compose.onprem.yml).
+# Uses the static release binary: no daemon installed, no apt repo needed.
+ARG DOCKER_CLI_VERSION=26.1.4
+RUN set -eux; \
+    case "${TARGETARCH:-$(uname -m)}" in \
+      amd64|x86_64)  DARCH=x86_64  ;; \
+      arm64|aarch64) DARCH=aarch64  ;; \
+      *) echo "Unsupported arch: ${TARGETARCH:-$(uname -m)}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://download.docker.com/linux/static/stable/${DARCH}/docker-${DOCKER_CLI_VERSION}.tgz" \
+      | tar xz --strip-components=1 -C /usr/local/bin docker/docker \
+    && docker --version
 # JDK 17 is REQUIRED (do not change to default-jre-headless).
 # default-jre-headless on Debian 13 trixie = OpenJDK 21. JDK 21 + glibc 2.41 +
 # AWS CRT native lib randomly SIGSEGVs the JVM in ld-linux during the dlopen
@@ -108,7 +126,13 @@ RUN /usr/local/bin/nextflow -version 2>&1 | head -3
 # AWS CLI v2 in /opt/aws-cli (self-contained — past incident: a symlink to
 # /usr/bin/aws broke when Nextflow bind-mounted /opt/aws-cli into Batch task
 # containers, causing exit 127 on ALL Batch jobs — L18).
-RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip \
+RUN set -eux; \
+    case "${TARGETARCH:-$(uname -m)}" in \
+      amd64|x86_64)  AWSARCH=x86_64  ;; \
+      arm64|aarch64) AWSARCH=aarch64  ;; \
+      *) echo "Unsupported arch: ${TARGETARCH:-$(uname -m)}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWSARCH}.zip" -o /tmp/awscliv2.zip \
     && unzip -q /tmp/awscliv2.zip -d /tmp \
     && /tmp/aws/install -i /opt/aws-cli -b /opt/aws-cli/bin \
     && rm -rf /tmp/aws /tmp/awscliv2.zip \

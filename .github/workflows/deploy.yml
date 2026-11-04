@@ -67,13 +67,12 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
-    # 10 min is plenty for the deploy: pre-flight + ECR pull (~3 min for a
-    # full image refresh) + healthcheck (90s) + tag commit + notify. Any
-    # ssm_run that hangs past this caps the GHA spend rather than burning
-    # 20 minutes (which is what the first GHA run did when SendCommand was
-    # AccessDenied and the polling loop spun forever — that's now also
-    # fixed in deploy.sh:ssm_run by aborting on empty cmd_id).
-    timeout-minutes: 10
+    # 20 min: ECR pull now takes ~4 min for larger images, leaving only 6 min
+    # for Step 6 ssm_run (600s budget) under the old 10-min cap — which caused
+    # GHA to cancel the job mid-deploy. Budget breakdown: pre-flight (~1 min) +
+    # ECR pull (~4 min) + Step 6 ssm_run (≤10 min) + notify (~1 min) = ~16 min.
+    # ssm_run aborts on empty cmd_id so AccessDenied hangs are still guarded.
+    timeout-minutes: 20
     environment:
       name: test
       url: http://stage-public.biomate.ai

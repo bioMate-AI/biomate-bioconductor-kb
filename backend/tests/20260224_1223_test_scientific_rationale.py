@@ -5,7 +5,7 @@ Design: rationale is built purely from tool_knowledge in the BioMate DB.
 For each tool in workflow.tools_used, we look it up — if it has use_cases,
 we include it. No hardcoded allowlists, no supplement dicts.
 
-Run from /home/yzhang/biomate/backend/:
+Run from /app:
     python -m pytest tests/20260224_1223_test_scientific_rationale.py -v
 """
 import sys

@@ -739,7 +739,7 @@ class TestKnowledgeBaseSourceIntegrity:
     def test_every_entry_has_non_empty_source_file(self):
         """
         Source: knowledge_base.py KnowledgeEntry docstring:
-          'source_file: Path relative to /home/yzhang/biomate/ of the BioMate
+          'source_file: Path relative to the project root of the BioMate
            skill document that contains this claim.'
         Empty source_file makes the entry unverifiable.
         """

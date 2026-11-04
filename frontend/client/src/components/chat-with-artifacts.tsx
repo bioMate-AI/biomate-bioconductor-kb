@@ -2004,7 +2004,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             fontFamily: 'var(--bm-font-ui)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
-            {currentChatSession?.title || 'New chat'}
+            {currentChatSession?.title || t('New chat')}
           </span>
           {isConnected && (
             <span style={{ fontSize: 11, color: 'var(--bm-ok, oklch(0.62 0.13 150))', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -2384,6 +2384,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             onOpenWorkflowInPanel={handleOpenWorkflowInPanel}
             panelWorkflowMessageId={panelWorkflowMessageId}
             isPanelOpen={panelOpen}
+            currentPanelWorkflow={panelWorkflow}
             onSubmitWithFiles={() => { pendingPanelFromFiles.current = true }}
             onStreamingChange={(streaming) => {
               setPanelGenerating(streaming)
@@ -2622,6 +2623,34 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                         ...ev,
                         invocationId: currentRun?.execution?.galaxyInvocationId || currentRun?.id,
                       })}
+                      onRerunStarted={async (runId) => {
+                        // After a successful /rerun call, restart polling immediately.
+                        // forcePolling:true skips the DB status check — the backend may
+                        // still show 'failed' for a few seconds while launching Nextflow.
+                        if (runId) {
+                          try { await loadRun(runId, { forcePolling: true }); } catch (e) {
+                            console.error('[rerun] loadRun restart failed:', e);
+                          }
+                        }
+                      }}
+                      onAutoReroute={async ({ fromWorkflow, toWorkflowName, reason, newRunId, newInvocationId }) => {
+                        // Layer-1 silent reroute: inject a chat progress message + load the new run.
+                        if (currentChatSession && currentRun?.execution?.galaxyInvocationId) {
+                          handlePanelWorkflowProgress({
+                            kind: 'auto_reroute',
+                            friendly_message: reason,
+                            invocationId: currentRun.execution.galaxyInvocationId,
+                            technical: { from: fromWorkflow, to: toWorkflowName, newRunId },
+                          });
+                        }
+                        if (newRunId) {
+                          try {
+                            await loadRun(newRunId);
+                          } catch (e) {
+                            console.error('[auto_reroute] loadRun failed:', e);
+                          }
+                        }
+                      }}
                     />
                   )
                 })()

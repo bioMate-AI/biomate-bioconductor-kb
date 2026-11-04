@@ -60,7 +60,9 @@ const _isMcpProxyPath = (p: string) =>
 // GET worked). Skip parsing so the untouched stream reaches the proxy.
 const _needsRawBody = (req: Request) =>
   _isMcpProxyPath(req.path) || req.path === '/api/payments/webhook' ||
-  req.path.startsWith('/interactive/');
+  req.path.startsWith('/interactive/') ||
+  // On-prem MinIO multipart upload proxy: browser PUTs raw binary chunks here.
+  req.path === '/api/s3/upload/part';
 const _jsonParser = express.json();
 const _urlencodedParser = express.urlencoded({ extended: false });
 app.use((req, res, next) => (_needsRawBody(req) ? next() : _jsonParser(req, res, next)));

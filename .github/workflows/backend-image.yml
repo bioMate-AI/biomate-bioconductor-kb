@@ -1,13 +1,15 @@
 name: Build & push backend image
 
-# Builds the Galaxy backend container image on every push to `main` (and on
-# manual dispatch). Pushes to ECR with three tags:
+# Builds the Galaxy backend container image on every release tag push (and on
+# manual dispatch). Pushes to ECR + GHCR with three tags:
 #   - sha-<commit>      pinned forever, used by deploys
 #   - main-latest       moving pointer, used by smoke "give me current"
-#   - release-x.y.z     only when the push is a release-x.y.z tag
+#   - release-x.y.z    only when the push is a release-x.y.z tag
 #
-# This workflow only BUILDS and PUSHES. It does NOT deploy. Deploys happen
-# in a separate workflow (P3.1) that calls scripts/deploy.sh.
+# Multi-arch strategy: two native-runner jobs (amd64 + arm64) build and
+# smoke-test their platform image independently, push per-platform tags, then
+# a merge-manifest job combines them into a single multi-arch manifest. Native
+# runners avoid QEMU and keep the smoke tests faithful (no emulation slowdown).
 #
 # Past-incident guardrails (see docs/20260514_CICD_REBUILD_PLAN.md §6.3):
 #   - L1: image tagged with git sha (never bare `latest`); /image-build-info baked in
@@ -19,17 +21,6 @@ name: Build & push backend image
 
 on:
   push:
-    # OPTIMIZED: Only build images on release tags, not on every push.
-    # This reduces CI/CD cost by ~90% while maintaining clear version control.
-    #
-    # Supported tag formats:
-    #   - release-v1.0.0     → production release
-    #   - beta-v1.0.0-rc1    → staging/beta release
-    #   - dev-v0.9.0         → development release
-    #
-    # For regular development commits, the ci-tests workflow runs tests only.
-    # SHA-based tags are still generated when tags are pushed, maintaining
-    # the sha-<commit> property that deploy.yml relies on.
     tags:
       - 'release-v**'
       - 'beta-v**'
@@ -39,9 +30,9 @@ on:
 permissions:
   id-token: write    # OIDC for assume-role
   contents: read
+  packages: write    # push to GHCR for on-prem distribution
 
 concurrency:
-  # Allow at most one in-flight backend-image build per ref. Cancel older runs.
   group: backend-image-${{ github.ref }}
   cancel-in-progress: true
 
@@ -50,17 +41,30 @@ env:
   ECR_REGISTRY: 399683337364.dkr.ecr.us-west-2.amazonaws.com
   ECR_REPO: biomate/dev-backend
   ROLE_ARN: arn:aws:iam::399683337364:role/GitHubActionsECRPush
+  GHCR_IMAGE: ghcr.io/biomate-ai/biomate-backend
 
 jobs:
+  # ── Per-platform build + smoke + push ────────────────────────────────────────
   build-and-push:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    # Automatically select environment based on tag type:
-    #   - dev-v*.*.*     → development environment (no approval)
-    #   - beta-v*.*.*    → staging environment (1 reviewer required)
-    #   - release-v*.*.* → production environment (2 reviewers + 5min wait)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runs-on: ubuntu-latest
+            suffix: amd64
+          - platform: linux/arm64
+            runs-on: ubuntu-24.04-arm
+            suffix: arm64
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 60
     environment:
       name: ${{ startsWith(github.ref, 'refs/tags/release-v') && 'production' || startsWith(github.ref, 'refs/tags/beta-v') && 'staging' || 'development' }}
+    outputs:
+      sha_tag: ${{ steps.tags.outputs.sha_tag }}
+      branch_tag: ${{ steps.tags.outputs.branch_tag }}
+      release_tag: ${{ steps.tags.outputs.release_tag }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -74,13 +78,8 @@ jobs:
 
       - name: Pre-flight — Python 3.9 compat guard (nextflow_executor)
         # Galaxy container ships Python 3.9. nextflow_executor.py uses PEP 604
-        # `X | Y` union syntax in 13+ annotations and requires
-        # `from __future__ import annotations` to load on 3.9. The line has
-        # been stripped 4+ times by parallel-session sweep commits (see
-        # 903745e19, 1f49b6e45, d984965485). Each strip puts dev Galaxy
-        # into a 30s gunicorn exit-loop. Run the regression guard test on
-        # every push so the strip is caught here, before the image is built
-        # and pushed and a deploy starts failing.
+        # `X | Y` union syntax and requires `from __future__ import annotations`.
+        # The line has been stripped 4+ times by parallel-session sweep commits.
         run: |
           python3 -m pip install --quiet pytest
           python3 -m pytest backend/tests/test_nextflow_executor_python39_compat.py -v
@@ -91,9 +90,6 @@ jobs:
           SHA="${GITHUB_SHA::12}"
           echo "sha_tag=sha-${SHA}" >> "$GITHUB_OUTPUT"
           echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
-          # Branch-scoped moving tag: keep `main` and dev branches apart so
-          # deploys can pull deliberately ("give me current main" vs "give
-          # me current next-phase"). Slash-safe via tr.
           if [[ "$GITHUB_REF" == refs/heads/* ]]; then
             BRANCH="${GITHUB_REF#refs/heads/}"
             BRANCH_TAG="$(echo "$BRANCH" | tr '/' '-')-latest"
@@ -101,7 +97,6 @@ jobs:
           else
             echo "branch_tag=" >> "$GITHUB_OUTPUT"
           fi
-          # Release tag only if this run was triggered by a release-* tag push
           if [[ "$GITHUB_REF" == refs/tags/release-* ]]; then
             echo "release_tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
           else
@@ -117,12 +112,13 @@ jobs:
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      # The backend image is ~4.7GB and requirements.txt pulls torch + the
-      # nvidia-cuda-* stack + transformers (many GB). On a stock ubuntu-latest
-      # runner (~14GB free) `pip install` ran out of disk ("[Errno 28] No space
-      # left on device") at Dockerfile:126, and with `load: true` the built
-      # image is also imported into the runner daemon. Reclaim the large
-      # preinstalled toolchains we never use before building.
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Free up runner disk space
         run: |
           echo "Before:"; df -h / | tail -1
@@ -134,64 +130,51 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build image
+      - name: Build image (platform-native, load locally for smoke)
         uses: docker/build-push-action@v6
         with:
           context: backend
           file: backend/Dockerfile
+          platforms: ${{ matrix.platform }}
           push: false
           load: true
           tags: |
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-${{ matrix.suffix }}
           build-args: |
             GIT_SHA=${{ github.sha }}
             BUILD_DATE=${{ steps.tags.outputs.build_date }}
-          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache
-          cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache,mode=max
+          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache-${{ matrix.suffix }}
+          cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:buildcache-${{ matrix.suffix }},mode=max
 
       - name: Smoke — /image-build-info present (L1)
         run: |
           docker run --rm --entrypoint cat \
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-${{ matrix.suffix }} \
             /image-build-info
 
       - name: Smoke — /opt/aws-cli/bin/aws works (L18)
         run: |
           docker run --rm --entrypoint /opt/aws-cli/bin/aws \
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-${{ matrix.suffix }} \
             --version
 
       - name: Smoke — Nextflow version matches ARG NF_VERSION (L5)
         run: |
           docker run --rm --entrypoint /usr/local/bin/nextflow \
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-${{ matrix.suffix }} \
             -version
 
       - name: Smoke — Python critical imports (L2)
         run: |
-          # If any of these fail to import, the image is broken; fail the build
-          # loudly here rather than discovering it at deploy time.
           docker run --rm --entrypoint python \
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-${{ matrix.suffix }} \
             -c "import boto3, redis, psycopg2, requests, yaml, sqlalchemy, alembic; print('imports OK')"
 
       - name: Lint — no /home/ literals baked into image (L4)
         run: |
-          # L4 intent: no DEVELOPER-MACHINE paths leak into the production image
-          # (the L4 incident was /home/yzhang/ in galaxy.yml). Standard container
-          # service-user paths used as deliberate docker mount targets — e.g.
-          # /home/appuser/input in DiffDock invocations, /home/ubuntu/* in
-          # vendored CI configs — are explicitly allowed.
-          # Allowlist: container service users (deliberate docker mount targets) +
-          # docstring/comment example users from vendored upstream Galaxy code
-          # (john in brew_exts.py example PATHs, documentation in onedata URL).
-          # Real developer paths look like /home/yzhang/, /home/<personal-name>/
-          # which won't collide with this allowlist.
           ALLOWED='/home/(appuser|ubuntu|runner|nate|playwright|sbx_user|jovyan|john|documentation)/'
-          # Skip the vendored upstream Galaxy framework path explicitly (it's
-          # third-party content under /app/lib/galaxy/ that we don't control).
           HITS=$(docker run --rm --entrypoint sh \
-              ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
+              ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-${{ matrix.suffix }} \
               -c 'grep -rIE "/home/[a-z]+/" /app \
                     --include="*.py" --include="*.yml" --include="*.yaml" --include="*.conf" --include="*.cfg" --include="*.json" \
                     --exclude-dir=site-packages --exclude-dir=.venv --exclude-dir=node_modules \
@@ -206,32 +189,125 @@ jobs:
           fi
           echo "OK"
 
-      - name: Push sha tag
+      - name: Push per-platform sha tag
         run: |
-          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-${{ matrix.suffix }}
 
-      - name: Tag + push branch-scoped moving tag (e.g. main-latest, integration-next-phase-latest)
+  # ── Merge per-platform images into a single multi-arch manifest ───────────────
+  merge-manifest:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: ${{ startsWith(github.ref, 'refs/tags/release-v') && 'production' || startsWith(github.ref, 'refs/tags/beta-v') && 'staging' || 'development' }}
+
+    steps:
+      - name: Compute tags (same formula as build job)
+        id: tags
+        run: |
+          SHA="${GITHUB_SHA::12}"
+          echo "sha_tag=sha-${SHA}" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/heads/* ]]; then
+            BRANCH="${GITHUB_REF#refs/heads/}"
+            echo "branch_tag=$(echo "$BRANCH" | tr '/' '-')-latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch_tag=" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$GITHUB_REF" == refs/tags/release-* ]]; then
+            echo "release_tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_tag=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx (for imagetools)
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create multi-arch sha manifest (ECR)
+        run: |
+          docker buildx imagetools create \
+            --tag "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}" \
+            "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-amd64" \
+            "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-arm64"
+
+      - name: Tag + push branch-scoped moving tag (ECR)
         if: steps.tags.outputs.branch_tag != ''
         run: |
-          docker tag \
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.branch_tag }}
-          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.branch_tag }}
+          docker buildx imagetools create \
+            --tag "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.branch_tag }}" \
+            "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-amd64" \
+            "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-arm64"
 
-      - name: Tag + push release tag (if present)
+      - name: Tag + push release tag (ECR)
         if: steps.tags.outputs.release_tag != ''
         run: |
-          docker tag \
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }} \
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.release_tag }}
-          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.release_tag }}
+          docker buildx imagetools create \
+            --tag "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.release_tag }}" \
+            "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-amd64" \
+            "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ steps.tags.outputs.sha_tag }}-arm64"
+
+      - name: Push GHCR multi-arch manifest (on-prem, release + branch)
+        # Push to GHCR on every branch build so on-prem ARM64 instances can pull
+        # branch-tagged images without needing ECR credentials.
+        # `:latest` is only updated on release-v* tags (production release gate).
+        # Uses `skopeo copy --multi-arch all` to cross-copy from ECR to GHCR
+        # without pulling layers locally — avoids the ~20 GB disk spike from
+        # docker pull + docker push on a fresh runner.
+        run: |
+          # Install skopeo for disk-efficient cross-registry manifest copy
+          sudo apt-get install -y skopeo --no-install-recommends -qq
+
+          ECR="${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}"
+          GHCR="${{ env.GHCR_IMAGE }}"
+          SHA="${{ steps.tags.outputs.sha_tag }}"
+          BRANCH="${{ steps.tags.outputs.branch_tag }}"
+          RELEASE="${{ steps.tags.outputs.release_tag }}"
+
+          # sha-tagged multi-arch manifest (always)
+          skopeo copy --multi-arch all \
+            "docker://${ECR}:${SHA}" \
+            "docker://${GHCR}:${SHA}"
+
+          # branch-scoped moving tag (branch builds)
+          if [[ -n "${BRANCH}" ]]; then
+            skopeo copy --multi-arch all \
+              "docker://${ECR}:${SHA}" \
+              "docker://${GHCR}:${BRANCH}"
+          fi
+
+          # :latest + release tag (release-v* only)
+          if [[ -n "${{ steps.tags.outputs.release_tag }}" ]]; then
+            skopeo copy --multi-arch all \
+              "docker://${ECR}:${SHA}" \
+              "docker://${GHCR}:latest"
+            skopeo copy --multi-arch all \
+              "docker://${ECR}:${SHA}" \
+              "docker://${GHCR}:${{ steps.tags.outputs.release_tag }}"
+          fi
 
       - name: Summary
         run: |
           {
-            echo "## Backend image build"
+            echo "## Backend image build (multi-arch: amd64 + arm64)"
             echo "- sha tag: \`${{ steps.tags.outputs.sha_tag }}\`"
-            [[ -n "${{ steps.tags.outputs.branch_tag }}" ]]  && echo "- branch tag: \`${{ steps.tags.outputs.branch_tag }}\`"
-            [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- release tag: \`${{ steps.tags.outputs.release_tag }}\`"
+            [[ -n "${{ steps.tags.outputs.branch_tag }}" ]]  && echo "- branch tag: \`${{ steps.tags.outputs.branch_tag }}\`" || true
+            [[ -n "${{ steps.tags.outputs.branch_tag }}" ]]  && echo "- GHCR branch: \`${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.branch_tag }}\`" || true
+            [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- release tag: \`${{ steps.tags.outputs.release_tag }}\`" || true
             echo "- ECR: \`${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}\`"
+            [[ -n "${{ steps.tags.outputs.release_tag }}" ]] && echo "- GHCR: \`${{ env.GHCR_IMAGE }}:${{ steps.tags.outputs.release_tag }}\`" || true
           } >> "$GITHUB_STEP_SUMMARY"

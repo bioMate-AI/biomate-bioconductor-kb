@@ -966,7 +966,7 @@ if __name__ == '__main__':
     detector = ConditionalPatternDetector()
 
     # Load a sample workflow with conditionals
-    sample_wf_path = Path('/home/yzhang/biomate/backend/galaxy_workflows_reformatted/fastq_align_dna.ga')
+    sample_wf_path = Path('/app/galaxy_workflows_reformatted/fastq_align_dna.ga')
 
     if sample_wf_path.exists():
         with open(sample_wf_path) as f:

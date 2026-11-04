@@ -36,7 +36,7 @@ def get_default_db_path() -> str:
     paths = [
         Path(__file__).parent.parent.parent.parent / "database" / "galaxy_ai_tools.db",
         Path(__file__).parent.parent.parent.parent / "galaxy_ai_tools.db",
-        Path("/home/yzhang/biomate/backend/database/galaxy_ai_tools.db"),
+        Path("/app/database/galaxy_ai_tools.db"),
     ]
     for p in paths:
         if p.exists():

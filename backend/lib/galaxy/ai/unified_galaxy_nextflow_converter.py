@@ -122,7 +122,7 @@ class UnifiedGalaxyNextflowConverter:
         # DocumentationProvider needs project root as Path
         import os
         from pathlib import Path
-        project_root = Path(os.environ.get('PROJECT_ROOT', '/home/yzhang/biomate'))
+        project_root = Path(os.environ.get('PROJECT_ROOT', '/app'))
         self.docs = DocumentationProvider(project_root=project_root)
 
         self.auditor = AssemblyAuditor()

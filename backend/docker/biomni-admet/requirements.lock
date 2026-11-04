@@ -1,8 +1,15 @@
-# Reproducible dependency lock for biomni-admet.
+# Reproducible dependency lock for biomni-admet (amd64 / linux/amd64).
 # Generated from a VERIFIED image build (GHA build-admet-image run 29193519887,
 # smoke: ADMET-AI predict() → 98 endpoints, no cat-NoneType / no numpy 'too many indices').
 # Used as a pip CONSTRAINTS file (-c) so the FULL transitive resolution is pinned;
 # regenerate by re-running the CI 'Dump full dependency freeze' step after any intended bump.
+#
+# ARCH NOTE: this lock is derived from an amd64 build.
+# The pin `torch==2.3.1+cpu` carries the "+cpu" local version suffix that only
+# exists in the download.pytorch.org/whl/cpu index (amd64). On arm64, PyTorch
+# wheels are plain `torch==2.3.1` (no suffix) from standard PyPI. The Dockerfile
+# skips the -c constraint for torch on arm64 to avoid an unsatisfiable pin.
+# All other packages in this lock are arch-agnostic and apply to both platforms.
 accelerate==0.33.0
 admet_ai==1.3.1
 aiobotocore==2.26.0

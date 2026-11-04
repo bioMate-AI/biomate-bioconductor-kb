@@ -1877,7 +1877,7 @@ class AIAssistant:
 
                 # Get Galaxy root from app config
                 if self.galaxy_app and hasattr(self.galaxy_app, 'config'):
-                    galaxy_root = str(getattr(self.galaxy_app.config, 'root', '/home/yzhang/biomate/backend'))
+                    galaxy_root = str(getattr(self.galaxy_app.config, 'root', '/app'))
                     http_port = getattr(self.galaxy_app.config, 'http_port', 8081)
                     galaxy_api_url = f"http://localhost:{http_port}"
 
@@ -2527,11 +2527,42 @@ Respond with a single JSON object — no other text:
         'coldata', 'contrasts', 'contrast', 'multiqc_config', 'star_index', 'hisat2_index', 'bwa_index',
         'bowtie2_index', 'transcript_fasta', 'additional_fasta', 'transcript',
         'probeset', 'annotation', 'blacklist', 'bait_intervals', 'target_intervals',
+        # Explicit fasta-input variants — historically classified as 'string'
+        # because 'input_fasta' != 'fasta' in the exact-match check.  Adding
+        # them here ensures the AI skips them when no file path is in the query.
+        'input_fasta', 'input_fa', 'query_fasta', 'ref_fasta', 'input_fastq',
+        'query_fa', 'protein_fasta', 'nucleotide_fasta',
+    ])
+
+    # Params that hold raw biological sequence TEXT (not file paths).
+    # When a user's query contains a long AA/NT string, the AI should fill
+    # these params directly — not look for an S3 path.
+    _SEQUENCE_PARAM_NAMES: frozenset = frozenset([
+        'sequence', 'protein_sequence', 'protein_sequences',
+        'dna_sequence', 'rna_sequence',
+        'aa_sequence', 'nt_sequence', 'peptide_sequence', 'query_sequence',
+        'target_sequence', 'input_sequence',
+    ])
+
+    # Params that hold chemical structure notations (SMILES, InChI, etc.)
+    _SMILES_PARAM_NAMES: frozenset = frozenset([
+        'smiles', 'compound_smiles', 'ligand_smiles', 'molecule_smiles',
+        'smiles_string', 'drug_smiles',
     ])
 
     def _detect_param_type(self, name: str, default_val: str) -> str:
-        """Heuristic type detection for a single Nextflow parameter."""
+        """Heuristic type detection for a single Nextflow parameter.
+
+        Returns one of: 'file' | 'sequence' | 'smiles' | 'boolean' |
+                        'integer' | 'float' | 'string'
+        """
         low = name.lower()
+        # Sequence-text params — raw AA/NT strings, not file paths
+        if low in self._SEQUENCE_PARAM_NAMES:
+            return 'sequence'
+        # Chemical-notation params
+        if low in self._SMILES_PARAM_NAMES:
+            return 'smiles'
         if low in self._INPUT_FILE_PARAM_NAMES or low.endswith('_file') or low.endswith('_path'):
             return 'file'
         if default_val in ('true', 'false', 'True', 'False'):
@@ -3045,14 +3076,17 @@ EXTRACTION RULES (apply in order):
 1. PATHS AND URLS — highest priority. If the query contains s3://, gs://, or a filesystem path AND the parameter list has a file-type param, match each path to the most appropriate parameter using the parameter name AND description. For example: a file named "featureCounts.txt" or with "matrix" in the name → param named "matrix" (if available); a metadata/samplesheet file (.xlsx, .csv with sample info) → param named "input", "samplesheet", or "contrasts"; a .fastq/.bam file → "reads" or "input"; a .mrc/.tif file → "movies_path". Match by filename semantics, not just extension. Never fabricate a path.
 2. NUMERIC SCALARS — extract values like "pixel_size=0.885", "voltage=300 kV" (strip units), "1.96 Å/px" → 1.96.
 3. IDENTIFIERS — PDB codes (4 chars), SMILES strings, gene symbols, accession numbers — copy exactly.
-4. ENUM SELECTION — map user language to an allowed enum value: "XP docking" → "XP", "de novo" → "de_novo".
-5. BOOLEAN FLAGS — "use GPU" → gpu=true, "single-end" → single_end=true.
-6. UNIT CONVERSION — "37°C" → temperature=310 (Kelvin), "ns" → n_steps=N×500 (fs timestep).
+4. RAW SEQUENCES — if the query contains a long amino-acid or nucleotide string (e.g. MVLSEGEWQL...) AND the param list has a param of type 'sequence', copy the sequence there verbatim. Never put a raw sequence into a 'file' type param.
+5. ENUM SELECTION — map user language to an allowed enum value: "XP docking" → "XP", "de novo" → "de_novo".
+6. BOOLEAN FLAGS — "use GPU" → gpu=true, "single-end" → single_end=true.
+7. UNIT CONVERSION — "37°C" → temperature=310 (Kelvin), "ns" → n_steps=N×500 (fs timestep).
 
 SKIP a parameter if:
 - Its value equals the [current: X] default shown (no change needed).
 - You would have to guess or infer beyond what the user actually said.
 - It is a path/URL and no path appears in the query.
+- It is a 'file' type and no file/path appears in the query.
+- It is a 'sequence' type and no raw AA/NT sequence appears in the query.
 
 OUTPUT: JSON array only — no prose. Max 6 entries. Format:
 [{"name": "param_name", "value": <value>, "rationale": "one sentence"}]
@@ -3106,11 +3140,30 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
 
         # Build a compact param catalogue for the prompt
         all_params = req + opt
-        # Include file params only when the query contains an explicit path-like token
-        # (S3, GCS, local path, or filename) so the LLM can extract it accurately.
+        # Gate params by what the query actually contains so the LLM doesn't
+        # hallucinate values it can't derive:
+        #   file      — only shown when an explicit path/URI is in the query
+        #   sequence  — only shown when a long AA/NT string is in the query
+        #   smiles    — only shown when a SMILES-pattern string is in the query
+        #   all others — always shown
         import re as _re2
-        _query_has_path = bool(_re2.search(r's3://|gs://|/[a-zA-Z]|\.(?:mrc|tif|eer|dm4|fastq|fq|bam|vcf|csv|tsv|xlsx)', user_intent))
-        inferable = [p for p in all_params if p.get("type") not in ("file",) or _query_has_path]
+        _query_has_path = bool(_re2.search(
+            r's3://|gs://|/[a-zA-Z]|\.(?:mrc|tif|eer|dm4|fastq|fq|bam|vcf|csv|tsv|xlsx|fasta|fa)',
+            user_intent))
+        _query_has_raw_seq = bool(_re2.search(
+            r'\b[ACDEFGHIKLMNPQRSTVWY]{15,}\b', user_intent, _re2.IGNORECASE))
+        _query_has_smiles = bool(_re2.search(
+            r'(?:^|\s)([A-Za-z0-9@+\-\[\]()=#$]{6,}(?:[A-Z][a-z]?|\d){2,})',
+            user_intent))
+        inferable = [
+            p for p in all_params
+            if (
+                p.get("type") not in ("file", "sequence", "smiles")
+                or (_query_has_path and p.get("type") == "file")
+                or (_query_has_raw_seq and p.get("type") == "sequence")
+                or (_query_has_smiles and p.get("type") == "smiles")
+            )
+        ]
         if not inferable:
             return []
 
@@ -4495,6 +4548,80 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
             'validation': {'is_valid': True, 'issues': [], 'warnings': [], 'suggestions': []},
         }
 
+    def _try_fast_path_protein_structure(  # noqa: deploy-trigger
+        self,
+        user_intent: str,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Route to nf-core/proteinfold when an amino-acid sequence is detected in the query.
+
+        Triggers purely on sequence content — regardless of whether the user calls it
+        'DNA', 'protein', or anything else — so routing is deterministic and
+        chai1_structure_prediction cannot win the LLM lottery.
+
+        The detected sequence is injected as the `sequence` param suggestion so the
+        frontend renders it pre-filled without the user having to copy-paste again.
+        """
+        import re as _re_prot
+
+        _AA_CHARS = r'[ACDEFGHIKLMNPQRSTVWYBZXUacdefghiklmnpqrstvwyb]'
+        _best_seq: Optional[str] = None
+        _best_len = 0
+        for _m in _re_prot.finditer(rf'\b({_AA_CHARS}{{15,}})\b', user_intent):
+            if len(_m.group(1)) > _best_len:
+                _best_seq = _m.group(1).upper()
+                _best_len = len(_best_seq)
+
+        if not _best_seq:
+            return None
+
+        # Only route here if the query is NOT clearly about nucleotide analysis
+        # (e.g. "align to reference genome", "variant calling") — those also match AA regex.
+        _nucleotide_only_kw = ('variant call', 'snp', 'indel', 'vcf', 'genome align', 'bwa',
+                               'bowtie', 'gatk', 'samtools', 'fastq', 'methylat')
+        _low = user_intent.lower()
+        if any(kw in _low for kw in _nucleotide_only_kw):
+            return None
+
+        top = self.workflow_search.get_workflow_by_filename_pattern('%proteinfold%')
+        if not top:
+            log.warning("[ProteinStructureFastPath] proteinfold not found in DB — skipping")
+            return None
+
+        log.info(
+            "[UnifiedWorkflowGeneration] protein-structure fast path → proteinfold "
+            "(seq_len=%d, workflow_id=%d)",
+            _best_len,
+            top.id,
+        )
+        result = self._return_nextflow_match(
+            match=top,
+            score=top.score,
+            user_intent=user_intent,
+            source='template_reuse',
+            needs_user_feedback=False,
+            search_results=[top],
+            selected_trial='',
+            trials=[],
+            uploaded_datasets=uploaded_datasets,
+        )
+        # Inject sequence into all sequence-type required params so the frontend
+        # renders them pre-filled (same logic as _extract_explicit_params_from_query
+        # but applied post-routing so the correct param list is available).
+        if result and result.get('workflow_ga'):
+            _wf = result['workflow_ga']
+            _best_len = len(_best_seq)
+            for _p in _wf.get('required_params', []) + _wf.get('optional_params', []):
+                _pname = _p.get('name', '')
+                if self._detect_param_type(_pname, '') == 'sequence' \
+                        and not _p.get('value'):
+                    _p['value'] = _best_seq
+                    _p['default'] = _best_seq
+                elif _pname == 'sequence_length' and not _p.get('value'):
+                    _p['value'] = str(_best_len)
+                    _p['default'] = str(_best_len)
+        return result
+
     def _try_fast_path_nfcore_pipeline(  # noqa: deploy-trigger
         self,
         user_intent: str,
@@ -4704,6 +4831,16 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
                 _fast_geo = None
             if _fast_geo:
                 return _fast_geo
+
+            try:
+                _fast_prot = self._try_fast_path_protein_structure(
+                    user_intent, uploaded_datasets=uploaded_datasets
+                )
+            except Exception as _fp_exc:
+                log.error("[ProteinStructureFastPath] Unexpected exception: %s", _fp_exc, exc_info=True)
+                _fast_prot = None
+            if _fast_prot:
+                return _fast_prot
 
             _fast_nfcore = self._try_fast_path_nfcore_pipeline(
                 user_intent, uploaded_datasets=uploaded_datasets

@@ -22,6 +22,8 @@ params.max_time          = '120.h'
 
 // [Input Validation]
 process VALIDATE_INPUT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     check_samplesheet.py --input ${params.input} \
         --amplicon_type ${params.amplicon_type} \
@@ -31,6 +33,8 @@ process VALIDATE_INPUT {
 
 // [Trimming & QC]
 process CUTADAPT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     cutadapt --front ${params.FW_primer} --adapter ${params.RV_primer} \
         ${params.region ? "--region ${params.region}" : ''} \
@@ -40,6 +44,8 @@ process CUTADAPT {
 
 // [Denoising]
 process DADA2_DENOISE {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     dada2_denoise.R \
         ${params.trunclenf ? "--truncLenF ${params.trunclenf}" : ''} \
@@ -52,6 +58,8 @@ process DADA2_DENOISE {
 
 // [Taxonomy]
 process QIIME2_CLASSIFY {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     qiime2_classify.py \
         ${params.classifier ? "--classifier ${params.classifier}" : ''} \
@@ -63,6 +71,8 @@ process QIIME2_CLASSIFY {
 
 // [Diversity & Report]
 process DIVERSITY_ANALYSIS {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     diversity_analysis.R \
         ${params.skip_alpha_rarefaction ? '--skip-rarefaction' : ''} \

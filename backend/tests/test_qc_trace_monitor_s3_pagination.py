@@ -58,6 +58,11 @@ def _install_fake_boto3(fake):
     mod = types.ModuleType("boto3")
     mod.client = lambda *_a, **_kw: fake
     sys.modules["boto3"] = mod
+    # The monitor builds its S3 client through galaxy.ai.s3_utils.make_s3_client (MinIO-aware, added on
+    # integration/next-phase). Route that helper to the same fake, without importing the heavy galaxy.ai package.
+    utils = types.ModuleType("galaxy.ai.s3_utils")
+    utils.make_s3_client = lambda *_a, **_kw: fake
+    sys.modules["galaxy.ai.s3_utils"] = utils
 
 
 def _make_monitor(s3_outdir, s3_work_dir=None):

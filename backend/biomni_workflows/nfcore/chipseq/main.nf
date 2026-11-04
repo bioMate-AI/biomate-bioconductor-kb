@@ -47,6 +47,8 @@ params.max_time         = '240.h'
 
 // [Trimming]
 process TRIMGALORE {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "*.fq.gz",             emit: reads
     path "*_fastqc.{zip,html}", emit: fastqc
@@ -60,6 +62,8 @@ process TRIMGALORE {
 
 // [Alignment]
 process BWA_MEM {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     tuple val(meta), path("*.bam"),     emit: bam
     tuple val(meta), path("*.bai"),     emit: bai
@@ -77,6 +81,8 @@ process BWA_MEM {
 
 // [Peak Calling]
 process MACS2_CALLPEAK {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "*.{narrowPeak,broadPeak}",    emit: peak
     path "*.bed",                       emit: bed
@@ -95,6 +101,8 @@ process MACS2_CALLPEAK {
 
 // [Annotation]
 process CHIPSEEKER_ANNOTATE {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "*_annotated.tsv",             emit: annotation
     path "*.pdf",                       emit: pdf
@@ -110,6 +118,8 @@ process CHIPSEEKER_ANNOTATE {
 
 // [QC]
 process DEEPTOOLS_BAMCOVERAGE {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "*.bigWig",                    emit: bigwig
     path "*_fingerprint.png",           emit: fingerprint
@@ -123,6 +133,8 @@ process DEEPTOOLS_BAMCOVERAGE {
 
 // [Report]
 process MULTIQC {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "multiqc_report.html",         emit: report
     path "multiqc_data/",               emit: data

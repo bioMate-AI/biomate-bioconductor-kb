@@ -28,6 +28,7 @@ import {
   CreditCard,
   Wrench,
   Workflow,
+  Server,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { t } from "@/lib/i18n"
@@ -417,7 +418,7 @@ export function AppSidebar({
         )}
         {recentChats.length === 0 && (
           <div style={{ padding: '10px', fontSize: 12, color: 'var(--bm-text-dim)', textAlign: 'center' }}>
-            No chats yet
+            {t('No chats yet')}
           </div>
         )}
 
@@ -434,6 +435,16 @@ export function AppSidebar({
             <Settings className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
             <span>{t('settings.title')}</span>
           </button>
+          {user?.subscriptionTier === 'admin' && (
+            <button
+              style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+              onClick={() => setLocation('/admin')}
+              data-testid="button-admin-dashboard"
+            >
+              <Server className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} />
+              <span>系统管理</span>
+            </button>
+          )}
         </div>
       </div>
 

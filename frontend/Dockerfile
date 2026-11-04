@@ -15,6 +15,9 @@ RUN npm ci
 
 COPY . .
 ARG BUILD_COMMIT=unknown
+# On-prem mode: pass VITE_ONPREM=true at build time to enable Chinese UI + license gate
+ARG VITE_ONPREM=false
+ENV VITE_ONPREM=$VITE_ONPREM
 RUN NODE_OPTIONS=--max-old-space-size=4096 npm run build
 # Served alongside the UI so deployment identity can be checked independently.
 RUN node -e 'require("fs").writeFileSync("dist/public/build-info.json", JSON.stringify({commit: process.env.BUILD_COMMIT || "unknown"}) + "\n")'

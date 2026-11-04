@@ -1,0 +1,623 @@
+# BioMate On-Premises Deployment
+# ─────────────────────────────────────────────────────────────────────────────
+# 快速开始 (Quick Start):
+#   1. cp .env.onprem.example .env  &&  nano .env
+#   2. bash install.sh              # 自动完成检查、初始化、启动
+#
+# 手动启动 (Manual):
+#   1. cp .env.onprem.example .env
+#   2. Edit .env — set POSTGRES_PASSWORD, JWT_SECRET, SESSION_SECRET, GALAXY_API_KEY, LLM provider key
+#   3. cp backend/config/galaxy.yml.template backend/config/galaxy.yml   ← REQUIRED: bind-mount hides image config
+#   4. docker compose -f docker-compose.onprem.yml up -d
+#   5. Wait ~2 min for workflow DB download + services to start
+#   6. Create first admin: bash scripts/biomate create-admin
+#   7. Open http://localhost:5000
+#
+# 架构说明 (Architecture):
+#   - MinIO     → 替代 AWS S3，所有工作流文件存储在本机
+#   - Registry  → 本地 Docker 镜像仓库，替代 ECR（纯内网环境）
+#   - Nextflow  → 工作流引擎，local 模式直接用本机 Docker 跑
+#   - 客户 LLM  → 通过 openai_compatible provider 对接（OpenAI 兼容接口）
+#
+# Images are pulled from GHCR (ghcr.io/biomate-ai/) — no build from source needed.
+# Override with BIOMATE_BACKEND_IMAGE / BIOMATE_FRONTEND_IMAGE in .env.
+#
+# Workflow catalog (~280MB) is downloaded once by the db-init container on first start.
+# Air-gapped deployments: set BIOMATE_DB_URL to a local file server URL.
+#
+# To enable HTTPS (recommended):
+#   Uncomment the `caddy` service; see caddy/Caddyfile.example for domain config.
+#
+# To enable Ollama (local LLM, no internet required):
+#   Uncomment the `ollama` service and set GALAXY_AI_LLM_PROVIDER=ollama in .env.
+#
+# Billing (Stripe) is disabled by default for on-prem.
+# Set STRIPE_SECRET_KEY to enable subscription gating.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Fix the compose project name so the Docker network is always
+# "biomate-onprem_biomate-network" regardless of the working directory.
+# Galaxy's Nextflow executor uses this name to attach task containers.
+name: biomate-onprem
+
+services:
+
+  # ── PostgreSQL (用户/认证数据库) ────────────────────────────────────────────
+  postgres:
+    image: postgres:15
+    container_name: biomate-postgres
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-biomate}
+      POSTGRES_USER:     ${POSTGRES_USER:-biomate}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - biomate-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-biomate} -d ${POSTGRES_DB:-biomate}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - biomate-network
+
+  # ── Redis (运行状态持久化) ────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: biomate-redis
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - biomate-redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - biomate-network
+
+  # ── Workflow DB initializer ────────────────────────────────────────────────
+  # Downloads galaxy_ai_tools.db (the 2,455-workflow catalog) into the
+  # biomate-backend-db volume on first boot.  On subsequent starts the file
+  # already exists and the container exits immediately.
+  # Set BIOMATE_DB_URL to override the download source (useful for air-gapped
+  # deployments where you pre-download and supply the file via a local HTTP
+  # server or file:// mount).
+  db-init:
+    image: curlimages/curl:latest
+    container_name: biomate-db-init
+    user: "root"
+    volumes:
+      - biomate-backend-db:/app/database
+    environment:
+      BIOMATE_DB_URL: ${BIOMATE_DB_URL:-https://biomate-onprem-assets.s3.us-west-2.amazonaws.com/onprem/galaxy_ai_tools.db}
+    command: >
+      sh -c '
+        DB=/app/database/galaxy_ai_tools.db;
+        MIN_SIZE=50000000;
+        ACTUAL=$$(stat -c%s "$$DB" 2>/dev/null || echo 0);
+        if [ "$$ACTUAL" -lt "$$MIN_SIZE" ]; then
+          echo "[db-init] Downloading workflow catalog from $$BIOMATE_DB_URL ...";
+          curl -fL --retry 3 --retry-delay 5 --progress-bar "$$BIOMATE_DB_URL" -o "$$DB" || exit 1;
+          echo "[db-init] Done.";
+        else
+          echo "[db-init] Workflow catalog already present ($$(du -sh $$DB | cut -f1)). Skipping.";
+        fi
+      '
+    restart: "no"
+    networks:
+      - biomate-network
+
+  # ── Nextflow Workflow Files initializer ───────────────────────────────────
+  # Downloads the Nextflow .nf workflow scripts into a named volume on first
+  # boot.  These files are NOT baked into the backend image to keep its size
+  # reasonable.  On subsequent starts the .initialized marker is present and
+  # the container exits immediately.
+  # Set BIOMATE_NFCORE_URL to override the download source (useful for
+  # air-gapped deployments with a local HTTP server or file:// mount).
+  nfcore-init:
+    image: alpine:3
+    container_name: biomate-nfcore-init
+    volumes:
+      - biomate-nfcore-workflows:/nfcore
+    environment:
+      BIOMATE_NFCORE_URL: ${BIOMATE_NFCORE_URL:-https://biomate-onprem-assets.s3.us-west-2.amazonaws.com/onprem/nextflow_nfcore_subworkflows.tar.gz}
+    command: >
+      sh -c '
+        DEST=/nfcore;
+        MARKER="$$DEST/.initialized";
+        if [ -f "$$MARKER" ]; then
+          echo "[nfcore-init] Workflow files already present. Skipping.";
+          exit 0;
+        fi;
+        echo "[nfcore-init] Downloading Nextflow workflow files (~60 MB) from $$BIOMATE_NFCORE_URL ...";
+        wget -qO - "$$BIOMATE_NFCORE_URL" | tar -xz -C "$$DEST" || exit 1;
+        touch "$$MARKER";
+        echo "[nfcore-init] Done.";
+      '
+    restart: "no"
+    networks:
+      - biomate-network
+
+  # ── MinIO (本地对象存储，替代 AWS S3) ────────────────────────────────────
+  # 管理界面: http://<host>:9001  (MINIO_ROOT_USER / MINIO_ROOT_PASSWORD)
+  minio:
+    image: ${BIOMATE_MINIO_IMAGE:-ghcr.io/biomate-ai/minio:latest}
+    # ghcr.io/biomate-ai/minio:latest is a multi-arch manifest (amd64 + arm64).
+    # No platform override needed — Docker auto-selects the host architecture.
+    container_name: biomate-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_ROOT_USER:-biomate}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+    volumes:
+      - biomate-minio-data:/data
+    ports:
+      - "127.0.0.1:9000:9000"   # S3 API (内部)
+      - "127.0.0.1:9001:9001"   # Web 管理界面
+    restart: unless-stopped
+    healthcheck:
+      # Use the MinIO health endpoint directly — works with the official minio/minio
+      # image and any custom builds, without requiring the mc client inside the image.
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/minio/health/live || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - biomate-network
+
+  # ── MinIO 初始化 (创建默认 bucket，运行一次后自动退出) ────────────────────
+  minio-init:
+    # Uses the official AWS CLI image (multi-arch, no auth required) to create
+    # the default S3 bucket via MinIO's S3-compatible API endpoint.
+    # This replaces the old minio/mc approach which requires a separate mc image
+    # that is no longer freely distributable from Docker Hub/Quay.io.
+    image: amazon/aws-cli:latest
+    container_name: biomate-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        aws s3 mb s3://$${S3_BUCKET_NAME:-biomate-data}
+          --endpoint-url http://minio:9000
+          --region us-east-1
+          2>&1 | grep -v BucketAlreadyOwnedByYou || true;
+        echo 'MinIO bucket ready.'
+      "
+    environment:
+      AWS_ACCESS_KEY_ID:     ${MINIO_ROOT_USER:-biomate}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      S3_BUCKET_NAME:        ${S3_BUCKET_NAME:-biomate-data}
+    restart: "no"
+    networks:
+      - biomate-network
+
+  # ── 本地 Docker 镜像仓库 (替代 ECR，纯内网环境存放生信工具镜像) ──────────
+  # 推送镜像: docker tag <img> localhost:5050/<name> && docker push localhost:5050/<name>
+  # 拉取镜像: docker pull localhost:5050/<name>
+  registry:
+    image: registry:2
+    container_name: biomate-registry
+    volumes:
+      - biomate-registry-data:/var/lib/registry
+    ports:
+      - "127.0.0.1:5050:5000"
+    restart: unless-stopped
+    environment:
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    networks:
+      - biomate-network
+
+  # ── Galaxy AI Backend ───────────────────────────────────────────────────────
+  galaxy-backend:
+    image: ${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}
+    # ghcr.io/biomate-ai/biomate-backend:latest is a multi-arch manifest (amd64 + arm64).
+    # Docker auto-selects the host architecture — no platform override needed.
+    container_name: biomate-galaxy
+    # Use /bin/sh -c as entrypoint so the command runs as a shell string.
+    # This lets us add a safety-net before gunicorn: if galaxy.yml is missing from
+    # the bind-mounted config dir (fresh checkout, no install.sh), copy from template
+    # so Galaxy doesn't fail with "config file not found".
+    entrypoint: ["/bin/sh", "-c"]
+    ports:
+      - "127.0.0.1:8081:8080"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      # The Dockerfile creates /app/config/galaxy.yml from the template (cp galaxy.yml.template galaxy.yml).
+      # Galaxy's properties reader rejects non-.yml/.yaml extensions — point to galaxy.yml, not the template.
+      # All secrets are injected at runtime via GALAXY_CONFIG_OVERRIDE_* env vars below.
+      GALAXY_CONFIG_FILE: /app/config/galaxy.yml
+
+      # ── LLM 配置 (选择其中一项) ───────────────────────────────────────────
+      #
+      # 选项 A: 客户本地大模型 (推荐 — 纯内网，OpenAI 兼容接口)
+      # 适用于 vLLM / LMDeploy / Ollama 等本地部署的 32B+ 模型
+      LLM_API_URL:   ${LLM_API_URL:-}          # 如 http://192.168.1.100:8000/v1
+      LLM_API_KEY:   ${LLM_API_KEY:-none}       # 内网通常不需要，填任意字符串
+      LLM_MODEL:     ${LLM_MODEL:-}             # 如 qwen2.5-32b / deepseek-r1-32b
+
+      # 选项 B: DeepSeek API (国内可直连，需要 API Key)
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+
+      # 选项 C: 智谱 GLM (国内可直连，需要 API Key)
+      ZHIPU_API_KEY: ${ZHIPU_API_KEY:-}
+
+      # 选项 D: Anthropic Claude (需要翻墙或代理)
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+      # 选项 E: OpenAI / OpenRouter
+      OPENAI_API_KEY:     ${OPENAI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+
+      # 选项 F: Ollama (本机跑，取消下方 ollama service 注释后使用)
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+
+      # 激活的 provider: openai_compatible / deepseek / zhipu / anthropic / openai / ollama
+      GALAXY_AI_LLM_PROVIDER: ${GALAXY_AI_LLM_PROVIDER:-openai_compatible}
+      GALAXY_AI_LLM_MODEL:    ${GALAXY_AI_LLM_MODEL:-}
+
+      # ── Workflow execution ─────────────────────────────────────────────────
+      # LOCAL mode: Nextflow runs tasks in Docker containers on this host.
+      # AWS mode: tasks run on AWS Batch (requires AWS credentials below).
+      NEXTFLOW_EXECUTOR: ${NEXTFLOW_EXECUTOR:-local}
+      # Explicit disable — prevents the frontend default (executor="awsbatch")
+      # from overriding local mode. Set to "true" only when using AWS Batch.
+      NEXTFLOW_USE_AWS: ${NEXTFLOW_USE_AWS:-false}
+      # Controls which platform Docker requests when Nextflow spawns task containers.
+      # amd64 hosts: leave as linux/amd64 (default).
+      # arm64 hosts (Graviton2/3, Apple Silicon): install.sh automatically sets
+      #   DOCKER_DEFAULT_PLATFORM=linux/arm64 in .env so that locally-available
+      #   native arm64 workflow images (biomni-admet:arm64, biomni-tools:arm64)
+      #   are used. amd64-only images fall back to QEMU (binfmt installed by install.sh).
+      DOCKER_DEFAULT_PLATFORM: ${DOCKER_DEFAULT_PLATFORM:-linux/amd64}
+      # local: 用本机 Docker 跑 Nextflow（需要挂载 docker.sock，见下方 volumes）
+      # Nextflow 工作目录（容器内路径，对应下方 volume 挂载）
+      NEXTFLOW_WORK_DIR: ${NEXTFLOW_WORK_DIR:-/app/nf-work}
+      # Docker network for local Nextflow task containers: must match the compose
+      # network so task containers can resolve "minio" hostname for S3 staging.
+      # The network has an explicit "name: biomate-network" in the networks block
+      # below, so Docker does NOT prefix it with the project name.
+      BIOMATE_DOCKER_NETWORK: ${BIOMATE_DOCKER_NETWORK:-biomate-network}
+
+      # ── 存储 (MinIO 替代 S3) ─────────────────────────────────────────────
+      S3_ENDPOINT_URL:      http://minio:9000
+      AWS_ACCESS_KEY_ID:    ${MINIO_ROOT_USER:-biomate}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      AWS_DEFAULT_REGION:   ${AWS_DEFAULT_REGION:-us-east-1}
+      S3_BUCKET_NAME:       ${S3_BUCKET_NAME:-biomate-data}
+
+      # ── 运行状态持久化 ────────────────────────────────────────────────────
+      RUN_STATE_STORE: redis
+      REDIS_URL:       redis://redis:6379
+
+      # ── Local Nextflow work + output directory ─────────────────────────────
+      # Must be on a persistent volume so outputs survive container restarts.
+      # Change the left side of the volume mount below if you use a different path.
+      # NEXTFLOW_WORK_DIR: /app/nf-work  (set above; repeated here for clarity)
+
+      # ── Galaxy bootstrap API key ───────────────────────────────────────────
+      # Overrides the placeholder in galaxy.yml.template so every deployment
+      # uses a unique key.  Must match GALAXY_API_KEY set in the frontend service.
+      # Generate with: openssl rand -hex 32
+      # The :? guard fails docker compose up with a clear error if unset/empty,
+      # matching the same fail-fast pattern as POSTGRES_PASSWORD and JWT_SECRET.
+      GALAXY_CONFIG_OVERRIDE_BOOTSTRAP_ADMIN_API_KEY: "${GALAXY_API_KEY:?GALAXY_API_KEY is required (run install.sh or: openssl rand -hex 32)}"
+
+      # ── Frontend SSE inject URL ────────────────────────────────────────────
+      # Galaxy backend calls /internal/sse-inject on the frontend to push
+      # real-time run-state updates. Without this explicit setting the backend
+      # probes several candidates at first use and caches the result — if the
+      # probe fires before the frontend container is ready it falls back to
+      # localhost:5000 (wrong) and SSE never works. Hardcode the Docker service
+      # name so the URL is always correct and the probe is skipped entirely.
+      FRONTEND_URL: http://biomate-frontend:3000
+
+      # ── 本地镜像仓库 ──────────────────────────────────────────────────────
+      BIOMATE_LOCAL_REGISTRY: ${BIOMATE_LOCAL_REGISTRY:-localhost:5050}
+
+      # ── Bioconductor container override ───────────────────────────────────
+      # Bioconductor R workflows use a private ECR image by default.
+      # On air-gapped or no-AWS hosts, set this to a pre-pulled local image:
+      #   1. Pull: docker pull 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/bioc-domain-transcriptomics:3.20-slim
+      #   2. Tag:  docker tag <sha> localhost:5050/biomate/bioc-transcriptomics:latest
+      #   3. Push: docker push localhost:5050/biomate/bioc-transcriptomics:latest
+      #   4. Set:  BIOMATE_BIOC_CONTAINER=registry:5000/biomate/bioc-transcriptomics:latest
+      # Leave empty to use the default ECR image (requires Docker login to ECR).
+      BIOMATE_BIOC_CONTAINER: ${BIOMATE_BIOC_CONTAINER:-}
+
+      # ── On-premises license ────────────────────────────────────────────────
+      # BIOMATE_LICENSE_KEY:   由 BioMate 团队签发，格式 BMOP-XXXX-XXXX-XXXX-XXXX
+      # BIOMATE_LICENSE_SECRET: 由 BioMate 团队随部署包一并提供，勿自行修改
+      BIOMATE_LICENSE_KEY:    ${BIOMATE_LICENSE_KEY:-}
+      BIOMATE_LICENSE_SECRET: ${BIOMATE_LICENSE_SECRET:-}
+
+      # ── Billing (Lago metering — disabled by default on-prem) ─────────────
+      # On-prem deployments use flat-tier billing; Lago is not required.
+      # Setting LAGO_API_KEY prevents the billing module from trying to fetch
+      # from AWS Secrets Manager (which fails when AWS_ACCESS_KEY_ID is set to
+      # MinIO credentials). Set to a real key only if you use Lago metering.
+      BILLING_LAGO_ENABLED: ${BILLING_LAGO_ENABLED:-false}
+      LAGO_API_KEY:         ${LAGO_API_KEY:-on-prem-disabled}
+      # BILLING_INTERNAL_KEY must match the frontend's value.
+      # Used by /internal/users/provision (Galaxy account creation on registration)
+      # and /internal/sse-inject. Without it, require_internal_key() returns HTTP
+      # 503 for ALL internal endpoints, breaking new user provisioning.
+      BILLING_INTERNAL_KEY: ${BILLING_INTERNAL_KEY:-onprem-billing-disabled}
+
+    # Add the host Docker socket group so the galaxy user (uid=1000) can call
+    # `docker run` without root. The GID varies by distro (121 on Ubuntu 22.04,
+    # 999 on Debian/RHEL). Set DOCKER_GID in .env: DOCKER_GID=$(stat -c %g /var/run/docker.sock)
+    group_add:
+      - "${DOCKER_GID:-999}"
+    volumes:
+      - biomate-backend-db:/app/database        # 工作流目录 SQLite
+      - biomate-backend-logs:/app/logs
+      # Nextflow work dir: bind-mounted at the SAME path on host and in container.
+      # Task containers launched via Docker socket mount the same /app/nf-work path —
+      # this only works when the host path equals the container path.
+      # The installer pre-creates this: mkdir -p /app/nf-work && chmod 777 /app/nf-work
+      - /app/nf-work:/app/nf-work
+      - ./backend/config:/app/config
+      # Nextflow .nf workflow scripts — downloaded by nfcore-init on first boot.
+      # This overlays /app/biomni_workflows/nextflow_nfcore/ with the full workflow
+      # catalog (subworkflows/, workflows/, ml_training/, nextflow.config, lib/).
+      - biomate-nfcore-workflows:/app/biomni_workflows/nextflow_nfcore
+      # Docker socket required for local Nextflow executor (NEXTFLOW_EXECUTOR=local).
+      # Comment out if you use AWS Batch instead.
+      - /var/run/docker.sock:/var/run/docker.sock
+    # command must be a single-element list so Docker passes it as one argument to
+    # `sh -c`. A scalar string would be shell-split (e.g. `sh -c [ -f ... ]`)
+    # which breaks the test expression with "[: missing ]".
+    command:
+      # The host bind-mount (./backend/config:/app/config) hides the Galaxy sample
+      # config files that the Dockerfile baked into the image.  Copy them back from
+      # lib/galaxy/config/sample/ if they are missing (idempotent — safe on restart).
+      - >-
+        [ -f /app/config/galaxy.yml ] || cp /app/config/galaxy.yml.template /app/config/galaxy.yml;
+        [ -f /app/config/tool_conf.xml.sample ] || cp /app/lib/galaxy/config/sample/tool_conf.xml.sample /app/config/;
+        [ -f /app/config/datatypes_conf.xml.sample ] || cp /app/lib/galaxy/config/sample/datatypes_conf.xml.sample /app/config/;
+        [ -f /app/config/tool_data_table_conf.xml.sample ] || cp /app/lib/galaxy/config/sample/tool_data_table_conf.xml.sample /app/config/;
+        [ -f /app/config/shed_tool_conf.xml ] || printf '<?xml version="1.0" encoding="utf-8"?>\n<toolbox tool_path="../shed_tools">\n</toolbox>\n' > /app/config/shed_tool_conf.xml;
+        exec gunicorn 'galaxy.webapps.galaxy.fast_factory:factory()' --pythonpath lib -k galaxy.webapps.galaxy.workers.Worker --bind 0.0.0.0:8080 --workers 2 --timeout 600 --preload --log-level info -c lib/galaxy/web_stack/gunicorn_config.py
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/version"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      # ARM64 hosts run this x86 image under QEMU; gunicorn --preload takes 20-30 min
+      # to load all Python modules before binding to port 8080 (observed: ~25 min on
+      # Graviton2 c6g instance).  1800s (30 min) prevents premature unhealthy marking.
+      # Note: even if the container goes unhealthy, Docker continues running checks and
+      # transitions back to healthy once the port responds — there is no auto-restart.
+      # The frontend uses service_started (not service_healthy) so docker compose up
+      # doesn't block for the entire QEMU warm-up window.
+      start_period: 1800s
+    depends_on:
+      redis:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+      nfcore-init:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+    networks:
+      - biomate-network
+
+  # ── 前端 (Node.js + React) ────────────────────────────────────────────────
+  frontend:
+    image: ${BIOMATE_FRONTEND_IMAGE:-ghcr.io/biomate-ai/biomate-frontend:latest}
+    # ghcr.io/biomate-ai/biomate-frontend:latest is a multi-arch manifest (amd64 + arm64).
+    # Docker auto-selects the host architecture — no platform override needed.
+    container_name: biomate-frontend
+    ports:
+      - "${FRONTEND_PORT:-5000}:3000"
+    environment:
+      NODE_ENV:    production
+      PORT:        "3000"
+      GALAXY_URL:  http://galaxy-backend:8080
+      GALAXY_API_KEY: ${GALAXY_API_KEY:-}
+
+      DATABASE_URL: postgresql://${POSTGRES_USER:-biomate}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-biomate}
+      REDIS_URL:    redis://redis:6379
+
+      # ── 必填密钥 ──────────────────────────────────────────────────────────
+      JWT_SECRET:     ${JWT_SECRET:?JWT_SECRET is required}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
+
+      # ── LLM (透传给 Galaxy) ───────────────────────────────────────────────
+      GALAXY_AI_LLM_PROVIDER: ${GALAXY_AI_LLM_PROVIDER:-openai_compatible}
+      GALAXY_AI_LLM_MODEL:    ${GALAXY_AI_LLM_MODEL:-}
+      LLM_API_URL:  ${LLM_API_URL:-}
+      LLM_API_KEY:  ${LLM_API_KEY:-none}
+      LLM_MODEL:    ${LLM_MODEL:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      DEEPSEEK_API_KEY:   ${DEEPSEEK_API_KEY:-}
+      ZHIPU_API_KEY:      ${ZHIPU_API_KEY:-}
+      ANTHROPIC_API_KEY:  ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY:     ${OPENAI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+
+      # ── 存储 (MinIO) ──────────────────────────────────────────────────────
+      S3_ENDPOINT_URL:       http://minio:9000
+      AWS_ACCESS_KEY_ID:     ${MINIO_ROOT_USER:-biomate}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      AWS_REGION:            ${AWS_DEFAULT_REGION:-us-east-1}
+      S3_BUCKET_NAME:        ${S3_BUCKET_NAME:-biomate-data}
+
+      # ── 计费 (on-prem 默认关闭) ───────────────────────────────────────────
+      STRIPE_SECRET_KEY:     ${STRIPE_SECRET_KEY:-}
+      BILLING_LAGO_ENABLED:  "false"
+      BILLING_INTERNAL_KEY:  ${BILLING_INTERNAL_KEY:-onprem-billing-disabled}
+
+      # ── 网络 ──────────────────────────────────────────────────────────────
+      FORCE_HTTPS:   ${FORCE_HTTPS:-0}
+      ENABLE_HSTS:   ${ENABLE_HSTS:-0}
+      CORS_ORIGINS:  ${CORS_ORIGINS:-}
+      FRONTEND_URL:  ${FRONTEND_URL:-}
+
+      # ── Workflow notifications ─────────────────────────────────────────────
+      # Send email when a workflow finishes. Requires SMTP config above.
+      # Values: never / always / on_failure
+      WORKFLOW_NOTIFY: ${WORKFLOW_NOTIFY:-on_failure}
+
+      # ── Email / SMTP (optional) ───────────────────────────────────────────
+      # For registration verification and workflow notifications.
+      # Leave empty to skip email (verification token returned in API response).
+      EMAIL_HOST:   ${EMAIL_HOST:-}
+      EMAIL_PORT:   ${EMAIL_PORT:-587}
+      EMAIL_SECURE: ${EMAIL_SECURE:-false}
+      EMAIL_USER:   ${EMAIL_USER:-}
+      EMAIL_PASS:   ${EMAIL_PASS:-}
+      EMAIL_FROM:   ${EMAIL_FROM:-}
+      APP_URL:      ${APP_URL:-http://localhost:5000}
+
+      # ── On-premises mode ───────────────────────────────────────────────────
+      # NOTE: VITE_ONPREM is a Vite build-time flag baked into the JS bundle
+      # at Docker image build time (--build-arg VITE_ONPREM=true). It is NOT a
+      # runtime env var — setting it here has no effect. The GHCR image
+      # (ghcr.io/biomate-ai/biomate-frontend) is always built with VITE_ONPREM=true.
+      # VITE_ONPREM: "true"   # build-time only; no effect at runtime
+
+      # ── 许可证 ────────────────────────────────────────────────────────────
+      BIOMATE_LICENSE_KEY:    ${BIOMATE_LICENSE_KEY:-}
+      BIOMATE_LICENSE_SECRET: ${BIOMATE_LICENSE_SECRET:-}
+
+      # ── run_code 沙箱 (可选) ──────────────────────────────────────────────────
+      # AI 内联代码执行 (run_code tool) 需要 sandbox-launcher 服务。
+      # 启用步骤:
+      #   1. 取消下面 sandbox-launcher 服务的注释
+      #   2. 取消此处注释:
+      # RUN_CODE_BACKEND_URL: http://sandbox-launcher:8899
+      # RUN_CODE_IMAGE: "${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}"
+      # 3. 在下方 volumes 取消 /tmp/biomate_code 挂载注释
+      # 4. 在下方 depends_on 取消 sandbox-launcher 注释
+
+    # volumes:  # Uncomment and add entries when enabling sandbox-launcher (run_code support):
+    #   - /tmp/biomate_code:/tmp/biomate_code
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      galaxy-backend:
+        # service_started (not service_healthy): galaxy takes 15-20 min under QEMU.
+        # The frontend /api/health endpoint returns "degraded" (not an error) when
+        # galaxy is unreachable, so it is safe to start the frontend before galaxy
+        # is fully ready.  Blocking on service_healthy would stall `docker compose up`
+        # for the entire QEMU cold-start window.
+        condition: service_started
+      # sandbox-launcher:
+      #   condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - biomate-network
+
+  # ── 代码沙箱启动器 (run_code tool — 可选，默认关闭) ─────────────────────────
+  # 启用后，AI 可以在对话中直接执行 Python/R/bash 代码 (inline analysis)。
+  # 启用步骤: 取消以下服务注释，并取消 frontend 服务中对应的注释。
+  # Security note: gVisor (runsc) is disabled by default. Set LAUNCHER_RUNTIME=runsc
+  # and install gVisor on the host for hardware-level sandbox isolation.
+  #
+  # sandbox-launcher:
+  #   image: ${BIOMATE_SANDBOX_LAUNCHER_IMAGE:-ghcr.io/biomate-ai/biomate-sandbox-launcher:latest}
+  #   container_name: biomate-sandbox-launcher
+  #   restart: unless-stopped
+  #   environment:
+  #     LAUNCHER_WORKDIR_PREFIX: /tmp/biomate_code
+  #     LAUNCHER_ALLOWED_IMAGES: "${BIOMATE_BACKEND_IMAGE:-ghcr.io/biomate-ai/biomate-backend:latest}"
+  #     LAUNCHER_RUNTIME: ""
+  #     LAUNCHER_UID: "1000"
+  #     LAUNCHER_GID: "1000"
+  #   group_add:
+  #     - "${DOCKER_GID:-999}"
+  #   volumes:
+  #     - /tmp/biomate_code:/tmp/biomate_code
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   networks:
+  #     - biomate-network
+
+  # ── Caddy (HTTPS / TLS termination — optional but recommended) ────────────
+  # Uncomment to enable automatic HTTPS via Let's Encrypt.
+  # Requirements:
+  #   1. Copy caddy/Caddyfile.example → caddy/Caddyfile and set your domain.
+  #   2. Point your DNS A record to this server.
+  #   3. Set FORCE_HTTPS=1 and ENABLE_HSTS=1 in .env.
+  #   4. Change the frontend port from "5000:3000" to internal-only: "127.0.0.1:5000:3000"
+  #
+  # caddy:
+  #   image: caddy:2-alpine
+  #   container_name: biomate-caddy
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #     - "443:443/udp"    # HTTP/3
+  #   volumes:
+  #     - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - biomate-caddy-data:/data
+  #     - biomate-caddy-config:/config
+  #   depends_on:
+  #     - frontend
+  #   restart: unless-stopped
+  #   networks:
+  #     - biomate-network
+
+  # ── Ollama (完全离线本地 LLM — 可选 / local LLM — optional) ──────────────
+  # 要求 / Requires: ≥32 GB RAM，强烈建议 GPU（NVIDIA）
+  # 启用步骤 / Steps:
+  #   1. 取消下方注释 / Uncomment below
+  #   2. 设置 / Set: GALAXY_AI_LLM_PROVIDER=ollama in .env
+  #   3. docker compose up -d ollama
+  #   4. docker exec biomate-ollama ollama pull qwen2.5:32b
+  #      (or: ollama pull qwen3:32b)
+  #
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: biomate-ollama
+  #   ports:
+  #     - "127.0.0.1:11434:11434"
+  #   volumes:
+  #     - biomate-ollama-models:/root/.ollama
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [gpu]
+  #   networks:
+  #     - biomate-network
+
+networks:
+  biomate-network:
+    # Explicit name prevents Docker Compose from prefixing with the project
+    # name (e.g. "biomate_biomate-network").  Nextflow task containers are
+    # launched via the host Docker socket with --network biomate-network;
+    # they must see the exact name used here.
+    name: biomate-network
+    driver: bridge
+
+volumes:
+  biomate-postgres-data:
+  biomate-redis-data:
+  biomate-minio-data:
+  biomate-registry-data:
+  biomate-backend-db:
+  biomate-backend-logs:
+  biomate-nfcore-workflows:   # Nextflow .nf workflow scripts (downloaded by nfcore-init)
+  # biomate-nf-work: replaced with host bind-mount /app/nf-work:/app/nf-work
+  #   (named volumes create a path mismatch when Nextflow launches Docker task containers)
+  # biomate-caddy-data:       # uncomment when using Caddy
+  # biomate-caddy-config:     # uncomment when using Caddy
+  # biomate-ollama-models:    # uncomment when using Ollama / 使用 Ollama 时取消注释

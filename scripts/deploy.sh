@@ -270,6 +270,27 @@ else
 fi
 echo ""
 
+# Step 2.5: Apply on-prem env overlay (optional — only for environments that need
+# local overrides not stored in Secrets Manager, e.g. TEST simulating on-prem with
+# a different LLM provider or MinIO instead of AWS S3).
+# Convention: if /opt/biomate/.env.onprem exists on the host, each KEY=VALUE line
+# in it overrides the corresponding key written by Step 2.  The file is created
+# manually on the host and is never committed to the repo.
+ssm_run "if [ -f /opt/biomate/.env.onprem ]; then
+  echo 'Applying on-prem env overlay from /opt/biomate/.env.onprem...'
+  while IFS= read -r line || [ -n \"\$line\" ]; do
+    [[ \"\$line\" =~ ^#.*\$ || -z \"\$line\" ]] && continue
+    key=\$(echo \"\$line\" | cut -d= -f1)
+    sed -i \"/^\${key}=/d\" /opt/biomate/.env
+    echo \"\$line\" >> /opt/biomate/.env
+  done < /opt/biomate/.env.onprem
+  echo \"overlay applied: \$(wc -l < /opt/biomate/.env.onprem) var(s)\"
+else
+  echo 'No /opt/biomate/.env.onprem found — using Secrets Manager config as-is'
+fi" \
+  "Applying on-prem env overlay (if present)"
+echo ""
+
 # Step 3: Ship docker-compose.deploy.yml to the host (from THIS checkout, via SSM)
 echo "=== Step 3: Ship docker-compose.deploy.yml ==="
 #
@@ -300,6 +321,53 @@ echo ""
 echo "=== Step 5: Pull Docker images ==="
 ssm_run "docker pull $BACKEND_IMAGE" "Pulling backend image"
 ssm_run "docker pull $FRONTEND_IMAGE" "Pulling frontend image"
+echo ""
+
+# Step 5.5: Ensure data dir files are writable by the galaxy container user (UID 1000).
+# The bind-mounted galaxy_ai_tools.db is owned by root on a fresh test host.
+# The container runs as galaxy:1000 and needs write access for schema migrations
+# (ALTER TABLE ADD COLUMN on startup). Without this, get_workflow_search() raises
+# sqlite3.OperationalError → _workflow_search=None → every /api/workflows/search
+# returns 503 and the smoke test rolls back the deploy. Fix: chown the data dir
+# to UID 1000 before containers start so the first-run migration can complete.
+ssm_run "chown -R 1000:1000 /opt/biomate/data 2>/dev/null; ls -la /opt/biomate/data/ | head -5" \
+  "Ensuring /opt/biomate/data is writable by galaxy:1000"
+echo ""
+
+# Step 5.6: Sync nfcore NF stubs from backend image to host bind-mount.
+#
+# ROOT CAUSE FIXED HERE: /opt/biomate/data/nextflow_nfcore is bind-mounted into
+# the galaxy container and the step parser reads .nf files from this path at
+# run time. Previously this dir was "seeded once" per host and never refreshed
+# on deploy — so any NF file edited in git stayed stale in the running container
+# until a manual SSM hot-patch. This step fixes that by copying the files OUT
+# of the deploying backend image (which was built from the exact git commit) into
+# the host dir before containers start.
+#
+# What IS in the image: all nextflow_nfcore subdirs EXCEPT the four large ones
+# (bioconductor 69MB, genomics 59MB, drug_discovery 224MB, pharmacology 40MB)
+# which are excluded from the image to keep build size manageable. Those large
+# dirs stay on the host as-is; they are pre-seeded once per host and change
+# infrequently.
+#
+# What the copy does: `cp -r /app/biomni_workflows/nextflow_nfcore/. /target/`
+# ADDS and OVERWRITES files present in the image — it does NOT delete files that
+# exist only on the host (bioconductor/genomics/drug_discovery/pharmacology).
+# Net effect: small domain dirs (structural_biology, cryo_em, transcriptomics…)
+# are refreshed every deploy; large pre-seeded dirs are left intact.
+echo "=== Step 5.6: Sync nfcore NF stubs from backend image to host ==="
+ssm_run "
+  set -euo pipefail
+  mkdir -p /opt/biomate/data/nextflow_nfcore
+  echo 'Extracting nfcore NF stubs from backend image $BACKEND_IMAGE ...'
+  docker run --rm \\
+    -v /opt/biomate/data/nextflow_nfcore:/target \\
+    --entrypoint sh \\
+    $BACKEND_IMAGE \\
+    -c 'cp -r /app/biomni_workflows/nextflow_nfcore/. /target/ 2>/dev/null; echo done'
+  echo 'Sync complete. NF file count:'
+  find /opt/biomate/data/nextflow_nfcore -name '*.nf' | wc -l
+" "Syncing nfcore NF stubs from backend image" 180
 echo ""
 
 # Step 6: Deploy + health check + auto-rollback (single host-side script)
@@ -447,11 +515,12 @@ export BACKEND_IMAGE="\$NEW_BACKEND"
 export FRONTEND_IMAGE="\$NEW_FRONTEND"
 docker compose -f docker-compose.deploy.yml down --timeout 30 || true
 
-# New image gets up to 180s to go healthy (Galaxy cold start is ~60-90s).
+# New image gets up to 360s to go healthy (Galaxy cold start with 4 workers
+# and preload can take 3-5 min; 180s was too tight on cold instances).
 # Health gate = boot (docker healthchecks) + endpoints (version/health HTTP) +
 # functional smoke (a workflow can be routed/generated). Any gating failure
 # falls through to the rollback below.
-if bring_up "\$NEW_BACKEND" "\$NEW_FRONTEND" 180 && endpoints_ok && workflow_smoke; then
+if bring_up "\$NEW_BACKEND" "\$NEW_FRONTEND" 360 && endpoints_ok && workflow_smoke; then
   finish healthy 0
 fi
 

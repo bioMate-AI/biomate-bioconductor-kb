@@ -16,6 +16,7 @@ import threading
 import time
 import uuid
 from datetime import datetime, timezone
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -101,7 +102,7 @@ def _resolve_workflow_dir(invocation_id: str) -> Optional[Path]:
     # Fallback: try common local paths
     for base in [
         Path("/tmp/biomate_nextflow"),
-        Path("/home/galaxy/nextflow_runs"),
+        Path(os.environ.get('NEXTFLOW_WORK_DIR', '/tmp/nextflow_runs')),
     ]:
         candidate = base / invocation_id
         if candidate.exists():
@@ -222,7 +223,7 @@ async def run_autofix3(
                 db_path: Optional[str] = None
                 db_candidates = [
                     Path(__file__).parents[5] / "database" / "galaxy_ai_tools.db",
-                    Path("/home/yzhang/biomate/backend/database/galaxy_ai_tools.db"),
+                    Path("/app/database/galaxy_ai_tools.db"),
                 ]
                 for db_candidate in db_candidates:
                     if db_candidate.exists():

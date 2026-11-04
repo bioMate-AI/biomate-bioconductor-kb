@@ -82,7 +82,7 @@ class WorkflowAuditService:
     - Performance monitoring
     """
 
-    DEFAULT_DB_PATH = "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db"
+    DEFAULT_DB_PATH = "/app/database/galaxy_ai_tools.db"
 
     def __init__(self, db_path: str = None):
         """

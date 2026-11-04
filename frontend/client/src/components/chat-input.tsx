@@ -526,6 +526,15 @@ export function ChatInput({
         onChange={handleLocalFilePick}
         data-testid="chat-attach-folder-input"
       />
+      {/* Hidden folder input — same attach path as files (matches the upload panel) */}
+      <input
+        ref={folderInputRef}
+        type="file"
+        multiple
+        {...({ webkitdirectory: '', directory: '', mozdirectory: '' } as Record<string, string>)}
+        style={{ display: 'none' }}
+        onChange={handleLocalFilePick}
+      />
 
       {/* Attached files + selected dataset chips */}
       {projectSettingsError && <p role="alert" className="text-xs text-destructive">{projectSettingsError}</p>}

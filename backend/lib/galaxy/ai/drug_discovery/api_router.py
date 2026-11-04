@@ -2090,6 +2090,11 @@ def _format_proposal(proposal) -> dict:
     if isinstance(ci, dict) and CAMPAIGN_OBJECTIVE in ci:
         ci = ci[CAMPAIGN_OBJECTIVE]
 
+    if isinstance(scores, dict) and CAMPAIGN_OBJECTIVE in scores:
+        scores = scores[CAMPAIGN_OBJECTIVE]
+    if isinstance(ci, dict) and CAMPAIGN_OBJECTIVE in ci:
+        ci = ci[CAMPAIGN_OBJECTIVE]
+
     # Normalise scores to a list aligned with smiles
     if isinstance(scores, dict):
         score_list = [float(scores.get(s, 0.0)) for s in smiles]

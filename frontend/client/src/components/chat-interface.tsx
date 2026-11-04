@@ -3,6 +3,7 @@ import { prepareColdStartExample, INTERNAL_EXAMPLES, PREPARED_EXAMPLES, ensureIn
 import { toast } from "@/hooks/use-toast"
 import { useActiveProjectIdSafe, useActiveProjectSafe } from "@/contexts/active-project-context"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { t } from "@/lib/i18n"
 import { uploadFile as uploadFileShared } from "@/lib/upload"
 import { tOr } from "@/lib/i18n"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
@@ -113,6 +114,9 @@ interface ChatInterfaceProps {
   onStreamingChange?: (isStreaming: boolean) => void
   /** Called just before a message with file attachments is submitted. */
   onSubmitWithFiles?: () => void
+  /** The workflow currently open in the right panel (if any). Sent to the
+   *  backend so follow-up messages can auto-fill parameters. */
+  currentPanelWorkflow?: any | null
 }
 
 // ── Onboarding welcome ────────────────────────────────────────────────────────
@@ -205,9 +209,9 @@ function OnboardingWelcome({
       <div data-testid="onboarding-welcome" className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-8">
         <div className="w-full max-w-2xl">
           <div className="mb-6 text-center">
-            <h2 className="text-2xl font-semibold mb-1">What would you like to analyze?</h2>
+            <h2 className="text-2xl font-semibold mb-1">{t('What would you like to analyze?')}</h2>
             <p className="text-sm text-muted-foreground">
-              Select your research areas — BioMate will prioritise relevant workflows.
+              {t('Select your research areas — BioMate will prioritise relevant workflows.')}
             </p>
           </div>
 
@@ -461,6 +465,7 @@ export function ChatInterface({
   onRegisterSendMessage,
   onStreamingChange,
   onSubmitWithFiles,
+  currentPanelWorkflow,
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
   // Notify parent when streaming state changes so it can show a panel skeleton.
@@ -870,6 +875,10 @@ export function ChatInterface({
             ...(_activeProjectId && { projectId: _activeProjectId }),
             ...(_activeSkillIds && { activeSkillIds: _activeSkillIds }),
             assistantMessageId: placeholderId,
+            // Pass the currently open panel workflow so the backend can
+            // extract parameter values from follow-up user messages and
+            // return workflowEdits ops to auto-fill the panel.
+            ...(currentPanelWorkflow && { currentWorkflow: currentPanelWorkflow }),
             // Caller-supplied override (e.g. intentOverride from
             // IntentClarificationCard re-submit). Spread LAST so it can
             // augment but not be clobbered by defaults above.
@@ -998,9 +1007,11 @@ export function ChatInterface({
               // classifier (isTransientChatError) can decide whether this is a
               // transient hiccup worth retrying vs a deterministic failure to
               // surface immediately. The old opaque '__maintenance__' sentinel
-              // discarded that signal and always dead-ended.
+              // discarded that signal and always dead-ended. Servers report the
+              // text under message, error or detail; accept any of them.
+              const pick = (v: unknown) => (typeof v === 'string' && v ? v : undefined)
               const serverMsg =
-                (payload && typeof payload.message === 'string' && payload.message) ||
+                pick(payload?.message) || pick(payload?.error) || pick(payload?.detail) ||
                 'Streaming chat failed'
               throw new Error(serverMsg)
             }
@@ -1105,8 +1116,13 @@ export function ChatInterface({
         /workflow generation failed|could not build (a|the) runnable workflow|domain alignment|recovery plan|targeted follow-up questions/i;
       const looksLikeNarrativeFailure =
         typeof data.response === 'string' && failureNarrativePattern.test(data.response);
+      // Show collaborative failure UI only when generation explicitly failed (diagnostics.failed=true)
+      // or when the LLM response itself describes a failure narrative. A workflow object being
+      // present alone (e.g. a failed generation attempt that the LLM handled as a clarification
+      // question) is not a sufficient signal — it would wrongly show the failure card for every
+      // clarification turn with openai_compatible providers (Qianwen, DeepSeek, etc.).
       const shouldRenderCollaborativeFailure =
-        !workflowSuccess && (!!data.workflow || hasFailureDiagnostics || looksLikeNarrativeFailure);
+        !workflowSuccess && (hasFailureDiagnostics || looksLikeNarrativeFailure);
 
       // If workflow was generated, append workflow-specific info
       if (workflowSuccess && workflowData) {

@@ -20,7 +20,7 @@ import { execSync as _execSync } from "node:child_process";
 import { WebSocket as _WSClient, WebSocketServer } from "ws";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES, apiKeys } from "../shared/schema";
+import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES, apiKeys, featureFlags } from "../shared/schema";
 import { generateApiKey, listApiKeys } from "./api-key-service";
 import type { InsertInviteCode, ExecutionRunStatus, InstrumentType } from "../shared/schema";
 import { db, pool } from "./db";
@@ -801,7 +801,12 @@ if (typeof parsedThinkingBudget === "number" && Number.isFinite(parsedThinkingBu
 const _hasAnyLLMKey = localOnly() || !!(
   process.env.ANTHROPIC_API_KEY ||
   process.env.GOOGLE_API_KEY ||
-  process.env.GEMINI_API_KEY
+  process.env.GEMINI_API_KEY ||
+  process.env.LLM_API_KEY ||
+  process.env.OPENAI_API_KEY ||
+  process.env.OPENROUTER_API_KEY ||
+  process.env.DEEPSEEK_API_KEY ||
+  process.env.ZHIPU_API_KEY
 );
 const galaxyAssistant = _hasAnyLLMKey ? new GalaxyAssistant({
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
@@ -1080,6 +1085,19 @@ export function getUploadedFile(datasetId: string): { name: string; filePath: st
  */
 async function _s3ClientForBucket(s3Bucket: string): Promise<any> {
   const { S3Client, GetBucketLocationCommand } = await import('@aws-sdk/client-s3');
+  // On-prem MinIO: skip region detection (not applicable) and use endpoint.
+  const endpointUrl = process.env.S3_ENDPOINT_URL;
+  if (endpointUrl) {
+    return new S3Client({
+      endpoint: endpointUrl,
+      region: 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      },
+      forcePathStyle: true,
+    });
+  }
   const base = process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1';
   let region = base;
   try {
@@ -1090,7 +1108,13 @@ async function _s3ClientForBucket(s3Bucket: string): Promise<any> {
 }
 
 async function _uploadFileToS3(localPath: string, datasetId: string, fileName: string): Promise<string | undefined> {
-  const s3Bucket = process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+  const endpointUrl = process.env.S3_ENDPOINT_URL;
+  // On-prem MinIO: upload to the app bucket (S3_BUCKET_NAME) so the Galaxy
+  // container can access the file via MinIO (there is no shared filesystem
+  // between the frontend and galaxy containers). SaaS: use the Nextflow bucket.
+  const s3Bucket = endpointUrl
+    ? (process.env.S3_BUCKET_NAME || 'biomate-data')
+    : (process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work');
   const s3Key = `uploads/${datasetId}/${fileName}`;
   const s3Uri = `s3://${s3Bucket}/${s3Key}`;
   try {
@@ -1098,7 +1122,7 @@ async function _uploadFileToS3(localPath: string, datasetId: string, fileName: s
     const fs = await import('node:fs');
     const s3 = await _s3ClientForBucket(s3Bucket);
     await s3.send(new PutObjectCommand({ Bucket: s3Bucket, Key: s3Key, Body: fs.createReadStream(localPath) }));
-    console.log(`[FileUpload] Mirrored to S3: ${s3Uri}`);
+    console.log(`[FileUpload] Mirrored to ${endpointUrl ? 'MinIO' : 'S3'}: ${s3Uri}`);
     return s3Uri;
   } catch (err: any) {
     console.warn(`[FileUpload] S3 mirror failed (Nextflow workflows may not access this file): ${err.message}`);
@@ -1109,9 +1133,20 @@ async function _uploadFileToS3(localPath: string, datasetId: string, fileName: s
 // Stage a project-uploaded file (stored in the app bucket S3_BUCKET_NAME, which
 // AWS Batch workers cannot read) into the Batch-readable Nextflow bucket via a
 // server-side cross-bucket copy. Returns the resolvable s3:// URI, or undefined.
+//
+// On-prem MinIO (S3_ENDPOINT_URL set): the local Nextflow executor accesses MinIO
+// directly using the same bucket, so no cross-bucket copy is needed — return the
+// file's existing URI directly. The separate NEXTFLOW_S3_BUCKET doesn't exist in
+// MinIO and the copy would fail, silently dropping the resolved URI.
 async function _stageProjectFileToNextflow(
   srcBucket: string, srcKey: string, projectId: string, fileName: string,
 ): Promise<string | undefined> {
+  // On-prem: return the file's existing MinIO URI — no cross-bucket copy needed.
+  if (process.env.S3_ENDPOINT_URL) {
+    const uri = `s3://${srcBucket}/${srcKey}`;
+    console.log(`[ProjectStage] on-prem: using direct MinIO URI: ${uri}`);
+    return uri;
+  }
   const destBucket = process.env.NEXTFLOW_S3_BUCKET || process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
   const destKey = `uploads/project-${projectId}/${fileName}`;
   const destUri = `s3://${destBucket}/${destKey}`;
@@ -1280,14 +1315,33 @@ async function stageLocalFilesForBatch(
   uuidFilePaths?: Record<string, { filePath: string; name: string }>
 ): Promise<Record<string, any>> {
   const useAws = (process.env.NEXTFLOW_USE_AWS || '').toLowerCase() in { true: 1, '1': 1, yes: 1 };
-  if (!useAws) return params;
+  // On-prem: if MinIO is configured (S3_ENDPOINT_URL set), stage files there so
+  // the Galaxy/Nextflow side can fetch them via the same MinIO endpoint.
+  const minioEndpoint = process.env.S3_ENDPOINT_URL; // e.g. "http://minio:9000"
+  if (!useAws && !minioEndpoint) return params;
 
-  const { PutObjectCommand } = await import('@aws-sdk/client-s3');
-  const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || process.env.NEXTFLOW_S3_BUCKET || 'biomate-nextflow-work';
-  // Pin the client to the BUCKET's real region (us-east-1), not the us-west-2 default —
-  // a region-mismatched client rejects the PutObject with "must be addressed using the
-  // specified endpoint", which silently failed input staging for every file-param run.
-  const s3 = await _s3ClientForBucket(s3Bucket);
+  const { PutObjectCommand, S3Client } = await import('@aws-sdk/client-s3');
+  let s3: any;
+  let s3Bucket: string;
+  if (useAws) {
+    s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || process.env.NEXTFLOW_S3_BUCKET || 'biomate-nextflow-work';
+    // Pin the client to the BUCKET's real region (us-east-1), not the us-west-2 default —
+    // a region-mismatched client rejects the PutObject with "must be addressed using the
+    // specified endpoint", which silently failed input staging for every file-param run.
+    s3 = await _s3ClientForBucket(s3Bucket);
+  } else {
+    // On-prem MinIO path: use path-style access against the local MinIO endpoint.
+    s3Bucket = process.env.S3_BUCKET_NAME || 'biomate-data';
+    s3 = new S3Client({
+      endpoint: minioEndpoint,
+      region: 'us-east-1',
+      credentials: {
+        accessKeyId:     process.env.AWS_ACCESS_KEY_ID || process.env.MINIO_ROOT_USER || 'biomate',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || process.env.MINIO_ROOT_PASSWORD || '',
+      },
+      forcePathStyle: true,
+    });
+  }
 
   const _UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -2222,7 +2276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set HTTP-only cookie
       res.cookie('biomate_token', result.token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
         sameSite: 'lax',
         maxAge: result.expiresIn * 1000, // Convert to milliseconds
       });
@@ -2284,14 +2338,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (result.rememberMe) {
         res.cookie('biomate_token', result.token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
           sameSite: 'lax',
           maxAge: result.expiresIn * 1000, // 30 days in ms
         });
       } else {
         res.cookie('biomate_token', result.token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
           sameSite: 'lax',
           // No maxAge → session cookie; dropped when browser closes
         });
@@ -2473,7 +2527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sessionToken = authService.generateToken(user as any, false); // 24h
       res.cookie('biomate_token', sessionToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
         sameSite: 'lax',
         maxAge: 24 * 60 * 60 * 1000,
       });
@@ -2816,7 +2870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Set cookie
         res.cookie('biomate_token', token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
           sameSite: 'lax',
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
@@ -2853,7 +2907,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Set cookie
         res.cookie('biomate_token', token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS !== '0',
           sameSite: 'lax',
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
@@ -2900,8 +2954,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const userId = req.user!.id;
 
-      // For files < 100MB, use simple presigned URL
+      // For files < 100MB, use simple presigned URL.
+      // On-prem (MinIO): presigned URL embeds internal minio:9000 hostname
+      // unreachable from the browser — use the Node.js proxy route instead.
       if (fileSize < 100 * 1024 * 1024) {
+        if (process.env.S3_ENDPOINT_URL) {
+          const { randomUUID } = await import('crypto');
+          const minioBucket = process.env.S3_BUCKET_NAME || 'biomate-data';
+          const objectKey = `users/${userId}/uploads/${randomUUID()}-${filename}`;
+          const proxyUrl = `/api/s3/proxy-upload?key=${encodeURIComponent(objectKey)}&bucket=${encodeURIComponent(minioBucket)}&contentType=${encodeURIComponent(contentType)}`;
+          return res.json({
+            uploadId: randomUUID(),
+            uploadUrl: proxyUrl,
+            key: objectKey,
+            method: 'simple',
+            expiresIn: 3600,
+          });
+        }
         const uploadData = await s3Service.generatePresignedUploadUrl(
           userId,
           filename,
@@ -2922,6 +2991,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // leaves headroom). Without this, files >640 GiB would fail init.
         const DEFAULT_CHUNK = 64 * 1024 * 1024;
         const chunkSize = Math.max(DEFAULT_CHUNK, Math.ceil(fileSize / 9500));
+        const numParts = Math.ceil(fileSize / chunkSize);
+
+        // On-prem (MinIO): presigned part URLs use internal minio:9000 hostname
+        // that browsers cannot reach. Instead, create the multipart upload server-side
+        // and return proxy URLs (/api/s3/upload/part) that the browser PUTs to.
+        // The Node.js proxy relays each part to MinIO and returns the ETag.
+        if (process.env.S3_ENDPOINT_URL) {
+          const { S3Client, CreateMultipartUploadCommand } = await import('@aws-sdk/client-s3');
+          const minioBucket = process.env.S3_BUCKET_NAME || 'biomate-data';
+          const objectKey = `users/${userId}/uploads/${(await import('crypto')).randomUUID()}-${filename}`;
+          const minioClient = new S3Client({
+            endpoint: process.env.S3_ENDPOINT_URL,
+            region: 'us-east-1',
+            forcePathStyle: true,
+            credentials: {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+            },
+          });
+          const created = await minioClient.send(new CreateMultipartUploadCommand({
+            Bucket: minioBucket,
+            Key: objectKey,
+            ContentType: contentType,
+          }));
+          const s3UploadId = created.UploadId;
+          if (!s3UploadId) throw new Error('MinIO did not return UploadId');
+          // Return proxy URLs — browser PUTs to Node.js which relays to MinIO.
+          const partUrls = Array.from({ length: numParts }, (_, i) =>
+            `/api/s3/upload/part?uploadId=${encodeURIComponent(s3UploadId)}&key=${encodeURIComponent(objectKey)}&partNumber=${i + 1}&bucket=${encodeURIComponent(minioBucket)}`
+          );
+          return res.json({
+            uploadId: s3UploadId,
+            key: objectKey,
+            partUrls,
+            chunkSize,
+            numParts,
+            method: 'multipart',
+            expiresIn: 6 * 3600,
+          });
+        }
+
         const multipartData = await s3Service.startMultipartUpload(
           userId,
           filename,
@@ -2998,6 +3108,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // On-prem MinIO proxy for multipart part upload.
+  // Browser PUTs each chunk here; Node.js relays to MinIO via UploadPartCommand
+  // and returns { ETag } so the client can assemble the CompleteMultipartUpload call.
+  app.put("/api/s3/upload/part", authenticateToken, async (req, res) => {
+    try {
+      const endpointUrl = process.env.S3_ENDPOINT_URL;
+      if (!endpointUrl) return res.status(404).json({ error: 'Proxy only available on-prem (S3_ENDPOINT_URL not set)' });
+
+      const { uploadId, key, partNumber, bucket } = req.query as Record<string, string>;
+      if (!uploadId || !key || !partNumber || !bucket) {
+        return res.status(400).json({ error: 'Missing required query params: uploadId, key, partNumber, bucket' });
+      }
+      const partNum = parseInt(partNumber, 10);
+      if (!Number.isInteger(partNum) || partNum < 1 || partNum > 10000) {
+        return res.status(400).json({ error: 'Invalid partNumber' });
+      }
+
+      // Tenant isolation: key must belong to the calling user.
+      const userId = req.user!.id;
+      if (!String(key).startsWith(`users/${userId}/`)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const ALLOWED_BUCKETS_UP = new Set([
+        process.env.S3_BUCKET_NAME || 'biomate-data',
+        'biomate-data', 'biomate-nextflow-work', 'biomate-outputs',
+      ]);
+      if (!ALLOWED_BUCKETS_UP.has(bucket)) return res.status(403).json({ error: 'S3 bucket not allowed' });
+
+      // Collect the raw body (the file chunk from the browser).
+      const chunks: Buffer[] = [];
+      await new Promise<void>((resolve, reject) => {
+        req.on('data', (chunk: Buffer) => chunks.push(chunk));
+        req.on('end', resolve);
+        req.on('error', reject);
+      });
+      const body = Buffer.concat(chunks);
+
+      const { S3Client, UploadPartCommand } = await import('@aws-sdk/client-s3');
+      const minioClient = new S3Client({
+        endpoint: endpointUrl,
+        region: 'us-east-1',
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        },
+      });
+
+      const out = await minioClient.send(new UploadPartCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+        PartNumber: partNum,
+        Body: body,
+        ContentLength: body.length,
+      }));
+
+      const eTag = out.ETag;
+      if (!eTag) throw new Error('MinIO did not return ETag for part upload');
+      // S3-compatible responses need CORS-exposed ETag header so browser fetch() can read it.
+      res.setHeader('ETag', eTag);
+      res.json({ ETag: eTag });
+    } catch (error: any) {
+      console.error('[S3] Part upload proxy error:', error);
+      res.status(500).json({ error: 'Part upload failed', message: error.message });
+    }
+  });
+
+  // On-prem proxy: relay a small-file PUT upload from the browser to MinIO.
+  // Used for files < 100MB when S3_ENDPOINT_URL is set (MinIO mode) to avoid
+  // exposing the internal minio:9000 hostname in presigned PUT URLs.
+  app.put("/api/s3/proxy-upload", authenticateToken, async (req, res) => {
+    try {
+      const endpointUrl = process.env.S3_ENDPOINT_URL;
+      if (!endpointUrl) return res.status(404).json({ error: 'Proxy only available on-prem (S3_ENDPOINT_URL not set)' });
+
+      const key = String(req.query.key || '');
+      const bucket = String(req.query.bucket || process.env.S3_BUCKET_NAME || 'biomate-data');
+      const contentType = String(req.query.contentType || 'application/octet-stream');
+      if (!key) return res.status(400).json({ error: 'Missing required query param: key' });
+
+      // Tenant isolation: key must belong to the calling user.
+      const userId = req.user!.id;
+      if (!key.startsWith(`users/${userId}/`)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const ALLOWED_BUCKETS = new Set([
+        process.env.S3_BUCKET_NAME || 'biomate-data',
+        'biomate-data', 'biomate-nextflow-work', 'biomate-outputs',
+      ]);
+      if (!ALLOWED_BUCKETS.has(bucket)) return res.status(403).json({ error: 'S3 bucket not allowed' });
+
+      // Collect the raw body (the file from the browser).
+      const chunks: Buffer[] = [];
+      await new Promise<void>((resolve, reject) => {
+        req.on('data', (chunk: Buffer) => chunks.push(chunk));
+        req.on('end', resolve);
+        req.on('error', reject);
+      });
+      const body = Buffer.concat(chunks);
+
+      const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+      const minioClient = new S3Client({
+        endpoint: endpointUrl,
+        region: 'us-east-1',
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        },
+      });
+
+      await minioClient.send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+        ContentLength: body.length,
+      }));
+
+      res.json({ success: true, key });
+    } catch (error: any) {
+      console.error('[S3] Proxy upload error:', error);
+      res.status(500).json({ error: 'Upload failed', message: error.message });
+    }
+  });
+
   // Get presigned download URL
   app.post("/api/s3/download", authenticateToken, async (req, res) => {
     try {
@@ -3019,6 +3258,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'File not found' });
       }
 
+      // On-prem (MinIO): presigned URL embeds internal Docker hostname (minio:9000)
+      // unreachable from the browser. Return a Galaxy-proxied URL instead.
+      if (process.env.S3_ENDPOINT_URL) {
+        const proxyUrl = `/api/s3/proxy-download?key=${encodeURIComponent(key)}`;
+        return res.json({ downloadUrl: proxyUrl, expiresIn: 3600 });
+      }
+
       // Generate presigned URL
       const downloadUrl = await s3Service.generatePresignedDownloadUrl(key);
 
@@ -3032,6 +3278,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'Failed to generate download URL',
         message: error.message,
       });
+    }
+  });
+
+  // On-prem proxy: stream an S3/MinIO object through Node.js.
+  // Used when S3_ENDPOINT_URL is set (MinIO mode) to avoid exposing the internal
+  // minio:9000 hostname in presigned URLs that browsers cannot reach.
+  app.get("/api/s3/proxy-download", authenticateToken, async (req, res) => {
+    try {
+      const endpointUrl = process.env.S3_ENDPOINT_URL;
+      if (!endpointUrl) return res.status(404).json({ error: 'Proxy only available on-prem (S3_ENDPOINT_URL not set)' });
+
+      const key = String(req.query.key || '');
+      if (!key) return res.status(400).json({ error: 'Missing required query param: key' });
+
+      // Tenant isolation: key must belong to the calling user.
+      // Accepted patterns:
+      //   users/<userId>/...       — personal uploads/outputs
+      //   projects/<projectId>/... — project files (verified by project membership below)
+      const userId = req.user!.id;
+      if (key.startsWith(`users/${userId}/`)) {
+        // personal file — allowed
+      } else if (key.startsWith('projects/')) {
+        // project file — verify caller is a project member
+        const projectId = key.split('/')[1];
+        if (!projectId) return res.status(403).json({ error: 'Access denied' });
+        const membership = await pool.query(
+          `SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2
+           UNION SELECT 1 FROM projects WHERE id = $1 AND owner_id = $2
+           LIMIT 1`,
+          [projectId, userId]
+        );
+        if (membership.rowCount === 0) return res.status(403).json({ error: 'Access denied' });
+      } else {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const minioClient = new S3Client({
+        endpoint: endpointUrl,
+        region: 'us-east-1',
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        },
+      });
+      const minioBucket = process.env.S3_BUCKET_NAME || 'biomate-data';
+      const obj = await minioClient.send(new GetObjectCommand({ Bucket: minioBucket, Key: key }));
+      const filename = key.split('/').pop() || 'download';
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', (obj as any).ContentType || 'application/octet-stream');
+      ((obj as any).Body as NodeJS.ReadableStream).pipe(res);
+    } catch (error: any) {
+      console.error('[S3] Proxy download error:', error);
+      res.status(500).json({ error: 'Download failed', message: error.message });
     }
   });
 
@@ -4253,12 +4554,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // The frontend viewer passes its execution run UUID (frontend storage ID).
   // The Python backend's _runs dict is keyed by the Nextflow-assigned run_id.
   // We resolve the translation here before proxying to the Python backend.
-  app.post("/api/workflows/runs/:runId/rerun", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:runId/rerun", authenticateToken, async (req, res) => {
     try {
       const { runId } = req.params;
 
       // Resolve the Nextflow run_id from the frontend execution run record.
       const execRun = await storage.getExecutionRun(runId).catch(() => null);
+
+      // Ownership check: runs with a known userId must belong to the caller.
+      if (execRun?.userId && req.user?.id && execRun.userId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
       const nextflowRunId =
         execRun?.execution?.nextflowRunId ||
         execRun?.execution?.galaxyInvocationId ||
@@ -5517,15 +5824,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let allOutputFiles: string[] = [];
         let textOutputSamples: Array<{ name: string; content: string }> = [];
 
+        // On-prem: if outdir is a local filesystem path, scan it directly
+        // instead of trying to list it from S3/MinIO.
+        if (s3OutputBase && !s3OutputBase.startsWith('s3://')) {
+          try {
+            const fs = await import('fs/promises');
+            const { join: pathJoin } = await import('path');
+            const entries: string[] = [];
+            const walkDir = async (dir: string) => {
+              let list: string[] = [];
+              try { list = (await fs.readdir(dir)).map(e => pathJoin(dir, e)); } catch { return; }
+              for (const entry of list) {
+                const stat = await fs.stat(entry).catch(() => null);
+                if (!stat) continue;
+                if (stat.isDirectory()) await walkDir(entry);
+                else entries.push(entry);
+              }
+            };
+            await walkDir(s3OutputBase);
+            for (const fpath of entries) {
+              const fname = fpath.split('/').pop() || fpath;
+              if (BIN_EXTS.test(fname)) { allOutputFiles.push(fname + ' [binary]'); continue; }
+              allOutputFiles.push(fname);
+              if (TEXT_EXTS.test(fname) && textOutputSamples.length < 15) {
+                try {
+                  const content = (await fs.readFile(fpath, 'utf-8')).slice(0, 6000);
+                  textOutputSamples.push({ name: fname, content });
+                } catch { /* skip unreadable */ }
+              }
+            }
+          } catch { /* non-critical */ }
+        } else
+
         try {
           const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
           const nfAccessKey = process.env.AWS_NF_ACCESS_KEY_ID;
           const nfSecretKey = process.env.AWS_NF_SECRET_ACCESS_KEY;
+          // On-prem (MinIO): inject endpoint + forcePathStyle so listing hits MinIO
+          // instead of AWS S3. Also fall back to MinIO credentials when NF-specific
+          // keys are absent (on-prem uses MINIO_ROOT_USER as AWS_ACCESS_KEY_ID).
+          const s3EndpointUrl = process.env.S3_ENDPOINT_URL;
           const s3Client = new S3Client({
             region: 'us-east-1',
-            ...(nfAccessKey && nfSecretKey ? {
-              credentials: { accessKeyId: nfAccessKey, secretAccessKey: nfSecretKey }
+            ...(s3EndpointUrl ? {
+              endpoint: s3EndpointUrl,
+              forcePathStyle: true,
             } : {}),
+            credentials: {
+              accessKeyId: nfAccessKey || process.env.AWS_ACCESS_KEY_ID || '',
+              secretAccessKey: nfSecretKey || process.env.AWS_SECRET_ACCESS_KEY || '',
+            },
           });
 
           // Parse bucket and prefix from s3OutputBase
@@ -5798,14 +6146,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let SYSTEM: string;
         let USER: string;
 
+        const _isOnprem = !!process.env.S3_ENDPOINT_URL;
         const executionBlock = `=== EXECUTION METADATA ===
 WORKFLOW: ${workflowName}
 EXECUTION STATUS: ${runStatus}
 START TIME: ${startedAt}
 COMPLETION TIME: ${completedAt || 'N/A'}
 TOTAL WALL TIME: ${wallTimeStr}
-CLOUD PLATFORM: AWS Batch (us-west-2 region)
-ORCHESTRATION: BioMate pipeline on AWS Batch`;
+CLOUD PLATFORM: ${_isOnprem ? 'On-premises (local Docker executor)' : 'AWS Batch (us-west-2 region)'}
+ORCHESTRATION: BioMate pipeline on ${_isOnprem ? 'on-premises infrastructure' : 'AWS Batch'}`;
 
         const commonTail = `
 === EXTRACTED METRICS (parsed from pipeline JSON reports — verified real numbers) ===
@@ -6488,6 +6837,25 @@ ${paramLines || '(none recorded)'}`;
         if (!_selectedModel) _selectedModel = process.env.OPENROUTER_DEFAULT_MODEL || 'deepseek/deepseek-chat';
       }
 
+      // Fall back to system-level openai_compatible key (LLM_API_KEY + LLM_API_URL).
+      // Enables on-prem deployments with Qianwen/DashScope, local vLLM, DeepSeek, etc.
+      // when no Anthropic/Gemini/OpenRouter key is configured.
+      // Condition: check LLM_API_URL first so on-prem setups work even when
+      // LLM_API_KEY=none (the default in .env.onprem.example — local models
+      // typically require no auth key; 'none' is a valid placeholder).
+      let _openaiBaseUrl: string | undefined;
+      if (!_openrouterKey && process.env.LLM_API_URL) {
+        // Use the key if provided; 'none' or empty → pass 'none' (accepted by local servers).
+        _openrouterKey = (process.env.LLM_API_KEY && process.env.LLM_API_KEY !== 'none')
+          ? process.env.LLM_API_KEY
+          : 'none';
+        _openaiBaseUrl = process.env.LLM_API_URL;
+        if (!_selectedModel) _selectedModel = process.env.LLM_MODEL || process.env.GALAXY_AI_LLM_MODEL || 'qwen-max';
+      } else if (!_openrouterKey && process.env.LLM_API_KEY && process.env.LLM_API_KEY !== 'none') {
+        _openrouterKey = process.env.LLM_API_KEY;
+        _openaiBaseUrl = process.env.LLM_API_URL || undefined;
+        if (!_selectedModel) _selectedModel = process.env.LLM_MODEL || process.env.GALAXY_AI_LLM_MODEL || 'qwen-max';
+      }
       // Resolve chat dataset references BEFORE building enrichedContext.
       // Session-cached datasets resolve synchronously, but a file the user
       // picked from the "Project files" tab arrives as a project_files.id UUID
@@ -6607,6 +6975,7 @@ ${paramLines || '(none recorded)'}`;
         userAnthropicApiKey: _userAnthropicApiKey,
         openrouterKey: _openrouterKey,
         selectedModel: _selectedModel,
+        openaiBaseUrl: _openaiBaseUrl,
         // memorySessionId must be the LTM sessions.id (uuid) so recordEpisode's
         // project_episodes.session_id FK is satisfied. If the bridge call
         // failed (no LTM session created), leave it undefined and let
@@ -6785,6 +7154,33 @@ ${paramLines || '(none recorded)'}`;
         : (prerequisitesValidation && !(prerequisitesValidation as any).canRun) ? "needs_input"
         : "chat_only";
 
+      // When the response is chat_only but the user has a workflow open in the
+      // panel, try to extract parameter values from their message so the panel
+      // auto-fills without requiring the user to repeat data explicitly.
+      let _panelWorkflowEdits: any[] | undefined;
+      if (responseState === "chat_only" && enrichedContext.currentWorkflow && safeMessage) {
+        try {
+          const _galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+          const _editsRes = await fetch(`${_galaxyUrl}/api/ai_assistant/extract_workflow_edits`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Cookie': req.headers.cookie || '' },
+            body: JSON.stringify({
+              workflow: enrichedContext.currentWorkflow,
+              message: safeMessage,
+            }),
+            signal: AbortSignal.timeout(8000),
+          });
+          if (_editsRes.ok) {
+            const _editsData = await _editsRes.json() as any;
+            if (Array.isArray(_editsData?.edits) && _editsData.edits.length > 0) {
+              _panelWorkflowEdits = _editsData.edits;
+            }
+          }
+        } catch (_e) {
+          // non-fatal — param fill is best-effort
+        }
+      }
+
       const responsePayload = {
         response: assistantMessage,
         state: responseState,
@@ -6802,6 +7198,9 @@ ${paramLines || '(none recorded)'}`;
           sources: assistantResponse.sources,
           memoryUsed: false,
           workflowGenerationDiagnostics,
+          // Auto-fill: param edits extracted from user message for the open panel workflow.
+          // Consumed by Layer C in chat-with-artifacts.tsx → applyWorkflowEdits().
+          ...(_panelWorkflowEdits && { workflowEdits: _panelWorkflowEdits }),
           // Cost/token metadata — consumed by eval harness and billing dashboard
           llm_usage: (() => {
             const model = galaxyAssistant?.getModelConfig().responseModel || 'claude-sonnet-4-6';
@@ -8819,6 +9218,8 @@ ${paramLines || '(none recorded)'}`;
         process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work',
         'biomate-nextflow-work',
         'biomate-outputs',
+        // On-prem MinIO single-bucket deployment uses S3_BUCKET_NAME (default: biomate-data).
+        process.env.S3_BUCKET_NAME || 'biomate-data',
       ]);
       if (!ALLOWED_BUCKETS.has(bucket)) {
         return res.status(403).json({ error: "S3 bucket not allowed" });
@@ -8842,6 +9243,12 @@ ${paramLines || '(none recorded)'}`;
       const cmd = new GetObjectCommand({ Bucket: bucket, Key: key });
 
       if (IMAGE_EXTS.has(ext)) {
+        if (process.env.S3_ENDPOINT_URL) {
+          // On-prem MinIO: presigned URLs use internal hostname browsers can't reach.
+          // Return a Node.js proxy path instead so the UI can load the image via the API.
+          const proxyPath = `/api/files/serve?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`;
+          return res.json({ content_type: 'image', download_url: proxyPath });
+        }
         const url = await getSignedUrl(s3, cmd, { expiresIn: 3600 });
         return res.json({ content_type: 'image', download_url: url });
       }
@@ -8861,9 +9268,54 @@ ${paramLines || '(none recorded)'}`;
         return res.json({ content_type: isTable ? 'table' : 'text', preview_text: preview, rows: lines.length, truncated });
       }
 
-      // Binary / unknown: return a presigned download URL
+      // Binary / unknown: return a presigned download URL (SaaS) or proxy path (on-prem).
+      if (process.env.S3_ENDPOINT_URL) {
+        const proxyPath = `/api/files/serve?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`;
+        return res.json({ content_type: 'binary', download_url: proxyPath });
+      }
       const url = await getSignedUrl(s3, cmd, { expiresIn: 3600 });
       return res.json({ content_type: 'binary', download_url: url });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/files/serve — on-prem MinIO proxy: stream a file object through Node.js
+  // so browsers can download MinIO objects without needing direct access to minio:9000.
+  // Only active when S3_ENDPOINT_URL is set (on-prem); on SaaS, clients use presigned S3 URLs.
+  app.get("/api/files/serve", optionalAuth, async (req, res) => {
+    try {
+      const { bucket, key } = req.query as { bucket?: string; key?: string };
+      if (!bucket || !key) return res.status(400).json({ error: "bucket and key are required" });
+
+      // Restrict to known on-prem buckets to prevent arbitrary object access.
+      const ALLOWED = new Set([
+        process.env.S3_BUCKET_NAME || 'biomate-data',
+        process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work',
+        'biomate-data', 'biomate-nextflow-work', 'biomate-outputs',
+      ]);
+      if (!ALLOWED.has(bucket)) return res.status(403).json({ error: "S3 bucket not allowed" });
+
+      const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+      const endpointUrl = process.env.S3_ENDPOINT_URL;
+      if (!endpointUrl) return res.status(404).json({ error: "Proxy only available on-prem (S3_ENDPOINT_URL not set)" });
+
+      const s3 = new S3Client({
+        endpoint: endpointUrl,
+        region: 'us-east-1',
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        },
+      });
+      const out = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+      const contentType = out.ContentType || 'application/octet-stream';
+      const fname = String(key).split('/').pop() || 'download';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `inline; filename="${fname}"`);
+      if (out.ContentLength) res.setHeader('Content-Length', String(out.ContentLength));
+      (out.Body as any).pipe(res);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -9234,6 +9686,17 @@ ${paramLines || '(none recorded)'}`;
       if (!filename) return res.status(400).json({ error: "filename is required" });
       if (!s3Service.getBucketName()) {
         return res.status(503).json({ error: "S3 not configured — file uploads unavailable in this environment" });
+      }
+      // On-prem MinIO: the generated presigned URL contains the internal Docker
+      // hostname (minio:9000) which is unreachable from outside the Docker network.
+      // MCP connector clients run outside Docker, so returning that URL would silently
+      // fail. Direct presigned uploads are a SaaS-only path; on-prem users should
+      // upload via the web interface (/api/datasets/upload or /api/s3/upload/init).
+      if (process.env.S3_ENDPOINT_URL) {
+        return res.status(501).json({
+          error: "Direct presigned uploads are not supported on on-prem MinIO deployments. " +
+            "Use the web interface to upload files, or POST binary data to /api/datasets/upload.",
+        });
       }
       const userId = req.user?.id ?? 'anonymous';
       const uploadData = await s3Service.generatePresignedUploadUrl(
@@ -9800,10 +10263,18 @@ ${paramLines || '(none recorded)'}`;
                     const AWS = await import('@aws-sdk/client-s3');
                     const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
                     const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
+                    const _s3Ep = process.env.S3_ENDPOINT_URL;
                     const s3 = new AWS.S3Client({
                       region: 'us-east-1',
-                      followRegionRedirects: true,
-                      ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
+                      followRegionRedirects: !_s3Ep, // not applicable for MinIO
+                      ...(_s3Ep ? {
+                        endpoint: _s3Ep,
+                        forcePathStyle: true,
+                        credentials: {
+                          accessKeyId: _nfKey || process.env.AWS_ACCESS_KEY_ID || '',
+                          secretAccessKey: _nfSec || process.env.AWS_SECRET_ACCESS_KEY || '',
+                        },
+                      } : _nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
                     });
                     const listed: string[] = [];
                     let continuationToken: string | undefined = undefined;
@@ -10306,9 +10777,20 @@ ${paramLines || '(none recorded)'}`;
           if (!s3Match) throw new Error(`Invalid S3 URI: ${s3Uri}`);
           const [, bucket, key] = s3Match;
           const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+          // On-prem (MinIO): inject endpoint + forcePathStyle so the client hits
+          // MinIO instead of trying to reach AWS S3.
+          const _s3Endpoint = process.env.S3_ENDPOINT_URL;
           const s3 = new S3Client({
             region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1',
             followRegionRedirects: true,
+            ...(_s3Endpoint ? {
+              endpoint: _s3Endpoint,
+              forcePathStyle: true,
+              credentials: {
+                accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+              },
+            } : {}),
           });
           const s3Obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
           const chunks: Buffer[] = [];
@@ -10547,7 +11029,7 @@ ${paramLines || '(none recorded)'}`;
   // ============================================================================
 
   // Create a new execution run (unified sandbox/production)
-  app.post("/api/workflows/execute", optionalAuth, checkBillingQuota('Workflow execution'), async (req, res) => {
+  app.post("/api/workflows/execute", authenticateToken, checkBillingQuota('Workflow execution'), async (req, res) => {
     let executionRun: any = null;
     let galaxyHistoryId: string | null = null;
     let galaxyWorkflowId: string | null = null;
@@ -12029,7 +12511,7 @@ ${paramLines || '(none recorded)'}`;
   };
 
   // Get execution run status (lightweight polling endpoint)
-  app.get("/api/workflows/runs/:id/status", async (req, res) => {
+  app.get("/api/workflows/runs/:id/status", authenticateToken, async (req, res) => {
     try {
       let run = await storage.getExecutionRun(req.params.id);
       if (!run) {
@@ -13236,6 +13718,32 @@ Rules:
               if (!outdir && gData.outdir) outdir = gData.outdir;
             }
           } catch { /* Galaxy unreachable — continue without */ }
+
+          // On-prem local executor: Galaxy's /api/nextflow/runs/{id}/output_files returns
+          // local filesystem files via /api/nextflow/outputs/local-download. The status
+          // endpoint above only carries s3_output_files, so we must call this separately.
+          if (outputFiles.length === 0) {
+            try {
+              const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+              const localResp = await fetch(
+                `${galaxyUrl}/api/nextflow/runs/${nfRunId}/output_files`,
+                { signal: AbortSignal.timeout(8000) }
+              );
+              if (localResp.ok) {
+                const localData = await localResp.json() as any;
+                if (Array.isArray(localData.files) && localData.files.length > 0) {
+                  // Translate Galaxy-backend local-download URLs to frontend proxy URLs
+                  // so the browser can download without hitting Galaxy directly.
+                  outputFiles = localData.files.map((f: any) => ({
+                    ...f,
+                    download_url: f.download_url
+                      ? `/api/galaxy-proxy${f.download_url}`
+                      : undefined,
+                  }));
+                }
+              }
+            } catch { /* Galaxy unreachable — continue without */ }
+          }
         }
       }
 
@@ -13291,10 +13799,18 @@ Rules:
             // (same pattern as /api/invocations/:id/outputs at line ~7045).
             const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
             const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
+            const _s3Ep = process.env.S3_ENDPOINT_URL;
             const s3 = new AWS.S3Client({
               region: 'us-east-1',
-              followRegionRedirects: true,
-              ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
+              followRegionRedirects: !_s3Ep,
+              ...(_s3Ep ? {
+                endpoint: _s3Ep,
+                forcePathStyle: true,
+                credentials: {
+                  accessKeyId: _nfKey || process.env.AWS_ACCESS_KEY_ID || '',
+                  secretAccessKey: _nfSec || process.env.AWS_SECRET_ACCESS_KEY || '',
+                },
+              } : _nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
             });
             const listed: any[] = [];
             let continuationToken: string | undefined = undefined;
@@ -13323,19 +13839,23 @@ Rules:
               continuationToken = lr.IsTruncated ? lr.NextContinuationToken : undefined;
             } while (continuationToken);
 
-            // Presign each file's downloadUrl (1 hour TTL) in parallel
+            // Presign each file's downloadUrl (1 hour TTL) in parallel.
+            // On-prem (MinIO): presigned URLs embed internal minio:9000 hostname
+            // unreachable from browser — use Galaxy proxy path instead.
             const PRESIGN_TTL = 3600;
-            await Promise.all(listed.map(async (f: any) => {
-              try {
-                f.downloadUrl = await presigner.getSignedUrl(
-                  s3,
-                  new AWS.GetObjectCommand({ Bucket: f.s3_bucket, Key: f.s3_key }),
-                  { expiresIn: PRESIGN_TTL }
-                );
-              } catch (e: any) {
-                console.warn(`[output_files] presign failed for ${f.s3_key}: ${e?.message}`);
-              }
-            }));
+            if (!_s3Ep) {
+              await Promise.all(listed.map(async (f: any) => {
+                try {
+                  f.downloadUrl = await presigner.getSignedUrl(
+                    s3,
+                    new AWS.GetObjectCommand({ Bucket: f.s3_bucket, Key: f.s3_key }),
+                    { expiresIn: PRESIGN_TTL }
+                  );
+                } catch (e: any) {
+                  console.warn(`[output_files] presign failed for ${f.s3_key}: ${e?.message}`);
+                }
+              }));
+            }
             outputFiles = listed;
             console.log(`[output_files] S3 listing fallback: found ${listed.length} files under ${outdir} (presigned for ${PRESIGN_TTL}s)`);
           }
@@ -13357,7 +13877,16 @@ Rules:
               const AWS = await import('@aws-sdk/client-s3');
               const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
               const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
-              const s3 = new AWS.S3Client({
+              const _wdS3Ep = process.env.S3_ENDPOINT_URL;
+              const s3 = new AWS.S3Client(_wdS3Ep ? {
+                endpoint: _wdS3Ep,
+                region: 'us-east-1',
+                forcePathStyle: true,
+                credentials: {
+                  accessKeyId: _nfKey || process.env.AWS_ACCESS_KEY_ID || '',
+                  secretAccessKey: _nfSec || process.env.AWS_SECRET_ACCESS_KEY || '',
+                },
+              } : {
                 region: 'us-east-1',
                 followRegionRedirects: true,
                 ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
@@ -13447,6 +13976,40 @@ Rules:
     }
   });
 
+  // On-prem local output file download proxy.
+  // Galaxy's /api/nextflow/outputs/local-download is only reachable on the
+  // internal network (port 8081, not exposed to browsers). This route
+  // forwards authenticated download requests to Galaxy so browsers can
+  // fetch on-prem workflow output files through the main app port.
+  app.get("/api/galaxy-proxy/api/nextflow/outputs/local-download", authenticateToken, async (req: any, res) => {
+    try {
+      // Ownership check: the run must belong to the authenticated user.
+      const runId = req.query.run_id as string | undefined;
+      if (runId) {
+        const execRun = await storage.getExecutionRun(runId).catch(() => null);
+        if (execRun?.userId && req.user?.id && execRun.userId !== req.user.id) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+      }
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const qs = new URLSearchParams(req.query as Record<string, string>).toString();
+      const upstream = await fetch(`${galaxyUrl}/api/nextflow/outputs/local-download?${qs}`, {
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!upstream.ok) {
+        return res.status(upstream.status).json({ error: 'Galaxy backend error' });
+      }
+      const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+      const cd = upstream.headers.get('content-disposition');
+      res.setHeader('Content-Type', ct);
+      if (cd) res.setHeader('Content-Disposition', cd);
+      const buf = await upstream.arrayBuffer();
+      res.send(Buffer.from(buf));
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Alias: same data as /output_files but returns the bare array (matches what
   // tool-callers and the CryoEM E2E tests expect — they iterate the response
   // as `outputs.map(o => o.filename)`).
@@ -13522,7 +14085,14 @@ Rules:
         const m = /^s3:\/\/([^/]+)\/(.+)$/.exec(uri || '');
         if (!m) return '';
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const client = new S3Client({ region: process.env.AWS_REGION || 'us-west-2' });
+        const _s3Ep = process.env.S3_ENDPOINT_URL;
+        const client = new S3Client(_s3Ep ? {
+          endpoint: _s3Ep, region: 'us-east-1', forcePathStyle: true,
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+          },
+        } : { region: process.env.AWS_REGION || 'us-east-1', followRegionRedirects: true });
         const out = await client.send(new GetObjectCommand({ Bucket: m[1], Key: m[2] }));
         return (await (out.Body as any).transformToString()) as string;
       },
@@ -13597,7 +14167,8 @@ Rules:
       const localFiles: any[] = Array.isArray(nfStatus?.output_files) ? nfStatus.output_files : [];
       const allFiles = [...s3Files, ...localFiles];
       let match = allFiles.find((f: any) =>
-        (f?.filename === filename || f?.name === filename) && (f?.s3_uri || f?.path)
+        // Match by filename or name; accept s3_uri, path, or local_path (on-prem local executor).
+        (f?.filename === filename || f?.name === filename) && (f?.s3_uri || f?.path || f?.local_path)
       );
 
       // `/output_files` also discovers outputs on local development runs by
@@ -13658,6 +14229,30 @@ Rules:
 
       const fileSize = typeof match.size === 'number' ? match.size : null;
 
+      // 4a. On-prem local executor: proxy through the Galaxy backend's local-download endpoint.
+      const localPath: string | undefined = match.local_path;
+      if (localPath) {
+        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+        const galaxyRunId = (run as any).galaxyId || runId;
+        const path = await import('node:path');
+        // Derive rel_path from the local_path and the run's outdir context.
+        // The local-download endpoint resolves it against the stored outdir.
+        const relPath = match.rel_path || path.basename(localPath);
+        const dlUrl = `${galaxyUrl}/api/nextflow/outputs/local-download?run_id=${encodeURIComponent(galaxyRunId)}&rel_path=${encodeURIComponent(relPath)}`;
+        const upstream = await fetch(dlUrl);
+        if (!upstream.ok) {
+          await writeAuditRow(upstream.status, fileSize, runProjectId);
+          return res.status(upstream.status).json({ error: `Galaxy local-download failed: ${upstream.status}` });
+        }
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        const ct = upstream.headers.get('content-type') || 'application/octet-stream';
+        res.setHeader('Content-Type', ct);
+        await writeAuditRow(200, fileSize, runProjectId);
+        const elapsed = Date.now() - startedAt;
+        console.log(`[output_download] runId=${runId} file=${filename} user=${userId} → 200 local-proxy (${elapsed}ms)`);
+        return (upstream.body as any).pipe(res);
+      }
+
       // 4. If it's an S3 file, generate 60-second presigned URL and 302 redirect.
       //    If it's a local path, stream it (small files only — large ones live in S3).
       const s3Uri: string | undefined = match.s3_uri || match.uri;
@@ -13669,14 +14264,45 @@ Rules:
         }
         const [, bucket, key] = m;
         const AWS = await import('@aws-sdk/client-s3');
-        const presigner = await import('@aws-sdk/s3-request-presigner');
+        const endpointUrl = process.env.S3_ENDPOINT_URL;
         const _nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
         const _nfSec = process.env.AWS_NF_SECRET_ACCESS_KEY;
-        const s3 = new AWS.S3Client({
-          region: 'us-east-1',
-          followRegionRedirects: true,
-          ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
-        });
+        const s3 = new AWS.S3Client(
+          endpointUrl
+            ? {
+                // On-prem MinIO: Node.js can reach the internal endpoint; browser cannot.
+                // Stream the object through Node.js instead of 302-redirecting.
+                endpoint: endpointUrl,
+                region: 'us-east-1',
+                forcePathStyle: true,
+                credentials: {
+                  accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+                  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+                },
+              }
+            : {
+                region: 'us-east-1',
+                followRegionRedirects: true,
+                ...(_nfKey && _nfSec ? { credentials: { accessKeyId: _nfKey, secretAccessKey: _nfSec } } : {}),
+              }
+        );
+
+        if (endpointUrl) {
+          // On-prem: MinIO presigned URLs use internal hostname (minio:9000) that
+          // browsers can't reach. Stream directly from Node.js instead.
+          const out = await s3.send(new AWS.GetObjectCommand({ Bucket: bucket, Key: key }));
+          const contentType = out.ContentType || 'application/octet-stream';
+          res.setHeader('Content-Type', contentType);
+          res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+          if (out.ContentLength) res.setHeader('Content-Length', String(out.ContentLength));
+          await writeAuditRow(200, fileSize, runProjectId);
+          const elapsed = Date.now() - startedAt;
+          console.log(`[output_download] runId=${runId} file=${filename} user=${userId} → 200 stream/minio (${elapsed}ms)`);
+          return (out.Body as any).pipe(res);
+        }
+
+        // SaaS: presigned URL redirect — browser accesses S3 directly.
+        const presigner = await import('@aws-sdk/s3-request-presigner');
         // 60-second TTL is intentional — short enough that a leaked URL is
         // not useful; long enough for the browser to follow the redirect.
         const PRESIGN_TTL = 60;
@@ -13693,15 +14319,15 @@ Rules:
 
       // Local file path fallback — small files only; stream-through
       const fsLocal = await import('node:fs');
-      const path = await import('node:path');
-      const localPath: string = match.path || match.filepath;
-      if (!localPath || !fsLocal.existsSync(localPath)) {
+      const pathMod = await import('node:path');
+      const absLocalPath: string = match.path || match.filepath;
+      if (!absLocalPath || !fsLocal.existsSync(absLocalPath)) {
         await writeAuditRow(404, fileSize, runProjectId);
         return res.status(404).json({ error: 'File path unavailable' });
       }
       await writeAuditRow(200, fileSize, runProjectId);
-      res.setHeader('Content-Disposition', `attachment; filename="${path.basename(localPath)}"`);
-      return res.sendFile(path.resolve(localPath));
+      res.setHeader('Content-Disposition', `attachment; filename="${pathMod.basename(absLocalPath)}"`);
+      return res.sendFile(pathMod.resolve(absLocalPath));
     } catch (err: any) {
       console.error(`[output_download] runId=${runId} file=${filename} 500: ${err?.message}`);
       await writeAuditRow(500, null, null);
@@ -13760,8 +14386,10 @@ Rules:
         // Security: only allow our known buckets
         const ALLOWED_BUCKETS = new Set([
           process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work',
+          process.env.S3_BUCKET_NAME || 'biomate-data',
           'biomate-nextflow-work',
           'biomate-outputs',
+          'biomate-data',
         ]);
         if (!ALLOWED_BUCKETS.has(bucket)) {
           return res.status(403).json({ error: 'S3 bucket not allowed' });
@@ -13770,7 +14398,16 @@ Rules:
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
         const nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
         const nfSecret = process.env.AWS_NF_SECRET_ACCESS_KEY;
-        const s3 = new S3Client({
+        const _stepS3Ep = process.env.S3_ENDPOINT_URL;
+        const s3 = new S3Client(_stepS3Ep ? {
+          endpoint: _stepS3Ep,
+          region: 'us-east-1',
+          forcePathStyle: true,
+          credentials: {
+            accessKeyId: nfKey || process.env.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: nfSecret || process.env.AWS_SECRET_ACCESS_KEY || '',
+          },
+        } : {
           region: 'us-east-1',
           followRegionRedirects: true,
           ...(nfKey && nfSecret ? { credentials: { accessKeyId: nfKey, secretAccessKey: nfSecret } } : {}),
@@ -14254,13 +14891,18 @@ Rules:
   });
 
   // Cancel execution run
-  app.post("/api/workflows/runs/:id/cancel", optionalAuth, async (req, res) => {
+  app.post("/api/workflows/runs/:id/cancel", authenticateToken, async (req, res) => {
     try {
       const { reason } = req.body;
       const run = await storage.getExecutionRun(req.params.id);
 
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
+      }
+
+      // Ownership check: a run with a known userId must belong to the caller.
+      if (run.userId && req.user?.id && run.userId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
       }
 
       // Record interaction
@@ -14370,8 +15012,13 @@ Rules:
       }
 
       const apiKey = process.env.ANTHROPIC_API_KEY;
-      if (!apiKey && !localOnly()) {
-        return res.status(503).json({ error: "AI analysis unavailable — ANTHROPIC_API_KEY not set" });
+      // Findings synthesis runs on whichever provider is configured (Gemini, Anthropic, or an
+      // OpenAI-compatible on-prem endpoint); refuse only when none is.
+      const _anyLlmConfigured = !!(apiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY ||
+        process.env.LLM_API_KEY || process.env.LLM_API_URL || process.env.DEEPSEEK_API_KEY ||
+        process.env.ZHIPU_API_KEY || process.env.OPENAI_API_KEY);
+      if (!_anyLlmConfigured && !localOnly()) {
+        return res.status(503).json({ error: "AI analysis unavailable — no LLM provider configured" });
       }
 
       // ── Gather output file content ────────────────────────────────────────
@@ -14414,7 +15061,11 @@ Rules:
                 if (s3Match) {
                   const [, bucket, key] = s3Match;
                   const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-                  const s3c = new S3Client({
+                  const _anS3Ep = process.env.S3_ENDPOINT_URL;
+                  const s3c = new S3Client(_anS3Ep ? {
+                    endpoint: _anS3Ep, region: 'us-east-1', forcePathStyle: true,
+                    credentials: { accessKeyId: process.env.AWS_ACCESS_KEY_ID || '', secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '' },
+                  } : {
                     region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1',
                     followRegionRedirects: true,
                   });
@@ -14818,6 +15469,21 @@ Rules:
       const run = await resolveAuthorizedRun(req, res, runId);
       if (!run) return;
 
+      // Failed runs have no meaningful outputs — return static error immediately
+      // so the UI shows a clear message instead of an infinite "Analysis in progress…" spinner.
+      // Status is stored at run.execution.status (not run.status — see storage._dbRowToExecutionRun).
+      const runStatus: string = (run as any).execution?.status || '';
+      if (runStatus === 'failed') {
+        return res.json({
+          status: 'error',
+          message: 'Analysis not available — workflow did not complete successfully.',
+          summary: 'The workflow run failed before producing output files. Check the error message in the workflow panel for details.',
+          key_results: [],
+          next_steps: ['Review the error message and fix the workflow parameters, then re-run.'],
+          caveats: [],
+        });
+      }
+
       // Determine local output dir (local runs only; S3 runs not supported for disk check)
       const nextflowRunId: string = (run as any).execution?.nextflowRunId || runId;
       const localOutputDir = `/tmp/nextflow_runs/${nextflowRunId}/output`;
@@ -14928,10 +15594,13 @@ Rules:
       // 4. Mark as generating so concurrent polls don't double-fire
       _findingsCache.set(runId, { _generating: true });
 
-      // 5. Fire background Claude analysis (works for both local and AWS S3 outputs)
+      // 5. Fire background LLM analysis (works for both local and AWS S3 outputs)
       //    Uses the same output-discovery logic as /api/workflows/runs/:id/ai/analyze
       const workflowName: string = (run as any).workflowName || (run as any).name || "Workflow";
-      const apiKey = process.env.ANTHROPIC_API_KEY;
+      // Check if any LLM is configured (Gemini, Anthropic, Qianwen/openai_compatible, DeepSeek, etc.)
+      const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY ||
+        process.env.ANTHROPIC_API_KEY || process.env.LLM_API_KEY ||
+        process.env.DEEPSEEK_API_KEY || process.env.ZHIPU_API_KEY || process.env.OPENAI_API_KEY;
 
       // Durably persist a real findings result to the run's S3 output dir so a
       // reopened/historical run serves it from the S3 sidecar (read path above,
@@ -14977,7 +15646,11 @@ Rules:
               const { S3Client: _S3C, GetObjectCommand: _GOC } = await import('@aws-sdk/client-s3');
               const _nfKey2 = process.env.AWS_NF_ACCESS_KEY_ID;
               const _nfSec2 = process.env.AWS_NF_SECRET_ACCESS_KEY;
-              const _s3c = new _S3C({
+              const _s3cEp = process.env.S3_ENDPOINT_URL;
+              const _s3c = new _S3C(_s3cEp ? {
+                endpoint: _s3cEp, region: 'us-east-1', forcePathStyle: true,
+                credentials: { accessKeyId: _nfKey2 || process.env.AWS_ACCESS_KEY_ID || '', secretAccessKey: _nfSec2 || process.env.AWS_SECRET_ACCESS_KEY || '' },
+              } : {
                 region: 'us-east-1', followRegionRedirects: true,
                 ...(_nfKey2 && _nfSec2 ? { credentials: { accessKeyId: _nfKey2, secretAccessKey: _nfSec2 } } : {}),
               });
@@ -15024,7 +15697,11 @@ Rules:
               const { S3Client: _S3I, GetObjectCommand: _GI } = await import('@aws-sdk/client-s3');
               const _nfKeyI = process.env.AWS_NF_ACCESS_KEY_ID;
               const _nfSecI = process.env.AWS_NF_SECRET_ACCESS_KEY;
-              const _s3i = new _S3I({
+              const _s3iEp = process.env.S3_ENDPOINT_URL;
+              const _s3i = new _S3I(_s3iEp ? {
+                endpoint: _s3iEp, region: 'us-east-1', forcePathStyle: true,
+                credentials: { accessKeyId: _nfKeyI || process.env.AWS_ACCESS_KEY_ID || '', secretAccessKey: _nfSecI || process.env.AWS_SECRET_ACCESS_KEY || '' },
+              } : {
                 region: 'us-east-1', followRegionRedirects: true,
                 ...(_nfKeyI && _nfSecI ? { credentials: { accessKeyId: _nfKeyI, secretAccessKey: _nfSecI } } : {}),
               });
@@ -15164,7 +15841,15 @@ Respond ONLY with valid JSON (no markdown wrapper):
   "caveats": ["<caveat 1>"]
 }`;
 
+          // Use llmGenerate so findings work with any configured LLM provider
+          // (Gemini, Anthropic, Qianwen/openai_compatible, DeepSeek, etc.)
+          // Fallback to callGeminiFlash only when GEMINI_API_KEY is available
+          // and no other provider is configured (legacy path).
           let rawText = '';
+          const hasGemini = !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+          const hasOtherLLM = !!(process.env.ANTHROPIC_API_KEY || process.env.LLM_API_KEY ||
+            process.env.DEEPSEEK_API_KEY || process.env.ZHIPU_API_KEY || process.env.OPENAI_API_KEY);
+          if (hasGemini && !hasOtherLLM) {
           try {
             rawText = await callGeminiFlash({
               messages: [{ role: 'user', content: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}` }],
@@ -15181,8 +15866,18 @@ Respond ONLY with valid JSON (no markdown wrapper):
             // BioMate AUTO-RECOVERS by switching models instead of hanging forever.
             console.warn('[Findings] Gemini findings call failed/timed out:', geminiErr?.message, '— falling back to Claude');
           }
+          } else {
+            const { llmGenerate } = await import('./llm-client');
+            const completion = await llmGenerate({
+              prompt: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}`,
+              system: SYSTEM,
+              maxTokens: 32768,
+              jsonMode: true,
+            });
+            rawText = completion.text || '';
+          }
           console.log(
-            `[Findings] gemini returned: length=${rawText.length} ` +
+            `[Findings] llm returned: length=${rawText.length} ` +
               `firstChar=${JSON.stringify(rawText.slice(0, 1))} ` +
               `endsWithBrace=${rawText.trimEnd().endsWith('}')} ` +
               `preview=${JSON.stringify(rawText.slice(0, 200))} ` +
@@ -16730,6 +17425,462 @@ Respond ONLY with valid JSON (no markdown wrapper):
       res.json({ since: since.toISOString(), rows });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ============================================================================
+  // Admin — System Config (LLM provider + health)
+  // ============================================================================
+
+  // GET /api/admin/system-config — effective runtime LLM config + saved pending config
+  app.get("/api/admin/system-config", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const provider = process.env.GALAXY_AI_LLM_PROVIDER || 'anthropic';
+      const model = process.env.GALAXY_AI_LLM_MODEL || (
+        provider === 'anthropic' ? 'claude-sonnet-4-5' :
+        provider === 'ollama' ? 'qwen3:32b' :
+        provider === 'zhipu' ? 'glm-4.7' :
+        provider === 'deepseek' ? 'deepseek-chat' :
+        'claude-sonnet-4-5'
+      );
+
+      const saved = await db.select().from(featureFlags)
+        .where(eq(featureFlags.flagName, 'system_llm_config'))
+        .limit(1);
+      const savedConfig = saved[0]?.description ? JSON.parse(saved[0].description) : null;
+
+      res.json({
+        effective: { provider, model },
+        env: {
+          hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
+          hasOpenaiKey: !!process.env.OPENAI_API_KEY,
+          hasZhipuKey: !!process.env.ZHIPU_API_KEY,
+          hasDeepseekKey: !!process.env.DEEPSEEK_API_KEY,
+          hasGeminiKey: !!(process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY),
+          ollamaUrl: process.env.OLLAMA_BASE_URL || 'http://ollama:11434',
+        },
+        saved: savedConfig,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/admin/system-config — save pending LLM config (apply on next backend restart)
+  app.post("/api/admin/system-config", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const { provider, model, ollamaUrl } = req.body;
+      const validProviders = ['anthropic', 'openai', 'ollama', 'zhipu', 'deepseek', 'gemini', 'openrouter'];
+      if (!provider || !validProviders.includes(provider)) {
+        return res.status(400).json({ error: `provider must be one of: ${validProviders.join(', ')}` });
+      }
+
+      const config = {
+        provider,
+        model: model || '',
+        ollamaUrl: ollamaUrl || '',
+        updatedAt: new Date().toISOString(),
+        updatedBy: (req as any).user?.email || 'admin',
+      };
+
+      await db.insert(featureFlags).values({
+        flagName: 'system_llm_config',
+        enabled: true,
+        rolloutPct: 100,
+        description: JSON.stringify(config),
+      }).onConflictDoUpdate({
+        target: featureFlags.flagName,
+        set: { description: JSON.stringify(config), updatedAt: new Date() },
+      });
+
+      // Env vars the admin should set in .env to apply this config
+      const envVars: Record<string, string> = {
+        GALAXY_AI_LLM_PROVIDER: provider,
+        ...(model ? { GALAXY_AI_LLM_MODEL: model } : {}),
+        ...(provider === 'ollama' && ollamaUrl ? { OLLAMA_BASE_URL: ollamaUrl } : {}),
+      };
+
+      res.json({
+        ok: true,
+        config,
+        envVars,
+        note: 'Config saved. Set these env vars in your .env file and restart the Galaxy backend to apply.',
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/admin/health-summary — aggregate health from all backend services
+  app.get("/api/admin/health-summary", authenticateToken, requireAdmin, async (req, res) => {
+    const galaxyUrl = process.env.GALAXY_URL || process.env.GALAXY_API_URL || 'http://localhost:8080';
+    const timeout = 8000;
+
+    const fetchSafe = async (url: string, label: string) => {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), timeout);
+        const r = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(t);
+        const body = await r.json().catch(() => ({}));
+        // process-health returns its own status field; use it when present
+        const derivedStatus = label === 'process_health'
+          ? (body?.status === 'ok' ? 'ok' : body?.status === 'degraded' ? 'degraded' : r.ok ? 'ok' : 'degraded')
+          : (r.ok ? 'ok' : 'degraded');
+        return { label, status: derivedStatus, code: r.status, data: body };
+      } catch (e: any) {
+        return { label, status: 'down', error: e.message };
+      }
+    };
+
+    const [galaxyVersion, indexHealth, processHealth] = await Promise.all([
+      fetchSafe(`${galaxyUrl}/api/version`, 'galaxy_version'),
+      fetchSafe(`${galaxyUrl}/api/admin/index-health`, 'index_health'),
+      fetchSafe(`${galaxyUrl}/api/admin/process-health`, 'process_health'),
+    ]);
+
+    // DB ping
+    let dbStatus: any;
+    try {
+      await db.execute(sql`SELECT 1`);
+      dbStatus = { label: 'postgres', status: 'ok' };
+    } catch (e: any) {
+      dbStatus = { label: 'postgres', status: 'down', error: e.message };
+    }
+
+    const services = [galaxyVersion, indexHealth, processHealth, dbStatus];
+    const overall = services.every(s => s.status === 'ok') ? 'ok'
+      : services.some(s => s.status === 'down') ? 'down' : 'degraded';
+
+    res.json({ overall, services, checkedAt: new Date().toISOString() });
+  });
+
+  // GET /api/admin/run-stats — execution_runs stats from Postgres
+  app.get("/api/admin/run-stats", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const rows = await db.execute(sql`
+        SELECT
+          COUNT(*) FILTER (WHERE status NOT IN ('completed','failed','cancelled','interrupted')) AS active,
+          COUNT(*) FILTER (WHERE status = 'completed'
+            AND completed_at > NOW() - INTERVAL '24 hours') AS completed_24h,
+          COUNT(*) FILTER (WHERE status = 'failed'
+            AND completed_at > NOW() - INTERVAL '24 hours') AS failed_24h,
+          COUNT(*) FILTER (WHERE status = 'completed'
+            AND completed_at > NOW() - INTERVAL '7 days') AS completed_7d,
+          COUNT(*) FILTER (WHERE status = 'failed'
+            AND completed_at > NOW() - INTERVAL '7 days') AS failed_7d,
+          COUNT(*) AS total
+        FROM execution_runs
+      `);
+      const r = rows.rows[0] as any;
+      res.json({
+        active: Number(r.active ?? 0),
+        completed_24h: Number(r.completed_24h ?? 0),
+        failed_24h: Number(r.failed_24h ?? 0),
+        completed_7d: Number(r.completed_7d ?? 0),
+        failed_7d: Number(r.failed_7d ?? 0),
+        total: Number(r.total ?? 0),
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // GET /api/admin/user-stats — user registration stats
+  app.get("/api/admin/user-stats", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const rows = await db.execute(sql`
+        SELECT
+          COUNT(*) AS total,
+          COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '24 hours') AS new_24h,
+          COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days') AS new_7d,
+          COUNT(*) FILTER (WHERE subscription_tier = 'admin') AS admins
+        FROM users
+      `);
+      const r = rows.rows[0] as any;
+      res.json({
+        total: Number(r.total ?? 0),
+        new_24h: Number(r.new_24h ?? 0),
+        new_7d: Number(r.new_7d ?? 0),
+        admins: Number(r.admins ?? 0),
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // GET /api/admin/llm-probe — test LLM API reachability with a minimal call
+  app.get("/api/admin/llm-probe", authenticateToken, requireAdmin, async (req, res) => {
+    const t0 = Date.now();
+    const provider = process.env.AI_PROVIDER || 'anthropic';
+    try {
+      if (provider === 'anthropic') {
+        const key = process.env.ANTHROPIC_API_KEY;
+        if (!key) return res.json({ status: 'no_key', provider, latency_ms: null });
+        const r = await fetch('https://api.anthropic.com/v1/models', {
+          headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+          signal: AbortSignal.timeout(8000),
+        });
+        return res.json({ status: r.ok ? 'ok' : 'error', provider, http: r.status, latency_ms: Date.now() - t0 });
+      }
+      if (provider === 'deepseek') {
+        const key = process.env.DEEPSEEK_API_KEY;
+        if (!key) return res.json({ status: 'no_key', provider, latency_ms: null });
+        const r = await fetch('https://api.deepseek.com/models', {
+          headers: { Authorization: `Bearer ${key}` },
+          signal: AbortSignal.timeout(8000),
+        });
+        return res.json({ status: r.ok ? 'ok' : 'error', provider, http: r.status, latency_ms: Date.now() - t0 });
+      }
+      if (provider === 'ollama') {
+        const url = process.env.OLLAMA_URL || 'http://ollama:11434';
+        const r = await fetch(`${url}/api/tags`, { signal: AbortSignal.timeout(5000) });
+        return res.json({ status: r.ok ? 'ok' : 'error', provider, latency_ms: Date.now() - t0 });
+      }
+      // generic openai-compatible
+      return res.json({ status: 'unknown_provider', provider, latency_ms: null });
+    } catch (e: any) {
+      return res.json({ status: 'error', provider, error: e.message?.slice(0, 80), latency_ms: Date.now() - t0 });
+    }
+  });
+
+  // GET /api/admin/galaxy-logs — proxy to Galaxy ring-buffer log endpoint
+  app.get("/api/admin/galaxy-logs", authenticateToken, requireAdmin, async (req, res) => {
+    const lines = Math.min(parseInt(req.query.lines as string) || 100, 200);
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const r = await fetch(`${galaxyUrl}/api/admin/logs?lines=${lines}`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!r.ok) throw new Error(`Galaxy ${r.status}`);
+      res.json(await r.json());
+    } catch (err: any) {
+      res.status(502).json({ error: err.message?.slice(0, 120) });
+    }
+  });
+
+  // GET /api/admin/run-list — recent runs list with details for drill-down
+  app.get("/api/admin/run-list", authenticateToken, requireAdmin, async (req, res) => {
+    const status = (req.query.status as string) || "failed";
+    const days = Math.min(parseInt(req.query.days as string) || 7, 30);
+    const limit = Math.min(parseInt(req.query.limit as string) || 30, 100);
+    try {
+      let rows: any;
+      if (status === "active") {
+        rows = await db.execute(sql`
+          SELECT id, workflow_name, status, started_at, completed_at,
+                 EXTRACT(EPOCH FROM (NOW() - started_at))::int AS duration_s,
+                 error_message
+          FROM execution_runs
+          WHERE status NOT IN ('completed','failed','cancelled','interrupted')
+          ORDER BY started_at DESC
+          LIMIT ${limit}
+        `);
+      } else {
+        rows = await db.execute(sql`
+          SELECT id, workflow_name, status, started_at, completed_at,
+                 EXTRACT(EPOCH FROM (completed_at - started_at))::int AS duration_s,
+                 error_message
+          FROM execution_runs
+          WHERE status = ${status}
+            AND completed_at > NOW() - ${days} * INTERVAL '1 day'
+          ORDER BY completed_at DESC
+          LIMIT ${limit}
+        `);
+      }
+      res.json({ runs: rows.rows, status, days });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message?.slice(0, 120) });
+    }
+  });
+
+  // POST /api/admin/kill-run — force-terminate a workflow run
+  // Works for zombie runs (not in Galaxy state store) by updating Postgres directly.
+  app.post("/api/admin/kill-run", authenticateToken, requireAdmin, async (req, res) => {
+    const { run_id } = req.body || {};
+    if (!run_id) return res.status(400).json({ error: "run_id required" });
+
+    const notes: string[] = [];
+
+    // Step 1: Try Galaxy for subprocess/Batch cancellation (best-effort, ignore 404)
+    let galaxyResult: any = null;
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const r = await fetch(`${galaxyUrl}/api/admin/kill-run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ run_id }),
+        signal: AbortSignal.timeout(10000),
+      });
+      galaxyResult = await r.json();
+      if (r.ok) {
+        notes.push(`galaxy:ok batch_cancelled=${galaxyResult.batch_cancelled ?? 0}`);
+      } else {
+        notes.push(`galaxy:${r.status} (run not in state store — zombie)`);
+      }
+    } catch (err: any) {
+      notes.push(`galaxy:unreachable (${err.message?.slice(0, 60)})`);
+    }
+
+    // Step 2: Always update Postgres directly so zombie runs get cleaned up
+    try {
+      const result = await pool.query(
+        `UPDATE execution_runs
+         SET status = 'failed',
+             completed_at = COALESCE(completed_at, NOW()),
+             updated_at = NOW()
+         WHERE id = $1 AND status NOT IN ('failed', 'completed', 'cancelled', 'interrupted')
+         RETURNING id, status`,
+        [run_id]
+      );
+      if (result.rowCount && result.rowCount > 0) {
+        notes.push("db:updated");
+      } else {
+        // Try without the status guard (might already be terminal or have different id format)
+        const r2 = await pool.query(
+          `UPDATE execution_runs SET status = 'failed', completed_at = COALESCE(completed_at, NOW()), updated_at = NOW() WHERE id = $1 RETURNING id`,
+          [run_id]
+        );
+        notes.push(r2.rowCount && r2.rowCount > 0 ? "db:updated(force)" : "db:not_found");
+      }
+    } catch (dbErr: any) {
+      notes.push(`db:error(${dbErr.message?.slice(0, 80)})`);
+    }
+
+    res.json({
+      run_id,
+      status: "interrupted",
+      notes,
+      galaxy: galaxyResult,
+    });
+  });
+
+  // GET /api/admin/run-logs — fetch execution logs for a specific run
+  app.get("/api/admin/run-logs", authenticateToken, requireAdmin, async (req, res) => {
+    const run_id = req.query.run_id as string;
+    const lines = Math.min(parseInt(req.query.lines as string) || 150, 500);
+    if (!run_id) return res.status(400).json({ error: "run_id required" });
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const r = await fetch(
+        `${galaxyUrl}/api/admin/run-logs?run_id=${encodeURIComponent(run_id)}&lines=${lines}`,
+        { signal: AbortSignal.timeout(20000) }
+      );
+      const d = await r.json();
+      if (!r.ok) return res.status(r.status).json(d);
+      res.json(d);
+    } catch (err: any) {
+      res.status(502).json({ error: err.message?.slice(0, 120) });
+    }
+  });
+
+  // GET /api/admin/run-stats — execution_runs stats from Postgres
+  app.get("/api/admin/run-stats", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const rows = await db.execute(sql`
+        SELECT
+          COUNT(*) FILTER (WHERE status NOT IN ('completed','failed','cancelled','interrupted')) AS active,
+          COUNT(*) FILTER (WHERE status = 'completed'
+            AND completed_at > NOW() - INTERVAL '24 hours') AS completed_24h,
+          COUNT(*) FILTER (WHERE status = 'failed'
+            AND completed_at > NOW() - INTERVAL '24 hours') AS failed_24h,
+          COUNT(*) FILTER (WHERE status = 'completed'
+            AND completed_at > NOW() - INTERVAL '7 days') AS completed_7d,
+          COUNT(*) FILTER (WHERE status = 'failed'
+            AND completed_at > NOW() - INTERVAL '7 days') AS failed_7d,
+          COUNT(*) AS total
+        FROM execution_runs
+      `);
+      const r = rows.rows[0] as any;
+      res.json({
+        active: Number(r.active ?? 0),
+        completed_24h: Number(r.completed_24h ?? 0),
+        failed_24h: Number(r.failed_24h ?? 0),
+        completed_7d: Number(r.completed_7d ?? 0),
+        failed_7d: Number(r.failed_7d ?? 0),
+        total: Number(r.total ?? 0),
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // GET /api/admin/user-stats — user registration stats
+  app.get("/api/admin/user-stats", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const rows = await db.execute(sql`
+        SELECT
+          COUNT(*) AS total,
+          COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '24 hours') AS new_24h,
+          COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days') AS new_7d,
+          COUNT(*) FILTER (WHERE subscription_tier = 'admin') AS admins
+        FROM users
+      `);
+      const r = rows.rows[0] as any;
+      res.json({
+        total: Number(r.total ?? 0),
+        new_24h: Number(r.new_24h ?? 0),
+        new_7d: Number(r.new_7d ?? 0),
+        admins: Number(r.admins ?? 0),
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // GET /api/admin/llm-probe — test LLM API reachability with a minimal call
+  app.get("/api/admin/llm-probe", authenticateToken, requireAdmin, async (req, res) => {
+    const t0 = Date.now();
+    const provider = process.env.AI_PROVIDER || 'anthropic';
+    try {
+      if (provider === 'anthropic') {
+        const key = process.env.ANTHROPIC_API_KEY;
+        if (!key) return res.json({ status: 'no_key', provider, latency_ms: null });
+        const r = await fetch('https://api.anthropic.com/v1/models', {
+          headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+          signal: AbortSignal.timeout(8000),
+        });
+        return res.json({ status: r.ok ? 'ok' : 'error', provider, http: r.status, latency_ms: Date.now() - t0 });
+      }
+      if (provider === 'deepseek') {
+        const key = process.env.DEEPSEEK_API_KEY;
+        if (!key) return res.json({ status: 'no_key', provider, latency_ms: null });
+        const r = await fetch('https://api.deepseek.com/models', {
+          headers: { Authorization: `Bearer ${key}` },
+          signal: AbortSignal.timeout(8000),
+        });
+        return res.json({ status: r.ok ? 'ok' : 'error', provider, http: r.status, latency_ms: Date.now() - t0 });
+      }
+      if (provider === 'ollama') {
+        const url = process.env.OLLAMA_URL || 'http://ollama:11434';
+        const r = await fetch(`${url}/api/tags`, { signal: AbortSignal.timeout(5000) });
+        return res.json({ status: r.ok ? 'ok' : 'error', provider, latency_ms: Date.now() - t0 });
+      }
+      // generic openai-compatible
+      return res.json({ status: 'unknown_provider', provider, latency_ms: null });
+    } catch (e: any) {
+      return res.json({ status: 'error', provider, error: e.message?.slice(0, 80), latency_ms: Date.now() - t0 });
+    }
+  });
+
+  // ============================================================================
+  // On-Premises License Status
+  // GET /api/license/status — proxies to Galaxy backend; no auth required so
+  // the gate page can show status before login.
+  // ============================================================================
+
+  app.get("/api/license/status", async (req, res) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const r = await fetch(`${galaxyUrl}/api/license/status`, { signal: AbortSignal.timeout(5000) });
+      if (!r.ok) {
+        return res.status(200).json({ valid: false, status: 'backend_error', message: 'Galaxy backend license check failed', tier: 'none' });
+      }
+      const data = await r.json();
+      res.json(data);
+    } catch {
+      // If Galaxy is unreachable, don't block startup — return unknown
+      res.json({ valid: true, status: 'unknown', message: 'Backend unreachable — license check skipped', tier: 'unknown' });
     }
   });
 

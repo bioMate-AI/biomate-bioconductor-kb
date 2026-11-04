@@ -18,7 +18,7 @@ params.read_length      = null          // Read length in bp (e.g. 75 | 100 | 15
 params.skip_trimming    = false         // Skip adapter trimming (Trim Galore)
 params.skip_fastqc      = false         // Skip FastQC quality control
 params.skip_multiqc     = false         // Skip MultiQC report generation
-params.umi_discard_read = null          // Discard UMI-tagged reads: 1 | 2
+params.umi_discard_read = ''            // Discard UMI-tagged reads: 1 | 2
 params.with_umi         = false         // UMI-based library preparation
 params.save_unaligned   = false         // Save unaligned reads to output
 params.save_trimmed     = false         // Save trimmed FASTQ files to output
@@ -26,9 +26,9 @@ params.clip_r1          = null          // Clip adapter sequence from R1 reads
 params.clip_r2          = null          // Clip adapter sequence from R2 reads
 params.trim_quality     = null          // Quality cutoff Phred score for trimming (e.g. 20)
 params.minlen           = null          // Minimum read length after trimming (bp)
-params.min_reads        = null          // Minimum reads per UMI group to retain
-params.max_reads        = null          // Maximum reads per sample (for pilot runs)
-params.gpu_acceleration = null          // Enable GPU acceleration
+params.min_reads        = ''            // Minimum reads per UMI group to retain
+params.max_reads        = ''            // Maximum reads per sample (for pilot runs)
+params.gpu_acceleration = ''            // Enable GPU acceleration
 params.email            = null
 params.max_memory       = '128.GB'
 params.max_cpus         = 16
@@ -36,6 +36,8 @@ params.max_time         = '240.h'
 
 // [Input Validation]
 process VALIDATE_INPUT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "validated_samplesheet.csv", emit: samplesheet
 
@@ -46,6 +48,8 @@ process VALIDATE_INPUT {
 
 // [Trimming]
 process TRIMGALORE {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "*.fq.gz",         emit: reads
     path "*.txt",           emit: log
@@ -64,6 +68,8 @@ process TRIMGALORE {
 
 // [Alignment]
 process STAR_ALIGN {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     tuple val(meta), path("*.bam"),            emit: bam
     tuple val(meta), path("*.bai"),            emit: bai
@@ -84,6 +90,8 @@ process STAR_ALIGN {
 
 // [Quantification]
 process SALMON_QUANT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     tuple val(meta), path("${meta.id}"),       emit: results
     path "${meta.id}/quant.sf",                emit: quant
@@ -100,6 +108,8 @@ process SALMON_QUANT {
 
 // [QC]
 process RSEQC_BAMSTAT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "*.bam_stat.txt",  emit: txt
     path "pca_plot.png",    emit: pca
@@ -112,6 +122,8 @@ process RSEQC_BAMSTAT {
 
 // [Report]
 process MULTIQC {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     output:
     path "multiqc_report.html",     emit: report
     path "multiqc_data/",           emit: data

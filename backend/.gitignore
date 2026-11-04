@@ -211,7 +211,9 @@ involucro
 *~
 
 # BioMate specific - API keys and secrets
+# galaxy.yml and galaxy.yml.docker are generated at runtime / contain real keys
 config/galaxy.yml
+config/galaxy.yml.docker
 .env
 .env.*
 !.env.template

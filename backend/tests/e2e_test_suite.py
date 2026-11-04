@@ -691,9 +691,9 @@ class BiomateE2ETestSuite:
         if self.results['skipped'] > 0:
             print("\n2. CONFIGURE MISSING SERVICES:")
             if any("Stripe" in t['name'] for t in skipped_tests):
-                print("   → Set up Stripe: see /home/yzhang/biomate/frontend/STRIPE_SETUP_GUIDE.md")
+                print("   → Set up Stripe: see /app/frontend/STRIPE_SETUP_GUIDE.md")
             if any("Email" in t['name'] for t in skipped_tests):
-                print("   → Set up Email: see /home/yzhang/biomate/frontend/EMAIL_SETUP_GUIDE.md")
+                print("   → Set up Email: see /app/frontend/EMAIL_SETUP_GUIDE.md")
 
         print("\n3. RE-RUN TESTS AFTER FIXES:")
         print("   python3 e2e_test_suite.py")

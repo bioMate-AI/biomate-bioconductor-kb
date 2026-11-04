@@ -100,6 +100,14 @@ interface NextflowWorkflowViewerProps {
   projectName?: string;
   /** When provided, shows a "Go to project" chip in the panel header. */
   projectId?: string;
+  /** Called when the backend silently reroutes a failed run to an alternative workflow. */
+  onAutoReroute?: (event: { fromWorkflow: string; toWorkflowName: string; reason: string; newRunId: string; newInvocationId: string }) => void;
+  /**
+   * Called after a successful /rerun call so the parent can restart status
+   * polling (useUnifiedExecution stops polling on terminal states — resume
+   * needs to re-enable it so the UI reflects the new run's progress).
+   */
+  onRerunStarted?: (runId: string) => void;
 }
 
 type ViewerParameter = {
@@ -1157,6 +1165,8 @@ export function NextflowWorkflowViewer({
   expanded,
   projectName,
   projectId: projectIdProp,
+  onAutoReroute,
+  onRerunStarted,
 }: NextflowWorkflowViewerProps) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -1267,6 +1277,8 @@ export function NextflowWorkflowViewer({
   // When user reruns from a step, track the new runId so the viewer polls the right run
   const [rerunRunId, setRerunRunId] = useState<string | null>(null);
   const activeRunId = rerunRunId ?? runId;
+  // Guard against concurrent /rerun calls (phase Run + footer Resume can both be visible)
+  const [rerunInProgress, setRerunInProgress] = useState(false);
 
   // QC governance settings
   const [qcSettingsOpen, setQcSettingsOpen] = useState(false);
@@ -1407,6 +1419,11 @@ export function NextflowWorkflowViewer({
     regulatoryActions: [],
     complete: null,
   });
+  // Layer-2 AI diagnosis (emitted when no auto-reroute alternative is available)
+  const [aiDiagnosis, setAiDiagnosis] = useState<{
+    category: string; user_message: string; suggested_action: string; fix_strategy: string;
+    is_transient: boolean; task_error_snippet?: string;
+  } | null>(null);
   // Per-phase auto-loop toggle. An ABSENT key = follow the QC profile's own default
   // (autoloop:true profiles close the loop by default); an explicit true/false is a
   // user override that always wins. See profileAutoloopDefault below.
@@ -1542,8 +1559,9 @@ export function NextflowWorkflowViewer({
   }, [clearStepPoller]);
 
   const handleRunStep = React.useCallback(async (phase: ViewerPhase) => {
-    if (!activeRunId) return;
+    if (!activeRunId || rerunInProgress) return;
 
+    setRerunInProgress(true);
     const startedAt = new Date().toISOString();
     emitUxEvent("workflow.run_clicked", {
       workflowId,
@@ -1580,6 +1598,8 @@ export function NextflowWorkflowViewer({
       if (newRunId) {
         setRerunRunId(newRunId);
       }
+      // Restart parent polling — it stopped when status hit 'failed'.
+      onRerunStarted?.(newRunId || activeRunId);
       setStepExecutionById((prev) => ({
         ...prev,
         [phase.id]: {
@@ -1601,8 +1621,10 @@ export function NextflowWorkflowViewer({
           errorMessage: error?.message || "Resume failed.",
         },
       }));
+    } finally {
+      setRerunInProgress(false);
     }
-  }, [activeRunId, invocationId, workflowId]);
+  }, [activeRunId, invocationId, workflowId, rerunInProgress, onRerunStarted]);
 
   const handleSkipPhase = React.useCallback((phaseId: string) => {
     setSkippedPhaseIds((prev) => {
@@ -1859,7 +1881,8 @@ export function NextflowWorkflowViewer({
   // agnostic (reconstructs -w <prev_work_dir> from the run id), so a failed
   // run reuses its cached completed steps and only re-runs the failed one.
   const _failure = (nextflowStatus as any)?.failure as
-    { user_message?: string; is_transient?: boolean; suggested_action?: string } | undefined;
+    { user_message?: string; is_transient?: boolean; suggested_action?: string;
+      category?: string; task_error_snippet?: string } | undefined;
   // Resume only makes sense when at least one step actually completed — the resume
   // path reconstructs -w <prev_work_dir> and reuses cached completed steps. A LAUNCH
   // failure (bad work dir, invalid config, missing inputs — 0 steps ran) has nothing
@@ -1870,17 +1893,36 @@ export function NextflowWorkflowViewer({
     && ['resume', 'resume_more_resources', 'fix_and_resume'].includes(_failure.suggested_action || '')
     && anyStepCompleted;
   const handleResumeFromFailed = async () => {
-    if (!activeRunId) { onExecute?.(params); return; }
+    if (!activeRunId || rerunInProgress) return;
+    setRerunInProgress(true);
+    // Immediately switch to phases and lock the tab — don't wait for the API.
+    setActiveTab('phases');
+    setTabAutoDefault(false);
     try {
-      // (click already tracked as run_again_clicked at the button)
-      await fetch(`/api/workflows/runs/${encodeURIComponent(activeRunId)}/rerun`, {
+      // No body — same as phase-level Run button. -resume reuses original params
+      // from the Nextflow work directory; sending new params can confuse Galaxy.
+      const resp = await fetch(`/api/workflows/runs/${encodeURIComponent(activeRunId)}/rerun`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ params }),
       });
+      const data = await resp.json().catch(() => ({}));
+      const newRunId: string | undefined = data?.run_id ?? data?.runId;
+      if (resp.ok) {
+        if (newRunId) setRerunRunId(newRunId);
+        // Tell the parent to restart status polling — useUnifiedExecution stops
+        // polling on terminal states; loadRun (forcePolling:true) re-enables it
+        // immediately without waiting for DB to flip to 'running'.
+        onRerunStarted?.(newRunId || activeRunId);
+      } else {
+        console.warn('[NFViewer] resume-from-failed API error:', data?.error || resp.status);
+        toast({ title: 'Resume failed', description: data?.error || `Server error ${resp.status}`, variant: 'destructive' });
+      }
     } catch (e) {
-      console.error('[NFViewer] resume-from-failed failed:', e);
+      console.error('[NFViewer] resume-from-failed network error:', e);
+      toast({ title: 'Resume failed', description: 'Network error — please try again.', variant: 'destructive' });
+    } finally {
+      setRerunInProgress(false);
     }
   };
 
@@ -2089,7 +2131,14 @@ export function NextflowWorkflowViewer({
     : renderedParameters
         .filter((p: any) => p.required === true)
         .some((p: any) => (p.value === '' || p.value === null || p.value === undefined));
-  const isPrereqBlocked = (!!prereqChecklist && !prereqChecklist.canRun) || hasUnfilledRequired;
+  // Block Run if file-type params have no value — even when schema marks them optional, the
+  // workflow will fail at runtime without them (e.g. samplesheet/matrix in differentialabundance).
+  const missingFileInputs = prereqChecklist?.overrideAllowed
+    ? []
+    : renderedParameters.filter(
+        (p: any) => p.type === 'file' && !p.value && !p.default
+      );
+  const isPrereqBlocked = (!!prereqChecklist && !prereqChecklist.canRun) || hasUnfilledRequired || missingFileInputs.length > 0;
   const [isLicenseBlocked, setIsLicenseBlocked] = useState(false);
   const isGlobalExecutionActive = status === "running" || status === "paused";
   const isAutofixActive =
@@ -2161,10 +2210,11 @@ export function NextflowWorkflowViewer({
     }
   }, [status]);
 
-  // Auto-expand workflow settings when required params are still empty
+  // Auto-expand workflow settings when required params are still empty, or when
+  // file-type params have no value (so the user can see and fill them easily).
   useEffect(() => {
-    if (hasUnfilledRequired) setGlobalParamsOpen(true);
-  }, [hasUnfilledRequired]);
+    if (hasUnfilledRequired || missingFileInputs.length > 0) setGlobalParamsOpen(true);
+  }, [hasUnfilledRequired, missingFileInputs.length]);
 
   // Auto-expand when the LLM extracted inline params for the user — they should
   // see what was prefilled before clicking Run (and so the form is actually in
@@ -2525,6 +2575,40 @@ export function NextflowWorkflowViewer({
         }));
       } catch (err) {
         console.error("[AutoLoop] escalation parse error:", err);
+      }
+    });
+
+    // ── Failure self-healing events ───────────────────────────────────────
+    es.addEventListener("auto_reroute", (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        if (onAutoReroute) {
+          onAutoReroute({
+            fromWorkflow: data.from_workflow ?? "",
+            toWorkflowName: data.to_workflow_name ?? data.to_workflow ?? "",
+            reason: data.reason ?? "",
+            newRunId: data.new_run_id ?? "",
+            newInvocationId: data.new_invocation_id ?? "",
+          });
+        }
+      } catch (err) {
+        console.error("[auto_reroute] parse error:", err);
+      }
+    });
+
+    es.addEventListener("ai_diagnosis", (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        setAiDiagnosis({
+          category: data.category ?? "unknown",
+          user_message: data.user_message ?? "The run encountered an error.",
+          suggested_action: data.suggested_action ?? "resume",
+          fix_strategy: data.fix_strategy ?? "not_fixable",
+          is_transient: data.is_transient ?? false,
+          task_error_snippet: data.task_error_snippet ?? "",
+        });
+      } catch (err) {
+        console.error("[ai_diagnosis] parse error:", err);
       }
     });
 
@@ -2981,6 +3065,67 @@ export function NextflowWorkflowViewer({
       {/* ── After-run tab content (v2 AfterRunReport, embedded inline) ──────── */}
       {activeTab === 'after-run' && (
         <div className="panel-body" data-testid="panel-after-run">
+          {/* AI diagnosis card — merges real-time SSE (aiDiagnosis) with API-backed failure (survives refresh) */}
+          {(() => {
+            // Prefer SSE-pushed diagnosis (has task_error_snippet); fall back to API-polled failure.
+            const diag = aiDiagnosis ?? (_failure?.user_message ? _failure : null);
+            const snippet = (aiDiagnosis?.task_error_snippet ?? _failure?.task_error_snippet ?? "").trim();
+            if (!diag?.user_message || status !== 'failed') return null;
+            const isArchCompat = (diag as any).category === 'arch_compat' || _failure?.category === 'arch_compat';
+            return (
+              <div style={{
+                margin: '12px 16px 0',
+                padding: '12px 14px',
+                background: isArchCompat ? 'oklch(0.97 0.01 280)' : 'oklch(0.97 0.01 40)',
+                border: `1px solid ${isArchCompat ? 'oklch(0.82 0.06 280)' : 'oklch(0.88 0.04 40)'}`,
+                borderRadius: 8,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 16 }}>{isArchCompat ? '⚙️' : '🔍'}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'oklch(0.38 0.02 40)' }}>
+                    AI Diagnosis
+                  </span>
+                </div>
+                <p style={{ fontSize: 13, color: 'oklch(0.42 0.015 260)', margin: 0, lineHeight: 1.5 }}>
+                  {diag.user_message}
+                </p>
+                {diag.suggested_action === 'resume' && (
+                  <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
+                    💡 This failure looks transient — use <strong>Resume from last step</strong> below.
+                  </p>
+                )}
+                {diag.suggested_action === 'fix_and_resume' && (
+                  <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
+                    💡 Adjust your parameters or input files, then use <strong>Run again with edits</strong>.
+                  </p>
+                )}
+                {diag.suggested_action === 'check_input' && (
+                  <p style={{ fontSize: 12, color: 'oklch(0.55 0.01 260)', margin: 0 }}>
+                    💡 Check your input files for format issues, then retry.
+                  </p>
+                )}
+                {snippet && (
+                  <details style={{ marginTop: 4 }}>
+                    <summary style={{ fontSize: 12, color: 'oklch(0.5 0.01 260)', cursor: 'pointer', userSelect: 'none' }}>
+                      Error details
+                    </summary>
+                    <pre style={{
+                      marginTop: 6, padding: '8px 10px',
+                      background: 'oklch(0.13 0.01 260)', color: 'oklch(0.85 0.01 260)',
+                      borderRadius: 6, fontSize: 11, lineHeight: 1.5,
+                      overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                      maxHeight: 200, overflowY: 'auto',
+                    }}>
+                      {snippet}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            );
+          })()}
           <AfterRunReport
             runId={runId || invocationId || ''}
             invocationId={invocationId}
@@ -4251,11 +4396,16 @@ export function NextflowWorkflowViewer({
               data-testid={status === 'completed' ? 'panel-run-again-cta' : 'button-run-workflow-panel'}
               onClick={() => { if (status === 'completed' || status === 'failed') analytics.track('run_again_clicked', { source: 'panel' }); if (canResumeFailed) { void handleResumeFromFailed(); } else { handleExecute(); } }}
               disabled={
-                (isPrereqBlocked && status !== 'completed')
-                || isAutofixActive
-                || isLicenseBlocked
-                || ((status === 'idle' || status === 'pending_review')
-                    && globalRequiredUnfilledCount > 0)
+                rerunInProgress ||
+                // When resuming a failed run, skip prereq/param checks — the run
+                // already passed them when it started; only block on autofix/license.
+                (canResumeFailed
+                  ? (isAutofixActive || isLicenseBlocked)
+                  : ((isPrereqBlocked && status !== 'completed')
+                      || isAutofixActive
+                      || isLicenseBlocked
+                      || ((status === 'idle' || status === 'pending_review')
+                          && globalRequiredUnfilledCount > 0)))
               }
               title={
                 (status === 'idle' || status === 'pending_review') && globalRequiredUnfilledCount > 0
@@ -4280,6 +4430,34 @@ export function NextflowWorkflowViewer({
                 t('workflow.actions.confirm_and_run')
               )}
             </button>
+          )}
+          {/* Inline reason why the button is disabled — visible without hovering.
+              Only shown for the pre-run idle state so post-run states aren't cluttered. */}
+          {!executionBlockedReason && (status === 'idle' || status === 'pending_review') && (
+            isLicenseBlocked ? (
+              <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span>⚠</span>
+                <span>License required — see <strong>Tool Credentials</strong> in Workflow settings</span>
+              </div>
+            ) : globalRequiredUnfilledCount > 0 ? (
+              <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.01 260)', marginTop: 4 }}>
+                Fill in {globalRequiredUnfilledCount} required parameter{globalRequiredUnfilledCount > 1 ? 's' : ''} above before running
+              </div>
+            ) : (missingFileInputs.length > 0) ? (
+              <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
+                <span>⚠</span>
+                <span>
+                  Input files required:{' '}
+                  <strong>{missingFileInputs.map((p: any) => p.label || p.name).join(', ')}</strong>
+                  {' '}— upload via the file button in chat or paste an S3 path in the parameter field above
+                </span>
+              </div>
+            ) : (isPrereqBlocked && !prereqChecklist?.overrideAllowed) ? (
+              <div style={{ fontSize: 11.5, color: 'oklch(0.50 0.16 40)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span>⚠</span>
+                <span>Prerequisites not met — see checklist above</span>
+              </div>
+            ) : null
           )}
           {canResumeFailed && (
             <button

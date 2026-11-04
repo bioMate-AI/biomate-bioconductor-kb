@@ -55,6 +55,17 @@ services:
       # if REDIS_URL is unset/unreachable (get_run_state_store pings first). The
       # L3 fix from docs/20260615_RUNS_PERSISTENCE_DESIGN.md.
       - RUN_STATE_STORE=redis
+      # Clear on-prem MinIO vars that may bleed in from .env.onprem overlay.
+      # On-prem sim runs on its own op-* containers; this (main) stack always
+      # uses real AWS S3 + Batch.  Empty-string values in Docker compose env
+      # override env_file values; boto3 skips empty-string AWS_ACCESS_KEY_ID
+      # and S3_ENDPOINT_URL (both use "or" / truthiness checks → falls through
+      # to the instance-role credential chain and real S3 endpoint).
+      - S3_ENDPOINT_URL=
+      - AWS_ACCESS_KEY_ID=
+      - AWS_SECRET_ACCESS_KEY=
+      - S3_FORCE_PATH_STYLE=false
+      - AWS_DEFAULT_REGION=us-west-2
     # Persist ONLY the workflow catalog (galaxy_ai_tools.db, ~279MB, ~2600
     # workflows) across container recreates via a single-file bind-mount. The
     # catalog is NOT baked into the image (the image ships only a 20KB stub),

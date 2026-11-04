@@ -22,7 +22,7 @@ from anthropic import Anthropic
 from playwright.sync_api import sync_playwright, Page, Browser
 
 BASE_URL = os.environ.get("BIOMATE_URL", "http://localhost:5000")
-SCREENSHOT_DIR = "/home/yzhang/biomate/backend/tests/screenshots/citation_pilot"
+SCREENSHOT_DIR = "/app/tests/screenshots/citation_pilot"
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 # Initialize Claude as the simulated user

@@ -128,7 +128,7 @@ class UserInsightsResponse(BaseModel):
 class UserPatternsService:
     """Service for accessing user behavioral patterns"""
 
-    def __init__(self, db_path: str = "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db"):
+    def __init__(self, db_path: str = "/app/database/galaxy_ai_tools.db"):
         self.db_path = db_path
 
     def _get_db(self) -> sqlite3.Connection:

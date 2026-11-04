@@ -67,8 +67,8 @@ class DownloadS3FileTool(Tool):
             }
         """
         try:
-            import boto3
             from botocore.exceptions import ClientError
+            from galaxy.ai.s3_utils import make_s3_client
 
             # 解析 S3 路径
             if not s3_path.startswith('s3://'):
@@ -81,8 +81,8 @@ class DownloadS3FileTool(Tool):
             bucket = parts[0]
             key = parts[1] if len(parts) > 1 else ''
 
-            # 创建 S3 客户端
-            s3_client = boto3.client('s3')
+            # 创建 S3 客户端 (supports MinIO via S3_ENDPOINT_URL)
+            s3_client = make_s3_client()
 
             # 检查文件大小
             try:
@@ -188,7 +188,7 @@ class UploadS3FileTool(Tool):
             }
         """
         try:
-            import boto3
+            from galaxy.ai.s3_utils import make_s3_client
 
             # 解析原始路径
             if not original_s3_path.startswith('s3://'):
@@ -216,8 +216,8 @@ class UploadS3FileTool(Tool):
                 tmp_path = tmp.name
 
             try:
-                # 上传到 S3，附加 billing 标签
-                s3_client = boto3.client('s3')
+                # 上传到 S3/MinIO，附加 billing 标签 (supports MinIO via S3_ENDPOINT_URL)
+                s3_client = make_s3_client()
                 extra_args: Dict[str, Any] = {}
                 if user_id:
                     extra_args["Tagging"] = f"user_id={user_id}&workflow_id={workflow_id}"

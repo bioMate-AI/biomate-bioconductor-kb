@@ -110,7 +110,9 @@ class LLMClient:
 
     def __init__(self, config: AIConfig):
         self.config = config
-        self.provider = config.llm_provider.lower()
+        import os as _os_provider_override
+        _env_provider = _os_provider_override.environ.get("GALAXY_AI_LLM_PROVIDER", "").lower()
+        self.provider = _env_provider if _env_provider else config.llm_provider.lower()
         self.model = config.llm_model
         self.api_key = config.llm_api_key
         self.base_url = config.llm_base_url
@@ -181,6 +183,20 @@ class LLMClient:
             if self.api_key:
                 self.headers["Authorization"] = f"Bearer {self.api_key}"
 
+        elif self.provider == 'openai_compatible':
+            # Generic OpenAI-compatible API: vLLM / LMDeploy / customer 32B model
+            import os as _os
+            self.api_base = self.base_url or _os.environ.get("LLM_API_URL") or "http://localhost:8000/v1"
+            self.headers = {"Content-Type": "application/json"}
+            _key = self.api_key or _os.environ.get("LLM_API_KEY", "none")
+            if _key and _key != "none":
+                self.headers["Authorization"] = f"Bearer {_key}"
+            # LLM_MODEL env var always wins for custom providers (avoids inheriting
+            # config default like 'claude-sonnet-4-5' when Qianwen/vLLM is configured)
+            _env_model = _os.environ.get("LLM_MODEL", "")
+            if _env_model:
+                self.model = _env_model
+
         else:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
     
@@ -190,9 +206,24 @@ class LLMClient:
 
         Priority order: Gemini 3.1 Pro → Gemini Flash → Claude → OpenAI → Local Qwen3
         Each provider gets 2 retry attempts before moving to next.
+
+        On-prem override: when self.provider is a direct/custom provider (e.g.
+        openai_compatible, deepseek, zhipu), bypass the YAML fallback chain and
+        call the provider directly so that on-prem deployments with only one LLM
+        configured (e.g. Qianwen) work without cloud API keys.
         """
+        # 1) Explicit local-only mode (air-gapped trial): every call goes to the local model server.
         if local_only():
             return await generate_local(prompt, **kwargs)
+        # 2) On-prem direct providers (openai_compatible / deepseek / zhipu / local): skip the YAML fallback chain.
+        _DIRECT_PROVIDERS = {'openai_compatible', 'deepseek', 'zhipu', 'local'}
+        if self.provider in _DIRECT_PROVIDERS:
+            import logging
+            logging.getLogger(__name__).info(
+                f"[on-prem] Direct provider route: {self.provider}:{getattr(self, 'model', '?')}"
+            )
+            return await self._generate_openai_compatible(prompt, **kwargs)
+        # 3) Cloud providers: cascading fallback chain.
         return await generate_with_fallback(
             llm_client=self,
             prompt=prompt,
@@ -441,15 +472,19 @@ class LLMClient:
 
     async def _generate_openai_compatible(self, prompt: str, **kwargs) -> str:
         """Generate using OpenAI-compatible APIs (for Chinese models)."""
-        data = {
+        system_content = kwargs.get('system') or "You are a helpful bioinformatics assistant."
+        data: dict = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": "You are a helpful bioinformatics assistant. Please respond in Chinese when appropriate."},
+                {"role": "system", "content": system_content},
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": kwargs.get('max_tokens', 1000),
-            "temperature": kwargs.get('temperature', 0.0)
+            "temperature": kwargs.get('temperature', 0.0),
         }
+        # Honor json_mode: instruct the model to return valid JSON
+        if kwargs.get('json_mode'):
+            data["response_format"] = {"type": "json_object"}
 
         async with httpx.AsyncClient() as client:
             response = await client.post(

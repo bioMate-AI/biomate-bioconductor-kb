@@ -46,6 +46,8 @@ params.max_time          = '96.h'
 
 // [Input Validation]
 process VALIDATE_INPUT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     check_sample_annotation.py --input ${params.input} \
         --genome ${params.genome} \
@@ -56,6 +58,8 @@ process VALIDATE_INPUT {
 
 // [Count Matrix]
 process COUNT_MATRIX {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     drop_count_matrix.R \
         --input ${params.input} \
@@ -67,6 +71,8 @@ process COUNT_MATRIX {
 
 // [OUTRIDER]
 process OUTRIDER_ANALYSIS {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     outrider_run.R \
         ${params.outrider ? '' : '--skip'} \
@@ -79,6 +85,8 @@ process OUTRIDER_ANALYSIS {
 
 // [FRASER]
 process FRASER_ANALYSIS {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     fraser_run.R \
         ${params.fraser ? '' : '--skip'} \
@@ -91,6 +99,8 @@ process FRASER_ANALYSIS {
 
 // [MAE]
 process MAE_ANALYSIS {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     mae_run.R \
         ${params.mae ? '' : '--skip'} \
@@ -101,6 +111,8 @@ process MAE_ANALYSIS {
 
 // [Report]
 process DROP_REPORT {
+    publishDir params.outdir, mode: 'copy', overwrite: true
+
     script: """
     drop_report.R \
         --genome ${params.genome} \

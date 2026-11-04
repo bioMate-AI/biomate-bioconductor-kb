@@ -1,0 +1,171 @@
+name: Save on-prem images to S3 (offline deployment)
+
+# Saves the backend and frontend images to S3 as gzip tarballs so
+# on-prem deployments without GHCR access can do: docker load < tarball.
+#
+# Output:
+#   s3://biomate-onprem-assets/onprem/biomate-images-<tag>-amd64.tar.gz
+#   s3://biomate-onprem-assets/onprem/biomate-images-<tag>-arm64.tar.gz
+#
+# The `arch` input controls which tarball(s) are produced. Default is `amd64`
+# for backwards compatibility. Use `both` to export amd64 and arm64 in one run.
+#
+# Trigger manually via workflow_dispatch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ecr_tag:
+        description: 'ECR source tag to package (e.g. integration-next-phase-latest)'
+        required: true
+        default: 'integration-next-phase-latest'
+        type: string
+      arch:
+        description: 'Target architecture: amd64, arm64, or both'
+        required: true
+        default: 'amd64'
+        type: choice
+        options:
+          - amd64
+          - arm64
+          - both
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: 399683337364.dkr.ecr.us-west-2.amazonaws.com
+  ROLE_ARN: arn:aws:iam::399683337364:role/GitHubActionsECRPush
+  S3_BUCKET: biomate-onprem-assets
+  S3_PREFIX: onprem
+
+jobs:
+  # ── amd64 tarball ─────────────────────────────────────────────────────────────
+  save-amd64:
+    if: inputs.arch == 'amd64' || inputs.arch == 'both'
+    name: "Save amd64 tarball"
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Pull backend (amd64) from ECR
+        run: |
+          docker pull --platform linux/amd64 \
+            ${{ env.ECR_REGISTRY }}/biomate/dev-backend:${{ inputs.ecr_tag }}
+          docker tag \
+            ${{ env.ECR_REGISTRY }}/biomate/dev-backend:${{ inputs.ecr_tag }} \
+            ghcr.io/biomate-ai/biomate-backend:latest
+
+      - name: Pull frontend (amd64) from ECR
+        run: |
+          docker pull --platform linux/amd64 \
+            ${{ env.ECR_REGISTRY }}/biomate/dev-frontend:${{ inputs.ecr_tag }}
+          docker tag \
+            ${{ env.ECR_REGISTRY }}/biomate/dev-frontend:${{ inputs.ecr_tag }} \
+            ghcr.io/biomate-ai/biomate-frontend:latest
+
+      - name: Save images to gzip tarball
+        run: |
+          docker save \
+            ghcr.io/biomate-ai/biomate-backend:latest \
+            ghcr.io/biomate-ai/biomate-frontend:latest \
+            | gzip > /tmp/biomate-images-amd64.tar.gz
+          ls -lh /tmp/biomate-images-amd64.tar.gz
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp /tmp/biomate-images-amd64.tar.gz \
+            s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images-${{ inputs.ecr_tag }}-amd64.tar.gz \
+            --region ${{ env.AWS_REGION }}
+          aws s3 cp /tmp/biomate-images-amd64.tar.gz \
+            s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images-amd64.tar.gz \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## amd64 images saved to S3" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Source ECR tag: \`${{ inputs.ecr_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images-${{ inputs.ecr_tag }}-amd64.tar.gz\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images-amd64.tar.gz\` (latest pointer)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Load on x86_64 host:" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`bash" >> "$GITHUB_STEP_SUMMARY"
+          echo "aws s3 cp s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images-amd64.tar.gz /tmp/" >> "$GITHUB_STEP_SUMMARY"
+          echo "docker load < /tmp/biomate-images-amd64.tar.gz" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── arm64 tarball ─────────────────────────────────────────────────────────────
+  save-arm64:
+    if: inputs.arch == 'arm64' || inputs.arch == 'both'
+    name: "Save arm64 tarball"
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 90
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Pull backend (arm64) from ECR
+        # Pull the per-platform tag (sha-<sha>-arm64) built by backend-image.yml.
+        # The multi-arch manifest tag also works here since the runner is native arm64.
+        run: |
+          docker pull --platform linux/arm64 \
+            ${{ env.ECR_REGISTRY }}/biomate/dev-backend:${{ inputs.ecr_tag }}
+          docker tag \
+            ${{ env.ECR_REGISTRY }}/biomate/dev-backend:${{ inputs.ecr_tag }} \
+            ghcr.io/biomate-ai/biomate-backend:latest
+
+      - name: Pull frontend (arm64) from ECR
+        run: |
+          docker pull --platform linux/arm64 \
+            ${{ env.ECR_REGISTRY }}/biomate/dev-frontend:${{ inputs.ecr_tag }}
+          docker tag \
+            ${{ env.ECR_REGISTRY }}/biomate/dev-frontend:${{ inputs.ecr_tag }} \
+            ghcr.io/biomate-ai/biomate-frontend:latest
+
+      - name: Save images to gzip tarball
+        run: |
+          docker save \
+            ghcr.io/biomate-ai/biomate-backend:latest \
+            ghcr.io/biomate-ai/biomate-frontend:latest \
+            | gzip > /tmp/biomate-images-arm64.tar.gz
+          ls -lh /tmp/biomate-images-arm64.tar.gz
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp /tmp/biomate-images-arm64.tar.gz \
+            s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images-${{ inputs.ecr_tag }}-arm64.tar.gz \
+            --region ${{ env.AWS_REGION }}
+          aws s3 cp /tmp/biomate-images-arm64.tar.gz \
+            s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images-arm64.tar.gz \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## arm64 images saved to S3" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Source ECR tag: \`${{ inputs.ecr_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images-${{ inputs.ecr_tag }}-arm64.tar.gz\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images-arm64.tar.gz\` (latest pointer)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Load on ARM64/aarch64 host:" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`bash" >> "$GITHUB_STEP_SUMMARY"
+          echo "aws s3 cp s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/biomate-images-arm64.tar.gz /tmp/" >> "$GITHUB_STEP_SUMMARY"
+          echo "docker load < /tmp/biomate-images-arm64.tar.gz" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
