@@ -4,6 +4,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { useWorkflowTour } from "./workflow-tour"
 import { ChatInterface } from "./chat-interface"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
+import { PanelErrorBoundary } from "./panel-error-boundary"
 import { useAfterRunFlavor } from "@/hooks/use-ui-flavor"
 import { AfterRunReport } from "@/v2/AfterRunReport"
 import { extractSubmittedParams } from "@/hooks/useRunAgainParamCarryover"
@@ -2517,8 +2518,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
               </div>
             )}
 
-            {/* Panel body — viewer manages its own scroll via panel-body flex */}
+            {/* Panel body — viewer manages its own scroll via panel-body flex.
+                Wrapped in a panel-scoped error boundary so a render crash in the
+                workflow viewer subtree shows a localized fallback instead of
+                blanking the whole app (main.tsx's boundary is app-wide). */}
             <div className="flex-1 overflow-hidden flex flex-col">
+              <PanelErrorBoundary label="workflow panel">
               {panelWorkflow ? (
                 (() => {
                   // If the panel was updated to a *different* workflow than the one
@@ -2650,6 +2655,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
                   </p>
                 </div>
               )}
+              </PanelErrorBoundary>
             </div>
           </div>
         )}
