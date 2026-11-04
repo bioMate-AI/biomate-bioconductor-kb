@@ -3445,6 +3445,20 @@ def _generate_executor_config(
                 "}",
             ]
             log.info(f"[Nextflow] injected process_low/medium/high memory tiers (12/36/72 GB); process_high+ → {hpc_queue}")
+
+            # Per-group right-sizing (opt-in, BIOMATE_RESOURCE_CLASSIFICATION=1): since ~96% of processes
+            # carry a blanket process_medium label, size specific processes by what they do via withName —
+            # ONLY for processes present in this .nf (strict-mode safe), so unmatched steps keep process_medium.
+            try:
+                from galaxy.ai import resource_classification as _rc  # noqa: PLC0415
+                if _rc.is_enabled() and nf_path:
+                    _nf_text = Path(nf_path).read_text(errors="replace") if os.path.exists(nf_path) else ""
+                    _rc_lines = _rc.render_withname_lines(_nf_text)
+                    if _rc_lines:
+                        lines += _rc_lines
+                        log.info("[Nextflow] resource classification: sized %d process(es) by group", len(_rc_lines) - 2)
+            except Exception as _rc_exc:  # never block a launch over sizing
+                log.warning("[Nextflow] resource classification skipped: %s", _rc_exc)
         # For nf-core pipelines: emit a slimmer aws.client block.
         # Their own nextflow.config often sets `aws.client.anonymous = true`
         # globally (so iGenomes public-bucket reads work). That makes ALL
