@@ -177,6 +177,45 @@ function fetchGalaxyAsUser(req: express.Request, url: string, init: RequestInit 
   return fetchGalaxyWithKeyRecovery(url, init, raw ? decryptField(raw) : null, process.env.GALAXY_API_KEY || '', recover);
 }
 
+/**
+ * Forward an /api/... request to the Python backend (the "Galaxy" server) as the signed-in user:
+ * same path + query, JSON body for methods other than GET/HEAD/DELETE, and the response relayed
+ * back (JSON parsed, otherwise raw bytes; Content-Type and Content-Disposition passed through).
+ * The key and its mid-session recovery come from fetchGalaxyAsUser. Shared by the ind-report,
+ * regulatory, grounded and DL passthroughs (previously four copies of this body).
+ */
+function backendPassthrough(label: string) {
+  return async (req: any, res: any) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const fullPath = `${req.path}${queryStr}`;
+      const fetchOpts: RequestInit = {
+        method: req.method.toUpperCase(),
+        headers: { 'Content-Type': req.headers['content-type'] || 'application/json' },
+        signal: AbortSignal.timeout(120000),
+      };
+      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
+        fetchOpts.body = JSON.stringify(req.body);
+      }
+      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
+      const contentType = resp.headers.get('content-type') || 'application/json';
+      res.setHeader('Content-Type', contentType);
+      const cd = resp.headers.get('content-disposition');
+      if (cd) res.setHeader('Content-Disposition', cd);
+      res.status(resp.status);
+      if (contentType.includes('application/json')) {
+        const data = await resp.json().catch(() => ({}));
+        return res.json(data);
+      }
+      return res.send(Buffer.from(await resp.arrayBuffer()));
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json({ error: `${label} proxy error`, detail: err.message });
+    }
+  };
+}
+
 // Initialize state poller and SSE manager
 const galaxyPoller = createPoller(galaxyAPIBackend, { pollInterval: 2000 });
 const sseManager = new WorkflowSSEManager(galaxyPoller);
@@ -4997,39 +5036,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //   POST   /api/ind-report/projects
   //   PATCH  /api/ind-report/projects/:id/compounds
   // ─────────────────────────────────────────────────────────────────────────
-  app.all("/api/ind-report/*", optionalAuth, async (req: any, res: any) => {
-    try {
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const fullPath = `${req.path}${queryStr}`;
-      const headers: Record<string, string> = {
-        'Content-Type': req.headers['content-type'] || 'application/json',
-      };
-      const fetchOpts: RequestInit = {
-        method: req.method.toUpperCase(),
-        headers,
-        signal: AbortSignal.timeout(120000),
-      };
-      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
-        fetchOpts.body = JSON.stringify(req.body);
-      }
-      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
-      const contentType = resp.headers.get('content-type') || 'application/json';
-      res.setHeader('Content-Type', contentType);
-      const cd = resp.headers.get('content-disposition');
-      if (cd) res.setHeader('Content-Disposition', cd);
-      res.status(resp.status);
-      if (contentType.includes('application/json')) {
-        const data = await resp.json().catch(() => ({}));
-        return res.json(data);
-      }
-      const buf = Buffer.from(await resp.arrayBuffer());
-      return res.send(buf);
-    } catch (err: any) {
-      const status = err.response?.status || 502;
-      return res.status(status).json({ error: 'IND report proxy error', detail: err.message });
-    }
-  });
+  app.all("/api/ind-report/*", optionalAuth, backendPassthrough("IND report"));
 
   // Proxy /api/regulatory/* to the Galaxy backend. These are galaxy-served routes
   // (active_adapter, generate_smoke, generate_stream, feedback/queue) that the
@@ -5038,76 +5045,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // which had no /api/regulatory handler). Mirrors the /api/ind-report/* proxy
   // above. Does NOT shadow the frontend's own /api/regulatory_llm/* routes — the
   // `/api/regulatory/` prefix (trailing slash) cannot match `/api/regulatory_llm/`.
-  app.all("/api/regulatory/*", optionalAuth, async (req: any, res: any) => {
-    try {
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const fullPath = `${req.path}${queryStr}`;
-      const headers: Record<string, string> = {
-        'Content-Type': req.headers['content-type'] || 'application/json',
-      };
-      const fetchOpts: RequestInit = {
-        method: req.method.toUpperCase(),
-        headers,
-        signal: AbortSignal.timeout(120000),
-      };
-      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
-        fetchOpts.body = JSON.stringify(req.body);
-      }
-      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
-      const contentType = resp.headers.get('content-type') || 'application/json';
-      res.setHeader('Content-Type', contentType);
-      const cd = resp.headers.get('content-disposition');
-      if (cd) res.setHeader('Content-Disposition', cd);
-      res.status(resp.status);
-      if (contentType.includes('application/json')) {
-        const data = await resp.json().catch(() => ({}));
-        return res.json(data);
-      }
-      const buf = Buffer.from(await resp.arrayBuffer());
-      return res.send(buf);
-    } catch (err: any) {
-      const status = err.response?.status || 502;
-      return res.status(status).json({ error: 'regulatory proxy error', detail: err.message });
-    }
-  });
+  app.all("/api/regulatory/*", optionalAuth, backendPassthrough("regulatory"));
 
   // Grounded Standards Assistant — evidence-tiered, provenance-honest answering.
   // Proxies POST /api/grounded/answer to the Galaxy backend router
   // (webapps/galaxy/api/grounded.py), which resolves the tenant from the
   // authenticated Galaxy session so isolation cannot be spoofed by the caller.
   // Mirrors the /api/regulatory/* proxy above.
-  app.all("/api/grounded/*", optionalAuth, async (req: any, res: any) => {
-    try {
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const fullPath = `${req.path}${queryStr}`;
-      const headers: Record<string, string> = {
-        'Content-Type': req.headers['content-type'] || 'application/json',
-      };
-      const fetchOpts: RequestInit = {
-        method: req.method.toUpperCase(),
-        headers,
-        signal: AbortSignal.timeout(120000),
-      };
-      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
-        fetchOpts.body = JSON.stringify(req.body);
-      }
-      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
-      const contentType = resp.headers.get('content-type') || 'application/json';
-      res.setHeader('Content-Type', contentType);
-      res.status(resp.status);
-      if (contentType.includes('application/json')) {
-        const data = await resp.json().catch(() => ({}));
-        return res.json(data);
-      }
-      const buf = Buffer.from(await resp.arrayBuffer());
-      return res.send(buf);
-    } catch (err: any) {
-      const status = err.response?.status || 502;
-      return res.status(status).json({ error: 'grounded proxy error', detail: err.message });
-    }
-  });
+  app.all("/api/grounded/*", optionalAuth, backendPassthrough("grounded"));
 
   // ─────────────────────────────────────────────────────────────────────────
   // DL upgrade wave-1/wave-2 — Models + Design&Generate surfaces.
@@ -5126,39 +5071,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //   POST /api/generate                     (submit generation)
   //   GET  /api/generate/:runId              (poll generation run)
   // A single shared handler keeps behavior identical across all six.
-  const _dlProxyHandler = async (req: any, res: any) => {
-    try {
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const fullPath = `${req.path}${queryStr}`;
-      const headers: Record<string, string> = {
-        'Content-Type': req.headers['content-type'] || 'application/json',
-      };
-      const fetchOpts: RequestInit = {
-        method: req.method.toUpperCase(),
-        headers,
-        signal: AbortSignal.timeout(120000),
-      };
-      if (!['GET', 'HEAD', 'DELETE'].includes(fetchOpts.method as string)) {
-        fetchOpts.body = JSON.stringify(req.body);
-      }
-      const resp = await fetchGalaxyAsUser(req, `${galaxyUrl}${fullPath}`, fetchOpts);
-      const contentType = resp.headers.get('content-type') || 'application/json';
-      res.setHeader('Content-Type', contentType);
-      const cd = resp.headers.get('content-disposition');
-      if (cd) res.setHeader('Content-Disposition', cd);
-      res.status(resp.status);
-      if (contentType.includes('application/json')) {
-        const data = await resp.json().catch(() => ({}));
-        return res.json(data);
-      }
-      const buf = Buffer.from(await resp.arrayBuffer());
-      return res.send(buf);
-    } catch (err: any) {
-      const status = err.response?.status || 502;
-      return res.status(status).json({ error: 'DL surface proxy error', detail: err.message });
-    }
-  };
+  const _dlProxyHandler = backendPassthrough("DL surface");
 
   // Dedicated handler for the Adapt-track retrain: proxy to Galaxy (the job runs
   // synchronously there — queued → running → succeeded via the worker tick),
