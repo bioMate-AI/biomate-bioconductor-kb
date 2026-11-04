@@ -71,3 +71,35 @@ if __name__ == "__main__":
             print(f"  FAIL {t.__name__}: {e}")
     print(f"\n{passed}/{len(tests)} tests passed")
     raise SystemExit(0 if passed == len(tests) else 1)
+
+
+# --- spatial modality + Chinese routing (SYSUCC: NPC spatial atlas, 中文 users) ---
+
+def test_spatial_modality_is_detected():
+    mods = _extract_modalities("integrate spatial transcriptomics with proteomics")
+    assert sorted(m.data_type for m in mods) == ["proteomics", "spatial"]
+    # Visium / MERFISH platform names also resolve to spatial
+    assert any(m.data_type == "spatial" for m in _extract_modalities("fuse Visium and scRNA"))
+
+
+def test_chinese_multiomics_request_full_pipeline():
+    # 整合 RNA + 蛋白质组 + 代谢组 做分型  → intent, 3 modalities, clustering goal
+    txt = "整合 RNA、蛋白质组和代谢组数据做患者分型"
+    assert detect_multiomics_intent(txt) is True
+    dtypes = sorted(m.data_type for m in _extract_modalities(txt))
+    assert dtypes == ["metabolomics", "proteomics", "rna"], dtypes
+    assert _infer_goal(txt) == "clustering"
+
+
+def test_chinese_spatial_singlecell():
+    txt = "融合空间转录组与单细胞数据"
+    assert detect_multiomics_intent(txt) is True
+    assert sorted(m.data_type for m in _extract_modalities(txt)) == ["scrna", "spatial"]
+
+
+def test_proteomics_metabolomics_are_first_class_layers():
+    # the core of the correction: proteomics+metabolomics alone must route
+    txt = "jointly analyze proteomics and metabolomics for biomarker selection"
+    assert detect_multiomics_intent(txt) is True
+    assert sorted(m.data_type for m in _extract_modalities(txt)) == ["metabolomics", "proteomics"]
+    assert _infer_goal(txt) == "feature_selection"
