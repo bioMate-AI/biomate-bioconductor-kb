@@ -232,8 +232,17 @@ Committed in `scripts/routing_eval/` (`aae875b05`) after the scratch copy was wi
 |---|---|---|---|
 | `686a38fba` (auto-staging only) | 12 | 0/6 | correct |
 | `1644f4eec` (+ staged paths in the prompt before the 1st call) | 13 | 5/6 | correct |
-| `fedc000a4` (+ "each call is a FRESH process" in the tool description) | **8** | 5/6 | correct (r = 0.383 over 1,310; 1,513 / 691 active; 96-row long table) |
+| `fedc000a4` (+ "each call is a FRESH process" in the tool description) | 8 | 5/6 | correct (r = 0.383 over 1,310; 1,513 / 691 active; 96-row long table) |
+| `1b9f74f81` (+ first 3 lines of each attached text table in the prompt) | 16 | 3/6 | correct — exposed a staging race (below) |
+| `7a1bbf7e` (+ Galaxy dataset state checked before reading) | 13 | 6/6 | correct |
+| `97fdd300a` (+ guarded `np`/`pd`/`plt`/`sns` imports) | 15 | 5/6 | correct |
+| `11869f75f` (+ uploads read from the local copy; Python cells keep state within a reply) | 12 | **6/6** | correct — **0 failed calls of 12** |
 
-`1644f4eec` fixed path guessing but exposed a second cause: in [13] the model split the work across calls and the second call raised `NameError: plate_layout` (it assumed variables persist). `fedc000a4` states that every call is a new process, and [12]/[11] now finish in a single call. Raw output: `evaluation/routing_eval/runs/adhoc_answers_after_{686a38fb,1644f4ee,fedc000a}.txt`. One first call still fails ([13] rep 1, exit 1, recovered on the 2nd call). The sandbox's stderr is not in the frontend log, so this one is unattributed.
+`1644f4eec` fixed path guessing but exposed a second cause: in [13] the model split the work across calls and the second call raised `NameError: plate_layout` (it assumed variables persist). `fedc000a4` states that every call is a new process, and [12]/[11] now finish in a single call. Raw output: `evaluation/routing_eval/runs/adhoc_answers_after_{686a38fb,1644f4ee,fedc000a}.txt`. Then, with stderr captured from the stream (`adhoc13_stderr_5eede051.txt`), each remaining failure was traced and fixed at its cause:
+- **Guessed column names** (`KeyError: 'index'` — `plate_layout.csv`'s first column is `row`): the model had never seen the header. The inputs note now carries the first 3 lines of each attached csv/tsv/txt/smi file (`1b9f74f81`).
+- **Empty staged files** (`EmptyDataError`): measured on dev, Galaxy reports `state=running` for ~19 s after an upload while `/api/datasets/{id}/display` answers HTTP 200 with 0 bytes, then a partial body. `run_code` staged that whenever a question followed the upload immediately — what real users do. `7a1bbf7e` checked the state first; under 3 parallel chats the check itself could fail and fall through, so `11869f75f` reads an upload from BioMate's local copy (the bytes the user sent) and never from Galaxy; Galaxy, state-checked, waiting up to 60 s and failing loudly, is only for datasets that exist nowhere else.
+- **State assumed between calls** (`NameError` for `np`, `plt`, `df`): stating "each call is a FRESH process" did not change the model's behaviour; code-interpreter tools are conventionally stateful. `97fdd300a` added guarded imports for the conventional aliases; `11869f75f` makes Python calls within one reply behave like notebook cells (earlier successful cells of the turn are re-run silently first; R/bash unchanged) and the description says so.
+
+Remaining calls beyond one per answer are deliberate steps (inspect → compute → save), not retries. Raw output: `evaluation/routing_eval/runs/adhoc_answers_after_*.txt`.
 
 **Still open:** the INTERNAL "MG demo project" examples were not re-measured with project files.
