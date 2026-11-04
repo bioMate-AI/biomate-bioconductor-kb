@@ -26,6 +26,16 @@ import type {
   WorkflowGenerationResponse,
 } from '../shared/galaxy-types';
 
+/** Galaxy rejected the API key itself — "Provided API key is not valid." (row missing or
+ *  deleted, e.g. after a Galaxy DB reset) or "...has expired." (not the user's newest key).
+ *  Both are err_code 401001. Other 401s (permissions, missing auth) are not key rejections. */
+export function isRejectedGalaxyKey(error: any): boolean {
+  const res = error?.response;
+  if (res?.status !== 401) return false;
+  const data = res.data || {};
+  return data.err_code === 401001 || /API key (is not valid|has expired)/i.test(String(data.err_msg || ''));
+}
+
 export class GalaxyAPIProxy {
   public client: AxiosInstance;
   private galaxyUrl: string;
@@ -88,8 +98,17 @@ export class GalaxyAPIProxy {
    * to achieve per-user isolation in Galaxy.
    *
    * Falls back to this (admin) proxy if userApiKey is null/undefined.
+   *
+   * `onKeyRejected` is mid-session recovery: the stored key is otherwise only validated
+   * (and re-provisioned) at LOGIN, so when Galaxy starts rejecting it during a session
+   * (e.g. a Galaxy DB reset or key revocation) every request failed with 401 "Provided API
+   * key is not valid." until the user logged in again. On that specific error the request is
+   * retried once with the key `onKeyRejected` returns (null = no recovery, original error).
    */
-  forUser(userApiKey: string | null | undefined): GalaxyAPIProxy {
+  forUser(
+    userApiKey: string | null | undefined,
+    onKeyRejected?: () => Promise<string | null>,
+  ): GalaxyAPIProxy {
     if (!userApiKey) return this;
     // Skip connection validation and logging for per-user proxies — they share the same Galaxy URL
     const proxy = Object.create(GalaxyAPIProxy.prototype) as GalaxyAPIProxy;
@@ -97,7 +116,7 @@ export class GalaxyAPIProxy {
     (proxy as any).apiKey = userApiKey;
     (proxy as any).isConnected = true;
     (proxy as any).connectionError = null;
-    (proxy as any).client = axios.create({
+    const client = axios.create({
       baseURL: this.galaxyUrl,
       timeout: 300000, // 5 min — same as admin proxy; workflow gen can take >60s on cold start
       headers: {
@@ -105,9 +124,24 @@ export class GalaxyAPIProxy {
         'X-API-Key': userApiKey,
       },
     });
-    (proxy as any).client.interceptors.response.use(
+    (proxy as any).client = client;
+    let currentKey = userApiKey;
+    client.interceptors.response.use(
       (response: any) => response,
-      (error: AxiosError) => {
+      async (error: AxiosError) => {
+        const cfg: any = error.config;
+        if (onKeyRejected && cfg && !cfg.__galaxyKeyRetried && isRejectedGalaxyKey(error)) {
+          cfg.__galaxyKeyRetried = true;
+          const fresh = await onKeyRejected().catch(() => null);
+          if (fresh && fresh !== currentKey) {
+            currentKey = fresh;
+            (proxy as any).apiKey = fresh;
+            client.defaults.headers['X-API-Key'] = fresh;
+            cfg.headers['X-API-Key'] = fresh;
+            console.warn('[GalaxyAPIProxy] per-user Galaxy key was rejected mid-session — re-provisioned, retrying once');
+            return client.request(cfg);
+          }
+        }
         const galaxyError: GalaxyAPIError = {
           error: error.code || 'UNKNOWN_ERROR',
           message: error.message || 'An unknown error occurred',

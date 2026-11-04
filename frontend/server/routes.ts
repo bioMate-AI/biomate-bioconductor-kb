@@ -153,9 +153,14 @@ export function rewriteInteractiveToolUrl(rawUrl: string): string {
  * (e.g. existing users provisioned before this feature, or when Galaxy is unreachable).
  */
 function userProxy(req: express.Request): GalaxyAPIProxy {
-  const rawApiKey = (req.user as any)?.galaxyApiKey as string | null | undefined;
+  const user = req.user as any;
+  const rawApiKey = user?.galaxyApiKey as string | null | undefined;
   const userApiKey = rawApiKey ? decryptField(rawApiKey) : rawApiKey;
-  return galaxyAPIBackend.forUser(userApiKey);
+  // If Galaxy rejects the stored key mid-session, re-provision once and retry (see forUser).
+  const recover = user?.id && user?.email
+    ? () => authService.recoverGalaxyKey(String(user.id), String(user.email))
+    : undefined;
+  return galaxyAPIBackend.forUser(userApiKey, recover);
 }
 
 // Initialize state poller and SSE manager

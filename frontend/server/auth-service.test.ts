@@ -328,3 +328,26 @@ describe('Galaxy user id stored in the form the drift check compares', () => {
     expect(galaxyIdWrites()).toEqual([expect.objectContaining({ galaxyUserId: 'gx-1' })]);
   });
 });
+
+// Mid-session recovery: concurrent requests that all hit a rejected Galaxy key must share ONE
+// re-provision (not race several against Galaxy) and all get the recovered key.
+describe('recoverGalaxyKey — single-flight per user', () => {
+  it('concurrent recoveries for one user provision once and return the stored key', async () => {
+    vi.clearAllMocks();
+    const authService = new AuthService();
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ id: 'f2db41e1fa331b3e' }), text: async () => '',
+    }) as any;
+    dbUsers = [makeUserRow({ galaxyApiKey: 'enc:gxkey' })];
+    const [a, b, c] = await Promise.all([
+      authService.recoverGalaxyKey('user-123', 'test@example.com'),
+      authService.recoverGalaxyKey('user-123', 'test@example.com'),
+      authService.recoverGalaxyKey('user-123', 'test@example.com'),
+    ]);
+    expect([a, b, c]).toEqual(['gxkey', 'gxkey', 'gxkey']);
+    expect(dbUpdateSet.mock.calls.filter(c => 'galaxyApiKey' in c[0])).toHaveLength(1);
+    // the in-flight entry is released: a later rejection triggers a fresh recovery
+    await authService.recoverGalaxyKey('user-123', 'test@example.com');
+    expect(dbUpdateSet.mock.calls.filter(c => 'galaxyApiKey' in c[0])).toHaveLength(2);
+  });
+});
