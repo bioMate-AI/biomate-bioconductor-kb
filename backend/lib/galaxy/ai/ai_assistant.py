@@ -1198,7 +1198,9 @@ class AIAssistant:
             return [c.to_dict() for c in citations]
 
         except Exception as e:
-            log.warning(f"Literature search failed: {e}")
+            # A provider error (HTTP 429/timeout/outage) is NOT "no citations found" —
+            # make it loud so it isn't mistaken for an empty-but-successful search.
+            log.error(f"Literature search FAILED (provider error — DEGRADED, not 'no citations'): {e}")
             return []
 
     def search_literature_sync(
