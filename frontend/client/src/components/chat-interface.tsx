@@ -2217,7 +2217,7 @@ export function ChatInterface({
                   isLatestAssistantMessage={message.id === latestAssistantMessageId}
                   isRunAnchorFocused={focusedAnchorMessageId === message.id}
                   isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
-                  isInPanel={isPanelOpen || !!(panelWorkflowMessageId && message.id === panelWorkflowMessageId)}
+                  isInPanel={panelWorkflowMessageId ? (message.id === panelWorkflowMessageId) : isPanelOpen}
                   onOpenInPanel={
                     message.metadata?.type === 'workflow' && message.metadata?.workflow
                       ? (opts) => onOpenWorkflowInPanel?.(message.id, message.metadata!.workflow, opts?.tab)
