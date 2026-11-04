@@ -498,6 +498,40 @@ deploy_galaxy_yml() {
   log "[galaxy.yml] Done"
 }
 
+# ---------------------------------------------------------------------------
+# Real nf-core pipelines (backend/nf-core-workflows/<name>/main.nf)
+# ---------------------------------------------------------------------------
+# The downloaded pipelines are git-ignored (only modules/ is tracked) and are not part of any synced
+# layer, and the running Galaxy image is a docker-commit chain of containers that lacked them — so on
+# 2026-11-04 the container had 0 of the 137 real pipelines present on the host, every catalog
+# nf-core/* run failed at submit ("Could not resolve Nextflow script 'nfcore/<name>/main.nf'"), and
+# the resolver fell back to display-only stubs. Every sync now restores any that are missing from the
+# host copy (additive; nothing in the container is removed). Cheap no-op when all are present.
+NFCORE_PIPELINES_HOST_DIR="/opt/biomate/galaxy_build/nf-core-workflows"
+ensure_nfcore_pipelines() {
+  log "[nfcore] Checking real nf-core pipelines in the Galaxy container..."
+  ec2_ssh "NFCORE_SRC=${NFCORE_PIPELINES_HOST_DIR} bash -s" <<'REMOTE'
+set -e
+GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+GC="${GC:-biomate-galaxy-dev}"
+if [ ! -d "$NFCORE_SRC" ]; then echo "[nfcore] WARNING: host copy $NFCORE_SRC missing — cannot restore pipelines"; exit 0; fi
+host_n=$(ls "$NFCORE_SRC"/*/main.nf 2>/dev/null | wc -l)
+present=" $(docker exec "$GC" sh -c 'for f in /app/nf-core-workflows/*/main.nf; do [ -f "$f" ] && basename "$(dirname "$f")"; done' | tr '\n' ' ') "
+missing=""
+for d in "$NFCORE_SRC"/*/; do
+  n=$(basename "$d"); [ "$n" = modules ] && continue; [ -f "$d/main.nf" ] || continue
+  case "$present" in *" $n "*) ;; *) missing="$missing $n" ;; esac
+done
+if [ -z "$missing" ]; then echo "[nfcore] all $host_n real pipelines present in $GC"; exit 0; fi
+ST=/tmp/nfcore_pipelines_stage
+sudo rm -rf "$ST"; mkdir -p "$ST"
+for n in $missing; do rsync -a --exclude=.github --exclude="._*" --exclude=.git "$NFCORE_SRC/$n/" "$ST/$n/"; done
+docker cp "$ST/." "$GC:/app/nf-core-workflows/"
+docker exec -u root "$GC" chown -R galaxy:galaxy /app/nf-core-workflows 2>/dev/null || true
+echo "[nfcore] restored $(echo $missing | wc -w) of $host_n real pipelines into $GC"
+REMOTE
+}
+
 deploy_backend_python() {
   log "[backend] Syncing Python files..."
 
@@ -1834,6 +1868,7 @@ do_sync() {
   # `gunicorn` block — Docker maps host:8081 → container:8080, so 8081-bound
   # gunicorn never gets reached). Cheap to ship (single file) and idempotent.
   deploy_galaxy_yml || true
+  ensure_nfcore_pipelines || log "[nfcore] ⚠ pipeline restore failed — nf-core runs may fail to resolve"
 
   $do_backend   && deploy_backend_python
   $do_workflows && deploy_workflows
