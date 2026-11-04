@@ -3760,7 +3760,14 @@ def _resolve_local_image_alias(image: str) -> Optional[str]:
 # Images listed here can be pulled on-prem (GHCR/public).  ECR images are
 # excluded — they require AWS credentials unavailable on bare metal / China ECS.
 _ONPREM_PULLABLE_IMAGES: Dict[str, str] = {
+    # biomate images: pulled from GHCR
     "biomate/biomni-tools:latest": "ghcr.io/biomate-ai/biomni-tools:latest",
+    "biomate/biomni-drug-discovery-nf:latest": "ghcr.io/biomate-ai/biomni-drug-discovery-nf:latest",
+    # Standard public images: use DaoCloud mirror (accessible from China Aliyun ECS)
+    "condaforge/miniforge3:latest": "docker.m.daocloud.io/condaforge/miniforge3:latest",
+    "python:3.11-slim": "docker.m.daocloud.io/python:3.11-slim",
+    "python:3.9-slim": "docker.m.daocloud.io/python:3.9-slim",
+    "ubuntu:22.04": "docker.m.daocloud.io/ubuntu:22.04",
 }
 
 
