@@ -64,5 +64,53 @@ When off, the executor injects nothing new → behaviour identical to today. Tur
 `backend/lib/galaxy/ai/test_resource_classification.py` (9 cases, all green via `python3.9 .../test_resource_classification.py` — run directly, not via pytest, because the repo's pytest collection pulls heavy ML deps):
 group representatives, specific-beats-generic, unmatched→None, `classify_nf_text` only declared+matched processes, disabled-renders-nothing, enabled-emits-only-present-matched, enabled-no-matches→nothing, env-JSON tier override (incl. partial), malformed override ignored.
 
+### On-prem configuration (operator guide — self-contained)
+
+**Where to set.** Both variables are read by the **Galaxy backend process** (the container/service that runs gunicorn on port 8081 and dispatches Nextflow — `biomate-galaxy-dev` on dev; the equivalent Galaxy container/service on-prem). They are read at dispatch time, so a process restart is required after changing them. Set them wherever you set that process's environment — Docker `-e` / compose `environment:`, a k8s Deployment `env:`, or a systemd `Environment=` line. The Node/frontend container does not need them.
+
+**Two variables:**
+
+| Variable | Values | Effect |
+|---|---|---|
+| `BIOMATE_RESOURCE_CLASSIFICATION` | `1`/`true`/`yes`/`on` to enable; anything else (or unset) = OFF | Master switch. OFF ⇒ the executor injects nothing new; identical to pre-feature behaviour. |
+| `BIOMATE_RESOURCE_TIERS_JSON` | a JSON object (see below); unset = built-in defaults | Resizes the group→tier numbers for this deployment's hardware. |
+
+**`BIOMATE_RESOURCE_TIERS_JSON` schema.** A JSON object whose keys are group names and whose values are `{"cpus": <int>, "memory_gb": <int>}`. It is **merged over** the built-in defaults, so you only list the groups/keys you want to change; everything omitted keeps its default. The complete set of overridable groups and their built-in defaults (the baseline you are editing):
+
+| group | default cpus | default memory_gb | covers |
+|---|---|---|---|
+| `light` | 2 | 8 | QC, plotting, reporting, trimming, filtering, format/sort/index |
+| `standard` | 4 | 16 | DE, enrichment, annotation, normalisation, single-cell stats |
+| `heavy` | 12 | 64 | alignment, assembly, variant calling, taxonomic classification |
+| `shardable` | 4 | 16 | ADMET / docking shards (throughput comes from fan-out) |
+
+Rules the parser enforces (so a bad value degrades safely, never crashes a run):
+- Only `cpus` and `memory_gb` are read; any other inner key is ignored.
+- A group name not in the table above (e.g. `"gpu"`, a typo) is **silently ignored** — GPU steps are sized by the executor's existing `process_gpu` block, not here, so there is no `gpu` key to set.
+- Malformed JSON is logged and ignored (defaults stand) — it will **not** block dispatch.
+- `cpus`/`memory_gb` are the only knobs here. **`queue` and `time` are NOT settable via this JSON** — they stay with the existing `withLabel` block. If your scheduler needs a different queue, that is a separate executor/`job_conf` change.
+
+Example (a bigger on-prem node pool — give heavy steps 32 cores, shrink the light tier):
+```
+BIOMATE_RESOURCE_CLASSIFICATION=1
+BIOMATE_RESOURCE_TIERS_JSON={"light":{"cpus":1,"memory_gb":4},"heavy":{"cpus":32,"memory_gb":128}}
+```
+(`standard` and `shardable` here keep their 4/16 defaults.)
+
+**Capacity caveat.** Each number is a per-process request. `cpus`/`memory_gb` for any group must fit inside a **single scheduler node** — a `heavy` tier of 32/128 requires nodes with ≥32 cores and ≥128 GB, or those processes will never be schedulable. Size the tiers to your smallest node that must run that class of step, not your largest.
+
+**Interaction with the 422 hardcoded-`cpus=` `.nf` files.** `withName` overrides a hardcoded `cpus =`/`memory =` inside a process body too, not just a `withLabel`. So enabling the flag **will** re-size those processes if their name matches a pattern. That is usually what you want (it fixes over/under-provisioned hardcodes), but it means the flag is not purely additive for that subset — audit them if a specific hardcoded value was load-bearing.
+
+**Validate it took effect (no Batch run needed).** Run this against your Galaxy container — it confirms the module imports in your environment, that OFF is a no-op, and that ON renders a valid block for your actual workflow files:
+```bash
+# inside the Galaxy container (adjust PYTHONPATH to your lib path, /app/lib on the dev image):
+PYTHONPATH=/app/lib BIOMATE_RESOURCE_CLASSIFICATION=1 python3 -c '
+from galaxy.ai import resource_classification as rc
+nf = open("/app/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/docking_autodock_vina/main.nf").read()
+print("declared -> group:", rc.classify_nf_text(nf))
+print("\n".join(rc.render_withname_lines(nf)))'
+```
+Expected: a `process { withName: ... }` block listing only the processes declared in that file, each with your tier numbers. With the flag unset it prints nothing. To audit the whole catalog's classification, loop `classify_nf_text` over every `subworkflows/**/main.nf` and eyeball the group assignments before enabling in production. *(This is the exact check run against dev on 2026-11-03; it passed — import OK, OFF renders `[]`, ON tagged `DOCKING_AUTODOCK_VINA`/`DOCKING_MERGE` → shardable.)*
+
 ### Still not done
 No re-tiering of the 422 hardcoded-`cpus=` `.nf` files (they bypass labels *and* `withName` can still override them — but they were not audited individually). No UI. The flag stays OFF on dev until a run-level validation confirms the `withName` block is accepted by the executor's Nextflow version in a live Batch run.
