@@ -3790,6 +3790,48 @@ def _read_qc_events_sidecar(outdir: str) -> Optional[dict]:
         return None
 
 
+def _write_qc_degraded_sidecar(outdir: Optional[str], reason: str, retrospective: bool = False) -> None:
+    """Persist a DEGRADED qc_events sidecar so the after-run QC table shows
+    'QC could not be evaluated' instead of the empty 'all passed' fallback when
+    the inputs were unreadable. Best-effort (never raises). The event uses
+    status 'unavailable' (frontend qcStatus → 'UNAVAILABLE'); `degraded:true`
+    lets the on-demand reader re-evaluate on a later view so a transient S3
+    error auto-recovers instead of being cached forever."""
+    try:
+        import json as _json, boto3 as _boto3, datetime as _dt
+        _outdir = (outdir or "").rstrip("/")
+        if not _outdir.startswith("s3://"):
+            return
+        _ts = _dt.datetime.now(_dt.timezone.utc).isoformat()
+        _report = {
+            "source": "s3_sidecar",
+            "evaluation_context": "retrospective" if retrospective else "completion",
+            "evaluated_at": _ts,
+            "degraded": True,
+            "gates_triggered": 0,
+            "warnings_emitted": 1,  # renders the QC summary (not the empty fallback)
+            "events": [{
+                "ts": _ts, "gate": "QC evaluation", "threshold": "", "measured": "",
+                "status": "unavailable", "advisory": True,
+                "message": "QC gates could not be evaluated (%s)." % reason,
+            }],
+            "methods_text": ("QC gates could not be evaluated for this run (%s). "
+                             "This run was NOT recorded as a clean QC pass." % reason),
+        }
+        _b, _k = (_outdir + "/output/qc_events.json")[5:].split("/", 1)
+        _c = _boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION") or "us-east-1")
+        try:
+            _loc = _c.get_bucket_location(Bucket=_b).get("LocationConstraint") or "us-east-1"
+            _c = _boto3.client("s3", region_name=_loc)
+        except Exception:
+            pass
+        _c.put_object(Bucket=_b, Key=_k, Body=_json.dumps(_report).encode("utf-8"),
+                      ContentType="application/json")
+        log.info("[QC S3] persisted DEGRADED qc_events sidecar %s/output/qc_events.json", _outdir)
+    except Exception as _exc:  # noqa: BLE001 — sidecar is best-effort
+        log.warning("[QC S3] degraded sidecar write failed: %s", _exc)
+
+
 def _reconstruct_qc_from_s3(run_id, files, workflow_domain, qc_overrides, retrospective, outdir=None):
     """Read standard QC outputs for other domains; never emit execution events."""
     import fnmatch
@@ -4040,6 +4082,7 @@ def _evaluate_qc_from_s3(
                     "[QC S3] QC NOT EVALUATED for %s — %s; recording as degraded, NOT a pass",
                     run_id, _read_error,
                 )
+                _write_qc_degraded_sidecar(outdir, _read_error, retrospective)
                 return _qc_unevaluable(_read_error)
             if s3_list_degraded:
                 # No metrics because the S3 output LISTING itself errored (H3/H4) — the
@@ -4048,6 +4091,7 @@ def _evaluate_qc_from_s3(
                     "[QC S3] QC NOT EVALUATED for %s — output listing failed; recording as degraded, NOT a pass",
                     run_id,
                 )
+                _write_qc_degraded_sidecar(outdir, "S3 output listing failed", retrospective)
                 return _qc_unevaluable("S3 output listing failed")
             return []
 
@@ -4192,6 +4236,7 @@ def _evaluate_qc_from_s3(
             "[QC S3] Gate evaluation ERRORED for %s — recording as degraded, NOT a pass: %s",
             run_id, _exc, exc_info=True,
         )
+        _write_qc_degraded_sidecar(outdir, "evaluation error: %s" % type(_exc).__name__, retrospective)
         return _qc_unevaluable("evaluation error: %s" % type(_exc).__name__)
 
 
@@ -8640,7 +8685,10 @@ def get_invocation_qc_events(
             # Gate on a resolvable S3 outdir alone; non-QC domains return [] fast.
             if _od_outdir.startswith("s3://"):
                 cached_report = _read_qc_events_sidecar(_od_outdir)
-                if cached_report is not None:
+                # A DEGRADED sidecar (QC couldn't be evaluated last time) is not a
+                # final answer — re-evaluate below so a transient S3 error recovers
+                # instead of being cached forever. A normal report is returned as-is.
+                if cached_report is not None and not cached_report.get("degraded"):
                     return {**cached_report, "source": "s3_sidecar"}
                 try:
                     import json as _json2
