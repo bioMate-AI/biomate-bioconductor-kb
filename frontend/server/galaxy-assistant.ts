@@ -2167,6 +2167,26 @@ export function alternativeWorkflowNames(payload: any): string[] {
     .slice(0, 4);
 }
 
+/** Real-pipeline vocabulary for the ad-hoc-analysis check: any of these means the user is asking
+ *  for a workflow, never ad-hoc compute. */
+const PIPELINE_REQUEST_RE =
+  /\b(nextflow|pipeline|rna-?seq|scrna|single-?cell|wgs|wes|variant\s+calling|sarek|cryo-?em|admet|pbpk|boin|fastqc|trimmomatic|\bstar\b|salmon|kallisto|alignment|assembl|clusterprofiler|deseq2|edger|limma|differential\s+(expression|abundance|accessibility)|enrichment|epitope|docking|autodock|codon|pocket|target\s+evidence|peak\s+calling|segmentation|free\s+energy|fep|rbfe|abfe|molecular\s+dynamics|crispr|mageck|hit[- ]calling)\b/i;
+
+/** Ad-hoc analysis of data the user ATTACHED ("Summarise this assay table and plot potency
+ *  against logP", "Correlate predicted and measured IC50 for these compounds", "Reshape this
+ *  plate readout into long format") — a run_code task, not a pipeline. Measured 2026-11-04 with
+ *  the exact cold-start UI payloads + real uploads: such requests were forced into workflow
+ *  generation and landed on lexical near-misses (Run Audit Export, QSAR RF model, nf-core/demo),
+ *  and the card then disabled run_code. Requires the UI's attached-dataset block, an ad-hoc
+ *  verb in the request's own first paragraph, and no pipeline vocabulary. */
+export function isAdhocAnalysisOfAttachedData(message: string): boolean {
+  const text = message || '';
+  if (!/\[(?:Uploaded datasets?|Attached files?|BioMate dataset|Galaxy dataset)\s*:/i.test(text)) return false;
+  const task = text.split(/\n\s*\n|\n\s*\[(?:Attached files?|Uploaded datasets?)/i)[0];
+  const adhoc = /\b(summari[sz]e|summary\s+of|plot|chart|graph|visuali[sz]e|correlat\w*|regress\w*|reshape|pivot|melt|tabulate|cross-?tab\w*|histogram|scatter|describe\s+(the|this)\s+(data|table|file)|compute|calculate)\b/i;
+  return adhoc.test(task) && !PIPELINE_REQUEST_RE.test(task);
+}
+
 export function stripNarratedToolCalls(text: string): string {
   if (!text) return text;
   if (!/<\/?(?:antml:)?(?:function_calls|invoke|parameter)\b/i.test(text)) {
@@ -4309,7 +4329,7 @@ Rules:
     // actually executing. Flip to the direct-compute path so run_code stays
     // enabled and really runs in the sandbox. Conservative guard (explicit ask
     // + no pipeline keyword) so genuine workflow requests are untouched.
-    if (actions.needsWorkflowGeneration && this._isDirectCodeExecutionQuery(message)) {
+    if (actions.needsWorkflowGeneration && (this._isDirectCodeExecutionQuery(message) || isAdhocAnalysisOfAttachedData(message))) {
       log('Direct-code-execution override: needsWorkflowGeneration=false → run_code stays enabled');
       actions.needsWorkflowGeneration = false;
       actions.needsLLMReasoning = true;
