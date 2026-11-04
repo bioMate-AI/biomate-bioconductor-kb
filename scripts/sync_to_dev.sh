@@ -508,6 +508,7 @@ deploy_galaxy_yml() {
 # the resolver fell back to display-only stubs. Every sync now restores any that are missing from the
 # host copy (additive; nothing in the container is removed). Cheap no-op when all are present.
 NFCORE_PIPELINES_HOST_DIR="/opt/biomate/galaxy_build/nf-core-workflows"
+NFCORE_MODULES_HOST_DIR="/opt/biomate/galaxy_build/nf-core-modules"
 ensure_nfcore_pipelines() {
   log "[nfcore] Checking real nf-core pipelines in the Galaxy container..."
   ec2_ssh "NFCORE_SRC=${NFCORE_PIPELINES_HOST_DIR} bash -s" <<'REMOTE'
@@ -529,6 +530,27 @@ for n in $missing; do rsync -a --exclude=.github --exclude="._*" --exclude=.git 
 docker cp "$ST/." "$GC:/app/nf-core-workflows/"
 docker exec -u root "$GC" chown -R galaxy:galaxy /app/nf-core-workflows 2>/dev/null || true
 echo "[nfcore] restored $(echo $missing | wc -w) of $host_n real pipelines into $GC"
+REMOTE
+  # Same gap for the nf-core community library (also git-ignored except BioMate's own files): the
+  # catalog's nfcore/subworkflows/<name> entries resolve to nf-core-modules/subworkflows/nf-core/<name>
+  # and include ../../../modules/nf-core/<tool> — the container had 0 of the host's 94 / 755.
+  ec2_ssh "NFMOD_SRC=${NFCORE_MODULES_HOST_DIR} bash -s" <<'REMOTE'
+set -e
+GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
+GC="${GC:-biomate-galaxy-dev}"
+if [ ! -d "$NFMOD_SRC/subworkflows/nf-core" ]; then echo "[nfcore] WARNING: host copy $NFMOD_SRC missing — cannot restore subworkflows"; exit 0; fi
+host_sw=$(ls "$NFMOD_SRC"/subworkflows/nf-core/*/main.nf 2>/dev/null | wc -l)
+host_mod=$(find "$NFMOD_SRC/modules/nf-core" -name main.nf 2>/dev/null | wc -l)
+have_sw=$(docker exec "$GC" sh -c 'ls /app/nf-core-modules/subworkflows/nf-core/*/main.nf 2>/dev/null | wc -l')
+have_mod=$(docker exec "$GC" sh -c 'find /app/nf-core-modules/modules/nf-core -name main.nf 2>/dev/null | wc -l')
+if [ "$have_sw" -ge "$host_sw" ] && [ "$have_mod" -ge "$host_mod" ]; then echo "[nfcore] nf-core library present ($have_sw subworkflows, $have_mod modules)"; exit 0; fi
+ST=/tmp/nfcore_modules_stage
+sudo rm -rf "$ST"; mkdir -p "$ST/subworkflows" "$ST/modules"
+rsync -a --exclude=.github --exclude="._*" --exclude=.git "$NFMOD_SRC/subworkflows/nf-core" "$ST/subworkflows/"
+rsync -a --exclude=.github --exclude="._*" --exclude=.git "$NFMOD_SRC/modules/nf-core" "$ST/modules/"
+docker cp "$ST/." "$GC:/app/nf-core-modules/"
+docker exec -u root "$GC" chown -R galaxy:galaxy /app/nf-core-modules 2>/dev/null || true
+echo "[nfcore] restored nf-core library into $GC ($host_sw subworkflows, $host_mod modules; had $have_sw / $have_mod)"
 REMOTE
 }
 
