@@ -7,7 +7,8 @@
 #
 # Inherits AWS CLI v2 + numpy/scipy/pandas/biopython/rdkit from base.
 #
-# Build (x86 for AWS Batch):
+# Build (x86 for AWS Batch): normally CI, .github/workflows/build-biomni-structure-to-drug-image.yml
+# (build -> smoke.py inside the image -> push only if it passes). Manual equivalent:
 #   docker buildx build --platform linux/amd64 \
 #     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86 \
 #     --push -f backend/docker/biomni-structure-to-drug/Dockerfile .
@@ -56,7 +57,7 @@ RUN pip install --no-cache-dir \
 # ── Smoke tests ────────────────────────────────────────────────────────────
 RUN python3 -c "from rdkit import Chem; print('rdkit OK')" && \
     python3 -c "from vina import Vina; print('vina OK')" && \
-    fpocket --help 2>&1 | head -1 && echo "fpocket OK" && \
+    command -v fpocket && echo "fpocket OK" && \
     aws --version && \
     echo "biomni-structure-to-drug checks passed."
 
