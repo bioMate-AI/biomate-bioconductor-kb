@@ -28,12 +28,15 @@ import type {
 
 /** Galaxy rejected the API key itself — "Provided API key is not valid." (row missing or
  *  deleted, e.g. after a Galaxy DB reset) or "...has expired." (not the user's newest key).
- *  Both are err_code 401001. Other 401s (permissions, missing auth) are not key rejections. */
+ *  Most endpoints answer 401 / err_code 401001; the tool API (POST /api/tools, i.e. uploads)
+ *  answers the same rejection as 403 / err_code 403001 (dev, 2026-11-04). Other 401s/403s
+ *  (permissions, missing auth) are not key rejections. */
 export function isRejectedGalaxyKey(error: any): boolean {
   const res = error?.response;
-  if (res?.status !== 401) return false;
+  if (res?.status !== 401 && res?.status !== 403) return false;
   const data = res.data || {};
-  return data.err_code === 401001 || /API key (is not valid|has expired)/i.test(String(data.err_msg || ''));
+  return data.err_code === (res.status === 401 ? 401001 : 403001)
+    || /API key (is not valid|has expired)/i.test(String(data.err_msg || ''));
 }
 
 /** fetch() to Galaxy with mid-session key recovery — the raw-fetch counterpart of
@@ -52,9 +55,9 @@ export async function fetchGalaxyWithKeyRecovery(
   const send = (key: string) =>
     fetch(url, { ...init, headers: { ...((init.headers as Record<string, string>) || {}), 'X-API-Key': key } });
   const resp = await send(userKey || adminKey);
-  if (resp.status !== 401 || !userKey || !recover) return resp;
+  if ((resp.status !== 401 && resp.status !== 403) || !userKey || !recover) return resp;
   const body = await resp.clone().json().catch(() => null);
-  if (!isRejectedGalaxyKey({ response: { status: 401, data: body } })) return resp;
+  if (!isRejectedGalaxyKey({ response: { status: resp.status, data: body } })) return resp;
   const fresh = await recover().catch(() => null);
   if (!fresh || fresh === userKey) return resp;
   console.warn('[galaxy] per-user Galaxy key was rejected mid-session (direct fetch) — re-provisioned, retrying once');
@@ -150,6 +153,7 @@ export class GalaxyAPIProxy {
       },
     });
     (proxy as any).client = client;
+    (proxy as any).onKeyRejected = onKeyRejected;  // used by the raw-fetch paths (uploadDataset)
     let currentKey = userApiKey;
     client.interceptors.response.use(
       (response: any) => response,
@@ -623,27 +627,46 @@ export class GalaxyAPIProxy {
     // dynamic require() throws in the ESM server bundle. fetch also sets the
     // multipart boundary itself, avoiding axios' JSON default content-type.
     const fileBuf = fs.readFileSync(filePath);
-    const form = new FormData();
-    form.append('history_id', historyId);
-    form.append('tool_id', 'upload1');
-    form.append('inputs', JSON.stringify({
-      file_type: 'auto',
-      dbkey: '?',
-      'files_0|type': 'upload_dataset',
-      'files_0|NAME': fileName,
-    }));
-    form.append('files_0|file_data', new Blob([fileBuf]), fileName);
+    const buildForm = () => {
+      const form = new FormData();
+      form.append('history_id', historyId);
+      form.append('tool_id', 'upload1');
+      form.append('inputs', JSON.stringify({
+        file_type: 'auto',
+        dbkey: '?',
+        'files_0|type': 'upload_dataset',
+        'files_0|NAME': fileName,
+      }));
+      form.append('files_0|file_data', new Blob([fileBuf]), fileName);
+      return form;
+    };
 
     const url = `${this.galaxyUrl}/api/tools`;
-    let resp: any;
-    try {
-      resp = await fetch(url, {
-        method: 'POST',
-        headers: this.apiKey ? { 'x-api-key': this.apiKey } : {},
-        body: form as any,
-      });
-    } catch (err: any) {
-      throw new Error(`Galaxy upload1 request failed: ${err?.message ?? err}`);
+    const send = async (key: string | undefined) => {
+      try {
+        return await fetch(url, {
+          method: 'POST',
+          headers: key ? { 'x-api-key': key } : {},
+          body: buildForm() as any,
+        });
+      } catch (err: any) {
+        throw new Error(`Galaxy upload1 request failed: ${err?.message ?? err}`);
+      }
+    };
+    let resp: any = await send(this.apiKey);
+    // Mid-session key recovery for this raw-fetch path (the axios interceptor in forUser does not
+    // see it): on Galaxy's rejected-key answer (403001 here) get a fresh key once and resend.
+    const onKeyRejected: (() => Promise<string | null>) | undefined = (this as any).onKeyRejected;
+    if ((resp.status === 401 || resp.status === 403) && onKeyRejected) {
+      const body = await resp.clone().json().catch(() => null);
+      if (isRejectedGalaxyKey({ response: { status: resp.status, data: body } })) {
+        const fresh = await onKeyRejected().catch(() => null);
+        if (fresh && fresh !== this.apiKey) {
+          this.apiKey = fresh;
+          console.warn('[GalaxyAPIProxy] per-user Galaxy key was rejected on upload — re-provisioned, retrying once');
+          resp = await send(fresh);
+        }
+      }
     }
     if (!resp.ok) {
       const body = await resp.text().catch(() => '');

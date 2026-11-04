@@ -61,7 +61,26 @@ d=sys.stdin.read().strip()
 print(json.loads(d[d.index('{'):]).get('state') if '{' in d else 'none')")
 echo "   final state: $STATE"
 
-echo "4) evidence in the dev frontend log"
-dev "sudo docker logs biomate-dev-frontend --since $SINCE 2>&1 | grep -E 'rejected .*mid-session|Provided API key is not valid' | cut -c1-160 | head -5"
+echo "3b) upload on the SAME session after revoking again (the tool API answers 403001; raw-fetch path)"
+dev "sudo docker exec -i biomate-galaxy-dev python3 -" <<PY
+import json, os, urllib.request
+k = os.environ["GALAXY_API_KEY"].strip()
+def call(method, path):
+    r = urllib.request.Request("http://localhost:8080" + path, method=method, headers={"x-api-key": k})
+    with urllib.request.urlopen(r, timeout=30) as resp:
+        return resp.status, resp.read().decode()
+st, body = call("GET", "/api/users?f_email=$EMAIL")
+uid = [u for u in json.loads(body) if u.get("email", "").lower() == "$EMAIL".lower()][0]["id"]
+print("   DELETE api_key ->", call("DELETE", f"/api/users/{uid}/api_key")[0])
+PY
+UPF=$(mktemp -t keyrec).csv; printf 'compound,ic50\nA,1.2\n' > "$UPF"
+UPLOAD_GID=$(curl -s -m 120 -X POST "$BASE/api/datasets/upload" -H "Authorization: Bearer $TOKEN" \
+  -F "file=@$UPF;filename=keyrec_check.csv" -F "file_type=csv" -F "description=key recovery check" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin).get('galaxy_dataset_id') or '')")
+rm -f "$UPF"
+echo "   upload galaxy_dataset_id: ${UPLOAD_GID:-<none>}"
 
-if [[ "$STATE" == "workflow_ready" ]]; then echo "PASS: session recovered from a revoked Galaxy key"; else echo "FAIL: state=$STATE"; exit 1; fi
+echo "4) evidence in the dev frontend log"
+dev "sudo docker logs biomate-dev-frontend --since $SINCE 2>&1 | grep -E 'rejected .*(mid-session|on upload)|Provided API key is not valid' | cut -c1-160 | head -5"
+
+if [[ "$STATE" == "workflow_ready" && -n "$UPLOAD_GID" ]]; then echo "PASS: session recovered from a revoked Galaxy key (chat + upload)"; else echo "FAIL: state=$STATE upload_gid=${UPLOAD_GID:-none}"; exit 1; fi

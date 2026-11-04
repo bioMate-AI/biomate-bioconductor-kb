@@ -26,13 +26,17 @@ beforeAll(async () => {
     if (key === NEW) {
       const chunks: Buffer[] = [];
       req.on('data', c => chunks.push(c));
-      return req.on('end', () => res.end(JSON.stringify({ ok: true, url: req.url, body: Buffer.concat(chunks).toString() })));
+      return req.on('end', () => res.end(JSON.stringify(req.url === '/api/tools'
+        ? { outputs: [{ id: 'hda-new' }], body: Buffer.concat(chunks).toString('latin1') }
+        : { ok: true, url: req.url, body: Buffer.concat(chunks).toString() })));
     }
     // like a real server, read the request before answering (an unread upload stalls the sender)
     req.resume();
     req.on('end', () => {
-      res.statusCode = 401;
-      res.end(JSON.stringify({ err_msg: 'Provided API key is not valid.', err_code: 401001 }));
+      // Galaxy's tool API (uploads) reports a rejected key as 403 / 403001; the rest as 401 / 401001.
+      const tools = req.url === '/api/tools';
+      res.statusCode = tools ? 403 : 401;
+      res.end(JSON.stringify({ err_msg: 'Provided API key is not valid.', err_code: tools ? 403001 : 401001 }));
     });
   });
   await new Promise<void>(r => server.listen(0, '127.0.0.1', () => r()));
@@ -82,11 +86,14 @@ describe('per-user Galaxy key — mid-session recovery', () => {
     await expect(client(proxy).get('/api/histories')).rejects.toMatchObject({ status_code: 401 });
   });
 
-  it('isRejectedGalaxyKey matches both Galaxy wordings of 401001 only', () => {
+  it('isRejectedGalaxyKey matches Galaxy\'s rejected-key answers (401001, and 403001 from the tool API) only', () => {
     const e = (status: number, data: any) => ({ response: { status, data } });
     expect(isRejectedGalaxyKey(e(401, { err_code: 401001, err_msg: 'Provided API key is not valid.' }))).toBe(true);
     expect(isRejectedGalaxyKey(e(401, { err_msg: 'Provided API key has expired.' }))).toBe(true);
     expect(isRejectedGalaxyKey(e(401, { err_code: 401000, err_msg: 'You must be logged in' }))).toBe(false);
+    expect(isRejectedGalaxyKey(e(403, { err_code: 403001, err_msg: 'Provided API key is not valid.' }))).toBe(true);
+    expect(isRejectedGalaxyKey(e(403, { err_code: 403001 }))).toBe(true);
+    expect(isRejectedGalaxyKey(e(403, { err_code: 403002, err_msg: 'You are not allowed to access this dataset' }))).toBe(false);
     expect(isRejectedGalaxyKey(e(403, { err_code: 401001 }))).toBe(false);
     expect(isRejectedGalaxyKey({ code: 'ECONNREFUSED' })).toBe(false);
   });
@@ -126,5 +133,35 @@ describe('fetchGalaxyWithKeyRecovery — direct-fetch routes', () => {
     expect((await fetchGalaxyWithKeyRecovery(`${base}/api/x`, {}, null, OLD, recover)).status).toBe(401);
     expect((await fetchGalaxyWithKeyRecovery(`${base}/api/forbidden`, {}, NEW, 'admin-key', recover)).status).toBe(401);
     expect(recover).not.toHaveBeenCalled();
+  });
+});
+
+// Uploads go to POST /api/tools with a raw fetch (not the axios client), and Galaxy answers a
+// rejected key there with 403 / 403001 — on dev (2026-11-04) an upload during a key revocation
+// failed with "Galaxy upload1 failed (HTTP 403): Provided API key is not valid." and never recovered.
+describe('uploadDataset — mid-session key recovery on the tool API', () => {
+  it('re-provisions on 403001, re-sends the whole multipart upload, and keeps the new key', async () => {
+    const { mkdtempSync, writeFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const { tmpdir } = await import('node:os');
+    const file = join(mkdtempSync(join(tmpdir(), 'up-')), 'x.csv');
+    writeFileSync(file, 'compound,ic50\nA,1.2\n');
+    const recover = vi.fn(async () => NEW);
+    const proxy = admin().forUser(OLD, recover);
+    seen.length = 0;
+    expect(await proxy.uploadDataset(file, 'hist-1', 'x.csv')).toBe('hda-new');
+    expect(recover).toHaveBeenCalledTimes(1);
+    expect(seen).toEqual(['/api/tools:a', '/api/tools:b']);
+    expect((proxy as any).apiKey).toBe(NEW);
+  });
+
+  it('surfaces the 403 when recovery yields no new key', async () => {
+    const { mkdtempSync, writeFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const { tmpdir } = await import('node:os');
+    const file = join(mkdtempSync(join(tmpdir(), 'up-')), 'x.csv');
+    writeFileSync(file, 'a\n');
+    const proxy = admin().forUser(OLD, async () => null);
+    await expect(proxy.uploadDataset(file, 'hist-1', 'x.csv')).rejects.toThrow(/HTTP 403/);
   });
 });
