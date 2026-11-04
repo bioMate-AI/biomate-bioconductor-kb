@@ -3905,6 +3905,7 @@ def _evaluate_qc_from_s3(
     qc_overrides: dict,
     retrospective: bool = False,
     outdir: Optional[str] = None,
+    s3_list_degraded: bool = False,
 ) -> list:
     """
     Evaluate QC gates for completed AWS Batch runs by reading output files from S3.
@@ -4040,6 +4041,14 @@ def _evaluate_qc_from_s3(
                     run_id, _read_error,
                 )
                 return _qc_unevaluable(_read_error)
+            if s3_list_degraded:
+                # No metrics because the S3 output LISTING itself errored (H3/H4) — the
+                # inputs are unreliable, so this is degraded, not a clean "no failures".
+                log.error(
+                    "[QC S3] QC NOT EVALUATED for %s — output listing failed; recording as degraded, NOT a pass",
+                    run_id,
+                )
+                return _qc_unevaluable("S3 output listing failed")
             return []
 
         # Completion-time evaluation only records findings; it never dispatches
@@ -4442,6 +4451,18 @@ _S3_LIST_CACHE: Dict[str, Tuple[float, list]] = {}
 _S3_LIST_TTL_SEC = 10.0
 _S3_LIST_CACHE_LOCK = threading.Lock()
 
+# Side-channel so an immediate caller can tell "[] because the S3 LIST errored"
+# (degraded — must not feed a fake-clean QC verdict) from "[] genuinely empty".
+# The list functions still return [] (every caller iterates a list); the caller
+# reads this flag RIGHT AFTER the call. Set on the except path, cleared at entry.
+_s3_list_tls = threading.local()
+
+
+def s3_list_last_error() -> Optional[str]:
+    """The reason the most recent _list_s3_* call on THIS thread errored, or None.
+    Read immediately after the list call; it is reset at the start of each call."""
+    return getattr(_s3_list_tls, "error", None)
+
 
 def _list_s3_output_files(s3_uri: str) -> list:
     """
@@ -4450,14 +4471,16 @@ def _list_s3_output_files(s3_uri: str) -> list:
     Skips Nextflow internal files (work/, .nextflow/, trace).
     Results cached for _S3_LIST_TTL_SEC to keep status polling cheap.
     """
+    _s3_list_tls.error = None  # reset per-call; set only if THIS listing errors
     now = time.time()
     with _S3_LIST_CACHE_LOCK:
         cached = _S3_LIST_CACHE.get(s3_uri)
         if cached and (now - cached[0]) < _S3_LIST_TTL_SEC:
-            return cached[1]
+            return cached[1]  # a cached result is always a prior SUCCESS (errors aren't cached)
     try:
         import boto3
     except ImportError:
+        _s3_list_tls.error = "boto3 unavailable"
         return []
     try:
         parts = s3_uri[len("s3://"):].split("/", 1)
@@ -4493,7 +4516,10 @@ def _list_s3_output_files(s3_uri: str) -> list:
                     _S3_LIST_CACHE.pop(k, None)
         return results
     except Exception as exc:
-        log.warning(f"[Nextflow] S3 output listing failed for {s3_uri}: {exc}")
+        # A LIST error (throttle/permission/network) is NOT "zero outputs" — record it
+        # so the completion path doesn't read empty outputs as a clean/complete run.
+        _s3_list_tls.error = "%s: %s" % (type(exc).__name__, exc)
+        log.error("[Nextflow] S3 output listing FAILED for %s (degraded, not zero outputs): %s", s3_uri, exc)
         return []
 
 
@@ -4518,9 +4544,11 @@ def _list_s3_work_output_files(work_s3_uri: str) -> list:
     Returns list of dicts: {key, name, size, extension, s3_uri}.
     Fallback for when publishDir to outdir fails (common with cross-region S3).
     """
+    _s3_list_tls.error = None  # reset per-call; set only if THIS listing errors
     try:
         import boto3
     except ImportError:
+        _s3_list_tls.error = "boto3 unavailable"
         return []
     try:
         parts = work_s3_uri[len("s3://"):].split("/", 1)
@@ -4547,7 +4575,8 @@ def _list_s3_work_output_files(work_s3_uri: str) -> list:
         log.info("[Nextflow] Listed %d work-dir output files from %s", len(results), work_s3_uri)
         return results
     except Exception as exc:
-        log.warning("[Nextflow] work-dir output listing failed for %s: %s", work_s3_uri, exc)
+        _s3_list_tls.error = "%s: %s" % (type(exc).__name__, exc)
+        log.error("[Nextflow] work-dir output listing FAILED for %s (degraded, not zero outputs): %s", work_s3_uri, exc)
         return []
 
 
@@ -5142,17 +5171,22 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         _qc_gates_s3 = None
         if _present and returncode == 0 and str(_outdir_for_s3).startswith("s3://"):
             _s3_output_files = _s3_files_for_salvage or _list_s3_output_files(_outdir_for_s3)
+            _s3_list_degraded = bool(not _s3_output_files and s3_list_last_error())
             # Fallback: if publishDir failed to write to outdir (common with cross-region S3
             # in nf-amazon@3.3.0), scan the Nextflow work dir where Batch tasks copy outputs.
             if not _s3_output_files and str(_workdir_for_s3).startswith("s3://"):
                 log.info("[Nextflow] outdir listing empty for %s — scanning workdir fallback", run_id)
                 _s3_output_files = _list_s3_work_output_files(_workdir_for_s3)
+                # Degraded only if BOTH listings came up empty-via-error; a successful
+                # (genuinely empty) workdir listing clears the earlier degraded signal.
+                _s3_list_degraded = bool(not _s3_output_files and s3_list_last_error())
             _qc_gates_s3 = _evaluate_qc_from_s3(
                 run_id=run_id,
                 s3_output_files=_s3_output_files,
                 workflow_domain=_wf_domain_for_qc,
                 qc_overrides=_qc_overrides_for_qc,
                 outdir=_outdir_for_s3,
+                s3_list_degraded=_s3_list_degraded,
             )
             if _qc_gates_s3:
                 log.info("[QC Gate] S3 evaluation for %s: %d gate(s)", run_id, len(_qc_gates_s3))
@@ -8618,9 +8652,11 @@ def get_invocation_qc_events(
                         except Exception:
                             _od_overrides = {}
                     _od_files = _list_s3_output_files(_od_outdir)
+                    _od_degraded = bool(not _od_files and s3_list_last_error())
                     _od_workdir = (_qp.get("workdir") or "").strip()
                     if not _od_files and _od_workdir.startswith("s3://"):
                         _od_files = _list_s3_work_output_files(_od_workdir)
+                        _od_degraded = bool(not _od_files and s3_list_last_error())
                     # Runs the QC handler + writes <outdir>/output/qc_events.json.
                     _evaluate_qc_from_s3(
                         run_id=_od_run_id,
@@ -8629,6 +8665,7 @@ def get_invocation_qc_events(
                         qc_overrides=_od_overrides,
                         retrospective=True,
                         outdir=_od_outdir,
+                        s3_list_degraded=_od_degraded,
                     )
                     # Read back the sidecar it just wrote (the full gate report).
                     _sc = _read_qc_events_sidecar(_od_outdir)
