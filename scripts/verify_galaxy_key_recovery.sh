@@ -1,8 +1,8 @@
 #!/bin/bash
 # Regression check on dev for mid-session Galaxy key recovery (commit 9503abf5e).
 #
-# Reproduces the real failure: log in as the E2E fixture (key valid), then soft-delete that
-# account's newest active Galaxy API key in dev's Galaxy DB — what the pre-2edb4d4a5 boot seed
+# Reproduces the real failure: log in as the E2E fixture (key valid), then delete that
+# account's current Galaxy API key through Galaxy's admin API — what the pre-2edb4d4a5 boot seed
 # did on every Galaxy restart — and send a chat workflow request on the SAME session (no
 # re-login). Pre-fix: workflow_failed / 401 "Provided API key is not valid." Post-fix: the
 # proxy re-provisions once, retries, and the request returns workflow_ready.
@@ -31,17 +31,21 @@ TOKEN=$(curl -s -m 60 -X POST "$BASE/api/auth/login" -H 'Content-Type: applicati
   | python3 -c "import sys,json;print(json.load(sys.stdin).get('token',''))")
 [[ ${#TOKEN} -gt 50 ]] || { echo "FAIL: login"; exit 1; }
 
-echo "2) revoke the fixture's newest active Galaxy key (simulates the restart bug)"
+echo "2) revoke the fixture's current Galaxy key via Galaxy's own API (simulates the restart bug)"
+# DELETE /api/users/{id}/api_key marks the user's current key deleted (Galaxy UserManager path,
+# admin-authorised with the container's bootstrap key) — same effect as the old boot seed, no SQL.
 dev "sudo docker exec -i biomate-galaxy-dev python3 -" <<PY
-import os, sqlite3
-env = os.environ.get("GALAXY_API_KEY", "").strip()
-c = sqlite3.connect("/app/database/universe.sqlite")
-uid = c.execute("select id from galaxy_user where lower(email)=lower(?)", ("$EMAIL",)).fetchone()
-assert uid, "fixture not found in Galaxy"
-row = c.execute("select id, key from api_keys where user_id=? and deleted=0 and key != ? order by id desc limit 1", (uid[0], env)).fetchone()
-assert row, "fixture has no active personal key"
-c.execute("update api_keys set deleted=1 where id=?", (row[0],)); c.commit()
-print(f"   revoked key row {row[0]} of Galaxy user {uid[0]}")
+import json, os, urllib.request
+k = os.environ["GALAXY_API_KEY"].strip()
+def call(method, path):
+    r = urllib.request.Request("http://localhost:8080" + path, method=method, headers={"x-api-key": k})
+    with urllib.request.urlopen(r, timeout=30) as resp:
+        return resp.status, resp.read().decode()
+st, body = call("GET", "/api/users?f_email=$EMAIL")
+users = [u for u in json.loads(body) if u.get("email", "").lower() == "$EMAIL".lower()]
+assert users, "fixture not found in Galaxy"
+st, _ = call("DELETE", f"/api/users/{users[0]['id']}/api_key")
+print(f"   DELETE api_key for Galaxy user {users[0]['id']} -> HTTP {st}")
 PY
 
 echo "3) workflow request on the SAME session (no re-login)"
