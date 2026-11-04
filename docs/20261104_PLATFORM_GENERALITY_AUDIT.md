@@ -72,5 +72,47 @@ sequencing domains + a hand-tuned drug-discovery cluster**. The code's own
 Generalizing 8 subsystems across ~30 under-served domains is multi-week. The right first moves
 are Tier 1 (activate the two dormant general engines — model-training is done, multi-omics is a
 flag + a day) and Tier 2 item 3 (one general gate engine). Which domains to generalize *first*
-should follow the business (the ~5 sequencing domains + whatever clinical/immuno/oncology areas
-matter most), not catalog breadth.
+should follow the business, not catalog breadth — see below.
+
+## Business-grounded priority (SYSUCC 中山肿瘤 + faculty research directions)
+Two source materials, read 2026-11-04, converge on the same spearhead:
+- **SYSUCC** (`docs/20261030_SYSUCC_BD_CAPABILITY_AND_USE_CASES_ZH.md`): China's #1 tumor
+  clinical-trial center. Published strengths = **genomics, single-cell & spatial, pathology,
+  immunology, biomarkers**. Data assets = a ~1,000-patient CRC genomic cohort, an NPC single-cell
+  + spatial atlas, blood/ctDNA biomarkers. Drug modalities = PD-1/PD-L1, ADC, bispecific, cell
+  therapy, EBV vaccines/antibodies — **NOT small-molecule原创**. BioMate's role = the "科研执行与
+  学习层" turning hospital data into stratification/biomarker/IND-advancing evidence (IIT→IND).
+- **Faculty survey** (`business/BioMate_Research_Direction_Survey_20260303.md`): Direction B =
+  "RNA-seq for **Patient Subgrouping, Diagnosis & Prognosis**" (#2); thesis: *"the AI advantage
+  stops at molecule design; patient stratification from RNA-seq and biomarker-driven design are
+  the next frontiers."* FFPE RNA-seq (hospital biobank format) flagged as a differentiator.
+
+**The spearhead = all basic omics layers made first-class, feeding stratification / prognosis /
+biomarker discovery on hospital cohorts** — depth on one chain, not breadth across 30 domains.
+
+Basic omics stack and its current generality (prioritize the weak ones, they are NOT niche):
+- Transcriptomics 0.80, genomics/variant 0.78, single-cell 0.72 — **strong** (keep).
+- **Spatial 0.55 — PARTIAL** (no composed pipeline): SYSUCC's *published* NPC spatial atlas → top demo.
+- **Proteomics 0.62, metabolomics 0.58 — WEAK but FOUNDATIONAL.** Correction (2026-11-04): these
+  are NOT low priority. They are basic omics layers; SYSUCC's blood/plasma **biomarker** research is
+  largely mass-spec proteomics/metabolomics, and multi-omics stratification is incomplete without
+  them as first-class layers. The analysis workflows exist (DEqMS, MSstats, xcms, clusterProfiler);
+  what's thin is the *intelligence layer* (routing, param prefill, QC gates, stratification wiring).
+  → prime generalization targets, alongside spatial.
+- Clinical / multi-modal — the 院内数据 core; correspondence established by the hospital (honest).
+
+Re-ranked program (business-weighted):
+1. **Patient stratification / prognosis** — model-training generalization (DONE tonight: expression
+   matrix → subtype/prognosis + k-fold CV); next, wire to the clinical-stratification workflow and
+   demo on a CRC-subtype / NPC cohort.
+2. **Multi-omics integration, with EVERY basic layer first-class** — activate the engine AND bring
+   the routing/param/QC generalization to the weak layers (spatial, **proteomics, metabolomics**),
+   so "integrate genomic+transcriptomic+proteomic+metabolomic+clinical → subtype" is really general.
+3. **Spatial omics** composed pipeline (SYSUCC NPC atlas).
+4. **Immunology / immune deconvolution** (their PD-1/immunotherapy trial strength; currently generic).
+5. **Target-ID (arbiter) generalization** — EBV / immunotherapy own-drug direction.
+
+Lower priority for THESE audiences:
+- Generic **small-molecule** drug design (ADMET/docking/QSAR) — SYSUCC doesn't do small-molecule原创.
+- Their drug side (antibody/ADC/bispecific/cell-therapy) is already hand-tuned (`adc_design`,
+  `bispecific_format_triage`, `cart_construct_design`) → needs **polish, not generalization**.
