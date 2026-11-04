@@ -27,6 +27,9 @@ ENV PYTHONUNBUFFERED=1
 # libxrender1/libxext6:  X11 stubs for RDKit 2D rendering
 # git/build-essential:   compile fpocket from source (not in apt)
 # fpocket:               Binding-site detection (Le Guilloux et al. 2009)
+#                        Pinned to release 4.2.3. GCC 14 (Debian trixie base) makes incompatible-pointer-types an
+#                        error; fpocket's src/fparams.c:296-297 (custom-pocket '-r' option, unused here) trips it, so
+#                        that one diagnostic is kept a warning as on older compilers. The makefile's own CWARN is kept.
 #                        Required by pocket_detection_druggability workflow
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
@@ -35,8 +38,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     git \
     build-essential \
-    && git clone --depth 1 https://github.com/Discngine/fpocket.git /tmp/fpocket \
-    && cd /tmp/fpocket && make \
+    && git clone --depth 1 --branch 4.2.3 https://github.com/Discngine/fpocket.git /tmp/fpocket \
+    && cd /tmp/fpocket && make CWARN="-W -Wextra -Wwrite-strings -Wstrict-prototypes -Wno-error=incompatible-pointer-types" \
     && cp bin/fpocket bin/dpocket bin/mdpocket /usr/local/bin/ \
     && rm -rf /tmp/fpocket \
     && apt-get purge -y --auto-remove git build-essential \
