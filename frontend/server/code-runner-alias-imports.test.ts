@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'child_process';
-import { pythonAliasImports } from './code-runner';
+import { pythonAliasImports, pythonReplay } from './code-runner';
 
 // Each run_code call is a fresh process, and the model often drops `import numpy as np` from a
 // follow-up call (dev 2026-11-04: NameError 'np' / 'plt' cost a retry in 4 of 6 ad-hoc answers).
@@ -27,5 +27,20 @@ describe('pythonAliasImports', () => {
     catch { return; } // no python3 on this machine: the shape assertions above still hold
     expect(py.trim()).toBe('compiled');
     expect(src).toMatch(/try:\n {4}import seaborn as sns\nexcept ImportError:\n {4}pass/);
+  });
+});
+
+describe('pythonReplay — notebook-cell semantics within a turn', () => {
+  it('restores earlier cells\' state silently and skips a cell that fails', () => {
+    const src = pythonReplay(["df = 41\nprint('from cell 1')", "df += 1", "raise ValueError('bad cell')"]) + "\nprint('df =', df)";
+    let out = '';
+    try { out = execFileSync('python3', ['-'], { input: src }).toString(); }
+    catch (e: any) { if (e?.code === 'ENOENT') return; throw e; }
+    expect(out.trim()).toBe('df = 42'); // earlier cells' prints are suppressed
+  });
+
+  it('adds nothing without earlier cells', () => {
+    expect(pythonReplay([])).toBe('');
+    expect(pythonReplay()).toBe('');
   });
 });

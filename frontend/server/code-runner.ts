@@ -36,6 +36,9 @@ export interface CodeRunRequest {
   timeout_seconds?: number;
   /** Optional download function for Galaxy datasets. Signature matches galaxyAPIProxy. */
   downloadDataset?: (id: string) => Promise<AsyncIterable<Buffer>>;
+  /** Python only: code of this turn's earlier successful calls, re-run silently before `code` so its
+   *  variables, imports and loaded data exist (notebook-cell semantics; see pythonReplay). */
+  prior_code?: string[];
 }
 
 export interface OutputFile {
@@ -62,6 +65,24 @@ export function pythonAliasImports(code: string): string {
     .filter(([alias]) => new RegExp(`\\b${alias}\\.`).test(code) && !new RegExp(`\\bas\\s+${alias}\\b`).test(code))
     .map(([, stmt]) => `try:\n${stmt.split('\n').map(l => `    ${l}`).join('\n')}\nexcept ImportError:\n    pass`)
     .join('\n');
+}
+
+/** Re-runs earlier successful cells of this turn with their output suppressed, so a follow-up call
+ *  can use what they defined. Code-interpreter tools are conventionally stateful and the model writes
+ *  for that: even with "each call is a fresh process" in the tool description, follow-up calls used
+ *  `df` / `np` from the previous call (NameError in 3 of 6 ad-hoc answers on dev, 2026-11-04).
+ *  A cell that fails on replay is skipped. */
+export function pythonReplay(prior: string[] = []): string {
+  if (!prior.length) return '';
+  return [
+    'import contextlib as _bm_ctx, io as _bm_io',
+    `for _bm_src in ${JSON.stringify(prior)}:`,
+    '    try:',
+    '        with _bm_ctx.redirect_stdout(_bm_io.StringIO()), _bm_ctx.redirect_stderr(_bm_io.StringIO()):',
+    "            exec(compile(_bm_src, '<earlier run_code call>', 'exec'), globals())",
+    '    except BaseException:',
+    '        pass',
+  ].join('\n');
 }
 
 export const SANDBOX_INPUT_DIR = '/work/input';
@@ -265,6 +286,7 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
         pyInputFiles,
         `INPUT_PATHS = list(INPUT_FILES.values())`,
         pythonAliasImports(req.code),
+        pythonReplay(req.prior_code),
       ].filter(Boolean).join('\n');
       scriptName = 'script.py';
       scriptPath = path.join(baseDir, scriptName);

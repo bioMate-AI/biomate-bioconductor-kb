@@ -97,8 +97,9 @@ const BIOMATE_TOOLS: Anthropic.Tool[] = [
 Use this for: filtering/subsetting data, format conversion, statistics, generating plots,
 exploring file contents, counting rows/records, parsing ZIP/archive files, or any ad-hoc computation.
 
-Each call is a FRESH process: variables, imports and loaded data do NOT persist between calls.
-Every call must load what it uses (from INPUT_FILES) and do its whole computation in one script.
+Python calls within one reply behave like notebook cells: variables, imports and data loaded by
+earlier successful calls of this reply are available (their code is re-run silently first). R and
+bash calls are separate processes and must load what they use.
 
 File access: Input datasets are staged at $DATA_DIR/<dataset_id>/<original_filename>, and a
 preamble predefines INPUT_FILES (a map from original filename -> absolute path) and INPUT_PATHS
@@ -567,6 +568,8 @@ export interface ChatContext {
   /** This turn's user message (set by _processMessageInner) — lets tool handlers see the
    *  datasets attached to it ("[Uploaded datasets: ...]" block). */
   turnMessage?: string;
+  /** Successful Python run_code cells of the current turn (replayed before the next call). */
+  runCodeHistory?: { turn: string; codes: string[] };
   /** Set by the authenticated server route, never inferred from proxy fallback. */
   skillPrivateAccess?: boolean;
   /** Explicitly selected expert skill IDs (from SkillSelector UI). Auto-detected when absent. */
@@ -9705,15 +9708,15 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
    *  attached CSV the model called run_code without input_datasets eight times, read a guessed path,
    *  and gave up — INPUT_FILES was empty on every try. Galaxy reads are authenticated (the user's key,
    *  else the service key): user datasets are private. */
-  /** A dataset's bytes: Galaxy (with the given key) once its state is `ok`, else the locally stored
-   *  upload under `id` or `localFallbackId` (works when Galaxy is unavailable). Closing the iteration
+  /** A dataset's bytes: the locally stored upload under `id` or `localFallbackId` when there is one,
+   *  else Galaxy (with the given key) once the dataset's state is `ok`. Closing the iteration
    *  early cancels the Galaxy download.
    *
    *  Galaxy answers /display with HTTP 200 and an empty or partial body while the upload job is still
    *  running (dev 2026-11-04: state=running for ~19 s after upload, display 0 bytes then a partial
-   *  body), so run_code staged an empty file whenever the user asked right after attaching data. The
-   *  state is checked first; until it is `ok` the local copy (the same uploaded bytes) is used, and with
-   *  no local copy we wait for the job (up to `waitMs`). */
+   *  body), so run_code staged an empty file whenever the user asked right after attaching data. For a
+   *  Galaxy-only dataset the state is checked first and we wait for the job (up to `waitMs`); a failed
+   *  or unfinished job is an error, never an empty file. */
   private async _openDataset(id: string, galaxyKey: string, localFallbackId?: string, waitMs = 60000): Promise<AsyncIterable<Buffer>> {
     const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
     const headers: Record<string, string> = galaxyKey ? { 'x-api-key': galaxyKey } : {};
@@ -9735,9 +9738,13 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         return null;
       }
     };
+    // The user's own upload is on local disk (the exact bytes they sent): read it, never Galaxy. Under
+    // load the state check below can itself time out (state unknown) and Galaxy then serves the
+    // in-progress empty body — one more EmptyDataError on dev (2026-11-04, 3 parallel chats) after
+    // the state check alone shipped. Galaxy is only for datasets that exist nowhere else.
+    if (local?.filePath) return readLocal();
     let state = await galaxyState();
     if (state && state !== 'ok') {
-      if (local?.filePath) return readLocal();
       const deadline = Date.now() + waitMs;
       while (state && !['ok', 'error', 'failed_metadata', 'discarded', 'deferred'].includes(state) && Date.now() < deadline) {
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -9767,9 +9774,8 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
           }
         };
       }
-    } catch { /* fall through to local */ }
+    } catch { /* fall through */ }
 
-    if (local?.filePath) return readLocal();
     throw new Error(`Dataset ${id} not accessible via Galaxy or local storage`);
   }
 
@@ -9834,13 +9840,22 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         return { id, filename: id };
       }));
 
+    // Notebook-cell semantics for Python within this turn (see pythonReplay in code-runner.ts).
+    const turn = context?.turnMessage || '';
+    if (context && context.runCodeHistory?.turn !== turn) context.runCodeHistory = { turn, codes: [] };
+    const prior = input.language === 'python' ? context?.runCodeHistory?.codes ?? [] : [];
+
     const result = await runCode({
       language: input.language,
       code: input.code,
       input_datasets: datasetRefs,
       timeout_seconds: input.timeout_seconds ?? 30,
       downloadDataset,
+      prior_code: prior.length ? [...prior] : undefined,
     });
+    if (input.language === 'python' && result.exit_code === 0 && context?.runCodeHistory) {
+      context.runCodeHistory.codes.push(String(input.code || ''));
+    }
     return autoStaged
       ? { ...result, note: 'input_datasets was empty; staged the datasets attached to this message — open them via INPUT_FILES / staged_inputs.' }
       : result;
