@@ -381,16 +381,31 @@ def internal_job_completed(payload: JobCompletedPayload):
         is_spot=payload.is_spot,
     )
 
-    # Write to Redis
+    # Write to Redis (dead-letters durably on Redis failure).
     svc = get_cost_service()
-    svc.record_batch_job_cost(
-        user_id=payload.user_id,
-        job_id=payload.job_id,
-        vcpu_usd=cost.vcpu_cost,
-        gpu_usd=cost.gpu_cost,
-        mem_usd=cost.memory_cost,
-        duration_seconds=payload.duration_seconds,
-    )
+    try:
+        job_durability = svc.record_batch_job_cost(
+            user_id=payload.user_id,
+            job_id=payload.job_id,
+            vcpu_usd=cost.vcpu_cost,
+            gpu_usd=cost.gpu_cost,
+            mem_usd=cost.memory_cost,
+            duration_seconds=payload.duration_seconds,
+        ) or "redis"
+    except Exception as _redis_err:
+        log.error("[billing] record_batch_job_cost raised unexpectedly: %s", _redis_err)
+        job_durability = "lost"
+
+    if job_durability == "lost":
+        log.error(
+            "[billing] Batch job cost NOT durably recorded (Redis + dead-letter "
+            "both failed) user=%s job=%s cost=$%.6f",
+            payload.user_id, payload.job_id, cost.total_cost,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Batch job cost event could not be durably recorded",
+        )
 
     # Emit to Lago
     lago = get_lago_client()
@@ -423,7 +438,10 @@ def internal_job_completed(payload: JobCompletedPayload):
         payload.job_id, payload.user_id,
         cost.total_cost, cost.vcpu_cost, cost.gpu_cost, cost.memory_cost,
     )
-    return {"ok": True, "total_cost_usd": cost.total_cost}
+    resp = {"ok": True, "total_cost_usd": cost.total_cost, "durability": job_durability}
+    if job_durability == "deadletter":
+        resp["queued"] = True
+    return resp
 
 
 # ---------------------------------------------------------------------------
@@ -453,13 +471,30 @@ def internal_s3_put(payload: S3PutPayload):
         size_bytes=payload.size_bytes,
     )
     svc = get_cost_service()
-    svc.record_s3_put(
-        user_id=payload.user_id,
-        size_bytes=payload.size_bytes,
-        storage_usd=cost.storage_cost,
-        request_usd=cost.request_cost,
-        object_key=payload.key,
-    )
+    # record_s3_put dead-letters durably on Redis failure.
+    try:
+        s3_durability = svc.record_s3_put(
+            user_id=payload.user_id,
+            size_bytes=payload.size_bytes,
+            storage_usd=cost.storage_cost,
+            request_usd=cost.request_cost,
+            object_key=payload.key,
+        ) or "redis"
+    except Exception as _redis_err:
+        log.error("[billing] record_s3_put raised unexpectedly: %s", _redis_err)
+        s3_durability = "lost"
+
+    if s3_durability == "lost":
+        log.error(
+            "[billing] S3 put cost NOT durably recorded (Redis + dead-letter "
+            "both failed) user=%s key=%s cost=$%.6f",
+            payload.user_id, payload.key, cost.total_cost,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="S3 put cost event could not be durably recorded",
+        )
+
     get_lago_client().emit_s3_put(
         user_id=payload.user_id,
         size_bytes=payload.size_bytes,
@@ -475,7 +510,10 @@ def internal_s3_put(payload: S3PutPayload):
             key=payload.key,
             transaction_id=f"s3-{uuid.uuid4().hex[:12]}",
         )
-    return {"ok": True, "total_cost_usd": cost.total_cost}
+    resp = {"ok": True, "total_cost_usd": cost.total_cost, "durability": s3_durability}
+    if s3_durability == "deadletter":
+        resp["queued"] = True
+    return resp
 
 
 # ---------------------------------------------------------------------------
@@ -502,18 +540,31 @@ def internal_llm_cost(payload: LLMCostPayload):
         output_tokens=payload.output_tokens,
     )
     svc = get_cost_service()
+    # record_llm_cost returns a durability status: "redis" (written),
+    # "deadletter" (Redis failed → durably queued), or "lost" (both failed).
     try:
-        svc.record_llm_cost(
+        llm_durability = svc.record_llm_cost(
             user_id=payload.user_id,
             input_usd=cost.input_cost,
             output_usd=cost.output_cost,
             input_tokens=cost.input_tokens,
             output_tokens=cost.output_tokens,
-        )
+        ) or "redis"
     except Exception as _redis_err:
-        import logging as _log
-        _log.getLogger(__name__).warning(
-            "[billing] Redis unavailable — LLM cost not recorded locally: %s", _redis_err
+        # record_llm_cost dead-letters internally and should not raise; if it
+        # somehow does, treat it as a total loss rather than a silent 200.
+        log.error("[billing] record_llm_cost raised unexpectedly: %s", _redis_err)
+        llm_durability = "lost"
+
+    if llm_durability == "lost":
+        log.error(
+            "[billing] LLM cost NOT durably recorded (Redis + dead-letter both "
+            "failed) user=%s model=%s in=%d out=%d",
+            payload.user_id, payload.model, payload.input_tokens, payload.output_tokens,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="LLM cost event could not be durably recorded",
         )
 
     # Emit to Lago for usage-based billing (subscription routing uses the user's plan)
@@ -540,11 +591,14 @@ def internal_llm_cost(payload: LLMCostPayload):
         )
 
     log.info(
-        "llm_cost user=%s model=%s in=%d out=%d cost=$%.8f",
+        "llm_cost user=%s model=%s in=%d out=%d cost=$%.8f durability=%s",
         payload.user_id, payload.model,
-        payload.input_tokens, payload.output_tokens, cost.total_cost,
+        payload.input_tokens, payload.output_tokens, cost.total_cost, llm_durability,
     )
-    return {"ok": True, "total_cost_usd": cost.total_cost}
+    resp = {"ok": True, "total_cost_usd": cost.total_cost, "durability": llm_durability}
+    if llm_durability == "deadletter":
+        resp["queued"] = True
+    return resp
 
 
 # ---------------------------------------------------------------------------
