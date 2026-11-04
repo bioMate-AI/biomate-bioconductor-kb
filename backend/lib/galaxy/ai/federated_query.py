@@ -332,10 +332,15 @@ def _fetch_string(query: str) -> Dict:
 
 def _fetch_kegg(query: str) -> Dict:
     q = urllib.parse.quote(query)
+    # KEGG's find endpoint returns TAB-separated text, not JSON, so it can't go
+    # through _get(). It must still record a transport failure via _note_failure
+    # so _run_fetcher distinguishes "KEGG errored (429/timeout/outage)" from a
+    # genuine "0 pathways" — otherwise a rate-limit is reported as "ok, 0 results".
+    url = f"https://rest.kegg.jp/find/pathway/{q}"
+    if _OFFLINE:
+        return {"source": "kegg", "results": []}
     try:
-        with urllib.request.urlopen(
-            f"https://rest.kegg.jp/find/pathway/{q}", timeout=_TIMEOUT
-        ) as resp:
+        with urllib.request.urlopen(url, timeout=_TIMEOUT) as resp:
             text = resp.read().decode()
             results = []
             for line in text.strip().split("\n")[:5]:
@@ -343,7 +348,9 @@ def _fetch_kegg(query: str) -> Dict:
                     pid, name = line.split("\t", 1)
                     results.append({"pathway_id": pid, "name": name})
             return {"source": "kegg", "results": results}
-    except Exception:
+    except Exception as e:
+        log.debug("[federated_query] GET %s → %s", url, e)
+        _note_failure(url, e)
         return {"source": "kegg", "results": []}
 
 def _fetch_reactome(query: str) -> Dict:
