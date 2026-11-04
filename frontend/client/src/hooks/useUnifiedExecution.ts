@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { parseSSEData } from '@/lib/sse-parse';
 import type {
   ExecutionRun,
   ExecutionConfig,
@@ -352,7 +353,8 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
 
     // Workflow state changes
     eventSource.addEventListener('workflow_state', (event) => {
-      const update = JSON.parse(event.data);
+      const update = parseSSEData<any>(event.data);
+      if (!update || !update.data) return;
       console.log('[UnifiedExecution] Workflow state:', update.data.workflow_state);
 
       // Fire OS notification on terminal state (SSE path)
@@ -423,7 +425,8 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
 
     // Step state changes
     eventSource.addEventListener('step_state', (event) => {
-      const update = JSON.parse(event.data);
+      const update = parseSSEData<any>(event.data);
+      if (!update || !update.data) return;
       const { step_id, step_state, job_id } = update.data;
 
       setState((prev) => {
@@ -484,7 +487,8 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
 
     // Progress milestones
     eventSource.addEventListener('progress_milestone', (event) => {
-      const update = JSON.parse(event.data);
+      const update = parseSSEData<any>(event.data);
+      if (!update) return;
       console.log('[UnifiedExecution] Progress milestone:', update.data);
     });
 

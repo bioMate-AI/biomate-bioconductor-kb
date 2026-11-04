@@ -379,7 +379,14 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
           signal: controller.signal,
         });
         if (!resp.ok) {
-          return { stdout: '', stderr: `[sidecar error: HTTP ${resp.status}]`, exitCode: 1 };
+          // Include the response body — a bare "HTTP 500" hides the real cause
+          // (bad image, OOM, gVisor runtime missing, auth rejected).
+          const detail = await resp.text().catch(() => '');
+          return {
+            stdout: '',
+            stderr: `[sidecar error: HTTP ${resp.status} ${resp.statusText}]${detail ? ' ' + detail.slice(0, 4000) : ''}`,
+            exitCode: 1,
+          };
         }
         const body: any = await resp.json();
         return {
