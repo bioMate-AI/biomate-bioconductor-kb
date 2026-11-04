@@ -611,21 +611,48 @@ export class GalaxyAPIProxy {
    * Upload a dataset to a Galaxy history
    */
   async uploadDataset(filePath: string, historyId: string, fileName: string): Promise<string> {
-    const FormData = require('form-data');
-    const fs = require('fs');
+    // Upload via the `upload1` tool on POST /api/tools — the bioblend-proven,
+    // version-stable path. (The old POST /api/histories/{id}/contents multipart
+    // is a JSON content-creation endpoint, NOT a raw-file upload; Galaxy 25.x
+    // rejects a file part there with HTTP 400, which silently killed HDA creation
+    // for every uploaded input.) The file part is `files_0|file_data`; the tool
+    // inputs go as a JSON-encoded `inputs` field referencing that part.
+    //
+    // Uses global fetch + FormData/Blob (Node 18+/undici, already used by
+    // provisionGalaxyUser): the `form-data` npm package is not a dependency and a
+    // dynamic require() throws in the ESM server bundle. fetch also sets the
+    // multipart boundary itself, avoiding axios' JSON default content-type.
+    const fileBuf = fs.readFileSync(filePath);
+    const form = new FormData();
+    form.append('history_id', historyId);
+    form.append('tool_id', 'upload1');
+    form.append('inputs', JSON.stringify({
+      file_type: 'auto',
+      dbkey: '?',
+      'files_0|type': 'upload_dataset',
+      'files_0|NAME': fileName,
+    }));
+    form.append('files_0|file_data', new Blob([fileBuf]), fileName);
 
-    const formData = new FormData();
-    formData.append('file', fs.createReadStream(filePath));
-    formData.append('file_type', 'auto');
-
-    const response = await this.client.post(
-      `/api/histories/${historyId}/contents`,
-      formData,
-      {
-        headers: formData.getHeaders()
-      }
-    );
-    return response.data.id;
+    const url = `${this.galaxyUrl}/api/tools`;
+    let resp: any;
+    try {
+      resp = await fetch(url, {
+        method: 'POST',
+        headers: this.apiKey ? { 'x-api-key': this.apiKey } : {},
+        body: form as any,
+      });
+    } catch (err: any) {
+      throw new Error(`Galaxy upload1 request failed: ${err?.message ?? err}`);
+    }
+    if (!resp.ok) {
+      const body = await resp.text().catch(() => '');
+      throw new Error(`Galaxy upload1 failed (HTTP ${resp.status}): ${String(body).slice(0, 400)}`);
+    }
+    const data: any = await resp.json().catch(() => ({}));
+    const out = data?.outputs?.[0]?.id || data?.output_collections?.[0]?.id || data?.id;
+    if (!out) throw new Error(`upload1 returned no output id: ${JSON.stringify(data).slice(0, 300)}`);
+    return out;
   }
 
   /**
