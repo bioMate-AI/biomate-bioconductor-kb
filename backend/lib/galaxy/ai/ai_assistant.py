@@ -4575,6 +4575,17 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         if not _best_seq:
             return None
 
+        # A sequence in a DESIGN request is the target/binding site or the molecule to improve,
+        # not a structure-prediction job: "Design cyclic peptides against this binding site" and
+        # "Improve serum stability without losing affinity (peptide design)" carry a target
+        # sequence and were answered with nf-core/proteinfold (dev 2026-11-04, once the real
+        # nf-core pipelines were restored and proteinfold became resolvable). Same rule as the
+        # ADMET fast path: the request's own task decides, not the presence of a sequence.
+        if self._is_generative_task(user_intent):
+            log.info("[ProteinStructureFastPath] generative task with a sequence (target/molecule to "
+                     "design against) — not structure prediction; skipping")
+            return None
+
         # Only route here if the query is NOT clearly about nucleotide analysis
         # (e.g. "align to reference genome", "variant calling") — those also match AA regex.
         _nucleotide_only_kw = ('variant call', 'snp', 'indel', 'vcf', 'genome align', 'bwa',
