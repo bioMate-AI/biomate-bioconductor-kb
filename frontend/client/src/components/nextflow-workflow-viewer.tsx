@@ -2314,7 +2314,21 @@ export function NextflowWorkflowViewer({
     // Reset auto-loop panel when the invocationId changes (new run)
     setAutoLoopPanel({ gateResults: null, remediations: [], regulatoryActions: [], complete: null });
 
-    const es = new EventSource(`/api/workflows/${invocationId}/events`);
+    // US-7.2 style reconnect: a transient SSE blip must NOT permanently close the
+    // stream. This channel carries live run telemetry (step_state, workflow_state,
+    // autoloop_*, qc_gate_*); closing on the first error froze the panel on
+    // "Running…" forever. Reconnect with exponential backoff, capped at 5 attempts,
+    // mirroring workflow-artifact.tsx. `stopped` + the cleanup below still close
+    // cleanly on a real unmount so there is no leak or double-subscribe.
+    let currentEs: EventSource | null = null;
+    let reconnectAttempts = 0;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const connect = () => {
+      if (stopped) return;
+      const es = new EventSource(`/api/workflows/${invocationId}/events`);
+      currentEs = es;
+      es.onopen = () => { reconnectAttempts = 0; };
 
     // Workflow-progress chat lines from the backend narrator (workflow.submitted,
     // workflow.phase_started, workflow.completed, workflow.failed, etc.). The
@@ -2594,13 +2608,31 @@ export function NextflowWorkflowViewer({
     });
     // ─────────────────────────────────────────────────────────────────────
 
-    es.onerror = () => {
-      if (!stopped) es.close();
+      es.onerror = () => {
+        // Close the dead handle (defeating EventSource's own retry so we control
+        // the cadence), then reconnect with exponential backoff up to 5 attempts.
+        // After the cap we stop: the panel keeps its last-known status instead of
+        // spinning on a dead socket. A real unmount sets `stopped` first, so this
+        // never fires a reconnect against a torn-down component.
+        es.close();
+        if (currentEs === es) currentEs = null;
+        if (stopped) return;
+        const attempt = reconnectAttempts;
+        reconnectAttempts += 1;
+        if (attempt < 5) {
+          const delay = Math.min(2000 * Math.pow(2, attempt), 30000);
+          reconnectTimer = setTimeout(connect, delay);
+        }
+      };
     };
+
+    connect();
 
     return () => {
       stopped = true;
-      es.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      currentEs?.close();
+      currentEs = null;
     };
   }, [invocationId]);
 

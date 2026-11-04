@@ -320,6 +320,11 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
   const notifiedRunsRef = useRef<Set<string>>(new Set());
   // Synchronous mirror of state.currentRun so polling can check without setState-callback timing issues
   const currentRunRef = useRef<ExecutionRun | null>(null);
+  // Refs to startPolling / stopPolling so the SSE handlers (defined above these
+  // callbacks in source order) can arm / cancel the DB-poll fallback without a
+  // temporal-dead-zone reference or a stale closure.
+  const startPollingRef = useRef<((runId: string) => void) | null>(null);
+  const stopPollingRef = useRef<(() => void) | null>(null);
 
   // Keep currentRunRef in sync with state.currentRun
   useEffect(() => {
@@ -344,11 +349,23 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
     eventSource.onopen = () => {
       console.log('[UnifiedExecution] SSE connected');
       setState((prev) => ({ ...prev, isConnected: true }));
+      // SSE is live (or recovered) — cancel any DB-poll fallback armed by a
+      // prior onerror so we don't keep polling alongside a healthy stream.
+      stopPollingRef.current?.();
     };
 
     eventSource.onerror = () => {
-      console.warn('[UnifiedExecution] SSE error, will auto-reconnect');
+      console.warn('[UnifiedExecution] SSE error — arming DB-status poll fallback');
       setState((prev) => ({ ...prev, isConnected: false }));
+      // The browser keeps retrying a dead EventSource silently, so a non-transient
+      // SSE failure would otherwise leave the run stuck on 'running' forever. Arm a
+      // polling fallback that advances status from the DB. It self-stops on the next
+      // terminal state, onopen cancels it if SSE recovers, and the pollIntervalRef
+      // guard prevents stacking duplicate intervals on repeated errors.
+      const activeRunId = currentRunRef.current?.id;
+      if (activeRunId && !pollIntervalRef.current) {
+        startPollingRef.current?.(activeRunId);
+      }
     };
 
     // Workflow state changes
@@ -637,6 +654,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
     pollIntervalRef.current = setInterval(poll, pollInterval);
     poll(); // Initial fetch
   }, [pollInterval]);
+  startPollingRef.current = startPolling;
 
   const stopPolling = useCallback(() => {
     if (pollIntervalRef.current) {
@@ -644,6 +662,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
       pollIntervalRef.current = null;
     }
   }, []);
+  stopPollingRef.current = stopPolling;
 
   // ============================================================================
   // Actions
