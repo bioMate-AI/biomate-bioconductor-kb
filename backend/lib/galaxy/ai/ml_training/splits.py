@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Any, Optional, Sequence
 
 SCAFFOLD_METHOD = "bemis_murcko_scaffold"
 RANDOM_METHOD = "random"
@@ -120,3 +120,82 @@ def split_dataset(smiles: Sequence[str], split: str, val_frac: float, test_frac:
     if split == "random":
         return random_split(len(smiles), val_frac, test_frac, seed)
     raise ValueError(f"unsupported split '{split}'")
+
+
+KFOLD_METHOD = "stratified_kfold"
+KFOLD_RANDOM_METHOD = "kfold"
+
+
+@dataclass
+class FoldResult:
+    """One cross-validation fold: indices held out for validation and the rest."""
+    fold: int
+    train: list[int]
+    val: list[int]
+
+
+@dataclass
+class KFoldResult:
+    method: str
+    k: int
+    seed: int
+    folds: list[FoldResult]
+    stratified: bool
+
+    def metadata(self) -> dict[str, Any]:
+        return {
+            "method": self.method,
+            "k": self.k,
+            "seed": self.seed,
+            "stratified": self.stratified,
+            "fold_val_sizes": [len(f.val) for f in self.folds],
+        }
+
+
+def kfold_split(n: int, k: int, seed: int,
+                labels: Optional[Sequence[Any]] = None) -> KFoldResult:
+    """Deterministic k-fold cross-validation partition of ``range(n)``.
+
+    When ``labels`` are given the folds are STRATIFIED: each label's members are
+    distributed round-robin across the k folds so every fold keeps (as close as
+    integer counts allow) the dataset's class balance — the correct default for
+    classification tasks such as subtype prediction. Without labels it is a plain
+    seeded k-fold. Depends only on (n, k, seed, labels), never on input order.
+    """
+    if k < 2:
+        raise ValueError(f"k-fold needs k >= 2, got {k}")
+    if n < k:
+        raise ValueError(f"cannot make {k} folds from {n} rows")
+    rng = random.Random(seed)
+    fold_of: dict[int, int] = {}
+    if labels is not None:
+        if len(labels) != n:
+            raise ValueError(f"labels length {len(labels)} != n {n}")
+        by_label: dict[Any, list[int]] = {}
+        for i, y in enumerate(labels):
+            by_label.setdefault(y, []).append(i)
+        # Deterministic: sort groups by label key (fall back to str for mixed types).
+        try:
+            group_keys = sorted(by_label)
+        except TypeError:
+            group_keys = sorted(by_label, key=lambda v: str(v))
+        for key in group_keys:
+            idxs = by_label[key][:]
+            rng.shuffle(idxs)
+            for pos, i in enumerate(idxs):
+                fold_of[i] = pos % k
+        stratified = True
+        method = KFOLD_METHOD
+    else:
+        order = list(range(n))
+        rng.shuffle(order)
+        for pos, i in enumerate(order):
+            fold_of[i] = pos % k
+        stratified = False
+        method = KFOLD_RANDOM_METHOD
+    folds: list[FoldResult] = []
+    for f in range(k):
+        val = sorted(i for i, fo in fold_of.items() if fo == f)
+        train = sorted(i for i, fo in fold_of.items() if fo != f)
+        folds.append(FoldResult(fold=f, train=train, val=val))
+    return KFoldResult(method=method, k=k, seed=seed, folds=folds, stratified=stratified)

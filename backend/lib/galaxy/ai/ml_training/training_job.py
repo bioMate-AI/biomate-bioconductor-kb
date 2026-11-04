@@ -201,6 +201,10 @@ def _run(cfg, artifact_dir, registry, version, load_fn, train_fn, tracker) -> Jo
     from .config import LLM_MODEL_TYPES
     if cfg.model_type in LLM_MODEL_TYPES:
         dataset = LoadedDataset([], "instruction", "output", source="llm/text (loaded in trainer)")
+    elif cfg.model_type == "sklearn_tabular":
+        # Generic feature-matrix trainer loads its own CSV (not the SMILES loader).
+        dataset = LoadedDataset([], "features", cfg.dataset.target_col,
+                                source="tabular (loaded in trainer)")
     else:
         dataset = load_fn(cfg.dataset)
     log.info("[ml_training] loaded %d rows from %s", len(dataset), dataset.source)

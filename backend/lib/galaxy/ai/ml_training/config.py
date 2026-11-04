@@ -31,8 +31,11 @@ TASK_TYPES = ("classification", "regression", "text_generation")
 # trl_dpo = LLM preference optimization (DPO, TRL); trl_grpo = LLM reinforcement
 # learning (GRPO, TRL). Both run in the separate trl-training image (modern
 # torch+trl, no Ludwig) since TRL's deps conflict with Ludwig's pins.
-MODEL_TYPES = ("chemprop_gnn", "ludwig_tabular", "sklearn_gbr", "ludwig_llm",
-               "trl_dpo", "trl_grpo")
+# sklearn_tabular = generic numeric feature-matrix learner (e.g. a gene-expression
+# matrix + a subtype/outcome label), with stratified k-fold cross-validation.
+# NOT molecule-specific — the general counterpart to the SMILES-only paths.
+MODEL_TYPES = ("chemprop_gnn", "ludwig_tabular", "sklearn_gbr", "sklearn_tabular",
+               "ludwig_llm", "trl_dpo", "trl_grpo")
 LLM_MODEL_TYPES = ("ludwig_llm", "trl_dpo", "trl_grpo")   # text-generation family
 TRL_MODEL_TYPES = ("trl_dpo", "trl_grpo")                 # run in trl-training image
 FEATURIZERS = ("rdkit_2d", "morgan", "none")
@@ -110,9 +113,10 @@ class DatasetSpec:
     s3_uri: Optional[str] = None
     smiles_col: str = "smiles"
     target_col: str = "y"
-    split: str = "scaffold"        # scaffold | random
+    split: str = "scaffold"        # scaffold | random | kfold
     val_frac: float = 0.1
     test_frac: float = 0.1
+    cv_folds: int = 5              # k for split="kfold" (generic tabular path)
 
     def source_kind(self) -> str:
         provided = [k for k, v in (("name", self.name), ("path", self.path),
@@ -125,8 +129,10 @@ class DatasetSpec:
 
     def validate(self) -> None:
         self.source_kind()  # raises if not exactly one source
-        if self.split not in ("scaffold", "random"):
+        if self.split not in ("scaffold", "random", "kfold"):
             raise ConfigError(f"unknown split '{self.split}'")
+        if self.split == "kfold" and self.cv_folds < 2:
+            raise ConfigError("cv_folds must be >= 2 for split='kfold'")
         if not (0.0 <= self.val_frac < 1.0) or not (0.0 <= self.test_frac < 1.0):
             raise ConfigError("val_frac/test_frac must be in [0, 1)")
         if self.val_frac + self.test_frac >= 1.0:

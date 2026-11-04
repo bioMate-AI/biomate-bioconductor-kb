@@ -161,6 +161,87 @@ def _load_s3(spec: DatasetSpec) -> LoadedDataset:
 
 
 # ---------------------------------------------------------------------------
+# Generic tabular datasets: numeric feature matrix + a label column
+# (e.g. a gene-expression matrix with a subtype/outcome label) — NOT molecules.
+# ---------------------------------------------------------------------------
+
+@dataclass
+class LoadedTabularDataset:
+    X: list[list[float]]          # one row of numeric features per sample
+    y: list                       # labels: str for classification, float for regression
+    feature_names: list[str]
+    target_col: str
+    source: str
+    task: str                     # 'classification' | 'regression'
+
+    def __len__(self) -> int:
+        return len(self.y)
+
+
+def _looks_numeric(values) -> bool:
+    for v in values:
+        if v in (None, ""):
+            continue
+        try:
+            float(v)
+        except (TypeError, ValueError):
+            return False
+    return True
+
+
+def load_tabular_dataset(path: str, target_col: str,
+                         id_cols: Optional[list] = None,
+                         task: Optional[str] = None) -> LoadedTabularDataset:
+    """Load a generic feature-matrix CSV with a label column.
+
+    Every column except ``target_col`` and any ``id_cols`` is treated as a
+    numeric feature (e.g. one gene per column in an expression matrix). Rows
+    missing the label are skipped; missing feature cells become 0.0. The task is
+    inferred when not given: a non-numeric or low-cardinality label column is
+    ``classification`` (subtype prediction), otherwise ``regression``.
+    """
+    p = Path(path)
+    if not p.exists():
+        raise ConfigError(f"dataset path not found: {path}")
+    skip = {target_col, *(id_cols or [])}
+    rows_raw: list[dict] = []
+    with p.open(newline="") as fh:
+        reader = csv.DictReader(fh)
+        cols = reader.fieldnames or []
+        if target_col not in cols:
+            raise ConfigError(f"target_col '{target_col}' not in CSV columns {cols}")
+        feature_names = [c for c in cols if c not in skip]
+        if not feature_names:
+            raise ConfigError("no feature columns found (all columns are target/id)")
+        for row in reader:
+            if row.get(target_col) in (None, ""):
+                continue
+            rows_raw.append(row)
+    if not rows_raw:
+        raise ConfigError(f"no usable rows parsed from {path}")
+
+    raw_labels = [r[target_col] for r in rows_raw]
+    if task is None:
+        uniq = set(raw_labels)
+        task = ("classification"
+                if (not _looks_numeric(raw_labels) or len(uniq) <= max(2, len(raw_labels) // 10))
+                else "regression")
+    y: list = ([str(v) for v in raw_labels] if task == "classification"
+               else [float(v) for v in raw_labels])
+
+    def _num(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return 0.0
+    X = [[_num(r.get(c)) for c in feature_names] for r in rows_raw]
+    return LoadedTabularDataset(
+        X=X, y=y, feature_names=feature_names, target_col=target_col,
+        source=f"tabular-csv:{path}", task=task,
+    )
+
+
+# ---------------------------------------------------------------------------
 # LLM fine-tuning: instruction/response datasets (text, not molecules)
 # ---------------------------------------------------------------------------
 
