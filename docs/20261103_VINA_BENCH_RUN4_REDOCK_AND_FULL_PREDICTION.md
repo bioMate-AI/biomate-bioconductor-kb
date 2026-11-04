@@ -31,3 +31,23 @@ property-matched decoys; a value near 0.5 would mean the docking score adds noth
 ## What would make the runs uninformative
 Pharmacophore filtering removing most actives (it was built from 5 diverse references) — then the AUROC measures the filter, not docking. The scorer counts
 filtered-out actives as misses; the per-step counts will be reported separately.
+
+## Results of run 4 (recorded after the runs)
+- **Timing:** full chain 33 min (pocket 3, pharmacophore 2, ADMET 4.5, docking 23.5). Docking ran 29 shards of 10; only about 8 at a time because
+  compute environment `biomate-nextflow-ce-v2` is capped at 48 vCPUs and each shard requests 6 (executor tier `process_medium` = 6 vCPU / 36 GB).
+- **Full library (287 of 296 docked; 1 active filtered out):** AUROC 0.545, permutation p = 0.153, EF1% 1.97, EF5% 1.58. Within the predicted
+  0.50–0.65 band and not distinguishable from chance.
+- **Redocking control: FAIL.** Top-scored pose 5.77 Å from crystal erlotinib (heavy-atom RMSD, `nearest`); the only near-crystal pose (1.96 Å) ranked 9 of 9;
+  the nine Vina scores span only −7.36 to −7.06.
+- **Scorer defect found and fixed:** `_read_heavy_coords` stopped at any line starting with "END", which includes PDBQT `ENDROOT`, so it read 10 of 29 atoms.
+  Fixed (stop only at `ENDMDL` or a bare `END`) with a regression test.
+
+## Root cause found for the redock failure, and fix (run 5 prediction)
+1M17 contains no hydrogen atoms, and receptor preparation (`obabel -xr`) added none, so the receptor PDBQT had no HD atoms. Vina recognises receptor
+H-bond donors only through polar hydrogens, so the hinge Met769 N–H → erlotinib N1 hydrogen bond, which anchors quinazoline inhibitors, could not be scored —
+consistent with near-flat scores and a misplaced top pose. Fix: `obabel ... -xr -p 7.4` (hydrogens for pH 7.4; the PDBQT writer keeps polar H), a hard
+error if the receptor has zero HD atoms, and the polar-hydrogen count in the log. The old fallback that renamed the raw PDB to .pdbqt on any preparation
+error is removed (it produced meaningless scores silently).
+**Prediction for the redock rerun:** log shows several hundred polar hydrogens for the trimmed receptor; top pose RMSD drops below 2.0 Å (I give it
+about 65%); scores spread more and become more negative (about −8 to −9.5 kcal/mol for erlotinib). If the top pose is still above 2 Å with donors present,
+the remaining suspects are search depth (exhaustiveness 8 for a 10-rotatable-bond ligand) and the SMILES-built starting conformer, in that order.

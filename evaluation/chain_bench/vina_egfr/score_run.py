@@ -199,7 +199,9 @@ def _read_heavy_coords(path):
                 atoms.append((el.capitalize(), float(ln[0:10]), float(ln[10:20]), float(ln[20:30])))
     else:
         for ln in lines:
-            if ln.startswith(("ENDMDL", "END")) and atoms:
+            # Stop at the end of the first model only. PDBQT also has ENDROOT / ENDBRANCH records inside a pose,
+            # so a bare startswith("END") cut every pose after its rigid root (10 of erlotinib's 29 heavy atoms).
+            if (ln.startswith("ENDMDL") or ln.strip() == "END") and atoms:
                 break
             if ln.startswith(("ATOM", "HETATM")):
                 name = ln[12:16].strip()

@@ -100,3 +100,15 @@ class T(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_pdbqt_pose_with_root_and_branches_reads_every_heavy_atom(tmp_path=None):
+    import os, tempfile
+    d = tempfile.mkdtemp()
+    pose = os.path.join(d, "pose.pdbqt")
+    rec = lambda i, el, ad, x: "ATOM  %5d  %-3s UNL     1    %8.3f%8.3f%8.3f  1.00  0.00    +0.000 %s" % (i, el, x, 0.0, 0.0, ad)
+    lines = ["MODEL 1", "ROOT", rec(1, "C", "A ", 0.0), rec(2, "N", "NA", 1.0), "ENDROOT", "BRANCH   1   3",
+             rec(3, "O", "OA", 2.0), rec(4, "H", "HD", 3.0), "ENDBRANCH   1   3", "ENDMDL", "MODEL 2", "ROOT", rec(1, "C", "A ", 9.0), "ENDROOT", "ENDMDL"]
+    open(pose, "w").write("\n".join(lines) + "\n")
+    atoms = S._read_heavy_coords(pose)
+    assert [a[0] for a in atoms] == ["C", "N", "O"]          # past ENDROOT/ENDBRANCH, hydrogen dropped, model 2 ignored
