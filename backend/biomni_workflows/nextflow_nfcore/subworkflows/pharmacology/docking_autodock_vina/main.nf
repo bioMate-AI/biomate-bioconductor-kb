@@ -168,7 +168,9 @@ def sdf_to_pdbqt(sdf_path, pdbqt_path):
 def receptor_pdb_to_pdbqt(pdb_path, pdbqt_path):
     import subprocess
     r = subprocess.run(
-        ['obabel', pdb_path, '-O', pdbqt_path, '-xr'],
+        # -p 7.4: add hydrogens for pH 7.4. Crystal structures carry none, and Vina recognises receptor H-bond
+        # donors only through polar hydrogens (HD atoms); the PDBQT writer keeps polar H and merges non-polar H.
+        ['obabel', pdb_path, '-O', pdbqt_path, '-xr', '-p', '7.4'],
         capture_output=True, text=True
     )
     detail = ((r.stderr or '') + (r.stdout or '')).strip()
@@ -183,6 +185,11 @@ def receptor_pdb_to_pdbqt(pdb_path, pdbqt_path):
         raise RuntimeError(
             f'obabel wrote trivial receptor PDBQT ({sz} bytes): {detail}'
         )
+    with open(pdbqt_path) as fh:
+        n_hd = sum(1 for ln in fh if ln.startswith(('ATOM', 'HETATM')) and ln[77:79].strip() == 'HD')
+    if n_hd == 0:
+        raise RuntimeError('receptor PDBQT has no polar hydrogens (HD); Vina would score no receptor H-bond donors')
+    return n_hd
 
 # ── Helper: trim PDB to Vina search region ──────────────────────────────────
 # Whole-virus or deposited assemblies often exceed ~10k ATOM records; Open Babel
@@ -343,11 +350,12 @@ try:
     log.append(f'Step 1: Preparing receptor {os.path.basename(rec_pdb)}')
     rec_pdbqt = os.path.join(tmpdir, 'receptor.pdbqt')
     try:
-        receptor_pdb_to_pdbqt(rec_for_prep, rec_pdbqt)
-        log.append(f'  Receptor PDBQT written ({os.path.getsize(rec_pdbqt)} bytes)')
+        n_hd = receptor_pdb_to_pdbqt(rec_for_prep, rec_pdbqt)
+        log.append(f'  Receptor PDBQT written ({os.path.getsize(rec_pdbqt)} bytes; {n_hd} polar hydrogens)')
     except Exception as e:
-        log.append(f'  Receptor prep warning: {e}  -- continuing with PDB as PDBQT')
-        shutil.copy(rec_pdb, rec_pdbqt)
+        # No fallback: a PDB renamed to .pdbqt has no AutoDock atom types, so every score would be meaningless.
+        log.append(f'  ERROR: receptor preparation failed: {e}')
+        raise
 
     # ── Reference ligand PDBQT for RMSD validation ─────────────────────────
     ref_pdbqt = None
