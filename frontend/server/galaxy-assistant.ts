@@ -2216,11 +2216,28 @@ export function stagingIdFor(a: { datasetId?: string; galaxyId?: string }): stri
  *  run_code call reads INPUT_FILES instead of guessing (dev 2026-11-04: every ad-hoc answer's first
  *  call read a guessed path such as /tmp/<name> and failed; the second used staged_inputs). Empty
  *  when nothing is attached. */
-export function runCodeInputsNote(message: string): string {
+export function runCodeInputsNote(message: string, heads: Record<string, string[]> = {}): string {
   const attached = attachedDatasetsFromMessage(message);
   if (!attached.length) return '';
   const files = Object.fromEntries(attached.map(a => [a.name, stagedInputPath(stagingIdFor(a), a.name)]));
-  return `[run_code inputs — the attached files are already staged; open them via INPUT_FILES (Python: INPUT_FILES["name"], R: INPUT_FILES[["name"]]) at exactly these paths, never a guessed path: ${JSON.stringify(files)}]`;
+  const shown = Object.fromEntries(Object.entries(heads).filter(([name, lines]) => name in files && lines.length));
+  return `[run_code inputs — the attached files are already staged; open them via INPUT_FILES (Python: INPUT_FILES["name"], R: INPUT_FILES[["name"]]) at exactly these paths, never a guessed path: ${JSON.stringify(files)}]`
+    + (Object.keys(shown).length
+      ? `\n[First lines of the attached text files — use these exact column names; do not assume pandas defaults such as "index": ${JSON.stringify(shown)}]`
+      : '');
+}
+
+/** Attached files whose first lines are worth showing the model (text tables / lists). */
+export const HEAD_PREVIEW_EXT_RE = /\.(csv|tsv|tab|txt|smi|smiles)$/i;
+
+/** First `maxLines` lines from a byte stream, reading at most `maxBytes` (the stream is closed early). */
+export async function headLines(stream: AsyncIterable<Buffer>, maxLines = 3, maxBytes = 4096, maxLineChars = 300): Promise<string[]> {
+  let buf = '';
+  for await (const chunk of stream) {
+    buf += chunk.toString('utf8');
+    if (buf.split('\n').length > maxLines || buf.length >= maxBytes) break;
+  }
+  return buf.slice(0, maxBytes).split(/\r?\n/).slice(0, maxLines).filter(l => l.length).map(l => l.slice(0, maxLineChars));
 }
 
 export function stripNarratedToolCalls(text: string): string {
@@ -8990,8 +9007,11 @@ ${(generatedWorkflow as any)?.license_notice ? `- LICENSE REROUTING ACTIVE: ${(g
       ? `\nBenchmark Evidence:\n${JSON.stringify(benchmarkEvidence, null, 2).slice(0, 2000)}`
       : '';
 
+    const inputsNote = !runnableWorkflow && attachedDatasetsFromMessage(message).length
+      ? runCodeInputsNote(message, await this._attachedFileHeads(message, context))
+      : '';
     const userPrompt = `User: ${message}
-${!runnableWorkflow && runCodeInputsNote(message) ? `\n${runCodeInputsNote(message)}\n` : ''}
+${inputsNote ? `\n${inputsNote}\n` : ''}
 ${tools.length > 0 ? `\nRelevant tools:\n${tools.map((t, i) => `${i + 1}. ${t.tool.name} - ${t.reasoning}`).join('\n')}` : ''}
 
 ${datasets.length > 0 ? `\nRelevant datasets:\n${datasets.map((d, i) => `${i + 1}. ${d.dataset.name} - ${d.reasoning}`).join('\n')}` : ''}
@@ -9685,6 +9705,69 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
    *  attached CSV the model called run_code without input_datasets eight times, read a guessed path,
    *  and gave up — INPUT_FILES was empty on every try. Galaxy reads are authenticated (the user's key,
    *  else the service key): user datasets are private. */
+  /** A dataset's bytes: Galaxy first (with the given key), then the locally stored upload under `id`
+   *  or `localFallbackId` (works when Galaxy is unavailable). Closing the iteration early cancels the
+   *  Galaxy download. */
+  private async _openDataset(id: string, galaxyKey: string, localFallbackId?: string): Promise<AsyncIterable<Buffer>> {
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    try {
+      const r = await fetch(`${galaxyUrl}/api/datasets/${id}/display`, {
+        headers: galaxyKey ? { 'x-api-key': galaxyKey } : {},
+        signal: AbortSignal.timeout(30000),
+      });
+      if (r.ok) {
+        const reader = r.body!.getReader();
+        return {
+          [Symbol.asyncIterator]: async function*() {
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                yield Buffer.from(value);
+              }
+            } finally {
+              reader.cancel().catch(() => {});
+            }
+          }
+        };
+      }
+    } catch { /* fall through to local */ }
+
+    const { getUploadedFile } = await import('./routes');
+    const local = getUploadedFile(id) || getUploadedFile(localFallbackId || '');
+    if (local?.filePath) {
+      const nodeFs = await import('fs/promises');
+      const data = await nodeFs.readFile(local.filePath);
+      return {
+        [Symbol.asyncIterator]: async function*() {
+          yield data;
+        }
+      };
+    }
+    throw new Error(`Dataset ${id} not accessible via Galaxy or local storage`);
+  }
+
+  /** First lines of this turn's attached text files, keyed by file name, so the model's first run_code
+   *  call uses the real column names (dev 2026-11-04: [13]'s first call melted on a guessed "index"
+   *  column — the file's first column is "row" — and failed with KeyError). Best effort: a file that
+   *  can't be read within 5 s is simply left out. */
+  private async _attachedFileHeads(message: string, context?: ChatContext): Promise<Record<string, string[]>> {
+    const galaxyKey: string = (context?.galaxyAPIOverride as any)?.apiKey || process.env.GALAXY_API_KEY || '';
+    const attached = attachedDatasetsFromMessage(message).filter(a => HEAD_PREVIEW_EXT_RE.test(a.name)).slice(0, 8);
+    const entries = await Promise.all(attached.map(async (a): Promise<[string, string[]]> => {
+      try {
+        const lines = await Promise.race([
+          this._openDataset(stagingIdFor(a), galaxyKey, a.datasetId).then(st => headLines(st)),
+          new Promise<string[]>(resolve => setTimeout(() => resolve([]), 5000)),
+        ]);
+        return [a.name, lines];
+      } catch {
+        return [a.name, []];
+      }
+    }));
+    return Object.fromEntries(entries.filter(([, lines]) => lines.length));
+  }
+
   private async _toolRunCode(input: any, context?: ChatContext): Promise<unknown> {
     const { runCode } = await import('./code-runner');
     const { getUploadedFile } = await import('./routes');
@@ -9697,42 +9780,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     const localIdFor = new Map<string, string>();
     for (const a of attached) if (a.galaxyId && a.datasetId) localIdFor.set(a.galaxyId, a.datasetId);
 
-    // Download function: tries Galaxy first, falls back to locally uploaded file
-    const downloadDataset = async (id: string): Promise<AsyncIterable<Buffer>> => {
-      // 1. Try Galaxy API
-      try {
-        const r = await fetch(`${galaxyUrl}/api/datasets/${id}/display`, {
-          headers: galaxyHeaders,
-          signal: AbortSignal.timeout(30000),
-        });
-        if (r.ok) {
-          const reader = r.body!.getReader();
-          return {
-            [Symbol.asyncIterator]: async function*() {
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                yield Buffer.from(value);
-              }
-            }
-          };
-        }
-      } catch { /* fall through to local */ }
-
-      // 2. Fall back to locally stored file (works when Redis/Galaxy are unavailable)
-      const local = getUploadedFile(id) || getUploadedFile(localIdFor.get(id) || '');
-      if (local?.filePath) {
-        const nodeFs = await import('fs/promises');
-        const data = await nodeFs.readFile(local.filePath);
-        return {
-          [Symbol.asyncIterator]: async function*() {
-            yield data;
-          }
-        };
-      }
-
-      throw new Error(`Dataset ${id} not accessible via Galaxy or local storage`);
-    };
+    const downloadDataset = (id: string) => this._openDataset(id, galaxyKey, localIdFor.get(id));
 
     const rawIds: string[] = input.input_datasets ?? [];
     const autoStaged = rawIds.length === 0 && attached.length > 0;

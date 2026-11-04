@@ -12,7 +12,7 @@ vi.mock('./routes', () => ({
   getUploadedFile: (id: string) => (id === 'uuid-1' ? { name: 'predicted_measured.csv', filePath: '/tmp/never-read' } : undefined),
 }));
 
-import { GalaxyAssistant, attachedDatasetsFromMessage, runCodeInputsNote } from './galaxy-assistant';
+import { GalaxyAssistant, attachedDatasetsFromMessage, headLines, runCodeInputsNote } from './galaxy-assistant';
 import { stagedInputPath } from './code-runner';
 
 const MESSAGE = 'Correlate predicted and measured IC50 for these compounds.\n\n[Attached files: predicted_measured.csv, notes.md]\n'
@@ -79,5 +79,45 @@ describe('runCodeInputsNote — exact paths before the first run_code call', () 
 
   it('is empty when nothing is attached', () => {
     expect(runCodeInputsNote('Correlate predicted and measured IC50.')).toBe('');
+  });
+});
+
+describe('first lines of attached files — real column names before the first run_code call', () => {
+  // dev 2026-11-04: [13]'s first call melted plate_layout.csv on a guessed "index" column (the file's
+  // first column is "row") and failed with KeyError; the model had not seen the header.
+  it('adds the heads of attached files only (never of names that are not attached)', () => {
+    const note = runCodeInputsNote(MESSAGE, { 'predicted_measured.csv': ['compound_id,predicted,measured', 'C1,5.1,5.4'], 'other.csv': ['x'] });
+    const heads = JSON.parse(note.slice(note.indexOf('{', note.indexOf('First lines')), note.lastIndexOf('}') + 1));
+    expect(heads).toEqual({ 'predicted_measured.csv': ['compound_id,predicted,measured', 'C1,5.1,5.4'] });
+    expect(runCodeInputsNote(MESSAGE, {})).not.toMatch(/First lines/);
+  });
+
+  it('headLines reads only the start of a stream and closes it', async () => {
+    let closed = false, pulled = 0;
+    async function* stream() {
+      try {
+        for (const c of ['row,01,02\nA,1', '0,20\nB,30,40\nC,5', '0,60\n', 'D,70,80\n']) { pulled++; yield Buffer.from(c); }
+      } finally { closed = true; }
+    }
+    expect(await headLines(stream(), 3)).toEqual(['row,01,02', 'A,10,20', 'B,30,40']);
+    expect(closed).toBe(true);
+    expect(pulled).toBe(2); // three complete lines are buffered after the 2nd chunk
+    async function* long() { yield Buffer.from('x'.repeat(1000) + '\nsecond'); }
+    expect((await headLines(long(), 3, 4096, 300))[0]).toHaveLength(300);
+  });
+
+  it('reads the heads of attached text tables with the user\'s key and skips other files', async () => {
+    const fetchSpy = vi.fn(async () => new Response('row,01,02\nA,10,20\nB,30,40\nC,50,60\n'));
+    vi.stubGlobal('fetch', fetchSpy);
+    const heads = await assistant()._attachedFileHeads(MESSAGE, { galaxyAPIOverride: { apiKey: 'user-key' } });
+    expect(heads).toEqual({ 'predicted_measured.csv': ['row,01,02', 'A,10,20', 'B,30,40'] });
+    expect(fetchSpy).toHaveBeenCalledTimes(1); // notes.md is not previewed
+    expect((fetchSpy.mock.calls[0] as any)[0]).toContain('/api/datasets/gx1/display');
+    expect((fetchSpy.mock.calls[0] as any)[1].headers).toEqual({ 'x-api-key': 'user-key' });
+  });
+
+  it('leaves out a file it cannot read', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')));
+    expect(await assistant()._attachedFileHeads(MESSAGE, {})).toEqual({});
   });
 });
