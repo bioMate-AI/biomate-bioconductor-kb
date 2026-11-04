@@ -35,6 +35,7 @@ import { validateWorkflowInputs, detectGenerationFailure, findUnresolvedInputs }
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
 import { GalaxyAPIProxy, fetchGalaxyWithKeyRecovery } from "./galaxy-api-proxy";
+import { ALLOWED_UPLOAD_EXTENSIONS, isAllowedUploadName, UnsupportedUploadTypeError } from "./upload-file-types";
 import { createPoller } from "./galaxy-state-poller";
 import { WorkflowSSEManager } from "./workflow-sse";
 import { createWorkflowNotificationService, type WorkflowNotificationService } from "./workflow-notification-service";
@@ -1255,41 +1256,11 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     // Accept common bioinformatics formats
-    const allowedExtensions = [
-      '.fastq', '.fastq.gz', '.fq', '.fq.gz',
-      '.bam', '.sam', '.cram',
-      '.mzml', '.mzxml', '.mgf',
-      '.csv', '.tsv', '.txt', '.tab',
-      // Markdown — provenance/notes (cold-start demo_notes.md, pilot_README.md),
-      // IND report sections, and after-run reports are all .md. Omitting it made
-      // chat-attached .md uploads 500 (fileFilter reject -> Internal server error).
-      '.md', '.markdown',
-      '.fasta', '.fa', '.fna', '.fas', '.faa', '.fap',
-      '.vcf', '.vcf.gz', '.bed', '.gff', '.gtf',
-      '.h5ad', '.h5', '.hdf5', '.loom',
-      '.json', '.xml',
-      // Research papers / literature
-      '.pdf',
-      // Images for multimodal biomedical read (histology, gels/blots, plots, scans)
-      '.png', '.jpg', '.jpeg', '.gif', '.webp',
-      // Cryo-EM / electron microscopy formats
-      '.mrc', '.mrcs', '.tif', '.tiff', '.eer', '.spi', '.dm4', '.map',
-      // Archive formats (capsule data, bulk uploads)
-      '.zip', '.tar', '.tar.gz', '.tgz',
-      // Notebook and R formats
-      '.ipynb', '.rds', '.rda', '.xlsx', '.xls',
-      // Phylogenomics / alignment formats
-      '.nwk', '.newick', '.treefile', '.tree', '.mafft', '.clipkit', '.iqtree', '.log',
-      // Generic compressed and model/distance/tree files
-      '.gz', '.mldist', '.model', '.phy', '.phylip', '.aln', '.bionj', '.contree', '.splits', '.nxs', '.nexus',
-      // Nextflow / workflow definition files (user-uploaded .nf pipelines for sandbox execution)
-      '.nf', '.config', '.groovy',
-    ];
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (allowedExtensions.some(allowed => file.originalname.toLowerCase().endsWith(allowed))) {
+    // Accepted types: server/upload-file-types.ts (tested against every UI demo asset).
+    if (isAllowedUploadName(file.originalname)) {
       cb(null, true);
     } else {
-      cb(new Error(`File type not supported. Allowed: ${allowedExtensions.join(', ')}`));
+      cb(new UnsupportedUploadTypeError(`File type not supported: ${path.extname(file.originalname) || file.originalname}. Allowed: ${ALLOWED_UPLOAD_EXTENSIONS.join(', ')}`));
     }
   },
 });
@@ -8659,7 +8630,7 @@ ${paramLines || '(none recorded)'}`;
       if (['.nf', '.ga', '.yml', '.yaml'].includes(ext)) {
         cb(null, true);
       } else {
-        cb(new Error('Only .nf, .ga, .yml, and .yaml workflow files are supported'));
+        cb(new UnsupportedUploadTypeError('Only .nf, .ga, .yml, and .yaml workflow files are supported'));
       }
     },
   });
@@ -17729,6 +17700,15 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
 
   // Error rate tracking middleware (must be last, after all routes)
   app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    // A client error that carries its own 4xx status (e.g. UnsupportedUploadTypeError -> 415)
+    // is the caller's problem, not a server fault: return that status and message, and don't
+    // record it as a 5xx incident. Everything else is still a 500.
+    const clientStatus = Number((err as any)?.status ?? (err as any)?.statusCode);
+    if (clientStatus >= 400 && clientStatus < 500) {
+      console.warn(`[ExpressError] ${req.method} ${req.path}: ${clientStatus} ${err.message?.slice(0, 200)}`);
+      if (!res.headersSent) res.status(clientStatus).json({ error: err.message });
+      return;
+    }
     // Log the full error for debugging
     console.error(`[ExpressError] ${req.method} ${req.path}:`, err.message);
     console.error(err.stack);
