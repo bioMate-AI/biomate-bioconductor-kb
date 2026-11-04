@@ -15,6 +15,7 @@ import { hasInlineInputData, normalizePrereqChecklist } from "@/lib/prereq-norma
 import { buildRunCompletionSummary } from "@/lib/chat-completion-summary"
 // WorkflowHistoryPanel removed
 import { chatHistoryService } from "@/lib/chat-history"
+import { shouldAppendRerunCard } from "@/lib/rerun-card"
 import { submitWorkflowFromArtifact, pipelineApprovalOptions, buildChainSubmitSteps, buildChainConnections, resumeWorkflowChain } from "@/lib/chain-execution"
 import { fetchChainStatus, syncPipelineStepsFromChain, syncWorkflowFromChain, isChainTerminal } from "@/lib/chain-pipeline-sync"
 import { emitUxEvent } from "@/lib/ux-telemetry"
@@ -1130,6 +1131,16 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
       return;
     }
 
+    // Re-run of a FINISHED run (footer "Run again" / "Restart"): snapshot the
+    // run currently shown in the panel NOW — executeWorkflow() below repoints
+    // `currentRun` to the fresh run, so we can't read the old status afterwards.
+    // We only treat it as a re-run (and append a new card instead of overwriting
+    // the owner card) when the owner card actually points at THIS terminal run,
+    // checked in the message block below. That guard avoids mis-firing when a
+    // different workflow's first run is launched while a finished run is on-screen.
+    const _prevPanelRunId: string | null = currentRun?.id || null;
+    const _prevPanelStatus: string | null = currentRun?.execution?.status || null;
+
     // Clear any previous error
     setWorkflowError(null);
     setIsWorkflowRunning(true);
@@ -1275,7 +1286,44 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           const ownerMessageId = sourceMessageId ?? panelWorkflowMessageId;
           const targetIndex = updatedMessages.findIndex(msg => msg.id === ownerMessageId);
 
-          if (targetIndex >= 0) {
+          const owner = targetIndex >= 0 ? updatedMessages[targetIndex] : null;
+          // True re-run: the owner card currently points at the terminal run we
+          // were viewing, and the new run is a different run (see rerun-card.ts).
+          const _rerunOfTerminalRun = shouldAppendRerunCard({
+            sourceMessageId,
+            panelWorkflowMessageId,
+            prevPanelRunId: _prevPanelRunId,
+            prevPanelStatus: _prevPanelStatus,
+            ownerRunId: owner?.metadata?.runId || owner?.invocationId || null,
+            newRunId: run.id,
+          });
+
+          let newCardMessageId: string | null = null;
+          if (owner && _rerunOfTerminalRun) {
+            // Re-run of a finished run: APPEND a new card for the fresh run and
+            // leave the owner message pointing at the previous (finished) run, so
+            // that run keeps its own chat placeholder and stays openable. The new
+            // card carries the same workflow definition but the fresh runId.
+            newCardMessageId = `rerun-${run.id}`;
+            console.log('[ChatWithArtifacts] Re-run: appending new card', newCardMessageId, '(previous run card preserved)');
+            updatedMessages.push({
+              ...owner,
+              id: newCardMessageId,
+              timestamp: new Date(),
+              // card only — don't repeat the original AI prose for the re-run
+              content: '',
+              invocationId: invocationForMessage,
+              metadata: {
+                ...owner.metadata,
+                runId: run.id,
+                galaxyInvocationId: run.execution?.galaxyInvocationId,
+                // start the new card's status from live tracking, not the old run's
+                workflowViewerStatus: 'running',
+                isRerun: true,
+                rerunOf: _prevPanelRunId,
+              },
+            });
+          } else if (targetIndex >= 0) {
             console.log('[ChatWithArtifacts] Updating message with invocation ID:', invocationForMessage);
             updatedMessages[targetIndex] = {
               ...updatedMessages[targetIndex],
@@ -1291,6 +1339,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           const updatedSession = { ...freshSession, messages: updatedMessages };
           chatHistoryService.updateSession(freshSession.id, updatedSession);
           onChatUpdated(updatedSession);
+
+          // Bind the right panel to the new card so it follows the fresh run;
+          // the preserved owner card now represents the previous finished run.
+          if (newCardMessageId) {
+            setPanelWorkflowMessageId(newCardMessageId);
+          }
         }
       }
 
@@ -1724,7 +1778,28 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     setPanelAfterRunTab(tab)
     setPanelOpen(true)
     onWorkflowPanelOpenChange?.(true)
-  }, [onWorkflowPanelOpenChange])
+    // A session can hold several cards for the same workflow (one per re-run).
+    // The right panel renders a single `currentRun`, matched to the panel by
+    // workflow name — so opening a *different* run's card must switch currentRun
+    // to that card's run, or it would show the latest run under an older card.
+    // Read the freshest session (not a stale closure) for the opened card's runId.
+    try {
+      const sid = currentChatSession?.id
+      if (sid) {
+        const fresh = chatHistoryService.getSession(sid)
+        const msg = fresh?.messages?.find((m: any) => m.id === messageId)
+        const msgRunId = msg?.metadata?.runId || msg?.invocationId
+        if (msgRunId && msgRunId !== currentRun?.id) {
+          // loadRun is safe for terminal runs (only starts SSE/polling if running).
+          void loadRun(msgRunId, { silent: true }).catch((err: any) =>
+            console.warn('[ChatWithArtifacts] open-card loadRun failed:', err?.message)
+          )
+        }
+      }
+    } catch (err: any) {
+      console.warn('[ChatWithArtifacts] open-card run switch skipped:', err?.message)
+    }
+  }, [onWorkflowPanelOpenChange, currentChatSession?.id, currentRun?.id, loadRun])
 
   const handleClosePanelWorkflow = useCallback(() => {
     setPanelOpen(false)
