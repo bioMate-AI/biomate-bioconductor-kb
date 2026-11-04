@@ -55,7 +55,7 @@ echo "3) workflow request on the SAME session (no re-login)"
 SINCE=$(date -u +%Y-%m-%dT%H:%M:%S)
 OUT=$(curl -s -N -m 240 -X POST "$BASE/api/chat/stream" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"message":"Run perform_chipseq_peak_calling_with_macs2 using its built-in MACS3 CTCF_SE ChIP and control chr22 50k-read BED demo files. Use the real public demo defaults.","stream":true,"context":{"sessionId":"key-recovery-check","previousMessages":[]}}' \
-  | sed -n '/^event: final/{n;p;q}')
+  | sed -n '/^event: final/{n;p;q;}')
 STATE=$(printf '%s' "$OUT" | python3 -c "import sys,json;
 d=sys.stdin.read().strip()
 print(json.loads(d[d.index('{'):]).get('state') if '{' in d else 'none')")
