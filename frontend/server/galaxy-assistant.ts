@@ -560,6 +560,9 @@ export interface ChatContext {
    * generation returns "currently unavailable".
    */
   galaxyAPIOverride?: any;
+  /** This turn's user message (set by _processMessageInner) — lets tool handlers see the
+   *  datasets attached to it ("[Uploaded datasets: ...]" block). */
+  turnMessage?: string;
   /** Set by the authenticated server route, never inferred from proxy fallback. */
   skillPrivateAccess?: boolean;
   /** Explicitly selected expert skill IDs (from SkillSelector UI). Auto-detected when absent. */
@@ -2187,6 +2190,19 @@ export function isAdhocAnalysisOfAttachedData(message: string): boolean {
   return adhoc.test(task) && !PIPELINE_REQUEST_RE.test(task);
 }
 
+/** Datasets attached to a message by the chat composer: the "[Uploaded datasets: name: dataset_id=<uuid>,
+ *  galaxy_dataset_id=<id>, s3_uri=...; ...]" block chat-interface.tsx appends on send. */
+export function attachedDatasetsFromMessage(message: string): Array<{ name: string; datasetId?: string; galaxyId?: string }> {
+  const m = /\[Uploaded datasets?:\s*([^\]]+)\]/i.exec(message || '');
+  if (!m) return [];
+  return m[1].split(/;\s*/).map(entry => {
+    const name = entry.split(':')[0].trim();
+    const datasetId = /\bdataset_id=([^,\s]+)/.exec(entry)?.[1];
+    const galaxyId = /\bgalaxy_dataset_id=([^,\s]+)/.exec(entry)?.[1];
+    return { name, datasetId: datasetId && datasetId !== 'n/a' ? datasetId : undefined, galaxyId };
+  }).filter(d => d.name && (d.datasetId || d.galaxyId));
+}
+
 export function stripNarratedToolCalls(text: string): string {
   if (!text) return text;
   if (!/<\/?(?:antml:)?(?:function_calls|invoke|parameter)\b/i.test(text)) {
@@ -3141,7 +3157,7 @@ Provide accurate, evidence-based answers. Be concise and direct. When you don't 
         let error: string | undefined;
         try {
           switch (name) {
-            case 'run_code':    output = await this._toolRunCode(args); break;
+            case 'run_code':    output = await this._toolRunCode(args, toolContext.context); break;
             case 'read_file':   output = await this._toolReadFile(args, toolContext.context); break;
             case 'query_domain_knowledge': output = await this._toolQueryKnowledge(args); break;
             case 'list_history': output = await this._toolListHistory(args, toolContext.context); break;
@@ -4121,6 +4137,7 @@ Rules:
     const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] ${step}`);
 
     log('Processing message: ' + message.substring(0, 50));
+    context.turnMessage = message;
 
     // IT launch shortcut: "帮我启动Jupyter / launch RStudio" → skip intent analysis,
     // call Galaxy IT API directly, return a response with the session URL.
@@ -9577,7 +9594,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       try {
         switch (block.name) {
           case 'run_code':
-            output = await this._toolRunCode(block.input);
+            output = await this._toolRunCode(block.input, context);
             break;
           case 'read_file':
             output = await this._toolReadFile(block.input, context);
@@ -9642,17 +9659,30 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     }));
   }
 
-  /** run_code tool handler — calls the /api/code/run endpoint. */
-  private async _toolRunCode(input: any): Promise<unknown> {
+  /** run_code tool handler — calls the /api/code/run endpoint.
+   *  Inputs: the datasets the model lists in input_datasets; if it lists none, the datasets attached
+   *  to this turn's message (context.turnMessage). Measured 2026-11-04: on an ad-hoc request with an
+   *  attached CSV the model called run_code without input_datasets eight times, read a guessed path,
+   *  and gave up — INPUT_FILES was empty on every try. Galaxy reads are authenticated (the user's key,
+   *  else the service key): user datasets are private. */
+  private async _toolRunCode(input: any, context?: ChatContext): Promise<unknown> {
     const { runCode } = await import('./code-runner');
     const { getUploadedFile } = await import('./routes');
     const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    const galaxyKey: string = (context?.galaxyAPIOverride as any)?.apiKey || process.env.GALAXY_API_KEY || '';
+    const galaxyHeaders: Record<string, string> = galaxyKey ? { 'x-api-key': galaxyKey } : {};
+
+    // This turn's attachments; galaxy id -> BioMate dataset id, for the local-copy fallback.
+    const attached = attachedDatasetsFromMessage(context?.turnMessage || '');
+    const localIdFor = new Map<string, string>();
+    for (const a of attached) if (a.galaxyId && a.datasetId) localIdFor.set(a.galaxyId, a.datasetId);
 
     // Download function: tries Galaxy first, falls back to locally uploaded file
     const downloadDataset = async (id: string): Promise<AsyncIterable<Buffer>> => {
       // 1. Try Galaxy API
       try {
         const r = await fetch(`${galaxyUrl}/api/datasets/${id}/display`, {
+          headers: galaxyHeaders,
           signal: AbortSignal.timeout(30000),
         });
         if (r.ok) {
@@ -9670,7 +9700,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       } catch { /* fall through to local */ }
 
       // 2. Fall back to locally stored file (works when Redis/Galaxy are unavailable)
-      const local = getUploadedFile(id);
+      const local = getUploadedFile(id) || getUploadedFile(localIdFor.get(id) || '');
       if (local?.filePath) {
         const nodeFs = await import('fs/promises');
         const data = await nodeFs.readFile(local.filePath);
@@ -9684,34 +9714,42 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       throw new Error(`Dataset ${id} not accessible via Galaxy or local storage`);
     };
 
-    // Resolve filenames: check local registry first, then Galaxy metadata
     const rawIds: string[] = input.input_datasets ?? [];
-    const datasetRefs = await Promise.all(rawIds.map(async (id: string) => {
-      // Local registry always has the original filename
-      const local = getUploadedFile(id);
-      if (local?.name) return { id, filename: local.name };
+    const autoStaged = rawIds.length === 0 && attached.length > 0;
+    const datasetRefs = autoStaged
+      // The names come with the attachment; the Galaxy id is preferred (durable), the local id is the fallback.
+      ? attached.map(a => ({ id: a.galaxyId || a.datasetId!, filename: a.name }))
+      // Resolve filenames: check local registry first, then Galaxy metadata
+      : await Promise.all(rawIds.map(async (id: string) => {
+        // Local registry always has the original filename
+        const local = getUploadedFile(id);
+        if (local?.name) return { id, filename: local.name };
 
-      // Fallback: Galaxy metadata
-      try {
-        const meta = await fetch(`${galaxyUrl}/api/datasets/${id}`, {
-          signal: AbortSignal.timeout(5000),
-        });
-        if (meta.ok) {
-          const data = await meta.json() as any;
-          const filename = data?.name || data?.file_name || id;
-          return { id, filename: String(filename) };
-        }
-      } catch { /* fall through */ }
-      return { id, filename: id };
-    }));
+        // Fallback: Galaxy metadata
+        try {
+          const meta = await fetch(`${galaxyUrl}/api/datasets/${id}`, {
+            headers: galaxyHeaders,
+            signal: AbortSignal.timeout(5000),
+          });
+          if (meta.ok) {
+            const data = await meta.json() as any;
+            const filename = data?.name || data?.file_name || id;
+            return { id, filename: String(filename) };
+          }
+        } catch { /* fall through */ }
+        return { id, filename: id };
+      }));
 
-    return runCode({
+    const result = await runCode({
       language: input.language,
       code: input.code,
       input_datasets: datasetRefs,
       timeout_seconds: input.timeout_seconds ?? 30,
       downloadDataset,
     });
+    return autoStaged
+      ? { ...result, note: 'input_datasets was empty; staged the datasets attached to this message — open them via INPUT_FILES / staged_inputs.' }
+      : result;
   }
 
   /** read_file tool handler — streams first n_lines from Galaxy or local dataset. */

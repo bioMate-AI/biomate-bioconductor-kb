@@ -51,6 +51,8 @@ export interface CodeRunResult {
   exit_code: number;
   output_files: OutputFile[];
   duration_ms: number;
+  /** filename -> container path of each input that was actually staged (what INPUT_FILES holds). */
+  staged_inputs?: Record<string, string>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -412,6 +414,7 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
       exit_code: result.exitCode,
       output_files,
       duration_ms,
+      staged_inputs: Object.fromEntries(stagedFiles.map(f => [f.filename, `${containerData}/${f.id}/${f.filename}`])),
     };
   } finally {
     // Async cleanup — don't block the response
