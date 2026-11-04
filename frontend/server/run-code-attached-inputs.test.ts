@@ -57,8 +57,8 @@ describe('run_code inputs', () => {
     const { downloadDataset } = runCode.mock.calls[0][0];
     // The local copy's path is fake: an ENOENT from readFile proves the galaxy-id -> dataset-id fallback found it.
     await expect(downloadDataset('gx1')).rejects.toThrow(/ENOENT/);
-    expect(fetchSpy.mock.calls[0][0]).toContain('/api/datasets/gx1/display');
-    expect(fetchSpy.mock.calls[0][1].headers).toEqual({ 'x-api-key': 'user-key' });
+    const display = fetchSpy.mock.calls.find((c: any) => String(c[0]).endsWith('/api/datasets/gx1/display'))!;
+    expect(display[1].headers).toEqual({ 'x-api-key': 'user-key' });
     await expect(downloadDataset('gx-unknown')).rejects.toThrow(/not accessible/);
   });
 });
@@ -107,17 +107,63 @@ describe('first lines of attached files — real column names before the first r
   });
 
   it('reads the heads of attached text tables with the user\'s key and skips other files', async () => {
-    const fetchSpy = vi.fn(async () => new Response('row,01,02\nA,10,20\nB,30,40\nC,50,60\n'));
+    const fetchSpy = vi.fn(async (url: string) => url.endsWith('/display')
+      ? new Response('row,01,02\nA,10,20\nB,30,40\nC,50,60\n')
+      : Response.json({ state: 'ok' }));
     vi.stubGlobal('fetch', fetchSpy);
     const heads = await assistant()._attachedFileHeads(MESSAGE, { galaxyAPIOverride: { apiKey: 'user-key' } });
     expect(heads).toEqual({ 'predicted_measured.csv': ['row,01,02', 'A,10,20', 'B,30,40'] });
-    expect(fetchSpy).toHaveBeenCalledTimes(1); // notes.md is not previewed
-    expect((fetchSpy.mock.calls[0] as any)[0]).toContain('/api/datasets/gx1/display');
-    expect((fetchSpy.mock.calls[0] as any)[1].headers).toEqual({ 'x-api-key': 'user-key' });
+    const urls = fetchSpy.mock.calls.map((c: any) => c[0]);
+    expect(urls.every((u: string) => u.includes('/api/datasets/gx1'))).toBe(true); // notes.md is not previewed
+    expect((fetchSpy.mock.calls.find((c: any) => c[0].endsWith('/display')) as any)[1].headers).toEqual({ 'x-api-key': 'user-key' });
   });
 
   it('leaves out a file it cannot read', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')));
     expect(await assistant()._attachedFileHeads(MESSAGE, {})).toEqual({});
+  });
+});
+
+describe('_openDataset — never stages a Galaxy dataset whose upload job is still running', () => {
+  // dev 2026-11-04: for ~19 s after upload Galaxy reports state=running while /display answers 200 with
+  // 0 bytes (then a partial body); run_code staged an empty file -> pandas EmptyDataError.
+  const galaxy = (states: string[], body = 'a,b\n1,2\n') => {
+    let i = 0;
+    return vi.fn(async (url: string) => url.endsWith('/display')
+      ? new Response('')  // what Galaxy serves mid-upload — must never be used while state != ok
+      : Response.json({ state: states[Math.min(i++, states.length - 1)] }));
+  };
+  const read = async (it: AsyncIterable<Buffer>) => { let t = ''; for await (const c of it) t += c.toString(); return t; };
+
+  it('uses the local copy of the upload while Galaxy is still running the job', async () => {
+    const f = galaxy(['running']);
+    vi.stubGlobal('fetch', f);
+    // uuid-1's local path is fake: ENOENT proves the local copy was chosen over Galaxy's empty display
+    await expect(assistant()._openDataset('gx1', 'k', 'uuid-1')).rejects.toThrow(/ENOENT/);
+    expect(f.mock.calls.some((c: any) => c[0].endsWith('/display'))).toBe(false);
+  });
+
+  it('waits for the job when there is no local copy, then reads Galaxy', async () => {
+    vi.useFakeTimers();
+    try {
+      let i = 0;
+      const f = vi.fn(async (url: string) => url.endsWith('/display')
+        ? new Response('a,b\n1,2\n')
+        : Response.json({ state: ['queued', 'running', 'ok'][Math.min(i++, 2)] }));
+      vi.stubGlobal('fetch', f);
+      const p = assistant()._openDataset('gx-remote', 'k');
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(await read(await p)).toBe('a,b\n1,2\n');
+      expect(f.mock.calls.filter((c: any) => !c[0].endsWith('/display'))).toHaveLength(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('fails loudly (not an empty file) when the job never finishes or errors', async () => {
+    vi.stubGlobal('fetch', galaxy(['error']));
+    await expect(assistant()._openDataset('gx-remote', 'k')).rejects.toThrow(/not ready in Galaxy \(state: error\)/);
+    vi.stubGlobal('fetch', galaxy(['running']));
+    await expect(assistant()._openDataset('gx-remote', 'k', undefined, 0)).rejects.toThrow(/state: running/);
   });
 });

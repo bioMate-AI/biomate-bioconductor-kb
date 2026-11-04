@@ -9705,14 +9705,50 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
    *  attached CSV the model called run_code without input_datasets eight times, read a guessed path,
    *  and gave up — INPUT_FILES was empty on every try. Galaxy reads are authenticated (the user's key,
    *  else the service key): user datasets are private. */
-  /** A dataset's bytes: Galaxy first (with the given key), then the locally stored upload under `id`
-   *  or `localFallbackId` (works when Galaxy is unavailable). Closing the iteration early cancels the
-   *  Galaxy download. */
-  private async _openDataset(id: string, galaxyKey: string, localFallbackId?: string): Promise<AsyncIterable<Buffer>> {
+  /** A dataset's bytes: Galaxy (with the given key) once its state is `ok`, else the locally stored
+   *  upload under `id` or `localFallbackId` (works when Galaxy is unavailable). Closing the iteration
+   *  early cancels the Galaxy download.
+   *
+   *  Galaxy answers /display with HTTP 200 and an empty or partial body while the upload job is still
+   *  running (dev 2026-11-04: state=running for ~19 s after upload, display 0 bytes then a partial
+   *  body), so run_code staged an empty file whenever the user asked right after attaching data. The
+   *  state is checked first; until it is `ok` the local copy (the same uploaded bytes) is used, and with
+   *  no local copy we wait for the job (up to `waitMs`). */
+  private async _openDataset(id: string, galaxyKey: string, localFallbackId?: string, waitMs = 60000): Promise<AsyncIterable<Buffer>> {
     const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    const headers: Record<string, string> = galaxyKey ? { 'x-api-key': galaxyKey } : {};
+    const { getUploadedFile } = await import('./routes');
+    const local = getUploadedFile(id) || getUploadedFile(localFallbackId || '');
+    // Streamed, so a caller that stops early (headLines) never reads a whole large file.
+    const readLocal = async (): Promise<AsyncIterable<Buffer>> => {
+      const nodeFs = await import('fs');
+      await nodeFs.promises.access(local!.filePath);
+      return nodeFs.createReadStream(local!.filePath);
+    };
+
+    // Galaxy's dataset state; null when Galaxy can't say (unreachable, unknown id, no access).
+    const galaxyState = async (): Promise<string | null> => {
+      try {
+        const meta = await fetch(`${galaxyUrl}/api/datasets/${id}`, { headers, signal: AbortSignal.timeout(10000) });
+        return meta.ok ? String(((await meta.json()) as any)?.state || '') || null : null;
+      } catch {
+        return null;
+      }
+    };
+    let state = await galaxyState();
+    if (state && state !== 'ok') {
+      if (local?.filePath) return readLocal();
+      const deadline = Date.now() + waitMs;
+      while (state && !['ok', 'error', 'failed_metadata', 'discarded', 'deferred'].includes(state) && Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        state = await galaxyState();
+      }
+      if (state !== 'ok') throw new Error(`Dataset ${id} is not ready in Galaxy (state: ${state || 'unknown'})`);
+    }
+
     try {
       const r = await fetch(`${galaxyUrl}/api/datasets/${id}/display`, {
-        headers: galaxyKey ? { 'x-api-key': galaxyKey } : {},
+        headers,
         signal: AbortSignal.timeout(30000),
       });
       if (r.ok) {
@@ -9733,17 +9769,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       }
     } catch { /* fall through to local */ }
 
-    const { getUploadedFile } = await import('./routes');
-    const local = getUploadedFile(id) || getUploadedFile(localFallbackId || '');
-    if (local?.filePath) {
-      const nodeFs = await import('fs/promises');
-      const data = await nodeFs.readFile(local.filePath);
-      return {
-        [Symbol.asyncIterator]: async function*() {
-          yield data;
-        }
-      };
-    }
+    if (local?.filePath) return readLocal();
     throw new Error(`Dataset ${id} not accessible via Galaxy or local storage`);
   }
 
@@ -9757,7 +9783,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     const entries = await Promise.all(attached.map(async (a): Promise<[string, string[]]> => {
       try {
         const lines = await Promise.race([
-          this._openDataset(stagingIdFor(a), galaxyKey, a.datasetId).then(st => headLines(st)),
+          this._openDataset(stagingIdFor(a), galaxyKey, a.datasetId, 0).then(st => headLines(st)),
           new Promise<string[]>(resolve => setTimeout(() => resolve([]), 5000)),
         ]);
         return [a.name, lines];
