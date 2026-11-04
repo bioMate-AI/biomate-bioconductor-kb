@@ -167,3 +167,35 @@ The first after-sync pass was **invalid**: from ~18:34–19:00 UTC every workflo
 `0639bb7d` had more matches because the text could pull in any catalog workflow — including 5 wrong ones; `2d4acaf2` keeps the text a re-ranker over retrieved candidates (0 hallucinated swaps). Three rows ([83]-[85]) hit a client↔EC2 connection drop (`http -1` together at ~90 s) and succeeded on re-run; merged.
 
 **Open (retrieval, §3 — not naming):** [27] "generate candidates … drug-like properties" and [81] "adapt the generative model" retrieve ADMET prediction (lexical "properties"/"model"), so REINVENT is not a candidate to re-rank to; [12] an IC50-correlation request produced an `nf-core/demo` card; [15]/[88] DE+GO → GEO Data Connector (pathway-enrichment override); 37 responses still lead with no workflow name (e.g. a clarifying question shown next to a card — a separate response-format issue). Next step for these is a rule-first generation-intent hint in retrieval (generate/design/propose + molecules/candidates → generative workflows), measured with this same harness (`scratchpad/route_baseline.py` + `ui_payloads.json`).
+
+---
+
+## 6. Generation-intent routing + Galaxy key revocation (2026-11-03, evening)
+
+### 6.1 Generative requests routed to property prediction
+**Symptom (cold-start, dev):** "Generate candidates … drug-like properties", "Optimise this series for potency …", "Adapt the generative model …", and the peptide generate/optimise prompts returned Predict ADMET / Admet Pred.
+
+**Diagnosis — including a correction.** The first fix (`866b78546`) assumed the ADMET fast path caused this; its commit message says so. **That was wrong.** `galaxy.log` for the failing turns shows `[AdmetFastPath] has_admet=False`; the card came from Step 1 *search*, which ranked on the property words that accompany a generative request ("drug-like properties", hERG/MW cut-offs in the demo context). The guard in `866b78546` stays (it is correct for explicit "… with ADMET filtering" phrasing, and is tested) but it did not fix the observed cases, and the REINVENT results seen right after it were run-to-run variance (the rule never fired). Lesson recorded: verify the path a turn actually took (galaxy.log fast-path lines), not the path the code could take.
+
+**Fix (`0b5656bcb`):** `_request_task_text` = the request's own first paragraph (supporting context after a blank line is not the task — matching the whole text flagged 23/106 predict/dock/rank prompts whose demo context says "design exercise"); `_is_generative_task` (generate / design / optimise / adapt-a-generator patterns) → a routing hint for search, modality-aware (peptide → cyclic_peptide_design; antibody → antibody design; small molecule → generative design incl. scaffold hopping).
+
+**Measured on dev — repeated trials, scorer fixed before the after-arm (`scripts/routing_eval/gen_score.py`):**
+| | before (3 reps) | **after `0b5656bcb`** (3 reps) |
+|---|---|---|
+| generative prompts → generative design workflow (14 prompts) | 13/37 (35%) | **42/42 (100%)** |
+| controls not turned generative (predict, dock, rank, safety gate, ADMET screen) | 14/14 | **15/15** |
+| client-side drops | 6 | 0 |
+Before-arm per-prompt: [27]/[30] 2/3, [33] 3/3, [35] 0/3, [36] 3/3, [54]/[55]/[57]/[58] 0/2, [59] 2/2, [60]/[62] 0/3, [81] 0/3, [83] 1/3 (raw rows lost in a scratch-dir wipe; numbers are the scorer's printed output). After-arm raw rows: `evaluation/routing_eval/runs/gen_after_0b5656bcb.jsonl`.
+Caveats: [81] "adapt the generative model" → REINVENT4 Lead Design (the Finetune-RL variant would be more precise); [36] nanobody → bispecific/scFv design (no nanobody workflow in the catalog); [39] (control) shifted Predict ADMET → Docking in 2/3 — not generative, arguably better.
+
+### 6.2 Per-user Galaxy key revoked on every Galaxy restart
+**Root cause (verified, read-only, on dev):** `_seed_api_key_from_env` (Galaxy boot hook, `fast_factory.py`) assumed Galaxy user 1 is the admin and soft-deleted all of user 1's other API keys on every boot. On dev, user 1 is the first BioMate user ever provisioned — the E2E fixture — so its own key died with each restart (key 269 created 18:31:14, revoked by the 18:33:38 `[boot-seed]`; 250+ revoked keys on that user since September; 8 boots in ~3 h). Chat workflow requests then failed with 401 "Provided API key is not valid." until the next login. `GALAXY_API_KEY` equals `master_api_key`, which Galaxy authenticates as the synthetic BootstrapAdminUser (`master_api_key` is a deprecated alias of `bootstrap_admin_api_key`) — so the seed had nothing legitimate to do, and **admin requests never acted as user 1** (no isolation leak; checked by booleans only, no key values read).
+
+**Fixes:** `2edb4d4a5` + `87c1e5fbe` — the seed is a no-op when the env key is the bootstrap/master key; otherwise only the configured admin user's keys are touched; never user 1 by assumption. Login also stored Galaxy's raw user id ("1") while the drift check compared the encoded id from `/api/users/current`, so every login logged "id drift" and re-provisioned; provisioning now stores the id Galaxy reports for the key.
+
+**Verified on dev:** boot log "GALAXY_API_KEY is the master_api_key — … nothing to seed, no user's keys touched"; the fixture's key 273 (created 21:52 UTC) still active after two later Galaxy boots (00:50, 01:07 UTC); 9 fixture logins since the deploy, **0** "id drift".
+
+**Still open (not addressed):** the chat request path has no recovery for a key Galaxy rejects mid-session (only login re-provisions); the sync DB layer can replace `universe.sqlite` when `galaxy_ai_tools.db` changes (would invalidate all per-user keys — the request-time recovery would cover both).
+
+### 6.3 Harness
+Committed in `scripts/routing_eval/` (`aae875b05`) after the scratch copy was wiped by a restart: payload dump from the UI's own code, runner with SSE `final`-event stop + hard deadline (a lost FIN on the client↔EC2 path had stalled a run for 90 min while the server had answered 200), scorer. Fixture password via `E2E_FIXTURE_PASSWORD` (never committed).
