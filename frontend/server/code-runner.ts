@@ -47,6 +47,23 @@ export interface OutputFile {
 
 /** Where run_code stages input datasets inside the sandbox: SANDBOX_INPUT_DIR/<dataset id>/<filename>.
  *  Exported so the chat prompt can tell the model the exact INPUT_FILES paths before its first call. */
+/** Imports for the conventional data-science aliases a script USES but never imports. Each call is a
+ *  fresh process, and the model often drops `import numpy as np` from a follow-up call (dev 2026-11-04:
+ *  `NameError: name 'np' is not defined` / `'plt'` cost a retry in 4 of 6 ad-hoc answers). Only aliases
+ *  the code references are imported (no start-up cost otherwise); a missing package is ignored. */
+const PY_ALIASES: Array<[string, string]> = [
+  ['np', 'import numpy as np'],
+  ['pd', 'import pandas as pd'],
+  ['plt', "import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt"],
+  ['sns', 'import seaborn as sns'],
+];
+export function pythonAliasImports(code: string): string {
+  return PY_ALIASES
+    .filter(([alias]) => new RegExp(`\\b${alias}\\.`).test(code) && !new RegExp(`\\bas\\s+${alias}\\b`).test(code))
+    .map(([, stmt]) => `try:\n${stmt.split('\n').map(l => `    ${l}`).join('\n')}\nexcept ImportError:\n    pass`)
+    .join('\n');
+}
+
 export const SANDBOX_INPUT_DIR = '/work/input';
 export function stagedInputPath(datasetId: string, filename: string): string {
   return `${SANDBOX_INPUT_DIR}/${datasetId}/${filename}`;
@@ -247,7 +264,8 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
         `os.chdir(${JSON.stringify(containerOutput)})`,
         pyInputFiles,
         `INPUT_PATHS = list(INPUT_FILES.values())`,
-      ].join('\n');
+        pythonAliasImports(req.code),
+      ].filter(Boolean).join('\n');
       scriptName = 'script.py';
       scriptPath = path.join(baseDir, scriptName);
       await fs.writeFile(scriptPath, `${preamble}\n\n${stagedComment}${req.code}`);
