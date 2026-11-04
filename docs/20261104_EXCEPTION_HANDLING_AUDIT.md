@@ -102,9 +102,13 @@ Legend for the "unknown ≠ empty" theme that dominates the findings: a read tha
 - H5 KEGG → route through `_note_failure` so a KEGG error is a recorded failure, not "0 results."
 - M10 SSE `JSON.parse` guards in the two hooks (match the existing try/catch+continue pattern).
 - M7 `code-runner.ts` — include `await resp.text()` in the sidecar error so the full error survives.
+- **H1/H2 (completion path, partial)** — `_evaluate_qc_from_s3` now distinguishes a metrics **read error** (S3 cp non-zero/throw on a matched `toxicity_report.json`/`qc_metrics.json`) from "no safety metrics present." On a read error, and in the outer `except`, it logs **ERROR** ("QC NOT EVALUATED … NOT a pass") and returns a `_qc_unevaluable()` **advisory** sentinel (`status:"unknown"`, `advisory:true` → non-blocking per the viewer's `advisory !== true` check) instead of the empty "all-clear" list. So the **completion** verdict (`qc_gates` → status payload + `routes.ts` audit log) is recorded as degraded, not clean. Scoped & safe: it does **not** write/alter the `qc_events.json` sidecar, so the after-run QC **table** rendering is untouched.
 
-**Deferred with a concrete recommended patch (NOT changed blind overnight — these alter safety/billing/SSE/dashboard semantics and need a live run to verify):**
-- H1–H4 QC/S3 "unknown ≠ clean/empty": introduce a distinct `unknown` verdict + an `s3_unavailable` sentinel so a failed read is never recorded as a passed gate or zero outputs. Highest priority; needs tracing the `qc_gates` consumer + Findings UI and a live Batch run.
+**Still deferred for this item (needs a live QC-gate run to verify the QC display surface):**
+- The `/api/.../qc-events` **on-demand** retrospective path (`_read_qc_events_sidecar`) still shows the empty "all passed" fallback on a read error, because no sidecar is written. The remaining step is to write a **degraded sidecar** (flat `events` row with the unevaluable status + a `methods_text`) so the after-run `QcAuditTab` shows "QC could not be evaluated" — but that feeds the user-visible table and must be verified against a live QC-gate run.
+- H3/H4 — `_list_s3_output_files` / `_list_s3_work_output_files` still return `[]` on a LIST error (vs genuinely-empty), which can still yield a fake-clean via the "no files → no metrics → no read error → []" path. Proper fix: return a sentinel distinct from `[]` and have callers treat it as degraded (multi-caller signature change).
+
+**Deferred with a concrete recommended patch (NOT changed blind — these alter safety/billing/SSE/dashboard semantics and need a live run to verify):**
 - C1/C2/M1 billing dead-letter + fail-loud endpoint: durable ledger that must succeed or 5xx; reconcile queue. Touches the money path — needs careful review.
 - H9/H10 `/histories` + `/datasets`: return an `error` field (and non-2xx) on upstream failure, with a UI banner, instead of `{[]}`. Needs the dashboard to handle the new shape.
 - H11/H12 SSE reconnect + polling fallback: port `workflow-artifact.tsx`'s exp-backoff reconnect into the viewer and arm `startPolling` alongside SSE. Demo-critical; verify with a live run.

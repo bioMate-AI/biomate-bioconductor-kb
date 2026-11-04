@@ -3878,6 +3878,26 @@ def _reconstruct_qc_from_s3(run_id, files, workflow_domain, qc_overrides, retros
     return [row for row in rows if row["status"] == "fail"]
 
 
+def _qc_unevaluable(reason: str) -> list:
+    """A single ADVISORY gate entry recording that QC could NOT be evaluated.
+
+    Rule: a gate that cannot be read must never be recorded as a clean pass (an
+    empty failure list reads as 'all gates clear'). This sentinel makes the
+    recorded verdict explicitly 'unknown' rather than clean. It is marked
+    advisory=True so it is non-blocking (the viewer's blocking check keys on
+    advisory !== true) — appropriate because a read error is not a measured
+    safety failure, but it must still not read as a pass."""
+    return [{
+        "metric": "qc_evaluation",
+        "value": None,
+        "threshold": None,
+        "operator": "",
+        "advisory": True,
+        "status": "unknown",
+        "message": "QC gates could not be evaluated (%s) — NOT recorded as a pass." % reason,
+    }]
+
+
 def _evaluate_qc_from_s3(
     run_id: str,
     s3_output_files: list,
@@ -3973,6 +3993,7 @@ def _evaluate_qc_from_s3(
             return f.get("filename") or f.get("name") or ""
 
         metrics: Dict[str, Any] = {}
+        _read_error: Optional[str] = None  # set when a MATCHED metrics file could not be read
 
         def _extract(data: Dict[str, Any]) -> Dict[str, Any]:
             src = data.get("toxicity", data) if isinstance(data, dict) else {}
@@ -3998,12 +4019,27 @@ def _evaluate_qc_from_s3(
                         metrics = _extract(_json.loads(result.stdout))
                         if metrics:
                             break
+                    else:
+                        # A matched safety-metrics file we FAILED to download — this is a
+                        # read error (throttle/permission/missing object), not "no metrics".
+                        _read_error = "s3 cp %s exited %d" % (_target, result.returncode)
+                        log.warning("[QC S3] non-zero reading %s: rc=%d", s3_uri, result.returncode)
                 except Exception as _e:
+                    _read_error = "%s reading %s" % (type(_e).__name__, _target)
                     log.warning("[QC S3] Failed to read %s: %s", s3_uri, _e)
             if metrics:
                 break
 
         if not metrics:
+            # Distinguish "couldn't read the metrics" (degraded — must NOT read as a
+            # clean pass, per the no-silent-skip rule) from "no safety metrics present"
+            # (legitimate — some workflows emit none, which is a real empty/pass).
+            if _read_error:
+                log.error(
+                    "[QC S3] QC NOT EVALUATED for %s — %s; recording as degraded, NOT a pass",
+                    run_id, _read_error,
+                )
+                return _qc_unevaluable(_read_error)
             return []
 
         # Completion-time evaluation only records findings; it never dispatches
@@ -4142,8 +4178,12 @@ def _evaluate_qc_from_s3(
         return all_failures
 
     except Exception as _exc:
-        log.warning("[QC S3] Gate evaluation failed for %s: %s", run_id, _exc)
-        return []
+        # A crash in gate evaluation must not be recorded as a clean safety pass.
+        log.error(
+            "[QC S3] Gate evaluation ERRORED for %s — recording as degraded, NOT a pass: %s",
+            run_id, _exc, exc_info=True,
+        )
+        return _qc_unevaluable("evaluation error: %s" % type(_exc).__name__)
 
 
 def _start_qc_monitor(
