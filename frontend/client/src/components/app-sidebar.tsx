@@ -35,6 +35,7 @@ import { analytics } from "@/lib/analytics"
 import { useActiveProject } from "@/contexts/active-project-context"
 import { useAuth } from "@/contexts/auth-context"
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
+import { IND_REPORT_ENABLED } from "@/lib/feature-flags";
 
 interface ToolItem {
   id: string
@@ -294,13 +295,13 @@ export function AppSidebar({
           </span>
         </button>
 
-        {/* IND Report hidden from sidebar for now (per request 2026-09-22). Route still exists. */}
-        {/* <button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
+        {/* IND Report is paused — see IND_REPORT_ENABLED (feature-flags.ts). */}
+        {IND_REPORT_ENABLED && (<button className="side-link" data-testid="button-ind-report" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/ind-report')}>
           <FileText className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <span>IND Report</span>
           </span>
-        </button> */}
+        </button>)}
 
         <button className="side-link" data-testid="button-models-nav" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/models')}>
           <Layers className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0, marginTop: 2 }} />

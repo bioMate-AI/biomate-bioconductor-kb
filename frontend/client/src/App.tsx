@@ -69,6 +69,7 @@ import "@/v2/research-tokens.css";
 import "@/v2/layout.css";
 import "@/v2/research-layout.css";
 import "@/v2/tour.css";
+import { IND_REPORT_ENABLED } from "@/lib/feature-flags";
 
 interface ToolItem {
   id: string
@@ -635,11 +636,14 @@ function Router({
         </AuthenticatedPageLayout>
       </Route> */}
 
-      <Route path="/ind-report">
-        <AuthenticatedPageLayout>
-          <IndReportPage />
-        </AuthenticatedPageLayout>
-      </Route>
+      {/* IND Report is paused — see IND_REPORT_ENABLED (feature-flags.ts). */}
+      {IND_REPORT_ENABLED && (
+        <Route path="/ind-report">
+          <AuthenticatedPageLayout>
+            <IndReportPage />
+          </AuthenticatedPageLayout>
+        </Route>
+      )}
 
       <Route path="/capabilities">
         <PublicPageLayout>

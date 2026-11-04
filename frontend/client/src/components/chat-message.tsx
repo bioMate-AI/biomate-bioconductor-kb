@@ -113,6 +113,7 @@ import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d1
 
 // Use the shared Message type for consistency
 import type { ExecutionRun, Message } from '@shared/schema'
+import { IND_REPORT_ENABLED } from "@/lib/feature-flags";
 export type { Message }
 
 // ── Speaker pill helpers ───────────────────────────────────────
@@ -828,7 +829,7 @@ export function ChatMessage({
           {/* Path A.4: Roll into IND project. Shows only when workflow completed +
               at least one IND project exists. The affordance itself queries
               listProjects() and hides if empty. */}
-          {isWorkflowMessage && message.metadata?.workflow && currentExecutionRun?.execution?.status === "completed" && (
+          {IND_REPORT_ENABLED && isWorkflowMessage && message.metadata?.workflow && currentExecutionRun?.execution?.status === "completed" && (
             <RollIntoIndAffordance
               workflowName={message.metadata.workflow.name || message.metadata.workflow.display_name}
               workflowRunId={effectiveInvocationId || undefined}
@@ -1140,7 +1141,7 @@ export function ChatMessage({
               wfName.includes("pbpk_simulation") ||
               wfName.includes("pbpk")
             const isCompleted = currentExecutionRun?.execution?.status === "completed"
-            if (!isAdmetOrPbpk || !isCompleted) return null
+            if (!IND_REPORT_ENABLED || !isAdmetOrPbpk || !isCompleted) return null  // IND paused
             const label = wfName.includes("pbpk")
               ? "PBPK qualification complete"
               : "ADMET screening complete"
