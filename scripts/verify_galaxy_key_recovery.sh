@@ -9,9 +9,12 @@
 #
 # Safety: touches only the fixture's own key row (Galaxy user looked up by email), never a row
 # whose value equals the container's GALAXY_API_KEY (the bootstrap/admin key); key values are
-# compared inside the container and never printed. Requires E2E_FIXTURE_PASSWORD.
+# compared inside the container and never printed. Password: E2E_FIXTURE_PASSWORD, else ~/.config/biomate/e2e_fixture_password.
 set -euo pipefail
-: "${E2E_FIXTURE_PASSWORD:?E2E_FIXTURE_PASSWORD is not set}"
+PW_FILE="$HOME/.config/biomate/e2e_fixture_password"  # local, chmod 600, never committed
+[[ -z "${E2E_FIXTURE_PASSWORD:-}" && -r "$PW_FILE" ]] && E2E_FIXTURE_PASSWORD=$(cat "$PW_FILE")
+: "${E2E_FIXTURE_PASSWORD:?set E2E_FIXTURE_PASSWORD or create $PW_FILE}"
+export E2E_FIXTURE_PASSWORD
 BASE="${BIOMATE_URL:-https://dev-public.biomate.ai}"
 EMAIL="lifeifei163361@163.com"
 export PATH="$HOME/bin:$PATH"

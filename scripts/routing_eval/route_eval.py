@@ -24,6 +24,15 @@ EMAIL = "lifeifei163361@163.com"
 CTX = ssl.create_default_context()
 
 
+def fixture_password():
+    """E2E_FIXTURE_PASSWORD, else the local chmod-600 file (the password is never committed)."""
+    pw = os.environ.get("E2E_FIXTURE_PASSWORD")
+    path = os.path.expanduser("~/.config/biomate/e2e_fixture_password")
+    if not pw and os.path.exists(path):
+        pw = open(path).read().strip()
+    return pw
+
+
 def post(path, body, bearer=None, timeout=180, deadline=240):
     """Read SSE line by line and stop at the `final` event (+ its data line), with a hard total
     deadline. A plain r.read() waits for connection close: heartbeats reset the socket timeout,
@@ -140,9 +149,9 @@ def main():
     lanes = int(sys.argv[3]) if len(sys.argv) > 3 else 3
     only = {int(x) for x in sys.argv[4].split(",")} if len(sys.argv) > 4 and sys.argv[4] else None
     reps = int(sys.argv[5]) if len(sys.argv) > 5 else 1
-    password = os.environ.get("E2E_FIXTURE_PASSWORD")
+    password = fixture_password()
     if not password:
-        sys.exit("E2E_FIXTURE_PASSWORD is not set (the fixture password is never committed)")
+        sys.exit("set E2E_FIXTURE_PASSWORD or create ~/.config/biomate/e2e_fixture_password (never committed)")
     st, body = post("/api/auth/login", {"email": EMAIL, "password": password})
     jwt = json.loads(body).get("token", "") if st == 200 else ""
     if len(jwt) < 50:
