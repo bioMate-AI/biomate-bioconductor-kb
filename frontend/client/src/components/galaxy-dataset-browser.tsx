@@ -280,6 +280,7 @@ function HistoryTab({
   const [loading, setLoading] = useState(false);
   const [datasetsLoading, setDatasetsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [datasetsError, setDatasetsError] = useState<string | null>(null);
   const [loadTick, setLoadTick] = useState(0);
 
   // Load histories on mount (or on retry)
@@ -287,25 +288,46 @@ function HistoryTab({
     setLoading(true);
     setError(null);
     fetch('/api/galaxy/histories', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(async r => {
+        // A non-2xx means Galaxy or the DB failed — surface the real cause instead
+        // of rendering an empty list that looks like "no histories".
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}));
+          throw new Error(body?.message || body?.error || `HTTP ${r.status}`);
+        }
+        return r.json();
+      })
       .then(data => {
         setHistories(data.histories || []);
       })
-      .catch(() => setError('Could not load histories'))
+      .catch((e: any) => setError(e?.message || 'Could not load histories'))
       .finally(() => setLoading(false));
   }, [loadTick]);
 
-  // Load datasets when a history is selected
-  const openHistory = useCallback((history: GalaxyHistory) => {
-    setSelectedHistory(history);
+  // Load datasets when a history is selected (or on retry)
+  const loadDatasets = useCallback((history: GalaxyHistory) => {
     setDatasetsLoading(true);
+    setDatasetsError(null);
     setDatasets([]);
     fetch(`/api/galaxy/histories/${history.id}/datasets`)
-      .then(r => r.json())
+      .then(async r => {
+        // A non-2xx means Galaxy/DB/S3 failed — surface it instead of rendering
+        // an empty list that looks like "no datasets in this history".
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}));
+          throw new Error(body?.message || body?.error || `HTTP ${r.status}`);
+        }
+        return r.json();
+      })
       .then(data => setDatasets(data.datasets || []))
-      .catch(() => setDatasets([]))
+      .catch((e: any) => setDatasetsError(e?.message || 'Could not load datasets'))
       .finally(() => setDatasetsLoading(false));
   }, []);
+
+  const openHistory = useCallback((history: GalaxyHistory) => {
+    setSelectedHistory(history);
+    loadDatasets(history);
+  }, [loadDatasets]);
 
   if (loading) {
     return (
@@ -350,6 +372,18 @@ function HistoryTab({
         {datasetsLoading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : datasetsError ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">
+            <p>{datasetsError}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2"
+              onClick={() => selectedHistory && loadDatasets(selectedHistory)}
+            >
+              Retry
+            </Button>
           </div>
         ) : filteredDs.length === 0 ? (
           <p className="text-sm text-center text-muted-foreground py-6">

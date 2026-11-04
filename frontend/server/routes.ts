@@ -3426,10 +3426,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Galaxy / BioMate histories API
   app.get("/api/galaxy/histories", optionalAuth, async (req, res) => {
+    // A failure to reach Galaxy or the DB must NOT look like "you have no data".
+    // A genuinely empty account returns 200 + []; an upstream/DB failure returns
+    // a non-2xx with the real cause so the UI can show a retry state.
+
+    // 1. Galaxy histories (upstream). Only a successful (possibly empty) response
+    //    counts as data — a thrown error means Galaxy is down or the per-user key
+    //    was rejected, which must surface, not be masked as [].
+    let galaxyShaped: any[];
     try {
       const proxy = userProxy(req);
-      const galaxyHistories = await proxy.getHistories().catch(() => []);
-      const galaxyShaped = (galaxyHistories || []).map((h: any) => ({
+      const galaxyHistories = await proxy.getHistories();
+      galaxyShaped = (galaxyHistories || []).map((h: any) => ({
         id: h.id,
         name: h.name,
         count: h.count ?? h.dataset_count ?? 0,
@@ -3438,12 +3446,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         update_time: h.update_time ?? h.update_date ?? '',
         source: 'galaxy' as const,
       }));
+    } catch (err: any) {
+      // GalaxyAPIProxy's interceptor throws { error, message, status_code, detail }.
+      const upstreamStatus: number | undefined = err?.status_code;
+      const upstreamBody = err?.detail != null
+        ? (typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail)).slice(0, 500)
+        : undefined;
+      console.error(
+        '[Histories] Galaxy getHistories FAILED: upstreamStatus=%s message=%s body=%s',
+        upstreamStatus, err?.message, upstreamBody || '(none)'
+      );
+      return res.status(502).json({
+        error: 'GalaxyUpstreamError',
+        message: `Could not load Galaxy histories${upstreamStatus ? ` (upstream HTTP ${upstreamStatus})` : ''}: ${err?.message || 'unknown upstream error'}`,
+        upstreamStatus,
+        upstreamBody,
+      });
+    }
 
-      // Also include completed BioMate execution runs as virtual histories so users
-      // can browse workflow output files through the same "BioMate history" tab.
+    // 2. Completed BioMate execution runs as virtual histories so users can browse
+    //    workflow output files through the same "BioMate history" tab. A DB failure
+    //    here is a real error (getExecutionRuns already falls back to memory on a
+    //    query error, so a throw past that is genuinely unexpected) and must surface.
+    let runHistories: any[];
+    try {
       const userId = (req as any).userId || (req as any).user?.id;
-      const execRuns = await storage.getExecutionRuns(userId, undefined, undefined, 20).catch(() => []);
-      const runHistories = execRuns
+      const execRuns = await storage.getExecutionRuns(userId, undefined, undefined, 20);
+      runHistories = execRuns
         .filter((r: any) => r.execution?.status === 'completed' && r.execution?.nextflowOutputDir)
         .map((r: any) => ({
           id: `run:${r.id}`,
@@ -3458,12 +3487,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           runId: r.id,
           outputDir: r.execution?.nextflowOutputDir,
         }));
-
-      res.json({ histories: [...galaxyShaped, ...runHistories] });
     } catch (err: any) {
-      console.error('[Histories] fetch failed:', err.message);
-      res.json({ histories: [] });
+      console.error('[Histories] DB getExecutionRuns FAILED:', err?.message, err?.stack);
+      return res.status(500).json({
+        error: 'DatabaseError',
+        message: `Could not load BioMate run histories: ${err?.message || 'unknown database error'}`,
+      });
     }
+
+    res.json({ histories: [...galaxyShaped, ...runHistories] });
   });
 
   app.get("/api/galaxy/histories/:historyId/datasets", optionalAuth, async (req, res) => {
@@ -3491,14 +3523,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...process.env,
           ...((_nfKey && _nfSecret) ? { AWS_ACCESS_KEY_ID: _nfKey, AWS_SECRET_ACCESS_KEY: _nfSecret } : {}),
         };
-        const rawLs = await execP(
-          `aws s3 ls "${s3Prefix}" --recursive`,
-          { env: _s3Env }
-        ).then(({ stdout }) => stdout).catch((e: any) => {
-          console.warn('[HistoryDatasets/run] S3 ls error code=%s stderr=%s',
-            e?.code, e?.stderr?.slice?.(0, 120));
-          return (e?.stdout as string) || '';
-        });
+        // `aws s3 ls --recursive` exits non-zero in two very different cases:
+        //   (a) a genuinely empty / not-yet-populated prefix (no stderr) — a valid empty result
+        //   (b) a real failure: AccessDenied, NoSuchBucket, bad/expired creds (stderr set)
+        // Only (b) must surface as an error; masking it as [] looks like "no outputs".
+        let rawLs: string;
+        try {
+          const { stdout } = await execP(`aws s3 ls "${s3Prefix}" --recursive`, { env: _s3Env });
+          rawLs = stdout;
+        } catch (e: any) {
+          const stderr = (e?.stderr || '').toString();
+          const stdout = (e?.stdout || '').toString();
+          const isRealFailure = /error occurred|Unable to locate credentials|AccessDenied|NoSuchBucket|InvalidAccessKeyId|ExpiredToken|SignatureDoesNotMatch|could not connect|fatal error/i.test(stderr);
+          if (isRealFailure) {
+            console.error('[HistoryDatasets/run] S3 ls FAILED code=%s stderr=%s',
+              e?.code, stderr.slice(0, 500));
+            return res.status(502).json({
+              error: 'S3ListError',
+              message: `Could not list run outputs from S3: ${stderr.slice(0, 300) || `aws exited ${e?.code}`}`,
+              s3Prefix,
+            });
+          }
+          // Non-zero exit with no error signature (empty prefix) → valid empty listing.
+          console.warn('[HistoryDatasets/run] S3 ls empty/non-error exit code=%s', e?.code);
+          rawLs = stdout;
+        }
         // aws s3 ls --recursive format: "YYYY-MM-DD HH:MM:SS   <bytes>  <key>"
         const datasets: any[] = [];
         for (const line of rawLs.split('\n')) {
@@ -3533,8 +3582,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
       res.json({ datasets: shaped });
     } catch (err: any) {
-      console.error('[HistoryDatasets] fetch failed:', err.message);
-      res.json({ datasets: [] });
+      // The non-run path's only throw is the Galaxy contents call, whose interceptor
+      // raises { error, message, status_code, detail }. Surface it as an upstream
+      // failure rather than a fake-empty dataset list.
+      const upstreamStatus: number | undefined = err?.status_code;
+      const upstreamBody = err?.detail != null
+        ? (typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail)).slice(0, 500)
+        : undefined;
+      const isUpstream = typeof upstreamStatus === 'number';
+      console.error(
+        '[HistoryDatasets] fetch FAILED: upstreamStatus=%s message=%s body=%s',
+        upstreamStatus, err?.message, upstreamBody || '(none)'
+      );
+      return res.status(isUpstream ? 502 : 500).json({
+        error: isUpstream ? 'GalaxyUpstreamError' : 'HistoryDatasetsError',
+        message: `Could not load datasets${upstreamStatus ? ` (upstream HTTP ${upstreamStatus})` : ''}: ${err?.message || 'unknown error'}`,
+        upstreamStatus,
+        upstreamBody,
+      });
     }
   });
 
