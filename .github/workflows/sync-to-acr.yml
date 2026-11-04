@@ -120,6 +120,7 @@ jobs:
               -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
               root@${{ env.ECS_IP }} \
               'cat > /tmp/galaxy_ai_tools.db && \
+               docker volume create biomate-onprem_biomate-backend-db 2>/dev/null || true && \
                VOLPATH=$(docker volume inspect biomate-onprem_biomate-backend-db --format "{{.Mountpoint}}") && \
                mkdir -p "$VOLPATH" && \
                mv /tmp/galaxy_ai_tools.db "$VOLPATH/galaxy_ai_tools.db" && \
@@ -135,7 +136,8 @@ jobs:
             sshpass -p "$ECS_PASS" ssh -o StrictHostKeyChecking=no \
               -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=60 \
               root@${{ env.ECS_IP }} \
-              'VOLPATH=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}") && \
+              'docker volume create biomate-onprem_biomate-nfcore-workflows 2>/dev/null || true && \
+               VOLPATH=$(docker volume inspect biomate-onprem_biomate-nfcore-workflows --format "{{.Mountpoint}}") && \
                mkdir -p "$VOLPATH" && \
                tar -xzf - -C "$VOLPATH" && \
                touch "$VOLPATH/.initialized" && \
@@ -171,13 +173,17 @@ jobs:
              CURRENT=\$(stat -c %s \"\$VOLPATH/galaxy_ai_tools.db\" 2>/dev/null || echo 0) && \
              echo \"Current DB size: \${CURRENT} bytes (threshold: 250 MB = 262144000)\" && \
              if [ \"\$CURRENT\" -lt 262144000 ]; then \
-               echo \"DB missing or incomplete — downloading from S3 directly on ECS (~303 MB)...\" && \
-               curl -fL --progress-bar -o \"\$VOLPATH/galaxy_ai_tools.db.new\" '$DB_URL' && \
-               mv \"\$VOLPATH/galaxy_ai_tools.db.new\" \"\$VOLPATH/galaxy_ai_tools.db\" && \
-               ls -lh \"\$VOLPATH/galaxy_ai_tools.db\" && \
-               echo 'DB installed — restarting galaxy to reload AI assistant' && \
-               docker restart --timeout 30 biomate-galaxy && \
-               echo 'Galaxy restarted with fresh DB'; \
+               echo \"DB missing or incomplete — downloading from S3 on ECS (--max-time 3600)...\" && \
+               if curl -fL --progress-bar --max-time 3600 -o \"\$VOLPATH/galaxy_ai_tools.db.new\" '$DB_URL'; then \
+                 mv \"\$VOLPATH/galaxy_ai_tools.db.new\" \"\$VOLPATH/galaxy_ai_tools.db\" && \
+                 ls -lh \"\$VOLPATH/galaxy_ai_tools.db\" && \
+                 echo 'DB installed — restarting galaxy to reload AI assistant' && \
+                 docker restart --timeout 30 biomate-galaxy && \
+                 echo 'Galaxy restarted with fresh DB'; \
+               else \
+                 echo 'WARNING: DB download timed out or failed — using existing DB as-is'; \
+                 ls -lh \"\$VOLPATH/galaxy_ai_tools.db\" 2>/dev/null || echo '(no DB on disk)'; \
+               fi; \
              else \
                echo \"DB already complete (\${CURRENT} bytes) — skipping download\"; \
              fi"
