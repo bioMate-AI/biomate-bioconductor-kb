@@ -270,3 +270,44 @@ class TabularArbiter(Arbiter):
                 ev = TargetEvidence(target=t)
             out.append(TargetScore(target=t, score=float(y[idx]), tier=ev.tier, rank=rank + 1, evidence=ev))
         return out
+
+
+# ---------------------------------------------------------------------------
+# GENERAL entry point — the same fusion engine, reusable by ANY multi-source
+# task (not just target-ID). Entities can be genes, papers, cell types,
+# candidates, QC signals — anything with a per-channel score.
+# ---------------------------------------------------------------------------
+def fuse_channels(channels, *, method: str = "evidence_gate", z_thresh: float = 2.0,
+                  strong_thresh: float = 0.5, weights=None, top_k: Optional[int] = None):
+    """Fuse arbitrary named channels of ``{entity: score}`` into a ranked, confidence-tiered
+    list of entities. Domain-neutral: each channel is calibrated against its own null, then
+    gated (``evidence_gate``) or weighted-aggregated (``harmonic_sum``), exactly as target-ID
+    does — but with no target-specific assumptions.
+
+    channels: iterable of ``ChannelResult`` | ``(name, {entity: score})`` | ``{"channel","scores"}``.
+    method:   ``"evidence_gate"`` (default, prior-free z-gate) | ``"harmonic_sum"`` (OT-style weights).
+    weights:  optional ``{channel_name: reliability in [0,1]}`` (harmonic_sum only).
+    Returns:  list of dicts ``{entity, score, tier, rank, n_fired, fired_channels, per_channel_z}``.
+    """
+    crs: List[ChannelResult] = []
+    for ch in channels:
+        if isinstance(ch, ChannelResult):
+            crs.append(ch)
+        elif isinstance(ch, dict):
+            crs.append(ChannelResult(channel=str(ch["channel"]),
+                                     scores={str(k): float(v) for k, v in dict(ch.get("scores", {})).items()}))
+        else:  # (name, scores)
+            name, scores = ch
+            crs.append(ChannelResult(channel=str(name),
+                                     scores={str(k): float(v) for k, v in dict(scores).items()}))
+    if method == "harmonic_sum":
+        arbiter: Arbiter = HarmonicSumArbiter(channel_weights=weights, strong_thresh=strong_thresh)
+    else:
+        arbiter = EvidenceGateArbiter(z_thresh=z_thresh)
+    ranked = arbiter.rank(crs, {})
+    out = [{
+        "entity": s.target, "score": round(float(s.score), 4), "tier": s.tier, "rank": s.rank,
+        "n_fired": s.evidence.n_fired, "fired_channels": list(s.evidence.fired_channels),
+        "per_channel_z": {k: round(float(v), 3) for k, v in s.evidence.per_channel_z.items()},
+    } for s in ranked]
+    return out[:top_k] if top_k else out

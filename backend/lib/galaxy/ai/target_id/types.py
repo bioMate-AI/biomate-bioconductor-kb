@@ -54,6 +54,12 @@ class TargetScore:
     rank: int
     evidence: TargetEvidence
 
+    @property
+    def entity(self) -> str:
+        """Generic alias for ``target`` — lets non-target consumers of the fusion
+        engine read results as entities (genes, papers, cell types, candidates…)."""
+        return self.target
+
 
 @dataclass
 class OrchestratorResult:
