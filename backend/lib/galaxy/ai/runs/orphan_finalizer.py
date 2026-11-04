@@ -299,8 +299,12 @@ def finalize_orphaned_run(
             _post_frontend_status(invocation_id, final_status, returncode,
                                   completed_at, "orphan_poller")
         except Exception as _fe_exc:
-            log.debug("[orphan_finalizer] frontend status push failed for inv=%s: %s",
-                      invocation_id, _fe_exc)
+            # This push is the whole point of the orphan finalizer — it writes the
+            # terminal status to the frontend row so the UI stops showing "running".
+            # If it fails, the page sticks on "running" forever (the documented
+            # stuck-run symptom), so this must be visible, not debug-level.
+            log.error("[orphan_finalizer] frontend status push FAILED for inv=%s "
+                      "(UI may stick on 'running'): %s", invocation_id, _fe_exc)
 
     # Step 3c — write the durable per-run study log (matches the normal-completion
     # path at nextflow_executor.py:3322). Audit logs were silently missing for

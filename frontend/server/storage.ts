@@ -410,7 +410,7 @@ export class MemStorage implements IStorage {
       metrics: JSON.stringify(executionRun.metrics),
       createdAt: executionRun.createdAt,
       updatedAt: executionRun.updatedAt,
-    }).catch(e => console.warn('[Storage] Failed to persist execution run to DB:', e.message));
+    }).catch(e => console.error('[Storage] DURABILITY: failed to persist execution run to DB — run is MemStorage-only and will be lost on a worker recycle:', e?.message));
 
     return executionRun;
   }
@@ -596,7 +596,7 @@ export class MemStorage implements IStorage {
       completedSteps: String(updated.progress?.completedSteps || 0),
       currentStepName: updated.progress?.currentStepName,
       updatedAt: updated.updatedAt,
-    }).where(eq(executionRunsTable.id, id)).catch(e => console.warn('[Storage] DB updateExecutionRun failed:', e.message));
+    }).where(eq(executionRunsTable.id, id)).catch(e => console.error('[Storage] DURABILITY: DB updateExecutionRun failed — this update is MemStorage-only until the next successful write:', e?.message));
 
     return updated;
   }

@@ -5842,10 +5842,19 @@ def _fail_run(run_id: str, message: str) -> None:
             snapshot = dict(rec)
         try:
             get_run_state_store().set_run(run_id, snapshot)
-        except Exception:
-            pass
+        except Exception as _store_exc:
+            # The cross-worker store is how a failed status survives a gunicorn
+            # worker recycle. If this write is lost, the run reverts to looking
+            # "running" forever after a recycle — so this must be visible, not a
+            # silent pass. The in-proc _runs dict above still has the failed state
+            # for this worker, so we don't re-raise.
+            log.error(
+                "[runs] _fail_run: persisting terminal 'failed' to run-state store FAILED "
+                "for %s (status may be lost on worker recycle): %s",
+                run_id, _store_exc,
+            )
     except Exception as _e:
-        log.debug("[runs] _fail_run failed for %s: %s", run_id, _e)
+        log.error("[runs] _fail_run failed for %s: %s", run_id, _e)
 
 
 def _narrate_launch_failure(invocation_id: str, run_id: str, message: str) -> None:
