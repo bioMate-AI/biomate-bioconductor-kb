@@ -199,3 +199,15 @@ Caveats: [81] "adapt the generative model" → REINVENT4 Lead Design (the Finetu
 
 ### 6.3 Harness
 Committed in `scripts/routing_eval/` (`aae875b05`) after the scratch copy was wiped by a restart: payload dump from the UI's own code, runner with SSE `final`-event stop + hard deadline (a lost FIN on the client↔EC2 path had stalled a run for 90 min while the server had answered 200), scorer. Fixture password via `E2E_FIXTURE_PASSWORD` (never committed).
+
+---
+
+## 7. Mid-session key recovery, IND pause, forwarder consolidation (2026-11-04)
+
+**Mid-session Galaxy key recovery** (`9503abf5e`, `ed39c9c46`): the per-user Galaxy key was only validated at login; a key Galaxy rejected mid-session (401001 "not valid"/"expired") broke every Galaxy-backed request until re-login. Now every per-user call recovers once: `GalaxyAPIProxy.forUser(key, onKeyRejected)` (all 56 proxy calls) and `fetchGalaxyWithKeyRecovery` / `fetchGalaxyAsUser` (the routes that fetch() the backend directly), both via single-flight `AuthService.recoverGalaxyKey`. Tests run in vitest's Node environment against a local Galaxy-like server (real fetch/FormData; jsdom's FormData can't be sent by Node fetch — `client/src/test/setup.ts` now applies browser mocks only where `window` exists). Deployed; the live revoke-and-retry check (`scripts/verify_galaxy_key_recovery.sh`) writes one row in dev's Galaxy DB and was not permitted to run from the agent — run it with `E2E_FIXTURE_PASSWORD` set.
+
+**Deploy-script hazard found (not changed — decision pending):** `scripts/sync_to_dev.sh` `deploy_databases()` copies the local `backend/database/universe.sqlite` over dev's live Galaxy DB whenever the DB layer runs (no comparison/backup). `/Users/kky/biomate` has a July-2 copy: a sync from that checkout would reset dev's Galaxy users/histories/keys to July. Proposed: replace it only behind an explicit opt-in flag.
+
+**IND paused** (`4407cb3c2`): `IND_REPORT_ENABLED` (feature-flags.ts, off unless `VITE_ENABLE_IND_REPORT=true`) gates all four entry points — the sidebar entry, the `/ind-report` route, chat's "Generate IND" chip (was still shown after every ADMET/PBPK run), and chat's roll-into-IND affordance (was calling `/api/ind-report/projects` on every completed workflow). Verified on dev: none of them remain in the deployed client bundle. Backend + forwarders kept for re-enable.
+
+**Forwarders consolidated** (`8ed3da929`): the ind-report / regulatory / grounded / DL forwarders (Node → Python backend; request/response APIs, not workflows — Nextflow doesn't apply) were copy-pasted; now one `backendPassthrough(label)` (−87 lines). Verified on dev, identical before/after: `GET /api/ind-report/projects` 200 `{"projects":[]}`, `GET /api/regulatory/active_adapter` 200; `GET /api/models` 200 (5 models). `/api/grounded/*` has no caller anywhere (Grounded Standards Assistant backend built, not wired into the product) — left in place.
