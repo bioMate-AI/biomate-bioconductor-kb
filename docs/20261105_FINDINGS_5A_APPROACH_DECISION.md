@@ -211,7 +211,30 @@ Materialization), so this is unconfirmed. Two outcomes after E deploys:
   in the backend chain (`llm_providers.yml`) whose findings output is a JSON object, not an
   echoed array. That's an infra/config decision, not more app code.
 
-## Status: A, B, C, D, E all shipped on the branch
+## 2026-11-05 FINAL — #5a SOLVED end-to-end on dev (long-tail findings now real)
+After E deployed, probed a FRESH non-parser run (CAR-T `e10a5e6a`, untouched so it actually
+regenerates). Result: poll 1 `pending`, then stable `ready` with **REAL findings — 7 key_results
++ a real summary** ("The in vivo CAR-T codesign workflow completed three sequential safety…"),
+across 5 polls. No note, no garbage, no loop. Dev logs confirm the mechanism:
+```
+[Findings] ... non-findings JSON (array — likely echoed inputs) — retrying with Claude   (fix D)
+[Findings] Claude fallback succeeded                                                      (fix E)
+[Findings] persisted sidecar s3://.../findings_data.json                                  (converges)
+```
+So dev DOES hold a valid `ANTHROPIC_API_KEY`; the primary model echoes, fix D routes to the
+Claude fallback, fix E lets it authenticate, Haiku adheres → real findings, persisted.
+
+**Long-tail findings now work on dev** via the hybrid: deterministic parsers for the 4
+gate-number domains (ADMET/DE/enrichment/raredisease — ADMET verified: summary + 9 key_results),
+and the grounded LLM path (primary → Claude-Haiku fallback) for everything else (CAR-T verified:
+7 key_results). A run that can't be summarized by any adherent model still converges to the clean
+"unavailable" note — never garbage, never a hang, never perpetual pending.
+
+The #5a decision is fully borne out: the fix was five bounded bugs in the generic path
+(A sidecar-trust, B hang, C guardrail/sampling, D response-contract/echo, E fallback key), NOT
+per-domain parsers.
+
+## Status: A, B, C, D, E all shipped AND verified live on dev
 All three long-tail findings failure modes are addressed in code:
 - **A** — sidecar/cache shape validation (commit c3096f51a).
 - **B** — 90s bound on the generic LLM call (commit 3995fc1b2).
