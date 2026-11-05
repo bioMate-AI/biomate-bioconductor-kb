@@ -16021,8 +16021,16 @@ Rules:
                 const _projKeys = new Set<string>(_proj.key_results.map(k => String(k.metric)));
                 const _parserOnly = [..._flatKeys].filter(k => !_projKeys.has(k));
                 const _docOnly = [..._projKeys].filter(k => !_flatKeys.has(k));
-                if (_parserOnly.length || _docOnly.length) {
-                  console.warn(`[Findings][shadow] documentToLegacy vs parser flat for "${workflowName}": parser-only=[${_parserOnly.join(', ')}] doc-only=[${_docOnly.join(', ')}] — cutover pending`);
+                // The cutover gate is parser-only === [] (the projection must lose NO metric the
+                // parser surfaces — especially a safety liability). doc-only entries are the richer
+                // document adding metrics the flat never had (RDKit per_compound heuristics, batch
+                // panel aggregates) — an enrichment, not a regression. So: parser-only non-empty =>
+                // BLOCKED (a real gap, e.g. the pre-fix ADMET doc-only=[logP]); parser-only empty with
+                // doc extras => cutover-safe (document is a superset); exact match => cutover-ready.
+                if (_parserOnly.length) {
+                  console.warn(`[Findings][shadow] documentToLegacy vs parser flat for "${workflowName}": parser-only=[${_parserOnly.join(', ')}] doc-only=[${_docOnly.join(', ')}] — cutover BLOCKED (projection drops parser metrics)`);
+                } else if (_docOnly.length) {
+                  console.log(`[Findings][shadow] documentToLegacy covers all ${_flatKeys.size} parser metrics for "${workflowName}" and adds [${_docOnly.join(', ')}] — cutover-safe (document is a superset)`);
                 } else {
                   console.log(`[Findings][shadow] documentToLegacy matches parser-flat key set for "${workflowName}" (${_projKeys.size} metrics) — cutover-ready`);
                 }
