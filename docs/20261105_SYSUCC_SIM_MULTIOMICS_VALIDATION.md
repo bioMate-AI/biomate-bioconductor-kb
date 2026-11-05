@@ -132,3 +132,24 @@ corroboration tier remains a triage ranker, and `n_perm>0` provides a null-calib
 "these are the drivers" claim. (Honest note: the QC-gate silhouette advisory is **not** a good
 real-vs-null discriminator — it is ≈0 even on the ARI-0.978 clustering — so the driver-significance
 count is the trustworthy "is there real structure?" signal, not silhouette.)
+
+### 8.1 A below-the-floor cohort (weak signal) — no false discovery
+Second stress scenario: a **weak-signal** cohort (driver effect ≈0.9 vs noise sd ≈1.4–1.6, 25%
+ambiguous patients). SNF run `9849fe21`: it still returned 3 clusters, but they do **not** track the
+true subtypes — **best-match accuracy 0.399, ARI 0.007** (≈ chance). The signal was below the recovery
+floor by construction. The safety-critical question is whether the driver fusion then invents drivers
+from meaningless clusters: with `n_perm=50`, **0 significant drivers** (vs 56 by the raw corroborated
+tier). So an over-clustered, structure-free integration propagates **no** false discoveries.
+
+### 8.2 Stress-test summary (one row per regime)
+| Regime | SNF ARI vs truth | Drivers **significant** (`n_perm=50`) | `corroborated` tier (for contrast) |
+|---|---|---|---|
+| Clean cohort (strong signal) | **0.978** | **24 — all 24 true drivers** | 24 |
+| Weak-signal cohort (below floor) | 0.007 | **0** | 56 |
+| Real layers, **random** labels | — | **0** | 42 |
+
+The pipeline recovers subtypes and drivers when the signal is adequate, and reports **nothing
+significant** both when labels are random and when the clustering fails to track real structure — the
+corroborated tier over-calls in every null case (56 / 42), which is exactly why the permutation
+significance gate is required before any driver claim. This is the honest counterpart to the clean
+cohort's near-perfect scores: it establishes the pipeline's failure behaviour, not just its best case.
