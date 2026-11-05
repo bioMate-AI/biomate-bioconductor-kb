@@ -112,21 +112,32 @@ no labels → nothing fires.
 - Serves the SYSUCC / faculty **stratification spearhead**: subtype a cohort by multi-omics, then
   name the RNA/protein/methylation drivers that **agree across layers**.
 
-## 6. Status and the remaining "live-in-a-run" step
+## 6. Status
 
-- **Built + unit-tested** (this doc's subject): `backend/lib/galaxy/ai/multiomics/biomarker_fusion.py`
-  + `biomarker_fusion_test.py` (5 cases). `py_compile` clean under 3.9; scoring validated in
-  isolation; fusion covered by `evidence_fusion_test.py`.
-- **Not yet invoked inside a live workflow run.** Two wiring options, deliberately not bolted on:
-  1. **Backend findings hook (recommended, medium):** after an SNF run completes, the findings/
-     analysis path (`AfterRunReport` pipeline) downloads the staged layer matrices + `snf_clusters.csv`
-     and calls `rank_cross_omics_drivers`, surfacing the top cross-omics drivers in the run's
-     Findings. Runs in the Galaxy backend (numpy + the multiomics package already present) — no new
-     image or Batch process.
-  2. **New Nextflow process (heavy):** a Python `BIOMARKER_FUSION` step after SNF in its own
-     image carrying the multiomics/target_id packages + numpy. Faithful to "BioMate is the execution
-     engine," but needs a new/extended container.
-  Option 1 is the next increment; it needs the findings architecture traced before implementing.
+- **Built + unit-tested:** `backend/lib/galaxy/ai/multiomics/biomarker_fusion.py` +
+  `biomarker_fusion_test.py` (10 cases incl. the orchestrator + parsers). `py_compile` clean under
+  3.9; scoring + parsers validated in isolation; fusion covered by `evidence_fusion_test.py`.
+- **WIRED into the live findings path (backend findings hook, option 1 below).** The
+  `/api/nextflow/analyze-outputs` endpoint (`nextflow_executor.py`), after `OutputAnalyzer`, now runs
+  a best-effort block: when the run produced a subtype/cluster CSV (`snf_clusters.csv` /
+  `patient_stratification.csv`) AND the run record's `parameters.omics` has ≥2 layers, it recovers
+  the layer URIs via `_run_lookup(run_id)`, reads each (boto3 in the backend, AWS-CLI fallback) and
+  the cluster CSV, calls `drivers_from_run`, and appends the top corroborated drivers to the run's
+  Findings (`key_results` + a `summary`/`next_steps` note). Guarded so it never breaks findings.
+  - `drivers_from_run(cluster_csv_text, omics_uris, fetch_text=…)` is the testable orchestrator:
+    parse clusters (`_parse_cluster_csv`) + read/parse each matrix (`_parse_feature_matrix`) →
+    `rank_cross_omics_drivers`. `fetch_text` is injectable, so the whole path is unit-tested with no
+    network (`DriversFromRunTest`, `ParserTest`).
+- **Remaining = live end-to-end confirmation:** run an SNF integration on dev, call
+  `analyze-outputs`, and confirm the Findings list the cross-omics drivers. The code path is wired,
+  compiled, and unit-verified; a live run is the final proof (deferred to avoid an extra Batch cycle
+  unless requested).
+
+### Design note — why the backend hook, not a Nextflow step
+The alternative (a Python `BIOMARKER_FUSION` Nextflow process after SNF) would need a new/extended
+image carrying the multiomics/target_id packages + numpy. The backend hook needs neither — the
+Galaxy backend already has numpy + the multiomics package — and it reuses outputs + inputs the run
+already produced, so it adds a finding with no extra compute.
 
 ## 7. Files
 

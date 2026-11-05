@@ -73,5 +73,76 @@ class CrossOmicsDriverTest(unittest.TestCase):
         self.assertEqual(out[0]["entity"], "DRV")
 
 
+# ── drivers_from_run: findings-hook orchestration (cluster CSV + omics URIs ->
+#    drivers) with an injected reader so it is unit-testable with no network. ──
+class DriversFromRunTest(unittest.TestCase):
+    def setUp(self):
+        self.samples = [f"P{i}" for i in range(20)]
+        self.label = {s: ("1" if i % 2 == 0 else "2") for i, s in enumerate(self.samples)}
+        # snf_clusters.csv shape: "sample","cluster"
+        self.cluster_csv = '"sample","cluster"\n' + "\n".join(
+            f'"{s}",{self.label[s]}' for s in self.samples)
+
+        def _matrix_csv(features, hi):
+            head = "feature," + ",".join(self.samples)
+            lines = [head]
+            for f in features:
+                vals = []
+                for s in self.samples:
+                    if f == hi:
+                        vals.append("5.0" if self.label[s] == "1" else "0.0")
+                    else:
+                        vals.append("1.01" if self.label[s] == "1" else "0.99")
+                lines.append(f + "," + ",".join(vals))
+            return "\n".join(lines)
+
+        self._store = {
+            "s3://b/rna.csv":     _matrix_csv(["DRV", "r1"], "DRV"),
+            "s3://b/protein.csv": _matrix_csv(["DRV", "p1"], "DRV"),
+            "s3://b/methyl.csv":  _matrix_csv(["SOLO", "m1"], "SOLO"),
+        }
+
+    def _fetch(self, uri):
+        return self._store[uri]
+
+    def test_drivers_from_run_ranks_corroborated_first(self):
+        out = drivers_from_run(self.cluster_csv, list(self._store), fetch_text=self._fetch)
+        self.assertTrue(out)
+        self.assertEqual(out[0]["entity"], "DRV")
+        self.assertGreaterEqual(out[0]["n_fired"], 2)
+
+    def test_needs_two_layers(self):
+        out = drivers_from_run(self.cluster_csv, ["s3://b/rna.csv"], fetch_text=self._fetch)
+        self.assertEqual(out, [])
+
+    def test_no_labels_or_no_uris(self):
+        self.assertEqual(drivers_from_run("", list(self._store), fetch_text=self._fetch), [])
+        self.assertEqual(drivers_from_run(self.cluster_csv, [], fetch_text=self._fetch), [])
+
+    def test_bad_layer_is_skipped_not_fatal(self):
+        def flaky(uri):
+            if uri == "s3://b/protein.csv":
+                raise IOError("staging failed")
+            return self._store[uri]
+        out = drivers_from_run(self.cluster_csv, list(self._store), fetch_text=flaky)
+        self.assertTrue(out)                         # rna + methyl still fuse
+
+
+class ParserTest(unittest.TestCase):
+    def test_parse_cluster_csv_aliases(self):
+        from galaxy.ai.multiomics.biomarker_fusion import _parse_cluster_csv
+        d = _parse_cluster_csv('"sample","cluster"\n"P0",2\n"P1",1\n')
+        self.assertEqual(d, {"P0": "2", "P1": "1"})
+        d2 = _parse_cluster_csv("patient,subtype\nX,A\nY,B\n")
+        self.assertEqual(d2, {"X": "A", "Y": "B"})
+
+    def test_parse_feature_matrix(self):
+        from galaxy.ai.multiomics.biomarker_fusion import _parse_feature_matrix
+        m = _parse_feature_matrix("feature,P0,P1\nGENE0,1.0,2.0\nGENE1,3.0,4.0\n")
+        self.assertEqual(m["features"], ["GENE0", "GENE1"])
+        self.assertEqual(m["samples"], ["P0", "P1"])
+        self.assertEqual(m["values"], [[1.0, 2.0], [3.0, 4.0]])
+
+
 if __name__ == "__main__":
     unittest.main()

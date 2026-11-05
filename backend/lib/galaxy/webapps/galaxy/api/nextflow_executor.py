@@ -12452,6 +12452,50 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
         logger.error("[analyze-outputs] OutputAnalyzer failed for run %s: %s", run_id, exc)
         raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}")
 
+    # ── Cross-omics biomarker drivers (multi-omics stratification runs) ──────────
+    # If this run produced a subtype/cluster assignment AND had >=2 omics input
+    # layers, name the features that drive the subtypes, corroborated across layers
+    # (fuse_channels via multiomics.biomarker_fusion). Best-effort: never break findings.
+    try:
+        _clusters_file = next(
+            (f for f in output_files
+             if re.search(r'(snf_clusters|patient_stratification|clusters?)\.csv$',
+                          (f.get("name") or os.path.basename(f.get("path", "")) or ""), re.I)),
+            None,
+        )
+        _rec = _run_lookup(run_id) or {}
+        _omics = ((_rec.get("parameters") or {}).get("omics")) or []
+        if _clusters_file and isinstance(_omics, list) and len(_omics) >= 2:
+            _cpath = _clusters_file.get("path") or ""
+            _ctext = ""
+            if _cpath and os.path.isfile(_cpath):
+                with open(_cpath) as _fh:
+                    _ctext = _fh.read()
+            if _ctext:
+                from galaxy.ai.multiomics.biomarker_fusion import drivers_from_run
+                _drivers = drivers_from_run(_ctext, _omics, top_k=15)
+                _corrob = [d for d in _drivers if d.get("n_fired", 0) >= 2]
+                if _drivers:
+                    for d in _drivers[:10]:
+                        analysis.key_results.append({
+                            "metric": f"driver:{d.get('entity')}",
+                            "value": round(float(d.get("score", 0.0)), 3),
+                            "interpretation": (
+                                f"{d.get('tier', '')} across {d.get('n_fired', 0)} layer(s): "
+                                f"{', '.join(d.get('fired_channels') or [])}"),
+                        })
+                    analysis.summary += (
+                        f" Cross-omics biomarker fusion ranked {len(_drivers)} subtype "
+                        f"drivers ({len(_corrob)} corroborated across ≥2 layers).")
+                    analysis.next_steps.append(
+                        "Validate the top corroborated cross-omics drivers "
+                        "(e.g. targeted assay or survival association).")
+                    logger.info("[analyze-outputs] cross-omics drivers for run %s: "
+                                "%d (%d corroborated)", run_id, len(_drivers), len(_corrob))
+    except Exception as _bm_exc:
+        logger.warning("[analyze-outputs] cross-omics biomarker fusion skipped for run %s: %s",
+                       run_id, _bm_exc)
+
     # ── Citation Search (best-effort) ────────────────────────────────────────────
     citations_serialized: List[Dict] = []
     try:
