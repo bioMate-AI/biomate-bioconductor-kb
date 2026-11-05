@@ -399,3 +399,19 @@ Row-level: the label-free protein-table query (row 3) moved from `nf-core/proteo
 **Regression found and reverted: single-intent `chain_hint` hook** (`eee894a7f` → removed in `577ea27d8`). Arm R showed it replacing correct single-pipeline cards (`nf-core/mag`, `nf-core/methylarray`) with curated chains in 4/4 cases. One intent = the classifier judged one workflow covers the request; TIER 2 stays behind TIER 1 (single covering workflow) in the sequential path only. Same commit: curated-chain cards had reached the client **unnamed** (TIER 2 set `name`; `routes.ts` reads `chain_display_name` and mapped string `chain_steps` as objects) — fixed; `route_eval.py` now falls back to `final.response` (chain replies arrive without deltas).
 
 **Run hygiene.** A concurrent sync from the shared worktree restarted the dev frontend mid-way through the first arm-R run (08:17:54Z) — that run is kept as `…_CONTAMINATED_frontend_restart.jsonl` and was repeated; every later arm records container + gunicorn start times before/after and is valid only if unchanged.
+
+### 13.1 input_kinds, the FTS-dominance finding, and the real cause of the proteomicslfq pick (2026-11-05)
+
+**input_kinds** (`339ef76b9`): closed-vocabulary input kinds per workflow (`workflows.input_kinds`, LLM-labelled by `chain_composer/input_kinds_classifier.py`; Gemini 3.8 Flash, 4,167/4,168; Claude Sonnet 5.5 agreed on the raw-vs-processed class for 144/150 random rows), read only by the step-8a score term (+3 kind match; −4 processed-only user vs raw-only workflow and the reverse; never penalises a workflow accepting both). `input_types` is untouched. On dev (`b14797e0…`, synced 2026-11-05). The dev A/B run for this arm is **invalid** (gunicorn restarted mid-run); repeat pending.
+
+**Offline search-only harness** (`scripts/routing_eval/search_offline_eval.py`): `cross_domain_routing` (200, scored 1/0.5/0 as `run_routing.py`), `bioc_method_selection` (24), the 20 domain-retag queries — against the local DB (identical to dev), without Pass-0/dense (absolute numbers differ from dev; A/B of a scorer change on identical inputs is valid). Results in `evaluation/routing_eval/domain_retag/offline_*.json`:
+
+| Arm | routing (200) | bioc (24) | retag loose (20) | processed-table strict (4) |
+|---|---|---|---|---|
+| input_kinds off | 0.877 | 0.475 | 0.85 | 1/4 |
+| **input_kinds on (deployed)** | **0.882** | **0.500** | 0.85 | 1/4 |
+| + FTS term normalised to [0,15] | 0.735 | 0.325 | 0.80 | 3/4 |
+
+**FTS dominance.** For the MaxQuant `proteinGroups.txt` query the FTS term (`abs(bm25) × 1.5`, commented "~30% weight") is 62 of `proteomicslfq`'s 74 points vs 42 of `proda`'s 57 — the domain (±4), input-kind (+3/−4) and Pass-0 (+3) terms cannot overturn a 17-point FTS gap. Bounding the FTS term fixes the strict rows but costs −0.15 on routing and −0.18 on bioc: FTS carries most of the useful signal. **Rejected and reverted** (not shipped).
+
+**Real cause: inaccurate enriched annotation.** `proteomicslfq`'s `annotation_v2` keyword list includes "MaxQuant output processing proteinGroups isobaric labeling TMT iTRAQ phosphoproteomics…" — false for this pipeline (OpenMS from mzML; no MaxQuant input; not isobaric). FTS rightly dominates ranking, so keyword claims a workflow does not satisfy pull it onto other workflows' queries. Next: an LLM audit of `annotation_v2` keyword claims against each workflow's description and input kinds (drop claims the workflow does not perform or accept), measured with the offline harness before any deploy.

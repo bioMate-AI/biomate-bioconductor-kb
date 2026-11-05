@@ -1,0 +1,1836 @@
+{
+ "fts_norm": "(default)",
+ "rows": [
+  {
+   "set": "routing",
+   "id": "rna_001",
+   "domain": "rna_seq",
+   "pred": "nf-core/rnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "rna_002",
+   "domain": "rna_seq",
+   "pred": "nf-core/rnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "rna_003",
+   "domain": "rna_seq",
+   "pred": "differentialregulation_bulk_rna_seq_pipeline",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "rna_004",
+   "domain": "rna_seq",
+   "pred": "nf-core/rnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "rna_005",
+   "domain": "rna_seq",
+   "pred": "nf-core/rnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "rna_006",
+   "domain": "rna_seq",
+   "pred": "nf-core/bam_stringtie_merge",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "rna_007",
+   "domain": "rna_seq",
+   "pred": "nf-core/rnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "rna_008",
+   "domain": "rna_seq",
+   "pred": "nf-core/rnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "rna_009",
+   "domain": "rna_seq",
+   "pred": "nf-core/rnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "rna_010",
+   "domain": "rna_seq",
+   "pred": "nf-core/differentialabundance",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "rna_011",
+   "domain": "rna_seq",
+   "pred": "nf-core/differentialabundance",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "rna_012",
+   "domain": "rna_seq",
+   "pred": "nf-core/rnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "rna_013",
+   "domain": "rna_seq",
+   "pred": "nf-core/rnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "rna_014",
+   "domain": "rna_seq",
+   "pred": "nf-core/rnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "rna_015",
+   "domain": "rna_seq",
+   "pred": "nf-core/lncpipe",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_001",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_002",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_003",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_004",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_005",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_006",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_007",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_008",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_009",
+   "domain": "single_cell",
+   "pred": "nf-core/spatialvi",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_010",
+   "domain": "single_cell",
+   "pred": "nf-core/spatialvi",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_011",
+   "domain": "single_cell",
+   "pred": "nf-core/spatialvi",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_012",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_001",
+   "domain": "variant_calling",
+   "pred": "nf-core/sarek",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_002",
+   "domain": "variant_calling",
+   "pred": "nf-core/sarek",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_003",
+   "domain": "variant_calling",
+   "pred": "nf-core/sarek",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_004",
+   "domain": "variant_calling",
+   "pred": "nf-core/sarek",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_005",
+   "domain": "variant_calling",
+   "pred": "nf-core/sarek",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_006",
+   "domain": "variant_calling",
+   "pred": "nf-core/raredisease",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_007",
+   "domain": "variant_calling",
+   "pred": "nf-core/raredisease",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_008",
+   "domain": "variant_calling",
+   "pred": "nf-core/raredisease",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_009",
+   "domain": "variant_calling",
+   "pred": "nf-core/raredisease",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_010",
+   "domain": "variant_calling",
+   "pred": "nf-core/sarek",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_011",
+   "domain": "variant_calling",
+   "pred": "nf-core/sarek",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_012",
+   "domain": "variant_calling",
+   "pred": "nf-core/sarek",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_013",
+   "domain": "variant_calling",
+   "pred": "nf-core/raredisease",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_014",
+   "domain": "variant_calling",
+   "pred": "nf-core/raredisease",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "var_015",
+   "domain": "variant_calling",
+   "pred": "nf-core/sarek",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_001",
+   "domain": "epigenomics",
+   "pred": "nf-core/chipseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_002",
+   "domain": "epigenomics",
+   "pred": "nf-core/chipseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_003",
+   "domain": "epigenomics",
+   "pred": "nf-core/chipseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_004",
+   "domain": "epigenomics",
+   "pred": "nf-core/atacseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_005",
+   "domain": "epigenomics",
+   "pred": "nf-core/atacseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_006",
+   "domain": "epigenomics",
+   "pred": "xeva",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_007",
+   "domain": "epigenomics",
+   "pred": "nf-core/cutandrun",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_008",
+   "domain": "epigenomics",
+   "pred": "nf-core/cutandrun",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_009",
+   "domain": "epigenomics",
+   "pred": "nf-core/methylseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_010",
+   "domain": "epigenomics",
+   "pred": "nf-core/methylarray",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_011",
+   "domain": "epigenomics",
+   "pred": "nf-core/methylseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_012",
+   "domain": "epigenomics",
+   "pred": "nf-core/methylarray",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_013",
+   "domain": "epigenomics",
+   "pred": "nf-core/cutandrun",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_014",
+   "domain": "epigenomics",
+   "pred": "nf-core/cutandrun",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "epi_015",
+   "domain": "epigenomics",
+   "pred": "Seacr Peak Calling",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "meta_001",
+   "domain": "metagenomics",
+   "pred": "nf-core/ampliseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "meta_002",
+   "domain": "metagenomics",
+   "pred": "nf-core/taxprofiler",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "meta_003",
+   "domain": "metagenomics",
+   "pred": "dada2",
+   "score": 0.5
+  },
+  {
+   "set": "routing",
+   "id": "meta_004",
+   "domain": "metagenomics",
+   "pred": "nf-core/ampliseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "meta_005",
+   "domain": "metagenomics",
+   "pred": "nf-core/taxprofiler",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "meta_006",
+   "domain": "metagenomics",
+   "pred": "nf-core/taxprofiler",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "meta_007",
+   "domain": "metagenomics",
+   "pred": "nf-core/taxprofiler",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "meta_008",
+   "domain": "metagenomics",
+   "pred": "nf-core/mag",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "meta_009",
+   "domain": "metagenomics",
+   "pred": "nf-core/mag",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "meta_010",
+   "domain": "metagenomics",
+   "pred": "nf-core/mag",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "meta_011",
+   "domain": "metagenomics",
+   "pred": "nf-core/mag",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "meta_012",
+   "domain": "metagenomics",
+   "pred": "nf-core/taxprofiler",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "prot_001",
+   "domain": "proteomics",
+   "pred": "nf-core/proteomicslfq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "prot_002",
+   "domain": "proteomics",
+   "pred": "nf-core/proteomicslfq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "prot_003",
+   "domain": "proteomics",
+   "pred": "nf-core/proteomicslfq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "prot_004",
+   "domain": "proteomics",
+   "pred": "nf-core/proteomicslfq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "prot_005",
+   "domain": "proteomics",
+   "pred": "nf-core/diaproteomics",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "prot_006",
+   "domain": "proteomics",
+   "pred": "nf-core/diaproteomics",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "prot_007",
+   "domain": "proteomics",
+   "pred": "nf-core/diaproteomics",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "prot_008",
+   "domain": "proteomics",
+   "pred": "nf-core/mhcquant",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "prot_009",
+   "domain": "proteomics",
+   "pred": "nf-core/mhcquant",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "prot_010",
+   "domain": "proteomics",
+   "pred": "nf-core/mhcquant",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "prot_011",
+   "domain": "proteomics",
+   "pred": "nf-core/proteinfold",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "prot_012",
+   "domain": "proteomics",
+   "pred": "nf-core/proteomicslfq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "tx_001",
+   "domain": "transcriptomics",
+   "pred": "nf-core/rnafusion",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "tx_002",
+   "domain": "transcriptomics",
+   "pred": "nf-core/rnafusion",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "tx_003",
+   "domain": "transcriptomics",
+   "pred": "dnafusion",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "tx_004",
+   "domain": "transcriptomics",
+   "pred": "nf-core/differentialabundance",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "tx_005",
+   "domain": "transcriptomics",
+   "pred": "nf-core/differentialabundance",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "tx_006",
+   "domain": "transcriptomics",
+   "pred": "nf-core/differentialabundance",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "tx_007",
+   "domain": "transcriptomics",
+   "pred": "nf-core/smrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "tx_008",
+   "domain": "transcriptomics",
+   "pred": "isomiRs",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "tx_009",
+   "domain": "transcriptomics",
+   "pred": "nf-core/lncpipe",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "tx_010",
+   "domain": "transcriptomics",
+   "pred": "nf-core/smrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "gen_001",
+   "domain": "genomics",
+   "pred": "Ont Rnaseq",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "gen_002",
+   "domain": "genomics",
+   "pred": "nf-core/nanoseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "gen_003",
+   "domain": "genomics",
+   "pred": "nf-core/nanoseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "gen_004",
+   "domain": "genomics",
+   "pred": "nf-core/hic",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "gen_005",
+   "domain": "genomics",
+   "pred": "nf-core/hic",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "gen_006",
+   "domain": "genomics",
+   "pred": "nf-core/hadge",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "imm_001",
+   "domain": "immunology",
+   "pred": "nf-core/airrflow",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "imm_002",
+   "domain": "immunology",
+   "pred": "nf-core/airrflow",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "imm_003",
+   "domain": "immunology",
+   "pred": "nf-core/airrflow",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "imm_004",
+   "domain": "immunology",
+   "pred": "nf-core/airrflow",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "imm_005",
+   "domain": "immunology",
+   "pred": "nf-core/mhcquant",
+   "score": 0.5
+  },
+  {
+   "set": "routing",
+   "id": "dd_001",
+   "domain": "drug_discovery",
+   "pred": "bionemo_structure_design",
+   "score": 0.5
+  },
+  {
+   "set": "routing",
+   "id": "dd_002",
+   "domain": "drug_discovery",
+   "pred": "Schrodinger Glide Docking",
+   "score": 0.5
+  },
+  {
+   "set": "routing",
+   "id": "dd_003",
+   "domain": "drug_discovery",
+   "pred": "GROMACS Protein-Ligand MD + MM-GBSA",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "dd_004",
+   "domain": "drug_discovery",
+   "pred": "GROMACS Protein-Ligand MD + MM-GBSA",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "dd_005",
+   "domain": "drug_discovery",
+   "pred": "GROMACS Protein-Ligand MD + MM-GBSA",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "dd_006",
+   "domain": "drug_discovery",
+   "pred": "REINVENT4 Generative Lead Design",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "dd_007",
+   "domain": "drug_discovery",
+   "pred": "REINVENT4 Generative Lead Design",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "dd_008",
+   "domain": "drug_discovery",
+   "pred": "Scaffold Hopping",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "adv_001",
+   "domain": "variant_calling",
+   "pred": "nf-core/raredisease",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "adv_002",
+   "domain": "variant_calling",
+   "pred": "nf-core/sarek",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "adv_003",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "adv_004",
+   "domain": "epigenomics",
+   "pred": "nf-core/chipseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "adv_005",
+   "domain": "epigenomics",
+   "pred": "nf-core/cutandrun",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "adv_006",
+   "domain": "metagenomics",
+   "pred": "nf-core/taxprofiler",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "adv_007",
+   "domain": "proteomics",
+   "pred": "nf-core/dia_proteomics_analysis",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "adv_008",
+   "domain": "immunology",
+   "pred": "nf-core/airrflow",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "adv_009",
+   "domain": "drug_discovery",
+   "pred": "esmfold",
+   "score": 0.5
+  },
+  {
+   "set": "routing",
+   "id": "adv_010",
+   "domain": "transcriptomics",
+   "pred": "nf-core/differentialabundance",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "vc_001",
+   "domain": "virtual_cell",
+   "pred": "cipa_cardiac_safety_ode",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "vc_002",
+   "domain": "virtual_cell",
+   "pred": "cipa_cardiac_safety_ode",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "vc_003",
+   "domain": "virtual_cell",
+   "pred": "ode_signaling_simulation",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "vc_004",
+   "domain": "virtual_cell",
+   "pred": "ode_signaling_simulation",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "vc_005",
+   "domain": "virtual_cell",
+   "pred": "metabolic_flux_fba",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "vc_006",
+   "domain": "virtual_cell",
+   "pred": "transcriptomic_moa_lincs",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "vc_007",
+   "domain": "virtual_cell",
+   "pred": "Gears Perturbation Gpu",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "vc_008",
+   "domain": "virtual_cell",
+   "pred": "cpa_drug_combination_synergy_gpu",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "vc_009",
+   "domain": "virtual_cell",
+   "pred": "physicell_tumor_tgi",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "vc_010",
+   "domain": "virtual_cell",
+   "pred": "virtual_patient_cohort",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "vc_011",
+   "domain": "virtual_cell",
+   "pred": "transcriptformer_cell_state",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "vc_012",
+   "domain": "virtual_cell",
+   "pred": "transcriptomic_moa_lincs",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "vc_013",
+   "domain": "virtual_cell",
+   "pred": "Herg Cardiac Safety Qsar",
+   "score": 0.5
+  },
+  {
+   "set": "routing",
+   "id": "vc_014",
+   "domain": "virtual_cell",
+   "pred": "physicell_tumor_tgi",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "vc_015",
+   "domain": "virtual_cell",
+   "pred": "virtual_patient_cohort",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_013",
+   "domain": "single_cell",
+   "pred": "Cite Seq Preprocessing",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_014",
+   "domain": "single_cell",
+   "pred": "Multiome Rna Atac",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_015",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_016",
+   "domain": "single_cell",
+   "pred": "bd_rhapsody_scrna",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_017",
+   "domain": "single_cell",
+   "pred": "parse_split_seq_scrna",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_018",
+   "domain": "single_cell",
+   "pred": "Merfish Spatial Analysis",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_019",
+   "domain": "single_cell",
+   "pred": "cite_seq_preprocessing",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_020",
+   "domain": "single_cell",
+   "pred": "Multiome Rna Atac",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_021",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_022",
+   "domain": "single_cell",
+   "pred": "nf-core/spatialvi",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_023",
+   "domain": "single_cell",
+   "pred": "Parse Split Seq Scrna",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc_024",
+   "domain": "single_cell",
+   "pred": "bd_rhapsody_scrna",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "dd_101",
+   "domain": "drug_discovery",
+   "pred": "Bispecific Antibody Design",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "dd_102",
+   "domain": "drug_discovery",
+   "pred": "bispecific_antibody_design",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "dd_103",
+   "domain": "drug_discovery",
+   "pred": "Sirna Offtarget Analysis",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "dd_104",
+   "domain": "drug_discovery",
+   "pred": "sirna_offtarget_analysis",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "dd_105",
+   "domain": "drug_discovery",
+   "pred": "Sirna Offtarget Analysis",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "dd_106",
+   "domain": "drug_discovery",
+   "pred": "Bispecific Antibody Design",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "dd_107",
+   "domain": "drug_discovery",
+   "pred": "sirna_offtarget_analysis",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "dd_108",
+   "domain": "drug_discovery",
+   "pred": "bispecific_format_triage",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "sc2_001",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc2_002",
+   "domain": "single_cell",
+   "pred": "nf-core/scdownstream",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc2_003",
+   "domain": "single_cell",
+   "pred": "scds",
+   "score": 0.5
+  },
+  {
+   "set": "routing",
+   "id": "sc2_004",
+   "domain": "single_cell",
+   "pred": "scrnaseq_trajectory_pseudotime",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc2_005",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc2_006",
+   "domain": "single_cell",
+   "pred": "nf-core/hadge",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc2_007",
+   "domain": "single_cell",
+   "pred": "nf-core/scnanoseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc2_008",
+   "domain": "single_cell",
+   "pred": "Multiome Rna Atac",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "sc2_009",
+   "domain": "single_cell",
+   "pred": "scds",
+   "score": 0.0
+  },
+  {
+   "set": "routing",
+   "id": "sc2_010",
+   "domain": "single_cell",
+   "pred": "scrnaseq_trajectory_pseudotime",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc2_011",
+   "domain": "single_cell",
+   "pred": "scthi_tme_classification",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc2_012",
+   "domain": "single_cell",
+   "pred": "nf-core/scrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc2_013",
+   "domain": "single_cell",
+   "pred": "nf-core/scdownstream",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sc2_014",
+   "domain": "single_cell",
+   "pred": "Parse Split Seq Scrna",
+   "score": 0.5
+  },
+  {
+   "set": "routing",
+   "id": "sc2_015",
+   "domain": "single_cell",
+   "pred": "nf-core/marsseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sp_001",
+   "domain": "spatial_omics",
+   "pred": "nf-core/spatialvi",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sp_002",
+   "domain": "spatial_omics",
+   "pred": "visium_voyager_spatial_esda",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sp_003",
+   "domain": "spatial_omics",
+   "pred": "spatial_visium_banksy",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sp_004",
+   "domain": "spatial_omics",
+   "pred": "spatial_deconvolution_rctd",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sp_005",
+   "domain": "spatial_omics",
+   "pred": "nf-core/spatialxe",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sp_006",
+   "domain": "spatial_omics",
+   "pred": "visium_voyager_spatial_esda",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sp_007",
+   "domain": "spatial_omics",
+   "pred": "nf-core/spatialvi",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sp_008",
+   "domain": "spatial_omics",
+   "pred": "nf-core/spatialvi",
+   "score": 0.5
+  },
+  {
+   "set": "routing",
+   "id": "sp_009",
+   "domain": "spatial_omics",
+   "pred": "spatial_ligand_receptor_liana",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sp_010",
+   "domain": "spatial_omics",
+   "pred": "visium_voyager_spatial_esda",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sp_011",
+   "domain": "spatial_omics",
+   "pred": "nf-core/molkart",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sp_012",
+   "domain": "spatial_omics",
+   "pred": "nf-core/spatialvi",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sp_013",
+   "domain": "spatial_omics",
+   "pred": "spatial_deconvolution_rctd",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sp_014",
+   "domain": "spatial_omics",
+   "pred": "visium_voyager_spatial_esda",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "sp_015",
+   "domain": "spatial_omics",
+   "pred": "visium_voyager_spatial_esda",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "mo_001",
+   "domain": "multi_omics",
+   "pred": "cite_seq_preprocessing",
+   "score": 0.5
+  },
+  {
+   "set": "routing",
+   "id": "mo_002",
+   "domain": "multi_omics",
+   "pred": "cite_seq_preprocessing",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "mo_003",
+   "domain": "multi_omics",
+   "pred": "multiome_rna_atac",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "mo_004",
+   "domain": "multi_omics",
+   "pred": "nipalsmcia_single_cell_cite_seq_mcia",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "mo_005",
+   "domain": "multi_omics",
+   "pred": "Multiome Rna Atac",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "mo_006",
+   "domain": "multi_omics",
+   "pred": "multiome_rna_atac",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "mo_007",
+   "domain": "multi_omics",
+   "pred": "multiome_rna_atac",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "mo_008",
+   "domain": "multi_omics",
+   "pred": "scrapper_multimodal_rna_adt_analysis",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "mo_009",
+   "domain": "multi_omics",
+   "pred": "cite_seq_preprocessing",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "mo_010",
+   "domain": "multi_omics",
+   "pred": "spatial_multiomics_integration",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "mo_011",
+   "domain": "multi_omics",
+   "pred": "nipalsmcia_single_cell_cite_seq_mcia",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "mo_012",
+   "domain": "multi_omics",
+   "pred": "nf-core/atacseq",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "mo_013",
+   "domain": "multi_omics",
+   "pred": "nf-core/hic",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "mo_014",
+   "domain": "multi_omics",
+   "pred": "nf-core/hic",
+   "score": 1.0
+  },
+  {
+   "set": "routing",
+   "id": "mo_015",
+   "domain": "multi_omics",
+   "pred": "cite_seq_preprocessing",
+   "score": 0.5
+  },
+  {
+   "set": "bioc",
+   "id": "og_01",
+   "pred": "pathlinkr",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "og_02",
+   "pred": "clusterprofiler_gene_set_enrichment_analysis",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "og_03",
+   "pred": "reactomepa",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "og_04",
+   "pred": "clusterprofiler_gene_set_enrichment_analysis",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "og_05",
+   "pred": "Gene Set Enrichment Analysis",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "og_06",
+   "pred": "fgsea_over_representation_analysis",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "og_07",
+   "pred": "clusterprofiler_gene_set_enrichment_analysis",
+   "score": 0.0,
+   "invalid": true
+  },
+  {
+   "set": "bioc",
+   "id": "og_08",
+   "pred": "nf-core/differentialabundance",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "og_09",
+   "pred": "reactomepa",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "og_10",
+   "pred": "clusterprofiler_gene_set_enrichment_analysis",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "as_01",
+   "pred": "genarise",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "as_02",
+   "pred": "nf-core/differentialabundance",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "as_03",
+   "pred": "edger",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "as_04",
+   "pred": "nf-core/differentialabundance",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "st_01",
+   "pred": "nf-core/differentialabundance",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "st_02",
+   "pred": "tximeta",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "st_03",
+   "pred": "degreport",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "pr_01",
+   "pred": "msstatsconvert",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "pr_02",
+   "pred": "msstatslip",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "pr_03",
+   "pred": "MSstatsPTM",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "pr_04",
+   "pred": "nf-core/proteomicslfq",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_edger_1",
+   "pred": "edger_classic_pipeline",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_edger_2",
+   "pred": "scshapes",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_edger_3",
+   "pred": "edger_fold_change_threshold_testing",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_deseq_1",
+   "pred": "absseq",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_deseq_2",
+   "pred": "tcseq",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_deseq_3",
+   "pred": "basics_two_group_differential_expression",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_fgsea_1",
+   "pred": "clusterprofiler_gene_set_enrichment_analysis",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_fgsea_2",
+   "pred": "fgsea_over_representation_analysis",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_fgsea_3",
+   "pred": "fgsea_gene_set_coregulation_analysis",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_gsea_db_1",
+   "pred": "dose_gene_set_enrichment_analysis",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_gsea_db_2",
+   "pred": "Gene Set Enrichment Analysis",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_gsea_db_3",
+   "pred": "Gene Set Enrichment Analysis",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_msnb_1",
+   "pred": "nf-core/proteomicslfq",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_msnb_2",
+   "pred": "msnbase_chromatographic_srm_import",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_scran_1",
+   "pred": "scran_automated_pc_selection",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "h_scran_2",
+   "pred": "scran_gene_correlation_analysis",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "sc_01",
+   "pred": "hippo",
+   "score": 0.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "sc_02",
+   "pred": "nf-core/scdownstream",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "bioc",
+   "id": "sc_03",
+   "pred": "ucell_seurat_workflow",
+   "score": 1.0,
+   "invalid": false
+  },
+  {
+   "set": "retag",
+   "id": 0,
+   "track": "retag",
+   "pred": "nf-core/proteomicslfq",
+   "score": 1.0,
+   "strict": 0.0
+  },
+  {
+   "set": "retag",
+   "id": 1,
+   "track": "retag",
+   "pred": "msqrob2_dia_precursor_workflow",
+   "score": 1.0,
+   "strict": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 2,
+   "track": "retag",
+   "pred": "qPLEXanalyzer",
+   "score": 0.0,
+   "strict": 0.0
+  },
+  {
+   "set": "retag",
+   "id": 3,
+   "track": "retag",
+   "pred": "nf-core/proteomicslfq",
+   "score": 1.0,
+   "strict": 0.0
+  },
+  {
+   "set": "retag",
+   "id": 4,
+   "track": "retag",
+   "pred": "nf-core/methylarray",
+   "score": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 5,
+   "track": "retag",
+   "pred": "nf-core/methylarray",
+   "score": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 6,
+   "track": "ctl",
+   "pred": "nf-core/rnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 7,
+   "track": "ctl",
+   "pred": "deseq2",
+   "score": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 8,
+   "track": "ctl",
+   "pred": "Wgs Germline Gatk",
+   "score": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 9,
+   "track": "ctl",
+   "pred": "nf-core/cutandrun",
+   "score": 0.0
+  },
+  {
+   "set": "retag",
+   "id": 10,
+   "track": "ctl",
+   "pred": "nf-core/chipseq",
+   "score": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 11,
+   "track": "ctl",
+   "pred": "Predict ADMET Properties (AI)",
+   "score": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 12,
+   "track": "ctl",
+   "pred": "nf-core/scrnaseq",
+   "score": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 13,
+   "track": "ctl",
+   "pred": "nf-core/ampliseq",
+   "score": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 14,
+   "track": "ctl",
+   "pred": "faers",
+   "score": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 15,
+   "track": "ctl",
+   "pred": "Gene Set Enrichment Analysis",
+   "score": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 16,
+   "track": "ctl",
+   "pred": "Lc Ms Proteomics Metabolomics",
+   "score": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 17,
+   "track": "ctl",
+   "pred": "nf-core/crisprseq",
+   "score": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 18,
+   "track": "ctl",
+   "pred": "nf-core/methylseq",
+   "score": 1.0
+  },
+  {
+   "set": "retag",
+   "id": 19,
+   "track": "ctl",
+   "pred": "nf-core/taxprofiler",
+   "score": 0.0
+  }
+ ],
+ "summary": {
+  "routing": 0.877,
+  "bioc": 0.475,
+  "retag": 0.85,
+  "bioc_invalid": 1,
+  "retag_strict": "1/4"
+ }
+}
