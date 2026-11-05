@@ -15984,14 +15984,35 @@ Respond ONLY with valid JSON (no markdown wrapper):
             console.warn('[Findings] Gemini findings call failed/timed out:', geminiErr?.message, '— falling back to Claude');
           }
           } else {
-            const { llmGenerate } = await import('./llm-client');
-            const completion = await llmGenerate({
-              prompt: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}`,
-              system: SYSTEM,
-              maxTokens: 32768,
-              jsonMode: true,
-            });
-            rawText = completion.text || '';
+            // Bound the generic-provider findings call the SAME way the Gemini
+            // branch above is bounded (AbortSignal.timeout(90s)). llm-client has
+            // no native timeout/abort, so race the call against a 90s deadline.
+            // On timeout/error we leave rawText empty → the JSON parse below
+            // fails → the Claude (Haiku) short-context fallback fires → worst
+            // case a non-empty "synthesis unavailable" summary. Previously this
+            // await could hang FOREVER on a stalled provider, leaving the
+            // findings cache stuck on `_generating` ("Analysis in progress…")
+            // with no recovery — the #5a "stays pending" symptom on dev
+            // (GLM/OpenRouter path). (True cancellation needs an AbortSignal in
+            // llm-client; the orphaned promise here is harmless for this
+            // fire-and-forget synthesis. Tracked in docs/20261105_FINDINGS_*.)
+            try {
+              const { llmGenerate } = await import('./llm-client');
+              const completion = await Promise.race([
+                llmGenerate({
+                  prompt: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}`,
+                  system: SYSTEM,
+                  maxTokens: 32768,
+                  jsonMode: true,
+                }),
+                new Promise<never>((_, reject) =>
+                  setTimeout(() => reject(new Error('findings llmGenerate timed out after 90s')), 90_000),
+                ),
+              ]);
+              rawText = completion.text || '';
+            } catch (llmErr: any) {
+              console.warn('[Findings] generic LLM findings call failed/timed out:', llmErr?.message, '— falling back to Claude');
+            }
           }
           console.log(
             `[Findings] llm returned: length=${rawText.length} ` +
