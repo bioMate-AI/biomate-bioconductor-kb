@@ -252,3 +252,47 @@ not swapped; GOLD-lockout/red-line clamp sound.
 - BOIN dose>MTD (S1#1=existing #2 patch), phase2_dose highest-when-unsafe (S1#2 NEW), repeated_dose_tox `(x or 999)` PASS (S1#3 NEW), ADMET DILI asymmetric override (S1#4=existing #1 patch), docking fake-receptor success (S1#5 NEW), accelerated-stability degenerate ranking (S1#6 NEW), ADMET per-compound=panel-worst aggregation (S3#8 .nf part)
 
 ### Already-fixed, re-verified clean: #4, #5a, #5b, #6, #7(data layer), #8.
+
+---
+
+# FINAL DISPOSITION (2026-11-05)
+
+## A — Frontend/Node, FIXED + gated + pushed (full suite 2179/0)
+- S4#1 chat-card run scoping (data-integrity) · S4#2 In-panel mis-fire · S4#5 queued chip · S4#6 disambiguation — `fd1925ea7`
+- S3#2 DESeq2 TSV delimiter · S3#3 gene-column · S3#4 MODIFIER miscount · S3#5 variant sort — `613201fed`
+- S5#1 billing field names · S5#3 progress persistence · S5#7 reproducibility status — `9f40c77e1`
+- S2#5 degraded-QC visible · S2#7 fail/advisory color — `ae59978be`
+- S3#1 reconciler clobber (re-created #4) — `656972259`
+- S4#3 empty-schema param guard · S3#7 VARIANT cross-fire · S6#3/#4 dead sidebar code removed — `dcd0fed35` (+ test `c2e182ac9`)
+- S4#4 SSE pill nf-core FQ-name normalize — `638103857`
+**18 findings fixed.**
+
+## B — Backend-Python review patches (human-applies): `20261105_BACKEND_PYTHON_REVIEW_PATCHES.md`
+S2#1 DILI gate numeric-primary, S2#2 hERG-prob in `_extract`, S2#3 FASTP `*.json`, S2#4
+empty-gates→NOT_EVALUATED, S2#6 bioc gate signature; S5#2 `inf`→null, S5#4 Redis fallback, S5#5
+month-rollover, S5#6 estimate-vs-committed.
+
+## C — Production `.nf` review patches (human-applies): `20261105_NF_WORKFLOW_SAFETY_REVIEW_PATCHES.md` (+ existing BOIN/DILI/GEO docs)
+S1#2 phase2_dose highest-when-unsafe, S1#3 repeated_dose_tox `(x or 999)` PASS, S1#5 docking
+fake-receptor success, S1#6 stability degenerate ranking, S3#8(.nf) ADMET per-compound=panel-worst;
+plus S1#1 BOIN (existing patch) and S1#4 ADMET DILI (existing patch).
+
+## Verified NOT a bug (rejected rather than mis-"fixed")
+- **S2#8** manual-remediation input key — the RemediationCard prop is already re-keyed to bare keys
+  (`auto-loop-panel.tsx:561-562`); the bare read is correct. A "fix" would have broken it.
+- **S3#6** dead ADMET `_parseAdmetOutput` — contradicted by live evidence (`deterministic parse
+  succeeded for "Predict ADMET Properties"` on dev, producing real findings). Not dead on real
+  output; not touched.
+
+## Flagged (not actioned — judgment / low-value / regression-risk)
+- **S3#8 (Node part)** DILI double-flag in the liability list (cosmetic redundancy, not a wrong
+  verdict) + latent `band` branch gap (no metric uses it). Semantic tweak with subtle-regression
+  risk for cosmetic gain; the real DILI issue is the `.nf` aggregation (C). Follow-up if desired.
+- **S6#1** "Workflows" nav opens a permanently-empty dead-ended dialog; **S6#2** "Recent Tools"
+  never populated. These are **product decisions** (wire the feature vs remove/repoint the nav),
+  not clear bugs — left for a product call rather than a unilateral change.
+
+**Net:** 18 frontend fixes shipped; 15 backend/`.nf` bugs captured as review patches; 2 false
+positives rejected; 3 items flagged for product/follow-up. Deploy to dev is pending (branch is
+ahead of dev; sync needs the disk headroom just recovered). The deeper lever remains
+simplification (see `20261105_GATING_AND_NET_ASSESSMENT.md` Part 3).
