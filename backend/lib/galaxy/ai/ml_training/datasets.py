@@ -259,6 +259,21 @@ def load_tabular_dataset(path: str, target_col: str,
     if not rows_raw:
         raise ConfigError(f"no usable rows parsed from {path}")
 
+    # Auto-drop non-numeric feature columns (e.g. a string `sample_id`): a
+    # numeric feature matrix cannot use them, and _num() would silently coerce
+    # them to a constant 0.0 "feature" (junk that dilutes real signal on live
+    # data). Columns the caller named in id_cols were already excluded above.
+    _non_numeric = [c for c in feature_names
+                    if not _looks_numeric([r.get(c) for r in rows_raw])]
+    if _non_numeric:
+        log.info("[ml_training] tabular loader dropping %d non-numeric column(s) as "
+                 "id/metadata: %s", len(_non_numeric), ", ".join(_non_numeric))
+        feature_names = [c for c in feature_names if c not in set(_non_numeric)]
+        if not feature_names:
+            raise ConfigError(
+                "no numeric feature columns found after dropping non-numeric "
+                f"id/metadata columns {_non_numeric}; pass a numeric feature matrix")
+
     raw_labels = [r[target_col] for r in rows_raw]
     if task is None:
         uniq = set(raw_labels)

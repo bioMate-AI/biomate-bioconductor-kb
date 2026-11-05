@@ -87,3 +87,36 @@ def test_stage_s3_rejects_non_s3():
     from galaxy.ai.ml_training.datasets import stage_s3_to_local
     with pytest.raises(ValueError):
         stage_s3_to_local("/local/path.csv")
+
+
+# ── id-column auto-drop (added 2026-11-05 after a Batch smoke showed a string
+#    sample_id column leaked in as a junk 0.0 feature: n_features=21 for 20 genes). ──
+def test_tabular_drops_non_numeric_id_column(tmp_path):
+    from galaxy.ai.ml_training.datasets import load_tabular_dataset
+    csv_p = tmp_path / "expr.csv"
+    csv_p.write_text(
+        "sample_id,GENE0,GENE1,label\n"
+        "S0,8.0,1.0,A\nS1,1.0,8.0,B\nS2,8.1,1.1,A\nS3,0.9,7.9,B\n"
+    )
+    ds = load_tabular_dataset(str(csv_p), "label")
+    assert ds.feature_names == ["GENE0", "GENE1"]        # sample_id dropped
+    assert all(len(row) == 2 for row in ds.X)            # no junk 0.0 column
+    assert ds.task == "classification"
+
+
+def test_tabular_keeps_numeric_features_and_respects_id_cols(tmp_path):
+    from galaxy.ai.ml_training.datasets import load_tabular_dataset
+    csv_p = tmp_path / "expr.csv"
+    csv_p.write_text("id,GENE0,GENE1,y\n1,8.0,1.0,A\n2,1.0,8.0,B\n3,7.9,1.2,A\n")
+    # `id` here is numeric but semantically an identifier → caller names it.
+    ds = load_tabular_dataset(str(csv_p), "y", id_cols=["id"])
+    assert ds.feature_names == ["GENE0", "GENE1"]
+
+
+def test_tabular_all_non_numeric_features_errors(tmp_path):
+    from galaxy.ai.ml_training.datasets import load_tabular_dataset
+    from galaxy.ai.ml_training.config import ConfigError
+    csv_p = tmp_path / "bad.csv"
+    csv_p.write_text("name,note,label\nalice,hi,A\nbob,yo,B\n")
+    with pytest.raises(ConfigError):
+        load_tabular_dataset(str(csv_p), "label")       # no numeric features
