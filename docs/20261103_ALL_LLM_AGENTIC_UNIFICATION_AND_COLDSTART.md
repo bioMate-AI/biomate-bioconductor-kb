@@ -333,3 +333,26 @@ Replay on dev (`1df25dbd`): the external user's bulk RNA-seq + lysate/secretome 
 `2b5d6cda7`: every workflow branch carries an LLM-written `task_spec` (method + data type + input format + expected output, no experimental-design labels) and `domain`; the prompt defines both with good/bad examples, a worked fork/join JSON example and the other shapes (independent, screening fan-out, strict chain). Branches are routed on `task_spec` with their own domain first. `4a991d0c8` logs each decomposed intent (the raw log is cut at 1,500 chars).
 
 **Model trial** (real `analyzeIntent`, production prompt ≈80k chars, intent model pointed at each candidate via OpenRouter; 5 fork/join requests; results `evaluation/routing_eval/runs/decomp_model_trial_20261104.json`): structure (expected roots + join edges, not sequential) — Gemini 3.8 Flash 5/5, Gemini 3.1 Pro 5/5, Claude Sonnet 5.5 5/5, Claude Opus 5.5 4/5 (returned no intents for the docking + ADMET request in 2 s). Specs clean of design labels for all four once two scorer false positives are excluded ("duplicate marking" is a method step; "case vs control" is the comparison type). Latency per call: Flash 12–18 s, Pro 20–32 s, Sonnet 9–15 s, Opus 12–23 s. **Caveat:** the bulk RNA + proteomics request is the prompt's own worked example (contaminated); the other four are out-of-example. **Decision:** keep Flash; Sonnet 5.5 is the preferred fallback. The lysate branch's CLIP-seq selection on dev is therefore routing/catalog (mis-tagged proteomics tools, raw-spectra pipeline ranking first), not decomposition. The out-of-generator `orchestration_benchmark` comparison (≈$15–30) is pending approval.
+
+### 12.2 Held-out decomposition benchmark — cheapest model at near-best quality
+
+Set: the 24 workflow-level rows of `decomposition_real` (17 `real_workflow_chain` + 7 `real_nfcore_subworkflow`; the 44 GTN-tutorial rows are tool-level steps with some inverted gold edges and non-bioinformatics topics — excluded). Each of 12 models ran BioMate's real `analyzeIntent` (production prompt ≈21k input tokens) via OpenRouter (`scripts/routing_eval/decomp_model_bench.ts`); an LLM judge (Claude Sonnet 5.5) aligned predicted to gold nodes one-to-one from the request + node lists only, and node/edge F1 + structure were computed from that alignment (`scripts/routing_eval/decomp_judge.py`). Raw rows: `evaluation/routing_eval/runs/decomp_bench_20261104*.jsonl`.
+
+**Run integrity:** the first pass scored `analyzeIntent`'s silent non-LLM fallback for 240 calls (providers throttled concurrent ≈21k-token requests; the classifier swallows the error) — that pass is kept as `…_judged_INVALID_fallbacks.jsonl` and not used. The bench now records a call without real model usage as a failure, retries with back-off and interleaves models. Final: 277/288 real responses (Opus 5.5 16/24 — 8 empty non-answers; DeepSeek, Terra, GLM-5.3 one miss each).
+
+| Model | node F1 | edge F1 | structure | $/decomposition | median s | fail |
+|---|---|---|---|---|---|---|
+| GLM-5.2 | 0.586 | 0.357 | 0.42 | 0.013 | 9.5 | 4 |
+| Kimi K3 | 0.585 | 0.335 | 0.42 | 0.033 | 13.8 | 3 |
+| GPT-5.6 Terra | 0.578 | 0.369 | 0.38 | 0.053 | 10.1 | 4 |
+| Claude Haiku 4.5 | 0.545 | 0.284 | 0.29 | 0.032 | 8.9 | 3 |
+| GPT-5.6 Luna | 0.519 | 0.249 | 0.33 | 0.005 | 9.4 | 4 |
+| Gemini 3.1 Pro | 0.495 | 0.309 | 0.25 | 0.068 | 18.8 | 3 |
+| Claude Sonnet 5.5 | 0.527 | 0.267 | 0.25 | 0.079 | 6.4 | 4 |
+| DeepSeek V4 Pro | 0.478 | 0.278 | 0.21 | 0.038 | 16.6 | 5 |
+| **Gemini 3.8 Flash (production)** | 0.503 | 0.232 | 0.21 | 0.024 | 13.7 | 4 |
+| Claude Opus 5.5 | 0.345 | 0.232 | 0.17 | 0.163 | 14.3 | 10 |
+| Qwen 3.8-27B | 0.357 | 0.142 | 0.00 | 0.008 | 43.1 | 6 |
+| GLM-5.3-Prime | 0.212 | 0.125 | 0.00 | 0.088 | 25.9 | 12 |
+
+Paired bootstrap vs Flash (composite = mean of node F1, edge F1, structure; 5,000 resamples): GLM-5.2 +0.139 [+0.003, +0.280] (7 wins / 2 losses / 15 ties); Kimi K3 +0.131 [+0.030, +0.249] (5/1/18); GPT-5.6 Terra +0.126 [−0.001, +0.264]; Haiku, Luna, Sonnet CIs include 0. **Not yet a switching decision:** one run per model on 24 rows (most rows tie), single judge. Product finding: in production a failed decomposition call also falls back to the heuristic silently.
