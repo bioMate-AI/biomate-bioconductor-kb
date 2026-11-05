@@ -2196,7 +2196,16 @@ export function ChatInterface({
               msg => !(msg.role === 'assistant' && !msg.content?.trim() && !(msg.metadata as any)?.progressStatus && (isTyping || isTypingLocal))
             )
             // One assistant identity owns the run's progress and completion answer.
-            const renderOne = (message: Message, progress: Message[] = [], continuation = false, hideActions = false) => (
+            const renderOne = (message: Message, progress: Message[] = [], continuation = false, hideActions = false) => {
+              // Scope the global currentExecutionRun to THIS card: show run status/findings
+              // only when the run's id/galaxyInvocationId matches the card's own invocationId.
+              // Previously the guard short-circuited when a card had no invocationId
+              // (generated-but-never-executed) and handed it the GLOBAL run → the new card
+              // showed another workflow's status + findings. (audit sweep S4#1, data-integrity)
+              const scopedRun = (!!message.invocationId &&
+                [currentExecutionRun?.id, currentExecutionRun?.execution?.galaxyInvocationId].includes(message.invocationId))
+                ? currentExecutionRun : null;
+              return (
               <div key={message.id}>
                 <ChatMessage
                   message={message}
@@ -2226,14 +2235,12 @@ export function ChatInterface({
                   onWorkflowProgress={handleWorkflowProgress}
                   isWorkflowRunning={isWorkflowRunning}
                   workflowProgress={workflowProgress}
-                  currentExecutionRun={currentExecutionRun && message.invocationId &&
-                    ![currentExecutionRun.id, currentExecutionRun.execution?.galaxyInvocationId].includes(message.invocationId)
-                    ? null : currentExecutionRun}
+                  currentExecutionRun={scopedRun}
                   isStreaming={(isTyping || isTypingLocal) && message.id === lastMsg?.id && message.role === "assistant"}
                   isLatestAssistantMessage={message.id === latestAssistantMessageId}
                   isRunAnchorFocused={focusedAnchorMessageId === message.id}
                   isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
-                  isInPanel={panelWorkflowMessageId ? (message.id === panelWorkflowMessageId) : isPanelOpen}
+                  isInPanel={!!panelWorkflowMessageId && message.id === panelWorkflowMessageId}
                   onOpenInPanel={
                     message.metadata?.type === 'workflow' && message.metadata?.workflow
                       ? (opts) => onOpenWorkflowInPanel?.(message.id, message.metadata!.workflow, opts?.tab)
@@ -2251,19 +2258,20 @@ export function ChatInterface({
                 {/* FindingsCard — shown below completed workflow messages */}
                 {message.role === 'assistant' &&
                   message.metadata?.type === 'workflow' &&
-                  currentExecutionRun?.id &&
-                  (currentExecutionRun?.execution?.status === 'completed' || (currentExecutionRun?.execution?.status as string) === 'ok' || (currentExecutionRun?.execution?.status as string) === 'succeeded') &&
+                  scopedRun?.id &&
+                  (scopedRun?.execution?.status === 'completed' || (scopedRun?.execution?.status as string) === 'ok' || (scopedRun?.execution?.status as string) === 'succeeded') &&
                   message.id === latestAssistantMessageId && (
                   <div className="ml-10 mt-1">
                     <FindingsCard
-                      runId={currentExecutionRun.id}
+                      runId={scopedRun.id}
                       onContinueAnalysis={(suggestion) => handleSendOrQueue(suggestion)}
                       preview
                     />
                   </div>
                 )}
               </div>
-            )
+              );
+            }
             // Use persisted run identities; unrelated and legacy entries keep their chronology.
             const groups = groupWorkflowResponses(visible, currentExecutionRun ? {
               id: currentExecutionRun.id,

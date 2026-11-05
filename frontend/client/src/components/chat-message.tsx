@@ -725,7 +725,7 @@ export function ChatMessage({
               const runStatus = currentExecutionRun?.execution?.status;
               const completed = ['completed', 'succeeded', 'ok'].includes(runStatus || '');
               const chipClass = runStatus === 'failed' ? 'chip-fail' : runStatus === 'running' ? 'chip-run' : completed ? 'chip-ok' : 'chip';
-              const chipLabel = completed ? 'Completed' : ({ running:'Running', failed:'Failed', paused:'Paused', cancelled:'Cancelled', pending:'Ready', configuring:'Ready' } as Record<string,string>)[runStatus || ''] || null;
+              const chipLabel = completed ? 'Completed' : ({ running:'Running', failed:'Failed', paused:'Paused', cancelled:'Cancelled', pending:'Ready', configuring:'Ready', queued:'Queued' } as Record<string,string>)[runStatus || ''] || (runStatus ? runStatus.charAt(0).toUpperCase() + runStatus.slice(1) : null);
               return (
                 <>
                   <div className="wf-chip" data-tour="chat-handoff">
