@@ -87,9 +87,20 @@ the actual dataset — the scores here are near an upper bound by construction).
 - Capabilities exercised: `snf_multiomics/main.nf` (+ its declared-gate emission, `a5927577d`),
   `qc_gate_engine` declared-gate fallback, `multiomics.biomarker_fusion` (`c6c30e20a`/`1e8c0eb3f`).
 
-## 7. Not re-run here (already verified, or awaiting an image rebuild)
-- **Model-training leg** (predict subtype from the concatenated feature matrix): the
-  `sklearn_tabular` route is already Batch-verified (run `cd3201a0`, 5-fold CV + model.pkl). It is
-  not re-run on this cohort because it adds a redundant Batch cycle, and the id-column loader fix
-  (`904bb6b83`) only takes effect after the next `ml-training` image rebuild (current image predates
-  it), so a run now would not exercise that fix.
+## 7. Model-training leg on this cohort (+ live id-column-fix verification)
+To complete the fourth generalized capability on the same cohort, the three layers were transposed
+and concatenated into a 139-sample × 2500-feature matrix (features **layer-prefixed** —
+`rna_GENE…`, `protein_GENE…`, `methyl_GENE…` — since the layers share gene symbols), with a string
+`sample_id` column and the true subtype as the label. First the `ml-training` image was rebuilt from
+this branch (`sha-83234a2194b0`, carrying the id-column fix `904bb6b83` + the s3-staging fix), then
+`sklearn_tabular` was run on CPU Batch pinned to that image. **Run `27ba372e-81b6-4238-a615-971b5d183278`:**
+- **5-fold stratified CV accuracy 0.950 ± 0.036, macro-F1 0.950** (`fold_val_sizes [29,28,28,27,27]`)
+  predicting subtype from the 2500 integrated multi-omics features — the integration carries enough
+  signal to recover the subtypes supervised, consistent with the ARI 0.978 above.
+- **`n_features = 2500`, not 2501** — the string `sample_id` column was dropped by the id-column
+  hygiene fix, **verified live on Batch** (prior to the fix it would have leaked in as a junk feature).
+  `n_rows = 139`, `stratified = true`.
+
+With this, all four generalized capabilities — routing, multi-omics integration, data-driven QC
+gates, cross-omics driver fusion, and model training — are live-verified end-to-end on one
+ground-truth cohort.
