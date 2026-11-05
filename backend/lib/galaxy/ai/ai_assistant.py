@@ -2064,13 +2064,26 @@ class AIAssistant:
         # "declares N input channels but 0 were given" (the RC-1 failure). Verify
         # on disk that the resolved file is actually standalone-runnable.
         if filename.endswith('/main.nf'):
-            resolved = self._find_nf_file(getattr(match, 'filename', '') or '')
+            resolved = self._resolve_execution_nf(getattr(match, 'filename', '') or '')
             if resolved is not None and not self._nf_file_is_standalone_runnable(resolved):
                 return False
             return True
         if filename.endswith('.nf') and ('/workflows/' in filename or 'biomni_nf/' in filename or '/bioconductor/' in filename):
             return True
         return False
+
+    def _resolve_execution_nf(self, filename: str) -> Optional[Any]:
+        """The .nf file the EXECUTOR will run for a DB filename (nextflow_executor._resolve_nextflow_path).
+
+        _find_nf_file prefers the biomni_workflows/ display stubs (their curated user-facing params), but the
+        executor runs the real downloaded nf-core pipeline when one exists (resolver order fixed 2026-08-24).
+        Judging runnability on the stub flagged every nf-core pipeline as non-executable — 128 of 131 have a
+        real copy on dev (2026-11-05). Falls back to _find_nf_file when the executor cannot resolve the path."""
+        try:
+            from galaxy.webapps.galaxy.api.nextflow_executor import _resolve_nextflow_path  # noqa: PLC0415
+            return _resolve_nextflow_path(filename)
+        except Exception:  # unresolvable here, or executor module unavailable (e.g. unit tests)
+            return self._find_nf_file(filename)
 
     def _nf_file_is_standalone_runnable(self, nf_path: Any) -> bool:
         """True iff the `.nf` at `nf_path` can be launched directly.
