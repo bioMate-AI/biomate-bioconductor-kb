@@ -18,7 +18,7 @@
 
 import { t } from "@/lib/i18n";
 import { useState, useEffect, useRef } from "react";
-import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp, Laptop, Maximize2 } from "lucide-react";
+import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp, Laptop, Maximize2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, stripAnsi } from "@/lib/utils";
 import { DensityMapViewer } from "./viewers/density-map-viewer";
@@ -830,8 +830,33 @@ function ViewerContent({
       );
 
     case 'html':
+      // FIX #9.3 — a 256px iframe sandboxed with ONLY `allow-scripts` renders
+      // JS-driven pipeline reports (Nextflow dag.html / report.html, MultiQC)
+      // as a blank box: they need same-origin storage/XHR and a usable height.
+      // We deliberately do NOT add `allow-same-origin`: `content.url` is a
+      // blob: URL minted from the app's own origin, so a sandboxed iframe with
+      // allow-scripts + allow-same-origin would inherit THIS app's origin and
+      // let arbitrary report HTML read our cookies / localStorage / call our
+      // credentialed APIs (stored-XSS). Instead we open the full report in a
+      // new top-level tab (isolated browsing context, rel="noopener noreferrer"
+      // severs window.opener), which also gives the report real screen space —
+      // a 256px pane could never usefully display a full Nextflow report.
       return (
-        <iframe src={content.url} sandbox="allow-scripts" className="w-full h-64 border rounded" title={file.name} />
+        <div className="w-full border rounded p-4 flex flex-col items-center gap-2 bg-muted/40 text-center">
+          <ExternalLink className="h-5 w-5 text-muted-foreground" />
+          <div className="text-xs text-muted-foreground max-w-xs">
+            This is an interactive HTML report. Open it in a new tab for the full view.
+          </div>
+          <a
+            href={content.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            Open full report in a new tab
+          </a>
+        </div>
       );
 
     case 'table':

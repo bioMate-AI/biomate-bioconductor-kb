@@ -144,6 +144,21 @@ describe("StepOutputPreview — viewer routing by extension", () => {
     });
   });
 
+  it("routes .html to an 'Open in new tab' affordance, not a blank sandboxed iframe (FIX #9.3)", async () => {
+    mockFetch("<html><body><script>render()</script></body></html>", "text/html");
+    const { container } = render(
+      <StepOutputPreview runId={runId} file={{ name: "report.html", path: "/pipeline_info/report.html", extension: "html" }} onClose={onClose} />,
+    );
+    const link = await screen.findByRole("link", { name: /Open full report in a new tab/i });
+    // Opens the fetched report in an isolated top-level tab — never weakens the
+    // iframe sandbox (blob: URL would inherit the app origin → stored-XSS risk).
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(link).toHaveAttribute("href", "blob:mock-url");
+    // The blank 256px sandboxed iframe must be gone.
+    expect(container.querySelector("iframe")).toBeNull();
+  });
+
   it("renders error message on 404 fetch failure", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue({
       ok: false,
