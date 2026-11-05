@@ -4568,6 +4568,11 @@ Query: "run on s3://biomate-cryo-data/empiar-10028/Micrographs pixel_size=0.885 
         _best_seq: Optional[str] = None
         _best_len = 0
         for _m in _re_prot.finditer(rf'\b({_AA_CHARS}{{15,}})\b', user_intent):
+            # A/C/G/T(/U/N) are also amino-acid letters: a run made only of them is DNA/RNA —
+            # e.g. 10x cell barcodes "AAACCTGAGAAGGCCT" in an inline scRNA count table were read
+            # as a protein and the request got nf-core/proteinfold (dev replay, 2026-11-04).
+            if _re_prot.fullmatch(r'[ACGTUNacgtun]+', _m.group(1)):
+                continue
             if len(_m.group(1)) > _best_len:
                 _best_seq = _m.group(1).upper()
                 _best_len = len(_best_seq)

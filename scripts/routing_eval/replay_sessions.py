@@ -43,6 +43,9 @@ def parse_turn(text):
             continue
         if name == "final":
             out["state"] = j.get("state", out["state"])
+            # Short answers (e.g. a one-line clarification) arrive only in final.response, with no
+            # delta events — the UI renders final; so must we.
+            out["final_response"] = j.get("response") or ""
         elif name == "workflow_ready":
             out["card"] = j.get("workflow_name") or "+".join(j.get("chain_steps", []) or []) or out["card"]
             out["card_type"] = j.get("workflow_type") or out["card_type"]
@@ -57,6 +60,8 @@ def parse_turn(text):
                 out["output_files"] += [f.get("name") for f in (o.get("output_files") or [])]
         elif name == "delta":
             out["reply"] += j.get("text", "")
+    if not out["reply"].strip():
+        out["reply"] = out.get("final_response", "")
     out["tool_markup_leaked"] = bool(LEAK_RE.search(out["reply"]))
     return out
 

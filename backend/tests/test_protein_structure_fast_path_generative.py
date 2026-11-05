@@ -45,3 +45,14 @@ def test_design_requests_skip_structure_prediction(intent):
 def test_structure_requests_keep_the_fast_path(intent):
     out = _assistant()._try_fast_path_protein_structure(intent)
     assert out is not None and out["workflow_ga"]["name"] == "nf-core/proteinfold"
+
+
+@pytest.mark.parametrize("intent", [
+    # inline 10x scRNA count table: the barcodes are nucleotide strings (cold-start replay of an external user's request)
+    "Cluster these single-cell RNA-seq counts and generate a UMAP: barcode,CD3D,CD4,CD8A "
+    "AAACCTGAGAAGGCCT,45,32,0 AAACCTGAGACAGACC,0,0,38 AAACCTGAGCGTTGCC,1,0,0",
+    "Align this read to hg38: ACGTACGTTAGCCTAGGATCCAGT",
+    "siRNA target AUGGCUACGUAGCUAGCUAG",
+])
+def test_nucleotide_only_strings_are_not_proteins(intent):
+    assert _assistant()._try_fast_path_protein_structure(intent) is None
