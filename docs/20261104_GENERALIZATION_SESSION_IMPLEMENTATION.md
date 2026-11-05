@@ -114,14 +114,34 @@ a dev run is the follow-up).
   passing declared-only gate returned `(None, [])` ("no QC") instead of `(True, [])`; fixed by
   tracking `_declared_evaluated` so a clean declared-gate pass is a real pass while a gate skipped
   for a missing metric still yields no verdict. §4 + §8-item-4 follow-ups closed.
+- **Model-training EXECUTION live-verified on CPU Batch (§8 item 1 closed).** A `sklearn_tabular`
+  run through BioMate's own executor (`POST /api/nextflow/execute`, run `cd3201a0`) on a 90×20
+  synthetic expression matrix completed and wrote `results/metrics.json` with real **stratified
+  5-fold CV** (`cv_accuracy_mean=1.0`, `cv_auc_mean=1.0`, `cv_macro_f1_mean=1.0`; fold sizes
+  `[18]*5`), a `model.pkl`, a `manifest.json`, and `qc_events.json`. Two real gaps surfaced that
+  unit tests could NOT:
+  1. **Stale image** — `ml-training:latest` (ECR) predated the new trainer (built 2026-07-28), so a
+     Batch run `ImportError`ed on `tabular_trainer`. Fix: rebuilt the image from this branch via
+     `ml-training-image.yml` dispatch (tags `sha-958ef8134e09` + `latest`). The CI only rebuilds on
+     a `ml-training-v**` tag / manual dispatch — NOT on `ml_training` package changes — so any
+     future ml_training code change needs an image rebuild to reach Batch.
+  2. **s3:// datasets never staged** — the loaders assumed "the executor stages s3 inputs to the
+     work dir," but the `.nf` passes `params.dataset` as a plain value (no Nextflow `path` input),
+     so nothing downloaded it (prior molecular runs only used `tdc:`/`fixture:` names). Fix
+     (`958ef8134`): `datasets.stage_s3_to_local()` downloads via the AWS CLI the image ships under
+     the Batch IAM role; wired into `tabular_trainer._resolve_path`; 4 unit tests.
+  - **Minor follow-up (not blocking):** `load_tabular_dataset` treats every non-target,
+    non-`id_cols` column as a feature and the trainer doesn't pass `id_cols`, so a string ID column
+    (`sample_id`) leaked in as a junk feature (`n_features=21` for 20 genes). Harmless here (genes
+    separable), but should auto-skip non-numeric/ID columns on real data.
 
 ## 7. Test coverage — honest assessment (see §8 of this doc for the plan)
 What IS covered: **unit/logic level, thoroughly** — splits, loaders, trainers, routing parsers,
-fusion, gate evaluation (218 passing across the four modules). What is **NOT** covered:
-- **No end-to-end execution.** We have not run, on dev, a generic tabular training job to completion
-  on a real expression matrix, nor a multi-omics SNF integration, nor the QC gate engine inside a
-  live run. The code routes/evaluates correctly in unit tests; whether these paths *execute* on
-  Batch at scale is UNVERIFIED.
+fusion, gate evaluation (218 passing across the four modules), PLUS **model-training executes
+end-to-end on CPU Batch** (above). What is **NOT** covered:
+- **Multi-omics SNF + QC-gate engine not yet run inside a live Batch execution** — model-training is
+  now Batch-verified; the SNF integration and a declared-gate run inside a real workflow remain
+  (§8 items 2, 4-execution).
 - **The generalizations are deployed but dormant** (flags off) → zero real-traffic exercise.
 - **`fuse_channels` has no real 2nd consumer** — it is tested on synthetic entities, which proves
   the API, but the audit's point ("generality unexercised") is only half-closed until a real task
