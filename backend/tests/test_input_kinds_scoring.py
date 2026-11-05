@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT / "backend" / "lib"))
 
 from galaxy.ai.unified_workflow_search import UnifiedWorkflowSearch  # noqa: E402
 from galaxy.ai.chain_composer.input_kinds_classifier import INPUT_KINDS, parse_kinds  # noqa: E402
+from galaxy.ai.unified_workflow_search import _INPUT_KIND_MISMATCH_PENALTY as _PEN  # noqa: E402
 
 Q_TABLE = "I have a MaxQuant proteinGroups.txt from label-free LC-MS/MS, 3 KO vs 3 WT. Find the differentially abundant proteins."
 
@@ -35,7 +36,7 @@ def test_processed_table_penalises_raw_only_pipeline_and_boosts_table_method(tmp
     table = _score(s, Q_TABLE, frozenset({"protein_table"}))
     neutral = _score(s, Q_TABLE, None)
     assert table - neutral == 3.0
-    assert neutral - raw == 4.0
+    assert neutral - raw == _PEN
 
 
 def test_workflow_accepting_raw_and_processed_is_not_penalised(tmp_path):
@@ -47,7 +48,7 @@ def test_workflow_accepting_raw_and_processed_is_not_penalised(tmp_path):
 def test_raw_data_penalises_table_only_method(tmp_path):
     s = _search(tmp_path)
     q = "Quantify proteins from my Thermo raw files (.raw) and test KO vs WT."
-    assert _score(s, q, frozenset({"protein_table"})) == _score(s, q, None) - 4.0
+    assert _score(s, q, frozenset({"protein_table"})) == _score(s, q, None) - _PEN
     assert _score(s, q, frozenset({"raw_spectra"})) == _score(s, q, None) + 3.0
 
 
@@ -58,6 +59,10 @@ def test_query_kinds_detection():
     assert "beta_values" in k("EWAS on my EPIC array beta values")
     assert "idat" in k("Process these .idat files")
     assert k("What is DIA proteomics?") == frozenset()
+
+
+def test_mismatch_penalty_outweighs_measured_fts_gap():
+    assert _PEN > 24.0  # proteomicslfq's lexical lead on the MaxQuant proteinGroups request (docs §13.3)
 
 
 def test_kind_sets_match_classifier_vocabulary():

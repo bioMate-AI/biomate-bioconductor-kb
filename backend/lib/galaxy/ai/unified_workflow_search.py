@@ -19,6 +19,7 @@ Date: 2024-12-31
 """
 
 import json
+import os
 import sqlite3
 import logging
 import re
@@ -119,6 +120,16 @@ _WF_DENSE_BONUS_WEIGHT: float = 0.5
 # Both the workflows table AND the tools table contain Bioconductor entries:
 #   tools table      → package metadata, vignette steps, function lists (tool-level search)
 #   workflows table  → the runnable .nf workflow files (workflow-level search, ~1818 entries)
+# Input-kind mismatch (step 8a): the user's data kind is explicit and the workflow accepts ONLY the other
+# regime (raw instrument data vs processed table), so it cannot run on the user's data. The penalty must exceed
+# the lexical (FTS) gaps such a workflow can win by — 17–24 points measured for nf-core/proteomicslfq on a
+# MaxQuant proteinGroups request — so it is disqualifying in practice; it stays a penalty, not a filter,
+# because the kind labels carry ~4% inter-model disagreement. Offline A/B (docs 20261103 §13.3): −25 vs −4
+# leaves cross_domain_routing and bioc_method_selection unchanged and fixes EPIC beta values → beta-value
+# method (not IDAT-only methylarray) and Cell Ranger output → scdownstream (not FASTQ-only scrnaseq).
+_INPUT_KIND_MISMATCH_PENALTY: float = float(os.environ.get("BIOMATE_INPUT_KIND_MISMATCH_PENALTY", "25.0"))
+
+
 SOURCE_PRIORITY = {
     "nfcore":           100,  # Full nf-core pipelines (rnaseq, sarek, chipseq, …)
     "nfcore_subwf":      95,  # nf-core composite subworkflows (multi-tool analysis steps)
@@ -1936,9 +1947,9 @@ class UnifiedWorkflowSearch:
                 if user_kinds & input_kinds:
                     score += 3.0  # user has exactly the right input kind
                 elif user_proc and not user_raw and wf_raw and not wf_proc:
-                    score -= 4.0  # processed data only, workflow starts from raw instrument data
+                    score -= _INPUT_KIND_MISMATCH_PENALTY  # processed data only; workflow runs only on raw instrument data
                 elif user_raw and not user_proc and wf_proc and not wf_raw:
-                    score -= 4.0  # raw data only, workflow needs a processed table/object
+                    score -= _INPUT_KIND_MISMATCH_PENALTY  # raw data only; workflow runs only on a processed table/object
         # 8b. Legacy: rows without input_kinds use input_types when they are clean, non-channel names.
         elif input_types:
             # Normalise: lowercase, strip whitespace; skip Nextflow channel names (ch_*)
