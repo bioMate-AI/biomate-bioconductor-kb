@@ -12496,6 +12496,20 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
         )
         _rec = _run_lookup(run_id) or {}
         _omics = ((_rec.get("parameters") or {}).get("omics")) or []
+        # For real SNF runs `omics` is stored as a Python list (the run record keeps
+        # the ORIGINAL request params, not the serialized CLI form). But if a caller
+        # ever passed it as a JSON-array string, parse it rather than silently skip
+        # the driver hook (third-pass committee H2 — defensive, not a known live case).
+        if isinstance(_omics, str):
+            _s = _omics.strip()
+            if _s.startswith("["):
+                try:
+                    import json as _json
+                    _parsed = _json.loads(_s)
+                    if isinstance(_parsed, list):
+                        _omics = _parsed
+                except Exception:
+                    pass
         if _clusters_file and isinstance(_omics, list) and len(_omics) >= 2:
             _cpath = _clusters_file.get("path") or ""
             _ctext = ""
