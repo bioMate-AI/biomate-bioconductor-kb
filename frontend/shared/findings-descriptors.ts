@@ -65,7 +65,13 @@ export function looksLikeSmiles(s: string): boolean {
 // path's exact metric names + 0.5 thresholds so the two liability verdicts can never disagree.
 const ADMET_REPORT: PatternDescriptor = {
   id: 'admet_report',
-  match: { fileRegex: /toxicity_report|admet.*\.json/i, contentIncludes: ['per_compound'] },
+  // contentIncludes marks the REAL structured toxicity report. `per_compound` alone is too generic
+  // — a sibling PK summary (pk_summary.json) also carries a `per_compound` array (RDKit logP/mw), so
+  // it matched here and, being earlier in the output list, was chosen over toxicity_report.json →
+  // the ADMET document collapsed to a single `logP` (caught by the live document-as-truth shadow,
+  // 2026-11-05). The ADMET-AI block (`per_compound_admet_ai`) is the toxicity report's distinctive
+  // marker; a legacy per_compound-only report still matches via the FILENAME (toxicity_report/admet).
+  match: { fileRegex: /toxicity_report|admet.*\.json/i, contentIncludes: ['per_compound_admet_ai'] },
   parse: 'jsonReport',
   entity: { type: 'compound', arrayPath: ['per_compound_admet_ai', 'per_compound'], idField: 'smiles', scheme: 'SMILES' },
   metrics: [
@@ -177,12 +183,32 @@ export function matchDescriptor(
   workflowName: string,
   files: Array<{ name: string; content: string }>,
 ): { descriptor: PatternDescriptor; file: { name: string; content: string } } | null {
+  // Score every candidate file per descriptor and pick the BEST, rather than the first hit. A file
+  // that satisfies the content marker (it actually carries the data) must beat a file that matches
+  // only by name (a wrapper/sibling), and name+content must beat either alone. Returning the first
+  // hit let an earlier file win on a weaker signal — e.g. a PK summary content-matching `per_compound`
+  // ahead of the real toxicity_report.json, or a name-only `*_results.json` wrapper ahead of it
+  // (document-as-truth shadow, 2026-11-05). Descriptor order still decides between descriptors: the
+  // first descriptor with any matching file wins.
   for (const d of DESCRIPTORS) {
+    let best: { descriptor: PatternDescriptor; file: { name: string; content: string } } | null = null;
+    let bestScore = 0;
+    const wfNameHit = d.match.fileRegex ? d.match.fileRegex.test(workflowName) : false;
     for (const f of files) {
-      const nameHit = d.match.fileRegex ? d.match.fileRegex.test(f.name) || d.match.fileRegex.test(workflowName) : false;
+      const fileNameHit = d.match.fileRegex ? d.match.fileRegex.test(f.name) : false;
+      const nameHit = fileNameHit || wfNameHit;
       const contentHit = d.match.contentIncludes ? d.match.contentIncludes.every(c => f.content.includes(c)) : false;
-      if (nameHit || (d.match.contentIncludes && contentHit)) return { descriptor: d, file: f };
+      if (!nameHit && !contentHit) continue;
+      // 4 = filename + content; 3 = content only; 2 = filename only; 1 = workflow-name only.
+      let score: number;
+      if (d.match.contentIncludes) {
+        score = contentHit ? (fileNameHit ? 4 : 3) : (fileNameHit ? 2 : 1);
+      } else {
+        score = fileNameHit ? 2 : 1; // name-only descriptor (no content marker, e.g. variant)
+      }
+      if (score > bestScore) { bestScore = score; best = { descriptor: d, file: f }; }
     }
+    if (best) return best;
   }
   return null;
 }

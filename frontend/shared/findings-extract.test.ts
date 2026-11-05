@@ -259,6 +259,48 @@ describe('BUG 2 — ADMET findings_document agrees with the flat verdict (no dua
   });
 });
 
+// Regression — multi-file descriptor selection (document-as-truth shadow, 2026-11-05). A real ADMET
+// run emits SEVEN output files; the structured report is toxicity_report.json but a sibling
+// pk_summary.json ALSO carries a `per_compound` array (RDKit logP/mw) and a `*_results.json` wrapper
+// matches the loose `admet.*\.json` name regex with no arrays at all. matchDescriptor used to return
+// the FIRST file that hit on ANY signal, so pk_summary (content-matched `per_compound`, earlier in
+// the list) won → the ADMET document collapsed to a single logP and lost every liability.
+describe('matchDescriptor — picks the structured report out of a multi-file ADMET run', () => {
+  const PK_SUMMARY = {
+    name: 'pk_summary.json',
+    content: JSON.stringify({ logP: 6.4, mw_Da: 471.7, ppbr_pct: 98.5, per_compound: [{ smiles: TERFENADINE, logP: 6.4, mw_Da: 471.7, descriptor_source: 'rdkit' }] }),
+  };
+  const RESULTS_WRAPPER = {
+    name: 'predict_admet_properties_results.json',
+    content: JSON.stringify({ success: true, function: 'predict_admet_properties', domain: 'pharmacology', result: 'ADMET-AI Predictions ...text dump...' }),
+  };
+  // Output order as the run lists them: pk_summary first, wrapper second, toxicity_report last.
+  const FILES = [PK_SUMMARY, RESULTS_WRAPPER, ADMET_AI_JSON];
+
+  it('chooses toxicity_report.json (per_compound_admet_ai) over pk_summary.json and the results wrapper', () => {
+    const m = matchDescriptor('Predict ADMET Properties (AI)', FILES);
+    expect(m?.descriptor.id).toBe('admet_report');
+    expect(m?.file.name).toBe('toxicity_report.json');
+  });
+
+  it('projects all ADMET-AI metrics (hERG/DILI/CYP2D6), not just logP', () => {
+    const m = matchDescriptor('Predict ADMET Properties (AI)', FILES);
+    const leg = documentToLegacy(buildFindingsDocument(m!.descriptor, m!.file));
+    const metrics = new Set(leg.key_results.map(k => k.metric));
+    expect(metrics.has('hERG inhibition')).toBe(true);
+    expect(metrics.has('DILI probability')).toBe(true);
+    expect(metrics.has('CYP2D6 inhibitor')).toBe(true);
+    expect(leg.key_results.length).toBeGreaterThan(1); // not the degenerate logP-only projection
+  });
+
+  it('does NOT match the PK summary alone (generic per_compound is not the toxicity marker)', () => {
+    // pk_summary carries `per_compound` but no `per_compound_admet_ai` and no ADMET/toxicity name →
+    // it must not be mistaken for the toxicity report when it is the only ADMET-ish file present.
+    const m = matchDescriptor('Predict ADMET Properties (AI)', [PK_SUMMARY, RESULTS_WRAPPER]);
+    expect(m?.file.name).not.toBe('pk_summary.json');
+  });
+});
+
 describe('reconcileFindingsDocument — safeguard fires on a genuine mismatch', () => {
   const m = matchDescriptor('Predict ADMET Properties (AI)', [ADMET_AI_JSON]);
   const doc = buildFindingsDocument(m!.descriptor, m!.file); // flags hERG + CYP2D6
