@@ -6915,6 +6915,12 @@ def workflow_by_name(
         if not row:
             return {"success": False, "error": f"workflow_not_found: {name}"}
         wf_id, wf_name, wf_desc, wf_domain, wf_source, wf_format, wf_steps, wf_tools, wf_tags, wf_filename = row
+        # A disabled (executable=0) workflow is never a card target, whichever path asked for it.
+        try:
+            if _engine._executable_or_none(type("M", (), {"id": wf_id})()) is None:
+                return {"success": False, "error": f"workflow_not_executable: {wf_name}"}
+        except Exception as _ex_exc:  # noqa: BLE001 — unknown → do not block
+            log.debug("[workflow_by_name] executable check failed: %s", _ex_exc)
         input_compatible = None
         if query:
             try:

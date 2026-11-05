@@ -138,6 +138,13 @@ def _env_float(name: str, default: float) -> float:
 _INPUT_KIND_MISMATCH_PENALTY: float = _env_float("BIOMATE_INPUT_KIND_MISMATCH_PENALTY", 25.0)
 
 
+def _enforce_executable() -> bool:
+    """executable=0 rows are excluded from search results when on. Default OFF until the stale flags are corrected
+    from execution evidence (9 nf-core pipelines disabled for a 2026-10-01 stub that no longer runs — §15.3);
+    flipped to default ON in the commit that applies those corrections."""
+    return os.environ.get("BIOMATE_ENFORCE_EXECUTABLE", "0").strip().lower() in ("1", "true", "on", "yes")
+
+
 SOURCE_PRIORITY = {
     "nfcore":           100,  # Full nf-core pipelines (rnaseq, sarek, chipseq, …)
     "nfcore_subwf":      95,  # nf-core composite subworkflows (multi-tool analysis steps)
@@ -889,6 +896,35 @@ class UnifiedWorkflowSearch:
             log.debug("[Pass-0] LLM catalog browse failed: %s", _exc)
             return []
 
+    def _non_executable_ids(self) -> frozenset:
+        """Ids of catalog rows marked executable=0, per DB file version (main + WAL mtimes).
+
+        The flag was stored but never enforced: WorkflowMatch has no `executable` field, so the routing check
+        (`getattr(match, 'executable', 1)`) always saw 1 and disabled or placeholder workflows were routed
+        (2026-11-05, docs §15.3). Rows are disabled only on evidence (failed execution, placeholder code)."""
+        try:
+            db = Path(str(self.db_path)); wal = Path(str(db) + "-wal")
+            key = (db.stat().st_mtime, wal.stat().st_mtime if wal.exists() else 0.0)
+        except OSError:
+            return frozenset()
+        cached = getattr(self, "_non_exec_cache", None)
+        if cached and cached[0] == key:
+            return cached[1]
+        try:
+            conn = sqlite3.connect(str(self.db_path))
+            try:
+                ids = frozenset(r[0] for r in conn.execute("SELECT id FROM workflows WHERE executable = 0"))
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            log.warning("[WorkflowSearch] executable-flag load failed (not enforced this call): %s", exc)
+            return frozenset()
+        self._non_exec_cache = (key, ids)
+        return ids
+
+    def _executable_or_none(self, match):
+        return None if (match is not None and _enforce_executable() and match.id in self._non_executable_ids()) else match
+
     def _apply_scope_filter(self, results):
         """On-prem deployment-scope filter: drop out-of-scope workflows from results.
 
@@ -896,6 +932,10 @@ class UnifiedWorkflowSearch:
         Matches each WorkflowMatch by its .filename (nextflow_path) and .name.
         See galaxy.ai.scope_guard / docs/20261005_ONPREM_SCOPE_LAYER_PLAN.md (slice 2).
         """
+        if _enforce_executable() and results:
+            _off = self._non_executable_ids()
+            if _off:
+                results = [m for m in results if getattr(m, "id", None) not in _off]
         try:
             from galaxy.ai import scope_guard as _scope_guard
             if not _scope_guard.enforcement_enabled():
@@ -2119,7 +2159,7 @@ class UnifiedWorkflowSearch:
         hits.sort(key=lambda r: (-SOURCE_PRIORITY.get(r[4] or 'unknown', 0),
                                  0 if (r[14] if len(r) > 14 else None) in ('ok', 'ok_warnings') else 1,
                                  r[0]))
-        return self._create_match(hits[0], "", True)
+        return self._executable_or_none(self._create_match(hits[0], "", True))
 
     def get_workflow(self, workflow_id: int) -> Optional[WorkflowMatch]:
         """Get a specific workflow by ID."""
@@ -2140,7 +2180,7 @@ class UnifiedWorkflowSearch:
             if not row:
                 return None
 
-            return self._create_match(row, "", True)
+            return self._executable_or_none(self._create_match(row, "", True))
 
         finally:
             conn.close()
@@ -2162,7 +2202,7 @@ class UnifiedWorkflowSearch:
             row = cursor.fetchone()
             if not row:
                 return None
-            return self._create_match(row, "", True)
+            return self._executable_or_none(self._create_match(row, "", True))
         finally:
             conn.close()
 
@@ -2183,7 +2223,7 @@ class UnifiedWorkflowSearch:
             row = cursor.fetchone()
             if not row:
                 return None
-            return self._create_match(row, "", True)
+            return self._executable_or_none(self._create_match(row, "", True))
         finally:
             conn.close()
 
@@ -2210,7 +2250,7 @@ class UnifiedWorkflowSearch:
             row = cursor.fetchone()
             if not row:
                 return None
-            return self._create_match(row, "", True)
+            return self._executable_or_none(self._create_match(row, "", True))
         finally:
             conn.close()
 
