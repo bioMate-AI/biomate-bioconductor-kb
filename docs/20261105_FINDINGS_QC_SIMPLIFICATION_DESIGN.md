@@ -123,3 +123,22 @@ with zero user impact (returned flat unchanged) — the exact reason for shadow-
 **Net:** the simplification direction stands (document-as-truth, delete the reconciler), but the
 work is now clearly: **bring the descriptors to parser parity (shadow → cutover-ready) BEFORE
 deleting anything.** The shadow turned a risky guess into a measured, safe, incremental path.
+
+## ROOT CAUSE of the ADMET parity gap (2026-11-05 investigation) — it's the 8 KB sampling truncation, not the descriptor
+Traced it: the ADMET_REPORT descriptor logic is CORRECT — `parseEntities` MERGES
+`per_compound_admet_ai[]` (hERG_prob/DILI_prob/cyp2d6) with `per_compound[]` (logP/mw) by SMILES
+(verified by the `merges per_compound heuristics alongside the AI probabilities` test). So on a
+complete `toxicity_report.json` the document WOULD reach parity. The shadow logged `doc-only=[logP]`
+because both the parser and the descriptor read `outputSamples`, which are **truncated to 8 KB**
+(`routes.ts:~15828`). The parser's source (the compact `*_output.txt` key:value dump) fits all 9 AI
+values in 8 KB; the descriptor's source (the verbose `toxicity_report.json`) is cut before/within
+its `per_compound_admet_ai` array → the descriptor only sees the earlier `per_compound` (logP).
+**Same root cause as committee Opus-1** (the variant preview-count reporting a truncated total).
+
+### The unblocking fix (one change, two payoffs) — do this BEFORE the cutover
+Decouple the **parse-source** from the **LLM-context**: read the FULL structured output file for the
+deterministic parser AND the descriptor (so both see the complete `per_compound_admet_ai` and
+accurate per-row counts), while keeping an 8 KB-bounded slice only for the LLM narrative context
+(token budget). This brings the document to parser parity (shadow → `cutover-ready`) and fixes the
+Opus-1 preview-count at its root. It touches the LLM context budget across all findings, so run it
+as its own focused, committee-reviewed pass — not a rushed change.
