@@ -12488,12 +12488,6 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
     # layers, name the features that drive the subtypes, corroborated across layers
     # (fuse_channels via multiomics.biomarker_fusion). Best-effort: never break findings.
     try:
-        _clusters_file = next(
-            (f for f in output_files
-             if re.search(r'(snf_clusters|patient_stratification|clusters?)\.csv$',
-                          (f.get("name") or os.path.basename(f.get("path", "")) or ""), re.I)),
-            None,
-        )
         _rec = _run_lookup(run_id) or {}
         _omics = ((_rec.get("parameters") or {}).get("omics")) or []
         # For real SNF runs `omics` is stored as a Python list (the run record keeps
@@ -12510,6 +12504,11 @@ async def analyze_outputs(request: Request) -> Dict[str, Any]:
                         _omics = _parsed
                 except Exception:
                     pass
+        # Basenames of the INPUT omics layers (to exclude re-published inputs — A3).
+        from galaxy.ai.multiomics.biomarker_fusion import select_cluster_output
+        _input_basenames = [os.path.basename(str(_u)) for _u in _omics] \
+            if isinstance(_omics, list) else []
+        _clusters_file = select_cluster_output(output_files, _input_basenames)
         if _clusters_file and isinstance(_omics, list) and len(_omics) >= 2:
             _cpath = _clusters_file.get("path") or ""
             _ctext = ""

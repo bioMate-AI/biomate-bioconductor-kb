@@ -10,8 +10,38 @@ import unittest
 from galaxy.ai.multiomics.biomarker_fusion import (
     rank_cross_omics_drivers,
     drivers_from_run,
+    select_cluster_output,
     _f_statistic_per_feature,
 )
+
+
+class SelectClusterOutputTest(unittest.TestCase):
+    def test_prefers_exact_snf_clusters_over_loose_and_excludes_inputs(self):
+        # SNF re-publishes its staged inputs; the loose `clusters?.csv` must not pick
+        # an input, and the exact snf_clusters.csv wins (round-4 committee A3).
+        files = [
+            {"name": "rna.csv"},
+            {"name": "clusters.csv"},               # an input happened to be named this
+            {"name": "snf_views.csv"},
+            {"name": "snf_clusters.csv"},            # the real assignment file
+        ]
+        picked = select_cluster_output(files, input_basenames=["rna.csv", "clusters.csv"])
+        self.assertEqual(picked["name"], "snf_clusters.csv")
+
+    def test_loose_fallback_still_works_when_no_exact_name(self):
+        files = [{"name": "patient_clusters.csv"}, {"name": "rna.csv"}]
+        picked = select_cluster_output(files, input_basenames=["rna.csv"])
+        self.assertEqual(picked["name"], "patient_clusters.csv")
+
+    def test_excluded_input_is_not_picked_even_as_sole_match(self):
+        # A re-published input named clusters.csv must NOT be selected when it is the
+        # only loose match and is in the input set — returns None rather than mis-pick.
+        files = [{"name": "clusters.csv"}, {"name": "rna.csv"}]
+        self.assertIsNone(select_cluster_output(files, input_basenames=["clusters.csv", "rna.csv"]))
+
+    def test_uses_path_basename_when_no_name(self):
+        files = [{"path": "/x/y/snf_clusters.csv"}]
+        self.assertEqual(select_cluster_output(files, [])["path"], "/x/y/snf_clusters.csv")
 
 
 def _layer(features, samples, label_of, hi_feature, sep=5.0, seed=0):

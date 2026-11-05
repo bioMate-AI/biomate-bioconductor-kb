@@ -23,11 +23,42 @@ from __future__ import annotations
 import csv
 import logging
 import os
+import re
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from .evidence_fusion import fuse_omics_biomarkers
 
 log = logging.getLogger(__name__)
+
+
+def select_cluster_output(output_files: Sequence[Dict[str, Any]],
+                          input_basenames: Optional[Sequence[str]] = None
+                          ) -> Optional[Dict[str, Any]]:
+    """Pick the subtype/cluster-assignment CSV from a run's outputs for the
+    cross-omics driver hook.
+
+    Prefers the EXACT assignment filenames (``snf_clusters.csv`` /
+    ``patient_stratification.csv``) over a loose ``clusters?.csv`` fallback, and
+    excludes any file whose basename matches an INPUT omics layer — some
+    workflows (e.g. SNF) re-publish the staged inputs alongside their outputs,
+    so a loose match could otherwise select an input named e.g. ``clusters.csv``
+    instead of the real assignment file (round-4 committee A3). Pure + testable.
+    """
+    exclude = {str(b).lower() for b in (input_basenames or [])}
+
+    def _name(f: Dict[str, Any]) -> str:
+        return (f.get("name") or os.path.basename(f.get("path", "")) or "")
+
+    def _pick(pattern: str):
+        return next(
+            (f for f in output_files
+             if _name(f).lower() not in exclude
+             and re.search(pattern, _name(f), re.I)),
+            None,
+        )
+
+    return (_pick(r'(snf_clusters|patient_stratification)\.csv$')
+            or _pick(r'clusters?\.csv$'))
 
 
 # A parsed layer matrix: feature names, sample names, and a features x samples grid.
