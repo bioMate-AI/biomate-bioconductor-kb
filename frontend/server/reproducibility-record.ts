@@ -154,7 +154,7 @@ export function assembleReproducibilityRecord(run: any, outputs: any[] = []): Re
       run?.completedAt ??
       run?.execution?.completedAt ??
       run?.finishedAt ??
-      (/^(completed|success|succeeded|failed|error|cancelled)$/i.test(String(run?.status ?? "")) ? run?.updatedAt : null),
+      (/^(completed|success|succeeded|failed|error|cancelled)$/i.test(String(run?.execution?.status ?? run?.status ?? "")) ? run?.updatedAt : null),
     ),
     parameters: params,
     inputBindings: bindings,
