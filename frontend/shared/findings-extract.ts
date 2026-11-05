@@ -68,15 +68,20 @@ function parseDelimited(content: string, delim: string, entityCol: string | RegE
   if (lines.length < 2) return [];
   const header = lines[0].split(delim).map(h => h.replace(/^#/, '').replace(/"/g, '').trim());
   const colIdx = (m: string | RegExp) => header.findIndex(h => typeof m === 'string' ? h.toLowerCase() === m.toLowerCase() : m.test(h));
-  const entIdx = entityCol ? colIdx(entityCol) : -1;
+  let entIdx = entityCol ? colIdx(entityCol) : -1;
   const metricIdx = new Map<string, number>();
   for (const spec of metrics) { const idx = colIdx(spec.source); if (idx >= 0) metricIdx.set(spec.name, idx); }
+  // descriptor parser-parity (S3#3): nf-core write.csv(row.names=TRUE) puts the id in the UNLABELED
+  // first column (empty header). Fall back to column 0 in that true row-name case — not a synthetic
+  // row_N label — so the entity is the real id (e.g. ENSG…), not 'row_182'. Guard that col 0 isn't
+  // itself a metric column.
+  if (entIdx === -1 && header[0] === '' && !Array.from(metricIdx.values()).includes(0)) entIdx = 0;
   const out: RawEntity[] = [];
   for (const line of lines.slice(1)) {
     const cols = line.split(delim).map(c => c.replace(/"/g, '').trim());
     const metricsMap: Record<string, string> = {};
     for (const [name, idx] of metricIdx) if (cols[idx] !== undefined) metricsMap[name] = cols[idx];
-    out.push({ id: entIdx >= 0 ? cols[entIdx] : `row_${out.length + 1}`, metrics: metricsMap });
+    out.push({ id: (entIdx >= 0 && cols[entIdx]) ? cols[entIdx] : `row_${out.length + 1}`, metrics: metricsMap });
   }
   return out;
 }

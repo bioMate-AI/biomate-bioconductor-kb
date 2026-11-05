@@ -122,7 +122,7 @@ const ADMET: PatternDescriptor = {
 const DESEQ2: PatternDescriptor = {
   id: 'deseq2',
   match: { fileRegex: /deseq2|de_results|differential/i, contentIncludes: ['log2FoldChange'] },
-  parse: 'csv',
+  parse: 'autodelim',
   entity: { type: 'gene', column: /^(gene|gene_id|geneid|gene\.name|name|symbol)$/i, scheme: 'symbol' },
   metrics: [
     { name: 'log2FoldChange', source: /log2fold/i, label: 'log2 fold-change' },
@@ -136,7 +136,7 @@ const DESEQ2: PatternDescriptor = {
 const ENRICHGO: PatternDescriptor = {
   id: 'enrichgo',
   match: { fileRegex: /enrichgo|enrich_go|go_enrich|clusterprofiler|gsea|pathway/i, contentIncludes: ['GeneRatio'] },
-  parse: 'csv',
+  parse: 'autodelim',
   entity: { type: 'go_term', column: /^(description|term|pathway|name)$/i },
   metrics: [
     { name: 'p.adjust',  source: /^(p\.adjust|padj|fdr|qvalue)$/i, label: 'adjusted p-value' },
