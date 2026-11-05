@@ -2044,6 +2044,16 @@ class NextflowQCGateHandler:
                 if isinstance(v, (int, float, bool, str)):
                     metrics[k] = v
 
+        # Preserve DECLARED gates (a LIST) so the general declared-gate fallback in
+        # _check_qc_thresholds can evaluate them on the S3/Batch path. The scalar-only
+        # passthrough above drops non-scalars, which silently stripped a workflow's
+        # declared `gates` on Batch — the gates were read as a file but never evaluated
+        # (third-pass review H1; SNF declared gates were affected). Additive + safe: the
+        # fallback dedups by (metric, threshold) and only ADDS non-pass results.
+        for _gk in ("gates", "declared_gates"):
+            if isinstance(data.get(_gk), list) and _gk not in metrics:
+                metrics[_gk] = data[_gk]
+
         return metrics if metrics else None
 
     def _parse_motion_correction_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
