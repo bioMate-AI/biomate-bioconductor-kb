@@ -242,3 +242,40 @@ shadow + full-output repro:
   domains: DESeq2 needs a completed run on dev (only failed ones exist now) to live-shadow; enrichGO +
   raredisease have no parser flat (pure upgrade, no shadow needed).
 - The destructive reconciler-deletion cutover remains reserved for its own committee-reviewed session.
+
+## ✅ CLEAN LIVE SHADOW — ADMET is now cutover-safe (2026-11-05, after deploying 466893371)
+Deployed the matchDescriptor fix to dev and forced a clean regen (`?regen=1`) of ADMET run
+`331245f4`. The shadow now logs:
+```
+[Findings][shadow] documentToLegacy vs parser flat for "Predict ADMET Properties (AI)":
+  parser-only=[] doc-only=[hERG IC50, logP, MW, DILI risk, hERG IC50 (panel),
+                           DILI probability (panel), Ames probability (panel)]
+```
+- **parser-only=[]** — the projection now covers EVERY parser metric, including all 9 liabilities
+  (hERG inhibition, DILI probability, CYP2D6, …). The pre-fix BLOCKED state (`parser-only=[9]`,
+  `doc-only=[logP]`) is gone.
+- **doc-only=[7]** — the document ADDS the RDKit per_compound heuristics (hERG IC50 µM, logP, MW,
+  DILI risk tier) and the batch panel aggregates (panel hERG IC50 / DILI / Ames). These are
+  enrichment the flat never carried — not a regression.
+- Refined the shadow log (commit on this branch) to classify this correctly: `parser-only=[]` with
+  doc extras ⇒ **cutover-safe (document is a superset)**, distinct from `cutover-ready` (exact match)
+  and `cutover BLOCKED` (parser-only non-empty).
+
+### Where the cutover stands now (per domain)
+| Domain | Code parity | Live shadow | Gate |
+|---|---|---|---|
+| **ADMET** | fixed (16 metrics, real 7-file set) | **cutover-safe** (parser-only=[], doc superset) | ✅ met |
+| **DESeq2** | code-proven (32 real ENSG ids) | pending — only FAILED deseq2 runs on dev; needs a completed run | ⏳ run-blocked |
+| **enrichGO** | code-proven (12 GO terms) | n/a — parser emits no flat (pure upgrade) | ✅ no gate |
+| **raredisease/variant** | code-proven (exact IMPACT buckets) | n/a — parser emits no flat (pure upgrade) | ✅ no gate |
+
+### Remaining before the destructive cutover (its own committee session)
+1. One completed DESeq2 run on dev to live-shadow it to `cutover-safe`/`cutover-ready` (code already
+   proven; this is just the live confirmation the discipline asks for).
+2. The cutover itself — wire `documentToLegacy` as the flat source + delete `reconcileFindingsDocument`
+   + `flatLiabilities`. NOTE for that session: the projection must preserve the flat's liability
+   MARKER contract — the UI/`flatLiabilities` detect a liability via the interpretation suffix
+   "— potential liability"; `documentToLegacy` currently emits the document's own assessment strings,
+   so the cutover must either keep emitting that marker or migrate every consumer to read
+   `assessment.flag`. This is the main non-trivial piece and why the cutover is a focused change, not
+   a tail-of-session refactor.
