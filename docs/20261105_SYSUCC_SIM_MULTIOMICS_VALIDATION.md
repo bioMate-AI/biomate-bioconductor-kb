@@ -105,12 +105,16 @@ With this, **four** capabilities are live-verified end-to-end on this one ground
 multi-omics integration, data-driven QC gates (plumbing — see the note below), cross-omics driver
 fusion, and model training. (Routing is NOT exercised on this cohort — every run here goes through
 `POST /api/nextflow/execute` directly; routing was verified separately by
-`scripts/smoke_generalized_routing.sh`, see the generalization doc.) **QC-gate caveat:** the SNF
-workflow's gates validate the emit→read→evaluate *plumbing*, not discrimination — the halt gate
-(`n_clusters_found≥2`) cannot fail because spectral clustering always returns the requested k, and
-the silhouette advisory fires even on the ARI-0.978 cohort (it is not a real-vs-null discriminator;
-the driver permutation-significance count is). A gate that carries information for this domain is
-future work.
+`scripts/smoke_generalized_routing.sh`, see the generalization doc.) **QC-gate note (updated after
+the committee review):** the SNF workflow originally also gated on `mean_silhouette≥0.10`, which fired
+even on the ARI-0.978 cohort (silhouette on the SNF affinity distance is low even for well-separated
+clusters — not a real-vs-null discriminator). That gate was **demoted to a reported metric**; the SNF
+gates are now `n_clusters_found≥2` (halt — degenerate/single-cluster) and `min_cluster_fraction≥0.05`
+(advisory — balance), both of which carry information. Verified live (run `13ba1d15`): exit 0, QC
+emission guarded (cannot fail an otherwise-complete run), `mean_silhouette` reported (NA-safe), two
+gates, both pass on the balanced 3-cluster cohort. The halt gate still rarely fires (spectral
+clustering returns k by construction) — it is a safety check, and the trustworthy structure signal
+remains the driver permutation-significance count, not any SNF gate.
 
 ## 8. Stress testing — a negative control (and the fix it forced)
 A clean simulation that scores near-perfect is only trustworthy if the pipeline also finds **nothing
