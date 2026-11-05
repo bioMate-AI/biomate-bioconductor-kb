@@ -181,7 +181,7 @@ All runs below are **1–2 weeks old** (ran 2026-10-26…10-29) → same caveat:
 
 ## Cross-cutting structural gaps (seen on EVERY completed run, both content agents)
 
-- **⚠️ GAP A — `inline_findings` is empty `[]` on all 10 completed runs checked** across ADMET, clinical, CAR-T, hERG-QSAR, QSAR-RF, and both clean DE runs → the **Findings tab has no narrative content** for completed runs (findings layer unpopulated). Verify against a fresh run / current code — if current, the Findings panel is empty everywhere.
+- **⚠️ GAP A (CORRECTED — earlier overstated):** `inline_findings` (run-record field) is empty on all runs, but findings ARE generated for ADMET (`findings_data.json` present + renders in the UI). Real split: **(5a)** findings-file generation is wired for ADMET but NOT CAR-T/clinical/DE (no `findings_data.json` → *those* Findings tabs empty); **(5b)** the `inline_findings` field is vestigial/unpopulated even for ADMET, but the UI reads the file, so it does not blank the Findings tab. NOT "findings broken everywhere." See fix-spec #5.
 - **⚠️ GAP B — run-record `metrics` block is all-zero** (runtime 0, resources 0, fileCount 0) on every run despite real output files present → runtime/resource bookkeeping never populated (also means billing/usage attribution from this block would read zero).
 
 ## Dead / half-wired / mock-as-real features (code audit — CURRENT worktree code, no date caveat)
