@@ -19,10 +19,11 @@ import { createServer, request as httpRequest, type Server } from "http";
 import { execSync as _execSync } from "node:child_process";
 import { WebSocket as _WSClient, WebSocketServer } from "ws";
 import { storage } from "./storage";
+import { deriveRunMetricsPatch, resolveInlineFindings } from "./run-record-metrics";
 import OpenAI from "openai";
 import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents, instruments, INSTRUMENT_TYPES, apiKeys, featureFlags } from "../shared/schema";
 import { generateApiKey, listApiKeys } from "./api-key-service";
-import type { InsertInviteCode, ExecutionRunStatus, InstrumentType } from "../shared/schema";
+import type { InsertInviteCode, ExecutionRunStatus, InstrumentType, ExecutionRun } from "../shared/schema";
 import { db, pool } from "./db";
 import { selectChatHistoryUnderBudget } from "./chat-history-selector";
 import { capDatasetReferences, MAX_DATASET_REFS } from "./dataset-cap";
@@ -322,6 +323,27 @@ function toValidRunStatus(raw: string | undefined | null): ExecutionRunStatus {
   if (mapped) return mapped;
   console.error(`[Status] Unknown status "${raw}" — mapping to "failed"`);
   return 'failed';
+}
+
+/**
+ * Populate `run.metrics` from a completed run's output files + runtime, best-effort.
+ * Idempotent and merge-based (via storage.updateExecutionRunMetrics), never throws, and
+ * returns the (possibly updated) run so callers can keep their local handle fresh.
+ * See deriveRunMetricsPatch for what is populated vs. left at zero (resources.*).
+ */
+async function populateCompletionMetrics(
+  run: ExecutionRun,
+  nextflowStatus: any,
+): Promise<ExecutionRun> {
+  try {
+    const patch = deriveRunMetricsPatch(run, nextflowStatus);
+    if (patch) {
+      return (await storage.updateExecutionRunMetrics(run.id, patch)) || run;
+    }
+  } catch (e: any) {
+    console.warn("[ExecutionRun] metrics population failed:", e?.message || e);
+  }
+  return run;
 }
 
 type AutofixLifecycleState =
@@ -12466,16 +12488,36 @@ ${paramLines || '(none recorded)'}`;
         }
       }
 
+      // ── Fix #6: backfill run.metrics for terminal runs whose metrics are zero ──
+      // storage.ts inits metrics to an all-zero block; nothing else writes real
+      // values, so every completed run's outputs/runtime read zero (billing/usage
+      // attribution reads zero). Derive outputs + runtime from the stored completion
+      // data here. Guarded to write at most once — fileCount/totalSeconds become
+      // non-zero after the first write. resources.* stay 0 (no trace Node-side).
+      if (
+        ['completed', 'failed', 'cancelled'].includes(String(run.execution?.status)) &&
+        (run.metrics?.outputs?.fileCount || 0) === 0 &&
+        (run.metrics?.runtime?.totalSeconds || 0) === 0
+      ) {
+        run = await populateCompletionMetrics(run, run.execution?.nextflowStatus);
+      }
+
       // ── Inline convenience fields for MCP / headless consumers ────────────
       // MCP tools/get_run clients should not need a second round-trip to
       // /output_files or /status to get findings and files. Surface them here.
       const ns = (run.execution?.nextflowStatus as any) || {};
+
+      // Fix #5b: inline_findings mirrors the run's findings_data.json sidecar — the
+      // same key_results the UI Findings tab shows. Best-effort (never throws; []
+      // fallback). See resolveInlineFindings for the ns → cache → sidecar cascade.
+      const inlineFindings = await resolveInlineFindings(run, ns, (id) => _findingsCache.get(id));
+
       const response: any = {
         ...run,
         // Canonical file list: prefer S3-backed files, fall back to local.
         output_files: ns.s3_output_files || ns.output_files || [],
-        // AI findings / key results synthesized by the findings-analysis job.
-        inline_findings: ns.findings || ns.ai_findings || ns.key_results || [],
+        // AI findings / key results — see Fix #5b note above (mirrors findings_data.json).
+        inline_findings: inlineFindings,
       };
 
       res.json(response);
@@ -12678,6 +12720,12 @@ ${paramLines || '(none recorded)'}`;
               },
             }) || run;
 
+            // Fix #6: populate run.metrics (outputs + runtime) at the terminal
+            // transition — the run just completed and nextflowStatus carries the
+            // output files + duration. Without this metrics stays all-zero. Best-
+            // effort; resources.* left at 0 (no per-task trace Node-side).
+            run = await populateCompletionMetrics(run, nextflowStatus);
+
             // D2: Emit workflow_completed so the notification service fires for Nextflow runs.
             // Galaxy poller doesn't poll Nextflow direct runs; we emit manually on terminal state.
             const nfInvocationId = run.execution?.galaxyInvocationId || run.execution?.nextflowRunId;
@@ -12753,6 +12801,9 @@ ${paramLines || '(none recorded)'}`;
               // Outputs just became available post-terminal — save them now
               // (the earlier terminal hook may have skipped on empty outputs).
               if (String(run.execution.status) === 'completed') { void autoSaveCompletedRunOutputs(run); }
+              // Fix #6: outputs grew after the terminal flip — recompute metrics
+              // so outputs.fileCount/totalSizeBytes reflect the late-arriving files.
+              run = await populateCompletionMetrics(run, nextflowStatus);
             }
           }
         } catch (statusError: any) {
