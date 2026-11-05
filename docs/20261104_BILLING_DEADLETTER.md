@@ -214,3 +214,25 @@ replay, NX-marker idempotency (re-run applies nothing), redis-down abort, compac
    to run concurrently-serialised (it takes the cost-log write lock) and repeatedly.
 3. Ensure `BIOMATE_COST_LOG_DIR` is a persistent volume (same prerequisite as the
    dead-letter writer) so the file survives restarts for the reconciler to drain.
+
+### Trigger wiring — IN PLACE, disabled by default (2026-11-04)
+
+`reconcile.start_reconcile_scheduler()` is a flag-gated background loop, wired into
+`get_cost_service()` so it arms itself the first time the billing service is used —
+but **only when enabled**. Disabled by default (no thread, no behaviour change).
+
+**To turn it on** (one env var on the Galaxy container, then restart it):
+```
+BILLING_RECONCILE_ENABLED=1            # off by default; "1"/"true"/"yes"/"on" enables
+BILLING_RECONCILE_INTERVAL_SEC=300     # optional, default 300s, min 60s
+```
+The scheduler then runs `reconcile_deadletter()` every interval on a daemon thread
+(errors in one pass never kill the loop; it is idempotent via the Redis NX markers).
+
+**Alternative (cron / no in-app thread):** run the CLI on a schedule instead —
+`python -m galaxy.ai.billing.core.reconcile` (add `--dry-run` to preview). Leave
+`BILLING_RECONCILE_ENABLED` unset so the in-app loop stays off; the CLI and the
+scheduler share the same idempotent core, so don't run both.
+
+**Prerequisite either way:** `BIOMATE_COST_LOG_DIR` must be a persistent volume, or
+the dead-letter file (and thus anything to reconcile) is lost on a container restart.

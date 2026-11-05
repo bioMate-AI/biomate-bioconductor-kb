@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 import time
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -31,6 +32,52 @@ from typing import Dict, List, Optional
 log = logging.getLogger(__name__)
 
 _MARKER_PREFIX = "billing:recon:done:"
+
+# --- Scheduler (DISABLED by default — flip BILLING_RECONCILE_ENABLED to turn on) ---
+_ENV_ENABLE = "BILLING_RECONCILE_ENABLED"       # "1"/"true"/… to run the loop
+_ENV_INTERVAL = "BILLING_RECONCILE_INTERVAL_SEC"  # seconds between passes (default 300, min 60)
+_scheduler_started = False
+_scheduler_lock = threading.Lock()
+
+
+def _reconcile_enabled() -> bool:
+    return os.environ.get(_ENV_ENABLE, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _reconcile_interval() -> int:
+    try:
+        return max(60, int(os.environ.get(_ENV_INTERVAL, "300")))
+    except (ValueError, TypeError):
+        return 300
+
+
+def start_reconcile_scheduler(service=None) -> bool:
+    """Start the background reconcile loop IF BILLING_RECONCILE_ENABLED is set.
+
+    DISABLED by default: returns False and starts no thread unless the env flag is
+    on. Idempotent (safe to call on every get_cost_service()). The loop runs
+    reconcile_deadletter() every BILLING_RECONCILE_INTERVAL_SEC, catching errors so
+    one bad pass never kills the scheduler."""
+    global _scheduler_started
+    if not _reconcile_enabled():
+        return False
+    with _scheduler_lock:
+        if _scheduler_started:
+            return True
+        _scheduler_started = True
+    interval = _reconcile_interval()
+
+    def _loop():
+        log.info("[billing][reconcile] scheduler ENABLED (interval=%ds)", interval)
+        while True:
+            try:
+                reconcile_deadletter(service=service)
+            except Exception as exc:  # never let a bad pass kill the loop
+                log.error("[billing][reconcile] scheduled run failed: %s", exc)
+            time.sleep(interval)
+
+    threading.Thread(target=_loop, name="billing-reconcile", daemon=True).start()
+    return True
 _MARKER_TTL_SEC = 90 * 24 * 3600  # 90 days — long enough to cover any replay backlog
 
 # event_type -> (RealtimeCostService method name, ordered payload arg names)

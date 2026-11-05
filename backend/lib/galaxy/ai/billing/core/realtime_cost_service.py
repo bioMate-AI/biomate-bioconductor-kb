@@ -704,4 +704,11 @@ def get_cost_service() -> RealtimeCostService:
     global _service
     if _service is None:
         _service = RealtimeCostService()
+        # Start the dead-letter reconciler loop IFF BILLING_RECONCILE_ENABLED is set
+        # (disabled by default → no-op). Gated + idempotent; never blocks service use.
+        try:
+            from galaxy.ai.billing.core.reconcile import start_reconcile_scheduler
+            start_reconcile_scheduler(_service)
+        except Exception as _rec_exc:
+            log.warning("[billing] reconcile scheduler not started: %s", _rec_exc)
     return _service
