@@ -65,10 +65,14 @@ function docstring instead of changing the code.
 - **A2 (LOW):** a generic `*_list` param carrying a bare comma string would wrap to a single-element
   array. `smiles_list` is **safe** (`_normalize_smiles_list_param` splits first); no other value-list
   param carries commas today. The two serialization branches are byte-for-byte consistent.
-- **A3 (LOW/cosmetic):** SNF `.nf` re-publishes the staged input CSVs alongside its outputs
-  (`path("*.csv")` glob). No functional harm — the driver path reads `parameters.omics`, not the
-  output listing (Reviewer A confirmed) — but it pollutes `outdir`. A tighter output glob would need
-  a Batch re-run to verify; deferred as cosmetic.
+- **A3 (LOW):** SNF `.nf` re-publishes the staged input CSVs alongside its outputs
+  (`path("*.csv")` glob). Its one real risk — the analyze-outputs driver hook's loose
+  `clusters?.csv` match could pick a re-published input named e.g. `clusters.csv` — is **FIXED on
+  the consumer side** (`cce960c6d`), testably and with no Batch run: the picker is now a pure
+  `biomarker_fusion.select_cluster_output` that prefers the exact `snf_clusters.csv` /
+  `patient_stratification.csv` names and excludes any file whose basename matches an input omics
+  layer (+4 unit tests). The cosmetic `outdir` pollution (the `.nf` glob itself) is left as-is —
+  tightening it would need a Batch re-run for a purely-cosmetic gain.
 - **A4 (edge):** a layer with many *exactly*-separable features would have its robust-z null dominated
   by their ~1e9 F values. Such a layer usually signals a label leak; the docstring already notes
   continuous omics with real noise never hit this path.
