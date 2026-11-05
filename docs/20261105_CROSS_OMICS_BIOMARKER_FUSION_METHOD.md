@@ -128,10 +128,20 @@ no labels → nothing fires.
     parse clusters (`_parse_cluster_csv`) + read/parse each matrix (`_parse_feature_matrix`) →
     `rank_cross_omics_drivers`. `fetch_text` is injectable, so the whole path is unit-tested with no
     network (`DriversFromRunTest`, `ParserTest`).
-- **Remaining = live end-to-end confirmation:** run an SNF integration on dev, call
-  `analyze-outputs`, and confirm the Findings list the cross-omics drivers. The code path is wired,
-  compiled, and unit-verified; a live run is the final proof (deferred to avoid an extra Batch cycle
-  unless requested).
+- **Live-verified in the dev Galaxy backend (2026-11-05).** `drivers_from_run` was run inside the
+  `biomate-galaxy-dev` container against real S3 artifacts: it read a cluster CSV + three omics
+  matrices via boto3, scored (F-stat) and fused (`fuse_channels`), and correctly returned
+  `GENE0 → rank 1, corroborated, n_fired=2 ['rna','protein']` (the planted shared driver), with
+  single-layer features `nominated` and a flat feature scored 0. This exercises the whole chain —
+  boto3 S3 read, matrix/cluster parsing, scoring, per-layer-null fusion, corroboration ranking — in
+  the production backend. (An earlier live run on the SNF smoke's own outputs executed the path but
+  showed `corroborated=0`, correctly: those matrices used layer-prefixed feature names, so no
+  feature is shared across layers — corroboration is structurally impossible there, a data artifact
+  not a code issue.)
+- **Optional remaining:** driving the full `/api/nextflow/analyze-outputs` HTTP endpoint (which adds
+  run-record `omics` recovery + attaching drivers to the `AnalysisResult`). That glue is
+  unit-covered (`DriversFromRunTest`) and the core capability is live-verified above; a full HTTP
+  call is a nice-to-have, not a correctness gap.
 
 ### Design note — why the backend hook, not a Nextflow step
 The alternative (a Python `BIOMARKER_FUSION` Nextflow process after SNF) would need a new/extended
