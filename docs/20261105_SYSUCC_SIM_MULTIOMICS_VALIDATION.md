@@ -104,3 +104,31 @@ this branch (`sha-83234a2194b0`, carrying the id-column fix `904bb6b83` + the s3
 With this, all four generalized capabilities — routing, multi-omics integration, data-driven QC
 gates, cross-omics driver fusion, and model training — are live-verified end-to-end on one
 ground-truth cohort.
+
+## 8. Stress testing — a negative control (and the fix it forced)
+A clean simulation that scores near-perfect is only trustworthy if the pipeline also finds **nothing
+when there is nothing**. Negative control: run the driver fusion on the real SYSUCC layers but with
+**random cluster labels**.
+
+**Finding (a real gap):** the EvidenceGate `corroborated` **tier** over-called on the null — with
+random labels it still reported **42 "corroborated" features**. Cause: the z-gate calibrates each
+layer against its *own* distribution, so it always fires that layer's top ~2% tail, and some of those
+overlap across layers by chance. The *scores* did separate (true drivers ≈3.95 vs null ≈2.8), so the
+ranking was fine, but the binary "corroborated" label is a **triage signal, not a significance test**.
+
+**Fix (`e2c199e53`):** an opt-in label-permutation test on `rank_cross_omics_drivers` /
+`drivers_from_run` (`n_perm`). It shuffles the labels `n_perm` times, builds the null of the **max**
+fused score per permutation (max-statistic → family-wise error control), and marks a feature
+`significant` only if its score beats the `1-alpha` null quantile (also reports `perm_p`). Default
+`n_perm=0` keeps the fast triage the per-run findings hook uses; a significance pass is opt-in for
+driver **claims**.
+
+**Re-run live on dev (`n_perm=50`):**
+- **True SNF labels → 24 significant, all 24 the true drivers** (24/24; max `perm_p`=0.020).
+- **Random labels → 0 significant** (vs 42 by the raw tier). Zero false positives under FWER control.
+
+So the fusion now recovers exactly the real drivers *and* correctly finds nothing on noise — the
+corroboration tier remains a triage ranker, and `n_perm>0` provides a null-calibrated cutoff for any
+"these are the drivers" claim. (Honest note: the QC-gate silhouette advisory is **not** a good
+real-vs-null discriminator — it is ≈0 even on the ARI-0.978 clustering — so the driver-significance
+count is the trustworthy "is there real structure?" signal, not silhouette.)
