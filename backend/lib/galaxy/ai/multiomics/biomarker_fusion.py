@@ -77,6 +77,22 @@ def _f_statistic_per_feature(
     return out
 
 
+def _score_and_fuse(layer_matrices, labels, method, weights, top_k):
+    """Per-layer F-stat scoring + fusion for one labelling. Returns ranked dicts."""
+    per_layer_scores: Dict[str, Dict[str, float]] = {}
+    for layer, mat in (layer_matrices or {}).items():
+        feats = list(mat.get("features") or [])
+        samples = list(mat.get("samples") or [])
+        values = mat.get("values") or []
+        if not feats or not samples:
+            continue
+        fvals = _f_statistic_per_feature(values, samples, labels)
+        per_layer_scores[str(layer)] = {f: fvals[i] for i, f in enumerate(feats)}
+    if not per_layer_scores:
+        return []
+    return fuse_omics_biomarkers(per_layer_scores, method=method, weights=weights, top_k=top_k)
+
+
 def rank_cross_omics_drivers(
     layer_matrices: Dict[str, LayerMatrix],
     cluster_labels: Dict[str, Any],
@@ -84,6 +100,9 @@ def rank_cross_omics_drivers(
     method: str = "evidence_gate",
     weights: Optional[Dict[str, float]] = None,
     top_k: Optional[int] = None,
+    n_perm: int = 0,
+    alpha: float = 0.05,
+    perm_seed: int = 0,
 ) -> List[Dict[str, Any]]:
     """Rank features that drive the subtypes, corroborated across omics layers.
 
@@ -93,27 +112,48 @@ def rank_cross_omics_drivers(
     cluster_labels: ``{sample: subtype}`` — e.g. the ``snf_clusters.csv`` output.
     method/weights/top_k: passed through to the fusion engine (see
         ``evidence_fusion.fuse_omics_biomarkers``).
+    n_perm: if >0, run a label-permutation significance test (the EvidenceGate TIER
+        is a relative-tail triage, not a significance test — on random labels it still
+        "corroborates" each layer's top tail, so a null-aware cutoff is required before
+        CLAIMING a driver). Shuffles the labels ``n_perm`` times, builds the null of the
+        **max** fused score per permutation (family-wise / max-statistic control), and
+        annotates each returned driver with ``perm_p`` (empirical p vs that null) and
+        ``significant`` (``score`` beats the ``1-alpha`` null quantile). Default 0 keeps
+        the fast triage behaviour (what the per-run findings hook uses).
 
     Returns the fused ranking: ranked dicts with ``entity`` (=feature), ``score``,
     ``tier`` (corroborated >=2 layers / nominated / none), ``n_fired``,
-    ``fired_channels`` (the layers that nominated it). A feature strong in two
-    layers outranks one strong in a single layer, because the engine calibrates
-    each layer against its own null before gating.
+    ``fired_channels`` (+ ``perm_p``/``significant`` when ``n_perm>0``). A feature
+    strong in two layers outranks one strong in a single layer, because the engine
+    calibrates each layer against its own null before gating.
     """
-    per_layer_scores: Dict[str, Dict[str, float]] = {}
-    for layer, mat in (layer_matrices or {}).items():
-        feats = list(mat.get("features") or [])
-        samples = list(mat.get("samples") or [])
-        values = mat.get("values") or []
-        if not feats or not samples:
-            continue
-        fvals = _f_statistic_per_feature(values, samples, cluster_labels)
-        per_layer_scores[str(layer)] = {f: fvals[i] for i, f in enumerate(feats)}
-    if not per_layer_scores:
+    results = _score_and_fuse(layer_matrices, cluster_labels, method, weights, top_k)
+    if not results:
         return []
-    log.info("[multiomics] cross-omics biomarker fusion over %d layers (%s)",
-             len(per_layer_scores), ", ".join(per_layer_scores))
-    return fuse_omics_biomarkers(per_layer_scores, method=method, weights=weights, top_k=top_k)
+    log.info("[multiomics] cross-omics biomarker fusion over %d layers (perm=%d)",
+             len(layer_matrices or {}), n_perm)
+    if n_perm and n_perm > 0:
+        import random as _random
+        import math as _math
+        base = list(cluster_labels.keys())
+        vals = [cluster_labels[s] for s in base]
+        rng = _random.Random(perm_seed)
+        null_max: List[float] = []
+        for _ in range(int(n_perm)):
+            shuf = vals[:]
+            rng.shuffle(shuf)
+            prs = _score_and_fuse(layer_matrices, dict(zip(base, shuf)),
+                                  method, weights, None)
+            null_max.append(max((float(r.get("score", 0.0)) for r in prs), default=0.0))
+        null_max.sort()
+        qi = min(len(null_max) - 1, int(_math.ceil((1 - alpha) * len(null_max)) - 1))
+        thr = null_max[qi] if null_max else 0.0
+        for r in results:
+            sc = float(r.get("score", 0.0))
+            ge = sum(1 for m in null_max if m >= sc)
+            r["perm_p"] = (ge + 1) / (int(n_perm) + 1)      # +1 smoothing (never 0)
+            r["significant"] = sc > thr
+    return results
 
 
 # ── Findings-hook orchestration: (cluster output + omics inputs) -> drivers ──────
@@ -177,6 +217,8 @@ def drivers_from_run(
     *,
     fetch_text: Optional[Callable[[str], str]] = None,
     top_k: Optional[int] = 25,
+    n_perm: int = 0,
+    alpha: float = 0.05,
 ) -> List[Dict[str, Any]]:
     """Compute cross-omics biomarker drivers for a completed stratification run.
 
@@ -222,4 +264,5 @@ def drivers_from_run(
                         name, uri, exc)
     if len(layer_matrices) < 2:
         return []
-    return rank_cross_omics_drivers(layer_matrices, labels, top_k=top_k)
+    return rank_cross_omics_drivers(layer_matrices, labels, top_k=top_k,
+                                    n_perm=n_perm, alpha=alpha)

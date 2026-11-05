@@ -72,6 +72,23 @@ class CrossOmicsDriverTest(unittest.TestCase):
         self.assertEqual(len(out), 1)
         self.assertEqual(out[0]["entity"], "DRV")
 
+    def test_permutation_significance_separates_true_from_null(self):
+        # With TRUE labels the strong driver DRV is significant under the label-
+        # permutation null; with RANDOM labels (almost) nothing is significant —
+        # the negative control the plain `corroborated` tier fails (it over-calls
+        # each layer's relative top tail even on noise). Max-statistic FWER control.
+        import random
+        true = rank_cross_omics_drivers(self.layers, self.label, n_perm=40, alpha=0.05)
+        drv = next((r for r in true if r["entity"] == "DRV"), None)
+        self.assertIsNotNone(drv)
+        self.assertTrue(drv.get("significant"))
+        self.assertLessEqual(drv.get("perm_p", 1.0), 0.05)
+        vals = list(self.label.values()); keys = list(self.label.keys())
+        random.Random(0).shuffle(vals)
+        rnd = rank_cross_omics_drivers(self.layers, dict(zip(keys, vals)),
+                                       n_perm=40, alpha=0.05)
+        self.assertLessEqual(sum(1 for r in rnd if r.get("significant")), 1)
+
 
 # ── drivers_from_run: findings-hook orchestration (cluster CSV + omics URIs ->
 #    drivers) with an injected reader so it is unit-testable with no network. ──
