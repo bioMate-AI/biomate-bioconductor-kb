@@ -1424,6 +1424,10 @@ export function NextflowWorkflowViewer({
     category: string; user_message: string; suggested_action: string; fix_strategy: string;
     is_transient: boolean; task_error_snippet?: string;
   } | null>(null);
+  // Container pull progress: shown when backend is downloading a missing image before run.
+  const [containerPullStatus, setContainerPullStatus] = useState<{
+    image: string; status: 'pulling' | 'ready' | 'failed'; message: string;
+  } | null>(null);
   // Per-phase auto-loop toggle. An ABSENT key = follow the QC profile's own default
   // (autoloop:true profiles close the loop by default); an explicit true/false is a
   // user override that always wins. See profileAutoloopDefault below.
@@ -2612,6 +2616,23 @@ export function NextflowWorkflowViewer({
       }
     });
 
+    es.addEventListener("container_pull_progress", (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        setContainerPullStatus({
+          image: data.image ?? "",
+          status: data.status ?? "pulling",
+          message: data.message ?? "",
+        });
+        // Auto-clear once ready so the banner disappears after pull completes
+        if (data.status === "ready") {
+          setTimeout(() => setContainerPullStatus(null), 3000);
+        }
+      } catch (err) {
+        console.warn("[SSE] container_pull_progress parse error:", err);
+      }
+    });
+
     // ── Real-time step & workflow state via SSE (replaces per-step polling) ──
     es.addEventListener("step_state", (event: MessageEvent) => {
       try {
@@ -3065,6 +3086,41 @@ export function NextflowWorkflowViewer({
       {/* ── After-run tab content (v2 AfterRunReport, embedded inline) ──────── */}
       {activeTab === 'after-run' && (
         <div className="panel-body" data-testid="panel-after-run">
+          {/* Container pull progress banner — shown when backend is downloading a missing image */}
+          {containerPullStatus && (status === 'running' || containerPullStatus.status === 'pulling') && (
+            <div style={{
+              margin: '12px 16px 0',
+              padding: '10px 14px',
+              background: containerPullStatus.status === 'failed'
+                ? 'oklch(0.97 0.01 40)' : 'oklch(0.96 0.02 250)',
+              border: `1px solid ${containerPullStatus.status === 'failed'
+                ? 'oklch(0.88 0.04 40)' : 'oklch(0.82 0.06 250)'}`,
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+            }}>
+              {containerPullStatus.status === 'pulling' && (
+                <Loader2 style={{ width: 14, height: 14, flexShrink: 0 }} className="animate-spin" />
+              )}
+              {containerPullStatus.status === 'ready' && (
+                <span style={{ fontSize: 14 }}>✓</span>
+              )}
+              {containerPullStatus.status === 'failed' && (
+                <span style={{ fontSize: 14 }}>⚠</span>
+              )}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+                  {containerPullStatus.status === 'pulling' ? '准备运行环境（首次运行）' :
+                   containerPullStatus.status === 'ready' ? '环境就绪' : '镜像下载失败'}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                  {containerPullStatus.message}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* AI diagnosis card — merges real-time SSE (aiDiagnosis) with API-backed failure (survives refresh) */}
           {(() => {
             // Prefer SSE-pushed diagnosis (has task_error_snippet); fall back to API-polled failure.
@@ -3245,6 +3301,41 @@ export function NextflowWorkflowViewer({
           })()}
           {/* ── Phases-tab-only runtime section ─────────────────────────────── */}
           <div style={{ display: activeTab === 'phases' ? 'contents' : 'none' }}>
+          {/* Container pull progress banner — shown on phases tab while backend downloads a missing image.
+              This runs BEFORE Nextflow starts, so no phase cards exist yet; the banner is the only feedback. */}
+          {containerPullStatus && (status === 'running' || containerPullStatus.status === 'pulling') && (
+            <div style={{
+              margin: '12px 16px 4px',
+              padding: '10px 14px',
+              background: containerPullStatus.status === 'failed'
+                ? 'oklch(0.97 0.01 40)' : 'oklch(0.95 0.025 250)',
+              border: `1px solid ${containerPullStatus.status === 'failed'
+                ? 'oklch(0.88 0.04 40)' : 'oklch(0.80 0.08 250)'}`,
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+            }}>
+              {containerPullStatus.status === 'pulling' && (
+                <Loader2 style={{ width: 16, height: 16, flexShrink: 0 }} className="animate-spin" />
+              )}
+              {containerPullStatus.status === 'ready' && (
+                <span style={{ fontSize: 16 }}>✓</span>
+              )}
+              {containerPullStatus.status === 'failed' && (
+                <span style={{ fontSize: 16 }}>⚠</span>
+              )}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+                  {containerPullStatus.status === 'pulling' ? '准备运行环境（首次运行）' :
+                   containerPullStatus.status === 'ready' ? '环境就绪，正在启动…' : '镜像下载失败'}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                  {containerPullStatus.message}
+                </div>
+              </div>
+            </div>
+          )}
           {/* Step-wise controls hint — only when real phase groups exist */}
           {status === 'idle' && groupedPhases.some((g: any) => g.key !== 'all') && (
             <div

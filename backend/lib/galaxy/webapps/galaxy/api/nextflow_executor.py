@@ -3460,6 +3460,21 @@ process {{
   }}
 }}
 """
+        # On-prem container override for ADMET workflows: biomni-admet is a private
+        # ECR image (not accessible without AWS credentials). BIOMATE_ADMET_CONTAINER
+        # lets operators substitute a pre-pulled image, e.g. biomni-tools which has
+        # the biomni package with RDKit-based ADMET fallback when admet_ai is absent.
+        # Example: BIOMATE_ADMET_CONTAINER=ghcr.io/biomate-ai/biomni-tools:latest
+        admet_container = os.environ.get("BIOMATE_ADMET_CONTAINER", "")
+        admet_container_override = ""
+        if admet_container:
+            admet_container_override = f"""
+process {{
+  withName: ~/.*ADMET.*/ {{
+    container = '{admet_container}'
+  }}
+}}
+"""
         # On ARM64 hosts explicitly set DOCKER_DEFAULT_PLATFORM for Nextflow task
         # containers. With native ARM64 images Docker auto-detects this anyway, but
         # the explicit setting is a safety net for any mixed-arch deployments.
@@ -3483,7 +3498,9 @@ docker {{
 {docker_executable_line}
   // --entrypoint "": override image ENTRYPOINT so Nextflow's /bin/bash invocation is used directly.
   // --user root: task containers need write access to the nf-work bind-mount.
-  runOptions = '--entrypoint "" --user root --network {docker_network}'
+  // --pull never: use locally-loaded images only; skip registry check so Docker registry
+  //   mirrors (e.g. DaoCloud on Alibaba Cloud ECS) don't block pre-loaded on-prem images.
+  runOptions = '--entrypoint "" --user root --network {docker_network} --pull never'
 }}
 {_arm64_env_block}
 
@@ -3499,7 +3516,8 @@ process {{
   cpus   = 1
   memory = '4 GB'
 }}
-{container_override}"""
+{container_override}
+{admet_container_override}"""
         config_path = config_dir / "biomate_executor_override.config"
         config_path.write_text(minio_config)
         return config_path
@@ -4069,11 +4087,18 @@ def _extract_nf_process_containers(nf_path: Path) -> list[str]:
     except OSError:
         return []
     images: list[str] = []
-    # Match   container 'image:tag'   or   container "image:tag"
-    # Also handles ternary expressions: container cond ? 'img1' : 'img2'
-    for m in re.findall(r"container\s+[^{}\n]*?['\"]([^'\"]+)['\"]", text):
-        if m and m not in images:
-            images.append(m)
+    # Scan each line that starts with (optional whitespace +) "container ".
+    # Extract ALL quoted strings from that line, then keep only ones that look
+    # like Docker image refs (contain "/" or ":").  This correctly handles
+    # ternary expressions such as:
+    #   container env('NEXTFLOW_USE_AWS')=='true' ? 'ecr.../img:x86' : 'biomate/img:latest'
+    # where the naive single-capture regex only found the env-var name.
+    for line in text.splitlines():
+        if not re.match(r"\s*container\s+", line):
+            continue
+        for m in re.findall(r"['\"]([^'\"]+)['\"]", line):
+            if m and ("/" in m or ":" in m) and m not in images:
+                images.append(m)
     return images
 
 
@@ -4109,6 +4134,90 @@ def _resolve_local_image_alias(image: str) -> Optional[str]:
     except Exception:
         pass
     return None
+
+
+# Short Docker Hub image → canonical pull source for on-prem deployments.
+# Images listed here can be pulled on-prem (GHCR/public).  ECR images are
+# excluded — they require AWS credentials unavailable on bare metal / China ECS.
+_ONPREM_PULLABLE_IMAGES: Dict[str, str] = {
+    # biomate images: pulled from GHCR
+    "biomate/biomni-tools:latest": "ghcr.io/biomate-ai/biomni-tools:latest",
+    "biomate/biomni-drug-discovery-nf:latest": "ghcr.io/biomate-ai/biomni-drug-discovery-nf:latest",
+    # Standard public images: use DaoCloud mirror (accessible from China Aliyun ECS)
+    "condaforge/miniforge3:latest": "docker.m.daocloud.io/condaforge/miniforge3:latest",
+    "python:3.11-slim": "docker.m.daocloud.io/python:3.11-slim",
+    "python:3.9-slim": "docker.m.daocloud.io/python:3.9-slim",
+    "ubuntu:22.04": "docker.m.daocloud.io/ubuntu:22.04",
+}
+
+
+def _ensure_containers_pulled(nf_path: Path, invocation_id: str) -> None:
+    """
+    On-prem local mode: check each container declared in the .nf file.
+    Pull any that are missing locally, emitting SSE progress so the frontend
+    can show 'Preparing environment...' instead of a silent hang.
+
+    Skips ECR images (require AWS credentials, inaccessible from on-prem/China).
+    Controlled by NEXTFLOW_PULL_MISSING env var (default true).
+    """
+    if os.environ.get("NEXTFLOW_PULL_MISSING", "true").lower() not in ("true", "1", "yes"):
+        return
+
+    images = list(_extract_nf_process_containers(nf_path))
+
+    # Also check the ADMET container override in case it differs from what the .nf declares
+    admet_override = os.environ.get("BIOMATE_ADMET_CONTAINER", "")
+    if admet_override and admet_override not in images:
+        images.append(admet_override)
+
+    for image in images:
+        if "ecr.amazonaws.com" in image:
+            continue  # ECR: needs AWS creds — skip silently
+
+        if _is_local_docker_image(image) or _resolve_local_image_alias(image):
+            log.debug("[container_pull] %s already local", image)
+            continue
+
+        pull_src = _ONPREM_PULLABLE_IMAGES.get(image, image)
+        log.info("[container_pull] %s not local — pulling from %s", image, pull_src)
+
+        _post_sse_direct(invocation_id, "container_pull_progress", {
+            "image": image,
+            "status": "pulling",
+            "message": f"首次运行：正在下载 {image}，请稍候（约5-10分钟）…",
+        })
+
+        try:
+            proc = subprocess.run(
+                ["docker", "pull", pull_src],
+                capture_output=True, text=True, timeout=600,
+            )
+            if proc.returncode == 0:
+                if pull_src != image:
+                    subprocess.run(["docker", "tag", pull_src, image],
+                                   check=True, timeout=30)
+                log.info("[container_pull] %s ready", image)
+                _post_sse_direct(invocation_id, "container_pull_progress", {
+                    "image": image,
+                    "status": "ready",
+                    "message": f"{image} 已就绪",
+                })
+            else:
+                log.warning("[container_pull] pull failed %s: %s", image, proc.stderr[:300])
+                _post_sse_direct(invocation_id, "container_pull_progress", {
+                    "image": image,
+                    "status": "failed",
+                    "message": f"无法下载 {image}，如工作流需要此镜像可能会失败。",
+                })
+        except subprocess.TimeoutExpired:
+            log.warning("[container_pull] timeout pulling %s", image)
+            _post_sse_direct(invocation_id, "container_pull_progress", {
+                "image": image,
+                "status": "failed",
+                "message": f"{image} 下载超时（10分钟），请检查网络后重试。",
+            })
+        except Exception as exc:
+            log.warning("[container_pull] error %s: %s", image, exc)
 
 
 def _choose_container_strategy(nf_path: Path, raw_nextflow_path: str) -> Dict[str, Any]:
@@ -7260,6 +7369,15 @@ def _execute_nextflow_impl(
     _has_multiline = any(
         isinstance(v, str) and "\n" in v for v in params.values()
     )
+
+    # On-prem local mode: pre-pull any containers missing from the local Docker cache.
+    # Must run BEFORE _choose_container_strategy (which calls _is_local_docker_image).
+    # Skipped on awsbatch — Batch workers pull containers themselves.
+    if _onprem_local:
+        try:
+            _ensure_containers_pulled(nf_path, invocation_id)
+        except Exception as _pull_exc:
+            log.warning("[container_pull] pre-pull step failed: %s", _pull_exc)
 
     # Build nextflow command
     try:
