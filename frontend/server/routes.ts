@@ -15600,6 +15600,27 @@ Rules:
         });
       }
 
+      // A persisted sidecar / cached object is only trustworthy as findings when
+      // it actually carries the findings schema. Some runs have a findings_data.json
+      // whose content is the RAW OUTPUT SAMPLES (an object keyed by filename, each
+      // value `{filename, content}`) rather than a findings object — observed live
+      // on the CAR-T run dc9f3235. Spreading that and stamping `status:'ready'` made
+      // the endpoint report ready over non-findings JSON, so the UI found no
+      // summary/key_results and rendered an empty card. Trust a payload only when it
+      // has a findings-shaped field; otherwise ignore it and regenerate.
+      // IMPORTANT: this accepts a WELL-FORMED-BUT-EMPTY result (summary is a string,
+      // even ""; key_results is an array, even []) so a legitimately low-signal run
+      // is NOT rejected — that would loop (reject → regenerate → same empty → reject).
+      // It rejects only objects with no findings field at all (the samples map).
+      const isFindingsShaped = (o: any): boolean => {
+        if (!o || typeof o !== 'object' || Array.isArray(o)) return false;
+        if (typeof o.summary === 'string') return true;
+        if (Array.isArray(o.key_results)) return true;
+        if (o.findings_document && typeof o.findings_document === 'object') return true;
+        if (typeof o.reportMd === 'string') return true;
+        return false;
+      };
+
       // Determine local output dir (local runs only; S3 runs not supported for disk check)
       const nextflowRunId: string = (run as any).execution?.nextflowRunId || runId;
       const localOutputDir = `/tmp/nextflow_runs/${nextflowRunId}/output`;
@@ -15625,7 +15646,7 @@ Rules:
             structured = JSON.parse(raw);
           } catch { /* sidecar not yet written — use markdown fallback */ }
 
-          if (structured) {
+          if (structured && isFindingsShaped(structured)) {
             return res.json({
               ...structured,
               status: 'ready',
@@ -15633,10 +15654,17 @@ Rules:
               reportUrl,
             });
           }
-
-          // No sidecar — return raw markdown so FindingsCard can parse what it can
-          const md = await readFile(reportPath, 'utf8');
-          return res.json({ status: 'ready', runId, reportMd: md, reportUrl });
+          if (structured) {
+            // Sidecar exists but is NOT a findings object (e.g. raw output samples).
+            // Ignore it and fall through to regeneration rather than serving an empty
+            // "ready" card. The run's .md is written by the same path, so don't fall
+            // back to it here either.
+            console.warn(`[Findings] local sidecar ${jsonPath} is not findings-shaped (keys: ${Object.keys(structured).slice(0, 6).join(',')}) — regenerating`);
+          } else {
+            // No sidecar — return raw markdown so FindingsCard can parse what it can
+            const md = await readFile(reportPath, 'utf8');
+            return res.json({ status: 'ready', runId, reportMd: md, reportUrl });
+          }
         } catch (readErr) {
           console.warn("[Findings] Could not read existing report:", readErr);
         }
@@ -15660,8 +15688,13 @@ Rules:
             const dataResp = await fetch(url, { signal: AbortSignal.timeout(5_000) });
             if (dataResp.ok) {
               const structured = await dataResp.json();
-              const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
-              return res.json({ ...structured, status: 'ready', runId, reportUrl });
+              if (isFindingsShaped(structured)) {
+                const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
+                return res.json({ ...structured, status: 'ready', runId, reportUrl });
+              }
+              // Non-findings S3 sidecar (e.g. raw output samples) — ignore and
+              // regenerate rather than serving an empty "ready" card.
+              console.warn(`[Findings] S3 sidecar ${s3Uri} is not findings-shaped (keys: ${Object.keys(structured || {}).slice(0, 6).join(',')}) — regenerating`);
             }
           }
         } catch { /* S3 not available — fall through to trigger analysis */ }
@@ -15701,9 +15734,15 @@ Rules:
         // `cached` may have been invalidated above; fall through to create a
         // fresh analysis rather than emitting a ready response from it.
         const stillCached = _findingsCache.get(runId);
-        if (stillCached) {
+        if (stillCached && isFindingsShaped(stillCached)) {
           const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
           return res.json({ ...stillCached, status: 'ready', reportUrl, runId });
+        }
+        if (stillCached) {
+          // Cached object isn't findings-shaped (stale/garbage) — drop it and
+          // regenerate below rather than returning an empty "ready" card.
+          console.warn(`[Findings] dropping non-findings cache for ${runId} (keys: ${Object.keys(stillCached).slice(0, 6).join(',')})`);
+          _findingsCache.delete(runId);
         }
       }
 

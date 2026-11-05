@@ -110,3 +110,29 @@ triggers recovery. Producing real findings for the long tail requires, in priori
 A (validate/repair the sidecar) → B (bound the LLM, done) → C (guardrail/sampling). The #5a
 decision (hybrid; invest in the generic path, parsers only for gate numbers) stands; the work
 is A→B→C, not writing per-domain parsers.
+
+## Fix A — SHIPPED (read-side sidecar/cache shape validation)
+**Writer audit first:** both CURRENT writers of `findings_data.json` are well-shaped — Node
+`persistFindingsSidecar` writes the real findings object, and the Python analyze-outputs path
+(`nextflow_executor.py:12481`) always emits `structured_payload` with `summary`/`key_results`
+keys. Neither produces the filename-keyed samples map, so CAR-T's bad sidecar is a **historical
+artifact** from an older code version. No writer change is needed: read-side validation +
+regeneration is **self-healing** (a reopen rejects the stale sidecar, regenerates, and
+`persistFindingsSidecar` overwrites it with a well-shaped payload).
+
+**Change (`routes.ts`, `GET /api/workflows/runs/:id/findings`):** added `isFindingsShaped(o)` and
+gated all three "ready" return sites — local sidecar (2a), S3 sidecar (2b), in-memory cache (3).
+A payload is trusted only if it has `summary:string` OR `key_results:array` OR a
+`findings_document` object OR `reportMd:string`; otherwise it's logged and ignored, and control
+falls through to regeneration. **Loop-safe:** the check accepts a well-formed-but-EMPTY result
+(summary `""`, key_results `[]`) — only a payload with no findings field at all (the samples
+map) is rejected, so a legitimately low-signal run is not re-generated forever.
+
+Gate: `tsc` clean; full `vitest run` 2177 passed / 42 skipped / 0 failed.
+Live check: reopen CAR-T `dc9f3235` on dev after sync — it must stop returning the filename-keyed
+samples map as `ready` and instead regenerate (real summary, or a non-empty "unavailable" note).
+
+## Remaining (unchanged priority)
+- **B** — done (90s race, commit 3995fc1b2).
+- **C** — guardrail all-or-nothing emptying + sampling coverage. Only reachable now that A and B
+  are past; next item if long-tail findings still come back thin after A+B land on dev.
