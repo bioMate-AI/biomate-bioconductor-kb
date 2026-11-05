@@ -51,13 +51,36 @@ def test_s3_source_is_execution_time_stub():
 #    were never staged for ml_training — the .nf passes params.dataset as a plain
 #    value, so the loader must stage the object itself via the image's AWS CLI). ──
 def test_stage_s3_reuses_existing_local(tmp_path, monkeypatch):
+    # Idempotent per-URI: a second call for the SAME uri reuses the staged file
+    # (whose name is URI-hashed), with no second download.
     from galaxy.ai.ml_training import datasets as _ds
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "m.csv").write_text("sample_id,GENE0,label\nS0,1.0,A\n")
-    called = {"n": 0}
-    monkeypatch.setattr(_ds.subprocess, "run", lambda *a, **k: called.__setitem__("n", called["n"] + 1))
-    out = _ds.stage_s3_to_local("s3://b/k/m.csv")
-    assert out == "m.csv" and called["n"] == 0          # reused, no download
+    calls = {"n": 0}
+    def fake_run(cmd, **k):
+        calls["n"] += 1
+        Path(cmd[4]).write_text("sample_id,GENE0,label\nS0,1.0,A\n")
+        class R: returncode = 0
+        return R()
+    monkeypatch.setattr(_ds.subprocess, "run", fake_run)
+    out1 = _ds.stage_s3_to_local("s3://b/k/m.csv")
+    out2 = _ds.stage_s3_to_local("s3://b/k/m.csv")
+    assert out1 == out2 and out1.endswith("m.csv") and calls["n"] == 1   # downloaded once, reused
+
+
+def test_stage_s3_no_basename_collision_across_uris(tmp_path, monkeypatch):
+    # Two different objects that share a basename must NOT collide / reuse each other.
+    from galaxy.ai.ml_training import datasets as _ds
+    monkeypatch.chdir(tmp_path)
+    def fake_run(cmd, **k):
+        Path(cmd[4]).write_text("from:" + cmd[3])
+        class R: returncode = 0
+        return R()
+    monkeypatch.setattr(_ds.subprocess, "run", fake_run)
+    a = _ds.stage_s3_to_local("s3://bucketA/train.csv")
+    b = _ds.stage_s3_to_local("s3://bucketB/train.csv")
+    assert a != b
+    assert Path(a).read_text().endswith("bucketA/train.csv")
+    assert Path(b).read_text().endswith("bucketB/train.csv")
 
 
 def test_stage_s3_downloads_via_cli(tmp_path, monkeypatch):
@@ -70,7 +93,7 @@ def test_stage_s3_downloads_via_cli(tmp_path, monkeypatch):
         return R()
     monkeypatch.setattr(_ds.subprocess, "run", fake_run)
     out = _ds.stage_s3_to_local("s3://b/k/m.csv")
-    assert out == "m.csv" and Path(out).exists()
+    assert out.endswith("m.csv") and Path(out).exists()
 
 
 def test_stage_s3_download_failure_raises(tmp_path, monkeypatch):
@@ -120,3 +143,18 @@ def test_tabular_all_non_numeric_features_errors(tmp_path):
     csv_p.write_text("name,note,label\nalice,hi,A\nbob,yo,B\n")
     with pytest.raises(ConfigError):
         load_tabular_dataset(str(csv_p), "label")       # no numeric features
+
+
+def test_tabular_keeps_gene_column_with_NA_and_imputes(tmp_path):
+    # A numeric gene column with an "NA" cell must be KEPT (not dropped as id/metadata)
+    # and the missing cell imputed with the column mean (committee finding).
+    from galaxy.ai.ml_training.datasets import load_tabular_dataset
+    csv_p = tmp_path / "expr.csv"
+    csv_p.write_text(
+        "sample_id,GENE0,GENE1,label\n"
+        "S0,8.0,1.0,A\nS1,1.0,NA,B\nS2,8.1,1.2,A\nS3,0.9,7.9,B\n")
+    ds = load_tabular_dataset(str(csv_p), "label")
+    assert "GENE1" in ds.feature_names                 # NOT dropped for the NA
+    gi = ds.feature_names.index("GENE1")
+    assert all(x == x for x in (row[gi] for row in ds.X))  # no NaN survived
+    assert abs(ds.X[1][gi] - (1.0 + 1.2 + 7.9) / 3) < 1e-6  # imputed with column mean

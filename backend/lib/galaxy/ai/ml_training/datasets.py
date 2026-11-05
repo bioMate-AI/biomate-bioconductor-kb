@@ -29,12 +29,19 @@ def stage_s3_to_local(s3_uri: str, dest: Optional[str] = None) -> str:
     into the work dir, but the ml_training ``.nf`` interpolates ``params.dataset``
     as a plain value (no ``path`` input), so Nextflow never stages it. The Batch
     container ships the AWS CLI and runs under an IAM role that can read the
-    work bucket, so the loader stages the object itself. Idempotent: if the
-    destination already exists (e.g. a genuinely staged run) it is reused.
+    work bucket, so the loader stages the object itself. Idempotent per-URI: the
+    default local name is prefixed with a hash of the FULL URI, so two objects that
+    share a basename (``s3://a/train.csv`` vs ``s3://b/train.csv``) do NOT collide and
+    reuse each other's data (committee finding — cross-run data leakage).
     """
     if not s3_uri.startswith("s3://"):
         raise ValueError(f"not an s3 uri: {s3_uri}")
-    target = dest or Path(s3_uri).name
+    if dest:
+        target = dest
+    else:
+        import hashlib
+        _h = hashlib.sha1(s3_uri.encode("utf-8")).hexdigest()[:10]
+        target = f"{_h}_{Path(s3_uri).name}"   # URI-unique, keeps the extension for parsers
     if Path(target).exists() and Path(target).stat().st_size > 0:
         return target
     try:
@@ -217,9 +224,20 @@ class LoadedTabularDataset:
         return len(self.y)
 
 
+_MISSING_TOKENS = {"", "na", "n/a", "nan", "null", "none", ".", "-"}
+
+
+def _is_missing(v) -> bool:
+    return v is None or (isinstance(v, str) and v.strip().lower() in _MISSING_TOKENS)
+
+
 def _looks_numeric(values) -> bool:
+    """A column is numeric if every NON-MISSING value parses as a float. Common
+    missing tokens (NA/N/A/NaN/NULL/./-) are treated as missing, NOT as evidence the
+    column is non-numeric — otherwise one R-exported `NA` cell would drop a whole
+    real gene column as 'id/metadata' (committee finding)."""
     for v in values:
-        if v in (None, ""):
+        if _is_missing(v):
             continue
         try:
             float(v)
@@ -283,12 +301,27 @@ def load_tabular_dataset(path: str, target_col: str,
     y: list = ([str(v) for v in raw_labels] if task == "classification"
                else [float(v) for v in raw_labels])
 
-    def _num(v):
+    # Build X with per-column MEAN IMPUTATION of missing cells (NA/NaN/…): a missing
+    # value must not silently become a constant 0 feature, and the column must not be
+    # dropped for it (see _looks_numeric). Mirrors the SNF .nf's feature-mean impute.
+    def _val(v):
+        if _is_missing(v):
+            return None
         try:
             return float(v)
         except (TypeError, ValueError):
-            return 0.0
-    X = [[_num(r.get(c)) for c in feature_names] for r in rows_raw]
+            return None
+    _col_mean: dict = {}
+    for c in feature_names:
+        _present = [x for x in (_val(r.get(c)) for r in rows_raw) if x is not None]
+        _col_mean[c] = (sum(_present) / len(_present)) if _present else 0.0
+    X = []
+    for r in rows_raw:
+        row = []
+        for c in feature_names:
+            v = _val(r.get(c))
+            row.append(_col_mean[c] if v is None else v)
+        X.append(row)
     return LoadedTabularDataset(
         X=X, y=y, feature_names=feature_names, target_col=target_col,
         source=f"tabular-csv:{path}", task=task,
