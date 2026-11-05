@@ -63,6 +63,40 @@ the `omics` list used by the collect-all multi-omics shape (SNF). Passing `omics
 `Required input file for cts not found`; passing `cts`/`coldata` params fixed it. (Executor logic:
 `nextflow_executor.py` Style-A bioc entry wrapper, ~line 2235.)
 
+## UC-4 — Functional enrichment (clusterProfiler `enrichGO`) — ATTEMPTED, surfaced an executor bug
+**Workflow:** `subworkflows/bioconductor/clusterprofiler/main.nf` (container `bioc-domain-genomics:3.20-slim`,
+real `enrichGO` against `org.Hs.eg.db`). **Input:** a 30-gene canonical cell-cycle/mitotic SYMBOL list
+(CCNB1, CDK1, AURKA, PLK1, …) → known answer = cell-cycle / mitotic / nuclear-division GO:BP terms.
+**Run `bd4fe2dc`** — **FAILED at Nextflow launch (10 s, returncode 1)**; NOT validated.
+
+**Root cause (diagnosed, not my input):** the Nextflow launch log shows
+`ERROR ~ Illegal character in scheme name at index 0: %5B%22s3://…/gene_list.txt%22%5D` — decoded,
+`["s3://…/gene_list.txt"]`. The `gene_list` input reached Nextflow as a **list-wrapped S3 URI string**
+instead of being staged as a local `gene_list.txt` the R body reads (`read_input_file("gene_list")`).
+So the executor's **single-named bioc-input staging path leaked the input as a `--param`** (and
+list-wrapped it) rather than binding it into the entry-wrapper channel — a bug specific to the
+one-declared-name shape (`// Input: gene_list.txt`); the two-name DESeq2 case (UC-3) staged correctly.
+The workflow, container, gene list, and `org.Hs.eg.db` are all fine — the defect is in
+`nextflow_executor.py`'s bioc entry-wrapper param/staging path.
+
+**Status:** honest negative result. Not fixed in this pass — the entry-wrapper param path is on the
+hot execution route and a change risks other bioc workflows, so it warrants a dedicated, carefully-
+reviewed fix + regression over the single- and multi-name shapes, not a late hot-change. Filed as a
+found bug (config/param-serialization class, cf. `project_workflow_config_bug_classes`).
+
+---
+
+## Scorecard
+| UC | Domain | Run | Outcome |
+|----|--------|-----|---------|
+| 1 | Multi-omics stratification | `ab67ad23`/`27ba372e` | ✅ ARI 0.978; 24/24 drivers; model CV 0.950 |
+| 2 | Drug discovery (ADMET) | `a4fe422e` | ✅ terfenadine hERG flagged; gate fires |
+| 3 | Transcriptomics (DESeq2 DE) | `b8cd8747` | ✅ 77/100 DE, dir 77/77, FDR 0.037 |
+| 4 | Functional enrichment (enrichGO) | `bd4fe2dc` | ⚠️ executor single-named-input staging bug (diagnosed) |
+
+Three domains validated end-to-end with known-answer checks; the fourth surfaced a real executor bug
+(the value of expanding use cases). All runs are a few cents of CPU Batch.
+
 ---
 
 ### Method notes / honesty
