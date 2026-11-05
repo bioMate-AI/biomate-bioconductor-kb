@@ -627,6 +627,7 @@ class UnifiedWorkflowSearch:
             ("real_exec_provisional",       "INTEGER DEFAULT 0"),
             ("workflow_correctness_score",  "REAL"),
             ("workflow_correctness_verdict","TEXT"),
+            ("input_kinds",                 "TEXT"),  # closed-vocabulary input kinds (input_kinds_classifier)
         ]:
             if col not in existing_cols:
                 cursor.execute(f"ALTER TABLE workflows ADD COLUMN {col} {definition}")
@@ -1738,6 +1739,7 @@ class UnifiedWorkflowSearch:
         # workflows under nextflow_nfcore/subworkflows/<domain>/ are NOT components
         # and must be retrievable as first-class complete workflows.
         is_subworkflow = _is_component_subworkflow(filename, source)
+        input_kinds = self._input_kinds_map().get(id_)
 
         # Calculate custom score — use LLM-derived domain lists when provided
         score = self._calculate_score(query, name, description or "", tools, tags, source, domain or "general", fts_score,
@@ -1745,6 +1747,7 @@ class UnifiedWorkflowSearch:
                                       preferred_domains=preferred_domains,
                                       penalized_domains=penalized_domains,
                                       input_types=input_types,
+                                      input_kinds=input_kinds,
                                       is_subworkflow=is_subworkflow,
                                       real_exec_status=real_exec_status,
                                       workflow_correctness_verdict=workflow_correctness_verdict,
@@ -1809,6 +1812,7 @@ class UnifiedWorkflowSearch:
                          preferred_domains: Optional[List[str]] = None,
                          penalized_domains: Optional[List[str]] = None,
                          input_types: Optional[List[str]] = None,
+                         input_kinds: Optional[frozenset] = None,
                          is_subworkflow: bool = False,
                          real_exec_status: Optional[str] = None,
                          workflow_correctness_verdict: Optional[str] = None,
@@ -1919,9 +1923,24 @@ class UnifiedWorkflowSearch:
                 if domain_value in profile_domains:
                     score += 2.0
 
-        # 8. Input-type compatibility scoring (soft boost/penalty using DB input_types field).
-        # Only applied when the workflow has clean, non-channel input_types (skip "ch_*" names).
-        if input_types:
+        # 8. Input-type compatibility scoring.
+        # 8a. Preferred: the closed-vocabulary input_kinds (LLM-labelled per workflow). input_types holds
+        # free-form names — channel names or placeholders such as ["input"] for many nf-core pipelines —
+        # so a raw-spectra pipeline was never penalised for a processed protein table (2026-11-05).
+        # A workflow that accepts both raw and processed kinds is never penalised.
+        if input_kinds:
+            user_kinds = self._query_input_kinds(query)
+            if user_kinds:
+                wf_raw, wf_proc = input_kinds & self._RAW_KINDS, input_kinds & self._PROCESSED_KINDS
+                user_raw, user_proc = user_kinds & self._RAW_KINDS, user_kinds & self._PROCESSED_KINDS
+                if user_kinds & input_kinds:
+                    score += 3.0  # user has exactly the right input kind
+                elif user_proc and not user_raw and wf_raw and not wf_proc:
+                    score -= 4.0  # processed data only, workflow starts from raw instrument data
+                elif user_raw and not user_proc and wf_proc and not wf_raw:
+                    score -= 4.0  # raw data only, workflow needs a processed table/object
+        # 8b. Legacy: rows without input_kinds use input_types when they are clean, non-channel names.
+        elif input_types:
             # Normalise: lowercase, strip whitespace; skip Nextflow channel names (ch_*)
             wf_types = frozenset(
                 t.lower().strip() for t in input_types
@@ -2632,6 +2651,55 @@ class UnifiedWorkflowSearch:
         "count_matrix", "counts_matrix", "loom", "rds",
     })
 
+    # Closed vocabulary of workflow input kinds (galaxy.ai.chain_composer.input_kinds_classifier.INPUT_KINDS).
+    _RAW_KINDS: frozenset = frozenset({"fastq", "bam", "raw_spectra", "idat", "bcl", "nanopore_signal", "raw_images"})
+    _PROCESSED_KINDS: frozenset = frozenset({
+        "counts_matrix", "h5ad", "cellranger_output", "protein_table", "peptide_table",
+        "metabolite_table", "beta_values",
+    })
+    # Query data types (from _detect_query_data_types) → input kinds
+    _QUERY_TYPE_TO_KIND: Dict[str, str] = {
+        "fastq": "fastq", "bam": "bam", "cram": "bam", "vcf": "vcf", "counts_matrix": "counts_matrix",
+        "h5ad": "h5ad", "cellranger_output": "cellranger_output", "pdb": "structure", "smiles": "molecules",
+        "raw_spectra": "raw_spectra", "protein_table": "protein_table", "peptide_table": "peptide_table",
+        "idat": "idat", "beta_values": "beta_values", "metabolite_table": "metabolite_table",
+    }
+
+    @classmethod
+    def _query_input_kinds(cls, query: str) -> frozenset:
+        return frozenset(cls._QUERY_TYPE_TO_KIND[t] for t in cls._detect_query_data_types(query)
+                         if t in cls._QUERY_TYPE_TO_KIND)
+
+    def _input_kinds_map(self) -> Dict[int, frozenset]:
+        """{workflow id: input kinds}, loaded once per DB file version (mtime) — the candidate SELECTs
+        are unchanged, so the column is looked up here rather than threaded through every query shape."""
+        try:
+            mtime = Path(str(self.db_path)).stat().st_mtime
+        except OSError:
+            return {}
+        cached = getattr(self, "_input_kinds_cache", None)
+        if cached and cached[0] == mtime:
+            return cached[1]
+        kinds: Dict[int, frozenset] = {}
+        try:
+            conn = sqlite3.connect(str(self.db_path))
+            try:
+                cols = {r[1] for r in conn.execute("PRAGMA table_info(workflows)")}
+                if "input_kinds" in cols:
+                    for wid, raw in conn.execute("SELECT id, input_kinds FROM workflows WHERE input_kinds IS NOT NULL"):
+                        try:
+                            ks = frozenset(json.loads(raw) or [])
+                        except (TypeError, ValueError):
+                            continue
+                        if ks:
+                            kinds[int(wid)] = ks
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            log.warning("[WorkflowSearch] input_kinds load failed: %s", exc)
+        self._input_kinds_cache = (mtime, kinds)
+        return kinds
+
     @staticmethod
     def _detect_query_data_types(query: str) -> frozenset:
         """Return the set of data types the user appears to have from query text.
@@ -2675,6 +2743,22 @@ class UnifiedWorkflowSearch:
             types.add("pdb")
         if re.search(r'\bsmiles\b|compound.?library|ligand.?library|\.sdf\b', q):
             types.add("smiles")
+        # Proteomics / methylation / metabolomics data the user HAS (file formats and named exports).
+        if re.search(r'\.mzml\b|\.mzxml\b|\bmzml\b|\.raw files?|thermo raw|\.wiff\b|raw (?:ms|mass[- ]spec\w*) (?:files?|data)'
+                     r'|mass spectra (?:files?)|spectra files?', q):
+            types.add("raw_spectra")
+        if re.search(r'proteingroups|protein ?groups\.txt|pg_matrix|protein[- ](?:level )?(?:table|matrix|intensit\w*|abundance (?:table|matrix)|quantification table)'
+                     r'|protein expression (?:table|matrix)|lfq intensit\w*', q):
+            types.add("protein_table")
+        if re.search(r'peptides\.txt|evidence\.txt|peptide[- ]level (?:intensit\w*|table|data|quant\w*)|peptide (?:table|intensit\w*)'
+                     r'|psm (?:table|sheet|report)|precursor (?:report|table|matrix)|dia-?nn (?:main )?report', q):
+            types.add("peptide_table")
+        if re.search(r'\.idat\b|\bidat files?', q):
+            types.add("idat")
+        if re.search(r'beta[- ]values?|\bm[- ]values?\b|beta (?:value )?matri[cx]', q):
+            types.add("beta_values")
+        if re.search(r'metabolite (?:table|matrix|intensit\w*)|feature (?:table|matrix) from (?:lc|gc)-?ms|peak (?:intensity )?table', q):
+            types.add("metabolite_table")
         return frozenset(types)
 
     @classmethod

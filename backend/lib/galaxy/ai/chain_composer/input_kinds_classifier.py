@@ -1,0 +1,151 @@
+"""LLM classification of each workflow's INPUT KINDS into a closed vocabulary.
+
+`workflows.input_types` holds free-form names (real file descriptions for Bioconductor rows, Nextflow
+channel names or placeholders such as ["input"] for many nf-core rows), so the router's input-type term
+could not tell a raw-spectra pipeline from a processed-table method. This pass writes a normalized
+`workflows.input_kinds` JSON list drawn from INPUT_KINDS (unified_workflow_search), read only by that
+scoring term; `input_types` is left untouched (chain wiring and the composer use the real names).
+
+Usage:
+    PYTHONPATH=lib python3 -m galaxy.ai.chain_composer.input_kinds_classifier \\
+        --openrouter-model google/gemini-3.8-flash --workers 16 --output kinds.jsonl
+Output rows: {"name", "input_kinds", "reason", "method"}; apply with --apply <db> (guarded by name).
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sqlite3
+import sys
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from typing import Callable, Dict, List, Optional
+
+from .domain_reclassifier import _DEFAULT_DB, openrouter_llm
+
+# Kept in sync with UnifiedWorkflowSearch._RAW_KINDS / _PROCESSED_KINDS (asserted in tests).
+INPUT_KINDS: Dict[str, str] = {
+    # raw instrument / sequencer output
+    "fastq": "sequencing reads (FASTQ)",
+    "bam": "aligned reads (BAM/CRAM/SAM)",
+    "raw_spectra": "raw mass-spectrometry data (.raw, .mzML, .mzXML, .d, .wiff)",
+    "idat": "Illumina methylation/genotyping array IDAT files",
+    "bcl": "Illumina BCL run folders",
+    "nanopore_signal": "nanopore signal files (FAST5/POD5)",
+    "raw_images": "raw microscopy / micrographs / movies (TIFF, MRC, CZI, ND2)",
+    # processed tables / objects produced by an upstream pipeline
+    "counts_matrix": "gene/feature count or expression matrix",
+    "h5ad": "single-cell object (h5ad, Seurat/SingleCellExperiment RDS, loom)",
+    "cellranger_output": "Cell Ranger / 10x output directory or matrix.mtx",
+    "protein_table": "protein-level quantification table (MaxQuant proteinGroups, DIA-NN pg_matrix, protein intensities)",
+    "peptide_table": "peptide/precursor/PSM-level table (peptides.txt, evidence.txt, DIA-NN report, PSM sheet)",
+    "metabolite_table": "metabolite / LC-MS feature intensity table",
+    "beta_values": "methylation beta / M-value matrix",
+    "vcf": "variant calls (VCF/BCF)",
+    "peaks": "peak / interval files (BED, narrowPeak)",
+    "gene_list": "gene list or ranked gene statistics",
+    # other common inputs
+    "fasta": "sequences or reference genome (FASTA)",
+    "annotation": "annotation (GTF/GFF)",
+    "structure": "molecular structure (PDB/mmCIF)",
+    "molecules": "small molecules (SMILES/SDF)",
+    "tabular": "other tabular data (clinical, phenotype, generic CSV)",
+}
+
+_PROMPT = """You label the INPUT data a bioinformatics workflow consumes, using a closed vocabulary.
+
+WORKFLOW: {name}
+SOURCE: {source}
+DESCRIPTION: {description}
+DECLARED INPUTS: {input_types}
+ANNOTATION: {annotation}
+
+Vocabulary (key: meaning):
+{vocab}
+
+List the keys for the PRIMARY data the user must supply (not reference files the workflow downloads
+itself, not intermediate outputs). Distinguish raw instrument data from processed tables: a pipeline
+that starts from mass spectra is raw_spectra; a method that starts from a MaxQuant protein table is
+protein_table. Use [] if the inputs cannot be determined.
+Reply with ONLY one JSON object: {{"input_kinds": ["<key>", ...], "reason": "<short phrase>"}}"""
+
+
+def _row_prompt(r: Dict[str, str]) -> str:
+    return _PROMPT.format(name=r["name"], source=r["source"] or "unknown", description=(r["description"] or "")[:600],
+                          input_types=(r["input_types"] or "[]")[:400], annotation=(r["annotation"] or "")[:400],
+                          vocab="\n".join(f"  {k}: {v}" for k, v in INPUT_KINDS.items()))
+
+
+def parse_kinds(raw: str) -> Optional[Dict]:
+    raw = (raw or "").strip()
+    i, j = raw.find("{"), raw.rfind("}")
+    if i == -1 or j <= i:
+        return None
+    try:
+        d = json.loads(raw[i:j + 1])
+    except Exception:  # noqa: BLE001
+        return None
+    kinds = d.get("input_kinds")
+    if not isinstance(kinds, list) or any(k not in INPUT_KINDS for k in kinds):
+        return None  # out-of-vocabulary answers are rejected, not coerced
+    return {"input_kinds": sorted(set(kinds)), "reason": str(d.get("reason", ""))[:200]}
+
+
+def classify(db_path: Path, llm: Callable[[str], str], workers: int = 8, limit: Optional[int] = None) -> List[Dict]:
+    conn = sqlite3.connect(str(db_path))
+    rows = conn.execute("SELECT name, COALESCE(source,''), COALESCE(description,''), COALESCE(input_types,'[]'), "
+                        "COALESCE(annotation,'') FROM workflows WHERE executable=1 ORDER BY name").fetchall()
+    conn.close()
+    rows = rows[:limit] if limit else rows
+
+    def one(r):
+        d = dict(zip(("name", "source", "description", "input_types", "annotation"), r))
+        try:
+            p = parse_kinds(llm(_row_prompt(d)))
+        except Exception:  # noqa: BLE001
+            p = None
+        return ({"name": d["name"], **p, "method": "llm"} if p
+                else {"name": d["name"], "input_kinds": None, "reason": "llm_failed", "method": "llm_failed"})
+
+    with ThreadPoolExecutor(max(1, workers)) as ex:
+        return list(ex.map(one, rows))
+
+
+def apply(db_path: Path, results: List[Dict]) -> int:
+    """Write input_kinds (failed rows untouched). Adds the column if absent."""
+    conn = sqlite3.connect(str(db_path))
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(workflows)")}
+    if "input_kinds" not in cols:
+        conn.execute("ALTER TABLE workflows ADD COLUMN input_kinds TEXT")
+    n = 0
+    for r in results:
+        if r.get("input_kinds") is not None:
+            n += conn.execute("UPDATE workflows SET input_kinds = ? WHERE name = ? AND executable = 1",
+                              (json.dumps(r["input_kinds"]), r["name"])).rowcount
+    conn.commit()
+    conn.close()
+    return n
+
+
+def _cli(argv=None) -> int:
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--openrouter-model", default="google/gemini-3.8-flash")
+    p.add_argument("--workers", type=int, default=8)
+    p.add_argument("--limit", type=int, default=None)
+    p.add_argument("--output", required=True, help="JSONL of results (read back with --apply)")
+    p.add_argument("--apply", default=None, help="DB path to write input_kinds into, from --output")
+    a = p.parse_args(argv)
+    if a.apply:
+        res = [json.loads(l) for l in open(a.output) if l.strip()]
+        sys.stderr.write(f"updated {apply(Path(a.apply), res)} rows\n")
+        return 0
+    res = classify(_DEFAULT_DB, openrouter_llm(a.openrouter_model), a.workers, a.limit)
+    with open(a.output, "w") as f:
+        for r in res:
+            f.write(json.dumps(r) + "\n")
+    sys.stderr.write(f"classified {len(res)}; failed {sum(r['method'] != 'llm' for r in res)}\n")
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    sys.exit(_cli(sys.argv[1:]))
