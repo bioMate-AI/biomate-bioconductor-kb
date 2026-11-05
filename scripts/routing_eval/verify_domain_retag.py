@@ -18,7 +18,9 @@ db = sqlite3.connect(str(D._DEFAULT_DB))
 from galaxy.ai.domain_registry import CANONICAL_DOMAINS  # noqa: E402
 tax = list(CANONICAL_DOMAINS) + ["general"]  # same per-row closed list as reclassify(canonical=True)
 props = [json.loads(l) for l in open(a.proposals) if l.strip()]
-cand = [p for p in props if p["method"] == "llm" and p["proposed_domain"] != p["current_domain"] and p["confidence"] >= a.min_conf]
+cand = [p for p in props if p["method"] == "llm" and p["proposed_domain"] != p["current_domain"] and p["confidence"] >= a.min_conf
+        # A move INTO 'general' only removes routing signal (the router never prefers it): not applied.
+        and p["proposed_domain"] != "general"]
 rows = {r[0]: r for r in db.execute("SELECT name, COALESCE(source,''), COALESCE(description,''), COALESCE(annotation,''), "
                                      "COALESCE(domain,'general') FROM workflows WHERE executable=1")}
 llm = D.openrouter_llm(a.model)
