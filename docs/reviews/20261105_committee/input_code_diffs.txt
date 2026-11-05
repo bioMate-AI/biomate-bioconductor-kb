@@ -1,0 +1,1881 @@
+=================== COMMIT 339ef76b9 feat(routing): closed-vocabulary input_kinds for the input-type score term
+diff --git a/backend/lib/galaxy/ai/chain_composer/input_kinds_classifier.py b/backend/lib/galaxy/ai/chain_composer/input_kinds_classifier.py
+new file mode 100644
+--- /dev/null
++++ b/backend/lib/galaxy/ai/chain_composer/input_kinds_classifier.py
+@@ -0,0 +1,151 @@
++"""LLM classification of each workflow's INPUT KINDS into a closed vocabulary.
++
++`workflows.input_types` holds free-form names (real file descriptions for Bioconductor rows, Nextflow
++channel names or placeholders such as ["input"] for many nf-core rows), so the router's input-type term
++could not tell a raw-spectra pipeline from a processed-table method. This pass writes a normalized
++`workflows.input_kinds` JSON list drawn from INPUT_KINDS (unified_workflow_search), read only by that
++scoring term; `input_types` is left untouched (chain wiring and the composer use the real names).
++
++Usage:
++    PYTHONPATH=lib python3 -m galaxy.ai.chain_composer.input_kinds_classifier \\
++        --openrouter-model google/gemini-3.8-flash --workers 16 --output kinds.jsonl
++Output rows: {"name", "input_kinds", "reason", "method"}; apply with --apply <db> (guarded by name).
++"""
++from __future__ import annotations
++
++import argparse
++import json
++import sqlite3
++import sys
++from concurrent.futures import ThreadPoolExecutor
++from pathlib import Path
++from typing import Callable, Dict, List, Optional
++
++from .domain_reclassifier import _DEFAULT_DB, openrouter_llm
++
++# Kept in sync with UnifiedWorkflowSearch._RAW_KINDS / _PROCESSED_KINDS (asserted in tests).
++INPUT_KINDS: Dict[str, str] = {
++    # raw instrument / sequencer output
++    "fastq": "sequencing reads (FASTQ)",
++    "bam": "aligned reads (BAM/CRAM/SAM)",
++    "raw_spectra": "raw mass-spectrometry data (.raw, .mzML, .mzXML, .d, .wiff)",
++    "idat": "Illumina methylation/genotyping array IDAT files",
++    "bcl": "Illumina BCL run folders",
++    "nanopore_signal": "nanopore signal files (FAST5/POD5)",
++    "raw_images": "raw microscopy / micrographs / movies (TIFF, MRC, CZI, ND2)",
++    # processed tables / objects produced by an upstream pipeline
++    "counts_matrix": "gene/feature count or expression matrix",
++    "h5ad": "single-cell object (h5ad, Seurat/SingleCellExperiment RDS, loom)",
++    "cellranger_output": "Cell Ranger / 10x output directory or matrix.mtx",
++    "protein_table": "protein-level quantification table (MaxQuant proteinGroups, DIA-NN pg_matrix, protein intensities)",
++    "peptide_table": "peptide/precursor/PSM-level table (peptides.txt, evidence.txt, DIA-NN report, PSM sheet)",
++    "metabolite_table": "metabolite / LC-MS feature intensity table",
++    "beta_values": "methylation beta / M-value matrix",
++    "vcf": "variant calls (VCF/BCF)",
++    "peaks": "peak / interval files (BED, narrowPeak)",
++    "gene_list": "gene list or ranked gene statistics",
++    # other common inputs
++    "fasta": "sequences or reference genome (FASTA)",
++    "annotation": "annotation (GTF/GFF)",
++    "structure": "molecular structure (PDB/mmCIF)",
++    "molecules": "small molecules (SMILES/SDF)",
++    "tabular": "other tabular data (clinical, phenotype, generic CSV)",
++}
++
++_PROMPT = """You label the INPUT data a bioinformatics workflow consumes, using a closed vocabulary.
++
++WORKFLOW: {name}
++SOURCE: {source}
++DESCRIPTION: {description}
++DECLARED INPUTS: {input_types}
++ANNOTATION: {annotation}
++
++Vocabulary (key: meaning):
++{vocab}
++
++List the keys for the PRIMARY data the user must supply (not reference files the workflow downloads
++itself, not intermediate outputs). Distinguish raw instrument data from processed tables: a pipeline
++that starts from mass spectra is raw_spectra; a method that starts from a MaxQuant protein table is
++protein_table. Use [] if the inputs cannot be determined.
++Reply with ONLY one JSON object: {{"input_kinds": ["<key>", ...], "reason": "<short phrase>"}}"""
++
++
++def _row_prompt(r: Dict[str, str]) -> str:
++    return _PROMPT.format(name=r["name"], source=r["source"] or "unknown", description=(r["description"] or "")[:600],
++                          input_types=(r["input_types"] or "[]")[:400], annotation=(r["annotation"] or "")[:400],
++                          vocab="\n".join(f"  {k}: {v}" for k, v in INPUT_KINDS.items()))
++
++
++def parse_kinds(raw: str) -> Optional[Dict]:
++    raw = (raw or "").strip()
++    i, j = raw.find("{"), raw.rfind("}")
++    if i == -1 or j <= i:
++        return None
++    try:
++        d = json.loads(raw[i:j + 1])
++    except Exception:  # noqa: BLE001
++        return None
++    kinds = d.get("input_kinds")
++    if not isinstance(kinds, list) or any(k not in INPUT_KINDS for k in kinds):
++        return None  # out-of-vocabulary answers are rejected, not coerced
++    return {"input_kinds": sorted(set(kinds)), "reason": str(d.get("reason", ""))[:200]}
++
++
++def classify(db_path: Path, llm: Callable[[str], str], workers: int = 8, limit: Optional[int] = None) -> List[Dict]:
++    conn = sqlite3.connect(str(db_path))
++    rows = conn.execute("SELECT name, COALESCE(source,''), COALESCE(description,''), COALESCE(input_types,'[]'), "
++                        "COALESCE(annotation,'') FROM workflows WHERE executable=1 ORDER BY name").fetchall()
++    conn.close()
++    rows = rows[:limit] if limit else rows
++
++    def one(r):
++        d = dict(zip(("name", "source", "description", "input_types", "annotation"), r))
++        try:
++            p = parse_kinds(llm(_row_prompt(d)))
++        except Exception:  # noqa: BLE001
++            p = None
++        return ({"name": d["name"], **p, "method": "llm"} if p
++                else {"name": d["name"], "input_kinds": None, "reason": "llm_failed", "method": "llm_failed"})
++
++    with ThreadPoolExecutor(max(1, workers)) as ex:
++        return list(ex.map(one, rows))
++
++
++def apply(db_path: Path, results: List[Dict]) -> int:
++    """Write input_kinds (failed rows untouched). Adds the column if absent."""
++    conn = sqlite3.connect(str(db_path))
++    cols = {r[1] for r in conn.execute("PRAGMA table_info(workflows)")}
++    if "input_kinds" not in cols:
++        conn.execute("ALTER TABLE workflows ADD COLUMN input_kinds TEXT")
++    n = 0
++    for r in results:
++        if r.get("input_kinds") is not None:
++            n += conn.execute("UPDATE workflows SET input_kinds = ? WHERE name = ? AND executable = 1",
++                              (json.dumps(r["input_kinds"]), r["name"])).rowcount
++    conn.commit()
++    conn.close()
++    return n
++
++
++def _cli(argv=None) -> int:
++    p = argparse.ArgumentParser(description=__doc__)
++    p.add_argument("--openrouter-model", default="google/gemini-3.8-flash")
++    p.add_argument("--workers", type=int, default=8)
++    p.add_argument("--limit", type=int, default=None)
++    p.add_argument("--output", required=True, help="JSONL of results (read back with --apply)")
++    p.add_argument("--apply", default=None, help="DB path to write input_kinds into, from --output")
++    a = p.parse_args(argv)
++    if a.apply:
++        res = [json.loads(l) for l in open(a.output) if l.strip()]
++        sys.stderr.write(f"updated {apply(Path(a.apply), res)} rows\n")
++        return 0
++    res = classify(_DEFAULT_DB, openrouter_llm(a.openrouter_model), a.workers, a.limit)
++    with open(a.output, "w") as f:
++        for r in res:
++            f.write(json.dumps(r) + "\n")
++    sys.stderr.write(f"classified {len(res)}; failed {sum(r['method'] != 'llm' for r in res)}\n")
++    return 0
++
++
++if __name__ == "__main__":  # pragma: no cover
++    sys.exit(_cli(sys.argv[1:]))
+diff --git a/backend/lib/galaxy/ai/unified_workflow_search.py b/backend/lib/galaxy/ai/unified_workflow_search.py
+--- a/backend/lib/galaxy/ai/unified_workflow_search.py
++++ b/backend/lib/galaxy/ai/unified_workflow_search.py
+@@ -627,6 +627,7 @@ class UnifiedWorkflowSearch:
+             ("real_exec_provisional",       "INTEGER DEFAULT 0"),
+             ("workflow_correctness_score",  "REAL"),
+             ("workflow_correctness_verdict","TEXT"),
++            ("input_kinds",                 "TEXT"),  # closed-vocabulary input kinds (input_kinds_classifier)
+         ]:
+             if col not in existing_cols:
+                 cursor.execute(f"ALTER TABLE workflows ADD COLUMN {col} {definition}")
+@@ -1738,6 +1739,7 @@ class UnifiedWorkflowSearch:
+         # workflows under nextflow_nfcore/subworkflows/<domain>/ are NOT components
+         # and must be retrievable as first-class complete workflows.
+         is_subworkflow = _is_component_subworkflow(filename, source)
++        input_kinds = self._input_kinds_map().get(id_)
+ 
+         # Calculate custom score — use LLM-derived domain lists when provided
+         score = self._calculate_score(query, name, description or "", tools, tags, source, domain or "general", fts_score,
+@@ -1745,6 +1747,7 @@ class UnifiedWorkflowSearch:
+                                       preferred_domains=preferred_domains,
+                                       penalized_domains=penalized_domains,
+                                       input_types=input_types,
++                                      input_kinds=input_kinds,
+                                       is_subworkflow=is_subworkflow,
+                                       real_exec_status=real_exec_status,
+                                       workflow_correctness_verdict=workflow_correctness_verdict,
+@@ -1809,6 +1812,7 @@ class UnifiedWorkflowSearch:
+                          preferred_domains: Optional[List[str]] = None,
+                          penalized_domains: Optional[List[str]] = None,
+                          input_types: Optional[List[str]] = None,
++                         input_kinds: Optional[frozenset] = None,
+                          is_subworkflow: bool = False,
+                          real_exec_status: Optional[str] = None,
+                          workflow_correctness_verdict: Optional[str] = None,
+@@ -1919,9 +1923,24 @@ class UnifiedWorkflowSearch:
+                 if domain_value in profile_domains:
+                     score += 2.0
+ 
+-        # 8. Input-type compatibility scoring (soft boost/penalty using DB input_types field).
+-        # Only applied when the workflow has clean, non-channel input_types (skip "ch_*" names).
+-        if input_types:
++        # 8. Input-type compatibility scoring.
++        # 8a. Preferred: the closed-vocabulary input_kinds (LLM-labelled per workflow). input_types holds
++        # free-form names — channel names or placeholders such as ["input"] for many nf-core pipelines —
++        # so a raw-spectra pipeline was never penalised for a processed protein table (2026-11-05).
++        # A workflow that accepts both raw and processed kinds is never penalised.
++        if input_kinds:
++            user_kinds = self._query_input_kinds(query)
++            if user_kinds:
++                wf_raw, wf_proc = input_kinds & self._RAW_KINDS, input_kinds & self._PROCESSED_KINDS
++                user_raw, user_proc = user_kinds & self._RAW_KINDS, user_kinds & self._PROCESSED_KINDS
++                if user_kinds & input_kinds:
++                    score += 3.0  # user has exactly the right input kind
++                elif user_proc and not user_raw and wf_raw and not wf_proc:
++                    score -= 4.0  # processed data only, workflow starts from raw instrument data
++                elif user_raw and not user_proc and wf_proc and not wf_raw:
++                    score -= 4.0  # raw data only, workflow needs a processed table/object
++        # 8b. Legacy: rows without input_kinds use input_types when they are clean, non-channel names.
++        elif input_types:
+             # Normalise: lowercase, strip whitespace; skip Nextflow channel names (ch_*)
+             wf_types = frozenset(
+                 t.lower().strip() for t in input_types
+@@ -2632,6 +2651,55 @@ class UnifiedWorkflowSearch:
+         "count_matrix", "counts_matrix", "loom", "rds",
+     })
+ 
++    # Closed vocabulary of workflow input kinds (galaxy.ai.chain_composer.input_kinds_classifier.INPUT_KINDS).
++    _RAW_KINDS: frozenset = frozenset({"fastq", "bam", "raw_spectra", "idat", "bcl", "nanopore_signal", "raw_images"})
++    _PROCESSED_KINDS: frozenset = frozenset({
++        "counts_matrix", "h5ad", "cellranger_output", "protein_table", "peptide_table",
++        "metabolite_table", "beta_values",
++    })
++    # Query data types (from _detect_query_data_types) → input kinds
++    _QUERY_TYPE_TO_KIND: Dict[str, str] = {
++        "fastq": "fastq", "bam": "bam", "cram": "bam", "vcf": "vcf", "counts_matrix": "counts_matrix",
++        "h5ad": "h5ad", "cellranger_output": "cellranger_output", "pdb": "structure", "smiles": "molecules",
++        "raw_spectra": "raw_spectra", "protein_table": "protein_table", "peptide_table": "peptide_table",
++        "idat": "idat", "beta_values": "beta_values", "metabolite_table": "metabolite_table",
++    }
++
++    @classmethod
++    def _query_input_kinds(cls, query: str) -> frozenset:
++        return frozenset(cls._QUERY_TYPE_TO_KIND[t] for t in cls._detect_query_data_types(query)
++                         if t in cls._QUERY_TYPE_TO_KIND)
++
++    def _input_kinds_map(self) -> Dict[int, frozenset]:
++        """{workflow id: input kinds}, loaded once per DB file version (mtime) — the candidate SELECTs
++        are unchanged, so the column is looked up here rather than threaded through every query shape."""
++        try:
++            mtime = Path(str(self.db_path)).stat().st_mtime
++        except OSError:
++            return {}
++        cached = getattr(self, "_input_kinds_cache", None)
++        if cached and cached[0] == mtime:
++            return cached[1]
++        kinds: Dict[int, frozenset] = {}
++        try:
++            conn = sqlite3.connect(str(self.db_path))
++            try:
++                cols = {r[1] for r in conn.execute("PRAGMA table_info(workflows)")}
++                if "input_kinds" in cols:
++                    for wid, raw in conn.execute("SELECT id, input_kinds FROM workflows WHERE input_kinds IS NOT NULL"):
++                        try:
++                            ks = frozenset(json.loads(raw) or [])
++                        except (TypeError, ValueError):
++                            continue
++                        if ks:
++                            kinds[int(wid)] = ks
++            finally:
++                conn.close()
++        except sqlite3.Error as exc:
++            log.warning("[WorkflowSearch] input_kinds load failed: %s", exc)
++        self._input_kinds_cache = (mtime, kinds)
++        return kinds
++
+     @staticmethod
+     def _detect_query_data_types(query: str) -> frozenset:
+         """Return the set of data types the user appears to have from query text.
+@@ -2675,6 +2743,22 @@ class UnifiedWorkflowSearch:
+             types.add("pdb")
+         if re.search(r'\bsmiles\b|compound.?library|ligand.?library|\.sdf\b', q):
+             types.add("smiles")
++        # Proteomics / methylation / metabolomics data the user HAS (file formats and named exports).
++        if re.search(r'\.mzml\b|\.mzxml\b|\bmzml\b|\.raw files?|thermo raw|\.wiff\b|raw (?:ms|mass[- ]spec\w*) (?:files?|data)'
++                     r'|mass spectra (?:files?)|spectra files?', q):
++            types.add("raw_spectra")
++        if re.search(r'proteingroups|protein ?groups\.txt|pg_matrix|protein[- ](?:level )?(?:table|matrix|intensit\w*|abundance (?:table|matrix)|quantification table)'
++                     r'|protein expression (?:table|matrix)|lfq intensit\w*', q):
++            types.add("protein_table")
++        if re.search(r'peptides\.txt|evidence\.txt|peptide[- ]level (?:intensit\w*|table|data|quant\w*)|peptide (?:table|intensit\w*)'
++                     r'|psm (?:table|sheet|report)|precursor (?:report|table|matrix)|dia-?nn (?:main )?report', q):
++            types.add("peptide_table")
++        if re.search(r'\.idat\b|\bidat files?', q):
++            types.add("idat")
++        if re.search(r'beta[- ]values?|\bm[- ]values?\b|beta (?:value )?matri[cx]', q):
++            types.add("beta_values")
++        if re.search(r'metabolite (?:table|matrix|intensit\w*)|feature (?:table|matrix) from (?:lc|gc)-?ms|peak (?:intensity )?table', q):
++            types.add("metabolite_table")
+         return frozenset(types)
+ 
+     @classmethod
+=================== COMMIT 76ac575c2 fix(routing): explicit input-kind mismatch is disqualifying (penalty 4 → 25)
+diff --git a/backend/lib/galaxy/ai/unified_workflow_search.py b/backend/lib/galaxy/ai/unified_workflow_search.py
+--- a/backend/lib/galaxy/ai/unified_workflow_search.py
++++ b/backend/lib/galaxy/ai/unified_workflow_search.py
+@@ -19,6 +19,7 @@ Date: 2024-12-31
+ """
+ 
+ import json
++import os
+ import sqlite3
+ import logging
+ import re
+@@ -119,6 +120,16 @@ _WF_DENSE_BONUS_WEIGHT: float = 0.5
+ # Both the workflows table AND the tools table contain Bioconductor entries:
+ #   tools table      → package metadata, vignette steps, function lists (tool-level search)
+ #   workflows table  → the runnable .nf workflow files (workflow-level search, ~1818 entries)
++# Input-kind mismatch (step 8a): the user's data kind is explicit and the workflow accepts ONLY the other
++# regime (raw instrument data vs processed table), so it cannot run on the user's data. The penalty must exceed
++# the lexical (FTS) gaps such a workflow can win by — 17–24 points measured for nf-core/proteomicslfq on a
++# MaxQuant proteinGroups request — so it is disqualifying in practice; it stays a penalty, not a filter,
++# because the kind labels carry ~4% inter-model disagreement. Offline A/B (docs 20261103 §13.3): −25 vs −4
++# leaves cross_domain_routing and bioc_method_selection unchanged and fixes EPIC beta values → beta-value
++# method (not IDAT-only methylarray) and Cell Ranger output → scdownstream (not FASTQ-only scrnaseq).
++_INPUT_KIND_MISMATCH_PENALTY: float = float(os.environ.get("BIOMATE_INPUT_KIND_MISMATCH_PENALTY", "25.0"))
++
++
+ SOURCE_PRIORITY = {
+     "nfcore":           100,  # Full nf-core pipelines (rnaseq, sarek, chipseq, …)
+     "nfcore_subwf":      95,  # nf-core composite subworkflows (multi-tool analysis steps)
+@@ -1936,9 +1947,9 @@ class UnifiedWorkflowSearch:
+                 if user_kinds & input_kinds:
+                     score += 3.0  # user has exactly the right input kind
+                 elif user_proc and not user_raw and wf_raw and not wf_proc:
+-                    score -= 4.0  # processed data only, workflow starts from raw instrument data
++                    score -= _INPUT_KIND_MISMATCH_PENALTY  # processed data only; workflow runs only on raw instrument data
+                 elif user_raw and not user_proc and wf_proc and not wf_raw:
+-                    score -= 4.0  # raw data only, workflow needs a processed table/object
++                    score -= _INPUT_KIND_MISMATCH_PENALTY  # raw data only; workflow runs only on a processed table/object
+         # 8b. Legacy: rows without input_kinds use input_types when they are clean, non-channel names.
+         elif input_types:
+             # Normalise: lowercase, strip whitespace; skip Nextflow channel names (ch_*)
+=================== COMMIT f008ecc19 fix(routing): judge runnability on the file the executor runs, not the display stub
+diff --git a/backend/lib/galaxy/ai/ai_assistant.py b/backend/lib/galaxy/ai/ai_assistant.py
+--- a/backend/lib/galaxy/ai/ai_assistant.py
++++ b/backend/lib/galaxy/ai/ai_assistant.py
+@@ -2064,7 +2064,7 @@ class AIAssistant:
+         # "declares N input channels but 0 were given" (the RC-1 failure). Verify
+         # on disk that the resolved file is actually standalone-runnable.
+         if filename.endswith('/main.nf'):
+-            resolved = self._find_nf_file(getattr(match, 'filename', '') or '')
++            resolved = self._resolve_execution_nf(getattr(match, 'filename', '') or '')
+             if resolved is not None and not self._nf_file_is_standalone_runnable(resolved):
+                 return False
+             return True
+@@ -2072,6 +2072,19 @@ class AIAssistant:
+             return True
+         return False
+ 
++    def _resolve_execution_nf(self, filename: str) -> Optional[Any]:
++        """The .nf file the EXECUTOR will run for a DB filename (nextflow_executor._resolve_nextflow_path).
++
++        _find_nf_file prefers the biomni_workflows/ display stubs (their curated user-facing params), but the
++        executor runs the real downloaded nf-core pipeline when one exists (resolver order fixed 2026-08-24).
++        Judging runnability on the stub flagged every nf-core pipeline as non-executable — 128 of 131 have a
++        real copy on dev (2026-11-05). Falls back to _find_nf_file when the executor cannot resolve the path."""
++        try:
++            from galaxy.webapps.galaxy.api.nextflow_executor import _resolve_nextflow_path  # noqa: PLC0415
++            return _resolve_nextflow_path(filename)
++        except Exception:  # unresolvable here, or executor module unavailable (e.g. unit tests)
++            return self._find_nf_file(filename)
++
+     def _nf_file_is_standalone_runnable(self, nf_path: Any) -> bool:
+         """True iff the `.nf` at `nf_path` can be launched directly.
+ 
+=================== COMMIT ddd8dcd7c fix(routing): text-driven card swaps respect input compatibility; Step 6c only follows search candidates
+diff --git a/backend/lib/galaxy/ai/unified_workflow_search.py b/backend/lib/galaxy/ai/unified_workflow_search.py
+--- a/backend/lib/galaxy/ai/unified_workflow_search.py
++++ b/backend/lib/galaxy/ai/unified_workflow_search.py
+@@ -1942,14 +1942,10 @@ class UnifiedWorkflowSearch:
+         if input_kinds:
+             user_kinds = self._query_input_kinds(query)
+             if user_kinds:
+-                wf_raw, wf_proc = input_kinds & self._RAW_KINDS, input_kinds & self._PROCESSED_KINDS
+-                user_raw, user_proc = user_kinds & self._RAW_KINDS, user_kinds & self._PROCESSED_KINDS
+                 if user_kinds & input_kinds:
+                     score += 3.0  # user has exactly the right input kind
+-                elif user_proc and not user_raw and wf_raw and not wf_proc:
+-                    score -= _INPUT_KIND_MISMATCH_PENALTY  # processed data only; workflow runs only on raw instrument data
+-                elif user_raw and not user_proc and wf_proc and not wf_raw:
+-                    score -= _INPUT_KIND_MISMATCH_PENALTY  # raw data only; workflow runs only on a processed table/object
++                elif self._kinds_mismatch(user_kinds, input_kinds):
++                    score -= _INPUT_KIND_MISMATCH_PENALTY  # cannot run on the user's data
+         # 8b. Legacy: rows without input_kinds use input_types when they are clean, non-channel names.
+         elif input_types:
+             # Normalise: lowercase, strip whitespace; skip Nextflow channel names (ch_*)
+@@ -2681,6 +2677,27 @@ class UnifiedWorkflowSearch:
+         return frozenset(cls._QUERY_TYPE_TO_KIND[t] for t in cls._detect_query_data_types(query)
+                          if t in cls._QUERY_TYPE_TO_KIND)
+ 
++    @classmethod
++    def _kinds_mismatch(cls, user_kinds: frozenset, wf_kinds: frozenset) -> bool:
++        """True when the user's data is in one regime only (raw instrument data vs processed table/object)
++        and the workflow accepts only the other — it cannot run on the user's data. Shared by the step-8a
++        score and the card-swap guard (workflow_by_name input_compatible)."""
++        user_raw, user_proc = user_kinds & cls._RAW_KINDS, user_kinds & cls._PROCESSED_KINDS
++        wf_raw, wf_proc = wf_kinds & cls._RAW_KINDS, wf_kinds & cls._PROCESSED_KINDS
++        if user_kinds & wf_kinds:
++            return False
++        return bool((user_proc and not user_raw and wf_raw and not wf_proc)
++                    or (user_raw and not user_proc and wf_proc and not wf_raw))
++
++    def input_compatible(self, query: str, workflow_id: int) -> Optional[bool]:
++        """False when the request's explicit data kind cannot feed the workflow; None when either side is
++        unknown (no explicit data kind in the request, or no input_kinds for the workflow)."""
++        wf_kinds = self._input_kinds_map().get(int(workflow_id))
++        user_kinds = self._query_input_kinds(query or "")
++        if not wf_kinds or not user_kinds:
++            return None
++        return not self._kinds_mismatch(user_kinds, wf_kinds)
++
+     def _input_kinds_map(self) -> Dict[int, frozenset]:
+         """{workflow id: input kinds}, loaded once per DB file version (mtime) — the candidate SELECTs
+         are unchanged, so the column is looked up here rather than threaded through every query shape."""
+diff --git a/backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py b/backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py
+--- a/backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py
++++ b/backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py
+@@ -6866,11 +6866,14 @@ def plan_dag(request: PlanDagRequest, trans: ProvidesUserContext = DependsOnTran
+ )
+ def workflow_by_name(
+     name: str,
++    query: Optional[str] = None,
+     trans: ProvidesUserContext = DependsOnTrans
+ ) -> Dict[str, Any]:
+     """Return full workflow object for a given workflow name.
+     Used by the Node.js layer after LLM reselection to fetch the canonical
+-    workflow record without running FTS search again."""
++    workflow record without running FTS search again. With `query` (the user's request), also returns
++    `input_compatible` (False = the request's explicit data kind cannot feed this workflow; None = unknown)
++    so a text-driven card swap never moves to a workflow that cannot run on the user's data."""
+     try:
+         _engine = _get_workflow_search_engine()
+         if _engine is None:
+@@ -6908,8 +6911,15 @@ def workflow_by_name(
+         if not row:
+             return {"success": False, "error": f"workflow_not_found: {name}"}
+         wf_id, wf_name, wf_desc, wf_domain, wf_source, wf_format, wf_steps, wf_tools, wf_tags, wf_filename = row
++        input_compatible = None
++        if query:
++            try:
++                input_compatible = _engine.input_compatible(query, wf_id)
++            except Exception as _ic_exc:  # unknown, not incompatible
++                log.debug("[workflow_by_name] input_compatible failed: %s", _ic_exc)
+         return {
+             "success": True,
++            "input_compatible": input_compatible,
+             "workflow_name": wf_name,
+             "workflow_type": wf_format,
+             "nextflow_path": wf_filename if wf_format == "nextflow" else None,
+diff --git a/frontend/server/galaxy-assistant.ts b/frontend/server/galaxy-assistant.ts
+--- a/frontend/server/galaxy-assistant.ts
++++ b/frontend/server/galaxy-assistant.ts
+@@ -5391,15 +5391,30 @@ Rules:
+           response.message.match(/\*\*(nf-core\/[a-z][a-z0-9\-]+)/i) ||
+           response.message.match(/\b(nf-core\/[a-z][a-z0-9\-]+)\b/i);
+         const _textWorkflow = _boldNfcore?.[1]?.toLowerCase();
++        // Same constraint as Step 6c-2: follow the text only to a workflow the search retrieved for this
++        // request (unconstrained, the response model's own "retrieval" moved correct cards to wrong ones).
++        const _isCandidate = !!_textWorkflow && searchCandidateNames.some(c => workflowSlug(c) === workflowSlug(_textWorkflow));
+         if (
++          _textWorkflow &&
++          _textWorkflow !== _cardName &&
++          !_cardName.includes(_textWorkflow.replace('nf-core/', '')) &&
++          !_textWorkflow.includes(_cardName) &&
++          !_isCandidate
++        ) {
++          log(`Step 6c: text mentions "${_textWorkflow}", not a search candidate for this request — keeping "${_cardName}"`);
++        } else if (
+           _textWorkflow &&
+           _textWorkflow !== _cardName &&
+           !_cardName.includes(_textWorkflow.replace('nf-core/', '')) &&
+           !_textWorkflow.includes(_cardName)
+         ) {
+           log(`Step 6c: text mentions "${_textWorkflow}" but card shows "${_cardName}" — correcting via lookup`);
+-          const corrected = await this._lookupWorkflowByName(_textWorkflow);
+-          if (corrected?.success && (corrected.workflow_ga || corrected.nextflow_path)) {
++          const corrected = await this._lookupWorkflowByName(_textWorkflow, message);
++          if (corrected?.input_compatible === false) {
++            // 2026-11-05: the reply recommended nf-core/proteomicslfq "for MaxQuant proteinGroups.txt" and
++            // this step moved the correct dep card onto a raw-spectra pipeline.
++            log(`Step 6c: "${_textWorkflow}" cannot run on this request's data (backend input-kind check) — keeping "${_cardName}"`);
++          } else if (corrected?.success && (corrected.workflow_ga || corrected.nextflow_path)) {
+             generatedWorkflow = {
+               ...generatedWorkflow,
+               ...corrected,
+@@ -8782,19 +8797,23 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
+     regenerate: ((intentText: string) => Promise<any>) | null,
+   ): Promise<any | null> {
+     if (!regenerate) return null;
+-    const ident = await this._lookupWorkflowByName(name);
++    const ident = await this._lookupWorkflowByName(name, message);
+     if (!ident?.success || !ident.workflow_name) return null;
++    // The backend judged this workflow unable to run on the request's explicit data (e.g. a raw-spectra
++    // pipeline for a MaxQuant protein table): a text-driven swap must not move the card there.
++    if (ident.input_compatible === false) return null;
+     const target = workflowSlug(ident.workflow_name);
+     const card = await regenerate(`${message}\n\nRun the ${target} workflow.`);
+     const built = workflowSlug(card?.workflow_ga?.name || card?.workflow_name || '');
+     return card?.success && !card?.error && built === target ? card : null;
+   }
+ 
+-  private async _lookupWorkflowByName(name: string): Promise<any> {
++  private async _lookupWorkflowByName(name: string, query?: string): Promise<any> {
+     try {
+       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
++      const q = query ? `&query=${encodeURIComponent(query.slice(0, 4000))}` : '';
+       const resp = await fetch(
+-        `${galaxyUrl}/api/ai_assistant/workflow_by_name?name=${encodeURIComponent(name)}`,
++        `${galaxyUrl}/api/ai_assistant/workflow_by_name?name=${encodeURIComponent(name)}${q}`,
+         { headers: { 'x-api-key': process.env.GALAXY_MASTER_API_KEY || process.env.GALAXY_API_KEY || '' } }
+       );
+       if (!resp.ok) return null;
+=================== COMMIT 7aee147d2 feat(catalog): two-model audit of false capability claims in workflows.annotation (removal-only, verbatim, guarded)
+diff --git a/backend/lib/galaxy/ai/chain_composer/annotation_claim_audit.py b/backend/lib/galaxy/ai/chain_composer/annotation_claim_audit.py
+new file mode 100644
+--- /dev/null
++++ b/backend/lib/galaxy/ai/chain_composer/annotation_claim_audit.py
+@@ -0,0 +1,154 @@
++"""LLM audit of false capability claims in `workflows.annotation` (the FTS-indexed keyword text).
++
++Catalog text was patched in the past to make individual benchmark queries route (e.g. 2026-07-19 R9 fixes
++appended "MaxQuant output processing proteinGroups isobaric labeling TMT iTRAQ" to nf-core/proteomicslfq,
++an OpenMS mzML label-free pipeline). FTS dominates ranking, so a claim a workflow does not satisfy pulls
++other workflows' queries onto it. This pass removes such claims catalog-wide; it never adds text.
++
++Per workflow, model A lists VERBATIM annotation phrases that claim an analysis, input, technology or tool the
++workflow does not perform/accept per its description and input kinds; model B confirms each. A removal is
++applied only when the phrase occurs verbatim and both models agree. Originals are kept in the output JSONL.
++
++Usage:
++  PYTHONPATH=lib python3 -m galaxy.ai.chain_composer.annotation_claim_audit propose --output a.jsonl
++  PYTHONPATH=lib python3 -m galaxy.ai.chain_composer.annotation_claim_audit verify --output a.jsonl --verified v.jsonl
++  PYTHONPATH=lib python3 -m galaxy.ai.chain_composer.annotation_claim_audit apply --verified v.jsonl --db <db>
++"""
++from __future__ import annotations
++
++import argparse
++import json
++import re
++import sqlite3
++import sys
++from concurrent.futures import ThreadPoolExecutor
++from pathlib import Path
++from typing import Dict, List, Optional
++
++from .domain_reclassifier import _DEFAULT_DB, openrouter_llm
++
++_PROPOSE = """You audit the search keywords of one bioinformatics workflow for FALSE claims.
++
++WORKFLOW: {name}
++SOURCE: {source}
++DESCRIPTION (ground truth): {description}
++INPUT KINDS (ground truth): {kinds}
++ANNOTATION (search keywords to audit): {annotation}
++
++List phrases from ANNOTATION, copied VERBATIM, that claim an analysis, input data type, technology,
++labelling chemistry or tool that this workflow does NOT perform or accept according to the DESCRIPTION and
++INPUT KINDS (e.g. a raw-spectra pipeline described as processing another tool's output tables; a label-free
++method described as isobaric/TMT; an RNA-seq pipeline described as calling somatic variants).
++Do NOT list phrases that are true, merely related, general (e.g. "quantitative proteomics"), organisms the
++workflow can run on, or that you are unsure about. Most annotations have nothing to remove.
++Reply with ONLY: {{"remove": ["<verbatim phrase>", ...], "reason": "<short>"}}"""
++
++_VERIFY = """A reviewer proposes removing these phrases from a workflow's search keywords because they claim
++something the workflow does not do.
++
++WORKFLOW: {name}
++DESCRIPTION (may be incomplete): {description}
++INPUT KINDS: {kinds}
++ANNOTATION: {annotation}
++PROPOSED REMOVALS: {remove}
++
++Our DESCRIPTION may be incomplete. Judge each phrase against what the actual tool/pipeline does (use your
++knowledge of it, e.g. its documented options) as well as the DESCRIPTION and INPUT KINDS. Answer true only if
++the phrase is a FALSE claim — the workflow genuinely does not perform or accept it; false if the capability is
++real (even if undescribed), merely related, general, or you are uncertain.
++Reply with ONLY: {{"confirm": {{"<phrase>": true|false, ...}}}}"""
++
++
++def _json(raw: str) -> Optional[dict]:
++    raw = raw or ""
++    i, j = raw.find("{"), raw.rfind("}")
++    if i == -1 or j <= i:
++        return None
++    try:
++        return json.loads(raw[i:j + 1])
++    except Exception:  # noqa: BLE001
++        return None
++
++
++def _rows(db: Path, names: Optional[List[str]] = None):
++    conn = sqlite3.connect(str(db))
++    sql = ("SELECT name, COALESCE(source,''), COALESCE(description,''), COALESCE(input_kinds,'[]'), annotation "
++           "FROM workflows WHERE executable=1 AND annotation IS NOT NULL AND length(annotation) > 0")
++    rows = conn.execute(sql).fetchall()
++    conn.close()
++    if names:
++        rows = [r for r in rows if r[0] in set(names)]
++    return [dict(zip(("name", "source", "description", "kinds", "annotation"), r)) for r in rows]
++
++
++def propose(db: Path, llm, workers: int, names=None) -> List[Dict]:
++    def one(r):
++        d = _json(llm(_PROPOSE.format(name=r["name"], source=r["source"], description=r["description"][:1200],
++                                      kinds=r["kinds"], annotation=r["annotation"][:1500])))
++        if d is None or not isinstance(d.get("remove"), list):
++            return {**r, "remove": None, "status": "llm_failed"}
++        verbatim = [p for p in d["remove"] if isinstance(p, str) and p.strip() and p in r["annotation"]]
++        return {**r, "remove": verbatim, "dropped_nonverbatim": len(d["remove"]) - len(verbatim),
++                "reason": str(d.get("reason", ""))[:200], "status": "ok"}
++    with ThreadPoolExecutor(max(1, workers)) as ex:
++        return list(ex.map(one, _rows(db, names)))
++
++
++def verify(props: List[Dict], llm, workers: int) -> List[Dict]:
++    def one(p):
++        if not p.get("remove"):
++            return {**p, "confirmed": []}
++        d = _json(llm(_VERIFY.format(name=p["name"], description=p["description"][:1200], kinds=p["kinds"],
++                                     annotation=p["annotation"][:1500], remove=json.dumps(p["remove"]))))
++        conf = (d or {}).get("confirm") or {}
++        return {**p, "confirmed": [x for x in p["remove"] if conf.get(x) is True]}
++    with ThreadPoolExecutor(max(1, workers)) as ex:
++        return list(ex.map(one, props))
++
++
++def cleaned(annotation: str, phrases: List[str]) -> str:
++    out = annotation
++    for ph in sorted(phrases, key=len, reverse=True):
++        out = out.replace(ph, " ")
++    return re.sub(r"\s{2,}", " ", out).strip()
++
++
++def apply(db: Path, verified: List[Dict]) -> int:
++    conn = sqlite3.connect(str(db))
++    n = 0
++    for v in verified:
++        if v.get("confirmed"):
++            # guarded by the original text: a row changed since the audit is left alone
++            n += conn.execute("UPDATE workflows SET annotation = ? WHERE name = ? AND annotation = ?",
++                              (cleaned(v["annotation"], v["confirmed"]), v["name"], v["annotation"])).rowcount
++    conn.commit()
++    conn.close()
++    return n
++
++
++def _cli(argv=None) -> int:
++    ap = argparse.ArgumentParser(description=__doc__)
++    ap.add_argument("step", choices=["propose", "verify", "apply"])
++    ap.add_argument("--output"); ap.add_argument("--verified"); ap.add_argument("--db", default=str(_DEFAULT_DB))
++    ap.add_argument("--model", default="google/gemini-3.8-flash"); ap.add_argument("--verify-model", default="anthropic/claude-sonnet-5.5")
++    ap.add_argument("--workers", type=int, default=12); ap.add_argument("--names", default="")
++    a = ap.parse_args(argv)
++    if a.step == "propose":
++        res = propose(Path(a.db), openrouter_llm(a.model), a.workers, [n for n in a.names.split("|") if n] or None)
++        with open(a.output, "w") as f:
++            for r in res:
++                f.write(json.dumps(r) + "\n")
++        sys.stderr.write(f"rows {len(res)}; with proposals {sum(1 for r in res if r.get('remove'))}; failed {sum(r['status'] != 'ok' for r in res)}\n")
++    elif a.step == "verify":
++        res = verify([json.loads(l) for l in open(a.output) if l.strip()], openrouter_llm(a.verify_model), a.workers)
++        with open(a.verified, "w") as f:
++            for r in res:
++                f.write(json.dumps(r) + "\n")
++        sys.stderr.write(f"rows with confirmed removals {sum(1 for r in res if r.get('confirmed'))}; phrases {sum(len(r.get('confirmed') or []) for r in res)}\n")
++    else:
++        sys.stderr.write(f"updated {apply(Path(a.db), [json.loads(l) for l in open(a.verified) if l.strip()])} rows\n")
++    return 0
++
++
++if __name__ == "__main__":  # pragma: no cover
++    sys.exit(_cli(sys.argv[1:]))
+=================== COMMIT a19a3c0f0 feat(catalog): reclassifier --canonical (router's CANONICAL_DOMAINS + current tag) + second-model verification emitting guarded SQL
+diff --git a/backend/lib/galaxy/ai/chain_composer/domain_reclassifier.py b/backend/lib/galaxy/ai/chain_composer/domain_reclassifier.py
+--- a/backend/lib/galaxy/ai/chain_composer/domain_reclassifier.py
++++ b/backend/lib/galaxy/ai/chain_composer/domain_reclassifier.py
+@@ -235,6 +235,7 @@ def reclassify(
+     all_domains: bool = False,
+     llm: Optional[Callable[[str], str]] = None,
+     workers: int = 1,
++    canonical: bool = False,
+ ) -> List[Dict[str, Any]]:
+     db_path = db_path or _DEFAULT_DB
+     conn = sqlite3.connect(str(db_path))
+@@ -252,6 +253,12 @@ def reclassify(
+         taxonomy = (sorted(set(_DOMAIN_TAXONOMY) | {d for (d,) in conn.execute(
+             "SELECT DISTINCT domain FROM workflows WHERE executable=1 AND domain IS NOT NULL AND domain != 'other'")})
+             if all_domains else None)
++        if canonical:
++            # The router's preferred_domains come only from CANONICAL_DOMAINS, so a tag earns the
++            # domain match only if it is canonical. Per row: canonical + 'general' + the current tag
++            # (so "keep the current tag" stays expressible for routing-only tags).
++            from galaxy.ai.domain_registry import CANONICAL_DOMAINS
++            taxonomy = list(CANONICAL_DOMAINS) + ["general"]
+     finally:
+         conn.close()
+ 
+@@ -267,9 +274,10 @@ def reclassify(
+ 
+     def _one(r: Tuple[str, str, str, str, str]) -> Dict[str, Any]:
+         name, source, desc, anno, domain = r
++        row_tax = (taxonomy + [domain]) if (canonical and domain not in taxonomy) else taxonomy
+         return _classify_one({"name": name, "source": source, "description": desc,
+                               "annotation": anno, "current_domain": domain}, llm,
+-                             taxonomy=taxonomy, keep_on_failure=all_domains)
++                             taxonomy=row_tax, keep_on_failure=all_domains)
+ 
+     out: List[Dict[str, Any]] = []
+     from concurrent.futures import ThreadPoolExecutor
+@@ -377,12 +385,13 @@ def _cli(argv=None) -> int:
+     p.add_argument("--all-domains", action="store_true", help="audit every executable workflow, not only domain='general'")
+     p.add_argument("--openrouter-model", default=None, help="classify via this OpenRouter model (key in ~/.config/biomate/openrouter.key)")
+     p.add_argument("--workers", type=int, default=1, help="parallel LLM calls")
++    p.add_argument("--canonical", action="store_true", help="closed list = router's CANONICAL_DOMAINS + general + current tag")
+     args = p.parse_args(argv)
+ 
+     t0 = time.time()
+     proposals = reclassify(limit=args.limit, offline=args.offline, all_domains=args.all_domains,
+                            llm=openrouter_llm(args.openrouter_model) if args.openrouter_model else None,
+-                           workers=args.workers)
++                           workers=args.workers, canonical=args.canonical)
+     dt = time.time() - t0
+ 
+     sys.stderr.write(f"\nClassified {len(proposals)} workflows in {dt:.1f}s.\n")
+diff --git a/scripts/routing_eval/verify_domain_retag.py b/scripts/routing_eval/verify_domain_retag.py
+new file mode 100755
+--- /dev/null
++++ b/scripts/routing_eval/verify_domain_retag.py
+@@ -0,0 +1,43 @@
++#!/usr/bin/env python3
++"""Second-model check of domain_reclassifier proposals; emits the SQL for the agreed changes only.
++
++A change proposed by the first pass (confidence >= --min-conf) is re-asked of an independent model with
++the same prompt and closed tag list. It is applied only when that model names the SAME new domain.
++Usage: verify_domain_retag.py <proposals.jsonl> <verified.jsonl> <updates.sql> [--model anthropic/claude-sonnet-5.5]
++"""
++import argparse, json, os, sqlite3, sys
++from concurrent.futures import ThreadPoolExecutor
++sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "backend", "lib"))
++from galaxy.ai.chain_composer import domain_reclassifier as D  # noqa: E402
++
++ap = argparse.ArgumentParser()
++ap.add_argument("proposals"); ap.add_argument("verified"); ap.add_argument("sql")
++ap.add_argument("--model", default="anthropic/claude-sonnet-5.5"); ap.add_argument("--min-conf", type=float, default=0.8)
++a = ap.parse_args()
++db = sqlite3.connect(str(D._DEFAULT_DB))
++from galaxy.ai.domain_registry import CANONICAL_DOMAINS  # noqa: E402
++tax = list(CANONICAL_DOMAINS) + ["general"]  # same per-row closed list as reclassify(canonical=True)
++props = [json.loads(l) for l in open(a.proposals) if l.strip()]
++cand = [p for p in props if p["method"] == "llm" and p["proposed_domain"] != p["current_domain"] and p["confidence"] >= a.min_conf]
++rows = {r[0]: r for r in db.execute("SELECT name, COALESCE(source,''), COALESCE(description,''), COALESCE(annotation,''), "
++                                     "COALESCE(domain,'general') FROM workflows WHERE executable=1")}
++llm = D.openrouter_llm(a.model)
++
++def check(p):
++    r = rows[p["name"]]
++    v = D._classify_one({"name": r[0], "source": r[1], "description": r[2], "annotation": r[3], "current_domain": r[4]},
++                        llm, taxonomy=tax + ([r[4]] if r[4] not in tax else []), keep_on_failure=True)
++    return {**p, "second_model": a.model, "second_domain": v["proposed_domain"], "second_reason": v["reason"],
++            "agreed": v["method"] == "llm" and v["proposed_domain"] == p["proposed_domain"]}
++
++out = list(ThreadPoolExecutor(8).map(check, cand))
++with open(a.verified, "w") as f:
++    for o in out: f.write(json.dumps(o) + "\n")
++ok = [o for o in out if o["agreed"]]
++with open(a.sql, "w") as f:
++    f.write("BEGIN;\n")
++    for o in ok:  # guarded by the current tag so a re-run or a diverged DB changes nothing unexpected
++        f.write("UPDATE workflows SET domain = %s WHERE name = %s AND domain = %s;\n" % tuple(
++            "'" + s.replace("'", "''") + "'" for s in (o["proposed_domain"], o["name"], o["current_domain"])))
++    f.write("COMMIT;\n")
++print(f"proposals {len(props)}; changes >= {a.min_conf}: {len(cand)}; agreed {len(ok)}; disagreed {len(cand) - len(ok)}")
+=================== COMMIT ec8b7c93f eval(routing): domain-retag A/B set (20 queries, criteria fixed before after-arm) + before-arm; reclassifier audits all domains
+diff --git a/backend/lib/galaxy/ai/chain_composer/domain_reclassifier.py b/backend/lib/galaxy/ai/chain_composer/domain_reclassifier.py
+--- a/backend/lib/galaxy/ai/chain_composer/domain_reclassifier.py
++++ b/backend/lib/galaxy/ai/chain_composer/domain_reclassifier.py
+@@ -111,14 +111,16 @@ def _offline_classify(text: str) -> Tuple[str, float]:
+ # LLM prompt — kept short for Haiku throughput
+ _PROMPT_TMPL = """You are a domain classifier for a bioinformatics workflow catalog.
+ 
+-CURRENT DOMAIN: general (catch-all — likely a classification miss)
++CURRENT DOMAIN: {current_domain}
+ WORKFLOW NAME: {name}
+ SOURCE: {source}
+ DESCRIPTION: {description}
+ ANNOTATION: {annotation}
+ 
+-Pick the SINGLE best domain from this closed list. If no specific domain
+-truly fits, return "general".
++Pick the SINGLE best domain from this closed list, judged by the data the workflow
++analyses and the question it answers (e.g. a mass-spectrometry protein-abundance
++workflow is proteomics even if it uses limma). Keep the current domain when it fits.
++If no specific domain truly fits, return "general".
+ 
+ ALLOWED DOMAINS:
+ {taxonomy}
+@@ -128,17 +130,19 @@ Output ONLY a single JSON object on one line:
+ """
+ 
+ 
+-def _build_prompt(row: Dict[str, str]) -> str:
++def _build_prompt(row: Dict[str, str], taxonomy: Optional[List[str]] = None) -> str:
++    current = row.get("current_domain") or "general"
+     return _PROMPT_TMPL.format(
++        current_domain=current + (" (catch-all — likely a classification miss)" if current == "general" else ""),
+         name=row["name"],
+         source=row["source"] or "unknown",
+         description=(row["description"] or "")[:500],
+         annotation=(row["annotation"] or "")[:500],
+-        taxonomy=", ".join(_DOMAIN_TAXONOMY),
++        taxonomy=", ".join(taxonomy or _DOMAIN_TAXONOMY),
+     )
+ 
+ 
+-def _parse_llm_response(raw: str) -> Optional[Dict[str, Any]]:
++def _parse_llm_response(raw: str, taxonomy: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
+     raw = (raw or "").strip()
+     # Strip code fences if present
+     if raw.startswith("```"):
+@@ -157,7 +161,7 @@ def _parse_llm_response(raw: str) -> Optional[Dict[str, Any]]:
+         return None
+     if not isinstance(data, dict):
+         return None
+-    if data.get("proposed_domain") not in _DOMAIN_TAXONOMY:
++    if data.get("proposed_domain") not in (taxonomy or _DOMAIN_TAXONOMY):
+         return None
+     return data
+ 
+@@ -165,6 +169,8 @@ def _parse_llm_response(raw: str) -> Optional[Dict[str, Any]]:
+ def _classify_one(
+     row: Dict[str, str],
+     llm: Optional[Callable[[str], str]],
++    taxonomy: Optional[List[str]] = None,
++    keep_on_failure: bool = False,
+ ) -> Dict[str, Any]:
+     if llm is None:
+         d, c = _offline_classify(
+@@ -180,13 +186,24 @@ def _classify_one(
+         }
+ 
+     try:
+-        prompt = _build_prompt(row)
++        prompt = _build_prompt(row, taxonomy)
+         raw = llm(prompt)
+-        parsed = _parse_llm_response(raw)
++        parsed = _parse_llm_response(raw, taxonomy)
+     except Exception as exc:
+         log.warning("classification call failed for %s: %s", row["name"], exc)
+         parsed = None
+ 
++    if parsed is None and keep_on_failure:
++        # Auditing an existing tag: a failed call proposes no change (never a keyword guess).
++        return {
++            "name": row["name"],
++            "current_domain": row["current_domain"],
++            "proposed_domain": row["current_domain"],
++            "confidence": 0.0,
++            "reason": "llm_failed_kept_current",
++            "method": "llm_failed",
++        }
++
+     if parsed is None:
+         # Fall back to offline so every row gets a row in the output
+         d, c = _offline_classify(
+@@ -215,41 +232,77 @@ def reclassify(
+     db_path: Optional[Path] = None,
+     limit: Optional[int] = None,
+     offline: bool = False,
++    all_domains: bool = False,
++    llm: Optional[Callable[[str], str]] = None,
++    workers: int = 1,
+ ) -> List[Dict[str, Any]]:
+     db_path = db_path or _DEFAULT_DB
+     conn = sqlite3.connect(str(db_path))
+     try:
++        # all_domains: audit every executable workflow against its current tag (mis-tags such as
++        # proteomics packages filed under transcriptomics), not only the 'general' catch-all.
+         sql = ("SELECT name, COALESCE(source,''), COALESCE(description,''), "
+-               "       COALESCE(annotation,'') "
+-               "FROM workflows WHERE executable=1 AND domain='general' "
+-               "ORDER BY name")
++               "       COALESCE(annotation,''), COALESCE(domain,'general') "
++               "FROM workflows WHERE executable=1 "
++               + ("" if all_domains else "AND domain='general' ")
++               + "ORDER BY name")
+         rows = conn.execute(sql).fetchall()
++        # The closed list must contain every tag the catalog really uses, or legitimate rare tags
++        # (virtual_cell, cryo_et, population_genetics…) get forced into a neighbouring domain.
++        taxonomy = (sorted(set(_DOMAIN_TAXONOMY) | {d for (d,) in conn.execute(
++            "SELECT DISTINCT domain FROM workflows WHERE executable=1 AND domain IS NOT NULL AND domain != 'other'")})
++            if all_domains else None)
+     finally:
+         conn.close()
+ 
+     if limit:
+         rows = rows[:limit]
+ 
+-    llm = None if offline else default_ner_llm()
+-    if not offline and llm is None:
+-        sys.stderr.write("(no API key → running offline keyword path)\n")
++    if llm is None and not offline:
++        llm = default_ner_llm()
++        if llm is None:
++            sys.stderr.write("(no API key → running offline keyword path)\n")
++    if offline:
++        llm = None
++
++    def _one(r: Tuple[str, str, str, str, str]) -> Dict[str, Any]:
++        name, source, desc, anno, domain = r
++        return _classify_one({"name": name, "source": source, "description": desc,
++                              "annotation": anno, "current_domain": domain}, llm,
++                             taxonomy=taxonomy, keep_on_failure=all_domains)
+ 
+     out: List[Dict[str, Any]] = []
+-    for i, (name, source, desc, anno) in enumerate(rows, 1):
+-        row = {
+-            "name": name,
+-            "source": source,
+-            "description": desc,
+-            "annotation": anno,
+-            "current_domain": "general",
+-        }
+-        result = _classify_one(row, llm)
+-        out.append(result)
+-        if i % 25 == 0:
+-            sys.stderr.write(f"  [{i}/{len(rows)}] processed\n")
++    from concurrent.futures import ThreadPoolExecutor
++    with ThreadPoolExecutor(max(1, workers)) as ex:
++        for i, result in enumerate(ex.map(_one, rows), 1):
++            out.append(result)
++            if i % 100 == 0:
++                sys.stderr.write(f"  [{i}/{len(rows)}] processed\n")
+     return out
+ 
+ 
++def openrouter_llm(model: str, key_path: str = "~/.config/biomate/openrouter.key") -> Callable[[str], str]:
++    """(prompt) -> text via OpenRouter, for running the audit without the backend's provider keys."""
++    import os
++    import urllib.request
++    key = open(os.path.expanduser(key_path)).read().strip()
++
++    def _call(prompt: str) -> str:
++        body = json.dumps({"model": model, "messages": [{"role": "user", "content": prompt}],
++                           "max_tokens": 2000, "temperature": 0}).encode()
++        req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=body, method="POST",
++                                     headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
++        for attempt in range(4):
++            try:
++                with urllib.request.urlopen(req, timeout=90) as r:
++                    return json.loads(r.read())["choices"][0]["message"]["content"] or ""
++            except Exception:  # noqa: BLE001 — transient provider errors are retried
++                time.sleep(3 * (attempt + 1))
++        return ""
++
++    return _call
++
++
+ def render_summary(proposals: List[Dict[str, Any]]) -> str:
+     n = len(proposals)
+     method_counts = Counter(p["method"] for p in proposals)
+@@ -321,10 +374,15 @@ def _cli(argv=None) -> int:
+     p.add_argument("--offline", action="store_true", help="force offline keyword path (no LLM)")
+     p.add_argument("--output", default=None, help="JSONL output path (one row per workflow)")
+     p.add_argument("--summary", default=None, help="markdown summary path")
++    p.add_argument("--all-domains", action="store_true", help="audit every executable workflow, not only domain='general'")
++    p.add_argument("--openrouter-model", default=None, help="classify via this OpenRouter model (key in ~/.config/biomate/openrouter.key)")
++    p.add_argument("--workers", type=int, default=1, help="parallel LLM calls")
+     args = p.parse_args(argv)
+ 
+     t0 = time.time()
+-    proposals = reclassify(limit=args.limit, offline=args.offline)
++    proposals = reclassify(limit=args.limit, offline=args.offline, all_domains=args.all_domains,
++                           llm=openrouter_llm(args.openrouter_model) if args.openrouter_model else None,
++                           workers=args.workers)
+     dt = time.time() - t0
+ 
+     sys.stderr.write(f"\nClassified {len(proposals)} workflows in {dt:.1f}s.\n")
+diff --git a/evaluation/routing_eval/domain_retag/score.py b/evaluation/routing_eval/domain_retag/score.py
+new file mode 100755
+--- /dev/null
++++ b/evaluation/routing_eval/domain_retag/score.py
+@@ -0,0 +1,21 @@
++#!/usr/bin/env python3
++"""Score the domain-retag routing A/B. Criterion fixed BEFORE either arm ran (2026-11-05):
++a row is correct when the routed card name matches the payload's `mod` regex (case-insensitive).
++`retag` rows target workflows whose catalog domain was wrong; `ctl` rows must not regress.
++Revision (2026-11-05, after the before-arm, BEFORE any after-arm data): the loose regex counted
++raw-spectra pipelines (nf-core/proteomicslfq) as correct for processed protein tables — the very
++failure the user reported. Rows with a `strict` regex are also scored against it (`retag_strict`):
++the card must be a workflow that takes processed tables.
++Usage: score.py <rows.jsonl> [...]"""
++import json, re, sys, collections
++pl = {p["idx"]: p for p in json.load(open(__file__.replace("score.py", "payloads.json")))}
++for f in sys.argv[1:]:
++    c = collections.defaultdict(lambda: [0, 0])
++    for l in open(f):
++        r = json.loads(l); p = pl[r["idx"]]
++        ok = bool(r.get("wf")) and bool(re.search(p["mod"], r["wf"], re.I))
++        c[p["track"]][0] += ok; c[p["track"]][1] += 1
++        if p.get("strict"):
++            c["retag_strict"][0] += bool(r.get("wf")) and bool(re.search(p["strict"], r["wf"].strip(), re.I))
++            c["retag_strict"][1] += 1
++    print(f, {k: f"{a}/{b}" for k, (a, b) in c.items()})
+=================== COMMIT 577ea27d8 fix(chain): drop the single-intent chain_hint hook (regression); name curated-chain cards
+diff --git a/frontend/server/galaxy-assistant.ts b/frontend/server/galaxy-assistant.ts
+--- a/frontend/server/galaxy-assistant.ts
++++ b/frontend/server/galaxy-assistant.ts
+@@ -4613,12 +4613,6 @@ Rules:
+       }
+     }
+ 
+-    // Single-intent request naming a curated chain: build the chain (same guard as the sequential path).
+-    if (!decomposition.isMultiIntent && decomposition.chainHint && intent.type === 'workflow_generation') {
+-      const chainResponse = await this._curatedChainResponse(decomposition, message, context, log);
+-      if (chainResponse) return chainResponse;
+-    }
+-
+     // Multi-intent path: fan out to processSubIntent for each intent
+     if (decomposition.isMultiIntent) {
+       return this.processMultiIntent(decomposition, message, context, startTime, onResponseDelta, domainProfileContext, sessionMemoryBlock, onToolEvent);
+@@ -5760,10 +5754,11 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
+   }
+ 
+   /**
+-   * Curated-chain response for a classifier chain_hint (TIER 2). Used by the sequential pipeline and by
+-   * single-intent requests — a named end-to-end pipeline ("run the full target-to-lead pipeline") is often
+-   * decomposed as ONE intent, and the hint was then ignored. Returns null when the hint is dropped or the
+-   * chain cannot be built, so the caller continues with its normal path.
++   * Curated-chain response for a classifier chain_hint (TIER 2 of the sequential pipeline, after TIER 1
++   * found no single covering workflow). Not used for single-intent turns: one intent means the classifier
++   * judged one workflow covers the request, and honouring the hint there replaced correct single-pipeline
++   * cards (nf-core/mag, nf-core/methylarray) with chains on dev (2026-11-05, domain_retag arm R).
++   * Returns null when the hint is dropped or the chain cannot be built.
+    */
+   private async _curatedChainResponse(
+     decomposition: IntentDecomposition,
+@@ -5886,6 +5881,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
+               step_count: chainPipelineSteps.length,
+               source: 'biomate_curated_chain',
+               chain_name: chain.name,
++              chain_display_name: chain.display_name || chain.name,
+               chain_connections: chain.connections || [],
+               chain_steps: chainPipelineSteps.map((s: any) => s.workflow_name).filter(Boolean),
+             },
+diff --git a/frontend/server/routes.ts b/frontend/server/routes.ts
+--- a/frontend/server/routes.ts
++++ b/frontend/server/routes.ts
+@@ -7403,7 +7403,8 @@ ${paramLines || '(none recorded)'}`;
+         // For chain results workflow_ga is empty; surface chain_display_name + step names
+         // so consumers (routing eval, UI) can identify constituent workflows.
+         const chainStepNames: string[] = (workflowPayload.chain_steps || [])
+-          .map((s: any) => s.workflow_name || s.name || "")
++          // Curated chains send step names as strings; composed chains send step objects.
++          .map((s: any) => (typeof s === "string" ? s : s?.workflow_name || s?.name || ""))
+           .filter(Boolean);
+         safeSend("workflow_ready", {
+           // workflow_name resolution order:
+diff --git a/scripts/routing_eval/route_eval.py b/scripts/routing_eval/route_eval.py
+--- a/scripts/routing_eval/route_eval.py
++++ b/scripts/routing_eval/route_eval.py
+@@ -69,7 +69,7 @@ def post(path, body, bearer=None, timeout=180, deadline=240):
+ 
+ def parse(text):
+     state = wf = None
+-    tools, reply = [], ""
++    tools, reply, final_response = [], "", ""
+     for blk in re.split(r"\nevent:\s*|^event:\s*", text):
+         name, _, rest = blk.partition("\n")
+         m = re.search(r"data:\s*(\{.*)", rest)
+@@ -81,6 +81,7 @@ def parse(text):
+             continue
+         if name == "final":
+             state = j.get("state", state)
++            final_response = j.get("response") or ""
+         elif name == "workflow_ready":
+             wf = j.get("workflow_name") or "+".join(j.get("chain_steps", []) or []) or wf
+         elif name in ("tool", "tool_event"):
+@@ -89,6 +90,8 @@ def parse(text):
+                 tools.append(t)
+         elif name == "delta":
+             reply += j.get("text", "")
++    # A reply sent without deltas (e.g. a curated-chain card) arrives only in final.response — the UI renders it.
++    reply = reply if reply.strip() else final_response
+     return state, wf, tools, reply[:240].replace("\n", " ")
+ 
+ 
+=================== COMMIT 5b72d8d7d feat(orchestration): fork/join requests become one executable DAG plan (live caller for build_dag_plan)
+diff --git a/backend/lib/galaxy/ai/decomposed_dag.py b/backend/lib/galaxy/ai/decomposed_dag.py
+--- a/backend/lib/galaxy/ai/decomposed_dag.py
++++ b/backend/lib/galaxy/ai/decomposed_dag.py
+@@ -259,3 +259,41 @@ def build_dag_plan(
+     max_parallel = max(1, min(16, int(max_parallel)))
+ 
+     return {"execution_mode": "dag", "steps": steps, "connections": connections, "max_parallel": max_parallel}
++
++
++def plan_dag_from_tasks(sa: Any, tasks: List[Dict[str, Any]], name: Optional[str] = None,
++                        max_parallel: Optional[int] = None) -> Dict[str, Any]:
++    """Pure core of /plan_dag (``sa`` supplies _resolve_task_to_workflow / _workflow_io_types)."""
++    tasks = [dict(t) for t in tasks]
++    # build_dag_plan reads an EMPTY depends_on as "sequential after the previous step" unless
++    # the task is marked parallel_with; here [] means an independent branch (a root).
++    for t in tasks:
++        if not t.get("depends_on"):
++            t["parallel_with"] = True
++    if len(tasks) < 2:
++        return {"success": False, "reason": "fewer_than_two_tasks"}
++    resolved, per_task = {}, []
++    for i, t in enumerate(tasks):
++        r = sa._resolve_task_to_workflow(t)
++        resolved[i] = r
++        per_task.append({"task": t.get("id") or f"task_{i + 1}", "description": t.get("description", ""),
++                         "nextflow_path": (r or {}).get("nextflow_path"), "resolved": bool(r)})
++    if not all(resolved.values()):
++        return {"success": False, "reason": "unresolved_task", "tasks": per_task}
++    _idx = {id(t): i for i, t in enumerate(tasks)}
++    plan = build_dag_plan(tasks, lambda t: resolved.get(_idx.get(id(t))),
++                          type_provider=sa._workflow_io_types, max_parallel=max_parallel)
++    if not plan:
++        return {"success": False, "reason": "no_type_compatible_handoff", "tasks": per_task}
++    card = to_pipeline_card(plan, name=(name or "Multi-step analysis plan"))
++    for step, t in zip(card.get("pipeline_steps", []), per_task):
++        step["description"] = t["description"]
++    # A fan-in step depends on several branches but build_dag_plan wires one typed connection per
++    # destination input: dependencies with no data connection run in the right order but do not
++    # hand their outputs over. Say so (the plan card asks the user to map them) — never imply they do.
++    wired = {(c["from_step"], c["to_step"]) for c in plan.get("connections", [])}
++    unwired = [{"from_step": d, "to_step": i + 1}
++               for i, st in enumerate(plan["steps"]) for d in st.get("depends_on", []) if (d, i + 1) not in wired]
++    if unwired:
++        card["unwired_dependencies"] = unwired
++    return {"success": True, "workflow": card, "tasks": per_task, "unwired_dependencies": unwired}
+diff --git a/backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py b/backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py
+--- a/backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py
++++ b/backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py
+@@ -6818,6 +6818,45 @@ def delete_skill(skill_id: str, trans: ProvidesUserContext = DependsOnTrans) ->
+         raise HTTPException(status_code=404, detail="Private skill not found")
+ 
+ 
++class PlanDagTask(BaseModel):
++    id: str = ""
++    description: str
++    # 1-based indices of earlier tasks this one consumes; [] = an independent branch (root).
++    depends_on: List[int] = Field(default_factory=list)
++
++
++class PlanDagRequest(BaseModel):
++    tasks: List[PlanDagTask]
++    name: Optional[str] = None
++    max_parallel: Optional[int] = None
++
++
++@router.post(
++    "/api/ai_assistant/plan_dag",
++    summary="Assemble decomposed sub-tasks into one executable DAG pipeline card (or say why not).",
++)
++def plan_dag(request: PlanDagRequest, trans: ProvidesUserContext = DependsOnTrans) -> Dict[str, Any]:
++    """Live caller for decomposed_dag.build_dag_plan (built 2026-10-11, never wired).
++
++    The chat sends the classifier's sub-tasks with their dependency edges (independent branches
++    + fan-in). Each task resolves to a catalog workflow (confidence-gated top match); dependent
++    steps are wired only by type-compatible outputs → inputs. Any unresolvable task or untypeable
++    handoff → no plan, with the reason, and the chat keeps its existing behaviour (never a
++    half-built or guessed DAG). Returns the frontend pipeline-card shape (workflow_type
++    'pipeline', execution_mode 'dag', depends_on, connections, max_parallel)."""
++    try:
++        sa = get_ai_assistant(trans)
++        if sa is None:
++            return {"success": False, "reason": "assistant_unavailable"}
++        from galaxy.ai.decomposed_dag import plan_dag_from_tasks
++        return plan_dag_from_tasks(sa, [t.dict() for t in request.tasks], request.name, request.max_parallel)
++    except Exception as exc:  # noqa: BLE001 — planning is best-effort; the chat falls back
++        log.warning("[plan_dag] failed: %s", exc)
++        return {"success": False, "reason": f"error: {exc}"}
++
++
++
++
+ @router.get(
+     "/api/ai_assistant/workflow_by_name",
+     summary="Direct workflow lookup by exact name for LLM reselection"
+diff --git a/frontend/server/galaxy-assistant.ts b/frontend/server/galaxy-assistant.ts
+--- a/frontend/server/galaxy-assistant.ts
++++ b/frontend/server/galaxy-assistant.ts
+@@ -2247,6 +2247,16 @@ export function replyLanguageNote(message: string): string {
+     : "[Reply language: the language of the user's own words above, not of attached file names, tool output or retrieved papers]";
+ }
+ 
++/** Name for a DAG plan card: the integration step's task when there is one (it names the goal),
++ *  else the first branch; never a generic placeholder. */
++export function dagPlanName(tasks: Array<{ description: string; depends_on: number[] }>): string {
++  const sink = [...tasks].reverse().find(t => t.depends_on.length > 1) || tasks[tasks.length - 1] || tasks[0];
++  const text = (sink?.description || 'Multi-step analysis').replace(/\s+/g, ' ').trim();
++  const clause = text.split(/(?<=[.;:。；])\s*/)[0].replace(/[.;:。；]$/, '');
++  const name = clause.length <= 60 ? clause : clause.slice(0, 57).replace(/\s+\S*$/, '') + '…';
++  return name.charAt(0).toUpperCase() + name.slice(1);
++}
++
+ export function parseExecutionMode(v: unknown): 'pipeline' | 'direct_compute' | null {
+   return v === 'direct_compute' || v === 'pipeline' ? v : null;
+ }
+@@ -6120,6 +6130,57 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
+     };
+   }
+ 
++  /** Non-sequential multi-intent request with >=2 workflow intents (parallel branches and/or a fan-in
++   *  integration step) → POST /api/ai_assistant/plan_dag → one DAG pipeline card the chain executor
++   *  runs (depends_on / connections / max_parallel). Before this, such requests produced separate
++   *  single-workflow cards and the dependency structure was dropped (bulk RNA-seq + proteomics
++   *  integration, external user 2026-11-03; docs/20261019 Part A "A-live"). Returns null — and the
++   *  existing path continues — when there is nothing to plan or the backend refuses (with a reason). */
++  private async _tryDagPlan(decomposition: IntentDecomposition, message: string, log: (s: string) => void): Promise<GalaxyAssistantResponse | null> {
++    const wf = decomposition.intents.filter(i =>
++      (i.type === 'workflow_generation' || i.actions?.needsWorkflowGeneration) && i.execution !== 'direct_compute');
++    if (wf.length < 2) return null;
++    const idx = new Map(wf.map((i, k) => [i.id, k + 1]));
++    const tasks = wf.map((i, k) => ({
++      id: i.id,
++      description: i.subQuery || message,
++      depends_on: (i.dependsOn || []).map(d => idx.get(d)).filter((n): n is number => typeof n === 'number' && n <= k),
++    }));
++    const { data } = await this._api().client.post('/api/ai_assistant/plan_dag', { tasks, name: dagPlanName(tasks) }, { timeout: 60000 });
++    if (!data?.success || !data.workflow) {
++      log(`DAG plan not assembled (${data?.reason || 'no response'}) — per-intent cards`);
++      return null;
++    }
++    const card = data.workflow;
++    const steps: any[] = card.pipeline_steps || [];
++    log(`DAG plan assembled: ${steps.length} steps, max_parallel=${card.max_parallel}`);
++    const lines = steps.map((s, k) => {
++      const deps = (s.depends_on || []) as number[];
++      return `  ${k + 1}. **${s.description || s.workflow_name}** — \`${s.nextflow_path}\`` +
++        (deps.length ? ` (uses the results of step${deps.length > 1 ? 's' : ''} ${deps.join(', ')})` : ' (runs in parallel)');
++    });
++    const unwired: Array<{ from_step: number; to_step: number }> = data.unwired_dependencies || [];
++    const message_ = [
++      `I've planned this as **one ${steps.length}-step analysis**: the independent branches run in parallel and the combining step waits for them.`,
++      '',
++      ...lines,
++      '',
++      unwired.length
++        ? `Before running, map the inputs of step ${[...new Set(unwired.map(u => u.to_step))].join(', ')} in the plan: the outputs of step${unwired.length > 1 ? 's' : ''} ${unwired.map(u => u.from_step).join(', ')} are not connected to it automatically.`
++        : '',
++      'Fill in each branch\'s input files in the plan, then click **Confirm & Run**.',
++    ].filter(Boolean).join('\n');
++    return {
++      message: message_,
++      intentType: 'workflow_generation',
++      intentConfidence: 0.9,
++      isMultiIntent: true,
++      generatedWorkflow: { success: true, step_count: steps.length, source: 'biomate_dag', ...card },
++      suggestions: ['Change the analysis for one branch', 'Run only one branch first', 'Explain the integration step'],
++      sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: true, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false },
++    } as GalaxyAssistantResponse;
++  }
++
+   /**
+    * Process a multi-intent message by fanning out to processSubIntent for each intent.
+    * Results are collected and synthesized into a single response.
+@@ -6143,6 +6204,13 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
+       return this.processSequentialPipeline(decomposition, message, context, startTime, onResponseDelta, domainProfileContext);
+     }
+ 
++    // Fork/join (independent branches and/or fan-in): one executable DAG over catalog workflows.
++    const dagResponse = await this._tryDagPlan(decomposition, message, log).catch(() => null);
++    if (dagResponse) {
++      onResponseDelta?.(dagResponse.message);
++      return dagResponse;
++    }
++
+     // Step 2-3: Parallel tool/dataset search using union of all keywords
+     const allKeywords = Array.from(new Set(decomposition.intents.flatMap(i => i.keywords)));
+     let recommendedTools: ToolRecommendation[] = [];
+@@ -6891,6 +6959,15 @@ Rules for multi-intent:
+ - Set dependsOn when one intent's output feeds into another (e.g., research findings used for workflow design)
+ - IMPORTANT: When in doubt between single-intent and multi-intent, prefer multi-intent if the user is asking for 2+ distinct outcomes (e.g., run an analysis AND compare tools AND search literature)
+ 
++## Branch-and-integrate (fork/join) Detection
++
++When a request analyses SEVERAL data layers or datasets independently and then COMBINES them — "integrate bulk RNA-seq and proteomics", "compare lysate and secretome proteomics with RNA-seq", "run DE in each cohort, then meta-analyse" — emit:
++- one **workflow_generation** intent PER independent layer/dataset (its own subQuery naming that layer's data and analysis), with "dependsOn": [];
++- one **workflow_generation** integration intent whose subQuery names the integration analysis, with "dependsOn" listing ALL the layer intents' ids;
++- "is_sequential": false (the layers run in parallel; only the integration waits for them).
++A single interpretation request about the combined result may follow as a separate (non-workflow) intent.
++Example: "Integrate my bulk RNA-seq (KO vs WT) with DIA proteomics of lysates and secretome" → intent_1 RNA-seq differential expression KO vs WT (dependsOn []), intent_2 lysate proteomics differential abundance (dependsOn []), intent_3 secretome proteomics differential abundance (dependsOn []), intent_4 integrate RNA and protein differential results (dependsOn ["intent_1","intent_2","intent_3"]).
++
+ ## Sequential Pipeline Detection
+ 
+ A special case of multi-intent is an **ordered sequential pipeline** where each step's output is the input for the next step. This is different from parallel multi-intent.
+=================== COMMIT 9e7af9cdf fix(orchestration): DAG branches use the turn's own per-intent routing; order-only fan-in when types do not match
+diff --git a/backend/lib/galaxy/ai/decomposed_dag.py b/backend/lib/galaxy/ai/decomposed_dag.py
+--- a/backend/lib/galaxy/ai/decomposed_dag.py
++++ b/backend/lib/galaxy/ai/decomposed_dag.py
+@@ -274,7 +274,8 @@ def plan_dag_from_tasks(sa: Any, tasks: List[Dict[str, Any]], name: Optional[str
+         return {"success": False, "reason": "fewer_than_two_tasks"}
+     resolved, per_task = {}, []
+     for i, t in enumerate(tasks):
+-        r = sa._resolve_task_to_workflow(t)
++        r = ({"nextflow_path": t["nextflow_path"], "parameters": {}} if t.get("nextflow_path")
++             else sa._resolve_task_to_workflow(t))
+         resolved[i] = r
+         per_task.append({"task": t.get("id") or f"task_{i + 1}", "description": t.get("description", ""),
+                          "nextflow_path": (r or {}).get("nextflow_path"), "resolved": bool(r)})
+@@ -283,6 +284,13 @@ def plan_dag_from_tasks(sa: Any, tasks: List[Dict[str, Any]], name: Optional[str
+     _idx = {id(t): i for i, t in enumerate(tasks)}
+     plan = build_dag_plan(tasks, lambda t: resolved.get(_idx.get(id(t))),
+                           type_provider=sa._workflow_io_types, max_parallel=max_parallel)
++    order_only = False
++    if not plan:
++        # No typed handoff (catalog type metadata is often generic). The dependency ORDER is still
++        # known and chain.dag.validate_plan accepts a dependent step without connections, so keep the
++        # plan order-only — no fabricated wiring; every dependency is reported for the user to map.
++        plan = _order_only_plan(tasks, resolved, max_parallel)
++        order_only = plan is not None
+     if not plan:
+         return {"success": False, "reason": "no_type_compatible_handoff", "tasks": per_task}
+     card = to_pipeline_card(plan, name=(name or "Multi-step analysis plan"))
+@@ -296,4 +304,25 @@ def plan_dag_from_tasks(sa: Any, tasks: List[Dict[str, Any]], name: Optional[str
+                for i, st in enumerate(plan["steps"]) for d in st.get("depends_on", []) if (d, i + 1) not in wired]
+     if unwired:
+         card["unwired_dependencies"] = unwired
+-    return {"success": True, "workflow": card, "tasks": per_task, "unwired_dependencies": unwired}
++    if order_only:
++        card["order_only"] = True
++    return {"success": True, "workflow": card, "tasks": per_task, "unwired_dependencies": unwired,
++            "order_only": order_only}
++
++
++def _order_only_plan(tasks: List[Dict[str, Any]], resolved: Dict[int, Any],
++                     max_parallel: Optional[int]) -> Optional[Dict[str, Any]]:
++    """Plan with the declared dependency order and no inter-step connections (see caller)."""
++    steps = []
++    for i, t in enumerate(tasks):
++        r = resolved.get(i) or {}
++        if not r.get("nextflow_path"):
++            return None
++        deps = sorted({d for d in (t.get("depends_on") or []) if isinstance(d, int) and 1 <= d <= i})
++        steps.append({"step_key": str(t.get("id") or "step_%d" % (i + 1)), "description": t.get("description", ""),
++                      "nextflow_path": r["nextflow_path"], "parameters": r.get("parameters") or {},
++                      "depends_on": deps})
++    if max_parallel is None:
++        max_parallel = sum(1 for s in steps if not s["depends_on"]) or 1
++    return {"execution_mode": "dag", "steps": steps, "connections": [],
++            "max_parallel": max(1, min(16, int(max_parallel)))}
+diff --git a/backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py b/backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py
+--- a/backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py
++++ b/backend/lib/galaxy/webapps/galaxy/api/ai_assistant.py
+@@ -6823,6 +6823,9 @@ class PlanDagTask(BaseModel):
+     description: str
+     # 1-based indices of earlier tasks this one consumes; [] = an independent branch (root).
+     depends_on: List[int] = Field(default_factory=list)
++    # The workflow the chat's own per-intent routing chose for this task (preferred over a bare
++    # catalog search, which resolved an RNA-seq DE task to a CLIP-seq workflow on 2026-11-04).
++    nextflow_path: Optional[str] = None
+ 
+ 
+ class PlanDagRequest(BaseModel):
+diff --git a/frontend/server/galaxy-assistant.ts b/frontend/server/galaxy-assistant.ts
+--- a/frontend/server/galaxy-assistant.ts
++++ b/frontend/server/galaxy-assistant.ts
+@@ -6136,7 +6136,8 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
+    *  single-workflow cards and the dependency structure was dropped (bulk RNA-seq + proteomics
+    *  integration, external user 2026-11-03; docs/20261019 Part A "A-live"). Returns null — and the
+    *  existing path continues — when there is nothing to plan or the backend refuses (with a reason). */
+-  private async _tryDagPlan(decomposition: IntentDecomposition, message: string, log: (s: string) => void): Promise<GalaxyAssistantResponse | null> {
++  private async _tryDagPlan(decomposition: IntentDecomposition, message: string, log: (s: string) => void,
++    routedPaths: Map<string, string> = new Map()): Promise<GalaxyAssistantResponse | null> {
+     const wf = decomposition.intents.filter(i =>
+       (i.type === 'workflow_generation' || i.actions?.needsWorkflowGeneration) && i.execution !== 'direct_compute');
+     if (wf.length < 2) return null;
+@@ -6145,6 +6146,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
+       id: i.id,
+       description: i.subQuery || message,
+       depends_on: (i.dependsOn || []).map(d => idx.get(d)).filter((n): n is number => typeof n === 'number' && n <= k),
++      ...(routedPaths.get(i.id) ? { nextflow_path: routedPaths.get(i.id) } : {}),
+     }));
+     const { data } = await this._api().client.post('/api/ai_assistant/plan_dag', { tasks, name: dagPlanName(tasks) }, { timeout: 60000 });
+     if (!data?.success || !data.workflow) {
+@@ -6160,13 +6162,18 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
+         (deps.length ? ` (uses the results of step${deps.length > 1 ? 's' : ''} ${deps.join(', ')})` : ' (runs in parallel)');
+     });
+     const unwired: Array<{ from_step: number; to_step: number }> = data.unwired_dependencies || [];
++    const hasJoin = steps.some(st => (st.depends_on || []).length > 0);
+     const message_ = [
+-      `I've planned this as **one ${steps.length}-step analysis**: the independent branches run in parallel and the combining step waits for them.`,
++      hasJoin
++        ? `I've planned this as **one ${steps.length}-step analysis**: the independent branches run in parallel and the combining step waits for them.`
++        : `I've planned this as **one ${steps.length}-step analysis**: the steps are independent and run in parallel.`,
+       '',
+       ...lines,
+       '',
+       unwired.length
+-        ? `Before running, map the inputs of step ${[...new Set(unwired.map(u => u.to_step))].join(', ')} in the plan: the outputs of step${unwired.length > 1 ? 's' : ''} ${unwired.map(u => u.from_step).join(', ')} are not connected to it automatically.`
++        ? (data.order_only
++          ? `Step ${[...new Set(unwired.map(u => u.to_step))].join(', ')} runs after step${unwired.length > 1 ? 's' : ''} ${unwired.map(u => u.from_step).join(', ')}, but their result files are not connected to it automatically (the workflows do not declare matching input/output types) — select those results as its inputs when the earlier steps finish.`
++          : `Before running, map the inputs of step ${[...new Set(unwired.map(u => u.to_step))].join(', ')} in the plan: the outputs of step${unwired.length > 1 ? 's' : ''} ${unwired.map(u => u.from_step).join(', ')} are not connected to it automatically.`)
+         : '',
+       'Fill in each branch\'s input files in the plan, then click **Confirm & Run**.',
+     ].filter(Boolean).join('\n');
+@@ -6204,12 +6211,6 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
+       return this.processSequentialPipeline(decomposition, message, context, startTime, onResponseDelta, domainProfileContext);
+     }
+ 
+-    // Fork/join (independent branches and/or fan-in): one executable DAG over catalog workflows.
+-    const dagResponse = await this._tryDagPlan(decomposition, message, log).catch(() => null);
+-    if (dagResponse) {
+-      onResponseDelta?.(dagResponse.message);
+-      return dagResponse;
+-    }
+ 
+     // Step 2-3: Parallel tool/dataset search using union of all keywords
+     const allKeywords = Array.from(new Set(decomposition.intents.flatMap(i => i.keywords)));
+@@ -6263,6 +6264,21 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
+     );
+     log(`Multi-intent Steps 4-5 complete: ${subIntentResults.length} results`);
+ 
++    // Fork/join (independent branches and/or fan-in): one executable DAG. Each branch uses the
++    // workflow this turn's own per-intent routing chose (a bare catalog search resolved an RNA-seq
++    // DE branch to a CLIP-seq workflow, dev 2026-11-04).
++    const routedPaths = new Map<string, string>();
++    decomposition.intents.forEach((it, k) => {
++      const wf: any = subIntentResults[k]?.generatedWorkflow;
++      const path = wf?.nextflow_path || wf?.workflow_ga?.nextflow_path;
++      if (wf?.success && typeof path === 'string' && path.endsWith('.nf')) routedPaths.set(it.id, path);
++    });
++    const dagResponse = await this._tryDagPlan(decomposition, message, log, routedPaths).catch(() => null);
++    if (dagResponse) {
++      onResponseDelta?.(dagResponse.message);
++      return dagResponse;
++    }
++
+     // Collect workflow and research/benchmark results.
+     // Prefer sub-intents that returned a *runnable* workflow (valid .nf path or non-empty steps)
+     // over ones that returned a junk galaxy_ga placeholder with empty steps.
+=================== COMMIT 2b5d6cda7 feat(decomposition): the LLM writes a task_spec and domain per workflow branch; branches are routed on them
+diff --git a/frontend/server/galaxy-assistant.ts b/frontend/server/galaxy-assistant.ts
+--- a/frontend/server/galaxy-assistant.ts
++++ b/frontend/server/galaxy-assistant.ts
+@@ -1685,6 +1685,11 @@ export interface DecomposedIntent {
+    *  conversation; 'pipeline' = launch a workflow. Set by the classifier from what the request
+    *  needs, in any language. */
+   execution?: 'pipeline' | 'direct_compute' | null;
++  /** LLM-written routing specification for a workflow intent: method + data type + input format +
++   *  expected output, no experimental-design labels. The catalog search for this branch uses it. */
++  taskSpec?: string;
++  /** LLM-assigned scientific domain of this branch (e.g. proteomics), preferred when routing it. */
++  domain?: string;
+ }
+ 
+ export interface IntentDecomposition {
+@@ -6503,7 +6508,13 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
+       if (actions.needsWorkflowGeneration || actions.needsWorkflowModification) {
+         // Route this branch's scientific task. Catalog/domain context is supplied separately;
+         // reusing the full request here makes every branch select the same primary workflow.
+-        const effectiveIntent = workflowIntent(intent.subQuery, originalMessage);
++        // The LLM's task_spec (method + data type + input format, no design labels) when present: the
++        // free-text sub-query's "WT vs KO / lysate / triplicates" matched a CLIP-seq workflow whose
++        // inputs are named wt_/ko_ (dev, 2026-11-04).
++        const effectiveIntent = workflowIntent(intent.taskSpec || intent.subQuery, originalMessage);
++        if (intent.domain) {
++          preferredDomains = [intent.domain, ...(preferredDomains || []).filter(d => d !== intent.domain)];
++        }
+         const _subUploadedParams = extractUploadedFileParams(originalMessage || intent.subQuery);
+         const _subMergedInline: Record<string, string> = {
+           ...(intent.inlineParameters || {}),
+@@ -6975,6 +6986,19 @@ Rules for multi-intent:
+ - Set dependsOn when one intent's output feeds into another (e.g., research findings used for workflow design)
+ - IMPORTANT: When in doubt between single-intent and multi-intent, prefer multi-intent if the user is asking for 2+ distinct outcomes (e.g., run an analysis AND compare tools AND search literature)
+ 
++## Workflow intent fields: "task_spec" and "domain" (every workflow_generation intent in a multi-intent reply)
++
++BioMate routes each workflow intent to ONE catalog workflow by searching with its "task_spec". Write it as a precise analysis specification:
++- the analysis METHOD (what computation), the DATA TYPE / assay, the INPUT FORMAT the user actually has (raw reads, a processed matrix, a results table, structures, SMILES…), and the EXPECTED OUTPUT;
++- NO experimental-design labels: sample/cell-line names, genotypes or arms ("WT vs KO", "SCC9", "treated"), replicate counts, cohort names. Those are parameters — keep them in subQuery / inlineParameters / facts. They do not identify the method, and searching with them matches unrelated workflows that happen to use the same words.
++"domain" is the branch's scientific domain: one of transcriptomics, proteomics, genomics, variant_calling, epigenomics, single_cell, metabolomics, multi_omics, systems_biology, drug_discovery, pharmacology, structural_biology, cryo_em, metagenomics, immunology, imaging.
++
++Good vs bad task_spec:
++- Request "duplicates of SCC9 WT vs KO lysates, DIA-NN report.pg_matrix.tsv": GOOD "differential protein abundance testing on a processed DIA-NN protein-group intensity matrix (log2 intensities, missing-value imputation), two-group comparison → per-protein log2 fold change and adjusted p-values", domain "proteomics". BAD "Differential abundance analysis of SCC9 WT vs KO lysate proteomics (duplicates)".
++- Request "triplicates of WT and KO, counts and CPM in ko vs wt.csv": GOOD "differential gene expression on a bulk RNA-seq gene count matrix (DESeq2/edgeR-style negative-binomial model), two-group comparison → per-gene log2 fold change and adjusted p-values", domain "transcriptomics".
++- Request "integrate the RNA and protein results": GOOD "integration of two quantitative omics layers (transcript and protein differential results or matrices) — multi-omics concordance / sparse PLS or co-inertia analysis → shared features, layer agreement, joint pathway enrichment", domain "multi_omics". BAD "Integrate bulk RNA-seq, lysate proteomics, and secretome proteomics differential results across SCC9 WT vs KO".
++- Request "call variants on my WGS FASTQ pair, GRCh38": GOOD "germline short-variant calling from paired-end whole-genome FASTQ (alignment, duplicate marking, base recalibration, HaplotypeCaller) → annotated VCF", domain "variant_calling".
++
+ ## Branch-and-integrate (fork/join) Detection
+ 
+ When a request analyses SEVERAL data layers or datasets independently and then COMBINES them — "integrate bulk RNA-seq and proteomics", "compare lysate and secretome proteomics with RNA-seq", "run DE in each cohort, then meta-analyse" — emit:
+@@ -6982,7 +7006,19 @@ When a request analyses SEVERAL data layers or datasets independently and then C
+ - one **workflow_generation** integration intent whose subQuery names the integration analysis, with "dependsOn" listing ALL the layer intents' ids;
+ - "is_sequential": false (the layers run in parallel; only the integration waits for them).
+ A single interpretation request about the combined result may follow as a separate (non-workflow) intent.
+-Example: "Integrate my bulk RNA-seq (KO vs WT) with DIA proteomics of lysates and secretome" → intent_1 RNA-seq differential expression KO vs WT (dependsOn []), intent_2 lysate proteomics differential abundance (dependsOn []), intent_3 secretome proteomics differential abundance (dependsOn []), intent_4 integrate RNA and protein differential results (dependsOn ["intent_1","intent_2","intent_3"]).
++Worked example — "Integrate my bulk RNA-seq (KO vs WT triplicates, ko vs wt.csv with counts) with DIA proteomics of lysates (duplicates) and conditioned-media secretome (triplicates), report.pg_matrix.tsv from DIA-NN, and give a biological interpretation":
++{"is_sequential": false, "preferred_domains": ["multi_omics","transcriptomics","proteomics"], "intents": [
++ {"id":"intent_1","type":"workflow_generation","execution":"pipeline","subQuery":"Bulk RNA-seq differential expression, KO vs WT lysates (triplicates)","task_spec":"differential gene expression on a bulk RNA-seq gene count matrix, two-group comparison → per-gene log2 fold change and adjusted p-values","domain":"transcriptomics","dependsOn":[]},
++ {"id":"intent_2","type":"workflow_generation","execution":"pipeline","subQuery":"Lysate proteomics differential abundance, KO vs WT (duplicates)","task_spec":"differential protein abundance on a processed DIA-NN protein-group intensity matrix (log2, imputation), two-group comparison → per-protein log2 fold change and adjusted p-values","domain":"proteomics","dependsOn":[]},
++ {"id":"intent_3","type":"workflow_generation","execution":"pipeline","subQuery":"Secretome (conditioned media) proteomics differential abundance, KO vs WT (triplicates)","task_spec":"differential protein abundance on a processed DIA-NN protein-group intensity matrix of secreted proteins, two-group comparison → per-protein log2 fold change and adjusted p-values","domain":"proteomics","dependsOn":[]},
++ {"id":"intent_4","type":"workflow_generation","execution":"pipeline","subQuery":"Integrate the RNA and protein differential results","task_spec":"integration of transcript and protein differential results — concordance and sparse PLS / co-inertia multi-omics integration → shared features and joint pathway enrichment","domain":"multi_omics","dependsOn":["intent_1","intent_2","intent_3"]},
++ {"id":"intent_5","type":"data_interpretation","subQuery":"Biological interpretation of the integrated results","dependsOn":["intent_4"]}]}
++(Abbreviated: real replies also carry keywords, actions, facts, confidence.)
++
++Other shapes:
++- Independent analyses, no combining step — "call variants on my WGS FASTQs and, separately, run RNA-seq DE on my counts" → two workflow intents, both "dependsOn": [], is_sequential false.
++- Screening fan-out — "dock these 200 SMILES against EGFR and also predict their ADMET" → two parallel workflow intents over the same input (docking; ADMET prediction), both "dependsOn": []; a third "rank by docking score and ADMET" intent depends on both.
++- Strict chain — "QC, then align, then call peaks" → the Sequential Pipeline format below, not this one.
+ 
+ ## Sequential Pipeline Detection
+ 
+@@ -7284,6 +7320,8 @@ For MULTI-intent messages (parallel), respond with an "intents" array:
+       "id": "intent_1",
+       "type": "workflow_generation",
+       "subQuery": "Run DE analysis on my RNA-seq data",
++      "task_spec": "differential gene expression on bulk RNA-seq data, two-group comparison → per-gene log2 fold change and adjusted p-values",
++      "domain": "transcriptomics",
+       "keywords": ["differential expression"],
+       "inlineParameters": {},
+       "needsToolSearch": true,
+@@ -8161,6 +8199,8 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
+         dependsOn: Array.isArray(intent.dependsOn) ? intent.dependsOn : [],
+         actions: parseActions(intent.actions, intent.type || 'general_question'),
+         execution: parseExecutionMode(intent.execution),
++        taskSpec: typeof intent.task_spec === 'string' && intent.task_spec.trim() ? intent.task_spec.trim() : undefined,
++        domain: typeof intent.domain === 'string' && intent.domain.trim() ? intent.domain.trim() : undefined,
+         // Sequential pipeline metadata
+         inputFromDescription: intent.input_from_description ?? undefined,
+         outputDescription: intent.output_description ?? undefined,
+=================== COMMIT 7c3e7256c fix(intent): any classifier failure gets one LLM fallback-chain attempt before the keyword heuristic
+diff --git a/frontend/server/galaxy-assistant.ts b/frontend/server/galaxy-assistant.ts
+--- a/frontend/server/galaxy-assistant.ts
++++ b/frontend/server/galaxy-assistant.ts
+@@ -8122,6 +8122,24 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
+         // Re-throw so _generateResponse catch block can surface the correct error message
+         throw error;
+       }
++      // One more LLM attempt before any keyword heuristic: the configured fallback chain (llm-client
++      // YAML chain), with the same prompt. Previously only a Gemini 429/timeout reached it; any other
++      // model error or an unparseable reply went straight to the keyword path, silently.
++      let _chainErr = '';
++      try {
++        const { llmGenerate } = await import('./llm-client');
++        const r = await llmGenerate({ prompt: messageForUQU, system: systemPrompt, maxTokens: 4096, jsonMode: false });
++        const txt = (r?.text || '').trim();
++        if (txt) {
++          let recovered: any;
++          try { recovered = JSON.parse(txt); } catch { recovered = JSON.parse(jsonrepair(txt)); }
++          console.warn(`[Intent] primary classification failed (${errMsg.slice(0, 160)}) — recovered via fallback chain model ${r.modelUsed} (depth ${r.fallbackDepth})`);
++          return this.parseIntentResult(recovered, message);
++        }
++        _chainErr = 'empty response';
++      } catch (chainErr: any) {
++        _chainErr = String(chainErr?.message || chainErr).slice(0, 160);
++      }
+       // JSON parse failure: build a best-effort intent so the pipeline still
+       // attempts workflow search rather than silently skipping it.
+       // If the message contains inline data (tabular data, SRA/GEO accessions,
+@@ -8159,7 +8177,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
+       };
+       // Last resort only: every LLM path failed. Not a decomposition — say so loudly (the benchmark found
+       // this path scoring silently for 240 throttled calls, 2026-11-04) and mark the result degraded.
+-      console.error(`[Intent] DEGRADED: all decomposition models failed (${errMsg.slice(0, 200)}) — keyword fallback, type=${_fallbackType} (hasInlineData=${_fallbackHasInlineData})`);
++      console.error(`[Intent] DEGRADED: all decomposition models failed (primary: ${errMsg.slice(0, 160)}; fallback chain: ${_chainErr}) — keyword fallback, type=${_fallbackType} (hasInlineData=${_fallbackHasInlineData})`);
+       return {
+         intents: [fallback],
+         isMultiIntent: false,
+=================== COMMIT d222c1b83 feat(decomposition): benchmark-chosen OpenRouter model for intent decomposition, LLM fallback chain, degraded marking
+diff --git a/frontend/server/galaxy-assistant.ts b/frontend/server/galaxy-assistant.ts
+--- a/frontend/server/galaxy-assistant.ts
++++ b/frontend/server/galaxy-assistant.ts
+@@ -1712,6 +1712,8 @@ export interface IntentDecomposition {
+    * Computed by the classifier but historically only logged; surfaced to the
+    * user as a persistent "why this routing" line. */
+   rationale?: string;
++  /** True when no LLM produced this decomposition (keyword last-resort after every model failed). */
++  degraded?: boolean;
+ }
+ 
+ export interface SubIntentResult {
+@@ -2262,6 +2264,32 @@ export function dagPlanName(tasks: Array<{ description: string; depends_on: numb
+   return name.charAt(0).toUpperCase() + name.slice(1);
+ }
+ 
++/** One decomposition call through OpenRouter's OpenAI-compatible API (retried once on a transport or
++ *  provider error — providers throttle concurrent ≈21k-token requests). Returns the raw text. */
++export async function decomposeViaOpenRouter(model: string, key: string, system: string, user: string,
++  fetchImpl: typeof fetch = fetch): Promise<string> {
++  let lastErr: unknown;
++  for (let attempt = 0; attempt < 2; attempt++) {
++    try {
++      const r = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
++        method: 'POST',
++        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'X-Title': 'BioMate' },
++        body: JSON.stringify({ model, max_tokens: 4096, temperature: 0, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
++        signal: AbortSignal.timeout(45000),
++      });
++      if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 160)}`);
++      const j: any = await r.json();
++      const text = j?.choices?.[0]?.message?.content;
++      if (typeof text !== 'string' || !text.trim()) throw new Error('empty response');
++      return text;
++    } catch (e) {
++      lastErr = e;
++      if (attempt === 0) await new Promise(res => setTimeout(res, 1500));
++    }
++  }
++  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
++}
++
+ export function parseExecutionMode(v: unknown): 'pipeline' | 'direct_compute' | null {
+   return v === 'direct_compute' || v === 'pipeline' ? v : null;
+ }
+@@ -7867,8 +7895,22 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
+       // Two-tier Gemini routing: Pro for complex queries, Flash for simple ones.
+       // Falls back to the configured intentModel for non-Gemini backbones.
+       const configured = this.modelConfig.intentModel;
+-      const isGemini = configured.startsWith('gemini-');
+-      const effectiveIntentModel = isGemini ? pickGeminiIntentModel(message) : configured;
++      // "openrouter:<slug>" = classify/decompose with that model via OpenRouter using its OWN key
++      // (BIOMATE_DECOMP_OPENROUTER_KEY — not OPENROUTER_API_KEY, which routes every keyless user's whole
++      // chat through OpenRouter). Chosen on the held-out decomposition benchmark (docs/20261103 §12.2).
++      // On failure the Gemini path below runs (Flash), then the keyword fallback, marked degraded.
++      const orModel = configured.startsWith('openrouter:') ? configured.slice('openrouter:'.length) : '';
++      const orKey = process.env.BIOMATE_DECOMP_OPENROUTER_KEY || '';
++      const isGemini = configured.startsWith('gemini-') || !!orModel;
++      const effectiveIntentModel = orModel ? GEMINI_FLASH_MODEL : isGemini ? pickGeminiIntentModel(message) : configured;
++      let primaryText: string | undefined;
++      if (orModel && orKey) {
++        primaryText = await decomposeViaOpenRouter(orModel, orKey, systemPrompt, messageForUQU).catch((e: any) => {
++          console.warn(`[Intent] primary decomposition model ${orModel} failed (${String(e?.message || e).slice(0, 160)}) — falling back to ${GEMINI_FLASH_MODEL}`);
++          return undefined;
++        });
++        if (primaryText !== undefined) console.log('[GalaxyAssistant] Intent API response (OpenRouter):', { model: orModel, time_ms: Date.now() - intentStartTime });
++      }
+       console.log('[GalaxyAssistant] Intent API request:', {
+         model: effectiveIntentModel,
+         tier: isGemini ? (effectiveIntentModel === GEMINI_PRO_MODEL ? 'pro' : 'flash') : 'non-gemini',
+@@ -7880,7 +7922,9 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
+       // Intent classification - using configurable model (Anthropic or Gemini)
+       let resultText: string;
+ 
+-      if (isGemini && this.gemini) {
++      if (primaryText !== undefined) {
++        resultText = primaryText;
++      } else if (isGemini && this.gemini) {
+         const geminiModel = this.gemini.getGenerativeModel({
+           model: effectiveIntentModel,
+           // Bumped 2500→4096: complex tier 0 queries (e.g. T03 "Base editing strategy for
+@@ -8113,11 +8157,14 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
+         dependsOn: [],
+         actions: inferActionsFromType(_fallbackType),
+       };
+-      console.warn(`[GalaxyAssistant] Intent parse failed — using keyword fallback, type=${_fallbackType} (hasInlineData=${_fallbackHasInlineData})`);
++      // Last resort only: every LLM path failed. Not a decomposition — say so loudly (the benchmark found
++      // this path scoring silently for 240 throttled calls, 2026-11-04) and mark the result degraded.
++      console.error(`[Intent] DEGRADED: all decomposition models failed (${errMsg.slice(0, 200)}) — keyword fallback, type=${_fallbackType} (hasInlineData=${_fallbackHasInlineData})`);
+       return {
+         intents: [fallback],
+         isMultiIntent: false,
+         primaryIntent: fallback,
++        degraded: true,
+       };
+     }
+   }
+=================== COMMIT 8ec3fbb1e feat(chat): compute directly on the user's own data — classifier execution mode + unexecuted-code guard
+diff --git a/frontend/server/galaxy-assistant.ts b/frontend/server/galaxy-assistant.ts
+--- a/frontend/server/galaxy-assistant.ts
++++ b/frontend/server/galaxy-assistant.ts
+@@ -1681,6 +1681,10 @@ export interface DecomposedIntent {
+   actions: ActionCategories; // Which backend agents to invoke
+   /** Ambiguity fork point requiring clarification, or null when intent is unambiguous */
+   workflowAmbiguity?: string | null;
++  /** For execution intents: 'direct_compute' = compute now (run_code) on data already in the
++   *  conversation; 'pipeline' = launch a workflow. Set by the classifier from what the request
++   *  needs, in any language. */
++  execution?: 'pipeline' | 'direct_compute' | null;
+ }
+ 
+ export interface IntentDecomposition {
+@@ -2203,6 +2207,31 @@ export function isAdhocAnalysisOfAttachedData(message: string): boolean {
+   return adhoc.test(task) && !PIPELINE_REQUEST_RE.test(task);
+ }
+ 
++export function parseExecutionMode(v: unknown): 'pipeline' | 'direct_compute' | null {
++  return v === 'direct_compute' || v === 'pipeline' ? v : null;
++}
++
++/** Data the user put in the conversation that run_code can compute on: an attached / project /
++ *  Galaxy dataset block, or a pasted table (>=3 delimited rows, e.g. a CSV or VCF excerpt). */
++export function hasComputableData(message: string): boolean {
++  const text = message || '';
++  if (/\[(?:Uploaded datasets?|BioMate dataset|Galaxy dataset)\s*:/i.test(text)) return true;
++  const rows = text.match(/[^\s,;|]+(?:[,\t][^\s,;\t]*){2,}/g) || [];
++  return rows.length >= 3;
++}
++
++/** The user asked for code itself ("write a script", "give me the R code", 写代码/脚本). */
++export function wantsCodeItself(message: string): boolean {
++  return /\b(write|give|show|generate|provide)\b[^.\n]{0,40}\b(scripts?|code|snippets?|functions?)\b|代码|脚本/i.test(message || '');
++}
++
++/** A reply that presents analysis code (a fenced Python/R block) — used to catch replies that
++ *  describe running code that was never executed (external-user replay 2026-11-04: "Running
++ *  analysis on qa_new_account_counts.csv…" with a pandas block and no run_code call). */
++export function presentsUnexecutedCode(text: string): boolean {
++  return /```\s*(?:python|py|r)\s*\n[\s\S]{60,}?```/i.test(text || '');
++}
++
+ /** Datasets attached to a message by the chat composer: the "[Uploaded datasets: name: dataset_id=<uuid>,
+  *  galaxy_dataset_id=<id>, s3_uri=...; ...]" block chat-interface.tsx appends on send. */
+ export function attachedDatasetsFromMessage(message: string): Array<{ name: string; datasetId?: string; galaxyId?: string }> {
+@@ -4571,7 +4600,11 @@ Rules:
+     // actually executing. Flip to the direct-compute path so run_code stays
+     // enabled and really runs in the sandbox. Conservative guard (explicit ask
+     // + no pipeline keyword) so genuine workflow requests are untouched.
+-    if (actions.needsWorkflowGeneration && (this._isDirectCodeExecutionQuery(message) || isAdhocAnalysisOfAttachedData(message))) {
++    // The classifier's execution decision (any language) counts too, but only with data present —
++    // without it, the July protection (no-workflow → empty reply) stays in force.
++    const _directCompute = (intent as any).execution === 'direct_compute' && hasComputableData(message);
++    if (actions.needsWorkflowGeneration && (this._isDirectCodeExecutionQuery(message) || isAdhocAnalysisOfAttachedData(message) || _directCompute)) {
++      if (_directCompute) log('Direct-compute override: classifier execution=direct_compute with data in the conversation');
+       log('Direct-code-execution override: needsWorkflowGeneration=false → run_code stays enabled');
+       actions.needsWorkflowGeneration = false;
+       actions.needsLLMReasoning = true;
+@@ -6534,6 +6567,13 @@ Describe the user's information need with a descriptive label. You may use these
+ 
+ You may also create a novel label if none of the above fit (e.g., "cost_estimation", "regulatory_compliance", "multi_step_procedure").
+ 
++## Execution mode (every workflow_generation intent) — "execution": "direct_compute" | "pipeline"
++
++Decide from what the request NEEDS, whatever language it is written in:
++- **direct_compute** — the data is ALREADY in the conversation (an attached/uploaded file, a project dataset, or a table/list pasted in the message) and the task is an ad-hoc computation on it: summary statistics, means/fold changes, a statistical test, reshaping/merging tables, a plot, a correlation, a small differential-expression or clustering run on that table. BioMate computes it now with run_code and returns the numbers/figures.
++- **pipeline** — the input must be fetched or processed by a workflow: raw reads/FASTQ/BAM, accessions (GSE/SRR/PDB…), SMILES for ADMET/docking models, structures, long-running or GPU tools, or the user asks for a workflow/pipeline.
++Examples: "计算每个基因 treated/control 的 fold change 并按降序输出" + attached CSV → direct_compute. "Compare the two groups' cell viability and plot each sample" + attached table → direct_compute. "Cluster these pasted single-cell counts and draw a UMAP" (counts pasted) → direct_compute. "Run nf-core/rnaseq on SRR1234567" → pipeline. "Screen these SMILES for ADMET" → pipeline.
++
+ ## HIGHEST PRIORITY RULE — Knowledge Reasoning vs Pipeline Execution
+ 
+ Ask a single question: **"Does completing this task require running a computational pipeline or tool on user-provided data — files, accession IDs, or molecular inputs?"**
+@@ -6987,6 +7027,7 @@ Return null if the user already specifies enough to unambiguously select one pip
+ For SINGLE-intent messages (the common case), respond with a single JSON object:
+ {
+   "type": "workflow_generation",
++  "execution": "direct_compute",
+   "keywords": ["reverse complement"],
+   "inlineParameters": {"sequence": "ATGCGATCG"},
+   "needsToolSearch": false,
+@@ -7977,6 +8018,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
+         facts: parseFacts(intent.facts),
+         dependsOn: Array.isArray(intent.dependsOn) ? intent.dependsOn : [],
+         actions: parseActions(intent.actions, intent.type || 'general_question'),
++        execution: parseExecutionMode(intent.execution),
+         // Sequential pipeline metadata
+         inputFromDescription: intent.input_from_description ?? undefined,
+         outputDescription: intent.output_description ?? undefined,
+@@ -8030,6 +8072,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
+       dependsOn: [],
+       actions: parseActions(result.actions, intentType),
+       workflowAmbiguity: typeof result.workflowAmbiguity === 'string' ? result.workflowAmbiguity : null,
++      execution: parseExecutionMode(result.execution),
+     };
+ 
+     return {
+@@ -9602,6 +9645,21 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
+       }
+       // ── End non-Claude backbone (falls through to Claude agentic loop) ─────────
+ 
++      // Unexecuted-code guard: a reply that presents analysis code as if it ran, on data that is in
++      // the conversation, while run_code never ran, is sent back once with an instruction to execute
++      // it (external-user replay 2026-11-04: a fold-change request answered "Running analysis…" +
++      // a pandas block, no run_code call). The text already shown is kept (_shownBeforeNudge).
++      let _ranRunCode = false;
++      let _codeNudged = false;
++      let _shownBeforeNudge = '';
++      const _runCodeOffered = Array.isArray(agentTools) && (agentTools as any[]).some((t: any) => t?.name === 'run_code');
++      const _shouldNudgeUnexecutedCode = (text: string) =>
++        _runCodeOffered && !_ranRunCode && !_codeNudged && presentsUnexecutedCode(text)
++        && hasComputableData(message) && !wantsCodeItself(message);
++      const _unexecutedCodeNudge = 'You presented analysis code but did not execute it, so no result has been '
++        + 'computed. The user\'s data is already staged (see the run_code inputs). Call run_code now with that '
++        + 'code (fix it if needed), then report only the actual output. Do not state results that were not computed.';
++
+       for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
+         const isFirstTurn = turn === 0;
+         const requestOptions: any = {
+@@ -9662,11 +9720,21 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
+               .filter(b => b.type === 'text' || b.type === 'tool_use')
+               .map(b => b.type === 'text' ? { type: 'text', text: b.text || '' } : { type: 'tool_use', id: b.id, name: b.name, input: b.input });
+             agentMessages.push({ role: 'assistant', content: assistantContent as any });
++            if (toolUseBlocks.some((b: any) => b.name === 'run_code')) _ranRunCode = true;
+             const toolResults = await this._executeTools(toolUseBlocks, context, onToolEvent);
+             agentMessages.push({ role: 'user', content: toolResults as any });
+             rawResponse = ''; // Reset — final text comes in a later turn
+             continue; // next iteration
+           }
++          if (_shouldNudgeUnexecutedCode(rawResponse)) {
++            console.warn('[GalaxyAssistant] reply presented code without running it — asking the model to run_code');
++            _codeNudged = true;
++            _shownBeforeNudge = stripNarratedToolCalls(rawResponse);
++            agentMessages.push({ role: 'assistant', content: [{ type: 'text', text: rawResponse || ' ' }] as any });
++            agentMessages.push({ role: 'user', content: _unexecutedCodeNudge });
++            rawResponse = '';
++            continue;
++          }
+           // No tool_use — stream complete
+           console.log('[GalaxyAssistant] Response stream complete:', {
+             model: this.modelConfig.responseModel, time_ms: Date.now() - apiStartTime,
+@@ -9689,6 +9757,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
+         const toolUseBlocks = completion.content.filter((b: any) => b.type === 'tool_use');
+         if (completion.stop_reason === 'tool_use' && toolUseBlocks.length > 0) {
+           agentMessages.push({ role: 'assistant', content: completion.content as any });
++          if (toolUseBlocks.some((b: any) => b.name === 'run_code')) _ranRunCode = true;
+           const toolResults = await this._executeTools(toolUseBlocks, context, onToolEvent);
+           agentMessages.push({ role: 'user', content: toolResults as any });
+           continue;
+@@ -9697,11 +9766,21 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
+         // End turn — extract text and emit as a single delta (non-incremental but correct)
+         const textContent = completion.content.find((c: any) => c.type === 'text');
+         rawResponse = textContent && textContent.type === 'text' ? (textContent as any).text : '';
++        if (_shouldNudgeUnexecutedCode(rawResponse)) {
++          console.warn('[GalaxyAssistant] reply presented code without running it — asking the model to run_code');
++          _codeNudged = true;
++          agentMessages.push({ role: 'assistant', content: completion.content as any });
++          agentMessages.push({ role: 'user', content: _unexecutedCodeNudge });
++          rawResponse = '';
++          continue;
++        }
+         if (onResponseDelta && rawResponse) {
+-          onResponseDelta(stripNarratedToolCalls(rawResponse));
++          onResponseDelta((_shownBeforeNudge ? '\n\n' : '') + stripNarratedToolCalls(rawResponse));
+         }
+         break;
+       }
++      // Keep what the user already saw before the guard sent the reply back (persisted = displayed).
++      if (_shownBeforeNudge && rawResponse.trim()) rawResponse = `${_shownBeforeNudge}\n\n${rawResponse}`;
+ 
+       // Guard: if loop exhausted or tool-only response with no final text, provide fallback.
+       // When a workflow was generated, produce a meaningful workflow-ready message.
+=================== COMMIT cfb903f4d fix(routing): ad-hoc analysis of attached data runs code instead of forcing a workflow
+diff --git a/frontend/server/galaxy-assistant.ts b/frontend/server/galaxy-assistant.ts
+--- a/frontend/server/galaxy-assistant.ts
++++ b/frontend/server/galaxy-assistant.ts
+@@ -2167,6 +2167,26 @@ export function alternativeWorkflowNames(payload: any): string[] {
+     .slice(0, 4);
+ }
+ 
++/** Real-pipeline vocabulary for the ad-hoc-analysis check: any of these means the user is asking
++ *  for a workflow, never ad-hoc compute. */
++const PIPELINE_REQUEST_RE =
++  /\b(nextflow|pipeline|rna-?seq|scrna|single-?cell|wgs|wes|variant\s+calling|sarek|cryo-?em|admet|pbpk|boin|fastqc|trimmomatic|\bstar\b|salmon|kallisto|alignment|assembl|clusterprofiler|deseq2|edger|limma|differential\s+(expression|abundance|accessibility)|enrichment|epitope|docking|autodock|codon|pocket|target\s+evidence|peak\s+calling|segmentation|free\s+energy|fep|rbfe|abfe|molecular\s+dynamics|crispr|mageck|hit[- ]calling)\b/i;
++
++/** Ad-hoc analysis of data the user ATTACHED ("Summarise this assay table and plot potency
++ *  against logP", "Correlate predicted and measured IC50 for these compounds", "Reshape this
++ *  plate readout into long format") — a run_code task, not a pipeline. Measured 2026-11-04 with
++ *  the exact cold-start UI payloads + real uploads: such requests were forced into workflow
++ *  generation and landed on lexical near-misses (Run Audit Export, QSAR RF model, nf-core/demo),
++ *  and the card then disabled run_code. Requires the UI's attached-dataset block, an ad-hoc
++ *  verb in the request's own first paragraph, and no pipeline vocabulary. */
++export function isAdhocAnalysisOfAttachedData(message: string): boolean {
++  const text = message || '';
++  if (!/\[(?:Uploaded datasets?|Attached files?|BioMate dataset|Galaxy dataset)\s*:/i.test(text)) return false;
++  const task = text.split(/\n\s*\n|\n\s*\[(?:Attached files?|Uploaded datasets?)/i)[0];
++  const adhoc = /\b(summari[sz]e|summary\s+of|plot|chart|graph|visuali[sz]e|correlat\w*|regress\w*|reshape|pivot|melt|tabulate|cross-?tab\w*|histogram|scatter|describe\s+(the|this)\s+(data|table|file)|compute|calculate)\b/i;
++  return adhoc.test(task) && !PIPELINE_REQUEST_RE.test(task);
++}
++
+ export function stripNarratedToolCalls(text: string): string {
+   if (!text) return text;
+   if (!/<\/?(?:antml:)?(?:function_calls|invoke|parameter)\b/i.test(text)) {
+@@ -4309,7 +4329,7 @@ Rules:
+     // actually executing. Flip to the direct-compute path so run_code stays
+     // enabled and really runs in the sandbox. Conservative guard (explicit ask
+     // + no pipeline keyword) so genuine workflow requests are untouched.
+-    if (actions.needsWorkflowGeneration && this._isDirectCodeExecutionQuery(message)) {
++    if (actions.needsWorkflowGeneration && (this._isDirectCodeExecutionQuery(message) || isAdhocAnalysisOfAttachedData(message))) {
+       log('Direct-code-execution override: needsWorkflowGeneration=false → run_code stays enabled');
+       actions.needsWorkflowGeneration = false;
+       actions.needsLLMReasoning = true;
