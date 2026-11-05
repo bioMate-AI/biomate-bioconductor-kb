@@ -1468,6 +1468,20 @@ restart_galaxy() {
     #
     # galaxyctl restart gunicorn is a graceful master restart (~5-15s) that
     # re-imports all Python modules from the freshly synced .py files.
+    # Stray gunicorn holding :8080. Supervisord stops its gunicorn as a group, but a gunicorn
+    # started outside supervisord (parent = PID 1) keeps the listening socket: the supervised
+    # gunicorn then logs "Connection in use: (0.0.0.0, 8080)" and crash-loops — dev was down
+    # 2026-11-04 18:00-18:06 (CST) with two such orphans (started 17:31/17:34, not in gunicorn.log).
+    # Kill them before the restart and say so loudly (PIDs + start times) so the source is traceable.
+    kill_orphan_gunicorn() {
+      _orph=$(docker exec "$GC" ps -eo pid,ppid,lstart,args | awk "\$2==1 && /gunicorn galaxy.webapps.galaxy.fast_factory/" )
+      if [ -n "$_orph" ]; then
+        echo "[galaxy] WARNING: gunicorn outside supervisord (ppid 1) — would block :8080; killing:"
+        echo "$_orph" | cut -c1-140 | sed "s/^/[galaxy]   /"
+        docker exec -u root "$GC" kill -KILL $(echo "$_orph" | awk "{print \$1}") 2>/dev/null || true
+      fi
+    }
+    kill_orphan_gunicorn
     docker exec "$GC" galaxyctl restart gunicorn 2>&1 | tail -2 && \
       echo "[galaxy] gunicorn master restarted (fresh module load)" || \
       echo "[galaxy] galaxyctl restart failed — Galaxy may serve stale code"
@@ -1510,6 +1524,16 @@ restart_galaxy() {
       fi
       sleep 5
     done
+    if [ "$_galaxy_ok" -eq 0 ] && docker exec "$GC" sh -c "tail -50 /app/database/gravity/log/gunicorn.log" 2>/dev/null | grep -q "Connection in use"; then
+      echo "[galaxy] gunicorn cannot bind :8080 (Connection in use) — clearing strays; supervisord will retry"
+      kill_orphan_gunicorn
+      for _gi in $(seq 1 24); do
+        if curl -fsS -o /dev/null --max-time 8 http://localhost:8081/api/version 2>/dev/null; then
+          echo "[galaxy] ✓ Galaxy healthy after clearing strays"; _galaxy_ok=1; break
+        fi
+        sleep 5
+      done
+    fi
     if [ "$_galaxy_ok" -eq 0 ]; then
       echo "[galaxy] WARNING: Galaxy did not respond within 120s after HUP — proceeding anyway (health gate will catch it)"
     fi
