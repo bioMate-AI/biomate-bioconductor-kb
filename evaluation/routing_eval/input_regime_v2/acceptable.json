@@ -102,7 +102,8 @@
    "Wgs Germline Gatk"
   ],
   "var_bam_1": [
-   "nf-core/sarek"
+   "nf-core/sarek",
+   "Detect And Annotate Somatic Mutations"
   ],
   "var_vcf_1": [
    "Vep Annotation",
@@ -172,5 +173,8 @@
    "edger_classic_pipeline"
   ]
  },
- "_review": "2026-11-05, before any run: lists checked by GPT-5.6 Terra against descriptions/declared inputs (acc_review flags); flags accepted when the wrapper description is narrower than the task, rejected when the declared input is a known catalog placeholder (methylarray 'fasta', mhcquant empty, sesame 'count_data'). Four queries reworded so a qualifying workflow exists. Note: nf-core/chipseq and nf-core/atacseq are executable=0 in the catalog (open catalog issue), kept as the correct answers."
+ "_review": "2026-11-05, before any run: lists checked by GPT-5.6 Terra against descriptions/declared inputs (acc_review flags); flags accepted when the wrapper description is narrower than the task, rejected when the declared input is a known catalog placeholder (methylarray 'fasta', mhcquant empty, sesame 'count_data'). Four queries reworded so a qualifying workflow exists. Note: nf-core/chipseq and nf-core/atacseq are executable=0 in the catalog (open catalog issue), kept as the correct answers.",
+ "_corrections": [
+  "2026-11-05 (after both arms ran; applied to all arms alike): var_bam_1 \u2014 'Detect And Annotate Somatic Mutations' restored. It was removed on the reviewer flag 'description says it starts from a VCF', but its code (main.nf) takes tumor_bam/normal_bam and runs GATK Mutect2 \u2192 VCF \u2192 annotation: the DESCRIPTION is false, the declared inputs are right. Code is the ground truth."
+ ]
 }
