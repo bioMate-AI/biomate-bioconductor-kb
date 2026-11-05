@@ -147,10 +147,20 @@ end-to-end on CPU Batch**:
   recovered the 2 planted latent subtypes** (even→cluster 2, odd→cluster 1). This path needed NO
   fixes — unlike ml_training, its `.nf` was correctly built (real `path` input staging + runtime
   package install), confirming the staging gap was specific to the ml_training `.nf`.
+- **QC declared-gate pipeline live-verified end-to-end on the deployed handler (§8 item 4 closed).**
+  Three links, all confirmed on dev: (a) the evaluator `_check_qc_thresholds` — 7/7 against the live
+  handler; (b) the parser `_calculate_qc_metrics` returns the **whole** `qc_metrics.json` blob (local
+  line 1684 + the S3 `return s3_metrics` path), so a top-level `gates` key passes straight through —
+  no per-workflow parser needed; (c) the chain — a real `qc_metrics.json` with declared gates
+  (concordance `halt` + silhouette `advisory`) loaded and run through the deployed
+  `_check_qc_thresholds("SNF_MULTIOMICS_INTEGRATION", …)` (a process with NO hardcoded branch) →
+  `qc_passed=False`, halt fired with structured provenance, advisory correctly passing. So **any**
+  workflow that writes a `gates` list gets it evaluated live with no further code change.
 What is **NOT** covered:
-- **QC-gate engine inside a live Batch run** — unit-verified 7/7 against the live handler, but a
-  workflow that DECLARES gates in its `qc_metrics.json` and asserts pass/advisory/halt during a real
-  run remains (§8 item 4-execution).
+- **A production workflow that EMITS declared gates in a Batch run.** This is workflow-authoring
+  (content) — e.g. adding a clustering-quality gate to `snf_multiomics/main.nf` + registering it in
+  the `qc_metrics.json` discovery map for S3/Batch — not a platform-capability gap, since the
+  evaluate/parse pipeline above is complete and deployed. Scope per-domain when a real gate is wanted.
 - **The generalizations are deployed but dormant** (flags off) → zero real-traffic exercise.
 - **`fuse_channels` has no real 2nd consumer** — it is tested on synthetic entities, which proves
   the API, but the audit's point ("generality unexercised") is only half-closed until a real task
