@@ -73,6 +73,40 @@ true cancellation would need an AbortSignal plumbed into `llm-client` — see fo
 
 ## Verification
 - `tsc --noEmit` clean; full `vitest run` green (no regressions).
-- Live check needed on dev: open findings for a non-parser workflow (clinical / CAR-T /
-  QSAR) and confirm it resolves within ~90s to a real summary (or a non-empty "unavailable"
-  note) instead of hanging on "Analysis in progress…".
+
+## 2026-11-05 LIVE PROBE — corrects the emphasis above (the timeout is necessary, NOT the cure)
+Probed dev directly (fixture login) on the CAR-T run `dc9f3235` (`in_vivo_cart_codesign`,
+status completed, 11 outputs). The findings endpoint reached **`status: ready` quickly — no
+hang** — yet returned the **raw output samples** (`cart_construct.fasta → {filename, content}`,
+`design_report.txt`, `fratricide_check.json`, …) with **no `summary` and no `key_results`**. So
+for this run the timeout is irrelevant; it never reached the LLM path.
+
+Root cause for THIS class = the S3 sidecar read path (`routes.ts` ~15660-15665):
+```js
+const structured = await dataResp.json();
+return res.json({ ...structured, status: 'ready', runId, reportUrl });
+```
+It trusts whatever `findings_data.json` holds and stamps `status: 'ready'` **without validating
+the shape**. CAR-T's sidecar contains echoed output samples, not a findings object → "ready but
+empty". (Early polls also showed shape inconsistency across workers — in-memory `_findingsCache`
+is per-worker — but the dominant, stable behaviour is the bad S3 sidecar.)
+
+**Three independent long-tail failure modes (not one):**
+- **A. Poisoned/mis-shaped sidecar, trusted un-validated** → `ready` + empty. DOMINANT for
+  CAR-T; NOT previously scoped. Fix: (i) on the sidecar read, require a findings shape
+  (`summary` or non-empty `key_results`) before returning `ready`; if it fails, ignore the
+  sidecar and regenerate (or mark unavailable) — never stamp `ready` over non-findings JSON;
+  (ii) find + stop whatever wrote output samples into `findings_data.json` (audit every
+  `persistFindingsSidecar` caller and the Python analyzer path A).
+- **B. Unbounded LLM fetch → hang → `pending` forever.** The shipped 90s race (commit
+  3995fc1b2) fixes this; verified at source that the backend fetch in `llm-client.ts:93` has
+  no `signal` and the module has zero timeout handling. Real, but only bites runs with NO
+  sidecar that actually reach the LLM.
+- **C. Guardrail emptying + sampling** (bugs 2/3 above) — only reachable once A and B are
+  past and the LLM actually returns JSON.
+
+**Corrected takeaway:** a timeout does not make findings appear — it only bounds the wait and
+triggers recovery. Producing real findings for the long tail requires, in priority order:
+A (validate/repair the sidecar) → B (bound the LLM, done) → C (guardrail/sampling). The #5a
+decision (hybrid; invest in the generic path, parsers only for gate numbers) stands; the work
+is A→B→C, not writing per-domain parsers.
