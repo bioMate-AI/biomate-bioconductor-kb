@@ -516,20 +516,52 @@ set -e
 GC=$(docker ps --filter "name=biomate-galaxy" --format "{{.Names}}" | grep -Ev "rollback|chatgpt" | head -1)
 GC="${GC:-biomate-galaxy-dev}"
 if [ ! -d "$NFCORE_SRC" ]; then echo "[nfcore] WARNING: host copy $NFCORE_SRC missing — cannot restore pipelines"; exit 0; fi
+# A pipeline is INCOMPLETE when its nextflow.config includes a conf/ file that does not exist. ~150 of the
+# host copies held only top-level files (main.nf, nextflow.config, README — no conf/, modules/, workflows/),
+# so every run of them failed at config parse ("Config file does not exist: …/conf/base.config", 2026-11-05).
+incomplete() {  # $1 = pipeline dir
+  local c="$1/nextflow.config" f
+  [ -f "$c" ] || return 1
+  for f in $(grep -oE "includeConfig +['\"]conf/[A-Za-z0-9_./-]+['\"]" "$c" | grep -oE "conf/[A-Za-z0-9_./-]+"); do
+    [ -f "$1/$f" ] || return 0
+  done
+  return 1
+}
+# 1) complete the host source from nf-core's own repositories (default branch = latest release)
+refetched=0; refetch_failed=""
+for d in "$NFCORE_SRC"/*/; do
+  n=$(basename "$d"); [ "$n" = modules ] && continue; [ -f "$d/main.nf" ] || continue
+  if incomplete "$d"; then
+    tmp="$NFCORE_SRC/.fetch_$n"; rm -rf "$tmp"
+    if timeout 300 git clone -q --depth 1 "https://github.com/nf-core/$n.git" "$tmp" 2>/dev/null && [ -f "$tmp/main.nf" ] && ! incomplete "$tmp"; then
+      mv "$NFCORE_SRC/$n" "$NFCORE_SRC/$n.incomplete_$(date +%Y%m%d)" && mv "$tmp" "$NFCORE_SRC/$n" && refetched=$((refetched+1))
+    else
+      rm -rf "$tmp"; refetch_failed="$refetch_failed $n"
+    fi
+  fi
+done
+[ "$refetched" -gt 0 ] && echo "[nfcore] completed $refetched incomplete host pipelines from github.com/nf-core"
+[ -n "$refetch_failed" ] && echo "[nfcore] WARNING: could not complete:$refetch_failed"
 host_n=$(ls "$NFCORE_SRC"/*/main.nf 2>/dev/null | wc -l)
-present=" $(docker exec "$GC" sh -c 'for f in /app/nf-core-workflows/*/main.nf; do [ -f "$f" ] && basename "$(dirname "$f")"; done' | tr '\n' ' ') "
+# 2) restore into the container every pipeline that is missing there OR incomplete there
+container_state=$(docker exec "$GC" sh -c 'for d in /app/nf-core-workflows/*/; do [ -f "$d/main.nf" ] || continue; n=$(basename "$d"); bad=0; for f in $(grep -oE "includeConfig +.conf/[A-Za-z0-9_./-]+" "$d/nextflow.config" 2>/dev/null | grep -oE "conf/[A-Za-z0-9_./-]+"); do [ -f "$d/$f" ] || bad=1; done; [ $bad = 0 ] && echo "$n"; done' | tr '\n' ' ')
+present=" $container_state "   # complete pipelines only
 missing=""
 for d in "$NFCORE_SRC"/*/; do
   n=$(basename "$d"); [ "$n" = modules ] && continue; [ -f "$d/main.nf" ] || continue
+  case "$n" in *.incomplete_*|.fetch_*) continue ;; esac
+  incomplete "$d" && continue   # do not copy a source that is still incomplete
   case "$present" in *" $n "*) ;; *) missing="$missing $n" ;; esac
 done
 if [ -z "$missing" ]; then echo "[nfcore] all $host_n real pipelines present in $GC"; exit 0; fi
 ST=/tmp/nfcore_pipelines_stage
 sudo rm -rf "$ST"; mkdir -p "$ST"
 for n in $missing; do rsync -a --exclude=.github --exclude="._*" --exclude=.git "$NFCORE_SRC/$n/" "$ST/$n/"; done
+# replace (not merge into) an incomplete container copy
+for n in $missing; do docker exec -u root "$GC" rm -rf "/app/nf-core-workflows/$n"; done
 docker cp "$ST/." "$GC:/app/nf-core-workflows/"
 docker exec -u root "$GC" chown -R galaxy:galaxy /app/nf-core-workflows 2>/dev/null || true
-echo "[nfcore] restored $(echo $missing | wc -w) of $host_n real pipelines into $GC"
+echo "[nfcore] restored/replaced $(echo $missing | wc -w) of $host_n real pipelines into $GC (missing or incomplete)"
 REMOTE
   # Same gap for the nf-core community library (also git-ignored except BioMate's own files): the
   # catalog's nfcore/subworkflows/<name> entries resolve to nf-core-modules/subworkflows/nf-core/<name>
