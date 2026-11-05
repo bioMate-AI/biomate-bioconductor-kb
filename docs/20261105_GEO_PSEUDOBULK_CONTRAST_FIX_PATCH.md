@@ -1,119 +1,145 @@
-# GEO pseudobulk nonsense contrasts — review patch (BUG #3)
+# GEO pseudobulk nonsense contrasts — STRUCTURAL review patch (BUG #3)
 
 **Not applied.** Executed R inside a workflow `.nf`; a human applies it and verifies against real
-GEO datasets (the observed GSEs). This is the root cause + drop-in fix + expected before/after.
+GEO datasets. **This is the structural (root-cause) version** — it replaces the earlier
+heuristic draft (keyword denylist + fail-loud guards) and ALSO removes a pre-existing
+dataset-specific hardcode. See "Why structural, not heuristic" below.
 
-File: `backend/biomni_workflows/nfcore/geo_scrna_pseudobulk/main.nf` (embedded R, lines ~269-358).
+File: `backend/biomni_workflows/nfcore/geo_scrna_pseudobulk/main.nf` (embedded R, lines ~269-325).
 
-## The bug — DE contrasts built from meaningless metadata; "completed" with no real DE
-Observed:
-- `640b7e9d`: contrast = `Public on Jun 10 2010_vs_Public on May 28 2010` — grouped by GEO
-  **publication date**.
-- `863429cf`: contrast = `disease state: HNSCC, N+ _vs_ sample type: 15 human cell lines` — two
-  **different characteristic keys** (cross-axis).
-- Both: run on `data_type=microarray`/`pseudobulk_method=none`, **no DESeq2 output despite status
-  "completed"**; gene IDs bare integers, first row all-zeros.
+## The bug — DE contrasts from meaningless metadata; "completed" with no real DE
+- `640b7e9d`: contrast `Public on Jun 10 2010_vs_Public on May 28 2010` (grouped by GEO
+  **publication date** — the `status` column's values).
+- `863429cf`: contrast `disease state: HNSCC, N+ _vs_ sample type: 15 human cell lines` (two
+  **different characteristic keys** — cross-axis).
+- Both emit `contrasts.csv` and report "completed" over a biologically meaningless comparison.
 
-Root cause in `detect_condition_col` (270-286) + ref/target pick (315-324):
-- **284:** when no preferred-name column qualifies, it returns `candidate_cols[1]` — the FIRST
-  column with 2-5 unique values, **no exclusion of GEO bookkeeping fields**. A "Public on" /
-  submission-date column has 2-5 unique dates → selected as the "condition". (housekeeping bug)
-- **279:** the preferred list includes `status`, which in a GEO series matrix is the record
-  status (Public/…), not biology — it can be picked as the condition.
-- **312-324:** `groups <- sort(unique(condition_parsed))`, then ref = most frequent, target =
-  first other. When the chosen column is `characteristics_ch1` with **mixed keys per sample**
-  ("disease state: …" on some, "sample type: …" on others), ref and target are drawn from
-  **different characteristic keys** → a cross-axis contrast. (cross-axis bug)
-- No gate rejects a biologically meaningless contrast — it writes `contrasts.csv` and the run
-  reports "completed" regardless. (no-validity bug)
+## Root cause
+1. `detect_condition_col` (270-286) falls back to the FIRST column with 2-5 unique values with no
+   exclusion of GEO bookkeeping — so the `status` column (`"Public on <date>"`) gets picked.
+2. The chosen column's **raw values are used as groups** (312). GEO `characteristics_ch1*` values
+   are `key: value`; when one column carries **mixed keys** across samples, ref/target are drawn
+   from different keys → cross-axis contrast.
+3. No gate rejects a meaningless contrast; it writes it and reports "completed".
+4. **Pre-existing hardcode (301-310):** a `# For GSE227835` branch that string-matches
+   `MG|myasthenia|AChR|…` to collapse one specific study's titles into MG/HC. Dataset-specific
+   logic in a "general" workflow — the exact anti-pattern CLAUDE.md forbids.
 
-## The fix (three parts)
+## Why structural, not heuristic
+A keyword denylist/allowlist only patches symptoms (a new bookkeeping column, or a biological
+column the list doesn't know, slips through). The **root cause** is that the code never parses
+GEO's `key: value` structure and never guarantees ref/target share one key. The fix below parses
+characteristics structurally so **cross-axis contrasts become impossible by construction** (we
+pick ONE key and contrast its values), and drops the GSE227835 hardcode (the disease-state
+characteristic yields its values generically). Two keyword lists remain, but neither is a
+correctness gate: `is_bookkeeping` only EXCLUDES obvious non-biology, and `bio_rx` only RANKS
+among already-valid candidates when choosing a default.
 
-**Part 1 — exclude GEO bookkeeping columns; tighten the preferred list.** Replace
-`detect_condition_col` (270-286) with:
+## The fix — replace lines 269-325 (`# ── 4. Auto-detect …` through the `# Determine reference and target` block, INCLUDING the 301-310 GSE227835 hardcode) with:
 ```r
-    detect_condition_col <- function(meta) {
-      n_rows <- nrow(meta)
-      # GEO bookkeeping / housekeeping columns are NEVER a biological condition. Selecting
-      # one (e.g. "Public on" dates) produced nonsense contrasts like
-      # "Public on Jun 10 2010_vs_Public on May 28 2010". Exclude them up front.
-      deny <- grepl(paste0("public|submission|last.?update|supplementary|relation|contact|",
-                           "platform|organism|molecule|extract|label|data.?processing|scan|",
-                           "instrument|library|geo_?accession|series|sample_?id|gsm|gse|",
-                           "accession|^status$|date|channel_count|taxid"),
-                    names(meta), ignore.case=TRUE)
-      candidates <- vapply(seq_along(names(meta)), function(j) {
-        if (deny[j]) return(FALSE)
-        vals <- unique(trimws(as.character(meta[[j]])))
-        n_uniq <- length(vals)
-        n_uniq >= 2 && n_uniq <= 5 && n_uniq < n_rows
-      }, logical(1))
-      # Prefer columns that name a biological factor. (NB: 'status' removed — it is the GEO
-      # record status, not a phenotype.)
-      pref <- grep(paste0("characteristics|condition|disease|genotype|treatment|phenotype|",
-                          "cell.?type|tissue|agent|dose|group"),
-                   names(meta), ignore.case=TRUE, value=TRUE)
-      pref <- c(intersect("title", names(meta)), pref)
-      pref_valid <- pref[pref %in% names(meta)[candidates]]
-      if (length(pref_valid) > 0) return(pref_valid[1])
-      candidate_cols <- names(meta)[candidates]
-      if (length(candidate_cols) > 0) return(candidate_cols[1])
-      NULL
+    # ── 4. Choose a biological factor from GEO characteristics ────────────────
+    # GEO series-matrix pData encodes annotations as "key: value" in characteristics_ch1*
+    # columns. A valid DE contrast compares two VALUES of ONE key. Parse structurally
+    # instead of guessing a column by name or hardcoding a study: for each candidate
+    # column split "key: value", REQUIRE every sample to share the same key (a mixed-key
+    # column is cross-axis → skip it), and keep the per-sample VALUE as the factor. This
+    # makes the "disease state vs sample type" cross-axis contrast impossible and removes
+    # the need for the old per-study (GSE227835 MG/HC) special-case.
+
+    # Columns that are never a biological factor (GEO bookkeeping). EXCLUSION only —
+    # correctness does not depend on this list being complete; it just avoids obvious noise
+    # (e.g. the `status` column that holds "Public on <date>").
+    is_bookkeeping <- function(col) grepl(paste0(
+      "geo_accession|^status$|submission|last.?update|supplementary|relation|contact|",
+      "^type$|platform|organism|molecule|extract|label|data.?processing|scan|instrument|",
+      "library|channel|taxid|^date|.*_protocol$|description|^source_name"), col, ignore.case=TRUE)
+
+    # Parse a column into list(key, values): split "key: value" and require ONE key across
+    # all samples; return NULL for a mixed-key (cross-axis) column. A non key:value column
+    # is used raw, keyed by its own name.
+    parse_factor <- function(col_vals) {
+      v <- trimws(as.character(col_vals))
+      kv <- nzchar(v) & grepl(":", v)
+      if (length(v) > 0 && all(kv)) {
+        keys <- trimws(sub(":.*$", "", v))
+        if (length(unique(keys)) != 1L) return(NULL)        # mixed keys → reject (cross-axis)
+        return(list(key = unique(keys)[1], values = trimws(sub("^[^:]*:", "", v))))
+      }
+      list(key = NA_character_, values = v)
     }
-```
 
-**Part 2 — reject a cross-axis contrast.** After `chosen_tgt` is determined (after line 324),
-add:
-```r
-    # GEO characteristics encode "key: value". A valid contrast compares two values of the
-    # SAME key; "disease state: HNSCC _vs_ sample type: cell lines" mixes two keys and is
-    # meaningless. If reference and target carry different keys, fail rather than emit it.
-    axis_key <- function(x) if (grepl(":", x)) trimws(sub(":.*$", "", x)) else NA_character_
-    rk <- axis_key(chosen_ref); tk <- axis_key(chosen_tgt)
-    if (!is.na(rk) && !is.na(tk) && tolower(rk) != tolower(tk)) {
-      stop(sprintf(paste0("[GEO] Refusing cross-axis contrast: reference key '%s' != target key ",
-                          "'%s'. Provide --condition_col / --reference / --target for a single ",
-                          "biological factor."), rk, tk))
+    looks_like_bookkeeping_value <- function(groups) any(grepl(
+      "^(public on|submitted|\\d{4}-\\d{2}-\\d{2}|gsm\\d+|gse\\d+)", groups, ignore.case=TRUE))
+
+    n_rows <- nrow(sample_meta)
+    candidates <- list()
+    for (col in names(sample_meta)) {
+      if (is_bookkeeping(col)) next
+      pf <- parse_factor(sample_meta[[col]]); if (is.null(pf)) next
+      uq <- unique(pf$values[nzchar(pf$values) & !is.na(pf$values)])
+      if (length(uq) >= 2 && length(uq) <= 5 && length(uq) < n_rows &&
+          !looks_like_bookkeeping_value(uq)) {
+        candidates[[length(candidates)+1]] <- list(col=col, key=pf$key, values=pf$values, n_levels=length(uq))
+      }
     }
-```
 
-**Part 3 — fail loudly instead of emitting a "completed" nonsense contrast.** The
-`detect_condition_col` NULL path already `stop()`s (294-295). Add one more guard right after
-`groups` is computed (after line 313): require ≥2 real groups mapping to ≥1 sample each, and
-refuse a contrast where a group label is an obvious date/accession token:
-```r
+    # Honor explicit --condition_col; else prefer a named biological key; else first clean
+    # candidate. bio_rx only RANKS valid candidates — it is not a correctness gate.
+    pick <- NULL
+    if (nchar(cond_col) > 0) {
+      for (c in candidates) if (identical(c$col, cond_col) || identical(c$key, cond_col)) pick <- c
+      if (is.null(pick)) stop(sprintf("[GEO] --condition_col '%s' is not a clean 2-5 level factor.", cond_col))
+    }
+    if (is.null(pick) && length(candidates) > 0) {
+      bio_rx <- "disease|condition|genotype|treatment|phenotype|cell.?type|tissue|agent|dose|group|subtype|stage|response|^sex$|age.?group"
+      labels <- vapply(candidates, function(c) paste(c$col, c$key), "")
+      ord <- order(-as.integer(grepl(bio_rx, labels, ignore.case=TRUE)),
+                   vapply(candidates, function(c) c$n_levels, 0L))
+      pick <- candidates[[ord[1]]]
+    }
+    if (is.null(pick)) {
+      stop("[GEO] No clean biological two-level factor in the metadata. Provide --condition_col / --reference / --target.")
+    }
+    chosen_col <- pick$col
+    condition_parsed <- pick$values
+    cat(sprintf("[GEO] Factor: column='%s' key='%s' (%d levels)\\n",
+                pick$col, ifelse(is.na(pick$key), "<raw>", pick$key), pick$n_levels))
+
+    groups <- sort(unique(condition_parsed[nzchar(condition_parsed) & !is.na(condition_parsed)]))
     if (length(groups) < 2) {
-      stop(sprintf("[GEO] Column '%s' has <2 usable groups (%s) — no valid two-level factor.",
-                   chosen_col, paste(groups, collapse=", ")))
+      stop(sprintf("[GEO] Factor '%s' has <2 usable groups (%s).", chosen_col, paste(groups, collapse=", ")))
     }
-    if (any(grepl("^(public on|submitted|\\d{4}-\\d{2}-\\d{2}|gsm\\d+|gse\\d+)",
-                  groups, ignore.case=TRUE))) {
-      stop(sprintf("[GEO] Group labels look like bookkeeping, not biology (%s). Provide --condition_col.",
-                   paste(groups, collapse=", ")))
-    }
-```
+    cat(sprintf("[GEO] Condition groups: %s\\n", paste(groups, collapse=", ")))
 
-A `stop()` makes the Nextflow process FAIL — which is correct: a run with no valid contrast must
-not report "completed". The after-run UX fix #9 already presents a failed run honestly (no fake
-"results"/report).
+    # Determine reference and target — both are values of the SAME key, so no cross-axis.
+    chosen_ref <- if (nchar(ref_group) > 0 && ref_group %in% groups) ref_group else {
+      tbl <- sort(table(condition_parsed), decreasing=TRUE); names(tbl)[1]   # most frequent ≈ control
+    }
+    chosen_tgt <- if (nchar(tgt_group) > 0 && tgt_group %in% groups && tgt_group != chosen_ref) tgt_group else {
+      go <- groups[groups != chosen_ref]; if (length(go) > 0) go[1] else groups[length(groups)]
+    }
+    cat(sprintf("[GEO] Contrast: %s (target) vs %s (reference) [key=%s]\\n",
+                chosen_tgt, chosen_ref, ifelse(is.na(pick$key), chosen_col, pick$key)))
+```
+Everything downstream (the `sample_metadata.csv` / `counts_matrix.csv` / `contrasts.csv` writes at
+327-358) is unchanged — it already consumes `condition_parsed`, `chosen_ref`, `chosen_tgt`,
+`chosen_col`.
 
 ## Expected before → after
-| run | before (bug) | after (fix) |
+| run | before | after |
 |---|---|---|
-| `640b7e9d` | contrast `Public on Jun 10 2010_vs_Public on May 28 2010`, "completed" | process FAILS: "Group labels look like bookkeeping… provide --condition_col" (date column denied, then guarded) |
-| `863429cf` | contrast `disease state: HNSCC, N+ _vs_ sample type: 15 cell lines`, "completed" | process FAILS: "Refusing cross-axis contrast: 'disease state' != 'sample type'" |
-| a clean GEO case (e.g. GSE227835 MG/HC) | works | unchanged — real `MG_vs_HC` contrast |
+| `640b7e9d` | `Public on …_vs_Public on …`, "completed" | `status` column is bookkeeping-excluded; date-valued factors rejected → process FAILS "No clean biological two-level factor… provide --condition_col" |
+| `863429cf` | `disease state: … _vs_ sample type: …`, "completed" | mixed-key column returns NULL in `parse_factor` → never a candidate; a single-key disease-state factor is used, or FAILS loudly |
+| GSE227835 (MG/HC) | worked via the hardcoded branch | works generically: the disease-state characteristic yields its two values (e.g. `AChR+ MG` vs `healthy control`) — no study-specific code |
 
 ## Secondary (separate, lower priority)
-- **scRNA-pseudobulk run on bulk microarray input** (`data_type=microarray`,
-  `pseudobulk_method=none`): the routing accepted a microarray series for the scRNA-pseudobulk
-  path. Add an input-assay guard (reject/redirect microarray from the pseudobulk path) upstream in
-  the GEO routing (`backend/lib/galaxy/ai/ai_assistant.py` GEO fast-path), not in this `.nf`.
-- **Bare-integer gene IDs / all-zero first row**: a counts-matrix prep issue independent of the
-  contrast; triage once the contrast gate lands (bad contrasts were masking it).
+- **scRNA-pseudobulk on bulk microarray input** (`data_type=microarray`): add an input-assay guard
+  upstream in the GEO routing (`ai_assistant.py` GEO fast-path), not in this `.nf`.
+- **Bare-integer gene IDs / all-zero first row**: a counts-matrix prep issue, independent of the
+  contrast; triage once the contrast gate lands.
 
 ## Verification (human, after applying)
-Re-run the two GEO accessions behind `640b7e9d` and `863429cf`: both must now FAIL with the
-specific guard message (not "completed" with a nonsense contrast). Re-run a clean two-level GEO
-dataset (e.g. GSE227835) and confirm the real `target_vs_reference` contrast is produced and
-DESeq2 output is written.
+1. Re-run `640b7e9d` and `863429cf`: both FAIL with a specific `[GEO]` message (not "completed").
+2. Re-run GSE227835: real `AChR+ MG`-vs-`healthy control` (or equivalent) contrast, DESeq2 output
+   written — WITHOUT the removed GSE227835 branch.
+3. Re-run one more clean 2-level GEO study to confirm the structural parse generalizes.
