@@ -27,6 +27,7 @@ process BIOC_SNF_MULTIOMICS {
     output:
     tuple val(meta), path("*.csv"), emit: tables,  optional: true
     tuple val(meta), path("*.pdf"), emit: plots,   optional: true
+    path "qc_metrics.json",         emit: qc,       optional: true
     path "versions.yml",            emit: versions
 
     when:
@@ -38,7 +39,7 @@ process BIOC_SNF_MULTIOMICS {
     #!/usr/bin/env Rscript
     # SNFtool + cluster are CRAN — install as fast p3m.dev noble binaries (no Bioc
     # container-binaries mirror, so no 504). cluster is usually already present.
-    .need <- c("SNFtool", "cluster")
+    .need <- c("SNFtool", "cluster", "jsonlite")
     .miss <- .need[!vapply(.need, function(.p) requireNamespace(.p, quietly=TRUE), logical(1))]
     if (length(.miss)) install.packages(.miss, Ncpus = 2)
 
@@ -103,6 +104,44 @@ process BIOC_SNF_MULTIOMICS {
     # Standardized output for the metric harness: sample, cluster
     write.csv(data.frame(sample = samples, cluster = group, check.names = FALSE),
               "snf_clusters.csv", row.names = FALSE)
+
+    # [biomate] QC via DECLARED gates (data-driven). Multi-omics integration has no
+    # hardcoded branch in the QC monitor; the gates travel as data in qc_metrics.json
+    # and are evaluated generically by galaxy.ai.qc_gate_engine (the BIOC_ substring
+    # already routes this process's qc_metrics.json to the monitor). Metrics describe
+    # the clustering the fusion produced; gates assert it is non-degenerate & separated.
+    .n_clusters <- length(unique(group))
+    .min_frac   <- min(table(group)) / length(group)
+    .mean_sil   <- 0
+    try({
+      if (.n_clusters >= 2) {
+        .Wn  <- W / max(W, na.rm = TRUE)          # affinity -> [0,1] similarity
+        .sil <- cluster::silhouette(as.integer(group), as.dist(1 - .Wn))
+        if (!is.null(.sil)) .mean_sil <- as.numeric(mean(.sil[, "sil_width"]))
+      }
+    }, silent = TRUE)
+    if (!is.finite(.mean_sil)) .mean_sil <- 0
+    .qc <- list(
+      mean_silhouette      = round(.mean_sil, 4),
+      n_clusters_found     = .n_clusters,
+      min_cluster_fraction = round(.min_frac, 4),
+      n_samples            = length(group),
+      gates = list(
+        list(metric = "n_clusters_found", op = ">=", threshold = 2, severity = "halt",
+             name = "Non-degenerate integration",
+             evidence = "SNF must resolve >=2 subtypes; one cluster means the fusion found no structure",
+             provenance = "heuristic"),
+        list(metric = "mean_silhouette", op = ">=", threshold = 0.10, severity = "advisory",
+             name = "Subtype separation (silhouette)",
+             evidence = "Rousseeuw 1987 J Comput Appl Math; mean silhouette >=0.1 indicates non-trivial structure",
+             provenance = "literature"),
+        list(metric = "min_cluster_fraction", op = ">=", threshold = 0.05, severity = "advisory",
+             name = "Subtype balance",
+             evidence = "a subtype with <5% of samples is likely an outlier cluster, not a robust stratum",
+             provenance = "heuristic")
+      )
+    )
+    jsonlite::write_json(.qc, "qc_metrics.json", auto_unbox = TRUE, pretty = TRUE)
     # Fused affinity + per-view weights for downstream inspection
     write.csv(data.frame(view = names(data), n_features = vapply(data, nrow, 0L), check.names = FALSE),
               "snf_views.csv", row.names = FALSE)
