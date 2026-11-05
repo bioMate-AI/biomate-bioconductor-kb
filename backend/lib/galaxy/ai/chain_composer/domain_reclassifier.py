@@ -111,14 +111,16 @@ def _offline_classify(text: str) -> Tuple[str, float]:
 # LLM prompt — kept short for Haiku throughput
 _PROMPT_TMPL = """You are a domain classifier for a bioinformatics workflow catalog.
 
-CURRENT DOMAIN: general (catch-all — likely a classification miss)
+CURRENT DOMAIN: {current_domain}
 WORKFLOW NAME: {name}
 SOURCE: {source}
 DESCRIPTION: {description}
 ANNOTATION: {annotation}
 
-Pick the SINGLE best domain from this closed list. If no specific domain
-truly fits, return "general".
+Pick the SINGLE best domain from this closed list, judged by the data the workflow
+analyses and the question it answers (e.g. a mass-spectrometry protein-abundance
+workflow is proteomics even if it uses limma). Keep the current domain when it fits.
+If no specific domain truly fits, return "general".
 
 ALLOWED DOMAINS:
 {taxonomy}
@@ -128,17 +130,19 @@ Output ONLY a single JSON object on one line:
 """
 
 
-def _build_prompt(row: Dict[str, str]) -> str:
+def _build_prompt(row: Dict[str, str], taxonomy: Optional[List[str]] = None) -> str:
+    current = row.get("current_domain") or "general"
     return _PROMPT_TMPL.format(
+        current_domain=current + (" (catch-all — likely a classification miss)" if current == "general" else ""),
         name=row["name"],
         source=row["source"] or "unknown",
         description=(row["description"] or "")[:500],
         annotation=(row["annotation"] or "")[:500],
-        taxonomy=", ".join(_DOMAIN_TAXONOMY),
+        taxonomy=", ".join(taxonomy or _DOMAIN_TAXONOMY),
     )
 
 
-def _parse_llm_response(raw: str) -> Optional[Dict[str, Any]]:
+def _parse_llm_response(raw: str, taxonomy: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
     raw = (raw or "").strip()
     # Strip code fences if present
     if raw.startswith("```"):
@@ -157,7 +161,7 @@ def _parse_llm_response(raw: str) -> Optional[Dict[str, Any]]:
         return None
     if not isinstance(data, dict):
         return None
-    if data.get("proposed_domain") not in _DOMAIN_TAXONOMY:
+    if data.get("proposed_domain") not in (taxonomy or _DOMAIN_TAXONOMY):
         return None
     return data
 
@@ -165,6 +169,8 @@ def _parse_llm_response(raw: str) -> Optional[Dict[str, Any]]:
 def _classify_one(
     row: Dict[str, str],
     llm: Optional[Callable[[str], str]],
+    taxonomy: Optional[List[str]] = None,
+    keep_on_failure: bool = False,
 ) -> Dict[str, Any]:
     if llm is None:
         d, c = _offline_classify(
@@ -180,12 +186,23 @@ def _classify_one(
         }
 
     try:
-        prompt = _build_prompt(row)
+        prompt = _build_prompt(row, taxonomy)
         raw = llm(prompt)
-        parsed = _parse_llm_response(raw)
+        parsed = _parse_llm_response(raw, taxonomy)
     except Exception as exc:
         log.warning("classification call failed for %s: %s", row["name"], exc)
         parsed = None
+
+    if parsed is None and keep_on_failure:
+        # Auditing an existing tag: a failed call proposes no change (never a keyword guess).
+        return {
+            "name": row["name"],
+            "current_domain": row["current_domain"],
+            "proposed_domain": row["current_domain"],
+            "confidence": 0.0,
+            "reason": "llm_failed_kept_current",
+            "method": "llm_failed",
+        }
 
     if parsed is None:
         # Fall back to offline so every row gets a row in the output
@@ -215,39 +232,75 @@ def reclassify(
     db_path: Optional[Path] = None,
     limit: Optional[int] = None,
     offline: bool = False,
+    all_domains: bool = False,
+    llm: Optional[Callable[[str], str]] = None,
+    workers: int = 1,
 ) -> List[Dict[str, Any]]:
     db_path = db_path or _DEFAULT_DB
     conn = sqlite3.connect(str(db_path))
     try:
+        # all_domains: audit every executable workflow against its current tag (mis-tags such as
+        # proteomics packages filed under transcriptomics), not only the 'general' catch-all.
         sql = ("SELECT name, COALESCE(source,''), COALESCE(description,''), "
-               "       COALESCE(annotation,'') "
-               "FROM workflows WHERE executable=1 AND domain='general' "
-               "ORDER BY name")
+               "       COALESCE(annotation,''), COALESCE(domain,'general') "
+               "FROM workflows WHERE executable=1 "
+               + ("" if all_domains else "AND domain='general' ")
+               + "ORDER BY name")
         rows = conn.execute(sql).fetchall()
+        # The closed list must contain every tag the catalog really uses, or legitimate rare tags
+        # (virtual_cell, cryo_et, population_genetics…) get forced into a neighbouring domain.
+        taxonomy = (sorted(set(_DOMAIN_TAXONOMY) | {d for (d,) in conn.execute(
+            "SELECT DISTINCT domain FROM workflows WHERE executable=1 AND domain IS NOT NULL AND domain != 'other'")})
+            if all_domains else None)
     finally:
         conn.close()
 
     if limit:
         rows = rows[:limit]
 
-    llm = None if offline else default_ner_llm()
-    if not offline and llm is None:
-        sys.stderr.write("(no API key → running offline keyword path)\n")
+    if llm is None and not offline:
+        llm = default_ner_llm()
+        if llm is None:
+            sys.stderr.write("(no API key → running offline keyword path)\n")
+    if offline:
+        llm = None
+
+    def _one(r: Tuple[str, str, str, str, str]) -> Dict[str, Any]:
+        name, source, desc, anno, domain = r
+        return _classify_one({"name": name, "source": source, "description": desc,
+                              "annotation": anno, "current_domain": domain}, llm,
+                             taxonomy=taxonomy, keep_on_failure=all_domains)
 
     out: List[Dict[str, Any]] = []
-    for i, (name, source, desc, anno) in enumerate(rows, 1):
-        row = {
-            "name": name,
-            "source": source,
-            "description": desc,
-            "annotation": anno,
-            "current_domain": "general",
-        }
-        result = _classify_one(row, llm)
-        out.append(result)
-        if i % 25 == 0:
-            sys.stderr.write(f"  [{i}/{len(rows)}] processed\n")
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max(1, workers)) as ex:
+        for i, result in enumerate(ex.map(_one, rows), 1):
+            out.append(result)
+            if i % 100 == 0:
+                sys.stderr.write(f"  [{i}/{len(rows)}] processed\n")
     return out
+
+
+def openrouter_llm(model: str, key_path: str = "~/.config/biomate/openrouter.key") -> Callable[[str], str]:
+    """(prompt) -> text via OpenRouter, for running the audit without the backend's provider keys."""
+    import os
+    import urllib.request
+    key = open(os.path.expanduser(key_path)).read().strip()
+
+    def _call(prompt: str) -> str:
+        body = json.dumps({"model": model, "messages": [{"role": "user", "content": prompt}],
+                           "max_tokens": 2000, "temperature": 0}).encode()
+        req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=body, method="POST",
+                                     headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+        for attempt in range(4):
+            try:
+                with urllib.request.urlopen(req, timeout=90) as r:
+                    return json.loads(r.read())["choices"][0]["message"]["content"] or ""
+            except Exception:  # noqa: BLE001 — transient provider errors are retried
+                time.sleep(3 * (attempt + 1))
+        return ""
+
+    return _call
 
 
 def render_summary(proposals: List[Dict[str, Any]]) -> str:
@@ -321,10 +374,15 @@ def _cli(argv=None) -> int:
     p.add_argument("--offline", action="store_true", help="force offline keyword path (no LLM)")
     p.add_argument("--output", default=None, help="JSONL output path (one row per workflow)")
     p.add_argument("--summary", default=None, help="markdown summary path")
+    p.add_argument("--all-domains", action="store_true", help="audit every executable workflow, not only domain='general'")
+    p.add_argument("--openrouter-model", default=None, help="classify via this OpenRouter model (key in ~/.config/biomate/openrouter.key)")
+    p.add_argument("--workers", type=int, default=1, help="parallel LLM calls")
     args = p.parse_args(argv)
 
     t0 = time.time()
-    proposals = reclassify(limit=args.limit, offline=args.offline)
+    proposals = reclassify(limit=args.limit, offline=args.offline, all_domains=args.all_domains,
+                           llm=openrouter_llm(args.openrouter_model) if args.openrouter_model else None,
+                           workers=args.workers)
     dt = time.time() - t0
 
     sys.stderr.write(f"\nClassified {len(proposals)} workflows in {dt:.1f}s.\n")
