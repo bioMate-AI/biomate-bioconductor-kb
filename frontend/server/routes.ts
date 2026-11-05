@@ -16245,8 +16245,20 @@ Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, a
               const shortContext = outputSamples.slice(0, 3)
                 .map(f => `### File: ${f.name}\n\`\`\`\n${f.content.slice(0, 3000)}\n\`\`\``)
                 .join('\n\n');
+              // The Claude fallback MUST authenticate with an Anthropic key. The
+              // outer `apiKey` is a cascade (GEMINI || GOOGLE || ANTHROPIC || …) used
+              // only to gate "is any LLM configured"; on dev GEMINI_API_KEY wins, so
+              // passing it to the Anthropic SDK gave `401 invalid x-api-key` and the
+              // fallback never ran — leaving every echoing/long-tail run on the
+              // "synthesis unavailable" note (observed live on CAR-T). Use the
+              // Anthropic key specifically; when there isn't one (and we're not on the
+              // local shim), skip straight to the clean note instead of a doomed 401.
+              const _anthropicKey = process.env.ANTHROPIC_API_KEY || '';
+              if (!localOnly() && !_anthropicKey) {
+                throw new Error('findings Claude fallback has no ANTHROPIC_API_KEY — using unavailable note');
+              }
               const Anthropic = (await import('@anthropic-ai/sdk')).default;
-              const _anthropic = (localOnly() ? localMessagesClient() as unknown as import('@anthropic-ai/sdk').default : new Anthropic({ apiKey }));
+              const _anthropic = (localOnly() ? localMessagesClient() as unknown as import('@anthropic-ai/sdk').default : new Anthropic({ apiKey: _anthropicKey }));
               const _msg = await _anthropic.messages.create({
                 model: 'claude-haiku-4-5-20251001',
                 max_tokens: 2048,

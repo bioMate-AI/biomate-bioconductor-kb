@@ -182,7 +182,36 @@ Net: a non-parser run now converges to EITHER real findings (if the model adhere
 fallback adheres better than the dev primary) OR a clean, non-empty "AI synthesis unavailable —
 see Outputs" note. Never the echoed-array garbage, never perpetual pending.
 
-## Status: A, B, C, D all shipped on the branch
+## 2026-11-05 POST-FIX-D PROBE — converges, but to the "unavailable" note (not real findings yet)
+Synced D and re-probed CAR-T: poll 1 `pending`, then **stable `ready`** across 7 polls with a
+non-empty summary + 1 caveat ("AI synthesis was unavailable… see Outputs"), no samples-map, no
+loop. **The pipeline now converges** — no garbage, no hang, no perpetual pending. BUT it landed
+on the fallback note, not real findings. Dev logs showed why:
+```
+[Findings] Gemini JSON parse failed: findings LLM returned non-findings JSON (array — likely echoed inputs) — retrying with Claude
+[Findings] Claude fallback also failed: 401 {"type":"authentication_error","message":"invalid x-api-key"}
+```
+Primary model echoes the inputs (fix D rejects it) → Claude fallback **401s** → clean note.
+
+### Fix E — SHIPPED (Claude fallback used the wrong API key)
+The fallback built its Anthropic client from the outer `apiKey` cascade
+(`GEMINI || GOOGLE || ANTHROPIC || …`), which is only meant to gate "is any LLM configured".
+On dev `GEMINI_API_KEY` wins, so the Anthropic SDK got a Gemini key → `401 invalid x-api-key` →
+the adherent fallback never ran. Fix: authenticate with `process.env.ANTHROPIC_API_KEY`
+specifically; when absent (and not on the local shim), skip to the clean note instead of a
+doomed 401. (`routes.ts`; tsc + full vitest green.)
+
+### The one unknown I could not verify
+Whether fix E yields REAL findings for the long tail on dev depends on dev having a valid
+`ANTHROPIC_API_KEY`. The auto-mode classifier blocked reading dev env (Credential
+Materialization), so this is unconfirmed. Two outcomes after E deploys:
+- dev HAS an Anthropic key → Claude Haiku runs, adheres, produces real findings. ✓ long tail solved.
+- dev has NO Anthropic key → fallback cleanly skips → the "unavailable" note persists (no 401,
+  faster). Then real long-tail findings need either an Anthropic key on dev OR an adherent model
+  in the backend chain (`llm_providers.yml`) whose findings output is a JSON object, not an
+  echoed array. That's an infra/config decision, not more app code.
+
+## Status: A, B, C, D, E all shipped on the branch
 All three long-tail findings failure modes are addressed in code:
 - **A** — sidecar/cache shape validation (commit c3096f51a).
 - **B** — 90s bound on the generic LLM call (commit 3995fc1b2).
