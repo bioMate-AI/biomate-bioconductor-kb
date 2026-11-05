@@ -505,11 +505,15 @@ jobs:
                docker cp /tmp/server_index_deploy.js biomate-frontend:/app/dist/index.js && \
                echo "docker cp done" && \
                docker restart --time 15 biomate-frontend && \
-               echo "biomate-frontend restarted with new server bundle" && \
-               sleep 8 && \
-               STATUS=$(docker inspect biomate-frontend --format "{{.State.Status}}" 2>/dev/null) && \
-               echo "Container status: $STATUS" && \
-               curl -sf --max-time 10 http://localhost:5000/api/health 2>/dev/null || echo "(health check skipped — may still be starting)"'
+               echo "biomate-frontend restarted — waiting for /api/health..." && \
+               for i in $(seq 1 24); do \
+                 sleep 5; \
+                 if curl -sf --max-time 5 http://localhost:5000/api/health >/dev/null 2>&1; then \
+                   echo "Frontend healthy after ${i}×5s"; break; \
+                 fi; \
+                 echo "[$i/24] still starting..."; \
+               done && \
+               curl -sf --max-time 5 http://localhost:5000/api/health 2>/dev/null || echo "WARNING: frontend may still be starting"'
 
       - name: Patch index.html — remove Google CDN links (blocked in China)
         # Google Fonts and Google Tag Manager are inaccessible from mainland China.
