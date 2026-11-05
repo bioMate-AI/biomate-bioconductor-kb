@@ -6866,11 +6866,14 @@ def plan_dag(request: PlanDagRequest, trans: ProvidesUserContext = DependsOnTran
 )
 def workflow_by_name(
     name: str,
+    query: Optional[str] = None,
     trans: ProvidesUserContext = DependsOnTrans
 ) -> Dict[str, Any]:
     """Return full workflow object for a given workflow name.
     Used by the Node.js layer after LLM reselection to fetch the canonical
-    workflow record without running FTS search again."""
+    workflow record without running FTS search again. With `query` (the user's request), also returns
+    `input_compatible` (False = the request's explicit data kind cannot feed this workflow; None = unknown)
+    so a text-driven card swap never moves to a workflow that cannot run on the user's data."""
     try:
         _engine = _get_workflow_search_engine()
         if _engine is None:
@@ -6908,8 +6911,15 @@ def workflow_by_name(
         if not row:
             return {"success": False, "error": f"workflow_not_found: {name}"}
         wf_id, wf_name, wf_desc, wf_domain, wf_source, wf_format, wf_steps, wf_tools, wf_tags, wf_filename = row
+        input_compatible = None
+        if query:
+            try:
+                input_compatible = _engine.input_compatible(query, wf_id)
+            except Exception as _ic_exc:  # unknown, not incompatible
+                log.debug("[workflow_by_name] input_compatible failed: %s", _ic_exc)
         return {
             "success": True,
+            "input_compatible": input_compatible,
             "workflow_name": wf_name,
             "workflow_type": wf_format,
             "nextflow_path": wf_filename if wf_format == "nextflow" else None,

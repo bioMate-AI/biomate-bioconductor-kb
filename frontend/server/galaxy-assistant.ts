@@ -5391,15 +5391,30 @@ Rules:
           response.message.match(/\*\*(nf-core\/[a-z][a-z0-9\-]+)/i) ||
           response.message.match(/\b(nf-core\/[a-z][a-z0-9\-]+)\b/i);
         const _textWorkflow = _boldNfcore?.[1]?.toLowerCase();
+        // Same constraint as Step 6c-2: follow the text only to a workflow the search retrieved for this
+        // request (unconstrained, the response model's own "retrieval" moved correct cards to wrong ones).
+        const _isCandidate = !!_textWorkflow && searchCandidateNames.some(c => workflowSlug(c) === workflowSlug(_textWorkflow));
         if (
+          _textWorkflow &&
+          _textWorkflow !== _cardName &&
+          !_cardName.includes(_textWorkflow.replace('nf-core/', '')) &&
+          !_textWorkflow.includes(_cardName) &&
+          !_isCandidate
+        ) {
+          log(`Step 6c: text mentions "${_textWorkflow}", not a search candidate for this request — keeping "${_cardName}"`);
+        } else if (
           _textWorkflow &&
           _textWorkflow !== _cardName &&
           !_cardName.includes(_textWorkflow.replace('nf-core/', '')) &&
           !_textWorkflow.includes(_cardName)
         ) {
           log(`Step 6c: text mentions "${_textWorkflow}" but card shows "${_cardName}" — correcting via lookup`);
-          const corrected = await this._lookupWorkflowByName(_textWorkflow);
-          if (corrected?.success && (corrected.workflow_ga || corrected.nextflow_path)) {
+          const corrected = await this._lookupWorkflowByName(_textWorkflow, message);
+          if (corrected?.input_compatible === false) {
+            // 2026-11-05: the reply recommended nf-core/proteomicslfq "for MaxQuant proteinGroups.txt" and
+            // this step moved the correct dep card onto a raw-spectra pipeline.
+            log(`Step 6c: "${_textWorkflow}" cannot run on this request's data (backend input-kind check) — keeping "${_cardName}"`);
+          } else if (corrected?.success && (corrected.workflow_ga || corrected.nextflow_path)) {
             generatedWorkflow = {
               ...generatedWorkflow,
               ...corrected,
@@ -8782,19 +8797,23 @@ Reply with ONLY the number (e.g. "1" or "3"). If none match, reply "0".`;
     regenerate: ((intentText: string) => Promise<any>) | null,
   ): Promise<any | null> {
     if (!regenerate) return null;
-    const ident = await this._lookupWorkflowByName(name);
+    const ident = await this._lookupWorkflowByName(name, message);
     if (!ident?.success || !ident.workflow_name) return null;
+    // The backend judged this workflow unable to run on the request's explicit data (e.g. a raw-spectra
+    // pipeline for a MaxQuant protein table): a text-driven swap must not move the card there.
+    if (ident.input_compatible === false) return null;
     const target = workflowSlug(ident.workflow_name);
     const card = await regenerate(`${message}\n\nRun the ${target} workflow.`);
     const built = workflowSlug(card?.workflow_ga?.name || card?.workflow_name || '');
     return card?.success && !card?.error && built === target ? card : null;
   }
 
-  private async _lookupWorkflowByName(name: string): Promise<any> {
+  private async _lookupWorkflowByName(name: string, query?: string): Promise<any> {
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const q = query ? `&query=${encodeURIComponent(query.slice(0, 4000))}` : '';
       const resp = await fetch(
-        `${galaxyUrl}/api/ai_assistant/workflow_by_name?name=${encodeURIComponent(name)}`,
+        `${galaxyUrl}/api/ai_assistant/workflow_by_name?name=${encodeURIComponent(name)}${q}`,
         { headers: { 'x-api-key': process.env.GALAXY_MASTER_API_KEY || process.env.GALAXY_API_KEY || '' } }
       );
       if (!resp.ok) return null;

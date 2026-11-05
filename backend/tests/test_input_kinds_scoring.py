@@ -89,3 +89,15 @@ def test_parse_kinds_rejects_out_of_vocabulary():
     assert parse_kinds('{"input_kinds": ["protein_table"], "reason": "x"}')["input_kinds"] == ["protein_table"]
     assert parse_kinds('{"input_kinds": ["mzml"]}') is None
     assert parse_kinds("not json") is None
+
+
+def test_input_compatible_for_card_swap_guard(tmp_path):
+    s = _search(tmp_path)
+    s._input_kinds_cache = None
+    s._input_kinds_map = lambda: {1: frozenset({"raw_spectra"}), 2: frozenset({"protein_table"}),
+                                  3: frozenset({"raw_spectra", "peptide_table"})}
+    assert s.input_compatible(Q_TABLE, 1) is False   # protein table → raw-spectra-only pipeline
+    assert s.input_compatible(Q_TABLE, 2) is True
+    assert s.input_compatible(Q_TABLE, 3) is True    # accepts both regimes
+    assert s.input_compatible("What is DIA proteomics?", 1) is None  # no explicit data kind
+    assert s.input_compatible(Q_TABLE, 99) is None   # workflow without kinds

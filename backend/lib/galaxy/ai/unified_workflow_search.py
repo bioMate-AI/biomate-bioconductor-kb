@@ -1942,14 +1942,10 @@ class UnifiedWorkflowSearch:
         if input_kinds:
             user_kinds = self._query_input_kinds(query)
             if user_kinds:
-                wf_raw, wf_proc = input_kinds & self._RAW_KINDS, input_kinds & self._PROCESSED_KINDS
-                user_raw, user_proc = user_kinds & self._RAW_KINDS, user_kinds & self._PROCESSED_KINDS
                 if user_kinds & input_kinds:
                     score += 3.0  # user has exactly the right input kind
-                elif user_proc and not user_raw and wf_raw and not wf_proc:
-                    score -= _INPUT_KIND_MISMATCH_PENALTY  # processed data only; workflow runs only on raw instrument data
-                elif user_raw and not user_proc and wf_proc and not wf_raw:
-                    score -= _INPUT_KIND_MISMATCH_PENALTY  # raw data only; workflow runs only on a processed table/object
+                elif self._kinds_mismatch(user_kinds, input_kinds):
+                    score -= _INPUT_KIND_MISMATCH_PENALTY  # cannot run on the user's data
         # 8b. Legacy: rows without input_kinds use input_types when they are clean, non-channel names.
         elif input_types:
             # Normalise: lowercase, strip whitespace; skip Nextflow channel names (ch_*)
@@ -2680,6 +2676,27 @@ class UnifiedWorkflowSearch:
     def _query_input_kinds(cls, query: str) -> frozenset:
         return frozenset(cls._QUERY_TYPE_TO_KIND[t] for t in cls._detect_query_data_types(query)
                          if t in cls._QUERY_TYPE_TO_KIND)
+
+    @classmethod
+    def _kinds_mismatch(cls, user_kinds: frozenset, wf_kinds: frozenset) -> bool:
+        """True when the user's data is in one regime only (raw instrument data vs processed table/object)
+        and the workflow accepts only the other — it cannot run on the user's data. Shared by the step-8a
+        score and the card-swap guard (workflow_by_name input_compatible)."""
+        user_raw, user_proc = user_kinds & cls._RAW_KINDS, user_kinds & cls._PROCESSED_KINDS
+        wf_raw, wf_proc = wf_kinds & cls._RAW_KINDS, wf_kinds & cls._PROCESSED_KINDS
+        if user_kinds & wf_kinds:
+            return False
+        return bool((user_proc and not user_raw and wf_raw and not wf_proc)
+                    or (user_raw and not user_proc and wf_proc and not wf_raw))
+
+    def input_compatible(self, query: str, workflow_id: int) -> Optional[bool]:
+        """False when the request's explicit data kind cannot feed the workflow; None when either side is
+        unknown (no explicit data kind in the request, or no input_kinds for the workflow)."""
+        wf_kinds = self._input_kinds_map().get(int(workflow_id))
+        user_kinds = self._query_input_kinds(query or "")
+        if not wf_kinds or not user_kinds:
+            return None
+        return not self._kinds_mismatch(user_kinds, wf_kinds)
 
     def _input_kinds_map(self) -> Dict[int, frozenset]:
         """{workflow id: input kinds}, loaded once per DB file version (mtime) — the candidate SELECTs
