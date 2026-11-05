@@ -526,32 +526,60 @@ incomplete() {  # $1 = pipeline dir
   [ -f "$c" ] || return 1
   grep -qE "includeConfig +['\"]conf/base\.config['\"]" "$c" && [ ! -f "$1/conf/base.config" ]
 }
-# 1) complete the host source from nf-core's own repositories (default branch = latest release)
+# 1) complete the host source from nf-core's own repositories, PINNED to the version the catalog was built
+#    against (manifest.version of the original 2025-10-30 download). The default branch is the latest release —
+#    on 2026-11-05 that moved 53 pipelines to other versions (ampliseq 2.16→3.1, pixelator 3→6, …), many needing
+#    Nextflow ≥ 26.04 while the container runs 25.10.x. The pins file records the intended version once.
+mver() { grep -oE "^\s*version\s*=\s*['\"][^'\"]+['\"]" "$1/nextflow.config" 2>/dev/null | head -1 | sed -E "s/.*['\"]([^'\"]+)['\"].*/\1/"; }
+nfreq() { grep -oE "nextflowVersion\s*=\s*['\"][^'\"]+['\"]" "$1/nextflow.config" 2>/dev/null | head -1 | grep -oE "[0-9]+\.[0-9]+(\.[0-9]+)?"; }
+NF_HAVE=$(docker exec "$GC" sh -c 'nextflow -version 2>/dev/null' | grep -oE "version [0-9]+\.[0-9]+\.[0-9]+" | head -1 | cut -d" " -f2)
+ver_le() { [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" = "$1" ]; }   # $1 <= $2
+PINS="$NFCORE_SRC/.pinned_versions"
+if [ ! -f "$PINS" ]; then   # first run: original versions — from the backup of a replaced copy, else the copy itself
+  for d in "$NFCORE_SRC"/*/; do
+    n=$(basename "$d"); case "$n" in modules|*.incomplete_*|.fetch_*) continue ;; esac; [ -f "$d/main.nf" ] || continue
+    b=$(ls -d "$NFCORE_SRC/$n".incomplete_* 2>/dev/null | head -1)
+    v=$(mver "${b:-$d}"); [ -n "$v" ] && echo "$n $v"
+  done > "$PINS"
+fi
 refetched=0; refetch_failed=""
 for d in "$NFCORE_SRC"/*/; do
   n=$(basename "$d"); [ "$n" = modules ] && continue; [ -f "$d/main.nf" ] || continue
   case "$n" in *.incomplete_*|.fetch_*) continue ;; esac   # backups of replaced copies, not pipelines
-  if incomplete "$d"; then
-    tmp="$NFCORE_SRC/.fetch_$n"; rm -rf "$tmp"
-    if timeout 300 git clone -q --depth 1 "https://github.com/nf-core/$n.git" "$tmp" 2>/dev/null && [ -f "$tmp/main.nf" ] && ! incomplete "$tmp"; then
-      mv "$NFCORE_SRC/$n" "$NFCORE_SRC/$n.incomplete_$(date +%Y%m%d)" && mv "$tmp" "$NFCORE_SRC/$n" && refetched=$((refetched+1))
+  pin=$(awk -v n="$n" '$1==n{print $2}' "$PINS")
+  cur=$(mver "$d")
+  if incomplete "$d" || { [ -n "$pin" ] && [ "$cur" != "$pin" ]; }; then
+    tmp="$NFCORE_SRC/.fetch_$n"; rm -rf "$tmp"; ok=0
+    if [ -n "$pin" ] && timeout 300 git clone -q --depth 1 --branch "$pin" "https://github.com/nf-core/$n.git" "$tmp" 2>/dev/null; then ok=1
+    elif [ -n "$pin" ] && echo "$pin" | grep -q dev && timeout 300 git clone -q --depth 1 "https://github.com/nf-core/$n.git" "$tmp" 2>/dev/null; then
+      req=$(nfreq "$tmp"); { [ -z "$req" ] || [ -z "$NF_HAVE" ] || ver_le "$req" "$NF_HAVE"; } && ok=1   # dev snapshot: no tag
+    fi
+    if [ $ok = 1 ] && [ -f "$tmp/main.nf" ] && ! incomplete "$tmp"; then
+      [ -d "$NFCORE_SRC/$n.incomplete_$(date +%Y%m%d)" ] && rm -rf "$NFCORE_SRC/$n" || mv "$NFCORE_SRC/$n" "$NFCORE_SRC/$n.incomplete_$(date +%Y%m%d)"
+      mv "$tmp" "$NFCORE_SRC/$n" && refetched=$((refetched+1))
     else
-      rm -rf "$tmp"; refetch_failed="$refetch_failed $n"
+      rm -rf "$tmp"; refetch_failed="$refetch_failed $n(pin=${pin:-?})"
     fi
   fi
 done
-[ "$refetched" -gt 0 ] && echo "[nfcore] completed $refetched incomplete host pipelines from github.com/nf-core"
-[ -n "$refetch_failed" ] && echo "[nfcore] WARNING: could not complete:$refetch_failed"
+[ "$refetched" -gt 0 ] && echo "[nfcore] fetched $refetched host pipelines at their pinned versions from github.com/nf-core (container Nextflow ${NF_HAVE:-?})"
+[ -n "$refetch_failed" ] && echo "[nfcore] WARNING: not fetched (kept as is):$refetch_failed"
 host_n=$(ls "$NFCORE_SRC"/*/main.nf 2>/dev/null | grep -vcE "\.incomplete_|/\.fetch_")
 # 2) restore into the container every pipeline that is missing there OR incomplete there
-container_state=$(docker exec "$GC" sh -c 'for d in /app/nf-core-workflows/*/; do [ -f "$d/main.nf" ] || continue; n=$(basename "$d"); if grep -qE "includeConfig +.conf/base.config" "$d/nextflow.config" 2>/dev/null && [ ! -f "$d/conf/base.config" ]; then continue; fi; echo "$n"; done' | tr '\n' ' ')
-present=" $container_state "   # complete pipelines only
+# complete container copies as "name@version" (an incomplete copy is not listed, so it is replaced). Versions are
+# parsed on the host with the same mver() as the source, from the container's file — one parser for both sides.
+container_state=""
+for n in $(docker exec "$GC" sh -c 'for d in /app/nf-core-workflows/*/; do [ -f "$d/main.nf" ] || continue; if grep -qE "includeConfig +.conf/base.config" "$d/nextflow.config" 2>/dev/null && [ ! -f "$d/conf/base.config" ]; then continue; fi; basename "$d"; done'); do
+  cv=$(docker exec "$GC" cat "/app/nf-core-workflows/$n/nextflow.config" 2>/dev/null | { t=$(mktemp -d); cat > "$t/nextflow.config"; mver "$t"; rm -rf "$t"; })
+  container_state="$container_state $n@$cv"
+done
+present=" $container_state "   # complete pipelines, with their versions
 missing=""
 for d in "$NFCORE_SRC"/*/; do
   n=$(basename "$d"); [ "$n" = modules ] && continue; [ -f "$d/main.nf" ] || continue
   case "$n" in *.incomplete_*|.fetch_*) continue ;; esac
   incomplete "$d" && continue   # do not copy a source that is still incomplete
-  case "$present" in *" $n "*) ;; *) missing="$missing $n" ;; esac
+  case "$present" in *" $n@$(mver "$d") "*) ;; *) missing="$missing $n" ;; esac   # missing, incomplete or other version
 done
 if [ -z "$missing" ]; then echo "[nfcore] all $host_n real pipelines present in $GC"; exit 0; fi
 ST=/tmp/nfcore_pipelines_stage
