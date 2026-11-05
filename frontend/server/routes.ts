@@ -16007,7 +16007,7 @@ STRICT GROUNDING RULES — violations will be rejected:
 4. If a metric cannot be read from the files, omit it from key_results.
 5. Each key_result MUST include "source_file" naming the EXACT file (copy the name from a "### File:" header above) the value was read from. This is grounded provenance, not a literature citation.
 
-Respond ONLY with valid JSON (no markdown wrapper):
+Respond with a SINGLE JSON OBJECT in EXACTLY this schema — NOT a JSON array, and NEVER echo, restate, or re-serialize the input files. You are writing an analysis, not reformatting the inputs. Respond ONLY with the JSON object (no markdown wrapper):
 {
   "summary": "<2-3 sentence executive summary citing only observed results>",
   "key_results": [{"metric": "<name>", "value": "<exact value from file>", "interpretation": "<meaning>", "source_file": "<exact filename from a File: header>"}],
@@ -16100,6 +16100,22 @@ Respond ONLY with valid JSON (no markdown wrapper):
                 } catch {}
               }
               break;
+            }
+
+            // Response-contract gate (#5a — the REAL long-tail blocker): the model
+            // must return a findings OBJECT ({summary, key_results, …}). On dev the
+            // generic provider often ignores the prompt and returns a JSON ARRAY that
+            // simply echoes the input files ([{filename, content}, …]) — valid JSON, so
+            // JSON.parse succeeds, but it has no summary/key_results. Previously that
+            // array was cached and persisted as "findings", then (post fix A) rejected
+            // as non-findings on read → regenerate → echo again → infinite "pending".
+            // Reject anything that isn't findings-shaped so control falls to the Claude
+            // fallback below (which adheres better); if that also fails, the outer catch
+            // persists a clean "synthesis unavailable" note so the run always converges.
+            if (!isFindingsShaped(parsed)) {
+              throw new Error(
+                `findings LLM returned non-findings JSON (${Array.isArray(parsed) ? 'array — likely echoed inputs' : typeof parsed}) — retrying with Claude`,
+              );
             }
 
             // Guardrail: cross-check each key_result value against numbers in output files.
@@ -16240,29 +16256,45 @@ Respond ONLY with valid JSON (no markdown wrapper):
               const _rawClaude = (_msg.content[0] as any)?.text ?? '';
               const _clean = _rawClaude.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
               const _parsed = JSON.parse(_clean);
+              // Same response-contract gate as the primary path: reject a non-findings
+              // object (array/echo) so we fall to the clean "unavailable" note below
+              // rather than caching garbage.
+              if (!isFindingsShaped(_parsed)) {
+                throw new Error(`Claude findings fallback returned non-findings JSON (${Array.isArray(_parsed) ? 'array' : typeof _parsed})`);
+              }
               console.log('[Findings] Claude fallback succeeded');
               if (_findingsDoc) _parsed.findings_document = reconcileFindingsDocument(_parsed, _findingsDoc);
               _findingsCache.set(runId, _parsed);
               void persistFindingsSidecar(_parsed);
             } catch (claudeErr: any) {
               console.warn('[Findings] Claude fallback also failed:', claudeErr?.message);
-              _findingsCache.set(runId, {
+              const _unavail = {
                 summary: `${workflowName} completed. AI synthesis was unavailable for this run — see the Outputs tab for raw results.`,
                 key_results: [],
                 next_steps: ['Open the Outputs tab to view the result files directly.'],
                 caveats: ['AI summary generation did not produce a valid structured response. The underlying run succeeded.'],
-              });
+              };
+              _findingsCache.set(runId, _unavail);
+              // Persist so the NEXT read (any worker) serves this findings-shaped note
+              // from the S3 sidecar and converges — instead of re-reading the stale
+              // garbage sidecar, re-rejecting it, and regenerating forever (the
+              // perpetual-"pending" loop observed live on CAR-T).
+              void persistFindingsSidecar(_unavail);
             }
           }
         } catch (err: any) {
           console.warn('[Findings] Background Claude analysis failed:', err.message);
-          // On failure, set a minimal summary so the card still appears
-          _findingsCache.set(runId, {
+          // On failure, set a minimal (findings-shaped) summary so the card still
+          // appears, AND persist it so cross-worker reads converge instead of
+          // re-rejecting a stale garbage sidecar and regenerating forever.
+          const _minimal = {
             summary: `${workflowName} completed. Review output files for detailed results.`,
             key_results: [],
             next_steps: [],
             caveats: [],
-          });
+          };
+          _findingsCache.set(runId, _minimal);
+          void persistFindingsSidecar(_minimal);
         }
       };
 

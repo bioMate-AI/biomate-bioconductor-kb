@@ -148,7 +148,41 @@ Two changes in `runAsync` (`routes.ts`):
 
 Gate: `tsc` clean; full `vitest run` 2177 passed / 42 skipped / 0 failed.
 
-## Status: A, B, C all shipped on the branch
+## 2026-11-05 POST-SYNC LIVE PROBE — the REAL long-tail blocker (not A/B/C)
+Synced A+B+C to dev and probed CAR-T `dc9f3235` live. Result: it stopped returning the
+samples map (fix A working) but sat on `pending` forever. Dev frontend logs
+(`docker logs biomate-dev-frontend`) gave the actual cause:
+```
+[Findings] llm returned: length=5550 firstChar="[" ... preview="[ { \"filename\": \"phaseA_summary.txt\", \"content\": \"Phase A — Atlas Safety Check...\" } ]"
+[Findings] persisted sidecar s3://.../findings_data.json
+[Findings] dropping non-findings cache for dc9f3235 (keys: 0,1,2,3,4,5)
+```
+**The LLM ignores the findings prompt and returns a JSON ARRAY that echoes the input files**
+(`[{filename, content}, …]`). It's valid JSON, so `JSON.parse` succeeded and the parse branch
+cached + persisted the ARRAY as "findings" — no `summary`/`key_results`. Post fix A, the read
+path then (correctly) rejects it as non-findings → regenerate → the model echoes again →
+**infinite loop → perpetual `pending`.** ADMET avoids all of this via the deterministic parser
+(verified live: real summary + 9 key_results). So the long-tail blocker was never the hang or
+the sidecar trust — it was **LLM response non-adherence with no shape gate in the generate path.**
+
+### Fix D — SHIPPED (response-contract gate + convergence)
+`routes.ts` `runAsync`:
+1. **Shape gate on the primary LLM parse** — after JSON.parse + unwrap, if the result isn't
+   `isFindingsShaped` (e.g. an array/echo), throw → fall to the Claude fallback instead of
+   caching garbage.
+2. **Same gate on the Claude fallback** — a non-findings Claude response throws to the
+   "unavailable" note rather than caching garbage.
+3. **Persist the fallback note** — both the Claude-failed and outer-catch minimal summaries now
+   call `persistFindingsSidecar`, so the stale garbage S3 sidecar gets overwritten with a
+   findings-shaped payload and cross-worker reads CONVERGE (no more regenerate-forever).
+4. **Prompt hardening** — SYSTEM now demands a single JSON OBJECT, never an array, and never
+   echoing/re-serializing the inputs.
+
+Net: a non-parser run now converges to EITHER real findings (if the model adheres — Claude
+fallback adheres better than the dev primary) OR a clean, non-empty "AI synthesis unavailable —
+see Outputs" note. Never the echoed-array garbage, never perpetual pending.
+
+## Status: A, B, C, D all shipped on the branch
 All three long-tail findings failure modes are addressed in code:
 - **A** — sidecar/cache shape validation (commit c3096f51a).
 - **B** — 90s bound on the generic LLM call (commit 3995fc1b2).
