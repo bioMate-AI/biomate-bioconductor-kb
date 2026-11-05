@@ -1,0 +1,322 @@
+[
+ {
+  "idx": 0,
+  "module": "input_regime_v2",
+  "track": "proteomics_processed",
+  "mod": "",
+  "seed": "prot_tab_1",
+  "prompt": "I have a MaxQuant proteinGroups.txt from a label-free experiment, 4 treated vs 4 control. Which proteins change?"
+ },
+ {
+  "idx": 1,
+  "module": "input_regime_v2",
+  "track": "proteomics_processed",
+  "mod": "",
+  "seed": "prot_tab_2",
+  "prompt": "Differential protein abundance from my DIA-NN pg_matrix.tsv, knockout vs wild type, three replicates each."
+ },
+ {
+  "idx": 2,
+  "module": "input_regime_v2",
+  "track": "proteomics_processed",
+  "mod": "",
+  "seed": "prot_tab_3",
+  "prompt": "Here is a peptide-level intensity table from a TMT 10-plex run. Summarise to proteins and test condition A vs B."
+ },
+ {
+  "idx": 3,
+  "module": "input_regime_v2",
+  "track": "proteomics_processed",
+  "mod": "",
+  "seed": "prot_tab_4",
+  "prompt": "I don't have the raw files any more, only the protein intensity matrix exported from Spectronaut. Find differentially abundant proteins."
+ },
+ {
+  "idx": 4,
+  "module": "input_regime_v2",
+  "track": "proteomics_processed",
+  "mod": "",
+  "seed": "prot_tab_5",
+  "prompt": "Label-free protein quantification table with many missing values; I want a differential analysis that handles the missingness without imputation."
+ },
+ {
+  "idx": 5,
+  "module": "input_regime_v2",
+  "track": "proteomics_raw",
+  "mod": "",
+  "seed": "prot_raw_1",
+  "prompt": "I have Thermo .raw files from a DDA label-free experiment and a human FASTA. Identify and quantify proteins, then compare groups."
+ },
+ {
+  "idx": 6,
+  "module": "input_regime_v2",
+  "track": "proteomics_raw",
+  "mod": "",
+  "seed": "prot_raw_2",
+  "prompt": "Process my DIA mzML files with a spectral library and quantify proteins across 12 samples."
+ },
+ {
+  "idx": 7,
+  "module": "input_regime_v2",
+  "track": "proteomics_raw",
+  "mod": "",
+  "seed": "prot_raw_3",
+  "prompt": "Search my mzML spectra against a database and quantify peptides for an immunopeptidomics (MHC class I) experiment."
+ },
+ {
+  "idx": 8,
+  "module": "input_regime_v2",
+  "track": "methylation_raw",
+  "mod": "",
+  "seed": "meth_idat_1",
+  "prompt": "Process Illumina EPIC .idat files: normalisation, QC and differential methylation between tumour and normal."
+ },
+ {
+  "idx": 9,
+  "module": "input_regime_v2",
+  "track": "methylation_raw",
+  "mod": "",
+  "seed": "meth_idat_2",
+  "prompt": "I have 450K array IDAT files and a sample sheet. Run QC and produce beta values."
+ },
+ {
+  "idx": 10,
+  "module": "input_regime_v2",
+  "track": "methylation_processed",
+  "mod": "",
+  "seed": "meth_beta_1",
+  "prompt": "I have a beta-value matrix from EPIC arrays and a continuous phenotype (age). Find associated CpG regions."
+ },
+ {
+  "idx": 11,
+  "module": "input_regime_v2",
+  "track": "methylation_processed",
+  "mod": "",
+  "seed": "meth_beta_2",
+  "prompt": "Using my methylation beta values (already normalised), find differentially methylated CpGs or regions between two groups."
+ },
+ {
+  "idx": 12,
+  "module": "input_regime_v2",
+  "track": "methylation_raw",
+  "mod": "",
+  "seed": "meth_bs_1",
+  "prompt": "Whole-genome bisulfite sequencing FASTQ files from mouse liver: align and extract methylation calls."
+ },
+ {
+  "idx": 13,
+  "module": "input_regime_v2",
+  "track": "rnaseq_raw",
+  "mod": "",
+  "seed": "rna_fastq_1",
+  "prompt": "Paired-end RNA-seq FASTQ files, human, 6 samples. Align, quantify and run differential expression treated vs control."
+ },
+ {
+  "idx": 14,
+  "module": "input_regime_v2",
+  "track": "rnaseq_raw",
+  "mod": "",
+  "seed": "rna_fastq_2",
+  "prompt": "Quantify transcript abundance from my RNA-seq reads with Salmon, mouse GRCm39."
+ },
+ {
+  "idx": 15,
+  "module": "input_regime_v2",
+  "track": "rnaseq_processed",
+  "mod": "",
+  "seed": "rna_counts_1",
+  "prompt": "I have a gene count matrix (featureCounts output) and a sample sheet. Differential expression KO vs WT."
+ },
+ {
+  "idx": 16,
+  "module": "input_regime_v2",
+  "track": "rnaseq_processed",
+  "mod": "",
+  "seed": "rna_counts_2",
+  "prompt": "Run DESeq2 on my counts table with a batch covariate and two conditions."
+ },
+ {
+  "idx": 17,
+  "module": "input_regime_v2",
+  "track": "rnaseq_processed",
+  "mod": "",
+  "seed": "rna_counts_3",
+  "prompt": "No FASTQ \u2014 only a raw counts matrix from GEO. Find differentially expressed genes between responders and non-responders."
+ },
+ {
+  "idx": 18,
+  "module": "input_regime_v2",
+  "track": "singlecell_raw",
+  "mod": "",
+  "seed": "sc_fastq_1",
+  "prompt": "10x Genomics scRNA-seq FASTQ files from three donors: generate count matrices and QC."
+ },
+ {
+  "idx": 19,
+  "module": "input_regime_v2",
+  "track": "singlecell_processed",
+  "mod": "",
+  "seed": "sc_proc_1",
+  "prompt": "I have Cell Ranger filtered_feature_bc_matrix folders. Cluster cells and annotate cell types."
+ },
+ {
+  "idx": 20,
+  "module": "input_regime_v2",
+  "track": "singlecell_processed",
+  "mod": "",
+  "seed": "sc_proc_2",
+  "prompt": "Starting from an AnnData .h5ad file, run normalisation, clustering and marker detection."
+ },
+ {
+  "idx": 21,
+  "module": "input_regime_v2",
+  "track": "singlecell_processed",
+  "mod": "",
+  "seed": "sc_proc_3",
+  "prompt": "My single-cell data is already QC'd and clustered (AnnData .h5ad). Infer cell-cell communication between the clusters."
+ },
+ {
+  "idx": 22,
+  "module": "input_regime_v2",
+  "track": "variants_raw",
+  "mod": "",
+  "seed": "var_fastq_1",
+  "prompt": "Germline variant calling from human WGS FASTQ files, GATK best practices."
+ },
+ {
+  "idx": 23,
+  "module": "input_regime_v2",
+  "track": "variants_raw",
+  "mod": "",
+  "seed": "var_bam_1",
+  "prompt": "Somatic variant calling on tumour/normal BAM files."
+ },
+ {
+  "idx": 24,
+  "module": "input_regime_v2",
+  "track": "variants_processed",
+  "mod": "",
+  "seed": "var_vcf_1",
+  "prompt": "I already have a VCF of germline variants. Annotate the variants with VEP and predict their effects."
+ },
+ {
+  "idx": 25,
+  "module": "input_regime_v2",
+  "track": "variants_processed",
+  "mod": "",
+  "seed": "var_vcf_2",
+  "prompt": "I have PLINK bed/bim/fam genotype files for 500 individuals. Estimate population structure (PCA / admixture-like ancestry)."
+ },
+ {
+  "idx": 26,
+  "module": "input_regime_v2",
+  "track": "chromatin_raw",
+  "mod": "",
+  "seed": "chip_fastq_1",
+  "prompt": "ChIP-seq FASTQ files for H3K27ac with input controls: align and call peaks."
+ },
+ {
+  "idx": 27,
+  "module": "input_regime_v2",
+  "track": "chromatin_processed",
+  "mod": "",
+  "seed": "chip_peaks_1",
+  "prompt": "I have aligned BAM files and narrowPeak files for two conditions. Find differentially bound regions."
+ },
+ {
+  "idx": 28,
+  "module": "input_regime_v2",
+  "track": "chromatin_raw",
+  "mod": "",
+  "seed": "atac_fastq_1",
+  "prompt": "ATAC-seq paired-end FASTQ files: QC, alignment and peak calling."
+ },
+ {
+  "idx": 29,
+  "module": "input_regime_v2",
+  "track": "metagenomics_raw",
+  "mod": "",
+  "seed": "meta_reads_1",
+  "prompt": "Shotgun metagenomics reads from stool: taxonomic profiling and metagenome-assembled genomes."
+ },
+ {
+  "idx": 30,
+  "module": "input_regime_v2",
+  "track": "metagenomics_raw",
+  "mod": "",
+  "seed": "amp_1",
+  "prompt": "16S rRNA amplicon FASTQ files from soil samples: ASVs and taxonomy."
+ },
+ {
+  "idx": 31,
+  "module": "input_regime_v2",
+  "track": "metabolomics_raw",
+  "mod": "",
+  "seed": "metab_raw_1",
+  "prompt": "Untargeted LC-MS metabolomics mzML files: peak picking, alignment and annotation."
+ },
+ {
+  "idx": 32,
+  "module": "input_regime_v2",
+  "track": "metabolomics_processed",
+  "mod": "",
+  "seed": "metab_tab_1",
+  "prompt": "I have a metabolite intensity table (samples x features). Run statistics and pathway analysis between groups."
+ },
+ {
+  "idx": 33,
+  "module": "input_regime_v2",
+  "track": "enrichment",
+  "mod": "",
+  "seed": "enrich_1",
+  "prompt": "Here is a list of 300 differentially expressed human genes. Run GO and KEGG over-representation analysis."
+ },
+ {
+  "idx": 34,
+  "module": "input_regime_v2",
+  "track": "enrichment",
+  "mod": "",
+  "seed": "enrich_2",
+  "prompt": "I have a ranked list of all genes by log2 fold change. Run GSEA against Hallmark gene sets."
+ },
+ {
+  "idx": 35,
+  "module": "input_regime_v2",
+  "track": "control",
+  "mod": "",
+  "seed": "admet_1",
+  "prompt": "Predict ADMET properties for these SMILES: CCO, c1ccccc1O, CC(=O)Oc1ccccc1C(=O)O"
+ },
+ {
+  "idx": 36,
+  "module": "input_regime_v2",
+  "track": "control",
+  "mod": "",
+  "seed": "dock_1",
+  "prompt": "Dock these 20 ligands (SDF) into the ATP pocket of EGFR (PDB 1M17)."
+ },
+ {
+  "idx": 37,
+  "module": "input_regime_v2",
+  "track": "control",
+  "mod": "",
+  "seed": "crispr_1",
+  "prompt": "Pooled CRISPR knockout screen FASTQ files: count sgRNAs and call gene-level hits."
+ },
+ {
+  "idx": 38,
+  "module": "input_regime_v2",
+  "track": "both_regimes",
+  "mod": "",
+  "seed": "both_1",
+  "prompt": "I have both the raw .raw files and the MaxQuant proteinGroups.txt; I just want the differential protein analysis quickly."
+ },
+ {
+  "idx": 39,
+  "module": "input_regime_v2",
+  "track": "both_regimes",
+  "mod": "",
+  "seed": "both_2",
+  "prompt": "I have FASTQ files but I only want to run DE on the count matrix I already generated from them."
+ }
+]
