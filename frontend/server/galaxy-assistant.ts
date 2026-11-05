@@ -1712,6 +1712,8 @@ export interface IntentDecomposition {
    * Computed by the classifier but historically only logged; surfaced to the
    * user as a persistent "why this routing" line. */
   rationale?: string;
+  /** True when no LLM produced this decomposition (keyword last-resort after every model failed). */
+  degraded?: boolean;
 }
 
 export interface SubIntentResult {
@@ -2260,6 +2262,32 @@ export function dagPlanName(tasks: Array<{ description: string; depends_on: numb
   const clause = text.split(/(?<=[.;:。；])\s*/)[0].replace(/[.;:。；]$/, '');
   const name = clause.length <= 60 ? clause : clause.slice(0, 57).replace(/\s+\S*$/, '') + '…';
   return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+/** One decomposition call through OpenRouter's OpenAI-compatible API (retried once on a transport or
+ *  provider error — providers throttle concurrent ≈21k-token requests). Returns the raw text. */
+export async function decomposeViaOpenRouter(model: string, key: string, system: string, user: string,
+  fetchImpl: typeof fetch = fetch): Promise<string> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'X-Title': 'BioMate' },
+        body: JSON.stringify({ model, max_tokens: 4096, temperature: 0, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
+        signal: AbortSignal.timeout(45000),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 160)}`);
+      const j: any = await r.json();
+      const text = j?.choices?.[0]?.message?.content;
+      if (typeof text !== 'string' || !text.trim()) throw new Error('empty response');
+      return text;
+    } catch (e) {
+      lastErr = e;
+      if (attempt === 0) await new Promise(res => setTimeout(res, 1500));
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
 
 export function parseExecutionMode(v: unknown): 'pipeline' | 'direct_compute' | null {
@@ -7867,8 +7895,22 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       // Two-tier Gemini routing: Pro for complex queries, Flash for simple ones.
       // Falls back to the configured intentModel for non-Gemini backbones.
       const configured = this.modelConfig.intentModel;
-      const isGemini = configured.startsWith('gemini-');
-      const effectiveIntentModel = isGemini ? pickGeminiIntentModel(message) : configured;
+      // "openrouter:<slug>" = classify/decompose with that model via OpenRouter using its OWN key
+      // (BIOMATE_DECOMP_OPENROUTER_KEY — not OPENROUTER_API_KEY, which routes every keyless user's whole
+      // chat through OpenRouter). Chosen on the held-out decomposition benchmark (docs/20261103 §12.2).
+      // On failure the Gemini path below runs (Flash), then the keyword fallback, marked degraded.
+      const orModel = configured.startsWith('openrouter:') ? configured.slice('openrouter:'.length) : '';
+      const orKey = process.env.BIOMATE_DECOMP_OPENROUTER_KEY || '';
+      const isGemini = configured.startsWith('gemini-') || !!orModel;
+      const effectiveIntentModel = orModel ? GEMINI_FLASH_MODEL : isGemini ? pickGeminiIntentModel(message) : configured;
+      let primaryText: string | undefined;
+      if (orModel && orKey) {
+        primaryText = await decomposeViaOpenRouter(orModel, orKey, systemPrompt, messageForUQU).catch((e: any) => {
+          console.warn(`[Intent] primary decomposition model ${orModel} failed (${String(e?.message || e).slice(0, 160)}) — falling back to ${GEMINI_FLASH_MODEL}`);
+          return undefined;
+        });
+        if (primaryText !== undefined) console.log('[GalaxyAssistant] Intent API response (OpenRouter):', { model: orModel, time_ms: Date.now() - intentStartTime });
+      }
       console.log('[GalaxyAssistant] Intent API request:', {
         model: effectiveIntentModel,
         tier: isGemini ? (effectiveIntentModel === GEMINI_PRO_MODEL ? 'pro' : 'flash') : 'non-gemini',
@@ -7880,7 +7922,9 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       // Intent classification - using configurable model (Anthropic or Gemini)
       let resultText: string;
 
-      if (isGemini && this.gemini) {
+      if (primaryText !== undefined) {
+        resultText = primaryText;
+      } else if (isGemini && this.gemini) {
         const geminiModel = this.gemini.getGenerativeModel({
           model: effectiveIntentModel,
           // Bumped 2500→4096: complex tier 0 queries (e.g. T03 "Base editing strategy for
@@ -8113,11 +8157,14 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         dependsOn: [],
         actions: inferActionsFromType(_fallbackType),
       };
-      console.warn(`[GalaxyAssistant] Intent parse failed — using keyword fallback, type=${_fallbackType} (hasInlineData=${_fallbackHasInlineData})`);
+      // Last resort only: every LLM path failed. Not a decomposition — say so loudly (the benchmark found
+      // this path scoring silently for 240 throttled calls, 2026-11-04) and mark the result degraded.
+      console.error(`[Intent] DEGRADED: all decomposition models failed (${errMsg.slice(0, 200)}) — keyword fallback, type=${_fallbackType} (hasInlineData=${_fallbackHasInlineData})`);
       return {
         intents: [fallback],
         isMultiIntent: false,
         primaryIntent: fallback,
+        degraded: true,
       };
     }
   }
